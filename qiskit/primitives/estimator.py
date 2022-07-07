@@ -16,7 +16,6 @@ Estimator class
 from __future__ import annotations
 
 from collections.abc import Iterable, Sequence
-from typing import cast
 
 import numpy as np
 
@@ -33,7 +32,18 @@ from .utils import init_circuit, init_observable
 
 class Estimator(BaseEstimator):
     """
-    Estimator class
+    Reference implementation of :class:`BaseEstimator`.
+
+    :Run Options:
+
+        - **shots** (None or int) --
+          The number of shots. If None, it calculates the exact expectation
+          values. Otherwise, it samples from normal distributions with standard errors as standard
+          deviations using normal distribution approximation.
+
+        - **seed** (np.random.Generator or int) --
+          Set a fixed seed or generator for the normal distribution. If shots is None,
+          this option is ignored.
     """
 
     def __init__(
@@ -43,12 +53,12 @@ class Estimator(BaseEstimator):
         parameters: Iterable[Iterable[Parameter]] | None = None,
     ):
         if isinstance(circuits, QuantumCircuit):
-            circuits = [circuits]
-        circuits = [init_circuit(circuit) for circuit in circuits]
+            circuits = (circuits,)
+        circuits = tuple(init_circuit(circuit) for circuit in circuits)
 
         if isinstance(observables, (PauliSumOp, BaseOperator)):
-            observables = [observables]
-        observables = [init_observable(observable) for observable in observables]
+            observables = (observables,)
+        observables = tuple(init_observable(observable) for observable in observables)
 
         super().__init__(
             circuits=circuits,
@@ -57,40 +67,30 @@ class Estimator(BaseEstimator):
         )
         self._is_closed = False
 
-    def __call__(
+    def _call(
         self,
-        circuit_indices: Sequence[int] | None = None,
-        observable_indices: Sequence[int] | None = None,
-        parameter_values: Sequence[Sequence[float]] | Sequence[float] | None = None,
+        circuits: Sequence[int],
+        observables: Sequence[int],
+        parameter_values: Sequence[Sequence[float]],
         **run_options,
     ) -> EstimatorResult:
         if self._is_closed:
             raise QiskitError("The primitive has been closed.")
 
-        if isinstance(parameter_values, np.ndarray):
-            parameter_values = parameter_values.tolist()
-        if parameter_values and not isinstance(parameter_values[0], (np.ndarray, Sequence)):
-            parameter_values = cast("Sequence[float]", parameter_values)
-            parameter_values = [parameter_values]
-        if circuit_indices is None:
-            circuit_indices = list(range(len(self._circuits)))
-        if observable_indices is None:
-            observable_indices = list(range(len(self._observables)))
-        if parameter_values is None:
-            parameter_values = [[]] * len(circuit_indices)
-        if len(circuit_indices) != len(observable_indices):
-            raise QiskitError(
-                f"The number of circuit indices ({len(circuit_indices)}) does not match "
-                f"the number of observable indices ({len(observable_indices)})."
-            )
-        if len(circuit_indices) != len(parameter_values):
-            raise QiskitError(
-                f"The number of circuit indices ({len(circuit_indices)}) does not match "
-                f"the number of parameter value sets ({len(parameter_values)})."
-            )
+        shots = run_options.pop("shots", None)
+        seed = run_options.pop("seed", None)
+        if seed is None:
+            rng = np.random.default_rng()
+        elif isinstance(seed, np.random.Generator):
+            rng = seed
+        else:
+            rng = np.random.default_rng(seed)
+
+        # Initialize metadata
+        metadata = [{}] * len(circuits)
 
         bound_circuits = []
-        for i, value in zip(circuit_indices, parameter_values):
+        for i, value in zip(circuits, parameter_values):
             if len(value) != len(self._parameters[i]):
                 raise QiskitError(
                     f"The number of values ({len(value)}) does not match "
@@ -99,17 +99,30 @@ class Estimator(BaseEstimator):
             bound_circuits.append(
                 self._circuits[i].bind_parameters(dict(zip(self._parameters[i], value)))
             )
-        sorted_observables = [self._observables[i] for i in observable_indices]
+        sorted_observables = [self._observables[i] for i in observables]
         expectation_values = []
-        for circ, obs in zip(bound_circuits, sorted_observables):
+        for circ, obs, metadatum in zip(bound_circuits, sorted_observables, metadata):
             if circ.num_qubits != obs.num_qubits:
                 raise QiskitError(
                     f"The number of qubits of a circuit ({circ.num_qubits}) does not match "
                     f"the number of qubits of a observable ({obs.num_qubits})."
                 )
-            expectation_values.append(Statevector(circ).expectation_value(obs))
+            final_state = Statevector(circ)
+            expectation_value = final_state.expectation_value(obs)
+            if shots is None:
+                expectation_values.append(expectation_value)
+            else:
+                expectation_value = np.real_if_close(expectation_value)
+                sq_obs = (obs @ obs).simplify()
+                sq_exp_val = np.real_if_close(final_state.expectation_value(sq_obs))
+                variance = sq_exp_val - expectation_value**2
+                standard_deviation = np.sqrt(variance / shots)
+                expectation_value_with_error = rng.normal(expectation_value, standard_deviation)
+                expectation_values.append(expectation_value_with_error)
+                metadatum["variance"] = variance
+                metadatum["shots"] = shots
 
-        return EstimatorResult(np.real_if_close(expectation_values), [{}] * len(expectation_values))
+        return EstimatorResult(np.real_if_close(expectation_values), metadata)
 
     def close(self):
         self._is_closed = True

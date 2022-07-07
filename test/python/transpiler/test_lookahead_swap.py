@@ -20,7 +20,7 @@ from qiskit.transpiler import CouplingMap
 from qiskit.converters import circuit_to_dag
 from qiskit import ClassicalRegister, QuantumRegister, QuantumCircuit
 from qiskit.test import QiskitTestCase
-from qiskit.test.mock import FakeMelbourne
+from qiskit.providers.fake_provider import FakeMelbourne
 
 
 class TestLookaheadSwap(QiskitTestCase):

@@ -69,7 +69,7 @@ class UnitarySimulatorPy(BackendV1):
         "conditional": False,
         "open_pulse": False,
         "memory": False,
-        "max_shots": 65536,
+        "max_shots": 0,
         "coupling_map": None,
         "description": "A python simulator for unitary matrix corresponding to a circuit",
         "basis_gates": ["u1", "u2", "u3", "rz", "sx", "x", "cx", "id", "unitary"],

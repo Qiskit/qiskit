@@ -93,7 +93,7 @@ automatically lowered to be run as a pulse program:
     import math
 
     from qiskit import pulse
-    from qiskit.test.mock import FakeOpenPulse3Q
+    from qiskit.providers.fake_provider import FakeOpenPulse3Q
 
     # TODO: This example should use a real mock backend.
     backend = FakeOpenPulse3Q()
@@ -127,7 +127,7 @@ In the example below we demonstrate some more features of the pulse builder:
 
     from qiskit import pulse, QuantumCircuit
     from qiskit.pulse import library
-    from qiskit.test.mock import FakeOpenPulse2Q
+    from qiskit.providers.fake_provider import FakeOpenPulse2Q
 
     backend = FakeOpenPulse2Q()
 
@@ -243,7 +243,7 @@ Methods to return the correct channels for the respective qubit indices.
 .. jupyter-execute::
 
     from qiskit import pulse
-    from qiskit.test.mock import FakeArmonk
+    from qiskit.providers.fake_provider import FakeArmonk
 
     backend = FakeArmonk()
 
@@ -269,7 +269,7 @@ Pulse instructions are available within the builder interface. Here's an example
 .. jupyter-execute::
 
     from qiskit import pulse
-    from qiskit.test.mock import FakeArmonk
+    from qiskit.providers.fake_provider import FakeArmonk
 
     backend = FakeArmonk()
 
@@ -357,7 +357,7 @@ Macros help you add more complex functionality to your pulse program.
 .. jupyter-execute::
 
     from qiskit import pulse
-    from qiskit.test.mock import FakeArmonk
+    from qiskit.providers.fake_provider import FakeArmonk
 
     backend = FakeArmonk()
 
@@ -389,7 +389,7 @@ with :func:`call`.
     import math
 
     from qiskit import pulse
-    from qiskit.test.mock import FakeArmonk
+    from qiskit.providers.fake_provider import FakeArmonk
 
     backend = FakeArmonk()
 
@@ -416,7 +416,7 @@ how the program is built.
 
     from qiskit import pulse
 
-    from qiskit.test.mock import FakeArmonk
+    from qiskit.providers.fake_provider import FakeArmonk
 
     backend = FakeArmonk()
 
@@ -882,7 +882,7 @@ def build(
     .. jupyter-execute::
 
         from qiskit import execute, pulse
-        from qiskit.test.mock import FakeOpenPulse2Q
+        from qiskit.providers.fake_provider import FakeOpenPulse2Q
 
         backend = FakeOpenPulse2Q()
 
@@ -1013,7 +1013,7 @@ def num_qubits() -> int:
     .. jupyter-execute::
 
         from qiskit import pulse
-        from qiskit.test.mock import FakeOpenPulse2Q
+        from qiskit.providers.fake_provider import FakeOpenPulse2Q
 
         backend = FakeOpenPulse2Q()
 
@@ -1063,7 +1063,7 @@ def qubit_channels(qubit: int) -> Set[chans.Channel]:
     .. jupyter-execute::
 
         from qiskit import pulse
-        from qiskit.test.mock import FakeOpenPulse2Q
+        from qiskit.providers.fake_provider import FakeOpenPulse2Q
 
         backend = FakeOpenPulse2Q()
 
@@ -1102,7 +1102,7 @@ def active_transpiler_settings() -> Dict[str, Any]:
     .. jupyter-execute::
 
         from qiskit import pulse
-        from qiskit.test.mock import FakeOpenPulse2Q
+        from qiskit.providers.fake_provider import FakeOpenPulse2Q
 
         backend = FakeOpenPulse2Q()
 
@@ -1124,7 +1124,7 @@ def active_circuit_scheduler_settings() -> Dict[str, Any]:  # pylint: disable=in
     .. jupyter-execute::
 
         from qiskit import pulse
-        from qiskit.test.mock import FakeOpenPulse2Q
+        from qiskit.providers.fake_provider import FakeOpenPulse2Q
 
         backend = FakeOpenPulse2Q()
 
@@ -1459,7 +1459,7 @@ def transpiler_settings(**settings) -> ContextManager[None]:
     .. jupyter-execute::
 
         from qiskit import pulse
-        from qiskit.test.mock import FakeOpenPulse2Q
+        from qiskit.providers.fake_provider import FakeOpenPulse2Q
 
         backend = FakeOpenPulse2Q()
 
@@ -1486,7 +1486,7 @@ def circuit_scheduler_settings(**settings) -> ContextManager[None]:
     .. jupyter-execute::
 
         from qiskit import pulse
-        from qiskit.test.mock import FakeOpenPulse2Q
+        from qiskit.providers.fake_provider import FakeOpenPulse2Q
 
         backend = FakeOpenPulse2Q()
 
@@ -1614,7 +1614,7 @@ def drive_channel(qubit: int) -> chans.DriveChannel:
     .. jupyter-execute::
 
         from qiskit import pulse
-        from qiskit.test.mock import FakeOpenPulse2Q
+        from qiskit.providers.fake_provider import FakeOpenPulse2Q
 
         backend = FakeOpenPulse2Q()
 
@@ -1634,7 +1634,7 @@ def measure_channel(qubit: int) -> chans.MeasureChannel:
     .. jupyter-execute::
 
         from qiskit import pulse
-        from qiskit.test.mock import FakeOpenPulse2Q
+        from qiskit.providers.fake_provider import FakeOpenPulse2Q
 
         backend = FakeOpenPulse2Q()
 
@@ -1654,7 +1654,7 @@ def acquire_channel(qubit: int) -> chans.AcquireChannel:
     .. jupyter-execute::
 
         from qiskit import pulse
-        from qiskit.test.mock import FakeOpenPulse2Q
+        from qiskit.providers.fake_provider import FakeOpenPulse2Q
 
         backend = FakeOpenPulse2Q()
 
@@ -1677,7 +1677,7 @@ def control_channels(*qubits: Iterable[int]) -> List[chans.ControlChannel]:
     .. jupyter-execute::
 
         from qiskit import pulse
-        from qiskit.test.mock import FakeOpenPulse2Q
+        from qiskit.providers.fake_provider import FakeOpenPulse2Q
 
         backend = FakeOpenPulse2Q()
         with pulse.build(backend):
@@ -1940,7 +1940,7 @@ def call(
         .. jupyter-execute::
 
             from qiskit import circuit, pulse
-            from qiskit.test.mock import FakeBogotaV2
+            from qiskit.providers.fake_provider import FakeBogotaV2
 
             backend = FakeBogotaV2()
 
@@ -2083,7 +2083,7 @@ def barrier(*channels_or_qubits: Union[chans.Channel, int], name: Optional[str] 
     .. jupyter-execute::
 
         from qiskit import pulse
-        from qiskit.test.mock import FakeOpenPulse2Q
+        from qiskit.providers.fake_provider import FakeOpenPulse2Q
 
         backend = FakeOpenPulse2Q()
 
@@ -2222,7 +2222,7 @@ def measure(
     .. jupyter-execute::
 
         from qiskit import pulse
-        from qiskit.test.mock import FakeOpenPulse2Q
+        from qiskit.providers.fake_provider import FakeOpenPulse2Q
 
         backend = FakeOpenPulse2Q()
 
@@ -2303,7 +2303,7 @@ def measure_all() -> List[chans.MemorySlot]:
     .. jupyter-execute::
 
         from qiskit import pulse
-        from qiskit.test.mock import FakeOpenPulse2Q
+        from qiskit.providers.fake_provider import FakeOpenPulse2Q
 
         backend = FakeOpenPulse2Q()
 
@@ -2343,7 +2343,7 @@ def delay_qubits(duration: int, *qubits: Union[int, Iterable[int]]):
     .. jupyter-execute::
 
         from qiskit import pulse
-        from qiskit.test.mock import FakeOpenPulse3Q
+        from qiskit.providers.fake_provider import FakeOpenPulse3Q
 
         backend = FakeOpenPulse3Q()
 
@@ -2384,7 +2384,7 @@ def call_gate(gate: circuit.Gate, qubits: Tuple[int, ...], lazy: bool = True):
         from qiskit import pulse
         from qiskit.pulse import builder
         from qiskit.circuit.library import standard_gates as gates
-        from qiskit.test.mock import FakeOpenPulse2Q
+        from qiskit.providers.fake_provider import FakeOpenPulse2Q
 
         backend = FakeOpenPulse2Q()
 
@@ -2435,7 +2435,7 @@ def cx(control: int, target: int):  # pylint: disable=invalid-name
     .. jupyter-execute::
 
         from qiskit import pulse
-        from qiskit.test.mock import FakeOpenPulse2Q
+        from qiskit.providers.fake_provider import FakeOpenPulse2Q
 
         backend = FakeOpenPulse2Q()
 
@@ -2462,7 +2462,7 @@ def u1(theta: float, qubit: int):  # pylint: disable=invalid-name
         import math
 
         from qiskit import pulse
-        from qiskit.test.mock import FakeOpenPulse2Q
+        from qiskit.providers.fake_provider import FakeOpenPulse2Q
 
         backend = FakeOpenPulse2Q()
 
@@ -2489,7 +2489,7 @@ def u2(phi: float, lam: float, qubit: int):  # pylint: disable=invalid-name
         import math
 
         from qiskit import pulse
-        from qiskit.test.mock import FakeOpenPulse2Q
+        from qiskit.providers.fake_provider import FakeOpenPulse2Q
 
         backend = FakeOpenPulse2Q()
 
@@ -2516,7 +2516,7 @@ def u3(theta: float, phi: float, lam: float, qubit: int):  # pylint: disable=inv
         import math
 
         from qiskit import pulse
-        from qiskit.test.mock import FakeOpenPulse2Q
+        from qiskit.providers.fake_provider import FakeOpenPulse2Q
 
         backend = FakeOpenPulse2Q()
 
@@ -2541,7 +2541,7 @@ def x(qubit: int):
     .. jupyter-execute::
 
         from qiskit import pulse
-        from qiskit.test.mock import FakeOpenPulse2Q
+        from qiskit.providers.fake_provider import FakeOpenPulse2Q
 
         backend = FakeOpenPulse2Q()
 

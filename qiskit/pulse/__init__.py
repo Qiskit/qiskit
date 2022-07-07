@@ -144,6 +144,7 @@ from qiskit.pulse.library import (
     Gaussian,
     GaussianSquare,
     ParametricPulse,
+    SymbolicPulse,
     Waveform,
 )
 from qiskit.pulse.library.samplers.decorators import functional_pulse

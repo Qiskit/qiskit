@@ -202,13 +202,37 @@ class TridiagonalToeplitz(LinearSystemMatrix):
         return matrix
 
     def eigs_bounds(self) -> Tuple[float, float]:
-        """Return lower and upper bounds on the eigenvalues of the matrix."""
+        """Return lower and upper bounds on the absolute eigenvalues of the matrix."""
         n_b = 2**self.num_state_qubits
-        # Calculate the eigenvalues according to the formula for Toeplitz matrices
-        eig_1 = np.abs(self.main_diag - 2 * self.off_diag * np.cos(n_b * np.pi / (n_b + 1)))
-        eig_2 = np.abs(self.main_diag - 2 * self.off_diag * np.cos(np.pi / (n_b + 1)))
-        lambda_min = min(eig_1, eig_2)
-        lambda_max = max(eig_1, eig_2)
+
+        # Calculate minimum and maximum of absolute value of eigenvalues
+        # according to the formula for Toeplitz 3-diagonal matrices
+
+        # For maximum it's enough to check border points of segment [1, n_b]
+        candidate_eig_ids = [1, n_b]
+
+        # Trying to add candidates near the minimum value of absolute eigenvalues
+        # function abs(main_diag - 2 * off_diag * cos(i * pi / (nb + 1))
+        if abs(self.main_diag) < 2 * abs(self.off_diag):
+            optimal_index = int(np.arccos(self.main_diag / 2 / self.off_diag) / np.pi * (n_b + 1))
+
+            def add_candidate_index_if_valid(index_to_add: int) -> None:
+                if 1 <= index_to_add <= n_b:
+                    candidate_eig_ids.append(index_to_add)
+
+            add_candidate_index_if_valid(optimal_index - 1)
+            add_candidate_index_if_valid(optimal_index)
+            add_candidate_index_if_valid(optimal_index + 1)
+
+        candidate_abs_eigs = np.abs(
+            [
+                self.main_diag - 2 * self.off_diag * np.cos(eig_id * np.pi / (n_b + 1))
+                for eig_id in candidate_eig_ids
+            ]
+        )
+
+        lambda_min = np.min(candidate_abs_eigs)
+        lambda_max = np.max(candidate_abs_eigs)
         return lambda_min, lambda_max
 
     def condition_bounds(self) -> Tuple[float, float]:

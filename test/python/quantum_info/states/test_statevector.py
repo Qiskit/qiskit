@@ -1164,6 +1164,29 @@ class TestStatevector(QiskitTestCase):
         self.assertTrue(latex_string.startswith(" |0\\rangle"))
         self.assertNotIn("|1\\rangle", latex_string)
 
+    def test_statevctor_iter(self):
+        """Test iteration over a state vector"""
+        empty_vector = []
+        dummy_vector = [1, 2, 3]
+        empty_sv = Statevector([])
+        sv = Statevector(dummy_vector)
+
+        # Assert that successive iterations behave as expected, i.e., the
+        # iterator is reset upon each exhaustion of the corresponding
+        # collection of elements.
+        for _ in range(2):
+            self.assertEqual(empty_vector, list(empty_sv))
+            self.assertEqual(dummy_vector, list(sv))
+
+    def test_statevector_len(self):
+        """Test state vector length"""
+        empty_vector = []
+        dummy_vector = [1, 2, 3]
+        empty_sv = Statevector([])
+        sv = Statevector(dummy_vector)
+        self.assertEqual(len(empty_vector), len(empty_sv))
+        self.assertEqual(len(dummy_vector), len(sv))
+
 
 if __name__ == "__main__":
     unittest.main()

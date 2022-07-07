@@ -161,9 +161,9 @@ measure qr[1] -> cr[1];\n"""
         circuit = QuantumCircuit(qr, name="circuit")
         circuit.append(my_gate_inst1, [qr[0]])
         circuit.append(my_gate_inst2, [qr[0]])
-        my_gate_inst2_id = id(circuit.data[-1][0])
+        my_gate_inst2_id = id(circuit.data[-1].operation)
         circuit.append(my_gate_inst3, [qr[0]])
-        my_gate_inst3_id = id(circuit.data[-1][0])
+        my_gate_inst3_id = id(circuit.data[-1].operation)
 
         expected_qasm = """OPENQASM 2.0;
 include "qelib1.inc";
@@ -369,8 +369,8 @@ custom_{id(gate2)} q[1],q[0];\n"""
         self.assertEqual(expected_qasm, qc.qasm())
         # Check instruction names were not changed by qasm()
         names = ["h", "x", "custom", "custom"]
-        for idx, (instruction, _, _) in enumerate(qc._data):
-            self.assertEqual(instruction.name, names[idx])
+        for idx, instruction in enumerate(qc._data):
+            self.assertEqual(instruction.operation.name, names[idx])
 
     def test_circuit_qasm_with_invalid_identifiers(self):
         """Test that qasm() detects and corrects invalid OpenQASM gate identifiers,
@@ -421,8 +421,8 @@ custom_{id(gate2)} q[1],q[0];\n"""
 
         # Check instruction names were not changed by qasm()
         names = ["unitary", "A[$]", "invalid[name]"]
-        for idx, (instruction, _, _) in enumerate(qc._data):
-            self.assertEqual(instruction.name, names[idx])
+        for idx, instruction in enumerate(qc._data):
+            self.assertEqual(instruction.operation.name, names[idx])
 
     def test_circuit_qasm_with_duplicate_invalid_identifiers(self):
         """Test that qasm() corrects invalid identifiers and the de-duplication
@@ -448,5 +448,5 @@ custom_{id(gate2)} q[1],q[0];\n"""
 
         # Check instruction names were not changed by qasm()
         names = ["invalid??", "invalid[]"]
-        for idx, (instruction, _, _) in enumerate(base._data):
-            self.assertEqual(instruction.name, names[idx])
+        for idx, instruction in enumerate(base._data):
+            self.assertEqual(instruction.operation.name, names[idx])

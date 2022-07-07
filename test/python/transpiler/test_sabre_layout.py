@@ -19,7 +19,7 @@ from qiskit.transpiler import CouplingMap
 from qiskit.transpiler.passes import SabreLayout
 from qiskit.converters import circuit_to_dag
 from qiskit.test import QiskitTestCase
-from qiskit.test.mock import FakeAlmaden
+from qiskit.providers.fake_provider import FakeAlmaden
 
 
 class TestSabreLayout(QiskitTestCase):

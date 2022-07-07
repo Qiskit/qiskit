@@ -17,8 +17,8 @@ import sys
 from io import BytesIO
 from PIL import Image
 from ddt import ddt, data
-from qiskit.test.mock import FakeProvider
 from qiskit.providers.fake_provider import (
+    FakeProvider,
     FakeKolkata,
     FakeWashington,
     FakeKolkataV2,

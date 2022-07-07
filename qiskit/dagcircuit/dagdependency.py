@@ -608,6 +608,10 @@ def _does_commute(node1, node2):
         intersection_c = set(carg1).intersection(set(carg2))
         return not (intersection_q or intersection_c)
 
+    # Gates over disjoint sets of qubits commute
+    if not set(qarg1).intersection(set(qarg2)):
+        return True
+
     # Known non-commuting gates (TODO: add more).
     non_commute_gates = [{"x", "y"}, {"x", "z"}]
     if qarg1 == qarg2 and ({node1.name, node2.name} in non_commute_gates):

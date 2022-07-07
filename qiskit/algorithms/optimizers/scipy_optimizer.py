@@ -144,22 +144,6 @@ class SciPyOptimizer(Optimizer):
 
         return result
 
-    def optimize(
-        self,
-        num_vars,
-        objective_function,
-        gradient_function=None,
-        variable_bounds=None,
-        initial_point=None,
-    ):
-        super().optimize(
-            num_vars, objective_function, gradient_function, variable_bounds, initial_point
-        )
-        result = self.minimize(
-            objective_function, initial_point, gradient_function, variable_bounds
-        )
-        return result.x, result.fun, result.nfev
-
     @staticmethod
     def _wrap_gradient(gradient_function):
         def wrapped_gradient(x):

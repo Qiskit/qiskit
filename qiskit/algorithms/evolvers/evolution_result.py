@@ -16,7 +16,7 @@ from typing import Optional, Union, Tuple
 
 from qiskit import QuantumCircuit
 from qiskit.algorithms.list_or_dict import ListOrDict
-from qiskit.opflow import StateFn
+from qiskit.opflow import StateFn, OperatorBase
 from ..algorithm_result import AlgorithmResult
 
 
@@ -25,7 +25,7 @@ class EvolutionResult(AlgorithmResult):
 
     def __init__(
         self,
-        evolved_state: Union[StateFn, QuantumCircuit],
+        evolved_state: Union[StateFn, QuantumCircuit, OperatorBase],
         aux_ops_evaluated: Optional[ListOrDict[Tuple[complex, complex]]] = None,
     ):
         """

@@ -18,6 +18,7 @@ from qiskit.transpiler import PassManager, CouplingMap, Layout, TranspilerError
 from qiskit.circuit.library import PauliEvolutionGate
 from qiskit.circuit.library.n_local import QAOAAnsatz
 from qiskit.converters import circuit_to_dag
+from qiskit.exceptions import QiskitError
 from qiskit.opflow import PauliSumOp
 from qiskit.quantum_info import Pauli
 from qiskit.transpiler.passes import FullAncillaAllocation
@@ -27,7 +28,10 @@ from qiskit.transpiler.passes import SetLayout
 
 from qiskit.test import QiskitTestCase
 
-from qiskit.transpiler.passes.routing.swap_strategies import (
+from qiskit.transpiler.passes.routing.commuting_2q_gate_routing.commuting_2q_block import (
+    Commuting2qBlock,
+)
+from qiskit.transpiler.passes.routing.commuting_2q_gate_routing import (
     SwapStrategy,
     FindCommutingPauliEvolutions,
     Commuting2qGateRouter,
@@ -119,6 +123,44 @@ class TestPauliEvolutionSwapStrategies(QiskitTestCase):
         expected.append(PauliEvolutionGate(Pauli("XX"), -6), (1, 2))
         expected.swap(1, 2)
         expected.append(PauliEvolutionGate(Pauli("XX"), 6), (2, 3))
+
+        self.assertEqual(swapped, expected)
+
+    def test_idle_qubit(self):
+        """Test to route on an op that has an idle qubit.
+
+        The op is :code:`[("IIXX", 1), ("IXIX", 2)]`.
+
+        The expected circuit is:
+
+        ..parsed-literal::
+
+                 ┌─────────────────┐
+            q_0: ┤0                ├─X────────────────────
+                 │  exp(-it XX)(3) │ │ ┌─────────────────┐
+            q_1: ┤1                ├─X─┤0                ├
+                 └─────────────────┘   │  exp(-it XX)(6) │
+            q_2: ──────────────────────┤1                ├
+                                       └─────────────────┘
+            q_3: ─────────────────────────────────────────
+
+        """
+        op = PauliSumOp.from_list([("IIXX", 1), ("IXIX", 2)])
+
+        cmap = CouplingMap(couplinglist=[(0, 1), (1, 2), (2, 3)])
+        swap_strat = SwapStrategy(cmap, swap_layers=(((0, 1),),))
+
+        pm_ = PassManager([FindCommutingPauliEvolutions(), Commuting2qGateRouter(swap_strat)])
+
+        circ = QuantumCircuit(4)
+        circ.append(PauliEvolutionGate(op, 3), range(4))
+
+        swapped = pm_.run(circ)
+
+        expected = QuantumCircuit(4)
+        expected.append(PauliEvolutionGate(Pauli("XX"), 3), (0, 1))
+        expected.swap(0, 1)
+        expected.append(PauliEvolutionGate(Pauli("XX"), 6), (1, 2))
 
         self.assertEqual(swapped, expected)
 
@@ -348,6 +390,113 @@ class TestPauliEvolutionSwapStrategies(QiskitTestCase):
 
         self.assertEqual(swapped, expected)
 
+    def test_t_device(self):
+        """Test the swap strategy to route a complete problem on a T device.
+
+        The coupling map in this test corresponds to
+
+        .. parsed-literal::
+
+            0 -- 1 -- 2
+                 |
+                 3
+                 |
+                 4
+
+        The problem being routed is a fully connect ZZ graph. It has 10 terms since there are
+        five qubits in the coupling map. This test checks that the circuit produced by the
+        commuting gate router has the instructions we expect. There are several circuits that are
+        valid since some of the Rzz gates commute.
+        """
+        swaps = (
+            ((1, 3),),
+            ((0, 1), (3, 4)),
+            ((1, 3),),
+        )
+
+        cmap = CouplingMap([[0, 1], [1, 2], [1, 3], [3, 4]])
+        cmap.make_symmetric()
+
+        swap_strat = SwapStrategy(cmap, swaps)
+
+        # A dense Pauli op.
+        op = PauliSumOp.from_list(
+            [
+                ("IIIZZ", 1),
+                ("IIZIZ", 2),
+                ("IZIIZ", 3),
+                ("ZIIIZ", 4),
+                ("IIZZI", 5),
+                ("IZIZI", 6),
+                ("ZIIZI", 7),
+                ("IZZII", 8),
+                ("ZIZII", 9),
+                ("ZZIII", 10),
+            ]
+        )
+
+        circ = QuantumCircuit(5)
+        circ.append(PauliEvolutionGate(op, 1), range(5))
+
+        pm_ = PassManager(
+            [
+                FindCommutingPauliEvolutions(),
+                Commuting2qGateRouter(swap_strat),
+            ]
+        )
+
+        swapped = circuit_to_dag(pm_.run(circ))
+
+        # The swapped circuit can take on several forms as some of the gates commute.
+        # We test that sets of gates are where we expected them in the circuit data
+        def inst_info(op, qargs, qreg):
+            """Get a tuple we can easily test."""
+            param = None
+            if len(op.params) > 0:
+                param = op.params[0]
+
+            return op.name, param, qreg.index(qargs[0]), qreg.index(qargs[1])
+
+        qreg = swapped.qregs["q"]
+        inst_list = list(inst_info(node.op, node.qargs, qreg) for node in swapped.op_nodes())
+
+        # First block has the Rzz gates ("IIIZZ", 1), ("IIZZI", 5), ("IZIZI", 6), ("ZZIII", 10)
+        expected = {
+            ("PauliEvolution", 1.0, 0, 1),
+            ("PauliEvolution", 5.0, 1, 2),
+            ("PauliEvolution", 6.0, 1, 3),
+            ("PauliEvolution", 10.0, 3, 4),
+        }
+        self.assertSetEqual(set(inst_list[0:4]), expected)
+
+        # Block 2 is a swap
+        self.assertSetEqual({inst_list[4]}, {("swap", None, 1, 3)})
+
+        # Block 3 This combines a swap layer and two layers of Rzz gates.
+        expected = {
+            ("PauliEvolution", 8.0, 2, 1),
+            ("PauliEvolution", 7.0, 3, 4),
+            ("PauliEvolution", 3.0, 0, 1),
+            ("swap", None, 0, 1),
+            ("PauliEvolution", 2.0, 1, 2),
+            ("PauliEvolution", 4.0, 1, 3),
+            ("swap", None, 3, 4),
+        }
+        self.assertSetEqual(set(inst_list[5:12]), expected)
+
+        # Test the remaining instructions.
+        self.assertSetEqual({inst_list[12]}, {("swap", None, 1, 3)})
+        self.assertSetEqual({inst_list[13]}, {("PauliEvolution", 9.0, 2, 1)})
+
+    def test_single_qubit_circuit(self):
+        """Test that a circuit with only single qubit gates is left unchanged."""
+        op = PauliSumOp.from_list([("IIIX", 1), ("IIXI", 2), ("IZII", 3), ("XIII", 4)])
+
+        circ = QuantumCircuit(4)
+        circ.append(PauliEvolutionGate(op, 1), range(4))
+
+        self.assertEqual(circ, self.pm_.run(circ))
+
 
 class TestSwapRouterExceptions(QiskitTestCase):
     """Test that exceptions are properly raises."""
@@ -402,3 +551,11 @@ class TestSwapRouterExceptions(QiskitTestCase):
 
         with self.assertRaises(TranspilerError):
             pm_.run(self.circ)
+
+    def test_commuting2qblocks_errors(self):
+        """Test the errors of the 2q commuting block."""
+        circ = QuantumCircuit(3)
+        circ.ccx(0, 1, 2)
+
+        with self.assertRaises(QiskitError):
+            Commuting2qBlock(circuit_to_dag(circ).op_nodes())

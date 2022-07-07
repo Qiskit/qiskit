@@ -13,6 +13,7 @@
 """Rotation around an axis in x-y plane."""
 
 import math
+from cmath import exp
 from typing import Optional
 import numpy
 from qiskit.qasm import pi
@@ -81,6 +82,6 @@ class RGate(Gate):
         theta, phi = float(self.params[0]), float(self.params[1])
         cos = math.cos(theta / 2)
         sin = math.sin(theta / 2)
-        exp_m = numpy.exp(-1j * phi)
-        exp_p = numpy.exp(1j * phi)
+        exp_m = exp(-1j * phi)
+        exp_p = exp(1j * phi)
         return numpy.array([[cos, -1j * exp_m * sin], [-1j * exp_p * sin, cos]], dtype=dtype)
