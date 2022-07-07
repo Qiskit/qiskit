@@ -79,7 +79,6 @@ def _sequential_allocation(block) -> rx.PyDAG:
         prev_id = dag.node_indices()[-1]
         edges.append((prev_id, node_id))
     dag.add_edges_from_no_data(edges)
-
     return dag
 
 
@@ -105,5 +104,4 @@ def _parallel_allocation(block) -> rx.PyDAG:
                 slots[chan] = node_id
             prev_reference = node_id
     dag.add_edges_from_no_data(list(edges))
-
     return dag

@@ -1954,7 +1954,7 @@ def call(
 
         .. warning::
 
-            Calling circuit from scheduel is not encouraged. Currently Qiskit execution model
+            Calling circuit from schedule is not encouraged. Currently, Qiskit execution model
             is migrating toward the pulse gate model, where schedules are attached to
             circuit through :meth:`.QuantumCircuit.add_calibration` method.
 

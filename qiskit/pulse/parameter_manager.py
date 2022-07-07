@@ -328,7 +328,7 @@ class ParameterGetter(NodeVisitor):
         """Get parameters from general pulse instruction.
 
         .. note:: All parametrized object should be stored in the operands.
-            Otherwise parameter cannot be detected.
+            Otherwise, parameter cannot be detected.
         """
         for op in node.operands:
             self.visit(op)
@@ -349,7 +349,7 @@ class ParameterGetter(NodeVisitor):
         """Get parameters from ``SymbolicPulse`` object."""
         for op_value in node.parameters.values():
             if isinstance(op_value, ParameterExpression):
-                self._add_parameters(op_value)
+                self.parameters = self.parameters | op_value.parameters
 
     def visit_Waveform(self, node: Waveform):
         """Get parameters from ``Waveform`` object.
