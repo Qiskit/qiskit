@@ -1,0 +1,35 @@
+---
+features:
+  - |
+    :class:`.ScheduleBlock` has been updated so that it can manage unassigned subroutine,
+    in other words, to allow user the lazy calling of other programs.
+    For example, this enables following workflow:
+
+    .. code-block:: python
+
+      from qiskit import pulse
+
+      with pulse.build() as prog:
+        pulse.reference("x", "q0")
+
+      with pulse.build() as xq0:
+        pulse.play(Gaussian(160, 0.1, 40), pulse.DriveChannel(0))
+
+      prog.assign_references({("x", "q0"): xq0})
+
+    Now a user can create ``prog`` without knowing actual implementation of
+    the reference ``("x", "q0")``, and assign it at a later time for execution.
+    This improves modularity of pulse programs, and thus one can easily write a template
+    pulse program relaying on other calibrations.
+
+    To realize this feature, new pulse instruction (compiler directive)
+    :class:`~qiskit.pulse.instructions.Reference` has been added.
+    This instruction is injected into the current builder scope when
+    :func:`~qiskit.pulse.builder.reference` command is used.
+    All references defined in the current pulse program can be listed with
+    :attr:`~qiskit.pulse.schedule.ScheduleBlock.references` property.
+
+    In addition, every reference is managed with a scope to ease the parameter management.
+    :attr:`~qiskit.pulse.schedule.ScheduleBlock.scoped_parameters` and
+    :meth:`~qiskit.pulse.schedule.ScheduleBlock.search_parameters` have been added to
+    the schedule block. See API documentation for more details.
