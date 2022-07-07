@@ -927,7 +927,7 @@ class ScheduleBlock:
 
     .. jupyter-execute::
 
-        sched2.assign_references({"grand_child": sched1})
+        sched2.assign_references({("grand_child", ): sched1})
         print(sched2.scoped_parameters)
 
     Now you get two parameters "root::amp" and "root::grand_child::amp".
@@ -960,7 +960,7 @@ class ScheduleBlock:
 
     .. jupyter-execute::
 
-        main.get_parameters("amp", scope="root::child::grand_child")
+        main.search_parameters("root::child::grand_child::amp")
 
     You can use regular expression to specify the scope.
     This returns the parameters defined within the scope of "ground_child"
@@ -969,7 +969,7 @@ class ScheduleBlock:
 
     .. jupyter-execute::
 
-        main.get_parameters("amp", scope="\\S::grand_child")
+        main.search_parameters("\\S::grand_child::amp")
 
     Note that the root program is only aware of its direct references.
 
@@ -1525,14 +1525,14 @@ class ScheduleBlock:
 
         .. code-block:: python
 
-            sub_prog.assign_references({"A": nested_prog}, inplace=True)
-            main_prog.assign_references({"B": sub_prog}, inplace=True)
+            sub_prog.assign_references({("A", ): nested_prog}, inplace=True)
+            main_prog.assign_references({("B", ): sub_prog}, inplace=True)
 
         Alternatively, you can also write
 
         .. code-block:: python
 
-            main_prog.assign_references({"B": sub_prog}, inplace=True)
+            main_prog.assign_references({("B", ): sub_prog}, inplace=True)
             main_prog.references[("B", )].assign_references({"A": nested_prog}, inplace=True)
 
         here :attr:`.references` returns a dict-like object, and you can
@@ -1565,15 +1565,12 @@ class ScheduleBlock:
 
         return self
 
-    def get_parameters(
-        self,
-        parameter_name: str,
-        scope: Optional[str] = None,
-    ) -> List[Parameter]:
+    def get_parameters(self, parameter_name: str) -> List[Parameter]:
         """Get parameter object bound to this schedule by string name.
 
         Note that we can define different parameter objects with the same name,
         because these different objects are identified by their unique uuid.
+        For example,
 
         .. code-block:: python
 
@@ -1589,39 +1586,49 @@ class ScheduleBlock:
                 pulse.call(sub_prog, name="sub")
                 pulse.play(pulse.Constant(100, amp2), pulse.DriveChannel(0))
 
-        For example,
-
-        .. code-block:: python
-
             main_prog.get_parameters("amp")
 
-        returns a list of two parameters ``amp1`` and ``amp2``, while
-
-        .. code-block:: python
-
-            main_prog.get_parameters("amp", scope="root::sub")
-
-        returns only ``amp1`` with scoped name "root::sub::amp". Parameter name doesn't matter here
-        because these are managed by the object uuid.
+        This returns a list of two parameters ``amp1`` and ``amp2``.
 
         Args:
             parameter_name: Name of parameter.
-            scope: Scope of the program to investigate. Defaults to the current block.
-                Scope is used as a regular expression to search all scoped parameters.
 
         Returns:
             Parameter objects that have corresponding name.
         """
-        if scope is None:
-            # Search parameter from all parameters
-            return list(set(p for p in self.parameters if p.name == parameter_name))
+        matched = [p for p in self.parameters if p.name == parameter_name]
+        return sorted(matched, key=lambda p: p.name)
 
-        matched = set()
-        for param in self.scoped_parameters:
-            eval_scope, _, eval_name = param.name.rpartition(Reference.scope_delimiter)
-            if re.search(scope, eval_scope) and parameter_name == eval_name:
-                matched.add(param)
+    def search_parameters(self, parameter_regex: str) -> List[Parameter]:
+        """Search parameter with regular expression.
+        This method looks for the scope-aware parameters.
+        For example,
 
+        .. code-block:: python
+
+            from qiskit import pulse, circuit
+
+            amp1 = circuit.Parameter("amp")
+            amp2 = circuit.Parameter("amp")
+
+            with pulse.build() as sub_prog:
+                pulse.play(pulse.Constant(100, amp1), pulse.DriveChannel(0))
+
+            with pulse.build() as main_prog:
+                pulse.call(sub_prog, name="sub")
+                pulse.play(pulse.Constant(100, amp2), pulse.DriveChannel(0))
+
+            main_prog.search_parameters("root::sub::amp")
+
+        This finds ``amp1`` with scoped name "root::sub::amp".
+
+        Args:
+            parameter_regex: Regular expression for scoped parameter name.
+
+        Returns:
+            Parameter objects that have corresponding name.
+        """
+        matched = [p for p in self.scoped_parameters if re.search(parameter_regex, p.name)]
         return sorted(matched, key=lambda p: p.name)
 
     def __len__(self) -> int:

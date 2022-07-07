@@ -61,7 +61,7 @@ class TestReference(QiskitTestCase):
 
         # object equality
         self.assertEqual(
-            sched_z1.get_parameters("name", scope="root")[0],
+            sched_z1.search_parameters("root::name")[0],
             param,
         )
 
@@ -113,13 +113,13 @@ class TestReference(QiskitTestCase):
 
         # object equality
         self.assertEqual(
-            sched_z1.get_parameters("name", scope="root::y1,d0::x1,d0")[0],
+            sched_z1.search_parameters("root::y1,d0::x1,d0::name")[0],
             param,
         )
 
         # regex
         self.assertEqual(
-            sched_z1.get_parameters("name", scope=r"\S::x1,d0")[0],
+            sched_z1.search_parameters(r"\S::x1,d0::name")[0],
             param,
         )
 
@@ -165,13 +165,13 @@ class TestReference(QiskitTestCase):
 
         # object equality
         self.assertEqual(
-            sched_z1.get_parameters("name", scope="root::y1::x1")[0],
+            sched_z1.search_parameters("root::y1::x1::name")[0],
             param,
         )
 
         # regex
         self.assertEqual(
-            sched_z1.get_parameters("name", scope=r"\S::x1")[0],
+            sched_z1.search_parameters(r"\S::x1::name")[0],
             param,
         )
 
@@ -368,7 +368,7 @@ class TestReference(QiskitTestCase):
             pulse.reference("sub", "q0")
         sched_y1.assign_references({("sub", "q0"): sched_x1})
 
-        ret_param = sched_y1.get_parameters("my.parameter_object", scope=r"\Ssub,q0")[0]
+        ret_param = sched_y1.search_parameters(r"\Ssub,q0::my.parameter_object")[0]
 
         self.assertEqual(param, ret_param)
 
@@ -522,7 +522,7 @@ class TestSubroutineWithCXGate(QiskitTestCase):
         self.assertEqual(len(params), 2)
 
         # Get parameter with scope, only xp amp
-        params = sched.get_parameters(parameter_name="amp", scope="root::xp,q0")
+        params = sched.search_parameters(parameter_regex="root::xp,q0::amp")
         self.assertEqual(len(params), 1)
 
     def test_cnot(self):
@@ -542,11 +542,11 @@ class TestSubroutineWithCXGate(QiskitTestCase):
             pulse.call(ecr_sched, name="ecr")
 
         # get parameter with scope, full scope is not needed
-        xp_amp = cx_sched.get_parameters("amp", scope=r"\S:xp")[0]
+        xp_amp = cx_sched.search_parameters(r"\S:xp::amp")[0]
         self.assertEqual(self.xp_amp, xp_amp)
 
         # get parameter with scope, of course full scope can be specified
-        xp_amp_full_scoped = cx_sched.get_parameters("amp", scope="root::ecr::xp")[0]
+        xp_amp_full_scoped = cx_sched.search_parameters("root::ecr::xp::amp")[0]
         self.assertEqual(xp_amp_full_scoped, xp_amp)
 
         # assign parameters
