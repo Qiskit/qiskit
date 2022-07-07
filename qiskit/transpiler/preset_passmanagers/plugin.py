@@ -86,7 +86,7 @@ Currently there are 6 stages in the preset pass managers used by and correspondi
      - ``alap``, ``asap``
      - This is the last stage run and it is expected to output a scheduled
        circuit such that all idle periods in the circuit are marked by explicit
-       :class:`~.Delay` instructions.
+       :class:`~qiskit.circuit.Delay` instructions.
 
 Writing Plugins
 ===============
