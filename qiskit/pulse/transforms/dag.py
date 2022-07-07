@@ -13,7 +13,7 @@
 
 import retworkx as rx
 
-from qiskit.pulse.instructions import Reference
+from qiskit.pulse.exceptions import UnassignedReferenceError
 
 
 def block_to_dag(block) -> rx.PyDAG:
@@ -85,20 +85,22 @@ def _parallel_allocation(block) -> rx.PyDAG:
     dag = rx.PyDAG()
 
     slots = {}
-    edges = []
+    edges = set()
+    prev_reference = None
     for elm in block.blocks:
         node_id = dag.add_node(elm)
-        if isinstance(elm, Reference):
+        try:
+            for chan in elm.channels:
+                prev_id = slots.pop(chan, prev_reference)
+                if prev_id is not None:
+                    edges.add((prev_id, node_id))
+                slots[chan] = node_id
+        except UnassignedReferenceError:
             # Broadcasting channels because the reference's channels are unknown.
             for chan, prev_id in slots.copy().items():
-                edges.append((prev_id, node_id))
+                edges.add((prev_id, node_id))
                 slots[chan] = node_id
-        else:
-            for chan in elm.channels:
-                prev_id = slots.pop(chan, None)
-                if prev_id is not None:
-                    edges.append((prev_id, node_id))
-                slots[chan] = node_id
-    dag.add_edges_from_no_data(edges)
+            prev_reference = node_id
+    dag.add_edges_from_no_data(list(edges))
 
     return dag

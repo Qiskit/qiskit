@@ -372,6 +372,31 @@ class TestReference(QiskitTestCase):
 
         self.assertEqual(param, ret_param)
 
+    def test_parallel_alignment_equality(self):
+        """Testcase for potential edge case.
+
+        In parallel alignment context, reference instruction is broadcasted to
+        all channels. When new channel is added after reference, this should be
+        connected with reference node.
+        """
+
+        with pulse.build() as subroutine:
+            pulse.reference("unassigned")
+
+        with pulse.build() as sched1:
+            with pulse.align_left():
+                pulse.delay(10, pulse.DriveChannel(0))
+                pulse.call(subroutine)  # This should be broadcasted to d1 as well
+                pulse.delay(10, pulse.DriveChannel(1))
+
+        with pulse.build() as sched2:
+            with pulse.align_left():
+                pulse.delay(10, pulse.DriveChannel(0))
+                pulse.delay(10, pulse.DriveChannel(1))
+                pulse.call(subroutine)
+
+        self.assertNotEqual(sched1, sched2)
+
 
 class TestSubroutineWithCXGate(QiskitTestCase):
     """Test called program scope with practical example of building fully parametrized CX gate."""

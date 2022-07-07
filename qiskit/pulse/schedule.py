@@ -46,7 +46,7 @@ import retworkx as rx
 from qiskit.circuit.parameter import Parameter
 from qiskit.circuit.parameterexpression import ParameterExpression, ParameterValueType
 from qiskit.pulse.channels import Channel
-from qiskit.pulse.exceptions import PulseError
+from qiskit.pulse.exceptions import PulseError, UnassignedReferenceError
 from qiskit.pulse.instructions import Instruction, Reference
 from qiskit.pulse.utils import instruction_duration_validation
 from qiskit.pulse.reference_manager import ReferenceManager
@@ -1126,7 +1126,10 @@ class ScheduleBlock:
                 if not elm.is_schedulable():
                     return False
             else:
-                if not isinstance(elm.duration, int):
+                try:
+                    if not isinstance(elm.duration, int):
+                        return False
+                except UnassignedReferenceError:
                     return False
         return True
 
@@ -1142,8 +1145,8 @@ class ScheduleBlock:
         chans = set()
         for elm in self.blocks:
             if isinstance(elm, Reference):
-                raise PulseError(
-                    f"This schedule contains unassigned reference {elm.ref_key} "
+                raise UnassignedReferenceError(
+                    f"This schedule contains unassigned reference {elm.ref_keys} "
                     "and channels are ambiguous. Please assign the subroutine first."
                 )
             chans = chans | set(elm.channels)

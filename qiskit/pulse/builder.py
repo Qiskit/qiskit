@@ -752,8 +752,8 @@ class _PulseBuilder:
             name: Name of subroutine.
             extra_keys: Assistance keys to uniquely specify the subroutine.
         """
-        reference = instructions.Reference(name, *extra_keys)
-        self.append_instruction(reference)
+        inst = instructions.Reference(name, *extra_keys)
+        self.append_instruction(inst)
 
     def call_subroutine(
         self,

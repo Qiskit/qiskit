@@ -16,7 +16,7 @@ from typing import Union, Tuple, Set
 
 from qiskit.circuit.parameterexpression import ParameterExpression
 from qiskit.pulse.channels import Channel
-from qiskit.pulse.exceptions import PulseError
+from qiskit.pulse.exceptions import PulseError, UnassignedReferenceError
 from qiskit.pulse.instructions import instruction
 
 
@@ -81,12 +81,12 @@ class Reference(instruction.Instruction):
     @property
     def duration(self) -> Union[int, ParameterExpression]:
         """Duration of this instruction."""
-        return NotImplemented
+        raise UnassignedReferenceError(f"Subroutine is not assigned to {self.ref_keys}.")
 
     @property
     def channels(self) -> Tuple[Channel, ...]:
         """Returns the channels that this schedule uses."""
-        return NotImplemented
+        raise UnassignedReferenceError(f"Subroutine is not assigned to {self.ref_keys}.")
 
     @property
     def parameters(self) -> Set:

@@ -26,7 +26,7 @@ from typing import Callable, Iterable, List, Optional, Set, Tuple
 
 from qiskit.circuit import Parameter
 from qiskit.pulse.channels import Channel
-from qiskit.pulse.exceptions import PulseError
+from qiskit.pulse.exceptions import PulseError, UnassignedReferenceError
 
 
 # pylint: disable=missing-return-doc
@@ -57,10 +57,12 @@ class Instruction(ABC):
         self._name = name
         self._hash = None
 
-        if self.channels is not NotImplemented:
+        try:
             for channel in self.channels:
                 if not isinstance(channel, Channel):
                     raise PulseError(f"Expected a channel, got {channel} instead.")
+        except UnassignedReferenceError:
+            pass
 
     @property
     def name(self) -> str:
