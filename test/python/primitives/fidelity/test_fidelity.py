@@ -14,8 +14,8 @@
 
 import unittest
 
-import numpy as np
 from functools import partial
+import numpy as np
 from ddt import ddt
 
 from qiskit import QuantumCircuit
