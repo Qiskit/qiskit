@@ -26,6 +26,7 @@ const PI: f64 = std::f64::consts::PI;
 //
 //         Return theta, phi, lambda.
 #[pyfunction]
+#[pyo3(text_signature = "(theta1, phi1, lambda1, theta2, phi2, lambda2, /)")]
 pub fn compose_u3_rust(
     theta1: f64,
     phi1: f64,
