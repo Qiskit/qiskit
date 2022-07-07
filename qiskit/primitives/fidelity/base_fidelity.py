@@ -32,17 +32,17 @@ class BaseFidelity(ABC):
         right_circuit: QuantumCircuit,
     ) -> None:
         r"""Initializes the class to evaluate the fidelities defined as
-        
+
             :math:`|\langle\psi(x)|\phi(y)\rangle|^2`,
-            
+
         where :math:`x` and :math:`y` are optional parametrizations of the
         states :math:`\psi` and :math:`\phi` prepared by the circuits
         ``left_circuit`` and ``right_circuit``, respectively.
-        
+
         Args:
             left_circuit: (Parametrized) quantum circuit preparing :math:`|\psi\rangle`.
             right_circuit: (Parametrized) quantum circuit preparing :math:`|\phi\rangle`.
-            
+
         Raises:
             ValueError: ``left_circuit`` and ``right_circuit`` don't have the same number of qubits.
         """
