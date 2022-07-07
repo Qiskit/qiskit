@@ -15,12 +15,19 @@
 Transpiler Stage Plugin Interface (:mod:`qiskit.transpiler.preset_passmanagers.plugin`)
 =======================================================================================
 
-.. currentmodule:: qiskit.transpiler.preset_pass_managers.plugin
+.. currentmodule:: qiskit.transpiler.preset_passmanagers.plugin
 
 This module defines the plugin interface for providing custom stage
 implementations for the preset pass managers and the :func:`~.transpile`
 function. This enables external Python packages to provide
 :class:`~.PassManager` objects that can be used for each stage.
+
+The plugin interfaces are built using setuptools
+`entry points <https://setuptools.readthedocs.io/en/latest/userguide/entry_point.html>`__
+which enable packages external to Qiskit to advertise they include a transpiler stage.
+
+See :mod:`qiskit.transpiler.passes.synthesis.plugin` for details on how to
+write plugins for synthesis methods which are used by the transpiler.
 
 .. _stage_table:
 
