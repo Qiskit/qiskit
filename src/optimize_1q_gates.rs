@@ -82,7 +82,10 @@ pub fn compose_u3_rust(
     } else {
         [mat[3].atan2(mat[4]), 0., 0.]
     };
-    euler.iter_mut().filter(|k| k.abs() < 1e-15).for_each(|k| *k = 0.0);
+    euler
+        .iter_mut()
+        .filter(|k| k.abs() < 1e-15)
+        .for_each(|k| *k = 0.0);
 
     let out_angles: [f64; 3] = [euler[1], phi1 + euler[0], lambda2 + euler[2]];
     out_angles
