@@ -12,17 +12,40 @@
 
 """Tests for PVQD."""
 
+from functools import partial
 from ddt import ddt, data
 import numpy as np
 
 from qiskit.test import QiskitTestCase
 
 from qiskit import BasicAer as Aer
+from qiskit.circuit import QuantumCircuit, Parameter, Gate
 from qiskit.algorithms.evolvers import EvolutionProblem
 from qiskit.algorithms.evolvers.pvqd import PVQD
-from qiskit.algorithms.optimizers import L_BFGS_B, GradientDescent, SPSA
+from qiskit.algorithms.optimizers import L_BFGS_B, GradientDescent, SPSA, OptimizerResult
 from qiskit.circuit.library import EfficientSU2
 from qiskit.opflow import X, Z, I, MatrixExpectation
+
+
+# pylint: disable=unused-argument, invalid-name
+def gradient_supplied(fun, x0, jac, info):
+    """A mock optimizer that checks whether the gradient is supported or not."""
+    result = OptimizerResult()
+    result.x = x0
+    result.fun = 0
+    info["has_gradient"] = jac is not None
+
+    return result
+
+
+class WhatAmI(Gate):
+    """An custom opaque gate that can be inverted but not decomposed."""
+
+    def __init__(self, angle):
+        super().__init__(name="whatami", num_qubits=2, params=[angle])
+
+    def inverse(self):
+        return WhatAmI(-self.params[0])
 
 
 @ddt
@@ -63,8 +86,8 @@ class TestPVQD(QiskitTestCase):
         result = pvqd.evolve(problem)
 
         self.assertTrue(len(result.fidelities) == 3)
-        self.assertTrue(np.all(result.times == np.array([0.0, 0.01, 0.02])))
-        self.assertTrue(result.observables.shape == (3, 2))
+        self.assertTrue(np.all(result.times == [0.0, 0.01, 0.02]))
+        self.assertTrue(np.asarray(result.observables).shape == (3, 2))
         num_parameters = self.ansatz.num_parameters
         self.assertTrue(
             len(result.parameters) == 3
@@ -108,6 +131,55 @@ class TestPVQD(QiskitTestCase):
         result = pvqd.evolve(problem)
 
         observables = result.aux_ops_evaluated
-        print(result.evolved_state.draw())
         self.assertEqual(observables[0], 0.1)  # expected energy
         self.assertEqual(observables[1], 1)  # expected magnetization
+
+    def test_gradient_supported(self):
+        """Test the gradient support is correctly determined."""
+        # gradient supported here
+        empty = QuantumCircuit(2)
+        wrapped = EfficientSU2(2)  # a circuit wrapped into a big instruction
+        plain = wrapped.decompose()  # a plain circuit with already supported instructions
+
+        # gradients not supported on the following circuits
+        x = Parameter("x")
+        duplicated = QuantumCircuit(2)
+        duplicated.rx(x, 0)
+        duplicated.rx(x, 1)
+
+        needs_chainrule = QuantumCircuit(2)
+        needs_chainrule.rx(2 * x, 0)
+
+        custom_gate = WhatAmI(x)
+        unsupported = QuantumCircuit(2)
+        unsupported.append(custom_gate, [0, 1])
+
+        tests = [
+            (empty, True),  # tuple: (circuit, gradient support)
+            (wrapped, True),
+            (plain, True),
+            (duplicated, False),
+            (needs_chainrule, False),
+            (unsupported, False),
+        ]
+
+        # used to store the info if a gradient callable is passed into the
+        # optimizer of not
+        info = {"has_gradient": None}
+        optimizer = partial(gradient_supplied, info=info)
+
+        pvqd = PVQD(
+            ansatz=empty,
+            initial_parameters=np.array([]),
+            timestep=0.01,
+            optimizer=optimizer,
+            quantum_instance=self.backend,
+            expectation=self.expectation,
+        )
+        problem = EvolutionProblem(self.hamiltonian, time=0.01)
+        for circuit, expected_support in tests:
+            with self.subTest(circuit=circuit, expected_support=expected_support):
+                pvqd.ansatz = circuit
+                pvqd.initial_parameters = np.zeros(circuit.num_parameters)
+                _ = pvqd.evolve(problem)
+                self.assertEqual(info["has_gradient"], expected_support)

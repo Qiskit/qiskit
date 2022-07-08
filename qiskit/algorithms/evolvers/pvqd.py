@@ -14,11 +14,11 @@
 
 from typing import Optional, Union, List, Tuple, Callable
 
+import logging
 import numpy as np
 
-from qiskit import transpile
-from qiskit.exceptions import QiskitError
-from qiskit.algorithms.optimizers import Optimizer
+from qiskit import transpile, QiskitError
+from qiskit.algorithms.optimizers import Optimizer, Minimizer
 from qiskit.circuit import QuantumCircuit, ParameterVector, ParameterExpression, Parameter
 from qiskit.circuit.library import PauliEvolutionGate
 from qiskit.providers import Backend
@@ -37,15 +37,41 @@ from .evolution_problem import EvolutionProblem
 from .evolution_result import EvolutionResult
 from .real_evolver import RealEvolver
 
+logger = logging.getLogger(__name__)
+
 
 class PVQDResult(EvolutionResult):
     """The result object for the pVQD algorithm."""
 
-    times = None
-    parameters = None
-    fidelities = None
-    estimated_error = None
-    observables = None
+    def __init__(
+        self,
+        evolved_state: Union[StateFn, QuantumCircuit, OperatorBase],
+        # TODO: aux_ops_evaluated: Optional[ListOrDict[Tuple[complex, complex]]] = None,
+        aux_ops_evaluated: Optional[List[Tuple[complex, complex]]] = None,
+        times: Optional[List[float]] = None,
+        parameters: Optional[List[np.ndarray]] = None,
+        fidelities: Optional[List[float]] = None,
+        estimated_error: Optional[float] = None,
+        observables: Optional[List[List[float]]] = None,
+    ):
+        """
+        Args:
+            evolved_state: An evolved quantum state.
+            aux_ops_evaluated: Optional list of observables for which expected values on an evolved
+                state are calculated. These values are in fact tuples formatted as (mean, standard
+                deviation).
+            times: The times evaluated during the time integration.
+            parameters: The parameter values at each evaluation time.
+            fidelities: The fidelity of the Trotter step and variational update at each iteration.
+            estimated_error: The overall estimated error evaluated as product of all fidelities.
+            observables: The value of the observables evaluated at each iteration.
+        """
+        super().__init__(evolved_state, aux_ops_evaluated)
+        self.times = times
+        self.parameters = parameters
+        self.fidelities = fidelities
+        self.estimated_error = estimated_error
+        self.observables = observables
 
 
 class PVQD(RealEvolver):
@@ -56,11 +82,12 @@ class PVQD(RealEvolver):
         ansatz: QuantumCircuit,
         initial_parameters: np.ndarray,
         timestep: float,
-        optimizer: Optimizer,
+        optimizer: Union[Optimizer, Minimizer],
         quantum_instance: Union[Backend, QuantumInstance],
         expectation: ExpectationBase,
         initial_guess: Optional[np.ndarray] = None,
         evolution: Optional[EvolutionSynthesis] = None,
+        gradients: bool = True,
     ) -> None:
         """
         Args:
@@ -69,13 +96,16 @@ class PVQD(RealEvolver):
             initial_parameters: The initial parameters for the ansatz.
             timestep: The time step.
             optimizer: The classical optimizers used to minimize the overlap between
-                Trotterization and ansatz.
+                Trotterization and ansatz. Can be either a :class:`.Optimizer` or a callable
+                using the :class:`.Minimizer` protocol.
             quantum_instance: The backend of quantum instance used to evaluate the circuits.
             expectation: The expectation converter to evaluate expectation values.
             initial_guess: The initial guess for the first VQE optimization. Afterwards the
                 previous iteration result is used as initial guess.
             evolution: The evolution synthesis to use for the construction of the Trotter step.
                 Defaults to first-order Lie-Trotter decomposition.
+            gradients: If True, use the parameter shift rule to compute gradients. If False,
+                the optimizer will not be passed a gradient callable.
         """
         if evolution is None:
             evolution = LieTrotter()
@@ -87,6 +117,7 @@ class PVQD(RealEvolver):
         self.initial_guess = initial_guess
         self.expectation = expectation
         self.evolution = evolution
+        self.gradients = gradients
 
         self._sampler = CircuitSampler(quantum_instance)
 
@@ -108,7 +139,11 @@ class PVQD(RealEvolver):
         loss, gradient = self.get_loss(hamiltonian, dt, theta)
 
         # call optimizer
-        optimizer_result = self.optimizer.minimize(loss, initial_guess, gradient)
+        if isinstance(self.optimizer, Optimizer):
+            optimizer_result = self.optimizer.minimize(loss, initial_guess, gradient)
+        else:
+            optimizer_result = self.optimizer(loss, initial_guess, gradient)
+
         fidelity = 1 - optimizer_result.fun
 
         return theta + optimizer_result.x, fidelity
@@ -160,32 +195,37 @@ class PVQD(RealEvolver):
             sampled = self._sampler.convert(converted, params=value_dict)
             return 1 - np.abs(sampled.eval()) ** 2
 
-        def evaluate_gradient(displacement: np.ndarray) -> np.ndarray:
-            """Evaluate the gradient with the parameter-shift rule.
+        if self._check_gradient_supported() and self.gradients:
 
-            This is hardcoded here since the gradient framework does not support computing
-            gradients for overlaps.
+            def evaluate_gradient(displacement: np.ndarray) -> np.ndarray:
+                """Evaluate the gradient with the parameter-shift rule.
 
-            Args:
-                displacement: The parameters for the ansatz.
+                This is hardcoded here since the gradient framework does not support computing
+                gradients for overlaps.
 
-            Returns:
-                The gradient.
-            """
-            # construct lists where each element is shifted by plus (or minus) pi/2
-            dim = displacement.size
-            plus_shifts = (displacement + np.pi / 2 * np.identity(dim)).tolist()
-            minus_shifts = (displacement - np.pi / 2 * np.identity(dim)).tolist()
+                Args:
+                    displacement: The parameters for the ansatz.
 
-            evaluated = evaluate_loss(plus_shifts + minus_shifts)
+                Returns:
+                    The gradient.
+                """
+                # construct lists where each element is shifted by plus (or minus) pi/2
+                dim = displacement.size
+                plus_shifts = (displacement + np.pi / 2 * np.identity(dim)).tolist()
+                minus_shifts = (displacement - np.pi / 2 * np.identity(dim)).tolist()
 
-            gradient = (evaluated[:dim] - evaluated[dim:]) / 2
+                evaluated = evaluate_loss(plus_shifts + minus_shifts)
 
-            return gradient
+                gradient = (evaluated[:dim] - evaluated[dim:]) / 2
+
+                return gradient
+
+        else:
+            evaluate_gradient = None
 
         return evaluate_loss, evaluate_gradient
 
-    def _check_gradient_supported(self) -> QuantumCircuit:
+    def _check_gradient_supported(self) -> bool:
         """Check whether we can apply a simple parameter shift rule to obtain gradients."""
 
         # check whether the circuit can be unrolled to supported gates
@@ -193,11 +233,13 @@ class PVQD(RealEvolver):
             unrolled = transpile(
                 self.ansatz, basis_gates=ParamShift.SUPPORTED_GATES, optimization_level=0
             )
-        except Exception as exc:
-            raise QiskitError(
-                "Failed to compute the gradients as we could not apply the "
-                "parameter shift rule to the ansatz."
-            ) from exc
+        except QiskitError:
+            # failed to map to supported basis
+            logger.log(
+                logging.INFO,
+                "No gradient support: Failed to unroll to gates supported by parameter-shift.",
+            )
+            return False
 
         # check whether all parameters are unique and we do not need to apply the chain rule
         # (since it's not implemented yet)
@@ -208,15 +250,22 @@ class PVQD(RealEvolver):
                     if isinstance(param, Parameter):
                         all_parameters.append(param)
                     else:
-                        raise QiskitError(
-                            "Circuit is only allowed to have plain parameters, as "
-                            "the chain rule is not yet implemented."
+                        logger.log(
+                            logging.INFO,
+                            "No gradient support: Circuit is only allowed to have plain parameters, "
+                            "as the chain rule is not yet implemented.",
                         )
+                        return False
 
         if len(all_parameters) != self.ansatz.num_parameters:
-            raise QiskitError(
-                "Circuit parameters must be unique, the product rule is not yet " "implemented."
+            logger.log(
+                logging.INFO,
+                "No gradient support: Circuit is only allowed to have unique parameters, "
+                "as the product rule is not yet implemented.",
             )
+            return False
+
+        return True
 
     def _get_observable_evaluator(self, observables):
         if isinstance(observables, list):
@@ -265,9 +314,10 @@ class PVQD(RealEvolver):
             )
 
         # get the function to evaluate the observables for a given set of ansatz parameters
-        evaluate_observables = self._get_observable_evaluator(observables)
+        if observables is not None:
+            evaluate_observables = self._get_observable_evaluator(observables)
+            observable_values = [evaluate_observables(self.initial_parameters)]
 
-        observable_values = [evaluate_observables(self.initial_parameters)]
         fidelities = [1]
         times = [0]
         parameters = [self.initial_parameters]
@@ -291,7 +341,8 @@ class PVQD(RealEvolver):
             # store parameters
             parameters.append(next_parameters)
             fidelities.append(fidelity)
-            observable_values.append(evaluate_observables(next_parameters))
+            if observables is not None:
+                observable_values.append(evaluate_observables(next_parameters))
 
             # increase time
             current_time += self.timestep
@@ -299,11 +350,15 @@ class PVQD(RealEvolver):
 
         evolved_state = self.ansatz.bind_parameters(parameters[-1])
 
-        result = PVQDResult(evolved_state=evolved_state, aux_ops_evaluated=observable_values[-1])
-        result.times = times
-        result.parameters = parameters
-        result.fidelities = fidelities
-        result.estimated_error = np.prod(result.fidelities)
-        result.observables = np.asarray(observable_values)
+        result = PVQDResult(
+            evolved_state=evolved_state,
+            times=times,
+            parameters=parameters,
+            fidelities=fidelities,
+            estimated_error=np.prod(fidelities),
+        )
+        if observables is not None:
+            result.observables = observable_values
+            result.aux_ops_evaluated = observable_values[-1]
 
         return result
