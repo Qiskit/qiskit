@@ -140,11 +140,6 @@ class Channel(metaclass=ABCMeta):
         """Return the shorthand alias for this channel, which is based on its type and index."""
         return f"{self.__class__.prefix}{self._index}"
 
-    @property
-    def is_schedulable(self) -> bool:
-        """Return whether this channel can be independently scheduled"""
-        return True
-
     def __repr__(self):
         return f"{self.__class__.__name__}({self._index})"
 
@@ -166,6 +161,12 @@ class Channel(metaclass=ABCMeta):
 
 class PulseChannel(Channel, metaclass=ABCMeta):
     """Base class of transmit Channels. Pulses can be played on these channels."""
+
+    pass
+
+
+class ClassicalIOChannel(Channel, metaclass=ABCMeta):
+    """Base class of classical IO channels. These cannot have instructions scheduled on them."""
 
     pass
 
@@ -197,7 +198,7 @@ class AcquireChannel(Channel):
     prefix = "a"
 
 
-class SnapshotChannel(Channel):
+class SnapshotChannel(ClassicalIOChannel):
     """Snapshot channels are used to specify instructions for simulators."""
 
     prefix = "s"
@@ -207,25 +208,15 @@ class SnapshotChannel(Channel):
         super().__init__(0)
 
 
-class MemorySlot(Channel):
+class MemorySlot(ClassicalIOChannel):
     """Memory slot channels represent classical memory storage."""
 
     prefix = "m"
 
-    @property
-    def is_schedulable(self) -> bool:
-        """Return whether this channel can be independently scheduled"""
-        return False
 
-
-class RegisterSlot(Channel):
+class RegisterSlot(ClassicalIOChannel):
     """Classical resister slot channels represent classical registers (low-latency classical
     memory).
     """
 
     prefix = "c"
-
-    @property
-    def is_schedulable(self) -> bool:
-        """Return whether this channel can be independently scheduled"""
-        return False

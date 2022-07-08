@@ -16,6 +16,8 @@ from abc import ABC
 from typing import Optional, Tuple
 
 from qiskit.pulse import channels as chans
+from qiskit.pulse.channels import ClassicalIOChannel
+from qiskit.pulse.exceptions import PulseError
 from qiskit.pulse.instructions import instruction
 
 
@@ -44,7 +46,17 @@ class RelativeBarrier(Directive):
         Args:
             channels: The channel that the barrier applies to.
             name: Name of the directive for display purposes.
+        Raises:
+            PulseError: If one of the `channels` cannot be blocked because it is a classical IO channel.
         """
+        for channel in channels:
+            if isinstance(channel, ClassicalIOChannel):
+                raise PulseError(
+                    "Cannot block channel {0} because it is a classical IO channel.".format(
+                        channel.name
+                    )
+                )
+
         super().__init__(operands=tuple(channels), name=name)
 
     @property
