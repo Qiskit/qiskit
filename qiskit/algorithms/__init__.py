@@ -243,10 +243,10 @@ from .phase_estimators import (
     PhaseEstimationResult,
     IterativePhaseEstimation,
 )
-from .pvqd import PVQD
 from .exceptions import AlgorithmError
 from .aux_ops_evaluator import eval_observables
 from .evolvers.trotterization import TrotterQRTE
+from .evolvers.pvqd import PVQD
 
 __all__ = [
     "AlgorithmResult",
