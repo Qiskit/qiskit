@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2018, 2021.
+# (C) Copyright IBM 2018, 2022.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -13,12 +13,12 @@
 """Tests for PVQD."""
 
 from functools import partial
-from ddt import ddt, data
+from ddt import ddt, data, unpack
 import numpy as np
 
 from qiskit.test import QiskitTestCase
 
-from qiskit import BasicAer as Aer
+from qiskit import BasicAer
 from qiskit.circuit import QuantumCircuit, Parameter, Gate
 from qiskit.algorithms.evolvers import EvolutionProblem
 from qiskit.algorithms.evolvers.pvqd import PVQD
@@ -54,15 +54,17 @@ class TestPVQD(QiskitTestCase):
 
     def setUp(self):
         super().setUp()
-        self.backend = Aer.get_backend("statevector_simulator")
+        self.sv_backend = BasicAer.get_backend("statevector_simulator")
+        self.qasm_backend = BasicAer.get_backend("qasm_simulator")
         self.expectation = MatrixExpectation()
         self.hamiltonian = 0.1 * (Z ^ Z) + (I ^ X) + (X ^ I)
         self.observable = Z ^ Z
         self.ansatz = EfficientSU2(2, reps=1)
         self.initial_parameters = np.zeros(self.ansatz.num_parameters)
 
-    @data(True, False)
-    def test_pvqd(self, gradient):
+    @data((True, "sv"), (False, "qasm"))
+    @unpack
+    def test_pvqd(self, gradient, backend_type):
         """Test a simple evolution."""
         time = 0.02
 
@@ -71,13 +73,15 @@ class TestPVQD(QiskitTestCase):
         else:
             optimizer = L_BFGS_B(maxiter=1)
 
+        backend = self.sv_backend if backend_type == "sv" else self.qasm_backend
+
         # run pVQD keeping track of the energy and the magnetization
         pvqd = PVQD(
             self.ansatz,
             self.initial_parameters,
             timestep=0.01,
             optimizer=optimizer,
-            quantum_instance=self.backend,
+            quantum_instance=backend,
             expectation=self.expectation,
         )
         problem = EvolutionProblem(
@@ -101,7 +105,7 @@ class TestPVQD(QiskitTestCase):
             self.initial_parameters,
             timestep=1,
             optimizer=L_BFGS_B(),
-            quantum_instance=self.backend,
+            quantum_instance=self.sv_backend,
             expectation=self.expectation,
         )
         problem = EvolutionProblem(
@@ -121,7 +125,7 @@ class TestPVQD(QiskitTestCase):
             timestep=0.01,
             optimizer=SPSA(maxiter=0, learning_rate=0.1, perturbation=0.01),
             initial_guess=initial_guess,
-            quantum_instance=self.backend,
+            quantum_instance=self.sv_backend,
             expectation=self.expectation,
         )
         problem = EvolutionProblem(
@@ -173,7 +177,7 @@ class TestPVQD(QiskitTestCase):
             initial_parameters=np.array([]),
             timestep=0.01,
             optimizer=optimizer,
-            quantum_instance=self.backend,
+            quantum_instance=self.sv_backend,
             expectation=self.expectation,
         )
         problem = EvolutionProblem(self.hamiltonian, time=0.01)
@@ -183,3 +187,39 @@ class TestPVQD(QiskitTestCase):
                 pvqd.initial_parameters = np.zeros(circuit.num_parameters)
                 _ = pvqd.evolve(problem)
                 self.assertEqual(info["has_gradient"], expected_support)
+
+    def test_invalid_setup(self):
+        """Test appropriate error is raised if attributes are missing or incompatible."""
+        pvqd = PVQD(
+            self.ansatz,
+            self.initial_parameters,
+            timestep=0.01,
+            optimizer=L_BFGS_B(maxiter=1),
+            quantum_instance=self.qasm_backend,
+            expectation=self.expectation,
+        )
+        problem = EvolutionProblem(self.hamiltonian, time=0.01)
+
+        args_to_test = [
+            ("ansatz", self.ansatz),
+            ("initial_parameters", self.initial_parameters),
+            ("timestep", 0.01),
+            ("optimizer", L_BFGS_B(maxiter=1)),
+            ("quantum_instance", self.qasm_backend),
+            ("expectation", self.expectation),
+        ]
+
+        for attr, value in args_to_test:
+            with self.subTest(msg=f"missing: {attr}"):
+                # set attribute to None to invalidate the setup
+                setattr(pvqd, attr, None)
+
+                with self.assertRaises(ValueError):
+                    _ = pvqd.evolve(problem)
+
+                # set the correct value again
+                setattr(pvqd, attr, value)
+
+        # check PVQD is running now that all arguments are set
+        result = pvqd.evolve(problem)
+        self.assertIsNotNone(result.evolved_state)

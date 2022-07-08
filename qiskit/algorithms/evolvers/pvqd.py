@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2019, 2021.
+# (C) Copyright IBM 2019, 2022.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -75,19 +75,69 @@ class PVQDResult(EvolutionResult):
 
 
 class PVQD(RealEvolver):
-    """The projected Variational Quantum Dynamics Algorithm."""
+    """The projected Variational Quantum Dynamics Algorithm.
+
+    In each timestep this algorithm computes the next state with a Trotter formula
+    (specified by the ``evolution`` argument) and projects it onto a variational form (``ansatz``).
+    The projection is determined by maximizing the fidelity of the Trotter-evolved state
+    and the ansatz, using a classical optimization routine. See Ref. [1] for details.
+
+    Example:
+
+        .. code-block:: python
+
+            import numpy as np
+
+            from qiskit import BasicAer
+            from qiskit.circuit.library import EfficientSU2
+            from qiskit.opflow import X, Z, I, MatrixExpectation
+
+            backend = BasicAer.get_backend("statevector_simulator")
+            expectation = MatrixExpectation()
+            hamiltonian = 0.1 * (Z ^ Z) + (I ^ X) + (X ^ I)
+            observable = Z ^ Z
+            ansatz = EfficientSU2(2, reps=1)
+            initial_parameters = np.zeros(ansatz.num_parameters)
+
+            time = 0.02
+            optimizer = L_BFGS_B()
+
+            # setup the algorithm
+            pvqd = PVQD(
+                ansatz,
+                initial_parameters,
+                timestep=0.01,
+                optimizer=optimizer,
+                quantum_instance=backend,
+                expectation=expectation
+            )
+
+            # specify the evolution problem
+            problem = EvolutionProblem(
+                hamiltonian, time, aux_operators=[hamiltonian, observable]
+            )
+
+            # and evolve!
+            result = pvqd.evolve(problem)
+
+    References:
+
+        [1] Stefano Barison, Filippo Vicentini, and Giuseppe Carleo (2021), An efficient
+            quantum algorithm for the time evolution of parameterized circuits,
+            `Quantum 5, 512 <https://quantum-journal.org/papers/q-2021-07-28-512/>`_.
+    """
 
     def __init__(
         self,
-        ansatz: QuantumCircuit,
-        initial_parameters: np.ndarray,
-        timestep: float,
-        optimizer: Union[Optimizer, Minimizer],
-        quantum_instance: Union[Backend, QuantumInstance],
-        expectation: ExpectationBase,
+        ansatz: Optional[QuantumCircuit] = None,
+        initial_parameters: Optional[np.ndarray] = None,
+        timestep: Optional[float] = None,
+        optimizer: Optional[Union[Optimizer, Minimizer]] = None,
+        expectation: Optional[ExpectationBase] = None,
         initial_guess: Optional[np.ndarray] = None,
         evolution: Optional[EvolutionSynthesis] = None,
         gradients: bool = True,
+        quantum_instance: Optional[Union[Backend, QuantumInstance]] = None,
     ) -> None:
         """
         Args:
@@ -98,14 +148,15 @@ class PVQD(RealEvolver):
             optimizer: The classical optimizers used to minimize the overlap between
                 Trotterization and ansatz. Can be either a :class:`.Optimizer` or a callable
                 using the :class:`.Minimizer` protocol.
-            quantum_instance: The backend of quantum instance used to evaluate the circuits.
             expectation: The expectation converter to evaluate expectation values.
             initial_guess: The initial guess for the first VQE optimization. Afterwards the
-                previous iteration result is used as initial guess.
+                previous iteration result is used as initial guess. If None, this is set to
+                a random vector with elements in the interval :math:`[-0.01, 0.01]`.
             evolution: The evolution synthesis to use for the construction of the Trotter step.
                 Defaults to first-order Lie-Trotter decomposition.
             gradients: If True, use the parameter shift rule to compute gradients. If False,
                 the optimizer will not be passed a gradient callable.
+            quantum_instance: The backend of quantum instance used to evaluate the circuits.
         """
         if evolution is None:
             evolution = LieTrotter()
@@ -119,7 +170,23 @@ class PVQD(RealEvolver):
         self.evolution = evolution
         self.gradients = gradients
 
-        self._sampler = CircuitSampler(quantum_instance)
+        self._sampler = None
+        self.quantum_instance = quantum_instance
+
+    @property
+    def quantum_instance(self) -> Optional[QuantumInstance]:
+        """Return the current quantum instance."""
+        return self._quantum_instance
+
+    @quantum_instance.setter
+    def quantum_instance(self, quantum_instance: Optional[Union[Backend, QuantumInstance]]) -> None:
+        """Set the quantum instance and circuit sampler."""
+        if quantum_instance is not None:
+            if not isinstance(quantum_instance, QuantumInstance):
+                quantum_instance = QuantumInstance(quantum_instance)
+            self._sampler = CircuitSampler(quantum_instance)
+
+        self._quantum_instance = quantum_instance
 
     def step(
         self, hamiltonian: OperatorBase, theta: np.ndarray, dt: float, initial_guess: np.ndarray
@@ -138,6 +205,9 @@ class PVQD(RealEvolver):
         # construct cost function
         loss, gradient = self.get_loss(hamiltonian, dt, theta)
 
+        if initial_guess is None:
+            initial_guess = np.random.random(self.initial_parameters.size) * 0.01
+
         # call optimizer
         if isinstance(self.optimizer, Optimizer):
             optimizer_result = self.optimizer.minimize(loss, initial_guess, gradient)
@@ -149,7 +219,10 @@ class PVQD(RealEvolver):
         return theta + optimizer_result.x, fidelity
 
     def get_loss(
-        self, hamiltonian: OperatorBase, dt: float, current_parameters: np.ndarray
+        self,
+        hamiltonian: OperatorBase,
+        dt: float,
+        current_parameters: np.ndarray,
     ) -> Callable[[np.ndarray], float]:
         """Get a function to evaluate the infidelity between Trotter step and ansatz.
 
@@ -161,6 +234,8 @@ class PVQD(RealEvolver):
         Returns:
             A callable to evaluate the infidelity.
         """
+        self._validate_setup()
+
         # use Trotterization to evolve the current state
         trotterized = self.ansatz.bind_parameters(current_parameters)
         trotterized.append(
@@ -225,6 +300,27 @@ class PVQD(RealEvolver):
 
         return evaluate_loss, evaluate_gradient
 
+    def _validate_setup(self):
+        """Validate the current setup and raise an error if something misses to run."""
+
+        required_args = {
+            "ansatz",
+            "initial_parameters",
+            "timestep",
+            "optimizer",
+            "quantum_instance",
+            "expectation",
+        }
+        for arg in required_args:
+            if getattr(self, arg) is None:
+                raise ValueError(f"The {arg} attribute cannot be None.")
+
+        if len(self.initial_parameters) != self.ansatz.num_parameters:
+            raise QiskitError(
+                f"Mismatching number of parameters in the ansatz ({self.ansatz.num_parameters}) "
+                f"and the initial parameters ({len(self.initial_parameters)})."
+            )
+
     def _check_gradient_supported(self) -> bool:
         """Check whether we can apply a simple parameter shift rule to obtain gradients."""
 
@@ -243,12 +339,12 @@ class PVQD(RealEvolver):
 
         # check whether all parameters are unique and we do not need to apply the chain rule
         # (since it's not implemented yet)
-        all_parameters = []
+        total_num_parameters = 0
         for circuit_instruction in unrolled.data:
             for param in circuit_instruction.operation.params:
                 if isinstance(param, ParameterExpression):
                     if isinstance(param, Parameter):
-                        all_parameters.append(param)
+                        total_num_parameters += 1
                     else:
                         logger.log(
                             logging.INFO,
@@ -257,7 +353,7 @@ class PVQD(RealEvolver):
                         )
                         return False
 
-        if len(all_parameters) != self.ansatz.num_parameters:
+        if total_num_parameters != self.ansatz.num_parameters:
             logger.log(
                 logging.INFO,
                 "No gradient support: Circuit is only allowed to have unique parameters, "
@@ -303,6 +399,8 @@ class PVQD(RealEvolver):
         Raises:
             ValueError: If the evolution time is not positive or the timestep is too small.
         """
+        self._validate_setup()
+
         time = evolution_problem.time
         observables = evolution_problem.aux_operators
         hamiltonian = evolution_problem.hamiltonian
@@ -323,11 +421,7 @@ class PVQD(RealEvolver):
         parameters = [self.initial_parameters]
 
         current_time = 0
-
-        if self.initial_guess is None:
-            initial_guess = np.random.random(self.initial_parameters.size) * 0.01
-        else:
-            initial_guess = self.initial_guess
+        initial_guess = self.initial_guess
 
         while current_time < time:
             # perform VQE to find the next parameters
