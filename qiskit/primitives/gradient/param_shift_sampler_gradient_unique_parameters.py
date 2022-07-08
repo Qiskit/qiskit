@@ -116,21 +116,27 @@ class ParamShiftSamplerGradientUniqueParameters:
             g_param_index_map[g_param] = i
 
         base_parameter_values_list = []
-        coef_list = []
+        base_coef_list = []
 
         for i, param in enumerate(circuit.parameters):
+            parameter_values_list = []
+            coef_list = []
             for g_param in parameter_map[param]:
                 g_param_idx = g_param_index_map[g_param]
                 # for + pi/2 in the parameter shift rule
                 parameter_values_plus = [0] * len(g_circuit.parameters)
                 parameter_values_plus[g_param_idx] += np.pi/2
-                base_parameter_values_list.append(parameter_values_plus)
+                parameter_values_list.append(parameter_values_plus)
                 coef_list.append(coef_map[g_param]/2)
                 # for - pi/2 in the parameter shift rule
                 parameter_values_minus = [0] * len(g_circuit.parameters)
                 parameter_values_minus[g_param_idx] -= np.pi/2
-                base_parameter_values_list.append(parameter_values_minus)
+                parameter_values_list.append(parameter_values_minus)
                 coef_list.append(-1*coef_map[g_param]/2)
+            base_parameter_values_list.append(parameter_values_list)
+            base_coef_list.append(coef_list)
+
+        # returnじゃなくてsub classにしようかな。
         return base_parameter_values_list, coef_list
 
 
