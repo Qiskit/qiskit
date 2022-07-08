@@ -37,7 +37,9 @@ class Fidelity(BaseFidelity):
         r"""
         Initializes the class to evaluate the fidelities defined as the state overlap
             :math:`|\langle\psi(x)|\phi(y)\rangle|^2`,
-        where x and y are parametrizations of the circuits :math:`\psi` and :math:`\phi`.
+        where :math:`x` and :math:`y` are optional parametrizations of the
+        states :math:`\psi` and :math:`\phi` prepared by the circuits
+        ``left_circuit`` and ``right_circuit``, respectively.
         Args:
             left_circuit: (Parametrized) quantum circuit :math:`|\psi\rangle`
             right_circuit: (Parametrized) quantum circuit :math:`|\phi\rangle`
