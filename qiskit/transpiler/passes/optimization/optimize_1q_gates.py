@@ -26,6 +26,7 @@ from qiskit.circuit import ParameterExpression
 from qiskit.circuit.gate import Gate
 from qiskit.transpiler.basepasses import TransformationPass
 from qiskit.quantum_info.synthesis import Quaternion
+from qiskit._accelerate.optimize_1q_gates import compose_u3_rust  # pylint: disable=import-error
 
 _CHOP_THRESHOLD = 1e-15
 
@@ -307,10 +308,7 @@ class Optimize1qGates(TransformationPass):
 
         Return theta, phi, lambda.
         """
-        # Careful with the factor of two in yzy_to_zyz
-        thetap, phip, lambdap = Optimize1qGates.yzy_to_zyz((lambda1 + phi2), theta1, theta2)
-        (theta, phi, lamb) = (thetap, phi1 + phip, lambda2 + lambdap)
-
+        (theta, phi, lamb) = compose_u3_rust(theta1, phi1, lambda1, theta2, phi2, lambda2)
         return (theta, phi, lamb)
 
     @staticmethod

@@ -294,3 +294,9 @@ class TestDecompose(QiskitTestCase):
 
         decomposed = circuit.decompose()
         self.assertEqual(len(decomposed.data), 0)
+
+    def test_decompose_reps(self):
+        """Test decompose reps function is decomposed correctly"""
+        decom_circ = self.complex_circuit.decompose(reps=2)
+        decomposed = self.complex_circuit.decompose().decompose()
+        self.assertEqual(decom_circ, decomposed)

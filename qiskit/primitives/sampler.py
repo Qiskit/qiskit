@@ -17,6 +17,8 @@ from __future__ import annotations
 
 from collections.abc import Iterable, Sequence
 
+import numpy as np
+
 from qiskit.circuit import Parameter, QuantumCircuit
 from qiskit.exceptions import QiskitError
 from qiskit.quantum_info import Statevector
@@ -29,7 +31,19 @@ from .utils import final_measurement_mapping, init_circuit
 
 class Sampler(BaseSampler):
     """
-    Sampler class
+    Sampler class.
+
+    :class:`~Sampler` is a reference implementation of :class:`~BaseSampler`.
+
+    :Run Options:
+
+        - **shots** (None or int) --
+          The number of shots. If None, it calculates the probabilities.
+          Otherwise, it samples from multinomial distributions.
+
+        - **seed** (np.random.Generator or int) --
+          Set a fixed seed or generator for the multinomial distribution. If shots is None, this
+          option is ignored.
     """
 
     def __init__(
@@ -73,6 +87,18 @@ class Sampler(BaseSampler):
         if self._is_closed:
             raise QiskitError("The primitive has been closed.")
 
+        shots = run_options.pop("shots", None)
+        seed = run_options.pop("seed", None)
+        if seed is None:
+            rng = np.random.default_rng()
+        elif isinstance(seed, np.random.Generator):
+            rng = seed
+        else:
+            rng = np.random.default_rng(seed)
+
+        # Initialize metadata
+        metadata = [{}] * len(circuits)
+
         bound_circuits_qargs = []
         for i, value in zip(circuits, parameter_values):
             if len(value) != len(self._parameters[i]):
@@ -89,9 +115,15 @@ class Sampler(BaseSampler):
         probabilities = [
             Statevector(circ).probabilities(qargs=qargs) for circ, qargs in bound_circuits_qargs
         ]
+        if shots is not None:
+            probabilities = [
+                rng.multinomial(shots, probability) / shots for probability in probabilities
+            ]
+            for metadatum in metadata:
+                metadatum["shots"] = shots
         quasis = [QuasiDistribution(dict(enumerate(p))) for p in probabilities]
 
-        return SamplerResult(quasis, [{}] * len(circuits))
+        return SamplerResult(quasis, metadata)
 
     def close(self):
         self._is_closed = True

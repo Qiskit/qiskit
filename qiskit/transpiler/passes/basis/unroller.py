@@ -91,18 +91,18 @@ class Unroller(TransformationPass):
             # original gate, in which case substitute_node will raise. Fall back
             # to substitute_node_with_dag if an the width of the definition is
             # different that the width of the node.
-            while rule and len(rule) == 1 and len(node.qargs) == len(rule[0][1]) == 1:
-                if rule[0][0].name in self.basis:
+            while rule and len(rule) == 1 and len(node.qargs) == len(rule[0].qubits) == 1:
+                if rule[0].operation.name in self.basis:
                     dag.global_phase += phase
-                    dag.substitute_node(node, rule[0][0], inplace=True)
+                    dag.substitute_node(node, rule[0].operation, inplace=True)
                     break
                 try:
-                    phase += rule[0][0].definition.global_phase
-                    rule = rule[0][0].definition.data
+                    phase += rule[0].operation.definition.global_phase
+                    rule = rule[0].operation.definition.data
                 except (TypeError, AttributeError) as err:
                     raise QiskitError(
                         f"Error decomposing node of instruction '{node.name}': {err}. "
-                        f"Unable to define instruction '{rule[0][0].name}' in the given basis."
+                        f"Unable to define instruction '{rule[0].operation.name}' in the basis."
                     ) from err
 
             else:

@@ -12,11 +12,11 @@
 
 """Tests for Sampler."""
 
-from test import combine
 import unittest
+from test import combine
 
-from ddt import ddt
 import numpy as np
+from ddt import ddt
 
 from qiskit import QuantumCircuit
 from qiskit.circuit import Parameter
@@ -406,6 +406,20 @@ class TestSampler(QiskitTestCase):
                     parameter_values=[[] for _ in indices],
                 )
             self._compare_probs(result.quasi_dists, target)
+
+    def test_with_shots_option(self):
+        """test with shots option."""
+        params, target = self._generate_params_target([1])
+        with Sampler(circuits=self._pqc) as sampler:
+            result = sampler(circuits=[0], parameter_values=params, shots=1024, seed=15)
+            self._compare_probs(result.quasi_dists, target)
+
+    def test_with_shots_option_none(self):
+        """test with shots=None option. Seed is ignored then."""
+        with Sampler([self._pqc]) as sampler:
+            result_42 = sampler([0], parameter_values=[[0, 1, 1, 2, 3, 5]], shots=None, seed=42)
+            result_15 = sampler([0], parameter_values=[[0, 1, 1, 2, 3, 5]], shots=None, seed=15)
+        self.assertDictAlmostEqual(result_42.quasi_dists, result_15.quasi_dists)
 
 
 if __name__ == "__main__":

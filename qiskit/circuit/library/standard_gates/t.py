@@ -11,7 +11,7 @@
 # that they have been altered from the originals.
 
 """T and Tdg gate."""
-
+import math
 from typing import Optional
 import numpy
 from qiskit.qasm import pi
@@ -129,4 +129,4 @@ class TdgGate(Gate):
 
     def __array__(self, dtype=None):
         """Return a numpy.array for the inverse T gate."""
-        return numpy.array([[1, 0], [0, (1 - 1j) / numpy.sqrt(2)]], dtype=dtype)
+        return numpy.array([[1, 0], [0, (1 - 1j) / math.sqrt(2)]], dtype=dtype)

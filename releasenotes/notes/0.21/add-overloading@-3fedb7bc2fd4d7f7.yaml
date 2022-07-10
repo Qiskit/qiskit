@@ -1,0 +1,6 @@
+---
+features:
+  - |
+    Added the ``@`` (``__matmul__``) binary operator to ``BaseOperator`` subclasses
+    in the :mod:`qiskit.quantum_info` module. This is shorthand to call the
+    classes' ``dot`` method (``A @ B == A.dot(B)``).

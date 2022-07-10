@@ -279,43 +279,41 @@ class BasePauli(BaseOperator, AdjointMixin, MultiplyMixin):
         return self.copy()._append_circuit(other.inverse(), qargs=qargs)
 
     def _evolve_clifford(self, other, qargs=None, frame="h"):
+
         """Heisenberg picture evolution of a Pauli by a Clifford."""
-        if qargs is None:
-            idx = slice(None)
-            num_act = self.num_qubits
-        else:
-            idx = list(qargs)
-            num_act = len(idx)
 
-        # Set return to I on qargs
-        ret = self.copy()
-        ret._x[:, idx] = False
-        ret._z[:, idx] = False
-
-        # pylint: disable=cyclic-import
-        from qiskit.quantum_info.operators.symplectic.pauli import Pauli
-        from qiskit.quantum_info.operators.symplectic.pauli_list import PauliList
-
-        # Get action of Pauli's from Clifford
         if frame == "s":
-            adj = other.copy()
+            adj = other
         else:
             adj = other.adjoint()
-        pauli_list = []
-        for z in self._z[:, idx]:
-            pauli = Pauli("I" * num_act)
-            for row in adj.stabilizer[z]:
-                pauli.compose(Pauli((row.Z[0], row.X[0], 2 * row.phase[0])), inplace=True)
-            pauli_list.append(pauli)
-        ret.dot(PauliList(pauli_list), qargs=qargs, inplace=True)
 
-        pauli_list = []
-        for x in self._x[:, idx]:
-            pauli = Pauli("I" * num_act)
-            for row in adj.destabilizer[x]:
-                pauli.compose(Pauli((row.Z[0], row.X[0], 2 * row.phase[0])), inplace=True)
-            pauli_list.append(pauli)
-        ret.dot(PauliList(pauli_list), qargs=qargs, inplace=True)
+        if qargs is None:
+            qargs_ = slice(None)
+        else:
+            qargs_ = list(qargs)
+
+        # pylint: disable=cyclic-import
+        from qiskit.quantum_info.operators.symplectic.pauli_list import PauliList
+
+        num_paulis = self._x.shape[0]
+
+        ret = self.copy()
+        ret._x[:, qargs_] = False
+        ret._z[:, qargs_] = False
+
+        idx = np.concatenate((self._x[:, qargs_], self._z[:, qargs_]), axis=1)
+        for idx_, row in zip(
+            idx.T,
+            PauliList.from_symplectic(z=adj.table.Z, x=adj.table.X, phase=2 * adj.table.phase),
+        ):
+            # most of the logic below is to properly index if self is a PauliList (2D),
+            # while not trying to index if the object is just a Pauli (1D).
+            if idx_.any():
+                if np.sum(idx_) == num_paulis:
+                    ret.compose(row, qargs=qargs, inplace=True)
+                else:
+                    ret[idx_] = ret[idx_].compose(row, qargs=qargs)
+
         return ret
 
     def _eq(self, other):
@@ -577,14 +575,14 @@ class BasePauli(BaseOperator, AdjointMixin, MultiplyMixin):
             for index, bit in enumerate(bits)
         }
 
-        for instr, qregs, cregs in flat_instr:
-            if cregs:
+        for instruction in flat_instr:
+            if instruction.clbits:
                 raise QiskitError(
-                    f"Cannot apply Instruction with classical registers: {instr.name}"
+                    f"Cannot apply Instruction with classical bits: {instruction.operation.name}"
                 )
             # Get the integer position of the flat register
-            new_qubits = [qargs[bit_indices[tup]] for tup in qregs]
-            self._append_circuit(instr, new_qubits)
+            new_qubits = [qargs[bit_indices[tup]] for tup in instruction.qubits]
+            self._append_circuit(instruction.operation, new_qubits)
 
         # Since the individual gate evolution functions don't take mod
         # of phase we update it at the end

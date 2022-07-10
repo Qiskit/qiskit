@@ -210,8 +210,8 @@ class CRYGate(ControlledGate):
     def __array__(self, dtype=None):
         """Return a numpy.array for the CRY gate."""
         half_theta = float(self.params[0]) / 2
-        cos = numpy.cos(half_theta)
-        sin = numpy.sin(half_theta)
+        cos = math.cos(half_theta)
+        sin = math.sin(half_theta)
         if self.ctrl_state:
             return numpy.array(
                 [[1, 0, 0, 0], [0, cos, 0, -sin], [0, 0, 1, 0], [0, sin, 0, cos]], dtype=dtype

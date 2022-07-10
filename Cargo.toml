@@ -1,6 +1,6 @@
 [package]
 name = "qiskit-terra"
-version = "0.20.0"
+version = "0.22.0"
 edition = "2018"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
@@ -15,20 +15,21 @@ numpy = "0.16.2"
 rand = "0.8"
 rand_pcg = "0.3"
 rand_distr = "0.4.3"
-indexmap = "1.8.2"
+indexmap = "1.9.1"
 ahash = "0.7.6"
 num-complex = "0.4"
+num-bigint = "0.4"
 
 [dependencies.pyo3]
 version = "0.16.5"
-features = ["extension-module", "hashbrown", "num-complex"]
+features = ["extension-module", "hashbrown", "num-complex", "num-bigint"]
 
 [dependencies.ndarray]
 version = "^0.15.0"
 features = ["rayon"]
 
 [dependencies.hashbrown]
-version = "0.11.2"
+version = "0.12.1"
 features = ["rayon"]
 
 [profile.release]
