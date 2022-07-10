@@ -25,6 +25,7 @@ import scipy
 import numpy as np
 
 from qiskit.utils import algorithm_globals
+from qiskit.utils.deprecation import deprecate_function
 
 from .optimizer import Optimizer, OptimizerSupportLevel, OptimizerResult, POINT
 
@@ -545,7 +546,11 @@ class SPSA(Optimizer):
         # keep track of the last few steps to return their average
         last_steps = deque([x])
 
-        for k in range(1, self.maxiter + 1):
+        # use a local variable and while loop to keep track of the number of iterations
+        # if the termination checker terminates early
+        k = 0
+        while k < self.maxiter:
+            k += 1
             iteration_start = time()
             # compute update
             fx_estimate, update = self._compute_update(fun, x, k, next(eps), lse_solver)
@@ -629,7 +634,7 @@ class SPSA(Optimizer):
         result.x = x
         result.fun = fun(x)
         result.nfev = self._nfev
-        result.nit = self.maxiter
+        result.nit = k
 
         return result
 
@@ -641,14 +646,36 @@ class SPSA(Optimizer):
             "initial_point": OptimizerSupportLevel.required,
         }
 
+    # pylint: disable=bad-docstring-quotes
+    @deprecate_function(
+        "The SPSA.optimize method is deprecated as of Qiskit Terra 0.21.0 and will be removed no "
+        "sooner than 3 months after the release date. Instead, use SPSA.minimize as a replacement, "
+        "which supports the same arguments but follows the interface of scipy.optimize and returns "
+        "a complete result object containing additional information."
+    )
     def optimize(
         self,
-        num_vars,
+        num_vars,  # pylint: disable=unused-argument
         objective_function,
-        gradient_function=None,
-        variable_bounds=None,
+        gradient_function=None,  # pylint: disable=unused-argument
+        variable_bounds=None,  # pylint: disable=unused-argument
         initial_point=None,
     ):
+        """Perform optimization.
+
+        Args:
+            num_vars (int): Number of parameters to be optimized.
+            objective_function (callable): A function that computes the objective function.
+            gradient_function (callable): Not supported for SPSA.
+            variable_bounds (list[(float, float)]): Not supported for SPSA.
+            initial_point (numpy.ndarray[float]): Initial point.
+
+        Returns:
+            tuple: point, value, nfev
+               point: is a 1D numpy.ndarray[float] containing the solution
+               value: is a float with the objective function value
+               nfev: number of objective function calls made if available or None
+        """
         result = self.minimize(objective_function, initial_point)
         return result.x, result.fun, result.nfev
 

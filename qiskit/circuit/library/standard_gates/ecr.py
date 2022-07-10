@@ -11,7 +11,7 @@
 # that they have been altered from the originals.
 
 """Two-qubit ZX-rotation gate."""
-
+from math import sqrt
 import numpy as np
 
 from qiskit.circuit.gate import Gate
@@ -103,7 +103,7 @@ class ECRGate(Gate):
         """Return a numpy.array for the ECR gate."""
         return (
             1
-            / np.sqrt(2)
+            / sqrt(2)
             * np.array(
                 [[0, 1, 0, 1.0j], [1, 0, -1.0j, 0], [0, 1.0j, 0, 1], [-1.0j, 0, 1, 0]],
                 dtype=complex,

@@ -57,7 +57,7 @@ from qiskit.circuit.parameter import Parameter
 from qiskit.circuit.parameterexpression import ParameterExpression, ParameterValueType
 from qiskit.pulse import instructions, channels
 from qiskit.pulse.exceptions import PulseError
-from qiskit.pulse.library import ParametricPulse, Waveform
+from qiskit.pulse.library import ParametricPulse, SymbolicPulse, Waveform
 from qiskit.pulse.schedule import Schedule, ScheduleBlock
 from qiskit.pulse.transforms.alignments import AlignmentKind
 from qiskit.pulse.utils import format_parameter_value
@@ -220,6 +220,27 @@ class ParameterSetter(NodeVisitor):
 
         return node
 
+    def visit_SymbolicPulse(self, node: SymbolicPulse):
+        """Assign parameters to ``SymbolicPulse`` object."""
+        if node.is_parameterized():
+            # Assign duration
+            if isinstance(node.duration, ParameterExpression):
+                node.duration = self._assign_parameter_expression(node.duration)
+            # Assign other parameters
+            for name in node._params:
+                pval = node._params[name]
+                if isinstance(pval, ParameterExpression):
+                    new_val = self._assign_parameter_expression(pval)
+                    if name == "amp" and not isinstance(new_val, ParameterExpression):
+                        # This is due to an odd behavior of IBM Quantum backends.
+                        # When the amplitude is given as a float, then job execution is
+                        # terminated with an error.
+                        new_val = complex(new_val)
+                    node._params[name] = new_val
+            node.validate_parameters()
+
+        return node
+
     def visit_Waveform(self, node: Waveform):
         """Assign parameters to ``Waveform`` object.
 
@@ -321,6 +342,12 @@ class ParameterGetter(NodeVisitor):
 
     def visit_ParametricPulse(self, node: ParametricPulse):
         """Get parameters from ``ParametricPulse`` object."""
+        for op_value in node.parameters.values():
+            if isinstance(op_value, ParameterExpression):
+                self._add_parameters(op_value)
+
+    def visit_SymbolicPulse(self, node: SymbolicPulse):
+        """Get parameters from ``SymbolicPulse`` object."""
         for op_value in node.parameters.values():
             if isinstance(op_value, ParameterExpression):
                 self._add_parameters(op_value)

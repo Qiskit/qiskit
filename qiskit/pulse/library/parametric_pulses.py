@@ -36,6 +36,7 @@ by following the existing pattern:
         ...
         new_supported_pulse_name = library.YourPulseWaveformClass
 """
+import warnings
 from abc import abstractmethod
 from typing import Any, Dict, Optional, Union
 
@@ -51,7 +52,15 @@ from qiskit.pulse.library.waveform import Waveform
 
 
 class ParametricPulse(Pulse):
-    """The abstract superclass for parametric pulses."""
+    """The abstract superclass for parametric pulses.
+
+    .. warning::
+
+        This class is superseded by :class:`.SymbolicPulse` and will be deprecated
+        and eventually removed in the future because of the poor flexibility
+        for defining a new waveform type and serializing it through the :mod:`qiskit.qpy` framework.
+
+    """
 
     @abstractmethod
     def __init__(
@@ -70,6 +79,14 @@ class ParametricPulse(Pulse):
                              amplitude is constrained to 1.
         """
         super().__init__(duration=duration, name=name, limit_amplitude=limit_amplitude)
+
+        warnings.warn(
+            "ParametricPulse and its subclass will be deprecated and will be replaced with "
+            "SymbolicPulse and its subclass because of QPY serialization support. "
+            "See qiskit.pulse.library.symbolic_pulses for details.",
+            PendingDeprecationWarning,
+            stacklevel=3,
+        )
         self.validate_parameters()
 
     @abstractmethod
@@ -155,7 +172,7 @@ class Gaussian(ParametricPulse):
         return gaussian(duration=self.duration, amp=self.amp, sigma=self.sigma, zero_ends=True)
 
     def validate_parameters(self) -> None:
-        if not _is_parameterized(self.amp) and abs(self.amp) > 1.0 and self.limit_amplitude:
+        if not _is_parameterized(self.amp) and abs(self.amp) > 1.0 and self._limit_amplitude:
             raise PulseError(
                 f"The amplitude norm must be <= 1, found: {abs(self.amp)}"
                 + "This can be overruled by setting Pulse.limit_amplitude."
@@ -287,7 +304,7 @@ class GaussianSquare(ParametricPulse):
         )
 
     def validate_parameters(self) -> None:
-        if not _is_parameterized(self.amp) and abs(self.amp) > 1.0 and self.limit_amplitude:
+        if not _is_parameterized(self.amp) and abs(self.amp) > 1.0 and self._limit_amplitude:
             raise PulseError(
                 f"The amplitude norm must be <= 1, found: {abs(self.amp)}"
                 + "This can be overruled by setting Pulse.limit_amplitude."
@@ -431,7 +448,7 @@ class Drag(ParametricPulse):
         )
 
     def validate_parameters(self) -> None:
-        if not _is_parameterized(self.amp) and abs(self.amp) > 1.0 and self.limit_amplitude:
+        if not _is_parameterized(self.amp) and abs(self.amp) > 1.0 and self._limit_amplitude:
             raise PulseError(
                 f"The amplitude norm must be <= 1, found: {abs(self.amp)}"
                 + "This can be overruled by setting Pulse.limit_amplitude."
@@ -445,7 +462,7 @@ class Drag(ParametricPulse):
             not _is_parameterized(self.beta)
             and not _is_parameterized(self.sigma)
             and np.abs(self.beta) > self.sigma
-            and self.limit_amplitude
+            and self._limit_amplitude
         ):
             # If beta <= sigma, then the maximum amplitude is at duration / 2, which is
             # already constrained by self.amp <= 1
@@ -528,7 +545,7 @@ class Constant(ParametricPulse):
         return constant(duration=self.duration, amp=self.amp)
 
     def validate_parameters(self) -> None:
-        if not _is_parameterized(self.amp) and abs(self.amp) > 1.0 and self.limit_amplitude:
+        if not _is_parameterized(self.amp) and abs(self.amp) > 1.0 and self._limit_amplitude:
             raise PulseError(
                 f"The amplitude norm must be <= 1, found: {abs(self.amp)}"
                 + "This can be overruled by setting Pulse.limit_amplitude."

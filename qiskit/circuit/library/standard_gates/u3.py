@@ -11,7 +11,8 @@
 # that they have been altered from the originals.
 
 """Two-pulse single-qubit gate."""
-
+import math
+from cmath import exp
 from typing import Optional, Union
 import numpy
 from qiskit.circuit.controlledgate import ControlledGate
@@ -22,12 +23,6 @@ from qiskit.circuit.quantumregister import QuantumRegister
 
 class U3Gate(Gate):
     r"""Generic single-qubit rotation gate with 3 Euler angles.
-
-    Implemented using two X90 pulses on IBM Quantum systems:
-
-    .. math::
-        U3(\theta, \phi, \lambda) =
-            RZ(\phi) RX(-\pi/2) RZ(\theta) RX(\pi/2) RZ(\lambda)
 
     **Circuit symbol:**
 
@@ -48,6 +43,12 @@ class U3Gate(Gate):
                 \cos\left(\th\right)          & -e^{i\lambda}\sin\left(\th\right) \\
                 e^{i\phi}\sin\left(\th\right) & e^{i(\phi+\lambda)}\cos\left(\th\right)
             \end{pmatrix}
+
+    .. note::
+
+        The matrix representation shown here differs from the `OpenQASM 2.0 specification
+        <https://doi.org/10.48550/arXiv.1707.03429>`_ by a global phase of
+        :math:`e^{i(\phi+\lambda)/2}`.
 
     **Examples:**
 
@@ -108,16 +109,16 @@ class U3Gate(Gate):
         qc.u(self.params[0], self.params[1], self.params[2], 0)
         self.definition = qc
 
-    def __array__(self, dtype=None):
+    def __array__(self, dtype=complex):
         """Return a Numpy.array for the U3 gate."""
         theta, phi, lam = self.params
         theta, phi, lam = float(theta), float(phi), float(lam)
-        cos = numpy.cos(theta / 2)
-        sin = numpy.sin(theta / 2)
+        cos = math.cos(theta / 2)
+        sin = math.sin(theta / 2)
         return numpy.array(
             [
-                [cos, -numpy.exp(1j * lam) * sin],
-                [numpy.exp(1j * phi) * sin, numpy.exp(1j * (phi + lam)) * cos],
+                [cos, -exp(1j * lam) * sin],
+                [exp(1j * phi) * sin, exp(1j * (phi + lam)) * cos],
             ],
             dtype=dtype,
         )
@@ -246,28 +247,28 @@ class CU3Gate(ControlledGate):
             -self.params[0], -self.params[2], -self.params[1], ctrl_state=self.ctrl_state
         )
 
-    def __array__(self, dtype=None):
+    def __array__(self, dtype=complex):
         """Return a numpy.array for the CU3 gate."""
         theta, phi, lam = self.params
         theta, phi, lam = float(theta), float(phi), float(lam)
-        cos = numpy.cos(theta / 2)
-        sin = numpy.sin(theta / 2)
+        cos = math.cos(theta / 2)
+        sin = math.sin(theta / 2)
         if self.ctrl_state:
             return numpy.array(
                 [
                     [1, 0, 0, 0],
-                    [0, cos, 0, -numpy.exp(1j * lam) * sin],
+                    [0, cos, 0, -exp(1j * lam) * sin],
                     [0, 0, 1, 0],
-                    [0, numpy.exp(1j * phi) * sin, 0, numpy.exp(1j * (phi + lam)) * cos],
+                    [0, exp(1j * phi) * sin, 0, exp(1j * (phi + lam)) * cos],
                 ],
                 dtype=dtype,
             )
         else:
             return numpy.array(
                 [
-                    [cos, 0, -numpy.exp(1j * lam) * sin, 0],
+                    [cos, 0, -exp(1j * lam) * sin, 0],
                     [0, 1, 0, 0],
-                    [numpy.exp(1j * phi) * sin, 0, numpy.exp(1j * (phi + lam)) * cos, 0],
+                    [exp(1j * phi) * sin, 0, exp(1j * (phi + lam)) * cos, 0],
                     [0, 0, 0, 1],
                 ],
                 dtype=dtype,

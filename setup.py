@@ -47,11 +47,11 @@ z3_requirements = [
 ]
 bip_requirements = ["cplex", "docplex"]
 csp_requirements = ["python-constraint>=1.4"]
-
+toqm_requirements = ["qiskit-toqm>=0.0.4"]
 
 setup(
     name="qiskit-terra",
-    version="0.21.0",
+    version="0.22.0",
     description="Software for developing quantum computing programs",
     long_description=README,
     long_description_content_type="text/markdown",
@@ -84,9 +84,9 @@ setup(
         "bip-mapper": bip_requirements,
         "crosstalk-pass": z3_requirements,
         "csp-layout-pass": csp_requirements,
-        # Note: 'all' does not include 'bip-mapper' because cplex is too fiddly and too little
-        # supported on various Python versions and OSes compared to Terra.  You have to ask for it
-        # explicitly.
+        "toqm": toqm_requirements,
+        # Note: 'all' only includes extras that are stable and work on the majority of Python
+        # versions and OSes supported by Terra. You have to ask for anything else explicitly.
         "all": visualization_extras + z3_requirements + csp_requirements,
     },
     project_urls={

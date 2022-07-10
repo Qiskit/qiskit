@@ -1,8 +1,0 @@
----
-issues:
-  - |
-    Since its original introduction in Qiskit Terra 0.20, :class:`.XXPlusYYGate`
-    has used a negative angle convention compared to all other rotation gates.
-    In Qiskit Terra 0.21, this will be corrected to be brought in line with the
-    other rotation gates.  This does not affect any other rotation gates, nor
-    :class:`.XXMinusYYGate`.

@@ -212,7 +212,8 @@ class EquivalenceLibrary:
                 decomp_basis = frozenset(
                     f"{name}/{num_qubits}"
                     for name, num_qubits in {
-                        (inst.name, inst.num_qubits) for inst, _, __ in decomp.data
+                        (instruction.operation.name, instruction.operation.num_qubits)
+                        for instruction in decomp.data
                     }
                 )
                 if basis not in node_map:

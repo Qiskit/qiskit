@@ -21,7 +21,12 @@ from qiskit.transpiler import CouplingMap, Target, TranspilerError
 from qiskit.transpiler.passes.layout.vf2_layout import VF2Layout, VF2LayoutStopReason
 from qiskit.converters import circuit_to_dag
 from qiskit.test import QiskitTestCase
-from qiskit.test.mock import FakeTenerife, FakeRueschlikon, FakeManhattan, FakeYorktown
+from qiskit.providers.fake_provider import (
+    FakeTenerife,
+    FakeRueschlikon,
+    FakeManhattan,
+    FakeYorktown,
+)
 from qiskit.circuit.library import GraphState, CXGate
 
 

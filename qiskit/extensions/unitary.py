@@ -191,22 +191,13 @@ class UnitaryGate(Gate):
             _qasm_escape_gate_name(self.label) if self.label else "unitary" + str(id(self))
         )
 
-        # map from gates in the definition to params in the method
-        reg_to_qasm = OrderedDict()
-        current_reg = 0
-
+        qubit_to_qasm = {bit: f"p{i}" for i, bit in enumerate(self.definition.qubits)}
         gates_def = ""
-        for gate in self.definition.data:
-
-            # add regs from this gate to the overall set of params
-            for reg in gate[1] + gate[2]:
-                if reg not in reg_to_qasm:
-                    reg_to_qasm[reg] = "p" + str(current_reg)
-                    current_reg += 1
+        for instruction in self.definition.data:
 
             curr_gate = "\t{} {};\n".format(
-                gate[0].qasm(),
-                ",".join([reg_to_qasm[j] for j in gate[1] + gate[2]]),
+                instruction.operation.qasm(),
+                ",".join(qubit_to_qasm[qubit] for qubit in instruction.qubits),
             )
             gates_def += curr_gate
 
@@ -215,7 +206,7 @@ class UnitaryGate(Gate):
             "gate "
             + self._qasm_name
             + " "
-            + ",".join(reg_to_qasm.values())
+            + ",".join(qubit_to_qasm[qubit] for qubit in self.definition.qubits)
             + " {\n"
             + gates_def
             + "}"

@@ -512,8 +512,8 @@ class QuantumInstance:
                 from qiskit.providers.aer.library import SaveStatevector
 
                 def _find_save_state(data):
-                    for instr, _, _ in reversed(data):
-                        if isinstance(instr, SaveStatevector):
+                    for instruction in reversed(data):
+                        if isinstance(instruction.operation, SaveStatevector):
                             return True
                     return False
 

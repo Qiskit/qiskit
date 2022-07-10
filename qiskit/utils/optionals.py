@@ -40,6 +40,10 @@ Qiskit Components
       - :mod:`Qiskit Ignis <qiskit.ignis>` provides tools for quantum hardware verification, noise
         characterization, and error correction.
 
+    * - .. py:data:: HAS_TOQM
+      - `Qiskit TOQM <https://github.com/qiskit-toqm/qiskit-toqm>`__ provides transpiler passes
+        for the `Time-optimal Qubit mapping algorithm <https://doi.org/10.1145/3445814.3446706>`__.
+
 
 External Python Libraries
 -------------------------
@@ -209,6 +213,7 @@ HAS_IGNIS = _LazyImportTester(
     name="Qiskit Ignis",
     install="pip install qiskit-ignis",
 )
+HAS_TOQM = _LazyImportTester("qiskit_toqm", name="Qiskit TOQM", install="pip install qiskit-toqm")
 
 HAS_CONSTRAINT = _LazyImportTester(
     "constraint",
