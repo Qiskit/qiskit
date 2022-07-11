@@ -437,7 +437,9 @@ class QCircuitImage:
                     gate_text += get_param_str(op, "latex", ndigits=4)
                     gate_text = generate_latex_label(gate_text)
                     if node.cargs:
-                        cwire_list = [self._wire_map[carg] for carg in node.cargs if carg in self._clbits]
+                        cwire_list = [
+                            self._wire_map[carg] for carg in node.cargs if carg in self._clbits
+                        ]
                     else:
                         cwire_list = []
 
