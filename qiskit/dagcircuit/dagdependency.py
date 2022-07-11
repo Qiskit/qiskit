@@ -569,7 +569,7 @@ def merge_no_duplicates(*iterables):
 
 
 @lru_cache(maxsize=None)
-def _get_identity(n):
+def _identity_matrix(n):
     """Cached identity matrix"""
     return np.eye(n)
 
