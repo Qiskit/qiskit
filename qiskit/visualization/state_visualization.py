@@ -1135,14 +1135,6 @@ def state_to_latex(
         latex_str = array_to_latex(state._data, source=True, **args)
     return prefix + latex_str + suffix
 
-
-def _round_if_close(data):
-    """Round real and imaginary parts of complex number of close to zero"""
-    data = np.real_if_close(data + 1) - 1
-    data = -1j * np.real_if_close(data * 1j)
-    return data
-
-
 def num_to_latex_ket(raw_value: complex, first_term: bool) -> Optional[str]:
     """Convert a complex number to latex code suitable for a ket expression
 
@@ -1159,7 +1151,7 @@ def num_to_latex_ket(raw_value: complex, first_term: bool) -> Optional[str]:
         real_value = 0
         imag_value = 0
     else:
-        raw_value = _round_if_close(raw_value)
+        raw_value = np.around(raw_value,15)
         value = sympy.nsimplify(raw_value, constants=(sympy.pi,), rational=False)
         real_value = float(sympy.re(value))
         imag_value = float(sympy.im(value))
@@ -1240,7 +1232,7 @@ def _state_to_latex_ket(data: List[complex], max_size: int = 12) -> str:
     def ket_name(i):
         return bin(i)[2:].zfill(num)
 
-    data = _round_if_close(data)
+    data = np.around(data, max_size)
     nonzero_indices = np.where(data != 0)[0].tolist()
     if len(nonzero_indices) > max_size:
         nonzero_indices = (
