@@ -16,7 +16,6 @@
 import argparse
 import multiprocessing
 import subprocess
-import os
 import sys
 import re
 
@@ -24,6 +23,7 @@ import re
 reno = re.compile(r"releasenotes\/notes")
 # exact release note regex
 exact_reno = re.compile(r"^releasenotes\/notes")
+
 
 def discover_files():
     """Find all .py, .pyx, .pxd files in a list of trees"""
@@ -34,17 +34,15 @@ def discover_files():
 
 
 def validate_path(file_path):
+    """Validate a path in the git tree."""
     if reno.search(file_path) and not exact_reno.search(file_path):
         return file_path
     return None
 
 
 def _main():
-    default_path = os.path.join(
-        os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "qiskit"
-    )
     parser = argparse.ArgumentParser(description="Find any stray release notes.")
-    args = parser.parse_args()
+    _args = parser.parse_args()
     files = discover_files()
     with multiprocessing.Pool() as pool:
         res = pool.map(validate_path, files)
