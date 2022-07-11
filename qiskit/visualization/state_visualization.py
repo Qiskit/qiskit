@@ -1135,6 +1135,7 @@ def state_to_latex(
         latex_str = array_to_latex(state._data, source=True, **args)
     return prefix + latex_str + suffix
 
+
 def num_to_latex_ket(raw_value: complex, first_term: bool) -> Optional[str]:
     """Convert a complex number to latex code suitable for a ket expression
 
@@ -1151,7 +1152,7 @@ def num_to_latex_ket(raw_value: complex, first_term: bool) -> Optional[str]:
         real_value = 0
         imag_value = 0
     else:
-        raw_value = np.around(raw_value,15)
+        raw_value = np.around(raw_value, 15)
         value = sympy.nsimplify(raw_value, constants=(sympy.pi,), rational=False)
         real_value = float(sympy.re(value))
         imag_value = float(sympy.im(value))
