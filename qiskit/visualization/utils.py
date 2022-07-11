@@ -14,6 +14,7 @@
 
 import re
 from collections import OrderedDict
+from warnings import warn
 
 import numpy as np
 
@@ -198,6 +199,7 @@ def get_bit_reg_index(circuit, bit, reverse_bits=None):
     Args:
         circuit (QuantumCircuit): the circuit being drawn
         bit (Qubit, Clbit): the bit to use to find the register and indexes
+        reverse_bits (bool): deprecated option to reverse order of the bits
 
     Returns:
         (ClassicalRegister, None): register associated with the bit
@@ -292,6 +294,7 @@ def get_condition_label_val(condition, circuit, cregbundle, reverse_bits=None):
         condition (Union[Clbit, ClassicalRegister], int): classical condition
         circuit (QuantumCircuit): the circuit that is being drawn
         cregbundle (bool): if set True bundle classical registers
+        reverse_bits (bool): deprecated option to reverse order of the bits
 
     Returns:
         str: label to display for the condition
