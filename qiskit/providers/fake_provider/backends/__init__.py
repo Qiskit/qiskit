@@ -29,6 +29,7 @@ from .cambridge import FakeCambridgeV2
 from .casablanca import FakeCasablancaV2
 from .essex import FakeEssexV2
 from .guadalupe import FakeGuadalupeV2
+from .geneva import FakeGenevaV2
 from .hanoi import FakeHanoiV2
 from .jakarta import FakeJakartaV2
 from .johannesburg import FakeJohannesburgV2
@@ -72,6 +73,7 @@ from .cambridge import FakeCambridgeAlternativeBasis
 from .casablanca import FakeCasablanca
 from .essex import FakeEssex
 from .guadalupe import FakeGuadalupe
+from .geneva import FakeGeneva
 from .hanoi import FakeHanoi
 from .jakarta import FakeJakarta
 from .johannesburg import FakeJohannesburg
