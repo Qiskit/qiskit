@@ -430,7 +430,9 @@ class TestMeasurementErrorMitigation(QiskitAlgorithmsTestCase):
         circuit.measure(2, 1)
         circuit.measure(0, 2)
 
-        result = execute(circuit, backend, noise_model=noise_model, shots=1000, seed_simulator=0).result()
+        result = execute(
+            circuit, backend, noise_model=noise_model, shots=1000, seed_simulator=0
+        ).result()
         new_result = fitter.subset_fitter([1, 2, 0]).filter.apply(result)
 
         # The noisy result should have a poor 111 state, the mit. result should be good.

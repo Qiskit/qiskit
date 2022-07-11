@@ -465,9 +465,7 @@ class TensoredMeasFitter:
         supported_qubits = set([tensor[0] for tensor in self._mit_pattern])
         for qubit in qubit_sublist:
             if qubit not in supported_qubits:
-                raise QiskitError(
-                    f"Qubit {qubit} is not in the mit pattern {self._mit_pattern}."
-                )
+                raise QiskitError(f"Qubit {qubit} is not in the mit pattern {self._mit_pattern}.")
 
         new_mit_pattern = [[idx] for idx in qubit_sublist]
         new_substate_labels_list = [self._substate_labels_list[idx] for idx in qubit_sublist]
