@@ -20,10 +20,10 @@ import warnings
 import json
 import os
 
-from typing import List
+from typing import List, Iterable, Optional
 
 from qiskit import circuit
-from qiskit.providers.models import BackendProperties
+from qiskit.providers.models import BackendProperties, PulseBackendConfiguration
 from qiskit.providers import BackendV2, BackendV1
 from qiskit import pulse
 from qiskit.exceptions import QiskitError
@@ -72,6 +72,7 @@ class FakeBackendV2(BackendV2):
     def __init__(self):
         """FakeBackendV2 initializer."""
         self._conf_dict = self._get_conf_dict_from_json()
+        self._pulse_conf = PulseBackendConfiguration.from_dict(self._conf_dict)
         self._props_dict = None
         self._defs_dict = None
         super().__init__(
@@ -336,6 +337,41 @@ class FakeBackendV2(BackendV2):
                 pass
 
         return noise_model
+
+    def control_channel(self, qubits: Iterable[int]):
+        """Return the secondary drive channel for the given qubit
+
+        This is typically utilized for controlling multiqubit interactions.
+        This channel is derived from other channels.
+
+        This is required to be implemented if the backend supports Pulse
+        scheduling.
+
+        Args:
+            qubits: Tuple or list of qubits of the form
+                ``(control_qubit, target_qubit)``.
+
+        Returns:
+            List[ControlChannel]: The Qubit measurement acquisition line.
+
+        """
+        return self._pulse_conf.control_channels[qubits]
+
+    @property
+    def control_channels(self):
+        """Return the full dictionary of control channels
+
+        This is typically utilized for controlling multiqubit interactions.
+        This channel is derived from other channels.
+
+        This is required to be implemented if the backend supports Pulse
+        scheduling.
+
+        Returns:
+            Dict[Tuple[int], ControlChannel]: The contro channels dictionary
+
+        """
+        return self._pulse_conf.control_channels
 
 
 class FakeBackend(BackendV1):
