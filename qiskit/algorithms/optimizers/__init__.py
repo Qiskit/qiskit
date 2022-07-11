@@ -65,7 +65,6 @@ Local Optimizers
    GSLS
    GradientDescent
    GradientDescentState
-   CMAES
    NELDER_MEAD
    NFT
    P_BFGS
@@ -124,7 +123,6 @@ from .cg import CG
 from .cobyla import COBYLA
 from .gsls import GSLS
 from .gradient_descent import GradientDescent, GradientDescentState
-from .cmaes import CMAES, CMAESState
 from .imfil import IMFIL
 from .l_bfgs_b import L_BFGS_B
 from .nelder_mead import NELDER_MEAD
@@ -156,7 +154,6 @@ __all__ = [
     "COBYLA",
     "GSLS",
     "GradientDescent",
-    "CMAES",
     "L_BFGS_B",
     "NELDER_MEAD",
     "NFT",
