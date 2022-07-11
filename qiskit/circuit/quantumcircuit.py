@@ -874,6 +874,14 @@ class QuantumCircuit:
         else:
             dest = self.copy()
 
+        # If self does not have any cregs but other does then we allow
+        # that and add the registers to the output dest
+        if isinstance(other, QuantumCircuit):
+            if not self.clbits and other.clbits:
+                dest.add_bits(other.clbits)
+                for reg in other.cregs:
+                    dest.add_register(reg)
+
         if wrap:
             try:
                 other = other.to_gate()
@@ -898,15 +906,14 @@ class QuantumCircuit:
 
         instrs = other.data
 
-        if other.num_qubits > self.num_qubits or other.num_clbits > self.num_clbits:
+        if other.num_qubits > dest.num_qubits or other.num_clbits > dest.num_clbits:
             raise CircuitError(
                 "Trying to compose with another QuantumCircuit which has more 'in' edges."
             )
 
         # number of qubits and clbits must match number in circuit or None
-        identity_qubit_map = dict(zip(other.qubits, self.qubits))
-        identity_clbit_map = dict(zip(other.clbits, self.clbits))
-
+        identity_qubit_map = dict(zip(other.qubits, dest.qubits))
+        identity_clbit_map = dict(zip(other.clbits, dest.clbits))
         if qubits is None:
             qubit_map = identity_qubit_map
         elif len(qubits) != len(other.qubits):
