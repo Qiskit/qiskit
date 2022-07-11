@@ -191,7 +191,7 @@ def get_bit_register(circuit, bit):
     return bit_loc.registers[0][0] if bit_loc.registers else None
 
 
-def get_bit_reg_index(circuit, bit):
+def get_bit_reg_index(circuit, bit, reverse_bits=None):
     """Get the register for a bit if there is one, and the index of the bit
     from the top of the circuit, or the index of the bit within a register.
 
@@ -204,6 +204,15 @@ def get_bit_reg_index(circuit, bit):
         int: index of the bit from the top of the circuit
         int: index of the bit within the register, if there is a register
     """
+    if reverse_bits is not None:
+        warn(
+            "The 'reverse_bits' kwarg to the function "
+            "~qiskit.visualization.utils.get_bit_reg_index "
+            "is deprecated as of 0.22.0 and will be removed no earlier than 3 months "
+            "after the release date.",
+            DeprecationWarning,
+            2,
+        )
     bit_loc = circuit.find_bit(bit)
     bit_index = bit_loc.index
     register, reg_index = bit_loc.registers[0] if bit_loc.registers else (None, None)
@@ -276,7 +285,7 @@ def get_wire_label(drawer, register, index, layout=None, cregbundle=True):
     return wire_label
 
 
-def get_condition_label_val(condition, circuit, cregbundle):
+def get_condition_label_val(condition, circuit, cregbundle, reverse_bits=None):
     """Get the label and value list to display a condition
 
     Args:
@@ -288,6 +297,15 @@ def get_condition_label_val(condition, circuit, cregbundle):
         str: label to display for the condition
         list(str): list of 1's and 0's indicating values of condition
     """
+    if reverse_bits is not None:
+        warn(
+            "The 'reverse_bits' kwarg to the function "
+            "~qiskit.visualization.utils.get_condition_label_val "
+            "is deprecated as of 0.22.0 and will be removed no earlier than 3 months "
+            "after the release date.",
+            DeprecationWarning,
+            2,
+        )
     cond_is_bit = bool(isinstance(condition[0], Clbit))
     cond_val = int(condition[1])
 

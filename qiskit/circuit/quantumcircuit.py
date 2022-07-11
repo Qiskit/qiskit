@@ -1874,11 +1874,11 @@ class QuantumCircuit:
                 specified, a new matplotlib Figure will be created and used.
                 Additionally, if specified there will be no returned Figure since
                 it is redundant.
-            initial_state (bool): optional. Adds ``|0>`` in the beginning of the wire.
+            initial_state (bool): Optional. Adds ``|0>`` in the beginning of the wire.
                 Default is False.
-            cregbundle (bool): optional. If set True, bundle classical registers.
+            cregbundle (bool): Optional. If set True, bundle classical registers.
                 Default is True.
-            wire_order (list): optional. A list of integers used to reorder the display
+            wire_order (list): Optional. A list of integers used to reorder the display
                 of the bits. The list must have an entry for every bit with the bits
                 in the range 0 to (num_qubits + num_clbits).
 
