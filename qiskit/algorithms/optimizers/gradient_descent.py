@@ -48,15 +48,17 @@ class LearningRate():
             self._gen =  constant(learning_rate_factory)
         elif isinstance(learning_rate_factory,GeneratorType):
             learning_rate_factory , self._gen = tee(learning_rate_factory)
-        elif isinstance(learning_rate_factory, list) or isinstance(learning_rate_factory, np.ndarray):
+        elif isinstance(learning_rate_factory, (list,np.ndarray)):
             self._gen = (eta for eta in learning_rate_factory)
         else:
             self._gen = learning_rate_factory()
 
+        self.current: Optional[float] = None
+
     def __iter__(self):
         return self
 
-    def __next__(self):
+    def __next__(self) -> float:
         self.current = next(self._gen)
         return self.current
 
@@ -234,8 +236,8 @@ class GradientDescent(SteppableOptimizer):
 
     @property
     def learning_rate(self) -> Union[float, List[float], Callable[[], Iterator]]:
-        """Returns the learning rate. It can be either a constant value, a list or a function that returns
-        generators."""
+        """Returns the learning rate. It can be either a constant value, a list or a function
+        that returns generators."""
         return self._learning_rate
 
     @learning_rate.setter

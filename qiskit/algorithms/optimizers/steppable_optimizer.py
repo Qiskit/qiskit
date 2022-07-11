@@ -14,7 +14,7 @@
 
 from abc import abstractmethod, ABC
 from dataclasses import dataclass
-from typing import Union, Callable, Optional, Tuple, List, Any
+from typing import Union, Callable, Optional, Tuple, List
 from .optimizer import Optimizer, POINT, OptimizerResult
 
 

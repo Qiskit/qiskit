@@ -172,6 +172,8 @@ class TestGradientDescent(QiskitAlgorithmsTestCase):
             stepsize=None,
         )
 
+        self.assertEqual(test_state,optimizer.state)
+
     def test_learning_rate(self):
         """
         Tests if the learning rate is initialized properly for each kind of input:
@@ -204,5 +206,3 @@ class TestGradientDescent(QiskitAlgorithmsTestCase):
             optimizer.start(x0=initial_point, fun=objective)
             for i in range(5):
                 self.assertEqual(list_learning_rate[i],next(optimizer.state.learning_rate))
-
-
