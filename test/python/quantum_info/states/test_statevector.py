@@ -1123,15 +1123,19 @@ class TestStatevector(QiskitTestCase):
         Test for `\rangleNone` output in latex representation
         See https://github.com/Qiskit/qiskit-terra/issues/8169
         """
-        sv = Statevector([7.07106781e-01 - 8.65956056e-17j,
-                          -5.55111512e-17 - 8.65956056e-17j,
-                          7.85046229e-17 + 8.65956056e-17j,
-                          -7.07106781e-01 + 8.65956056e-17j,
-                          0.00000000e+00 + 0.00000000e+00j,
-                          -0.00000000e+00 + 0.00000000e+00j,
-                          -0.00000000e+00 + 0.00000000e+00j,
-                          0.00000000e+00 - 0.00000000e+00j],
-                         dims=(2, 2, 2))
+        sv = Statevector(
+            [
+                7.07106781e-01 - 8.65956056e-17j,
+                -5.55111512e-17 - 8.65956056e-17j,
+                7.85046229e-17 + 8.65956056e-17j,
+                -7.07106781e-01 + 8.65956056e-17j,
+                0.00000000e00 + 0.00000000e00j,
+                -0.00000000e00 + 0.00000000e00j,
+                -0.00000000e00 + 0.00000000e00j,
+                0.00000000e00 - 0.00000000e00j,
+            ],
+            dims=(2, 2, 2),
+        )
         latex_representation = state_to_latex(sv)
         self.assertEqual(
             latex_representation,
