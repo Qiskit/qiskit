@@ -13,16 +13,14 @@
 """Tests for the Gradient Descent optimizer."""
 
 from test.python.algorithms import QiskitAlgorithmsTestCase
-import random
 import numpy as np
 
 
-from qiskit.algorithms.optimizers import GradientDescent
+from qiskit.algorithms.optimizers import GradientDescent, GradientDescentState
 from qiskit.algorithms.optimizers.steppable_optimizer import TellData
 from qiskit.circuit.library import PauliTwoDesign
 from qiskit.opflow import I, Z, StateFn
 from qiskit.test.decorators import slow_test
-
 
 class TestGradientDescent(QiskitAlgorithmsTestCase):
     """Tests for the gradient descent optimizer."""
@@ -89,49 +87,35 @@ class TestGradientDescent(QiskitAlgorithmsTestCase):
 
     def test_random_failure(self):
         """
-        Tests the optimization routine for a gradient that randomly fails on evaluation."""
-
-        def learning_rate():
-            power = 0.6
-            constant_coeff = 0.1
-
-            def powerlaw():
-                n = 0
-                while True:
-                    yield constant_coeff * (n**power)
-                    n += 1
-
-            return powerlaw()
+        Performs one optimization step where the first function evaluation fails.
+        When making an evaluation in a quantum circuit, we might get a failure instead of a result.
+        In this case, the failure will be modeled by the function returning a None.
+        """
 
         def objective(x):
             return (np.linalg.norm(x) - 1) ** 2
 
-        def grad(x):
-            if random.choice([True, False]):
+        def grad(x, njev):
+            choices = [True, True, False]
+            if choices[njev]:
                 return None
             else:
                 return 2 * (np.linalg.norm(x) - 1) * x / np.linalg.norm(x)
 
-        tol = 1e-4
-        dimension = 100
-        initial_point = np.random.normal(0, 1, size=(dimension,))
+        dimension = 3
+        initial_point = np.ones(dimension)
 
-        optimizer = GradientDescent(maxiter=20, learning_rate=learning_rate)
-        optimizer.minimize(x0=initial_point, fun=objective, jac=grad)
+        optimizer = GradientDescent(maxiter=20, learning_rate=0.1)
+        optimizer.start(x0=initial_point, fun=objective, jac=grad)
 
-        for _ in range(20):
-            ask_data = optimizer.ask()
-            evaluated_gradient = None
+        ask_data = optimizer.ask()
+        evaluated_gradient = None
+        while evaluated_gradient is None:
+            evaluated_gradient = grad(ask_data.x_jac, optimizer.state.njev)
+            optimizer.state.njev += 1
 
-            while evaluated_gradient is None:
-                evaluated_gradient = grad(ask_data.x_jac)
-                optimizer._state.njev += 1
-
-            tell_data = TellData(eval_jac=evaluated_gradient)
-            optimizer.tell(ask_data=ask_data, tell_data=tell_data)
-
-        result = optimizer.create_result()
-        self.assertLess(result.fun, tol)
+        tell_data = TellData(eval_jac=evaluated_gradient)
+        optimizer.tell(ask_data=ask_data, tell_data=tell_data)
 
     def test_iterator_learning_rate(self):
         """Test setting the learning rate as iterator."""
@@ -160,3 +144,65 @@ class TestGradientDescent(QiskitAlgorithmsTestCase):
         result = optimizer.minimize(objective, initial_point, grad)
 
         self.assertLess(result.fun, 1e-5)
+
+    # ask,tell,step,evaluate,start,minimize,continue_condition,create_result,
+
+    def test_start(self):
+        """Tests if the start method initializes the state properly."""
+
+        def objective(x):
+            return (np.linalg.norm(x) - 1) ** 2
+
+        initial_point = np.ones(3)
+
+        optimizer = GradientDescent()
+
+        self.assertIsNone(optimizer.state)
+        self.assertIsNone(optimizer.perturbation)
+        optimizer.start(x0=initial_point, fun=objective)
+
+        test_state = GradientDescentState(
+            x=initial_point,
+            fun=objective,
+            jac=None,
+            nfev=0,
+            njev=0,
+            nit=0,
+            learning_rate=None,
+            stepsize=None,
+        )
+
+    def test_learning_rate(self):
+        """
+        Tests if the learning rate is initialized properly for each kind of input:
+        float, list and iterator.
+        """
+        def objective(x):
+            return (np.linalg.norm(x) - 1) ** 2
+
+        constant_learning_rate = 0.01
+        list_learning_rate = [0.01 * n for n in range(10)]
+        generator_learning_rate = (el for el in list_learning_rate)
+
+        initial_point = np.ones(3)
+        optimizer = GradientDescent()
+
+        with self.subTest("Check constant learning rate."):
+            optimizer.learning_rate = constant_learning_rate
+            optimizer.start(x0=initial_point, fun=objective)
+            for _ in range(5):
+                self.assertEqual(constant_learning_rate,next(optimizer.state.learning_rate))
+
+        with self.subTest("Check learning rate list."):
+            optimizer.learning_rate = list_learning_rate
+            optimizer.start(x0=initial_point, fun=objective)
+            for i in range(5):
+                self.assertEqual(list_learning_rate[i],next(optimizer.state.learning_rate))
+
+        with self.subTest("Check learning rate generator."):
+            optimizer.learning_rate = lambda : generator_learning_rate
+            optimizer.start(x0=initial_point, fun=objective)
+            for i in range(5):
+                self.assertEqual(list_learning_rate[i],next(optimizer.state.learning_rate))
+
+

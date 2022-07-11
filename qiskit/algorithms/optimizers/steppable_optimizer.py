@@ -17,8 +17,6 @@ from dataclasses import dataclass
 from typing import Union, Callable, Optional, Tuple, List, Any
 from .optimizer import Optimizer, POINT, OptimizerResult
 
-CALLBACK = Callable[[Any], None]
-
 
 @dataclass
 class AskData(ABC):
@@ -115,7 +113,7 @@ class SteppableOptimizer(Optimizer):
             optimizer = GradientDescent(maxiter=20)
             optimizer.start(x0=initial_point, fun=objective, jac=grad)
 
-            for _ in range(20):
+            while optimizer.continue_condition():
                 ask_data = optimizer.ask()
                 evaluated_gradient = None
 
@@ -161,7 +159,7 @@ class SteppableOptimizer(Optimizer):
         return self._state
 
     @state.setter
-    def state(self, state: OptimizerState):
+    def state(self, state: OptimizerState) -> None:
         """Set the current state of the optimizer."""
         self._state = state
 
@@ -234,6 +232,7 @@ class SteppableOptimizer(Optimizer):
         tell_data = self.evaluate(ask_data=ask_data)
         self.tell(ask_data=ask_data, tell_data=tell_data)
 
+    # pylint: disable=invalid-name
     @abstractmethod
     def start(
         self,
@@ -296,7 +295,7 @@ class SteppableOptimizer(Optimizer):
         raise NotImplementedError
 
     def continue_condition(self) -> bool:
-        """Condition that indicates the optimization process should come to an end.
+        """Condition that indicates the optimization process should continue.
 
         Returns:
             ``True`` if the optimization process should continue, ``False`` otherwise.

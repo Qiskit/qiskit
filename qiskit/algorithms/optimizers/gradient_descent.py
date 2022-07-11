@@ -12,8 +12,10 @@
 
 """A standard gradient descent optimizer."""
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Dict, Any, Union, Callable, Optional, Tuple, List, Iterator, Generator
+from types import GeneratorType
+from itertools import tee
 import numpy as np
 from .optimizer import Optimizer, OptimizerSupportLevel, OptimizerResult, POINT
 from .steppable_optimizer import AskData, TellData, OptimizerState, SteppableOptimizer
@@ -21,25 +23,52 @@ from .steppable_optimizer import AskData, TellData, OptimizerState, SteppableOpt
 CALLBACK = Callable[[int, np.ndarray, float, float], None]
 
 
-def constant_generator(eta: float = 0.01) -> Generator[float, None, None]:
+def constant(learning_rate: float = 0.01) -> Generator[float, None, None]:
     """Returns a python generator that always yields the same value.
 
     Args:
-        eta: The value to yield.
+        learning_rate: The value to yield.
 
     Yields:
         The learning rate for the next iteration.
     """
 
     while True:
-        yield eta
+        yield learning_rate
+
+class LearningRate():
+    """Represents a Learning Rate.
+    Will be an attribute of :class:`~.GradientDescentState`. Note that :class:`~.GradientDescent` also
+    has a learning rate. That learning rate can be a float, a list, an array, a function returning
+    a generator or a generator itself and will be used to create a generator to be used during the
+    optimization process.
+    """
+    def __init__(self, learning_rate_factory: Union[float, List[float], Callable[[], Iterator]]):
+        if isinstance(learning_rate_factory,float):
+            self._gen =  constant(learning_rate_factory)
+        elif isinstance(learning_rate_factory,GeneratorType):
+            learning_rate_factory , self._gen = tee(learning_rate_factory)
+        elif isinstance(learning_rate_factory, list) or isinstance(learning_rate_factory, np.ndarray):
+            self._gen = (eta for eta in learning_rate_factory)
+        else:
+            self._gen = learning_rate_factory()
+
+    def __iter__(self):
+        return self
+
+    def __next__(self):
+        self.current = next(self._gen)
+        return self.current
+
+    def __call__(self):
+        return self
 
 
 @dataclass
 class GradientDescentState(OptimizerState):
     """State of :class:`~.GradientDescent`."""
 
-    eta: Iterator
+    learning_rate: LearningRate = field(compare=False)
     stepsize: Optional[float]
 
 
@@ -148,7 +177,7 @@ class GradientDescent(SteppableOptimizer):
             optimizer = GradientDescent(maxiter=20)
             optimizer.start(x0=initial_point, fun=objective, jac=grad)
 
-            for _ in range(20):
+            while optimizer.continue_condition():
                 ask_data = optimizer.ask()
                 evaluated_gradient = None
 
@@ -163,7 +192,8 @@ class GradientDescent(SteppableOptimizer):
 
             result = optimizer.create_result()
 
-    In case the user isn't dealing with complicated functI am not 100% sure about it, so if on and is more familiar with step by step
+    In case the user isn't dealing with complicated functI am not 100% sure about it, so if on
+    and is more familiar with step by step
     optimization algorithms, :meth:`~.step` has been created to acts as a wrapper for :meth:`~.ask`
     and :meth:`~.tell`.
     In the same spirit the method :meth:`~.minimize` will optimize the function and return the result
@@ -178,7 +208,7 @@ class GradientDescent(SteppableOptimizer):
     def __init__(
         self,
         maxiter: int = 100,
-        learning_rate: Union[float, Callable[[], Iterator]] = 0.01,
+        learning_rate: Union[float, List[float], Callable[[], Iterator]] = 0.01,
         tol: float = 1e-7,
         callback: Optional[CALLBACK] = None,
         perturbation: Optional[float] = None,
@@ -186,10 +216,10 @@ class GradientDescent(SteppableOptimizer):
         """
         Args:
             maxiter: The maximum number of iterations.
-            learning_rate: A constant or generator yielding learning rates for the parameter
+            learning_rate: A constant, list or generator yielding learning rates for the parameter
                 updates. See the docstring for an example.
             tol: If the norm of the parameter update is smaller than this threshold, the
-                optimizer is converged.
+                optimizer has converged.
             perturbation: If no gradient is passed to :meth:`~.minimize` the gradient is
                 approximated with a symmetric finite difference scheme with ``perturbation``
                 perturbation in both directions (defaults to 1e-2 if required).
@@ -203,18 +233,30 @@ class GradientDescent(SteppableOptimizer):
         self._tol = tol
 
     @property
-    def learning_rate(self) -> Union[float, Callable[[], Iterator]]:
-        """Returns the learning rate. It can be either a constant value or a function that returns
+    def learning_rate(self) -> Union[float, List[float], Callable[[], Iterator]]:
+        """Returns the learning rate. It can be either a constant value, a list or a function that returns
         generators."""
         return self._learning_rate
 
     @learning_rate.setter
-    def learning_rate(self, learning_rate: Union[float, Callable[[], Iterator]]) -> None:
+    def learning_rate(
+        self, learning_rate: Union[float, List[float], Callable[[], Iterator]]
+    ) -> None:
         """Set the learning rate.
         The learning rate provided needs to be a function that returns a generator.
         If a constant is passed, the optimizer will use it for all iterations.
         """
         self._learning_rate = learning_rate
+
+    @property
+    def state(self) -> GradientDescentState:
+        """Return the current state of the optimizer."""
+        return self._state
+
+    @state.setter
+    def state(self, state: GradientDescentState) -> None:
+        """Set the current state of the optimizer."""
+        self._state = state
 
     @property
     def tol(self) -> float:
@@ -290,7 +332,7 @@ class GradientDescent(SteppableOptimizer):
             ask_data: The data used to evaluate the function.
             tell_data: The data from the function evaluation.
         """
-        self.state.x = self.state.x - next(self.state.eta) * tell_data.eval_jac
+        self.state.x = self.state.x - next(self.state.learning_rate) * tell_data.eval_jac
         self.state.stepsize = np.linalg.norm(tell_data.eval_jac)
         self.state.nit += 1
 
@@ -306,7 +348,7 @@ class GradientDescent(SteppableOptimizer):
                       approximation.
 
         Returns:
-        The data containing the gradient evaluation.
+            The data containing the gradient evaluation.
 
         """
         if self.state.jac is None:
@@ -348,11 +390,6 @@ class GradientDescent(SteppableOptimizer):
         bounds: Optional[List[Tuple[float, float]]] = None,
     ) -> None:
 
-        if isinstance(self.learning_rate, float):
-            eta = constant_generator(self.learning_rate)
-        else:
-            eta = self._learning_rate()
-
         self.state = GradientDescentState(
             fun=fun,
             jac=jac,
@@ -360,7 +397,7 @@ class GradientDescent(SteppableOptimizer):
             nit=0,
             nfev=0,
             njev=0,
-            eta=eta,
+            learning_rate=LearningRate(learning_rate_factory = self.learning_rate),
             stepsize=None,
         )
 
