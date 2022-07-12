@@ -10,7 +10,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""A ground state calculation employing the AdaptVQE algorithm."""
+"""An implementation of the AdaptVQE algorithm."""
 from __future__ import annotations
 from typing import Optional, List, Tuple, Union
 
@@ -38,7 +38,7 @@ logger = logging.getLogger(__name__)
 
 
 class FinishingCriterion(Enum):
-    """The FinishingCriterion Class is an Enum for finishing criteria."""
+    """A class enumerating the various finishing criteria."""
 
     CONVERGED = "Threshold converged"
     CYCLICITY = "Aborted due to a cyclic selection of evolution operators"
@@ -49,11 +49,12 @@ class FinishingCriterion(Enum):
 class AdaptVQE(VariationalAlgorithm):
     """The Adaptive Variational Quantum Eigensolver algorithm.
 
-    `AdaptVQE <https://arxiv.org/abs/1812.11173>`__ is a quantum algorithm creates a compact ansatz
-    by gradually building up the ansatz circuit by appending the excitation with the largest energy
-    gradient to the circuit. This results in a wavefunction ansatz that is uniquely formed by the
-    algorithm.
-    This is an adaptive wrapper of a VQE used internally as solver.
+    `AdaptVQE <https://arxiv.org/abs/1812.11173>`__ is a quantum algorithm which creates a compact
+    ansatz from a set of evolution operators. It iteratively appends excitations with the largest energy
+    gradient to the circuit. This results in a wavefunction ansatz which is uniquely adapted to the operator
+    whose minimum eigenvalue is being determined.
+    This class relies internally on a `VQE` to find the minimum eigenvalue
+    of the provided operator.
     The performance of AdaptVQE can significantly depend on the choice of gradient method, QFI
     solver (if applicable) and the epsilon value.
     """
@@ -68,12 +69,13 @@ class AdaptVQE(VariationalAlgorithm):
     ) -> None:
         """
         Args:
-            solver: a factory for the VQE solver employing a UCCSD ansatz.
-            adapt_gradient: a class that converts operator expression to the first-order gradient based
-                on the method mentioned.
-            excitation_pool: An entire list of excitations.
-            threshold: the energy convergence threshold. It has a minimum value of 1e-15.
-            max_iterations: the maximum number of iterations of the AdaptVQE algorithm.
+            solver: a `VQE` instance used internally to compute the minimum eigenvalues.
+               It is a requirement that the `ansatz` of this solver is of type `EvolvedOperatorAnsatz`.
+            adapt_gradient: a `Gradient` instance with which to compute the excitation operator gradients.
+                If `None`, this will default to a parameter shift gradient.
+            excitation_pool: A list of quantum circuits out of which to build the ansatz.
+            threshold: the eigenvalue convergence threshold. It has a minimum value of `1e-15`.
+            max_iterations: the maximum number of iterations.
         """
         validate_min("threshold", threshold, 1e-15)
 
@@ -89,12 +91,12 @@ class AdaptVQE(VariationalAlgorithm):
 
     @property
     def initial_point(self) -> Optional[np.ndarray]:
-        """Returns initial point."""
+        """Returns the initial point."""
         return self.solver.initial_point
 
     @initial_point.setter
     def initial_point(self, initial_point: Optional[np.ndarray]) -> None:
-        """Sets initial point."""
+        """Sets the initial point."""
         self.solver.initial_point = initial_point
 
     def _compute_gradients(
@@ -109,12 +111,12 @@ class AdaptVQE(VariationalAlgorithm):
             theta: List of (up to now) optimal parameters
             operator: operator whose gradient needs to be computed
         Returns:
-            List of pairs consisting of gradient and excitation operator.
+            List of pairs consisting of the computed gradient and excitation operator.
         """
         res = []
         # compute gradients for all excitation in operator pool
         sampler = CircuitSampler(self.solver.quantum_instance)
-        for idx,exc in enumerate(self._excitation_pool):
+        for exc in self._excitation_pool:
             # add next excitation to ansatz
             self._tmp_ansatz.operators = self._excitation_list + [exc]
             # the ansatz needs to be decomposed for the gradient to work
@@ -128,7 +130,7 @@ class AdaptVQE(VariationalAlgorithm):
             # compute gradient
             state_grad = self._adapt_gradient.convert(operator=op, params=param_sets)
             # Assign the parameters and evaluate the gradient
-            state_grad_result = sampler.convert(state_grad, params={param_sets[-1]: self.initial_point[idx]}).eval()
+            state_grad_result = sampler.convert(state_grad, params={param_sets[-1]: 0.0}).eval()
             logger.info("Gradient computed : %s", str(state_grad_result))
             res.append((np.abs(state_grad_result[-1]), exc))
         return res, expectation
