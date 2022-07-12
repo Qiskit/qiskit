@@ -37,7 +37,9 @@ from ..exceptions import AlgorithmError
 logger = logging.getLogger(__name__)
 
 
-class Finishingcriterion(Enum):
+class FinishingCriterion(Enum):
+    """The FinishingCriterion Class is an Enum for finishing criteria."""
+
     CONVERGED = "Threshold converged"
     CYCLICITY = "Aborted due to a cyclic selection of evolution operators"
     MAXIMUM = "Maximum number of iterations reached"
@@ -59,20 +61,19 @@ class AdaptVQE(VariationalAlgorithm):
     def __init__(
         self,
         solver: VQE,
-        threshold: float = 1e-5,
-        max_iterations: Optional[int] = None,
         adapt_gradient: Optional[GradientBase] = None,
         excitation_pool: List[Union[OperatorBase, QuantumCircuit]] = None,
+        threshold: float = 1e-5,
+        max_iterations: Optional[int] = None,
     ) -> None:
         """
         Args:
             solver: a factory for the VQE solver employing a UCCSD ansatz.
-            threshold: the energy convergence threshold. It has a minimum value of 1e-15.
-            max_iterations: the maximum number of iterations of the AdaptVQE algorithm.
             adapt_gradient: a class that converts operator expression to the first-order gradient based
                 on the method mentioned.
-
             excitation_pool: An entire list of excitations.
+            threshold: the energy convergence threshold. It has a minimum value of 1e-15.
+            max_iterations: the maximum number of iterations of the AdaptVQE algorithm.
         """
         validate_min("threshold", threshold, 1e-15)
 
@@ -174,7 +175,8 @@ class AdaptVQE(VariationalAlgorithm):
         if logger.isEnabledFor(logging.INFO):
             gradlog = []
             gradlog.append(
-                f"\nGradients in iteration #{str(iteration)} \nID: Excitation Operator: Gradient  <(*) maximum>"
+                f"\nGradients in iteration #{str(iteration)}\n"
+                "ID: Excitation Operator: Gradient  <(*) maximum>"
             )
             for i, grad in enumerate(cur_grads):
                 gradlog.append(f"\n{str(i)}: {str(grad[1])}: {str(grad[0])}")
@@ -246,12 +248,12 @@ class AdaptVQE(VariationalAlgorithm):
                     "AdaptVQE terminated successfully with a final maximum gradient: %s",
                     str(np.abs(max_grad[0])),
                 )
-                finishing_criterion = Finishingcriterion.CONVERGED
+                finishing_criterion = FinishingCriterion.CONVERGED
                 break
             # check indices of picked gradients for cycles
             if self._check_cyclicity(prev_op_indices):
                 logger.info("Final maximum gradient: %s", str(np.abs(max_grad[0])))
-                finishing_criterion = Finishingcriterion.CYCLICITY
+                finishing_criterion = FinishingCriterion.CYCLICITY
                 break
             # add new excitation to self._ansatz
             self._excitation_list.append(max_grad[1])
@@ -264,12 +266,12 @@ class AdaptVQE(VariationalAlgorithm):
             theta = raw_vqe_result.optimal_point.tolist()
         else:
             # reached maximum number of iterations
-            finishing_criterion = Finishingcriterion.MAXIMUM
+            finishing_criterion = FinishingCriterion.MAXIMUM
             logger.info("Maximum number of iterations reached. Finishing.")
             logger.info("Final maximum gradient: %s", str(np.abs(max_grad[0])))
 
         if finishing_criterion is False:
-            finishing_criterion = Finishingcriterion.UNKNOWN
+            finishing_criterion = FinishingCriterion.UNKNOWN
             raise QiskitError("The algorithm finished due to an unforeseen reason!")
 
         result = AdaptVQEResult()

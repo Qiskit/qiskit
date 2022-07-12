@@ -1,3 +1,15 @@
+# This code is part of Qiskit.
+#
+# (C) Copyright IBM 2020, 2022.
+#
+# This code is licensed under the Apache License, Version 2.0. You may
+# obtain a copy of this license in the LICENSE.txt file in the root directory
+# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+#
+# Any modifications or derivative works of this code must retain this
+# copyright notice, and modified files need to carry a notice indicating
+# that they have been altered from the originals.
+
 """ Test of the AdaptVQE minimum eigensolver """
 import unittest
 import sys
@@ -11,8 +23,6 @@ from qiskit.opflow import PauliSumOp
 from qiskit.utils import algorithm_globals
 from qiskit import BasicAer
 from qiskit.algorithms.minimum_eigen_solvers.adapt_vqe import AdaptVQE
-
-sys.path.append("/Users/freyashah/qiskit-terra/test")
 
 
 class TestAdaptVQE(QiskitAlgorithmsTestCase):
