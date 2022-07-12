@@ -27,8 +27,8 @@ class Reference(instruction.Instruction):
     using the :class:`~.Reference` class may significantly reduce the memory footprint of
     the program. This instruction only stores the set of strings to identify the subroutine.
 
-    The actual pulse program can be stored in the :attr:`ScheduleBlock.references`
-    that this reference instruction belongs to.
+    The actual pulse program can be stored in the :attr:`ScheduleBlock.references` of the
+    :class:`.ScheduleBlock` that this reference instruction belongs to.
 
     You can later assign schedules with the :meth:`ScheduleBlock.assign_references` method.
     This allows you to build the main program without knowing the actual subroutine,
@@ -48,11 +48,11 @@ class Reference(instruction.Instruction):
             name: Name of subroutine.
             extra_keys: Optional. A set of string keys that may be necessary to
                 refer to a particular subroutine. For example, when we use
-                "sx" as a name to refer to the subroutine of sx pulse,
+                "sx" as a name to refer to the subroutine of an sx pulse,
                 this name might be used among schedules for different qubits.
                 In this example, you may specify "q0" in the extra keys
                 to distinguish the sx schedule for qubit 0 from others.
-                User can use arbitrary number of extra string keys to
+                The user can use an arbitrary number of extra string keys to
                 uniquely determine the subroutine.
 
         Raises:
@@ -64,7 +64,7 @@ class Reference(instruction.Instruction):
 
         for key in ref_keys:
             if not isinstance(key, str):
-                raise PulseError(f"Keys must be string. '{repr(key)}' is not a valid object.")
+                raise PulseError(f"Keys must be strings. '{repr(key)}' is not a valid object.")
             if self.scope_delimiter in key or self.key_delimiter in key:
                 raise PulseError(
                     f"'{self.scope_delimiter}' and '{self.key_delimiter}' are reserved. "
@@ -94,4 +94,4 @@ class Reference(instruction.Instruction):
         return set()
 
     def __repr__(self) -> str:
-        return f"{self.__class__.__name__}(ref_keys={self.ref_keys})"
+        return f"{self.__class__.__name__}({self.key_delimiter.join(self.ref_keys)})"

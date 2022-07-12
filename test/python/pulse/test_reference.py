@@ -26,7 +26,7 @@ class TestReference(QiskitTestCase):
     def test_append_schedule(self):
         """Test appending schedule without calling.
 
-        Appended scheduels are not subroutine.
+        Appended schedules are not subroutines.
         These are directly exposed to the outer block.
         """
         with pulse.build() as sched_x1:
@@ -179,7 +179,7 @@ class TestReference(QiskitTestCase):
         """Test call and append schedule.
 
         Reference is copied to the outer schedule by appending.
-        Original reference is remain unchanged.
+        Original reference remains unchanged.
         """
         with pulse.build() as sched_x1:
             pulse.play(pulse.Constant(100, 0.1, name="x1"), pulse.DriveChannel(0))
@@ -274,10 +274,10 @@ class TestReference(QiskitTestCase):
         """Test for edge case.
 
         User can append blocks which is an element of another schedule block.
-        But this is not standard usecase.
+        But this is not standard use case.
 
-        In this case, references may contain subroutines which don't exit in the context.
-        This is because all references within the program is centralizedly
+        In this case, references may contain subroutines which don't exist in the context.
+        This is because all references within the program are centrally
         managed in the most outer block.
         """
         with pulse.build() as sched_x1:
@@ -305,7 +305,7 @@ class TestReference(QiskitTestCase):
 
         with pulse.build() as sched_z2:
             # Append child block
-            # The refecence of this block is sched_z1.reference thus it contains both x1 and y1.
+            # The reference of this block is sched_z1.reference thus it contains both x1 and y1.
             # However, y1 doesn't exist in the context, so only x1 should be added.
 
             # Usually, user will append sched_x2 directly here, rather than sched_z1.blocks[0]

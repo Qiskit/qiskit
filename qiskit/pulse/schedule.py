@@ -821,28 +821,28 @@ def _require_schedule_conversion(function: Callable) -> Callable:
 class ScheduleBlock:
     """Time-ordered sequence of instructions with alignment context.
 
-    :class:`.ScheduleBlock` supports lazy scheduling of context instruction,
-    i.e. its timeslot is always generated at runtime.
+    :class:`.ScheduleBlock` supports lazy scheduling of context instructions,
+    i.e. their timeslots is always generated at runtime.
     This indicates we can parametrize instruction durations as well as
     other parameters. In contrast to :class:`.Schedule` being somewhat static,
-    :class:`.ScheduleBlock` is a dynamic representation of pulse program.
+    :class:`.ScheduleBlock` is a dynamic representation of a pulse program.
 
     .. rubric:: Pulse Builder
 
     The Qiskit pulse builder is a domain specific language that is developed on top of
     the schedule block. Use of the builder syntax will improve the workflow of
-    pulse programming. See :ref:`pulse_builder` for user guide.
+    pulse programming. See :ref:`pulse_builder` for a user guide.
 
     .. rubric:: Alignment contexts
 
-    Schedule block is always relatively scheduled.
-    Instead of taking individual instruction with absolute execution time ``t0``,
+    A schedule block is always relatively scheduled.
+    Instead of taking individual instructions with absolute execution time ``t0``,
     the schedule block defines a context of scheduling and instructions
     under the same context are scheduled in the same manner (alignment).
-    Several preset contexts are available in :ref:`pulse_alignments`.
-    Schedule block is instantiated with one of above alignment contexts.
-    Default context is :class:`AlignLeft`, in which all instructions are left-justified,
-    in other words, as-soon-as-possible scheduling.
+    Several contexts are available in :ref:`pulse_alignments`.
+    A schedule block is instantiated with one of these alignment contexts.
+    The default context is :class:`AlignLeft`, for which all instructions are left-justified,
+    in other words, meaning they use as-soon-as-possible scheduling.
 
     If you need an absolute-time interval in between instructions, you can explicitly
     insert :class:`~qiskit.pulse.instructions.Delay` instructions.
@@ -859,7 +859,7 @@ class ScheduleBlock:
     .. rubric:: Unsupported operations
 
     Because the schedule block representation lacks timeslots, it cannot
-    perform particular operations such as :meth:`insert` or :meth:`shift` that
+    perform particular :class:`.Schedule` operations such as :meth:`insert` or :meth:`shift` that
     require instruction start time ``t0``.
     In addition, :meth:`exclude` and :meth:`filter` methods are not supported
     because these operations may identify the target instruction with ``t0``.
@@ -869,7 +869,7 @@ class ScheduleBlock:
     .. rubric:: Subroutine
 
     The timeslots-free representation offers much greater flexibility for writing pulse programs.
-    Because it only cares about the ordering of the child blocks,
+    Because :class:`.ScheduleBlock` only cares about the ordering of the child blocks
     we can add an undefined pulse sequence as a subroutine of the main program.
     If your program contains the same sequence multiple times, this representation may
     reduce the memory footprint required by the program construction.
@@ -878,7 +878,7 @@ class ScheduleBlock:
     a unique set of reference key strings to the subroutine.
     The (executable) subroutine is separately stored in the main program.
     Appended reference directives are resolved when the main program is executed.
-    Subroutines must be assigned through the :meth:`assign_references` before execution.
+    Subroutines must be assigned through :meth:`assign_references` before execution.
 
     .. rubric:: Program Scoping
 
@@ -902,14 +902,16 @@ class ScheduleBlock:
     The :attr:`~ScheduleBlock.scoped_parameters` property returns all :class:`~.Parameter`
     objects defined in the schedule block. The parameter name is updated to reflect
     its scope information, i.e. where it is defined.
-    The outer scope is usually called "root". Since "amp" parameter is directly used
+    The outer scope is called "root". Since the "amp" parameter is directly used
     in the current builder context, it is prefixed with "root".
-    Note that the :class:`Parameter` object is evaluated by the hidden `UUID`_ key,
-    and the scoped name doesn't break its reference.
+    Note that the :class:`Parameter` object returned by :attr:`~ScheduleBlock.scoped_parameters`
+    preserves the hidden `UUID`_ key, and thus the scoped name doesn't break references
+    to the original :class:`Parameter`.
 
     You may want to call this program from another program.
     In this example, the program is called with the reference key "grand_child".
-    You can call a subroutine without specifying a substantial program, i.e. ``sched1``.
+    You can call a subroutine without specifying a substantial program
+    (like ``sched1`` above which we will assign later).
 
     .. jupyter-execute::
 
@@ -922,7 +924,7 @@ class ScheduleBlock:
 
         print(sched2.scoped_parameters)
 
-    This only returns "root.amp" because "grand_child" reference is unknown.
+    This only returns "root::amp" because the "grand_child" reference is unknown.
     Now you assign the actual pulse program to this reference.
 
     .. jupyter-execute::
@@ -931,7 +933,7 @@ class ScheduleBlock:
         print(sched2.scoped_parameters)
 
     Now you get two parameters "root::amp" and "root::grand_child::amp".
-    The second parameter indicates it is defined within the referred program "grand_child".
+    The second parameter name indicates it is defined within the referred program "grand_child".
     The program calling the "grand_child" has a reference program description
     which is accessed through :attr:`ScheduleBlock.references`.
 
@@ -940,8 +942,8 @@ class ScheduleBlock:
         print(sched2.references)
 
     Finally, you may want to call this program from another program.
-    Here we try different approach to define subroutine, namely, we call
-    a subroutine from the root program with actual program ``sched2``.
+    Here we try a different approach to define subroutine. Namely, we call
+    a subroutine from the root program with the actual program ``sched2``.
 
     .. jupyter-execute::
 
@@ -953,17 +955,19 @@ class ScheduleBlock:
 
         print(main.scoped_parameters)
 
-    This implicitly creates a reference within the root program and assign ``sched2`` to it.
+    This implicitly creates a reference named "child" within
+    the root program and assigns ``sched2`` to it.
     You get three parameters "root::amp", "root::child::amp", and "root::child::grand_child::amp".
     As you can see, each parameter name reflects the layer of calls from the root program.
-    If you know the scope of parameter, you can directly get the parameter object as follows.
+    If you know the scope of a parameter, you can directly get the parameter object
+    using :meth:`ScheduleBlock.search_parameters` as follows.
 
     .. jupyter-execute::
 
         main.search_parameters("root::child::grand_child::amp")
 
-    You can use regular expression to specify the scope.
-    This returns the parameters defined within the scope of "ground_child"
+    You can use a regular expression to specify the scope.
+    The following returns the parameters defined within the scope of "ground_child"
     regardless of its parent scope. This is sometimes convenient if you
     want to extract parameters from a deeply nested program.
 
@@ -977,10 +981,10 @@ class ScheduleBlock:
 
         print(main.references)
 
-    As you can see the main program cannot directly access to the "grand_child" because
-    this subroutine is not called within the root program, i.e. indirectly called by "child".
+    As you can see the main program cannot directly access the "grand_child" because
+    this subroutine is not called within the root program, i.e. it is indirectly called by "child".
     However, the returned :class:`.ReferenceManager` is a dict-like object, and you can still
-    reach to "grand_child" via "child" program with the following chained dict access.
+    reach to "grand_child" via the "child" program with the following chained dict access.
 
     .. jupyter-execute::
 
@@ -1164,12 +1168,12 @@ class ScheduleBlock:
 
         .. note::
 
-            The sequence of element is returned in order of addition. Because the first element is
-            schedule first, e.g. FIFO, the returned sequence is roughly time-ordered,
-            however, in the parallel alignment context, especially in
+            The sequence of elements is returned in order of addition. Because the first element is
+            schedule first, e.g. FIFO, the returned sequence is roughly time-ordered.
+            However, in the parallel alignment context, especially in
             the as-late-as-possible scheduling, or :class:`.AlignRight` context,
-            actual timing when the instruction is issued is unknown until self is scheduled
-            and converted into :class:`.Schedule`.
+            the actual timing of when the instructions are issued is unknown until
+            the :class:`.ScheduleBlock` is scheduled and converted into a :class:`.Schedule`.
         """
         blocks = []
         for elm in self._blocks:
@@ -1219,7 +1223,7 @@ class ScheduleBlock:
 
             If a parameter is defined within a nested scope,
             it is prefixed with all parent-scope names with the delimiter string,
-            which is typically "::". If a reference key of the scope consists of
+            which is "::". If a reference key of the scope consists of
             multiple key strings, it will be represented by a single string joined with ",".
             For example, "root::xgate,q0::amp" for the parameter "amp" defined in the
             reference specified by the key strings ("xgate", "q0").
@@ -1518,10 +1522,12 @@ class ScheduleBlock:
         This prevents breaking the reference "root::B::A" by the assignment of "root::B".
         For example, if a user could indirectly assign "root::B::A" from the root program,
         one can later assign another program to "root::B" that doesn't contain "A" within it.
-        In this situation, a reference "root::B::A" still lives in the reference manager of the root,
-        however the subroutine "root::B::A" is never used in the actual pulse program.
-        To assign subroutine "A" to the ``sub_prog``, you must first assign "A" to the ``sub_prog``,
-        then assign the ``sub_prog`` to the ``main_prog``.
+        In this situation, a reference "root::B::A" would still live in
+        the reference manager of the root.
+        However, the subroutine "root::B::A" would no longer be used in the actual pulse program.
+        To assign subroutine "A" to ``nested_prog`` as a nested subprogram of ``main_prog``,
+        you must first assign "A" of the ``sub_prog``,
+        and then assign the ``sub_prog`` to the ``main_prog``.
 
         .. code-block:: python
 
@@ -1535,10 +1541,10 @@ class ScheduleBlock:
             main_prog.assign_references({("B", ): sub_prog}, inplace=True)
             main_prog.references[("B", )].assign_references({"A": nested_prog}, inplace=True)
 
-        here :attr:`.references` returns a dict-like object, and you can
+        Here :attr:`.references` returns a dict-like object, and you can
         mutably update the nested reference of the particular subroutine.
 
-        Note that assigned programs are deep-copied to prevent unexpected update.
+        Note that assigned programs are deep-copied to prevent an unexpected update.
 
         Args:
             subroutine_dict: A mapping from reference key to schedule block of the subroutine.
@@ -1601,6 +1607,7 @@ class ScheduleBlock:
 
     def search_parameters(self, parameter_regex: str) -> List[Parameter]:
         """Search parameter with regular expression.
+
         This method looks for the scope-aware parameters.
         For example,
 

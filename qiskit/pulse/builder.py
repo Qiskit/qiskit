@@ -1924,18 +1924,18 @@ def call(
 
     .. note::
 
-        It the ``target`` program is :class:`.Schedule`, it will be wrapped by the
+        If the ``target`` program is a :class:`.ScheduleBlock`, then a :class:`.Reference`
+        instruction will be created and appended to the current context.
+        The ``target`` program will be immediately assigned to the current scope as a subroutine.
+        If the ``target`` program is :class:`.Schedule`, it will be wrapped by the
         :class:`.Call` instruction and appended to the current context to avoid
-        mixed representation of :class:`.ScheduleBlock` and :class:`.Schedule`.
-        If the ``target`` program is :class:`.QuantumCircuit` it will be scheduled
-        and outcome :class:`.Schedule` is added as a :class:`.Call` instruction.
-        If the ``target`` program is :class:`.ScheduleBlock`, then :class:`.Reference`
-        instruction is created and appended to the current context.
-        The ``target`` program is immediately assigned to the current scope as a subroutine.
+        a mixed representation of :class:`.ScheduleBlock` and :class:`.Schedule`.
+        If the ``target`` program is a :class:`.QuantumCircuit` it will be scheduled
+        and the new :class:`.Schedule` will be added as a :class:`.Call` instruction.
 
     Examples:
 
-        1. Calling quantum circuit.
+        1. Calling a schedule block (recommended)
 
         .. jupyter-execute::
 
@@ -1944,51 +1944,21 @@ def call(
 
             backend = FakeBogotaV2()
 
-            qc = circuit.QuantumCircuit(1)
-            qc.x(0)
-
-            with pulse.build(backend) as pulse_prog:
-                pulse.call(qc)
-
-            print(pulse_prog)
-
-        .. warning::
-
-            Calling circuit from schedule is not encouraged. Currently, Qiskit execution model
-            is migrating toward the pulse gate model, where schedules are attached to
-            circuit through :meth:`.QuantumCircuit.add_calibration` method.
-
-        2. Calling schedule
-
-        .. jupyter-execute::
-
-            backend = FakeBogotaV2()
-            x_sched = backend.instruction_schedule_map.get("x", (0,))
-
-            with pulse.build(backend) as pulse_prog:
-                pulse.call(x_sched)
-
-            print(pulse_prog)
-
-        3. Calling schedule block (recommended)
-
-        .. jupyter-execute::
-
             with pulse.build() as x_sched:
                 pulse.play(pulse.Gaussian(160, 0.1, 40), pulse.DriveChannel(0))
 
-            with pulse.build(backend) as pulse_prog:
+            with pulse.build() as pulse_prog:
                 pulse.call(x_sched)
 
             print(pulse_prog)
 
-        Actual program is stored in the reference table attached to the schedule.
+        The actual program is stored in the reference table attached to the schedule.
 
         .. jupyter-execute::
 
             print(pulse_prog.references)
 
-        In addition, you can call a parameterized target programs with parameter assignment.
+        In addition, you can call a parameterized target program with parameter assignment.
 
         .. jupyter-execute::
 
@@ -1997,14 +1967,14 @@ def call(
             with pulse.build() as subroutine:
                 pulse.play(pulse.Gaussian(160, amp, 40), pulse.DriveChannel(0))
 
-            with pulse.build(backend) as pulse_prog:
+            with pulse.build() as pulse_prog:
                 pulse.call(subroutine, amp=0.1)
                 pulse.call(subroutine, amp=0.3)
 
             print(pulse_prog)
 
-        If there is parameter name collision, you can distinguish them by specifying
-        each parameter object as a python dictionary. For example,
+        If there is a name collision between parameters, you can distinguish them by specifying
+        each parameter object in a python dictionary. For example,
 
         .. jupyter-execute::
 
@@ -2020,25 +1990,61 @@ def call(
 
             print(pulse_prog)
 
+        2. Calling a schedule
+
+        .. jupyter-execute::
+
+            x_sched = backend.instruction_schedule_map.get("x", (0,))
+
+            with pulse.build(backend) as pulse_prog:
+                pulse.call(x_sched)
+
+            print(pulse_prog)
+
+        Currently, the backend calibrated gates are provided in the form of :class:`~.Schedule`.
+        The parameter assignment mechanism is available also for schedules.
+        However, the called schedule is not treated as a reference.
+
+        3. Calling a quantum circuit
+
+        .. jupyter-execute::
+
+            backend = FakeBogotaV2()
+
+            qc = circuit.QuantumCircuit(1)
+            qc.x(0)
+
+            with pulse.build(backend) as pulse_prog:
+                pulse.call(qc)
+
+            print(pulse_prog)
+
+        .. warning::
+
+            Calling a circuit from a schedule is not encouraged. Currently, the Qiskit execution model
+            is migrating toward the pulse gate model, where schedules are attached to
+            circuits through the :meth:`.QuantumCircuit.add_calibration` method.
+
     Args:
         target: Target circuit or pulse schedule to call.
         name: Optional. Name of subroutine if defined.
         value_dict: Optional. Parameters assigned to the ``target`` program.
             If this dictionary is provided, the ``target`` program is copied and
             then stored in the main built schedule and its parameters are assigned to the given values.
-            This dictionary is keyed on the :class:`~.Parameter` object,
-            thus parameter name collision can be avoided.
+            This dictionary is keyed on :class:`~.Parameter` objects,
+            allowing parameter name collision to be avoided.
         kw_params: Alternative way to provide parameters.
             Since this is keyed on the string parameter name,
             the parameters having the same name are all updated together.
             If you want to avoid name collision, use ``value_dict`` with :class:`~.Parameter`
-            object instead.
+            objects instead.
 
     Raises:
         exceptions.PulseError: If the input ``target`` type is not supported.
     """
     if not isinstance(target, (circuit.QuantumCircuit, Schedule, ScheduleBlock)):
-        raise exceptions.PulseError(f"'{target.__class__.__name__}' is not valid target object.")
+        raise exceptions.PulseError(f"'{target.__class__.__name__}' is not a valid target object.")
+
     _active_builder().call_subroutine(
         subroutine=target, name=name, value_dict=value_dict, **kw_params
     )
@@ -2048,7 +2054,7 @@ def reference(name: str, *extra_keys: str):
     """Refer to undefined subroutine by string keys.
 
     A :class:`~qiskit.pulse.instructions.Reference` instruction is implicitly created
-    and a schedule can be separately registered to the references at a later stage.
+    and a schedule can be separately registered to the reference at a later stage.
 
     .. code-block:: python
 
@@ -2064,7 +2070,7 @@ def reference(name: str, *extra_keys: str):
 
     Args:
         name: Name of subroutine.
-        extra_keys: Assistance keys to uniquely specify the subroutine.
+        extra_keys: Helper keys to uniquely specify the subroutine.
     """
     _active_builder().append_reference(name, *extra_keys)
 

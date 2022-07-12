@@ -10,7 +10,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""Management of scehdule block reference."""
+"""Management of schedule block references."""
 
 from typing import Tuple
 
