@@ -49,10 +49,10 @@ class FinishingCriterion(Enum):
 class AdaptVQE(VariationalAlgorithm):
     """The Adaptive Variational Quantum Eigensolver algorithm.
 
-    `AdaptVQE <https://arxiv.org/abs/1812.11173>`__ is a quantum algorithm creates a compact ansatz
-    by gradually building up the ansatz circuit by appending the excitation with the largest energy
-    gradient to the circuit. This results in a wavefunction ansatz that is uniquely formed by the
-    algorithm.
+    `AdaptVQE <https://arxiv.org/abs/1812.11173>`__ is a quantum algorithm which creates a compact
+    ansatz from a set of evolution operators. It iteratively appends excitations with the largest energy
+    gradient to the circuit. This results in a wavefunction ansatz which is uniquely adapted to the operator
+    whose minimum eigenvalue is being determined.
     This is an adaptive wrapper of a VQE used internally as solver.
     The performance of AdaptVQE can significantly depend on the choice of gradient method, QFI
     solver (if applicable) and the epsilon value.
