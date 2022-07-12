@@ -75,7 +75,7 @@ class AdaptVQE(VariationalAlgorithm):
                 on the method mentioned.
             excitation_pool: A list of quantum circuits out of which to build the ansatz.
             threshold: the energy convergence threshold. It has a minimum value of 1e-15.
-            max_iterations: the maximum number of iterations of the AdaptVQE algorithm.
+            max_iterations: the maximum number of iterations.
         """
         validate_min("threshold", threshold, 1e-15)
 
