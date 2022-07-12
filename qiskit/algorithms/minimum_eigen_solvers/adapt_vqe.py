@@ -38,7 +38,7 @@ logger = logging.getLogger(__name__)
 
 
 class FinishingCriterion(Enum):
-    """The FinishingCriterion Class is an Enum for finishing criteria."""
+    """A class enumerating the various finishing criteria."""
 
     CONVERGED = "Threshold converged"
     CYCLICITY = "Aborted due to a cyclic selection of evolution operators"
