@@ -12,9 +12,6 @@
 
 """Common visualization utilities."""
 
-from qiskit.utils import optionals as _optionals
-
-
 @_optionals.HAS_PIL.require_in_call("the latex circuit drawer")
 def _trim(image):
     """Trim a PIL image and remove white space."""
@@ -27,7 +24,6 @@ def _trim(image):
     if bbox:
         image = image.crop(bbox)
     return image
-
 
 MATPLOTLIB_INLINE_BACKENDS = {
     "module://ipykernel.pylab.backend_inline",

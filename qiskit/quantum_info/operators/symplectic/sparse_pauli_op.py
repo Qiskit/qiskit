@@ -444,6 +444,117 @@ class SparsePauliOp(LinearOp):
             PauliList.from_symplectic(z, x), coeffs, ignore_pauli_phase=True, copy=False
         )
 
+    def argsort(self, weight=False):
+        """Return indices for sorting the rows of the table.
+
+        Returns the composition of permutations in the order of sorting
+        by coefficient and sorting by Pauli.
+        By using the `weight` kwarg the output can additionally be sorted
+        by the number of non-identity terms in the Pauli, where the set of
+        all Pauli's of a given weight are still ordered lexicographically.
+
+        **Example**
+
+        Here is an example of how to use SparsePauliOp argsort.
+
+        .. jupyter-execute::
+
+            import numpy as np
+            from qiskit.quantum_info import SparsePauliOp
+
+            # 2-qubit labels
+            labels = ["XX", "XX", "XX", "YI", "II", "XZ", "XY", "XI"]
+            # coeffs
+            coeffs = [2.+1.j, 2.+2.j, 3.+0.j, 3.+0.j, 4.+0.j, 5.+0.j, 6.+0.j, 7.+0.j]
+
+            # init
+            spo = SparsePauliOp(labels, coeffs)
+            print('Initial Ordering')
+            print(spo)
+
+            # Lexicographic Ordering
+            srt = spo.argsort()
+            print('Lexicographically sorted')
+            print(srt)
+
+            # Lexicographic Ordering
+            srt = spo.argsort(weight=False)
+            print('Lexicographically sorted')
+            print(srt)
+
+            # Weight Ordering
+            srt = spo.argsort(weight=True)
+            print('Weight sorted')
+            print(srt)
+
+        Args:
+            weight (bool): optionally sort by weight if True (Default: False).
+            By using the weight kwarg the output can additionally be sorted
+            by the number of non-identity terms in the Pauli.
+
+        Returns:
+            array: the indices for sorting the table.
+        """
+        sort_coeffs_inds = np.argsort(self._coeffs, kind="stable")
+        pauli_list = self._pauli_list[sort_coeffs_inds]
+        sort_pauli_inds = pauli_list.argsort(weight=weight, phase=False)
+        return sort_coeffs_inds[sort_pauli_inds]
+
+    def sort(self, weight=False):
+        """Sort the rows of the table.
+
+        After sorting the coefficients using numpy's argsort, sort by Pauli.
+        Pauli sort takes precedence.
+        If Pauli is the same, it will be sorted by coefficient.
+        By using the `weight` kwarg the output can additionally be sorted
+        by the number of non-identity terms in the Pauli, where the set of
+        all Pauli's of a given weight are still ordered lexicographically.
+
+        **Example**
+
+        Here is an example of how to use SparsePauliOp sort.
+
+        .. jupyter-execute::
+
+            import numpy as np
+            from qiskit.quantum_info import SparsePauliOp
+
+            # 2-qubit labels
+            labels = ["XX", "XX", "XX", "YI", "II", "XZ", "XY", "XI"]
+            # coeffs
+            coeffs = [2.+1.j, 2.+2.j, 3.+0.j, 3.+0.j, 4.+0.j, 5.+0.j, 6.+0.j, 7.+0.j]
+
+            # init
+            spo = SparsePauliOp(labels, coeffs)
+            print('Initial Ordering')
+            print(spo)
+
+            # Lexicographic Ordering
+            srt = spo.sort()
+            print('Lexicographically sorted')
+            print(srt)
+
+            # Lexicographic Ordering
+            srt = spo.sort(weight=False)
+            print('Lexicographically sorted')
+            print(srt)
+
+            # Weight Ordering
+            srt = spo.sort(weight=True)
+            print('Weight sorted')
+            print(srt)
+
+        Args:
+            weight (bool): optionally sort by weight if True (Default: False).
+            By using the weight kwarg the output can additionally be sorted
+            by the number of non-identity terms in the Pauli.
+
+        Returns:
+            SparsePauliOp: a sorted copy of the original table.
+        """
+        indices = self.argsort(weight=weight)
+        return SparsePauliOp(self._pauli_list[indices], self._coeffs[indices])
+
     def chop(self, tol=1e-14):
         """Set real and imaginary parts of the coefficients to 0 if ``< tol`` in magnitude.
 
