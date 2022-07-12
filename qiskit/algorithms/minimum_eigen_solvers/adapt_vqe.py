@@ -111,7 +111,7 @@ class AdaptVQE(VariationalAlgorithm):
             theta: List of (up to now) optimal parameters
             operator: operator whose gradient needs to be computed
         Returns:
-            List of pairs consisting of gradient and excitation operator.
+            List of pairs consisting of the computed gradient and excitation operator.
         Raises:
             AlgorithmError: If `quantum_instance` is not provided.
         """
