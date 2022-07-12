@@ -37,7 +37,7 @@ def constant(learning_rate: float = 0.01) -> Generator[float, None, None]:
         yield learning_rate
 
 
-class LearningRate:
+class LearningRate(Iterator):  # make inherit
     """Represents a Learning Rate.
     Will be an attribute of :class:`~.GradientDescentState`. Note that :class:`~.GradientDescent` also
     has a learning rate. That learning rate can be a float, a list, an array, a function returning
@@ -46,7 +46,7 @@ class LearningRate:
     This class serves also as a wrapper on a generator so that we can access the last yielded value.
     """
 
-    def __init__(self, learning_rate_factory: Union[float, List[float], Callable[[], Iterator]]):
+    def __init__(self, learning_rate: Union[float, List[float], Callable[[], Iterator]]):
         """
         Args:
             learing_rate_factory: Used to create a generator to iterate on.
@@ -60,13 +60,17 @@ class LearningRate:
         else:
             self._gen = learning_rate_factory()
 
-        self.current: Optional[float] = None
+        self._current: Optional[float] = None
+
+    @property
+    def current(self):
+        return self._current
 
     def __iter__(self):
         return self
 
     def __next__(self) -> float:
-        self.current = next(self._gen)
+        self._current = next(self._gen)
         return self.current
 
     def __call__(self):
@@ -77,11 +81,6 @@ class LearningRate:
 class GradientDescentState(OptimizerState):
     """State of :class:`~.GradientDescent`.
     Contains all the information of an optimizer plus the learning_rate and the stepsize.
-
-    Attributes:
-        learning_rate: Acts like a wrapper on a generator so that one can use
-                       ``GradientDescentState.learning_rate.current`` to get the current learning rate.
-        stepsize: The norm of the gradient at the previous step. Is ``None`` at step 0.
 
     """
 
