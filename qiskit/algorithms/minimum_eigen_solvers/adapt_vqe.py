@@ -71,8 +71,8 @@ class AdaptVQE(VariationalAlgorithm):
         Args:
             solver: a `VQE` instance used internally to compute the minimum eigenvalues.
                It is a requirement that the `ansatz` of this solver is of type `EvolvedOperatorAnsatz`.
-            adapt_gradient: a class that converts operator expression to the first-order gradient based
-                on the method mentioned.
+            adapt_gradient: a `Gradient` instance with which to compute the excitation operator gradients.
+                If `None`, this will default to a parameter shift gradient.
             excitation_pool: A list of quantum circuits out of which to build the ansatz.
             threshold: the eigenvalue convergence threshold. It has a minimum value of `1e-15`.
             max_iterations: the maximum number of iterations.
