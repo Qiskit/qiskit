@@ -19,6 +19,8 @@ from qiskit.test import QiskitTestCase
 
 
 class TestResetAfterMeasureSimplificationt(QiskitTestCase):
+    """Test ResetAfterMeasureSimplification transpiler pass."""
+
     def test_simple(self):
         """Test simple"""
         qc = QuantumCircuit(1, 1)
@@ -116,6 +118,7 @@ class TestResetAfterMeasureSimplificationt(QiskitTestCase):
         self.assertEqual(new_qc, qc)
 
     def test_bv_circuit(self):
+        """Test Bernstein Vazirani circuit with midcircuit measurement."""
         bitstring = "11111"
         qc = QuantumCircuit(2, len(bitstring))
         qc.x(1)
