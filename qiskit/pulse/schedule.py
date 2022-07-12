@@ -1207,12 +1207,11 @@ class ScheduleBlock:
         for param in self._parameter_manager.parameters:
             if add_scope:
                 param = _scope_parameter(param, scope, Reference.scope_delimiter)
-            # This avoids unexpected parameter merging defined in different scopes.
-            # Note that search_parameters method is scope-aware.
-            # But when the same parameter object is also used in another scope,
-            # the target scoped name doesn't appear in the output, and thus search may fail.
-            # This evaluates the parameter equality not only with uuid, but also with scoped name.
-            # When add_scope is False, a parameter defined in multiple scopes is merged.
+            # This avoids unexpected merging of parameter objects defined in different scopes.
+            # Note that the search_parameters method is scope-aware.
+            # However, when the same parameter object is used in multiple scopes,
+            # if it would return one object from a random scope, the search could fail.
+            # This logic evaluates the parameter equality not only with uuid, but also with name.
             scope_aware_key = param.name, hash(param)
             parameters_out[scope_aware_key] = param
 

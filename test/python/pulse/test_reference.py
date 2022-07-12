@@ -434,7 +434,7 @@ class TestReference(QiskitTestCase):
         with pulse.build() as sched_x2:
             pulse.call(sched_x1, name="conflict_name")
 
-        self.assertEqual(sched_x2.references[("conflict_name", )], sched_x1)
+        self.assertEqual(sched_x2.references[("conflict_name",)], sched_x1)
 
         with pulse.build() as sched_y1:
             pulse.play(pulse.Constant(100, 0.2), pulse.DriveChannel(0))
@@ -442,7 +442,7 @@ class TestReference(QiskitTestCase):
         with pulse.build() as sched_y2:
             pulse.call(sched_y1, name="conflict_name")
 
-        self.assertEqual(sched_y2.references[("conflict_name", )], sched_y1)
+        self.assertEqual(sched_y2.references[("conflict_name",)], sched_y1)
 
         with self.assertRaises(pulse.exceptions.PulseError):
             with pulse.build():
@@ -464,7 +464,7 @@ class TestReference(QiskitTestCase):
             pulse.call(sched_x1, name="conflict_name")
 
         with self.assertRaises(pulse.exceptions.PulseError):
-            sched_z1.assign_references({("conflict_name", ): sched_y1})
+            sched_z1.assign_references({("conflict_name",): sched_y1})
 
 
 class TestSubroutineWithCXGate(QiskitTestCase):
