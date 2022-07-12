@@ -12,7 +12,6 @@
 
 """ Test of the AdaptVQE minimum eigensolver """
 import unittest
-import sys
 from test.python.algorithms import QiskitAlgorithmsTestCase
 from qiskit.algorithms.minimum_eigen_solvers.vqe import VQE
 from qiskit.opflow.gradients.gradient import Gradient
