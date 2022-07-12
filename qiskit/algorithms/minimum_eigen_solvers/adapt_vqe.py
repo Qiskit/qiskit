@@ -69,7 +69,8 @@ class AdaptVQE(VariationalAlgorithm):
     ) -> None:
         """
         Args:
-            solver: a factory for the VQE solver employing a UCCSD ansatz.
+            solver: a `VQE` instance used internally to compute the minimum eigenvalues.
+               It is a requirement that the `ansatz` of this solver is of type `EvolvedOperatorAnsatz`.
             adapt_gradient: a class that converts operator expression to the first-order gradient based
                 on the method mentioned.
             excitation_pool: An entire list of excitations.
