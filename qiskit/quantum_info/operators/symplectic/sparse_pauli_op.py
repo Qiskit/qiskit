@@ -489,7 +489,8 @@ class SparsePauliOp(LinearOp):
 
         Args:
             weight (bool): optionally sort by weight if True (Default: False).
-            This argument is the same as weight of argsort method of PauliList
+            By using the weight kwarg the output can additionally be sorted
+            by the number of non-identity terms in the Pauli.
 
         Returns:
             array: the indices for sorting the table.
@@ -545,7 +546,8 @@ class SparsePauliOp(LinearOp):
 
         Args:
             weight (bool): optionally sort by weight if True (Default: False).
-            This argument is the same as weight of sort method of PauliList
+            By using the weight kwarg the output can additionally be sorted
+            by the number of non-identity terms in the Pauli.
 
         Returns:
             SparsePauliOp: a sorted copy of the original table.
