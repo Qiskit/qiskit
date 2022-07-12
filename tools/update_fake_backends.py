@@ -49,6 +49,22 @@ DEFAULT_DIR = os.path.join(
 )
 
 
+def check_errors(properties):
+    """
+    Check if the property snapshot is good (aka, no error == 1). It prints a warning otherwise.
+    Args:
+        properties (BackendProperty): BackendProperty to check.
+    """
+    for qubit in range(len(properties.qubits)):
+        if properties.readout_error(qubit) == 1:
+            print(f"Warning: qubit {qubit} in {properties.backend_name} has a readout error of 1")
+    for gate in properties.gates:
+        if gate.gate != "reset" and properties.gate_error(gate.gate, gate.qubits) == 1:
+            print(
+                f"Warning: gate {gate.gate, gate.qubits} in {properties.backend_name} has an error of 1"
+            )
+
+
 def _main():
     parser = argparse.ArgumentParser(description="Generate fake backend snapshots")
     parser.add_argument("--dir", "-d", type=str, default=DEFAULT_DIR)
@@ -85,6 +101,7 @@ def _main():
                 with open(config_path, "w") as fd:
                     fd.write(json.dumps(config_dict, cls=BackendEncoder))
             if props:
+                check_errors(props)
                 props_path = os.path.join(args.dir, name, "props_%s.json" % name)
                 with open(props_path, "w") as fd:
                     fd.write(json.dumps(props.to_dict(), cls=BackendEncoder))
