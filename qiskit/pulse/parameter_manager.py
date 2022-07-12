@@ -379,7 +379,7 @@ class ParameterManager:
         self._parameters = set()
 
     @property
-    def parameters(self) -> Set:
+    def parameters(self) -> Set[Parameter]:
         """Parameters which determine the schedule behavior."""
         return self._parameters
 

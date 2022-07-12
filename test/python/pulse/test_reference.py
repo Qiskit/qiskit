@@ -372,6 +372,31 @@ class TestReference(QiskitTestCase):
 
         self.assertEqual(param, ret_param)
 
+    def test_parameter_in_multiple_scope(self):
+        """Testcase for scope-aware parameter getter.
+
+        When a single parameter object is used in multiple scopes,
+        the scoped_parameters property must return parameter objects associated to each scope,
+        while parameters property returns a single parameter object.
+        """
+        param = circuit.Parameter("name")
+
+        with pulse.build() as sched_x1:
+            pulse.play(pulse.Constant(100, param), pulse.DriveChannel(0))
+
+        with pulse.build() as sched_y1:
+            pulse.play(pulse.Constant(100, param), pulse.DriveChannel(1))
+
+        with pulse.build() as sched_z1:
+            pulse.call(sched_x1, name="x1")
+            pulse.call(sched_y1, name="y1")
+
+        self.assertEqual(len(sched_z1.parameters), 1)
+        self.assertEqual(len(sched_z1.scoped_parameters), 2)
+
+        self.assertEqual(sched_z1.search_parameters("root::x1::name")[0], param)
+        self.assertEqual(sched_z1.search_parameters("root::y1::name")[0], param)
+
     def test_parallel_alignment_equality(self):
         """Testcase for potential edge case.
 
@@ -504,7 +529,10 @@ class TestSubroutineWithCXGate(QiskitTestCase):
         # Parameter added from subroutines
         scoped_params = set(p.name for p in sched.scoped_parameters)
         ref_params = {
+            # This is the cr parameter that belongs to phase_offset instruction in the root scope
             "root::cr",
+            # This is the same cr parameter that belongs to the play instruction in a child scope
+            "root::cr,q0,q1::cr",
             "root::cr,q0,q1::amp",
             "root::cr,q0,q1::dur",
             "root::cr,q0,q1::risefall",

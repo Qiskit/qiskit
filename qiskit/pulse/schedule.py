@@ -1182,7 +1182,11 @@ class ScheduleBlock:
             blocks.append(elm)
         return tuple(blocks)
 
-    def _collect_parameters(self, scope: str, add_scope: bool = False) -> Set[Parameter]:
+    def _collect_parameters(
+        self,
+        scope: str,
+        add_scope: bool = False,
+    ) -> Dict[Tuple[str, int], Parameter]:
         """A helper method to return parameters.
 
         Parameters defined in the nested subroutines are recursively investigated and
@@ -1196,27 +1200,36 @@ class ScheduleBlock:
         Returns:
             All parameters defined under the current scope.
         """
-        parameters = set(
-            _scope_parameter(param, scope, Reference.scope_delimiter) if add_scope else param
-            for param in self._parameter_manager.parameters
-        )
+        parameters_out = {}
+        for param in self._parameter_manager.parameters:
+            if add_scope:
+                param = _scope_parameter(param, scope, Reference.scope_delimiter)
+            # This avoids unexpected parameter merging defined in different scopes.
+            # Note that search_parameters method is scope-aware.
+            # But when the same parameter object is also used in another scope,
+            # the target scoped name doesn't appear in the output, and thus search may fail.
+            # This evaluates the parameter equality not only with uuid, but also with scoped name.
+            # When add_scope is False, a parameter defined in multiple scopes is merged.
+            scope_aware_key = param.name, hash(param)
+            parameters_out[scope_aware_key] = param
+
         for sub_namespace, subroutine in self.references.items():
             if subroutine is None:
                 continue
             composite_key = Reference.key_delimiter.join(sub_namespace)
             full_path = f"{scope}{Reference.scope_delimiter}{composite_key}"
             sub_parameters = subroutine._collect_parameters(scope=full_path, add_scope=add_scope)
-            parameters = parameters | sub_parameters
+            parameters_out.update(sub_parameters)
 
-        return parameters
+        return parameters_out
 
     @property
-    def parameters(self) -> Set:
+    def parameters(self) -> Tuple[Parameter]:
         """Return unassigned parameters with raw names."""
-        return self._collect_parameters(scope="root", add_scope=False)
+        return tuple(self._collect_parameters(scope="root", add_scope=False).values())
 
     @property
-    def scoped_parameters(self) -> Set:
+    def scoped_parameters(self) -> Tuple[Parameter]:
         """Return unassigned parameters with scoped names.
 
         .. note::
@@ -1228,7 +1241,7 @@ class ScheduleBlock:
             For example, "root::xgate,q0::amp" for the parameter "amp" defined in the
             reference specified by the key strings ("xgate", "q0").
         """
-        return self._collect_parameters(scope="root", add_scope=True)
+        return tuple(self._collect_parameters(scope="root", add_scope=True).values())
 
     @property
     def references(self) -> ReferenceManager:
@@ -1603,7 +1616,7 @@ class ScheduleBlock:
             Parameter objects that have corresponding name.
         """
         matched = [p for p in self.parameters if p.name == parameter_name]
-        return sorted(matched, key=lambda p: p.name)
+        return matched
 
     def search_parameters(self, parameter_regex: str) -> List[Parameter]:
         """Search parameter with regular expression.
