@@ -77,6 +77,20 @@ class TestInitialize(QiskitTestCase):
         qc.initialize(statevector, [0, 1])
         self.assertEqual(qc.data[0].operation.params, desired_vector)
 
+    def test_save_statevector(self):
+        """Run `qc.save_statevector()` and expects an exception.
+        `qc.save_statevector` is defined only when the backend is aer_simulator.
+        """
+        import importlib
+        import qiskit.circuit.quantumcircuit
+
+        # Undo the monkey patching done by Aer backend initialization, so that
+        # we can test the original method.
+        importlib.reload(qiskit.circuit.quantumcircuit)
+
+        qc = qiskit.circuit.quantumcircuit.QuantumCircuit(1)
+        self.assertRaises(QiskitError, qc.save_statevector)
+
     def test_bell_state(self):
         """Initialize a Bell state on 2 qubits."""
         desired_vector = [1 / math.sqrt(2), 0, 0, 1 / math.sqrt(2)]

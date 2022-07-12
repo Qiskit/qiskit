@@ -4767,6 +4767,20 @@ class QuantumCircuit:
 
         return 0  # If there are no instructions over bits
 
+    def save_statevector(
+        self, label: str = "statevector", pershot: bool = False, conditional: bool = False
+    ) -> "QuantumCircuit":
+        """This is a placeholder class that is then monkey-patched only when
+        the user initializes the Aer backend. The default behavior is to raise
+        a QiskitError.
+        See the file qiskit/providers/aer/library/save_instructions/save_statevector.py
+        in qiskit-aer.
+        """
+        raise QiskitError(
+            "To use this method, you must first initialize the Aer simulator backend, e.g. "
+            "backend = Aer.get_backend('aer_simulator')"
+        )
+
 
 def _circuit_from_qasm(qasm: Qasm) -> "QuantumCircuit":
     # pylint: disable=cyclic-import
