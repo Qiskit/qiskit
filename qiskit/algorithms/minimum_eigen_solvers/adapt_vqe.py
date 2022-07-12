@@ -10,7 +10,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""A ground state calculation employing the AdaptVQE algorithm."""
+"""An implementation of the AdaptVQE algorithm."""
 from __future__ import annotations
 from typing import Optional, List, Tuple, Union
 
