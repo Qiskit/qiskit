@@ -13,69 +13,12 @@
 """A standard gradient descent optimizer."""
 
 from dataclasses import dataclass, field
-from typing import Dict, Any, Union, Callable, Optional, Tuple, List, Iterator, Generator
-from types import GeneratorType
-from itertools import tee
+from typing import Dict, Any, Union, Callable, Optional, Tuple, List, Iterator
 import numpy as np
 from .optimizer import Optimizer, OptimizerSupportLevel, OptimizerResult, POINT
 from .steppable_optimizer import AskData, TellData, OptimizerState, SteppableOptimizer
-
+from .utils.learning_rate import LearningRate
 CALLBACK = Callable[[int, np.ndarray, float, float], None]
-
-
-def constant(learning_rate: float = 0.01) -> Generator[float, None, None]:
-    """Returns a python generator that always yields the same value.
-
-    Args:
-        learning_rate: The value to yield.
-
-    Yields:
-        The learning rate for the next iteration.
-    """
-
-    while True:
-        yield learning_rate
-
-
-class LearningRate(Iterator):  # make inherit
-    """Represents a Learning Rate.
-    Will be an attribute of :class:`~.GradientDescentState`. Note that :class:`~.GradientDescent` also
-    has a learning rate. That learning rate can be a float, a list, an array, a function returning
-    a generator and will be used to create a generator to be used during the
-    optimization process.
-    This class serves also as a wrapper on a generator so that we can access the last yielded value.
-    """
-
-    def __init__(self, learning_rate: Union[float, List[float], Callable[[], Iterator]]):
-        """
-        Args:
-            learing_rate_factory: Used to create a generator to iterate on.
-        """
-        if isinstance(learning_rate_factory, (float, int)):
-            self._gen = constant(learning_rate_factory)
-        elif isinstance(learning_rate_factory, GeneratorType):
-            learning_rate_factory, self._gen = tee(learning_rate_factory)
-        elif isinstance(learning_rate_factory, (list, np.ndarray)):
-            self._gen = (eta for eta in learning_rate_factory)
-        else:
-            self._gen = learning_rate_factory()
-
-        self._current: Optional[float] = None
-
-    @property
-    def current(self):
-        return self._current
-
-    def __iter__(self):
-        return self
-
-    def __next__(self) -> float:
-        self._current = next(self._gen)
-        return self.current
-
-    def __call__(self):
-        return self
-
 
 @dataclass
 class GradientDescentState(OptimizerState):
@@ -413,7 +356,7 @@ class GradientDescent(SteppableOptimizer):
             nit=0,
             nfev=0,
             njev=0,
-            learning_rate=LearningRate(learning_rate_factory=self.learning_rate),
+            learning_rate=LearningRate(learning_rate=self.learning_rate),
             stepsize=None,
         )
 
