@@ -96,7 +96,7 @@ class AdaptVQE(VariationalAlgorithm):
 
     @initial_point.setter
     def initial_point(self, initial_point: Optional[np.ndarray]) -> None:
-        """Sets initial point."""
+        """Sets the initial point."""
         self.solver.initial_point = initial_point
 
     def _compute_gradients(
