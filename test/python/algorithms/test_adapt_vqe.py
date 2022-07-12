@@ -93,7 +93,7 @@ class TestAdaptVQE(QiskitAlgorithmsTestCase):
         self.assertAlmostEqual(res.eigenvalue, expected_eigenvalue, places=6)
 
     def test_finite_diff(self):
-        """test using finite difference gradient"""
+        """Test using finite difference gradient"""
         calc = AdaptVQE(
             solver=VQE(ansatz=self.ansatz, quantum_instance=self.quantum_instance),
             excitation_pool=self.excitation_pool,
@@ -106,7 +106,7 @@ class TestAdaptVQE(QiskitAlgorithmsTestCase):
         self.assertAlmostEqual(res.eigenvalue, expected_eigenvalue, places=6)
 
     def test_param_shift(self):
-        """test using parameter shift gradient"""
+        """Test using parameter shift gradient"""
         calc = AdaptVQE(
             solver=VQE(ansatz=self.ansatz, quantum_instance=self.quantum_instance),
             excitation_pool=self.excitation_pool,

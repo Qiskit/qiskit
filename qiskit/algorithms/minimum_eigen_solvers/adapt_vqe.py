@@ -51,8 +51,8 @@ class AdaptVQE(VariationalAlgorithm):
 
     `AdaptVQE <https://arxiv.org/abs/1812.11173>`__ is a quantum algorithm which creates a compact
     ansatz from a set of evolution operators. It iteratively appends excitations with the largest energy
-    gradient to the circuit. This results in a wavefunction ansatz which is uniquely adapted to the operator
-    whose minimum eigenvalue is being determined.
+    gradient to the circuit. This results in a wavefunction ansatz which is uniquely adapted to the 
+    operator whose minimum eigenvalue is being determined.
     This class relies internally on a `VQE` to find the minimum eigenvalue
     of the provided operator.
     The performance of AdaptVQE can significantly depend on the choice of gradient method, QFI
@@ -71,7 +71,8 @@ class AdaptVQE(VariationalAlgorithm):
         Args:
             solver: a `VQE` instance used internally to compute the minimum eigenvalues.
                It is a requirement that the `ansatz` of this solver is of type `EvolvedOperatorAnsatz`.
-            adapt_gradient: a `Gradient` instance with which to compute the excitation operator gradients.
+            adapt_gradient: a `Gradient` instance with which to compute the excitation operator
+            gradients.
                 If `None`, this will default to a parameter shift gradient.
             excitation_pool: A list of quantum circuits out of which to build the ansatz.
             threshold: the eigenvalue convergence threshold. It has a minimum value of `1e-15`.
@@ -108,8 +109,8 @@ class AdaptVQE(VariationalAlgorithm):
         Computes the gradients for all available excitation operators.
 
         Args:
-            theta: List of (up to now) optimal parameters
-            operator: operator whose gradient needs to be computed
+            theta: List of (up to now) optimal parameters.
+            operator: operator whose gradient needs to be computed.
         Returns:
             List of pairs consisting of the computed gradient and excitation operator.
         """
@@ -142,6 +143,7 @@ class AdaptVQE(VariationalAlgorithm):
 
         Args:
             indices: The list of chosen gradient indices.
+
         Returns:
             Whether repeating sequences of indices have been detected.
         """
@@ -188,7 +190,7 @@ class AdaptVQE(VariationalAlgorithm):
         """Computes the minimum eigenvalue.
 
         Args:
-            operator: Operator to evaluate
+            operator: Operator to evaluate.
             aux_operators: Additional auxiliary operators to evaluate.
 
         Raises:
@@ -197,8 +199,6 @@ class AdaptVQE(VariationalAlgorithm):
                 EvolvedOperatorAnsatz (`qiskit.circuit.library.evolved_operator_ansatz.py`)
                 is provided or if the algorithm finishes due to an unforeseen reason.
             AlgorithmError: If `quantum_instance` is not provided.
-            ValueError: If the grouped property object returned by the driver does not contain a
-                main property as requested by the problem being solved (`problem.main_property_name`)
             QiskitError: If the user-provided `aux_operators` contain a name which clashes
                 with an internally constructed auxiliary operator. Note: the names used for the
                 internal auxiliary operators correspond to the `Property.name` attributes which
@@ -213,7 +213,7 @@ class AdaptVQE(VariationalAlgorithm):
         """
         if not isinstance(self._tmp_ansatz, EvolvedOperatorAnsatz):
             raise QiskitError(
-                "The AdaptVQE algorithm requires the use of the evolved operator ansatz"
+                "The AdaptVQE algorithm requires the use of the evolved operator ansatz."
             )
         if self.solver.quantum_instance is None:
             raise AlgorithmError(
