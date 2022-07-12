@@ -110,17 +110,11 @@ class AdaptVQE(VariationalAlgorithm):
             operator: operator whose gradient needs to be computed
         Returns:
             List of pairs consisting of gradient and excitation operator.
-        Raises:
-            AlgorithmError: If `quantum_instance` is not provided.
         """
         res = []
         # compute gradients for all excitation in operator pool
-        if self.solver.quantum_instance is None:
-            raise AlgorithmError(
-                "A QuantumInstance or Backend must be supplied to run the quantum algorithm."
-            )
         sampler = CircuitSampler(self.solver.quantum_instance)
-        for exc in self._excitation_pool:
+        for idx,exc in enumerate(self._excitation_pool):
             # add next excitation to ansatz
             self._tmp_ansatz.operators = self._excitation_list + [exc]
             # the ansatz needs to be decomposed for the gradient to work
@@ -134,7 +128,7 @@ class AdaptVQE(VariationalAlgorithm):
             # compute gradient
             state_grad = self._adapt_gradient.convert(operator=op, params=param_sets)
             # Assign the parameters and evaluate the gradient
-            state_grad_result = sampler.convert(state_grad, params={param_sets[-1]: 0.0}).eval()
+            state_grad_result = sampler.convert(state_grad, params={param_sets[-1]: self.initial_point[idx]}).eval()
             logger.info("Gradient computed : %s", str(state_grad_result))
             res.append((np.abs(state_grad_result[-1]), exc))
         return res, expectation
@@ -200,6 +194,7 @@ class AdaptVQE(VariationalAlgorithm):
                 (`qiskit.algorithms.minimum_eigen_solvers.vqe.py`) or a ansatz other than
                 EvolvedOperatorAnsatz (`qiskit.circuit.library.evolved_operator_ansatz.py`)
                 is provided or if the algorithm finishes due to an unforeseen reason.
+            AlgorithmError: If `quantum_instance` is not provided.
             ValueError: If the grouped property object returned by the driver does not contain a
                 main property as requested by the problem being solved (`problem.main_property_name`)
             QiskitError: If the user-provided `aux_operators` contain a name which clashes
@@ -217,6 +212,10 @@ class AdaptVQE(VariationalAlgorithm):
         if not isinstance(self._tmp_ansatz, EvolvedOperatorAnsatz):
             raise QiskitError(
                 "The AdaptVQE algorithm requires the use of the evolved operator ansatz"
+            )
+        if self.solver.quantum_instance is None:
+            raise AlgorithmError(
+                "A QuantumInstance or Backend must be supplied to run the quantum algorithm."
             )
         # We construct the ansatz once to be able to extract the full set of excitation operators.
         self._tmp_ansatz._build()
