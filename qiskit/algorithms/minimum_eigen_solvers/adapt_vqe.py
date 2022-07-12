@@ -53,7 +53,8 @@ class AdaptVQE(VariationalAlgorithm):
     ansatz from a set of evolution operators. It iteratively appends excitations with the largest energy
     gradient to the circuit. This results in a wavefunction ansatz which is uniquely adapted to the operator
     whose minimum eigenvalue is being determined.
-    This is an adaptive wrapper of a VQE used internally as solver.
+    This class relies internally on a `VQE` to find the minimum eigenvalue
+    of the provided operator.
     The performance of AdaptVQE can significantly depend on the choice of gradient method, QFI
     solver (if applicable) and the epsilon value.
     """
