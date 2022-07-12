@@ -455,7 +455,7 @@ class SparsePauliOp(LinearOp):
 
         **Example**
 
-        Here is an example of how to use SparcePauliOp argsort.
+        Here is an example of how to use SparsePauliOp argsort.
 
         .. jupyter-execute::
 
@@ -512,7 +512,7 @@ class SparsePauliOp(LinearOp):
 
         **Example**
 
-        Here is an example of how to use SparcePauliOp sort.
+        Here is an example of how to use SparsePauliOp sort.
 
         .. jupyter-execute::
 
