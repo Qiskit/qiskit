@@ -981,7 +981,7 @@ class ScheduleBlock:
 
         print(main.references)
 
-    As you can see the main program cannot directly access the "grand_child" because
+    As you can see the main program cannot directly assign a subroutine to the "grand_child" because
     this subroutine is not called within the root program, i.e. it is indirectly called by "child".
     However, the returned :class:`.ReferenceManager` is a dict-like object, and you can still
     reach to "grand_child" via the "child" program with the following chained dict access.
@@ -989,6 +989,9 @@ class ScheduleBlock:
     .. jupyter-execute::
 
         main.references[("child", )].references[("grand_child", )]
+
+    Note that :attr:`ScheduleBlock.parameters` and :attr:`ScheduleBlock.scoped_parameters`
+    still collect all parameters also from the subroutine once it's assigned.
 
     .. _UUID: https://docs.python.org/3/library/uuid.html#module-uuid
     """
@@ -1516,9 +1519,8 @@ class ScheduleBlock:
     ) -> "ScheduleBlock":
         """Assign schedules to references.
 
-        It is only capable of assigning a schedule block to child subroutines
-        which are directly referred within the current scope, because
-        nested subroutines are not exposed to the current scope.
+        It is only capable of assigning a schedule block to immediate references
+        which are directly referred within the current scope.
         Let's see following example:
 
         .. code-block:: python
@@ -1534,8 +1536,8 @@ class ScheduleBlock:
             with pulse.build() as main_prog:
                 pulse.reference("B")
 
-        In above example, the ``main_prog`` is only aware of the subroutine "root::B" and the
-        reference of "B" to program "A", i.e., "B::A", is not exposed to the root namespace.
+        In above example, the ``main_prog`` can refer to the subroutine "root::B" and the
+        reference of "B" to program "A", i.e., "B::A", is not defined in the root namespace.
         This prevents breaking the reference "root::B::A" by the assignment of "root::B".
         For example, if a user could indirectly assign "root::B::A" from the root program,
         one can later assign another program to "root::B" that doesn't contain "A" within it.
@@ -1561,7 +1563,9 @@ class ScheduleBlock:
         Here :attr:`.references` returns a dict-like object, and you can
         mutably update the nested reference of the particular subroutine.
 
-        Note that assigned programs are deep-copied to prevent an unexpected update.
+        .. note::
+
+            Assigned programs are deep-copied to prevent an unexpected update.
 
         Args:
             subroutine_dict: A mapping from reference key to schedule block of the subroutine.
