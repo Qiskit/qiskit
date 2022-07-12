@@ -36,19 +36,26 @@ def constant(learning_rate: float = 0.01) -> Generator[float, None, None]:
     while True:
         yield learning_rate
 
-class LearningRate():
+
+class LearningRate:
     """Represents a Learning Rate.
     Will be an attribute of :class:`~.GradientDescentState`. Note that :class:`~.GradientDescent` also
     has a learning rate. That learning rate can be a float, a list, an array, a function returning
-    a generator or a generator itself and will be used to create a generator to be used during the
+    a generator and will be used to create a generator to be used during the
     optimization process.
+    This class serves also as a wrapper on a generator so that we can access the last yielded value.
     """
+
     def __init__(self, learning_rate_factory: Union[float, List[float], Callable[[], Iterator]]):
-        if isinstance(learning_rate_factory,float):
-            self._gen =  constant(learning_rate_factory)
-        elif isinstance(learning_rate_factory,GeneratorType):
-            learning_rate_factory , self._gen = tee(learning_rate_factory)
-        elif isinstance(learning_rate_factory, (list,np.ndarray)):
+        """
+        Args:
+            learing_rate_factory: Used to create a generator to iterate on.
+        """
+        if isinstance(learning_rate_factory, (float, int)):
+            self._gen = constant(learning_rate_factory)
+        elif isinstance(learning_rate_factory, GeneratorType):
+            learning_rate_factory, self._gen = tee(learning_rate_factory)
+        elif isinstance(learning_rate_factory, (list, np.ndarray)):
             self._gen = (eta for eta in learning_rate_factory)
         else:
             self._gen = learning_rate_factory()
@@ -68,7 +75,15 @@ class LearningRate():
 
 @dataclass
 class GradientDescentState(OptimizerState):
-    """State of :class:`~.GradientDescent`."""
+    """State of :class:`~.GradientDescent`.
+    Contains all the information of an optimizer plus the learning_rate and the stepsize.
+
+    Attributes:
+        learning_rate: Acts like a wrapper on a generator so that one can use
+                       ``GradientDescentState.learning_rate.current`` to get the current learning rate.
+        stepsize: The norm of the gradient at the previous step. Is ``None`` at step 0.
+
+    """
 
     learning_rate: LearningRate = field(compare=False)
     stepsize: Optional[float]
@@ -223,7 +238,7 @@ class GradientDescent(SteppableOptimizer):
             tol: If the norm of the parameter update is smaller than this threshold, the
                 optimizer has converged.
             perturbation: If no gradient is passed to :meth:`~.minimize` the gradient is
-                approximated with a symmetric finite difference scheme with ``perturbation``
+                approximated with a forward finite difference scheme with ``perturbation``
                 perturbation in both directions (defaults to 1e-2 if required).
                 Ignored when we have an explicit function for the gradient.
         """
@@ -354,7 +369,7 @@ class GradientDescent(SteppableOptimizer):
 
         """
         if self.state.jac is None:
-            eps = 0.01 if self.perturbation is None else self.perturbation
+            eps = 0.01 if (self.perturbation is None) else self.perturbation
             grad = Optimizer.gradient_num_diff(
                 x_center=ask_data.x_jac,
                 f=self.state.fun,
@@ -399,7 +414,7 @@ class GradientDescent(SteppableOptimizer):
             nit=0,
             nfev=0,
             njev=0,
-            learning_rate=LearningRate(learning_rate_factory = self.learning_rate),
+            learning_rate=LearningRate(learning_rate_factory=self.learning_rate),
             stepsize=None,
         )
 

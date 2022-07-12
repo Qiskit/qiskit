@@ -1,0 +1,51 @@
+---
+features:
+  - |
+    Created subclass SteppableOptimizer. The optimizers of this kind will have a step mehtod that can
+    be called instead of performing a full optimization. These optimizers will also have access to
+    the ask and tell interface so that complex experiments can be handled more easily. For more
+    information about this interface see: `ask and tell interface
+    <https://optuna.readthedocs.io/en/stable/tutorial/20_recipes/009_ask_and_tell.html>`_.
+    For example:
+
+    .. code-block:: python
+
+            import random
+            import numpy as np
+            from qiskit.algorithms.optimizers import GradientDescent
+
+            def objective(x):
+                if random.choice([True, False]):
+                    return None
+                else:
+                    return (np.linalg.norm(x) - 1) ** 2
+
+            def grad(x):
+                if random.choice([True, False]):
+                    return None
+                else:
+                    return 2 * (np.linalg.norm(x) - 1) * x / np.linalg.norm(x)
+
+
+            initial_point = np.random.normal(0, 1, size=(100,))
+
+            optimizer = GradientDescent(maxiter=20)
+            optimizer.start(x0=initial_point, fun=objective, jac=grad)
+
+            while optimizer.continue_condition():
+                ask_data = optimizer.ask()
+                evaluated_gradient = None
+
+                while evaluated_gradient is None:
+                    evaluated_gradient = grad(ask_data.x_center)
+                    optimizer.state.njev += 1
+
+                optmizer.state.nit += 1
+
+                 cf  = TellData(eval_jac=evaluated_gradient)
+                optimizer.tell(ask_data=ask_data, tell_data=tell_data)
+
+            result = optimizer.create_result()
+
+    Transitioned GradientDescent to be a subclass of SteppableOptimizer.
+

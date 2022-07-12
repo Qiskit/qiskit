@@ -52,7 +52,10 @@ class TellData(ABC):
 class OptimizerState:
     """Base class representing the state of the optimizer.
 
-    Any variable that changes during the optimization should be stored in this dataclass.
+    This class stores the current state of the optimizer, given by the current point and
+    (optionally) information like the function value, the gradient or the number of
+    function evaluations. This dataclass can also store any other individual variables that
+    change during the optimization.
     """
 
     x: POINT  # pylint: disable=invalid-name
