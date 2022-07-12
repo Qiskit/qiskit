@@ -422,6 +422,50 @@ class TestReference(QiskitTestCase):
 
         self.assertNotEqual(sched1, sched2)
 
+    def test_subroutine_conflict(self):
+        """Test for edge case of appending two schedule blocks having the
+        references with conflicting reference key.
+
+        This operation should fail because one of references will be gone after assignment.
+        """
+        with pulse.build() as sched_x1:
+            pulse.play(pulse.Constant(100, 0.1), pulse.DriveChannel(0))
+
+        with pulse.build() as sched_x2:
+            pulse.call(sched_x1, name="conflict_name")
+
+        self.assertEqual(sched_x2.references[("conflict_name", )], sched_x1)
+
+        with pulse.build() as sched_y1:
+            pulse.play(pulse.Constant(100, 0.2), pulse.DriveChannel(0))
+
+        with pulse.build() as sched_y2:
+            pulse.call(sched_y1, name="conflict_name")
+
+        self.assertEqual(sched_y2.references[("conflict_name", )], sched_y1)
+
+        with self.assertRaises(pulse.exceptions.PulseError):
+            with pulse.build():
+                builder.append_schedule(sched_x2)
+                builder.append_schedule(sched_y2)
+
+    def test_assign_existing_reference(self):
+        """Test for explicitly assign existing reference.
+
+        This operation should fail because overriding reference is not allowed.
+        """
+        with pulse.build() as sched_x1:
+            pulse.play(pulse.Constant(100, 0.1), pulse.DriveChannel(0))
+
+        with pulse.build() as sched_y1:
+            pulse.play(pulse.Constant(100, 0.2), pulse.DriveChannel(0))
+
+        with pulse.build() as sched_z1:
+            pulse.call(sched_x1, name="conflict_name")
+
+        with self.assertRaises(pulse.exceptions.PulseError):
+            sched_z1.assign_references({("conflict_name", ): sched_y1})
+
 
 class TestSubroutineWithCXGate(QiskitTestCase):
     """Test called program scope with practical example of building fully parametrized CX gate."""

@@ -1289,7 +1289,7 @@ class ScheduleBlock:
             schedule.append(block, inplace=True)
             return schedule
 
-        if isinstance(block, Reference):
+        if isinstance(block, Reference) and block.ref_keys not in self.references:
             self.references[block.ref_keys] = None
 
         elif isinstance(block, ScheduleBlock):
@@ -1307,9 +1307,10 @@ class ScheduleBlock:
                     for ref in _get_references(block._blocks):
                         self.references[ref.ref_keys] = block.references[ref.ref_keys]
                 else:
-                    # This operation is much faster because this is dict update.
+                    # Avoid using dict.update and explicitly call __set_item__ for validation.
                     # Reference manager of appended block is cleared because of data reduction.
-                    self.references.update(block._reference_manager)
+                    for ref_keys, ref in block._reference_manager.items():
+                        self.references[ref_keys] = ref
                     block._reference_manager.clear()
             # Now switch the parent because block is appended to self.
             block._parent = self
@@ -1433,6 +1434,9 @@ class ScheduleBlock:
 
         if isinstance(new, ScheduleBlock):
             new = copy.deepcopy(new)
+
+            # This dict.update bypasses existing reference check.
+            # Overriding existing reference should be okey because we replace the block.
             all_references.update(new.references)
             new._reference_manager.clear()
             new._parent = self

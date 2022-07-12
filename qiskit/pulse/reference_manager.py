@@ -13,6 +13,7 @@
 """Management of schedule block references."""
 
 from typing import Tuple
+from qiskit.pulse.exceptions import PulseError
 
 
 class ReferenceManager(dict):
@@ -29,6 +30,18 @@ class ReferenceManager(dict):
             if value is None:
                 keys.append(key)
         return tuple(keys)
+
+    def __setitem__(self, key, value):
+        if key in self and self[key] is not None:
+            # Check subroutine conflict.
+            if self[key] != value:
+                raise PulseError(
+                    f"Subroutine {key} is already assigned to the reference of the current scope, "
+                    "however, the newly assigned schedule conflicts with the existing schedule. "
+                    "This operation was not successfully done."
+                )
+            return
+        super().__setitem__(key, value)
 
     def __repr__(self):
         keys = ", ".join(map(repr, self.keys()))
