@@ -20,7 +20,7 @@ import warnings
 import json
 import os
 
-from typing import List, Iterable, Optional
+from typing import List, Iterable
 
 from qiskit import circuit
 from qiskit.providers.models import BackendProperties, PulseBackendConfiguration

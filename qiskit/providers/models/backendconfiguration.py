@@ -689,7 +689,7 @@ class PulseBackendConfiguration(QasmBackendConfiguration):
         in_data = copy.copy(data)
         gates = [GateConfig.from_dict(x) for x in in_data.pop("gates")]
         in_data["gates"] = gates
-        input_uchannels = in_data.pop("u_channel_lo")
+        input_uchannels = in_data.pop("u_channel_lo", [])
         u_channels = []
         for channel in input_uchannels:
             u_channels.append([UchannelLO.from_dict(x) for x in channel])
