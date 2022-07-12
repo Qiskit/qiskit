@@ -74,7 +74,7 @@ class AdaptVQE(VariationalAlgorithm):
             adapt_gradient: a class that converts operator expression to the first-order gradient based
                 on the method mentioned.
             excitation_pool: A list of quantum circuits out of which to build the ansatz.
-            threshold: the energy convergence threshold. It has a minimum value of 1e-15.
+            threshold: the eigenvalue convergence threshold. It has a minimum value of `1e-15`.
             max_iterations: the maximum number of iterations.
         """
         validate_min("threshold", threshold, 1e-15)
