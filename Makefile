@@ -51,6 +51,7 @@ lint:
 	tools/verify_headers.py qiskit test tools examples
 	pylint -rn --disable='invalid-name, missing-module-docstring, redefined-outer-name' examples/python/*.py
 	tools/find_optional_imports.py
+	tools/find_stray_release_notes.py
 
 # Only pylint on files that have changed from origin/main. Also parallelize (disables cyclic-import check)
 lint-incr:
