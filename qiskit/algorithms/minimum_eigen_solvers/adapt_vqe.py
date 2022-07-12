@@ -73,7 +73,7 @@ class AdaptVQE(VariationalAlgorithm):
                It is a requirement that the `ansatz` of this solver is of type `EvolvedOperatorAnsatz`.
             adapt_gradient: a class that converts operator expression to the first-order gradient based
                 on the method mentioned.
-            excitation_pool: An entire list of excitations.
+            excitation_pool: A list of quantum circuits out of which to build the ansatz.
             threshold: the energy convergence threshold. It has a minimum value of 1e-15.
             max_iterations: the maximum number of iterations of the AdaptVQE algorithm.
         """
