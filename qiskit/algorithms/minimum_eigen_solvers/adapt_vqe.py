@@ -91,7 +91,7 @@ class AdaptVQE(VariationalAlgorithm):
 
     @property
     def initial_point(self) -> Optional[np.ndarray]:
-        """Returns initial point."""
+        """Returns the initial point."""
         return self.solver.initial_point
 
     @initial_point.setter
