@@ -16,6 +16,7 @@ import unittest
 
 import numpy as np
 
+from test import combine
 from ddt import ddt, data, unpack
 
 from qiskit.test.base import QiskitTestCase
@@ -40,6 +41,7 @@ from qiskit.circuit.library import (
 )
 from qiskit.circuit.random.utils import random_circuit
 from qiskit.converters.circuit_to_dag import circuit_to_dag
+from qiskit.quantum_info import Operator
 
 
 @ddt
@@ -628,6 +630,28 @@ class TestTwoLocal(QiskitTestCase):
         parameters = ParameterVector("theta", num_qubits * (reps + 1))
         param_iter = iter(parameters)
 
+        expected = QuantumCircuit(3)
+        for _ in range(reps):
+            for i in range(num_qubits):
+                expected.ry(next(param_iter), i)
+            expected.cx(1, 2)
+            expected.cx(0, 1)
+        for i in range(num_qubits):
+            expected.ry(next(param_iter), i)
+
+        library = RealAmplitudes(
+            num_qubits, reps=reps, entanglement=entanglement
+        ).assign_parameters(parameters)
+        self.assertCircuitEqual(library, expected)
+
+    def test_ry_circuit_explicit(self):
+        """Test an RealAmplitudes circuit."""
+        num_qubits = 3
+        reps = 2
+        entanglement = "full_explicit"
+        parameters = ParameterVector("theta", num_qubits * (reps + 1))
+        param_iter = iter(parameters)
+
         #      ┌──────────┐          ┌──────────┐                      ┌──────────┐
         # q_0: ┤ Ry(θ[0]) ├──■────■──┤ Ry(θ[3]) ├──────────────■────■──┤ Ry(θ[6]) ├────────────
         #      ├──────────┤┌─┴─┐  │  └──────────┘┌──────────┐┌─┴─┐  │  └──────────┘┌──────────┐
@@ -639,11 +663,9 @@ class TestTwoLocal(QiskitTestCase):
         for _ in range(reps):
             for i in range(num_qubits):
                 expected.ry(next(param_iter), i)
-            # expected.cx(0, 1)
-            # expected.cx(0, 2)
-            # expected.cx(1, 2)
-            expected.cx(1, 2)
             expected.cx(0, 1)
+            expected.cx(0, 2)
+            expected.cx(1, 2)
         for i in range(num_qubits):
             expected.ry(next(param_iter), i)
 
@@ -868,6 +890,16 @@ class TestTwoLocal(QiskitTestCase):
 
         self.assertEqual(two_np32.decompose().count_ops()["cx"], expected_cx)
         self.assertEqual(two_np64.decompose().count_ops()["cx"], expected_cx)
+
+    @combine(num_qubits=[3, 4, 5, 6, 10])
+    def test_full_explicit(self, num_qubits):
+        reps = 2
+        full = RealAmplitudes(num_qubits=num_qubits, entanglement="full", reps=reps)
+        params = [0.1 * i for i in range((reps + 1) * num_qubits)]
+        explicit = RealAmplitudes(num_qubits=num_qubits, entanglement="full_explicit", reps=reps)
+        full.assign_parameters(params, inplace=True)
+        explicit.assign_parameters(params, inplace=True)
+        assert Operator(full) == Operator(explicit)
 
 
 if __name__ == "__main__":
