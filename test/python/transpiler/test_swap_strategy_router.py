@@ -12,6 +12,8 @@
 
 """Tests for swap strategy routers."""
 
+from ddt import ddt, data
+
 from qiskit.circuit import QuantumCircuit, Qubit, QuantumRegister
 from qiskit.transpiler import PassManager, CouplingMap, Layout, TranspilerError
 
@@ -25,6 +27,7 @@ from qiskit.transpiler.passes import FullAncillaAllocation
 from qiskit.transpiler.passes import EnlargeWithAncilla
 from qiskit.transpiler.passes import ApplyLayout
 from qiskit.transpiler.passes import SetLayout
+from qiskit.transpiler.passes import CXCancellation
 
 from qiskit.test import QiskitTestCase
 
@@ -38,6 +41,7 @@ from qiskit.transpiler.passes.routing.commuting_2q_gate_routing import (
 )
 
 
+@ddt
 class TestPauliEvolutionSwapStrategies(QiskitTestCase):
     """A class to test the swap strategies transpiler passes."""
 
@@ -497,6 +501,35 @@ class TestPauliEvolutionSwapStrategies(QiskitTestCase):
 
         self.assertEqual(circ, self.pm_.run(circ))
 
+    @data(
+        ({(0, 1): 0, (2, 3): 0, (1, 2): 1}, 9),  # better coloring for the swap strategy
+        ({(0, 1): 1, (2, 3): 1, (1, 2): 0}, 11),  # worse, i.e., less CX cancellation.
+    )
+    def test_edge_coloring(self, edge_coloring, cx_count):
+        """Test that the edge coloring works."""
+        op = PauliSumOp.from_list([("IIZZ", 1), ("IZZI", 2), ("ZZII", 3), ("ZIZI", 4)])
+        swaps = (((1, 2),),)
+
+        cmap = CouplingMap([[0, 1], [1, 2], [2, 3]])
+        cmap.make_symmetric()
+
+        swap_strat = SwapStrategy(cmap, swaps)
+
+        circ = QuantumCircuit(4)
+        circ.append(PauliEvolutionGate(op, 1), range(4))
+
+        pm_ = PassManager(
+            [
+                FindCommutingPauliEvolutions(),
+                Commuting2qGateRouter(swap_strat, edge_coloring=edge_coloring),
+                Decompose(),  # double decompose gets to CX
+                Decompose(),
+                CXCancellation(),
+            ]
+        )
+
+        self.assertEqual(pm_.run(circ).count_ops()["cx"], cx_count)
+
 
 class TestSwapRouterExceptions(QiskitTestCase):
     """Test that exceptions are properly raises."""
@@ -559,3 +592,9 @@ class TestSwapRouterExceptions(QiskitTestCase):
 
         with self.assertRaises(QiskitError):
             Commuting2qBlock(circuit_to_dag(circ).op_nodes())
+
+    def test_invalid_edge_coloring(self):
+        """Test that an error is raised if the edge coloring is invalid."""
+        invalid_coloring = {(0, 1): 0, (1, 2): 0}
+        with self.assertRaisesRegex("The given edge coloring is invalid."):
+            Commuting2qGateRouter(edge_coloring=invalid_coloring)
