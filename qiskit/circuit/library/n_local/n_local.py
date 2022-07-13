@@ -523,6 +523,10 @@ class NLocal(BlueprintCircuit):
         """
         i, j, n = rep_num, block_num, num_block_qubits
         entanglement = self._entanglement
+        entanglement_blocks = self._entanglement_blocks
+        entanglement_gates = None
+        if len(entanglement_blocks) == 1:
+            entanglement_gates = list(entanglement_blocks[0].count_ops().items())
 
         # entanglement is None
         if entanglement is None:
@@ -534,7 +538,7 @@ class NLocal(BlueprintCircuit):
 
         # entanglement is str
         if isinstance(entanglement, str):
-            return get_entangler_map(n, self.num_qubits, entanglement, offset=i)
+            return get_entangler_map(n, self.num_qubits, entanglement, entanglement_gates, offset=i)
 
         # check if entanglement is list of something
         if not isinstance(entanglement, (tuple, list)):
@@ -543,7 +547,9 @@ class NLocal(BlueprintCircuit):
 
         # entanglement is List[str]
         if all(isinstance(en, str) for en in entanglement):
-            return get_entangler_map(n, self.num_qubits, entanglement[i % num_i], offset=i)
+            return get_entangler_map(
+                n, self.num_qubits, entanglement[i % num_i], entanglement_gates, offset=i
+            )
 
         # entanglement is List[int]
         if all(isinstance(en, (int, numpy.integer)) for en in entanglement):
@@ -557,7 +563,7 @@ class NLocal(BlueprintCircuit):
         # entanglement is List[List[str]]
         if all(isinstance(e2, str) for en in entanglement for e2 in en):
             return get_entangler_map(
-                n, self.num_qubits, entanglement[i % num_i][j % num_j], offset=i
+                n, self.num_qubits, entanglement[i % num_i][j % num_j], entanglement_gates, offset=i
             )
 
         # entanglement is List[List[int]]
@@ -921,13 +927,18 @@ def get_parameters(block: Union[QuantumCircuit, Instruction]) -> List[Parameter]
 
 
 def get_entangler_map(
-    num_block_qubits: int, num_circuit_qubits: int, entanglement: str, offset: int = 0
+    num_block_qubits: int,
+    num_circuit_qubits: int,
+    entanglement: str,
+    entanglement_gates: str = None,
+    offset: int = 0,
 ) -> List[Sequence[int]]:
     """Get an entangler map for an arbitrary number of qubits.
     Args:
         num_block_qubits: The number of qubits of the entangling block.
         num_circuit_qubits: The number of qubits of the circuit.
         entanglement: The entanglement strategy.
+        entanglement_gates: List of entanglement gates. Used for optimization.
         offset: The block offset, can be used if the entanglements differ per block.
             See mode ``sca`` for instance.
     Returns:
@@ -947,6 +958,9 @@ def get_entangler_map(
         raise ValueError("Pairwise entanglement is not defined for blocks with more than 2 qubits.")
 
     if entanglement == "full":
+        # Optimization for CX entanglement_block of size 2, containing only 'cx' gates
+        if m == 2 and entanglement_gates == [("cx", 1)]:
+            return [(n - i - 2, n - i - 1) for i in range(n - 1)]
         return list(combinations(list(range(n)), m))
     elif entanglement == "reverse_linear":
         """reverse linear connectivity. In the case of m=2 and the entanglement_block='cx
