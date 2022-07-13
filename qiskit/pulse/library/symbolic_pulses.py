@@ -514,7 +514,7 @@ class SymbolicPulse(Pulse):
                     f"Assigned parameters {param_repr} violate following constraint: {const_repr}."
                 )
 
-        if self.limit_amplitude:
+        if self._limit_amplitude:
             if self._valid_amp_conditions is not None:
                 fargs = _get_expression_args(self._valid_amp_conditions, self.parameters)
                 check_full_waveform = not bool(self._valid_amp_conditions_lam(*fargs))
