@@ -13,10 +13,10 @@
 """Test library of n-local circuits."""
 
 import unittest
+from test import combine
 
 import numpy as np
 
-from test import combine
 from ddt import ddt, data, unpack
 
 from qiskit.test.base import QiskitTestCase
@@ -893,6 +893,7 @@ class TestTwoLocal(QiskitTestCase):
 
     @combine(num_qubits=[3, 4, 5, 6, 10])
     def test_full_explicit(self, num_qubits):
+        """Test that 'full' and 'full_explicit' provide the same unitary element."""
         reps = 2
         full = RealAmplitudes(num_qubits=num_qubits, entanglement="full", reps=reps)
         params = [0.1 * i for i in range((reps + 1) * num_qubits)]
