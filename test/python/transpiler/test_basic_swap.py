@@ -22,7 +22,9 @@ from qiskit.test import QiskitTestCase
 from qiskit.quantum_info.analysis.distance import hellinger_distance
 from qiskit.utils import optionals
 
+
 if optionals.HAS_AER:
+    # pylint: disable=import-error,no-name-in-module
     from qiskit.providers.aer import Aer
 
 
@@ -341,7 +343,7 @@ class TestBasicSwap(QiskitTestCase):
 
         self.assertEqual(circuit_to_dag(expected), after)
 
-    @unittest.skipIf(not optionals.HAS_AER, "Aer not available.")
+    @unittest.skipUnless(optionals.HAS_AER, "Qiskit Aer is required to run this test")
     def test_controlflow_pre_if_else_route(self):
         """test swap with if else controlflow construct"""
         num_qubits = 5
@@ -368,7 +370,7 @@ class TestBasicSwap(QiskitTestCase):
         out_results = sim.run(cqc, shots=4096).result().get_counts()
         self.assertEqual(set(in_results), set(out_results))
 
-    @unittest.skipIf(not optionals.HAS_AER, "Aer not available.")
+    @unittest.skipUnless(optionals.HAS_AER, "Qiskit Aer is required to run this test")
     def test_controlflow_pre_if_else_route_post_x(self):
         """test swap with if else controlflow construct; pre-cx and post x"""
         num_qubits = 5
@@ -396,7 +398,7 @@ class TestBasicSwap(QiskitTestCase):
         out_results = sim.run(cqc, shots=4096).result().get_counts()
         self.assertEqual(set(in_results), set(out_results))
 
-    @unittest.skipIf(not optionals.HAS_AER, "Aer not available.")
+    @unittest.skipUnless(optionals.HAS_AER, "Qiskit Aer is required to run this test")
     def test_controlflow_post_if_else_route(self):
         """test swap with if else controlflow construct; post cx"""
         num_qubits = 5
@@ -423,7 +425,7 @@ class TestBasicSwap(QiskitTestCase):
         out_results = sim.run(cqc, shots=4096).result().get_counts()
         self.assertEqual(set(in_results), set(out_results))
 
-    @unittest.skipIf(not optionals.HAS_AER, "Aer not available.")
+    @unittest.skipUnless(optionals.HAS_AER, "Qiskit Aer is required to run this test")
     def test_controlflow_intra_if_else_route(self):
         """test swap with if else controlflow construct"""
         num_qubits = 5
@@ -450,7 +452,7 @@ class TestBasicSwap(QiskitTestCase):
         out_results = sim.run(cqc, shots=4096, seed_simulator=11).result().get_counts()
         self.assertLess(hellinger_distance(in_results, out_results), 0.01)
 
-    @unittest.skipIf(not optionals.HAS_AER, "Aer not available.")
+    @unittest.skipUnless(optionals.HAS_AER, "Qiskit Aer is required to run this test")
     def test_controlflow_pre_intra_if_else(self):
         """test swap with if else controlflow construct; cx in if statement"""
         num_qubits = 5
@@ -478,7 +480,7 @@ class TestBasicSwap(QiskitTestCase):
         out_results = sim.run(cqc, shots=4096, seed_simulator=11).result().get_counts()
         self.assertLess(hellinger_distance(in_results, out_results), 0.01)
 
-    @unittest.skipIf(not optionals.HAS_AER, "Aer not available.")
+    @unittest.skipUnless(optionals.HAS_AER, "Qiskit Aer is required to run this test")
     def test_controlflow_pre_intra_post_if_else(self):
         """test swap with if else controlflow construct; cx before, in, and after if
         statement"""
@@ -510,7 +512,7 @@ class TestBasicSwap(QiskitTestCase):
         out_results = sim.run(cqc, shots=4096, seed_simulator=11).result().get_counts()
         self.assertLess(hellinger_distance(in_results, out_results), 0.01)
 
-    @unittest.skipIf(not optionals.HAS_AER, "Aer not available.")
+    @unittest.skipUnless(optionals.HAS_AER, "Qiskit Aer is required to run this test")
     def test_controlflow_no_layout_change(self):
         """test controlflow with no layout change needed"""
         num_qubits = 5
@@ -539,7 +541,7 @@ class TestBasicSwap(QiskitTestCase):
         out_results = sim.run(cqc, shots=4096, seed_simulator=11).result().get_counts()
         self.assertLess(hellinger_distance(in_results, out_results), 0.01)
 
-    @unittest.skipIf(not optionals.HAS_AER, "Aer not available.")
+    @unittest.skipUnless(optionals.HAS_AER, "Qiskit Aer is required to run this test")
     @data(1, 2, 3, 4, 5)
     def test_controlflow_for_loop(self, nloops):
         """test for loop"""
@@ -566,7 +568,7 @@ class TestBasicSwap(QiskitTestCase):
         out_results = sim.run(cqc, shots=4096, seed_simulator=11).result().get_counts()
         self.assertLess(hellinger_distance(in_results, out_results), 0.01)
 
-    @unittest.skipIf(not optionals.HAS_AER, "Aer not available.")
+    @unittest.skipUnless(optionals.HAS_AER, "Qiskit Aer is required to run this test")
     def test_controlflow_while_loop(self):
         """test while loop"""
         from qiskit.circuit.library.standard_gates import CCXGate
@@ -594,7 +596,7 @@ class TestBasicSwap(QiskitTestCase):
         out_results = sim.run(cqc, shots=shots, seed_simulator=11).result().get_counts()
         self.assertLess(hellinger_distance(in_results, out_results), 0.01)
 
-    @unittest.skipIf(not optionals.HAS_AER, "Aer not available.")
+    @unittest.skipUnless(optionals.HAS_AER, "Qiskit Aer is required to run this test")
     def test_controlflow_nested_inner_cnot(self):
         """test swap in nested if else controlflow construct; swap in inner"""
         num_qubits = 5
@@ -629,7 +631,7 @@ class TestBasicSwap(QiskitTestCase):
         out_results = sim.run(cqc, shots=4096, seed_simulator=11).result().get_counts()
         self.assertLess(hellinger_distance(in_results, out_results), 0.01)
 
-    @unittest.skipIf(not optionals.HAS_AER, "Aer not available.")
+    @unittest.skipUnless(optionals.HAS_AER, "Qiskit Aer is required to run this test")
     def test_controlflow_nested_outer_cnot(self):
         """test swap with nested if else controlflow construct; swap in outer"""
         num_qubits = 5
@@ -666,7 +668,7 @@ class TestBasicSwap(QiskitTestCase):
         out_results = sim.run(cqc, shots=4096, seed_simulator=11).result().get_counts()
         self.assertLess(hellinger_distance(in_results, out_results), 0.01)
 
-    @unittest.skipIf(not optionals.HAS_AER, "Aer not available.")
+    @unittest.skipUnless(optionals.HAS_AER, "Qiskit Aer is required to run this test")
     def test_controlflow_continue(self):
         """test controlflow continue"""
         num_qubits = 5
