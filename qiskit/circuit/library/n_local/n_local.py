@@ -990,7 +990,7 @@ def get_entangler_map(
     num_block_qubits: int,
     num_circuit_qubits: int,
     entanglement: str,
-    entanglement_gates: str = None,
+    entanglement_gates: List[Tuple] = None,
     offset: int = 0,
 ) -> List[Sequence[int]]:
     """Get an entangler map for an arbitrary number of qubits.
@@ -999,7 +999,7 @@ def get_entangler_map(
         num_block_qubits: The number of qubits of the entangling block.
         num_circuit_qubits: The number of qubits of the circuit.
         entanglement: The entanglement strategy.
-        entanglement_gates: List of entanglement gates. Used for optimization.
+        entanglement_gates: List of tuples of entanglement gates and their counts. Used for optimization.
         offset: The block offset, can be used if the entanglements differ per block.
             See mode ``sca`` for instance.
 
@@ -1020,9 +1020,9 @@ def get_entangler_map(
     if entanglement == "pairwise" and num_block_qubits > 2:
         raise ValueError("Pairwise entanglement is not defined for blocks with more than 2 qubits.")
 
-    if entanglement == "full":
+    if entanglement == "full" or entanglement == "full_explicit":
         # Optimization for CX entanglement_block of size 2, containing only 'cx' gates
-        if m == 2 and entanglement_gates == [("cx", 1)]:
+        if entanglement == "full" and m == 2 and entanglement_gates == [("cx", 1)]:
             return [(n - i - 2, n - i - 1) for i in range(n - 1)]
         return list(combinations(list(range(n)), m))
     if entanglement in ["linear", "circular", "sca", "pairwise"]:
