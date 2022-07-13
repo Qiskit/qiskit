@@ -37,7 +37,7 @@ class ZZFeatureMap(PauliFeatureMap):
 
     Examples:
 
-        >>> prep = ZZFeatureMap(2, reps=2)
+        >>> prep = ZZFeatureMap(2, reps=1)
         >>> print(prep)
              ┌───┐┌──────────────┐
         q_0: ┤ H ├┤ U1(2.0*x[0]) ├──■───────────────────────────────────────■──
