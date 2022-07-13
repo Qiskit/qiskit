@@ -19,7 +19,6 @@ from qiskit.dagcircuit import DAGCircuit
 from qiskit.transpiler.layout import Layout
 from qiskit.circuit.library.standard_gates import SwapGate
 from qiskit.circuit import ControlFlowOp, IfElseOp, WhileLoopOp, ForLoopOp
-from qiskit.converters import circuit_to_dag, dag_to_circuit
 
 
 class BasicSwap(TransformationPass):
@@ -44,9 +43,6 @@ class BasicSwap(TransformationPass):
         self.fake_run = fake_run
         self.property_set["final_layout"] = None
         self.initial_layout = initial_layout
-        self._swap_layers = []  # used to store swap layers
-        self._layout_layers = []  # used to store layout layers
-        self._op_layers = []
 
     def run(self, dag):
         """Run the BasicSwap pass on `dag`.
@@ -82,7 +78,6 @@ class BasicSwap(TransformationPass):
         for layer in dag.serial_layers():
             subdag = layer["graph"]
             cf_layer = False
-            # swap_layer = None
             for gate in subdag.two_qubit_ops():
                 if isinstance(gate, ControlFlowOp):  # necessary?
                     continue
@@ -108,13 +103,11 @@ class BasicSwap(TransformationPass):
 
                     # layer insertion
                     order = current_layout.reorder_bits(new_dag.qubits)
-                    self._swap_layers.append(swap_layer)
                     new_dag.compose(swap_layer, qubits=order)
 
                     # update current_layout
                     for swap in range(len(path) - 2):
                         current_layout.swap(path[swap], path[swap + 1])
-                    self._layout_layers.append(current_layout)
             # handle control flow operations
             for node in subdag.control_flow_ops():
                 updated_ctrl_op, cf_layout = self._transpile_controlflow_op(node.op, current_layout)
@@ -126,7 +119,6 @@ class BasicSwap(TransformationPass):
             else:
                 order = current_layout.reorder_bits(new_dag.qubits)
                 new_dag.compose(subdag, qubits=order)
-            self._op_layers.append(subdag)
         self.property_set["final_layout"] = current_layout
 
         return new_dag
@@ -140,7 +132,9 @@ class BasicSwap(TransformationPass):
         return cf_op, current_layout
 
     def _transpile_controlflow_multiblock(self, cf_op, current_layout):
+        # pylint: disable=cyclic-import
         from qiskit.transpiler.passes.routing import LayoutTransformation
+        from qiskit.converters import dag_to_circuit, circuit_to_dag
 
         block_circuits = []  # control flow circuit blocks
         block_dags = []  # control flow dag blocks
@@ -174,7 +168,9 @@ class BasicSwap(TransformationPass):
         the layout back to the expected starting layout. This could be reduced a bit by
         specializing to for_loop and while_loop
         """
+        # pylint: disable=cyclic-import
         from qiskit.transpiler.passes.routing import LayoutTransformation
+        from qiskit.converters import dag_to_circuit, circuit_to_dag
 
         dag_block = circuit_to_dag(cf_op.blocks[0])
         _pass = BasicSwap(self.coupling_map, initial_layout=current_layout)
@@ -213,7 +209,6 @@ class BasicSwap(TransformationPass):
             for gate in subdag.two_qubit_ops():
                 physical_q0 = current_layout[gate.qargs[0]]
                 physical_q1 = current_layout[gate.qargs[1]]
-
                 if self.coupling_map.distance(physical_q0, physical_q1) != 1:
                     path = self.coupling_map.shortest_undirected_path(physical_q0, physical_q1)
                     # update current_layout
