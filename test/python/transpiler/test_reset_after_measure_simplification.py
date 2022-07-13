@@ -32,7 +32,6 @@ class TestResetAfterMeasureSimplificationt(QiskitTestCase):
         ans_qc = QuantumCircuit(1, 1)
         ans_qc.measure(0, 0)
         ans_qc.x(0).c_if(ans_qc.clbits[0], 1)
-        new_qc.draw("mpl", filename="/tmp/foo.png")
         self.assertEqual(new_qc, ans_qc)
 
     def test_simple_null(self):
