@@ -957,7 +957,7 @@ def get_entangler_map(
     if entanglement == "pairwise" and num_block_qubits > 2:
         raise ValueError("Pairwise entanglement is not defined for blocks with more than 2 qubits.")
 
-    if entanglement == "full" or entanglement == "full_explicit":
+    if entanglement in ("full", "full_explicit"):
         # Optimization for CX entanglement_block of size 2, containing only 'cx' gates
         if entanglement == "full" and m == 2 and entanglement_gates == [("cx", 1)]:
             return [(n - i - 2, n - i - 1) for i in range(n - 1)]
