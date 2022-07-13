@@ -169,7 +169,7 @@ class BasicSwap(TransformationPass):
         specializing to for_loop and while_loop
         """
         # pylint: disable=cyclic-import
-        from qiskit.transpiler.passes.routing import LayoutTransformation
+        from qiskit.transpiler.passes.routing.layout_transformation import LayoutTransformation
         from qiskit.converters import dag_to_circuit, circuit_to_dag
 
         dag_block = circuit_to_dag(cf_op.blocks[0])
