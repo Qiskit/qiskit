@@ -133,7 +133,7 @@ class BasicSwap(TransformationPass):
 
     def _transpile_controlflow_multiblock(self, cf_op, current_layout):
         # pylint: disable=cyclic-import
-        from qiskit.transpiler.passes.routing import LayoutTransformation
+        from qiskit.transpiler.passes.routing.layout_transformation import LayoutTransformation
         from qiskit.converters import dag_to_circuit, circuit_to_dag
 
         block_circuits = []  # control flow circuit blocks
