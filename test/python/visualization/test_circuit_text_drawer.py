@@ -1249,7 +1249,7 @@ class TestTextDrawerLabels(QiskitTestCase):
         )
         circuit = QuantumCircuit(3)
         circuit.rzz(pi / 2, 0, 1)
-        circuit.x(2, label="This is a really long long long box")
+        circuit.append(XGate(label="This is a really long long long box"), [2])
 
         self.assertEqual(str(_text_circuit_drawer(circuit)), expected)
 
@@ -1269,7 +1269,7 @@ class TestTextDrawerLabels(QiskitTestCase):
         )
         circuit = QuantumCircuit(3)
         circuit.append(CU1Gate(pi / 2), [0, 1])
-        circuit.x(2, label="This is a really long long long box")
+        circuit.append(XGate(label="This is a really long long long box"), [2])
 
         self.assertEqual(str(_text_circuit_drawer(circuit)), expected)
 
