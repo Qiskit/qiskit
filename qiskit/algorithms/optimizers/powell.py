@@ -60,4 +60,4 @@ class POWELL(SciPyOptimizer):
         if options is not None:
             _options.update(options)
 
-        super().__init__("Powell", options=options, tol=tol, **kwargs)
+        super().__init__("Powell", options=_options, tol=tol, **kwargs)

@@ -69,7 +69,7 @@ class NFT(SciPyOptimizer):
         if options is not None:
             _options.update(options)
 
-        super().__init__(method=nakanishi_fujii_todo, options=options, **kwargs)
+        super().__init__(method=nakanishi_fujii_todo, options=_options, **kwargs)
 
 
 # pylint: disable=invalid-name

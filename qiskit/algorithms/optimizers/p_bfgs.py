@@ -79,7 +79,7 @@ class P_BFGS(SciPyOptimizer):  # pylint: disable=invalid-name
 
         super().__init__(
             method="L-BFGS-B",
-            options=options,
+            options=_options,
             max_evals_grouped=max_evals_grouped,
             **kwargs,
         )
