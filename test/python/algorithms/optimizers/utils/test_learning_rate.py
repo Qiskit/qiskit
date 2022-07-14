@@ -41,7 +41,7 @@ class TestLearningRate(QiskitAlgorithmsTestCase):
         with self.subTest("Check constant learning rate."):
             constant_learning_rate = LearningRate(learning_rate=constant_learning_rate_input)
             for _ in range(5):
-                self.assertEqual(constant_learning_rate, next(constant_learning_rate))
+                self.assertEqual(constant_learning_rate_input, next(constant_learning_rate))
 
         with self.subTest("Check learning rate list."):
             list_learning_rate = LearningRate(learning_rate=list_learning_rate_input)
