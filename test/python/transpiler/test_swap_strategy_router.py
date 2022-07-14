@@ -12,7 +12,7 @@
 
 """Tests for swap strategy routers."""
 
-from ddt import ddt, data
+from ddt import ddt, data, unpack
 
 from qiskit.circuit import QuantumCircuit, Qubit, QuantumRegister
 from qiskit.transpiler import PassManager, CouplingMap, Layout, TranspilerError
@@ -506,6 +506,7 @@ class TestPauliEvolutionSwapStrategies(QiskitTestCase):
         ({(0, 1): 0, (2, 3): 0, (1, 2): 1}, 9),  # better coloring for the swap strategy
         ({(0, 1): 1, (2, 3): 1, (1, 2): 0}, 11),  # worse, i.e., less CX cancellation.
     )
+    @unpack
     def test_edge_coloring(self, edge_coloring, cx_count):
         """Test that the edge coloring works."""
         op = PauliSumOp.from_list([("IIZZ", 1), ("IZZI", 2), ("ZZII", 3), ("ZIZI", 4)])
