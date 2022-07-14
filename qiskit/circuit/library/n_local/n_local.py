@@ -994,7 +994,7 @@ def get_entangler_map(
     num_block_qubits: int,
     num_circuit_qubits: int,
     entanglement: str,
-    entanglement_gates: Optional[List[Tuple[str, int]]],
+    entanglement_gates: Optional[List[Tuple[str, int]]] = None,
     offset: int = 0,
 ) -> List[Sequence[int]]:
     """Get an entangler map for an arbitrary number of qubits.
