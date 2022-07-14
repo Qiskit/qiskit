@@ -433,9 +433,12 @@ class TensoredMeasFitter:
             )
 
     def subset_fitter(self, qubit_sublist=None):
-        """
-        Return a fitter object that is a subset of the qubits in the original
-        list.
+        """Return a fitter object that is a subset of the qubits in the original list.
+
+        This is only a partial implementation of the ``subset_fitter`` method since only
+        mitigation patterns of length 1 are supported. This corresponds to patterns of the
+        form ``[[0], [1], [2], ...]``. Note however, that such pattenrs are a good first
+        approximation to mitigate readout errors on large quantum circuits.
 
         Args:
             qubit_sublist (list): must be a subset of qubit_list
