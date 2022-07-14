@@ -525,6 +525,10 @@ class NLocal(BlueprintCircuit):
         entanglement = self._entanglement
         entanglement_blocks = self._entanglement_blocks
         entanglement_gates = None
+        # Extract the entanglement gates from the circuit in entanglement_blocks
+        # (assuming that there is only one circuit).
+        # Obtain a list of tuples of entanglement gates and their counts,
+        # e.g. [("cx", 1)] if entanglement_blocks is a single CX gate.
         if len(entanglement_blocks) == 1:
             entanglement_gates = list(entanglement_blocks[0].count_ops().items())
 
@@ -930,7 +934,7 @@ def get_entangler_map(
     num_block_qubits: int,
     num_circuit_qubits: int,
     entanglement: str,
-    entanglement_gates: List[Tuple] = None,
+    entanglement_gates: Optional[List[Tuple[str, int]]],
     offset: int = 0,
 ) -> List[Sequence[int]]:
     """Get an entangler map for an arbitrary number of qubits.
@@ -958,7 +962,9 @@ def get_entangler_map(
         raise ValueError("Pairwise entanglement is not defined for blocks with more than 2 qubits.")
 
     if entanglement in ("full", "full_explicit"):
-        # Optimization for CX entanglement_block of size 2, containing only 'cx' gates
+        # Optimization for CX entanglement_block of size 2, containing only a single 'cx' gate.
+        # Instead of using n*(n-1)/2 CX gates for n qubits in each of the layers,
+        # there is an equivalent circuit with only n CX gates with a linear connectivity in each of the layers.
         if entanglement == "full" and m == 2 and entanglement_gates == [("cx", 1)]:
             return [(n - i - 2, n - i - 1) for i in range(n - 1)]
         return list(combinations(list(range(n)), m))
