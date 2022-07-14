@@ -33,20 +33,6 @@ class GSLS(Optimizer):
         (``qiskit.utils.algorithm_globals.random_seed = seed``).
     """
 
-    _OPTIONS = [
-        "maxiter",
-        "max_eval",
-        "disp",
-        "sampling_radius",
-        "sample_size_factor",
-        "initial_step_size",
-        "min_step_size",
-        "step_size_multiplier",
-        "armijo_parameter",
-        "min_gradient_norm",
-        "max_failed_rejection_sampling",
-    ]
-
     # pylint: disable=unused-argument
     def __init__(
         self,
@@ -81,9 +67,20 @@ class GSLS(Optimizer):
                 bounds.
         """
         super().__init__()
-        for k, v in list(locals().items()):
-            if k in self._OPTIONS:
-                self._options[k] = v
+
+        self._options = {
+            "maxiter": maxiter,
+            "max_eval": max_eval,
+            "disp": disp,
+            "sampling_radius": sampling_radius,
+            "sample_size_factor": sample_size_factor,
+            "initial_step_size": initial_step_size,
+            "min_step_size": min_step_size,
+            "step_size_multiplier": step_size_multiplier,
+            "armijo_parameter": armijo_parameter,
+            "min_gradient_norm": min_gradient_norm,
+            "max_failed_rejection_sampling": max_failed_rejection_sampling,
+        }
 
     def get_support_level(self) -> Dict[str, int]:
         """Return support level dictionary.
@@ -99,7 +96,7 @@ class GSLS(Optimizer):
 
     @property
     def settings(self) -> Dict[str, Any]:
-        return {key: self._options.get(key, None) for key in self._OPTIONS}
+        return self._options
 
     def minimize(
         self,

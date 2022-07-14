@@ -44,8 +44,6 @@ class AQGD(Optimizer):
 
     """
 
-    _OPTIONS = ["maxiter", "eta", "tol", "disp", "momentum", "param_tol", "averaging"]
-
     def __init__(
         self,
         maxiter: Union[int, List[int]] = 1000,

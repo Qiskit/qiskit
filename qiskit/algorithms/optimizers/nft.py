@@ -27,8 +27,6 @@ class NFT(SciPyOptimizer):
     See https://arxiv.org/abs/1903.12166
     """
 
-    _OPTIONS = ["maxiter", "maxfev", "disp", "reset_interval"]
-
     # pylint: disable=unused-argument
     def __init__(
         self,
@@ -61,11 +59,16 @@ class NFT(SciPyOptimizer):
                 Sequential minimal optimization for quantum-classical hybrid algorithms.
                 arXiv preprint arXiv:1903.12166.
         """
-        if options is None:
-            options = {}
-        for k, v in list(locals().items()):
-            if k in self._OPTIONS:
-                options[k] = v
+        _options = {
+            "maxiter": maxiter,
+            "maxfev": maxfev,
+            "disp": disp,
+            "reset_interval": reset_interval,
+        }
+
+        if options is not None:
+            _options.update(options)
+
         super().__init__(method=nakanishi_fujii_todo, options=options, **kwargs)
 
 

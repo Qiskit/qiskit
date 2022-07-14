@@ -56,14 +56,13 @@ class CG(SciPyOptimizer):
             max_evals_grouped: Max number of default gradient evaluations performed simultaneously.
             kwargs: additional kwargs for scipy.optimize.minimize.
         """
-        if options is None:
-            options = {}
-        for k, v in list(locals().items()):
-            if k in self._OPTIONS:
-                options[k] = v
+        _options = {"maxiter": maxiter, "disp": disp, "gtol": gtol, "eps": eps}
+        if options is not None:
+            _options.update(options)
+
         super().__init__(
             method="CG",
-            options=options,
+            options=_options,
             tol=tol,
             max_evals_grouped=max_evals_grouped,
             **kwargs,

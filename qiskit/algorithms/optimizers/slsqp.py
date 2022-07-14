@@ -34,8 +34,6 @@ class SLSQP(SciPyOptimizer):
     See https://docs.scipy.org/doc/scipy/reference/generated/scipy.optimize.minimize.html
     """
 
-    _OPTIONS = ["maxiter", "disp", "ftol", "eps"]
-
     # pylint: disable=unused-argument
     def __init__(
         self,
@@ -59,14 +57,14 @@ class SLSQP(SciPyOptimizer):
             max_evals_grouped: Max number of default gradient evaluations performed simultaneously.
             kwargs: additional kwargs for scipy.optimize.minimize.
         """
-        if options is None:
-            options = {}
-        for k, v in list(locals().items()):
-            if k in self._OPTIONS:
-                options[k] = v
+        _options = {"maxiter": maxiter, "disp": disp, "ftol": ftol, "eps": eps}
+
+        if options is not None:
+            _options.update(options)
+
         super().__init__(
             "SLSQP",
-            options=options,
+            options=_options,
             tol=tol,
             max_evals_grouped=max_evals_grouped,
             **kwargs,

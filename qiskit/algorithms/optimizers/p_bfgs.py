@@ -43,8 +43,6 @@ class P_BFGS(SciPyOptimizer):  # pylint: disable=invalid-name
     https://docs.scipy.org/doc/scipy/reference/generated/scipy.optimize.fmin_l_bfgs_b.html
     """
 
-    _OPTIONS = ["maxfun", "ftol", "iprint"]
-
     # pylint: disable=unused-argument
     def __init__(
         self,
@@ -71,14 +69,14 @@ class P_BFGS(SciPyOptimizer):  # pylint: disable=invalid-name
             max_evals_grouped: Max number of default gradient evaluations performed simultaneously.
             kwargs: additional kwargs for scipy.optimize.minimize.
         """
-        if max_processes:
+        if max_processes is not None:
             validate_min("max_processes", max_processes, 1)
 
-        if options is None:
-            options = {}
-        for k, v in list(locals().items()):
-            if k in self._OPTIONS:
-                options[k] = v
+        _options = {"maxfun": maxfun, "ftol": ftol, "iprint": iprint}
+
+        if options is not None:
+            _options.update(options)
+
         super().__init__(
             method="L-BFGS-B",
             options=options,

@@ -41,9 +41,6 @@ class NLoptOptimizer(Optimizer):
     """
 
     # pylint: disable=import-error
-
-    _OPTIONS = ["max_evals"]
-
     def __init__(self, max_evals: int = 1000) -> None:  # pylint: disable=unused-argument
         """
         Args:
@@ -55,9 +52,8 @@ class NLoptOptimizer(Optimizer):
         import nlopt
 
         super().__init__()
-        for k, v in list(locals().items()):
-            if k in self._OPTIONS:
-                self._options[k] = v
+
+        self._max_evals = max_evals
 
         self._optimizer_names = {
             NLoptOptimizerType.GN_CRS2_LM: nlopt.GN_CRS2_LM,
@@ -82,7 +78,7 @@ class NLoptOptimizer(Optimizer):
 
     @property
     def settings(self):
-        return {"max_evals": self._options.get("max_evals", 1000)}
+        return {"max_evals": self._max_evals}
 
     def minimize(
         self,

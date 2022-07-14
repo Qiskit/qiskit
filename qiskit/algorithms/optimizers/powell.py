@@ -32,8 +32,6 @@ class POWELL(SciPyOptimizer):
     See https://docs.scipy.org/doc/scipy/reference/generated/scipy.optimize.minimize.html
     """
 
-    _OPTIONS = ["maxiter", "maxfev", "disp", "xtol"]
-
     # pylint: disable=unused-argument
     def __init__(
         self,
@@ -57,9 +55,9 @@ class POWELL(SciPyOptimizer):
             options: A dictionary of solver options.
             kwargs: additional kwargs for scipy.optimize.minimize.
         """
-        if options is None:
-            options = {}
-        for k, v in list(locals().items()):
-            if k in self._OPTIONS:
-                options[k] = v
+        _options = {"maxiter": maxiter, "maxfev": maxfev, "disp": disp, "xtol": xtol}
+
+        if options is not None:
+            _options.update(options)
+
         super().__init__("Powell", options=options, tol=tol, **kwargs)

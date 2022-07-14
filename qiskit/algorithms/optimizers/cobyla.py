@@ -51,9 +51,8 @@ class COBYLA(SciPyOptimizer):
             options: A dictionary of solver options.
             kwargs: additional kwargs for scipy.optimize.minimize.
         """
-        if options is None:
-            options = {}
-        for k, v in list(locals().items()):
-            if k in self._OPTIONS:
-                options[k] = v
-        super().__init__(method="COBYLA", options=options, tol=tol, **kwargs)
+        _options = {"maxiter": maxiter, "disp": disp, "rhobeg": rhobeg}
+        if options is not None:
+            _options.update(options)
+
+        super().__init__(method="COBYLA", options=_options, tol=tol, **kwargs)
