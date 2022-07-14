@@ -15,7 +15,7 @@
 import unittest
 
 from test.python.algorithms import QiskitAlgorithmsTestCase
-from ddt import ddt, data
+from ddt import ddt, data, unpack
 import numpy as np
 import retworkx as rx
 from qiskit import QuantumCircuit, execute
@@ -47,8 +47,13 @@ class TestMeasurementErrorMitigation(QiskitAlgorithmsTestCase):
     """Test measurement error mitigation."""
 
     @unittest.skipUnless(optionals.HAS_AER, "qiskit-aer is required for this test")
-    @data("CompleteMeasFitter", "TensoredMeasFitter")
-    def test_measurement_error_mitigation_with_diff_qubit_order(self, fitter_str):
+    @data(
+        ("CompleteMeasFitter", None),
+        ("TensoredMeasFitter", None),
+        ("TensoredMeasFitter", [[0, 1]]),
+    )
+    @unpack
+    def test_measurement_error_mitigation_with_diff_qubit_order(self, fitter_str, mit_pattern):
         """measurement error mitigation with different qubit order"""
         algorithm_globals.random_seed = 0
 
@@ -69,6 +74,7 @@ class TestMeasurementErrorMitigation(QiskitAlgorithmsTestCase):
             noise_model=noise_model,
             measurement_error_mitigation_cls=fitter_cls,
             cals_matrix_refresh_period=0,
+            mit_pattern=mit_pattern,
         )
         # circuit
         qc1 = QuantumCircuit(2, 2)
@@ -82,7 +88,15 @@ class TestMeasurementErrorMitigation(QiskitAlgorithmsTestCase):
         qc2.measure(1, 0)
         qc2.measure(0, 1)
 
-        quantum_instance.execute([qc1, qc2])
+        if mit_pattern is not None:
+            self.assertRaisesRegex(
+                QiskitError,
+                "Each element in the mit pattern should have length 1.",
+                quantum_instance.execute,
+                [qc1, qc2],
+            )
+        else:
+            quantum_instance.execute([qc1, qc2])
 
         self.assertGreater(quantum_instance.time_taken, 0.0)
         quantum_instance.reset_execution_results()
