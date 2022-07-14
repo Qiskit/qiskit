@@ -44,15 +44,29 @@ class LearningRate(Generator):
 
         self._current: Optional[float] = None
 
-    def send(self, ignored_arg):
+    def send(self, value):
+        """Send a value into the generator.
+        Return next yielded value or raise StopIteration.
+        """
         self._current = next(self._gen)
         return self.current
 
-    def throw(self, type=None, value=None, traceback=None):
-        raise StopIteration
+    def throw(self, typ, val=None, tb=None):
+        """Raise an exception in the generator.
+        Return next yielded value or raise StopIteration.
+        """
+        if val is None:
+            if tb is None:
+                raise typ
+            val = typ()
+        if tb is not None:
+            val = val.with_traceback(tb)
+        raise val
+
 
     @property
     def current(self):
+        """Returns the current value of the learning rate."""
         return self._current
 
 
