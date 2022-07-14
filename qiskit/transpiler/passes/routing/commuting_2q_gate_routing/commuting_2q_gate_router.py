@@ -124,6 +124,9 @@ class Commuting2qGateRouter(TransformationPass):
                 If the edge coloring is not given then the sets will be built-up using a
                 greedy algorithm. The edge coloring is useful for position gates such as
                 ``RZZGate``s next to swap gates.
+
+        Raises:
+            TranspilerError: If an invalid edge coloring is given.
         """
         super().__init__()
         self._swap_strategy = swap_strategy
@@ -267,8 +270,7 @@ class Commuting2qGateRouter(TransformationPass):
             return self._greedy_build_sub_layers(current_layer)
 
     def _edge_coloring_build_sub_layers(
-        self,
-        current_layer: Dict[tuple, Gate]
+        self, current_layer: Dict[tuple, Gate]
     ) -> List[Dict[tuple, Gate]]:
         """The edge coloring method of building sub-layers of commuting gates."""
         sub_layers = [{} for _ in set(self._edge_coloring.values())]
