@@ -18,32 +18,74 @@ import numpy as np
 from .optimizer import Optimizer, OptimizerSupportLevel, OptimizerResult, POINT
 from .steppable_optimizer import AskData, TellData, OptimizerState, SteppableOptimizer
 from .utils.learning_rate import LearningRate
+
 CALLBACK = Callable[[int, np.ndarray, float, float], None]
+
 
 @dataclass
 class GradientDescentState(OptimizerState):
     """State of :class:`~.GradientDescent`.
-    Contains all the information of an optimizer plus the learning_rate and the stepsize.
+
+    Dataclass with all the information of an optimizer plus the learning_rate and the stepsize.
 
     """
 
-    learning_rate: LearningRate = field(compare=False)
     stepsize: Optional[float]
+    """Norm of the gradient on the last step."""
+    learning_rate: LearningRate = field(compare=False)
+    """Learing rate at the current step of the optimization process. It behaves like a generator,
+    (use ``next(learning_rate)`` to get the learning rate for the next step) but it can also return
+    the current learning rate with ``learning_rate.current``.
+    """
+
+    def __init__(
+        self,
+        x: POINT,
+        fun: Optional[Callable[[POINT], float]],
+        jac: Optional[Callable[[POINT], POINT]],
+        nfev: Optional[int],
+        njev: Optional[int],
+        nit: Optional[int],
+        stepsize: Optional[float],
+        learning_rate: Union[float, List[float], np.ndarray, Callable[[], Iterator]],
+    ):
+        """
+        Args:
+            x: Current optimization parameters.
+            fun: Function being  optimized.
+            jac: Jacobian of the function being optimized.
+            nfev: Number of function evaluations so far in the optimization.
+            njev: Number of jacobian evaluations so far in the opimization.
+            nit: Number of optmization steps performed so far in the optimization.
+            stepsize: Norm of the jacobian on the last step.
+            learning_rate: A constant, list, array or factory of generators yielding learning rates for
+                          the parameter updates. See the docstring for an example.
+        """
+
+        self.x = x
+        self.fun = fun
+        self.jac = jac
+        self.nfev = nfev
+        self.njev = njev
+        self.nit = nit
+        self.stepsize = stepsize
+        self.learning_rate = LearningRate(learning_rate)
 
 
 class GradientDescent(SteppableOptimizer):
     r"""The gradient descent minimization routine.
+
     For a function :math:`f` and an initial point :math:`\vec\theta_0`, the standard (or "vanilla")
     gradient descent method is an iterative scheme to find the minimum :math:`\vec\theta^*` of
     :math:`f` by updating the parameters in the direction of the negative gradient of :math:`f`
 
     .. math::
 
-        \vec\theta_{n+1} = \vec\theta_{n} - \vec\eta\nabla f(\vec\theta_{n}),
+        \vec\theta_{n+1} = \vec\theta_{n} - \eta_n \vec\nabla f(\vec\theta_{n}),
 
-    for a small learning rate :math:`\eta > 0`.
+    for a small learning rate :math:`\eta_n > 0`.
 
-    You can either provide the analytic gradient :math:`\vec\nabla f` as ``gradient_function``
+    You can either provide the analytic gradient :math:`\vec\nabla f` as ``jac``
     in the :meth:`~.minimize` method, or, if you do not provide it, use a finite difference approximation
     of the gradient. To adapt the size of the perturbation in the finite difference gradients,
     set the ``perturbation`` property in the initializer.
@@ -167,7 +209,7 @@ class GradientDescent(SteppableOptimizer):
     def __init__(
         self,
         maxiter: int = 100,
-        learning_rate: Union[float, List[float], Callable[[], Iterator]] = 0.01,
+        learning_rate: Union[float, List[float], np.ndarray, Callable[[], Iterator]] = 0.01,
         tol: float = 1e-7,
         callback: Optional[CALLBACK] = None,
         perturbation: Optional[float] = None,
@@ -175,31 +217,37 @@ class GradientDescent(SteppableOptimizer):
         """
         Args:
             maxiter: The maximum number of iterations.
-            learning_rate: A constant, list or generator yielding learning rates for the parameter
-                updates. See the docstring for an example.
+            learning_rate: A constant, list, array or factory of generators yielding learning rates for
+                           the parameter updates. See the docstring for an example.
             tol: If the norm of the parameter update is smaller than this threshold, the
                 optimizer has converged.
             perturbation: If no gradient is passed to :meth:`~.minimize` the gradient is
                 approximated with a forward finite difference scheme with ``perturbation``
                 perturbation in both directions (defaults to 1e-2 if required).
                 Ignored when we have an explicit function for the gradient.
+        Raises:
+            ValueError: If ``learning_rate`` is an array and its lenght is less than ``maxiter``.
         """
         super().__init__(maxiter=maxiter)
         self.callback = callback
         self._state: Optional[GradientDescentState] = None
-        self._learning_rate = learning_rate
         self._perturbation = perturbation
         self._tol = tol
+        # if learning rate is an array, check it is sufficiently long.
+        if isinstance(learning_rate, (list, np.ndarray)):
+            if len(learning_rate) < maxiter:
+                raise ValueError(f"Length of learning_rate is smaller than maxiter ({maxiter}).")
+        self._learning_rate = learning_rate
 
     @property
-    def learning_rate(self) -> Union[float, List[float], Callable[[], Iterator]]:
+    def learning_rate(self) -> Union[float, List[float], np.ndarray, Callable[[], Iterator]]:
         """Returns the learning rate. It can be either a constant value, a list or a function
         that returns generators."""
         return self._learning_rate
 
     @learning_rate.setter
     def learning_rate(
-        self, learning_rate: Union[float, List[float], Callable[[], Iterator]]
+        self, learning_rate: Union[float, List[float], np.ndarray, Callable[[], Iterator]]
     ) -> None:
         """Set the learning rate.
         The learning rate provided needs to be a function that returns a generator.
@@ -290,7 +338,12 @@ class GradientDescent(SteppableOptimizer):
         Args:
             ask_data: The data used to evaluate the function.
             tell_data: The data from the function evaluation.
+
+        Raises:
+            ValueError: If the gradient passed doesn't have the right dimension.
         """
+        if np.shape(self.state.x) != np.shape(tell_data.eval_jac):
+            raise ValueError("The gradient does not have the correct dimension")
         self.state.x = self.state.x - next(self.state.learning_rate) * tell_data.eval_jac
         self.state.stepsize = np.linalg.norm(tell_data.eval_jac)
         self.state.nit += 1

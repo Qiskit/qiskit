@@ -12,11 +12,12 @@
 
 """A standard gradient descent optimizer."""
 
-from typing import  Union, Callable, Optional, List, Iterator, Generator
+from typing import Union, Callable, Optional, List, Iterator, Generator
 from itertools import tee
 import numpy as np
 
-class LearningRate(Iterator):  # make inherit
+
+class LearningRate(Generator):
     """Represents a Learning Rate.
     Will be an attribute of :class:`~.GradientDescentState`. Note that :class:`~.GradientDescent` also
     has a learning rate. That learning rate can be a float, a list, an array, a function returning
@@ -25,10 +26,12 @@ class LearningRate(Iterator):  # make inherit
     This class serves also as a wrapper on a generator so that we can access the last yielded value.
     """
 
-    def __init__(self, learning_rate: Union[float, List[float], Callable[[], Iterator]]):
+    def __init__(
+        self, learning_rate: Union[float, List[float], np.ndarray, Callable[[], Iterator]]
+    ):
         """
         Args:
-            learing_rate_factory: Used to create a generator to iterate on.
+            learing_rate: Used to create a generator to iterate on.
         """
         if isinstance(learning_rate, (float, int)):
             self._gen = constant(learning_rate)
@@ -41,19 +44,16 @@ class LearningRate(Iterator):  # make inherit
 
         self._current: Optional[float] = None
 
-    @property
-    def current(self):
-        return self._current
-
-    def __iter__(self):
-        return self
-
-    def __next__(self) -> float:
+    def send(self, ignored_arg):
         self._current = next(self._gen)
         return self.current
 
-    def __call__(self):
-        return self
+    def throw(self, type=None, value=None, traceback=None):
+        raise StopIteration
+
+    @property
+    def current(self):
+        return self._current
 
 
 def constant(learning_rate: float = 0.01) -> Generator[float, None, None]:

@@ -56,14 +56,21 @@ class OptimizerState:
     (optionally) information like the function value, the gradient or the number of
     function evaluations. This dataclass can also store any other individual variables that
     change during the optimization.
+
     """
 
     x: POINT  # pylint: disable=invalid-name
+    """Current optimization parameters."""
     fun: Optional[Callable[[POINT], float]]
+    """Function being  optimized."""
     jac: Optional[Callable[[POINT], POINT]]
+    """Jacobian of the function being optimized."""
     nfev: Optional[int]
+    """Number of function evaluations so far in the optimization."""
     njev: Optional[int]
+    """Number of jacobian evaluations so far in the opimization."""
     nit: Optional[int]
+    """Number of optmization steps performed so far in the optimization."""
 
 
 class SteppableOptimizer(Optimizer):

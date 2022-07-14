@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2021.
+# (C) Copyright IBM 2021, 2022.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -14,8 +14,6 @@
 
 from test.python.algorithms import QiskitAlgorithmsTestCase
 import numpy as np
-
-
 from qiskit.algorithms.optimizers import GradientDescent, GradientDescentState
 from qiskit.algorithms.optimizers.steppable_optimizer import TellData, AskData
 from qiskit.circuit.library import PauliTwoDesign
@@ -29,7 +27,7 @@ class TestGradientDescent(QiskitAlgorithmsTestCase):
     def setUp(self):
         super().setUp()
         np.random.seed(12)
-        self.initial_point = np.array([1, 0.5, -2])
+        self.initial_point = np.array([1, 1, 1, 1, 0])
 
     def objective(self, x):
         """Objective Function for the tests"""
@@ -112,6 +110,12 @@ class TestGradientDescent(QiskitAlgorithmsTestCase):
 
         self.assertLess(result.fun, 1e-5)
 
+    def test_no_start(self):
+        """Tests that making a step without having started the optimizer raises an error."""
+        optimizer = GradientDescent()
+        with self.assertRaises(AttributeError):
+            optimizer.step()
+
     def test_start(self):
         """Tests if the start method initializes the state properly."""
         optimizer = GradientDescent()
@@ -126,40 +130,11 @@ class TestGradientDescent(QiskitAlgorithmsTestCase):
             nfev=0,
             njev=0,
             nit=0,
-            learning_rate=None,
+            learning_rate=1,
             stepsize=None,
         )
 
         self.assertEqual(test_state, optimizer.state)
-
-    def test_learning_rate(self):
-        """
-        Tests if the learning rate is initialized properly for each kind of input:
-        float, list and iterator.
-        """
-        constant_learning_rate = 0.01
-        list_learning_rate = [0.01 * n for n in range(10)]
-        generator_learning_rate = (el for el in list_learning_rate)
-
-        optimizer = GradientDescent()
-
-        with self.subTest("Check constant learning rate."):
-            optimizer.learning_rate = constant_learning_rate
-            optimizer.start(x0=self.initial_point, fun=self.objective)
-            for _ in range(5):
-                self.assertEqual(constant_learning_rate, next(optimizer.state.learning_rate))
-
-        with self.subTest("Check learning rate list."):
-            optimizer.learning_rate = list_learning_rate
-            optimizer.start(x0=self.initial_point, fun=self.objective)
-            for i in range(5):
-                self.assertEqual(list_learning_rate[i], next(optimizer.state.learning_rate))
-
-        with self.subTest("Check learning rate generator."):
-            optimizer.learning_rate = lambda: generator_learning_rate
-            optimizer.start(x0=self.initial_point, fun=self.objective)
-            for i in range(5):
-                self.assertEqual(list_learning_rate[i], next(optimizer.state.learning_rate))
 
     def test_ask(self):
         """Test the ask method."""
@@ -200,7 +175,23 @@ class TestGradientDescent(QiskitAlgorithmsTestCase):
 
     def test_step(self):
         """Tests if performing one step yields the desired result."""
-        optimizer = GradientDescent()
-        optimizer.start(fun=self.objective, x0=self.initial_point)
+        optimizer = GradientDescent(learning_rate=1.0)
+        optimizer.start(fun=self.objective, jac=self.grad, x0=self.initial_point)
         optimizer.step()
-        np.testing.assert_almost_equal(optimizer.state.x, [0.98866398, 0.49430588, -1.977547], 6)
+        np.testing.assert_almost_equal(
+            optimizer.state.x, self.initial_point - self.grad(self.initial_point), 6
+        )
+
+    def test_wrong_dimension_gradient(self):
+        """Tests if an error is raised when a gradient of the wrong dimension is passed."""
+
+        optimizer = GradientDescent(learning_rate=1.0)
+        optimizer.start(fun=self.objective, x0=self.initial_point)
+        ask_data = AskData(x_jac=self.initial_point)
+        tell_data = TellData(eval_jac=np.array([1.0, 5]))
+        with self.assertRaises(ValueError):
+            optimizer.tell(ask_data=ask_data, tell_data=tell_data)
+
+        tell_data = TellData(eval_jac=np.array(1))
+        with self.assertRaises(ValueError):
+            optimizer.tell(ask_data=ask_data, tell_data=tell_data)
