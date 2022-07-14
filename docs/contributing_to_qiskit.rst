@@ -696,43 +696,45 @@ from system-wide packages. This way, we avoid inadvertently becoming dependent o
 particular system configuration. For developers, this also makes it easy to maintain multiple
 environments (e.g. one per supported Python version, for older versions of Qiskit, etc.).
 
-.. tabbed:: Python venv
+.. tab-set::
 
-   All Python versions supported by Qiskit include built-in virtual environment module
-   `venv <https://docs.python.org/3/tutorial/venv.html>`__.
+    .. tab-item:: Python venv
 
-   Start by creating a new virtual environment with ``venv``. The resulting
-   environment will use the same version of Python that created it and will not inherit installed
-   system-wide packages by default. The specified folder will be created and is used to hold the environment's
-   installation. It can be placed anywhere. For more detail, see the official Python documentation,
-   `Creation of virtual environments <https://docs.python.org/3/library/venv.html>`__.
+       All Python versions supported by Qiskit include built-in virtual environment module
+       `venv <https://docs.python.org/3/tutorial/venv.html>`__.
 
-   .. code-block:: sh
+       Start by creating a new virtual environment with ``venv``. The resulting
+       environment will use the same version of Python that created it and will not inherit installed
+       system-wide packages by default. The specified folder will be created and is used to hold the environment's
+       installation. It can be placed anywhere. For more detail, see the official Python documentation,
+       `Creation of virtual environments <https://docs.python.org/3/library/venv.html>`__.
 
-      python3 -m venv ~/.venvs/qiskit-dev
+       .. code-block:: sh
 
-   Activate the environment by invoking the appropriate activation script for your system, which can
-   be found within the environment folder. For example, for bash/zsh:
+          python3 -m venv ~/.venvs/qiskit-dev
 
-   .. code-block:: sh
+       Activate the environment by invoking the appropriate activation script for your system, which can
+       be found within the environment folder. For example, for bash/zsh:
 
-      source ~/.venvs/qiskit-dev/bin/activate
+       .. code-block:: sh
 
-   Upgrade pip within the environment to ensure Qiskit dependencies installed in the subsequent sections
-   can be located for your system.
+          source ~/.venvs/qiskit-dev/bin/activate
 
-   .. code-block:: sh
+       Upgrade pip within the environment to ensure Qiskit dependencies installed in the subsequent sections
+       can be located for your system.
 
-      pip install -U pip
+       .. code-block:: sh
 
-.. tabbed:: Conda
+          pip install -U pip
 
-   For Conda users, a new environment can be created as follows.
+    .. tab-item:: Conda
 
-   .. code-block:: sh
+       For Conda users, a new environment can be created as follows.
 
-      conda create -y -n QiskitDevenv python=3
-      conda activate QiskitDevenv
+       .. code-block:: sh
+
+          conda create -y -n QiskitDevenv python=3
+          conda activate QiskitDevenv
 
 
 .. _install-qiskit-terra:
@@ -832,84 +834,86 @@ using. Since Aer is a compiled C++ program with a Python interface, there are
 non-Python dependencies for building the Aer binary which can't be installed
 universally depending on operating system.
 
-.. tabbed:: Linux
+.. tab-set::
 
-   3. Install compiler requirements.
+    .. tab-item:: Linux
 
-      Building Aer requires a C++ compiler and development headers.
+       3. Install compiler requirements.
 
-      If you're using Fedora or an equivalent Linux distribution,
-      install using:
+          Building Aer requires a C++ compiler and development headers.
 
-      .. code:: sh
+          If you're using Fedora or an equivalent Linux distribution,
+          install using:
 
-         dnf install @development-tools
+          .. code:: sh
 
-      For Ubuntu/Debian install it using:
+             dnf install @development-tools
 
-      .. code:: sh
+          For Ubuntu/Debian install it using:
 
-         apt-get install build-essential
+          .. code:: sh
 
-   4. Install OpenBLAS development headers.
+             apt-get install build-essential
 
-      If you're using Fedora or an equivalent Linux distribution,
-      install using:
+       4. Install OpenBLAS development headers.
 
-      .. code:: sh
+          If you're using Fedora or an equivalent Linux distribution,
+          install using:
 
-         dnf install openblas-devel
+          .. code:: sh
 
-      For Ubuntu/Debian install it using:
+             dnf install openblas-devel
 
-      .. code:: sh
+          For Ubuntu/Debian install it using:
 
-         apt-get install libopenblas-dev
+          .. code:: sh
+
+             apt-get install libopenblas-dev
 
 
-.. tabbed:: macOS
+    .. tab-item:: macOS
 
 
-   3. Install dependencies.
+       3. Install dependencies.
 
-      To use the `Clang <https://clang.llvm.org/>`__ compiler on macOS, you need to install
-      an extra library for supporting `OpenMP <https://www.openmp.org/>`__.  You can use `brew <https://brew.sh/>`__
-      to install this and other dependencies.
+          To use the `Clang <https://clang.llvm.org/>`__ compiler on macOS, you need to install
+          an extra library for supporting `OpenMP <https://www.openmp.org/>`__.  You can use `brew <https://brew.sh/>`__
+          to install this and other dependencies.
 
-      .. code:: sh
+          .. code:: sh
 
-         brew install libomp
+             brew install libomp
 
-   4. Then install a BLAS implementation; `OpenBLAS <https://www.openblas.net/>`__
-      is the default choice.
+       4. Then install a BLAS implementation; `OpenBLAS <https://www.openblas.net/>`__
+          is the default choice.
 
-      .. code:: sh
+          .. code:: sh
 
-         brew install openblas
+             brew install openblas
 
-      Next, install ``Xcode Command Line Tools``.
+          Next, install ``Xcode Command Line Tools``.
 
-      .. code:: sh
+          .. code:: sh
 
-         xcode-select --install
+             xcode-select --install
 
-.. tabbed:: Windows
+    .. tab-item:: Windows
 
-   On Windows you need to use `Anaconda3 <https://www.anaconda.com/distribution/#windows>`__
-   or `Miniconda3 <https://docs.conda.io/en/latest/miniconda.html>`__ to install all the
-   dependencies.
+       On Windows you need to use `Anaconda3 <https://www.anaconda.com/distribution/#windows>`__
+       or `Miniconda3 <https://docs.conda.io/en/latest/miniconda.html>`__ to install all the
+       dependencies.
 
-   3. Install compiler requirements.
+       3. Install compiler requirements.
 
-      .. code:: sh
+          .. code:: sh
 
-         conda install --update-deps vs2017_win-64 vs2017_win-32 msvc_runtime
+             conda install --update-deps vs2017_win-64 vs2017_win-32 msvc_runtime
 
-   4. Install binary and build dependencies.
+       4. Install binary and build dependencies.
 
-      .. code:: sh
+          .. code:: sh
 
-         conda install --update-deps -c conda-forge -y openblas cmake
+             conda install --update-deps -c conda-forge -y openblas cmake
 
 
 5. Build and install qiskit-aer directly
