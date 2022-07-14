@@ -131,8 +131,8 @@ class CZGate(ControlledGate):
 
     .. math::
 
-        CZ\ q_1, q_0 =
-            |0\rangle\langle 0| \otimes I + |1\rangle\langle 1| \otimes Z =
+        CZ\ q_0, q_1 =
+            I \otimes |0\rangle\langle 0| + Z \otimes |1\rangle\langle 1| =
             \begin{pmatrix}
                 1 & 0 & 0 & 0 \\
                 0 & 1 & 0 & 0 \\
