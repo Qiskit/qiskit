@@ -426,9 +426,10 @@ class TestMeasurementErrorMitigation(QiskitAlgorithmsTestCase):
 
         # Check that permutations and permuted subsets match.
         for subset in [[1, 0], [1, 2], [0, 2], [2, 0, 1]]:
-            new_fitter = fitter.subset_fitter(subset)
-            for idx, qubit in enumerate(subset):
-                self.assertTrue(np.allclose(new_fitter.cal_matrices[idx], cal_matrices[qubit]))
+            with self.subTest(subset=subset):
+                new_fitter = fitter.subset_fitter(subset)
+                for idx, qubit in enumerate(subset):
+                    self.assertTrue(np.allclose(new_fitter.cal_matrices[idx], cal_matrices[qubit]))
 
         self.assertRaisesRegex(
             QiskitError,
