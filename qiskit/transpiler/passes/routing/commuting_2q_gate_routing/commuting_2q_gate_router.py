@@ -123,7 +123,7 @@ class Commuting2qGateRouter(TransformationPass):
                 access the groups of commuting gates that can be applied simultaneously.
                 If the edge coloring is not given then the sets will be built-up using a
                 greedy algorithm. The edge coloring is useful for position gates such as
-                ``RZZGate``s next to swap gates.
+                ``RZZGate``\s next to swap gates.
 
         Raises:
             TranspilerError: If an invalid edge coloring is given.
