@@ -28,6 +28,7 @@ from qiskit.transpiler.passes import EnlargeWithAncilla
 from qiskit.transpiler.passes import ApplyLayout
 from qiskit.transpiler.passes import SetLayout
 from qiskit.transpiler.passes import CXCancellation
+from qiskit.transpiler.passes import Decompose
 
 from qiskit.test import QiskitTestCase
 
@@ -596,5 +597,5 @@ class TestSwapRouterExceptions(QiskitTestCase):
     def test_invalid_edge_coloring(self):
         """Test that an error is raised if the edge coloring is invalid."""
         invalid_coloring = {(0, 1): 0, (1, 2): 0}
-        with self.assertRaisesRegex("The given edge coloring is invalid."):
+        with self.assertRaisesRegex(TranspilerError, "The given edge coloring is invalid."):
             Commuting2qGateRouter(edge_coloring=invalid_coloring)
