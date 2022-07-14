@@ -70,7 +70,7 @@ class TestGradientDescent(QiskitAlgorithmsTestCase):
         result = optimizer.minimize(objective_pauli, x0=initial_point)
 
         self.assertLess(result.fun, -0.95)  # final loss
-        self.assertEqual(result.nfev, 100)  # function evaluations
+        self.assertEqual(result.nfev, 1300)  # function evaluations
 
     def test_callback(self):
         """Test the callback."""

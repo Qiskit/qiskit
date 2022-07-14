@@ -200,6 +200,7 @@ class SteppableOptimizer(Optimizer):
 
     def tell(self, ask_data: AskData, tell_data: TellData) -> None:
         """Updates the optimization state using the results of the function evaluation.
+
         A canonical optimization example using :meth:`~.ask` and :meth:`~.tell` can be seen
         in :meth:`~.step`.
 
@@ -212,8 +213,8 @@ class SteppableOptimizer(Optimizer):
 
     @abstractmethod
     def evaluate(self, ask_data: AskData) -> TellData:
-        """
-        Evaluates the function according to the instructions contained in :attr:`~.ask_data`.
+        """Evaluates the function according to the instructions contained in :attr:`~.ask_data`.
+
         If the user decides to use :meth:`~.step` instead of :meth:`~.ask` and :meth:`~.tell`
         this function will contain the logic on how to evaluate the function.
 
@@ -233,8 +234,8 @@ class SteppableOptimizer(Optimizer):
         pass
 
     def step(self) -> None:
-        """
-        Performs one step in the optimization process.
+        """Performs one step in the optimization process.
+
         This method composes :meth:`~.ask`, :meth:`~.evaluate`, and :meth:`~.tell` to make a "step"
         in the optimization process.
         """
@@ -270,6 +271,7 @@ class SteppableOptimizer(Optimizer):
         bounds: Optional[List[Tuple[float, float]]] = None,
     ) -> OptimizerResult:
         """Minimizes the function.
+
         For well behaved functions the user can call this method to minimize a function.
         If the user wants more control on how to evaluate the function a custom loop can be
         created using :meth:`~.ask` and :meth:`~.tell` and evaluating the function manually.
@@ -292,8 +294,8 @@ class SteppableOptimizer(Optimizer):
 
     @abstractmethod
     def create_result(self) -> OptimizerResult:
-        """
-        Returns the result of the optimization.
+        """Returns the result of the optimization.
+
         All the information needed to create such a result should be stored in the optimizer state
         and will typically contain the best point found, the function value and gradient at that point,
         the number of function and gradient evaluation and the number of iterations in the optimization.

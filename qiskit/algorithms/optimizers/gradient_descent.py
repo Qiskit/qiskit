@@ -33,9 +33,10 @@ class GradientDescentState(OptimizerState):
     stepsize: Optional[float]
     """Norm of the gradient on the last step."""
     learning_rate: LearningRate = field(compare=False)
-    """Learing rate at the current step of the optimization process. It behaves like a generator,
-    (use ``next(learning_rate)`` to get the learning rate for the next step) but it can also return
-    the current learning rate with ``learning_rate.current``.
+    """Learing rate at the current step of the optimization process.
+
+    It behaves like a generator, (use ``next(learning_rate)`` to get the learning rate for the
+    next step) but it can also return  the current learning rate with ``learning_rate.current``.
     """
 
     def __init__(
@@ -58,8 +59,8 @@ class GradientDescentState(OptimizerState):
             njev: Number of jacobian evaluations so far in the opimization.
             nit: Number of optmization steps performed so far in the optimization.
             stepsize: Norm of the jacobian on the last step.
-            learning_rate: A constant, list, array or factory of generators yielding learning rates for
-                          the parameter updates. See the docstring for an example.
+            learning_rate: A constant, list, array or factory of generators yielding learning rates
+            for the parameter updates. See the docstring for an example.
         """
 
         self.x = x
@@ -86,9 +87,9 @@ class GradientDescent(SteppableOptimizer):
     for a small learning rate :math:`\eta_n > 0`.
 
     You can either provide the analytic gradient :math:`\vec\nabla f` as ``jac``
-    in the :meth:`~.minimize` method, or, if you do not provide it, use a finite difference approximation
-    of the gradient. To adapt the size of the perturbation in the finite difference gradients,
-    set the ``perturbation`` property in the initializer.
+    in the :meth:`~.minimize` method, or, if you do not provide it, use a finite difference
+    approximation of the gradient. To adapt the size of the perturbation in the finite difference
+    gradients, set the ``perturbation`` property in the initializer.
 
     This optimizer supports a callback function. If provided in the initializer, the optimizer
     will call the callback in each iteration with the following information in this order:
@@ -217,8 +218,8 @@ class GradientDescent(SteppableOptimizer):
         """
         Args:
             maxiter: The maximum number of iterations.
-            learning_rate: A constant, list, array or factory of generators yielding learning rates for
-                           the parameter updates. See the docstring for an example.
+            learning_rate: A constant, list, array or factory of generators yielding learning rates
+                           for the parameter updates. See the docstring for an example.
             tol: If the norm of the parameter update is smaller than this threshold, the
                 optimizer has converged.
             perturbation: If no gradient is passed to :meth:`~.minimize` the gradient is
@@ -241,8 +242,10 @@ class GradientDescent(SteppableOptimizer):
 
     @property
     def learning_rate(self) -> Union[float, List[float], np.ndarray, Callable[[], Iterator]]:
-        """Returns the learning rate. It can be either a constant value, a list or a function
-        that returns generators."""
+        """Returns the learning rate.
+
+        It can be either a constant value, a list or a function that returns generators.
+        """
         return self._learning_rate
 
     @learning_rate.setter
@@ -250,6 +253,7 @@ class GradientDescent(SteppableOptimizer):
         self, learning_rate: Union[float, List[float], np.ndarray, Callable[[], Iterator]]
     ) -> None:
         """Set the learning rate.
+
         The learning rate provided needs to be a function that returns a generator.
         If a constant is passed, the optimizer will use it for all iterations.
         """
@@ -268,6 +272,7 @@ class GradientDescent(SteppableOptimizer):
     @property
     def tol(self) -> float:
         """Returns the tolerance of the optimizer.
+
         Any step with smaller stepsize than this value will stop the optimization."""
         return self._tol
 
@@ -279,6 +284,7 @@ class GradientDescent(SteppableOptimizer):
     @property
     def perturbation(self) -> Optional[float]:
         """Returns the perturbation.
+
         This is the perturbation used in the finite difference gradient approximation.
         """
         return self._perturbation
@@ -291,6 +297,7 @@ class GradientDescent(SteppableOptimizer):
     def _callback_wrapper(self) -> None:
         """
         Wraps the callback function to accomodate GradientDescent.
+
         Will call :attr:`~.callback` and pass the following arguments:
         current number of function values, current parameters, current function value,
         norm of current gradient.
@@ -321,8 +328,8 @@ class GradientDescent(SteppableOptimizer):
         }
 
     def ask(self) -> AskData:
-        """
-        Returns an object with the data needed in order to evaluate the gradient.
+        """Returns an object with the data needed in order to evaluate the gradient.
+
         If this object contains a gradient function the gradient can be evaluated directly. Otherwise
         approximate it with a finite difference scheme.
         """
@@ -350,6 +357,7 @@ class GradientDescent(SteppableOptimizer):
 
     def evaluate(self, ask_data: AskData) -> TellData:
         """Evaluates the gradient.
+
         It does so either by evaluating an analitic gradient or by approximating it with a
         finite difference scheme. It will either add ``1`` to the number of gradient evaluations or add
         ``N+1`` to the number of function evaluations (Where N is the dimension of the gradient).
@@ -380,6 +388,7 @@ class GradientDescent(SteppableOptimizer):
 
     def create_result(self) -> OptimizerResult:
         """Creates a result of the optimization process.
+
         This result contains the best point, the best function value, the number of function/gradient
         evaluations and the number of iterations.
 
@@ -416,6 +425,7 @@ class GradientDescent(SteppableOptimizer):
     def continue_condition(self) -> bool:
         """
         Condition that indicates the optimization process should come to an end.
+
         When the stepsize is smaller than the tolerance, the optimization process is considered
         finished.
 
