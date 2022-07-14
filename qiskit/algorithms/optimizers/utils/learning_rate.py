@@ -63,7 +63,6 @@ class LearningRate(Generator):
             val = val.with_traceback(tb)
         raise val
 
-
     @property
     def current(self):
         """Returns the current value of the learning rate."""
