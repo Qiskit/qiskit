@@ -226,6 +226,17 @@ class TestOptimizerSerialization(QiskitAlgorithmsTestCase):
         self.assertEqual(from_dict._method, method.lower())
         self.assertEqual(from_dict._options, options)
 
+    def test_independent_reconstruction(self):
+        """Test the SciPyOptimizers don't reset all settings upon creating a new instance.
+
+        COBYLA is used as representative example here."""
+
+        optimizer = COBYLA(maxiter=1)
+        serialized = optimizer.settings
+        from_dict = COBYLA(**serialized)
+
+        self.assertEqual(from_dict.settings["maxiter"], 1)
+
     def test_adam(self):
         """Test ADAM is serializable."""
 
