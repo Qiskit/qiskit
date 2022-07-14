@@ -116,7 +116,7 @@ class CompleteMeasFitter:
 
         self._tens_fitt.add_data(new_results, rebuild_cal_matrix)
 
-    def subset_fitter(self, qubit_sublist=None):
+    def subset_fitter(self, qubit_sublist):
         """
         Return a fitter object that is a subset of the qubits in the original
         list.
@@ -432,7 +432,7 @@ class TensoredMeasFitter:
                 where=sums_of_columns != 0,
             )
 
-    def subset_fitter(self, qubit_sublist=None):
+    def subset_fitter(self, qubit_sublist):
         """Return a fitter object that is a subset of the qubits in the original list.
 
         This is only a partial implementation of the ``subset_fitter`` method since only
