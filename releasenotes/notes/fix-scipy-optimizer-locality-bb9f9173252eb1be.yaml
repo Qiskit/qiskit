@@ -1,0 +1,12 @@
+---
+fixes:
+  - |
+    Fix a bug where creating a new instance of a SciPy optimizer has overwritten the 
+    settings of a previously created instance of the same type. For example, previously::
+
+      from qiskit.algorithms.optimmizers import COBYLA
+      optimizer = COBYLA(maxiter=1)
+      reconstructed = COBYLA(**optimizer.settings)
+
+    Created a new `COBYLA` instance with the default of `maxiter=1000` and additionally reset 
+    the iterations of the original `optimizer` instance to 1000 as well.
