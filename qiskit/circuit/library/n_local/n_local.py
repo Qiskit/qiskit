@@ -1027,7 +1027,8 @@ def get_entangler_map(
     if entanglement in ("full", "full_explicit"):
         # Optimization for CX entanglement_block of size 2, containing only a single 'cx' gate.
         # Instead of using n*(n-1)/2 CX gates for n qubits in each of the layers,
-        # there is an equivalent circuit with only n CX gates with a linear connectivity in each of the layers.
+        # there is an equivalent circuit with only n CX gates with a linear connectivity
+        # in each of the layers.
         if entanglement == "full" and m == 2 and entanglement_gates == [("cx", 1)]:
             return [(n - i - 2, n - i - 1) for i in range(n - 1)]
         return list(combinations(list(range(n)), m))
