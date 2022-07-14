@@ -1,10 +1,11 @@
 ---
 features:
   - |
-    Created subclass SteppableOptimizer. The optimizers of this kind will have a step mehtod that can
-    be called instead of performing a full optimization. These optimizers will also have access to
-    the ask and tell interface so that complex experiments can be handled more easily. For more
-    information about this interface see: `ask and tell interface
+    Created an optimizer subclass :class:`~.SteppableOptimizer`, which allows performing classical
+    optimizations step-by-step using the :meth:`~.SteppableOptimizer.step` method. These 
+    optimizers implement the "ask and tell" interface which (optionally) allows to manually compute
+    the required function or gradient evaluations and plug them back into the optimizer.
+    For more information about this interface see: `ask and tell interface
     <https://optuna.readthedocs.io/en/stable/tutorial/20_recipes/009_ask_and_tell.html>`_.
     For example:
 
