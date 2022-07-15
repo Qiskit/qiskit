@@ -108,7 +108,7 @@ class Commuting2qGateRouter(TransformationPass):
         swap_strategy: Optional[SwapStrategy] = None,
         edge_coloring: Optional[Dict[Tuple[int, int], int]] = None,
     ) -> None:
-        """
+        r"""
         Args:
             swap_strategy: An instance of a :class:`.SwapStrategy` that holds the swap layers
                 that are used, and the order in which to apply them, to map the instruction to
