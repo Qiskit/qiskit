@@ -48,12 +48,18 @@ class TestMeasurementErrorMitigation(QiskitAlgorithmsTestCase):
 
     @unittest.skipUnless(optionals.HAS_AER, "qiskit-aer is required for this test")
     @data(
-        ("CompleteMeasFitter", None),
-        ("TensoredMeasFitter", None),
-        ("TensoredMeasFitter", [[0, 1]]),
+        ("CompleteMeasFitter", None, False),
+        ("TensoredMeasFitter", None, False),
+        ("TensoredMeasFitter", [[0, 1]], True),
+        ("TensoredMeasFitter", [[0], [1]], False),
     )
     @unpack
-    def test_measurement_error_mitigation_with_diff_qubit_order(self, fitter_str, mit_pattern):
+    def test_measurement_error_mitigation_with_diff_qubit_order(
+        self,
+        fitter_str,
+        mit_pattern,
+        fails,
+    ):
         """measurement error mitigation with different qubit order"""
         algorithm_globals.random_seed = 0
 
@@ -88,7 +94,7 @@ class TestMeasurementErrorMitigation(QiskitAlgorithmsTestCase):
         qc2.measure(1, 0)
         qc2.measure(0, 1)
 
-        if mit_pattern is not None:
+        if fails:
             self.assertRaisesRegex(
                 QiskitError,
                 "Each element in the mit pattern should have length 1.",
