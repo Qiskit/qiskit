@@ -437,7 +437,7 @@ class TensoredMeasFitter:
 
         This is only a partial implementation of the ``subset_fitter`` method since only
         mitigation patterns of length 1 are supported. This corresponds to patterns of the
-        form ``[[0], [1], [2], ...]``. Note however, that such pattenrs are a good first
+        form ``[[0], [1], [2], ...]``. Note however, that such patterns are a good first
         approximation to mitigate readout errors on large quantum circuits.
 
         Args:
