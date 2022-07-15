@@ -249,7 +249,7 @@ def plot_bloch_multivector(
         MissingOptionalLibraryError: Requires matplotlib.
         VisualizationError: if input is not a valid N-qubit state.
 
-    Example:
+    Examples:
         .. jupyter-execute::
 
             from qiskit import QuantumCircuit
@@ -263,6 +263,25 @@ def plot_bloch_multivector(
 
             state = Statevector.from_instruction(qc)
             plot_bloch_multivector(state)
+        .. jupyter-execute::
+
+           from qiskit import QuantumCircuit, Aer, transpile
+           from qiskit.visualization import plot_bloch_multivector
+           import numpy as np
+           %matplotlib inline
+
+           qc = QuantumCircuit(2)
+           qc.h([0, 1])
+           qc.s(1)
+           qc.ry(np.pi/3 , 0)
+           qc.rx(np.pi/5, 1)
+
+           backend = Aer.get_backend('aer_simulator')
+           qc.save_statevector()
+           job = backend.run(transpile(qc, backend))
+           statevector = job.result().get_statevector()
+
+           plot_bloch_multivector(statevector, title = 'My Bloch Spheres', reverse_bits = True)
     """
     from matplotlib import pyplot as plt
 
