@@ -197,7 +197,10 @@ class PVQD(RealEvolver):
             hamiltonian: The Hamiltonian under which to evolve.
             theta: The current parameters.
             dt: The time step.
-            initial_guess: The initial guess for the update to minimize the fidelity.
+            initial_guess: The initial guess for the classical optimization of the
+                fidelity between the next variational state and the Trotter-evolved last state.
+                If None, this is set to a random vector with elements in the interval
+                :math:`[-0.01, 0.01]`.
 
         Returns:
             A tuple consisting of the next parameters and the fidelity of the optimization.
@@ -214,7 +217,8 @@ class PVQD(RealEvolver):
         else:
             optimizer_result = self.optimizer(loss, initial_guess, gradient)
 
-        fidelity = 1 - optimizer_result.fun
+        # clip the fidelity to [0, 1]
+        fidelity = np.clip(1 - optimizer_result.fun, 0, 1)
 
         return theta + optimizer_result.x, fidelity
 
@@ -270,7 +274,7 @@ class PVQD(RealEvolver):
             sampled = self._sampler.convert(converted, params=value_dict)
             return 1 - np.abs(sampled.eval()) ** 2
 
-        if self._check_gradient_supported() and self.gradients:
+        if _is_gradient_supported(self.ansatz) and self.gradients:
 
             def evaluate_gradient(displacement: np.ndarray) -> np.ndarray:
                 """Evaluate the gradient with the parameter-shift rule.
@@ -300,93 +304,6 @@ class PVQD(RealEvolver):
 
         return evaluate_loss, evaluate_gradient
 
-    def _validate_setup(self):
-        """Validate the current setup and raise an error if something misses to run."""
-
-        required_args = {
-            "ansatz",
-            "initial_parameters",
-            "timestep",
-            "optimizer",
-            "quantum_instance",
-            "expectation",
-        }
-        for arg in required_args:
-            if getattr(self, arg) is None:
-                raise ValueError(f"The {arg} attribute cannot be None.")
-
-        if len(self.initial_parameters) != self.ansatz.num_parameters:
-            raise QiskitError(
-                f"Mismatching number of parameters in the ansatz ({self.ansatz.num_parameters}) "
-                f"and the initial parameters ({len(self.initial_parameters)})."
-            )
-
-    def _check_gradient_supported(self) -> bool:
-        """Check whether we can apply a simple parameter shift rule to obtain gradients."""
-
-        # check whether the circuit can be unrolled to supported gates
-        try:
-            unrolled = transpile(
-                self.ansatz, basis_gates=ParamShift.SUPPORTED_GATES, optimization_level=0
-            )
-        except QiskitError:
-            # failed to map to supported basis
-            logger.log(
-                logging.INFO,
-                "No gradient support: Failed to unroll to gates supported by parameter-shift.",
-            )
-            return False
-
-        # check whether all parameters are unique and we do not need to apply the chain rule
-        # (since it's not implemented yet)
-        total_num_parameters = 0
-        for circuit_instruction in unrolled.data:
-            for param in circuit_instruction.operation.params:
-                if isinstance(param, ParameterExpression):
-                    if isinstance(param, Parameter):
-                        total_num_parameters += 1
-                    else:
-                        logger.log(
-                            logging.INFO,
-                            "No gradient support: Circuit is only allowed to have plain parameters, "
-                            "as the chain rule is not yet implemented.",
-                        )
-                        return False
-
-        if total_num_parameters != self.ansatz.num_parameters:
-            logger.log(
-                logging.INFO,
-                "No gradient support: Circuit is only allowed to have unique parameters, "
-                "as the product rule is not yet implemented.",
-            )
-            return False
-
-        return True
-
-    def _get_observable_evaluator(self, observables):
-        if isinstance(observables, list):
-            observables = ListOp(observables)
-
-        expectation_value = StateFn(observables, is_measurement=True) @ StateFn(self.ansatz)
-        converted = self.expectation.convert(expectation_value)
-
-        ansatz_parameters = self.ansatz.parameters
-
-        def evaluate_observables(theta: np.ndarray) -> Union[float, List[float]]:
-            """Evaluate the observables for the ansatz parameters ``theta``.
-
-            Args:
-                theta: The ansatz parameters.
-
-            Returns:
-                The observables evaluated at the ansatz parameters.
-            """
-            value_dict = dict(zip(ansatz_parameters, theta))
-            sampled = self._sampler.convert(converted, params=value_dict)
-            return sampled.eval()
-
-        return evaluate_observables
-
     def evolve(self, evolution_problem: EvolutionProblem) -> EvolutionResult:
         """
         Args:
@@ -413,7 +330,9 @@ class PVQD(RealEvolver):
 
         # get the function to evaluate the observables for a given set of ansatz parameters
         if observables is not None:
-            evaluate_observables = self._get_observable_evaluator(observables)
+            evaluate_observables = _get_observable_evaluator(
+                self.ansatz, observables, self.expectation, self._sampler
+            )
             observable_values = [evaluate_observables(self.initial_parameters)]
 
         fidelities = [1]
@@ -456,3 +375,97 @@ class PVQD(RealEvolver):
             result.aux_ops_evaluated = observable_values[-1]
 
         return result
+
+    def _validate_setup(self):
+        """Validate the current setup and raise an error if something misses to run."""
+
+        required_args = {
+            "ansatz",
+            "initial_parameters",
+            "timestep",
+            "optimizer",
+            "quantum_instance",
+            "expectation",
+        }
+        for arg in required_args:
+            if getattr(self, arg) is None:
+                raise ValueError(f"The {arg} attribute cannot be None.")
+
+        if len(self.initial_parameters) != self.ansatz.num_parameters:
+            raise QiskitError(
+                f"Mismatching number of parameters in the ansatz ({self.ansatz.num_parameters}) "
+                f"and the initial parameters ({len(self.initial_parameters)})."
+            )
+
+
+def _is_gradient_supported(ansatz: QuantumCircuit) -> bool:
+    """Check whether we can apply a simple parameter shift rule to obtain gradients."""
+
+    # check whether the circuit can be unrolled to supported gates
+    try:
+        unrolled = transpile(ansatz, basis_gates=ParamShift.SUPPORTED_GATES, optimization_level=0)
+    except QiskitError:
+        # failed to map to supported basis
+        logger.log(
+            logging.INFO,
+            "No gradient support: Failed to unroll to gates supported by parameter-shift.",
+        )
+        return False
+
+    # check whether all parameters are unique and we do not need to apply the chain rule
+    # (since it's not implemented yet)
+    total_num_parameters = 0
+    for circuit_instruction in unrolled.data:
+        for param in circuit_instruction.operation.params:
+            if isinstance(param, ParameterExpression):
+                if isinstance(param, Parameter):
+                    total_num_parameters += 1
+                else:
+                    logger.log(
+                        logging.INFO,
+                        "No gradient support: Circuit is only allowed to have plain parameters, "
+                        "as the chain rule is not yet implemented.",
+                    )
+                    return False
+
+    if total_num_parameters != ansatz.num_parameters:
+        logger.log(
+            logging.INFO,
+            "No gradient support: Circuit is only allowed to have unique parameters, "
+            "as the product rule is not yet implemented.",
+        )
+        return False
+
+    return True
+
+
+def _get_observable_evaluator(
+    ansatz: QuantumCircuit,
+    observables: Union[OperatorBase, List[OperatorBase]],
+    expectation: ExpectationBase,
+    sampler: CircuitSampler,
+) -> Callable[[np.ndarray], Union[float, List[float]]]:
+    """Get a callable to evaluate a (list of) observable(s) for given circuit parameters."""
+
+    if isinstance(observables, list):
+        observables = ListOp(observables)
+
+    expectation_value = StateFn(observables, is_measurement=True) @ StateFn(ansatz)
+    converted = expectation.convert(expectation_value)
+
+    ansatz_parameters = ansatz.parameters
+
+    def evaluate_observables(theta: np.ndarray) -> Union[float, List[float]]:
+        """Evaluate the observables for the ansatz parameters ``theta``.
+
+        Args:
+            theta: The ansatz parameters.
+
+        Returns:
+            The observables evaluated at the ansatz parameters.
+        """
+        value_dict = dict(zip(ansatz_parameters, theta))
+        sampled = sampler.convert(converted, params=value_dict)
+        return sampled.eval()
+
+    return evaluate_observables
