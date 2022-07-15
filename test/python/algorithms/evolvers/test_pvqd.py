@@ -24,7 +24,7 @@ from qiskit.algorithms.evolvers import EvolutionProblem
 from qiskit.algorithms.evolvers.pvqd import PVQD
 from qiskit.algorithms.optimizers import L_BFGS_B, GradientDescent, SPSA, OptimizerResult
 from qiskit.circuit.library import EfficientSU2
-from qiskit.opflow import X, Z, I, MatrixExpectation
+from qiskit.opflow import X, Z, I, MatrixExpectation, PauliExpectation
 
 
 # pylint: disable=unused-argument, invalid-name
@@ -62,18 +62,29 @@ class TestPVQD(QiskitTestCase):
         self.ansatz = EfficientSU2(2, reps=1)
         self.initial_parameters = np.zeros(self.ansatz.num_parameters)
 
-    @data((True, "sv"), (False, "qasm"))
+    @data(
+        ("ising", MatrixExpectation, True, "sv"),
+        ("ising", PauliExpectation, True, "qasm"),
+        ("pauli", PauliExpectation, False, "qasm"),
+    )
     @unpack
-    def test_pvqd(self, gradient, backend_type):
+    def test_pvqd(self, hamiltonian_type, expectation_cls, gradient, backend_type):
         """Test a simple evolution."""
         time = 0.02
 
+        if hamiltonian_type == "ising":
+            hamiltonian = self.hamiltonian
+        else:  # hamiltonian_type == "pauli":
+            hamiltonian = X ^ X
+
+        # parse input arguments
         if gradient:
             optimizer = GradientDescent(maxiter=1)
         else:
             optimizer = L_BFGS_B(maxiter=1)
 
         backend = self.sv_backend if backend_type == "sv" else self.qasm_backend
+        expectation = expectation_cls()
 
         # run pVQD keeping track of the energy and the magnetization
         pvqd = PVQD(
@@ -82,11 +93,9 @@ class TestPVQD(QiskitTestCase):
             timestep=0.01,
             optimizer=optimizer,
             quantum_instance=backend,
-            expectation=self.expectation,
+            expectation=expectation,
         )
-        problem = EvolutionProblem(
-            self.hamiltonian, time, aux_operators=[self.hamiltonian, self.observable]
-        )
+        problem = EvolutionProblem(hamiltonian, time, aux_operators=[hamiltonian, self.observable])
         result = pvqd.evolve(problem)
 
         self.assertTrue(len(result.fidelities) == 3)
@@ -97,6 +106,26 @@ class TestPVQD(QiskitTestCase):
             len(result.parameters) == 3
             and np.all([len(params) == num_parameters for params in result.parameters])
         )
+
+    def test_matrix_op_raises(self):
+        """Since the PauliEvolutionGate does not support MatrixOp as input, neither does the PVQD."""
+
+        hamiltonian = self.hamiltonian.to_matrix_op()
+        optimizer = L_BFGS_B(maxiter=1)
+
+        # run pVQD keeping track of the energy and the magnetization
+        pvqd = PVQD(
+            self.ansatz,
+            self.initial_parameters,
+            timestep=0.01,
+            optimizer=optimizer,
+            quantum_instance=self.sv_backend,
+            expectation=MatrixExpectation(),
+        )
+        problem = EvolutionProblem(hamiltonian, time=0.02)
+
+        with self.assertRaises(ValueError):
+            _ = pvqd.evolve(problem)
 
     def test_invalid_timestep(self):
         """Test raises if the timestep is larger than the evolution time."""

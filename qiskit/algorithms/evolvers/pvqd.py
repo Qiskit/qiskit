@@ -308,7 +308,8 @@ class PVQD(RealEvolver):
         """
         Args:
             evolution_problem: The evolution problem containing the hamiltonian, total evolution
-                time and observables to evaluate.
+                time and observables to evaluate. Note that :class:`~.PVQD` currently does not support
+                hamiltonians of type :class:`~.MatrixOp`.
 
         Returns:
             A result object containing the evolution information and evaluated observables.
