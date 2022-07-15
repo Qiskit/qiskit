@@ -86,7 +86,6 @@ features:
 
     Transitioned GradientDescent to be a subclass of SteppableOptimizer.
 
----
 fixes:
   - |
     GradientDescent will now correctly count the number of iterations,function evaluations and
