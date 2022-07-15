@@ -1006,8 +1006,8 @@ def get_entangler_map(
             "qubits in the circuit."
         )
 
-    if entanglement == "pairwise" and num_block_qubits != 2:
-        raise ValueError("Pairwise entanglement is only defined for blocks of 2 qubits.")
+    if entanglement == "pairwise" and num_block_qubits > 2:
+        raise ValueError("Pairwise entanglement is not defined for blocks with more than 2 qubits.")
 
     if entanglement == "full":
         return list(combinations(list(range(n)), m))
