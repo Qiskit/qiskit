@@ -51,7 +51,7 @@ class TestMeasurementErrorMitigation(QiskitAlgorithmsTestCase):
         ("CompleteMeasFitter", None, False),
         ("TensoredMeasFitter", None, False),
         ("TensoredMeasFitter", [[0, 1]], True),
-        ("TensoredMeasFitter", [[0], [1]], False),
+        ("TensoredMeasFitter", [[1], [0]], False),
     )
     @unpack
     def test_measurement_error_mitigation_with_diff_qubit_order(
