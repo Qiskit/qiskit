@@ -70,7 +70,7 @@ def plot_state_hinton(
         MissingOptionalLibraryError: Requires matplotlib.
         VisualizationError: if input is not a valid N-qubit state.
 
-    Example:
+    Examples:
         .. jupyter-execute::
 
             from qiskit import QuantumCircuit
@@ -84,6 +84,25 @@ def plot_state_hinton(
 
             state = DensityMatrix.from_instruction(qc)
             plot_state_hinton(state, title="New Hinton Plot")
+        .. jupyter-execute::
+        
+           from qiskit import QuantumCircuit, Aer, transpile
+           from qiskit.visualization import plot_state_hinton
+           import numpy as np
+           %matplotlib inline
+
+           qc = QuantumCircuit(2)
+           qc.h([0, 1])
+           qc.cz(0,1)
+           qc.ry(np.pi/3 , 0)
+           qc.rx(np.pi/5, 1)
+
+           backend = Aer.get_backend('aer_simulator')
+           qc.save_statevector()
+           job = backend.run(transpile(qc, backend))
+           statevector = job.result().get_statevector()
+
+           plot_state_hinton(statevector, figsize = (11,6))
     """
     from matplotlib import pyplot as plt
 
