@@ -95,10 +95,10 @@ def plot_histogram(
         VisualizationError: When legend is provided and the length doesn't
             match the input data.
 
-    Example:
+    Examples:
         .. jupyter-execute::
 
-           from qiskit import QuantumCircuit, BasicAer, execute
+           from qiskit import QuantumCircuit, Aer
            from qiskit.visualization import plot_histogram
            %matplotlib inline
 
@@ -107,9 +107,42 @@ def plot_histogram(
            qc.cx(0, 1)
            qc.measure([0, 1], [0, 1])
 
-           backend = BasicAer.get_backend('qasm_simulator')
-           job = execute(qc, backend)
-           plot_histogram(job.result().get_counts(), color='midnightblue', title="New Histogram")
+           backend = Aer.get_backend('qasm_simulator')
+           job1 = backend.run(qc)
+           job2 = backend.run(qc)
+
+           counts1 = job1.result().get_counts()
+           counts2 = job2.result().get_counts()
+
+           legend = ['First execution', 'Second execution']
+
+           plot_histogram([counts1, counts2], legend = legend,  color=['crimson','midnightblue'], title="New Histogram")
+
+        .. jupyter-execute::
+
+           from qiskit import QuantumCircuit, Aer, transpile
+           from qiskit.visualization import plot_histogram
+           import numpy as np
+           %matplotlib inline
+
+           qc = QuantumCircuit(3)
+           qc.h(0)
+           qc.ch(0,1)
+           qc.ry(np.pi/3, 0)
+           qc.rx(np.pi/7, 2)
+
+           qc.measure_all()
+
+           backend = Aer.get_backend("aer_simulator")
+
+           transpiled_qc = transpile(qc, backend)
+           job = backend.run(transpiled_qc)
+           counts = job.result().get_counts()
+
+           hist1 = plot_histogram(counts, figsize = (10,4), sort = 'value_desc')
+           hist2 = plot_histogram(counts, figsize = (8,3), sort = 'hamming', target_string = '001')
+
+           display(hist1, hist2)
     """
     import matplotlib.pyplot as plt
     from matplotlib.ticker import MaxNLocator
