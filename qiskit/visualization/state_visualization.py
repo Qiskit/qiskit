@@ -698,7 +698,7 @@ def plot_state_qsphere(
 
         QiskitError: Input statevector does not have valid dimensions.
 
-    Example:
+    Examples:
         .. jupyter-execute::
 
            from qiskit import QuantumCircuit
@@ -712,6 +712,25 @@ def plot_state_qsphere(
 
            state = Statevector.from_instruction(qc)
            plot_state_qsphere(state)
+        .. jupyter-execute::
+
+           from qiskit import QuantumCircuit, Aer, transpile
+           from qiskit.visualization import plot_state_qsphere
+           import numpy as np
+           %matplotlib inline
+
+           qc = QuantumCircuit(2)
+           qc.h([0, 1])
+           qc.cz(0,1)
+           qc.ry(np.pi/3 , 0)
+           qc.rx(np.pi/5, 1)
+
+           backend = Aer.get_backend('aer_simulator')
+           qc.save_statevector()
+           job = backend.run(transpile(qc, backend))
+           statevector = job.result().get_statevector()
+
+           plot_state_qsphere(statevector, figsize = (13,9), show_state_phases = True, use_degrees = True)
     """
     from matplotlib import gridspec
     from matplotlib import pyplot as plt
