@@ -23,7 +23,7 @@ from qiskit.circuit import ParameterVector
 
 class BaseFidelity(ABC):
     """
-    Implements the interface to calculate fidelities.
+    Defines the interface to calculate fidelities.
     """
 
     def __init__(
