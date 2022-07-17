@@ -14,8 +14,7 @@
 from typing import Optional, Union, Tuple
 
 from qiskit.circuit import ParameterExpression
-from qiskit.pulse.channels import Channel, ClassicalIOChannel
-from qiskit.pulse.exceptions import PulseError
+from qiskit.pulse.channels import Channel
 from qiskit.pulse.instructions.instruction import Instruction
 
 
@@ -54,12 +53,6 @@ class Delay(Instruction):
             PulseError: If `channel` cannot be delayed because it is a classical IO channel.
         """
         super().__init__(operands=(duration, channel), name=name)
-        if isinstance(channel, ClassicalIOChannel):
-            raise PulseError(
-                "Cannot delay channel {0} because it is a classical IO channel.".format(
-                    channel.name
-                )
-            )
 
     @property
     def channel(self) -> Channel:
