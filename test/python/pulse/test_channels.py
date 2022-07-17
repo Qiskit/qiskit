@@ -17,8 +17,9 @@ import unittest
 from qiskit.pulse.channels import (
     AcquireChannel,
     Channel,
-    DriveChannel,
+    ClassicalIOChannel,
     ControlChannel,
+    DriveChannel,
     MeasureChannel,
     MemorySlot,
     PulseChannel,
@@ -76,6 +77,7 @@ class TestMemorySlot(QiskitTestCase):
 
         self.assertEqual(memory_slot.index, 123)
         self.assertEqual(memory_slot.name, "m123")
+        self.assertTrue(isinstance(memory_slot, ClassicalIOChannel))
 
 
 class TestRegisterSlot(QiskitTestCase):
@@ -87,6 +89,7 @@ class TestRegisterSlot(QiskitTestCase):
 
         self.assertEqual(register_slot.index, 123)
         self.assertEqual(register_slot.name, "c123")
+        self.assertTrue(isinstance(register_slot, ClassicalIOChannel))
 
 
 class TestSnapshotChannel(QiskitTestCase):
@@ -98,6 +101,7 @@ class TestSnapshotChannel(QiskitTestCase):
 
         self.assertEqual(snapshot_channel.index, 0)
         self.assertEqual(snapshot_channel.name, "s0")
+        self.assertTrue(isinstance(snapshot_channel, ClassicalIOChannel))
 
 
 class TestDriveChannel(QiskitTestCase):

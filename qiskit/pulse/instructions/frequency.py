@@ -99,9 +99,15 @@ class ShiftFrequency(Instruction):
             frequency: Frequency shift of the channel in Hz.
             channel: The channel this instruction operates on.
             name: Name of this set channel frequency instruction.
+        Raises:
+            PulseError: If channel is not a PulseChannel.
         """
         if not isinstance(frequency, ParameterExpression):
             frequency = float(frequency)
+        if not isinstance(channel, PulseChannel):
+            raise PulseError(
+                "The `channel` argument to `SetFrequency` must be of type `channels.PulseChannel`."
+            )
         super().__init__(operands=(frequency, channel), name=name)
 
     @property
