@@ -11,14 +11,17 @@
 # that they have been altered from the originals.
 
 """Helper function for converting a dag dependency to a circuit"""
+
+from typing import Optional
 from qiskit.circuit import QuantumCircuit, CircuitInstruction
 
 
-def dagdependency_to_circuit(dagdependency):
+def dagdependency_to_circuit(dagdependency, optimize_depth: Optional[bool] = False):
     """Build a ``QuantumCircuit`` object from a ``DAGDependency``.
 
     Args:
         dagdependency (DAGDependency): the input dag.
+        optimize_depth: an optional argument to optimize depth using commutativity analysis.
 
     Return:
         QuantumCircuit: the circuit representing the input dag dependency.
@@ -36,7 +39,7 @@ def dagdependency_to_circuit(dagdependency):
 
     circuit.calibrations = dagdependency.calibrations
 
-    for node in dagdependency.get_nodes():
+    for node in dagdependency.topological_nodes(optimize_depth=optimize_depth):
         circuit._append(CircuitInstruction(node.op.copy(), node.qargs, node.cargs))
 
     return circuit

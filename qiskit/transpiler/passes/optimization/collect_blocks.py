@@ -14,16 +14,20 @@
 """Various ways to divide up DAG into blocks of nodes."""
 
 from qiskit.dagcircuit import DAGOpNode
-from qiskit.converters import dag_to_dagdependency
+from qiskit.dagcircuit import DAGCircuit, DAGDependency
 
 
 class BlockCollector:
-    """Collecting blocks from DagDependency and DagCircuit.
+    """Collecting blocks from DAGCircuit and DAGDependency.
 
     This class implements various strategies of dividing a DAG (direct acyclic graph)
-    into blocks of nodes that satisfy certain criteria. It works both with the DagCircuit
-    representation of a DAG, and the DagDependency representation of a DAG, where
-    DagDependency takes into account commutativity between nodes.
+    into blocks of nodes that satisfy certain criteria. It works both with the DAGCircuit
+    representation of a DAG, and the DAGDependency representation of a DAG, where
+    DagDependency takes into account commutativity between nodes. Collecting nodes
+    from DAGCircuit generally leads to less optimal results, but should be faster,
+    as it does not require to construct a DAGDependency beforehand. This may be useful
+    with lower transpiler settings.
+
 
     Collecting blocks is generally not unique. The strategies explored here deal with
     heuristic approaches of the form 'starting from the input nodes of a DAG, collect
@@ -32,27 +36,23 @@ class BlockCollector:
     See Qiskit issue #5775 for additional details.
     """
 
-    def __init__(self, dag, do_commutative_analysis=True):
+    def __init__(self, dag):
         """
         Args:
-            dag (DagCircuit): The input DagCircuit.
-            do_commutative_analysis (bool): Whether to exploit commutativity between nodes
-                by building DagDependency from DagCircuit.
+            dag (DagCircuit): The input DAG (either DAGCircuit or DAGDependency).
         """
 
-        if not do_commutative_analysis:
-            # We will do the analysis on the original DagCircuit.
-            # This will generally lead to less optimal results, but should be very fast, as it does
-            # not require building to construct DagDependency. This may be useful with lower transpiler
-            # settings.
-            self.dag = dag
+        self.dag = dag
+
+        if isinstance(dag, DAGCircuit):
             self.is_dag_dependency = False
 
-        else:
-            # We will construct the "canonical" DagDependency structure, and use it for the analysis
-            # instead of the original DagCircuit.
-            self.dag = dag_to_dagdependency(dag)
+        elif isinstance(dag, DAGDependency):
             self.is_dag_dependency = True
+
+        else:
+            # ToDo: return an error
+            assert False
 
         # For efficiency, we will compute (and keep updating) the in_degree for every node, that is
         # the number of the node's immediate predecessors. A node is a leaf (input) node iff its

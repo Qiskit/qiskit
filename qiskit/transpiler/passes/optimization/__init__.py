@@ -31,3 +31,4 @@ from .inverse_cancellation import InverseCancellation
 from .collect_1q_runs import Collect1qRuns
 from .echo_rzx_weyl_decomposition import EchoRZXWeylDecomposition
 from .collect_linear_functions import CollectLinearFunctions
+from .optimize_depth import OptimizeDepth

@@ -15,6 +15,7 @@
 
 import math
 import heapq
+from typing import Optional
 from collections import OrderedDict, defaultdict
 import warnings
 
@@ -366,26 +367,53 @@ class DAGDependency:
         """
         return self._multi_graph.get_node_data(node_id).predecessors
 
-    def topological_nodes(self):
+    def topological_nodes(self, optimize_depth: Optional[bool] = False):
         """
         Yield nodes in topological order.
+
+        Args:
+            optimize_depth: an optional argument to optimize depth using commutativity analysis.
 
         Returns:
             generator(DAGNode): node in topological order.
         """
 
-        def _key(x):
-            return x.sort_key
+        if not optimize_depth:
 
-        return iter(rx.lexicographical_topological_sort(self._multi_graph, key=_key))
+            def _key(x):
+                return x.sort_key
 
-    def add_op_node(self, operation, qargs, cargs):
+            return iter(rx.lexicographical_topological_sort(self._multi_graph, key=_key))
+
+        else:
+
+            from qiskit.transpiler.passes.optimization.collect_blocks import BlockCollector
+            block_collector = BlockCollector(self)
+            all_blocks = block_collector.collect_all_parallel_blocks()
+
+            # node_to_depth = dict()
+            # for idx, block in enumerate(all_blocks):
+            #     for node in block:
+            #         node_to_depth[node] = idx
+            #
+            # def _key(x):
+            #     return "x" * node_to_depth[x]
+            #
+            # return iter(rx.lexicographical_topological_sort(self._multi_graph, key=_key))
+
+            topo_sorted_nodes = []
+            for block in all_blocks:
+                topo_sorted_nodes.extend(block)
+            return iter(topo_sorted_nodes)
+
+    def add_op_node(self, operation, qargs, cargs, should_update_edges=True):
         """Add a DAGDepNode to the graph and update the edges.
 
         Args:
             operation (qiskit.circuit.Instruction): operation as a quantum gate.
-            qargs (list[Qubit]): list of qubits on which the operation acts
+            qargs (list[Qubit]): list of qubits on which the operation acts.
             cargs (list[Clbit]): list of classical wires to attach to.
+            should_update_edges (Bool): whether to update edges.
         """
         directives = ["measure"]
         if not operation._directive and operation.name not in directives:
@@ -416,8 +444,10 @@ class DAGDependency:
             qindices=qindices_list,
             cindices=cindices_list,
         )
-        self._add_multi_graph_node(new_node)
-        self._update_edges()
+        if should_update_edges:
+            self._add_multi_graph_node(new_node)
+            self._update_edges()
+        return new_node
 
     def _gather_pred(self, node_id, direct_pred):
         """Function set an attribute predecessors and gather multiple lists
@@ -549,6 +579,79 @@ class DAGDependency:
         from qiskit.visualization.dag_visualization import dag_drawer
 
         return dag_drawer(dag=self, scale=scale, filename=filename, style=style)
+
+    def replace_block_with_op(self, node_block, op, wire_pos_map, cycle_check=True):
+        """Replace a block of nodes with a single.
+
+        This is used to consolidate a block of DAGDepNodes into a single
+        operation. A typical example is a block of gates being consolidated
+        into a single ``UnitaryGate`` representing the unitary matrix of the
+        block.
+
+        Args:
+            node_block (List[DAGNode]): A list of dag nodes that represents the
+                node block to be replaced
+            op (qiskit.circuit.Instruction): The instruction to replace the
+                block with
+            wire_pos_map (Dict[Qubit, int]): The dictionary mapping the qarg to
+                the position. This is necessary to reconstruct the qarg order
+                over multiple gates in the combined single op node.
+            cycle_check (bool): When set to True this method will check that
+                replacing the provided ``node_block`` with a single node
+                would introduce a a cycle (which would invalidate the
+                ``DAGCircuit``) and will raise a ``DAGCircuitError`` if a cycle
+                would be introduced. This checking comes with a run time
+                penalty. If you can guarantee that your input ``node_block`` is
+                a contiguous block and won't introduce a cycle when it's
+                contracted to a single node, this can be set to ``False`` to
+                improve the runtime performance of this method.
+
+        Raises:
+            DAGCircuitError: if ``cycle_check`` is set to ``True`` and replacing
+                the specified block introduces a cycle or if ``node_block`` is
+                empty.
+        """
+        block_qargs = set()
+        block_cargs = set()
+        block_ids = [x.node_id for x in node_block]
+
+        # If node block is empty return early
+        if not node_block:
+            raise DAGDependencyError("Can't replace an empty node_block")
+
+        for nd in node_block:
+            block_qargs |= set(nd.qargs)
+            if nd.op.condition:
+                block_cargs |= set(nd.cargs)
+
+        # Create replacement node
+        new_node = self.add_op_node(
+            op,
+            qargs=sorted(block_qargs, key=lambda x: wire_pos_map[x]),
+            cargs=sorted(block_cargs, key=lambda x: wire_pos_map[x]),
+            should_update_edges=False
+        )
+
+        for x in node_block:
+            print(f"contracting: {x.op.__repr__(), x.qargs}")
+
+        try:
+            new_node.node_id = self._multi_graph.contract_nodes(
+                block_ids, new_node, check_cycle=cycle_check
+            )
+        except rx.DAGWouldCycle as ex:
+            raise DAGDependencyError(
+                "Replacing the specified node block would introduce a cycle"
+            ) from ex
+        print(f"new_node_id = {new_node.node_id}")
+
+    def print(self):
+        nodes = list(self._multi_graph.nodes())
+        print(f"#nodes = {len(nodes)}")
+        for node in nodes:
+            print(f"--node id: {node.node_id}, {node.op.__repr__()}, {node.qargs}, "
+                  f"preds: {list(self.direct_predecessors(node.node_id))},"
+                  f"succs: {list(self.direct_successors(node.node_id))}.")
 
 
 def merge_no_duplicates(*iterables):

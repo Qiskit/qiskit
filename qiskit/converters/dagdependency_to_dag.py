@@ -11,14 +11,17 @@
 # that they have been altered from the originals.
 
 """Helper function for converting a dag dependency to a dag circuit"""
+
+from typing import Optional
 from qiskit.dagcircuit.dagcircuit import DAGCircuit
 
 
-def dagdependency_to_dag(dagdependency):
+def dagdependency_to_dag(dagdependency, optimize_depth: Optional[bool] = False):
     """Build a ``DAGCircuit`` object from a ``DAGDependency``.
 
     Args:
         dag dependency (DAGDependency): the input dag.
+        optimize_depth: an optional argument to optimize depth using commutativity analysis.
 
     Return:
         DAGCircuit: the DAG representing the input circuit.
@@ -37,7 +40,7 @@ def dagdependency_to_dag(dagdependency):
     for register in dagdependency.cregs.values():
         dagcircuit.add_creg(register)
 
-    for node in dagdependency.get_nodes():
+    for node in dagdependency.topological_nodes(optimize_depth=optimize_depth):
         # Get arguments for classical control (if any)
         inst = node.op.copy()
         dagcircuit.apply_operation_back(inst, node.qargs, node.cargs)
