@@ -42,6 +42,7 @@ from .melbourne import FakeMelbourneV2
 from .montreal import FakeMontrealV2
 from .mumbai import FakeMumbaiV2
 from .nairobi import FakeNairobiV2
+from .oslo import FakeOsloV2
 from .ourense import FakeOurenseV2
 from .paris import FakeParisV2
 from .poughkeepsie import FakePoughkeepsieV2
@@ -85,6 +86,7 @@ from .melbourne import FakeMelbourne
 from .montreal import FakeMontreal
 from .mumbai import FakeMumbai
 from .nairobi import FakeNairobi
+from .oslo import FakeOslo
 from .ourense import FakeOurense
 from .paris import FakeParis
 from .poughkeepsie import FakePoughkeepsie
