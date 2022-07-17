@@ -68,8 +68,17 @@ class TestAcquireChannel(QiskitTestCase):
         self.assertEqual(hash_1, hash_2)
 
 
+class TestClassicalIOChannel(QiskitTestCase):
+    """Test base classical IO channel."""
+
+    def test_cannot_be_instantiated(self):
+        """Test base classical IO channel cannot be instantiated."""
+        with self.assertRaises(NotImplementedError):
+            ClassicalIOChannel(0)
+
+
 class TestMemorySlot(QiskitTestCase):
-    """AcquireChannel tests."""
+    """MemorySlot tests."""
 
     def test_default(self):
         """Test default memory slot."""
