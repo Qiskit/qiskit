@@ -106,7 +106,7 @@ class ShiftFrequency(Instruction):
             frequency = float(frequency)
         if not isinstance(channel, PulseChannel):
             raise PulseError(
-                "The `channel` argument to `SetFrequency` must be of type `channels.PulseChannel`."
+                "The `channel` argument to `ShiftFrequency` must be of type `channels.PulseChannel`."
             )
         super().__init__(operands=(frequency, channel), name=name)
 

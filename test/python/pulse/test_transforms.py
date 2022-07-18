@@ -364,7 +364,13 @@ class TestPad(QiskitTestCase):
             + Delay(delay, SnapshotChannel())
         )
 
-        self.assertEqual(transforms.pad(sched, until=15), sched)
+        ref_sched = (
+            Delay(delay, MemorySlot(0)).shift(20)
+            + Delay(delay, RegisterSlot(0)).shift(10)
+            + Delay(delay, SnapshotChannel())
+        )
+
+        self.assertEqual(transforms.pad(sched, until=15), ref_sched)
 
 
 def get_pulse_ids(schedules: List[Schedule]) -> Set[int]:

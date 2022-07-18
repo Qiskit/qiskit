@@ -47,10 +47,7 @@ class Delay(Instruction):
         Args:
             duration: Length of time of the delay in terms of dt.
             channel: The channel that will have the delay.
-            name: Name of the delay for display purposes.
-
-        Raises:
-            PulseError: If `channel` cannot be delayed because it is a classical IO channel.
+            name: Name of the delay for display purposes.k
         """
         super().__init__(operands=(duration, channel), name=name)
 
