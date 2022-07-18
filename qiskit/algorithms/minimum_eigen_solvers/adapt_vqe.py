@@ -115,7 +115,7 @@ class AdaptVQE(VariationalAlgorithm):
         res = []
         # compute gradients for all excitation in operator pool
         sampler = CircuitSampler(self._solver.quantum_instance)
-        for idx, exc in enumerate(self._excitation_pool):
+        for exc in self._excitation_pool:
             # add next excitation to ansatz
             self._tmp_ansatz.operators = self._excitation_list + [exc]
             # the ansatz needs to be decomposed for the gradient to work
@@ -129,9 +129,7 @@ class AdaptVQE(VariationalAlgorithm):
             # compute gradient
             state_grad = self._adapt_gradient.convert(operator=op, params=param_sets)
             # Assign the parameters and evaluate the gradient
-            state_grad_result = sampler.convert(
-                state_grad, params={param_sets[-1]: self.initial_point[idx]}
-            ).eval()
+            state_grad_result = sampler.convert(state_grad, params={param_sets[-1]: 0.0}).eval()
             logger.info("Gradient computed : %s", str(state_grad_result))
             res.append((np.abs(state_grad_result[-1]), exc))
         return res, expectation
