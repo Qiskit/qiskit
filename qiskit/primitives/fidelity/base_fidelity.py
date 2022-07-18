@@ -74,16 +74,10 @@ class BaseFidelity(ABC):
         parametrizations values_left and values_right.
 
         Args:
-            values_left: Numerical parameters to be bound to the left circuit
-            values_right: Numerical parameters to be bound to the right circuit
+            values_left: Numerical parameters to be bound to the left circuit.
+            values_right: Numerical parameters to be bound to the right circuit.
 
         Returns:
             The overlap of two quantum states defined by two parametrized circuits.
         """
         raise NotImplementedError
-
-    def __enter__(self):
-        return self
-
-    def __exit__(self, *exc_info):
-        pass

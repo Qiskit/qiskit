@@ -12,15 +12,13 @@
 """
 Zero probability fidelity primitive
 """
-from typing import Callable, List, Union, Optional
+from __future__ import annotations
+from typing import List
 import numpy as np
 
 from qiskit import QuantumCircuit
 from qiskit.primitives import Sampler
 from .base_fidelity import BaseFidelity
-
-
-SamplerFactory = Callable[[List[QuantumCircuit]], Sampler]
 
 
 class Fidelity(BaseFidelity):
@@ -32,7 +30,7 @@ class Fidelity(BaseFidelity):
         self,
         left_circuit: QuantumCircuit,
         right_circuit: QuantumCircuit,
-        sampler_factory: SamplerFactory,
+        sampler: Sampler,
     ) -> None:
         r"""
         Initializes the class to evaluate the fidelities defined as the state overlap
@@ -41,50 +39,37 @@ class Fidelity(BaseFidelity):
         states :math:`\psi` and :math:`\phi` prepared by the circuits
         ``left_circuit`` and ``right_circuit``, respectively.
         Args:
-            left_circuit: (Parametrized) quantum circuit :math:`|\psi\rangle`
-            right_circuit: (Parametrized) quantum circuit :math:`|\phi\rangle`
-            sampler_factory: Partial sampler used as a backend
+            left_circuit: (Parametrized) quantum circuit :math:`|\psi\rangle`.
+            right_circuit: (Parametrized) quantum circuit :math:`|\phi\rangle`.
+            sampler_factory: Partial sampler used as a backend.
         Raises:
-            ValueError: left_circuit and right_circuit don't have the same number of qubits
+            ValueError: left_circuit and right_circuit don't have the same number of qubits.
         """
         super().__init__(left_circuit, right_circuit)
 
         circuit = self._left_circuit.compose(self._right_circuit.inverse())
         circuit.measure_all()
 
-        self.sampler = sampler_factory([circuit])
+        self.sampler = sampler([circuit])
 
     def compute(
         self,
-        values_left: Optional[Union[np.ndarray, List[np.ndarray]]] = None,
-        values_right: Optional[Union[np.ndarray, List[np.ndarray]]] = None,
+        values_left: np.ndarray | List[np.ndarray] | None = None,
+        values_right: np.ndarray | List[np.ndarray] | None = None,
     ) -> np.ndarray:
 
         values_list = []
 
-        if values_left is None:
-            if self._left_circuit.num_parameters != 0:
-                raise ValueError(
-                    "`values_left` cannot be `None` because the left circuit has"
-                    f"{self._left_circuit.num_parameters} free parameters."
-                )
-        else:
-            values_list.append(np.atleast_2d(values_left))
-
-        if values_right is None:
-            if self._right_circuit.num_parameters != 0:
-                raise ValueError(
-                    "`values_right` cannot be `None` because the right circuit has"
-                    f"{self._right_circuit.num_parameters} free parameters."
-                )
-        else:
-            values_list.append(np.atleast_2d(values_right))
+        for values, side in zip([values_left, values_right], ["left", "right"]):
+            values = self._check_values(values, side)
+            if values is not None:
+                values_list.append(values)
 
         if len(values_list) > 0:
             if len(values_list) == 2 and values_list[0].shape[0] != values_list[1].shape[0]:
                 raise ValueError(
                     f"The number of left parameters (currently {values_list[0].shape[0]})"
-                    "has to be equal to the number of right parameters"
+                    "has to be equal to the number of right parameters."
                     f"(currently {values_list[1].shape[0]})"
                 )
             values = np.hstack(values_list)
@@ -97,3 +82,28 @@ class Fidelity(BaseFidelity):
         overlaps = [prob_dist.get(0, 0) for prob_dist in result.quasi_dists]
 
         return np.array(overlaps)
+
+    def _check_values(
+        self, values: np.ndarray | List[np.ndarray] | None, side: str
+    ) -> np.ndarray | None:
+        """
+        Check whether the passed values match the shape of the parameters of the circuit on the side
+        provided.
+
+        Returns a 2D-Array if values match, `None` if no parameters are passed and raises an error if
+        the shapes don't match.
+        """
+        if side == "left":
+            circuit = self._left_circuit
+        else:
+            circuit = self._right_circuit
+
+        if values is None:
+            if circuit.num_parameters != 0:
+                raise ValueError(
+                    f"`values_{side}` cannot be `None` because the {side} circuit has"
+                    f"{circuit.num_parameters} free parameters."
+                )
+            return None
+        else:
+            return np.atleast_2d(values)
