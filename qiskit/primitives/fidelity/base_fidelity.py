@@ -13,8 +13,8 @@
 Base fidelity primitive
 """
 
+from __future__ import annotations
 from abc import ABC, abstractmethod
-from typing import List, Union, Optional
 import numpy as np
 
 from qiskit import QuantumCircuit
@@ -28,8 +28,8 @@ class BaseFidelity(ABC):
 
     def __init__(
         self,
-        left_circuit: QuantumCircuit,
-        right_circuit: QuantumCircuit,
+        left_circuit: QuantumCircuit | None = None,
+        right_circuit: QuantumCircuit | None = None,
     ) -> None:
         r"""Initializes the class to evaluate the fidelities defined as
 
@@ -47,28 +47,19 @@ class BaseFidelity(ABC):
             ValueError: ``left_circuit`` and ``right_circuit`` don't have the same number of qubits.
         """
 
-        if left_circuit.num_qubits != right_circuit.num_qubits:
-            raise ValueError(
-                f"The number of qubits for the left circuit ({left_circuit.num_qubits})"
-                f"and right circuit ({right_circuit.num_qubits}) do not coincide."
-            )
-
-        self._left_circuit = left_circuit
-        self._right_circuit = right_circuit
-
-        # Reassigning parameters to make sure that left and right parameters are independent
-        # even in case that left_circuit == right_circuit
-        left_parameters = ParameterVector("x", left_circuit.num_parameters)
-        self._left_circuit = left_circuit.assign_parameters(left_parameters)
-
-        right_parameters = ParameterVector("y", right_circuit.num_parameters)
-        self._right_circuit = right_circuit.assign_parameters(right_parameters)
+        if left_circuit is None or right_circuit is None:
+            self._left_circuit = None
+            self._right_circuit = None
+            self._left_parameters = None
+            self._right_parameters = None
+        else:
+            self.set_circuits(left_circuit, right_circuit)
 
     @abstractmethod
-    def compute(
+    def __call__(
         self,
-        values_left: Optional[Union[np.ndarray, List[np.ndarray]]] = None,
-        values_right: Optional[Union[np.ndarray, List[np.ndarray]]] = None,
+        values_left: np.ndarray | list[np.ndarray] | None = None,
+        values_right: np.ndarray | list[np.ndarray] | None = None,
     ) -> np.ndarray:
         """Compute the overlap of two quantum states bound by the
         parametrizations values_left and values_right.
@@ -81,3 +72,48 @@ class BaseFidelity(ABC):
             The overlap of two quantum states defined by two parametrized circuits.
         """
         raise NotImplementedError
+
+    def _check_values(
+        self, values: np.ndarray | list[np.ndarray] | None, side: str
+    ) -> np.ndarray | None:
+        """
+        Check whether the passed values match the shape of the parameters of the circuit on the side
+        provided.
+
+        Returns a 2D-Array if values match, `None` if no parameters are passed and raises an error if
+        the shapes don't match.
+        """
+        if side == "left":
+            circuit = self._left_circuit
+        else:
+            circuit = self._right_circuit
+
+        if values is None:
+            if circuit.num_parameters != 0:
+                raise ValueError(
+                    f"`values_{side}` cannot be `None` because the {side} circuit has"
+                    f"{circuit.num_parameters} free parameters."
+                )
+            return None
+        else:
+            return np.atleast_2d(values)
+
+    @abstractmethod
+    def set_circuits(self, left_circuit: QuantumCircuit, right_circuit: QuantumCircuit):
+        """
+        Fix the circuits for the fidelity to be computed of.
+        Args:
+            - left_circuit: (Parametrized) quantum circuit
+            - right_circuit: (Parametrized) quantum circuit
+        """
+        if left_circuit.num_qubits != right_circuit.num_qubits:
+            raise ValueError(
+                f"The number of qubits for the left circuit ({left_circuit.num_qubits}) \
+                 and right circuit ({right_circuit.num_qubits}) do not coincide."
+            )
+        # Assigning parameter arrays to the two circuits
+        self._left_parameters = ParameterVector("x", left_circuit.num_parameters)
+        self._left_circuit = left_circuit.assign_parameters(self._left_parameters)
+
+        self._right_parameters = ParameterVector("y", right_circuit.num_parameters)
+        self._right_circuit = right_circuit.assign_parameters(self._right_parameters)

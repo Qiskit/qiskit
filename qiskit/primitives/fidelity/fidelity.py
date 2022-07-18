@@ -13,7 +13,6 @@
 Zero probability fidelity primitive
 """
 from __future__ import annotations
-from typing import List
 import numpy as np
 
 from qiskit import QuantumCircuit
@@ -28,9 +27,9 @@ class Fidelity(BaseFidelity):
 
     def __init__(
         self,
-        left_circuit: QuantumCircuit,
-        right_circuit: QuantumCircuit,
         sampler: Sampler,
+        left_circuit: QuantumCircuit | None = None,
+        right_circuit: QuantumCircuit | None = None,
     ) -> None:
         r"""
         Initializes the class to evaluate the fidelities defined as the state overlap
@@ -45,20 +44,23 @@ class Fidelity(BaseFidelity):
         Raises:
             ValueError: left_circuit and right_circuit don't have the same number of qubits.
         """
+        self.sampler = sampler
         super().__init__(left_circuit, right_circuit)
 
-        circuit = self._left_circuit.compose(self._right_circuit.inverse())
-        circuit.measure_all()
-
-        self.sampler = sampler([circuit])
-
-    def compute(
+    def __call__(
         self,
-        values_left: np.ndarray | List[np.ndarray] | None = None,
-        values_right: np.ndarray | List[np.ndarray] | None = None,
+        values_left: np.ndarray | list[np.ndarray] | None = None,
+        values_right: np.ndarray | list[np.ndarray] | None = None,
     ) -> np.ndarray:
 
         values_list = []
+
+        if self._left_circuit is None or self._right_circuit is None:
+            raise ValueError(
+                f"The left and right circuits must be defined to"
+                f"calculate the state overlap. "
+                f"Please use .set_circuits(left_circuit, right_circuit)"
+            )
 
         for values, side in zip([values_left, values_right], ["left", "right"]):
             values = self._check_values(values, side)
@@ -83,27 +85,19 @@ class Fidelity(BaseFidelity):
 
         return np.array(overlaps)
 
-    def _check_values(
-        self, values: np.ndarray | List[np.ndarray] | None, side: str
-    ) -> np.ndarray | None:
+    def set_circuits(self, left_circuit: QuantumCircuit, right_circuit: QuantumCircuit):
         """
-        Check whether the passed values match the shape of the parameters of the circuit on the side
-        provided.
-
-        Returns a 2D-Array if values match, `None` if no parameters are passed and raises an error if
-        the shapes don't match.
+        Fix the circuits for the fidelity to be computed of.
+        Args:
+        - left_circuit: (Parametrized) quantum circuit
+        - right_circuit: (Parametrized) quantum circuit
         """
-        if side == "left":
-            circuit = self._left_circuit
-        else:
-            circuit = self._right_circuit
+        super().set_circuits(left_circuit=left_circuit, right_circuit=right_circuit)
 
-        if values is None:
-            if circuit.num_parameters != 0:
-                raise ValueError(
-                    f"`values_{side}` cannot be `None` because the {side} circuit has"
-                    f"{circuit.num_parameters} free parameters."
-                )
-            return None
-        else:
-            return np.atleast_2d(values)
+        circuit = self._left_circuit.compose(self._right_circuit.inverse())
+        circuit.measure_all()
+
+        # in the future this should be self.sampler.add_circuit(circuit)
+        # Careful! because add_circuits doesn't exist yet, calling this method
+        # twice will make it store the result of a sampler call in self.sampler.
+        self.sampler = self.sampler([circuit])
