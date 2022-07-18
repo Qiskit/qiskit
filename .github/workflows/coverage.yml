@@ -39,7 +39,7 @@ jobs:
         run: |
           set -e
           pip install -r requirements-dev.txt qiskit-aer
-          stestr run {posargs}
+          stestr run
           coverage3 run --source qiskit --parallel-mode ./tools/verify_parallel_map.py
           coverage3 combine
           coverage3 report
