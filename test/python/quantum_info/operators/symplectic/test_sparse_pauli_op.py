@@ -510,6 +510,132 @@ class TestSparsePauliOpMethods(QiskitTestCase):
         np.testing.assert_array_equal(zero_op.paulis.phase, np.zeros(zero_op.size))
         np.testing.assert_array_equal(simplified_op.paulis.phase, np.zeros(simplified_op.size))
 
+    def test_sort(self):
+        """Test sort method."""
+        with self.assertRaises(QiskitError):
+            target = SparsePauliOp([], [])
+
+        with self.subTest(msg="1 qubit real number"):
+            target = SparsePauliOp(
+                ["I", "I", "I", "I"], [-3.0 + 0.0j, 1.0 + 0.0j, 2.0 + 0.0j, 4.0 + 0.0j]
+            )
+            value = SparsePauliOp(["I", "I", "I", "I"], [1, 2, -3, 4]).sort()
+            self.assertEqual(target, value)
+
+        with self.subTest(msg="1 qubit complex"):
+            target = SparsePauliOp(
+                ["I", "I", "I", "I"], [-1.0 + 0.0j, 0.0 - 1.0j, 0.0 + 1.0j, 1.0 + 0.0j]
+            )
+            value = SparsePauliOp(
+                ["I", "I", "I", "I"], [1.0 + 0.0j, 0.0 + 1.0j, 0.0 - 1.0j, -1.0 + 0.0j]
+            ).sort()
+            self.assertEqual(target, value)
+
+        with self.subTest(msg="1 qubit Pauli I, X, Y, Z"):
+            target = SparsePauliOp(
+                ["I", "X", "Y", "Z"], [-1.0 + 2.0j, 1.0 + 0.0j, 2.0 + 0.0j, 3.0 - 4.0j]
+            )
+            value = SparsePauliOp(
+                ["Y", "X", "Z", "I"], [2.0 + 0.0j, 1.0 + 0.0j, 3.0 - 4.0j, -1.0 + 2.0j]
+            ).sort()
+            self.assertEqual(target, value)
+
+        with self.subTest(msg="1 qubit weight order"):
+            target = SparsePauliOp(
+                ["I", "X", "Y", "Z"], [-1.0 + 2.0j, 1.0 + 0.0j, 2.0 + 0.0j, 3.0 - 4.0j]
+            )
+            value = SparsePauliOp(
+                ["Y", "X", "Z", "I"], [2.0 + 0.0j, 1.0 + 0.0j, 3.0 - 4.0j, -1.0 + 2.0j]
+            ).sort(weight=True)
+            self.assertEqual(target, value)
+
+        with self.subTest(msg="1 qubit multi Pauli"):
+            target = SparsePauliOp(
+                ["I", "I", "I", "I", "X", "X", "Y", "Z"],
+                [
+                    -1.0 + 2.0j,
+                    1.0 + 0.0j,
+                    2.0 + 0.0j,
+                    3.0 - 4.0j,
+                    -1.0 + 4.0j,
+                    -1.0 + 5.0j,
+                    -1.0 + 3.0j,
+                    -1.0 + 2.0j,
+                ],
+            )
+            value = SparsePauliOp(
+                ["I", "I", "I", "I", "X", "Z", "Y", "X"],
+                [
+                    2.0 + 0.0j,
+                    1.0 + 0.0j,
+                    3.0 - 4.0j,
+                    -1.0 + 2.0j,
+                    -1.0 + 5.0j,
+                    -1.0 + 2.0j,
+                    -1.0 + 3.0j,
+                    -1.0 + 4.0j,
+                ],
+            ).sort()
+            self.assertEqual(target, value)
+
+        with self.subTest(msg="2 qubit standard order"):
+            target = SparsePauliOp(
+                ["II", "XI", "XX", "XX", "XX", "XY", "XZ", "YI"],
+                [
+                    4.0 + 0.0j,
+                    7.0 + 0.0j,
+                    2.0 + 1.0j,
+                    2.0 + 2.0j,
+                    3.0 + 0.0j,
+                    6.0 + 0.0j,
+                    5.0 + 0.0j,
+                    3.0 + 0.0j,
+                ],
+            )
+            value = SparsePauliOp(
+                ["XX", "XX", "XX", "YI", "II", "XZ", "XY", "XI"],
+                [
+                    2.0 + 1.0j,
+                    2.0 + 2.0j,
+                    3.0 + 0.0j,
+                    3.0 + 0.0j,
+                    4.0 + 0.0j,
+                    5.0 + 0.0j,
+                    6.0 + 0.0j,
+                    7.0 + 0.0j,
+                ],
+            ).sort()
+            self.assertEqual(target, value)
+
+        with self.subTest(msg="2 qubit weight order"):
+            target = SparsePauliOp(
+                ["II", "XI", "YI", "XX", "XX", "XX", "XY", "XZ"],
+                [
+                    4.0 + 0.0j,
+                    7.0 + 0.0j,
+                    3.0 + 0.0j,
+                    2.0 + 1.0j,
+                    2.0 + 2.0j,
+                    3.0 + 0.0j,
+                    6.0 + 0.0j,
+                    5.0 + 0.0j,
+                ],
+            )
+            value = SparsePauliOp(
+                ["XX", "XX", "XX", "YI", "II", "XZ", "XY", "XI"],
+                [
+                    2.0 + 1.0j,
+                    2.0 + 2.0j,
+                    3.0 + 0.0j,
+                    3.0 + 0.0j,
+                    4.0 + 0.0j,
+                    5.0 + 0.0j,
+                    6.0 + 0.0j,
+                    7.0 + 0.0j,
+                ],
+            ).sort(weight=True)
+            self.assertEqual(target, value)
+
     def test_chop(self):
         """Test chop, which individually truncates real and imaginary parts of the coeffs."""
         eps = 1e-10
@@ -591,6 +717,13 @@ class TestSparsePauliOpMethods(QiskitTestCase):
             self.assertFalse(spp_op1.equiv(spp_op1 + spp_op1))
         if not spp_op2.equiv(zero):
             self.assertFalse(spp_op2.equiv(spp_op2 + spp_op2))
+
+    def test_equiv_atol(self):
+        """Test equiv method with atol."""
+        op1 = SparsePauliOp.from_list([("X", 1), ("Y", 2)])
+        op2 = op1 + 1e-7 * SparsePauliOp.from_list([("I", 1)])
+        self.assertFalse(op1.equiv(op2))
+        self.assertTrue(op1.equiv(op2, atol=1e-7))
 
     def test_eq_equiv(self):
         """Test __eq__ and equiv methods with some specific cases."""

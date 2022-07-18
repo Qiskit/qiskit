@@ -19,6 +19,7 @@ use pyo3::Python;
 mod dense_layout;
 mod edge_collections;
 mod nlayout;
+mod optimize_1q_gates;
 mod pauli_exp_val;
 mod results;
 mod sparse_pauli_op;
@@ -44,5 +45,6 @@ fn _accelerate(_py: Python<'_>, m: &PyModule) -> PyResult<()> {
     m.add_wrapped(wrap_pymodule!(dense_layout::dense_layout))?;
     m.add_wrapped(wrap_pymodule!(sparse_pauli_op::sparse_pauli_op))?;
     m.add_wrapped(wrap_pymodule!(results::results))?;
+    m.add_wrapped(wrap_pymodule!(optimize_1q_gates::optimize_1q_gates))?;
     Ok(())
 }
