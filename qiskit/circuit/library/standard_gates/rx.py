@@ -26,6 +26,9 @@ from qiskit.circuit.parameterexpression import ParameterValueType
 class RXGate(Gate):
     r"""Single-qubit rotation about the X axis.
 
+    Can be applied to a :class:`~qiskit.circuit.QuantumCircuit`
+    with the :meth:`~qiskit.circuit.QuantumCircuit.rx` method.
+
     **Circuit symbol:**
 
     .. parsed-literal::
