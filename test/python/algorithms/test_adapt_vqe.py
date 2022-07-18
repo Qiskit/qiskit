@@ -19,7 +19,7 @@ from qiskit.circuit import QuantumCircuit, QuantumRegister
 from qiskit.circuit.library import EvolvedOperatorAnsatz
 from qiskit.quantum_info import SparsePauliOp
 from qiskit.opflow import PauliSumOp
-from qiskit.utils import algorithm_globals
+from qiskit.utils import algorithm_globals, QuantumInstance
 from qiskit import BasicAer
 from qiskit.algorithms.minimum_eigen_solvers.adapt_vqe import AdaptVQE
 
@@ -79,6 +79,12 @@ class TestAdaptVQE(QiskitAlgorithmsTestCase):
         self.initial_state.x(1)
         self.ansatz = EvolvedOperatorAnsatz(self.excitation_pool, initial_state=self.initial_state)
         self.quantum_instance = BasicAer.get_backend("statevector_simulator")
+        self.qasm_simulator = QuantumInstance(
+            BasicAer.get_backend("qasm_simulator"),
+            shots=4096,
+            seed_simulator=self.seed,
+            seed_transpiler=self.seed,
+        )
 
     def test_default(self):
         """Default execution"""
@@ -105,6 +111,18 @@ class TestAdaptVQE(QiskitAlgorithmsTestCase):
 
         self.assertAlmostEqual(res.eigenvalue, expected_eigenvalue, places=6)
 
+    def test_qasm_simulator(self):
+        """Test using qasm simulator"""
+        calc = AdaptVQE(
+            solver=VQE(ansatz=self.ansatz, quantum_instance=self.qasm_simulator),
+            excitation_pool=self.excitation_pool,
+        )
+        res = calc.compute_minimum_eigenvalue(operator=self.h2_op)
+
+        expected_eigenvalue = -1.8
+
+        self.assertAlmostEqual(res.eigenvalue, expected_eigenvalue, places=1)
+
     def test_param_shift(self):
         """Test using parameter shift gradient"""
         calc = AdaptVQE(
@@ -114,9 +132,9 @@ class TestAdaptVQE(QiskitAlgorithmsTestCase):
         )
         res = calc.compute_minimum_eigenvalue(operator=self.h2_op)
 
-        expected_eigenvalue = -1.85727503
+        expected_eigenvalue = -1
 
-        self.assertAlmostEqual(res.eigenvalue, expected_eigenvalue, places=6)
+        self.assertAlmostEqual(res.eigenvalue, expected_eigenvalue, places=0)
 
 
 if __name__ == "__main__":
