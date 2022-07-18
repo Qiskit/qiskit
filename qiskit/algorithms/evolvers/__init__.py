@@ -14,8 +14,10 @@
 
 from .evolution_result import EvolutionResult
 from .evolution_problem import EvolutionProblem
+from .classical_real_evolver import ClassicalRealEvolver
 
 __all__ = [
     "EvolutionResult",
     "EvolutionProblem",
+    "ClassicalRealEvolver",
 ]
