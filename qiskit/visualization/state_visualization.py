@@ -730,7 +730,8 @@ def plot_state_qsphere(
            job = backend.run(transpile(qc, backend))
            statevector = job.result().get_statevector()
 
-           plot_state_qsphere(statevector, figsize = (13,9), show_state_phases = True, use_degrees = True)
+           plot_state_qsphere(statevector, figsize = (13,9),
+                show_state_phases = True, use_degrees = True)
     """
     from matplotlib import gridspec
     from matplotlib import pyplot as plt
