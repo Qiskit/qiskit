@@ -17,11 +17,26 @@ jobs:
         with:
           python-version: '3.8'
       - name: Install dependencies
-        run: pip install tox coveragepy-lcov
+        run: |
+            pip install tox coveragepy-lcov
+            sudo apt-get install lcov
+      - name: Download grcov for rust coverage
+        run: curl -L https://github.com/mozilla/grcov/releases/download/v0.8.11/grcov-x86_64-unknown-linux-gnu.tar.bz2 | tar jxf -
       - name: Run coverage report
         run: tox -ecoverage
+        env:
+          CARGO_INCREMENTAL: 0
+          RUSTFLAGS: "-Cinstrument-coverage"
+          LLVM_PROFILE_FILE: "qiskit-%p-%m.profraw"
       - name: Convert to lcov
-        run: coveragepy-lcov --output_file_path coveralls.info
+        run: coveragepy-lcov --output_file_path python.info
+      - name: Run grcov for rust-coverage
+        run: |
+          set -e
+          mv qiskit-terra*profraw .
+          ./grcov . --binary-path ./target/debug/ -s . -t lcov --branch --ignore-not-existing --ignore "/*" -o ./rust.info
+      - name: Combine Coverage
+        run: lcov --add-tracefile python.info -a rust-info -o coveralls.info
       - name: Coveralls
         uses: coverallsapp/github-action@master
         with:
