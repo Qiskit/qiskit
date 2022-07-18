@@ -235,7 +235,7 @@ class TestOptimizerSerialization(QiskitAlgorithmsTestCase):
         serialized = optimizer.settings
         from_dict = COBYLA(**serialized)
 
-        self.assertEqual(from_dict.settings["maxiter"], 1)
+        self.assertEqual(from_dict.settings["options"]["maxiter"], 1)
 
     def test_adam(self):
         """Test ADAM is serializable."""
