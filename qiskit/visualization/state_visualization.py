@@ -85,7 +85,7 @@ def plot_state_hinton(
             state = DensityMatrix.from_instruction(qc)
             plot_state_hinton(state, title="New Hinton Plot")
         .. jupyter-execute::
-        
+
            from qiskit import QuantumCircuit, Aer, transpile
            from qiskit.visualization import plot_state_hinton
            import numpy as np
