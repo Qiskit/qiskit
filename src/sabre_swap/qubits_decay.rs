@@ -59,7 +59,7 @@ impl QubitsDecay {
     }
 
     pub fn __setitem__(mut slf: PyRefMut<Self>, object: usize, value: f64) -> PyResult<()> {
-        if object > slf.decay.len() {
+        if object >= slf.decay.len() {
             return Err(PyIndexError::new_err(format!(
                 "Index {} out of range for this EdgeList",
                 object

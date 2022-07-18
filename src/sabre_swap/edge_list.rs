@@ -66,7 +66,7 @@ impl EdgeList {
     }
 
     pub fn __getitem__(&self, object: usize) -> PyResult<[usize; 2]> {
-        if object > self.edges.len() {
+        if object >= self.edges.len() {
             return Err(PyIndexError::new_err(format!(
                 "Index {} out of range for this EdgeList",
                 object
