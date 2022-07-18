@@ -27,6 +27,7 @@ use hashbrown::HashSet;
 use rand::prelude::SliceRandom;
 use rayon::prelude::*;
 
+use crate::getenv_use_multiple_threads;
 use crate::nlayout::NLayout;
 
 use edge_list::EdgeList;
@@ -104,6 +105,9 @@ pub fn sabre_score_heuristic(
     heuristic: &Heuristic,
     rng: &mut SabreRng,
 ) -> [usize; 2] {
+    // Run in parallel only if we're not already in a multiprocessing context
+    // unless force threads is set.
+    let run_in_parallel = getenv_use_multiple_threads();
     let dist = distance_matrix.as_array();
     let candidate_swaps = obtain_swaps(&layer, neighbor_table, layout);
     let mut min_score = f64::MAX;
@@ -128,7 +132,11 @@ pub fn sabre_score_heuristic(
         }
         layout.swap_logical(swap_qubits[0], swap_qubits[1]);
     }
-    best_swaps.par_sort();
+    if run_in_parallel {
+        best_swaps.par_sort_unstable();
+    } else {
+        best_swaps.sort_unstable();
+    }
     *best_swaps.choose(&mut rng.rng).unwrap()
 }
 
