@@ -30,6 +30,9 @@ from .sx import SXGate
 class XGate(Gate):
     r"""The single-qubit Pauli-X gate (:math:`\sigma_x`).
 
+    Can be applied to a :class:`~qiskit.circuit.QuantumCircuit`
+    with the :meth:`~qiskit.circuit.QuantumCircuit.x` method.
+
     **Matrix Representation:**
 
     .. math::
