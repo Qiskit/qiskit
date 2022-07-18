@@ -576,7 +576,8 @@ def plot_state_paulivec(
            job = backend.run(transpile(qc, backend))
            statevector = job.result().get_statevector()
 
-           plot_state_paulivec(statevector, figsize = (11,7), color = ['crimson', 'midnightblue', 'seagreen'])
+           plot_state_paulivec(statevector, figsize = (11,7),
+                color = ['crimson', 'midnightblue', 'seagreen'])
     """
     from matplotlib import pyplot as plt
 
