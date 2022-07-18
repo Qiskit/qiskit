@@ -27,6 +27,9 @@ class TGate(Gate):
 
     This is a non-Clifford gate and a fourth-root of Pauli-Z.
 
+    Can be applied to a :class:`~qiskit.circuit.QuantumCircuit`
+    with the :meth:`~qiskit.circuit.QuantumCircuit.t` method.
+
     **Matrix Representation:**
 
     .. math::
@@ -82,6 +85,9 @@ class TdgGate(Gate):
     It induces a :math:`-\pi/4` phase.
 
     This is a non-Clifford gate and a fourth-root of Pauli-Z.
+
+    Can be applied to a :class:`~qiskit.circuit.QuantumCircuit`
+    with the :meth:`~qiskit.circuit.QuantumCircuit.tdg` method.
 
     **Matrix Representation:**
 
