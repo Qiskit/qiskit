@@ -14,6 +14,7 @@
 from math import trunc
 import unittest
 import numpy as np
+import scipy.sparse as sp
 from qiskit.algorithms.evolvers.classical_real_evolver import ClassicalRealEvolver
 from test.python.algorithms import QiskitAlgorithmsTestCase
 from ddt import data, ddt, unpack
@@ -22,25 +23,20 @@ from numpy.testing import assert_raises
 from qiskit.quantum_info import Statevector
 from qiskit.algorithms.evolvers.evolution_problem import EvolutionProblem
 from qiskit.circuit import Parameter
-from qiskit.opflow import Y, Z, One, X, Zero, VectorStateFn, StateFn, SummedOp
+from qiskit.opflow import Y, Z, I, One, X, Zero, VectorStateFn, StateFn, SummedOp, PauliSumOp
 
 
 @ddt
 class TestEvolutionProblem(QiskitAlgorithmsTestCase):
     """Test Classical Real Evolver."""
 
-    # def test_dummy(self):
-    #     hamiltonian = Y
-    #     time = 2.5
-    #     initial_state = One
-
-    #     evo_problem = EvolutionProblem(hamiltonian, time, initial_state)
-
     @data(
         [One, np.pi / 2, X, Zero, -1.0j],
+        [One ^ Zero, np.pi/2 , ((X ^ X) + (Y^Y)) / 2, Zero ^ One, -1.0j],
     )
+
     @unpack
-    def test_step(self, initial_state, time, hamiltonian, expected_state, phase):
+    def test_evolve(self, initial_state, time, hamiltonian, expected_state, phase):
         evolution_problem = EvolutionProblem(
             hamiltonian, time, initial_state, truncation_threshold=1e-3
         )
@@ -49,6 +45,29 @@ class TestEvolutionProblem(QiskitAlgorithmsTestCase):
         np.testing.assert_almost_equal(
             result.evolved_state.to_matrix(), phase * expected_state.to_matrix(), decimal=1
         )
+
+    def test_ising(self):
+        num_sites = 10
+        J = 0.1
+        g = -1.0
+        time = 1.0
+
+        zz = ["I" * i + "ZZ" + "I" * (num_sites - i - 2) for i in range(num_sites - 1)]
+        x = ["I" * i + "X" + "I" * (num_sites - i - 1) for i in range(num_sites)]
+        hamiltonian = PauliSumOp.from_list(list(zip(zz, len(zz) * [J])) + list(zip(x, len(x) * [g])))
+        initial_state = np.zeros(2 ** num_sites, dtype=np.complex128)
+        initial_state[0] = 1.0
+        initial_state = VectorStateFn(initial_state)
+
+        evolution_problem = EvolutionProblem(hamiltonian,time,initial_state,truncation_threshold=1e-5)
+        classic_evolver = ClassicalRealEvolver()
+        result = classic_evolver.evolve(evolution_problem)
+
+        #Verify with exact solution.
+        sp_hamiltonian = hamiltonian.to_spmatrix()
+        evol_operator = sp.linalg.expm(-1j * time * sp_hamiltonian)
+        evol_state = evol_operator.dot( initial_state.to_matrix())
+        np.testing.assert_allclose(result.evolved_state.to_matrix(), evol_state, rtol = 1e-5, atol = 0)
 
 
 if __name__ == "__main__":

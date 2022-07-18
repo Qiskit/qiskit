@@ -13,6 +13,7 @@
 """Interface for Classical Quantum Real Time Evolution."""
 
 import scipy.sparse as sp
+from scipy.sparse.linalg import bicg,norm
 import numpy as np
 
 from qiskit.quantum_info import Pauli
@@ -64,16 +65,29 @@ class ClassicalRealEvolver(RealEvolver):
         hamiltonian = evolution_problem.hamiltonian.to_spmatrix()
         ntimesteps = self._ntimesteps(
             evolution_problem.time,
-            evolution_problem.hamiltonian,
+            hamiltonian,
             evolution_problem.truncation_threshold,
         )
         timestep = evolution_problem.time / ntimesteps
 
-        for t in range(ntimesteps):
+        if evolution_problem.aux_operators is not None:
+            aux_operators_history = np.zeros((len(evolution_problem.aux_operators), ntimesteps), dtype=np.complex128)
+        else:
+            aux_operators_history = None
+
+
+        print(ntimesteps)
+
+        for ts in range(ntimesteps):
+            if ts%100 == 0: print(ts)
+            if evolution_problem.aux_operators is not None:
+                for i, aux_operator in enumerate(evolution_problem.aux_operators):
+                    aux_operators_history[i, ts] = aux_operator.dot(state).dot(state.conj().T)
             state = self._step(state, timestep, hamiltonian)
 
         return EvolutionResult(
             evolved_state=StateFn(state),
+            aux_operators = aux_operators_history
         )
 
     def _ntimesteps(self, time, hamiltonian, threshold):
@@ -83,7 +97,7 @@ class ClassicalRealEvolver(RealEvolver):
         :math:`\frac{(-i H \delta t)^3}{12} ` to compute an approximation for how many timesteps
         we need to reach a certain precision.
         """
-        hnorm = 1  # Frobenius norm.
+        hnorm = norm(hamiltonian, ord = np.inf)  # Frobenius norm.
         return int(time * hnorm / np.power(12 * threshold, 1 / 3))
 
     def _step(self, state, timestep, hamiltonian):
@@ -104,7 +118,7 @@ class ClassicalRealEvolver(RealEvolver):
         lhs_operator = idnty + 1j * timestep / 2 * hamiltonian
         rhs_operator = idnty - 1j * timestep / 2 * hamiltonian
         rhs = rhs_operator.dot(state)
-        ev_state, exitcode = sp.linalg.bicg(A=lhs_operator, b=rhs, atol=1e-8)
+        ev_state, exitcode = bicg(A=lhs_operator, b=rhs, atol=1e-8,x0 = state)
 
         if exitcode != 0:
             raise RuntimeError("Failure!")
