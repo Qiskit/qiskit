@@ -17,61 +17,28 @@ from typing import Optional, Union, List, Tuple, Callable
 import logging
 import numpy as np
 
-from qiskit import transpile, QiskitError
+from qiskit import QiskitError
 from qiskit.algorithms.optimizers import Optimizer, Minimizer
-from qiskit.circuit import QuantumCircuit, ParameterVector, ParameterExpression, Parameter
+from qiskit.circuit import QuantumCircuit, ParameterVector
 from qiskit.circuit.library import PauliEvolutionGate
 from qiskit.providers import Backend
 from qiskit.opflow import (
     OperatorBase,
     CircuitSampler,
     ExpectationBase,
-    ListOp,
     StateFn,
 )
-from qiskit.opflow.gradients.circuit_gradients import ParamShift
 from qiskit.synthesis import EvolutionSynthesis, LieTrotter
 from qiskit.utils import QuantumInstance
 
-from .evolution_problem import EvolutionProblem
-from .evolution_result import EvolutionResult
-from .real_evolver import RealEvolver
+from .result import PVQDResult
+from .utils import _get_observable_evaluator, _is_gradient_supported
+
+from ..evolution_problem import EvolutionProblem
+from ..evolution_result import EvolutionResult
+from ..real_evolver import RealEvolver
 
 logger = logging.getLogger(__name__)
-
-
-class PVQDResult(EvolutionResult):
-    """The result object for the pVQD algorithm."""
-
-    def __init__(
-        self,
-        evolved_state: Union[StateFn, QuantumCircuit, OperatorBase],
-        # TODO: aux_ops_evaluated: Optional[ListOrDict[Tuple[complex, complex]]] = None,
-        aux_ops_evaluated: Optional[List[Tuple[complex, complex]]] = None,
-        times: Optional[List[float]] = None,
-        parameters: Optional[List[np.ndarray]] = None,
-        fidelities: Optional[List[float]] = None,
-        estimated_error: Optional[float] = None,
-        observables: Optional[List[List[float]]] = None,
-    ):
-        """
-        Args:
-            evolved_state: An evolved quantum state.
-            aux_ops_evaluated: Optional list of observables for which expected values on an evolved
-                state are calculated. These values are in fact tuples formatted as (mean, standard
-                deviation).
-            times: The times evaluated during the time integration.
-            parameters: The parameter values at each evaluation time.
-            fidelities: The fidelity of the Trotter step and variational update at each iteration.
-            estimated_error: The overall estimated error evaluated as product of all fidelities.
-            observables: The value of the observables evaluated at each iteration.
-        """
-        super().__init__(evolved_state, aux_ops_evaluated)
-        self.times = times
-        self.parameters = parameters
-        self.fidelities = fidelities
-        self.estimated_error = estimated_error
-        self.observables = observables
 
 
 class PVQD(RealEvolver):
@@ -205,13 +172,11 @@ class PVQD(RealEvolver):
         Returns:
             A tuple consisting of the next parameters and the fidelity of the optimization.
         """
-        # construct cost function
         loss, gradient = self.get_loss(hamiltonian, dt, theta)
 
         if initial_guess is None:
             initial_guess = np.random.random(self.initial_parameters.size) * 0.01
 
-        # call optimizer
         if isinstance(self.optimizer, Optimizer):
             optimizer_result = self.optimizer.minimize(loss, initial_guess, gradient)
         else:
@@ -227,7 +192,8 @@ class PVQD(RealEvolver):
         hamiltonian: OperatorBase,
         dt: float,
         current_parameters: np.ndarray,
-    ) -> Callable[[np.ndarray], float]:
+    ) -> Tuple[Callable[[np.ndarray], float], Optional[Callable[[np.ndarray], np.ndarray]]]:
+
         """Get a function to evaluate the infidelity between Trotter step and ansatz.
 
         Args:
@@ -236,7 +202,8 @@ class PVQD(RealEvolver):
             current_parameters: The current parameters.
 
         Returns:
-            A callable to evaluate the infidelity.
+            A callable to evaluate the infidelity and, if gradients are supported and required,
+                a second callable to evaluate the gradient of the infidelity.
         """
         self._validate_setup()
 
@@ -251,7 +218,6 @@ class PVQD(RealEvolver):
         shifted = self.ansatz.assign_parameters(current_parameters + x)
         overlap = StateFn(trotterized).adjoint() @ StateFn(shifted)
 
-        # apply the expectation converter
         converted = self.expectation.convert(overlap)
 
         def evaluate_loss(
@@ -352,13 +318,11 @@ class PVQD(RealEvolver):
             # set initial guess to last parameter update
             initial_guess = next_parameters - parameters[-1]
 
-            # store parameters
             parameters.append(next_parameters)
             fidelities.append(fidelity)
             if observables is not None:
                 observable_values.append(evaluate_observables(next_parameters))
 
-            # increase time
             current_time += self.timestep
             times.append(current_time)
 
@@ -397,76 +361,3 @@ class PVQD(RealEvolver):
                 f"Mismatching number of parameters in the ansatz ({self.ansatz.num_parameters}) "
                 f"and the initial parameters ({len(self.initial_parameters)})."
             )
-
-
-def _is_gradient_supported(ansatz: QuantumCircuit) -> bool:
-    """Check whether we can apply a simple parameter shift rule to obtain gradients."""
-
-    # check whether the circuit can be unrolled to supported gates
-    try:
-        unrolled = transpile(ansatz, basis_gates=ParamShift.SUPPORTED_GATES, optimization_level=0)
-    except QiskitError:
-        # failed to map to supported basis
-        logger.log(
-            logging.INFO,
-            "No gradient support: Failed to unroll to gates supported by parameter-shift.",
-        )
-        return False
-
-    # check whether all parameters are unique and we do not need to apply the chain rule
-    # (since it's not implemented yet)
-    total_num_parameters = 0
-    for circuit_instruction in unrolled.data:
-        for param in circuit_instruction.operation.params:
-            if isinstance(param, ParameterExpression):
-                if isinstance(param, Parameter):
-                    total_num_parameters += 1
-                else:
-                    logger.log(
-                        logging.INFO,
-                        "No gradient support: Circuit is only allowed to have plain parameters, "
-                        "as the chain rule is not yet implemented.",
-                    )
-                    return False
-
-    if total_num_parameters != ansatz.num_parameters:
-        logger.log(
-            logging.INFO,
-            "No gradient support: Circuit is only allowed to have unique parameters, "
-            "as the product rule is not yet implemented.",
-        )
-        return False
-
-    return True
-
-
-def _get_observable_evaluator(
-    ansatz: QuantumCircuit,
-    observables: Union[OperatorBase, List[OperatorBase]],
-    expectation: ExpectationBase,
-    sampler: CircuitSampler,
-) -> Callable[[np.ndarray], Union[float, List[float]]]:
-    """Get a callable to evaluate a (list of) observable(s) for given circuit parameters."""
-
-    if isinstance(observables, list):
-        observables = ListOp(observables)
-
-    expectation_value = StateFn(observables, is_measurement=True) @ StateFn(ansatz)
-    converted = expectation.convert(expectation_value)
-
-    ansatz_parameters = ansatz.parameters
-
-    def evaluate_observables(theta: np.ndarray) -> Union[float, List[float]]:
-        """Evaluate the observables for the ansatz parameters ``theta``.
-
-        Args:
-            theta: The ansatz parameters.
-
-        Returns:
-            The observables evaluated at the ansatz parameters.
-        """
-        value_dict = dict(zip(ansatz_parameters, theta))
-        sampled = sampler.convert(converted, params=value_dict)
-        return sampled.eval()
-
-    return evaluate_observables
