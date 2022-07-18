@@ -47,7 +47,7 @@ class Delay(Instruction):
         Args:
             duration: Length of time of the delay in terms of dt.
             channel: The channel that will have the delay.
-            name: Name of the delay for display purposes.k
+            name: Name of the delay for display purposes.
         """
         super().__init__(operands=(duration, channel), name=name)
 
