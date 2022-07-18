@@ -11,6 +11,7 @@ features:
     readout:
 
     .. code-block:: python
+    
             import random
             import numpy as np
             from qiskit.algorithms.optimizers import GradientDescent
