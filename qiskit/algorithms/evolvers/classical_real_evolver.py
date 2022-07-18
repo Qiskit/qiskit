@@ -97,7 +97,7 @@ class ClassicalRealEvolver(RealEvolver):
         :math:`\frac{(-i H \delta t)^3}{12} ` to compute an approximation for how many timesteps
         we need to reach a certain precision.
         """
-        hnorm = norm(hamiltonian, ord = np.inf)  # Frobenius norm.
+        hnorm = norm(hamiltonian, ord = np.inf)
         return int(time * hnorm / np.power(12 * threshold, 1 / 3))
 
     def _step(self, state, timestep, hamiltonian):
