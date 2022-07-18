@@ -27,7 +27,6 @@ class PVQDResult(EvolutionResult):
     def __init__(
         self,
         evolved_state: Union[StateFn, QuantumCircuit, OperatorBase],
-        # TODO: aux_ops_evaluated: Optional[ListOrDict[Tuple[complex, complex]]] = None,
         aux_ops_evaluated: Optional[List[Tuple[complex, complex]]] = None,
         times: Optional[List[float]] = None,
         parameters: Optional[List[np.ndarray]] = None,
