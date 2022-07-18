@@ -25,6 +25,9 @@ from qiskit.circuit.exceptions import CircuitError
 class UGate(Gate):
     r"""Generic single-qubit rotation gate with 3 Euler angles.
 
+    Can be applied to a :class:`~qiskit.circuit.QuantumCircuit`
+    with the :meth:`~qiskit.circuit.QuantumCircuit.u` method.
+
     **Circuit symbol:**
 
     .. parsed-literal::
