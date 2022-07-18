@@ -26,6 +26,9 @@ class PhaseGate(Gate):
     This is a diagonal gate. It can be implemented virtually in hardware
     via framechanges (i.e. at zero error and duration).
 
+    Can be applied to a :class:`~qiskit.circuit.QuantumCircuit`
+    with the :meth:`~qiskit.circuit.QuantumCircuit.p` method.
+
     **Circuit symbol:**
 
     .. parsed-literal::
