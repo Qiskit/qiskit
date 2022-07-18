@@ -23,6 +23,9 @@ from qiskit.circuit.quantumregister import QuantumRegister
 class ZGate(Gate):
     r"""The single-qubit Pauli-Z gate (:math:`\sigma_z`).
 
+    Can be applied to a :class:`~qiskit.circuit.QuantumCircuit`
+    with the :meth:`~qiskit.circuit.QuantumCircuit.z` method.
+
     **Matrix Representation:**
 
     .. math::
