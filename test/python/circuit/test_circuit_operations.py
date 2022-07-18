@@ -1271,4 +1271,4 @@ class TestCircuitPrivateOperations(QiskitTestCase):
         circuit = QuantumCircuit(1)
         circuit.append(SGate(label="s_gate"), [0])
         decomposed = circuit.decompose(gates_to_decompose=SGate)
-        assert "s" not in decomposed.count_ops()
+        self.assertNotIn("s", decomposed.count_ops())
