@@ -128,6 +128,9 @@ class XGate(Gate):
 class CXGate(ControlledGate):
     r"""Controlled-X gate.
 
+    Can be applied to a :class:`~qiskit.circuit.QuantumCircuit`
+    with the :meth:`~qiskit.circuit.QuantumCircuit.cx` method.
+
     **Circuit symbol:**
 
     .. parsed-literal::
