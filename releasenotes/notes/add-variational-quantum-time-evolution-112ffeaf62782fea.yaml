@@ -22,10 +22,6 @@ features:
       from qiskit.algorithms.evolvers.variational.variational_principles.imaginary_mc_lachlan_principle import (
           ImaginaryMcLachlanPrinciple,
       )
-      from qiskit.algorithms.evolvers.variational.solvers.ode.ode_function_factory import (
-          OdeFunctionFactory,
-          OdeFunctionType,
-      )
       from qiskit.algorithms import EvolutionProblem
       import numpy as np
 
@@ -50,6 +46,5 @@ features:
       backend = BasicAer.get_backend("statevector_simulator")
       time = 1
       evolution_problem = EvolutionProblem(observable, time, ansatz, param_value_dict=param_dict)
-      ode_function = OdeFunctionFactory(OdeFunctionType.STANDARD_ODE)
-      var_qite = VarQITE(var_principle, ode_function, quantum_instance=backend)
+      var_qite = VarQITE(var_principle, quantum_instance=backend)
       evolution_result = var_qite.evolve(evolution_problem)

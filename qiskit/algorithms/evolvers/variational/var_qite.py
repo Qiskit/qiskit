@@ -75,7 +75,6 @@ class VarQITE(VarQTE, ImaginaryEvolver):
         expectation: Optional[ExpectationBase] = None,
         imag_part_tol: float = 1e-7,
         num_instability_tol: float = 1e-7,
-        is_error_based: bool = False,
         quantum_instance: Optional[QuantumInstance] = None,
     ) -> None:
         r"""
@@ -95,9 +94,6 @@ class VarQITE(VarQTE, ImaginaryEvolver):
                 imaginary part is expected.
             num_instability_tol: The amount of negative value that is allowed to be
                 rounded up to 0 for quantities that are expected to be non-negative.
-            is_error_based: If ``True``, uses the argument that minimizes error bounds when solving
-                differential equations. Currently not supported and switches to ``False``
-                automatically.
             quantum_instance: Backend used to evaluate the quantum circuit outputs. If ``None``
                 provided, everything will be evaluated based on NumPy matrix multiplication
                 (which might be slow for larger numbers of qubits).
@@ -110,6 +106,5 @@ class VarQITE(VarQTE, ImaginaryEvolver):
             expectation=expectation,
             imag_part_tol=imag_part_tol,
             num_instability_tol=num_instability_tol,
-            is_error_based=is_error_based,
             quantum_instance=quantum_instance,
         )

@@ -11,7 +11,6 @@
 # that they have been altered from the originals.
 
 """The Variational Quantum Time Evolution Interface"""
-import warnings
 from abc import ABC
 from typing import Optional, Union, Dict, List, Any, Type, Callable
 
@@ -65,7 +64,6 @@ class VarQTE(ABC):
         expectation: Optional[ExpectationBase] = None,
         imag_part_tol: float = 1e-7,
         num_instability_tol: float = 1e-7,
-        is_error_based: bool = False,
         quantum_instance: Optional[QuantumInstance] = None,
     ) -> None:
         r"""
@@ -86,9 +84,6 @@ class VarQTE(ABC):
             num_instability_tol: The amount of negative value that is allowed to be
                 rounded up to 0 for quantities that are expected to be
                 non-negative.
-            is_error_based: If ``True``, uses the argument that minimizes error bounds when solving
-                differential equations. Currently not supported and switches to ``False``
-                automatically.
             quantum_instance: Backend used to evaluate the quantum circuit outputs. If ``None``
                 provided, everything will be evaluated based on matrix multiplication (which is
                 slow).
@@ -106,13 +101,6 @@ class VarQTE(ABC):
         self._ode_function_factory = OdeFunctionFactory(lse_solver=lse_solver)
         self.ode_solver = ode_solver
         self.imag_part_tol = imag_part_tol
-        if is_error_based:
-            is_error_based = True
-            warnings.warn(
-                "Error-based calculation not yet supported."
-                "Switching to the non-error-based method."
-            )
-        self._is_error_based = is_error_based
         self.num_instability_tol = num_instability_tol
 
     @property
