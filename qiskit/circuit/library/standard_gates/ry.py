@@ -109,6 +109,9 @@ class RYGate(Gate):
 class CRYGate(ControlledGate):
     r"""Controlled-RY gate.
 
+    Can be applied to a :class:`~qiskit.circuit.QuantumCircuit`
+    with the :meth:`~qiskit.circuit.QuantumCircuit.cry` method.
+
     **Circuit symbol:**
 
     .. parsed-literal::
