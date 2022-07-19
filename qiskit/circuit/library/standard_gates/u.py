@@ -134,6 +134,9 @@ class CUGate(ControlledGate):
     This is a controlled version of the U gate (generic single qubit rotation),
     including a possible global phase :math:`e^{i\gamma}` of the U gate.
 
+    Can be applied to a :class:`~qiskit.circuit.QuantumCircuit`
+    with the :meth:`~qiskit.circuit.QuantumCircuit.cu` method.
+
     **Circuit symbol:**
 
     .. parsed-literal::
