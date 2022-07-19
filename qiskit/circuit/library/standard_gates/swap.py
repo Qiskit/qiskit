@@ -115,6 +115,9 @@ class SwapGate(Gate):
 class CSwapGate(ControlledGate):
     r"""Controlled-SWAP gate, also known as the Fredkin gate.
 
+    Can be applied to a :class:`~qiskit.circuit.QuantumCircuit`
+    with the :meth:`~qiskit.circuit.QuantumCircuit.cswap` method.
+
     **Circuit symbol:**
 
     .. parsed-literal::
