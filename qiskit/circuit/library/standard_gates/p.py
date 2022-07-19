@@ -132,6 +132,9 @@ class CPhaseGate(ControlledGate):
     This is a diagonal and symmetric gate that induces a
     phase on the state of the target qubit, depending on the control state.
 
+    Can be applied to a :class:`~qiskit.circuit.QuantumCircuit`
+    with the :meth:`~qiskit.circuit.QuantumCircuit.cp` method.
+
     **Circuit symbol:**
 
     .. parsed-literal::
