@@ -17,10 +17,6 @@ import unittest
 from test.python.algorithms import QiskitAlgorithmsTestCase
 from ddt import data, ddt
 import numpy as np
-from qiskit.algorithms.evolvers.variational.solvers.ode.ode_function_factory import (
-    OdeFunctionFactory,
-    OdeFunctionType,
-)
 from qiskit.utils import algorithm_globals, QuantumInstance
 from qiskit import BasicAer
 from qiskit.algorithms import EvolutionProblem, VarQITE
@@ -186,7 +182,7 @@ class TestVarQITE(QiskitAlgorithmsTestCase):
 
         backend = BasicAer.get_backend("statevector_simulator")
 
-        var_qite = VarQITE(var_principle, quantum_instance=backend, ode_solver="RK45")
+        var_qite = VarQITE(var_principle, ode_solver="RK45", quantum_instance=backend)
         time = 7
         # values from the prototype
         thetas_expected = [
@@ -236,13 +232,7 @@ class TestVarQITE(QiskitAlgorithmsTestCase):
 
         backend = BasicAer.get_backend("statevector_simulator")
 
-        ode_function = OdeFunctionFactory(OdeFunctionType.STANDARD_ODE)
-        var_qite = VarQITE(
-            var_principle,
-            ode_function_factory=ode_function,
-            quantum_instance=backend,
-            ode_solver="RK45",
-        )
+        var_qite = VarQITE(var_principle, ode_solver="RK45", quantum_instance=backend)
         time = 1
 
         # values from the prototype

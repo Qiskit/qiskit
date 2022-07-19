@@ -11,8 +11,9 @@
 # that they have been altered from the originals.
 
 """The Variational Quantum Time Evolution Interface"""
+import warnings
 from abc import ABC
-from typing import Optional, Union, Dict, List, Any, Type
+from typing import Optional, Union, Dict, List, Any, Type, Callable
 
 import numpy as np
 from scipy.integrate import OdeSolver
@@ -59,11 +60,12 @@ class VarQTE(ABC):
         self,
         variational_principle: VariationalPrinciple,
         ode_solver: Union[Type[OdeSolver], str] = ForwardEulerSolver,
+        lse_solver: Optional[Callable[[np.ndarray, np.ndarray], np.ndarray]] = None,
         ode_num_t_steps: int = 15,
-        ode_function_factory: Optional[OdeFunctionFactory] = None,
         expectation: Optional[ExpectationBase] = None,
         imag_part_tol: float = 1e-7,
         num_instability_tol: float = 1e-7,
+        is_error_based: bool = False,
         quantum_instance: Optional[QuantumInstance] = None,
     ) -> None:
         r"""
@@ -71,10 +73,11 @@ class VarQTE(ABC):
             variational_principle: Variational Principle to be used.
             ode_solver: ODE solver callable that implements a SciPy ``OdeSolver`` interface or a
                 string indicating a valid method offered by SciPy.
+            lse_solver: Linear system of equations solver callable. It accepts ``A`` and ``b`` to
+                solve ``Ax=b`` and returns ``x``. If ``None``, the default ``np.linalg.lstsq``
+                solver is used.
             ode_num_t_steps: Number of ODE steps. Only relevant in case of the
                 ``ForwardEulerSolver``.
-            ode_function_factory: Factory for the ODE function. If ``None`` provided, an instance
-                with default settings is created.
             expectation: An instance of ``ExpectationBase`` which defines a method for calculating
                 a metric tensor and an evolution gradient and, if provided, expectation values of
                 ``EvolutionProblem.aux_operators``.
@@ -83,6 +86,9 @@ class VarQTE(ABC):
             num_instability_tol: The amount of negative value that is allowed to be
                 rounded up to 0 for quantities that are expected to be
                 non-negative.
+            is_error_based: If ``True``, uses the argument that minimizes error bounds when solving
+                differential equations. Currently not supported and switches to ``False``
+                automatically.
             quantum_instance: Backend used to evaluate the quantum circuit outputs. If ``None``
                 provided, everything will be evaluated based on matrix multiplication (which is
                 slow).
@@ -94,11 +100,19 @@ class VarQTE(ABC):
             self.quantum_instance = quantum_instance
         self.expectation = expectation
         self.ode_num_t_steps = ode_num_t_steps
-        if ode_function_factory is None:
-            ode_function_factory = OdeFunctionFactory()
-        self.ode_function_factory = ode_function_factory
+        self.lse_solver = lse_solver
+        # OdeFunction abstraction kept for potential extensions - unclear at the moment;
+        # currently hidden from the user
+        self._ode_function_factory = OdeFunctionFactory(lse_solver=lse_solver)
         self.ode_solver = ode_solver
         self.imag_part_tol = imag_part_tol
+        if is_error_based:
+            is_error_based = True
+            warnings.warn(
+                "Error-based calculation not yet supported."
+                "Switching to the non-error-based method."
+            )
+        self._is_error_based = is_error_based
         self.num_instability_tol = num_instability_tol
 
     @property
@@ -202,14 +216,14 @@ class VarQTE(ABC):
             initial_state,
             init_state_parameters,
             t_param,
-            self.ode_function_factory.lse_solver,
+            self._ode_function_factory.lse_solver,
             self.imag_part_tol,
             self.expectation,
             self._quantum_instance,
         )
 
         # Convert the operator that holds the Hamiltonian and ansatz into a NaturalGradient operator
-        ode_function = self.ode_function_factory._build(
+        ode_function = self._ode_function_factory._build(
             linear_solver, error_calculator, init_state_param_dict, t_param
         )
 

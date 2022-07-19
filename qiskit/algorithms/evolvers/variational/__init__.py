@@ -107,18 +107,6 @@ They can be divided into two categories:
     RealTimeDependentPrinciple
     ImaginaryMcLachlanPrinciple
 
-ODE functions factory
----------------------
-Builds functions used by an ODE solver. An ODE function utilizes a natural gradient to steer
-evolution.
-
-.. autosummary::
-   :toctree: ../stubs/
-   :template: autosummary/class_no_inherited_members.rst
-
-    OdeFunctionFactory
-    OdeFunctionType
-
 ODE solvers
 -----------
 ODE solvers that implement the SciPy ODE Solver interface. The Forward Euler Solver is
@@ -133,7 +121,6 @@ e.g. RK45.
 
 """
 from .solvers.ode.forward_euler_solver import ForwardEulerSolver
-from .solvers.ode.ode_function_factory import OdeFunctionFactory, OdeFunctionType
 from .var_qte import VarQTE
 from .variational_principles.variational_principle import VariationalPrinciple
 from .variational_principles import RealVariationalPrinciple, ImaginaryVariationalPrinciple
@@ -150,8 +137,6 @@ from .variational_principles.real_time_dependent_principle import (
 
 __all__ = [
     "ForwardEulerSolver",
-    "OdeFunctionFactory",
-    "OdeFunctionType",
     "VarQTE",
     "VariationalPrinciple",
     "RealVariationalPrinciple",

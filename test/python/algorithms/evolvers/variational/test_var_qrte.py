@@ -17,10 +17,6 @@ import unittest
 from test.python.algorithms import QiskitAlgorithmsTestCase
 from ddt import data, ddt
 import numpy as np
-from qiskit.algorithms.evolvers.variational.solvers.ode.ode_function_factory import (
-    OdeFunctionFactory,
-    OdeFunctionType,
-)
 from qiskit.utils import QuantumInstance, algorithm_globals
 from qiskit.quantum_info import state_fidelity, Statevector
 from qiskit.algorithms import EvolutionProblem, VarQRTE
@@ -95,7 +91,6 @@ class TestVarQRTE(QiskitAlgorithmsTestCase):
 
         param_dict = dict(zip(parameters, init_param_values))
 
-        ode_function = OdeFunctionFactory(OdeFunctionType.STANDARD_ODE)
         time = 0.1
 
         evolution_problem = EvolutionProblem(
@@ -139,12 +134,7 @@ class TestVarQRTE(QiskitAlgorithmsTestCase):
                     operator=observable,
                     backend=backend,
                 )
-                var_qrte = VarQRTE(
-                    var_principle,
-                    ode_function_factory=ode_function,
-                    expectation=expectation,
-                    quantum_instance=backend,
-                )
+                var_qrte = VarQRTE(var_principle, expectation=expectation, quantum_instance=backend)
                 evolution_result = var_qrte.evolve(evolution_problem)
 
                 evolved_state = evolution_result.evolved_state
@@ -210,7 +200,7 @@ class TestVarQRTE(QiskitAlgorithmsTestCase):
 
         backend = BasicAer.get_backend("statevector_simulator")
 
-        var_qrte = VarQRTE(var_principle, quantum_instance=backend, ode_solver="RK45")
+        var_qrte = VarQRTE(var_principle, ode_solver="RK45", quantum_instance=backend)
         time = 1
 
         thetas_expected = [
