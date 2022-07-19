@@ -103,8 +103,11 @@ class BaseFidelity(ABC):
         """
         Fix the circuits for the fidelity to be computed of.
         Args:
-            - left_circuit: (Parametrized) quantum circuit
-            - right_circuit: (Parametrized) quantum circuit
+            left_circuit: (Parametrized) quantum circuit
+            right_circuit: (Parametrized) quantum circuit
+
+        Raises:
+            ValueError: ``left_circuit`` and ``right_circuit`` don't have the same number of qubits.
         """
         if left_circuit.num_qubits != right_circuit.num_qubits:
             raise ValueError(

@@ -57,9 +57,9 @@ class Fidelity(BaseFidelity):
 
         if self._left_circuit is None or self._right_circuit is None:
             raise ValueError(
-                f"The left and right circuits must be defined to"
-                f"calculate the state overlap. "
-                f"Please use .set_circuits(left_circuit, right_circuit)"
+                "The left and right circuits must be defined to"
+                "calculate the state overlap. "
+                "Please use .set_circuits(left_circuit, right_circuit)"
             )
 
         for values, side in zip([values_left, values_right], ["left", "right"]):

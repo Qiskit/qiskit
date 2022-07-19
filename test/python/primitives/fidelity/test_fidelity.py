@@ -99,13 +99,13 @@ class TestFidelity(QiskitTestCase):
         np.testing.assert_allclose(results, np.array([1.0, 0.5, 0.5, 0.0]), atol=1e-16)
 
     def test_fidelity_not_set_circuits(self):
-        "test for fidelity with no circuits during init."
+        """test for fidelity with no circuits during init."""
         fidelity = Fidelity(self._sampler_factory)
         with self.assertRaises(ValueError):
             _ = fidelity(self._params_left, self._params_right)
 
     def test_fidelity_set_circuits(self):
-        "test for fidelity with no circuits during init."
+        """test for fidelity with no circuits during init."""
         fidelity = Fidelity(self._sampler_factory)
         fidelity.set_circuits(self._circuit[0], self._circuit[1])
         results = fidelity(self._params_left, self._params_right)
