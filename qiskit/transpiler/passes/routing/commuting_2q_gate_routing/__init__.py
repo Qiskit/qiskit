@@ -23,3 +23,4 @@ Further details can also be found here: https://arxiv.org/abs/2202.03459.
 from .swap_strategy import SwapStrategy
 from .pauli_2q_evolution_commutation import FindCommutingPauliEvolutions
 from .commuting_2q_gate_router import Commuting2qGateRouter
+from .commuting_2q_gate_grouper import Commuting2qGateGrouper

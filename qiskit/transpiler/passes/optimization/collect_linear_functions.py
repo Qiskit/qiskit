@@ -32,10 +32,6 @@ class CollectLinearFunctions(CollapseChains):
         # Replace every discovered block by a linear function
         global_index_map = {wire: idx for idx, wire in enumerate(dag.qubits)}
         for block in blocks:
-            # Create linear functions only out of blocks with at least 2 gates
-            if len(block) == 1:
-                continue
-
             # Find the set of all qubits used in this block
             cur_qubits = set()
             for node in block:

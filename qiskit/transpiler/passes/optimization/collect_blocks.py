@@ -28,7 +28,6 @@ class BlockCollector:
     as it does not require to construct a DAGDependency beforehand. This may be useful
     with lower transpiler settings.
 
-
     Collecting blocks is generally not unique. The strategies explored here deal with
     heuristic approaches of the form 'starting from the input nodes of a DAG, collect
     the (heuristically) largest blocks of nodes that match certain criteria'.
@@ -197,8 +196,7 @@ class BlockCollector:
         Intuitively, extracting larger blocks of non-matching nodes helps to find larger blocks of
         following matching nodes.
 
-        For now, we return both the list of all blocks (including blocks of matching and non-matching
-        nodes) and the list of matching blocks only.
+        Returns the list of matching blocks only.
         """
 
         def not_filter_fn(node):
@@ -226,7 +224,7 @@ class BlockCollector:
         collects possibly multiple blocks of commuting nodes that match filter_fn,
         repeating the process until no more uncollected nodes remain.
 
-        For now, we return both the list of all blocks and the list of commuting blocks.
+        Returns the list of matching blocks only.
         """
 
         def not_filter_fn(node):
@@ -237,21 +235,21 @@ class BlockCollector:
         #   Collect non-matching nodes.
         #   Collect layers of commuting nodes (while possible).
         matching_blocks = []
-        all_blocks = []
+        # all_blocks = []
         while self.have_uncollected_nodes():
             non_matching_block = self.collect_matching_block(not_filter_fn)
-            if non_matching_block:
-                all_blocks.append(non_matching_block)
+            # if non_matching_block:
+            #     all_blocks.append(non_matching_block)
 
             while True:
                 commuting_block = self.collect_commuting_block(filter_fn)
                 if commuting_block:
                     matching_blocks.append(commuting_block)
-                    all_blocks.append(commuting_block)
+                    # all_blocks.append(commuting_block)
                 else:
                     break
 
-        return matching_blocks, all_blocks
+        return matching_blocks
 
     def collect_all_parallel_blocks(self):
         """Collects all blocks of parallel nodes.
@@ -261,7 +259,7 @@ class BlockCollector:
         This is useful to try to rearrange nodes in the quantum circuit exploiting commutativity
         relations in the attempt to decrease the depth of the circuit.
 
-        We return both the list of all blocks.
+        Return both the list of all blocks.
         """
 
         # Iteratively:
@@ -278,7 +276,7 @@ class BlockCollector:
 
 class BlockSplitter:
     """Splits a block of nodes into blocks over disjoint qubits.
-    Implements Disjoint Set Union data structure."""
+    This is an implementation of the Disjoint Set Union data structure."""
 
     def __init__(self):
         self.leader = {}  # qubit's group leader

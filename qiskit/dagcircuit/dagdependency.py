@@ -581,12 +581,25 @@ class DAGDependency:
         return dag_drawer(dag=self, scale=scale, filename=filename, style=style)
 
     def replace_block_with_op(self, node_block, op, wire_pos_map, cycle_check=True):
-        """Replace a block of nodes with a single.
+        """Replace a block of nodes with a single node.
 
         This is used to consolidate a block of DAGDepNodes into a single
-        operation. A typical example is a block of gates being consolidated
-        into a single ``UnitaryGate`` representing the unitary matrix of the
-        block.
+        operation. A typical example is a block of CX and SWAP gates consolidated
+        into a LinearFunction. This function is an adaptation of a similar
+        function from DagCircuit.
+
+        It is important that such consolidation preserves commutativity assumptions
+        present in DagDependency. As an example, suppose that every node in a
+        block [A, B, C, D] commutes with another node E. Let F be the consolidated
+        node, F = A o B o C o D. Then F also commutes with E, and thus the result of
+        replacing [A, B, C, D] by F results in a valid DagDependency. That is, any
+        deduction about commutativity in consolidated DagDependency is correct.
+
+        On the other hand, suppose that at least one of the nodes, say B, does not commute
+        with E. Then the consolidated DagDependency would imply that F does not commute
+        with E. Even though F and E may actually commute, it is still safe to assume that
+        they do not. That is, the current implementation of consolidation may lead to sub-
+        optimal but not to incorrect results.
 
         Args:
             node_block (List[DAGNode]): A list of dag nodes that represents the
@@ -642,6 +655,7 @@ class DAGDependency:
             ) from ex
 
     def print(self):
+        """Debugging function (remove me)"""
         nodes = list(self._multi_graph.nodes())
         print(f"#nodes = {len(nodes)}")
         for node in nodes:
