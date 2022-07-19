@@ -25,6 +25,9 @@ class RZGate(Gate):
     This is a diagonal gate. It can be implemented virtually in hardware
     via framechanges (i.e. at zero error and duration).
 
+    Can be applied to a :class:`~qiskit.circuit.QuantumCircuit`
+    with the :meth:`~qiskit.circuit.QuantumCircuit.rz` method.
+
     **Circuit symbol:**
 
     .. parsed-literal::
@@ -120,6 +123,9 @@ class CRZGate(ControlledGate):
 
     This is a diagonal but non-symmetric gate that induces a
     phase on the state of the target qubit, depending on the control state.
+
+    Can be applied to a :class:`~qiskit.circuit.QuantumCircuit`
+    with the :meth:`~qiskit.circuit.QuantumCircuit.crz` method.
 
     **Circuit symbol:**
 
