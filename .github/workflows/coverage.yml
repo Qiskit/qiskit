@@ -35,26 +35,30 @@ jobs:
           CARGO_INCREMENTAL: 0
           RUSTFLAGS: "-Cinstrument-coverage"
           LLVM_PROFILE_FILE: "qiskit-%p-%m.profraw"
-      - name: Run coverage report
+      - name: Generate unittest coverage report
         run: |
           set -e
           pip install -r requirements-dev.txt qiskit-aer
           stestr run
-          coverage3 run --source qiskit --parallel-mode ./tools/verify_parallel_map.py
-          coverage3 combine
-          coverage3 report
+          ./grcov . --binary-path ./target/debug/ -s . -t lcov --branch --ignore-not-existing --ignore "/*" -o ./rust_unittest.info
         env:
           QISKIT_TEST_CAPTURE_STREAMS: 1
           QISKIT_PARALLEL: FALSE
           PYTHON: "coverage3 run --source qiskit --parallel-mode"
-      - name: Convert to lcov
-        run: coveragepy-lcov --output_file_path python.info
-      - name: Run grcov for rust-coverage
+      - name: Generate parallel_map test
+        run: |
+          coverage3 run --source qiskit --parallel-mode ./tools/verify_parallel_map.py
+          ./grcov . --binary-path ./target/debug/ -s . -t lcov --branch --ignore-not-existing --ignore "/*" -o ./rust_parallel_map.info
+        env:
+          QISKIT_TEST_CAPTURE_STREAMS: 1
+          QISKIT_PARALLEL: FALSE
+          PYTHON: "coverage3 run --source qiskit --parallel-mode"
+      - name: Convert to lcov and combine data
         run: |
           set -e
-          ./grcov . --binary-path ./target/debug/ -s . -t lcov --branch --ignore-not-existing --ignore "/*" -o ./rust.info
-      - name: Combine Coverage
-        run: lcov --add-tracefile python.info -a rust.info -o coveralls.info
+          coverage3 combine
+          coveragepy-lcov --output_file_path python.info
+          lcov --add-tracefile python.info -a rust_unittest.info -a rust_parallel_map.info -o coveralls.info
       - name: Coveralls
         uses: coverallsapp/github-action@master
         with:
