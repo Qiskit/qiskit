@@ -122,6 +122,9 @@ class CZGate(ControlledGate):
 
     This is a Clifford and symmetric gate.
 
+    Can be applied to a :class:`~qiskit.circuit.QuantumCircuit`
+    with the :meth:`~qiskit.circuit.QuantumCircuit.cz` method.
+
     **Circuit symbol:**
 
     .. parsed-literal::
