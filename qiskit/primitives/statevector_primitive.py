@@ -17,7 +17,7 @@ from __future__ import annotations
 from functools import lru_cache
 
 from numpy.random import Generator, default_rng
-from qiskit.circuit import Parameter, QuantumCircuit
+from qiskit.circuit import QuantumCircuit
 from qiskit.quantum_info import Statevector
 
 cache = lru_cache(maxsize=None)
@@ -33,13 +33,13 @@ class StatevectorPrimitive:
     def _bind_circuit_parameters(
         self, circuit_index: int, parameter_values: tuple[float]
     ) -> QuantumCircuit:
-        parameters = self._parameters[circuit_index]
+        parameters = self._parameters[circuit_index]  # pylint: disable=no-member
         if len(parameter_values) != len(parameters):
             raise ValueError(
                 f"The number of values ({len(parameter_values)}) does not match "
                 f"the number of parameters ({len(parameters)})."
             )
-        circuit = self._circuits[circuit_index]
+        circuit = self._circuits[circuit_index]  # pylint: disable=no-member
         if not parameter_values:
             return circuit
         parameter_mapping = dict(zip(parameters, parameter_values))

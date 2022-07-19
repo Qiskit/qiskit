@@ -98,7 +98,11 @@ class Estimator(BaseEstimator, StatevectorPrimitive):
         self._is_closed = True
 
     def _compute_result(
-        self, state: Statevector, observable: BaseOperator | PauliSumOp, shots: int, rng: np.random.Generator
+        self,
+        state: Statevector,
+        observable: BaseOperator | PauliSumOp,
+        shots: int,
+        rng: np.random.Generator,
     ) -> tuple[float, dict]:
         if state.num_qubits != observable.num_qubits:
             raise QiskitError(

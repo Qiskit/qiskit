@@ -99,7 +99,8 @@ class Sampler(BaseSampler, StatevectorPrimitive):
 
         # Results
         raw_results = [
-            self._compute_result(state, qargs, shots, rng) for state, qargs in zip(states, qargs_list)
+            self._compute_result(state, qargs, shots, rng)
+            for state, qargs in zip(states, qargs_list)
         ]
         probabilities, metadata = zip(*raw_results)
         quasis = [QuasiDistribution(dict(enumerate(p))) for p in probabilities]
