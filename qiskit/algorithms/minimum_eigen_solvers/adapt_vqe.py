@@ -207,7 +207,7 @@ class AdaptVQE(VariationalAlgorithm):
             An AdaptVQEResult (`qiskit.algorithms.minimum_eigen_solvers.adapt_vqe.AdaptVQEResult`)
             which is a VQEResult (`qiskit.algorithms.minimum_eigen_solvers.vqe.VQEResult`) but also
             includes runtime information about the AdaptVQE algorithm like the number of iterations,
-            finishing criterion, and the final maximum gradient.
+            termination criterion, and the final maximum gradient.
         """
         if not isinstance(self._tmp_ansatz, EvolvedOperatorAnsatz):
             raise QiskitError("The AdaptVQE ansatz must be of the EvolvedOperatorAnsatz type.")
@@ -323,10 +323,10 @@ class AdaptVQEResult(VQEResult):
 
     @property
     def termination_criterion(self) -> str:
-        """Returns finishing criterion"""
+        """Returns termination criterion"""
         return self._termination_criterion
 
     @termination_criterion.setter
     def termination_criterion(self, value: str) -> None:
-        """Sets finishing criterion"""
+        """Sets termination criterion"""
         self._termination_criterion = value

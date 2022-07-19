@@ -132,7 +132,7 @@ class TestAdaptVQE(QiskitAlgorithmsTestCase):
         )
         res = calc.compute_minimum_eigenvalue(operator=self.h2_op)
 
-        expected_eigenvalue = -1
+        expected_eigenvalue = -1.85727503
 
         self.assertAlmostEqual(res.eigenvalue, expected_eigenvalue, places=0)
 
