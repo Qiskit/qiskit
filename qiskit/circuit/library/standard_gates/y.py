@@ -122,6 +122,9 @@ class YGate(Gate):
 class CYGate(ControlledGate):
     r"""Controlled-Y gate.
 
+    Can be applied to a :class:`~qiskit.circuit.QuantumCircuit`
+    with the :meth:`~qiskit.circuit.QuantumCircuit.cy` method.
+
     **Circuit symbol:**
 
     .. parsed-literal::
