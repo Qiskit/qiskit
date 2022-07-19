@@ -55,7 +55,7 @@ class VarQRTE(VarQTE, RealEvolver):
         ansatz = EfficientSU2(observable.num_qubits, reps=d)
         parameters = ansatz.parameters
         init_param_values = np.zeros(len(ansatz.parameters))
-        for i in range(len(ansatz.ordered_parameters)):
+        for i in range(len(ansatz.parameters)):
             init_param_values[i] = np.pi / 2
         param_dict = dict(zip(parameters, init_param_values))
         var_principle = RealMcLachlanPrinciple()
