@@ -110,6 +110,9 @@ class RXGate(Gate):
 class CRXGate(ControlledGate):
     r"""Controlled-RX gate.
 
+    Can be applied to a :class:`~qiskit.circuit.QuantumCircuit`
+    with the :meth:`~qiskit.circuit.QuantumCircuit.crx` method.
+
     **Circuit symbol:**
 
     .. parsed-literal::
