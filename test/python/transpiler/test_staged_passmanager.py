@@ -120,6 +120,8 @@ class TestStagedPassManager(QiskitTestCase):
             spm.init = spm
         mock_target = "qiskit.transpiler.passmanager.StagedPassManager._update_passmanager"
         with patch(mock_target, spec=True) as mock:
+            spm.max_iteration = spm.max_iteration
+            mock.assert_not_called()
             spm.init = None
             mock.assert_called_once()
 
