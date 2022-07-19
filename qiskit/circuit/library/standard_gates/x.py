@@ -260,6 +260,9 @@ class CXGate(ControlledGate):
 class CCXGate(ControlledGate):
     r"""CCX gate, also known as Toffoli gate.
 
+    Can be applied to a :class:`~qiskit.circuit.QuantumCircuit`
+    with the :meth:`~qiskit.circuit.QuantumCircuit.ccx` method.
+
     **Circuit symbol:**
 
     .. parsed-literal::
