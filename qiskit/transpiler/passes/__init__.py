@@ -72,6 +72,7 @@ Optimizations
    Collect2qBlocks
    CollectMultiQBlocks
    CollectLinearFunctions
+   CollectCliffords
    ConsolidateBlocks
    CXCancellation
    InverseCancellation
@@ -85,6 +86,7 @@ Optimizations
    TemplateOptimization
    EchoRZXWeylDecomposition
    OptimizeDepth
+   CollapseChains
 
 Calibration
 =============
@@ -219,7 +221,9 @@ from .optimization import TemplateOptimization
 from .optimization import InverseCancellation
 from .optimization import EchoRZXWeylDecomposition
 from .optimization import CollectLinearFunctions
+from .optimization import CollectCliffords
 from .optimization import OptimizeDepth
+from .optimization import CollapseChains
 
 # circuit analysis
 from .analysis import ResourceEstimation

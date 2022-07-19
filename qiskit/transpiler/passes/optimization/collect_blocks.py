@@ -116,7 +116,7 @@ class BlockCollector:
         blocks of two-qubit gates, etc..  Here 'iteratively' means that once a node is collected,
         the in_degrees of its immediate successors are decreased by 1, allowing more nodes to become
         leaf and to be eligible for collecting into the current block.
-        Returns a block of collected nodes.
+        Returns the block of collected nodes.
         """
         current_block = []
         unprocessed_pending_nodes = self.pending_nodes
@@ -149,6 +149,7 @@ class BlockCollector:
         Collects the largest block of commuting input nodes that match a given
         filtering function. In a DagDependency nodes with in_degree=0 necessarily commute,
         and a node with in_degree>0 does not commute with any of its immediate predecessors.
+        Returns the block of collected nodes.
         """
         current_block = []
 
@@ -166,6 +167,7 @@ class BlockCollector:
         """
         Collects the largest block of 'parallel' input nodes, where 'parallel' means that
         all nodes in the same block must be over pairwise disjoint qubits.
+        Returns the block of collected nodes.
         """
         current_block = []
         current_qubits = set()
@@ -186,47 +188,6 @@ class BlockCollector:
 
         return current_block
 
-    def split_block_into_components(self, block):
-        """Given a block of nodes, splits it into connected components."""
-
-        if len(block) == 0:
-            return block
-
-        nodeset = set(block)
-        colors = dict()
-        color = -1
-
-        def process_node_rec(node):
-            """Given a node, recursively assigns the current color to all of its
-            immediate successors and predecessors."""
-
-            if node not in colors.keys():
-                colors[node] = color
-
-                for pred in self._direct_preds(node):
-                    if node not in nodeset:
-                        continue
-                    process_node_rec(pred)
-
-                for suc in self._direct_succs(node):
-                    if node not in nodeset:
-                        continue
-                    process_node_rec(suc)
-
-        # Assign colors to nodes, so that nodes are in the same component iff they
-        # have the same color
-        for node in block:
-            if node not in colors.keys():
-                color = color + 1
-                process_node_rec(node)
-
-        # Split blocks based on color
-        split_blocks = [[] for _ in range(color + 1)]
-        for node in block:
-            split_blocks[colors[node]].append(node)
-
-        return split_blocks
-
     def collect_all_matching_blocks(self, filter_fn):
         """Collects all blocks that match a given filtering function filter_fn.
 
@@ -246,17 +207,17 @@ class BlockCollector:
 
         # Iteratively collect non-matching and matching blocks.
         matching_blocks = []
-        all_blocks = []
+        # all_blocks = []
         while self.have_uncollected_nodes():
             non_matching_block = self.collect_matching_block(not_filter_fn)
-            if non_matching_block:
-                all_blocks.append(non_matching_block)
+            # if non_matching_block:
+            #     all_blocks.append(non_matching_block)
             matching_block = self.collect_matching_block(filter_fn)
             if matching_block:
-                all_blocks.append(matching_block)
+                # all_blocks.append(matching_block)
                 matching_blocks.append(matching_block)
 
-        return matching_blocks, all_blocks
+        return matching_blocks
 
     def collect_all_commuting_blocks(self, filter_fn):
         """Collects all commuting blocks that match a given filtering function filter_fn.
@@ -313,3 +274,53 @@ class BlockCollector:
             if parallel_block:
                 all_blocks.append(parallel_block)
         return all_blocks
+
+
+class BlockSplitter:
+    """Splits a block of nodes into blocks over disjoint qubits.
+    Implements Disjoint Set Union data structure."""
+
+    def __init__(self):
+        self.leader = {}  # qubit's group leader
+        self.group = {}  # qubit's group
+
+    def find_leader(self, index):
+        """Find in DSU."""
+        if index not in self.leader:
+            self.leader[index] = index
+            self.group[index] = []
+            return index
+        if self.leader[index] == index:
+            return index
+        self.leader[index] = self.find_leader(self.leader[index])
+        return self.leader[index]
+
+    def union_leaders(self, index1, index2):
+        """Union in DSU."""
+        leader1 = self.find_leader(index1)
+        leader2 = self.find_leader(index2)
+        if leader1 == leader2:
+            return
+        if len(self.group[leader1]) < len(self.group[leader2]):
+            leader1, leader2 = leader2, leader1
+
+        self.leader[leader2] = leader1
+        self.group[leader1].extend(self.group[leader2])
+        self.group[leader2].clear()
+
+    def run(self, block):
+        for node in block:
+            indices = node.qargs
+            if not indices:
+                continue
+            first = indices[0]
+            for index in indices[1:]:
+                self.union_leaders(first, index)
+            self.group[self.find_leader(first)].append(node)
+
+        blocks = []
+        for index in self.leader.keys():
+            if self.leader[index] == index:
+                blocks.append(self.group[index])
+
+        return blocks

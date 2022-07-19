@@ -632,9 +632,6 @@ class DAGDependency:
             should_update_edges=False
         )
 
-        for x in node_block:
-            print(f"contracting: {x.op.__repr__(), x.qargs}")
-
         try:
             new_node.node_id = self._multi_graph.contract_nodes(
                 block_ids, new_node, check_cycle=cycle_check
@@ -643,7 +640,6 @@ class DAGDependency:
             raise DAGDependencyError(
                 "Replacing the specified node block would introduce a cycle"
             ) from ex
-        print(f"new_node_id = {new_node.node_id}")
 
     def print(self):
         nodes = list(self._multi_graph.nodes())
