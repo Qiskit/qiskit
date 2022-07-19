@@ -24,6 +24,9 @@ class SwapGate(Gate):
 
     This is a symmetric and Clifford gate.
 
+    Can be applied to a :class:`~qiskit.circuit.QuantumCircuit`
+    with the :meth:`~qiskit.circuit.QuantumCircuit.swap` method.
+
     **Circuit symbol:**
 
     .. parsed-literal::
