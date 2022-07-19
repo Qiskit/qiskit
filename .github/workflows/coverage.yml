@@ -63,7 +63,8 @@ jobs:
           set -e
           coverage3 combine
           coveragepy-lcov --output_file_path python.info
-          lcov --add-tracefile python.info -a rust_unittest.info -a rust_parallel_map.info -o coveralls.info
+          lcov --add-tracefile python.info -a rust_unittest.info -a rust_parallel_map.info -o combined.info
+          lcov --remove combined.info "target/*" -o coveralls.info
       - name: Coveralls
         uses: coverallsapp/github-action@master
         with:
