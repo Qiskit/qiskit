@@ -12,10 +12,13 @@
 """
 Common functionality for primitives based on the Statevector construct
 """
+from __future__ import annotations
+
 from functools import lru_cache
 
 from numpy.random import Generator, default_rng
 from qiskit.circuit import Parameter, QuantumCircuit
+from qiskit.quantum_info import Statevector
 
 cache = lru_cache(maxsize=None)
 
