@@ -167,6 +167,53 @@ class TestPVQD(QiskitTestCase):
         self.assertEqual(observables[0], 0.1)  # expected energy
         self.assertEqual(observables[1], 1)  # expected magnetization
 
+    def test_invalid_setup(self):
+        """Test appropriate error is raised if attributes are missing or incompatible."""
+        pvqd = PVQD(
+            self.ansatz,
+            self.initial_parameters,
+            timestep=0.01,
+            optimizer=L_BFGS_B(maxiter=1),
+            quantum_instance=self.qasm_backend,
+            expectation=self.expectation,
+        )
+        problem = EvolutionProblem(self.hamiltonian, time=0.01)
+
+        args_to_test = [
+            ("ansatz", self.ansatz),
+            ("initial_parameters", self.initial_parameters),
+            ("timestep", 0.01),
+            ("optimizer", L_BFGS_B(maxiter=1)),
+            ("quantum_instance", self.qasm_backend),
+            ("expectation", self.expectation),
+        ]
+
+        for attr, value in args_to_test:
+            with self.subTest(msg=f"missing: {attr}"):
+                # set attribute to None to invalidate the setup
+                setattr(pvqd, attr, None)
+
+                with self.assertRaises(ValueError):
+                    _ = pvqd.evolve(problem)
+
+                # set the correct value again
+                setattr(pvqd, attr, value)
+
+        # check PVQD is running now that all arguments are set
+        result = pvqd.evolve(problem)
+        self.assertIsNotNone(result.evolved_state)
+
+
+class TestPVQDUtils(QiskitTestCase):
+    """Test some utility functions for PVQD."""
+
+    def setUp(self):
+        super().setUp()
+        self.sv_backend = BasicAer.get_backend("statevector_simulator")
+        self.expectation = MatrixExpectation()
+        self.hamiltonian = 0.1 * (Z ^ Z) + (I ^ X) + (X ^ I)
+        self.ansatz = EfficientSU2(2, reps=1)
+
     def test_gradient_supported(self):
         """Test the gradient support is correctly determined."""
         # gradient supported here
@@ -216,39 +263,3 @@ class TestPVQD(QiskitTestCase):
                 pvqd.initial_parameters = np.zeros(circuit.num_parameters)
                 _ = pvqd.evolve(problem)
                 self.assertEqual(info["has_gradient"], expected_support)
-
-    def test_invalid_setup(self):
-        """Test appropriate error is raised if attributes are missing or incompatible."""
-        pvqd = PVQD(
-            self.ansatz,
-            self.initial_parameters,
-            timestep=0.01,
-            optimizer=L_BFGS_B(maxiter=1),
-            quantum_instance=self.qasm_backend,
-            expectation=self.expectation,
-        )
-        problem = EvolutionProblem(self.hamiltonian, time=0.01)
-
-        args_to_test = [
-            ("ansatz", self.ansatz),
-            ("initial_parameters", self.initial_parameters),
-            ("timestep", 0.01),
-            ("optimizer", L_BFGS_B(maxiter=1)),
-            ("quantum_instance", self.qasm_backend),
-            ("expectation", self.expectation),
-        ]
-
-        for attr, value in args_to_test:
-            with self.subTest(msg=f"missing: {attr}"):
-                # set attribute to None to invalidate the setup
-                setattr(pvqd, attr, None)
-
-                with self.assertRaises(ValueError):
-                    _ = pvqd.evolve(problem)
-
-                # set the correct value again
-                setattr(pvqd, attr, value)
-
-        # check PVQD is running now that all arguments are set
-        result = pvqd.evolve(problem)
-        self.assertIsNotNone(result.evolved_state)

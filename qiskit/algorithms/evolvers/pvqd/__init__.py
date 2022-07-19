@@ -12,7 +12,7 @@
 
 """The projected Variational Quantum Dynamic (p-VQD) module."""
 
-from .result import PVQDResult
+from .pvqd_result import PVQDResult
 from .pvqd import PVQD
 
 __all__ = ["PVQD", "PVQDResult"]

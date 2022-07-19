@@ -31,7 +31,7 @@ from qiskit.opflow import (
 from qiskit.synthesis import EvolutionSynthesis, LieTrotter
 from qiskit.utils import QuantumInstance
 
-from .result import PVQDResult
+from .pvqd_result import PVQDResult
 from .utils import _get_observable_evaluator, _is_gradient_supported
 
 from ..evolution_problem import EvolutionProblem
@@ -103,7 +103,7 @@ class PVQD(RealEvolver):
         expectation: Optional[ExpectationBase] = None,
         initial_guess: Optional[np.ndarray] = None,
         evolution: Optional[EvolutionSynthesis] = None,
-        gradients: bool = True,
+        use_parameter_shift: bool = True,
         quantum_instance: Optional[Union[Backend, QuantumInstance]] = None,
     ) -> None:
         """
@@ -121,8 +121,9 @@ class PVQD(RealEvolver):
                 a random vector with elements in the interval :math:`[-0.01, 0.01]`.
             evolution: The evolution synthesis to use for the construction of the Trotter step.
                 Defaults to first-order Lie-Trotter decomposition.
-            gradients: If True, use the parameter shift rule to compute gradients. If False,
-                the optimizer will not be passed a gradient callable.
+            use_parameter_shift: If True, use the parameter shift rule to compute gradients.
+                If False, the optimizer will not be passed a gradient callable. In that case,
+                Qiskit optimizers will use a finite difference rule to approximate the gradients.
             quantum_instance: The backend of quantum instance used to evaluate the circuits.
         """
         if evolution is None:
@@ -135,7 +136,7 @@ class PVQD(RealEvolver):
         self.initial_guess = initial_guess
         self.expectation = expectation
         self.evolution = evolution
-        self.gradients = gradients
+        self.gradients = use_parameter_shift
 
         self._sampler = None
         self.quantum_instance = quantum_instance
