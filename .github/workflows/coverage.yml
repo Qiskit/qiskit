@@ -52,7 +52,6 @@ jobs:
       - name: Run grcov for rust-coverage
         run: |
           set -e
-          mv qiskit-terra*profraw .
           ./grcov . --binary-path ./target/debug/ -s . -t lcov --branch --ignore-not-existing --ignore "/*" -o ./rust.info
       - name: Combine Coverage
         run: lcov --add-tracefile python.info -a rust-info -o coveralls.info
