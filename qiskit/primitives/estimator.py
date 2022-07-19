@@ -82,18 +82,12 @@ class Estimator(BaseEstimator):
         if self._is_closed:
             raise QiskitError("The primitive has been closed.")
 
-        # Rename
-        circuit_indices = circuits
-        observable_indices = observables
-        parameter_values_list = parameter_values
-        del circuits, observables, parameter_values
-
         # Parse input
         states = [
-            self._build_statevector(circuit_index, tuple(parameter_values))
-            for circuit_index, parameter_values in zip(circuit_indices, parameter_values_list)
+            self._build_statevector(circuit_index, tuple(values))
+            for circuit_index, values in zip(circuits, parameter_values)
         ]
-        observables = [self._observables[i] for i in observable_indices]
+        observables = [self._observables[i] for i in observables]
         shots = run_options.pop("shots", None)
         rng = self._parse_rng_from_seed(run_options.pop("seed", None))
 
