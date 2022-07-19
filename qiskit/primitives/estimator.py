@@ -16,7 +16,6 @@ Estimator class
 from __future__ import annotations
 
 from collections.abc import Iterable, Sequence
-from functools import lru_cache
 
 import numpy as np
 from qiskit.circuit import Parameter, QuantumCircuit
@@ -27,12 +26,11 @@ from qiskit.quantum_info.operators.base_operator import BaseOperator
 
 from .base_estimator import BaseEstimator
 from .estimator_result import EstimatorResult
+from .statevector_primitive import StatevectorPrimitive
 from .utils import init_circuit, init_observable
 
-cache = lru_cache(maxsize=None)
 
-
-class Estimator(BaseEstimator):
+class Estimator(BaseEstimator, StatevectorPrimitive):
     """
     Reference implementation of :class:`BaseEstimator`.
 
@@ -69,9 +67,6 @@ class Estimator(BaseEstimator):
         )
         self._is_closed = False
 
-    ################################################################################
-    ## INTERFACE
-    ################################################################################
     def _call(
         self,
         circuits: Sequence[int],
@@ -102,31 +97,8 @@ class Estimator(BaseEstimator):
     def close(self):
         self._is_closed = True
 
-    ################################################################################
-    ## UTILS
-    ################################################################################
-    def _bind_circuit_parameters(
-        self, circuit_index: int, parameter_values: tuple[float]
-    ) -> QuantumCircuit:
-        parameters = self._parameters[circuit_index]
-        if len(parameter_values) != len(parameters):
-            raise ValueError(
-                f"The number of values ({len(parameter_values)}) does not match "
-                f"the number of parameters ({len(parameters)})."
-            )
-        circuit = self._circuits[circuit_index]
-        if not parameter_values:
-            return circuit
-        parameter_mapping = dict(zip(parameters, parameter_values))
-        return circuit.bind_parameters(parameter_mapping)
-
-    @cache  # Enables memoization (tuples are hashable)
-    def _build_statevector(self, circuit_index: int, parameter_values: tuple[float]) -> Statevector:
-        circuit = self._bind_circuit_parameters(circuit_index, parameter_values)
-        return Statevector(circuit)
-
     def _compute_result(
-        self, state: Statevector, observable: BaseOperator | PauliSumOp, shots: int, rng
+        self, state: Statevector, observable: BaseOperator | PauliSumOp, shots: int, rng: np.random.Generator
     ) -> tuple[float, dict]:
         if state.num_qubits != observable.num_qubits:
             raise QiskitError(
@@ -144,11 +116,3 @@ class Estimator(BaseEstimator):
             metadatum["variance"] = variance
             metadatum["shots"] = shots
         return float(expectation_value), metadatum
-
-    def _parse_rng_from_seed(self, seed: None | int | np.random.Generator):
-        if seed is None:
-            return np.random.default_rng()
-        elif isinstance(seed, np.random.Generator):
-            return seed
-        else:
-            return np.random.default_rng(seed)

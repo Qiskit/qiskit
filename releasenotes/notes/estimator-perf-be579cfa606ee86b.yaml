@@ -1,9 +1,9 @@
 ---
 upgrade:
   - |
-    Refactor and introduce caching capabilities for the local Estimator
-    implementation based on Statevector. Caching avoids unnecessary and
-    redundant deepcopies of the target ``QuantumCircuit``s, which were
+    Refactor and introduce caching capabilities for the local implementations
+    of Estimator and Sampler based on Statevector. Caching avoids unnecessary
+    and redundant deepcopies of the target ``QuantumCircuit``s, which were
     previously triggered both for binding the parameters (even if circuit was
     not parametrized), and on ``Statevector`` construction. These updates show
     improvements in the runtime of certain problems, like computing the CH3
