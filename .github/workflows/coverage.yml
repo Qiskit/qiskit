@@ -54,7 +54,7 @@ jobs:
           set -e
           ./grcov . --binary-path ./target/debug/ -s . -t lcov --branch --ignore-not-existing --ignore "/*" -o ./rust.info
       - name: Combine Coverage
-        run: lcov --add-tracefile python.info -a rust-info -o coveralls.info
+        run: lcov --add-tracefile python.info -a rust.info -o coveralls.info
       - name: Coveralls
         uses: coverallsapp/github-action@master
         with:
