@@ -238,10 +238,12 @@ class TestOptimizerSerialization(QiskitAlgorithmsTestCase):
         from_dict = COBYLA(**serialized)
 
         with self.subTest(msg="test attributes"):
-            self.assertEqual(from_dict.settings["options"]["maxiter"], 1)
+            self.assertEqual(from_dict.settings["maxiter"], 1)
 
         with self.subTest(msg="test options"):
-            self.assertEqual(from_dict.settings["options"]["tea"], "with milk")
+            # options should only contain values that are *not* already in the initializer
+            # (e.g. should not contain maxiter)
+            self.assertEqual(from_dict.settings["options"], {"tea": "with milk"})
 
         with self.subTest(msg="test kwargs"):
             self.assertEqual(from_dict.settings["coffee"], "without sugar")
