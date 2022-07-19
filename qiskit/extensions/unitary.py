@@ -14,7 +14,6 @@
 Arbitrary unitary circuit instruction.
 """
 
-from collections import OrderedDict
 import numpy
 
 from qiskit.circuit import Gate, ControlledGate
