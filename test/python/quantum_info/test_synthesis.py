@@ -1485,7 +1485,8 @@ class TestTwoQubitDecomposeUpToDiagonal(QiskitTestCase):
         mat = np.identity(4)
         self.assertTrue(dec._cx0_test(mat))
 
-        zz = np.kron(dec.sz, dec.sz)
+        sz = np.array([[1, 0], [0, -1]])
+        zz = np.kron(sz, sz)
         self.assertTrue(dec._cx0_test(zz))
 
         had = np.matrix([[1, 1], [1, -1]]) / np.sqrt(2)
