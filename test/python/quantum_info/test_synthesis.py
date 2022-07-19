@@ -1493,7 +1493,8 @@ class TestTwoQubitDecomposeUpToDiagonal(QiskitTestCase):
         hh = np.kron(had, had)
         self.assertTrue(dec._cx0_test(hh))
 
-        hy = np.kron(had, dec.sy)
+        sy = np.array([[0, -1j], [1j, 0]])
+        hy = np.kron(had, sy)
         self.assertTrue(dec._cx0_test(hy))
 
         qc = QuantumCircuit(2)
