@@ -35,11 +35,14 @@ cache = lru_cache(maxsize=None)
 class Estimator(BaseEstimator):
     """
     Reference implementation of :class:`BaseEstimator`.
+
     :Run Options:
+
         - **shots** (None or int) --
           The number of shots. If None, it calculates the exact expectation
           values. Otherwise, it samples from normal distributions with standard errors as standard
           deviations using normal distribution approximation.
+
         - **seed** (np.random.Generator or int) --
           Set a fixed seed or generator for the normal distribution. If shots is None,
           this option is ignored.
