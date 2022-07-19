@@ -111,6 +111,9 @@ class CHGate(ControlledGate):
     Applies a Hadamard on the target qubit if the control is
     in the :math:`|1\rangle` state.
 
+    Can be applied to a :class:`~qiskit.circuit.QuantumCircuit`
+    with the :meth:`~qiskit.circuit.QuantumCircuit.ch` method.
+
     **Circuit symbol:**
 
     .. parsed-literal::
