@@ -99,6 +99,7 @@ from __future__ import annotations
 
 from abc import ABC, abstractmethod
 from collections.abc import Iterable, Sequence
+from concurrent.futures import Future, ThreadPoolExecutor
 from copy import copy
 
 import numpy as np
@@ -271,6 +272,15 @@ class BaseSampler(ABC):
             parameter_values=parameter_values,
             **run_options,
         )
+
+    def submit(
+        self,
+        circuits: Sequence[int | QuantumCircuit],
+        parameter_values: Sequence[Sequence[float]] | None = None,
+        **run_options,
+    ) -> Future:
+        executor = ThreadPoolExecutor(max_workers=1)
+        return executor.submit(self.__call__, circuits, parameter_values, **run_options)
 
     @abstractmethod
     def _call(
