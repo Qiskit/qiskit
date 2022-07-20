@@ -27,7 +27,7 @@ from qiskit.result import QuasiDistribution
 from .base_sampler import BaseSampler
 from .sampler_result import SamplerResult
 from .statevector_primitive import StatevectorPrimitive
-from .utils import final_measurement_mapping, init_circuit
+from .utils import final_measurement_mapping, init_circuit, rng_from_seed
 
 
 class Sampler(BaseSampler, StatevectorPrimitive):
@@ -95,7 +95,7 @@ class Sampler(BaseSampler, StatevectorPrimitive):
         ]
         qargs_list = [self._qargs_list[i] for i in circuits]
         shots = run_options.pop("shots", None)
-        rng = self._parse_rng_from_seed(run_options.pop("seed", None))
+        rng = rng_from_seed(run_options.pop("seed", None))
 
         # Results
         raw_results = [

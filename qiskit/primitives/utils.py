@@ -18,6 +18,7 @@ from __future__ import annotations
 from collections.abc import Iterator
 from typing import TypeVar
 
+from numpy.random import Generator, default_rng
 from qiskit.circuit import ParameterExpression, QuantumCircuit
 from qiskit.extensions.quantum_initializer.initializer import Initialize
 from qiskit.opflow import PauliSumOp
@@ -122,3 +123,11 @@ T = TypeVar("T")  # pylint: disable=invalid-name
 def _finditer(obj: T, objects: list[T]) -> Iterator[int]:
     """Return an iterator yielding the indices matching obj."""
     return map(lambda x: x[0], filter(lambda x: x[1] == obj, enumerate(objects)))
+
+
+def rng_from_seed(seed: None | int | Generator):
+    if seed is None:
+        return default_rng()
+    if isinstance(seed, Generator):
+        return seed
+    return default_rng(seed)

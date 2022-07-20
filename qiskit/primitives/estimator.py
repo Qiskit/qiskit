@@ -27,7 +27,7 @@ from qiskit.quantum_info.operators.base_operator import BaseOperator
 from .base_estimator import BaseEstimator
 from .estimator_result import EstimatorResult
 from .statevector_primitive import StatevectorPrimitive
-from .utils import init_circuit, init_observable
+from .utils import init_circuit, init_observable, rng_from_seed
 
 
 class Estimator(BaseEstimator, StatevectorPrimitive):
@@ -84,7 +84,7 @@ class Estimator(BaseEstimator, StatevectorPrimitive):
         ]
         observables = [self._observables[i] for i in observables]
         shots = run_options.pop("shots", None)
-        rng = self._parse_rng_from_seed(run_options.pop("seed", None))
+        rng = rng_from_seed(run_options.pop("seed", None))
 
         # Results
         raw_results = [

@@ -16,7 +16,6 @@ from __future__ import annotations
 
 from functools import lru_cache
 
-from numpy.random import Generator, default_rng
 from qiskit.circuit import QuantumCircuit
 from qiskit.quantum_info import Statevector
 
@@ -49,11 +48,3 @@ class StatevectorPrimitive:
     def _build_statevector(self, circuit_index: int, parameter_values: tuple[float]) -> Statevector:
         circuit = self._bind_circuit_parameters(circuit_index, parameter_values)
         return Statevector(circuit)
-
-    def _parse_rng_from_seed(self, seed: None | int | Generator):
-        if seed is None:
-            return default_rng()
-        elif isinstance(seed, Generator):
-            return seed
-        else:
-            return default_rng(seed)
