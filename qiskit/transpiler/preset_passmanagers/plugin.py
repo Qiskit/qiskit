@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2021.
+# (C) Copyright IBM 2022.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -218,10 +218,13 @@ class PassManagerStagePluginManager:
         plugin_name: str,
         pm_config: PassManagerConfig,
     ):
-        plugin_obj = stage_obj.get(plugin_name)
-        if plugin_obj is None:
-            raise TranspilerError(f"Invalid plugin name {plugin_name} for stage {stage_name}")
-        return plugin_obj.pass_manager(pm_config)
+        try:
+            plugin_obj = stage_obj[plugin_name]
+        except KeyError as err:
+            raise TranspilerError(
+                f"Invalid plugin name {plugin_name} for stage {stage_name}"
+            ) from err
+        return plugin_obj.obj.pass_manager(pm_config)
 
 
 def list_stage_plugins(stage_name: str) -> List[str]:

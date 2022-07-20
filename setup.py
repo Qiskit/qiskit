@@ -100,6 +100,14 @@ setup(
         "qiskit.unitary_synthesis": [
             "default = qiskit.transpiler.passes.synthesis.unitary_synthesis:DefaultUnitarySynthesis",
             "aqc = qiskit.transpiler.synthesis.aqc.aqc_plugin:AQCSynthesisPlugin",
-        ]
+        ],
+        "qiskit.transpiler.routing": [
+            "default = qiskit.transpiler.preset_passmanagers.builtin_plugins:DefaultRoutingPassManager",
+            "basic = qiskit.transpiler.preset_passmanagers.builtin_plugins:BasicSwapPassManager",
+            "stochastic = qiskit.transpiler.preset_passmanagers.builtin_plugins:StochasticSwapPassManager",
+            "lookahead = qiskit.transpiler.preset_passmanagers.builtin_plugins:LookaheadSwapPassManager",
+            "sabre = qiskit.transpiler.preset_passmanagers.builtin_plugins:SabreSwapPassManager",
+            "none = qiskit.transpiler.preset_passmanagers.builtin_plugins:NoneRoutingPassManager",
+        ],
     },
 )

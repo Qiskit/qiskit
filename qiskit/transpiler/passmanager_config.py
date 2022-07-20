@@ -41,6 +41,7 @@ class PassManagerConfig:
         target=None,
         init_method=None,
         optimization_method=None,
+        optimization_level=None,
     ):
         """Initialize a PassManagerConfig object
 
@@ -79,6 +80,7 @@ class PassManagerConfig:
             init_method (str): The plugin name for the init stage plugin to use
             optimization_method (str): The plugin name for the optimization stage plugin
                 to use
+            optimization_level (int): The optimization level being used for compilation
         """
         self.initial_layout = initial_layout
         self.basis_gates = basis_gates
@@ -98,6 +100,7 @@ class PassManagerConfig:
         self.target = target
         self.init_method = init_method
         self.optimization_method = optimization_method
+        self.optimization_level = optimization_level
 
     @classmethod
     def from_backend(cls, backend, **pass_manager_options):

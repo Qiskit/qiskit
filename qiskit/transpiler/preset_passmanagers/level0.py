@@ -70,6 +70,11 @@ def level_0_pass_manager(pass_manager_config: PassManagerConfig) -> StagedPassMa
     unitary_synthesis_method = pass_manager_config.unitary_synthesis_method
     unitary_synthesis_plugin_config = pass_manager_config.unitary_synthesis_plugin_config
     target = pass_manager_config.target
+    # Override an unset optimization_level for stage plugin use.
+    # it will be restored to None before this is returned
+    optimization_level = pass_manager_config.optimization_level
+    if optimization_level is None:
+        pass_manager_config.optimization_level = 0
 
     # Choose an initial layout if not set by user (default: trivial layout)
     _given_layout = SetLayout(initial_layout)
@@ -173,6 +178,8 @@ def level_0_pass_manager(pass_manager_config: PassManagerConfig) -> StagedPassMa
     sched = common.generate_scheduling(
         instruction_durations, scheduling_method, timing_constraints, inst_map
     )
+    # Restore PassManagerConfig optimization_level override
+    pass_manager_config.optimization_level = optimization_level
 
     return StagedPassManager(
         init=unroll_3q,

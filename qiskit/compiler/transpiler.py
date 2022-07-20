@@ -418,7 +418,7 @@ def _log_transpile_time(start_time, end_time):
 def _combine_args(shared_transpiler_args, unique_config):
     # Pop optimization_level to exclude it from the kwargs when building a
     # PassManagerConfig
-    level = shared_transpiler_args.pop("optimization_level")
+    level = shared_transpiler_args.get("optimization_level")
     pass_manager_config = shared_transpiler_args
     pass_manager_config.update(unique_config.pop("pass_manager_config"))
     pass_manager_config = PassManagerConfig(**pass_manager_config)

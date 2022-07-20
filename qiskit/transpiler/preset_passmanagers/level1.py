@@ -27,16 +27,11 @@ from qiskit.transpiler.passes import TrivialLayout
 from qiskit.transpiler.passes import DenseLayout
 from qiskit.transpiler.passes import NoiseAdaptiveLayout
 from qiskit.transpiler.passes import SabreLayout
-from qiskit.transpiler.passes import BasicSwap
-from qiskit.transpiler.passes import LookaheadSwap
-from qiskit.transpiler.passes import StochasticSwap
-from qiskit.transpiler.passes import SabreSwap
 from qiskit.transpiler.passes import FixedPoint
 from qiskit.transpiler.passes import Depth
 from qiskit.transpiler.passes import Size
 from qiskit.transpiler.passes import Optimize1qGatesDecomposition
 from qiskit.transpiler.passes import Layout2qDistance
-from qiskit.transpiler.passes import Error
 from qiskit.transpiler.preset_passmanagers import common
 from qiskit.transpiler.passes.layout.vf2_layout import VF2LayoutStopReason
 
@@ -66,23 +61,13 @@ def level_1_pass_manager(pass_manager_config: PassManagerConfig) -> StagedPassMa
     Raises:
         TranspilerError: if the passmanager config is invalid.
     """
-    plugin_manager = None
-    # pylint: disable=too-many-boolean-expressions
-    if (
-        pass_manager_config.layout_method is not None
-        or pass_manager_config.routing_method is not None
-        or pass_manager_config.translation_method is not None
-        or pass_manager_config.scheduling_method is not None
-        or pass_manager_config.init_method
-        or pass_manager_config.optimization_method is not None
-    ):
-        plugin_manager = PassManagerStagePluginManager()
+    plugin_manager = PassManagerStagePluginManager()
     basis_gates = pass_manager_config.basis_gates
     inst_map = pass_manager_config.inst_map
     coupling_map = pass_manager_config.coupling_map
     initial_layout = pass_manager_config.initial_layout
     layout_method = pass_manager_config.layout_method or "dense"
-    routing_method = pass_manager_config.routing_method or "stochastic"
+    routing_method = pass_manager_config.routing_method or "default"
     translation_method = pass_manager_config.translation_method or "translator"
     scheduling_method = pass_manager_config.scheduling_method
     init_method = pass_manager_config.init_method
@@ -95,6 +80,11 @@ def level_1_pass_manager(pass_manager_config: PassManagerConfig) -> StagedPassMa
     unitary_synthesis_plugin_config = pass_manager_config.unitary_synthesis_plugin_config
     timing_constraints = pass_manager_config.timing_constraints or TimingConstraints()
     target = pass_manager_config.target
+    # Override an unset optimization_level for stage plugin use.
+    # it will be restored to None before this is returned
+    optimization_level = pass_manager_config.optimization_level
+    if optimization_level is None:
+        pass_manager_config.optimization_level = 1
 
     # Use trivial layout if no layout given
     _given_layout = SetLayout(initial_layout)
@@ -162,15 +152,8 @@ def level_1_pass_manager(pass_manager_config: PassManagerConfig) -> StagedPassMa
 
     toqm_pass = False
     routing_pm = None
-    if routing_method == "basic":
-        routing_pass = BasicSwap(coupling_map)
-    elif routing_method == "stochastic":
-        routing_pass = StochasticSwap(coupling_map, trials=20, seed=seed_transpiler)
-    elif routing_method == "lookahead":
-        routing_pass = LookaheadSwap(coupling_map, search_depth=4, search_width=4)
-    elif routing_method == "sabre":
-        routing_pass = SabreSwap(coupling_map, heuristic="lookahead", seed=seed_transpiler)
-    elif routing_method == "toqm":
+    # TODO: Remove when qiskit-toqm has it's own plugin and we can rely on just the plugin interface
+    if routing_method == "toqm":
         HAS_TOQM.require_now("TOQM-based routing")
         from qiskit_toqm import ToqmSwap, ToqmStrategyO1, latencies_from_target
 
@@ -188,11 +171,18 @@ def level_1_pass_manager(pass_manager_config: PassManagerConfig) -> StagedPassMa
                 )
             ),
         )
-    elif routing_method == "none":
-        routing_pass = Error(
-            msg="No routing method selected, but circuit is not routed to device. "
-            "CheckMap Error: {check_map_msg}",
-            action="raise",
+        vf2_call_limit = None
+        if pass_manager_config.layout_method is None and pass_manager_config.initial_layout is None:
+            vf2_call_limit = int(5e4)  # Set call limit to ~100ms with retworkx 0.10.2
+        routing_pm = common.generate_routing_passmanager(
+            routing_pass,
+            target,
+            coupling_map,
+            vf2_call_limit=vf2_call_limit,
+            backend_properties=backend_properties,
+            seed_transpiler=seed_transpiler,
+            check_trivial=True,
+            use_barrier_before_measurement=not toqm_pass,
         )
     else:
         routing_pm = plugin_manager.get_passmanager_stage(
@@ -231,22 +221,8 @@ def level_1_pass_manager(pass_manager_config: PassManagerConfig) -> StagedPassMa
             layout.append(_improve_layout, condition=_vf2_match_not_found)
             layout += common.generate_embed_passmanager(coupling_map)
 
-        vf2_call_limit = None
-        if pass_manager_config.layout_method is None and pass_manager_config.initial_layout is None:
-            vf2_call_limit = int(5e4)  # Set call limit to ~100ms with retworkx 0.10.2
-        if routing_pm is not None:
-            routing = routing_pm
-        else:
-            routing = common.generate_routing_passmanager(
-                routing_pass,
-                target,
-                coupling_map,
-                vf2_call_limit=vf2_call_limit,
-                backend_properties=backend_properties,
-                seed_transpiler=seed_transpiler,
-                check_trivial=True,
-                use_barrier_before_measurement=not toqm_pass,
-            )
+        routing = routing_pm
+
     else:
         layout = None
         routing = None
@@ -297,6 +273,8 @@ def level_1_pass_manager(pass_manager_config: PassManagerConfig) -> StagedPassMa
         init = plugin_manager.get_passmanager_stage("init", init_method, pass_manager_config)
     else:
         init = unroll_3q
+    # Restore PassManagerConfig optimization_level override
+    pass_manager_config.optimization_level = optimization_level
 
     return StagedPassManager(
         init=init,
