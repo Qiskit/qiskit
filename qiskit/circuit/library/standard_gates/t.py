@@ -106,7 +106,7 @@ class TdgGate(Gate):
         q_0: ┤ Tdg ├
              └─────┘
 
-    Equivalent to a :math:`\pi/2` radian rotation about the Z axis.
+    Equivalent to a :math:`-\pi/4` radian rotation about the Z axis.
     """
 
     def __init__(self, label: Optional[str] = None):
