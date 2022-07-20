@@ -896,7 +896,7 @@ class C4XGate(ControlledGate):
 
 class MCXGate(ControlledGate):
     """The general, multi-controlled X gate.
-    
+
     Can be applied to a :class:`~qiskit.circuit.QuantumCircuit`
     with the :meth:`~qiskit.circuit.QuantumCircuit.mcx` method.
     """
