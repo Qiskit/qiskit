@@ -446,14 +446,14 @@ def generate_calibrated_circuits():
 
     # custom gate
     mygate = Gate("mygate", 1, [])
-    qc = QuantumCircuit(1)
+    qc = QuantumCircuit(1, name="calibrated_circuit_1")
     qc.append(mygate, [0])
     with builder.build() as caldef:
         builder.play(Constant(100, 0.1), DriveChannel(0))
     qc.add_calibration(mygate, (0,), caldef)
     circuits.append(qc)
     # override instruction
-    qc = QuantumCircuit(1)
+    qc = QuantumCircuit(1, name="calibrated_circuit_2")
     qc.x(0)
     with builder.build() as caldef:
         builder.play(Constant(100, 0.1), DriveChannel(0))
