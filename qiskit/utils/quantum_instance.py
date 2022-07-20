@@ -324,6 +324,7 @@ class QuantumInstance:
                 )
 
         # setup measurement error mitigation
+        self._m3_mitigator = None
         self._meas_error_mitigation_cls = None
         if self.is_statevector:
             if measurement_error_mitigation_cls is not None:
@@ -527,7 +528,10 @@ class QuantumInstance:
             except ImportError:
                 pass
 
-        if self._meas_error_mitigation_cls is not None:
+        # This is a bit nasty due to circular imports
+        from mthree.mitigation import M3Mitigation
+
+        if self._meas_error_mitigation_cls is not None and self._meas_error_mitigation_cls != M3Mitigation:
             qubit_index, qubit_mappings = get_measured_qubits(circuits)
             mit_pattern = self._mit_pattern
             if mit_pattern is None:
@@ -707,6 +711,57 @@ class QuantumInstance:
                             if round(v) != 0
                         }
                         result.results[n] = tmp_result.results[i]
+
+        elif self._meas_error_mitigation_cls is not None and self._meas_error_mitigation_cls == M3Mitigation:
+            # Get possible remapping of qubits to classical bits, e.g.
+            # detect permutations such as circuit.measure(3, 0)
+            qubit_index, qubit_mappings = get_measured_qubits(circuits)
+
+            # Raise on non-standard cases.
+            if len(set(qubit_mappings.keys())) != 1:
+                raise QiskitError(
+                    "The QuantumInstance only supports M3 Error mitigation if all the circuits "
+                    "have the same mapping of qubits to classical bits."
+                )
+
+            # Order of the physical qubits in the classical bit strings.
+            current_qubits = [int(idx) for idx in next(iter(qubit_mappings.keys())).split("_")]
+
+            # Setup M3 readout error mitigation if not already done.
+            if self._m3_mitigator is None:
+                self._m3_mitigator = M3Mitigation(self._backend)
+
+                # Call the backend and setup the calibration matrix.
+                self._m3_mitigator.cals_from_system(current_qubits)
+
+            # Now run the circuit of the application.
+            result = run_circuits(
+                circuits,
+                self._backend,
+                qjob_config=self.qjob_config,
+                backend_options=self.backend_options,
+                noise_config=self._noise_config,
+                run_config=self._run_config.to_dict(),
+                job_callback=self._job_callback,
+                max_job_retries=self._max_job_retries,
+            )
+            self._time_taken += result.time_taken
+
+            tmp_result = copy.deepcopy(result)
+
+            # Loop over the result of each circuit and correct readout errors with M3.
+            for c_idx in range(len(circuits)):
+
+                new_counts = self._m3_mitigator.apply_correction(
+                    tmp_result.get_counts(c_idx),
+                    current_qubits,  # TODO This should be the remapped qubits. Check!
+                    distance=3
+                )
+
+                rounded_counts = {k: max(0, int(v * self._run_config.shots)) for k, v in new_counts.items()}
+                tmp_result.results[c_idx].data.counts = rounded_counts
+
+                result.results[c_idx] = tmp_result.results[c_idx]
 
         else:
             result = run_circuits(
