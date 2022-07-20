@@ -380,10 +380,40 @@ class BaseEstimator(ABC):
         parameter_values: Sequence[Sequence[float]] | None = None,
         **run_options,
     ) -> Future:
-        executor = ThreadPoolExecutor(max_workers=1)
-        return executor.submit(
-            self.__call__, circuits, observables, parameter_values, **run_options
-        )
+        """Submit the job of the estimation of expectation value(s).
+
+        ``circuits``, ``observables``, and ``parameter_values`` should have the same
+        length. The i-th element of the result is the expectation of observable
+
+        .. code-block:: python
+
+            obs = self.observables[observables[i]]
+
+        for the state prepared by
+
+        .. code-block:: python
+
+            circ = self.circuits[circuits[i]]
+
+        with bound parameters
+
+        .. code-block:: python
+
+            values = parameter_values[i].
+
+        Args:
+            circuits: the list of circuit indices or circuit objects.
+            observables: the list of observable indices or observable objects.
+            parameter_values: concrete parameters to be bound.
+            run_options: runtime options used for circuit execution.
+
+        Returns:
+            Future: The future object of EstimatorResult.
+        """
+        with ThreadPoolExecutor(max_workers=1) as executor:
+            return executor.submit(
+                self.__call__, circuits, observables, parameter_values, **run_options
+            )
 
     @abstractmethod
     def _call(

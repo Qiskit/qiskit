@@ -279,8 +279,20 @@ class BaseSampler(ABC):
         parameter_values: Sequence[Sequence[float]] | None = None,
         **run_options,
     ) -> Future:
-        executor = ThreadPoolExecutor(max_workers=1)
-        return executor.submit(self.__call__, circuits, parameter_values, **run_options)
+        """Submit the job of the sampling of bitstrings.
+
+        Args:
+            circuits: the list of circuit indices or circuit objects.
+            parameter_values: Parameters to be bound to the circuit.
+            run_options: Backend runtime options used for circuit execution.
+
+        Returns:
+            The future object of the result of the sampler. The i-th result corresponds to
+            ``self.circuits[circuits[i]]`` evaluated with parameters bound as
+            ``parameter_values[i]``.
+        """
+        with ThreadPoolExecutor(max_workers=1) as executor:
+            return executor.submit(self.__call__, circuits, parameter_values, **run_options)
 
     @abstractmethod
     def _call(
