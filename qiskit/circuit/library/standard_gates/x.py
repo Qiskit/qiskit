@@ -421,6 +421,9 @@ class RCCXGate(Gate):
 
     This concrete implementation is from https://arxiv.org/abs/1508.03273, the dashed box
     of Fig. 3.
+
+    Can be applied to a :class:`~qiskit.circuit.QuantumCircuit`
+    with the :meth:`~qiskit.circuit.QuantumCircuit.rccx` method.
     """
 
     def __init__(self, label: Optional[str] = None):
@@ -700,6 +703,9 @@ class RC3XGate(Gate):
 
     This concrete implementation is from https://arxiv.org/abs/1508.03273, the complete circuit
     of Fig. 4.
+
+    Can be applied to a :class:`~qiskit.circuit.QuantumCircuit`
+    with the :meth:`~qiskit.circuit.QuantumCircuit.rcccx` method.
     """
 
     def __init__(self, label: Optional[str] = None):
@@ -889,7 +895,11 @@ class C4XGate(ControlledGate):
 
 
 class MCXGate(ControlledGate):
-    """The general, multi-controlled X gate."""
+    """The general, multi-controlled X gate.
+    
+    Can be applied to a :class:`~qiskit.circuit.QuantumCircuit`
+    with the :meth:`~qiskit.circuit.QuantumCircuit.mcx` method.
+    """
 
     def __new__(
         cls,
