@@ -531,7 +531,10 @@ class QuantumInstance:
         # This is a bit nasty due to circular imports
         from mthree.mitigation import M3Mitigation
 
-        if self._meas_error_mitigation_cls is not None and self._meas_error_mitigation_cls != M3Mitigation:
+        if (
+            self._meas_error_mitigation_cls is not None
+            and self._meas_error_mitigation_cls != M3Mitigation
+        ):
             qubit_index, qubit_mappings = get_measured_qubits(circuits)
             mit_pattern = self._mit_pattern
             if mit_pattern is None:
@@ -712,7 +715,10 @@ class QuantumInstance:
                         }
                         result.results[n] = tmp_result.results[i]
 
-        elif self._meas_error_mitigation_cls is not None and self._meas_error_mitigation_cls == M3Mitigation:
+        elif (
+            self._meas_error_mitigation_cls is not None
+            and self._meas_error_mitigation_cls == M3Mitigation
+        ):
             # Get possible remapping of qubits to classical bits, e.g.
             # detect permutations such as circuit.measure(3, 0)
             qubit_index, qubit_mappings = get_measured_qubits(circuits)
@@ -755,10 +761,12 @@ class QuantumInstance:
                 new_counts = self._m3_mitigator.apply_correction(
                     tmp_result.get_counts(c_idx),
                     current_qubits,  # TODO This should be the remapped qubits. Check!
-                    distance=3
+                    distance=3,
                 )
 
-                rounded_counts = {k: max(0, int(v * self._run_config.shots)) for k, v in new_counts.items()}
+                rounded_counts = {
+                    k: max(0, int(v * self._run_config.shots)) for k, v in new_counts.items()
+                }
                 tmp_result.results[c_idx].data.counts = rounded_counts
 
                 result.results[c_idx] = tmp_result.results[c_idx]
