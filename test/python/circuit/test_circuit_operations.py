@@ -1265,3 +1265,10 @@ class TestCircuitPrivateOperations(QiskitTestCase):
         instruction = test._pop_previous_instruction_in_scope()
         self.assertEqual(list(last_instructions), [instruction])
         self.assertEqual({y}, set(test.parameters))
+
+    def test_decompose_gate_type(self):
+        """Test decompose specifying gate type."""
+        circuit = QuantumCircuit(1)
+        circuit.append(SGate(label="s_gate"), [0])
+        decomposed = circuit.decompose(gates_to_decompose=SGate)
+        self.assertNotIn("s", decomposed.count_ops())
