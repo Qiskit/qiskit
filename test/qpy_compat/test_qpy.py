@@ -466,7 +466,7 @@ def generate_calibrated_circuits():
 def generate_controlled_gates():
     """Test QPY serialization with custom ControlledGates."""
     circuits = []
-    qc = QuantumCircuit(3)
+    qc = QuantumCircuit(3, name="custom_controlled_gates")
     controlled_gate = DCXGate().control(1)
     qc.append(controlled_gate, [0, 1, 2])
     circuits.append(qc)
@@ -476,13 +476,13 @@ def generate_controlled_gates():
     custom_definition.rz(1.5, 0)
     custom_definition.sdg(0)
     custom_gate.definition = custom_definition
-    nested_qc = QuantumCircuit(3)
+    nested_qc = QuantumCircuit(3, name="nested_qc")
     qc.append(custom_gate, [0])
     controlled_gate = custom_gate.control(2)
     nested_qc.append(controlled_gate, [0, 1, 2])
     nested_qc.measure_all()
     circuits.append(nested_qc)
-    qc_open = QuantumCircuit(2)
+    qc_open = QuantumCircuit(2, name="open_cx")
     qc_open.cx(0, 1, ctrl_state=0)
     circuits.append(qc_open)
     return circuits
