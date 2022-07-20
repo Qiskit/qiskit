@@ -26,6 +26,9 @@ class SGate(Gate):
 
     This is a Clifford gate and a square-root of Pauli-Z.
 
+    Can be applied to a :class:`~qiskit.circuit.QuantumCircuit`
+    with the :meth:`~qiskit.circuit.QuantumCircuit.s` method.
+
     **Matrix Representation:**
 
     .. math::
@@ -81,6 +84,9 @@ class SdgGate(Gate):
     It induces a :math:`-\pi/2` phase.
 
     This is a Clifford gate and a square-root of Pauli-Z.
+
+    Can be applied to a :class:`~qiskit.circuit.QuantumCircuit`
+    with the :meth:`~qiskit.circuit.QuantumCircuit.sdg` method.
 
     **Matrix Representation:**
 

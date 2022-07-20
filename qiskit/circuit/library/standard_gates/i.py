@@ -23,6 +23,9 @@ class IGate(Gate):
     Identity gate corresponds to a single-qubit gate wait cycle,
     and should not be optimized or unrolled (it is an opaque gate).
 
+    Can be applied to a :class:`~qiskit.circuit.QuantumCircuit`
+    with the :meth:`~qiskit.circuit.QuantumCircuit.id` method.
+
     **Matrix Representation:**
 
     .. math::
