@@ -264,9 +264,9 @@ def plot_bloch_multivector(
         title (str): a string that represents the plot title
         figsize (tuple): size of each individual Bloch sphere figure, in inches.
         reverse_bits (bool): If True, plots qubits following Qiskit's convention [Default:False].
-        font_size (double): Font size for the Bloch ball figures.
-        title_font_size (double): Font size for the title.
-        title_pad (double): Padding for the title (suptitle `y` position is `y=1+title_pad/100`).
+        font_size (float): Font size for the Bloch ball figures.
+        title_font_size (float): Font size for the title.
+        title_pad (float): Padding for the title (suptitle `y` position is `y=1+title_pad/100`).
 
     Returns:
         matplotlib.Figure:
