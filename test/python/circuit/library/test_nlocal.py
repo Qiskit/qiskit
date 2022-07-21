@@ -663,11 +663,9 @@ class TestTwoLocal(QiskitTestCase):
         for _ in range(reps):
             for i in range(num_qubits):
                 expected.ry(next(param_iter), i)
-            # expected.cx(0, 1)
-            # expected.cx(0, 2)
-            # expected.cx(1, 2)
-            expected.cx(1, 2)
             expected.cx(0, 1)
+            expected.cx(0, 2)
+            expected.cx(1, 2)
         for i in range(num_qubits):
             expected.ry(next(param_iter), i)
 
