@@ -98,7 +98,6 @@ class BaseFidelity(ABC):
         else:
             return np.atleast_2d(values)
 
-    @abstractmethod
     def set_circuits(self, left_circuit: QuantumCircuit, right_circuit: QuantumCircuit):
         """
         Fix the circuits for the fidelity to be computed of.
