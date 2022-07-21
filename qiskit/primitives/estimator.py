@@ -65,6 +65,7 @@ class Estimator(BaseEstimator, StatevectorPrimitive):
             observables=observables,
             parameters=parameters,
         )
+        self._rng = rng_from_seed()
         self._is_closed = False
 
     def _call(
@@ -84,11 +85,14 @@ class Estimator(BaseEstimator, StatevectorPrimitive):
         ]
         observables = [self._observables[i] for i in observables]
         shots = run_options.pop("shots", None)
-        rng = rng_from_seed(run_options.pop("seed", None))
+        if shots:
+            seed = run_options.pop("seed", None)
+            if seed:
+                self._rng = rng_from_seed(seed)
 
         # Results
         raw_results = [
-            self._compute_result(state, observable, shots, rng)
+            self._compute_result(state, observable, shots)
             for state, observable in zip(states, observables)
         ]
         expectation_values, metadata = zip(*raw_results)
@@ -102,7 +106,6 @@ class Estimator(BaseEstimator, StatevectorPrimitive):
         state: Statevector,
         observable: BaseOperator | PauliSumOp,
         shots: int,
-        rng: np.random.Generator,
     ) -> tuple[float, dict]:
         if state.num_qubits != observable.num_qubits:
             raise QiskitError(
@@ -116,7 +119,7 @@ class Estimator(BaseEstimator, StatevectorPrimitive):
             sq_exp_val = np.real_if_close(state.expectation_value(sq_obs))
             variance = sq_exp_val - expectation_value**2
             standard_error = np.sqrt(variance / shots)
-            expectation_value = rng.normal(expectation_value, standard_error)
+            expectation_value = self._rng.normal(expectation_value, standard_error)
             metadatum["variance"] = variance
             metadatum["shots"] = shots
         return float(expectation_value), metadatum

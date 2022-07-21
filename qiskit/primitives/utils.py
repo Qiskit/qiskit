@@ -129,7 +129,7 @@ def _finditer(obj: T, objects: list[T]) -> Iterator[int]:
     return map(lambda x: x[0], filter(lambda x: x[1] == obj, enumerate(objects)))
 
 
-def rng_from_seed(seed: None | int | Generator):
+def rng_from_seed(seed: None | int | Generator = None):
     """Build RNG from different seed formats"""
     if seed is None:
         return default_rng()

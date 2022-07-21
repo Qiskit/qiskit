@@ -77,6 +77,7 @@ class Sampler(BaseSampler, StatevectorPrimitive):
             self._qargs_list.append([q for _, q in c_q_mapping])
         circuits = tuple(circuit.remove_final_measurements(inplace=False) for circuit in circuits)
         super().__init__(circuits, parameters)
+        self._rng = rng_from_seed()
         self._is_closed = False
 
     def _call(
@@ -95,12 +96,14 @@ class Sampler(BaseSampler, StatevectorPrimitive):
         ]
         qargs_list = [self._qargs_list[i] for i in circuits]
         shots = run_options.pop("shots", None)
-        rng = rng_from_seed(run_options.pop("seed", None))
+        if shots:
+            seed = run_options.pop("seed", None)
+            if seed:
+                self._rng = rng_from_seed(seed)
 
         # Results
         raw_results = [
-            self._compute_result(state, qargs, shots, rng)
-            for state, qargs in zip(states, qargs_list)
+            self._compute_result(state, qargs, shots) for state, qargs in zip(states, qargs_list)
         ]
         probabilities, metadata = zip(*raw_results)
         quasis = [QuasiDistribution(dict(enumerate(p))) for p in probabilities]
@@ -110,11 +113,11 @@ class Sampler(BaseSampler, StatevectorPrimitive):
         self._is_closed = True
 
     def _compute_result(
-        self, state: Statevector, qargs: list[int], shots: int, rng: np.random.Generator
+        self, state: Statevector, qargs: list[int], shots: int
     ) -> tuple[float, dict]:
         probability = state.probabilities(qargs=qargs)
         metadatum = {}
         if shots is not None:
-            probability = rng.multinomial(shots, probability) / shots
+            probability = self._rng.multinomial(shots, probability) / shots
             metadatum["shots"] = shots
         return probability, metadatum
