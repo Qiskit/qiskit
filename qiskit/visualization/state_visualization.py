@@ -200,7 +200,7 @@ def plot_bloch_vector(
         figsize (tuple): Figure size in inches. Has no effect is passing ``ax``.
         coord_type (str): a string that specifies coordinate type for bloch
             (Cartesian or spherical), default is Cartesian
-        font_size (double): Font size.
+        font_size (float): Font size.
 
     Returns:
         Figure: A matplotlib figure instance if ``ax = None``.
