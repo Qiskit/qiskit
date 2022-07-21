@@ -15,8 +15,12 @@ Utility functions for primitives
 
 from __future__ import annotations
 
+from collections import OrderedDict
 from collections.abc import Iterator
+from functools import lru_cache, wraps
+from inspect import signature
 from typing import TypeVar
+from weakref import ref
 
 from numpy.random import Generator, default_rng
 from qiskit.circuit import ParameterExpression, QuantumCircuit
@@ -126,8 +130,41 @@ def _finditer(obj: T, objects: list[T]) -> Iterator[int]:
 
 
 def rng_from_seed(seed: None | int | Generator):
+    """Build RNG from different seed formats"""
     if seed is None:
         return default_rng()
     if isinstance(seed, Generator):
         return seed
     return default_rng(seed)
+
+
+def lru_method_cache(*lru_args, **lru_kwargs):
+    """Caching decorator for methods in classes"""
+
+    def decorator(func):
+        @wraps(func)
+        def wrapped_func(self, *args, **kwargs):
+            # We're storing the wrapped method inside the instance. If we had
+            # a strong reference to self the instance would never die.
+            self_weak = ref(self)
+
+            @lru_cache(*lru_args, **lru_kwargs)
+            def cached_method(*args, **kwargs):
+                return func(self_weak(), *args, **kwargs)
+
+            @wraps(func)
+            def wrapped_method(*args, **kwargs):
+                func_signature = signature(func)
+                bound_args = func_signature.bind(self_weak(), *args, **kwargs)
+                bound_args.apply_defaults()
+                bound_args = bound_args.arguments
+                bound_args.popitem(last=False)
+                bound_args = OrderedDict(sorted(bound_args.items()))  # Avoid redundant caching
+                return cached_method(**bound_args)
+
+            setattr(self, func.__name__, wrapped_method)
+            return wrapped_method(*args, **kwargs)
+
+        return wrapped_func
+
+    return decorator

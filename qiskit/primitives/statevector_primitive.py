@@ -14,12 +14,10 @@ Common functionality for primitives based on the Statevector construct
 """
 from __future__ import annotations
 
-from functools import lru_cache
-
 from qiskit.circuit import QuantumCircuit
 from qiskit.quantum_info import Statevector
 
-cache = lru_cache(maxsize=None)
+from .utils import lru_method_cache
 
 
 class StatevectorPrimitive:
@@ -44,7 +42,9 @@ class StatevectorPrimitive:
         parameter_mapping = dict(zip(parameters, parameter_values))
         return circuit.bind_parameters(parameter_mapping)
 
-    @cache  # Enables memoization (tuples are hashable)
-    def _build_statevector(self, circuit_index: int, parameter_values: tuple[float]) -> Statevector:
+    @lru_method_cache(maxsize=256)
+    def _build_statevector(  # Tuples are hashable, which we need for caching
+        self, circuit_index: int, parameter_values: tuple[float]
+    ) -> Statevector:
         circuit = self._bind_circuit_parameters(circuit_index, parameter_values)
         return Statevector(circuit)
