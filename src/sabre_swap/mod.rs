@@ -261,7 +261,7 @@ pub fn build_swap_map(
                     let successor = edge.target().index();
                     required_predecessors[successor] -= 1;
                     if required_predecessors[successor] == 0 {
-                        new_front_layer.push(edge.target());
+                        front_layer.push(edge.target());
                     }
                 }
             }
