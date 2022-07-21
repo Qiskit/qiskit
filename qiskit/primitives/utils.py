@@ -20,7 +20,7 @@ from collections.abc import Iterator
 from functools import lru_cache, wraps
 from inspect import signature
 from typing import TypeVar
-from weakref import ref
+from weakref import ref as weakref
 
 from numpy.random import Generator, default_rng
 from qiskit.circuit import ParameterExpression, QuantumCircuit
@@ -139,27 +139,31 @@ def rng_from_seed(seed: None | int | Generator = None):
 
 
 def lru_method_cache(*lru_args, **lru_kwargs):
-    """Caching decorator for methods in classes"""
+    """Least recently used cache decorator for methods in classes"""
 
     def decorator(func):
+        func_signature = signature(func)
+
+        def bind_args(*args, **kwargs):
+            bound_args = func_signature.bind("self", *args, **kwargs)
+            bound_args.apply_defaults()
+            bound_args = bound_args.arguments
+            bound_args.popitem(last=False)  # Remove self entry
+            return OrderedDict(sorted(bound_args.items()))
+
         @wraps(func)
         def wrapped_func(self, *args, **kwargs):
             # We're storing the wrapped method inside the instance. If we had
             # a strong reference to self the instance would never die.
-            self_weak = ref(self)
+            weak_ref = weakref(self)
 
             @lru_cache(*lru_args, **lru_kwargs)
             def cached_method(*args, **kwargs):
-                return func(self_weak(), *args, **kwargs)
+                return func(weak_ref(), *args, **kwargs)
 
             @wraps(func)
             def wrapped_method(*args, **kwargs):
-                func_signature = signature(func)
-                bound_args = func_signature.bind(self_weak(), *args, **kwargs)
-                bound_args.apply_defaults()
-                bound_args = bound_args.arguments
-                bound_args.popitem(last=False)
-                bound_args = OrderedDict(sorted(bound_args.items()))  # Avoid redundant caching
+                bound_args = bind_args(*args, **kwargs)  # Avoid redundant caching
                 return cached_method(**bound_args)
 
             setattr(self, func.__name__, wrapped_method)
