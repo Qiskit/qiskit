@@ -17,8 +17,6 @@ from __future__ import annotations
 
 from collections.abc import Iterable, Sequence
 
-import numpy as np
-
 from qiskit.circuit import Parameter, QuantumCircuit
 from qiskit.exceptions import QiskitError
 from qiskit.quantum_info import Statevector
