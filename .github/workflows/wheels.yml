@@ -2,7 +2,7 @@
 name: Wheel Builds
 on:
   pull_request:
-    branches: ['main']
+    branches: ['main', 'stable/*']
 jobs:
   build_wheels_s390x:
     name: Build wheels on s390x
