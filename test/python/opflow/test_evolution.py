@@ -19,6 +19,7 @@ import scipy.linalg
 
 import qiskit
 from qiskit.circuit import Parameter, ParameterVector
+from qiskit.extensions import UnitaryGate
 from qiskit.opflow import (
     CX,
     CircuitOp,
@@ -363,6 +364,19 @@ class TestEvolution(QiskitOpflowTestCase):
             [[0.29192658 - 0.45464871j, -0.84147098j], [-0.84147098j, 0.29192658 + 0.45464871j]]
         )
         np.testing.assert_array_almost_equal(evolution.to_matrix(), matrix)
+
+    def test_evolved_op_to_instruction(self):
+        """Test calling `to_instruction` on a plain EvolvedOp.
+
+        Regression test of Qiskit/qiskit-terra#8025.
+        """
+        op = EvolvedOp(0.5 * X)
+        circuit = op.to_instruction()
+
+        unitary = scipy.linalg.expm(-0.5j * X.to_matrix())
+        expected = UnitaryGate(unitary)
+
+        self.assertEqual(circuit, expected)
 
 
 if __name__ == "__main__":
