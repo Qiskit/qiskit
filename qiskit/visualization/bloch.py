@@ -177,7 +177,7 @@ class Bloch:
         # Color of fonts, default = 'black'
         self.font_color = plt.rcParams["axes.labelcolor"]
         # Size of fonts, default = 20
-        self.font_size = font_size if font_size is not None else 20
+        self.font_size = font_size
 
         # ---vector options---
         # List of colors for Bloch vectors, default = ['b','g','r','y']
