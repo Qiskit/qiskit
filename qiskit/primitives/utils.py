@@ -147,7 +147,7 @@ def lru_method_cache(*lru_args, **lru_kwargs):
         def bind_args(*args, **kwargs):
             bound_signature = func_signature.bind("self", *args, **kwargs)
             bound_signature.apply_defaults()
-            bound_args = bound_signature.arguments
+            bound_args = OrderedDict(bound_signature.arguments)
             bound_args.popitem(last=False)  # Remove self entry
             return OrderedDict(sorted(bound_args.items()))
 
