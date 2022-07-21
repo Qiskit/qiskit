@@ -1012,8 +1012,8 @@ def get_entangler_map(
     if entanglement == "full":
         return list(combinations(list(range(n)), m))
     elif entanglement == "reverse_linear":
-        """reverse linear connectivity. In the case of m=2 and the entanglement_block='cx
-        then it is equivalent to 'full' entanglement"""
+        # reverse linear connectivity. In the case of m=2 and the entanglement_block='cx'
+        # then it's equivalent to 'full' entanglement
         reverse = [tuple(range(n - i - m, n - i - m + 2)) for i in range(n - m + 1)]
         return reverse
     elif entanglement in ["linear", "circular", "sca", "pairwise"]:
