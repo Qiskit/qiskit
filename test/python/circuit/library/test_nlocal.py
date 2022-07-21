@@ -622,11 +622,11 @@ class TestTwoLocal(QiskitTestCase):
             expected = [(-np.pi, np.pi)] * two.num_parameters
             np.testing.assert_almost_equal(two.parameter_bounds, expected)
 
-    def test_ry_circuit(self):
-        """Test an RealAmplitudes circuit."""
+    def test_ry_circuit_reverse_linear(self):
+        """Test a RealAmplitudes circuit with entanglement = "reverse_linear"."""
         num_qubits = 3
         reps = 2
-        entanglement = "full"
+        entanglement = "reverse_linear"
         parameters = ParameterVector("theta", num_qubits * (reps + 1))
         param_iter = iter(parameters)
 
@@ -644,11 +644,11 @@ class TestTwoLocal(QiskitTestCase):
         ).assign_parameters(parameters)
         self.assertCircuitEqual(library, expected)
 
-    def test_ry_circuit_explicit(self):
-        """Test an RealAmplitudes circuit."""
+    def test_ry_circuit_full(self):
+        """Test a RealAmplitudes circuit with entanglement = "full"."""
         num_qubits = 3
         reps = 2
-        entanglement = "full_explicit"
+        entanglement = "full"
         parameters = ParameterVector("theta", num_qubits * (reps + 1))
         param_iter = iter(parameters)
 
@@ -892,15 +892,15 @@ class TestTwoLocal(QiskitTestCase):
         self.assertEqual(two_np64.decompose().count_ops()["cx"], expected_cx)
 
     @combine(num_qubits=[3, 4, 5, 6, 10])
-    def test_full_explicit(self, num_qubits):
-        """Test that 'full' and 'full_explicit' provide the same unitary element."""
+    def test_full_vs_reverse_linear(self, num_qubits):
+        """Test that 'full' and 'reverse_linear' provide the same unitary element."""
         reps = 2
         full = RealAmplitudes(num_qubits=num_qubits, entanglement="full", reps=reps)
         params = [0.1 * i for i in range((reps + 1) * num_qubits)]
-        explicit = RealAmplitudes(num_qubits=num_qubits, entanglement="full_explicit", reps=reps)
+        reverse = RealAmplitudes(num_qubits=num_qubits, entanglement="reverse_linear", reps=reps)
         full.assign_parameters(params, inplace=True)
-        explicit.assign_parameters(params, inplace=True)
-        assert Operator(full) == Operator(explicit)
+        reverse.assign_parameters(params, inplace=True)
+        assert Operator(full) == Operator(reverse)
 
 
 if __name__ == "__main__":
