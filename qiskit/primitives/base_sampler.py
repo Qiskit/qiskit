@@ -301,7 +301,7 @@ class BaseSampler(ABC):
             ``parameter_values[i]``.
         """
         with ThreadPoolExecutor(max_workers=1) as executor:
-            return executor.submit(self.__call__, circuits, parameter_values, **run_options)
+            return executor.submit(self._run, circuits, parameter_values, **run_options)
 
     @abstractmethod
     def _call(
@@ -311,3 +311,59 @@ class BaseSampler(ABC):
         **run_options,
     ) -> SamplerResult:
         ...
+
+    def _run(
+        self,
+        circuits: Sequence[int | QuantumCircuit],
+        parameter_values: Sequence[Sequence[float]] | None = None,
+        **run_options,
+    ):
+        # Support ndarray
+        if isinstance(parameter_values, np.ndarray):
+            parameter_values = parameter_values.tolist()
+
+        circuit_indices = []
+        for circuit in circuits:
+            if isinstance(circuit, (int, np.integer)):
+                circuit_indices.append(circuit)
+            else:
+                try:
+                    circuit_indices.append(next(_finditer(id(circuit), self._circuit_ids)))
+                except StopIteration:
+                    self._append_circuit(circuit)
+                    circuit_indices.append(len(self._circuits) - 1)
+
+        # Allow optional
+        if parameter_values is None:
+            for i in circuit_indices:
+                if len(self._circuits[i].parameters) != 0:
+                    raise QiskitError(
+                        f"The {i}-th circuit ({len(circuit_indices)}) is parameterised,"
+                        "but parameter values are not given."
+                    )
+            parameter_values = [[]] * len(circuits)
+
+        # Validation
+        if len(circuit_indices) != len(parameter_values):
+            raise QiskitError(
+                f"The number of circuits ({len(circuit_indices)}) does not match "
+                f"the number of parameter value sets ({len(parameter_values)})."
+            )
+
+        for i, value in zip(circuit_indices, parameter_values):
+            if len(value) != len(self._parameters[i]):
+                raise QiskitError(
+                    f"The number of values ({len(value)}) does not match "
+                    f"the number of parameters ({len(self._parameters[i])}) for the {i}-th circuit."
+                )
+
+        return self._call(
+            circuits=circuit_indices,
+            parameter_values=parameter_values,
+            **run_options,
+        )
+
+    def _append_circuit(self, circuit):
+        self._circuits += (circuit,)
+        self._circuit_ids.append(id(circuit))
+        self._parameters += (circuit.parameters,)

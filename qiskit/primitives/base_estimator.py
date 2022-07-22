@@ -435,62 +435,56 @@ class BaseEstimator(ABC):
         if isinstance(parameter_values, np.ndarray):
             parameter_values = parameter_values.tolist()
 
-        # Allow objects
-        try:
-            circuits = [
-                next(_finditer(id(circuit), self._circuit_ids))
-                if not isinstance(circuit, (int, np.integer))
-                else circuit
-                for circuit in circuits
-            ]
-        except StopIteration as err:
-            raise QiskitError(
-                "The circuits passed when calling estimator is not one of the circuits used to "
-                "initialize the session."
-            ) from err
-        try:
-            observables = [
-                next(_finditer(id(observable), self._observable_ids))
-                if not isinstance(observable, (int, np.integer))
-                else observable
-                for observable in observables
-            ]
-        except StopIteration as err:
-            raise QiskitError(
-                "The observables passed when calling estimator is not one of the observables used to "
-                "initialize the session."
-            ) from err
-
+        circuit_indices = []
+        for circuit in circuits:
+            if isinstance(circuit, (int, np.integer)):
+                circuit_indices.append(circuit)
+            else:
+                try:
+                    circuit_indices.append(next(_finditer(id(circuit), self._circuit_ids)))
+                except StopIteration:
+                    self._append_circuit(circuit)
+                    circuit_indices.append(len(self._circuits) - 1)
+        observable_indices = []
+        for observable in observables:
+            if isinstance(observable, (int, np.integer)):
+                observable_indices.append(observable)
+            else:
+                try:
+                    observable_indices.append(next(_finditer(id(observable), self._observable_ids)))
+                except StopIteration:
+                    self._append_observable(observable)
+                    observable_indices.append(len(self._observables) - 1)
         # Allow optional
         if parameter_values is None:
-            for i in circuits:
+            for i in circuit_indices:
                 if len(self._circuits[i].parameters) != 0:
                     raise QiskitError(
                         f"The {i}-th circuit is parameterised,"
                         "but parameter values are not given."
                     )
-            parameter_values = [[]] * len(circuits)
+            parameter_values = [[]] * len(circuit_indices)
 
         # Validation
-        if len(circuits) != len(observables):
+        if len(circuit_indices) != len(observable_indices):
             raise QiskitError(
-                f"The number of circuits ({len(circuits)}) does not match "
-                f"the number of observables ({len(observables)})."
+                f"The number of circuits ({len(circuit_indices)}) does not match "
+                f"the number of observables ({len(observable_indices)})."
             )
-        if len(circuits) != len(parameter_values):
+        if len(circuit_indices) != len(parameter_values):
             raise QiskitError(
-                f"The number of circuits ({len(circuits)}) does not match "
+                f"The number of circuits ({len(circuit_indices)}) does not match "
                 f"the number of parameter value sets ({len(parameter_values)})."
             )
 
-        for i, value in zip(circuits, parameter_values):
+        for i, value in zip(circuit_indices, parameter_values):
             if len(value) != len(self._parameters[i]):
                 raise QiskitError(
                     f"The number of values ({len(value)}) does not match "
                     f"the number of parameters ({len(self._parameters[i])}) for the {i}-th circuit."
                 )
 
-        for circ_i, obs_i in zip(circuits, observables):
+        for circ_i, obs_i in zip(circuit_indices, observable_indices):
             circuit_num_qubits = self.circuits[circ_i].num_qubits
             observable_num_qubits = self.observables[obs_i].num_qubits
             if circuit_num_qubits != observable_num_qubits:
@@ -500,20 +494,20 @@ class BaseEstimator(ABC):
                     f"({observable_num_qubits})."
                 )
 
-        if max(circuits) >= len(self.circuits):
+        if max(circuit_indices) >= len(self.circuits):
             raise QiskitError(
                 f"The number of circuits is {len(self.circuits)}, "
-                f"but the index {max(circuits)} is given."
+                f"but the index {max(circuit_indices)} is given."
             )
-        if max(observables) >= len(self.observables):
+        if max(observable_indices) >= len(self.observables):
             raise QiskitError(
                 f"The number of circuits is {len(self.observables)}, "
                 f"but the index {max(observables)} is given."
             )
 
         return self._call(
-            circuits=circuits,
-            observables=observables,
+            circuits=circuit_indices,
+            observables=observable_indices,
             parameter_values=parameter_values,
             **run_options,
         )
@@ -527,3 +521,12 @@ class BaseEstimator(ABC):
         **run_options,
     ) -> EstimatorResult:
         ...
+
+    def _append_circuit(self, circuit):
+        self._circuit_ids.append(id(circuit))
+        self._circuits += (circuit,)
+        self._parameters += (circuit.parameters,)
+
+    def _append_observable(self, observable):
+        self._observable_ids.append(id(observable))
+        self._observables += (observable,)
