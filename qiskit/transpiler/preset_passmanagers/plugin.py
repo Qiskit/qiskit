@@ -204,7 +204,7 @@ class PassManagerStagePluginManager:
             return self._build_pm(self.routing_plugins, stage_name, plugin_name, pm_config)
         elif stage_name == "translation":
             return self._build_pm(self.translation_plugins, stage_name, plugin_name, pm_config)
-        elif stage_name == "optimization_plugins":
+        elif stage_name == "optimization":
             return self._build_pm(self.optimization_plugins, stage_name, plugin_name, pm_config)
         elif stage_name == "scheduling":
             return self._build_pm(self.scheduling_plugins, stage_name, plugin_name, pm_config)
@@ -248,7 +248,7 @@ def list_stage_plugins(stage_name: str) -> List[str]:
         return plugin_mgr.routing_plugins.names()
     elif stage_name == "translation":
         return plugin_mgr.translation_plugins.names()
-    elif stage_name == "optimization_plugins":
+    elif stage_name == "optimization":
         return plugin_mgr.optimization_plugins.names()
     elif stage_name == "scheduling":
         return plugin_mgr.scheduling_plugins.names()
