@@ -252,6 +252,11 @@ class BaseEstimator(ABC):
         """
         return self._parameters
 
+    @deprecate_function(
+        "The BaseSampler.__call__ method is deprecated as of Qiskit Terra 0.21.0 "
+        "and will be removed no sooner than 3 months after the releasedate. "
+        "Use submit method instead.",
+    )
     @deprecate_arguments({"circuit_indices": "circuits", "observable_indices": "observables"})
     def __call__(
         self,

@@ -168,17 +168,17 @@ class BaseSampler(ABC):
         return self
 
     @deprecate_function(
-        "The BaseEstimator.__enter__ method is deprecated as of Qiskit Terra 0.21.0 "
+        "The BaseSampler.__enter__ method is deprecated as of Qiskit Terra 0.21.0 "
         "and will be removed no sooner than 3 months after the releasedate. "
-        "BaseEstimator should be initialized directly.",
+        "BaseSampler should be initialized directly.",
     )
     def __enter__(self):
         return self
 
     @deprecate_function(
-        "The BaseEstimator.__exit__ method is deprecated as of Qiskit Terra 0.21.0 "
+        "The BaseSampler.__exit__ method is deprecated as of Qiskit Terra 0.21.0 "
         "and will be removed no sooner than 3 months after the releasedate. "
-        "BaseEstimator should be initialized directly.",
+        "BaseSampler should be initialized directly.",
     )
     def __exit__(self, *exc_info):
         self.close()
@@ -205,6 +205,11 @@ class BaseSampler(ABC):
         """
         return self._parameters
 
+    @deprecate_function(
+        "The BaseSampler.__call__ method is deprecated as of Qiskit Terra 0.21.0 "
+        "and will be removed no sooner than 3 months after the releasedate. "
+        "Use submit method instead.",
+    )
     @deprecate_arguments({"circuit_indices": "circuits"})
     def __call__(
         self,

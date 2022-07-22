@@ -84,7 +84,8 @@ class TestSampler(QiskitTestCase):
         """test for sampler"""
         circuits, target = self._generate_circuits_target(indices)
         sampler = Sampler(circuits=circuits)
-        result = sampler(list(range(len(indices))), parameter_values=[[] for _ in indices])
+        with self.assertWarns(DeprecationWarning):
+            result = sampler(list(range(len(indices))), parameter_values=[[] for _ in indices])
         self._compare_probs(result.quasi_dists, target)
 
     @combine(indices=[[0], [1], [0, 1]])
@@ -92,7 +93,8 @@ class TestSampler(QiskitTestCase):
         """test for sampler with a parametrized circuit"""
         params, target = self._generate_params_target(indices)
         sampler = Sampler(circuits=self._pqc)
-        result = sampler([0] * len(params), params)
+        with self.assertWarns(DeprecationWarning):
+            result = sampler([0] * len(params), params)
         self._compare_probs(result.quasi_dists, target)
 
     @combine(indices=[[0, 0], [0, 1], [1, 1]])
@@ -101,7 +103,8 @@ class TestSampler(QiskitTestCase):
         circs = [self._pqc, self._pqc]
         params, target = self._generate_params_target(indices)
         sampler = Sampler(circuits=circs)
-        result = sampler(indices, parameter_values=params)
+        with self.assertWarns(DeprecationWarning):
+            result = sampler(indices, parameter_values=params)
         self._compare_probs(result.quasi_dists, target)
 
     def test_sampler_example(self):
@@ -114,7 +117,8 @@ class TestSampler(QiskitTestCase):
 
         # executes a Bell circuit
         sampler = Sampler(circuits=[bell], parameters=[[]])
-        result = sampler(parameter_values=[[]], circuits=[0])
+        with self.assertWarns(DeprecationWarning):
+            result = sampler(parameter_values=[[]], circuits=[0])
         self.assertIsInstance(result, SamplerResult)
         self.assertEqual(len(result.quasi_dists), 1)
         keys, values = zip(*sorted(result.quasi_dists[0].items()))
@@ -124,7 +128,8 @@ class TestSampler(QiskitTestCase):
 
         # executes three Bell circuits
         sampler = Sampler([bell] * 3, [[]] * 3)
-        result = sampler([0, 1, 2], [[]] * 3)
+        with self.assertWarns(DeprecationWarning):
+            result = sampler([0, 1, 2], [[]] * 3)
         self.assertIsInstance(result, SamplerResult)
         self.assertEqual(len(result.quasi_dists), 3)
         self.assertEqual(len(result.metadata), 3)
@@ -134,7 +139,8 @@ class TestSampler(QiskitTestCase):
             np.testing.assert_allclose(values, [0.5, 0, 0, 0.5])
 
         sampler = Sampler([bell])
-        result = sampler([bell, bell, bell])
+        with self.assertWarns(DeprecationWarning):
+            result = sampler([bell, bell, bell])
         self.assertIsInstance(result, SamplerResult)
         self.assertEqual(len(result.quasi_dists), 3)
         self.assertEqual(len(result.metadata), 3)
@@ -154,7 +160,8 @@ class TestSampler(QiskitTestCase):
         theta3 = [0, 1, 2, 3, 4, 5, 6, 7]
 
         sampler = Sampler(circuits=[pqc, pqc2], parameters=[pqc.parameters, pqc2.parameters])
-        result = sampler([0, 0, 1], [theta1, theta2, theta3])
+        with self.assertWarns(DeprecationWarning):
+            result = sampler([0, 0, 1], [theta1, theta2, theta3])
         self.assertIsInstance(result, SamplerResult)
         self.assertEqual(len(result.quasi_dists), 3)
         self.assertEqual(len(result.metadata), 3)
@@ -199,7 +206,8 @@ class TestSampler(QiskitTestCase):
         qc.measure(2, 2)
 
         sampler = Sampler([qc, qc], [[x, y], [y, x]])
-        result = sampler([0, 1, 0, 1], [[0, 0], [0, 0], [np.pi / 2, 0], [np.pi / 2, 0]])
+        with self.assertWarns(DeprecationWarning):
+            result = sampler([0, 1, 0, 1], [[0, 0], [0, 0], [np.pi / 2, 0], [np.pi / 2, 0]])
         self.assertIsInstance(result, SamplerResult)
         self.assertEqual(len(result.quasi_dists), 4)
 
@@ -237,7 +245,8 @@ class TestSampler(QiskitTestCase):
         qc.measure(2, 0)
 
         sampler = Sampler([qc, qc], [[x, y], [y, x]])
-        result = sampler([0, 1, 0, 1], [[0, 0], [0, 0], [np.pi / 2, 0], [np.pi / 2, 0]])
+        with self.assertWarns(DeprecationWarning):
+            result = sampler([0, 1, 0, 1], [[0, 0], [0, 0], [np.pi / 2, 0], [np.pi / 2, 0]])
         self.assertIsInstance(result, SamplerResult)
         self.assertEqual(len(result.quasi_dists), 4)
 
@@ -270,7 +279,8 @@ class TestSampler(QiskitTestCase):
         qc2.measure_all()
 
         sampler = Sampler([qc, qc2], [qc.parameters, qc2.parameters])
-        result = sampler([0, 1], [[]] * 2)
+        with self.assertWarns(DeprecationWarning):
+            result = sampler([0, 1], [[]] * 2)
         self.assertIsInstance(result, SamplerResult)
         self.assertEqual(len(result.quasi_dists), 2)
 
@@ -299,7 +309,8 @@ class TestSampler(QiskitTestCase):
         sampler = Sampler(
             [qc0, qc1, qc2, qc3], [qc0.parameters, qc1.parameters, qc2.parameters, qc3.parameters]
         )
-        result = sampler([0, 1, 2, 3], [[]] * 4)
+        with self.assertWarns(DeprecationWarning):
+            result = sampler([0, 1, 2, 3], [[]] * 4)
         self.assertIsInstance(result, SamplerResult)
         self.assertEqual(len(result.quasi_dists), 4)
 
@@ -327,11 +338,11 @@ class TestSampler(QiskitTestCase):
         qc2.measure_all()
 
         sampler = Sampler([qc1, qc2], [qc1.parameters, qc2.parameters])
-        with self.assertRaises(QiskitError):
+        with self.assertRaises(QiskitError), self.assertWarns(DeprecationWarning):
             sampler([0], [[1e2]])
-        with self.assertRaises(QiskitError):
+        with self.assertRaises(QiskitError), self.assertWarns(DeprecationWarning):
             sampler([1], [[]])
-        with self.assertRaises(QiskitError):
+        with self.assertRaises(QiskitError), self.assertWarns(DeprecationWarning):
             sampler([1], [[1e2]])
 
     def test_empty_parameter(self):
@@ -341,7 +352,8 @@ class TestSampler(QiskitTestCase):
         qc.measure(range(n - 1), range(n - 1))
         sampler = Sampler(circuits=[qc] * 10)
         with self.subTest("one circuit"):
-            result = sampler([0], shots=1000)
+            with self.assertWarns(DeprecationWarning):
+                result = sampler([0], shots=1000)
             self.assertEqual(len(result.quasi_dists), 1)
             for q_d in result.quasi_dists:
                 quasi_dist = {k: v for k, v in q_d.items() if v != 0.0}
@@ -349,7 +361,8 @@ class TestSampler(QiskitTestCase):
             self.assertEqual(len(result.metadata), 1)
 
         with self.subTest("two circuits"):
-            result = sampler([2, 4], shots=1000)
+            with self.assertWarns(DeprecationWarning):
+                result = sampler([2, 4], shots=1000)
             self.assertEqual(len(result.quasi_dists), 2)
             for q_d in result.quasi_dists:
                 quasi_dist = {k: v for k, v in q_d.items() if v != 0.0}
@@ -365,16 +378,19 @@ class TestSampler(QiskitTestCase):
         params_list = params_array.tolist()
         params_list_array = list(params_array)
         sampler = Sampler(circuits=qc)
-        target = sampler([0] * k, params_list)
+        with self.assertWarns(DeprecationWarning):
+            target = sampler([0] * k, params_list)
 
         with self.subTest("ndarrary"):
-            result = sampler([0] * k, params_array)
+            with self.assertWarns(DeprecationWarning):
+                result = sampler([0] * k, params_array)
             self.assertEqual(len(result.metadata), k)
             for i in range(k):
                 self.assertDictEqual(result.quasi_dists[i], target.quasi_dists[i])
 
         with self.subTest("list of ndarray"):
-            result = sampler([0] * k, params_list_array)
+            with self.assertWarns(DeprecationWarning):
+                result = sampler([0] * k, params_list_array)
             self.assertEqual(len(result.metadata), k)
             for i in range(k):
                 self.assertDictEqual(result.quasi_dists[i], target.quasi_dists[i])
@@ -386,13 +402,14 @@ class TestSampler(QiskitTestCase):
 
         with self.subTest("Valid test"):
             sampler = Sampler(circuits=self._pqc)
-            result = sampler(circuits=[self._pqc], parameter_values=params)
+            with self.assertWarns(DeprecationWarning):
+                result = sampler(circuits=[self._pqc], parameter_values=params)
             self._compare_probs(result.quasi_dists, target)
 
         with self.subTest("Invalid circuit test"):
             circuit = QuantumCircuit(2)
             sampler = Sampler(circuits=self._pqc)
-            with self.assertRaises(QiskitError):
+            with self.assertRaises(QiskitError), self.assertWarns(DeprecationWarning):
                 result = sampler(circuits=[circuit], parameter_values=params)
 
     @combine(indices=[[0], [1], [0, 1]])
@@ -411,14 +428,16 @@ class TestSampler(QiskitTestCase):
         """test with shots option."""
         params, target = self._generate_params_target([1])
         sampler = Sampler(circuits=self._pqc)
-        result = sampler(circuits=[0], parameter_values=params, shots=1024, seed=15)
+        with self.assertWarns(DeprecationWarning):
+            result = sampler(circuits=[0], parameter_values=params, shots=1024, seed=15)
         self._compare_probs(result.quasi_dists, target)
 
     def test_with_shots_option_none(self):
         """test with shots=None option. Seed is ignored then."""
         sampler = Sampler([self._pqc])
-        result_42 = sampler([0], parameter_values=[[0, 1, 1, 2, 3, 5]], shots=None, seed=42)
-        result_15 = sampler([0], parameter_values=[[0, 1, 1, 2, 3, 5]], shots=None, seed=15)
+        with self.assertWarns(DeprecationWarning):
+            result_42 = sampler([0], parameter_values=[[0, 1, 1, 2, 3, 5]], shots=None, seed=42)
+            result_15 = sampler([0], parameter_values=[[0, 1, 1, 2, 3, 5]], shots=None, seed=15)
         self.assertDictAlmostEqual(result_42.quasi_dists, result_15.quasi_dists)
 
 
