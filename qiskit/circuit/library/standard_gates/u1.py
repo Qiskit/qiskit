@@ -27,6 +27,17 @@ class U1Gate(Gate):
     This is a diagonal gate. It can be implemented virtually in hardware
     via framechanges (i.e. at zero error and duration).
 
+    .. warning::
+
+       This gate is deprecated. Instead, the following replacements should be used
+
+       .. math::
+
+           U1(\lambda) = P(\lambda)= U(0,0,\lambda)
+
+
+
+
     **Circuit symbol:**
 
     .. parsed-literal::
