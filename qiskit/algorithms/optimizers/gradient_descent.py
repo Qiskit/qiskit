@@ -235,28 +235,10 @@ class GradientDescent(SteppableOptimizer):
         if isinstance(learning_rate, (list, np.ndarray)):
             if len(learning_rate) < maxiter:
                 raise ValueError(
-                    f"Length of learning_rate ({len(learning_rate)}) is smaller than maxiter ({maxiter})."
+                    f"Length of learning_rate ({len(learning_rate)}) "
+                    f"is smaller than maxiter ({maxiter})."
                 )
-        self._learning_rate = learning_rate
-
-    @property
-    def learning_rate(self) -> Union[float, List[float], np.ndarray, Callable[[], Iterator]]:
-        """Returns the learning rate.
-
-        It can be either a constant value, a list or a function that returns generators.
-        """
-        return self._learning_rate
-
-    @learning_rate.setter
-    def learning_rate(
-        self, learning_rate: Union[float, List[float], np.ndarray, Callable[[], Iterator]]
-    ) -> None:
-        """Set the learning rate.
-
-        The learning rate provided needs to be a function that returns a generator.
-        If a constant is passed, the optimizer will use it for all iterations.
-        """
-        self._learning_rate = learning_rate
+        self.learning_rate = learning_rate
 
     @property
     def state(self) -> GradientDescentState:
@@ -313,7 +295,7 @@ class GradientDescent(SteppableOptimizer):
     def settings(self) -> Dict[str, Any]:
         # if learning rate or perturbation are custom iterators expand them
         if callable(self.learning_rate):
-            iterator = self._learning_rate()
+            iterator = self.learning_rate()
             learning_rate = np.array([next(iterator) for _ in range(self.maxiter)])
         else:
             learning_rate = self.learning_rate
