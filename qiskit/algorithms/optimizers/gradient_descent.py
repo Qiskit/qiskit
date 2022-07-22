@@ -194,16 +194,13 @@ class GradientDescent(SteppableOptimizer):
 
             result = optimizer.create_result()
 
-    In case the user isn't dealing with complicated functI am not 100% sure about it, so if on
-    and is more familiar with step by step
-    optimization algorithms, :meth:`~.step` has been created to acts as a wrapper for :meth:`~.ask`
-    and :meth:`~.tell`.
-    In the same spirit the method :meth:`~.minimize` will optimize the function and return the result
-    directly.
+    Users that aren't dealing with complicated functions and who are more familiar with step by step
+    optimization algorithms can use the :meth:`~.step` method which wraps the :meth:`~.ask`
+    and :meth:`~.tell` methods. In the same spirit the method :meth:`~.minimize` will optimize the
+    function and return the result without directly.
 
     To see other libraries that use this interface one can visit:
     https://optuna.readthedocs.io/en/stable/tutorial/20_recipes/009_ask_and_tell.html
-
 
     """
 
@@ -237,7 +234,9 @@ class GradientDescent(SteppableOptimizer):
         # if learning rate is an array, check it is sufficiently long.
         if isinstance(learning_rate, (list, np.ndarray)):
             if len(learning_rate) < maxiter:
-                raise ValueError(f"Length of learning_rate ({len(learning_rate)}) is smaller than maxiter ({maxiter}).")
+                raise ValueError(
+                    f"Length of learning_rate ({len(learning_rate)}) is smaller than maxiter ({maxiter})."
+                )
         self._learning_rate = learning_rate
 
     @property
