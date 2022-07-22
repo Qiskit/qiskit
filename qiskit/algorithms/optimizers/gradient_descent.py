@@ -237,7 +237,7 @@ class GradientDescent(SteppableOptimizer):
         # if learning rate is an array, check it is sufficiently long.
         if isinstance(learning_rate, (list, np.ndarray)):
             if len(learning_rate) < maxiter:
-                raise ValueError(f"Length of learning_rate is smaller than maxiter ({maxiter}).")
+                raise ValueError(f"Length of learning_rate ({len(learning_rate)}) is smaller than maxiter ({maxiter}).")
         self._learning_rate = learning_rate
 
     @property

@@ -89,7 +89,7 @@ features:
 
 fixes:
   - |
-    GradientDescent will now correctly count the number of iterations,function evaluations and
+    :class:`.GradientDescent` will now correctly count the number of iterations, function evaluations and
     gradient evaluations. Also the documentation now correctly states that the gradient is approximated
     by a forward finite difference method.
 
