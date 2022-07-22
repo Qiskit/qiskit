@@ -236,18 +236,25 @@ class SabreSwap(TransformationPass):
         output_layout = Layout({dag.qubits[k]: v for (k, v) in layout_mapping})
         self.property_set["final_layout"] = output_layout
         if not self.fake_run:
-            for node in dag.topological_op_nodes():
-                if node._node_id in swap_map:
-                    for swap in swap_map[node._node_id]:
-                        swap_qargs = [canonical_register[swap[0]], canonical_register[swap[1]]]
-                        self._apply_gate(
-                            mapped_dag,
-                            DAGOpNode(op=SwapGate(), qargs=swap_qargs),
-                            original_layout,
-                            canonical_register,
-                        )
-                        original_layout.swap_logical(*swap)
-                self._apply_gate(mapped_dag, node, original_layout, canonical_register)
+            # Reconstruct circuit by iterating over layers to preserve
+            # relative positioning of 1q gates with SWAPs.
+            layers = dag.multigraph_layers()
+            next(layers)
+            for layer in layers:
+                for node in layer:
+                    if not isinstance(node, DAGOpNode):
+                        continue
+                    if node._node_id in swap_map:
+                        for swap in swap_map[node._node_id]:
+                            swap_qargs = [canonical_register[swap[0]], canonical_register[swap[1]]]
+                            self._apply_gate(
+                                mapped_dag,
+                                DAGOpNode(op=SwapGate(), qargs=swap_qargs),
+                                original_layout,
+                                canonical_register,
+                            )
+                            original_layout.swap_logical(*swap)
+                    self._apply_gate(mapped_dag, node, original_layout, canonical_register)
             return mapped_dag
         return dag
 
