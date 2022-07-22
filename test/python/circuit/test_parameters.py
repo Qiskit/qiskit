@@ -1180,6 +1180,32 @@ class TestParameters(QiskitTestCase):
             self.assertEqual(len(qc_cinv.parameters), 1)
             self.assertEqual(qc_cinv.parameters[0], new_param)
 
+    def test_globalphase_properly_bound(self):
+        """Test the parameter is properly bound if it occurs in a gate and the global phase.
+
+        Regression test of Qiskit/qiskit-terra#6674.
+        """
+        x = Parameter("x")
+        inner = QuantumCircuit(1)
+        inner.global_phase = x
+        inner.rx(x, 0)
+
+        bound = inner.assign_parameters([0])
+        print("Inner", bound.parameters, "and decomposed", bound.decompose().parameters)
+
+        with self.subTest(msg="inner circuit"):
+            self.assertEqual(len(bound.parameters), 0)
+            self.assertEqual(len(bound.decompose().parameters), 0)
+
+        outer = QuantumCircuit(inner.num_qubits)
+        outer.append(inner.to_gate(), outer.qubits)
+
+        bound = outer.assign_parameters([0])
+
+        with self.subTest(msg="outer circuit"):
+            self.assertEqual(len(bound.parameters), 0)
+            self.assertEqual(len(bound.decompose().parameters), 0)
+
 
 def _construct_circuit(param, qr):
     qc = QuantumCircuit(qr)

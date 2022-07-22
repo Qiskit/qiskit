@@ -260,6 +260,18 @@ class Instruction:
         self, instruction: "Instruction", parameter: Parameter, value: ParameterValueType
     ) -> None:
         if instruction._definition:
+            global_phase = instruction._definition.global_phase
+            if (
+                isinstance(global_phase, ParameterExpression)
+                and parameter in global_phase.parameters
+            ):
+                if isinstance(value, ParameterExpression):
+                    bound_phase = global_phase.subs({parameter: value})
+                else:
+                    bound_phase = global_phase.bind({parameter: value})
+
+                instruction._definition.global_phase = bound_phase
+
             for op, _, _ in instruction._definition:
                 for idx, param in enumerate(op.params):
                     if isinstance(param, ParameterExpression) and parameter in param.parameters:

@@ -5,8 +5,7 @@ fixes:
     :class:`~qiskit.circuit.ControlledGate`. In some special cases this led to the original
     parameter re-occuring::
 
-        from qiskit.circuit import Parameter
-        from qiskit import QuantumCircuit
+        from qiskit.circuit import QuantumCircuit, Parameter
 
         qc = QuantumCircuit(1)
         param = Parameter("old")
@@ -19,3 +18,27 @@ fixes:
         print(qc.decompose().decompose())  # previously showed "old", now shows "new"
 
     This behavior does not occur anymore.
+  - |
+    Fixed a bug where a free parameter was not properly assigned to a :class:`~.Gate` if the
+    same parameter occured in a circuit instruction and the global phase. In this case,
+    the global phase remained unbound::
+
+        from qiskit.circuit import QuantumCircuit, Parameter
+
+        x = Parameter('x')
+        inner = QuantumCircuit(1)
+        inner.global_phase = x
+        inner.rx(x, 0)
+
+        bound = inner.assign_parameters([0])
+        print("Inner", bound.parameters, "and decomposed", bound.decompose().parameters)
+
+        outer = QuantumCircuit(inner.num_qubits)
+        outer.append(inner.to_gate(), outer.qubits)
+
+        bound = outer.assign_parameters([0])
+
+        # the following still showed parameters for the decomposed circuit!
+        print("Outer", bound.parameters, "and decomposed", bound.decompose().parameters)
+
+    Now, all parameters are correctly bound both in gates and the global phase.
