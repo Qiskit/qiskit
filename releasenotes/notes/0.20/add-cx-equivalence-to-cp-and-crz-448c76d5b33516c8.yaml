@@ -1,0 +1,6 @@
+---
+fixes:
+  - |
+    Added a missing entry from the standard session equivalence library
+    between :class:`.CXGate` and :class:`.CPhaseGate` as well as between
+    :class:`~.CXGate` and :class:`~.CRZGate`.

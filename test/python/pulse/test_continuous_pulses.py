@@ -182,7 +182,7 @@ class TestContinuousPulses(QiskitTestCase):
         self.assertAlmostEqual(gaussian_arr_zeroed[1], amp)
         self.assertAlmostEqual(gaussian_arr_zeroed[2], 0.0, places=6)
         self.assertAlmostEqual(
-            np.sum(gaussian_arr * dt), amp * np.sqrt(2 * np.pi * sigma ** 2), places=3
+            np.sum(gaussian_arr * dt), amp * np.sqrt(2 * np.pi * sigma**2), places=3
         )
 
     def test_gaussian_deriv(self):
@@ -191,7 +191,7 @@ class TestContinuousPulses(QiskitTestCase):
         center = 10
         sigma = 2
         times, dt = np.linspace(0, 20, 1000, retstep=True)
-        deriv_prefactor = -(sigma ** 2) / (times - center)
+        deriv_prefactor = -(sigma**2) / (times - center)
 
         gaussian_deriv_arr = continuous.gaussian_deriv(times, amp, center, sigma)
         gaussian_arr = gaussian_deriv_arr * deriv_prefactor
@@ -202,7 +202,7 @@ class TestContinuousPulses(QiskitTestCase):
             continuous.gaussian_deriv(np.array([0]), amp, center, sigma)[0], 0, places=5
         )
         self.assertAlmostEqual(
-            np.sum(gaussian_arr * dt), amp * np.sqrt(2 * np.pi * sigma ** 2), places=3
+            np.sum(gaussian_arr * dt), amp * np.sqrt(2 * np.pi * sigma**2), places=3
         )
 
     def test_sech(self):
@@ -255,12 +255,12 @@ class TestContinuousPulses(QiskitTestCase):
         # test half gaussian rise/fall
         self.assertAlmostEqual(
             np.sum(gaussian_square_arr[:900] * dt) * 2,
-            amp * np.sqrt(2 * np.pi * sigma ** 2),
+            amp * np.sqrt(2 * np.pi * sigma**2),
             places=2,
         )
         self.assertAlmostEqual(
             np.sum(gaussian_square_arr[1100:] * dt) * 2,
-            amp * np.sqrt(2 * np.pi * sigma ** 2),
+            amp * np.sqrt(2 * np.pi * sigma**2),
             places=2,
         )
         # test for continuity at gaussian/square boundaries
@@ -278,11 +278,11 @@ class TestContinuousPulses(QiskitTestCase):
 
         # should be locally approximated by amp*dt^2/(2*sigma^2)
         self.assertAlmostEqual(
-            amp * dt_rise ** 2 / (2 * sigma ** 2),
+            amp * dt_rise**2 / (2 * sigma**2),
             gaussian_square_rise_arr[500] - gaussian_square_rise_arr[499],
         )
         self.assertAlmostEqual(
-            amp * dt_fall ** 2 / (2 * sigma ** 2),
+            amp * dt_fall**2 / (2 * sigma**2),
             gaussian_square_fall_arr[501] - gaussian_square_fall_arr[500],
         )
 

@@ -131,9 +131,9 @@ class PiecewisePolynomialPauliRotations(FunctionalPauliRotations):
         if (
             self.num_state_qubits is not None
             and len(self._breakpoints) == len(self.coeffs)
-            and self._breakpoints[-1] < 2 ** self.num_state_qubits
+            and self._breakpoints[-1] < 2**self.num_state_qubits
         ):
-            return self._breakpoints + [2 ** self.num_state_qubits]
+            return self._breakpoints + [2**self.num_state_qubits]
 
         return self._breakpoints
 

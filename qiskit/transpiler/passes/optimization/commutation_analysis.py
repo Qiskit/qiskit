@@ -162,7 +162,7 @@ def _commute(node1, node2, cache):
                 id_op = _COMMUTE_ID_OP[extra_qarg2]
             except KeyError:
                 id_op = _COMMUTE_ID_OP[extra_qarg2] = Operator(
-                    np.eye(2 ** extra_qarg2),
+                    np.eye(2**extra_qarg2),
                     input_dims=(2,) * extra_qarg2,
                     output_dims=(2,) * extra_qarg2,
                 )

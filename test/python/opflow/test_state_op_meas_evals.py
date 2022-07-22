@@ -42,7 +42,7 @@ class TestStateOpMeasEvals(QiskitOpflowTestCase):
     def test_wf_evals_x(self):
         """wf evals x test"""
         qbits = 4
-        wf = ((Zero ^ qbits) + (One ^ qbits)) * (1 / 2 ** 0.5)
+        wf = ((Zero ^ qbits) + (One ^ qbits)) * (1 / 2**0.5)
         # Note: wf = Plus^qbits fails because TensoredOp can't handle it.
         wf_vec = StateFn(wf.to_matrix())
         op = X ^ qbits
@@ -54,7 +54,7 @@ class TestStateOpMeasEvals(QiskitOpflowTestCase):
 
         # op = (H^X^Y)^2
         op = H ^ 6
-        wf = ((Zero ^ 6) + (One ^ 6)) * (1 / 2 ** 0.5)
+        wf = ((Zero ^ 6) + (One ^ 6)) * (1 / 2**0.5)
         wf_vec = StateFn(wf.to_matrix())
         # print(wf.adjoint().to_matrix() @ op.to_matrix() @ wf.to_matrix())
         self.assertAlmostEqual(wf.adjoint().eval(op.eval(wf)), 0.25)

@@ -1,0 +1,18 @@
+---
+features:
+  - |
+    Added the methods :meth:`.PauliList.group_commuting` and :meth:`.SparsePauliOp.group_commuting`,
+    which partition these operators into sublists where each element commutes with all the others.
+    For example::
+
+      from qiskit.quantum_info import PauliList, SparsePauliOp
+
+      groups = PauliList(["XX", "YY", "IZ", "ZZ"]).group_commuting()
+      # 'groups' is [PauliList(['IZ', 'ZZ']), PauliList(['XX', 'YY'])]
+
+      op = SparsePauliOp.from_list([("XX", 2), ("YY", 1), ("IZ", 2j), ("ZZ", 1j)])
+      groups = op.group_commuting()
+      # 'groups' is [
+      #     SparsePauliOp(['IZ', 'ZZ'], coeffs=[0.+2.j, 0.+1.j]),
+      #     SparsePauliOp(['XX', 'YY'], coeffs=[2.+0.j, 1.+0.j]),
+      # ]

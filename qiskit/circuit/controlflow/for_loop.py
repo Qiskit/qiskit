@@ -117,6 +117,10 @@ class ForLoopOp(ControlFlowOp):
     def blocks(self):
         return (self._params[2],)
 
+    def replace_blocks(self, blocks):
+        (body,) = blocks
+        return ForLoopOp(self.params[0], self.params[1], body, label=self.label)
+
 
 class ForLoopContext:
     """A context manager for building up ``for`` loops onto circuits in a natural order, without

@@ -18,44 +18,24 @@ Level 0 pass manager: no explicit optimization other than mapping to backend.
 from qiskit.transpiler.passmanager_config import PassManagerConfig
 from qiskit.transpiler.timing_constraints import TimingConstraints
 from qiskit.transpiler.passmanager import PassManager
+from qiskit.transpiler.passmanager import StagedPassManager
 
-from qiskit.transpiler.passes import Unroller
-from qiskit.transpiler.passes import BasisTranslator
-from qiskit.transpiler.passes import UnrollCustomDefinitions
-from qiskit.transpiler.passes import Unroll3qOrMore
-from qiskit.transpiler.passes import CheckMap
-from qiskit.transpiler.passes import GateDirection
 from qiskit.transpiler.passes import SetLayout
 from qiskit.transpiler.passes import TrivialLayout
 from qiskit.transpiler.passes import DenseLayout
 from qiskit.transpiler.passes import NoiseAdaptiveLayout
 from qiskit.transpiler.passes import SabreLayout
-from qiskit.transpiler.passes import BarrierBeforeFinalMeasurements
 from qiskit.transpiler.passes import BasicSwap
 from qiskit.transpiler.passes import LookaheadSwap
 from qiskit.transpiler.passes import StochasticSwap
 from qiskit.transpiler.passes import SabreSwap
-from qiskit.transpiler.passes import FullAncillaAllocation
-from qiskit.transpiler.passes import EnlargeWithAncilla
-from qiskit.transpiler.passes import ApplyLayout
-from qiskit.transpiler.passes import CheckGateDirection
-from qiskit.transpiler.passes import Collect2qBlocks
-from qiskit.transpiler.passes import Collect1qRuns
-from qiskit.transpiler.passes import ConsolidateBlocks
-from qiskit.transpiler.passes import UnitarySynthesis
-from qiskit.transpiler.passes import TimeUnitConversion
-from qiskit.transpiler.passes import ALAPSchedule
-from qiskit.transpiler.passes import ASAPSchedule
-from qiskit.transpiler.passes import AlignMeasures
-from qiskit.transpiler.passes import ValidatePulseGates
-from qiskit.transpiler.passes import PulseGates
 from qiskit.transpiler.passes import Error
-from qiskit.transpiler.passes import ContainsInstruction
-
+from qiskit.transpiler.preset_passmanagers import common
 from qiskit.transpiler import TranspilerError
+from qiskit.utils.optionals import HAS_TOQM
 
 
-def level_0_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
+def level_0_pass_manager(pass_manager_config: PassManagerConfig) -> StagedPassManager:
     """Level 0 pass manager: no explicit optimization other than mapping to backend.
 
     This pass manager applies the user-given initial layout. If none is given, a trivial
@@ -64,10 +44,6 @@ def level_0_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
 
     The pass manager then unrolls the circuit to the desired basis, and transforms the
     circuit to match the coupling map.
-
-    Note:
-        In simulators where ``coupling_map=None``, only the unrolling and
-        optimization stages are done.
 
     Args:
         pass_manager_config: configuration of the pass manager.
@@ -95,20 +71,7 @@ def level_0_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
     unitary_synthesis_plugin_config = pass_manager_config.unitary_synthesis_plugin_config
     target = pass_manager_config.target
 
-    # 1. Decompose so only 1-qubit and 2-qubit gates remain
-    _unroll3q = [
-        # Use unitary synthesis for basis aware decomposition of UnitaryGates
-        UnitarySynthesis(
-            basis_gates,
-            approximation_degree=approximation_degree,
-            method=unitary_synthesis_method,
-            min_qubits=3,
-            plugin_config=unitary_synthesis_plugin_config,
-        ),
-        Unroll3qOrMore(),
-    ]
-
-    # 2. Choose an initial layout if not set by user (default: trivial layout)
+    # Choose an initial layout if not set by user (default: trivial layout)
     _given_layout = SetLayout(initial_layout)
 
     def _choose_layout_condition(property_set):
@@ -117,7 +80,7 @@ def level_0_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
     if layout_method == "trivial":
         _choose_layout = TrivialLayout(coupling_map)
     elif layout_method == "dense":
-        _choose_layout = DenseLayout(coupling_map, backend_properties)
+        _choose_layout = DenseLayout(coupling_map, backend_properties, target=target)
     elif layout_method == "noise_adaptive":
         _choose_layout = NoiseAdaptiveLayout(backend_properties)
     elif layout_method == "sabre":
@@ -125,145 +88,98 @@ def level_0_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
     else:
         raise TranspilerError("Invalid layout method %s." % layout_method)
 
-    # 3. Extend dag/layout with ancillas using the full coupling map
-    _embed = [FullAncillaAllocation(coupling_map), EnlargeWithAncilla(), ApplyLayout()]
-
-    # 4. Swap to fit the coupling map
-    _swap_check = CheckMap(coupling_map)
-
-    def _swap_condition(property_set):
-        return not property_set["is_swap_mapped"]
-
-    _swap = [BarrierBeforeFinalMeasurements()]
+    toqm_pass = False
+    # Choose routing pass
     if routing_method == "basic":
-        _swap += [BasicSwap(coupling_map)]
+        routing_pass = BasicSwap(coupling_map)
     elif routing_method == "stochastic":
-        _swap += [StochasticSwap(coupling_map, trials=20, seed=seed_transpiler)]
+        routing_pass = StochasticSwap(coupling_map, trials=20, seed=seed_transpiler)
     elif routing_method == "lookahead":
-        _swap += [LookaheadSwap(coupling_map, search_depth=2, search_width=2)]
+        routing_pass = LookaheadSwap(coupling_map, search_depth=2, search_width=2)
     elif routing_method == "sabre":
-        _swap += [SabreSwap(coupling_map, heuristic="basic", seed=seed_transpiler)]
+        routing_pass = SabreSwap(coupling_map, heuristic="basic", seed=seed_transpiler)
+    elif routing_method == "toqm":
+        HAS_TOQM.require_now("TOQM-based routing")
+        from qiskit_toqm import ToqmSwap, ToqmStrategyO0, latencies_from_target
+
+        if initial_layout:
+            raise TranspilerError("Initial layouts are not supported with TOQM-based routing.")
+
+        toqm_pass = True
+        # Note: BarrierBeforeFinalMeasurements is skipped intentionally since ToqmSwap
+        #       does not yet support barriers.
+        routing_pass = ToqmSwap(
+            coupling_map,
+            strategy=ToqmStrategyO0(
+                latencies_from_target(
+                    coupling_map, instruction_durations, basis_gates, backend_properties, target
+                )
+            ),
+        )
     elif routing_method == "none":
-        _swap += [
-            Error(
-                msg=(
-                    "No routing method selected, but circuit is not routed to device. "
-                    "CheckMap Error: {check_map_msg}"
-                ),
-                action="raise",
-            )
-        ]
+        routing_pass = Error(
+            msg="No routing method selected, but circuit is not routed to device. "
+            "CheckMap Error: {check_map_msg}",
+            action="raise",
+        )
     else:
         raise TranspilerError("Invalid routing method %s." % routing_method)
 
-    # 5. Unroll to the basis
-    if translation_method == "unroller":
-        _unroll = [Unroller(basis_gates)]
-    elif translation_method == "translator":
-        from qiskit.circuit.equivalence_library import SessionEquivalenceLibrary as sel
-
-        _unroll = [
-            UnitarySynthesis(
-                basis_gates,
-                approximation_degree=approximation_degree,
-                coupling_map=coupling_map,
-                backend_props=backend_properties,
-                method=unitary_synthesis_method,
-                plugin_config=unitary_synthesis_plugin_config,
-            ),
-            UnrollCustomDefinitions(sel, basis_gates),
-            BasisTranslator(sel, basis_gates, target),
-        ]
-    elif translation_method == "synthesis":
-        _unroll = [
-            UnitarySynthesis(
-                basis_gates,
-                approximation_degree=approximation_degree,
-                coupling_map=coupling_map,
-                backend_props=backend_properties,
-                method=unitary_synthesis_method,
-                min_qubits=3,
-                plugin_config=unitary_synthesis_plugin_config,
-            ),
-            Unroll3qOrMore(),
-            Collect2qBlocks(),
-            Collect1qRuns(),
-            ConsolidateBlocks(basis_gates=basis_gates),
-            UnitarySynthesis(
-                basis_gates,
-                approximation_degree=approximation_degree,
-                coupling_map=coupling_map,
-                backend_props=backend_properties,
-                method=unitary_synthesis_method,
-                plugin_config=unitary_synthesis_plugin_config,
-            ),
-        ]
-    else:
-        raise TranspilerError("Invalid translation method %s." % translation_method)
-
-    # 6. Fix any bad CX directions
-    _direction_check = [CheckGateDirection(coupling_map, target)]
-
-    def _direction_condition(property_set):
-        return not property_set["is_direction_mapped"]
-
-    _direction = [GateDirection(coupling_map, target)]
-
-    # 7. Unify all durations (either SI, or convert to dt if known)
-    # Schedule the circuit only when scheduling_method is supplied
-    _time_unit_setup = [ContainsInstruction("delay")]
-    _time_unit_conversion = [TimeUnitConversion(instruction_durations)]
-
-    def _contains_delay(property_set):
-        return property_set["contains_delay"]
-
-    _scheduling = []
-    if scheduling_method:
-        _scheduling += _time_unit_conversion
-        if scheduling_method in {"alap", "as_late_as_possible"}:
-            _scheduling += [ALAPSchedule(instruction_durations)]
-        elif scheduling_method in {"asap", "as_soon_as_possible"}:
-            _scheduling += [ASAPSchedule(instruction_durations)]
-        else:
-            raise TranspilerError("Invalid scheduling method %s." % scheduling_method)
-
-    # 8. Call measure alignment. Should come after scheduling.
-    if (
-        timing_constraints.granularity != 1
-        or timing_constraints.min_length != 1
-        or timing_constraints.acquire_alignment != 1
-    ):
-        _alignments = [
-            ValidatePulseGates(
-                granularity=timing_constraints.granularity, min_length=timing_constraints.min_length
-            ),
-            AlignMeasures(alignment=timing_constraints.acquire_alignment),
-        ]
-    else:
-        _alignments = []
-
+    unroll_3q = None
     # Build pass manager
-    pm0 = PassManager()
     if coupling_map or initial_layout:
-        pm0.append(_given_layout)
-        pm0.append(_unroll3q)
-        pm0.append(_choose_layout, condition=_choose_layout_condition)
-        pm0.append(_embed)
-        pm0.append(_swap_check)
-        pm0.append(_swap, condition=_swap_condition)
-    pm0.append(_unroll)
+        unroll_3q = common.generate_unroll_3q(
+            target,
+            basis_gates,
+            approximation_degree,
+            unitary_synthesis_method,
+            unitary_synthesis_plugin_config,
+        )
+        layout = PassManager()
+        layout.append(_given_layout)
+        layout.append(_choose_layout, condition=_choose_layout_condition)
+        layout += common.generate_embed_passmanager(coupling_map)
+        routing = common.generate_routing_passmanager(
+            routing_pass,
+            target,
+            coupling_map=coupling_map,
+            seed_transpiler=seed_transpiler,
+            use_barrier_before_measurement=not toqm_pass,
+        )
+    else:
+        layout = None
+        routing = None
+    translation = common.generate_translation_passmanager(
+        target,
+        basis_gates,
+        translation_method,
+        approximation_degree,
+        coupling_map,
+        backend_properties,
+        unitary_synthesis_method,
+        unitary_synthesis_plugin_config,
+    )
+    pre_routing = None
+    if toqm_pass:
+        pre_routing = translation
+
     if (coupling_map and not coupling_map.is_symmetric) or (
         target is not None and target.get_non_global_operation_names(strict_direction=True)
     ):
-        pm0.append(_direction_check)
-        pm0.append(_direction, condition=_direction_condition)
-        pm0.append(_unroll)
-    if inst_map and inst_map.has_custom_gate():
-        pm0.append(PulseGates(inst_map=inst_map))
-    if scheduling_method:
-        pm0.append(_scheduling)
-    elif instruction_durations:
-        pm0.append(_time_unit_setup)
-        pm0.append(_time_unit_conversion, condition=_contains_delay)
-    pm0.append(_alignments)
-    return pm0
+        pre_opt = common.generate_pre_op_passmanager(target, coupling_map)
+        pre_opt += translation
+    else:
+        pre_opt = None
+    sched = common.generate_scheduling(
+        instruction_durations, scheduling_method, timing_constraints, inst_map
+    )
+
+    return StagedPassManager(
+        init=unroll_3q,
+        layout=layout,
+        pre_routing=pre_routing,
+        routing=routing,
+        translation=translation,
+        pre_optimization=pre_opt,
+        scheduling=sched,
+    )

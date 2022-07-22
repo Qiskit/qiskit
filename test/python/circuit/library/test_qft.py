@@ -44,11 +44,11 @@ class TestQFT(QiskitTestCase):
         simulated = Operator(qft)
 
         num_qubits = num_qubits or qft.num_qubits
-        expected = np.empty((2 ** num_qubits, 2 ** num_qubits), dtype=complex)
-        for i in range(2 ** num_qubits):
+        expected = np.empty((2**num_qubits, 2**num_qubits), dtype=complex)
+        for i in range(2**num_qubits):
             i_index = int(bin(i)[2:].zfill(num_qubits), 2)
-            for j in range(i, 2 ** num_qubits):
-                entry = np.exp(2 * np.pi * 1j * i * j / 2 ** num_qubits) / 2 ** (num_qubits / 2)
+            for j in range(i, 2**num_qubits):
+                entry = np.exp(2 * np.pi * 1j * i * j / 2**num_qubits) / 2 ** (num_qubits / 2)
                 j_index = int(bin(j)[2:].zfill(num_qubits), 2)
                 expected[i_index, j_index] = entry
                 if i != j:

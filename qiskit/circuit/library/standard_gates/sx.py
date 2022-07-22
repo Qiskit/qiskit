@@ -71,7 +71,8 @@ class SXGate(Gate):
         q = QuantumRegister(1, "q")
         qc = QuantumCircuit(q, name=self.name, global_phase=pi / 4)
         rules = [(SdgGate(), [q[0]], []), (HGate(), [q[0]], []), (SdgGate(), [q[0]], [])]
-        qc.data = rules
+        for operation, qubits, clbits in rules:
+            qc._append(operation, qubits, clbits)
         self.definition = qc
 
     def inverse(self):
@@ -150,7 +151,8 @@ class SXdgGate(Gate):
         q = QuantumRegister(1, "q")
         qc = QuantumCircuit(q, name=self.name, global_phase=-pi / 4)
         rules = [(SGate(), [q[0]], []), (HGate(), [q[0]], []), (SGate(), [q[0]], [])]
-        qc.data = rules
+        for operation, qubits, clbits in rules:
+            qc._append(operation, qubits, clbits)
         self.definition = qc
 
     def inverse(self):
@@ -250,7 +252,8 @@ class CSXGate(ControlledGate):
         q = QuantumRegister(2, "q")
         qc = QuantumCircuit(q, name=self.name)
         rules = [(HGate(), [q[1]], []), (CU1Gate(pi / 2), [q[0], q[1]], []), (HGate(), [q[1]], [])]
-        qc.data = rules
+        for operation, qubits, clbits in rules:
+            qc._append(operation, qubits, clbits)
         self.definition = qc
 
     def __array__(self, dtype=None):

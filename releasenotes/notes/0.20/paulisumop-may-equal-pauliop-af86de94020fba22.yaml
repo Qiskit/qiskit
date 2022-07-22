@@ -1,0 +1,7 @@
+---
+fixes:
+  - |
+    :class:`.PauliSumOp` equality tests now handle the case when
+    one of the compared items is a single :class:`.PauliOp`.
+    For example, ``0 * X + I == I`` now evaluates to True, whereas it was
+    False prior to this release.

@@ -14,6 +14,7 @@
 """Test cases for the circuit qasm_file and qasm_string method."""
 
 import io
+import json
 import random
 
 import numpy as np
@@ -23,7 +24,7 @@ from qiskit.circuit.classicalregister import Clbit
 from qiskit.circuit.quantumregister import Qubit
 from qiskit.circuit.random import random_circuit
 from qiskit.circuit.gate import Gate
-from qiskit.circuit.library import XGate, QFT, QAOAAnsatz, PauliEvolutionGate
+from qiskit.circuit.library import XGate, QFT, QAOAAnsatz, PauliEvolutionGate, DCXGate, MCU1Gate
 from qiskit.circuit.instruction import Instruction
 from qiskit.circuit.parameter import Parameter
 from qiskit.circuit.parametervector import ParameterVector
@@ -384,7 +385,9 @@ class TestLoadFromQPY(QiskitTestCase):
         qpy_file.seek(0)
         new_circ = load(qpy_file)[0]
         self.assertEqual(qc, new_circ)
-        self.assertEqual([x[0].label for x in qc.data], [x[0].label for x in new_circ.data])
+        self.assertEqual(
+            [x.operation.label for x in qc.data], [x.operation.label for x in new_circ.data]
+        )
 
     def test_opaque_gate_with_label(self):
         """Test that custom opaque gate is correctly serialized with a label"""
@@ -397,7 +400,9 @@ class TestLoadFromQPY(QiskitTestCase):
         qpy_file.seek(0)
         new_circ = load(qpy_file)[0]
         self.assertEqual(qc, new_circ)
-        self.assertEqual([x[0].label for x in qc.data], [x[0].label for x in new_circ.data])
+        self.assertEqual(
+            [x.operation.label for x in qc.data], [x.operation.label for x in new_circ.data]
+        )
 
     def test_opaque_instruction_with_label(self):
         """Test that custom opaque instruction is correctly serialized with a label"""
@@ -410,7 +415,9 @@ class TestLoadFromQPY(QiskitTestCase):
         qpy_file.seek(0)
         new_circ = load(qpy_file)[0]
         self.assertEqual(qc, new_circ)
-        self.assertEqual([x[0].label for x in qc.data], [x[0].label for x in new_circ.data])
+        self.assertEqual(
+            [x.operation.label for x in qc.data], [x.operation.label for x in new_circ.data]
+        )
 
     def test_custom_gate_with_label(self):
         """Test that custom  gate is correctly serialized with a label"""
@@ -430,7 +437,9 @@ class TestLoadFromQPY(QiskitTestCase):
         new_circ = load(qpy_file)[0]
         self.assertEqual(qc, new_circ)
         self.assertEqual(qc.decompose(), new_circ.decompose())
-        self.assertEqual([x[0].label for x in qc.data], [x[0].label for x in new_circ.data])
+        self.assertEqual(
+            [x.operation.label for x in qc.data], [x.operation.label for x in new_circ.data]
+        )
 
     def test_custom_instruction_with_label(self):
         """Test that custom instruction is correctly serialized with a label"""
@@ -449,7 +458,9 @@ class TestLoadFromQPY(QiskitTestCase):
         new_circ = load(qpy_file)[0]
         self.assertEqual(qc, new_circ)
         self.assertEqual(qc.decompose(), new_circ.decompose())
-        self.assertEqual([x[0].label for x in qc.data], [x[0].label for x in new_circ.data])
+        self.assertEqual(
+            [x.operation.label for x in qc.data], [x.operation.label for x in new_circ.data]
+        )
 
     def test_custom_gate_with_noop_definition(self):
         """Test that a custom gate whose definition contains no elements is serialized with a
@@ -470,8 +481,8 @@ class TestLoadFromQPY(QiskitTestCase):
         self.assertEqual(qc, new_circ)
         self.assertEqual(qc.decompose(), new_circ.decompose())
         self.assertEqual(len(new_circ), 2)
-        self.assertIsInstance(new_circ.data[0][0].definition, QuantumCircuit)
-        self.assertIs(new_circ.data[1][0].definition, None)
+        self.assertIsInstance(new_circ.data[0].operation.definition, QuantumCircuit)
+        self.assertIs(new_circ.data[1].operation.definition, None)
 
     def test_custom_instruction_with_noop_definition(self):
         """Test that a custom instruction whose definition contains no elements is serialized with a
@@ -492,8 +503,8 @@ class TestLoadFromQPY(QiskitTestCase):
         self.assertEqual(qc, new_circ)
         self.assertEqual(qc.decompose(), new_circ.decompose())
         self.assertEqual(len(new_circ), 2)
-        self.assertIsInstance(new_circ.data[0][0].definition, QuantumCircuit)
-        self.assertIs(new_circ.data[1][0].definition, None)
+        self.assertIsInstance(new_circ.data[0].operation.definition, QuantumCircuit)
+        self.assertIs(new_circ.data[1].operation.definition, None)
 
     def test_standard_gate_with_label(self):
         """Test a standard gate with a label."""
@@ -506,7 +517,9 @@ class TestLoadFromQPY(QiskitTestCase):
         qpy_file.seek(0)
         new_circ = load(qpy_file)[0]
         self.assertEqual(qc, new_circ)
-        self.assertEqual([x[0].label for x in qc.data], [x[0].label for x in new_circ.data])
+        self.assertEqual(
+            [x.operation.label for x in qc.data], [x.operation.label for x in new_circ.data]
+        )
 
     def test_circuit_with_conditional_with_label(self):
         """Test that instructions with conditions are correctly serialized."""
@@ -519,7 +532,9 @@ class TestLoadFromQPY(QiskitTestCase):
         qpy_file.seek(0)
         new_circ = load(qpy_file)[0]
         self.assertEqual(qc, new_circ)
-        self.assertEqual([x[0].label for x in qc.data], [x[0].label for x in new_circ.data])
+        self.assertEqual(
+            [x.operation.label for x in qc.data], [x.operation.label for x in new_circ.data]
+        )
 
     def test_initialize_qft(self):
         """Test that initialize with a complex statevector and qft work."""
@@ -547,7 +562,9 @@ class TestLoadFromQPY(QiskitTestCase):
         qpy_file.seek(0)
         new_circ = load(qpy_file)[0]
         self.assertEqual(qc, new_circ)
-        self.assertEqual([x[0].label for x in qc.data], [x[0].label for x in new_circ.data])
+        self.assertEqual(
+            [x.operation.label for x in qc.data], [x.operation.label for x in new_circ.data]
+        )
 
     def test_single_bit_teleportation(self):
         """Test a teleportation circuit with single bit conditions."""
@@ -563,7 +580,9 @@ class TestLoadFromQPY(QiskitTestCase):
         qpy_file.seek(0)
         new_circ = load(qpy_file)[0]
         self.assertEqual(qc, new_circ)
-        self.assertEqual([x[0].label for x in qc.data], [x[0].label for x in new_circ.data])
+        self.assertEqual(
+            [x.operation.label for x in qc.data], [x.operation.label for x in new_circ.data]
+        )
 
     def test_qaoa(self):
         """Test loading a QAOA circuit works."""
@@ -574,7 +593,9 @@ class TestLoadFromQPY(QiskitTestCase):
         qpy_file.seek(0)
         new_circ = load(qpy_file)[0]
         self.assertEqual(qaoa, new_circ)
-        self.assertEqual([x[0].label for x in qaoa.data], [x[0].label for x in new_circ.data])
+        self.assertEqual(
+            [x.operation.label for x in qaoa.data], [x.operation.label for x in new_circ.data]
+        )
 
     def test_evolutiongate(self):
         """Test loading a circuit with evolution gate works."""
@@ -588,9 +609,11 @@ class TestLoadFromQPY(QiskitTestCase):
         new_circ = load(qpy_file)[0]
 
         self.assertEqual(qc, new_circ)
-        self.assertEqual([x[0].label for x in qc.data], [x[0].label for x in new_circ.data])
+        self.assertEqual(
+            [x.operation.label for x in qc.data], [x.operation.label for x in new_circ.data]
+        )
 
-        new_evo = new_circ.data[0][0]
+        new_evo = new_circ.data[0].operation
         self.assertIsInstance(new_evo, PauliEvolutionGate)
 
     def test_evolutiongate_param_time(self):
@@ -606,9 +629,11 @@ class TestLoadFromQPY(QiskitTestCase):
         new_circ = load(qpy_file)[0]
 
         self.assertEqual(qc, new_circ)
-        self.assertEqual([x[0].label for x in qc.data], [x[0].label for x in new_circ.data])
+        self.assertEqual(
+            [x.operation.label for x in qc.data], [x.operation.label for x in new_circ.data]
+        )
 
-        new_evo = new_circ.data[0][0]
+        new_evo = new_circ.data[0].operation
         self.assertIsInstance(new_evo, PauliEvolutionGate)
 
     def test_evolutiongate_param_expr_time(self):
@@ -624,9 +649,11 @@ class TestLoadFromQPY(QiskitTestCase):
         new_circ = load(qpy_file)[0]
 
         self.assertEqual(qc, new_circ)
-        self.assertEqual([x[0].label for x in qc.data], [x[0].label for x in new_circ.data])
+        self.assertEqual(
+            [x.operation.label for x in qc.data], [x.operation.label for x in new_circ.data]
+        )
 
-        new_evo = new_circ.data[0][0]
+        new_evo = new_circ.data[0].operation
         self.assertIsInstance(new_evo, PauliEvolutionGate)
 
     def test_evolutiongate_param_vec_time(self):
@@ -642,9 +669,11 @@ class TestLoadFromQPY(QiskitTestCase):
         new_circ = load(qpy_file)[0]
 
         self.assertEqual(qc, new_circ)
-        self.assertEqual([x[0].label for x in qc.data], [x[0].label for x in new_circ.data])
+        self.assertEqual(
+            [x.operation.label for x in qc.data], [x.operation.label for x in new_circ.data]
+        )
 
-        new_evo = new_circ.data[0][0]
+        new_evo = new_circ.data[0].operation
         self.assertIsInstance(new_evo, PauliEvolutionGate)
 
     def test_op_list_evolutiongate(self):
@@ -658,9 +687,11 @@ class TestLoadFromQPY(QiskitTestCase):
         new_circ = load(qpy_file)[0]
 
         self.assertEqual(qc, new_circ)
-        self.assertEqual([x[0].label for x in qc.data], [x[0].label for x in new_circ.data])
+        self.assertEqual(
+            [x.operation.label for x in qc.data], [x.operation.label for x in new_circ.data]
+        )
 
-        new_evo = new_circ.data[0][0]
+        new_evo = new_circ.data[0].operation
         self.assertIsInstance(new_evo, PauliEvolutionGate)
 
     def test_op_evolution_gate_suzuki_trotter(self):
@@ -675,9 +706,11 @@ class TestLoadFromQPY(QiskitTestCase):
         new_circ = load(qpy_file)[0]
 
         self.assertEqual(qc, new_circ)
-        self.assertEqual([x[0].label for x in qc.data], [x[0].label for x in new_circ.data])
+        self.assertEqual(
+            [x.operation.label for x in qc.data], [x.operation.label for x in new_circ.data]
+        )
 
-        new_evo = new_circ.data[0][0]
+        new_evo = new_circ.data[0].operation
         self.assertIsInstance(new_evo, PauliEvolutionGate)
 
     def test_parameter_expression_global_phase(self):
@@ -775,6 +808,236 @@ class TestLoadFromQPY(QiskitTestCase):
         """Test that a circuit with a standalone ParameterVectorElement phase works."""
         vec = ParameterVector("phase", 1)
         qc = QuantumCircuit(1, global_phase=vec[0])
+        qpy_file = io.BytesIO()
+        dump(qc, qpy_file)
+        qpy_file.seek(0)
+        new_circuit = load(qpy_file)[0]
+        self.assertEqual(qc, new_circuit)
+
+    def test_custom_metadata_serializer_full_path(self):
+        """Test that running with custom metadata serialization works."""
+
+        class CustomObject:
+            """Custom string container object."""
+
+            def __init__(self, string):
+                self.string = string
+
+            def __eq__(self, other):
+                return self.string == other.string
+
+        class CustomSerializer(json.JSONEncoder):
+            """Custom json encoder to handle CustomObject."""
+
+            def default(self, o):  # pylint: disable=invalid-name
+                if isinstance(o, CustomObject):
+                    return {"__type__": "Custom", "value": o.string}
+                return json.JSONEncoder.default(self, o)
+
+        class CustomDeserializer(json.JSONDecoder):
+            """Custom json decoder to handle CustomObject."""
+
+            def object_hook(self, o):  # pylint: disable=invalid-name,method-hidden
+                """Hook to override default decoder.
+
+                Normally specified as a kwarg on load() that overloads the
+                default decoder. Done here to avoid reimplementing the
+                decode method.
+                """
+                if "__type__" in o:
+                    obj_type = o["__type__"]
+                    if obj_type == "Custom":
+                        return CustomObject(o["value"])
+                return o
+
+        theta = Parameter("theta")
+        qc = QuantumCircuit(2, global_phase=theta)
+        qc.h(0)
+        qc.cx(0, 1)
+        qc.measure_all()
+        circuits = [qc, qc.copy()]
+        circuits[0].metadata = {"key": CustomObject("Circuit 1")}
+        circuits[1].metadata = {"key": CustomObject("Circuit 2")}
+        qpy_file = io.BytesIO()
+        dump(circuits, qpy_file, metadata_serializer=CustomSerializer)
+        qpy_file.seek(0)
+        new_circuits = load(qpy_file, metadata_deserializer=CustomDeserializer)
+        self.assertEqual(qc, new_circuits[0])
+        self.assertEqual(circuits[0].metadata["key"], CustomObject("Circuit 1"))
+        self.assertEqual(qc, new_circuits[1])
+        self.assertEqual(circuits[1].metadata["key"], CustomObject("Circuit 2"))
+
+    def test_qpy_with_ifelseop(self):
+        """Test qpy serialization with an if block."""
+        qc = QuantumCircuit(2, 2)
+        qc.h(0)
+        qc.measure(0, 0)
+        with qc.if_test((qc.clbits[0], True)):
+            qc.x(1)
+        qc.measure(1, 1)
+        qpy_file = io.BytesIO()
+        dump(qc, qpy_file)
+        qpy_file.seek(0)
+        new_circuit = load(qpy_file)[0]
+        self.assertEqual(qc, new_circuit)
+
+    def test_qpy_with_ifelseop_with_else(self):
+        """Test qpy serialization with an else block."""
+        qc = QuantumCircuit(2, 2)
+        qc.h(0)
+        qc.measure(0, 0)
+        with qc.if_test((qc.clbits[0], True)) as else_:
+            qc.x(1)
+        with else_:
+            qc.y(1)
+        qc.measure(1, 1)
+        qpy_file = io.BytesIO()
+        dump(qc, qpy_file)
+        qpy_file.seek(0)
+        new_circuit = load(qpy_file)[0]
+        self.assertEqual(qc, new_circuit)
+
+    def test_qpy_with_while_loop(self):
+        """Test qpy serialization with a for loop."""
+        qc = QuantumCircuit(2, 1)
+
+        with qc.while_loop((qc.clbits[0], 0)):
+            qc.h(0)
+            qc.cx(0, 1)
+            qc.measure(0, 0)
+        qpy_file = io.BytesIO()
+        dump(qc, qpy_file)
+        qpy_file.seek(0)
+        new_circuit = load(qpy_file)[0]
+        self.assertEqual(qc, new_circuit)
+
+    def test_qpy_with_for_loop(self):
+        """Test qpy serialization with a for loop."""
+        qc = QuantumCircuit(2, 1)
+
+        with qc.for_loop(range(5)):
+            qc.h(0)
+            qc.cx(0, 1)
+            qc.measure(0, 0)
+            qc.break_loop().c_if(0, True)
+        qpy_file = io.BytesIO()
+        dump(qc, qpy_file)
+        qpy_file.seek(0)
+        new_circuit = load(qpy_file)[0]
+        self.assertEqual(qc, new_circuit)
+
+    def test_qpy_with_for_loop_iterator(self):
+        """Test qpy serialization with a for loop."""
+        qc = QuantumCircuit(2, 1)
+
+        with qc.for_loop(iter(range(5))):
+            qc.h(0)
+            qc.cx(0, 1)
+            qc.measure(0, 0)
+            qc.break_loop().c_if(0, True)
+        qpy_file = io.BytesIO()
+        dump(qc, qpy_file)
+        qpy_file.seek(0)
+        new_circuit = load(qpy_file)[0]
+        self.assertEqual(qc, new_circuit)
+
+    def test_standalone_register_partial_bit_in_circuit(self):
+        """Test qpy with only some bits from standalone register."""
+        qr = QuantumRegister(2)
+        qc = QuantumCircuit([qr[0]])
+        qc.x(0)
+        qpy_file = io.BytesIO()
+        dump(qc, qpy_file)
+        qpy_file.seek(0)
+        new_circuit = load(qpy_file)[0]
+        self.assertEqual(qc, new_circuit)
+
+    def test_nested_tuple_param(self):
+        """Test qpy with an instruction that contains nested tuples."""
+        inst = Instruction("tuple_test", 1, 0, [((((0, 1), (0, 1)), 2, 3), ("A", "B", "C"))])
+        qc = QuantumCircuit(1)
+        qc.append(inst, [0])
+        qpy_file = io.BytesIO()
+        dump(qc, qpy_file)
+        qpy_file.seek(0)
+        new_circuit = load(qpy_file)[0]
+        self.assertEqual(qc, new_circuit)
+
+    def test_empty_tuple_param(self):
+        """Test qpy with an instruction that contains an empty tuple."""
+        inst = Instruction("empty_tuple_test", 1, 0, [tuple()])
+        qc = QuantumCircuit(1)
+        qc.append(inst, [0])
+        qpy_file = io.BytesIO()
+        dump(qc, qpy_file)
+        qpy_file.seek(0)
+        new_circuit = load(qpy_file)[0]
+        self.assertEqual(qc, new_circuit)
+
+    def test_ucr_gates(self):
+        """Test qpy with UCRX, UCRY, and UCRZ gates."""
+        qc = QuantumCircuit(3)
+        qc.ucrz([0, 0, 0, -np.pi], [0, 1], 2)
+        qc.ucry([0, 0, 0, -np.pi], [0, 2], 1)
+        qc.ucrx([0, 0, 0, -np.pi], [2, 1], 0)
+        qc.measure_all()
+        qpy_file = io.BytesIO()
+        dump(qc, qpy_file)
+        qpy_file.seek(0)
+        new_circuit = load(qpy_file)[0]
+        self.assertEqual(qc.decompose().decompose(), new_circuit.decompose().decompose())
+
+    def test_controlled_gate(self):
+        """Test a custom controlled gate."""
+        qc = QuantumCircuit(3)
+        controlled_gate = DCXGate().control(1)
+        qc.append(controlled_gate, [0, 1, 2])
+        qpy_file = io.BytesIO()
+        dump(qc, qpy_file)
+        qpy_file.seek(0)
+        new_circuit = load(qpy_file)[0]
+        self.assertEqual(qc, new_circuit)
+
+    def test_nested_controlled_gate(self):
+        """Test a custom nested controlled gate."""
+        custom_gate = Gate("black_box", 1, [])
+        custom_definition = QuantumCircuit(1)
+        custom_definition.h(0)
+        custom_definition.rz(1.5, 0)
+        custom_definition.sdg(0)
+        custom_gate.definition = custom_definition
+
+        qc = QuantumCircuit(3)
+        qc.append(custom_gate, [0])
+        controlled_gate = custom_gate.control(2)
+        qc.append(controlled_gate, [0, 1, 2])
+        qpy_file = io.BytesIO()
+        dump(qc, qpy_file)
+        qpy_file.seek(0)
+        new_circ = load(qpy_file)[0]
+        self.assertEqual(qc, new_circ)
+        self.assertEqual(qc.decompose(), new_circ.decompose())
+
+    def test_open_controlled_gate(self):
+        """Test an open control is preserved across serialization."""
+        qc = QuantumCircuit(2)
+        qc.cx(0, 1, ctrl_state=0)
+        with io.BytesIO() as fd:
+            dump(qc, fd)
+            fd.seek(0)
+            new_circ = load(fd)[0]
+        self.assertEqual(qc, new_circ)
+        self.assertEqual(qc.data[0][0].ctrl_state, new_circ.data[0][0].ctrl_state)
+
+    def test_standard_control_gates(self):
+        """Test standard library controlled gates."""
+        qc = QuantumCircuit(3)
+        mcu1_gate = MCU1Gate(np.pi, 2)
+        qc.append(mcu1_gate, [0, 2, 1])
+        qc.mcp(np.pi, [0, 2], 1)
+        qc.mct([0, 2], 1)
+        qc.mcx([0, 2], 1)
+        qc.measure_all()
         qpy_file = io.BytesIO()
         dump(qc, qpy_file)
         qpy_file.seek(0)

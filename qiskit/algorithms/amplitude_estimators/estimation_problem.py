@@ -221,7 +221,7 @@ def _rescale_amplitudes(circuit: QuantumCircuit, scaling_factor: float) -> Quant
 
     For example, for a scaling factor of 0.25 this turns this circuit
 
-    .. code-block::
+    .. parsed-literal::
 
                       ┌───┐
         state_0: ─────┤ H ├─────────■────
@@ -231,7 +231,7 @@ def _rescale_amplitudes(circuit: QuantumCircuit, scaling_factor: float) -> Quant
 
     into
 
-    .. code-block::
+    .. parsed-literal::
 
                       ┌───┐
         state_0: ─────┤ H ├─────────■────

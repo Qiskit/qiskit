@@ -14,10 +14,9 @@
 
 from qiskit.exceptions import QiskitError
 from .instruction import Instruction
-from .operation import Operation
 
 
-class Barrier(Instruction, Operation):
+class Barrier(Instruction):
     """Barrier instruction."""
 
     _directive = True

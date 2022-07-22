@@ -30,9 +30,9 @@ class DefaultStyle:
     `latex` output. The options available in the style dict are defined below:
 
     name (str): the name of the style. The name can be set to ``iqx``,
-        ``bw``, ``default``, or the name of a user-created json file. This
-        overrides the setting in the user config file (usually
-        ``~/.qiskit/settings.conf``).
+        ``iqx-dark``, ``textbook``, ``bw``, ``default``, or the name of a
+        user-created json file. This overrides the setting in the user config
+        file (usually ``~/.qiskit/settings.conf``).
 
     textcolor (str): the color code to use for all text not inside a gate.
         Defaults to ``#000000``

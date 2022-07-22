@@ -51,6 +51,16 @@ class EchoRZXWeylDecomposition(TransformationPass):
 
     @staticmethod
     def _echo_rzx_dag(theta):
+        """Return the following circuit
+
+        .. parsed-literal::
+
+                 ┌───────────────┐┌───┐┌────────────────┐┌───┐
+            q_0: ┤0              ├┤ X ├┤0               ├┤ X ├
+                 │  Rzx(theta/2) │└───┘│  Rzx(-theta/2) │└───┘
+            q_1: ┤1              ├─────┤1               ├─────
+                 └───────────────┘     └────────────────┘
+        """
         rzx_dag = DAGCircuit()
         qr = QuantumRegister(2)
         rzx_dag.add_qreg(qr)
@@ -62,6 +72,16 @@ class EchoRZXWeylDecomposition(TransformationPass):
 
     @staticmethod
     def _reverse_echo_rzx_dag(theta):
+        """Return the following circuit
+
+        .. parsed-literal::
+
+                 ┌───┐┌───────────────┐     ┌────────────────┐┌───┐
+            q_0: ┤ H ├┤1              ├─────┤1               ├┤ H ├─────
+                 ├───┤│  Rzx(theta/2) │┌───┐│  Rzx(-theta/2) │├───┤┌───┐
+            q_1: ┤ H ├┤0              ├┤ X ├┤0               ├┤ X ├┤ H ├
+                 └───┘└───────────────┘└───┘└────────────────┘└───┘└───┘
+        """
         reverse_rzx_dag = DAGCircuit()
         qr = QuantumRegister(2)
         reverse_rzx_dag.add_qreg(qr)

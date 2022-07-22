@@ -19,7 +19,7 @@ import numpy
 import qiskit
 from qiskit.circuit import QuantumCircuit, QuantumRegister
 from qiskit.circuit.classicalregister import ClassicalRegister
-from qiskit.providers import BaseBackend, Backend
+from qiskit.providers import Backend
 from qiskit.utils import QuantumInstance
 from .phase_estimator import PhaseEstimator
 from .phase_estimator import PhaseEstimatorResult
@@ -38,7 +38,7 @@ class IterativePhaseEstimation(PhaseEstimator):
     def __init__(
         self,
         num_iterations: int,
-        quantum_instance: Optional[Union[QuantumInstance, BaseBackend, Backend]] = None,
+        quantum_instance: Optional[Union[QuantumInstance, Backend]] = None,
     ) -> None:
 
         """Args:
@@ -48,7 +48,7 @@ class IterativePhaseEstimation(PhaseEstimator):
         Raises:
           ValueError: if num_iterations is not greater than zero.
         """
-        if isinstance(quantum_instance, (Backend, BaseBackend)):
+        if isinstance(quantum_instance, Backend):
             quantum_instance = QuantumInstance(quantum_instance)
         self._quantum_instance = quantum_instance
         if num_iterations <= 0:

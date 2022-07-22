@@ -1,8 +1,0 @@
-
-features:
-  - |
-    Allows adding nested FlowControllers (like ConditionalController) to PassManagers when adding passes in the append function.
-    example::
-
-      flow_unroll = [ConditionalController(_unroll, condition=_unroll_condition)]
-      pm.append(_depth_check + _opt + _unroll_check + flow_unroll, do_while=_opt_control)

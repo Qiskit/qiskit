@@ -164,7 +164,7 @@ class TestGrover(QiskitAlgorithmsTestCase):
         n = 5
         problem = AmplificationProblem(Statevector.from_label("1" * n), is_good_state=["1" * n])
         result = grover.amplify(problem)
-        self.assertEqual(len(result.iterations), 2 ** n)
+        self.assertEqual(len(result.iterations), 2**n)
 
     def test_max_power(self):
         """Test the iteration stops when the maximum power is reached."""
@@ -209,8 +209,8 @@ class TestGrover(QiskitAlgorithmsTestCase):
     def test_optimal_num_iterations(self):
         """Test optimal_num_iterations"""
         num_qubits = 7
-        for num_solutions in range(1, 2 ** num_qubits):
-            amplitude = np.sqrt(num_solutions / 2 ** num_qubits)
+        for num_solutions in range(1, 2**num_qubits):
+            amplitude = np.sqrt(num_solutions / 2**num_qubits)
             expected = round(np.arccos(amplitude) / (2 * np.arcsin(amplitude)))
             actual = Grover.optimal_num_iterations(num_solutions, num_qubits)
         self.assertEqual(actual, expected)

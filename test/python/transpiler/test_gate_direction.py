@@ -132,6 +132,11 @@ class TestGateDirection(QiskitTestCase):
         coupling = CouplingMap([[0, 1]])
         dag = circuit_to_dag(circuit)
 
+        #       ┌─────────┐ ┌──────┐┌───┐
+        # qr_0: ┤ Ry(π/2) ├─┤0     ├┤ H ├
+        #       ├─────────┴┐│  Ecr │├───┤
+        # qr_1: ┤ Ry(-π/2) ├┤1     ├┤ H ├
+        #       └──────────┘└──────┘└───┘
         expected = QuantumCircuit(qr)
         expected.ry(pi / 2, qr[0])
         expected.ry(-pi / 2, qr[1])
@@ -208,6 +213,14 @@ class TestGateDirection(QiskitTestCase):
         coupling = CouplingMap([[0, 1]])
         dag = circuit_to_dag(circuit)
 
+        #                     ┌───┐                ┌───┐      ┌───┐     ┌───┐
+        # q_0: ───■───────────┤ H ├────■───────────┤ H ├───■──┤ H ├──■──┤ H ├
+        #       ┌─┴─┐  ┌───┐  └─╥─┘  ┌─┴─┐  ┌───┐  └─╥─┘ ┌─┴─┐├───┤┌─┴─┐├───┤
+        # q_1: ─┤ X ├──┤ H ├────╫────┤ X ├──┤ H ├────╫───┤ X ├┤ H ├┤ X ├┤ H ├
+        #       └─╥─┘  └─╥─┘    ║    └─╥─┘  └─╥─┘    ║   └───┘└───┘└───┘└───┘
+        #      ┌──╨──┐┌──╨──┐┌──╨──┐┌──╨──┐┌──╨──┐┌──╨──┐
+        # c: 1/╡ 0x0 ╞╡ 0x0 ╞╡ 0x0 ╞╡ 0x0 ╞╡ 0x0 ╞╡ 0x0 ╞════════════════════
+        #      └─────┘└─────┘└─────┘└─────┘└─────┘└─────┘
         expected = QuantumCircuit(qr, cr)
         expected.cx(qr[0], qr[1]).c_if(cr, 0)
 

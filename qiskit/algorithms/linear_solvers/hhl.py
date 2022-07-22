@@ -29,7 +29,7 @@ from qiskit.opflow import (
     ListOp,
     ExpectationFactory,
 )
-from qiskit.providers import Backend, BaseBackend
+from qiskit.providers import Backend
 from qiskit.quantum_info.operators.base_operator import BaseOperator
 from qiskit.utils import QuantumInstance
 
@@ -100,7 +100,7 @@ class HHL(LinearSolver):
         self,
         epsilon: float = 1e-2,
         expectation: Optional[ExpectationBase] = None,
-        quantum_instance: Optional[Union[Backend, BaseBackend, QuantumInstance]] = None,
+        quantum_instance: Optional[Union[Backend, QuantumInstance]] = None,
     ) -> None:
         r"""
         Args:
@@ -142,9 +142,7 @@ class HHL(LinearSolver):
         return None if self._sampler is None else self._sampler.quantum_instance
 
     @quantum_instance.setter
-    def quantum_instance(
-        self, quantum_instance: Optional[Union[QuantumInstance, BaseBackend, Backend]]
-    ) -> None:
+    def quantum_instance(self, quantum_instance: Optional[Union[QuantumInstance, Backend]]) -> None:
         """Set quantum instance.
 
         Args:
@@ -189,7 +187,7 @@ class HHL(LinearSolver):
             The value of the scaling factor.
         """
         formatstr = "#0" + str(n_l + 2) + "b"
-        lambda_min_tilde = np.abs(lambda_min * (2 ** n_l - 1) / lambda_max)
+        lambda_min_tilde = np.abs(lambda_min * (2**n_l - 1) / lambda_max)
         # floating point precision can cause problems
         if np.abs(lambda_min_tilde - 1) < 1e-7:
             lambda_min_tilde = 1
@@ -356,7 +354,7 @@ class HHL(LinearSolver):
                 raise ValueError("Input matrix dimension must be 2^n!")
             if not np.allclose(matrix, matrix.conj().T):
                 raise ValueError("Input matrix must be hermitian!")
-            if matrix.shape[0] != 2 ** vector_circuit.num_qubits:
+            if matrix.shape[0] != 2**vector_circuit.num_qubits:
                 raise ValueError(
                     "Input vector dimension does not match input "
                     "matrix dimension! Vector dimension: "
@@ -383,7 +381,7 @@ class HHL(LinearSolver):
         # Update the number of qubits required to represent the eigenvalues
         # The +neg_vals is to register negative eigenvalues because
         # e^{-2 \pi i \lambda} = e^{2 \pi i (1 - \lambda)}
-        nl = max(nb + 1, int(np.log2(kappa)) + 1) + neg_vals
+        nl = max(nb + 1, int(np.ceil(np.log2(kappa + 1)))) + neg_vals
 
         # check if the matrix can calculate bounds for the eigenvalues
         if hasattr(matrix_circuit, "eigs_bounds") and matrix_circuit.eigs_bounds() is not None:
@@ -392,11 +390,11 @@ class HHL(LinearSolver):
             # the most to the solution of the system. -1 to take into account the sign qubit
             delta = self._get_delta(nl - neg_vals, lambda_min, lambda_max)
             # Update evolution time
-            matrix_circuit.evolution_time = 2 * np.pi * delta / lambda_min / (2 ** neg_vals)
+            matrix_circuit.evolution_time = 2 * np.pi * delta / lambda_min / (2**neg_vals)
             # Update the scaling of the solution
             self.scaling = lambda_min
         else:
-            delta = 1 / (2 ** nl)
+            delta = 1 / (2**nl)
             print("The solution will be calculated up to a scaling factor.")
 
         if self._exact_reciprocal:
@@ -405,7 +403,7 @@ class HHL(LinearSolver):
             na = matrix_circuit.num_ancillas
         else:
             # Calculate breakpoints for the reciprocal approximation
-            num_values = 2 ** nl
+            num_values = 2**nl
             constant = delta
             a = int(round(num_values ** (2 / 3)))
 
@@ -432,7 +430,7 @@ class HHL(LinearSolver):
             breakpoints = []
             for i in range(0, num_intervals):
                 # Add the breakpoint to the list
-                breakpoints.append(a * (5 ** i))
+                breakpoints.append(a * (5**i))
 
                 # Define the right breakpoint of the interval
                 if i == num_intervals - 1:

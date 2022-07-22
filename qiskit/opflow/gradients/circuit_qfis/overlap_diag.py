@@ -120,7 +120,7 @@ class OverlapDiag(CircuitQFI):
                     "circuits use LinCombFull"
                 )
 
-            gate = circuit._parameter_table[param][0][0]
+            gate = next(iter(circuit._parameter_table[param]))[0]
 
             if len(gate.params) != 1:
                 raise TypeError(
@@ -141,7 +141,7 @@ class OverlapDiag(CircuitQFI):
             rotated_op = PauliExpectation().convert(op)
             diag.append(rotated_op)
 
-        grad_op = ListOp(diag, combo_fn=lambda x: np.diag(np.real([1 - y ** 2 for y in x])))
+        grad_op = ListOp(diag, combo_fn=lambda x: np.diag(np.real([1 - y**2 for y in x])))
         return grad_op
 
 

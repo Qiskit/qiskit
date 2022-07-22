@@ -20,7 +20,7 @@ from numpy import pi
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
 from qiskit import transpile
 from qiskit.test import QiskitTestCase
-from qiskit.circuit import Gate, Parameter, EquivalenceLibrary
+from qiskit.circuit import Gate, Parameter, EquivalenceLibrary, Qubit, Clbit
 from qiskit.circuit.library import (
     U1Gate,
     U2Gate,
@@ -49,15 +49,15 @@ from qiskit.circuit.library.standard_gates.equivalence_library import (
 class OneQubitZeroParamGate(Gate):
     """Mock one qubit zero param gate."""
 
-    def __init__(self):
-        super().__init__("1q0p", 1, [])
+    def __init__(self, name="1q0p"):
+        super().__init__(name, 1, [])
 
 
 class OneQubitOneParamGate(Gate):
     """Mock one qubit one param gate."""
 
-    def __init__(self, theta):
-        super().__init__("1q1p", 1, [theta])
+    def __init__(self, theta, name="1q1p"):
+        super().__init__(name, 1, [theta])
 
 
 class OneQubitOneParamPrimeGate(Gate):
@@ -70,22 +70,22 @@ class OneQubitOneParamPrimeGate(Gate):
 class OneQubitTwoParamGate(Gate):
     """Mock one qubit two param gate."""
 
-    def __init__(self, phi, lam):
-        super().__init__("1q2p", 1, [phi, lam])
+    def __init__(self, phi, lam, name="1q2p"):
+        super().__init__(name, 1, [phi, lam])
 
 
 class TwoQubitZeroParamGate(Gate):
     """Mock one qubit zero param gate."""
 
-    def __init__(self):
-        super().__init__("2q0p", 2, [])
+    def __init__(self, name="2q0p"):
+        super().__init__(name, 2, [])
 
 
 class VariadicZeroParamGate(Gate):
     """Mock variadic zero param gate."""
 
-    def __init__(self, num_qubits):
-        super().__init__("vq0p", num_qubits, [])
+    def __init__(self, num_qubits, name="vq0p"):
+        super().__init__(name, num_qubits, [])
 
 
 class TestBasisTranslator(QiskitTestCase):
@@ -382,6 +382,77 @@ class TestBasisTranslator(QiskitTestCase):
 
         self.assertEqual(actual, expected_dag)
 
+    def test_if_else(self):
+        """Test a simple if-else with parameters."""
+        qubits = [Qubit(), Qubit()]
+        clbits = [Clbit(), Clbit()]
+        alpha = Parameter("alpha")
+        beta = Parameter("beta")
+        gate = OneQubitOneParamGate(alpha)
+        equiv = QuantumCircuit([qubits[0]])
+        equiv.append(OneQubitZeroParamGate(name="1q0p_2"), [qubits[0]])
+        equiv.append(OneQubitOneParamGate(alpha, name="1q1p_2"), [qubits[0]])
+
+        eq_lib = EquivalenceLibrary()
+        eq_lib.add_equivalence(gate, equiv)
+
+        circ = QuantumCircuit(qubits, clbits)
+        circ.append(OneQubitOneParamGate(beta), [qubits[0]])
+        circ.measure(qubits[0], clbits[1])
+        with circ.if_test((clbits[1], 0)) as else_:
+            circ.append(OneQubitOneParamGate(alpha), [qubits[0]])
+            circ.append(TwoQubitZeroParamGate(), qubits)
+        with else_:
+            circ.append(TwoQubitZeroParamGate(), [qubits[1], qubits[0]])
+        dag = circuit_to_dag(circ)
+        dag_translated = BasisTranslator(eq_lib, ["if_else", "1q0p_2", "1q1p_2", "2q0p"]).run(dag)
+
+        expected = QuantumCircuit(qubits, clbits)
+        expected.append(OneQubitZeroParamGate(name="1q0p_2"), [qubits[0]])
+        expected.append(OneQubitOneParamGate(beta, name="1q1p_2"), [qubits[0]])
+        expected.measure(qubits[0], clbits[1])
+        with expected.if_test((clbits[1], 0)) as else_:
+            expected.append(OneQubitZeroParamGate(name="1q0p_2"), [qubits[0]])
+            expected.append(OneQubitOneParamGate(alpha, name="1q1p_2"), [qubits[0]])
+            expected.append(TwoQubitZeroParamGate(), qubits)
+        with else_:
+            expected.append(TwoQubitZeroParamGate(), [qubits[1], qubits[0]])
+        dag_expected = circuit_to_dag(expected)
+        self.assertEqual(dag_translated, dag_expected)
+
+    def test_nested_loop(self):
+        """Test a simple if-else with parameters."""
+        qubits = [Qubit(), Qubit()]
+        clbits = [Clbit(), Clbit()]
+        cr = ClassicalRegister(bits=clbits)
+        index1 = Parameter("index1")
+        alpha = Parameter("alpha")
+
+        gate = OneQubitOneParamGate(alpha)
+        equiv = QuantumCircuit([qubits[0]])
+        equiv.append(OneQubitZeroParamGate(name="1q0p_2"), [qubits[0]])
+        equiv.append(OneQubitOneParamGate(alpha, name="1q1p_2"), [qubits[0]])
+
+        eq_lib = EquivalenceLibrary()
+        eq_lib.add_equivalence(gate, equiv)
+
+        circ = QuantumCircuit(qubits, cr)
+        with circ.for_loop(range(3), loop_parameter=index1) as ind:
+            with circ.while_loop((cr, 0)):
+                circ.append(OneQubitOneParamGate(alpha * ind), [qubits[0]])
+        dag = circuit_to_dag(circ)
+        dag_translated = BasisTranslator(
+            eq_lib, ["if_else", "for_loop", "while_loop", "1q0p_2", "1q1p_2"]
+        ).run(dag)
+
+        expected = QuantumCircuit(qubits, cr)
+        with expected.for_loop(range(3), loop_parameter=index1) as ind:
+            with expected.while_loop((cr, 0)):
+                expected.append(OneQubitZeroParamGate(name="1q0p_2"), [qubits[0]])
+                expected.append(OneQubitOneParamGate(alpha * ind, name="1q1p_2"), [qubits[0]])
+        dag_expected = circuit_to_dag(expected)
+        self.assertEqual(dag_translated, dag_expected)
+
 
 class TestUnrollerCompatability(QiskitTestCase):
     """Tests backward compatability with the Unroller pass.
@@ -422,6 +493,19 @@ class TestUnrollerCompatability(QiskitTestCase):
 
     def test_unroll_1q_chain_conditional(self):
         """Test unroll chain of 1-qubit gates interrupted by conditional."""
+
+        #     ┌───┐┌─────┐┌───┐┌───┐┌─────────┐┌─────────┐┌─────────┐┌─┐ ┌───┐  ┌───┐ »
+        # qr: ┤ H ├┤ Tdg ├┤ Z ├┤ T ├┤ Ry(0.5) ├┤ Rz(0.3) ├┤ Rx(0.1) ├┤M├─┤ X ├──┤ Y ├─»
+        #     └───┘└─────┘└───┘└───┘└─────────┘└─────────┘└─────────┘└╥┘ └─╥─┘  └─╥─┘ »
+        #                                                             ║ ┌──╨──┐┌──╨──┐»
+        # cr: 1/══════════════════════════════════════════════════════╩═╡ 0x1 ╞╡ 0x1 ╞»
+        #                                                             0 └─────┘└─────┘»
+        # «       ┌───┐
+        # «  qr: ─┤ Z ├─
+        # «       └─╥─┘
+        # «      ┌──╨──┐
+        # «cr: 1/╡ 0x1 ╞
+        # «      └─────┘
         qr = QuantumRegister(1, "qr")
         cr = ClassicalRegister(1, "cr")
         circuit = QuantumCircuit(qr, cr)
@@ -444,6 +528,19 @@ class TestUnrollerCompatability(QiskitTestCase):
         unrolled_dag = pass_.run(dag)
 
         # Pick up -1 * 0.3 / 2 global phase for one RZ -> U1.
+        #
+        # global phase: 6.1332
+        #     ┌─────────┐┌──────────┐┌───────┐┌─────────┐┌─────────────┐┌─────────┐»
+        # qr: ┤ U2(0,π) ├┤ U1(-π/4) ├┤ U1(π) ├┤ U1(π/4) ├┤ U3(0.5,0,0) ├┤ U1(0.3) ├»
+        #     └─────────┘└──────────┘└───────┘└─────────┘└─────────────┘└─────────┘»
+        # cr: 1/═══════════════════════════════════════════════════════════════════»
+        #                                                                          »
+        # «      ┌──────────────────┐┌─┐┌───────────┐┌───────────────┐┌───────┐
+        # «  qr: ┤ U3(0.1,-π/2,π/2) ├┤M├┤ U3(π,0,π) ├┤ U3(π,π/2,π/2) ├┤ U1(π) ├
+        # «      └──────────────────┘└╥┘└─────╥─────┘└───────╥───────┘└───╥───┘
+        # «                           ║    ┌──╨──┐        ┌──╨──┐      ┌──╨──┐
+        # «cr: 1/═════════════════════╩════╡ 0x1 ╞════════╡ 0x1 ╞══════╡ 0x1 ╞═
+        # «                           0    └─────┘        └─────┘      └─────┘
         ref_circuit = QuantumCircuit(qr, cr, global_phase=-0.3 / 2)
         ref_circuit.append(U2Gate(0, pi), [qr[0]])
         ref_circuit.append(U1Gate(-pi / 4), [qr[0]])
@@ -777,6 +874,11 @@ class TestBasisExamples(QiskitTestCase):
         in_dag = circuit_to_dag(bell)
         out_dag = BasisTranslator(std_eqlib, ["ecr", "u"]).run(in_dag)
 
+        #         ┌────────────┐  ┌─────────────┐┌──────────┐┌──────┐
+        # q_0: ───┤ U(π/2,0,π) ├──┤ U(0,0,-π/2) ├┤ U(π,0,0) ├┤0     ├
+        #      ┌──┴────────────┴─┐└─────────────┘└──────────┘│  Ecr │
+        # q_1: ┤ U(π/2,-π/2,π/2) ├───────────────────────────┤1     ├
+        #      └─────────────────┘                           └──────┘
         qr = QuantumRegister(2, "q")
         expected = QuantumCircuit(2)
         expected.u(pi / 2, 0, pi, qr[0])
@@ -784,6 +886,51 @@ class TestBasisExamples(QiskitTestCase):
         expected.u(pi, 0, 0, qr[0])
         expected.u(pi / 2, -pi / 2, pi / 2, qr[1])
         expected.ecr(0, 1)
+        expected_dag = circuit_to_dag(expected)
+
+        self.assertEqual(out_dag, expected_dag)
+
+    def test_cx_bell_to_cp(self):
+        """Verify we can translate a CX bell to CP,U."""
+        bell = QuantumCircuit(2)
+        bell.h(0)
+        bell.cx(0, 1)
+
+        in_dag = circuit_to_dag(bell)
+        out_dag = BasisTranslator(std_eqlib, ["cp", "u"]).run(in_dag)
+
+        self.assertTrue(set(out_dag.count_ops()).issubset(["cp", "u"]))
+        self.assertEqual(Operator(bell), Operator(dag_to_circuit(out_dag)))
+
+        qr = QuantumRegister(2, "q")
+        expected = QuantumCircuit(qr)
+        expected.u(pi / 2, 0, pi, 0)
+        expected.u(pi / 2, 0, pi, 1)
+        expected.cp(pi, 0, 1)
+        expected.u(pi / 2, 0, pi, 1)
+        expected_dag = circuit_to_dag(expected)
+
+        self.assertEqual(out_dag, expected_dag)
+
+    def test_cx_bell_to_crz(self):
+        """Verify we can translate a CX bell to CRZ,U."""
+        bell = QuantumCircuit(2)
+        bell.h(0)
+        bell.cx(0, 1)
+
+        in_dag = circuit_to_dag(bell)
+        out_dag = BasisTranslator(std_eqlib, ["crz", "u"]).run(in_dag)
+
+        self.assertTrue(set(out_dag.count_ops()).issubset(["crz", "u"]))
+        self.assertEqual(Operator(bell), Operator(dag_to_circuit(out_dag)))
+
+        qr = QuantumRegister(2, "q")
+        expected = QuantumCircuit(qr)
+        expected.u(pi / 2, 0, pi, 0)
+        expected.u(0, 0, pi / 2, 0)
+        expected.u(pi / 2, 0, pi, 1)
+        expected.crz(pi, 0, 1)
+        expected.u(pi / 2, 0, pi, 1)
         expected_dag = circuit_to_dag(expected)
 
         self.assertEqual(out_dag, expected_dag)
@@ -811,6 +958,14 @@ class TestBasisExamples(QiskitTestCase):
 
     def test_condition_set_substitute_node(self):
         """Verify condition is set in BasisTranslator on substitute_node"""
+
+        #      ┌───┐         ┌───┐
+        # q_0: ┤ H ├──■──────┤ H ├─
+        #      └───┘┌─┴─┐┌─┐ └─╥─┘
+        # q_1: ─────┤ X ├┤M├───╫───
+        #           └───┘└╥┘┌──╨──┐
+        # c: 2/═══════════╩═╡ 0x1 ╞
+        #                 1 └─────┘
         qr = QuantumRegister(2, "q")
         cr = ClassicalRegister(2, "c")
         circ = QuantumCircuit(qr, cr)
@@ -821,6 +976,14 @@ class TestBasisExamples(QiskitTestCase):
         circ_transpiled = transpile(
             circ, optimization_level=3, basis_gates=["cx", "id", "u1", "u2", "u3"]
         )
+
+        #      ┌─────────┐        ┌─────────┐
+        # q_0: ┤ U2(0,π) ├──■─────┤ U2(0,π) ├
+        #      └─────────┘┌─┴─┐┌─┐└────╥────┘
+        # q_1: ───────────┤ X ├┤M├─────╫─────
+        #                 └───┘└╥┘  ┌──╨──┐
+        # c: 2/═════════════════╩═══╡ 0x1 ╞══
+        #                       1   └─────┘
         qr = QuantumRegister(2, "q")
         cr = ClassicalRegister(2, "c")
         expected = QuantumCircuit(qr, cr)
@@ -899,12 +1062,20 @@ class TestBasisTranslatorWithTarget(QiskitTestCase):
 
         bt_pass = BasisTranslator(std_eqlib, target_basis=None, target=self.target)
         output = bt_pass(qc)
-        expected = QuantumCircuit(2, global_phase=pi / 2)
-        expected.rz(pi / 2, 1)
+        # We need a second run of BasisTranslator to correct gates outside of
+        # the target basis. This is a known isssue, see:
+        #  https://qiskit.org/documentation/release_notes.html#release-notes-0-19-0-known-issues
+        output = bt_pass(output)
+        expected = QuantumCircuit(2)
+        expected.rz(pi, 1)
         expected.sx(1)
-        expected.rz(pi / 2, 1)
+        expected.rz(3 * pi / 2, 1)
+        expected.sx(1)
+        expected.rz(3 * pi, 1)
         expected.cx(0, 1)
-        expected.rz(pi / 2, 1)
+        expected.rz(pi, 1)
         expected.sx(1)
-        expected.rz(pi / 2, 1)
+        expected.rz(3 * pi / 2, 1)
+        expected.sx(1)
+        expected.rz(3 * pi, 1)
         self.assertEqual(output, expected)

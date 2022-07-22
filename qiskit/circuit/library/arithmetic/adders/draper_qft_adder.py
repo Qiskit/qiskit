@@ -103,7 +103,7 @@ class DraperQFTAdder(Adder):
 
         for j in range(num_state_qubits):
             for k in range(num_state_qubits - j):
-                lam = np.pi / (2 ** k)
+                lam = np.pi / (2**k)
                 circuit.cp(lam, qr_a[j], qr_b[j + k])
 
         if kind == "half":

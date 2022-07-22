@@ -323,6 +323,24 @@ class UnitarySynthesisPlugin(abc.ABC):
         """
         pass
 
+    @property
+    def supports_target(self):
+        """Whether the plugin supports taking ``target`` as an option
+
+        ``target`` will be a :class:`~.Target` object representing the target
+        device for the output of the synthesis pass.
+
+        By default this will be ``False`` since the plugin interface predates
+        the :class:`~.Target` class. If a plugin returns ``True`` for this
+        attribute, it is expected that the plugin will use the
+        :class:`~.Target` instead of the values passed if any of
+        ``supports_gate_lengths``, ``supports_gate_errors``,
+        ``supports_coupling_map``, and ``supports_basis_gates`` are set
+        (although ideally all those parameters should contain duplicate
+        information).
+        """
+        return False
+
     @abc.abstractmethod
     def run(self, unitary, **options):
         """Run synthesis for the given unitary matrix

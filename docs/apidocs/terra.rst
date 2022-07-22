@@ -18,10 +18,13 @@ Qiskit Terra API Reference
    extensions
    providers_basicaer
    providers
+   providers_fake_provider
    providers_models
    pulse
    scheduler
    synthesis
+   primitives
+   qasm3
    qasm
    qobj
    qpy

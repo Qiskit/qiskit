@@ -47,7 +47,7 @@ class TestScalarOpInit(ScalarOpTestCase):
     @combine(j=range(1, 5))
     def test_init(self, j):
         """Test {j}-qubit automatic dims."""
-        dim = 2 ** j
+        dim = 2**j
         op = ScalarOp(dim)
         self.assertEqual(op.dim, (dim, dim))
         self.assertEqual(op.input_dims(), j * (2,))
@@ -128,7 +128,7 @@ class TestScalarOpMethods(ScalarOpTestCase):
     def test_base_operator_power_exp(self, coeff, exp):
         """Test basic class power method (** {exp}, coeff={coeff})"""
         op = ScalarOp(4, coeff=coeff).power(exp)
-        target = coeff ** exp
+        target = coeff**exp
         self.assertTrue(isinstance(op, ScalarOp))
         self.assertAlmostEqual(op.coeff, target)
 
@@ -151,6 +151,9 @@ class TestScalarOpLinearMethods(ScalarOpTestCase):
         dims = (3, 2)
         val = coeff2 * ScalarOp(dims, coeff=coeff1)
         target = coeff1 * coeff2
+        self.assertScalarOp(val, dims, target)
+        val = ScalarOp(dims, coeff=coeff1) * coeff2
+        target = coeff2 * coeff1
         self.assertScalarOp(val, dims, target)
 
     @combine(coeff1=[0, 1, -3.1, 1 + 3j], coeff2=[-1, -5.1 - 2j])
@@ -360,6 +363,10 @@ class TestScalarOpCompose(ScalarOpTestCase):
         op2 = ScalarOp(dims, coeff=coeff2)
 
         val = op1.dot(op2)
+        target = coeff1 * coeff2
+        self.assertScalarOp(val, dims, target)
+
+        val = op1 @ op2
         target = coeff1 * coeff2
         self.assertScalarOp(val, dims, target)
 

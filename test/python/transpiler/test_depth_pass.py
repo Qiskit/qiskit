@@ -35,6 +35,12 @@ class TestDepthPass(QiskitTestCase):
 
     def test_just_qubits(self):
         """A dag with 8 operations and no classic bits"""
+
+        #       ┌───┐                    ┌───┐┌───┐
+        # q0_0: ┤ H ├──■────■────■────■──┤ X ├┤ X ├
+        #       ├───┤┌─┴─┐┌─┴─┐┌─┴─┐┌─┴─┐└─┬─┘└─┬─┘
+        # q0_1: ┤ H ├┤ X ├┤ X ├┤ X ├┤ X ├──■────■──
+        #       └───┘└───┘└───┘└───┘└───┘
         qr = QuantumRegister(2)
         circuit = QuantumCircuit(qr)
         circuit.h(qr[0])

@@ -211,10 +211,10 @@ class BackendV1(Backend, ABC):
     def run(self, run_input, **options):
         """Run on the backend.
 
-        This method that will return a :class:`~qiskit.providers.Job` object
-        that run circuits. Depending on the backend this may be either an async
-        or sync call. It is the discretion of the provider to decide whether
-        running should  block until the execution is finished or not. The Job
+        This method returns a :class:`~qiskit.providers.Job` object
+        that runs circuits. Depending on the backend this may be either an async
+        or sync call. It is at the discretion of the provider to decide whether
+        running should block until the execution is finished or not: the Job
         class can handle either situation.
 
         Args:
@@ -474,12 +474,25 @@ class BackendV2(Backend, ABC):
                 be a single integer for 1 qubit or a list of qubits and a list
                 of :class:`~qiskit.provider.QubitProperties` objects will be
                 returned in the same order
+        Returns:
+            qubit_properties: The :class:`~.QubitProperties` object for the
+            specified qubit. If a list of qubits is provided a list will be
+            returned. If properties are missing for a qubit this can be
+            ``None``.
 
-        raises:
+        Raises:
             NotImplementedError: if the backend doesn't support querying the
                 qubit properties
         """
-        raise NotImplementedError
+        # Since the target didn't always have a qubit properties attribute
+        # to ensure the behavior here is backwards compatible with earlier
+        # BacekendV2 implementations where this would raise a NotImplemented
+        # error.
+        if self.target.qubit_properties is None:
+            raise NotImplementedError
+        if isinstance(qubit, int):
+            return self.target.qubit_properties[qubit]
+        return [self.target.qubit_properties[q] for q in qubit]
 
     def drive_channel(self, qubit: int):
         """Return the drive channel for the given qubit.
@@ -577,14 +590,23 @@ class BackendV2(Backend, ABC):
         """
         return self._options
 
+    @property
+    def provider(self):
+        """Return the backend Provider.
+
+        Returns:
+            Provider: the Provider responsible for the backend.
+        """
+        return self._provider
+
     @abstractmethod
     def run(self, run_input, **options):
         """Run on the backend.
 
-        This method that will return a :class:`~qiskit.providers.Job` object
-        that run circuits. Depending on the backend this may be either an async
-        or sync call. It is the discretion of the provider to decide whether
-        running should  block until the execution is finished or not. The Job
+        This method returns a :class:`~qiskit.providers.Job` object
+        that runs circuits. Depending on the backend this may be either an async
+        or sync call. It is at the discretion of the provider to decide whether
+        running should block until the execution is finished or not: the Job
         class can handle either situation.
 
         Args:

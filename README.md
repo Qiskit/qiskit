@@ -1,5 +1,5 @@
 # Qiskit Terra
-[![License](https://img.shields.io/github/license/Qiskit/qiskit-terra.svg?style=popout-square)](https://opensource.org/licenses/Apache-2.0)<!--- long-description-skip-begin -->[![Build Status](https://img.shields.io/travis/com/Qiskit/qiskit-terra/master.svg?style=popout-square)](https://travis-ci.com/Qiskit/qiskit-terra)[![Release](https://img.shields.io/github/release/Qiskit/qiskit-terra.svg?style=popout-square)](https://github.com/Qiskit/qiskit-terra/releases)[![Downloads](https://img.shields.io/pypi/dm/qiskit-terra.svg?style=popout-square)](https://pypi.org/project/qiskit-terra/)[![Coverage Status](https://coveralls.io/repos/github/Qiskit/qiskit-terra/badge.svg?branch=main)](https://coveralls.io/github/Qiskit/qiskit-terra?branch=main)<!--- long-description-skip-end -->
+[![License](https://img.shields.io/github/license/Qiskit/qiskit-terra.svg?style=popout-square)](https://opensource.org/licenses/Apache-2.0)<!--- long-description-skip-begin -->[![Build Status](https://img.shields.io/travis/com/Qiskit/qiskit-terra/master.svg?style=popout-square)](https://travis-ci.com/Qiskit/qiskit-terra)[![Release](https://img.shields.io/github/release/Qiskit/qiskit-terra.svg?style=popout-square)](https://github.com/Qiskit/qiskit-terra/releases)[![Downloads](https://img.shields.io/pypi/dm/qiskit-terra.svg?style=popout-square)](https://pypi.org/project/qiskit-terra/)[![Coverage Status](https://coveralls.io/repos/github/Qiskit/qiskit-terra/badge.svg?branch=main)](https://coveralls.io/github/Qiskit/qiskit-terra?branch=main)[![Minimum rustc 1.56.1](https://img.shields.io/badge/rustc-1.56.1+-blue.svg)](https://rust-lang.github.io/rfcs/2495-min-rust-version.html)<!--- long-description-skip-end -->
 
 **Qiskit** is an open-source framework for working with noisy quantum computers at the level of pulses, circuits, and algorithms.
 
@@ -7,13 +7,13 @@ Qiskit is made up of elements that work together to enable quantum computing. Th
 
 ## Installation
 
-We encourage installing Qiskit via the pip tool (a python package manager), which installs all Qiskit elements, including Terra.
+We encourage installing Qiskit via the pip tool (a python package manager). The following command installs the core Qiskit components, including Terra.
 
 ```bash
 pip install qiskit
 ```
 
-PIP will handle all dependencies automatically and you will always install the latest (and well-tested) version.
+Pip will handle all dependencies automatically and you will always install the latest (and well-tested) version.
 
 To install from source, follow the instructions in the [documentation](https://qiskit.org/documentation/contributing_to_qiskit.html#install-install-from-source-label).
 
@@ -61,13 +61,13 @@ your IBM Q account:
 
 1. Create an _[IBM Q](https://quantum-computing.ibm.com) > Account_ if you haven't already done so.
 
-2. Get an API token from the IBM Q website under _My Account > API Token_ and the URL for the account.
+2. Get an API token from the IBM Q website under _My Account > API Token_.
 
-3. Take your token and url from step 2, here called `MY_API_TOKEN`, `MY_URL`, and run:
+3. Take your token from step 2, here called `MY_API_TOKEN`, and run:
 
    ```python
    >>> from qiskit import IBMQ
-   >>> IBMQ.save_account('MY_API_TOKEN', 'MY_URL')
+   >>> IBMQ.save_account('MY_API_TOKEN')
     ```
 
 After calling `IBMQ.save_account()`, your credentials will be stored on disk.
