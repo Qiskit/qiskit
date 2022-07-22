@@ -135,8 +135,8 @@ class BaseEstimator(ABC):
 
     def __init__(
         self,
-        circuits: Iterable[QuantumCircuit] | QuantumCircuit,
-        observables: Iterable[SparsePauliOp] | SparsePauliOp,
+        circuits: Iterable[QuantumCircuit] | QuantumCircuit | None = None,
+        observables: Iterable[SparsePauliOp] | SparsePauliOp | None = None,
         parameters: Iterable[Iterable[Parameter]] | None = None,
     ):
         """
@@ -156,11 +156,11 @@ class BaseEstimator(ABC):
         """
         if isinstance(circuits, QuantumCircuit):
             circuits = (circuits,)
-        self._circuits = tuple(circuits)
+        self._circuits = () if circuits is None else tuple(circuits)
 
         if isinstance(observables, SparsePauliOp):
             observables = (observables,)
-        self._observables = tuple(observables)
+        self._observables = () if observables is None else tuple(observables)
 
         # To guarantee that they exist as instance variable.
         # With only dynamic set, the python will not know if the attribute exists or not.
@@ -185,20 +185,23 @@ class BaseEstimator(ABC):
 
     def __new__(
         cls,
-        circuits: Iterable[QuantumCircuit] | QuantumCircuit,
-        observables: Iterable[SparsePauliOp] | SparsePauliOp,
-        *args,  # pylint: disable=unused-argument
+        circuits: Iterable[QuantumCircuit] | QuantumCircuit | None = None,
+        observables: Iterable[SparsePauliOp] | SparsePauliOp | None = None,
         parameters: Iterable[Iterable[Parameter]] | None = None,  # pylint: disable=unused-argument
         **kwargs,  # pylint: disable=unused-argument
     ):
 
         self = super().__new__(cls)
-        if isinstance(circuits, Iterable):
+        if circuits is None:
+            self._circuit_ids = []
+        elif isinstance(circuits, Iterable):
             circuits = copy(circuits)
             self._circuit_ids = [id(circuit) for circuit in circuits]
         else:
             self._circuit_ids = [id(circuits)]
-        if isinstance(observables, Iterable):
+        if observables is None:
+            self._observable_ids = []
+        elif isinstance(observables, Iterable):
             observables = copy(observables)
             self._observable_ids = [id(observable) for observable in observables]
         else:

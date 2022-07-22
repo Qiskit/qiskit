@@ -48,17 +48,19 @@ class Estimator(BaseEstimator):
 
     def __init__(
         self,
-        circuits: QuantumCircuit | Iterable[QuantumCircuit],
-        observables: BaseOperator | PauliSumOp | Iterable[BaseOperator | PauliSumOp],
+        circuits: QuantumCircuit | Iterable[QuantumCircuit] | None = None,
+        observables: BaseOperator | PauliSumOp | Iterable[BaseOperator | PauliSumOp] | None = None,
         parameters: Iterable[Iterable[Parameter]] | None = None,
     ):
         if isinstance(circuits, QuantumCircuit):
             circuits = (circuits,)
-        circuits = tuple(init_circuit(circuit) for circuit in circuits)
+        if circuits is not None:
+            circuits = tuple(init_circuit(circuit) for circuit in circuits)
 
         if isinstance(observables, (PauliSumOp, BaseOperator)):
             observables = (observables,)
-        observables = tuple(init_observable(observable) for observable in observables)
+        if observables is not None:
+            observables = tuple(init_observable(observable) for observable in observables)
 
         super().__init__(
             circuits=circuits,

@@ -48,7 +48,7 @@ class Sampler(BaseSampler):
 
     def __init__(
         self,
-        circuits: QuantumCircuit | Iterable[QuantumCircuit],
+        circuits: QuantumCircuit | Iterable[QuantumCircuit] | None = None,
         parameters: Iterable[Iterable[Parameter]] | None = None,
     ):
         """
@@ -62,19 +62,22 @@ class Sampler(BaseSampler):
         """
         if isinstance(circuits, QuantumCircuit):
             circuits = (circuits,)
-        circuits = tuple(init_circuit(circuit) for circuit in circuits)
-        q_c_mappings = [final_measurement_mapping(circuit) for circuit in circuits]
         self._qargs_list = []
-        for circuit, q_c_mapping in zip(circuits, q_c_mappings):
-            if set(range(circuit.num_clbits)) != set(q_c_mapping.values()):
-                raise QiskitError(
-                    "some classical bits are not used for measurements."
-                    f" the number of classical bits {circuit.num_clbits},"
-                    f" the used classical bits {set(q_c_mapping.values())}."
-                )
-            c_q_mapping = sorted((c, q) for q, c in q_c_mapping.items())
-            self._qargs_list.append([q for _, q in c_q_mapping])
-        circuits = tuple(circuit.remove_final_measurements(inplace=False) for circuit in circuits)
+        if circuits is not None:
+            circuits = tuple(init_circuit(circuit) for circuit in circuits)
+            q_c_mappings = [final_measurement_mapping(circuit) for circuit in circuits]
+            for circuit, q_c_mapping in zip(circuits, q_c_mappings):
+                if set(range(circuit.num_clbits)) != set(q_c_mapping.values()):
+                    raise QiskitError(
+                        "some classical bits are not used for measurements."
+                        f" the number of classical bits {circuit.num_clbits},"
+                        f" the used classical bits {set(q_c_mapping.values())}."
+                    )
+                c_q_mapping = sorted((c, q) for q, c in q_c_mapping.items())
+                self._qargs_list.append([q for _, q in c_q_mapping])
+            circuits = tuple(
+                circuit.remove_final_measurements(inplace=False) for circuit in circuits
+            )
         super().__init__(circuits, parameters)
         self._is_closed = False
 

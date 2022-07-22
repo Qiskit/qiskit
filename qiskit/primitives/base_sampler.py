@@ -121,7 +121,7 @@ class BaseSampler(ABC):
 
     def __init__(
         self,
-        circuits: Iterable[QuantumCircuit] | QuantumCircuit,
+        circuits: Iterable[QuantumCircuit] | QuantumCircuit | None = None,
         parameters: Iterable[Iterable[Parameter]] | None = None,
     ):
         """
@@ -135,7 +135,7 @@ class BaseSampler(ABC):
         """
         if isinstance(circuits, QuantumCircuit):
             circuits = (circuits,)
-        self._circuits = tuple(circuits)
+        self._circuits = () if circuits is None else tuple(circuits)
 
         # To guarantee that they exist as instance variable.
         # With only dynamic set, the python will not know if the attribute exists or not.
@@ -153,14 +153,15 @@ class BaseSampler(ABC):
 
     def __new__(
         cls,
-        circuits: Iterable[QuantumCircuit] | QuantumCircuit,
-        *args,  # pylint: disable=unused-argument
+        circuits: Iterable[QuantumCircuit] | QuantumCircuit | None = None,
         parameters: Iterable[Iterable[Parameter]] | None = None,  # pylint: disable=unused-argument
         **kwargs,  # pylint: disable=unused-argument
     ):
 
         self = super().__new__(cls)
-        if isinstance(circuits, Iterable):
+        if circuits is None:
+            self._circuit_ids = []
+        elif isinstance(circuits, Iterable):
             circuits = copy(circuits)
             self._circuit_ids = [id(circuit) for circuit in circuits]
         else:
