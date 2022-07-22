@@ -121,7 +121,7 @@ from qiskit.circuit import Parameter, QuantumCircuit
 from qiskit.circuit.parametertable import ParameterView
 from qiskit.exceptions import QiskitError
 from qiskit.quantum_info.operators import SparsePauliOp
-from qiskit.utils.deprecation import deprecate_arguments
+from qiskit.utils.deprecation import deprecate_arguments, deprecate_function
 
 from .estimator_result import EstimatorResult
 from .utils import _finditer
@@ -205,13 +205,22 @@ class BaseEstimator(ABC):
             self._observable_ids = [id(observables)]
         return self
 
+    @deprecate_function(
+        "The BaseEstimator.__enter__ method is deprecated as of Qiskit Terra 0.21.0 "
+        "and will be removed no sooner than 3 months after the releasedate. "
+        "BaseEstimator should be initialized directly.",
+    )
     def __enter__(self):
         return self
 
+    @deprecate_function(
+        "The BaseEstimator.__exit__ method is deprecated as of Qiskit Terra 0.21.0 "
+        "and will be removed no sooner than 3 months after the releasedate. "
+        "BaseEstimator should be initialized directly.",
+    )
     def __exit__(self, *exc_info):
         self.close()
 
-    @abstractmethod
     def close(self):
         """Close the session and free resources"""
         ...
@@ -412,8 +421,102 @@ class BaseEstimator(ABC):
         """
         with ThreadPoolExecutor(max_workers=1) as executor:
             return executor.submit(
-                self.__call__, circuits, observables, parameter_values, **run_options
+                self._run, circuits, observables, parameter_values, **run_options
             )
+
+    def _run(
+        self,
+        circuits: Sequence[int | QuantumCircuit],
+        observables: Sequence[int | SparsePauliOp],
+        parameter_values: Sequence[Sequence[float]] | None = None,
+        **run_options,
+    ) -> EstimatorResult:
+        # Support ndarray
+        if isinstance(parameter_values, np.ndarray):
+            parameter_values = parameter_values.tolist()
+
+        # Allow objects
+        try:
+            circuits = [
+                next(_finditer(id(circuit), self._circuit_ids))
+                if not isinstance(circuit, (int, np.integer))
+                else circuit
+                for circuit in circuits
+            ]
+        except StopIteration as err:
+            raise QiskitError(
+                "The circuits passed when calling estimator is not one of the circuits used to "
+                "initialize the session."
+            ) from err
+        try:
+            observables = [
+                next(_finditer(id(observable), self._observable_ids))
+                if not isinstance(observable, (int, np.integer))
+                else observable
+                for observable in observables
+            ]
+        except StopIteration as err:
+            raise QiskitError(
+                "The observables passed when calling estimator is not one of the observables used to "
+                "initialize the session."
+            ) from err
+
+        # Allow optional
+        if parameter_values is None:
+            for i in circuits:
+                if len(self._circuits[i].parameters) != 0:
+                    raise QiskitError(
+                        f"The {i}-th circuit is parameterised,"
+                        "but parameter values are not given."
+                    )
+            parameter_values = [[]] * len(circuits)
+
+        # Validation
+        if len(circuits) != len(observables):
+            raise QiskitError(
+                f"The number of circuits ({len(circuits)}) does not match "
+                f"the number of observables ({len(observables)})."
+            )
+        if len(circuits) != len(parameter_values):
+            raise QiskitError(
+                f"The number of circuits ({len(circuits)}) does not match "
+                f"the number of parameter value sets ({len(parameter_values)})."
+            )
+
+        for i, value in zip(circuits, parameter_values):
+            if len(value) != len(self._parameters[i]):
+                raise QiskitError(
+                    f"The number of values ({len(value)}) does not match "
+                    f"the number of parameters ({len(self._parameters[i])}) for the {i}-th circuit."
+                )
+
+        for circ_i, obs_i in zip(circuits, observables):
+            circuit_num_qubits = self.circuits[circ_i].num_qubits
+            observable_num_qubits = self.observables[obs_i].num_qubits
+            if circuit_num_qubits != observable_num_qubits:
+                raise QiskitError(
+                    f"The number of qubits of the {circ_i}-th circuit ({circuit_num_qubits}) does "
+                    f"not match the number of qubits of the {obs_i}-th observable "
+                    f"({observable_num_qubits})."
+                )
+
+        if max(circuits) >= len(self.circuits):
+            raise QiskitError(
+                f"The number of circuits is {len(self.circuits)}, "
+                f"but the index {max(circuits)} is given."
+            )
+        if max(observables) >= len(self.observables):
+            raise QiskitError(
+                f"The number of circuits is {len(self.observables)}, "
+                f"but the index {max(observables)} is given."
+            )
+
+        return self._call(
+            circuits=circuits,
+            observables=observables,
+            parameter_values=parameter_values,
+            **run_options,
+        )
 
     @abstractmethod
     def _call(

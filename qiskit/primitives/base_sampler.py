@@ -107,7 +107,7 @@ import numpy as np
 from qiskit.circuit import Parameter, QuantumCircuit
 from qiskit.circuit.parametertable import ParameterView
 from qiskit.exceptions import QiskitError
-from qiskit.utils.deprecation import deprecate_arguments
+from qiskit.utils.deprecation import deprecate_arguments, deprecate_function
 
 from .sampler_result import SamplerResult
 from .utils import _finditer
@@ -167,13 +167,22 @@ class BaseSampler(ABC):
             self._circuit_ids = [id(circuits)]
         return self
 
+    @deprecate_function(
+        "The BaseEstimator.__enter__ method is deprecated as of Qiskit Terra 0.21.0 "
+        "and will be removed no sooner than 3 months after the releasedate. "
+        "BaseEstimator should be initialized directly.",
+    )
     def __enter__(self):
         return self
 
+    @deprecate_function(
+        "The BaseEstimator.__exit__ method is deprecated as of Qiskit Terra 0.21.0 "
+        "and will be removed no sooner than 3 months after the releasedate. "
+        "BaseEstimator should be initialized directly.",
+    )
     def __exit__(self, *exc_info):
         self.close()
 
-    @abstractmethod
     def close(self):
         """Close the session and free resources"""
         ...
