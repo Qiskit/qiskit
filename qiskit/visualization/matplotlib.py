@@ -165,8 +165,8 @@ class MatplotlibDrawer:
         # subfont. Font change is auto scaled in the self._figure.set_size_inches call in draw()
         self._subfont_factor = self._style["sfs"] * def_font_ratio / self._style["fs"]
 
-        self._reverse_bits = reverse_bits
         self._plot_barriers = plot_barriers
+        self._reverse_bits = reverse_bits
         if with_layout:
             self._layout = self._circuit._layout
         else:
@@ -503,9 +503,7 @@ class MatplotlibDrawer:
             # otherwise, get the register from find_bit and use bit_index if
             # it's a bit, or the index of the bit in the register if it's a reg
             else:
-                register, bit_index, reg_index = get_bit_reg_index(
-                    self._circuit, wire, self._reverse_bits
-                )
+                register, bit_index, reg_index = get_bit_reg_index(self._circuit, wire)
                 index = bit_index if register is None else reg_index
 
             wire_label = get_wire_label(
@@ -883,7 +881,7 @@ class MatplotlibDrawer:
     def _condition(self, node, cond_xy):
         """Add a conditional to a gate"""
         label, val_bits = get_condition_label_val(
-            node.op.condition, self._circuit, self._cregbundle, self._reverse_bits
+            node.op.condition, self._circuit, self._cregbundle
         )
         cond_bit_reg = node.op.condition[0]
         cond_bit_val = int(node.op.condition[1])
@@ -895,8 +893,7 @@ class MatplotlibDrawer:
         # other cases, only one bit is shown.
         if not self._cregbundle and isinstance(cond_bit_reg, ClassicalRegister):
             for idx in range(cond_bit_reg.size):
-                rev_idx = cond_bit_reg.size - idx - 1 if self._reverse_bits else idx
-                cond_pos.append(cond_xy[self._wire_map[cond_bit_reg[rev_idx]] - first_clbit])
+                cond_pos.append(cond_xy[self._wire_map[cond_bit_reg[idx]] - first_clbit])
 
         # If it's a register bit and cregbundle, need to use the register to find the location
         elif self._cregbundle and isinstance(cond_bit_reg, Clbit):
@@ -952,7 +949,7 @@ class MatplotlibDrawer:
         """Draw the measure symbol and the line to the clbit"""
         qx, qy = self._data[node]["q_xy"][0]
         cx, cy = self._data[node]["c_xy"][0]
-        register, _, reg_index = get_bit_reg_index(self._circuit, node.cargs[0], self._reverse_bits)
+        register, _, reg_index = get_bit_reg_index(self._circuit, node.cargs[0])
 
         # draw gate box
         self._gate(node)
