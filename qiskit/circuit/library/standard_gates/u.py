@@ -25,6 +25,9 @@ from qiskit.circuit.exceptions import CircuitError
 class UGate(Gate):
     r"""Generic single-qubit rotation gate with 3 Euler angles.
 
+    Can be applied to a :class:`~qiskit.circuit.QuantumCircuit`
+    with the :meth:`~qiskit.circuit.QuantumCircuit.u` method.
+
     **Circuit symbol:**
 
     .. parsed-literal::
@@ -130,6 +133,9 @@ class CUGate(ControlledGate):
 
     This is a controlled version of the U gate (generic single qubit rotation),
     including a possible global phase :math:`e^{i\gamma}` of the U gate.
+
+    Can be applied to a :class:`~qiskit.circuit.QuantumCircuit`
+    with the :meth:`~qiskit.circuit.QuantumCircuit.cu` method.
 
     **Circuit symbol:**
 
