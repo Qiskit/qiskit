@@ -259,10 +259,14 @@ def _main():
     parser.add_argument("--project", type=str, default=None)
     parser.add_argument("--hub", type=str, default=None)
     parser.add_argument("--group", type=str, default=None)
+    parser.add_argument(
+        "--datetime", type=str, default=None, help="date in ISO format. Default: now"
+    )
     args = parser.parse_args()
     provider = IBMQ.load_account()
     if args.hub or args.group or args.project:
         provider = IBMQ.get_provider(hub=args.hub, group=args.group, project=args.project)
+    dt = datetime.fromisoformat(args.datetime) if args.datetime else None
     ibmq_backends = provider.backends()
     for backend in ibmq_backends:
         raw_name = backend.name()
@@ -283,7 +287,7 @@ def _main():
             bakend_mod = import_module(".".join(os.path.relpath(backend_dirname).split(os.sep)))
             fake_backend = getattr(bakend_mod, "Fake" + name.capitalize())()
             config = backend.configuration()
-            props = backend.properties()
+            props = backend.properties(datetime=dt)
             defs = backend.defaults()
 
             summary = _Summary(props, fake_backend.properties())
