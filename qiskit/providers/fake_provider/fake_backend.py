@@ -72,7 +72,7 @@ class FakeBackendV2(BackendV2):
     def __init__(self):
         """FakeBackendV2 initializer."""
         self._conf_dict = self._get_conf_dict_from_json()
-        if self._conf_dict['open_pulse']:
+        if self._conf_dict["open_pulse"]:
             self._pulse_conf = PulseBackendConfiguration.from_dict(self._conf_dict)
         self._props_dict = None
         self._defs_dict = None
