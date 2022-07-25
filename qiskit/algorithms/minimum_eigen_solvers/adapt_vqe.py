@@ -49,12 +49,12 @@ class AdaptVQE(VariationalAlgorithm):
     """The Adaptive Variational Quantum Eigensolver algorithm.
 
     `AdaptVQE <https://arxiv.org/abs/1812.11173>`__ is a quantum algorithm which creates a compact
-    ansatz from a set of evolution operators. It iteratively appends excitations with the largest energy
-    gradient to the circuit. This results in a wavefunction ansatz which is uniquely adapted to the
-    operator whose minimum eigenvalue is being determined.
-    This class relies on a supplied instance of `VQE` to find the minimum eigenvalue.
-    The performance of AdaptVQE can significantly depend on the choice of gradient method, QFI
-    solver (if applicable) and the epsilon value.
+    ansatz from a set of evolution operators. It iteratively extends the ansatz circuit, by 
+    selecting the building block that leads to the largest gradient from a set of candidates. In 
+    chemistry, this is usually a list of orbital excitations. This results in a wavefunction ansatz 
+    which is uniquely adapted to the operator whose minimum eigenvalue is being determined.
+    This class relies on a supplied instance of :class:`~.VQE` to find the minimum eigenvalue.
+    The performance of AdaptVQE significantly depends on the minimization routine.
     """
 
     def __init__(
@@ -67,9 +67,9 @@ class AdaptVQE(VariationalAlgorithm):
     ) -> None:
         """
         Args:
-            solver: a `VQE` instance used internally to compute the minimum eigenvalues.
+            solver: a :class:`~.VQE` instance used internally to compute the minimum eigenvalues.
                 It is a requirement that the `ansatz` of this solver is of type `EvolvedOperatorAnsatz`.
-            adapt_gradient: a `Gradient` instance with which to compute the excitation operator
+            adapt_gradient: a :class:`~.Gradient` instance with which to compute the excitation operator
                 gradients.
                 If `None`, this will default to a parameter shift gradient.
             excitation_pool: A list of quantum circuits out of which to build the ansatz.
@@ -188,14 +188,13 @@ class AdaptVQE(VariationalAlgorithm):
         """Computes the minimum eigenvalue.
 
         Args:
-            operator: Operator to evaluate.
+            Operator whose minimum eigenvalue we want to find.
             aux_operators: Additional auxiliary operators to evaluate.
 
         Raises:
-            QiskitError: If a solver other than VQE
-                (`qiskit.algorithms.minimum_eigen_solvers.vqe.py`) or a ansatz other than
-                EvolvedOperatorAnsatz (`qiskit.circuit.library.evolved_operator_ansatz.py`)
-                is provided or if the algorithm finishes due to an unforeseen reason.
+            QiskitError: If a solver other than :class:`~VQE` or an ansatz other than
+                :class:`~.EvolvedOperatorAnsatz` is provided or if the algorithm finishes due 
+                to an unforeseen reason.
             AlgorithmError: If `quantum_instance` is not provided.
             QiskitError: If the user-provided `aux_operators` contain a name which clashes
                 with an internally constructed auxiliary operator. Note: the names used for the
@@ -204,8 +203,7 @@ class AdaptVQE(VariationalAlgorithm):
             QiskitError: If the chosen gradient method appears to result in all-zero gradients.
 
         Returns:
-            An AdaptVQEResult (`qiskit.algorithms.minimum_eigen_solvers.adapt_vqe.AdaptVQEResult`)
-            which is a VQEResult (`qiskit.algorithms.minimum_eigen_solvers.vqe.VQEResult`) but also
+            An :class:`~.AdaptVQEResult` which is a :class:`~.VQEResult` but also but also
             includes runtime information about the AdaptVQE algorithm like the number of iterations,
             termination criterion, and the final maximum gradient.
         """
