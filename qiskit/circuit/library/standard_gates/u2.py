@@ -32,10 +32,10 @@ class U2Gate(Gate):
 
        .. math::
 
-           U2(\phi, \lambda) = U(\frac{\pi}{2}, \phi, \lambda)
-           = RZ(\phi).RY(\frac{\pi}{2}).RZ(\lambda)
-           = e^{- i\frac{\pi}{4}} \cdot P(\frac{\pi}{2} + \phi)
-           \cdot \sqrt{X} \cdot P(\lambda- \frac{\pi}{2})
+           U2(\phi, \lambda) = U\left(\frac{\pi}{2}, \phi, \lambda\right)
+           = RZ(\phi) RY\left(\frac{\pi}{2}\right) RZ(\lambda)
+           = e^{- i\frac{\pi}{4}} P\left(\frac{\pi}{2} + \phi\right)
+           \cdot \sqrt{X} \cdot P\left(\lambda- \frac{\pi}{2}\right)
 
 
 

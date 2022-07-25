@@ -31,8 +31,8 @@ class U3Gate(Gate):
        .. math::
 
            U3(\theta, \phi, \lambda) =  U(\theta, \phi, \lambda)
-           = e^{i \frac{\pi + \theta}{2}} \cdot P(\phi + \pi) \cdot \sqrt{X}
-           \cdot P(\theta + \pi) \cdot \sqrt{X} \cdot P(\lambda)
+           = e^{i \frac{\pi + \theta}{2}} P(\phi + \pi) \sqrt{X}
+           P(\theta + \pi) \sqrt{X} P(\lambda)
 
     **Circuit symbol:**
 
