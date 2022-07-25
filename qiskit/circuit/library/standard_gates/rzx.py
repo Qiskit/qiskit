@@ -26,6 +26,9 @@ class RZXGate(Gate):
     The cross-resonance gate (CR) for superconducting qubits implements
     a ZX interaction (however other terms are also present in an experiment).
 
+    Can be applied to a :class:`~qiskit.circuit.QuantumCircuit`
+    with the :meth:`~qiskit.circuit.QuantumCircuit.rzx` method.
+
     **Circuit Symbol:**
 
     .. parsed-literal::
