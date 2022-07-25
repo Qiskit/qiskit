@@ -356,6 +356,50 @@ class Z2Symmetries:
 
         return cls(pauli_symmetries, sq_paulis, sq_list, None)
 
+    def convert_clifford(self, operator: PauliSumOp) -> OperatorBase:
+        """
+        This function operates the first part of the tapering.
+        It converts the input operators by composing them with the cliffords defined
+        in the current symmetry.
+
+        Args:
+            operator: to-be-tapered operator
+
+        Returns:
+            Partially tapered operator
+
+        """
+
+        if not operator.is_zero():
+            for clifford in self.cliffords:
+                operator = cast(PauliSumOp, clifford @ operator @ clifford).reduce()
+        return operator
+
+    def taper_no_clifford(self, operator: PauliSumOp) -> OperatorBase:
+        """
+        Taper an operator based on the z2_symmetries info and sector defined by `tapering_values`.
+        The `tapering_values` will be stored into the resulted operator for a record.
+        This function assumes that the input operators have already been composed with the
+        cliffords corresponding to the current symmetry
+
+        Args:
+            operator: the partially tapered operator.
+
+        Returns:
+            If tapering_values is None: [:class`PauliSumOp`]; otherwise, :class:`PauliSumOp`
+        """
+
+        if self._tapering_values is None:
+            tapered_ops_list = [
+                self._taper(operator, list(coeff))
+                for coeff in itertools.product([1, -1], repeat=len(self._sq_list))
+            ]
+            tapered_ops: OperatorBase = ListOp(tapered_ops_list)
+        else:
+            tapered_ops = self._taper(operator, self._tapering_values)
+
+        return tapered_ops
+
     def taper(self, operator: PauliSumOp) -> OperatorBase:
         """
         Taper an operator based on the z2_symmetries info and sector defined by `tapering_values`.
