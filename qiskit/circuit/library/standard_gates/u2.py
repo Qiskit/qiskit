@@ -33,9 +33,11 @@ class U2Gate(Gate):
        .. math::
 
            U2(\phi, \lambda) = U\left(\frac{\pi}{2}, \phi, \lambda\right)
-           = RZ(\phi) RY\left(\frac{\pi}{2}\right) RZ(\lambda)
-           = e^{- i\frac{\pi}{4}} P\left(\frac{\pi}{2} + \phi\right)
-           \sqrt{X} P\left(\lambda- \frac{\pi}{2}\right)
+
+       .. code-block:: python
+
+          circuit = QuantumCircuit(1)
+          circuit.u(pi/2, phi, lambda)
 
 
 
@@ -61,9 +63,22 @@ class U2Gate(Gate):
 
     .. math::
 
+        U2(\phi,\lambda) = RZ(\phi) RY\left(\frac{\pi}{2}\right) RZ(\lambda)
+        = e^{- i\frac{\pi}{4}} P\left(\frac{\pi}{2} + \phi\right)
+        \sqrt{X} P\left(\lambda- \frac{\pi}{2}\right)
+
+    .. math::
+
         U2(0, \pi) = H
+
+    .. math::
+
         U2(0, 0) = RY(\pi/2)
+
+    .. math::
+
         U2(-\pi/2, \pi/2) = RX(\pi/2)
+
     .. seealso::
 
         :class:`~qiskit.circuit.library.standard_gates.U3Gate`:

@@ -35,6 +35,11 @@ class U1Gate(Gate):
 
            U1(\lambda) = P(\lambda)= U(0,0,\lambda)
 
+       .. code-block:: python
+
+          circuit = QuantumCircuit(1)
+          circuit.p(lambda, 0) # or circuit.u(0, 0, lambda)
+
 
 
 
