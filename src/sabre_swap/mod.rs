@@ -152,6 +152,7 @@ pub fn build_swap_map(
     rng: &mut SabreRng,
     layout: &mut NLayout,
 ) -> PyResult<SwapMap> {
+    let run_in_parallel = getenv_use_multiple_threads();
     let mut out_map: HashMap<usize, Vec<[usize; 2]>> = HashMap::new();
     let mut front_layer: Vec<NodeIndex> = dag.first_layer.clone();
     let max_iterations_without_progress = 10 * neighbor_table.neighbors.len();
@@ -296,6 +297,7 @@ pub fn build_swap_map(
             qubits_decay,
             heuristic,
             rng,
+            run_in_parallel,
         );
         num_search_steps += 1;
         if num_search_steps % DECAY_RESET_INTERVAL == 0 {
@@ -333,10 +335,10 @@ pub fn sabre_score_heuristic(
     qubits_decay: &QubitsDecay,
     heuristic: &Heuristic,
     rng: &mut SabreRng,
+    run_in_parallel: bool,
 ) -> [usize; 2] {
     // Run in parallel only if we're not already in a multiprocessing context
     // unless force threads is set.
-    let run_in_parallel = getenv_use_multiple_threads();
     let candidate_swaps = obtain_swaps(layer, neighbor_table, layout);
     let mut min_score = f64::MAX;
     let mut best_swaps: Vec<[usize; 2]> = Vec::new();
