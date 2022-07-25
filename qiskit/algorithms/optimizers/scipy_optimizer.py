@@ -86,11 +86,23 @@ class SciPyOptimizer(Optimizer):
 
     @property
     def settings(self) -> Dict[str, Any]:
-        settings = {
-            "max_evals_grouped": self._max_evals_grouped,
-            "options": self._options,
-            **self._kwargs,
-        }
+        options = self._options.copy()
+        if hasattr(self, "_OPTIONS"):
+            # all _OPTIONS should be keys in self._options, but add a failsafe here
+            attributes = [
+                option
+                for option in self._OPTIONS  # pylint: disable=no-member
+                if option in options.keys()
+            ]
+
+            settings = {attr: options.pop(attr) for attr in attributes}
+        else:
+            settings = {}
+
+        settings["max_evals_grouped"] = self._max_evals_grouped
+        settings["options"] = options
+        settings.update(self._kwargs)
+
         # the subclasses don't need the "method" key as the class type specifies the method
         if self.__class__ == SciPyOptimizer:
             settings["method"] = self._method
