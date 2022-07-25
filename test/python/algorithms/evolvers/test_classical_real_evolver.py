@@ -13,11 +13,13 @@
 """Test Classical Real Evolver."""
 import unittest
 import numpy as np
-from qiskit.algorithms.evolvers.classical_real_evolver import ClassicalRealEvolver
+from typing import List
+from qiskit.algorithms.evolvers import NumericalIntegrationRealEvolver
 from test.python.algorithms import QiskitAlgorithmsTestCase
+from qiskit.opflow import StateFn, OperatorBase
 from ddt import data, ddt, unpack
 from qiskit.algorithms.evolvers.evolution_problem import EvolutionProblem
-from qiskit.opflow import Y, Z, I, One, X, Zero
+from qiskit.opflow import Y, Z, I, One, X, Zero, Plus, DictStateFn
 import time
 
 
@@ -26,33 +28,51 @@ class TestClassicalRealEvolver(QiskitAlgorithmsTestCase):
     """Test Classical Real Evolver."""
 
     @data(
-        [One, np.pi / 2, X, Zero, -1.0j],
-        [One ^ Zero, np.pi / 2, ((X ^ X) + (Y ^ Y)) / 2, Zero ^ One, -1.0j],
+        [One, np.pi / 2, X, -1.0j * Zero],
+        [One ^ Zero, np.pi / 2, ((X ^ X) + (Y ^ Y)) / 2, -1.0j * Zero ^ One],
+        [
+            One ^ Zero,
+            np.pi / 4,
+            ((X ^ X) + (Y ^ Y)) / 2,
+            ((One ^ Zero) - 1.0j * (Zero ^ One)) / np.sqrt(2),
+        ],
     )
     @unpack
-    def test_evolve(self, initial_state, time, hamiltonian, expected_state, phase):
-        evolution_problem = EvolutionProblem(hamiltonian, time, initial_state)
-        classic_evolver = ClassicalRealEvolver(timesteps=None, threshold = 1e-5)
-        # recomended_steps = classic_evolver.minimal_number_steps(1.0,time, 1e-4)
-        # print(recomended_steps)
-        # classic_evolver.timesteps = recomended_steps
+    def test_evolve(
+        self, initial_state: StateFn, t: float, hamiltonian: OperatorBase, expected_state: StateFn
+    ):
+        """Initializes a classical real evolver and evolves a state."""
+        evolution_problem = EvolutionProblem(hamiltonian, t, initial_state)
+        classic_evolver = NumericalIntegrationRealEvolver(timesteps=30, threshold=None)
         result = classic_evolver.evolve(evolution_problem)
 
         with self.subTest("Amplitudes"):
             np.testing.assert_allclose(
                 np.absolute(result.evolved_state.to_matrix()),
-                np.absolute(phase * expected_state.to_matrix()),
-                atol=1e-7,
-                rtol=0,
-            )
-        with self.subTest("Phases"):
-            np.testing.assert_allclose(
-                np.angle(result.evolved_state.to_matrix()),
-                np.angle(phase * expected_state.to_matrix()),
-                atol=1e-7,
+                np.absolute(expected_state.to_matrix()),
+                atol=1e-3,
                 rtol=0,
             )
 
+        with self.subTest("Phases"):
+            np.testing.assert_allclose(
+                np.angle(result.evolved_state.to_matrix()),
+                np.angle(expected_state.to_matrix()),
+                atol=1e-20,
+                rtol=0,
+            )
+    @data(
+    [Zero, 1.0, X, {"Energy":X, "Polarity":Z}],
+
+    )
+    @unpack
+    def test_observables(
+        self, initial_state: StateFn, t: float, hamiltonian: OperatorBase, observalbes: List[OperatorBase]
+    ):
+        evolution_problem = EvolutionProblem(hamiltonian, t, initial_state,aux_operators=observalbes)
+        classic_evolver = NumericalIntegrationRealEvolver(timesteps=30, threshold=None)
+        result = classic_evolver.evolve(evolution_problem)
+        print(result.aux_ops_evaluated)
 
 if __name__ == "__main__":
     unittest.main()

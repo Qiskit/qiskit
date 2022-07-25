@@ -16,20 +16,23 @@ from multiprocessing.sharedctypes import Value
 import scipy.sparse as sp
 from scipy.sparse.linalg import bicg, norm
 import numpy as np
-from typing import Tuple, Optional
+from typing import Tuple, Optional, List
+
+
 
 from qiskit.opflow import StateFn
 
 
-from .evolution_problem import EvolutionProblem
-from .evolution_result import EvolutionResult
-from .real_evolver import RealEvolver
+from ..evolution_problem import EvolutionProblem
+from ..evolution_result import EvolutionResult
+from ..real_evolver import RealEvolver
+from ...list_or_dict import ListOrDict
 
 
-class ClassicalRealEvolver(RealEvolver):
-    """Interface for Quantum Real Time Evolution."""
+class NumericalIntegrationRealEvolver(RealEvolver):
+    """Classical Evolver for real time evolution."""
 
-    def __init__(self, timesteps: Optional[int]  = None, threshold: Optional[float] = 1e-4):
+    def __init__(self, timesteps: Optional[int] = None, threshold: Optional[float] = None):
         """
         Args:
             timesteps: The number of timesteps to perform for the time evolution.
@@ -44,6 +47,8 @@ class ClassicalRealEvolver(RealEvolver):
 
         self.timesteps = timesteps
         self.threshold = threshold
+        self.aux_operators_time_evolution: Optional[ListOrDict[np.ndarray]] = None
+
 
     def evolve(self, evolution_problem: EvolutionProblem) -> EvolutionResult:
         r"""Perform real time evolution :math:`\exp(-i t H)|\Psi\rangle`.
@@ -55,21 +60,21 @@ class ClassicalRealEvolver(RealEvolver):
 
         .. math::
 
-            |\Psi(t + \delta t)\rangle = \exp(-i \delta t H) |\Psi(t)\rangle
+            |\Psi \left( t + \delta t \right) \rangle = \exp(-i \delta t H) |\Psi \left(t \right) \rangle
 
         Which can be approximated as:
 
         .. math::
 
-            \exp(-i \delta t H) = (1+ i \frac{\delta t}{2} H)^{-1} (1 - i \frac{\delta t}{2} H) + O(\delta t^3)
+            \exp(-i \delta t H) = \left(1+ i \frac{\delta t}{2} H \right) ^{-1} \left( 1 - i \frac{\delta t}{2} H \right) + O\left( \delta t^3 \right)
 
         Note that this operator is unitary, and thus we won't need to renormalize the state at
-        each step. In order to find :math:`|\Psi(t + \delta t)\rangle` we then need to solve a
+        each step. In order to find :math:`|\Psi \left( t + \delta t \right) \rangle` we then need to solve a
         linear system of equations:
 
         .. math::
 
-            (1+ i \frac{\delta t}{2} H) |\Psi(t + \delta t)\rangle = (1 - i \frac{\delta t}{2} H) |\Psi(t)\rangle
+            \left( 1+ i \frac{\delta t}{2} H \right) |\Psi \left( t + \delta t \right) \rangle = \left( 1 - i \frac{\delta t}{2} H \right) |\Psi\left( t \right) \rangle
 
         Args:
             evolution_problem: The definition of the evolution problem.
@@ -78,18 +83,36 @@ class ClassicalRealEvolver(RealEvolver):
             Evolution result which includes an evolved quantum state.
         """
 
-        state, lhs_operator, rhs_operator, timesteps = self._start(evolution_problem=evolution_problem)
+        state, lhs_operator, rhs_operator, aux_operators, timesteps = self._start(
+            evolution_problem=evolution_problem
+        )
 
-        for _ in range(timesteps):
-            state = self._step(state, lhs_operator, rhs_operator)
+        #Perform the time evolution and stores the value of the operators at each timestep.
+        for t in range(timesteps):
+            state = self._step(state, lhs_operator,rhs_operator)
+            self._evaluate_aux_operators(aux_operators, state,t)
 
-        return EvolutionResult(evolved_state=StateFn(state), aux_ops_evaluated=None)
+        #Creates the right output format for the evaluated auxiliary operators.
+        if isinstance(evolution_problem.aux_operators, dict):
+            aux_ops_evaluated = dict(
+                zip(evolution_problem.aux_operators.keys(), self.aux_operators_time_evolution)
+            )
+        else:
+            aux_ops_evaluated = self.aux_operators_time_evolution
+
+        return EvolutionResult(evolved_state=StateFn(state), aux_ops_evaluated=aux_ops_evaluated)
+
+    def _evaluate_aux_operators(self, aux_operators: List[sp.csr_matrix], state: np.ndarray, t:int):
+        """Evaluate the aux operators if they are provided and stores their value."""
+        for n,op in enumerate(aux_operators):
+            self.aux_operators_time_evolution[n][t] = state.conjugate().dot(op.dot(state))
+
 
     def _start(
         self, evolution_problem: EvolutionProblem
-    ) -> Tuple[np.ndarray, sp.csr_matrix, sp.csr_matrix]:
-        """Returns a tuple with the initial state as an array and the operators needed for time
-         evolution as sparse matrices.
+    ) -> Tuple[np.ndarray, sp.csr_matrix, sp.csr_matrix,List[sp.csr_matrix],float]:
+        """Returns a tuple with the initial state as an array, the operators needed for time
+         evolution as sparse matrices and the number of timesteps in which to divide the time evolution.
 
         Args:
             evolution_problem: The definition of the evolution problem.
@@ -98,28 +121,49 @@ class ClassicalRealEvolver(RealEvolver):
             A tuple with the initial state as an array and the operators needed for time
             evolution as sparse matrices.
         """
+        # Convert the initial state and hamiltonian into sparse matrices.
         state = evolution_problem.initial_state.to_matrix(massive=True).transpose()
         hamiltonian = evolution_problem.hamiltonian.to_spmatrix()
+
+        # Determine the number of timesteps.
         if self.timesteps is None:
-            timesteps = self._ntimesteps(time = evolution_problem.time, hamiltonian = hamiltonian, threshold = self.threshold)
+            timesteps = self._ntimesteps(
+                time=evolution_problem.time, hamiltonian=hamiltonian, threshold=self.threshold
+            )
             print(timesteps)
         else:
             timesteps = self.timesteps
         timestep = evolution_problem.time / timesteps
 
+
+        # Create the operators for the time evolution.
         idnty = sp.identity(hamiltonian.shape[0], format="csr")
 
         lhs_operator = idnty + 1j * timestep / 2 * hamiltonian
         rhs_operator = idnty - 1j * timestep / 2 * hamiltonian
 
-        return state, lhs_operator, rhs_operator, timesteps
+        # Create empty arrays to store the time evolution of the aux operators.
+        if evolution_problem.aux_operators is not None:
+            self.aux_operators_time_evolution = [
+                np.empty(shape=(timesteps,),dtype=np.complex128) for _ in evolution_problem.aux_operators
+            ]
+        if isinstance(evolution_problem.aux_operators, list):
+            aux_operators = [aux_op.to_spmatrix() for aux_op in evolution_problem.aux_operators]
+        elif isinstance(evolution_problem.aux_operators, dict):
+            aux_operators = [
+                aux_op.to_spmatrix() for aux_op in evolution_problem.aux_operators.values()
+            ]
+        else:
+            aux_operators = []
 
-    def minimal_number_steps(self, norm_hamiltonian: float, time: float, threshold = 1e-4) -> int:
+        return state, lhs_operator, rhs_operator,aux_operators, timesteps
+
+    def minimal_number_steps(self, norm_hamiltonian: float, time: float, threshold=1e-4) -> int:
         """Calculate the timestep for the given time and threshold.
 
         we use the fact that the taylor expansion term of third order in our expansion would be
-        :math:`\frac{(-i H \delta t)^3}{12} ` to compute an approximation for how many timesteps
-        we need to reach a certain precision.
+        :math:`\frac{\left( -i H \delta t \right) ^3}{12} ` to compute an approximation for how
+        many timesteps we need to reach a certain precision.
 
         Args:
             time: The time to evolve.
@@ -142,7 +186,9 @@ class ClassicalRealEvolver(RealEvolver):
         hnorm = norm(hamiltonian, ord=np.inf)
         return self.minimal_number_steps(norm_hamiltonian=hnorm, time=time, threshold=threshold)
 
-    def _step(self, state: np.ndarray , lhs_operator: sp.csr_matrix, rhs_operator: sp.csr_matrix) -> np.ndarray:
+    def _step(
+        self, state: np.ndarray, lhs_operator: sp.csr_matrix, rhs_operator: sp.csr_matrix
+    ) -> np.ndarray:
         """ "Perform one timestep of the evolution.
 
         Args:
@@ -152,6 +198,7 @@ class ClassicalRealEvolver(RealEvolver):
 
         Returns:
             The evolved state.
+
         """
 
         rhs = rhs_operator.dot(state)

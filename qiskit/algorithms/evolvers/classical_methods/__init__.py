@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2021, 2022.
+# (C) Copyright IBM 2022.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -10,18 +10,13 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""Quantum Time Evolution package."""
+"""Classical Methods for Quantum Time Evolution package."""
 
-from .evolution_result import EvolutionResult
-from .evolution_problem import EvolutionProblem
-from .classical_methods.numerical_integration_real_evolver import NumericalIntegrationRealEvolver
-from .classical_methods.numerical_integration_imaginary_evolver import (
-    NumericalIntegrationImaginaryEvolver,
-)
+
+from .numerical_integration_real_evolver import NumericalIntegrationRealEvolver
+from .numerical_integration_imaginary_evolver import NumericalIntegrationImaginaryEvolver
 
 __all__ = [
-    "EvolutionResult",
-    "EvolutionProblem",
     "NumericalIntegrationRealEvolver",
     "NumericalIntegrationImaginaryEvolver",
 ]
