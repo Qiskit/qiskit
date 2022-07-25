@@ -148,7 +148,7 @@ pub fn build_swap_map(
     let max_iterations_without_progress = 10 * neighbor_table.neighbors.len();
     let mut ops_since_progress: Vec<[usize; 2]> = Vec::new();
     let mut required_predecessors: Vec<u32> = vec![0; dag.dag.node_count()];
-    let mut extended_set: Vec<[usize; 2]> = Vec::new();
+    let mut extended_set: Option<Vec<[usize; 2]>> = None;
     let mut num_search_steps: u8 = 0;
     let dist = distance_matrix.as_array();
     let adjacency = adjacency_matrix.as_array();
@@ -266,7 +266,7 @@ pub fn build_swap_map(
                 }
             }
             qubits_decay.decay.fill_with(|| 1.);
-            extended_set.clear();
+            extended_set = None;
             continue;
         }
         let first_layer: Vec<[usize; 2]> = front_layer
@@ -276,15 +276,19 @@ pub fn build_swap_map(
                 [node_weight[1], node_weight[2]]
             })
             .collect();
-        if extended_set.is_empty() {
-            extended_set = obtain_extended_set(dag, &front_layer, &mut required_predecessors);
+        if extended_set.is_none() {
+            extended_set = Some(obtain_extended_set(
+                dag,
+                &front_layer,
+                &mut required_predecessors,
+            ));
         }
 
         let best_swap = sabre_score_heuristic(
             &first_layer,
             layout,
             neighbor_table,
-            &extended_set,
+            extended_set.as_ref().unwrap(),
             &dist,
             qubits_decay,
             heuristic,
