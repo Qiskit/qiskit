@@ -148,10 +148,8 @@ class SabreSwap(TransformationPass):
             self.coupling_map = deepcopy(coupling_map)
             self.coupling_map.make_symmetric()
         self._neighbor_table = None
-        self._adj_mat = None
         if coupling_map is not None:
-            self._adj_mat = retworkx.adjacency_matrix(self.coupling_map.graph)
-            self._neighbor_table = NeighborTable(self._adj_mat)
+            self._neighbor_table = NeighborTable(retworkx.adjacency_matrix(self.coupling_map.graph))
 
         if heuristic == "basic":
             self.heuristic = Heuristic.Basic
@@ -229,7 +227,6 @@ class SabreSwap(TransformationPass):
             self.heuristic,
             rng,
             layout,
-            self._adj_mat,
         )
 
         layout_mapping = layout.layout_mapping()

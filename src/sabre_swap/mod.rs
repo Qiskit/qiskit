@@ -127,6 +127,16 @@ fn obtain_extended_set(
     extended_set
 }
 
+fn cmap_from_neighor_table(neighbor_table: &NeighborTable) -> DiGraph<(), ()> {
+    DiGraph::<(), ()>::from_edges(neighbor_table.neighbors.iter().enumerate().flat_map(
+        |(u, targets)| {
+            targets
+                .iter()
+                .map(move |v| (NodeIndex::new(u), NodeIndex::new(*v)))
+        },
+    ))
+}
+
 /// Run sabre swap on a circuit
 ///
 /// Returns:
@@ -141,7 +151,6 @@ pub fn build_swap_map(
     heuristic: &Heuristic,
     rng: &mut SabreRng,
     layout: &mut NLayout,
-    adjacency_matrix: PyReadonlyArray2<f64>,
 ) -> PyResult<SwapMap> {
     let mut out_map: HashMap<usize, Vec<[usize; 2]>> = HashMap::new();
     let mut front_layer: Vec<NodeIndex> = dag.first_layer.clone();
@@ -151,8 +160,7 @@ pub fn build_swap_map(
     let mut extended_set: Option<Vec<[usize; 2]>> = None;
     let mut num_search_steps: u8 = 0;
     let dist = distance_matrix.as_array();
-    let adjacency = adjacency_matrix.as_array();
-    let mut coupling_graph: Option<DiGraph<(), (), u32>> = None;
+    let coupling_graph: DiGraph<(), ()> = cmap_from_neighor_table(neighbor_table);
     for node in dag.dag.node_indices() {
         for edge in dag.dag.edges(node) {
             required_predecessors[edge.target().index()] += 1;
@@ -168,21 +176,34 @@ pub fn build_swap_map(
                 layout.logic_to_phys[node_weight[1]],
                 layout.logic_to_phys[node_weight[2]],
             ];
-            if adjacency[[physical_qargs[0], physical_qargs[1]]] == 0. {
+            if coupling_graph
+                .find_edge(
+                    NodeIndex::new(physical_qargs[0]),
+                    NodeIndex::new(physical_qargs[1]),
+                )
+                .is_none()
+            {
                 new_front_layer.push(node);
             } else {
                 execute_gate_list.push(node);
             }
         }
         front_layer = new_front_layer.clone();
+
+        // Backtrack to the last time we made progress, then greedily insert swaps to route
+        // the gate with the smallest distance between its arguments.  This is f block a release
+        // valve for the algorithm to avoid infinite loops only, and should generally not
+        // come into play for most circuits.
         if execute_gate_list.is_empty()
             && ops_since_progress.len() > max_iterations_without_progress
         {
+            // If we're stuck in a loop without making progress first undo swaps:
             ops_since_progress
-                .iter()
+                .drain(..)
                 .rev()
                 .for_each(|swap| layout.swap_logical(swap[0], swap[1]));
-            let target_qubits: [usize; 2] = front_layer
+            // Then pick the  closest pair in the current layer
+            let target_qubits = front_layer
                 .iter()
                 .map(|n| {
                     let node_weight = dag.dag.node_weight(*n).unwrap();
@@ -200,31 +221,12 @@ pub fn build_swap_map(
                     dist_a.partial_cmp(&dist_b).unwrap_or(Ordering::Equal)
                 })
                 .unwrap();
-            if coupling_graph.is_none() {
-                let shape = adjacency.shape();
-                let mut cgraph: DiGraph<(), (), u32> = DiGraph::with_capacity(shape[0], shape[0]);
-                for _ in 0..shape[0] {
-                    cgraph.add_node(());
-                }
-                adjacency
-                    .axis_iter(Axis(0))
-                    .enumerate()
-                    .for_each(|(index, row)| {
-                        let source_index = NodeIndex::new(index);
-                        for (target_index, elem) in row.iter().enumerate() {
-                            if *elem != 0.0 {
-                                cgraph.add_edge(source_index, NodeIndex::new(target_index), ());
-                            }
-                        }
-                    });
-                coupling_graph = Some(cgraph);
-            }
-            let cmap = coupling_graph.as_ref().unwrap();
+            // find Shortest path between target qubits
             let mut shortest_paths: DictMap<NodeIndex, Vec<NodeIndex>> = DictMap::new();
             let u = layout.logic_to_phys[target_qubits[0]];
             let v = layout.logic_to_phys[target_qubits[1]];
             (dijkstra(
-                cmap,
+                &coupling_graph,
                 NodeIndex::<u32>::new(u),
                 Some(NodeIndex::<u32>::new(v)),
                 |_| Ok(1.),
@@ -236,6 +238,7 @@ pub fn build_swap_map(
                 .iter()
                 .map(|n| n.index())
                 .collect();
+            // Insert greedy swaps along that shortest path
             let split: usize = shortest_path.len() / 2;
             let forwards = &shortest_path[1..split];
             let backwards = &shortest_path[split..shortest_path.len() - 1];
@@ -245,11 +248,11 @@ pub fn build_swap_map(
                 greedy_swaps.push([target_qubits[0], logical_swap_bit]);
                 layout.swap_logical(target_qubits[0], logical_swap_bit);
             }
-            for swap in backwards.iter().rev() {
+            backwards.iter().rev().for_each(|swap| {
                 let logical_swap_bit = layout.phys_to_logic[*swap];
                 greedy_swaps.push([target_qubits[1], logical_swap_bit]);
                 layout.swap_logical(target_qubits[1], logical_swap_bit);
-            }
+            });
             ops_since_progress = greedy_swaps;
             continue;
         }
