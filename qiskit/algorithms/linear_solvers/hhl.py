@@ -90,7 +90,7 @@ class HHL(LinearSolver):
              Quantum algorithm for linear systems of equations.
              `Phys. Rev. Lett. 103, 15 (2009), 1–15. <https://doi.org/10.1103/PhysRevLett.103.150502>`_
 
-        [2]: Vazquez, A. C., Hiptmair, H., & Woerner, S. (2022).
+        [2]: Carrera Vazquez, A., Hiptmair, R., & Woerner, S. (2022).
              Enhancing the Quantum Linear Systems Algorithm Using Richardson Extrapolation.
              `ACM Transactions on Quantum Computing 3, 1, Article 2 https://doi.org/10.1145/3490631`_
 
