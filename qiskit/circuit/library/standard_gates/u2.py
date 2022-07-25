@@ -35,7 +35,7 @@ class U2Gate(Gate):
            U2(\phi, \lambda) = U\left(\frac{\pi}{2}, \phi, \lambda\right)
            = RZ(\phi) RY\left(\frac{\pi}{2}\right) RZ(\lambda)
            = e^{- i\frac{\pi}{4}} P\left(\frac{\pi}{2} + \phi\right)
-           \cdot \sqrt{X} \cdot P\left(\lambda- \frac{\pi}{2}\right)
+           \sqrt{X} P\left(\lambda- \frac{\pi}{2}\right)
 
 
 
