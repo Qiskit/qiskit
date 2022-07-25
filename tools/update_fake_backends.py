@@ -18,6 +18,8 @@ import argparse
 from datetime import datetime
 import json
 import os
+from importlib import import_module
+from tabulate import tabulate
 
 from qiskit import IBMQ
 from qiskit.circuit.parameterexpression import ParameterExpression
@@ -49,40 +51,64 @@ DEFAULT_DIR = os.path.join(
 )
 
 
-class _Summary:
-    """
-    In this context, as error is when error == 1.
-    Args:
-        properties (BackendProperty): BackendProperty to analyze.
-    """
-
+class _PropertyStats:
     def __init__(self, properties):
         self.properties = properties
         self.no_qubits = len(properties.qubits)
         self.no_gates = len(properties.gates)
-        self._readout_errors = set()  # {qubits}
-        self._gate_errors = dict()  # {gate_name: [qubits]}
-        self._gate_total = dict()  # {gate_name: total_amount_of_them}
-        self._readout_summary = None
-        self._gate_summary = None
-        self.defs_msg = "No defaults"
-        self.conf_msg = "No configuration"
-        self.props_msg = "No properties"
-        self.defs_msg = "No defaults"
+        self._gate_errors = None  # {gate_name: [qubits]}
+        self._gate_total = None  # {gate_name: total_amount_of_them}
+        self._readout_errors = None  # {qubit}
+
+    @property
+    def name(self):
+        """backend name"""
+        return self.properties.backend_name
+
+    @property
+    def date(self):
+        """backend last update date"""
+        return self.properties.last_update_date
 
     @property
     def readout_errors(self):
-        """[cached] A set with all the qubits with readout_error==1"""
-        if not self._readout_errors:
-            self._count_readout_errors()
+        """list[qubits] with the readout==1"""
+        if self._readout_errors is None:
+            self._readout_errors = set()
+            for qubit in range(self.no_qubits):
+                if self.properties.readout_error(qubit) == 1:
+                    self._readout_errors.add(qubit)
         return self._readout_errors
+
+    @property
+    def total_readout_rate(self):
+        """tuple(witherror/total/percentage"""
+        return (
+            len(self.readout_errors),
+            self.no_qubits,
+            100 * len(self.readout_errors) / self.no_qubits,
+        )
 
     @property
     def gate_errors(self):
         """dict gate->list[qubits] with the gate_error==1 for each gate"""
-        if not self._gate_errors:
+        if self._gate_errors is None:
             self._count_gate_errors()
         return self._gate_errors
+
+    def gate_rate(self, gate_name):
+        """gate_name -> tuple(with_error, total, percentage)"""
+        return (
+            len(self.gate_errors[gate_name]),
+            self.gate_total[gate_name],
+            100 * len(self.gate_errors[gate_name]) / self.gate_total[gate_name],
+        )
+
+    @property
+    def total_gate_rate(self):
+        """tuple(with_error, total, percentage)"""
+        with_error = sum([len(e) for e in self.gate_errors.values()])
+        return (with_error, self.no_gates, 100 * with_error / self.no_gates)
 
     @property
     def gate_total(self):
@@ -91,56 +117,107 @@ class _Summary:
             self._count_gate_errors()
         return self._gate_total
 
-    @property
-    def readout_error_total(self) -> int:
-        """
-        total amount of readout errors
-        """
-        return len(self.readout_errors)
+    def _count_gate_errors(self):
+        """calculates:
+        * gate_total
+        * gate_errors"""
+        self._gate_total = dict()
+        self._gate_errors = dict()
+        for gate in self.properties.gates:
+            if gate.gate == "reset":
+                continue
+            self._gate_total[gate.gate] = self._gate_total.get(gate.gate, 0) + 1
+            if self.properties.gate_error(gate.gate, gate.qubits) == 1:
+                self._gate_errors[gate.gate] = self._gate_errors.get(gate.gate, []) + [gate.qubits]
+
+
+class _Summary:
+    """
+    In this context, as error is when error == 1.
+    Args:
+        properties (BackendProperty): BackendProperty to analyze.
+    """
+
+    def __init__(self, properties, current_properties):
+        self.properties = _PropertyStats(properties)
+        self.current_properties = _PropertyStats(current_properties)
+        self.name = properties.backend_name
+        self.defs_msg = "No defaults"
+        self.conf_msg = "No configuration"
+        self.props_msg = "No properties"
+        self._readout_summary = None
+        self._gate_summary = None
+        self._rate_table = None
+
+    @staticmethod
+    def _format_rate(rate):
+        return f"{rate[0]}/{rate[1]} ({rate[2]:.2f}%)"
 
     @property
     def readout_summary(self):
         """[cached] the readout error == 1 summary"""
-        if not self._readout_summary:
+        if self._readout_summary is None:
             self._readout_summary = []
-            total_error = 0
-            for qubit in self.readout_errors:
+            for qubit in self.properties.readout_errors:
                 self._readout_summary.append(f" * qubit {qubit}")
-                total_error += 1
-            if total_error != 0:
-                self._gate_summary.append(
-                    f" = rate readout error: {total_error}/{self.no_qubits} "
-                    f"({100*total_error/self.no_qubits:.2f}%)"
-                )
+
         return self._readout_summary
+
+    @property
+    def rate_table(self):
+        """[cached] build rate_table information"""
+        if self._rate_table is None:
+            self._rate_table = []
+            total_readout_rate = self.properties.total_readout_rate
+            total_readout_rate_was = self.current_properties.total_readout_rate
+
+            if total_readout_rate[0] != 0 or total_readout_rate_was[0] != 0:
+                self._rate_table.append(
+                    [
+                        "readout error",
+                        _Summary._format_rate(total_readout_rate),
+                        _Summary._format_rate(total_readout_rate_was),
+                    ]
+                )
+            new_gates = self.properties.gate_errors.keys()
+            cur_gates = self.current_properties.gate_errors.keys()
+
+            for gate in set(new_gates).union(cur_gates):
+                rate = self.properties.gate_rate(gate)
+                rate_was = self.current_properties.gate_rate(gate)
+                self._rate_table.append(
+                    [
+                        f"{gate} error",
+                        _Summary._format_rate(rate),
+                        _Summary._format_rate(rate_was),
+                    ]
+                )
+            total_gate_rate = self.properties.total_gate_rate
+            total_gate_rate_was = self.current_properties.total_gate_rate
+            if total_gate_rate[0] != 0 or total_gate_rate_was[0] != 0:
+                self._rate_table.append(
+                    [
+                        "all gates",
+                        _Summary._format_rate(total_gate_rate),
+                        _Summary._format_rate(total_gate_rate_was),
+                    ]
+                )
+        return self._rate_table
 
     @property
     def gate_summary(self):
         """[cached] the gate error == 1 summary"""
-        if not self._gate_summary:
+        if self._gate_summary is None:
             self._gate_summary = []
-            total_error = 0
-            for gate, qubits in self.gate_errors.items():
-                with_error = len(self.gate_errors[gate])
-                total_error += with_error
-                total_gate = self.gate_total[gate]
+            for gate, qubits in self.properties.gate_errors.items():
                 self._gate_summary.extend(
-                    [f" * qubit {', '.join(map(str,qubit))}" for qubit in qubits]
-                )
-                self._gate_summary.append(
-                    f" - rate for {gate}: {with_error}/{total_gate} ({100*with_error/total_gate:.2f}%)"
-                )
-            if total_error != 0:
-                self._gate_summary.append(
-                    f" = rate for all gates: {total_error}/{self.no_gates} "
-                    f"({100*total_error/self.no_gates:.2f}%)"
+                    [f" * {gate} {', '.join(map(str,qubit))}" for qubit in qubits]
                 )
         return self._gate_summary
 
     def generate_summary(self):
         """A list with lines of the summary output"""
-        result = [f"{self.properties.backend_name}", "=" * len(self.properties.backend_name)]
-
+        result = [f"\n{self.name}", "=" * len(self.name)]
         output = []
         if self.readout_summary:
             output.append("Readout errors == 1:")
@@ -155,22 +232,23 @@ class _Summary:
         else:
             result += [self.props_msg]
 
+        if self.rate_table:
+            result.append(
+                tabulate(
+                    self.rate_table,
+                    [
+                        "error == 1",
+                        f"new {self.properties.date}",
+                        f"current {self.current_properties.date}",
+                    ],
+                    tablefmt="fancy_grid",
+                    colalign=("right", "center", "center"),
+                )
+            )
+
         result += [self.conf_msg, self.defs_msg]
 
         return "\n".join(result)
-
-    def _count_readout_errors(self):
-        for qubit in range(self.no_qubits):
-            if self.properties.readout_error(qubit) == 1:
-                self.readout_errors.add(qubit)
-
-    def _count_gate_errors(self):
-        for gate in self.properties.gates:
-            if gate.gate == "reset":
-                continue
-            self._gate_total[gate.gate] = self._gate_total.get(gate.gate, 0) + 1
-            if self.properties.gate_error(gate.gate, gate.qubits) == 1:
-                self._gate_errors[gate.gate] = self._gate_errors.get(gate.gate, []) + [gate.qubits]
 
 
 def _main():
@@ -196,14 +274,18 @@ def _main():
             if name == "16":
                 name = "melbourne"
         if not args.backends or (name in args.backends or raw_name in args.backends):
-            if not os.path.isdir(os.path.join(args.dir, name)):
+            backend_dirname = os.path.join(args.dir, name)
+            if not os.path.isdir(backend_dirname):
                 print("Skipping, fake backend for %s does not exist yet" % name)
                 continue
+
+            bakend_mod = import_module(".".join(os.path.relpath(backend_dirname).split(os.sep)))
+            fake_backend = getattr(bakend_mod, "Fake" + name.capitalize())()
             config = backend.configuration()
             props = backend.properties()
             defs = backend.defaults()
 
-            summary = _Summary(props)
+            summary = _Summary(props, fake_backend.properties())
 
             if config:
                 config_path = os.path.join(args.dir, name, "conf_%s.json" % name)

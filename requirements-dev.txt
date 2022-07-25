@@ -32,3 +32,4 @@ scikit-quant<=0.7;platform_system != 'Windows'
 jax;platform_system != 'Windows'
 jaxlib;platform_system != 'Windows'
 docplex
+tabulate
