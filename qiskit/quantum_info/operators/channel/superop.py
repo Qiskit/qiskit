@@ -345,17 +345,18 @@ class SuperOp(QuantumChannel):
                     "expected QuantumCircuit".format(obj.name, type(obj.definition))
                 )
             qubit_indices = {bit: idx for idx, bit in enumerate(obj.definition.qubits)}
-            for instr, qregs, cregs in obj.definition.data:
-                if cregs:
+            for instruction in obj.definition.data:
+                if instruction.clbits:
                     raise QiskitError(
-                        f"Cannot apply instruction with classical registers: {instr.name}"
+                        "Cannot apply instruction with classical bits:"
+                        f" {instruction.operation.name}"
                     )
                 # Get the integer position of the flat register
                 if qargs is None:
-                    new_qargs = [qubit_indices[tup] for tup in qregs]
+                    new_qargs = [qubit_indices[tup] for tup in instruction.qubits]
                 else:
-                    new_qargs = [qargs[qubit_indices[tup]] for tup in qregs]
-                self._append_instruction(instr, qargs=new_qargs)
+                    new_qargs = [qargs[qubit_indices[tup]] for tup in instruction.qubits]
+                self._append_instruction(instruction.operation, qargs=new_qargs)
 
 
 # Update docstrings for API docs

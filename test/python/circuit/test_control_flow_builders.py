@@ -65,48 +65,52 @@ class TestControlFlowBuilders(QiskitTestCase):
         self.assertEqual(set(a.cregs), set(b.cregs))
         self.assertEqual(len(a.data), len(b.data))
 
-        for (a_op, a_qubits, a_clbits), (b_op, b_qubits, b_clbits) in zip(a.data, b.data):
+        for a_i, b_i in zip(a.data, b.data):
             # Make sure that the operations are the same.
-            self.assertEqual(type(a_op), type(b_op))
-            self.assertEqual(hasattr(a_op, "condition"), hasattr(b_op, "condition"))
-            if hasattr(a_op, "condition") and not isinstance(a_op, (IfElseOp, WhileLoopOp)):
-                self.assertEqual(a_op.condition, b_op.condition)
-            self.assertEqual(hasattr(a_op, "label"), hasattr(b_op, "label"))
-            if hasattr(a_op, "condition"):
-                self.assertEqual(a_op.label, b_op.label)
+            self.assertEqual(type(a_i.operation), type(b_i.operation))
+            self.assertEqual(
+                hasattr(a_i.operation, "condition"), hasattr(b_i.operation, "condition")
+            )
+            if hasattr(a_i.operation, "condition") and not isinstance(
+                a_i.operation, (IfElseOp, WhileLoopOp)
+            ):
+                self.assertEqual(a_i.operation.condition, b_i.operation.condition)
+            self.assertEqual(hasattr(a_i.operation, "label"), hasattr(b_i.operation, "label"))
+            if hasattr(a_i.operation, "condition"):
+                self.assertEqual(a_i.operation.label, b_i.operation.label)
             # If it's a block op, we don't care what order the resources are specified in.
-            if isinstance(a_op, WhileLoopOp):
-                self.assertEqual(set(a_qubits), set(b_qubits))
-                self.assertEqual(set(a_clbits), set(b_clbits))
-                self.assertEqual(a_op.condition, b_op.condition)
-                self.assertCircuitsEquivalent(a_op.blocks[0], b_op.blocks[0])
-            elif isinstance(a_op, ForLoopOp):
-                self.assertEqual(set(a_qubits), set(b_qubits))
-                self.assertEqual(set(a_clbits), set(b_clbits))
-                a_indexset, a_loop_parameter, a_body = a_op.params
-                b_indexset, b_loop_parameter, b_body = b_op.params
+            if isinstance(a_i.operation, WhileLoopOp):
+                self.assertEqual(set(a_i.qubits), set(b_i.qubits))
+                self.assertEqual(set(a_i.clbits), set(b_i.clbits))
+                self.assertEqual(a_i.operation.condition, b_i.operation.condition)
+                self.assertCircuitsEquivalent(a_i.operation.blocks[0], b_i.operation.blocks[0])
+            elif isinstance(a_i.operation, ForLoopOp):
+                self.assertEqual(set(a_i.qubits), set(b_i.qubits))
+                self.assertEqual(set(a_i.clbits), set(b_i.clbits))
+                a_indexset, a_loop_parameter, a_body = a_i.operation.params
+                b_indexset, b_loop_parameter, b_body = b_i.operation.params
                 self.assertEqual(a_loop_parameter is None, b_loop_parameter is None)
                 self.assertEqual(a_indexset, b_indexset)
                 if a_loop_parameter is not None:
                     a_body = a_body.assign_parameters({a_loop_parameter: b_loop_parameter})
                 self.assertCircuitsEquivalent(a_body, b_body)
-            elif isinstance(a_op, IfElseOp):
-                self.assertEqual(set(a_qubits), set(b_qubits))
-                self.assertEqual(set(a_clbits), set(b_clbits))
-                self.assertEqual(a_op.condition, b_op.condition)
-                self.assertEqual(len(a_op.blocks), len(b_op.blocks))
-                self.assertCircuitsEquivalent(a_op.blocks[0], b_op.blocks[0])
-                if len(a_op.blocks) > 1:
-                    self.assertCircuitsEquivalent(a_op.blocks[1], b_op.blocks[1])
-            elif isinstance(a_op, (BreakLoopOp, ContinueLoopOp)):
-                self.assertEqual(set(a_qubits), set(b_qubits))
-                self.assertEqual(set(a_clbits), set(b_clbits))
+            elif isinstance(a_i.operation, IfElseOp):
+                self.assertEqual(set(a_i.qubits), set(b_i.qubits))
+                self.assertEqual(set(a_i.clbits), set(b_i.clbits))
+                self.assertEqual(a_i.operation.condition, b_i.operation.condition)
+                self.assertEqual(len(a_i.operation.blocks), len(b_i.operation.blocks))
+                self.assertCircuitsEquivalent(a_i.operation.blocks[0], b_i.operation.blocks[0])
+                if len(a_i.operation.blocks) > 1:
+                    self.assertCircuitsEquivalent(a_i.operation.blocks[1], b_i.operation.blocks[1])
+            elif isinstance(a_i.operation, (BreakLoopOp, ContinueLoopOp)):
+                self.assertEqual(set(a_i.qubits), set(b_i.qubits))
+                self.assertEqual(set(a_i.clbits), set(b_i.clbits))
             else:
                 # For any other op, we care that the resources are the same, and in the same order,
                 # but we don't mind what sort of iterable they're contained in.
-                self.assertEqual(tuple(a_qubits), tuple(b_qubits))
-                self.assertEqual(tuple(a_clbits), tuple(b_clbits))
-                self.assertEqual(a_op, b_op)
+                self.assertEqual(tuple(a_i.qubits), tuple(b_i.qubits))
+                self.assertEqual(tuple(a_i.clbits), tuple(b_i.clbits))
+                self.assertEqual(a_i.operation, b_i.operation)
 
     def test_if_simple(self):
         """Test a simple if statement builds correctly, in the midst of other instructions."""
@@ -1457,7 +1461,7 @@ class TestControlFlowBuilders(QiskitTestCase):
             test = QuantumCircuit(bits)
             with test.for_loop(list(expected_indices)):
                 pass
-            instruction, _, _ = test.data[-1]
+            instruction = test.data[-1].operation
             self.assertIsInstance(instruction, ForLoopOp)
             indices, _, _ = instruction.params
             self.assertEqual(indices, expected_indices)
@@ -1466,7 +1470,7 @@ class TestControlFlowBuilders(QiskitTestCase):
             test = QuantumCircuit(bits)
             with test.for_loop(tuple(expected_indices)):
                 pass
-            instruction, _, _ = test.data[-1]
+            instruction = test.data[-1].operation
             self.assertIsInstance(instruction, ForLoopOp)
             indices, _, _ = instruction.params
             self.assertEqual(indices, expected_indices)
@@ -1479,7 +1483,7 @@ class TestControlFlowBuilders(QiskitTestCase):
             test = QuantumCircuit(bits)
             with test.for_loop(consumable()):
                 pass
-            instruction, _, _ = test.data[-1]
+            instruction = test.data[-1].operation
             self.assertIsInstance(instruction, ForLoopOp)
             indices, _, _ = instruction.params
             self.assertEqual(indices, expected_indices)
@@ -1490,7 +1494,7 @@ class TestControlFlowBuilders(QiskitTestCase):
             test = QuantumCircuit(bits)
             with test.for_loop(range_indices):
                 pass
-            instruction, _, _ = test.data[-1]
+            instruction = test.data[-1].operation
             self.assertIsInstance(instruction, ForLoopOp)
             indices, _, _ = instruction.params
             self.assertEqual(indices, range_indices)
@@ -1514,7 +1518,7 @@ class TestControlFlowBuilders(QiskitTestCase):
             with circuit.for_loop((0, 0.5 * math.pi), parameter) as received_parameter:
                 circuit.rx(received_parameter, 0)
             self.assertIs(parameter, received_parameter)
-            instruction = circuit.data[-1][0]
+            instruction = circuit.data[-1].operation
             self.assertIsInstance(instruction, ForLoopOp)
             _, bound_parameter, _ = instruction.params
             self.assertIs(bound_parameter, parameter)
@@ -1524,7 +1528,7 @@ class TestControlFlowBuilders(QiskitTestCase):
             with circuit.for_loop((0, 0.5 * math.pi), parameter) as received_parameter:
                 circuit.x(0)
             self.assertIs(parameter, received_parameter)
-            instruction = circuit.data[-1][0]
+            instruction = circuit.data[-1].operation
             self.assertIsInstance(instruction, ForLoopOp)
             _, bound_parameter, _ = instruction.params
             self.assertIs(parameter, received_parameter)
@@ -1534,7 +1538,7 @@ class TestControlFlowBuilders(QiskitTestCase):
             with circuit.for_loop((0, 0.5 * math.pi)) as received_parameter:
                 circuit.rx(received_parameter, 0)
             self.assertIsInstance(received_parameter, Parameter)
-            instruction = circuit.data[-1][0]
+            instruction = circuit.data[-1].operation
             self.assertIsInstance(instruction, ForLoopOp)
             _, bound_parameter, _ = instruction.params
             self.assertIs(bound_parameter, received_parameter)
@@ -1546,7 +1550,7 @@ class TestControlFlowBuilders(QiskitTestCase):
                     circuit.rx(received_parameter, 0)
                     circuit.break_loop()
             self.assertIsInstance(received_parameter, Parameter)
-            instruction = circuit.data[-1][0]
+            instruction = circuit.data[-1].operation
             self.assertIsInstance(instruction, ForLoopOp)
             _, bound_parameter, _ = instruction.params
             self.assertIs(bound_parameter, received_parameter)
@@ -1560,7 +1564,7 @@ class TestControlFlowBuilders(QiskitTestCase):
                     circuit.rx(received_parameter, 0)
                     circuit.break_loop()
             self.assertIsInstance(received_parameter, Parameter)
-            instruction = circuit.data[-1][0]
+            instruction = circuit.data[-1].operation
             self.assertIsInstance(instruction, ForLoopOp)
             _, bound_parameter, _ = instruction.params
             self.assertIs(bound_parameter, received_parameter)
@@ -1571,7 +1575,7 @@ class TestControlFlowBuilders(QiskitTestCase):
         test = QuantumCircuit(1, 1)
         with test.for_loop(range(2)) as generated_parameter:
             pass
-        instruction = test.data[-1][0]
+        instruction = test.data[-1].operation
         self.assertIsInstance(instruction, ForLoopOp)
         _, bound_parameter, _ = instruction.params
         self.assertIsNot(generated_parameter, None)
@@ -1878,7 +1882,7 @@ class TestControlFlowBuilders(QiskitTestCase):
             test = QuantumCircuit(bits)
             with test.if_test(cond, label=label):
                 pass
-            instruction = test.data[-1][0]
+            instruction = test.data[-1].operation
             self.assertIsInstance(instruction, IfElseOp)
             self.assertEqual(instruction.label, label)
 
@@ -1888,7 +1892,7 @@ class TestControlFlowBuilders(QiskitTestCase):
                 pass
             with else_:
                 pass
-            instruction = test.data[-1][0]
+            instruction = test.data[-1].operation
             self.assertIsInstance(instruction, IfElseOp)
             self.assertEqual(instruction.label, label)
 
@@ -1896,7 +1900,7 @@ class TestControlFlowBuilders(QiskitTestCase):
             test = QuantumCircuit(bits)
             with test.for_loop(range(2), label=label):
                 pass
-            instruction = test.data[-1][0]
+            instruction = test.data[-1].operation
             self.assertIsInstance(instruction, ForLoopOp)
             self.assertEqual(instruction.label, label)
 
@@ -1904,7 +1908,7 @@ class TestControlFlowBuilders(QiskitTestCase):
             test = QuantumCircuit(bits)
             with test.while_loop(cond, label=label):
                 pass
-            instruction = test.data[-1][0]
+            instruction = test.data[-1].operation
             self.assertIsInstance(instruction, WhileLoopOp)
             self.assertEqual(instruction.label, label)
 
@@ -1917,7 +1921,7 @@ class TestControlFlowBuilders(QiskitTestCase):
                     # Use break to ensure that we're triggering the lazy building of 'if'.
                     test.break_loop()
 
-            instruction = test.data[-1][0].blocks[0].data[-1][0]
+            instruction = test.data[-1].operation.blocks[0].data[-1].operation
             self.assertIsInstance(instruction, IfElseOp)
             self.assertEqual(instruction.label, label)
 
@@ -1930,7 +1934,7 @@ class TestControlFlowBuilders(QiskitTestCase):
                 with else_:
                     test.break_loop()
 
-            instruction = test.data[-1][0].blocks[0].data[-1][0]
+            instruction = test.data[-1].operation.blocks[0].data[-1].operation
             self.assertIsInstance(instruction, IfElseOp)
             self.assertEqual(instruction.label, label)
 
@@ -1963,7 +1967,7 @@ class TestControlFlowBuilders(QiskitTestCase):
             with test.if_test(cond):
                 test.cx(0, 1)
                 test.measure(2, 2)
-            if_instruction, _, _ = test.data[0]
+            if_instruction = test.data[0].operation
             self.assertEqual(if_instruction, if_instruction.copy())
             self.assertEqual(if_instruction, copy.copy(if_instruction))
             self.assertEqual(if_instruction, copy.deepcopy(if_instruction))
@@ -1976,7 +1980,7 @@ class TestControlFlowBuilders(QiskitTestCase):
             with else_:
                 test.cx(1, 0)
                 test.measure(2, 2)
-            if_instruction, _, _ = test.data[0]
+            if_instruction = test.data[0].operation
             self.assertEqual(if_instruction, if_instruction.copy())
             self.assertEqual(if_instruction, copy.copy(if_instruction))
             self.assertEqual(if_instruction, copy.deepcopy(if_instruction))
@@ -1986,7 +1990,7 @@ class TestControlFlowBuilders(QiskitTestCase):
             with test.for_loop(range(4)):
                 test.cx(0, 1)
                 test.measure(2, 2)
-            for_instruction, _, _ = test.data[0]
+            for_instruction = test.data[0].operation
             self.assertEqual(for_instruction, for_instruction.copy())
             self.assertEqual(for_instruction, copy.copy(for_instruction))
             self.assertEqual(for_instruction, copy.deepcopy(for_instruction))
@@ -1996,7 +2000,7 @@ class TestControlFlowBuilders(QiskitTestCase):
             with test.while_loop(cond):
                 test.cx(0, 1)
                 test.measure(2, 2)
-            while_instruction, _, _ = test.data[0]
+            while_instruction = test.data[0].operation
             self.assertEqual(while_instruction, while_instruction.copy())
             self.assertEqual(while_instruction, copy.copy(while_instruction))
             self.assertEqual(while_instruction, copy.deepcopy(while_instruction))
@@ -2013,7 +2017,7 @@ class TestControlFlowBuilders(QiskitTestCase):
             with test.if_test(cond):
                 test.cx(0, 1)
                 test.measure(2, 2)
-            if_instruction, _, _ = test.data[0]
+            if_instruction = test.data[0].operation
             (true_body,) = if_instruction.blocks
             self.assertEqual(true_body, true_body.copy())
             self.assertEqual(true_body, copy.copy(true_body))
@@ -2027,7 +2031,7 @@ class TestControlFlowBuilders(QiskitTestCase):
             with else_:
                 test.cx(1, 0)
                 test.measure(2, 2)
-            if_instruction, _, _ = test.data[0]
+            if_instruction = test.data[0].operation
             true_body, false_body = if_instruction.blocks
             self.assertEqual(true_body, true_body.copy())
             self.assertEqual(true_body, copy.copy(true_body))
@@ -2041,7 +2045,7 @@ class TestControlFlowBuilders(QiskitTestCase):
             with test.for_loop(range(4)):
                 test.cx(0, 1)
                 test.measure(2, 2)
-            for_instruction, _, _ = test.data[0]
+            for_instruction = test.data[0].operation
             (for_body,) = for_instruction.blocks
             self.assertEqual(for_body, for_body.copy())
             self.assertEqual(for_body, copy.copy(for_body))
@@ -2052,7 +2056,7 @@ class TestControlFlowBuilders(QiskitTestCase):
             with test.while_loop(cond):
                 test.cx(0, 1)
                 test.measure(2, 2)
-            while_instruction, _, _ = test.data[0]
+            while_instruction = test.data[0].operation
             (while_body,) = while_instruction.blocks
             self.assertEqual(while_body, while_body.copy())
             self.assertEqual(while_body, copy.copy(while_body))
@@ -2189,7 +2193,7 @@ class TestControlFlowBuildersFailurePaths(QiskitTestCase):
                     test.break_loop()
                 # These tests need to be done before the 'for' context exits so we don't trigger the
                 # "can't add conditions from out-of-scope" handling.
-                placeholder, _, _ = test._peek_previous_instruction_in_scope()
+                placeholder = test._peek_previous_instruction_in_scope().operation
                 self.assertIsInstance(placeholder, IfElsePlaceholder)
                 with self.assertRaisesRegex(
                     NotImplementedError,
@@ -2206,7 +2210,7 @@ class TestControlFlowBuildersFailurePaths(QiskitTestCase):
                     test.break_loop()
                 # These tests need to be done before the 'for' context exits so we don't trigger the
                 # "can't add conditions from out-of-scope" handling.
-                placeholder, _, _ = test._peek_previous_instruction_in_scope()
+                placeholder = test._peek_previous_instruction_in_scope().operation
                 self.assertIsInstance(placeholder, IfElsePlaceholder)
                 with self.assertRaisesRegex(
                     NotImplementedError,

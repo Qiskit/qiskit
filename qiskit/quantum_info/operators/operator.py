@@ -566,17 +566,18 @@ class Operator(LinearOp):
                 for index, bit in enumerate(bits)
             }
 
-            for instr, qregs, cregs in flat_instr:
-                if cregs:
+            for instruction in flat_instr:
+                if instruction.clbits:
                     raise QiskitError(
-                        f"Cannot apply instruction with classical registers: {instr.name}"
+                        "Cannot apply instruction with classical bits:"
+                        f" {instruction.operation.name}"
                     )
                 # Get the integer position of the flat register
                 if qargs is None:
-                    new_qargs = [bit_indices[tup] for tup in qregs]
+                    new_qargs = [bit_indices[tup] for tup in instruction.qubits]
                 else:
-                    new_qargs = [qargs[bit_indices[tup]] for tup in qregs]
-                self._append_instruction(instr, qargs=new_qargs)
+                    new_qargs = [qargs[bit_indices[tup]] for tup in instruction.qubits]
+                self._append_instruction(instruction.operation, qargs=new_qargs)
 
 
 # Update docstrings for API docs

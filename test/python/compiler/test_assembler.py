@@ -32,7 +32,12 @@ from qiskit.qobj import QasmQobj, PulseQobj
 from qiskit.qobj.utils import MeasLevel, MeasReturnType
 from qiskit.pulse.macros import measure
 from qiskit.test import QiskitTestCase
-from qiskit.test.mock import FakeOpenPulse2Q, FakeOpenPulse3Q, FakeYorktown, FakeAlmaden
+from qiskit.providers.fake_provider import (
+    FakeOpenPulse2Q,
+    FakeOpenPulse3Q,
+    FakeYorktown,
+    FakeAlmaden,
+)
 
 
 class RxGate(Gate):
@@ -124,6 +129,11 @@ class TestCircuitAssembler(QiskitTestCase):
     def test_shots_not_of_type_int(self):
         """Test assembling with shots having type other than int"""
         self.assertRaises(QiskitError, assemble, self.backend, shots="1024")
+
+    def test_shots_of_type_numpy_int64(self):
+        """Test assembling with shots having type numpy.int64"""
+        qobj = assemble(self.circ, shots=np.int64(2048))
+        self.assertEqual(qobj.config.shots, 2048)
 
     def test_default_shots_greater_than_max_shots(self):
         """Test assembling with default shots greater than max shots"""

@@ -21,7 +21,7 @@ from qiskit.circuit import QuantumCircuit
 import qiskit
 from qiskit import circuit
 from qiskit.circuit.classicalregister import ClassicalRegister
-from qiskit.providers import BaseBackend, Backend
+from qiskit.providers import Backend
 from qiskit.utils import QuantumInstance
 from qiskit.result import Result
 from .phase_estimation_result import PhaseEstimationResult, _sort_phases
@@ -81,7 +81,7 @@ class PhaseEstimation(PhaseEstimator):
     def __init__(
         self,
         num_evaluation_qubits: int,
-        quantum_instance: Optional[Union[QuantumInstance, BaseBackend, Backend]] = None,
+        quantum_instance: Optional[Union[QuantumInstance, Backend]] = None,
     ) -> None:
         """
         Args:
@@ -94,7 +94,7 @@ class PhaseEstimation(PhaseEstimator):
         if num_evaluation_qubits is not None:
             self._num_evaluation_qubits = num_evaluation_qubits
 
-        if isinstance(quantum_instance, (Backend, BaseBackend)):
+        if isinstance(quantum_instance, Backend):
             quantum_instance = QuantumInstance(quantum_instance)
         self._quantum_instance = quantum_instance
 

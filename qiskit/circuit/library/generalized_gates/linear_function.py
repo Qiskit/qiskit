@@ -90,9 +90,12 @@ class LinearFunction(Gate):
 
         if isinstance(linear, QuantumCircuit):
             # The following function will raise a CircuitError if there are nonlinear gates.
+            original_circuit = linear
             linear = _linear_quantum_circuit_to_mat(linear)
 
         else:
+            original_circuit = None
+
             # Normalize to numpy array (coercing entries to 0s and 1s)
             try:
                 linear = np.array(linear, dtype=bool, copy=True)
@@ -113,7 +116,9 @@ class LinearFunction(Gate):
                         "A linear function must be represented by an invertible matrix."
                     )
 
-        super().__init__(name="linear_function", num_qubits=len(linear), params=[linear])
+        super().__init__(
+            name="linear_function", num_qubits=len(linear), params=[linear, original_circuit]
+        )
 
     def validate_parameter(self, parameter):
         """Parameter validation"""
@@ -137,6 +142,13 @@ class LinearFunction(Gate):
     def linear(self):
         """Returns the n x n matrix representing this linear function"""
         return self.params[0]
+
+    @property
+    def original_circuit(self):
+        """Returns the original circuit used to construct this linear function
+        (including None, when the linear function is not constructed from a circuit).
+        """
+        return self.params[1]
 
     def is_permutation(self) -> bool:
         """Returns whether this linear function is a permutation,
@@ -165,14 +177,14 @@ def _linear_quantum_circuit_to_mat(qc: QuantumCircuit):
     nq = qc.num_qubits
     mat = np.eye(nq, nq, dtype=bool)
 
-    for inst, qargs, _ in qc.data:
-        if inst.name == "cx":
-            cb = qc.find_bit(qargs[0]).index
-            tb = qc.find_bit(qargs[1]).index
+    for instruction in qc.data:
+        if instruction.operation.name == "cx":
+            cb = qc.find_bit(instruction.qubits[0]).index
+            tb = qc.find_bit(instruction.qubits[1]).index
             mat[tb, :] = (mat[tb, :]) ^ (mat[cb, :])
-        elif inst.name == "swap":
-            cb = qc.find_bit(qargs[0]).index
-            tb = qc.find_bit(qargs[1]).index
+        elif instruction.operation.name == "swap":
+            cb = qc.find_bit(instruction.qubits[0]).index
+            tb = qc.find_bit(instruction.qubits[1]).index
             mat[[cb, tb]] = mat[[tb, cb]]
         else:
             raise CircuitError("A linear quantum circuit can include only CX and SWAP gates.")

@@ -148,19 +148,22 @@ class PauliSumOp(PrimitiveOp):
     def equals(self, other: OperatorBase) -> bool:
         self_reduced, other_reduced = self.reduce(), other.reduce()
 
+        if isinstance(other_reduced, PauliOp):
+            other_reduced = PauliSumOp(
+                SparsePauliOp(other_reduced.primitive, coeffs=[other_reduced.coeff])
+            )
+
         if not isinstance(other_reduced, PauliSumOp):
             return False
 
         if isinstance(self_reduced.coeff, ParameterExpression) or isinstance(
             other_reduced.coeff, ParameterExpression
         ):
-            return (
-                self_reduced.coeff == other_reduced.coeff
-                and self_reduced.primitive == other_reduced.primitive
+            return self_reduced.coeff == other_reduced.coeff and self_reduced.primitive.equiv(
+                other_reduced.primitive
             )
-        return (
-            len(self_reduced) == len(other_reduced)
-            and self_reduced.primitive == other_reduced.primitive
+        return len(self_reduced) == len(other_reduced) and self_reduced.primitive.equiv(
+            other_reduced.primitive
         )
 
     def _expand_dim(self, num_qubits: int) -> "PauliSumOp":

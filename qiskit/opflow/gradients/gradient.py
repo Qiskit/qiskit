@@ -108,6 +108,12 @@ class Gradient(GradientBase):
                 return expr == c
             return coeff == c
 
+        def is_coeff_c_abs(coeff, c):
+            if isinstance(coeff, ParameterExpression):
+                expr = coeff._symbol_expr
+                return np.abs(expr) == c
+            return np.abs(coeff) == c
+
         if isinstance(params, (ParameterVector, list)):
             param_grads = [self.get_gradient(operator, param) for param in params]
             # If get_gradient returns None, then the corresponding parameter was probably not
@@ -126,10 +132,17 @@ class Gradient(GradientBase):
         # By now params is a single parameter
         param = params
         # Handle Product Rules
-        if not is_coeff_c(operator._coeff, 1.0):
+        if not is_coeff_c(operator._coeff, 1.0) and not is_coeff_c(operator._coeff, 1.0j):
             # Separate the operator from the coefficient
             coeff = operator._coeff
             op = operator / coeff
+            if np.iscomplex(coeff):
+                from .circuit_gradients.lin_comb import LinComb
+
+                if isinstance(self.grad_method, LinComb):
+                    op *= 1j
+                    coeff /= 1j
+
             # Get derivative of the operator (recursively)
             d_op = self.get_gradient(op, param)
             # ..get derivative of the coeff
@@ -152,7 +165,7 @@ class Gradient(GradientBase):
         if isinstance(operator, ComposedOp):
 
             # Gradient of an expectation value
-            if not is_coeff_c(operator._coeff, 1.0):
+            if not is_coeff_c_abs(operator._coeff, 1.0):
                 raise OpflowError(
                     "Operator pre-processing failed. Coefficients were not properly "
                     "collected inside the ComposedOp."

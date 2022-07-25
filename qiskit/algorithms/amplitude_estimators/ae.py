@@ -19,7 +19,7 @@ from scipy.stats import chi2, norm
 from scipy.optimize import bisect
 
 from qiskit import QuantumCircuit, ClassicalRegister
-from qiskit.providers import BaseBackend, Backend
+from qiskit.providers import Backend
 from qiskit.utils import QuantumInstance
 from .amplitude_estimator import AmplitudeEstimator, AmplitudeEstimatorResult
 from .ae_utils import pdf_a, derivative_log_pdf_a, bisect_max
@@ -58,7 +58,7 @@ class AmplitudeEstimation(AmplitudeEstimator):
         num_eval_qubits: int,
         phase_estimation_circuit: Optional[QuantumCircuit] = None,
         iqft: Optional[QuantumCircuit] = None,
-        quantum_instance: Optional[Union[QuantumInstance, BaseBackend, Backend]] = None,
+        quantum_instance: Optional[Union[QuantumInstance, Backend]] = None,
     ) -> None:
         r"""
         Args:
@@ -98,15 +98,13 @@ class AmplitudeEstimation(AmplitudeEstimator):
         return self._quantum_instance
 
     @quantum_instance.setter
-    def quantum_instance(
-        self, quantum_instance: Union[QuantumInstance, BaseBackend, Backend]
-    ) -> None:
+    def quantum_instance(self, quantum_instance: Union[QuantumInstance, Backend]) -> None:
         """Set quantum instance.
 
         Args:
             quantum_instance: The quantum instance used to run this algorithm.
         """
-        if isinstance(quantum_instance, (BaseBackend, Backend)):
+        if isinstance(quantum_instance, Backend):
             quantum_instance = QuantumInstance(quantum_instance)
         self._quantum_instance = quantum_instance
 

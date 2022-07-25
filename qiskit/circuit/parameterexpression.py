@@ -22,7 +22,6 @@ import numpy
 from qiskit.circuit.exceptions import CircuitError
 from qiskit.utils import optionals as _optionals
 
-
 # This type is redefined at the bottom to insert the full reference to "ParameterExpression", so it
 # can safely be used by runtime type-checkers like Sphinx.  Mypy does not need this because it
 # handles the references by static analysis.
@@ -521,6 +520,20 @@ class ParameterExpression:
             else:
                 return False
         return True
+
+    def sympify(self):
+        """Return symbolic expression as a raw Sympy or Symengine object.
+
+        Symengine is used preferentially; if both are available, the result will always be a
+        ``symengine`` object.  Symengine is a separate library but has integration with Sympy.
+
+        .. note::
+
+            This is for interoperability only.  Qiskit will not accept or work with raw Sympy or
+            Symegine expressions in its parameters, because they do not contain the tracking
+            information used in circuit-parameter binding and assignment.
+        """
+        return self._symbol_expr
 
 
 # Redefine the type so external imports get an evaluated reference; Sphinx needs this to understand

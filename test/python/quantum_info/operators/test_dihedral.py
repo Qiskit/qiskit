@@ -617,13 +617,17 @@ class TestCNOTDihedral(unittest.TestCase):
                     value = elem1.tensor(elem2)
                     circ = QuantumCircuit(num_qubits_1 + num_qubits_2)
                     qargs = list(range(num_qubits_1))
-                    for instr, qregs, _ in circ1.definition:
-                        new_qubits = [qargs[circ1.definition.qubits.index(tup)] for tup in qregs]
-                        circ.append(instr, new_qubits)
+                    for instruction in circ1.definition:
+                        new_qubits = [
+                            qargs[circ1.definition.qubits.index(tup)] for tup in instruction.qubits
+                        ]
+                        circ.append(instruction.operation, new_qubits)
                     qargs = list(range(num_qubits_1, num_qubits_1 + num_qubits_2))
-                    for instr, qregs, _ in circ2.definition:
-                        new_qubits = [qargs[circ2.definition.qubits.index(tup)] for tup in qregs]
-                        circ.append(instr, new_qubits)
+                    for instruction in circ2.definition:
+                        new_qubits = [
+                            qargs[circ2.definition.qubits.index(tup)] for tup in instruction.qubits
+                        ]
+                        circ.append(instruction.operation, new_qubits)
                     target = CNOTDihedral(circ)
 
                     self.assertEqual(target, value, "Error: tensor circuit is not the same")
@@ -642,13 +646,17 @@ class TestCNOTDihedral(unittest.TestCase):
                     value = elem2.expand(elem1)
                     circ = QuantumCircuit(num_qubits_1 + num_qubits_2)
                     qargs = list(range(num_qubits_1))
-                    for instr, qregs, _ in circ1.definition:
-                        new_qubits = [qargs[circ1.definition.qubits.index(tup)] for tup in qregs]
-                        circ.append(instr, new_qubits)
+                    for instruction in circ1.definition:
+                        new_qubits = [
+                            qargs[circ1.definition.qubits.index(tup)] for tup in instruction.qubits
+                        ]
+                        circ.append(instruction.operation, new_qubits)
                     qargs = list(range(num_qubits_1, num_qubits_1 + num_qubits_2))
-                    for instr, qregs, _ in circ2.definition:
-                        new_qubits = [qargs[circ2.definition.qubits.index(tup)] for tup in qregs]
-                        circ.append(instr, new_qubits)
+                    for instruction in circ2.definition:
+                        new_qubits = [
+                            qargs[circ2.definition.qubits.index(tup)] for tup in instruction.qubits
+                        ]
+                        circ.append(instruction.operation, new_qubits)
                     target = CNOTDihedral(circ)
 
                     self.assertEqual(target, value, "Error: expand circuit is not the same")
@@ -715,6 +723,21 @@ class TestCNOTDihedral(unittest.TestCase):
                 value = Operator(pauli)
                 target = Operator(elem)
                 self.assertTrue(value.equiv(target), "Error: Pauli operator is not the same.")
+
+    def test_barrier_delay_sim(self):
+        """Test barrier and delay instructions can be simulated"""
+        target_circ = QuantumCircuit(2)
+        target_circ.x(0)
+        target_circ.cx(0, 1)
+        target = CNOTDihedral(target_circ)
+
+        circ = QuantumCircuit(2)
+        circ.x(0)
+        circ.delay(100, 0)
+        circ.barrier([0, 1])
+        circ.cx(0, 1)
+        value = CNOTDihedral(circ)
+        self.assertEqual(value, target)
 
 
 if __name__ == "__main__":

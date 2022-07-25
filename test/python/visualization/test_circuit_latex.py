@@ -21,8 +21,8 @@ import numpy as np
 
 from qiskit.visualization import circuit_drawer
 from qiskit import QuantumCircuit, QuantumRegister, ClassicalRegister, transpile
-from qiskit.test.mock import FakeTenerife
-from qiskit.circuit.library import XGate, MCXGate, RZZGate, SwapGate, DCXGate
+from qiskit.providers.fake_provider import FakeTenerife
+from qiskit.circuit.library import XGate, MCXGate, RZZGate, SwapGate, DCXGate, CPhaseGate
 from qiskit.extensions import HamiltonianGate
 from qiskit.circuit import Parameter, Qubit, Clbit
 from qiskit.circuit.library import IQP
@@ -642,6 +642,36 @@ class TestLatexSourceGenerator(QiskitVisualizationTestCase):
         circuit.x(0).c_if(bits[3], 0)
         circuit_drawer(
             circuit, cregbundle=False, reverse_bits=True, filename=filename, output="latex_source"
+        )
+        self.assertEqualToReference(filename)
+
+    def test_sidetext_with_condition(self):
+        """Test that sidetext gates align properly with a condition"""
+        filename = self._get_resource_path("test_latex_sidetext_condition.tex")
+        qr = QuantumRegister(2, "q")
+        cr = ClassicalRegister(2, "c")
+        circuit = QuantumCircuit(qr, cr)
+        circuit.append(CPhaseGate(pi / 2), [qr[0], qr[1]]).c_if(cr[1], 1)
+        circuit_drawer(circuit, cregbundle=False, filename=filename, output="latex_source")
+        self.assertEqualToReference(filename)
+
+    def test_wire_order(self):
+        """Test the wire_order option"""
+        filename = self._get_resource_path("test_latex_wire_order.tex")
+        qr = QuantumRegister(4, "q")
+        cr = ClassicalRegister(4, "c")
+        cr2 = ClassicalRegister(2, "ca")
+        circuit = QuantumCircuit(qr, cr, cr2)
+        circuit.h(0)
+        circuit.h(3)
+        circuit.x(1)
+        circuit.x(3).c_if(cr, 12)
+        circuit_drawer(
+            circuit,
+            cregbundle=False,
+            wire_order=[2, 1, 3, 0, 6, 8, 9, 5, 4, 7],
+            filename=filename,
+            output="latex_source",
         )
         self.assertEqualToReference(filename)
 

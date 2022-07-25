@@ -17,7 +17,7 @@ import numpy as np
 from scipy.stats import beta
 
 from qiskit import ClassicalRegister, QuantumCircuit
-from qiskit.providers import BaseBackend, Backend
+from qiskit.providers import Backend
 from qiskit.utils import QuantumInstance
 
 from .amplitude_estimator import AmplitudeEstimator, AmplitudeEstimatorResult
@@ -52,7 +52,7 @@ class IterativeAmplitudeEstimation(AmplitudeEstimator):
         alpha: float,
         confint_method: str = "beta",
         min_ratio: float = 2,
-        quantum_instance: Optional[Union[QuantumInstance, BaseBackend, Backend]] = None,
+        quantum_instance: Optional[Union[QuantumInstance, Backend]] = None,
     ) -> None:
         r"""
         The output of the algorithm is an estimate for the amplitude `a`, that with at least
@@ -107,15 +107,13 @@ class IterativeAmplitudeEstimation(AmplitudeEstimator):
         return self._quantum_instance
 
     @quantum_instance.setter
-    def quantum_instance(
-        self, quantum_instance: Union[QuantumInstance, BaseBackend, Backend]
-    ) -> None:
+    def quantum_instance(self, quantum_instance: Union[QuantumInstance, Backend]) -> None:
         """Set quantum instance.
 
         Args:
             quantum_instance: The quantum instance used to run this algorithm.
         """
-        if isinstance(quantum_instance, (BaseBackend, Backend)):
+        if isinstance(quantum_instance, Backend):
             quantum_instance = QuantumInstance(quantum_instance)
         self._quantum_instance = quantum_instance
 

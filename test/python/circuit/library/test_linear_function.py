@@ -95,8 +95,8 @@ class TestLinearFunctions(QiskitTestCase):
                 self.assertIsInstance(synthesized_linear_function, QuantumCircuit)
 
                 # check that the synthesized linear function only contains CX and SWAP gates
-                for inst, _, _ in synthesized_linear_function.data:
-                    self.assertIsInstance(inst, (CXGate, SwapGate))
+                for instruction in synthesized_linear_function.data:
+                    self.assertIsInstance(instruction.operation, (CXGate, SwapGate))
 
                 # check equivalence to the original function
                 self.assertEqual(Operator(linear_circuit), Operator(synthesized_linear_function))
@@ -120,8 +120,8 @@ class TestLinearFunctions(QiskitTestCase):
             self.assertIsInstance(synthesized_circuit, QuantumCircuit)
 
             # check that the synthesized linear function only contains CX and SWAP gates
-            for inst, _, _ in synthesized_circuit.data:
-                self.assertIsInstance(inst, (CXGate, SwapGate))
+            for instruction in synthesized_circuit.data:
+                self.assertIsInstance(instruction.operation, (CXGate, SwapGate))
 
             # construct a linear function out of this linear circuit
             synthesized_linear_function = LinearFunction(synthesized_circuit, validate_input=True)
@@ -237,6 +237,23 @@ class TestLinearFunctions(QiskitTestCase):
         linear_function = LinearFunction(mat)
         with self.assertRaises(CircuitError):
             linear_function.permutation_pattern()
+
+    def test_original_definition(self):
+        """Tests that when a linear function is constructed from
+        a QuantumCircuit, it saves the original definition."""
+        linear_circuit = QuantumCircuit(4)
+        linear_circuit.cx(0, 1)
+        linear_circuit.cx(1, 2)
+        linear_circuit.cx(2, 3)
+        linear_function = LinearFunction(linear_circuit)
+        self.assertIsNotNone(linear_function.original_circuit)
+
+    def test_no_original_definition(self):
+        """Tests that when a linear function is constructed from
+        a matrix, there is no original definition."""
+        mat = [[1, 0, 0, 0], [0, 0, 0, 1], [0, 1, 0, 0], [0, 0, 1, 0]]
+        linear_function = LinearFunction(mat)
+        self.assertIsNone(linear_function.original_circuit)
 
 
 if __name__ == "__main__":

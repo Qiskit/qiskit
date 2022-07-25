@@ -12,17 +12,15 @@
 
 """Unitary gate."""
 
-from warnings import warn
 from typing import List, Optional, Union, Tuple
 import numpy as np
 
 from qiskit.circuit.parameterexpression import ParameterExpression
 from qiskit.circuit.exceptions import CircuitError
 from .instruction import Instruction
-from .operation import Operation
 
 
-class Gate(Instruction, Operation):
+class Gate(Instruction):
     """Unitary gate."""
 
     def __init__(
@@ -228,15 +226,5 @@ class Gate(Instruction, Operation):
             return parameter
         elif isinstance(parameter, (np.integer, np.floating)):
             return parameter.item()
-        elif isinstance(parameter, np.ndarray):
-            warn(
-                "Gate param type %s is being deprecated as of 0.16.0, and will be removed "
-                "no earlier than 3 months after that release date. "
-                "Considering creating your own Gate subclass with the method validate_parameter "
-                " to allow this param type." % type(parameter),
-                DeprecationWarning,
-                3,
-            )
-            return parameter
         else:
             raise CircuitError(f"Invalid param type {type(parameter)} for gate {self.name}.")

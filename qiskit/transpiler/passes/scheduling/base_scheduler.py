@@ -22,8 +22,17 @@ from qiskit.circuit.parameterexpression import ParameterExpression
 from qiskit.transpiler.exceptions import TranspilerError
 
 
-class BaseScheduler(TransformationPass):
+class BaseSchedulerTransform(TransformationPass):
     """Base scheduler pass.
+
+    .. warning::
+
+        This base class is not part of the public interface for this module
+        it should not be used to develop new scheduling passes as the passes
+        which are using this are pending a future deprecation and subsequent
+        removal. If you are developing new scheduling passes look at the
+        ``BaseScheduler`` class instead which is used in the new scheduling
+        pass workflow.
 
     Policy of topological node ordering in scheduling
 

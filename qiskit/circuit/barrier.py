@@ -10,14 +10,17 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""Barrier instruction."""
+"""Barrier instruction.
+
+Can be applied to a :class:`~qiskit.circuit.QuantumCircuit`
+with the :meth:`~qiskit.circuit.QuantumCircuit.barrier` method.
+"""
 
 from qiskit.exceptions import QiskitError
 from .instruction import Instruction
-from .operation import Operation
 
 
-class Barrier(Instruction, Operation):
+class Barrier(Instruction):
     """Barrier instruction."""
 
     _directive = True

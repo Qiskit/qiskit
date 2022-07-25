@@ -16,7 +16,7 @@ from typing import Optional, Union, List, Tuple
 import numpy as np
 
 from qiskit.circuit import QuantumCircuit, ClassicalRegister
-from qiskit.providers import BaseBackend, Backend
+from qiskit.providers import Backend
 from qiskit.utils import QuantumInstance
 from qiskit.algorithms.exceptions import AlgorithmError
 
@@ -50,7 +50,7 @@ class FasterAmplitudeEstimation(AmplitudeEstimator):
         delta: float,
         maxiter: int,
         rescale: bool = True,
-        quantum_instance: Optional[Union[QuantumInstance, BaseBackend, Backend]] = None,
+        quantum_instance: Optional[Union[QuantumInstance, Backend]] = None,
     ) -> None:
         r"""
         Args:
@@ -83,15 +83,13 @@ class FasterAmplitudeEstimation(AmplitudeEstimator):
         return self._quantum_instance
 
     @quantum_instance.setter
-    def quantum_instance(
-        self, quantum_instance: Union[QuantumInstance, BaseBackend, Backend]
-    ) -> None:
+    def quantum_instance(self, quantum_instance: Union[QuantumInstance, Backend]) -> None:
         """Set quantum instance.
 
         Args:
             quantum_instance: The quantum instance used to run this algorithm.
         """
-        if isinstance(quantum_instance, (BaseBackend, Backend)):
+        if isinstance(quantum_instance, Backend):
             quantum_instance = QuantumInstance(quantum_instance)
         self._quantum_instance = quantum_instance
 

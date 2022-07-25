@@ -1130,7 +1130,7 @@ def state_to_latex(
     # this means the operator shape should hve no input dimensions and all output dimensions equal to 2
     is_qubit_statevector = len(operator_shape.dims_r()) == 0 and set(operator_shape.dims_l()) == {2}
     if convention == "ket" and is_qubit_statevector:
-        latex_str = _state_to_latex_ket(state._data)
+        latex_str = _state_to_latex_ket(state._data, **args)
     else:
         latex_str = array_to_latex(state._data, source=True, **args)
     return prefix + latex_str + suffix

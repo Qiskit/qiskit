@@ -16,7 +16,7 @@ from typing import Optional
 import warnings
 import numpy as np
 
-from qiskit.circuit import QuantumCircuit, QuantumRegister
+from qiskit.circuit import QuantumCircuit, QuantumRegister, CircuitInstruction
 
 from ..blueprintcircuit import BlueprintCircuit
 
@@ -221,11 +221,11 @@ class QFT(BlueprintCircuit):
         inverted = self.copy(name=name)
 
         # data consists of the QFT gate only
-        iqft = self.data[0][0].inverse()
+        iqft = self.data[0].operation.inverse()
         iqft.name = name
 
         inverted.data.clear()
-        inverted._append(iqft, inverted.qubits, [])
+        inverted._append(CircuitInstruction(iqft, inverted.qubits, []))
 
         inverted._inverse = not self._inverse
         return inverted

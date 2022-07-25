@@ -215,17 +215,16 @@ class TestControlledGate(QiskitTestCase):
         circ.append(inst.control(), qargs=[0, 2, 1])
         circ.append(inst.control(2), qargs=[0, 3, 1, 2])
         circ.append(inst.control().control(), qargs=[0, 3, 1, 2])  # should be same as above
-        self.assertEqual(circ[1][0], circ[2][0])
+        self.assertEqual(circ[1].operation, circ[2].operation)
         self.assertEqual(circ.depth(), 3)
-        self.assertEqual(circ[0][0].num_ctrl_qubits, 2)
-        self.assertEqual(circ[1][0].num_ctrl_qubits, 3)
-        self.assertEqual(circ[2][0].num_ctrl_qubits, 3)
-        self.assertEqual(circ[0][0].num_qubits, 3)
-        self.assertEqual(circ[1][0].num_qubits, 4)
-        self.assertEqual(circ[2][0].num_qubits, 4)
+        self.assertEqual(circ[0].operation.num_ctrl_qubits, 2)
+        self.assertEqual(circ[1].operation.num_ctrl_qubits, 3)
+        self.assertEqual(circ[2].operation.num_ctrl_qubits, 3)
+        self.assertEqual(circ[0].operation.num_qubits, 3)
+        self.assertEqual(circ[1].operation.num_qubits, 4)
+        self.assertEqual(circ[2].operation.num_qubits, 4)
         for instr in circ:
-            gate = instr[0]
-            self.assertTrue(isinstance(gate, ControlledGate))
+            self.assertTrue(isinstance(instr.operation, ControlledGate))
 
     def test_swap_definition_specification(self):
         """Test the instantiation of a controlled swap gate with explicit definition."""
@@ -714,7 +713,7 @@ class TestControlledGate(QiskitTestCase):
         qc = QuantumCircuit(num_ctrl_qubits + 1)
         qc.mcx(list(range(num_ctrl_qubits)), [num_ctrl_qubits])
         explicit = {1: CXGate, 2: CCXGate, 3: C3XGate, 4: C4XGate}
-        self.assertEqual(type(qc[0][0]), explicit[num_ctrl_qubits])
+        self.assertEqual(type(qc[0].operation), explicit[num_ctrl_qubits])
 
     @data(3, 4, 5, 8)
     def test_mcx_gates(self, num_ctrl_qubits):

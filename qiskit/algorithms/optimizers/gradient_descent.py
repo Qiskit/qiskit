@@ -212,20 +212,6 @@ class GradientDescent(Optimizer):
             "initial_point": OptimizerSupportLevel.required,
         }
 
-    def optimize(
-        self,
-        num_vars,
-        objective_function,
-        gradient_function=None,
-        variable_bounds=None,
-        initial_point=None,
-    ):
-        super().optimize(
-            num_vars, objective_function, gradient_function, variable_bounds, initial_point
-        )
-        result = self.minimize(objective_function, initial_point, gradient_function)
-        return result.x, result.fun, result.nfev
-
 
 def constant(eta=0.01):
     """Yield a constant."""
