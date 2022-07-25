@@ -124,7 +124,30 @@ from qiskit.quantum_info.operators import SparsePauliOp
 from qiskit.utils.deprecation import deprecate_arguments, deprecate_function
 
 from .estimator_result import EstimatorResult
+from .primitive_future import PrimitiveFuture
 from .utils import _finditer
+
+
+class BaseEstimatorFuture(PrimitiveFuture[EstimatorResult]):
+    """TODO: Docstring"""
+
+    def __init__(self, future: Future):
+        self._future = future
+
+    def result(self) -> EstimatorResult:
+        return self._future.result()
+
+    def cancel(self):
+        return self._future.cancel()
+
+    def canceled(self):
+        return self._future.canceled()
+
+    def running(self):
+        return self._future.running()
+
+    def done(self):
+        return self._future.done()
 
 
 class BaseEstimator(ABC):
@@ -396,7 +419,7 @@ class BaseEstimator(ABC):
         observables: Sequence[int | SparsePauliOp],
         parameter_values: Sequence[Sequence[float]] | None = None,
         **run_options,
-    ) -> Future:
+    ) -> PrimitiveFuture[EstimatorResult]:
         """Submit the job of the estimation of expectation value(s).
 
         ``circuits``, ``observables``, and ``parameter_values`` should have the same
@@ -428,9 +451,10 @@ class BaseEstimator(ABC):
             Future: The future object of EstimatorResult.
         """
         with ThreadPoolExecutor(max_workers=1) as executor:
-            return executor.submit(
+            future = executor.submit(
                 self._run, circuits, observables, parameter_values, **run_options
             )
+        return BaseEstimatorFuture(future)
 
     def _run(
         self,
@@ -438,7 +462,7 @@ class BaseEstimator(ABC):
         observables: Sequence[int | SparsePauliOp],
         parameter_values: Sequence[Sequence[float]] | None = None,
         **run_options,
-    ) -> EstimatorResult:
+    ) -> PrimitiveFuture[EstimatorResult]:
         # Support ndarray
         if isinstance(parameter_values, np.ndarray):
             parameter_values = parameter_values.tolist()
@@ -527,7 +551,7 @@ class BaseEstimator(ABC):
         observables: Sequence[int],
         parameter_values: Sequence[Sequence[float]],
         **run_options,
-    ) -> EstimatorResult:
+    ) -> PrimitiveFuture[EstimatorResult]:
         ...
 
     def _append_circuit(self, circuit):

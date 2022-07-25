@@ -109,8 +109,31 @@ from qiskit.circuit.parametertable import ParameterView
 from qiskit.exceptions import QiskitError
 from qiskit.utils.deprecation import deprecate_arguments, deprecate_function
 
+from .primitive_future import PrimitiveFuture
 from .sampler_result import SamplerResult
 from .utils import _finditer
+
+
+class BaseSamplerFuture(PrimitiveFuture[SamplerResult]):
+    """TODO: Docstring"""
+
+    def __init__(self, future: Future):
+        self._future = future
+
+    def result(self) -> SamplerResult:
+        return self._future.result()
+
+    def cancel(self):
+        return self._future.cancel()
+
+    def canceled(self):
+        return self._future.canceled()
+
+    def running(self):
+        return self._future.running()
+
+    def done(self):
+        return self._future.done()
 
 
 class BaseSampler(ABC):
@@ -293,7 +316,7 @@ class BaseSampler(ABC):
         circuits: Sequence[int | QuantumCircuit],
         parameter_values: Sequence[Sequence[float]] | None = None,
         **run_options,
-    ) -> Future:
+    ) -> PrimitiveFuture[SamplerResult]:
         """Submit the job of the sampling of bitstrings.
 
         Args:
@@ -307,7 +330,8 @@ class BaseSampler(ABC):
             ``parameter_values[i]``.
         """
         with ThreadPoolExecutor(max_workers=1) as executor:
-            return executor.submit(self._run, circuits, parameter_values, **run_options)
+            future = executor.submit(self._run, circuits, parameter_values, **run_options)
+        return BaseSamplerFuture(future)
 
     @abstractmethod
     def _call(
@@ -315,7 +339,7 @@ class BaseSampler(ABC):
         circuits: Sequence[int],
         parameter_values: Sequence[Sequence[float]],
         **run_options,
-    ) -> SamplerResult:
+    ) -> PrimitiveFuture[SamplerResult]:
         ...
 
     def _run(
