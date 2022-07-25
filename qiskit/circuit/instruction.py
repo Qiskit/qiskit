@@ -275,14 +275,14 @@ class Instruction:
 
                 instruction._definition.global_phase = bound_phase
 
-            for op, _, _ in instruction._definition:
-                for idx, param in enumerate(op.params):
+            for inner in instruction._definition:
+                for idx, param in enumerate(inner.operation.params):
                     if isinstance(param, ParameterExpression) and parameter in param.parameters:
                         if isinstance(value, ParameterExpression):
-                            op.params[idx] = param.subs({parameter: value})
+                            inner.operation.params[idx] = param.subs({parameter: value})
                         else:
-                            op.params[idx] = param.bind({parameter: value})
-                        self._rebind_definition(op, parameter, value)
+                            inner.operation.params[idx] = param.bind({parameter: value})
+                        self._rebind_definition(inner.operation, parameter, value)
 
     @property
     def definition(self):
