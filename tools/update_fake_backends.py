@@ -19,6 +19,7 @@ from datetime import datetime
 import json
 import os
 from importlib import import_module
+from collections import defaultdict
 from tabulate import tabulate
 
 from qiskit import IBMQ
@@ -121,14 +122,14 @@ class _PropertyStats:
         """calculates:
         * gate_total
         * gate_errors"""
-        self._gate_total = dict()
-        self._gate_errors = dict()
+        self._gate_total = defaultdict(lambda: 0)
+        self._gate_errors = defaultdict(lambda: [])
         for gate in self.properties.gates:
             if gate.gate == "reset":
                 continue
-            self._gate_total[gate.gate] = self._gate_total.get(gate.gate, 0) + 1
+            self._gate_total[gate.gate] += 1
             if self.properties.gate_error(gate.gate, gate.qubits) == 1:
-                self._gate_errors[gate.gate] = self._gate_errors.get(gate.gate, []) + [gate.qubits]
+                self._gate_errors[gate.gate].append(gate.qubits)
 
 
 class _Summary:
