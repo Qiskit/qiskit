@@ -112,8 +112,8 @@ from __future__ import annotations
 
 from abc import ABC, abstractmethod
 from collections.abc import Iterable, Sequence
-from concurrent.futures import Future, ThreadPoolExecutor
 from copy import copy
+from typing import cast
 
 import numpy as np
 
@@ -128,33 +128,13 @@ from .primitive_future import PrimitiveFuture
 from .utils import _finditer
 
 
-class BaseEstimatorFuture(PrimitiveFuture[EstimatorResult]):
-    """TODO: Docstring"""
-
-    def __init__(self, future: Future):
-        self._future = future
-
-    def result(self) -> EstimatorResult:
-        return self._future.result()
-
-    def cancel(self):
-        return self._future.cancel()
-
-    def canceled(self):
-        return self._future.canceled()
-
-    def running(self):
-        return self._future.running()
-
-    def done(self):
-        return self._future.done()
-
-
 class BaseEstimator(ABC):
     """Estimator base class.
 
     Base class for Estimator that estimates expectation values of quantum circuits and observables.
     """
+
+    __hash__ = None  # type: ignore
 
     def __init__(
         self,
@@ -187,8 +167,8 @@ class BaseEstimator(ABC):
 
         # To guarantee that they exist as instance variable.
         # With only dynamic set, the python will not know if the attribute exists or not.
-        self._circuit_ids = self._circuit_ids
-        self._observable_ids = self._observable_ids
+        self._circuit_ids: list[int] = self._circuit_ids
+        self._observable_ids: list[int] = self._observable_ids
 
         if parameters is None:
             self._parameters = tuple(circ.parameters for circ in self._circuits)
@@ -356,6 +336,9 @@ class BaseEstimator(ABC):
                 "initialize the session."
             ) from err
 
+        circuits = cast("list[int]", circuits)
+        observables = cast("list[int]", observables)
+
         # Allow optional
         if parameter_values is None:
             for i in circuits:
@@ -450,24 +433,7 @@ class BaseEstimator(ABC):
         Returns:
             Future: The future object of EstimatorResult.
         """
-        with ThreadPoolExecutor(max_workers=1) as executor:
-            future = executor.submit(
-                self._run, circuits, observables, parameter_values, **run_options
-            )
-        return BaseEstimatorFuture(future)
-
-    def _run(
-        self,
-        circuits: Sequence[int | QuantumCircuit],
-        observables: Sequence[int | SparsePauliOp],
-        parameter_values: Sequence[Sequence[float]] | None = None,
-        **run_options,
-    ) -> PrimitiveFuture[EstimatorResult]:
-        # Support ndarray
-        if isinstance(parameter_values, np.ndarray):
-            parameter_values = parameter_values.tolist()
-
-        circuit_indices = []
+        circuit_indices: list[int] = []
         for circuit in circuits:
             if isinstance(circuit, (int, np.integer)):
                 circuit_indices.append(circuit)
@@ -487,61 +453,12 @@ class BaseEstimator(ABC):
                 except StopIteration:
                     self._append_observable(observable)
                     observable_indices.append(len(self._observables) - 1)
-        # Allow optional
-        if parameter_values is None:
-            for i in circuit_indices:
-                if len(self._circuits[i].parameters) != 0:
-                    raise QiskitError(
-                        f"The {i}-th circuit is parameterised,"
-                        "but parameter values are not given."
-                    )
-            parameter_values = [[]] * len(circuit_indices)
 
-        # Validation
-        if len(circuit_indices) != len(observable_indices):
-            raise QiskitError(
-                f"The number of circuits ({len(circuit_indices)}) does not match "
-                f"the number of observables ({len(observable_indices)})."
-            )
-        if len(circuit_indices) != len(parameter_values):
-            raise QiskitError(
-                f"The number of circuits ({len(circuit_indices)}) does not match "
-                f"the number of parameter value sets ({len(parameter_values)})."
-            )
-
-        for i, value in zip(circuit_indices, parameter_values):
-            if len(value) != len(self._parameters[i]):
-                raise QiskitError(
-                    f"The number of values ({len(value)}) does not match "
-                    f"the number of parameters ({len(self._parameters[i])}) for the {i}-th circuit."
-                )
-
-        for circ_i, obs_i in zip(circuit_indices, observable_indices):
-            circuit_num_qubits = self.circuits[circ_i].num_qubits
-            observable_num_qubits = self.observables[obs_i].num_qubits
-            if circuit_num_qubits != observable_num_qubits:
-                raise QiskitError(
-                    f"The number of qubits of the {circ_i}-th circuit ({circuit_num_qubits}) does "
-                    f"not match the number of qubits of the {obs_i}-th observable "
-                    f"({observable_num_qubits})."
-                )
-
-        if max(circuit_indices) >= len(self.circuits):
-            raise QiskitError(
-                f"The number of circuits is {len(self.circuits)}, "
-                f"but the index {max(circuit_indices)} is given."
-            )
-        if max(observable_indices) >= len(self.observables):
-            raise QiskitError(
-                f"The number of circuits is {len(self.observables)}, "
-                f"but the index {max(observables)} is given."
-            )
-
-        return self._call(
-            circuits=circuit_indices,
-            observables=observable_indices,
-            parameter_values=parameter_values,
-            **run_options,
+        circuit_indices, observable_indices, parameter_values = self._validation(
+            circuit_indices, observable_indices, parameter_values
+        )
+        return self._submit(
+            lambda: self._call(circuit_indices, observable_indices, parameter_values, **run_options)
         )
 
     @abstractmethod
@@ -551,8 +468,71 @@ class BaseEstimator(ABC):
         observables: Sequence[int],
         parameter_values: Sequence[Sequence[float]],
         **run_options,
-    ) -> PrimitiveFuture[EstimatorResult]:
+    ) -> EstimatorResult:
         ...
+
+    @staticmethod
+    @abstractmethod
+    def _submit(function) -> PrimitiveFuture[EstimatorResult]:
+        ...
+
+    def _validation(
+        self, circuits: list[int], observables: list[int], parameter_values
+    ) -> tuple[list[int], list[int], list[list[float]]]:
+        # Support ndarray
+        if isinstance(parameter_values, np.ndarray):
+            parameter_values = parameter_values.tolist()
+
+        # Allow optional
+        if parameter_values is None:
+            for i in circuits:
+                if len(self._circuits[i].parameters) != 0:
+                    raise QiskitError(
+                        f"The {i}-th circuit is parameterised,"
+                        "but parameter values are not given."
+                    )
+            parameter_values = [[]] * len(circuits)
+
+        # Validation
+        if len(circuits) != len(observables):
+            raise QiskitError(
+                f"The number of circuits ({len(circuits)}) does not match "
+                f"the number of observables ({len(observables)})."
+            )
+        if len(circuits) != len(parameter_values):
+            raise QiskitError(
+                f"The number of circuits ({len(circuits)}) does not match "
+                f"the number of parameter value sets ({len(parameter_values)})."
+            )
+
+        for i, value in zip(circuits, parameter_values):
+            if len(value) != len(self._parameters[i]):
+                raise QiskitError(
+                    f"The number of values ({len(value)}) does not match "
+                    f"the number of parameters ({len(self._parameters[i])}) for the {i}-th circuit."
+                )
+
+        for circ_i, obs_i in zip(circuits, observables):
+            circuit_num_qubits = self.circuits[circ_i].num_qubits
+            observable_num_qubits = self.observables[obs_i].num_qubits
+            if circuit_num_qubits != observable_num_qubits:
+                raise QiskitError(
+                    f"The number of qubits of the {circ_i}-th circuit ({circuit_num_qubits}) does "
+                    f"not match the number of qubits of the {obs_i}-th observable "
+                    f"({observable_num_qubits})."
+                )
+
+        if max(circuits) >= len(self.circuits):
+            raise QiskitError(
+                f"The number of circuits is {len(self.circuits)}, "
+                f"but the index {max(circuits)} is given."
+            )
+        if max(observables) >= len(self.observables):
+            raise QiskitError(
+                f"The number of circuits is {len(self.observables)}, "
+                f"but the index {max(observables)} is given."
+            )
+        return circuits, observables, parameter_values
 
     def _append_circuit(self, circuit):
         self._circuit_ids.append(id(circuit))

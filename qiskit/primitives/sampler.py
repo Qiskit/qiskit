@@ -16,6 +16,8 @@ Sampler class
 from __future__ import annotations
 
 from collections.abc import Iterable, Sequence
+from concurrent.futures import Future, ThreadPoolExecutor
+from typing import Any
 
 import numpy as np
 
@@ -25,6 +27,7 @@ from qiskit.quantum_info import Statevector
 from qiskit.result import QuasiDistribution
 
 from .base_sampler import BaseSampler
+from .primitive_future import PrimitiveFuture
 from .sampler_result import SamplerResult
 from .utils import final_measurement_mapping, init_circuit
 
@@ -76,7 +79,8 @@ class Sampler(BaseSampler):
                 c_q_mapping = sorted((c, q) for q, c in q_c_mapping.items())
                 self._qargs_list.append([q for _, q in c_q_mapping])
             circuits = tuple(
-                circuit.remove_final_measurements(inplace=False) for circuit in circuits
+                circuit.remove_final_measurements(inplace=False)  # type: ignore
+                for circuit in circuits
             )
         super().__init__(circuits, parameters)
         self._is_closed = False
@@ -100,7 +104,7 @@ class Sampler(BaseSampler):
             rng = np.random.default_rng(seed)
 
         # Initialize metadata
-        metadata = [{}] * len(circuits)
+        metadata: list[dict[str, Any]] = [{}] * len(circuits)
 
         bound_circuits_qargs = []
         for i, value in zip(circuits, parameter_values):
@@ -145,3 +149,31 @@ class Sampler(BaseSampler):
         circuit = circuit.remove_final_measurements(inplace=False)
         self._circuits += (circuit,)
         self._parameters += (circuit.parameters,)
+
+    @staticmethod
+    def _submit(function) -> SamplerFuture:
+        with ThreadPoolExecutor(max_workers=1) as executor:
+            future = executor.submit(function)
+        return SamplerFuture(future)
+
+
+class SamplerFuture(PrimitiveFuture[SamplerResult]):
+    """TODO: Docstring"""
+
+    def __init__(self, future: Future):
+        self._future = future
+
+    def result(self) -> SamplerResult:
+        return self._future.result()
+
+    def cancel(self):
+        return self._future.cancel()
+
+    def canceled(self):
+        return self._future.canceled()
+
+    def running(self):
+        return self._future.running()
+
+    def done(self):
+        return self._future.done()

@@ -99,8 +99,8 @@ from __future__ import annotations
 
 from abc import ABC, abstractmethod
 from collections.abc import Iterable, Sequence
-from concurrent.futures import Future, ThreadPoolExecutor
 from copy import copy
+from typing import cast
 
 import numpy as np
 
@@ -114,33 +114,13 @@ from .sampler_result import SamplerResult
 from .utils import _finditer
 
 
-class BaseSamplerFuture(PrimitiveFuture[SamplerResult]):
-    """TODO: Docstring"""
-
-    def __init__(self, future: Future):
-        self._future = future
-
-    def result(self) -> SamplerResult:
-        return self._future.result()
-
-    def cancel(self):
-        return self._future.cancel()
-
-    def canceled(self):
-        return self._future.canceled()
-
-    def running(self):
-        return self._future.running()
-
-    def done(self):
-        return self._future.done()
-
-
 class BaseSampler(ABC):
     """Sampler base class
 
     Base class of Sampler that calculates quasi-probabilities of bitstrings from quantum circuits.
     """
+
+    __hash__ = None  # type: ignore
 
     def __init__(
         self,
@@ -162,7 +142,7 @@ class BaseSampler(ABC):
 
         # To guarantee that they exist as instance variable.
         # With only dynamic set, the python will not know if the attribute exists or not.
-        self._circuit_ids = self._circuit_ids
+        self._circuit_ids: list[int] = self._circuit_ids
 
         if parameters is None:
             self._parameters = tuple(circ.parameters for circ in self._circuits)
@@ -275,6 +255,8 @@ class BaseSampler(ABC):
                 "initialize the session."
             ) from err
 
+        circuits = cast("list[int]", circuits)
+
         # Allow optional
         if parameter_values is None:
             for i in circuits:
@@ -329,29 +311,6 @@ class BaseSampler(ABC):
             ``self.circuits[circuits[i]]`` evaluated with parameters bound as
             ``parameter_values[i]``.
         """
-        with ThreadPoolExecutor(max_workers=1) as executor:
-            future = executor.submit(self._run, circuits, parameter_values, **run_options)
-        return BaseSamplerFuture(future)
-
-    @abstractmethod
-    def _call(
-        self,
-        circuits: Sequence[int],
-        parameter_values: Sequence[Sequence[float]],
-        **run_options,
-    ) -> PrimitiveFuture[SamplerResult]:
-        ...
-
-    def _run(
-        self,
-        circuits: Sequence[int | QuantumCircuit],
-        parameter_values: Sequence[Sequence[float]] | None = None,
-        **run_options,
-    ):
-        # Support ndarray
-        if isinstance(parameter_values, np.ndarray):
-            parameter_values = parameter_values.tolist()
-
         circuit_indices = []
         for circuit in circuits:
             if isinstance(circuit, (int, np.integer)):
@@ -362,38 +321,55 @@ class BaseSampler(ABC):
                 except StopIteration:
                     self._append_circuit(circuit)
                     circuit_indices.append(len(self._circuits) - 1)
+        circuit_indices, parameter_values = self._validation(circuit_indices, parameter_values)
+        return self._submit(lambda: self._call(circuit_indices, parameter_values, **run_options))
+
+    @abstractmethod
+    def _call(
+        self,
+        circuits: Sequence[int],
+        parameter_values: Sequence[Sequence[float]],
+        **run_options,
+    ) -> SamplerResult:
+        ...
+
+    @staticmethod
+    @abstractmethod
+    def _submit(function) -> PrimitiveFuture[SamplerResult]:
+        ...
+
+    def _append_circuit(self, circuit):
+        self._circuits += (circuit,)
+        self._circuit_ids.append(id(circuit))
+        self._parameters += (circuit.parameters,)
+
+    def _validation(self, circuits, parameter_values) -> tuple[list[int], list[list[float]]]:
+        # Support ndarray
+        if isinstance(parameter_values, np.ndarray):
+            parameter_values = parameter_values.tolist()
 
         # Allow optional
         if parameter_values is None:
-            for i in circuit_indices:
+            for i in circuits:
                 if len(self._circuits[i].parameters) != 0:
                     raise QiskitError(
-                        f"The {i}-th circuit ({len(circuit_indices)}) is parameterised,"
+                        f"The {i}-th circuit ({len(circuits)}) is parameterised,"
                         "but parameter values are not given."
                     )
             parameter_values = [[]] * len(circuits)
 
         # Validation
-        if len(circuit_indices) != len(parameter_values):
+        if len(circuits) != len(parameter_values):
             raise QiskitError(
-                f"The number of circuits ({len(circuit_indices)}) does not match "
+                f"The number of circuits ({len(circuits)}) does not match "
                 f"the number of parameter value sets ({len(parameter_values)})."
             )
 
-        for i, value in zip(circuit_indices, parameter_values):
+        for i, value in zip(circuits, parameter_values):
             if len(value) != len(self._parameters[i]):
                 raise QiskitError(
                     f"The number of values ({len(value)}) does not match "
                     f"the number of parameters ({len(self._parameters[i])}) for the {i}-th circuit."
                 )
 
-        return self._call(
-            circuits=circuit_indices,
-            parameter_values=parameter_values,
-            **run_options,
-        )
-
-    def _append_circuit(self, circuit):
-        self._circuits += (circuit,)
-        self._circuit_ids.append(id(circuit))
-        self._parameters += (circuit.parameters,)
+        return circuits, parameter_values
