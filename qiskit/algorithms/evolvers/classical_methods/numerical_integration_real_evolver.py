@@ -12,14 +12,14 @@
 
 """Interface for Classical Quantum Real Time Evolution."""
 
-from multiprocessing.sharedctypes import Value
+from typing import Tuple, Optional, List
 import scipy.sparse as sp
 from scipy.sparse.linalg import bicg, norm
 import numpy as np
-from typing import Tuple, Optional, List
 
 
-
+from qiskit.quantum_info.states import Statevector
+from qiskit import QuantumCircuit
 from qiskit.opflow import StateFn
 
 
@@ -49,7 +49,6 @@ class NumericalIntegrationRealEvolver(RealEvolver):
         self.threshold = threshold
         self.aux_operators_time_evolution: Optional[ListOrDict[np.ndarray]] = None
 
-
     def evolve(self, evolution_problem: EvolutionProblem) -> EvolutionResult:
         r"""Perform real time evolution :math:`\exp(-i t H)|\Psi\rangle`.
 
@@ -66,15 +65,18 @@ class NumericalIntegrationRealEvolver(RealEvolver):
 
         .. math::
 
-            \exp(-i \delta t H) = \left(1+ i \frac{\delta t}{2} H \right) ^{-1} \left( 1 - i \frac{\delta t}{2} H \right) + O\left( \delta t^3 \right)
+            \exp(-i \delta t H) = \left(1+ i \frac{\delta t}{2} H \right) ^{-1}
+                                  \left( 1 - i \frac{\delta t}{2} H \right)
+                                  + O\left( \delta t^3 \right)
 
         Note that this operator is unitary, and thus we won't need to renormalize the state at
-        each step. In order to find :math:`|\Psi \left( t + \delta t \right) \rangle` we then need to solve a
-        linear system of equations:
+        each step. In order to find :math:`|\Psi \left( t + \delta t \right) \rangle` we then
+        need to solve a linear system of equations:
 
         .. math::
 
-            \left( 1+ i \frac{\delta t}{2} H \right) |\Psi \left( t + \delta t \right) \rangle = \left( 1 - i \frac{\delta t}{2} H \right) |\Psi\left( t \right) \rangle
+            \left( 1+ i \frac{\delta t}{2} H \right) |\Psi \left( t + \delta t \right) \rangle
+                    = \left( 1 - i \frac{\delta t}{2} H \right) |\Psi\left( t \right) \rangle
 
         Args:
             evolution_problem: The definition of the evolution problem.
@@ -87,12 +89,12 @@ class NumericalIntegrationRealEvolver(RealEvolver):
             evolution_problem=evolution_problem
         )
 
-        #Perform the time evolution and stores the value of the operators at each timestep.
-        for t in range(timesteps):
-            state = self._step(state, lhs_operator,rhs_operator)
-            self._evaluate_aux_operators(aux_operators, state,t)
+        # Perform the time evolution and stores the value of the operators at each timestep.
+        for ts in range(timesteps):
+            state = self._step(state, lhs_operator, rhs_operator)
+            self._evaluate_aux_operators(aux_operators, state, ts)
 
-        #Creates the right output format for the evaluated auxiliary operators.
+        # Creates the right output format for the evaluated auxiliary operators.
         if isinstance(evolution_problem.aux_operators, dict):
             aux_ops_evaluated = dict(
                 zip(evolution_problem.aux_operators.keys(), self.aux_operators_time_evolution)
@@ -102,15 +104,18 @@ class NumericalIntegrationRealEvolver(RealEvolver):
 
         return EvolutionResult(evolved_state=StateFn(state), aux_ops_evaluated=aux_ops_evaluated)
 
-    def _evaluate_aux_operators(self, aux_operators: List[sp.csr_matrix], state: np.ndarray, t:int):
+    def _evaluate_aux_operators(
+        self, aux_operators: List[sp.csr_matrix], state: np.ndarray, current_timestep: int
+    ):
         """Evaluate the aux operators if they are provided and stores their value."""
-        for n,op in enumerate(aux_operators):
-            self.aux_operators_time_evolution[n][t] = state.conjugate().dot(op.dot(state))
-
+        for n, op in enumerate(aux_operators):
+            self.aux_operators_time_evolution[n][current_timestep] = state.conjugate().dot(
+                op.dot(state)
+            )
 
     def _start(
         self, evolution_problem: EvolutionProblem
-    ) -> Tuple[np.ndarray, sp.csr_matrix, sp.csr_matrix,List[sp.csr_matrix],float]:
+    ) -> Tuple[np.ndarray, sp.csr_matrix, sp.csr_matrix, List[sp.csr_matrix], float]:
         """Returns a tuple with the initial state as an array, the operators needed for time
          evolution as sparse matrices and the number of timesteps in which to divide the time evolution.
 
@@ -122,7 +127,12 @@ class NumericalIntegrationRealEvolver(RealEvolver):
             evolution as sparse matrices.
         """
         # Convert the initial state and hamiltonian into sparse matrices.
-        state = evolution_problem.initial_state.to_matrix(massive=True).transpose()
+
+        if isinstance(evolution_problem.initial_state, QuantumCircuit):
+            state = Statevector(evolution_problem.initial_state).data.T
+        else:
+            state = evolution_problem.initial_state.to_matrix(massive=True).transpose()
+
         hamiltonian = evolution_problem.hamiltonian.to_spmatrix()
 
         # Determine the number of timesteps.
@@ -135,7 +145,6 @@ class NumericalIntegrationRealEvolver(RealEvolver):
             timesteps = self.timesteps
         timestep = evolution_problem.time / timesteps
 
-
         # Create the operators for the time evolution.
         idnty = sp.identity(hamiltonian.shape[0], format="csr")
 
@@ -145,7 +154,8 @@ class NumericalIntegrationRealEvolver(RealEvolver):
         # Create empty arrays to store the time evolution of the aux operators.
         if evolution_problem.aux_operators is not None:
             self.aux_operators_time_evolution = [
-                np.empty(shape=(timesteps,),dtype=np.complex128) for _ in evolution_problem.aux_operators
+                np.empty(shape=(timesteps,), dtype=np.complex128)
+                for _ in evolution_problem.aux_operators
             ]
         if isinstance(evolution_problem.aux_operators, list):
             aux_operators = [aux_op.to_spmatrix() for aux_op in evolution_problem.aux_operators]
@@ -156,10 +166,12 @@ class NumericalIntegrationRealEvolver(RealEvolver):
         else:
             aux_operators = []
 
-        return state, lhs_operator, rhs_operator,aux_operators, timesteps
+        return state, lhs_operator, rhs_operator, aux_operators, timesteps
 
-    def minimal_number_steps(self, norm_hamiltonian: float, time: float, threshold=1e-4) -> int:
-        """Calculate the timestep for the given time and threshold.
+    def minimal_number_steps(
+        self, norm_hamiltonian: float, time: float, threshold: float = 1e-4
+    ) -> int:
+        r"""Calculate the timestep for the given time and threshold.
 
         we use the fact that the taylor expansion term of third order in our expansion would be
         :math:`\frac{\left( -i H \delta t \right) ^3}{12} ` to compute an approximation for how
@@ -199,10 +211,13 @@ class NumericalIntegrationRealEvolver(RealEvolver):
         Returns:
             The evolved state.
 
+        Raises:
+            RuntimeError: If the biconjugate gradient solver fails.
+
         """
 
         rhs = rhs_operator.dot(state)
         ev_state, exitcode = bicg(A=lhs_operator, b=rhs, atol=1e-8, x0=state)
         if exitcode != 0:
-            raise RuntimeError("Failure!")
+            raise RuntimeError("The biconjugate gradient solver has falied.")
         return ev_state

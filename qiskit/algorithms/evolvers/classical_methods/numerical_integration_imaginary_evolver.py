@@ -11,13 +11,13 @@
 # that they have been altered from the originals.
 
 """Interface for Classical Quantum Real Time Evolution."""
-
+from typing import Tuple, Optional
 import scipy.sparse as sp
 from scipy.sparse.linalg import norm
 import numpy as np
-from typing import Tuple, Optional
 from qiskit.algorithms.list_or_dict import ListOrDict, List
-
+from qiskit.quantum_info.states import Statevector
+from qiskit import QuantumCircuit
 from qiskit.opflow import StateFn
 
 
@@ -50,7 +50,7 @@ class NumericalIntegrationImaginaryEvolver(ImaginaryEvolver):
         if timesteps is None and threshold is None:
             raise ValueError("Either timesteps or threshold must be specified.")
 
-        if order != "first" and order != "second":
+        if order not in ("first", "second"):
             raise ValueError("Order must be either 'first' or 'second'.")
 
         self.timesteps = timesteps
@@ -68,7 +68,8 @@ class NumericalIntegrationImaginaryEvolver(ImaginaryEvolver):
 
         .. math::
 
-            |\Psi \left( \tau + \delta \tau \right) \rangle = \exp(-\delta \tau H) |\Psi \left( \tau \right) \rangle
+            |\Psi \left( \tau + \delta \tau \right) \rangle =
+             \exp(-\delta \tau H) |\Psi \left( \tau \right) \rangle
 
         Which can be approximated as:
 
@@ -90,12 +91,12 @@ class NumericalIntegrationImaginaryEvolver(ImaginaryEvolver):
             evolution_problem=evolution_problem
         )
 
-        #Perform the time evolution and stores the value of the operators at each timestep.
-        for t in range(timesteps):
+        # Perform the time evolution and stores the value of the operators at each timestep.
+        for ts in range(timesteps):
             state = self._step(state, step_evolution_operator)
-            self._evaluate_aux_operators(aux_operators, state,t)
+            self._evaluate_aux_operators(aux_operators, state, ts)
 
-        #Creates the right output format for the evaluated auxiliary operators.
+        # Creates the right output format for the evaluated auxiliary operators.
         if isinstance(evolution_problem.aux_operators, dict):
             aux_ops_evaluated = dict(
                 zip(evolution_problem.aux_operators.keys(), self.aux_operators_time_evolution)
@@ -105,15 +106,18 @@ class NumericalIntegrationImaginaryEvolver(ImaginaryEvolver):
 
         return EvolutionResult(evolved_state=StateFn(state), aux_ops_evaluated=aux_ops_evaluated)
 
-    def _evaluate_aux_operators(self, aux_operators: List[sp.csr_matrix], state: np.ndarray, t:int):
-        """Evaluate the aux operators if they are provided and stores their value."""
-        for n,op in enumerate(aux_operators):
-            self.aux_operators_time_evolution[n][t] = state.conjugate().dot(op.dot(state))
-
+    def _evaluate_aux_operators(
+        self, aux_operators: List[sp.csr_matrix], state: np.ndarray, current_timestep: int
+    ) -> None:
+        """Evaluate the aux operators if they are provided and store their value."""
+        for n, op in enumerate(aux_operators):
+            self.aux_operators_time_evolution[n][current_timestep] = state.conjugate().dot(
+                op.dot(state)
+            )
 
     def _start(
         self, evolution_problem: EvolutionProblem
-    ) -> Tuple[np.ndarray, sp.csr_matrix, sp.csr_matrix,List[sp.csr_matrix],float]:
+    ) -> Tuple[np.ndarray, sp.csr_matrix, sp.csr_matrix, List[sp.csr_matrix], float]:
         """Returns a tuple with the initial state as an array and the operator needed for time
             evolution as a sparse matrix.
 
@@ -126,7 +130,11 @@ class NumericalIntegrationImaginaryEvolver(ImaginaryEvolver):
         """
 
         # Convert the initial state and hamiltonian into sparse matrices.
-        state = evolution_problem.initial_state.to_matrix(massive=True).transpose()
+        if isinstance(evolution_problem.initial_state, QuantumCircuit):
+            state = Statevector(evolution_problem.initial_state).data.T
+        else:
+            state = evolution_problem.initial_state.to_matrix(massive=True).transpose()
+
         hamiltonian = evolution_problem.hamiltonian.to_spmatrix()
 
         # Determine the number of timesteps.
@@ -151,7 +159,8 @@ class NumericalIntegrationImaginaryEvolver(ImaginaryEvolver):
         # Create empty arrays to store the time evolution of the aux operators.
         if evolution_problem.aux_operators is not None:
             self.aux_operators_time_evolution = [
-                np.empty(shape=(timesteps,),dtype=np.complex128) for _ in evolution_problem.aux_operators
+                np.empty(shape=(timesteps,), dtype=np.complex128)
+                for _ in evolution_problem.aux_operators
             ]
         if isinstance(evolution_problem.aux_operators, list):
             aux_operators = [aux_op.to_spmatrix() for aux_op in evolution_problem.aux_operators]
@@ -164,7 +173,9 @@ class NumericalIntegrationImaginaryEvolver(ImaginaryEvolver):
 
         return state, step_evolution_operator, aux_operators, timesteps
 
-    def minimal_number_steps(self, norm_hamiltonian: float, time: float, threshold=1e-4) -> int:
+    def minimal_number_steps(
+        self, norm_hamiltonian: float, time: float, threshold: float = 1e-4
+    ) -> int:
         r"""Calculate the timestep for the given time and threshold.
 
         we use the fact that the taylor expansion term of third order in our expansion would be
@@ -183,7 +194,7 @@ class NumericalIntegrationImaginaryEvolver(ImaginaryEvolver):
         """
         if self.order == "first":
             return int(np.power(norm_hamiltonian * time, 2) * np.power(2 * threshold, -1)) + 1
-        elif self.order == "second":
+        else:
             return (
                 int(np.power(norm_hamiltonian * time, 3 / 2) * np.power(6 * threshold, -1 / 2)) + 1
             )

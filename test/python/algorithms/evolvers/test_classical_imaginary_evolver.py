@@ -12,21 +12,23 @@
 
 """Test Classical Real Evolver."""
 import unittest
+from test.python.algorithms import QiskitAlgorithmsTestCase
+from ddt import data, ddt, unpack
 import numpy as np
 import scipy.sparse as sp
-from qiskit.algorithms.evolvers import NumericalIntegrationImaginaryEvolver
-from test.python.algorithms import QiskitAlgorithmsTestCase
-from qiskit.opflow import StateFn, OperatorBase
-from ddt import data, ddt, unpack
 from qiskit.algorithms.evolvers.evolution_problem import EvolutionProblem
-from qiskit.opflow import Y, Z, I, One, X, Zero, Plus, Minus, PauliSumOp
+from qiskit.opflow import X, Zero, Plus, Minus, PauliSumOp
+from qiskit.opflow import StateFn, OperatorBase
+from qiskit import QuantumCircuit
+from qiskit.algorithms.evolvers import NumericalIntegrationImaginaryEvolver
 
 
 @ddt
 class TestClassicalRealEvolver(QiskitAlgorithmsTestCase):
     """Test Classical Real Evolver."""
 
-    def create_hamiltonian_lattice(self, num_sites):
+    def create_hamiltonian_lattice(self, num_sites: int) -> PauliSumOp:
+        """Creates an ising hamiltonian on a lattice."""
         j_const = 0.1
         g_const = -1.0
 
@@ -87,6 +89,16 @@ class TestClassicalRealEvolver(QiskitAlgorithmsTestCase):
                 atol=1e-10,
                 rtol=0,
             )
+
+    def test_quantum_circuit_initial_state(self):
+        """Tests if the system can be evolved with a quantum circuit as an initial state."""
+        qc = QuantumCircuit(3)
+        qc.h(0)
+        qc.cx(0, range(1, 3))
+
+        evolution_problem = EvolutionProblem(hamiltonian=X ^ X ^ X, time=1.0, initial_state=qc)
+        classic_evolver = NumericalIntegrationImaginaryEvolver(timesteps=5, threshold=None)
+        classic_evolver.evolve(evolution_problem)
 
 
 if __name__ == "__main__":
