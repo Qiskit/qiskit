@@ -61,6 +61,10 @@ class TwoLocal(NLocal):
     * ``'full'`` entanglement is each qubit is entangled with all the others.
     * ``'linear'`` entanglement is qubit :math:`i` entangled with qubit :math:`i + 1`,
       for all :math:`i \in \{0, 1, ... , n - 2\}`, where :math:`n` is the total number of qubits.
+    * ``'reverse_linear'`` entanglement is qubit :math:`i` entangled with qubit :math:`i + 1`,
+      for all :math:`i \in \{n-2, n-3, ... , 1, 0\}`, where :math:`n` is the total number of qubits.
+      Note that if ``entanglement_blocks = 'cx'`` then this option provides the same unitary as ``'full'``
+      with fewer entangling gates.
     * ``'circular'`` entanglement is linear entanglement but with an additional entanglement of the
       first and last qubit before the linear part.
     * ``'sca'`` (shifted-circular-alternating) entanglement is a generalized and modified version
@@ -179,7 +183,7 @@ class TwoLocal(NLocal):
             entanglement_blocks: The gates used in the entanglement layer. Can be specified in
                 the same format as `rotation_blocks`.
             entanglement: Specifies the entanglement structure. Can be a string ('full', 'linear'
-                , 'circular' or 'sca'), a list of integer-pairs specifying the indices of qubits
+                , 'reverse_linear, 'circular' or 'sca'), a list of integer-pairs specifying the indices of qubits
                 entangled with one another, or a callable returning such a list provided with
                 the index of the entanglement layer.
                 Default to 'full' entanglement.
