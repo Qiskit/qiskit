@@ -20,7 +20,7 @@ from qiskit.algorithms.evolvers.evolution_problem import EvolutionProblem
 from qiskit.opflow import X, Zero, Plus, Minus, PauliSumOp
 from qiskit.opflow import StateFn, OperatorBase
 from qiskit import QuantumCircuit
-from qiskit.algorithms.evolvers import NumericalIntegrationImaginaryEvolver
+from qiskit.algorithms.evolvers import ScipyImaginaryEvolver
 
 
 @ddt
@@ -69,7 +69,7 @@ class TestClassicalRealEvolver(QiskitAlgorithmsTestCase):
             expected_state_matrix = expected_state.to_matrix()
 
         evolution_problem = EvolutionProblem(hamiltonian, tau, initial_state)
-        classic_evolver = NumericalIntegrationImaginaryEvolver(
+        classic_evolver = ScipyImaginaryEvolver(
             timesteps=100, threshold=None, order=order
         )
         result = classic_evolver.evolve(evolution_problem)
@@ -97,8 +97,17 @@ class TestClassicalRealEvolver(QiskitAlgorithmsTestCase):
         qc.cx(0, range(1, 3))
 
         evolution_problem = EvolutionProblem(hamiltonian=X ^ X ^ X, time=1.0, initial_state=qc)
-        classic_evolver = NumericalIntegrationImaginaryEvolver(timesteps=5, threshold=None)
+        classic_evolver = ScipyImaginaryEvolver(timesteps=5, threshold=None)
         classic_evolver.evolve(evolution_problem)
+
+    def test_error_time_dependency(self):
+        """Tests if an error is raised for time dependent hamiltonian."""
+        evolution_problem = EvolutionProblem(
+            hamiltonian=X ^ X ^ X, time=1.0, initial_state=Zero,t_param = 0
+        )
+        classic_evolver = ScipyImaginaryEvolver(timesteps=5, threshold=None)
+        with self.assertRaises(ValueError):
+            classic_evolver.evolve(evolution_problem)
 
 
 if __name__ == "__main__":

@@ -14,14 +14,14 @@
 
 from .evolution_result import EvolutionResult
 from .evolution_problem import EvolutionProblem
-from .classical_methods.numerical_integration_real_evolver import NumericalIntegrationRealEvolver
-from .classical_methods.numerical_integration_imaginary_evolver import (
-    NumericalIntegrationImaginaryEvolver,
+from .classical_methods.scipy_real_evolver import ScipyRealEvolver
+from .classical_methods.scipy_imaginary_evolver import (
+    ScipyImaginaryEvolver,
 )
 
 __all__ = [
     "EvolutionResult",
     "EvolutionProblem",
-    "NumericalIntegrationRealEvolver",
-    "NumericalIntegrationImaginaryEvolver",
+    "ScipyRealEvolver",
+    "ScipyImaginaryEvolver",
 ]

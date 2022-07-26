@@ -18,7 +18,7 @@ from ddt import data, ddt, unpack
 import numpy as np
 from qiskit.opflow import StateFn, OperatorBase
 from qiskit import QuantumCircuit
-from qiskit.algorithms.evolvers import NumericalIntegrationRealEvolver
+from qiskit.algorithms.evolvers import ScipyRealEvolver
 from qiskit.algorithms.evolvers.evolution_problem import EvolutionProblem
 from qiskit.opflow import Y, Z, One, X, Zero
 
@@ -43,7 +43,7 @@ class TestClassicalRealEvolver(QiskitAlgorithmsTestCase):
     ):
         """Initializes a classical real evolver and evolves a state."""
         evolution_problem = EvolutionProblem(hamiltonian, time_ev, initial_state)
-        classic_evolver = NumericalIntegrationRealEvolver(timesteps=30, threshold=None)
+        classic_evolver = ScipyRealEvolver(timesteps=30, threshold=None)
         result = classic_evolver.evolve(evolution_problem)
 
         with self.subTest("Amplitudes"):
@@ -62,24 +62,24 @@ class TestClassicalRealEvolver(QiskitAlgorithmsTestCase):
                 rtol=0,
             )
 
-    @data(
-        [Zero, 1.0, X, {"Energy": X, "Polarity": Z}],
-    )
-    @unpack
-    def test_observables(
-        self,
-        initial_state: StateFn,
-        time_ev: float,
-        hamiltonian: OperatorBase,
-        observalbes: List[OperatorBase],
-    ):
+    def test_observables(self):
         """Tests if the observables are properly evaluated at each timestep."""
+
+        initial_state = Zero
+        time_ev = 10.0
+        hamiltonian = X
+        observables = {"Energy": X, "Polarity": Z}
+        timesteps = 1000 #Works for 1000 and 100000 but not for 10000
+        time_vector = np.linspace(0,time_ev,timesteps+1)
+        expected_polarity = 1 - 2 * (np.sin(time_vector))**2
+
+
         evolution_problem = EvolutionProblem(
-            hamiltonian, time_ev, initial_state, aux_operators=observalbes
+            hamiltonian, time_ev, initial_state, aux_operators=observables
         )
-        classic_evolver = NumericalIntegrationRealEvolver(timesteps=10, threshold=None)
+        classic_evolver = ScipyRealEvolver(timesteps=timesteps, threshold=None)
         result = classic_evolver.evolve(evolution_problem)
-        print(result.aux_ops_evaluated)
+        np.testing.assert_allclose(result.aux_ops_evaluated["Polarity"], expected_polarity, atol=1e-3, rtol=0)
 
     def test_quantum_circuit_initial_state(self):
         """Tests if the system can be evolved with a quantum circuit as an initial state."""
@@ -88,8 +88,17 @@ class TestClassicalRealEvolver(QiskitAlgorithmsTestCase):
         qc.cx(0, range(1, 3))
 
         evolution_problem = EvolutionProblem(hamiltonian=X ^ X ^ X, time=1.0, initial_state=qc)
-        classic_evolver = NumericalIntegrationRealEvolver(timesteps=5, threshold=None)
+        classic_evolver = ScipyRealEvolver(timesteps=5, threshold=None)
         classic_evolver.evolve(evolution_problem)
+
+    def test_error_time_dependency(self):
+        """Tests if an error is raised for time dependent hamiltonian."""
+        evolution_problem = EvolutionProblem(
+            hamiltonian=X ^ X ^ X, time=1.0, initial_state=Zero,t_param = 0
+        )
+        classic_evolver = ScipyRealEvolver(timesteps=5, threshold=None)
+        with self.assertRaises(ValueError):
+            classic_evolver.evolve(evolution_problem)
 
 
 if __name__ == "__main__":

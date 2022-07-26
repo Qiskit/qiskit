@@ -110,6 +110,8 @@ used to train Quantum Boltzmann Machine Neural Networks for example.
     TrotterQRTE
     EvolutionResult
     EvolutionProblem
+    ScipyRealEvolver
+    ScipyImaginaryEvolver
 
 Factorizers
 -----------
