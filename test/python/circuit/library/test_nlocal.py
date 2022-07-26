@@ -298,7 +298,16 @@ class TestNLocal(QiskitTestCase):
                 idle = set(dag.idle_wires())
                 self.assertEqual(skipped_set, idle)
 
-    @data("linear", "full", "circular", "sca", ["linear", "full"], ["circular", "linear", "sca"])
+    @data(
+        "linear",
+        "full",
+        "circular",
+        "sca",
+        "reverse_linear",
+        ["linear", "full"],
+        ["reverse_linear", "full"],
+        ["circular", "linear", "sca"],
+    )
     def test_entanglement_by_str(self, entanglement):
         """Test setting the entanglement of the layers by str."""
         reps = 3
@@ -313,6 +322,8 @@ class TestNLocal(QiskitTestCase):
         def get_expected_entangler_map(rep_num, mode):
             if mode == "linear":
                 return [(0, 1, 2), (1, 2, 3), (2, 3, 4)]
+            elif mode == "reverse_linear":
+                return [(2, 3, 4), (1, 2, 3), (0, 1, 2)]
             elif mode == "full":
                 return [
                     (0, 1, 2),
@@ -345,7 +356,7 @@ class TestNLocal(QiskitTestCase):
 
             with self.subTest(rep_num=rep_num):
                 # using a set here since the order does not matter
-                self.assertEqual(set(entangler_map), set(expected))
+                self.assertEqual(entangler_map, expected)
 
     def test_pairwise_entanglement(self):
         """Test pairwise entanglement."""
@@ -896,7 +907,9 @@ class TestTwoLocal(QiskitTestCase):
         """Test that 'full' and 'reverse_linear' provide the same unitary element."""
         reps = 2
         full = RealAmplitudes(num_qubits=num_qubits, entanglement="full", reps=reps)
-        params = [0.1 * i for i in range((reps + 1) * num_qubits)]
+        num_params = (reps + 1) * num_qubits
+        np.random.seed(num_qubits)
+        params = np.random.rand(num_params)
         reverse = RealAmplitudes(num_qubits=num_qubits, entanglement="reverse_linear", reps=reps)
         full.assign_parameters(params, inplace=True)
         reverse.assign_parameters(params, inplace=True)
