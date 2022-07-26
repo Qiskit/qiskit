@@ -31,6 +31,7 @@ class U3Gate(Gate):
        .. math::
 
            U3(\theta, \phi, \lambda) =  U(\theta, \phi, \lambda)
+
        .. codeblock:: python
 
           circuit = QuantumCircuit(1)
