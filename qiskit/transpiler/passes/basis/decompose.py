@@ -128,9 +128,7 @@ class Decompose(TransformationPass):
             node.name in gates or any(fnmatch(node.name, p) for p in strings_list)
         ):
             return True
-        elif not has_label and (  # check if Gate type given
-            any(isinstance(node.op, op) for op in gate_type_list)
-        ):
+        elif any(isinstance(node.op, op) for op in gate_type_list):  # check if Gate type given
             return True
         else:
             return False
