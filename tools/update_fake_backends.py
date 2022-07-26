@@ -18,6 +18,7 @@ import argparse
 from datetime import datetime
 import json
 import os
+import sys
 from importlib import import_module
 from collections import defaultdict
 from tabulate import tabulate
@@ -284,8 +285,9 @@ def _main():
                 print("Skipping, fake backend for %s does not exist yet" % name)
                 continue
 
-            bakend_mod = import_module(".".join(os.path.relpath(backend_dirname).split(os.sep)))
-            fake_backend = getattr(bakend_mod, "Fake" + name.capitalize())()
+            sys.path.append(args.dir)
+            backend_mod = import_module(name)
+            fake_backend = getattr(backend_mod, "Fake" + name.capitalize())()
             config = backend.configuration()
             props = backend.properties(datetime=dt)
             defs = backend.defaults()
