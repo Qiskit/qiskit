@@ -63,7 +63,8 @@ class U2Gate(Gate):
 
     .. math::
 
-        U2(\phi,\lambda) = RZ(\phi) RY\left(\frac{\pi}{2}\right) RZ(\lambda)
+        U2(\phi,\lambda) = e^{i \frac{\phi + \lambda}{2}}RZ(\phi)
+        RY\left(\frac{\pi}{2}\right) RZ(\lambda)
         = e^{- i\frac{\pi}{4}} P\left(\frac{\pi}{2} + \phi\right)
         \sqrt{X} P\left(\lambda- \frac{\pi}{2}\right)
 

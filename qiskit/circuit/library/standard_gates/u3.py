@@ -31,7 +31,8 @@ class U3Gate(Gate):
        .. math::
 
            U3(\theta, \phi, \lambda) =  U(\theta, \phi, \lambda)
-       .. codeblock:: python
+
+       .. code-block:: python
 
           circuit = QuantumCircuit(1)
           circuit.u(theta, phi, lambda)
@@ -66,7 +67,7 @@ class U3Gate(Gate):
 
     .. math::
 
-        U3(\theta, \phi, \lambda) = e^{i \frac{\pi + \theta}{2}} P(\phi + \pi) \sqrt{X}
+        U3(\theta, \phi, \lambda) = e^{-i \frac{\pi + \theta}{2}} P(\phi + \pi) \sqrt{X}
         P(\theta + \pi) \sqrt{X} P(\lambda)
 
     .. math::
