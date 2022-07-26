@@ -22,7 +22,7 @@ from ..evolution_result import EvolutionResult
 
 
 class PVQDResult(EvolutionResult):
-    """The result object for the pVQD algorithm."""
+    """The result object for the p-VQD algorithm."""
 
     def __init__(
         self,
@@ -43,7 +43,8 @@ class PVQDResult(EvolutionResult):
             times: The times evaluated during the time integration.
             parameters: The parameter values at each evaluation time.
             fidelities: The fidelity of the Trotter step and variational update at each iteration.
-            estimated_error: The overall estimated error evaluated as product of all fidelities.
+            estimated_error: The overall estimated error evaluated as one minus the
+                product of all fidelities.
             observables: The value of the observables evaluated at each iteration.
         """
         super().__init__(evolved_state, aux_ops_evaluated)

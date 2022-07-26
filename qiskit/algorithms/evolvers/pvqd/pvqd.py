@@ -42,12 +42,12 @@ logger = logging.getLogger(__name__)
 
 
 class PVQD(RealEvolver):
-    """The projected Variational Quantum Dynamics Algorithm.
+    """The projected Variational Quantum Dynamics (p-VQD) Algorithm.
 
-    In each timestep this algorithm computes the next state with a Trotter formula
-    (specified by the ``evolution`` argument) and projects it onto a variational form (``ansatz``).
-    The projection is determined by maximizing the fidelity of the Trotter-evolved state
-    and the ansatz, using a classical optimization routine. See Ref. [1] for details.
+    In each timestep, this algorithm computes the next state with a Trotter formula
+    (specified by the ``evolution`` argument) and projects the timestep onto a variational form
+    (``ansatz``). The projection is determined by maximizing the fidelity of the Trotter-evolved
+    state and the ansatz, using a classical optimization routine. See Ref. [1] for details.
 
     Example:
 
@@ -110,7 +110,8 @@ class PVQD(RealEvolver):
         Args:
             ansatz: A parameterized circuit preparing the variational ansatz to model the
                 time evolved quantum state.
-            initial_parameters: The initial parameters for the ansatz.
+            initial_parameters: The initial parameters for the ansatz. Together with the ansatz,
+                these define the initial state of the time evolution.
             timestep: The time step.
             optimizer: The classical optimizers used to minimize the overlap between
                 Trotterization and ansatz. Can be either a :class:`.Optimizer` or a callable
@@ -120,7 +121,8 @@ class PVQD(RealEvolver):
                 previous iteration result is used as initial guess. If None, this is set to
                 a random vector with elements in the interval :math:`[-0.01, 0.01]`.
             evolution: The evolution synthesis to use for the construction of the Trotter step.
-                Defaults to first-order Lie-Trotter decomposition.
+                Defaults to first-order Lie-Trotter decomposition, see also
+                :mod:`~qiskit.synthesis.evolution` for different options.
             use_parameter_shift: If True, use the parameter shift rule to compute gradients.
                 If False, the optimizer will not be passed a gradient callable. In that case,
                 Qiskit optimizers will use a finite difference rule to approximate the gradients.
@@ -157,12 +159,19 @@ class PVQD(RealEvolver):
         self._quantum_instance = quantum_instance
 
     def step(
-        self, hamiltonian: OperatorBase, theta: np.ndarray, dt: float, initial_guess: np.ndarray
+        self,
+        hamiltonian: OperatorBase,
+        ansatz: QuantumCircuit,
+        theta: np.ndarray,
+        dt: float,
+        initial_guess: np.ndarray,
     ) -> Tuple[np.ndarray, float]:
         """Perform a single time step.
 
         Args:
             hamiltonian: The Hamiltonian under which to evolve.
+            ansatz: The parameterized quantum circuit which attempts to approximate the
+                time-evolved state.
             theta: The current parameters.
             dt: The time step.
             initial_guess: The initial guess for the classical optimization of the
@@ -173,7 +182,7 @@ class PVQD(RealEvolver):
         Returns:
             A tuple consisting of the next parameters and the fidelity of the optimization.
         """
-        loss, gradient = self.get_loss(hamiltonian, dt, theta)
+        loss, gradient = self.get_loss(hamiltonian, ansatz, dt, theta)
 
         if initial_guess is None:
             initial_guess = np.random.random(self.initial_parameters.size) * 0.01
@@ -191,6 +200,7 @@ class PVQD(RealEvolver):
     def get_loss(
         self,
         hamiltonian: OperatorBase,
+        ansatz: QuantumCircuit,
         dt: float,
         current_parameters: np.ndarray,
     ) -> Tuple[Callable[[np.ndarray], float], Optional[Callable[[np.ndarray], np.ndarray]]]:
@@ -199,6 +209,8 @@ class PVQD(RealEvolver):
 
         Args:
             hamiltonian: The Hamiltonian under which to evolve.
+            ansatz: The parameterized quantum circuit which attempts to approximate the
+                time-evolved state.
             dt: The time step.
             current_parameters: The current parameters.
 
@@ -209,14 +221,14 @@ class PVQD(RealEvolver):
         self._validate_setup()
 
         # use Trotterization to evolve the current state
-        trotterized = self.ansatz.bind_parameters(current_parameters)
+        trotterized = ansatz.bind_parameters(current_parameters)
         trotterized.append(
-            PauliEvolutionGate(hamiltonian, time=dt, synthesis=self.evolution), self.ansatz.qubits
+            PauliEvolutionGate(hamiltonian, time=dt, synthesis=self.evolution), ansatz.qubits
         )
 
         # define the overlap of the Trotterized state and the ansatz
         x = ParameterVector("w", self.ansatz.num_parameters)
-        shifted = self.ansatz.assign_parameters(current_parameters + x)
+        shifted = ansatz.assign_parameters(current_parameters + x)
         overlap = StateFn(trotterized).adjoint() @ StateFn(shifted)
 
         converted = self.expectation.convert(overlap)
@@ -239,9 +251,12 @@ class PVQD(RealEvolver):
                 value_dict = dict(zip(x, displacement))
 
             sampled = self._sampler.convert(converted, params=value_dict)
+
+            # in principle we could add different loss functions here, but we're currently
+            # not aware of a use-case for a different one than in the paper
             return 1 - np.abs(sampled.eval()) ** 2
 
-        if _is_gradient_supported(self.ansatz) and self.gradients:
+        if _is_gradient_supported(ansatz) and self.gradients:
 
             def evaluate_gradient(displacement: np.ndarray) -> np.ndarray:
                 """Evaluate the gradient with the parameter-shift rule.
@@ -283,6 +298,7 @@ class PVQD(RealEvolver):
 
         Raises:
             ValueError: If the evolution time is not positive or the timestep is too small.
+            NotImplementedError: If the evolution problem contains an initial state.
         """
         self._validate_setup()
 
@@ -294,6 +310,11 @@ class PVQD(RealEvolver):
             raise ValueError(
                 f"The time step ({self.timestep}) must be larger than 0 and smaller equal "
                 f"the evolution time ({time})."
+            )
+
+        if evolution_problem.initial_state is not None:
+            raise NotImplementedError(
+                "Setting an initial state for the evolution is not yet supported for PVQD."
             )
 
         # get the function to evaluate the observables for a given set of ansatz parameters
@@ -313,7 +334,7 @@ class PVQD(RealEvolver):
         while current_time < time:
             # perform VQE to find the next parameters
             next_parameters, fidelity = self.step(
-                hamiltonian, parameters[-1], self.timestep, initial_guess
+                hamiltonian, self.ansatz, parameters[-1], self.timestep, initial_guess
             )
 
             # set initial guess to last parameter update
@@ -334,7 +355,7 @@ class PVQD(RealEvolver):
             times=times,
             parameters=parameters,
             fidelities=fidelities,
-            estimated_error=np.prod(fidelities),
+            estimated_error=1 - np.prod(fidelities),
         )
         if observables is not None:
             result.observables = observable_values
@@ -357,8 +378,28 @@ class PVQD(RealEvolver):
             if getattr(self, arg) is None:
                 raise ValueError(f"The {arg} attribute cannot be None.")
 
+        if self.ansatz.num_parameters == 0:
+            raise QiskitError(
+                "The ansatz cannot have 0 parameters, otherwise it cannot be trained."
+            )
+
         if len(self.initial_parameters) != self.ansatz.num_parameters:
             raise QiskitError(
                 f"Mismatching number of parameters in the ansatz ({self.ansatz.num_parameters}) "
                 f"and the initial parameters ({len(self.initial_parameters)})."
             )
+
+    def _attach_initial_state(self, initial_state):
+        """Prepend the initial state to the circuit and validate the size matches."""
+        if isinstance(initial_state, StateFn):
+            initial_circuit = initial_state.to_circuit_op().primitive
+        else:
+            initial_circuit = initial_state
+
+        if initial_circuit.num_qubits != self.ansatz.num_qubits:
+            raise ValueError(
+                f"Mismatching number of qubits in the initial state ({initial_circuit.num_qubits}) "
+                f"and the ansatz ({self.ansatz.num_qubits})."
+            )
+
+        return initial_circuit.compose(self.ansatz)

@@ -18,7 +18,7 @@ import numpy as np
 
 from qiskit.test import QiskitTestCase
 
-from qiskit import BasicAer
+from qiskit import BasicAer, QiskitError
 from qiskit.circuit import QuantumCircuit, Parameter, Gate
 from qiskit.algorithms.evolvers import EvolutionProblem
 from qiskit.algorithms.evolvers.pvqd import PVQD
@@ -203,6 +203,45 @@ class TestPVQD(QiskitTestCase):
         result = pvqd.evolve(problem)
         self.assertIsNotNone(result.evolved_state)
 
+    def test_zero_parameters(self):
+        """Test passing an ansatz with zero parameters raises an error."""
+        problem = EvolutionProblem(self.hamiltonian, time=0.02)
+
+        pvqd = PVQD(
+            QuantumCircuit(2),
+            np.array([]),
+            timestep=0.01,
+            optimizer=SPSA(maxiter=10, learning_rate=0.1, perturbation=0.01),
+            quantum_instance=self.sv_backend,
+            expectation=self.expectation,
+        )
+
+        with self.assertRaises(QiskitError):
+            _ = pvqd.evolve(problem)
+
+    def test_initial_state_raises(self):
+        """Test passing an initial state raises an error for now."""
+        initial_state = QuantumCircuit(2)
+        initial_state.x(0)
+
+        problem = EvolutionProblem(
+            self.hamiltonian,
+            time=0.02,
+            initial_state=initial_state,
+        )
+
+        pvqd = PVQD(
+            self.ansatz,
+            self.initial_parameters,
+            timestep=0.01,
+            optimizer=SPSA(maxiter=0, learning_rate=0.1, perturbation=0.01),
+            quantum_instance=self.sv_backend,
+            expectation=self.expectation,
+        )
+
+        with self.assertRaises(NotImplementedError):
+            _ = pvqd.evolve(problem)
+
 
 class TestPVQDUtils(QiskitTestCase):
     """Test some utility functions for PVQD."""
@@ -217,7 +256,6 @@ class TestPVQDUtils(QiskitTestCase):
     def test_gradient_supported(self):
         """Test the gradient support is correctly determined."""
         # gradient supported here
-        empty = QuantumCircuit(2)
         wrapped = EfficientSU2(2)  # a circuit wrapped into a big instruction
         plain = wrapped.decompose()  # a plain circuit with already supported instructions
 
@@ -235,8 +273,7 @@ class TestPVQDUtils(QiskitTestCase):
         unsupported.append(custom_gate, [0, 1])
 
         tests = [
-            (empty, True),  # tuple: (circuit, gradient support)
-            (wrapped, True),
+            (wrapped, True),  # tuple: (circuit, gradient support)
             (plain, True),
             (duplicated, False),
             (needs_chainrule, False),
@@ -249,7 +286,7 @@ class TestPVQDUtils(QiskitTestCase):
         optimizer = partial(gradient_supplied, info=info)
 
         pvqd = PVQD(
-            ansatz=empty,
+            ansatz=None,
             initial_parameters=np.array([]),
             timestep=0.01,
             optimizer=optimizer,
