@@ -32,7 +32,7 @@ class U3Gate(Gate):
 
            U3(\theta, \phi, \lambda) =  U(\theta, \phi, \lambda)
 
-       .. codeblock:: python
+       .. code-block:: python
 
           circuit = QuantumCircuit(1)
           circuit.u(theta, phi, lambda)
