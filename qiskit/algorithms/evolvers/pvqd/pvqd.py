@@ -388,18 +388,3 @@ class PVQD(RealEvolver):
                 f"Mismatching number of parameters in the ansatz ({self.ansatz.num_parameters}) "
                 f"and the initial parameters ({len(self.initial_parameters)})."
             )
-
-    def _attach_initial_state(self, initial_state):
-        """Prepend the initial state to the circuit and validate the size matches."""
-        if isinstance(initial_state, StateFn):
-            initial_circuit = initial_state.to_circuit_op().primitive
-        else:
-            initial_circuit = initial_state
-
-        if initial_circuit.num_qubits != self.ansatz.num_qubits:
-            raise ValueError(
-                f"Mismatching number of qubits in the initial state ({initial_circuit.num_qubits}) "
-                f"and the ansatz ({self.ansatz.num_qubits})."
-            )
-
-        return initial_circuit.compose(self.ansatz)
