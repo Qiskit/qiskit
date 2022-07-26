@@ -159,7 +159,7 @@ class ScipyRealEvolver(RealEvolver):
         # Create empty arrays to store the time evolution of the aux operators.
         if evolution_problem.aux_operators is not None:
             self.aux_operators_time_evolution = [
-                np.empty(shape=(timesteps+1,), dtype=np.complex128)
+                np.empty(shape=(timesteps+1,), dtype=float)
                 for _ in evolution_problem.aux_operators
             ]
         if isinstance(evolution_problem.aux_operators, list):
@@ -203,7 +203,7 @@ class ScipyRealEvolver(RealEvolver):
         hnorm = norm(hamiltonian, ord=np.inf)
         return self.minimal_number_steps(norm_hamiltonian=hnorm, time=time, threshold=threshold)
 
-    def _step(
+    def  _step(
         self, state: np.ndarray, lhs_operator: sp.csr_matrix, rhs_operator: sp.csr_matrix
     ) -> np.ndarray:
         """ "Perform one timestep of the evolution.
@@ -222,7 +222,10 @@ class ScipyRealEvolver(RealEvolver):
         """
 
         rhs = rhs_operator.dot(state)
-        ev_state, exitcode = bicg(A=lhs_operator, b=rhs, atol=1e-8, x0=state)
+
+        atol = 1e-8 / self.timesteps if self.threshold is None else self.threshold/self.timesteps
+        tol = atol
+        ev_state, exitcode = bicg(A=lhs_operator, b=rhs, x0=state, atol= atol, tol =tol)
         if exitcode != 0:
             raise RuntimeError("The biconjugate gradient solver has falied.")
         return ev_state

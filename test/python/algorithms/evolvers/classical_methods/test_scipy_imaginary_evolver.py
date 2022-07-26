@@ -20,7 +20,7 @@ from qiskit.algorithms.evolvers.evolution_problem import EvolutionProblem
 from qiskit.opflow import X, Zero, Plus, Minus, PauliSumOp
 from qiskit.opflow import StateFn, OperatorBase
 from qiskit import QuantumCircuit
-from qiskit.algorithms.evolvers import ScipyImaginaryEvolver
+from qiskit.algorithms.evolvers.classical_methods import ScipyImaginaryEvolver
 
 
 @ddt

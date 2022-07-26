@@ -18,7 +18,7 @@ from ddt import data, ddt, unpack
 import numpy as np
 from qiskit.opflow import StateFn, OperatorBase
 from qiskit import QuantumCircuit
-from qiskit.algorithms.evolvers import ScipyRealEvolver
+from qiskit.algorithms.evolvers.classical_methods import ScipyRealEvolver
 from qiskit.algorithms.evolvers.evolution_problem import EvolutionProblem
 from qiskit.opflow import Y, Z, One, X, Zero
 
@@ -62,15 +62,19 @@ class TestClassicalRealEvolver(QiskitAlgorithmsTestCase):
                 rtol=0,
             )
 
-    def test_observables(self):
+    @data(
+        [500],[1000],[1500],[2500],[5000])
+    @unpack
+    def test_observables(self,timesteps: int):
         """Tests if the observables are properly evaluated at each timestep."""
 
         initial_state = Zero
         time_ev = 10.0
         hamiltonian = X
         observables = {"Energy": X, "Polarity": Z}
-        timesteps = 1000 #Works for 1000 and 100000 but not for 10000
-        time_vector = np.linspace(0,time_ev,timesteps+1)
+        # timesteps = 1000 #Works for 1000 and 100000 but not for 10000
+        timestep = time_ev / timesteps
+        time_vector = np.arange(timesteps+1) * timestep
         expected_polarity = 1 - 2 * (np.sin(time_vector))**2
 
 
@@ -79,6 +83,11 @@ class TestClassicalRealEvolver(QiskitAlgorithmsTestCase):
         )
         classic_evolver = ScipyRealEvolver(timesteps=timesteps, threshold=None)
         result = classic_evolver.evolve(evolution_problem)
+
+        # import matplotlib.pyplot as plt
+        # plt.plot(np.abs(result.aux_ops_evaluated["Polarity"] - expected_polarity))
+        # # plt.plot(expected_polarity)
+        # plt.show()
         np.testing.assert_allclose(result.aux_ops_evaluated["Polarity"], expected_polarity, atol=1e-3, rtol=0)
 
     def test_quantum_circuit_initial_state(self):
