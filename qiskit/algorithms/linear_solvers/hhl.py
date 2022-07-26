@@ -92,7 +92,7 @@ class HHL(LinearSolver):
 
         [2]: Carrera Vazquez, A., Hiptmair, R., & Woerner, S. (2022).
              Enhancing the Quantum Linear Systems Algorithm Using Richardson Extrapolation.
-             `ACM Transactions on Quantum Computing 3, 1, Article 2 https://doi.org/10.1145/3490631`_
+             `ACM Transactions on Quantum Computing 3, 1, Article 2 <https://doi.org/10.1145/3490631>`_
 
     """
 
