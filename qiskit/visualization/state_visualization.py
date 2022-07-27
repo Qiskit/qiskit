@@ -710,7 +710,7 @@ def plot_state_qsphere(
            qc.h(0)
            qc.cx(0, 1)
 
-           state = Statevector.from_instruction(qc)
+           state = Statevector(qc)
            plot_state_qsphere(state)
         .. jupyter-execute::
 
@@ -727,7 +727,7 @@ def plot_state_qsphere(
            qc.rx(np.pi/5, 1)
            qc.z(1)
 
-           matrix = DensityMatrix.from_instruction(qc)
+           matrix = DensityMatrix(qc)
            plot_state_qsphere(matrix, figsize = (13,9),
                 show_state_phases = True, use_degrees = True)
     """
