@@ -570,7 +570,7 @@ def _expand_parameters(circuits, run_config):
 
     if (
         parameter_binds
-        and any(binds for binds in parameter_binds)
+        and any(parameter_binds)
         or any(circuit.parameters for circuit in circuits)
     ):
 
