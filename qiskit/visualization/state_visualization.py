@@ -85,7 +85,7 @@ def plot_state_hinton(
             qc.ry(np.pi/3 , 0)
             qc.rx(np.pi/5, 1)
 
-            state = DensityMatrix.from_instruction(qc)
+            state = DensityMatrix(qc)
             plot_state_hinton(state, title="New Hinton Plot",
             figsize = (11,6))
 
