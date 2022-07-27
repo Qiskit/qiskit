@@ -98,7 +98,9 @@ class BaseFidelity(ABC):
         else:
             return np.atleast_2d(values)
 
-    def set_circuits(self, left_circuit: QuantumCircuit, right_circuit: QuantumCircuit):
+    def set_circuits(
+        self, left_circuit: QuantumCircuit | None, right_circuit: QuantumCircuit | None
+    ):
         """
         Fix the circuits for the fidelity to be computed of.
         Args:
@@ -108,14 +110,42 @@ class BaseFidelity(ABC):
         Raises:
             ValueError: ``left_circuit`` and ``right_circuit`` don't have the same number of qubits.
         """
+        if left_circuit is not None and right_circuit is not None:
+            self._check_qubits_mismatch(left_circuit, right_circuit)
+            self._set_left_circuit(left_circuit)
+            self._set_right_circuit(right_circuit)
+        elif left_circuit is not None:
+            self._check_qubits_mismatch(left_circuit, self._right_circuit)
+            self._set_left_circuit(left_circuit)
+        elif right_circuit is not None:
+            self._check_qubits_mismatch(self._left_circuit, right_circuit)
+            self._set_right_circuit(right_circuit)
+        else:
+            raise ValueError(
+                "At least one of the arguments `left_circuit` or `right_circuit` must not be `None`."
+            )
+
+    def _set_left_circuit(self, circuit: QuantumCircuit) -> None:
+        """
+        Fix the left circuit. If `check_num_qubits` the number of qubits are compared
+        to the right circuit.
+        """
+        self._left_parameters = ParameterVector("x", circuit.num_parameters)
+        self._left_circuit = circuit.assign_parameters(self._left_parameters)
+
+    def _set_right_circuit(self, circuit: QuantumCircuit) -> None:
+        """
+        Fix the right circuit. If `check_num_qubits` the number of qubits are compared
+        to the left circuit.
+        """
+        self._right_parameters = ParameterVector("y", circuit.num_parameters)
+        self._right_circuit = circuit.assign_parameters(self._right_parameters)
+
+    def _check_qubits_mismatch(
+        self, left_circuit: QuantumCircuit, right_circuit: QuantumCircuit
+    ) -> None:
         if left_circuit.num_qubits != right_circuit.num_qubits:
             raise ValueError(
                 f"The number of qubits for the left circuit ({left_circuit.num_qubits}) \
-                 and right circuit ({right_circuit.num_qubits}) do not coincide."
+                    and right circuit ({right_circuit.num_qubits}) do not coincide."
             )
-        # Assigning parameter arrays to the two circuits
-        self._left_parameters = ParameterVector("x", left_circuit.num_parameters)
-        self._left_circuit = left_circuit.assign_parameters(self._left_parameters)
-
-        self._right_parameters = ParameterVector("y", right_circuit.num_parameters)
-        self._right_circuit = right_circuit.assign_parameters(self._right_parameters)

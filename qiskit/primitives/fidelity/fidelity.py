@@ -85,19 +85,23 @@ class Fidelity(BaseFidelity):
 
         return np.array(overlaps)
 
-    def set_circuits(self, left_circuit: QuantumCircuit, right_circuit: QuantumCircuit):
+    def set_circuits(
+        self, left_circuit: QuantumCircuit | None, right_circuit: QuantumCircuit | None
+    ):
         """
         Fix the circuits for the fidelity to be computed of.
         Args:
-        - left_circuit: (Parametrized) quantum circuit
-        - right_circuit: (Parametrized) quantum circuit
+            left_circuit: (Parametrized) quantum circuit
+            right_circuit: (Parametrized) quantum circuit
         """
         super().set_circuits(left_circuit=left_circuit, right_circuit=right_circuit)
 
-        circuit = self._left_circuit.compose(self._right_circuit.inverse())
-        circuit.measure_all()
+        if self._left_circuit is not None and self._right_circuit is not None:
+            # If both circuits have been set, we can construct the overlap circuit.
+            circuit = self._left_circuit.compose(self._right_circuit.inverse())
+            circuit.measure_all()
 
-        # in the future this should be self.sampler.add_circuit(circuit)
-        # Careful! because add_circuits doesn't exist yet, calling this method
-        # twice will make it store the result of a sampler call in self.sampler.
-        self.sampler = self.sampler([circuit])
+            # in the future this should be self.sampler.add_circuit(circuit)
+            # Careful! because add_circuits doesn't exist yet, calling this method
+            # twice will make it store the result of a sampler call in self.sampler.
+            self.sampler = self.sampler([circuit])
