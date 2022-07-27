@@ -555,7 +555,7 @@ def plot_state_paulivec(
            qc.h(0)
            qc.cx(0, 1)
 
-           state = Statevector.from_instruction(qc)
+           state = Statevector(qc)
            plot_state_paulivec(state, color='midnightblue',
                 title="New PauliVec plot")
         .. jupyter-execute::
@@ -572,7 +572,7 @@ def plot_state_paulivec(
            qc.ry(np.pi/3, 0)
            qc.rx(np.pi/5, 1)
 
-           matrix = DensityMatrix.from_instruction(qc)
+           matrix = DensityMatrix(qc)
 
            plot_state_paulivec(matrix, figsize = (11,7),
                 color = ['crimson', 'midnightblue', 'seagreen'])
