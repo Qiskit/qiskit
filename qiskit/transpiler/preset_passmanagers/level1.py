@@ -147,8 +147,6 @@ def level_1_pass_manager(pass_manager_config: PassManagerConfig) -> StagedPassMa
         _improve_layout = NoiseAdaptiveLayout(backend_properties)
     elif layout_method == "sabre":
         _improve_layout = SabreLayout(coupling_map, max_iterations=2, seed=seed_transpiler)
-    else:
-        raise TranspilerError("Invalid layout method %s." % layout_method)
 
     toqm_pass = False
     routing_pm = None
