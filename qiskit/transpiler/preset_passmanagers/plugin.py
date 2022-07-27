@@ -63,7 +63,7 @@ Currently there are 6 stages in the preset pass managers used by and correspondi
        :func:`~.generate_embed_passmanager`.
    * - ``routing``
      - ``qiskit.transpiler.routing``
-     - ``basic``, ``stochastic``, ``lookahead``, ``sabre``, ``toqm``, ``default``
+     - ``basic``, ``stochastic``, ``lookahead``, ``sabre``, ``toqm``
      - The output from this stage is expected to have the circuit match the
        connectivity constraints of the target backend. This does not necessarily
        need to match the directionality of the edges in the target as a later

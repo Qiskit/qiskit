@@ -29,8 +29,10 @@ class TestStagePassManagerPlugin(QiskitTestCase):
     def test_list_stage_plugins(self):
         """Test list stage plugin function."""
         routing_passes = list_stage_plugins("routing")
-        self.assertIn("default", routing_passes)
+        self.assertIn("basic", routing_passes)
         self.assertIn("sabre", routing_passes)
+        self.assertIn("lookahead", routing_passes)
+        self.assertIn("stochastic", routing_passes)
         self.assertIsInstance(list_stage_plugins("init"), list)
         self.assertIsInstance(list_stage_plugins("layout"), list)
         self.assertIsInstance(list_stage_plugins("translation"), list)
