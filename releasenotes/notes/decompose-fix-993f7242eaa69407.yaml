@@ -3,5 +3,5 @@ fixes:
   - Fixed an issue in :meth:`.QuantumCircuit.decompose` method when
     passing in a list of ``Gate`` classes for the ``gates_to_decompose``
     argument. If any gates in the circuit had a label set this argument
-    wouldn't be handled correctly and cause the output decomposition to
+    wouldn't be handled correctly and caused the output decomposition to
     incorrectly skip gates explicitly in the ``gates_to_decompose`` list.
