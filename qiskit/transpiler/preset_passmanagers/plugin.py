@@ -156,7 +156,7 @@ from qiskit.transpiler.passmanager_config import PassManagerConfig
 
 class PassManagerStagePlugin(abc.ABC):
     """A ``PassManagerStagePlugin`` is a plugin interface object for using custom
-    stages in :func:`~. transpile`.
+    stages in :func:`~.transpile`.
 
     A ``PassManagerStagePlugin`` object can be added to an external package and
 
