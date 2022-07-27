@@ -1,4 +1,4 @@
 ---
 fixes:
   - |
-    Fixed a global phase bug in :class:`~.UCGate`.
+    Fixed an issue in handling the global phase of the :class:`~.UCGate` class.
