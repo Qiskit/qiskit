@@ -263,25 +263,23 @@ def plot_bloch_multivector(
 
             state = Statevector.from_instruction(qc)
             plot_bloch_multivector(state)
+
         .. jupyter-execute::
 
-           from qiskit import QuantumCircuit, Aer, transpile
+           from qiskit import QuantumCircuit
+           from qiskit.quantum_info import DensityMatrix
            from qiskit.visualization import plot_bloch_multivector
-           import numpy as np
            %matplotlib inline
 
            qc = QuantumCircuit(2)
            qc.h([0, 1])
-           qc.s(1)
-           qc.ry(np.pi/3 , 0)
-           qc.rx(np.pi/5, 1)
+           qc.t(1)
+           qc.s(0)
+           qc.cx(0,1)
 
-           backend = Aer.get_backend('aer_simulator')
-           qc.save_statevector()
-           job = backend.run(transpile(qc, backend))
-           statevector = job.result().get_statevector()
+           matrix = DensityMatrix.from_instruction(qc)
+           plot_bloch_multivector(matrix, title = 'My Bloch Spheres', reverse_bits = True)
 
-           plot_bloch_multivector(statevector, title = 'My Bloch Spheres', reverse_bits = True)
     """
     from matplotlib import pyplot as plt
 
