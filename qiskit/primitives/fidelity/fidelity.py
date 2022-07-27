@@ -86,13 +86,18 @@ class Fidelity(BaseFidelity):
         return np.array(overlaps)
 
     def set_circuits(
-        self, left_circuit: QuantumCircuit | None, right_circuit: QuantumCircuit | None
+        self,
+        left_circuit: QuantumCircuit | None = None,
+        right_circuit: QuantumCircuit | None = None,
     ):
         """
         Fix the circuits for the fidelity to be computed of.
         Args:
             left_circuit: (Parametrized) quantum circuit
             right_circuit: (Parametrized) quantum circuit
+
+        Raises:
+            ValueError: ``left_circuit`` and ``right_circuit`` don't have the same number of qubits.
         """
         super().set_circuits(left_circuit=left_circuit, right_circuit=right_circuit)
 

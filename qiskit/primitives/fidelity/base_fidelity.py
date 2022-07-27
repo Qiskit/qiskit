@@ -99,7 +99,9 @@ class BaseFidelity(ABC):
             return np.atleast_2d(values)
 
     def set_circuits(
-        self, left_circuit: QuantumCircuit | None, right_circuit: QuantumCircuit | None
+        self,
+        left_circuit: QuantumCircuit | None = None,
+        right_circuit: QuantumCircuit | None = None,
     ):
         """
         Fix the circuits for the fidelity to be computed of.
@@ -144,8 +146,9 @@ class BaseFidelity(ABC):
     def _check_qubits_mismatch(
         self, left_circuit: QuantumCircuit, right_circuit: QuantumCircuit
     ) -> None:
-        if left_circuit.num_qubits != right_circuit.num_qubits:
-            raise ValueError(
-                f"The number of qubits for the left circuit ({left_circuit.num_qubits}) \
-                    and right circuit ({right_circuit.num_qubits}) do not coincide."
-            )
+        if left_circuit is not None and right_circuit is not None:
+            if left_circuit.num_qubits != right_circuit.num_qubits:
+                raise ValueError(
+                    f"The number of qubits for the left circuit ({left_circuit.num_qubits}) \
+                        and right circuit ({right_circuit.num_qubits}) do not coincide."
+                )
