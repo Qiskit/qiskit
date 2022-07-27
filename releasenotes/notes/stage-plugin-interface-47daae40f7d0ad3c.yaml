@@ -12,7 +12,7 @@ features:
     ``routing_method``, ``translation_method``, ``optimization_method``, and
     ``scheduling_method`` keyword arguments on :func:`~.transpile` and
     :func:`~.generate_preset_pass_manager`. A full list of plugin names
-    currently installed this can be found with the :func:`.list_stage_plugins`
+    currently installed can be found with the :func:`.list_stage_plugins`
     function. For creating plugins refer to the
     :mod:`qiskit.transpiler.preset_passmanagers.plugin` module documentation
     which includes a guide for writing stage plugins.
@@ -25,7 +25,7 @@ features:
     :attr:`~.PassManagerConfig.init_method`,
     :attr:`~.PassManagerConfig.optimization_method`, and
     :attr:`~.PassManagerConfig.optimization_level` along with matching keyword
-    arguments on the constructor methods. The first two attributes repreesent
+    arguments on the constructor methods. The first two attributes represent
     the user specified ``init`` and ``optimization`` plugins to use for
     compilation. The :attr:`~.PassManagerConfig.optimization_level` attribute
     represents the compilations optimization level if specified which can
