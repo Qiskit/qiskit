@@ -22,6 +22,7 @@ import numpy as np
 
 from qiskit.circuit import Parameter, QuantumCircuit
 from qiskit.circuit.parametertable import ParameterView
+from qiskit.circuit.instruction import Instruction
 from qiskit.exceptions import QiskitError
 from qiskit.opflow import PauliSumOp
 from qiskit.quantum_info import Statevector
@@ -72,6 +73,17 @@ class Estimator(BaseEstimator):
         )
         self._is_closed = False
 
+    @staticmethod
+    def _bound_circuit_to_instruction(circuit: QuantumCircuit) -> Instruction:
+        inst = Instruction(
+            name=circuit.name,
+            num_qubits=circuit.num_qubits,
+            num_clbits=circuit.num_clbits,
+            params=[],
+        )
+        inst.definition = circuit
+        return inst
+
     def _call(
         self,
         circuits: Sequence[int],
@@ -101,9 +113,13 @@ class Estimator(BaseEstimator):
                     f"The number of values ({len(value)}) does not match "
                     f"the number of parameters ({len(self._parameters[i])})."
                 )
-            bound_circuits.append(
-                self._circuits[i].bind_parameters(dict(zip(self._parameters[i], value)))
-            )
+            if len(self._parameters[i]) == 0:
+                bound_circuit = self._circuits[i]
+            else:
+                bound_circuit = self._circuits[i].bind_parameters(
+                    dict(zip(self._parameters[i], value))
+                )
+            bound_circuits.append(bound_circuit)
         sorted_observables = [self._observables[i] for i in observables]
         expectation_values = []
         for circ, obs, metadatum in zip(bound_circuits, sorted_observables, metadata):
@@ -112,7 +128,8 @@ class Estimator(BaseEstimator):
                     f"The number of qubits of a circuit ({circ.num_qubits}) does not match "
                     f"the number of qubits of a observable ({obs.num_qubits})."
                 )
-            final_state = Statevector(circ)
+            inst = self._bound_circuit_to_instruction(circ)
+            final_state = Statevector(inst)
             expectation_value = final_state.expectation_value(obs)
             if shots is None:
                 expectation_values.append(expectation_value)
