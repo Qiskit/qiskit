@@ -714,7 +714,8 @@ def plot_state_qsphere(
            plot_state_qsphere(state)
         .. jupyter-execute::
 
-           from qiskit import QuantumCircuit, Aer, transpile
+           from qiskit import QuantumCircuit
+           from qiskit.quantum_info import DensityMatrix
            from qiskit.visualization import plot_state_qsphere
            import numpy as np
            %matplotlib inline
@@ -722,15 +723,12 @@ def plot_state_qsphere(
            qc = QuantumCircuit(2)
            qc.h([0, 1])
            qc.cz(0,1)
-           qc.ry(np.pi/3 , 0)
+           qc.ry(np.pi/3, 0)
            qc.rx(np.pi/5, 1)
+           qc.z(1)
 
-           backend = Aer.get_backend('aer_simulator')
-           qc.save_statevector()
-           job = backend.run(transpile(qc, backend))
-           statevector = job.result().get_statevector()
-
-           plot_state_qsphere(statevector, figsize = (13,9),
+           matrix = DensityMatrix.from_instruction(qc)
+           plot_state_qsphere(matrix, figsize = (13,9),
                 show_state_phases = True, use_degrees = True)
     """
     from matplotlib import gridspec
