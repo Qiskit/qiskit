@@ -346,26 +346,26 @@ def plot_state_city(
            qc.h(0)
            qc.cx(0, 1)
 
-           state = DensityMatrix.from_instruction(qc)
+           state = DensityMatrix(qc)
            plot_state_city(state, color=['midnightblue', 'crimson'],
                 title="New State City")
         .. jupyter-execute::
 
-           from qiskit import QuantumCircuit, Aer, transpile
+           from qiskit import QuantumCircuit
+           from qiskit.quantum_info import Statevector
            from qiskit.visualization import plot_state_city
+           import numpy as np
            %matplotlib inline
 
            qc = QuantumCircuit(2)
            qc.h([0, 1])
            qc.cz(0,1)
-           qc.sx(0)
+           qc.ry(np.pi/3, 0)
+           qc.rx(np.pi/5, 1)
 
-           backend = Aer.get_backend('aer_simulator')
-           qc.save_statevector()
-           job = backend.run(transpile(qc, backend))
-           statevector = job.result().get_statevector()
+           state = Statevector(qc)
+           plot_state_city(state, figsize = (10,6), alpha = 0.6)
 
-           plot_state_city(statevector, figsize = (10,6), alpha = 0.6)
     """
     from matplotlib import pyplot as plt
     from mpl_toolkits.mplot3d.art3d import Poly3DCollection
