@@ -261,7 +261,7 @@ def plot_bloch_multivector(
             qc.h(0)
             qc.x(1)
 
-            state = Statevector.from_instruction(qc)
+            state = Statevector(qc)
             plot_bloch_multivector(state)
 
         .. jupyter-execute::
@@ -277,7 +277,7 @@ def plot_bloch_multivector(
            qc.s(0)
            qc.cx(0,1)
 
-           matrix = DensityMatrix.from_instruction(qc)
+           matrix = DensityMatrix(qc)
            plot_bloch_multivector(matrix, title = 'My Bloch Spheres', reverse_bits = True)
 
     """
