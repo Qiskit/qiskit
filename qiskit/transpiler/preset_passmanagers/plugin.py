@@ -57,7 +57,7 @@ Currently there are 6 stages in the preset pass managers used by and correspondi
      - ``trivial``, ``dense``, ``noise_adaptive``, ``sabre``
      - The output from this staged is expected to have the ``layout`` property
        set field set with a :class:`~.Layout` object. Additionally, the circuit is
-       is typically expected to be embedded so that it expanded to include all
+       typically expected to be embedded so that it expanded to include all
        qubits and the :class:`~.ApplyLayout` pass is expected to be run to apply the
        layout. The embedding of the :class:`~.Layout` can be generated with
        :func:`~.generate_embed_passmanager`.
@@ -156,7 +156,7 @@ from qiskit.transpiler.passmanager_config import PassManagerConfig
 
 class PassManagerStagePlugin(abc.ABC):
     """A ``PassManagerStagePlugin`` is a plugin interface object for using custom
-    stages in :func:`transpile()`.
+    stages in :func:`~. transpile`.
 
     A ``PassManagerStagePlugin`` object can be added to an external package and
 
