@@ -2564,8 +2564,8 @@ class QuantumCircuit:
         or new parameter objects.
 
         If ``parameters`` is passed as a list or array, the elements are assigned to the
-        current parameters in the order of :attr:`parameters`, which is sorted
-        alphabetically (while respecting the ordering in :class:`.ParameterVector`s).
+        current parameters in the order of :attr:`parameters` which is sorted
+        alphabetically (while respecting the ordering in :class:`.ParameterVector` objects).
 
         The values can be assigned to the current circuit object or to a copy of it.
 
