@@ -1,7 +1,9 @@
 ---
 fixes:
   - |
-    A bug that ``limit_amplitude`` set to an individual symbolic pulse or waveform instance
-    is not properly reflected to the parameter validation has been fixed.
-    In addition, QPY schedule ``dump`` has been fixed to save ``limit_amplitude`` value
-    tied to the instance, rather than saving the global class variable.
+    Fixed an issue where the ``limit_amplitude`` argument on an individual
+    :class:`~.SymbolicPulse` or :class:`~.Waveform` instance
+    was not properly reflected by parameter validation. In addition, QPY
+    schedule :func:`~qiskit.qpy.dump` has been fixed to correctly
+    store the ``limit_amplitude`` value tied to the instance, rather than
+    saving the global class variable.

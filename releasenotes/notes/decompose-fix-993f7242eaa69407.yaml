@@ -1,4 +1,7 @@
 ---
 fixes:
-  - Fixed a bug in :meth:`.QuantumCircuit.decompose` that caused the
-    `gates_to_decompose` argument to be handled incorrectly.
+  - Fixed an issue in :meth:`.QuantumCircuit.decompose` method when
+    passing in a list of ``Gate`` classes for the ``gates_to_decompose``
+    argument. If any gates in the circuit had a label set this argument
+    wouldn't be handled correctly and caused the output decomposition to
+    incorrectly skip gates explicitly in the ``gates_to_decompose`` list.
