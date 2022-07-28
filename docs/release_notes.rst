@@ -22,6 +22,137 @@ Notable Changes
 ###############
 
 *************
+Qiskit 0.37.1
+*************
+
+.. _Release Notes_Terra_0.21.1:
+
+Terra 0.21.1
+============
+
+.. _Release Notes_Terra_0.21.1_Bug Fixes:
+
+Bug Fixes
+---------
+
+.. releasenotes/notes/decompose-fix-993f7242eaa69407.yaml @ b'01a7aa6f9f8b8a87e2f149111c8fc78a14e7df8c'
+
+- Fixed an issue in :meth:`.QuantumCircuit.decompose` method when passing in a list of ``Gate`` classes for the
+  ``gates_to_decompose`` argument. If any gates in the circuit had a label set this argument wouldn't be handled
+  correctly and caused the output decomposition to incorrectly skip gates explicitly in the ``gates_to_decompose``
+  list.
+
+.. releasenotes/notes/fix-evolvedop-to-instruction-c90c4f1aa6b4232a.yaml @ b'664747a66e2199a4b20abb9b7180cccb12c61a3f'
+
+- Fix :meth:`~.EvolvedOp.to_instruction` which previously tried to create a
+  :class:`~.UnitaryGate` without exponentiating the operator to evolve.
+  Since this operator is generally not unitary, this raised an error (and if
+  the operator would have been unitary by chance, it would not have been the expected result).
+
+  Now calling :meth:`~.EvolvedOp.to_instruction` correctly produces a gate
+  that implements the time evolution of the operator it holds::
+
+    >>> from qiskit.opflow import EvolvedOp, X
+    >>> op = EvolvedOp(0.5 * X)
+    >>> op.to_instruction()
+    Instruction(
+        name='unitary', num_qubits=1, num_clbits=0,
+        params=[array([[0.87758256+0.j, 0.-0.47942554j], [0.-0.47942554j, 0.87758256+0.j]])]
+    )
+
+.. releasenotes/notes/fix-numpy-indices-marginal-dist-45889e49ba337d84.yaml @ b'1dd344442355e33777e178932f478c53bbd169b0'
+
+- Fixed an issue with the :func:`~.marginal_distribution` function: when
+  a numpy array was passed in for the ``indices`` argument the function would
+  raise an error.
+  Fixed `#8283 <https://github.com/Qiskit/qiskit-terra/issues/8283>`__
+
+.. releasenotes/notes/fix-opflow-vector-to-circuit-fn-02cb3424269fa733.yaml @ b'd76e23ec0027e6c687f144c812c4401cc1288dcf'
+
+- Previously it was not possible to adjoint a :class:`.CircuitStateFn` that has been
+  constructed from a :class:`.VectorStateFn`. That's because the statevector has been
+  converted to a circuit with the :class:`~qiskit.extensions.Initialize` instruction, which
+  is not unitary. This problem is now fixed by instead using the :class:`.StatePreparation`
+  instruction, which can be used since the state is assumed to start out in the all 0 state.
+
+  For example we can now do::
+
+      from qiskit import QuantumCircuit
+      from qiskit.opflow import StateFn
+
+      left = StateFn([0, 1])
+      left_circuit = left.to_circuit_op().primitive
+
+      right_circuit = QuantumCircuit(1)
+      right_circuit.x(0)
+
+      overlap = left_circuit.inverse().compose(right_circuit)  # this line raised an error before!
+
+.. releasenotes/notes/fix-optimizer-settings-881585bfa8130cb7.yaml @ b'd54380fa7a078005081b81a10d5d989124a0be40'
+
+- Fix a bug in the :class:`~.Optimizer` classes where re-constructing a new optimizer instance
+  from a previously exisiting :attr:`~.Optimizer.settings` reset both the new and previous
+  optimizer settings to the defaults. This notably led to a bug if :class:`~.Optimizer` objects
+  were send as input to Qiskit Runtime programs.
+
+  Now optimizer objects are correctly reconstructed::
+
+    >>> from qiskit.algorithms.optimizers import COBYLA
+    >>> original = COBYLA(maxiter=1)
+    >>> reconstructed = COBYLA(**original.settings)
+    >>> reconstructed._options["maxiter"]
+    1  # used to be 1000!
+
+.. releasenotes/notes/fix-pulse-limit_amplitude-72b8b501710fe3aa.yaml @ b'01a7aa6f9f8b8a87e2f149111c8fc78a14e7df8c'
+
+- Fixed an issue where the ``limit_amplitude`` argument on an individual
+  :class:`~.SymbolicPulse` or :class:`~.Waveform` instance
+  was not properly reflected by parameter validation. In addition, QPY
+  schedule :func:`~qiskit.qpy.dump` has been fixed to correctly
+  store the ``limit_amplitude`` value tied to the instance, rather than
+  saving the global class variable.
+
+.. releasenotes/notes/fix-zzmap-pairwise-5653395849fec454.yaml @ b'01a7aa6f9f8b8a87e2f149111c8fc78a14e7df8c'
+
+- Fix the pairwise entanglement structure for :class:`~.NLocal` circuits.
+  This led to a bug in the :class:`~.ZZFeatureMap`, where using
+  ``entanglement="pairwise"`` raised an error. Now it correctly produces the
+  desired feature map::
+
+    from qiskit.circuit.library import ZZFeatureMap
+    encoding = ZZFeatureMap(4, entanglement="pairwise", reps=1)
+    print(encoding.decompose().draw())
+
+  The above prints:
+
+  .. parsed-literal::
+
+         ┌───┐┌─────────────┐
+    q_0: ┤ H ├┤ P(2.0*x[0]) ├──■────────────────────────────────────■────────────────────────────────────────────
+         ├───┤├─────────────┤┌─┴─┐┌──────────────────────────────┐┌─┴─┐
+    q_1: ┤ H ├┤ P(2.0*x[1]) ├┤ X ├┤ P(2.0*(π - x[0])*(π - x[1])) ├┤ X ├──■────────────────────────────────────■──
+         ├───┤├─────────────┤└───┘└──────────────────────────────┘└───┘┌─┴─┐┌──────────────────────────────┐┌─┴─┐
+    q_2: ┤ H ├┤ P(2.0*x[2]) ├──■────────────────────────────────────■──┤ X ├┤ P(2.0*(π - x[1])*(π - x[2])) ├┤ X ├
+         ├───┤├─────────────┤┌─┴─┐┌──────────────────────────────┐┌─┴─┐└───┘└──────────────────────────────┘└───┘
+    q_3: ┤ H ├┤ P(2.0*x[3]) ├┤ X ├┤ P(2.0*(π - x[2])*(π - x[3])) ├┤ X ├──────────────────────────────────────────
+         └───┘└─────────────┘└───┘└──────────────────────────────┘└───┘
+
+.. releasenotes/notes/global-phase-ucgate-cd61355e314a3e64.yaml @ b'01a7aa6f9f8b8a87e2f149111c8fc78a14e7df8c'
+
+- Fixed an issue in handling the global phase of the :class:`~.UCGate` class.
+
+Aer 0.10.4
+==========
+
+No change
+
+IBM Q Provider 0.19.2
+=====================
+
+No change
+
+
+*************
 Qiskit 0.37.0
 *************
 
