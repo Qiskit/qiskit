@@ -233,7 +233,15 @@ def plot_bloch_multivector(
 ):
     """Plot the Bloch sphere.
 
-    Plot a sphere, axes, the Bloch vector, and its projections onto each axis.
+    Plot a sphere, axes, the Bloch vector, and its projections onto each axis
+    for each qubit.
+
+    Each component :math:`(x,y,z)` of the Bloch sphere labeled as 'qubit i' represents
+    the expected value of the corresponding Pauli operator
+    acting only on that qubit, that is, the expected value of
+    :math:`I_{n-1} \\otimes ... \\otimes I_{i+1}\\otimes P_i
+    \\otimes I_{i-1}\\otimes ... \\otimes I_0`, where :math:`n` is the number
+    of qubits, :math:`P\\in \\{X,Y,Z\\}` and :math:`I` is the identity operator.
 
     Args:
         state (Statevector or DensityMatrix or ndarray): an N-qubit quantum state.
