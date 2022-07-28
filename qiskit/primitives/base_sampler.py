@@ -107,12 +107,12 @@ import numpy as np
 from qiskit.circuit import Parameter, QuantumCircuit
 from qiskit.circuit.parametertable import ParameterView
 from qiskit.exceptions import QiskitError
+from qiskit.providers import JobV1 as Job
 from qiskit.utils.deprecation import deprecate_arguments, deprecate_function
 
 from .primitive_future import PrimitiveFuture
 from .sampler_result import SamplerResult
 from .utils import _finditer
-from qiskit.providers import JobV1 as Job
 
 
 class BaseSampler(ABC):
@@ -213,7 +213,7 @@ class BaseSampler(ABC):
     @deprecate_function(
         "The BaseSampler.__call__ method is deprecated as of Qiskit Terra 0.21.0 "
         "and will be removed no sooner than 3 months after the releasedate. "
-        "Use submit method instead.",
+        "Use run method instead.",
     )
     @deprecate_arguments({"circuit_indices": "circuits"})
     def __call__(
@@ -294,13 +294,13 @@ class BaseSampler(ABC):
             **run_options,
         )
 
-    def submit(
+    def run(
         self,
         circuits: Sequence[int | QuantumCircuit],
         parameter_values: Sequence[Sequence[float]] | None = None,
         **run_options,
     ) -> PrimitiveFuture[SamplerResult]:
-        """Submit the job of the sampling of bitstrings.
+        """Run the job of the sampling of bitstrings.
 
         Args:
             circuits: the list of circuit indices or circuit objects.

@@ -262,7 +262,7 @@ class BaseEstimator(ABC):
     @deprecate_function(
         "The BaseSampler.__call__ method is deprecated as of Qiskit Terra 0.21.0 "
         "and will be removed no sooner than 3 months after the releasedate. "
-        "Use submit method instead.",
+        "Use run method instead.",
     )
     @deprecate_arguments({"circuit_indices": "circuits", "observable_indices": "observables"})
     def __call__(
@@ -397,14 +397,14 @@ class BaseEstimator(ABC):
             **run_options,
         )
 
-    def submit(
+    def run(
         self,
         circuits: Sequence[int | QuantumCircuit],
         observables: Sequence[int | SparsePauliOp],
         parameter_values: Sequence[Sequence[float]] | None = None,
         **run_options,
     ) -> PrimitiveFuture[EstimatorResult]:
-        """Submit the job of the estimation of expectation value(s).
+        """Run the job of the estimation of expectation value(s).
 
         ``circuits``, ``observables``, and ``parameter_values`` should have the same
         length. The i-th element of the result is the expectation of observable
