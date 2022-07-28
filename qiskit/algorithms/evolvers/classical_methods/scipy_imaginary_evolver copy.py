@@ -87,7 +87,6 @@ class ScipyImaginaryEvolver(ImaginaryEvolver):
             Evolution result which includes an evolved quantum state.
         """
 
-
         if evolution_problem.t_param is not None:
             raise ValueError("Time dependent hamiltonians are not currently supported.")
 

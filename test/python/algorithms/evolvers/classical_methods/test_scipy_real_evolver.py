@@ -73,7 +73,7 @@ class TestClassicalRealEvolver(QiskitAlgorithmsTestCase):
         initial_state = Zero
         time_ev = 10.0
         hamiltonian = X
-        observables = {"Energy": X, "Polarity": Z}
+        observables = {"Energy": X, "Z": Z}
         evolution_problem = EvolutionProblem(
             hamiltonian, time_ev, initial_state, aux_operators=observables
         )
@@ -81,12 +81,18 @@ class TestClassicalRealEvolver(QiskitAlgorithmsTestCase):
         classic_evolver = ScipyRealEvolver(threshold=threshold, coeff_a=0.1)
         result = classic_evolver.evolve(evolution_problem)
 
-        timesteps = result.aux_ops_evaluated["Energy"].shape[0]
+        z_mean, z_std = result.observables["Z"]
+
+        timesteps = z_mean.shape[0]
         time_vector = np.linspace(0, time_ev, timesteps)
-        expected_polarity = 1 - 2 * (np.sin(time_vector)) ** 2
+        expected_z = 1 - 2 * (np.sin(time_vector)) ** 2
+        expected_z_std = np.sqrt(1 - expected_z**2)
 
         np.testing.assert_allclose(
-            result.aux_ops_evaluated["Polarity"], expected_polarity, atol=2 * threshold, rtol=0
+            z_mean, expected_z, atol=2 * threshold, rtol=0
+        )
+        np.testing.assert_allclose(
+            z_std, expected_z_std, atol=2 * threshold, rtol=0
         )
 
     def test_quantum_circuit_initial_state(self):

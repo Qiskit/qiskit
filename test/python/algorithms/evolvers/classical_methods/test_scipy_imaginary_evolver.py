@@ -18,7 +18,7 @@ from ddt import data, ddt, unpack
 import numpy as np
 import scipy.sparse as sp
 from qiskit.algorithms.evolvers.evolution_problem import EvolutionProblem
-from qiskit.opflow import I,X,Y,Z, Zero, One, Plus, Minus, PauliSumOp
+from qiskit.opflow import I, X, Y, Z, Zero, One, Plus, Minus, PauliSumOp
 from qiskit.opflow import StateFn, OperatorBase
 from qiskit import QuantumCircuit
 from qiskit.algorithms.evolvers.classical_methods import ScipyImaginaryEvolver
@@ -40,10 +40,18 @@ class TestScipyImaginaryEvolver(QiskitAlgorithmsTestCase):
         )
 
     @data(
-        [Zero, 100, X, Minus,],
-        [Zero, 100, -X, Plus,],
-        # [Zero^20,100,((X^10)^(Y^10))+((I^5)^(Z^5)^(Y^5)^(X^5)),((Zero^20) + ((Zero^9) ^ One ^ (Zero ^10)) + ((Zero^10) ^ One ^ (Zero ^9)) + (One^20) )/ 2]
-
+        [
+            Zero,
+            100,
+            X,
+            Minus,
+        ],
+        [
+            Zero,
+            100,
+            -X,
+            Plus,
+        ],
     )
     @unpack
     def test_evolve(
@@ -52,12 +60,10 @@ class TestScipyImaginaryEvolver(QiskitAlgorithmsTestCase):
         tau: float,
         hamiltonian: OperatorBase,
         expected_state: StateFn,
-
     ):
         """Initializes a classical imaginary evolver and evolves a state to find the ground state.
         It compares the solution with the first eigenstate of the hamiltonian.
         """
-
 
         expected_state_matrix = expected_state.to_matrix(massive=True)
 
@@ -75,32 +81,41 @@ class TestScipyImaginaryEvolver(QiskitAlgorithmsTestCase):
 
         with self.subTest("Phases"):
             np.testing.assert_allclose(
-                np.angle(result.evolved_state.to_matrix(massive = True)),
+                np.angle(result.evolved_state.to_matrix(massive=True)),
                 np.angle(expected_state_matrix),
                 atol=1e-10,
                 rtol=0,
             )
 
     def test_complex_observables(self):
-        """Tests if the observables are properly evaluated at each timestep."""
+        """Tests if the observables are properly evaluated at each
+        timestep for a 5 qubit hamiltonian.
+        """
 
         initial_state = Zero ^ 5
         time_ev = 5.0
-        hamiltonian = ((X ^ (I^4)) + (I ^ X ^ (I^3)) + ((I^2) ^ X ^ (I^2)) + ((I^3) ^ X ^ I) + ((I^4) ^ X))
-        observables = {"Energy": hamiltonian, "Z": Z^5}
+        hamiltonian = (
+            (X ^ (I ^ 4))
+            + (I ^ X ^ (I ^ 3))
+            + ((I ^ 2) ^ X ^ (I ^ 2))
+            + ((I ^ 3) ^ X ^ I)
+            + ((I ^ 4) ^ X)
+        )
+        observables = {"Energy": hamiltonian, "Z": Z ^ 5}
         evolution_problem = EvolutionProblem(
             hamiltonian, time_ev, initial_state, aux_operators=observables
         )
-        threshold = 1e-20
-        classic_evolver = ScipyImaginaryEvolver(timesteps = 1)
+        classic_evolver = ScipyImaginaryEvolver(timesteps=20)
         result = classic_evolver.evolve(evolution_problem)
 
-        timesteps = result.aux_ops_evaluated["Energy"].shape[0]
+        z_mean, z_std = result.observables["Z"]
+        timesteps = z_mean.shape[0]
+
         time_vector = np.linspace(0, time_ev, timesteps)
-        expected_Z = 1/(np.cosh(time_vector)**2 + np.sinh(time_vector)**2)
+        expected_Z = 1 / (np.cosh(time_vector) ** 2 + np.sinh(time_vector) ** 2)
 
         np.testing.assert_allclose(
-            result.aux_ops_evaluated["Z"], expected_Z**5, atol= threshold, rtol=0
+            z_mean, expected_Z**5, atol=1e-15, rtol=0
         )
 
     def test_observables(self):
@@ -114,15 +129,22 @@ class TestScipyImaginaryEvolver(QiskitAlgorithmsTestCase):
             hamiltonian, time_ev, initial_state, aux_operators=observables
         )
         threshold = 1e-3
-        classic_evolver = ScipyImaginaryEvolver(timesteps = 100)
+        classic_evolver = ScipyImaginaryEvolver(timesteps=100)
         result = classic_evolver.evolve(evolution_problem)
 
-        timesteps = result.aux_ops_evaluated["Energy"].shape[0]
+        z_mean, z_std = result.observables["Z"]
+
+        timesteps = z_mean.shape[0]
         time_vector = np.linspace(0, time_ev, timesteps)
-        expected_Z = 1/(np.cosh(time_vector)**2 + np.sinh(time_vector)**2)
+        expected_Z = 1 / (np.cosh(time_vector) ** 2 + np.sinh(time_vector) ** 2)
+        expected_Z_std = np.sqrt(1-expected_Z**2)
 
         np.testing.assert_allclose(
-            result.aux_ops_evaluated["Z"], expected_Z, atol=2 * threshold, rtol=0
+            z_mean, expected_Z, atol=2 * threshold, rtol=0
+        )
+
+        np.testing.assert_allclose(
+            z_std, expected_Z_std, atol=2 * threshold, rtol=0
         )
 
     def test_quantum_circuit_initial_state(self):

@@ -11,13 +11,11 @@
 # that they have been altered from the originals.
 
 """Interface for Classical Quantum Real Time Evolution."""
-from typing import Tuple, Optional
-from pyrsistent import s
-import scipy.sparse as sp
+from logging import raiseExceptions
+from typing import Tuple, Optional, Union
 from scipy.sparse.linalg import expm_multiply
 import numpy as np
 from qiskit.algorithms.list_or_dict import ListOrDict, List
-from qiskit.quantum_info.states import Statevector
 from qiskit import QuantumCircuit
 from qiskit.opflow import StateFn
 
@@ -34,28 +32,16 @@ class ScipyImaginaryEvolver(ImaginaryEvolver):
     def __init__(
         self,
         timesteps: Optional[int] = None,
-        # threshold: Optional[float] = None,
-        # order: str = "first",
     ):
         """
         Args:
-            timesteps: The number of timesteps to perform for the time evolution.
-            threshold: The threshold for the error. If timesteps is `None` this will be used
-            to estimate the necessary number of timesteps to reach a threshold error.
-            order: The order of the taylor expansion. Either 'first' or 'second'.
-
-        Raises:
-            ValueError: If timesteps is `None`.
+            timesteps: The number of timesteps to get data from the observables. At the end of each
+            step the state will be renormalized. Note that increassing the ammount of timesteps
+            will not increase the accuracy of the integration but can avoid overflow errors for
+            hamiltonians with high eigenvalues.
         """
-        if timesteps is None:
-            raise ValueError("timesteps must be specified.")
-        # if order not in ("first", "second"):
-        #     raise ValueError("Order must be either 'first' or 'second'.")
 
         self.timesteps = timesteps
-        # self.threshold = threshold
-        # self.order = order
-        # self.aux_operators_time_evolution: Optional[ListOrDict[np.ndarray]] = None
 
     def evolve(self, evolution_problem: EvolutionProblem) -> EvolutionResult:
         r"""Perform imaginary time evolution :math:`\exp(- \tau H)|\Psi\rangle`.
@@ -63,67 +49,143 @@ class ScipyImaginaryEvolver(ImaginaryEvolver):
         Evolves an initial state :math:`|\Psi\rangle` for a time :math:`\tau = it`
         under a Hamiltonian  :math:`H`, as provided in the ``evolution_problem``.
 
-        In order to perform one timestep :math:`\delta \tau` of the evolution, we need to implement
-
-        .. math::
-
-            |\Psi \left( \tau + \delta \tau \right) \rangle =
-             \exp(-\delta \tau H) |\Psi \left( \tau \right) \rangle
-
-        Which can be approximated as:
-
-        .. math::
-
-            \exp(- \delta \tau H) = 1 - \delta \tau H + O \left( \delta \tau^2 \right)
-
-        Note that this operator is not unitary, and thus we will need to renormalize the state at
-        each step.
+        For each timestep we use scipy's expm_multiply function to evolve the state. Internally,
+        this function will perform integration steps as well. The number of timesteps specified
+        by the user is just to renormalize the state to avoid overflow errors and to get the
+        values of the observables at those times. Note that increasing the number of timesteps
+        will not direclty increase the accuracy of the integration.
 
         Args:
             evolution_problem: The definition of the evolution problem.
 
         Returns:
             Evolution result which includes an evolved quantum state.
+
+        Raises:
+            ValueError: If a NaN is encountered in the final state of the system.
         """
 
         # Get the initial state, hamiltonian and the auxiliary operators.
-        state, hamiltonian, aux_operators, timestep = self._start(evolution_problem = evolution_problem)
+        state, hamiltonian, aux_operators, aux_operators_squared, timestep = self._start(
+            evolution_problem=evolution_problem
+        )
 
-        # Initialize empty array to store observable evolution.
-        observable_evolution = np.empty((len(aux_operators),self.timesteps+1),dtype = float)
+        if self.timesteps is None:
+            return self._simple_evolution(
+                aux_operators=aux_operators,
+                hamiltonian=hamiltonian,
+                evolution_problem=evolution_problem,
+            )
+
+        # Create empty arrays to store the time evolution of the aux operators.
+        operator_number = 0 if evolution_problem.aux_operators is None else len(evolution_problem.aux_operators)
+        aux_operators_time_evolution_mean = np.empty(
+            shape=(operator_number, self.timesteps + 1), dtype=float
+        )
+
+        aux_operators_time_evolution_std = np.empty(
+            shape=(operator_number, self.timesteps + 1), dtype=float
+        )
 
         for ts in range(self.timesteps):
-            for i,aux_operator in enumerate(aux_operators):
-                observable_evolution[i,ts] = self._evaluate_operator(state, aux_operator)
-            state = expm_multiply(A= - hamiltonian * timestep, B = state)
+            (
+                aux_operators_time_evolution_mean[:, ts],
+                aux_operators_time_evolution_std[:, ts],
+            ) = self._evaluate_aux_operators(
+                aux_operators,
+                aux_operators_squared,
+                state,
+            )
+            state = expm_multiply(A=-hamiltonian * timestep, B=state)
+            if np.nan in state:
+                raise ValueError(
+                    "An overflow has probably occured. Try increasing the ammount of timesteps."
+                )
             state = self._renormalize(state)
 
+        (
+            aux_operators_time_evolution_mean[:, self.timesteps],
+            aux_operators_time_evolution_std[:, self.timesteps],
+        ) = self._evaluate_aux_operators(
+            aux_operators,
+            aux_operators_squared,
+            state,
+        )
 
-        for i,aux_operator in enumerate(aux_operators):
-            observable_evolution[i,self.timesteps] = self._evaluate_operator(state, aux_operator)
+        aux_ops_history = self._create_observable_output(
+            aux_operators_time_evolution_mean,
+            aux_operators_time_evolution_std,
+            evolution_problem.aux_operators,
+        )
+        aux_ops = self._create_observable_output(aux_operators_time_evolution_mean[:, self.timesteps],
+            aux_operators_time_evolution_std[:, self.timesteps],
+            evolution_problem.aux_operators,
+        )
 
-        # Creates the right output format for the evaluated auxiliary operators.
-        if isinstance(evolution_problem.aux_operators, dict):
-            observable_evolution = dict(
-                zip(evolution_problem.aux_operators.keys(), observable_evolution)
+        return EvolutionResult(evolved_state=StateFn(state), aux_ops_evaluated=aux_ops, observables = aux_ops_history)
+
+
+    def _create_observable_output(
+        self,
+        aux_operators_time_evolution_mean: np.ndarray,
+        aux_operators_time_evolution_std: np.ndarray,
+        aux_operators: ListOrDict,
+    ) -> ListOrDict[Union[Tuple[np.ndarray, np.ndarray], Tuple[complex,complex]]:
+        """Creates the right output format for the evaluated auxiliary operators."""
+        operator_number = 0 if aux_operators is None else len(aux_operators)
+        observable_evolution = [(aux_operators_time_evolution_mean[i],  aux_operators_time_evolution_std[i]) for i in range(operator_number)]
+
+        if isinstance(aux_operators, dict):
+            observable_evolution = {key: value for key, value in zip(aux_operators.keys(), observable_evolution)}
+
+        return observable_evolution
+
+    def _evaluate_aux_operators(
+        self,
+        aux_operators: List[sp.csr_matrix],
+        aux_operators_squared: List[sp.csr_matrix],
+        state: np.ndarray,
+    ):
+        """Evaluate the aux operators if they are provided and stores their value."""
+        op_mean = np.array([np.real(state.conjugate().dot(op.dot(state))) for op in aux_operators])
+        op_std = np.sqrt(
+            np.array(
+                [np.real(state.conjugate().dot(op2.dot(state))) for op2 in aux_operators_squared]
             )
+            - op_mean**2
+        )
+        return op_mean, op_std
+
+    def _simple_evolution(
+        self,
+        aux_operators: List[sp.csr_matrix],
+        hamiltonian: sp.csr_matrix,
+        evolution_problem: EvolutionProblem,
+    ):
+        state = expm_multiply(A=-hamiltonian * evolution_problem.time, B=state)
+        aux_ops_evaluated = [self._evaluate_operator(state, aux_op) for aux_op in aux_operators]
+        aux_ops_evaluated = self._create_aux_ops_evaluated(
+            aux_ops_evaluated, evolution_problem.aux_operators
+        )
+        return EvolutionResult(evolved_state=state, aux_ops_evaluated=aux_ops_evaluated)
+
+    def _create_aux_ops_evaluated(self, observable_evolution: List, aux_operators: ListOrDict):
+        """Creates the right output format for the evaluated auxiliary operators."""
+
+        if isinstance(aux_operators, dict):
+            observable_evolution = dict(zip(aux_operators.keys(), observable_evolution))
         else:
             observable_evolution = [observable_evolution[i] for i in range(len(aux_operators))]
 
-        return EvolutionResult(
-            evolved_state=StateFn(state),
-            aux_ops_evaluated=observable_evolution
-        )
+        return observable_evolution
 
     def _renormalize(self, state: np.ndarray) -> np.ndarray:
         """Normalize the state."""
         return state / np.linalg.norm(state)
 
-    def _evaluate_operator(
-            self, state: np.ndarray, aux_operator: sp.csr_matrix
-        ) -> np.ndarray:
-            """Evaluate the operator at the current time evolved state."""
-            return state.conj().T @ aux_operator @ state
+    def _evaluate_operator(self, state: np.ndarray, aux_operator: sp.csr_matrix) -> np.ndarray:
+        """Evaluate the operator at the current time evolved state."""
+        return np.real(state.conj().T @ aux_operator @ state)
 
     def _start(
         self, evolution_problem: EvolutionProblem
@@ -147,7 +209,6 @@ class ScipyImaginaryEvolver(ImaginaryEvolver):
 
         hamiltonian = evolution_problem.hamiltonian.to_spmatrix()
 
-
         # Get the auxiliary operators as sparse matrices.
         if isinstance(evolution_problem.aux_operators, list):
             aux_operators = [aux_op.to_spmatrix() for aux_op in evolution_problem.aux_operators]
@@ -158,6 +219,9 @@ class ScipyImaginaryEvolver(ImaginaryEvolver):
         else:
             aux_operators = []
 
+        aux_operators_squared = [aux_op.dot(aux_op) for aux_op in aux_operators]
+
+
         timestep = evolution_problem.time / self.timesteps
 
-        return initial_state, hamiltonian, aux_operators, timestep
+        return initial_state, hamiltonian, aux_operators, aux_operators_squared, timestep
