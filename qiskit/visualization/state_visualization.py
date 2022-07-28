@@ -522,7 +522,12 @@ def plot_state_paulivec(
 ):
     """Plot the paulivec representation of a quantum state.
 
-    Plot a bargraph of the mixed state rho over the pauli matrices
+    Plot a bargraph of the density matrix of a quantum state using as a basis all
+    possible tensor products of Pauli operators and identities, that is,
+    :math:`\\{\\bigotimes_{i=0}^{N-1}P_i\\}_{P_i\\in \\{I,X,Y,Z\\}}`, where
+    :math:`N` is the number of qubits.
+
+
 
     Args:
         state (Statevector or DensityMatrix or ndarray): an N-qubit quantum state.
