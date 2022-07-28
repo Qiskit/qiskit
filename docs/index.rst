@@ -114,9 +114,17 @@ Interested in quantum hardware design?
   qc_intro
   intro_tutorial1
   release_notes
-  contributing_to_qiskit
   configuration
   faq
+
+.. toctree::
+  :caption: Contribution Guidelines
+  :maxdepth: 1
+  :hidden:
+
+  contributing_to_qiskit
+  deprecation_policy
+  maintainers_guide
 
 .. toctree::
   :maxdepth: 1
