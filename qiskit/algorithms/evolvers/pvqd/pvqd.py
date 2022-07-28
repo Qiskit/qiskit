@@ -65,14 +65,14 @@ class PVQD(RealEvolver):
             ansatz = EfficientSU2(2, reps=1)
             initial_parameters = np.zeros(ansatz.num_parameters)
 
-            time = 0.02
+            time = 1
             optimizer = L_BFGS_B()
 
             # setup the algorithm
             pvqd = PVQD(
                 ansatz,
                 initial_parameters,
-                timestep=0.01,
+                num_timesteps=100,
                 optimizer=optimizer,
                 quantum_instance=backend,
                 expectation=expectation
