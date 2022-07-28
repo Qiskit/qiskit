@@ -43,6 +43,11 @@ def plot_state_hinton(
 ):
     """Plot a hinton diagram for the density matrix of a quantum state.
 
+    The hinton diagram represents the values of a matrix using
+    squares, whose size indicate the magnitude of their corresponding value
+    and their color, its sign. A white square means the value is positive and
+    a black one means negative.
+
     Args:
         state (Statevector or DensityMatrix or ndarray): An N-qubit quantum state.
         title (str): a string that represents the plot title
