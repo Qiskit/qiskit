@@ -21,7 +21,7 @@ from ddt import ddt
 from qiskit import QuantumCircuit
 from qiskit.circuit import ParameterVector
 from qiskit.primitives import Sampler
-from qiskit.primitives.fidelity import Fidelity
+from qiskit.algorithms.fidelities import Fidelity
 from qiskit.test import QiskitTestCase
 
 

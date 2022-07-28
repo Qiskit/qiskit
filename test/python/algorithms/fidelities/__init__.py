@@ -9,19 +9,5 @@
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
-"""
-=====================================
-Fidelity Primitives (:mod:`qiskit.primitives.fidelity`)
-=====================================
-.. currentmodule:: qiskit.primitives.fidelity
-Fidelity
-=========
-.. autosummary::
-   :toctree: ../stubs/
-   BaseFidelity
-   Fidelity
-"""
-from .base_fidelity import BaseFidelity
-from .fidelity import Fidelity
 
-__all__ = ["BaseFidelity", "Fidelity"]
+"""Tests for the primitive-based fidelity interfaces."""
