@@ -159,7 +159,8 @@ def initialize(self, params, qubits=None):
             q_1: ┤1                 ├
                  └──────────────────┘
 
-        Initialize two qubits from an array of complex amplitudes
+        Initialize two qubits from an array of complex amplitudes.
+
         .. jupyter-execute::
 
             import numpy as np

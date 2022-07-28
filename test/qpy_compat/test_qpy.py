@@ -15,6 +15,7 @@
 
 import argparse
 import random
+import re
 import sys
 
 import numpy as np
@@ -29,6 +30,46 @@ from qiskit.opflow import X, Y, Z, I
 from qiskit.quantum_info.random import random_unitary
 from qiskit.circuit.library import U1Gate, U2Gate, U3Gate, QFT, DCXGate
 from qiskit.circuit.gate import Gate
+
+
+# This version pattern is taken from the pypa packaging project:
+# https://github.com/pypa/packaging/blob/21.3/packaging/version.py#L223-L254
+# which is dual licensed Apache 2.0 and BSD see the source for the original
+# authors and other details
+VERSION_PATTERN = (
+    "^"
+    + r"""
+    v?
+    (?:
+        (?:(?P<epoch>[0-9]+)!)?                           # epoch
+        (?P<release>[0-9]+(?:\.[0-9]+)*)                  # release segment
+        (?P<pre>                                          # pre-release
+            [-_\.]?
+            (?P<pre_l>(a|b|c|rc|alpha|beta|pre|preview))
+            [-_\.]?
+            (?P<pre_n>[0-9]+)?
+        )?
+        (?P<post>                                         # post release
+            (?:-(?P<post_n1>[0-9]+))
+            |
+            (?:
+                [-_\.]?
+                (?P<post_l>post|rev|r)
+                [-_\.]?
+                (?P<post_n2>[0-9]+)?
+            )
+        )?
+        (?P<dev>                                          # dev release
+            [-_\.]?
+            (?P<dev_l>dev)
+            [-_\.]?
+            (?P<dev_n>[0-9]+)?
+        )?
+    )
+    (?:\+(?P<local>[a-z0-9]+(?:[-_\.][a-z0-9]+)*))?       # local version
+"""
+    + "$"
+)
 
 
 def generate_full_circuit():
@@ -343,6 +384,85 @@ def generate_control_flow_circuits():
     return circuits
 
 
+def generate_schedule_blocks():
+    """Standard QPY testcase for schedule blocks."""
+    from qiskit.pulse import builder, channels, library
+    from qiskit.utils import optionals
+
+    # Parameterized schedule test is avoided.
+    # Generated reference and loaded QPY object may induce parameter uuid mismatch.
+    # As workaround, we need test with bounded parameters, however, schedule.parameters
+    # are returned as Set and thus its order is random.
+    # Since schedule parameters are validated, we cannot assign random numbers.
+    # We need to upgrade testing framework.
+
+    schedule_blocks = []
+
+    # Instructions without parameters
+    with builder.build() as block:
+        with builder.align_sequential():
+            builder.set_frequency(5e9, channels.DriveChannel(0))
+            builder.shift_frequency(10e6, channels.DriveChannel(1))
+            builder.set_phase(1.57, channels.DriveChannel(0))
+            builder.shift_phase(0.1, channels.DriveChannel(1))
+            builder.barrier(channels.DriveChannel(0), channels.DriveChannel(1))
+            builder.play(library.Gaussian(160, 0.1, 40), channels.DriveChannel(0))
+            builder.play(library.GaussianSquare(800, 0.1, 64, 544), channels.ControlChannel(0))
+            builder.play(library.Drag(160, 0.1, 40, 1.5), channels.DriveChannel(1))
+            builder.play(library.Constant(800, 0.1), channels.MeasureChannel(0))
+            builder.acquire(1000, channels.AcquireChannel(0), channels.MemorySlot(0))
+    schedule_blocks.append(block)
+    # Raw symbolic pulse
+    if optionals.HAS_SYMENGINE:
+        import symengine as sym
+    else:
+        import sympy as sym
+    duration, amp, t = sym.symbols("duration amp t")  # pylint: disable=invalid-name
+    expr = amp * sym.sin(2 * sym.pi * t / duration)
+    my_pulse = library.SymbolicPulse(
+        pulse_type="Sinusoidal",
+        duration=100,
+        parameters={"amp": 0.1},
+        envelope=expr,
+        valid_amp_conditions=sym.Abs(amp) <= 1.0,
+    )
+    with builder.build() as block:
+        builder.play(my_pulse, channels.DriveChannel(0))
+    schedule_blocks.append(block)
+    # Raw waveform
+    my_waveform = 0.1 * np.sin(2 * np.pi * np.linspace(0, 1, 100))
+    with builder.build() as block:
+        builder.play(my_waveform, channels.DriveChannel(0))
+    schedule_blocks.append(block)
+
+    return schedule_blocks
+
+
+def generate_calibrated_circuits():
+    """Test for QPY serialization with calibrations."""
+    from qiskit.pulse import builder, Constant, DriveChannel
+
+    circuits = []
+
+    # custom gate
+    mygate = Gate("mygate", 1, [])
+    qc = QuantumCircuit(1)
+    qc.append(mygate, [0])
+    with builder.build() as caldef:
+        builder.play(Constant(100, 0.1), DriveChannel(0))
+    qc.add_calibration(mygate, (0,), caldef)
+    circuits.append(qc)
+    # override instruction
+    qc = QuantumCircuit(1)
+    qc.x(0)
+    with builder.build() as caldef:
+        builder.play(Constant(100, 0.1), DriveChannel(0))
+    qc.add_calibration("x", (0,), caldef)
+    circuits.append(qc)
+
+    return circuits
+
+
 def generate_controlled_gates():
     """Test QPY serialization with custom ControlledGates."""
     circuits = []
@@ -372,7 +492,8 @@ def generate_circuits(version_str=None):
     """Generate reference circuits."""
     version_parts = None
     if version_str:
-        version_parts = tuple(int(x) for x in version_str.split("."))
+        version_match = re.search(VERSION_PATTERN, version_str, re.VERBOSE | re.IGNORECASE)
+        version_parts = tuple(int(x) for x in version_match.group("release").split("."))
 
     output_circuits = {
         "full.qpy": [generate_full_circuit()],
@@ -402,6 +523,8 @@ def generate_circuits(version_str=None):
         output_circuits["control_flow.qpy"] = generate_control_flow_circuits()
     if version_parts >= (0, 21, 0):
         output_circuits["controlled_gates.qpy"] = generate_controlled_gates()
+        output_circuits["schedule_blocks.qpy"] = generate_schedule_blocks()
+        output_circuits["pulse_gates.qpy"] = generate_calibrated_circuits()
 
     return output_circuits
 
