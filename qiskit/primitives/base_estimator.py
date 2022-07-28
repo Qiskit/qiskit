@@ -120,6 +120,7 @@ import numpy as np
 from qiskit.circuit import Parameter, QuantumCircuit
 from qiskit.circuit.parametertable import ParameterView
 from qiskit.exceptions import QiskitError
+from qiskit.providers import JobV1 as Job
 from qiskit.quantum_info.operators import SparsePauliOp
 from qiskit.utils.deprecation import deprecate_arguments, deprecate_function
 
@@ -473,7 +474,7 @@ class BaseEstimator(ABC):
 
     @staticmethod
     @abstractmethod
-    def _submit(function) -> PrimitiveFuture[EstimatorResult]:
+    def _submit(function) -> Job:
         ...
 
     def _validation(

@@ -29,7 +29,7 @@ from qiskit.quantum_info.operators.base_operator import BaseOperator
 
 from .base_estimator import BaseEstimator
 from .estimator_result import EstimatorResult
-from .primitive_future import PrimitiveFuture
+from .primitive_job import PrimitiveJob
 from .utils import init_circuit, init_observable
 
 
@@ -130,10 +130,10 @@ class Estimator(BaseEstimator):
         return EstimatorResult(np.real_if_close(expectation_values), metadata)
 
     @staticmethod
-    def _submit(function) -> EstimatorFuture:
-        with ThreadPoolExecutor(max_workers=1) as executor:
-            future = executor.submit(function)
-        return EstimatorFuture(future)
+    def _submit(function) -> PrimitiveJob:
+        job = PrimitiveJob(function)
+        job.submit()
+        return job
 
     def close(self):
         self._is_closed = True
@@ -141,25 +141,3 @@ class Estimator(BaseEstimator):
     def _append_observable(self, observable):
         self._observable_ids.append(id(observable))
         self._observables += (init_observable(observable),)
-
-
-class EstimatorFuture(PrimitiveFuture[EstimatorResult]):
-    """TODO: Docstring"""
-
-    def __init__(self, future: Future):
-        self._future = future
-
-    def result(self) -> EstimatorResult:
-        return self._future.result()
-
-    def cancel(self):
-        return self._future.cancel()
-
-    def canceled(self):
-        return self._future.canceled()
-
-    def running(self):
-        return self._future.running()
-
-    def done(self):
-        return self._future.done()

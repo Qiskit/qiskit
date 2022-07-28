@@ -112,6 +112,7 @@ from qiskit.utils.deprecation import deprecate_arguments, deprecate_function
 from .primitive_future import PrimitiveFuture
 from .sampler_result import SamplerResult
 from .utils import _finditer
+from qiskit.providers import JobV1 as Job
 
 
 class BaseSampler(ABC):
@@ -335,7 +336,7 @@ class BaseSampler(ABC):
 
     @staticmethod
     @abstractmethod
-    def _submit(function) -> PrimitiveFuture[SamplerResult]:
+    def _submit(function) -> Job:
         ...
 
     def _append_circuit(self, circuit):

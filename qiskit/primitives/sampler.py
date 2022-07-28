@@ -27,7 +27,7 @@ from qiskit.quantum_info import Statevector
 from qiskit.result import QuasiDistribution
 
 from .base_sampler import BaseSampler
-from .primitive_future import PrimitiveFuture
+from .primitive_job import PrimitiveJob
 from .sampler_result import SamplerResult
 from .utils import final_measurement_mapping, init_circuit
 
@@ -151,29 +151,7 @@ class Sampler(BaseSampler):
         self._parameters += (circuit.parameters,)
 
     @staticmethod
-    def _submit(function) -> SamplerFuture:
-        with ThreadPoolExecutor(max_workers=1) as executor:
-            future = executor.submit(function)
-        return SamplerFuture(future)
-
-
-class SamplerFuture(PrimitiveFuture[SamplerResult]):
-    """TODO: Docstring"""
-
-    def __init__(self, future: Future):
-        self._future = future
-
-    def result(self) -> SamplerResult:
-        return self._future.result()
-
-    def cancel(self):
-        return self._future.cancel()
-
-    def canceled(self):
-        return self._future.canceled()
-
-    def running(self):
-        return self._future.running()
-
-    def done(self):
-        return self._future.done()
+    def _submit(function) -> PrimitiveJob:
+        job = PrimitiveJob(function)
+        job.submit()
+        return job
