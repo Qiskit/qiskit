@@ -125,7 +125,6 @@ from qiskit.quantum_info.operators import SparsePauliOp
 from qiskit.utils.deprecation import deprecate_arguments, deprecate_function
 
 from .estimator_result import EstimatorResult
-from .primitive_future import PrimitiveFuture
 from .utils import _finditer
 
 
@@ -403,7 +402,7 @@ class BaseEstimator(ABC):
         observables: Sequence[int | SparsePauliOp],
         parameter_values: Sequence[Sequence[float]] | None = None,
         **run_options,
-    ) -> PrimitiveFuture[EstimatorResult]:
+    ) -> Job:
         """Run the job of the estimation of expectation value(s).
 
         ``circuits``, ``observables``, and ``parameter_values`` should have the same
@@ -432,7 +431,7 @@ class BaseEstimator(ABC):
             run_options: runtime options used for circuit execution.
 
         Returns:
-            Future: The future object of EstimatorResult.
+            The job object of EstimatorResult.
         """
         circuit_indices: list[int] = []
         for circuit in circuits:

@@ -110,7 +110,6 @@ from qiskit.exceptions import QiskitError
 from qiskit.providers import JobV1 as Job
 from qiskit.utils.deprecation import deprecate_arguments, deprecate_function
 
-from .primitive_future import PrimitiveFuture
 from .sampler_result import SamplerResult
 from .utils import _finditer
 
@@ -299,7 +298,7 @@ class BaseSampler(ABC):
         circuits: Sequence[int | QuantumCircuit],
         parameter_values: Sequence[Sequence[float]] | None = None,
         **run_options,
-    ) -> PrimitiveFuture[SamplerResult]:
+    ) -> Job:
         """Run the job of the sampling of bitstrings.
 
         Args:
@@ -308,7 +307,7 @@ class BaseSampler(ABC):
             run_options: Backend runtime options used for circuit execution.
 
         Returns:
-            The future object of the result of the sampler. The i-th result corresponds to
+            The job object of the result of the sampler. The i-th result corresponds to
             ``self.circuits[circuits[i]]`` evaluated with parameters bound as
             ``parameter_values[i]``.
         """

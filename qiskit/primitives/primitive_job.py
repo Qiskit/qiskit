@@ -10,7 +10,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 """
-Job implementation for reference implementation of Primitives.
+Job implementation for the reference implementations of Primitives.
 """
 
 import uuid
@@ -20,7 +20,15 @@ from qiskit.providers import JobError, JobStatus, JobV1
 
 
 class PrimitiveJob(JobV1):
+    """
+    PrimitiveJob class for the reference implemetations of Primitives.
+    """
+
     def __init__(self, function):
+        """
+        Args:
+            function: a callable function to execute the job.
+        """
         job_id = str(uuid.uuid4())
         super().__init__(None, job_id)
         self._future = None
@@ -49,7 +57,7 @@ class PrimitiveJob(JobV1):
             return JobStatus.RUNNING
         elif self._future.cancelled():
             return JobStatus.CANCELLED
-        elif self._future.done() and self_future._exception() is None:
+        elif self._future.done() and self._future._exception() is None:
             return JobStatus.DONE
         return JobStatus.ERROR
 
