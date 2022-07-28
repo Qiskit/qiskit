@@ -21,13 +21,9 @@ from qiskit import QiskitError
 from qiskit.algorithms.optimizers import Optimizer, Minimizer
 from qiskit.circuit import QuantumCircuit, ParameterVector
 from qiskit.circuit.library import PauliEvolutionGate
+from qiskit.extensions import HamiltonianGate
 from qiskit.providers import Backend
-from qiskit.opflow import (
-    OperatorBase,
-    CircuitSampler,
-    ExpectationBase,
-    StateFn,
-)
+from qiskit.opflow import OperatorBase, CircuitSampler, ExpectationBase, StateFn, MatrixOp
 from qiskit.synthesis import EvolutionSynthesis, LieTrotter
 from qiskit.utils import QuantumInstance
 
@@ -50,6 +46,9 @@ class PVQD(RealEvolver):
     state and the ansatz, using a classical optimization routine. See Ref. [1] for details.
 
     Example:
+
+        This snippet computes the real time evolution of a quantum Ising model on two
+        neighboring sites and keeps track of the magnetization.
 
         .. code-block:: python
 
@@ -98,7 +97,7 @@ class PVQD(RealEvolver):
         self,
         ansatz: Optional[QuantumCircuit] = None,
         initial_parameters: Optional[np.ndarray] = None,
-        timestep: Optional[float] = None,
+        timestep: float = 0.01,
         optimizer: Optional[Union[Optimizer, Minimizer]] = None,
         expectation: Optional[ExpectationBase] = None,
         initial_guess: Optional[np.ndarray] = None,
@@ -218,13 +217,17 @@ class PVQD(RealEvolver):
             A callable to evaluate the infidelity and, if gradients are supported and required,
                 a second callable to evaluate the gradient of the infidelity.
         """
-        self._validate_setup()
+        self._validate_setup(exclude={"optimizer"})
 
         # use Trotterization to evolve the current state
         trotterized = ansatz.bind_parameters(current_parameters)
-        trotterized.append(
-            PauliEvolutionGate(hamiltonian, time=dt, synthesis=self.evolution), ansatz.qubits
-        )
+
+        if isinstance(hamiltonian, MatrixOp):
+            evolution_gate = HamiltonianGate(hamiltonian.primitive, time=dt)
+        else:
+            evolution_gate = PauliEvolutionGate(hamiltonian, time=dt, synthesis=self.evolution)
+
+        trotterized.append(evolution_gate, ansatz.qubits)
 
         # define the overlap of the Trotterized state and the ansatz
         x = ParameterVector("w", self.ansatz.num_parameters)
@@ -290,8 +293,7 @@ class PVQD(RealEvolver):
         """
         Args:
             evolution_problem: The evolution problem containing the hamiltonian, total evolution
-                time and observables to evaluate. Note that :class:`~.PVQD` currently does not support
-                hamiltonians of type :class:`~.MatrixOp`.
+                time and observables to evaluate.
 
         Returns:
             A result object containing the evolution information and evaluated observables.
@@ -308,7 +310,7 @@ class PVQD(RealEvolver):
 
         if not 0 < self.timestep <= time:
             raise ValueError(
-                f"The time step ({self.timestep}) must be larger than 0 and smaller equal "
+                f"The time step ({self.timestep}) must be greater than 0 and less than or equal to "
                 f"the evolution time ({time})."
             )
 
@@ -363,17 +365,20 @@ class PVQD(RealEvolver):
 
         return result
 
-    def _validate_setup(self):
+    def _validate_setup(self, exclude=None):
         """Validate the current setup and raise an error if something misses to run."""
+
+        if exclude is None:  # arguments not to check for
+            exclude = {}
 
         required_args = {
             "ansatz",
             "initial_parameters",
-            "timestep",
             "optimizer",
             "quantum_instance",
             "expectation",
-        }
+        }.difference(exclude)
+
         for arg in required_args:
             if getattr(self, arg) is None:
                 raise ValueError(f"The {arg} attribute cannot be None.")

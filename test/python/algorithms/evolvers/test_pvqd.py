@@ -64,6 +64,7 @@ class TestPVQD(QiskitTestCase):
 
     @data(
         ("ising", MatrixExpectation, True, "sv"),
+        ("ising_matrix", MatrixExpectation, True, "sv"),
         ("ising", PauliExpectation, True, "qasm"),
         ("pauli", PauliExpectation, False, "qasm"),
     )
@@ -74,6 +75,8 @@ class TestPVQD(QiskitTestCase):
 
         if hamiltonian_type == "ising":
             hamiltonian = self.hamiltonian
+        elif hamiltonian_type == "ising_matrix":
+            hamiltonian = self.hamiltonian.to_matrix_op()
         else:  # hamiltonian_type == "pauli":
             hamiltonian = X ^ X
 
@@ -107,25 +110,74 @@ class TestPVQD(QiskitTestCase):
             and np.all([len(params) == num_parameters for params in result.parameters])
         )
 
-    def test_matrix_op_raises(self):
-        """Since the PauliEvolutionGate does not support MatrixOp as input, neither does the PVQD."""
+    # def test_matrix_op_raises(self):
+    #     """Since the PauliEvolutionGate does not support MatrixOp as input, neither does the PVQD."""
 
-        hamiltonian = self.hamiltonian.to_matrix_op()
-        optimizer = L_BFGS_B(maxiter=1)
+    #     hamiltonian = self.hamiltonian.to_matrix_op()
+    #     optimizer = L_BFGS_B(maxiter=1)
 
-        # run pVQD keeping track of the energy and the magnetization
+    #     # run pVQD keeping track of the energy and the magnetization
+    #     pvqd = PVQD(
+    #         self.ansatz,
+    #         self.initial_parameters,
+    #         timestep=0.01,
+    #         optimizer=optimizer,
+    #         quantum_instance=self.sv_backend,
+    #         expectation=MatrixExpectation(),
+    #     )
+    #     problem = EvolutionProblem(hamiltonian, time=0.02)
+
+    #     with self.assertRaises(ValueError):
+    #         _ = pvqd.evolve(problem)
+
+    def test_step(self):
+        """Test calling the step method directly."""
+
         pvqd = PVQD(
             self.ansatz,
             self.initial_parameters,
-            timestep=0.01,
-            optimizer=optimizer,
+            optimizer=L_BFGS_B(maxiter=100),
             quantum_instance=self.sv_backend,
             expectation=MatrixExpectation(),
         )
-        problem = EvolutionProblem(hamiltonian, time=0.02)
 
-        with self.assertRaises(ValueError):
-            _ = pvqd.evolve(problem)
+        # perform optimization for a timestep of 0, then the optimal parameters are the current
+        # ones and the fidelity is 1
+        theta_next, fidelity = pvqd.step(
+            self.hamiltonian.to_matrix_op(),
+            self.ansatz,
+            self.initial_parameters,
+            dt=0.0,
+            initial_guess=np.zeros_like(self.initial_parameters),
+        )
+
+        self.assertTrue(np.allclose(theta_next, self.initial_parameters))
+        self.assertAlmostEqual(fidelity, 1)
+
+    def test_get_loss(self):
+        """Test getting the loss function directly."""
+
+        pvqd = PVQD(
+            self.ansatz,
+            self.initial_parameters,
+            quantum_instance=self.sv_backend,
+            expectation=MatrixExpectation(),
+            use_parameter_shift=False,
+        )
+
+        theta = np.ones(self.ansatz.num_parameters)
+        loss, gradient = pvqd.get_loss(
+            self.hamiltonian, self.ansatz, dt=0.0, current_parameters=theta
+        )
+
+        displacement = np.arange(self.ansatz.num_parameters)
+
+        with self.subTest(msg="check gradient is None"):
+            self.assertIsNone(gradient)
+
+        with self.subTest(msg="check loss works"):
+            self.assertGreater(loss(displacement), 0)
+            self.assertAlmostEqual(loss(np.zeros_like(theta)), 0)
 
     def test_invalid_timestep(self):
         """Test raises if the timestep is larger than the evolution time."""
@@ -182,7 +234,6 @@ class TestPVQD(QiskitTestCase):
         args_to_test = [
             ("ansatz", self.ansatz),
             ("initial_parameters", self.initial_parameters),
-            ("timestep", 0.01),
             ("optimizer", L_BFGS_B(maxiter=1)),
             ("quantum_instance", self.qasm_backend),
             ("expectation", self.expectation),
