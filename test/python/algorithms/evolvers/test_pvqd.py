@@ -63,13 +63,13 @@ class TestPVQD(QiskitTestCase):
         self.initial_parameters = np.zeros(self.ansatz.num_parameters)
 
     @data(
-        ("ising", MatrixExpectation, True, "sv"),
-        ("ising_matrix", MatrixExpectation, True, "sv"),
-        ("ising", PauliExpectation, True, "qasm"),
-        ("pauli", PauliExpectation, False, "qasm"),
+        ("ising", MatrixExpectation, True, "sv", 2),
+        ("ising_matrix", MatrixExpectation, True, "sv", None),
+        ("ising", PauliExpectation, True, "qasm", 2),
+        ("pauli", PauliExpectation, False, "qasm", None),
     )
     @unpack
-    def test_pvqd(self, hamiltonian_type, expectation_cls, gradient, backend_type):
+    def test_pvqd(self, hamiltonian_type, expectation_cls, gradient, backend_type, num_timesteps):
         """Test a simple evolution."""
         time = 0.02
 
@@ -93,7 +93,7 @@ class TestPVQD(QiskitTestCase):
         pvqd = PVQD(
             self.ansatz,
             self.initial_parameters,
-            timestep=0.01,
+            num_timesteps=num_timesteps,
             optimizer=optimizer,
             quantum_instance=backend,
             expectation=expectation,
@@ -109,26 +109,6 @@ class TestPVQD(QiskitTestCase):
             len(result.parameters) == 3
             and np.all([len(params) == num_parameters for params in result.parameters])
         )
-
-    # def test_matrix_op_raises(self):
-    #     """Since the PauliEvolutionGate does not support MatrixOp as input, neither does the PVQD."""
-
-    #     hamiltonian = self.hamiltonian.to_matrix_op()
-    #     optimizer = L_BFGS_B(maxiter=1)
-
-    #     # run pVQD keeping track of the energy and the magnetization
-    #     pvqd = PVQD(
-    #         self.ansatz,
-    #         self.initial_parameters,
-    #         timestep=0.01,
-    #         optimizer=optimizer,
-    #         quantum_instance=self.sv_backend,
-    #         expectation=MatrixExpectation(),
-    #     )
-    #     problem = EvolutionProblem(hamiltonian, time=0.02)
-
-    #     with self.assertRaises(ValueError):
-    #         _ = pvqd.evolve(problem)
 
     def test_step(self):
         """Test calling the step method directly."""
@@ -179,12 +159,12 @@ class TestPVQD(QiskitTestCase):
             self.assertGreater(loss(displacement), 0)
             self.assertAlmostEqual(loss(np.zeros_like(theta)), 0)
 
-    def test_invalid_timestep(self):
-        """Test raises if the timestep is larger than the evolution time."""
+    def test_invalid_num_timestep(self):
+        """Test raises if the num_timestep is not positive."""
         pvqd = PVQD(
             self.ansatz,
             self.initial_parameters,
-            timestep=1,
+            num_timesteps=0,
             optimizer=L_BFGS_B(),
             quantum_instance=self.sv_backend,
             expectation=self.expectation,
@@ -203,7 +183,7 @@ class TestPVQD(QiskitTestCase):
         pvqd = PVQD(
             self.ansatz,
             self.initial_parameters,
-            timestep=0.01,
+            num_timesteps=10,
             optimizer=SPSA(maxiter=0, learning_rate=0.1, perturbation=0.01),
             initial_guess=initial_guess,
             quantum_instance=self.sv_backend,
@@ -219,27 +199,22 @@ class TestPVQD(QiskitTestCase):
         self.assertEqual(observables[0], 0.1)  # expected energy
         self.assertEqual(observables[1], 1)  # expected magnetization
 
-    def test_invalid_setup(self):
-        """Test appropriate error is raised if attributes are missing or incompatible."""
+    def test_missing_attributesquantum_instance(self):
+        """Test appropriate error is raised if the quantum instance is missing."""
         pvqd = PVQD(
             self.ansatz,
             self.initial_parameters,
-            timestep=0.01,
             optimizer=L_BFGS_B(maxiter=1),
-            quantum_instance=self.qasm_backend,
             expectation=self.expectation,
         )
         problem = EvolutionProblem(self.hamiltonian, time=0.01)
 
-        args_to_test = [
-            ("ansatz", self.ansatz),
-            ("initial_parameters", self.initial_parameters),
+        attrs_to_test = [
             ("optimizer", L_BFGS_B(maxiter=1)),
             ("quantum_instance", self.qasm_backend),
-            ("expectation", self.expectation),
         ]
 
-        for attr, value in args_to_test:
+        for attr, value in attrs_to_test:
             with self.subTest(msg=f"missing: {attr}"):
                 # set attribute to None to invalidate the setup
                 setattr(pvqd, attr, None)
@@ -250,9 +225,9 @@ class TestPVQD(QiskitTestCase):
                 # set the correct value again
                 setattr(pvqd, attr, value)
 
-        # check PVQD is running now that all arguments are set
-        result = pvqd.evolve(problem)
-        self.assertIsNotNone(result.evolved_state)
+        with self.subTest(msg="all set again"):
+            result = pvqd.evolve(problem)
+            self.assertIsNotNone(result.evolved_state)
 
     def test_zero_parameters(self):
         """Test passing an ansatz with zero parameters raises an error."""
@@ -261,7 +236,6 @@ class TestPVQD(QiskitTestCase):
         pvqd = PVQD(
             QuantumCircuit(2),
             np.array([]),
-            timestep=0.01,
             optimizer=SPSA(maxiter=10, learning_rate=0.1, perturbation=0.01),
             quantum_instance=self.sv_backend,
             expectation=self.expectation,
@@ -284,7 +258,6 @@ class TestPVQD(QiskitTestCase):
         pvqd = PVQD(
             self.ansatz,
             self.initial_parameters,
-            timestep=0.01,
             optimizer=SPSA(maxiter=0, learning_rate=0.1, perturbation=0.01),
             quantum_instance=self.sv_backend,
             expectation=self.expectation,
@@ -339,7 +312,6 @@ class TestPVQDUtils(QiskitTestCase):
         pvqd = PVQD(
             ansatz=None,
             initial_parameters=np.array([]),
-            timestep=0.01,
             optimizer=optimizer,
             quantum_instance=self.sv_backend,
             expectation=self.expectation,

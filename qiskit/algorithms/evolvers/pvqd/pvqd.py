@@ -95,14 +95,14 @@ class PVQD(RealEvolver):
 
     def __init__(
         self,
-        ansatz: Optional[QuantumCircuit] = None,
-        initial_parameters: Optional[np.ndarray] = None,
-        timestep: float = 0.01,
+        ansatz: QuantumCircuit,
+        initial_parameters: np.ndarray,
+        expectation: ExpectationBase,
         optimizer: Optional[Union[Optimizer, Minimizer]] = None,
-        expectation: Optional[ExpectationBase] = None,
-        initial_guess: Optional[np.ndarray] = None,
+        num_timesteps: Optional[int] = None,
         evolution: Optional[EvolutionSynthesis] = None,
         use_parameter_shift: bool = True,
+        initial_guess: Optional[np.ndarray] = None,
         quantum_instance: Optional[Union[Backend, QuantumInstance]] = None,
     ) -> None:
         """
@@ -111,20 +111,21 @@ class PVQD(RealEvolver):
                 time evolved quantum state.
             initial_parameters: The initial parameters for the ansatz. Together with the ansatz,
                 these define the initial state of the time evolution.
-            timestep: The time step.
+            expectation: The expectation converter to evaluate expectation values.
             optimizer: The classical optimizers used to minimize the overlap between
                 Trotterization and ansatz. Can be either a :class:`.Optimizer` or a callable
                 using the :class:`.Minimizer` protocol.
-            expectation: The expectation converter to evaluate expectation values.
-            initial_guess: The initial guess for the first VQE optimization. Afterwards the
-                previous iteration result is used as initial guess. If None, this is set to
-                a random vector with elements in the interval :math:`[-0.01, 0.01]`.
+            num_timestep: The number of time steps. If ``None`` it will be set such that the timestep
+                is close to 0.01.
             evolution: The evolution synthesis to use for the construction of the Trotter step.
                 Defaults to first-order Lie-Trotter decomposition, see also
                 :mod:`~qiskit.synthesis.evolution` for different options.
             use_parameter_shift: If True, use the parameter shift rule to compute gradients.
                 If False, the optimizer will not be passed a gradient callable. In that case,
                 Qiskit optimizers will use a finite difference rule to approximate the gradients.
+            initial_guess: The initial guess for the first VQE optimization. Afterwards the
+                previous iteration result is used as initial guess. If None, this is set to
+                a random vector with elements in the interval :math:`[-0.01, 0.01]`.
             quantum_instance: The backend of quantum instance used to evaluate the circuits.
         """
         if evolution is None:
@@ -132,7 +133,7 @@ class PVQD(RealEvolver):
 
         self.ansatz = ansatz
         self.initial_parameters = initial_parameters
-        self.timestep = timestep
+        self.num_timesteps = num_timesteps
         self.optimizer = optimizer
         self.initial_guess = initial_guess
         self.expectation = expectation
@@ -181,6 +182,8 @@ class PVQD(RealEvolver):
         Returns:
             A tuple consisting of the next parameters and the fidelity of the optimization.
         """
+        self._validate_setup()
+
         loss, gradient = self.get_loss(hamiltonian, ansatz, dt, theta)
 
         if initial_guess is None:
@@ -217,7 +220,7 @@ class PVQD(RealEvolver):
             A callable to evaluate the infidelity and, if gradients are supported and required,
                 a second callable to evaluate the gradient of the infidelity.
         """
-        self._validate_setup(exclude={"optimizer"})
+        self._validate_setup(skip={"optimizer"})
 
         # use Trotterization to evolve the current state
         trotterized = ansatz.bind_parameters(current_parameters)
@@ -230,7 +233,7 @@ class PVQD(RealEvolver):
         trotterized.append(evolution_gate, ansatz.qubits)
 
         # define the overlap of the Trotterized state and the ansatz
-        x = ParameterVector("w", self.ansatz.num_parameters)
+        x = ParameterVector("w", ansatz.num_parameters)
         shifted = ansatz.assign_parameters(current_parameters + x)
         overlap = StateFn(trotterized).adjoint() @ StateFn(shifted)
 
@@ -308,11 +311,11 @@ class PVQD(RealEvolver):
         observables = evolution_problem.aux_operators
         hamiltonian = evolution_problem.hamiltonian
 
-        if not 0 < self.timestep <= time:
-            raise ValueError(
-                f"The time step ({self.timestep}) must be greater than 0 and less than or equal to "
-                f"the evolution time ({time})."
-            )
+        # determine the number of timesteps and set the timestep
+        num_timesteps = (
+            int(np.ceil(time / 0.01)) if self.num_timesteps is None else self.num_timesteps
+        )
+        timestep = time / num_timesteps
 
         if evolution_problem.initial_state is not None:
             raise NotImplementedError(
@@ -327,16 +330,15 @@ class PVQD(RealEvolver):
             observable_values = [evaluate_observables(self.initial_parameters)]
 
         fidelities = [1]
-        times = [0]
         parameters = [self.initial_parameters]
+        times = np.linspace(0, time, num_timesteps + 1).tolist()  # +1 to include initial time 0
 
-        current_time = 0
         initial_guess = self.initial_guess
 
-        while current_time < time:
+        for _ in range(num_timesteps):
             # perform VQE to find the next parameters
             next_parameters, fidelity = self.step(
-                hamiltonian, self.ansatz, parameters[-1], self.timestep, initial_guess
+                hamiltonian, self.ansatz, parameters[-1], timestep, initial_guess
             )
 
             # set initial guess to last parameter update
@@ -346,9 +348,6 @@ class PVQD(RealEvolver):
             fidelities.append(fidelity)
             if observables is not None:
                 observable_values.append(evaluate_observables(next_parameters))
-
-            current_time += self.timestep
-            times.append(current_time)
 
         evolved_state = self.ansatz.bind_parameters(parameters[-1])
 
@@ -365,23 +364,22 @@ class PVQD(RealEvolver):
 
         return result
 
-    def _validate_setup(self, exclude=None):
+    def _validate_setup(self, skip=None):
         """Validate the current setup and raise an error if something misses to run."""
 
-        if exclude is None:  # arguments not to check for
-            exclude = {}
+        if skip is None:
+            skip = {}
 
-        required_args = {
-            "ansatz",
-            "initial_parameters",
-            "optimizer",
-            "quantum_instance",
-            "expectation",
-        }.difference(exclude)
+        required_attributes = {"quantum_instance", "optimizer"}.difference(skip)
 
-        for arg in required_args:
-            if getattr(self, arg) is None:
-                raise ValueError(f"The {arg} attribute cannot be None.")
+        for attr in required_attributes:
+            if getattr(self, attr, None) is None:
+                raise ValueError(f"The {attr} cannot be None.")
+
+        if self.num_timesteps is not None and self.num_timesteps <= 0:
+            raise ValueError(
+                f"The number of timesteps must be positive but is {self.num_timesteps}."
+            )
 
         if self.ansatz.num_parameters == 0:
             raise QiskitError(
