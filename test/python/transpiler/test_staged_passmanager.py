@@ -98,13 +98,6 @@ class TestStagedPassManager(QiskitTestCase):
         for stage in invalid_stages:
             self.assertIn(stage, message)
 
-    def test_repeated_stages(self):
-        stages = ["alpha", "omega", "alpha"]
-        clean_stages = ("alpha", "omega")
-        with self.assertWarns(UserWarning):
-            spm = StagedPassManager(stages)
-        self.assertEqual(spm.stages, clean_stages)
-
     def test_edit_stages(self):
         spm = StagedPassManager()
         with self.assertRaises(AttributeError):
@@ -127,8 +120,6 @@ class TestStagedPassManager(QiskitTestCase):
             spm.init = spm
         mock_target = "qiskit.transpiler.passmanager.StagedPassManager._update_passmanager"
         with patch(mock_target, spec=True) as mock:
-            spm.max_iteration = spm.max_iteration
-            mock.assert_not_called()
             spm.init = None
             mock.assert_called_once()
 
