@@ -1,5 +1,5 @@
 ---
-fixes:
+other:
   - |
-    Handles repeated stage names provided on :class:`qiskit.transpiler.StagedPassManager`
-    initialization. UserWarning is thrown, and only first occurances are preserved.
+    Updates documentaiton on how repeated stage names are handled in
+    :class:`qiskit.transpiler.StagedPassManager`, and adds test to check for correctness.
