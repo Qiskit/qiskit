@@ -15,6 +15,7 @@
 import io
 import re
 from typing import Union, List, Tuple, Callable, Dict, Any, Optional, Iterator, Iterable
+from warnings import warn
 
 import dill
 
@@ -397,17 +398,18 @@ class StagedPassManager(PassManager):
             "optimization",
             "scheduling",
         ]
-        self._validate_stages(stages)
-        # Set through parent class since `__setattr__` requieres `expanded_stages` to be defined
-        super().__setattr__("_stages", tuple(stages))
-        super().__setattr__("_expanded_stages", tuple(self._generate_expanded_stages()))
+        stages = self._parse_stages(stages)
+        # Set through parent class since `self.__setattr__` requieres predefined `expanded_stages`
+        super().__setattr__("_stages", stages)
+        expanded_stages = tuple(self._generate_expanded_stages())
+        super().__setattr__("_expanded_stages", expanded_stages)
         super().__init__()
         self._validate_init_kwargs(kwargs)
         for stage in self.expanded_stages:
             pm = kwargs.get(stage, None)
             setattr(self, stage, pm)
 
-    def _validate_stages(self, stages: Iterable[str]) -> None:
+    def _parse_stages(self, stages: Iterable[str]) -> Tuple[str]:
         invalid_stages = [
             stage for stage in stages if self.invalid_stage_regex.search(stage) is not None
         ]
@@ -417,6 +419,13 @@ class StagedPassManager(PassManager):
                 for invalid_stage in invalid_stages[1:]:
                     msg.write(f", {invalid_stage}")
                 raise ValueError(msg.getvalue())
+        if len(tuple(stages)) != len(set(stages)):
+            repeated_stages = {s for s in stages if stages.count(s) > 1}
+            warn(
+                f"Stage names {repeated_stages} provided several times, only first occurances preserved.",
+                UserWarning,
+            )
+        return tuple(dict.fromkeys(stages))  # Deletes repetitions preserving order
 
     def _validate_init_kwargs(self, kwargs: Dict[str, Any]) -> None:
         expanded_stages = set(self.expanded_stages)
