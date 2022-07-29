@@ -422,7 +422,8 @@ class StagedPassManager(PassManager):
         if len(tuple(stages)) != len(set(stages)):
             repeated_stages = {s for s in stages if stages.count(s) > 1}
             warn(
-                f"Stage names {repeated_stages} provided several times, only first occurances preserved.",
+                f"Stage names {repeated_stages} provided several times, "
+                "only first occurances preserved.",
                 UserWarning,
             )
         return tuple(dict.fromkeys(stages))  # Deletes repetitions preserving order
