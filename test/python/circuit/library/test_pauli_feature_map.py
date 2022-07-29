@@ -152,6 +152,14 @@ class TestDataPreparation(QiskitTestCase):
 
         self.assertTrue(Operator(encoding).equiv(ref))
 
+    def test_zz_pairwise_entanglement(self):
+        """Test the ZZ feature map works with pairwise entanglement."""
+        num_qubits = 5
+        encoding = ZZFeatureMap(num_qubits, entanglement="pairwise", reps=1)
+        ops = encoding.decompose().count_ops()
+        expected_ops = {"h": num_qubits, "p": 2 * num_qubits - 1, "cx": 2 * (num_qubits - 1)}
+        self.assertEqual(ops, expected_ops)
+
     def test_pauli_alpha(self):
         """Test  Pauli rotation factor (getter, setter)."""
         encoding = PauliFeatureMap()
