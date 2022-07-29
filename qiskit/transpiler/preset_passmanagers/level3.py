@@ -138,6 +138,7 @@ def level_3_pass_manager(pass_manager_config: PassManagerConfig) -> StagedPassMa
         _choose_layout_1 = SabreLayout(coupling_map, max_iterations=4, seed=seed_transpiler)
 
     toqm_pass = False
+    # TODO: Remove when qiskit-toqm has it's own plugin and we can rely on just the plugin interface
     if routing_method == "toqm":
         HAS_TOQM.require_now("TOQM-based routing")
         from qiskit_toqm import ToqmSwap, ToqmStrategyO3, latencies_from_target
