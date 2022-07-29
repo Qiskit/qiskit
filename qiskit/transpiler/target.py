@@ -22,6 +22,7 @@ from collections import defaultdict
 import datetime
 import io
 import logging
+import warnings
 
 import retworkx as rx
 
@@ -175,7 +176,7 @@ class Target(Mapping):
         "granularity",
         "min_length",
         "pulse_alignment",
-        "aquire_alignment",
+        "acquire_alignment",
         "_non_global_basis",
         "_non_global_strict_basis",
         "qubit_properties",
@@ -189,7 +190,8 @@ class Target(Mapping):
         granularity=1,
         min_length=1,
         pulse_alignment=1,
-        aquire_alignment=1,
+        acquire_alignment=1,
+        aquire_alignment=None,
         qubit_properties=None,
     ):
         """
@@ -219,6 +221,7 @@ class Target(Mapping):
                 resolution of measure instruction starting time. Measure
                 instruction should start at time which is a multiple of the
                 alignment value.
+            aquire_alignment (int): Deprecated alias for `acquire_alignment`.
             qubit_properties (list): A list of :class:`~.QubitProperties`
                 objects defining the characteristics of each qubit on the
                 target device. If specified the length of this list must match
@@ -246,7 +249,9 @@ class Target(Mapping):
         self.granularity = granularity
         self.min_length = min_length
         self.pulse_alignment = pulse_alignment
-        self.aquire_alignment = aquire_alignment
+        self.acquire_alignment = acquire_alignment
+        if aquire_alignment is not None:
+            self.acquire_alignment = aquire_alignment
         self._non_global_basis = None
         self._non_global_strict_basis = None
         if qubit_properties is not None:
@@ -259,6 +264,28 @@ class Target(Mapping):
                         "length of the input qubit_properties list"
                     )
         self.qubit_properties = qubit_properties
+
+    @property
+    def aquire_alignment(self) -> int:
+        """Deprecated alias for `acquire_alignment`"""
+        warnings.warn(
+            '"aquire_alignment" has been renamed "acquire_alignment". Use of '
+            '"aquire_alignment" will be deprecated in a future release and '
+            "subequently removed after that.",
+            PendingDeprecationWarning,
+        )
+        return self.acquire_alignment
+
+    @aquire_alignment.setter
+    def aquire_alignment(self, value: int):
+        """Set `acquire_alignment`"""
+        warnings.warn(
+            '"aquire_alignment" has been renamed "acquire_alignment". Use of '
+            '"aquire_alignment" will be deprecated in a future release and '
+            "subequently removed after that.",
+            PendingDeprecationWarning,
+        )
+        self.acquire_alignment = value
 
     def add_instruction(self, instruction, properties=None, name=None):
         """Add a new instruction to the :class:`~qiskit.transpiler.Target`
@@ -466,7 +493,7 @@ class Target(Mapping):
             TimingConstraints: The timing constraints represented in the Target
         """
         return TimingConstraints(
-            self.granularity, self.min_length, self.pulse_alignment, self.aquire_alignment
+            self.granularity, self.min_length, self.pulse_alignment, self.acquire_alignment
         )
 
     def instruction_schedule_map(self):
