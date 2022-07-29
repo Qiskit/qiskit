@@ -104,8 +104,12 @@ class StochasticSwapPassManager(PassManagerStagePlugin):
         coupling_map = pass_manager_config.coupling_map
         backend_properties = pass_manager_config.backend_properties
         vf2_call_limit = _get_vf2_call_limit(pass_manager_config)
-        if opt_level == 0:
+        if opt_level == 3:
+            routing_pass = StochasticSwap(coupling_map, trials=200, seed=seed_transpiler)
+        else:
             routing_pass = StochasticSwap(coupling_map, trials=20, seed=seed_transpiler)
+
+        if opt_level == 0:
             return common.generate_routing_passmanager(
                 routing_pass,
                 target,
@@ -114,7 +118,6 @@ class StochasticSwapPassManager(PassManagerStagePlugin):
                 use_barrier_before_measurement=True,
             )
         elif opt_level == 1:
-            routing_pass = StochasticSwap(coupling_map, trials=20, seed=seed_transpiler)
             return common.generate_routing_passmanager(
                 routing_pass,
                 target,
@@ -125,18 +128,7 @@ class StochasticSwapPassManager(PassManagerStagePlugin):
                 check_trivial=True,
                 use_barrier_before_measurement=True,
             )
-        elif opt_level == 2:
-            routing_pass = StochasticSwap(coupling_map, trials=20, seed=seed_transpiler)
-            return common.generate_routing_passmanager(
-                routing_pass,
-                target,
-                coupling_map=coupling_map,
-                vf2_call_limit=vf2_call_limit,
-                backend_properties=backend_properties,
-                seed_transpiler=seed_transpiler,
-                use_barrier_before_measurement=True,
-            )
-        elif opt_level == 3:
+        elif opt_level in {2, 3}:
             return common.generate_routing_passmanager(
                 routing_pass,
                 target,
