@@ -26,6 +26,9 @@ class SGate(Gate):
 
     This is a Clifford gate and a square-root of Pauli-Z.
 
+    Can be applied to a :class:`~qiskit.circuit.QuantumCircuit`
+    with the :meth:`~qiskit.circuit.QuantumCircuit.s` method.
+
     **Matrix Representation:**
 
     .. math::
@@ -82,6 +85,9 @@ class SdgGate(Gate):
 
     This is a Clifford gate and a square-root of Pauli-Z.
 
+    Can be applied to a :class:`~qiskit.circuit.QuantumCircuit`
+    with the :meth:`~qiskit.circuit.QuantumCircuit.sdg` method.
+
     **Matrix Representation:**
 
     .. math::
@@ -99,7 +105,7 @@ class SdgGate(Gate):
         q_0: ┤ Sdg ├
              └─────┘
 
-    Equivalent to a :math:`\pi/2` radian rotation about the Z axis.
+    Equivalent to a :math:`-\pi/2` radian rotation about the Z axis.
     """
 
     def __init__(self, label: Optional[str] = None):
