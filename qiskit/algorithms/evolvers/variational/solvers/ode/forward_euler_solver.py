@@ -66,8 +66,8 @@ class ForwardEulerSolver(OdeSolver):
             self.y = list(np.add(self.y, self.step_length * self.fun(self.t, self.y)))
             self.t += self.step_length
             return True, None
-        except Exception:  # pylint: disable=broad-except
-            return False, "Unknown ODE solver error"
+        except Exception as ex:  # pylint: disable=broad-except
+            return False, f"Unknown ODE solver error: {str(ex)}."
 
     def _dense_output_impl(self):
         return ConstantDenseOutput(self.t_old, self.t, self.y_old)

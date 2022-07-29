@@ -34,8 +34,7 @@ class VarQRTE(VarQTE, RealEvolver):
         from qiskit import BasicAer
         from qiskit.circuit.library import EfficientSU2
         from qiskit.opflow import SummedOp, I, Z, Y, X
-        from qiskit.algorithms.evolvers.variational.variational_principles.
-        real_mc_lachlan_principle import (
+        from qiskit.algorithms.evolvers.variational import (
             RealMcLachlanPrinciple,
         )
         from qiskit.algorithms import EvolutionProblem
@@ -51,8 +50,8 @@ class VarQRTE(VarQTE, RealEvolver):
                 0.091 * (X ^ X),
             ]
         ).reduce()
-        d = 1
-        ansatz = EfficientSU2(observable.num_qubits, reps=d)
+
+        ansatz = EfficientSU2(observable.num_qubits, reps=1)
         parameters = ansatz.parameters
         init_param_values = np.zeros(len(ansatz.parameters))
         for i in range(len(ansatz.parameters)):

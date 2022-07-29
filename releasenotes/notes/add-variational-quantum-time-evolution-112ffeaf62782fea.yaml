@@ -6,9 +6,9 @@ features:
     imaginary (:class:`qiskit.algorithms.VarQITE`.) quantum time evolution according to a
     variational principle passed. Each algorithm accepts a variational principle and the following
     are provided:
-    :class:`qiskit.algorithms.evolvers.variational.variational_principles.ImaginaryMcLachlanPrinciple`,
-    :class:`qiskit.algorithms.evolvers.variational.variational_principles.RealMcLachlanPrinciple`,
-    :class:`qiskit.algorithms.evolvers.variational.variational_principles.RealTimeDependentPrinciple`.
+    :class:`qiskit.algorithms.evolvers.variational.ImaginaryMcLachlanPrinciple`,
+    :class:`qiskit.algorithms.evolvers.variational.RealMcLachlanPrinciple`,
+    :class:`qiskit.algorithms.evolvers.variational.RealTimeDependentPrinciple`.
     Both algorithms require solving ODE equations and linear equations which is handled by classes
     implemented in `qiskit.algorithms.evolvers.variational.solvers` module.
 
@@ -19,7 +19,7 @@ features:
       from qiskit import BasicAer
       from qiskit.circuit.library import EfficientSU2
       from qiskit.opflow import SummedOp, I, Z, Y, X
-      from qiskit.algorithms.evolvers.variational.variational_principles.imaginary_mc_lachlan_principle import (
+      from qiskit.algorithms.evolvers.variational import (
           ImaginaryMcLachlanPrinciple,
       )
       from qiskit.algorithms import EvolutionProblem
@@ -35,8 +35,8 @@ features:
               0.091 * (X ^ X),
           ]
       ).reduce()
-      d = 1
-      ansatz = EfficientSU2(observable.num_qubits, reps=d)
+
+      ansatz = EfficientSU2(observable.num_qubits, reps=1)
       parameters = ansatz.parameters
       init_param_values = np.zeros(len(ansatz.parameters))
       for i in range(len(ansatz.parameters)):
