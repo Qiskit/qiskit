@@ -146,8 +146,14 @@ def random_circuit(
 
             # with some low probability, condition on classical bit values
             if conditional and rng.choice(range(10)) == 0:
-                value = rng.integers(0, np.power(2, num_qubits))
-                op.condition = (cr, value)
+                parts = rng.integers(0, 1<<16, size=4)
+                shift = 0
+                condition_int = 0
+                for part in parts:
+                    ipart = (int)(part)
+                    condition_int += ipart << shift
+                    shift += 16
+                op.condition = (cr, condition_int)
 
             qc.append(op, register_operands)
 
