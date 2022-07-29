@@ -712,6 +712,7 @@ def plot_state_qsphere(
 
            state = Statevector(qc)
            plot_state_qsphere(state)
+           
         .. jupyter-execute::
 
            from qiskit import QuantumCircuit
