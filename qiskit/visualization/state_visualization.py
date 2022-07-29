@@ -704,7 +704,6 @@ def plot_state_qsphere(
            from qiskit import QuantumCircuit
            from qiskit.quantum_info import Statevector
            from qiskit.visualization import plot_state_qsphere
-           %matplotlib inline
 
            qc = QuantumCircuit(2)
            qc.h(0)
@@ -712,14 +711,11 @@ def plot_state_qsphere(
 
            state = Statevector(qc)
            plot_state_qsphere(state)
-           
+
         .. jupyter-execute::
 
-           from qiskit import QuantumCircuit
            from qiskit.quantum_info import DensityMatrix
-           from qiskit.visualization import plot_state_qsphere
            import numpy as np
-           %matplotlib inline
 
            qc = QuantumCircuit(2)
            qc.h([0, 1])
