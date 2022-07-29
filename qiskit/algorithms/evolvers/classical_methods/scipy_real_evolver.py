@@ -11,18 +11,14 @@
 # that they have been altered from the originals.
 
 """Interface for Classical Quantum Real Time Evolution."""
-
-from ast import operator
-from typing import Tuple, Optional, List
+from typing import Tuple, List, Union
 import scipy.sparse as sp
 from scipy.sparse.linalg import bicg, norm
 import numpy as np
 
-
 from qiskit.quantum_info.states import Statevector
 from qiskit import QuantumCircuit
 from qiskit.opflow import StateFn
-
 
 from ..evolution_problem import EvolutionProblem
 from ..evolution_result import EvolutionResult
@@ -34,21 +30,36 @@ class ScipyRealEvolver(RealEvolver):
     """Classical Evolver for real time evolution."""
 
     def __init__(
-        self, threshold: float = 1e-3, coeff_a: float = 0.1, max_iterations: Optional[int] = np.inf
+        self, threshold: float = 1e-3, bicg_err: float = 0.1, max_iterations: int = np.inf
     ):
-        """
+        r"""
         Args:
             threshold: The threshold for the error. If timesteps is `None` this will be used
-            to estimate the necessary number of timesteps to reach a threshold error.
-            coeff_a: Needs to be a value between 0 and 1. `coeff_a * threshold` will be the error that
-            comes from solving the linear system of equation with BiCG and `(1 - coeff_a) * threshold`
-            will be the error that comes from the taylor expansion.
+                to estimate the necessary number of timesteps to reach a threshold error.
+            bicg_err: Needs to be a value between 0 and 1. `bicg_err` will be the percentage of error
+                that comes from solving the linear system of equation with BiCG and
+                the rest will be the error that comes from the Taylor expansion.
             max_iterations: The maximum number of iterations to perform.
+
+        Raises:
+            ValueError: If `bicg_err` is not between 0 and 1.
+            ValueError: If `threshold` is not positive.
+            ValueError: If `max_iterations` is not a positive integer.
+
         """
+
+        if (max_iterations < 1 or not isinstance(max_iterations, int)) and max_iterations != np.inf:
+            raise ValueError("`max_itertations` must be a positive integer.")
+
+        if bicg_err < 0 or bicg_err > 1:
+            raise ValueError("`bicg_err` must be between 0 and 1.")
+
+        if threshold < 0:
+            raise ValueError("`threshold` must be positive.")
 
         self.max_iterations = max_iterations
         self.threshold = threshold
-        self.coeff_a = coeff_a
+        self.bicg_err = bicg_err
 
     def evolve(self, evolution_problem: EvolutionProblem) -> EvolutionResult:
         r"""Perform real time evolution :math:`\exp(-i t H)|\Psi\rangle`.
@@ -56,11 +67,11 @@ class ScipyRealEvolver(RealEvolver):
         Evolves an initial state :math:`|\Psi\rangle` for a time :math:`t`
         under a Hamiltonian  :math:`H`, as provided in the ``evolution_problem``.
 
-        In order to perform one timestep :math:`\delta t` of the evolution, we need to implement
+        In order to perform one timestep :math:`\delta t` of the evolution, we need to implement:
 
         .. math::
 
-            |\Psi \left( t + \delta t \right) \rangle = \exp(-i \delta t H) |\Psi \left(t \right) \rangle
+            |\Psi ( t + \delta t ) \rangle = \exp(-i \delta t H) |\Psi (t ) \rangle
 
         Which can be approximated as:
 
@@ -71,19 +82,23 @@ class ScipyRealEvolver(RealEvolver):
                                   + O\left( \delta t^3 \right)
 
         Note that this operator is unitary, and thus we won't need to renormalize the state at
-        each step. In order to find :math:`|\Psi \left( t + \delta t \right) \rangle` we then
+        each step. In order to find :math:`|\Psi ( t + \delta t ) \rangle` we then
         need to solve a linear system of equations:
 
         .. math::
 
-            \left( 1+ i \frac{\delta t}{2} H \right) |\Psi \left( t + \delta t \right) \rangle
-                    = \left( 1 - i \frac{\delta t}{2} H \right) |\Psi\left( t \right) \rangle
+            \left( 1+ i \frac{\delta t}{2} H \right) |\Psi ( t + \delta t ) \rangle
+                    = \left( 1 - i \frac{\delta t}{2} H \right) |\Psi( t ) \rangle
 
         Args:
             evolution_problem: The definition of the evolution problem.
 
         Returns:
             Evolution result which includes an evolved quantum state.
+
+        Raises:
+            ValueError: If the hamiltonian is time dependent.
+
         """
 
         if evolution_problem.t_param is not None:
@@ -93,92 +108,94 @@ class ScipyRealEvolver(RealEvolver):
             state,
             lhs_operator,
             rhs_operator,
-            aux_operators,
-            aux_operators_squared,
+            aux_ops,
+            aux_ops_2,
             timesteps,
             bicg_tol,
         ) = self._start(evolution_problem=evolution_problem)
 
         # Create empty arrays to store the time evolution of the aux operators.
-        operator_number = 0 if evolution_problem.aux_operators is None else len(evolution_problem.aux_operators)
-        aux_operators_time_evolution_mean = np.empty(
-            shape=(operator_number, timesteps + 1), dtype=float
+        operator_number = (
+            0 if evolution_problem.aux_operators is None else len(evolution_problem.aux_operators)
         )
+        ops_ev_mean = np.empty(shape=(operator_number, timesteps + 1), dtype=float)
 
-        aux_operators_time_evolution_std = np.empty(
-            shape=(operator_number, timesteps + 1), dtype=float
-        )
+        ops_ev_std = np.empty(shape=(operator_number, timesteps + 1), dtype=float)
 
         # Perform the time evolution and stores the value of the operators at each timestep.
         for ts in range(timesteps):
-            (
-                aux_operators_time_evolution_mean[:, ts],
-                aux_operators_time_evolution_std[:, ts],
-            ) = self._evaluate_aux_operators(
-                aux_operators,
-                aux_operators_squared,
+            (ops_ev_mean[:, ts], ops_ev_std[:, ts],) = self._evaluate_aux_ops(
+                aux_ops,
+                aux_ops_2,
                 state,
             )
 
             state = self._step(state, lhs_operator, rhs_operator, bicg_tol)
 
         (
-            aux_operators_time_evolution_mean[:,timesteps],
-            aux_operators_time_evolution_std[:,timesteps],
-        ) = self._evaluate_aux_operators(aux_operators, aux_operators_squared, state)
+            ops_ev_mean[:, timesteps],
+            ops_ev_std[:, timesteps],
+        ) = self._evaluate_aux_ops(aux_ops, aux_ops_2, state)
 
         aux_ops_history = self._create_observable_output(
-            aux_operators_time_evolution_mean,
-            aux_operators_time_evolution_std,
+            ops_ev_mean,
+            ops_ev_std,
             evolution_problem.aux_operators,
         )
-        aux_ops = self._create_observable_output(aux_operators_time_evolution_mean[:, timesteps],
-            aux_operators_time_evolution_std[:, timesteps],
+        aux_ops = self._create_observable_output(
+            ops_ev_mean[:, timesteps],
+            ops_ev_std[:, timesteps],
             evolution_problem.aux_operators,
         )
 
-        return EvolutionResult(evolved_state=StateFn(state), aux_ops_evaluated=aux_ops, observables = aux_ops_history)
+        return EvolutionResult(
+            evolved_state=StateFn(state), aux_ops_evaluated=aux_ops, observables=aux_ops_history
+        )
 
     def _create_observable_output(
         self,
-        aux_operators_time_evolution_mean: np.ndarray,
-        aux_operators_time_evolution_std: np.ndarray,
-        aux_operators: ListOrDict,
-    ) -> ListOrDict[Tuple[np.ndarray,np.ndarray]]:
+        ops_ev_mean: np.ndarray,
+        ops_ev_std: np.ndarray,
+        aux_ops: ListOrDict,
+    ) -> ListOrDict[Union[Tuple[np.ndarray, np.ndarray], Tuple[complex, complex]]]:
         """Creates the right output format for the evaluated auxiliary operators."""
-        operator_number = 0 if aux_operators is None else len(aux_operators)
-        observable_evolution = [(aux_operators_time_evolution_mean[i],  aux_operators_time_evolution_std[i]) for i in range(operator_number)]
+        operator_number = 0 if aux_ops is None else len(aux_ops)
+        observable_evolution = [(ops_ev_mean[i], ops_ev_std[i]) for i in range(operator_number)]
 
-        if isinstance(aux_operators, dict):
-            observable_evolution = {key: value for key, value in zip(aux_operators.keys(), observable_evolution)}
+        if isinstance(aux_ops, dict):
+            observable_evolution = dict(zip(aux_ops.keys(), observable_evolution))
 
         return observable_evolution
 
-
-
-    def _evaluate_aux_operators(
+    def _evaluate_aux_ops(
         self,
-        aux_operators: List[sp.csr_matrix],
-        aux_operators_squared: List[sp.csr_matrix],
+        aux_ops: List[sp.csr_matrix],
+        aux_ops_2: List[sp.csr_matrix],
         state: np.ndarray,
-    ) -> Tuple[np.ndarray,np.ndarray]:
+    ) -> Tuple[np.ndarray, np.ndarray]:
         """Evaluate the operators at the current state.
 
         Returns:
             A tuple of the mean and standard deviation of the auxiliary operators.
         """
-        op_mean = np.array([np.real(state.conjugate().dot(op.dot(state))) for op in aux_operators])
+        op_mean = np.array([np.real(state.conjugate().dot(op.dot(state))) for op in aux_ops])
         op_std = np.sqrt(
-            np.array(
-                [np.real(state.conjugate().dot(op2.dot(state))) for op2 in aux_operators_squared]
-            )
+            np.array([np.real(state.conjugate().dot(op2.dot(state))) for op2 in aux_ops_2])
             - op_mean**2
         )
         return op_mean, op_std
 
     def _start(
         self, evolution_problem: EvolutionProblem
-    ) -> Tuple[np.ndarray, sp.csr_matrix, sp.csr_matrix, List[sp.csr_matrix], List[sp.csr_matrix], int, float]:
+    ) -> Tuple[
+        np.ndarray,
+        sp.csr_matrix,
+        sp.csr_matrix,
+        List[sp.csr_matrix],
+        List[sp.csr_matrix],
+        int,
+        float,
+    ]:
         """Returns a tuple with the initial state as an array, the operators needed for time
          evolution as sparse matrices, the number of timesteps in which to divide the time evolution
          and the tolerance for the BiCG method.
@@ -189,8 +206,9 @@ class ScipyRealEvolver(RealEvolver):
         Returns:
             A tuple with the initial state as an array, the operators needed for time
             evolution as sparse matrices, the operators to evaluate at each timestep as a list
-            of sparse matrices as well as a list of the squared operators, the number of timesteps
-             in which to divide the time evolution and the tolerance for the BiCG method.
+            of sparse matrices as well as a list of the squared operators to compute the standard
+            deviation, the number of timesteps in which to divide the time evolution and
+            the tolerance for the BiCG method.
         """
         # Convert the initial state and hamiltonian into sparse matrices.
         if isinstance(evolution_problem.initial_state, QuantumCircuit):
@@ -201,9 +219,12 @@ class ScipyRealEvolver(RealEvolver):
         hamiltonian = evolution_problem.hamiltonian.to_spmatrix()
 
         # Determine the number of timesteps.
-        timesteps = min(self._ntimesteps(
-            time=evolution_problem.time, hamiltonian=hamiltonian, threshold=self.threshold
-        ), self.max_iterations)
+        timesteps = min(
+            self._ntimesteps(
+                time=evolution_problem.time, hamiltonian=hamiltonian, threshold=self.threshold
+            ),
+            self.max_iterations,
+        )
         timestep = evolution_problem.time / timesteps
 
         # Create the operators for the time evolution.
@@ -213,22 +234,20 @@ class ScipyRealEvolver(RealEvolver):
         rhs_operator = idnty - 1j * timestep / 2 * hamiltonian
 
         if isinstance(evolution_problem.aux_operators, list):
-            aux_operators = [aux_op.to_spmatrix() for aux_op in evolution_problem.aux_operators]
+            aux_ops = [aux_op.to_spmatrix() for aux_op in evolution_problem.aux_operators]
         elif isinstance(evolution_problem.aux_operators, dict):
-            aux_operators = [
-                aux_op.to_spmatrix() for aux_op in evolution_problem.aux_operators.values()
-            ]
+            aux_ops = [aux_op.to_spmatrix() for aux_op in evolution_problem.aux_operators.values()]
         else:
-            aux_operators = []
+            aux_ops = []
 
-        aux_operators_squared = [aux_op.dot(aux_op) for aux_op in aux_operators]
+        aux_ops_2 = [aux_op.dot(aux_op) for aux_op in aux_ops]
 
         return (
             state,
             lhs_operator,
             rhs_operator,
-            aux_operators,
-            aux_operators_squared,
+            aux_ops,
+            aux_ops_2,
             timesteps,
             self._bicg_tol(timesteps),
         )
@@ -242,15 +261,15 @@ class ScipyRealEvolver(RealEvolver):
         Returns:
             The tolerance for the BiCG solver.
         """
-        return self.threshold * self.coeff_a / timesteps
+        return self.threshold * self.bicg_err / timesteps
 
     def minimal_number_steps(
         self, norm_hamiltonian: float, time: float, threshold: float = 1e-4
     ) -> int:
         r"""Calculate the timestep for the given time and threshold.
 
-        we use the fact that the taylor expansion term of third order in our expansion would be
-        :math:`\frac{\left( -i H \delta t \right) ^3}{12} ` to compute an approximation for how
+        We use the fact that the Taylor expansion term of third order in our expansion would be
+        :math:`\frac{ ( -i H \delta t ) ^3}{12}` to compute an approximation for how
         many timesteps we need to reach a certain precision.
 
         Args:
@@ -263,11 +282,9 @@ class ScipyRealEvolver(RealEvolver):
         Returns:
             The number of timesteps needed to reach the error threshold.
         """
-        return (
-            int(
-                np.power(norm_hamiltonian * time, 3 / 2)
-                * np.power(12 * threshold * (1 - self.coeff_a), -1 / 2)
-            )
+        return int(
+            np.power(norm_hamiltonian * time, 3 / 2)
+            * np.power(12 * threshold * (1 - self.bicg_err), -1 / 2)
             + 1
         )
 

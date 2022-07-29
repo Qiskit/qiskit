@@ -78,7 +78,7 @@ class TestClassicalRealEvolver(QiskitAlgorithmsTestCase):
             hamiltonian, time_ev, initial_state, aux_operators=observables
         )
         threshold = 1e-3
-        classic_evolver = ScipyRealEvolver(threshold=threshold, coeff_a=0.1)
+        classic_evolver = ScipyRealEvolver(threshold=threshold, bicg_err=0.1)
         result = classic_evolver.evolve(evolution_problem)
 
         z_mean, z_std = result.observables["Z"]
@@ -88,12 +88,8 @@ class TestClassicalRealEvolver(QiskitAlgorithmsTestCase):
         expected_z = 1 - 2 * (np.sin(time_vector)) ** 2
         expected_z_std = np.sqrt(1 - expected_z**2)
 
-        np.testing.assert_allclose(
-            z_mean, expected_z, atol=2 * threshold, rtol=0
-        )
-        np.testing.assert_allclose(
-            z_std, expected_z_std, atol=2 * threshold, rtol=0
-        )
+        np.testing.assert_allclose(z_mean, expected_z, atol=2 * threshold, rtol=0)
+        np.testing.assert_allclose(z_std, expected_z_std, atol=2 * threshold, rtol=0)
 
     def test_quantum_circuit_initial_state(self):
         """Tests if the system can be evolved with a quantum circuit as an initial state."""
@@ -113,6 +109,24 @@ class TestClassicalRealEvolver(QiskitAlgorithmsTestCase):
         classic_evolver = ScipyRealEvolver(max_iterations=5)
         with self.assertRaises(ValueError):
             classic_evolver.evolve(evolution_problem)
+
+    def test_no_time_steps(self):
+        """Tests if the evolver handles some edge cases related to the number of timesteps."""
+        evolution_problem = EvolutionProblem(hamiltonian=X, time=1.0, initial_state=Zero)
+
+        with self.subTest("0 timesteps"):
+            with self.assertRaises(ValueError):
+                classic_evolver = ScipyRealEvolver(max_iterations=0)
+                classic_evolver.evolve(evolution_problem)
+
+        with self.subTest("1 timestep"):
+            classic_evolver = ScipyRealEvolver(max_iterations=1)
+            classic_evolver.evolve(evolution_problem)
+
+        with self.subTest("Negative timesteps"):
+            with self.assertRaises(ValueError):
+                classic_evolver = ScipyRealEvolver(max_iterations=-5)
+                classic_evolver.evolve(evolution_problem)
 
 
 if __name__ == "__main__":

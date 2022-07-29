@@ -12,7 +12,6 @@
 
 """Class for holding evolution result."""
 
-from optparse import Option
 from typing import Optional, Union, Tuple
 
 import numpy as np
@@ -38,6 +37,8 @@ class EvolutionResult(AlgorithmResult):
             aux_ops_evaluated: Optional list of observables for which expected values on an evolved
                 state are calculated. These values are in fact tuples formatted as (mean, standard
                 deviation).
+            observables: Optional list of observables for which expected values for each timestep.
+             These values are in fact tuples formatted as (mean, standard deviation).
         """
 
         self.evolved_state = evolved_state
