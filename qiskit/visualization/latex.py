@@ -420,7 +420,7 @@ class QCircuitImage:
             for node in layer:
                 op = node.op
                 num_cols_op = 1
-                wire_list = [self._wire_map[qarg] for qarg in node.qargs]
+                wire_list = [self._wire_map[qarg] for qarg in node.qargs if qarg in self._qubits]
                 if op.condition:
                     self._add_condition(op, wire_list, column)
 
@@ -435,7 +435,9 @@ class QCircuitImage:
                     gate_text += get_param_str(op, "latex", ndigits=4)
                     gate_text = generate_latex_label(gate_text)
                     if node.cargs:
-                        cwire_list = [self._wire_map[carg] for carg in node.cargs]
+                        cwire_list = [
+                            self._wire_map[carg] for carg in node.cargs if carg in self._clbits
+                        ]
                     else:
                         cwire_list = []
 
@@ -582,7 +584,7 @@ class QCircuitImage:
     def _build_barrier(self, node, col):
         """Build a partial or full barrier if plot_barriers set"""
         if self._plot_barriers:
-            indexes = [self._wire_map[qarg] for qarg in node.qargs]
+            indexes = [self._wire_map[qarg] for qarg in node.qargs if qarg in self._qubits]
             indexes.sort()
             first = last = indexes[0]
             for index in indexes[1:]:
