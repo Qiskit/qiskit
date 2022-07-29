@@ -99,31 +99,31 @@ class TestVarQITE(QiskitAlgorithmsTestCase):
 
         # values from the prototype
         thetas_expected_sv = [
-            1.06063437491604,
-            1.8999379240424,
-            2.87868639456868,
-            2.83930910580161,
-            2.19349562289158,
-            1.60579026885358,
-            2.25770220142468,
-            1.9892898663481,
+            1.03612467538419,
+            1.91891042963193,
+            2.81129500883365,
+            2.78938736703301,
+            2.2215151699331,
+            1.61953721158502,
+            2.23490753161058,
+            1.97145113701782,
         ]
 
         thetas_expected_qasm = [
-            1.06063437491604,
-            1.8999379240424,
-            2.87868639456868,
-            2.83930910580161,
-            2.19349562289158,
-            1.60579026885358,
-            2.25770220142468,
-            1.9892898663481,
+            1.03612467538419,
+            1.91891042963193,
+            2.81129500883365,
+            2.78938736703301,
+            2.2215151699331,
+            1.61953721158502,
+            2.23490753161058,
+            1.97145113701782,
         ]
 
-        expected_aux_ops_evaluated_sv = [(-0.171332, 0.0), (0.232002, 0.0)]
+        expected_aux_ops_evaluated_sv = [(-0.160899, 0.0), (0.26207, 0.0)]
         expected_aux_ops_evaluated_qasm = [
-            (-0.187, 0.015532),
-            (0.23, 0.015387),
+            (-0.1765, 0.015563),
+            (0.2555, 0.015287),
         ]
 
         for backend_name in self.backends_names:
@@ -134,7 +134,12 @@ class TestVarQITE(QiskitAlgorithmsTestCase):
                     operator=observable,
                     backend=backend,
                 )
-                var_qite = VarQITE(var_principle, expectation=expectation, quantum_instance=backend)
+                var_qite = VarQITE(
+                    var_principle,
+                    expectation=expectation,
+                    time_step_delta=time / 25.0,
+                    quantum_instance=backend,
+                )
                 evolution_result = var_qite.evolve(evolution_problem)
 
                 evolved_state = evolution_result.evolved_state
@@ -153,6 +158,7 @@ class TestVarQITE(QiskitAlgorithmsTestCase):
                     np.testing.assert_almost_equal(
                         float(parameter_value), thetas_expected[i], decimal=3
                     )
+
                 np.testing.assert_array_almost_equal(aux_ops, expected_aux_ops)
 
     def test_run_d_1_t_7(self):
@@ -182,8 +188,11 @@ class TestVarQITE(QiskitAlgorithmsTestCase):
 
         backend = BasicAer.get_backend("statevector_simulator")
 
-        var_qite = VarQITE(var_principle, ode_solver="RK45", quantum_instance=backend)
         time = 7
+        var_qite = VarQITE(
+            var_principle, ode_solver="RK45", time_step_delta=time / 25.0, quantum_instance=backend
+        )
+
         # values from the prototype
         thetas_expected = [
             0.828917365718767,
@@ -232,8 +241,10 @@ class TestVarQITE(QiskitAlgorithmsTestCase):
 
         backend = BasicAer.get_backend("statevector_simulator")
 
-        var_qite = VarQITE(var_principle, ode_solver="RK45", quantum_instance=backend)
         time = 1
+        var_qite = VarQITE(
+            var_principle, ode_solver="RK45", time_step_delta=time / 25.0, quantum_instance=backend
+        )
 
         # values from the prototype
         thetas_expected = [

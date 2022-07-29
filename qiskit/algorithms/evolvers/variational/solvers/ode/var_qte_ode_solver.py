@@ -14,6 +14,7 @@
 
 from typing import List, Union, Type
 
+import numpy as np
 from scipy.integrate import OdeSolver, solve_ivp
 
 from .abstract_ode_function import (
@@ -30,7 +31,7 @@ class VarQTEOdeSolver:
         init_params: List[complex],
         ode_function: AbstractOdeFunction,
         ode_solver: Union[Type[OdeSolver], str] = ForwardEulerSolver,
-        num_t_steps: int = 15,
+        time_step_delta: float = 0.01,
     ) -> None:
         """
         Initialize ODE Solver.
@@ -40,12 +41,13 @@ class VarQTEOdeSolver:
             ode_function: Generates the ODE function.
             ode_solver: ODE solver callable that implements a SciPy ``OdeSolver`` interface or a
                 string indicating a valid method offered by SciPy.
-            num_t_steps: Number of ODE steps. Only relevant in case of the ``ForwardEulerSolver``.
+            time_step_delta: A time interval that an ODE solver uses for solving equations. Only
+                relevant in case of the ``ForwardEulerSolver``.
         """
         self._init_params = init_params
         self._ode_function = ode_function.var_qte_ode_function
         self._ode_solver = ode_solver
-        self._num_t_steps = num_t_steps
+        self._time_step_delta = time_step_delta
 
     def run(self, evolution_time: float) -> List[complex]:
         """
@@ -57,12 +59,13 @@ class VarQTEOdeSolver:
         Returns:
             List of parameters found by an ODE solver for a given ODE function callable.
         """
+        num_t_steps = int(np.ceil(evolution_time / self._time_step_delta))
         sol = solve_ivp(
             self._ode_function,
             (0, evolution_time),
             self._init_params,
             method=self._ode_solver,
-            num_t_steps=self._num_t_steps,
+            num_t_steps=num_t_steps,
         )
         final_params_vals = [lst[-1] for lst in sol.y]
 

@@ -28,8 +28,8 @@ class TestForwardEulerSolver(QiskitAlgorithmsTestCase):
     """Test Forward Euler solver."""
 
     @unpack
-    @data((4, 16), (16, 35.52713678800501), (320, 53.261108839604795))
-    def test_solve(self, num_t_steps, expected_result):
+    @data((4.0 / 4, 16), (4.0 / 16, 35.52713678800501), (4.0 / 320, 53.261108839604795))
+    def test_solve(self, time_step_delta, expected_result):
         """Test Forward Euler solver for a simple ODE."""
 
         y0 = [1]
@@ -38,7 +38,8 @@ class TestForwardEulerSolver(QiskitAlgorithmsTestCase):
         def func(time, y):
             return y
 
-        t_span = [0, 4]
+        t_span = [0.0, 4.0]
+        num_t_steps = t_span[1] / time_step_delta
         sol1 = solve_ivp(func, t_span, y0, method=ForwardEulerSolver, num_t_steps=num_t_steps)
         np.testing.assert_equal(sol1.y[-1][-1], expected_result)
 

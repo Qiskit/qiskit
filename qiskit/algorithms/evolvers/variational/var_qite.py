@@ -71,7 +71,7 @@ class VarQITE(VarQTE, ImaginaryEvolver):
         variational_principle: ImaginaryVariationalPrinciple,
         ode_solver: Union[Type[OdeSolver], str] = ForwardEulerSolver,
         lse_solver: Optional[Callable[[np.ndarray, np.ndarray], np.ndarray]] = None,
-        ode_num_t_steps: int = 15,
+        time_step_delta: float = 0.01,
         expectation: Optional[ExpectationBase] = None,
         imag_part_tol: float = 1e-7,
         num_instability_tol: float = 1e-7,
@@ -85,8 +85,8 @@ class VarQITE(VarQTE, ImaginaryEvolver):
             lse_solver: Linear system of equations solver callable. It accepts ``A`` and ``b`` to
                 solve ``Ax=b`` and returns ``x``. If ``None``, the default ``np.linalg.lstsq``
                 solver is used.
-            ode_num_t_steps: Number of ODE steps. Only relevant in case of the
-                ``ForwardEulerSolver``.
+            time_step_delta: A time interval that an ODE solver uses for solving equations. Only
+                relevant in case of the ``ForwardEulerSolver``.
             expectation: An instance of ``ExpectationBase`` which defines a method for calculating
                 a metric tensor and an evolution gradient and, if provided, expectation values of
                 ``EvolutionProblem.aux_operators``.
@@ -102,7 +102,7 @@ class VarQITE(VarQTE, ImaginaryEvolver):
             variational_principle,
             ode_solver,
             lse_solver=lse_solver,
-            ode_num_t_steps=ode_num_t_steps,
+            time_step_delta=time_step_delta,
             expectation=expectation,
             imag_part_tol=imag_part_tol,
             num_instability_tol=num_instability_tol,

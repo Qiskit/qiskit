@@ -60,7 +60,7 @@ class VarQTE(ABC):
         variational_principle: VariationalPrinciple,
         ode_solver: Union[Type[OdeSolver], str] = ForwardEulerSolver,
         lse_solver: Optional[Callable[[np.ndarray, np.ndarray], np.ndarray]] = None,
-        ode_num_t_steps: int = 15,
+        time_step_delta: float = 0.01,
         expectation: Optional[ExpectationBase] = None,
         imag_part_tol: float = 1e-7,
         num_instability_tol: float = 1e-7,
@@ -74,8 +74,8 @@ class VarQTE(ABC):
             lse_solver: Linear system of equations solver callable. It accepts ``A`` and ``b`` to
                 solve ``Ax=b`` and returns ``x``. If ``None``, the default ``np.linalg.lstsq``
                 solver is used.
-            ode_num_t_steps: Number of ODE steps. Only relevant in case of the
-                ``ForwardEulerSolver``.
+            time_step_delta: A time interval that an ODE solver uses for solving equations. Only
+                relevant in case of the ``ForwardEulerSolver``.
             expectation: An instance of ``ExpectationBase`` which defines a method for calculating
                 a metric tensor and an evolution gradient and, if provided, expectation values of
                 ``EvolutionProblem.aux_operators``.
@@ -94,7 +94,7 @@ class VarQTE(ABC):
         if quantum_instance is not None:
             self.quantum_instance = quantum_instance
         self.expectation = expectation
-        self.ode_num_t_steps = ode_num_t_steps
+        self.time_step_delta = time_step_delta
         self.lse_solver = lse_solver
         # OdeFunction abstraction kept for potential extensions - unclear at the moment;
         # currently hidden from the user
@@ -216,7 +216,7 @@ class VarQTE(ABC):
         )
 
         ode_solver = VarQTEOdeSolver(
-            init_state_parameters_values, ode_function, self.ode_solver, self.ode_num_t_steps
+            init_state_parameters_values, ode_function, self.ode_solver, self.time_step_delta
         )
         parameter_values = ode_solver.run(time)
         param_dict_from_ode = dict(zip(init_state_parameters, parameter_values))

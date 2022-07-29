@@ -119,7 +119,7 @@ class TestVarQRTE(QiskitAlgorithmsTestCase):
             1.53742227084076,
         ]
 
-        expected_aux_ops_evaluated_sv = [(0.066751, 0.0), (0.772615, 0.0)]
+        expected_aux_ops_evaluated_sv = [(0.06675, 0.0), (0.772636, 0.0)]
 
         expected_aux_ops_evaluated_qasm = [
             (0.06450000000000006, 0.01577846435810532),
@@ -134,7 +134,12 @@ class TestVarQRTE(QiskitAlgorithmsTestCase):
                     operator=observable,
                     backend=backend,
                 )
-                var_qrte = VarQRTE(var_principle, expectation=expectation, quantum_instance=backend)
+                var_qrte = VarQRTE(
+                    var_principle,
+                    expectation=expectation,
+                    time_step_delta=time / 25.0,
+                    quantum_instance=backend,
+                )
                 evolution_result = var_qrte.evolve(evolution_problem)
 
                 evolved_state = evolution_result.evolved_state
@@ -200,8 +205,10 @@ class TestVarQRTE(QiskitAlgorithmsTestCase):
 
         backend = BasicAer.get_backend("statevector_simulator")
 
-        var_qrte = VarQRTE(var_principle, ode_solver="RK45", quantum_instance=backend)
         time = 1
+        var_qrte = VarQRTE(
+            var_principle, ode_solver="RK45", time_step_delta=time / 25.0, quantum_instance=backend
+        )
 
         thetas_expected = [
             0.348407744196573,
