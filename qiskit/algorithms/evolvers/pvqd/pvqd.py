@@ -114,7 +114,9 @@ class PVQD(RealEvolver):
             expectation: The expectation converter to evaluate expectation values.
             optimizer: The classical optimizers used to minimize the overlap between
                 Trotterization and ansatz. Can be either a :class:`.Optimizer` or a callable
-                using the :class:`.Minimizer` protocol.
+                using the :class:`.Minimizer` protocol. This argument is optional since it is
+                not required for :meth:`get_loss`, but it has to be set before :meth:`evolve`
+                is called.
             num_timestep: The number of time steps. If ``None`` it will be set such that the timestep
                 is close to 0.01.
             evolution: The evolution synthesis to use for the construction of the Trotter step.
