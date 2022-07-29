@@ -77,7 +77,6 @@ def plot_state_hinton(
             from qiskit.quantum_info import DensityMatrix
             from qiskit.visualization import plot_state_hinton
             import numpy as np
-            %matplotlib inline
 
             qc = QuantumCircuit(2)
             qc.h([0, 1])
