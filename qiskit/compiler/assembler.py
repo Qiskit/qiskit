@@ -16,19 +16,18 @@ import logging
 import uuid
 import warnings
 from time import time
-from typing import Union, List, Dict, Optional
+from typing import Dict, List, Optional, Union
 
 import numpy as np
 
 from qiskit.assembler import assemble_circuits, assemble_schedules
 from qiskit.assembler.run_config import RunConfig
-from qiskit.circuit import QuantumCircuit, Qubit, Parameter
+from qiskit.circuit import Parameter, QuantumCircuit, Qubit
 from qiskit.exceptions import QiskitError
 from qiskit.providers.backend import Backend
-from qiskit.pulse import LoConfig, Instruction
-from qiskit.pulse import Schedule, ScheduleBlock
+from qiskit.pulse import Instruction, LoConfig, Schedule, ScheduleBlock
 from qiskit.pulse.channels import PulseChannel
-from qiskit.qobj import QobjHeader, Qobj
+from qiskit.qobj import Qobj, QobjHeader
 from qiskit.qobj.utils import MeasLevel, MeasReturnType
 
 logger = logging.getLogger(__name__)
@@ -569,7 +568,7 @@ def _expand_parameters(circuits, run_config):
     """
     parameter_binds = run_config.parameter_binds
 
-    if parameter_binds or any(circuit.parameters for circuit in circuits):
+    if parameter_binds and any(parameter_binds) or any(circuit.parameters for circuit in circuits):
 
         # Unroll params here in order to handle ParamVects
         all_bind_parameters = [
