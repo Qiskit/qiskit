@@ -100,7 +100,6 @@ def plot_histogram(
 
            from qiskit import QuantumCircuit, Aer
            from qiskit.visualization import plot_histogram
-           %matplotlib inline
 
            qc = QuantumCircuit(2, 2)
            qc.h(0)
@@ -121,10 +120,8 @@ def plot_histogram(
 
         .. jupyter-execute::
 
-           from qiskit import QuantumCircuit, Aer, transpile
-           from qiskit.visualization import plot_histogram
+           from qiskit import transpile
            import numpy as np
-           %matplotlib inline
 
            qc = QuantumCircuit(3)
            qc.h(0)
@@ -144,6 +141,7 @@ def plot_histogram(
            hist2 = plot_histogram(counts, figsize = (8,3), sort = 'hamming', target_string = '001')
 
            display(hist1, hist2)
+
     """
     import matplotlib.pyplot as plt
     from matplotlib.ticker import MaxNLocator
