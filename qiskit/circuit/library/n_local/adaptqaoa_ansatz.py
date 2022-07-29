@@ -150,15 +150,15 @@ def adapt_mixer_pool(
                         qbit_op = op_dict[mix]
                         mixer.append(qbit_op, [q_i])
         else:  # otherwise just convert the string representation of Pauli's to operators
-            if num_qubits == 1 or len(set(mix_str)) == 1:
-                mixer = PauliOp(Pauli(mix_str))
-            else:
+            if mix_str == len(mix_str) * mix_str[0]:
                 gate = mix_str[0]
                 list_string = [
-                    i * "I" + gate + (num_qubits - i - 1) * "I" for i in range(num_qubits)
+                    i * "I" + gate + (len(mix_str) - i - 1) * "I" for i in range(len(mix_str))
                 ]
                 op_list = [(op, 1) for op in list_string]
                 mixer = PauliSumOp(SparsePauliOp.from_list(op_list))
+            else:
+                mixer = PauliOp(Pauli(mix_str))
         mixer_circ_list.append(mixer)
     return mixer_circ_list
 
