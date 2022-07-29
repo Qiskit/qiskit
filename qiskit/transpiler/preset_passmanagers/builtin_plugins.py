@@ -24,7 +24,7 @@ from qiskit.transpiler.preset_passmanagers import common
 from qiskit.transpiler.preset_passmanagers.plugin import PassManagerStagePlugin
 
 
-def get_vf2_limit(pass_manager_config):
+def _get_vf2_call_limit(pass_manager_config):
     """Get the vf2 call limit for vf2 based layout passes."""
     vf2_call_limit = None
     opt_level = pass_manager_config.optimization_level
@@ -49,7 +49,7 @@ class BasicSwapPassManager(PassManagerStagePlugin):
         coupling_map = pass_manager_config.coupling_map
         backend_properties = pass_manager_config.backend_properties
         routing_pass = BasicSwap(coupling_map)
-        vf2_call_limit = get_vf2_limit(pass_manager_config)
+        vf2_call_limit = _get_vf2_call_limit(pass_manager_config)
         if opt_level == 0:
             return common.generate_routing_passmanager(
                 routing_pass,
@@ -103,7 +103,7 @@ class StochasticSwapPassManager(PassManagerStagePlugin):
         target = pass_manager_config.target
         coupling_map = pass_manager_config.coupling_map
         backend_properties = pass_manager_config.backend_properties
-        vf2_call_limit = get_vf2_limit(pass_manager_config)
+        vf2_call_limit = _get_vf2_call_limit(pass_manager_config)
         if opt_level == 0:
             routing_pass = StochasticSwap(coupling_map, trials=20, seed=seed_transpiler)
             return common.generate_routing_passmanager(
@@ -160,7 +160,7 @@ class LookaheadSwapPassManager(PassManagerStagePlugin):
         target = pass_manager_config.target
         coupling_map = pass_manager_config.coupling_map
         backend_properties = pass_manager_config.backend_properties
-        vf2_call_limit = get_vf2_limit(pass_manager_config)
+        vf2_call_limit = _get_vf2_call_limit(pass_manager_config)
         if opt_level == 0:
             routing_pass = LookaheadSwap(coupling_map, search_depth=2, search_width=2)
             return common.generate_routing_passmanager(
@@ -218,7 +218,7 @@ class SabreSwapPassManager(PassManagerStagePlugin):
         target = pass_manager_config.target
         coupling_map = pass_manager_config.coupling_map
         backend_properties = pass_manager_config.backend_properties
-        vf2_call_limit = get_vf2_limit(pass_manager_config)
+        vf2_call_limit = _get_vf2_call_limit(pass_manager_config)
         if opt_level == 0:
             routing_pass = SabreSwap(coupling_map, heuristic="basic", seed=seed_transpiler)
             return common.generate_routing_passmanager(
