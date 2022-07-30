@@ -169,9 +169,9 @@ def level_1_pass_manager(pass_manager_config: PassManagerConfig) -> StagedPassMa
                 )
             ),
         )
-        vf2_call_limit = None
-        if pass_manager_config.layout_method is None and pass_manager_config.initial_layout is None:
-            vf2_call_limit = int(5e4)  # Set call limit to ~100ms with retworkx 0.10.2
+        vf2_call_limit = common.get_vf2_call_limit(
+            1, pass_manager_config.layout_method, pass_manager_config.initial_layout
+        )
         routing_pm = common.generate_routing_passmanager(
             routing_pass,
             target,
@@ -246,7 +246,9 @@ def level_1_pass_manager(pass_manager_config: PassManagerConfig) -> StagedPassMa
     if (coupling_map and not coupling_map.is_symmetric) or (
         target is not None and target.get_non_global_operation_names(strict_direction=True)
     ):
-        pre_optimization = common.generate_pre_op_passmanager(target, coupling_map, remove_reset_in_zero=True)
+        pre_optimization = common.generate_pre_op_passmanager(
+            target, coupling_map, remove_reset_in_zero=True
+        )
     else:
         pre_optimization = common.generate_pre_op_passmanager(remove_reset_in_zero=True)
     if optimization_method is None:

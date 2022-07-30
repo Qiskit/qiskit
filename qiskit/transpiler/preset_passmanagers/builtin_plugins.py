@@ -24,20 +24,6 @@ from qiskit.transpiler.preset_passmanagers import common
 from qiskit.transpiler.preset_passmanagers.plugin import PassManagerStagePlugin
 
 
-def _get_vf2_call_limit(pass_manager_config):
-    """Get the vf2 call limit for vf2 based layout passes."""
-    vf2_call_limit = None
-    opt_level = pass_manager_config.optimization_level
-    if pass_manager_config.layout_method is None and pass_manager_config.initial_layout is None:
-        if opt_level == 1:
-            vf2_call_limit = int(5e4)  # Set call limit to ~100ms with retworkx 0.10.2
-        elif opt_level == 2:
-            vf2_call_limit = int(5e6)  # Set call limit to ~10 sec with retworkx 0.10.2
-        elif opt_level == 3:
-            vf2_call_limit = int(3e7)  # Set call limit to ~60 sec with retworkx 0.10.2
-    return vf2_call_limit
-
-
 class BasicSwapPassManager(PassManagerStagePlugin):
     """Plugin class for routing stage with :class:`~.BasicSwap`"""
 
@@ -49,7 +35,9 @@ class BasicSwapPassManager(PassManagerStagePlugin):
         coupling_map = pass_manager_config.coupling_map
         backend_properties = pass_manager_config.backend_properties
         routing_pass = BasicSwap(coupling_map)
-        vf2_call_limit = _get_vf2_call_limit(pass_manager_config)
+        vf2_call_limit = common.get_vf2_call_limit(
+            opt_level, pass_manager_config.layout_method, pass_manager_config.initial_layout
+        )
         if opt_level == 0:
             return common.generate_routing_passmanager(
                 routing_pass,
@@ -103,7 +91,9 @@ class StochasticSwapPassManager(PassManagerStagePlugin):
         target = pass_manager_config.target
         coupling_map = pass_manager_config.coupling_map
         backend_properties = pass_manager_config.backend_properties
-        vf2_call_limit = _get_vf2_call_limit(pass_manager_config)
+        vf2_call_limit = common.get_vf2_call_limit(
+            opt_level, pass_manager_config.layout_method, pass_manager_config.initial_layout
+        )
         if opt_level == 3:
             routing_pass = StochasticSwap(coupling_map, trials=200, seed=seed_transpiler)
         else:
@@ -152,7 +142,9 @@ class LookaheadSwapPassManager(PassManagerStagePlugin):
         target = pass_manager_config.target
         coupling_map = pass_manager_config.coupling_map
         backend_properties = pass_manager_config.backend_properties
-        vf2_call_limit = _get_vf2_call_limit(pass_manager_config)
+        vf2_call_limit = common.get_vf2_call_limit(
+            opt_level, pass_manager_config.layout_method, pass_manager_config.initial_layout
+        )
         if opt_level == 0:
             routing_pass = LookaheadSwap(coupling_map, search_depth=2, search_width=2)
             return common.generate_routing_passmanager(
@@ -210,7 +202,9 @@ class SabreSwapPassManager(PassManagerStagePlugin):
         target = pass_manager_config.target
         coupling_map = pass_manager_config.coupling_map
         backend_properties = pass_manager_config.backend_properties
-        vf2_call_limit = _get_vf2_call_limit(pass_manager_config)
+        vf2_call_limit = common.get_vf2_call_limit(
+            opt_level, pass_manager_config.layout_method, pass_manager_config.initial_layout
+        )
         if opt_level == 0:
             routing_pass = SabreSwap(coupling_map, heuristic="basic", seed=seed_transpiler)
             return common.generate_routing_passmanager(

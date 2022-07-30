@@ -152,9 +152,9 @@ def level_2_pass_manager(pass_manager_config: PassManagerConfig) -> StagedPassMa
                 )
             ),
         )
-        vf2_call_limit = None
-        if pass_manager_config.layout_method is None and pass_manager_config.initial_layout is None:
-            vf2_call_limit = int(5e6)  # Set call limit to ~10 sec with retworkx 0.10.2
+        vf2_call_limit = common.get_vf2_call_limit(
+            2, pass_manager_config.layout_method, pass_manager_config.initial_layout
+        )
         routing_pm = common.generate_routing_passmanager(
             routing_pass,
             target,
