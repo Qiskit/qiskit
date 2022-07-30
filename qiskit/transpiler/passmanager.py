@@ -407,7 +407,7 @@ class StagedPassManager(PassManager):
         super().__setattr__("_expanded_stages", tuple(self._generate_expanded_stages()))
         super().__init__()
         self._validate_init_kwargs(kwargs)
-        for stage in self.expanded_stages:
+        for stage in set(self.expanded_stages):
             pm = kwargs.get(stage, None)
             setattr(self, stage, pm)
 
