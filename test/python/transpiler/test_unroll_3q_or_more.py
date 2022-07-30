@@ -130,3 +130,94 @@ class TestUnroll3qOrMore(QiskitTestCase):
         res = unroll_pass(qc)
         self.assertIn("ccx", res.count_ops())
         self.assertNotIn("rccx", res.count_ops())
+
+    def test_if_else_simple(self):
+        """Test a simple if-else statement unrolls correctly."""
+        num_qubits = 3
+        qreg = QuantumRegister(num_qubits, "q")
+        creg = ClassicalRegister(num_qubits)
+
+        qc = QuantumCircuit(qreg, creg)
+        qc.h(0)
+        qc.measure(0, 0)
+        true_body = QuantumCircuit(qreg)
+        true_body.ccx(0, 1, 2)
+        false_body = QuantumCircuit(qreg)
+        false_body.rccx(0, 1, 2)
+        qc.if_else((creg[0], 0), true_body, false_body, qreg, creg)
+        qc.measure(0, 1)
+        dag = circuit_to_dag(qc)
+        unrolled_dag = Unroll3qOrMore(["u", "cx"]).run(dag)
+
+        expected = QuantumCircuit(qreg, creg)
+        expected.h(0)
+        expected.measure(0, 0)
+        expected.if_else((creg[0], 0), CCXGate().definition, RCCXGate().definition, qreg, creg)
+        expected.measure(0, 1)
+        expected_dag = circuit_to_dag(expected)
+        self.assertEqual(unrolled_dag, expected_dag)
+
+    def test_while(self):
+        """Test a simple if-else statement unrolls correctly."""
+        num_qubits = 3
+        qreg = QuantumRegister(num_qubits, "q")
+        creg = ClassicalRegister(num_qubits)
+
+        qc = QuantumCircuit(qreg, creg)
+        qc.h(0)
+        qc.measure(0, 0)
+        body = QuantumCircuit(qreg, creg)
+        body.h(qreg[:2])
+        body.ccx(0, 1, 2)
+        body.measure(2, 2)
+        qc.while_loop((creg[2], 2), body, qreg, creg)
+        qc.measure(0, 1)
+        dag = circuit_to_dag(qc)
+        unrolled_dag = Unroll3qOrMore(["u", "cx"]).run(dag)
+
+        expected = QuantumCircuit(qreg, creg)
+        expected.h(0)
+        expected.measure(0, 0)
+        body = QuantumCircuit(qreg, creg)
+        body.h(qreg[:2])
+        body.compose(CCXGate().definition, qreg, inplace=True)
+        body.measure(2, 2)
+        expected.while_loop((creg[2], 2), body, qreg, creg)
+        expected.measure(0, 1)
+        expected_dag = circuit_to_dag(expected)
+
+        self.assertEqual(unrolled_dag, expected_dag)
+
+    def test_nested_controlflow(self):
+        """Test a simple if-else statement unrolls correctly."""
+        num_qubits = 3
+        qreg = QuantumRegister(num_qubits, "q")
+        creg = ClassicalRegister(num_qubits)
+
+        qc = QuantumCircuit(qreg, creg)
+        true_body = QuantumCircuit(qreg, creg)
+        true_body.h(qreg[:2])
+        true_body.ccx(0, 1, 2)
+        true_body.measure(2, 2)
+        for_body = QuantumCircuit(qreg, creg)
+        for_body.h(qreg)
+        for_body.measure(qreg, creg)
+        for_body.if_test((creg, 3), true_body, qreg, creg)
+        qc.for_loop(range(3), body=for_body, qubits=qreg, clbits=creg)
+        qc.measure(qreg, creg)
+        dag = circuit_to_dag(qc)
+        unrolled_dag = Unroll3qOrMore(["u", "cx"]).run(dag)
+
+        expected = QuantumCircuit(qreg, creg)
+        etrue_body = QuantumCircuit(qreg, creg)
+        etrue_body.h(qreg[:2])
+        etrue_body.compose(CCXGate().definition, inplace=True)
+        etrue_body.measure(2, 2)
+        efor_body = QuantumCircuit(qreg, creg)
+        efor_body.h(qreg)
+        efor_body.measure(qreg, creg)
+        efor_body.if_test((creg, 3), etrue_body, qreg, creg)
+        expected.for_loop(range(3), body=efor_body, qubits=qreg, clbits=creg)
+        expected.measure(qreg, creg)
+        expected_dag = circuit_to_dag(expected)
+        self.assertEqual(unrolled_dag, expected_dag)

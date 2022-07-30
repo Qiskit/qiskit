@@ -14,7 +14,8 @@
 
 from qiskit.transpiler.basepasses import TransformationPass
 from qiskit.exceptions import QiskitError
-from qiskit.converters.circuit_to_dag import circuit_to_dag
+from qiskit.circuit import ControlFlowOp
+from qiskit.converters import circuit_to_dag, dag_to_circuit
 
 
 class Unroll3qOrMore(TransformationPass):
@@ -63,6 +64,15 @@ class Unroll3qOrMore(TransformationPass):
             elif self.basis_gates is not None and node.name in self.basis_gates:
                 continue
 
+            if isinstance(node.op, ControlFlowOp):
+                unrolled_blocks = []
+                for block in node.op.blocks:
+                    dag_block = circuit_to_dag(block)
+                    unrolled_dag_block = self.run(dag_block)
+                    unrolled_circ_block = dag_to_circuit(unrolled_dag_block)
+                    unrolled_blocks.append(unrolled_circ_block)
+                node.op = node.op.replace_blocks(unrolled_blocks)
+                continue
             # TODO: allow choosing other possible decompositions
             rule = node.op.definition.data
             if not rule:
