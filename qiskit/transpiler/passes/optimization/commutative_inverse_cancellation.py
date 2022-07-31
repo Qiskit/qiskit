@@ -45,9 +45,7 @@ class CommutativeInverseCancellation(TransformationPass):
         Returns:
             DAGCircuit: Transformed DAG.
         """
-        topo_sorted_nodes = []
-        for node in dag.topological_op_nodes():
-            topo_sorted_nodes.append(node)
+        topo_sorted_nodes = list(dag.topological_op_nodes())
 
         circ_size = len(topo_sorted_nodes)
 
