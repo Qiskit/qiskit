@@ -65,6 +65,9 @@ class TwoLocal(NLocal):
       for all :math:`i \in \{n-2, n-3, ... , 1, 0\}`, where :math:`n` is the total number of qubits.
       Note that if ``entanglement_blocks = 'cx'`` then this option provides the same unitary as
       ``'full'`` with fewer entangling gates.
+    * ``'pairwise'`` entanglement is one layer where qubit :math:`i` is entangled with qubit
+      :math:`i + 1`, for all even values of :math:`i`, and then a second layer where qubit :math:`i`
+      is entangled with qubit :math:`i + 1`, for all odd values of :math:`i`.
     * ``'circular'`` entanglement is linear entanglement but with an additional entanglement of the
       first and last qubit before the linear part.
     * ``'sca'`` (shifted-circular-alternating) entanglement is a generalized and modified version
