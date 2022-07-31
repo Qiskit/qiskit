@@ -54,7 +54,6 @@ class CommutativeInverseCancellation(TransformationPass):
         from .commutation_checker import CommutationChecker
 
         cc = CommutationChecker()
-        # cc.print()
 
         for idx1 in range(0, circ_size):
             if self._skip_node(topo_sorted_nodes[idx1]):
