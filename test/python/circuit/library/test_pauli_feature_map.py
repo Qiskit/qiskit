@@ -153,7 +153,7 @@ class TestDataPreparation(QiskitTestCase):
 
         self.assertTrue(Operator(encoding).equiv(ref))
 
-    @combine(entanglement=['linear', 'reverse_linear', 'pairwise'])
+    @combine(entanglement=["linear", "reverse_linear", "pairwise"])
     def test_zz_entanglement(self, entanglement):
         """Test the ZZ feature map works with pairwise, linear and reverse_linear entanglement."""
         num_qubits = 5
