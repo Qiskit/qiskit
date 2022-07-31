@@ -902,7 +902,7 @@ class TestTwoLocal(QiskitTestCase):
         self.assertEqual(two_np32.decompose().count_ops()["cx"], expected_cx)
         self.assertEqual(two_np64.decompose().count_ops()["cx"], expected_cx)
 
-    @combine(num_qubits=[3, 4, 5, 6, 10])
+    @combine(num_qubits=[4, 5])
     def test_full_vs_reverse_linear(self, num_qubits):
         """Test that 'full' and 'reverse_linear' provide the same unitary element."""
         reps = 2
