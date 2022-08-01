@@ -55,22 +55,23 @@ Here is an example of how sampler is used.
     bell.measure_all()
 
     # executes a Bell circuit
-    with Sampler(circuits=[bell], parameters=[[]]) as sampler:
-        result = sampler(parameters=[[]], circuits=[0])
-        print([q.binary_probabilities() for q in result.quasi_dists])
+    sampler = Sampler(circuits=[bell], parameters=[[]])
+    result = sampler.run(circuits=[0], parameters=[[]]).result()
+    print([q.binary_probabilities() for q in result.quasi_dists])
 
     # executes three Bell circuits
-    with Sampler([bell]*3, [[]] * 3) as sampler:
-        result = sampler([0, 1, 2], [[]]*3)
-        print([q.binary_probabilities() for q in result.quasi_dists])
+    # Argument `parameters` is optional.
+    sampler = Sampler([bell]*3)
+    result = sampler.run([0, 1, 2], [[]]*3).result()
+    print([q.binary_probabilities() for q in result.quasi_dists])
 
     # executes three Bell circuits with objects.
     # Objects can be passed instead of indices.
     # Note that passing objects has an overhead
     # since the corresponding indices need to be searched.
-    with Sampler([bell]) as sampler:
-        result = sampler([bell, bell, bell])
-        print([q.binary_probabilities() for q in result.quasi_dists])
+    sanpler = Sampler([bell])
+    result = sampler.run([bell, bell, bell]).result()
+    print([q.binary_probabilities() for q in result.quasi_dists])
 
     # parameterized circuit
     pqc = RealAmplitudes(num_qubits=2, reps=2)
@@ -82,18 +83,18 @@ Here is an example of how sampler is used.
     theta2 = [1, 2, 3, 4, 5, 6]
     theta3 = [0, 1, 2, 3, 4, 5, 6, 7]
 
-    with Sampler(circuits=[pqc, pqc2], parameters=[pqc.parameters, pqc2.parameters]) as sampler:
-        result = sampler([0, 0, 1], [theta1, theta2, theta3])
+    sampler = Sampler(circuits=[pqc], parameters=[pqc.parameters])
+    # User can append a new quantum circuit like the following `pqc2`.
+    result = sampler.run([0, 0, pqc2], [theta1, theta2, theta3]).result()
 
-        # result of pqc(theta1)
-        print(result.quasi_dists[0].binary_probabilities())
+    # result of pqc(theta1)
+    print(result.quasi_dists[0].binary_probabilities())
 
-        # result of pqc(theta2)
-        print(result.quasi_dists[1].binary_probabilities())
+    # result of pqc(theta2)
+    print(result.quasi_dists[1].binary_probabilities())
 
-        # result of pqc2(theta3)
-        print(result.quasi_dists[2].binary_probabilities())
-
+    # result of pqc2(theta3)
+    print(result.quasi_dists[2].binary_probabilities())
 """
 from __future__ import annotations
 

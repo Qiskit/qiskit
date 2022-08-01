@@ -23,6 +23,7 @@ from qiskit.circuit import Parameter
 from qiskit.circuit.library import RealAmplitudes
 from qiskit.exceptions import QiskitError
 from qiskit.primitives import Sampler, SamplerResult
+from qiskit.providers import JobV1
 from qiskit.test import QiskitTestCase
 
 
@@ -46,8 +47,15 @@ class TestSampler(QiskitTestCase):
         ]
         self._pqc = RealAmplitudes(num_qubits=2, reps=2)
         self._pqc.measure_all()
+        self._pqc2 = RealAmplitudes(num_qubits=2, reps=3)
+        self._pqc2.measure_all()
         self._pqc_params = [[0.0] * 6, [1.0] * 6]
         self._pqc_target = [{0: 1}, {0: 0.0148, 1: 0.3449, 2: 0.0531, 3: 0.5872}]
+        self._theta = [
+            [0, 1, 1, 2, 3, 5],
+            [1, 2, 3, 4, 5, 6],
+            [0, 1, 2, 3, 4, 5, 6, 7],
+        ]
 
     def _generate_circuits_target(self, indices):
         if isinstance(indices, list):
@@ -69,6 +77,8 @@ class TestSampler(QiskitTestCase):
         return params, target
 
     def _compare_probs(self, prob, target):
+        if not isinstance(prob, list):
+            prob = [prob]
         if not isinstance(target, list):
             target = [target]
         self.assertEqual(len(prob), len(target))
@@ -438,6 +448,300 @@ class TestSampler(QiskitTestCase):
         with self.assertWarns(DeprecationWarning):
             result_42 = sampler([0], parameter_values=[[0, 1, 1, 2, 3, 5]], shots=None, seed=42)
             result_15 = sampler([0], parameter_values=[[0, 1, 1, 2, 3, 5]], shots=None, seed=15)
+        self.assertDictAlmostEqual(result_42.quasi_dists, result_15.quasi_dists)
+
+    def test_sampler_run(self):
+        """Test Sampler.run()."""
+        bell = self._circuit[1]
+        sampler = Sampler(circuits=[bell], parameters=[[]])
+        job = sampler.run(circuits=[0], parameters=[[]])
+        self.assertIsInstance(job, JobV1)
+        result = job.result()
+        self.assertIsInstance(result, SamplerResult)
+        # print([q.binary_probabilities() for q in result.quasi_dists])
+        self._compare_probs(result.quasi_dists, self._target[1])
+
+    def test_sample_run_multiple_circuits(self):
+        """Test Sampler.run() with multiple circuits."""
+        # executes three Bell circuits
+        # Argument `parameters` is optional.
+        bell = self._circuit[1]
+        sampler = Sampler([bell] * 3)
+        result = sampler.run([0, 1, 2], [[]] * 3).result()
+        # print([q.binary_probabilities() for q in result.quasi_dists])
+        self._compare_probs(result.quasi_dists[0], self._target[1])
+        self._compare_probs(result.quasi_dists[1], self._target[1])
+        self._compare_probs(result.quasi_dists[2], self._target[1])
+
+    def test_sampler_run_with_objects(self):
+        """Test Sampler.run() passing objects."""
+        # executes three Bell circuits with objects.
+        # Objects can be passed instead of indices.
+        # Note that passing objects has an overhead
+        # since the corresponding indices need to be searched.
+        bell = self._circuit[1]
+        sampler = Sampler([bell])
+        result = sampler.run([bell, bell, bell]).result()
+        # print([q.binary_probabilities() for q in result.quasi_dists])
+        self._compare_probs(result.quasi_dists[0], self._target[1])
+        self._compare_probs(result.quasi_dists[1], self._target[1])
+        self._compare_probs(result.quasi_dists[2], self._target[1])
+
+    def test_sampler_run_with_parameterized_circuits(self):
+        """Test Sampler.run() with parameterized circuits."""
+        # parameterized circuit
+
+        pqc = self._pqc
+        pqc2 = self._pqc2
+        theta1 = self._theta[0]
+        theta2 = self._theta[1]
+        theta3 = self._theta[2]
+
+        sampler = Sampler(circuits=[pqc], parameters=[pqc.parameters])
+        # User can append a new quantum circuit like the following `pqc2`.
+        result = sampler.run([0, 0, pqc2], [theta1, theta2, theta3]).result()
+
+        # result of pqc(theta1)
+        prob1 = {
+            "00": 0.1309248462975777,
+            "01": 0.3608720796028448,
+            "10": 0.09324865232050054,
+            "11": 0.41495442177907715,
+        }
+        self.assertDictAlmostEqual(result.quasi_dists[0].binary_probabilities(), prob1)
+
+        # result of pqc(theta2)
+        prob2 = {
+            "00": 0.06282290651933871,
+            "01": 0.02877144385576705,
+            "10": 0.606654494132085,
+            "11": 0.3017511554928094,
+        }
+        self.assertDictAlmostEqual(result.quasi_dists[1].binary_probabilities(), prob2)
+
+        # result of pqc2(theta3)
+        prob3 = {
+            "00": 0.1880263994380416,
+            "01": 0.6881971261189544,
+            "10": 0.09326232720582443,
+            "11": 0.030514147237179892,
+        }
+        self.assertDictAlmostEqual(result.quasi_dists[2].binary_probabilities(), prob3)
+
+    def test_sampler_run_param_order(self):
+        """test for sampler with different parameter orders"""
+        x = Parameter("x")
+        y = Parameter("y")
+
+        qc = QuantumCircuit(3, 3)
+        qc.rx(x, 0)
+        qc.rx(y, 1)
+        qc.x(2)
+        qc.measure(0, 0)
+        qc.measure(1, 1)
+        qc.measure(2, 2)
+
+        sampler = Sampler([qc, qc], [[x, y], [y, x]])
+        result = sampler.run(
+            [0, 1, 0, 1], [[0, 0], [0, 0], [np.pi / 2, 0], [np.pi / 2, 0]]
+        ).result()
+        self.assertIsInstance(result, SamplerResult)
+        self.assertEqual(len(result.quasi_dists), 4)
+
+        # qc({x: 0, y: 0})
+        keys, values = zip(*sorted(result.quasi_dists[0].items()))
+        self.assertTupleEqual(keys, tuple(range(8)))
+        np.testing.assert_allclose(values, [0, 0, 0, 0, 1, 0, 0, 0])
+
+        # qc({x: 0, y: 0})
+        keys, values = zip(*sorted(result.quasi_dists[1].items()))
+        self.assertTupleEqual(keys, tuple(range(8)))
+        np.testing.assert_allclose(values, [0, 0, 0, 0, 1, 0, 0, 0])
+
+        # qc({x: pi/2, y: 0})
+        keys, values = zip(*sorted(result.quasi_dists[2].items()))
+        self.assertTupleEqual(keys, tuple(range(8)))
+        np.testing.assert_allclose(values, [0, 0, 0, 0, 0.5, 0.5, 0, 0])
+
+        # qc({x: 0, y: pi/2})
+        keys, values = zip(*sorted(result.quasi_dists[3].items()))
+        self.assertTupleEqual(keys, tuple(range(8)))
+        np.testing.assert_allclose(values, [0, 0, 0, 0, 0.5, 0, 0.5, 0])
+
+    def test_sampler_run_reverse_meas_order(self):
+        """test for sampler with reverse measurement order"""
+        x = Parameter("x")
+        y = Parameter("y")
+
+        qc = QuantumCircuit(3, 3)
+        qc.rx(x, 0)
+        qc.rx(y, 1)
+        qc.x(2)
+        qc.measure(0, 2)
+        qc.measure(1, 1)
+        qc.measure(2, 0)
+
+        sampler = Sampler([qc, qc], [[x, y], [y, x]])
+        result = sampler.run(
+            [0, 1, 0, 1], [[0, 0], [0, 0], [np.pi / 2, 0], [np.pi / 2, 0]]
+        ).result()
+        self.assertIsInstance(result, SamplerResult)
+        self.assertEqual(len(result.quasi_dists), 4)
+
+        # qc({x: 0, y: 0})
+        keys, values = zip(*sorted(result.quasi_dists[0].items()))
+        self.assertTupleEqual(keys, tuple(range(8)))
+        np.testing.assert_allclose(values, [0, 1, 0, 0, 0, 0, 0, 0])
+
+        # qc({x: 0, y: 0})
+        keys, values = zip(*sorted(result.quasi_dists[1].items()))
+        self.assertTupleEqual(keys, tuple(range(8)))
+        np.testing.assert_allclose(values, [0, 1, 0, 0, 0, 0, 0, 0])
+
+        # qc({x: pi/2, y: 0})
+        keys, values = zip(*sorted(result.quasi_dists[2].items()))
+        self.assertTupleEqual(keys, tuple(range(8)))
+        np.testing.assert_allclose(values, [0, 0.5, 0, 0, 0, 0.5, 0, 0])
+
+        # qc({x: 0, y: pi/2})
+        keys, values = zip(*sorted(result.quasi_dists[3].items()))
+        self.assertTupleEqual(keys, tuple(range(8)))
+        np.testing.assert_allclose(values, [0, 0.5, 0, 0.5, 0, 0, 0, 0])
+
+    def test_run_1qubit(self):
+        """test for 1-qubit cases"""
+        qc = QuantumCircuit(1)
+        qc.measure_all()
+        qc2 = QuantumCircuit(1)
+        qc2.x(0)
+        qc2.measure_all()
+
+        sampler = Sampler([qc, qc2], [qc.parameters, qc2.parameters])
+        result = sampler.run([0, 1], [[]] * 2).result()
+        self.assertIsInstance(result, SamplerResult)
+        self.assertEqual(len(result.quasi_dists), 2)
+
+        keys, values = zip(*sorted(result.quasi_dists[0].items()))
+        self.assertTupleEqual(keys, tuple(range(2)))
+        np.testing.assert_allclose(values, [1, 0])
+
+        keys, values = zip(*sorted(result.quasi_dists[1].items()))
+        self.assertTupleEqual(keys, tuple(range(2)))
+        np.testing.assert_allclose(values, [0, 1])
+
+    def test_run_2qubit(self):
+        """test for 2-qubit cases"""
+        qc0 = QuantumCircuit(2)
+        qc0.measure_all()
+        qc1 = QuantumCircuit(2)
+        qc1.x(0)
+        qc1.measure_all()
+        qc2 = QuantumCircuit(2)
+        qc2.x(1)
+        qc2.measure_all()
+        qc3 = QuantumCircuit(2)
+        qc3.x([0, 1])
+        qc3.measure_all()
+
+        sampler = Sampler(
+            [qc0, qc1, qc2, qc3], [qc0.parameters, qc1.parameters, qc2.parameters, qc3.parameters]
+        )
+        result = sampler.run([0, 1, 2, 3], [[]] * 4).result()
+        self.assertIsInstance(result, SamplerResult)
+        self.assertEqual(len(result.quasi_dists), 4)
+
+        keys, values = zip(*sorted(result.quasi_dists[0].items()))
+        self.assertTupleEqual(keys, tuple(range(4)))
+        np.testing.assert_allclose(values, [1, 0, 0, 0])
+
+        keys, values = zip(*sorted(result.quasi_dists[1].items()))
+        self.assertTupleEqual(keys, tuple(range(4)))
+        np.testing.assert_allclose(values, [0, 1, 0, 0])
+
+        keys, values = zip(*sorted(result.quasi_dists[2].items()))
+        self.assertTupleEqual(keys, tuple(range(4)))
+        np.testing.assert_allclose(values, [0, 0, 1, 0])
+
+        keys, values = zip(*sorted(result.quasi_dists[3].items()))
+        self.assertTupleEqual(keys, tuple(range(4)))
+        np.testing.assert_allclose(values, [0, 0, 0, 1])
+
+    def test_run_errors(self):
+        """Test for errors"""
+        qc1 = QuantumCircuit(1)
+        qc1.measure_all()
+        qc2 = RealAmplitudes(num_qubits=1, reps=1)
+        qc2.measure_all()
+
+        sampler = Sampler([qc1, qc2], [qc1.parameters, qc2.parameters])
+        with self.assertRaises(QiskitError):
+            sampler.run([0], [[1e2]]).result()
+        with self.assertRaises(QiskitError):
+            sampler.run([1], [[]]).result()
+        with self.assertRaises(QiskitError):
+            sampler.run([1], [[1e2]]).result()
+
+    def test_run_empty_parameter(self):
+        """Test for empty parameter"""
+        n = 5
+        qc = QuantumCircuit(n, n - 1)
+        qc.measure(range(n - 1), range(n - 1))
+        sampler = Sampler(circuits=[qc] * 10)
+        with self.subTest("one circuit"):
+            result = sampler.run([0], shots=1000).result()
+            self.assertEqual(len(result.quasi_dists), 1)
+            for q_d in result.quasi_dists:
+                quasi_dist = {k: v for k, v in q_d.items() if v != 0.0}
+                self.assertDictEqual(quasi_dist, {0: 1.0})
+            self.assertEqual(len(result.metadata), 1)
+
+        with self.subTest("two circuits"):
+            result = sampler.run([2, 4], shots=1000).result()
+            self.assertEqual(len(result.quasi_dists), 2)
+            for q_d in result.quasi_dists:
+                quasi_dist = {k: v for k, v in q_d.items() if v != 0.0}
+                self.assertDictEqual(quasi_dist, {0: 1.0})
+            self.assertEqual(len(result.metadata), 2)
+
+    def test_run_numpy_params(self):
+        """Test for numpy array as parameter values"""
+        qc = RealAmplitudes(num_qubits=2, reps=2)
+        qc.measure_all()
+        k = 5
+        params_array = np.random.rand(k, qc.num_parameters)
+        params_list = params_array.tolist()
+        params_list_array = list(params_array)
+        sampler = Sampler(circuits=qc)
+        target = sampler.run([0] * k, params_list).result()
+
+        with self.subTest("ndarrary"):
+            result = sampler.run([0] * k, params_array).result()
+            self.assertEqual(len(result.metadata), k)
+            for i in range(k):
+                self.assertDictEqual(result.quasi_dists[i], target.quasi_dists[i])
+
+        with self.subTest("list of ndarray"):
+            result = sampler.run([0] * k, params_list_array).result()
+            self.assertEqual(len(result.metadata), k)
+            for i in range(k):
+                self.assertDictEqual(result.quasi_dists[i], target.quasi_dists[i])
+
+    def test_run_with_shots_option(self):
+        """test with shots option."""
+        params, target = self._generate_params_target([1])
+        sampler = Sampler(circuits=self._pqc)
+        result = sampler.run(circuits=[0], parameter_values=params, shots=1024, seed=15).result()
+        self._compare_probs(result.quasi_dists, target)
+
+    def test_run_with_shots_option_none(self):
+        """test with shots=None option. Seed is ignored then."""
+        sampler = Sampler([self._pqc])
+        result_42 = sampler.run(
+            [0], parameter_values=[[0, 1, 1, 2, 3, 5]], shots=None, seed=42
+        ).result()
+        result_15 = sampler.run(
+            [0], parameter_values=[[0, 1, 1, 2, 3, 5]], shots=None, seed=15
+        ).result()
         self.assertDictAlmostEqual(result_42.quasi_dists, result_15.quasi_dists)
 
 

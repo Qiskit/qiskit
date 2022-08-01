@@ -74,39 +74,34 @@ Here is an example of how estimator is used.
     H2 = SparsePauliOp.from_list([("IZ", 1)])
     H3 = SparsePauliOp.from_list([("ZI", 1), ("ZZ", 1)])
 
-    with Estimator([psi1, psi2], [H1, H2, H3], [params1, params2]) as e:
-        theta1 = [0, 1, 1, 2, 3, 5]
-        theta2 = [0, 1, 1, 2, 3, 5, 8, 13]
-        theta3 = [1, 2, 3, 4, 5, 6]
+    theta1 = [0, 1, 1, 2, 3, 5]
+    theta2 = [0, 1, 1, 2, 3, 5, 8, 13]
+    theta3 = [1, 2, 3, 4, 5, 6]
 
-        # calculate [ <psi1(theta1)|H1|psi1(theta1)> ]
-        result = e([0], [0], [theta1])
-        print(result)
+    estimator = Estimator([psi1], [H1], [params1])
 
-        # calculate [ <psi1(theta1)|H2|psi1(theta1)>, <psi1(theta1)|H3|psi1(theta1)> ]
-        result2 = e([0, 0], [1, 2], [theta1]*2)
-        print(result2)
+    # Specify the circuit and observable by indices.
+    # calculate [ <psi1(theta1)|H1|psi1(theta1)> ]
+    result = estimator.run([0], [0], [theta1]).result()
+    print(result)
 
-        # calculate [ <psi2(theta2)|H2|psi2(theta2)> ]
-        result3 = e([1], [1], [theta2])
-        print(result3)
+    # Objects can be passed instead of indices.
+    # Note that passing objects has an overhead
+    # since the corresponding indices need to be searched.
+    # User can append a circuit and observable.
+    # calculate [ <psi2(theta2)|H2|psi2(theta2)> ]
+    result2 = estimator.run([psi2], [H1], [theta2]).result()
+    print(result2)
 
-        # calculate [ <psi1(theta1)|H1|psi1(theta1)>, <psi1(theta3)|H1|psi1(theta3)> ]
-        result4 = e([0, 0], [0, 0], [theta1, theta3])
-        print(result4)
+    # calculate [ <psi1(theta1)|H2|psi1(theta1)>, <psi1(theta1)|H3|psi1(theta1)> ]
+    result3 = estimator.run([0, 0], [H2, H3], [theta1]*2).result()
+    print(result3)
 
-        # calculate [ <psi1(theta1)|H1|psi1(theta1)>,
-        #             <psi2(theta2)|H2|psi2(theta2)>,
-        #             <psi1(theta3)|H3|psi1(theta3)> ]
-        result5 = e([0, 1, 0], [0, 1, 2], [theta1, theta2, theta3])
-        print(result5)
-
-        # Objects can be passed instead of indices.
-        # calculate [ <psi2(theta2)|H2|psi2(theta2)> ]
-        # Note that passing objects has an overhead
-        # since the corresponding indices need to be searched.
-        result6 = e([psi2], [H2], [theta2])
-        print(result6)
+    # calculate [ <psi1(theta1)|H1|psi1(theta1)>,
+    #             <psi2(theta2)|H2|psi2(theta2)>,
+    #             <psi1(theta3)|H3|psi1(theta3)> ]
+    result4 estimator.run([0, 1, 0], [0, 1, 2], [theta1, theta2, theta3]).result()
+    print(result4)
 """
 from __future__ import annotations
 
