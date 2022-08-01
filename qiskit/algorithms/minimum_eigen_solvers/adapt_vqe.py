@@ -26,7 +26,8 @@ from qiskit.algorithms.list_or_dict import ListOrDict
 from qiskit.algorithms.minimum_eigen_solvers.vqe import VQEResult
 from qiskit.algorithms import VariationalAlgorithm
 from qiskit.circuit import QuantumCircuit
-from qiskit.opflow import OperatorBase, PauliSumOp, CircuitSampler
+from qiskit.opflow import OperatorBase, PauliSumOp, ExpectationFactory, StateFn
+from qiskit.opflow.expectations.expectation_base import ExpectationBase
 from qiskit.opflow.gradients import GradientBase, Gradient
 from qiskit.circuit.library import EvolvedOperatorAnsatz
 from qiskit.utils.validation import validate_min
@@ -102,7 +103,8 @@ class AdaptVQE(VariationalAlgorithm):
         self,
         theta: List[float],
         operator: OperatorBase,
-    ) -> List[Tuple[float, PauliSumOp]]:
+        expectation: ExpectationBase,
+    ) -> List[Tuple[complex, complex]]:
         """
         Computes the gradients for all available excitation operators.
 
@@ -112,27 +114,19 @@ class AdaptVQE(VariationalAlgorithm):
         Returns:
             List of pairs consisting of the computed gradient and excitation operator.
         """
-        res = []
-        # compute gradients for all excitation in operator pool
-        sampler = CircuitSampler(self._solver.quantum_instance)
+        commutators = []
         for exc in self._excitation_pool:
-            # add next excitation to ansatz
-            self._tmp_ansatz.operators = self._excitation_list + [exc]
-            # the ansatz needs to be decomposed for the gradient to work
-            self._solver.ansatz = self._tmp_ansatz.decompose()
-            param_sets = list(self._solver.ansatz.parameters)
-            # zip will only iterate the length of the shorter list
-            parameter = dict(zip(self._solver.ansatz.parameters, theta))
-            op, expectation = self._solver.construct_expectation(
-                parameter, operator, return_expectation=True
-            )
-            # compute gradient
-            state_grad = self._adapt_gradient.convert(operator=op, params=param_sets)
-            # Assign the parameters and evaluate the gradient
-            state_grad_result = sampler.convert(state_grad, params={param_sets[-1]: 0.0}).eval()
-            logger.info("Gradient computed : %s", str(state_grad_result))
-            res.append((np.abs(state_grad_result[-1]), exc))
-        return res, expectation
+            # The excitations operators are applied later as exp(i*theta*excitation).
+            # For this commutator, we need to explicitly pull in the imaginary phase.
+            commutator = 1j * ((operator @ exc) - (exc @ operator)).reduce()
+            commutators.append(commutator)
+
+        wave_function = self._solver.ansatz.assign_parameters(theta)
+
+        res = eval_observables(
+            self._solver.quantum_instance, wave_function, commutators, expectation
+        )
+        return res
 
     @staticmethod
     def _check_cyclicity(indices: List[int]) -> bool:
@@ -209,12 +203,24 @@ class AdaptVQE(VariationalAlgorithm):
         """
         if not isinstance(self._tmp_ansatz, EvolvedOperatorAnsatz):
             raise QiskitError("The AdaptVQE ansatz must be of the EvolvedOperatorAnsatz type.")
+
         if self._solver.quantum_instance is None:
             raise AlgorithmError(
                 "A QuantumInstance or Backend must be supplied to run the quantum algorithm."
             )
-        # We construct the ansatz once to be able to extract the full set of excitation operators.
-        self._tmp_ansatz._build()
+
+        # construct the expectation
+        if self._solver.expectation is None:
+            expectation = ExpectationFactory.build(
+                operator=operator,
+                backend=self._solver.quantum_instance,
+                include_custom=self._solver.include_custom,
+            )
+        else:
+            expectation = self._solver.expectation
+
+        # Overwrite the solver's ansatz with the initial state
+        self._solver.ansatz = self._tmp_ansatz.initial_state
 
         prev_op_indices: List[int] = []
         theta: List[float] = []
@@ -225,7 +231,7 @@ class AdaptVQE(VariationalAlgorithm):
             iteration += 1
             logger.info("--- Iteration #%s ---", str(iteration))
             # compute gradients
-            cur_grads, expectation = self._compute_gradients(theta, operator)
+            cur_grads = self._compute_gradients(theta, operator, expectation)
             # pick maximum gradient
             max_grad_index, max_grad = max(
                 enumerate(cur_grads), key=lambda item: np.abs(item[1][0])
@@ -251,7 +257,7 @@ class AdaptVQE(VariationalAlgorithm):
                 termination_criterion = TerminationCriterion.CYCLICITY
                 break
             # add new excitation to self._ansatz
-            self._excitation_list.append(max_grad[1])
+            self._excitation_list.append(self._excitation_pool[max_grad_index])
             theta.append(0.0)
             # run VQE on current Ansatz
             self._tmp_ansatz.operators = self._excitation_list
@@ -276,10 +282,10 @@ class AdaptVQE(VariationalAlgorithm):
 
         # once finished evaluate auxiliary operators if any
         if aux_operators is not None:
-            bound_ansatz = self._tmp_ansatz.bind_parameters(result.optimal_point)
+            bound_ansatz = self._solver.ansatz.bind_parameters(result.optimal_point)
 
             aux_values = eval_observables(
-                self._solver.quantum_instance, bound_ansatz, aux_operators, expectation=expectation
+                self._solver.quantum_instance, bound_ansatz, aux_operators, expectation
             )
             result.aux_operator_eigenvalues = aux_values
         else:
