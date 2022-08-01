@@ -16,8 +16,10 @@ Gradient of probabilities with parameter shift
 from __future__ import annotations
 
 from copy import copy, deepcopy
-from collections import Counter, defaultdict
+from collections import Iterable, Counter, defaultdict
 from dataclasses import dataclass
+from email.mime import base
+from hashlib import new
 from typing import Sequence, Type
 
 import numpy as np
@@ -28,13 +30,13 @@ from qiskit.result import QuasiDistribution
 
 from ..base_sampler import BaseSampler
 from ..sampler_result import SamplerResult
+from ..utils import init_circuit
 
-
-@dataclass
-class SubSampler:
-    coeff: float | ParameterExpression
-    circuit: QuantumCircuit
-    index: int
+# @dataclass
+# class SubSampler:
+#     coeff: float | ParameterExpression
+#     circuit: QuantumCircuit
+#     index: int
 
 #dataclass for g_circuit作って
 #base_parameter_values_listとかcoeff_listとか全部入れた方がいいかも
@@ -44,22 +46,29 @@ class ParamShiftSamplerGradientUniqueParameters:
 
     SUPPORTED_GATES = ["x", "y", "z", "h", "rx", "ry", "rz", "p", "cx", "cy", "cz"]
 
-    def __init__(self, sampler: Type[BaseSampler], circuit: QuantumCircuit):
-        self._circuit = circuit
+    def __init__(self, sampler: Type[BaseSampler], circuits: QuantumCircuit | Iterable[QuantumCircuit]):
+        if isinstance(circuits, QuantumCircuit):
+            circuits = (circuits,)
+        circuits = tuple(init_circuit(circuit) for circuit in circuits)
+
+        self._circuits = circuits
         self._g_circuit_dict = {}
-        self._rebuild_circuit_with_unique_parameters(circuit)
-        return
+        self._rebuild_circuits_with_unique_parameters()
+        self._prepare_base_parameter_values()
+        # TODO: this should be modified to add new gradient circuits after new primitives change
+        self._sampler = sampler(circuits=[self._g_circuit_dict[i]['g_circuit'] for i in range(len(circuits))])
+#        print(self._sampler)
+#        return
+        # self._same_param_dict = defaultdict(list)
+        # self._grad = self._preprocessing()
+        # circuits = [self._circuit]
+        # #print('self._glad: ',self._grad.items())
+        # for param, lst in self._grad.items():
+        #     #print(param, lst)
+        #     for arg in lst:
+        #         circuits.append(arg.circuit)
 
-        self._same_param_dict = defaultdict(list)
-        self._grad = self._preprocessing()
-        circuits = [self._circuit]
-        #print('self._glad: ',self._grad.items())
-        for param, lst in self._grad.items():
-            #print(param, lst)
-            for arg in lst:
-                circuits.append(arg.circuit)
 
-        self._sampler = sampler(circuits=circuits)
 
     def __enter__(self):
         return self
@@ -67,158 +76,174 @@ class ParamShiftSamplerGradientUniqueParameters:
     def __exit__(self, *exc_info):
         pass
 
-    def _rebuild_circuit_with_unique_parameters(self, circuit):
-        g_circuit = circuit.copy_empty_like(f'g_{circuit.name}')
-        param_inst_dict = defaultdict(list)
-        parameter_map = defaultdict(list)
-        coef_map = {}
+    def _rebuild_circuits_with_unique_parameters(self):
+        for circuit_idx, circuit in enumerate(self._circuits):
+            g_circuit = circuit.copy_empty_like(f'g_{circuit.name}')
+            param_inst_dict = defaultdict(list)
+            parameter_map = defaultdict(list)
+            coeff_map = {}
 
-        for inst in circuit.data:
-            new_inst = deepcopy(inst)
-            qubit_idx = circuit.qubits.index(inst[1][0])
-            new_inst.qubits = (g_circuit.qubits[qubit_idx],)
+            for inst in circuit.data:
+                new_inst = deepcopy(inst)
+                qubit_idx = circuit.qubits.index(inst[1][0])
+                new_inst.qubits = (g_circuit.qubits[qubit_idx],)
 
-            # Assign new unique parameters when the instruction is a parameterized.
-            if inst.operation.is_parameterized():
-                parameters = inst.operation.params
-                new_inst_parameters = []
-                # For a gate with multiple parameters e.g. a u gate
-                for parameter in parameters:
-                    subs_map = {}
-                    # For a gate parameter with multiple parameter variables.
-                    # e.g. ry(θ) with θ = (2x + y)
-                    for parameter_variable in parameter.parameters:
-                        if parameter_variable in param_inst_dict:
-                            new_parameter_variable = Parameter(f'g{parameter_variable.name}_{len(param_inst_dict[parameter_variable])+1})')
-                        else:
-                            new_parameter_variable = Parameter(f'g{parameter_variable.name}_1')
-                        subs_map[parameter_variable] = new_parameter_variable
-                        param_inst_dict[parameter_variable].append(inst)
-                        parameter_map[parameter_variable].append(new_parameter_variable)
-                        # Coefficient to calculate derivative i.e. dt/dw in df/dt * dt/dw
-                        coef_map[new_parameter_variable] = parameter.gradient(parameter_variable)
-                    # Substitute the parameter variables with the corresponding new parameter variables in ``subs_map``.
-                    new_parameter = parameter.subs(subs_map)
-                    new_inst_parameters.append(new_parameter)
-                new_inst.operation.params = new_inst_parameters
-            g_circuit.append(new_inst)
-        print(g_circuit.draw())
-        self._g_circuit_dict[circuit] = {'g_circuit': g_circuit,'parameter_map': parameter_map, 'coef_map': coef_map}
+                # Assign new unique parameters when the instruction is a parameterized.
+                if inst.operation.is_parameterized():
+                    parameters = inst.operation.params
+                    new_inst_parameters = []
+                    # For a gate with multiple parameters e.g. a U gate
+                    for parameter in parameters:
+                        subs_map = {}
+                        # For a gate parameter with multiple parameter variables.
+                        # e.g. ry(θ) with θ = (2x + y)
+                        for parameter_variable in parameter.parameters:
+                            if parameter_variable in param_inst_dict:
+                                new_parameter_variable = Parameter(f'g{parameter_variable.name}_{len(param_inst_dict[parameter_variable])+1}')
+                            else:
+                                new_parameter_variable = Parameter(f'g{parameter_variable.name}_1')
+                            subs_map[parameter_variable] = new_parameter_variable
+                            param_inst_dict[parameter_variable].append(inst)
+                            parameter_map[parameter_variable].append(new_parameter_variable)
+                            # Coefficient to calculate derivative i.e. dt/dw in df/dt * dt/dw
+                            coeff_map[new_parameter_variable] = parameter.gradient(parameter_variable)
+                        # Substitute the parameter variables with the corresponding new parameter variables in ``subs_map``.
+                        new_parameter = parameter.subs(subs_map)
+                        new_inst_parameters.append(new_parameter)
+                        print(new_inst_parameters)
+                    new_inst.operation.params = new_inst_parameters
+                g_circuit.append(new_inst)
+                print(new_inst)
+            # for global phase
+            subs_map = {}
+            if isinstance(g_circuit.global_phase, ParameterExpression):
+                for parameter_variable in g_circuit.global_phase.parameters:
+                    if parameter_variable in param_inst_dict:
+                        new_parameter_variable = parameter_map[parameter_variable][0]
+                    else:
+                        new_parameter_variable = Parameter(f'g{parameter_variable.name}_1')
+                    subs_map[parameter_variable] = new_parameter_variable
+                g_circuit.global_phase = g_circuit.global_phase.subs(subs_map)
+            print(g_circuit.draw())
+            print(g_circuit.num_parameters)
+            self._g_circuit_dict[circuit_idx] = {'g_circuit': g_circuit,'parameter_map': parameter_map, 'coeff_map': coeff_map}
 
-    def _prepare_base_parameter_values(self, circuit):
+
+    def _prepare_base_parameter_values(self):
         # construct internal parameter values for the parameter shift
-        parameter_map = self._g_circuit_dict[circuit]['parameter_map']
-        g_circuit = self._g_circuit_dict[circuit]['g_circuit']
-        coef_map =  self._g_circuit_dict[circuit]['coef_map']
-        g_param_index_map = {}
+        for circuit_idx, circuit in enumerate(self._circuits):
+            parameter_map = self._g_circuit_dict[circuit_idx]['parameter_map']
+            g_circuit = self._g_circuit_dict[circuit_idx]['g_circuit']
+            coeff_map =  self._g_circuit_dict[circuit_idx]['coeff_map']
+            g_param_index_map = {}
 
-        for i, g_param in enumerate(g_circuit.parameters):
-            g_param_index_map[g_param] = i
+            for i, g_param in enumerate(g_circuit.parameters):
+                g_param_index_map[g_param] = i
+            self._g_circuit_dict[circuit_idx]['g_param_index_map'] = g_param_index_map
 
-        base_parameter_values_list = []
-        base_coef_list = []
+            base_parameter_values = []
+            base_coeffs = []
 
-        for i, param in enumerate(circuit.parameters):
-            parameter_values_list = []
-            coef_list = []
-            for g_param in parameter_map[param]:
-                g_param_idx = g_param_index_map[g_param]
-                # for + pi/2 in the parameter shift rule
-                parameter_values_plus = [0] * len(g_circuit.parameters)
-                parameter_values_plus[g_param_idx] += np.pi/2
-                parameter_values_list.append(parameter_values_plus)
-                coef_list.append(coef_map[g_param]/2)
-                # for - pi/2 in the parameter shift rule
-                parameter_values_minus = [0] * len(g_circuit.parameters)
-                parameter_values_minus[g_param_idx] -= np.pi/2
-                parameter_values_list.append(parameter_values_minus)
-                coef_list.append(-1*coef_map[g_param]/2)
-            base_parameter_values_list.append(parameter_values_list)
-            base_coef_list.append(coef_list)
+            # for i, param in enumerate(circuit.parameters):
+            #     sub_parameter_values = []
+            #     coeffs = []
+            #     for g_param in parameter_map[param]:
+            #         # prepare base decomposed parameter values for each original parameter
+            #         g_param_idx = g_param_index_map[g_param]
+            #         # for + pi/2 in the parameter shift rule
+            #         parameter_values_plus = np.zeros(len(g_circuit.parameters))
+            #         parameter_values_plus[g_param_idx] += np.pi/2
+            #         # for - pi/2 in the parameter shift rule
+            #         parameter_values_minus = np.zeros(len(g_circuit.parameters))
+            #         parameter_values_minus[g_param_idx] -= np.pi/2
+            #         sub_parameter_values.append((parameter_values_plus, parameter_values_minus))
+            #         coeffs.append((coeff_map[g_param]/2, -1*coeff_map[g_param]/2))
+            #     base_parameter_values.append(sub_parameter_values)
+            #     base_coeffs.append(coeffs)
+            for i, param in enumerate(circuit.parameters):
+                for g_param in parameter_map[param]:
+                    # prepare base decomposed parameter values for each original parameter
+                    g_param_idx = g_param_index_map[g_param]
+                    # for + pi/2 in the parameter shift rule
+                    parameter_values_plus = np.zeros(len(g_circuit.parameters))
+                    parameter_values_plus[g_param_idx] += np.pi/2
+                    base_parameter_values.append(parameter_values_plus)
+                    base_coeffs.append(coeff_map[g_param]/2)
+                    # for - pi/2 in the parameter shift rule
+                    parameter_values_minus = np.zeros(len(g_circuit.parameters))
+                    parameter_values_minus[g_param_idx] -= np.pi/2
+                    base_parameter_values.append(parameter_values_minus)
+                    #base_coeffs.append(-1*coeff_map[g_param]/2)
+            self._g_circuit_dict[circuit_idx]['base_parameter_values'] = base_parameter_values
+            self._g_circuit_dict[circuit_idx]['base_coeffs'] = base_coeffs
 
-        # returnじゃなくてsub classにしようかな。
-        return base_parameter_values_list, coef_list
-
-
-
-
-
-
-
-
-
-    def _preprocessing(self):
-
-        grad = self._gradient_circuits(self._circuit)
-        #print('grad: ', grad)
-        ret = {}
-        index = 1
-        for param in self._circuit.parameters:
-            lst = []
-
-            for circ, coeff in grad[param]:
-                lst.append(SubSampler(coeff=coeff, circuit=circ, index=index))
-                index += 1
-            ret[param] = lst
-        return ret
-
-    def __call__(self, parameter_values: Sequence[Sequence[float]], **run_options) -> SamplerResult:
-        return self._sampler([0], parameter_values, **run_options)
-
-    def gradient(
+    def __call__(
         self,
+        circuits: Sequence[int | QuantumCircuit],
         parameter_values: Sequence[float],
         partial: Sequence[Parameter] | None = None,
         **run_options,
     ) -> SamplerResult:
-        parameters = partial or self._circuit.parameters
+
+        circuit_idx = circuits[0]
+        g_circuit = self._g_circuit_dict[circuit_idx]['g_circuit']
+        parameter_map = self._g_circuit_dict[circuit_idx]['parameter_map']
+        g_param_index_map = self._g_circuit_dict[circuit_idx]['g_param_index_map']
+        base_coeffs = self._g_circuit_dict[circuit_idx]['base_coeffs']
+
+        parameters = partial or self._circuits[circuit_idx].parameters
 
         param_map = {}
-        for j, param in enumerate(self._circuit.parameters):
-            param_map[param] = parameter_values[j]
+        base_parameter_values_list = []
 
-        circ_indices = []
-        param_list = []
-        for param in parameters:
-            circ_indices.extend([f.index for f in self._grad[param]])
-            if len(self._grad[param]) == 2:
-                param_idx = param_map[param]
-                parameter_value_plus = parameter_values.copy()
-                parameter_value_plus[param_idx] = parameter_value_plus[param_idx] + np.pi / 2
-                param_list.append(parameter_value_plus)
-                parameter_value_minus = parameter_values.copy()
-                parameter_value_minus[param_idx] = parameter_value_minus[param_idx] - np.pi / 2
-                param_list.append(parameter_value_minus)
-            else:
-                for i in range(len(self._grad[param])):
-                    param_list.append(parameter_values)
+        g_parameter_values = np.zeros(len(g_circuit.parameters))
+        result_index = 0
+        result_index_map = {}
+        for i, param in enumerate(self._circuits[circuit_idx].parameters):
+            param_map[param] = parameter_values[i]
+            for g_param in parameter_map[param]:
+                g_param_idx = g_param_index_map[g_param]
+                g_parameter_values[g_param_idx] = parameter_values[i]
+                base_parameter_values_list.append(self._g_circuit_dict[circuit_idx]['base_parameter_values'][g_param_idx * 2])
+                base_parameter_values_list.append(self._g_circuit_dict[circuit_idx]['base_parameter_values'][g_param_idx * 2 + 1])
+                result_index_map[g_param] = result_index
+                result_index += 1
+        print('----------------------------------------------------------------')
+        g_parameter_values_list = [g_parameter_values + base_parameter_values for base_parameter_values in base_parameter_values_list]
+        print(g_parameter_values_list)
+        print(len(g_circuit.parameters))
+        for i in g_circuit.parameters:
+            print(i)
+        results = self._sampler.__call__([circuit_idx]* len(g_parameter_values_list), g_parameter_values_list)
+        print(results)
 
-        #print('param_list',param_list)
-        #results = self._sampler(circ_indices, [parameter_value] * size, **run_options)
-        results = self._sampler(circ_indices, param_list, **run_options)
-
+        # Combines the results and coefficients to reconstruct the gradient for the original circuit parameters
         param_set = set(parameters)
         dists = [Counter() for _ in range(len(parameter_values))]
         metadata = [{} for _ in range(len(parameters))]
-        i = 0
-        for j, (param, lst) in enumerate(self._grad.items()):
-            #print('j',j)
+
+        print(dists)
+
+        for i, param in enumerate(self._circuits[circuit_idx].parameters):
             if param not in param_set:
                 continue
-            for subest in lst:
-                coeff = subest.coeff
+            for g_param in parameter_map[param]:
+                g_param_idx = g_param_index_map[g_param]
+                coeff = base_coeffs[g_param_idx]
+
                 if isinstance(coeff, ParameterExpression):
-                    local_map = {param: param_map[param] for param in coeff.parameters}
+                    local_map = {p: param_map[p] for p in coeff.parameters}
                     bound_coeff = float(coeff.bind(local_map))
                 else:
                     bound_coeff = coeff
-                #print(bound_coeff)
-                #print('results.quasi_dists',results.quasi_dists)
-                dists[j].update(
-                    Counter({k: bound_coeff * v for k, v in results.quasi_dists[i].items()})
+                # plus
+                dists[i].update(
+                        Counter({k: bound_coeff * v for k, v in results.quasi_dists[result_index_map[g_param] * 2].items()})
                 )
-                #print('dists: ',dists)
-                i += 1
+                # minus
+                dists[i].update(
+                        Counter({k: -1 * bound_coeff * v for k, v in results.quasi_dists[result_index_map[g_param] * 2 + 1].items()})
+                )
 
         return SamplerResult(
             quasi_dists=[QuasiDistribution(dist) for dist in dists], metadata=metadata
