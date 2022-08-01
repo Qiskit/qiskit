@@ -1,5 +1,0 @@
----
-other:
-  - |
-    Updates documentaiton on how repeated stage names are handled in
-    :class:`qiskit.transpiler.StagedPassManager`, and adds test to check for correctness.
