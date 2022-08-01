@@ -150,7 +150,7 @@ def random_circuit(
                 shift = 0
                 condition_int = 0
                 for part in parts:
-                    ipart = (int)(part)
+                    ipart = int(part)
                     condition_int += ipart << shift
                     shift += 16
                 op.condition = (cr, condition_int)
