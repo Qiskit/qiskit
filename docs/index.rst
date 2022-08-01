@@ -85,19 +85,22 @@ Interested in running experiments on real qubits?
 Interested in quantum hardware design?
 ######################################
 
-   .. panels::
+   .. grid:: 2
 
-    Qiskit Metal
-    ^^^^^^^^^^^^^^
+    .. grid-item-card::
+        :columns: auto
 
-    .. image:: images/metal.png
-      :scale: 35 %
-      :align: center
-      :target: https://qiskit.org/documentation/metal/
+        Qiskit Metal
+        ^^^^^^^^^^^^^^
 
-    ++++++
-    :link-badge:`https://qiskit.org/metal,"Website",cls=badge-dark text-white`
-    :link-badge:`https://qiskit.org/documentation/metal/,"Documentation",cls=badge-primary text-white`
+        .. image:: images/metal.png
+          :scale: 35 %
+          :align: center
+          :target: https://qiskit.org/documentation/metal/
+
+        ++++++
+        :bdg-link-primary-line:`Website <https://qiskit.org/metal>`
+        :bdg-link-primary-line:`Documentation <https://qiskit.org/documentation/metal/>`
 
 
 .. toctree::
