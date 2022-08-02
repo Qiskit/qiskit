@@ -414,7 +414,9 @@ class MatplotlibDrawer:
                 self._data[node] = {}
                 self._data[node]["width"] = WID
                 num_ctrl_qubits = 0 if not hasattr(op, "num_ctrl_qubits") else op.num_ctrl_qubits
-                if op._directive or isinstance(op, Measure):
+                if (op._directive and (not op.label or not self._plot_barriers)) or isinstance(
+                    op, Measure
+                ):
                     self._data[node]["raw_gate_text"] = op.name
                     continue
 
@@ -1009,11 +1011,17 @@ class MatplotlibDrawer:
 
     def _barrier(self, node):
         """Draw a barrier"""
-        for xy in self._data[node]["q_xy"]:
+        for i, xy in enumerate(self._data[node]["q_xy"]):
             xpos, ypos = xy
+            # If there's a label it will be in ctrl_text and is placed at the top of the barrier.
+            # For the topmost barrier, reduce the rectangle to allow for the text.
+            if i == 0 and "ctrl_text" in self._data[node] and self._data[node]["ctrl_text"]:
+                ypos_adj = -0.35
+            else:
+                ypos_adj = 0.0
             self._ax.plot(
                 [xpos, xpos],
-                [ypos + 0.5, ypos - 0.5],
+                [ypos + 0.5 + ypos_adj, ypos - 0.5],
                 linewidth=self._lwidth1,
                 linestyle="dashed",
                 color=self._style["lc"],
@@ -1022,7 +1030,7 @@ class MatplotlibDrawer:
             box = self._patches_mod.Rectangle(
                 xy=(xpos - (0.3 * WID), ypos - 0.5),
                 width=0.6 * WID,
-                height=1,
+                height=1.0 + ypos_adj,
                 fc=self._style["bc"],
                 ec=None,
                 alpha=0.6,
@@ -1030,6 +1038,21 @@ class MatplotlibDrawer:
                 zorder=PORDER_GRAY,
             )
             self._ax.add_patch(box)
+
+            # display the barrier label at the top if there is one
+            if i == 0 and "ctrl_text" in self._data[node] and self._data[node]["ctrl_text"]:
+                dir_ypos = ypos + 0.65 * HIG
+                self._ax.text(
+                    xpos,
+                    dir_ypos,
+                    self._data[node]["ctrl_text"],
+                    ha="center",
+                    va="top",
+                    fontsize=self._sfs,
+                    color=self._data[node]["tc"],
+                    clip_on=True,
+                    zorder=PORDER_TEXT,
+                )
 
     def _gate(self, node, xy=None):
         """Draw a 1-qubit gate"""

@@ -16,7 +16,6 @@ Can be applied to a :class:`~qiskit.circuit.QuantumCircuit`
 with the :meth:`~qiskit.circuit.QuantumCircuit.barrier` method.
 """
 
-from qiskit.exceptions import QiskitError
 from .instruction import Instruction
 
 
@@ -25,9 +24,38 @@ class Barrier(Instruction):
 
     _directive = True
 
-    def __init__(self, num_qubits):
-        """Create new barrier instruction."""
-        super().__init__("barrier", num_qubits, 0, [])
+    def __init__(self, num_qubits, label=None):
+        """Create new barrier instruction.
+
+        Args:
+            num_qubits (int): the number of qubits for the barrier type [Default: 0].
+            label (str): the barrier label
+
+        Raises:
+            TypeError: if barrier label is invalid.
+        """
+        self._label = label
+        super().__init__("barrier", num_qubits, 0, [], label=label)
+
+    @property
+    def label(self):
+        """Return barrier label"""
+        return self._label
+
+    @label.setter
+    def label(self, name):
+        """Set barrier label to name
+
+        Args:
+            name (str or None): label to assign barrier
+
+        Raises:
+            TypeError: name is not string or None.
+        """
+        if isinstance(name, str):
+            self._label = name
+        else:
+            raise TypeError("label expects a string")
 
     def inverse(self):
         """Special case. Return self."""
