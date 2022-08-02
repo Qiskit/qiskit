@@ -85,8 +85,7 @@ def plot_state_hinton(
             qc.rx(np.pi/5, 1)
 
             state = DensityMatrix(qc)
-            plot_state_hinton(state, title="New Hinton Plot",
-            figsize = (11,6))
+            plot_state_hinton(state, title="New Hinton Plot")
 
     """
     from matplotlib import pyplot as plt
