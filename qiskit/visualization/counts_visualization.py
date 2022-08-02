@@ -98,49 +98,58 @@ def plot_histogram(
     Examples:
         .. jupyter-execute::
 
-           from qiskit import QuantumCircuit, Aer
-           from qiskit.visualization import plot_histogram
+            # Plot two counts in the same figure with legends and colors specified.
+            
+            from qiskit import QuantumCircuit, BasicAer, transpile
+            from qiskit.visualization import plot_histogram
 
-           qc = QuantumCircuit(2, 2)
-           qc.h(0)
-           qc.cx(0, 1)
-           qc.measure([0, 1], [0, 1])
+            qc = QuantumCircuit(2, 2)
+            qc.h(0)
+            qc.cx(0, 1)
+            qc.measure([0, 1], [0, 1])
 
-           backend = Aer.get_backend('qasm_simulator')
-           job1 = backend.run(qc)
-           job2 = backend.run(qc)
+            backend = BasicAer.get_backend('qasm_simulator')
 
-           counts1 = job1.result().get_counts()
-           counts2 = job2.result().get_counts()
+            transpiled_qc = transpile(qc, backend=backend)
+            job1 = backend.run(transpiled_qc)
+            job2 = backend.run(transpiled_qc)
 
-           legend = ['First execution', 'Second execution']
+            counts1 = job1.result().get_counts()
+            counts2 = job2.result().get_counts()
 
-           plot_histogram([counts1, counts2], legend = legend,
+            legend = ['First execution', 'Second execution']
+
+            plot_histogram([counts1, counts2], legend = legend,
                             color=['crimson','midnightblue'], title="New Histogram")
 
         .. jupyter-execute::
+            
+            # You can sort the bitstrings using different methods.
 
-           from qiskit import transpile
-           import numpy as np
+            from qiskit import transpile
+            import numpy as np
 
-           qc = QuantumCircuit(3)
-           qc.h(0)
-           qc.ch(0,1)
-           qc.ry(np.pi/3, 0)
-           qc.rx(np.pi/7, 2)
+            qc = QuantumCircuit(3)
+            qc.h(0)
+            qc.ch(0,1)
+            qc.ry(np.pi/3, 0)
+            qc.rx(np.pi/7, 2)
+            qc.measure_all()
 
-           qc.measure_all()
+            backend = BasicAer.get_backend("qasm_simulator")
 
-           backend = Aer.get_backend("aer_simulator")
+            transpiled_qc = transpile(qc, backend)
+            job = backend.run(transpiled_qc)
+            counts = job.result().get_counts()
 
-           transpiled_qc = transpile(qc, backend)
-           job = backend.run(transpiled_qc)
-           counts = job.result().get_counts()
+            # Sort by the probability in descendant order
+            hist1 = plot_histogram(counts, sort = 'value_desc')
 
-           hist1 = plot_histogram(counts, figsize = (10,4), sort = 'value_desc')
-           hist2 = plot_histogram(counts, figsize = (8,3), sort = 'hamming', target_string = '001')
+            # Sort by the hamming distance (the number of bit flips to change from
+            # one bitstring to the other)from a target string. 
+            hist2 = plot_histogram(counts, sort = 'hamming', target_string = '001')
 
-           display(hist1, hist2)
+            display(hist1, hist2)
 
     """
     import matplotlib.pyplot as plt
