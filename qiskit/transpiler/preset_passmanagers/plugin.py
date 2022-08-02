@@ -46,11 +46,9 @@ Currently there are 6 stages in the preset pass managers used by and correspondi
    * - ``init``
      - ``qiskit.transpiler.init``
      - No reserved names
-     - This stage runs first and is typically used for an initial logical optimization also
-       for most ``layout`` and ``routing`` stages this stage is used to translate any gates
-       that operate on more than 2 qubits into gates that operate on 1 or 2
-       qubits only. This is because most layout and routing algorithms are
-       only designed to work with 1 and 2 qubit gates.
+     - This stage runs first and is typically used for any initial logical optimization.  Because most layout and routing algorithms are
+       only designed to work with 1 and 2 qubit gates, this stage is also used to translate any gates
+       that operate on more than 2 qubits into gates that only operate on 1 or 2 qubits.
        ``init``
    * - ``layout``
      - ``qiskit.transpiler.layout``
