@@ -102,7 +102,6 @@ setup(
             "aqc = qiskit.transpiler.synthesis.aqc.aqc_plugin:AQCSynthesisPlugin",
         ],
         "qiskit.transpiler.routing": [
-            "default = qiskit.transpiler.preset_passmanagers.builtin_plugins:DefaultRoutingPassManager",
             "basic = qiskit.transpiler.preset_passmanagers.builtin_plugins:BasicSwapPassManager",
             "stochastic = qiskit.transpiler.preset_passmanagers.builtin_plugins:StochasticSwapPassManager",
             "lookahead = qiskit.transpiler.preset_passmanagers.builtin_plugins:LookaheadSwapPassManager",
