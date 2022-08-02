@@ -265,6 +265,8 @@ def plot_bloch_multivector(
 
         .. jupyter-execute::
 
+           # You can reverse the order of the qubits.
+
            from qiskit.quantum_info import DensityMatrix
 
            qc = QuantumCircuit(2)
