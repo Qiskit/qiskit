@@ -63,8 +63,6 @@ class PVQD(RealEvolver):
             gradients (if the ansatz supports).
         initial_guess (Optional[np.ndarray]): The starting point for the first classical optimization
             run, at time 0. Defaults to random values in :math:`[-0.01, 0.01]`.
-        quantum_instance (Optional[Union[Backend, QuantumInstance]]): The backend or quantum
-            instance used to evaluate the circuits.
 
     Example:
 
