@@ -245,41 +245,47 @@ def level_3_pass_manager(pass_manager_config: PassManagerConfig) -> StagedPassMa
     pre_routing = None
     if toqm_pass:
         pre_routing = translation
-    optimization = None
     if optimization_method is None:
         optimization = PassManager()
         unroll = [pass_ for x in translation.passes() for pass_ in x["passes"]]
         optimization.append(_depth_check + _size_check)
-    if (coupling_map and not coupling_map.is_symmetric) or (
-        target is not None and target.get_non_global_operation_names(strict_direction=True)
-    ):
-        pre_optimization = common.generate_pre_op_passmanager(target, coupling_map, True)
-        _direction = [
-            pass_
-            for x in common.generate_pre_op_passmanager(target, coupling_map).passes()
-            for pass_ in x["passes"]
-        ]
-        # For transpiling to a target we need to run GateDirection in the
-        # optimization loop to correct for incorrect directions that might be
-        # inserted by UnitarySynthesis which is direction aware but only via
-        # the coupling map which with a target doesn't give a full picture
-        if target is not None and optimization is not None:
-            optimization.append(
-                _opt + unroll + _depth_check + _size_check + _direction, do_while=_opt_control
-            )
-        elif optimization is not None:
+        if (coupling_map and not coupling_map.is_symmetric) or (
+            target is not None and target.get_non_global_operation_names(strict_direction=True)
+        ):
+            pre_optimization = common.generate_pre_op_passmanager(target, coupling_map, True)
+            _direction = [
+                pass_
+                for x in common.generate_pre_op_passmanager(target, coupling_map).passes()
+                for pass_ in x["passes"]
+            ]
+            # For transpiling to a target we need to run GateDirection in the
+            # optimization loop to correct for incorrect directions that might be
+            # inserted by UnitarySynthesis which is direction aware but only via
+            # the coupling map which with a target doesn't give a full picture
+            if target is not None and optimization is not None:
+                optimization.append(
+                    _opt + unroll + _depth_check + _size_check + _direction, do_while=_opt_control
+                )
+            elif optimization is not None:
+                optimization.append(
+                    _opt + unroll + _depth_check + _size_check, do_while=_opt_control
+                )
+        else:
+            pre_optimization = common.generate_pre_op_passmanager(remove_reset_in_zero=True)
             optimization.append(_opt + unroll + _depth_check + _size_check, do_while=_opt_control)
+        opt_loop = _depth_check + _opt + unroll
+        optimization.append(opt_loop, do_while=_opt_control)
     else:
-        pre_optimization = common.generate_pre_op_passmanager(remove_reset_in_zero=True)
-        if optimization is not None:
-            optimization.append(_opt + unroll + _depth_check + _size_check, do_while=_opt_control)
-    if optimization is None:
         optimization = plugin_manager.get_passmanager_stage(
             "optimization", optimization_method, pass_manager_config
         )
-    else:
-        opt_loop = _depth_check + _opt + unroll
-        optimization.append(opt_loop, do_while=_opt_control)
+        if (coupling_map and not coupling_map.is_symmetric) or (
+            target is not None and target.get_non_global_operation_names(strict_direction=True)
+        ):
+            pre_optimization = common.generate_pre_op_passmanager(target, coupling_map, True)
+        else:
+            pre_optimization = common.generate_pre_op_passmanager(remove_reset_in_zero=True)
+
     if scheduling_method is None or scheduling_method in {"alap", "asap"}:
         sched = common.generate_scheduling(
             instruction_durations, scheduling_method, timing_constraints, inst_map
