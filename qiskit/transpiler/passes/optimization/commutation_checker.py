@@ -13,10 +13,11 @@
 """Code from commutative_analysis pass that checks commutation relations between DAG nodes."""
 
 from functools import lru_cache
-
+from typing import List
 import numpy as np
+
+from qiskit.circuit.operation import Operation
 from qiskit.quantum_info.operators import Operator
-from qiskit.dagcircuit import DAGOpNode, DAGDepNode
 
 
 @lru_cache(maxsize=None)
@@ -62,36 +63,44 @@ class CommutationChecker:
         # Catch anything else with a slow conversion.
         return ("fallback", str(params))
 
-    def commute(self, node1, node2):
-        """Checks if two DAG nodes commute."""
+    def commute(
+        self, op1: Operation, qargs1: List, cargs1: List, op2: Operation, qargs2: List, cargs2: List
+    ):
+        """
+        Checks if two Operations commute.
 
-        # The function works both with nodes from DagCircuit and from DagDependency
-        if not isinstance(node1, (DAGOpNode, DAGDepNode)) or not isinstance(
-            node2, (DAGOpNode, DAGDepNode)
-        ):
-            return False
+        Args:
+            op1: first operation.
+            qargs1: first operation's qubits.
+            cargs1: first operation's clbits.
+            op2: second operation.
+            qargs2: second operation's qubits.
+            cargs2: second operation's clbits.
 
+        Returns:
+            bool: whether two operations commute.
+        """
         # These lines are adapted from dag_dependency and say that two gates over
         # different quantum and classical bits necessarily commute. This is more
         # permissive that the check from commutation_analysis, as for example it
         # allows to commute X(1) and Measure(0, 0).
         # Presumably this check was not present in commutation_analysis as
         # it was only called on pairs of connected nodes from DagCircuit.
-        intersection_q = set(node1.qargs).intersection(set(node2.qargs))
-        intersection_c = set(node1.cargs).intersection(set(node2.cargs))
+        intersection_q = set(qargs1).intersection(set(qargs2))
+        intersection_c = set(cargs1).intersection(set(cargs2))
         if not (intersection_q or intersection_c):
             return True
 
-        # This lines are adapted from commutation_analysis, which is more restrictive
+        # These lines are adapted from commutation_analysis, which is more restrictive
         # than the check from dag_dependency when considering nodes with "_directive"
         # or "condition". It would be nice to think which optimizations
         # from dag_dependency can indeed be used.
-        for nd in [node1, node2]:
+        for op in [op1, op2]:
             if (
-                getattr(nd.op, "_directive", False)
-                or nd.name in {"measure", "reset", "delay"}
-                or getattr(nd.op, "condition", None)
-                or nd.op.is_parameterized()
+                getattr(op, "_directive", False)
+                or op.name in {"measure", "reset", "delay"}
+                or getattr(op, "condition", None)
+                or op.is_parameterized()
             ):
                 return False
 
@@ -99,17 +108,17 @@ class CommutationChecker:
         # Assign indices to each of the qubits such that all `node1`'s qubits come first, followed by
         # any _additional_ qubits `node2` addresses.  This helps later when we need to compose one
         # operator with the other, since we can easily expand `node1` with a suitable identity.
-        qarg = {q: i for i, q in enumerate(node1.qargs)}
+        qarg = {q: i for i, q in enumerate(qargs1)}
         num_qubits = len(qarg)
-        for q in node2.qargs:
+        for q in qargs2:
             if q not in qarg:
                 qarg[q] = num_qubits
                 num_qubits += 1
-        qarg1 = tuple(qarg[q] for q in node1.qargs)
-        qarg2 = tuple(qarg[q] for q in node2.qargs)
+        qarg1 = tuple(qarg[q] for q in qargs1)
+        qarg2 = tuple(qarg[q] for q in qargs2)
 
-        node1_key = (node1.op.name, self._hashable_parameters(node1.op.params), qarg1)
-        node2_key = (node2.op.name, self._hashable_parameters(node2.op.params), qarg2)
+        node1_key = (op1.name, self._hashable_parameters(op1.params), qarg1)
+        node2_key = (op2.name, self._hashable_parameters(op2.params), qarg2)
         try:
             # We only need to try one orientation of the keys, since if we've seen the compound key
             # before, we've set it in both orientations.
@@ -117,8 +126,8 @@ class CommutationChecker:
         except KeyError:
             pass
 
-        operator_1 = Operator(node1.op, input_dims=(2,) * len(qarg1), output_dims=(2,) * len(qarg1))
-        operator_2 = Operator(node2.op, input_dims=(2,) * len(qarg2), output_dims=(2,) * len(qarg2))
+        operator_1 = Operator(op1, input_dims=(2,) * len(qarg1), output_dims=(2,) * len(qarg1))
+        operator_2 = Operator(op2, input_dims=(2,) * len(qarg2), output_dims=(2,) * len(qarg2))
 
         if qarg1 == qarg2:
             # Use full composition if possible to get the fastest matmul paths.

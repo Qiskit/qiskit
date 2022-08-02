@@ -13,7 +13,7 @@
 """Cancel pairs of inverse gates exploiting commutation relations."""
 
 
-from qiskit.dagcircuit import DAGCircuit
+from qiskit.dagcircuit import DAGCircuit, DAGOpNode
 from qiskit.transpiler.basepasses import TransformationPass
 
 
@@ -22,6 +22,8 @@ class CommutativeInverseCancellation(TransformationPass):
 
     def _skip_node(self, node):
         """Returns True if we should skip this node for the analysis."""
+        if not isinstance(node, DAGOpNode):
+            return True
         if node.op._directive or node.name in {"measure", "reset", "delay"}:
             return True
         if node.op.condition:
@@ -74,7 +76,14 @@ class CommutativeInverseCancellation(TransformationPass):
                     matched_idx2 = idx2
                     break
 
-                if not cc.commute(topo_sorted_nodes[idx1], topo_sorted_nodes[idx2]):
+                if not cc.commute(
+                    topo_sorted_nodes[idx1].op,
+                    topo_sorted_nodes[idx1].qargs,
+                    topo_sorted_nodes[idx1].cargs,
+                    topo_sorted_nodes[idx2].op,
+                    topo_sorted_nodes[idx2].qargs,
+                    topo_sorted_nodes[idx2].cargs,
+                ):
                     break
 
             if matched_idx2 != -1:

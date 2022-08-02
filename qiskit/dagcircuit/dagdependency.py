@@ -490,10 +490,14 @@ class DAGDependency:
             self._multi_graph.get_node_data(current_node_id).reachable = True
         # Check the commutation relation with reachable node, it adds edges if it does not commute
         for prev_node_id in range(max_node_id - 1, -1, -1):
-            if self._multi_graph.get_node_data(
-                prev_node_id
-            ).reachable and not self.comm_checker.commute(
-                self._multi_graph.get_node_data(prev_node_id), max_node
+            prev_node = self._multi_graph.get_node_data(prev_node_id)
+            if prev_node.reachable and not self.comm_checker.commute(
+                prev_node.op,
+                prev_node.qargs,
+                prev_node.cargs,
+                max_node.op,
+                max_node.qargs,
+                max_node.cargs,
             ):
                 self._multi_graph.add_edge(prev_node_id, max_node_id, {"commute": False})
                 self._list_pred(max_node_id)

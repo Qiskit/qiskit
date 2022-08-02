@@ -13,7 +13,8 @@
 """Analysis pass to find commutation relations between DAG nodes."""
 
 from collections import defaultdict
-from qiskit.transpiler.exceptions import TranspilerError
+
+from qiskit.dagcircuit import DAGOpNode
 from qiskit.transpiler.basepasses import AnalysisPass
 
 
@@ -70,13 +71,19 @@ class CommutationAnalysis(AnalysisPass):
                 if current_gate not in current_comm_set[-1]:
                     prev_gate = current_comm_set[-1][-1]
                     does_commute = False
-                    try:
-                        does_commute = self.comm_checker.commute(current_gate, prev_gate)
-                    except TranspilerError:
-                        pass
+
+                    if isinstance(current_gate, DAGOpNode) and isinstance(prev_gate, DAGOpNode):
+                        does_commute = self.comm_checker.commute(
+                            current_gate.op,
+                            current_gate.qargs,
+                            current_gate.cargs,
+                            prev_gate.op,
+                            prev_gate.qargs,
+                            prev_gate.cargs,
+                        )
+
                     if does_commute:
                         current_comm_set[-1].append(current_gate)
-
                     else:
                         current_comm_set.append([current_gate])
 
