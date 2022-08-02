@@ -12,9 +12,10 @@
 
 """ Test of the AdaptVQE minimum eigensolver """
 import unittest
+from qiskit.opflow.operator_globals import Y
 from test.python.algorithms import QiskitAlgorithmsTestCase
 from qiskit.algorithms.minimum_eigen_solvers.vqe import VQE
-from qiskit.opflow.gradients.gradient import Gradient
+from qiskit.algorithms.minimum_eigen_solvers.adapt_vqe import TerminationCriterion
 from qiskit.circuit import QuantumCircuit, QuantumRegister
 from qiskit.circuit.library import EvolvedOperatorAnsatz
 from qiskit.quantum_info import SparsePauliOp
@@ -98,19 +99,6 @@ class TestAdaptVQE(QiskitAlgorithmsTestCase):
 
         self.assertAlmostEqual(res.eigenvalue, expected_eigenvalue, places=6)
 
-    def test_finite_diff(self):
-        """Test using finite difference gradient"""
-        calc = AdaptVQE(
-            solver=VQE(ansatz=self.ansatz, quantum_instance=self.quantum_instance),
-            excitation_pool=self.excitation_pool,
-            adapt_gradient=Gradient(grad_method="fin_diff"),
-        )
-        res = calc.compute_minimum_eigenvalue(operator=self.h2_op)
-
-        expected_eigenvalue = -1.85727503
-
-        self.assertAlmostEqual(res.eigenvalue, expected_eigenvalue, places=6)
-
     def test_qasm_simulator(self):
         """Test using qasm simulator"""
         calc = AdaptVQE(
@@ -123,18 +111,49 @@ class TestAdaptVQE(QiskitAlgorithmsTestCase):
 
         self.assertAlmostEqual(res.eigenvalue, expected_eigenvalue, places=1)
 
-    def test_param_shift(self):
-        """Test using parameter shift gradient"""
+    def test_converged(self):
+        """Test to check termination criteria"""
         calc = AdaptVQE(
             solver=VQE(ansatz=self.ansatz, quantum_instance=self.quantum_instance),
             excitation_pool=self.excitation_pool,
-            adapt_gradient=Gradient(grad_method="param_shift"),
+            threshold=1e-3,
         )
         res = calc.compute_minimum_eigenvalue(operator=self.h2_op)
 
-        expected_eigenvalue = -1.85727503
+        self.assertEqual(res.termination_criterion, TerminationCriterion.CONVERGED)
 
-        self.assertAlmostEqual(res.eigenvalue, expected_eigenvalue, places=0)
+    def test_maximum(self):
+        """Test to check termination criteria"""
+        calc = AdaptVQE(
+            solver=VQE(ansatz=self.ansatz, quantum_instance=self.quantum_instance),
+            excitation_pool=self.excitation_pool,
+            max_iterations=1,
+        )
+        res = calc.compute_minimum_eigenvalue(operator=self.h2_op)
+
+        self.assertEqual(res.termination_criterion, TerminationCriterion.MAXIMUM)
+
+    def test_cyclicity(self):
+        """Test to check termination criteria"""
+        calc = AdaptVQE(
+            solver=VQE(ansatz=self.ansatz, quantum_instance=self.quantum_instance),
+            excitation_pool=self.excitation_pool,
+            max_iterations=100,
+        )
+        res = calc.compute_minimum_eigenvalue(operator=self.h2_op)
+
+        self.assertEqual(res.termination_criterion, TerminationCriterion.CYCLICITY)
+
+    def test_vqe_solver(self):
+        """Test to check if the VQE solver remains the same or not"""
+        solver = VQE(ansatz=self.ansatz, quantum_instance=self.quantum_instance)
+        calc = AdaptVQE(
+            solver=solver,
+            excitation_pool=self.excitation_pool,
+        )
+        res = calc.compute_minimum_eigenvalue(operator=self.h2_op)
+
+        self.assertEqual(solver.ansatz, calc._solver.ansatz)
 
 
 if __name__ == "__main__":
