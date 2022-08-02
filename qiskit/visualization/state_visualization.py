@@ -546,6 +546,8 @@ def plot_state_paulivec(
     Examples:
         .. jupyter-execute::
 
+           # You can set a color for all the bars.
+
            from qiskit import QuantumCircuit
            from qiskit.quantum_info import Statevector
            from qiskit.visualization import plot_state_paulivec
@@ -560,18 +562,21 @@ def plot_state_paulivec(
 
         .. jupyter-execute::
 
+           # If you introduce a list with less colors than bars,
+           # the color of the bars will alternate following the
+           # sequence from the list.
+
            from qiskit.quantum_info import DensityMatrix
            import numpy as np
 
            qc = QuantumCircuit(2)
            qc.h([0, 1])
-           qc.cz(0,1)
+           qc.cz(0, 1)
            qc.ry(np.pi/3, 0)
            qc.rx(np.pi/5, 1)
 
            matrix = DensityMatrix(qc)
-
-           plot_state_paulivec(matrix, figsize = (11,7),
+           plot_state_paulivec(matrix,
                 color = ['crimson', 'midnightblue', 'seagreen'])
     """
     from matplotlib import pyplot as plt
