@@ -110,6 +110,38 @@ class SPSA(Optimizer):
             two_spsa = SPSA(maxiter=300, second_order=True)
             result = two_spsa.optimize(ansatz.num_parameters, loss, initial_point=initial_point)
 
+        The `termination_checker` can be used to implement a custom termination criterion.
+
+        .. code-block:: python
+
+            import numpy as np
+            from qiskit.algorithms.optimizers import SPSA
+
+            def objective(x):
+                return np.linalg.norm(x) + .04*np.random.rand(1)
+
+            class TerminationChecker:
+
+                def __init__(self, N : int):
+                    self.N = N
+                    self.values = []
+
+                def __call__(self, nfev, parameters, value, stepsize, accepted) -> bool:
+                    self.values.append(value)
+
+                    if len(self.values) > self.N:
+                        last_values = self.values[-self.N:]
+                        pp = np.polyfit(range(self.N), last_values, 1)
+                        slope = pp[0] / self.N
+
+                        if slope > 0:
+                            return True
+                    return False
+
+            spsa = SPSA(maxiter=200, termination_checker=TerminationChecker(10))
+            parameters, value, niter = spsa.optimize(2, objective, initial_point=[0.5, 0.5])
+            print(f'SPSA completed after {niter} iterations')
+
 
     References:
 
@@ -205,38 +237,6 @@ class SPSA(Optimizer):
         Raises:
             ValueError: If ``learning_rate`` or ``perturbation`` is an array with less elements
                 than the number of iterations.
-
-        Example:
-            .. code-block::python
-
-                import numpy as np
-                from qiskit.algorithms.optimizers import SPSA
-
-                def objective(x):
-                    return np.linalg.norm(x) + .04*np.random.rand(1)
-
-                class TerminationChecker:
-
-                    def __init__(self, N : int):
-                        self.N = N
-                        self.values = []
-
-                    def __call__(self, nfev, parameters, value, stepsize, accepted) -> bool:
-                        self.values.append(value)
-
-                        if len(self.values) > self.N:
-                            last_values = self.values[-self.N:]
-                            pp = np.polyfit(range(self.N), last_values, 1)
-                            slope = pp[0] / self.N
-
-                            if slope > 0:
-                                return True
-                        return False
-
-                spsa = SPSA(maxiter=200, termination_checker=TerminationChecker(10))
-                parameters, value, niter = spsa.optimize(2, objective, initial_point=[0.5, 0.5])
-                print(f'SPSA completed after {niter} iterations')
-
 
 
         """
