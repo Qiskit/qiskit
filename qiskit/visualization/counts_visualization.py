@@ -99,7 +99,7 @@ def plot_histogram(
         .. jupyter-execute::
 
             # Plot two counts in the same figure with legends and colors specified.
-            
+
             from qiskit import QuantumCircuit, BasicAer, transpile
             from qiskit.visualization import plot_histogram
 
@@ -123,7 +123,7 @@ def plot_histogram(
                             color=['crimson','midnightblue'], title="New Histogram")
 
         .. jupyter-execute::
-            
+
             # You can sort the bitstrings using different methods.
 
             from qiskit import transpile
@@ -146,7 +146,7 @@ def plot_histogram(
             hist1 = plot_histogram(counts, sort = 'value_desc')
 
             # Sort by the hamming distance (the number of bit flips to change from
-            # one bitstring to the other)from a target string. 
+            # one bitstring to the other)from a target string.
             hist2 = plot_histogram(counts, sort = 'hamming', target_string = '001')
 
             display(hist1, hist2)
