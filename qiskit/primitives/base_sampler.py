@@ -113,7 +113,6 @@ from qiskit.utils.deprecation import deprecate_arguments, deprecate_function
 
 from .primitive_job import PrimitiveJob
 from .sampler_result import SamplerResult
-from .utils import _finditer
 
 
 class BaseSampler(ABC):
@@ -144,7 +143,7 @@ class BaseSampler(ABC):
 
         # To guarantee that they exist as instance variable.
         # With only dynamic set, the python will not know if the attribute exists or not.
-        self._circuit_ids: list[int] = self._circuit_ids
+        self._circuit_ids: dict[int, int] = self._circuit_ids
 
         if parameters is None:
             self._parameters = tuple(circ.parameters for circ in self._circuits)
@@ -165,12 +164,12 @@ class BaseSampler(ABC):
 
         self = super().__new__(cls)
         if circuits is None:
-            self._circuit_ids = []
+            self._circuit_ids = {}
         elif isinstance(circuits, Iterable):
             circuits = copy(circuits)
-            self._circuit_ids = [id(circuit) for circuit in circuits]
+            self._circuit_ids = {id(circuit): i for i, circuit in enumerate(circuits)}
         else:
-            self._circuit_ids = [id(circuits)]
+            self._circuit_ids = {id(circuits): 0}
         return self
 
     @deprecate_function(
@@ -244,18 +243,17 @@ class BaseSampler(ABC):
             parameter_values = parameter_values.tolist()
 
         # Allow objects
-        try:
-            circuits = [
-                next(_finditer(id(circuit), self._circuit_ids))
-                if not isinstance(circuit, (int, np.integer))
-                else circuit
-                for circuit in circuits
-            ]
-        except StopIteration as err:
+        circuits = [
+            self._circuit_ids.get(id(circuit))  # type: ignore
+            if not isinstance(circuit, (int, np.integer))
+            else circuit
+            for circuit in circuits
+        ]
+        if any(circuit is None for circuit in circuits):
             raise QiskitError(
                 "The circuits passed when calling sampler is not one of the circuits used to "
                 "initialize the session."
-            ) from err
+            )
 
         circuits = cast("list[int]", circuits)
 
@@ -318,11 +316,12 @@ class BaseSampler(ABC):
             if isinstance(circuit, (int, np.integer)):
                 circuit_indices.append(circuit)
             else:
-                try:
-                    circuit_indices.append(next(_finditer(id(circuit), self._circuit_ids)))
-                except StopIteration:
+                index = self._circuit_ids.get(id(circuit))
+                if index is None:
                     self._append_circuit(circuit)
                     circuit_indices.append(len(self._circuits) - 1)
+                else:
+                    circuit_indices.append(index)
         circuit_indices, parameter_values = self._validation(circuit_indices, parameter_values)
         return self._run(circuit_indices, parameter_values, **run_options)
 
@@ -347,7 +346,7 @@ class BaseSampler(ABC):
 
     def _append_circuit(self, circuit):
         self._circuits += (circuit,)
-        self._circuit_ids.append(id(circuit))
+        self._circuit_ids[id(circuit)] = len(self._circuits) - 1
         self._parameters += (circuit.parameters,)
 
     def _validation(self, circuits, parameter_values) -> tuple[list[int], list[list[float]]]:

@@ -121,7 +121,6 @@ from qiskit.utils.deprecation import deprecate_arguments, deprecate_function
 
 from .estimator_result import EstimatorResult
 from .primitive_job import PrimitiveJob
-from .utils import _finditer
 
 
 class BaseEstimator(ABC):
@@ -163,8 +162,8 @@ class BaseEstimator(ABC):
 
         # To guarantee that they exist as instance variable.
         # With only dynamic set, the python will not know if the attribute exists or not.
-        self._circuit_ids: list[int] = self._circuit_ids
-        self._observable_ids: list[int] = self._observable_ids
+        self._circuit_ids: dict[int, int] = self._circuit_ids
+        self._observable_ids: dict[int, int] = self._observable_ids
 
         if parameters is None:
             self._parameters = tuple(circ.parameters for circ in self._circuits)
@@ -192,19 +191,19 @@ class BaseEstimator(ABC):
 
         self = super().__new__(cls)
         if circuits is None:
-            self._circuit_ids = []
+            self._circuit_ids = {}
         elif isinstance(circuits, Iterable):
             circuits = copy(circuits)
-            self._circuit_ids = [id(circuit) for circuit in circuits]
+            self._circuit_ids = {id(circuit): i for i, circuit in enumerate(circuits)}
         else:
-            self._circuit_ids = [id(circuits)]
+            self._circuit_ids = {id(circuits): 0}
         if observables is None:
-            self._observable_ids = []
+            self._observable_ids = {}
         elif isinstance(observables, Iterable):
             observables = copy(observables)
-            self._observable_ids = [id(observable) for observable in observables]
+            self._observable_ids = {id(observable): i for i, observable in enumerate(observables)}
         else:
-            self._observable_ids = [id(observables)]
+            self._observable_ids = {id(observables): 0}
         return self
 
     @deprecate_function(
@@ -307,30 +306,28 @@ class BaseEstimator(ABC):
             parameter_values = parameter_values.tolist()
 
         # Allow objects
-        try:
-            circuits = [
-                next(_finditer(id(circuit), self._circuit_ids))
-                if not isinstance(circuit, (int, np.integer))
-                else circuit
-                for circuit in circuits
-            ]
-        except StopIteration as err:
+        circuits = [
+            self._circuit_ids.get(id(circuit))  # type: ignore
+            if not isinstance(circuit, (int, np.integer))
+            else circuit
+            for circuit in circuits
+        ]
+        if any(circuit is None for circuit in circuits):
             raise QiskitError(
                 "The circuits passed when calling estimator is not one of the circuits used to "
                 "initialize the session."
-            ) from err
-        try:
-            observables = [
-                next(_finditer(id(observable), self._observable_ids))
-                if not isinstance(observable, (int, np.integer))
-                else observable
-                for observable in observables
-            ]
-        except StopIteration as err:
+            )
+        observables = [
+            self._observable_ids.get(id(observable))  # type: ignore
+            if not isinstance(observable, (int, np.integer))
+            else observable
+            for observable in observables
+        ]
+        if any(observable is None for observable in observables):
             raise QiskitError(
                 "The observables passed when calling estimator is not one of the observables used to "
                 "initialize the session."
-            ) from err
+            )
 
         circuits = cast("list[int]", circuits)
         observables = cast("list[int]", observables)
@@ -434,21 +431,23 @@ class BaseEstimator(ABC):
             if isinstance(circuit, (int, np.integer)):
                 circuit_indices.append(circuit)
             else:
-                try:
-                    circuit_indices.append(next(_finditer(id(circuit), self._circuit_ids)))
-                except StopIteration:
+                index = self._circuit_ids.get(id(circuit))
+                if index is None:
                     self._append_circuit(circuit)
                     circuit_indices.append(len(self._circuits) - 1)
+                else:
+                    circuit_indices.append(index)
         observable_indices = []
         for observable in observables:
             if isinstance(observable, (int, np.integer)):
                 observable_indices.append(observable)
             else:
-                try:
-                    observable_indices.append(next(_finditer(id(observable), self._observable_ids)))
-                except StopIteration:
+                index = self._observable_ids.get(id(observable))
+                if index is None:
                     self._append_observable(observable)
                     observable_indices.append(len(self._observables) - 1)
+                else:
+                    observable_indices.append(index)
 
         circuit_indices, observable_indices, parameter_values = self._validation(
             circuit_indices, observable_indices, parameter_values
@@ -535,10 +534,10 @@ class BaseEstimator(ABC):
         return circuits, observables, parameter_values
 
     def _append_circuit(self, circuit):
-        self._circuit_ids.append(id(circuit))
+        self._circuit_ids[id(circuit)] = len(self._circuits) - 1
         self._circuits += (circuit,)
         self._parameters += (circuit.parameters,)
 
     def _append_observable(self, observable):
-        self._observable_ids.append(id(observable))
+        self._observable_ids[id(observable)] = len(self._observables) - 1
         self._observables += (observable,)

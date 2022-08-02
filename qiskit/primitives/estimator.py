@@ -131,5 +131,5 @@ class Estimator(BaseEstimator):
         self._is_closed = True
 
     def _append_observable(self, observable):
-        self._observable_ids.append(id(observable))
+        self._observable_ids[id(observable)] = len(self._observables) - 1
         self._observables += (init_observable(observable),)
