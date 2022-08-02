@@ -874,6 +874,14 @@ class QuantumCircuit:
         else:
             dest = self.copy()
 
+        # If self does not have any cregs but other does then we allow
+        # that and add the registers to the output dest
+        if isinstance(other, QuantumCircuit):
+            if not self.clbits and other.clbits:
+                dest.add_bits(other.clbits)
+                for reg in other.cregs:
+                    dest.add_register(reg)
+
         if wrap:
             try:
                 other = other.to_gate()
@@ -898,15 +906,14 @@ class QuantumCircuit:
 
         instrs = other.data
 
-        if other.num_qubits > self.num_qubits or other.num_clbits > self.num_clbits:
+        if other.num_qubits > dest.num_qubits or other.num_clbits > dest.num_clbits:
             raise CircuitError(
                 "Trying to compose with another QuantumCircuit which has more 'in' edges."
             )
 
         # number of qubits and clbits must match number in circuit or None
-        identity_qubit_map = dict(zip(other.qubits, self.qubits))
-        identity_clbit_map = dict(zip(other.clbits, self.clbits))
-
+        identity_qubit_map = dict(zip(other.qubits, dest.qubits))
+        identity_clbit_map = dict(zip(other.clbits, dest.clbits))
         if qubits is None:
             qubit_map = identity_qubit_map
         elif len(qubits) != len(other.qubits):
@@ -1789,6 +1796,7 @@ class QuantumCircuit:
         ax: Optional[typing.Any] = None,
         initial_state: bool = False,
         cregbundle: bool = True,
+        wire_order: list = None,
     ):
         """Draw the quantum circuit. Use the output parameter to choose the drawing format:
 
@@ -1866,10 +1874,13 @@ class QuantumCircuit:
                 specified, a new matplotlib Figure will be created and used.
                 Additionally, if specified there will be no returned Figure since
                 it is redundant.
-            initial_state (bool): optional. Adds ``|0>`` in the beginning of the wire.
+            initial_state (bool): Optional. Adds ``|0>`` in the beginning of the wire.
                 Default is False.
-            cregbundle (bool): optional. If set True, bundle classical registers.
+            cregbundle (bool): Optional. If set True, bundle classical registers.
                 Default is True.
+            wire_order (list): Optional. A list of integers used to reorder the display
+                of the bits. The list must have an entry for every bit with the bits
+                in the range 0 to (num_qubits + num_clbits).
 
         Returns:
             :class:`TextDrawing` or :class:`matplotlib.figure` or :class:`PIL.Image` or
@@ -1921,6 +1932,7 @@ class QuantumCircuit:
             ax=ax,
             initial_state=initial_state,
             cregbundle=cregbundle,
+            wire_order=wire_order,
         )
 
     def size(

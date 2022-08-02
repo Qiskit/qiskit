@@ -29,6 +29,7 @@ import logging
 import os
 import subprocess
 import tempfile
+from warnings import warn
 
 from qiskit import user_config
 from qiskit.utils import optionals as _optionals
@@ -59,6 +60,7 @@ def circuit_drawer(
     ax=None,
     initial_state=False,
     cregbundle=True,
+    wire_order=None,
 ):
     """Draw the quantum circuit. Use the output parameter to choose the drawing format:
 
@@ -137,10 +139,13 @@ def circuit_drawer(
             specified, a new matplotlib Figure will be created and used.
             Additionally, if specified there will be no returned Figure since
             it is redundant.
-        initial_state (bool): optional. Adds ``|0>`` in the beginning of the wire.
+        initial_state (bool): Optional. Adds ``|0>`` in the beginning of the wire.
             Default is False.
-        cregbundle (bool): optional. If set True, bundle classical registers.
+        cregbundle (bool): Optional. If set True, bundle classical registers.
             Default is True.
+        wire_order (list): Optional. A list of integers used to reorder the display
+            of the bits. The list must have an entry for every bit with the bits
+            in the range 0 to (num_qubits + num_clbits).
 
     Returns:
         :class:`TextDrawing` or :class:`matplotlib.figure` or :class:`PIL.Image` or
@@ -185,6 +190,30 @@ def circuit_drawer(
     if output is None:
         output = default_output
 
+    if wire_order is not None and reverse_bits:
+        raise VisualizationError(
+            "The wire_order option cannot be set when the reverse_bits option is True."
+        )
+    if wire_order is not None and len(wire_order) != circuit.num_qubits + circuit.num_clbits:
+        raise VisualizationError(
+            "The wire_order list must be the same "
+            "length as the sum of the number of qubits and clbits in the circuit."
+        )
+    if wire_order is not None and set(wire_order) != set(
+        range(circuit.num_qubits + circuit.num_clbits)
+    ):
+        raise VisualizationError(
+            "There must be one and only one entry in the "
+            "wire_order list for the index of each qubit and each clbit in the circuit."
+        )
+
+    if cregbundle and (reverse_bits or wire_order is not None):
+        cregbundle = False
+        warn(
+            "Cregbundle set to False since either reverse_bits or wire_order has been set.",
+            RuntimeWarning,
+            2,
+        )
     if output == "text":
         return _text_circuit_drawer(
             circuit,
@@ -198,6 +227,7 @@ def circuit_drawer(
             fold=fold,
             initial_state=initial_state,
             cregbundle=cregbundle,
+            wire_order=wire_order,
         )
     elif output == "latex":
         image = _latex_circuit_drawer(
@@ -212,6 +242,7 @@ def circuit_drawer(
             with_layout=with_layout,
             initial_state=initial_state,
             cregbundle=cregbundle,
+            wire_order=wire_order,
         )
     elif output == "latex_source":
         return _generate_latex_source(
@@ -226,6 +257,7 @@ def circuit_drawer(
             with_layout=with_layout,
             initial_state=initial_state,
             cregbundle=cregbundle,
+            wire_order=wire_order,
         )
     elif output == "mpl":
         image = _matplotlib_circuit_drawer(
@@ -242,6 +274,7 @@ def circuit_drawer(
             ax=ax,
             initial_state=initial_state,
             cregbundle=cregbundle,
+            wire_order=wire_order,
         )
     else:
         raise VisualizationError(
@@ -271,6 +304,7 @@ def _text_circuit_drawer(
     initial_state=True,
     cregbundle=False,
     encoding=None,
+    wire_order=None,
 ):
     """Draws a circuit using ascii art.
 
@@ -297,6 +331,9 @@ def _text_circuit_drawer(
             Default: ``True``.
         encoding (str): Optional. Sets the encoding preference of the output.
             Default: ``sys.stdout.encoding``.
+        wire_order (list): Optional. A list of integers used to reorder the display
+            of the bits. The list must have an entry for every bit with the bits
+            in the range 0 to (num_qubits + num_clbits).
 
     Returns:
         TextDrawing: An instance that, when printed, draws the circuit in ascii art.
@@ -305,7 +342,11 @@ def _text_circuit_drawer(
         VisualizationError: When the filename extenstion is not .txt.
     """
     qubits, clbits, nodes = utils._get_layered_instructions(
-        circuit, reverse_bits=reverse_bits, justify=justify, idle_wires=idle_wires
+        circuit,
+        reverse_bits=reverse_bits,
+        justify=justify,
+        idle_wires=idle_wires,
+        wire_order=wire_order,
     )
     text_drawing = _text.TextDrawing(
         qubits,
@@ -351,6 +392,7 @@ def _latex_circuit_drawer(
     with_layout=True,
     initial_state=False,
     cregbundle=False,
+    wire_order=None,
 ):
     """Draw a quantum circuit based on latex (Qcircuit package)
 
@@ -374,6 +416,9 @@ def _latex_circuit_drawer(
             Default: `False`.
         cregbundle (bool): Optional. If set True, bundle classical registers.
             Default: ``False``.
+        wire_order (list): Optional. A list of integers used to reorder the display
+            of the bits. The list must have an entry for every bit with the bits
+            in the range 0 to (num_qubits + num_clbits).
 
     Returns:
         PIL.Image: an in-memory representation of the circuit diagram
@@ -400,6 +445,7 @@ def _latex_circuit_drawer(
             with_layout=with_layout,
             initial_state=initial_state,
             cregbundle=cregbundle,
+            wire_order=wire_order,
         )
 
         try:
@@ -465,6 +511,7 @@ def _generate_latex_source(
     with_layout=True,
     initial_state=False,
     cregbundle=False,
+    wire_order=None,
 ):
     """Convert QuantumCircuit to LaTeX string.
 
@@ -486,12 +533,19 @@ def _generate_latex_source(
             Default: `False`.
         cregbundle (bool): Optional. If set True, bundle classical registers.
             Default: ``False``.
+        wire_order (list): Optional. A list of integers used to reorder the display
+            of the bits. The list must have an entry for every bit with the bits
+            in the range 0 to (num_qubits + num_clbits).
 
     Returns:
         str: Latex string appropriate for writing to file.
     """
     qubits, clbits, nodes = utils._get_layered_instructions(
-        circuit, reverse_bits=reverse_bits, justify=justify, idle_wires=idle_wires
+        circuit,
+        reverse_bits=reverse_bits,
+        justify=justify,
+        idle_wires=idle_wires,
+        wire_order=wire_order,
     )
     qcimg = _latex.QCircuitImage(
         qubits,
@@ -537,6 +591,7 @@ def _matplotlib_circuit_drawer(
     ax=None,
     initial_state=False,
     cregbundle=True,
+    wire_order=None,
 ):
 
     """Draw a quantum circuit based on matplotlib.
@@ -566,6 +621,9 @@ def _matplotlib_circuit_drawer(
             Default: `False`.
         cregbundle (bool): Optional. If set True bundle classical registers.
             Default: ``True``.
+        wire_order (list): Optional. A list of integers used to reorder the display
+            of the bits. The list must have an entry for every bit with the bits
+            in the range 0 to (num_qubits + num_clbits).
 
     Returns:
         matplotlib.figure: a matplotlib figure object for the circuit diagram
@@ -573,7 +631,11 @@ def _matplotlib_circuit_drawer(
     """
 
     qubits, clbits, nodes = utils._get_layered_instructions(
-        circuit, reverse_bits=reverse_bits, justify=justify, idle_wires=idle_wires
+        circuit,
+        reverse_bits=reverse_bits,
+        justify=justify,
+        idle_wires=idle_wires,
+        wire_order=wire_order,
     )
     if fold is None:
         fold = 25
