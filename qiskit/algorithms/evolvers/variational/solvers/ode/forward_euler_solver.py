@@ -11,7 +11,7 @@
 # that they have been altered from the originals.
 """Forward Euler ODE solver."""
 
-from typing import Iterable
+from typing import Sequence
 
 import numpy as np
 from scipy.integrate import OdeSolver
@@ -25,7 +25,7 @@ class ForwardEulerSolver(OdeSolver):
         self,
         function: callable,
         t0: float,
-        y0: Iterable,
+        y0: Sequence,
         t_bound: float,
         vectorized: bool = False,
         support_complex: bool = False,
