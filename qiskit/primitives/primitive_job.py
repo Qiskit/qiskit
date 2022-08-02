@@ -24,7 +24,7 @@ class PrimitiveJob(JobV1):
     PrimitiveJob class for the reference implemetations of Primitives.
     """
 
-    def __init__(self, function):
+    def __init__(self, function, *args, **kwargs):
         """
         Args:
             function: a callable function to execute the job.
@@ -33,13 +33,15 @@ class PrimitiveJob(JobV1):
         super().__init__(None, job_id)
         self._future = None
         self._function = function
+        self._args = args
+        self._kwargs = kwargs
 
     def submit(self):
         if self._future is not None:
             raise JobError("Primitive job has already been submitted.")
 
         with ThreadPoolExecutor(max_workers=1) as executor:
-            future = executor.submit(self._function)
+            future = executor.submit(self._function, *self._args, **self._kwargs)
         self._future = future
 
     def result(self):

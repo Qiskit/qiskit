@@ -26,7 +26,6 @@ from qiskit.quantum_info import Statevector
 from qiskit.result import QuasiDistribution
 
 from .base_sampler import BaseSampler
-from .primitive_job import PrimitiveJob
 from .sampler_result import SamplerResult
 from .utils import final_measurement_mapping, init_circuit
 
@@ -148,9 +147,3 @@ class Sampler(BaseSampler):
         circuit = circuit.remove_final_measurements(inplace=False)
         self._circuits += (circuit,)
         self._parameters += (circuit.parameters,)
-
-    @staticmethod
-    def _submit(function) -> PrimitiveJob:
-        job = PrimitiveJob(function)
-        job.submit()
-        return job

@@ -111,6 +111,7 @@ from qiskit.exceptions import QiskitError
 from qiskit.providers import JobV1 as Job
 from qiskit.utils.deprecation import deprecate_arguments, deprecate_function
 
+from .primitive_job import PrimitiveJob
 from .sampler_result import SamplerResult
 from .utils import _finditer
 
@@ -323,7 +324,7 @@ class BaseSampler(ABC):
                     self._append_circuit(circuit)
                     circuit_indices.append(len(self._circuits) - 1)
         circuit_indices, parameter_values = self._validation(circuit_indices, parameter_values)
-        return self._submit(lambda: self._call(circuit_indices, parameter_values, **run_options))
+        return self._run(circuit_indices, parameter_values, **run_options)
 
     @abstractmethod
     def _call(
@@ -334,10 +335,15 @@ class BaseSampler(ABC):
     ) -> SamplerResult:
         ...
 
-    @staticmethod
-    @abstractmethod
-    def _submit(function) -> Job:
-        ...
+    def _run(
+        self,
+        circuits: Sequence[int],
+        parameter_values: Sequence[Sequence[float]],
+        **run_options,
+    ) -> Job:
+        job = PrimitiveJob(self._call, circuits, parameter_values, **run_options)
+        job.submit()
+        return job
 
     def _append_circuit(self, circuit):
         self._circuits += (circuit,)

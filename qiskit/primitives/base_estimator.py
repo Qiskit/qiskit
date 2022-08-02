@@ -120,6 +120,7 @@ from qiskit.quantum_info.operators import SparsePauliOp
 from qiskit.utils.deprecation import deprecate_arguments, deprecate_function
 
 from .estimator_result import EstimatorResult
+from .primitive_job import PrimitiveJob
 from .utils import _finditer
 
 
@@ -452,9 +453,7 @@ class BaseEstimator(ABC):
         circuit_indices, observable_indices, parameter_values = self._validation(
             circuit_indices, observable_indices, parameter_values
         )
-        return self._submit(
-            lambda: self._call(circuit_indices, observable_indices, parameter_values, **run_options)
-        )
+        return self._run(circuit_indices, observable_indices, parameter_values, **run_options)
 
     @abstractmethod
     def _call(
@@ -466,10 +465,16 @@ class BaseEstimator(ABC):
     ) -> EstimatorResult:
         ...
 
-    @staticmethod
-    @abstractmethod
-    def _submit(function) -> Job:
-        ...
+    def _run(
+        self,
+        circuits: Sequence[int],
+        observables: Sequence[int],
+        parameter_values: Sequence[Sequence[float]],
+        **run_options,
+    ) -> Job:
+        job = PrimitiveJob(self._call, circuits, observables, parameter_values, **run_options)
+        job.submit()
+        return job
 
     def _validation(
         self, circuits: list[int], observables: list[int], parameter_values

@@ -28,7 +28,6 @@ from qiskit.quantum_info.operators.base_operator import BaseOperator
 
 from .base_estimator import BaseEstimator
 from .estimator_result import EstimatorResult
-from .primitive_job import PrimitiveJob
 from .utils import init_circuit, init_observable
 
 
@@ -127,12 +126,6 @@ class Estimator(BaseEstimator):
                 metadatum["shots"] = shots
 
         return EstimatorResult(np.real_if_close(expectation_values), metadata)
-
-    @staticmethod
-    def _submit(function) -> PrimitiveJob:
-        job = PrimitiveJob(function)
-        job.submit()
-        return job
 
     def close(self):
         self._is_closed = True
