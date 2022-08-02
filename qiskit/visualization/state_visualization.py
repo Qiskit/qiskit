@@ -337,6 +337,9 @@ def plot_state_city(
     Examples:
         .. jupyter-execute::
 
+           # You can choose different colors for the real and
+           # imaginary parts of the density matrix.
+
            from qiskit import QuantumCircuit
            from qiskit.quantum_info import DensityMatrix
            from qiskit.visualization import plot_state_city
@@ -351,6 +354,9 @@ def plot_state_city(
 
         .. jupyter-execute::
 
+           # You can make the bars more transparent to better see the
+           # ones that are behind if they overlap.
+
            from qiskit.quantum_info import Statevector
            import numpy as np
 
@@ -361,7 +367,7 @@ def plot_state_city(
            qc.rx(np.pi/5, 1)
 
            state = Statevector(qc)
-           plot_state_city(state, figsize = (10,6), alpha = 0.6)
+           plot_state_city(state, alpha = 0.6)
 
     """
     from matplotlib import pyplot as plt
