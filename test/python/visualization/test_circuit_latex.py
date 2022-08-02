@@ -655,6 +655,15 @@ class TestLatexSourceGenerator(QiskitVisualizationTestCase):
         circuit_drawer(circuit, cregbundle=False, filename=filename, output="latex_source")
         self.assertEqualToReference(filename)
 
+    def test_idle_wires_barrier(self):
+        """Test that idle_wires False works with barrier"""
+        filename = self._get_resource_path("test_latex_idle_wires_barrier.tex")
+        circuit = QuantumCircuit(4, 4)
+        circuit.x(2)
+        circuit.barrier()
+        circuit_drawer(circuit, idle_wires=False, filename=filename, output="latex_source")
+        self.assertEqualToReference(filename)
+
     def test_wire_order(self):
         """Test the wire_order option"""
         filename = self._get_resource_path("test_latex_wire_order.tex")
