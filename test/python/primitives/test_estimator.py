@@ -62,8 +62,8 @@ class TestEstimator(QiskitTestCase):
         with self.subTest("PauliSumOp"):
             observable = PauliSumOp.from_list(lst)
             ansatz = RealAmplitudes(num_qubits=2, reps=2)
-            est = Estimator([ansatz], [observable])
             with self.assertWarns(DeprecationWarning):
+                est = Estimator([ansatz], [observable])
                 result = est([0], [0], parameter_values=[[0, 1, 1, 2, 3, 5]])
             self.assertIsInstance(result, EstimatorResult)
             np.testing.assert_allclose(result.values, [1.84209213])
@@ -71,8 +71,8 @@ class TestEstimator(QiskitTestCase):
         with self.subTest("SparsePauliOp"):
             observable = SparsePauliOp.from_list(lst)
             ansatz = RealAmplitudes(num_qubits=2, reps=2)
-            est = Estimator([ansatz], [observable])
             with self.assertWarns(DeprecationWarning):
+                est = Estimator([ansatz], [observable])
                 result = est([0], [0], parameter_values=[[0, 1, 1, 2, 3, 5]])
             self.assertIsInstance(result, EstimatorResult)
             np.testing.assert_allclose(result.values, [1.84209213])
@@ -81,8 +81,8 @@ class TestEstimator(QiskitTestCase):
         """test for the reverse parameter"""
         observable = PauliSumOp.from_list([("XX", 1), ("YY", 2), ("ZZ", 3)])
         ansatz = RealAmplitudes(num_qubits=2, reps=2)
-        est = Estimator([ansatz], [observable], [ansatz.parameters[::-1]])
         with self.assertWarns(DeprecationWarning):
+            est = Estimator([ansatz], [observable], [ansatz.parameters[::-1]])
             result = est([0], [0], parameter_values=[[0, 1, 1, 2, 3, 5][::-1]])
         self.assertIsInstance(result, EstimatorResult)
         np.testing.assert_allclose(result.values, [1.84209213])
@@ -98,24 +98,24 @@ class TestEstimator(QiskitTestCase):
                 [0.1809312, 0.0, 0.0, -1.06365335],
             ]
         )
-        est = Estimator([circuit], [matrix])
         with self.assertWarns(DeprecationWarning):
+            est = Estimator([circuit], [matrix])
             result = est([0], [0])
         self.assertIsInstance(result, EstimatorResult)
         np.testing.assert_allclose(result.values, [-1.284366511861733])
 
     def test_evaluate(self):
         """test for evaluate"""
-        est = Estimator([self.ansatz], [self.observable])
         with self.assertWarns(DeprecationWarning):
+            est = Estimator([self.ansatz], [self.observable])
             result = est([0], [0], parameter_values=[[0, 1, 1, 2, 3, 5]])
         self.assertIsInstance(result, EstimatorResult)
         np.testing.assert_allclose(result.values, [-1.284366511861733])
 
     def test_evaluate_multi_params(self):
         """test for evaluate with multiple parameters"""
-        est = Estimator([self.ansatz], [self.observable])
         with self.assertWarns(DeprecationWarning):
+            est = Estimator([self.ansatz], [self.observable])
             result = est(
                 [0] * 2, [0] * 2, parameter_values=[[0, 1, 1, 2, 3, 5], [1, 1, 2, 3, 5, 8]]
             )
@@ -125,8 +125,8 @@ class TestEstimator(QiskitTestCase):
     def test_evaluate_no_params(self):
         """test for evaluate without parameters"""
         circuit = self.ansatz.bind_parameters([0, 1, 1, 2, 3, 5])
-        est = Estimator([circuit], [self.observable])
         with self.assertWarns(DeprecationWarning):
+            est = Estimator([circuit], [self.observable])
             result = est([0], [0])
         self.assertIsInstance(result, EstimatorResult)
         np.testing.assert_allclose(result.values, [-1.284366511861733])
@@ -137,8 +137,8 @@ class TestEstimator(QiskitTestCase):
         circuit.h(0)
         circuit.cx(0, 1)
         circuit.cx(1, 2)
-        est = Estimator(circuit, ["ZZZ", "III"])
         with self.assertWarns(DeprecationWarning):
+            est = Estimator(circuit, ["ZZZ", "III"])
             result = est(circuits=[0, 0], observables=[0, 1])
         self.assertIsInstance(result, EstimatorResult)
         np.testing.assert_allclose(result.values, [0.0, 1.0])
@@ -215,8 +215,8 @@ class TestEstimator(QiskitTestCase):
         op = SparsePauliOp.from_list([("I", 1)])
         op2 = SparsePauliOp.from_list([("Z", 1)])
 
-        est = Estimator([qc, qc2], [op, op2], [[]] * 2)
         with self.assertWarns(DeprecationWarning):
+            est = Estimator([qc, qc2], [op, op2], [[]] * 2)
             result = est([0], [0], [[]])
         self.assertIsInstance(result, EstimatorResult)
         np.testing.assert_allclose(result.values, [1])
@@ -246,8 +246,8 @@ class TestEstimator(QiskitTestCase):
         op2 = SparsePauliOp.from_list([("ZI", 1)])
         op3 = SparsePauliOp.from_list([("IZ", 1)])
 
-        est = Estimator([qc, qc2], [op, op2, op3], [[]] * 2)
         with self.assertWarns(DeprecationWarning):
+            est = Estimator([qc, qc2], [op, op2, op3], [[]] * 2)
             result = est([0], [0], [[]])
         self.assertIsInstance(result, EstimatorResult)
         np.testing.assert_allclose(result.values, [1])
@@ -285,7 +285,8 @@ class TestEstimator(QiskitTestCase):
         op = SparsePauliOp.from_list([("I", 1)])
         op2 = SparsePauliOp.from_list([("II", 1)])
 
-        est = Estimator([qc, qc2], [op, op2], [[]] * 2)
+        with self.assertWarns(DeprecationWarning):
+            est = Estimator([qc, qc2], [op, op2], [[]] * 2)
         with self.assertRaises(QiskitError), self.assertWarns(DeprecationWarning):
             est([0], [1], [[]])
         with self.assertRaises(QiskitError), self.assertWarns(DeprecationWarning):
@@ -304,7 +305,8 @@ class TestEstimator(QiskitTestCase):
         n = 2
         qc = QuantumCircuit(n)
         op = SparsePauliOp.from_list([("I" * n, 1)])
-        estimator = Estimator(circuits=[qc] * 10, observables=[op] * 10)
+        with self.assertWarns(DeprecationWarning):
+            estimator = Estimator(circuits=[qc] * 10, observables=[op] * 10)
         with self.subTest("one circuit"):
             with self.assertWarns(DeprecationWarning):
                 result = estimator([0], [1], shots=1000)
@@ -325,8 +327,8 @@ class TestEstimator(QiskitTestCase):
         params_array = np.random.rand(k, qc.num_parameters)
         params_list = params_array.tolist()
         params_list_array = list(params_array)
-        estimator = Estimator(circuits=qc, observables=op)
         with self.assertWarns(DeprecationWarning):
+            estimator = Estimator(circuits=qc, observables=op)
             target = estimator([0] * k, [0] * k, params_list)
 
         with self.subTest("ndarrary"):
@@ -345,8 +347,8 @@ class TestEstimator(QiskitTestCase):
         """Test passsing object for Estimator."""
 
         with self.subTest("Valid test"):
-            estimator = Estimator([self.ansatz], [self.observable])
             with self.assertWarns(DeprecationWarning):
+                estimator = Estimator([self.ansatz], [self.observable])
                 result = estimator(
                     circuits=[self.ansatz, self.ansatz],
                     observables=[self.observable, self.observable],
@@ -357,7 +359,8 @@ class TestEstimator(QiskitTestCase):
 
         with self.subTest("Invalid circuit test"):
             circuit = QuantumCircuit(2)
-            estimator = Estimator([self.ansatz], [self.observable])
+            with self.assertWarns(DeprecationWarning):
+                estimator = Estimator([self.ansatz], [self.observable])
             with self.assertRaises(QiskitError), self.assertWarns(DeprecationWarning):
                 result = estimator(
                     circuits=[self.ansatz, circuit],
@@ -367,7 +370,8 @@ class TestEstimator(QiskitTestCase):
 
         with self.subTest("Invalid observable test"):
             observable = SparsePauliOp(["ZX"])
-            estimator = Estimator([self.ansatz], [self.observable])
+            with self.assertWarns(DeprecationWarning):
+                estimator = Estimator([self.ansatz], [self.observable])
             with self.assertRaises(QiskitError), self.assertWarns(DeprecationWarning):
                 result = estimator(
                     circuits=[self.ansatz, self.ansatz],
@@ -377,8 +381,8 @@ class TestEstimator(QiskitTestCase):
 
     def test_deprecated_arguments(self):
         """test for deprecated arguments"""
-        est = Estimator([self.ansatz], [self.observable])
         with self.assertWarns(DeprecationWarning):
+            est = Estimator([self.ansatz], [self.observable])
             result = est(
                 circuit_indices=[0],
                 observable_indices=[0],
@@ -389,16 +393,16 @@ class TestEstimator(QiskitTestCase):
 
     def test_with_shots_option(self):
         """test with shots option."""
-        est = Estimator([self.ansatz], [self.observable])
         with self.assertWarns(DeprecationWarning):
+            est = Estimator([self.ansatz], [self.observable])
             result = est([0], [0], parameter_values=[[0, 1, 1, 2, 3, 5]], shots=1024, seed=15)
         self.assertIsInstance(result, EstimatorResult)
         np.testing.assert_allclose(result.values, [-1.307397243478641])
 
     def test_with_shots_option_none(self):
         """test with shots=None option. Seed is ignored then."""
-        est = Estimator([self.ansatz], [self.observable])
         with self.assertWarns(DeprecationWarning):
+            est = Estimator([self.ansatz], [self.observable])
             result_42 = est([0], [0], parameter_values=[[0, 1, 1, 2, 3, 5]], shots=None, seed=42)
             result_15 = est([0], [0], parameter_values=[[0, 1, 1, 2, 3, 5]], shots=None, seed=15)
         np.testing.assert_allclose(result_42.values, result_15.values)
@@ -406,14 +410,13 @@ class TestEstimator(QiskitTestCase):
     def test_estimator_run(self):
         """Test Estimator.run()"""
         psi1, psi2 = self.psi
-        params1 = self.params[0]
         hamiltonian1, hamiltonian2, hamiltonian3 = self.hamiltonian
         theta1, theta2, theta3 = self.theta
-        estimator = Estimator([psi1], [hamiltonian1], [params1])
+        estimator = Estimator()
 
         # Specify the circuit and observable by indices.
         # calculate [ <psi1(theta1)|H1|psi1(theta1)> ]
-        job = estimator.run([0], [0], [theta1])
+        job = estimator.run([psi1], [hamiltonian1], [theta1])
         self.assertIsInstance(job, JobV1)
         result = job.result()
         self.assertIsInstance(result, EstimatorResult)
@@ -428,29 +431,22 @@ class TestEstimator(QiskitTestCase):
         np.testing.assert_allclose(result2.values, [2.97797666])
 
         # calculate [ <psi1(theta1)|H2|psi1(theta1)>, <psi1(theta1)|H3|psi1(theta1)> ]
-        result3 = estimator.run([0, 0], [hamiltonian2, hamiltonian3], [theta1] * 2).result()
+        result3 = estimator.run([psi1, psi1], [hamiltonian2, hamiltonian3], [theta1] * 2).result()
         np.testing.assert_allclose(result3.values, [-0.551653, 0.07535239])
 
         # calculate [ <psi1(theta1)|H1|psi1(theta1)>,
         #             <psi2(theta2)|H2|psi2(theta2)>,
         #             <psi1(theta3)|H3|psi1(theta3)> ]
-        result4 = estimator.run([0, 1, 0], [0, 1, 2], [theta1, theta2, theta3]).result()
+        result4 = estimator.run(
+            [psi1, psi2, psi1], [hamiltonian1, hamiltonian2, hamiltonian3], [theta1, theta2, theta3]
+        ).result()
         np.testing.assert_allclose(result4.values, [1.55555728, 0.17849238, -1.08766318])
-
-    def test_estimator_run_param_reverse(self):
-        """test for the reverse parameter"""
-        observable = PauliSumOp.from_list([("XX", 1), ("YY", 2), ("ZZ", 3)])
-        ansatz = RealAmplitudes(num_qubits=2, reps=2)
-        est = Estimator([ansatz], [observable], [ansatz.parameters[::-1]])
-        result = est.run([0], [0], parameter_values=[[0, 1, 1, 2, 3, 5][::-1]]).result()
-        self.assertIsInstance(result, EstimatorResult)
-        np.testing.assert_allclose(result.values, [1.84209213])
 
     def test_estiamtor_run_no_params(self):
         """test for estimator without parameters"""
         circuit = self.ansatz.bind_parameters([0, 1, 1, 2, 3, 5])
-        est = Estimator([circuit], [self.observable])
-        result = est.run([0], [0]).result()
+        est = Estimator()
+        result = est.run([circuit], [self.observable]).result()
         self.assertIsInstance(result, EstimatorResult)
         np.testing.assert_allclose(result.values, [-1.284366511861733])
 
@@ -463,20 +459,20 @@ class TestEstimator(QiskitTestCase):
         op = SparsePauliOp.from_list([("I", 1)])
         op2 = SparsePauliOp.from_list([("Z", 1)])
 
-        est = Estimator([qc, qc2], [op, op2], [[]] * 2)
-        result = est.run([0], [0], [[]]).result()
+        est = Estimator()
+        result = est.run([qc], [op], [[]]).result()
         self.assertIsInstance(result, EstimatorResult)
         np.testing.assert_allclose(result.values, [1])
 
-        result = est.run([0], [1], [[]]).result()
+        result = est.run([qc], [op2], [[]]).result()
         self.assertIsInstance(result, EstimatorResult)
         np.testing.assert_allclose(result.values, [1])
 
-        result = est.run([1], [0], [[]]).result()
+        result = est.run([qc2], [op], [[]]).result()
         self.assertIsInstance(result, EstimatorResult)
         np.testing.assert_allclose(result.values, [1])
 
-        result = est.run([1], [1], [[]]).result()
+        result = est.run([qc2], [op2], [[]]).result()
         self.assertIsInstance(result, EstimatorResult)
         np.testing.assert_allclose(result.values, [-1])
 
@@ -490,28 +486,28 @@ class TestEstimator(QiskitTestCase):
         op2 = SparsePauliOp.from_list([("ZI", 1)])
         op3 = SparsePauliOp.from_list([("IZ", 1)])
 
-        est = Estimator([qc, qc2], [op, op2, op3], [[]] * 2)
-        result = est.run([0], [0], [[]]).result()
+        est = Estimator()
+        result = est.run([qc], [op], [[]]).result()
         self.assertIsInstance(result, EstimatorResult)
         np.testing.assert_allclose(result.values, [1])
 
-        result = est.run([1], [0], [[]]).result()
+        result = est.run([qc2], [op], [[]]).result()
         self.assertIsInstance(result, EstimatorResult)
         np.testing.assert_allclose(result.values, [1])
 
-        result = est.run([0], [1], [[]]).result()
+        result = est.run([qc], [op2], [[]]).result()
         self.assertIsInstance(result, EstimatorResult)
         np.testing.assert_allclose(result.values, [1])
 
-        result = est.run([1], [1], [[]]).result()
+        result = est.run([qc2], [op2], [[]]).result()
         self.assertIsInstance(result, EstimatorResult)
         np.testing.assert_allclose(result.values, [1])
 
-        result = est.run([0], [2], [[]]).result()
+        result = est.run([qc], [op3], [[]]).result()
         self.assertIsInstance(result, EstimatorResult)
         np.testing.assert_allclose(result.values, [1])
 
-        result = est.run([1], [2], [[]]).result()
+        result = est.run([qc2], [op3], [[]]).result()
         self.assertIsInstance(result, EstimatorResult)
         np.testing.assert_allclose(result.values, [-1])
 
@@ -523,19 +519,19 @@ class TestEstimator(QiskitTestCase):
         op = SparsePauliOp.from_list([("I", 1)])
         op2 = SparsePauliOp.from_list([("II", 1)])
 
-        est = Estimator([qc, qc2], [op, op2], [[]] * 2)
+        est = Estimator()
         with self.assertRaises(QiskitError):
-            est.run([0], [1], [[]]).result()
+            est.run([qc], [op2], [[]]).result()
         with self.assertRaises(QiskitError):
-            est.run([1], [0], [[]]).result()
+            est.run([qc2], [op], [[]]).result()
         with self.assertRaises(QiskitError):
-            est.run([0], [0], [[1e4]]).result()
+            est.run([qc], [op], [[1e4]]).result()
         with self.assertRaises(QiskitError):
-            est.run([1], [1], [[1, 2]]).result()
+            est.run([qc2], [op2], [[1, 2]]).result()
         with self.assertRaises(QiskitError):
-            est.run([0, 1], [1], [[1]]).result()
+            est.run([qc, qc2], [op2], [[1]]).result()
         with self.assertRaises(QiskitError):
-            est.run([0], [0, 1], [[1]]).result()
+            est.run([qc], [op, op2], [[1]]).result()
 
     def test_run_numpy_params(self):
         """Test for numpy array as parameter values"""
@@ -545,24 +541,28 @@ class TestEstimator(QiskitTestCase):
         params_array = np.random.rand(k, qc.num_parameters)
         params_list = params_array.tolist()
         params_list_array = list(params_array)
-        estimator = Estimator(circuits=qc, observables=op)
-        target = estimator.run([0] * k, [0] * k, params_list).result()
+        estimator = Estimator()
+        target = estimator.run([qc] * k, [op] * k, params_list).result()
 
         with self.subTest("ndarrary"):
-            result = estimator.run([0] * k, [0] * k, params_array).result()
+            result = estimator.run([qc] * k, [op] * k, params_array).result()
             self.assertEqual(len(result.metadata), k)
             np.testing.assert_allclose(result.values, target.values)
 
         with self.subTest("list of ndarray"):
-            result = estimator.run([0] * k, [0] * k, params_list_array).result()
+            result = estimator.run([qc] * k, [op] * k, params_list_array).result()
             self.assertEqual(len(result.metadata), k)
             np.testing.assert_allclose(result.values, target.values)
 
     def test_run_with_shots_option(self):
         """test with shots option."""
-        est = Estimator([self.ansatz], [self.observable])
+        est = Estimator()
         result = est.run(
-            [0], [0], parameter_values=[[0, 1, 1, 2, 3, 5]], shots=1024, seed=15
+            [self.ansatz],
+            [self.observable],
+            parameter_values=[[0, 1, 1, 2, 3, 5]],
+            shots=1024,
+            seed=15,
         ).result()
         self.assertIsInstance(result, EstimatorResult)
         np.testing.assert_allclose(result.values, [-1.307397243478641])

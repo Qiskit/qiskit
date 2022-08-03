@@ -104,6 +104,7 @@ from abc import ABC, abstractmethod
 from collections.abc import Iterable, Sequence
 from copy import copy
 from typing import cast
+from warnings import warn
 
 import numpy as np
 
@@ -147,6 +148,14 @@ class BaseEstimator(ABC):
         Raises:
             QiskitError: For mismatch of circuits and parameters list.
         """
+        if circuits is not None or observables is not None or parameters is not None:
+            warn(
+                "The BaseEstimator 'circuits', `observables`, `parameters` kwarg are deprecated "
+                "as of 0.22.0 and will be removed no earlier than 3 months after the "
+                "release date. You can use 'run' method to append objects.",
+                DeprecationWarning,
+                2,
+            )
         if isinstance(circuits, QuantumCircuit):
             circuits = (circuits,)
         self._circuits = () if circuits is None else tuple(circuits)
