@@ -155,7 +155,8 @@ class TestEstimator(QiskitTestCase):
         op2 = SparsePauliOp.from_list([("IZ", 1)])
         op3 = SparsePauliOp.from_list([("ZI", 1), ("ZZ", 1)])
 
-        est = Estimator([psi1, psi2], [op1, op2, op3], [params1, params2])
+        with self.assertWarns(DeprecationWarning):
+            est = Estimator([psi1, psi2], [op1, op2, op3], [params1, params2])
         theta1 = [0, 1, 1, 2, 3, 5]
         theta2 = [0, 1, 1, 2, 3, 5, 8, 13]
         theta3 = [1, 2, 3, 4, 5, 6]

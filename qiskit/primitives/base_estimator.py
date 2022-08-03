@@ -111,12 +111,13 @@ import numpy as np
 from qiskit.circuit import Parameter, QuantumCircuit
 from qiskit.circuit.parametertable import ParameterView
 from qiskit.exceptions import QiskitError
+from qiskit.opflow import PauliSumOp
 from qiskit.providers import JobV1 as Job
 from qiskit.quantum_info.operators import SparsePauliOp
+from qiskit.quantum_info.operators.base_operator import BaseOperator
 from qiskit.utils.deprecation import deprecate_arguments, deprecate_function
 
 from .estimator_result import EstimatorResult
-from .primitive_job import PrimitiveJob
 
 
 class BaseEstimator(ABC):
@@ -158,11 +159,11 @@ class BaseEstimator(ABC):
             )
         if isinstance(circuits, QuantumCircuit):
             circuits = (circuits,)
-        self._circuits = () if circuits is None else tuple(circuits)
+        self._circuits = [] if circuits is None else list(circuits)
 
         if isinstance(observables, SparsePauliOp):
             observables = (observables,)
-        self._observables = () if observables is None else tuple(observables)
+        self._observables = [] if observables is None else list(observables)
 
         # To guarantee that they exist as instance variable.
         # With only dynamic set, the python will not know if the attribute exists or not.
@@ -170,9 +171,9 @@ class BaseEstimator(ABC):
         self._observable_ids: dict[int, int] = self._observable_ids
 
         if parameters is None:
-            self._parameters = tuple(circ.parameters for circ in self._circuits)
+            self._parameters = [circ.parameters for circ in self._circuits]
         else:
-            self._parameters = tuple(ParameterView(par) for par in parameters)
+            self._parameters = [ParameterView(par) for par in parameters]
             if len(self._parameters) != len(self._circuits):
                 raise QiskitError(
                     f"Different number of parameters ({len(self._parameters)}) and "
@@ -237,7 +238,7 @@ class BaseEstimator(ABC):
         Returns:
             The quantum circuits.
         """
-        return self._circuits
+        return tuple(self._circuits)
 
     @property
     def observables(self) -> tuple[SparsePauliOp, ...]:
@@ -246,7 +247,7 @@ class BaseEstimator(ABC):
         Returns:
             The observables.
         """
-        return self._observables
+        return tuple(self._observables)
 
     @property
     def parameters(self) -> tuple[ParameterView, ...]:
@@ -255,7 +256,7 @@ class BaseEstimator(ABC):
         Returns:
             Parameters, where ``parameters[i][j]`` is the j-th parameter of the i-th circuit.
         """
-        return self._parameters
+        return tuple(self._parameters)
 
     @deprecate_function(
         "The BaseSampler.__call__ method is deprecated as of Qiskit Terra 0.21.0 "
@@ -396,7 +397,7 @@ class BaseEstimator(ABC):
     def run(
         self,
         circuits: Sequence[QuantumCircuit],
-        observables: Sequence[SparsePauliOp],
+        observables: Sequence[BaseOperator | PauliSumOp],
         parameter_values: Sequence[Sequence[float]] | None = None,
         **run_options,
     ) -> Job:
@@ -486,40 +487,12 @@ class BaseEstimator(ABC):
     ) -> EstimatorResult:
         ...
 
+    @abstractmethod
     def _run(
         self,
         circuits: Sequence[QuantumCircuit],
-        observables: Sequence[SparsePauliOp],
+        observables: Sequence[BaseOperator | PauliSumOp],
         parameter_values: Sequence[Sequence[float]],
         **run_options,
     ) -> Job:
-        circuit_indices = []
-        for circuit in circuits:
-            index = self._circuit_ids.get(id(circuit))
-            if index is not None:
-                circuit_indices.append(index)
-            else:
-                circuit_indices.append(len(self._circuits))
-                self._append_circuit(circuit)
-        observable_indices = []
-        for observable in observables:
-            index = self._observable_ids.get(id(observable))
-            if index is not None:
-                observable_indices.append(index)
-            else:
-                observable_indices.append(len(self._observables))
-                self._append_observable(observable)
-        job = PrimitiveJob(
-            self._call, circuit_indices, observable_indices, parameter_values, **run_options
-        )
-        job.submit()
-        return job
-
-    def _append_circuit(self, circuit):
-        self._circuit_ids[id(circuit)] = len(self._circuits)
-        self._circuits += (circuit,)
-        self._parameters += (circuit.parameters,)
-
-    def _append_observable(self, observable):
-        self._observable_ids[id(observable)] = len(self._observables)
-        self._observables += (observable,)
+        ...

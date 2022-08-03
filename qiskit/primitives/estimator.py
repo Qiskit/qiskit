@@ -28,6 +28,7 @@ from qiskit.quantum_info.operators.base_operator import BaseOperator
 
 from .base_estimator import BaseEstimator
 from .estimator_result import EstimatorResult
+from .primitive_job import PrimitiveJob
 from .utils import init_circuit, init_observable
 
 
@@ -130,6 +131,34 @@ class Estimator(BaseEstimator):
     def close(self):
         self._is_closed = True
 
-    def _append_observable(self, observable):
-        self._observable_ids[id(observable)] = len(self._observables)
-        self._observables += (init_observable(observable),)
+    def _run(
+        self,
+        circuits: Sequence[QuantumCircuit],
+        observables: Sequence[BaseOperator | PauliSumOp],
+        parameter_values: Sequence[Sequence[float]],
+        **run_options,
+    ) -> PrimitiveJob:
+        circuit_indices = []
+        for circuit in circuits:
+            index = self._circuit_ids.get(id(circuit))
+            if index is not None:
+                circuit_indices.append(index)
+            else:
+                circuit_indices.append(len(self._circuits))
+                self._circuit_ids[id(circuit)] = len(self._circuits)
+                self._circuits.append(circuit)
+                self._parameters.append(circuit.parameters)
+        observable_indices = []
+        for observable in observables:
+            index = self._observable_ids.get(id(observable))
+            if index is not None:
+                observable_indices.append(index)
+            else:
+                observable_indices.append(len(self._observables))
+                self._observable_ids[id(observable)] = len(self._observables)
+                self._observables.append(init_observable(observable))
+        job = PrimitiveJob(
+            self._call, circuit_indices, observable_indices, parameter_values, **run_options
+        )
+        job.submit()
+        return job

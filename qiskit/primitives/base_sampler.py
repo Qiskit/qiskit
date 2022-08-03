@@ -103,7 +103,6 @@ from qiskit.exceptions import QiskitError
 from qiskit.providers import JobV1 as Job
 from qiskit.utils.deprecation import deprecate_arguments, deprecate_function
 
-from .primitive_job import PrimitiveJob
 from .sampler_result import SamplerResult
 
 
@@ -139,16 +138,16 @@ class BaseSampler(ABC):
             )
         if isinstance(circuits, QuantumCircuit):
             circuits = (circuits,)
-        self._circuits = () if circuits is None else tuple(circuits)
+        self._circuits = [] if circuits is None else list(circuits)
 
         # To guarantee that they exist as instance variable.
         # With only dynamic set, the python will not know if the attribute exists or not.
         self._circuit_ids: dict[int, int] = self._circuit_ids
 
         if parameters is None:
-            self._parameters = tuple(circ.parameters for circ in self._circuits)
+            self._parameters = [circ.parameters for circ in self._circuits]
         else:
-            self._parameters = tuple(ParameterView(par) for par in parameters)
+            self._parameters = [ParameterView(par) for par in parameters]
             if len(self._parameters) != len(self._circuits):
                 raise QiskitError(
                     f"Different number of parameters ({len(self._parameters)}) "
@@ -199,7 +198,7 @@ class BaseSampler(ABC):
         Returns:
             The quantum circuits to be sampled.
         """
-        return self._circuits
+        return tuple(self._circuits)
 
     @property
     def parameters(self) -> tuple[ParameterView, ...]:
@@ -208,7 +207,7 @@ class BaseSampler(ABC):
         Returns:
             List of the parameters in each quantum circuit.
         """
-        return self._parameters
+        return tuple(self._parameters)
 
     @deprecate_function(
         "The BaseSampler.__call__ method is deprecated as of Qiskit Terra 0.21.0 "
@@ -352,25 +351,11 @@ class BaseSampler(ABC):
     ) -> SamplerResult:
         ...
 
+    @abstractmethod
     def _run(
         self,
         circuits: Sequence[QuantumCircuit],
         parameter_values: Sequence[Sequence[float]],
         **run_options,
     ) -> Job:
-        circuit_indices = []
-        for circuit in circuits:
-            index = self._circuit_ids.get(id(circuit))
-            if index is not None:
-                circuit_indices.append(index)
-            else:
-                circuit_indices.append(len(self._circuits))
-                self._append_circuit(circuit)
-        job = PrimitiveJob(self._call, circuit_indices, parameter_values, **run_options)
-        job.submit()
-        return job
-
-    def _append_circuit(self, circuit):
-        self._circuits += (circuit,)
-        self._circuit_ids[id(circuit)] = len(self._circuits)
-        self._parameters += (circuit.parameters,)
+        ...

@@ -16,7 +16,7 @@ Sampler class
 from __future__ import annotations
 
 from collections.abc import Iterable, Sequence
-from typing import Any
+from typing import Any, cast
 
 import numpy as np
 
@@ -26,6 +26,7 @@ from qiskit.quantum_info import Statevector
 from qiskit.result import QuasiDistribution
 
 from .base_sampler import BaseSampler
+from .primitive_job import PrimitiveJob
 from .sampler_result import SamplerResult
 from .utils import final_measurement_mapping, init_circuit
 
@@ -133,17 +134,32 @@ class Sampler(BaseSampler):
     def close(self):
         self._is_closed = True
 
-    def _append_circuit(self, circuit):
-        self._circuit_ids[id(circuit)] = len(self._circuits)
-        q_c_mapping = final_measurement_mapping(circuit)
-        if set(range(circuit.num_clbits)) != set(q_c_mapping.values()):
-            raise QiskitError(
-                "some classical bits are not used for measurements."
-                f" the number of classical bits {circuit.num_clbits},"
-                f" the used classical bits {set(q_c_mapping.values())}."
-            )
-        c_q_mapping = sorted((c, q) for q, c in q_c_mapping.items())
-        self._qargs_list.append([q for _, q in c_q_mapping])
-        circuit = circuit.remove_final_measurements(inplace=False)
-        self._circuits += (circuit,)
-        self._parameters += (circuit.parameters,)
+    def _run(
+        self,
+        circuits: Sequence[QuantumCircuit],
+        parameter_values: Sequence[Sequence[float]],
+        **run_options,
+    ) -> PrimitiveJob:
+        circuit_indices = []
+        for circuit in circuits:
+            index = self._circuit_ids.get(id(circuit))
+            if index is not None:
+                circuit_indices.append(index)
+            else:
+                circuit_indices.append(len(self._circuits))
+                self._circuit_ids[id(circuit)] = len(self._circuits)
+                q_c_mapping = final_measurement_mapping(circuit)
+                if set(range(circuit.num_clbits)) != set(q_c_mapping.values()):
+                    raise QiskitError(
+                        "some classical bits are not used for measurements."
+                        f" the number of classical bits {circuit.num_clbits},"
+                        f" the used classical bits {set(q_c_mapping.values())}."
+                    )
+                c_q_mapping = sorted((c, q) for q, c in q_c_mapping.items())
+                self._qargs_list.append([q for _, q in c_q_mapping])
+                circuit = cast(QuantumCircuit, circuit.remove_final_measurements(inplace=False))
+                self._circuits.append(circuit)
+                self._parameters.append(circuit.parameters)
+        job = PrimitiveJob(self._call, circuit_indices, parameter_values, **run_options)
+        job.submit()
+        return job
