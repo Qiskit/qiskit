@@ -25,6 +25,7 @@ from qiskit.circuit.classicalregister import ClassicalRegister, Clbit
 from qiskit.dagcircuit.exceptions import DAGDependencyError
 from qiskit.dagcircuit.dagdepnode import DAGDepNode
 from qiskit.exceptions import MissingOptionalLibraryError
+from qiskit.circuit.commutation_checker import CommutationChecker
 
 
 class DAGDependency:
@@ -91,9 +92,6 @@ class DAGDependency:
 
         self.duration = None
         self.unit = "dt"
-
-        # pylint: disable=cyclic-import
-        from qiskit.transpiler.passes.optimization.commutation_checker import CommutationChecker
 
         self.comm_checker = CommutationChecker()
 

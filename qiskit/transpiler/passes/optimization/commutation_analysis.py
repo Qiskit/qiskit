@@ -16,6 +16,7 @@ from collections import defaultdict
 
 from qiskit.dagcircuit import DAGOpNode
 from qiskit.transpiler.basepasses import AnalysisPass
+from qiskit.circuit.commutation_checker import CommutationChecker
 
 
 class CommutationAnalysis(AnalysisPass):
@@ -31,8 +32,6 @@ class CommutationAnalysis(AnalysisPass):
 
     def __init__(self):
         super().__init__()
-        from qiskit.transpiler.passes.optimization.commutation_checker import CommutationChecker
-
         self.comm_checker = CommutationChecker()
 
     def run(self, dag):

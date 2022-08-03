@@ -15,7 +15,7 @@
 
 from qiskit.dagcircuit import DAGCircuit, DAGOpNode
 from qiskit.transpiler.basepasses import TransformationPass
-from .commutation_checker import CommutationChecker
+from qiskit.circuit.commutation_checker import CommutationChecker
 
 
 class CommutativeInverseCancellation(TransformationPass):
