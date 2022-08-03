@@ -45,19 +45,19 @@ class PVQD(RealEvolver):
     (``ansatz``). The projection is determined by maximizing the fidelity of the Trotter-evolved
     state and the ansatz, using a classical optimization routine. See Ref. [1] for details.
 
-    The following attributes can be set via the initializer but can also be changed once the
-    PVQD object has been constructed.
+    The following attributes can be set via the initializer but can also be read and
+    updated once the PVQD object has been constructed.
 
     Attributes:
 
         ansatz (QuantumCircuit): The parameterized circuit representing the time-evolved state.
         initial_parameters (np.ndarray): The parameters of the ansatz at time 0.
         expectation (ExpectationBase): The method to compute expectation values.
-        optimizer: (Optional[Union[Optimizer, Minimizer]]): The classical optimization routine
+        optimizer (Optional[Union[Optimizer, Minimizer]]): The classical optimization routine
             used to maximize the fidelity of the Trotter step and ansatz.
         num_timesteps (Optional[int]): The number of timesteps to take. If None, it is automatically
             selected to achieve a timestep of approximately 0.01.
-        evolution: (Optional[EvolutionSynthesis]): The method to perform the Trotter step.
+        evolution (Optional[EvolutionSynthesis]): The method to perform the Trotter step.
             Defaults to first-order Lie-Trotter evolution.
         use_parameter_shift (bool): If True, use the parameter shift rule for loss function
             gradients (if the ansatz supports).
