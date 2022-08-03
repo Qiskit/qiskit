@@ -16,6 +16,7 @@ Can be applied to a :class:`~qiskit.circuit.QuantumCircuit`
 with the :meth:`~qiskit.circuit.QuantumCircuit.barrier` method.
 """
 
+from qiskit.exceptions import QiskitError
 from .instruction import Instruction
 
 
