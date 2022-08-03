@@ -13,6 +13,7 @@
 """Test library of n-local circuits."""
 
 import unittest
+from test import combine
 
 import numpy as np
 
@@ -40,6 +41,7 @@ from qiskit.circuit.library import (
 )
 from qiskit.circuit.random.utils import random_circuit
 from qiskit.converters.circuit_to_dag import circuit_to_dag
+from qiskit.quantum_info import Operator
 
 
 @ddt
@@ -296,7 +298,16 @@ class TestNLocal(QiskitTestCase):
                 idle = set(dag.idle_wires())
                 self.assertEqual(skipped_set, idle)
 
-    @data("linear", "full", "circular", "sca", ["linear", "full"], ["circular", "linear", "sca"])
+    @data(
+        "linear",
+        "full",
+        "circular",
+        "sca",
+        "reverse_linear",
+        ["linear", "full"],
+        ["reverse_linear", "full"],
+        ["circular", "linear", "sca"],
+    )
     def test_entanglement_by_str(self, entanglement):
         """Test setting the entanglement of the layers by str."""
         reps = 3
@@ -311,6 +322,8 @@ class TestNLocal(QiskitTestCase):
         def get_expected_entangler_map(rep_num, mode):
             if mode == "linear":
                 return [(0, 1, 2), (1, 2, 3), (2, 3, 4)]
+            elif mode == "reverse_linear":
+                return [(2, 3, 4), (1, 2, 3), (0, 1, 2)]
             elif mode == "full":
                 return [
                     (0, 1, 2),
@@ -343,7 +356,7 @@ class TestNLocal(QiskitTestCase):
 
             with self.subTest(rep_num=rep_num):
                 # using a set here since the order does not matter
-                self.assertEqual(set(entangler_map), set(expected))
+                self.assertEqual(entangler_map, expected)
 
     def test_pairwise_entanglement(self):
         """Test pairwise entanglement."""
@@ -620,8 +633,30 @@ class TestTwoLocal(QiskitTestCase):
             expected = [(-np.pi, np.pi)] * two.num_parameters
             np.testing.assert_almost_equal(two.parameter_bounds, expected)
 
-    def test_ry_circuit(self):
-        """Test an RealAmplitudes circuit."""
+    def test_ry_circuit_reverse_linear(self):
+        """Test a RealAmplitudes circuit with entanglement = "reverse_linear"."""
+        num_qubits = 3
+        reps = 2
+        entanglement = "reverse_linear"
+        parameters = ParameterVector("theta", num_qubits * (reps + 1))
+        param_iter = iter(parameters)
+
+        expected = QuantumCircuit(3)
+        for _ in range(reps):
+            for i in range(num_qubits):
+                expected.ry(next(param_iter), i)
+            expected.cx(1, 2)
+            expected.cx(0, 1)
+        for i in range(num_qubits):
+            expected.ry(next(param_iter), i)
+
+        library = RealAmplitudes(
+            num_qubits, reps=reps, entanglement=entanglement
+        ).assign_parameters(parameters)
+        self.assertCircuitEqual(library, expected)
+
+    def test_ry_circuit_full(self):
+        """Test a RealAmplitudes circuit with entanglement = "full"."""
         num_qubits = 3
         reps = 2
         entanglement = "full"
@@ -648,7 +683,6 @@ class TestTwoLocal(QiskitTestCase):
         library = RealAmplitudes(
             num_qubits, reps=reps, entanglement=entanglement
         ).assign_parameters(parameters)
-
         self.assertCircuitEqual(library, expected)
 
     def test_ryrz_blocks(self):
@@ -867,6 +901,19 @@ class TestTwoLocal(QiskitTestCase):
 
         self.assertEqual(two_np32.decompose().count_ops()["cx"], expected_cx)
         self.assertEqual(two_np64.decompose().count_ops()["cx"], expected_cx)
+
+    @combine(num_qubits=[4, 5])
+    def test_full_vs_reverse_linear(self, num_qubits):
+        """Test that 'full' and 'reverse_linear' provide the same unitary element."""
+        reps = 2
+        full = RealAmplitudes(num_qubits=num_qubits, entanglement="full", reps=reps)
+        num_params = (reps + 1) * num_qubits
+        np.random.seed(num_qubits)
+        params = np.random.rand(num_params)
+        reverse = RealAmplitudes(num_qubits=num_qubits, entanglement="reverse_linear", reps=reps)
+        full.assign_parameters(params, inplace=True)
+        reverse.assign_parameters(params, inplace=True)
+        assert Operator(full) == Operator(reverse)
 
 
 if __name__ == "__main__":
