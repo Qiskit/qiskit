@@ -154,6 +154,7 @@ Algorithms that can find the minimum eigenvalue of an operator.
 
    NumPyMinimumEigensolver
    QAOA
+   AdaptQAOA
    VQE
 
 
@@ -231,6 +232,7 @@ from .minimum_eigen_solvers import (
     VQE,
     VQEResult,
     QAOA,
+    AdaptQAOA,
     NumPyMinimumEigensolver,
     MinimumEigensolver,
     MinimumEigensolverResult,
