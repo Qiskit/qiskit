@@ -27,7 +27,7 @@ A sampler is initialized with the following elements.
 
 The sampler is run with the following inputs.
 
-* circuit indexes: a list of indices of the circuits to evaluate.
+* circuits: a list of QuantumCircuit objects to evaluate.
 
 * parameter values (:math:`\theta_k`): list of sets of parameter values
   to be bound to the parameters of the quantum circuits.
@@ -55,21 +55,13 @@ Here is an example of how sampler is used.
     bell.measure_all()
 
     # executes a Bell circuit
-    sampler = Sampler(circuits=[bell], parameters=[[]])
-    result = sampler.run(circuits=[0], parameters=[[]]).result()
+    sampler = Sampler()
+    result = sampler.run(circuits=[bell]).result()
     print([q.binary_probabilities() for q in result.quasi_dists])
 
     # executes three Bell circuits
     # Argument `parameters` is optional.
-    sampler = Sampler([bell]*3)
-    result = sampler.run([0, 1, 2], [[]]*3).result()
-    print([q.binary_probabilities() for q in result.quasi_dists])
-
-    # executes three Bell circuits with objects.
-    # Objects can be passed instead of indices.
-    # Note that passing objects has an overhead
-    # since the corresponding indices need to be searched.
-    sanpler = Sampler([bell])
+    sampler = Sampler()
     result = sampler.run([bell, bell, bell]).result()
     print([q.binary_probabilities() for q in result.quasi_dists])
 
@@ -83,9 +75,8 @@ Here is an example of how sampler is used.
     theta2 = [1, 2, 3, 4, 5, 6]
     theta3 = [0, 1, 2, 3, 4, 5, 6, 7]
 
-    sampler = Sampler(circuits=[pqc], parameters=[pqc.parameters])
-    # User can append a new quantum circuit like the following `pqc2`.
-    result = sampler.run([0, 0, pqc2], [theta1, theta2, theta3]).result()
+    sampler = Sampler()
+    result = sampler.run([pqc, pqc, pqc2], [theta1, theta2, theta3]).result()
 
     # result of pqc(theta1)
     print(result.quasi_dists[0].binary_probabilities())
@@ -295,69 +286,32 @@ class BaseSampler(ABC):
 
     def run(
         self,
-        circuits: Sequence[int | QuantumCircuit],
+        circuits: Sequence[QuantumCircuit],
         parameter_values: Sequence[Sequence[float]] | None = None,
         **run_options,
     ) -> Job:
         """Run the job of the sampling of bitstrings.
 
         Args:
-            circuits: the list of circuit indices or circuit objects.
+            circuits: the list of circuit objects.
             parameter_values: Parameters to be bound to the circuit.
             run_options: Backend runtime options used for circuit execution.
 
         Returns:
             The job object of the result of the sampler. The i-th result corresponds to
-            ``self.circuits[circuits[i]]`` evaluated with parameters bound as
-            ``parameter_values[i]``.
+            ``circuits[i]`` evaluated with parameters bound as ``parameter_values[i]``.
+
+        Raises:
+            QiskitError: Invalid arguments are given.
         """
-        circuit_indices = []
-        for circuit in circuits:
-            if isinstance(circuit, (int, np.integer)):
-                circuit_indices.append(circuit)
-            else:
-                index = self._circuit_ids.get(id(circuit))
-                if index is None:
-                    self._append_circuit(circuit)
-                    circuit_indices.append(len(self._circuits) - 1)
-                else:
-                    circuit_indices.append(index)
-        circuit_indices, parameter_values = self._validation(circuit_indices, parameter_values)
-        return self._run(circuit_indices, parameter_values, **run_options)
-
-    @abstractmethod
-    def _call(
-        self,
-        circuits: Sequence[int],
-        parameter_values: Sequence[Sequence[float]],
-        **run_options,
-    ) -> SamplerResult:
-        ...
-
-    def _run(
-        self,
-        circuits: Sequence[int],
-        parameter_values: Sequence[Sequence[float]],
-        **run_options,
-    ) -> Job:
-        job = PrimitiveJob(self._call, circuits, parameter_values, **run_options)
-        job.submit()
-        return job
-
-    def _append_circuit(self, circuit):
-        self._circuits += (circuit,)
-        self._circuit_ids[id(circuit)] = len(self._circuits) - 1
-        self._parameters += (circuit.parameters,)
-
-    def _validation(self, circuits, parameter_values) -> tuple[list[int], list[list[float]]]:
         # Support ndarray
         if isinstance(parameter_values, np.ndarray):
             parameter_values = parameter_values.tolist()
 
         # Allow optional
         if parameter_values is None:
-            for i in circuits:
-                if len(self._circuits[i].parameters) != 0:
+            for i, circuit in enumerate(circuits):
+                if circuit.num_parameters != 0:
                     raise QiskitError(
                         f"The {i}-th circuit ({len(circuits)}) is parameterised,"
                         "but parameter values are not given."
@@ -371,11 +325,43 @@ class BaseSampler(ABC):
                 f"the number of parameter value sets ({len(parameter_values)})."
             )
 
-        for i, value in zip(circuits, parameter_values):
-            if len(value) != len(self._parameters[i]):
+        for i, (circuit, parameter_value) in enumerate(zip(circuits, parameter_values)):
+            if len(parameter_value) != circuit.num_parameters:
                 raise QiskitError(
-                    f"The number of values ({len(value)}) does not match "
-                    f"the number of parameters ({len(self._parameters[i])}) for the {i}-th circuit."
+                    f"The number of values ({len(parameter_value)}) does not match "
+                    f"the number of parameters ({circuit.num_parameters}) for the {i}-th circuit."
                 )
 
-        return circuits, parameter_values
+        return self._run(circuits, parameter_values, **run_options)
+
+    @abstractmethod
+    def _call(
+        self,
+        circuits: Sequence[int],
+        parameter_values: Sequence[Sequence[float]],
+        **run_options,
+    ) -> SamplerResult:
+        ...
+
+    def _run(
+        self,
+        circuits: Sequence[QuantumCircuit],
+        parameter_values: Sequence[Sequence[float]],
+        **run_options,
+    ) -> Job:
+        circuit_indices = []
+        for circuit in circuits:
+            index = self._circuit_ids.get(id(circuit))
+            if index is not None:
+                circuit_indices.append(index)
+            else:
+                circuit_indices.append(len(self._circuits))
+                self._append_circuit(circuit)
+        job = PrimitiveJob(self._call, circuit_indices, parameter_values, **run_options)
+        job.submit()
+        return job
+
+    def _append_circuit(self, circuit):
+        self._circuits += (circuit,)
+        self._circuit_ids[id(circuit)] = len(self._circuits)
+        self._parameters += (circuit.parameters,)

@@ -32,9 +32,9 @@ An estimator is initialized with the following elements.
 
 The estimator is called with the following inputs.
 
-* circuit indexes: a list of indexes of the quantum circuits.
+* circuits: a list of the quantum circuits.
 
-* observable indexes: a list of indexes of the observables.
+* observables: a list of the observables.
 
 * parameters: a list of parameters of the quantum circuits.
   (:class:`~qiskit.circuit.parametertable.ParameterView` or
@@ -78,29 +78,24 @@ Here is an example of how estimator is used.
     theta2 = [0, 1, 1, 2, 3, 5, 8, 13]
     theta3 = [1, 2, 3, 4, 5, 6]
 
-    estimator = Estimator([psi1], [H1], [params1])
+    estimator = Estimator()
 
-    # Specify the circuit and observable by indices.
     # calculate [ <psi1(theta1)|H1|psi1(theta1)> ]
-    result = estimator.run([0], [0], [theta1]).result()
+    result = estimator.run([psi1], [H1], [theta1]).result()
     print(result)
 
-    # Objects can be passed instead of indices.
-    # Note that passing objects has an overhead
-    # since the corresponding indices need to be searched.
-    # User can append a circuit and observable.
     # calculate [ <psi2(theta2)|H2|psi2(theta2)> ]
     result2 = estimator.run([psi2], [H1], [theta2]).result()
     print(result2)
 
     # calculate [ <psi1(theta1)|H2|psi1(theta1)>, <psi1(theta1)|H3|psi1(theta1)> ]
-    result3 = estimator.run([0, 0], [H2, H3], [theta1]*2).result()
+    result3 = estimator.run([psi1, psi1], [H2, H3], [theta1]*2).result()
     print(result3)
 
     # calculate [ <psi1(theta1)|H1|psi1(theta1)>,
     #             <psi2(theta2)|H2|psi2(theta2)>,
     #             <psi1(theta3)|H3|psi1(theta3)> ]
-    result4 estimator.run([0, 1, 0], [0, 1, 2], [theta1, theta2, theta3]).result()
+    result4 estimator.run([psi1, psi2, psi1], [H1, H2, H3], [theta1, theta2, theta3]).result()
     print(result4)
 """
 from __future__ import annotations
@@ -391,8 +386,8 @@ class BaseEstimator(ABC):
 
     def run(
         self,
-        circuits: Sequence[int | QuantumCircuit],
-        observables: Sequence[int | SparsePauliOp],
+        circuits: Sequence[QuantumCircuit],
+        observables: Sequence[SparsePauliOp],
         parameter_values: Sequence[Sequence[float]] | None = None,
         **run_options,
     ) -> Job:
@@ -403,13 +398,13 @@ class BaseEstimator(ABC):
 
         .. code-block:: python
 
-            obs = self.observables[observables[i]]
+            obs = observables[i]
 
         for the state prepared by
 
         .. code-block:: python
 
-            circ = self.circuits[circuits[i]]
+            circ = circuits[i]
 
         with bound parameters
 
@@ -418,74 +413,25 @@ class BaseEstimator(ABC):
             values = parameter_values[i].
 
         Args:
-            circuits: the list of circuit indices or circuit objects.
-            observables: the list of observable indices or observable objects.
+            circuits: the list of circuit objects.
+            observables: the list of observable objects.
             parameter_values: concrete parameters to be bound.
             run_options: runtime options used for circuit execution.
 
         Returns:
             The job object of EstimatorResult.
+
+        Raises:
+            QiskitError: Invalid arguments are given.
         """
-        circuit_indices: list[int] = []
-        for circuit in circuits:
-            if isinstance(circuit, (int, np.integer)):
-                circuit_indices.append(circuit)
-            else:
-                index = self._circuit_ids.get(id(circuit))
-                if index is None:
-                    self._append_circuit(circuit)
-                    circuit_indices.append(len(self._circuits) - 1)
-                else:
-                    circuit_indices.append(index)
-        observable_indices = []
-        for observable in observables:
-            if isinstance(observable, (int, np.integer)):
-                observable_indices.append(observable)
-            else:
-                index = self._observable_ids.get(id(observable))
-                if index is None:
-                    self._append_observable(observable)
-                    observable_indices.append(len(self._observables) - 1)
-                else:
-                    observable_indices.append(index)
-
-        circuit_indices, observable_indices, parameter_values = self._validation(
-            circuit_indices, observable_indices, parameter_values
-        )
-        return self._run(circuit_indices, observable_indices, parameter_values, **run_options)
-
-    @abstractmethod
-    def _call(
-        self,
-        circuits: Sequence[int],
-        observables: Sequence[int],
-        parameter_values: Sequence[Sequence[float]],
-        **run_options,
-    ) -> EstimatorResult:
-        ...
-
-    def _run(
-        self,
-        circuits: Sequence[int],
-        observables: Sequence[int],
-        parameter_values: Sequence[Sequence[float]],
-        **run_options,
-    ) -> Job:
-        job = PrimitiveJob(self._call, circuits, observables, parameter_values, **run_options)
-        job.submit()
-        return job
-
-    def _validation(
-        self, circuits: list[int], observables: list[int], parameter_values
-    ) -> tuple[list[int], list[int], list[list[float]]]:
         # Support ndarray
         if isinstance(parameter_values, np.ndarray):
             parameter_values = parameter_values.tolist()
 
         # Allow optional
         if parameter_values is None:
-            for i in circuits:
-                if len(self._circuits[i].parameters) != 0:
+            for i, circuit in enumerate(circuits):
+                if circuit.num_parameters != 0:
                     raise QiskitError(
                         f"The {i}-th circuit is parameterised,"
                         "but parameter values are not given."
@@ -504,40 +450,67 @@ class BaseEstimator(ABC):
                 f"the number of parameter value sets ({len(parameter_values)})."
             )
 
-        for i, value in zip(circuits, parameter_values):
-            if len(value) != len(self._parameters[i]):
+        for i, (circuit, parameter_value) in enumerate(zip(circuits, parameter_values)):
+            if len(parameter_value) != circuit.num_parameters:
                 raise QiskitError(
-                    f"The number of values ({len(value)}) does not match "
-                    f"the number of parameters ({len(self._parameters[i])}) for the {i}-th circuit."
+                    f"The number of values ({len(parameter_value)}) does not match "
+                    f"the number of parameters ({circuit.num_parameters}) for the {i}-th circuit."
                 )
 
-        for circ_i, obs_i in zip(circuits, observables):
-            circuit_num_qubits = self.circuits[circ_i].num_qubits
-            observable_num_qubits = self.observables[obs_i].num_qubits
-            if circuit_num_qubits != observable_num_qubits:
+        for i, (circuit, observable) in enumerate(zip(circuits, observables)):
+            if circuit.num_qubits != observable.num_qubits:
                 raise QiskitError(
-                    f"The number of qubits of the {circ_i}-th circuit ({circuit_num_qubits}) does "
-                    f"not match the number of qubits of the {obs_i}-th observable "
-                    f"({observable_num_qubits})."
+                    f"The number of qubits of the {i}-th circuit ({circuit.num_qubits}) does "
+                    f"not match the number of qubits of the {i}-th observable "
+                    f"({observable.num_qubits})."
                 )
 
-        if max(circuits) >= len(self.circuits):
-            raise QiskitError(
-                f"The number of circuits is {len(self.circuits)}, "
-                f"but the index {max(circuits)} is given."
-            )
-        if max(observables) >= len(self.observables):
-            raise QiskitError(
-                f"The number of circuits is {len(self.observables)}, "
-                f"but the index {max(observables)} is given."
-            )
-        return circuits, observables, parameter_values
+        return self._run(circuits, observables, parameter_values, **run_options)
+
+    @abstractmethod
+    def _call(
+        self,
+        circuits: Sequence[int],
+        observables: Sequence[int],
+        parameter_values: Sequence[Sequence[float]],
+        **run_options,
+    ) -> EstimatorResult:
+        ...
+
+    def _run(
+        self,
+        circuits: Sequence[QuantumCircuit],
+        observables: Sequence[SparsePauliOp],
+        parameter_values: Sequence[Sequence[float]],
+        **run_options,
+    ) -> Job:
+        circuit_indices = []
+        for circuit in circuits:
+            index = self._circuit_ids.get(id(circuit))
+            if index is not None:
+                circuit_indices.append(index)
+            else:
+                circuit_indices.append(len(self._circuits))
+                self._append_circuit(circuit)
+        observable_indices = []
+        for observable in observables:
+            index = self._observable_ids.get(id(observable))
+            if index is not None:
+                observable_indices.append(index)
+            else:
+                observable_indices.append(len(self._observables))
+                self._append_observable(observable)
+        job = PrimitiveJob(
+            self._call, circuit_indices, observable_indices, parameter_values, **run_options
+        )
+        job.submit()
+        return job
 
     def _append_circuit(self, circuit):
-        self._circuit_ids[id(circuit)] = len(self._circuits) - 1
+        self._circuit_ids[id(circuit)] = len(self._circuits)
         self._circuits += (circuit,)
         self._parameters += (circuit.parameters,)
 
     def _append_observable(self, observable):
-        self._observable_ids[id(observable)] = len(self._observables) - 1
+        self._observable_ids[id(observable)] = len(self._observables)
         self._observables += (observable,)

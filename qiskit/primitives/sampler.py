@@ -134,7 +134,7 @@ class Sampler(BaseSampler):
         self._is_closed = True
 
     def _append_circuit(self, circuit):
-        self._circuit_ids[id(circuit)] = len(self._circuits) - 1
+        self._circuit_ids[id(circuit)] = len(self._circuits)
         q_c_mapping = final_measurement_mapping(circuit)
         if set(range(circuit.num_clbits)) != set(q_c_mapping.values()):
             raise QiskitError(
