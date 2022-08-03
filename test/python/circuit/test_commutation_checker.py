@@ -20,7 +20,17 @@ from qiskit.test import QiskitTestCase
 
 from qiskit.circuit import QuantumRegister, Parameter
 from qiskit.circuit import CommutationChecker
-from qiskit.circuit.library import ZGate, XGate, CXGate, CCXGate, RZGate, Measure, Barrier, Reset, LinearFunction
+from qiskit.circuit.library import (
+    ZGate,
+    XGate,
+    CXGate,
+    CCXGate,
+    RZGate,
+    Measure,
+    Barrier,
+    Reset,
+    LinearFunction,
+)
 
 
 class TestCommutationChecker(QiskitTestCase):
@@ -320,7 +330,9 @@ class TestCommutationChecker(QiskitTestCase):
         )
         self.assertFalse(res)
 
-        res = comm_checker.commute(XGate().c_if(cr[0], 0), [qr[0]], [], XGate().c_if(cr[0], 1), [qr[0]], [])
+        res = comm_checker.commute(
+            XGate().c_if(cr[0], 0), [qr[0]], [], XGate().c_if(cr[0], 1), [qr[0]], []
+        )
         self.assertFalse(res)
 
         res = comm_checker.commute(XGate().c_if(cr[0], 0), [qr[0]], [], XGate(), [qr[0]], [])
