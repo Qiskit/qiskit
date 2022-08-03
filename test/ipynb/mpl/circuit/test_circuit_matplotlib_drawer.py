@@ -921,6 +921,7 @@ class TestMatplotlibDrawer(QiskitTestCase):
         )
 
     def test_barrier_label(self):
+        """Test the barrier label"""
         circuit = QuantumCircuit(2)
         circuit.x(0)
         circuit.y(1)
