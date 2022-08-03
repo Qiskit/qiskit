@@ -15,7 +15,7 @@
 import unittest
 import numpy as np
 
-from qiskit import QuantumCircuit, ClassicalRegister
+from qiskit import ClassicalRegister
 from qiskit.test import QiskitTestCase
 
 from qiskit.circuit import QuantumRegister, Parameter
