@@ -15,6 +15,7 @@
 
 from qiskit.dagcircuit import DAGCircuit, DAGOpNode
 from qiskit.transpiler.basepasses import TransformationPass
+from .commutation_checker import CommutationChecker
 
 
 class CommutativeInverseCancellation(TransformationPass):
@@ -52,8 +53,6 @@ class CommutativeInverseCancellation(TransformationPass):
         circ_size = len(topo_sorted_nodes)
 
         removed = [False for _ in range(circ_size)]
-
-        from .commutation_checker import CommutationChecker
 
         cc = CommutationChecker()
 
