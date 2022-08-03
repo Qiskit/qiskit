@@ -141,7 +141,6 @@ class DAGDepNode:
         self.sort_key = str(new_qargs)
 
     @staticmethod
-    # pylint: disable=arguments-differ
     def semantic_eq(node1, node2):
         """
         Check if DAG nodes are considered equivalent, e.g., as a node_match for nx.is_isomorphic.
