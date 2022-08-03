@@ -18,6 +18,7 @@ from __future__ import annotations
 from copy import copy, deepcopy
 from collections import Iterable, Counter, defaultdict
 from dataclasses import dataclass
+from hashlib import new
 from typing import TYPE_CHECKING, Any, Dict
 
 from qiskit import transpile
@@ -25,6 +26,8 @@ from qiskit.circuit import Parameter, ParameterExpression, QuantumCircuit
 
 
 import numpy as np
+
+from qiskit.converters import isinstanceint
 
 
 @dataclass
@@ -76,11 +79,9 @@ def rebuild_circuit_with_unique_parameters(circuit: QuantumCircuit):
                 # Substitute the parameter variables with the corresponding new parameter variables in ``subs_map``.
                 new_parameter = parameter.subs(subs_map)
 
-                # If the number of parameter variables is more than one, add a new virtual parameter variable.
-                # This virtual parameter variable is used to calculate df/dw when f has multiple parameter variables.
-                # e.g. ry(θ) with θ = (2x + y) becomes ry(θ+v)
-                #print('parameters!!!!!!!', new_parameter.parameters)
-                if 1 < len(new_parameter.parameters):
+                # If new_parameter is not a single parameter variable, then add a new virtual parameter variable.
+                # e.g. ry(θ) with θ = (2x + y) becomes ry(θ + virtual_variable)
+                if not isinstance(new_parameter, Parameter):
                     virtual_parameter_variable = Parameter(f'vθ_{num_virtual_parameter_variables+1}')
                     num_virtual_parameter_variables += 1
                     for new_parameter_variable in new_parameter.parameters:
