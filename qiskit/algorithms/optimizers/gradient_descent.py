@@ -196,7 +196,7 @@ class GradientDescent(SteppableOptimizer):
     Users that aren't dealing with complicated functions and who are more familiar with step by step
     optimization algorithms can use the :meth:`~.step` method which wraps the :meth:`~.ask`
     and :meth:`~.tell` methods. In the same spirit the method :meth:`~.minimize` will optimize the
-    function and return the result directly.
+    function and return the result.
 
     To see other libraries that use this interface one can visit:
     https://optuna.readthedocs.io/en/stable/tutorial/20_recipes/009_ask_and_tell.html

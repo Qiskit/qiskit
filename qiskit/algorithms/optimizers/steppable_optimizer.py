@@ -140,7 +140,7 @@ class SteppableOptimizer(Optimizer):
     Users that aren't dealing with complicated functions and who are more familiar with step by step
     optimization algorithms can use the :meth:`~.step` method which wraps the :meth:`~.ask`
     and :meth:`~.tell` methods. In the same spirit the method :meth:`~.minimize` will optimize the
-    function and return the result without directly.
+    function and return the result.
 
     To see other libraries that use this interface one can visit:
     https://optuna.readthedocs.io/en/stable/tutorial/20_recipes/009_ask_and_tell.html
@@ -158,7 +158,7 @@ class SteppableOptimizer(Optimizer):
         """
         super().__init__()
         self._state: Optional[OptimizerState] = None
-        self._maxiter = maxiter
+        self.maxiter = maxiter
 
     @property
     def state(self) -> OptimizerState:
@@ -169,16 +169,6 @@ class SteppableOptimizer(Optimizer):
     def state(self, state: OptimizerState) -> None:
         """Set the current state of the optimizer."""
         self._state = state
-
-    @property
-    def maxiter(self) -> int:
-        """Returns the number of steps in the optimization process before ending the loop."""
-        return self._maxiter
-
-    @maxiter.setter
-    def maxiter(self, maxiter: int) -> None:
-        """Set the number of steps in the optimization process before ending the loop."""
-        self._maxiter = maxiter
 
     def ask(self) -> AskData:
         """Ask the optimizer for a set of points to evaluate.

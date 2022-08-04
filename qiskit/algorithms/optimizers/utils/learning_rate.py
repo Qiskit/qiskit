@@ -10,7 +10,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""A standard gradient descent optimizer."""
+"""A class to represent the Learning Rate."""
 
 from typing import Union, Callable, Optional, List, Iterator, Generator
 from itertools import tee
