@@ -211,7 +211,7 @@ def plot_bloch_vector(bloch, title="", ax=None, figsize=None, coord_type="cartes
 
            import numpy as np
 
-           plot_bloch_vector([1, np.pi/2, np.pi/3], coord_type = 'spherical')
+           plot_bloch_vector([1, np.pi/2, np.pi/3], coord_type='spherical')
 
     """
     from qiskit.visualization.bloch import Bloch
