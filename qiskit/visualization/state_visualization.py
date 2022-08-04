@@ -276,7 +276,7 @@ def plot_bloch_multivector(
            qc.cx(0,1)
 
            matrix = DensityMatrix(qc)
-           plot_bloch_multivector(matrix, title = 'My Bloch Spheres', reverse_bits = True)
+           plot_bloch_multivector(matrix, title='My Bloch Spheres', reverse_bits=True)
 
     """
     from matplotlib import pyplot as plt
