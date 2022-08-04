@@ -91,10 +91,10 @@ class Decompose(TransformationPass):
                     continue
                 # TODO: allow choosing among multiple decomposition rules
                 rule = node.op.definition.data
-                if len(rule) == 1 and len(node.qargs) == len(rule[0][1]) == 1:
+                if len(rule) == 1 and len(node.qargs) == len(rule[0].qubits) == 1:
                     if node.op.definition.global_phase:
                         dag.global_phase += node.op.definition.global_phase
-                    dag.substitute_node(node, rule[0][0], inplace=True)
+                    dag.substitute_node(node, rule[0].operation, inplace=True)
                 else:
                     decomposition = circuit_to_dag(node.op.definition)
                     dag.substitute_node_with_dag(node, decomposition)
@@ -128,9 +128,7 @@ class Decompose(TransformationPass):
             node.name in gates or any(fnmatch(node.name, p) for p in strings_list)
         ):
             return True
-        elif not has_label and (  # check if Gate type given
-            any(isinstance(node.op, op) for op in gate_type_list)
-        ):
+        elif any(isinstance(node.op, op) for op in gate_type_list):  # check if Gate type given
             return True
         else:
             return False

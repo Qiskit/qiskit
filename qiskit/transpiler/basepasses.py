@@ -136,6 +136,15 @@ class BasePass(metaclass=MetaPass):
             result_circuit._clbit_write_latency = self.property_set["clbit_write_latency"]
         if self.property_set["conditional_latency"] is not None:
             result_circuit._conditional_latency = self.property_set["conditional_latency"]
+        if self.property_set["node_start_time"]:
+            # This is dictionary keyed on the DAGOpNode, which is invalidated once
+            # dag is converted into circuit. So this schedule information is
+            # also converted into list with the same ordering with circuit.data.
+            topological_start_times = []
+            start_times = self.property_set["node_start_time"]
+            for dag_node in result.topological_op_nodes():
+                topological_start_times.append(start_times[dag_node])
+            result_circuit._op_start_times = topological_start_times
 
         return result_circuit
 

@@ -1,9 +1,0 @@
----
-fixes:
-  - |
-    Fixed :class:`.SabreSwap`, and by extension :func:`.transpile` with
-    ``optimization_level=3``, occasionally re-ordering measurements invalidly.
-    Previously, if two measurements wrote to the same classical bit,
-    :class:`.SabreSwap` could (depending on the coupling map) re-order them to
-    produce a non-equivalent circuit.  This behaviour was stochastic, so may
-    not have appeared reliably.

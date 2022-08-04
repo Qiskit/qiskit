@@ -32,7 +32,12 @@ from qiskit.qobj import QasmQobj, PulseQobj
 from qiskit.qobj.utils import MeasLevel, MeasReturnType
 from qiskit.pulse.macros import measure
 from qiskit.test import QiskitTestCase
-from qiskit.test.mock import FakeOpenPulse2Q, FakeOpenPulse3Q, FakeYorktown, FakeAlmaden
+from qiskit.providers.fake_provider import (
+    FakeOpenPulse2Q,
+    FakeOpenPulse3Q,
+    FakeYorktown,
+    FakeAlmaden,
+)
 
 
 class RxGate(Gate):

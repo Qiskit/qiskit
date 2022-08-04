@@ -319,6 +319,45 @@ class TestTextDrawerGatesInCircuit(QiskitTestCase):
         circuit.measure(qr2, cr2)
         self.assertEqual(str(_text_circuit_drawer(circuit, reverse_bits=True)), expected)
 
+    def test_wire_order(self):
+        """Test the wire_order option"""
+        expected = "\n".join(
+            [
+                "                  ",
+                "q_2: |0>──────────",
+                "        ┌───┐     ",
+                "q_1: |0>┤ X ├─────",
+                "        ├───┤┌───┐",
+                "q_3: |0>┤ H ├┤ X ├",
+                "        ├───┤└─╥─┘",
+                "q_0: |0>┤ H ├──╫──",
+                "        └───┘  ║  ",
+                " c_2: 0 ═══════o══",
+                "               ║  ",
+                "ca_0: 0 ═══════╬══",
+                "               ║  ",
+                "ca_1: 0 ═══════╬══",
+                "               ║  ",
+                " c_1: 0 ═══════■══",
+                "               ║  ",
+                " c_0: 0 ═══════o══",
+                "               ║  ",
+                " c_3: 0 ═══════■══",
+                "              0xa ",
+            ]
+        )
+        qr = QuantumRegister(4, "q")
+        cr = ClassicalRegister(4, "c")
+        cr2 = ClassicalRegister(2, "ca")
+        circuit = QuantumCircuit(qr, cr, cr2)
+        circuit.h(0)
+        circuit.h(3)
+        circuit.x(1)
+        circuit.x(3).c_if(cr, 10)
+        self.assertEqual(
+            str(_text_circuit_drawer(circuit, wire_order=[2, 1, 3, 0, 6, 8, 9, 5, 4, 7])), expected
+        )
+
     def test_text_swap(self):
         """Swap drawing."""
         expected = "\n".join(
@@ -2883,10 +2922,9 @@ class TestTextConditional(QiskitTestCase):
 
         self.assertEqual(str(_text_circuit_drawer(circuit)), expected)
 
-    @unittest.skip("Add back when Multiplexer is implemented in terms of UCGate")
     def test_conditional_multiplexer_cregbundle(self):
         """Test Multiplexer with cregbundle."""
-        cx_multiplexer = Gate("multiplexer", 2, [numpy.eye(2), numpy.array([[0, 1], [1, 0]])])
+        cx_multiplexer = UCGate([numpy.eye(2), numpy.array([[0, 1], [1, 0]])])
         qr = QuantumRegister(3, name="qr")
         cr = ClassicalRegister(1, "cr")
         qc = QuantumCircuit(qr, cr)
@@ -2896,7 +2934,7 @@ class TestTextConditional(QiskitTestCase):
             [
                 "         ┌──────────────┐",
                 "qr_0: |0>┤0             ├",
-                "         │  multiplexer │",
+                "         │  Multiplexer │",
                 "qr_1: |0>┤1             ├",
                 "         └──────╥───────┘",
                 "qr_2: |0>───────╫────────",
@@ -2908,7 +2946,6 @@ class TestTextConditional(QiskitTestCase):
 
         self.assertEqual(str(_text_circuit_drawer(qc, cregbundle=True)), expected)
 
-    @unittest.skip("Add back when Multiplexer is implemented in terms of UCGate")
     def test_conditional_multiplexer(self):
         """Test Multiplexer."""
         cx_multiplexer = UCGate([numpy.eye(2), numpy.array([[0, 1], [1, 0]])])

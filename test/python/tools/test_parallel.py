@@ -14,7 +14,9 @@
 import os
 import time
 
-from qiskit.tools.parallel import parallel_map
+from unittest.mock import patch
+
+from qiskit.tools.parallel import get_platform_parallel_default, parallel_map
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
 from qiskit.pulse import Schedule
 from qiskit.test import QiskitTestCase
@@ -35,6 +37,36 @@ def _build_simple_circuit(_):
 
 def _build_simple_schedule(_):
     return Schedule()
+
+
+class TestGetPlatformParallelDefault(QiskitTestCase):
+    """Tests get_parallel_default_for_platform."""
+
+    def test_windows_parallel_default(self):
+        """Verifies the parallel default for Windows."""
+        with patch("sys.platform", "win32"):
+            parallel_default = get_platform_parallel_default()
+            self.assertEqual(parallel_default, False)
+
+    def test_mac_os_supported_version_parallel_default(self):
+        """Verifies the parallel default for macOS."""
+        with patch("sys.platform", "darwin"):
+            with patch("sys.version_info", (10, 11, 0, "final", 0)):
+                parallel_default = get_platform_parallel_default()
+                self.assertEqual(parallel_default, True)
+
+    def test_mac_os_unsupported_version_parallel_default(self):
+        """Verifies the parallel default for macOS."""
+        with patch("sys.platform", "darwin"):
+            with patch("sys.version_info", (3, 8, 0, "final", 0)):
+                parallel_default = get_platform_parallel_default()
+                self.assertEqual(parallel_default, False)
+
+    def test_other_os_parallel_default(self):
+        """Verifies the parallel default for Linux and other OSes."""
+        with patch("sys.platform", "linux"):
+            parallel_default = get_platform_parallel_default()
+            self.assertEqual(parallel_default, True)
 
 
 class TestParallel(QiskitTestCase):

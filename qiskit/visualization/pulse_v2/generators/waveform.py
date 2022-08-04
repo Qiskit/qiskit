@@ -105,10 +105,15 @@ def gen_filled_waveform_stepwise(
             if isinstance(pval, circuit.ParameterExpression):
                 unbound_params.append(pname)
 
+        if hasattr(data.inst.pulse, "pulse_type"):
+            pulse_shape = data.inst.pulse.pulse_type
+        else:
+            pulse_shape = data.inst.pulse.__class__.__name__
+
         return _draw_opaque_waveform(
             init_time=data.t0,
             duration=waveform_data.duration,
-            pulse_shape=data.inst.pulse.__class__.__name__,
+            pulse_shape=pulse_shape,
             pnames=unbound_params,
             meta=meta,
             channel=channel,
@@ -256,7 +261,7 @@ def gen_waveform_max_value(
     if isinstance(data.inst, instructions.Play):
         # pulse
         operand = data.inst.pulse
-        if isinstance(operand, pulse.ParametricPulse):
+        if isinstance(operand, (pulse.ParametricPulse, pulse.SymbolicPulse)):
             pulse_data = operand.get_waveform()
         else:
             pulse_data = operand
@@ -548,14 +553,19 @@ def _parse_waveform(
     if isinstance(inst, instructions.Play):
         # pulse
         operand = inst.pulse
-        if isinstance(operand, pulse.ParametricPulse):
+        if isinstance(operand, (pulse.ParametricPulse, pulse.SymbolicPulse)):
             # parametric pulse
             params = operand.parameters
             duration = params.pop("duration", None)
             if isinstance(duration, circuit.Parameter):
                 duration = None
 
-            meta.update({"waveform shape": operand.__class__.__name__})
+            if hasattr(operand, "pulse_type"):
+                # Symbolic pulse
+                meta["waveform shape"] = operand.pulse_type
+            else:
+                meta["waveform"] = operand.__class__.__name__
+
             meta.update(
                 {
                     key: val.name if isinstance(val, circuit.Parameter) else val

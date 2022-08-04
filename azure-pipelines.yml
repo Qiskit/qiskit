@@ -1,6 +1,6 @@
 # Trigger types.  This needs to include all the triggers for the different
 # pipelines we might want to run.
-# 
+#
 # Each of these individually triggers the pipeline compilation step, but it's
 # the templating expressions in the `stages` list that actually set what runs.
 trigger:
@@ -44,6 +44,12 @@ parameters:
     displayName: "Maximum supported version of Python"
     type: string
     default: "3.10"
+
+  - name: "minimumRustVersion"
+    displayName: "Minimum supported version of Rust"
+    type: string
+    default: "1.56.1"
+
 
   # These two versions of Python can be chosen somewhat arbitrarily, but we get
   # slightly better coverage per PR if they're neither the maximum nor minimum
@@ -144,6 +150,7 @@ stages:
             pythonVersion: ${{ parameters.minimumPythonVersion }}
             testQPY: false
             testImages: false
+            rustVersion: ${{ parameters.minimumRustVersion }}
 
     # The rest of the PR pipeline is to test the oldest and newest supported
     # versions of Python, along with the integration tests (via the tutorials).

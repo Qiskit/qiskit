@@ -23,6 +23,9 @@ from qiskit.circuit.quantumregister import QuantumRegister
 class ZGate(Gate):
     r"""The single-qubit Pauli-Z gate (:math:`\sigma_z`).
 
+    Can be applied to a :class:`~qiskit.circuit.QuantumCircuit`
+    with the :meth:`~qiskit.circuit.QuantumCircuit.z` method.
+
     **Matrix Representation:**
 
     .. math::
@@ -119,6 +122,9 @@ class CZGate(ControlledGate):
 
     This is a Clifford and symmetric gate.
 
+    Can be applied to a :class:`~qiskit.circuit.QuantumCircuit`
+    with the :meth:`~qiskit.circuit.QuantumCircuit.cz` method.
+
     **Circuit symbol:**
 
     .. parsed-literal::
@@ -131,8 +137,8 @@ class CZGate(ControlledGate):
 
     .. math::
 
-        CZ\ q_1, q_0 =
-            |0\rangle\langle 0| \otimes I + |1\rangle\langle 1| \otimes Z =
+        CZ\ q_0, q_1 =
+            I \otimes |0\rangle\langle 0| + Z \otimes |1\rangle\langle 1| =
             \begin{pmatrix}
                 1 & 0 & 0 & 0 \\
                 0 & 1 & 0 & 0 \\

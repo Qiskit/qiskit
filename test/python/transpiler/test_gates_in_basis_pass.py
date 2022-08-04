@@ -21,7 +21,7 @@ from qiskit.transpiler.passes import BasisTranslator
 from qiskit.transpiler.passes import GatesInBasis
 from qiskit.transpiler.target import Target
 from qiskit.test import QiskitTestCase
-from qiskit.test.mock.fake_backend_v2 import FakeBackend5QV2
+from qiskit.providers.fake_provider.fake_backend_v2 import FakeBackend5QV2
 
 
 class TestGatesInBasisPass(QiskitTestCase):

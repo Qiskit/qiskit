@@ -512,8 +512,8 @@ class QuantumInstance:
                 from qiskit.providers.aer.library import SaveStatevector
 
                 def _find_save_state(data):
-                    for instr, _, _ in reversed(data):
-                        if isinstance(instr, SaveStatevector):
+                    for instruction in reversed(data):
+                        if isinstance(instruction.operation, SaveStatevector):
                             return True
                     return False
 
@@ -682,6 +682,10 @@ class QuantumInstance:
                     tmp_result.results = [result.results[i] for i in c_idx]
                     if curr_qubit_index == qubit_index:
                         tmp_fitter = meas_error_mitigation_fitter
+                    elif isinstance(meas_error_mitigation_fitter, TensoredMeasFitter):
+                        # Different from the complete meas. fitter as only the Terra fitter
+                        # implements the ``subset_fitter`` method.
+                        tmp_fitter = meas_error_mitigation_fitter.subset_fitter(curr_qubit_index)
                     elif _MeasFitterType.COMPLETE_MEAS_FITTER == _MeasFitterType.type_from_instance(
                         meas_error_mitigation_fitter
                     ):
