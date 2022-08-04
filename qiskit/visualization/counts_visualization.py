@@ -119,8 +119,7 @@ def plot_histogram(
 
             legend = ['First execution', 'Second execution']
 
-            plot_histogram([counts1, counts2], legend = legend,
-                            color=['crimson','midnightblue'], title="New Histogram")
+            plot_histogram([counts1, counts2], legend=legend, color=['crimson','midnightblue'], title="New Histogram")
 
         .. jupyter-execute::
 
@@ -143,11 +142,11 @@ def plot_histogram(
             counts = job.result().get_counts()
 
             # Sort by the probability in descendant order
-            hist1 = plot_histogram(counts, sort = 'value_desc')
+            hist1 = plot_histogram(counts, sort='value_desc')
 
             # Sort by the hamming distance (the number of bit flips to change from
             # one bitstring to the other)from a target string.
-            hist2 = plot_histogram(counts, sort = 'hamming', target_string = '001')
+            hist2 = plot_histogram(counts, sort='hamming', target_string='001')
 
             display(hist1, hist2)
 
