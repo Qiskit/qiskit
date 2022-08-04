@@ -554,21 +554,38 @@ def plot_state_paulivec(
         MissingOptionalLibraryError: Requires matplotlib.
         VisualizationError: if input is not a valid N-qubit state.
 
-    Example:
+    Examples:
         .. jupyter-execute::
+
+           # You can set a color for all the bars.
 
            from qiskit import QuantumCircuit
            from qiskit.quantum_info import Statevector
            from qiskit.visualization import plot_state_paulivec
-           %matplotlib inline
 
            qc = QuantumCircuit(2)
            qc.h(0)
            qc.cx(0, 1)
 
-           state = Statevector.from_instruction(qc)
-           plot_state_paulivec(state, color='midnightblue',
-                title="New PauliVec plot")
+           state = Statevector(qc)
+           plot_state_paulivec(state, color='midnightblue', title="New PauliVec plot")
+
+        .. jupyter-execute::
+
+           # If you introduce a list with less colors than bars, the color of the bars will
+           # alternate following the sequence from the list.
+
+           import numpy as np
+           from qiskit.quantum_info import DensityMatrix
+
+           qc = QuantumCircuit(2)
+           qc.h([0, 1])
+           qc.cz(0, 1)
+           qc.ry(np.pi/3, 0)
+           qc.rx(np.pi/5, 1)
+
+           matrix = DensityMatrix(qc)
+           plot_state_paulivec(matrix, color=['crimson', 'midnightblue', 'seagreen'])
     """
     from matplotlib import pyplot as plt
 
