@@ -249,20 +249,35 @@ def plot_bloch_multivector(
         MissingOptionalLibraryError: Requires matplotlib.
         VisualizationError: if input is not a valid N-qubit state.
 
-    Example:
+    Examples:
         .. jupyter-execute::
 
             from qiskit import QuantumCircuit
             from qiskit.quantum_info import Statevector
             from qiskit.visualization import plot_bloch_multivector
-            %matplotlib inline
 
             qc = QuantumCircuit(2)
             qc.h(0)
             qc.x(1)
 
-            state = Statevector.from_instruction(qc)
+            state = Statevector(qc)
             plot_bloch_multivector(state)
+
+        .. jupyter-execute::
+
+           # You can reverse the order of the qubits.
+
+           from qiskit.quantum_info import DensityMatrix
+
+           qc = QuantumCircuit(2)
+           qc.h([0, 1])
+           qc.t(1)
+           qc.s(0)
+           qc.cx(0,1)
+
+           matrix = DensityMatrix(qc)
+           plot_bloch_multivector(matrix, title='My Bloch Spheres', reverse_bits=True)
+
     """
     from matplotlib import pyplot as plt
 
@@ -698,36 +713,20 @@ def plot_state_qsphere(
 
         QiskitError: Input statevector does not have valid dimensions.
 
-    Examples:
+    Example:
         .. jupyter-execute::
 
            from qiskit import QuantumCircuit
            from qiskit.quantum_info import Statevector
            from qiskit.visualization import plot_state_qsphere
+           %matplotlib inline
 
            qc = QuantumCircuit(2)
            qc.h(0)
            qc.cx(0, 1)
 
-           state = Statevector(qc)
+           state = Statevector.from_instruction(qc)
            plot_state_qsphere(state)
-
-        .. jupyter-execute::
-
-           # You can show the phase of each state and use degrees instead of radians
-
-           import numpy as np
-           from qiskit.quantum_info import DensityMatrix
-
-           qc = QuantumCircuit(2)
-           qc.h([0, 1])
-           qc.cz(0,1)
-           qc.ry(np.pi/3, 0)
-           qc.rx(np.pi/5, 1)
-           qc.z(1)
-
-           matrix = DensityMatrix(qc)
-           plot_state_qsphere(matrix, show_state_phases=True, use_degrees=True)
     """
     from matplotlib import gridspec
     from matplotlib import pyplot as plt
