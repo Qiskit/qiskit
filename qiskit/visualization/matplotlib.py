@@ -574,15 +574,17 @@ class MatplotlibDrawer:
                 # get qubit index
                 q_indxs = []
                 for qarg in node.qargs:
-                    q_indxs.append(self._wire_map[qarg])
+                    if qarg in self._qubits:
+                        q_indxs.append(self._wire_map[qarg])
 
                 c_indxs = []
                 for carg in node.cargs:
-                    register = get_bit_register(self._circuit, carg)
-                    if register is not None and self._cregbundle:
-                        c_indxs.append(self._wire_map[register])
-                    else:
-                        c_indxs.append(self._wire_map[carg])
+                    if carg in self._clbits:
+                        register = get_bit_register(self._circuit, carg)
+                        if register is not None and self._cregbundle:
+                            c_indxs.append(self._wire_map[register])
+                        else:
+                            c_indxs.append(self._wire_map[carg])
 
                 # qubit coordinate
                 self._data[node]["q_xy"] = [
