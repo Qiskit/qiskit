@@ -53,9 +53,9 @@ Currently there are 6 stages in the preset pass managers used by and correspondi
    * - ``layout``
      - ``qiskit.transpiler.layout``
      - ``trivial``, ``dense``, ``noise_adaptive``, ``sabre``
-     - The output from this staged is expected to have the ``layout`` property
+     - The output from this stage is expected to have the ``layout`` property
        set field set with a :class:`~.Layout` object. Additionally, the circuit is
-       typically expected to be embedded so that it expanded to include all
+       typically expected to be embedded so that it is expanded to include all
        qubits and the :class:`~.ApplyLayout` pass is expected to be run to apply the
        layout. The embedding of the :class:`~.Layout` can be generated with
        :func:`~.generate_embed_passmanager`.
@@ -74,8 +74,8 @@ Currently there are 6 stages in the preset pass managers used by and correspondi
         instruction on the target backend.
    * - ``optimization``
      - ``qiskit.transpiler.optimization``
-     - There are no reserve plugin names
-     - This stage is expected to perform and optimization and simplification.
+     - There are no reserved plugin names
+     - This stage is expected to perform optimization and simplification.
        The constraints from earlier stages still apply to the output of this
        stage. After the ``optimization`` stage is run we expect the circuit
        to still be executable on the target.

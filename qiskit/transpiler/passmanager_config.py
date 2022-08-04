@@ -54,10 +54,10 @@ class PassManagerConfig:
                 map.
             layout_method (str): the pass to use for choosing initial qubit
                 placement. This will be the plugin name if an external layout stage
-                plugin is being used
+                plugin is being used.
             routing_method (str): the pass to use for routing qubits on the
                 architecture. This will be a plugin name if an external routing stage
-                plugin is being used
+                plugin is being used.
             translation_method (str): the pass to use for translating gates to
                 basis_gates. This will be a plugin name if an external translation stage
                 plugin is being used.
@@ -79,8 +79,8 @@ class PassManagerConfig:
             target (Target): The backend target
             init_method (str): The plugin name for the init stage plugin to use
             optimization_method (str): The plugin name for the optimization stage plugin
-                to use
-            optimization_level (int): The optimization level being used for compilation
+                to use.
+            optimization_level (int): The optimization level being used for compilation.
         """
         self.initial_layout = initial_layout
         self.basis_gates = basis_gates
