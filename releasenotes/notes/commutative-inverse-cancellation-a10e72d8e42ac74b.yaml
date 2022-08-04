@@ -1,9 +1,10 @@
 ---
 features:
   - |
-    Refactored gate commutativity analysis into a :class:`.CommutationChecker`. It allows to
-    check (based on matrix multiplication) whether two gates commute or do not commute, and to
-    cache the results (so that a similar check will no longer require matrix multiplication).
+    Refactored gate commutativity analysis into a class :class:`~qiskit.circuit.CommutationChecker`.
+    It allows to check (based on matrix multiplication) whether two gates commute or do not commute,
+    and to cache the results (so that a similar check in the future will no longer require matrix
+    multiplication).
 
     For example we can now do::
 
@@ -17,7 +18,7 @@ features:
     As the two CX gates commute (the first CX gate is over qubits `qr[1]` and `qr[0]`, and the
     second CX gate is over qubits `qr[1]` and `qr[2]`), we will have that `res` is `True`.
 
-    The commutativity checking is over-conservative for conditional and parameterized gates,
+    This commutativity checking is over-conservative for conditional and parameterized gates,
     and may return `False` even when such gates commute.
 
   - |
