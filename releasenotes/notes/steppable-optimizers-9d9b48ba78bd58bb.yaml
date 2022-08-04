@@ -1,7 +1,7 @@
 ---
 features:
   - |
-    Created an optimizer subclass :class:`~.SteppableOptimizer`, which allows performing classical
+    The :class:`~.SteppableOptimizer` class is added. It allows one to perfore classical
     optimizations step-by-step using the :meth:`~.SteppableOptimizer.step` method. These
     optimizers implement the "ask and tell" interface which (optionally) allows to manually compute
     the required function or gradient evaluations and plug them back into the optimizer.

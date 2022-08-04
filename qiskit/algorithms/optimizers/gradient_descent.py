@@ -27,7 +27,6 @@ class GradientDescentState(OptimizerState):
     """State of :class:`~.GradientDescent`.
 
     Dataclass with all the information of an optimizer plus the learning_rate and the stepsize.
-
     """
 
     stepsize: Optional[float]
@@ -197,7 +196,7 @@ class GradientDescent(SteppableOptimizer):
     Users that aren't dealing with complicated functions and who are more familiar with step by step
     optimization algorithms can use the :meth:`~.step` method which wraps the :meth:`~.ask`
     and :meth:`~.tell` methods. In the same spirit the method :meth:`~.minimize` will optimize the
-    function and return the result without directly.
+    function and return the result directly.
 
     To see other libraries that use this interface one can visit:
     https://optuna.readthedocs.io/en/stable/tutorial/20_recipes/009_ask_and_tell.html
@@ -309,7 +308,7 @@ class GradientDescent(SteppableOptimizer):
         }
 
     def ask(self) -> AskData:
-        """Returns an object with the data needed in order to evaluate the gradient.
+        """Returns an object with the data needed to evaluate the gradient.
 
         If this object contains a gradient function the gradient can be evaluated directly. Otherwise
         approximate it with a finite difference scheme.
@@ -339,18 +338,17 @@ class GradientDescent(SteppableOptimizer):
     def evaluate(self, ask_data: AskData) -> TellData:
         """Evaluates the gradient.
 
-        It does so either by evaluating an analitic gradient or by approximating it with a
+        It does so either by evaluating an analytic gradient or by approximating it with a
         finite difference scheme. It will either add ``1`` to the number of gradient evaluations or add
         ``N+1`` to the number of function evaluations (Where N is the dimension of the gradient).
 
         Args:
             ask_data: It contains the point where the gradient is to be evaluated and the gradient
-                      function or in it's defect the objective function to perform a finite difference
+                      function or, in its absence, the objective function to perform a finite difference
                       approximation.
 
         Returns:
             The data containing the gradient evaluation.
-
         """
         if self.state.jac is None:
             eps = 0.01 if (self.perturbation is None) else self.perturbation

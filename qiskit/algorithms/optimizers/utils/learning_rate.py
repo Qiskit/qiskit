@@ -23,7 +23,7 @@ class LearningRate(Generator):
     has a learning rate. That learning rate can be a float, a list, an array, a function returning
     a generator and will be used to create a generator to be used during the
     optimization process.
-    This class serves also as a wrapper on a generator so that we can access the last yielded value.
+    This class wraps ``Generator`` so that we can also access the last yielded value.
     """
 
     def __init__(
