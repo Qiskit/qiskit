@@ -724,9 +724,9 @@ class TestCommutativeInverseCancellation(QiskitTestCase):
         get improved to handle parameterized gates.
         """
         circuit = QuantumCircuit(1)
-        circuit.rz(np.pi/2, 0)
+        circuit.rz(np.pi / 2, 0)
         circuit.rz(Parameter("Theta"), 0)
-        circuit.rz(-np.pi/2, 0)
+        circuit.rz(-np.pi / 2, 0)
 
         passmanager = PassManager(CommutativeInverseCancellation())
         new_circuit = passmanager.run(circuit)
