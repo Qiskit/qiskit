@@ -1,0 +1,7 @@
+---
+issues:
+  - |
+    Fix known bug in plot_state_hinton where axes are rendered improperly.
+fixes:
+  - |
+    Fix known bug in plot_state_hinton. Refer to `#8446 <https://github.com/Qiskit/qiskit-terra/issues/8446>` for more details.
