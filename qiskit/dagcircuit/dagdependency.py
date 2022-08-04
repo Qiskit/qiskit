@@ -388,11 +388,11 @@ class DAGDependency:
             cargs (list[Clbit]): list of classical wires to attach to.
         """
         directives = ["measure"]
-        if not operation._directive and operation.name not in directives:
+        if not getattr(operation, "_directive", False) and operation.name not in directives:
             qindices_list = []
             for elem in qargs:
                 qindices_list.append(self.qubits.index(elem))
-            if operation.condition:
+            if getattr(operation, "condition", None):
                 for clbit in self.clbits:
                     if clbit in operation.condition[0]:
                         initial = self.clbits.index(clbit)
@@ -591,7 +591,7 @@ def _does_commute(node1, node2):
     # TODO: qubits can be the same if conditions are identical and
     # the non-conditional gates commute.
     if node1.type == "op" and node2.type == "op":
-        if node1.op.condition or node2.op.condition:
+        if getattr(node1.op, "condition", None) or getattr(node2.op, "condition", None):
             intersection = set(qarg1).intersection(set(qarg2))
             return not intersection
 
@@ -601,7 +601,9 @@ def _does_commute(node1, node2):
     non_unitaries = ["measure", "reset", "initialize", "delay"]
 
     def _unknown_commutator(n):
-        return n.op._directive or n.name in non_unitaries or n.op.is_parameterized()
+        return (
+            getattr(n.op, "_directive", False) or n.name in non_unitaries or n.op.is_parameterized()
+        )
 
     if _unknown_commutator(node1) or _unknown_commutator(node2):
         intersection_q = set(qarg1).intersection(set(qarg2))
