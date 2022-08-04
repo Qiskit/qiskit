@@ -25,16 +25,17 @@ class CommutativeInverseCancellation(TransformationPass):
         """Returns True if we should skip this node for the analysis."""
         if not isinstance(node, DAGOpNode):
             return True
-        if node.op._directive or node.name in {"measure", "reset", "delay"}:
+
+        # We are currently taking an over-conservative approach with respect to which nodes
+        # can be inverses of which other nodes, and do not allow reductions for barriers, measures,
+        # conditional gates or parameterized gates. Possibly both this and commutativity
+        # checking can be extended to cover additional cases.
+        if getattr(node.op, "_directive", False) or node.name in {"measure", "reset", "delay"}:
             return True
-        if node.op.condition:
+        if getattr(node.op, "condition", None):
             return True
-        # ToDo: Not sure about the next line
         if node.op.is_parameterized():
             return True
-        # ToDo: Even less sure about the next line
-        # if node.op.params:
-        #     return True
         # ToDo: possibly also skip nodes on too many qubits
         return False
 

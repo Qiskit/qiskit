@@ -16,7 +16,8 @@ import unittest
 import numpy as np
 from qiskit.test import QiskitTestCase
 
-from qiskit import QuantumCircuit
+from qiskit.circuit import Parameter, QuantumCircuit
+from qiskit.circuit.library import RZGate
 from qiskit.transpiler import PassManager
 from qiskit.transpiler.passes import CommutativeInverseCancellation
 
@@ -678,6 +679,73 @@ class TestCommutativeInverseCancellation(QiskitTestCase):
         expected.x(0)
 
         self.assertEqual(expected, new_circuit)
+
+    # More tests to cover corner-cases: parameterized gates, directives, reset, etc.
+
+    def test_no_cancellation_across_barrier(self):
+        """Test that barrier prevents cancellation."""
+        circuit = QuantumCircuit(2)
+        circuit.cx(0, 1)
+        circuit.barrier()
+        circuit.cx(0, 1)
+
+        passmanager = PassManager(CommutativeInverseCancellation())
+        new_circuit = passmanager.run(circuit)
+
+        self.assertEqual(circuit, new_circuit)
+
+    def test_no_cancellation_across_measure(self):
+        """Test that barrier prevents cancellation."""
+        circuit = QuantumCircuit(2, 1)
+        circuit.cx(0, 1)
+        circuit.measure(0, 0)
+        circuit.cx(0, 1)
+
+        passmanager = PassManager(CommutativeInverseCancellation())
+        new_circuit = passmanager.run(circuit)
+
+        self.assertEqual(circuit, new_circuit)
+
+    def test_no_cancellation_across_reset(self):
+        """Test that reset prevents cancellation."""
+        circuit = QuantumCircuit(2)
+        circuit.cx(0, 1)
+        circuit.reset(0)
+        circuit.cx(0, 1)
+
+        passmanager = PassManager(CommutativeInverseCancellation())
+        new_circuit = passmanager.run(circuit)
+
+        self.assertEqual(circuit, new_circuit)
+
+    def test_no_cancellation_across_parameterized_gates(self):
+        """Test that parameterized gates prevent cancellation.
+        This test should be modified when inverse and commutativity checking
+        get improved to handle parameterized gates.
+        """
+        circuit = QuantumCircuit(1)
+        circuit.rz(np.pi/2, 0)
+        circuit.rz(Parameter("Theta"), 0)
+        circuit.rz(-np.pi/2, 0)
+
+        passmanager = PassManager(CommutativeInverseCancellation())
+        new_circuit = passmanager.run(circuit)
+        self.assertEqual(circuit, new_circuit)
+
+    def test_parameterized_gates_do_not_cancel(self):
+        """Test that parameterized gates do not cancel.
+        This test should be modified when inverse and commutativity checking
+        get improved to handle parameterized gates.
+        """
+        gate = RZGate(Parameter("Theta"))
+
+        circuit = QuantumCircuit(1)
+        circuit.append(gate, [0])
+        circuit.append(gate.inverse(), [0])
+
+        passmanager = PassManager(CommutativeInverseCancellation())
+        new_circuit = passmanager.run(circuit)
+        self.assertEqual(circuit, new_circuit)
 
 
 if __name__ == "__main__":
