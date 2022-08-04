@@ -119,7 +119,8 @@ def plot_histogram(
 
             legend = ['First execution', 'Second execution']
 
-            plot_histogram([counts1, counts2], legend=legend, color=['crimson','midnightblue'], title="New Histogram")
+            plot_histogram([counts1, counts2], legend=legend, color=['crimson','midnightblue'],
+                            title="New Histogram")
 
         .. jupyter-execute::
 
