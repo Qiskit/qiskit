@@ -10,5 +10,5 @@ fixes:
         x = Parameter("x")
         expr = 1j * x
         bound = expr.bind({x: 2})
-        print(bound.is_real())  # used to be True, but is not False
+        print(bound.is_real())  # used to be True, but is now False
 
