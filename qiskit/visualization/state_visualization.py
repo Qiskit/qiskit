@@ -714,11 +714,10 @@ def plot_state_qsphere(
 
         .. jupyter-execute::
 
-           # You can show the phase of each state and use
-           # degrees instead of radians
+           # You can show the phase of each state and use degrees instead of radians
 
-           from qiskit.quantum_info import DensityMatrix
            import numpy as np
+           from qiskit.quantum_info import DensityMatrix
 
            qc = QuantumCircuit(2)
            qc.h([0, 1])
@@ -728,8 +727,7 @@ def plot_state_qsphere(
            qc.z(1)
 
            matrix = DensityMatrix(qc)
-           plot_state_qsphere(matrix,
-                show_state_phases = True, use_degrees = True)
+           plot_state_qsphere(matrix, show_state_phases=True, use_degrees=True)
     """
     from matplotlib import gridspec
     from matplotlib import pyplot as plt
