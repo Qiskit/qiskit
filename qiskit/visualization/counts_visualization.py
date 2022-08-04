@@ -146,7 +146,7 @@ def plot_histogram(
             hist1 = plot_histogram(counts, sort='value_desc')
 
             # Sort by the hamming distance (the number of bit flips to change from
-            # one bitstring to the other)from a target string.
+            # one bitstring to the other) from a target string.
             hist2 = plot_histogram(counts, sort='hamming', target_string='001')
 
             display(hist1, hist2)
