@@ -67,7 +67,7 @@ class JobV1(Job, ABC):
     def backend(self) -> Backend:
         """Return the backend where this job was executed."""
         if self._backend is None:
-            raise QiskitError("The job does not have the backend.")
+            raise QiskitError("The job does not have any backend.")
         return self._backend
 
     def done(self) -> bool:
