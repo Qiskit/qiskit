@@ -557,13 +557,11 @@ def plot_state_paulivec(
            qc.cx(0, 1)
 
            state = Statevector(qc)
-           plot_state_paulivec(state, color='midnightblue',
-                title="New PauliVec plot")
+           plot_state_paulivec(state, color='midnightblue', title="New PauliVec plot")
 
         .. jupyter-execute::
 
-           # If you introduce a list with less colors than bars,
-           # the color of the bars will alternate following the
+           # If you introduce a list with less colors than bars, the color of the bars will alternate following the
            # sequence from the list.
 
            from qiskit.quantum_info import DensityMatrix
@@ -576,8 +574,7 @@ def plot_state_paulivec(
            qc.rx(np.pi/5, 1)
 
            matrix = DensityMatrix(qc)
-           plot_state_paulivec(matrix,
-                color = ['crimson', 'midnightblue', 'seagreen'])
+           plot_state_paulivec(matrix, color=['crimson', 'midnightblue', 'seagreen'])
     """
     from matplotlib import pyplot as plt
 
