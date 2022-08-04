@@ -126,8 +126,8 @@ def plot_histogram(
 
             # You can sort the bitstrings using different methods.
 
-            from qiskit import transpile
             import numpy as np
+            from qiskit import transpile
 
             qc = QuantumCircuit(3)
             qc.h(0)
