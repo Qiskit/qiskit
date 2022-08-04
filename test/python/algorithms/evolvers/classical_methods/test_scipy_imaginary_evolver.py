@@ -19,12 +19,12 @@ from qiskit.algorithms.evolvers.evolution_problem import EvolutionProblem
 from qiskit.opflow import I, X, Z, Zero, Plus, Minus, PauliSumOp
 from qiskit.opflow import StateFn, OperatorBase
 from qiskit import QuantumCircuit
-from qiskit.algorithms.evolvers.classical_methods import ScipyImaginaryEvolver
+from qiskit.algorithms.evolvers.classical_methods import SciPyImaginaryEvolver
 
 
 @ddt
-class TestScipyImaginaryEvolver(QiskitAlgorithmsTestCase):
-    """Test Scipy Imaginary Evolver."""
+class TestSciPyImaginaryEvolver(QiskitAlgorithmsTestCase):
+    """Test SciPy Imaginary Evolver."""
 
     def create_hamiltonian_lattice(self, num_sites: int) -> PauliSumOp:
         """Creates an ising hamiltonian on a lattice."""
@@ -66,14 +66,14 @@ class TestScipyImaginaryEvolver(QiskitAlgorithmsTestCase):
         expected_state_matrix = expected_state.to_matrix(massive=True)
 
         evolution_problem = EvolutionProblem(hamiltonian, tau, initial_state)
-        classic_evolver = ScipyImaginaryEvolver(timesteps=10)
+        classic_evolver = SciPyImaginaryEvolver(timesteps=10)
         result = classic_evolver.evolve(evolution_problem)
 
         with self.subTest("Amplitudes"):
             np.testing.assert_allclose(
                 np.absolute(result.evolved_state.to_matrix(massive=True)),
                 np.absolute(expected_state_matrix),
-                atol=1e-15,
+                atol=1e-10,
                 rtol=0,
             )
 
@@ -103,7 +103,7 @@ class TestScipyImaginaryEvolver(QiskitAlgorithmsTestCase):
         evolution_problem = EvolutionProblem(
             hamiltonian, time_ev, initial_state, aux_operators=observables
         )
-        classic_evolver = ScipyImaginaryEvolver(timesteps=20)
+        classic_evolver = SciPyImaginaryEvolver(timesteps=20)
         result = classic_evolver.evolve(evolution_problem)
 
         z_mean, _ = result.observables["Z"]
@@ -112,10 +112,10 @@ class TestScipyImaginaryEvolver(QiskitAlgorithmsTestCase):
         time_vector = np.linspace(0, time_ev, timesteps)
         expected_z = 1 / (np.cosh(time_vector) ** 2 + np.sinh(time_vector) ** 2)
 
-        np.testing.assert_allclose(z_mean, expected_z**5, atol=1e-15, rtol=0)
+        np.testing.assert_allclose(z_mean, expected_z**5, atol=1e-10, rtol=0)
 
         final_z_mean, _ = result.aux_ops_evaluated["Z"]
-        np.testing.assert_allclose(final_z_mean, (expected_z**5)[-1], atol=1e-15, rtol=0)
+        np.testing.assert_allclose(final_z_mean, (expected_z**5)[-1], atol=1e-10, rtol=0)
 
     def test_observables(self):
         """Tests if the observables are properly evaluated at each timestep."""
@@ -128,7 +128,7 @@ class TestScipyImaginaryEvolver(QiskitAlgorithmsTestCase):
             hamiltonian, time_ev, initial_state, aux_operators=observables
         )
         threshold = 1e-3
-        classic_evolver = ScipyImaginaryEvolver(timesteps=100)
+        classic_evolver = SciPyImaginaryEvolver(timesteps=100)
         result = classic_evolver.evolve(evolution_problem)
 
         z_mean, z_std = result.observables["Z"]
@@ -148,7 +148,7 @@ class TestScipyImaginaryEvolver(QiskitAlgorithmsTestCase):
         qc.cx(0, range(1, 3))
 
         evolution_problem = EvolutionProblem(hamiltonian=X ^ X ^ X, time=1.0, initial_state=qc)
-        classic_evolver = ScipyImaginaryEvolver(timesteps=5)
+        classic_evolver = SciPyImaginaryEvolver(timesteps=5)
         classic_evolver.evolve(evolution_problem)
 
     def test_error_time_dependency(self):
@@ -156,7 +156,7 @@ class TestScipyImaginaryEvolver(QiskitAlgorithmsTestCase):
         evolution_problem = EvolutionProblem(
             hamiltonian=X ^ X ^ X, time=1.0, initial_state=Zero, t_param=0
         )
-        classic_evolver = ScipyImaginaryEvolver(timesteps=5)
+        classic_evolver = SciPyImaginaryEvolver(timesteps=5)
         with self.assertRaises(ValueError):
             classic_evolver.evolve(evolution_problem)
 
@@ -166,16 +166,16 @@ class TestScipyImaginaryEvolver(QiskitAlgorithmsTestCase):
 
         with self.subTest("0 timesteps"):
             with self.assertRaises(ValueError):
-                classic_evolver = ScipyImaginaryEvolver(timesteps=0)
+                classic_evolver = SciPyImaginaryEvolver(timesteps=0)
                 classic_evolver.evolve(evolution_problem)
 
         with self.subTest("1 timestep"):
-            classic_evolver = ScipyImaginaryEvolver(timesteps=1)
+            classic_evolver = SciPyImaginaryEvolver(timesteps=1)
             classic_evolver.evolve(evolution_problem)
 
         with self.subTest("Negative timesteps"):
             with self.assertRaises(ValueError):
-                classic_evolver = ScipyImaginaryEvolver(timesteps=-5)
+                classic_evolver = SciPyImaginaryEvolver(timesteps=-5)
                 classic_evolver.evolve(evolution_problem)
 
 

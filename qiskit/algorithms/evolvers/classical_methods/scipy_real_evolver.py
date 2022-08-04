@@ -10,8 +10,8 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""Interface for Classical Quantum Real Time Evolution."""
-from typing import Tuple, List, Union
+"""Classical Quantum Real Time Evolution."""
+from typing import Tuple, List
 import scipy.sparse as sp
 from scipy.sparse.linalg import bicg, norm
 import numpy as np
@@ -20,13 +20,13 @@ from qiskit.quantum_info.states import Statevector
 from qiskit import QuantumCircuit
 from qiskit.opflow import StateFn
 
+from .scipy_evolver import SciPyEvolver
 from ..evolution_problem import EvolutionProblem
 from ..evolution_result import EvolutionResult
 from ..real_evolver import RealEvolver
-from ...list_or_dict import ListOrDict
 
 
-class ScipyRealEvolver(RealEvolver):
+class SciPyRealEvolver(RealEvolver, SciPyEvolver):
     """Classical Evolver for real time evolution."""
 
     def __init__(
@@ -97,12 +97,12 @@ class ScipyRealEvolver(RealEvolver):
             Evolution result which includes an evolved quantum state.
 
         Raises:
-            ValueError: If the hamiltonian is time dependent.
+            ValueError: If the Hamiltonian is time dependent.
 
         """
 
         if evolution_problem.t_param is not None:
-            raise ValueError("Time dependent hamiltonians are not currently supported.")
+            raise ValueError("Time dependent Hamiltonians are not currently supported.")
 
         (
             state,
@@ -132,58 +132,25 @@ class ScipyRealEvolver(RealEvolver):
 
             state = self._step(state, lhs_operator, rhs_operator, bicg_tol)
 
-        (
-            ops_ev_mean[:, timesteps],
-            ops_ev_std[:, timesteps],
-        ) = self._evaluate_aux_ops(aux_ops, aux_ops_2, state)
+            ops_ev_mean[:, timesteps], ops_ev_std[:, timesteps] = self._evaluate_aux_ops(
+                aux_ops, aux_ops_2, state
+            )
 
         aux_ops_history = self._create_observable_output(
             ops_ev_mean,
             ops_ev_std,
             evolution_problem.aux_operators,
         )
+
         aux_ops = self._create_observable_output(
-            ops_ev_mean[:, timesteps],
-            ops_ev_std[:, timesteps],
+            ops_ev_mean[:, -1],
+            ops_ev_std[:, -1],
             evolution_problem.aux_operators,
         )
 
         return EvolutionResult(
             evolved_state=StateFn(state), aux_ops_evaluated=aux_ops, observables=aux_ops_history
         )
-
-    def _create_observable_output(
-        self,
-        ops_ev_mean: np.ndarray,
-        ops_ev_std: np.ndarray,
-        aux_ops: ListOrDict,
-    ) -> ListOrDict[Union[Tuple[np.ndarray, np.ndarray], Tuple[complex, complex]]]:
-        """Creates the right output format for the evaluated auxiliary operators."""
-        operator_number = 0 if aux_ops is None else len(aux_ops)
-        observable_evolution = [(ops_ev_mean[i], ops_ev_std[i]) for i in range(operator_number)]
-
-        if isinstance(aux_ops, dict):
-            observable_evolution = dict(zip(aux_ops.keys(), observable_evolution))
-
-        return observable_evolution
-
-    def _evaluate_aux_ops(
-        self,
-        aux_ops: List[sp.csr_matrix],
-        aux_ops_2: List[sp.csr_matrix],
-        state: np.ndarray,
-    ) -> Tuple[np.ndarray, np.ndarray]:
-        """Evaluate the operators at the current state.
-
-        Returns:
-            A tuple of the mean and standard deviation of the auxiliary operators.
-        """
-        op_mean = np.array([np.real(state.conjugate().dot(op.dot(state))) for op in aux_ops])
-        op_std = np.sqrt(
-            np.array([np.real(state.conjugate().dot(op2.dot(state))) for op2 in aux_ops_2])
-            - op_mean**2
-        )
-        return op_mean, op_std
 
     def _start(
         self, evolution_problem: EvolutionProblem
@@ -210,7 +177,7 @@ class ScipyRealEvolver(RealEvolver):
             deviation, the number of timesteps in which to divide the time evolution and
             the tolerance for the BiCG method.
         """
-        # Convert the initial state and hamiltonian into sparse matrices.
+        # Convert the initial state and Hamiltonian into sparse matrices.
         if isinstance(evolution_problem.initial_state, QuantumCircuit):
             state = Statevector(evolution_problem.initial_state).data.T
         else:

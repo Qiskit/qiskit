@@ -13,10 +13,10 @@
 """Classical Methods for Quantum Time Evolution package."""
 
 
-from .scipy_real_evolver import ScipyRealEvolver
-from .scipy_imaginary_evolver import ScipyImaginaryEvolver
+from .scipy_real_evolver import SciPyRealEvolver
+from .scipy_imaginary_evolver import SciPyImaginaryEvolver
 
 __all__ = [
-    "ScipyRealEvolver",
-    "ScipyImaginaryEvolver",
+    "SciPyRealEvolver",
+    "SciPyImaginaryEvolver",
 ]
