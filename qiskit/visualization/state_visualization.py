@@ -158,12 +158,13 @@ def plot_state_hinton(
 
         ax2.set_xticks(0.5 + np.arange(lx))
         ax2.set_yticks(0.5 + np.arange(ly))
-        ax1.set_xlim([0, lx])
-        ax1.set_ylim([ly, 0])
+        ax2.set_xlim([0, lx])
+        ax2.set_ylim([ly, 0])
         ax2.set_yticklabels(row_names, fontsize=14)
         ax2.set_xticklabels(column_names, fontsize=14, rotation=90)
         ax2.invert_yaxis()
         ax2.set_title("Im[$\\rho$]", fontsize=14)
+    fig.tight_layout()
     if title:
         fig.suptitle(title, fontsize=16)
     if ax_real is None and ax_imag is None:
