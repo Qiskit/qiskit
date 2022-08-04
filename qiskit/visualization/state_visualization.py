@@ -561,8 +561,8 @@ def plot_state_paulivec(
 
         .. jupyter-execute::
 
-           # If you introduce a list with less colors than bars, the color of the bars will alternate following the
-           # sequence from the list.
+           # If you introduce a list with less colors than bars, the color of the bars will
+           # alternate following the sequence from the list.
 
            import numpy as np
            from qiskit.quantum_info import DensityMatrix
