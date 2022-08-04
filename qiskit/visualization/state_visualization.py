@@ -352,7 +352,8 @@ def plot_state_city(
 
         .. jupyter-execute::
 
-           # You can make the bars more transparent to better see the ones that are behind if they overlap.
+           # You can make the bars more transparent to better see the ones that are behind
+           # if they overlap.
 
            import numpy as np
            from qiskit.quantum_info import Statevector
