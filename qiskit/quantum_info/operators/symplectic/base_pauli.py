@@ -689,5 +689,5 @@ def _count_y(x, z, dtype=None):
     """Count the number of I Pauli's"""
     axis = 1
     if dtype is None:
-        dtype = np.min_scalar_type(x.shape[axis])
+        dtype = np.int64(x.shape[axis])
     return (x & z).sum(axis=axis, dtype=dtype)
