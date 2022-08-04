@@ -201,13 +201,21 @@ def plot_bloch_vector(bloch, title="", ax=None, figsize=None, coord_type="cartes
     Raises:
         MissingOptionalLibraryError: Requires matplotlib.
 
-    Example:
+    Examples:
         .. jupyter-execute::
 
            from qiskit.visualization import plot_bloch_vector
-           %matplotlib inline
 
            plot_bloch_vector([0,1,0], title="New Bloch Sphere")
+
+        .. jupyter-execute::
+
+           # You can use spherical coordinates instead of cartesian.
+
+           import numpy as np
+
+           plot_bloch_vector([1, np.pi/2, np.pi/3], coord_type='spherical')
+
     """
     from qiskit.visualization.bloch import Bloch
 
@@ -701,20 +709,38 @@ def plot_state_qsphere(
 
         QiskitError: Input statevector does not have valid dimensions.
 
-    Example:
+    Examples:
         .. jupyter-execute::
 
            from qiskit import QuantumCircuit
            from qiskit.quantum_info import Statevector
            from qiskit.visualization import plot_state_qsphere
-           %matplotlib inline
 
            qc = QuantumCircuit(2)
            qc.h(0)
            qc.cx(0, 1)
 
-           state = Statevector.from_instruction(qc)
+           state = Statevector(qc)
            plot_state_qsphere(state)
+
+        .. jupyter-execute::
+
+           # You can show the phase of each state and use
+           # degrees instead of radians
+
+           from qiskit.quantum_info import DensityMatrix
+           import numpy as np
+
+           qc = QuantumCircuit(2)
+           qc.h([0, 1])
+           qc.cz(0,1)
+           qc.ry(np.pi/3, 0)
+           qc.rx(np.pi/5, 1)
+           qc.z(1)
+
+           matrix = DensityMatrix(qc)
+           plot_state_qsphere(matrix,
+                show_state_phases = True, use_degrees = True)
     """
     from matplotlib import gridspec
     from matplotlib import pyplot as plt
