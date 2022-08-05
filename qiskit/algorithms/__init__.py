@@ -121,6 +121,8 @@ used to train Quantum Boltzmann Machine Neural Networks for example.
     TrotterQRTE
     VarQITE
     VarQRTE
+    PVQD
+    PVQDResult
     EvolutionResult
     EvolutionProblem
 
@@ -262,6 +264,7 @@ from .aux_ops_evaluator import eval_observables
 from .evolvers.trotterization import TrotterQRTE
 from .evolvers.variational.var_qite import VarQITE
 from .evolvers.variational.var_qrte import VarQRTE
+from .evolvers.pvqd import PVQD, PVQDResult
 
 __all__ = [
     "AlgorithmResult",
@@ -310,6 +313,8 @@ __all__ = [
     "PhaseEstimationScale",
     "PhaseEstimation",
     "PhaseEstimationResult",
+    "PVQD",
+    "PVQDResult",
     "IterativePhaseEstimation",
     "AlgorithmError",
     "eval_observables",
