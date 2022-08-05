@@ -95,7 +95,7 @@ Here is an example of how estimator is used.
     # calculate [ <psi1(theta1)|H1|psi1(theta1)>,
     #             <psi2(theta2)|H2|psi2(theta2)>,
     #             <psi1(theta3)|H3|psi1(theta3)> ]
-    result4 estimator.run([psi1, psi2, psi1], [H1, H2, H3], [theta1, theta2, theta3]).result()
+    result4 = estimator.run([psi1, psi2, psi1], [H1, H2, H3], [theta1, theta2, theta3]).result()
     print(result4)
 """
 from __future__ import annotations
@@ -487,7 +487,8 @@ class BaseEstimator(ABC):
     ) -> EstimatorResult:
         ...
 
-    @abstractmethod
+    # This will be comment out after 0.22. (This is necessary for the compatibility.)
+    # @abstractmethod
     def _run(
         self,
         circuits: Sequence[QuantumCircuit],
@@ -495,4 +496,6 @@ class BaseEstimator(ABC):
         parameter_values: Sequence[Sequence[float]],
         **run_options,
     ) -> Job:
-        ...
+        raise NotImplementedError(
+            "_run method is not implemented. This method will be @abstractmethod after 0.22."
+        )

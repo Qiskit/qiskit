@@ -351,11 +351,14 @@ class BaseSampler(ABC):
     ) -> SamplerResult:
         ...
 
-    @abstractmethod
+    # This will be comment out after 0.22. (This is necessary for the compatibility.)
+    # @abstractmethod
     def _run(
         self,
         circuits: Sequence[QuantumCircuit],
         parameter_values: Sequence[Sequence[float]],
         **run_options,
     ) -> Job:
-        ...
+        raise NotImplementedError(
+            "_run method is not implemented. This method will be @abstractmethod after 0.22."
+        )
