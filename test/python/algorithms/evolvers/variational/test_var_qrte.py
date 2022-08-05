@@ -14,10 +14,10 @@
 
 import unittest
 
-from qiskit.test import slow_test
 from test.python.algorithms import QiskitAlgorithmsTestCase
 from ddt import data, ddt
 import numpy as np
+from qiskit.test import slow_test
 from qiskit.utils import QuantumInstance, algorithm_globals
 from qiskit.algorithms import EvolutionProblem, VarQRTE
 from qiskit.algorithms.evolvers.variational import (
