@@ -1,7 +1,7 @@
 ---
-issues:
-  - |
-    Fix known bug in plot_state_hinton where axes are rendered improperly.
 fixes:
   - |
-    Fix known bug in plot_state_hinton. Refer to `#8446 <https://github.com/Qiskit/qiskit-terra/issues/8446>` for more details.
+    Fix known bug in plot_state_hinton where the axes in the imaginary plots are 
+    misplaced. Additionally spacing between the real and imaginary plots are 
+    corrected. Refer to `#8446 <https://github.com/Qiskit/qiskit-terra/issues/8446>` 
+    for more details.
