@@ -104,7 +104,6 @@ They can be divided into two categories:
     RealVariationalPrinciple
     ImaginaryVariationalPrinciple
     RealMcLachlanPrinciple
-    RealTimeDependentPrinciple
     ImaginaryMcLachlanPrinciple
 
 ODE solvers
@@ -130,9 +129,6 @@ from .variational_principles.imaginary_mc_lachlan_principle import (
 from .variational_principles.real_mc_lachlan_principle import (
     RealMcLachlanPrinciple,
 )
-from .variational_principles.real_time_dependent_principle import (
-    RealTimeDependentPrinciple,
-)
 
 
 __all__ = [
@@ -142,6 +138,5 @@ __all__ = [
     "RealVariationalPrinciple",
     "ImaginaryVariationalPrinciple",
     "RealMcLachlanPrinciple",
-    "RealTimeDependentPrinciple",
     "ImaginaryMcLachlanPrinciple",
 ]
