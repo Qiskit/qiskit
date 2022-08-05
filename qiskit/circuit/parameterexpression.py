@@ -508,14 +508,21 @@ class ParameterExpression:
     def is_real(self):
         """Return whether the expression is real"""
 
-        if not self._symbol_expr.is_real and self._symbol_expr.is_real is not None:
+        # workaround for symengine behavior that const * (0 + 1 * I) is not real
+        # see https://github.com/symengine/symengine.py/issues/414
+        if _optionals.HAS_SYMENGINE and self._symbol_expr.is_real is None:
+            symbol_expr = self._symbol_expr.evalf()
+        else:
+            symbol_expr = self._symbol_expr
+
+        if not symbol_expr.is_real and symbol_expr.is_real is not None:
             # Symengine returns false for is_real on the expression if
             # there is a imaginary component (even if that component is 0),
             # but the parameter will evaluate as real. Check that if the
             # expression's is_real attribute returns false that we have a
             # non-zero imaginary
             if _optionals.HAS_SYMENGINE:
-                if self._symbol_expr.imag != 0.0:
+                if symbol_expr.imag != 0.0:
                     return False
             else:
                 return False
