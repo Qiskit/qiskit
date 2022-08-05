@@ -201,13 +201,21 @@ def plot_bloch_vector(bloch, title="", ax=None, figsize=None, coord_type="cartes
     Raises:
         MissingOptionalLibraryError: Requires matplotlib.
 
-    Example:
+    Examples:
         .. jupyter-execute::
 
            from qiskit.visualization import plot_bloch_vector
-           %matplotlib inline
 
            plot_bloch_vector([0,1,0], title="New Bloch Sphere")
+
+        .. jupyter-execute::
+
+           # You can use spherical coordinates instead of cartesian.
+
+           import numpy as np
+
+           plot_bloch_vector([1, np.pi/2, np.pi/3], coord_type='spherical')
+
     """
     from qiskit.visualization.bloch import Bloch
 
