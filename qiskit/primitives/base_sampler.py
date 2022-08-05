@@ -130,7 +130,7 @@ class BaseSampler(ABC):
         """
         if circuits is not None or parameters is not None:
             warn(
-                "The BaseEstimator 'circuits', `observables`, `parameters` kwarg are deprecated "
+                "The BaseSampler 'circuits', and `parameters` kwarg are deprecated "
                 "as of 0.22.0 and will be removed no earlier than 3 months after the "
                 "release date. You can use 'run' method to append objects.",
                 DeprecationWarning,
