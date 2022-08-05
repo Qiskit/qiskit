@@ -124,7 +124,7 @@ class TestVarQTEOdeSolver(QiskitAlgorithmsTestCase):
             list(param_dict.values()),
             ode_function_generator,
             ode_solver=ode_solver,
-            time_step_delta=1.0 / 25,
+            num_timesteps=25,
         )
 
         result = var_qte_ode_solver.run(time)

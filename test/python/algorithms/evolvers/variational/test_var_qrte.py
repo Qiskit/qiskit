@@ -137,7 +137,7 @@ class TestVarQRTE(QiskitAlgorithmsTestCase):
                 var_qrte = VarQRTE(
                     var_principle,
                     expectation=expectation,
-                    time_step_delta=time / 25.0,
+                    num_timesteps=25,
                     quantum_instance=backend,
                 )
                 evolution_result = var_qrte.evolve(evolution_problem)
@@ -207,7 +207,7 @@ class TestVarQRTE(QiskitAlgorithmsTestCase):
 
         time = 1
         var_qrte = VarQRTE(
-            var_principle, ode_solver="RK45", time_step_delta=time / 25.0, quantum_instance=backend
+            var_principle, ode_solver="RK45", num_timesteps=25, quantum_instance=backend
         )
 
         thetas_expected = [

@@ -137,7 +137,7 @@ class TestVarQITE(QiskitAlgorithmsTestCase):
                 var_qite = VarQITE(
                     var_principle,
                     expectation=expectation,
-                    time_step_delta=time / 25.0,
+                    num_timesteps=25,
                     quantum_instance=backend,
                 )
                 evolution_result = var_qite.evolve(evolution_problem)
@@ -190,7 +190,7 @@ class TestVarQITE(QiskitAlgorithmsTestCase):
 
         time = 7
         var_qite = VarQITE(
-            var_principle, ode_solver="RK45", time_step_delta=time / 25.0, quantum_instance=backend
+            var_principle, ode_solver="RK45", num_timesteps=25, quantum_instance=backend
         )
 
         # values from the prototype
@@ -243,7 +243,7 @@ class TestVarQITE(QiskitAlgorithmsTestCase):
 
         time = 1
         var_qite = VarQITE(
-            var_principle, ode_solver="RK45", time_step_delta=time / 25.0, quantum_instance=backend
+            var_principle, ode_solver="RK45", num_timesteps=25, quantum_instance=backend
         )
 
         # values from the prototype

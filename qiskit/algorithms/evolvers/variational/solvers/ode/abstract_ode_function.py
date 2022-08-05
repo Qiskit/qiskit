@@ -33,8 +33,8 @@ class AbstractOdeFunction(ABC):
 
         self._varqte_linear_solver = varqte_linear_solver
         self._error_calculator = error_calculator
-        self._t_param = t_param
         self._param_dict = param_dict
+        self._t_param = t_param
 
     @abstractmethod
     def var_qte_ode_function(self, time: float, parameters_values: Iterable) -> Iterable:

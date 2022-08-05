@@ -12,7 +12,7 @@
 
 """Class for solving ODEs for Quantum Time Evolution."""
 
-from typing import List, Union, Type
+from typing import List, Union, Type, Optional
 
 import numpy as np
 from scipy.integrate import OdeSolver, solve_ivp
@@ -31,7 +31,7 @@ class VarQTEOdeSolver:
         init_params: List[complex],
         ode_function: AbstractOdeFunction,
         ode_solver: Union[Type[OdeSolver], str] = ForwardEulerSolver,
-        time_step_delta: float = 0.01,
+        num_timesteps: Optional[int] = None,
     ) -> None:
         """
         Initialize ODE Solver.
@@ -41,13 +41,14 @@ class VarQTEOdeSolver:
             ode_function: Generates the ODE function.
             ode_solver: ODE solver callable that implements a SciPy ``OdeSolver`` interface or a
                 string indicating a valid method offered by SciPy.
-            time_step_delta: A time interval that an ODE solver uses for solving equations. Only
+            num_timesteps: The number of timesteps to take. If None, it is
+                automatically selected to achieve a timestep of approximately 0.01. Only
                 relevant in case of the ``ForwardEulerSolver``.
         """
         self._init_params = init_params
         self._ode_function = ode_function.var_qte_ode_function
         self._ode_solver = ode_solver
-        self._time_step_delta = time_step_delta
+        self._num_timesteps = num_timesteps
 
     def run(self, evolution_time: float) -> List[complex]:
         """
@@ -59,13 +60,19 @@ class VarQTEOdeSolver:
         Returns:
             List of parameters found by an ODE solver for a given ODE function callable.
         """
-        num_t_steps = int(np.ceil(evolution_time / self._time_step_delta))
+        # determine the number of timesteps and set the timestep
+        num_timesteps = (
+            int(np.ceil(evolution_time / 0.01))
+            if self._num_timesteps is None
+            else self._num_timesteps
+        )
+
         sol = solve_ivp(
             self._ode_function,
             (0, evolution_time),
             self._init_params,
             method=self._ode_solver,
-            num_t_steps=num_t_steps,
+            num_t_steps=num_timesteps,
         )
         final_params_vals = [lst[-1] for lst in sol.y]
 
