@@ -31,7 +31,7 @@ from qiskit.converters import isinstanceint
 
 
 @dataclass
-class GradientCircuitData:
+class ParameterShiftGradientCircuitData:
     circuit: QuantumCircuit
     gradient_circuit: QuantumCircuit
     gradient_parameter_map: Dict[Parameter, Parameter]
@@ -110,10 +110,10 @@ def rebuild_circuit_with_unique_parameters(circuit: QuantumCircuit):
     g_parameter_index_map = {}
     for i, g_param in enumerate(g_circuit.parameters):
         g_parameter_index_map[g_param] = i
-    return GradientCircuitData(circuit=circuit, gradient_circuit=g_circuit,gradient_virtual_parameter_map=g_virtual_parameter_map,
+    return ParameterShiftGradientCircuitData(circuit=circuit, gradient_circuit=g_circuit,gradient_virtual_parameter_map=g_virtual_parameter_map,
         gradient_parameter_map=g_parameter_map, coeff_map=coeff_map,gradient_parameter_index_map=g_parameter_index_map)
 
-def make_base_parameter_values_parameter_shift(gradient_circuit_data: GradientCircuitData):
+def make_base_parameter_values_parameter_shift(gradient_circuit_data: ParameterShiftGradientCircuitData):
     # Make internal parameter values for the parameter shift
     parameter_map = gradient_circuit_data.gradient_parameter_map
     gradient_circuit = gradient_circuit_data.gradient_circuit
@@ -138,6 +138,24 @@ def make_base_parameter_values_parameter_shift(gradient_circuit_data: GradientCi
             parameter_values_minus = np.zeros(num_g_parameters)
             parameter_values_minus[g_param_idx] -= np.pi/2
             base_parameter_values.append(parameter_values_minus)
+
+    for i in base_parameter_values:
+        print(i)
+    return base_parameter_values
+
+def make_base_parameter_values_fin_diff(circuit: QuantumCircuit, epsilon):
+
+    base_parameter_values = []
+
+    # Make base decomposed parameter values for each original parameter
+    for i, _ in enumerate(circuit.parameters):
+        parameter_values_plus = np.zeros(len(circuit.parameters))
+        parameter_values_plus[i] += epsilon
+        base_parameter_values.append(parameter_values_plus)
+        # for - epsilon in the finite diff
+        parameter_values_minus = np.zeros(len(circuit.parameters))
+        parameter_values_minus[i] -= epsilon
+        base_parameter_values.append(parameter_values_minus)
 
     for i in base_parameter_values:
         print(i)

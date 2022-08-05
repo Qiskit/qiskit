@@ -27,79 +27,48 @@ import numpy as np
 from qiskit import transpile
 from qiskit.circuit import Parameter, ParameterExpression, QuantumCircuit
 from qiskit.result import QuasiDistribution
-from qiskit.quantum_info import SparsePauliOp
 
-from .utils import (
-    ParameterShiftGradientCircuitData,
-    rebuild_circuit_with_unique_parameters,
-    make_base_parameter_values_parameter_shift,
-)
-from ..base_estimator import BaseEstimator
-from .estimator_gradient_result import EstimatorGradientResult
+from .sampler_gradient_result import SamplerGradientResult
+from .utils import ParameterShiftGradientCircuitData, rebuild_circuit_with_unique_parameters, make_base_parameter_values_parameter_shift
+from ..base_sampler import BaseSampler
+from ..sampler_result import SamplerResult
 from ..utils import init_circuit
 
-# @dataclass
-# class SubSampler:
-#     coeff: float | ParameterExpression
-#     circuit: QuantumCircuit
-#     index: int
 
-# dataclass for g_circuit作って
-# base_parameter_values_listとかcoeff_listとか全部入れた方がいいかも
-
-
-class ParamShiftEstimatorGradientUniqueParameters:
+class FiniteDiffSamplerGradient2:
     """Parameter shift estimator gradient"""
 
-    SUPPORTED_GATES = ["x", "y", "z", "h", "rx", "ry", "rz", "p", "cx", "cy", "cz"]
-
-    def __init__(
-        self,
-        estimator: Type[BaseEstimator],
-        circuits: QuantumCircuit | Iterable[QuantumCircuit],
-        observables: SparsePauliOp,
-    ):
-
+    def __init__(self, sampler: Type[BaseSampler], circuits: QuantumCircuit | Iterable[QuantumCircuit]):
         if isinstance(circuits, QuantumCircuit):
             circuits = (circuits,)
         circuits = tuple(init_circuit(circuit) for circuit in circuits)
 
-        self._gradient_circuit_data_dict = {}
         self._circuits = circuits
+
+        self._gradient_circuit_data_dict = {}
         for i, circuit in enumerate(circuits):
             self._gradient_circuit_data_dict[i] = rebuild_circuit_with_unique_parameters(circuit)
 
         self._base_parameter_values_dict = {}
         for k, gradient_circuit_data in self._gradient_circuit_data_dict.items():
-            self._base_parameter_values_dict[k] = make_base_parameter_values_parameter_shift(
-                gradient_circuit_data
-            )
+            self._base_parameter_values_dict[k] = make_base_parameter_values_parameter_shift(gradient_circuit_data)
 
         # TODO: this should be modified to add new gradient circuits after new primitives change
         # call rebuild_circuits_with_unique_parameters when first time calculating the gradient for a circuit
-        self._estimator = estimator(
-            circuits=[
-                gradient_circuit_data.gradient_circuit
-                for _, gradient_circuit_data in self._gradient_circuit_data_dict.items()
-
-            ], observables=observables
-        )
-        #print(self._estimator.__call__([0], [0],[[1,2,3,4,1,2,3,4,1,2,3,4,1,2,3,4,1,2]]))
-
+        self._sampler = sampler(circuits=[gradient_circuit_data.gradient_circuit for _, gradient_circuit_data in self._gradient_circuit_data_dict.items()])
 
     def __call__(
         self,
         circuits: Sequence[int | QuantumCircuit],
-        observables: Sequence[int | SparsePauliOp],
-        parameter_values: Sequence[float],
-        partial: Sequence[Parameter] | None = None,
+        parameter_values: Sequence[Sequence[float]],
+        partial: Sequence[Sequence[Parameter]] | None = None,
         **run_options,
-    ) -> EstimatorGradientResult:
+    ) -> SamplerResult:
 
         partial = partial or [[] for _ in range(len(circuits))]
 
         gradients = []
-        for circuit_index, observable, parameter_values_, partial_ in zip(circuits, observables, parameter_values, partial):
+        for circuit_index, parameter_values_, partial_ in zip(circuits, parameter_values, partial):
 
             gradient_circuit_data = self._gradient_circuit_data_dict[circuit_index]
             gradient_parameter_map = gradient_circuit_data.gradient_parameter_map
@@ -129,14 +98,13 @@ class ParamShiftEstimatorGradientUniqueParameters:
             # add the given parameter values and the base parameter values
             gradient_parameter_values_list = [gradient_parameter_values + base_parameter_values for base_parameter_values in base_parameter_values_list]
             circuit_indices = [circuit_index] * len(gradient_parameter_values_list)
-            observables_indices = [observable] * len(gradient_parameter_values_list)
 
-            results = self._estimator.__call__(circuit_indices, observables_indices, gradient_parameter_values_list)
+            results = self._sampler.__call__(circuit_indices, gradient_parameter_values_list)
 
             # Combines the results and coefficients to reconstruct the gradient for the original circuit parameters
 
-            values = np.zeros(len(parameter_values_))
-
+            dists = [Counter() for _ in range(len(parameter_values_))]
+            print(dists)
             for i, param in enumerate(circuit_parameters):
                 if param not in param_set:
                     continue
@@ -150,9 +118,12 @@ class ParamShiftEstimatorGradientUniqueParameters:
                     else:
                         bound_coeff = coeff
                     # plus
-                    values[i] += bound_coeff*results.values[result_index_map[g_param] * 2]
+                    dists[i].update(
+                            Counter({k: bound_coeff * v for k, v in results.quasi_dists[result_index_map[g_param] * 2].items()})
+                    )
                     # minus
-                    values[i] -= bound_coeff*results.values[result_index_map[g_param] * 2 + 1]
-            gradients.append(values)
-        return EstimatorGradientResult(values=gradients, metadata=[{}] * len(gradients))
-
+                    dists[i].update(
+                            Counter({k: -1 * bound_coeff * v for k, v in results.quasi_dists[result_index_map[g_param] * 2 + 1].items()})
+                    )
+            gradients.append([QuasiDistribution(dist) for dist in dists])
+        return SamplerGradientResult(quasi_dists=gradients, metadata=[{}] * len(gradients))
