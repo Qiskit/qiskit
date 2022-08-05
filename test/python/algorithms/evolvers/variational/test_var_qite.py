@@ -14,6 +14,7 @@
 
 import unittest
 
+from qiskit.test import slow_test
 from test.python.algorithms import QiskitAlgorithmsTestCase
 from ddt import data, ddt
 import numpy as np
@@ -32,7 +33,6 @@ from qiskit.opflow import (
     Z,
     ExpectationFactory,
 )
-from qiskit.quantum_info import state_fidelity, Statevector
 
 
 @ddt
@@ -65,6 +65,7 @@ class TestVarQITE(QiskitAlgorithmsTestCase):
 
         self.backends_names = ["qi_qasm", "b_sv", "qi_sv"]
 
+    @slow_test
     def test_run_d_1_with_aux_ops(self):
         """Test VarQITE for d = 1 and t = 1 with evaluating auxiliary operator and the Forward
         Euler solver.."""
@@ -97,7 +98,6 @@ class TestVarQITE(QiskitAlgorithmsTestCase):
             observable, time, ansatz, aux_operators=aux_ops, param_value_dict=param_dict
         )
 
-        # values from the prototype
         thetas_expected_sv = [
             1.03612467538419,
             1.91891042963193,
@@ -193,7 +193,6 @@ class TestVarQITE(QiskitAlgorithmsTestCase):
             var_principle, ode_solver="RK45", num_timesteps=25, quantum_instance=backend
         )
 
-        # values from the prototype
         thetas_expected = [
             0.828917365718767,
             1.88481074798033,
@@ -207,6 +206,7 @@ class TestVarQITE(QiskitAlgorithmsTestCase):
 
         self._test_helper(ansatz, observable, param_dict, thetas_expected, time, var_qite, 2)
 
+    @slow_test
     @data(
         SummedOp(
             [
@@ -246,7 +246,6 @@ class TestVarQITE(QiskitAlgorithmsTestCase):
             var_principle, ode_solver="RK45", num_timesteps=25, quantum_instance=backend
         )
 
-        # values from the prototype
         thetas_expected = [
             1.29495364023786,
             1.08970061333559,
@@ -276,15 +275,7 @@ class TestVarQITE(QiskitAlgorithmsTestCase):
         evolution_problem = EvolutionProblem(observable, time, ansatz, param_value_dict=param_dict)
         evolution_result = var_qite.evolve(evolution_problem)
         evolved_state = evolution_result.evolved_state
-        # TODO remove print before merging
-        print(
-            state_fidelity(
-                Statevector(evolved_state),
-                Statevector(
-                    ansatz.assign_parameters(dict(zip(list(ansatz.parameters), thetas_expected)))
-                ),
-            )
-        )
+
         parameter_values = evolved_state.data[0][0].params
         for i, parameter_value in enumerate(parameter_values):
             np.testing.assert_almost_equal(

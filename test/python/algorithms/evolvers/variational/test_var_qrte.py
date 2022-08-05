@@ -14,11 +14,11 @@
 
 import unittest
 
+from qiskit.test import slow_test
 from test.python.algorithms import QiskitAlgorithmsTestCase
 from ddt import data, ddt
 import numpy as np
 from qiskit.utils import QuantumInstance, algorithm_globals
-from qiskit.quantum_info import state_fidelity, Statevector
 from qiskit.algorithms import EvolutionProblem, VarQRTE
 from qiskit.algorithms.evolvers.variational import (
     RealMcLachlanPrinciple,
@@ -65,6 +65,7 @@ class TestVarQRTE(QiskitAlgorithmsTestCase):
 
         self.backends_names = ["qi_qasm", "b_sv", "qi_sv"]
 
+    @slow_test
     def test_run_d_1_with_aux_ops(self):
         """Test VarQRTE for d = 1 and t = 0.1 with evaluating auxiliary operators and the Forward
         Euler solver."""
@@ -153,24 +154,13 @@ class TestVarQRTE(QiskitAlgorithmsTestCase):
                     thetas_expected = thetas_expected_sv
                     expected_aux_ops = expected_aux_ops_evaluated_sv
 
-                # TODO remove print before merging
-                print(
-                    state_fidelity(
-                        Statevector(evolved_state),
-                        Statevector(
-                            ansatz.assign_parameters(
-                                dict(zip(list(ansatz.parameters), thetas_expected))
-                            )
-                        ),
-                    )
-                )
-
                 for i, parameter_value in enumerate(parameter_values):
                     np.testing.assert_almost_equal(
                         float(parameter_value), thetas_expected[i], decimal=3
                     )
                 np.testing.assert_array_almost_equal(aux_ops, expected_aux_ops)
 
+    @slow_test
     @data(
         SummedOp(
             [
@@ -238,15 +228,7 @@ class TestVarQRTE(QiskitAlgorithmsTestCase):
         )
         evolution_result = var_qrte.evolve(evolution_problem)
         evolved_state = evolution_result.evolved_state
-        # TODO remove print before merging
-        print(
-            state_fidelity(
-                Statevector(evolved_state),
-                Statevector(
-                    ansatz.assign_parameters(dict(zip(list(ansatz.parameters), thetas_expected)))
-                ),
-            )
-        )
+
         parameter_values = evolved_state.data[0][0].params
         for i, parameter_value in enumerate(parameter_values):
             np.testing.assert_almost_equal(float(parameter_value), thetas_expected[i], decimal=4)
