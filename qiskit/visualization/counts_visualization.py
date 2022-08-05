@@ -126,23 +126,10 @@ def plot_histogram(
 
             # You can sort the bitstrings using different methods.
 
-            import numpy as np
-            from qiskit import transpile
+            counts = {'001': 596, '011': 211, '010': 50, '000': 117, '101': 33, '111': 8,
+                    '100': 6, '110': 3}
 
-            qc = QuantumCircuit(3)
-            qc.h(0)
-            qc.ch(0,1)
-            qc.ry(np.pi/3, 0)
-            qc.rx(np.pi/7, 2)
-            qc.measure_all()
-
-            backend = BasicAer.get_backend("qasm_simulator")
-
-            transpiled_qc = transpile(qc, backend)
-            job = backend.run(transpiled_qc)
-            counts = job.result().get_counts()
-
-            # Sort by the probability in descendant order
+            # Sort by the probability in descending order
             hist1 = plot_histogram(counts, sort='value_desc')
 
             # Sort by the hamming distance (the number of bit flips to change from
