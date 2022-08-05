@@ -80,7 +80,6 @@ class TestCliffordPasses(QiskitTestCase):
         qc.swap(1, 3)
         qc.append(cliff2, [1, 2, 3])
         qc.h(3)
-        # print(qc)
 
         # Check that there are indeed two Clifford objects in the circuit,
         # and that these are not gates.
@@ -91,7 +90,6 @@ class TestCliffordPasses(QiskitTestCase):
 
         # Check that calling QuantumCircuit's decompose(), no Clifford objects remain
         qc2 = qc.decompose()
-        # print(qc2)
         cliffords2 = [inst for inst, _, _ in qc2.data if isinstance(inst, Clifford)]
         self.assertEqual(len(cliffords2), 0)
 
