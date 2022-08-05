@@ -362,10 +362,12 @@ class StagedPassManager(PassManager):
         users as the relative positions of the stage are preserved so the behavior
         will not change between releases.
 
-    These stages will be executed in order and any stage set to ``None`` will be skipped. If
-    a :class:`~qiskit.transpiler.PassManager` input is being used for more than 1 stage here
-    (for example in the case of a :class:`~.Pass` that covers both Layout and Routing) you will want
-    to set that to the earliest stage in sequence that it covers.
+    These stages will be executed in order and any stage set to ``None`` will be skipped.
+    If a stage is provided multiple times (i.e. at diferent relative positions), the
+    associated passes, including pre and post, will run once per declaration.
+    If a :class:`~qiskit.transpiler.PassManager` input is being used for more than 1 stage here
+    (for example in the case of a :class:`~.Pass` that covers both Layout and Routing) you will
+    want to set that to the earliest stage in sequence that it covers.
     """
 
     invalid_stage_regex = re.compile(
@@ -380,6 +382,8 @@ class StagedPassManager(PassManager):
                 instance. If this is not specified the default stages list
                 ``['init', 'layout', 'routing', 'translation', 'optimization', 'scheduling']`` is
                 used. After instantiation, the final list will be immutable and stored as tuple.
+                If a stage is provided multiple times (i.e. at diferent relative positions), the
+                associated passes, including pre and post, will run once per declaration.
             kwargs: The initial :class:`~.PassManager` values for any stages
                 defined in ``stages``. If a argument is not defined the
                 stages will default to ``None`` indicating an empty/undefined
@@ -403,7 +407,7 @@ class StagedPassManager(PassManager):
         super().__setattr__("_expanded_stages", tuple(self._generate_expanded_stages()))
         super().__init__()
         self._validate_init_kwargs(kwargs)
-        for stage in self.expanded_stages:
+        for stage in set(self.expanded_stages):
             pm = kwargs.get(stage, None)
             setattr(self, stage, pm)
 
