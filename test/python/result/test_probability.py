@@ -22,35 +22,35 @@ class TestProbDistribution(QiskitTestCase):
         """Test hexadecimal input."""
         in_probs = {"0x0": 2 / 7, "0x1": 1 / 7, "0x2": 1 / 7, "0x3": 1 / 7, "0x4": 2 / 7}
         probs = ProbDistribution(in_probs)
-        expected = {0: 2 / 7, 1: 1 / 7, 2: 1 / 7, 3: 1 / 7, 4: 2 / 7}
+        expected = {"000": 2 / 7, "001": 1 / 7, "010": 1 / 7, "011": 1 / 7, "100": 2 / 7}
         self.assertEqual(expected, probs)
 
     def test_bin_probs(self):
         """Test binary input."""
         in_probs = {"0b0": 2 / 7, "0b1": 1 / 7, "0b10": 1 / 7, "0b11": 1 / 7, "0b100": 2 / 7}
         probs = ProbDistribution(in_probs)
-        expected = {0: 2 / 7, 1: 1 / 7, 2: 1 / 7, 3: 1 / 7, 4: 2 / 7}
+        expected = {"000": 2 / 7, "001": 1 / 7, "010": 1 / 7, "011": 1 / 7, "100": 2 / 7}
         self.assertEqual(expected, probs)
 
     def test_bin_probs_no_0b(self):
         """Test binary input without 0b in front."""
         in_probs = {"000": 2 / 7, "001": 1 / 7, "010": 1 / 7, "011": 1 / 7, "100": 2 / 7}
         probs = ProbDistribution(in_probs)
-        expected = {0: 2 / 7, 1: 1 / 7, 2: 1 / 7, 3: 1 / 7, 4: 2 / 7}
+        expected = {"000": 2 / 7, "001": 1 / 7, "010": 1 / 7, "011": 1 / 7, "100": 2 / 7}
         self.assertEqual(expected, probs)
 
     def test_bin_probs2(self):
         """Test binary input."""
         in_probs = {"000": 2 / 7, "001": 1 / 7, "010": 1 / 7, "011": 1 / 7, "100": 2 / 7}
         probs = ProbDistribution(in_probs)
-        expected = {0: 2 / 7, 1: 1 / 7, 2: 1 / 7, 3: 1 / 7, 4: 2 / 7}
+        expected = {"000": 2 / 7, "001": 1 / 7, "010": 1 / 7, "011": 1 / 7, "100": 2 / 7}
         self.assertEqual(expected, probs)
 
     def test_bin_no_prefix_probs(self):
         """Test binary input without 0b prefix."""
         in_probs = {"0": 2 / 7, "1": 1 / 7, "10": 1 / 7, "11": 1 / 7, "100": 2 / 7}
         probs = ProbDistribution(in_probs)
-        expected = {0: 2 / 7, 1: 1 / 7, 2: 1 / 7, 3: 1 / 7, 4: 2 / 7}
+        expected = {"000": 2 / 7, "001": 1 / 7, "010": 1 / 7, "011": 1 / 7, "100": 2 / 7}
         self.assertEqual(expected, probs)
 
     def test_hex_probs_hex_out(self):

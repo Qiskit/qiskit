@@ -1,0 +1,5 @@
+---
+upgrade:
+  - |
+    Updated :class:`~qiskit.result.ProbDistribution` and :class:`~qiskit.result.QuasiDistribution`
+    to store the data as bit-strings to keep the information of the number of qubits.
