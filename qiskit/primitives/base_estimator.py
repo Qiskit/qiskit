@@ -399,6 +399,7 @@ class BaseEstimator(ABC):
         circuits: Sequence[QuantumCircuit],
         observables: Sequence[BaseOperator | PauliSumOp],
         parameter_values: Sequence[Sequence[float]] | None = None,
+        parameters: Sequence[Sequence[Parameter]] | None = None,
         **run_options,
     ) -> Job:
         """Run the job of the estimation of expectation value(s).
@@ -426,6 +427,10 @@ class BaseEstimator(ABC):
             circuits: the list of circuit objects.
             observables: the list of observable objects.
             parameter_values: concrete parameters to be bound.
+            parameters: Parameters of quantum circuits, specifying the order in which values
+                will be bound. Defaults to ``[circ.parameters for circ in circuits]``
+                The indexing is such that ``parameters[i, j]`` is the j-th formal parameter of
+                ``circuits[i]``.
             run_options: runtime options used for circuit execution.
 
         Returns:
@@ -447,6 +452,22 @@ class BaseEstimator(ABC):
                         "but parameter values are not given."
                     )
             parameter_values = [[]] * len(circuits)
+
+        if parameters is None:
+            parameter_views = [circ.parameters for circ in circuits]
+        else:
+            parameter_views = [ParameterView(par) for par in parameters]
+            if len(self._parameters) != len(self._circuits):
+                raise QiskitError(
+                    f"Different number of parameters ({len(self._parameters)}) and "
+                    f"circuits ({len(self._circuits)})"
+                )
+            for i, (circ, params) in enumerate(zip(self._circuits, self._parameters)):
+                if circ.num_parameters != len(params):
+                    raise QiskitError(
+                        f"Different numbers of parameters of {i}-th circuit: "
+                        f"expected {circ.num_parameters}, actual {len(params)}."
+                    )
 
         # Validation
         if len(circuits) != len(observables):
@@ -475,7 +496,7 @@ class BaseEstimator(ABC):
                     f"({observable.num_qubits})."
                 )
 
-        return self._run(circuits, observables, parameter_values, **run_options)
+        return self._run(circuits, observables, parameter_values, parameter_views, **run_options)
 
     @abstractmethod
     def _call(
@@ -494,6 +515,7 @@ class BaseEstimator(ABC):
         circuits: Sequence[QuantumCircuit],
         observables: Sequence[BaseOperator | PauliSumOp],
         parameter_values: Sequence[Sequence[float]],
+        parameters: list[ParameterView],
         **run_options,
     ) -> Job:
         raise NotImplementedError(

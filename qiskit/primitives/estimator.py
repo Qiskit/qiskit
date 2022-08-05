@@ -21,6 +21,7 @@ from typing import Any
 import numpy as np
 
 from qiskit.circuit import Parameter, QuantumCircuit
+from qiskit.circuit.parametertable import ParameterView
 from qiskit.exceptions import QiskitError
 from qiskit.opflow import PauliSumOp
 from qiskit.quantum_info import Statevector
@@ -136,10 +137,11 @@ class Estimator(BaseEstimator):
         circuits: Sequence[QuantumCircuit],
         observables: Sequence[BaseOperator | PauliSumOp],
         parameter_values: Sequence[Sequence[float]],
+        parameters: Sequence[ParameterView],
         **run_options,
     ) -> PrimitiveJob:
         circuit_indices = []
-        for circuit in circuits:
+        for i, circuit in enumerate(circuits):
             index = self._circuit_ids.get(id(circuit))
             if index is not None:
                 circuit_indices.append(index)
@@ -147,7 +149,7 @@ class Estimator(BaseEstimator):
                 circuit_indices.append(len(self._circuits))
                 self._circuit_ids[id(circuit)] = len(self._circuits)
                 self._circuits.append(circuit)
-                self._parameters.append(circuit.parameters)
+                self._parameters.append(parameters[i])
         observable_indices = []
         for observable in observables:
             index = self._observable_ids.get(id(observable))

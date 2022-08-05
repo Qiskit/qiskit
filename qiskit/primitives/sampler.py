@@ -21,6 +21,7 @@ from typing import Any, cast
 import numpy as np
 
 from qiskit.circuit import Parameter, QuantumCircuit
+from qiskit.circuit.parametertable import ParameterView
 from qiskit.exceptions import QiskitError
 from qiskit.quantum_info import Statevector
 from qiskit.result import QuasiDistribution
@@ -133,10 +134,11 @@ class Sampler(BaseSampler):
         self,
         circuits: Sequence[QuantumCircuit],
         parameter_values: Sequence[Sequence[float]],
+        parameters: Sequence[ParameterView],
         **run_options,
     ) -> PrimitiveJob:
         circuit_indices = []
-        for circuit in circuits:
+        for i, circuit in enumerate(circuits):
             index = self._circuit_ids.get(id(circuit))
             if index is not None:
                 circuit_indices.append(index)
@@ -146,7 +148,7 @@ class Sampler(BaseSampler):
                 circuit, qargs = self._preprocess_circuit(circuit)
                 self._circuits.append(circuit)
                 self._qargs_list.append(qargs)
-                self._parameters.append(circuit.parameters)
+                self._parameters.append(parameters[i])
         job = PrimitiveJob(self._call, circuit_indices, parameter_values, **run_options)
         job.submit()
         return job
