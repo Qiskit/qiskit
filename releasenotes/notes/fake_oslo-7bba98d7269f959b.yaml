@@ -1,4 +1,4 @@
 ---
 features:
   - |
-    The fake backend :class:`~FakeOslo` was added to with the information from IBM Quantum `ibm_oslo` system.
+    The fake backend :class:`~FakeOslo` was added with the information from IBM Quantum `ibm_oslo` system.
