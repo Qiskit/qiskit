@@ -19,7 +19,7 @@ from qiskit.circuit import QuantumCircuit, Gate
 from qiskit.converters import dag_to_circuit, circuit_to_dag
 from qiskit.dagcircuit import DAGOpNode
 from qiskit.transpiler.passes import HighLevelSynthesis
-from qiskit.transpiler.passes.optimization.optimize_cliffords import OptimizeCliffords
+from qiskit.transpiler.passes import OptimizeCliffords
 from qiskit.test import QiskitTestCase
 from qiskit.quantum_info.operators import Clifford
 from qiskit.transpiler import PassManager
