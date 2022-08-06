@@ -96,5 +96,5 @@ features:
     It is important to note that the work done to store :class:`.Clifford` objects as "higher-level"
     objects and to transpile these objects using :class:`.HighLevelSynthesis` pass should be completely
     transparent to the users, absolutely no code changes are required. However, as explained before,
-    the users are now able to opcimize consecutive Cliffords using the new :class:`.OptimizeCliffords`
+    the users are now able to optimize consecutive Cliffords using the new :class:`.OptimizeCliffords`
     pass, and in the future the users will be able to plug in their own synthesis methods for Cliffords.
