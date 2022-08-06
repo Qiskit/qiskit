@@ -29,7 +29,7 @@ from qiskit.circuit import Parameter, ParameterExpression, QuantumCircuit
 from qiskit.result import QuasiDistribution
 
 from .sampler_gradient_result import SamplerGradientResult
-from .utils import GradientCircuitData, rebuild_circuit_with_unique_parameters, make_base_parameter_values_parameter_shift
+from .utils import ParameterShiftGradientCircuitData, make_gradient_circuit_param_shift, make_base_parameter_values_parameter_shift
 from ..base_sampler import BaseSampler
 from ..sampler_result import SamplerResult
 from ..utils import init_circuit
@@ -47,7 +47,7 @@ class ParamShiftSamplerGradientUniqueParameters:
 
         self._gradient_circuit_data_dict = {}
         for i, circuit in enumerate(circuits):
-            self._gradient_circuit_data_dict[i] = rebuild_circuit_with_unique_parameters(circuit)
+            self._gradient_circuit_data_dict[i] = make_gradient_circuit_param_shift(circuit)
 
         self._base_parameter_values_dict = {}
         for k, gradient_circuit_data in self._gradient_circuit_data_dict.items():
@@ -63,13 +63,12 @@ class ParamShiftSamplerGradientUniqueParameters:
         parameter_values: Sequence[Sequence[float]],
         partial: Sequence[Sequence[Parameter]] | None = None,
         **run_options,
-    ) -> SamplerResult:
+    ) -> SamplerGradientResult:
 
         partial = partial or [[] for _ in range(len(circuits))]
 
         gradients = []
         for circuit_index, parameter_values_, partial_ in zip(circuits, parameter_values, partial):
-
             gradient_circuit_data = self._gradient_circuit_data_dict[circuit_index]
             gradient_parameter_map = gradient_circuit_data.gradient_parameter_map
             gradient_parameter_index_map = gradient_circuit_data.gradient_parameter_index_map
