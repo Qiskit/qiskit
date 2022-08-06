@@ -228,6 +228,22 @@ class TestCliffordPasses(QiskitTestCase):
             self.assertTrue(Operator(qc1).equiv(Operator(qc2)))
             self.assertTrue(Operator(qc1).equiv(Operator(qc3)))
 
+    def test_topological_ordering(self):
+        """Test that Clifford optimization pass optimizes Cliffords across a gate
+        on a different qubit."""
+
+        cliff1 = self.create_cliff1()
+        cliff2 = self.create_cliff1()
+
+        qc1 = QuantumCircuit(5)
+        qc1.append(cliff1, [0, 1, 2])
+        qc1.h(4)
+        qc1.append(cliff2, [0, 1, 2])
+
+        # The second circuit is obtained by running the OptimizeCliffords pass.
+        qc2 = PassManager(OptimizeCliffords()).run(qc1)
+        self.assertEqual(qc2.count_ops()["clifford"], 1)
+
     def test_transpile_level_0(self):
         """Make sure that transpile with optimization_level=0 transpiles
         the Clifford."""
