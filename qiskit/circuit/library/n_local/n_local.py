@@ -1006,12 +1006,17 @@ def get_entangler_map(
             "qubits in the circuit."
         )
 
-    if entanglement == "pairwise" and num_block_qubits != 2:
-        raise ValueError("Pairwise entanglement is only defined for blocks of 2 qubits.")
+    if entanglement == "pairwise" and num_block_qubits > 2:
+        raise ValueError("Pairwise entanglement is not defined for blocks with more than 2 qubits.")
 
     if entanglement == "full":
         return list(combinations(list(range(n)), m))
-    if entanglement in ["linear", "circular", "sca", "pairwise"]:
+    elif entanglement == "reverse_linear":
+        # reverse linear connectivity. In the case of m=2 and the entanglement_block='cx'
+        # then it's equivalent to 'full' entanglement
+        reverse = [tuple(range(n - i - m, n - i)) for i in range(n - m + 1)]
+        return reverse
+    elif entanglement in ["linear", "circular", "sca", "pairwise"]:
         linear = [tuple(range(i, i + m)) for i in range(n - m + 1)]
         # if the number of block qubits is 1, we don't have to add the 'circular' part
         if entanglement == "linear" or m == 1:

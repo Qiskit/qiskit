@@ -50,7 +50,7 @@ class GradientDescent(Optimizer):
         A minimum example that will use finite difference gradients with a default perturbation
         of 0.01 and a default learning rate of 0.01.
 
-        .. code-block::python
+        .. code-block:: python
 
             from qiskit.algorithms.optimizers import GradientDescent
 
@@ -70,7 +70,7 @@ class GradientDescent(Optimizer):
         Note how much faster this convergences (i.e. less ``nfevs``) compared to the previous
         example.
 
-        .. code-block::python
+        .. code-block:: python
 
             from qiskit.algorithms.optimizers import GradientDescent
 
