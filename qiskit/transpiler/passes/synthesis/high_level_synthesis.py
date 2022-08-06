@@ -24,6 +24,12 @@ class HighLevelSynthesis(TransformationPass):
     the object's name.
     """
 
+    # TODO: Currently, this class only contains the minimal functionality required to transpile
+    #       Cliffords. In the near future, this class will be expanded to cover other higher-level
+    #       objects (as these become available). Additionally, the plan is to make HighLevelSynthesis
+    #       "pluggable", so that the users would be able to "plug in" their own synthesis methods
+    #       for higher-level objects (which would be called during transpilation).
+
     def run(self, dag: DAGCircuit) -> DAGCircuit:
         """Run the HighLevelSynthesis pass on `dag`.
         Args:
