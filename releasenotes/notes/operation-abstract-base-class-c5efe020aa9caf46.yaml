@@ -2,9 +2,9 @@
 
 features:
   - |
-    Currently, only subclasses of :class:`.Instruction` can be put on :class:`.QuantumCircuit`,
-    but this interface has become unwieldy and includes too many methods and attributes for
-    general-purpose objects.
+    Currently, only subclasses of :class:`qiskit.circuit.Instruction` can be put on
+    :class:`.QuantumCircuit`, but this interface has become unwieldy and includes too many methods
+    and attributes for general-purpose objects.
 
     A new :class:`.Operation` base class provides a lightweight abstract interface
     for objects that can be put on :class:`.QuantumCircuit`. This allows to store "higher-level"
@@ -37,7 +37,7 @@ features:
         cliff = random_clifford(2)
         qc.append(cliff, [0, 1])
 
-    no longer converts ``cliff`` to :class:`.Instruction` when it is appended to ``qc``.
+    no longer converts ``cliff`` to :class:`qiskit.circuit.Instruction` when it is appended to ``qc``.
 
   - |
     Added a new transpiler pass :class:`.OptimizeCliffords` that collects blocks of consecutive
