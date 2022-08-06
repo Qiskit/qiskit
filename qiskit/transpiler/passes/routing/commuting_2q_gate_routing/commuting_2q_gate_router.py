@@ -124,24 +124,10 @@ class Commuting2qGateRouter(TransformationPass):
                 If the edge coloring is not given then the sets will be built-up using a
                 greedy algorithm. The edge coloring is useful for position gates such as
                 ``RZZGate``\s next to swap gates.
-
-        Raises:
-            TranspilerError: If an invalid edge coloring is given.
         """
         super().__init__()
         self._swap_strategy = swap_strategy
         self._bit_indices = None
-
-        if edge_coloring is not None:
-            # Validate the edge coloring
-            qubit_colors = defaultdict(set)
-            for edge, color in edge_coloring.items():
-                if color in qubit_colors[edge[0]] or color in qubit_colors[edge[1]]:
-                    raise TranspilerError("The given edge coloring is invalid.")
-
-                qubit_colors[edge[0]].add(color)
-                qubit_colors[edge[1]].add(color)
-
         self._edge_coloring = edge_coloring
 
     def run(self, dag: DAGCircuit) -> DAGCircuit:
