@@ -1044,7 +1044,7 @@ class MatplotlibDrawer:
                 self._ax.text(
                     xpos,
                     dir_ypos,
-                    node.op.label,#self._data[node]["ctrl_text"],
+                    node.op.label,
                     ha="center",
                     va="top",
                     fontsize=self._sfs,
