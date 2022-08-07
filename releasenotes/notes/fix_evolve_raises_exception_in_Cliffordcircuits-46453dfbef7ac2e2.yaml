@@ -1,0 +1,9 @@
+---
+fixes:
+  - |
+    Fixed an issue with the a bug in the BasePauli/Pauli classes where the phase vector is sometimes set as 
+    dtype uint8 instead of int64 leading to errors when calling the evolve function for circuits containing 
+    gates that modify the pauli phase vector.
+    The dtype of the phase vector should always be the same, so that evolution and other methods that attempt
+    to inplace modify the vector don't cause exceptions for mismatched dtypes.
+    Fixed #8438 <https://github.com/Qiskit/qiskit-terra/issues/8438>

@@ -42,6 +42,7 @@ from qiskit.test import QiskitTestCase
 from qiskit.quantum_info.random import random_clifford, random_pauli
 from qiskit.quantum_info.operators import Pauli, Operator
 from qiskit.quantum_info.operators.symplectic.pauli import _split_pauli_label, _phase_from_label
+import qiskit.quantum_info as qi
 
 
 @lru_cache(maxsize=8)
@@ -432,6 +433,19 @@ class TestPauli(QiskitTestCase):
         circ.barrier([0, 1])
         circ.y(1)
         value = Pauli(circ)
+        self.assertEqual(value, target)
+
+    def test_evolve_clifford_with_phase(self):
+        """Create circuit with gate that modifies Pauli phase"""
+        qc = QuantumCircuit(2)
+        qc.cz(0, 1)
+        op = Operator(qc)
+
+        pauli = qi.random_pauli(2, seed=123)
+
+        value = Operator(pauli.evolve(qc))
+        target = op.adjoint().dot(pauli).dot(op)
+
         self.assertEqual(value, target)
 
 
