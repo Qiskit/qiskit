@@ -49,10 +49,7 @@ def get_gate_ctrl_text(op, drawer, style=None, calibrations=None):
         base_type = type(op.base_gate)
     ctrl_text = None
 
-    if op._directive:
-        ctrl_text = op_label
-        gate_text = ""
-    elif base_label:
+    if base_label:
         gate_text = base_label
         ctrl_text = op_label
     elif op_label and isinstance(op, ControlledGate):

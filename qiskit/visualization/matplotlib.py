@@ -1013,9 +1013,8 @@ class MatplotlibDrawer:
         """Draw a barrier"""
         for i, xy in enumerate(self._data[node]["q_xy"]):
             xpos, ypos = xy
-            # If there's a label it will be in ctrl_text and is placed at the top of the barrier.
-            # For the topmost barrier, reduce the rectangle to allow for the text.
-            if i == 0 and "ctrl_text" in self._data[node] and self._data[node]["ctrl_text"]:
+            # For the topmost barrier, reduce the rectangle if there's a label to allow for the text.
+            if i == 0 and node.op.label is not None:
                 ypos_adj = -0.35
             else:
                 ypos_adj = 0.0
@@ -1040,12 +1039,12 @@ class MatplotlibDrawer:
             self._ax.add_patch(box)
 
             # display the barrier label at the top if there is one
-            if i == 0 and "ctrl_text" in self._data[node] and self._data[node]["ctrl_text"]:
+            if i == 0 and node.op.label is not None:
                 dir_ypos = ypos + 0.65 * HIG
                 self._ax.text(
                     xpos,
                     dir_ypos,
-                    self._data[node]["ctrl_text"],
+                    node.op.label,#self._data[node]["ctrl_text"],
                     ha="center",
                     va="top",
                     fontsize=self._sfs,
