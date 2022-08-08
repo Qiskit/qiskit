@@ -45,22 +45,18 @@ class ProbDistribution(dict):
             ValueError: If the string format of the keys is incorrect
         """
         self.shots = shots
+        self._num_bits = 0
         if data:
             first_key = next(iter(data.keys()))
             if isinstance(first_key, int):
-                keys = list(data.keys())
-                n = len(bin(max(keys))) - 2
-                data = {format(key, "b").zfill(n): value for key, value in zip(keys, data.values())}
+                self._num_bits = len(bin(max(data.keys()))) - 2
             elif isinstance(first_key, str):
                 if first_key.startswith("0x") or first_key.startswith("0b"):
-                    keys = [int(key, 0) for key in data]
-                    n = len(bin(max(keys))) - 2
-                    data = {
-                        format(key, "b").zfill(n): value for key, value in zip(keys, data.values())
-                    }
+                    data = {int(key, 0): value for key, value in data.items()}
+                    self._num_bits = len(bin(max(data.keys()))) - 2
                 elif self._bitstring_regex.search(first_key):
-                    n = max(len(key) for key in data)
-                    data = {key.zfill(n): value for key, value in data.items()}
+                    self._num_bits = max(len(key) for key in data)
+                    data = {int(key, 2): value for key, value in data.items()}
                 else:
                     raise ValueError(
                         "The input keys are not a valid string format, must either "
@@ -83,10 +79,8 @@ class ProbDistribution(dict):
             dict: A dictionary where the keys are binary strings in the format
                 ``"0110"``
         """
-        if num_bits:
-            return {key.zfill(num_bits): value for key, value in self.items()}
-        else:
-            return self
+        n = num_bits or self._num_bits
+        return {format(key, "b").zfill(n): value for key, value in self.items()}
 
     def hex_probabilities(self):
         """Build a probabilities dictionary with hexadecimal string keys
@@ -95,4 +89,4 @@ class ProbDistribution(dict):
             dict: A dictionary where the keys are hexadecimal strings in the
                 format ``"0x1a"``
         """
-        return {hex(int(key, 2)): value for key, value in self.items()}
+        return {hex(key): value for key, value in self.items()}

@@ -41,13 +41,13 @@ class TestSampler(QiskitTestCase):
         bell.measure_all()
         self._circuit = [hadamard, bell]
         self._target = [
-            {"0": 0.5, "1": 0.5},
-            {"00": 0.5, "11": 0.5, "01": 0, "10": 0},
+            {0: 0.5, 1: 0.5},
+            {0: 0.5, 3: 0.5, 1: 0, 2: 0},
         ]
         self._pqc = RealAmplitudes(num_qubits=2, reps=2)
         self._pqc.measure_all()
         self._pqc_params = [[0.0] * 6, [1.0] * 6]
-        self._pqc_target = [{"00": 1}, {"00": 0.0148, "01": 0.3449, "10": 0.0531, "11": 0.5872}]
+        self._pqc_target = [{0: 1}, {0: 0.0148, 1: 0.3449, 2: 0.0531, 3: 0.5872}]
 
     def _generate_circuits_target(self, indices):
         if isinstance(indices, list):
@@ -112,15 +112,13 @@ class TestSampler(QiskitTestCase):
         bell.cx(0, 1)
         bell.measure_all()
 
-        target = tuple(bin(i)[2:].zfill(2) for i in range(4))
-
         # executes a Bell circuit
         with Sampler(circuits=[bell], parameters=[[]]) as sampler:
             result = sampler(parameter_values=[[]], circuits=[0])
             self.assertIsInstance(result, SamplerResult)
             self.assertEqual(len(result.quasi_dists), 1)
             keys, values = zip(*sorted(result.quasi_dists[0].items()))
-            self.assertTupleEqual(keys, target)
+            self.assertTupleEqual(keys, tuple(range(4)))
             np.testing.assert_allclose(values, [0.5, 0, 0, 0.5])
             self.assertEqual(len(result.metadata), 1)
 
@@ -132,7 +130,7 @@ class TestSampler(QiskitTestCase):
             self.assertEqual(len(result.metadata), 3)
             for dist in result.quasi_dists:
                 keys, values = zip(*sorted(dist.items()))
-                self.assertTupleEqual(keys, target)
+                self.assertTupleEqual(keys, tuple(range(4)))
                 np.testing.assert_allclose(values, [0.5, 0, 0, 0.5])
 
         with Sampler([bell]) as sampler:
@@ -142,7 +140,7 @@ class TestSampler(QiskitTestCase):
             self.assertEqual(len(result.metadata), 3)
             for dist in result.quasi_dists:
                 keys, values = zip(*sorted(dist.items()))
-                self.assertTupleEqual(keys, target)
+                self.assertTupleEqual(keys, tuple(range(4)))
                 np.testing.assert_allclose(values, [0.5, 0, 0, 0.5])
 
         # parametrized circuit
@@ -162,21 +160,21 @@ class TestSampler(QiskitTestCase):
             self.assertEqual(len(result.metadata), 3)
 
             keys, values = zip(*sorted(result.quasi_dists[0].items()))
-            self.assertTupleEqual(keys, target)
+            self.assertTupleEqual(keys, tuple(range(4)))
             np.testing.assert_allclose(
                 values,
                 [0.13092484629757767, 0.3608720796028449, 0.09324865232050054, 0.414954421779077],
             )
 
             keys, values = zip(*sorted(result.quasi_dists[1].items()))
-            self.assertTupleEqual(keys, target)
+            self.assertTupleEqual(keys, tuple(range(4)))
             np.testing.assert_allclose(
                 values,
                 [0.06282290651933871, 0.02877144385576703, 0.606654494132085, 0.3017511554928095],
             )
 
             keys, values = zip(*sorted(result.quasi_dists[2].items()))
-            self.assertTupleEqual(keys, target)
+            self.assertTupleEqual(keys, tuple(range(4)))
             np.testing.assert_allclose(
                 values,
                 [
@@ -200,8 +198,6 @@ class TestSampler(QiskitTestCase):
         qc.measure(1, 1)
         qc.measure(2, 2)
 
-        target = tuple(bin(i)[2:].zfill(3) for i in range(8))
-
         with Sampler([qc, qc], [[x, y], [y, x]]) as sampler:
             result = sampler([0, 1, 0, 1], [[0, 0], [0, 0], [np.pi / 2, 0], [np.pi / 2, 0]])
             self.assertIsInstance(result, SamplerResult)
@@ -209,22 +205,22 @@ class TestSampler(QiskitTestCase):
 
             # qc({x: 0, y: 0})
             keys, values = zip(*sorted(result.quasi_dists[0].items()))
-            self.assertTupleEqual(keys, target)
+            self.assertTupleEqual(keys, tuple(range(8)))
             np.testing.assert_allclose(values, [0, 0, 0, 0, 1, 0, 0, 0])
 
             # qc({x: 0, y: 0})
             keys, values = zip(*sorted(result.quasi_dists[1].items()))
-            self.assertTupleEqual(keys, target)
+            self.assertTupleEqual(keys, tuple(range(8)))
             np.testing.assert_allclose(values, [0, 0, 0, 0, 1, 0, 0, 0])
 
             # qc({x: pi/2, y: 0})
             keys, values = zip(*sorted(result.quasi_dists[2].items()))
-            self.assertTupleEqual(keys, target)
+            self.assertTupleEqual(keys, tuple(range(8)))
             np.testing.assert_allclose(values, [0, 0, 0, 0, 0.5, 0.5, 0, 0])
 
             # qc({x: 0, y: pi/2})
             keys, values = zip(*sorted(result.quasi_dists[3].items()))
-            self.assertTupleEqual(keys, target)
+            self.assertTupleEqual(keys, tuple(range(8)))
             np.testing.assert_allclose(values, [0, 0, 0, 0, 0.5, 0, 0.5, 0])
 
     def test_sampler_reverse_meas_order(self):
@@ -240,8 +236,6 @@ class TestSampler(QiskitTestCase):
         qc.measure(1, 1)
         qc.measure(2, 0)
 
-        target = tuple(bin(i)[2:].zfill(3) for i in range(8))
-
         with Sampler([qc, qc], [[x, y], [y, x]]) as sampler:
             result = sampler([0, 1, 0, 1], [[0, 0], [0, 0], [np.pi / 2, 0], [np.pi / 2, 0]])
             self.assertIsInstance(result, SamplerResult)
@@ -249,22 +243,22 @@ class TestSampler(QiskitTestCase):
 
             # qc({x: 0, y: 0})
             keys, values = zip(*sorted(result.quasi_dists[0].items()))
-            self.assertTupleEqual(keys, target)
+            self.assertTupleEqual(keys, tuple(range(8)))
             np.testing.assert_allclose(values, [0, 1, 0, 0, 0, 0, 0, 0])
 
             # qc({x: 0, y: 0})
             keys, values = zip(*sorted(result.quasi_dists[1].items()))
-            self.assertTupleEqual(keys, target)
+            self.assertTupleEqual(keys, tuple(range(8)))
             np.testing.assert_allclose(values, [0, 1, 0, 0, 0, 0, 0, 0])
 
             # qc({x: pi/2, y: 0})
             keys, values = zip(*sorted(result.quasi_dists[2].items()))
-            self.assertTupleEqual(keys, target)
+            self.assertTupleEqual(keys, tuple(range(8)))
             np.testing.assert_allclose(values, [0, 0.5, 0, 0, 0, 0.5, 0, 0])
 
             # qc({x: 0, y: pi/2})
             keys, values = zip(*sorted(result.quasi_dists[3].items()))
-            self.assertTupleEqual(keys, target)
+            self.assertTupleEqual(keys, tuple(range(8)))
             np.testing.assert_allclose(values, [0, 0.5, 0, 0.5, 0, 0, 0, 0])
 
     def test_1qubit(self):
@@ -275,19 +269,17 @@ class TestSampler(QiskitTestCase):
         qc2.x(0)
         qc2.measure_all()
 
-        target = tuple(bin(i)[2:].zfill(1) for i in range(2))
-
         with Sampler([qc, qc2], [qc.parameters, qc2.parameters]) as sampler:
             result = sampler([0, 1], [[]] * 2)
             self.assertIsInstance(result, SamplerResult)
             self.assertEqual(len(result.quasi_dists), 2)
 
             keys, values = zip(*sorted(result.quasi_dists[0].items()))
-            self.assertTupleEqual(keys, target)
+            self.assertTupleEqual(keys, tuple(range(2)))
             np.testing.assert_allclose(values, [1, 0])
 
             keys, values = zip(*sorted(result.quasi_dists[1].items()))
-            self.assertTupleEqual(keys, target)
+            self.assertTupleEqual(keys, tuple(range(2)))
             np.testing.assert_allclose(values, [0, 1])
 
     def test_2qubit(self):
@@ -304,8 +296,6 @@ class TestSampler(QiskitTestCase):
         qc3.x([0, 1])
         qc3.measure_all()
 
-        target = tuple(bin(i)[2:].zfill(2) for i in range(4))
-
         with Sampler(
             [qc0, qc1, qc2, qc3], [qc0.parameters, qc1.parameters, qc2.parameters, qc3.parameters]
         ) as sampler:
@@ -314,19 +304,19 @@ class TestSampler(QiskitTestCase):
             self.assertEqual(len(result.quasi_dists), 4)
 
             keys, values = zip(*sorted(result.quasi_dists[0].items()))
-            self.assertTupleEqual(keys, target)
+            self.assertTupleEqual(keys, tuple(range(4)))
             np.testing.assert_allclose(values, [1, 0, 0, 0])
 
             keys, values = zip(*sorted(result.quasi_dists[1].items()))
-            self.assertTupleEqual(keys, target)
+            self.assertTupleEqual(keys, tuple(range(4)))
             np.testing.assert_allclose(values, [0, 1, 0, 0])
 
             keys, values = zip(*sorted(result.quasi_dists[2].items()))
-            self.assertTupleEqual(keys, target)
+            self.assertTupleEqual(keys, tuple(range(4)))
             np.testing.assert_allclose(values, [0, 0, 1, 0])
 
             keys, values = zip(*sorted(result.quasi_dists[3].items()))
-            self.assertTupleEqual(keys, target)
+            self.assertTupleEqual(keys, tuple(range(4)))
             np.testing.assert_allclose(values, [0, 0, 0, 1])
 
     def test_errors(self):
@@ -355,7 +345,7 @@ class TestSampler(QiskitTestCase):
                 self.assertEqual(len(result.quasi_dists), 1)
                 for q_d in result.quasi_dists:
                     quasi_dist = {k: v for k, v in q_d.items() if v != 0.0}
-                    self.assertDictEqual(quasi_dist, {"0" * (n - 1): 1.0})
+                    self.assertDictEqual(quasi_dist, {0: 1.0})
                 self.assertEqual(len(result.metadata), 1)
 
             with self.subTest("two circuits"):
@@ -363,7 +353,7 @@ class TestSampler(QiskitTestCase):
                 self.assertEqual(len(result.quasi_dists), 2)
                 for q_d in result.quasi_dists:
                     quasi_dist = {k: v for k, v in q_d.items() if v != 0.0}
-                    self.assertDictEqual(quasi_dist, {"0" * (n - 1): 1.0})
+                    self.assertDictEqual(quasi_dist, {0: 1.0})
                 self.assertEqual(len(result.metadata), 2)
 
     def test_numpy_params(self):
