@@ -42,7 +42,6 @@ from qiskit.test import QiskitTestCase
 from qiskit.quantum_info.random import random_clifford, random_pauli
 from qiskit.quantum_info.operators import Pauli, Operator
 from qiskit.quantum_info.operators.symplectic.pauli import _split_pauli_label, _phase_from_label
-import qiskit.quantum_info as qi
 
 
 @lru_cache(maxsize=8)
