@@ -18,7 +18,6 @@ from __future__ import annotations
 from collections.abc import Iterable, Sequence
 
 import numpy as np
-
 from qiskit.circuit import Parameter, QuantumCircuit
 from qiskit.exceptions import QiskitError
 from qiskit.opflow import PauliSumOp
@@ -27,10 +26,11 @@ from qiskit.quantum_info.operators.base_operator import BaseOperator
 
 from .base_estimator import BaseEstimator
 from .estimator_result import EstimatorResult
-from .utils import init_circuit, init_observable
+from .statevector_primitive import StatevectorPrimitive
+from .utils import init_circuit, init_observable, rng_from_seed
 
 
-class Estimator(BaseEstimator):
+class Estimator(BaseEstimator, StatevectorPrimitive):
     """
     Reference implementation of :class:`BaseEstimator`.
 
@@ -65,6 +65,7 @@ class Estimator(BaseEstimator):
             observables=observables,
             parameters=parameters,
         )
+        self._rng = rng_from_seed()
         self._is_closed = False
 
     def _call(
@@ -77,52 +78,48 @@ class Estimator(BaseEstimator):
         if self._is_closed:
             raise QiskitError("The primitive has been closed.")
 
+        # Parse input
+        states = [
+            self._build_statevector(circuit_index, tuple(values))
+            for circuit_index, values in zip(circuits, parameter_values)
+        ]
+        observables = [self._observables[i] for i in observables]
         shots = run_options.pop("shots", None)
-        seed = run_options.pop("seed", None)
-        if seed is None:
-            rng = np.random.default_rng()
-        elif isinstance(seed, np.random.Generator):
-            rng = seed
-        else:
-            rng = np.random.default_rng(seed)
+        if shots:
+            seed = run_options.pop("seed", None)
+            if seed:
+                self._rng = rng_from_seed(seed)
 
-        # Initialize metadata
-        metadata = [{}] * len(circuits)
-
-        bound_circuits = []
-        for i, value in zip(circuits, parameter_values):
-            if len(value) != len(self._parameters[i]):
-                raise QiskitError(
-                    f"The number of values ({len(value)}) does not match "
-                    f"the number of parameters ({len(self._parameters[i])})."
-                )
-            bound_circuits.append(
-                self._circuits[i].bind_parameters(dict(zip(self._parameters[i], value)))
-            )
-        sorted_observables = [self._observables[i] for i in observables]
-        expectation_values = []
-        for circ, obs, metadatum in zip(bound_circuits, sorted_observables, metadata):
-            if circ.num_qubits != obs.num_qubits:
-                raise QiskitError(
-                    f"The number of qubits of a circuit ({circ.num_qubits}) does not match "
-                    f"the number of qubits of a observable ({obs.num_qubits})."
-                )
-            final_state = Statevector(circ)
-            expectation_value = final_state.expectation_value(obs)
-            if shots is None:
-                expectation_values.append(expectation_value)
-            else:
-                expectation_value = np.real_if_close(expectation_value)
-                sq_obs = (obs @ obs).simplify()
-                sq_exp_val = np.real_if_close(final_state.expectation_value(sq_obs))
-                variance = sq_exp_val - expectation_value**2
-                standard_deviation = np.sqrt(variance / shots)
-                expectation_value_with_error = rng.normal(expectation_value, standard_deviation)
-                expectation_values.append(expectation_value_with_error)
-                metadatum["variance"] = variance
-                metadatum["shots"] = shots
-
-        return EstimatorResult(np.real_if_close(expectation_values), metadata)
+        # Results
+        raw_results = [
+            self._compute_result(state, observable, shots)
+            for state, observable in zip(states, observables)
+        ]
+        expectation_values, metadata = zip(*raw_results)
+        return EstimatorResult(np.array(expectation_values), metadata)
 
     def close(self):
         self._is_closed = True
+
+    def _compute_result(
+        self,
+        state: Statevector,
+        observable: BaseOperator | PauliSumOp,
+        shots: int,
+    ) -> tuple[float, dict]:
+        if state.num_qubits != observable.num_qubits:
+            raise QiskitError(
+                f"The number of qubits of a circuit ({state.num_qubits}) does not match "
+                f"the number of qubits of a observable ({observable.num_qubits})."
+            )
+        expectation_value = np.real_if_close(state.expectation_value(observable))
+        metadatum = {}
+        if shots is not None:
+            sq_obs = (observable @ observable).simplify()
+            sq_exp_val = np.real_if_close(state.expectation_value(sq_obs))
+            variance = sq_exp_val - expectation_value**2
+            standard_error = np.sqrt(variance / shots)
+            expectation_value = self._rng.normal(expectation_value, standard_error)
+            metadatum["variance"] = variance
+            metadatum["shots"] = shots
+        return float(expectation_value), metadatum

@@ -15,9 +15,14 @@ Utility functions for primitives
 
 from __future__ import annotations
 
+from collections import OrderedDict
 from collections.abc import Iterator
+from functools import lru_cache, wraps
+from inspect import signature
 from typing import TypeVar
+from weakref import ref as weakref
 
+from numpy.random import Generator, default_rng
 from qiskit.circuit import ParameterExpression, QuantumCircuit
 from qiskit.extensions.quantum_initializer.initializer import Initialize
 from qiskit.opflow import PauliSumOp
@@ -122,3 +127,48 @@ T = TypeVar("T")  # pylint: disable=invalid-name
 def _finditer(obj: T, objects: list[T]) -> Iterator[int]:
     """Return an iterator yielding the indices matching obj."""
     return map(lambda x: x[0], filter(lambda x: x[1] == obj, enumerate(objects)))
+
+
+def rng_from_seed(seed: None | int | Generator = None):
+    """Build RNG from different seed formats"""
+    if seed is None:
+        return default_rng()
+    if isinstance(seed, Generator):
+        return seed
+    return default_rng(seed)
+
+
+def lru_method_cache(*lru_args, **lru_kwargs):
+    """Least recently used cache decorator for methods in classes"""
+
+    def decorator(func):
+        func_signature = signature(func)
+
+        def bind_args(*args, **kwargs):
+            bound_signature = func_signature.bind("self", *args, **kwargs)
+            bound_signature.apply_defaults()
+            bound_args = OrderedDict(bound_signature.arguments)
+            bound_args.popitem(last=False)  # Remove self entry
+            return OrderedDict(sorted(bound_args.items()))
+
+        @wraps(func)
+        def wrapped_func(self, *args, **kwargs):
+            # We're storing the wrapped method inside the instance. If we had
+            # a strong reference to self the instance would never die.
+            weak_ref = weakref(self)
+
+            @lru_cache(*lru_args, **lru_kwargs)
+            def cached_method(*args, **kwargs):
+                return func(weak_ref(), *args, **kwargs)
+
+            @wraps(func)
+            def wrapped_method(*args, **kwargs):
+                bound_args = bind_args(*args, **kwargs)  # Avoid redundant caching
+                return cached_method(**bound_args)
+
+            setattr(self, func.__name__, wrapped_method)
+            return wrapped_method(*args, **kwargs)
+
+        return wrapped_func
+
+    return decorator

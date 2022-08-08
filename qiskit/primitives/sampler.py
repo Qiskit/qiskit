@@ -17,8 +17,6 @@ from __future__ import annotations
 
 from collections.abc import Iterable, Sequence
 
-import numpy as np
-
 from qiskit.circuit import Parameter, QuantumCircuit
 from qiskit.exceptions import QiskitError
 from qiskit.quantum_info import Statevector
@@ -26,10 +24,11 @@ from qiskit.result import QuasiDistribution
 
 from .base_sampler import BaseSampler
 from .sampler_result import SamplerResult
-from .utils import final_measurement_mapping, init_circuit
+from .statevector_primitive import StatevectorPrimitive
+from .utils import final_measurement_mapping, init_circuit, rng_from_seed
 
 
-class Sampler(BaseSampler):
+class Sampler(BaseSampler, StatevectorPrimitive):
     """
     Sampler class.
 
@@ -76,6 +75,7 @@ class Sampler(BaseSampler):
             self._qargs_list.append([q for _, q in c_q_mapping])
         circuits = tuple(circuit.remove_final_measurements(inplace=False) for circuit in circuits)
         super().__init__(circuits, parameters)
+        self._rng = rng_from_seed()
         self._is_closed = False
 
     def _call(
@@ -87,43 +87,35 @@ class Sampler(BaseSampler):
         if self._is_closed:
             raise QiskitError("The primitive has been closed.")
 
-        shots = run_options.pop("shots", None)
-        seed = run_options.pop("seed", None)
-        if seed is None:
-            rng = np.random.default_rng()
-        elif isinstance(seed, np.random.Generator):
-            rng = seed
-        else:
-            rng = np.random.default_rng(seed)
-
-        # Initialize metadata
-        metadata = [{}] * len(circuits)
-
-        bound_circuits_qargs = []
-        for i, value in zip(circuits, parameter_values):
-            if len(value) != len(self._parameters[i]):
-                raise QiskitError(
-                    f"The number of values ({len(value)}) does not match "
-                    f"the number of parameters ({len(self._parameters[i])})."
-                )
-            bound_circuits_qargs.append(
-                (
-                    self._circuits[i].bind_parameters(dict(zip(self._parameters[i], value))),
-                    self._qargs_list[i],
-                )
-            )
-        probabilities = [
-            Statevector(circ).probabilities(qargs=qargs) for circ, qargs in bound_circuits_qargs
+        # Parse input
+        states = [
+            self._build_statevector(circuit_index, tuple(values))
+            for circuit_index, values in zip(circuits, parameter_values)
         ]
-        if shots is not None:
-            probabilities = [
-                rng.multinomial(shots, probability) / shots for probability in probabilities
-            ]
-            for metadatum in metadata:
-                metadatum["shots"] = shots
-        quasis = [QuasiDistribution(dict(enumerate(p))) for p in probabilities]
+        qargs_list = [self._qargs_list[i] for i in circuits]
+        shots = run_options.pop("shots", None)
+        if shots:
+            seed = run_options.pop("seed", None)
+            if seed:
+                self._rng = rng_from_seed(seed)
 
+        # Results
+        raw_results = [
+            self._compute_result(state, qargs, shots) for state, qargs in zip(states, qargs_list)
+        ]
+        probabilities, metadata = zip(*raw_results)
+        quasis = [QuasiDistribution(dict(enumerate(p))) for p in probabilities]
         return SamplerResult(quasis, metadata)
 
     def close(self):
         self._is_closed = True
+
+    def _compute_result(
+        self, state: Statevector, qargs: list[int], shots: int
+    ) -> tuple[float, dict]:
+        probability = state.probabilities(qargs=qargs)
+        metadatum = {}
+        if shots is not None:
+            probability = self._rng.multinomial(shots, probability) / shots
+            metadatum["shots"] = shots
+        return probability, metadatum
