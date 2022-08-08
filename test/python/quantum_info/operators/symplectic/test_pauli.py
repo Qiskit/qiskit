@@ -440,7 +440,7 @@ class TestPauli(QiskitTestCase):
         qc.cz(0, 1)
         op = Operator(qc)
 
-        pauli = qi.random_pauli(2, seed=123)
+        pauli = random_pauli(2, seed=123)
 
         value = Operator(pauli.evolve(qc))
         target = op.adjoint().dot(pauli).dot(op)
