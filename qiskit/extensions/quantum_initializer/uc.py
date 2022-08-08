@@ -104,7 +104,7 @@ class UCGate(Gate):
         gates but simply inverts the existing decomposition.
         """
         inverse_gate = Gate(
-            name=self.name + "_dg", num_qubits=self.num_qubits, params=[]
+            name=self.name + "decomp_dg", num_qubits=self.num_qubits, params=[]
         )  # removing the params because arrays are deprecated
 
         definition = QuantumCircuit(*self.definition.qregs)
