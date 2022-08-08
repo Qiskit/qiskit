@@ -304,9 +304,9 @@ class BaseSampler(ABC):
         Args:
             circuits: the list of circuit objects.
             parameter_values: Parameters to be bound to the circuit.
-            run_options: Backend runtime options used for circuit execution.
             parameters: Parameters of each of the quantum circuits.
                 Defaults to ``[circ.parameters for circ in circuits]``.
+            run_options: Backend runtime options used for circuit execution.
 
         Returns:
             The job object of the result of the sampler. The i-th result corresponds to
