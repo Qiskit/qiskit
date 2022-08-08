@@ -1270,14 +1270,14 @@ def numbers_to_latex_terms(numbers: List[complex]) -> List[str]:
     return terms
 
 
-def _state_to_latex_ket(data: List[complex], prefix: str = "", max_size: int = 12) -> str:
+def _state_to_latex_ket(data: List[complex], max_size: int = 12, prefix: str = "") -> str:
     """Convert state vector to latex representation
 
     Args:
         data: State vector
-        prefix: Latex string to be prepended to the latex, intended for labels.
         max_size: Maximum number of non-zero terms in the expression. If the number of
                  non-zero terms is larger than the max_size, then the representation is truncated.
+        prefix: Latex string to be prepended to the latex, intended for labels.
 
     Returns:
         String with LaTeX representation of the state vector
