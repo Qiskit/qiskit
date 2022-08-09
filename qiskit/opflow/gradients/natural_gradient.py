@@ -354,7 +354,7 @@ class NaturalGradient(GradientBase):
             lambda4: right starting point for L-curve corner search
             tol_search: termination threshold for regularization parameter search
             fit_intercept: if True calculate intercept
-            normalize: deprecated if fit_intercept=False, if True normalize A for regression
+            normalize: ignored if fit_intercept=False, if True normalize A for regression
             copy_a: if True A is copied, else overwritten
             max_iter: max. number of iterations if solver is CG
             tol: precision of the regression solution
@@ -369,11 +369,11 @@ class NaturalGradient(GradientBase):
 
         """
         from sklearn.linear_model import Ridge
+        from sklearn.preprocessing import StandardScaler
 
         reg = Ridge(
             alpha=lambda_,
             fit_intercept=fit_intercept,
-            normalize=normalize,
             copy_X=copy_a,
             max_iter=max_iter,
             tol=tol,
@@ -383,7 +383,10 @@ class NaturalGradient(GradientBase):
 
         def reg_method(a, c, alpha):
             reg.set_params(alpha=alpha)
-            reg.fit(a, c)
+            if normalize:
+                reg.fit(StandardScaler().fit_transform(a), c)
+            else:
+                reg.fit(a, c)
             return reg.coef_
 
         lambda_mc, x_mc = NaturalGradient._reg_term_search(
@@ -425,7 +428,7 @@ class NaturalGradient(GradientBase):
             lambda4: right starting point for L-curve corner search
             tol_search: termination threshold for regularization parameter search
             fit_intercept: if True calculate intercept
-            normalize: deprecated if fit_intercept=False, if True normalize A for regression
+            normalize: ignored if fit_intercept=False, if True normalize A for regression
             precompute: If True compute and use Gram matrix to speed up calculations.
                                              Gram matrix can also be given explicitly
             copy_a: if True A is copied, else overwritten
@@ -444,11 +447,11 @@ class NaturalGradient(GradientBase):
 
         """
         from sklearn.linear_model import Lasso
+        from sklearn.preprocessing import StandardScaler
 
         reg = Lasso(
             alpha=lambda_,
             fit_intercept=fit_intercept,
-            normalize=normalize,
             precompute=precompute,
             copy_X=copy_a,
             max_iter=max_iter,
@@ -461,7 +464,10 @@ class NaturalGradient(GradientBase):
 
         def reg_method(a, c, alpha):
             reg.set_params(alpha=alpha)
-            reg.fit(a, c)
+            if normalize:
+                reg.fit(StandardScaler().fit_transform(a), c)
+            else:
+                reg.fit(a, c)
             return reg.coef_
 
         lambda_mc, x_mc = NaturalGradient._reg_term_search(

@@ -25,6 +25,9 @@ from qiskit.circuit.parameterexpression import ParameterValueType
 class RGate(Gate):
     r"""Rotation θ around the cos(φ)x + sin(φ)y axis.
 
+    Can be applied to a :class:`~qiskit.circuit.QuantumCircuit`
+    with the :meth:`~qiskit.circuit.QuantumCircuit.r` method.
+
     **Circuit symbol:**
 
     .. parsed-literal::

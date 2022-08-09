@@ -290,6 +290,14 @@ class TestParametricPulses(QiskitTestCase):
             waveform = Gaussian(duration=100, sigma=1.0, amp=1.1 + 0.8j)
             self.assertGreater(np.abs(waveform.amp), 1.0)
 
+    def test_gaussian_limit_amplitude_per_instance(self):
+        """Test that the check for amplitude per instance."""
+        with self.assertRaises(PulseError):
+            Gaussian(duration=100, sigma=1.0, amp=1.1 + 0.8j)
+
+        waveform = Gaussian(duration=100, sigma=1.0, amp=1.1 + 0.8j, limit_amplitude=False)
+        self.assertGreater(np.abs(waveform.amp), 1.0)
+
     def test_gaussian_square_limit_amplitude(self):
         """Test that the check for amplitude less than or equal to 1 can be disabled."""
         with self.assertRaises(PulseError):
@@ -298,6 +306,16 @@ class TestParametricPulses(QiskitTestCase):
         with patch("qiskit.pulse.library.pulse.Pulse.limit_amplitude", new=False):
             waveform = GaussianSquare(duration=100, sigma=1.0, amp=1.1 + 0.8j, width=10)
             self.assertGreater(np.abs(waveform.amp), 1.0)
+
+    def test_gaussian_square_limit_amplitude_per_instance(self):
+        """Test that the check for amplitude per instance."""
+        with self.assertRaises(PulseError):
+            GaussianSquare(duration=100, sigma=1.0, amp=1.1 + 0.8j, width=10)
+
+        waveform = GaussianSquare(
+            duration=100, sigma=1.0, amp=1.1 + 0.8j, width=10, limit_amplitude=False
+        )
+        self.assertGreater(np.abs(waveform.amp), 1.0)
 
     def test_drag_limit_amplitude(self):
         """Test that the check for amplitude less than or equal to 1 can be disabled."""
@@ -308,6 +326,14 @@ class TestParametricPulses(QiskitTestCase):
             waveform = Drag(duration=100, sigma=1.0, beta=1.0, amp=1.1 + 0.8j)
             self.assertGreater(np.abs(waveform.amp), 1.0)
 
+    def test_drag_limit_amplitude_per_instance(self):
+        """Test that the check for amplitude per instance."""
+        with self.assertRaises(PulseError):
+            Drag(duration=100, sigma=1.0, beta=1.0, amp=1.1 + 0.8j)
+
+        waveform = Drag(duration=100, sigma=1.0, beta=1.0, amp=1.1 + 0.8j, limit_amplitude=False)
+        self.assertGreater(np.abs(waveform.amp), 1.0)
+
     def test_constant_limit_amplitude(self):
         """Test that the check for amplitude less than or equal to 1 can be disabled."""
         with self.assertRaises(PulseError):
@@ -316,6 +342,14 @@ class TestParametricPulses(QiskitTestCase):
         with patch("qiskit.pulse.library.pulse.Pulse.limit_amplitude", new=False):
             waveform = Constant(duration=100, amp=1.1 + 0.8j)
             self.assertGreater(np.abs(waveform.amp), 1.0)
+
+    def test_constant_limit_amplitude_per_instance(self):
+        """Test that the check for amplitude per instance."""
+        with self.assertRaises(PulseError):
+            Constant(duration=100, amp=1.1 + 0.8j)
+
+        waveform = Constant(duration=100, amp=1.1 + 0.8j, limit_amplitude=False)
+        self.assertGreater(np.abs(waveform.amp), 1.0)
 
     def test_get_parameters(self):
         """Test getting pulse parameters as attribute."""

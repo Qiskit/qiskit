@@ -18,7 +18,7 @@ relative amount.
 from typing import Optional, Union, Tuple
 
 from qiskit.circuit import ParameterExpression
-from qiskit.pulse.channels import PulseChannel
+from qiskit.pulse.channels import PulseChannel, PulseError
 from qiskit.pulse.instructions.instruction import Instruction
 
 
@@ -52,7 +52,14 @@ class ShiftPhase(Instruction):
             phase: The rotation angle in radians.
             channel: The channel this instruction operates on.
             name: Display name for this instruction.
+
+        Raises:
+            PulseError: If channel is not a PulseChannel.
         """
+        if not isinstance(channel, PulseChannel):
+            raise PulseError(
+                "The `channel` argument to `ShiftPhase` must be of type `channels.PulseChannel`."
+            )
         super().__init__(operands=(phase, channel), name=name)
 
     @property
@@ -108,7 +115,13 @@ class SetPhase(Instruction):
             phase: The rotation angle in radians.
             channel: The channel this instruction operates on.
             name: Display name for this instruction.
+        Raises:
+            PulseError: If channel is not a PulseChannel.
         """
+        if not isinstance(channel, PulseChannel):
+            raise PulseError(
+                "The `channel` argument to `SetPhase` must be of type `channels.PulseChannel`."
+            )
         super().__init__(operands=(phase, channel), name=name)
 
     @property
