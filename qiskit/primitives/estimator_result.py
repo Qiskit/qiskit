@@ -28,7 +28,7 @@ class EstimatorResult:
 
     .. code-block:: python
 
-        result = estimator(circuits, observables, params)
+        result = estimator.run(circuits, observables, params).result()
 
     where the i-th elements of ``result`` correspond to the circuit and observable given by
     ``circuits[i]``, ``observables[i]``, and the parameter values bounds by ``params[i]``.
