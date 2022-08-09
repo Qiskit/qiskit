@@ -61,7 +61,7 @@ class AdaptVQE(VariationalAlgorithm):
     def __init__(
         self,
         solver: VQE,
-        excitation_pool: List[Union[OperatorBase, QuantumCircuit]] = None,
+        excitation_pool: List[OperatorBase] = None,
         threshold: float = 1e-5,
         max_iterations: Optional[int] = None,
     ) -> None:
@@ -104,6 +104,7 @@ class AdaptVQE(VariationalAlgorithm):
         Args:
             theta: List of (up to now) optimal parameters.
             operator: operator whose gradient needs to be computed.
+            expectation: Expectation Base
         Returns:
             List of pairs consisting of the computed gradient and excitation operator.
         """
