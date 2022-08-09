@@ -514,8 +514,11 @@ class Operator(LinearOp):
     @classmethod
     def _instruction_to_matrix(cls, obj):
         """Return Operator for instruction if defined or None otherwise."""
-        if not isinstance(obj, Operation):
-            raise QiskitError("Input is not an instruction.")
+        # Note: to_matrix() is not a required method for Operations, thus we raise
+        # an error for opaque instructions without a matrix representation.
+        # On the other hand, we do use to_matrix() when it's available.
+        if not isinstance(obj, Operation) and not hasattr(obj, "to_matrix"):
+            raise QiskitError("Input is not an Operation and does not have 'to_matrix()' method.")
         mat = None
         if hasattr(obj, "to_matrix"):
             # If instruction is a gate first we see if it has a
