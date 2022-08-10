@@ -18,6 +18,7 @@ import numpy as np
 from qiskit.circuit import QuantumCircuit
 from qiskit.circuit import QuantumRegister
 from qiskit.circuit import Instruction
+from qiskit.circuit import Qubit
 from qiskit.circuit.library.data_preparation import StatePreparation
 
 _EPS = 1e-10  # global variable used to chop very small numbers to zero
@@ -182,11 +183,10 @@ def initialize(self, params, qubits=None):
     """
     if qubits is None:
         qubits = self.qubits
-    elif isinstance(qubits, (int, np.integer, slice)):
+    elif isinstance(qubits, (int, np.integer, slice, Qubit)):
         qubits = [qubits]
     num_qubits = len(qubits) if isinstance(params, int) else None
-    if not hasattr(qubits, "__iter__"):
-        qubits = self.qbit_argument_conversion(qubits)
+
     return self.append(Initialize(params, num_qubits), qubits)
 
 
