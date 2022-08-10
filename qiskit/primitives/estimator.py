@@ -54,6 +54,7 @@ class Estimator(BaseEstimator):
         circuits: QuantumCircuit | Iterable[QuantumCircuit] | None = None,
         observables: BaseOperator | PauliSumOp | Iterable[BaseOperator | PauliSumOp] | None = None,
         parameters: Iterable[Iterable[Parameter]] | None = None,
+        run_options: dict | None = None,
     ):
         if isinstance(circuits, QuantumCircuit):
             circuits = (circuits,)
@@ -69,6 +70,7 @@ class Estimator(BaseEstimator):
             circuits=circuits,
             observables=observables,  # type: ignore
             parameters=parameters,
+            run_options=run_options,
         )
         self._is_closed = False
 
