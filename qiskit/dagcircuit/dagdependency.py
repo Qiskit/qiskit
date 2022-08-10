@@ -17,6 +17,7 @@ import math
 import heapq
 from collections import OrderedDict, defaultdict
 import warnings
+from functools import lru_cache
 
 import numpy as np
 import retworkx as rx
@@ -567,6 +568,12 @@ def merge_no_duplicates(*iterables):
             yield val
 
 
+@lru_cache(maxsize=None)
+def _identity_matrix(n):
+    """Cached identity matrix"""
+    return np.eye(n)
+
+
 def _does_commute(node1, node2):
     """Function to verify commutation relation between two nodes in the DAG.
 
@@ -625,7 +632,7 @@ def _does_commute(node1, node2):
     qarg2 = [qarg.index(q) for q in node2.qargs]
 
     dim = 2**qbit_num
-    id_op = np.reshape(np.eye(dim), (2, 2) * qbit_num)
+    id_op = np.reshape(_get_identity(dim), (2, 2) * qbit_num)
 
     op1 = np.reshape(node1.op.to_matrix(), (2, 2) * len(qarg1))
     op2 = np.reshape(node2.op.to_matrix(), (2, 2) * len(qarg2))
@@ -634,4 +641,6 @@ def _does_commute(node1, node2):
     op12 = Operator._einsum_matmul(op, op2, qarg2, right_mul=False)
     op21 = Operator._einsum_matmul(op, op2, qarg2, shift=qbit_num, right_mul=True)
 
-    return np.allclose(op12, op21)
+    maybe_zero = np.abs(op12 - op21)
+    maybe_zero[maybe_zero < 1e-7] = 0
+    return not maybe_zero.any()
