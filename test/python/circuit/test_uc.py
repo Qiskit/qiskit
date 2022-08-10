@@ -87,7 +87,7 @@ class TestUCGate(QiskitTestCase):
 
     def test_inverse_ucg(self):
         """ "Test inverse function of uniformly controlled gates"""
-        gates = [random_unitary(2).data for _ in range(2**2)]
+        gates = [random_unitary(2, seed=42+s).data for s in range(2**2)]
         num_con = int(np.log2(len(gates)))
         q = QuantumRegister(num_con + 1)
         qc = QuantumCircuit(q)
