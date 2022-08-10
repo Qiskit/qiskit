@@ -40,6 +40,7 @@ class FiniteDiffSamplerGradient(BaseSamplerGradient):
         circuits: QuantumCircuit | Sequence[QuantumCircuit],
         epsilon: float = 1e-6,
     ):
+        #TODO: write doc strings
         if isinstance(circuits, QuantumCircuit):
             circuits = (circuits,)
         circuits = tuple(init_circuit(circuit) for circuit in circuits)
