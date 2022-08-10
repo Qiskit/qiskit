@@ -84,7 +84,7 @@ class TestUCGate(QiskitTestCase):
         unitary_desired = _get_ucg_matrix(gates)
 
         self.assertTrue(np.allclose(unitary_desired, unitary))
-    
+
     def test_inverse_ucg(self):
         """ "Test inverse function of uniformly controlled gates"""
         gates = [random_unitary(2).data for _ in range(2**2)]
@@ -94,7 +94,7 @@ class TestUCGate(QiskitTestCase):
 
         qc.uc(gates, q[1:], q[0], up_to_diagonal=False)
         qc.append(qc.inverse(), qc.qubits)
-        
+
         simulator = BasicAer.get_backend("unitary_simulator")
         result = execute(qc, simulator).result()
         unitary = result.get_unitary(qc)
