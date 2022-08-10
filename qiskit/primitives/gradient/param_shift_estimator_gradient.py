@@ -10,130 +10,136 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 """
-Gradient of expectation values with parameter shift
+Gradient of probabilities with parameter shift
 """
 
 from __future__ import annotations
 
-from collections import defaultdict
-from dataclasses import dataclass
 from typing import Sequence, Type
 
 import numpy as np
 
-from qiskit import transpile
 from qiskit.circuit import Parameter, ParameterExpression, QuantumCircuit
 from qiskit.quantum_info import SparsePauliOp
 
+from .utils import (
+    make_param_shift_gradient_circuit,
+    make_param_shift_base_parameter_values,
+)
 from ..base_estimator import BaseEstimator
-from ..estimator_result import EstimatorResult
 from .base_estimator_gradient import BaseEstimatorGradient
+from .estimator_gradient_result import EstimatorGradientResult
+from ..utils import init_circuit
 
 
-@dataclass
-class SubEstimator:
-    coeff: float | ParameterExpression
-    circuit: QuantumCircuit
-    observable: SparsePauliOp
-    index: int
-
-
-class ParamShiftEstimatorGradient(BaseEstimatorGradient):
+class ParamShiftEstimatorGradient:
     """Parameter shift estimator gradient"""
 
-    SUPPORTED_GATES = ["x", "y", "z", "h", "rx", "ry", "rz", "p", "cx", "cy", "cz"]
-
     def __init__(
-        self, estimator: Type[BaseEstimator], circuit: QuantumCircuit, observable: SparsePauliOp
+        self,
+        estimator: Type[BaseEstimator],
+        circuits: QuantumCircuit | Sequence[QuantumCircuit],
+        observables: SparsePauliOp,
     ):
-        self._circuit = circuit
-        self._observable = observable
-        self._grad = self._preprocessing()
-        circuits = [self._circuit]
-        observables = [self._observable]
-        for param, lst in self._grad.items():
-            for arg in lst:
-                circuits.append(arg.circuit)
-        super().__init__(estimator(circuits=circuits, observables=observables))
 
-    def __enter__(self):
-        return self
+        if isinstance(circuits, QuantumCircuit):
+            circuits = (circuits,)
+        circuits = tuple(init_circuit(circuit) for circuit in circuits)
 
-    def __exit__(self, *exc_info):
-        pass
+        self._gradient_circuit_data_dict = {}
+        self._circuits = circuits
+        for i, circuit in enumerate(circuits):
+            self._gradient_circuit_data_dict[i] = make_param_shift_gradient_circuit(circuit)
 
-    @classmethod
-    def _gradient_circuits(cls, circuit: QuantumCircuit):
-        circuit2 = transpile(circuit, basis_gates=cls.SUPPORTED_GATES, optimization_level=0)
-        ret = defaultdict(list)
-        for inst in circuit2.data:
-            if inst[0].is_parameterized():
-                param = inst[0].params[0]
-                for p in param.parameters:
-                    # TODO: Need to wait for an appropriate way to update parameters of
-                    #   a particular instruction.
-                    #   See https://github.com/Qiskit/qiskit-terra/issues/7894
-                    inst[0].params[0] = param + np.pi / 2
-                    ret[p].append((circuit2.copy(), param.gradient(p) / 2))
-                    inst[0].params[0] = param - np.pi / 2
-                    ret[p].append((circuit2.copy(), -param.gradient(p) / 2))
-                    inst[0].params[0] = param
-        return ret
+        self._base_parameter_values_dict = {}
+        for k, gradient_circuit_data in self._gradient_circuit_data_dict.items():
+            self._base_parameter_values_dict[k] = make_param_shift_base_parameter_values(
+                gradient_circuit_data
+            )
 
-    def _preprocessing(self):
-        grad = self._gradient_circuits(self._circuit)
-        ret = {}
-        index = 1
-        for param in self._circuit.parameters:
-            lst = []
-            for circ, coeff in grad[param]:
-                lst.append(
-                    SubEstimator(
-                        coeff=coeff, circuit=circ, observable=self._observable, index=index
-                    )
-                )
-                index += 1
-            ret[param] = lst
-        return ret
+        self._observables = observables
+        self._estimator = estimator
 
     def __call__(
-        self, parameter_values: Sequence[Sequence[float]], **run_options
-    ) -> EstimatorResult:
-        return self._estimator([0], [0], parameter_values, **run_options)
-
-    def gradient(
         self,
-        parameter_value: Sequence[float],
+        circuits: Sequence[int | QuantumCircuit],
+        observables: Sequence[int | SparsePauliOp],
+        parameter_values: Sequence[float],
         partial: Sequence[Parameter] | None = None,
         **run_options,
-    ) -> EstimatorResult:
-        parameters = partial or self._circuit.parameters
+    ) -> EstimatorGradientResult:
 
-        param_map = {}
-        for j, param in enumerate(self._circuit.parameters):
-            param_map[param] = parameter_value[j]
+        partial = partial or [[] for _ in range(len(circuits))]
 
-        circ_indices = []
-        for param in parameters:
-            circ_indices.extend([f.index for f in self._grad[param]])
-        size = len(circ_indices)
-        results = self._estimator(circ_indices, [0] * size, [parameter_value] * size, **run_options)
+        gradients = []
+        for circuit_index, observable, parameter_values_, partial_ in zip(
+            circuits, observables, parameter_values, partial
+        ):
 
-        param_set = set(parameters)
-        values = np.zeros(len(parameter_value))
-        metadata = [{} for _ in range(len(parameters))]
-        i = 0
-        for j, (param, lst) in enumerate(self._grad.items()):
-            if param not in param_set:
-                continue
-            for subest in lst:
-                coeff = subest.coeff
-                if isinstance(coeff, ParameterExpression):
-                    local_map = {param: param_map[param] for param in coeff.parameters}
-                    bound_coeff = coeff.bind(local_map)
-                else:
-                    bound_coeff = coeff
-                values[j] += bound_coeff * results.values[i]
-                i += 1
+            gradient_circuit_data = self._gradient_circuit_data_dict[circuit_index]
+            gradient_parameter_map = gradient_circuit_data.gradient_parameter_map
+            gradient_parameter_index_map = gradient_circuit_data.gradient_parameter_index_map
+            circuit_parameters = self._circuits[circuit_index].parameters
+            parameter_value_map = {}
+            base_parameter_values_list = []
+            gradient_parameter_values = np.zeros(
+                len(gradient_circuit_data.gradient_circuit.parameters)
+            )
 
-        return EstimatorResult(values=values, metadata=metadata)
+            # a parameter set for the partial option
+            parameters = partial_ or self._circuits[circuit_index].parameters
+            param_set = set(parameters)
+
+            result_index = 0
+            result_index_map = {}
+            # bring the base parameter values for parameters only in the partial parameter set.
+            for i, param in enumerate(circuit_parameters):
+                parameter_value_map[param] = parameter_values_[i]
+                for g_param in gradient_parameter_map[param]:
+                    g_param_idx = gradient_parameter_index_map[g_param]
+                    gradient_parameter_values[g_param_idx] = parameter_values_[i]
+                    if param in param_set:
+                        base_parameter_values_list.append(
+                            self._base_parameter_values_dict[circuit_index][g_param_idx * 2]
+                        )
+                        base_parameter_values_list.append(
+                            self._base_parameter_values_dict[circuit_index][g_param_idx * 2 + 1]
+                        )
+                        result_index_map[g_param] = result_index
+                        result_index += 1
+            # add the given parameter values and the base parameter values
+            gradient_parameter_values_list = [
+                gradient_parameter_values + base_parameter_values
+                for base_parameter_values in base_parameter_values_list
+            ]
+            observables_indices = [observable] * len(gradient_parameter_values_list)
+            gradient_circuits = [gradient_circuit_data.gradient_circuit] * len(
+                gradient_parameter_values_list
+            )
+
+            results = self._estimator.run(
+                gradient_circuits, observables_indices, gradient_parameter_values_list
+            ).result()
+
+            # Combines the results and coefficients to reconstruct the gradient
+            # for the original circuit parameters
+            values = np.zeros(len(parameter_values_))
+
+            for i, param in enumerate(circuit_parameters):
+                if param not in param_set:
+                    continue
+                for g_param in gradient_parameter_map[param]:
+                    g_param_idx = gradient_parameter_index_map[g_param]
+                    coeff = gradient_circuit_data.coeff_map[g_param] / 2
+                    # if coeff has parameters, substitute them with the given parameter values
+                    if isinstance(coeff, ParameterExpression):
+                        local_map = {p: parameter_value_map[p] for p in coeff.parameters}
+                        bound_coeff = float(coeff.bind(local_map))
+                    else:
+                        bound_coeff = coeff
+                    # plus
+                    values[i] += bound_coeff * results.values[result_index_map[g_param] * 2]
+                    # minus
+                    values[i] -= bound_coeff * results.values[result_index_map[g_param] * 2 + 1]
+            gradients.append(values)
+        return EstimatorGradientResult(values=gradients, metadata=[{}] * len(gradients))

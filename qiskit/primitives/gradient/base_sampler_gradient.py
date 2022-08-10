@@ -20,7 +20,6 @@ from abc import ABC, abstractmethod
 from collections.abc import Sequence
 
 from ..base_sampler import BaseSampler
-from ..sampler_result import SamplerResult
 from .sampler_gradient_result import SamplerGradientResult
 
 
@@ -32,25 +31,10 @@ class BaseSamplerGradient(ABC):
         self._sampler = sampler
 
     @abstractmethod
-    def gradient(
+    def __call__(
         self,
         circuits: Sequence[int | QuantumCircuit],
         parameter_values: Sequence[Sequence[float]],
         **run_options,
     ) -> SamplerGradientResult:
         ...
-
-    @abstractmethod
-    def sample(
-        self,
-        circuits: Sequence[int | QuantumCircuit],
-        parameter_values: Sequence[Sequence[float]],
-        **run_options,
-    ) -> SamplerResult:
-        ...
-
-    def __enter__(self):
-        return self
-
-    def __exit__(self, *exc_info):
-        self._sampler.close()

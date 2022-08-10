@@ -15,11 +15,11 @@ Utility functions for gradients
 
 from __future__ import annotations
 
-from copy import copy, deepcopy
-from collections import Iterable, Counter, defaultdict
+from copy import deepcopy
+from collections import defaultdict
 from dataclasses import dataclass
-from hashlib import new
-from typing import TYPE_CHECKING, Any, Dict
+
+from typing import Dict
 
 from qiskit import transpile
 
@@ -48,8 +48,6 @@ from qiskit.circuit.library.standard_gates import (
 
 import numpy as np
 
-from qiskit.converters import isinstanceint
-
 
 @dataclass
 class ParameterShiftGradientCircuitData:
@@ -60,10 +58,10 @@ class ParameterShiftGradientCircuitData:
     gradient_virtual_parameter_map: Dict[Parameter, Parameter]
     coeff_map: Dict[Parameter, float | ParameterExpression]
 
-def make_gradient_circuit_param_shift(circuit: QuantumCircuit):
-    SUPPORTED_GATES = ["x", "y", "z", "h", "rx", "ry", "rz", "p", "cx", "cy", "cz"]
+def make_param_shift_gradient_circuit(circuit: QuantumCircuit):
+    supported_gates = ["x", "y", "z", "h", "rx", "ry", "rz", "p", "cx", "cy", "cz"]
 
-    circuit2 = transpile(circuit, basis_gates=SUPPORTED_GATES, optimization_level=0)
+    circuit2 = transpile(circuit, basis_gates=supported_gates, optimization_level=0)
     g_circuit = circuit2.copy_empty_like(f'g_{circuit2.name}')
     param_inst_dict = defaultdict(list)
     g_parameter_map = defaultdict(list)
@@ -126,29 +124,25 @@ def make_gradient_circuit_param_shift(circuit: QuantumCircuit):
                 new_parameter_variable = Parameter(f'g{parameter_variable.name}_1')
             subs_map[parameter_variable] = new_parameter_variable
         g_circuit.global_phase = g_circuit.global_phase.subs(subs_map)
-    print(g_circuit.draw())
-    print(g_circuit.num_parameters)
+    #print(g_circuit.draw())
+    # print(g_circuit.num_parameters)
     g_parameter_index_map = {}
     for i, g_param in enumerate(g_circuit.parameters):
         g_parameter_index_map[g_param] = i
     return ParameterShiftGradientCircuitData(circuit=circuit2, gradient_circuit=g_circuit,gradient_virtual_parameter_map=g_virtual_parameter_map,
         gradient_parameter_map=g_parameter_map, coeff_map=coeff_map,gradient_parameter_index_map=g_parameter_index_map)
 
-def make_base_parameter_values_parameter_shift(gradient_circuit_data: ParameterShiftGradientCircuitData):
+def make_param_shift_base_parameter_values(gradient_circuit_data: ParameterShiftGradientCircuitData):
     # Make internal parameter values for the parameter shift
-    parameter_map = gradient_circuit_data.gradient_parameter_map
-    gradient_circuit = gradient_circuit_data.gradient_circuit
-
     num_g_parameters = len(gradient_circuit_data.gradient_circuit.parameters)
     base_parameter_values = []
 
     # Make base decomposed parameter values for each original parameter
-    for i, param in enumerate(gradient_circuit_data.circuit.parameters):
+    for param in gradient_circuit_data.circuit.parameters:
         for g_param in gradient_circuit_data.gradient_parameter_map[param]:
             # use the related virtual parameter if it exists
             if g_param in gradient_circuit_data.gradient_virtual_parameter_map:
                 g_param = gradient_circuit_data.gradient_virtual_parameter_map[g_param]
-                print(gradient_circuit_data.gradient_parameter_index_map[g_param])
 
             g_param_idx = gradient_circuit_data.gradient_parameter_index_map[g_param]
             # for + pi/2 in the parameter shift rule
@@ -159,15 +153,10 @@ def make_base_parameter_values_parameter_shift(gradient_circuit_data: ParameterS
             parameter_values_minus = np.zeros(num_g_parameters)
             parameter_values_minus[g_param_idx] -= np.pi/2
             base_parameter_values.append(parameter_values_minus)
-
-    for i in base_parameter_values:
-        print(i)
     return base_parameter_values
 
-def make_base_parameter_values_fin_diff(circuit: QuantumCircuit, epsilon):
-
+def make_fin_diff_base_parameter_values(circuit: QuantumCircuit, epsilon):
     base_parameter_values = []
-
     # Make base decomposed parameter values for each original parameter
     for i, _ in enumerate(circuit.parameters):
         parameter_values_plus = np.zeros(len(circuit.parameters))
@@ -178,8 +167,6 @@ def make_base_parameter_values_fin_diff(circuit: QuantumCircuit, epsilon):
         parameter_values_minus[i] -= epsilon
         base_parameter_values.append(parameter_values_minus)
 
-    for i in base_parameter_values:
-        print(i)
     return base_parameter_values
 
 @dataclass
@@ -189,7 +176,7 @@ class LinearCombGradientCircuit:
     index: int = 0
 
 def make_gradient_circuit_lin_comb(circuit: QuantumCircuit, add_measurement: bool= False):
-    SUPPORTED_GATES = [
+    supported_gates = [
         "rx",
         "ry",
         "rz",
@@ -211,7 +198,7 @@ def make_gradient_circuit_lin_comb(circuit: QuantumCircuit, add_measurement: boo
         "y",
         "z",
     ]
-    circuit2 = transpile(circuit, basis_gates=SUPPORTED_GATES, optimization_level=0)
+    circuit2 = transpile(circuit, basis_gates=supported_gates, optimization_level=0)
 
     qr_aux = QuantumRegister(1, "aux")
     cr_aux = ClassicalRegister(1, "aux")
@@ -232,12 +219,10 @@ def make_gradient_circuit_lin_comb(circuit: QuantumCircuit, add_measurement: boo
                 # insert `gate` to i-th position
                 circuit3.append(gate, [qr_aux[0]] + qregs, [])
                 circuit3.data.insert(i, circuit3.data.pop())
-                #
                 circuit3.h(qr_aux)
                 if add_measurement:
                     circuit3.measure(qr_aux, cr_aux)
                 grad_dict[p].append(LinearCombGradientCircuit(circuit3, param.gradient(p)))
-                print(circuit3)
 
     return grad_dict
 
