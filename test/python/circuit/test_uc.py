@@ -95,9 +95,7 @@ class TestUCGate(QiskitTestCase):
         qc.uc(gates, q[1:], q[0], up_to_diagonal=False)
         qc.append(qc.inverse(), qc.qubits)
 
-        simulator = BasicAer.get_backend("unitary_simulator")
-        result = execute(qc, simulator).result()
-        unitary = result.get_unitary(qc)
+        unitary = Operator(qc).data
         unitary_desired = np.identity(2**qc.num_qubits)
 
         self.assertTrue(np.allclose(unitary_desired, unitary))
