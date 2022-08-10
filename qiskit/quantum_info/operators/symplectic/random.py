@@ -192,7 +192,7 @@ def random_clifford(num_qubits, seed=None):
 
     # Generate random phases
     phase = rng.integers(2, size=2 * num_qubits).astype(bool)
-    return Clifford(StabilizerTable(table, phase))
+    return Clifford(np.hstack((table, phase.reshape(2 * num_qubits, 1))))
 
 
 def _sample_qmallows(n, rng=None):
