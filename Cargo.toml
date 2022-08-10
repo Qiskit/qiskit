@@ -15,8 +15,12 @@ numpy = "0.16.2"
 rand = "0.8"
 rand_pcg = "0.3"
 rand_distr = "0.4.3"
+<<<<<<< HEAD
 indexmap = "1.9.1"
 ahash = "0.7.6"
+=======
+ahash = "0.8.0"
+>>>>>>> cdc53f382 (Bump ahash from 0.7.6 to 0.8.0 (#8511))
 num-complex = "0.4"
 num-bigint = "0.4"
 
