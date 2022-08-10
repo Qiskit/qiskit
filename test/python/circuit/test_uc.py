@@ -30,6 +30,7 @@ from qiskit.test import QiskitTestCase
 from qiskit.quantum_info.random import random_unitary
 from qiskit.compiler import transpile
 from qiskit.quantum_info.operators.predicates import matrix_equal
+from qiskit.quantum_info import Operator
 
 _id = np.eye(2, 2)
 _not = np.matrix([[0, 1], [1, 0]])
@@ -71,7 +72,7 @@ class TestUCGate(QiskitTestCase):
         self.assertTrue(matrix_equal(unitary_desired, unitary, ignore_phase=True))
 
     def test_global_phase_ucg(self):
-        """ "Test global phase of uniformly controlled gates"""
+        """Test global phase of uniformly controlled gates"""
         gates = [random_unitary(2).data for _ in range(2**2)]
         num_con = int(np.log2(len(gates)))
         q = QuantumRegister(num_con + 1)
@@ -86,7 +87,7 @@ class TestUCGate(QiskitTestCase):
         self.assertTrue(np.allclose(unitary_desired, unitary))
 
     def test_inverse_ucg(self):
-        """ "Test inverse function of uniformly controlled gates"""
+        """Test inverse function of uniformly controlled gates"""
         gates = [random_unitary(2, seed=42+s).data for s in range(2**2)]
         num_con = int(np.log2(len(gates)))
         q = QuantumRegister(num_con + 1)
