@@ -77,6 +77,7 @@ Optimizations
    InverseCancellation
    CommutationAnalysis
    CommutativeCancellation
+   CommutativeInverseCancellation
    Optimize1qGatesSimpleCommutation
    RemoveDiagonalGatesBeforeMeasure
    RemoveResetInZeroState
@@ -207,6 +208,7 @@ from .optimization import CollectMultiQBlocks
 from .optimization import ConsolidateBlocks
 from .optimization import CommutationAnalysis
 from .optimization import CommutativeCancellation
+from .optimization import CommutativeInverseCancellation
 from .optimization import CXCancellation
 from .optimization import Optimize1qGatesSimpleCommutation
 from .optimization import OptimizeSwapBeforeMeasure

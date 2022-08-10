@@ -243,6 +243,7 @@ from .quantumcircuitdata import CircuitInstruction
 from .equivalence import EquivalenceLibrary
 from .classicalfunction.types import Int1, Int2
 from .classicalfunction import classical_function, BooleanExpression
+from .commutation_checker import CommutationChecker
 
 from .controlflow import (
     ControlFlowOp,
