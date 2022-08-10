@@ -12,8 +12,6 @@
 
 """Test registerless QuantumCircuit and Gates on wires"""
 
-from cmath import sqrt
-from unittest import expectedFailure
 import numpy
 
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
@@ -234,7 +232,7 @@ class TestGatesOnWires(QiskitTestCase):
 
     def test_circuit_initialize_single_qubit(self):
         """Test initialize on single qubit."""
-        init_vector = [sqrt(0.5), sqrt(0.5)]
+        init_vector = [numpy.sqrt(0.5), numpy.sqrt(0.5)]
         qreg = QuantumRegister(2)
         circuit = QuantumCircuit(qreg)
         circuit.initialize(init_vector, qreg[0])
