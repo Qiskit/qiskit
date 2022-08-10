@@ -16,7 +16,7 @@ Sampler class
 from __future__ import annotations
 
 from collections.abc import Iterable, Sequence
-from typing import Any, cast
+from typing import Any
 
 import numpy as np
 
@@ -167,5 +167,5 @@ class Sampler(BaseSampler):
             )
         c_q_mapping = sorted((c, q) for q, c in q_c_mapping.items())
         qargs = [q for _, q in c_q_mapping]
-        circuit = cast(QuantumCircuit, circuit.remove_final_measurements(inplace=False))
+        circuit = circuit.remove_final_measurements(inplace=False)
         return circuit, qargs

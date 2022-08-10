@@ -113,7 +113,7 @@ class BaseSampler(ABC):
     Base class of Sampler that calculates quasi-probabilities of bitstrings from quantum circuits.
     """
 
-    __hash__ = None  # type: ignore
+    __hash__ = None
 
     def __init__(
         self,
@@ -270,7 +270,7 @@ class BaseSampler(ABC):
 
         # Allow objects
         circuits = [
-            self._circuit_ids.get(id(circuit))  # type: ignore
+            self._circuit_ids.get(id(circuit))
             if not isinstance(circuit, (int, np.integer))
             else circuit
             for circuit in circuits

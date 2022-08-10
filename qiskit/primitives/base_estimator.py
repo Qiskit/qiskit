@@ -127,7 +127,7 @@ class BaseEstimator(ABC):
     Base class for Estimator that estimates expectation values of quantum circuits and observables.
     """
 
-    __hash__ = None  # type: ignore
+    __hash__ = None
 
     def __init__(
         self,
@@ -339,7 +339,7 @@ class BaseEstimator(ABC):
 
         # Allow objects
         circuits = [
-            self._circuit_ids.get(id(circuit))  # type: ignore
+            self._circuit_ids.get(id(circuit))
             if not isinstance(circuit, (int, np.integer))
             else circuit
             for circuit in circuits
@@ -350,7 +350,7 @@ class BaseEstimator(ABC):
                 "initialize the session."
             )
         observables = [
-            self._observable_ids.get(id(observable))  # type: ignore
+            self._observable_ids.get(id(observable))
             if not isinstance(observable, (int, np.integer))
             else observable
             for observable in observables
