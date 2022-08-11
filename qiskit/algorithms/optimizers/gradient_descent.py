@@ -69,7 +69,7 @@ class GradientDescentState(OptimizerState):
         self.njev = njev
         self.nit = nit
         self.stepsize = stepsize
-        self.learning_rate = LearningRate(learning_rate)
+        self.learning_rate = learning_rate
 
 
 class GradientDescent(SteppableOptimizer):
