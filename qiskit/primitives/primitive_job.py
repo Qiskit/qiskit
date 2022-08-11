@@ -59,7 +59,7 @@ class PrimitiveJob(JobV1):
             return JobStatus.RUNNING
         elif self._future.cancelled():
             return JobStatus.CANCELLED
-        elif self._future.done() and self._future._exception() is None:
+        elif self._future.done() and self._future.exception() is None:
             return JobStatus.DONE
         return JobStatus.ERROR
 
