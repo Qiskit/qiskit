@@ -148,12 +148,20 @@ def expectation_value(oper: Pauli, state: StabilizerState, qargs: Union[list, ra
 
 
 @dispatch
-def expectation_value(oper: Union[Pauli, SparsePauliOp], state: Union[Statevector, DensityMatrix, StabilizerState]):
+def expectation_value(oper: Union[Pauli, SparsePauliOp], state: Union[Statevector, DensityMatrix, StabilizerState],
+                      x: type(None) = None):
     return expectation_value(oper, state, range(oper.num_qubits))
+
+# @dispatch
+# def expectation_value(oper: Union[Pauli, SparsePauliOp], state: Union[Statevector, DensityMatrix, StabilizerState]):
+#     return expectation_value(oper, state, range(oper.num_qubits))
 
 
 @dispatch (precedence=1)
-def expectation_value(oper: SparsePauliOp, state: Union[Statevector, DensityMatrix, StabilizerState], qargs: Union[list, range]):
+def expectation_value(
+        oper: SparsePauliOp, state: Union[Statevector, DensityMatrix, StabilizerState],
+        qargs: Union[list, range]
+):
     return sum(
         coeff * expectation_value(Pauli((z, x)), state, qargs)
         for z, x, coeff in zip(oper.paulis.z, oper.paulis.x, oper.coeffs)
@@ -210,9 +218,8 @@ def expectation_value(counts: Counts, qargs: str):
     return _sum / total_counts
 
 
-
 expectation_value.__doc__ = """
-expectation_value(oper, state)
+expectation_value(oper, state, qargs=None)
 
 Compute the expectation value of operator ``oper`` on state ``state``.
 """
