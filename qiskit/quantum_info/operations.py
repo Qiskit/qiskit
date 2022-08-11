@@ -4,6 +4,7 @@ from typing import Union
 
 from qiskit.quantum_info.operators.symplectic import Pauli, SparsePauliOp
 from qiskit.quantum_info.states import Statevector, DensityMatrix, StabilizerState
+from qiskit.quantum_info.states.quantum_state import QuantumState
 from qiskit.quantum_info import Operator
 from qiskit.result.counts import Counts
 
@@ -148,14 +149,14 @@ def expectation_value(oper: Pauli, state: StabilizerState, qargs: Union[list, ra
 
 
 @dispatch
-def expectation_value(oper: Union[Pauli, SparsePauliOp], state: Union[Statevector, DensityMatrix, StabilizerState],
+def expectation_value(oper: Union[Pauli, SparsePauliOp], state: QuantumState,
                       x: type(None) = None):
     return expectation_value(oper, state, range(oper.num_qubits))
 
 
 @dispatch (precedence=1)
 def expectation_value(
-        oper: SparsePauliOp, state: Union[Statevector, DensityMatrix, StabilizerState],
+        oper: SparsePauliOp, state: QuantumState,
         qargs: Union[list, range]
 ):
     return sum(
