@@ -11,3 +11,4 @@ symengine>=0.9 ; platform_machine == 'x86_64' or platform_machine == 'aarch64' o
 tweedledum>=1.1,<2.0
 shared-memory38;python_version<'3.8'
 typing-extensions; python_version < '3.8'
+plum-dispatch
