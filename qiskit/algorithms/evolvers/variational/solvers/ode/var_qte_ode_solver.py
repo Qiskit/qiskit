@@ -11,7 +11,7 @@
 # that they have been altered from the originals.
 
 """Class for solving ODEs for Quantum Time Evolution."""
-
+from functools import partial
 from typing import List, Union, Type, Optional
 
 import numpy as np
@@ -67,12 +67,16 @@ class VarQTEOdeSolver:
             else self._num_timesteps
         )
 
-        sol = solve_ivp(
+        if self._ode_solver == ForwardEulerSolver:
+            solve = partial(solve_ivp, num_t_steps=num_timesteps)
+        else:
+            solve = solve_ivp
+
+        sol = solve(
             self._ode_function,
             (0, evolution_time),
             self._init_params,
             method=self._ode_solver,
-            num_t_steps=num_timesteps,
         )
         final_params_vals = [lst[-1] for lst in sol.y]
 

@@ -134,8 +134,14 @@ class VarQTE(ABC):
             Result of the evolution which includes a quantum circuit with bound parameters as an
             evolved state and, if provided, observables evaluated on the evolved state using
             a ``quantum_instance`` and ``expectation`` provided.
+
+        Raises:
+            ValueError: If no ``initial_state`` is included in the ``evolution_problem``.
         """
         self._validate_aux_ops(evolution_problem)
+
+        if evolution_problem.initial_state is None:
+            raise ValueError("No initial_state (ansatz) was provided. It is required.")
 
         init_state_param_dict = self._create_init_state_param_dict(
             evolution_problem.param_value_dict,
@@ -281,10 +287,15 @@ class VarQTE(ABC):
         return init_state_param_dict
 
     def _validate_aux_ops(self, evolution_problem: EvolutionProblem) -> None:
-        if evolution_problem.aux_operators is not None and (
-            self.quantum_instance is None or self.expectation is None
-        ):
-            raise ValueError(
-                "aux_operators where provided for evaluations but no ``expectation`` or "
-                "``quantum_instance`` was provided."
-            )
+        if evolution_problem.aux_operators is not None:
+            if self.quantum_instance is None:
+                raise ValueError(
+                    "aux_operators where provided for evaluations but no ``quantum_instance`` "
+                    "was provided."
+                )
+
+            if self.expectation is None:
+                raise ValueError(
+                    "aux_operators where provided for evaluations but no ``expectation`` "
+                    "was provided."
+                )

@@ -19,6 +19,7 @@ from scipy.integrate import OdeSolver
 from qiskit.opflow import ExpectationBase
 from qiskit.algorithms.evolvers.imaginary_evolver import ImaginaryEvolver
 from qiskit.utils import QuantumInstance
+from . import ImaginaryMcLachlanPrinciple
 from .solvers.ode.forward_euler_solver import ForwardEulerSolver
 from .variational_principles import ImaginaryVariationalPrinciple
 from .var_qte import VarQTE
@@ -67,7 +68,7 @@ class VarQITE(VarQTE, ImaginaryEvolver):
 
     def __init__(
         self,
-        variational_principle: ImaginaryVariationalPrinciple,
+        variational_principle: ImaginaryVariationalPrinciple = ImaginaryMcLachlanPrinciple(),
         ode_solver: Union[Type[OdeSolver], str] = ForwardEulerSolver,
         lse_solver: Optional[Callable[[np.ndarray, np.ndarray], np.ndarray]] = None,
         num_timesteps: Optional[int] = None,

@@ -19,6 +19,7 @@ from scipy.integrate import OdeSolver
 from qiskit.algorithms.evolvers.real_evolver import RealEvolver
 from qiskit.opflow import ExpectationBase
 from qiskit.utils import QuantumInstance
+from . import RealMcLachlanPrinciple
 from .solvers.ode.forward_euler_solver import ForwardEulerSolver
 from .variational_principles import RealVariationalPrinciple
 from .var_qte import VarQTE
@@ -67,7 +68,7 @@ class VarQRTE(VarQTE, RealEvolver):
 
     def __init__(
         self,
-        variational_principle: RealVariationalPrinciple,
+        variational_principle: RealVariationalPrinciple = RealMcLachlanPrinciple(),
         ode_solver: Union[Type[OdeSolver], str] = ForwardEulerSolver,
         lse_solver: Optional[Callable[[np.ndarray, np.ndarray], np.ndarray]] = None,
         num_timesteps: Optional[int] = None,
