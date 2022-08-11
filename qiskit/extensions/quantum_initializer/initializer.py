@@ -107,8 +107,9 @@ def initialize(self, params, qubits=None):
               to :math:`|1\rangle`. Example: setting params to 5 would initialize qubit 0 and qubit 2
               to :math:`|1\rangle` and qubit 1 to :math:`|0\rangle`.
 
-        qubits (QuantumRegister or int):
+        qubits (QuantumRegister or Qubit or int):
             * QuantumRegister: A list of qubits to be initialized [Default: None].
+            * Qubit: Single qubit to be initialized [Default: None].
             * int: Index of qubit to be initialized [Default: None].
             * list: Indexes of qubits to be initialized [Default: None].
 
