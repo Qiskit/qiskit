@@ -18,62 +18,64 @@ from __future__ import annotations
 from collections import Counter, defaultdict
 from typing import Sequence, Type
 
-
-from qiskit.circuit import (
-    Parameter,
-    ParameterExpression,
-    QuantumCircuit,
-)
+from qiskit.circuit import Parameter, ParameterExpression, QuantumCircuit
+from qiskit.primitives import BaseSampler, SamplerResult
+from qiskit.providers import JobStatus
 from qiskit.result import QuasiDistribution
 
-from .sampler_gradient_result import SamplerGradientResult
-from .utils import make_gradient_circuit_lin_comb
-from ..base_sampler import BaseSampler
-from ..utils import init_circuit
+from .base_sampler_gradient import BaseSamplerGradient
+from .sampler_gradient_job import SamplerGradientJob
+from .utils import make_lin_comb_gradient_circuit
 
 
-class LinCombSamplerGradient:
-    """LCU sampler gradient"""
+class LinCombSamplerGradient(BaseSamplerGradient):
+    """Compute the gradients of the sampling probability.
+        This method employs a linear combination of unitaries,
+        see e.g. https://arxiv.org/pdf/1811.11184.pdf
+    """
+
 
     def __init__(
         self, sampler: Type[BaseSampler], circuits: QuantumCircuit | Sequence[QuantumCircuit]
     ):
-
-        if isinstance(circuits, QuantumCircuit):
-            circuits = (circuits,)
-        circuits = tuple(init_circuit(circuit) for circuit in circuits)
+        """
+        Args:
+            sampler: The sampler used to compute the gradients.
+            circuits: The quantum circuits used to compute the gradients.
+        """
+        super().__init__(sampler, circuits)
 
         self._gradient_circuit_data_dict = {}
-        self._circuits = circuits
-
-        for i, circuit in enumerate(circuits):
-            self._gradient_circuit_data_dict[i] = make_gradient_circuit_lin_comb(
+        for i, circuit in enumerate(self._circuits):
+            self._gradient_circuit_data_dict[i] = make_lin_comb_gradient_circuit(
                 circuit, add_measurement=True
             )
 
-        idx = 0
-        gradient_circuits = []
-        for i, grad_circuit_data in self._gradient_circuit_data_dict.items():
-            for param in self._circuits[i].parameters:
-                for grad in grad_circuit_data[param]:
-                    grad.index = idx
-                    gradient_circuits.append(grad.gradient_circuit)
-                    idx += 1
-
-        self._sampler = sampler
-
-    def __call__(
+    def _run(
         self,
-        circuits: Sequence[int | QuantumCircuit],
+        circuits: Sequence[QuantumCircuit],
         parameter_values: Sequence[Sequence[float]],
         partial: Sequence[Sequence[Parameter]] | None = None,
         **run_options,
-    ) -> SamplerGradientResult:
+    ) -> SamplerGradientJob:
 
         partial = partial or [[] for _ in range(len(circuits))]
 
         gradients = []
-        for circuit_index, parameter_values_, partial_ in zip(circuits, parameter_values, partial):
+        status = []
+        for circuit, parameter_values_, partial_ in zip(circuits, parameter_values, partial):
+            index = self._circuit_ids.get(id(circuit))
+            if index is not None:
+                circuit_index = index
+            else:
+                # if circuit is not passed in the constructor.
+                circuit_index = len(self._circuits)
+                self._circuit_ids[id(circuit)] = circuit_index
+                self._gradient_circuit_data_dict[circuit_index] = make_lin_comb_gradient_circuit(
+                    circuit, add_measurement=True
+                )
+                self._circuits.append(circuit)
+
             gradient_circuit_data = self._gradient_circuit_data_dict[circuit_index]
             circuit_parameters = self._circuits[circuit_index].parameters
             parameter_value_map = {}
@@ -94,9 +96,7 @@ class LinCombSamplerGradient:
                     gradient_circuit.append(grad.gradient_circuit)
                     result_index_map[param].append(result_index)
                     result_index += 1
-            gradient_parameter_values_list = [
-                parameter_values_ for i in range(len(gradient_circuit))
-            ]
+            gradient_parameter_values_list = [parameter_values_] * len(gradient_circuit)
 
             results = self._sampler.run(gradient_circuit, gradient_parameter_values_list).result()
 
@@ -120,5 +120,10 @@ class LinCombSamplerGradient:
                         sign, k2 = divmod(k, num_bitstrings)
                         dists[i][k2] += (-1) ** sign * bound_coeff * v
 
-            gradients.append([QuasiDistribution(dist) for dist in dists])
-        return SamplerGradientResult(quasi_dists=gradients, metadata=[{}] * len(gradients))
+            gradients.append(
+                SamplerResult([QuasiDistribution(dist) for dist in dists], metadata=run_options)
+            )
+            # TODO: put correct status after fixing a bug
+            status.append(JobStatus.DONE)
+            # status.append(job.status())
+        return SamplerGradientJob(results=gradients, status=status)

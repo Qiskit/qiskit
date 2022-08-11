@@ -18,11 +18,12 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Any
 
-from qiskit.result import QuasiDistribution
+from qiskit.primitives import SamplerResult
+from qiskit.providers import JobStatus
 
 
 @dataclass(frozen=True)
-class SamplerGradientResult:
+class SamplerGradientJob:
     """Result of SamplerGradient.
 
     Args:
@@ -30,6 +31,6 @@ class SamplerGradientResult:
             The first axis is the number of gradients, and second one is the number of parameters.
         metadata (list[dict]): List of the metadata.
     """
-
-    quasi_dists: list[list[QuasiDistribution]]
-    metadata: list[dict[str, Any]]
+    results: list[SamplerResult]
+    status: list[JobStatus]
+   # metadata: list[dict[str, Any]]

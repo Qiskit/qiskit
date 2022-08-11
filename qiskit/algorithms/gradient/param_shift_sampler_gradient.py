@@ -21,29 +21,33 @@ from typing import Sequence, Type
 import numpy as np
 
 from qiskit.circuit import Parameter, ParameterExpression, QuantumCircuit
+from qiskit.primitives import BaseSampler, SamplerResult
+from qiskit.providers import JobStatus
 from qiskit.result import QuasiDistribution
 
-from .sampler_gradient_result import SamplerGradientResult
-from .utils import make_param_shift_gradient_circuit, make_param_shift_base_parameter_values
-from ..base_sampler import BaseSampler
-from ..utils import init_circuit
+from .base_sampler_gradient import BaseSamplerGradient
+from .sampler_gradient_job import SamplerGradientJob
+from .utils import make_param_shift_base_parameter_values, make_param_shift_gradient_circuit_data
 
 
-class ParamShiftSamplerGradient:
-    """Parameter shift estimator gradient"""
+class ParamShiftSamplerGradient(BaseSamplerGradient):
+    """Compute the gradients of the sampling probability with the parameter shift method."""
+
 
     def __init__(
         self, sampler: Type[BaseSampler], circuits: QuantumCircuit | Sequence[QuantumCircuit]
     ):
-        if isinstance(circuits, QuantumCircuit):
-            circuits = (circuits,)
-        circuits = tuple(init_circuit(circuit) for circuit in circuits)
-
-        self._circuits = circuits
+        """
+        Args:
+            sampler: The sampler used to compute the gradients.
+            circuits: The quantum circuits used to compute the gradients.
+        """
+        super().__init__(sampler, circuits)
 
         self._gradient_circuit_data_dict = {}
-        for i, circuit in enumerate(circuits):
-            self._gradient_circuit_data_dict[i] = make_param_shift_gradient_circuit(circuit)
+
+        for i, circuit in enumerate(self._circuits):
+            self._gradient_circuit_data_dict[i] = make_param_shift_gradient_circuit_data(circuit)
 
         self._base_parameter_values_dict = {}
         for k, gradient_circuit_data in self._gradient_circuit_data_dict.items():
@@ -51,20 +55,35 @@ class ParamShiftSamplerGradient:
                 gradient_circuit_data
             )
 
-        self._sampler = sampler
-
-    def __call__(
+    def _run(
         self,
-        circuits: Sequence[int | QuantumCircuit],
+        circuits: Sequence[QuantumCircuit],
         parameter_values: Sequence[Sequence[float]],
         partial: Sequence[Sequence[Parameter]] | None = None,
         **run_options,
-    ) -> SamplerGradientResult:
-
+    ) -> SamplerGradientJob:
         partial = partial or [[] for _ in range(len(circuits))]
 
         gradients = []
-        for circuit_index, parameter_values_, partial_ in zip(circuits, parameter_values, partial):
+        status = []
+        for circuit, parameter_values_, partial_ in zip(circuits, parameter_values, partial):
+            index = self._circuit_ids.get(id(circuit))
+            if index is not None:
+                circuit_index = index
+            else:
+                # if circuit is not passed in the constructor.
+                circuit_index = len(self._circuits)
+                self._circuit_ids[id(circuit)] = circuit_index
+                self._gradient_circuit_data_dict[circuit_index] = make_param_shift_gradient_circuit_data(
+                    circuit
+                )
+                self._base_parameter_values_dict[
+                    circuit_index
+                ] = make_param_shift_base_parameter_values(
+                    self._gradient_circuit_data_dict[circuit_index]
+                )
+                self._circuits.append(circuit)
+
             gradient_circuit_data = self._gradient_circuit_data_dict[circuit_index]
             gradient_parameter_map = gradient_circuit_data.gradient_parameter_map
             gradient_parameter_index_map = gradient_circuit_data.gradient_parameter_index_map
@@ -147,5 +166,9 @@ class ParamShiftSamplerGradient:
                             }
                         )
                     )
-            gradients.append([QuasiDistribution(dist) for dist in dists])
-        return SamplerGradientResult(quasi_dists=gradients, metadata=[{}] * len(gradients))
+            gradients.append(
+                SamplerResult([QuasiDistribution(dist) for dist in dists], metadata=run_options)
+            )
+            # TODO: put correct status after fixing a bug
+            status.append(JobStatus.DONE)
+        return SamplerGradientJob(results=gradients, status=status)

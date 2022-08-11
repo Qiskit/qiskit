@@ -19,22 +19,54 @@ from __future__ import annotations
 from abc import ABC, abstractmethod
 from collections.abc import Sequence
 
-from ..base_sampler import BaseSampler
-from .sampler_gradient_result import SamplerGradientResult
+from qiskit.circuit import QuantumCircuit, Parameter
+from qiskit.primitives import BaseSampler
+from .sampler_gradient_job import SamplerGradientJob
 
 
 class BaseSamplerGradient(ABC):
-    def __init__(
-        self,
-        sampler: BaseSampler,
-    ):
+    """Base class for a SamplerGradient to compute the gradients of the sampling probability."""
+
+    def __init__(self, sampler: BaseSampler, circuits: Sequence[QuantumCircuit]):
+        """
+        Args:
+            sampler: The sampler used to compute the gradients.
+            circuits: The quantum circuits used to compute the gradients.
+        """
         self._sampler = sampler
+        if isinstance(circuits, QuantumCircuit):
+            circuits = (circuits,)
+        self._circuits = list(circuits)
+        self._circuit_ids = {id(circuit): i for i, circuit in enumerate(circuits)}
+
+    def run(
+        self,
+        circuits: Sequence[QuantumCircuit],
+        parameter_values: Sequence[Sequence[float]],
+        partial: Sequence[Sequence[Parameter]] | None = None,
+        **run_options,
+    ) -> SamplerGradientJob:
+        """Run the job of the gradients of the sampling probability.
+
+        Args:
+            circuits: The list of quantum circuits used to compute the gradients.
+            parameter_values: The list of parameter values to be bound to the circuit.
+            partial: The list of Parameters to calculate only the gradients of the specified parameters.
+                Defaults to None, which means that the gradients of all parameters will be calculated.
+            run_options: Backend runtime options used for circuit execution.
+
+        Returns:
+            The job object of the gradients of the sampling probability. The i-th result corresponds to
+            ``circuits[i]`` evaluated with parameters bound as ``parameter_values[i]``.
+        """
+        return self._run(circuits, parameter_values, partial, **run_options)
 
     @abstractmethod
-    def __call__(
+    def _run(
         self,
-        circuits: Sequence[int | QuantumCircuit],
+        circuits: Sequence[QuantumCircuit],
         parameter_values: Sequence[Sequence[float]],
+        partial: Sequence[Sequence[Parameter]] | None = None,
         **run_options,
-    ) -> SamplerGradientResult:
-        ...
+    ) -> SamplerGradientJob:
+        raise NotImplementedError()

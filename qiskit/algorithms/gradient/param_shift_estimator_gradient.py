@@ -23,7 +23,7 @@ from qiskit.circuit import Parameter, ParameterExpression, QuantumCircuit
 from qiskit.quantum_info import SparsePauliOp
 
 from .utils import (
-    make_param_shift_gradient_circuit,
+    make_param_shift_gradient_circuit_data,
     make_param_shift_base_parameter_values,
 )
 from ..base_estimator import BaseEstimator
@@ -49,7 +49,7 @@ class ParamShiftEstimatorGradient:
         self._gradient_circuit_data_dict = {}
         self._circuits = circuits
         for i, circuit in enumerate(circuits):
-            self._gradient_circuit_data_dict[i] = make_param_shift_gradient_circuit(circuit)
+            self._gradient_circuit_data_dict[i] = make_param_shift_gradient_circuit_data(circuit)
 
         self._base_parameter_values_dict = {}
         for k, gradient_circuit_data in self._gradient_circuit_data_dict.items():

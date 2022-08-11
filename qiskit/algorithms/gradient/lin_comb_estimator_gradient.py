@@ -29,7 +29,7 @@ from qiskit.circuit import (
 
 from qiskit.quantum_info import SparsePauliOp, Pauli
 
-from .utils import make_gradient_circuit_lin_comb
+from .utils import make_lin_comb_gradient_circuit
 from ..base_estimator import BaseEstimator
 from .estimator_gradient_result import EstimatorGradientResult
 from ..utils import init_circuit
@@ -51,7 +51,7 @@ class LinCombEstimatorGradient:
         self._circuits = circuits
 
         for i, circuit in enumerate(circuits):
-            self._gradient_circuit_data_dict[i] = make_gradient_circuit_lin_comb(circuit)
+            self._gradient_circuit_data_dict[i] = make_lin_comb_gradient_circuit(circuit)
 
         idx = 0
         gradient_circuits = []
