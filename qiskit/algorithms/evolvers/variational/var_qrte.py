@@ -61,7 +61,7 @@ class VarQRTE(VarQTE, RealEvolver):
         backend = BasicAer.get_backend("statevector_simulator")
         time = 1
         evolution_problem = EvolutionProblem(observable, time, ansatz, param_value_dict=param_dict)
-        var_qrte = VarQRTE(var_principle, ode_function, quantum_instance=backend)
+        var_qrte = VarQRTE(var_principle, quantum_instance=backend)
         evolution_result = var_qite.evolve(evolution_problem)
     """
 
