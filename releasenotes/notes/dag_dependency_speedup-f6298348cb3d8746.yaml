@@ -5,12 +5,12 @@ features:
     :func:`~qiskit.converters.circuit_to_dagdependency` and
     :func:`~qiskit.converters.dagdependency_to_circuit`
     that convert from :class:`~qiskit.circuit.QuantumCircuit` and
-    :class:`~qiskit.dagcircuit.DAGDependency`, respectively, to
+    :class:`~qiskit.dagcircuit.DAGCircuit`, respectively, to
     :class:`~qiskit.dagcircuit.DAGDependency`.
     When the value of ``create_preds_and_succs`` is False, the transitive
     predecessors and successors for nodes in :class:`~qiskit.dagcircuit.DAGDependency`
     are not constructed, making the conversions faster and significantly less
-    memory-intensive. The direct predecessors for nodes in
+    memory-intensive. The direct predecessors and successors for nodes in
     :class:`~qiskit.dagcircuit.DAGDependency` are constructed as usual.
 
     For example::

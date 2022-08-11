@@ -537,7 +537,7 @@ class DAGDependency:
 
     def _add_predecessors(self):
         """
-        Use _gather_pred and merge_no_duplicates to create the list of successors
+        Use _gather_pred and merge_no_duplicates to create the list of predecessors
         for each node. Update DAGDependency 'predecessors' attribute. It has to
         be used when the DAGDependency() object is complete (i.e. converters).
         """
