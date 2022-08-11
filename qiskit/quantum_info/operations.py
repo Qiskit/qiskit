@@ -3,14 +3,13 @@ from plum import dispatch
 from typing import Union
 
 from qiskit.quantum_info.operators.symplectic import Pauli, SparsePauliOp
-from qiskit.quantum_info.states import Statevector, DensityMatrix
+from qiskit.quantum_info.states import Statevector, DensityMatrix, StabilizerState
 from qiskit.quantum_info import Operator
 from qiskit.result.counts import Counts
 
 from qiskit._accelerate import pauli_expval
 
 # TODO: I am still working on how to add doc strings in the appropriate places.
-
 
 @dispatch
 def _to_rust_array(state: Statevector):
@@ -96,21 +95,73 @@ def expectation_value(pauli: Pauli, state: Union[Statevector, DensityMatrix], qa
     )
 
 
-@dispatch
-def expectation_value(pauli: Pauli, state: Union[Statevector, DensityMatrix]):
-    return expectation_value(pauli, state, range(len(pauli)))
+@dispatch (precedence=1)
+def expectation_value(oper: Pauli, state: StabilizerState, qargs: Union[list, range]):
+
+    qubits = qargs
+    num_qubits = oper.num_qubits
+    # Construct Pauli on num_qubits
+    pauli = Pauli(num_qubits * "I")
+    phase = 0
+    _pauli_phase = pauli_phase(oper)
+
+    for pos, qubit in enumerate(qubits):
+        pauli.x[qubit] = oper.x[pos]
+        pauli.z[qubit] = oper.z[pos]
+        phase += pauli.x[qubit] & pauli.z[qubit]
+
+    # Check if there is a stabilizer that anti-commutes with an odd number of qubits
+    # If so the expectation value is 0
+    for p in range(num_qubits):
+        stab = state.clifford.stabilizer
+        num_anti = 0
+        num_anti += np.count_nonzero(pauli.z & stab.X[p])
+        num_anti += np.count_nonzero(pauli.x & stab.Z[p])
+        if num_anti % 2 == 1:
+            return 0
+
+    # Otherwise pauli is (-1)^a prod_j S_j^b_j for Clifford stabilizers
+    # If pauli anti-commutes with D_j then b_j = 1.
+    # Multiply pauli by stabilizers with anti-commuting destabilizers
+    pauli_z = (pauli.z).copy()  # Make a copy of pauli.z
+    for p in range(num_qubits):
+        # Check if destabilizer anti-commutes
+        destab = state.clifford.destabilizer
+        num_anti = 0
+        num_anti += np.count_nonzero(pauli.z & destab.X[p])
+        num_anti += np.count_nonzero(pauli.x & destab.Z[p])
+        if num_anti % 2 == 0:
+            continue
+
+        # If anti-commutes multiply Pauli by stabilizer
+        stab = state.clifford.stabilizer
+        phase += 2 * state.clifford.table.phase[p + num_qubits]
+        phase += np.count_nonzero(stab.Z[p] & stab.X[p])
+        phase += 2 * np.count_nonzero(pauli_z & stab.X[p])
+        pauli_z = pauli_z ^ stab.Z[p]
+
+    # For valid stabilizers, `phase` can only be 0 (= 1) or 2 (= -1) at this point.
+    if phase % 4 != 0:
+        return -_pauli_phase
+
+    return _pauli_phase
 
 
 @dispatch
-def expectation_value(oper: SparsePauliOp, state: Union[Statevector, DensityMatrix], qargs):
+def expectation_value(oper: Union[Pauli, SparsePauliOp], state: Union[Statevector, DensityMatrix, StabilizerState]):
+    return expectation_value(oper, state, range(oper.num_qubits))
+
+
+@dispatch (precedence=1)
+def expectation_value(oper: SparsePauliOp, state: Union[Statevector, DensityMatrix, StabilizerState], qargs: Union[list, range]):
     return sum(
-        coeff * expectation_value_pauli(Pauli((z, x)), qargs)
+        coeff * expectation_value(Pauli((z, x)), state, qargs)
         for z, x, coeff in zip(oper.paulis.z, oper.paulis.x, oper.coeffs)
     )
 
 
 @dispatch
-def expectation_value(oper, state: Statevector, qargs: list):
+def expectation_value(oper, state: Statevector, qargs: Union[list, range]):
     val = state.evolve(oper, qargs=qargs)
     conj = state.conjugate()
     return np.dot(conj.data, val.data)
@@ -157,3 +208,11 @@ def expectation_value(counts: Counts, qargs: str):
         _sum += _count * (-1) ** parity
         total_counts += _count
     return _sum / total_counts
+
+
+
+expectation_value.__doc__ = """
+expectation_value(oper, state)
+
+Compute the expectation value of operator ``oper`` on state ``state``.
+"""
