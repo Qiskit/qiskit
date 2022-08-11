@@ -15,25 +15,25 @@
 
 import unittest
 from test import combine
-from ddt import ddt
 
 import numpy as np
+from ddt import ddt
 
-from qiskit.test import QiskitTestCase
-from qiskit.exceptions import QiskitError
-from qiskit.circuit import Gate, QuantumRegister, QuantumCircuit
+from qiskit.circuit import Gate, QuantumCircuit, QuantumRegister
 from qiskit.circuit.library import (
+    CXGate,
+    CZGate,
+    HGate,
     IGate,
+    SdgGate,
+    SGate,
+    SwapGate,
     XGate,
     YGate,
     ZGate,
-    HGate,
-    SGate,
-    SdgGate,
-    CXGate,
-    CZGate,
-    SwapGate,
 )
+from qiskit.exceptions import QiskitError
+from qiskit.quantum_info import random_clifford
 from qiskit.quantum_info.operators import Clifford, Operator
 from qiskit.quantum_info.operators.symplectic.clifford_circuits import _append_circuit
 from qiskit.quantum_info.synthesis.clifford_decompose import (
@@ -41,7 +41,7 @@ from qiskit.quantum_info.synthesis.clifford_decompose import (
     decompose_clifford_bm,
     decompose_clifford_greedy,
 )
-from qiskit.quantum_info import random_clifford
+from qiskit.test import QiskitTestCase
 
 
 class VGate(Gate):
@@ -188,10 +188,10 @@ class TestCliffordGates(QiskitTestCase):
             with self.subTest(msg="append gate %s" % gate_name):
                 cliff = Clifford([[1, 0], [0, 1]])
                 cliff = _append_circuit(cliff, gate_name, [0])
-                value_table = cliff.table._array
-                value_phase = cliff.table._phase
-                value_stabilizer = cliff.stabilizer.to_labels()
-                value_destabilizer = cliff.destabilizer.to_labels()
+                value_table = cliff.tableau[:, :-1]
+                value_phase = cliff.phase
+                value_stabilizer = cliff.to_labels(mode="S")
+                value_destabilizer = cliff.to_labels(mode="D")
                 self.assertTrue(np.all(np.array(value_table == target_table[gate_name])))
                 self.assertTrue(np.all(np.array(value_phase == target_phase[gate_name])))
                 self.assertTrue(

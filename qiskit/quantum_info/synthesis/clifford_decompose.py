@@ -15,20 +15,22 @@ Circuit synthesis for the Clifford class.
 # pylint: disable=invalid-name
 
 from itertools import product
+
 import numpy as np
-from qiskit.exceptions import QiskitError
+
 from qiskit.circuit import QuantumCircuit
-from qiskit.quantum_info.operators.symplectic.pauli import Pauli
+from qiskit.exceptions import QiskitError
 from qiskit.quantum_info.operators.symplectic.clifford_circuits import (
-    _append_z,
-    _append_x,
+    _append_cx,
     _append_h,
     _append_s,
+    _append_swap,
     _append_v,
     _append_w,
-    _append_cx,
-    _append_swap,
+    _append_x,
+    _append_z,
 )
+from qiskit.quantum_info.operators.symplectic.pauli import Pauli
 
 
 def decompose_clifford(clifford, method=None):
@@ -84,7 +86,7 @@ def decompose_clifford_bm(clifford):
     num_qubits = clifford.num_qubits
 
     if num_qubits == 1:
-        return _decompose_clifford_1q(clifford.table.array, clifford.table.phase)
+        return _decompose_clifford_1q(clifford.tableau[:, :-1], clifford.phase)
 
     clifford_name = str(clifford)
 
@@ -102,8 +104,8 @@ def decompose_clifford_bm(clifford):
     ret_circ = QuantumCircuit(num_qubits, name=clifford_name)
     for qubit in range(num_qubits):
         pos = [qubit, qubit + num_qubits]
-        table = clifford.table.array[pos][:, pos]
-        phase = clifford.table.phase[pos]
+        table = clifford.tableau[pos][:, pos]
+        phase = clifford.phase[pos]
         circ = _decompose_clifford_1q(table, phase)
         if len(circ) > 0:
             ret_circ.append(circ, [qubit])
@@ -131,7 +133,7 @@ def decompose_clifford_ag(clifford):
     """
     # Use 1-qubit decomposition method
     if clifford.num_qubits == 1:
-        return _decompose_clifford_1q(clifford.table.array, clifford.table.phase)
+        return _decompose_clifford_1q(clifford.tableau[:, :-1], clifford.phase)
 
     # Compose a circuit which we will convert to an instruction
     circuit = QuantumCircuit(clifford.num_qubits, name=str(clifford))
@@ -150,10 +152,10 @@ def decompose_clifford_ag(clifford):
         _set_row_z_zero(clifford_cpy, circuit, i)
 
     for i in range(clifford.num_qubits):
-        if clifford_cpy.destabilizer.phase[i]:
+        if clifford_cpy.phase[i]:  # destabilizer
             _append_z(clifford_cpy, i)
             circuit.z(i)
-        if clifford_cpy.stabilizer.phase[i]:
+        if clifford_cpy.phase[i + clifford.num_qubits]:  # stablizer
             _append_x(clifford_cpy, i)
             circuit.x(i)
     # Next we invert the circuit to undo the row reduction and return the
@@ -282,7 +284,7 @@ def _rank2(a, b, c, d):
 
 def _cx_cost2(clifford):
     """Return CX cost of a 2-qubit clifford."""
-    U = clifford.table.array
+    U = clifford.tableau[:, :-1]
     r00 = _rank2(U[0, 0], U[0, 2], U[2, 0], U[2, 2])
     r01 = _rank2(U[0, 1], U[0, 3], U[2, 1], U[2, 3])
     if r00 == 2:
@@ -293,7 +295,7 @@ def _cx_cost2(clifford):
 def _cx_cost3(clifford):
     """Return CX cost of a 3-qubit clifford."""
     # pylint: disable=too-many-return-statements,too-many-boolean-expressions
-    U = clifford.table.array
+    U = clifford.tableau[:, :-1]
     n = 3
     # create information transfer matrices R1, R2
     R1 = np.zeros((n, n), dtype=int)
@@ -364,8 +366,8 @@ def _set_qubit_x_true(clifford, circuit, qubit):
     This is done by permuting columns l > qubit or if necessary applying
     a Hadamard
     """
-    x = clifford.destabilizer.X[qubit]
-    z = clifford.destabilizer.Z[qubit]
+    x = clifford.destab_x[qubit]
+    z = clifford.destab_z[qubit]
 
     if x[qubit]:
         return
@@ -393,8 +395,8 @@ def _set_row_x_zero(clifford, circuit, qubit):
 
     This is done by applying CNOTS assumes k<=N and A[k][k]=1
     """
-    x = clifford.destabilizer.X[qubit]
-    z = clifford.destabilizer.Z[qubit]
+    x = clifford.destab_x[qubit]
+    z = clifford.destab_z[qubit]
 
     # Check X first
     for i in range(qubit + 1, clifford.num_qubits):
@@ -426,8 +428,8 @@ def _set_row_z_zero(clifford, circuit, qubit):
     and _set_row_x_zero has been called first
     """
 
-    x = clifford.stabilizer.X[qubit]
-    z = clifford.stabilizer.Z[qubit]
+    x = clifford.stab_x[qubit]
+    z = clifford.stab_z[qubit]
 
     # check whether Zs need to be set to zero:
     if np.any(z[qubit + 1 :]):
@@ -479,11 +481,11 @@ def decompose_clifford_greedy(clifford):
     while len(qubit_list) > 0:
         # Calculate the adjoint of clifford_cpy without the phase
         clifford_adj = clifford_cpy.copy()
-        tmp = clifford_adj.destabilizer.X.copy()
-        clifford_adj.destabilizer.X = clifford_adj.stabilizer.Z.T
-        clifford_adj.destabilizer.Z = clifford_adj.destabilizer.Z.T
-        clifford_adj.stabilizer.X = clifford_adj.stabilizer.X.T
-        clifford_adj.stabilizer.Z = tmp.T
+        tmp = clifford_adj.destab_x.copy()
+        clifford_adj.destab_x = clifford_adj.stab_z.T
+        clifford_adj.destab_z = clifford_adj.destab_z.T
+        clifford_adj.stab_x = clifford_adj.stab_x.T
+        clifford_adj.stab_z = tmp.T
 
         list_greedy_cost = []
         for qubit in qubit_list:
@@ -528,8 +530,8 @@ def decompose_clifford_greedy(clifford):
 
     # Add the phases (Pauli gates) to the Clifford circuit
     for qubit in range(num_qubits):
-        stab = clifford_cpy.stabilizer.phase[qubit]
-        destab = clifford_cpy.destabilizer.phase[qubit]
+        stab = clifford_cpy.phase[qubit + num_qubits]
+        destab = clifford_cpy.phase[qubit]
         if destab and stab:
             circ.y(qubit)
         elif not destab and stab:
@@ -631,8 +633,8 @@ def _calc_decoupling(pauli_x, pauli_z, qubit_list, min_qubit, num_qubits, cliff)
     # decouple_cliff is initialized to an identity clifford
     decouple_cliff = cliff.copy()
     num_qubits = decouple_cliff.num_qubits
-    decouple_cliff.table.phase = np.zeros(2 * num_qubits)
-    decouple_cliff.table.array = np.eye(2 * num_qubits)
+    decouple_cliff.phase = np.zeros(2 * num_qubits)
+    decouple_cliff.tableau[:, :-1] = np.eye(2 * num_qubits)
 
     qubit0 = min_qubit  # The qubit for the symplectic Gaussian elimination
 
