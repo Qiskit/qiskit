@@ -526,6 +526,7 @@ from .n_local import (
     EfficientSU2,
     ExcitationPreserving,
     QAOAAnsatz,
+    TensorProductAnsatz,
 )
 from .data_preparation import PauliFeatureMap, ZFeatureMap, ZZFeatureMap, StatePreparation
 from .quantum_volume import QuantumVolume
