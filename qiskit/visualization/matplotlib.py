@@ -414,7 +414,7 @@ class MatplotlibDrawer:
                 self._data[node] = {}
                 self._data[node]["width"] = WID
                 num_ctrl_qubits = 0 if not hasattr(op, "num_ctrl_qubits") else op.num_ctrl_qubits
-                if (op._directive and (not op.label or not self._plot_barriers)) or isinstance(
+                if (getattr(op, "_directive", False) and (not op.label or not self._plot_barriers)) or isinstance(
                     op, Measure
                 ):
                     self._data[node]["raw_gate_text"] = op.name
