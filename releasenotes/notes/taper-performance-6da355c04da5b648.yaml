@@ -1,0 +1,5 @@
+---
+features:
+  - |
+    The :meth:`~qiskit.opflow.Z2Symmetries.taper` has significantly improved
+    performance because intermediate data is simplified.
