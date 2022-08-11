@@ -152,10 +152,6 @@ def expectation_value(oper: Union[Pauli, SparsePauliOp], state: Union[Statevecto
                       x: type(None) = None):
     return expectation_value(oper, state, range(oper.num_qubits))
 
-# @dispatch
-# def expectation_value(oper: Union[Pauli, SparsePauliOp], state: Union[Statevector, DensityMatrix, StabilizerState]):
-#     return expectation_value(oper, state, range(oper.num_qubits))
-
 
 @dispatch (precedence=1)
 def expectation_value(
