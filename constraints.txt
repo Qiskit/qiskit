@@ -16,4 +16,4 @@ jinja2==3.0.3
 
 # setuptools 64.0.0 breaks editable installs. Pin to an old version until
 # see https://github.com/pypa/setuptools/issues/3498
-setuptools==63.4.3
+setuptools==63.3.0
