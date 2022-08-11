@@ -513,7 +513,7 @@ def _write_instruction(file_obj, instruction, custom_operations, index_map):
     has_condition = False
     condition_register = b""
     condition_value = 0
-    if instruction.operation.condition:
+    if getattr(instruction.operation, "condition", None):
         has_condition = True
         if isinstance(instruction.operation.condition[0], Clbit):
             bit_index = index_map["c"][instruction.operation.condition[0]]
