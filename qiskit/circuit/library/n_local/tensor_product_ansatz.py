@@ -80,7 +80,15 @@ class TensorProductAnsatz(NLocal):
             skip_final_rotation_layer:
             initial_state:
             name:
+
+        Raises:
+            ValueError: The value of `num_qubits` is not divisible by `block_size`.
         """
+        if num_qubits % block_size != 0:
+            raise ValueError(
+                f"Number of qubits `{num_qubits}` is not divisible by block size `{block_size}`."
+            )
+
         self.block_size = block_size
 
         super().__init__(
