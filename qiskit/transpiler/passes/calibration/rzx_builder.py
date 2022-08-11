@@ -171,7 +171,6 @@ class RZXCalibrationBuilder(CalibrationBuilder):
 
         rzx_theta = Schedule(name="rzx(%.3f)" % theta)
         rzx_theta.metadata["publisher"] = CalibrationPublisher.QISKIT
-        #import pdb; pdb.set_trace()
         if np.isclose(float(theta), 0.0):
             return rzx_theta
 
