@@ -380,6 +380,7 @@ class Z2Symmetries:
         if not operator.is_zero():
             for clifford in self.cliffords:
                 operator = cast(PauliSumOp, clifford @ operator @ clifford)
+                operator = operator.reduce(atol=0)
 
         if self._tapering_values is None:
             tapered_ops_list = [
