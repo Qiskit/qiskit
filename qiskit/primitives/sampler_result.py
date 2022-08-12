@@ -41,3 +41,16 @@ class SamplerResult:
 
     quasi_dists: list[QuasiDistribution]
     metadata: list[dict[str, Any]]
+
+
+from plum import dispatch
+from qiskit.quantum_info import expectation_value
+
+@dispatch
+def expectation_value(sampler_result: SamplerResult):
+    return [expectation_value(qd) for qd in sampler_result.quasi_dists]
+
+
+@dispatch
+def expectation_value(sampler_result: SamplerResult, qargs: str):
+    return [expectation_value(qd, qargs) for qd in sampler_result.quasi_dists]
