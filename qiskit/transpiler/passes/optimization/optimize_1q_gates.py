@@ -73,7 +73,7 @@ class Optimize1qGates(TransformationPass):
             for current_node in run:
                 left_name = current_node.name
                 if (
-                    current_node.op.condition is not None
+                    getattr(current_node.op, "condition", None) is not None
                     or len(current_node.qargs) != 1
                     or left_name not in ["p", "u1", "u2", "u3", "u", "id"]
                 ):
