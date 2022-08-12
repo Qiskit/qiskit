@@ -16,10 +16,12 @@ Estimator class
 from __future__ import annotations
 
 from collections.abc import Iterable, Sequence
+from typing import Any
 
 import numpy as np
 
 from qiskit.circuit import Parameter, QuantumCircuit
+from qiskit.circuit.parametertable import ParameterView
 from qiskit.exceptions import QiskitError
 from qiskit.opflow import PauliSumOp
 from qiskit.quantum_info import Statevector
@@ -27,6 +29,7 @@ from qiskit.quantum_info.operators.base_operator import BaseOperator
 
 from .base_estimator import BaseEstimator
 from .estimator_result import EstimatorResult
+from .primitive_job import PrimitiveJob
 from .utils import init_circuit, init_observable
 
 
@@ -48,21 +51,23 @@ class Estimator(BaseEstimator):
 
     def __init__(
         self,
-        circuits: QuantumCircuit | Iterable[QuantumCircuit],
-        observables: BaseOperator | PauliSumOp | Iterable[BaseOperator | PauliSumOp],
+        circuits: QuantumCircuit | Iterable[QuantumCircuit] | None = None,
+        observables: BaseOperator | PauliSumOp | Iterable[BaseOperator | PauliSumOp] | None = None,
         parameters: Iterable[Iterable[Parameter]] | None = None,
     ):
         if isinstance(circuits, QuantumCircuit):
             circuits = (circuits,)
-        circuits = tuple(init_circuit(circuit) for circuit in circuits)
+        if circuits is not None:
+            circuits = tuple(init_circuit(circuit) for circuit in circuits)
 
         if isinstance(observables, (PauliSumOp, BaseOperator)):
             observables = (observables,)
-        observables = tuple(init_observable(observable) for observable in observables)
+        if observables is not None:
+            observables = tuple(init_observable(observable) for observable in observables)
 
         super().__init__(
             circuits=circuits,
-            observables=observables,
+            observables=observables,  # type: ignore
             parameters=parameters,
         )
         self._is_closed = False
@@ -87,7 +92,7 @@ class Estimator(BaseEstimator):
             rng = np.random.default_rng(seed)
 
         # Initialize metadata
-        metadata = [{}] * len(circuits)
+        metadata: list[dict[str, Any]] = [{}] * len(circuits)
 
         bound_circuits = []
         for i, value in zip(circuits, parameter_values):
@@ -126,3 +131,36 @@ class Estimator(BaseEstimator):
 
     def close(self):
         self._is_closed = True
+
+    def _run(
+        self,
+        circuits: Sequence[QuantumCircuit],
+        observables: Sequence[BaseOperator | PauliSumOp],
+        parameter_values: Sequence[Sequence[float]],
+        parameters: Sequence[ParameterView],
+        **run_options,
+    ) -> PrimitiveJob:
+        circuit_indices = []
+        for i, circuit in enumerate(circuits):
+            index = self._circuit_ids.get(id(circuit))
+            if index is not None:
+                circuit_indices.append(index)
+            else:
+                circuit_indices.append(len(self._circuits))
+                self._circuit_ids[id(circuit)] = len(self._circuits)
+                self._circuits.append(circuit)
+                self._parameters.append(parameters[i])
+        observable_indices = []
+        for observable in observables:
+            index = self._observable_ids.get(id(observable))
+            if index is not None:
+                observable_indices.append(index)
+            else:
+                observable_indices.append(len(self._observables))
+                self._observable_ids[id(observable)] = len(self._observables)
+                self._observables.append(init_observable(observable))
+        job = PrimitiveJob(
+            self._call, circuit_indices, observable_indices, parameter_values, **run_options
+        )
+        job.submit()
+        return job
