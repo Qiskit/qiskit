@@ -24,7 +24,7 @@ import numpy as np
 from qiskit import user_config
 from qiskit.quantum_info.states.statevector import Statevector
 from qiskit.quantum_info.states.densitymatrix import DensityMatrix
-from qiskit.visualization.array import array_to_latex
+from qiskit.visualization.array import array_to_latex, num_to_latex, _round_if_close
 from qiskit.utils.deprecation import deprecate_arguments
 from qiskit.utils import optionals as _optionals
 from qiskit.visualization.exceptions import VisualizationError
@@ -1197,47 +1197,6 @@ def state_to_latex(
     return prefix + latex_str + suffix
 
 
-def _round_if_close(data):
-    """Round real and imaginary parts of complex number of close to zero"""
-    data = np.real_if_close(data)
-    data = -1j * np.real_if_close(data * 1j)
-    return data
-
-
-def num_to_latex_ket(raw_value: complex, first_term: bool) -> Optional[str]:
-    """Convert a complex number to latex code suitable for a ket expression
-
-    Args:
-        raw_value: Value to convert
-        first_term: If True then generate latex code for the first term in an expression
-    Returns:
-        String with latex code or None if no term is required
-    """
-    import sympy  # runtime import
-
-    raw_value = _round_if_close(raw_value)
-    value = sympy.nsimplify(raw_value, constants=(sympy.pi,), rational=False)
-
-    if np.abs(value) == 0:
-        return None
-
-    element = sympy.latex(value, full_prec=False)
-    if isinstance(value, sympy.core.Add):
-        # element has two terms
-        element = f"({element})"
-    else:
-        if first_term:
-            if element == "1":
-                element = ""
-            elif element == "-1":
-                element = "-"
-
-    if not first_term and not element.startswith('-'):
-        element = f"+{element}"
-
-    return element
-
-
 def numbers_to_latex_terms(numbers: List[complex]) -> List[str]:
     """Convert a list of numbers to latex formatted terms
 
@@ -1251,7 +1210,7 @@ def numbers_to_latex_terms(numbers: List[complex]) -> List[str]:
     first_term = True
     terms = []
     for number in numbers:
-        term = num_to_latex_ket(number, first_term)
+        term = num_to_latex(number, first_term)
         if term is not None:
             first_term = False
         terms.append(term)

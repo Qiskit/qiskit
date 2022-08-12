@@ -19,103 +19,45 @@ import numpy as np
 
 from qiskit.exceptions import MissingOptionalLibraryError
 
+def _round_if_close(data):
+    """Round real and imaginary parts of complex number of close to zero"""
+    data = np.real_if_close(data)
+    data = -1j * np.real_if_close(data * 1j)
+    return data
 
-def _num_to_latex(num, precision=5):
-    """Takes a complex number as input and returns a latex representation
+
+def num_to_latex(raw_value, first_term=True):
+    """Convert a complex number to latex code suitable for a ket expression
 
     Args:
-        num (numerical): The number to be converted to latex.
-        precision (int): If the real or imaginary parts of num are not close
-                         to an integer, the number of decimal places to round to
-
+        raw_value: Value to convert
+        first_term: If True then generate latex code for the first term in an expression
     Returns:
-        str: Latex representation of num
+        String with latex code or None if no term is required
     """
-    # Result is combination of maximum 4 strings in the form:
-    #     {common_facstring} ( {realstring} {operation} {imagstring}i )
-    # common_facstring: A common factor between the real and imaginary part
-    # realstring: The real part (inc. a negative sign if applicable)
-    # operation: The operation between the real and imaginary parts ('+' or '-')
-    # imagstring: Absolute value of the imaginary parts (i.e. not inc. any negative sign).
-    # This function computes each of these strings and combines appropriately.
+    import sympy  # runtime import
 
-    r = np.real(num)
-    i = np.imag(num)
-    common_factor = None
+    raw_value = _round_if_close(raw_value)
+    value = sympy.nsimplify(raw_value, constants=(sympy.pi,), rational=False)
 
-    # try to factor out common terms in imaginary numbers
-    if np.isclose(abs(r), abs(i)) and not np.isclose(r, 0) and not np.isclose(i, 0):
-        common_factor = abs(r)
-        r = r / common_factor
-        i = i / common_factor
+    if np.abs(value) == 0:
+        return None
 
-    common_terms = {
-        1 / math.sqrt(2): "\\tfrac{1}{\\sqrt{2}}",
-        1 / math.sqrt(3): "\\tfrac{1}{\\sqrt{3}}",
-        math.sqrt(2 / 3): "\\sqrt{\\tfrac{2}{3}}",
-        math.sqrt(3 / 4): "\\sqrt{\\tfrac{3}{4}}",
-        1 / math.sqrt(8): "\\tfrac{1}{\\sqrt{8}}",
-    }
-
-    def _proc_value(val):
-        # This function converts a real value to a latex string
-        # First, see if val is close to an integer:
-        val_mod = np.mod(val, 1)
-        if np.isclose(val_mod, 0) or np.isclose(val_mod, 1):
-            # If so, return that integer
-            return str(int(np.round(val)))
-        # Otherwise, see if it matches one of the common terms
-        for term, latex_str in common_terms.items():
-            if np.isclose(abs(val), term):
-                if val > 0:
-                    return latex_str
-                else:
-                    return "-" + latex_str
-        # try to factorise val nicely
-        frac = Fraction(val).limit_denominator()
-        num, denom = frac.numerator, frac.denominator
-        if abs(num) + abs(denom) < 20:
-            # If fraction is 'nice' return
-            if val > 0:
-                return f"\\tfrac{{{abs(num)}}}{{{abs(denom)}}}"
-            else:
-                return f"-\\tfrac{{{abs(num)}}}{{{abs(denom)}}}"
-        else:
-            # Failing everything else, return val as a decimal
-            return "{:.{}f}".format(val, precision).rstrip("0")
-
-    # Get string (or None) for common factor between real and imag
-    if common_factor is None:
-        common_facstring = None
+    element = sympy.latex(value, full_prec=False)
+    if isinstance(value, sympy.core.Add):
+        # element has two terms
+        element = f"({element})"
     else:
-        common_facstring = _proc_value(common_factor)
+        if first_term:
+            if element == "1":
+                element = ""
+            elif element == "-1":
+                element = "-"
 
-    # Get string for real part
-    realstring = _proc_value(r)
+    if not first_term and not element.startswith('-'):
+        element = f"+{element}"
 
-    # Get string for both imaginary part and operation between real and imaginary parts
-    if i > 0:
-        operation = "+"
-        imagstring = _proc_value(i)
-    else:
-        operation = "-"
-        imagstring = _proc_value(-i)
-    if imagstring == "1":
-        imagstring = ""  # Don't want to return '1i', just 'i'
-
-    # Now combine the strings appropriately:
-    if imagstring == "0":
-        return realstring  # realstring already contains the negative sign (if needed)
-    if realstring == "0":
-        # imagstring needs the negative sign adding
-        if operation == "-":
-            return f"-{imagstring}i"
-        else:
-            return f"{imagstring}i"
-    if common_facstring is not None:
-        return f"{common_facstring}({realstring} {operation} {imagstring}i)"
-    else:
-        return f"{realstring} {operation} {imagstring}i"
+    return element
 
 
 def _matrix_to_latex(matrix, precision=5, prefix="", max_size=(8, 8)):
@@ -149,7 +91,7 @@ def _matrix_to_latex(matrix, precision=5, prefix="", max_size=(8, 8)):
         # string from it; Each element separated by `&`
         el_string = ""
         for el in elements:
-            num_string = _num_to_latex(el, precision=precision)
+            num_string = num_to_latex(el)  # TODO: make accept precision
             el_string += num_string + " & "
         el_string = el_string[:-2]  # remove trailing ampersands
         return el_string
