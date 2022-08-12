@@ -1,4 +1,4 @@
-setuptools-rust
+setuptools-rust<1.5.0
 coverage>=4.4.0
 hypothesis>=4.24.3
 python-constraint>=1.4
