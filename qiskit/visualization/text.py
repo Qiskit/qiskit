@@ -1035,7 +1035,7 @@ class TextDrawing:
         for i in range(len(ctrl_qubits)):
             # For sidetext gate alignment, need to set every Bullet with
             # conditional on if there's a condition.
-            if op.condition is not None:
+            if getattr(op, "condition", None) is not None:
                 conditional = True
             if cstate[i] == "1":
                 gates.append(Bullet(conditional=conditional, label=ctrl_text, bottom=bottom))
@@ -1054,12 +1054,12 @@ class TextDrawing:
         base_gate = getattr(op, "base_gate", None)
 
         params = get_param_str(op, "text", ndigits=5)
-        if not isinstance(op, (Measure, SwapGate, Reset)) and not op._directive:
+        if not isinstance(op, (Measure, SwapGate, Reset)) and not getattr(op, "_directive", False):
             gate_text, ctrl_text, _ = get_gate_ctrl_text(op, "text")
             gate_text = TextDrawing.special_label(op) or gate_text
             gate_text = gate_text + params
 
-        if op.condition is not None:
+        if getattr(op, "condition", None) is not None:
             # conditional
             current_cons_cond += layer.set_cl_multibox(op.condition, top_connect="╨")
             conditional = True
@@ -1084,7 +1084,7 @@ class TextDrawing:
             else:
                 layer.set_clbit(node.cargs[0], MeasureTo())
 
-        elif op._directive:
+        elif getattr(op, "_directive", False):
             # barrier
             if not self.plotbarriers:
                 return layer, current_cons, current_cons_cond, connection_label
