@@ -1215,54 +1215,27 @@ def num_to_latex_ket(raw_value: complex, first_term: bool) -> Optional[str]:
     """
     import sympy  # runtime import
 
-    if raw_value == 0:
-        value = 0
-        real_value = 0
-        imag_value = 0
-    else:
-        raw_value = _round_if_close(raw_value)
-        value = sympy.nsimplify(raw_value, constants=(sympy.pi,), rational=False)
-        real_value = float(sympy.re(value))
-        imag_value = float(sympy.im(value))
+    raw_value = _round_if_close(raw_value)
+    value = sympy.nsimplify(raw_value, constants=(sympy.pi,), rational=False)
 
-    element = ""
-    if np.abs(value) > 0:
-        latex_element = sympy.latex(value, full_prec=False)
-        two_term = real_value != 0 and imag_value != 0
-        if isinstance(value, sympy.core.Add):
-            # can happen for expressions like 1 + sqrt(2)
-            two_term = True
-        if two_term:
-            if first_term:
-                element = f"({latex_element})"
-            else:
-                element = f"+ ({latex_element})"
-        else:
-            if first_term:
-                if np.isreal(complex(value)) and value > 0:
-                    element = latex_element
-                else:
-                    element = latex_element
-                if element == "1":
-                    element = ""
-                elif element == "-1":
-                    element = "-"
-            else:
-
-                if imag_value == 0 and real_value > 0:
-                    element = "+" + latex_element
-                elif real_value == 0 and imag_value > 0:
-                    element = "+" + latex_element
-                else:
-                    element = latex_element
-                if element == "+1":
-                    element = "+"
-                elif element == "-1":
-                    element = "-"
-
-        return element
-    else:
+    if np.abs(value) == 0:
         return None
+
+    element = sympy.latex(value, full_prec=False)
+    if isinstance(value, sympy.core.Add):
+        # element has two terms
+        element = f"({element})"
+    else:
+        if first_term:
+            if element == "1":
+                element = ""
+            elif element == "-1":
+                element = "-"
+
+    if not first_term and not element.startswith('-'):
+        element = f"+{element}"
+
+    return element
 
 
 def numbers_to_latex_terms(numbers: List[complex]) -> List[str]:
