@@ -489,7 +489,7 @@ class DAGDependency:
 
         reachable = [True] * max_node_id
 
-        # Analyze the node in the reverse topological order.
+        # Analyze nodes in the reverse topological order.
         # An improvement to the original algorithm is to consider only direct predecessors
         # and to avoid constructing the lists of forward and backward reachable predecessors
         # for every node when not required.
