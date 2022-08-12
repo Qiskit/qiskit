@@ -57,7 +57,11 @@ class VarQTE(ABC):
 
     def __init__(
         self,
+        ansatz: Union[OperatorBase, QuantumCircuit],
         variational_principle: VariationalPrinciple,
+        ansatz_init_param_values: Optional[
+            Union[Dict[Parameter, complex], List[complex], np.ndarray]
+        ] = None,
         ode_solver: Union[Type[OdeSolver], str] = ForwardEulerSolver,
         lse_solver: Optional[Callable[[np.ndarray, np.ndarray], np.ndarray]] = None,
         num_timesteps: Optional[int] = None,
@@ -68,7 +72,10 @@ class VarQTE(ABC):
     ) -> None:
         r"""
         Args:
+            ansatz: Ansatz to be used for variational time evolution.
             variational_principle: Variational Principle to be used.
+            ansatz_init_param_values: Initial parameter values for an ansatz. If ``None`` provided,
+                they are initialized uniformly at random.
             ode_solver: ODE solver callable that implements a SciPy ``OdeSolver`` interface or a
                 string indicating a valid method offered by SciPy.
             lse_solver: Linear system of equations solver callable. It accepts ``A`` and ``b`` to
@@ -90,7 +97,9 @@ class VarQTE(ABC):
                 slow).
         """
         super().__init__()
+        self.ansatz = ansatz
         self.variational_principle = variational_principle
+        self.ansatz_init_param_values = ansatz_init_param_values
         self._quantum_instance = None
         if quantum_instance is not None:
             self.quantum_instance = quantum_instance
@@ -126,10 +135,7 @@ class VarQTE(ABC):
         operator.
 
         Args:
-            evolution_problem: Instance defining an evolution problem. If no initial parameter
-                values are provided in ``param_value_dict``, they are initialized uniformly at
-                random.
-
+            evolution_problem: Instance defining an evolution problem.
         Returns:
             Result of the evolution which includes a quantum circuit with bound parameters as an
             evolved state and, if provided, observables evaluated on the evolved state using
@@ -140,12 +146,11 @@ class VarQTE(ABC):
         """
         self._validate_aux_ops(evolution_problem)
 
-        if evolution_problem.initial_state is None:
-            raise ValueError("No initial_state (ansatz) was provided. It is required.")
+        if evolution_problem.initial_state is not None:
+            raise ValueError("initial_state provided but not applicable to VarQTE.")
 
         init_state_param_dict = self._create_init_state_param_dict(
-            evolution_problem.param_value_dict,
-            list(evolution_problem.initial_state.parameters),
+            self.ansatz_init_param_values, self.ansatz.parameters
         )
 
         error_calculator = None  # TODO will be supported in another PR
@@ -155,7 +160,6 @@ class VarQTE(ABC):
             evolution_problem.hamiltonian,
             evolution_problem.time,
             evolution_problem.t_param,
-            evolution_problem.initial_state,
             error_calculator,
         )
 
@@ -176,7 +180,6 @@ class VarQTE(ABC):
         hamiltonian: OperatorBase,
         time: float,
         t_param: Optional[Parameter] = None,
-        initial_state: Optional[Union[OperatorBase, QuantumCircuit]] = None,
         error_calculator: Any = None,
     ) -> OperatorBase:
         r"""
@@ -194,7 +197,6 @@ class VarQTE(ABC):
                 The latter case enables the evaluation of a Quantum Natural Gradient.
             time: Total time of evolution.
             t_param: Time parameter in case of a time-dependent Hamiltonian.
-            initial_state: Quantum state to be evolved.
             error_calculator: Not yet supported. Calculator of errors for error-based ODE functions.
 
         Returns:
@@ -208,7 +210,7 @@ class VarQTE(ABC):
         linear_solver = VarQTELinearSolver(
             self.variational_principle,
             hamiltonian,
-            initial_state,
+            self.ansatz,
             init_state_parameters,
             t_param,
             self._ode_function_factory.lse_solver,
@@ -228,7 +230,7 @@ class VarQTE(ABC):
         parameter_values = ode_solver.run(time)
         param_dict_from_ode = dict(zip(init_state_parameters, parameter_values))
 
-        return initial_state.assign_parameters(param_dict_from_ode)
+        return self.ansatz.assign_parameters(param_dict_from_ode)
 
     @staticmethod
     def _create_init_state_param_dict(

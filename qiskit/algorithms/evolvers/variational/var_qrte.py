@@ -11,13 +11,15 @@
 # that they have been altered from the originals.
 
 """Variational Quantum Real Time Evolution algorithm."""
-from typing import Optional, Union, Type, Callable
+from typing import Optional, Union, Type, Callable, List, Dict
 
 import numpy as np
 from scipy.integrate import OdeSolver
 
+from qiskit import QuantumCircuit
 from qiskit.algorithms.evolvers.real_evolver import RealEvolver
-from qiskit.opflow import ExpectationBase
+from qiskit.circuit import Parameter
+from qiskit.opflow import ExpectationBase, OperatorBase
 from qiskit.utils import QuantumInstance
 from . import RealMcLachlanPrinciple
 from .solvers.ode.forward_euler_solver import ForwardEulerSolver
@@ -61,14 +63,18 @@ class VarQRTE(VarQTE, RealEvolver):
         var_principle = RealMcLachlanPrinciple()
         backend = BasicAer.get_backend("statevector_simulator")
         time = 1
-        evolution_problem = EvolutionProblem(observable, time, ansatz, param_value_dict=param_dict)
-        var_qrte = VarQRTE(var_principle, quantum_instance=backend)
+        evolution_problem = EvolutionProblem(observable, time)
+        var_qrte = VarQRTE(ansatz, var_principle, param_dict, quantum_instance=backend)
         evolution_result = var_qite.evolve(evolution_problem)
     """
 
     def __init__(
         self,
+        ansatz: Union[OperatorBase, QuantumCircuit],
         variational_principle: RealVariationalPrinciple = RealMcLachlanPrinciple(),
+        ansatz_init_param_values: Optional[
+            Union[Dict[Parameter, complex], List[complex], np.ndarray]
+        ] = None,
         ode_solver: Union[Type[OdeSolver], str] = ForwardEulerSolver,
         lse_solver: Optional[Callable[[np.ndarray, np.ndarray], np.ndarray]] = None,
         num_timesteps: Optional[int] = None,
@@ -79,7 +85,10 @@ class VarQRTE(VarQTE, RealEvolver):
     ) -> None:
         r"""
         Args:
+            ansatz: Ansatz to be used for variational time evolution.
             variational_principle: Variational Principle to be used.
+            ansatz_init_param_values: Initial parameter values for an ansatz. If ``None`` provided,
+                they are initialized uniformly at random.
             ode_solver: ODE solver callable that implements a SciPy ``OdeSolver`` interface or a
                 string indicating a valid method offered by SciPy.
             lse_solver: Linear system of equations solver callable. It accepts ``A`` and ``b`` to
@@ -101,7 +110,9 @@ class VarQRTE(VarQTE, RealEvolver):
                 slow).
         """
         super().__init__(
+            ansatz,
             variational_principle,
+            ansatz_init_param_values,
             ode_solver,
             lse_solver=lse_solver,
             num_timesteps=num_timesteps,

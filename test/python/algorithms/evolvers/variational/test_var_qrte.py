@@ -90,13 +90,9 @@ class TestVarQRTE(QiskitAlgorithmsTestCase):
         init_param_values[0] = 1
         var_principle = RealMcLachlanPrinciple()
 
-        param_dict = dict(zip(parameters, init_param_values))
-
         time = 0.1
 
-        evolution_problem = EvolutionProblem(
-            observable, time, ansatz, param_value_dict=param_dict, aux_operators=aux_ops
-        )
+        evolution_problem = EvolutionProblem(observable, time, aux_operators=aux_ops)
 
         thetas_expected_sv = [
             0.88967020378258,
@@ -136,7 +132,9 @@ class TestVarQRTE(QiskitAlgorithmsTestCase):
                     backend=backend,
                 )
                 var_qrte = VarQRTE(
+                    ansatz,
                     var_principle,
+                    init_param_values,
                     expectation=expectation,
                     num_timesteps=25,
                     quantum_instance=backend,
@@ -197,7 +195,12 @@ class TestVarQRTE(QiskitAlgorithmsTestCase):
 
         time = 1
         var_qrte = VarQRTE(
-            var_principle, ode_solver="RK45", num_timesteps=25, quantum_instance=backend
+            ansatz,
+            var_principle,
+            param_dict,
+            ode_solver="RK45",
+            num_timesteps=25,
+            quantum_instance=backend,
         )
 
         thetas_expected = [
@@ -215,17 +218,10 @@ class TestVarQRTE(QiskitAlgorithmsTestCase):
             0.610788576398685,
         ]
 
-        with self.subTest("Parameters values dictionary test."):
-            self._test_helper(ansatz, param_dict, observable, thetas_expected, time, var_qrte)
-        with self.subTest("Parameters values array test."):
-            self._test_helper(
-                ansatz, init_param_values, observable, thetas_expected, time, var_qrte
-            )
+        self._test_helper(observable, thetas_expected, time, var_qrte)
 
-    def _test_helper(self, ansatz, init_param_values, observable, thetas_expected, time, var_qrte):
-        evolution_problem = EvolutionProblem(
-            observable, time, ansatz, param_value_dict=init_param_values
-        )
+    def _test_helper(self, observable, thetas_expected, time, var_qrte):
+        evolution_problem = EvolutionProblem(observable, time)
         evolution_result = var_qrte.evolve(evolution_problem)
         evolved_state = evolution_result.evolved_state
 

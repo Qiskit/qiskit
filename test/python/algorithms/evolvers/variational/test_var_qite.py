@@ -94,9 +94,7 @@ class TestVarQITE(QiskitAlgorithmsTestCase):
 
         time = 1
 
-        evolution_problem = EvolutionProblem(
-            observable, time, ansatz, aux_operators=aux_ops, param_value_dict=param_dict
-        )
+        evolution_problem = EvolutionProblem(observable, time, aux_operators=aux_ops)
 
         thetas_expected_sv = [
             1.03612467538419,
@@ -135,7 +133,9 @@ class TestVarQITE(QiskitAlgorithmsTestCase):
                     backend=backend,
                 )
                 var_qite = VarQITE(
+                    ansatz,
                     var_principle,
+                    param_dict,
                     expectation=expectation,
                     num_timesteps=25,
                     quantum_instance=backend,
@@ -184,13 +184,16 @@ class TestVarQITE(QiskitAlgorithmsTestCase):
         init_param_values[0] = 1
         var_principle = ImaginaryMcLachlanPrinciple()
 
-        param_dict = dict(zip(parameters, init_param_values))
-
         backend = BasicAer.get_backend("statevector_simulator")
 
         time = 7
         var_qite = VarQITE(
-            var_principle, ode_solver="RK45", num_timesteps=25, quantum_instance=backend
+            ansatz,
+            var_principle,
+            init_param_values,
+            ode_solver="RK45",
+            num_timesteps=25,
+            quantum_instance=backend,
         )
 
         thetas_expected = [
@@ -204,7 +207,7 @@ class TestVarQITE(QiskitAlgorithmsTestCase):
             2.04009918594422,
         ]
 
-        self._test_helper(ansatz, observable, param_dict, thetas_expected, time, var_qite, 2)
+        self._test_helper(observable, thetas_expected, time, var_qite, 2)
 
     @slow_test
     @data(
@@ -243,7 +246,12 @@ class TestVarQITE(QiskitAlgorithmsTestCase):
 
         time = 1
         var_qite = VarQITE(
-            var_principle, ode_solver="RK45", num_timesteps=25, quantum_instance=backend
+            ansatz,
+            var_principle,
+            param_dict,
+            ode_solver="RK45",
+            num_timesteps=25,
+            quantum_instance=backend,
         )
 
         thetas_expected = [
@@ -261,18 +269,10 @@ class TestVarQITE(QiskitAlgorithmsTestCase):
             0.663689581255428,
         ]
 
-        with self.subTest("Parameters values dictionary test."):
-            self._test_helper(ansatz, observable, param_dict, thetas_expected, time, var_qite, 4)
+        self._test_helper(observable, thetas_expected, time, var_qite, 4)
 
-        with self.subTest("Parameters values array test."):
-            self._test_helper(
-                ansatz, observable, init_param_values, thetas_expected, time, var_qite, 4
-            )
-
-    def _test_helper(
-        self, ansatz, observable, param_dict, thetas_expected, time, var_qite, decimal
-    ):
-        evolution_problem = EvolutionProblem(observable, time, ansatz, param_value_dict=param_dict)
+    def _test_helper(self, observable, thetas_expected, time, var_qite, decimal):
+        evolution_problem = EvolutionProblem(observable, time)
         evolution_result = var_qite.evolve(evolution_problem)
         evolved_state = evolution_result.evolved_state
 
