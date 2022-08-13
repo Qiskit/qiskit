@@ -48,6 +48,7 @@ class TestCircuitQasm(QiskitTestCase):
         qc.measure(qr1[0], cr[0])
         qc.measure(qr2[0], cr[1])
         qc.measure(qr2[1], cr[2])
+        qc.rzx(pi / 4, qr1[0], qr2[1])
         expected_qasm = """OPENQASM 2.0;
 include "qelib1.inc";
 qreg qr1[1];
@@ -67,7 +68,8 @@ if(cr==2) z qr1[0];
 barrier qr1[0],qr2[0],qr2[1];
 measure qr1[0] -> cr[0];
 measure qr2[0] -> cr[1];
-measure qr2[1] -> cr[2];\n"""
+measure qr2[1] -> cr[2];
+rzx(pi/4) qr1[0],qr2[1];\n"""
         self.assertEqual(qc.qasm(), expected_qasm)
 
     def test_circuit_qasm_with_composite_circuit(self):
@@ -241,7 +243,8 @@ qreg q[3];
 qreg r[3];
 creg c[3];
 creg d[3];
-nG0(pi,pi/2) q[0],r[0];\n"""
+nG0(pi,pi/2) q[0],r[0];
+rzx(pi/2) q[0],r[0];\n"""
         qc = QuantumCircuit.from_qasm_str(original_str)
 
         self.assertEqual(original_str, qc.qasm())
