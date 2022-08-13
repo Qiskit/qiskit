@@ -168,6 +168,15 @@ gate rzz(theta) a,b
   u1(theta) b;
   cx a,b;
 }
+// two-qubit ZX rotation
+gate rzx(theta) a,b
+{
+  h b;
+  cx a,b;
+  rz(theta) b;
+  cx a,b;
+  h b;
+}
 // relative-phase CCX
 gate rccx a,b,c
 {

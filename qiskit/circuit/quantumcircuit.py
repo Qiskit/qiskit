@@ -1692,6 +1692,7 @@ class QuantumCircuit:
             "cu",
             "rxx",
             "rzz",
+            "rzx",
             "rccx",
             "rc3x",
             "c3x",

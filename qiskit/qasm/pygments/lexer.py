@@ -89,6 +89,7 @@ class OpenQASMLexer(RegexLexer):
         "cu3",
         "rxx",
         "rzz",
+        "rzx",
         "rccx",
         "rc3x",
         "u1",
