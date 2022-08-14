@@ -71,7 +71,7 @@ class VarQITE(VarQTE, ImaginaryEvolver):
     def __init__(
         self,
         ansatz: Union[OperatorBase, QuantumCircuit],
-        variational_principle: ImaginaryVariationalPrinciple = ImaginaryMcLachlanPrinciple(),
+        variational_principle: Optional[ImaginaryVariationalPrinciple] = None,
         ansatz_init_param_values: Optional[
             Union[Dict[Parameter, complex], List[complex], np.ndarray]
         ] = None,
@@ -86,7 +86,8 @@ class VarQITE(VarQTE, ImaginaryEvolver):
         r"""
         Args:
             ansatz: Ansatz to be used for variational time evolution.
-            variational_principle: Variational Principle to be used.
+            variational_principle: Variational Principle to be used. Defaults to
+                ``ImaginaryMcLachlanPrinciple``.
             ansatz_init_param_values: Initial parameter values for an ansatz. If ``None`` provided,
                 they are initialized uniformly at random.
             ode_solver: ODE solver callable that implements a SciPy ``OdeSolver`` interface or a
@@ -108,6 +109,8 @@ class VarQITE(VarQTE, ImaginaryEvolver):
                 provided, everything will be evaluated based on NumPy matrix multiplication
                 (which might be slow for larger numbers of qubits).
         """
+        if variational_principle is None:
+            variational_principle = ImaginaryMcLachlanPrinciple()
         super().__init__(
             ansatz,
             variational_principle,

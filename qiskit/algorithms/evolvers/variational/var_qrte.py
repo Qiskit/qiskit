@@ -71,7 +71,7 @@ class VarQRTE(VarQTE, RealEvolver):
     def __init__(
         self,
         ansatz: Union[OperatorBase, QuantumCircuit],
-        variational_principle: RealVariationalPrinciple = RealMcLachlanPrinciple(),
+        variational_principle: Optional[RealVariationalPrinciple] = None,
         ansatz_init_param_values: Optional[
             Union[Dict[Parameter, complex], List[complex], np.ndarray]
         ] = None,
@@ -86,7 +86,8 @@ class VarQRTE(VarQTE, RealEvolver):
         r"""
         Args:
             ansatz: Ansatz to be used for variational time evolution.
-            variational_principle: Variational Principle to be used.
+            variational_principle: Variational Principle to be used. Defaults to
+                ``RealMcLachlanPrinciple``.
             ansatz_init_param_values: Initial parameter values for an ansatz. If ``None`` provided,
                 they are initialized uniformly at random.
             ode_solver: ODE solver callable that implements a SciPy ``OdeSolver`` interface or a
@@ -109,6 +110,8 @@ class VarQRTE(VarQTE, RealEvolver):
                 provided, everything will be evaluated based on matrix multiplication (which is
                 slow).
         """
+        if variational_principle is None:
+            variational_principle = RealMcLachlanPrinciple()
         super().__init__(
             ansatz,
             variational_principle,
