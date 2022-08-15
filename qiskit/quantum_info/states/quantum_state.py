@@ -290,12 +290,18 @@ class QuantumState:
             The seed for random number generator used for sampling can be
             set to a fixed value by using the stats :meth:`seed` method.
         """
-        # Sample list of outcomes
-        samples = self.sample_memory(shots, qargs=qargs)
 
-        # Combine all samples into a counts dictionary
-        inds, counts = np.unique(samples, return_counts=True)
-        return Counts(zip(inds, counts))
+        probs = self.probabilities(qargs)
+
+        counts_array = self._rng.multinomial(shots, probs)
+        labels = self._index_to_ket_array(
+            np.arange(len(probs)), self.dims(qargs), string_labels=True
+        )
+
+        counts_pairs = [
+            (labels[i], counts_array[i]) for i in range(len(counts_array)) if counts_array[i] > 0
+        ]
+        return Counts(counts_pairs)
 
     def measure(self, qargs=None):
         """Measure subsystems and return outcome and post-measure state.
