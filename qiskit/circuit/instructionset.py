@@ -19,8 +19,8 @@ import warnings
 from typing import Callable, Optional, Tuple, Union
 
 from qiskit.circuit.exceptions import CircuitError
-from .instruction import Instruction
 from .classicalregister import Clbit, ClassicalRegister
+from .operation import Operation
 from .quantumcircuitdata import CircuitInstruction
 
 
@@ -150,8 +150,8 @@ class InstructionSet:
     def add(self, instruction, qargs=None, cargs=None):
         """Add an instruction and its context (where it is attached)."""
         if not isinstance(instruction, CircuitInstruction):
-            if not isinstance(instruction, Instruction):
-                raise CircuitError("attempt to add non-Instruction to InstructionSet")
+            if not isinstance(instruction, Operation):
+                raise CircuitError("attempt to add non-Operation to InstructionSet")
             if qargs is None or cargs is None:
                 raise CircuitError("missing qargs or cargs in old-style InstructionSet.add")
             instruction = CircuitInstruction(instruction, tuple(qargs), tuple(cargs))
