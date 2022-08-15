@@ -121,7 +121,7 @@ class TestLatexStateDrawer(QiskitVisualizationTestCase):
             ([1 + np.sqrt(2)], ["(1 + \\sqrt{2})"]),
         ]
         for numbers, latex_terms in cases:
-            terms = numbers_to_latex_terms(numbers, 15)
+            terms = numbers_to_latex_terms(numbers)
             self.assertListEqual(terms, latex_terms)
 
 

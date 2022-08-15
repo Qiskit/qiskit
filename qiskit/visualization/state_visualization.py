@@ -1220,6 +1220,7 @@ def _state_to_latex_ket(data, max_size=12, precision=15):
         data: State vector
         max_size: Maximum number of non-zero terms in the expression. If the number of
                  non-zero terms is larger than the max_size, then the representation is truncated.
+        precision (int): Number of decimal places to round each amplitude to.
 
     Returns:
         String with LaTeX representation of the state vector

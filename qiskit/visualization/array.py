@@ -37,6 +37,14 @@ def num_to_latex(raw_value, precision=15, coefficient=False, first_term=True):
 
     raw_value = np.around(raw_value, precision)
     value = sympy.nsimplify(raw_value, rational=False)
+
+    if isinstance(value, sympy.core.numbers.Rational) and value.denominator > 50:
+        # Avoid showing ugly fractions (e.g. 50498971964399/62500000000000)
+        value = value.evalf()  # Display as float
+
+    if isinstance(value, sympy.core.numbers.Float):
+        value = round(value, precision)
+
     element = sympy.latex(value, full_prec=False)
 
     if not coefficient:
