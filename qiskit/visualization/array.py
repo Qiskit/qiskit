@@ -81,13 +81,7 @@ def _matrix_to_latex(matrix, precision=5, prefix="", max_size=(8, 8)):
 
     Returns:
         str: Latex representation of the matrix
-
-    Raises:
-        ValueError: If minimum value in max_size < 3
     """
-    if min(max_size) < 3:
-        raise ValueError("""Smallest value in max_size must be greater than or equal to 3""")
-
     out_string = f"\n{prefix}\n"
     out_string += "\\begin{bmatrix}\n"
 
@@ -171,6 +165,7 @@ def array_to_latex(array, precision=5, prefix="", source=False, max_size=8):
     Raises:
         TypeError: If array can not be interpreted as a numerical numpy array.
         ValueError: If the dimension of array is not 1 or 2.
+        ValueError: If the smallest value in ``max_size`` is less than 3.
         MissingOptionalLibraryError: If ``source`` is ``False`` and ``IPython.display.Latex`` cannot be
                      imported.
     """
@@ -189,6 +184,9 @@ def array_to_latex(array, precision=5, prefix="", source=False, max_size=8):
         outstr = _matrix_to_latex(array, precision=precision, prefix=prefix, max_size=max_size)
     else:
         raise ValueError("array_to_latex can only convert numpy ndarrays of dimension 1 or 2")
+
+    if min(max_size) < 3:
+        raise ValueError("Smallest value in max_size must be greater than or equal to 3")
 
     if source is False:
         try:
