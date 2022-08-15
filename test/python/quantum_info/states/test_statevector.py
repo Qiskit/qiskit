@@ -1122,7 +1122,7 @@ class TestStatevector(QiskitTestCase):
         """Test numerical rounding errors are not printed"""
         sv = Statevector(np.array([1 - 8e-17, 8.32667268e-17j]))
         latex_string = sv.draw(output="latex_source")
-        self.assertTrue(latex_string.startswith(" |0\\rangle"))
+        self.assertTrue(latex_string.startswith("|0\\rangle"))
         self.assertNotIn("|1\\rangle", latex_string)
 
     def test_statevctor_iter(self):

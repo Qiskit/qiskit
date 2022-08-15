@@ -59,13 +59,13 @@ def num_to_latex(raw_value, precision=15, coefficient=False, first_term=True):
     elif element == "-1":
         element = "-"
 
-    if not first_term and not element.startswith('-'):
+    if not first_term and not element.startswith("-"):
         element = f"+{element}"
 
     return element
 
 
-def _matrix_to_latex(matrix, precision=5, prefix="", max_size=(8, 8)):
+def _matrix_to_latex(matrix, precision=10, prefix="", max_size=(8, 8)):
     """Latex representation of a complex numpy array (with maximum dimension 2)
 
     Args:
@@ -138,7 +138,7 @@ def _matrix_to_latex(matrix, precision=5, prefix="", max_size=(8, 8)):
     return out_string
 
 
-def array_to_latex(array, precision=5, prefix="", source=False, max_size=8):
+def array_to_latex(array, precision=10, prefix="", source=False, max_size=8):
     """Latex representation of a complex numpy array (with dimension 1 or 2)
 
     Args:

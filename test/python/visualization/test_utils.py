@@ -397,13 +397,13 @@ class TestVisualizationUtils(QiskitTestCase):
             [np.sqrt(1 / 2), 1 / 16, 1 / np.sqrt(8) + 3j, -0.5 + 0.5j],
             [1 / 3 - 1 / 3j, np.sqrt(1 / 2) * 1j, 34.3210, -9 / 2],
         ]
-        matrix = np.array(matrix)
         exp_str = (
-            "\\begin{bmatrix}\\tfrac{1}{\\sqrt{2}}&\\tfrac{1}{16}&\\tfrac{1}{\\sqrt{8}}+3i&"
-            "\\tfrac{1}{2}(-1+i)\\\\\\tfrac{1}{3}(1+i)&\\tfrac{1}{\\sqrt{2}}i&34.321&"
-            "-\\tfrac{9}{2}\\\\\\end{bmatrix}"
+            "\n\n\\begin{bmatrix}\n\\frac{\\sqrt{2}}{2} & \\frac{1}{16} & "
+            "\\frac{\\sqrt{2}}{4} + 3 i & - \\frac{1}{2} + \\frac{i}{2}  "
+            "\\\\\n \\frac{1}{3} + \\frac{i}{3} & \\frac{\\sqrt{2} i}{2} & "
+            "34.321 & - \\frac{9}{2}  \\\\\n \\end{bmatrix}\n"
         )
-        result = array_to_latex(matrix, source=True).replace(" ", "").replace("\n", "")
+        result = array_to_latex(matrix, source=True)
         self.assertEqual(exp_str, result)
 
 

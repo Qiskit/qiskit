@@ -16,7 +16,11 @@ import unittest
 import numpy as np
 
 from qiskit.quantum_info import Statevector
-from qiskit.visualization.state_visualization import state_drawer, state_to_latex, numbers_to_latex_terms
+from qiskit.visualization.state_visualization import (
+    state_drawer,
+    state_to_latex,
+    numbers_to_latex_terms,
+)
 from .visualization import QiskitVisualizationTestCase
 
 
@@ -53,12 +57,12 @@ class TestLatexStateDrawer(QiskitVisualizationTestCase):
         sv = Statevector.from_label("+-rl")
         output = state_drawer(sv, "latex_source", prefix=r"|\psi\rangle=")
         expected_output = (
-                "|\\psi\\rangle=\\frac{1}{4} |0000\\rangle - \\frac{i}{4} "
-                "|0001\\rangle +\\frac{i}{4} |0010\\rangle +\\frac{1}{4} "
-                "|0011\\rangle - \\frac{1}{4} |0100\\rangle +\\frac{i}{4} "
-                "|0101\\rangle + \\ldots +\\frac{1}{4} |1011\\rangle - "
-                "\\frac{1}{4} |1100\\rangle +\\frac{i}{4} |1101\\rangle - "
-                "\\frac{i}{4} |1110\\rangle - \\frac{1}{4} |1111\\rangle"
+            "|\\psi\\rangle=\\frac{1}{4} |0000\\rangle - \\frac{i}{4} "
+            "|0001\\rangle +\\frac{i}{4} |0010\\rangle +\\frac{1}{4} "
+            "|0011\\rangle - \\frac{1}{4} |0100\\rangle +\\frac{i}{4} "
+            "|0101\\rangle + \\ldots +\\frac{1}{4} |1011\\rangle - "
+            "\\frac{1}{4} |1100\\rangle +\\frac{i}{4} |1101\\rangle - "
+            "\\frac{i}{4} |1110\\rangle - \\frac{1}{4} |1111\\rangle"
         )
         self.assertEqual(output, expected_output)
 
@@ -108,7 +112,7 @@ class TestLatexStateDrawer(QiskitVisualizationTestCase):
         """Test conversions of complex numbers to latex terms"""
 
         cases = [
-            ([1 - 8e-17, -1+8e-17], ["", "-"]),
+            ([1 - 8e-17, -1 + 8e-17], ["", "-"]),
             ([1, -1], ["", "-"]),
             ([1j, 1j], ["i", "+i"]),
             ([-1, 1], ["-", "+"]),
@@ -123,7 +127,6 @@ class TestLatexStateDrawer(QiskitVisualizationTestCase):
         for numbers, latex_terms in cases:
             terms = numbers_to_latex_terms(numbers)
             self.assertListEqual(terms, latex_terms)
-
 
 
 if __name__ == "__main__":
