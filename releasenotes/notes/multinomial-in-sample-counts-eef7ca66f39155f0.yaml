@@ -1,0 +1,8 @@
+---
+features:
+  - |
+    The performance of the method :meth:`quantum_info.QuantumState.sample_counts`
+    has been improved from O(n) to O(1). Before, we sampled n shots from the
+    state and then counted the number of shots for each basis state. Now, we
+    instead sample directly from the distribution of the number of shots for
+    each basis state.
