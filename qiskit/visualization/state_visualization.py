@@ -1218,17 +1218,17 @@ def _state_to_latex_ket(data, max_size=12, precision=15):
 
     Args:
         data: State vector
-        max_size: Maximum number of non-zero terms in the expression. If the number of
+        max_size (int): Maximum number of non-zero terms in the expression. If the number of
                  non-zero terms is larger than the max_size, then the representation is truncated.
         precision (int): Number of decimal places to round each amplitude to.
 
     Returns:
         String with LaTeX representation of the state vector
     """
-    num = int(np.log2(len(data)))
+    num_qubits = int(np.log2(len(data)))
 
     def ket_name(i):
-        return bin(i)[2:].zfill(num)
+        return bin(i)[2:].zfill(num_qubits)
 
     data = np.around(data, precision)
     nonzero_indices = np.where(data != 0)[0].tolist()
@@ -1242,11 +1242,10 @@ def _state_to_latex_ket(data, max_size=12, precision=15):
         latex_terms = numbers_to_latex_terms(data[nonzero_indices], precision)
 
     latex_str = ""
-    for idx, ket_idx in enumerate(nonzero_indices):
+    for term, ket_idx in zip(latex_terms, nonzero_indices):
         if ket_idx is None:
             latex_str += r"+ \ldots "
         else:
-            term = latex_terms[idx]
             ket = ket_name(ket_idx)
             latex_str += f"{term} |{ket}\\rangle "
     return latex_str.strip()
