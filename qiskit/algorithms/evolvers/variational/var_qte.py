@@ -59,7 +59,7 @@ class VarQTE(ABC):
         self,
         ansatz: Union[OperatorBase, QuantumCircuit],
         variational_principle: VariationalPrinciple,
-        ansatz_init_param_values: Optional[
+        initial_parameters: Optional[
             Union[Dict[Parameter, complex], List[complex], np.ndarray]
         ] = None,
         ode_solver: Union[Type[OdeSolver], str] = ForwardEulerSolver,
@@ -74,7 +74,7 @@ class VarQTE(ABC):
         Args:
             ansatz: Ansatz to be used for variational time evolution.
             variational_principle: Variational Principle to be used.
-            ansatz_init_param_values: Initial parameter values for an ansatz. If ``None`` provided,
+            initial_parameters: Initial parameter values for an ansatz. If ``None`` provided,
                 they are initialized uniformly at random.
             ode_solver: ODE solver callable that implements a SciPy ``OdeSolver`` interface or a
                 string indicating a valid method offered by SciPy.
@@ -99,7 +99,7 @@ class VarQTE(ABC):
         super().__init__()
         self.ansatz = ansatz
         self.variational_principle = variational_principle
-        self.ansatz_init_param_values = ansatz_init_param_values
+        self.initial_parameters = initial_parameters
         self._quantum_instance = None
         if quantum_instance is not None:
             self.quantum_instance = quantum_instance
@@ -150,7 +150,7 @@ class VarQTE(ABC):
             raise ValueError("initial_state provided but not applicable to VarQTE.")
 
         init_state_param_dict = self._create_init_state_param_dict(
-            self.ansatz_init_param_values, self.ansatz.parameters
+            self.initial_parameters, self.ansatz.parameters
         )
 
         error_calculator = None  # TODO will be supported in another PR
