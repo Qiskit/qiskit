@@ -281,6 +281,20 @@ class TestUnitaryCircuit(QiskitTestCase):
         )
         self.assertEqual(expected_qasm, qc.qasm())
 
+    def test_qasm_unitary_noop(self):
+        """Test that an identifier unitary can be converted to OpenQASM 2"""
+        qc = QuantumCircuit(QuantumRegister(3, "q0"))
+        qc.unitary(numpy.eye(8), qc.qubits, label="unitary_identity")
+        expected_qasm = (
+            "OPENQASM 2.0;\n"
+            'include "qelib1.inc";\n'
+            "gate unitary_identity p0,p1,p2 {\n"
+            "}\n"
+            "qreg q0[3];\n"
+            "unitary_identity q0[0],q0[1],q0[2];\n"
+        )
+        self.assertEqual(expected_qasm, qc.qasm())
+
     def test_unitary_decomposition(self):
         """Test decomposition for unitary gates over 2 qubits."""
         qc = QuantumCircuit(3)

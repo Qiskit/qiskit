@@ -14,6 +14,7 @@
 
 import re
 from collections import OrderedDict
+from warnings import warn
 
 import numpy as np
 
@@ -191,27 +192,32 @@ def get_bit_register(circuit, bit):
     return bit_loc.registers[0][0] if bit_loc.registers else None
 
 
-def get_bit_reg_index(circuit, bit, reverse_bits):
+def get_bit_reg_index(circuit, bit, reverse_bits=None):
     """Get the register for a bit if there is one, and the index of the bit
     from the top of the circuit, or the index of the bit within a register.
 
     Args:
         circuit (QuantumCircuit): the circuit being drawn
         bit (Qubit, Clbit): the bit to use to find the register and indexes
-        reverse_bits (bool): if True reverse order of the bits. Default: ``False``.
+        reverse_bits (bool): deprecated option to reverse order of the bits
 
     Returns:
         (ClassicalRegister, None): register associated with the bit
         int: index of the bit from the top of the circuit
         int: index of the bit within the register, if there is a register
     """
+    if reverse_bits is not None:
+        warn(
+            "The 'reverse_bits' kwarg to the function "
+            "~qiskit.visualization.utils.get_bit_reg_index "
+            "is deprecated as of 0.22.0 and will be removed no earlier than 3 months "
+            "after the release date.",
+            DeprecationWarning,
+            2,
+        )
     bit_loc = circuit.find_bit(bit)
     bit_index = bit_loc.index
     register, reg_index = bit_loc.registers[0] if bit_loc.registers else (None, None)
-    if register is not None and reverse_bits:
-        bits_len = len(circuit.clbits) if isinstance(bit, Clbit) else len(circuit.qubits)
-        bit_index = bits_len - bit_index - 1
-
     return register, bit_index, reg_index
 
 
@@ -281,34 +287,41 @@ def get_wire_label(drawer, register, index, layout=None, cregbundle=True):
     return wire_label
 
 
-def get_condition_label_val(condition, circuit, cregbundle, reverse_bits):
+def get_condition_label_val(condition, circuit, cregbundle, reverse_bits=None):
     """Get the label and value list to display a condition
 
     Args:
         condition (Union[Clbit, ClassicalRegister], int): classical condition
         circuit (QuantumCircuit): the circuit that is being drawn
         cregbundle (bool): if set True bundle classical registers
-        reverse_bits (bool): if set True reverse the bit order
+        reverse_bits (bool): deprecated option to reverse order of the bits
 
     Returns:
         str: label to display for the condition
         list(str): list of 1's and 0's indicating values of condition
     """
+    if reverse_bits is not None:
+        warn(
+            "The 'reverse_bits' kwarg to the function "
+            "~qiskit.visualization.utils.get_condition_label_val "
+            "is deprecated as of 0.22.0 and will be removed no earlier than 3 months "
+            "after the release date.",
+            DeprecationWarning,
+            2,
+        )
     cond_is_bit = bool(isinstance(condition[0], Clbit))
     cond_val = int(condition[1])
 
     # if condition on a register, return list of 1's and 0's indicating
     # closed or open, else only one element is returned
     if isinstance(condition[0], ClassicalRegister) and not cregbundle:
-        val_bits = list(f"{cond_val:0{condition[0].size}b}")
-        if not reverse_bits:
-            val_bits = val_bits[::-1]
+        val_bits = list(f"{cond_val:0{condition[0].size}b}")[::-1]
     else:
         val_bits = list(str(cond_val))
 
     label = ""
     if cond_is_bit and cregbundle:
-        register, _, reg_index = get_bit_reg_index(circuit, condition[0], False)
+        register, _, reg_index = get_bit_reg_index(circuit, condition[0])
         if register is not None:
             label = f"{register.name}_{reg_index}={hex(cond_val)}"
     elif not cond_is_bit:
@@ -371,12 +384,14 @@ def _trim(image):
     return image
 
 
-def _get_layered_instructions(circuit, reverse_bits=False, justify=None, idle_wires=True):
+def _get_layered_instructions(
+    circuit, reverse_bits=False, justify=None, idle_wires=True, wire_order=None
+):
     """
     Given a circuit, return a tuple (qubits, clbits, nodes) where
     qubits and clbits are the quantum and classical registers
-    in order (based on reverse_bits) and nodes is a list
-    of DAG nodes whose type is "operation".
+    in order (based on reverse_bits or wire_order) and nodes
+    is a list of DAGOpNodes.
 
     Args:
         circuit (QuantumCircuit): From where the information is extracted.
@@ -385,8 +400,13 @@ def _get_layered_instructions(circuit, reverse_bits=False, justify=None, idle_wi
         justify (str) : `left`, `right` or `none`. Defaults to `left`. Says how
             the circuit should be justified.
         idle_wires (bool): Include idle wires. Default is True.
+        wire_order (list): A list of ints that modifies the order of the bits
+
     Returns:
         Tuple(list,list,list): To be consumed by the visualizer directly.
+
+    Raises:
+        VisualizationError: if both reverse_bits and wire_order are entered.
     """
     if justify:
         justify = justify.lower()
@@ -394,26 +414,41 @@ def _get_layered_instructions(circuit, reverse_bits=False, justify=None, idle_wi
     # default to left
     justify = justify if justify in ("right", "none") else "left"
 
-    dag = circuit_to_dag(circuit)
-
+    qubits = circuit.qubits
+    clbits = circuit.clbits
     nodes = []
-    qubits = dag.qubits
-    clbits = dag.clbits
 
     # Create a mapping of each register to the max layer number for all measure ops
     # with that register as the target. Then when an op with condition is seen,
     # it will be placed to the right of the measure op if the register matches.
     measure_map = OrderedDict([(c, -1) for c in clbits])
 
-    if justify == "none":
-        for node in dag.topological_op_nodes():
-            nodes.append([node])
-    else:
-        nodes = _LayerSpooler(dag, justify, measure_map, reverse_bits)
+    if reverse_bits and wire_order is not None:
+        raise VisualizationError("Cannot set both reverse_bits and wire_order in the same drawing.")
 
     if reverse_bits:
         qubits.reverse()
         clbits.reverse()
+    elif wire_order is not None:
+        new_qubits = []
+        new_clbits = []
+        for bit in wire_order:
+            if bit < len(qubits):
+                new_qubits.append(qubits[bit])
+            else:
+                new_clbits.append(clbits[bit - len(qubits)])
+        qubits = new_qubits
+        clbits = new_clbits
+
+    dag = circuit_to_dag(circuit)
+    dag.qubits = qubits
+    dag.clbits = clbits
+
+    if justify == "none":
+        for node in dag.topological_op_nodes():
+            nodes.append([node])
+    else:
+        nodes = _LayerSpooler(dag, justify, measure_map)
 
     # Optionally remove all idle wires and instructions that are on them and
     # on them only.
@@ -439,7 +474,7 @@ def _sorted_nodes(dag_layer):
     return nodes
 
 
-def _get_gate_span(qubits, node, reverse_bits):
+def _get_gate_span(qubits, node):
     """Get the list of qubits drawing this gate would cover
     qiskit-terra #2802
     """
@@ -453,29 +488,26 @@ def _get_gate_span(qubits, node, reverse_bits):
         if index > max_index:
             max_index = index
 
-    if node.cargs or node.op.condition:
-        if reverse_bits:
-            return qubits[: max_index + 1]
-        else:
-            return qubits[min_index : len(qubits)]
+    if node.cargs or getattr(node.op, "condition", None):
+        return qubits[min_index : len(qubits)]
 
     return qubits[min_index : max_index + 1]
 
 
-def _any_crossover(qubits, node, nodes, reverse_bits):
+def _any_crossover(qubits, node, nodes):
     """Return True .IFF. 'node' crosses over any 'nodes'."""
-    gate_span = _get_gate_span(qubits, node, reverse_bits)
+    gate_span = _get_gate_span(qubits, node)
     all_indices = []
     for check_node in nodes:
         if check_node != node:
-            all_indices += _get_gate_span(qubits, check_node, reverse_bits)
+            all_indices += _get_gate_span(qubits, check_node)
     return any(i in gate_span for i in all_indices)
 
 
 class _LayerSpooler(list):
     """Manipulate list of layer dicts for _get_layered_instructions."""
 
-    def __init__(self, dag, justification, measure_map, reverse_bits):
+    def __init__(self, dag, justification, measure_map):
         """Create spool"""
         super().__init__()
         self.dag = dag
@@ -484,7 +516,6 @@ class _LayerSpooler(list):
         self.justification = justification
         self.measure_map = measure_map
         self.cregs = [self.dag.cregs[reg] for reg in self.dag.cregs]
-        self.reverse_bits = reverse_bits
 
         if self.justification == "left":
             for dag_layer in dag.layers():
@@ -516,7 +547,7 @@ class _LayerSpooler(list):
 
     def insertable(self, node, nodes):
         """True .IFF. we can add 'node' to layer 'nodes'"""
-        return not _any_crossover(self.qubits, node, nodes, self.reverse_bits)
+        return not _any_crossover(self.qubits, node, nodes)
 
     def slide_from_left(self, node, index):
         """Insert node into first layer where there is no conflict going l > r"""
@@ -532,7 +563,7 @@ class _LayerSpooler(list):
             curr_index = index
             last_insertable_index = -1
             index_stop = -1
-            if node.op.condition:
+            if getattr(node.op, "condition", None):
                 if isinstance(node.op.condition[0], Clbit):
                     cond_bit = [clbit for clbit in self.clbits if node.op.condition[0] == clbit]
                     index_stop = self.measure_map[cond_bit[0]]
