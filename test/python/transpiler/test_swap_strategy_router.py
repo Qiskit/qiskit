@@ -594,9 +594,3 @@ class TestSwapRouterExceptions(QiskitTestCase):
 
         with self.assertRaises(QiskitError):
             Commuting2qBlock(circuit_to_dag(circ).op_nodes())
-
-    def test_invalid_edge_coloring(self):
-        """Test that an error is raised if the edge coloring is invalid."""
-        invalid_coloring = {(0, 1): 0, (1, 2): 0}
-        with self.assertRaisesRegex(TranspilerError, "The given edge coloring is invalid."):
-            Commuting2qGateRouter(edge_coloring=invalid_coloring)
