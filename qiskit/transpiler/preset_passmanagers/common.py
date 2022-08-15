@@ -55,6 +55,7 @@ def generate_unroll_3q(
     approximation_degree=None,
     unitary_synthesis_method="default",
     unitary_synthesis_plugin_config=None,
+    hls_config=None,
 ):
     """Generate an unroll >3q :class:`~qiskit.transpiler.PassManager`
 
@@ -68,6 +69,7 @@ def generate_unroll_3q(
         unitary_synthesis_plugin_config (dict): The optional dictionary plugin
             configuration, this is plugin specific refer to the specified plugin's
             documenation for how to use.
+        hls_config: hls config
 
     Returns:
         PassManager: The unroll 3q or more pass manager
@@ -83,7 +85,7 @@ def generate_unroll_3q(
             target=target,
         )
     )
-    unroll_3q.append(HighLevelSynthesis())
+    unroll_3q.append(HighLevelSynthesis(ls_config=hls_config))
     unroll_3q.append(Unroll3qOrMore(target=target, basis_gates=basis_gates))
     return unroll_3q
 
@@ -234,6 +236,7 @@ def generate_translation_passmanager(
     backend_props=None,
     unitary_synthesis_method="default",
     unitary_synthesis_plugin_config=None,
+    hls_config=None,
 ):
     """Generate a basis translation :class:`~qiskit.transpiler.PassManager`
 
@@ -255,6 +258,7 @@ def generate_translation_passmanager(
         backend_props (BackendProperties): Properties of a backend to
             synthesize for (e.g. gate fidelities).
         unitary_synthesis_method (str): The unitary synthesis method to use
+        hls_config: hls config
 
     Returns:
         PassManager: The basis translation pass manager
@@ -277,7 +281,7 @@ def generate_translation_passmanager(
                 method=unitary_synthesis_method,
                 target=target,
             ),
-            HighLevelSynthesis(),
+            HighLevelSynthesis(hls_config=hls_config),
             UnrollCustomDefinitions(sel, basis_gates),
             BasisTranslator(sel, basis_gates, target),
         ]
@@ -295,7 +299,7 @@ def generate_translation_passmanager(
                 min_qubits=3,
                 target=target,
             ),
-            HighLevelSynthesis(),
+            HighLevelSynthesis(hls_config=hls_config),
             Unroll3qOrMore(target=target, basis_gates=basis_gates),
             Collect2qBlocks(),
             Collect1qRuns(),
@@ -309,7 +313,7 @@ def generate_translation_passmanager(
                 method=unitary_synthesis_method,
                 target=target,
             ),
-            HighLevelSynthesis(),
+            HighLevelSynthesis(hls_config=hls_config),
         ]
     else:
         raise TranspilerError("Invalid translation method %s." % method)

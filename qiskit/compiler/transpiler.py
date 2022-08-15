@@ -80,6 +80,7 @@ def transpile(
     unitary_synthesis_method: str = "default",
     unitary_synthesis_plugin_config: dict = None,
     target: Target = None,
+    hls_config=None,
 ) -> Union[QuantumCircuit, List[QuantumCircuit]]:
     """Transpile one or more circuits, according to some desired transpilation targets.
 
@@ -246,6 +247,7 @@ def transpile(
             the ``backend`` argument, but if you have manually constructed a
             :class:`~qiskit.transpiler.Target` object you can specify it manually here.
             This will override the target from ``backend``.
+        hls_config: high-level-synthesis config
     Returns:
         The transpiled circuit(s).
 
@@ -310,6 +312,7 @@ def transpile(
         unitary_synthesis_method,
         unitary_synthesis_plugin_config,
         target,
+        hls_config
     )
     # Get transpile_args to configure the circuit transpilation job(s)
     if coupling_map in unique_transpile_args:
@@ -560,6 +563,7 @@ def _parse_transpile_args(
     unitary_synthesis_method,
     unitary_synthesis_plugin_config,
     target,
+    hls_config,
 ) -> Tuple[List[Dict], Dict]:
     """Resolve the various types of args allowed to the transpile() function through
     duck typing, overriding args, etc. Refer to the transpile() docstring for details on
@@ -646,6 +650,7 @@ def _parse_transpile_args(
         "unitary_synthesis_method": unitary_synthesis_method,
         "unitary_synthesis_plugin_config": unitary_synthesis_plugin_config,
         "target": target,
+        "hls_config": hls_config,
     }.items():
         if isinstance(value, list):
             unique_dict[key] = value

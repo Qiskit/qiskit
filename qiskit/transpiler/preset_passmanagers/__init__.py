@@ -55,6 +55,7 @@ def generate_preset_pass_manager(
     seed_transpiler=None,
     unitary_synthesis_method="default",
     unitary_synthesis_plugin_config=None,
+    hls_config=None,
 ):
     """Generate a preset :class:`~.PassManager`
 
@@ -134,6 +135,7 @@ def generate_preset_pass_manager(
             the ``unitary_synthesis`` argument. As this is custom for each
             unitary synthesis plugin refer to the plugin documentation for how
             to use this option.
+        hls_config: hls_config
 
     Returns:
         StagedPassManager: The preset pass manager for the given options
@@ -172,6 +174,7 @@ def generate_preset_pass_manager(
         unitary_synthesis_method=unitary_synthesis_method,
         unitary_synthesis_plugin_config=unitary_synthesis_plugin_config,
         initial_layout=initial_layout,
+        hls_config=hls_config
     )
 
     if backend is not None:

@@ -100,6 +100,14 @@ setup(
         "qiskit.unitary_synthesis": [
             "default = qiskit.transpiler.passes.synthesis.unitary_synthesis:DefaultUnitarySynthesis",
             "aqc = qiskit.transpiler.synthesis.aqc.aqc_plugin:AQCSynthesisPlugin",
-        ]
+        ],
+        "qiskit.synthesis.clifford": [
+            "default = qiskit.transpiler.passes.synthesis.high_level_synthesis_plugins:DefaultSynthesisClifford",
+        ],
+        "qiskit.synthesis.linear_function": [
+            "default = qiskit.transpiler.passes.synthesis.high_level_synthesis_plugins:DefaultSynthesisLinearFunction",
+            "depth_opt = test_stuff:LinearFunctionSynthesisPluginForDepth",
+            "count_opt = test_stuff:LinearFunctionSynthesisPluginForCount",
+        ],
     },
 )
