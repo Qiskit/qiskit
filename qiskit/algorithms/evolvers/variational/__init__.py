@@ -67,13 +67,10 @@ Examples:
     time = 1
 
     # define evolution problem
-    evolution_problem = EvolutionProblem(observable, time, ansatz,
-        param_value_dict=param_dict)
+    evolution_problem = EvolutionProblem(observable, time)
 
     # instantiate the algorithm
-    var_qite = VarQITE(
-        var_principle, quantum_instance=backend
-    )
+    var_qite = VarQITE(ansatz, var_principle, param_dict, quantum_instance=backend)
 
     # run the algorithm/evolve the state
     evolution_result = var_qite.evolve(evolution_problem)
