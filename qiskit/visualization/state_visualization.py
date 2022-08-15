@@ -24,7 +24,7 @@ import numpy as np
 from qiskit import user_config
 from qiskit.quantum_info.states.statevector import Statevector
 from qiskit.quantum_info.states.densitymatrix import DensityMatrix
-from qiskit.visualization.array import array_to_latex, num_to_latex, _round_if_close
+from qiskit.visualization.array import array_to_latex, num_to_latex
 from qiskit.utils.deprecation import deprecate_arguments
 from qiskit.utils import optionals as _optionals
 from qiskit.visualization.exceptions import VisualizationError
@@ -1197,7 +1197,7 @@ def state_to_latex(
     return prefix + latex_str + suffix
 
 
-def numbers_to_latex_terms(numbers: List[complex]) -> List[str]:
+def numbers_to_latex_terms(numbers, precision=15):
     """Convert a list of numbers to latex formatted terms
 
     The first non-zero term is treated differently. For this term a leading + is suppressed.
@@ -1210,14 +1210,14 @@ def numbers_to_latex_terms(numbers: List[complex]) -> List[str]:
     first_term = True
     terms = []
     for number in numbers:
-        term = num_to_latex(number, first_term)
+        term = num_to_latex(number, first_term, precision)
         if term is not None:
             first_term = False
         terms.append(term)
     return terms
 
 
-def _state_to_latex_ket(data: List[complex], max_size: int = 12) -> str:
+def _state_to_latex_ket(data, max_size=12, precision=15):
     """Convert state vector to latex representation
 
     Args:
@@ -1233,16 +1233,16 @@ def _state_to_latex_ket(data: List[complex], max_size: int = 12) -> str:
     def ket_name(i):
         return bin(i)[2:].zfill(num)
 
-    data = _round_if_close(data)
+    data = np.around(data, precision)
     nonzero_indices = np.where(data != 0)[0].tolist()
     if len(nonzero_indices) > max_size:
         nonzero_indices = (
             nonzero_indices[: max_size // 2] + [0] + nonzero_indices[-max_size // 2 + 1 :]
         )
-        latex_terms = numbers_to_latex_terms(data[nonzero_indices])
+        latex_terms = numbers_to_latex_terms(data[nonzero_indices], precision)
         nonzero_indices[max_size // 2] = None
     else:
-        latex_terms = numbers_to_latex_terms(data[nonzero_indices])
+        latex_terms = numbers_to_latex_terms(data[nonzero_indices], precision)
 
     latex_str = ""
     for idx, ket_idx in enumerate(nonzero_indices):

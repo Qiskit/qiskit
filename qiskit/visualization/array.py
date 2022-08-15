@@ -19,14 +19,8 @@ import numpy as np
 
 from qiskit.exceptions import MissingOptionalLibraryError
 
-def _round_if_close(data):
-    """Round real and imaginary parts of complex number of close to zero"""
-    data = np.real_if_close(data)
-    data = -1j * np.real_if_close(data * 1j)
-    return data
 
-
-def num_to_latex(raw_value, first_term=True):
+def num_to_latex(raw_value, first_term=True, precision=15):
     """Convert a complex number to latex code suitable for a ket expression
 
     Args:
@@ -37,7 +31,7 @@ def num_to_latex(raw_value, first_term=True):
     """
     import sympy  # runtime import
 
-    raw_value = _round_if_close(raw_value)
+    raw_value = np.around(raw_value, precision)
     value = sympy.nsimplify(raw_value, constants=(sympy.pi,), rational=False)
 
     if np.abs(value) == 0:
@@ -91,7 +85,7 @@ def _matrix_to_latex(matrix, precision=5, prefix="", max_size=(8, 8)):
         # string from it; Each element separated by `&`
         el_string = ""
         for el in elements:
-            num_string = num_to_latex(el)  # TODO: make accept precision
+            num_string = num_to_latex(el, precision=precision)
             el_string += num_string + " & "
         el_string = el_string[:-2]  # remove trailing ampersands
         return el_string
