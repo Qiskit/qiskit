@@ -298,10 +298,9 @@ class QuantumState:
             np.arange(len(probs)), self.dims(qargs), string_labels=True
         )
 
-        counts_pairs = [
+        return Counts(
             (labels[i], counts_array[i]) for i in range(len(counts_array)) if counts_array[i] > 0
-        ]
-        return Counts(counts_pairs)
+        )
 
     def measure(self, qargs=None):
         """Measure subsystems and return outcome and post-measure state.
