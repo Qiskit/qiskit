@@ -186,23 +186,17 @@ def _get_default_label(operator):
 
     return label
 
+
 # ......
 #
 #
 #
 
 
-
-
-
-
-
-
-
 # Funtion that implements Dijkstra's single source
 # shortest path algorithm for a graph represented
 # using adjacency matrix representation
-'''
+"""
 def dijkstra(dist_matrix, src):
    # print(src)
    n = dist_matrix.shape[0]
@@ -278,8 +272,7 @@ def load_coupling_map(code):
        iq2 = int(i[si1+1:si2])
        coupling.append([iq1, iq2])
    return coupling
-'''
-
+"""
 
 
 # def synthesis_initial(pauli_layers, pauli_map=None, graph=None, qc=None, arch='manhattan'):
@@ -297,18 +290,15 @@ def load_coupling_map(code):
 #     return pauli_map, graph, qc
 
 
-
-
-
-
-
-
 class PauliEvolutionKernel:
-    kernel=[]
-    def __init__(self,Kernel):
-       self.kernel=Kernel
+    kernel = []
+
+    def __init__(self, Kernel):
+        self.kernel = Kernel
+
 
 class PauliEvolutionKernels:
-    kernels=[]
-    def __init__(self,Kernel):
-       self.kernels=Kernel
+    kernels = []
+
+    def __init__(self, Kernel):
+        self.kernels = Kernel

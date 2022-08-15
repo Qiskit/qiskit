@@ -6,68 +6,71 @@ from qiskit.circuit.quantumcircuit import QuantumCircuit
 import numpy as np
 from qiskit.circuit import QuantumCircuit
 from qiskit.circuit.library import PauliEvolutionGate
-from qiskit.opflow import I, Z, X
+from qiskit.opflow import I, Z, X, Y
 import qiskit
-from qiskit.circuit.library.pauli_evolution import PauliEvolutionKernel,PauliEvolutionKernels
+from qiskit.circuit.library.pauli_evolution import PauliEvolutionKernel, PauliEvolutionKernels
 
-def list_to_PauliEvolustionGate(input:list)->PauliEvolutionGate:
-    operator=0
-    for i in range(len(input)-1):
-        #i[0] IIIX i[1]0.75
-        if input[i][0][0] == 'I':
-            pauli_string=I
-        if input[i][0][0] == 'X':
-            pauli_string=X
-        if input[i][0][0] == 'Z':
-            pauli_string=Z
-        if input[i][0][0] == 'Y':
-            pauli_string=Y
+
+def list_to_PauliEvolustionGate(input: list) -> PauliEvolutionGate:
+    operator = 0
+    for i in range(len(input) - 1):
+        # i[0] IIIX i[1]0.75
+        if input[i][0][0] == "I":
+            pauli_string = I
+        if input[i][0][0] == "X":
+            pauli_string = X
+        if input[i][0][0] == "Z":
+            pauli_string = Z
+        if input[i][0][0] == "Y":
+            pauli_string = Y
 
         for j in input[i][0][1:]:
-            if j == 'I':
+            if j == "I":
                 pauli_string = pauli_string ^ I
-            elif j == 'X':
+            elif j == "X":
                 pauli_string = pauli_string ^ X
-            elif j == 'Z':
+            elif j == "Z":
                 pauli_string = pauli_string ^ Z
-            elif j == 'Y':
+            elif j == "Y":
                 pauli_string = pauli_string ^ Y
-        pauli_string=input[i][1]*pauli_string
-        operator+=pauli_string
-        #print(operator)
-        pauli_string=''
-    return PauliEvolutionGate(operator,time=input[-1])
+        pauli_string = input[i][1] * pauli_string
+        operator += pauli_string
+        # print(operator)
+        pauli_string = ""
+    return PauliEvolutionGate(operator, time=input[-1])
 
-def list_to_PauliEvolutionKernal(input:list)->PauliEvolutionKernel:
-    result=PauliEvolutionKernel([])
+
+def list_to_PauliEvolutionKernal(input: list) -> PauliEvolutionKernel:
+    result = PauliEvolutionKernel([])
     for i in input:
         result.kernel.append(list_to_PauliEvolustionGate(i))
     return result
-    
-def list_to_PauliEvolutionKernels(input:list)->PauliEvolutionKernels:
-    result=PauliEvolutionKernels([])
+
+
+def list_to_PauliEvolutionKernels(input: list) -> PauliEvolutionKernels:
+    result = PauliEvolutionKernels([])
     for i in input:
         result.kernels.append(list_to_PauliEvolutionKernal(i))
     return result
 
 
-def PauliEvolutionKernal_to_list(input:PauliEvolutionKernel)->list:
-    result=[]
+def PauliEvolutionKernal_to_list(input: PauliEvolutionKernel) -> list:
+    result = []
     for gate in input.kernel:
         result.append(PauliEvolutionGate_to_list(gate))
     return result
 
-def PauliEvolutionGate_to_list(input:PauliEvolutionGate)->list:
-    result=[]
+
+def PauliEvolutionGate_to_list(input: PauliEvolutionGate) -> list:
+    result = []
     for i in range(len(input.operator.paulis)):
-        result.append(
-            [str(input.operator.paulis[i]),input.operator.coeffs[i].real]
-        )
+        result.append([str(input.operator.paulis[i]), input.operator.coeffs[i].real])
     result.append(float(input.params[0]))
     return result
 
-def PauliEvolutionKernels_to_list(input:PauliEvolutionKernels)->list:
-    result=[]
+
+def PauliEvolutionKernels_to_list(input: PauliEvolutionKernels) -> list:
+    result = []
     for kernel1 in input.kernels:
         result.append(PauliEvolutionKernal_to_list(kernel1))
     return result
@@ -80,6 +83,7 @@ def matching_operator_positions(pauli_str_x, pauli_str_y):
             positions.append(i)
     return positions
 
+
 def cancellation_potential(pauli_layers: PauliEvolutionKernels) -> list:
     pauli_layers = PauliEvolutionKernels_to_list(pauli_layers)
     layer_num = len(pauli_layers)
@@ -88,6 +92,7 @@ def cancellation_potential(pauli_layers: PauliEvolutionKernels) -> list:
         positions = matching_operator_positions(pauli_layers[i][0][0], pauli_layers[i - 1][0][0])
         cancellation_potential_array[i - 1] = len(positions)
     return cancellation_potential_array
+
 
 def finding_max_matching_layer_pairs(cancellation_potential_array):
     layer_num = len(cancellation_potential_array)
@@ -107,17 +112,21 @@ def finding_max_matching_layer_pairs(cancellation_potential_array):
             break
         else:
             pairs.append((unmatched_layer_list[max_id], unmatched_layer_list[max_id] + 1))
-            unmatched_layer_list = unmatched_layer_list[:max_id] + unmatched_layer_list[max_id + 2:]
+            unmatched_layer_list = (
+                unmatched_layer_list[:max_id] + unmatched_layer_list[max_id + 2 :]
+            )
 
     pairs = sorted(pairs, key=lambda pairs: pairs[0])
     return pairs
 
+
 def non_identity_positions(pauli_str: str):
     positions = []
     for i, op in enumerate(pauli_str[0]):
-        if op != 'I':
+        if op != "I":
             positions.append(i)
     return positions
+
 
 def cnot_tree(non_id_positions, outer_qubits):
     if len(non_id_positions) == 0:
@@ -152,11 +161,12 @@ def cnot_tree(non_id_positions, outer_qubits):
     right_cnotset = left_cnotset[::-1]
     return right_cnotset, root
 
+
 def syn_pauli_string(qc, qubit_num: int, string: str, right_cnotset: list, root: int, coeff: int):
     for k in range(qubit_num):
-        if string[k] == 'X':
+        if string[k] == "X":
             qc.h(k)
-        if string[k] == 'Y':
+        if string[k] == "Y":
             qc.s(k)
             qc.h(k)
     for k in reversed(right_cnotset):
@@ -166,16 +176,16 @@ def syn_pauli_string(qc, qubit_num: int, string: str, right_cnotset: list, root:
     for k in right_cnotset:
         qc.cx(k[0], k[1])
     for k in range(qubit_num):
-        if string[k] == 'X':
+        if string[k] == "X":
             qc.h(k)
-        if string[k] == 'Y':
+        if string[k] == "Y":
             qc.h(k)
             qc.sdg(k)
 
 
 def break_layer(pauli_layers: PauliEvolutionKernels) -> PauliEvolutionKernels:
     pauli_layers = PauliEvolutionKernels_to_list(pauli_layers)
-    '''
+    """
     broken_pauli_layers = PauliEvolutionKernels([])
     for pauli_layer in pauli_layers.kernels:#Kernel
         max_pauli_block_size = 2
@@ -204,7 +214,7 @@ def break_layer(pauli_layers: PauliEvolutionKernels) -> PauliEvolutionKernels:
                     kernel1=list_to_PauliEvolustionGate(kernel1)
                     temp_layer.kernels[i].kernel.append(kernel1)
             broken_pauli_layers.kernels+=temp_layer.kernels
-    '''
+    """
     broken_pauli_layers = []
     for pauli_layer in pauli_layers:
         max_pauli_block_size = 2
@@ -222,15 +232,16 @@ def break_layer(pauli_layers: PauliEvolutionKernels) -> PauliEvolutionKernels:
 
             for pauli_block in pauli_layer:
                 for i, pauli_str in enumerate(pauli_block[:-1]):
-                    #print("236", len(pauli_block[:-1]), pauli_block[:-1])
+                    # print("236", len(pauli_block[:-1]), pauli_block[:-1])
                     temp_layer[i].append([pauli_str, pauli_block[-1]])
             broken_pauli_layers += temp_layer
     broken_pauli_layers = list_to_PauliEvolutionKernels(broken_pauli_layers)
     return broken_pauli_layers
 
 
-
-def opt_ft_backend(pauli_layers: PauliEvolutionKernels,adj_mat,dist_mat) -> qiskit.circuit.quantumcircuit.QuantumCircuit:
+def opt_ft_backend(
+    pauli_layers: PauliEvolutionKernels, adj_mat, dist_mat
+) -> qiskit.circuit.quantumcircuit.QuantumCircuit:
     qubit_num = len(str(pauli_layers.kernels[0].kernel[0].operator.paulis[0]))
     pauli_layers = break_layer(pauli_layers)
     qc = QuantumCircuit(qubit_num)
@@ -248,46 +259,100 @@ def opt_ft_backend(pauli_layers: PauliEvolutionKernels,adj_mat,dist_mat) -> qisk
             pauli_str = [str(pauli_block.operator.paulis[0]), pauli_block.operator.coeffs[0].real]
             non_id_positions = non_identity_positions(pauli_str)  # list
             right_cnotset, root = cnot_tree(non_id_positions, [])  # list,int
-            syn_pauli_string(qc, qubit_num, pauli_str[0], right_cnotset, root, pauli_str[1] * pauli_block.params[0])
+            syn_pauli_string(
+                qc,
+                qubit_num,
+                pauli_str[0],
+                right_cnotset,
+                root,
+                pauli_str[1] * pauli_block.params[0],
+            )
 
-            for pauli_block in pauli_layers.kernels[pair[0]].kernel[1:]:  # in pauli_layers[pair[0]][1:]: gate
+            for pauli_block in pauli_layers.kernels[pair[0]].kernel[
+                1:
+            ]:  # in pauli_layers[pair[0]][1:]: gate
                 pauli_str = str(pauli_block.operator.paulis[0])
                 non_id_positions = non_identity_positions(pauli_str)
                 right_cnotset, root = cnot_tree(non_id_positions, [])
-                syn_pauli_string(qc, qubit_num, pauli_str[0], right_cnotset, root, pauli_str[1] * pauli_block[-1])
+                syn_pauli_string(
+                    qc, qubit_num, pauli_str[0], right_cnotset, root, pauli_str[1] * pauli_block[-1]
+                )
         else:
             # pauli_layers[pair[0]][0][0], pauli_layers[pair[1]][0][0]
-            list1 = [str(pauli_layers.kernels[pair[0]].kernel[0].operator.paulis[0]),
-                     pauli_layers.kernels[pair[0]].kernel[0].operator.coeffs[0].real]
-            list2 = [str(pauli_layers.kernels[pair[1]].kernel[0].operator.paulis[0]),
-                     pauli_layers.kernels[pair[1]].kernel[0].operator.coeffs[0].real]
-            matching_positions = matching_operator_positions(list1, list2)  # ['XYIIIIIX', 1.0]['XYIIIIIX', 1.0]
+            list1 = [
+                str(pauli_layers.kernels[pair[0]].kernel[0].operator.paulis[0]),
+                pauli_layers.kernels[pair[0]].kernel[0].operator.coeffs[0].real,
+            ]
+            list2 = [
+                str(pauli_layers.kernels[pair[1]].kernel[0].operator.paulis[0]),
+                pauli_layers.kernels[pair[1]].kernel[0].operator.coeffs[0].real,
+            ]
+            matching_positions = matching_operator_positions(
+                list1, list2
+            )  # ['XYIIIIIX', 1.0]['XYIIIIIX', 1.0]
             non_id_positions = non_identity_positions(list1)
             right_cnotset, root = cnot_tree(non_id_positions, matching_positions)
             # print("393",qubit_num,list1[0])
-            syn_pauli_string(qc, qubit_num, list1[0], right_cnotset, root,
-                              list1[1] * pauli_layers.kernels[pair[0]].kernel[0].params[0])
+            syn_pauli_string(
+                qc,
+                qubit_num,
+                list1[0],
+                right_cnotset,
+                root,
+                list1[1] * pauli_layers.kernels[pair[0]].kernel[0].params[0],
+            )
             # syn_pauli_string(qc, qubit_num, pauli_layers[pair[0]][0][0][0], right_cnotset, root, pauli_layers[pair[0]][0][0][1]*pauli_layers[pair[0]][0][-1])
-            for pauli_block in pauli_layers.kernels[pair[0]].kernel[1:]:  # [['IIIIIIYZ', 1.0], 0.3] or gate
-                pauli_str = [str(pauli_block.operator.paulis[0]), pauli_block.operator.coeffs[0].real]  # pauli_block[0]
+            for pauli_block in pauli_layers.kernels[pair[0]].kernel[
+                1:
+            ]:  # [['IIIIIIYZ', 1.0], 0.3] or gate
+                pauli_str = [
+                    str(pauli_block.operator.paulis[0]),
+                    pauli_block.operator.coeffs[0].real,
+                ]  # pauli_block[0]
                 non_id_positions = non_identity_positions(pauli_str)
                 right_cnotset, root = cnot_tree(non_id_positions, [])
-                syn_pauli_string(qc, qubit_num, pauli_str[0], right_cnotset, root,
-                                  pauli_str[1] * pauli_block.params[0])
+                syn_pauli_string(
+                    qc,
+                    qubit_num,
+                    pauli_str[0],
+                    right_cnotset,
+                    root,
+                    pauli_str[1] * pauli_block.params[0],
+                )
                 # syn_pauli_string(qc, qubit_num, pauli_str[0], right_cnotset, root, pauli_str[1]*pauli_block[-1])
-            list2 = [str(pauli_layers.kernels[pair[1]].kernel[0].operator.paulis[0]),
-                     pauli_layers.kernels[pair[1]].kernel[0].operator.coeffs[0].real]
+            list2 = [
+                str(pauli_layers.kernels[pair[1]].kernel[0].operator.paulis[0]),
+                pauli_layers.kernels[pair[1]].kernel[0].operator.coeffs[0].real,
+            ]
             non_id_positions = non_identity_positions(list2)  # (pauli_layers[pair[1]][0][0])
             right_cnotset, root = cnot_tree(non_id_positions, matching_positions)
-            syn_pauli_string(qc, qubit_num, list2[0], right_cnotset, root,
-                              list2[1] * pauli_layers.kernels[pair[1]].kernel[0].params[0])
+            syn_pauli_string(
+                qc,
+                qubit_num,
+                list2[0],
+                right_cnotset,
+                root,
+                list2[1] * pauli_layers.kernels[pair[1]].kernel[0].params[0],
+            )
             #  syn_pauli_string(qc, qubit_num, pauli_layers[pair[1]][0][0][0], right_cnotset, root, pauli_layers[pair[1]][0][0][1]*pauli_layers[pair[1]][0][-1])
 
-            for pauli_block in pauli_layers.kernels[pair[1]].kernel[1:]:  # pauli_layers[pair[1]][1:]:
-                pauli_str = [str(pauli_block.operator.paulis[0]), pauli_block.operator.coeffs[0].real]  # pauli_block[0]
+            for pauli_block in pauli_layers.kernels[pair[1]].kernel[
+                1:
+            ]:  # pauli_layers[pair[1]][1:]:
+                pauli_str = [
+                    str(pauli_block.operator.paulis[0]),
+                    pauli_block.operator.coeffs[0].real,
+                ]  # pauli_block[0]
                 non_id_positions = non_identity_positions(pauli_str)
                 right_cnotset, root = cnot_tree(non_id_positions, [])
-                syn_pauli_string(qc, qubit_num, pauli_str[0], right_cnotset, root, pauli_str[1] * pauli_block.params[0])
+                syn_pauli_string(
+                    qc,
+                    qubit_num,
+                    pauli_str[0],
+                    right_cnotset,
+                    root,
+                    pauli_str[1] * pauli_block.params[0],
+                )
     return qc
 
 
@@ -301,6 +366,7 @@ class pNode:
 
     def add_adjacent(self, idx):
         self.adj.append(idx)
+
     # def add_child(self, idx):
     #     if idx not in self.child:
     #         self.child.append(idx)
@@ -335,9 +401,7 @@ class pGraph:
         return self.leng
 
 
-
-
-'''
+"""
 # sptSet: shortest path tree
 def minDistance(dist, sptSet):
     # Initilaize minimum distance for next node
@@ -350,11 +414,11 @@ def minDistance(dist, sptSet):
             minv = dist[v]
             min_index = v
     return min_index
-'''
+"""
 # Funtion that implements Dijkstra's single source
 # shortest path algorithm for a graph represented
 # using adjacency matrix representation
-'''
+"""
 def dijkstra(dist_matrix, src):
    # print(src)
    n = dist_matrix.shape[0]
@@ -430,7 +494,7 @@ def load_coupling_map(code):
        iq2 = int(i[si1+1:si2])
        coupling.append([iq1, iq2])
    return coupling
-'''
+"""
 
 
 # def synthesis_initial(pauli_layers, pauli_map=None, graph=None, qc=None, arch='manhattan'):
@@ -448,14 +512,10 @@ def load_coupling_map(code):
 #     return pauli_map, graph, qc
 
 
-
-
 def dummy_qubit_mapping(graph, logical_qubit_num):
     for i in range(logical_qubit_num):
         graph[i].lqb = i
     return list(range(logical_qubit_num))
-
-
 
 
 def compute_block_cover(pauli_block: PauliEvolutionGate) -> list:
@@ -468,7 +528,6 @@ def compute_block_cover(pauli_block: PauliEvolutionGate) -> list:
     return block_cover
 
 
-
 def compute_block_interior(pauli_block: PauliEvolutionGate) -> list:
     block_interior = non_identity_positions(str(pauli_block.operator.paulis[0]))
     # print("636",pauli_block.operator.paulis,len(pauli_block.operator.coeffs))
@@ -478,15 +537,12 @@ def compute_block_interior(pauli_block: PauliEvolutionGate) -> list:
     return block_interior
 
 
-
-
 def logical_to_physical_cover(logical_to_physical_mapping: list, logical_cover: list):
     return [logical_to_physical_mapping[i] for i in logical_cover]
 
+
 def physical_to_logical_cover(graph: list, physical_cover: list) -> list:
     return [graph[i].lqb for i in physical_cover]
-
-
 
 
 def max_dfs_tree(graph, cover, start, path=[]):
@@ -497,14 +553,15 @@ def max_dfs_tree(graph, cover, start, path=[]):
         if i in path:
             continue
         else:
-            max_connect_component += max_dfs_tree(graph, cover, graph[i],
-                                                   path=path + max_connect_component + [start.idx])
+            max_connect_component += max_dfs_tree(
+                graph, cover, graph[i], path=path + max_connect_component + [start.idx]
+            )
     return [start.idx] + max_connect_component
 
 
-
-
-def find_short_node(graph, logical_to_physical_mapping, logical_qubits_to_move, max_connected_component):
+def find_short_node(
+    graph, logical_to_physical_mapping, logical_qubits_to_move, max_connected_component
+):
     qubit_to_move = -1
     qubit_in_connected_component = -1
     mindist = 10000000
@@ -518,8 +575,6 @@ def find_short_node(graph, logical_to_physical_mapping, logical_qubits_to_move, 
     return qubit_to_move, qubit_in_connected_component
 
 
-
-
 def swap_nodes(logical_to_physical_mapping, graph_node_a, graph_node_b):
     t = graph_node_a.lqb
     graph_node_a.lqb = graph_node_b.lqb
@@ -530,10 +585,13 @@ def swap_nodes(logical_to_physical_mapping, graph_node_a, graph_node_b):
         logical_to_physical_mapping[graph_node_b.lqb] = graph_node_b.idx
 
 
-
-
-def connect_node(graph, logical_to_physical_mapping, physical_qubit_to_move, physical_qubit_in_connected_component,
-                  swap_list):
+def connect_node(
+    graph,
+    logical_to_physical_mapping,
+    physical_qubit_to_move,
+    physical_qubit_in_connected_component,
+    swap_list,
+):
     physical_qubit_in_path = -1
     mindist = 10000000
     for i in graph[physical_qubit_to_move].adj:
@@ -543,10 +601,19 @@ def connect_node(graph, logical_to_physical_mapping, physical_qubit_to_move, phy
     if physical_qubit_in_path == physical_qubit_in_connected_component:
         return
     else:
-        swap_list.append(['swap', (physical_qubit_to_move, physical_qubit_in_path)])
-        swap_nodes(logical_to_physical_mapping, graph[physical_qubit_to_move], graph[physical_qubit_in_path])
-        connect_node(graph, logical_to_physical_mapping, physical_qubit_in_path, physical_qubit_in_connected_component,
-                     swap_list)
+        swap_list.append(["swap", (physical_qubit_to_move, physical_qubit_in_path)])
+        swap_nodes(
+            logical_to_physical_mapping,
+            graph[physical_qubit_to_move],
+            graph[physical_qubit_in_path],
+        )
+        connect_node(
+            graph,
+            logical_to_physical_mapping,
+            physical_qubit_in_path,
+            physical_qubit_in_connected_component,
+            swap_list,
+        )
 
 
 class tree:
@@ -566,7 +633,7 @@ class tree:
                     st.append(i)
             st.append(len(dp))
             for i in range(len(st) - 1):
-                child = tree(graph, dp[st[i]:st[i + 1]], parent=self, depth=self.depth + 1)
+                child = tree(graph, dp[st[i] : st[i + 1]], parent=self, depth=self.depth + 1)
                 self.childs.append(child)
                 self.leaf += child.leaf
         if parent != None:
@@ -576,23 +643,23 @@ class tree:
 def pauli_single_gates(qc, logical_to_physical_mapping, pauli_str, left=True):
     if left == True:
         for i in range(len(pauli_str[0])):
-            if pauli_str[0][i] == 'X':
+            if pauli_str[0][i] == "X":
                 qc.h(logical_to_physical_mapping[i])
-            elif pauli_str[0][i] == 'Y':
+            elif pauli_str[0][i] == "Y":
                 qc.s(logical_to_physical_mapping[i])
                 qc.h(logical_to_physical_mapping[i])
     else:
         for i in range(len(pauli_str[0])):
-            if pauli_str[0][i] == 'X':
+            if pauli_str[0][i] == "X":
                 qc.h(logical_to_physical_mapping[i])
-            elif pauli_str[0][i] == 'Y':
+            elif pauli_str[0][i] == "Y":
                 qc.h(logical_to_physical_mapping[i])
                 qc.sdg(logical_to_physical_mapping[i])
 
 
-
-
-def tree_synthesis(qc, graph, logical_to_physical_mapping, physical_qubit_tree, pauli_str, block_coeff):
+def tree_synthesis(
+    qc, graph, logical_to_physical_mapping, physical_qubit_tree, pauli_str, block_coeff
+):
     string = pauli_str[0]
     non_id_positions = non_identity_positions(pauli_str)
     pauli_single_gates(qc, logical_to_physical_mapping, pauli_str, left=True)
@@ -616,7 +683,9 @@ def tree_synthesis(qc, graph, logical_to_physical_mapping, physical_qubit_tree, 
             else:
                 qc.swap(first_leaf.pid, first_leaf.parent.pid)
                 swaps[first_leaf.parent.pid] = first_leaf
-                swap_nodes(logical_to_physical_mapping, graph[first_leaf.pid], graph[first_leaf.parent.pid])
+                swap_nodes(
+                    logical_to_physical_mapping, graph[first_leaf.pid], graph[first_leaf.parent.pid]
+                )
         else:
             pass  # lfs.remove(l)
         if first_leaf.parent not in physical_qubit_tree_leaves:
@@ -636,7 +705,9 @@ def tree_synthesis(qc, graph, logical_to_physical_mapping, physical_qubit_tree, 
                 physical_qubit_tree_leaves.append(i)
         if first_leaf.pid in swaps.keys():
             qc.swap(first_leaf.pid, swaps[first_leaf.pid].pid)
-            swap_nodes(logical_to_physical_mapping, graph[first_leaf.pid], graph[swaps[first_leaf.pid].pid])
+            swap_nodes(
+                logical_to_physical_mapping, graph[first_leaf.pid], graph[swaps[first_leaf.pid].pid]
+            )
             physical_qubit_tree_leaves.append(swaps[first_leaf.pid])
         physical_qubit_tree_leaves = physical_qubit_tree_leaves[1:]
     #    if rc != cnot_num:
@@ -645,10 +716,10 @@ def tree_synthesis(qc, graph, logical_to_physical_mapping, physical_qubit_tree, 
     return qc
 
 
-
-def opt_sc_backend(pauli_layers: PauliEvolutionKernels,adj_mat,dist_mat):
-    logical_qubit_num = len(str(pauli_layers.kernels[0].kernel[0].operator.paulis[
-                                    0]))  # construct coupling graph (undirected), cost distance matrix
+def opt_sc_backend(pauli_layers: PauliEvolutionKernels, adj_mat, dist_mat):
+    logical_qubit_num = len(
+        str(pauli_layers.kernels[0].kernel[0].operator.paulis[0])
+    )  # construct coupling graph (undirected), cost distance matrix
     sc_device_graph = pGraph(adj_mat, dist_mat)
     # find dense connected subset for initial mapping
     logical_to_physical_mapping = dummy_qubit_mapping(sc_device_graph, logical_qubit_num)
@@ -661,9 +732,12 @@ def opt_sc_backend(pauli_layers: PauliEvolutionKernels,adj_mat,dist_mat):
         for current_block in current_layer.kernel:  # gate
             logical_block_cover = compute_block_cover(current_block)  # list
             logical_block_interior = compute_block_interior(current_block)  # list
-            physical_block_cover = logical_to_physical_cover(logical_to_physical_mapping, logical_block_cover)  # list
-            physical_block_interior = logical_to_physical_cover(logical_to_physical_mapping,
-                                                                logical_block_interior)  # list
+            physical_block_cover = logical_to_physical_cover(
+                logical_to_physical_mapping, logical_block_cover
+            )  # list
+            physical_block_interior = logical_to_physical_cover(
+                logical_to_physical_mapping, logical_block_interior
+            )  # list
             # print(physical_block_cover, physical_block_interior)
 
             max_connected_component_size = -1
@@ -671,13 +745,16 @@ def opt_sc_backend(pauli_layers: PauliEvolutionKernels,adj_mat,dist_mat):
             max_connected_component = []
 
             for physical_qubit in physical_block_interior:
-                connected_component = max_dfs_tree(sc_device_graph, physical_block_cover,
-                                                    sc_device_graph[physical_qubit])
+                connected_component = max_dfs_tree(
+                    sc_device_graph, physical_block_cover, sc_device_graph[physical_qubit]
+                )
                 if len(connected_component) > max_connected_component_size:
                     max_connected_component_size = len(connected_component)
                     root_physical_qubit = physical_qubit
                     max_connected_component = connected_component
-            logical_connected_component_cover = physical_to_logical_cover(sc_device_graph, max_connected_component)
+            logical_connected_component_cover = physical_to_logical_cover(
+                sc_device_graph, max_connected_component
+            )
 
             logical_qubits_to_move = []
             for logical_qubit in logical_block_cover:
@@ -685,26 +762,42 @@ def opt_sc_backend(pauli_layers: PauliEvolutionKernels,adj_mat,dist_mat):
                     logical_qubits_to_move.append(logical_qubit)
             swap_list = []
             while logical_qubits_to_move != []:
-                qubit_to_move, qubit_in_connected_component = find_short_node(sc_device_graph,
-                                                                               logical_to_physical_mapping,
-                                                                               logical_qubits_to_move,
-                                                                               max_connected_component)
-                connect_node(sc_device_graph, logical_to_physical_mapping, logical_to_physical_mapping[qubit_to_move],
-                              logical_to_physical_mapping[qubit_in_connected_component], swap_list)
+                qubit_to_move, qubit_in_connected_component = find_short_node(
+                    sc_device_graph,
+                    logical_to_physical_mapping,
+                    logical_qubits_to_move,
+                    max_connected_component,
+                )
+                connect_node(
+                    sc_device_graph,
+                    logical_to_physical_mapping,
+                    logical_to_physical_mapping[qubit_to_move],
+                    logical_to_physical_mapping[qubit_in_connected_component],
+                    swap_list,
+                )
                 max_connected_component.append(logical_to_physical_mapping[qubit_to_move])
                 logical_qubits_to_move.remove(qubit_to_move)
             for swap_step in swap_list:
                 qc.swap(swap_step[1][0], swap_step[1][1])
-            physical_block_cover = logical_to_physical_cover(logical_to_physical_mapping, logical_block_cover)
-            connected_component = max_dfs_tree(sc_device_graph, physical_block_cover,
-                                                sc_device_graph[root_physical_qubit])
+            physical_block_cover = logical_to_physical_cover(
+                logical_to_physical_mapping, logical_block_cover
+            )
+            connected_component = max_dfs_tree(
+                sc_device_graph, physical_block_cover, sc_device_graph[root_physical_qubit]
+            )
             physical_qubit_tree = tree(sc_device_graph, connected_component)
             index = 0
             for pauli_str in current_block.operator.paulis:  # [:-1]:
                 pauli_str1 = [str(pauli_str), current_block.operator.coeffs[index].real]
                 index += 1
-                tree_synthesis(qc, sc_device_graph, logical_to_physical_mapping, physical_qubit_tree, pauli_str1,
-                               current_block.params[0].real)
+                tree_synthesis(
+                    qc,
+                    sc_device_graph,
+                    logical_to_physical_mapping,
+                    physical_qubit_tree,
+                    pauli_str1,
+                    current_block.params[0].real,
+                )
     return qc
 
 
@@ -750,5 +843,3 @@ def opt_sc_backend(pauli_layers: PauliEvolutionKernels,adj_mat,dist_mat):
 #             for i3 in i2:
 #                 tree_synthesis1(qc, graph, pauli_map, dt, i3)
 #     return qc
-
-
