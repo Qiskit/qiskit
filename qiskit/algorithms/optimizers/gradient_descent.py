@@ -32,44 +32,23 @@ class GradientDescentState(OptimizerState):
     stepsize: Optional[float]
     """Norm of the gradient on the last step."""
     learning_rate: LearningRate = field(compare=False)
-    """Learing rate at the current step of the optimization process.
+    """Learning rate at the current step of the optimization process.
 
     It behaves like a generator, (use ``next(learning_rate)`` to get the learning rate for the
     next step) but it can also return  the current learning rate with ``learning_rate.current``.
     """
 
-    def __init__(
-        self,
-        x: POINT,
-        fun: Optional[Callable[[POINT], float]],
-        jac: Optional[Callable[[POINT], POINT]],
-        nfev: Optional[int],
-        njev: Optional[int],
-        nit: Optional[int],
-        stepsize: Optional[float],
-        learning_rate: Union[float, List[float], np.ndarray, Callable[[], Iterator]],
-    ):
-        """
-        Args:
-            x: Current optimization parameters.
-            fun: Function being  optimized.
-            jac: Jacobian of the function being optimized.
-            nfev: Number of function evaluations so far in the optimization.
-            njev: Number of jacobian evaluations so far in the opimization.
-            nit: Number of optmization steps performed so far in the optimization.
-            stepsize: Norm of the jacobian on the last step.
-            learning_rate: A constant, list, array or factory of generators yielding learning rates
-            for the parameter updates. See the docstring for an example.
-        """
-
-        self.x = x
-        self.fun = fun
-        self.jac = jac
-        self.nfev = nfev
-        self.njev = njev
-        self.nit = nit
-        self.stepsize = stepsize
-        self.learning_rate = learning_rate
+    def _post_init_(self):
+        if isinstance(self.learning_rate, float, list, np.ndarray) or callable(self.learning_rate):
+            self.learning_rate = LearningRate(self.learning_rate)
+        elif isinstance(self.learning_rate, LearningRate):
+            pass
+        else:
+            raise TypeError(
+                "learning_rate needs to be of type LearningRate. Alternatively \
+            a float, a list, a generator or a callable can be used to create an instance \
+            of LearningRate."
+            )
 
 
 class GradientDescent(SteppableOptimizer):

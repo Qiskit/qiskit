@@ -49,6 +49,8 @@ Steppable Optimizer Base Class
    AskData
    TellData
    OptimizerState
+   LearningRate
+
 
 
 Local Optimizers
@@ -135,6 +137,7 @@ from .nlopts.esch import ESCH
 from .nlopts.isres import ISRES
 from .steppable_optimizer import SteppableOptimizer, AskData, TellData, OptimizerState
 from .optimizer import Minimizer, Optimizer, OptimizerResult, OptimizerSupportLevel
+from .utils.learning_rate import LearningRate
 from .p_bfgs import P_BFGS
 from .powell import POWELL
 from .qnspsa import QNSPSA
