@@ -43,7 +43,7 @@ class UnitaryGate(Gate):
         to a quantum circuit. The matrix can also be directly applied
         to the quantum circuit, see :meth:`~qiskit.QuantumCircuit.unitary`.
 
-        .. code-block::python
+        .. code-block:: python
 
             from qiskit import QuantumCircuit
             from qiskit.extensions import UnitaryGate
@@ -230,7 +230,7 @@ def unitary(self, obj, qubits, label=None):
 
         Apply a gate specified by a unitary matrix to a quantum circuit
 
-        .. code-block::python
+        .. code-block:: python
 
             from qiskit import QuantumCircuit
             matrix = [[0, 0, 0, 1],
