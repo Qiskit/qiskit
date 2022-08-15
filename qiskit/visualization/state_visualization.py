@@ -1155,9 +1155,7 @@ def _shade_colors(color, normals, lightsource=None):
     return colors
 
 
-def state_to_latex(
-    state: Union[Statevector, DensityMatrix], dims: bool = None, convention: str = "ket", **args
-) -> str:
+def state_to_latex(state, dims=None, convention="ket", **args):
     """Return a Latex representation of a state. Wrapper function
     for `qiskit.visualization.array_to_latex` for convention 'vector'.
     Adds dims if necessary.
@@ -1246,12 +1244,12 @@ def _state_to_latex_ket(data, max_size=12, precision=15):
     latex_str = ""
     for idx, ket_idx in enumerate(nonzero_indices):
         if ket_idx is None:
-            latex_str += r" + \ldots "
+            latex_str += r"+ \ldots "
         else:
             term = latex_terms[idx]
             ket = ket_name(ket_idx)
             latex_str += f"{term} |{ket}\\rangle "
-    return latex_str
+    return latex_str.strip()
 
 
 class TextMatrix:
