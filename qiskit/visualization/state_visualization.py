@@ -1155,7 +1155,7 @@ def _shade_colors(color, normals, lightsource=None):
     return colors
 
 
-def state_to_latex(state, dims=None, convention="ket", **args):
+def state_to_latex(state, dims=None, convention="ket", prefix="", **args):
     """Return a Latex representation of a state. Wrapper function
     for `qiskit.visualization.array_to_latex` for convention 'vector'.
     Adds dims if necessary.
@@ -1177,10 +1177,9 @@ def state_to_latex(state, dims=None, convention="ket", **args):
         else:
             dims = True
 
-    prefix = ""
     suffix = ""
     if dims:
-        prefix = "\\begin{align}\n"
+        prefix = "\\begin{align}\n" + prefix
         dims_str = state._op_shape.dims_l()
         suffix = f"\\\\\n\\text{{dims={dims_str}}}\n\\end{{align}}"
 

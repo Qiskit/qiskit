@@ -47,6 +47,21 @@ class TestLatexStateDrawer(QiskitVisualizationTestCase):
         )
         self.assertEqual(output, expected_output)
 
+    def test_ket_prefix(self):
+        """Test `prefix` parameter for latex ket notation."""
+
+        sv = Statevector.from_label("+-rl")
+        output = state_drawer(sv, "latex_source", prefix=r"|\psi\rangle=")
+        expected_output = (
+                "|\\psi\\rangle=\\frac{1}{4} |0000\\rangle - \\frac{i}{4} "
+                "|0001\\rangle +\\frac{i}{4} |0010\\rangle +\\frac{1}{4} "
+                "|0011\\rangle - \\frac{1}{4} |0100\\rangle +\\frac{i}{4} "
+                "|0101\\rangle + \\ldots +\\frac{1}{4} |1011\\rangle - "
+                "\\frac{1}{4} |1100\\rangle +\\frac{i}{4} |1101\\rangle - "
+                "\\frac{i}{4} |1110\\rangle - \\frac{1}{4} |1111\\rangle"
+        )
+        self.assertEqual(output, expected_output)
+
     def test_state_to_latex_for_none(self):
         """
         Test for `\rangleNone` output in latex representation
