@@ -18,7 +18,7 @@ import pkgutil
 import sys
 import warnings
 
-import qiskit._accelerate
+#import qiskit._accelerate
 
 # Globally define compiled modules. The normal import mechanism will not
 # find compiled submodules in _accelerate because it relies on file paths

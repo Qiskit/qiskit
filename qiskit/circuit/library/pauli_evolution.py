@@ -185,3 +185,130 @@ def _get_default_label(operator):
             label = f"exp(-it ({' + '.join(operator.paulis.to_labels())}))"
 
     return label
+
+# ......
+#
+#
+#
+
+
+
+
+
+
+
+
+
+# Funtion that implements Dijkstra's single source
+# shortest path algorithm for a graph represented
+# using adjacency matrix representation
+'''
+def dijkstra(dist_matrix, src):
+   # print(src)
+   n = dist_matrix.shape[0]
+   dist = [dist_matrix[src, i] for i in range(n)]
+   # print('Initial:', dist)
+   sptSet = [False]*n # [dist_matrix[src, i] != max_size for i in range(n)]
+
+   for cout in range(n):
+       # Pick the minimum distance vertex from
+       # the set of vertices not yet processed.
+       # u is always equal to src in first iteration
+       u = minDistance(dist, sptSet)
+       if u == -1:
+           break
+       # Put the minimum distance vertex in the
+       # shotest path tree
+       sptSet[u] = True
+       # Update dist value of the adjacent vertices
+       # of the picked vertex only if the current
+       # distance is greater than new distance and
+       # the vertex in not in the shotest path tree
+       for v in range(n):
+           if dist_matrix[u, v] > 0 and sptSet[v] == False and \
+               dist[v] > dist[u] + dist_matrix[u, v]:
+               dist[v] = dist[u] + dist_matrix[u, v]
+   # print(dist)
+   for i in range(n):
+       dist_matrix[src, i] = dist[i]
+       dist_matrix[i, src] = dist[i]
+
+def load_graph(code, dist_comp=False):
+   pth = os.path.join(package_directory, 'data', 'ibmq_'+code+'_calibrations.csv')
+   cgs = []
+   n = 0
+   with open(pth, 'r') as cf:
+       g = csv.DictReader(cf, delimiter=',', quotechar='\"')
+       for i in g:
+           n += 1
+           for j in i['CNOT error'].split(','):
+               cgs.append(j.strip())
+   G = np.zeros((n, n))
+   C = np.ones((n, n))*max_size
+   for i in range(n):
+       C[i, i] = 0
+   for i in cgs:
+       si1 = i.find('_')
+       si2 = i.find(':')
+       iq1 = int(i[2:si1])
+       iq2 = int(i[si1+1:si2])
+       G[iq1, iq2] = 1
+       acc = float(i[si2+2:])*1000
+       C[iq1, iq2] = acc
+   if dist_comp == True:
+       for i in range(n):
+           dijkstra(C, i)
+   return G, C
+
+def load_coupling_map(code):
+   pth = os.path.join(package_directory, 'data', 'ibmq_'+code+'_calibrations.csv')
+   cgs = []
+   n = 0
+   with open(pth, 'r') as cf:
+       g = csv.DictReader(cf, delimiter=',', quotechar='\"')
+       for i in g:
+           n += 1
+           for j in i['CNOT error'].split(','):
+               cgs.append(j.strip())
+   coupling = []
+   for i in cgs:
+       si1 = i.find('_')
+       si2 = i.find(':')
+       iq1 = int(i[2:si1])
+       iq2 = int(i[si1+1:si2])
+       coupling.append([iq1, iq2])
+   return coupling
+'''
+
+
+
+# def synthesis_initial(pauli_layers, pauli_map=None, graph=None, qc=None, arch='manhattan'):
+#     lnq = len(pauli_layers[0][0][0]) # logical qubits
+#     if graph == None:
+#         G, C = load_graph(arch, dist_comp=True) # G is adj, C is dist
+#         graph = pGraph(G, C)
+#     if pauli_map == None:
+#         pauli_map = dummy_qubit_mapping(graph, lnq)
+#     else:
+#         add_pauli_map(graph, pauli_map)
+#     pnq = len(graph) # physical qubits
+#     if qc == None:
+#         qc = QuantumCircuit(pnq)
+#     return pauli_map, graph, qc
+
+
+
+
+
+
+
+
+class PauliEvolutionKernel:
+    kernel=[]
+    def __init__(self,Kernel):
+       self.kernel=Kernel
+
+class PauliEvolutionKernels:
+    kernels=[]
+    def __init__(self,Kernel):
+       self.kernels=Kernel

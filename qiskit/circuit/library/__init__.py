@@ -491,7 +491,7 @@ from .generalized_gates import (
     PauliGate,
     LinearFunction,
 )
-from .pauli_evolution import PauliEvolutionGate
+from .pauli_evolution import PauliEvolutionGate,PauliEvolutionKernel,PauliEvolutionKernels
 from .boolean_logic import (
     AND,
     OR,
