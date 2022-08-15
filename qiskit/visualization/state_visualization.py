@@ -1207,12 +1207,11 @@ def numbers_to_latex_terms(numbers, precision=15):
     Returns:
         List of formatted terms
     """
-    first_term = True
     terms = []
+    first_term = True
     for number in numbers:
-        term = num_to_latex(number, first_term, precision)
-        if term is not None:
-            first_term = False
+        term = num_to_latex(number, precision=precision, coefficient=True, first_term=first_term)
+        first_term = False
         terms.append(term)
     return terms
 
@@ -1251,7 +1250,7 @@ def _state_to_latex_ket(data, max_size=12, precision=15):
         else:
             term = latex_terms[idx]
             ket = ket_name(ket_idx)
-            latex_str += f"{term} |{ket}\\rangle"
+            latex_str += f"{term} |{ket}\\rangle "
     return latex_str
 
 

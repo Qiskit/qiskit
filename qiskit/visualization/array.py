@@ -20,33 +20,36 @@ import numpy as np
 from qiskit.exceptions import MissingOptionalLibraryError
 
 
-def num_to_latex(raw_value, first_term=True, precision=15):
+def num_to_latex(raw_value, precision=15, coefficient=False, first_term=True):
     """Convert a complex number to latex code suitable for a ket expression
 
     Args:
-        raw_value: Value to convert
-        first_term: If True then generate latex code for the first term in an expression
+        raw_value (complex): Value to convert.
+        precision (int): Number of decimal places to round to (default 15).
+        coefficient (bool): Whether the number is to be used as a coefficient
+                            of a ket.
+        first_term (bool): If a coefficient, whether this number is the first
+                           coefficient in the expression.
     Returns:
-        String with latex code or None if no term is required
+        String with latex code
     """
     import sympy  # runtime import
 
     raw_value = np.around(raw_value, precision)
-    value = sympy.nsimplify(raw_value, constants=(sympy.pi,), rational=False)
-
-    if np.abs(value) == 0:
-        return None
-
+    value = sympy.nsimplify(raw_value, rational=False)
     element = sympy.latex(value, full_prec=False)
+
+    if not coefficient:
+        return element
+
     if isinstance(value, sympy.core.Add):
         # element has two terms
         element = f"({element})"
-    else:
-        if first_term:
-            if element == "1":
-                element = ""
-            elif element == "-1":
-                element = "-"
+
+    if element == "1":
+        element = ""
+    elif element == "-1":
+        element = "-"
 
     if not first_term and not element.startswith('-'):
         element = f"+{element}"
