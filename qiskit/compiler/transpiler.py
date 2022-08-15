@@ -55,7 +55,7 @@ else:
     from shared_memory import SharedMemory, SharedMemoryManager
 
 logger = logging.getLogger(__name__)
-
+TimingConstraints = Dict[str, int]
 
 def transpile(
     circuits: Union[QuantumCircuit, List[QuantumCircuit]],
@@ -72,8 +72,8 @@ def transpile(
     instruction_durations: Optional[InstructionDurationsType] = None,
     dt: Optional[float] = None,
     approximation_degree: Optional[float] = None,
-    timing_constraints: Optional[Dict[str, int]] = None,
-    seed_transpiler: Optional[int] = None,
+    timing_constraints: Optional[Union[None, TimingConstraints, List[TimingConstraints]]] = None,
+    seed_transpiler: Optional[Union[None, int, List[int]]] = None,
     optimization_level: Optional[int] = None,
     callback: Optional[Callable[[BasePass, DAGCircuit, float, PropertySet, int], Any]] = None,
     output_name: Optional[Union[str, List[str]]] = None,
