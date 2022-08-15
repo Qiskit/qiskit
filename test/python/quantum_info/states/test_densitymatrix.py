@@ -596,8 +596,8 @@ class TestDensityMatrix(QiskitTestCase):
     def test_sample_counts_ghz(self):
         """Test sample_counts method for GHZ state"""
 
-        shots = 2000
-        threshold = 0.02 * shots
+        shots = 10_000_000
+        threshold = 0.001 * shots
         state = DensityMatrix(
             (Statevector.from_label("000") + Statevector.from_label("111")) / np.sqrt(2)
         )
@@ -629,8 +629,8 @@ class TestDensityMatrix(QiskitTestCase):
 
     def test_sample_counts_w(self):
         """Test sample_counts method for W state"""
-        shots = 3000
-        threshold = 0.02 * shots
+        shots = 10_000_000
+        threshold = 0.001 * shots
         state = DensityMatrix(
             (
                 Statevector.from_label("001")
@@ -666,9 +666,9 @@ class TestDensityMatrix(QiskitTestCase):
 
     def test_sample_counts_qutrit(self):
         """Test sample_counts method for qutrit state"""
+        shots = 10_000_000
+        threshold = 0.001 * shots
         p = 0.3
-        shots = 1000
-        threshold = 0.03 * shots
         state = DensityMatrix(np.diag([p, 0, 1 - p]))
         state.seed(100)
 

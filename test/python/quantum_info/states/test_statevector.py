@@ -670,8 +670,8 @@ class TestStatevector(QiskitTestCase):
 
     def test_sample_counts_w(self):
         """Test sample_counts method for W state"""
-        shots = 3000
-        threshold = 0.02 * shots
+        shots = 10_000_000
+        threshold = 0.001 * shots
         state = (
             Statevector.from_label("001")
             + Statevector.from_label("010")
@@ -705,8 +705,8 @@ class TestStatevector(QiskitTestCase):
     def test_sample_counts_qutrit(self):
         """Test sample_counts method for qutrit state"""
         p = 0.3
-        shots = 1000
-        threshold = 0.03 * shots
+        shots = 10_000_000
+        threshold = 0.001 * shots
         state = Statevector([np.sqrt(p), 0, np.sqrt(1 - p)])
         state.seed(100)
 
