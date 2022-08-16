@@ -1155,7 +1155,7 @@ def _shade_colors(color, normals, lightsource=None):
     return colors
 
 
-def state_to_latex(state, dims=None, convention="ket", prefix="", **args):
+def state_to_latex(state, dims=None, convention="ket", **args):
     """Return a Latex representation of a state. Wrapper function
     for `qiskit.visualization.array_to_latex` for convention 'vector'.
     Adds dims if necessary.
@@ -1166,7 +1166,6 @@ def state_to_latex(state, dims=None, convention="ket", prefix="", **args):
         dims (bool): Whether to display the state's `dims`
         convention (str): Either 'vector' or 'ket'. For 'ket' plot the state in the ket-notation.
                 Otherwise plot as a vector
-        prefix (str): LaTeX string to appear in front of the state representation.
         **args: Arguments to be passed directly to `array_to_latex` for convention 'vector'
 
     Returns:
@@ -1178,9 +1177,10 @@ def state_to_latex(state, dims=None, convention="ket", prefix="", **args):
         else:
             dims = True
 
+    prefix = ""
     suffix = ""
     if dims:
-        prefix = "\\begin{align}\n" + prefix
+        prefix = "\\begin{align}\n"
         dims_str = state._op_shape.dims_l()
         suffix = f"\\\\\n\\text{{dims={dims_str}}}\n\\end{{align}}"
 
@@ -1214,7 +1214,7 @@ def numbers_to_latex_terms(numbers, precision=15):
     return terms
 
 
-def _state_to_latex_ket(data, max_size=12, precision=15):
+def _state_to_latex_ket(data, max_size=12, precision=15, prefix=""):
     """Convert state vector to latex representation
 
     Args:
@@ -1222,7 +1222,7 @@ def _state_to_latex_ket(data, max_size=12, precision=15):
         max_size (int): Maximum number of non-zero terms in the expression. If the number of
                  non-zero terms is larger than the max_size, then the representation is truncated.
         precision (int): Number of decimal places to round each amplitude to.
-
+        prefix: Latex string to be prepended to the latex, intended for labels.
     Returns:
         String with LaTeX representation of the state vector
     """
@@ -1249,7 +1249,8 @@ def _state_to_latex_ket(data, max_size=12, precision=15):
         else:
             ket = ket_name(ket_idx)
             latex_str += f"{term} |{ket}\\rangle "
-    return latex_str.strip()
+
+    return prefix + latex_str.strip()
 
 
 class TextMatrix:

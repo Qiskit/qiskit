@@ -128,6 +128,22 @@ class TestLatexStateDrawer(QiskitVisualizationTestCase):
             terms = numbers_to_latex_terms(numbers)
             self.assertListEqual(terms, latex_terms)
 
+    def test_statevector_draw_latex_regression(self):
+        """Test numerical rounding errors are not printed"""
+        sv = Statevector(np.array([1 - 8e-17, 8.32667268e-17j]))
+        latex_string = sv.draw(output="latex_source")
+        self.assertTrue(latex_string.startswith("|0\\rangle"))
+        self.assertNotIn("|1\\rangle", latex_string)
+
+    def test_state_to_latex_with_prefix(self):
+        """Test adding prefix to state vector latex output"""
+        psi = Statevector(np.array([np.sqrt(1 / 2), 0, 0, np.sqrt(1 / 2)]))
+        prefix = "|\\psi_{AB}\\rangle = "
+        latex_sv = state_to_latex(psi)
+        latex_expected = prefix + latex_sv
+        latex_representation = state_to_latex(psi, prefix=prefix)
+        self.assertEqual(latex_representation, latex_expected)
+
 
 if __name__ == "__main__":
     unittest.main(verbosity=2)

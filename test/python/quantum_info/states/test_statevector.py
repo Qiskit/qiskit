@@ -1118,13 +1118,6 @@ class TestStatevector(QiskitTestCase):
         with self.subTest(msg=" draw('latex', convention='vector')"):
             sv.draw("latex", convention="vector")
 
-    def test_statevector_draw_latex_regression(self):
-        """Test numerical rounding errors are not printed"""
-        sv = Statevector(np.array([1 - 8e-17, 8.32667268e-17j]))
-        latex_string = sv.draw(output="latex_source")
-        self.assertTrue(latex_string.startswith("|0\\rangle"))
-        self.assertNotIn("|1\\rangle", latex_string)
-
     def test_statevctor_iter(self):
         """Test iteration over a state vector"""
         empty_vector = []
