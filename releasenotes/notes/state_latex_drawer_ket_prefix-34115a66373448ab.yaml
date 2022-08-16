@@ -1,0 +1,5 @@
+---
+fixes:
+  - |
+    Added a `prefix` argument to :func:`~qiskit.visualization.state_visualization.state_to_latex` to allow adding prefixes for the ket notation drawer.
+    Fixes `#8460 <https://github.com/Qiskit/qiskit-terra/issues/8460>`__.  
