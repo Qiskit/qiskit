@@ -1166,7 +1166,8 @@ def state_to_latex(state, dims=None, convention="ket", prefix="", **args):
         dims (bool): Whether to display the state's `dims`
         convention (str): Either 'vector' or 'ket'. For 'ket' plot the state in the ket-notation.
                 Otherwise plot as a vector
-        **args: Arguments to be passed directly to `array_to_latex` for convention 'ket'
+        prefix (str): LaTeX string to appear in front of the state representation.
+        **args: Arguments to be passed directly to `array_to_latex` for convention 'vector'
 
     Returns:
         Latex representation of the state
