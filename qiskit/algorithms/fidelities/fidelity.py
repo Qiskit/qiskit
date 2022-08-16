@@ -108,3 +108,26 @@ class Fidelity(BaseFidelity):
         overlaps = [prob_dist.get(0, 0) for prob_dist in result.quasi_dists]
 
         return FidelityJob(result= np.array(overlaps), status=job.status())
+
+    def evaluate(self,
+                 left_values: np.ndarray | list[np.ndarray] | None = None,
+                 right_values: np.ndarray | list[np.ndarray] | None = None,
+                 left_circuit: QuantumCircuit = None,
+                 right_circuit: QuantumCircuit = None,
+                 **run_options,
+                 ) -> FidelityJob:
+        """Run the result of the state overlap (fidelity) calculation between 2
+        parametrized circuits (left and right) for a specific set of parameter
+        values (left and right).
+        Args:
+            left_values: Numerical parameters to be bound to the left circuit.
+            right_values: Numerical parameters to be bound to the right circuit.
+            left_circuit: (Parametrized) quantum circuit preparing :math:`|\psi\rangle`.
+            right_circuit: (Parametrized) quantum circuit preparing :math:`|\phi\rangle`.
+            run_options: Backend runtime options used for circuit execution.
+
+        Returns:
+            The result of the fidelity calculation.
+        """
+        fidelity_job = self.run(left_values, right_values, left_circuit, right_circuit, **run_options)
+        return fidelity_job.result
