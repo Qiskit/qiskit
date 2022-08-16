@@ -250,10 +250,10 @@ def expectation_value(counts: Counts):
 # the string.
 # TODO: So both are correct or both are incorrect. Find out which.
 @dispatch
-def expectation_value(counts: Counts, qargs: str):
+def expectation_value(oper: str, counts: Counts):
     _sum = 0
     total_counts = 0
-    mask = _op_to_int(qargs)
+    mask = _op_to_int(oper)
     for bitstr, _count in counts.items():
         parity = bin(int(bitstr, base=2) & mask).count('1')
         _sum += _count * (-1) ** parity
@@ -288,9 +288,9 @@ def expectation_value(quasi_dist: QuasiDistribution):
 
 
 @dispatch
-def expectation_value(quasi_dist: QuasiDistribution, qargs: str):
+def expectation_value(oper: str, quasi_dist: QuasiDistribution):
     _sum = 0
-    mask = _op_to_int(qargs)
+    mask = _op_to_int(oper)
     for bitstr, prob in quasi_dist.items():
         parity = bin(bitstr & mask).count('1')
         _sum += prob * (-1) ** parity
