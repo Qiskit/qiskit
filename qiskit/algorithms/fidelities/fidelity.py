@@ -31,7 +31,7 @@ class Fidelity(BaseFidelity):
         left_circuit: QuantumCircuit | None = None,
         right_circuit: QuantumCircuit | None = None,
     ) -> None:
-        r"""
+        """
         Initializes the class to evaluate the fidelities defined as the state overlap
             :math:`|\langle\psi(x)|\phi(y)\rangle|^2`,
         where :math:`x` and :math:`y` are optional parametrizations of the
@@ -55,19 +55,35 @@ class Fidelity(BaseFidelity):
         right_circuit: QuantumCircuit = None,
         **run_options,
     ) -> FidelityJob:
+        """Run the job of the state overlap (fidelity) calculation between 2
+        parametrized circuits (left and right) for a specific set of parameter
+        values (left and right).
+        Args:
+            left_values: Numerical parameters to be bound to the left circuit.
+            right_values: Numerical parameters to be bound to the right circuit.
+            left_circuit: (Parametrized) quantum circuit preparing :math:`|\psi\rangle`.
+            right_circuit: (Parametrized) quantum circuit preparing :math:`|\phi\rangle`.
+            run_options: Backend runtime options used for circuit execution.
 
+        Returns:
+            The job object for the fidelity calculation.
+        """
         if left_circuit is not None:
             self._set_circuits(left_circuit = left_circuit)
         if right_circuit is not None:
             self._set_circuits(right_circuit = right_circuit)
 
-        values_list = []
         if self._left_circuit is None or self._right_circuit is None:
             raise ValueError(
-                "The left and right circuits must be defined to"
+                "The left and right circuits must be defined to "
                 "calculate the state overlap. "
             )
 
+        circuit = self._left_circuit.compose(self._right_circuit.inverse())
+        circuit.measure_all()
+        self._circuit = circuit
+
+        values_list = []
         for values, side in zip([left_values, right_values], ["left", "right"]):
             values = self._check_values(values, side)
             if values is not None:
@@ -83,7 +99,7 @@ class Fidelity(BaseFidelity):
             values = np.hstack(values_list)
             job = self.sampler.run(circuits=[self._circuit] * len(values), parameter_values=values)
         else:
-            job = self.sampler.run(circuits=self._circuit)
+            job = self.sampler.run(circuits=[self._circuit])
 
         result = job.result()
 
@@ -92,4 +108,3 @@ class Fidelity(BaseFidelity):
         overlaps = [prob_dist.get(0, 0) for prob_dist in result.quasi_dists]
 
         return FidelityJob(result= np.array(overlaps), status=job.status())
-

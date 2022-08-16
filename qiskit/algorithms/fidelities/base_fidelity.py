@@ -88,17 +88,17 @@ class BaseFidelity(ABC):
         **run_options,
     ) -> FidelityJob:
         """Compute the overlap of two quantum states bound by the
-                parametrizations left_values and right_values.
+            parametrizations left_values and right_values.
+            Args:
+                left_values: Numerical parameters to be bound to the left circuit.
+                right_values: Numerical parameters to be bound to the right circuit.
+                left_circuit: (Parametrized) quantum circuit preparing :math:`|\psi\rangle`.
+                right_circuit: (Parametrized) quantum circuit preparing :math:`|\phi\rangle`.
+                run_options: Backend runtime options used for circuit execution.
 
-                Args:
-                    left_values: Numerical parameters to be bound to the left circuit.
-                    right_values: Numerical parameters to be bound to the right circuit.
-                    left_circuit: (Parametrized) quantum circuit preparing :math:`|\psi\rangle`.
-                    right_circuit: (Parametrized) quantum circuit preparing :math:`|\phi\rangle`.
-
-                Returns:
-                    The overlap of two quantum states defined by two parametrized circuits.
-                """
+            Returns:
+                The job object for the fidelity calculation.
+            """
         raise NotImplementedError()
 
     def _check_values(
@@ -119,8 +119,8 @@ class BaseFidelity(ABC):
         if values is None:
             if circuit.num_parameters != 0:
                 raise ValueError(
-                    f"`values_{side}` cannot be `None` because the {side} circuit has"
-                    f"{circuit.num_parameters} free parameters."
+                    f"`values_{side}` cannot be `None` because the {side} circuit has "
+                    f"{circuit.num_parameters} free parameters. {circuit}"
                 )
             return None
         else:
@@ -144,6 +144,7 @@ class BaseFidelity(ABC):
             self._check_qubits_mismatch(left_circuit, right_circuit)
             self._set_left_circuit(left_circuit)
             self._set_right_circuit(right_circuit)
+
         elif left_circuit is not None:
             self._check_qubits_mismatch(left_circuit, self._right_circuit)
             self._set_left_circuit(left_circuit)
@@ -154,10 +155,6 @@ class BaseFidelity(ABC):
             raise ValueError(
                 "At least one of the arguments `left_circuit` or `right_circuit` must not be `None`."
             )
-
-        circuit = self._left_circuit.compose(self._right_circuit.inverse())
-        circuit.measure_all()
-        self._circuit = circuit
 
     def _set_left_circuit(self, circuit: QuantumCircuit) -> None:
         """
