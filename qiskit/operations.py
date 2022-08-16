@@ -168,16 +168,16 @@ def expectation_value(
 
 
 @dispatch(precedence=1)
+def expectation_value(oper: str, state: QuantumState, qargs: Union[QargsT, type(None)] = None):
+    return expectation_value(Pauli(oper), state, qargs)
+
+
+@dispatch(precedence=1)
 def expectation_value(oper: SparsePauliOp, state: QuantumState, qargs: QargsT):
     return sum(
         coeff * expectation_value(Pauli((z, x)), state, qargs)
         for z, x, coeff in zip(oper.paulis.z, oper.paulis.x, oper.coeffs)
     )
-
-
-@dispatch(precedence=1)
-def expectation_value(oper: str, state: QuantumState, qargs: Union[QargsT, type(None)] = None):
-    return expectation_value(Pauli(oper), state, qargs)
 
 
 @dispatch(precedence=1)
