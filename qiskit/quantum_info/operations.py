@@ -47,11 +47,10 @@ def sum_of_probs(state: DensityMatrix):
 ### Make a uniform interface `expval_pauli` to the four rust routines.
 ###
 
+
 @dispatch
 def expval_pauli(state: Statevector, z_mask):
-    return pauli_expval.expval_pauli_no_x(
-        _to_rust_array(state), state.num_qubits, z_mask
-    )
+    return pauli_expval.expval_pauli_no_x(_to_rust_array(state), state.num_qubits, z_mask)
 
 
 @dispatch
@@ -89,7 +88,7 @@ def pauli_phase(pauli: Pauli):
 ## Compare this to the implementations in quantum_info classes.
 ## Here, we have a single method for Statevector, DensityMatrix rather than two.
 ## Furthermore, the internal structure of `state` is not accessed in this method.
-@dispatch (precedence=1)
+@dispatch(precedence=1)
 def expectation_value(pauli: Pauli, state: Union[Statevector, DensityMatrix], qargs: QargsT):
 
     qubits = np.array(qargs)
@@ -105,12 +104,10 @@ def expectation_value(pauli: Pauli, state: Union[Statevector, DensityMatrix], qa
 
     x_max = qubits[pauli.x][-1]
     y_phase = (-1j) ** pauli._count_y()
-    return _pauli_phase * expval_pauli(
-        state, z_mask, x_mask, y_phase, x_max
-    )
+    return _pauli_phase * expval_pauli(state, z_mask, x_mask, y_phase, x_max)
 
 
-@dispatch (precedence=1)
+@dispatch(precedence=1)
 def expectation_value(oper: Pauli, state: StabilizerState, qargs: QargsT):
 
     qubits = qargs
@@ -164,21 +161,21 @@ def expectation_value(oper: Pauli, state: StabilizerState, qargs: QargsT):
 
 # Here we also support the caller use the Python idiom of passing `None`.
 @dispatch
-def expectation_value(oper: Union[Pauli, SparsePauliOp], state: QuantumState,
-                      x: type(None) = None): # must be absent or explicit None
+def expectation_value(
+    oper: Union[Pauli, SparsePauliOp], state: QuantumState, x: type(None) = None
+):  # must be absent or explicit None
     return expectation_value(oper, state, range(oper.num_qubits))
 
 
-@dispatch (precedence=1)
-def expectation_value(
-        oper: SparsePauliOp, state: QuantumState, qargs: QargsT):
+@dispatch(precedence=1)
+def expectation_value(oper: SparsePauliOp, state: QuantumState, qargs: QargsT):
     return sum(
         coeff * expectation_value(Pauli((z, x)), state, qargs)
         for z, x, coeff in zip(oper.paulis.z, oper.paulis.x, oper.coeffs)
     )
 
 
-@dispatch (precedence=1)
+@dispatch(precedence=1)
 def expectation_value(oper: SparsePauliOp, state):
     return sum(
         coeff * expectation_value(Pauli((z, x)), state)
@@ -217,11 +214,11 @@ def _op_to_int(oper: str):
     and any other character is equal to one.
     """
     n = len(oper)
-    if oper.count('1') + oper.count('0') == n:
+    if oper.count("1") + oper.count("0") == n:
         return int(oper, base=2)
     mask = 0
     for i, c in enumerate(oper):
-        if c != 'I':
+        if c != "I":
             mask += 1 << (n - i - 1)
     return mask
 
@@ -233,7 +230,7 @@ def expectation_value(counts: Counts):
     _sum = 0
     total_counts = 0
     for bitstr, _count in counts.items():
-        _sum += _count * (-1) ** bitstr.count('1')
+        _sum += _count * (-1) ** bitstr.count("1")
         total_counts += _count
     return _sum / total_counts
 
@@ -255,7 +252,7 @@ def expectation_value(oper: str, counts: Counts):
     total_counts = 0
     mask = _op_to_int(oper)
     for bitstr, _count in counts.items():
-        parity = bin(int(bitstr, base=2) & mask).count('1')
+        parity = bin(int(bitstr, base=2) & mask).count("1")
         _sum += _count * (-1) ** parity
         total_counts += _count
     return _sum / total_counts
@@ -281,8 +278,10 @@ def expectation_value(counts: Counts, qargs: QargsT):
 def expectation_value(quasi_dist: QuasiDistribution):
     _sum = 0
     for bitstr, prob in quasi_dist.items():
-        _sum += prob * (-1) ** bin(bitstr).count('1')
+        _sum += prob * (-1) ** bin(bitstr).count("1")
     return _sum
+
+
 # Following is slightly slower than for loop above
 #    return sum(prob * (-1) ** bin(bitstr).count('1') for bitstr, prob in quasi_dist.items())
 
@@ -292,9 +291,11 @@ def expectation_value(oper: str, quasi_dist: QuasiDistribution):
     _sum = 0
     mask = _op_to_int(oper)
     for bitstr, prob in quasi_dist.items():
-        parity = bin(bitstr & mask).count('1')
+        parity = bin(bitstr & mask).count("1")
         _sum += prob * (-1) ** parity
     return _sum
+
+
 # Following is 30% slower
 #    return sum(prob * (-1) ** bin(bitstr & mask).count('1') for bitstr, prob in quasi_dist.items())
 
@@ -319,7 +320,6 @@ def expectation_value(oper: Pauli, state: Union[Counts, QuasiDistribution]):
 @dispatch
 def expectation_value(oper: Union[Pauli, SparsePauliOp], state):
     return expectation_value(oper, state, range(oper.num_qubits))
-
 
 
 # expectation_value.__doc__ = """
