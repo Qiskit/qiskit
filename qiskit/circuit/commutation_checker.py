@@ -80,6 +80,11 @@ class CommutationChecker:
         Returns:
             bool: whether two operations commute.
         """
+        # We don't support commutation of conditional gates for now.
+        for op in [op1, op2]:
+            if getattr(op, "condition", None):
+                return False
+
         # These lines are adapted from dag_dependency and say that two gates over
         # different quantum and classical bits necessarily commute. This is more
         # permissive that the check from commutation_analysis, as for example it
@@ -99,7 +104,6 @@ class CommutationChecker:
             if (
                 getattr(op, "_directive", False)
                 or op.name in {"measure", "reset", "delay"}
-                or getattr(op, "condition", None)
                 or op.is_parameterized()
             ):
                 return False

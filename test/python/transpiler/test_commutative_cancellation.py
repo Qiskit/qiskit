@@ -16,8 +16,10 @@ import unittest
 import numpy as np
 from qiskit.test import QiskitTestCase
 
+from qiskit.providers.fake_provider import FakeAthens
 from qiskit import QuantumRegister, QuantumCircuit
 from qiskit.circuit.library import U1Gate, RZGate
+from qiskit.compiler import transpile
 from qiskit.transpiler import PassManager, PropertySet
 from qiskit.transpiler.passes import CommutationAnalysis, CommutativeCancellation, FixedPoint, Size
 from qiskit.quantum_info import Operator
@@ -620,6 +622,14 @@ class TestCommutativeCancellation(QiskitTestCase):
         passmanager.append(CommutativeCancellation())
         ccirc = passmanager.run(circ)
         self.assertEqual(Operator(circ), Operator(ccirc))
+
+    def test_issue_8553(self):
+        """Test that transpile runs without internal errors, as per issue 8553."""
+        qc = QuantumCircuit(3, 3)
+        qc.u(0, 0, 0, 1)
+        qc.ccx(2, 1, 0).c_if(qc.cregs[0], 0)
+        qc.measure(2, 2)
+        transpile(qc, FakeAthens(), optimization_level=2)
 
 
 if __name__ == "__main__":
