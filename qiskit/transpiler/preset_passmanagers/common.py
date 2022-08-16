@@ -85,7 +85,7 @@ def generate_unroll_3q(
             target=target,
         )
     )
-    unroll_3q.append(HighLevelSynthesis(ls_config=hls_config))
+    unroll_3q.append(HighLevelSynthesis(hls_config=hls_config))
     unroll_3q.append(Unroll3qOrMore(target=target, basis_gates=basis_gates))
     return unroll_3q
 
