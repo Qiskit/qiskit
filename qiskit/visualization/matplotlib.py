@@ -414,7 +414,7 @@ class MatplotlibDrawer:
                 self._data[node] = {}
                 self._data[node]["width"] = WID
                 num_ctrl_qubits = 0 if not hasattr(op, "num_ctrl_qubits") else op.num_ctrl_qubits
-                if op._directive or isinstance(op, Measure):
+                if getattr(op, "_directive", False) or isinstance(op, Measure):
                     self._data[node]["raw_gate_text"] = op.name
                     continue
 
@@ -574,15 +574,17 @@ class MatplotlibDrawer:
                 # get qubit index
                 q_indxs = []
                 for qarg in node.qargs:
-                    q_indxs.append(self._wire_map[qarg])
+                    if qarg in self._qubits:
+                        q_indxs.append(self._wire_map[qarg])
 
                 c_indxs = []
                 for carg in node.cargs:
-                    register = get_bit_register(self._circuit, carg)
-                    if register is not None and self._cregbundle:
-                        c_indxs.append(self._wire_map[register])
-                    else:
-                        c_indxs.append(self._wire_map[carg])
+                    if carg in self._clbits:
+                        register = get_bit_register(self._circuit, carg)
+                        if register is not None and self._cregbundle:
+                            c_indxs.append(self._wire_map[register])
+                        else:
+                            c_indxs.append(self._wire_map[carg])
 
                 # qubit coordinate
                 self._data[node]["q_xy"] = [
@@ -602,7 +604,9 @@ class MatplotlibDrawer:
             barrier_offset = 0
             if not self._plot_barriers:
                 # only adjust if everything in the layer wasn't plotted
-                barrier_offset = -1 if all(nd.op._directive for nd in layer) else 0
+                barrier_offset = (
+                    -1 if all(getattr(nd.op, "_directive", False) for nd in layer) else 0
+                )
             prev_x_index = anc_x_index + layer_width + barrier_offset - 1
 
         return prev_x_index + 1
@@ -791,7 +795,7 @@ class MatplotlibDrawer:
                     print(op)
 
                 # add conditional
-                if op.condition:
+                if getattr(op, "condition", None):
                     cond_xy = [
                         self._c_anchors[ii].plot_coord(anc_x_index, layer_width, self._x_offset)
                         for ii in self._clbits_dict
@@ -807,7 +811,7 @@ class MatplotlibDrawer:
                     self._measure(node)
 
                 # draw barriers, snapshots, etc.
-                elif op._directive:
+                elif getattr(op, "_directive", False):
                     if self._plot_barriers:
                         self._barrier(node)
 
@@ -827,7 +831,9 @@ class MatplotlibDrawer:
             barrier_offset = 0
             if not self._plot_barriers:
                 # only adjust if everything in the layer wasn't plotted
-                barrier_offset = -1 if all(nd.op._directive for nd in layer) else 0
+                barrier_offset = (
+                    -1 if all(getattr(nd.op, "_directive", False) for nd in layer) else 0
+                )
 
             prev_x_index = anc_x_index + layer_width + barrier_offset - 1
 

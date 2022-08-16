@@ -120,7 +120,7 @@ class CollectMultiQBlocks(AnalysisPass):
             if not isinstance(x, DAGOpNode):
                 return "d"
             if isinstance(x.op, Gate):
-                if x.op.is_parameterized() or x.op.condition is not None:
+                if x.op.is_parameterized() or getattr(x.op, "condition", None) is not None:
                     return "c"
                 return "b" + chr(ord("a") + len(x.qargs))
             return "d"
@@ -134,7 +134,7 @@ class CollectMultiQBlocks(AnalysisPass):
 
             # check if the node is a gate and if it is parameterized
             if (
-                nd.op.condition is not None
+                getattr(nd.op, "condition", None) is not None
                 or nd.op.is_parameterized()
                 or not isinstance(nd.op, Gate)
             ):
