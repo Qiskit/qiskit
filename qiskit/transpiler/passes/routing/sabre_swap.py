@@ -152,14 +152,7 @@ class SabreSwap(TransformationPass):
         if coupling_map is not None:
             self._neighbor_table = NeighborTable(retworkx.adjacency_matrix(self.coupling_map.graph))
 
-        if heuristic == "basic":
-            self.heuristic = Heuristic.Basic
-        elif heuristic == "lookahead":
-            self.heuristic = Heuristic.Lookahead
-        elif heuristic == "decay":
-            self.heuristic = Heuristic.Decay
-        else:
-            raise TranspilerError("Heuristic %s not recognized." % heuristic)
+        self.heuristic = heuristic
 
         if seed is None:
             ii32 = np.iinfo(np.int32)
@@ -188,6 +181,15 @@ class SabreSwap(TransformationPass):
 
         if len(dag.qubits) > self.coupling_map.size():
             raise TranspilerError("More virtual qubits exist than physical.")
+
+        if self.heuristic == "basic":
+            heuristic = Heuristic.Basic
+        elif self.heuristic == "lookahead":
+            heuristic = Heuristic.Lookahead
+        elif self.heuristic == "decay":
+            heuristic = Heuristic.Decay
+        else:
+            raise TranspilerError("Heuristic %s not recognized." % self.heuristic)
 
         max_iterations_without_progress = 10 * len(dag.qubits)  # Arbitrary.
         ops_since_progress = []
@@ -307,7 +309,7 @@ class SabreSwap(TransformationPass):
                 extended_set_list,
                 self.dist_matrix,
                 self.qubits_decay,
-                self.heuristic,
+                heuristic,
                 rng,
             )
             best_swap_qargs = [canonical_register[best_swap[0]], canonical_register[best_swap[1]]]
