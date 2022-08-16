@@ -205,21 +205,29 @@ class SabreSwap(TransformationPass):
         original_layout = layout.copy()
 
         dag_list = []
-        for node in dag.topological_op_nodes():
-            if len(node.qargs) == 2:
-                dag_list.append(
-                    (
-                        node._node_id,
-                        self._bit_indices[node.qargs[0]],
-                        self._bit_indices[node.qargs[1]],
-                    )
-                )
+        layers = dag.multigraph_layers()
+        replay_list = []
+        front_layer = None
+        for layer in layers:
+            for node in layer:
+                if isinstance(node, DAGOpNode):
+                    replay_list.append(node)
+                    if len(node.qargs) == 2:
+                        dag_list.append(
+                            (
+                                node._node_id,
+                                self._bit_indices[node.qargs[0]],
+                                self._bit_indices[node.qargs[1]],
+                            )
+                        )
+                if front_layer is None:
+                    front_layer = dag_list
 
         sabre_dag = SabreDAG(len(dag.qubits), dag_list)
         # A decay factor for each qubit used to heuristically penalize recently
         # used qubits (to encourage parallelism).
         qubits_decay = QubitsDecay(len(dag.qubits))
-        swap_map = build_swap_map(
+        swap_map, gate_order = build_swap_map(
             sabre_dag,
             self._neighbor_table,
             self.dist_matrix,
@@ -233,27 +241,50 @@ class SabreSwap(TransformationPass):
         output_layout = Layout({dag.qubits[k]: v for (k, v) in layout_mapping})
         self.property_set["final_layout"] = output_layout
         if not self.fake_run:
+            queued_gates = []
+            processed_nodes = set()
+            count = 0
             # Reconstruct circuit by iterating over layers to preserve
             # relative positioning of 1q gates with SWAPs.
-            layers = dag.multigraph_layers()
-            next(layers)
-            for layer in layers:
-                for node in layer:
-                    if not isinstance(node, DAGOpNode):
+            for node in replay_list:
+                if len(node.qargs) == 2:
+                    if node._node_id != gate_order[count]:
+                        queued_gates.append(node)
                         continue
-                    if node._node_id in swap_map:
-                        for swap in swap_map[node._node_id]:
-                            swap_qargs = [canonical_register[swap[0]], canonical_register[swap[1]]]
-                            self._apply_gate(
-                                mapped_dag,
-                                DAGOpNode(op=SwapGate(), qargs=swap_qargs),
-                                original_layout,
-                                canonical_register,
+                    self._process_swaps(
+                        swap_map, node, mapped_dag, original_layout, canonical_register
+                    )
+                    self._apply_gate(mapped_dag, node, original_layout, canonical_register)
+                    processed_nodes.add(node._node_id)
+                    count += 1
+                    if queued_gates:
+                        for gate_node in queued_gates:
+                            if gate_node._node_id in processed_nodes:
+                                continue
+                            self._process_swaps(
+                                swap_map, gate_node, mapped_dag, original_layout, canonical_register
                             )
-                            original_layout.swap_logical(*swap)
+                            self._apply_gate(
+                                mapped_dag, gate_node, original_layout, canonical_register
+                            )
+                            count += 1
+                        queued_gates.clear()
+                else:
                     self._apply_gate(mapped_dag, node, original_layout, canonical_register)
             return mapped_dag
         return dag
+
+    def _process_swaps(self, swap_map, node, mapped_dag, current_layout, canonical_register):
+        if node._node_id in swap_map:
+            for swap in swap_map[node._node_id]:
+                swap_qargs = [canonical_register[swap[0]], canonical_register[swap[1]]]
+                self._apply_gate(
+                    mapped_dag,
+                    DAGOpNode(op=SwapGate(), qargs=swap_qargs),
+                    current_layout,
+                    canonical_register,
+                )
+                current_layout.swap_logical(*swap)
 
     def _apply_gate(self, mapped_dag, node, current_layout, canonical_register):
         new_node = self._transform_gate_for_layout(node, current_layout, canonical_register)

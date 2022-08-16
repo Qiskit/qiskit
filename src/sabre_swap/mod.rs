@@ -23,6 +23,7 @@ use std::cmp::Ordering;
 
 use hashbrown::{HashMap, HashSet};
 use ndarray::prelude::*;
+use numpy::IntoPyArray;
 use numpy::PyReadonlyArray2;
 use pyo3::prelude::*;
 use pyo3::wrap_pyfunction;
@@ -144,6 +145,7 @@ fn cmap_from_neighor_table(neighbor_table: &NeighborTable) -> DiGraph<(), ()> {
 ///     swaps that should be added before that op.
 #[pyfunction]
 pub fn build_swap_map(
+    py: Python,
     dag: &SabreDAG,
     neighbor_table: &NeighborTable,
     distance_matrix: PyReadonlyArray2<f64>,
@@ -151,7 +153,8 @@ pub fn build_swap_map(
     heuristic: &Heuristic,
     rng: &mut SabreRng,
     layout: &mut NLayout,
-) -> PyResult<SwapMap> {
+) -> PyResult<(SwapMap, PyObject)> {
+    let mut gate_order: Vec<usize> = Vec::with_capacity(dag.dag.node_count());
     let run_in_parallel = getenv_use_multiple_threads();
     let mut out_map: HashMap<usize, Vec<[usize; 2]>> = HashMap::new();
     let mut front_layer: Vec<NodeIndex> = dag.first_layer.clone();
@@ -259,6 +262,8 @@ pub fn build_swap_map(
         }
         if !execute_gate_list.is_empty() {
             for node in execute_gate_list {
+                let node_weight = dag.dag.node_weight(node).unwrap();
+                gate_order.push(node_weight[0]);
                 let out_swaps: Vec<[usize; 2]> = ops_since_progress.drain(..).collect();
                 out_map.insert(dag.dag.node_weight(node).unwrap()[0], out_swaps);
                 for edge in dag.dag.edges(node) {
@@ -308,7 +313,7 @@ pub fn build_swap_map(
         }
         ops_since_progress.push(best_swap);
     }
-    Ok(SwapMap { map: out_map })
+    Ok((SwapMap { map: out_map }, gate_order.into_pyarray(py).into()))
 }
 
 /// Run the sabre heuristic scoring
