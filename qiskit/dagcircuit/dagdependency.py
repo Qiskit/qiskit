@@ -389,11 +389,11 @@ class DAGDependency:
             cargs (list[Clbit]): list of classical wires to attach to.
         """
         directives = ["measure"]
-        if not operation._directive and operation.name not in directives:
+        if not getattr(operation, "_directive", False) and operation.name not in directives:
             qindices_list = []
             for elem in qargs:
                 qindices_list.append(self.qubits.index(elem))
-            if operation.condition:
+            if getattr(operation, "condition", None):
                 for clbit in self.clbits:
                     if clbit in operation.condition[0]:
                         initial = self.clbits.index(clbit)
