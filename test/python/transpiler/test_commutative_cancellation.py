@@ -16,10 +16,8 @@ import unittest
 import numpy as np
 from qiskit.test import QiskitTestCase
 
-from qiskit.providers.fake_provider import FakeAthens
 from qiskit import QuantumRegister, QuantumCircuit
 from qiskit.circuit.library import U1Gate, RZGate
-from qiskit.compiler import transpile
 from qiskit.transpiler import PassManager, PropertySet
 from qiskit.transpiler.passes import CommutationAnalysis, CommutativeCancellation, FixedPoint, Size
 from qiskit.quantum_info import Operator
@@ -623,13 +621,16 @@ class TestCommutativeCancellation(QiskitTestCase):
         ccirc = passmanager.run(circ)
         self.assertEqual(Operator(circ), Operator(ccirc))
 
-    def test_issue_8553(self):
-        """Test that transpile runs without internal errors, as per issue 8553."""
-        qc = QuantumCircuit(3, 3)
-        qc.u(0, 0, 0, 1)
-        qc.ccx(2, 1, 0).c_if(qc.cregs[0], 0)
-        qc.measure(2, 2)
-        transpile(qc, FakeAthens(), optimization_level=2)
+    def test_basic_classical_wires(self):
+        """Test that transpile runs without internal errors when dealing with commutable operations
+        with classical controls. Regression test for gh-8553."""
+        original = QuantumCircuit(2, 1)
+        original.x(0).c_if(original.cregs[0], 0)
+        original.x(1).c_if(original.cregs[0], 0)
+        # This transpilation shouldn't change anything, but it should succeed.  At one point it was
+        # triggering an internal logic error and crashing.
+        transpiled = PassManager([CommutativeCancellation()]).run(original)
+        self.assertEqual(original, transpiled)
 
 
 if __name__ == "__main__":
