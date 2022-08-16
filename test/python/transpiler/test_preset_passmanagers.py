@@ -721,8 +721,8 @@ class TestFinalLayouts(QiskitTestCase):
         }
 
         expected_layout_level0 = trivial_layout
-        expected_layout_level1 = dense_layout
-        expected_layout_level2 = dense_layout
+        expected_layout_level1 = sabre_layout
+        expected_layout_level2 = sabre_layout
         expected_layout_level3 = sabre_layout
 
         expected_layouts = [
