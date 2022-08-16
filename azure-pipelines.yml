@@ -212,12 +212,12 @@ stages:
         - template: ".azure/wheels.yml"
           parameters:
             jobName: "macos"
-            pool: {vmImage: 'macOS-10.15'}
+            pool: {vmImage: 'macOS-11'}
 
         - template: ".azure/wheels.yml"
           parameters:
             jobName: "macos_arm"
-            pool: {vmImage: 'macOS-10.15'}
+            pool: {vmImage: 'macOS-11'}
             env:
               CIBW_BEFORE_ALL: rustup target add aarch64-apple-darwin
               CIBW_ARCHS_MACOS: arm64 universal2
