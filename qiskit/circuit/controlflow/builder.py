@@ -426,7 +426,7 @@ class ControlFlowBuilderBlock:
                         # a register is already present, so we use our own tracking.
                         self.add_register(register)
                         out.add_register(register)
-            if instruction.operation.condition is not None:
+            if getattr(instruction.operation, "condition", None) is not None:
                 for register in condition_registers(instruction.operation.condition):
                     if register not in self.registers:
                         self.add_register(register)
