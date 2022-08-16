@@ -312,7 +312,7 @@ def transpile(
         unitary_synthesis_method,
         unitary_synthesis_plugin_config,
         target,
-        hls_config
+        hls_config,
     )
     # Get transpile_args to configure the circuit transpilation job(s)
     if coupling_map in unique_transpile_args:

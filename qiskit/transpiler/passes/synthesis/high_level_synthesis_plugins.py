@@ -18,7 +18,6 @@ from qiskit.transpiler.synthesis import cnot_synth
 
 
 class DefaultSynthesisClifford:
-
     def run(self, clifford, **options):
         """Run synthesis for the given Clifford."""
 
@@ -28,11 +27,9 @@ class DefaultSynthesisClifford:
 
 
 class DefaultSynthesisLinearFunction:
-
     def run(self, linear_function, **options):
         """Run synthesis for the given LinearFunction."""
 
         print(f"    -> Running DefaultSynthesisLinearFunction")
         decomposition = cnot_synth(linear_function.linear)
         return decomposition
-

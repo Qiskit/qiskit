@@ -113,7 +113,10 @@ class HighLevelSynthesis(TransformationPass):
                 continue
 
             if plugin_name not in available_plugins:
-                raise TranspilerError("Specified method: %s not found in available plugins for %s" % (plugin_name, node.name))
+                raise TranspilerError(
+                    "Specified method: %s not found in available plugins for %s"
+                    % (plugin_name, node.name)
+                )
 
             # print(f"  Using method {plugin_name} for {node.name}")
             plugin_method = available_plugins[plugin_name].obj

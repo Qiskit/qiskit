@@ -235,7 +235,7 @@ def level_1_pass_manager(pass_manager_config: PassManagerConfig) -> StagedPassMa
         backend_properties,
         unitary_synthesis_method,
         unitary_synthesis_plugin_config,
-        hls_config
+        hls_config,
     )
     pre_routing = None
     if toqm_pass:

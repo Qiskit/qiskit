@@ -174,7 +174,7 @@ def generate_preset_pass_manager(
         unitary_synthesis_method=unitary_synthesis_method,
         unitary_synthesis_plugin_config=unitary_synthesis_plugin_config,
         initial_layout=initial_layout,
-        hls_config=hls_config
+        hls_config=hls_config,
     )
 
     if backend is not None:
