@@ -169,7 +169,7 @@ class EvolvedOp(PrimitiveOp):
 
     # pylint: disable=arguments-differ
     def to_instruction(self, massive: bool = False) -> Instruction:
-        mat_op = self.primitive.to_matrix_op(massive=massive)
+        mat_op = self.to_matrix_op(massive=massive)
         if not isinstance(mat_op, MatrixOp):
             raise OpflowError("to_instruction is not allowed for ListOp.")
         return mat_op.to_instruction()

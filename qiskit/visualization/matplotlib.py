@@ -165,8 +165,8 @@ class MatplotlibDrawer:
         # subfont. Font change is auto scaled in the self._figure.set_size_inches call in draw()
         self._subfont_factor = self._style["sfs"] * def_font_ratio / self._style["fs"]
 
-        self._reverse_bits = reverse_bits
         self._plot_barriers = plot_barriers
+        self._reverse_bits = reverse_bits
         if with_layout:
             self._layout = self._circuit._layout
         else:
@@ -414,7 +414,7 @@ class MatplotlibDrawer:
                 self._data[node] = {}
                 self._data[node]["width"] = WID
                 num_ctrl_qubits = 0 if not hasattr(op, "num_ctrl_qubits") else op.num_ctrl_qubits
-                if op._directive or isinstance(op, Measure):
+                if getattr(op, "_directive", False) or isinstance(op, Measure):
                     self._data[node]["raw_gate_text"] = op.name
                     continue
 
@@ -503,9 +503,7 @@ class MatplotlibDrawer:
             # otherwise, get the register from find_bit and use bit_index if
             # it's a bit, or the index of the bit in the register if it's a reg
             else:
-                register, bit_index, reg_index = get_bit_reg_index(
-                    self._circuit, wire, self._reverse_bits
-                )
+                register, bit_index, reg_index = get_bit_reg_index(self._circuit, wire)
                 index = bit_index if register is None else reg_index
 
             wire_label = get_wire_label(
@@ -576,15 +574,17 @@ class MatplotlibDrawer:
                 # get qubit index
                 q_indxs = []
                 for qarg in node.qargs:
-                    q_indxs.append(self._wire_map[qarg])
+                    if qarg in self._qubits:
+                        q_indxs.append(self._wire_map[qarg])
 
                 c_indxs = []
                 for carg in node.cargs:
-                    register = get_bit_register(self._circuit, carg)
-                    if register is not None and self._cregbundle:
-                        c_indxs.append(self._wire_map[register])
-                    else:
-                        c_indxs.append(self._wire_map[carg])
+                    if carg in self._clbits:
+                        register = get_bit_register(self._circuit, carg)
+                        if register is not None and self._cregbundle:
+                            c_indxs.append(self._wire_map[register])
+                        else:
+                            c_indxs.append(self._wire_map[carg])
 
                 # qubit coordinate
                 self._data[node]["q_xy"] = [
@@ -604,7 +604,9 @@ class MatplotlibDrawer:
             barrier_offset = 0
             if not self._plot_barriers:
                 # only adjust if everything in the layer wasn't plotted
-                barrier_offset = -1 if all(nd.op._directive for nd in layer) else 0
+                barrier_offset = (
+                    -1 if all(getattr(nd.op, "_directive", False) for nd in layer) else 0
+                )
             prev_x_index = anc_x_index + layer_width + barrier_offset - 1
 
         return prev_x_index + 1
@@ -793,7 +795,7 @@ class MatplotlibDrawer:
                     print(op)
 
                 # add conditional
-                if op.condition:
+                if getattr(op, "condition", None):
                     cond_xy = [
                         self._c_anchors[ii].plot_coord(anc_x_index, layer_width, self._x_offset)
                         for ii in self._clbits_dict
@@ -809,7 +811,7 @@ class MatplotlibDrawer:
                     self._measure(node)
 
                 # draw barriers, snapshots, etc.
-                elif op._directive:
+                elif getattr(op, "_directive", False):
                     if self._plot_barriers:
                         self._barrier(node)
 
@@ -829,7 +831,9 @@ class MatplotlibDrawer:
             barrier_offset = 0
             if not self._plot_barriers:
                 # only adjust if everything in the layer wasn't plotted
-                barrier_offset = -1 if all(nd.op._directive for nd in layer) else 0
+                barrier_offset = (
+                    -1 if all(getattr(nd.op, "_directive", False) for nd in layer) else 0
+                )
 
             prev_x_index = anc_x_index + layer_width + barrier_offset - 1
 
@@ -883,7 +887,7 @@ class MatplotlibDrawer:
     def _condition(self, node, cond_xy):
         """Add a conditional to a gate"""
         label, val_bits = get_condition_label_val(
-            node.op.condition, self._circuit, self._cregbundle, self._reverse_bits
+            node.op.condition, self._circuit, self._cregbundle
         )
         cond_bit_reg = node.op.condition[0]
         cond_bit_val = int(node.op.condition[1])
@@ -895,8 +899,7 @@ class MatplotlibDrawer:
         # other cases, only one bit is shown.
         if not self._cregbundle and isinstance(cond_bit_reg, ClassicalRegister):
             for idx in range(cond_bit_reg.size):
-                rev_idx = cond_bit_reg.size - idx - 1 if self._reverse_bits else idx
-                cond_pos.append(cond_xy[self._wire_map[cond_bit_reg[rev_idx]] - first_clbit])
+                cond_pos.append(cond_xy[self._wire_map[cond_bit_reg[idx]] - first_clbit])
 
         # If it's a register bit and cregbundle, need to use the register to find the location
         elif self._cregbundle and isinstance(cond_bit_reg, Clbit):
@@ -952,7 +955,7 @@ class MatplotlibDrawer:
         """Draw the measure symbol and the line to the clbit"""
         qx, qy = self._data[node]["q_xy"][0]
         cx, cy = self._data[node]["c_xy"][0]
-        register, _, reg_index = get_bit_reg_index(self._circuit, node.cargs[0], self._reverse_bits)
+        register, _, reg_index = get_bit_reg_index(self._circuit, node.cargs[0])
 
         # draw gate box
         self._gate(node)

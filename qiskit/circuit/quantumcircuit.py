@@ -52,6 +52,7 @@ from .classicalregister import ClassicalRegister, Clbit
 from .parametertable import ParameterReferences, ParameterTable, ParameterView
 from .parametervector import ParameterVector, ParameterVectorElement
 from .instructionset import InstructionSet
+from .operation import Operation
 from .register import Register
 from .bit import Bit
 from .quantumcircuitdata import QuantumCircuitData, CircuitInstruction
@@ -947,7 +948,7 @@ class QuantumCircuit:
             n_cargs = [edge_map[carg] for carg in instr.clbits]
             n_instr = instr.operation.copy()
 
-            if instr.operation.condition is not None:
+            if getattr(instr.operation, "condition", None) is not None:
                 from qiskit.dagcircuit import DAGCircuit  # pylint: disable=cyclic-import
 
                 n_instr.condition = DAGCircuit._map_condition(
@@ -1216,7 +1217,7 @@ class QuantumCircuit:
 
     def append(
         self,
-        instruction: Union[Instruction, CircuitInstruction],
+        instruction: Union[Operation, CircuitInstruction],
         qargs: Optional[Sequence[QubitSpecifier]] = None,
         cargs: Optional[Sequence[ClbitSpecifier]] = None,
     ) -> InstructionSet:
@@ -1252,20 +1253,20 @@ class QuantumCircuit:
         else:
             operation = instruction
         # Convert input to instruction
-        if not isinstance(operation, Instruction) and not hasattr(operation, "to_instruction"):
-            if issubclass(operation, Instruction):
+        if not isinstance(operation, Operation) and not hasattr(operation, "to_instruction"):
+            if issubclass(operation, Operation):
                 raise CircuitError(
-                    "Object is a subclass of Instruction, please add () to "
+                    "Object is a subclass of Operation, please add () to "
                     "pass an instance of this object."
                 )
 
             raise CircuitError(
-                "Object to append must be an Instruction or have a to_instruction() method."
+                "Object to append must be an Operation or have a to_instruction() method."
             )
-        if not isinstance(operation, Instruction) and hasattr(operation, "to_instruction"):
+        if not isinstance(operation, Operation) and hasattr(operation, "to_instruction"):
             operation = operation.to_instruction()
-        if not isinstance(operation, Instruction):
-            raise CircuitError("object is not an Instruction.")
+        if not isinstance(operation, Operation):
+            raise CircuitError("object is not an Operation.")
 
         # Make copy of parameterized gate instances
         if hasattr(operation, "params"):
@@ -1283,11 +1284,21 @@ class QuantumCircuit:
             appender = self._append
             requester = self._resolve_classical_resource
         instructions = InstructionSet(resource_requester=requester)
-        for qarg, carg in operation.broadcast_arguments(expanded_qargs, expanded_cargs):
-            self._check_dups(qarg)
-            instruction = CircuitInstruction(operation, qarg, carg)
-            appender(instruction)
-            instructions.add(instruction)
+        if isinstance(operation, Instruction):
+            for qarg, carg in operation.broadcast_arguments(expanded_qargs, expanded_cargs):
+                self._check_dups(qarg)
+                instruction = CircuitInstruction(operation, qarg, carg)
+                appender(instruction)
+                instructions.add(instruction)
+        else:
+            # For Operations that are non-Instructions, we use the Instruction's default method
+            for qarg, carg in Instruction.broadcast_arguments(
+                operation, expanded_qargs, expanded_cargs
+            ):
+                self._check_dups(qarg)
+                instruction = CircuitInstruction(operation, qarg, carg)
+                appender(instruction)
+                instructions.add(instruction)
         return instructions
 
     # Preferred new style.
@@ -1301,10 +1312,10 @@ class QuantumCircuit:
     @typing.overload
     def _append(
         self,
-        operation: Instruction,
+        operation: Operation,
         qargs: Sequence[Qubit],
         cargs: Sequence[Clbit],
-    ) -> Instruction:
+    ) -> Operation:
         ...
 
     def _append(self, instruction, qargs=None, cargs=None):
@@ -1328,12 +1339,12 @@ class QuantumCircuit:
             constructs of the control-flow builder interface.
 
         Args:
-            instruction: Instruction instance to append
+            instruction: Operation instance to append
             qargs: Qubits to attach the instruction to.
             cargs: Clbits to attach the instruction to.
 
         Returns:
-            Instruction: a handle to the instruction that was just added
+            Operation: a handle to the instruction that was just added
 
         :meta public:
         """
@@ -1341,7 +1352,9 @@ class QuantumCircuit:
         if old_style:
             instruction = CircuitInstruction(instruction, qargs, cargs)
         self._data.append(instruction)
-        self._update_parameter_table(instruction)
+        if isinstance(instruction.operation, Instruction):
+            self._update_parameter_table(instruction)
+
         # mark as normal circuit if a new instruction is added
         self.duration = None
         self.unit = "dt"
@@ -1567,11 +1580,13 @@ class QuantumCircuit:
         """
         # pylint: disable=cyclic-import
         from qiskit.transpiler.passes.basis.decompose import Decompose
+        from qiskit.transpiler.passes.synthesis import HighLevelSynthesis
         from qiskit.converters.circuit_to_dag import circuit_to_dag
         from qiskit.converters.dag_to_circuit import dag_to_circuit
 
-        pass_ = Decompose(gates_to_decompose)
         dag = circuit_to_dag(self)
+        dag = HighLevelSynthesis().run(dag)
+        pass_ = Decompose(gates_to_decompose)
         for _ in range(reps):
             dag = pass_.run(dag)
         return dag_to_circuit(dag)
@@ -1796,6 +1811,7 @@ class QuantumCircuit:
         ax: Optional[typing.Any] = None,
         initial_state: bool = False,
         cregbundle: bool = True,
+        wire_order: list = None,
     ):
         """Draw the quantum circuit. Use the output parameter to choose the drawing format:
 
@@ -1873,10 +1889,13 @@ class QuantumCircuit:
                 specified, a new matplotlib Figure will be created and used.
                 Additionally, if specified there will be no returned Figure since
                 it is redundant.
-            initial_state (bool): optional. Adds ``|0>`` in the beginning of the wire.
+            initial_state (bool): Optional. Adds ``|0>`` in the beginning of the wire.
                 Default is False.
-            cregbundle (bool): optional. If set True, bundle classical registers.
+            cregbundle (bool): Optional. If set True, bundle classical registers.
                 Default is True.
+            wire_order (list): Optional. A list of integers used to reorder the display
+                of the bits. The list must have an entry for every bit with the bits
+                in the range 0 to (num_qubits + num_clbits).
 
         Returns:
             :class:`TextDrawing` or :class:`matplotlib.figure` or :class:`PIL.Image` or
@@ -1928,10 +1947,14 @@ class QuantumCircuit:
             ax=ax,
             initial_state=initial_state,
             cregbundle=cregbundle,
+            wire_order=wire_order,
         )
 
     def size(
-        self, filter_function: Optional[callable] = lambda x: not x.operation._directive
+        self,
+        filter_function: Optional[callable] = lambda x: not getattr(
+            x.operation, "_directive", False
+        ),
     ) -> int:
         """Returns total number of instructions in circuit.
 
@@ -1946,7 +1969,10 @@ class QuantumCircuit:
         return sum(map(filter_function, self._data))
 
     def depth(
-        self, filter_function: Optional[callable] = lambda x: not x.operation._directive
+        self,
+        filter_function: Optional[callable] = lambda x: not getattr(
+            x.operation, "_directive", False
+        ),
     ) -> int:
         """Return circuit depth (i.e., length of critical path).
 
@@ -1995,7 +2021,7 @@ class QuantumCircuit:
                     levels.append(op_stack[reg_ints[ind]])
             # Assuming here that there is no conditional
             # snapshots or barriers ever.
-            if instruction.operation.condition:
+            if getattr(instruction.operation, "condition", None):
                 # Controls operate over all bits of a classical register
                 # or over a single bit
                 if isinstance(instruction.operation.condition[0], Clbit):
@@ -2059,7 +2085,9 @@ class QuantumCircuit:
         """
         multi_qubit_gates = 0
         for instruction in self._data:
-            if instruction.operation.num_qubits > 1 and not instruction.operation._directive:
+            if instruction.operation.num_qubits > 1 and not getattr(
+                instruction.operation, "_directive", False
+            ):
                 multi_qubit_gates += 1
         return multi_qubit_gates
 
@@ -2100,9 +2128,11 @@ class QuantumCircuit:
                 num_qargs = len(args)
             else:
                 args = instruction.qubits + instruction.clbits
-                num_qargs = len(args) + (1 if instruction.operation.condition else 0)
+                num_qargs = len(args) + (
+                    1 if getattr(instruction.operation, "condition", None) else 0
+                )
 
-            if num_qargs >= 2 and not instruction.operation._directive:
+            if num_qargs >= 2 and not getattr(instruction.operation, "_directive", False):
                 graphs_touched = []
                 num_touched = 0
                 # Controls necessarily join all the cbits in the
@@ -4201,7 +4231,8 @@ class QuantumCircuit:
         if not self._data:
             raise CircuitError("This circuit contains no instructions.")
         instruction = self._data.pop()
-        self._update_parameter_table_on_instruction_removal(instruction)
+        if isinstance(instruction.operation, Instruction):
+            self._update_parameter_table_on_instruction_removal(instruction)
         return instruction
 
     def _update_parameter_table_on_instruction_removal(self, instruction: CircuitInstruction):

@@ -171,8 +171,8 @@ class QCircuitImage:
         self._has_box = False
         self._has_target = False
 
-        self._reverse_bits = reverse_bits
         self._plot_barriers = plot_barriers
+        self._reverse_bits = reverse_bits
         if with_layout:
             self._layout = self._circuit._layout
         else:
@@ -259,9 +259,7 @@ class QCircuitImage:
                 register = wire
                 index = self._wire_map[wire]
             else:
-                register, bit_index, reg_index = get_bit_reg_index(
-                    self._circuit, wire, self._reverse_bits
-                )
+                register, bit_index, reg_index = get_bit_reg_index(self._circuit, wire)
                 index = bit_index if register is None else reg_index
 
             wire_label = get_wire_label(
@@ -288,7 +286,10 @@ class QCircuitImage:
         if self._cregbundle and (
             self._nodes
             and self._nodes[0]
-            and (self._nodes[0][0].op.name == "measure" or self._nodes[0][0].op.condition)
+            and (
+                self._nodes[0][0].op.name == "measure"
+                or getattr(self._nodes[0][0].op, "condition", None)
+            )
         ):
             columns += 1
 
@@ -412,7 +413,10 @@ class QCircuitImage:
         if self._cregbundle and (
             self._nodes
             and self._nodes[0]
-            and (self._nodes[0][0].op.name == "measure" or self._nodes[0][0].op.condition)
+            and (
+                self._nodes[0][0].op.name == "measure"
+                or getattr(self._nodes[0][0].op, "condition", None)
+            )
         ):
             column += 1
 
@@ -422,14 +426,14 @@ class QCircuitImage:
             for node in layer:
                 op = node.op
                 num_cols_op = 1
-                wire_list = [self._wire_map[qarg] for qarg in node.qargs]
-                if op.condition:
+                wire_list = [self._wire_map[qarg] for qarg in node.qargs if qarg in self._qubits]
+                if getattr(op, "condition", None):
                     self._add_condition(op, wire_list, column)
 
                 if isinstance(op, Measure):
                     self._build_measure(node, column)
 
-                elif op._directive:  # barrier, snapshot, etc.
+                elif getattr(op, "_directive", False):  # barrier, snapshot, etc.
                     self._build_barrier(node, column)
 
                 else:
@@ -437,7 +441,9 @@ class QCircuitImage:
                     gate_text += get_param_str(op, "latex", ndigits=4)
                     gate_text = generate_latex_label(gate_text)
                     if node.cargs:
-                        cwire_list = [self._wire_map[carg] for carg in node.cargs]
+                        cwire_list = [
+                            self._wire_map[carg] for carg in node.cargs if carg in self._clbits
+                        ]
                     else:
                         cwire_list = []
 
@@ -563,7 +569,7 @@ class QCircuitImage:
         self._latex[wire1][col] = "\\meter"
 
         idx_str = ""
-        cond_offset = 1.5 if node.op.condition else 0.0
+        cond_offset = 1.5 if getattr(node.op, "condition", None) else 0.0
         if self._cregbundle:
             register = get_bit_register(self._circuit, node.cargs[0])
             if register is not None:
@@ -584,7 +590,7 @@ class QCircuitImage:
     def _build_barrier(self, node, col):
         """Build a partial or full barrier if plot_barriers set"""
         if self._plot_barriers:
-            indexes = [self._wire_map[qarg] for qarg in node.qargs]
+            indexes = [self._wire_map[qarg] for qarg in node.qargs if qarg in self._qubits]
             indexes.sort()
             first = last = indexes[0]
             for index in indexes[1:]:
@@ -623,46 +629,58 @@ class QCircuitImage:
         #         or if cregbundle, wire number of the condition register itself
         # gap - the number of wires from cwire to the bottom gate qubit
 
-        label, val_bits = get_condition_label_val(
-            op.condition, self._circuit, self._cregbundle, self._reverse_bits
-        )
+        label, val_bits = get_condition_label_val(op.condition, self._circuit, self._cregbundle)
         cond_is_bit = isinstance(op.condition[0], Clbit)
         cond_reg = op.condition[0]
         if cond_is_bit:
             register = get_bit_register(self._circuit, op.condition[0])
             if register is not None:
                 cond_reg = register
-
-        if self._cregbundle:
-            cwire = self._wire_map[cond_reg]
-        else:
-            cwire = self._wire_map[op.condition[0] if cond_is_bit else cond_reg[0]]
-
-        gap = cwire - max(wire_list)
         meas_offset = -0.3 if isinstance(op, Measure) else 0.0
 
-        # Print the condition value at the bottom and put bullet on creg line
+        # If condition is a bit or cregbundle true, print the condition value
+        # at the bottom and put bullet on creg line
         if cond_is_bit or self._cregbundle:
+            cwire = (
+                self._wire_map[cond_reg] if self._cregbundle else self._wire_map[op.condition[0]]
+            )
+            gap = cwire - max(wire_list)
             control = "\\control" if op.condition[1] else "\\controlo"
             self._latex[cwire][col] = f"{control}" + " \\cw^(%s){^{\\mathtt{%s}}} \\cwx[-%s]" % (
                 meas_offset,
                 label,
                 str(gap),
             )
+        # If condition is a register and cregbundle is false
         else:
-            cond_len = op.condition[0].size - 1
-            # If reverse, start at highest reg bit and go down to 0
-            if self._reverse_bits:
-                cwire -= cond_len
-                gap -= cond_len
-            # Iterate through the reg bits down to the lowest one
-            for i in range(cond_len):
-                control = "\\control" if val_bits[i] == "1" else "\\controlo"
-                self._latex[cwire + i][col] = f"{control} \\cw \\cwx[-" + str(gap) + "]"
-                gap = 1
+            # First sort the val_bits in the order of the register bits in the circuit
+            cond_wires = []
+            cond_bits = []
+            for wire in self._wire_map:
+                reg, _, reg_index = get_bit_reg_index(self._circuit, wire)
+                if reg == cond_reg:
+                    cond_bits.append(reg_index)
+                    cond_wires.append(self._wire_map[wire])
+
+            gap = cond_wires[0] - max(wire_list)
+            prev_wire = cond_wires[0]
+            val_bits_sorted = [bit for _, bit in sorted(zip(cond_bits, val_bits))]
+
+            # Iterate over the wire values for the bits in the register
+            for i, wire in enumerate(cond_wires[:-1]):
+                if i > 0:
+                    gap = wire - prev_wire
+                control = "\\control" if val_bits_sorted[i] == "1" else "\\controlo"
+                self._latex[wire][col] = f"{control} \\cw \\cwx[-" + str(gap) + "]"
+                prev_wire = wire
+
             # Add (hex condition value) below the last cwire
-            control = "\\control" if val_bits[cond_len] == "1" else "\\controlo"
-            self._latex[cwire + cond_len][col] = (
+            if len(cond_wires) == 1:  # Only one bit in register
+                gap = cond_wires[0] - max(wire_list)
+            else:
+                gap = cond_wires[-1] - prev_wire
+            control = "\\control" if val_bits_sorted[len(cond_wires) - 1] == "1" else "\\controlo"
+            self._latex[cond_wires[-1]][col] = (
                 f"{control}" + " \\cw^(%s){^{\\mathtt{%s}}} \\cwx[-%s]"
             ) % (
                 meas_offset,
