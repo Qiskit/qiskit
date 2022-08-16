@@ -13,8 +13,6 @@
 Tools to create LaTeX arrays.
 """
 
-import math
-from fractions import Fraction
 import numpy as np
 
 from qiskit.exceptions import MissingOptionalLibraryError
@@ -31,7 +29,7 @@ def num_to_latex(raw_value, precision=15, coefficient=False, first_term=True):
         first_term (bool): If a coefficient, whether this number is the first
                            coefficient in the expression.
     Returns:
-        String with latex code
+        str: latex code
     """
     import sympy  # runtime import
 

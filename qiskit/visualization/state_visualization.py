@@ -17,12 +17,10 @@
 Visualization functions for quantum states.
 """
 
-from typing import Optional, List, Union
 from functools import reduce
 import colorsys
 import numpy as np
 from qiskit import user_config
-from qiskit.quantum_info.states.statevector import Statevector
 from qiskit.quantum_info.states.densitymatrix import DensityMatrix
 from qiskit.visualization.array import array_to_latex, num_to_latex
 from qiskit.utils.deprecation import deprecate_arguments
@@ -1169,7 +1167,7 @@ def state_to_latex(state, dims=None, convention="ket", **args):
         **args: Arguments to be passed directly to `array_to_latex` for convention 'vector'
 
     Returns:
-        Latex representation of the state
+        str: Latex representation of the state
     """
     if dims is None:  # show dims if state is not only qubits
         if set(state.dims()) == {2}:
@@ -1203,7 +1201,7 @@ def numbers_to_latex_terms(numbers, precision=15):
     Args:
         numbers: List of numbers to format
     Returns:
-        List of formatted terms
+        list[str]: List of formatted terms
     """
     terms = []
     first_term = True
@@ -1224,7 +1222,7 @@ def _state_to_latex_ket(data, max_size=12, precision=15, prefix=""):
         precision (int): Number of decimal places to round each amplitude to.
         prefix: Latex string to be prepended to the latex, intended for labels.
     Returns:
-        String with LaTeX representation of the state vector
+        str: LaTeX representation of the state vector
     """
     num_qubits = int(np.log2(len(data)))
 
@@ -1365,9 +1363,8 @@ def state_drawer(state, output=None, **drawer_args):
         return draw_func(state, **drawer_args)
     except KeyError as err:
         raise ValueError(
-            """'{}' is not a valid option for drawing {} objects. Please choose from:
-            'text', 'latex', 'latex_source', 'qsphere', 'hinton',
-            'bloch', 'city' or 'paulivec'.""".format(
-                output, type(state).__name__
-            )
+            f"'{output}' is not a valid option for drawing "
+            f"{type(state).__name__} objects. Please choose from: 'text', "
+            f"'latex', 'latex_source', 'qsphere', 'hinton', 'bloch', 'city' or "
+            f"'paulivec'."
         ) from err
