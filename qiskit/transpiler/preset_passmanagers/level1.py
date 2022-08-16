@@ -69,8 +69,8 @@ def level_1_pass_manager(pass_manager_config: PassManagerConfig) -> StagedPassMa
     inst_map = pass_manager_config.inst_map
     coupling_map = pass_manager_config.coupling_map
     initial_layout = pass_manager_config.initial_layout
-    layout_method = pass_manager_config.layout_method or "dense"
-    routing_method = pass_manager_config.routing_method or "stochastic"
+    layout_method = pass_manager_config.layout_method or "sabre"
+    routing_method = pass_manager_config.routing_method or "sabre"
     translation_method = pass_manager_config.translation_method or "translator"
     scheduling_method = pass_manager_config.scheduling_method
     instruction_durations = pass_manager_config.instruction_durations
@@ -154,7 +154,7 @@ def level_1_pass_manager(pass_manager_config: PassManagerConfig) -> StagedPassMa
     elif routing_method == "lookahead":
         routing_pass = LookaheadSwap(coupling_map, search_depth=4, search_width=4)
     elif routing_method == "sabre":
-        routing_pass = SabreSwap(coupling_map, heuristic="lookahead", seed=seed_transpiler)
+        routing_pass = SabreSwap(coupling_map, heuristic="decay", seed=seed_transpiler)
     elif routing_method == "toqm":
         HAS_TOQM.require_now("TOQM-based routing")
         from qiskit_toqm import ToqmSwap, ToqmStrategyO1, latencies_from_target
