@@ -47,31 +47,59 @@ class BaseFidelity(ABC):
             ValueError: ``left_circuit`` and ``right_circuit`` don't have the same number of qubits.
         """
 
+        self._circuit = None
         if left_circuit is None or right_circuit is None:
             self._left_circuit = None
             self._right_circuit = None
             self._left_parameters = None
             self._right_parameters = None
         else:
-            self.set_circuits(left_circuit, right_circuit)
+            self._set_circuits(left_circuit, right_circuit)
 
-    @abstractmethod
-    def __call__(
+    def run(
         self,
-        values_left: np.ndarray | list[np.ndarray] | None = None,
-        values_right: np.ndarray | list[np.ndarray] | None = None,
-    ) -> np.ndarray:
+        left_values: np.ndarray | list[np.ndarray] | None = None,
+        right_values: np.ndarray | list[np.ndarray] | None = None,
+        left_circuit: QuantumCircuit = None,
+        right_circuit: QuantumCircuit = None,
+        **run_options,
+    ) -> FidelityJob:
         """Compute the overlap of two quantum states bound by the
-        parametrizations values_left and values_right.
+        parametrizations left_values and right_values.
 
         Args:
-            values_left: Numerical parameters to be bound to the left circuit.
-            values_right: Numerical parameters to be bound to the right circuit.
+            left_values: Numerical parameters to be bound to the left circuit.
+            right_values: Numerical parameters to be bound to the right circuit.
+            left_circuit: (Parametrized) quantum circuit preparing :math:`|\psi\rangle`.
+            right_circuit: (Parametrized) quantum circuit preparing :math:`|\phi\rangle`.
 
         Returns:
             The overlap of two quantum states defined by two parametrized circuits.
         """
-        raise NotImplementedError
+        return self._run(left_values, right_values, left_circuit, right_circuit, **run_options)
+
+    @abstractmethod
+    def _run(
+        self,
+        left_values: np.ndarray | list[np.ndarray] | None = None,
+        right_values: np.ndarray | list[np.ndarray] | None = None,
+        left_circuit: QuantumCircuit = None,
+        right_circuit: QuantumCircuit = None,
+        **run_options,
+    ) -> FidelityJob:
+        """Compute the overlap of two quantum states bound by the
+                parametrizations left_values and right_values.
+
+                Args:
+                    left_values: Numerical parameters to be bound to the left circuit.
+                    right_values: Numerical parameters to be bound to the right circuit.
+                    left_circuit: (Parametrized) quantum circuit preparing :math:`|\psi\rangle`.
+                    right_circuit: (Parametrized) quantum circuit preparing :math:`|\phi\rangle`.
+
+                Returns:
+                    The overlap of two quantum states defined by two parametrized circuits.
+                """
+        raise NotImplementedError()
 
     def _check_values(
         self, values: np.ndarray | list[np.ndarray] | None, side: str
@@ -98,7 +126,7 @@ class BaseFidelity(ABC):
         else:
             return np.atleast_2d(values)
 
-    def set_circuits(
+    def _set_circuits(
         self,
         left_circuit: QuantumCircuit | None = None,
         right_circuit: QuantumCircuit | None = None,
@@ -126,6 +154,10 @@ class BaseFidelity(ABC):
             raise ValueError(
                 "At least one of the arguments `left_circuit` or `right_circuit` must not be `None`."
             )
+
+        circuit = self._left_circuit.compose(self._right_circuit.inverse())
+        circuit.measure_all()
+        self._circuit = circuit
 
     def _set_left_circuit(self, circuit: QuantumCircuit) -> None:
         """

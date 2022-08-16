@@ -18,7 +18,7 @@ import numpy as np
 from qiskit import QuantumCircuit
 from qiskit.primitives import Sampler
 from .base_fidelity import BaseFidelity
-
+from .fidelity_job import FidelityJob
 
 class Fidelity(BaseFidelity):
     """
@@ -40,29 +40,35 @@ class Fidelity(BaseFidelity):
         Args:
             left_circuit: (Parametrized) quantum circuit :math:`|\psi\rangle`.
             right_circuit: (Parametrized) quantum circuit :math:`|\phi\rangle`.
-            sampler_factory: Partial sampler used as a backend.
+            sampler: Sampler primitive instance.
         Raises:
             ValueError: left_circuit and right_circuit don't have the same number of qubits.
         """
         self.sampler = sampler
         super().__init__(left_circuit, right_circuit)
 
-    def __call__(
+    def _run(
         self,
-        values_left: np.ndarray | list[np.ndarray] | None = None,
-        values_right: np.ndarray | list[np.ndarray] | None = None,
-    ) -> np.ndarray:
+        left_values: np.ndarray | list[np.ndarray] | None = None,
+        right_values: np.ndarray | list[np.ndarray] | None = None,
+        left_circuit: QuantumCircuit = None,
+        right_circuit: QuantumCircuit = None,
+        **run_options,
+    ) -> FidelityJob:
+
+        if left_circuit is not None:
+            self._set_circuits(left_circuit = left_circuit)
+        if right_circuit is not None:
+            self._set_circuits(right_circuit = right_circuit)
 
         values_list = []
-
         if self._left_circuit is None or self._right_circuit is None:
             raise ValueError(
                 "The left and right circuits must be defined to"
                 "calculate the state overlap. "
-                "Please use .set_circuits(left_circuit, right_circuit)"
             )
 
-        for values, side in zip([values_left, values_right], ["left", "right"]):
+        for values, side in zip([left_values, right_values], ["left", "right"]):
             values = self._check_values(values, side)
             if values is not None:
                 values_list.append(values)
@@ -75,38 +81,15 @@ class Fidelity(BaseFidelity):
                     f"(currently {values_list[1].shape[0]})"
                 )
             values = np.hstack(values_list)
-            result = self.sampler(circuits=[0] * len(values), parameter_values=values)
+            job = self.sampler.run(circuits=[self._circuit] * len(values), parameter_values=values)
         else:
-            result = self.sampler(circuits=[0])
+            job = self.sampler.run(circuits=self._circuit)
 
-        # if error mititgation is added in the future, we will have to handle
+        result = job.result()
+
+        # if error mitigation is added in the future, we will have to handle
         # negative values in some way (e.g. clipping to zero)
         overlaps = [prob_dist.get(0, 0) for prob_dist in result.quasi_dists]
 
-        return np.array(overlaps)
+        return FidelityJob(result= np.array(overlaps), status=job.status())
 
-    def set_circuits(
-        self,
-        left_circuit: QuantumCircuit | None = None,
-        right_circuit: QuantumCircuit | None = None,
-    ):
-        """
-        Fix the circuits for the fidelity to be computed of.
-        Args:
-            left_circuit: (Parametrized) quantum circuit
-            right_circuit: (Parametrized) quantum circuit
-
-        Raises:
-            ValueError: ``left_circuit`` and ``right_circuit`` don't have the same number of qubits.
-        """
-        super().set_circuits(left_circuit=left_circuit, right_circuit=right_circuit)
-
-        if self._left_circuit is not None and self._right_circuit is not None:
-            # If both circuits have been set, we can construct the overlap circuit.
-            circuit = self._left_circuit.compose(self._right_circuit.inverse())
-            circuit.measure_all()
-
-            # in the future this should be self.sampler.add_circuit(circuit)
-            # Careful! because add_circuits doesn't exist yet, calling this method
-            # twice will make it store the result of a sampler call in self.sampler.
-            self.sampler = self.sampler([circuit])
