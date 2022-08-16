@@ -1,5 +1,5 @@
 [build-system]
-requires = ["setuptools", "wheel", "setuptools-rust"]
+requires = ["setuptools", "wheel", "setuptools-rust<1.5.0"]
 build-backend = "setuptools.build_meta"
 
 [tool.black]
