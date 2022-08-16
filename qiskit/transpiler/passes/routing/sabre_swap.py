@@ -202,7 +202,7 @@ class SabreSwap(TransformationPass):
             self._bit_indices[k]: v for k, v in current_layout.get_virtual_bits().items()
         }
         layout = NLayout(layout_mapping, len(dag.qubits), self.coupling_map.size())
-        original_layout = NLayout(layout_mapping, len(dag.qubits), self.coupling_map.size())
+        original_layout = layout.copy()
 
         dag_list = []
         for node in dag.topological_op_nodes():
