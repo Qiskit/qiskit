@@ -27,7 +27,7 @@ from .sampler_gradient_job import SamplerGradientJob
 class BaseSamplerGradient(ABC):
     """Base class for a SamplerGradient to compute the gradients of the sampling probability."""
 
-    def __init__(self, sampler: BaseSampler):
+    def __init__(self, sampler: BaseSampler, **run_options):
         """
         Args:
             sampler: The sampler used to compute the gradients.
@@ -35,6 +35,7 @@ class BaseSamplerGradient(ABC):
         self._sampler: BaseSampler = sampler
         self._circuits: list[QuantumCircuit] = []
         self._circuit_ids: dict[int, int] = {}
+        self._default_run_options = run_options
 
     def run(
         self,
@@ -58,6 +59,9 @@ class BaseSamplerGradient(ABC):
             quasi-probability distribution in the i-th result corresponds to the gradients of the
             sampling probability for the j-th parameter in ``circuits[i]``.
         """
+        # The priority of run option is as follows:
+        # run_options in `run` method > gradient's default run_options > primitive's default run_options.
+        run_options = run_options or self._default_run_options
         return self._run(circuits, parameter_values, partial, **run_options)
 
     @abstractmethod

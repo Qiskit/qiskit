@@ -33,14 +33,14 @@ class LinCombSamplerGradient(BaseSamplerGradient):
     see e.g. https://arxiv.org/pdf/1811.11184.pdf
     """
 
-    def __init__(self, sampler: BaseSampler):
+    def __init__(self, sampler: BaseSampler, **run_options):
         """
         Args:
             sampler: The sampler used to compute the gradients.
         """
 
         self._gradient_circuit_data_dict = {}
-        super().__init__(sampler)
+        super().__init__(sampler, **run_options)
 
     def _run(
         self,

@@ -33,6 +33,7 @@ class BaseEstimatorGradient(ABC):
     def __init__(
         self,
         estimator: BaseEstimator,
+        **run_options,
     ):
         """
         Args:
@@ -41,6 +42,7 @@ class BaseEstimatorGradient(ABC):
         self._estimator: BaseEstimator = estimator
         self._circuits: Sequence[QuantumCircuit] = []
         self._circuit_ids: dict[int, int] = {}
+        self._default_run_options = run_options
 
     def run(
         self,
@@ -64,6 +66,9 @@ class BaseEstimatorGradient(ABC):
             The job object of the gradients of the expectation values. The i-th result corresponds to
             ``circuits[i]`` evaluated with parameters bound as ``parameter_values[i]``.
         """
+        # The priority of run option is as follows:
+        # run_options in `run` method > gradient's default run_options > primitive's default setting.
+        run_options = run_options or self._default_run_options
         return self._run(circuits, observables, parameter_values, partial, **run_options)
 
     @abstractmethod

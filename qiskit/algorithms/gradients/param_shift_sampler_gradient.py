@@ -32,14 +32,14 @@ from .utils import make_param_shift_base_parameter_values, make_param_shift_grad
 class ParamShiftSamplerGradient(BaseSamplerGradient):
     """Compute the gradients of the sampling probability with the parameter shift method."""
 
-    def __init__(self, sampler: BaseSampler):
+    def __init__(self, sampler: BaseSampler, **run_options):
         """
         Args:
             sampler: The sampler used to compute the gradients.
         """
         self._gradient_circuit_data_dict = {}
         self._base_parameter_values_dict = {}
-        super().__init__(sampler)
+        super().__init__(sampler, **run_options)
 
     def _run(
         self,

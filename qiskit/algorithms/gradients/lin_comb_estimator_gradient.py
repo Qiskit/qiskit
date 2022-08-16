@@ -39,13 +39,13 @@ class LinCombEstimatorGradient(BaseEstimatorGradient):
     see e.g. https://arxiv.org/pdf/1811.11184.pdf
     """
 
-    def __init__(self, estimator: BaseEstimator):
+    def __init__(self, estimator: BaseEstimator, **run_options):
         """
         Args:
             estimator: The estimator used to compute the gradients.
         """
         self._gradient_circuit_data_dict = {}
-        super().__init__(estimator)
+        super().__init__(estimator, **run_options)
 
     def _run(
         self,

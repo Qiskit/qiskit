@@ -86,7 +86,7 @@ def make_param_shift_gradient_circuit_data(
         necessary data to calculate gradients with the parameter shift method.
     """
 
-    supported_gates = ["x", "y", "z", "h", "rx", "ry", "rz", "p", "cx", "cy", "cz"]
+    supported_gates = ["x", "y", "z", "h", "rx", "ry", "rz", "p", "cx", "cy", "cz", "ryy", "rxx", "rzz"]
 
     circuit2 = transpile(circuit, basis_gates=supported_gates, optimization_level=0)
     g_circuit = circuit2.copy_empty_like(f"g_{circuit2.name}")

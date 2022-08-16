@@ -39,6 +39,7 @@ class ParamShiftEstimatorGradient(BaseEstimatorGradient):
     def __init__(
         self,
         estimator: BaseEstimator,
+        **run_options
     ):
         """
         Args:
@@ -46,7 +47,7 @@ class ParamShiftEstimatorGradient(BaseEstimatorGradient):
         """
         self._gradient_circuit_data_dict = {}
         self._base_parameter_values_dict = {}
-        super().__init__(estimator)
+        super().__init__(estimator, **run_options)
 
     def _run(
         self,

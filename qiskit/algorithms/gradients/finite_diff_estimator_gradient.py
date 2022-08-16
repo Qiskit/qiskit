@@ -37,6 +37,7 @@ class FiniteDiffEstimatorGradient(BaseEstimatorGradient):
         self,
         estimator: BaseEstimator,
         epsilon: float = 1e-6,
+        **run_options
     ):
         """
         Args:
@@ -45,7 +46,7 @@ class FiniteDiffEstimatorGradient(BaseEstimatorGradient):
         """
         self._epsilon = epsilon
         self._base_parameter_values_dict = {}
-        super().__init__(estimator)
+        super().__init__(estimator, **run_options)
 
     def _run(
         self,

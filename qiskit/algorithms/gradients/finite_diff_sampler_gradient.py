@@ -35,6 +35,7 @@ class FiniteDiffSamplerGradient(BaseSamplerGradient):
         self,
         sampler: BaseSampler,
         epsilon: float = 1e-6,
+        **run_options,
     ):
         """
         Args:
@@ -44,7 +45,7 @@ class FiniteDiffSamplerGradient(BaseSamplerGradient):
 
         self._epsilon = epsilon
         self._base_parameter_values_dict = {}
-        super().__init__(sampler)
+        super().__init__(sampler, **run_options)
 
     def _run(
         self,
