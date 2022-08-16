@@ -49,29 +49,33 @@ class Fidelity(BaseFidelity):
 
     def _run(
         self,
-        left_values: np.ndarray | list[np.ndarray] | None = None,
-        right_values: np.ndarray | list[np.ndarray] | None = None,
-        left_circuit: QuantumCircuit = None,
-        right_circuit: QuantumCircuit = None,
+        left_circuit: Sequence[QuantumCircuit] | None = None,
+        right_circuit: Sequence[QuantumCircuit] | None = None,
+        left_parameter_values: Sequence[Sequence[float]] | None = None,
+        right_parameter_values: Sequence[Sequence[float]] | None = None,
         **run_options,
     ) -> FidelityJob:
         """Run the job of the state overlap (fidelity) calculation between 2
         parametrized circuits (left and right) for a specific set of parameter
         values (left and right).
         Args:
-            left_values: Numerical parameters to be bound to the left circuit.
-            right_values: Numerical parameters to be bound to the right circuit.
             left_circuit: (Parametrized) quantum circuit preparing :math:`|\psi\rangle`.
+                          If a list of circuits is sent, only the first circuit will be
+                          taken into account.
             right_circuit: (Parametrized) quantum circuit preparing :math:`|\phi\rangle`.
+                          If a list of circuits is sent, only the first circuit will be
+                          taken into account.
+            left_parameter_values: Numerical parameters to be bound to the left circuit.
+            right_parameter_values: Numerical parameters to be bound to the right circuit.
             run_options: Backend runtime options used for circuit execution.
 
         Returns:
             The job object for the fidelity calculation.
         """
         if left_circuit is not None:
-            self._set_circuits(left_circuit = left_circuit)
+            self._set_circuits(left_circuit = left_circuit[0])
         if right_circuit is not None:
-            self._set_circuits(right_circuit = right_circuit)
+            self._set_circuits(right_circuit = right_circuit[0])
 
         if self._left_circuit is None or self._right_circuit is None:
             raise ValueError(
@@ -84,7 +88,7 @@ class Fidelity(BaseFidelity):
         self._circuit = circuit
 
         values_list = []
-        for values, side in zip([left_values, right_values], ["left", "right"]):
+        for values, side in zip([left_parameter_values, right_parameter_values], ["left", "right"]):
             values = self._check_values(values, side)
             if values is not None:
                 values_list.append(values)
@@ -109,25 +113,3 @@ class Fidelity(BaseFidelity):
 
         return FidelityJob(result= np.array(overlaps), status=job.status())
 
-    def evaluate(self,
-                 left_values: np.ndarray | list[np.ndarray] | None = None,
-                 right_values: np.ndarray | list[np.ndarray] | None = None,
-                 left_circuit: QuantumCircuit = None,
-                 right_circuit: QuantumCircuit = None,
-                 **run_options,
-                 ) -> FidelityJob:
-        """Run the result of the state overlap (fidelity) calculation between 2
-        parametrized circuits (left and right) for a specific set of parameter
-        values (left and right).
-        Args:
-            left_values: Numerical parameters to be bound to the left circuit.
-            right_values: Numerical parameters to be bound to the right circuit.
-            left_circuit: (Parametrized) quantum circuit preparing :math:`|\psi\rangle`.
-            right_circuit: (Parametrized) quantum circuit preparing :math:`|\phi\rangle`.
-            run_options: Backend runtime options used for circuit execution.
-
-        Returns:
-            The result of the fidelity calculation.
-        """
-        fidelity_job = self.run(left_values, right_values, left_circuit, right_circuit, **run_options)
-        return fidelity_job.result
