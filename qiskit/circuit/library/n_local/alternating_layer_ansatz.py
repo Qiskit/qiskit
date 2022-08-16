@@ -10,7 +10,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""The tensor product ansatz."""
+"""The alternating layer ansatz."""
 
 from typing import Union, Optional, List, Any, Callable
 
@@ -46,8 +46,12 @@ from ..standard_gates import (
 )
 
 
-class TensorProductAnsatz(NLocal):
-    r"""The tensor product ansatz."""
+class AlternatingLayerAnsatz(NLocal):
+    r"""The alternating layer ansatz.
+
+    Description here.
+
+    """
 
     def __init__(
         self,
@@ -83,15 +87,14 @@ class TensorProductAnsatz(NLocal):
 
         Raises:
             ValueError: The value of `num_qubits` is not divisible by `block_size`.
-            ValueError: The value of `block_size` is not greater than or equal to two.
+            ValueError: The value of `block_size` is not an even number greater than zero.
         """
+        if block_size % 2 != 0 and block_size > 0:
+            raise ValueError(f"Block size `{block_size}` must be an even number greater than zero.")
         if num_qubits % block_size != 0:
             raise ValueError(
                 f"Number of qubits `{num_qubits}` is not divisible by block size `{block_size}`."
             )
-
-        if block_size <= 1:
-            raise ValueError(f"Block size `{block_size}` must be greater than or equal to two.")
 
         self.block_size = block_size
 
@@ -122,19 +125,59 @@ class TensorProductAnsatz(NLocal):
                 parameterized_block = self._parameterize_block(block, param_iter, i, j, indices)
                 small_block.compose(parameterized_block, indices, inplace=True)
 
+            # every other layer create half of small block
+            if (i + 1) % 2 == 0:
+                half_entangler_map = self.get_entangler_map(
+                    i, j, block.num_qubits, self.block_size // 2
+                )
+                half_small_block = QuantumCircuit(self.block_size // 2)
+                for indices in half_entangler_map:
+                    parameterized_block = self._parameterize_block(block, param_iter, i, j, indices)
+                    half_small_block.compose(parameterized_block, indices, inplace=True)
+
             # we apply the entanglement gates stacked on top of each other, i.e.
             # if we have 4 qubits and an entanglement block of width 2, we apply two instances
-            block_indices = [
-                list(range(k * small_block.num_qubits, (k + 1) * small_block.num_qubits))
-                for k in range(self.num_qubits // small_block.num_qubits)
-            ]
+            if (i + 1) % 2 == 0:
+                block_indices = [list(range(half_small_block.num_qubits))]
+                block_indices += [
+                    list(
+                        range(
+                            k * small_block.num_qubits + half_small_block.num_qubits,
+                            (k + 1) * small_block.num_qubits + half_small_block.num_qubits,
+                        )
+                    )
+                    for k in range(
+                        (self.num_qubits - small_block.num_qubits) // small_block.num_qubits
+                    )
+                ]
+                block_indices += [list(range(block_indices[-1][-1] + 1, self.num_qubits))]
+            else:
+                block_indices = [
+                    list(range(k * small_block.num_qubits, (k + 1) * small_block.num_qubits))
+                    for k in range(self.num_qubits // small_block.num_qubits)
+                ]
 
             # apply the operations in the layer
-            for indices in block_indices:
+            if (i + 1) % 2 == 0:
                 parameterized_block = self._parameterize_block(
-                    small_block, param_iter, i, j, indices
+                    half_small_block, param_iter, i, j, block_indices[0]
                 )
-                layer.compose(parameterized_block, indices, inplace=True)
+                layer.compose(parameterized_block, block_indices[0], inplace=True)
+                for indices in block_indices[1:-1]:
+                    parameterized_block = self._parameterize_block(
+                        small_block, param_iter, i, j, indices
+                    )
+                    layer.compose(parameterized_block, indices, inplace=True)
+                parameterized_block = self._parameterize_block(
+                    half_small_block, param_iter, i, j, block_indices[-1]
+                )
+                layer.compose(parameterized_block, block_indices[-1], inplace=True)
+            else:
+                for indices in block_indices:
+                    parameterized_block = self._parameterize_block(
+                        small_block, param_iter, i, j, indices
+                    )
+                    layer.compose(parameterized_block, indices, inplace=True)
 
             # add the layer to the circuit
             circuit.compose(layer, inplace=True)
@@ -187,6 +230,9 @@ class TensorProductAnsatz(NLocal):
             num_circuit_qubits = self.num_qubits
         i, j, n = rep_num, block_num, num_block_qubits
         entanglement = self._entanglement
+
+        if num_block_qubits > num_circuit_qubits:
+            return []
 
         # entanglement is None
         if entanglement is None:

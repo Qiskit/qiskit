@@ -20,6 +20,7 @@ from .efficient_su2 import EfficientSU2
 from .excitation_preserving import ExcitationPreserving
 from .qaoa_ansatz import QAOAAnsatz
 from .tensor_product_ansatz import TensorProductAnsatz
+from .alternating_layer_ansatz import AlternatingLayerAnsatz
 
 __all__ = [
     "NLocal",
@@ -30,4 +31,5 @@ __all__ = [
     "ExcitationPreserving",
     "QAOAAnsatz",
     "TensorProductAnsatz",
+    "AlternatingLayerAnsatz",
 ]

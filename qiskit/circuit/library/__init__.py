@@ -527,6 +527,7 @@ from .n_local import (
     ExcitationPreserving,
     QAOAAnsatz,
     TensorProductAnsatz,
+    AlternatingLayerAnsatz,
 )
 from .data_preparation import PauliFeatureMap, ZFeatureMap, ZZFeatureMap, StatePreparation
 from .quantum_volume import QuantumVolume
