@@ -164,5 +164,3 @@ from .synthesis import (
 )
 
 from .analysis import hellinger_distance, hellinger_fidelity
-
-from .operations import expectation_value

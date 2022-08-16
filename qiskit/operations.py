@@ -176,6 +176,11 @@ def expectation_value(oper: SparsePauliOp, state: QuantumState, qargs: QargsT):
 
 
 @dispatch(precedence=1)
+def expectation_value(oper: str, state: QuantumState, qargs: Union[QargsT, type(None)] = None):
+    return expectation_value(Pauli(oper), state, qargs)
+
+
+@dispatch(precedence=1)
 def expectation_value(oper: SparsePauliOp, state):
     return sum(
         coeff * expectation_value(Pauli((z, x)), state)
@@ -314,7 +319,7 @@ def expectation_value(quasi_dist: QuasiDistribution, qargs: QargsT):
 
 @dispatch
 def expectation_value(oper: Pauli, state: Union[Counts, QuasiDistribution]):
-    return expectation_value(state, oper.to_label())
+    return expectation_value(oper.to_label(), state)
 
 
 @dispatch

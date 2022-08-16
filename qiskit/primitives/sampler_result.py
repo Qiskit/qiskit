@@ -44,7 +44,7 @@ class SamplerResult:
 
 
 from plum import dispatch
-from qiskit.quantum_info import expectation_value
+from qiskit.operations import expectation_value
 
 
 @dispatch
