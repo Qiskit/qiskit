@@ -507,7 +507,7 @@ class QuantumInstance:
             # transpile here, the method always returns a copied list
             circuits = self.transpile(circuits)
 
-        if self.is_statevector and self.backend_name == "aer_simulator_statevector":
+        if self.is_statevector and "aer_simulator_statevector" in self.backend_name:
             try:
                 from qiskit.providers.aer.library import SaveStatevector
 
