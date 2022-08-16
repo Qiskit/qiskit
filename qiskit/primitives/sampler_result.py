@@ -46,6 +46,7 @@ class SamplerResult:
 from plum import dispatch
 from qiskit.quantum_info import expectation_value
 
+
 @dispatch
 def expectation_value(sampler_result: SamplerResult):
     return [expectation_value(qd) for qd in sampler_result.quasi_dists]
