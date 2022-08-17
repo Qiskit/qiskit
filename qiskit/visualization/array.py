@@ -176,15 +176,16 @@ def array_to_latex(array, precision=10, prefix="", source=False, max_size=8):
         or types that can be converted to such arrays"""
         ) from err
 
-    if array.ndim <= 2:
-        if isinstance(max_size, int):
-            max_size = (max_size, max_size)
-        outstr = _matrix_to_latex(array, precision=precision, prefix=prefix, max_size=max_size)
-    else:
-        raise ValueError("array_to_latex can only convert numpy ndarrays of dimension 1 or 2")
+    if isinstance(max_size, int):
+        max_size = (max_size, max_size)
 
     if min(max_size) < 3:
         raise ValueError("Smallest value in max_size must be greater than or equal to 3")
+
+    if array.ndim > 2:
+        raise ValueError("array_to_latex can only convert numpy ndarrays of dimension 1 or 2")
+
+    outstr = _matrix_to_latex(array, precision=precision, prefix=prefix, max_size=max_size)
 
     if source is False:
         try:
