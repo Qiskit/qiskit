@@ -20,25 +20,26 @@ Overview of Estimator
 Estimator class estimates expectation values of quantum circuits and observables.
 
 An estimator is initialized with an empty parameter set. The estimator is used to 
-create a :class:`~qiskit.primitives.PrimitiveJob`, via the 
-:method:`qiskit.primitives.Estimator.run()` method. This method is called
+create a :class:`qiskit.primitives.PrimitiveJob`, via the 
+:meth:`qiskit.primitives.Estimator.run()` method. This method is called
 with the following parameters
 
 * quantum circuits (:math:`\psi_i(\theta)`): list of (parameterized) quantum circuits
-  (a list of :class:`~qiskit.circuit.QuantumCircuit`))
+  (a list of :class:`~qiskit.circuit.QuantumCircuit` objects).
 
-* observables (:math:`H_j`): a list of :class:`~qiskit.quantum_info.SparsePauliOp`.
+* observables (:math:`H_j`): a list of :class:`~qiskit.quantum_info.SparsePauliOp` 
+  objects.
 
 * parameter values (:math:`\theta_k`): list of sets of values
-  to be bound to the parameters of the quantum circuits.
-  (list of list of float)
+  to be bound to the parameters of the quantum circuits
+  (list of list of float).
 
 * parameters: a list of parameters of the quantum circuits.
   (:class:`~qiskit.circuit.parametertable.ParameterView` or
-  a list of :class:`~qiskit.circuit.Parameter`).
+  a list of :class:`qiskit.circuit.Parameter`).
 
-The output is a :class:`~qiskit.primitives.PrimitiveJob`, the 
-:method:`qiskit.primitives.PrimitiveJob.result()`` yields the  
+The method returns a :class:`~qiskit.primitives.PrimitiveJob` object, calling 
+:meth:`qiskit.primitives.PrimitiveJob.result()` yields the  
 a list of expectation values plus optional metadata like confidence intervals for 
 the estimation.
 
@@ -68,10 +69,10 @@ Here is an example of how the estimator is used.
     theta2 = [0, 1, 1, 2, 3, 5, 8, 13]
     theta3 = [1, 2, 3, 4, 5, 6]
 
-    e = Estimator()
+    estimator = Estimator()
 
     # calculate [ <psi1(theta1)|H1|psi1(theta1)> ]
-    job = e.run([psi1], [H1], [theta1])
+    job = estimator.run([psi1], [H1], [theta1])
     try:
         job_result = job.result() # It will block until the job finishes.
         print("The primitive-job finished with result {}".format(job_result))
@@ -81,7 +82,7 @@ Here is an example of how the estimator is used.
     # calculate [ <psi1(theta1)|H1|psi1(theta1)>,
     #             <psi2(theta2)|H2|psi2(theta2)>,
     #             <psi1(theta3)|H3|psi1(theta3)> ]
-    job2 = e.run([psi1, psi2, psi1], [H1, H2, H3], [theta1, theta2, theta3])
+    job2 = estimator.run([psi1, psi2, psi1], [H1, H2, H3], [theta1, theta2, theta3])
     try:
         job_result = job2.result()
         print("The primitive-job finished with result {}".format(job_result))

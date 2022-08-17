@@ -17,11 +17,11 @@ Overview of Sampler
 Sampler class calculates probabilities or quasi-probabilities of bitstrings from quantum circuits.
 
 A sampler is initialized with an empty parameter set. The sampler is used to
-create a :class:`~qiskit.primitives.PrimitiveJob`, via the :method:`qiskit.primitives.Sampler.run()` 
+create a :class:`~qiskit.primitives.PrimitiveJob`, via the :meth:`qiskit.primitives.Sampler.run()` 
 method. This method is called with the following parameters
 
 * quantum circuits (:math:`\psi_i(\theta)`): list of (parameterized) quantum circuits.
-  (a list of :class:`~qiskit.circuit.QuantumCircuit`))
+  (a list of :class:`~qiskit.circuit.QuantumCircuit` objects)
 
 * parameter values (:math:`\theta_k`): list of sets of parameter values
   to be bound to the parameters of the quantum circuits.
@@ -31,8 +31,8 @@ method. This method is called with the following parameters
   (:class:`~qiskit.circuit.parametertable.ParameterView` or
   a list of :class:`~qiskit.circuit.Parameter`).
 
-The output is a :class:`~qiskit.primitives.PrimitiveJob`, the 
-:method:`qiskit.primitives.PrimitiveJob.result()` yields a :class:`~qiskit.primitives.SamplerResult`
+The method returns a :class:`~qiskit.primitives.PrimitiveJob` object, calling 
+:meth:`qiskit.primitives.PrimitiveJob.result()` yields a :class:`~qiskit.primitives.SamplerResult`
 object, which contains probabilities or quasi-probabilities of bitstrings,
 plus optional metadata like error bars in the samples.
 
@@ -44,25 +44,13 @@ Here is an example of how sampler is used.
     from qiskit import QuantumCircuit
     from qiskit.circuit.library import RealAmplitudes
 
-    # initialization of the sampler
-    sampler = Sampler()
-
     # a Bell circuit
     bell = QuantumCircuit(2)
     bell.h(0)
     bell.cx(0, 1)
     bell.measure_all()
 
-    # Sampler runs a job on the Bell circuit
-    job = sampler.run(circuits=[bell], parameter_values=[[]], parameters=[[]])
-
-    try:
-        job_result = job.result()
-        print([q.binary_probabilities() for q in job_result.quasi_dists])
-    except JobError as ex:
-        print("Something wrong happened!: {}".format(ex))
-
-    # a parameterized circuits
+    # two parameterized circuits
     pqc = RealAmplitudes(num_qubits=2, reps=2)
     pqc.measure_all()
     pqc2 = RealAmplitudes(num_qubits=2, reps=3)
@@ -70,6 +58,17 @@ Here is an example of how sampler is used.
 
     theta1 = [0, 1, 1, 2, 3, 5]
     theta2 = [0, 1, 2, 3, 4, 5, 6, 7]
+
+    # initialization of the sampler
+    sampler = Sampler()
+
+    # Sampler runs a job on the Bell circuit
+    job = sampler.run(circuits=[bell], parameter_values=[[]], parameters=[[]])
+    try:
+        job_result = job.result()
+        print([q.binary_probabilities() for q in job_result.quasi_dists])
+    except JobError as ex:
+        print("Something wrong happened!: {}".format(ex))
 
     # Sampler runs a job on the parameterized circuits
     job2 = sampler.run(circuits=[pqc, pqc2], parameter_values=[theta1, theta2], parameters=[pqc.parameters, pqc2.parameters])
