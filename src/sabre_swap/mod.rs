@@ -14,7 +14,6 @@
 
 pub mod edge_list;
 pub mod neighbor_table;
-pub mod qubits_decay;
 pub mod sabre_dag;
 pub mod sabre_rng;
 pub mod swap_map;
@@ -40,7 +39,6 @@ use crate::nlayout::NLayout;
 
 use edge_list::EdgeList;
 use neighbor_table::NeighborTable;
-use qubits_decay::QubitsDecay;
 use sabre_dag::SabreDAG;
 use sabre_rng::SabreRng;
 use swap_map::SwapMap;
@@ -149,10 +147,10 @@ fn cmap_from_neighor_table(neighbor_table: &NeighborTable) -> DiGraph<(), ()> {
 #[pyfunction]
 pub fn build_swap_map(
     py: Python,
+    num_qubits: usize,
     dag: &SabreDAG,
     neighbor_table: &NeighborTable,
     distance_matrix: PyReadonlyArray2<f64>,
-    qubits_decay: &mut QubitsDecay,
     heuristic: &Heuristic,
     rng: &mut SabreRng,
     layout: &mut NLayout,
@@ -168,6 +166,8 @@ pub fn build_swap_map(
     let mut num_search_steps: u8 = 0;
     let dist = distance_matrix.as_array();
     let coupling_graph: DiGraph<(), ()> = cmap_from_neighor_table(neighbor_table);
+    let mut qubits_decay: Vec<f64> = vec![1.; num_qubits];
+
     for node in dag.dag.node_indices() {
         for edge in dag.dag.edges(node) {
             required_predecessors[edge.target().index()] += 1;
@@ -285,7 +285,7 @@ pub fn build_swap_map(
                     }
                 }
             }
-            qubits_decay.decay.fill_with(|| 1.);
+            qubits_decay.fill_with(|| 1.);
             extended_set = None;
             continue;
         }
@@ -311,17 +311,17 @@ pub fn build_swap_map(
             neighbor_table,
             extended_set.as_ref().unwrap(),
             &dist,
-            qubits_decay,
+            &qubits_decay,
             heuristic,
             rng,
             run_in_parallel,
         );
         num_search_steps += 1;
         if num_search_steps % DECAY_RESET_INTERVAL == 0 {
-            qubits_decay.decay.fill_with(|| 1.);
+            qubits_decay.fill_with(|| 1.);
         } else {
-            qubits_decay.decay[best_swap[0]] += DECAY_RATE;
-            qubits_decay.decay[best_swap[1]] += DECAY_RATE;
+            qubits_decay[best_swap[0]] += DECAY_RATE;
+            qubits_decay[best_swap[1]] += DECAY_RATE;
         }
         ops_since_progress.push(best_swap);
     }
@@ -339,7 +339,7 @@ pub fn build_swap_map(
 ///     extended_set (EdgeList): The extended set
 ///     distance_matrix (ndarray): The 2D array distance matrix for the coupling
 ///         graph
-///     qubits_decay (QubitsDecay): The current qubit decay factors for
+///     qubits_decay (List[float]): The current qubit decay factors for
 ///     heuristic (Heuristic): The chosen heuristic method to use
 /// Returns:
 ///     ndarray: A 2d array of the best swap candidates all with the minimum score
@@ -349,7 +349,7 @@ pub fn sabre_score_heuristic(
     neighbor_table: &NeighborTable,
     extended_set: &[[usize; 2]],
     dist: &ArrayView2<f64>,
-    qubits_decay: &QubitsDecay,
+    qubits_decay: &[f64],
     heuristic: &Heuristic,
     rng: &mut SabreRng,
     run_in_parallel: bool,
@@ -368,7 +368,7 @@ pub fn sabre_score_heuristic(
             layout,
             &swap_qubits,
             dist,
-            &qubits_decay.decay,
+            qubits_decay,
         );
         if score < min_score {
             min_score = score;
@@ -448,7 +448,6 @@ pub fn sabre_swap(_py: Python, m: &PyModule) -> PyResult<()> {
     m.add_wrapped(wrap_pyfunction!(build_swap_map))?;
     m.add_class::<Heuristic>()?;
     m.add_class::<EdgeList>()?;
-    m.add_class::<QubitsDecay>()?;
     m.add_class::<NeighborTable>()?;
     m.add_class::<SabreRng>()?;
     m.add_class::<SabreDAG>()?;

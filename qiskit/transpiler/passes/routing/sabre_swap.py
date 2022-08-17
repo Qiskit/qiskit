@@ -28,7 +28,6 @@ from qiskit.dagcircuit import DAGOpNode
 from qiskit._accelerate.sabre_swap import (
     build_swap_map,
     Heuristic,
-    QubitsDecay,
     NeighborTable,
     SabreRng,
     SabreDAG,
@@ -36,11 +35,6 @@ from qiskit._accelerate.sabre_swap import (
 from qiskit._accelerate.stochastic_swap import NLayout  # pylint: disable=import-error
 
 logger = logging.getLogger(__name__)
-
-EXTENDED_SET_SIZE = 20  # Size of lookahead window. TODO: set dynamically to len(current_layout)
-
-DECAY_RATE = 0.001  # Decay coefficient for penalizing serial swaps.
-DECAY_RESET_INTERVAL = 5  # How often to reset all decay rates to 1.
 
 
 class SabreSwap(TransformationPass):
@@ -217,14 +211,11 @@ class SabreSwap(TransformationPass):
             )
         front_layer = np.asarray([x._node_id for x in dag.front_layer()], dtype=np.uintp)
         sabre_dag = SabreDAG(len(dag.qubits), len(dag.clbits), dag_list, front_layer)
-        # A decay factor for each qubit used to heuristically penalize recently
-        # used qubits (to encourage parallelism).
-        qubits_decay = QubitsDecay(len(dag.qubits))
         swap_map, gate_order = build_swap_map(
+            len(dag.qubits),
             sabre_dag,
             self._neighbor_table,
             self.dist_matrix,
-            qubits_decay,
             self.heuristic,
             rng,
             layout,
