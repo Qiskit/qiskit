@@ -109,13 +109,13 @@ fn obtain_extended_set(
                 decremented.push(successor);
                 required_predecessors[successor] -= 1;
                 if required_predecessors[successor] == 0 {
-                    new_tmp_front_layer.push(successor_index)
-                }
-                let node_weight = dag.dag.node_weight(successor_index).unwrap();
-                let qargs = &node_weight.1;
-                if qargs.len() == 2 {
-                    let extended_set_edges: [usize; 2] = [qargs[0], qargs[1]];
-                    extended_set.push(extended_set_edges);
+                    new_tmp_front_layer.push(successor_index);
+                    let node_weight = dag.dag.node_weight(successor_index).unwrap();
+                    let qargs = &node_weight.1;
+                    if qargs.len() == 2 {
+                        let extended_set_edges: [usize; 2] = [qargs[0], qargs[1]];
+                        extended_set.push(extended_set_edges);
+                    }
                 }
             }
             if extended_set.len() >= EXTENDED_SET_SIZE {
