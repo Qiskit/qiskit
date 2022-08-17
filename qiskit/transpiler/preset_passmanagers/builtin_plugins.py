@@ -46,7 +46,7 @@ class BasicSwapPassManager(PassManagerStagePlugin):
                 seed_transpiler=seed_transpiler,
                 use_barrier_before_measurement=True,
             )
-        elif opt_level == 1:
+        if opt_level == 1:
             return common.generate_routing_passmanager(
                 routing_pass,
                 target,
@@ -57,7 +57,7 @@ class BasicSwapPassManager(PassManagerStagePlugin):
                 check_trivial=True,
                 use_barrier_before_measurement=True,
             )
-        elif opt_level == 2:
+        if opt_level == 2:
             return common.generate_routing_passmanager(
                 routing_pass,
                 target,
@@ -67,7 +67,7 @@ class BasicSwapPassManager(PassManagerStagePlugin):
                 seed_transpiler=seed_transpiler,
                 use_barrier_before_measurement=True,
             )
-        elif opt_level == 3:
+        if opt_level == 3:
             return common.generate_routing_passmanager(
                 routing_pass,
                 target,
@@ -77,8 +77,7 @@ class BasicSwapPassManager(PassManagerStagePlugin):
                 seed_transpiler=seed_transpiler,
                 use_barrier_before_measurement=True,
             )
-        else:
-            raise TranspilerError(f"Invalid optimization level specified: {opt_level}")
+        raise TranspilerError(f"Invalid optimization level specified: {opt_level}")
 
 
 class StochasticSwapPassManager(PassManagerStagePlugin):
@@ -107,7 +106,7 @@ class StochasticSwapPassManager(PassManagerStagePlugin):
                 seed_transpiler=seed_transpiler,
                 use_barrier_before_measurement=True,
             )
-        elif opt_level == 1:
+        if opt_level == 1:
             return common.generate_routing_passmanager(
                 routing_pass,
                 target,
@@ -118,7 +117,7 @@ class StochasticSwapPassManager(PassManagerStagePlugin):
                 check_trivial=True,
                 use_barrier_before_measurement=True,
             )
-        elif opt_level in {2, 3}:
+        if opt_level in {2, 3}:
             return common.generate_routing_passmanager(
                 routing_pass,
                 target,
@@ -128,8 +127,7 @@ class StochasticSwapPassManager(PassManagerStagePlugin):
                 seed_transpiler=seed_transpiler,
                 use_barrier_before_measurement=True,
             )
-        else:
-            raise TranspilerError(f"Invalid optimization level specified: {opt_level}")
+        raise TranspilerError(f"Invalid optimization level specified: {opt_level}")
 
 
 class LookaheadSwapPassManager(PassManagerStagePlugin):
@@ -154,7 +152,7 @@ class LookaheadSwapPassManager(PassManagerStagePlugin):
                 seed_transpiler=seed_transpiler,
                 use_barrier_before_measurement=True,
             )
-        elif opt_level == 1:
+        if opt_level == 1:
             routing_pass = LookaheadSwap(coupling_map, search_depth=4, search_width=4)
             return common.generate_routing_passmanager(
                 routing_pass,
@@ -166,7 +164,7 @@ class LookaheadSwapPassManager(PassManagerStagePlugin):
                 check_trivial=True,
                 use_barrier_before_measurement=True,
             )
-        elif opt_level == 2:
+        if opt_level == 2:
             routing_pass = LookaheadSwap(coupling_map, search_depth=5, search_width=6)
             return common.generate_routing_passmanager(
                 routing_pass,
@@ -177,7 +175,7 @@ class LookaheadSwapPassManager(PassManagerStagePlugin):
                 seed_transpiler=seed_transpiler,
                 use_barrier_before_measurement=True,
             )
-        elif opt_level == 3:
+        if opt_level == 3:
             routing_pass = LookaheadSwap(coupling_map, search_depth=5, search_width=6)
             return common.generate_routing_passmanager(
                 routing_pass,
@@ -188,8 +186,7 @@ class LookaheadSwapPassManager(PassManagerStagePlugin):
                 seed_transpiler=seed_transpiler,
                 use_barrier_before_measurement=True,
             )
-        else:
-            raise TranspilerError(f"Invalid optimization level specified: {opt_level}")
+        raise TranspilerError(f"Invalid optimization level specified: {opt_level}")
 
 
 class SabreSwapPassManager(PassManagerStagePlugin):
@@ -214,7 +211,7 @@ class SabreSwapPassManager(PassManagerStagePlugin):
                 seed_transpiler=seed_transpiler,
                 use_barrier_before_measurement=True,
             )
-        elif opt_level == 1:
+        if opt_level == 1:
             routing_pass = SabreSwap(coupling_map, heuristic="lookahead", seed=seed_transpiler)
             return common.generate_routing_passmanager(
                 routing_pass,
@@ -226,7 +223,7 @@ class SabreSwapPassManager(PassManagerStagePlugin):
                 check_trivial=True,
                 use_barrier_before_measurement=True,
             )
-        elif opt_level == 2:
+        if opt_level == 2:
             routing_pass = SabreSwap(coupling_map, heuristic="decay", seed=seed_transpiler)
             return common.generate_routing_passmanager(
                 routing_pass,
@@ -237,7 +234,7 @@ class SabreSwapPassManager(PassManagerStagePlugin):
                 seed_transpiler=seed_transpiler,
                 use_barrier_before_measurement=True,
             )
-        elif opt_level == 3:
+        if opt_level == 3:
             routing_pass = SabreSwap(coupling_map, heuristic="decay", seed=seed_transpiler)
             return common.generate_routing_passmanager(
                 routing_pass,
@@ -248,8 +245,7 @@ class SabreSwapPassManager(PassManagerStagePlugin):
                 seed_transpiler=seed_transpiler,
                 use_barrier_before_measurement=True,
             )
-        else:
-            raise TranspilerError(f"Invalid optimization level specified: {opt_level}")
+        raise TranspilerError(f"Invalid optimization level specified: {opt_level}")
 
 
 class NoneRoutingPassManager(PassManagerStagePlugin):
