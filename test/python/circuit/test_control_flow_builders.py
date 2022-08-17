@@ -2063,6 +2063,8 @@ class TestControlFlowBuilders(QiskitTestCase):
             self.assertEqual(while_body, copy.deepcopy(while_body))
 
     def test_inplace_compose_within_builder(self):
+        """Test that QuantumCircuit.compose used in-place works as expected within control-flow
+        scopes."""
         inner = QuantumCircuit(1)
         inner.x(0)
 
