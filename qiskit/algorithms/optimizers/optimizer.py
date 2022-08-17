@@ -110,7 +110,25 @@ class OptimizerResult(AlgorithmResult):
 
 
 class Minimizer(Protocol):
-    """Callback Protocol for minimizer."""
+    """Callable Protocol for minimizer.
+
+    This interface is based on `SciPy's optimize module
+    <https://docs.scipy.org/doc/scipy/reference/generated/scipy.optimize.minimize.html>`__.
+
+     This protocol defines a callable taking the following parameters:
+
+         fun
+             The objective function to minimize (for example the energy in the case of the VQE).
+         x0
+             The initial point for the optimization.
+         jac
+             The gradient of the objective function.
+         bounds
+             Parameters bounds for the optimization. Note that these might not be supported
+             by all optimizers.
+
+     and which returns a minimization result object (either SciPy's or Qiskit's).
+    """
 
     # pylint: disable=invalid-name
     def __call__(
