@@ -60,8 +60,8 @@ class BaseFidelity(ABC):
         self,
         left_circuit: Sequence[QuantumCircuit] | None = None,
         right_circuit: Sequence[QuantumCircuit] | None = None,
-        left_parameter_values: Sequence[Sequence[float]] | None = None,
-        right_parameter_values: Sequence[Sequence[float]] | None = None,
+        left_values: Sequence[Sequence[float]] | None = None,
+        right_values: Sequence[Sequence[float]] | None = None,
         **run_options,
     ) -> FidelityJob:
         """Compute the overlap of two quantum states bound by the
@@ -78,8 +78,8 @@ class BaseFidelity(ABC):
         """
         return self._run(left_circuit,
                          right_circuit,
-                         left_parameter_values,
-                         right_parameter_values,
+                         left_values,
+                         right_values,
                          **run_options)
 
     @abstractmethod
@@ -87,8 +87,8 @@ class BaseFidelity(ABC):
         self,
         left_circuit: Sequence[QuantumCircuit] | None = None,
         right_circuit: Sequence[QuantumCircuit] | None = None,
-        left_parameter_values: Sequence[Sequence[float]] | None = None,
-        right_parameter_values: Sequence[Sequence[float]] | None = None,
+        left_values: Sequence[Sequence[float]] | None = None,
+        right_values: Sequence[Sequence[float]] | None = None,
         **run_options,
     ) -> FidelityJob:
         """Compute the overlap of two quantum states bound by the
@@ -100,8 +100,8 @@ class BaseFidelity(ABC):
                 right_circuit: (Parametrized) quantum circuit preparing :math:`|\phi\rangle`.
                               If a list of circuits is sent, only the first circuit will be
                               taken into account.
-                left_parameter_values: Numerical parameters to be bound to the left circuit.
-                right_parameter_values: Numerical parameters to be bound to the right circuit.
+                left_values: Numerical parameters to be bound to the left circuit.
+                right_values: Numerical parameters to be bound to the right circuit.
                 run_options: Backend runtime options used for circuit execution.
 
             Returns:
