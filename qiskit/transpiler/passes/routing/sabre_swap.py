@@ -211,10 +211,10 @@ class SabreSwap(TransformationPass):
             dag_list.append(
                 (
                     node._node_id,
-                        [self._bit_indices[x] for x in node.qargs],
-                        [self._clbit_indices[x] for x in node.cargs],
-                    )
+                    [self._bit_indices[x] for x in node.qargs],
+                    [self._clbit_indices[x] for x in node.cargs],
                 )
+            )
         front_layer = np.asarray([x._node_id for x in dag.front_layer()], dtype=np.uintp)
         sabre_dag = SabreDAG(len(dag.qubits), len(dag.clbits), dag_list, front_layer)
         # A decay factor for each qubit used to heuristically penalize recently
