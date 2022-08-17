@@ -320,8 +320,8 @@ pub fn build_swap_map(
         if num_search_steps % DECAY_RESET_INTERVAL == 0 {
             qubits_decay.decay.fill_with(|| 1.);
         } else {
-            qubits_decay.decay[best_swap[0]] -= DECAY_RATE;
-            qubits_decay.decay[best_swap[1]] -= DECAY_RATE;
+            qubits_decay.decay[best_swap[0]] += DECAY_RATE;
+            qubits_decay.decay[best_swap[1]] += DECAY_RATE;
         }
         ops_since_progress.push(best_swap);
     }
