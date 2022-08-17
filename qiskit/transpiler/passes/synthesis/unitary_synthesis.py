@@ -17,7 +17,7 @@ from typing import List, Union
 from copy import deepcopy
 from itertools import product
 
-from qiskit.converters import circuit_to_dag
+from qiskit.converters import circuit_to_dag, dag_to_circuit
 from qiskit.transpiler import CouplingMap, Target
 from qiskit.transpiler.basepasses import TransformationPass
 from qiskit.transpiler.exceptions import TranspilerError
@@ -331,6 +331,14 @@ class UnitarySynthesis(TransformationPass):
                     dag.substitute_node_with_dag(node, synth_dag[0], wires=synth_dag[1])
                 else:
                     dag.substitute_node_with_dag(node, synth_dag)
+        for node in dag.control_flow_ops():
+            updated_blocks = []
+            for block in node.op.blocks:
+                dag_block = circuit_to_dag(block)
+                updated_dag_block = self.run(dag_block)
+                updated_circ_block = dag_to_circuit(updated_dag_block)
+                updated_blocks.append(updated_circ_block)
+            node.op = node.op.replace_blocks(updated_blocks)
         return dag
 
 
