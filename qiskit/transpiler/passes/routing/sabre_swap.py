@@ -167,6 +167,7 @@ class SabreSwap(TransformationPass):
             self.seed = seed
         self.fake_run = fake_run
         self._bit_indices = None
+        self._clbit_indices = None
         self.dist_matrix = None
 
     def run(self, dag):
@@ -198,6 +199,7 @@ class SabreSwap(TransformationPass):
         canonical_register = dag.qregs["q"]
         current_layout = Layout.generate_trivial_layout(canonical_register)
         self._bit_indices = {bit: idx for idx, bit in enumerate(canonical_register)}
+        self._clbit_indices = {bit: idx for idx, bit in enumerate(dag.clbits)}
         layout_mapping = {
             self._bit_indices[k]: v for k, v in current_layout.get_virtual_bits().items()
         }
@@ -206,24 +208,18 @@ class SabreSwap(TransformationPass):
 
         dag_list = []
         layers = dag.multigraph_layers()
-        replay_list = []
-        front_layer = None
         for layer in layers:
             for node in layer:
                 if isinstance(node, DAGOpNode):
-                    replay_list.append(node)
-                    if len(node.qargs) == 2:
-                        dag_list.append(
-                            (
-                                node._node_id,
-                                self._bit_indices[node.qargs[0]],
-                                self._bit_indices[node.qargs[1]],
-                            )
+                    dag_list.append(
+                        (
+                            node._node_id,
+                            [self._bit_indices[x] for x in node.qargs],
+                            [self._clbit_indices[x] for x in node.cargs],
                         )
-                if front_layer is None:
-                    front_layer = dag_list
-
-        sabre_dag = SabreDAG(len(dag.qubits), dag_list)
+                    )
+        front_layer = np.asarray([x._node_id for x in dag.front_layer()], dtype=np.uintp)
+        sabre_dag = SabreDAG(len(dag.qubits), len(dag.clbits), dag_list, front_layer)
         # A decay factor for each qubit used to heuristically penalize recently
         # used qubits (to encourage parallelism).
         qubits_decay = QubitsDecay(len(dag.qubits))
@@ -241,36 +237,10 @@ class SabreSwap(TransformationPass):
         output_layout = Layout({dag.qubits[k]: v for (k, v) in layout_mapping})
         self.property_set["final_layout"] = output_layout
         if not self.fake_run:
-            queued_gates = []
-            processed_nodes = set()
-            count = 0
-            # Reconstruct circuit by iterating over layers to preserve
-            # relative positioning of 1q gates with SWAPs.
-            for node in replay_list:
-                if len(node.qargs) == 2:
-                    if node._node_id != gate_order[count]:
-                        queued_gates.append(node)
-                        continue
-                    self._process_swaps(
-                        swap_map, node, mapped_dag, original_layout, canonical_register
-                    )
-                    self._apply_gate(mapped_dag, node, original_layout, canonical_register)
-                    processed_nodes.add(node._node_id)
-                    count += 1
-                    if queued_gates:
-                        for gate_node in queued_gates:
-                            if gate_node._node_id in processed_nodes:
-                                continue
-                            self._process_swaps(
-                                swap_map, gate_node, mapped_dag, original_layout, canonical_register
-                            )
-                            self._apply_gate(
-                                mapped_dag, gate_node, original_layout, canonical_register
-                            )
-                            count += 1
-                        queued_gates.clear()
-                else:
-                    self._apply_gate(mapped_dag, node, original_layout, canonical_register)
+            for node_id in gate_order:
+                node = dag._multi_graph[node_id]
+                self._process_swaps(swap_map, node, mapped_dag, original_layout, canonical_register)
+                self._apply_gate(mapped_dag, node, original_layout, canonical_register)
             return mapped_dag
         return dag
 

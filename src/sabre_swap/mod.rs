@@ -112,8 +112,11 @@ fn obtain_extended_set(
                     new_tmp_front_layer.push(successor_index)
                 }
                 let node_weight = dag.dag.node_weight(successor_index).unwrap();
-                let extended_set_edges: [usize; 2] = [node_weight[1], node_weight[2]];
-                extended_set.push(extended_set_edges);
+                let qargs = &node_weight.1;
+                if qargs.len() == 2 {
+                    let extended_set_edges: [usize; 2] = [qargs[0], qargs[1]];
+                    extended_set.push(extended_set_edges);
+                }
             }
             if extended_set.len() >= EXTENDED_SET_SIZE {
                 done = true;
@@ -176,18 +179,23 @@ pub fn build_swap_map(
         let mut new_front_layer: Vec<NodeIndex> = Vec::new();
         for node in front_layer {
             let node_weight = dag.dag.node_weight(node).unwrap();
-            let physical_qargs: [usize; 2] = [
-                layout.logic_to_phys[node_weight[1]],
-                layout.logic_to_phys[node_weight[2]],
-            ];
-            if coupling_graph
-                .find_edge(
-                    NodeIndex::new(physical_qargs[0]),
-                    NodeIndex::new(physical_qargs[1]),
-                )
-                .is_none()
-            {
-                new_front_layer.push(node);
+            let qargs = &node_weight.1;
+            if qargs.len() == 2 {
+                let physical_qargs: [usize; 2] = [
+                    layout.logic_to_phys[qargs[0]],
+                    layout.logic_to_phys[qargs[1]],
+                ];
+                if coupling_graph
+                    .find_edge(
+                        NodeIndex::new(physical_qargs[0]),
+                        NodeIndex::new(physical_qargs[1]),
+                    )
+                    .is_none()
+                {
+                    new_front_layer.push(node);
+                } else {
+                    execute_gate_list.push(node);
+                }
             } else {
                 execute_gate_list.push(node);
             }
@@ -211,7 +219,8 @@ pub fn build_swap_map(
                 .iter()
                 .map(|n| {
                     let node_weight = dag.dag.node_weight(*n).unwrap();
-                    [node_weight[1], node_weight[2]]
+                    let qargs = &node_weight.1;
+                    [qargs[0], qargs[1]]
                 })
                 .min_by(|qargs_a, qargs_b| {
                     let dist_a = dist[[
@@ -263,9 +272,11 @@ pub fn build_swap_map(
         if !execute_gate_list.is_empty() {
             for node in execute_gate_list {
                 let node_weight = dag.dag.node_weight(node).unwrap();
-                gate_order.push(node_weight[0]);
+                gate_order.push(node_weight.0);
                 let out_swaps: Vec<[usize; 2]> = ops_since_progress.drain(..).collect();
-                out_map.insert(dag.dag.node_weight(node).unwrap()[0], out_swaps);
+                if !out_swaps.is_empty() {
+                    out_map.insert(dag.dag.node_weight(node).unwrap().0, out_swaps);
+                }
                 for edge in dag.dag.edges(node) {
                     let successor = edge.target().index();
                     required_predecessors[successor] -= 1;
@@ -282,7 +293,8 @@ pub fn build_swap_map(
             .iter()
             .map(|n| {
                 let node_weight = dag.dag.node_weight(*n).unwrap();
-                [node_weight[1], node_weight[2]]
+                let qargs = &node_weight.1;
+                [qargs[0], qargs[1]]
             })
             .collect();
         if extended_set.is_none() {
