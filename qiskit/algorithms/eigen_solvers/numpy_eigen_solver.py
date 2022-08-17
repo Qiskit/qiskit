@@ -270,11 +270,12 @@ class NumPyEigensolver(Eigensolver):
         logger.debug("EigensolverResult:\n%s", self._ret)
         return self._ret
 
+    @classmethod
     def eval_transition_amplitude(
-        self,
+        cls,
         aux_operators: ListOrDict[OperatorBase],
-        i: int,
-        j: int,
+        wavefi,
+        wavefj,
         threshold: float = 1e-12,
     ) -> ListOrDict[Tuple[complex, complex]]:
         """Evaluate the transition amplitudes for the states n and m and the list of auxiliaries.
@@ -285,21 +286,21 @@ class NumPyEigensolver(Eigensolver):
 
         """
 
-        if i > len(self._ret.eigenstates) or j > len(self._ret.eigenstates):
-            raise IndexError(
-                f"The pair of indices '({i},{j})' is not a valid pair. Please check that"
-                " both value do not exceed the total number of calculated eigenstates."
-            )
-        if i == j:
-            raise IndexError(
-                f"The pair of indices '({i},{j})' is not a valid pair. This method can only"
-                " be used for distinct indices. To compute the expectation value of an"
-                " auxiliary operator, please refer to the documentation of the"
-                " :meth:`_eval_aux_operators` method."
-            )
-
-        wavefi = self._ret.eigenstates[i]
-        wavefj = self._ret.eigenstates[j]
+        # if i > len(self._ret.eigenstates) or j > len(self._ret.eigenstates):
+        #     raise IndexError(
+        #         f"The pair of indices '({i},{j})' is not a valid pair. Please check that"
+        #         " both value do not exceed the total number of calculated eigenstates."
+        #     )
+        # if i == j:
+        #     raise IndexError(
+        #         f"The pair of indices '({i},{j})' is not a valid pair. This method can only"
+        #         " be used for distinct indices. To compute the expectation value of an"
+        #         " auxiliary operator, please refer to the documentation of the"
+        #         " :meth:`_eval_aux_operators` method."
+        #     )
+        #
+        # wavefi = self._ret.eigenstates[i]
+        # wavefj = self._ret.eigenstates[j]
 
         values: ListOrDict[Tuple[complex, complex]]
 

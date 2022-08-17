@@ -199,8 +199,10 @@ class TestNumPyEigensolver(QiskitAlgorithmsTestCase):
         transition_amplitudes = {}
         for pair in transition_amplitude_pairs:
             i,j = pair
+            wavefi = results.eigenstates[i]
+            wavefj = results.eigenstates[j]
             temp_results = algo.eval_transition_amplitude(
-                restricted_aux_ops, i, j
+                restricted_aux_ops, wavefi, wavefj
             )
             for aux_str, aux_res in temp_results.items():
                 transition_amplitudes[str(aux_str) + "_" + str(i) + "_" + str(j)] = aux_res
@@ -232,8 +234,10 @@ class TestNumPyEigensolver(QiskitAlgorithmsTestCase):
         transition_amplitudes = {}
         for pair in transition_amplitude_pairs:
             i,j = pair
+            wavefi = results.eigenstates[i]
+            wavefj = results.eigenstates[j]
             temp_results = algo.eval_transition_amplitude(
-                restricted_aux_ops, i, j
+                restricted_aux_ops, wavefi, wavefj
             )
             for aux_str, aux_res in temp_results.items():
                 transition_amplitudes[str(aux_str) + "_" + str(i) + "_" + str(j)] = aux_res
