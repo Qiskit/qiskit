@@ -12,7 +12,6 @@
 
 #![allow(clippy::too_many_arguments)]
 
-pub mod edge_list;
 pub mod neighbor_table;
 pub mod sabre_dag;
 pub mod sabre_rng;
@@ -37,7 +36,6 @@ use retworkx_core::shortest_path::dijkstra;
 use crate::getenv_use_multiple_threads;
 use crate::nlayout::NLayout;
 
-use edge_list::EdgeList;
 use neighbor_table::NeighborTable;
 use sabre_dag::SabreDAG;
 use sabre_rng::SabreRng;
@@ -142,8 +140,10 @@ fn cmap_from_neighor_table(neighbor_table: &NeighborTable) -> DiGraph<(), ()> {
 /// Run sabre swap on a circuit
 ///
 /// Returns:
-///     SwapMap: A mapping of DAGCircuit node ids to a list of virtual qubit
-///     swaps that should be added before that op.
+///     (SwapMap, gate_order): A tuple where the first element is a mapping of
+///     DAGCircuit node ids to a list of virtual qubit swaps that should be
+///     added before that operation. The second element is a numpy array of
+///     node ids that represents the traversal order used by sabre.
 #[pyfunction]
 pub fn build_swap_map(
     py: Python,
@@ -328,21 +328,6 @@ pub fn build_swap_map(
     Ok((SwapMap { map: out_map }, gate_order.into_pyarray(py).into()))
 }
 
-/// Run the sabre heuristic scoring
-///
-/// Args:
-///     layers (EdgeList): The input layer edge list to score and find the
-///         best swaps
-///     layout (NLayout): The current layout
-///     neighbor_table (NeighborTable): The table of neighbors for each node
-///         in the coupling graph
-///     extended_set (EdgeList): The extended set
-///     distance_matrix (ndarray): The 2D array distance matrix for the coupling
-///         graph
-///     qubits_decay (List[float]): The current qubit decay factors for
-///     heuristic (Heuristic): The chosen heuristic method to use
-/// Returns:
-///     ndarray: A 2d array of the best swap candidates all with the minimum score
 pub fn sabre_score_heuristic(
     layer: &[[usize; 2]],
     layout: &mut NLayout,
@@ -447,7 +432,6 @@ fn score_heuristic(
 pub fn sabre_swap(_py: Python, m: &PyModule) -> PyResult<()> {
     m.add_wrapped(wrap_pyfunction!(build_swap_map))?;
     m.add_class::<Heuristic>()?;
-    m.add_class::<EdgeList>()?;
     m.add_class::<NeighborTable>()?;
     m.add_class::<SabreRng>()?;
     m.add_class::<SabreDAG>()?;
