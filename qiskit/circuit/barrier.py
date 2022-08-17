@@ -38,26 +38,6 @@ class Barrier(Instruction):
         self._label = label
         super().__init__("barrier", num_qubits, 0, [], label=label)
 
-    @property
-    def label(self):
-        """Return barrier label"""
-        return self._label
-
-    @label.setter
-    def label(self, name):
-        """Set barrier label to name
-
-        Args:
-            name (str or None): label to assign barrier
-
-        Raises:
-            TypeError: name is not string or None.
-        """
-        if isinstance(name, str):
-            self._label = name
-        else:
-            raise TypeError("label expects a string")
-
     def inverse(self):
         """Special case. Return self."""
         return Barrier(self.num_qubits)

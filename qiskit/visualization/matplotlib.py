@@ -1051,7 +1051,7 @@ class MatplotlibDrawer:
                     node.op.label,
                     ha="center",
                     va="top",
-                    fontsize=self._sfs,
+                    fontsize=self._fs,
                     color=self._data[node]["tc"],
                     clip_on=True,
                     zorder=PORDER_TEXT,
