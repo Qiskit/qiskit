@@ -836,6 +836,7 @@ class QuantumCircuit:
             qubits (list[Qubit|int]): qubits of self to compose onto.
             clbits (list[Clbit|int]): clbits of self to compose onto.
             front (bool): If True, front composition will be performed.  This is not possible within
+                control-flow builder context managers.
             inplace (bool): If True, modify the object. Otherwise return composed circuit.
             wrap (bool): If True, wraps the other circuit into a gate (or instruction, depending on
                 whether it contains only unitary instructions) before composing it onto self.
