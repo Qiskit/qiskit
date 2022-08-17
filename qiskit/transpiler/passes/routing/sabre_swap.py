@@ -207,17 +207,14 @@ class SabreSwap(TransformationPass):
         original_layout = layout.copy()
 
         dag_list = []
-        layers = dag.multigraph_layers()
-        for layer in layers:
-            for node in layer:
-                if isinstance(node, DAGOpNode):
-                    dag_list.append(
-                        (
-                            node._node_id,
-                            [self._bit_indices[x] for x in node.qargs],
-                            [self._clbit_indices[x] for x in node.cargs],
-                        )
+        for node in dag.topological_op_nodes():
+            dag_list.append(
+                (
+                    node._node_id,
+                        [self._bit_indices[x] for x in node.qargs],
+                        [self._clbit_indices[x] for x in node.cargs],
                     )
+                )
         front_layer = np.asarray([x._node_id for x in dag.front_layer()], dtype=np.uintp)
         sabre_dag = SabreDAG(len(dag.qubits), len(dag.clbits), dag_list, front_layer)
         # A decay factor for each qubit used to heuristically penalize recently
