@@ -53,10 +53,9 @@ class Fidelity(BaseFidelity):
         left_circuit: Sequence[QuantumCircuit] | None = None,
         right_circuit: Sequence[QuantumCircuit] | None = None,
         left_values: Sequence[Sequence[float]] | None = None,
-        right_values: Sequence[Sequence[float]] | None = None,
-        **run_options,
-    ) -> PrimitiveJob:
-        """Run the job of the state overlap (fidelity) calculation between 2
+        right_values: Sequence[Sequence[float]] | None = None
+    ) -> np.ndarray:
+        """Run the state overlap (fidelity) calculation between 2
         parametrized circuits (left and right) for a specific set of parameter
         values (left and right).
         Args:
@@ -71,7 +70,7 @@ class Fidelity(BaseFidelity):
             run_options: Backend runtime options used for circuit execution.
 
         Returns:
-            The job object for the fidelity calculation.
+            The result for the fidelity calculation.
         """
         if left_circuit is not None:
             self._set_circuits(left_circuit=left_circuit[0])
@@ -121,7 +120,7 @@ class Fidelity(BaseFidelity):
         right_values: Sequence[Sequence[float]] | None = None,
         **run_options,
     ) -> PrimitiveJob:
-        """Run the job of the state overlap (fidelity) calculation between 2
+        """Run the asynchronous job of the state overlap (fidelity) calculation between 2
         parametrized circuits (left and right) for a specific set of parameter
         values (left and right).
         Args:
