@@ -43,6 +43,11 @@ def plot_state_hinton(
 ):
     """Plot a hinton diagram for the density matrix of a quantum state.
 
+    The hinton diagram represents the values of a matrix using
+    squares, whose size indicate the magnitude of their corresponding value
+    and their color, its sign. A white square means the value is positive and
+    a black one means negative.
+
     Args:
         state (Statevector or DensityMatrix or ndarray): An N-qubit quantum state.
         title (str): a string that represents the plot title
@@ -260,20 +265,35 @@ def plot_bloch_multivector(
         MissingOptionalLibraryError: Requires matplotlib.
         VisualizationError: if input is not a valid N-qubit state.
 
-    Example:
+    Examples:
         .. jupyter-execute::
 
             from qiskit import QuantumCircuit
             from qiskit.quantum_info import Statevector
             from qiskit.visualization import plot_bloch_multivector
-            %matplotlib inline
 
             qc = QuantumCircuit(2)
             qc.h(0)
             qc.x(1)
 
-            state = Statevector.from_instruction(qc)
+            state = Statevector(qc)
             plot_bloch_multivector(state)
+
+        .. jupyter-execute::
+
+           # You can reverse the order of the qubits.
+
+           from qiskit.quantum_info import DensityMatrix
+
+           qc = QuantumCircuit(2)
+           qc.h([0, 1])
+           qc.t(1)
+           qc.s(0)
+           qc.cx(0,1)
+
+           matrix = DensityMatrix(qc)
+           plot_bloch_multivector(matrix, title='My Bloch Spheres', reverse_bits=True)
+
     """
     from matplotlib import pyplot as plt
 
