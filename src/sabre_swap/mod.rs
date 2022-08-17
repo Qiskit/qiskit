@@ -14,7 +14,6 @@
 
 pub mod neighbor_table;
 pub mod sabre_dag;
-pub mod sabre_rng;
 pub mod swap_map;
 
 use std::cmp::Ordering;
@@ -27,6 +26,8 @@ use pyo3::prelude::*;
 use pyo3::wrap_pyfunction;
 use pyo3::Python;
 use rand::prelude::SliceRandom;
+use rand::prelude::*;
+use rand_pcg::Pcg64Mcg;
 use rayon::prelude::*;
 use retworkx_core::dictmap::*;
 use retworkx_core::petgraph::prelude::*;
@@ -38,7 +39,6 @@ use crate::nlayout::NLayout;
 
 use neighbor_table::NeighborTable;
 use sabre_dag::SabreDAG;
-use sabre_rng::SabreRng;
 use swap_map::SwapMap;
 
 const EXTENDED_SET_SIZE: usize = 20; // Size of lookahead window.
@@ -152,7 +152,7 @@ pub fn build_swap_map(
     neighbor_table: &NeighborTable,
     distance_matrix: PyReadonlyArray2<f64>,
     heuristic: &Heuristic,
-    rng: &mut SabreRng,
+    seed: u64,
     layout: &mut NLayout,
 ) -> PyResult<(SwapMap, PyObject)> {
     let mut gate_order: Vec<usize> = Vec::with_capacity(dag.dag.node_count());
@@ -167,6 +167,7 @@ pub fn build_swap_map(
     let dist = distance_matrix.as_array();
     let coupling_graph: DiGraph<(), ()> = cmap_from_neighor_table(neighbor_table);
     let mut qubits_decay: Vec<f64> = vec![1.; num_qubits];
+    let mut rng = Pcg64Mcg::seed_from_u64(seed);
 
     for node in dag.dag.node_indices() {
         for edge in dag.dag.edges(node) {
@@ -313,7 +314,7 @@ pub fn build_swap_map(
             &dist,
             &qubits_decay,
             heuristic,
-            rng,
+            &mut rng,
             run_in_parallel,
         );
         num_search_steps += 1;
@@ -336,7 +337,7 @@ pub fn sabre_score_heuristic(
     dist: &ArrayView2<f64>,
     qubits_decay: &[f64],
     heuristic: &Heuristic,
-    rng: &mut SabreRng,
+    rng: &mut Pcg64Mcg,
     run_in_parallel: bool,
 ) -> [usize; 2] {
     // Run in parallel only if we're not already in a multiprocessing context
@@ -369,7 +370,7 @@ pub fn sabre_score_heuristic(
     } else {
         best_swaps.sort_unstable();
     }
-    let best_swap = *best_swaps.choose(&mut rng.rng).unwrap();
+    let best_swap = *best_swaps.choose(rng).unwrap();
     layout.swap_logical(best_swap[0], best_swap[1]);
     best_swap
 }
@@ -433,7 +434,6 @@ pub fn sabre_swap(_py: Python, m: &PyModule) -> PyResult<()> {
     m.add_wrapped(wrap_pyfunction!(build_swap_map))?;
     m.add_class::<Heuristic>()?;
     m.add_class::<NeighborTable>()?;
-    m.add_class::<SabreRng>()?;
     m.add_class::<SabreDAG>()?;
     m.add_class::<SwapMap>()?;
     Ok(())

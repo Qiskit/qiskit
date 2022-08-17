@@ -29,7 +29,6 @@ from qiskit._accelerate.sabre_swap import (
     build_swap_map,
     Heuristic,
     NeighborTable,
-    SabreRng,
     SabreDAG,
 )
 from qiskit._accelerate.stochastic_swap import NLayout  # pylint: disable=import-error
@@ -183,8 +182,6 @@ class SabreSwap(TransformationPass):
 
         self.dist_matrix = self.coupling_map.distance_matrix
 
-        rng = SabreRng(self.seed)
-
         # Preserve input DAG's name, regs, wire_map, etc. but replace the graph.
         mapped_dag = None
         if not self.fake_run:
@@ -217,7 +214,7 @@ class SabreSwap(TransformationPass):
             self._neighbor_table,
             self.dist_matrix,
             self.heuristic,
-            rng,
+            self.seed,
             layout,
         )
 
