@@ -19,7 +19,7 @@ import numpy as np
 from ddt import data, ddt
 
 from qiskit.algorithms import NumPyEigensolver
-from qiskit.opflow import PauliSumOp, X, Y, Z
+from qiskit.opflow import PauliSumOp, X, Y, Z, MatrixOp
 
 
 @ddt
@@ -180,47 +180,70 @@ class TestNumPyEigensolver(QiskitAlgorithmsTestCase):
 
     def test_transition_amplitudes_list(self):
         """Test transition amplitudes list-based aux_operators."""
-        transition_amplitude_pairs = {
-            "names": [1],
-            "indices": [(0, 1), (1, 0), (1, 2), (2, 0), (2, 1), (2, 3)],
-        }
+
+        transition_amplitude_names = [1]
+        transition_amplitude_pairs = [(0, 1), (1, 0), (1, 2), (2, 0), (2, 1), (2, 3)]
+
         aux_op1 = PauliSumOp.from_list([("II", 2.0)])
         aux_op2 = PauliSumOp.from_list([("II", 0.5), ("ZZ", 0.5), ("YY", 0.5), ("XY", -0.5)])
         aux_ops = [aux_op1, aux_op2]
         algo = NumPyEigensolver(k=4)
-        algo.compute_eigenvalues(operator=self.qubit_op, aux_operators=aux_ops)
-        transition_amplitudes = algo.compute_transition_amplitudes(
-            aux_ops, transition_amplitude_pairs
-        )
+        results = algo.compute_eigenvalues(operator=self.qubit_op, aux_operators=aux_ops)
+        ref_1_2 = results.eigenstates[1].primitive.data @ aux_op2.to_matrix() @ results.eigenstates[2].primitive.data
+        ref_2_1 = results.eigenstates[2].primitive.data @ aux_op2.to_matrix() @ results.eigenstates[1].primitive.data
+
+        restricted_aux_ops = {}
+        for name in transition_amplitude_names:
+            restricted_aux_ops[name] = aux_ops[name]
+
+        transition_amplitudes = {}
+        for pair in transition_amplitude_pairs:
+            i,j = pair
+            temp_results = algo.eval_transition_amplitude(
+                restricted_aux_ops, i, j
+            )
+            for aux_str, aux_res in temp_results.items():
+                transition_amplitudes[str(aux_str) + "_" + str(i) + "_" + str(j)] = aux_res
+
         self.assertEqual(len(transition_amplitudes), 6)
         self.assertAlmostEqual(transition_amplitudes["1_0_1"][0], 0.0, places=6)
         self.assertAlmostEqual(transition_amplitudes["1_1_0"][0], 0.0, places=6)
-        self.assertAlmostEqual(transition_amplitudes["1_1_2"][0], -1j / np.sqrt(2), places=6)
+        self.assertAlmostEqual(transition_amplitudes["1_1_2"][0], ref_1_2, places=6)
         self.assertAlmostEqual(transition_amplitudes["1_2_0"][0], 0.0, places=6)
-        self.assertAlmostEqual(transition_amplitudes["1_2_1"][0], 1j / np.sqrt(2), places=6)
+        self.assertAlmostEqual(transition_amplitudes["1_2_1"][0], ref_2_1, places=6)
         self.assertAlmostEqual(transition_amplitudes["1_2_3"][0], 0.0, places=6)
 
     def test_transition_amplitudes_dict(self):
         """Test transition amplitudes dict-based aux_operators."""
-        transition_amplitude_pairs = {
-            "names": ["aux_op2"],
-            "indices": [(0, 1), (1, 0), (1, 2), (2, 0), (2, 1), (2, 3)],
-        }
+        transition_amplitude_names = ["aux_op2"]
+        transition_amplitude_pairs = [(0, 1), (1, 0), (1, 2), (2, 0), (2, 1), (2, 3)]
         aux_op1 = PauliSumOp.from_list([("II", 2.0)])
         aux_op2 = PauliSumOp.from_list([("II", 0.5), ("ZZ", 0.5), ("YY", 0.5), ("XY", -0.5)])
         aux_ops = {"aux_op1": aux_op1, "aux_op2": aux_op2}
         algo = NumPyEigensolver(k=4)
-        algo.compute_eigenvalues(operator=self.qubit_op, aux_operators=aux_ops)
-        transition_amplitudes = algo.compute_transition_amplitudes(
-            aux_ops, transition_amplitude_pairs
-        )
-        print(transition_amplitudes)
+        results = algo.compute_eigenvalues(operator=self.qubit_op, aux_operators=aux_ops)
+        ref_1_2 = results.eigenstates[1].primitive.data @ aux_op2.to_matrix() @ results.eigenstates[2].primitive.data
+        ref_2_1 = results.eigenstates[2].primitive.data @ aux_op2.to_matrix() @ results.eigenstates[1].primitive.data
+
+        restricted_aux_ops = {}
+        for name in transition_amplitude_names:
+            restricted_aux_ops[name] = aux_ops[name]
+
+        transition_amplitudes = {}
+        for pair in transition_amplitude_pairs:
+            i,j = pair
+            temp_results = algo.eval_transition_amplitude(
+                restricted_aux_ops, i, j
+            )
+            for aux_str, aux_res in temp_results.items():
+                transition_amplitudes[str(aux_str) + "_" + str(i) + "_" + str(j)] = aux_res
+
         self.assertEqual(len(transition_amplitudes), 6)
         self.assertAlmostEqual(transition_amplitudes["aux_op2_0_1"][0], 0.0, places=6)
         self.assertAlmostEqual(transition_amplitudes["aux_op2_1_0"][0], 0.0, places=6)
-        self.assertAlmostEqual(transition_amplitudes["aux_op2_1_2"][0], -1j / np.sqrt(2), places=6)
+        self.assertAlmostEqual(transition_amplitudes["aux_op2_1_2"][0], ref_1_2, places=6)
         self.assertAlmostEqual(transition_amplitudes["aux_op2_2_0"][0], 0.0, places=6)
-        self.assertAlmostEqual(transition_amplitudes["aux_op2_2_1"][0], 1j / np.sqrt(2), places=6)
+        self.assertAlmostEqual(transition_amplitudes["aux_op2_2_1"][0], ref_2_1, places=6)
         self.assertAlmostEqual(transition_amplitudes["aux_op2_2_3"][0], 0.0, places=6)
 
 
