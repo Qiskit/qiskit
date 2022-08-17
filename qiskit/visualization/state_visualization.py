@@ -365,21 +365,39 @@ def plot_state_city(
         ValueError: When 'color' is not a list of len=2.
         VisualizationError: if input is not a valid N-qubit state.
 
-    Example:
+    Examples:
         .. jupyter-execute::
+
+           # You can choose different colors for the real and imaginary parts of the density matrix.
 
            from qiskit import QuantumCircuit
            from qiskit.quantum_info import DensityMatrix
            from qiskit.visualization import plot_state_city
-           %matplotlib inline
 
            qc = QuantumCircuit(2)
            qc.h(0)
            qc.cx(0, 1)
 
-           state = DensityMatrix.from_instruction(qc)
-           plot_state_city(state, color=['midnightblue', 'midnightblue'],
-                title="New State City")
+           state = DensityMatrix(qc)
+           plot_state_city(state, color=['midnightblue', 'crimson'], title="New State City")
+
+        .. jupyter-execute::
+
+           # You can make the bars more transparent to better see the ones that are behind
+           # if they overlap.
+
+           import numpy as np
+           from qiskit.quantum_info import Statevector
+
+           qc = QuantumCircuit(2)
+           qc.h([0, 1])
+           qc.cz(0,1)
+           qc.ry(np.pi/3, 0)
+           qc.rx(np.pi/5, 1)
+
+           state = Statevector(qc)
+           plot_state_city(state, alpha=0.6)
+
     """
     from matplotlib import pyplot as plt
     from mpl_toolkits.mplot3d.art3d import Poly3DCollection
