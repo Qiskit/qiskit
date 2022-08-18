@@ -9,3 +9,12 @@ features:
     now run the algorithm with ``trials`` number of random seeds and pick the
     best (with the fewest swaps inserted). If ``trials`` is not specified the
     pass will default to use the number of physical CPUs on the local system.
+  - |
+    The :class:`~.SabreLayout` transpiler pass has a new keyword argument on
+    its constructor, ``swap_trials``. The ``swap_trials`` argument is used
+    to specify how many random seed trials to run on the :class:`~.SabreSwap`
+    pass internally. It corresponds to the ``trials`` arugment on the
+    :class:`~.SabreSwap` pass. When set For each iteration of
+    :class:`~.SabreLayout` :class:`~.SabreSwap` will be run internally with
+    ``swap_trials``random seed trials. If ``swap_trials`` is not specified
+    the will default to use the number of physical CPUs on the local system.

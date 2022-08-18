@@ -52,7 +52,7 @@ class TestSabreLayout(QiskitTestCase):
         circuit.cx(qr[1], qr[2])
 
         dag = circuit_to_dag(circuit)
-        pass_ = SabreLayout(CouplingMap(self.cmap20), seed=0)
+        pass_ = SabreLayout(CouplingMap(self.cmap20), seed=0, swap_trials=32)
         pass_.run(dag)
 
         layout = pass_.property_set["layout"]
