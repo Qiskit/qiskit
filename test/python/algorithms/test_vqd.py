@@ -264,7 +264,7 @@ class TestVQD(QiskitAlgorithmsTestCase):
             history["parameters"].append(parameters)
             history["mean"].append(mean)
             history["std"].append(std)
-            history["step"].append((step))
+            history["step"].append(step)
 
         optimizer = COBYLA(maxiter=3)
         wavefunction = self.ry_wavefunction
