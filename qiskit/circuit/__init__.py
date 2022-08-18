@@ -73,8 +73,10 @@ Supplementary Information
       qc = QuantumCircuit(1, 1)
       qc.h(0)
       qc.measure(0, 0)
-      display(qc.draw())
-
+      qc.draw('mpl')
+      
+   .. jupyter-execute::
+   
       backend = BasicAer.get_backend('qasm_simulator')
       tqc = transpile(qc, backend)
       counts = backend.run(tqc).result().get_counts()
