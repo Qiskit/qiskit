@@ -142,12 +142,8 @@ class VQD(VariationalAlgorithm, Eigensolver):
             callback: a callback that can access the intermediate data during the optimization.
                 Four parameter values are passed to the callback as follows during each evaluation
                 by the optimizer for its current set of parameters as it works towards the minimum.
-                These are:
-                    the evaluation count,
-                    the optimizer parameters for the ansatz,
-                    the evaluated mean,
-                    the evaluated standard deviation,
-                    and the current step.
+                These are: the evaluation count, the optimizer parameters for the ansatz, the
+                evaluated mean, the evaluated standard deviation, and the current step.
             quantum_instance: Quantum Instance or Backend
 
         """
@@ -703,7 +699,7 @@ class VQD(VariationalAlgorithm, Eigensolver):
 
         def energy_evaluation(parameters):
             parameter_sets = np.reshape(parameters, (-1, num_parameters))
-            # Create dict associating each parameter with the lists of parameterization values for it
+            # Dict associating each parameter with the lists of parameterization values for it
             param_bindings = dict(zip(ansatz_params, parameter_sets.transpose().tolist()))
 
             sampled_expect_op = self._circuit_sampler.convert(expect_op, params=param_bindings)
