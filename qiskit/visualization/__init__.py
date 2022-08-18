@@ -83,7 +83,8 @@ Circuit Visualizations
 .. autosummary::
    :toctree: ../stubs/
 
-   circuit_drawer ~qiskit.visualization.qcstyle.DefaultStyle
+   circuit_drawer
+   ~qiskit.visualization.qcstyle.DefaultStyle
 
 DAG Visualizations
 ==================
