@@ -834,7 +834,8 @@ class QuantumCircuit:
                 this can be anything that :obj:`.append` will accept.
             qubits (list[Qubit|int]): qubits of self to compose onto.
             clbits (list[Clbit|int]): clbits of self to compose onto.
-            front (bool): If True, front composition will be performed (not implemented yet).
+            front (bool): If True, front composition will be performed.  This is not possible within
+                control-flow builder context managers.
             inplace (bool): If True, modify the object. Otherwise return composed circuit.
             wrap (bool): If True, wraps the other circuit into a gate (or instruction, depending on
                 whether it contains only unitary instructions) before composing it onto self.
@@ -843,12 +844,18 @@ class QuantumCircuit:
             QuantumCircuit: the composed circuit (returns None if inplace==True).
 
         Raises:
-            CircuitError: if composing on the front.
-            QiskitError: if ``other`` is wider or there are duplicate edge mappings.
+            CircuitError: if no correct wire mapping can be made between the two circuits, such as
+                if ``other`` is wider than ``self``.
+            CircuitError: if trying to emit a new circuit while ``self`` has a partially built
+                control-flow context active, such as the context-manager forms of :meth:`if_test`,
+                :meth:`for_loop` and :meth:`while_loop`.
+            CircuitError: if trying to compose to the front of a circuit when a control-flow builder
+                block is active; there is no clear meaning to this action.
 
-        Examples::
+        Examples:
+            .. code-block:: python
 
-            lhs.compose(rhs, qubits=[3, 2], inplace=True)
+                >>> lhs.compose(rhs, qubits=[3, 2], inplace=True)
 
             .. parsed-literal::
 
@@ -868,6 +875,19 @@ class QuantumCircuit:
                 lcr_1: 0 ═══════════                           lcr_1: 0 ═══════════════════════
 
         """
+        if inplace and front and self._control_flow_scopes:
+            # If we're composing onto ourselves while in a stateful control-flow builder context,
+            # there's no clear meaning to composition to the "front" of the circuit.
+            raise CircuitError(
+                "Cannot compose to the front of a circuit while a control-flow context is active."
+            )
+        if not inplace and self._control_flow_scopes:
+            # If we're inside a stateful control-flow builder scope, even if we successfully cloned
+            # the partial builder scope (not simple), the scope wouldn't be controlled by an active
+            # `with` statement, so the output circuit would be permanently broken.
+            raise CircuitError(
+                "Cannot emit a new composed circuit while a control-flow context is active."
+            )
 
         if inplace:
             dest = self
@@ -954,8 +974,9 @@ class QuantumCircuit:
             mapped_instrs += dest.data
             dest.data.clear()
             dest._parameter_table.clear()
+        append = dest._control_flow_scopes[-1].append if dest._control_flow_scopes else dest._append
         for instr in mapped_instrs:
-            dest._append(instr)
+            append(instr)
 
         for gate, cals in other.calibrations.items():
             dest._calibrations[gate].update(cals)
