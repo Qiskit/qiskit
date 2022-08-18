@@ -621,6 +621,17 @@ class TestCommutativeCancellation(QiskitTestCase):
         ccirc = passmanager.run(circ)
         self.assertEqual(Operator(circ), Operator(ccirc))
 
+    def test_basic_classical_wires(self):
+        """Test that transpile runs without internal errors when dealing with commutable operations
+        with classical controls. Regression test for gh-8553."""
+        original = QuantumCircuit(2, 1)
+        original.x(0).c_if(original.cregs[0], 0)
+        original.x(1).c_if(original.cregs[0], 0)
+        # This transpilation shouldn't change anything, but it should succeed.  At one point it was
+        # triggering an internal logic error and crashing.
+        transpiled = PassManager([CommutativeCancellation()]).run(original)
+        self.assertEqual(original, transpiled)
+
 
 if __name__ == "__main__":
     unittest.main()
