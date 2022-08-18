@@ -15,14 +15,14 @@ use numpy::PyReadonlyArray1;
 use pyo3::prelude::*;
 use retworkx_core::petgraph::prelude::*;
 
-/// A DAG object used to represent the 2q interactions from the circuit to
-/// the sabre algorithm. The input is a list of the 2 qubits for each 2q gate
-/// in the circuit in topological order.
+/// A DAG object used to represent the data interactions from a DAGCircuit
+/// to run the the sabre algorithm. This is structurally identical to the input
+/// DAGCircuit, but the contents of the node are a tuple of DAGCircuit node ids,
+/// a list of qargs and a list of cargs
 #[pyclass(module = "qiskit._accelerate.sabre_swap")]
 #[pyo3(text_signature = "(/)")]
 #[derive(Clone, Debug)]
 pub struct SabreDAG {
-    // DAG as a directed graph with no node weight, qubit indices as edge weight and u32 indices
     pub dag: DiGraph<(usize, Vec<usize>, Vec<usize>), usize>,
     pub first_layer: Vec<NodeIndex>,
 }
