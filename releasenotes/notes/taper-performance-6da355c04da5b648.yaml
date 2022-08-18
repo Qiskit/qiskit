@@ -1,0 +1,8 @@
+---
+fixes:
+  - |
+    Fixed :meth:`.Z2Symmetries.taper` support for running on larger problems
+    method. Previously, the :meth:`~.Z2Symmetries.taper` method would require
+    a large amount of memory which would typically cause failures for
+    larger problem. As a side effect of this fix the performance has
+    significantly improved.
