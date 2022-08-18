@@ -854,8 +854,9 @@ class QuantumCircuit:
                 block is active; there is no clear meaning to this action.
 
         Examples:
+            .. code-block:: python
 
-            lhs.compose(rhs, qubits=[3, 2], inplace=True)
+                >>> lhs.compose(rhs, qubits=[3, 2], inplace=True)
 
             .. parsed-literal::
 
