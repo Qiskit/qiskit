@@ -17,7 +17,7 @@ Overview of Sampler
 Sampler class calculates probabilities or quasi-probabilities of bitstrings from quantum circuits.
 
 A sampler is initialized with an empty parameter set. The sampler is used to
-create a :class:`~qiskit.primitives.PrimitiveJob`, via the :meth:`qiskit.primitives.Sampler.run()` 
+create a :class:`~qiskit.primitives.PrimitiveJob`, via the :meth:`qiskit.primitives.Sampler.run()`
 method. This method is called with the following parameters
 
 * quantum circuits (:math:`\psi_i(\theta)`): list of (parameterized) quantum circuits.
@@ -31,7 +31,7 @@ method. This method is called with the following parameters
   (:class:`~qiskit.circuit.parametertable.ParameterView` or
   a list of :class:`~qiskit.circuit.Parameter`).
 
-The method returns a :class:`~qiskit.primitives.PrimitiveJob` object, calling 
+The method returns a :class:`~qiskit.primitives.PrimitiveJob` object, calling
 :meth:`qiskit.primitives.PrimitiveJob.result()` yields a :class:`~qiskit.primitives.SamplerResult`
 object, which contains probabilities or quasi-probabilities of bitstrings,
 plus optional metadata like error bars in the samples.
@@ -71,7 +71,10 @@ Here is an example of how sampler is used.
         print("Something wrong happened!: {}".format(ex))
 
     # Sampler runs a job on the parameterized circuits
-    job2 = sampler.run(circuits=[pqc, pqc2], parameter_values=[theta1, theta2], parameters=[pqc.parameters, pqc2.parameters])
+    job2 = sampler.run(
+        circuits=[pqc, pqc2],
+        parameter_values=[theta1, theta2],
+        parameters=[pqc.parameters, pqc2.parameters])
     try:
         job_result = job2.result()
         print([q.binary_probabilities() for q in job_result.quasi_dists])

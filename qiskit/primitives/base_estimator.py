@@ -19,15 +19,15 @@ Overview of Estimator
 
 Estimator class estimates expectation values of quantum circuits and observables.
 
-An estimator is initialized with an empty parameter set. The estimator is used to 
-create a :class:`qiskit.primitives.PrimitiveJob`, via the 
+An estimator is initialized with an empty parameter set. The estimator is used to
+create a :class:`qiskit.primitives.PrimitiveJob`, via the
 :meth:`qiskit.primitives.Estimator.run()` method. This method is called
 with the following parameters
 
 * quantum circuits (:math:`\psi_i(\theta)`): list of (parameterized) quantum circuits
   (a list of :class:`~qiskit.circuit.QuantumCircuit` objects).
 
-* observables (:math:`H_j`): a list of :class:`~qiskit.quantum_info.SparsePauliOp` 
+* observables (:math:`H_j`): a list of :class:`~qiskit.quantum_info.SparsePauliOp`
   objects.
 
 * parameter values (:math:`\theta_k`): list of sets of values
@@ -38,9 +38,9 @@ with the following parameters
   (:class:`~qiskit.circuit.parametertable.ParameterView` or
   a list of :class:`qiskit.circuit.Parameter`).
 
-The method returns a :class:`~qiskit.primitives.PrimitiveJob` object, calling 
-:meth:`qiskit.primitives.PrimitiveJob.result()` yields the  
-a list of expectation values plus optional metadata like confidence intervals for 
+The method returns a :class:`~qiskit.primitives.PrimitiveJob` object, calling
+:meth:`qiskit.primitives.PrimitiveJob.result()` yields the
+a list of expectation values plus optional metadata like confidence intervals for
 the estimation.
 
 .. math::
@@ -264,7 +264,8 @@ class BaseEstimator(ABC):
     ) -> EstimatorResult:
         """Run the estimation of expectation value(s).
 
-        ``circuits``, ``observables``, and ``parameter_values`` should have the sameParameters of quantum circuits, specifying the order in which values
+        ``circuits``, ``observables``, and ``parameter_values`` should have the same
+                Parameters of quantum circuits, specifying the order in which values
                 will be bound. Defaults to ``[circ.parameters for circ in circuits]``
                 The indexing is such that ``parameters[i, j]`` is the j-th formal parameter of
                 ``circuits[i]``.
