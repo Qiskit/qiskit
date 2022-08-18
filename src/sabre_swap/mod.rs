@@ -53,6 +53,12 @@ pub enum Heuristic {
     Decay,
 }
 
+struct TrialResult {
+    out_map: HashMap<usize, Vec<[usize; 2]>>,
+    gate_order: Vec<usize>,
+    layout: NLayout,
+}
+
 /// Return a set of candidate swaps that affect qubits in front_layer.
 ///
 /// For each virtual qubit in front_layer, find its current location
@@ -164,10 +170,10 @@ pub fn build_swap_map(
         .sample_iter(&rand::distributions::Standard)
         .take(num_trials)
         .collect();
-    let (out_map, gate_order, best_layout) = if run_in_parallel {
-        (0..num_trials)
+    let result = if run_in_parallel {
+        let trial_results: Vec<TrialResult> = seed_vec
             .into_par_iter()
-            .map(|trial_num| {
+            .map(|seed_trial| {
                 swap_map_trial(
                     num_qubits,
                     dag,
@@ -175,17 +181,18 @@ pub fn build_swap_map(
                     &dist,
                     &coupling_graph,
                     heuristic,
-                    seed_vec[trial_num],
+                    seed_trial,
                     layout.clone(),
                 )
             })
-            .min_by_key(|(out_map, _gate_order, _layout)| {
-                out_map.values().map(|x| x.len()).sum::<usize>()
-            })
-    } else {
-        (0..num_trials)
+            .collect();
+        trial_results
             .into_iter()
-            .map(|trial_num| {
+            .min_by_key(|result| result.out_map.values().map(|x| x.len()).sum::<usize>())
+    } else {
+        seed_vec
+            .into_iter()
+            .map(|seed_trial| {
                 swap_map_trial(
                     num_qubits,
                     dag,
@@ -193,17 +200,20 @@ pub fn build_swap_map(
                     &dist,
                     &coupling_graph,
                     heuristic,
-                    seed_vec[trial_num],
+                    seed_trial,
                     layout.clone(),
                 )
             })
-            .min_by_key(|(out_map, _gate_order, _layout)| {
-                out_map.values().map(|x| x.len()).sum::<usize>()
-            })
+            .min_by_key(|result| result.out_map.values().map(|x| x.len()).sum::<usize>())
     }
     .unwrap();
-    *layout = best_layout;
-    (SwapMap { map: out_map }, gate_order.into_pyarray(py).into())
+    *layout = result.layout;
+    (
+        SwapMap {
+            map: result.out_map,
+        },
+        result.gate_order.into_pyarray(py).into(),
+    )
 }
 
 fn swap_map_trial(
@@ -215,7 +225,7 @@ fn swap_map_trial(
     heuristic: &Heuristic,
     seed: u64,
     mut layout: NLayout,
-) -> (HashMap<usize, Vec<[usize; 2]>>, Vec<usize>, NLayout) {
+) -> TrialResult {
     let max_iterations_without_progress = 10 * neighbor_table.neighbors.len();
     let mut gate_order: Vec<usize> = Vec::with_capacity(dag.dag.node_count());
     let mut ops_since_progress: Vec<[usize; 2]> = Vec::new();
@@ -384,10 +394,14 @@ fn swap_map_trial(
         }
         ops_since_progress.push(best_swap);
     }
-    (out_map, gate_order, layout)
+    TrialResult {
+        out_map,
+        gate_order,
+        layout,
+    }
 }
 
-pub fn sabre_score_heuristic(
+fn sabre_score_heuristic(
     layer: &[[usize; 2]],
     layout: &mut NLayout,
     neighbor_table: &NeighborTable,
