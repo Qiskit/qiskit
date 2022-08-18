@@ -135,6 +135,17 @@ class BasicSwap(TransformationPass):
         return cf_op, current_layout
 
     def _transpile_controlflow_multiblock(self, cf_op, current_layout):
+        """Transpile control flow instructions which may contain multiple
+        blocks (e.g. IfElseOp). Since each control flow block may
+        induce a yield a different layout, this function applies swaps
+        to the shorter depth blocks to make all final layouts match.
+
+        Args:
+            cf_op (IfElseOp): looping instruction.
+            current_layout (Layout): The current layout at the start and by the
+               end of the instruction.
+
+        """
         # pylint: disable=cyclic-import
         from qiskit.transpiler.passes.routing.layout_transformation import LayoutTransformation
         from qiskit.converters import dag_to_circuit, circuit_to_dag
@@ -167,10 +178,18 @@ class BasicSwap(TransformationPass):
         return cf_op.replace_blocks(block_circuits), block_layouts[maxind]
 
     def _transpile_controlflow_looping(self, cf_op, current_layout):
-        """for looping this pass adds a swap layer at the end of the loop body to bring
-        the layout back to the expected starting layout. This could be reduced a bit by
-        specializing to for_loop and while_loop
+        """For looping this pass adds a swap layer using LayoutTransformation
+        to the end of the loop body to bring the layout back to the
+        starting layout. This prevents reapplying layout changing
+        swaps for every iteration of the loop.
+
+        Args:
+            cf_op (ForLoopOp, WhileLoopOp): looping instruction.
+            current_layout (Layout): The current layout at the start and by the
+               end of the instruction.
+
         """
+        # This function could be reduced a bit by specializing to for_loop and while_loop.
         # pylint: disable=cyclic-import
         from qiskit.transpiler.passes.routing.layout_transformation import LayoutTransformation
         from qiskit.converters import dag_to_circuit, circuit_to_dag
