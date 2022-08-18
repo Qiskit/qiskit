@@ -37,6 +37,7 @@ Optimizer Base Class
    OptimizerResult
    OptimizerSupportLevel
    Optimizer
+   Minimizer
 
 Local Optimizers
 ================
@@ -133,6 +134,8 @@ from .umda import UMDA
 __all__ = [
     "Optimizer",
     "OptimizerSupportLevel",
+    "OptimizerResult",
+    "Minimizer",
     "ADAM",
     "AQGD",
     "CG",
