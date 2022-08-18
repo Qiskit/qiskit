@@ -58,8 +58,13 @@ Save figure to file
 .. autosummary::
    :toctree: ../stubs/
 
-   plot_histogram plot_bloch_vector plot_bloch_multivector plot_state_city plot_state_hinton
-   plot_state_paulivec plot_state_qsphere
+   plot_histogram
+   plot_bloch_vector
+   plot_bloch_multivector
+   plot_state_city
+   plot_state_hinton
+   plot_state_paulivec
+   plot_state_qsphere
 
 Device Visualizations
 =====================
@@ -67,7 +72,10 @@ Device Visualizations
 .. autosummary::
    :toctree: ../stubs/
 
-   plot_gate_map plot_error_map plot_circuit_layout plot_coupling_map
+   plot_gate_map
+   plot_error_map
+   plot_circuit_layout
+   plot_coupling_map
 
 Circuit Visualizations
 ======================
@@ -99,8 +107,10 @@ Pulse Visualizations
 .. autosummary::
    :toctree: ../stubs/
 
-   ~qiskit.visualization.pulse_v2.draw ~qiskit.visualization.pulse_v2.IQXStandard
-   ~qiskit.visualization.pulse_v2.IQXSimple ~qiskit.visualization.pulse_v2.IQXDebugging
+   ~qiskit.visualization.pulse_v2.draw
+   ~qiskit.visualization.pulse_v2.IQXStandard
+   ~qiskit.visualization.pulse_v2.IQXSimple
+   ~qiskit.visualization.pulse_v2.IQXDebugging
 
 Timeline Visualizations
 =======================
@@ -108,7 +118,8 @@ Timeline Visualizations
 .. autosummary::
    :toctree: ../stubs/
 
-   timeline_drawer ~qiskit.visualization.timeline.draw
+   timeline_drawer
+   ~qiskit.visualization.timeline.draw
 
 Single Qubit State Transition Visualizations
 ============================================
