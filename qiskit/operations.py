@@ -210,110 +210,97 @@ def expectation_value(oper, state: QuantumCircuit, qargs: QargsT):
     return expectation_value(oper, Statevector(state), qargs)
 
 
+# We may want to use this as a normal function for performance when oper is all Zs
+# def expectation_value(counts: Counts):
+#     _sum = 0
+#     total_counts = 0
+#     for bitstr, _count in counts.items():
+#         _sum += _count * (-1) ** bitstr.count("1")
+#         total_counts += _count
+#     return _sum / total_counts
+
+
 def _op_to_int(oper: str):
     """
     Interpret ``oper`` as a binary number and return its integer representation.
 
-    If ``oper`` is a binary string it is interpreted in the standard way
-    using ``int``. Otherwise, the character `I` is interpreted as a bit equal to zero
+    The character `I` is interpreted as a bit equal to zero
     and any other character is equal to one.
     """
     n = len(oper)
-    if oper.count("1") + oper.count("0") == n:
-        return int(oper, base=2)
     mask = 0
+    zero_proj = []
+    one_proj = []
     for i, c in enumerate(oper):
+        if c == '0':
+            zero_proj.append(i)
+        elif c == '1':
+            one_proj.append(i)
         if c != "I":
             mask += 1 << (n - i - 1)
-    return mask
+    return mask, zero_proj, one_proj
 
 
-# Compute the expectation value of Counts in the same basis that was measured
-# to collect the counts.
-@dispatch
-def expectation_value(counts: Counts):
-    _sum = 0
-    total_counts = 0
-    for bitstr, _count in counts.items():
-        _sum += _count * (-1) ** bitstr.count("1")
-        total_counts += _count
-    return _sum / total_counts
-
-
-# Compute the expectation value of Counts in the same basis that was measured
-# to collect the counts, for a subset of the qubits.
-# `op` is a binary string specifying which qubits
-# to include.
-# For example `1100` specifies computing the expectation value of the
-# first two qubits in a four-qubit register.
-#
-# You can specify the qubits to measure either by a list of indices or by a string.
-# indices in qargs correspond to counting from the rightmost digit of
-# the string.
+# Indices in qargs correspond to counting from the rightmost digit of the string.
 # TODO: So both are correct or both are incorrect. Find out which.
 @dispatch
 def expectation_value(oper: str, counts: Counts):
     _sum = 0
     total_counts = 0
-    mask = _op_to_int(oper)
+    mask, zero_proj, one_proj = _op_to_int(oper)
     for bitstr, _count in counts.items():
+        flag = 0
+        for zi in zero_proj:
+            if bitstr[zi] != '0':
+                flag = 1
+                break
+        if flag == 1:
+            continue
+        flag = 0
+        for oi in one_proj:
+            if bitstr[oi] != '1':
+                flag = 1
+                break
+        if flag == 1:
+            continue
         parity = bin(int(bitstr, base=2) & mask).count("1")
         _sum += _count * (-1) ** parity
         total_counts += _count
     return _sum / total_counts
 
 
-@dispatch
-def expectation_value(counts: Counts, qargs: QargsT):
-    _sum = 0
-    total_counts = 0
-    for bitstr, _count in counts.items():
-        bits_int = int(bitstr, base=2)
-        c = 0
-        for b in qargs:
-            if bits_int & (1 << b):
-                c += 1
-        _sum += _count * (-1) ** c
-        total_counts += _count
-    return _sum / total_counts
+# We may want to use this for performance when oper is all Zs
+# def expectation_value(quasi_dist: QuasiDistribution):
+#     _sum = 0
+#     for bitstr, prob in quasi_dist.items():
+#         _sum += prob * (-1) ** bin(bitstr).count("1")
+#     return _sum
 
-
-# TODO: Recent python or numpy or s.t. has an optimized count_ones.
-@dispatch
-def expectation_value(quasi_dist: QuasiDistribution):
-    _sum = 0
-    for bitstr, prob in quasi_dist.items():
-        _sum += prob * (-1) ** bin(bitstr).count("1")
-    return _sum
-
-
-# Following is slightly slower than for loop above
-#    return sum(prob * (-1) ** bin(bitstr).count('1') for bitstr, prob in quasi_dist.items())
-
-
+# The only difference wrt the method for Counts is that we
+# don't accumualate total number of counts and normalize.
+# We should probably make a normalized copy of counts and
+# then use a single function for the work.
 @dispatch
 def expectation_value(oper: str, quasi_dist: QuasiDistribution):
     _sum = 0
-    mask = _op_to_int(oper)
+    mask, zero_proj, one_proj = _op_to_int(oper)
     for bitstr, prob in quasi_dist.items():
+        flag = 0
+        for zi in zero_proj:
+            if bitstr[zi] != '0':
+                flag = 1
+                break
+        if flag == 1:
+            continue
+        flag = 0
+        for oi in one_proj:
+            if bitstr[oi] != '1':
+                flag = 1
+                break
+        if flag == 1:
+            continue
         parity = bin(bitstr & mask).count("1")
         _sum += prob * (-1) ** parity
-    return _sum
-
-
-# Following is 30% slower
-#    return sum(prob * (-1) ** bin(bitstr & mask).count('1') for bitstr, prob in quasi_dist.items())
-
-
-@dispatch
-def expectation_value(quasi_dist: QuasiDistribution, qargs: QargsT):
-    _sum = 0
-    for bits_int, prob in quasi_dist.items():
-        c = 0
-        for b in qargs:
-            if bits_int & (1 << b):
-                c += 1
-        _sum += prob * (-1) ** c
     return _sum
 
 
