@@ -109,7 +109,7 @@ class VQD(VariationalAlgorithm, Eigensolver):
             ansatz: A parameterized circuit used as ansatz for the wave function.
             k: the number of eigenvalues to return. Returns the lowest k eigenvalues.
             betas: beta parameters in the VQD paper.
-                Should have size k -1, the number of excited states.
+                Should have length k-1, with k the number of excited states.
                 These hyperparameters balance the contribution of each overlap term to the cost
                 function and have a default value computed as the mean square sum of the
                 coefficients of the observable.
