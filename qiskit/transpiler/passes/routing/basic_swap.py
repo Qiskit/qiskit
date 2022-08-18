@@ -109,7 +109,7 @@ class BasicSwap(TransformationPass):
                     for swap in range(len(path) - 2):
                         current_layout.swap(path[swap], path[swap + 1])
             # handle control flow operations
-            for node in subdag.control_flow_ops():
+            for node in subdag.op_nodes(op=ControlFlowOp):
                 updated_ctrl_op, cf_layout = self._transpile_controlflow_op(node.op, current_layout)
                 node.op = updated_ctrl_op
                 cf_layer = True

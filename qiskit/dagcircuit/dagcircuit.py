@@ -1422,10 +1422,6 @@ class DAGCircuit:
                 ops.append(node)
         return ops
 
-    def control_flow_ops(self):
-        """return control flow operations"""
-        return self.op_nodes(op=ControlFlowOp)
-
     def longest_path(self):
         """Returns the longest path in the dag as a list of DAGOpNodes, DAGInNodes, and DAGOutNodes."""
         return [self._multi_graph[x] for x in rx.dag_longest_path(self._multi_graph)]
