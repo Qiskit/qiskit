@@ -274,33 +274,18 @@ class NumPyEigensolver(Eigensolver):
     def eval_transition_amplitude(
         cls,
         aux_operators: ListOrDict[OperatorBase],
-        wavefi,
-        wavefj,
+        wavefn,
+        wavefm,
         threshold: float = 1e-12,
     ) -> ListOrDict[Tuple[complex, complex]]:
-        """Evaluate the transition amplitudes for the states n and m and the list of auxiliaries.
+        """Evaluate the transition amplitudes for two eigenstates wavefi, wavefj and a list of
+        auxiliaries.
 
         The formula we use here is a simpler version of Eq. 13 in
-        https://doi.org/10.1103%2Fphysrevresearch.3.023244. It is defined only for n!=m.
-        If i=j, then the _eval_aux_operators must be used instead.
+        https://doi.org/10.1103%2Fphysrevresearch.3.023244.
+        It is only defined for i!=j.
 
         """
-
-        # if i > len(self._ret.eigenstates) or j > len(self._ret.eigenstates):
-        #     raise IndexError(
-        #         f"The pair of indices '({i},{j})' is not a valid pair. Please check that"
-        #         " both value do not exceed the total number of calculated eigenstates."
-        #     )
-        # if i == j:
-        #     raise IndexError(
-        #         f"The pair of indices '({i},{j})' is not a valid pair. This method can only"
-        #         " be used for distinct indices. To compute the expectation value of an"
-        #         " auxiliary operator, please refer to the documentation of the"
-        #         " :meth:`_eval_aux_operators` method."
-        #     )
-        #
-        # wavefi = self._ret.eigenstates[i]
-        # wavefj = self._ret.eigenstates[j]
 
         values: ListOrDict[Tuple[complex, complex]]
 
@@ -322,25 +307,24 @@ class NumPyEigensolver(Eigensolver):
                 # This is necessary for the particle_hole and other chemistry tests because the
                 # pauli conversions are 2^12th large and will OOM error if not sparse.
                 if isinstance(mat, scisparse.spmatrix):
-                    value = mat.dot(wavefj.primitive).dot(np.conj(wavefi.primitive))
+                    value = mat.dot(wavefm.primitive).dot(np.conj(wavefn.primitive))
                 else:
-                    wavefij_plus = 1 / np.sqrt(2) * (wavefi + wavefj)
-                    wavefij_minus = 1 / np.sqrt(2) * (wavefi - wavefj)
-                    wavefij_iplus = 1 / np.sqrt(2) * (wavefi + 1j * wavefj)
-                    wavefij_iminus = 1 / np.sqrt(2) * (wavefi - 1j * wavefj)
+                    wavefnm_re_plus = 1 / np.sqrt(2) * (wavefn + wavefm)
+                    wavefnm_re_minus = 1 / np.sqrt(2) * (wavefn - wavefm)
+                    wavefnm_im_plus = 1 / np.sqrt(2) * (wavefn + 1j * wavefm)
+                    wavefnm_im_minus = 1 / np.sqrt(2) * (wavefn - 1j * wavefm)
                     statefn_op = StateFn(operator, is_measurement=True)
 
                     real_value = 0.5 * (
-                        statefn_op.eval(wavefij_plus) - statefn_op.eval(wavefij_minus)
+                        statefn_op.eval(wavefnm_re_plus) - statefn_op.eval(wavefnm_re_minus)
                     )
                     imag_value = -0.5 * (
-                        statefn_op.eval(wavefij_iplus) - statefn_op.eval(wavefij_iminus)
+                        statefn_op.eval(wavefnm_im_plus) - statefn_op.eval(wavefnm_im_minus)
                     )
 
-                    value = 1/np.sqrt(2) * (real_value + 1j * imag_value)
+                    value = 1 / np.sqrt(2) * (real_value + 1j * imag_value)
                 value = value if np.abs(value) > threshold else 0.0
             # The value get's wrapped into a tuple: (mean, standard deviation).
             # Since this is an exact computation, the standard deviation is known to be zero.
             values[key] = (value, 0.0)
         return values
-

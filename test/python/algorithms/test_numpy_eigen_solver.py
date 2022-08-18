@@ -19,7 +19,7 @@ import numpy as np
 from ddt import data, ddt
 
 from qiskit.algorithms import NumPyEigensolver
-from qiskit.opflow import PauliSumOp, X, Y, Z, MatrixOp
+from qiskit.opflow import PauliSumOp, X, Y, Z
 
 
 @ddt
@@ -189,8 +189,16 @@ class TestNumPyEigensolver(QiskitAlgorithmsTestCase):
         aux_ops = [aux_op1, aux_op2]
         algo = NumPyEigensolver(k=4)
         results = algo.compute_eigenvalues(operator=self.qubit_op, aux_operators=aux_ops)
-        ref_1_2 = results.eigenstates[1].primitive.data @ aux_op2.to_matrix() @ results.eigenstates[2].primitive.data
-        ref_2_1 = results.eigenstates[2].primitive.data @ aux_op2.to_matrix() @ results.eigenstates[1].primitive.data
+        ref_1_2 = (
+            results.eigenstates[1].primitive.data
+            @ aux_op2.to_matrix()
+            @ results.eigenstates[2].primitive.data
+        )
+        ref_2_1 = (
+            results.eigenstates[2].primitive.data
+            @ aux_op2.to_matrix()
+            @ results.eigenstates[1].primitive.data
+        )
 
         restricted_aux_ops = {}
         for name in transition_amplitude_names:
@@ -198,12 +206,10 @@ class TestNumPyEigensolver(QiskitAlgorithmsTestCase):
 
         transition_amplitudes = {}
         for pair in transition_amplitude_pairs:
-            i,j = pair
+            i, j = pair
             wavefi = results.eigenstates[i]
             wavefj = results.eigenstates[j]
-            temp_results = algo.eval_transition_amplitude(
-                restricted_aux_ops, wavefi, wavefj
-            )
+            temp_results = algo.eval_transition_amplitude(restricted_aux_ops, wavefi, wavefj)
             for aux_str, aux_res in temp_results.items():
                 transition_amplitudes[str(aux_str) + "_" + str(i) + "_" + str(j)] = aux_res
 
@@ -224,8 +230,16 @@ class TestNumPyEigensolver(QiskitAlgorithmsTestCase):
         aux_ops = {"aux_op1": aux_op1, "aux_op2": aux_op2}
         algo = NumPyEigensolver(k=4)
         results = algo.compute_eigenvalues(operator=self.qubit_op, aux_operators=aux_ops)
-        ref_1_2 = results.eigenstates[1].primitive.data @ aux_op2.to_matrix() @ results.eigenstates[2].primitive.data
-        ref_2_1 = results.eigenstates[2].primitive.data @ aux_op2.to_matrix() @ results.eigenstates[1].primitive.data
+        ref_1_2 = (
+            results.eigenstates[1].primitive.data
+            @ aux_op2.to_matrix()
+            @ results.eigenstates[2].primitive.data
+        )
+        ref_2_1 = (
+            results.eigenstates[2].primitive.data
+            @ aux_op2.to_matrix()
+            @ results.eigenstates[1].primitive.data
+        )
 
         restricted_aux_ops = {}
         for name in transition_amplitude_names:
@@ -233,12 +247,10 @@ class TestNumPyEigensolver(QiskitAlgorithmsTestCase):
 
         transition_amplitudes = {}
         for pair in transition_amplitude_pairs:
-            i,j = pair
+            i, j = pair
             wavefi = results.eigenstates[i]
             wavefj = results.eigenstates[j]
-            temp_results = algo.eval_transition_amplitude(
-                restricted_aux_ops, wavefi, wavefj
-            )
+            temp_results = algo.eval_transition_amplitude(restricted_aux_ops, wavefi, wavefj)
             for aux_str, aux_res in temp_results.items():
                 transition_amplitudes[str(aux_str) + "_" + str(i) + "_" + str(j)] = aux_res
 
