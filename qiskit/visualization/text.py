@@ -867,10 +867,21 @@ class TextDrawing:
         for top, bot in zip(top_line, bot_line):
             if top in ["┴", "╨"] and bot in ["┬", "╥"]:
                 return False
-        for line in (bot_line, top_line):
-            no_spaces = line.replace(" ", "")
-            if len(no_spaces) > 0 and all(c.isalpha() or c.isnumeric() for c in no_spaces):
+        print(f"top **{top_line}**")
+        print(f"bot **{bot_line}**")
+        for i, c in enumerate(top_line):
+            if (c.isalpha() or c.isnumeric()) and bot_line[i] is not " ":
                 return False
+        for i, c in enumerate(bot_line):
+            if (c.isalpha() or c.isnumeric()) and top_line[i] is not " ":
+                return False
+
+        # for line in (bot_line, top_line):
+        #     print(f"bot_line **{bot_line}**")
+        #     print(f"top_line **{top_line}**")
+        #     no_spaces = line.replace(" ", "")
+        #     if len(no_spaces) > 0 and all(c.isalpha() or c.isnumeric() for c in no_spaces):
+        #         return False
         return True
 
     def draw_wires(self, wires):
@@ -930,6 +941,7 @@ class TextDrawing:
             str: The merge of both lines.
         """
         ret = ""
+        prev_topc = ""
         for topc, botc in zip(top, bot):
             if topc == botc:
                 ret += topc
@@ -959,6 +971,10 @@ class TextDrawing:
                 ret += "╫"
             elif topc in "║╫╬" and botc in " ":
                 ret += "║"
+            elif topc in "│┼╪" and botc in " ":
+                ret += "│"
+            #elif topc in "o■" and botc in " " and prev_topc == "═":
+            #    ret += "║"
             elif topc == "└" and botc == "┌" and icod == "top":
                 ret += "├"
             elif topc == "┘" and botc == "┐":
@@ -971,6 +987,7 @@ class TextDrawing:
                 ret += topc
             else:
                 ret += botc
+            prev_topc = topc
         return ret
 
     @staticmethod
