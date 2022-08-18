@@ -311,15 +311,13 @@ class TestCommutationChecker(QiskitTestCase):
         qr = QuantumRegister(3)
         cr = ClassicalRegister(2)
 
-        # Different quantum bits (and empty classical bits).
-        # We should be able to swap these.
+        # Currently, in all cases commutativity checker should returns False.
+        # This is definitely suboptimal.
         res = comm_checker.commute(
             CXGate().c_if(cr[0], 0), [qr[0], qr[1]], [], XGate(), [qr[2]], []
         )
-        self.assertTrue(res)
+        self.assertFalse(res)
 
-        # In all other cases, commutativity checker currently returns False.
-        # This is definitely suboptimal.
         res = comm_checker.commute(
             CXGate().c_if(cr[0], 0), [qr[0], qr[1]], [], XGate(), [qr[1]], []
         )
