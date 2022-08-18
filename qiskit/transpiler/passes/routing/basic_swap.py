@@ -78,41 +78,44 @@ class BasicSwap(TransformationPass):
         for layer in dag.serial_layers():
             subdag = layer["graph"]
             cf_layer = False
-            for gate in subdag.two_qubit_ops():
-                if isinstance(gate, ControlFlowOp):  # necessary?
-                    continue
-                physical_q0 = current_layout[gate.qargs[0]]
-                physical_q1 = current_layout[gate.qargs[1]]
-                if self.coupling_map.distance(physical_q0, physical_q1) != 1:
-                    # Insert a new layer with the SWAP(s).
-                    swap_layer = DAGCircuit()
-                    swap_layer.add_qreg(canonical_register)
-
-                    path = self.coupling_map.shortest_undirected_path(physical_q0, physical_q1)
-                    for swap in range(len(path) - 2):
-                        connected_wire_1 = path[swap]
-                        connected_wire_2 = path[swap + 1]
-
-                        qubit_1 = current_layout[connected_wire_1]
-                        qubit_2 = current_layout[connected_wire_2]
-
-                        # create the swap operation
-                        swap_layer.apply_operation_back(
-                            SwapGate(), qargs=[qubit_1, qubit_2], cargs=[]
-                        )
-
-                    # layer insertion
-                    order = current_layout.reorder_bits(new_dag.qubits)
-                    new_dag.compose(swap_layer, qubits=order)
-
-                    # update current_layout
-                    for swap in range(len(path) - 2):
-                        current_layout.swap(path[swap], path[swap + 1])
             # handle control flow operations
-            for node in subdag.op_nodes(op=ControlFlowOp):
-                updated_ctrl_op, cf_layout = self._transpile_controlflow_op(node.op, current_layout)
-                node.op = updated_ctrl_op
-                cf_layer = True
+            cf_nodes = subdag.op_nodes(op=ControlFlowOp)
+            if cf_nodes:
+                for node in cf_nodes:
+                    updated_ctrl_op, cf_layout = self._transpile_controlflow_op(node.op,
+                                                                                current_layout)
+                    node.op = updated_ctrl_op
+                    cf_layer = True
+            else:
+                for gate in subdag.two_qubit_ops():
+                    physical_q0 = current_layout[gate.qargs[0]]
+                    physical_q1 = current_layout[gate.qargs[1]]
+                    if self.coupling_map.distance(physical_q0, physical_q1) != 1:
+                        # Insert a new layer with the SWAP(s).
+                        swap_layer = DAGCircuit()
+                        swap_layer.add_qreg(canonical_register)
+
+                        path = self.coupling_map.shortest_undirected_path(physical_q0,
+                                                                          physical_q1)
+                        for swap in range(len(path) - 2):
+                            connected_wire_1 = path[swap]
+                            connected_wire_2 = path[swap + 1]
+
+                            qubit_1 = current_layout[connected_wire_1]
+                            qubit_2 = current_layout[connected_wire_2]
+
+                            # create the swap operation
+                            swap_layer.apply_operation_back(
+                                SwapGate(), qargs=[qubit_1, qubit_2], cargs=[]
+                            )
+
+                        # layer insertion
+                        order = current_layout.reorder_bits(new_dag.qubits)
+                        new_dag.compose(swap_layer, qubits=order)
+
+                        # update current_layout
+                        for swap in range(len(path) - 2):
+                            current_layout.swap(path[swap], path[swap + 1])
             if cf_layer:
                 new_dag.compose(subdag)
                 current_layout = cf_layout
