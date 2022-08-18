@@ -14,7 +14,7 @@
 
 import unittest
 
-from qiskit import QuantumRegister, QuantumCircuit
+from qiskit import QuantumRegister, QuantumCircuit, ClassicalRegister
 from qiskit.transpiler.passes import Layout2qDistance
 from qiskit.transpiler import CouplingMap, Layout
 from qiskit.converters import circuit_to_dag
@@ -101,6 +101,27 @@ class TestTrivialLayoutScore(QiskitTestCase):
 
         self.assertEqual(pass_.property_set["layout_score"], 1)
 
+    def test_control_flow_if_else(self):
+        """Circuit with control flow if else blocks"""
+        qr = QuantumRegister(4)
+        cr = ClassicalRegister(4)
+        circuit = QuantumCircuit(qr, cr)
+        true_body = QuantumCircuit(qr, cr)
+        false_body = QuantumCircuit(qr, cr)
+        true_body.cx(0, 2)
+        false_body.cx(0, 2)
+        false_body.cx(0, 3)
+        circuit.h(qr)
+        circuit.cx(0, 2)
+        circuit.if_else((cr, 0), true_body, false_body, qr, cr)
+        coupling = CouplingMap([[0, 1], [1, 2], [2, 3]])
+        layout = Layout().generate_trivial_layout(qr)
+        dag = circuit_to_dag(circuit)
+        pass_ = Layout2qDistance(coupling)
+        pass_.property_set["layout"] = layout
+        pass_.run(dag)
+        breakpoint()
+        
 
 if __name__ == "__main__":
     unittest.main()
