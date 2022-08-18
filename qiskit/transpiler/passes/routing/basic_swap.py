@@ -143,7 +143,7 @@ class BasicSwap(TransformationPass):
         block_dags = []  # control flow dag blocks
         block_layouts = []  # control flow layouts
 
-        for i, block in enumerate(cf_op.blocks):
+        for block in cf_op.blocks:
             dag_block = circuit_to_dag(block)
             _pass = BasicSwap(self.coupling_map, initial_layout=current_layout)
             updated_dag_block = _pass.run(dag_block)
