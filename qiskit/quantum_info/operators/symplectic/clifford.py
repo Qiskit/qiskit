@@ -161,9 +161,12 @@ class Clifford(BaseOperator, AdjointMixin, Operation):
             str(self.stabilizer.to_labels()), str(self.destabilizer.to_labels())
         )
 
+    def __hash__(self):
+        return hash(self.table)
+
     def __eq__(self, other):
         """Check if two Clifford tables are equal"""
-        return super().__eq__(other) and self._table == other._table
+        return super().__eq__(other) and self.table == other.table
 
     # ---------------------------------------------------------------------
     # Attributes

@@ -211,10 +211,17 @@ class StabilizerTable(PauliTable, AdjointMixin):
         """String representation"""
         return f"StabilizerTable: {self.to_labels()}"
 
+    def __hash__(self):
+        return hash((self.num_qubits, tuple(np.ravel(self._array)), tuple(self._phase)))
+
     def __eq__(self, other):
         """Test if two StabilizerTables are equal"""
         if isinstance(other, StabilizerTable):
-            return np.all(self._phase == other._phase) and self.pauli == other.pauli
+            return (
+                self.num_qubits == other.num_qubits
+                and np.all(self._phase == other._phase)
+                and np.all(self._array == other._array)
+            )
         return False
 
     def copy(self):
