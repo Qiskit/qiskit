@@ -17,6 +17,7 @@ import numpy as np
 from numpy.random import default_rng
 
 from .clifford import Clifford
+from .indexed_clifford import IndexedClifford
 from .pauli import Pauli
 from .pauli_list import PauliList
 from .pauli_table import PauliTable
@@ -149,6 +150,11 @@ def random_clifford(num_qubits, seed=None):
         rng = seed
     else:
         rng = default_rng(seed)
+
+    if num_qubits == 1:
+        return IndexedClifford(num_qubits=1, index=rng.integers(24))
+    if num_qubits == 2:
+        return IndexedClifford(num_qubits=2, index=rng.integers(11520))
 
     had, perm = _sample_qmallows(num_qubits, rng)
 

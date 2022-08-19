@@ -113,7 +113,7 @@ class Clifford(BaseOperator, AdjointMixin, Operation):
         # Initialize from another Clifford by sharing the underlying
         # StabilizerTable
         if isinstance(data, Clifford):
-            self._table = data._table
+            self._table = data.table
 
         # Initialize from ScalarOp as N-qubit identity discarding any global phase
         elif isinstance(data, ScalarOp):
@@ -142,11 +142,6 @@ class Clifford(BaseOperator, AdjointMixin, Operation):
     def name(self):
         """Unique string identifier for operation type."""
         return "clifford"
-
-    @property
-    def num_qubits(self):
-        """Number of qubits."""
-        return self._table.num_qubits
 
     @property
     def num_clbits(self):
