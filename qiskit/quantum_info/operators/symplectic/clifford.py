@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2017, 2020
+# (C) Copyright IBM 2017--2022
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -565,10 +565,6 @@ class Clifford(BaseOperator, AdjointMixin, Operation):
         """
         if not isinstance(circuit, (QuantumCircuit, Instruction)):
             raise QiskitError("Input must be a QuantumCircuit or Instruction")
-
-        # Convert circuit to an instruction
-        if isinstance(circuit, QuantumCircuit):
-            circuit = circuit.to_instruction()
 
         # Initialize an identity Clifford
         clifford = Clifford(np.eye(2 * circuit.num_qubits), validate=False)

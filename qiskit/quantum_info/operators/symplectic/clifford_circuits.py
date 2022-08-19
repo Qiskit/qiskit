@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2017, 2020
+# (C) Copyright IBM 2017--2022
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -13,7 +13,7 @@
 Circuit simulation for the Clifford class.
 """
 
-from qiskit.circuit import QuantumCircuit
+from qiskit.circuit import QuantumCircuit, Instruction
 from qiskit.circuit.barrier import Barrier
 from qiskit.circuit.delay import Delay
 from qiskit.exceptions import QiskitError
@@ -39,10 +39,44 @@ def _append_circuit(clifford, circuit, qargs=None):
     if qargs is None:
         qargs = list(range(clifford.num_qubits))
 
+    if isinstance(circuit, Instruction):
+        return _append_operation(clifford, circuit, qargs)
     if isinstance(circuit, QuantumCircuit):
-        gate = circuit.to_instruction()
-    else:
-        gate = circuit
+        qubit_indices = {bit: idx for idx, bit in enumerate(circuit.qubits)}
+        for instruction in circuit:
+            if instruction.clbits:
+                raise QiskitError(
+                    f"Cannot apply Instruction with classical bits: {instruction.operation.name}"
+                )
+            # Get the integer position of the flat register
+            new_qubits = [qargs[qubit_indices[tup]] for tup in instruction.qubits]
+            _append_operation(clifford, instruction.operation, new_qubits)
+        return clifford
+
+    raise QiskitError("The circuit must be QuantumCircuit or Instruction")
+
+
+def _append_operation(clifford, operation, qargs=None):
+    """Update Clifford inplace by applying a Clifford operation.
+
+    Args:
+        clifford (Clifford): the Clifford to update.
+        operation (Instruction or str): the operation or composite operation to apply.
+        qargs (list or None): The qubits to apply operation to.
+
+    Returns:
+        Clifford: the updated Clifford.
+
+    Raises:
+        QiskitError: if input operation cannot be decomposed into Clifford operations.
+    """
+    if isinstance(operation, (Barrier, Delay)):
+        return clifford
+
+    if qargs is None:
+        qargs = list(range(clifford.num_qubits))
+
+    gate = operation
 
     # Basis Clifford Gates
     basis_1q = {
@@ -91,21 +125,13 @@ def _append_circuit(clifford, circuit, qargs=None):
     # are a single qubit Clifford gate rather than raise an exception.
     if gate.definition is None:
         raise QiskitError(f"Cannot apply Instruction: {gate.name}")
-    if not isinstance(gate.definition, QuantumCircuit):
+    if isinstance(gate.definition, QuantumCircuit):
+        _append_circuit(clifford, gate.definition, qargs)
+    else:
         raise QiskitError(
-            "{} instruction definition is {}; expected QuantumCircuit".format(
-                gate.name, type(gate.definition)
-            )
+            f"{gate.name} instruction definition is {type(gate.definition)}; expected QuantumCircuit"
         )
-    qubit_indices = {bit: idx for idx, bit in enumerate(gate.definition.qubits)}
-    for instruction in gate.definition:
-        if instruction.clbits:
-            raise QiskitError(
-                f"Cannot apply Instruction with classical bits: {instruction.operation.name}"
-            )
-        # Get the integer position of the flat register
-        new_qubits = [qargs[qubit_indices[tup]] for tup in instruction.qubits]
-        _append_circuit(clifford, instruction.operation, new_qubits)
+
     return clifford
 
 
