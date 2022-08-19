@@ -10,11 +10,12 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""The S and Sdg gate."""
+"""The S, Sdg and CS gates."""
 
-from typing import Optional
+from typing import Optional, Union
 import numpy
 from qiskit.qasm import pi
+from qiskit.circuit.controlledgate import ControlledGate
 from qiskit.circuit.gate import Gate
 from qiskit.circuit.quantumregister import QuantumRegister
 
@@ -135,3 +136,82 @@ class SdgGate(Gate):
     def __array__(self, dtype=None):
         """Return a numpy.array for the Sdg gate."""
         return numpy.array([[1, 0], [0, -1j]], dtype=dtype)
+
+
+class CSGate(ControlledGate):
+    r"""Controlled-S gate.
+
+    This is a symmetric gate.
+
+    Can be applied to a :class:`~qiskit.circuit.QuantumCircuit`
+    with the :meth:`~qiskit.circuit.QuantumCircuit.cs` method.
+
+    **Circuit symbol:**
+
+    .. parsed-literal::
+
+        q_0: ──■──
+             ┌─┴─┐
+        q_1: ┤ S ├
+             └───┘
+
+    **Matrix representation:**
+
+    .. math::
+
+        CS \ q_0, q_1 =
+        I \otimes |0 \rangle\langle 0| + S \otimes |1 \rangle\langle 1|  =
+            \begin{pmatrix}
+                1 & 0 & 0 & 0 \\
+                0 & 1 & 0 & 0 \\
+                0 & 0 & 1 & 0 \\
+                0 & 0 & 0 & i
+            \end{pmatrix}
+    """
+    # Define class constants. This saves future allocation time.
+    _matrix1 = numpy.array(
+        [
+            [1, 0, 0, 0],
+            [0, 1, 0, 0],
+            [0, 0, 1, 0],
+            [0, 0, 0, 1j],
+        ]
+    )
+    _matrix0 = numpy.array(
+        [
+            [1, 0, 0, 0],
+            [0, 1, 0, 0],
+            [0, 0, 1j, 0],
+            [0, 0, 0, 1],
+        ]
+    )
+
+    def __init__(self, label: Optional[str] = None, ctrl_state: Optional[Union[str, int]] = None):
+        """Create new CS gate."""
+        super().__init__(
+            "cs", 2, [], label=label, num_ctrl_qubits=1, ctrl_state=ctrl_state, base_gate=SGate()
+        )
+
+    def _define(self):
+        """
+        gate cs a,b { h b; csx a,b; h b; }
+        """
+        # pylint: disable=cyclic-import
+        from qiskit.circuit.quantumcircuit import QuantumCircuit
+        from .h import HGate
+        from .sx import CSXGate
+
+        q = QuantumRegister(2, "q")
+        qc = QuantumCircuit(q, name=self.name)
+        rules = [(HGate(), [q[1]], []), (CSXGate(), [q[0], q[1]], []), (HGate(), [q[1]], [])]
+        for instr, qargs, cargs in rules:
+            qc._append(instr, qargs, cargs)
+
+        self.definition = qc
+
+    def __array__(self, dtype=None):
+        """Return a numpy.array for the CS gate."""
+        mat = self._matrix1 if self.ctrl_state else self._matrix0
+        if dtype:
+            return numpy.asarray(mat, dtype=dtype)
+        return mat
