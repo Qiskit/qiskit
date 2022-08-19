@@ -691,8 +691,8 @@ class TestBasicSwap(QiskitTestCase):
         efor_body = QuantumCircuit(qreg, creg)
         efor_body.swap(0, 1)
         efor_body.cx(1, 2)
-        efor_body.continue_loop()
         efor_body.swap(0, 1)
+        efor_body.continue_loop()
         expected.for_loop(range(3), loop_parameter, efor_body, qreg, creg)
         self.assertEqual(cqc, expected)
 

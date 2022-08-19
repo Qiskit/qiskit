@@ -12,9 +12,13 @@
 
 """Map (with minimum effort) a DAGCircuit onto a `coupling_map` adding swap gates."""
 
-import numpy as np
 from qiskit.transpiler.basepasses import TransformationPass
 from qiskit.transpiler.exceptions import TranspilerError
+from qiskit.transpiler.passes.routing.utils import (
+    transpile_cf_multiblock,
+    transpile_cf_looping,
+    layout_transform,
+)
 from qiskit.dagcircuit import DAGCircuit
 from qiskit.transpiler.layout import Layout
 from qiskit.circuit.library.standard_gates import SwapGate
@@ -43,6 +47,7 @@ class BasicSwap(TransformationPass):
         self.fake_run = fake_run
         self.property_set["final_layout"] = None
         self.initial_layout = initial_layout
+        self.qregs = None
 
     def run(self, dag):
         """Run the BasicSwap pass on `dag`.
@@ -69,6 +74,7 @@ class BasicSwap(TransformationPass):
             raise TranspilerError("The layout does not match the amount of qubits in the DAG")
 
         canonical_register = dag.qregs["q"]
+        self.qregs = dag.qregs
         if self.initial_layout:
             trivial_layout = self.initial_layout
         else:
@@ -79,11 +85,12 @@ class BasicSwap(TransformationPass):
             subdag = layer["graph"]
             cf_layer = False
             # handle control flow operations
-            cf_nodes = subdag.op_nodes(op=ControlFlowOp)
+            cf_nodes = subdag.op_nodes(op=ControlFlowOp) + subdag.named_nodes("continue_loop")
             if cf_nodes:
                 for node in cf_nodes:
-                    updated_ctrl_op, cf_layout = self._transpile_controlflow_op(node.op,
-                                                                                current_layout)
+                    updated_ctrl_op, cf_layout = self._transpile_controlflow_op(
+                        node.op, current_layout
+                    )
                     node.op = updated_ctrl_op
                     cf_layer = True
             else:
@@ -95,8 +102,7 @@ class BasicSwap(TransformationPass):
                         swap_layer = DAGCircuit()
                         swap_layer.add_qreg(canonical_register)
 
-                        path = self.coupling_map.shortest_undirected_path(physical_q0,
-                                                                          physical_q1)
+                        path = self.coupling_map.shortest_undirected_path(physical_q0, physical_q1)
                         for swap in range(len(path) - 2):
                             connected_wire_1 = path[swap]
                             connected_wire_2 = path[swap + 1]
@@ -116,92 +122,25 @@ class BasicSwap(TransformationPass):
                         # update current_layout
                         for swap in range(len(path) - 2):
                             current_layout.swap(path[swap], path[swap + 1])
-            if cf_layer:
-                new_dag.compose(subdag)
+            if cf_layer or (subdag.depth() == 1 and subdag.op_nodes()[0].name == "continue_loop"):
+                order = current_layout.reorder_bits(new_dag.qubits)
+                new_dag.compose(subdag, qubits=order)
                 current_layout = cf_layout
             else:
                 order = current_layout.reorder_bits(new_dag.qubits)
                 new_dag.compose(subdag, qubits=order)
         self.property_set["final_layout"] = current_layout
-
         return new_dag
 
     def _transpile_controlflow_op(self, cf_op, current_layout):
         """default function"""
+        new_coupling = layout_transform(self.coupling_map, current_layout)
+        _pass = self.__class__(new_coupling, initial_layout=None)
         if isinstance(cf_op, IfElseOp):
-            return self._transpile_controlflow_multiblock(cf_op, current_layout)
+            return transpile_cf_multiblock(_pass, cf_op, current_layout, new_coupling, self.qregs)
         elif isinstance(cf_op, (ForLoopOp, WhileLoopOp)):
-            return self._transpile_controlflow_looping(cf_op, current_layout)
+            return transpile_cf_looping(_pass, cf_op, current_layout, new_coupling)
         return cf_op, current_layout
-
-    def _transpile_controlflow_multiblock(self, cf_op, current_layout):
-        """Transpile control flow instructions which may contain multiple
-        blocks (e.g. IfElseOp). Since each control flow block may
-        induce a yield a different layout, this function applies swaps
-        to the shorter depth blocks to make all final layouts match.
-
-        Args:
-            cf_op (IfElseOp): looping instruction.
-            current_layout (Layout): The current layout at the start and by the
-               end of the instruction.
-
-        """
-        # pylint: disable=cyclic-import
-        from qiskit.transpiler.passes.routing.layout_transformation import LayoutTransformation
-        from qiskit.converters import dag_to_circuit, circuit_to_dag
-
-        block_circuits = []  # control flow circuit blocks
-        block_dags = []  # control flow dag blocks
-        block_layouts = []  # control flow layouts
-
-        for block in cf_op.blocks:
-            dag_block = circuit_to_dag(block)
-            _pass = BasicSwap(self.coupling_map, initial_layout=current_layout)
-            updated_dag_block = _pass.run(dag_block)
-            block_dags.append(updated_dag_block)
-            block_layouts.append(_pass.property_set["final_layout"].copy())
-        changed_layouts = [current_layout != layout for layout in block_layouts]
-        if not any(changed_layouts):
-            return cf_op, current_layout
-        depth_cnt = [bdag.depth() for bdag in block_dags]
-        maxind = np.argmax(depth_cnt)
-
-        for i, dag in enumerate(block_dags):
-            if i == maxind:
-                block_circuits.append(dag_to_circuit(dag))
-            else:
-                layout_xform = LayoutTransformation(
-                    self.coupling_map, block_layouts[i], block_layouts[maxind]
-                )
-                match_dag = layout_xform.run(block_dags[i])
-                block_circuits.append(dag_to_circuit(match_dag))
-        return cf_op.replace_blocks(block_circuits), block_layouts[maxind]
-
-    def _transpile_controlflow_looping(self, cf_op, current_layout):
-        """For looping this pass adds a swap layer using LayoutTransformation
-        to the end of the loop body to bring the layout back to the
-        starting layout. This prevents reapplying layout changing
-        swaps for every iteration of the loop.
-
-        Args:
-            cf_op (ForLoopOp, WhileLoopOp): looping instruction.
-            current_layout (Layout): The current layout at the start and by the
-               end of the instruction.
-
-        """
-        # This function could be reduced a bit by specializing to for_loop and while_loop.
-        # pylint: disable=cyclic-import
-        from qiskit.transpiler.passes.routing.layout_transformation import LayoutTransformation
-        from qiskit.converters import dag_to_circuit, circuit_to_dag
-
-        dag_block = circuit_to_dag(cf_op.blocks[0])
-        _pass = BasicSwap(self.coupling_map, initial_layout=current_layout)
-        updated_dag_block = _pass.run(dag_block)
-        updated_layout = _pass.property_set["final_layout"].copy()
-        layout_xform = LayoutTransformation(self.coupling_map, updated_layout, current_layout)
-        match_dag = layout_xform.run(updated_dag_block)
-        match_circ = dag_to_circuit(match_dag)
-        return cf_op.replace_blocks([match_circ]), current_layout
 
     def _fake_run(self, dag):
         """Do a fake run the BasicSwap pass on `dag`.
