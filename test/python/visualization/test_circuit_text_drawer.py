@@ -1688,14 +1688,14 @@ class TestTextDrawerMultiQGates(QiskitTestCase):
         See https://github.com/Qiskit/qiskit-terra/issues/4361"""
         expected = "\n".join(
             [
-                "        ┌──────┐",
-                "q_0: |0>┤ my h ├",
-                "        └──┬───┘",
-                "q_1: |0>───■────",
-                "         my ch  ",
-                "           ║    ",
-                "   c: 0 ═══■════",
-                "          0x1   ",
+                "          ┌──────┐ ",
+                "q_0: |0>──┤ my h ├─",
+                "          └──┬───┘ ",
+                "q_1: |0>─────■─────",
+                "         my ctrl-h ",
+                "             ║     ",
+                "   c: 0 ═════■═════",
+                "            0x1    ",
             ]
         )
 
@@ -1703,7 +1703,7 @@ class TestTextDrawerMultiQGates(QiskitTestCase):
         cr = ClassicalRegister(1, "c")
         circ = QuantumCircuit(qr, cr)
         hgate = HGate(label="my h")
-        controlh = hgate.control(label="my ch").c_if(cr, 1)
+        controlh = hgate.control(label="my ctrl-h").c_if(cr, 1)
         circ.append(controlh, [1, 0])
 
         self.assertEqual(str(_text_circuit_drawer(circ, vertical_compression="medium")), expected)
@@ -2046,7 +2046,6 @@ class TestTextDrawerVerticalCompressionMedium(QiskitTestCase):
                 "      └─╥─┘└─╥─┘",
                 "c0: 0 ══■════╬══",
                 "       0x1   ║  ",
-                "             ║  ",
                 "c1: 0 ═══════■══",
                 "            0x1 ",
             ]

@@ -864,12 +864,10 @@ class TextDrawing:
             return True
         if self.vertical_compression == "low":
             return False
-        print(f"top **{top_line}**")
-        print(f"bot **{bot_line}**")
         for top, bot in zip(top_line, bot_line):
             if (top in ["┴", "╨"] and bot in ["┬", "╥"]) or (
-                (top.isalpha() or top.isnumeric()) and bot != " ") or (
-                (bot.isalpha() or bot.isnumeric()) and top != " "
+                top.isalnum() and bot != " ") or (
+                bot.isalnum() and top != " "
             ):
                 return False
         return True
@@ -931,7 +929,6 @@ class TextDrawing:
             str: The merge of both lines.
         """
         ret = ""
-        prev_topc = ""
         for topc, botc in zip(top, bot):
             if topc == botc:
                 ret += topc
@@ -963,8 +960,6 @@ class TextDrawing:
                 ret += "║"
             elif topc in "│┼╪" and botc in " ":
                 ret += "│"
-            # elif topc in "o■" and botc in " " and prev_topc == "═":
-            #    ret += "║"
             elif topc == "└" and botc == "┌" and icod == "top":
                 ret += "├"
             elif topc == "┘" and botc == "┐":
@@ -977,7 +972,6 @@ class TextDrawing:
                 ret += topc
             else:
                 ret += botc
-            prev_topc = topc
         return ret
 
     @staticmethod
@@ -1525,8 +1519,10 @@ class Layer:
                     wire_char = "║"
                     if index == 0 and len(affected_bits) > 1:
                         affected_bit.connect(wire_char, ["bot"])
-                    else:
+                    elif index == len(affected_bits) - 1:
                         affected_bit.connect(wire_char, ["top"])
+                    else:
+                        affected_bit.connect(wire_char, ["bot", "top"])
                 else:
                     if index == 0:
                         affected_bit.connect(wire_char, ["bot"])
