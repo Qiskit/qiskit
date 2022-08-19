@@ -376,18 +376,18 @@ class DirectOnQuWire(DrawElement):
 
 
 class Barrier(DirectOnQuWire):
-    """Draws a barrier.
+    """Draws a barrier with a label at the top if there is one.
 
     ::
 
-        top:  ░     ░
+        top:  ░   label
         mid: ─░─ ───░───
         bot:  ░     ░
     """
 
     def __init__(self, label=""):
         super().__init__("░")
-        self.top_connect = "░"
+        self.top_connect = label if label else "░"
         self.bot_connect = "░"
         self.top_connector = {}
         self.bot_connector = {}
@@ -1089,9 +1089,10 @@ class TextDrawing:
             if not self.plotbarriers:
                 return layer, current_cons, current_cons_cond, connection_label
 
-            for qubit in node.qargs:
+            for i, qubit in enumerate(node.qargs):
                 if qubit in self.qubits:
-                    layer.set_qubit(qubit, Barrier())
+                    label = op.label if i == 0 else ""
+                    layer.set_qubit(qubit, Barrier(label))
 
         elif isinstance(op, SwapGate):
             # swap
