@@ -14,7 +14,8 @@ Base fidelity primitive
 """
 
 from __future__ import annotations
-from abc import ABC, abstractmethod
+from abc import ABC
+from typing import Sequence
 import numpy as np
 
 from qiskit import QuantumCircuit
@@ -57,10 +58,8 @@ class BaseFidelity(ABC):
             self._set_circuits(left_circuits, right_circuits)
 
     def _check_values(
-        self, values: np.ndarray | list[np.ndarray] | None,
-        side: str,
-        circuits: QuantumCircuit
-    ) -> np.ndarray | None:
+        self, values: Sequence[Sequence[float]] | None, side: str, circuits: QuantumCircuit
+    ) -> list[list[float]] | None:
         """
         Check whether the passed values match the shape of the parameters of the circuit on the side
         provided.
@@ -68,6 +67,10 @@ class BaseFidelity(ABC):
         Returns a 2D-Array if values match, `None` if no parameters are passed and raises an error if
         the shapes don't match.
         """
+
+        # Support ndarray
+        if isinstance(values, np.ndarray):
+            values = values.tolist()
 
         if values is None:
             for circuit in circuits:
@@ -78,11 +81,26 @@ class BaseFidelity(ABC):
                     )
             return None
         else:
-            return np.atleast_2d(values)
+            # ensure 2d list
+            if not isinstance(values, list):
+                values = [values]
+            if len(values) > 0 and not isinstance(values[0], list):
+                values = [values]
+            return values
 
     def _check_qubits_mismatch(
         self, left_circuit: QuantumCircuit, right_circuit: QuantumCircuit
     ) -> None:
+        """
+        Check that the number of qubits of the left and right circuit matches
+        Args:
+            left_circuit: (Parametrized) quantum circuit
+            right_circuit: (Parametrized) quantum circuit
+
+        Raises:
+            ValueError: ``left_circuit`` and ``right_circuit`` don't have the same number of qubits.
+        """
+
         if left_circuit is not None and right_circuit is not None:
             if left_circuit.num_qubits != right_circuit.num_qubits:
                 raise ValueError(
@@ -100,16 +118,13 @@ class BaseFidelity(ABC):
         Args:
             left_circuit: (Parametrized) quantum circuit
             right_circuit: (Parametrized) quantum circuit
-
-        Raises:
-            ValueError: ``left_circuit`` and ``right_circuit`` don't have the same number of qubits.
         """
 
         if not len(left_circuits) == len(right_circuits):
             raise ValueError
 
         circuit_indices = []
-        for i, (left_circuit, right_circuit) in enumerate(zip(left_circuits, right_circuits)):
+        for (left_circuit, right_circuit) in zip(left_circuits, right_circuits):
 
             index = self._circuit_ids.get((id(left_circuit), id(right_circuit)))
 

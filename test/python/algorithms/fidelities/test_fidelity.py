@@ -22,7 +22,7 @@ from qiskit.algorithms.fidelities import Fidelity
 from qiskit.test import QiskitTestCase
 from qiskit import QiskitError
 
-@ddt
+
 class TestFidelity(QiskitTestCase):
     """Test Fidelity"""
 
@@ -52,17 +52,18 @@ class TestFidelity(QiskitTestCase):
     def test_1param_pair(self):
         """test for fidelity with one pair of parameters"""
         fidelity = Fidelity(self._sampler)
-        result = fidelity.evaluate([self._circuit[0]], [self._circuit[1]],
-                                    self._left_params[0], self._right_params[0])
+        result = fidelity.evaluate(
+            [self._circuit[0]], [self._circuit[1]], self._left_params[0], self._right_params[0]
+        )
         np.testing.assert_allclose(result, np.array([1.0]))
 
     def test_4param_pairs(self):
         """test for fidelity with four pairs of parameters"""
         fidelity = Fidelity(self._sampler)
         n = len(self._left_params)
-        results = fidelity.evaluate([self._circuit[0]] * n,
-                                    [self._circuit[1]] * n,
-                                    self._left_params, self._right_params)
+        results = fidelity.evaluate(
+            [self._circuit[0]] * n, [self._circuit[1]] * n, self._left_params, self._right_params
+        )
         np.testing.assert_allclose(results, np.array([1.0, 0.5, 0.25, 0.0]), atol=1e-16)
 
     def test_symmetry(self):
@@ -70,10 +71,12 @@ class TestFidelity(QiskitTestCase):
 
         fidelity = Fidelity(self._sampler, [self._circuit[0]], [self._circuit[0]])
         n = len(self._left_params)
-        results_1 = fidelity.evaluate([self._circuit[0]] * n, [self._circuit[0]] * n,
-                                      self._left_params, self._right_params)
-        results_2 = fidelity.evaluate([self._circuit[0]] * n, [self._circuit[0]] * n,
-                                      self._right_params, self._left_params)
+        results_1 = fidelity.evaluate(
+            [self._circuit[0]] * n, [self._circuit[0]] * n, self._left_params, self._right_params
+        )
+        results_2 = fidelity.evaluate(
+            [self._circuit[0]] * n, [self._circuit[0]] * n, self._right_params, self._left_params
+        )
         np.testing.assert_allclose(results_1, results_2, atol=1e-16)
 
     def test_no_params(self):
@@ -86,45 +89,60 @@ class TestFidelity(QiskitTestCase):
         """test for fidelity with only left parameters"""
         fidelity = Fidelity(self._sampler)
         n = len(self._left_params)
-        results = fidelity.evaluate([self._circuit[1]] * n, [self._circuit[3]] * n,
-                                left_values = self._left_params)
+        results = fidelity.evaluate(
+            [self._circuit[1]] * n, [self._circuit[3]] * n, left_values=self._left_params
+        )
         np.testing.assert_allclose(results, np.array([1.0, 0.5, 0.5, 0.0]), atol=1e-16)
 
     def test_right_param(self):
         """test for fidelity with only right parameters"""
         fidelity = Fidelity(self._sampler)
         n = len(self._left_params)
-        results = fidelity.evaluate([self._circuit[3]] * n, [self._circuit[1]] * n,
-                                right_values = self._left_params)
+        results = fidelity.evaluate(
+            [self._circuit[3]] * n, [self._circuit[1]] * n, right_values=self._left_params
+        )
         np.testing.assert_allclose(results, np.array([1.0, 0.5, 0.5, 0.0]), atol=1e-16)
 
     def test_not_set_circuits(self):
         """test for fidelity with no circuits."""
         fidelity = Fidelity(self._sampler)
         with self.assertRaises(TypeError):
-            _ = fidelity.evaluate(left_values = self._left_params,
-                                  right_values = self._right_params)
+            _ = fidelity.evaluate(left_values=self._left_params, right_values=self._right_params)
 
     def test_circuit_mismatch(self):
         """test for fidelity with different number of left/right circuits."""
         fidelity = Fidelity(self._sampler)
         n = len(self._left_params)
         with self.assertRaises(ValueError):
-            _ = fidelity.evaluate([self._circuit[0]] * n,
-                                    [self._circuit[1]] * (n + 1),
-                                    self._left_params, self._right_params)
+            _ = fidelity.evaluate(
+                [self._circuit[0]] * n,
+                [self._circuit[1]] * (n + 1),
+                self._left_params,
+                self._right_params,
+            )
 
     def test_param_mismatch(self):
         fidelity = Fidelity(self._sampler)
         n = len(self._left_params)
-        with self.assertRaises(ValueError):
-            _ = fidelity.evaluate([self._circuit[0]] * n,
-                                  [self._circuit[1]] * n,
-                                  self._left_params, self._right_params[:-2])
+        with self.assertRaises(QiskitError):
+            _ = fidelity.evaluate(
+                [self._circuit[0]] * n,
+                [self._circuit[1]] * n,
+                self._left_params,
+                self._right_params[:-2],
+            )
 
         with self.assertRaises(QiskitError):
-            _ = fidelity.evaluate([self._circuit[0]] * n,
-                                  [self._circuit[1]] * n,
-                                  self._left_params[:-2], self._right_params[:-2])
+            _ = fidelity.evaluate(
+                [self._circuit[0]] * n,
+                [self._circuit[1]] * n,
+                self._left_params[:-2],
+                self._right_params[:-2],
+            )
+
+        with self.assertRaises(ValueError):
+            _ = fidelity.evaluate([self._circuit[0]] * n, [self._circuit[1]] * n)
+
+
 if __name__ == "__main__":
     unittest.main()
