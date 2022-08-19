@@ -864,24 +864,14 @@ class TextDrawing:
             return True
         if self.vertical_compression == "low":
             return False
-        for top, bot in zip(top_line, bot_line):
-            if top in ["┴", "╨"] and bot in ["┬", "╥"]:
-                return False
         print(f"top **{top_line}**")
         print(f"bot **{bot_line}**")
-        for i, c in enumerate(top_line):
-            if (c.isalpha() or c.isnumeric()) and bot_line[i] is not " ":
+        for top, bot in zip(top_line, bot_line):
+            if (top in ["┴", "╨"] and bot in ["┬", "╥"]) or (
+                (top.isalpha() or top.isnumeric()) and bot != " ") or (
+                (bot.isalpha() or bot.isnumeric()) and top != " "
+            ):
                 return False
-        for i, c in enumerate(bot_line):
-            if (c.isalpha() or c.isnumeric()) and top_line[i] is not " ":
-                return False
-
-        # for line in (bot_line, top_line):
-        #     print(f"bot_line **{bot_line}**")
-        #     print(f"top_line **{top_line}**")
-        #     no_spaces = line.replace(" ", "")
-        #     if len(no_spaces) > 0 and all(c.isalpha() or c.isnumeric() for c in no_spaces):
-        #         return False
         return True
 
     def draw_wires(self, wires):
@@ -973,7 +963,7 @@ class TextDrawing:
                 ret += "║"
             elif topc in "│┼╪" and botc in " ":
                 ret += "│"
-            #elif topc in "o■" and botc in " " and prev_topc == "═":
+            # elif topc in "o■" and botc in " " and prev_topc == "═":
             #    ret += "║"
             elif topc == "└" and botc == "┌" and icod == "top":
                 ret += "├"
