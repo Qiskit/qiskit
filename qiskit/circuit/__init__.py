@@ -74,9 +74,9 @@ Supplementary Information
       qc.h(0)
       qc.measure(0, 0)
       qc.draw('mpl')
-      
+
    .. jupyter-execute::
-   
+
       backend = BasicAer.get_backend('qasm_simulator')
       tqc = transpile(qc, backend)
       counts = backend.run(tqc).result().get_counts()
