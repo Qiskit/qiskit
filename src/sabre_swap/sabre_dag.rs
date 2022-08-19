@@ -23,7 +23,7 @@ use retworkx_core::petgraph::prelude::*;
 #[pyo3(text_signature = "(/)")]
 #[derive(Clone, Debug)]
 pub struct SabreDAG {
-    pub dag: DiGraph<(usize, Vec<usize>, Vec<usize>), usize>,
+    pub dag: DiGraph<(usize, Vec<usize>, Vec<usize>), ()>,
     pub first_layer: Vec<NodeIndex>,
 }
 
@@ -39,7 +39,7 @@ impl SabreDAG {
         let mut qubit_pos: Vec<usize> = vec![usize::MAX; num_qubits];
         let mut clbit_pos: Vec<usize> = vec![usize::MAX; num_clbits];
         let mut reverse_index_map: HashMap<usize, NodeIndex> = HashMap::with_capacity(nodes.len());
-        let mut dag: DiGraph<(usize, Vec<usize>, Vec<usize>), usize> =
+        let mut dag: DiGraph<(usize, Vec<usize>, Vec<usize>), ()> =
             Graph::with_capacity(nodes.len(), 2 * nodes.len());
         for node in &nodes {
             let qargs = &node.1;
@@ -48,13 +48,13 @@ impl SabreDAG {
             reverse_index_map.insert(node.0, gate_index);
             for x in qargs {
                 if qubit_pos[*x] != usize::MAX {
-                    dag.add_edge(NodeIndex::new(qubit_pos[*x]), gate_index, *x);
+                    dag.add_edge(NodeIndex::new(qubit_pos[*x]), gate_index, ());
                 }
                 qubit_pos[*x] = gate_index.index();
             }
             for x in cargs {
                 if clbit_pos[*x] != usize::MAX {
-                    dag.add_edge(NodeIndex::new(qubit_pos[*x]), gate_index, *x);
+                    dag.add_edge(NodeIndex::new(qubit_pos[*x]), gate_index, ());
                 }
                 clbit_pos[*x] = gate_index.index();
             }
