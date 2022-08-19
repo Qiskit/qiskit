@@ -60,26 +60,6 @@ class Snapshot(Instruction):
         """Return snapshot type"""
         return self._snapshot_type
 
-    @property
-    def label(self):
-        """Return snapshot label"""
-        return self._label
-
-    @label.setter
-    def label(self, name):
-        """Set snapshot label to name
-
-        Args:
-            name (str or None): label to assign unitary
-
-        Raises:
-            TypeError: name is not string or None.
-        """
-        if isinstance(name, str):
-            self._label = name
-        else:
-            raise TypeError("label expects a string")
-
     def c_if(self, classical, val):
         raise QiskitError("Snapshots are simulator directives and cannot be conditional.")
 
