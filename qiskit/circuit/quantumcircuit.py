@@ -2863,9 +2863,13 @@ class QuantumCircuit:
                             inner.operation.params[idx] = param.bind({parameter: value})
                         self._rebind_definition(inner.operation, parameter, value)
 
-    def barrier(self, *qargs: QubitSpecifier) -> InstructionSet:
+    def barrier(self, *qargs: QubitSpecifier, label=None) -> InstructionSet:
         """Apply :class:`~qiskit.circuit.Barrier`. If qargs is empty, applies to all qubits in the
         circuit.
+
+        Args:
+            qargs (QubitSpecifier): Specification for one or more qubit arguments.
+            label (str): The string label of the barrier.
 
         Returns:
             qiskit.circuit.InstructionSet: handle to the added instructions.
@@ -2889,7 +2893,7 @@ class QuantumCircuit:
             else:
                 qubits.append(qarg)
 
-        return self.append(Barrier(len(qubits)), qubits, [])
+        return self.append(Barrier(len(qubits), label=label), qubits, [])
 
     def delay(
         self,
