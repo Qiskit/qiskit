@@ -41,7 +41,7 @@ jobs:
           set -e
           pip install -r requirements-dev.txt qiskit-aer
           stestr run
-          ./grcov . --binary-path ./target/debug/ -s . -t lcov --branch --ignore-not-existing --ignore "/*" -o ./rust_unittest.info
+          ./grcov . --binary-path ./target/debug/ -s . --llvm --parallel -t lcov --branch --ignore-not-existing --ignore "/*" -o ./rust_unittest.info
           mkdir rust_lcov
           mv ./rust_unittest.info rust_lcov/.
           rm *profraw
@@ -53,7 +53,7 @@ jobs:
         run: |
           set -e
           coverage3 run --source qiskit --parallel-mode ./tools/verify_parallel_map.py
-          ./grcov . --binary-path ./target/debug/ -s . -t lcov --branch --ignore-not-existing --ignore "/*" -o ./rust_parallel_map.info
+          ./grcov . --binary-path ./target/debug/ -s . --llvm --parallel -t lcov --branch --ignore-not-existing --ignore "/*" -o ./rust_parallel_map.info
           mv rust_lcov/rust_unittest.info .
         env:
           QISKIT_TEST_CAPTURE_STREAMS: 1
