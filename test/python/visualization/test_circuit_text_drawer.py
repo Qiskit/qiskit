@@ -2202,6 +2202,43 @@ class TestTextDrawerVerticalCompressionMedium(QiskitTestCase):
             expected,
         )
 
+    def test_text_barrier_med_compress_3(self):
+        """Medium vertical compression avoids conditional connection break."""
+        qr = QuantumRegister(1, "qr")
+        qc1 = ClassicalRegister(3, "cr")
+        qc2 = ClassicalRegister(1, "cr2")
+        circuit = QuantumCircuit(qr, qc1, qc2)
+        circuit.x(0).c_if(qc1, 3)
+        circuit.x(0).c_if(qc2[0], 1)
+
+        expected = "\n".join(
+            [
+                "        ┌───┐┌───┐",
+                " qr: |0>┤ X ├┤ X ├",
+                "        └─╥─┘└─╥─┘",
+                "cr_0: 0 ══■════╬══",
+                "          ║    ║  ",
+                "cr_2: 0 ══o════╬══",
+                "          ║    ║  ",
+                " cr2: 0 ══╬════■══",
+                "          ║       ",
+                "cr_1: 0 ══■═══════",
+                "         0x3      ",
+            ]
+        )
+
+        self.assertEqual(
+            str(
+                _text_circuit_drawer(
+                    circuit,
+                    vertical_compression="medium",
+                    wire_order=[0, 1, 3, 4, 2],
+                    cregbundle=False,
+                )
+            ),
+            expected,
+        )
+
 
 class TestTextConditional(QiskitTestCase):
     """Gates with conditionals"""
