@@ -865,9 +865,10 @@ class TextDrawing:
         if self.vertical_compression == "low":
             return False
         for top, bot in zip(top_line, bot_line):
-            if (top in ["┴", "╨"] and bot in ["┬", "╥"]) or (
-                top.isalnum() and bot != " ") or (
-                bot.isalnum() and top != " "
+            if (
+                (top in ["┴", "╨"] and bot in ["┬", "╥"])
+                or (top.isalnum() and bot != " ")
+                or (bot.isalnum() and top != " ")
             ):
                 return False
         return True

@@ -2147,6 +2147,61 @@ class TestTextDrawerVerticalCompressionMedium(QiskitTestCase):
             expected,
         )
 
+    def test_text_barrier_med_compress_1(self):
+        """Medium vertical compression avoids connection break."""
+        circuit = QuantumCircuit(4)
+        circuit.cx(1, 3)
+        circuit.x(1)
+        circuit.barrier((2, 3), label="Bar 1")
+
+        expected = "\n".join(
+            [
+                "                    ",
+                "q_0: |0>────────────",
+                "              ┌───┐ ",
+                "q_1: |0>──■───┤ X ├─",
+                "          │   └───┘ ",
+                "          │   Bar 1 ",
+                "q_2: |0>──┼─────░───",
+                "        ┌─┴─┐   ░   ",
+                "q_3: |0>┤ X ├───░───",
+                "        └───┘   ░   ",
+            ]
+        )
+
+        self.assertEqual(
+            str(_text_circuit_drawer(circuit, vertical_compression="medium", cregbundle=False)),
+            expected,
+        )
+
+    def test_text_barrier_med_compress_2(self):
+        """Medium vertical compression avoids overprint."""
+        circuit = QuantumCircuit(4)
+        circuit.barrier((0, 1, 2), label="a")
+        circuit.cx(1, 3)
+        circuit.x(1)
+        circuit.barrier((2, 3), label="Bar 1")
+
+        expected = "\n".join(
+            [
+                "         a             ",
+                "q_0: |0>─░─────────────",
+                "         ░       ┌───┐ ",
+                "q_1: |0>─░───■───┤ X ├─",
+                "         ░   │   └───┘ ",
+                "         ░   │   Bar 1 ",
+                "q_2: |0>─░───┼─────░───",
+                "         ░ ┌─┴─┐   ░   ",
+                "q_3: |0>───┤ X ├───░───",
+                "           └───┘   ░   ",
+            ]
+        )
+
+        self.assertEqual(
+            str(_text_circuit_drawer(circuit, vertical_compression="medium", cregbundle=False)),
+            expected,
+        )
+
 
 class TestTextConditional(QiskitTestCase):
     """Gates with conditionals"""
