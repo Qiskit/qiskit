@@ -20,7 +20,7 @@ use retworkx_core::petgraph::prelude::*;
 /// DAGCircuit, but the contents of the node are a tuple of DAGCircuit node ids,
 /// a list of qargs and a list of cargs
 #[pyclass(module = "qiskit._accelerate.sabre_swap")]
-#[pyo3(text_signature = "(/)")]
+#[pyo3(text_signature = "(num_qubits, num_clbits, nodes, front_layer, /)")]
 #[derive(Clone, Debug)]
 pub struct SabreDAG {
     pub dag: DiGraph<(usize, Vec<usize>, Vec<usize>), ()>,

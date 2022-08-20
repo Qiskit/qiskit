@@ -16,7 +16,6 @@ use pyo3::prelude::*;
 
 /// A container for required swaps before a gate qubit
 #[pyclass(module = "qiskit._accelerate.sabre_swap")]
-#[pyo3(text_signature = "(qubit_indices, logical_qubits, physical_qubits, /)")]
 #[derive(Clone, Debug)]
 pub struct SwapMap {
     pub map: HashMap<usize, Vec<[usize; 2]>>,
