@@ -159,7 +159,7 @@ class SabreSwap(TransformationPass):
         else:
             self.seed = seed
         self.fake_run = fake_run
-        self._bit_indices = None
+        self._qubit_indices = None
         self._clbit_indices = None
         self.dist_matrix = None
 
@@ -189,10 +189,10 @@ class SabreSwap(TransformationPass):
 
         canonical_register = dag.qregs["q"]
         current_layout = Layout.generate_trivial_layout(canonical_register)
-        self._bit_indices = {bit: idx for idx, bit in enumerate(canonical_register)}
+        self._qubit_indices = {bit: idx for idx, bit in enumerate(canonical_register)}
         self._clbit_indices = {bit: idx for idx, bit in enumerate(dag.clbits)}
         layout_mapping = {
-            self._bit_indices[k]: v for k, v in current_layout.get_virtual_bits().items()
+            self._qubit_indices[k]: v for k, v in current_layout.get_virtual_bits().items()
         }
         layout = NLayout(layout_mapping, len(dag.qubits), self.coupling_map.size())
         original_layout = layout.copy()
@@ -202,7 +202,7 @@ class SabreSwap(TransformationPass):
             dag_list.append(
                 (
                     node._node_id,
-                    [self._bit_indices[x] for x in node.qargs],
+                    [self._qubit_indices[x] for x in node.qargs],
                     [self._clbit_indices[x] for x in node.cargs],
                 )
             )
@@ -251,6 +251,6 @@ class SabreSwap(TransformationPass):
         """Return node implementing a virtual op on given layout."""
         mapped_op_node = copy(op_node)
         mapped_op_node.qargs = tuple(
-            device_qreg[layout.logical_to_physical(self._bit_indices[x])] for x in op_node.qargs
+            device_qreg[layout.logical_to_physical(self._qubit_indices[x])] for x in op_node.qargs
         )
         return mapped_op_node
