@@ -10,7 +10,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""The S, Sdg and CS gates."""
+"""The S, Sdg, CS and CSdg gates."""
 
 from typing import Optional, Union
 import numpy
@@ -141,8 +141,6 @@ class SdgGate(Gate):
 class CSGate(ControlledGate):
     r"""Controlled-S gate.
 
-    This is a symmetric gate.
-
     Can be applied to a :class:`~qiskit.circuit.QuantumCircuit`
     with the :meth:`~qiskit.circuit.QuantumCircuit.cs` method.
 
@@ -209,8 +207,105 @@ class CSGate(ControlledGate):
 
         self.definition = qc
 
+    def inverse(self):
+        """Return inverse of CSGate (CSdgGate)."""
+        return CSdgGate()
+
     def __array__(self, dtype=None):
         """Return a numpy.array for the CS gate."""
+        mat = self._matrix1 if self.ctrl_state else self._matrix0
+        if dtype:
+            return numpy.asarray(mat, dtype=dtype)
+        return mat
+
+
+class CSdgGate(ControlledGate):
+    r"""Controlled-Sdg gate.
+
+    Can be applied to a :class:`~qiskit.circuit.QuantumCircuit`
+    with the :meth:`~qiskit.circuit.QuantumCircuit.csdg` method.
+
+    **Circuit symbol:**
+
+    .. parsed-literal::
+
+        q_0: ───■───
+             ┌──┴──┐
+        q_1: ┤ Sdg ├
+             └─────┘
+
+    **Matrix representation:**
+
+    .. math::
+
+        CSdg \ q_0, q_1 =
+        I \otimes |0 \rangle\langle 0| + Sdg \otimes |1 \rangle\langle 1|  =
+            \begin{pmatrix}
+                1 & 0 & 0 & 0 \\
+                0 & 1 & 0 & 0 \\
+                0 & 0 & 1 & 0 \\
+                0 & 0 & 0 & -i
+            \end{pmatrix}
+    """
+    # Define class constants. This saves future allocation time.
+    _matrix1 = numpy.array(
+        [
+            [1, 0, 0, 0],
+            [0, 1, 0, 0],
+            [0, 0, 1, 0],
+            [0, 0, 0, -1j],
+        ]
+    )
+    _matrix0 = numpy.array(
+        [
+            [1, 0, 0, 0],
+            [0, 1, 0, 0],
+            [0, 0, -1j, 0],
+            [0, 0, 0, 1],
+        ]
+    )
+
+    def __init__(self, label: Optional[str] = None, ctrl_state: Optional[Union[str, int]] = None):
+        """Create new CSdg gate."""
+        super().__init__(
+            "csdg",
+            2,
+            [],
+            label=label,
+            num_ctrl_qubits=1,
+            ctrl_state=ctrl_state,
+            base_gate=SdgGate(),
+        )
+
+    def _define(self):
+        """
+        gate csdg a,b { h b; cx a,b; csx a,b; h b; }
+        """
+        # pylint: disable=cyclic-import
+        from qiskit.circuit.quantumcircuit import QuantumCircuit
+        from .h import HGate
+        from .sx import CSXGate
+        from .x import CXGate
+
+        q = QuantumRegister(2, "q")
+        qc = QuantumCircuit(q, name=self.name)
+        rules = [
+            (HGate(), [q[1]], []),
+            (CXGate(), [q[0], q[1]], []),
+            (CSXGate(), [q[0], q[1]], []),
+            (HGate(), [q[1]], []),
+        ]
+        for instr, qargs, cargs in rules:
+            qc._append(instr, qargs, cargs)
+
+        self.definition = qc
+
+    def inverse(self):
+        """Return inverse of CSdgGate (CSGate)."""
+        return CSGate()
+
+    def __array__(self, dtype=None):
+        """Return a numpy.array for the CSdg gate."""
         mat = self._matrix1 if self.ctrl_state else self._matrix0
         if dtype:
             return numpy.asarray(mat, dtype=dtype)
