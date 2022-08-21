@@ -18,6 +18,7 @@ from qiskit.exceptions import QiskitError
 
 
 def _calc_rank(mat):
+    """Calculate the rank of a square binary matrix."""
     # This function takes as input a binary square matrix mat
     # Returns the rank of mat over the binary field F_2
     n = mat.shape[1]
@@ -41,7 +42,6 @@ def _calc_rank(mat):
 
 def random_invertible_binary_matrix(num_qubits, seed=None):
     """Generates a random invertible n x n binary matrix."""
-    # This code is adapted from random_cnotdihedral
     if isinstance(seed, np.random.Generator):
         rng = seed
     else:
@@ -141,19 +141,21 @@ def _compute_rank_after_gauss_elim(mat):
 def transpose_cx_circ(qc):
     """Transpose all cx gates in a circuit."""
     data = qc.data
-    for i in range(len(data)):
+    for i, _ in enumerate(data):
         if data[i][0].name == "cx" and data[i].operation.num_qubits == 2:
             data[i][1][0], data[i][1][1] = data[i][1][1], data[i][1][0]
 
 
 def optimize_cx_4_options(function, mat, optimize_count=True):
-    # Get best implementation of CX, implementing M,M^(-1),M^T,M^(-1)^T
-    # if not choose_depth, get best cost
-    for i in range(4):
+    """Get best implementation of CX, implementing M,M^(-1),M^T,M^(-1)^T"""
+    qc = function(mat)
+    best_qc = qc
+    best_depth = qc.depth()
+    best_count = qc.count_ops()["cx"]
+
+    for i in range(1, 4):
         mat_cpy = copy.deepcopy(mat)
         # i=1 inverse, i=2 transpose, i=3 transpose and inverse
-        if i == 0:
-            qc = function(mat)
         if i == 1:
             mat_cpy = calc_inverse_matrix(mat_cpy)
             qc = function(mat_cpy)
@@ -170,14 +172,14 @@ def optimize_cx_4_options(function, mat, optimize_count=True):
 
         new_depth = qc.depth()
         new_count = qc.count_ops()["cx"]
+        better_count = (optimize_count and best_count > new_count) or (
+            not optimize_count and best_depth == new_depth and best_count > new_count
+        )
+        better_depth = (not optimize_count and best_depth > new_depth) or (
+            optimize_count and best_count == new_count and best_depth > new_depth
+        )
 
-        if (
-            i == 0
-            or (optimize_count and best_count > new_count)
-            or (not optimize_count and best_depth > new_depth)
-            or (optimize_count and best_count == new_count and best_depth > new_depth)
-            or (not optimize_count and best_depth == new_depth and best_count > new_count)
-        ):
+        if better_count or better_depth:
             best_count = new_count
             best_depth = new_depth
             best_qc = qc
