@@ -513,4 +513,4 @@ class CouplingVisualizationTest(QiskitVisualizationTestCase):
         """Test that the coupling map drawing with respect to the reference file is correct."""
         image_ref = path_to_diagram_reference("coupling_map.png")
         image = self.cmap.draw()
-        self.assertImagesAreEqual(image, image_ref)
+        self.assertImagesAreEqual(image, image_ref, diff_tolerance=0.01)
