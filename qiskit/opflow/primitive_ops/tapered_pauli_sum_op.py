@@ -375,7 +375,7 @@ class Z2Symmetries:
                 operator = cast(PauliSumOp, clifford @ operator @ clifford).reduce()
         return operator
 
-    def taper_no_clifford(self, operator: PauliSumOp) -> OperatorBase:
+    def taper_clifford(self, operator: PauliSumOp) -> OperatorBase:
         """
         Taper an operator based on the z2_symmetries info and sector defined by `tapering_values`.
         The `tapering_values` will be stored into the resulted operator for a record.
