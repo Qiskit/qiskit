@@ -378,7 +378,7 @@ class Z2Symmetries:
         return operator
 
     def taper_clifford(self, operator: PauliSumOp) -> OperatorBase:
-        """ This is for advanced use of the tapering of an operator based on the z2_symmetries info
+        """This is for advanced use of the tapering of an operator based on the z2_symmetries info
         and sector defined by `tapering_values`.
         The `tapering_values` will be stored into the resulted operator for a record.
         This function assumes that the input operators have already been transformed using
