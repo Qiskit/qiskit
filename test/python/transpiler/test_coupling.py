@@ -13,12 +13,18 @@
 # pylint: disable=missing-docstring
 
 import unittest
+import os
+from filecmp import cmp as cmpfile
+from shutil import copyfile
+import matplotlib
 
 from qiskit.transpiler import CouplingMap
 from qiskit.transpiler.exceptions import CouplingError
 from qiskit.providers.fake_provider import FakeRueschlikon
 from qiskit.test import QiskitTestCase
 from qiskit.utils import optionals
+
+matplotlib.use("ps")
 
 
 class CouplingTest(QiskitTestCase):
@@ -440,8 +446,71 @@ class CouplingTest(QiskitTestCase):
         expected = [(0, 1), (1, 2), (2, 3)]
         self.assertEqual(expected, edge_list, f"{edge_list} does not match {expected}")
 
+
+def path_to_diagram_reference(filename):
+    return os.path.join(_this_directory(), "references", filename)
+
+
+def _this_directory():
+    return os.path.dirname(os.path.abspath(__file__))
+
+
+class QiskitVisualizationTestCase(QiskitTestCase):
+    """Visual accuracy of visualization tools outputs tests."""
+
+    def assertFilesAreEqual(self, current, expected, encoding="cp437"):
+        """Checks if both file are the same."""
+        self.assertTrue(os.path.exists(current))
+        self.assertTrue(os.path.exists(expected))
+        with open(current, encoding=encoding) as cur, open(expected, encoding=encoding) as exp:
+            self.assertEqual(cur.read(), exp.read())
+
+    def assertEqualToReference(self, result):
+        reference = path_to_diagram_reference(os.path.basename(result))
+        if not os.path.exists(result):
+            raise self.failureException("Result file was not generated.")
+        if not os.path.exists(reference):
+            copyfile(result, reference)
+        if cmpfile(reference, result):
+            os.remove(result)
+        else:
+            raise self.failureException("Result and reference do not match.")
+
+    def assertImagesAreEqual(self, current, expected, diff_tolerance=0.001):
+        """Checks if both images are similar enough to be considered equal.
+        Similarity is controlled by the ```diff_tolerance``` argument."""
+        from PIL import Image, ImageChops
+
+        if isinstance(current, str):
+            current = Image.open(current)
+        if isinstance(expected, str):
+            expected = Image.open(expected)
+
+        diff = ImageChops.difference(expected, current)
+        black_pixels = _get_black_pixels(diff)
+        total_pixels = diff.size[0] * diff.size[1]
+        similarity_ratio = black_pixels / total_pixels
+        self.assertTrue(
+            1 - similarity_ratio < diff_tolerance,
+            f"The images are different by {(1 - similarity_ratio) * 100}%"
+            f" which is more than the allowed {diff_tolerance * 100}%",
+        )
+
+
+def _get_black_pixels(image):
+    black_and_white_version = image.convert("1")
+    black_pixels = black_and_white_version.histogram()[0]
+    return black_pixels
+
+
+class CouplingVisualizationTest(QiskitVisualizationTestCase):
+    def setUp(self):
+        super().setUp()
+        self.cmap = CouplingMap([[0, 1], [1, 2], [2, 3], [2, 4], [2, 5], [2, 6]])
+
     @unittest.skipUnless(optionals.HAS_GRAPHVIZ, "Graphviz not installed")
     def test_coupling_draw(self):
-        """Test that the coupling map can be drawn."""
-        cmap = CouplingMap([[0, 1], [1, 2], [2, 3], [2, 4], [2, 5], [2, 6]])
-        cmap.draw()
+        """Test that the coupling map drawing with respect to the reference file is correct."""
+        image_ref = path_to_diagram_reference("coupling_map.png")
+        image = self.cmap.draw()
+        self.assertImagesAreEqual(image, image_ref)
