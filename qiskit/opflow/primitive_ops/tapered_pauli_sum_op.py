@@ -365,7 +365,7 @@ class Z2Symmetries:
         result of :meth:`convert_clifford`.
         Args:
             operator: to-be-tapered operator
-            
+
         Returns:
             Partially tapered operator
 
@@ -374,24 +374,32 @@ class Z2Symmetries:
         if not operator.is_zero():
             for clifford in self.cliffords:
                 operator = cast(PauliSumOp, clifford @ operator @ clifford)
-                operator = operator.reduce(atol=0)
+                operator = operator.reduce()
         return operator
 
     def taper_clifford(self, operator: PauliSumOp) -> OperatorBase:
-        """
-        Taper an operator based on the z2_symmetries info and sector defined by `tapering_values`.
+        """ This is for advanced use of the tapering of an operator based on the z2_symmetries info
+        and sector defined by `tapering_values`.
         The `tapering_values` will be stored into the resulted operator for a record.
-        This function assumes that the input operators have already been composed with the
-        cliffords corresponding to the current symmetry using  :meth:`convert_clifford`
+        This function assumes that the input operators have already been transformed using
+        :meth:`convert_clifford`.
         Note that calling :meth:`taper` is equivalent to calling :meth:`taper_clifford` on the
         result of :meth:`convert_clifford`.
         Args:
-            operator: the partially tapered operator.
+            operator: The partially tapered operator resulting from a call to
+            :meth:`convert_clifford`.
 
         Returns:
             If tapering_values is None: [:class`PauliSumOp`]; otherwise, :class:`PauliSumOp`
         """
+        if not self._symmetries or not self._sq_paulis or not self._sq_list:
+            raise OpflowError(
+                "Z2 symmetries, single qubit pauli and single qubit list cannot be empty."
+            )
 
+        # If the operator is zero then we can skip the following. We still need to taper the
+        # operator to reduce its size i.e. the number of qubits so for example 0*"IIII" could
+        # taper to 0*"II" when symmetries remove two qubits.
         if self._tapering_values is None:
             tapered_ops_list = [
                 self._taper(operator, list(coeff))
