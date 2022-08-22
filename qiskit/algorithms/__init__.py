@@ -108,6 +108,8 @@ used to train Quantum Boltzmann Machine Neural Networks for example.
     RealEvolver
     ImaginaryEvolver
     TrotterQRTE
+    PVQD
+    PVQDResult
     EvolutionResult
     EvolutionProblem
     SciPyRealEvolver
@@ -249,6 +251,7 @@ from .exceptions import AlgorithmError
 from .aux_ops_evaluator import eval_observables
 from .evolvers.trotterization import TrotterQRTE
 from .evolvers.classical_methods import SciPyRealEvolver, SciPyImaginaryEvolver
+from .evolvers.pvqd import PVQD, PVQDResult
 
 __all__ = [
     "AlgorithmResult",
@@ -297,6 +300,8 @@ __all__ = [
     "PhaseEstimationScale",
     "PhaseEstimation",
     "PhaseEstimationResult",
+    "PVQD",
+    "PVQDResult",
     "IterativePhaseEstimation",
     "AlgorithmError",
     "eval_observables",
