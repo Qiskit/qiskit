@@ -27,7 +27,7 @@ from qiskit.quantum_info.operators.scalar_op import ScalarOp
 from qiskit.quantum_info.operators.symplectic.base_pauli import _count_y
 
 from .base_pauli import BasePauli
-from .clifford_circuits import _append_circuit
+from .clifford_circuits import _append_circuit, _append_operation
 from .stabilizer_table import StabilizerTable
 
 
@@ -417,10 +417,11 @@ class Clifford(BaseOperator, AdjointMixin, Operation):
         # using the _append_circuit method to update each gate recursively
         # to the current Clifford, rather than converting to a Clifford first
         # and then doing the composition of tables.
-        if not front and isinstance(other, (QuantumCircuit, Instruction)):
-            ret = self.copy()
-            _append_circuit(ret, other, qargs=qargs)
-            return ret
+        if not front:
+            if isinstance(other, QuantumCircuit):
+                return _append_circuit(self.copy(), other, qargs=qargs)
+            if isinstance(other, Instruction):
+                return _append_operation(self.copy(), other, qargs=qargs)
 
         if not isinstance(other, Clifford):
             other = Clifford(other)
@@ -568,7 +569,10 @@ class Clifford(BaseOperator, AdjointMixin, Operation):
 
         # Initialize an identity Clifford
         clifford = Clifford(np.eye(2 * circuit.num_qubits), validate=False)
-        _append_circuit(clifford, circuit)
+        if isinstance(circuit, QuantumCircuit):
+            _append_circuit(clifford, circuit)
+        else:
+            _append_operation(clifford, circuit)
         return clifford
 
     @staticmethod
@@ -624,7 +628,7 @@ class Clifford(BaseOperator, AdjointMixin, Operation):
         num_qubits = len(label)
         op = Clifford(np.eye(2 * num_qubits, dtype=bool))
         for qubit, char in enumerate(reversed(label)):
-            _append_circuit(op, label_gates[char], qargs=[qubit])
+            _append_operation(op, label_gates[char], qargs=[qubit])
         return op
 
     def to_labels(self, array=False, mode="B"):

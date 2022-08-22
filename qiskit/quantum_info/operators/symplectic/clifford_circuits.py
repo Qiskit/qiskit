@@ -13,7 +13,7 @@
 Circuit simulation for the Clifford class.
 """
 
-from qiskit.circuit import QuantumCircuit, Instruction
+from qiskit.circuit import QuantumCircuit
 from qiskit.circuit.barrier import Barrier
 from qiskit.circuit.delay import Delay
 from qiskit.exceptions import QiskitError
@@ -24,36 +24,27 @@ def _append_circuit(clifford, circuit, qargs=None):
 
     Args:
         clifford (Clifford): the Clifford to update.
-        circuit (QuantumCircuit or Instruction): the gate or composite gate to apply.
-        qargs (list or None): The qubits to apply gate to.
+        circuit (QuantumCircuit): the circuit to apply.
+        qargs (list or None): The qubits to apply circuit to.
 
     Returns:
         Clifford: the updated Clifford.
 
     Raises:
-        QiskitError: if input gate cannot be decomposed into Clifford gates.
+        QiskitError: if input circuit cannot be decomposed into Clifford operations.
     """
-    if isinstance(circuit, (Barrier, Delay)):
-        return clifford
-
     if qargs is None:
         qargs = list(range(clifford.num_qubits))
 
-    if isinstance(circuit, Instruction):
-        return _append_operation(clifford, circuit, qargs)
-    if isinstance(circuit, QuantumCircuit):
-        qubit_indices = {bit: idx for idx, bit in enumerate(circuit.qubits)}
-        for instruction in circuit:
-            if instruction.clbits:
-                raise QiskitError(
-                    f"Cannot apply Instruction with classical bits: {instruction.operation.name}"
-                )
-            # Get the integer position of the flat register
-            new_qubits = [qargs[qubit_indices[tup]] for tup in instruction.qubits]
-            _append_operation(clifford, instruction.operation, new_qubits)
-        return clifford
-
-    raise QiskitError("The circuit must be QuantumCircuit or Instruction")
+    for instruction in circuit:
+        if instruction.clbits:
+            raise QiskitError(
+                f"Cannot apply Instruction with classical bits: {instruction.operation.name}"
+            )
+        # Get the integer position of the flat register
+        new_qubits = [qargs[circuit.find_bit(bit).index] for bit in instruction.qubits]
+        _append_operation(clifford, instruction.operation, new_qubits)
+    return clifford
 
 
 def _append_operation(clifford, operation, qargs=None):
@@ -125,6 +116,7 @@ def _append_operation(clifford, operation, qargs=None):
     # are a single qubit Clifford gate rather than raise an exception.
     if gate.definition is None:
         raise QiskitError(f"Cannot apply Instruction: {gate.name}")
+    # TODO: We could remove this check once gate.definition is typed as Optional[QuantumCircuit]
     if isinstance(gate.definition, QuantumCircuit):
         _append_circuit(clifford, gate.definition, qargs)
     else:
