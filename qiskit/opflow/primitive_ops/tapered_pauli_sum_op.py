@@ -368,8 +368,13 @@ class Z2Symmetries:
 
         Returns:
             Partially tapered operator
-
+        Raises:
+            OpflowError: Z2 symmetries, single qubit pauli and single qubit list cannot be empty
         """
+        if not self._symmetries or not self._sq_paulis or not self._sq_list:
+            raise OpflowError(
+                "Z2 symmetries, single qubit pauli and single qubit list cannot be empty."
+            )
 
         if not operator.is_zero():
             for clifford in self.cliffords:
@@ -391,6 +396,9 @@ class Z2Symmetries:
 
         Returns:
             If tapering_values is None: [:class`PauliSumOp`]; otherwise, :class:`PauliSumOp`
+        Raises:
+            OpflowError: Z2 symmetries, single qubit pauli and single qubit list cannot be empty
+
         """
         if not self._symmetries or not self._sq_paulis or not self._sq_list:
             raise OpflowError(
