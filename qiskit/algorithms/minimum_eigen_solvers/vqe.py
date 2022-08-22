@@ -92,7 +92,7 @@ class VQE(VariationalAlgorithm, MinimumEigensolver):
         The callable _must_ have the argument names ``fun, x0, jac, bounds`` as indicated
         in the following code block.
 
-    .. code-block::python
+    .. code-block:: python
 
         from qiskit.algorithms.optimizers import OptimizerResult
 
@@ -111,7 +111,7 @@ class VQE(VariationalAlgorithm, MinimumEigensolver):
 
     The above signature also allows to directly pass any SciPy minimizer, for instance as
 
-    .. code-block::python
+    .. code-block:: python
 
         from functools import partial
         from scipy.optimize import minimize
