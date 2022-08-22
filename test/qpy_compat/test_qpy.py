@@ -488,6 +488,30 @@ def generate_controlled_gates():
     return circuits
 
 
+def generate_open_controlled_gates():
+    """Test QPY serialization with custom ControlledGates with open controls."""
+    circuits = []
+    qc = QuantumCircuit(3)
+    controlled_gate = DCXGate().control(1, ctrl_state=0)
+    qc.append(controlled_gate, [0, 1, 2])
+    circuits.append(qc)
+
+    custom_gate = Gate("black_box", 1, [])
+    custom_definition = QuantumCircuit(1)
+    custom_definition.h(0)
+    custom_definition.rz(1.5, 0)
+    custom_definition.sdg(0)
+    custom_gate.definition = custom_definition
+    nested_qc = QuantumCircuit(3)
+    nested_qc.append(custom_gate, [0])
+    controlled_gate = custom_gate.control(2, ctrl_state=1)
+    nested_qc.append(controlled_gate, [0, 1, 2])
+    nested_qc.measure_all()
+    circuits.append(nested_qc)
+
+    return circuits
+
+
 def generate_circuits(version_str=None):
     """Generate reference circuits."""
     version_parts = None
@@ -525,6 +549,8 @@ def generate_circuits(version_str=None):
         output_circuits["controlled_gates.qpy"] = generate_controlled_gates()
         output_circuits["schedule_blocks.qpy"] = generate_schedule_blocks()
         output_circuits["pulse_gates.qpy"] = generate_calibrated_circuits()
+    if version_parts >= (0, 21, 2):
+        output_circuits["open_controlled_gates.qpy"] = generate_open_controlled_gates()
 
     return output_circuits
 

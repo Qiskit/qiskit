@@ -26,6 +26,9 @@ class iSwapGate(Gate):
     states and phase the :math:`|01\rangle` and :math:`|10\rangle`
     amplitudes by i.
 
+    Can be applied to a :class:`~qiskit.circuit.QuantumCircuit`
+    with the :meth:`~qiskit.circuit.QuantumCircuit.iswap` method.
+
     **Circuit Symbol:**
 
     .. parsed-literal::
