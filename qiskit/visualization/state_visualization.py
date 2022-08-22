@@ -178,7 +178,8 @@ def plot_state_hinton(
 def plot_bloch_vector(bloch, title="", ax=None, figsize=None, coord_type="cartesian"):
     """Plot the Bloch sphere.
 
-    Plot a sphere, axes, the Bloch vector, and its projections onto each axis.
+    Plot a Bloch sphere with the specified coordinates, that can be given in both
+    cartesian and spherical systems.
 
     Args:
         bloch (list[double]): array of three elements where [<x>, <y>, <z>] (Cartesian)
