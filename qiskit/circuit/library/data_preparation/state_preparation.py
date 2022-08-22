@@ -17,7 +17,7 @@ import math
 import numpy as np
 
 from qiskit.exceptions import QiskitError
-from qiskit.circuit import QuantumCircuit, QuantumRegister
+from qiskit.circuit import QuantumCircuit, QuantumRegister, Qubit
 from qiskit.circuit.gate import Gate
 from qiskit.circuit.library.standard_gates.x import CXGate, XGate
 from qiskit.circuit.library.standard_gates.h import HGate
@@ -427,8 +427,9 @@ def prepare_state(self, state, qubits=None, label=None):
               to :math:`|1\rangle`. Example: setting params to 5 would initialize qubit 0 and qubit 2
               to :math:`|1\rangle` and qubit 1 to :math:`|0\rangle`.
 
-        qubits (QuantumRegister or int):
+        qubits (QuantumRegister or Qubit or int):
             * QuantumRegister: A list of qubits to be initialized [Default: None].
+            * Qubit: Single qubit to be initialized [Default: None].
             * int: Index of qubit to be initialized [Default: None].
             * list: Indexes of qubits to be initialized [Default: None].
         label (str): An optional label for the gate
@@ -505,7 +506,7 @@ def prepare_state(self, state, qubits=None, label=None):
 
     if qubits is None:
         qubits = self.qubits
-    elif isinstance(qubits, (int, np.integer, slice)):
+    elif isinstance(qubits, (int, np.integer, slice, Qubit)):
         qubits = [qubits]
 
     num_qubits = len(qubits) if isinstance(state, int) else None
