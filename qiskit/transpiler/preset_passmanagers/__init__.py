@@ -136,7 +136,7 @@ def generate_preset_pass_manager(
             to use this option.
 
     Returns:
-        PassManager: The preset pass manager for the given options
+        StagedPassManager: The preset pass manager for the given options
 
     Raises:
         ValueError: if an invalid value for ``optimization_level`` is passed in.

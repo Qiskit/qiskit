@@ -52,9 +52,10 @@ from .classicalregister import ClassicalRegister, Clbit
 from .parametertable import ParameterReferences, ParameterTable, ParameterView
 from .parametervector import ParameterVector, ParameterVectorElement
 from .instructionset import InstructionSet
+from .operation import Operation
 from .register import Register
 from .bit import Bit
-from .quantumcircuitdata import QuantumCircuitData
+from .quantumcircuitdata import QuantumCircuitData, CircuitInstruction
 from .delay import Delay
 from .measure import Measure
 from .reset import Reset
@@ -81,9 +82,6 @@ BitLocations = namedtuple("BitLocations", ("index", "registers"))
 # Arbitrary type variables for marking up generics.
 S = TypeVar("S")
 T = TypeVar("T")
-
-# Type of the elements of QuantumCircuit._data.
-DataElement = Tuple[Instruction, List[Qubit], List[Clbit]]
 
 # Types that can be coerced to a valid Qubit specifier in a circuit.
 QubitSpecifier = Union[
@@ -292,11 +290,8 @@ class QuantumCircuit:
         """Return the circuit data (instructions and context).
 
         Returns:
-            QuantumCircuitData: a list-like object containing the tuples for the circuit's data.
-
-            Each tuple is in the format ``(instruction, qargs, cargs)``, where instruction is an
-            Instruction (or subclass) object, qargs is a list of Qubit objects, and cargs is a
-            list of Clbit objects.
+            QuantumCircuitData: a list-like object containing the :class:`.CircuitInstruction`\\ s
+            for each instruction.
         """
         return QuantumCircuitData(self)
 
@@ -322,26 +317,30 @@ class QuantumCircuit:
         return self._op_start_times
 
     @data.setter
-    def data(
-        self, data_input: List[Tuple[Instruction, List[QubitSpecifier], List[ClbitSpecifier]]]
-    ):
+    def data(self, data_input: Iterable):
         """Sets the circuit data from a list of instructions and context.
 
         Args:
-            data_input (list): A list of instructions with context
-                in the format (instruction, qargs, cargs), where Instruction
-                is an Instruction (or subclass) object, qargs is a list of
-                Qubit objects, and cargs is a list of Clbit objects.
+            data_input (Iterable): A sequence of instructions with their execution contexts.  The
+                elements must either be instances of :class:`.CircuitInstruction` (preferred), or a
+                3-tuple of ``(instruction, qargs, cargs)`` (legacy).  In the legacy format,
+                ``instruction`` must be an :class:`~.circuit.Instruction`, while ``qargs`` and
+                ``cargs`` must be iterables of :class:`.Qubit` or :class:`.Clbit` specifiers
+                (similar to the allowed forms in calls to :meth:`append`).
         """
-
         # If data_input is QuantumCircuitData(self), clearing self._data
         # below will also empty data_input, so make a shallow copy first.
-        data_input = data_input.copy()
+        data_input = list(data_input)
         self._data = []
         self._parameter_table = ParameterTable()
-
-        for inst, qargs, cargs in data_input:
-            self.append(inst, qargs, cargs)
+        if not data_input:
+            return
+        if isinstance(data_input[0], CircuitInstruction):
+            for instruction in data_input:
+                self.append(instruction)
+        else:
+            for instruction, qargs, cargs in data_input:
+                self.append(instruction, qargs, cargs)
 
     @property
     def calibrations(self) -> dict:
@@ -361,6 +360,23 @@ class QuantumCircuit:
                 {'gate_name': {(qubits, gate_params): schedule}}
         """
         self._calibrations = defaultdict(dict, calibrations)
+
+    def has_calibration_for(self, instr_context: Tuple):
+        """Return True if the circuit has a calibration defined for the instruction context. In this
+        case, the operation does not need to be translated to the device basis.
+        """
+        instr, qargs, _ = instr_context
+        if not self.calibrations or instr.name not in self.calibrations:
+            return False
+        qubits = tuple(self.qubits.index(qubit) for qubit in qargs)
+        params = []
+        for p in instr.params:
+            if isinstance(p, ParameterExpression) and not p.parameters:
+                params.append(float(p))
+            else:
+                params.append(p)
+        params = tuple(params)
+        return (qubits, params) in self.calibrations[instr.name]
 
     @property
     def metadata(self) -> dict:
@@ -470,8 +486,8 @@ class QuantumCircuit:
             self.qubits, self.clbits, *self.qregs, *self.cregs, name=self.name + "_reverse"
         )
 
-        for inst, qargs, cargs in reversed(self.data):
-            reverse_circ._append(inst.reverse_ops(), qargs, cargs)
+        for instruction in reversed(self.data):
+            reverse_circ._append(instruction.replace(operation=instruction.operation.reverse_ops()))
 
         reverse_circ.duration = self.duration
         reverse_circ.unit = self.unit
@@ -539,10 +555,10 @@ class QuantumCircuit:
             bits = [new_clbit_map[self.find_bit(clbit).index] for clbit in reversed(reg)]
             circ.add_register(ClassicalRegister(bits=bits, name=reg.name))
 
-        for inst, qargs, cargs in self.data:
-            new_qargs = [new_qubit_map[self.find_bit(qubit).index] for qubit in qargs]
-            new_cargs = [new_clbit_map[self.find_bit(clbit).index] for clbit in cargs]
-            circ._append(inst, new_qargs, new_cargs)
+        for instruction in self.data:
+            qubits = [new_qubit_map[self.find_bit(qubit).index] for qubit in instruction.qubits]
+            clbits = [new_clbit_map[self.find_bit(clbit).index] for clbit in instruction.clbits]
+            circ._append(instruction.replace(qubits=qubits, clbits=clbits))
         return circ
 
     def inverse(self) -> "QuantumCircuit":
@@ -587,8 +603,8 @@ class QuantumCircuit:
             global_phase=-self.global_phase,
         )
 
-        for inst, qargs, cargs in reversed(self._data):
-            inverse_circ._append(inst.inverse(), qargs, cargs)
+        for instruction in reversed(self._data):
+            inverse_circ._append(instruction.replace(operation=instruction.operation.inverse()))
         return inverse_circ
 
     def repeat(self, reps: int) -> "QuantumCircuit":
@@ -735,8 +751,8 @@ class QuantumCircuit:
             if element not in self.cregs:
                 combined_cregs.append(element)
         circuit = QuantumCircuit(*combined_qregs, *combined_cregs)
-        for instruction_context in itertools.chain(self.data, rhs.data):
-            circuit._append(*instruction_context)
+        for instruction in itertools.chain(self.data, rhs.data):
+            circuit._append(instruction)
         circuit.global_phase = self.global_phase + rhs.global_phase
 
         for gate, cals in rhs.calibrations.items():
@@ -790,8 +806,8 @@ class QuantumCircuit:
         data = rhs.data.copy() if rhs is self else rhs.data
 
         # Add new gates
-        for instruction_context in data:
-            self._append(*instruction_context)
+        for instruction in data:
+            self._append(instruction)
         self.global_phase += rhs.global_phase
 
         for gate, cals in rhs.calibrations.items():
@@ -819,7 +835,8 @@ class QuantumCircuit:
                 this can be anything that :obj:`.append` will accept.
             qubits (list[Qubit|int]): qubits of self to compose onto.
             clbits (list[Clbit|int]): clbits of self to compose onto.
-            front (bool): If True, front composition will be performed (not implemented yet).
+            front (bool): If True, front composition will be performed.  This is not possible within
+                control-flow builder context managers.
             inplace (bool): If True, modify the object. Otherwise return composed circuit.
             wrap (bool): If True, wraps the other circuit into a gate (or instruction, depending on
                 whether it contains only unitary instructions) before composing it onto self.
@@ -828,12 +845,18 @@ class QuantumCircuit:
             QuantumCircuit: the composed circuit (returns None if inplace==True).
 
         Raises:
-            CircuitError: if composing on the front.
-            QiskitError: if ``other`` is wider or there are duplicate edge mappings.
+            CircuitError: if no correct wire mapping can be made between the two circuits, such as
+                if ``other`` is wider than ``self``.
+            CircuitError: if trying to emit a new circuit while ``self`` has a partially built
+                control-flow context active, such as the context-manager forms of :meth:`if_test`,
+                :meth:`for_loop` and :meth:`while_loop`.
+            CircuitError: if trying to compose to the front of a circuit when a control-flow builder
+                block is active; there is no clear meaning to this action.
 
-        Examples::
+        Examples:
+            .. code-block:: python
 
-            lhs.compose(rhs, qubits=[3, 2], inplace=True)
+                >>> lhs.compose(rhs, qubits=[3, 2], inplace=True)
 
             .. parsed-literal::
 
@@ -853,11 +876,32 @@ class QuantumCircuit:
                 lcr_1: 0 ═══════════                           lcr_1: 0 ═══════════════════════
 
         """
+        if inplace and front and self._control_flow_scopes:
+            # If we're composing onto ourselves while in a stateful control-flow builder context,
+            # there's no clear meaning to composition to the "front" of the circuit.
+            raise CircuitError(
+                "Cannot compose to the front of a circuit while a control-flow context is active."
+            )
+        if not inplace and self._control_flow_scopes:
+            # If we're inside a stateful control-flow builder scope, even if we successfully cloned
+            # the partial builder scope (not simple), the scope wouldn't be controlled by an active
+            # `with` statement, so the output circuit would be permanently broken.
+            raise CircuitError(
+                "Cannot emit a new composed circuit while a control-flow context is active."
+            )
 
         if inplace:
             dest = self
         else:
             dest = self.copy()
+
+        # If self does not have any cregs but other does then we allow
+        # that and add the registers to the output dest
+        if isinstance(other, QuantumCircuit):
+            if not self.clbits and other.clbits:
+                dest.add_bits(other.clbits)
+                for reg in other.cregs:
+                    dest.add_register(reg)
 
         if wrap:
             try:
@@ -873,7 +917,7 @@ class QuantumCircuit:
                 clbits = list(range(other.num_clbits))
 
             if front:
-                dest.data.insert(0, (other, qubits, clbits))
+                dest.data.insert(0, CircuitInstruction(other, qubits, clbits))
             else:
                 dest.append(other, qargs=qubits, cargs=clbits)
 
@@ -883,15 +927,14 @@ class QuantumCircuit:
 
         instrs = other.data
 
-        if other.num_qubits > self.num_qubits or other.num_clbits > self.num_clbits:
+        if other.num_qubits > dest.num_qubits or other.num_clbits > dest.num_clbits:
             raise CircuitError(
                 "Trying to compose with another QuantumCircuit which has more 'in' edges."
             )
 
         # number of qubits and clbits must match number in circuit or None
-        identity_qubit_map = dict(zip(other.qubits, self.qubits))
-        identity_clbit_map = dict(zip(other.clbits, self.clbits))
-
+        identity_qubit_map = dict(zip(other.qubits, dest.qubits))
+        identity_clbit_map = dict(zip(other.clbits, dest.clbits))
         if qubits is None:
             qubit_map = identity_qubit_map
         elif len(qubits) != len(other.qubits):
@@ -920,29 +963,28 @@ class QuantumCircuit:
         edge_map = {**qubit_map, **clbit_map} or {**identity_qubit_map, **identity_clbit_map}
 
         mapped_instrs = []
-        for instr, qargs, cargs in instrs:
-            n_qargs = [edge_map[qarg] for qarg in qargs]
-            n_cargs = [edge_map[carg] for carg in cargs]
-            n_instr = instr.copy()
+        for instr in instrs:
+            n_qargs = [edge_map[qarg] for qarg in instr.qubits]
+            n_cargs = [edge_map[carg] for carg in instr.clbits]
+            n_instr = instr.operation.copy()
 
-            if instr.condition is not None:
+            if getattr(instr.operation, "condition", None) is not None:
                 from qiskit.dagcircuit import DAGCircuit  # pylint: disable=cyclic-import
 
-                n_instr.condition = DAGCircuit._map_condition(edge_map, instr.condition, self.cregs)
+                n_instr.condition = DAGCircuit._map_condition(
+                    edge_map, instr.operation.condition, self.cregs
+                )
 
-            mapped_instrs.append((n_instr, n_qargs, n_cargs))
+            mapped_instrs.append(CircuitInstruction(n_instr, n_qargs, n_cargs))
 
         if front:
             # adjust new instrs before original ones and update all parameters
-            dest._data = mapped_instrs + dest._data
+            mapped_instrs += dest.data
+            dest.data.clear()
             dest._parameter_table.clear()
-            for instr, _, _ in dest._data:
-                dest._update_parameter_table(instr)
-        else:
-            # just append new instrs and parameters
-            dest._data += mapped_instrs
-            for instr, _, _ in mapped_instrs:
-                dest._update_parameter_table(instr)
+        append = dest._control_flow_scopes[-1].append if dest._control_flow_scopes else dest._append
+        for instr in mapped_instrs:
+            append(instr)
 
         for gate, cals in other.calibrations.items():
             dest._calibrations[gate].update(cals)
@@ -1105,11 +1147,11 @@ class QuantumCircuit:
         return len(self._data)
 
     @typing.overload
-    def __getitem__(self, item: int) -> DataElement:
+    def __getitem__(self, item: int) -> CircuitInstruction:
         ...
 
     @typing.overload
-    def __getitem__(self, item: slice) -> List[DataElement]:
+    def __getitem__(self, item: slice) -> List[CircuitInstruction]:
         ...
 
     def __getitem__(self, item):
@@ -1196,46 +1238,62 @@ class QuantumCircuit:
 
     def append(
         self,
-        instruction: Instruction,
+        instruction: Union[Operation, CircuitInstruction],
         qargs: Optional[Sequence[QubitSpecifier]] = None,
         cargs: Optional[Sequence[ClbitSpecifier]] = None,
     ) -> InstructionSet:
-        """Append one or more instructions to the end of the circuit, modifying
-        the circuit in place. Expands qargs and cargs.
+        """Append one or more instructions to the end of the circuit, modifying the circuit in
+        place.
+
+        The ``qargs`` and ``cargs`` will be expanded and broadcast according to the rules of the
+        given :class:`~.circuit.Instruction`, and any non-:class:`.Bit` specifiers (such as
+        integer indices) will be resolved into the relevant instances.
+
+        If a :class:`.CircuitInstruction` is given, it will be unwrapped, verified in the context of
+        this circuit, and a new object will be appended to the circuit.  In this case, you may not
+        pass ``qargs`` or ``cargs`` separately.
 
         Args:
-            instruction (qiskit.circuit.Instruction): Instruction instance to append
-            qargs (list(argument)): qubits to attach instruction to
-            cargs (list(argument)): clbits to attach instruction to
+            instruction: :class:`~.circuit.Instruction` instance to append, or a
+                :class:`.CircuitInstruction` with all its context.
+            qargs: specifiers of the :class:`.Qubit`\\ s to attach instruction to.
+            cargs: specifiers of the :class:`.Clbit`\\ s to attach instruction to.
 
         Returns:
-            qiskit.circuit.Instruction: a handle to the instruction that was just added
+            qiskit.circuit.InstructionSet: a handle to the :class:`.CircuitInstruction`\\ s that
+            were actually added to the circuit.
 
         Raises:
-            CircuitError: if object passed is a subclass of Instruction
-            CircuitError: if object passed is neither subclass nor an instance of Instruction
+            CircuitError: if the operation passed is not an instance of
+                :class:`~.circuit..Instruction`.
         """
+        if isinstance(instruction, CircuitInstruction):
+            operation = instruction.operation
+            qargs = instruction.qubits
+            cargs = instruction.clbits
+        else:
+            operation = instruction
         # Convert input to instruction
-        if not isinstance(instruction, Instruction) and not hasattr(instruction, "to_instruction"):
-            if issubclass(instruction, Instruction):
+        if not isinstance(operation, Operation) and not hasattr(operation, "to_instruction"):
+            if issubclass(operation, Operation):
                 raise CircuitError(
-                    "Object is a subclass of Instruction, please add () to "
+                    "Object is a subclass of Operation, please add () to "
                     "pass an instance of this object."
                 )
 
             raise CircuitError(
-                "Object to append must be an Instruction or have a to_instruction() method."
+                "Object to append must be an Operation or have a to_instruction() method."
             )
-        if not isinstance(instruction, Instruction) and hasattr(instruction, "to_instruction"):
-            instruction = instruction.to_instruction()
-        if not isinstance(instruction, Instruction):
-            raise CircuitError("object is not an Instruction.")
+        if not isinstance(operation, Operation) and hasattr(operation, "to_instruction"):
+            operation = operation.to_instruction()
+        if not isinstance(operation, Operation):
+            raise CircuitError("object is not an Operation.")
 
         # Make copy of parameterized gate instances
-        if hasattr(instruction, "params"):
-            is_parameter = any(isinstance(param, Parameter) for param in instruction.params)
+        if hasattr(operation, "params"):
+            is_parameter = any(isinstance(param, Parameter) for param in operation.params)
             if is_parameter:
-                instruction = copy.deepcopy(instruction)
+                operation = copy.deepcopy(operation)
 
         expanded_qargs = [self.qbit_argument_conversion(qarg) for qarg in qargs or []]
         expanded_cargs = [self.cbit_argument_conversion(carg) for carg in cargs or []]
@@ -1247,17 +1305,41 @@ class QuantumCircuit:
             appender = self._append
             requester = self._resolve_classical_resource
         instructions = InstructionSet(resource_requester=requester)
-        for qarg, carg in instruction.broadcast_arguments(expanded_qargs, expanded_cargs):
-            self._check_dups(qarg)
-            instructions.add(appender(instruction, qarg, carg), qarg, carg)
+        if isinstance(operation, Instruction):
+            for qarg, carg in operation.broadcast_arguments(expanded_qargs, expanded_cargs):
+                self._check_dups(qarg)
+                instruction = CircuitInstruction(operation, qarg, carg)
+                appender(instruction)
+                instructions.add(instruction)
+        else:
+            # For Operations that are non-Instructions, we use the Instruction's default method
+            for qarg, carg in Instruction.broadcast_arguments(
+                operation, expanded_qargs, expanded_cargs
+            ):
+                self._check_dups(qarg)
+                instruction = CircuitInstruction(operation, qarg, carg)
+                appender(instruction)
+                instructions.add(instruction)
         return instructions
 
+    # Preferred new style.
+    @typing.overload
+    def _append(
+        self, instruction: CircuitInstruction, _qargs: None = None, _cargs: None = None
+    ) -> CircuitInstruction:
+        ...
+
+    # To-be-deprecated old style.
+    @typing.overload
     def _append(
         self,
-        instruction: Instruction,
+        operation: Operation,
         qargs: Sequence[Qubit],
         cargs: Sequence[Clbit],
-    ) -> Instruction:
+    ) -> Operation:
+        ...
+
+    def _append(self, instruction, qargs=None, cargs=None):
         """Append an instruction to the end of the circuit, modifying the circuit in place.
 
         .. warning::
@@ -1278,27 +1360,29 @@ class QuantumCircuit:
             constructs of the control-flow builder interface.
 
         Args:
-            instruction: Instruction instance to append
+            instruction: Operation instance to append
             qargs: Qubits to attach the instruction to.
             cargs: Clbits to attach the instruction to.
 
         Returns:
-            Instruction: a handle to the instruction that was just added
+            Operation: a handle to the instruction that was just added
 
         :meta public:
         """
-
-        self._data.append((instruction, qargs, cargs))
-        self._update_parameter_table(instruction)
+        old_style = not isinstance(instruction, CircuitInstruction)
+        if old_style:
+            instruction = CircuitInstruction(instruction, qargs, cargs)
+        self._data.append(instruction)
+        if isinstance(instruction.operation, Instruction):
+            self._update_parameter_table(instruction)
 
         # mark as normal circuit if a new instruction is added
         self.duration = None
         self.unit = "dt"
+        return instruction.operation if old_style else instruction
 
-        return instruction
-
-    def _update_parameter_table(self, instruction: Instruction) -> Instruction:
-        for param_index, param in enumerate(instruction.params):
+    def _update_parameter_table(self, instruction: CircuitInstruction):
+        for param_index, param in enumerate(instruction.operation.params):
             if isinstance(param, (ParameterExpression, QuantumCircuit)):
                 # Scoped constructs like the control-flow ops use QuantumCircuit as a parameter.
                 atomic_parameters = set(param.parameters)
@@ -1307,18 +1391,16 @@ class QuantumCircuit:
 
             for parameter in atomic_parameters:
                 if parameter in self._parameter_table:
-                    self._parameter_table[parameter].add((instruction, param_index))
+                    self._parameter_table[parameter].add((instruction.operation, param_index))
                 else:
                     if parameter.name in self._parameter_table.get_names():
                         raise CircuitError(f"Name conflict on adding parameter: {parameter.name}")
                     self._parameter_table[parameter] = ParameterReferences(
-                        ((instruction, param_index),)
+                        ((instruction.operation, param_index),)
                     )
 
                     # clear cache if new parameter is added
                     self._parameters = None
-
-        return instruction
 
     def add_register(self, *regs: Union[Register, int, Sequence[Bit]]) -> None:
         """Add registers."""
@@ -1519,11 +1601,13 @@ class QuantumCircuit:
         """
         # pylint: disable=cyclic-import
         from qiskit.transpiler.passes.basis.decompose import Decompose
+        from qiskit.transpiler.passes.synthesis import HighLevelSynthesis
         from qiskit.converters.circuit_to_dag import circuit_to_dag
         from qiskit.converters.dag_to_circuit import dag_to_circuit
 
-        pass_ = Decompose(gates_to_decompose)
         dag = circuit_to_dag(self)
+        dag = HighLevelSynthesis().run(dag)
+        pass_ = Decompose(gates_to_decompose)
         for _ in range(reps):
             dag = pass_.run(dag)
         return dag_to_circuit(dag)
@@ -1667,40 +1751,41 @@ class QuantumCircuit:
                 {bit: f"{register_name}[{idx}]" for idx, bit in enumerate(regless_clbits)}
             )
 
-        for instruction, qargs, cargs in self._data:
-            if instruction.name == "measure":
-                qubit = qargs[0]
-                clbit = cargs[0]
+        for instruction in self._data:
+            operation = instruction.operation
+            if operation.name == "measure":
+                qubit = instruction.qubits[0]
+                clbit = instruction.clbits[0]
                 string_temp += "{} {} -> {};\n".format(
-                    instruction.qasm(),
+                    operation.qasm(),
                     bit_labels[qubit],
                     bit_labels[clbit],
                 )
             else:
                 # Check instructions names or label are valid
-                if not VALID_QASM2_IDENTIFIER.fullmatch(instruction.name):
-                    instruction = instruction.copy(name=_qasm_escape_gate_name(instruction.name))
+                if not VALID_QASM2_IDENTIFIER.fullmatch(operation.name):
+                    operation = operation.copy(name=_qasm_escape_gate_name(operation.name))
 
                 # decompose gate using definitions if they are not defined in OpenQASM2
                 if (
-                    instruction.name not in existing_gate_names
-                    and instruction not in existing_composite_circuits
+                    operation.name not in existing_gate_names
+                    and operation not in existing_composite_circuits
                 ):
-                    if instruction.name in [
-                        instruction.name for instruction in existing_composite_circuits
+                    if operation.name in [
+                        operation.name for operation in existing_composite_circuits
                     ]:
-                        # append instruction id to name of instruction copy to make it unique
-                        instruction = instruction.copy(name=f"{instruction.name}_{id(instruction)}")
+                        # append operation id to name of operation copy to make it unique
+                        operation = operation.copy(name=f"{operation.name}_{id(operation)}")
 
-                    existing_composite_circuits.append(instruction)
+                    existing_composite_circuits.append(operation)
                     _add_sub_instruction_to_existing_composite_circuits(
-                        instruction, existing_gate_names, existing_composite_circuits
+                        operation, existing_gate_names, existing_composite_circuits
                     )
 
                 # Insert qasm representation of the original instruction
                 string_temp += "{} {};\n".format(
-                    instruction.qasm(),
-                    ",".join([bit_labels[j] for j in qargs + cargs]),
+                    operation.qasm(),
+                    ",".join([bit_labels[j] for j in instruction.qubits + instruction.clbits]),
                 )
 
         # insert gate definitions
@@ -1747,6 +1832,7 @@ class QuantumCircuit:
         ax: Optional[typing.Any] = None,
         initial_state: bool = False,
         cregbundle: bool = True,
+        wire_order: list = None,
     ):
         """Draw the quantum circuit. Use the output parameter to choose the drawing format:
 
@@ -1824,10 +1910,13 @@ class QuantumCircuit:
                 specified, a new matplotlib Figure will be created and used.
                 Additionally, if specified there will be no returned Figure since
                 it is redundant.
-            initial_state (bool): optional. Adds ``|0>`` in the beginning of the wire.
+            initial_state (bool): Optional. Adds ``|0>`` in the beginning of the wire.
                 Default is False.
-            cregbundle (bool): optional. If set True, bundle classical registers.
+            cregbundle (bool): Optional. If set True, bundle classical registers.
                 Default is True.
+            wire_order (list): Optional. A list of integers used to reorder the display
+                of the bits. The list must have an entry for every bit with the bits
+                in the range 0 to (num_qubits + num_clbits).
 
         Returns:
             :class:`TextDrawing` or :class:`matplotlib.figure` or :class:`PIL.Image` or
@@ -1879,9 +1968,15 @@ class QuantumCircuit:
             ax=ax,
             initial_state=initial_state,
             cregbundle=cregbundle,
+            wire_order=wire_order,
         )
 
-    def size(self, filter_function: Optional[callable] = lambda x: not x[0]._directive) -> int:
+    def size(
+        self,
+        filter_function: Optional[callable] = lambda x: not getattr(
+            x.operation, "_directive", False
+        ),
+    ) -> int:
         """Returns total number of instructions in circuit.
 
         Args:
@@ -1894,7 +1989,12 @@ class QuantumCircuit:
         """
         return sum(map(filter_function, self._data))
 
-    def depth(self, filter_function: Optional[callable] = lambda x: not x[0]._directive) -> int:
+    def depth(
+        self,
+        filter_function: Optional[callable] = lambda x: not getattr(
+            x.operation, "_directive", False
+        ),
+    ) -> int:
         """Return circuit depth (i.e., length of critical path).
 
         Args:
@@ -1929,26 +2029,26 @@ class QuantumCircuit:
         # Conditional gates act on all cbits in the register
         # they are conditioned on.
         # The max stack height is the circuit depth.
-        for instr, qargs, cargs in self._data:
+        for instruction in self._data:
             levels = []
             reg_ints = []
-            for ind, reg in enumerate(qargs + cargs):
+            for ind, reg in enumerate(instruction.qubits + instruction.clbits):
                 # Add to the stacks of the qubits and
                 # cbits used in the gate.
                 reg_ints.append(bit_indices[reg])
-                if filter_function((instr, qargs, cargs)):
+                if filter_function(instruction):
                     levels.append(op_stack[reg_ints[ind]] + 1)
                 else:
                     levels.append(op_stack[reg_ints[ind]])
             # Assuming here that there is no conditional
             # snapshots or barriers ever.
-            if instr.condition:
+            if getattr(instruction.operation, "condition", None):
                 # Controls operate over all bits of a classical register
                 # or over a single bit
-                if isinstance(instr.condition[0], Clbit):
-                    condition_bits = [instr.condition[0]]
+                if isinstance(instruction.operation.condition[0], Clbit):
+                    condition_bits = [instruction.operation.condition[0]]
                 else:
-                    condition_bits = instr.condition[0]
+                    condition_bits = instruction.operation.condition[0]
                 for cbit in condition_bits:
                     idx = bit_indices[cbit]
                     if idx not in reg_ints:
@@ -1995,8 +2095,8 @@ class QuantumCircuit:
             OrderedDict: a breakdown of how many operations of each kind, sorted by amount.
         """
         count_ops: Dict[Instruction, int] = {}
-        for instr, _, _ in self._data:
-            count_ops[instr.name] = count_ops.get(instr.name, 0) + 1
+        for instruction in self._data:
+            count_ops[instruction.operation.name] = count_ops.get(instruction.operation.name, 0) + 1
         return OrderedDict(sorted(count_ops.items(), key=lambda kv: kv[1], reverse=True))
 
     def num_nonlocal_gates(self) -> int:
@@ -2005,12 +2105,14 @@ class QuantumCircuit:
         Conditional nonlocal gates are also included.
         """
         multi_qubit_gates = 0
-        for instr, _, _ in self._data:
-            if instr.num_qubits > 1 and not instr._directive:
+        for instruction in self._data:
+            if instruction.operation.num_qubits > 1 and not getattr(
+                instruction.operation, "_directive", False
+            ):
                 multi_qubit_gates += 1
         return multi_qubit_gates
 
-    def get_instructions(self, name: str) -> List[DataElement]:
+    def get_instructions(self, name: str) -> List[CircuitInstruction]:
         """Get instructions matching name.
 
         Args:
@@ -2019,7 +2121,7 @@ class QuantumCircuit:
         Returns:
             list(tuple): list of (instruction, qargs, cargs).
         """
-        return [match for match in self._data if match[0].name == name]
+        return [match for match in self._data if match.operation.name == name]
 
     def num_connected_components(self, unitary_only: bool = False) -> int:
         """How many non-entangled subcircuits can the circuit be factored to.
@@ -2041,21 +2143,23 @@ class QuantumCircuit:
 
         # Here we are traversing the gates and looking to see
         # which of the sub_graphs the gate joins together.
-        for instr, qargs, cargs in self._data:
+        for instruction in self._data:
             if unitary_only:
-                args = qargs
+                args = instruction.qubits
                 num_qargs = len(args)
             else:
-                args = qargs + cargs
-                num_qargs = len(args) + (1 if instr.condition else 0)
+                args = instruction.qubits + instruction.clbits
+                num_qargs = len(args) + (
+                    1 if getattr(instruction.operation, "condition", None) else 0
+                )
 
-            if num_qargs >= 2 and not instr._directive:
+            if num_qargs >= 2 and not getattr(instruction.operation, "_directive", False):
                 graphs_touched = []
                 num_touched = 0
                 # Controls necessarily join all the cbits in the
                 # register that they use.
                 if not unitary_only:
-                    for bit in instr.condition_bits:
+                    for bit in instruction.operation.condition_bits:
                         idx = bit_indices[bit]
                         for k in range(num_sub_graphs):
                             if idx in sub_graphs[k]:
@@ -2120,22 +2224,23 @@ class QuantumCircuit:
         """
         cpy = self.copy_empty_like(name)
 
-        instr_instances = {id(instr): instr for instr, _, __ in self._data}
-        instr_copies = {id_: instr.copy() for id_, instr in instr_instances.items()}
+        operation_copies = {
+            id(instruction.operation): instruction.operation.copy() for instruction in self._data
+        }
 
         cpy._parameter_table = ParameterTable(
             {
                 param: ParameterReferences(
-                    (instr_copies[id(instr)], param_index)
-                    for instr, param_index in self._parameter_table[param]
+                    (operation_copies[id(operation)], param_index)
+                    for operation, param_index in self._parameter_table[param]
                 )
                 for param in self._parameter_table
             }
         )
 
         cpy._data = [
-            (instr_copies[id(inst)], qargs.copy(), cargs.copy())
-            for inst, qargs, cargs in self._data
+            instruction.replace(operation=operation_copies[id(instruction.operation)])
+            for instruction in self._data
         ]
 
         return cpy
@@ -2415,7 +2520,63 @@ class QuantumCircuit:
 
     @property
     def parameters(self) -> ParameterView:
-        """Convenience function to get the parameters defined in the parameter table."""
+        """The parameters defined in the circuit.
+
+        This attribute returns the :class:`.Parameter` objects in the circuit sorted
+        alphabetically. Note that parameters instantiated with a :class:`.ParameterVector`
+        are still sorted numerically.
+
+        Examples:
+
+            The snippet below shows that insertion order of parameters does not matter.
+
+            .. code-block:: python
+
+                >>> from qiskit.circuit import QuantumCircuit, Parameter
+                >>> a, b, elephant = Parameter("a"), Parameter("b"), Parameter("elephant")
+                >>> circuit = QuantumCircuit(1)
+                >>> circuit.rx(b, 0)
+                >>> circuit.rz(elephant, 0)
+                >>> circuit.ry(a, 0)
+                >>> circuit.parameters  # sorted alphabetically!
+                ParameterView([Parameter(a), Parameter(b), Parameter(elephant)])
+
+            Bear in mind that alphabetical sorting might be unituitive when it comes to numbers.
+            The literal "10" comes before "2" in strict alphabetical sorting.
+
+            .. code-block:: python
+
+                >>> from qiskit.circuit import QuantumCircuit, Parameter
+                >>> angles = [Parameter("angle_1"), Parameter("angle_2"), Parameter("angle_10")]
+                >>> circuit = QuantumCircuit(1)
+                >>> circuit.u(*angles, 0)
+                >>> circuit.draw()
+                   ┌─────────────────────────────┐
+                q: ┤ U(angle_1,angle_2,angle_10) ├
+                   └─────────────────────────────┘
+                >>> circuit.parameters
+                ParameterView([Parameter(angle_1), Parameter(angle_10), Parameter(angle_2)])
+
+            To respect numerical sorting, a :class:`.ParameterVector` can be used.
+
+            .. code-block:: python
+
+            >>> from qiskit.circuit import QuantumCircuit, Parameter, ParameterVector
+            >>> x = ParameterVector("x", 12)
+            >>> circuit = QuantumCircuit(1)
+            >>> for x_i in x:
+            ...     circuit.rx(x_i, 0)
+            >>> circuit.parameters
+            ParameterView([
+                ParameterVectorElement(x[0]), ParameterVectorElement(x[1]),
+                ParameterVectorElement(x[2]), ParameterVectorElement(x[3]),
+                ..., ParameterVectorElement(x[11])
+            ])
+
+
+        Returns:
+            The sorted :class:`.Parameter` objects in the circuit.
+        """
         # parameters from gates
         if self._parameters is None:
             unsorted = self._unsorted_parameters()
@@ -2426,7 +2587,7 @@ class QuantumCircuit:
 
     @property
     def num_parameters(self) -> int:
-        """Convenience function to get the number of parameter objects in the circuit."""
+        """The number of parameter objects in the circuit."""
         return len(self._unsorted_parameters())
 
     def _unsorted_parameters(self) -> Set[Parameter]:
@@ -2444,18 +2605,20 @@ class QuantumCircuit:
     ) -> Optional["QuantumCircuit"]:
         """Assign parameters to new parameters or values.
 
-        The keys of the parameter dictionary must be Parameter instances in the current circuit. The
-        values of the dictionary can either be numeric values or new parameter objects.
+        If ``parameters`` is passed as a dictionary, the keys must be :class:`.Parameter`
+        instances in the current circuit. The values of the dictionary can either be numeric values
+        or new parameter objects.
+
+        If ``parameters`` is passed as a list or array, the elements are assigned to the
+        current parameters in the order of :attr:`parameters` which is sorted
+        alphabetically (while respecting the ordering in :class:`.ParameterVector` objects).
+
         The values can be assigned to the current circuit object or to a copy of it.
 
         Args:
-            parameters (dict or iterable): Either a dictionary or iterable specifying the new
-                parameter values. If a dict, it specifies the mapping from ``current_parameter`` to
-                ``new_parameter``, where ``new_parameter`` can be a new parameter object or a
-                numeric value. If an iterable, the elements are assigned to the existing parameters
-                in the order of ``QuantumCircuit.parameters``.
-            inplace (bool): If False, a copy of the circuit with the bound parameters is
-                returned. If True the circuit instance itself is modified.
+            parameters: Either a dictionary or iterable specifying the new parameter values.
+            inplace: If False, a copy of the circuit with the bound parameters is returned.
+                If True the circuit instance itself is modified.
 
         Raises:
             CircuitError: If parameters is a dict and contains parameters not present in the
@@ -2464,8 +2627,7 @@ class QuantumCircuit:
                 parameters in the circuit.
 
         Returns:
-            Optional(QuantumCircuit): A copy of the circuit with bound parameters, if
-            ``inplace`` is False, otherwise None.
+            A copy of the circuit with bound parameters, if ``inplace`` is False, otherwise None.
 
         Examples:
 
@@ -2488,7 +2650,7 @@ class QuantumCircuit:
                 print('Assigned in-place:')
                 print(circuit.draw())
 
-            Bind the values out-of-place and get a copy of the original circuit.
+            Bind the values out-of-place by list and get a copy of the original circuit.
 
             .. jupyter-execute::
 
@@ -2499,7 +2661,7 @@ class QuantumCircuit:
                 circuit.ry(params[0], 0)
                 circuit.crx(params[1], 0, 1)
 
-                bound_circuit = circuit.assign_parameters({params[0]: 1, params[1]: 2})
+                bound_circuit = circuit.assign_parameters([1, 2])
                 print('Bound circuit:')
                 print(bound_circuit.draw())
 
@@ -2554,18 +2716,21 @@ class QuantumCircuit:
     ) -> "QuantumCircuit":
         """Assign numeric parameters to values yielding a new circuit.
 
+        If the values are given as list or array they are bound to the circuit in the order
+        of :attr:`parameters` (see the docstring for more details).
+
         To assign new Parameter objects or bind the values in-place, without yielding a new
         circuit, use the :meth:`assign_parameters` method.
 
         Args:
-            values (dict or iterable): {parameter: value, ...} or [value1, value2, ...]
+            values: ``{parameter: value, ...}`` or ``[value1, value2, ...]``
 
         Raises:
             CircuitError: If values is a dict and contains parameters not present in the circuit.
             TypeError: If values contains a ParameterExpression.
 
         Returns:
-            QuantumCircuit: copy of self with assignment substitution.
+            Copy of self with assignment substitution.
         """
         if isinstance(values, dict):
             if any(isinstance(value, ParameterExpression) for value in values.values()):
@@ -2689,18 +2854,22 @@ class QuantumCircuit:
         self, instruction: Instruction, parameter: Parameter, value: ParameterValueType
     ) -> None:
         if instruction._definition:
-            for op, _, _ in instruction._definition:
-                for idx, param in enumerate(op.params):
+            for inner in instruction._definition:
+                for idx, param in enumerate(inner.operation.params):
                     if isinstance(param, ParameterExpression) and parameter in param.parameters:
                         if isinstance(value, ParameterExpression):
-                            op.params[idx] = param.subs({parameter: value})
+                            inner.operation.params[idx] = param.subs({parameter: value})
                         else:
-                            op.params[idx] = param.bind({parameter: value})
-                        self._rebind_definition(op, parameter, value)
+                            inner.operation.params[idx] = param.bind({parameter: value})
+                        self._rebind_definition(inner.operation, parameter, value)
 
-    def barrier(self, *qargs: QubitSpecifier) -> InstructionSet:
+    def barrier(self, *qargs: QubitSpecifier, label=None) -> InstructionSet:
         """Apply :class:`~qiskit.circuit.Barrier`. If qargs is empty, applies to all qubits in the
         circuit.
+
+        Args:
+            qargs (QubitSpecifier): Specification for one or more qubit arguments.
+            label (str): The string label of the barrier.
 
         Returns:
             qiskit.circuit.InstructionSet: handle to the added instructions.
@@ -2724,7 +2893,7 @@ class QuantumCircuit:
             else:
                 qubits.append(qarg)
 
-        return self.append(Barrier(len(qubits)), qubits, [])
+        return self.append(Barrier(len(qubits), label=label), qubits, [])
 
     def delay(
         self,
@@ -4123,9 +4292,7 @@ class QuantumCircuit:
         synchronise the creation and deletion of stack elements."""
         return self._control_flow_scopes.pop()
 
-    def _peek_previous_instruction_in_scope(
-        self,
-    ) -> Tuple[Instruction, Sequence[Qubit], Sequence[Clbit]]:
+    def _peek_previous_instruction_in_scope(self) -> CircuitInstruction:
         """Return the instruction 3-tuple of the most recent instruction in the current scope, even
         if that scope is currently under construction.
 
@@ -4137,9 +4304,7 @@ class QuantumCircuit:
             raise CircuitError("This circuit contains no instructions.")
         return self._data[-1]
 
-    def _pop_previous_instruction_in_scope(
-        self,
-    ) -> Tuple[Instruction, Sequence[Qubit], Sequence[Clbit]]:
+    def _pop_previous_instruction_in_scope(self) -> CircuitInstruction:
         """Return the instruction 3-tuple of the most recent instruction in the current scope, even
         if that scope is currently under construction, and remove it from that scope.
 
@@ -4150,11 +4315,12 @@ class QuantumCircuit:
             return self._control_flow_scopes[-1].pop()
         if not self._data:
             raise CircuitError("This circuit contains no instructions.")
-        instruction, qubits, clbits = self._data.pop()
-        self._update_parameter_table_on_instruction_removal(instruction)
-        return instruction, qubits, clbits
+        instruction = self._data.pop()
+        if isinstance(instruction.operation, Instruction):
+            self._update_parameter_table_on_instruction_removal(instruction)
+        return instruction
 
-    def _update_parameter_table_on_instruction_removal(self, instruction: Instruction) -> None:
+    def _update_parameter_table_on_instruction_removal(self, instruction: CircuitInstruction):
         """Update the :obj:`.ParameterTable` of this circuit given that an instance of the given
         ``instruction`` has just been removed from the circuit.
 
@@ -4166,18 +4332,13 @@ class QuantumCircuit:
             :meth:`.QuantumCircuit.append`, so this should be safe.  Trying to account for it would
             involve adding a potentially quadratic-scaling loop to check each entry in ``data``.
         """
-        atomic_parameters = set()
-        for parameter in instruction.params:
+        atomic_parameters = []
+        for index, parameter in enumerate(instruction.operation.params):
             if isinstance(parameter, (ParameterExpression, QuantumCircuit)):
-                atomic_parameters.update(parameter.parameters)
-        for atomic_parameter in atomic_parameters:
-            entries = self._parameter_table[atomic_parameter]
-            new_entries = ParameterReferences(
-                (entry_instruction, entry_index)
-                for entry_instruction, entry_index in entries
-                if entry_instruction is not instruction
-            )
-
+                atomic_parameters.extend((p, index) for p in parameter.parameters)
+        for atomic_parameter, index in atomic_parameters:
+            new_entries = self._parameter_table[atomic_parameter].copy()
+            new_entries.discard((instruction.operation, index))
             if not new_entries:
                 del self._parameter_table[atomic_parameter]
                 # Invalidate cache.
@@ -4651,8 +4812,8 @@ class QuantumCircuit:
         """
         if self.duration is None:
             # circuit has only delays, this is kind of scheduled
-            for inst, _, _ in self.data:
-                if not isinstance(inst, Delay):
+            for instruction in self._data:
+                if not isinstance(instruction.operation, Delay):
                     raise CircuitError(
                         "qubit_start_time undefined. Circuit must be scheduled first."
                     )
@@ -4662,12 +4823,12 @@ class QuantumCircuit:
 
         starts = {q: 0 for q in qubits}
         dones = {q: False for q in qubits}
-        for inst, qargs, _ in self.data:
+        for instruction in self._data:
             for q in qubits:
-                if q in qargs:
-                    if isinstance(inst, Delay):
+                if q in instruction.qubits:
+                    if isinstance(instruction.operation, Delay):
                         if not dones[q]:
-                            starts[q] += inst.duration
+                            starts[q] += instruction.operation.duration
                     else:
                         dones[q] = True
             if len(qubits) == len([done for done in dones.values() if done]):  # all done
@@ -4693,8 +4854,8 @@ class QuantumCircuit:
         """
         if self.duration is None:
             # circuit has only delays, this is kind of scheduled
-            for inst, _, _ in self.data:
-                if not isinstance(inst, Delay):
+            for instruction in self._data:
+                if not isinstance(instruction.operation, Delay):
                     raise CircuitError(
                         "qubit_stop_time undefined. Circuit must be scheduled first."
                     )
@@ -4704,12 +4865,12 @@ class QuantumCircuit:
 
         stops = {q: self.duration for q in qubits}
         dones = {q: False for q in qubits}
-        for inst, qargs, _ in reversed(self.data):
+        for instruction in reversed(self._data):
             for q in qubits:
-                if q in qargs:
-                    if isinstance(inst, Delay):
+                if q in instruction.qubits:
+                    if isinstance(instruction.operation, Delay):
                         if not dones[q]:
-                            stops[q] -= inst.duration
+                            stops[q] -= instruction.operation.duration
                     else:
                         dones[q] = True
             if len(qubits) == len([done for done in dones.values() if done]):  # all done
@@ -4754,19 +4915,18 @@ def _add_sub_instruction_to_existing_composite_circuits(
     """Recursively add undefined sub-instructions in the definition of the given
     instruction to existing_composite_circuit list.
     """
-    for sub_instruction, _, _ in instruction.definition:
+    for sub_instruction in instruction.definition:
+        sub_operation = sub_instruction.operation
         # Check instructions names are valid
-        if not VALID_QASM2_IDENTIFIER.fullmatch(sub_instruction.name):
-            sub_instruction = sub_instruction.copy(
-                name=_qasm_escape_gate_name(sub_instruction.name)
-            )
+        if not VALID_QASM2_IDENTIFIER.fullmatch(sub_operation.name):
+            sub_operation = sub_operation.copy(name=_qasm_escape_gate_name(sub_operation.name))
         if (
-            sub_instruction.name not in existing_gate_names
-            and sub_instruction not in existing_composite_circuits
+            sub_operation.name not in existing_gate_names
+            and sub_operation not in existing_composite_circuits
         ):
-            existing_composite_circuits.insert(0, sub_instruction)
+            existing_composite_circuits.insert(0, sub_operation)
             _add_sub_instruction_to_existing_composite_circuits(
-                sub_instruction, existing_gate_names, existing_composite_circuits
+                sub_operation, existing_gate_names, existing_composite_circuits
             )
 
 
@@ -4796,16 +4956,16 @@ def _get_composite_circuit_qasm_from_instruction(instruction: Instruction) -> st
     definition_bit_labels = {
         bit: idx for bits in (definition.qubits, definition.clbits) for idx, bit in enumerate(bits)
     }
-    for sub_instruction, qargs, _ in definition:
-        if not VALID_QASM2_IDENTIFIER.fullmatch(sub_instruction.name):
-            sub_instruction = sub_instruction.copy(
-                name=_qasm_escape_gate_name(sub_instruction.name)
-            )
+    for sub_instruction in definition:
+        sub_operation = sub_instruction.operation
+        if not VALID_QASM2_IDENTIFIER.fullmatch(sub_operation.name):
+            sub_operation = sub_operation.copy(name=_qasm_escape_gate_name(sub_operation.name))
 
         gate_qargs = ",".join(
-            ["q%i" % index for index in [definition_bit_labels[qubit] for qubit in qargs]]
+            "q%i" % index
+            for index in [definition_bit_labels[qubit] for qubit in sub_instruction.qubits]
         )
-        composite_circuit_gates += f"{sub_instruction.qasm()} {gate_qargs}; "
+        composite_circuit_gates += f"{sub_operation.qasm()} {gate_qargs}; "
 
     if composite_circuit_gates:
         composite_circuit_gates = composite_circuit_gates.rstrip(" ")

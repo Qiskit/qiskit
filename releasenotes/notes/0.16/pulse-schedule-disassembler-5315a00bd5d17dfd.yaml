@@ -5,7 +5,7 @@ features:
     been added to the :func:`qiskit.assembler.disassemble` function.
     For example:
 
-    .. code-block::
+    .. code-block:: python
 
       from qiskit import pulse
       from qiskit.assembler.disassemble import disassemble

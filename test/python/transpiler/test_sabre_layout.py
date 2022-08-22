@@ -19,7 +19,7 @@ from qiskit.transpiler import CouplingMap
 from qiskit.transpiler.passes import SabreLayout
 from qiskit.converters import circuit_to_dag
 from qiskit.test import QiskitTestCase
-from qiskit.test.mock import FakeAlmaden
+from qiskit.providers.fake_provider import FakeAlmaden
 
 
 class TestSabreLayout(QiskitTestCase):
@@ -56,10 +56,10 @@ class TestSabreLayout(QiskitTestCase):
         pass_.run(dag)
 
         layout = pass_.property_set["layout"]
-        self.assertEqual(layout[qr[0]], 10)
-        self.assertEqual(layout[qr[1]], 12)
-        self.assertEqual(layout[qr[2]], 7)
-        self.assertEqual(layout[qr[3]], 11)
+        self.assertEqual(layout[qr[0]], 11)
+        self.assertEqual(layout[qr[1]], 6)
+        self.assertEqual(layout[qr[2]], 12)
+        self.assertEqual(layout[qr[3]], 5)
         self.assertEqual(layout[qr[4]], 13)
 
     def test_6q_circuit_20q_coupling(self):
@@ -92,12 +92,12 @@ class TestSabreLayout(QiskitTestCase):
         pass_.run(dag)
 
         layout = pass_.property_set["layout"]
-        self.assertEqual(layout[qr0[0]], 2)
-        self.assertEqual(layout[qr0[1]], 3)
+        self.assertEqual(layout[qr0[0]], 8)
+        self.assertEqual(layout[qr0[1]], 2)
         self.assertEqual(layout[qr0[2]], 10)
-        self.assertEqual(layout[qr1[0]], 1)
-        self.assertEqual(layout[qr1[1]], 7)
-        self.assertEqual(layout[qr1[2]], 5)
+        self.assertEqual(layout[qr1[0]], 3)
+        self.assertEqual(layout[qr1[1]], 12)
+        self.assertEqual(layout[qr1[2]], 11)
 
 
 if __name__ == "__main__":
