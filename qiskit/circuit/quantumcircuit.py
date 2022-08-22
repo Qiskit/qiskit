@@ -276,6 +276,7 @@ class QuantumCircuit:
         self._parameters = None
 
         self._layout = None
+        self._final_layout = None
         self._global_phase: ParameterValueType = 0
         self.global_phase = global_phase
 

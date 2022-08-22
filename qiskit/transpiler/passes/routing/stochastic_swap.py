@@ -339,7 +339,7 @@ class StochasticSwap(TransformationPass):
         logger.debug("mapper: self.trivial_layout = %s", self.trivial_layout)
         logger.debug("mapper: layout = %s", layout)
 
+        self.property_set["final_layout"] = layout
         if self.fake_run:
-            self.property_set["final_layout"] = layout
             return circuit_graph
         return dagcircuit_output

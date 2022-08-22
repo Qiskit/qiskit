@@ -201,7 +201,7 @@ class Operator(LinearOp):
         return op
 
     @classmethod
-    def from_circuit(cls, circuit, ignore_set_layout=False, layout=None):
+    def from_circuit(cls, circuit, ignore_set_layout=False, layout=None, final_layout=None):
         """Create a new Operator object from a :class`.QuantumCircuit`
 
         While a :class:`.QuantumCircuit` object can passed directly as ``data``
@@ -224,6 +224,7 @@ class Operator(LinearOp):
                 particular layout to use to permute the qubits in the created
                 :class:`.Operator`. If this is specified it will be used instead
                 of a layout contained in the ``circuit`` input.
+            final_layout (Layout): If specified this kwarg can be used to
         Returns:
             Operator: An operator representing the input circuit
         """
@@ -232,6 +233,9 @@ class Operator(LinearOp):
         if layout is None:
             if not ignore_set_layout:
                 layout = getattr(circuit, "_layout", None)
+        if final_layout is None:
+            if not ignore_set_layout:
+                final_layout = getattr(circuit, "_final_layout", None)
         qargs = None
         # If there was a layout specified (either from the circuit
         # or via user input) use that to set qargs to permute qubits
@@ -241,6 +245,10 @@ class Operator(LinearOp):
                 phys: circuit.find_bit(bit).index
                 for phys, bit in layout.get_physical_bits().items()
             }
+            if final_layout is not None:
+                final_physical_to_logical = final_layout.get_physical_bits()
+                qargs = {circuit.find_bit(final_physical_to_logical[phys]).index: virtual for phys, virtual in qargs.items()}
+
         # Convert circuit to an instruction
         instruction = circuit.to_instruction()
         op._append_instruction(instruction, qargs=qargs)
