@@ -69,29 +69,9 @@ def _append_operation(clifford, operation, qargs=None):
 
     gate = operation
 
-    # Basis Clifford Gates
-    basis_1q = {
-        "i": _append_i,
-        "id": _append_i,
-        "iden": _append_i,
-        "x": _append_x,
-        "y": _append_y,
-        "z": _append_z,
-        "h": _append_h,
-        "s": _append_s,
-        "sdg": _append_sdg,
-        "sinv": _append_sdg,
-        "v": _append_v,
-        "w": _append_w,
-    }
-    basis_2q = {"cx": _append_cx, "cz": _append_cz, "swap": _append_swap}
-
-    # Non-clifford gates
-    non_clifford = ["t", "tdg", "ccx", "ccz"]
-
     if isinstance(gate, str):
         # Check if gate is a valid Clifford basis gate string
-        if gate not in basis_1q and gate not in basis_2q:
+        if gate not in _BASIS_1Q and gate not in _BASIS_2Q:
             raise QiskitError(f"Invalid Clifford gate name string {gate}")
         name = gate
     else:
@@ -99,16 +79,16 @@ def _append_operation(clifford, operation, qargs=None):
         name = gate.name
 
     # Apply gate if it is a Clifford basis gate
-    if name in non_clifford:
+    if name in _NON_CLIFFORD:
         raise QiskitError(f"Cannot update Clifford with non-Clifford gate {name}")
-    if name in basis_1q:
+    if name in _BASIS_1Q:
         if len(qargs) != 1:
             raise QiskitError("Invalid qubits for 1-qubit gate.")
-        return basis_1q[name](clifford, qargs[0])
-    if name in basis_2q:
+        return _BASIS_1Q[name](clifford, qargs[0])
+    if name in _BASIS_2Q:
         if len(qargs) != 2:
             raise QiskitError("Invalid qubits for 2-qubit gate.")
-        return basis_2q[name](clifford, qargs[0], qargs[1])
+        return _BASIS_2Q[name](clifford, qargs[0], qargs[1])
 
     # If not a Clifford basis gate we try to unroll the gate and
     # raise an exception if unrolling reaches a non-Clifford gate.
@@ -340,3 +320,23 @@ def _append_swap(clifford, qubit0, qubit1):
     clifford.x[:, [qubit0, qubit1]] = clifford.x[:, [qubit1, qubit0]]
     clifford.z[:, [qubit0, qubit1]] = clifford.z[:, [qubit1, qubit0]]
     return clifford
+
+
+# Basis Clifford Gates
+_BASIS_1Q = {
+    "i": _append_i,
+    "id": _append_i,
+    "iden": _append_i,
+    "x": _append_x,
+    "y": _append_y,
+    "z": _append_z,
+    "h": _append_h,
+    "s": _append_s,
+    "sdg": _append_sdg,
+    "sinv": _append_sdg,
+    "v": _append_v,
+    "w": _append_w,
+}
+_BASIS_2Q = {"cx": _append_cx, "cz": _append_cz, "swap": _append_swap}
+# Non-clifford gates
+_NON_CLIFFORD = {"t", "tdg", "ccx", "ccz"}
