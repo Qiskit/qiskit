@@ -20,7 +20,7 @@ from typing import Sequence
 import numpy as np
 
 from qiskit.circuit import Parameter, QuantumCircuit
-from qiskit.primitives import BaseSampler, SamplerResult
+from qiskit.primitives import BaseSampler
 from qiskit.result import QuasiDistribution
 
 from .base_sampler_gradient import BaseSamplerGradient
@@ -131,8 +131,6 @@ class FiniteDiffSamplerGradient(BaseSamplerGradient):
                     )
                 )
 
-            gradients.append(
-                [QuasiDistribution(dist) for dist in dists]
-            )
+            gradients.append([QuasiDistribution(dist) for dist in dists])
             status.append(job.status())
         return SamplerGradientResult(quasi_dists=gradients, status=status, metadata=run_options)

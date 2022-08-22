@@ -15,9 +15,10 @@ Estimator result class
 
 from __future__ import annotations
 
-import numpy as np
-from typing import Any
 from dataclasses import dataclass
+from typing import Any
+
+import numpy as np
 
 from qiskit.providers import JobStatus
 

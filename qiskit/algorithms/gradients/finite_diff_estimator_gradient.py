@@ -20,7 +20,7 @@ import numpy as np
 
 from qiskit.circuit import Parameter, QuantumCircuit
 from qiskit.opflow import PauliSumOp
-from qiskit.primitives import BaseEstimator, EstimatorResult
+from qiskit.primitives import BaseEstimator
 from qiskit.quantum_info.operators.base_operator import BaseOperator
 
 from .base_estimator_gradient import BaseEstimatorGradient
@@ -33,12 +33,7 @@ class FiniteDiffEstimatorGradient(BaseEstimatorGradient):
     Gradient of Estimator with Finite difference method.
     """
 
-    def __init__(
-        self,
-        estimator: BaseEstimator,
-        epsilon: float = 1e-6,
-        **run_options
-    ):
+    def __init__(self, estimator: BaseEstimator, epsilon: float = 1e-6, **run_options):
         """
         Args:
             estimator: The estimator used to compute the gradients.
@@ -124,4 +119,4 @@ class FiniteDiffEstimatorGradient(BaseEstimatorGradient):
 
             gradients.append(values)
             status.append(job.status())
-        return EstimatorGradientResult(values=gradients, status=status,metadata=run_options)
+        return EstimatorGradientResult(values=gradients, status=status, metadata=run_options)

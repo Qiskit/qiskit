@@ -22,7 +22,7 @@ import numpy as np
 
 from qiskit.circuit import Parameter, ParameterExpression, QuantumCircuit
 from qiskit.opflow import PauliSumOp
-from qiskit.primitives import BaseEstimator, EstimatorResult
+from qiskit.primitives import BaseEstimator
 from qiskit.quantum_info import Pauli
 from qiskit.quantum_info.operators.base_operator import BaseOperator
 

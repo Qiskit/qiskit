@@ -33,6 +33,7 @@ class SamplerGradientResult:
             sampling probability for the j-th parameter in ``circuits[i]``.
         status: List of JobStatus for each SamplerResult.
     """
+
     quasi_dists: list[list[QuasiDistribution]]
     status: list[JobStatus]
     metadata: list[dict[str, Any]]

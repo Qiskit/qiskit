@@ -21,7 +21,7 @@ from typing import Sequence
 import numpy as np
 
 from qiskit.circuit import Parameter, ParameterExpression, QuantumCircuit
-from qiskit.primitives import BaseSampler, SamplerResult
+from qiskit.primitives import BaseSampler
 from qiskit.result import QuasiDistribution
 
 from .base_sampler_gradient import BaseSamplerGradient
@@ -57,7 +57,8 @@ class ParamShiftSamplerGradient(BaseSamplerGradient):
             if index is not None:
                 circuit_index = index
             else:
-                # if the given circuit is  a new one, make gradient circuit data and base parameter values
+                # if the given circuit is  a new one, make gradient circuit data and
+                # base parameter values
                 circuit_index = len(self._circuits)
                 self._circuit_ids[id(circuit)] = circuit_index
                 self._gradient_circuit_data_dict[
@@ -152,9 +153,7 @@ class ParamShiftSamplerGradient(BaseSamplerGradient):
                             }
                         )
                     )
-            gradients.append(
-                [QuasiDistribution(dist) for dist in dists]
-            )
+            gradients.append([QuasiDistribution(dist) for dist in dists])
 
             status.append(job.status())
-        return SamplerGradientResult(quasi_dists=gradients, status=status,  metadata=run_options)
+        return SamplerGradientResult(quasi_dists=gradients, status=status, metadata=run_options)

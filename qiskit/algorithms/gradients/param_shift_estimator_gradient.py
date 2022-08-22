@@ -21,7 +21,7 @@ import numpy as np
 
 from qiskit.circuit import Parameter, ParameterExpression, QuantumCircuit
 from qiskit.opflow import PauliSumOp
-from qiskit.primitives import BaseEstimator, EstimatorResult
+from qiskit.primitives import BaseEstimator
 from qiskit.quantum_info.operators.base_operator import BaseOperator
 
 from .base_estimator_gradient import BaseEstimatorGradient
@@ -36,11 +36,7 @@ from .utils import (
 class ParamShiftEstimatorGradient(BaseEstimatorGradient):
     """Parameter shift estimator gradient"""
 
-    def __init__(
-        self,
-        estimator: BaseEstimator,
-        **run_options
-    ):
+    def __init__(self, estimator: BaseEstimator, **run_options):
         """
         Args:
             estimator: The estimator used to compute the gradients.
@@ -67,7 +63,8 @@ class ParamShiftEstimatorGradient(BaseEstimatorGradient):
             if circ_index is not None:
                 circuit_index = circ_index
             else:
-                # if the given circuit is  a new one, make gradient circuit data and base parameter values
+                # if the given circuit is  a new one, make gradient circuit data and
+                # base parameter values.
                 circuit_index = len(self._circuits)
                 self._circuit_ids[id(circuit)] = circuit_index
                 self._gradient_circuit_data_dict[

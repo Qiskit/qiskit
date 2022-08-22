@@ -213,7 +213,9 @@ class TestEstimatorGradient(QiskitTestCase):
             values = gradient.evaluate([qc], [op], [param]).values[0]
             np.testing.assert_almost_equal(values, correct_results[i])
 
-    @combine(grad=[FiniteDiffEstimatorGradient, ParamShiftEstimatorGradient, LinCombEstimatorGradient])
+    @combine(
+        grad=[FiniteDiffEstimatorGradient, ParamShiftEstimatorGradient, LinCombEstimatorGradient]
+    )
     def test_gradient_partial(self, grad):
         """Test the estimator gradient for partial"""
         estimator = Estimator()
@@ -232,7 +234,9 @@ class TestEstimatorGradient(QiskitTestCase):
             values = gradient.evaluate([qc], [op], [param]).values[0]
             np.testing.assert_almost_equal(values, correct_results[i])
 
-    @combine(grad=[FiniteDiffEstimatorGradient, ParamShiftEstimatorGradient, LinCombEstimatorGradient])
+    @combine(
+        grad=[FiniteDiffEstimatorGradient, ParamShiftEstimatorGradient, LinCombEstimatorGradient]
+    )
     def test_gradient_multi_arguments(self, grad):
         """Test the estimator gradient for multiple arguments"""
         estimator = Estimator()
@@ -249,7 +253,7 @@ class TestEstimatorGradient(QiskitTestCase):
             [-1],
         ]
         op = SparsePauliOp.from_list([("Z", 1)])
-        values = gradient.evaluate([qc,qc2], [op]*2, param_list).values
+        values = gradient.evaluate([qc, qc2], [op] * 2, param_list).values
         np.testing.assert_almost_equal(values, correct_results)
 
         c = Parameter("c")
@@ -259,13 +263,15 @@ class TestEstimatorGradient(QiskitTestCase):
         param_list2 = [[np.pi / 4], [np.pi / 4, np.pi / 4]]
         correct_results2 = [
             [-0.70710678],
-            [-0.70710678 if p==c else 0 for p in qc3.parameters],
+            [-0.70710678 if p == c else 0 for p in qc3.parameters],
         ]
-        values2 = gradient.evaluate([qc,qc3], [op]*2, param_list2, partial=[[a],[c]]).values
+        values2 = gradient.evaluate([qc, qc3], [op] * 2, param_list2, partial=[[a], [c]]).values
         np.testing.assert_almost_equal(values2[0], correct_results2[0])
         np.testing.assert_almost_equal(values2[1], correct_results2[1])
 
-    @combine(grad=[FiniteDiffEstimatorGradient, ParamShiftEstimatorGradient, LinCombEstimatorGradient])
+    @combine(
+        grad=[FiniteDiffEstimatorGradient, ParamShiftEstimatorGradient, LinCombEstimatorGradient]
+    )
     def test_gradient_validation(self, grad):
         """Test estimator gradient's validation"""
         estimator = Estimator()
@@ -282,7 +288,7 @@ class TestEstimatorGradient(QiskitTestCase):
         with self.assertRaises(QiskitError):
             gradient.evaluate([qc, qc], [op], param_list, partial=[[a]])
         with self.assertRaises(QiskitError):
-            gradient.evaluate([qc], [op], [[np.pi / 4,np.pi / 4]])
+            gradient.evaluate([qc], [op], [[np.pi / 4, np.pi / 4]])
 
 
 if __name__ == "__main__":

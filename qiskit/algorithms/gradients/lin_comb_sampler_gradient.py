@@ -19,7 +19,7 @@ from collections import Counter, defaultdict
 from typing import Sequence
 
 from qiskit.circuit import Parameter, ParameterExpression, QuantumCircuit
-from qiskit.primitives import BaseSampler, SamplerResult
+from qiskit.primitives import BaseSampler
 from qiskit.result import QuasiDistribution
 
 from .base_sampler_gradient import BaseSamplerGradient
@@ -88,9 +88,7 @@ class LinCombSamplerGradient(BaseSamplerGradient):
                     result_index += 1
             gradient_parameter_values_list = [parameter_values_] * len(gradient_circuit)
 
-            job = self._sampler.run(
-                gradient_circuit, gradient_parameter_values_list, **run_options
-            )
+            job = self._sampler.run(gradient_circuit, gradient_parameter_values_list, **run_options)
             results = job.result()
 
             param_set = set(parameters)
@@ -113,8 +111,6 @@ class LinCombSamplerGradient(BaseSamplerGradient):
                         sign, k2 = divmod(k, num_bitstrings)
                         dists[i][k2] += (-1) ** sign * bound_coeff * v
 
-            gradients.append(
-                [QuasiDistribution(dist) for dist in dists]
-            )
+            gradients.append([QuasiDistribution(dist) for dist in dists])
             status.append(job.status())
         return SamplerGradientResult(quasi_dists=gradients, status=status, metadata=run_options)
