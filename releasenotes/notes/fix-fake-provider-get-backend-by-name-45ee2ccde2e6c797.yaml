@@ -1,0 +1,7 @@
+---
+fixes:
+  - |
+    Fixed an issue with :meth:`~qiskit.providers.fake_provider.FakeProviderForBackendV2.get_backend`
+    where it would raise an error with a backend name supplied. Fixed `#8531
+    <https://github.com/Qiskit/qiskit-terra/issues/8531>`__
+    
