@@ -71,7 +71,7 @@ def transpile(
     scheduling_method: Optional[str] = None,
     instruction_durations: Optional[InstructionDurationsType] = None,
     dt: Optional[float] = None,
-    approximation_degree: Optional[float] = None,
+    approximation_degree: Optional[float] = 1.0,
     timing_constraints: Optional[Dict[str, int]] = None,
     seed_transpiler: Optional[int] = None,
     optimization_level: Optional[int] = None,
