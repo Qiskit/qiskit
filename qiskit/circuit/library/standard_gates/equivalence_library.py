@@ -450,9 +450,9 @@ _sel.add_equivalence(SdgGate(), def_sdg)
 #      └───┘        └───┘└────┘└───┘
 q = QuantumRegister(2, "q")
 def_cs = QuantumCircuit(q)
-def_cs.append(HGate(), [q[0]], [])
+def_cs.append(HGate(), [q[1]], [])
 def_cs.append(CSXGate(), [q[0], q[1]], [])
-def_cs.append(HGate(), [q[0]], [])
+def_cs.append(HGate(), [q[1]], [])
 _sel.add_equivalence(CSGate(), def_cs)
 
 # CSdgGate
@@ -463,10 +463,10 @@ _sel.add_equivalence(CSGate(), def_cs)
 #      └─────┘        └───┘└───┘└────┘└───┘
 q = QuantumRegister(2, "q")
 def_csdg = QuantumCircuit(q)
-def_csdg.append(HGate(), [q[0]], [])
+def_csdg.append(HGate(), [q[1]], [])
 def_csdg.append(CXGate(), [q[0], q[1]], [])
 def_csdg.append(CSXGate(), [q[0], q[1]], [])
-def_csdg.append(HGate(), [q[0]], [])
+def_csdg.append(HGate(), [q[1]], [])
 _sel.add_equivalence(CSdgGate(), def_csdg)
 
 # SdgGate
