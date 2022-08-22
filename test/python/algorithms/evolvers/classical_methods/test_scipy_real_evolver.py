@@ -48,7 +48,7 @@ class TestClassicalRealEvolver(QiskitAlgorithmsTestCase):
     ):
         """Initializes a classical real evolver and evolves a state."""
         evolution_problem = EvolutionProblem(hamiltonian, time_ev, initial_state)
-        classic_evolver = SciPyRealEvolver(threshold=10e-4)
+        classic_evolver = SciPyRealEvolver(threshold=1e-3)
         result = classic_evolver.evolve(evolution_problem)
 
         with self.subTest("Amplitudes"):
@@ -86,7 +86,7 @@ class TestClassicalRealEvolver(QiskitAlgorithmsTestCase):
         timesteps = z_mean.shape[0]
         time_vector = np.linspace(0, time_ev, timesteps)
         expected_z = 1 - 2 * (np.sin(time_vector)) ** 2
-        expected_z_std = np.sqrt(1 - expected_z**2)
+        expected_z_std = np.zeros_like(expected_z)
 
         np.testing.assert_allclose(z_mean, expected_z, atol=2 * threshold, rtol=0)
         np.testing.assert_allclose(z_std, expected_z_std, atol=2 * threshold, rtol=0)
@@ -97,9 +97,16 @@ class TestClassicalRealEvolver(QiskitAlgorithmsTestCase):
         qc.h(0)
         qc.cx(0, range(1, 3))
 
-        evolution_problem = EvolutionProblem(hamiltonian=X ^ X ^ X, time=1.0, initial_state=qc)
-        classic_evolver = SciPyRealEvolver(max_iterations=5)
-        classic_evolver.evolve(evolution_problem)
+        evolution_problem = EvolutionProblem(
+            hamiltonian=X ^ X ^ X, time=2 * np.pi, initial_state=qc
+        )
+        classic_evolver = SciPyRealEvolver(max_iterations=500)
+        result = classic_evolver.evolve(evolution_problem)
+        np.testing.assert_almost_equal(
+            result.evolved_state.to_matrix(),
+            np.array([1, 0, 0, 0, 0, 0, 0, 1]) / np.sqrt(2),
+            decimal=3,
+        )
 
     def test_error_time_dependency(self):
         """Tests if an error is raised for time dependent hamiltonian."""

@@ -27,7 +27,35 @@ from ..real_evolver import RealEvolver
 
 
 class SciPyRealEvolver(RealEvolver, SciPyEvolver):
-    """Classical Evolver for real time evolution."""
+    r"""Classical Evolver for real time evolution.
+
+    Evolves an initial state :math:`|\Psi\rangle` for a time :math:`t`
+    under a Hamiltonian  :math:`H`, as provided in the ``evolution_problem``.
+
+    In order to perform one timestep :math:`\delta t` of the evolution, we need to implement:
+
+    .. math::
+
+        |\Psi ( t + \delta t ) \rangle = \exp(-i \delta t H) |\Psi (t ) \rangle
+
+    Which can be approximated as:
+
+    .. math::
+
+        \exp(-i \delta t H) = \left(1+ i \frac{\delta t}{2} H \right) ^{-1}
+                                \left( 1 - i \frac{\delta t}{2} H \right)
+                                + O\left( \delta t^3 \right)
+
+    Note that this operator is unitary, and thus we won't need to renormalize the state at
+    each step. In order to find :math:`|\Psi ( t + \delta t ) \rangle` we then
+    need to solve a linear system of equations:
+
+    .. math::
+
+        \left( 1+ i \frac{\delta t}{2} H \right) |\Psi ( t + \delta t ) \rangle
+                = \left( 1 - i \frac{\delta t}{2} H \right) |\Psi( t ) \rangle
+
+    """
 
     def __init__(
         self, threshold: float = 1e-3, bicg_err: float = 0.1, max_iterations: int = np.inf
@@ -48,7 +76,7 @@ class SciPyRealEvolver(RealEvolver, SciPyEvolver):
 
         """
 
-        if (max_iterations < 1 or not isinstance(max_iterations, int)) and max_iterations != np.inf:
+        if max_iterations < 1:
             raise ValueError("`max_itertations` must be a positive integer.")
 
         if bicg_err < 0 or bicg_err > 1:
@@ -64,32 +92,6 @@ class SciPyRealEvolver(RealEvolver, SciPyEvolver):
     def evolve(self, evolution_problem: EvolutionProblem) -> EvolutionResult:
         r"""Perform real time evolution :math:`\exp(-i t H)|\Psi\rangle`.
 
-        Evolves an initial state :math:`|\Psi\rangle` for a time :math:`t`
-        under a Hamiltonian  :math:`H`, as provided in the ``evolution_problem``.
-
-        In order to perform one timestep :math:`\delta t` of the evolution, we need to implement:
-
-        .. math::
-
-            |\Psi ( t + \delta t ) \rangle = \exp(-i \delta t H) |\Psi (t ) \rangle
-
-        Which can be approximated as:
-
-        .. math::
-
-            \exp(-i \delta t H) = \left(1+ i \frac{\delta t}{2} H \right) ^{-1}
-                                  \left( 1 - i \frac{\delta t}{2} H \right)
-                                  + O\left( \delta t^3 \right)
-
-        Note that this operator is unitary, and thus we won't need to renormalize the state at
-        each step. In order to find :math:`|\Psi ( t + \delta t ) \rangle` we then
-        need to solve a linear system of equations:
-
-        .. math::
-
-            \left( 1+ i \frac{\delta t}{2} H \right) |\Psi ( t + \delta t ) \rangle
-                    = \left( 1 - i \frac{\delta t}{2} H \right) |\Psi( t ) \rangle
-
         Args:
             evolution_problem: The definition of the evolution problem.
 
@@ -104,65 +106,35 @@ class SciPyRealEvolver(RealEvolver, SciPyEvolver):
         if evolution_problem.t_param is not None:
             raise ValueError("Time dependent Hamiltonians are not currently supported.")
 
-        (
-            state,
-            lhs_operator,
-            rhs_operator,
-            aux_ops,
-            aux_ops_2,
-            timesteps,
-            bicg_tol,
-        ) = self._start(evolution_problem=evolution_problem)
+        (state, lhs_operator, rhs_operator, aux_ops, timesteps, bicg_tol) = self._sparsify(
+            evolution_problem=evolution_problem
+        )
 
         # Create empty arrays to store the time evolution of the aux operators.
-        operator_number = (
+        operator_numbers = (
             0 if evolution_problem.aux_operators is None else len(evolution_problem.aux_operators)
         )
-        ops_ev_mean = np.empty(shape=(operator_number, timesteps + 1), dtype=float)
-
-        ops_ev_std = np.empty(shape=(operator_number, timesteps + 1), dtype=float)
+        ops_ev_mean = np.empty(shape=(operator_numbers, timesteps + 1), dtype=complex)
 
         # Perform the time evolution and stores the value of the operators at each timestep.
         for ts in range(timesteps):
-            (ops_ev_mean[:, ts], ops_ev_std[:, ts],) = self._evaluate_aux_ops(
-                aux_ops,
-                aux_ops_2,
-                state,
-            )
+            (ops_ev_mean[:, ts]) = self._evaluate_aux_ops(aux_ops, state)
 
             state = self._step(state, lhs_operator, rhs_operator, bicg_tol)
 
-            ops_ev_mean[:, timesteps], ops_ev_std[:, timesteps] = self._evaluate_aux_ops(
-                aux_ops, aux_ops_2, state
-            )
+            ops_ev_mean[:, timesteps] = self._evaluate_aux_ops(aux_ops, state)
 
-        aux_ops_history = self._create_observable_output(
-            ops_ev_mean,
-            ops_ev_std,
-            evolution_problem.aux_operators,
-        )
+        aux_ops_history = self._create_observable_output(ops_ev_mean, evolution_problem)
 
-        aux_ops = self._create_observable_output(
-            ops_ev_mean[:, -1],
-            ops_ev_std[:, -1],
-            evolution_problem.aux_operators,
-        )
+        aux_ops = self._create_observable_output(ops_ev_mean[:, -1], evolution_problem)
 
         return EvolutionResult(
             evolved_state=StateFn(state), aux_ops_evaluated=aux_ops, observables=aux_ops_history
         )
 
-    def _start(
+    def _sparsify(
         self, evolution_problem: EvolutionProblem
-    ) -> Tuple[
-        np.ndarray,
-        sp.csr_matrix,
-        sp.csr_matrix,
-        List[sp.csr_matrix],
-        List[sp.csr_matrix],
-        int,
-        float,
-    ]:
+    ) -> Tuple[np.ndarray, sp.csr_matrix, List[sp.csr_matrix], List[sp.csr_matrix], int, float]:
         """Returns a tuple with the initial state as an array, the operators needed for time
          evolution as sparse matrices, the number of timesteps in which to divide the time evolution
          and the tolerance for the BiCG method.
@@ -173,8 +145,7 @@ class SciPyRealEvolver(RealEvolver, SciPyEvolver):
         Returns:
             A tuple with the initial state as an array, the operators needed for time
             evolution as sparse matrices, the operators to evaluate at each timestep as a list
-            of sparse matrices as well as a list of the squared operators to compute the standard
-            deviation, the number of timesteps in which to divide the time evolution and
+            of sparse matrices, the number of timesteps in which to divide the time evolution and
             the tolerance for the BiCG method.
         """
         # Convert the initial state and Hamiltonian into sparse matrices.
@@ -207,28 +178,14 @@ class SciPyRealEvolver(RealEvolver, SciPyEvolver):
         else:
             aux_ops = []
 
-        aux_ops_2 = [aux_op.dot(aux_op) for aux_op in aux_ops]
-
         return (
             state,
             lhs_operator,
             rhs_operator,
             aux_ops,
-            aux_ops_2,
             timesteps,
-            self._bicg_tol(timesteps),
+            self.threshold * self.bicg_err / timesteps,
         )
-
-    def _bicg_tol(self, timesteps: int) -> float:
-        """Returns the tolerance for the BiCG solver.
-
-        Args:
-            timesteps: The number of timesteps in the evolution.
-
-        Returns:
-            The tolerance for the BiCG solver.
-        """
-        return self.threshold * self.bicg_err / timesteps
 
     def minimal_number_steps(
         self, norm_hamiltonian: float, time: float, threshold: float = 1e-4
@@ -242,8 +199,8 @@ class SciPyRealEvolver(RealEvolver, SciPyEvolver):
         Args:
             time: The time to evolve.
             norm_hamiltonian: The operator norm of the Hamiltonian if known or an estimation of
-                             it (For example the infinity norm of the Hamiltonian). This value
-                             will be associated with the error of the Hamiltonian.
+                it (For example the infinity norm of the Hamiltonian). This value will be associated
+                with the error of the Hamiltonian.
             threshold: The threshold for the error.
 
         Returns:
@@ -273,7 +230,7 @@ class SciPyRealEvolver(RealEvolver, SciPyEvolver):
         rhs_operator: sp.csr_matrix,
         bicg_tol: float,
     ) -> np.ndarray:
-        """ "Perform one timestep of the evolution.
+        """Perform one timestep of the evolution.
 
         Args:
             state: The initial state.
@@ -291,5 +248,7 @@ class SciPyRealEvolver(RealEvolver, SciPyEvolver):
         rhs = rhs_operator.dot(state)
         ev_state, exitcode = bicg(A=lhs_operator, b=rhs, x0=state, atol=bicg_tol, tol=bicg_tol)
         if exitcode != 0:
-            raise RuntimeError("The biconjugate gradient solver has falied.")
+            raise RuntimeError(
+                f"The biconjugate gradient solver has falied with exitcode: {exitcode}"
+            )
         return ev_state

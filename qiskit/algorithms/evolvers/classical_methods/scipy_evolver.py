@@ -16,30 +16,49 @@ from typing import List, Tuple, Union
 import scipy.sparse as sp
 import numpy as np
 
+from qiskit.algorithms.evolvers.evolution_problem import EvolutionProblem
+
 from ...list_or_dict import ListOrDict
 
 
 class SciPyEvolver(ABC):
     """Parent class for SciPyEvolvers"""
+
     def _create_observable_output(
         self,
         ops_ev_mean: np.ndarray,
-        ops_ev_std: np.ndarray,
-        aux_ops: ListOrDict,
+        evolution_problem: EvolutionProblem,
     ) -> ListOrDict[Union[Tuple[np.ndarray, np.ndarray], Tuple[complex, complex]]]:
-        """Creates the right output format for the evaluated auxiliary operators."""
+        """Creates the right output format for the evaluated auxiliary operators.
+        Args:
+            ops_ev_mean: Array containing the expectation value of each observable at each timestep.
+            evolution_problem: Evolution Problem to create the output of.
+
+        Returns:
+            An output with the observables mean value at the appropiate times depending on whether
+            the auxiliary operators in the evolution problem are a `list` or a `dict`.
+
+        """
+
+        aux_ops = evolution_problem.aux_operators
+        time_array = np.linspace(0, evolution_problem.time, ops_ev_mean.shape[-1])
+        zero_array = np.zeros(ops_ev_mean.shape[-1])
+
         operator_number = 0 if aux_ops is None else len(aux_ops)
-        observable_evolution = [(ops_ev_mean[i], ops_ev_std[i]) for i in range(operator_number)]
+
+        observable_evolution = [(ops_ev_mean[i], zero_array) for i in range(operator_number)]
 
         if isinstance(aux_ops, dict):
             observable_evolution = dict(zip(aux_ops.keys(), observable_evolution))
+            observable_evolution["Time"] = time_array
+        else:
+            observable_evolution += [time_array]
 
         return observable_evolution
 
     def _evaluate_aux_ops(
         self,
         aux_ops: List[sp.csr_matrix],
-        aux_ops_2: List[sp.csr_matrix],
         state: np.ndarray,
     ) -> Tuple[np.ndarray, np.ndarray]:
         """Evaluates the aux operators if they are provided and stores their value.
@@ -48,8 +67,4 @@ class SciPyEvolver(ABC):
             Tuple of the mean and standard deviation of the aux operators for a given state.
         """
         op_mean = np.array([np.real(state.conjugate().dot(op.dot(state))) for op in aux_ops])
-        op_std = np.sqrt(
-            np.array([np.real(state.conjugate().dot(op2.dot(state))) for op2 in aux_ops_2])
-            - op_mean**2
-        )
-        return op_mean, op_std
+        return op_mean

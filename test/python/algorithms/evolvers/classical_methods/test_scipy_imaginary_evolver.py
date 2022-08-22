@@ -16,8 +16,9 @@ from test.python.algorithms import QiskitAlgorithmsTestCase
 from ddt import data, ddt, unpack
 import numpy as np
 from qiskit.algorithms.evolvers.evolution_problem import EvolutionProblem
-from qiskit.opflow import I, X, Z, Zero, Plus, Minus, PauliSumOp
-from qiskit.opflow import StateFn, OperatorBase
+from qiskit.opflow import I, X, Z, Zero, Plus, Minus, PauliSumOp,StateFn, OperatorBase,VectorStateFn
+from qiskit.quantum_info.states.statevector import Statevector
+
 from qiskit import QuantumCircuit
 from qiskit.algorithms.evolvers.classical_methods import SciPyImaginaryEvolver
 
@@ -38,18 +39,8 @@ class TestSciPyImaginaryEvolver(QiskitAlgorithmsTestCase):
         )
 
     @data(
-        [
-            Zero,
-            100,
-            X,
-            Minus,
-        ],
-        [
-            Zero,
-            100,
-            -X,
-            Plus,
-        ],
+        [Zero, 100, X, Minus],
+        [Zero, 100, -X, Plus],
     )
     @unpack
     def test_evolve(
@@ -85,45 +76,24 @@ class TestSciPyImaginaryEvolver(QiskitAlgorithmsTestCase):
                 rtol=0,
             )
 
-    def test_complex_observables(self):
-        """Tests if the observables are properly evaluated at each
-        timestep for a 5 qubit hamiltonian.
-        """
-
-        initial_state = Zero ^ 5
-        time_ev = 5.0
-        hamiltonian = (
+    @data(
+        (
+            Zero ^ 5,
             (X ^ (I ^ 4))
             + (I ^ X ^ (I ^ 3))
             + ((I ^ 2) ^ X ^ (I ^ 2))
             + ((I ^ 3) ^ X ^ I)
-            + ((I ^ 4) ^ X)
-        )
-        observables = {"Energy": hamiltonian, "Z": Z ^ 5}
-        evolution_problem = EvolutionProblem(
-            hamiltonian, time_ev, initial_state, aux_operators=observables
-        )
-        classic_evolver = SciPyImaginaryEvolver(timesteps=20)
-        result = classic_evolver.evolve(evolution_problem)
-
-        z_mean, _ = result.observables["Z"]
-        timesteps = z_mean.shape[0]
-
-        time_vector = np.linspace(0, time_ev, timesteps)
-        expected_z = 1 / (np.cosh(time_vector) ** 2 + np.sinh(time_vector) ** 2)
-
-        np.testing.assert_allclose(z_mean, expected_z**5, atol=1e-10, rtol=0)
-
-        final_z_mean, _ = result.aux_ops_evaluated["Z"]
-        np.testing.assert_allclose(final_z_mean, (expected_z**5)[-1], atol=1e-10, rtol=0)
-
-    def test_observables(self):
+            + ((I ^ 4) ^ X),
+            5,
+        ),
+        (Zero, X, 1),
+    )
+    @unpack
+    def test_observables(self, initial_state: StateFn, hamiltonian: OperatorBase, nqubits: int):
         """Tests if the observables are properly evaluated at each timestep."""
 
-        initial_state = Zero
         time_ev = 5.0
-        hamiltonian = X
-        observables = {"Energy": X, "Z": Z}
+        observables = {"Energy": hamiltonian, "Z": Z ^ nqubits}
         evolution_problem = EvolutionProblem(
             hamiltonian, time_ev, initial_state, aux_operators=observables
         )
@@ -136,20 +106,22 @@ class TestSciPyImaginaryEvolver(QiskitAlgorithmsTestCase):
         timesteps = z_mean.shape[0]
         time_vector = np.linspace(0, time_ev, timesteps)
         expected_z = 1 / (np.cosh(time_vector) ** 2 + np.sinh(time_vector) ** 2)
-        expected_z_std = np.sqrt(1 - expected_z**2)
+        expected_z_std = np.zeros_like(expected_z)
 
-        np.testing.assert_allclose(z_mean, expected_z, atol=2 * threshold, rtol=0)
+        np.testing.assert_allclose(z_mean, expected_z**nqubits, atol=2 * threshold, rtol=0)
         np.testing.assert_allclose(z_std, expected_z_std, atol=2 * threshold, rtol=0)
 
     def test_quantum_circuit_initial_state(self):
         """Tests if the system can be evolved with a quantum circuit as an initial state."""
         qc = QuantumCircuit(3)
+
         qc.h(0)
         qc.cx(0, range(1, 3))
 
         evolution_problem = EvolutionProblem(hamiltonian=X ^ X ^ X, time=1.0, initial_state=qc)
         classic_evolver = SciPyImaginaryEvolver(timesteps=5)
-        classic_evolver.evolve(evolution_problem)
+        result = classic_evolver.evolve(evolution_problem)
+        self.assertEqual(result.evolved_state, VectorStateFn(Statevector(qc)))
 
     def test_error_time_dependency(self):
         """Tests if an error is raised for time dependent hamiltonian."""
