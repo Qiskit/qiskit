@@ -15,14 +15,15 @@ Sampler result class
 
 from __future__ import annotations
 
+from typing import Any
 from dataclasses import dataclass
 
-from qiskit.primitives import SamplerResult
+from qiskit.result import QuasiDistribution
 from qiskit.providers import JobStatus
 
 
 @dataclass(frozen=True)
-class SamplerGradientJob:
+class SamplerGradientResult:
     """Result of SamplerGradient.
 
     Args:
@@ -32,6 +33,6 @@ class SamplerGradientJob:
             sampling probability for the j-th parameter in ``circuits[i]``.
         status: List of JobStatus for each SamplerResult.
     """
-
-    results: list[SamplerResult]
+    quasi_dists: list[list[QuasiDistribution]]
     status: list[JobStatus]
+    metadata: list[dict[str, Any]]

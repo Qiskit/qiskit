@@ -20,8 +20,9 @@ from abc import ABC, abstractmethod
 from collections.abc import Sequence
 
 from qiskit.circuit import QuantumCircuit, Parameter
+from qiskit.exceptions import QiskitError
 from qiskit.primitives import BaseSampler
-from .sampler_gradient_job import SamplerGradientJob
+from .sampler_gradient_result import SamplerGradientResult
 
 
 class BaseSamplerGradient(ABC):
@@ -37,13 +38,13 @@ class BaseSamplerGradient(ABC):
         self._circuit_ids: dict[int, int] = {}
         self._default_run_options = run_options
 
-    def run(
+    def evaluate(
         self,
         circuits: Sequence[QuantumCircuit],
         parameter_values: Sequence[Sequence[float]],
         partial: Sequence[Sequence[Parameter]] | None = None,
         **run_options,
-    ) -> SamplerGradientJob:
+    ) -> SamplerGradientResult:
         """Run the job of the gradients of the sampling probability.
 
         Args:
@@ -58,18 +59,41 @@ class BaseSamplerGradient(ABC):
             ``circuits[i]`` evaluated with parameters bound as ``parameter_values[i]``. The j-th
             quasi-probability distribution in the i-th result corresponds to the gradients of the
             sampling probability for the j-th parameter in ``circuits[i]``.
+
+        Raises:
+            QiskitError: Invalid arguments are given.
         """
+        # Validation
+        if len(circuits) != len(parameter_values):
+            raise QiskitError(
+                f"The number of circuits ({len(circuits)}) does not match "
+                f"the number of parameter value sets ({len(parameter_values)})."
+            )
+        if partial is not None:
+            if len(circuits) != len(partial):
+                raise QiskitError(
+                    f"The number of circuits ({len(circuits)}) does not match "
+                    f"the number of partial parameter sets ({len(partial)})."
+                )
+
+        for i, (circuit, parameter_value) in enumerate(zip(circuits, parameter_values)):
+            if len(parameter_value) != circuit.num_parameters:
+                raise QiskitError(
+                    f"The number of values ({len(parameter_value)}) does not match "
+                    f"the number of parameters ({circuit.num_parameters}) for the {i}-th circuit."
+                )
+
         # The priority of run option is as follows:
         # run_options in `run` method > gradient's default run_options > primitive's default run_options.
         run_options = run_options or self._default_run_options
-        return self._run(circuits, parameter_values, partial, **run_options)
+        return self._evaluate(circuits, parameter_values, partial, **run_options)
 
     @abstractmethod
-    def _run(
+    def _evaluate(
         self,
         circuits: Sequence[QuantumCircuit],
         parameter_values: Sequence[Sequence[float]],
         partial: Sequence[Sequence[Parameter]] | None = None,
         **run_options,
-    ) -> SamplerGradientJob:
+    ) -> SamplerGradientResult:
         raise NotImplementedError()

@@ -25,7 +25,7 @@ from qiskit.primitives import BaseEstimator, EstimatorResult
 from qiskit.quantum_info.operators.base_operator import BaseOperator
 
 from .base_estimator_gradient import BaseEstimatorGradient
-from .estimator_gradient_job import EstimatorGradientJob
+from .estimator_gradient_result import EstimatorGradientResult
 
 from .utils import (
     make_param_shift_gradient_circuit_data,
@@ -49,14 +49,14 @@ class ParamShiftEstimatorGradient(BaseEstimatorGradient):
         self._base_parameter_values_dict = {}
         super().__init__(estimator, **run_options)
 
-    def _run(
+    def _evaluate(
         self,
         circuits: Sequence[QuantumCircuit],
         observables: Sequence[BaseOperator | PauliSumOp],
         parameter_values: Sequence[Sequence[float]],
         partial: Sequence[Sequence[Parameter]] | None = None,
         **run_options,
-    ) -> EstimatorGradientJob:
+    ) -> EstimatorGradientResult:
         partial = partial or [[] for _ in range(len(circuits))]
         gradients = []
         status = []
@@ -146,6 +146,6 @@ class ParamShiftEstimatorGradient(BaseEstimatorGradient):
                     values[i] += bound_coeff * results.values[result_index_map[g_param] * 2]
                     # minus
                     values[i] -= bound_coeff * results.values[result_index_map[g_param] * 2 + 1]
-            gradients.append(EstimatorResult(values, metadata=run_options))
+            gradients.append(values)
             status.append(job.status())
-        return EstimatorGradientJob(results=gradients, status=status)
+        return EstimatorGradientResult(values=gradients, status=status, metadata=run_options)

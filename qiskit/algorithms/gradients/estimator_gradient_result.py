@@ -15,14 +15,15 @@ Estimator result class
 
 from __future__ import annotations
 
+import numpy as np
+from typing import Any
 from dataclasses import dataclass
 
-from qiskit.primitives import EstimatorResult
 from qiskit.providers import JobStatus
 
 
 @dataclass(frozen=True)
-class EstimatorGradientJob:
+class EstimatorGradientResult:
     """Result of EstimatorGradient.
 
     Args:
@@ -32,5 +33,6 @@ class EstimatorGradientJob:
         status: List of JobStatus for each EstimatorResult.
     """
 
-    results: list[EstimatorResult]
+    values: list[np.ndarray]
     status: list[JobStatus]
+    metadata: list[dict[str, Any]]

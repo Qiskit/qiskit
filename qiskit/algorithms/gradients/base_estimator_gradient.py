@@ -20,11 +20,12 @@ from abc import ABC, abstractmethod
 from collections.abc import Sequence
 
 from qiskit.circuit import Parameter, QuantumCircuit
+from qiskit.exceptions import QiskitError
 from qiskit.opflow import PauliSumOp
 from qiskit.primitives import BaseEstimator
 from qiskit.quantum_info.operators.base_operator import BaseOperator
 
-from .estimator_gradient_job import EstimatorGradientJob
+from .estimator_gradient_result import EstimatorGradientResult
 
 
 class BaseEstimatorGradient(ABC):
@@ -44,14 +45,14 @@ class BaseEstimatorGradient(ABC):
         self._circuit_ids: dict[int, int] = {}
         self._default_run_options = run_options
 
-    def run(
+    def evaluate(
         self,
         circuits: Sequence[QuantumCircuit],
         observables: Sequence[BaseOperator | PauliSumOp],
         parameter_values: Sequence[Sequence[float]],
         partial: Sequence[Sequence[Parameter]] | None = None,
         **run_options,
-    ) -> EstimatorGradientJob:
+    ) -> EstimatorGradientResult:
         """Run the job of the gradients of expectation values.
 
         Args:
@@ -65,19 +66,57 @@ class BaseEstimatorGradient(ABC):
         Returns:
             The job object of the gradients of the expectation values. The i-th result corresponds to
             ``circuits[i]`` evaluated with parameters bound as ``parameter_values[i]``.
+
+        Raises:
+            QiskitError: Invalid arguments are given.
         """
+        # Validation
+        if len(circuits) != len(parameter_values):
+            raise QiskitError(
+                f"The number of circuits ({len(circuits)}) does not match "
+                f"the number of parameter value sets ({len(parameter_values)})."
+            )
+
+        if len(circuits) != len(observables):
+            raise QiskitError(
+                f"The number of circuits ({len(circuits)}) does not match "
+                f"the number of observables ({len(partial)})."
+            )
+
+        if partial is not None:
+            if len(circuits) != len(partial):
+                raise QiskitError(
+                    f"The number of circuits ({len(circuits)}) does not match "
+                    f"the number of partial parameter sets ({len(partial)})."
+                )
+
+        for i, (circuit, parameter_value) in enumerate(zip(circuits, parameter_values)):
+            if len(parameter_value) != circuit.num_parameters:
+                raise QiskitError(
+                    f"The number of values ({len(parameter_value)}) does not match "
+                    f"the number of parameters ({circuit.num_parameters}) for the {i}-th circuit."
+                )
+
+        for i, (circuit, observable) in enumerate(zip(circuits, observables)):
+            if circuit.num_qubits != observable.num_qubits:
+                raise QiskitError(
+                    f"The number of qubits of the {i}-th circuit ({circuit.num_qubits}) does "
+                    f"not match the number of qubits of the {i}-th observable "
+                    f"({observable.num_qubits})."
+                )
+
         # The priority of run option is as follows:
         # run_options in `run` method > gradient's default run_options > primitive's default setting.
         run_options = run_options or self._default_run_options
-        return self._run(circuits, observables, parameter_values, partial, **run_options)
+        return self._evaluate(circuits, observables, parameter_values, partial, **run_options)
 
     @abstractmethod
-    def _run(
+    def _evaluate(
         self,
         circuits: Sequence[QuantumCircuit],
         observables: Sequence[BaseOperator | PauliSumOp],
         parameter_values: Sequence[Sequence[float]],
         partial: Sequence[Sequence[Parameter]] | None = None,
         **run_options,
-    ) -> EstimatorGradientJob:
+    ) -> EstimatorGradientResult:
         raise NotImplementedError()

@@ -23,7 +23,7 @@ from qiskit.primitives import BaseSampler, SamplerResult
 from qiskit.result import QuasiDistribution
 
 from .base_sampler_gradient import BaseSamplerGradient
-from .sampler_gradient_job import SamplerGradientJob
+from .sampler_gradient_result import SamplerGradientResult
 from .utils import make_lin_comb_gradient_circuit
 
 
@@ -42,13 +42,13 @@ class LinCombSamplerGradient(BaseSamplerGradient):
         self._gradient_circuit_data_dict = {}
         super().__init__(sampler, **run_options)
 
-    def _run(
+    def _evaluate(
         self,
         circuits: Sequence[QuantumCircuit],
         parameter_values: Sequence[Sequence[float]],
         partial: Sequence[Sequence[Parameter]] | None = None,
         **run_options,
-    ) -> SamplerGradientJob:
+    ) -> SamplerGradientResult:
         partial = partial or [[] for _ in range(len(circuits))]
         gradients = []
         status = []
@@ -114,7 +114,7 @@ class LinCombSamplerGradient(BaseSamplerGradient):
                         dists[i][k2] += (-1) ** sign * bound_coeff * v
 
             gradients.append(
-                SamplerResult([QuasiDistribution(dist) for dist in dists], metadata=run_options)
+                [QuasiDistribution(dist) for dist in dists]
             )
             status.append(job.status())
-        return SamplerGradientJob(results=gradients, status=status)
+        return SamplerGradientResult(quasi_dists=gradients, status=status, metadata=run_options)
