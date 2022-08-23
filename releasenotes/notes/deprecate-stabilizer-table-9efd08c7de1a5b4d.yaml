@@ -1,0 +1,9 @@
+---
+deprecations:
+  - |
+    The :class:`~qiskit.quantum_info.StabilizerTable` is deprecated and will be removed in a future
+    release. Instead, the :class:`~qiskit.quantum_info.PauliList` should be used.
+    With this change, :attr:`.Clifford.table`, :attr:`.Clifford.stabilizer`, and
+    :attr:`.Clifford.destabilizer` have been deprecated so that you should use
+    :attr:`.Clifford.tableau`, :attr:`.Clifford.stabilizers`, :attr:`.Clifford.destabilizers`.
+    :func:`.random_stabilizer_table` is also deprecated.
