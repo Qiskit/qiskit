@@ -66,6 +66,7 @@ class BasicSwap(TransformationPass):
             return self.fake_run(dag)
 
         new_dag = dag.copy_empty_like()
+        self._dag = dag
 
         if len(dag.qregs) != 1 or dag.qregs.get("q", None) is None:
             raise TranspilerError("Basic swap runs on physical circuits only")
@@ -74,7 +75,7 @@ class BasicSwap(TransformationPass):
             raise TranspilerError("The layout does not match the amount of qubits in the DAG")
 
         canonical_register = dag.qregs["q"]
-        self.qregs = dag.qregs
+
         if self.initial_layout:
             trivial_layout = self.initial_layout
         else:
@@ -89,7 +90,7 @@ class BasicSwap(TransformationPass):
             if cf_nodes:
                 for node in cf_nodes:
                     updated_ctrl_op, cf_layout = self._transpile_controlflow_op(
-                        node.op, current_layout
+                        node, current_layout
                     )
                     node.op = updated_ctrl_op
                     cf_layer = True
@@ -125,6 +126,7 @@ class BasicSwap(TransformationPass):
             if cf_layer or (subdag.depth() == 1 and subdag.op_nodes()[0].name == "continue_loop"):
                 order = current_layout.reorder_bits(new_dag.qubits)
                 new_dag.compose(subdag, qubits=order)
+                breakpoint()
                 current_layout = cf_layout
             else:
                 order = current_layout.reorder_bits(new_dag.qubits)
@@ -132,15 +134,19 @@ class BasicSwap(TransformationPass):
         self.property_set["final_layout"] = current_layout
         return new_dag
 
-    def _transpile_controlflow_op(self, cf_op, current_layout):
-        """default function"""
+    def _transpile_controlflow_op(self, cf_node, current_layout):
+        """Initialize recursive pass and transpile based on type of control flow operation. 
+        The coupling_map is converted to the virtual qubits of the current layout."""
         new_coupling = layout_transform(self.coupling_map, current_layout)
         _pass = self.__class__(new_coupling, initial_layout=None)
+        cf_op = cf_node.op
         if isinstance(cf_op, IfElseOp):
-            return transpile_cf_multiblock(_pass, cf_op, current_layout, new_coupling, self.qregs)
+            op, layout = transpile_cf_multiblock(_pass, cf_node, current_layout, new_coupling, self._dag)
         elif isinstance(cf_op, (ForLoopOp, WhileLoopOp)):
-            return transpile_cf_looping(_pass, cf_op, current_layout, new_coupling)
-        return cf_op, current_layout
+            op, layout = transpile_cf_looping(_pass, cf_node, current_layout, new_coupling, self._dag)
+        else:
+            op, layout = cf_op, current_layout
+        return op, layout
 
     def _fake_run(self, dag):
         """Do a fake run the BasicSwap pass on `dag`.

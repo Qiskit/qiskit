@@ -15,11 +15,12 @@
 import numpy as np
 from qiskit.transpiler.coupling import CouplingMap
 from qiskit.transpiler.layout import Layout
-from qiskit.circuit import QuantumRegister
+from qiskit.circuit import QuantumRegister, QuantumCircuit
 from qiskit.circuit.exceptions import CircuitError
+from qiskit.circuit.controlflow.if_else import _unify_circuit_resources
 
 
-def transpile_cf_multiblock(tpass, cf_op, current_layout, coupling, qregs):
+def transpile_cf_multiblock(tpass, cf_node, current_layout, coupling, dag):
     """Transpile control flow instructions which may contain multiple
     blocks (e.g. IfElseOp). Since each control flow block may
     induce a yield a different layout, this function applies swaps
@@ -44,12 +45,32 @@ def transpile_cf_multiblock(tpass, cf_op, current_layout, coupling, qregs):
     block_dags = []  # control flow dag blocks
     block_layouts = []  # control flow layouts
 
+    qregs = dag.qregs
+    cf_op = cf_node.op
     for i, block in enumerate(cf_op.blocks):
+        #block2 = copy_resources(resources, block)
         dag_block = circuit_to_dag(block)
-        updated_dag_block = tpass.run(dag_block)
+        # if not cf_node.cargs and cf_node.cargs is not None:
+        #     cf_node.cargs = None
+        if len(dag_block.qubits) < len(dag.qubits):
+            # expand block to full width
+            #block2 = copy_resources(dag, block)
+            dag_block2 = dag.copy_empty_like()
+            if len(dag_block2.clbits) != len(dag_block.clbits):
+                dag_block.clbits = dag_block2.clbits
+            dag_block2.compose(dag_block, qubits=cf_node.qargs, clbits=cf_node.cargs)
+            dag_block = dag_block2
+        #dag_block.qregs = qregs
+        try:
+            updated_dag_block = tpass.run(dag_block)
+        except TypeError as err:
+            print(err)
+            breakpoint()
+            pass
         block_dags.append(updated_dag_block)
         block_layouts.append(tpass.property_set["final_layout"].copy())
     changed_layouts = [current_layout != layout for layout in block_layouts]
+
     if not any(changed_layouts):
         return cf_op, current_layout
     depth_cnt = [bdag.depth() for bdag in block_dags]
@@ -70,10 +91,11 @@ def transpile_cf_multiblock(tpass, cf_op, current_layout, coupling, qregs):
         get_ordered_virtual_qubits(block_layouts[maxind], qregs),
     )
     final_layout = Layout.from_intlist(final_permutation, *qregs.values())
+    breakpoint()
     return cf_op.replace_blocks(block_circuits), final_layout
 
 
-def transpile_cf_looping(tpass, cf_op, current_layout, coupling):
+def transpile_cf_looping(tpass, cf_op, current_layout, coupling, qregs, dag):
     """For looping this pass adds a swap layer using LayoutTransformation
     to the end of the loop body to bring the layout back to the
     starting layout. This prevents reapplying layout changing
@@ -85,6 +107,7 @@ def transpile_cf_looping(tpass, cf_op, current_layout, coupling):
         current_layout (Layout): The current layout at the start and by the
            end of the instruction.
         coupling (CouplingMap): the coupling map to use within the control flow instruction.
+        qregs (OrderedDict): QuantumRegister of top level circuit.
 
     Returns:
         tuple(ControlFlowOp, Layout): Transpiled control flow
@@ -109,6 +132,7 @@ def transpile_cf_looping(tpass, cf_op, current_layout, coupling):
         return dag
 
     dag_block = circuit_to_dag(cf_op.blocks[0])
+    dag_block.qregs = qregs
     start_qreg = QuantumRegister(coupling.size(), "q")
     start_layout = Layout.generate_trivial_layout(start_qreg)
     updated_dag_block = tpass.run(dag_block)
@@ -123,7 +147,7 @@ def transpile_cf_looping(tpass, cf_op, current_layout, coupling):
 
 
 def get_ordered_virtual_qubits(layout, qregs):
-    """Get list of virtual qubits associated with odered list
+    """Get list of virtual qubits associated with ordered list
     of physical qubits.
 
     Args:
@@ -172,3 +196,24 @@ def layout_transform(cmap, layout, qreg=None):
         qubit0, qubit1 = qreg[bit0], qreg[bit1]
         new_map.append([vmap[qubit0], vmap[qubit1]])
     return CouplingMap(couplinglist=new_map)
+
+def copy_resources(dag, qc):
+    """
+    One-way resource unification from dag to qc. It is 
+    assumed that the resources of qc are a subset of the dag as
+    for controlflow blocks.
+
+    Args:
+        dag (dict): source resources dictionary
+        qc (QuantumCircuit): destination resources
+
+    Returns:
+        new QuantumCircuit instance
+    """
+    new_qc = QuantumCircuit()
+    for reg in dag.qregs.values():
+        new_qc.add_register(reg)
+    for reg in dag.cregs.values():
+        new_qc.add_register(reg)
+    new_qc.compose(qc, qc.qubits, qc.clbits, inplace=True)
+    return new_qc

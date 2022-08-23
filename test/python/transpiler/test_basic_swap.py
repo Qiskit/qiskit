@@ -668,7 +668,6 @@ class TestBasicSwap(QiskitTestCase):
         out_results = sim.run(cqc, shots=4096, seed_simulator=11).result().get_counts()
         self.assertLess(hellinger_distance(in_results, out_results), 0.01)
 
-    @unittest.skipUnless(optionals.HAS_AER, "Qiskit Aer is required to run this test")
     def test_controlflow_continue(self):
         """test controlflow continue"""
         num_qubits = 5
@@ -695,6 +694,21 @@ class TestBasicSwap(QiskitTestCase):
         efor_body.continue_loop()
         expected.for_loop(range(3), loop_parameter, efor_body, qreg, creg)
         self.assertEqual(cqc, expected)
+
+    def test_cf_instr_full_width(self):
+        """test controlflow uses full width of circuit even if instruction is not"""
+        num_qubits = 3
+        qr = QuantumRegister(num_qubits, "q")
+        cr = ClassicalRegister(num_qubits)
+        coupling = CouplingMap([(i, i + 1) for i in range(num_qubits - 1)])
+        qc = QuantumCircuit(qr, cr)
+        true_body = QuantumCircuit(qr[0:2])
+        true_body.cx(0, 1)
+        qc.if_test((cr[0], 1), true_body, [qr[0], qr[2]], cr)
+        dag = circuit_to_dag(qc)
+        cdag = BasicSwap(coupling).run(dag)
+        cqc = dag_to_circuit(cdag)
+        breakpoint()
 
 
 if __name__ == "__main__":
