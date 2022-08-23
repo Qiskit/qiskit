@@ -1,9 +1,0 @@
----
-fixes:
-  - |
-    Fixed an issue with the visualization function :func:`~.dag_drawer` and the
-    :meth:`.DAGCircuit.draw` method where previously the drawer would fail
-    when attempting to generate a visualization for a :class:`~.DAGCircuit`
-    object that contained a :class:`~.Qubit` or :class:`~.Clbit` which wasn't
-    part of a :class:`~QuantumRegister` or :class:`~ClassicalRegister`.
-    Fixed `#7915 <https://github.com/Qiskit/qiskit-terra/issues/7915>`__

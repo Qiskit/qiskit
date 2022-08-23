@@ -729,17 +729,17 @@ class DensityMatrix(QuantumState, TolerancesMixin):
                 )
             )
         qubit_indices = {bit: idx for idx, bit in enumerate(other.definition.qubits)}
-        for instr, qregs, cregs in other.definition:
-            if cregs:
+        for instruction in other.definition:
+            if instruction.clbits:
                 raise QiskitError(
-                    f"Cannot apply instruction with classical registers: {instr.name}"
+                    f"Cannot apply instruction with classical bits: {instruction.operation.name}"
                 )
             # Get the integer position of the flat register
             if qargs is None:
-                new_qargs = [qubit_indices[tup] for tup in qregs]
+                new_qargs = [qubit_indices[tup] for tup in instruction.qubits]
             else:
-                new_qargs = [qargs[qubit_indices[tup]] for tup in qregs]
-            self._append_instruction(instr, qargs=new_qargs)
+                new_qargs = [qargs[qubit_indices[tup]] for tup in instruction.qubits]
+            self._append_instruction(instruction.operation, qargs=new_qargs)
 
     def _evolve_instruction(self, obj, qargs=None):
         """Return a new statevector by applying an instruction."""

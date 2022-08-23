@@ -32,6 +32,7 @@ from qiskit.circuit.exceptions import CircuitError
 from qiskit.circuit.quantumregister import QuantumRegister, Qubit
 from qiskit.circuit.classicalregister import ClassicalRegister, Clbit
 from qiskit.circuit.gate import Gate
+from qiskit.circuit.instruction import Instruction
 from qiskit.circuit.parameterexpression import ParameterExpression
 from qiskit.dagcircuit.exceptions import DAGCircuitError
 from qiskit.dagcircuit.dagnode import DAGNode, DAGOpNode, DAGInNode, DAGOutNode
@@ -537,13 +538,13 @@ class DAGCircuit:
 
         return target_dag
 
-    def apply_operation_back(self, op, qargs=None, cargs=None):
+    def apply_operation_back(self, op, qargs=(), cargs=()):
         """Apply an operation to the output of the circuit.
 
         Args:
             op (qiskit.circuit.Instruction): the operation associated with the DAG node
-            qargs (list[Qubit]): qubits that op will be applied to
-            cargs (list[Clbit]): cbits that op will be applied to
+            qargs (tuple[Qubit]): qubits that op will be applied to
+            cargs (tuple[Clbit]): cbits that op will be applied to
         Returns:
             DAGOpNode: the node for the op that was added to the dag
 
@@ -551,13 +552,13 @@ class DAGCircuit:
             DAGCircuitError: if a leaf node is connected to multiple outputs
 
         """
-        qargs = qargs or []
-        cargs = cargs or []
+        qargs = tuple(qargs) if qargs is not None else ()
+        cargs = tuple(cargs) if cargs is not None else ()
 
-        all_cbits = self._bits_in_condition(op.condition)
+        all_cbits = self._bits_in_condition(getattr(op, "condition", None))
         all_cbits = set(all_cbits).union(cargs)
 
-        self._check_condition(op.name, op.condition)
+        self._check_condition(op.name, getattr(op, "condition", None))
         self._check_bits(qargs, self.output_map)
         self._check_bits(all_cbits, self.output_map)
 
@@ -573,23 +574,23 @@ class DAGCircuit:
         )
         return self._multi_graph[node_index]
 
-    def apply_operation_front(self, op, qargs, cargs):
+    def apply_operation_front(self, op, qargs=(), cargs=()):
         """Apply an operation to the input of the circuit.
 
         Args:
             op (qiskit.circuit.Instruction): the operation associated with the DAG node
-            qargs (list[Qubit]): qubits that op will be applied to
-            cargs (list[Clbit]): cbits that op will be applied to
+            qargs (tuple[Qubit]): qubits that op will be applied to
+            cargs (tuple[Clbit]): cbits that op will be applied to
         Returns:
             DAGOpNode: the node for the op that was added to the dag
 
         Raises:
             DAGCircuitError: if initial nodes connected to multiple out edges
         """
-        all_cbits = self._bits_in_condition(op.condition)
+        all_cbits = self._bits_in_condition(getattr(op, "condition", None))
         all_cbits.extend(cargs)
 
-        self._check_condition(op.name, op.condition)
+        self._check_condition(op.name, getattr(op, "condition", None))
         self._check_bits(qargs, self.input_map)
         self._check_bits(all_cbits, self.input_map)
         node_index = self._add_op_node(op, qargs, cargs)
@@ -836,11 +837,15 @@ class DAGCircuit:
                 # ignore output nodes
                 pass
             elif isinstance(nd, DAGOpNode):
-                condition = dag._map_condition(edge_map, nd.op.condition, dag.cregs.values())
+                condition = dag._map_condition(
+                    edge_map, getattr(nd.op, "condition", None), dag.cregs.values()
+                )
                 dag._check_condition(nd.op.name, condition)
                 m_qargs = list(map(lambda x: edge_map.get(x, x), nd.qargs))
                 m_cargs = list(map(lambda x: edge_map.get(x, x), nd.cargs))
                 op = nd.op.copy()
+                if condition and not isinstance(op, Instruction):
+                    raise DAGCircuitError("Cannot add a condition on a generic Operation.")
                 op.condition = condition
                 dag.apply_operation_back(op, m_qargs, m_cargs)
             else:
@@ -955,8 +960,8 @@ class DAGCircuit:
             raise DAGCircuitError("duplicate wires")
 
         wire_tot = len(node.qargs) + len(node.cargs)
-        if node.op.condition is not None:
-            wire_tot += node.op.condition[0].size
+        if getattr(node.op, "condition", None) is not None:
+            wire_tot += getattr(node.op, "condition", None)[0].size
 
         if len(wires) != wire_tot:
             raise DAGCircuitError("expected %d wires, got %d" % (wire_tot, len(wires)))
@@ -1084,7 +1089,7 @@ class DAGCircuit:
 
         for nd in node_block:
             block_qargs |= set(nd.qargs)
-            if isinstance(nd, DAGOpNode) and nd.op.condition:
+            if isinstance(nd, DAGOpNode) and getattr(nd.op, "condition", None):
                 block_cargs |= set(nd.cargs)
 
         # Create replacement node
@@ -1129,13 +1134,17 @@ class DAGCircuit:
         # the dag must be amended if used in a
         # conditional context. delete the op nodes and replay
         # them with the condition.
-        if node.op.condition:
+        if getattr(node.op, "condition", None):
             in_dag = copy.deepcopy(input_dag)
-            in_dag.add_creg(node.op.condition[0])
+            in_dag.add_creg(getattr(node.op, "condition", None)[0])
             to_replay = []
             for sorted_node in in_dag.topological_nodes():
                 if isinstance(sorted_node, DAGOpNode):
-                    sorted_node.op.condition = node.op.condition
+                    if getattr(node.op, "condition", None) and not isinstance(
+                        sorted_node.op, Instruction
+                    ):
+                        raise DAGCircuitError("Cannot add a condition on a generic Operation.")
+                    sorted_node.op.condition = getattr(node.op, "condition", None)
                     to_replay.append(sorted_node)
             for input_node in in_dag.op_nodes():
                 in_dag.remove_op_node(input_node)
@@ -1167,7 +1176,7 @@ class DAGCircuit:
         if not isinstance(node, DAGOpNode):
             raise DAGCircuitError("expected node DAGOpNode, got %s" % type(node))
 
-        condition_bit_list = self._bits_in_condition(node.op.condition)
+        condition_bit_list = self._bits_in_condition(getattr(node.op, "condition", None))
 
         new_wires = list(node.qargs) + list(node.cargs) + list(condition_bit_list)
 
@@ -1259,11 +1268,15 @@ class DAGCircuit:
         for old_node_index, new_node_index in node_map.items():
             # update node attributes
             old_node = in_dag._multi_graph[old_node_index]
-            condition = self._map_condition(wire_map, old_node.op.condition, self.cregs.values())
+            condition = self._map_condition(
+                wire_map, getattr(old_node.op, "condition", None), self.cregs.values()
+            )
             m_qargs = [wire_map.get(x, x) for x in old_node.qargs]
             m_cargs = [wire_map.get(x, x) for x in old_node.cargs]
             new_node = DAGOpNode(old_node.op, qargs=m_qargs, cargs=m_cargs)
             new_node._node_id = new_node_index
+            if condition and not isinstance(new_node.op, Instruction):
+                raise DAGCircuitError("Cannot add a condition on a generic Operation.")
             new_node.op.condition = condition
             self._multi_graph[new_node_index] = new_node
             self._increment_op(new_node.op)
@@ -1307,14 +1320,18 @@ class DAGCircuit:
             if op.name != node.op.name:
                 self._increment_op(op)
                 self._decrement_op(node.op)
-            save_condition = node.op.condition
+            save_condition = getattr(node.op, "condition", None)
             node.op = op
+            if save_condition and not isinstance(op, Instruction):
+                raise DAGCircuitError("Cannot add a condition on a generic Operation.")
             node.op.condition = save_condition
             return node
 
         new_node = copy.copy(node)
-        save_condition = new_node.op.condition
+        save_condition = getattr(new_node.op, "condition", None)
         new_node.op = op
+        if save_condition and not isinstance(new_node.op, Instruction):
+            raise DAGCircuitError("Cannot add a condition on a generic Operation.")
         new_node.op.condition = save_condition
         self._multi_graph[node._node_id] = new_node
         if op.name != node.op.name:
@@ -1380,7 +1397,7 @@ class DAGCircuit:
         nodes = []
         for node in self._multi_graph.nodes():
             if isinstance(node, DAGOpNode):
-                if not include_directives and node.op._directive:
+                if not include_directives and getattr(node.op, "_directive", False):
                     continue
                 if op is None or isinstance(node.op, op):
                     nodes.append(node)
@@ -1585,7 +1602,9 @@ class DAGCircuit:
 
             # The quantum registers that have an operation in this layer.
             support_list = [
-                op_node.qargs for op_node in new_layer.op_nodes() if not op_node.op._directive
+                op_node.qargs
+                for op_node in new_layer.op_nodes()
+                if not getattr(op_node.op, "_directive", False)
             ]
 
             yield {"graph": new_layer, "partition": support_list}
@@ -1605,13 +1624,13 @@ class DAGCircuit:
             op = copy.copy(next_node.op)
             qargs = copy.copy(next_node.qargs)
             cargs = copy.copy(next_node.cargs)
-            condition = copy.copy(next_node.op.condition)
+            condition = copy.copy(getattr(next_node.op, "condition", None))
             _ = self._bits_in_condition(condition)
 
             # Add node to new_layer
             new_layer.apply_operation_back(op, qargs, cargs)
             # Add operation to partition
-            if not next_node.op._directive:
+            if not getattr(next_node.op, "_directive", False):
                 support_list.append(list(qargs))
             l_dict = {"graph": new_layer, "partition": support_list}
             yield l_dict
@@ -1638,7 +1657,7 @@ class DAGCircuit:
             return (
                 isinstance(node, DAGOpNode)
                 and node.op.name in namelist
-                and node.op.condition is None
+                and getattr(node.op, "condition", None) is None
             )
 
         group_list = rx.collect_runs(self._multi_graph, filter_fn)
@@ -1652,7 +1671,7 @@ class DAGCircuit:
                 isinstance(node, DAGOpNode)
                 and len(node.qargs) == 1
                 and len(node.cargs) == 0
-                and node.op.condition is None
+                and getattr(node.op, "condition", None) is None
                 and not node.op.is_parameterized()
                 and isinstance(node.op, Gate)
                 and hasattr(node.op, "__array__")
@@ -1672,7 +1691,7 @@ class DAGCircuit:
                 return (
                     isinstance(node.op, Gate)
                     and len(node.qargs) <= 2
-                    and not node.op.condition
+                    and not getattr(node.op, "condition", None)
                     and not node.op.is_parameterized()
                 )
             else:

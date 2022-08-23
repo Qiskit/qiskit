@@ -20,7 +20,6 @@ from __future__ import annotations
 import logging
 from time import time
 from typing import Callable, Dict, List, Optional, Tuple, Union
-import warnings
 
 import numpy as np
 
@@ -93,7 +92,7 @@ class VQE(VariationalAlgorithm, MinimumEigensolver):
         The callable _must_ have the argument names ``fun, x0, jac, bounds`` as indicated
         in the following code block.
 
-    .. code-block::python
+    .. code-block:: python
 
         from qiskit.algorithms.optimizers import OptimizerResult
 
@@ -112,7 +111,7 @@ class VQE(VariationalAlgorithm, MinimumEigensolver):
 
     The above signature also allows to directly pass any SciPy minimizer, for instance as
 
-    .. code-block::python
+    .. code-block:: python
 
         from functools import partial
         from scipy.optimize import minimize
@@ -528,26 +527,9 @@ class VQE(VariationalAlgorithm, MinimumEigensolver):
                 fun=energy_evaluation, x0=initial_point, jac=gradient, bounds=bounds
             )
         else:
-            # keep this until Optimizer.optimize is removed
-            try:
-                opt_result = self.optimizer.minimize(
-                    fun=energy_evaluation, x0=initial_point, jac=gradient, bounds=bounds
-                )
-            except AttributeError:
-                # self.optimizer is an optimizer with the deprecated interface that uses
-                # ``optimize`` instead of ``minimize```
-                warnings.warn(
-                    "Using an optimizer that is run with the ``optimize`` method is "
-                    "deprecated as of Qiskit Terra 0.19.0 and will be unsupported no "
-                    "sooner than 3 months after the release date. Instead use an optimizer "
-                    "providing ``minimize`` (see qiskit.algorithms.optimizers.Optimizer).",
-                    DeprecationWarning,
-                    stacklevel=2,
-                )
-
-                opt_result = self.optimizer.optimize(
-                    len(initial_point), energy_evaluation, gradient, bounds, initial_point
-                )
+            opt_result = self.optimizer.minimize(
+                fun=energy_evaluation, x0=initial_point, jac=gradient, bounds=bounds
+            )
 
         eval_time = time() - start_time
 

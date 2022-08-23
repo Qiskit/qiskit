@@ -25,7 +25,7 @@ from qiskit.compiler import transpile, assemble
 from qiskit.transpiler import CouplingMap, Layout, PassManager, TranspilerError
 from qiskit.circuit.library import U2Gate, U3Gate
 from qiskit.test import QiskitTestCase
-from qiskit.test.mock import (
+from qiskit.providers.fake_provider import (
     FakeTenerife,
     FakeMelbourne,
     FakeJohannesburg,
@@ -499,9 +499,9 @@ class TestInitialLayouts(QiskitTestCase):
         self.assertEqual(qc_b._layout._p2v, final_layout)
 
         output_qr = qc_b.qregs[0]
-        for gate, qubits, _ in qc_b:
-            if gate.name == "cx":
-                for qubit in qubits:
+        for instruction in qc_b:
+            if instruction.operation.name == "cx":
+                for qubit in instruction.qubits:
                     self.assertIn(qubit, [output_qr[11], output_qr[3]])
 
     @data(0, 1, 2, 3)
@@ -552,14 +552,11 @@ class TestInitialLayouts(QiskitTestCase):
 
         self.assertEqual(qc_b._layout._p2v, final_layout)
 
-        gate_0, qubits_0, _ = qc_b[0]
-        gate_1, qubits_1, _ = qc_b[1]
-
         output_qr = qc_b.qregs[0]
-        self.assertIsInstance(gate_0, U3Gate)
-        self.assertEqual(qubits_0[0], output_qr[6])
-        self.assertIsInstance(gate_1, U2Gate)
-        self.assertEqual(qubits_1[0], output_qr[12])
+        self.assertIsInstance(qc_b[0].operation, U3Gate)
+        self.assertEqual(qc_b[0].qubits[0], output_qr[6])
+        self.assertIsInstance(qc_b[1].operation, U2Gate)
+        self.assertEqual(qc_b[1].qubits[0], output_qr[12])
 
 
 @ddt
@@ -701,26 +698,26 @@ class TestFinalLayouts(QiskitTestCase):
         }
 
         sabre_layout = {
-            18: qr[0],
-            13: qr[1],
-            14: qr[2],
-            17: qr[3],
-            19: qr[4],
+            6: qr[0],
+            11: qr[1],
+            10: qr[2],
+            5: qr[3],
+            16: qr[4],
             0: ancilla[0],
             1: ancilla[1],
             2: ancilla[2],
             3: ancilla[3],
             4: ancilla[4],
-            5: ancilla[5],
-            6: ancilla[6],
-            7: ancilla[7],
-            8: ancilla[8],
-            9: ancilla[9],
-            10: ancilla[10],
-            11: ancilla[11],
-            12: ancilla[12],
-            15: ancilla[13],
-            16: ancilla[14],
+            7: ancilla[5],
+            8: ancilla[6],
+            9: ancilla[7],
+            12: ancilla[8],
+            13: ancilla[9],
+            14: ancilla[10],
+            15: ancilla[11],
+            17: ancilla[12],
+            18: ancilla[13],
+            19: ancilla[14],
         }
 
         expected_layout_level0 = trivial_layout
@@ -982,8 +979,7 @@ class TestOptimizationOnSize(QiskitTestCase):
 
         # ensure no gates are using qubits - [0,1,2,3]
         for gate in circ_data:
-            qubits = gate[1]
-            indices = {circ.find_bit(qubit).index for qubit in qubits}
+            indices = {circ.find_bit(qubit).index for qubit in gate.qubits}
             common = indices.intersection(free_qubits)
             for common_qubit in common:
                 self.assertTrue(common_qubit not in free_qubits)

@@ -48,12 +48,12 @@ class TestVisualizationUtils(QiskitTestCase):
         (qregs, cregs, layered_ops) = utils._get_layered_instructions(self.circuit)
 
         exp = [
-            [("cx", [self.qr2[0], self.qr2[1]], []), ("cx", [self.qr1[0], self.qr1[1]], [])],
-            [("measure", [self.qr2[0]], [self.cr2[0]])],
-            [("measure", [self.qr1[0]], [self.cr1[0]])],
-            [("cx", [self.qr2[1], self.qr2[0]], []), ("cx", [self.qr1[1], self.qr1[0]], [])],
-            [("measure", [self.qr2[1]], [self.cr2[1]])],
-            [("measure", [self.qr1[1]], [self.cr1[1]])],
+            [("cx", (self.qr2[0], self.qr2[1]), ()), ("cx", (self.qr1[0], self.qr1[1]), ())],
+            [("measure", (self.qr2[0],), (self.cr2[0],))],
+            [("measure", (self.qr1[0],), (self.cr1[0],))],
+            [("cx", (self.qr2[1], self.qr2[0]), ()), ("cx", (self.qr1[1], self.qr1[0]), ())],
+            [("measure", (self.qr2[1],), (self.cr2[1],))],
+            [("measure", (self.qr1[1],), (self.cr1[1],))],
         ]
 
         self.assertEqual([self.qr1[0], self.qr1[1], self.qr2[0], self.qr2[1]], qregs)
@@ -69,12 +69,12 @@ class TestVisualizationUtils(QiskitTestCase):
         )
 
         exp = [
-            [("cx", [self.qr2[0], self.qr2[1]], []), ("cx", [self.qr1[0], self.qr1[1]], [])],
-            [("measure", [self.qr2[0]], [self.cr2[0]])],
-            [("measure", [self.qr1[0]], [self.cr1[0]]), ("cx", [self.qr2[1], self.qr2[0]], [])],
-            [("cx", [self.qr1[1], self.qr1[0]], [])],
-            [("measure", [self.qr2[1]], [self.cr2[1]])],
-            [("measure", [self.qr1[1]], [self.cr1[1]])],
+            [("cx", (self.qr2[0], self.qr2[1]), ()), ("cx", (self.qr1[0], self.qr1[1]), ())],
+            [("measure", (self.qr2[0],), (self.cr2[0],))],
+            [("measure", (self.qr1[0],), (self.cr1[0],)), ("cx", (self.qr2[1], self.qr2[0]), ())],
+            [("cx", (self.qr1[1], self.qr1[0]), ())],
+            [("measure", (self.qr2[1],), (self.cr2[1],))],
+            [("measure", (self.qr1[1],), (self.cr1[1],))],
         ]
 
         self.assertEqual([self.qr2[1], self.qr2[0], self.qr1[1], self.qr1[0]], qregs)
@@ -103,12 +103,12 @@ class TestVisualizationUtils(QiskitTestCase):
         (qregs, cregs, layered_ops) = utils._get_layered_instructions(circuit, idle_wires=False)
 
         exp = [
-            [("cx", [qr2[0], qr2[1]], []), ("cx", [qr1[0], qr1[1]], [])],
-            [("measure", [qr2[0]], [cr2[0]])],
-            [("measure", [qr1[0]], [cr1[0]])],
-            [("cx", [qr2[1], qr2[0]], []), ("cx", [qr1[1], qr1[0]], [])],
-            [("measure", [qr2[1]], [cr2[1]])],
-            [("measure", [qr1[1]], [cr1[1]])],
+            [("cx", (qr2[0], qr2[1]), ()), ("cx", (qr1[0], qr1[1]), ())],
+            [("measure", (qr2[0],), (cr2[0],))],
+            [("measure", (qr1[0],), (cr1[0],))],
+            [("cx", (qr2[1], qr2[0]), ()), ("cx", (qr1[1], qr1[0]), ())],
+            [("measure", (qr2[1],), (cr2[1],))],
+            [("measure", (qr1[1],), (cr1[1],))],
         ]
 
         self.assertEqual([qr1[0], qr1[1], qr2[0], qr2[1]], qregs)
@@ -137,10 +137,10 @@ class TestVisualizationUtils(QiskitTestCase):
 
         l_exp = [
             [
-                ("h", [Qubit(QuantumRegister(4, "q"), 1)], []),
-                ("h", [Qubit(QuantumRegister(4, "q"), 2)], []),
+                ("h", (Qubit(QuantumRegister(4, "q"), 1),), ()),
+                ("h", (Qubit(QuantumRegister(4, "q"), 2),), ()),
             ],
-            [("cx", [Qubit(QuantumRegister(4, "q"), 0), Qubit(QuantumRegister(4, "q"), 3)], [])],
+            [("cx", (Qubit(QuantumRegister(4, "q"), 0), Qubit(QuantumRegister(4, "q"), 3)), ())],
         ]
 
         self.assertEqual(
@@ -166,10 +166,10 @@ class TestVisualizationUtils(QiskitTestCase):
         (_, _, layered_ops) = utils._get_layered_instructions(qc, justify="right")
 
         r_exp = [
-            [("cx", [Qubit(QuantumRegister(4, "q"), 0), Qubit(QuantumRegister(4, "q"), 3)], [])],
+            [("cx", (Qubit(QuantumRegister(4, "q"), 0), Qubit(QuantumRegister(4, "q"), 3)), ())],
             [
-                ("h", [Qubit(QuantumRegister(4, "q"), 1)], []),
-                ("h", [Qubit(QuantumRegister(4, "q"), 2)], []),
+                ("h", (Qubit(QuantumRegister(4, "q"), 1),), ()),
+                ("h", (Qubit(QuantumRegister(4, "q"), 2),), ()),
             ],
         ]
 
@@ -216,27 +216,27 @@ class TestVisualizationUtils(QiskitTestCase):
 
         l_exp = [
             [
-                ("u2", [Qubit(QuantumRegister(5, "q"), 0)], []),
-                ("u2", [Qubit(QuantumRegister(5, "q"), 1)], []),
+                ("u2", (Qubit(QuantumRegister(5, "q"), 0),), ()),
+                ("u2", (Qubit(QuantumRegister(5, "q"), 1),), ()),
             ],
-            [("cx", [Qubit(QuantumRegister(5, "q"), 1), Qubit(QuantumRegister(5, "q"), 0)], [])],
+            [("cx", (Qubit(QuantumRegister(5, "q"), 1), Qubit(QuantumRegister(5, "q"), 0)), ())],
             [
-                ("u2", [Qubit(QuantumRegister(5, "q"), 0)], []),
-                ("u2", [Qubit(QuantumRegister(5, "q"), 1)], []),
+                ("u2", (Qubit(QuantumRegister(5, "q"), 0),), ()),
+                ("u2", (Qubit(QuantumRegister(5, "q"), 1),), ()),
             ],
-            [("u2", [Qubit(QuantumRegister(5, "q"), 1)], [])],
+            [("u2", (Qubit(QuantumRegister(5, "q"), 1),), ())],
             [
                 (
                     "measure",
-                    [Qubit(QuantumRegister(5, "q"), 0)],
-                    [Clbit(ClassicalRegister(1, "c1"), 0)],
+                    (Qubit(QuantumRegister(5, "q"), 0),),
+                    (Clbit(ClassicalRegister(1, "c1"), 0),),
                 )
             ],
-            [("u2", [Qubit(QuantumRegister(5, "q"), 0)], [])],
-            [("cx", [Qubit(QuantumRegister(5, "q"), 1), Qubit(QuantumRegister(5, "q"), 0)], [])],
+            [("u2", (Qubit(QuantumRegister(5, "q"), 0),), ())],
+            [("cx", (Qubit(QuantumRegister(5, "q"), 1), Qubit(QuantumRegister(5, "q"), 0)), ())],
             [
-                ("u2", [Qubit(QuantumRegister(5, "q"), 0)], []),
-                ("u2", [Qubit(QuantumRegister(5, "q"), 1)], []),
+                ("u2", (Qubit(QuantumRegister(5, "q"), 0),), ()),
+                ("u2", (Qubit(QuantumRegister(5, "q"), 1),), ()),
             ],
         ]
 
@@ -283,29 +283,29 @@ class TestVisualizationUtils(QiskitTestCase):
 
         r_exp = [
             [
-                ("u2", [Qubit(QuantumRegister(5, "q"), 0)], []),
-                ("u2", [Qubit(QuantumRegister(5, "q"), 1)], []),
+                ("u2", (Qubit(QuantumRegister(5, "q"), 0),), ()),
+                ("u2", (Qubit(QuantumRegister(5, "q"), 1),), ()),
             ],
-            [("cx", [Qubit(QuantumRegister(5, "q"), 1), Qubit(QuantumRegister(5, "q"), 0)], [])],
+            [("cx", (Qubit(QuantumRegister(5, "q"), 1), Qubit(QuantumRegister(5, "q"), 0)), ())],
             [
-                ("u2", [Qubit(QuantumRegister(5, "q"), 0)], []),
-                ("u2", [Qubit(QuantumRegister(5, "q"), 1)], []),
+                ("u2", (Qubit(QuantumRegister(5, "q"), 0),), ()),
+                ("u2", (Qubit(QuantumRegister(5, "q"), 1),), ()),
             ],
             [
                 (
                     "measure",
-                    [Qubit(QuantumRegister(5, "q"), 0)],
-                    [Clbit(ClassicalRegister(1, "c1"), 0)],
+                    (Qubit(QuantumRegister(5, "q"), 0),),
+                    (Clbit(ClassicalRegister(1, "c1"), 0),),
                 )
             ],
             [
-                ("u2", [Qubit(QuantumRegister(5, "q"), 0)], []),
-                ("u2", [Qubit(QuantumRegister(5, "q"), 1)], []),
+                ("u2", (Qubit(QuantumRegister(5, "q"), 0),), ()),
+                ("u2", (Qubit(QuantumRegister(5, "q"), 1),), ()),
             ],
-            [("cx", [Qubit(QuantumRegister(5, "q"), 1), Qubit(QuantumRegister(5, "q"), 0)], [])],
+            [("cx", (Qubit(QuantumRegister(5, "q"), 1), Qubit(QuantumRegister(5, "q"), 0)), ())],
             [
-                ("u2", [Qubit(QuantumRegister(5, "q"), 0)], []),
-                ("u2", [Qubit(QuantumRegister(5, "q"), 1)], []),
+                ("u2", (Qubit(QuantumRegister(5, "q"), 0),), ()),
+                ("u2", (Qubit(QuantumRegister(5, "q"), 1),), ()),
             ],
         ]
 
@@ -335,19 +335,19 @@ class TestVisualizationUtils(QiskitTestCase):
         (_, _, layered_ops) = utils._get_layered_instructions(qc)
 
         expected = [
-            [("h", [Qubit(QuantumRegister(2, "q"), 0)], [])],
+            [("h", (Qubit(QuantumRegister(2, "q"), 0),), ())],
             [
                 (
                     "measure",
-                    [Qubit(QuantumRegister(2, "q"), 0)],
-                    [Clbit(ClassicalRegister(2, "c"), 0)],
+                    (Qubit(QuantumRegister(2, "q"), 0),),
+                    (Clbit(ClassicalRegister(2, "c"), 0),),
                 )
             ],
             [
                 (
                     "add_circ",
-                    [Qubit(QuantumRegister(2, "q"), 1)],
-                    [Clbit(ClassicalRegister(2, "c"), 0)],
+                    (Qubit(QuantumRegister(2, "q"), 1),),
+                    (Clbit(ClassicalRegister(2, "c"), 0),),
                 )
             ],
         ]
