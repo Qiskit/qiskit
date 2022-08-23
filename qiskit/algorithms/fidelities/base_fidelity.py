@@ -29,8 +29,6 @@ class BaseFidelity(ABC):
 
     def __init__(
         self,
-        left_circuits: Sequence[QuantumCircuit] | None = None,
-        right_circuits: Sequence[QuantumCircuit] | None = None,
     ) -> None:
         r"""Initializes the class to evaluate the fidelities defined as
 
@@ -39,13 +37,6 @@ class BaseFidelity(ABC):
         where :math:`x` and :math:`y` are optional parametrizations of the
         states :math:`\psi` and :math:`\phi` prepared by the circuits
         ``left_circuit`` and ``right_circuit``, respectively.
-
-        Args:
-            left_circuit: (Parametrized) quantum circuit preparing :math:`|\psi\rangle`.
-            right_circuit: (Parametrized) quantum circuit preparing :math:`|\phi\rangle`.
-
-        Raises:
-            ValueError: ``left_circuit`` and ``right_circuit`` don't have the same number of qubits.
         """
 
         self._circuits = []
@@ -53,9 +44,6 @@ class BaseFidelity(ABC):
 
         self._left_parameters = []
         self._right_parameters = []
-
-        if left_circuits is not None and right_circuits is not None:
-            self._set_circuits(left_circuits, right_circuits)
 
     def _check_values(
         self, values: Sequence[Sequence[float]] | None, side: str, circuits: QuantumCircuit
@@ -121,7 +109,10 @@ class BaseFidelity(ABC):
         """
 
         if not len(left_circuits) == len(right_circuits):
-            raise ValueError
+            raise ValueError(
+                    f"The number of left ({len(left_circuits)}) \
+                        and right circuits ({len(right_circuits)}) do not coincide."
+                )
 
         circuit_indices = []
         for (left_circuit, right_circuit) in zip(left_circuits, right_circuits):

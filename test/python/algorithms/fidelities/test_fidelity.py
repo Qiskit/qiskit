@@ -69,7 +69,7 @@ class TestFidelity(QiskitTestCase):
     def test_symmetry(self):
         """test for fidelity with the same circuit"""
 
-        fidelity = Fidelity(self._sampler, [self._circuit[0]], [self._circuit[0]])
+        fidelity = Fidelity(self._sampler)
         n = len(self._left_params)
         results_1 = fidelity.evaluate(
             [self._circuit[0]] * n, [self._circuit[0]] * n, self._left_params, self._right_params

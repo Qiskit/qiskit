@@ -29,8 +29,6 @@ class Fidelity(BaseFidelity):
     def __init__(
         self,
         sampler: Sampler,
-        left_circuits: Sequence[QuantumCircuit] | None = None,
-        right_circuits: Sequence[QuantumCircuit] | None = None,
     ) -> None:
         """
         Initializes the class to evaluate the fidelities defined as the state overlap
@@ -39,14 +37,10 @@ class Fidelity(BaseFidelity):
         states :math:`\psi` and :math:`\phi` prepared by the circuits
         ``left_circuit`` and ``right_circuit``, respectively.
         Args:
-            left_circuits: (Parametrized) quantum circuit :math:`|\psi\rangle`.
-            right_circuits: (Parametrized) quantum circuit :math:`|\phi\rangle`.
             sampler: Sampler primitive instance.
-        Raises:
-            ValueError: left_circuit and right_circuit don't have the same number of qubits.
         """
-        self.sampler = sampler
-        super().__init__(left_circuits, right_circuits)
+        self._sampler = sampler
+        super().__init__()
 
     def _preprocess_inputs(
         self,
@@ -143,11 +137,11 @@ class Fidelity(BaseFidelity):
             )
 
         if len(values_list) > 0:
-            job = self.sampler.run(
+            job = self._sampler.run(
                 circuits=circuits_list, parameter_values=values_list, **run_options
             )
         else:
-            job = self.sampler.run(circuits=circuits_list, **run_options)
+            job = self._sampler.run(circuits=circuits_list, **run_options)
 
         result = job.result()
 
