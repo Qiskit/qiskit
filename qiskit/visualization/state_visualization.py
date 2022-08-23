@@ -248,14 +248,13 @@ def plot_bloch_vector(bloch, title="", ax=None, figsize=None, coord_type="cartes
 def plot_bloch_multivector(
     state, title="", figsize=None, *, rho=None, reverse_bits=False, filename=None
 ):
-    """Plot a Bloch sphere for each qubit.
+    r"""Plot a Bloch sphere for each qubit.
 
-    Each component :math:`(x,y,z)` of the Bloch sphere labeled as 'qubit i' represents
-    the expected value of the corresponding Pauli operator
-    acting only on that qubit, that is, the expected value of
-    :math:`I_{N-1} \\otimes ... \\otimes I_{i+1}\\otimes P_i
-    \\otimes I_{i-1}\\otimes ... \\otimes I_0`, where :math:`N` is the number
-    of qubits, :math:`P\\in \\{X,Y,Z\\}` and :math:`I` is the identity operator.
+    Each component :math:`(x,y,z)` of the Bloch sphere labeled as 'qubit i' represents the expected
+    value of the corresponding Pauli operator acting only on that qubit, that is, the expected value
+    of :math:`I_{N-1} \otimes\dotsb\otimes I_{i+1}\otimes P_i \otimes I_{i-1}\otimes\dotsb\otimes
+    I_0`, where :math:`N` is the number of qubits, :math:`P\in \{X,Y,Z\}` and :math:`I` is the
+    identity operator.
 
     Args:
         state (Statevector or DensityMatrix or ndarray): an N-qubit quantum state.
