@@ -31,7 +31,7 @@ class LearningRate(Generator):
     ):
         """
         Args:
-            learing_rate: Used to create a generator to iterate on.
+            learning_rate: Used to create a generator to iterate on.
         """
         if isinstance(learning_rate, (float, int)):
             self._gen = constant(learning_rate)
