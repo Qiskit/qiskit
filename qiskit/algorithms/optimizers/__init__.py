@@ -155,6 +155,7 @@ __all__ = [
     "AskData",
     "TellData",
     "OptimizerState",
+    "LearningRate",
     "ADAM",
     "AQGD",
     "CG",

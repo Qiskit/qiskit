@@ -31,12 +31,15 @@ class GradientDescentState(OptimizerState):
 
     stepsize: Optional[float]
     """Norm of the gradient on the last step."""
+
     learning_rate: LearningRate = field(compare=False)
-    """Learning rate at the current step of the optimization process.
+    """Learning rate at the current step of the optimization process.ddf
 
     It behaves like a generator, (use ``next(learning_rate)`` to get the learning rate for the
     next step) but it can also return  the current learning rate with ``learning_rate.current``.
+
     """
+
 
     def _post_init_(self):
         if isinstance(self.learning_rate, float, list, np.ndarray) or callable(self.learning_rate):
