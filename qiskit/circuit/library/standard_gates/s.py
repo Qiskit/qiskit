@@ -192,16 +192,15 @@ class CSGate(ControlledGate):
 
     def _define(self):
         """
-        gate cs a,b { h b; csx a,b; h b; }
+        gate cs a,b { h b; cp(pi/2) a,b; h b; }
         """
         # pylint: disable=cyclic-import
         from qiskit.circuit.quantumcircuit import QuantumCircuit
-        from .h import HGate
-        from .sx import CSXGate
+        from .p import CPhaseGate
 
         q = QuantumRegister(2, "q")
         qc = QuantumCircuit(q, name=self.name)
-        rules = [(HGate(), [q[1]], []), (CSXGate(), [q[0], q[1]], []), (HGate(), [q[1]], [])]
+        rules = [(CPhaseGate(theta=pi / 2), [q[0], q[1]], [])]
         for instr, qargs, cargs in rules:
             qc._append(instr, qargs, cargs)
 
@@ -213,14 +212,14 @@ class CSGate(ControlledGate):
 
     def __array__(self, dtype=None):
         """Return a numpy.array for the CS gate."""
-        mat = self._matrix1 if self.ctrl_state else self._matrix0
-        if dtype:
+        mat = self._matrix1 if self.ctrl_state == 1 else self._matrix0
+        if dtype is not None:
             return numpy.asarray(mat, dtype=dtype)
         return mat
 
 
 class CSdgGate(ControlledGate):
-    r"""Controlled-Sdg gate.
+    r"""Controlled-S^\dagger gate.
 
     Can be applied to a :class:`~qiskit.circuit.QuantumCircuit`
     with the :meth:`~qiskit.circuit.QuantumCircuit.csdg` method.
@@ -238,8 +237,8 @@ class CSdgGate(ControlledGate):
 
     .. math::
 
-        CSdg \ q_0, q_1 =
-        I \otimes |0 \rangle\langle 0| + Sdg \otimes |1 \rangle\langle 1|  =
+        CS^\dagger \ q_0, q_1 =
+        I \otimes |0 \rangle\langle 0| + S^\dagger \otimes |1 \rangle\langle 1|  =
             \begin{pmatrix}
                 1 & 0 & 0 & 0 \\
                 0 & 1 & 0 & 0 \\
@@ -279,22 +278,15 @@ class CSdgGate(ControlledGate):
 
     def _define(self):
         """
-        gate csdg a,b { h b; cx a,b; csx a,b; h b; }
+        gate csdg a,b { h b; cp(-pi/2) a,b; h b; }
         """
         # pylint: disable=cyclic-import
         from qiskit.circuit.quantumcircuit import QuantumCircuit
-        from .h import HGate
-        from .sx import CSXGate
-        from .x import CXGate
+        from .p import CPhaseGate
 
         q = QuantumRegister(2, "q")
         qc = QuantumCircuit(q, name=self.name)
-        rules = [
-            (HGate(), [q[1]], []),
-            (CXGate(), [q[0], q[1]], []),
-            (CSXGate(), [q[0], q[1]], []),
-            (HGate(), [q[1]], []),
-        ]
+        rules = [(CPhaseGate(theta=-pi / 2), [q[0], q[1]], [])]
         for instr, qargs, cargs in rules:
             qc._append(instr, qargs, cargs)
 
@@ -306,7 +298,7 @@ class CSdgGate(ControlledGate):
 
     def __array__(self, dtype=None):
         """Return a numpy.array for the CSdg gate."""
-        mat = self._matrix1 if self.ctrl_state else self._matrix0
-        if dtype:
+        mat = self._matrix1 if self.ctrl_state == 1 else self._matrix0
+        if dtype is not None:
             return numpy.asarray(mat, dtype=dtype)
         return mat

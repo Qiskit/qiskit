@@ -4201,8 +4201,8 @@ class QuantumCircuit:
             target_qubit: The qubit(s) targeted by the gate.
             label: The string label of the gate in the circuit.
             ctrl_state:
-                The control state in decimal, or as a bitstring (e.g. '1').  Defaults to controlling
-                on the '1' state.
+                The control state in decimal, or as a bitstring (e.g. '10').  Defaults to controlling
+                on the '11' state.
 
         Returns:
             A handle to the instructions created.
