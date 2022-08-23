@@ -25,7 +25,7 @@ from qiskit.quantum_info.operators.mixins import AdjointMixin, generate_apidocs
 from qiskit.quantum_info.operators.operator import Operator
 from qiskit.quantum_info.operators.scalar_op import ScalarOp
 from qiskit.quantum_info.operators.symplectic.base_pauli import _count_y
-from qiskit.utils import deprecate_function
+from qiskit.utils.deprecation import deprecate_function
 
 from .base_pauli import BasePauli
 from .clifford_circuits import _append_circuit
@@ -68,10 +68,10 @@ class Clifford(BaseOperator, AdjointMixin, Operation):
         print(cliff)
 
         # Print the Clifford destabilizer rows
-        print(cliff.destabilizer)
+        print(cliff.to_labels(mode="D"))
 
         # Print the Clifford stabilizer rows
-        print(cliff.stabilizer)
+        print(cliff.to_labels(mode="S"))
 
     **Circuit Conversion**
 
