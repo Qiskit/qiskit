@@ -920,6 +920,17 @@ class TestMatplotlibDrawer(QiskitTestCase):
             filename="wire_order.png",
         )
 
+    def test_barrier_label(self):
+        """Test the barrier label"""
+        circuit = QuantumCircuit(2)
+        circuit.x(0)
+        circuit.y(1)
+        circuit.barrier()
+        circuit.y(0)
+        circuit.x(1)
+        circuit.barrier(label="End Y/X")
+        self.circuit_drawer(circuit, filename="barrier_label.png")
+
 
 if __name__ == "__main__":
     unittest.main(verbosity=1)

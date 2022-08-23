@@ -835,7 +835,8 @@ class QuantumCircuit:
                 this can be anything that :obj:`.append` will accept.
             qubits (list[Qubit|int]): qubits of self to compose onto.
             clbits (list[Clbit|int]): clbits of self to compose onto.
-            front (bool): If True, front composition will be performed (not implemented yet).
+            front (bool): If True, front composition will be performed.  This is not possible within
+                control-flow builder context managers.
             inplace (bool): If True, modify the object. Otherwise return composed circuit.
             wrap (bool): If True, wraps the other circuit into a gate (or instruction, depending on
                 whether it contains only unitary instructions) before composing it onto self.
@@ -844,12 +845,18 @@ class QuantumCircuit:
             QuantumCircuit: the composed circuit (returns None if inplace==True).
 
         Raises:
-            CircuitError: if composing on the front.
-            QiskitError: if ``other`` is wider or there are duplicate edge mappings.
+            CircuitError: if no correct wire mapping can be made between the two circuits, such as
+                if ``other`` is wider than ``self``.
+            CircuitError: if trying to emit a new circuit while ``self`` has a partially built
+                control-flow context active, such as the context-manager forms of :meth:`if_test`,
+                :meth:`for_loop` and :meth:`while_loop`.
+            CircuitError: if trying to compose to the front of a circuit when a control-flow builder
+                block is active; there is no clear meaning to this action.
 
-        Examples::
+        Examples:
+            .. code-block:: python
 
-            lhs.compose(rhs, qubits=[3, 2], inplace=True)
+                >>> lhs.compose(rhs, qubits=[3, 2], inplace=True)
 
             .. parsed-literal::
 
@@ -869,6 +876,19 @@ class QuantumCircuit:
                 lcr_1: 0 ═══════════                           lcr_1: 0 ═══════════════════════
 
         """
+        if inplace and front and self._control_flow_scopes:
+            # If we're composing onto ourselves while in a stateful control-flow builder context,
+            # there's no clear meaning to composition to the "front" of the circuit.
+            raise CircuitError(
+                "Cannot compose to the front of a circuit while a control-flow context is active."
+            )
+        if not inplace and self._control_flow_scopes:
+            # If we're inside a stateful control-flow builder scope, even if we successfully cloned
+            # the partial builder scope (not simple), the scope wouldn't be controlled by an active
+            # `with` statement, so the output circuit would be permanently broken.
+            raise CircuitError(
+                "Cannot emit a new composed circuit while a control-flow context is active."
+            )
 
         if inplace:
             dest = self
@@ -962,8 +982,9 @@ class QuantumCircuit:
             mapped_instrs += dest.data
             dest.data.clear()
             dest._parameter_table.clear()
+        append = dest._control_flow_scopes[-1].append if dest._control_flow_scopes else dest._append
         for instr in mapped_instrs:
-            dest._append(instr)
+            append(instr)
 
         for gate, cals in other.calibrations.items():
             dest._calibrations[gate].update(cals)
@@ -2499,7 +2520,63 @@ class QuantumCircuit:
 
     @property
     def parameters(self) -> ParameterView:
-        """Convenience function to get the parameters defined in the parameter table."""
+        """The parameters defined in the circuit.
+
+        This attribute returns the :class:`.Parameter` objects in the circuit sorted
+        alphabetically. Note that parameters instantiated with a :class:`.ParameterVector`
+        are still sorted numerically.
+
+        Examples:
+
+            The snippet below shows that insertion order of parameters does not matter.
+
+            .. code-block:: python
+
+                >>> from qiskit.circuit import QuantumCircuit, Parameter
+                >>> a, b, elephant = Parameter("a"), Parameter("b"), Parameter("elephant")
+                >>> circuit = QuantumCircuit(1)
+                >>> circuit.rx(b, 0)
+                >>> circuit.rz(elephant, 0)
+                >>> circuit.ry(a, 0)
+                >>> circuit.parameters  # sorted alphabetically!
+                ParameterView([Parameter(a), Parameter(b), Parameter(elephant)])
+
+            Bear in mind that alphabetical sorting might be unituitive when it comes to numbers.
+            The literal "10" comes before "2" in strict alphabetical sorting.
+
+            .. code-block:: python
+
+                >>> from qiskit.circuit import QuantumCircuit, Parameter
+                >>> angles = [Parameter("angle_1"), Parameter("angle_2"), Parameter("angle_10")]
+                >>> circuit = QuantumCircuit(1)
+                >>> circuit.u(*angles, 0)
+                >>> circuit.draw()
+                   ┌─────────────────────────────┐
+                q: ┤ U(angle_1,angle_2,angle_10) ├
+                   └─────────────────────────────┘
+                >>> circuit.parameters
+                ParameterView([Parameter(angle_1), Parameter(angle_10), Parameter(angle_2)])
+
+            To respect numerical sorting, a :class:`.ParameterVector` can be used.
+
+            .. code-block:: python
+
+            >>> from qiskit.circuit import QuantumCircuit, Parameter, ParameterVector
+            >>> x = ParameterVector("x", 12)
+            >>> circuit = QuantumCircuit(1)
+            >>> for x_i in x:
+            ...     circuit.rx(x_i, 0)
+            >>> circuit.parameters
+            ParameterView([
+                ParameterVectorElement(x[0]), ParameterVectorElement(x[1]),
+                ParameterVectorElement(x[2]), ParameterVectorElement(x[3]),
+                ..., ParameterVectorElement(x[11])
+            ])
+
+
+        Returns:
+            The sorted :class:`.Parameter` objects in the circuit.
+        """
         # parameters from gates
         if self._parameters is None:
             unsorted = self._unsorted_parameters()
@@ -2510,7 +2587,7 @@ class QuantumCircuit:
 
     @property
     def num_parameters(self) -> int:
-        """Convenience function to get the number of parameter objects in the circuit."""
+        """The number of parameter objects in the circuit."""
         return len(self._unsorted_parameters())
 
     def _unsorted_parameters(self) -> Set[Parameter]:
@@ -2528,18 +2605,20 @@ class QuantumCircuit:
     ) -> Optional["QuantumCircuit"]:
         """Assign parameters to new parameters or values.
 
-        The keys of the parameter dictionary must be Parameter instances in the current circuit. The
-        values of the dictionary can either be numeric values or new parameter objects.
+        If ``parameters`` is passed as a dictionary, the keys must be :class:`.Parameter`
+        instances in the current circuit. The values of the dictionary can either be numeric values
+        or new parameter objects.
+
+        If ``parameters`` is passed as a list or array, the elements are assigned to the
+        current parameters in the order of :attr:`parameters` which is sorted
+        alphabetically (while respecting the ordering in :class:`.ParameterVector` objects).
+
         The values can be assigned to the current circuit object or to a copy of it.
 
         Args:
-            parameters (dict or iterable): Either a dictionary or iterable specifying the new
-                parameter values. If a dict, it specifies the mapping from ``current_parameter`` to
-                ``new_parameter``, where ``new_parameter`` can be a new parameter object or a
-                numeric value. If an iterable, the elements are assigned to the existing parameters
-                in the order of ``QuantumCircuit.parameters``.
-            inplace (bool): If False, a copy of the circuit with the bound parameters is
-                returned. If True the circuit instance itself is modified.
+            parameters: Either a dictionary or iterable specifying the new parameter values.
+            inplace: If False, a copy of the circuit with the bound parameters is returned.
+                If True the circuit instance itself is modified.
 
         Raises:
             CircuitError: If parameters is a dict and contains parameters not present in the
@@ -2548,8 +2627,7 @@ class QuantumCircuit:
                 parameters in the circuit.
 
         Returns:
-            Optional(QuantumCircuit): A copy of the circuit with bound parameters, if
-            ``inplace`` is False, otherwise None.
+            A copy of the circuit with bound parameters, if ``inplace`` is False, otherwise None.
 
         Examples:
 
@@ -2572,7 +2650,7 @@ class QuantumCircuit:
                 print('Assigned in-place:')
                 print(circuit.draw())
 
-            Bind the values out-of-place and get a copy of the original circuit.
+            Bind the values out-of-place by list and get a copy of the original circuit.
 
             .. jupyter-execute::
 
@@ -2583,7 +2661,7 @@ class QuantumCircuit:
                 circuit.ry(params[0], 0)
                 circuit.crx(params[1], 0, 1)
 
-                bound_circuit = circuit.assign_parameters({params[0]: 1, params[1]: 2})
+                bound_circuit = circuit.assign_parameters([1, 2])
                 print('Bound circuit:')
                 print(bound_circuit.draw())
 
@@ -2638,18 +2716,21 @@ class QuantumCircuit:
     ) -> "QuantumCircuit":
         """Assign numeric parameters to values yielding a new circuit.
 
+        If the values are given as list or array they are bound to the circuit in the order
+        of :attr:`parameters` (see the docstring for more details).
+
         To assign new Parameter objects or bind the values in-place, without yielding a new
         circuit, use the :meth:`assign_parameters` method.
 
         Args:
-            values (dict or iterable): {parameter: value, ...} or [value1, value2, ...]
+            values: ``{parameter: value, ...}`` or ``[value1, value2, ...]``
 
         Raises:
             CircuitError: If values is a dict and contains parameters not present in the circuit.
             TypeError: If values contains a ParameterExpression.
 
         Returns:
-            QuantumCircuit: copy of self with assignment substitution.
+            Copy of self with assignment substitution.
         """
         if isinstance(values, dict):
             if any(isinstance(value, ParameterExpression) for value in values.values()):
@@ -2782,9 +2863,13 @@ class QuantumCircuit:
                             inner.operation.params[idx] = param.bind({parameter: value})
                         self._rebind_definition(inner.operation, parameter, value)
 
-    def barrier(self, *qargs: QubitSpecifier) -> InstructionSet:
+    def barrier(self, *qargs: QubitSpecifier, label=None) -> InstructionSet:
         """Apply :class:`~qiskit.circuit.Barrier`. If qargs is empty, applies to all qubits in the
         circuit.
+
+        Args:
+            qargs (QubitSpecifier): Specification for one or more qubit arguments.
+            label (str): The string label of the barrier.
 
         Returns:
             qiskit.circuit.InstructionSet: handle to the added instructions.
@@ -2808,7 +2893,7 @@ class QuantumCircuit:
             else:
                 qubits.append(qarg)
 
-        return self.append(Barrier(len(qubits)), qubits, [])
+        return self.append(Barrier(len(qubits), label=label), qubits, [])
 
     def delay(
         self,
