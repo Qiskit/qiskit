@@ -18,6 +18,7 @@ import numpy as np
 
 from qiskit import QuantumCircuit
 from qiskit.primitives import Sampler
+from qiskit.primitives.primitive_job import PrimitiveJob
 from .base_fidelity import BaseFidelity
 
 
@@ -52,14 +53,10 @@ class Fidelity(BaseFidelity):
         """Preprocess circuits and parameter values.
 
          Args:
-            left_circuits: (Parametrized) quantum circuit preparing :math:`|\psi\rangle`.
-                          If a list of circuits is sent, only the first circuit will be
-                          taken into account.
-            right_circuits: (Parametrized) quantum circuit preparing :math:`|\phi\rangle`.
-                          If a list of circuits is sent, only the first circuit will be
-                          taken into account.
-            left_values: Numerical parameters to be bound to the left circuit.
-            right_values: Numerical parameters to be bound to the right circuit.
+            left_circuits: (Parametrized) quantum circuits preparing :math:`|\psi\rangle`.
+            right_circuits: (Parametrized) quantum circuits preparing :math:`|\phi\rangle`.
+            left_values: Numerical parameters to be bound to the left circuits.
+            right_values: Numerical parameters to be bound to the right circuits.
 
         Returns:
             Preprocessed circuits and parameter values.
@@ -103,20 +100,16 @@ class Fidelity(BaseFidelity):
         left_values: Sequence[Sequence[float]] | None = None,
         right_values: Sequence[Sequence[float]] | None = None,
         **run_options,
-    ) -> np.ndarray:
-        """Run the state overlap (fidelity) calculation between 2
+    ) -> np.ndarray | float:
+        """Compute the state overlap (fidelity) calculation between 2
         parametrized circuits (left and right) for a specific set of parameter
         values (left and right).
 
          Args:
-            left_circuits: (Parametrized) quantum circuit preparing :math:`|\psi\rangle`.
-                          If a list of circuits is sent, only the first circuit will be
-                          taken into account.
-            right_circuits: (Parametrized) quantum circuit preparing :math:`|\phi\rangle`.
-                          If a list of circuits is sent, only the first circuit will be
-                          taken into account.
-            left_values: Numerical parameters to be bound to the left circuit.
-            right_values: Numerical parameters to be bound to the right circuit.
+            left_circuits: (Parametrized) quantum circuits preparing :math:`|\psi\rangle`.
+            right_circuits: (Parametrized) quantum circuits preparing :math:`|\phi\rangle`.
+            left_values: Numerical parameters to be bound to the left circuits.
+            right_values: Numerical parameters to be bound to the right circuits.
             run_options: Backend runtime options used for circuit execution.
 
         Returns:
@@ -147,5 +140,43 @@ class Fidelity(BaseFidelity):
 
         # if error mitigation is added in the future, we will have to handle
         # negative values in some way (e.g. clipping to zero)
-        overlaps = [prob_dist.get(0, 0) for prob_dist in result.quasi_dists]
-        return np.array(overlaps)
+        overlaps = np.array([prob_dist.get(0, 0) for prob_dist in result.quasi_dists])
+
+        # return float if only 1 element in array
+        if len(overlaps) > 1:
+            return overlaps
+        else:
+            return overlaps[0]
+
+    def run(
+        self,
+        left_circuits: Sequence[QuantumCircuit],
+        right_circuits: Sequence[QuantumCircuit],
+        left_values: Sequence[Sequence[float]] | None = None,
+        right_values: Sequence[Sequence[float]] | None = None,
+        **run_options,
+    ) -> PrimitiveJob:
+        """Run asynchronously the state overlap (fidelity) calculation between 2
+        parametrized circuits (left and right) for a specific set of parameter
+        values (left and right).
+
+         Args:
+            left_circuits: (Parametrized) quantum circuits preparing :math:`|\psi\rangle`.
+            right_circuits: (Parametrized) quantum circuits preparing :math:`|\phi\rangle`.
+            left_values: Numerical parameters to be bound to the left circuits.
+            right_values: Numerical parameters to be bound to the right circuits.
+            run_options: Backend runtime options used for circuit execution.
+
+        Returns:
+            Primitive job for the fidelity calculation
+
+        Raises:
+            ValueError: At least one left and right circuit must be defined.
+        """
+
+        job = PrimitiveJob(
+            self.evaluate, left_circuits, right_circuits, left_values, right_values, **run_options
+        )
+
+        job.submit()
+        return job

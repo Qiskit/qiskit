@@ -68,7 +68,6 @@ class TestFidelity(QiskitTestCase):
 
     def test_symmetry(self):
         """test for fidelity with the same circuit"""
-
         fidelity = Fidelity(self._sampler)
         n = len(self._left_params)
         results_1 = fidelity.evaluate(
@@ -142,6 +141,24 @@ class TestFidelity(QiskitTestCase):
 
         with self.assertRaises(ValueError):
             _ = fidelity.evaluate([self._circuit[0]] * n, [self._circuit[1]] * n)
+
+    def test_async_result(self):
+        fidelity = Fidelity(self._sampler)
+        n = len(self._left_params)
+        job = fidelity.run(
+            [self._circuit[0]] * n, [self._circuit[1]] * n, self._left_params, self._right_params
+        )
+        np.testing.assert_allclose(job.result(), np.array([1.0, 0.5, 0.25, 0.0]), atol=1e-16)
+
+    def test_async_join(self):
+        fidelity = Fidelity(self._sampler)
+        jobs = []
+        for left_param, right_param in zip(self._left_params, self._right_params):
+            job = fidelity.run([self._circuit[0]], [self._circuit[1]], left_param, right_param)
+            jobs.append(job)
+
+        results = [job.result() for job in jobs]
+        np.testing.assert_allclose(results, np.array([1.0, 0.5, 0.25, 0.0]), atol=1e-16)
 
 
 if __name__ == "__main__":

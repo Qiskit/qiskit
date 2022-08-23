@@ -110,9 +110,9 @@ class BaseFidelity(ABC):
 
         if not len(left_circuits) == len(right_circuits):
             raise ValueError(
-                    f"The number of left ({len(left_circuits)}) \
+                f"The number of left ({len(left_circuits)}) \
                         and right circuits ({len(right_circuits)}) do not coincide."
-                )
+            )
 
         circuit_indices = []
         for (left_circuit, right_circuit) in zip(left_circuits, right_circuits):
