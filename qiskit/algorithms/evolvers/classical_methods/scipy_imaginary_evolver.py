@@ -106,7 +106,7 @@ class SciPyImaginaryEvolver(ImaginaryEvolver, SciPyEvolver):
 
     def _sparsify(
         self, evolution_problem: EvolutionProblem
-    ) -> Tuple[np.ndarray, sp.csr_matrix, sp.csr_matrix, List[sp.csr_matrix], float]:
+    ) -> Tuple[np.ndarray, sp.csr_matrix, List[sp.csr_matrix], float]:
         """Returns the operators needed for the evolution.
 
         Args:

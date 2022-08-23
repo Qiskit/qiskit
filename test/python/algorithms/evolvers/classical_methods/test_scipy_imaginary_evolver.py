@@ -16,7 +16,18 @@ from test.python.algorithms import QiskitAlgorithmsTestCase
 from ddt import data, ddt, unpack
 import numpy as np
 from qiskit.algorithms.evolvers.evolution_problem import EvolutionProblem
-from qiskit.opflow import I, X, Z, Zero, Plus, Minus, PauliSumOp,StateFn, OperatorBase,VectorStateFn
+from qiskit.opflow import (
+    I,
+    X,
+    Z,
+    Zero,
+    Plus,
+    Minus,
+    PauliSumOp,
+    StateFn,
+    OperatorBase,
+    VectorStateFn,
+)
 from qiskit.quantum_info.states.statevector import Statevector
 
 from qiskit import QuantumCircuit

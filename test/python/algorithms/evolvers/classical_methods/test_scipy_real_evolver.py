@@ -128,7 +128,8 @@ class TestClassicalRealEvolver(QiskitAlgorithmsTestCase):
 
         with self.subTest("1 timestep"):
             classic_evolver = SciPyRealEvolver(max_iterations=1)
-            classic_evolver.evolve(evolution_problem)
+            result = classic_evolver.evolve(evolution_problem)
+            self.assertEqual(result.observables[0].size, 2)
 
         with self.subTest("Negative timesteps"):
             with self.assertRaises(ValueError):

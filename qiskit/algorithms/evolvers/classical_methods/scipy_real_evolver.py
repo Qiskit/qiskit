@@ -134,19 +134,16 @@ class SciPyRealEvolver(RealEvolver, SciPyEvolver):
 
     def _sparsify(
         self, evolution_problem: EvolutionProblem
-    ) -> Tuple[np.ndarray, sp.csr_matrix, List[sp.csr_matrix], List[sp.csr_matrix], int, float]:
-        """Returns a tuple with the initial state as an array, the operators needed for time
-         evolution as sparse matrices, the number of timesteps in which to divide the time evolution
-         and the tolerance for the BiCG method.
+    ) -> Tuple[np.ndarray, sp.csr_matrix, sp.csr_matrix, List[sp.csr_matrix], int, float]:
+        """Returns the matrices and parameters needed for time evolution in the appropiate format.
 
         Args:
             evolution_problem: The definition of the evolution problem.
 
         Returns:
             A tuple with the initial state as an array, the operators needed for time
-            evolution as sparse matrices, the operators to evaluate at each timestep as a list
-            of sparse matrices, the number of timesteps in which to divide the time evolution and
-            the tolerance for the BiCG method.
+         evolution as sparse matrices, the number of timesteps in which to divide the time evolution
+         and the tolerance for the BiCG method.
         """
         # Convert the initial state and Hamiltonian into sparse matrices.
         if isinstance(evolution_problem.initial_state, QuantumCircuit):
