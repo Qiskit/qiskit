@@ -695,7 +695,7 @@ class TestBasicSwap(QiskitTestCase):
         expected.for_loop(range(3), loop_parameter, efor_body, qreg, creg)
         self.assertEqual(cqc, expected)
 
-    def test_cf_instr_full_width(self):
+    def test_cf_full_width_multiblock(self):
         """test controlflow uses full width of circuit even if instruction is not"""
         num_qubits = 3
         qr = QuantumRegister(num_qubits, "q")
@@ -708,7 +708,36 @@ class TestBasicSwap(QiskitTestCase):
         dag = circuit_to_dag(qc)
         cdag = BasicSwap(coupling).run(dag)
         cqc = dag_to_circuit(cdag)
-        breakpoint()
+
+        expected = QuantumCircuit(qr, cr)
+        expected_true_body = QuantumCircuit(qr, cr)
+        expected_true_body.swap(0, 1)
+        expected_true_body.cx(1, 2)
+        expected.if_test((cr[0], 1), expected_true_body, qr, cr)
+        self.assertEqual(cqc, expected)
+
+    def test_cf_full_width_looping(self):
+        """test looping controlflow uses full width of circuit even if
+        instruction is not"""
+        num_qubits = 3
+        qr = QuantumRegister(num_qubits, "q")
+        cr = ClassicalRegister(num_qubits)
+        coupling = CouplingMap([(i, i + 1) for i in range(num_qubits - 1)])
+        qc = QuantumCircuit(qr, cr)
+        for_body = QuantumCircuit(qr[0:2])
+        for_body.cx(0, 1)
+        qc.for_loop(range(3), body=for_body, qubits=[qr[0], qr[2]], clbits=cr)
+        dag = circuit_to_dag(qc)
+        cdag = BasicSwap(coupling).run(dag)
+        cqc = dag_to_circuit(cdag)
+
+        expected = QuantumCircuit(qr, cr)
+        expected_for_body = QuantumCircuit(qr, cr)
+        expected_for_body.swap(0, 1)
+        expected_for_body.cx(1, 2)
+        expected_for_body.swap(0, 1)
+        expected.for_loop(range(3), body=expected_for_body, qubits=qr, clbits=cr)
+        self.assertEqual(cqc, expected)
 
 
 if __name__ == "__main__":
