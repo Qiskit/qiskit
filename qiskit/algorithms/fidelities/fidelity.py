@@ -30,6 +30,7 @@ class Fidelity(BaseFidelity):
     def __init__(
         self,
         sampler: Sampler,
+        **run_options
     ) -> None:
         """
         Initializes the class to evaluate the fidelities defined as the state overlap
@@ -39,8 +40,11 @@ class Fidelity(BaseFidelity):
         ``left_circuit`` and ``right_circuit``, respectively.
         Args:
             sampler: Sampler primitive instance.
+            run_options: Backend runtime options used for circuit execution.
+
         """
         self._sampler = sampler
+        self._default_run_options = run_options
         super().__init__()
 
     def _preprocess_inputs(
@@ -128,6 +132,10 @@ class Fidelity(BaseFidelity):
                 "At least one left and right circuit must be defined to "
                 "calculate the state overlap. "
             )
+
+        # The priority of run options is as follows:
+        # run_options in `evaluate` method > fidelity's default run_options > primitive's default run_options.
+        run_options = run_options or self._default_run_options
 
         if len(values_list) > 0:
             job = self._sampler.run(
