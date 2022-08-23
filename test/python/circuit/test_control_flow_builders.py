@@ -2062,6 +2062,64 @@ class TestControlFlowBuilders(QiskitTestCase):
             self.assertEqual(while_body, copy.copy(while_body))
             self.assertEqual(while_body, copy.deepcopy(while_body))
 
+    def test_inplace_compose_within_builder(self):
+        """Test that QuantumCircuit.compose used in-place works as expected within control-flow
+        scopes."""
+        inner = QuantumCircuit(1)
+        inner.x(0)
+
+        base = QuantumCircuit(1, 1)
+        base.h(0)
+        base.measure(0, 0)
+
+        with self.subTest("if"):
+            outer = base.copy()
+            with outer.if_test((outer.clbits[0], 1)):
+                outer.compose(inner, inplace=True)
+
+            expected = base.copy()
+            with expected.if_test((expected.clbits[0], 1)):
+                expected.x(0)
+
+            self.assertCircuitsEquivalent(outer, expected)
+
+        with self.subTest("else"):
+            outer = base.copy()
+            with outer.if_test((outer.clbits[0], 1)) as else_:
+                outer.compose(inner, inplace=True)
+            with else_:
+                outer.compose(inner, inplace=True)
+
+            expected = base.copy()
+            with expected.if_test((expected.clbits[0], 1)) as else_:
+                expected.x(0)
+            with else_:
+                expected.x(0)
+
+            self.assertCircuitsEquivalent(outer, expected)
+
+        with self.subTest("for"):
+            outer = base.copy()
+            with outer.for_loop(range(3)):
+                outer.compose(inner, inplace=True)
+
+            expected = base.copy()
+            with expected.for_loop(range(3)):
+                expected.x(0)
+
+            self.assertCircuitsEquivalent(outer, expected)
+
+        with self.subTest("while"):
+            outer = base.copy()
+            with outer.while_loop((outer.clbits[0], 0)):
+                outer.compose(inner, inplace=True)
+
+            expected = base.copy()
+            with expected.while_loop((outer.clbits[0], 0)):
+                expected.x(0)
+
+            self.assertCircuitsEquivalent(outer, expected)
+
 
 @ddt.ddt
 class TestControlFlowBuildersFailurePaths(QiskitTestCase):
@@ -2458,3 +2516,28 @@ class TestControlFlowBuildersFailurePaths(QiskitTestCase):
         )
         with self.assertRaisesRegex(TypeError, r"Can only add qubits or classical bits.*"):
             builder_block.add_bits([bit])
+
+    def test_compose_front_inplace_invalid_within_builder(self):
+        """Test that `QuantumCircuit.compose` raises a sensible error when called within a
+        control-flow builder block."""
+        inner = QuantumCircuit(1)
+        inner.x(0)
+
+        outer = QuantumCircuit(1, 1)
+        outer.measure(0, 0)
+        outer.compose(inner, front=True, inplace=True)
+        with outer.if_test((outer.clbits[0], 1)):
+            with self.assertRaisesRegex(CircuitError, r"Cannot compose to the front.*"):
+                outer.compose(inner, front=True, inplace=True)
+
+    def test_compose_new_invalid_within_builder(self):
+        """Test that `QuantumCircuit.compose` raises a sensible error when called within a
+        control-flow builder block if trying to emit a new circuit."""
+        inner = QuantumCircuit(1)
+        inner.x(0)
+
+        outer = QuantumCircuit(1, 1)
+        outer.measure(0, 0)
+        with outer.if_test((outer.clbits[0], 1)):
+            with self.assertRaisesRegex(CircuitError, r"Cannot emit a new composed circuit.*"):
+                outer.compose(inner, inplace=False)

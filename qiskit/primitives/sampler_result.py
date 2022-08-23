@@ -27,7 +27,7 @@ class SamplerResult:
 
     .. code-block:: python
 
-        result = sampler(circuits, params)
+        result = sampler.run(circuits, params).result()
 
     where the i-th elements of ``result`` correspond to the circuit given by ``circuits[i]``,
     and the parameter values bounds by ``params[i]``.
