@@ -37,17 +37,16 @@ class Clifford(BaseOperator, AdjointMixin, Operation):
 
     **Representation**
 
-    An *N*-qubit Clifford operator is stored as a length *2N*
-    :class:`~qiskit.quantum_info.StabilizerTable` using the convention
-    from reference [1].
+    An *N*-qubit Clifford operator is stored as a length *2N × (2N+1)*
+    boolean tableau using the convention from reference [1].
 
     * Rows 0 to *N-1* are the *destabilizer* group generators
     * Rows *N* to *2N-1* are the *stabilizer* group generators.
 
-    The internal :class:`~qiskit.quantum_info.StabilizerTable` for the Clifford
-    can be accessed using the :attr:`table` attribute. The destabilizer or
+    The internal boolean tableau for the Clifford
+    can be accessed using the :attr:`tableau` attribute. The destabilizer or
     stabilizer rows can each be accessed as a length-N Stabilizer table using
-    :attr:`destabilizer` and :attr:`stabilizer` attributes.
+    :attr:`destabilizers` and :attr:`stabilizers` attributes.
 
     A more easily human readable representation of the Clifford operator can
     be obtained by calling the :meth:`to_dict` method. This representation is
