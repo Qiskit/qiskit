@@ -22,6 +22,92 @@ Notable Changes
 ###############
 
 *************
+Qiskit 0.37.2
+*************
+
+.. _Release Notes_Terra_0.21.2:
+
+Terra 0.21.2
+============
+
+.. _Release Notes_Terra_0.21.2_Prelude:
+
+Prelude
+-------
+
+.. releasenotes/notes/prepare-0.21.2-71dd32f64f50e853.yaml @ b'fdb62bea1eac6822b96e8dcd2fe19e7aee10027e'
+
+Qiskit Terra 0.21.2 is a primarily a bugfix release, and also comes with several improved documentation pages.
+
+
+.. _Release Notes_Terra_0.21.2_Bug Fixes:
+
+Bug Fixes
+---------
+
+.. releasenotes/notes/backend_name_fix-175e12b5cf902f99.yaml @ b'fdb62bea1eac6822b96e8dcd2fe19e7aee10027e'
+
+- ``aer_simulator_statevector_gpu`` will now be recognized correctly as statevector
+  method in some function when using Qiskit Aer's GPU simulators in :class:`.QuantumInstance`
+  and other algorithm runners.
+
+.. releasenotes/notes/bugfix-ucgate-inverse-global_phase-c9655c13c22e5cf4.yaml @ b'fdb62bea1eac6822b96e8dcd2fe19e7aee10027e'
+
+- Fixed the :meth:`.UCGate.inverse` method which previously did not invert the
+  global phase.
+
+.. releasenotes/notes/fix-QuantumCircuit.compose-in-control-flow-scopes-a8aad3b87efbe77c.yaml @ b'5a65e507bb2203b75621bb6204aac852af2f587c'
+
+- :meth:`.QuantumCircuit.compose` will now function correctly when used with
+  the ``inplace=True`` argument within control-flow builder contexts.
+  Previously the instructions would be added outside the control-flow scope.
+  Fixed `#8433 <https://github.com/Qiskit/qiskit-terra/issues/8433>`__.
+
+.. releasenotes/notes/fix-paramexpr-isreal-8d20348b4ce6cbe7.yaml @ b'fdb62bea1eac6822b96e8dcd2fe19e7aee10027e'
+
+- Fixed a bug where a bound :class:`.ParameterExpression` was not identified as real
+  if ``symengine`` was installed and the bound expression was not a plain ``1j``.
+  For example::
+
+      from qiskit.circuit import Parameter
+
+      x = Parameter("x")
+      expr = 1j * x
+      bound = expr.bind({x: 2})
+      print(bound.is_real())  # used to be True, but is now False
+
+.. releasenotes/notes/fix-qpy-controlledgate-open-control-35c8ccb4c7466f4c.yaml @ b'5e26264e39cf7deaebf2b03696b1bf2d3fb8117a'
+
+- Fixed QPY serialisation and deserialisation of :class:`.ControlledGate`
+  with open controls (*i.e.* those whose ``ctrl_state`` is not all ones).
+  Fixed `#8549 <https://github.com/Qiskit/qiskit-terra/issues/8549>`__.
+
+.. releasenotes/notes/support-channels-in--fake-backend-v2-82f0650006495fbe.yaml @ b'66c12f28a31159dab227fdf303306819b4a10909'
+
+- All fake backends in :mod:`qiskit.providers.fake_provider.backends` have been
+  updated to return the corresponding pulse channel objects with the method call of
+  :meth:`~BackendV2.drive_channel`, :meth:`~BackendV2.measure_channel`,
+  :meth:`~BackendV2.acquire_channel`, :meth:`~BackendV2.control_channel`.
+
+.. releasenotes/notes/taper-performance-6da355c04da5b648.yaml @ b'fdb62bea1eac6822b96e8dcd2fe19e7aee10027e'
+
+- Fixed support for running :meth:`.Z2Symmetries.taper` on larger problems.
+  Previously, the method would require a large amount of memory which would
+  typically cause failures for larger problem. As a side effect of this fix
+  the performance has significantly improved.
+
+
+Aer 0.10.4
+==========
+
+No change
+
+IBM Q Provider 0.19.2
+=====================
+
+No change
+
+*************
 Qiskit 0.37.1
 *************
 
