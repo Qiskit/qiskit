@@ -14,7 +14,6 @@ Zero probability fidelity primitive
 """
 from __future__ import annotations
 from typing import Sequence
-import numpy as np
 
 from qiskit import QuantumCircuit
 from qiskit.primitives import Sampler
@@ -24,20 +23,18 @@ from .base_fidelity import BaseFidelity
 
 class Fidelity(BaseFidelity):
     """
-    Calculates the fidelity of two quantum circuits by measuring the zero probability outcome.
+    This class leverages the sampler primitive to calculate the fidelity of two quantum circuits
+    by measuring the zero probability outcome (compute-uncompute method).
     """
 
-    def __init__(
-        self,
-        sampler: Sampler,
-        **run_options
-    ) -> None:
-        """
-        Initializes the class to evaluate the fidelities defined as the state overlap
+    def __init__(self, sampler: Sampler, **run_options) -> None:
+        """Initializes the class to evaluate the fidelities defined as the state overlap
+
             :math:`|\langle\psi(x)|\phi(y)\rangle|^2`,
+
         where :math:`x` and :math:`y` are optional parametrizations of the
         states :math:`\psi` and :math:`\phi` prepared by the circuits
-        ``left_circuit`` and ``right_circuit``, respectively.
+        ``circuit_1`` and ``circuit_2``, respectively.
         Args:
             sampler: Sampler primitive instance.
             run_options: Backend runtime options used for circuit execution.
@@ -47,73 +44,30 @@ class Fidelity(BaseFidelity):
         self._default_run_options = run_options
         super().__init__()
 
-    def _preprocess_inputs(
-        self,
-        left_circuits: Sequence[QuantumCircuit],
-        right_circuits: Sequence[QuantumCircuit],
-        left_values: Sequence[Sequence[float]] | None = None,
-        right_values: Sequence[Sequence[float]] | None = None,
-    ) -> tuple(list[QuantumCircuit], list[list[float]]):
-        """Preprocess circuits and parameter values.
-
-         Args:
-            left_circuits: (Parametrized) quantum circuits preparing :math:`|\psi\rangle`.
-            right_circuits: (Parametrized) quantum circuits preparing :math:`|\phi\rangle`.
-            left_values: Numerical parameters to be bound to the left circuits.
-            right_values: Numerical parameters to be bound to the right circuits.
-
-        Returns:
-            Preprocessed circuits and parameter values.
-
-        Raises:
-            ValueError: The number of left parameters has to be equal to the number of
-                        right parameters.
-        """
-
-        # _set_circuits returns indices in list of cached circuits
-        circuit_indices = self._set_circuits(left_circuits, right_circuits)
-        circuit_mapping = map(self._circuits.__getitem__, circuit_indices)
-        # final list of circuits that will be evaluated
-        circuits_list = list(circuit_mapping)
-
-        left_values = self._check_values(left_values, "left", left_circuits)
-        right_values = self._check_values(right_values, "right", right_circuits)
-
-        values_list = []
-        if right_values is not None or left_values is not None:
-            if right_values is None:
-                values_list = left_values
-            elif left_values is None:
-                values_list = right_values
-            else:
-                for (left_val, right_val) in zip(left_values, right_values):
-                    if len(left_val) != len(right_val):
-                        raise ValueError(
-                            f"The number of left parameters (currently {len(left_val)})"
-                            f"has to be equal to the number of right parameters."
-                            f"(currently {len(right_val)})"
-                        )
-                    values_list.append(left_val + right_val)
-
-        return circuits_list, values_list
+    def _create_fidelity_circuit(self, circuit_1, circuit_2):
+        circuit = circuit_1.compose(circuit_2.inverse())
+        circuit.measure_all()
+        return circuit
 
     def evaluate(
         self,
-        left_circuits: Sequence[QuantumCircuit],
-        right_circuits: Sequence[QuantumCircuit],
-        left_values: Sequence[Sequence[float]] | None = None,
-        right_values: Sequence[Sequence[float]] | None = None,
+        circuits_1: Sequence[QuantumCircuit],
+        circuits_2: Sequence[QuantumCircuit],
+        values_1: Sequence[Sequence[float]] | None = None,
+        values_2: Sequence[Sequence[float]] | None = None,
         **run_options,
-    ) -> np.ndarray | float:
+    ) -> list[float]:
         """Compute the state overlap (fidelity) calculation between 2
         parametrized circuits (left and right) for a specific set of parameter
-        values (left and right).
+        values (left and right) following the compute-uncompute method, where
+        the fidelity corresponds to:
+            :math:`|\langle\psi(x)|\phi(y)\rangle|^2`
 
          Args:
-            left_circuits: (Parametrized) quantum circuits preparing :math:`|\psi\rangle`.
-            right_circuits: (Parametrized) quantum circuits preparing :math:`|\phi\rangle`.
-            left_values: Numerical parameters to be bound to the left circuits.
-            right_values: Numerical parameters to be bound to the right circuits.
+            circuits_1: (Parametrized) quantum circuits preparing :math:`|\psi\rangle`.
+            circuits_2: (Parametrized) quantum circuits preparing :math:`|\phi\rangle`.
+            values_1: Numerical parameters to be bound to the first circuits.
+            values_2: Numerical parameters to be bound to the second circuits.
             run_options: Backend runtime options used for circuit execution.
 
         Returns:
@@ -123,45 +77,38 @@ class Fidelity(BaseFidelity):
             ValueError: At least one left and right circuit must be defined.
         """
 
-        circuits_list, values_list = self._preprocess_inputs(
-            left_circuits, right_circuits, left_values, right_values
-        )
+        self._preprocess_inputs(circuits_1, circuits_2, values_1, values_2)
 
-        if circuits_list is None:
+        if len(self._circuits) == 0:
             raise ValueError(
-                "At least one left and right circuit must be defined to "
-                "calculate the state overlap. "
+                "At least one pair of circuits must be defined to " "calculate the state overlap. "
             )
 
         # The priority of run options is as follows:
         # run_options in `evaluate` method > fidelity's default run_options > primitive's default run_options.
         run_options = run_options or self._default_run_options
 
-        if len(values_list) > 0:
+        if len(self._parameter_values) > 0:
             job = self._sampler.run(
-                circuits=circuits_list, parameter_values=values_list, **run_options
+                circuits=self._circuits, parameter_values=self._parameter_values, **run_options
             )
         else:
-            job = self._sampler.run(circuits=circuits_list, **run_options)
+            job = self._sampler.run(circuits=self._circuits, **run_options)
 
         result = job.result()
 
         # if error mitigation is added in the future, we will have to handle
         # negative values in some way (e.g. clipping to zero)
-        overlaps = np.array([prob_dist.get(0, 0) for prob_dist in result.quasi_dists])
+        overlaps = [prob_dist.get(0, 0) for prob_dist in result.quasi_dists]
 
-        # return float if only 1 element in array
-        if len(overlaps) > 1:
-            return overlaps
-        else:
-            return overlaps[0]
+        return overlaps
 
     def run(
         self,
-        left_circuits: Sequence[QuantumCircuit],
-        right_circuits: Sequence[QuantumCircuit],
-        left_values: Sequence[Sequence[float]] | None = None,
-        right_values: Sequence[Sequence[float]] | None = None,
+        circuits_1: Sequence[QuantumCircuit],
+        circuits_2: Sequence[QuantumCircuit],
+        values_1: Sequence[Sequence[float]] | None = None,
+        values_2: Sequence[Sequence[float]] | None = None,
         **run_options,
     ) -> PrimitiveJob:
         """Run asynchronously the state overlap (fidelity) calculation between 2
@@ -169,10 +116,10 @@ class Fidelity(BaseFidelity):
         values (left and right).
 
          Args:
-            left_circuits: (Parametrized) quantum circuits preparing :math:`|\psi\rangle`.
-            right_circuits: (Parametrized) quantum circuits preparing :math:`|\phi\rangle`.
-            left_values: Numerical parameters to be bound to the left circuits.
-            right_values: Numerical parameters to be bound to the right circuits.
+            circuits_1: (Parametrized) quantum circuits preparing :math:`|\psi\rangle`.
+            circuits_2: (Parametrized) quantum circuits preparing :math:`|\phi\rangle`.
+            values_1: Numerical parameters to be bound to the left circuits.
+            values_2: Numerical parameters to be bound to the right circuits.
             run_options: Backend runtime options used for circuit execution.
 
         Returns:
@@ -182,9 +129,7 @@ class Fidelity(BaseFidelity):
             ValueError: At least one left and right circuit must be defined.
         """
 
-        job = PrimitiveJob(
-            self.evaluate, left_circuits, right_circuits, left_values, right_values, **run_options
-        )
+        job = PrimitiveJob(self.evaluate, circuits_1, circuits_2, values_1, values_2, **run_options)
 
         job.submit()
         return job

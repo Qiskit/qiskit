@@ -14,7 +14,7 @@ Base fidelity primitive
 """
 
 from __future__ import annotations
-from abc import ABC
+from abc import ABC, abstractmethod
 from typing import Sequence
 import numpy as np
 
@@ -24,36 +24,45 @@ from qiskit.circuit import ParameterVector
 
 class BaseFidelity(ABC):
     """
-    Defines the interface to calculate fidelities.
+    An interface to calculate fidelities (state overlaps) for pairs of
+    (parametrized) quantum circuits.
     """
 
     def __init__(
         self,
     ) -> None:
-        r"""Initializes the class to evaluate the fidelities defined as
+        """Initializes the class to evaluate fidelities."""
 
-            :math:`|\langle\psi(x)|\phi(y)\rangle|^2`,
+        self._circuits: Sequence[QuantumCircuit] = []
+        self._parameter_values: Sequence[Sequence[float]] = []
 
-        where :math:`x` and :math:`y` are optional parametrizations of the
-        states :math:`\psi` and :math:`\phi` prepared by the circuits
-        ``left_circuit`` and ``right_circuit``, respectively.
-        """
-
-        self._circuits = []
-        self._circuit_ids = {}
+        # use cache for preventing unnecessary circuit compositions
+        self._circuit_cache: dict[(int, int), QuantumCircuit] = {}
 
         self._left_parameters = []
         self._right_parameters = []
 
-    def _check_values(
-        self, values: Sequence[Sequence[float]] | None, side: str, circuits: QuantumCircuit
+    def _check_values_shape(
+        self,
+        values: Sequence[Sequence[float]] | None,
+        circuits: QuantumCircuit,
+        label: str | None = " ",
     ) -> list[list[float]] | None:
         """
-        Check whether the passed values match the shape of the parameters of the circuit on the side
-        provided.
+        Checks whether the passed values match the shape of the parameters
+        of the corresponding circuits and formats values to 2D list.
 
-        Returns a 2D-Array if values match, `None` if no parameters are passed and raises an error if
-        the shapes don't match.
+        Args:
+            values: parameter values corresponding to the circuits to be checked
+            circuits: list of circuits to be checked
+            label: optional label to allow for circuit identification in error message
+
+        Returns:
+            Returns a 2D list if values match, `None` if no parameters are passed
+
+        Raises:
+            ValueError: if the number of parameter values doesn't match the number of
+                        circuit parameters
         """
 
         # Support ndarray
@@ -64,7 +73,7 @@ class BaseFidelity(ABC):
             for circuit in circuits:
                 if circuit.num_parameters != 0:
                     raise ValueError(
-                        f"`values_{side}` cannot be `None` because the {side} circuit has "
+                        f"`values_{label}` cannot be `None` because circuit_{label} has "
                         f"{circuit.num_parameters} free parameters."
                     )
             return None
@@ -76,69 +85,163 @@ class BaseFidelity(ABC):
                 values = [values]
             return values
 
-    def _check_qubits_mismatch(
-        self, left_circuit: QuantumCircuit, right_circuit: QuantumCircuit
-    ) -> None:
+    def _check_qubits_mismatch(self, circuit_1: QuantumCircuit, circuit_2: QuantumCircuit) -> None:
         """
-        Check that the number of qubits of the left and right circuit matches
+        Checks that the number of qubits of 2 circuits matches.
         Args:
-            left_circuit: (Parametrized) quantum circuit
-            right_circuit: (Parametrized) quantum circuit
+            circuit_1: (Parametrized) quantum circuit
+            circuit_2: (Parametrized) quantum circuit
 
         Raises:
-            ValueError: ``left_circuit`` and ``right_circuit`` don't have the same number of qubits.
+            ValueError: when ``circuit_1`` and ``circuit_2`` don't have the same number of qubits.
         """
 
-        if left_circuit is not None and right_circuit is not None:
-            if left_circuit.num_qubits != right_circuit.num_qubits:
+        if circuit_1 is not None and circuit_2 is not None:
+            if circuit_1.num_qubits != circuit_2.num_qubits:
                 raise ValueError(
-                    f"The number of qubits for the left circuit ({left_circuit.num_qubits}) \
-                        and right circuit ({right_circuit.num_qubits}) do not coincide."
+                    f"The number of qubits for the left circuit ({circuit_1.num_qubits}) \
+                        and right circuit ({circuit_2.num_qubits}) do not coincide."
                 )
+
+    @abstractmethod
+    def _create_fidelity_circuit(
+        self, circuit_1: QuantumCircuit, circuit_2: QuantumCircuit
+    ) -> QuantumCircuit:
+        """
+        Implementation-dependent method to create a fidelity circuit
+        from 2 circuit inputs.
+        Args:
+            circuit_1: (Parametrized) quantum circuit
+            circuit_2: (Parametrized) quantum circuit
+
+        Returns:
+            The fidelity quantum circuit corresponding to circuit_1 and circuit_2.
+        """
+        raise NotImplementedError
 
     def _set_circuits(
         self,
-        left_circuits: Sequence[QuantumCircuit] | None = None,
-        right_circuits: Sequence[QuantumCircuit] | None = None,
-    ) -> np.ndarray:
+        circuits_1: Sequence[QuantumCircuit] | None = None,
+        circuits_2: Sequence[QuantumCircuit] | None = None,
+    ) -> None:
         """
-        Fix the circuits for the fidelity to be computed of.
+        Update the list of fidelity circuits to be evaluated.
+        These circuits represent the state overlap between pairs of input circuits,
+        and their construction depends on the fidelity method implementations.
+
         Args:
-            left_circuit: (Parametrized) quantum circuit
-            right_circuit: (Parametrized) quantum circuit
+            circuits_1: (Parametrized) quantum circuits.
+            circuits_2: (Parametrized) quantum circuits.
+
+        Raises:
+            ValueError: if the length of the input circuit lists doesn't match.
         """
 
-        if not len(left_circuits) == len(right_circuits):
+        if not len(circuits_1) == len(circuits_2):
             raise ValueError(
-                f"The number of left ({len(left_circuits)}) \
-                        and right circuits ({len(right_circuits)}) do not coincide."
+                f"The length of the first circuit list({len(circuits_1)}) \
+                    and second circuit list ({len(circuits_2)}) does not coincide."
             )
 
-        circuit_indices = []
-        for (left_circuit, right_circuit) in zip(left_circuits, right_circuits):
+        circuits = []
+        for (circuit_1, circuit_2) in zip(circuits_1, circuits_2):
 
-            index = self._circuit_ids.get((id(left_circuit), id(right_circuit)))
+            circuit = self._circuit_cache.get((id(circuit_1), id(circuit_2)))
 
-            if index is not None:
-                # the composed circuit already exists
-                circuit_indices.append(index)
+            if circuit is not None:
+                circuits.append(circuit)
             else:
-                # create new circuit
-                self._check_qubits_mismatch(left_circuit, right_circuit)
+                self._check_qubits_mismatch(circuit_1, circuit_2)
 
-                left_parameters = ParameterVector("x", left_circuit.num_parameters)
+                # re-parametrize input circuits
+                left_parameters = ParameterVector("x", circuit_1.num_parameters)
                 self._left_parameters.append(left_parameters)
-                parametrized_left_circuit = left_circuit.assign_parameters(left_parameters)
+                parametrized_circuit_1 = circuit_1.assign_parameters(left_parameters)
 
-                right_parameters = ParameterVector("y", right_circuit.num_parameters)
+                right_parameters = ParameterVector("y", circuit_2.num_parameters)
                 self._right_parameters.append(right_parameters)
-                parametrized_right_circuit = right_circuit.assign_parameters(right_parameters)
+                parametrized_circuit_2 = circuit_2.assign_parameters(right_parameters)
 
-                circuit = parametrized_left_circuit.compose(parametrized_right_circuit.inverse())
-                circuit.measure_all()
+                circuit = self._create_fidelity_circuit(
+                    parametrized_circuit_1, parametrized_circuit_2
+                )
+                circuits.append(circuit)
+                # update cache
+                self._circuit_cache[id(circuit_1), id(circuit_2)] = circuit
 
-                self._circuit_ids[id(left_circuit), id(right_circuit)] = len(self._circuits)
-                self._circuits.append(circuit)
-                circuit_indices.append(len(self._circuits) - 1)
+        # set circuits
+        self._circuits = circuits
 
-        return circuit_indices
+    def _set_values(
+        self, values_1: Sequence[Sequence[float]] | None, values_2: Sequence[Sequence[float]] | None
+    ) -> None:
+        """
+        Update the list of parameter values to evaluate the corresponding
+        fidelity circuits with.
+
+        Args:
+            values_1: Numerical parameters to be bound to the first circuits.
+            values_2: Numerical parameters to be bound to the second circuits.
+
+        Raises:
+            ValueError: if the length of the input value lists doesn't match.
+        """
+
+        values = []
+        if values_2 is not None or values_1 is not None:
+            if values_2 is None:
+                values = values_1
+            elif values_1 is None:
+                values = values_2
+            else:
+                for (val_1, val_2) in zip(values_1, values_2):
+                    if len(val_1) != len(val_2):
+                        raise ValueError(
+                            f"The number of left parameters (currently {len(val_1)})"
+                            f"has to be equal to the number of right parameters."
+                            f"(currently {len(val_2)})"
+                        )
+                    values.append(val_1 + val_2)
+
+        # set values
+        self._parameter_values = values
+
+    def _preprocess_inputs(
+        self,
+        circuits_1: Sequence[QuantumCircuit],
+        circuits_2: Sequence[QuantumCircuit],
+        values_1: Sequence[Sequence[float]] | None = None,
+        values_2: Sequence[Sequence[float]] | None = None,
+    ) -> None:
+        """Preprocess input circuits and parameter values and update corresponding lists.
+
+        Args:
+           circuits_1: (Parametrized) quantum circuits preparing the first list of quantum states.
+           circuits_2: (Parametrized) quantum circuits preparing the second list of quantum states.
+           values_1: Numerical parameters to be bound to the first circuits.
+           values_2: Numerical parameters to be bound to the second circuits.
+
+        """
+
+        self._set_circuits(circuits_1, circuits_2)
+
+        values_1 = self._check_values_shape(values_1, circuits_1, "1")
+        values_2 = self._check_values_shape(values_2, circuits_2, "2")
+
+        self._set_values(values_1, values_2)
+
+    @abstractmethod
+    def evaluate(
+        self,
+        circuits_1: Sequence[QuantumCircuit],
+        circuits_2: Sequence[QuantumCircuit],
+        values_1: Sequence[Sequence[float]] | None = None,
+        values_2: Sequence[Sequence[float]] | None = None,
+        **run_options,
+    ) -> list[float]:
+        """Compute the state overlap (fidelity) calculation between 2
+        parametrized circuits (first and second) for a specific set of parameter
+        values (first and second). This calculation depends on the particular
+        fidelity method implementation.
+        """
+        return NotImplementedError

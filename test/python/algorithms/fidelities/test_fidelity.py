@@ -89,7 +89,7 @@ class TestFidelity(QiskitTestCase):
         fidelity = Fidelity(self._sampler)
         n = len(self._left_params)
         results = fidelity.evaluate(
-            [self._circuit[1]] * n, [self._circuit[3]] * n, left_values=self._left_params
+            [self._circuit[1]] * n, [self._circuit[3]] * n, values_1=self._left_params
         )
         np.testing.assert_allclose(results, np.array([1.0, 0.5, 0.5, 0.0]), atol=1e-16)
 
@@ -98,7 +98,7 @@ class TestFidelity(QiskitTestCase):
         fidelity = Fidelity(self._sampler)
         n = len(self._left_params)
         results = fidelity.evaluate(
-            [self._circuit[3]] * n, [self._circuit[1]] * n, right_values=self._left_params
+            [self._circuit[3]] * n, [self._circuit[1]] * n, values_2=self._left_params
         )
         np.testing.assert_allclose(results, np.array([1.0, 0.5, 0.5, 0.0]), atol=1e-16)
 
@@ -106,7 +106,7 @@ class TestFidelity(QiskitTestCase):
         """test for fidelity with no circuits."""
         fidelity = Fidelity(self._sampler)
         with self.assertRaises(TypeError):
-            _ = fidelity.evaluate(left_values=self._left_params, right_values=self._right_params)
+            _ = fidelity.evaluate(values_1=self._left_params, values_2=self._right_params)
 
     def test_circuit_mismatch(self):
         """test for fidelity with different number of left/right circuits."""
@@ -157,7 +157,7 @@ class TestFidelity(QiskitTestCase):
             job = fidelity.run([self._circuit[0]], [self._circuit[1]], left_param, right_param)
             jobs.append(job)
 
-        results = [job.result() for job in jobs]
+        results = [job.result()[0] for job in jobs]
         np.testing.assert_allclose(results, np.array([1.0, 0.5, 0.25, 0.0]), atol=1e-16)
 
 
