@@ -86,7 +86,7 @@ def decompose_clifford_bm(clifford):
     num_qubits = clifford.num_qubits
 
     if num_qubits == 1:
-        return _decompose_clifford_1q(clifford.tableau[:, :-1], clifford.phase)
+        return _decompose_clifford_1q(clifford.tableau)
 
     clifford_name = str(clifford)
 
@@ -104,9 +104,7 @@ def decompose_clifford_bm(clifford):
     ret_circ = QuantumCircuit(num_qubits, name=clifford_name)
     for qubit in range(num_qubits):
         pos = [qubit, qubit + num_qubits]
-        table = clifford.tableau[pos][:, pos]
-        phase = clifford.phase[pos]
-        circ = _decompose_clifford_1q(table, phase)
+        circ = _decompose_clifford_1q(clifford.tableau[pos][:, pos + [-1]])
         if len(circ) > 0:
             ret_circ.append(circ, [qubit])
 
@@ -133,7 +131,7 @@ def decompose_clifford_ag(clifford):
     """
     # Use 1-qubit decomposition method
     if clifford.num_qubits == 1:
-        return _decompose_clifford_1q(clifford.tableau[:, :-1], clifford.phase)
+        return _decompose_clifford_1q(clifford.tableau)
 
     # Compose a circuit which we will convert to an instruction
     circuit = QuantumCircuit(clifford.num_qubits, name=str(clifford))
@@ -168,12 +166,12 @@ def decompose_clifford_ag(clifford):
 # ---------------------------------------------------------------------
 
 
-def _decompose_clifford_1q(pauli, phase):
+def _decompose_clifford_1q(tableau):
     """Decompose a single-qubit clifford"""
     circuit = QuantumCircuit(1, name="temp")
 
     # Add phase correction
-    destab_phase, stab_phase = phase
+    destab_phase, stab_phase = tableau[:, 2]
     if destab_phase and not stab_phase:
         circuit.z(0)
     elif not destab_phase and stab_phase:
@@ -183,8 +181,8 @@ def _decompose_clifford_1q(pauli, phase):
     destab_phase_label = "-" if destab_phase else "+"
     stab_phase_label = "-" if stab_phase else "+"
 
-    destab_x, destab_z = pauli[0]
-    stab_x, stab_z = pauli[1]
+    destab_x, destab_z = tableau[0, 0], tableau[0, 1]
+    stab_x, stab_z = tableau[1, 0], tableau[1, 1]
 
     # Z-stabilizer
     if stab_z and not stab_x:
@@ -489,12 +487,10 @@ def decompose_clifford_greedy(clifford):
 
         list_greedy_cost = []
         for qubit in qubit_list:
-            pauli_x = Pauli(num_qubits * "I")
-            pauli_x[qubit] = "X"
+            pauli_x = Pauli("I" * (num_qubits - qubit - 1) + "X" + "I" * qubit)
             pauli_x = pauli_x.evolve(clifford_adj, frame="s")
 
-            pauli_z = Pauli(num_qubits * "I")
-            pauli_z[qubit] = "Z"
+            pauli_z = Pauli("I" * (num_qubits - qubit - 1) + "Z" + "I" * qubit)
             pauli_z = pauli_z.evolve(clifford_adj, frame="s")
             list_pairs = []
             pauli_count = 0
@@ -510,12 +506,10 @@ def decompose_clifford_greedy(clifford):
         _, min_qubit = (sorted(list_greedy_cost))[0]
 
         # Gaussian elimination step for the qubit with minimal CNOT cost
-        pauli_x = Pauli(num_qubits * "I")
-        pauli_x[min_qubit] = "X"
+        pauli_x = Pauli("I" * (num_qubits - min_qubit - 1) + "X" + "I" * min_qubit)
         pauli_x = pauli_x.evolve(clifford_adj, frame="s")
 
-        pauli_z = Pauli(num_qubits * "I")
-        pauli_z[min_qubit] = "Z"
+        pauli_z = Pauli("I" * (num_qubits - min_qubit - 1) + "Z" + "I" * min_qubit)
         pauli_z = pauli_z.evolve(clifford_adj, frame="s")
 
         # Compute the decoupling operator of cliff_ox and cliff_oz
