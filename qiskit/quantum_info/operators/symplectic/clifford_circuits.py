@@ -96,15 +96,8 @@ def _append_operation(clifford, operation, qargs=None):
     # are a single qubit Clifford gate rather than raise an exception.
     if gate.definition is None:
         raise QiskitError(f"Cannot apply Instruction: {gate.name}")
-    # TODO: We could remove this check once gate.definition is typed as Optional[QuantumCircuit]
-    if isinstance(gate.definition, QuantumCircuit):
-        _append_circuit(clifford, gate.definition, qargs)
-    else:
-        raise QiskitError(
-            f"{gate.name} instruction definition is {type(gate.definition)}; expected QuantumCircuit"
-        )
 
-    return clifford
+    return _append_circuit(clifford, gate.definition, qargs)
 
 
 # ---------------------------------------------------------------------
