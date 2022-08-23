@@ -195,11 +195,12 @@ def random_clifford(num_qubits, seed=None):
     table[lhs_inds, :] = table[rhs_inds, :]
 
     # Apply table
-    table = np.mod(np.matmul(table1, table), 2).astype(bool)
+    tableau = np.zeros((2 * num_qubits, 2 * num_qubits + 1), dtype=bool)
+    tableau[:, :-1] = np.mod(np.matmul(table1, table), 2)
 
     # Generate random phases
-    phase = rng.integers(2, size=2 * num_qubits).astype(bool)
-    return Clifford(np.hstack((table, phase.reshape(2 * num_qubits, 1))))
+    tableau[:, -1] = rng.integers(2, size=2 * num_qubits)
+    return Clifford(tableau, validate=False)
 
 
 def _sample_qmallows(n, rng=None):
