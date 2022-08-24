@@ -99,8 +99,8 @@ class BaseFidelity(ABC):
         if circuit_1 is not None and circuit_2 is not None:
             if circuit_1.num_qubits != circuit_2.num_qubits:
                 raise ValueError(
-                    f"The number of qubits for the left circuit ({circuit_1.num_qubits}) \
-                        and right circuit ({circuit_2.num_qubits}) do not coincide."
+                    f"The number of qubits for the left circuit ({circuit_1.num_qubits}) "
+                    f"and right circuit ({circuit_2.num_qubits}) do not coincide."
                 )
 
     @abstractmethod
@@ -139,8 +139,8 @@ class BaseFidelity(ABC):
 
         if not len(circuits_1) == len(circuits_2):
             raise ValueError(
-                f"The length of the first circuit list({len(circuits_1)}) \
-                    and second circuit list ({len(circuits_2)}) do not coincide."
+                f"The length of the first circuit list({len(circuits_1)}) "
+                f"and second circuit list ({len(circuits_2)}) does not coincide."
             )
 
         circuits = []
