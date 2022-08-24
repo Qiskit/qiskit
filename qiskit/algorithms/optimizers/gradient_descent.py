@@ -33,26 +33,12 @@ class GradientDescentState(OptimizerState):
     """Norm of the gradient on the last step."""
 
     learning_rate: LearningRate = field(compare=False)
-    """Learning rate at the current step of the optimization process.ddf
+    """Learning rate at the current step of the optimization process.
 
     It behaves like a generator, (use ``next(learning_rate)`` to get the learning rate for the
     next step) but it can also return  the current learning rate with ``learning_rate.current``.
 
     """
-
-
-    def _post_init_(self):
-        if isinstance(self.learning_rate, float, list, np.ndarray) or callable(self.learning_rate):
-            self.learning_rate = LearningRate(self.learning_rate)
-        elif isinstance(self.learning_rate, LearningRate):
-            pass
-        else:
-            raise TypeError(
-                "learning_rate needs to be of type LearningRate. Alternatively \
-            a float, a list, a generator or a callable can be used to create an instance \
-            of LearningRate."
-            )
-
 
 class GradientDescent(SteppableOptimizer):
     r"""The gradient descent minimization routine.

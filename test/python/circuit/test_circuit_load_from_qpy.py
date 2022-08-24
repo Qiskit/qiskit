@@ -998,6 +998,17 @@ class TestLoadFromQPY(QiskitTestCase):
         new_circuit = load(qpy_file)[0]
         self.assertEqual(qc, new_circuit)
 
+    def test_controlled_gate_open_controls(self):
+        """Test a controlled gate with open controls round-trips exactly."""
+        qc = QuantumCircuit(3)
+        controlled_gate = DCXGate().control(1, ctrl_state=0)
+        qc.append(controlled_gate, [0, 1, 2])
+        qpy_file = io.BytesIO()
+        dump(qc, qpy_file)
+        qpy_file.seek(0)
+        new_circuit = load(qpy_file)[0]
+        self.assertEqual(qc, new_circuit)
+
     def test_nested_controlled_gate(self):
         """Test a custom nested controlled gate."""
         custom_gate = Gate("black_box", 1, [])

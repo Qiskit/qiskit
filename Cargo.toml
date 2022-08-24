@@ -15,21 +15,25 @@ numpy = "0.16.2"
 rand = "0.8"
 rand_pcg = "0.3"
 rand_distr = "0.4.3"
-indexmap = "1.9.1"
-ahash = "0.7.6"
+ahash = "0.8.0"
 num-complex = "0.4"
 num-bigint = "0.4"
+retworkx-core = "0.11"
 
 [dependencies.pyo3]
 version = "0.16.5"
 features = ["extension-module", "hashbrown", "num-complex", "num-bigint"]
 
 [dependencies.ndarray]
-version = "^0.15.0"
+version = "^0.15.6"
 features = ["rayon"]
 
 [dependencies.hashbrown]
-version = "0.12.2"
+version = "0.12.3"
+features = ["rayon"]
+
+[dependencies.indexmap]
+version = "1.9.1"
 features = ["rayon"]
 
 [profile.release]

@@ -14,6 +14,8 @@
 
 from typing import Optional, Union, Tuple
 
+import numpy as np
+
 from qiskit import QuantumCircuit
 from qiskit.algorithms.list_or_dict import ListOrDict
 from qiskit.opflow import StateFn, OperatorBase
@@ -27,6 +29,7 @@ class EvolutionResult(AlgorithmResult):
         self,
         evolved_state: Union[StateFn, QuantumCircuit, OperatorBase],
         aux_ops_evaluated: Optional[ListOrDict[Tuple[complex, complex]]] = None,
+        observables: Optional[ListOrDict[Tuple[np.ndarray, np.ndarray]]] = None,
     ):
         """
         Args:
@@ -34,7 +37,10 @@ class EvolutionResult(AlgorithmResult):
             aux_ops_evaluated: Optional list of observables for which expected values on an evolved
                 state are calculated. These values are in fact tuples formatted as (mean, standard
                 deviation).
+            observables: Optional list of observables for which expected values for each timestep.
+             These values are in fact tuples formatted as (mean, standard deviation).
         """
 
         self.evolved_state = evolved_state
         self.aux_ops_evaluated = aux_ops_evaluated
+        self.observables = observables

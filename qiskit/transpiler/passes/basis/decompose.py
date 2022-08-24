@@ -87,7 +87,7 @@ class Decompose(TransformationPass):
         # Walk through the DAG and expand each non-basis node
         for node in dag.op_nodes():
             if self._should_decompose(node):
-                if node.op.definition is None:
+                if getattr(node.op, "definition", None) is None:
                     continue
                 # TODO: allow choosing among multiple decomposition rules
                 rule = node.op.definition.data
@@ -128,9 +128,7 @@ class Decompose(TransformationPass):
             node.name in gates or any(fnmatch(node.name, p) for p in strings_list)
         ):
             return True
-        elif not has_label and (  # check if Gate type given
-            any(isinstance(node.op, op) for op in gate_type_list)
-        ):
+        elif any(isinstance(node.op, op) for op in gate_type_list):  # check if Gate type given
             return True
         else:
             return False

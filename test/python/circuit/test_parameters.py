@@ -1718,6 +1718,14 @@ class TestParameterExpressions(QiskitTestCase):
             self.assertEqual(expr.gradient(x), 2 * x)
             self.assertEqual(expr.gradient(x).gradient(x), 2)
 
+    def test_bound_expression_is_real(self):
+        """Test is_real on bound parameters."""
+        x = Parameter("x")
+        expr = 1j * x
+        bound = expr.bind({x: 2})
+
+        self.assertFalse(bound.is_real())
+
 
 class TestParameterEquality(QiskitTestCase):
     """Test equality of Parameters and ParameterExpressions."""

@@ -37,6 +37,7 @@ Optimizer Base Class
    OptimizerResult
    OptimizerSupportLevel
    Optimizer
+   Minimizer
 
 Steppable Optimizer Base Class
 ==============================
@@ -151,11 +152,16 @@ from .umda import UMDA
 __all__ = [
     "Optimizer",
     "OptimizerSupportLevel",
+<<<<<<< .merge_file_CahvVV
     "SteppableOptimizer",
     "AskData",
     "TellData",
     "OptimizerState",
     "LearningRate",
+=======
+    "OptimizerResult",
+    "Minimizer",
+>>>>>>> .merge_file_BmcFTt
     "ADAM",
     "AQGD",
     "CG",
