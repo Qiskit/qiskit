@@ -17,7 +17,8 @@ class SuffixAveragingOptimizer(Optimizer):
 
         References:
             [1] S. Tamiya and H. Yamasaki. 2021.
-            Stochastic Gradient Line Bayesian Optimization for Efficient Noise-Robust Optimization of Parameterized Quantum Circuits.
+            Stochastic Gradient Line Bayesian Optimization
+            for Efficient Noise-Robust Optimization of Parameterized Quantum Circuits.
             arXiv preprint arXiv:2111.07952.
         """
 
@@ -63,9 +64,7 @@ class SuffixAveragingOptimizer(Optimizer):
             n_iterates = int(len(self._circ_params))
             n_repitition = int(len(self._circ_params) / n_params)
             if n_repitition < self._n_params_suffix:
-                warnings.warn(
-                    "The total number of iterations is less than the number of parameters for taking suffix averaging."
-                )
+                warnings.warn("The total number of iterations is less than n_params_suffix.")
                 averaged_param = np.zeros_like(self._circ_params[0])
                 for j in range(n_repitition):
                     averaged_param += self._circ_params[n_iterates - n_params * j - 1]
@@ -81,9 +80,7 @@ class SuffixAveragingOptimizer(Optimizer):
             n_iterates = len(self._circ_params)
 
             if n_iterates < self._n_params_suffix:
-                warnings.warn(
-                    "The total number of iterations is less than the number of parameters for taking suffix averaging."
-                )
+                warnings.warn("The total number of iterations is less than n_params_suffix.")
                 return np.average(self._circ_params, axis=0)
 
             averaged_param = np.zeros_like(self._circ_params[0])

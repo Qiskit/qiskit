@@ -1,6 +1,7 @@
 """ Test of Suffix averaging """
 
 import unittest
+import numpy as np
 from qiskit.algorithms.optimizers.suffix_averaging import SuffixAveragingOptimizer
 from test.python.algorithms import QiskitAlgorithmsTestCase
 from qiskit import BasicAer
@@ -9,7 +10,6 @@ from qiskit.utils import QuantumInstance, algorithm_globals
 from qiskit.opflow import PauliSumOp
 from qiskit.algorithms.optimizers import ADAM
 from qiskit.algorithms import VQE
-import numpy as np
 
 
 class TestOptimizerSA(QiskitAlgorithmsTestCase):
@@ -33,7 +33,7 @@ class TestOptimizerSA(QiskitAlgorithmsTestCase):
         """Test suffix averaging."""
         circ_params = []
         n_params_suffix = 5
-        maxiter = 5
+        maxiter = 7
 
         def store_intermediate_result(eval_count, parameters, mean, std):
             circ_params.append(parameters)
@@ -55,12 +55,14 @@ class TestOptimizerSA(QiskitAlgorithmsTestCase):
 
         result = vqe.compute_minimum_eigenvalue(operator=self.qubit_op)
 
+        n_param = len(circ_params[0])
         average_params = np.zeros_like(circ_params[0])
+
         for i in range(n_params_suffix):
-            average_params += circ_params[maxiter - i - 2]
+            average_params += circ_params[-i * (n_param + 1) - 2]
         average_params /= n_params_suffix
 
-        self.assertListEqual(result.optimal_point, average_params)
+        self.assertListEqual(result.optimal_point.tolist(), average_params.tolist())
 
 
 if __name__ == "__main__":
