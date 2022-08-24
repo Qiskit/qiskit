@@ -10,8 +10,9 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 """
-Zero probability fidelity primitive
+Compute-uncompute fidelity interface using primitives
 """
+
 from __future__ import annotations
 from typing import Sequence
 
@@ -24,7 +25,7 @@ from .base_fidelity import BaseFidelity
 class Fidelity(BaseFidelity):
     """
     This class leverages the sampler primitive to calculate the fidelity of two quantum circuits
-    by measuring the zero probability outcome (compute-uncompute method).
+    with the compute-uncompute method.
     """
 
     def __init__(self, sampler: Sampler, **run_options) -> None:
@@ -61,6 +62,7 @@ class Fidelity(BaseFidelity):
         parametrized circuits (left and right) for a specific set of parameter
         values (left and right) following the compute-uncompute method, where
         the fidelity corresponds to:
+
             :math:`|\langle\psi(x)|\phi(y)\rangle|^2`
 
          Args:

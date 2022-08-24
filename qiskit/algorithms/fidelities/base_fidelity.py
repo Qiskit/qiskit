@@ -10,12 +10,12 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 """
-Base fidelity primitive
+Base fidelity interface
 """
 
 from __future__ import annotations
 from abc import ABC, abstractmethod
-from typing import Sequence
+from typing import Sequence, Mapping
 import numpy as np
 
 from qiskit import QuantumCircuit
@@ -37,7 +37,7 @@ class BaseFidelity(ABC):
         self._parameter_values: Sequence[Sequence[float]] = []
 
         # use cache for preventing unnecessary circuit compositions
-        self._circuit_cache: dict[(int, int), QuantumCircuit] = {}
+        self._circuit_cache: Mapping[(int, int), QuantumCircuit] = {}
 
         self._left_parameters = []
         self._right_parameters = []
