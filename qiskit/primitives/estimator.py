@@ -75,6 +75,10 @@ class Estimator(BaseEstimator):
 
     @staticmethod
     def _bound_circuit_to_instruction(circuit: QuantumCircuit) -> Instruction:
+        if len(circuit.qregs) > 1:
+            return circuit.to_instruction()
+
+        # len(circuit.qregs) == 1 -> No need to flatten qregs
         inst = Instruction(
             name=circuit.name,
             num_qubits=circuit.num_qubits,
