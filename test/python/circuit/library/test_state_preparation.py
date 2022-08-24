@@ -19,7 +19,7 @@ import math
 import numpy as np
 from ddt import ddt, data
 
-from qiskit import QuantumCircuit
+from qiskit import QuantumCircuit, QuantumRegister
 from qiskit.quantum_info import Statevector, Operator
 from qiskit.test import QiskitTestCase
 from qiskit.exceptions import QiskitError
@@ -53,6 +53,15 @@ class TestStatePreparation(QiskitTestCase):
         qc.prepare_state([1 / math.sqrt(2), 0, 0, 1 / math.sqrt(2)])
         actual_sv = Statevector(qc)
         self.assertTrue(desired_sv == actual_sv)
+
+    def test_prepare_single_qubit(self):
+        """Prepare state in single qubit."""
+        qreg = QuantumRegister(2)
+        circuit = QuantumCircuit(qreg)
+        circuit.prepare_state([1 / math.sqrt(2), 1 / math.sqrt(2)], qreg[1])
+        expected = QuantumCircuit(qreg)
+        expected.prepare_state([1 / math.sqrt(2), 1 / math.sqrt(2)], [qreg[1]])
+        self.assertEqual(circuit, expected)
 
     def test_nonzero_state_incorrect(self):
         """Test final state incorrect if initial state not zero"""

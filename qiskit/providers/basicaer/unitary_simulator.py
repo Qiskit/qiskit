@@ -392,8 +392,6 @@ class UnitarySimulatorPy(BackendV1):
             for operation in experiment.instructions:
                 if operation.name in ["measure", "reset"]:
                     raise BasicAerError(
-                        'Unsupported "%s" instruction "%s" ' + 'in circuit "%s" ',
-                        self.name(),
-                        operation.name,
-                        name,
+                        f'Unsupported "{self.name()}" instruction "{operation.name}"'
+                        f' in circuit "{name}".'
                     )
