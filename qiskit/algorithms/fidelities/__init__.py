@@ -11,9 +11,10 @@
 # that they have been altered from the originals.
 """
 =====================================
-Primitive-based Fidelity Interfaces (:mod:`qiskit.algorithms.fidelities`)
+Fidelity Interfaces (:mod:`qiskit.algorithms.fidelities`)
 =====================================
 .. currentmodule:: qiskit.algorithms.fidelities
+
 Fidelity
 =========
 .. autosummary::
@@ -21,6 +22,7 @@ Fidelity
    BaseFidelity
    Fidelity
 """
+
 from .base_fidelity import BaseFidelity
 from .fidelity import Fidelity
 

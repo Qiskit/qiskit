@@ -29,7 +29,8 @@ class Fidelity(BaseFidelity):
     """
 
     def __init__(self, sampler: Sampler, **run_options) -> None:
-        """Initializes the class to evaluate the fidelities defined as the state overlap
+        r"""
+        Initializes the class to evaluate the fidelities defined as the state overlap
 
             :math:`|\langle\psi(x)|\phi(y)\rangle|^2`,
 
@@ -39,13 +40,21 @@ class Fidelity(BaseFidelity):
         Args:
             sampler: Sampler primitive instance.
             run_options: Backend runtime options used for circuit execution.
-
         """
         self._sampler = sampler
         self._default_run_options = run_options
         super().__init__()
 
-    def _create_fidelity_circuit(self, circuit_1, circuit_2):
+    def _create_fidelity_circuit(self, circuit_1, circuit_2) -> QuantumCircuit:
+        """
+        Creates fidelity circuit following the compute-uncompute method.
+        Args:
+            circuit_1: (Parametrized) quantum circuit
+            circuit_2: (Parametrized) quantum circuit
+
+        Returns:
+            The fidelity quantum circuit corresponding to circuit_1 and circuit_2.
+        """
         circuit = circuit_1.compose(circuit_2.inverse())
         circuit.measure_all()
         return circuit
@@ -58,14 +67,15 @@ class Fidelity(BaseFidelity):
         values_2: Sequence[Sequence[float]] | None = None,
         **run_options,
     ) -> list[float]:
-        """Compute the state overlap (fidelity) calculation between 2
+        r"""
+        Compute the state overlap (fidelity) calculation between 2
         parametrized circuits (left and right) for a specific set of parameter
         values (left and right) following the compute-uncompute method, where
         the fidelity corresponds to:
 
             :math:`|\langle\psi(x)|\phi(y)\rangle|^2`
 
-         Args:
+        Args:
             circuits_1: (Parametrized) quantum circuits preparing :math:`|\psi\rangle`.
             circuits_2: (Parametrized) quantum circuits preparing :math:`|\phi\rangle`.
             values_1: Numerical parameters to be bound to the first circuits.
@@ -76,18 +86,19 @@ class Fidelity(BaseFidelity):
             The result of the fidelity calculation.
 
         Raises:
-            ValueError: At least one left and right circuit must be defined.
+            ValueError: At least one pair of circuits must be defined.
         """
 
         self._preprocess_inputs(circuits_1, circuits_2, values_1, values_2)
 
         if len(self._circuits) == 0:
             raise ValueError(
-                "At least one pair of circuits must be defined to " "calculate the state overlap. "
+                "At least one pair of circuits must be defined to calculate the state overlap."
             )
 
         # The priority of run options is as follows:
-        # run_options in `evaluate` method > fidelity's default run_options > primitive's default run_options.
+        # run_options in `evaluate` method > fidelity's default run_options >
+        # primitive's default run_options.
         run_options = run_options or self._default_run_options
 
         if len(self._parameter_values) > 0:
@@ -113,11 +124,12 @@ class Fidelity(BaseFidelity):
         values_2: Sequence[Sequence[float]] | None = None,
         **run_options,
     ) -> PrimitiveJob:
-        """Run asynchronously the state overlap (fidelity) calculation between 2
+        r"""
+        Run asynchronously the state overlap (fidelity) calculation between 2
         parametrized circuits (left and right) for a specific set of parameter
         values (left and right).
 
-         Args:
+        Args:
             circuits_1: (Parametrized) quantum circuits preparing :math:`|\psi\rangle`.
             circuits_2: (Parametrized) quantum circuits preparing :math:`|\phi\rangle`.
             values_1: Numerical parameters to be bound to the left circuits.
@@ -126,9 +138,6 @@ class Fidelity(BaseFidelity):
 
         Returns:
             Primitive job for the fidelity calculation
-
-        Raises:
-            ValueError: At least one left and right circuit must be defined.
         """
 
         job = PrimitiveJob(self.evaluate, circuits_1, circuits_2, values_1, values_2, **run_options)

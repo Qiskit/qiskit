@@ -106,7 +106,12 @@ class TestFidelity(QiskitTestCase):
         """test for fidelity with no circuits."""
         fidelity = Fidelity(self._sampler)
         with self.assertRaises(TypeError):
-            _ = fidelity.evaluate(values_1=self._left_params, values_2=self._right_params)
+            _ = fidelity.evaluate(
+                circuits_1=None,
+                circuits_2=None,
+                values_1=self._left_params,
+                values_2=self._right_params,
+            )
 
     def test_circuit_mismatch(self):
         """test for fidelity with different number of left/right circuits."""
@@ -121,6 +126,8 @@ class TestFidelity(QiskitTestCase):
             )
 
     def test_param_mismatch(self):
+        """test for fidelity with different number of left/right parameters."""
+
         fidelity = Fidelity(self._sampler)
         n = len(self._left_params)
         with self.assertRaises(QiskitError):
@@ -143,6 +150,8 @@ class TestFidelity(QiskitTestCase):
             _ = fidelity.evaluate([self._circuit[0]] * n, [self._circuit[1]] * n)
 
     def test_async_result(self):
+        """test for run method."""
+
         fidelity = Fidelity(self._sampler)
         n = len(self._left_params)
         job = fidelity.run(
@@ -151,6 +160,8 @@ class TestFidelity(QiskitTestCase):
         np.testing.assert_allclose(job.result(), np.array([1.0, 0.5, 0.25, 0.0]), atol=1e-16)
 
     def test_async_join(self):
+        """test for run method using join."""
+
         fidelity = Fidelity(self._sampler)
         jobs = []
         for left_param, right_param in zip(self._left_params, self._right_params):

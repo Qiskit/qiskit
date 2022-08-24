@@ -243,5 +243,11 @@ class BaseFidelity(ABC):
         parametrized circuits (first and second) for a specific set of parameter
         values (first and second). This calculation depends on the particular
         fidelity method implementation.
+        Args:
+            circuits_1: (Parametrized) quantum circuits preparing one set of states
+            circuits_2: (Parametrized) quantum circuits preparing another set of states
+            values_1: Numerical parameters to be bound to the first circuits
+            values_2: Numerical parameters to be bound to the second circuits.
+            run_options: Backend runtime options used for circuit execution.
         """
-        return NotImplementedError
+        ...
