@@ -603,7 +603,10 @@ class QCircuitImage:
                     first = last = index
             pos = self._wire_map[self._qubits[first]]
             self._latex[pos][col - 1] += " \\barrier[0em]{" + str(last - first) + "}"
-            self._latex[pos][col] = "\\qw"
+            if node.op.label is not None:
+                pos = indexes[0]
+                label = node.op.label.replace(" ", "\\,")
+                self._latex[pos][col] = "\\cds{0}{^{\\mathrm{%s}}}" % label
 
     def _add_controls(self, wire_list, ctrlqargs, ctrl_state, col):
         """Add one or more controls to a gate"""

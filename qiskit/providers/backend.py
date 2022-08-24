@@ -553,7 +553,7 @@ class BackendV2(Backend, ABC):
                 ``(control_qubit, target_qubit)``.
 
         Returns:
-            List[ControlChannel]: The Qubit measurement acquisition line.
+            List[ControlChannel]: The multi qubit control line.
 
         Raises:
             NotImplementedError: if the backend doesn't support querying the
