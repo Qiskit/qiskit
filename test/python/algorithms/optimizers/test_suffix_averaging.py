@@ -11,6 +11,7 @@ from qiskit.algorithms.optimizers import ADAM
 from qiskit.algorithms import VQE
 import numpy as np
 
+
 class TestOptimizerSA(QiskitAlgorithmsTestCase):
     """Test suffix averaging technique using RY with VQE"""
 
@@ -37,7 +38,9 @@ class TestOptimizerSA(QiskitAlgorithmsTestCase):
         def store_intermediate_result(eval_count, parameters, mean, std):
             circ_params.append(parameters)
 
-        suffix_optimizer = SuffixAveragingOptimizer(ADAM(maxiter=maxiter, tol=0.), n_params_suffix=n_params_suffix)
+        suffix_optimizer = SuffixAveragingOptimizer(
+            ADAM(maxiter=maxiter, tol=0.0), n_params_suffix=n_params_suffix
+        )
 
         vqe = VQE(
             ansatz=RealAmplitudes(),
@@ -49,15 +52,16 @@ class TestOptimizerSA(QiskitAlgorithmsTestCase):
                 seed_transpiler=algorithm_globals.random_seed,
             ),
         )
-        
+
         result = vqe.compute_minimum_eigenvalue(operator=self.qubit_op)
-        
+
         average_params = np.zeros_like(circ_params[0])
         for i in range(n_params_suffix):
-            average_params += circ_params[maxiter-i-2]
+            average_params += circ_params[maxiter - i - 2]
         average_params /= n_params_suffix
 
         self.assertListEqual(result.optimal_point, average_params)
+
 
 if __name__ == "__main__":
     unittest.main()

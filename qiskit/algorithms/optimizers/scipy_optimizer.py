@@ -19,7 +19,7 @@ from scipy.optimize import minimize
 
 from qiskit.utils.validation import validate_min
 
-from optimizer import (
+from .optimizer import (
     POINT,
     Optimizer,
     OptimizerCallback,
@@ -64,9 +64,8 @@ class SciPyOptimizer(Optimizer):
             options: A dictionary of solver options.
             kwargs: additional kwargs for scipy.optimize.minimize.
             max_evals_grouped: Max number of default gradient evaluations performed simultaneously.
+            callback: callback function for scipy.optimize.minimize.
         """
-        #super().__init__(callback) # TODO
-        self._callback = callback
         self._method = method.lower() if isinstance(method, str) else method
         # Set support level
         if self._method in self._bounds_support_methods:
@@ -78,6 +77,7 @@ class SciPyOptimizer(Optimizer):
         else:
             self._gradient_support_level = OptimizerSupportLevel.ignored
         self._initial_point_support_level = OptimizerSupportLevel.required
+        super().__init__(callback)
 
         self._options = options if options is not None else {}
         validate_min("max_evals_grouped", max_evals_grouped, 1)
