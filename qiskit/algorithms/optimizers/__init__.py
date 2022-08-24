@@ -157,11 +157,16 @@ __all__ = [
     "AskData",
     "TellData",
     "OptimizerState",
+<<<<<<< HEAD
     "LearningRate",
 =======
     "OptimizerResult",
     "Minimizer",
 >>>>>>> .merge_file_BmcFTt
+=======
+    "OptimizerResult",
+    "Minimizer",
+>>>>>>> 0b1743806e9f56a651e09f190627105637f7cd5c
     "ADAM",
     "AQGD",
     "CG",
