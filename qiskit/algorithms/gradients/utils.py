@@ -21,6 +21,7 @@ from __future__ import annotations
 from collections import defaultdict
 from copy import deepcopy
 from dataclasses import dataclass
+import random
 from typing import Dict, List
 
 import numpy as np
@@ -360,3 +361,29 @@ def _gate_gradient(gate: Gate) -> Instruction:
         czx = czx_circ.to_instruction()
         return czx
     raise TypeError(f"Unrecognized parameterized gate, {gate}")
+
+
+def make_spsa_base_parameter_values(
+    circuit: QuantumCircuit, epsilon: float = 1e-6
+) -> List[np.ndarray]:
+    """Makes base parameter values for the SPSA. Each base parameter value will
+        be added to the given parameter values in later calculations.
+
+    Args:
+        circuit: circuit for the base parameter values.
+        epsilon: The offset size for the finite difference gradients.
+
+    Returns:
+        List: The base parameter values for the SPSA.
+    """
+
+    base_parameter_values = []
+    # Make a perturbation vector
+    parameter_values_plus = np.array(
+        [(-1) ** (random.randint(0, 1)) for _ in range(len(circuit.parameters))]
+    )
+    parameter_values_plus = epsilon * parameter_values_plus
+    parameter_values_minus = -parameter_values_plus
+    base_parameter_values.append(parameter_values_plus)
+    base_parameter_values.append(parameter_values_minus)
+    return base_parameter_values

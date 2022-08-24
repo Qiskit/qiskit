@@ -38,6 +38,8 @@ Gradients
    LinCombSamplerGradient
    ParamShiftEstimatorGradient
    ParamShiftSamplerGradient
+   SPSAEstimatorGradient
+   SPSASamplerGradient
 
 Results
 =======
@@ -59,6 +61,8 @@ from .lin_comb_sampler_gradient import LinCombSamplerGradient
 from .param_shift_estimator_gradient import ParamShiftEstimatorGradient
 from .param_shift_sampler_gradient import ParamShiftSamplerGradient
 from .sampler_gradient_result import SamplerGradientResult
+from .spsa_estimator_gradient import SPSAEstimatorGradient
+from .spsa_sampler_gradient import SPSASamplerGradient
 
 __all__ = [
     "BaseEstimatorGradient",
@@ -71,4 +75,6 @@ __all__ = [
     "ParamShiftEstimatorGradient",
     "ParamShiftSamplerGradient",
     "SamplerGradientResult",
+    "SPSAEstimatorGradient",
+    "SPSASamplerGradient",
 ]

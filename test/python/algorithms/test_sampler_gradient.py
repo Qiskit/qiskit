@@ -20,9 +20,12 @@ import numpy as np
 from ddt import ddt
 
 from qiskit import QuantumCircuit
-from qiskit.algorithms.gradients.finite_diff_sampler_gradient import FiniteDiffSamplerGradient
-from qiskit.algorithms.gradients.lin_comb_sampler_gradient import LinCombSamplerGradient
-from qiskit.algorithms.gradients.param_shift_sampler_gradient import ParamShiftSamplerGradient
+from qiskit.algorithms.gradients import (
+    FiniteDiffSamplerGradient,
+    LinCombSamplerGradient,
+    ParamShiftSamplerGradient,
+    SPSASamplerGradient,
+)
 from qiskit.circuit import Parameter
 from qiskit.circuit.library import EfficientSU2, RealAmplitudes
 from qiskit.exceptions import QiskitError
@@ -417,6 +420,58 @@ class TestSamplerGradient(QiskitTestCase):
             gradient.evaluate([qc, qc], param_list, parameters=[[a]])
         with self.assertRaises(QiskitError):
             gradient.evaluate([qc], [[np.pi / 4, np.pi / 4]])
+
+    def test_spsa_gradient(self):
+        """Test the SPSA sampler gradient"""
+        sampler = Sampler()
+        a = Parameter("a")
+        b = Parameter("b")
+        qc = QuantumCircuit(2)
+        qc.rx(b, 0)
+        qc.rx(a, 1)
+        qc.measure_all()
+        param_list = [[1, 2]]
+        correct_results = [
+            [
+                {0: 0.2273244, 1: -0.6480598, 2: 0.2273244, 3: 0.1934111},
+                {0: -0.2273244, 1: 0.6480598, 2: -0.2273244, 3: -0.1934111},
+            ],
+        ]
+        gradient = SPSASamplerGradient(sampler, seed=123)
+        # quasi_dists = gradient.evaluate([qc], param_list).quasi_dists
+        for i, param in enumerate(param_list):
+            quasi_dists = gradient.evaluate([qc], [param]).quasi_dists[0]
+            for j, quasi_dist in enumerate(quasi_dists):
+                for k in quasi_dist:
+                    self.assertAlmostEqual(quasi_dist[k], correct_results[i][j][k], 3)
+        # multi parameters
+        param_list2 = [[1, 2], [1, 2], [3, 4]]
+        correct_results2 = [
+            [
+                {0: 0.2273244, 1: -0.6480598, 2: 0.2273244, 3: 0.1934111},
+                {0: -0.2273244, 1: 0.6480598, 2: -0.2273244, 3: -0.1934111},
+            ],
+            [
+                {0: -0.2273244, 1: 0.6480598, 2: -0.2273244, 3: -0.1934111} if p == b else {}
+                for p in qc.parameters
+            ],
+            [
+                {0: -0.0141129, 1: -0.0564471, 2: -0.3642884, 3: 0.4348484},
+                {0: 0.0141129, 1: 0.0564471, 2: 0.3642884, 3: -0.4348484},
+            ],
+        ]
+        gradient = SPSASamplerGradient(sampler, seed=123)
+        quasi_dists = gradient.evaluate(
+            [qc] * 3, param_list2, parameters=[None, [b], None]
+        ).quasi_dists
+
+        for i, result in enumerate(quasi_dists):
+            for j, q_dists in enumerate(result):
+                if correct_results2[i][j]:
+                    for k in q_dists:
+                        self.assertAlmostEqual(q_dists[k], correct_results2[i][j][k], 3)
+                else:
+                    self.assertEqual(q_dists, {})
 
 
 if __name__ == "__main__":

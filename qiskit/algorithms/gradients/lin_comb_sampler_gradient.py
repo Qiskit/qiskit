@@ -42,7 +42,9 @@ class LinCombSamplerGradient(BaseSamplerGradient):
                 setting. Higher priority setting overrides lower priority setting.
         """
 
-        self._gradient_circuit_data_dict = {}
+        self._gradient_circuit_data_dict = None
+        if self._gradient_circuit_data_dict is None:
+            self._gradient_circuit_data_dict = {}
         super().__init__(sampler, **run_options)
 
     def _evaluate(

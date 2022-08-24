@@ -47,7 +47,9 @@ class LinCombEstimatorGradient(BaseEstimatorGradient):
                 run_options in `run` method > gradient's default run_options > primitive's default
                 setting. Higher priority setting overrides lower priority setting.
         """
-        self._gradient_circuit_data_dict = {}
+        self._gradient_circuit_data_dict = None
+        if self._gradient_circuit_data_dict is None:
+            self._gradient_circuit_data_dict = {}
         super().__init__(estimator, **run_options)
 
     def _evaluate(

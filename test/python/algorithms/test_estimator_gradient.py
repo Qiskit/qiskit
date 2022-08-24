@@ -20,9 +20,12 @@ import numpy as np
 from ddt import ddt
 
 from qiskit import QuantumCircuit
-from qiskit.algorithms.gradients.finite_diff_estimator_gradient import FiniteDiffEstimatorGradient
-from qiskit.algorithms.gradients.lin_comb_estimator_gradient import LinCombEstimatorGradient
-from qiskit.algorithms.gradients.param_shift_estimator_gradient import ParamShiftEstimatorGradient
+from qiskit.algorithms.gradients import (
+    FiniteDiffEstimatorGradient,
+    ParamShiftEstimatorGradient,
+    LinCombEstimatorGradient,
+    SPSAEstimatorGradient,
+)
 from qiskit.circuit import Parameter
 from qiskit.circuit.library import EfficientSU2, RealAmplitudes
 from qiskit.exceptions import QiskitError
@@ -223,15 +226,15 @@ class TestEstimatorGradient(QiskitTestCase):
         b = Parameter("b")
         qc = QuantumCircuit(1)
         qc.rx(a, 0)
-        qc.rz(b, 0)
+        qc.rx(b, 0)
         gradient = grad(estimator)
         param_list = [[np.pi / 4, np.pi / 2]]
         correct_results = [
-            [-0.70710678, 0],
+            [-0.70710678 if p == a else 0 for p in qc.parameters],
         ]
         op = SparsePauliOp.from_list([("Z", 1)])
         for i, param in enumerate(param_list):
-            values = gradient.evaluate([qc], [op], [param]).values[0]
+            values = gradient.evaluate([qc], [op], [param], parameters=[[a]]).values[0]
             np.testing.assert_almost_equal(values, correct_results[i])
 
     @combine(
@@ -293,6 +296,30 @@ class TestEstimatorGradient(QiskitTestCase):
             gradient.evaluate([qc, qc], [op], param_list, parameters=[[a]])
         with self.assertRaises(QiskitError):
             gradient.evaluate([qc], [op], [[np.pi / 4, np.pi / 4]])
+
+    def test_spsa_gradient(self):
+        """Test the SPSA estimator gradient"""
+        estimator = Estimator()
+        a = Parameter("a")
+        b = Parameter("b")
+        qc = QuantumCircuit(2)
+        qc.rx(b, 0)
+        qc.rx(a, 1)
+        param_list = [[1, 1]]
+        correct_results = [[-0.84147098, 0.84147098]]
+        op = SparsePauliOp.from_list([("ZI", 1)])
+        gradient = SPSAEstimatorGradient(estimator, seed=123)
+        values = gradient.evaluate([qc], [op], param_list).values
+        np.testing.assert_almost_equal(values, correct_results)
+
+        # multi parameters
+        gradient = SPSAEstimatorGradient(estimator, seed=123)
+        param_list2 = [[1, 1], [1, 1], [3, 3]]
+        values2 = gradient.evaluate(
+            [qc] * 3, [op] * 3, param_list2, parameters=[None, [b], None]
+        ).values
+        correct_results2 = [[-0.84147098, 0.84147098], [0.0, 0.84147098], [-0.14112001, 0.14112001]]
+        np.testing.assert_almost_equal(values2, correct_results2)
 
 
 if __name__ == "__main__":

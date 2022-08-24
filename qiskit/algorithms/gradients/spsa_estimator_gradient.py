@@ -15,6 +15,7 @@
 from __future__ import annotations
 
 from typing import Sequence
+import random
 
 import numpy as np
 
@@ -25,27 +26,32 @@ from qiskit.quantum_info.operators.base_operator import BaseOperator
 
 from .base_estimator_gradient import BaseEstimatorGradient
 from .estimator_gradient_result import EstimatorGradientResult
-from .utils import make_fin_diff_base_parameter_values
+from .utils import make_spsa_base_parameter_values
 
 
-class FiniteDiffEstimatorGradient(BaseEstimatorGradient):
+class SPSAEstimatorGradient(BaseEstimatorGradient):
     """
-    Gradient of Estimator with Finite difference method.
+    Gradient of Estimator with the Simultaneous Perturbation Stochastic Approximation (SPSA).
     """
 
-    def __init__(self, estimator: BaseEstimator, epsilon: float = 1e-6, **run_options):
+    def __init__(
+        self,
+        estimator: BaseEstimator,
+        epsilon: float = 1e-6,
+        seed: int | None = None,
+        **run_options,
+    ):
         """
         Args:
             estimator: The estimator used to compute the gradients.
             epsilon: The offset size for the finite difference gradients.
+            seed: The seed for a random perturbation vector.
             run_options: Backend runtime options used for circuit execution. The order of priority is:
                 run_options in `run` method > gradient's default run_options > primitive's default
-                setting. Higher priority setting overrides lower priority setting.
-        """
+                setting. Higher priority setting overrides lower priority setting."""
         self._epsilon = epsilon
-        self._base_parameter_values_dict = None
-        if self._base_parameter_values_dict is None:
-            self._base_parameter_values_dict = {}
+        self._seed = random.seed(seed) if seed else None
+
         super().__init__(estimator, **run_options)
 
     def _evaluate(
@@ -61,55 +67,27 @@ class FiniteDiffEstimatorGradient(BaseEstimatorGradient):
         for circuit, observable, parameter_values_, parameters_ in zip(
             circuits, observables, parameter_values, parameters
         ):
-            index = self._circuit_ids.get(id(circuit))
-            if index is not None:
-                circuit_index = index
-            else:
-                # if the given circuit is  a new one, make base parameter values for + and - epsilon
-                circuit_index = len(self._circuits)
-                self._circuit_ids[id(circuit)] = circuit_index
-                self._base_parameter_values_dict[
-                    circuit_index
-                ] = make_fin_diff_base_parameter_values(circuit, self._epsilon)
-                self._circuits.append(circuit)
 
-            circuit_parameters = self._circuits[circuit_index].parameters
-            base_parameter_values_list = []
+            base_parameter_values_list = make_spsa_base_parameter_values(circuit, self._epsilon)
+            circuit_parameters = circuit.parameters
             gradient_parameter_values = np.zeros(len(circuit_parameters))
 
             # a parameter set for the parameter option
             parameters = parameters_ or circuit_parameters
             param_set = set(parameters)
 
-            result_index = 0
-            result_index_map = {}
-            # bring the base parameter values for parameters only in the specified parameter set.
-            for i, param in enumerate(circuit_parameters):
-                gradient_parameter_values[i] = parameter_values_[i]
-                if param in param_set:
-                    base_parameter_values_list.append(
-                        self._base_parameter_values_dict[circuit_index][i * 2]
-                    )
-                    base_parameter_values_list.append(
-                        self._base_parameter_values_dict[circuit_index][i * 2 + 1]
-                    )
-                    result_index_map[param] = result_index
-                    result_index += 1
+            gradient_parameter_values = np.array(parameter_values_)
             # add the given parameter values and the base parameter values
             gradient_parameter_values_list = [
                 gradient_parameter_values + base_parameter_values
                 for base_parameter_values in base_parameter_values_list
             ]
-            gradient_circuits = [self._circuits[circuit_index]] * len(
-                gradient_parameter_values_list
-            )
+            gradient_circuits = [circuit] * len(gradient_parameter_values_list)
             observable_list = [observable] * len(gradient_parameter_values_list)
-
             job = self._estimator.run(
                 gradient_circuits, observable_list, gradient_parameter_values_list, **run_options
             )
             results = job.result()
-
             # Combines the results and coefficients to reconstruct the gradient
             # for the original circuit parameters
             values = np.zeros(len(parameter_values_))
@@ -117,9 +95,9 @@ class FiniteDiffEstimatorGradient(BaseEstimatorGradient):
                 if param not in param_set:
                     continue
                 # plus
-                values[i] += results.values[result_index_map[param] * 2] / (2 * self._epsilon)
+                values[i] += results.values[0] / (2 * base_parameter_values_list[0][i])
                 # minus
-                values[i] -= results.values[result_index_map[param] * 2 + 1] / (2 * self._epsilon)
+                values[i] -= results.values[1] / (2 * base_parameter_values_list[0][i])
 
             gradients.append(values)
         return EstimatorGradientResult(values=gradients, metadata=run_options)

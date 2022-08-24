@@ -16,6 +16,7 @@ from __future__ import annotations
 
 from collections import Counter
 from typing import Sequence
+import random
 
 import numpy as np
 
@@ -25,31 +26,32 @@ from qiskit.result import QuasiDistribution
 
 from .base_sampler_gradient import BaseSamplerGradient
 from .sampler_gradient_result import SamplerGradientResult
-from .utils import make_fin_diff_base_parameter_values
+from .utils import make_spsa_base_parameter_values
 
 
-class FiniteDiffSamplerGradient(BaseSamplerGradient):
-    """Compute the gradients of the sampling probability with the finite difference method."""
+class SPSASamplerGradient(BaseSamplerGradient):
+    """
+    Gradient of Sampler with the Simultaneous Perturbation Stochastic Approximation (SPSA).
+    """
 
     def __init__(
         self,
         sampler: BaseSampler,
         epsilon: float = 1e-6,
+        seed: int | None = None,
         **run_options,
     ):
         """
         Args:
             sampler: The sampler used to compute the gradients.
             epsilon: The offset size for the finite difference gradients.
+            seed: The seed for a random perturbation vector.
             run_options: Backend runtime options used for circuit execution. The order of priority is:
                 run_options in `run` method > gradient's default run_options > primitive's default
-                setting. Higher priority setting overrides lower priority setting.
-        """
-
+                setting. Higher priority setting overrides lower priority setting."""
         self._epsilon = epsilon
-        self._base_parameter_values_dict = None
-        if self._base_parameter_values_dict is None:
-            self._base_parameter_values_dict = {}
+        self._seed = random.seed(seed) if seed else None
+
         super().__init__(sampler, **run_options)
 
     def _evaluate(
@@ -62,54 +64,26 @@ class FiniteDiffSamplerGradient(BaseSamplerGradient):
         parameters = parameters or [None for _ in range(len(circuits))]
         gradients = []
         for circuit, parameter_values_, parameters_ in zip(circuits, parameter_values, parameters):
-            index = self._circuit_ids.get(id(circuit))
-            if index is not None:
-                circuit_index = index
-            else:
-                # if the given circuit a new one, make base parameter values for + and - epsilon
-                circuit_index = len(self._circuits)
-                self._circuit_ids[id(circuit)] = circuit_index
-                self._base_parameter_values_dict[
-                    circuit_index
-                ] = make_fin_diff_base_parameter_values(circuit, self._epsilon)
-                self._circuits.append(circuit)
 
-            circuit_parameters = self._circuits[circuit_index].parameters
-            base_parameter_values_list = []
+            base_parameter_values_list = make_spsa_base_parameter_values(circuit, self._epsilon)
+            circuit_parameters = circuit.parameters
             gradient_parameter_values = np.zeros(len(circuit_parameters))
 
             # a parameter set for the parameter option
             parameters = parameters_ or circuit_parameters
             param_set = set(parameters)
 
-            result_index = 0
-            result_index_map = {}
-            # bring the base parameter values for parameters only in the specified parameter set.
-            for i, param in enumerate(circuit_parameters):
-                gradient_parameter_values[i] = parameter_values_[i]
-                if param in param_set:
-                    base_parameter_values_list.append(
-                        self._base_parameter_values_dict[circuit_index][i * 2]
-                    )
-                    base_parameter_values_list.append(
-                        self._base_parameter_values_dict[circuit_index][i * 2 + 1]
-                    )
-                    result_index_map[param] = result_index
-                    result_index += 1
+            gradient_parameter_values = np.array(parameter_values_)
             # add the given parameter values and the base parameter values
             gradient_parameter_values_list = [
                 gradient_parameter_values + base_parameter_values
                 for base_parameter_values in base_parameter_values_list
             ]
-            gradient_circuits = [self._circuits[circuit_index]] * len(
-                gradient_parameter_values_list
-            )
-
+            gradient_circuits = [circuit] * len(gradient_parameter_values_list)
             job = self._sampler.run(
                 gradient_circuits, gradient_parameter_values_list, **run_options
             )
             results = job.result()
-
             # Combines the results and coefficients to reconstruct the gradient values
             # for the original circuit parameters
             dists = [Counter() for _ in range(len(parameter_values_))]
@@ -120,8 +94,8 @@ class FiniteDiffSamplerGradient(BaseSamplerGradient):
                 dists[i].update(
                     Counter(
                         {
-                            k: v / (2 * self._epsilon)
-                            for k, v in results.quasi_dists[result_index_map[param] * 2].items()
+                            k: v / (2 * base_parameter_values_list[0][i])
+                            for k, v in results.quasi_dists[0].items()
                         }
                     )
                 )
@@ -129,11 +103,12 @@ class FiniteDiffSamplerGradient(BaseSamplerGradient):
                 dists[i].update(
                     Counter(
                         {
-                            k: -1 * v / (2 * self._epsilon)
-                            for k, v in results.quasi_dists[result_index_map[param] * 2 + 1].items()
+                            k: -1 * v / (2 * base_parameter_values_list[0][i])
+                            for k, v in results.quasi_dists[1].items()
                         }
                     )
                 )
 
             gradients.append([QuasiDistribution(dist) for dist in dists])
+
         return SamplerGradientResult(quasi_dists=gradients, metadata=run_options)
