@@ -36,6 +36,9 @@ class ParamShiftSamplerGradient(BaseSamplerGradient):
         """
         Args:
             sampler: The sampler used to compute the gradients.
+            run_options: Backend runtime options used for circuit execution. The order of priority is:
+                run_options in `run` method > gradient's default run_options > primitive's default
+                setting. Higher priority setting overrides lower priority setting.
         """
         self._gradient_circuit_data_dict = {}
         self._base_parameter_values_dict = {}
@@ -45,14 +48,13 @@ class ParamShiftSamplerGradient(BaseSamplerGradient):
         self,
         circuits: Sequence[QuantumCircuit],
         parameter_values: Sequence[Sequence[float]],
-        partial: Sequence[Sequence[Parameter]] | None = None,
+        parameters: Sequence[Sequence[Parameter]] | None = None,
         **run_options,
     ) -> SamplerGradientResult:
-        partial = partial or [[] for _ in range(len(circuits))]
+        parameters = parameters or [None for _ in range(len(circuits))]
 
         gradients = []
-        status = []
-        for circuit, parameter_values_, partial_ in zip(circuits, parameter_values, partial):
+        for circuit, parameter_values_, parameters_ in zip(circuits, parameter_values, parameters):
             index = self._circuit_ids.get(id(circuit))
             if index is not None:
                 circuit_index = index
@@ -81,13 +83,13 @@ class ParamShiftSamplerGradient(BaseSamplerGradient):
                 len(gradient_circuit_data.gradient_circuit.parameters)
             )
 
-            # a parameter set for the partial option
-            parameters = partial_ or self._circuits[circuit_index].parameters
+            # a parameter set for the parameter option
+            parameters = parameters_ or self._circuits[circuit_index].parameters
             param_set = set(parameters)
 
             result_index = 0
             result_index_map = {}
-            # bring the base parameter values for parameters only in the partial parameter set.
+            # bring the base parameter values for parameters only in the specified parameter set.
             for i, param in enumerate(circuit_parameters):
                 parameter_value_map[param] = parameter_values_[i]
                 for g_param in gradient_parameter_map[param]:
@@ -155,5 +157,4 @@ class ParamShiftSamplerGradient(BaseSamplerGradient):
                     )
             gradients.append([QuasiDistribution(dist) for dist in dists])
 
-            status.append(job.status())
-        return SamplerGradientResult(quasi_dists=gradients, status=status, metadata=run_options)
+        return SamplerGradientResult(quasi_dists=gradients, metadata=run_options)

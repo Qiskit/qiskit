@@ -37,6 +37,9 @@ class LinCombSamplerGradient(BaseSamplerGradient):
         """
         Args:
             sampler: The sampler used to compute the gradients.
+            run_options: Backend runtime options used for circuit execution. The order of priority is:
+                run_options in `run` method > gradient's default run_options > primitive's default
+                setting. Higher priority setting overrides lower priority setting.
         """
 
         self._gradient_circuit_data_dict = {}
@@ -46,14 +49,13 @@ class LinCombSamplerGradient(BaseSamplerGradient):
         self,
         circuits: Sequence[QuantumCircuit],
         parameter_values: Sequence[Sequence[float]],
-        partial: Sequence[Sequence[Parameter]] | None = None,
+        parameters: Sequence[Sequence[Parameter] | None] | None = None,
         **run_options,
     ) -> SamplerGradientResult:
-        partial = partial or [[] for _ in range(len(circuits))]
+        parameters = parameters or [None for _ in range(len(circuits))]
         gradients = []
-        status = []
 
-        for circuit, parameter_values_, partial_ in zip(circuits, parameter_values, partial):
+        for circuit, parameter_values_, parameters_ in zip(circuits, parameter_values, parameters):
             index = self._circuit_ids.get(id(circuit))
             if index is not None:
                 circuit_index = index
@@ -70,8 +72,8 @@ class LinCombSamplerGradient(BaseSamplerGradient):
             circuit_parameters = self._circuits[circuit_index].parameters
             parameter_value_map = {}
 
-            # a parameter set for the partial option
-            parameters = partial_ or self._circuits[circuit_index].parameters
+            # a parameter set for the parameter option
+            parameters = parameters_ or self._circuits[circuit_index].parameters
             param_set = set(parameters)
 
             result_index = 0
@@ -112,5 +114,4 @@ class LinCombSamplerGradient(BaseSamplerGradient):
                         dists[i][k2] += (-1) ** sign * bound_coeff * v
 
             gradients.append([QuasiDistribution(dist) for dist in dists])
-            status.append(job.status())
-        return SamplerGradientResult(quasi_dists=gradients, status=status, metadata=run_options)
+        return SamplerGradientResult(quasi_dists=gradients, metadata=run_options)

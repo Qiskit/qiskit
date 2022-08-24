@@ -216,8 +216,8 @@ class TestEstimatorGradient(QiskitTestCase):
     @combine(
         grad=[FiniteDiffEstimatorGradient, ParamShiftEstimatorGradient, LinCombEstimatorGradient]
     )
-    def test_gradient_partial(self, grad):
-        """Test the estimator gradient for partial"""
+    def test_gradient_parameters(self, grad):
+        """Test the estimator gradient for parameters"""
         estimator = Estimator()
         a = Parameter("a")
         b = Parameter("b")
@@ -259,15 +259,19 @@ class TestEstimatorGradient(QiskitTestCase):
         c = Parameter("c")
         qc3 = QuantumCircuit(1)
         qc3.rx(c, 0)
-        qc3.rz(a, 0)
-        param_list2 = [[np.pi / 4], [np.pi / 4, np.pi / 4]]
+        qc3.ry(a, 0)
+        param_list2 = [[np.pi / 4], [np.pi / 4, np.pi / 4], [np.pi / 4, np.pi / 4]]
         correct_results2 = [
             [-0.70710678],
-            [-0.70710678 if p == c else 0 for p in qc3.parameters],
+            [-0.5 if p == c else 0 for p in qc3.parameters],
+            [-0.5, -0.5],
         ]
-        values2 = gradient.evaluate([qc, qc3], [op] * 2, param_list2, partial=[[a], [c]]).values
+        values2 = gradient.evaluate(
+            [qc, qc3, qc3], [op] * 3, param_list2, parameters=[[a], [c], None]
+        ).values
         np.testing.assert_almost_equal(values2[0], correct_results2[0])
         np.testing.assert_almost_equal(values2[1], correct_results2[1])
+        np.testing.assert_almost_equal(values2[2], correct_results2[2])
 
     @combine(
         grad=[FiniteDiffEstimatorGradient, ParamShiftEstimatorGradient, LinCombEstimatorGradient]
@@ -284,9 +288,9 @@ class TestEstimatorGradient(QiskitTestCase):
         with self.assertRaises(QiskitError):
             gradient.evaluate([qc], [op], param_list)
         with self.assertRaises(QiskitError):
-            gradient.evaluate([qc, qc], [op, op], param_list, partial=[[a]])
+            gradient.evaluate([qc, qc], [op, op], param_list, parameters=[[a]])
         with self.assertRaises(QiskitError):
-            gradient.evaluate([qc, qc], [op], param_list, partial=[[a]])
+            gradient.evaluate([qc, qc], [op], param_list, parameters=[[a]])
         with self.assertRaises(QiskitError):
             gradient.evaluate([qc], [op], [[np.pi / 4, np.pi / 4]])
 

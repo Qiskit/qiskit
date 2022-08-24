@@ -43,6 +43,9 @@ class LinCombEstimatorGradient(BaseEstimatorGradient):
         """
         Args:
             estimator: The estimator used to compute the gradients.
+            run_options: Backend runtime options used for circuit execution. The order of priority is:
+                run_options in `run` method > gradient's default run_options > primitive's default
+                setting. Higher priority setting overrides lower priority setting.
         """
         self._gradient_circuit_data_dict = {}
         super().__init__(estimator, **run_options)
@@ -52,15 +55,14 @@ class LinCombEstimatorGradient(BaseEstimatorGradient):
         circuits: Sequence[QuantumCircuit],
         observables: Sequence[BaseOperator | PauliSumOp],
         parameter_values: Sequence[Sequence[float]],
-        partial: Sequence[Sequence[Parameter]] | None = None,
+        parameters: Sequence[Sequence[Parameter] | None] | None = None,
         **run_options,
     ) -> EstimatorGradientResult:
-        partial = partial or [[] for _ in range(len(circuits))]
+        parameters = parameters or [None for _ in range(len(circuits))]
         gradients = []
-        status = []
 
-        for circuit, observable, parameter_values_, partial_ in zip(
-            circuits, observables, parameter_values, partial
+        for circuit, observable, parameter_values_, parameters_ in zip(
+            circuits, observables, parameter_values, parameters
         ):
             index = self._circuit_ids.get(id(circuit))
             if index is not None:
@@ -80,8 +82,8 @@ class LinCombEstimatorGradient(BaseEstimatorGradient):
             circuit_parameters = self._circuits[circuit_index].parameters
             parameter_value_map = {}
 
-            # a parameter set for the partial option
-            parameters = partial_ or self._circuits[circuit_index].parameters
+            # a parameter set for the parameters option
+            parameters = parameters_ or self._circuits[circuit_index].parameters
             param_set = set(parameters)
 
             result_index = 0
@@ -122,5 +124,4 @@ class LinCombEstimatorGradient(BaseEstimatorGradient):
                     values[i] += bound_coeff * results.values[result_index_map[param][j]]
 
             gradients.append(values)
-            status.append(job.status())
-        return EstimatorGradientResult(values=gradients, status=status, metadata=run_options)
+        return EstimatorGradientResult(values=gradients, metadata=run_options)
