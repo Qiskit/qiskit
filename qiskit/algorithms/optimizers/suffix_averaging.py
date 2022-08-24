@@ -1,9 +1,11 @@
-import numpy as np
 import warnings
-from qiskit.algorithms.optimizers import QNSPSA, SPSA, NFT, GradientDescent
 from typing import Callable, List, Optional, Tuple
 
-from optimizer import Optimizer, OptimizerResult, POINT, OptimizerSupportLevel
+import numpy as np
+
+from qiskit.algorithms.optimizers import NFT, QNSPSA, SPSA, GradientDescent
+
+from .optimizer import POINT, Optimizer, OptimizerResult, OptimizerSupportLevel
 
 
 class SuffixAveragingOptimizer(Optimizer):
