@@ -167,7 +167,7 @@ class BaseEstimator(ABC):
 
         # To guarantee that they exist as instance variable.
         # With only dynamic set, the python will not know if the attribute exists or not.
-        self._circuit_ids: dict[int, int] = self._circuit_ids
+        self._circuit_ids: dict[int, tuple] = self._circuit_ids
         self._observable_ids: dict[int, int] = self._observable_ids
 
         if parameters is None:
@@ -199,9 +199,12 @@ class BaseEstimator(ABC):
             self._circuit_ids = {}
         elif isinstance(circuits, Iterable):
             circuits = copy(circuits)
-            self._circuit_ids = {id(circuit): i for i, circuit in enumerate(circuits)}
+            self._circuit_ids = {
+                (id(circuit), len(circuit.data), circuit.name): i
+                for i, circuit in enumerate(circuits)
+            }
         else:
-            self._circuit_ids = {id(circuits): 0}
+            self._circuit_ids = {(id(circuits), len(circuits.data), circuits.name): 0}
         if observables is None:
             self._observable_ids = {}
         elif isinstance(observables, Iterable):
@@ -312,7 +315,7 @@ class BaseEstimator(ABC):
 
         # Allow objects
         circuits = [
-            self._circuit_ids.get(id(circuit))  # type: ignore
+            self._circuit_ids.get((id(circuit), len(circuit.data), circuit.name))
             if not isinstance(circuit, (int, np.integer))
             else circuit
             for circuit in circuits

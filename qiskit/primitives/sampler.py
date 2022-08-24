@@ -139,12 +139,13 @@ class Sampler(BaseSampler):
     ) -> PrimitiveJob:
         circuit_indices = []
         for i, circuit in enumerate(circuits):
-            index = self._circuit_ids.get(id(circuit))
+            key = (id(circuit), len(circuit.data), circuit.name)
+            index = self._circuit_ids.get(key)
             if index is not None:
                 circuit_indices.append(index)
             else:
                 circuit_indices.append(len(self._circuits))
-                self._circuit_ids[id(circuit)] = len(self._circuits)
+                self._circuit_ids[key] = len(self._circuits)
                 circuit, qargs = self._preprocess_circuit(circuit)
                 self._circuits.append(circuit)
                 self._qargs_list.append(qargs)
