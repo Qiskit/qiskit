@@ -94,6 +94,17 @@ knowledge to do this in that application domain.
    VQD
 
 
+Variational Quantum Time Evolution
+----------------------------------
+
+Classes used by variational quantum time evolution algorithms - VarQITE and VarQRTE.
+
+.. autosummary::
+   :toctree: ../stubs/
+
+   evolvers.variational
+
+
 Evolvers
 --------
 
@@ -108,12 +119,15 @@ used to train Quantum Boltzmann Machine Neural Networks for example.
     RealEvolver
     ImaginaryEvolver
     TrotterQRTE
+    VarQITE
+    VarQRTE
     PVQD
     PVQDResult
     EvolutionResult
     EvolutionProblem
     SciPyRealEvolver
     SciPyImaginaryEvolver
+
 
 Factorizers
 -----------
@@ -251,6 +265,9 @@ from .exceptions import AlgorithmError
 from .aux_ops_evaluator import eval_observables
 from .evolvers.trotterization import TrotterQRTE
 from .evolvers.classical_methods import SciPyRealEvolver, SciPyImaginaryEvolver
+from .evolvers.variational.var_qite import VarQITE
+from .evolvers.variational.var_qrte import VarQRTE
+
 from .evolvers.pvqd import PVQD, PVQDResult
 
 __all__ = [
@@ -278,6 +295,8 @@ __all__ = [
     "TrotterQRTE",
     "SciPyRealEvolver",
     "SciPyImaginaryEvolver",
+    "VarQITE",
+    "VarQRTE",
     "EvolutionResult",
     "EvolutionProblem",
     "LinearSolverResult",
