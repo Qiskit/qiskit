@@ -241,13 +241,14 @@ class Operator(LinearOp):
         # or via user input) use that to set qargs to permute qubits
         # based on that layout
         if layout is not None:
-            qargs = {
-                phys: circuit.find_bit(bit).index
-                for phys, bit in layout.get_physical_bits().items()
-            }
+            virtual_to_physical = layout.get_virtual_bits()
+            qargs = [virtual_to_physical[bit] for bit in circuit.qubits]
             if final_layout is not None:
-                final_physical_to_logical = final_layout.get_physical_bits()
-                qargs = {circuit.find_bit(final_physical_to_logical[phys]).index: virtual for phys, virtual in qargs.items()}
+                final_virtual_to_physical = final_layout.get_virtual_bits()
+                final_physical_to_virtual = final_layout.get_physical_bits()
+                qargs = [
+                    circuit.find_bit(final_physical_to_virtual[qarg_bit]).index for qarg_bit in qargs
+                ]
 
         # Convert circuit to an instruction
         instruction = circuit.to_instruction()
