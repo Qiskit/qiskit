@@ -21,5 +21,5 @@ test-requires = "stestr ddt matplotlib jupyter"
 before-all = "cp -r {project}/test/python /tmp/qiskit-tests && cp .stestr.conf /tmp/qiskit-tests/."
 
 [tool.cibuildwheel.linux]
-before-all = "yum install -y wget && {package}/tools/install_rust.sh"
+before-all = "yum install -y wget && {package}/tools/install_rust.sh && cp -r {project}/test/python /tmp/qiskit-tests && cp .stestr.conf /tmp/qiskit-tests/."
 environment = 'PATH="$PATH:$HOME/.cargo/bin"'
