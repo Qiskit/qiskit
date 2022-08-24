@@ -102,7 +102,9 @@ class Estimator(BaseEstimator):
                     f"the number of parameters ({len(self._parameters[i])})."
                 )
             bound_circuits.append(
-                self._circuits[i].bind_parameters(dict(zip(self._parameters[i], value)))
+                self._circuits[i]
+                if len(value) == 0
+                else self._circuits[i].bind_parameters(dict(zip(self._parameters[i], value)))
             )
         sorted_observables = [self._observables[i] for i in observables]
         expectation_values = []
