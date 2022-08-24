@@ -59,7 +59,7 @@ class Fidelity(BaseFidelity):
         circuit.measure_all()
         return circuit
 
-    def evaluate(
+    def _run(
         self,
         circuits_1: Sequence[QuantumCircuit],
         circuits_2: Sequence[QuantumCircuit],
@@ -140,7 +140,7 @@ class Fidelity(BaseFidelity):
             Primitive job for the fidelity calculation
         """
 
-        job = PrimitiveJob(self.evaluate, circuits_1, circuits_2, values_1, values_2, **run_options)
+        job = PrimitiveJob(self._run, circuits_1, circuits_2, values_1, values_2, **run_options)
 
         job.submit()
         return job

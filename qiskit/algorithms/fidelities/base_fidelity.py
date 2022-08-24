@@ -85,7 +85,7 @@ class BaseFidelity(ABC):
                 values = [values]
             return values
 
-    def _check_qubits_mismatch(self, circuit_1: QuantumCircuit, circuit_2: QuantumCircuit) -> None:
+    def _check_qubits_match(self, circuit_1: QuantumCircuit, circuit_2: QuantumCircuit) -> None:
         """
         Checks that the number of qubits of 2 circuits matches.
         Args:
@@ -140,7 +140,7 @@ class BaseFidelity(ABC):
         if not len(circuits_1) == len(circuits_2):
             raise ValueError(
                 f"The length of the first circuit list({len(circuits_1)}) \
-                    and second circuit list ({len(circuits_2)}) does not coincide."
+                    and second circuit list ({len(circuits_2)}) do not coincide."
             )
 
         circuits = []
@@ -151,7 +151,7 @@ class BaseFidelity(ABC):
             if circuit is not None:
                 circuits.append(circuit)
             else:
-                self._check_qubits_mismatch(circuit_1, circuit_2)
+                self._check_qubits_match(circuit_1, circuit_2)
 
                 # re-parametrize input circuits
                 left_parameters = ParameterVector("x", circuit_1.num_parameters)
@@ -231,7 +231,7 @@ class BaseFidelity(ABC):
         self._set_values(values_1, values_2)
 
     @abstractmethod
-    def evaluate(
+    def _run(
         self,
         circuits_1: Sequence[QuantumCircuit],
         circuits_2: Sequence[QuantumCircuit],
