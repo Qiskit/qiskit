@@ -20,20 +20,15 @@ from typing import Any
 
 import numpy as np
 
-from qiskit.providers import JobStatus
-
 
 @dataclass(frozen=True)
 class EstimatorGradientResult:
     """Result of EstimatorGradient.
 
     Args:
-        results (list[EstimatorResult]): List of EstimatorResults. The i-th result corresponds to
-            ``circuits[i]`` evaluated with parameters bound as ``parameter_values[i]``. The j-th value
-            in the i-th result corresponds to the gradients of the j-th parameter in ``circuits[i]``.
-        status: List of JobStatus for each EstimatorResult.
+        values: The gradients of the expectation values.
+        metadata: Additional information about the job.
     """
 
     values: list[np.ndarray]
-    status: list[JobStatus]
     metadata: list[dict[str, Any]]

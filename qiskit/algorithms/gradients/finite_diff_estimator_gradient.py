@@ -38,6 +38,9 @@ class FiniteDiffEstimatorGradient(BaseEstimatorGradient):
         Args:
             estimator: The estimator used to compute the gradients.
             epsilon: The offset size for the finite difference gradients.
+            run_options: Backend runtime options used for circuit execution. The order of priority is:
+                run_options in `run` method > gradient's default run_options > primitive's default
+                setting. Higher priority setting overrides lower priority setting.
         """
         self._epsilon = epsilon
         self._base_parameter_values_dict = {}
@@ -48,14 +51,13 @@ class FiniteDiffEstimatorGradient(BaseEstimatorGradient):
         circuits: Sequence[QuantumCircuit],
         observables: Sequence[BaseOperator | PauliSumOp],
         parameter_values: Sequence[Sequence[float]],
-        partial: Sequence[Sequence[Parameter]] | None = None,
+        parameters: Sequence[Sequence[Parameter] | None] | None = None,
         **run_options,
     ) -> EstimatorGradientResult:
-        partial = partial or [[] for _ in range(len(circuits))]
+        parameters = parameters or [None for _ in range(len(circuits))]
         gradients = []
-        status = []
-        for circuit, observable, parameter_values_, partial_ in zip(
-            circuits, observables, parameter_values, partial
+        for circuit, observable, parameter_values_, parameters_ in zip(
+            circuits, observables, parameter_values, parameters
         ):
             index = self._circuit_ids.get(id(circuit))
             if index is not None:
@@ -73,13 +75,13 @@ class FiniteDiffEstimatorGradient(BaseEstimatorGradient):
             base_parameter_values_list = []
             gradient_parameter_values = np.zeros(len(circuit_parameters))
 
-            # a parameter set for the partial option
-            parameters = partial_ or circuit_parameters
+            # a parameter set for the parameter option
+            parameters = parameters_ or circuit_parameters
             param_set = set(parameters)
 
             result_index = 0
             result_index_map = {}
-            # bring the base parameter values for parameters only in the partial parameter set.
+            # bring the base parameter values for parameters only in the specified parameter set.
             for i, param in enumerate(circuit_parameters):
                 gradient_parameter_values[i] = parameter_values_[i]
                 if param in param_set:
@@ -118,5 +120,4 @@ class FiniteDiffEstimatorGradient(BaseEstimatorGradient):
                 values[i] -= results.values[result_index_map[param] * 2 + 1] / (2 * self._epsilon)
 
             gradients.append(values)
-            status.append(job.status())
-        return EstimatorGradientResult(values=gradients, status=status, metadata=run_options)
+        return EstimatorGradientResult(values=gradients, metadata=run_options)

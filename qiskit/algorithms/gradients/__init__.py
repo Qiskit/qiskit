@@ -45,8 +45,8 @@ Results
 .. autosummary::
    :toctree: ../stubs/
 
-   EstimatorResult
-   SamplerResult
+   EstimatorGradientResult
+   SamplerGradientResult
 """
 
 from .base_estimator_gradient import BaseEstimatorGradient

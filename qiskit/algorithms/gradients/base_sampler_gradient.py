@@ -17,7 +17,8 @@ Abstract Base class of Gradient for Sampler.
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
-from collections.abc import Sequence
+from collections.abc import Sequence, Mapping
+from copy import copy
 
 from qiskit.circuit import QuantumCircuit, Parameter
 from qiskit.exceptions import QiskitError
@@ -32,17 +33,24 @@ class BaseSamplerGradient(ABC):
         """
         Args:
             sampler: The sampler used to compute the gradients.
+            run_options: Backend runtime options used for circuit execution. The order of priority is:
+                run_options in `run` method > gradient's default run_options > primitive's default
+                setting. Higher priority setting overrides lower priority setting.
         """
         self._sampler: BaseSampler = sampler
-        self._circuits: list[QuantumCircuit] = []
-        self._circuit_ids: dict[int, int] = {}
+        self._circuits: Sequence[QuantumCircuit] | None = None
+        if self._circuits is None:
+            self._circuits = []
+        self._circuit_ids: Mapping[int, int] | None = None
+        if self._circuit_ids is None:
+            self._circuit_ids = {}
         self._default_run_options = run_options
 
     def evaluate(
         self,
         circuits: Sequence[QuantumCircuit],
         parameter_values: Sequence[Sequence[float]],
-        partial: Sequence[Sequence[Parameter]] | None = None,
+        parameters: Sequence[Sequence[Parameter] | None] | None = None,
         **run_options,
     ) -> SamplerGradientResult:
         """Run the job of the gradients of the sampling probability.
@@ -50,9 +58,13 @@ class BaseSamplerGradient(ABC):
         Args:
             circuits: The list of quantum circuits to compute the gradients.
             parameter_values: The list of parameter values to be bound to the circuit.
-            partial: The list of Parameters to calculate only the gradients of the specified parameters.
-                Defaults to None, which means that the gradients of all parameters will be calculated.
-            run_options: Backend runtime options used for circuit execution.
+            parameters: The Sequence of Sequence of Parameters to calculate only the gradients of
+                the specified parameters. Each Sequence of Parameters corresponds to a circuit in
+                `circuits`. Defaults to None, which means that the gradients of all parameters in
+                each circuit are calculated.
+            run_options: Backend runtime options used for circuit execution. The order of priority is:
+                run_options in `run` method > gradient's default run_options > primitive's default
+                setting. Higher priority setting overrides lower priority setting.
 
         Returns:
             The job object of the gradients of the sampling probability. The i-th result corresponds to
@@ -69,11 +81,11 @@ class BaseSamplerGradient(ABC):
                 f"The number of circuits ({len(circuits)}) does not match "
                 f"the number of parameter value sets ({len(parameter_values)})."
             )
-        if partial is not None:
-            if len(circuits) != len(partial):
+        if parameters is not None:
+            if len(circuits) != len(parameters):
                 raise QiskitError(
                     f"The number of circuits ({len(circuits)}) does not match "
-                    f"the number of partial parameter sets ({len(partial)})."
+                    f"the number of the specified parameter sets ({len(parameters)})."
                 )
 
         for i, (circuit, parameter_value) in enumerate(zip(circuits, parameter_values)):
@@ -85,15 +97,16 @@ class BaseSamplerGradient(ABC):
 
         # The priority of run option is as follows:
         # run_options in `run` method > gradient's default run_options > primitive's default run_options.
-        run_options = run_options or self._default_run_options
-        return self._evaluate(circuits, parameter_values, partial, **run_options)
+        run_opts = copy(self._default_run_options)
+        run_opts.update(**run_options)
+        return self._evaluate(circuits, parameter_values, parameters, **run_opts)
 
     @abstractmethod
     def _evaluate(
         self,
         circuits: Sequence[QuantumCircuit],
         parameter_values: Sequence[Sequence[float]],
-        partial: Sequence[Sequence[Parameter]] | None = None,
+        parameters: Sequence[Sequence[Parameter]] | None = None,
         **run_options,
     ) -> SamplerGradientResult:
         raise NotImplementedError()
