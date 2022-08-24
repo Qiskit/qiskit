@@ -37,6 +37,7 @@ Optimizer Base Class
    OptimizerResult
    OptimizerSupportLevel
    Optimizer
+   Minimizer
 
 Steppable Optimizer Base Class
 ==============================
@@ -155,6 +156,8 @@ __all__ = [
     "AskData",
     "TellData",
     "OptimizerState",
+    "OptimizerResult",
+    "Minimizer",
     "ADAM",
     "AQGD",
     "CG",

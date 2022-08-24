@@ -25,6 +25,7 @@ from qiskit.transpiler.passes import Collect2qBlocks
 from qiskit.transpiler.passes import Collect1qRuns
 from qiskit.transpiler.passes import ConsolidateBlocks
 from qiskit.transpiler.passes import UnitarySynthesis
+from qiskit.transpiler.passes import HighLevelSynthesis
 from qiskit.transpiler.passes import CheckMap
 from qiskit.transpiler.passes import GateDirection
 from qiskit.transpiler.passes import BarrierBeforeFinalMeasurements
@@ -82,6 +83,7 @@ def generate_unroll_3q(
             target=target,
         )
     )
+    unroll_3q.append(HighLevelSynthesis())
     unroll_3q.append(Unroll3qOrMore(target=target, basis_gates=basis_gates))
     return unroll_3q
 
@@ -275,6 +277,7 @@ def generate_translation_passmanager(
                 method=unitary_synthesis_method,
                 target=target,
             ),
+            HighLevelSynthesis(),
             UnrollCustomDefinitions(sel, basis_gates),
             BasisTranslator(sel, basis_gates, target),
         ]
@@ -292,6 +295,7 @@ def generate_translation_passmanager(
                 min_qubits=3,
                 target=target,
             ),
+            HighLevelSynthesis(),
             Unroll3qOrMore(target=target, basis_gates=basis_gates),
             Collect2qBlocks(),
             Collect1qRuns(),
@@ -305,6 +309,7 @@ def generate_translation_passmanager(
                 method=unitary_synthesis_method,
                 target=target,
             ),
+            HighLevelSynthesis(),
         ]
     else:
         raise TranspilerError("Invalid translation method %s." % method)
