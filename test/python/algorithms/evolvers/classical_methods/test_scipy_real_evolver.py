@@ -119,7 +119,9 @@ class TestClassicalRealEvolver(QiskitAlgorithmsTestCase):
 
     def test_no_time_steps(self):
         """Tests if the evolver handles some edge cases related to the number of timesteps."""
-        evolution_problem = EvolutionProblem(hamiltonian=X, time=1.0, initial_state=Zero)
+        evolution_problem = EvolutionProblem(
+            hamiltonian=X, time=1.0, initial_state=Zero, aux_operators={"Energy": X}
+        )
 
         with self.subTest("0 timesteps"):
             with self.assertRaises(ValueError):
@@ -129,7 +131,7 @@ class TestClassicalRealEvolver(QiskitAlgorithmsTestCase):
         with self.subTest("1 timestep"):
             classic_evolver = SciPyRealEvolver(max_iterations=1)
             result = classic_evolver.evolve(evolution_problem)
-            self.assertEqual(result.observables[0].size, 2)
+            np.testing.assert_equal(result.observables["time"], np.array([0.0, 1.0]))
 
         with self.subTest("Negative timesteps"):
             with self.assertRaises(ValueError):

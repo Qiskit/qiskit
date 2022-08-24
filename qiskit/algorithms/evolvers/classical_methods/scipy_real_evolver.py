@@ -126,7 +126,7 @@ class SciPyRealEvolver(RealEvolver, SciPyEvolver):
 
         aux_ops_history = self._create_observable_output(ops_ev_mean, evolution_problem)
 
-        aux_ops = self._create_observable_output(ops_ev_mean[:, -1], evolution_problem)
+        aux_ops = self._create_obs_final(ops_ev_mean[:, -1], evolution_problem)
 
         return EvolutionResult(
             evolved_state=StateFn(state), aux_ops_evaluated=aux_ops, observables=aux_ops_history
@@ -154,10 +154,15 @@ class SciPyRealEvolver(RealEvolver, SciPyEvolver):
         hamiltonian = evolution_problem.hamiltonian.to_spmatrix()
 
         # Determine the number of timesteps.
+        # We use the infinity norm to estimate the norm of the hamiltonian
+        timesteps = self.minimal_number_steps(
+            norm_hamiltonian=norm(hamiltonian, ord=np.inf),
+            time=evolution_problem.time,
+            threshold=self.threshold,
+        )
+
         timesteps = min(
-            self._ntimesteps(
-                time=evolution_problem.time, hamiltonian=hamiltonian, threshold=self.threshold
-            ),
+            timesteps,
             self.max_iterations,
         )
         timestep = evolution_problem.time / timesteps
@@ -208,17 +213,6 @@ class SciPyRealEvolver(RealEvolver, SciPyEvolver):
             * np.power(12 * threshold * (1 - self.bicg_err), -1 / 2)
             + 1
         )
-
-    def _ntimesteps(self, time: float, hamiltonian: sp.csr_matrix, threshold: float = 1e-4) -> int:
-        """Calculate the number of timesteps needed to reach the threshold error if the user doesn't
-        indicate the number of timesteps.
-
-        Uses the infinity norm to estimate the operator norm of the Hamiltonian.
-        Returns:
-            The number of timesteps needed to reach the error threshold.
-        """
-        hnorm = norm(hamiltonian, ord=np.inf)
-        return self.minimal_number_steps(norm_hamiltonian=hnorm, time=time, threshold=threshold)
 
     def _step(
         self,
