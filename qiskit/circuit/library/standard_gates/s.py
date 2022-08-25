@@ -198,17 +198,11 @@ class CSGate(ControlledGate):
         from qiskit.circuit.quantumcircuit import QuantumCircuit
         from .p import CPhaseGate
 
-        q = QuantumRegister(2, "q")
-        qc = QuantumCircuit(q, name=self.name)
-        rules = [(CPhaseGate(theta=pi / 2), [q[0], q[1]], [])]
-        for instr, qargs, cargs in rules:
-            qc._append(instr, qargs, cargs)
-
-        self.definition = qc
+        self.definition = CPhaseGate(theta=pi / 2).definition
 
     def inverse(self):
         """Return inverse of CSGate (CSdgGate)."""
-        return CSdgGate()
+        return CSdgGate(ctrl_state=self.ctrl_state)
 
     def __array__(self, dtype=None):
         """Return a numpy.array for the CS gate."""
@@ -284,17 +278,11 @@ class CSdgGate(ControlledGate):
         from qiskit.circuit.quantumcircuit import QuantumCircuit
         from .p import CPhaseGate
 
-        q = QuantumRegister(2, "q")
-        qc = QuantumCircuit(q, name=self.name)
-        rules = [(CPhaseGate(theta=-pi / 2), [q[0], q[1]], [])]
-        for instr, qargs, cargs in rules:
-            qc._append(instr, qargs, cargs)
-
-        self.definition = qc
+        self.definition = CPhaseGate(theta=-pi / 2).definition
 
     def inverse(self):
         """Return inverse of CSdgGate (CSGate)."""
-        return CSGate()
+        return CSGate(ctrl_state=self.ctrl_state)
 
     def __array__(self, dtype=None):
         """Return a numpy.array for the CSdg gate."""
