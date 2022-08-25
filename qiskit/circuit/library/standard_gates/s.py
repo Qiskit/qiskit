@@ -195,7 +195,6 @@ class CSGate(ControlledGate):
         gate cs a,b { h b; cp(pi/2) a,b; h b; }
         """
         # pylint: disable=cyclic-import
-        from qiskit.circuit.quantumcircuit import QuantumCircuit
         from .p import CPhaseGate
 
         self.definition = CPhaseGate(theta=pi / 2).definition
@@ -275,7 +274,6 @@ class CSdgGate(ControlledGate):
         gate csdg a,b { h b; cp(-pi/2) a,b; h b; }
         """
         # pylint: disable=cyclic-import
-        from qiskit.circuit.quantumcircuit import QuantumCircuit
         from .p import CPhaseGate
 
         self.definition = CPhaseGate(theta=-pi / 2).definition
