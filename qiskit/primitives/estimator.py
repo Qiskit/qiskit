@@ -22,7 +22,6 @@ import numpy as np
 
 from qiskit.circuit import Parameter, QuantumCircuit
 from qiskit.circuit.parametertable import ParameterView
-from qiskit.circuit.instruction import Instruction
 from qiskit.exceptions import QiskitError
 from qiskit.opflow import PauliSumOp
 from qiskit.quantum_info import Statevector
@@ -31,7 +30,7 @@ from qiskit.quantum_info.operators.base_operator import BaseOperator
 from .base_estimator import BaseEstimator
 from .estimator_result import EstimatorResult
 from .primitive_job import PrimitiveJob
-from .utils import init_circuit, init_observable
+from .utils import bound_circuit_to_instruction, init_circuit, init_observable
 
 
 class Estimator(BaseEstimator):
@@ -73,21 +72,6 @@ class Estimator(BaseEstimator):
         )
         self._is_closed = False
 
-    @staticmethod
-    def _bound_circuit_to_instruction(circuit: QuantumCircuit) -> Instruction:
-        if len(circuit.qregs) > 1:
-            return circuit.to_instruction()
-
-        # len(circuit.qregs) == 1 -> No need to flatten qregs
-        inst = Instruction(
-            name=circuit.name,
-            num_qubits=circuit.num_qubits,
-            num_clbits=circuit.num_clbits,
-            params=[],
-        )
-        inst.definition = circuit
-        return inst
-
     def _call(
         self,
         circuits: Sequence[int],
@@ -117,13 +101,11 @@ class Estimator(BaseEstimator):
                     f"The number of values ({len(value)}) does not match "
                     f"the number of parameters ({len(self._parameters[i])})."
                 )
-            if len(self._parameters[i]) == 0:
-                bound_circuit = self._circuits[i]
-            else:
-                bound_circuit = self._circuits[i].bind_parameters(
-                    dict(zip(self._parameters[i], value))
-                )
-            bound_circuits.append(bound_circuit)
+            bound_circuits.append(
+                self._circuits[i]
+                if len(value) == 0
+                else self._circuits[i].bind_parameters(dict(zip(self._parameters[i], value)))
+            )
         sorted_observables = [self._observables[i] for i in observables]
         expectation_values = []
         for circ, obs, metadatum in zip(bound_circuits, sorted_observables, metadata):
@@ -132,8 +114,7 @@ class Estimator(BaseEstimator):
                     f"The number of qubits of a circuit ({circ.num_qubits}) does not match "
                     f"the number of qubits of a observable ({obs.num_qubits})."
                 )
-            inst = self._bound_circuit_to_instruction(circ)
-            final_state = Statevector(inst)
+            final_state = Statevector(bound_circuit_to_instruction(circ))
             expectation_value = final_state.expectation_value(obs)
             if shots is None:
                 expectation_values.append(expectation_value)

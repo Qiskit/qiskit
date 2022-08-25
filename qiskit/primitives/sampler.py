@@ -29,7 +29,7 @@ from qiskit.result import QuasiDistribution
 from .base_sampler import BaseSampler
 from .primitive_job import PrimitiveJob
 from .sampler_result import SamplerResult
-from .utils import final_measurement_mapping, init_circuit
+from .utils import bound_circuit_to_instruction, final_measurement_mapping, init_circuit
 
 
 class Sampler(BaseSampler):
@@ -106,15 +106,14 @@ class Sampler(BaseSampler):
                     f"The number of values ({len(value)}) does not match "
                     f"the number of parameters ({len(self._parameters[i])})."
                 )
-            bound_circuit = (
+            bound_circuits.append(
                 self._circuits[i]
                 if len(value) == 0
                 else self._circuits[i].bind_parameters(dict(zip(self._parameters[i], value)))
             )
-            bound_circuits.append(bound_circuit)
             qargs_list.append(self._qargs_list[i])
         probabilities = [
-            Statevector(circ).probabilities(qargs=qargs)
+            Statevector(bound_circuit_to_instruction(circ)).probabilities(qargs=qargs)
             for circ, qargs in zip(bound_circuits, qargs_list)
         ]
         if shots is not None:
