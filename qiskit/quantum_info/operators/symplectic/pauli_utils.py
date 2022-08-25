@@ -14,12 +14,9 @@ PauliList utility functions.
 """
 
 from qiskit.quantum_info.operators.symplectic.pauli_list import PauliList
-from qiskit.utils.deprecation import deprecate_arguments
 
 
-# pylint: disable=missing-param-doc,missing-type-doc,unused-argument
-@deprecate_arguments({"pauli_list": "_"})
-def pauli_basis(num_qubits, weight=False, pauli_list=True):
+def pauli_basis(num_qubits, weight=False):
     """Return the ordered PauliTable or PauliList for the n-qubit Pauli basis.
 
     Args:
