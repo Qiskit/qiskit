@@ -12,13 +12,13 @@ class SuffixAveragingOptimizer(Optimizer):
     r"""The suffix averaging optimizer.
     
     Given a sequence of circuit parameters of parameterized quantum circuit
-    obtained from :math:`T` iterations, :math:`\{\vec\theta^{(t)}\}_{t=1}^{t=T}`,
+    obtained from :math:`T` iterations, :math:`\{\vec{\theta}^{(t)}\}_{t=1}^{t=T}`,
     the SuffixAveragingOptimizer returns the averaged point of the last n_params_suffix
     points,
 
     .. math::
 
-        \bar\vec\theta = \frac{1}{n_params_suffix} \Sum_{t = T-n_params_suffix-1}^{T} \vec\theta^{(t)}.
+        \overline{\vec{\theta}} = \frac{1}{n_params_suffix} \sum_{t=T-n_params_suffix-1}^{T} \vec{\theta}^{(t)}.
 
     Examples:
         .. code-block::python
