@@ -62,14 +62,14 @@ def _rename_kwargs(func_name, kwargs, kwarg_map):
             if new_arg is None:
                 warnings.warn(
                     f"{func_name} keyword argument {old_arg} is deprecated and "
-                    "will in future be ignored."
+                    "will in future be ignored.",
                     DeprecationWarning,
                     stacklevel=3,
                 )
             else:
                 warnings.warn(
                     f"{func_name} keyword argument {old_arg} is deprecated and "
-                    f"replaced with {new_arg}."
+                    f"replaced with {new_arg}.",
                     DeprecationWarning,
                     stacklevel=3,
                 )
