@@ -56,7 +56,7 @@ class TestFidelity(QiskitTestCase):
             [self._circuit[0]], [self._circuit[1]], self._left_params[0], self._right_params[0]
         )
         result = job.result()
-        np.testing.assert_allclose(result, np.array([1.0]))
+        np.testing.assert_allclose(result.values, np.array([1.0]))
 
     def test_4param_pairs(self):
         """test for fidelity with four pairs of parameters"""
@@ -66,7 +66,7 @@ class TestFidelity(QiskitTestCase):
             [self._circuit[0]] * n, [self._circuit[1]] * n, self._left_params, self._right_params
         )
         results = job.result()
-        np.testing.assert_allclose(results, np.array([1.0, 0.5, 0.25, 0.0]), atol=1e-16)
+        np.testing.assert_allclose(results.values, np.array([1.0, 0.5, 0.25, 0.0]), atol=1e-16)
 
     def test_symmetry(self):
         """test for fidelity with the same circuit"""
@@ -80,14 +80,14 @@ class TestFidelity(QiskitTestCase):
         )
         results_1 = job_1.result()
         results_2 = job_2.result()
-        np.testing.assert_allclose(results_1, results_2, atol=1e-16)
+        np.testing.assert_allclose(results_1.values, results_2.values, atol=1e-16)
 
     def test_no_params(self):
         """test for fidelity without parameters"""
         fidelity = Fidelity(self._sampler)
         job = fidelity.run([self._circuit[2]], [self._circuit[3]])
         results = job.result()
-        np.testing.assert_allclose(results, np.array([0.25]), atol=1e-16)
+        np.testing.assert_allclose(results.values, np.array([0.25]), atol=1e-16)
 
     def test_left_param(self):
         """test for fidelity with only left parameters"""
@@ -97,7 +97,7 @@ class TestFidelity(QiskitTestCase):
             [self._circuit[1]] * n, [self._circuit[3]] * n, values_1=self._left_params
         )
         results = job.result()
-        np.testing.assert_allclose(results, np.array([1.0, 0.5, 0.5, 0.0]), atol=1e-16)
+        np.testing.assert_allclose(results.values, np.array([1.0, 0.5, 0.5, 0.0]), atol=1e-16)
 
     def test_right_param(self):
         """test for fidelity with only right parameters"""
@@ -107,7 +107,7 @@ class TestFidelity(QiskitTestCase):
             [self._circuit[3]] * n, [self._circuit[1]] * n, values_2=self._left_params
         )
         results = job.result()
-        np.testing.assert_allclose(results, np.array([1.0, 0.5, 0.5, 0.0]), atol=1e-16)
+        np.testing.assert_allclose(results.values, np.array([1.0, 0.5, 0.5, 0.0]), atol=1e-16)
 
     def test_not_set_circuits(self):
         """test for fidelity with no circuits."""
@@ -170,7 +170,7 @@ class TestFidelity(QiskitTestCase):
             job = fidelity.run([self._circuit[0]], [self._circuit[1]], left_param, right_param)
             jobs.append(job)
 
-        results = [job.result()[0] for job in jobs]
+        results = [job.result().values[0] for job in jobs]
         np.testing.assert_allclose(results, np.array([1.0, 0.5, 0.25, 0.0]), atol=1e-16)
 
 

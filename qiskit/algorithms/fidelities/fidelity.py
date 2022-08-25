@@ -20,7 +20,7 @@ from qiskit import QuantumCircuit
 from qiskit.primitives import Sampler
 from qiskit.primitives.primitive_job import PrimitiveJob
 from .base_fidelity import BaseFidelity
-
+from .fidelity_result import FidelityResult
 
 class Fidelity(BaseFidelity):
     """
@@ -66,7 +66,7 @@ class Fidelity(BaseFidelity):
         values_1: Sequence[Sequence[float]] | None = None,
         values_2: Sequence[Sequence[float]] | None = None,
         **run_options,
-    ) -> list[float]:
+    ) -> FidelityResult:
         r"""
         Compute the state overlap (fidelity) calculation between 2
         parametrized circuits (left and right) for a specific set of parameter
@@ -114,7 +114,7 @@ class Fidelity(BaseFidelity):
         # negative values in some way (e.g. clipping to zero)
         overlaps = [prob_dist.get(0, 0) for prob_dist in result.quasi_dists]
 
-        return overlaps
+        return FidelityResult(values=overlaps, metadata=run_options)
 
     def run(
         self,

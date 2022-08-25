@@ -21,9 +21,16 @@ Fidelity
    :toctree: ../stubs/
    BaseFidelity
    Fidelity
+
+Results
+=======
+ .. autosummary::
+    :toctree: ../stubs/
+    Fidelity
 """
 
 from .base_fidelity import BaseFidelity
 from .fidelity import Fidelity
+from .fidelity_result import FidelityResult
 
-__all__ = ["BaseFidelity", "Fidelity"]
+__all__ = ["BaseFidelity", "Fidelity", "FidelityResult"]
