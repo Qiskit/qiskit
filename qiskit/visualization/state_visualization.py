@@ -186,7 +186,8 @@ def plot_state_hinton(
 def plot_bloch_vector(bloch, title="", ax=None, figsize=None, coord_type="cartesian"):
     """Plot the Bloch sphere.
 
-    Plot a sphere, axes, the Bloch vector, and its projections onto each axis.
+    Plot a Bloch sphere with the specified coordinates, that can be given in both
+    cartesian and spherical systems.
 
     Args:
         bloch (list[double]): array of three elements where [<x>, <y>, <z>] (Cartesian)
@@ -247,9 +248,13 @@ def plot_bloch_vector(bloch, title="", ax=None, figsize=None, coord_type="cartes
 def plot_bloch_multivector(
     state, title="", figsize=None, *, rho=None, reverse_bits=False, filename=None
 ):
-    """Plot the Bloch sphere.
+    r"""Plot a Bloch sphere for each qubit.
 
-    Plot a sphere, axes, the Bloch vector, and its projections onto each axis.
+    Each component :math:`(x,y,z)` of the Bloch sphere labeled as 'qubit i' represents the expected
+    value of the corresponding Pauli operator acting only on that qubit, that is, the expected value
+    of :math:`I_{N-1} \otimes\dotsb\otimes I_{i+1}\otimes P_i \otimes I_{i-1}\otimes\dotsb\otimes
+    I_0`, where :math:`N` is the number of qubits, :math:`P\in \{X,Y,Z\}` and :math:`I` is the
+    identity operator.
 
     Args:
         state (Statevector or DensityMatrix or ndarray): an N-qubit quantum state.

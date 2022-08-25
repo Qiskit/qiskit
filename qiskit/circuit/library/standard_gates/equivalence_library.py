@@ -252,6 +252,20 @@ for inst, qargs, cargs in [
     def_rxx.append(inst, qargs, cargs)
 _sel.add_equivalence(RXXGate(theta), def_rxx)
 
+# RXX to RZZ
+q = QuantumRegister(2, "q")
+theta = Parameter("theta")
+rxx_to_rzz = QuantumCircuit(q)
+for inst, qargs, cargs in [
+    (HGate(), [q[0]], []),
+    (HGate(), [q[1]], []),
+    (RZZGate(theta), [q[0], q[1]], []),
+    (HGate(), [q[0]], []),
+    (HGate(), [q[1]], []),
+]:
+    rxx_to_rzz.append(inst, qargs, cargs)
+_sel.add_equivalence(RXXGate(theta), rxx_to_rzz)
+
 # RZXGate
 #
 #      ┌─────────┐
@@ -324,6 +338,20 @@ for inst, qargs, cargs in [
     def_ryy.append(inst, qargs, cargs)
 _sel.add_equivalence(RYYGate(theta), def_ryy)
 
+# RYY to RZZ
+q = QuantumRegister(2, "q")
+theta = Parameter("theta")
+ryy_to_rzz = QuantumCircuit(q)
+for inst, qargs, cargs in [
+    (RXGate(pi / 2), [q[0]], []),
+    (RXGate(pi / 2), [q[1]], []),
+    (RZZGate(theta), [q[0], q[1]], []),
+    (RXGate(-pi / 2), [q[0]], []),
+    (RXGate(-pi / 2), [q[1]], []),
+]:
+    ryy_to_rzz.append(inst, qargs, cargs)
+_sel.add_equivalence(RYYGate(theta), ryy_to_rzz)
+
 # RZGate
 #                  global phase: -ϴ/2
 #    ┌───────┐        ┌───────┐
@@ -381,6 +409,35 @@ for inst, qargs, cargs in [
 ]:
     def_rzz.append(inst, qargs, cargs)
 _sel.add_equivalence(RZZGate(theta), def_rzz)
+
+# RZZ to RXX
+q = QuantumRegister(2, "q")
+theta = Parameter("theta")
+rzz_to_rxx = QuantumCircuit(q)
+for inst, qargs, cargs in [
+    (HGate(), [q[0]], []),
+    (HGate(), [q[1]], []),
+    (RXXGate(theta), [q[0], q[1]], []),
+    (HGate(), [q[0]], []),
+    (HGate(), [q[1]], []),
+]:
+    rzz_to_rxx.append(inst, qargs, cargs)
+_sel.add_equivalence(RZZGate(theta), rzz_to_rxx)
+
+# RZZ to RYY
+q = QuantumRegister(2, "q")
+theta = Parameter("theta")
+rzz_to_ryy = QuantumCircuit(q)
+for inst, qargs, cargs in [
+    (RXGate(-pi / 2), [q[0]], []),
+    (RXGate(-pi / 2), [q[1]], []),
+    (RYYGate(theta), [q[0], q[1]], []),
+    (RXGate(pi / 2), [q[0]], []),
+    (RXGate(pi / 2), [q[1]], []),
+]:
+    rzz_to_ryy.append(inst, qargs, cargs)
+_sel.add_equivalence(RZZGate(theta), rzz_to_ryy)
+
 
 # RZXGate
 #

@@ -106,12 +106,11 @@ class Sampler(BaseSampler):
                     f"The number of values ({len(value)}) does not match "
                     f"the number of parameters ({len(self._parameters[i])})."
                 )
-            bound_circuit = (
+            bound_circuits.append(
                 self._circuits[i]
                 if len(value) == 0
                 else self._circuits[i].bind_parameters(dict(zip(self._parameters[i], value)))
             )
-            bound_circuits.append(bound_circuit)
             qargs_list.append(self._qargs_list[i])
         probabilities = [
             Statevector(circ).probabilities(qargs=qargs)
