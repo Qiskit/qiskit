@@ -174,7 +174,7 @@ def level_3_pass_manager(pass_manager_config: PassManagerConfig) -> StagedPassMa
         )
     else:
         routing_pm = plugin_manager.get_passmanager_stage(
-            "routing", routing_method, pass_manager_config
+            "routing", routing_method, pass_manager_config, optimization_level=3
         )
 
     # 8. Optimize iteratively until no more change in depth. Removes useless gates
@@ -203,7 +203,9 @@ def level_3_pass_manager(pass_manager_config: PassManagerConfig) -> StagedPassMa
 
     # Build pass manager
     if init_method is not None:
-        init = plugin_manager.get_passmanager_stage("init", init_method, pass_manager_config)
+        init = plugin_manager.get_passmanager_stage(
+            "init", init_method, pass_manager_config, optimization_level=3
+        )
     else:
         init = common.generate_unroll_3q(
             target,
@@ -218,7 +220,7 @@ def level_3_pass_manager(pass_manager_config: PassManagerConfig) -> StagedPassMa
     if coupling_map or initial_layout:
         if layout_method not in {"trivial", "dense", "noise_adaptive", "sabre"}:
             layout = plugin_manager.get_passmanager_stage(
-                "layout", layout_method, pass_manager_config
+                "layout", layout_method, pass_manager_config, optimization_level=3
             )
         else:
             layout = PassManager()
@@ -232,7 +234,7 @@ def level_3_pass_manager(pass_manager_config: PassManagerConfig) -> StagedPassMa
         routing = None
     if translation_method not in {"translator", "synthesis", "unroller"}:
         translation = plugin_manager.get_passmanager_stage(
-            "translation", translation_method, pass_manager_config
+            "translation", translation_method, pass_manager_config, optimization_level=3
         )
     else:
         translation = common.generate_translation_passmanager(
@@ -280,7 +282,7 @@ def level_3_pass_manager(pass_manager_config: PassManagerConfig) -> StagedPassMa
         optimization.append(opt_loop, do_while=_opt_control)
     else:
         optimization = plugin_manager.get_passmanager_stage(
-            "optimization", optimization_method, pass_manager_config
+            "optimization", optimization_method, pass_manager_config, optimization_level=3
         )
         if (coupling_map and not coupling_map.is_symmetric) or (
             target is not None and target.get_non_global_operation_names(strict_direction=True)
@@ -295,7 +297,7 @@ def level_3_pass_manager(pass_manager_config: PassManagerConfig) -> StagedPassMa
         )
     else:
         sched = plugin_manager.get_passmanager_stage(
-            "scheduling", scheduling_method, pass_manager_config
+            "scheduling", scheduling_method, pass_manager_config, optimization_level=3
         )
 
     # Restore PassManagerConfig optimization_level override

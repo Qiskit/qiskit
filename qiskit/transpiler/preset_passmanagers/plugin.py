@@ -160,7 +160,7 @@ Plugin API
 """
 
 import abc
-from typing import List
+from typing import List, Optional
 
 import stevedore
 
@@ -174,12 +174,26 @@ class PassManagerStagePlugin(abc.ABC):
     stages in :func:`~.transpile`.
 
     A ``PassManagerStagePlugin`` object can be added to an external package and
-
+    integrated into the :func:`~.transpile` function with an entrypoint. This
+    will enable users to use the output of :meth:`.pass_manager` to implement
+    a stage in the compilation process.
     """
 
     @abc.abstractmethod
-    def pass_manager(self, pass_manager_config: PassManagerConfig) -> PassManager:
-        """This method is designed to return a :class:`~.PassManager` for the"""
+    def pass_manager(
+        self, pass_manager_config: PassManagerConfig, optimization_level: Optional[int] = None
+    ) -> PassManager:
+        """This method is designed to return a :class:`~.PassManager` for the stage this implements
+
+        Args:
+            pass_manager_config: A configuration object that defines all the target device
+                specifications and any user specified options to :func:`~.transpile` or
+                :func:`~.generate_preset_pass_manager`
+            optimization_level: The optimization level of the transpilation, if set this
+                should be used to set values for any tunable parameters to trade off runtime
+                for potential optimization. Valid values should be ``0``, ``1``, ``2``, or ``3``
+                and the higher the number the more optimization is expected.
+        """
         pass
 
 
@@ -208,21 +222,37 @@ class PassManagerStagePluginManager:
         )
 
     def get_passmanager_stage(
-        self, stage_name: str, plugin_name: str, pm_config: PassManagerConfig
+        self,
+        stage_name: str,
+        plugin_name: str,
+        pm_config: PassManagerConfig,
+        optimization_level=None,
     ) -> PassManager:
         """Get a stage"""
         if stage_name == "init":
-            return self._build_pm(self.init_plugins, stage_name, plugin_name, pm_config)
+            return self._build_pm(
+                self.init_plugins, stage_name, plugin_name, pm_config, optimization_level
+            )
         elif stage_name == "layout":
-            return self._build_pm(self.layout_plugins, stage_name, plugin_name, pm_config)
+            return self._build_pm(
+                self.layout_plugins, stage_name, plugin_name, pm_config, optimization_level
+            )
         elif stage_name == "routing":
-            return self._build_pm(self.routing_plugins, stage_name, plugin_name, pm_config)
+            return self._build_pm(
+                self.routing_plugins, stage_name, plugin_name, pm_config, optimization_level
+            )
         elif stage_name == "translation":
-            return self._build_pm(self.translation_plugins, stage_name, plugin_name, pm_config)
+            return self._build_pm(
+                self.translation_plugins, stage_name, plugin_name, pm_config, optimization_level
+            )
         elif stage_name == "optimization":
-            return self._build_pm(self.optimization_plugins, stage_name, plugin_name, pm_config)
+            return self._build_pm(
+                self.optimization_plugins, stage_name, plugin_name, pm_config, optimization_level
+            )
         elif stage_name == "scheduling":
-            return self._build_pm(self.scheduling_plugins, stage_name, plugin_name, pm_config)
+            return self._build_pm(
+                self.scheduling_plugins, stage_name, plugin_name, pm_config, optimization_level
+            )
         else:
             raise TranspilerError(f"Invalid stage name: {stage_name}")
 
@@ -232,12 +262,12 @@ class PassManagerStagePluginManager:
         stage_name: str,
         plugin_name: str,
         pm_config: PassManagerConfig,
+        optimization_level: Optional[int] = None,
     ):
         if plugin_name not in stage_obj:
-            raise TranspilerError(
-                f"Invalid plugin name {plugin_name} for stage {stage_name}"
-            )
-        return plugin_obj.obj.pass_manager(stage_obj[plugin_name])
+            raise TranspilerError(f"Invalid plugin name {plugin_name} for stage {stage_name}")
+        plugin_obj = stage_obj[plugin_name]
+        return plugin_obj.obj.pass_manager(pm_config, optimization_level)
 
 
 def list_stage_plugins(stage_name: str) -> List[str]:

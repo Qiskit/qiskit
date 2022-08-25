@@ -48,9 +48,7 @@ class TestStagePassManagerPlugin(QiskitTestCase):
         """Test get pm from plugin with invalid plugin name and valid stage."""
         plugin_manager = PassManagerStagePluginManager()
         with self.assertRaises(TranspilerError):
-            plugin_manager.get_passmanager_stage(
-                "init", "empty_plugin", PassManagerConfig()
-            )
+            plugin_manager.get_passmanager_stage("init", "empty_plugin", PassManagerConfig())
 
     def test_build_pm_invalid_stage(self):
         """Test get pm from plugin with invalid stage."""
@@ -63,6 +61,8 @@ class TestStagePassManagerPlugin(QiskitTestCase):
     def test_build_pm(self):
         """Test get pm from plugin."""
         plugin_manager = PassManagerStagePluginManager()
-        pm_config = PassManagerConfig(optimization_level=3)
-        pm = plugin_manager.get_passmanager_stage("routing", "sabre", pm_config)
+        pm_config = PassManagerConfig()
+        pm = plugin_manager.get_passmanager_stage(
+            "routing", "sabre", pm_config, optimization_level=3
+        )
         self.assertIsInstance(pm, PassManager)
