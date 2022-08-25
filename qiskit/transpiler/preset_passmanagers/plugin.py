@@ -50,7 +50,6 @@ Currently there are 6 stages in the preset pass managers used by and correspondi
        layout and routing algorithms are only designed to work with 1 and 2 qubit gates, this stage
        is also used to translate any gates that operate on more than 2 qubits into gates that only
        operate on 1 or 2 qubits.
-       ``init``
    * - ``layout``
      - ``qiskit.transpiler.layout``
      - ``trivial``, ``dense``, ``noise_adaptive``, ``sabre``
@@ -234,13 +233,11 @@ class PassManagerStagePluginManager:
         plugin_name: str,
         pm_config: PassManagerConfig,
     ):
-        try:
-            plugin_obj = stage_obj[plugin_name]
-        except KeyError as err:
+        if plugin_name not in stage_obj:
             raise TranspilerError(
                 f"Invalid plugin name {plugin_name} for stage {stage_name}"
-            ) from err
-        return plugin_obj.obj.pass_manager(pm_config)
+            )
+        return plugin_obj.obj.pass_manager(stage_obj[plugin_name])
 
 
 def list_stage_plugins(stage_name: str) -> List[str]:

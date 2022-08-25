@@ -11,7 +11,7 @@
 # that they have been altered from the originals.
 
 """
-Tests for the UnitarySynthesis transpiler pass.
+Tests for the staged transpiler plugins.
 """
 
 from qiskit.test import QiskitTestCase
@@ -49,7 +49,7 @@ class TestStagePassManagerPlugin(QiskitTestCase):
         plugin_manager = PassManagerStagePluginManager()
         with self.assertRaises(TranspilerError):
             plugin_manager.get_passmanager_stage(
-                "init", "fake_plugin_not_real", PassManagerConfig()
+                "init", "empty_plugin", PassManagerConfig()
             )
 
     def test_build_pm_invalid_stage(self):
