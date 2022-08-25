@@ -46,7 +46,7 @@ class Clifford(BaseOperator, AdjointMixin, Operation):
     The internal boolean tableau for the Clifford
     can be accessed using the :attr:`tableau` attribute. The destabilizer or
     stabilizer rows can each be accessed as a length-N Stabilizer table using
-    :attr:`destabilizers` and :attr:`stabilizers` attributes.
+    :attr:`destab` and :attr:`stab` attributes.
 
     A more easily human readable representation of the Clifford operator can
     be obtained by calling the :meth:`to_dict` method. This representation is
@@ -246,7 +246,7 @@ class Clifford(BaseOperator, AdjointMixin, Operation):
     @deprecate_function(
         "The Clifford.stabilizer attribute is deprecated as of Qiskit Terra 0.22.0 "
         "and will be removed no sooner than 3 months after the release date. "
-        "Use Clifford.stabilizers properties instead."
+        "Use Clifford.stab properties instead."
     )
     def stabilizer(self):
         """Return the stabilizer block of the StabilizerTable."""
@@ -258,7 +258,7 @@ class Clifford(BaseOperator, AdjointMixin, Operation):
     @deprecate_function(
         "The Clifford.stabilizer is deprecated as of Qiskit Terra 0.22.0 "
         "and will be removed no sooner than 3 months after the release date. "
-        "Use Clifford.stabilizers properties instead."
+        "Use Clifford.stab properties instead."
     )
     def stabilizer(self, value):
         """Set the value of stabilizer block of the StabilizerTable"""
@@ -270,7 +270,7 @@ class Clifford(BaseOperator, AdjointMixin, Operation):
     @deprecate_function(
         "The Clifford.destabilzer attribute is deprecated as of Qiskit Terra 0.22.0 "
         "and will be removed no sooner than 3 months after the release date. "
-        "Use Clifford.destabilzers properties instead."
+        "Use Clifford.destab properties instead."
     )
     def destabilizer(self):
         """Return the destabilizer block of the StabilizerTable."""
@@ -282,7 +282,7 @@ class Clifford(BaseOperator, AdjointMixin, Operation):
     @deprecate_function(
         "The Clifford.destabilizer attribute is deprecated as of Qiskit Terra 0.22.0 "
         "and will be removed no sooner than 3 months after the release date. "
-        "Use Clifford.destabilzers properties instead."
+        "Use Clifford.destab properties instead."
     )
     def destabilizer(self, value):
         """Set the value of destabilizer block of the StabilizerTable"""
@@ -293,11 +293,29 @@ class Clifford(BaseOperator, AdjointMixin, Operation):
     @property
     def phase(self):
         """Return phase with boolean representation."""
-        return self.tableau[:, -1].reshape(-1)
+        return self.tableau[:, -1]
 
     @phase.setter
     def phase(self, value):
         self.tableau[:, -1] = value
+
+    @property
+    def phase_destab(self):
+        """Return phase of destaibilizer with boolean representation."""
+        return self.tableau[: self.num_qubits, -1]
+
+    @phase_destab.setter
+    def phase_destab(self, value):
+        self.tableau[: self.num_qubits, -1] = value
+
+    @property
+    def phase_stab(self):
+        """Return phase of stablizer with boolean representation."""
+        return self.tableau[self.num_qubits :, -1]
+
+    @phase_stab.setter
+    def phase_stab(self, value):
+        self.tableau[self.num_qubits :, -1] = value
 
     @property
     def x(self):
@@ -318,12 +336,12 @@ class Clifford(BaseOperator, AdjointMixin, Operation):
         self.tableau[:, self.num_qubits : 2 * self.num_qubits] = value
 
     @property
-    def destabilizers(self):
+    def destab(self):
         """The destabilizer array for the symplectic representation."""
         return self.tableau[: self.num_qubits, :]
 
-    @destabilizers.setter
-    def destabilizers(self, value):
+    @destab.setter
+    def destab(self, value):
         self.tableau[: self.num_qubits, :] = value
 
     @property
@@ -345,35 +363,31 @@ class Clifford(BaseOperator, AdjointMixin, Operation):
         self.tableau[: self.num_qubits, self.num_qubits : 2 * self.num_qubits] = value
 
     @property
-    def stabilizers(self):
+    def stab(self):
         """The stabilizer array for the symplectic representation."""
-        return self.tableau[self.num_qubits : 2 * self.num_qubits, :]
+        return self.tableau[self.num_qubits :, :]
 
-    @stabilizers.setter
-    def stabilizers(self, value):
-        self.tableau[self.num_qubits : 2 * self.num_qubits, :] = value
+    @stab.setter
+    def stab(self, value):
+        self.tableau[self.num_qubits :, :] = value
 
     @property
     def stab_x(self):
         """The stabilizer x array for the symplectic representation."""
-        return self.tableau[self.num_qubits : 2 * self.num_qubits, : self.num_qubits]
+        return self.tableau[self.num_qubits :, : self.num_qubits]
 
     @stab_x.setter
     def stab_x(self, value):
-        self.tableau[self.num_qubits : 2 * self.num_qubits, : self.num_qubits] = value
+        self.tableau[self.num_qubits :, : self.num_qubits] = value
 
     @property
     def stab_z(self):
         """The stabilizer array for the symplectic representation."""
-        return self.tableau[
-            self.num_qubits : 2 * self.num_qubits, self.num_qubits : 2 * self.num_qubits
-        ]
+        return self.tableau[self.num_qubits :, self.num_qubits : 2 * self.num_qubits]
 
     @stab_z.setter
     def stab_z(self, value):
-        self.tableau[
-            self.num_qubits : 2 * self.num_qubits, self.num_qubits : 2 * self.num_qubits
-        ] = value
+        self.tableau[self.num_qubits :, self.num_qubits : 2 * self.num_qubits] = value
 
     # ---------------------------------------------------------------------
     # Utility Operator methods
@@ -422,10 +436,10 @@ class Clifford(BaseOperator, AdjointMixin, Operation):
         clifford.stab_x[b.num_qubits :, b.num_qubits :] = a.stab_x
         clifford.stab_z[: b.num_qubits, : b.num_qubits] = b.stab_z
         clifford.stab_z[b.num_qubits :, b.num_qubits :] = a.stab_z
-        clifford.phase[: b.num_qubits] = b.phase[: b.num_qubits]
-        clifford.phase[b.num_qubits : n] = a.phase[: a.num_qubits]
-        clifford.phase[n : n + b.num_qubits] = b.phase[b.num_qubits :]
-        clifford.phase[n + b.num_qubits :] = a.phase[a.num_qubits :]
+        clifford.phase[: b.num_qubits] = b.phase_destab
+        clifford.phase[b.num_qubits : n] = a.phase_destab
+        clifford.phase[n : n + b.num_qubits] = b.phase_stab
+        clifford.phase[n + b.num_qubits :] = a.phase_stab
         return clifford
 
     def compose(self, other, qargs=None, front=False):

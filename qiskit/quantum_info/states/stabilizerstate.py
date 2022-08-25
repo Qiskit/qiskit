@@ -79,7 +79,7 @@ class StabilizerState(QuantumState):
         super().__init__(op_shape=OpShape.auto(num_qubits_r=self._data.num_qubits, num_qubits_l=0))
 
     def __eq__(self, other):
-        return (self._data.stabilizers == other._data.stabilizers).all()
+        return (self._data.stab == other._data.stab).all()
 
     def __repr__(self):
         return f"StabilizerState({self._data.stabilizer})"
@@ -249,7 +249,7 @@ class StabilizerState(QuantumState):
                 continue
 
             # If anti-commutes multiply Pauli by stabilizer
-            phase += 2 * self.clifford.phase[p + num_qubits]
+            phase += 2 * self.clifford.phase_stab[p]
             phase += np.count_nonzero(self.clifford.stab_z[p] & self.clifford.stab_x[p])
             phase += 2 * np.count_nonzero(pauli_z & self.clifford.stab_x[p])
             pauli_z = pauli_z ^ self.clifford.stab_z[p]
@@ -460,9 +460,7 @@ class StabilizerState(QuantumState):
                 if (clifford.x[i][qubit]) and (i != p_qubit) and (i != (p_qubit - num_qubits)):
                     self._rowsum_nondeterministic(clifford, i, p_qubit)
 
-            clifford.destabilizers[p_qubit - num_qubits] = clifford.stabilizers[
-                p_qubit - num_qubits
-            ].copy()
+            clifford.destab[p_qubit - num_qubits] = clifford.stab[p_qubit - num_qubits].copy()
             clifford.x[p_qubit] = np.zeros(num_qubits)
             clifford.z[p_qubit] = np.zeros(num_qubits)
             clifford.z[p_qubit][qubit] = True

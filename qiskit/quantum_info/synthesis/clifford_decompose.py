@@ -150,10 +150,10 @@ def decompose_clifford_ag(clifford):
         _set_row_z_zero(clifford_cpy, circuit, i)
 
     for i in range(clifford.num_qubits):
-        if clifford_cpy.phase[i]:  # destabilizer
+        if clifford_cpy.phase_destab[i]:
             _append_z(clifford_cpy, i)
             circuit.z(i)
-        if clifford_cpy.phase[i + clifford.num_qubits]:  # stablizer
+        if clifford_cpy.phase_stab[i]:
             _append_x(clifford_cpy, i)
             circuit.x(i)
     # Next we invert the circuit to undo the row reduction and return the
@@ -524,8 +524,8 @@ def decompose_clifford_greedy(clifford):
 
     # Add the phases (Pauli gates) to the Clifford circuit
     for qubit in range(num_qubits):
-        stab = clifford_cpy.phase[qubit + num_qubits]
-        destab = clifford_cpy.phase[qubit]
+        stab = clifford_cpy.phase_stab[qubit]
+        destab = clifford_cpy.phase_destab[qubit]
         if destab and stab:
             circ.y(qubit)
         elif not destab and stab:
