@@ -9,17 +9,51 @@ from .optimizer import POINT, Optimizer, OptimizerResult, OptimizerSupportLevel
 
 
 class SuffixAveragingOptimizer(Optimizer):
+    r"""The suffix averaging optimizer.
+    
+    Given a sequence of circuit parameters of parameterized quantum circuit
+    obtained from :math:`T` iterations, :math:`\{\vec\theta^{(t)}\}_{t=1}^{t=T}`,
+    the SuffixAveragingOptimizer returns the averaged point of the last n_params_suffix
+    points,
+
+    .. math::
+
+        \bar\vec\theta = \frac{1}{n_params_suffix} \Sum_{t = T-n_params_suffix-1}^{T} \vec\theta^{(t)}.
+
+    Examples:
+        .. code-block::python
+            from qiskit import Aer
+            from qiskit.utils import QuantumInstance
+            from qiskit.algorithms import VQE
+            from qiskit.opflow.gradients import Gradient
+            from qiskit.circuit.library import TwoLocal
+            from qiskit.algorithms.optimizers import ADAM
+            from qiskit.algorithms.optimizers.suffix_averaging import SuffixAveragingOptimizer
+
+            backend = Aer.get_backend("qasm_simulator")
+            quantum_instance = QuantumInstance(backend=backend, shots=1000)
+            ansatz = TwoLocal(4, ["rx", "rz"], "cx", "linear")
+            optimizer = ADAM(maxiter=1000)
+            suffix_optimizer = SuffixAveragingOptimizer(optimizer, n_params_suffix=50)
+            gradient = Gradient(grad_method="param_shift")
+            vqe = VQE(
+                ansatz = ansatz,
+                optimizer = suffix_optimizer,
+                gradient = gradient,
+                quantum_instance = quantum_instance
+            )
+
+    References:
+        [1] S. Tamiya and H. Yamasaki. 2021.
+        Stochastic Gradient Line Bayesian Optimization
+        for Efficient Noise-Robust Optimization of Parameterized Quantum Circuits.
+        arXiv preprint arXiv:2111.07952.
+    """
     def __init__(self, optimizer: Optimizer, n_params_suffix: int = 50) -> None:
         """
         Args:
             optimizer: The optimizer used for optimizing parameterized quantum circuits.
             n_params_suffix: The number of circuit parameters for taking the suffix average.
-
-        References:
-            [1] S. Tamiya and H. Yamasaki. 2021.
-            Stochastic Gradient Line Bayesian Optimization
-            for Efficient Noise-Robust Optimization of Parameterized Quantum Circuits.
-            arXiv preprint arXiv:2111.07952.
         """
 
         self._n_params_suffix = n_params_suffix

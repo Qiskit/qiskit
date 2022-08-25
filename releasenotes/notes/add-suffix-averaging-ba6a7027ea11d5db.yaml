@@ -1,0 +1,29 @@
+---
+features:
+  - |
+    Added a new class :class:'~qiskit.algorithms.optimizers.SuffixAveragingOptimizer' for 
+    variational quantum algorithms has been added to the :mod:'qiskit.algorithms.optimizers' module. 
+    This optimizer class gives a result at a suffix averaged point of circuit parameters obtained 
+    by some optimizer, such as :class:'~qiskit.algorithms.optimizers.ADAM' to improve the result at final iterate.
+    A detailed motivation for taking suffix averaging can be found in: https://arxiv.org/abs/2111.07952.
+    Fot example:
+      from qiskit import Aer
+      from qiskit.utils import QuantumInstance
+      from qiskit.algorithms import VQE
+      from qiskit.opflow.gradients import Gradient
+      from qiskit.circuit.library import TwoLocal
+      from qiskit.algorithms.optimizers import ADAM
+      from qiskit.algorithms.optimizers.suffix_averaging import SuffixAveragingOptimizer
+
+      backend = Aer.get_backend("qasm_simulator")
+      quantum_instance = QuantumInstance(backend=backend, shots=1000)
+      ansatz = TwoLocal(4, ["rx", "rz"], "cx", "linear")
+      optimizer = ADAM(maxiter=1000)
+      suffix_optimizer = SuffixAveragingOptimizer(optimizer, n_params_suffix=50)
+      gradient = Gradient(grad_method="param_shift")
+      vqe = VQE(
+          ansatz = ansatz,
+          optimizer = suffix_optimizer,
+          gradient = gradient,
+          quantum_instance = quantum_instance
+      )
