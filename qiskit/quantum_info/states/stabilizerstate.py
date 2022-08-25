@@ -249,7 +249,7 @@ class StabilizerState(QuantumState):
                 continue
 
             # If anti-commutes multiply Pauli by stabilizer
-            phase += 2 * self.clifford.phase_stab[p]
+            phase += 2 * self.clifford.stab_phase[p]
             phase += np.count_nonzero(self.clifford.stab_z[p] & self.clifford.stab_x[p])
             phase += 2 * np.count_nonzero(pauli_z & self.clifford.stab_x[p])
             pauli_z = pauli_z ^ self.clifford.stab_z[p]

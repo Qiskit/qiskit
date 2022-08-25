@@ -300,24 +300,6 @@ class Clifford(BaseOperator, AdjointMixin, Operation):
         self.tableau[:, -1] = value
 
     @property
-    def phase_destab(self):
-        """Return phase of destaibilizer with boolean representation."""
-        return self.tableau[: self.num_qubits, -1]
-
-    @phase_destab.setter
-    def phase_destab(self, value):
-        self.tableau[: self.num_qubits, -1] = value
-
-    @property
-    def phase_stab(self):
-        """Return phase of stablizer with boolean representation."""
-        return self.tableau[self.num_qubits :, -1]
-
-    @phase_stab.setter
-    def phase_stab(self, value):
-        self.tableau[self.num_qubits :, -1] = value
-
-    @property
     def x(self):
         """The x array for the symplectic representation."""
         return self.tableau[:, 0 : self.num_qubits]
@@ -363,6 +345,15 @@ class Clifford(BaseOperator, AdjointMixin, Operation):
         self.tableau[: self.num_qubits, self.num_qubits : 2 * self.num_qubits] = value
 
     @property
+    def destab_phase(self):
+        """Return phase of destaibilizer with boolean representation."""
+        return self.tableau[: self.num_qubits, -1]
+
+    @destab_phase.setter
+    def destab_phase(self, value):
+        self.tableau[: self.num_qubits, -1] = value
+
+    @property
     def stab(self):
         """The stabilizer array for the symplectic representation."""
         return self.tableau[self.num_qubits :, :]
@@ -388,6 +379,15 @@ class Clifford(BaseOperator, AdjointMixin, Operation):
     @stab_z.setter
     def stab_z(self, value):
         self.tableau[self.num_qubits :, self.num_qubits : 2 * self.num_qubits] = value
+
+    @property
+    def stab_phase(self):
+        """Return phase of stablizer with boolean representation."""
+        return self.tableau[self.num_qubits :, -1]
+
+    @stab_phase.setter
+    def stab_phase(self, value):
+        self.tableau[self.num_qubits :, -1] = value
 
     # ---------------------------------------------------------------------
     # Utility Operator methods
@@ -436,10 +436,10 @@ class Clifford(BaseOperator, AdjointMixin, Operation):
         clifford.stab_x[b.num_qubits :, b.num_qubits :] = a.stab_x
         clifford.stab_z[: b.num_qubits, : b.num_qubits] = b.stab_z
         clifford.stab_z[b.num_qubits :, b.num_qubits :] = a.stab_z
-        clifford.phase[: b.num_qubits] = b.phase_destab
-        clifford.phase[b.num_qubits : n] = a.phase_destab
-        clifford.phase[n : n + b.num_qubits] = b.phase_stab
-        clifford.phase[n + b.num_qubits :] = a.phase_stab
+        clifford.phase[: b.num_qubits] = b.destab_phase
+        clifford.phase[b.num_qubits : n] = a.destab_phase
+        clifford.phase[n : n + b.num_qubits] = b.stab_phase
+        clifford.phase[n + b.num_qubits :] = a.stab_phase
         return clifford
 
     def compose(self, other, qargs=None, front=False):
