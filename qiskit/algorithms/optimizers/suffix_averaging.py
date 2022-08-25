@@ -10,7 +10,7 @@ from .optimizer import POINT, Optimizer, OptimizerResult, OptimizerSupportLevel
 
 class SuffixAveragingOptimizer(Optimizer):
     r"""The suffix averaging optimizer.
-    
+
     Given a sequence of circuit parameters of parameterized quantum circuit
     obtained from :math:`T` iterations, :math:`\{\vec{\theta}^{(t)}\}_{t=1}^{t=T}`,
     the SuffixAveragingOptimizer returns the averaged point of the last n_params_suffix
@@ -49,6 +49,7 @@ class SuffixAveragingOptimizer(Optimizer):
         for Efficient Noise-Robust Optimization of Parameterized Quantum Circuits.
         arXiv preprint arXiv:2111.07952.
     """
+
     def __init__(self, optimizer: Optimizer, n_params_suffix: int = 50) -> None:
         """
         Args:
