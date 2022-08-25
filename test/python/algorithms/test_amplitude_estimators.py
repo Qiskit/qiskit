@@ -130,7 +130,6 @@ class TestBernoulli(QiskitAlgorithmsTestCase):
         problem = EstimationProblem(BernoulliStateIn(prob), 0, BernoulliGrover(prob))
 
         result = qae.estimate(problem)
-        self.assertGreaterEqual(self._statevector.time_taken, 0.0)
         self._statevector.reset_execution_results()
         for key, value in expect.items():
             self.assertAlmostEqual(
@@ -350,7 +349,6 @@ class TestSineIntegral(QiskitAlgorithmsTestCase):
 
         # result = qae.run(self._statevector)
         result = qae.estimate(estimation_problem)
-        self.assertGreaterEqual(self._statevector.time_taken, 0.0)
         self._statevector.reset_execution_results()
         for key, value in expect.items():
             self.assertAlmostEqual(
@@ -409,7 +407,6 @@ class TestSineIntegral(QiskitAlgorithmsTestCase):
 
         # statevector simulator
         result = qae.estimate(estimation_problem)
-        self.assertGreater(self._statevector.time_taken, 0.0)
         self._statevector.reset_execution_results()
         methods = ["lr", "fi", "oi"]  # short for likelihood_ratio, fisher, observed_fisher
         alphas = [0.1, 0.00001, 0.9]  # alpha shouldn't matter in statevector
@@ -438,7 +435,6 @@ class TestSineIntegral(QiskitAlgorithmsTestCase):
 
         # statevector simulator
         result = qae.estimate(estimation_problem)
-        self.assertGreaterEqual(self._statevector.time_taken, 0.0)
         self._statevector.reset_execution_results()
         confint = result.confidence_interval
         # confidence interval based on statevector should be empty, as we are sure of the result
