@@ -71,12 +71,12 @@ def level_2_pass_manager(pass_manager_config: PassManagerConfig) -> StagedPassMa
     inst_map = pass_manager_config.inst_map
     coupling_map = pass_manager_config.coupling_map
     initial_layout = pass_manager_config.initial_layout
+    init_method = pass_manager_config.init_method
     layout_method = pass_manager_config.layout_method or "dense"
     routing_method = pass_manager_config.routing_method or "stochastic"
     translation_method = pass_manager_config.translation_method or "translator"
-    scheduling_method = pass_manager_config.scheduling_method
-    init_method = pass_manager_config.init_method
     optimization_method = pass_manager_config.optimization_method
+    scheduling_method = pass_manager_config.scheduling_method
     instruction_durations = pass_manager_config.instruction_durations
     seed_transpiler = pass_manager_config.seed_transpiler
     backend_properties = pass_manager_config.backend_properties

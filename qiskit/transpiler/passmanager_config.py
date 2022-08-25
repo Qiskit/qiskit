@@ -86,9 +86,11 @@ class PassManagerConfig:
         self.basis_gates = basis_gates
         self.inst_map = inst_map
         self.coupling_map = coupling_map
+        self.init_method = init_method
         self.layout_method = layout_method
         self.routing_method = routing_method
         self.translation_method = translation_method
+        self.optimization_method = optimization_method
         self.scheduling_method = scheduling_method
         self.instruction_durations = instruction_durations
         self.backend_properties = backend_properties
@@ -98,8 +100,6 @@ class PassManagerConfig:
         self.unitary_synthesis_method = unitary_synthesis_method
         self.unitary_synthesis_plugin_config = unitary_synthesis_plugin_config
         self.target = target
-        self.init_method = init_method
-        self.optimization_method = optimization_method
         self.optimization_level = optimization_level
 
     @classmethod
