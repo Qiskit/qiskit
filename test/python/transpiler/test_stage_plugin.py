@@ -14,13 +14,20 @@
 Tests for the staged transpiler plugins.
 """
 
+from test import combine
+
+import ddt
+
+from qiskit.circuit.quantumcircuit import QuantumCircuit
+from qiskit.compiler.transpiler import transpile
 from qiskit.test import QiskitTestCase
-from qiskit.transpiler import PassManager, PassManagerConfig
+from qiskit.transpiler import PassManager, PassManagerConfig, CouplingMap
 from qiskit.transpiler.preset_passmanagers.plugin import (
     PassManagerStagePluginManager,
     list_stage_plugins,
 )
 from qiskit.transpiler.exceptions import TranspilerError
+from qiskit.providers.basicaer import QasmSimulatorPy
 
 
 class TestStagePassManagerPlugin(QiskitTestCase):
@@ -66,3 +73,31 @@ class TestStagePassManagerPlugin(QiskitTestCase):
             "routing", "sabre", pm_config, optimization_level=3
         )
         self.assertIsInstance(pm, PassManager)
+
+
+@ddt.ddt
+class TestBuiltinPlugins(QiskitTestCase):
+    """Test that all built-in plugins work in transpile()."""
+
+    @combine(
+        optimization_level=list(range(4)),
+        routing_method=["basic", "lookahead", "sabre", "stochastic"],
+    )
+    def test_routing_plugins(self, optimization_level, routing_method):
+        """Test all routing plugins (excluding error)."""
+        qc = QuantumCircuit(4)
+        qc.h(0)
+        qc.cx(0, 1)
+        qc.cx(0, 2)
+        qc.cx(0, 3)
+        qc.measure_all()
+        tqc = transpile(
+            qc,
+            basis_gates=["cx", "sx", "x", "rz"],
+            coupling_map=CouplingMap.from_line(4),
+            optimization_level=optimization_level,
+            routing_method=routing_method,
+        )
+        backend = QasmSimulatorPy()
+        counts = backend.run(tqc, shots=1000).result().get_counts()
+        self.assertDictAlmostEqual(counts, {"0000": 500, "1111": 500}, delta=100)
