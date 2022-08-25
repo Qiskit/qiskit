@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2020, 2021.
+# (C) Copyright IBM 2020, 2022.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -32,6 +32,7 @@ from qiskit.opflow import (
 from qiskit.providers import Backend
 from qiskit.quantum_info.operators.base_operator import BaseOperator
 from qiskit.utils import QuantumInstance
+from qiskit.utils.deprecation import deprecate_function
 
 from .linear_solver import LinearSolver, LinearSolverResult
 from .matrices.numpy_matrix import NumPyMatrix
@@ -96,6 +97,10 @@ class HHL(LinearSolver):
 
     """
 
+    @deprecate_function(
+        "The HHL class is deprecated as of Qiskit Terra 0.22.0 "
+        "and will be removed no sooner than 3 months after the release date."
+    )
     def __init__(
         self,
         epsilon: float = 1e-2,

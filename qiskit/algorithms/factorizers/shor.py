@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2019, 2020.
+# (C) Copyright IBM 2019, 2022.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -30,6 +30,7 @@ from qiskit.utils import summarize_circuits
 from qiskit.utils.arithmetic import is_power
 from qiskit.utils.quantum_instance import QuantumInstance
 from qiskit.utils.validation import validate_min
+from qiskit.utils.deprecation import deprecate_function
 from ..algorithm_result import AlgorithmResult
 from ..exceptions import AlgorithmError
 
@@ -50,6 +51,10 @@ class Shor:
     See also https://arxiv.org/abs/quant-ph/0205095
     """
 
+    @deprecate_function(
+        "The Shor class is deprecated as of Qiskit Terra 0.22.0 "
+        "and will be removed no sooner than 3 months after the release date."
+    )
     def __init__(self, quantum_instance: Optional[Union[QuantumInstance, Backend]] = None) -> None:
         """
         Args:
