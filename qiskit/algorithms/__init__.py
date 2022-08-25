@@ -127,8 +127,8 @@ used to train Quantum Boltzmann Machine Neural Networks for example.
     EvolutionProblem
 
 
-Factorizers
------------
+DEPRECATED: Factorizers
+-----------------------
 
 Algorithms to find factors of a number.
 
@@ -140,8 +140,8 @@ Algorithms to find factors of a number.
    ShorResult
 
 
-Linear Solvers
---------------
+DEPRECATED: Linear Solvers
+--------------------------
 
 Algorithms to solve linear systems of equations.
 

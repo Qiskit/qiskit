@@ -43,6 +43,11 @@ logger = logging.getLogger(__name__)
 class Shor:
     """Shor's factoring algorithm.
 
+    The Shor class is deprecated as of Qiskit Terra 0.22.0
+    and will be removed no sooner than 3 months after the release date.
+    It is replaced by the tutorial at
+    `Shor <https://qiskit.org/textbook/ch-algorithms/shor.html>`_
+
     Shor's Factoring algorithm is one of the most well-known quantum algorithms and finds the
     prime factors for input integer :math:`N` in polynomial time.
 
@@ -53,7 +58,7 @@ class Shor:
 
     @deprecate_function(
         "The Shor class is deprecated as of Qiskit Terra 0.22.0 "
-        "and will be removed no sooner than 3 months after the release date."
+        "and will be removed no sooner than 3 months after the release date. "
     )
     def __init__(self, quantum_instance: Optional[Union[QuantumInstance, Backend]] = None) -> None:
         """
@@ -485,7 +490,12 @@ class Shor:
 
 
 class ShorResult(AlgorithmResult):
-    """Shor Result."""
+    """Shor Result.
+    The Shor Result class is deprecated as of Qiskit Terra 0.22.0
+    and will be removed no sooner than 3 months after the release date.
+    It is replaced by the tutorial at
+    `Shor <https://qiskit.org/textbook/ch-algorithms/shor.html>`_
+    """
 
     def __init__(self) -> None:
         super().__init__()

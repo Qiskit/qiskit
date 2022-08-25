@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2021.
+# (C) Copyright IBM 2021, 2022.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -13,6 +13,7 @@
 """ Test Providers that support BackendV2 interface """
 
 import unittest
+import warnings
 from test.python.algorithms import QiskitAlgorithmsTestCase
 from qiskit import QuantumCircuit
 from qiskit.providers.fake_provider import FakeProvider
@@ -40,7 +41,14 @@ class TestBackendV2(QiskitAlgorithmsTestCase):
         qasm_simulator = QuantumInstance(
             self._qasm, shots=1000, seed_simulator=self.seed, seed_transpiler=self.seed
         )
-        shor = Shor(quantum_instance=qasm_simulator)
+        with warnings.catch_warnings(record=True) as caught_warnings:
+            warnings.filterwarnings(
+                "always",
+                category=DeprecationWarning,
+            )
+            shor = Shor(quantum_instance=qasm_simulator)
+            self.assertTrue("Shor class is deprecated" in str(caught_warnings[0].message))
+
         result = shor.factor(N=n_v)
         self.assertListEqual(result.factors[0], factors)
         self.assertTrue(result.total_counts >= result.successful_counts)

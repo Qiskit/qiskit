@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2020, 2021.
+# (C) Copyright IBM 2020, 2022.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -20,7 +20,10 @@ from qiskit.circuit.library import BlueprintCircuit
 
 
 class LinearSystemMatrix(BlueprintCircuit, ABC):
-    """Base class for linear system matrices."""
+    """Base class for linear system matrices.
+    The LinearSystemMatrix class is deprecated as of Qiskit Terra 0.22.0
+    and will be removed no sooner than 3 months after the release date.
+    """
 
     def __init__(
         self,

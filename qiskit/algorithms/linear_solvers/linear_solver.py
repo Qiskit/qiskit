@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2020, 2021.
+# (C) Copyright IBM 2020, 2022.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -26,6 +26,8 @@ from ..algorithm_result import AlgorithmResult
 
 class LinearSolverResult(AlgorithmResult):
     """A base class for linear systems results.
+    The LinearSolverResult class is deprecated as of Qiskit Terra 0.22.0
+    and will be removed no sooner than 3 months after the release date.
 
     The linear systems algorithms return an object of the type ``LinearSystemsResult``
     with the information about the solution obtained.
@@ -93,7 +95,10 @@ class LinearSolverResult(AlgorithmResult):
 
 
 class LinearSolver(ABC):
-    """An abstract class for linear system solvers in Qiskit."""
+    """An abstract class for linear system solvers in Qiskit.
+    The LinearSolver class is deprecated as of Qiskit Terra 0.22.0
+    and will be removed no sooner than 3 months after the release date.
+    """
 
     @abstractmethod
     def solve(

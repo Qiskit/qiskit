@@ -1,6 +1,0 @@
----
-deprecations:
-  - |
-    :class:`~qiskit.algorithms.factorizers.Shor` and
-    :class:`~qiskit.algorithms.linear_solvers.HHL are deprecated and will
-    be removed in a future release.

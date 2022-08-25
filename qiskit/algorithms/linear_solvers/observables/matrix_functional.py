@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2020, 2021.
+# (C) Copyright IBM 2020, 2022.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -19,6 +19,7 @@ from scipy.sparse import diags
 from qiskit import QuantumCircuit
 from qiskit.quantum_info import Statevector
 from qiskit.opflow import I, Z, TensoredOp
+from qiskit.utils.deprecation import deprecate_function
 
 from .linear_system_observable import LinearSystemObservable
 
@@ -26,10 +27,14 @@ from .linear_system_observable import LinearSystemObservable
 class MatrixFunctional(LinearSystemObservable):
     """A class for the matrix functional of the vector solution to the linear systems.
 
+    The MatrixFunctional class is deprecated as of Qiskit Terra 0.22.0
+    and will be removed no sooner than 3 months after the release date.
+
     Examples:
 
         .. jupyter-execute::
 
+            import warnings
             import numpy as np
             from qiskit import QuantumCircuit
             from qiskit.algorithms.linear_solvers.observables.matrix_functional import \
@@ -40,7 +45,9 @@ class MatrixFunctional(LinearSystemObservable):
             tpass = RemoveResetInZeroState()
 
             vector = [1.0, -2.1, 3.2, -4.3]
-            observable = MatrixFunctional(1, -1 / 3)
+            with warnings.catch_warnings():
+                warnings.simplefilter('ignore')
+                observable = MatrixFunctional(1, -1 / 3)
 
             init_state = vector / np.linalg.norm(vector)
             num_qubits = int(np.log2(len(vector)))
@@ -70,6 +77,10 @@ class MatrixFunctional(LinearSystemObservable):
             exact = observable.evaluate_classically(init_state)
     """
 
+    @deprecate_function(
+        "The MatrixFunctional class is deprecated as of Qiskit Terra 0.22.0 "
+        "and will be removed no sooner than 3 months after the release date. "
+    )
     def __init__(self, main_diag: float, off_diag: int) -> None:
         """
         Args:

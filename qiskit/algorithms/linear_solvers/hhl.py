@@ -40,7 +40,12 @@ from .observables.linear_system_observable import LinearSystemObservable
 
 
 class HHL(LinearSolver):
-    r"""Systems of linear equations arise naturally in many real-life applications in a wide range
+    r"""The HHL class is deprecated as of Qiskit Terra 0.22.0
+    and will be removed no sooner than 3 months after the release date.
+    It is replaced by the tutorial at
+    `HHL <https://qiskit.org/textbook/ch-applications/hhl_tutorial.html>`_
+
+    Systems of linear equations arise naturally in many real-life applications in a wide range
     of areas, such as in the solution of Partial Differential Equations, the calibration of
     financial models, fluid simulation or numerical field calculation. The problem can be defined
     as, given a matrix :math:`A\in\mathbb{C}^{N\times N}` and a vector
@@ -65,24 +70,29 @@ class HHL(LinearSolver):
 
         .. jupyter-execute::
 
+            import warnings
             import numpy as np
             from qiskit import QuantumCircuit
             from qiskit.algorithms.linear_solvers.hhl import HHL
             from qiskit.algorithms.linear_solvers.matrices import TridiagonalToeplitz
             from qiskit.algorithms.linear_solvers.observables import MatrixFunctional
 
-            matrix = TridiagonalToeplitz(2, 1, 1 / 3, trotter_steps=2)
-            right_hand_side = [1.0, -2.1, 3.2, -4.3]
-            observable = MatrixFunctional(1, 1 / 2)
-            rhs = right_hand_side / np.linalg.norm(right_hand_side)
+            with warnings.catch_warnings():
+                warnings.simplefilter('ignore')
+                matrix = TridiagonalToeplitz(2, 1, 1 / 3, trotter_steps=2)
+                right_hand_side = [1.0, -2.1, 3.2, -4.3]
+                observable = MatrixFunctional(1, 1 / 2)
+                rhs = right_hand_side / np.linalg.norm(right_hand_side)
 
             # Initial state circuit
             num_qubits = matrix.num_state_qubits
             qc = QuantumCircuit(num_qubits)
             qc.isometry(rhs, list(range(num_qubits)), None)
 
-            hhl = HHL()
-            solution = hhl.solve(matrix, qc, observable)
+            with warnings.catch_warnings():
+                warnings.simplefilter('ignore')
+                hhl = HHL()
+                solution = hhl.solve(matrix, qc, observable)
             approx_result = solution.observable
 
     References:
@@ -99,7 +109,7 @@ class HHL(LinearSolver):
 
     @deprecate_function(
         "The HHL class is deprecated as of Qiskit Terra 0.22.0 "
-        "and will be removed no sooner than 3 months after the release date."
+        "and will be removed no sooner than 3 months after the release date. "
     )
     def __init__(
         self,
