@@ -88,8 +88,8 @@ class TestClassicalRealEvolver(QiskitAlgorithmsTestCase):
         expected_z = 1 - 2 * (np.sin(time_vector)) ** 2
         expected_z_std = np.zeros_like(expected_z)
 
-        np.testing.assert_allclose(z_mean, expected_z, atol=2 * threshold, rtol=0)
-        np.testing.assert_allclose(z_std, expected_z_std, atol=2 * threshold, rtol=0)
+        np.testing.assert_allclose(z_mean, expected_z, atol=2*threshold, rtol=0)
+        np.testing.assert_allclose(z_std, expected_z_std, atol=2*threshold, rtol=0)
 
     def test_quantum_circuit_initial_state(self):
         """Tests if the system can be evolved with a quantum circuit as an initial state."""

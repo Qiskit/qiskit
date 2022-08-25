@@ -68,14 +68,14 @@ class TestSciPyImaginaryEvolver(QiskitAlgorithmsTestCase):
         expected_state_matrix = expected_state.to_matrix(massive=True)
 
         evolution_problem = EvolutionProblem(hamiltonian, tau, initial_state)
-        classic_evolver = SciPyImaginaryEvolver(timesteps=10)
+        classic_evolver = SciPyImaginaryEvolver(timesteps=300)
         result = classic_evolver.evolve(evolution_problem)
 
         with self.subTest("Amplitudes"):
             np.testing.assert_allclose(
                 np.absolute(result.evolved_state.to_matrix(massive=True)),
                 np.absolute(expected_state_matrix),
-                atol=1e-10,
+                atol=1e-3,
                 rtol=0,
             )
 
@@ -83,7 +83,7 @@ class TestSciPyImaginaryEvolver(QiskitAlgorithmsTestCase):
             np.testing.assert_allclose(
                 np.angle(result.evolved_state.to_matrix(massive=True)),
                 np.angle(expected_state_matrix),
-                atol=1e-10,
+                atol=1e-3,
                 rtol=0,
             )
 
@@ -108,8 +108,8 @@ class TestSciPyImaginaryEvolver(QiskitAlgorithmsTestCase):
         evolution_problem = EvolutionProblem(
             hamiltonian, time_ev, initial_state, aux_operators=observables
         )
-        threshold = 1e-3
-        classic_evolver = SciPyImaginaryEvolver(timesteps=100)
+
+        classic_evolver = SciPyImaginaryEvolver(timesteps=300)
         result = classic_evolver.evolve(evolution_problem)
 
         z_mean, z_std = result.observables["Z"]
@@ -119,6 +119,7 @@ class TestSciPyImaginaryEvolver(QiskitAlgorithmsTestCase):
         expected_z = 1 / (np.cosh(time_vector) ** 2 + np.sinh(time_vector) ** 2)
         expected_z_std = np.zeros_like(expected_z)
 
+        threshold = 1e-3
         np.testing.assert_allclose(z_mean, expected_z**nqubits, atol=2 * threshold, rtol=0)
         np.testing.assert_allclose(z_std, expected_z_std, atol=2 * threshold, rtol=0)
 

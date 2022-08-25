@@ -118,11 +118,11 @@ class SciPyRealEvolver(RealEvolver, SciPyEvolver):
 
         # Perform the time evolution and stores the value of the operators at each timestep.
         for ts in range(timesteps):
-            (ops_ev_mean[:, ts]) = self._evaluate_aux_ops(aux_ops, state)
+            ops_ev_mean[:, ts] = self._evaluate_aux_ops(aux_ops, state)
 
             state = self._step(state, lhs_operator, rhs_operator, bicg_tol)
 
-            ops_ev_mean[:, timesteps] = self._evaluate_aux_ops(aux_ops, state)
+        ops_ev_mean[:, timesteps] = self._evaluate_aux_ops(aux_ops, state)
 
         aux_ops_history = self._create_observable_output(ops_ev_mean, evolution_problem)
 
@@ -223,10 +223,10 @@ class SciPyRealEvolver(RealEvolver, SciPyEvolver):
     ) -> np.ndarray:
         """Perform one timestep of the evolution.
 
-        Args:
-            state: The initial state.
-            timestep: The timestep to evolve.
-            hamiltonian: The Hamiltonian to evolve under.
+        # Args:
+        #     state: The initial state.
+        #     timestep: The timestep to evolve.
+        #     hamiltonian: The Hamiltonian to evolve under.
 
         Returns:
             The evolved state.

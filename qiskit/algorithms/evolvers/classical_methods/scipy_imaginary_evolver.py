@@ -12,7 +12,6 @@
 
 """Classical Quantum Real Time Evolution."""
 from typing import Tuple, List, Optional
-from scipy.sparse.linalg import expm_multiply, norm
 import numpy as np
 import scipy.sparse as sp
 from qiskit import QuantumCircuit
@@ -42,7 +41,7 @@ class SciPyImaginaryEvolver(ImaginaryEvolver, SciPyEvolver):
 
     def __init__(
         self,
-        timesteps: Optional[int] = 1,
+        timesteps: Optional[int] = 100,
     ):
         """
         Args:
@@ -75,25 +74,17 @@ class SciPyImaginaryEvolver(ImaginaryEvolver, SciPyEvolver):
             raise ValueError("Time dependent Hamiltonians are not currently supported.")
 
         # Get the initial state, Hamiltonian and the auxiliary operators.
-        state, hamiltonian, aux_ops = self._sparsify(evolution_problem=evolution_problem)
+        state, ev_operator, aux_ops = self._sparsify(evolution_problem=evolution_problem)
 
-        # Overflow errors with numpy floats happen at arround exp(700). Therefore we need to keep
-        # H*tau < 700.
-
-        timesteps = max(
-            self.timesteps, int(norm(hamiltonian, ord=np.inf) * evolution_problem.time / 700) + 1
-        )
-
-        timestep = evolution_problem.time / timesteps
         # Create empty arrays to store the time evolution of the auxiliary operators.
         operators_number = (
             0 if evolution_problem.aux_operators is None else len(evolution_problem.aux_operators)
         )
-        ops_ev_mean = np.empty(shape=(operators_number, timesteps + 1), dtype=complex)
+        ops_ev_mean = np.empty(shape=(operators_number, self.timesteps + 1), dtype=complex)
 
-        for ts in range(timesteps):
+        for ts in range(self.timesteps):
             ops_ev_mean[:, ts] = self._evaluate_aux_ops(aux_ops, state)
-            state = expm_multiply(A=-hamiltonian * timestep, B=state)
+            state = ev_operator @ state
 
             if np.nan in state:
                 raise RuntimeError(
@@ -109,7 +100,7 @@ class SciPyImaginaryEvolver(ImaginaryEvolver, SciPyEvolver):
             # Finally we normalize with respect to the norm.
             state = state / state_norm
 
-        ops_ev_mean[:, timesteps] = self._evaluate_aux_ops(aux_ops, state)
+        ops_ev_mean[:, self.timesteps] = self._evaluate_aux_ops(aux_ops, state)
 
         aux_ops_history = self._create_observable_output(ops_ev_mean, evolution_problem)
         aux_ops = self._create_obs_final(ops_ev_mean[:, -1], evolution_problem)
@@ -127,8 +118,8 @@ class SciPyImaginaryEvolver(ImaginaryEvolver, SciPyEvolver):
             evolution_problem: The definition of the evolution problem.
 
         Returns:
-            A tuple with the initial state as an array, the hamiltonian as a sparse matrix, a list of
-            the operators to evaluate at each timestep as sparse matrices and the lenght of a timestep.
+            A tuple with the initial state as an array, the evolution operator as a sparse matrix,
+            and list of the operators to evaluate at each timestep as sparse matrices.
 
         """
 
@@ -139,7 +130,9 @@ class SciPyImaginaryEvolver(ImaginaryEvolver, SciPyEvolver):
             initial_state = evolution_problem.initial_state.to_matrix(massive=True).transpose()
 
         hamiltonian = evolution_problem.hamiltonian.to_spmatrix()
-
+        idnty = sp.identity(hamiltonian.shape[0], format="csr")
+        timestep = evolution_problem.time / self.timesteps
+        ev_operator = idnty - hamiltonian * timestep + hamiltonian@hamiltonian * timestep**2 /2
         # Get the auxiliary operators as sparse matrices.
         if isinstance(evolution_problem.aux_operators, list):
             aux_ops = [aux_op.to_spmatrix() for aux_op in evolution_problem.aux_operators]
@@ -148,4 +141,4 @@ class SciPyImaginaryEvolver(ImaginaryEvolver, SciPyEvolver):
         else:
             aux_ops = []
 
-        return initial_state, hamiltonian, aux_ops
+        return initial_state, ev_operator, aux_ops
