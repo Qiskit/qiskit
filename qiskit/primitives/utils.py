@@ -111,3 +111,13 @@ def final_measurement_mapping(circuit: QuantumCircuit) -> dict[int, int]:
     # Sort so that classical bits are in numeric order low->high.
     mapping = dict(sorted(mapping.items(), key=lambda item: item[1]))
     return mapping
+
+
+def _circuit_key(circuit: QuantumCircuit) -> tuple:
+    return (
+        id(circuit),
+        circuit.name,
+        len(circuit.data),
+        circuit.num_parameters,
+        None if circuit._op_start_times is None else tuple(circuit._op_start_times),
+    )

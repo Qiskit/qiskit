@@ -30,7 +30,7 @@ from qiskit.quantum_info.operators.base_operator import BaseOperator
 from .base_estimator import BaseEstimator
 from .estimator_result import EstimatorResult
 from .primitive_job import PrimitiveJob
-from .utils import init_circuit, init_observable
+from .utils import _circuit_key, init_circuit, init_observable
 
 
 class Estimator(BaseEstimator):
@@ -142,7 +142,7 @@ class Estimator(BaseEstimator):
     ) -> PrimitiveJob:
         circuit_indices = []
         for i, circuit in enumerate(circuits):
-            key = (id(circuit), len(circuit.data), circuit.name)
+            key = _circuit_key(circuit)
             index = self._circuit_ids.get(key)
             if index is not None:
                 circuit_indices.append(index)

@@ -29,7 +29,7 @@ from qiskit.result import QuasiDistribution
 from .base_sampler import BaseSampler
 from .primitive_job import PrimitiveJob
 from .sampler_result import SamplerResult
-from .utils import final_measurement_mapping, init_circuit
+from .utils import _circuit_key, final_measurement_mapping, init_circuit
 
 
 class Sampler(BaseSampler):
@@ -139,7 +139,7 @@ class Sampler(BaseSampler):
     ) -> PrimitiveJob:
         circuit_indices = []
         for i, circuit in enumerate(circuits):
-            key = (id(circuit), len(circuit.data), circuit.name)
+            key = _circuit_key(circuit)
             index = self._circuit_ids.get(key)
             if index is not None:
                 circuit_indices.append(index)
