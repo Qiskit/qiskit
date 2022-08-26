@@ -119,7 +119,7 @@ class LinCombEstimatorGradient(BaseEstimatorGradient):
             for grad_, idx, coeff in zip(result.values, result_indices_all[i], coeffs_all[i]):
                 gradient_[idx] += coeff * grad_
             gradients.append(gradient_)
-            d['gradient_variance'] = np.var(gradient_)
+            d["gradient_variance"] = np.var(gradient_)
             metadata_.append(result.metadata)
 
         return EstimatorGradientResult(values=gradients, metadata=metadata_)

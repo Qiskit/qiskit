@@ -100,6 +100,6 @@ class SPSAEstimatorGradient(BaseEstimatorGradient):
             gradient = np.zeros(circuits[i].num_parameters)
             gradient[indices] = gradient_[indices]
             gradients.append(gradient)
-            d['gradient_variance'] = np.var(gradient_)
+            d["gradient_variance"] = np.var(gradient_)
             metadata_.append(result.metadata)
         return EstimatorGradientResult(values=gradients, metadata=metadata_)

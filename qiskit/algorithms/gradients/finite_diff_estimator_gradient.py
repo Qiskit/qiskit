@@ -91,8 +91,7 @@ class FiniteDiffEstimatorGradient(BaseEstimatorGradient):
             gradient = np.zeros(circuits[i].num_parameters)
             gradient[indices] = gradient_
             gradients.append(gradient)
-            d['gradient_variance'] = np.var(gradient_)
+            d["gradient_variance"] = np.var(gradient_)
             metadata_.append(d)
-
 
         return EstimatorGradientResult(values=gradients, metadata=metadata_)

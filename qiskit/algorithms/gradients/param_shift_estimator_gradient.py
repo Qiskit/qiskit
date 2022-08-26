@@ -145,7 +145,7 @@ class ParamShiftEstimatorGradient(BaseEstimatorGradient):
             for grad_, idx, coeff in zip(gradient_, result_indices_all[i], coeffs_all[i]):
                 values[idx] += coeff * grad_
             gradients.append(values)
-            d['gradient_variance'] = np.var(gradient_)
+            d["gradient_variance"] = np.var(gradient_)
             metadata_.append(result.metadata)
 
         return EstimatorGradientResult(values=gradients, metadata=metadata_)
