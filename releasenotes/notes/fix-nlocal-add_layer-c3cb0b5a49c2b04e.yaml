@@ -1,5 +1,0 @@
----
-fixes:
-  - |
-    Fix :meth:`~qiskit.circuit.library.NLocal.add_layer` to append layers correctly
-    when :obj:`~qiskit.circuit.library.NLocal._data` is built already.

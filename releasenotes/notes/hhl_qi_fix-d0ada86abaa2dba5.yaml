@@ -1,6 +1,0 @@
----
-fixes:
-  - |
-    If an :class:`~qiskit.algorithms.HHL` algorithm instance was constructed without a
-    QuantumInstance (the default) then attempts to use the getter and setter properties, to read
-    or set an instance later, would fail. The getter/setter now work as expected.

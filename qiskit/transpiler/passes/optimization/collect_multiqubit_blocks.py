@@ -24,8 +24,10 @@ class CollectMultiQBlocks(AnalysisPass):
 
     Traverse the DAG and find blocks of gates that act consecutively on
     groups of qubits. Write the blocks to propert_set as a list of blocks
-    of the form:
+    of the form::
+
         [[g0, g1, g2], [g4, g5]]
+
     Blocks are reported in a valid topological order. Further, the gates
     within each block are also reported in topological order
     Some gates may not be present in any block (e.g. if the number
@@ -118,7 +120,7 @@ class CollectMultiQBlocks(AnalysisPass):
             if not isinstance(x, DAGOpNode):
                 return "d"
             if isinstance(x.op, Gate):
-                if x.op.is_parameterized() or x.op.condition is not None:
+                if x.op.is_parameterized() or getattr(x.op, "condition", None) is not None:
                     return "c"
                 return "b" + chr(ord("a") + len(x.qargs))
             return "d"
@@ -132,7 +134,7 @@ class CollectMultiQBlocks(AnalysisPass):
 
             # check if the node is a gate and if it is parameterized
             if (
-                nd.op.condition is not None
+                getattr(nd.op, "condition", None) is not None
                 or nd.op.is_parameterized()
                 or not isinstance(nd.op, Gate)
             ):
@@ -175,7 +177,7 @@ class CollectMultiQBlocks(AnalysisPass):
                 tot_size = 0
                 for bit in cur_qubits:
                     top = self.find_set(bit)
-                    if top in savings.keys():
+                    if top in savings:
                         savings[top] = savings[top] - 1
                     else:
                         savings[top] = len(self.bit_groups[top]) - 1

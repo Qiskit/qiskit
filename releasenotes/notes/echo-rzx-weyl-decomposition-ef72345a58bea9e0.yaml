@@ -1,4 +1,0 @@
----
-features:
-  - |
-   Added a new transpiler pass :class:`qiskit.transpiler.passes.optimization.EchoRZXWeylDecomposition` that allows users to decompose an arbitrary two-qubit gate in terms of echoed RZX-gates by leveraging Cartan's decomposition. In combination with other transpiler passes this can be used to transpile arbitrary circuits to RZX-gate-based and pulse-efficient circuits that implement the same unitary. 

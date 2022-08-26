@@ -97,11 +97,6 @@ class BaseOperator(GroupMixin, ABC):
         """Return the total input dimension."""
         return self._op_shape._dim_l
 
-    @property
-    def settings(self):
-        """Return operator settings."""
-        return {"op_shape": self._op_shape}
-
     def reshape(self, input_dims=None, output_dims=None, num_qubits=None):
         """Return a shallow copy with reshaped input and output subsystem dimensions.
 

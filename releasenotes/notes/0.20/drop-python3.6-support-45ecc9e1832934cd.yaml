@@ -1,0 +1,5 @@
+---
+upgrade:
+  - |
+    Support for running with Python 3.6 has been removed. To run Qiskit you need
+    a minimum Python version of 3.7.

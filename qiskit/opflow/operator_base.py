@@ -487,7 +487,7 @@ class OperatorBase(StarAlgebraMixin, TensorMixin, ABC):
             ValueError: Massive is False and number of qubits is greater than 16
         """
         if num_qubits > 16 and not massive and not algorithm_globals.massive:
-            dim = 2 ** num_qubits
+            dim = 2**num_qubits
             if matrix:
                 obj_type = "matrix"
                 dimensions = f"{dim}x{dim}"

@@ -1,8 +1,0 @@
----
-features:
-  - |
-    This release introduces a decomposition method for two-qubit gates which
-    targets user-defined sets of RZX gates.  Transpiler users can enable
-    decomposition for {RZX(pi/2), RZX(pi/4), and RZX(pi/6)} specifically by including
-    `'rzx'` in their `basis_gates` list.  Quantum information package users can
-    find the method itself under the `XXDecomposer` class.

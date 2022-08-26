@@ -1,0 +1,12 @@
+---
+fixes:
+  - |
+    Fixed an issue in :obj:`.PiecewiseChebyshev` when the function to be
+    approximated was constant.  In these cases, you should now pass the constant
+    directly as the ``f_x`` argument, rather than using a function, such as::
+
+        from qiskit.circuit.library.arithmetic import PiecewiseChebyshev
+
+        PiecewiseChebyshev(1.0, degree=3)
+
+    See `#6707 <https://github.com/Qiskit/qiskit-terra/pull/6707>`__ for more details.

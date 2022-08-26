@@ -1,0 +1,11 @@
+---
+features:
+  - |
+    Added an argument ``limit_amplitude`` to the constructor of
+    ``ParametricPulse``, which is the base class of :obj:`.Gaussian`,
+    :obj:`.GaussianSquare`, :obj:`.Drag` and :obj:`.Constant`, to allowing
+    disabling the amplitude limit of 1 on a pulse-by-pulse basis.  With
+    ``limit_amplitude=False``, individual pulses may have an amplitude exceeding
+    unity without raising a :class:`.PulseError`.  See `#6544
+    <https://github.com/Qiskit/qiskit-terra/issues/6544>`__ for more
+    detail.

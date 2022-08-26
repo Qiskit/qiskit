@@ -91,7 +91,6 @@ class PhaseEstimationScale:
         else:
             return (phi - 1) * w + id_coefficient
 
-    # pylint: disable=unsubscriptable-object
     def scale_phases(
         self, phases: Union[List, Dict], id_coefficient: float = 0.0
     ) -> Union[Dict, List]:

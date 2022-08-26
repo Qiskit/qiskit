@@ -145,11 +145,15 @@ class TestDagNodeEdge(QiskitTestCase):
         circuit = QuantumCircuit(self.qreg, self.creg)
 
         circuit.h(self.qreg[0])
-        self.dag.add_op_node(circuit.data[0][0], circuit.data[0][1], circuit.data[0][2])
+        self.dag.add_op_node(
+            circuit.data[0].operation, circuit.data[0].qubits, circuit.data[0].clbits
+        )
         self.assertIsInstance(self.dag.get_node(0).op, HGate)
 
         circuit.measure(self.qreg[0], self.creg[0])
-        self.dag.add_op_node(circuit.data[1][0], circuit.data[1][1], circuit.data[1][2])
+        self.dag.add_op_node(
+            circuit.data[1].operation, circuit.data[1].qubits, circuit.data[1].clbits
+        )
         self.assertIsInstance(self.dag.get_node(1).op, Measure)
 
         nodes = list(self.dag.get_nodes())
@@ -244,6 +248,18 @@ class TestDagProperties(QiskitTestCase):
     """Test the DAG properties."""
 
     def setUp(self):
+        #       ┌───┐                ┌───┐
+        # q0_0: ┤ H ├────────────────┤ X ├──────────
+        #       └───┘                └─┬─┘     ┌───┐
+        # q0_1: ───────────────────────┼───────┤ H ├
+        #                 ┌───┐        │  ┌───┐└─┬─┘
+        # q0_2: ──■───────┤ H ├────────┼──┤ T ├──■──
+        #       ┌─┴─┐┌────┴───┴─────┐  │  └───┘
+        # q0_3: ┤ X ├┤ U(0,0.1,0.2) ├──┼────────────
+        #       └───┘└──────────────┘  │
+        # q1_0: ───────────────────────■────────────
+        #                              │
+        # q1_1: ───────────────────────■────────────
         super().setUp()
         qr1 = QuantumRegister(4)
         qr2 = QuantumRegister(2)

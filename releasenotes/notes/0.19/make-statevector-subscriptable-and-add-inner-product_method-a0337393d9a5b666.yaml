@@ -1,0 +1,15 @@
+---
+features:
+  - |
+    The :class:`~qiskit.quantum_info.Statevector` class is now subscriptable.
+    User can now retrieve the nth coefficient in a
+    :class:`~qiskit.quantum_info.Statevector` by index as ``statevec[n]``.
+  - |
+    Added the :obj:`.Statevector.inner` method to calculate inner products of
+    :class:`.Statevector` instances.  For example::
+
+        statevec_inner_other = statevec.inner(other)
+
+    will return the inner product of ``statevec`` with ``other``.  While
+    ``statevec`` must be a :class:`.Statevector`, ``other`` can be anything
+    that can be constructed into a :class:`.Statevector`, such as a Numpy array.

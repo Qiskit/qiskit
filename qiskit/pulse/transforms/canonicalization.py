@@ -18,6 +18,7 @@ from typing import List, Optional, Iterable, Union
 import numpy as np
 
 from qiskit.pulse import channels as chans, exceptions, instructions
+from qiskit.pulse.channels import ClassicalIOChannel
 from qiskit.pulse.exceptions import PulseError
 from qiskit.pulse.exceptions import UnassignedDurationError
 from qiskit.pulse.instruction_schedule_map import InstructionScheduleMap
@@ -249,15 +250,15 @@ def align_measures(
 ) -> List[Schedule]:
     """Return new schedules where measurements occur at the same physical time.
 
-    This transformation will align the first :class:`qiskit.pulse.Acquire` on
+    This transformation will align the first :class:`.Acquire` on
     every channel to occur at the same time.
 
     Minimum measurement wait time (to allow for calibration pulses) is enforced
     and may be set with ``max_calibration_duration``.
 
-    By default only instructions containing a :class:`~qiskit.pulse.AcquireChannel`
-    or :class:`~qiskit.pulse.MeasureChannel` will be shifted. If you wish to keep
-    the relative timing of all instructions in the schedule set ``align_all=True``.
+    By default only instructions containing a :class:`.AcquireChannel` or :class:`.MeasureChannel`
+    will be shifted. If you wish to keep the relative timing of all instructions in the schedule set
+    ``align_all=True``.
 
     This method assumes that ``MeasureChannel(i)`` and ``AcquireChannel(i)``
     correspond to the same qubit and the acquire/play instructions
@@ -414,7 +415,7 @@ def add_implicit_acquires(schedule: ScheduleComponent, meas_map: List[List[int]]
         A ``Schedule`` with the additional acquisition instructions.
     """
     new_schedule = Schedule.initialize_from(schedule)
-    acquire_map = dict()
+    acquire_map = {}
 
     for time, inst in schedule.instructions:
         if isinstance(inst, instructions.Acquire):
@@ -475,6 +476,8 @@ def pad(
     channels = channels or schedule.channels
 
     for channel in channels:
+        if isinstance(channel, ClassicalIOChannel):
+            continue
         if channel not in schedule.channels:
             schedule |= instructions.Delay(until, channel)
             continue

@@ -29,6 +29,7 @@ class TimeUnitConversion(TransformationPass):
 
     If dt (dt in seconds) is known to transpiler, the unit 'dt' is chosen. Otherwise,
     the unit to be selected depends on what units are used in delays and instruction durations:
+
     * 's': if they are all in SI units.
     * 'dt': if they are all in the unit 'dt'.
     * raise error: if they are a mix of SI units and 'dt'.

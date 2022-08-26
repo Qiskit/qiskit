@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2018, 2021.
+# (C) Copyright IBM 2018, 2022.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -47,6 +47,7 @@ Amplitude Amplifiers
    :nosignatures:
 
    AmplificationProblem
+   AmplitudeAmplifier
    Grover
    GroverResult
 
@@ -75,7 +76,7 @@ Eigensolvers
 ------------
 
 Algorithms to find eigenvalues of an operator. For chemistry these can be used to find excited
-states of a molecule and qiskit.chemistry has some algorithms that leverage chemistry specific
+states of a molecule, and qiskit-nature has some algorithms that leverage chemistry specific
 knowledge to do this in that application domain.
 
 .. autosummary::
@@ -90,6 +91,40 @@ knowledge to do this in that application domain.
    :nosignatures:
 
    NumPyEigensolver
+   VQD
+
+
+Variational Quantum Time Evolution
+----------------------------------
+
+Classes used by variational quantum time evolution algorithms - VarQITE and VarQRTE.
+
+.. autosummary::
+   :toctree: ../stubs/
+
+   evolvers.variational
+
+
+Evolvers
+--------
+
+Algorithms to evolve quantum states in time. Both real and imaginary time evolution is possible
+with algorithms that support them. For machine learning, Quantum Imaginary Time Evolution might be
+used to train Quantum Boltzmann Machine Neural Networks for example.
+
+.. autosummary::
+   :toctree: ../stubs/
+   :nosignatures:
+
+    RealEvolver
+    ImaginaryEvolver
+    TrotterQRTE
+    VarQITE
+    VarQRTE
+    PVQD
+    PVQDResult
+    EvolutionResult
+    EvolutionProblem
 
 
 Factorizers
@@ -114,10 +149,7 @@ Algorithms to solve linear systems of equations.
    :toctree: ../stubs/
    :nosignatures:
 
-   HHL
-   NumPyLinearSolver
-   LinearSolver
-   LinearSolverResult
+   linear_solvers
 
 
 Minimum Eigensolvers
@@ -168,6 +200,7 @@ Algorithms that estimate the phases of eigenstates of a unitary.
    PhaseEstimationResult
    IterativePhaseEstimation
 
+
 Exceptions
 ==========
 
@@ -175,11 +208,25 @@ Exceptions
    :toctree: ../stubs/
 
    AlgorithmError
+
+
+Utility methods
+---------------
+
+Utility methods used by algorithms.
+
+.. autosummary::
+   :toctree: ../stubs/
+
+   eval_observables
 """
 
 from .algorithm_result import AlgorithmResult
+from .evolvers import EvolutionResult, EvolutionProblem
+from .evolvers.real_evolver import RealEvolver
+from .evolvers.imaginary_evolver import ImaginaryEvolver
 from .variational_algorithm import VariationalAlgorithm, VariationalResult
-from .amplitude_amplifiers import Grover, GroverResult, AmplificationProblem
+from .amplitude_amplifiers import Grover, GroverResult, AmplificationProblem, AmplitudeAmplifier
 from .amplitude_estimators import (
     AmplitudeEstimator,
     AmplitudeEstimatorResult,
@@ -193,7 +240,7 @@ from .amplitude_estimators import (
     MaximumLikelihoodAmplitudeEstimationResult,
     EstimationProblem,
 )
-from .eigen_solvers import NumPyEigensolver, Eigensolver, EigensolverResult
+from .eigen_solvers import NumPyEigensolver, Eigensolver, EigensolverResult, VQD, VQDResult
 from .factorizers import Shor, ShorResult
 from .linear_solvers import HHL, LinearSolver, NumPyLinearSolver, LinearSolverResult
 from .minimum_eigen_solvers import (
@@ -213,11 +260,17 @@ from .phase_estimators import (
     IterativePhaseEstimation,
 )
 from .exceptions import AlgorithmError
+from .aux_ops_evaluator import eval_observables
+from .evolvers.trotterization import TrotterQRTE
+from .evolvers.variational.var_qite import VarQITE
+from .evolvers.variational.var_qrte import VarQRTE
+from .evolvers.pvqd import PVQD, PVQDResult
 
 __all__ = [
     "AlgorithmResult",
     "VariationalAlgorithm",
     "VariationalResult",
+    "AmplitudeAmplifier",
     "AmplificationProblem",
     "Grover",
     "GroverResult",
@@ -233,6 +286,13 @@ __all__ = [
     "MaximumLikelihoodAmplitudeEstimationResult",
     "EstimationProblem",
     "NumPyEigensolver",
+    "RealEvolver",
+    "ImaginaryEvolver",
+    "TrotterQRTE",
+    "VarQITE",
+    "VarQRTE",
+    "EvolutionResult",
+    "EvolutionProblem",
     "LinearSolverResult",
     "Eigensolver",
     "EigensolverResult",
@@ -249,9 +309,13 @@ __all__ = [
     "MinimumEigensolverResult",
     "HamiltonianPhaseEstimation",
     "HamiltonianPhaseEstimationResult",
+    "VQD",
     "PhaseEstimationScale",
     "PhaseEstimation",
     "PhaseEstimationResult",
+    "PVQD",
+    "PVQDResult",
     "IterativePhaseEstimation",
     "AlgorithmError",
+    "eval_observables",
 ]

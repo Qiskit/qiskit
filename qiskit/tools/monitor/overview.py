@@ -112,7 +112,7 @@ def backend_monitor(backend):
 
         cal_data = dict.fromkeys(["T1", "T2", "frequency", "readout_error"], "Unknown")
         for nduv in qubit_data:
-            if nduv.name in cal_data.keys():
+            if nduv.name in cal_data:
                 cal_data[nduv.name] = format(nduv.value, ".5f") + " " + nduv.unit
 
         gate_names = []

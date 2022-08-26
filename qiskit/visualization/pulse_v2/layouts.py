@@ -368,7 +368,7 @@ def detail_title(
 
     This layout writes program name, program duration, and backend name in the title.
     """
-    title_str = list()
+    title_str = []
 
     # add program name
     title_str.append(f"Name: {program.name}")

@@ -58,6 +58,9 @@ def block_to_dag(block: ScheduleBlock) -> rx.PyDAG:
 
     Returns:
         Instructions in DAG representation.
+
+    Raises:
+        PulseError: When the context is invalid subclass.
     """
     if block.alignment_context.is_sequential:
         return _sequential_allocation(block)
@@ -85,7 +88,7 @@ def _parallel_allocation(block: ScheduleBlock) -> rx.PyDAG:
     """A helper function to create a DAG of a parallel alignment context."""
     dag_blocks = rx.PyDAG()
 
-    slots = dict()
+    slots = {}
     edges = []
     for inst in block.blocks:
         current_node = dag_blocks.add_node(inst)

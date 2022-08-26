@@ -24,11 +24,11 @@ from .probability import ProbDistribution
 # __setitem__ so overloading __setitem__ would not always provide the expected
 # result
 class QuasiDistribution(dict):
-    """A dict-like class for representing qasi-probabilities."""
+    """A dict-like class for representing quasi-probabilities."""
 
     _bitstring_regex = re.compile(r"^[01]+$")
 
-    def __init__(self, data, shots=None):
+    def __init__(self, data, shots=None, stddev_upper_bound=None):
         """Builds a quasiprobability distribution object.
 
         Parameters:
@@ -42,12 +42,14 @@ class QuasiDistribution(dict):
                     * An integer
 
             shots (int): Number of shots the distribution was derived from.
+            stddev_upper_bound (float): An upper bound for the standard deviation
 
         Raises:
             TypeError: If the input keys are not a string or int
             ValueError: If the string format of the keys is incorrect
         """
         self.shots = shots
+        self._stddev_upper_bound = stddev_upper_bound
         if data:
             first_key = next(iter(data.keys()))
             if isinstance(first_key, int):
@@ -128,3 +130,8 @@ class QuasiDistribution(dict):
                 format ``"0x1a"``
         """
         return {hex(key): value for key, value in self.items()}
+
+    @property
+    def stddev_upper_bound(self):
+        """Return an upper bound on standard deviation of expval estimator."""
+        return self._stddev_upper_bound

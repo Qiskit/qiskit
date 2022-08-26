@@ -83,6 +83,7 @@ class TestAmplificationProblem(QiskitAlgorithmsTestCase):
         self.assertListEqual(expected, actual)
 
 
+@ddt
 class TestGrover(QiskitAlgorithmsTestCase):
     """Test for the functionality of Grover"""
 
@@ -103,19 +104,30 @@ class TestGrover(QiskitAlgorithmsTestCase):
         result = grover.amplify(problem)
         self.assertEqual(result.top_measurement, "0")
 
-    def test_fixed_iterations(self):
-        """Test the iterations argument"""
-        grover = Grover(iterations=2, quantum_instance=self.statevector)
+    @data([1, 2, 3], None, 2)
+    def test_iterations_with_good_state(self, iterations):
+        """Test the algorithm with different iteration types and with good state"""
+        grover = Grover(iterations, quantum_instance=self.statevector)
         problem = AmplificationProblem(Statevector.from_label("111"), is_good_state=["111"])
         result = grover.amplify(problem)
         self.assertEqual(result.top_measurement, "111")
 
-    def test_multiple_iterations(self):
-        """Test the algorithm for a list of iterations."""
-        grover = Grover(iterations=[1, 2, 3], quantum_instance=self.statevector)
-        problem = AmplificationProblem(Statevector.from_label("111"), is_good_state=["111"])
+    def test_fixed_iterations_without_good_state(self):
+        """Test the algorithm with iterations as an int and without good state"""
+        grover = Grover(iterations=2, quantum_instance=self.statevector)
+        problem = AmplificationProblem(Statevector.from_label("111"))
         result = grover.amplify(problem)
         self.assertEqual(result.top_measurement, "111")
+
+    @data([1, 2, 3], None)
+    def test_iterations_without_good_state(self, iterations):
+        """Test the correct error is thrown for none/list of iterations and without good state"""
+        grover = Grover(iterations, quantum_instance=self.statevector)
+        problem = AmplificationProblem(Statevector.from_label("111"))
+        with self.assertRaisesRegex(
+            TypeError, "An is_good_state function is required with the provided oracle"
+        ):
+            grover.amplify(problem)
 
     def test_iterator(self):
         """Test running the algorithm on an iterator."""
@@ -152,7 +164,7 @@ class TestGrover(QiskitAlgorithmsTestCase):
         n = 5
         problem = AmplificationProblem(Statevector.from_label("1" * n), is_good_state=["1" * n])
         result = grover.amplify(problem)
-        self.assertEqual(len(result.iterations), 2 ** n)
+        self.assertEqual(len(result.iterations), 2**n)
 
     def test_max_power(self):
         """Test the iteration stops when the maximum power is reached."""
@@ -197,8 +209,8 @@ class TestGrover(QiskitAlgorithmsTestCase):
     def test_optimal_num_iterations(self):
         """Test optimal_num_iterations"""
         num_qubits = 7
-        for num_solutions in range(1, 2 ** num_qubits):
-            amplitude = np.sqrt(num_solutions / 2 ** num_qubits)
+        for num_solutions in range(1, 2**num_qubits):
+            amplitude = np.sqrt(num_solutions / 2**num_qubits)
             expected = round(np.arccos(amplitude) / (2 * np.arcsin(amplitude)))
             actual = Grover.optimal_num_iterations(num_solutions, num_qubits)
         self.assertEqual(actual, expected)

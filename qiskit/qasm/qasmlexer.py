@@ -20,7 +20,7 @@ by creating a stack of lexers.
 import os
 
 import numpy as np
-import ply.lex as lex
+from ply import lex
 
 from . import node
 from .exceptions import QasmError
@@ -160,7 +160,7 @@ class QasmLexer:
         return self.lexer.token()
 
     def t_FORMAT(self, t):
-        r"OPENQASM\s+(\d+)\.(\d+)"
+        r"OPENQASM\s+[0-9]+(\.[0-9]+)?"
         return t
 
     def t_COMMENT(self, _):

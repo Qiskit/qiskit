@@ -10,8 +10,6 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-# pylint: disable=no-member
-
 """Tests for pass cancelling 2 consecutive CNOTs on the same qubits."""
 
 from qiskit import QuantumRegister, QuantumCircuit
@@ -72,6 +70,16 @@ class TestCXCancellation(QiskitTestCase):
 
     def test_pass_cx_cancellation_chained_cx(self):
         """Include a test were not all operations can be cancelled."""
+
+        #       ┌───┐
+        # q0_0: ┤ H ├──■─────────■───────
+        #       ├───┤┌─┴─┐     ┌─┴─┐
+        # q0_1: ┤ H ├┤ X ├──■──┤ X ├─────
+        #       └───┘└───┘┌─┴─┐└───┘
+        # q0_2: ──────────┤ X ├──■────■──
+        #                 └───┘┌─┴─┐┌─┴─┐
+        # q0_3: ───────────────┤ X ├┤ X ├
+        #                      └───┘└───┘
         qr = QuantumRegister(4)
         circuit = QuantumCircuit(qr)
         circuit.h(qr[0])
@@ -86,6 +94,14 @@ class TestCXCancellation(QiskitTestCase):
         pass_manager.append(CXCancellation())
         out_circuit = pass_manager.run(circuit)
 
+        #       ┌───┐
+        # q0_0: ┤ H ├──■─────────■──
+        #       ├───┤┌─┴─┐     ┌─┴─┐
+        # q0_1: ┤ H ├┤ X ├──■──┤ X ├
+        #       └───┘└───┘┌─┴─┐└───┘
+        # q0_2: ──────────┤ X ├─────
+        #                 └───┘
+        # q0_3: ────────────────────
         expected = QuantumCircuit(qr)
         expected.h(qr[0])
         expected.h(qr[1])

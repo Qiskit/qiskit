@@ -28,6 +28,14 @@ class TestIQPLibrary(QiskitTestCase):
     def test_iqp(self):
         """Test iqp circuit."""
         circuit = IQP(interactions=np.array([[6, 5, 1], [5, 4, 3], [1, 3, 2]]))
+
+        #      ┌───┐                             ┌─────────┐┌───┐
+        # q_0: ┤ H ├─■───────────────────■───────┤ P(3π/4) ├┤ H ├
+        #      ├───┤ │P(5π/2)            │       └┬────────┤├───┤
+        # q_1: ┤ H ├─■─────────■─────────┼────────┤ P(π/2) ├┤ H ├
+        #      ├───┤           │P(3π/2)  │P(π/2)  ├────────┤├───┤
+        # q_2: ┤ H ├───────────■─────────■────────┤ P(π/4) ├┤ H ├
+        #      └───┘                              └────────┘└───┘
         expected = QuantumCircuit(3)
         expected.h([0, 1, 2])
         expected.cp(5 * np.pi / 2, 0, 1)

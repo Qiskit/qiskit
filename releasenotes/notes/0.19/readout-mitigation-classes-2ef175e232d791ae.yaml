@@ -1,0 +1,55 @@
+---
+features:
+  - |
+    Added the :class:`~qiskit.result.BaseReadoutMitigator` abstract base class
+    for implementing classical measurement error mitigators. These objects
+    are intended for mitigation measurement errors in
+    :class:`~qiskit.result.Counts` objects returned from execution of circuits
+    on backends with measurement errors.
+
+    Readout mitigator classes have two main methods:
+  
+    * :meth:`~.BaseReadoutMitigator.expectation_value` which computes an
+      mitigated expectation value and standard error of a diagonal operator from
+      a noisy :class:`~qiskit.result.Counts` object.
+
+    * :meth:`~.BaseReadoutMitigator.quasi_probabilities` that computes an error
+      mitigated :class:`~qiskit.result.QuasiDistribution`, including standard
+      error, from a noisy counts object.
+
+    Note that currently the :mod:`qiskit.algorithms` module and the
+    :class:`~qiskit.utils.QuantumInstance` class still use the legacy mitigators
+    migrated from Qiskit Ignis in :mod:`qiskit.utils.mitigation`. It is planned
+    to upgrade the module to use the new mitigator classes and deprecate the legacy
+    mitgation code in a future release.
+  - |
+    Added the :class:`~qiskit.result.LocalReadoutMitigator` class for
+    performing measurement readout error mitigation of local measurement
+    errors. Local measuerment errors are those that are described by a
+    tensor-product of single-qubit measurement errors. 
+    
+    This class can be initialized with a list of :math:`N` single-qubit of
+    measurement error assignment matrices or from a backend using the readout
+    error information in the backend properties.
+    
+    Mitigation is implemented using local assignment-matrix inversion which has
+    complexity of :math:`O(2^N)` for :math:`N`-qubit mitigation of
+    :class:`~qiskit.result.QuasiDistribution` and expectation values.
+  - |
+    Added the :class:`~qiskit.result.CorrelatedReadoutMitigator` class for
+    performing measurement readout error mitigation of correlated measurement
+    errors. This class can be initialized with a single :math:`2^N \times 2^N`
+    measurement error assignment matrix that descirbes the error probabilities.
+    Mitigation is implemented via inversion of assigment matrix which has
+    mitigation complexity of :math:`O(4^N)` of
+    :class:`~qiskit.result.QuasiDistribution` and expectation values.
+  - |
+    Added a :attr:`.QuasiDistribution.stddev_upper_bound`
+    attribute and a kwarg to the constructor of the :class:`.QuasiDistribution`
+    class, which is used for storing standard errors in quasi-probability
+    estimates. This is used by :class:`~qiskit.result.BaseReadoutMitigator`
+    classes to store the standard error in mitigated quasi probabilities.
+  - |
+    Added a :meth:`~qiskit.result.Counts.shots` method to
+    :class:`qiskit.result.Counts` to return the sum of all outcomes in
+    the counts.

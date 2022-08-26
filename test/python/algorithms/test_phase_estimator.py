@@ -182,7 +182,6 @@ class TestHamiltonianPhaseEstimation(QiskitAlgorithmsTestCase):
 class TestPhaseEstimation(QiskitAlgorithmsTestCase):
     """Evolution tests."""
 
-    # pylint: disable=invalid-name
     def one_phase(
         self,
         unitary_circuit,

@@ -57,6 +57,7 @@ class Register:
             CircuitError: if ``size`` is not valid.
             CircuitError: if ``name`` is not a valid name according to the
                 OpenQASM spec.
+            CircuitError: if ``bits`` contained duplicated bits.
             CircuitError: if ``bits`` contained bits of an incorrect type.
         """
 
@@ -111,9 +112,12 @@ class Register:
         self._hash = hash((type(self), self._name, self._size))
         self._repr = "%s(%d, '%s')" % (self.__class__.__qualname__, self.size, self.name)
         if bits is not None:
+            # check duplicated bits
+            if self._size != len(set(bits)):
+                raise CircuitError(f"Register bits must not be duplicated. bits={bits}")
             # pylint: disable=isinstance-second-argument-not-valid-type
             if any(not isinstance(bit, self.bit_type) for bit in bits):
-                raise CircuitError("Provided bits did not all match register type. bits=%s" % bits)
+                raise CircuitError(f"Provided bits did not all match register type. bits={bits}")
             self._bits = list(bits)
             self._bit_indices = {bit: idx for idx, bit in enumerate(self._bits)}
         else:

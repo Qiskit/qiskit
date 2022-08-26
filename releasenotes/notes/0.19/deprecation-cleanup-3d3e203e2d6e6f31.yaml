@@ -1,0 +1,52 @@
+---
+upgrade:
+  - |
+    The ``DAGCircuit.extend_back()`` method has been removed. It was originally
+    deprecated in the 0.13.0 release. Instead you can use the
+    :meth:`.DAGCircuit.compose` method which is more general
+    and provides the same functionality.
+  - |
+    The ``DAGCircuit.compose_back()`` method has been removed. It was originally
+    deprecated in the 0.13.0 release. Instead you can use the
+    :meth:`.DAGCircuit.compose` method which is more general
+    and provides the same functionality.
+  - |
+    The ``edge_map`` kwarg of the :class:`~qiskit.dagcircuit.DAGCircuit` method
+    :meth:`~qiskit.dagcircuit.DAGCircuit.compose` has been removed. It was
+    originally deprecated in the 0.14.0 release. The method takes a ``qubits``
+    and ``clbits`` kwargs to specify the positional order of bits to compose
+    onto instead of using a dictionary mapping that ``edge_map`` previously
+    provided.
+  - |
+    The ``DAGCircuit.twoQ_gates()`` method has been removed. It was originally
+    deprecated in the 0.13.0 release. Instead,
+    :meth:`.DAGCircuit.two_qubit_ops` should be used.
+  - |
+    The ``DAGCircuit.threeQ_or_more_gates()`` method has been removed. It was
+    originally deprecated in the 0.13.0 release. Instead,
+    :meth:`.DAGCircuit.multi_qubit_ops` method should be used.
+  - |
+    Named access for the first positional argument for the constructor of
+    the :class:`.SingleQubitUnitary` class with ``u`` has been removed.
+    It was originally deprecated in the 0.14.0 release. Instead, the first
+    positional argument can be set using the name ``unitary_matrix``
+    (or just set it positionally instead of by name).
+  - |
+    Named access for the first positional argument for the
+    :class:`~qiskit.circuit.QuantumCircuit` method
+    :class:`~qiskit.circuit.QuantumCircuit.squ` with ``u`` has been removed.
+    It was originally deprecated in the 0.14.0 release. Instead the first
+    positional argument can be set using the name ``unitary_matrix``
+    (or just set it positionally instead of by name).
+  - |
+    The unused ``proc`` and ``nested_scope`` kwargs for the ``qasm()`` method
+    of the QASM node classes in the ``qiskit.qasm.node`` module have been
+    removed. They were originally deprecated in the 0.15.0 release.
+  - |
+    The unused ``proc`` and ``nested_scope`` kwargs for the ``latex()`` method
+    of the QASM node classes in the ``qiskit.qasm.node`` module have been
+    removed. They were originally deprecated in the 0.15.0 release.
+  - |
+    The unused ``proc`` and ``nested_scope`` kwargs for the ``real()`` method
+    of the QASM node classes in the ``qiskit.qasm.node`` module have been
+    removed. They were originally deprecated in the 0.15.0 release.

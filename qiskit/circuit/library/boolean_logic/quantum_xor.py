@@ -60,7 +60,7 @@ class XOR(QuantumCircuit):
                 raise CircuitError("Bits in 'amount' exceed circuit width")
         else:
             rng = np.random.default_rng(seed)
-            amount = rng.integers(0, 2 ** num_qubits)
+            amount = rng.integers(0, 2**num_qubits)
 
         for i in range(num_qubits):
             bit = amount & 1

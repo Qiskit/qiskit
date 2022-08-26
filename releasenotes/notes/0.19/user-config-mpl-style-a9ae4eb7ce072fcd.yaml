@@ -1,0 +1,8 @@
+---
+fixes:
+  - |
+    Fixed an issue with the :meth:`~qiskit.circuit.QuantumCircuit.draw` method and
+    :func:`~qiskit.visualization.circuit_drawer` function, where a custom style set via the
+    user config file (i.e. ``settings.conf``) would ignore the set value of the
+    ``circuit_mpl_style`` field if the ``style`` kwarg on the function/method was not
+    set.

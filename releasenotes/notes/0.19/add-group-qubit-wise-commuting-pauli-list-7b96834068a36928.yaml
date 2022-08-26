@@ -1,0 +1,11 @@
+---
+
+features:
+  - |
+    Added a new method :meth:`.PauliList.group_qubit_wise_commuting` that
+    partitions a :obj:`.PauliList` into sets of mutually qubit-wise commuting
+    :obj:`.Pauli` operators.  For example::
+      
+      from qiskit.quantum_info import PauliList, Pauli
+      pauli_list = PauliList([Pauli("IY"), Pauli("XX"), Pauli("YY"), Pauli("YX")])
+      pauli_list.group_qubit_wise_commuting()

@@ -37,10 +37,11 @@ def pauli_basis(num_qubits, weight=False, pauli_list=False):
         pauli_1q = PauliList(["I", "X", "Y", "Z"])
     else:
         warnings.warn(
-            "The pauli_basis function with PauliTable output is deprecated as of Qiskit Terra "
-            "0.19.0 and will be removed no sooner than 3 months after the releasedate. "
-            "Use PauliList by pauli_list=True instead.",
-            DeprecationWarning,
+            "The return type of 'pauli_basis' will change from PauliTable to PauliList in a "
+            "future release of Qiskit Terra.  Returning PauliTable is deprecated as of "
+            "Qiskit Terra 0.19, and will be removed in a future release.  To immediately switch "
+            "to the new behaviour, pass the keyword argument 'pauli_list=True'.",
+            FutureWarning,
             stacklevel=2,
         )
         pauli_1q = PauliTable(

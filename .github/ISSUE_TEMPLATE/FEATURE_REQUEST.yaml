@@ -1,0 +1,14 @@
+name: 🚀 Feature request
+description: Suggest an idea for this project 💡!
+labels: ["type: feature request"]
+
+body:
+  - type: markdown
+    attributes:
+      value: Please make sure to browse the opened and closed issues to make sure that this idea has not previously been discussed.
+
+  - type: textarea
+    attributes:
+      label: What should we add?
+    validations:
+      required: true

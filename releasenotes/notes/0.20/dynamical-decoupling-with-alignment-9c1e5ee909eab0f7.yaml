@@ -1,0 +1,22 @@
+---
+features:
+  - |
+    A new pass :class:`~.DynamicalDecouplingPadding` has been added to the
+    :mod:`qiskit.transpiler.passes` module. This new pass superscedes the
+    existing :class:`~.DynamicalDecoupling` pass to work with the new
+    scheduling workflow in the transpiler. It is a subclass of the
+    :class:`~.BasePadding` pass and depends on having scheduling and alignment
+    analysis passes run prior to it in a :class:`~.PassManager`.
+    This new pass can take a ``pulse_alignment`` argument which represents a
+    hardware constraint for waveform start timing. The spacing between gates
+    comprising a dynamical decoupling sequence is now adjusted to satisfy this
+    constraint so that the circuit can be executed on hardware with the constraint.
+    This value is usually found in :attr:`.BackendConfiguration.timing_constraints`.
+    Additionally the pass also has an ``extra_slack_distribution`` option has been
+    to control how to distribute the extra slack when the duration of the
+    created dynamical decoupling sequence is shorter than the idle time of your circuit
+    that you want to fill with the sequence. This defaults to ``middle`` which is
+    identical to conventional behavior. The new strategy ``split_edges``
+    evenly divide the extra slack into the beginning and end of the sequence,
+    rather than adding it to the interval in the middle of the sequence.
+    This might result in better noise cancellation especially when ``pulse_alignment`` > 1.

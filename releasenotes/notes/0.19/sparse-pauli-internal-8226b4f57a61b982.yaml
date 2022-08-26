@@ -1,0 +1,16 @@
+deprecations:
+  - |
+    The property :attr:`~qiskit.quantum_info.SparsePauliOp.table` is deprecated,
+    and will be removed in a future release.  This is because
+    :class:`~qiskit.quantum_info.SparsePauliOp` has been updated to internally use 
+    :class:`~qiskit.quantum_info.operators.PauliList` instead of 
+    :class:`~qiskit.quantum_info.PauliTable`.  This is in order to significantly
+    improve performance.  You should now access the :obj:`.PauliList` data by
+    using the :attr:`.SparsePauliOp.paulis` attribute.
+upgrade:
+  - |
+    The return type of :func:`~qiskit.quantum_info.pauli_basis` will change from
+    :class:`~qiskit.quantum_info.PauliTable` to
+    :class:`~qiskit.quantum_info.PauliList` in a future release of Qiskit Terra.
+    To immediately swap to the new behaviour, pass the keyword argument
+    ``pauli_list=True``.

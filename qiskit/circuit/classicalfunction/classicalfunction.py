@@ -116,7 +116,7 @@ class ClassicalFunction(ClassicalElement):
         Returns:
             str: a bitstring with a truth table
         """
-        result = list()
+        result = []
         for position in range(2 ** self._network.num_pis()):
             sim_result = "".join([str(int(tt[position])) for tt in self.truth_table])
             result.append(sim_result)

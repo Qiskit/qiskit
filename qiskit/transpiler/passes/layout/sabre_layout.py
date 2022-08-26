@@ -101,7 +101,7 @@ class SabreLayout(AnalysisPass):
                 # Update initial layout and reverse the unmapped circuit.
                 pass_final_layout = pm.property_set["final_layout"]
                 final_layout = self._compose_layouts(
-                    initial_layout, pass_final_layout, new_circ.qregs  # pylint: disable=no-member
+                    initial_layout, pass_final_layout, new_circ.qregs
                 )
                 initial_layout = final_layout
                 circ, rev_circ = rev_circ, circ
@@ -142,7 +142,5 @@ class SabreLayout(AnalysisPass):
         """
         trivial_layout = Layout.generate_trivial_layout(*qregs)
         qubit_map = Layout.combine_into_edge_map(initial_layout, trivial_layout)
-        final_layout = {
-            v: pass_final_layout[qubit_map[v]] for v, _ in initial_layout.get_virtual_bits().items()
-        }
+        final_layout = {v: pass_final_layout._v2p[qubit_map[v]] for v in initial_layout._v2p}
         return Layout(final_layout)

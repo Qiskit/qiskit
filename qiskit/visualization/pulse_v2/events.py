@@ -135,7 +135,7 @@ class ChannelEvents:
         Returns:
             ChannelEvents: The channel event manager for the specified channel.
         """
-        waveforms = dict()
+        waveforms = {}
         frames = defaultdict(list)
 
         # parse instructions

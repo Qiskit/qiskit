@@ -1,4 +1,0 @@
----
-fixes:
-  - |
-    Refactored the QFT ``num_qubits`` setter to avoid potential problems when changing the number of qubits of the QFT circuit. 

@@ -1,0 +1,19 @@
+---
+features:
+  - |
+    Added the :meth:`.SparsePauliOp.sum` method to add together many
+    :class:`.SparsePauliOp`\ s.  This method has significantly better
+    performance than adding the instances together in a loop.  For example, the
+    previous way to add several :class:`.SparsePauliOp`\ s together would be to
+    do::
+
+        from qiskit.quantum_info import SparsePauliOp, random_pauli_list
+        sparse_ops = [SparsePauliOp(random_pauli_list(10, 10)) for _ in [None]*1000]
+
+        total = sparse_ops[0]
+        for op in sparse_ops[1:]:
+            total += op
+
+    This can now be done far more efficiently (in both speed and typing!) as::
+
+        SparsePauliOp.sum(sparse_ops)

@@ -115,9 +115,9 @@ class Optimize1qGatesDecomposition(TransformationPass):
                 + "\n\nand got\n\n"
                 + "\n".join([str(node[0]) for node in new_circ])
                 + f"\n\nbut the original was native (for {self._target_basis}) and the new value "
-                f"is longer.  This indicates an efficiency bug in synthesis.  Please report it by "
-                f"opening an issue here: "
-                f"https://github.com/Qiskit/qiskit-terra/issues/new/choose",
+                "is longer.  This indicates an efficiency bug in synthesis.  Please report it by "
+                "opening an issue here: "
+                "https://github.com/Qiskit/qiskit-terra/issues/new/choose",
                 stacklevel=2,
             )
 

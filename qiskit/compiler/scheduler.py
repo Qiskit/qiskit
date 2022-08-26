@@ -22,10 +22,10 @@ from typing import List, Optional, Union
 from qiskit.circuit.quantumcircuit import QuantumCircuit
 from qiskit.exceptions import QiskitError
 from qiskit.pulse import InstructionScheduleMap, Schedule
-from qiskit.providers import BaseBackend
 from qiskit.providers.backend import Backend
 from qiskit.scheduler import ScheduleConfig
 from qiskit.scheduler.schedule_circuit import schedule_circuit
+from qiskit.tools.parallel import parallel_map
 
 logger = logging.getLogger(__name__)
 
@@ -37,7 +37,7 @@ def _log_schedule_time(start_time, end_time):
 
 def schedule(
     circuits: Union[QuantumCircuit, List[QuantumCircuit]],
-    backend: Optional[Union[Backend, BaseBackend]] = None,
+    backend: Optional[Backend] = None,
     inst_map: Optional[InstructionScheduleMap] = None,
     meas_map: Optional[List[List[int]]] = None,
     dt: Optional[float] = None,
@@ -65,29 +65,43 @@ def schedule(
     Raises:
         QiskitError: If ``inst_map`` and ``meas_map`` are not passed and ``backend`` is not passed
     """
+    arg_circuits_list = isinstance(circuits, list)
     start_time = time()
-    if inst_map is None:
-        if backend is None:
-            raise QiskitError(
-                "Must supply either a backend or InstructionScheduleMap for scheduling passes."
-            )
-        defaults = backend.defaults()
-        if defaults is None:
-            raise QiskitError(
-                "The backend defaults are unavailable. The backend may not support pulse."
-            )
-        inst_map = defaults.instruction_schedule_map
-    if meas_map is None:
-        if backend is None:
-            raise QiskitError("Must supply either a backend or a meas_map for scheduling passes.")
-        meas_map = backend.configuration().meas_map
-    if dt is None:
-        if backend is not None:
-            dt = backend.configuration().dt
+    if backend and getattr(backend, "version", 0) > 1:
+        if inst_map is None:
+            inst_map = backend.instruction_schedule_map
+        if meas_map is None:
+            meas_map = backend.meas_map
+        if dt is None:
+            dt = backend.dt
+    else:
+        if inst_map is None:
+            if backend is None:
+                raise QiskitError(
+                    "Must supply either a backend or InstructionScheduleMap for scheduling passes."
+                )
+            defaults = backend.defaults()
+            if defaults is None:
+                raise QiskitError(
+                    "The backend defaults are unavailable. The backend may not support pulse."
+                )
+            inst_map = defaults.instruction_schedule_map
+        if meas_map is None:
+            if backend is None:
+                raise QiskitError(
+                    "Must supply either a backend or a meas_map for scheduling passes."
+                )
+            meas_map = backend.configuration().meas_map
+        if dt is None:
+            if backend is not None:
+                dt = backend.configuration().dt
 
     schedule_config = ScheduleConfig(inst_map=inst_map, meas_map=meas_map, dt=dt)
     circuits = circuits if isinstance(circuits, list) else [circuits]
-    schedules = [schedule_circuit(circuit, schedule_config, method) for circuit in circuits]
+    schedules = parallel_map(schedule_circuit, circuits, (schedule_config, method))
     end_time = time()
     _log_schedule_time(start_time, end_time)
-    return schedules[0] if len(schedules) == 1 else schedules
+    if arg_circuits_list:
+        return schedules
+    else:
+        return schedules[0]

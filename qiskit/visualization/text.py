@@ -18,13 +18,21 @@ from warnings import warn
 from shutil import get_terminal_size
 import sys
 
-from qiskit.circuit import Clbit
+from qiskit.circuit import Qubit, Clbit, ClassicalRegister, QuantumRegister, QuantumCircuit
 from qiskit.circuit import ControlledGate
 from qiskit.circuit import Reset
 from qiskit.circuit import Measure
 from qiskit.circuit.library.standard_gates import IGate, RZZGate, SwapGate, SXGate, SXdgGate
 from qiskit.circuit.tools.pi_check import pi_check
-from qiskit.visualization.utils import get_gate_ctrl_text, get_param_str, get_bit_label
+from qiskit.visualization.utils import (
+    get_gate_ctrl_text,
+    get_param_str,
+    get_wire_map,
+    get_bit_register,
+    get_bit_reg_index,
+    get_wire_label,
+    get_condition_label_val,
+)
 from .exceptions import VisualizationError
 
 
@@ -363,23 +371,23 @@ class DirectOnQuWire(DrawElement):
         self.mid_format = "─%s─"
         self.bot_format = " %s "
         self._mid_padding = self.mid_bck = "─"
-        self.top_connector = {"│": "│"}
-        self.bot_connector = {"│": "│"}
+        self.top_connector = {"│": "│", "║": "║"}
+        self.bot_connector = {"│": "│", "║": "║"}
 
 
 class Barrier(DirectOnQuWire):
-    """Draws a barrier.
+    """Draws a barrier with a label at the top if there is one.
 
     ::
 
-        top:  ░     ░
+        top:  ░   label
         mid: ─░─ ───░───
         bot:  ░     ░
     """
 
     def __init__(self, label=""):
         super().__init__("░")
-        self.top_connect = "░"
+        self.top_connect = label if label else "░"
         self.bot_connect = "░"
         self.top_connector = {}
         self.bot_connector = {}
@@ -422,6 +430,7 @@ class Bullet(DirectOnQuWire):
 
     def __init__(self, top_connect="", bot_connect="", conditional=False, label=None, bottom=False):
         super().__init__("■")
+        self.conditional = conditional
         self.top_connect = top_connect
         self.bot_connect = "║" if conditional else bot_connect
         if label and bottom:
@@ -443,6 +452,7 @@ class OpenBullet(DirectOnQuWire):
 
     def __init__(self, top_connect="", bot_connect="", conditional=False, label=None, bottom=False):
         super().__init__("o")
+        self.conditional = conditional
         self.top_connect = top_connect
         self.bot_connect = "║" if conditional else bot_connect
         if label and bottom:
@@ -463,8 +473,8 @@ class DirectOnClWire(DrawElement):
         self.mid_format = "═%s═"
         self.bot_format = " %s "
         self._mid_padding = self.mid_bck = "═"
-        self.top_connector = {"│": "│"}
-        self.bot_connector = {"│": "│"}
+        self.top_connector = {"│": "│", "║": "║"}
+        self.bot_connector = {"│": "│", "║": "║"}
 
 
 class ClBullet(DirectOnClWire):
@@ -601,22 +611,78 @@ class TextDrawing:
         encoding=None,
         qregs=None,
         cregs=None,
+        with_layout=False,
+        circuit=None,
     ):
+        if qregs is not None:
+            warn(
+                "The 'qregs' kwarg to the TextDrawing class is deprecated "
+                "as of 0.20.0 and will be removed no earlier than 3 months "
+                "after the release date.",
+                DeprecationWarning,
+                2,
+            )
+        if cregs is not None:
+            warn(
+                "The 'cregs' kwarg to the TextDrawing class is deprecated "
+                "as of 0.20.0 and will be removed no earlier than 3 months "
+                "after the release date.",
+                DeprecationWarning,
+                2,
+            )
+        if layout is not None:
+            warn(
+                "The 'layout' kwarg to the TextDrawing class is deprecated "
+                "as of 0.20.0 and will be removed no earlier than 3 months "
+                "after the release date.",
+                DeprecationWarning,
+                2,
+            )
+        if global_phase is not None:
+            warn(
+                "The 'global_phase' kwarg to the TextDrawing class is deprecated "
+                "as of 0.20.0 and will be removed no earlier than 3 months "
+                "after the release date.",
+                DeprecationWarning,
+                2,
+            )
+        # This check should be removed when the 4 deprecations above are removed
+        if circuit is None:
+            warn(
+                "The 'circuit' kwarg to the TextDrawing class must be a valid "
+                "QuantumCircuit and not None. A new circuit is being created using "
+                "the qubits and clbits for rendering the drawing.",
+                DeprecationWarning,
+                2,
+            )
+            circ = QuantumCircuit(qubits, clbits)
+            for reg in qregs:
+                bits = [qubits[circ._qubit_indices[q].index] for q in reg]
+                circ.add_register(QuantumRegister(None, reg.name, list(bits)))
+            for reg in cregs:
+                bits = [clbits[circ._clbit_indices[q].index] for q in reg]
+                circ.add_register(ClassicalRegister(None, reg.name, list(bits)))
+            self._circuit = circ
+        else:
+            self._circuit = circuit
         self.qubits = qubits
         self.clbits = clbits
-        self.qregs = qregs
-        self.cregs = cregs
         self.nodes = nodes
-        self.reverse_bits = reverse_bits
-        self.layout = layout
+        if with_layout:
+            self.layout = self._circuit._layout
+        else:
+            self.layout = None
+
         self.initial_state = initial_state
         self.cregbundle = cregbundle
-        self.global_phase = global_phase
+        self.global_phase = circuit.global_phase
         self.plotbarriers = plotbarriers
+        self.reverse_bits = reverse_bits
         self.line_length = line_length
         if vertical_compression not in ["high", "medium", "low"]:
             raise ValueError("Vertical compression can only be 'high', 'medium', or 'low'")
         self.vertical_compression = vertical_compression
+        self._wire_map = {}
 
         if encoding:
             self.encoding = encoding
@@ -625,15 +691,6 @@ class TextDrawing:
                 self.encoding = sys.stdout.encoding
             else:
                 self.encoding = "utf8"
-
-        self.bit_locations = {
-            bit: {"register": register, "index": index}
-            for register in cregs + qregs
-            for index, bit in enumerate(register)
-        }
-        for index, bit in list(enumerate(qubits)) + list(enumerate(clbits)):
-            if bit not in self.bit_locations:
-                self.bit_locations[bit] = {"register": None, "index": index}
 
     def __str__(self):
         return self.single_string()
@@ -774,33 +831,31 @@ class TextDrawing:
             initial_qubit_value = ""
             initial_clbit_value = ""
 
-        # quantum register
-        qubit_labels = []
-        for reg in self.qubits:
-            register = self.bit_locations[reg]["register"]
-            index = self.bit_locations[reg]["index"]
-            qubit_label = get_bit_label("text", register, index, qubit=True, layout=self.layout)
-            qubit_label += ": " if self.layout is None else " "
-            qubit_labels.append(qubit_label + initial_qubit_value)
+        self._wire_map = get_wire_map(self._circuit, (self.qubits + self.clbits), self.cregbundle)
+        wire_labels = []
+        for wire in self._wire_map:
+            if isinstance(wire, ClassicalRegister):
+                register = wire
+                index = self._wire_map[wire]
+            else:
+                register, bit_index, reg_index = get_bit_reg_index(self._circuit, wire)
+                index = bit_index if register is None else reg_index
 
-        # classical register
-        clbit_labels = []
-        if self.clbits:
-            prev_creg = None
-            for reg in self.clbits:
-                register = self.bit_locations[reg]["register"]
-                index = self.bit_locations[reg]["index"]
-                clbit_label = get_bit_label(
-                    "text", register, index, qubit=False, cregbundle=self.cregbundle
-                )
-                if register is None or not self.cregbundle or prev_creg != register:
-                    cregb_add = (
-                        str(register.size) + "/" if self.cregbundle and register is not None else ""
-                    )
-                    clbit_labels.append(clbit_label + ": " + initial_clbit_value + cregb_add)
-                prev_creg = register
+            wire_label = get_wire_label(
+                "text", register, index, layout=self.layout, cregbundle=self.cregbundle
+            )
+            wire_label += " " if self.layout is not None and isinstance(wire, Qubit) else ": "
 
-        return qubit_labels + clbit_labels
+            cregb_add = ""
+            if isinstance(wire, Qubit):
+                initial_bit_value = initial_qubit_value
+            else:
+                initial_bit_value = initial_clbit_value
+                if self.cregbundle and register is not None:
+                    cregb_add = str(register.size) + "/"
+            wire_labels.append(wire_label + initial_bit_value + cregb_add)
+
+        return wire_labels
 
     def should_compress(self, top_line, bot_line):
         """Decides if the top_line and bot_line should be merged,
@@ -954,9 +1009,9 @@ class TextDrawing:
         args_qubits = node.qargs[num_ctrl_qubits:]
         ctrl_state = f"{op.ctrl_state:b}".rjust(num_ctrl_qubits, "0")[::-1]
 
-        in_box = list()
-        top_box = list()
-        bot_box = list()
+        in_box = []
+        top_box = []
+        bot_box = []
 
         qubit_index = sorted(i for i, x in enumerate(layer.qubits) if x in args_qubits)
 
@@ -978,6 +1033,10 @@ class TextDrawing:
         ctrl_qubits = node.qargs[:num_ctrl_qubits]
         cstate = f"{op.ctrl_state:b}".rjust(num_ctrl_qubits, "0")[::-1]
         for i in range(len(ctrl_qubits)):
+            # For sidetext gate alignment, need to set every Bullet with
+            # conditional on if there's a condition.
+            if getattr(op, "condition", None) is not None:
+                conditional = True
             if cstate[i] == "1":
                 gates.append(Bullet(conditional=conditional, label=ctrl_text, bottom=bottom))
             else:
@@ -989,20 +1048,20 @@ class TextDrawing:
         any connections it introduces between qubits"""
         op = node.op
         current_cons = []
+        current_cons_cond = []
         connection_label = None
         conditional = False
         base_gate = getattr(op, "base_gate", None)
 
         params = get_param_str(op, "text", ndigits=5)
-        if not isinstance(op, (Measure, SwapGate, Reset)) and not op._directive:
+        if not isinstance(op, (Measure, SwapGate, Reset)) and not getattr(op, "_directive", False):
             gate_text, ctrl_text, _ = get_gate_ctrl_text(op, "text")
             gate_text = TextDrawing.special_label(op) or gate_text
             gate_text = gate_text + params
 
-        if op.condition is not None:
+        if getattr(op, "condition", None) is not None:
             # conditional
-            op_cond = op.condition
-            layer.set_cl_multibox(op_cond[0], op_cond[1], top_connect="╨")
+            current_cons_cond += layer.set_cl_multibox(op.condition, top_connect="╨")
             conditional = True
 
         # add in a gate that operates over multiple qubits
@@ -1016,22 +1075,24 @@ class TextDrawing:
         if isinstance(op, Measure):
             gate = MeasureFrom()
             layer.set_qubit(node.qargs[0], gate)
-            if self.cregbundle:
+            register, _, reg_index = get_bit_reg_index(self._circuit, node.cargs[0])
+            if self.cregbundle and register is not None:
                 layer.set_clbit(
                     node.cargs[0],
-                    MeasureTo(str(self.bit_locations[node.cargs[0]]["index"])),
+                    MeasureTo(str(reg_index)),
                 )
             else:
                 layer.set_clbit(node.cargs[0], MeasureTo())
 
-        elif op._directive:
+        elif getattr(op, "_directive", False):
             # barrier
             if not self.plotbarriers:
-                return layer, current_cons, connection_label
+                return layer, current_cons, current_cons_cond, connection_label
 
-            for qubit in node.qargs:
+            for i, qubit in enumerate(node.qargs):
                 if qubit in self.qubits:
-                    layer.set_qubit(qubit, Barrier())
+                    label = op.label if i == 0 else ""
+                    layer.set_qubit(qubit, Barrier(label))
 
         elif isinstance(op, SwapGate):
             # swap
@@ -1110,8 +1171,10 @@ class TextDrawing:
         # lines in the right direction
         current_cons.sort(key=lambda tup: tup[0])
         current_cons = [g for q, g in current_cons]
+        current_cons_cond.sort(key=lambda tup: tup[0])
+        current_cons_cond = [g for c, g in current_cons_cond]
 
-        return layer, current_cons, connection_label
+        return layer, current_cons, current_cons_cond, connection_label
 
     def build_layers(self):
         """
@@ -1128,12 +1191,15 @@ class TextDrawing:
         layers = [InputWire.fillup_layer(wire_names)]
 
         for node_layer in self.nodes:
-            layer = Layer(self.qubits, self.clbits, self.reverse_bits, self.cregbundle, self.cregs)
+            layer = Layer(self.qubits, self.clbits, self.cregbundle, self._circuit)
 
             for node in node_layer:
-                layer, current_connections, connection_label = self._node_to_gate(node, layer)
+                layer, current_cons, current_cons_cond, connection_label = self._node_to_gate(
+                    node, layer
+                )
 
-                layer.connections.append((connection_label, current_connections))
+                layer.connections.append((connection_label, current_cons))
+                layer.connections.append((None, current_cons_cond))
             layer.connect_with("│")
             layers.append(layer.full_layer)
 
@@ -1143,34 +1209,28 @@ class TextDrawing:
 class Layer:
     """A layer is the "column" of the circuit."""
 
-    def __init__(self, qubits, clbits, reverse_bits=False, cregbundle=False, cregs=None):
-        cregs = [] if cregs is None else cregs
-
+    def __init__(self, qubits, clbits, cregbundle=False, circuit=None):
         self.qubits = qubits
-
-        self._clbit_locations = {
-            bit: {"register": register, "index": index}
-            for register in cregs
-            for index, bit in enumerate(register)
-        }
-        for index, bit in enumerate(clbits):
-            if bit not in self._clbit_locations:
-                self._clbit_locations[bit] = {"register": None, "index": index}
+        self.clbits_raw = clbits  # list of clbits ignoring cregbundle change below
+        self._circuit = circuit
 
         if cregbundle:
             self.clbits = []
             previous_creg = None
             for bit in clbits:
-                if previous_creg and previous_creg == self._clbit_locations[bit]["register"]:
+                register = get_bit_register(self._circuit, bit)
+                if previous_creg and previous_creg == register:
                     continue
-                previous_creg = self._clbit_locations[bit]["register"]
-                self.clbits.append(previous_creg)
+                if register is None:
+                    self.clbits.append(bit)
+                else:
+                    previous_creg = register
+                    self.clbits.append(previous_creg)
         else:
             self.clbits = clbits
         self.qubit_layer = [None] * len(qubits)
         self.connections = []
         self.clbit_layer = [None] * len(clbits)
-        self.reverse_bits = reverse_bits
         self.cregbundle = cregbundle
 
     @property
@@ -1198,8 +1258,9 @@ class Layer:
             clbit (cbit): Element of self.clbits.
             element (DrawElement): Element to set in the clbit
         """
-        if self.cregbundle:
-            self.clbit_layer[self.clbits.index(self._clbit_locations[clbit]["register"])] = element
+        register = get_bit_register(self._circuit, clbit)
+        if self.cregbundle and register is not None:
+            self.clbit_layer[self.clbits.index(register)] = element
         else:
             self.clbit_layer[self.clbits.index(clbit)] = element
 
@@ -1329,53 +1390,86 @@ class Layer:
             )
         return bit_index
 
-    def set_cl_multibox(self, creg, val, top_connect="┴"):
+    def set_cl_multibox(self, condition, top_connect="┴"):
         """Sets the multi clbit box.
 
         Args:
-            creg (string): The affected classical register.
-            val (int): The value of the condition.
+            condition (list[Union(Clbit, ClassicalRegister), int]): The condition
             top_connect (char): The char to connect the box on the top.
-        """
-        if self.cregbundle:
-            if isinstance(creg, Clbit):
-                bit_reg = self._clbit_locations[creg]["register"]
-                bit_index = self._clbit_locations[creg]["index"]
-                label_bool = "= T" if val is True else "= F"
-                label = f"{bit_reg.name}_{bit_index} {label_bool}"
-                self.set_clbit(creg, BoxOnClWire(label=label, top_connect=top_connect))
-            else:
-                label = "%s" % str(hex(val))
-                self.set_clbit(creg[0], BoxOnClWire(label=label, top_connect=top_connect))
-        else:
-            if isinstance(creg, Clbit):
-                clbit = [creg]
-                cond_bin = "1" if val is True else "0"
-                self.set_cond_bullets(cond_bin, clbit)
-            else:
-                clbit = [
-                    bit for bit in self.clbits if self._clbit_locations[bit]["register"] == creg
-                ]
-                cond_bin = bin(val)[2:].zfill(len(clbit))
-                self.set_cond_bullets(cond_bin, clbits=clbit)
 
-    def set_cond_bullets(self, val, clbits):
+        Returns:
+            List: list of tuples of connections between clbits for multi-bit conditions
+        """
+        label, val_bits = get_condition_label_val(condition, self._circuit, self.cregbundle)
+        if isinstance(condition[0], ClassicalRegister):
+            cond_reg = condition[0]
+        else:
+            cond_reg = get_bit_register(self._circuit, condition[0])
+        if self.cregbundle:
+            if isinstance(condition[0], Clbit):
+                # if it's a registerless Clbit
+                if cond_reg is None:
+                    self.set_cond_bullets(label, val_bits, [condition[0]])
+                # if it's a single bit in a register
+                else:
+                    self.set_clbit(condition[0], BoxOnClWire(label=label, top_connect=top_connect))
+            # if it's a whole register
+            else:
+                self.set_clbit(condition[0][0], BoxOnClWire(label=label, top_connect=top_connect))
+            return []
+        else:
+            clbits = []
+            cond_bits = []
+
+            if isinstance(condition[0], Clbit):
+                for i, bit in enumerate(self.clbits):
+                    if bit == condition[0]:
+                        clbits.append(self.clbits[i])
+                        reg, _, reg_index = get_bit_reg_index(self._circuit, bit)
+                        cond_bits.append(reg_index)
+                        return self.set_cond_bullets(label, val_bits, clbits)
+                return []
+            else:
+                for i, bit in enumerate(self.clbits):
+                    if isinstance(bit, ClassicalRegister):
+                        reg = bit
+                    else:
+                        reg, _, reg_index = get_bit_reg_index(self._circuit, bit)
+                    if reg == cond_reg:
+                        cond_bits.append(reg_index)
+                        clbits.append(self.clbits[i])
+                val_bits_sorted = [bit for _, bit in sorted(zip(cond_bits, val_bits))]
+                return self.set_cond_bullets(label, val_bits_sorted, clbits)
+
+    def set_cond_bullets(self, label, val_bits, clbits):
         """Sets bullets for classical conditioning when cregbundle=False.
 
         Args:
-            val (int): The condition value.
+            label (str): String to display below the condition
+            val_bits (list(int)): A list of bit values
             clbits (list[Clbit]): The list of classical bits on
                 which the instruction is conditioned.
+
+        Returns:
+            List: list of tuples of open or closed bullets for condition bits
         """
-        vlist = list(val) if self.reverse_bits else list(val[::-1])
+        current_cons = []
         for i, bit in enumerate(clbits):
             bot_connect = " "
             if bit == clbits[-1]:
-                bot_connect = "%s" % str(hex(int(val, 2)))
-            if vlist[i] == "1":
-                self.set_clbit(bit, ClBullet(top_connect="║", bot_connect=bot_connect))
-            elif vlist[i] == "0":
-                self.set_clbit(bit, ClOpenBullet(top_connect="║", bot_connect=bot_connect))
+                bot_connect = label
+            if val_bits[i] == "1":
+                self.clbit_layer[self.clbits.index(bit)] = ClBullet(
+                    top_connect="║", bot_connect=bot_connect
+                )
+            elif val_bits[i] == "0":
+                self.clbit_layer[self.clbits.index(bit)] = ClOpenBullet(
+                    top_connect="║", bot_connect=bot_connect
+                )
+            actual_index = self.clbits.index(bit) + len(self.qubits)
+            if actual_index not in [i for i, j in current_cons]:
+                current_cons.append((actual_index, self.clbit_layer[self.clbits.index(bit)]))
+        return current_cons
 
     def set_qu_multibox(
         self,
@@ -1414,21 +1508,28 @@ class Layer:
             wire_char (char): For example '║' or '│'.
         """
 
-        if len([qbit for qbit in self.qubit_layer if qbit is not None]) == 1:
-            # Nothing to connect
-            return
-
         for label, affected_bits in self.connections:
 
             if not affected_bits:
                 continue
 
-            affected_bits[0].connect(wire_char, ["bot"])
-            for affected_bit in affected_bits[1:-1]:
-                affected_bit.connect(wire_char, ["bot", "top"])
-
-            affected_bits[-1].connect(wire_char, ["top"], label)
+            for index, affected_bit in enumerate(affected_bits):
+                if isinstance(affected_bit, (ClBullet, ClOpenBullet)):
+                    wire_char = "║"
+                    if index == 0 and len(affected_bits) > 1:
+                        affected_bit.connect(wire_char, ["bot"])
+                    else:
+                        affected_bit.connect(wire_char, ["top"])
+                else:
+                    if index == 0:
+                        affected_bit.connect(wire_char, ["bot"])
+                    elif index == len(affected_bits) - 1:
+                        affected_bit.connect(wire_char, ["top"], label)
+                    else:
+                        affected_bit.connect(wire_char, ["bot", "top"])
 
             if label:
                 for affected_bit in affected_bits:
                     affected_bit.right_fill = len(label) + len(affected_bit.mid)
+                    if isinstance(affected_bit, (Bullet, OpenBullet)) and affected_bit.conditional:
+                        affected_bit.left_fill = len(label) + len(affected_bit.mid)

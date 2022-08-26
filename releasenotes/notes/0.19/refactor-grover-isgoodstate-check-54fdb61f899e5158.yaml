@@ -1,0 +1,27 @@
+features:
+  - |
+    When running the :class:`~qiskit.algorithms.Grover` algorithm class if the
+    optimal power is known and only a single circuit is run, the
+    :attr:`.AmplificationProblem.is_good_state` callback function is no longer
+    required to be set and the Grover search will return the most likely
+    bitstring.  Generally, if the optimal power of the Grover operator is not
+    known, the :class:`~qiskit.algorithms.Grover` algorithm checks different
+    powers (i.e.  iterations) and applies the
+    :attr:`~qiskit.algorithms.AmplificationProblem.is_good_state` function to
+    check whether a good bitstring has been measured.  For example, you are now
+    able to run something like::
+
+      from qiskit.algorithms import Grover, AmplificationProblem
+      from qiskit.providers.aer import AerSimulator
+      from qiskit.quantum_info import Statevector
+
+      # Fixed Grover power: 2.
+      grover = Grover(iterations=2, quantum_instance=AerSimulator())
+
+      # The ``is_good_state`` argument not required here since Grover search
+      # will be run only once, with a power of 2.
+      problem = AmplificationProblem(Statevector.from_label("111"))
+
+      # Run Grover search and print the best measurement
+      result = grover.amplify(problem)
+      print(result.top_measurement)  # should print 111

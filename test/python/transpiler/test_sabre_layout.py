@@ -19,7 +19,7 @@ from qiskit.transpiler import CouplingMap
 from qiskit.transpiler.passes import SabreLayout
 from qiskit.converters import circuit_to_dag
 from qiskit.test import QiskitTestCase
-from qiskit.test.mock import FakeAlmaden
+from qiskit.providers.fake_provider import FakeAlmaden
 
 
 class TestSabreLayout(QiskitTestCase):
@@ -31,6 +31,16 @@ class TestSabreLayout(QiskitTestCase):
 
     def test_5q_circuit_20q_coupling(self):
         """Test finds layout for 5q circuit on 20q device."""
+        #                ┌───┐
+        # q_0: ──■───────┤ X ├───────────────
+        #        │       └─┬─┘┌───┐
+        # q_1: ──┼────■────┼──┤ X ├───────■──
+        #      ┌─┴─┐  │    │  ├───┤┌───┐┌─┴─┐
+        # q_2: ┤ X ├──┼────┼──┤ X ├┤ X ├┤ X ├
+        #      └───┘┌─┴─┐  │  └───┘└─┬─┘└───┘
+        # q_3: ─────┤ X ├──■─────────┼───────
+        #           └───┘            │
+        # q_4: ──────────────────────■───────
         qr = QuantumRegister(5, "q")
         circuit = QuantumCircuit(qr)
         circuit.cx(qr[0], qr[2])
@@ -46,14 +56,26 @@ class TestSabreLayout(QiskitTestCase):
         pass_.run(dag)
 
         layout = pass_.property_set["layout"]
-        self.assertEqual(layout[qr[0]], 10)
-        self.assertEqual(layout[qr[1]], 12)
-        self.assertEqual(layout[qr[2]], 7)
-        self.assertEqual(layout[qr[3]], 11)
+        self.assertEqual(layout[qr[0]], 11)
+        self.assertEqual(layout[qr[1]], 6)
+        self.assertEqual(layout[qr[2]], 12)
+        self.assertEqual(layout[qr[3]], 5)
         self.assertEqual(layout[qr[4]], 13)
 
     def test_6q_circuit_20q_coupling(self):
         """Test finds layout for 6q circuit on 20q device."""
+        #       ┌───┐┌───┐┌───┐┌───┐┌───┐
+        # q0_0: ┤ X ├┤ X ├┤ X ├┤ X ├┤ X ├
+        #       └─┬─┘└─┬─┘└─┬─┘└─┬─┘└─┬─┘
+        # q0_1: ──┼────■────┼────┼────┼──
+        #         │  ┌───┐  │    │    │
+        # q0_2: ──┼──┤ X ├──┼────■────┼──
+        #         │  └───┘  │         │
+        # q1_0: ──■─────────┼─────────┼──
+        #            ┌───┐  │         │
+        # q1_1: ─────┤ X ├──┼─────────■──
+        #            └───┘  │
+        # q1_2: ────────────■────────────
         qr0 = QuantumRegister(3, "q0")
         qr1 = QuantumRegister(3, "q1")
         circuit = QuantumCircuit(qr0, qr1)
@@ -70,12 +92,12 @@ class TestSabreLayout(QiskitTestCase):
         pass_.run(dag)
 
         layout = pass_.property_set["layout"]
-        self.assertEqual(layout[qr0[0]], 2)
-        self.assertEqual(layout[qr0[1]], 3)
+        self.assertEqual(layout[qr0[0]], 8)
+        self.assertEqual(layout[qr0[1]], 2)
         self.assertEqual(layout[qr0[2]], 10)
-        self.assertEqual(layout[qr1[0]], 1)
-        self.assertEqual(layout[qr1[1]], 7)
-        self.assertEqual(layout[qr1[2]], 5)
+        self.assertEqual(layout[qr1[0]], 3)
+        self.assertEqual(layout[qr1[1]], 12)
+        self.assertEqual(layout[qr1[2]], 11)
 
 
 if __name__ == "__main__":

@@ -17,7 +17,6 @@ import os
 
 import csv
 import numpy as np
-from qiskit.utils import algorithm_globals
 from qiskit.utils.deprecation import deprecate_arguments
 from .optimizer import Optimizer, OptimizerSupportLevel, OptimizerResult, POINT
 
@@ -247,7 +246,7 @@ class ADAM(Optimizer):
             self._t += 1
             self._m = self._beta_1 * self._m + (1 - self._beta_1) * derivative
             self._v = self._beta_2 * self._v + (1 - self._beta_2) * derivative * derivative
-            lr_eff = self._lr * np.sqrt(1 - self._beta_2 ** self._t) / (1 - self._beta_1 ** self._t)
+            lr_eff = self._lr * np.sqrt(1 - self._beta_2**self._t) / (1 - self._beta_1**self._t)
             if not self._amsgrad:
                 params_new = params - lr_eff * self._m.flatten() / (
                     np.sqrt(self._v.flatten()) + self._noise_factor
@@ -272,37 +271,3 @@ class ADAM(Optimizer):
         result.fun = fun(params_new)
         result.nfev = self._t
         return result
-
-    def optimize(
-        self,
-        num_vars: int,
-        objective_function: Callable[[np.ndarray], float],
-        gradient_function: Optional[Callable[[np.ndarray], float]] = None,
-        variable_bounds: Optional[List[Tuple[float, float]]] = None,
-        initial_point: Optional[np.ndarray] = None,
-    ) -> Tuple[np.ndarray, float, int]:
-        """Perform optimization.
-
-        Args:
-            num_vars: Number of parameters to be optimized.
-            objective_function: Handle to a function that computes the objective function.
-            gradient_function: Handle to a function that computes the gradient of the objective
-                function.
-            variable_bounds: deprecated
-            initial_point: The initial point for the optimization.
-
-        Returns:
-            A tuple (point, value, nfev) where\n
-                point: is a 1D numpy.ndarray[float] containing the solution\n
-                value: is a float with the objective function value\n
-                nfev: is the number of objective function calls
-
-        """
-        super().optimize(
-            num_vars, objective_function, gradient_function, variable_bounds, initial_point
-        )
-        if initial_point is None:
-            initial_point = algorithm_globals.random.random(num_vars)
-
-        result = self.minimize(objective_function, initial_point, gradient_function)
-        return result.x, result.fun, result.nfev

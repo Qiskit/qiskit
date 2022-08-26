@@ -1,0 +1,6 @@
+---
+fixes:
+  - |
+    Fixed an issue with pickling :class:`~.pulse.InstructionScheduleMap` object
+    when using Python 3.6. See `#6944
+    <https://github.com/Qiskit/qiskit-terra/issues/6944>`__ for details.

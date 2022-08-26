@@ -49,7 +49,7 @@ class Decompose(TransformationPass):
     def gate(self) -> Gate:
         """Returns the gate"""
         warnings.warn(
-            "The gate argument is deprecated as of 0.18.0, and "
+            "The gate argument is deprecated as of qiskit-terra 0.19.0, and "
             "will be removed no earlier than 3 months after that "
             "release date. You should use the gates_to_decompose argument "
             "instead.",
@@ -66,7 +66,7 @@ class Decompose(TransformationPass):
             value (Gate): new value for gate
         """
         warnings.warn(
-            "The gate argument is deprecated as of 0.18.0, and "
+            "The gate argument is deprecated as of qiskit-terra 0.19.0, and "
             "will be removed no earlier than 3 months after that "
             "release date. You should use the gates_to_decompose argument "
             "instead.",
@@ -87,14 +87,18 @@ class Decompose(TransformationPass):
         # Walk through the DAG and expand each non-basis node
         for node in dag.op_nodes():
             if self._should_decompose(node):
-                if node.op.definition is None:
+                if getattr(node.op, "definition", None) is None:
                     continue
                 # TODO: allow choosing among multiple decomposition rules
                 rule = node.op.definition.data
-                if len(rule) == 1 and len(node.qargs) == len(rule[0][1]) == 1:
+                if (
+                    len(rule) == 1
+                    and len(node.qargs) == len(rule[0].qubits) == 1  # to preserve gate order
+                    and len(node.cargs) == len(rule[0].clbits) == 0
+                ):
                     if node.op.definition.global_phase:
                         dag.global_phase += node.op.definition.global_phase
-                    dag.substitute_node(node, rule[0][0], inplace=True)
+                    dag.substitute_node(node, rule[0].operation, inplace=True)
                 else:
                     decomposition = circuit_to_dag(node.op.definition)
                     dag.substitute_node_with_dag(node, decomposition)
@@ -128,9 +132,7 @@ class Decompose(TransformationPass):
             node.name in gates or any(fnmatch(node.name, p) for p in strings_list)
         ):
             return True
-        elif not has_label and (  # check if Gate type given
-            any(isinstance(node.op, op) for op in gate_type_list)
-        ):
+        elif any(isinstance(node.op, op) for op in gate_type_list):  # check if Gate type given
             return True
         else:
             return False

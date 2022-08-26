@@ -1,8 +1,0 @@
----
-fixes:
-  - |
-    Fixed an issue causing an error when binding a complex parameter value to an operator's
-    coefficient. Casts to ``float`` in :class:`~qiskit.opflow.primitive_ops.PrimitiveOp`
-    were generalized to casts to ``complex`` if necessary, but will remain ``float`` if
-    there is no imaginary component.
-    Fixes `#6976 <https://github.com/Qiskit/qiskit-terra/issues/6976>`__.
