@@ -32,3 +32,4 @@ class EstimatorGradientResult:
 
     values: list[np.ndarray]
     metadata: list[dict[str, Any]]
+    run_options: dict[str, Any]

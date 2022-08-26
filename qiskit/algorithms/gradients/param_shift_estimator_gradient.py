@@ -138,14 +138,12 @@ class ParamShiftEstimatorGradient(BaseEstimatorGradient):
         results = [job.result() for job in jobs]
         gradients, metadata_ = [], []
         for i, result in enumerate(results):
-            d = copy(run_options)
             n = len(result.values) // 2  # is always a multiple of 2
             gradient_ = (result.values[:n] - result.values[n:]) / 2
             values = np.zeros(len(circuits[i].parameters))
             for grad_, idx, coeff in zip(gradient_, result_indices_all[i], coeffs_all[i]):
                 values[idx] += coeff * grad_
             gradients.append(values)
-            d["gradient_variance"] = np.var(gradient_)
-            metadata_.append(result.metadata)
+            metadata_.append({"gradient_variance": np.var(gradient_)})
 
-        return EstimatorGradientResult(values=gradients, metadata=metadata_)
+        return EstimatorGradientResult(values=gradients, metadata=metadata_, run_options=run_options)

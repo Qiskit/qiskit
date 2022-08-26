@@ -106,7 +106,6 @@ class LinCombSamplerGradient(BaseSamplerGradient):
         results = [job.result() for job in jobs]
         gradients, metadata_ = [], []
         for i, result in enumerate(results):
-            d = copy(run_options)
             dists = [Counter() for _ in range(circuits[i].num_parameters)]
             num_bitstrings = 2 ** circuits[i].num_qubits
             for grad_quasi_, idx, coeff in zip(
@@ -116,5 +115,4 @@ class LinCombSamplerGradient(BaseSamplerGradient):
                     sign, k = divmod(k_, num_bitstrings)
                     dists[idx][k] += (-1) ** sign * coeff * v
             gradients.append([QuasiDistribution(dist) for dist in dists])
-            metadata_.append(d)
-        return SamplerGradientResult(quasi_dists=gradients, metadata=metadata_)
+        return SamplerGradientResult(quasi_dists=gradients, metadata=metadata_, run_options=run_options)

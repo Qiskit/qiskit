@@ -93,13 +93,12 @@ class SPSAEstimatorGradient(BaseEstimatorGradient):
         results = [job.result() for job in jobs]
         gradients, metadata_ = [], []
         for i, result in enumerate(results):
-            d = copy(run_options)
             n = len(result.values) // 2  # is always a multiple of 2
             gradient_ = (result.values[:n] - result.values[n:]) / (2 * self._epsilon * offsets[i])
             indices = result_indices_all[i]
             gradient = np.zeros(circuits[i].num_parameters)
             gradient[indices] = gradient_[indices]
             gradients.append(gradient)
-            d["gradient_variance"] = np.var(gradient_)
-            metadata_.append(result.metadata)
-        return EstimatorGradientResult(values=gradients, metadata=metadata_)
+            metadata_.append({"gradient_variance": np.var(gradient_)})
+
+        return EstimatorGradientResult(values=gradients, metadata=metadata_, run_options=run_options)

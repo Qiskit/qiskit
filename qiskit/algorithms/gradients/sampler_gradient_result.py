@@ -32,3 +32,4 @@ class SamplerGradientResult:
 
     quasi_dists: list[list[QuasiDistribution]]
     metadata: list[dict[str, Any]]
+    run_options: dict[str, Any]

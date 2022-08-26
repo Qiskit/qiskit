@@ -131,7 +131,6 @@ class ParamShiftSamplerGradient(BaseSamplerGradient):
         results = [job.result() for job in jobs]
         gradients, metadata_ = [], []
         for i, result in enumerate(results):
-            d = copy(run_options)
             n = len(result.quasi_dists) // 2
             dists = [Counter() for _ in range(circuits[i].num_parameters)]
             for j, (idx, coeff) in enumerate(zip(result_indices_all[i], coeffs_all[i])):
@@ -142,5 +141,4 @@ class ParamShiftSamplerGradient(BaseSamplerGradient):
                     Counter({k: -v * coeff for k, v in result.quasi_dists[j + n].items()})
                 )
             gradients.append([QuasiDistribution(dist) for dist in dists])
-            metadata_.append(d)
-        return SamplerGradientResult(quasi_dists=gradients, metadata=metadata_)
+        return SamplerGradientResult(quasi_dists=gradients, metadata=metadata_, run_options=run_options)

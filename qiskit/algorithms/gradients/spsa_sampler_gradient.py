@@ -90,7 +90,6 @@ class SPSASamplerGradient(BaseSamplerGradient):
         results = [job.result() for job in jobs]
         gradients, metadata_ = [], []
         for i, result in enumerate(results):
-            d = copy(run_options)
             dists = [Counter() for _ in range(circuits[i].num_parameters)]
             for idx in result_indices_all[i]:
                 # plus
@@ -112,6 +111,5 @@ class SPSASamplerGradient(BaseSamplerGradient):
                     )
                 )
             gradients.append([QuasiDistribution(dist) for dist in dists])
-            metadata_.append(d)
 
-        return SamplerGradientResult(quasi_dists=gradients, metadata=metadata_)
+        return SamplerGradientResult(quasi_dists=gradients, metadata=metadata_, run_options=run_options)
