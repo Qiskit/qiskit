@@ -132,7 +132,7 @@ class SciPyImaginaryEvolver(ImaginaryEvolver, SciPyEvolver):
         hamiltonian = evolution_problem.hamiltonian.to_spmatrix()
         idnty = sp.identity(hamiltonian.shape[0], format="csr")
         timestep = evolution_problem.time / self.timesteps
-        ev_operator = idnty - hamiltonian * timestep + hamiltonian@hamiltonian * timestep**2 /2
+        ev_operator = idnty - hamiltonian * timestep + hamiltonian @ hamiltonian * timestep**2 / 2
         # Get the auxiliary operators as sparse matrices.
         if isinstance(evolution_problem.aux_operators, list):
             aux_ops = [aux_op.to_spmatrix() for aux_op in evolution_problem.aux_operators]
