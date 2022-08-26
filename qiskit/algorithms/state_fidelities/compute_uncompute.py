@@ -19,10 +19,10 @@ from typing import Sequence
 from qiskit import QuantumCircuit
 from qiskit.primitives import Sampler
 from qiskit.primitives.primitive_job import PrimitiveJob
-from .base_fidelity import BaseFidelity
-from .fidelity_result import FidelityResult
+from .base_state_fidelity import BaseStateFidelity
+from .state_fidelity_result import StateFidelityResult
 
-class Fidelity(BaseFidelity):
+class ComputeUncompute(BaseStateFidelity):
     """
     This class leverages the sampler primitive to calculate the fidelity of two quantum circuits
     with the compute-uncompute method.
@@ -30,7 +30,7 @@ class Fidelity(BaseFidelity):
 
     def __init__(self, sampler: Sampler, **run_options) -> None:
         r"""
-        Initializes the class to evaluate the fidelities defined as the state overlap
+        Initializes the class to evaluate the state_fidelities defined as the state overlap
 
             :math:`|\langle\psi(x)|\phi(y)\rangle|^2`,
 
@@ -66,7 +66,7 @@ class Fidelity(BaseFidelity):
         values_1: Sequence[Sequence[float]] | None = None,
         values_2: Sequence[Sequence[float]] | None = None,
         **run_options,
-    ) -> FidelityResult:
+    ) -> StateFidelityResult:
         r"""
         Compute the state overlap (fidelity) calculation between 2
         parametrized circuits (left and right) for a specific set of parameter
@@ -114,7 +114,7 @@ class Fidelity(BaseFidelity):
         # negative values in some way (e.g. clipping to zero)
         overlaps = [prob_dist.get(0, 0) for prob_dist in result.quasi_dists]
 
-        return FidelityResult(values=overlaps, metadata=run_options)
+        return StateFidelityResult(values=overlaps, metadata=run_options)
 
     def run(
         self,

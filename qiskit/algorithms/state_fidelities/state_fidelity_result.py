@@ -20,7 +20,7 @@ from dataclasses import dataclass
 
 
 @dataclass(frozen=True)
-class FidelityResult:
+class StateFidelityResult:
     """Result of Fidelity computation.
 
     Args:

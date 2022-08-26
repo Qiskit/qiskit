@@ -22,16 +22,16 @@ from qiskit import QuantumCircuit
 from qiskit.circuit import ParameterVector
 
 
-class BaseFidelity(ABC):
+class BaseStateFidelity(ABC):
     """
-    An interface to calculate fidelities (state overlaps) for pairs of
+    An interface to calculate state_fidelities (state overlaps) for pairs of
     (parametrized) quantum circuits.
     """
 
     def __init__(
         self,
     ) -> None:
-        """Initializes the class to evaluate fidelities."""
+        """Initializes the class to evaluate state_fidelities."""
 
         self._circuits: Sequence[QuantumCircuit] = []
         self._parameter_values: Sequence[Sequence[float]] = []

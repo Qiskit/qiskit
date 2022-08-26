@@ -18,13 +18,13 @@ import numpy as np
 
 from qiskit.circuit import QuantumCircuit, ParameterVector
 from qiskit.primitives import Sampler
-from qiskit.algorithms.fidelities import Fidelity
+from qiskit.algorithms.state_fidelities import ComputeUncompute
 from qiskit.test import QiskitTestCase
 from qiskit import QiskitError
 
 
-class TestFidelity(QiskitTestCase):
-    """Test Fidelity"""
+class TestComputeUncompute(QiskitTestCase):
+    """Test Compute-Uncompute Fidelity class"""
 
     def setUp(self):
         super().setUp()
@@ -51,7 +51,7 @@ class TestFidelity(QiskitTestCase):
 
     def test_1param_pair(self):
         """test for fidelity with one pair of parameters"""
-        fidelity = Fidelity(self._sampler)
+        fidelity = ComputeUncompute(self._sampler)
         job = fidelity.run(
             [self._circuit[0]], [self._circuit[1]], self._left_params[0], self._right_params[0]
         )
@@ -60,7 +60,7 @@ class TestFidelity(QiskitTestCase):
 
     def test_4param_pairs(self):
         """test for fidelity with four pairs of parameters"""
-        fidelity = Fidelity(self._sampler)
+        fidelity = ComputeUncompute(self._sampler)
         n = len(self._left_params)
         job = fidelity.run(
             [self._circuit[0]] * n, [self._circuit[1]] * n, self._left_params, self._right_params
@@ -70,7 +70,7 @@ class TestFidelity(QiskitTestCase):
 
     def test_symmetry(self):
         """test for fidelity with the same circuit"""
-        fidelity = Fidelity(self._sampler)
+        fidelity = ComputeUncompute(self._sampler)
         n = len(self._left_params)
         job_1 = fidelity.run(
             [self._circuit[0]] * n, [self._circuit[0]] * n, self._left_params, self._right_params
@@ -84,14 +84,14 @@ class TestFidelity(QiskitTestCase):
 
     def test_no_params(self):
         """test for fidelity without parameters"""
-        fidelity = Fidelity(self._sampler)
+        fidelity = ComputeUncompute(self._sampler)
         job = fidelity.run([self._circuit[2]], [self._circuit[3]])
         results = job.result()
         np.testing.assert_allclose(results.values, np.array([0.25]), atol=1e-16)
 
     def test_left_param(self):
         """test for fidelity with only left parameters"""
-        fidelity = Fidelity(self._sampler)
+        fidelity = ComputeUncompute(self._sampler)
         n = len(self._left_params)
         job = fidelity.run(
             [self._circuit[1]] * n, [self._circuit[3]] * n, values_1=self._left_params
@@ -101,7 +101,7 @@ class TestFidelity(QiskitTestCase):
 
     def test_right_param(self):
         """test for fidelity with only right parameters"""
-        fidelity = Fidelity(self._sampler)
+        fidelity = ComputeUncompute(self._sampler)
         n = len(self._left_params)
         job = fidelity.run(
             [self._circuit[3]] * n, [self._circuit[1]] * n, values_2=self._left_params
@@ -111,7 +111,7 @@ class TestFidelity(QiskitTestCase):
 
     def test_not_set_circuits(self):
         """test for fidelity with no circuits."""
-        fidelity = Fidelity(self._sampler)
+        fidelity = ComputeUncompute(self._sampler)
         with self.assertRaises(TypeError):
             job = fidelity.run(
                 circuits_1=None,
@@ -123,7 +123,7 @@ class TestFidelity(QiskitTestCase):
 
     def test_circuit_mismatch(self):
         """test for fidelity with different number of left/right circuits."""
-        fidelity = Fidelity(self._sampler)
+        fidelity = ComputeUncompute(self._sampler)
         n = len(self._left_params)
         with self.assertRaises(ValueError):
             job = fidelity.run(
@@ -137,7 +137,7 @@ class TestFidelity(QiskitTestCase):
     def test_param_mismatch(self):
         """test for fidelity with different number of left/right parameters."""
 
-        fidelity = Fidelity(self._sampler)
+        fidelity = ComputeUncompute(self._sampler)
         n = len(self._left_params)
         with self.assertRaises(QiskitError):
             job = fidelity.run(
@@ -164,7 +164,7 @@ class TestFidelity(QiskitTestCase):
     def test_async_join(self):
         """test for run method using join."""
 
-        fidelity = Fidelity(self._sampler)
+        fidelity = ComputeUncompute(self._sampler)
         jobs = []
         for left_param, right_param in zip(self._left_params, self._right_params):
             job = fidelity.run([self._circuit[0]], [self._circuit[1]], left_param, right_param)

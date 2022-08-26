@@ -11,26 +11,26 @@
 # that they have been altered from the originals.
 """
 =====================================
-Fidelity Interfaces (:mod:`qiskit.algorithms.fidelities`)
+State Fidelity Interfaces (:mod:`qiskit.algorithms.state_fidelities`)
 =====================================
-.. currentmodule:: qiskit.algorithms.fidelities
+.. currentmodule:: qiskit.algorithms.state_fidelities
 
-Fidelity
+State Fidelities
 =========
 .. autosummary::
    :toctree: ../stubs/
-   BaseFidelity
-   Fidelity
+   BaseStateFidelity
+   ComputeUncompute
 
 Results
 =======
  .. autosummary::
     :toctree: ../stubs/
-    Fidelity
+    StateFidelityResult
 """
 
-from .base_fidelity import BaseFidelity
-from .fidelity import Fidelity
-from .fidelity_result import FidelityResult
+from .base_state_fidelity import BaseStateFidelity
+from .compute_uncompute import ComputeUncompute
+from .state_fidelity_result import StateFidelityResult
 
-__all__ = ["BaseFidelity", "Fidelity", "FidelityResult"]
+__all__ = ["BaseStateFidelity", "ComputeUncompute", "StateFidelityResult"]
