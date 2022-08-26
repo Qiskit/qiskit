@@ -16,6 +16,7 @@ Gradient of probabilities with linear combination of unitaries (LCU)
 from __future__ import annotations
 
 from collections import Counter
+from copy import copy
 from typing import Sequence
 
 from qiskit.circuit import Parameter, ParameterExpression, QuantumCircuit
@@ -103,8 +104,9 @@ class LinCombSamplerGradient(BaseSamplerGradient):
 
         # combine the results
         results = [job.result() for job in jobs]
-        gradients = []
+        gradients, metadata_ = [], []
         for i, result in enumerate(results):
+            d = copy(run_options)
             dists = [Counter() for _ in range(circuits[i].num_parameters)]
             num_bitstrings = 2 ** circuits[i].num_qubits
             for grad_quasi_, idx, coeff in zip(
@@ -114,5 +116,5 @@ class LinCombSamplerGradient(BaseSamplerGradient):
                     sign, k = divmod(k_, num_bitstrings)
                     dists[idx][k] += (-1) ** sign * coeff * v
             gradients.append([QuasiDistribution(dist) for dist in dists])
-
-        return SamplerGradientResult(quasi_dists=gradients, metadata=run_options)
+            metadata_.append(d)
+        return SamplerGradientResult(quasi_dists=gradients, metadata=metadata_)

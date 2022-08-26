@@ -14,6 +14,7 @@
 
 from __future__ import annotations
 
+from copy import copy
 from collections import Counter
 from typing import Sequence
 
@@ -79,8 +80,9 @@ class FiniteDiffSamplerGradient(BaseSamplerGradient):
 
         # combine the results
         results = [job.result() for job in jobs]
-        gradients = []
+        gradients, metadata_ = [], []
         for i, result in enumerate(results):
+            d = copy(run_options)
             n = len(result.quasi_dists) // 2
             dists = [Counter() for _ in range(circuits[i].num_parameters)]
             for j, idx in enumerate(result_indices_all[i]):
@@ -99,4 +101,5 @@ class FiniteDiffSamplerGradient(BaseSamplerGradient):
                 )
 
             gradients.append([QuasiDistribution(dist) for dist in dists])
-        return SamplerGradientResult(quasi_dists=gradients, metadata=run_options)
+            metadata_.append(d)
+        return SamplerGradientResult(quasi_dists=gradients, metadata=metadata_)

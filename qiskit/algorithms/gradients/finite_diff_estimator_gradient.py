@@ -14,6 +14,7 @@
 
 from __future__ import annotations
 
+from copy import copy
 from typing import Sequence
 
 import numpy as np
@@ -81,13 +82,17 @@ class FiniteDiffEstimatorGradient(BaseEstimatorGradient):
 
         # combine the results
         results = [job.result() for job in jobs]
-        gradients = []
+        gradients, metadata_ = [], []
         for i, result in enumerate(results):
+            d = copy(run_options)
             n = len(result.values) // 2  # is always a multiple of 2
             gradient_ = (result.values[:n] - result.values[n:]) / (2 * self._epsilon)
             indices = result_indices_all[i]
             gradient = np.zeros(circuits[i].num_parameters)
             gradient[indices] = gradient_
             gradients.append(gradient)
+            d['gradient_variance'] = np.var(gradient_)
+            metadata_.append(d)
 
-        return EstimatorGradientResult(values=gradients, metadata=run_options)
+
+        return EstimatorGradientResult(values=gradients, metadata=metadata_)

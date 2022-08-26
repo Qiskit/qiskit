@@ -14,9 +14,10 @@
 
 from __future__ import annotations
 
-from collections import Counter
-from typing import Sequence
 import random
+from collections import Counter
+from copy import copy
+from typing import Sequence
 
 import numpy as np
 
@@ -87,8 +88,9 @@ class SPSASamplerGradient(BaseSamplerGradient):
 
         # combine the results
         results = [job.result() for job in jobs]
-        gradients = []
+        gradients, metadata_ = [], []
         for i, result in enumerate(results):
+            d = copy(run_options)
             dists = [Counter() for _ in range(circuits[i].num_parameters)]
             for idx in result_indices_all[i]:
                 # plus
@@ -110,5 +112,6 @@ class SPSASamplerGradient(BaseSamplerGradient):
                     )
                 )
             gradients.append([QuasiDistribution(dist) for dist in dists])
+            metadata_.append(d)
 
-        return SamplerGradientResult(quasi_dists=gradients, metadata=run_options)
+        return SamplerGradientResult(quasi_dists=gradients, metadata=metadata_)
