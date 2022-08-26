@@ -357,7 +357,7 @@ class Z2Symmetries:
         return cls(pauli_symmetries, sq_paulis, sq_list, None)
 
     def convert_clifford(self, operator: PauliSumOp) -> OperatorBase:
-        """ This method operates the first part of the tapering.
+        """This method operates the first part of the tapering.
         It converts the operator by composing it with the clifford unitaries defined in the current
         symmetry.
 
@@ -368,15 +368,14 @@ class Z2Symmetries:
             :class`PauliSumOp` corresponding to the converted operator.
 
         """
-
         if not operator.is_zero():
             for clifford in self.cliffords:
                 operator = cast(PauliSumOp, clifford @ operator @ clifford)
-                operator = operator.reduce()
+                operator = operator.reduce(atol=0)
         return operator
 
     def taper_clifford(self, operator: PauliSumOp) -> OperatorBase:
-        """ This method operates the second part of the tapering.
+        """This method operates the second part of the tapering.
         This function assumes that the input operators have already been transformed using
         :meth:`convert_clifford`. The redundant qubits due to the symmetries are dropped and
         replaced by their two possible eigenvalues.
@@ -389,7 +388,6 @@ class Z2Symmetries:
         Returns:
             If tapering_values is None: [:class`PauliSumOp`]; otherwise, :class:`PauliSumOp`
         """
-
         # If the operator is zero then we can skip the following. We still need to taper the
         # operator to reduce its size i.e. the number of qubits so for example 0*"IIII" could
         # taper to 0*"II" when symmetries remove two qubits.
