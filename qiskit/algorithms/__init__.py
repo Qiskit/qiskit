@@ -290,7 +290,6 @@ __all__ = [
     "RealEvolver",
     "ImaginaryEvolver",
     "TrotterQRTE",
-    "SciPyImaginaryEvolver",
     "VarQITE",
     "VarQRTE",
     "EvolutionResult",
