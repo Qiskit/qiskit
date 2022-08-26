@@ -26,7 +26,7 @@ Results
 =======
  .. autosummary::
     :toctree: ../stubs/
-    Fidelity
+    FidelityResult
 """
 
 from .base_fidelity import BaseFidelity
