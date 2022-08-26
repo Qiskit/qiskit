@@ -44,13 +44,17 @@ Steppable Optimizer Base Class
 
 .. autosummary::
    :toctree: ../stubs/
+
+   optimizer_utils
+
+.. autosummary::
+   :toctree: ../stubs/
    :nosignatures:
 
    SteppableOptimizer
    AskData
    TellData
    OptimizerState
-   LearningRate
 
 
 
@@ -138,7 +142,6 @@ from .nlopts.esch import ESCH
 from .nlopts.isres import ISRES
 from .steppable_optimizer import SteppableOptimizer, AskData, TellData, OptimizerState
 from .optimizer import Minimizer, Optimizer, OptimizerResult, OptimizerSupportLevel
-from .utils.learning_rate import LearningRate
 from .p_bfgs import P_BFGS
 from .powell import POWELL
 from .qnspsa import QNSPSA
@@ -152,21 +155,12 @@ from .umda import UMDA
 __all__ = [
     "Optimizer",
     "OptimizerSupportLevel",
-<<<<<<< .merge_file_CahvVV
     "SteppableOptimizer",
     "AskData",
     "TellData",
     "OptimizerState",
-<<<<<<< HEAD
-    "LearningRate",
-=======
     "OptimizerResult",
     "Minimizer",
->>>>>>> .merge_file_BmcFTt
-=======
-    "OptimizerResult",
-    "Minimizer",
->>>>>>> 0b1743806e9f56a651e09f190627105637f7cd5c
     "ADAM",
     "AQGD",
     "CG",

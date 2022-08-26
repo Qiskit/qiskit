@@ -17,7 +17,7 @@ from typing import Dict, Any, Union, Callable, Optional, Tuple, List, Iterator
 import numpy as np
 from .optimizer import Optimizer, OptimizerSupportLevel, OptimizerResult, POINT
 from .steppable_optimizer import AskData, TellData, OptimizerState, SteppableOptimizer
-from .utils.learning_rate import LearningRate
+from .optimizer_utils import LearningRate
 
 CALLBACK = Callable[[int, np.ndarray, float, float], None]
 
@@ -39,6 +39,7 @@ class GradientDescentState(OptimizerState):
     next step) but it can also return  the current learning rate with ``learning_rate.current``.
 
     """
+
 
 class GradientDescent(SteppableOptimizer):
     r"""The gradient descent minimization routine.

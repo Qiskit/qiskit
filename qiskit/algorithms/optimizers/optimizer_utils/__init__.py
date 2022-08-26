@@ -9,7 +9,18 @@
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
-"""Utils for optimizers"""
+"""Utils for optimizers
+
+Optimizer Utils (:mod:`qiskit.algorithms.optimizers.optimizer_utils`)
+=====================================================================
+
+.. autosummary::
+   :toctree: ../stubs/
+   :nosignatures:
+
+   LearningRate
+
+"""
 
 from .learning_rate import LearningRate
 
