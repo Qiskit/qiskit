@@ -21,7 +21,6 @@ from __future__ import annotations
 from collections import defaultdict
 from copy import deepcopy
 from dataclasses import dataclass
-import random
 from typing import Dict, List
 
 import numpy as np
@@ -59,8 +58,6 @@ class ParameterShiftGradientCircuitData:
         gradient_circuit (QuantumCircuit): An internal quantum circuit used to calculate the gradient
         gradient_parameter_map (dict): A dictionary maps the parameters of ``circuit`` to
             the parameters of ``gradient_circuit``.
-        gradient_parameter_index_map (dict): A dictionary maps the parameters of ``gradient_circuit``
-            to their index.
         gradient_virtual_parameter_map (dict): A dictionary maps the parameters of ``gradient_circuit``
             to the virtual parameter variables. A virtual parameter variable is added if a parameter
             expression has more than one parameter.
@@ -71,7 +68,6 @@ class ParameterShiftGradientCircuitData:
     circuit: QuantumCircuit
     gradient_circuit: QuantumCircuit
     gradient_parameter_map: Dict[Parameter, Parameter]
-    gradient_parameter_index_map: Dict[Parameter, int]
     gradient_virtual_parameter_map: Dict[Parameter, Parameter]
     coeff_map: Dict[Parameter, float | ParameterExpression]
 
@@ -168,10 +164,6 @@ def make_param_shift_gradient_circuit_data(
                 new_parameter_variable = Parameter(f"g{parameter_variable.name}_1")
             subs_map[parameter_variable] = new_parameter_variable
         g_circuit.global_phase = g_circuit.global_phase.subs(subs_map)
-    g_parameter_index_map = {}
-
-    for i, g_param in enumerate(g_circuit.parameters):
-        g_parameter_index_map[g_param] = i
 
     return ParameterShiftGradientCircuitData(
         circuit=circuit2,
@@ -179,7 +171,6 @@ def make_param_shift_gradient_circuit_data(
         gradient_virtual_parameter_map=g_virtual_parameter_map,
         gradient_parameter_map=g_parameter_map,
         coeff_map=coeff_map,
-        gradient_parameter_index_map=g_parameter_index_map,
     )
 
 
@@ -196,50 +187,21 @@ def make_param_shift_base_parameter_values(
         The base parameter values for the parameter shift method.
     """
     # Make internal parameter values for the parameter shift
-    num_g_parameters = len(gradient_circuit_data.gradient_circuit.parameters)
-    base_parameter_values = []
+    g_parameters = gradient_circuit_data.gradient_circuit.parameters
+    plus_offsets = []
+    minus_offsets = []
     # Make base decomposed parameter values for each original parameter
-    for param in gradient_circuit_data.circuit.parameters:
-        for g_param in gradient_circuit_data.gradient_parameter_map[param]:
-            # use the related virtual parameter if it exists
-            if g_param in gradient_circuit_data.gradient_virtual_parameter_map:
-                g_param = gradient_circuit_data.gradient_virtual_parameter_map[g_param]
-            g_param_idx = gradient_circuit_data.gradient_parameter_index_map[g_param]
-            # for + pi/2 in the parameter shift rule
-            parameter_values_plus = np.zeros(num_g_parameters)
-            parameter_values_plus[g_param_idx] += np.pi / 2
-            base_parameter_values.append(parameter_values_plus)
-            # for - pi/2 in the parameter shift rule
-            parameter_values_minus = np.zeros(num_g_parameters)
-            parameter_values_minus[g_param_idx] -= np.pi / 2
-            base_parameter_values.append(parameter_values_minus)
-    return base_parameter_values
-
-
-def make_fin_diff_base_parameter_values(
-    circuit: QuantumCircuit, epsilon: float = 1e-6
-) -> List[np.ndarray]:
-    """Makes base parameter values for the finite difference method. Each base parameter value will
-        be added to the given parameter values in later calculations.
-
-    Args:
-        circuit: circuit for the base parameter values.
-        epsilon: The offset size for the finite difference gradients.
-
-    Returns:
-        List: The base parameter values for the finite difference method.
-    """
-    base_parameter_values = []
-    # Make base decomposed parameter values for each original parameter
-    for i, _ in enumerate(circuit.parameters):
-        parameter_values_plus = np.zeros(len(circuit.parameters))
-        parameter_values_plus[i] += epsilon
-        base_parameter_values.append(parameter_values_plus)
-        # for - epsilon in the finite diff
-        parameter_values_minus = np.zeros(len(circuit.parameters))
-        parameter_values_minus[i] -= epsilon
-        base_parameter_values.append(parameter_values_minus)
-    return base_parameter_values
+    for g_param in g_parameters:
+        if g_param in gradient_circuit_data.gradient_virtual_parameter_map:
+            g_param = gradient_circuit_data.gradient_virtual_parameter_map[g_param]
+        idx = g_parameters.data.index(g_param)
+        plus = np.zeros(len(g_parameters))
+        plus[idx] += np.pi / 2
+        minus = np.zeros(len(g_parameters))
+        minus[idx] -= np.pi / 2
+        plus_offsets.append(plus)
+        minus_offsets.append(minus)
+    return plus_offsets + minus_offsets
 
 
 @dataclass
@@ -361,29 +323,3 @@ def _gate_gradient(gate: Gate) -> Instruction:
         czx = czx_circ.to_instruction()
         return czx
     raise TypeError(f"Unrecognized parameterized gate, {gate}")
-
-
-def make_spsa_base_parameter_values(
-    circuit: QuantumCircuit, epsilon: float = 1e-6
-) -> List[np.ndarray]:
-    """Makes base parameter values for the SPSA. Each base parameter value will
-        be added to the given parameter values in later calculations.
-
-    Args:
-        circuit: circuit for the base parameter values.
-        epsilon: The offset size for the finite difference gradients.
-
-    Returns:
-        List: The base parameter values for the SPSA.
-    """
-
-    base_parameter_values = []
-    # Make a perturbation vector
-    parameter_values_plus = np.array(
-        [(-1) ** (random.randint(0, 1)) for _ in range(len(circuit.parameters))]
-    )
-    parameter_values_plus = epsilon * parameter_values_plus
-    parameter_values_minus = -parameter_values_plus
-    base_parameter_values.append(parameter_values_plus)
-    base_parameter_values.append(parameter_values_minus)
-    return base_parameter_values

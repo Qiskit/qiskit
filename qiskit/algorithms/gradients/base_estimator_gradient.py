@@ -17,13 +17,14 @@ Abstract Base class of Gradient for Estimator.
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
-from collections.abc import Sequence, Mapping
+from collections.abc import Sequence
 from copy import copy
 
 from qiskit.circuit import Parameter, QuantumCircuit
 from qiskit.exceptions import QiskitError
 from qiskit.opflow import PauliSumOp
 from qiskit.primitives import BaseEstimator
+from qiskit.primitives.primitive_job import PrimitiveJob
 from qiskit.quantum_info.operators.base_operator import BaseOperator
 
 from .estimator_gradient_result import EstimatorGradientResult
@@ -45,15 +46,9 @@ class BaseEstimatorGradient(ABC):
                 setting. Higher priority setting overrides lower priority setting.
         """
         self._estimator: BaseEstimator = estimator
-        self._circuits: Sequence[QuantumCircuit] | None = None
-        if self._circuits is None:
-            self._circuits = []
-        self._circuit_ids: Mapping[int, int] | None = None
-        if self._circuit_ids is None:
-            self._circuit_ids = {}
         self._default_run_options = run_options
 
-    def evaluate(
+    def run(
         self,
         circuits: Sequence[QuantumCircuit],
         observables: Sequence[BaseOperator | PauliSumOp],
@@ -61,7 +56,7 @@ class BaseEstimatorGradient(ABC):
         parameters: Sequence[Sequence[Parameter] | None] | None = None,
         **run_options,
     ) -> EstimatorGradientResult:
-        """Run the job of the gradients of expectation values.
+        """Run the job of the estimator gradient on the given circuits.
 
         Args:
             circuits: The list of quantum circuits to compute the gradients.
@@ -78,6 +73,52 @@ class BaseEstimatorGradient(ABC):
         Returns:
             The job object of the gradients of the expectation values. The i-th result corresponds to
             ``circuits[i]`` evaluated with parameters bound as ``parameter_values[i]``.
+
+        Raises:
+            QiskitError: Invalid arguments are given.
+        """
+        # Validate the arguments.
+        self._validate_arguments(circuits, observables, parameter_values, parameters)
+        # The priority of run option is as follows:
+        # run_options in `run` method > gradient's default run_options > primitive's default setting.
+        run_opts = copy(self._default_run_options)
+        run_opts.update(**run_options)
+
+        job = PrimitiveJob(
+            self._run, circuits, observables, parameter_values, parameters, **run_opts
+        )
+        job.submit()
+        return job
+
+    @abstractmethod
+    def _run(
+        self,
+        circuits: Sequence[QuantumCircuit],
+        observables: Sequence[BaseOperator | PauliSumOp],
+        parameter_values: Sequence[Sequence[float]],
+        parameters: Sequence[Sequence[Parameter]] | None = None,
+        **run_options,
+    ) -> EstimatorGradientResult:
+        """Compute the estimator gradients on the given circuits."""
+        raise NotImplementedError()
+
+    def _validate_arguments(
+        self,
+        circuits: Sequence[QuantumCircuit],
+        observables: Sequence[BaseOperator | PauliSumOp],
+        parameter_values: Sequence[Sequence[float]],
+        parameters: Sequence[Sequence[Parameter]] | None = None,
+    ) -> None:
+        """Validate the arguments of the `evaluate` method.
+
+        Args:
+            circuits: The list of quantum circuits to compute the gradients.
+            observables: The list of observables.
+            parameter_values: The list of parameter values to be bound to the circuit.
+            parameters: The Sequence of Sequence of Parameters to calculate only the gradients of
+                the specified parameters. Each Sequence of Parameters corresponds to a circuit in
+                `circuits`. Defaults to None, which means that the gradients of all parameters in
+                each circuit are calculated.
 
         Raises:
             QiskitError: Invalid arguments are given.
@@ -116,20 +157,3 @@ class BaseEstimatorGradient(ABC):
                     f"not match the number of qubits of the {i}-th observable "
                     f"({observable.num_qubits})."
                 )
-
-        # The priority of run option is as follows:
-        # run_options in `run` method > gradient's default run_options > primitive's default setting.
-        run_opts = copy(self._default_run_options)
-        run_opts.update(**run_options)
-        return self._evaluate(circuits, observables, parameter_values, parameters, **run_opts)
-
-    @abstractmethod
-    def _evaluate(
-        self,
-        circuits: Sequence[QuantumCircuit],
-        observables: Sequence[BaseOperator | PauliSumOp],
-        parameter_values: Sequence[Sequence[float]],
-        parameters: Sequence[Sequence[Parameter]] | None = None,
-        **run_options,
-    ) -> EstimatorGradientResult:
-        raise NotImplementedError()

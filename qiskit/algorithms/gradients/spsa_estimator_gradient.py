@@ -26,18 +26,18 @@ from qiskit.quantum_info.operators.base_operator import BaseOperator
 
 from .base_estimator_gradient import BaseEstimatorGradient
 from .estimator_gradient_result import EstimatorGradientResult
-from .utils import make_spsa_base_parameter_values
 
 
 class SPSAEstimatorGradient(BaseEstimatorGradient):
     """
-    Gradient of Estimator with the Simultaneous Perturbation Stochastic Approximation (SPSA).
+    Compute the gradients of the expectation value by the Simultaneous Perturbation Stochastic
+    Approximation (SPSA).
     """
 
     def __init__(
         self,
         estimator: BaseEstimator,
-        epsilon: float = 1e-6,
+        epsilon: float = 1e-2,
         seed: int | None = None,
         **run_options,
     ):
@@ -54,7 +54,7 @@ class SPSAEstimatorGradient(BaseEstimatorGradient):
 
         super().__init__(estimator, **run_options)
 
-    def _evaluate(
+    def _run(
         self,
         circuits: Sequence[QuantumCircuit],
         observables: Sequence[BaseOperator | PauliSumOp],
@@ -62,42 +62,40 @@ class SPSAEstimatorGradient(BaseEstimatorGradient):
         parameters: Sequence[Sequence[Parameter] | None] | None = None,
         **run_options,
     ) -> EstimatorGradientResult:
-        parameters = parameters or [None for _ in range(len(circuits))]
-        gradients = []
+        """Compute the estimator gradients on the given circuits."""
+        # if parameters is none, all parameters in each circuit are differentiated.
+        if parameters is None:
+            parameters = [None for _ in range(len(circuits))]
+
+        jobs, result_indices_all, offsets = [], [], []
         for circuit, observable, parameter_values_, parameters_ in zip(
             circuits, observables, parameter_values, parameters
         ):
+            # indices of parameters to be differentiated
+            if parameters_ is None:
+                indices = list(range(circuit.num_parameters))
+            else:
+                indices = [circuit.parameters.data.index(p) for p in parameters_]
+            result_indices_all.append(indices)
 
-            base_parameter_values_list = make_spsa_base_parameter_values(circuit, self._epsilon)
-            circuit_parameters = circuit.parameters
-            gradient_parameter_values = np.zeros(len(circuit_parameters))
-
-            # a parameter set for the parameter option
-            parameters = parameters_ or circuit_parameters
-            param_set = set(parameters)
-
-            gradient_parameter_values = np.array(parameter_values_)
-            # add the given parameter values and the base parameter values
-            gradient_parameter_values_list = [
-                gradient_parameter_values + base_parameter_values
-                for base_parameter_values in base_parameter_values_list
-            ]
-            gradient_circuits = [circuit] * len(gradient_parameter_values_list)
-            observable_list = [observable] * len(gradient_parameter_values_list)
-            job = self._estimator.run(
-                gradient_circuits, observable_list, gradient_parameter_values_list, **run_options
+            offset = np.array(
+                [(-1) ** (random.randint(0, 1)) for _ in range(len(circuit.parameters))]
             )
-            results = job.result()
-            # Combines the results and coefficients to reconstruct the gradient
-            # for the original circuit parameters
-            values = np.zeros(len(parameter_values_))
-            for i, param in enumerate(circuit_parameters):
-                if param not in param_set:
-                    continue
-                # plus
-                values[i] += results.values[0] / (2 * base_parameter_values_list[0][i])
-                # minus
-                values[i] -= results.values[1] / (2 * base_parameter_values_list[0][i])
+            plus = parameter_values_ + self._epsilon * offset
+            minus = parameter_values_ - self._epsilon * offset
+            offsets.append(offset)
 
-            gradients.append(values)
+            job = self._estimator.run([circuit] * 2, [observable] * 2, [plus, minus], **run_options)
+            jobs.append(job)
+
+        # combine the results
+        results = [job.result() for job in jobs]
+        gradients = []
+        for i, result in enumerate(results):
+            n = len(result.values) // 2  # is always a multiple of 2
+            gradient_ = (result.values[:n] - result.values[n:]) / (2 * self._epsilon * offsets[i])
+            indices = result_indices_all[i]
+            gradient = np.zeros(circuits[i].num_parameters)
+            gradient[indices] = gradient_[indices]
+            gradients.append(gradient)
         return EstimatorGradientResult(values=gradients, metadata=run_options)

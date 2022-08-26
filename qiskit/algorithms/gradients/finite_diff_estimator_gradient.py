@@ -25,15 +25,14 @@ from qiskit.quantum_info.operators.base_operator import BaseOperator
 
 from .base_estimator_gradient import BaseEstimatorGradient
 from .estimator_gradient_result import EstimatorGradientResult
-from .utils import make_fin_diff_base_parameter_values
 
 
 class FiniteDiffEstimatorGradient(BaseEstimatorGradient):
     """
-    Gradient of Estimator with Finite difference method.
+    Compute the gradients of the expectation values by finite difference method.
     """
 
-    def __init__(self, estimator: BaseEstimator, epsilon: float = 1e-6, **run_options):
+    def __init__(self, estimator: BaseEstimator, epsilon: float = 1e-2, **run_options):
         """
         Args:
             estimator: The estimator used to compute the gradients.
@@ -43,12 +42,10 @@ class FiniteDiffEstimatorGradient(BaseEstimatorGradient):
                 setting. Higher priority setting overrides lower priority setting.
         """
         self._epsilon = epsilon
-        self._base_parameter_values_dict = None
-        if self._base_parameter_values_dict is None:
-            self._base_parameter_values_dict = {}
+        self._base_parameter_values_dict = {}
         super().__init__(estimator, **run_options)
 
-    def _evaluate(
+    def _run(
         self,
         circuits: Sequence[QuantumCircuit],
         observables: Sequence[BaseOperator | PauliSumOp],
@@ -56,70 +53,41 @@ class FiniteDiffEstimatorGradient(BaseEstimatorGradient):
         parameters: Sequence[Sequence[Parameter] | None] | None = None,
         **run_options,
     ) -> EstimatorGradientResult:
-        parameters = parameters or [None for _ in range(len(circuits))]
-        gradients = []
+        """Compute the estimator gradients on the given circuits."""
+        # if parameters is none, all parameters in each circuit are differentiated.
+        if parameters is None:
+            parameters = [None for _ in range(len(circuits))]
+
+        jobs, result_indices_all = [], []
         for circuit, observable, parameter_values_, parameters_ in zip(
             circuits, observables, parameter_values, parameters
         ):
-            index = self._circuit_ids.get(id(circuit))
-            if index is not None:
-                circuit_index = index
+            # indices of parameters to be differentiated
+            if parameters_ is None:
+                indices = list(range(circuit.num_parameters))
             else:
-                # if the given circuit is  a new one, make base parameter values for + and - epsilon
-                circuit_index = len(self._circuits)
-                self._circuit_ids[id(circuit)] = circuit_index
-                self._base_parameter_values_dict[
-                    circuit_index
-                ] = make_fin_diff_base_parameter_values(circuit, self._epsilon)
-                self._circuits.append(circuit)
+                indices = [circuit.parameters.data.index(p) for p in parameters_]
+            result_indices_all.append(indices)
 
-            circuit_parameters = self._circuits[circuit_index].parameters
-            base_parameter_values_list = []
-            gradient_parameter_values = np.zeros(len(circuit_parameters))
-
-            # a parameter set for the parameter option
-            parameters = parameters_ or circuit_parameters
-            param_set = set(parameters)
-
-            result_index = 0
-            result_index_map = {}
-            # bring the base parameter values for parameters only in the specified parameter set.
-            for i, param in enumerate(circuit_parameters):
-                gradient_parameter_values[i] = parameter_values_[i]
-                if param in param_set:
-                    base_parameter_values_list.append(
-                        self._base_parameter_values_dict[circuit_index][i * 2]
-                    )
-                    base_parameter_values_list.append(
-                        self._base_parameter_values_dict[circuit_index][i * 2 + 1]
-                    )
-                    result_index_map[param] = result_index
-                    result_index += 1
-            # add the given parameter values and the base parameter values
-            gradient_parameter_values_list = [
-                gradient_parameter_values + base_parameter_values
-                for base_parameter_values in base_parameter_values_list
-            ]
-            gradient_circuits = [self._circuits[circuit_index]] * len(
-                gradient_parameter_values_list
-            )
-            observable_list = [observable] * len(gradient_parameter_values_list)
+            offset = np.identity(circuit.num_parameters)[indices, :]
+            plus = parameter_values_ + self._epsilon * offset
+            minus = parameter_values_ - self._epsilon * offset
+            n = 2 * len(indices)
 
             job = self._estimator.run(
-                gradient_circuits, observable_list, gradient_parameter_values_list, **run_options
+                [circuit] * n, [observable] * n, plus.tolist() + minus.tolist(), **run_options
             )
-            results = job.result()
+            jobs.append(job)
 
-            # Combines the results and coefficients to reconstruct the gradient
-            # for the original circuit parameters
-            values = np.zeros(len(parameter_values_))
-            for i, param in enumerate(circuit_parameters):
-                if param not in param_set:
-                    continue
-                # plus
-                values[i] += results.values[result_index_map[param] * 2] / (2 * self._epsilon)
-                # minus
-                values[i] -= results.values[result_index_map[param] * 2 + 1] / (2 * self._epsilon)
+        # combine the results
+        results = [job.result() for job in jobs]
+        gradients = []
+        for i, result in enumerate(results):
+            n = len(result.values) // 2  # is always a multiple of 2
+            gradient_ = (result.values[:n] - result.values[n:]) / (2 * self._epsilon)
+            indices = result_indices_all[i]
+            gradient = np.zeros(circuits[i].num_parameters)
+            gradient[indices] = gradient_
+            gradients.append(gradient)
 
-            gradients.append(values)
         return EstimatorGradientResult(values=gradients, metadata=run_options)

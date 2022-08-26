@@ -17,12 +17,13 @@ Abstract Base class of Gradient for Sampler.
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
-from collections.abc import Sequence, Mapping
+from collections.abc import Sequence
 from copy import copy
 
 from qiskit.circuit import QuantumCircuit, Parameter
 from qiskit.exceptions import QiskitError
 from qiskit.primitives import BaseSampler
+from qiskit.primitives.primitive_job import PrimitiveJob
 from .sampler_gradient_result import SamplerGradientResult
 
 
@@ -38,22 +39,16 @@ class BaseSamplerGradient(ABC):
                 setting. Higher priority setting overrides lower priority setting.
         """
         self._sampler: BaseSampler = sampler
-        self._circuits: Sequence[QuantumCircuit] | None = None
-        if self._circuits is None:
-            self._circuits = []
-        self._circuit_ids: Mapping[int, int] | None = None
-        if self._circuit_ids is None:
-            self._circuit_ids = {}
         self._default_run_options = run_options
 
-    def evaluate(
+    def run(
         self,
         circuits: Sequence[QuantumCircuit],
         parameter_values: Sequence[Sequence[float]],
         parameters: Sequence[Sequence[Parameter] | None] | None = None,
         **run_options,
     ) -> SamplerGradientResult:
-        """Run the job of the gradients of the sampling probability.
+        """Run the job of the sampler gradient on the given circuits.
 
         Args:
             circuits: The list of quantum circuits to compute the gradients.
@@ -67,15 +62,56 @@ class BaseSamplerGradient(ABC):
                 setting. Higher priority setting overrides lower priority setting.
 
         Returns:
-            The job object of the gradients of the sampling probability. The i-th result corresponds to
-            ``circuits[i]`` evaluated with parameters bound as ``parameter_values[i]``. The j-th
-            quasi-probability distribution in the i-th result corresponds to the gradients of the
-            sampling probability for the j-th parameter in ``circuits[i]``.
+            Primitive job contains the gradients of the sampling probability. The i-th result
+            corresponds to ``circuits[i]`` evaluated with parameters bound as ``parameter_values[i]``.
+            The j-th quasi-probability distribution in the i-th result corresponds to the gradients of
+            the sampling probability for the j-th parameter in ``circuits[i]``.
 
         Raises:
             QiskitError: Invalid arguments are given.
         """
-        # Validation
+
+        # Validate the arguments.
+        self._validate_arguments(circuits, parameter_values, parameters)
+        # The priority of run option is as follows:
+        # run_options in `run` method > gradient's default run_options > primitive's default run_options.
+        run_opts = copy(self._default_run_options)
+        run_opts.update(**run_options)
+        job = PrimitiveJob(self._run, circuits, parameter_values, parameters, **run_opts)
+        job.submit()
+        return job
+
+    @abstractmethod
+    def _run(
+        self,
+        circuits: Sequence[QuantumCircuit],
+        parameter_values: Sequence[Sequence[float]],
+        parameters: Sequence[Sequence[Parameter]] | None = None,
+        **run_options,
+    ) -> SamplerGradientResult:
+        """Compute the sampler gradients on the given circuits."""
+        raise NotImplementedError()
+
+    def _validate_arguments(
+        self,
+        circuits: Sequence[QuantumCircuit],
+        parameter_values: Sequence[Sequence[float]],
+        parameters: Sequence[Sequence[Parameter] | None] | None = None,
+    ):
+        """Validate the arguments of the `evaluate` method.
+
+        Args:
+            circuits: The list of quantum circuits to compute the gradients.
+            parameter_values: The list of parameter values to be bound to the circuit.
+            parameters: The Sequence of Sequence of Parameters to calculate only the gradients of
+                the specified parameters. Each Sequence of Parameters corresponds to a circuit in
+                `circuits`. Defaults to None, which means that the gradients of all parameters in
+                each circuit are calculated.
+
+        Raises:
+            QiskitError: Invalid arguments are given.
+        """
+        # Validate the arguments.
         if len(circuits) != len(parameter_values):
             raise QiskitError(
                 f"The number of circuits ({len(circuits)}) does not match "
@@ -94,19 +130,3 @@ class BaseSamplerGradient(ABC):
                     f"The number of values ({len(parameter_value)}) does not match "
                     f"the number of parameters ({circuit.num_parameters}) for the {i}-th circuit."
                 )
-
-        # The priority of run option is as follows:
-        # run_options in `run` method > gradient's default run_options > primitive's default run_options.
-        run_opts = copy(self._default_run_options)
-        run_opts.update(**run_options)
-        return self._evaluate(circuits, parameter_values, parameters, **run_opts)
-
-    @abstractmethod
-    def _evaluate(
-        self,
-        circuits: Sequence[QuantumCircuit],
-        parameter_values: Sequence[Sequence[float]],
-        parameters: Sequence[Sequence[Parameter]] | None = None,
-        **run_options,
-    ) -> SamplerGradientResult:
-        raise NotImplementedError()

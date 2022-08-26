@@ -15,7 +15,6 @@ Gradient of probabilities with linear combination of unitaries (LCU)
 
 from __future__ import annotations
 
-from collections import defaultdict
 from typing import Sequence
 
 import numpy as np
@@ -47,12 +46,10 @@ class LinCombEstimatorGradient(BaseEstimatorGradient):
                 run_options in `run` method > gradient's default run_options > primitive's default
                 setting. Higher priority setting overrides lower priority setting.
         """
-        self._gradient_circuit_data_dict = None
-        if self._gradient_circuit_data_dict is None:
-            self._gradient_circuit_data_dict = {}
+        self._gradient_circuit_data_dict = {}
         super().__init__(estimator, **run_options)
 
-    def _evaluate(
+    def _run(
         self,
         circuits: Sequence[QuantumCircuit],
         observables: Sequence[BaseOperator | PauliSumOp],
@@ -60,70 +57,65 @@ class LinCombEstimatorGradient(BaseEstimatorGradient):
         parameters: Sequence[Sequence[Parameter] | None] | None = None,
         **run_options,
     ) -> EstimatorGradientResult:
-        parameters = parameters or [None for _ in range(len(circuits))]
-        gradients = []
+        """Compute the estimator gradients on the given circuits."""
+        # if parameters is none, all parameters in each circuit are differentiated.
+        if parameters is None:
+            parameters = [None for _ in range(len(circuits))]
 
+        jobs, result_indices_all, coeffs_all = [], [], []
         for circuit, observable, parameter_values_, parameters_ in zip(
             circuits, observables, parameter_values, parameters
         ):
-            index = self._circuit_ids.get(id(circuit))
-            if index is not None:
-                circuit_index = index
+            # a set of parameters to be differentiated
+            if parameters_ is None:
+                param_set = set(circuit.parameters)
             else:
-                # if circuit is not passed in the constructor.
-                circuit_index = len(self._circuits)
-                self._circuit_ids[id(circuit)] = circuit_index
-                self._gradient_circuit_data_dict[circuit_index] = make_lin_comb_gradient_circuit(
-                    circuit
-                )
-                self._circuits.append(circuit)
-            # Add an observable for the auxiliary qubit
+                param_set = set(parameters_)
+
             observable_ = observable.expand(Pauli_Z)
+            gradient_circuit_data = self._gradient_circuit_data_dict.get(id(circuit))
+            if gradient_circuit_data is None:
+                gradient_circuit_data = make_lin_comb_gradient_circuit(circuit)
+                self._gradient_circuit_data_dict[id(circuit)] = gradient_circuit_data
 
-            gradient_circuit_data = self._gradient_circuit_data_dict[circuit_index]
-            circuit_parameters = self._circuits[circuit_index].parameters
-            parameter_value_map = {}
-
-            # a parameter set for the parameters option
-            parameters = parameters_ or self._circuits[circuit_index].parameters
-            param_set = set(parameters)
-
-            result_index = 0
-            result_index_map = defaultdict(list)
+            # only compute the gradients for parameters in the parameter set
             gradient_circuits = []
-            # gradient circuit indices and result indices
-            for i, param in enumerate(circuit_parameters):
-                parameter_value_map[param] = parameter_values_[i]
-                if not param in param_set:
-                    continue
-                for grad in gradient_circuit_data[param]:
-                    gradient_circuits.append(grad.gradient_circuit)
-                    result_index_map[param].append(result_index)
-                    result_index += 1
-            gradient_parameter_values_list = [
-                parameter_values_ for i in range(len(gradient_circuits))
-            ]
-            observable_list = [observable_] * len(gradient_circuits)
+            result_indices = []
+            coeffs = []
+            for i, param in enumerate(circuit.parameters):
+                if param in param_set:
+                    gradient_circuits.extend(
+                        grad_data.gradient_circuit for grad_data in gradient_circuit_data[param]
+                    )
+                    result_indices.extend(i for _ in gradient_circuit_data[param])
+                    for grad_data in gradient_circuit_data[param]:
+                        coeff = grad_data.coeff
+                        # if the parameter is a parameter expression, we need to substitute
+                        if isinstance(coeff, ParameterExpression):
+                            local_map = {
+                                p: parameter_values_[circuit.parameters.data.index(p)]
+                                for p in coeff.parameters
+                            }
+                            bound_coeff = float(coeff.bind(local_map))
+                        else:
+                            bound_coeff = coeff
+                        coeffs.append(bound_coeff)
 
+            n = len(gradient_circuits)
             job = self._estimator.run(
-                gradient_circuits, observable_list, gradient_parameter_values_list
+                gradient_circuits, [observable_] * n, [parameter_values_ for _ in range(n)]
             )
-            results = job.result()
+            jobs.append(job)
+            result_indices_all.append(result_indices)
+            coeffs_all.append(coeffs)
 
-            values = np.zeros(len(circuit_parameters))
-            for i, param in enumerate(circuit_parameters):
-                if param not in param_set:
-                    continue
-                for j, grad in enumerate(gradient_circuit_data[param]):
-                    coeff = grad.coeff
-                    result_index = result_index_map[param][j]
-                    # if coeff has parameters, substitute them with the given parameter values
-                    if isinstance(coeff, ParameterExpression):
-                        local_map = {p: parameter_value_map[p] for p in coeff.parameters}
-                        bound_coeff = float(coeff.bind(local_map))
-                    else:
-                        bound_coeff = coeff
-                    values[i] += bound_coeff * results.values[result_index_map[param][j]]
-
+        # combine the results
+        results = [job.result() for job in jobs]
+        gradients = []
+        for i, result in enumerate(results):
+            values = np.zeros(len(circuits[i].parameters))
+            for grad_, idx, coeff in zip(result.values, result_indices_all[i], coeffs_all[i]):
+                values[idx] += coeff * grad_
             gradients.append(values)
+
         return EstimatorGradientResult(values=gradients, metadata=run_options)

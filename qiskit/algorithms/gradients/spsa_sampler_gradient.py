@@ -26,18 +26,18 @@ from qiskit.result import QuasiDistribution
 
 from .base_sampler_gradient import BaseSamplerGradient
 from .sampler_gradient_result import SamplerGradientResult
-from .utils import make_spsa_base_parameter_values
 
 
 class SPSASamplerGradient(BaseSamplerGradient):
     """
-    Gradient of Sampler with the Simultaneous Perturbation Stochastic Approximation (SPSA).
+    Compute the gradients of the sampling probability by the Simultaneous Perturbation Stochastic
+    Approximation (SPSA).
     """
 
     def __init__(
         self,
         sampler: BaseSampler,
-        epsilon: float = 1e-6,
+        epsilon: float = 1e-2,
         seed: int | None = None,
         **run_options,
     ):
@@ -54,61 +54,61 @@ class SPSASamplerGradient(BaseSamplerGradient):
 
         super().__init__(sampler, **run_options)
 
-    def _evaluate(
+    def _run(
         self,
         circuits: Sequence[QuantumCircuit],
         parameter_values: Sequence[Sequence[float]],
         parameters: Sequence[Sequence[Parameter] | None] | None = None,
         **run_options,
     ) -> SamplerGradientResult:
-        parameters = parameters or [None for _ in range(len(circuits))]
-        gradients = []
+        """Compute the sampler gradients on the given circuits."""
+        # if parameters is none, all parameters in each circuit are differentiated.
+        if parameters is None:
+            parameters = [None for _ in range(len(circuits))]
+
+        jobs, result_indices_all, offsets = [], [], []
         for circuit, parameter_values_, parameters_ in zip(circuits, parameter_values, parameters):
+            # indices of parameters to be differentiated
+            if parameters_ is None:
+                indices = list(range(circuit.num_parameters))
+            else:
+                indices = [circuit.parameters.data.index(p) for p in parameters_]
+            result_indices_all.append(indices)
 
-            base_parameter_values_list = make_spsa_base_parameter_values(circuit, self._epsilon)
-            circuit_parameters = circuit.parameters
-            gradient_parameter_values = np.zeros(len(circuit_parameters))
-
-            # a parameter set for the parameter option
-            parameters = parameters_ or circuit_parameters
-            param_set = set(parameters)
-
-            gradient_parameter_values = np.array(parameter_values_)
-            # add the given parameter values and the base parameter values
-            gradient_parameter_values_list = [
-                gradient_parameter_values + base_parameter_values
-                for base_parameter_values in base_parameter_values_list
-            ]
-            gradient_circuits = [circuit] * len(gradient_parameter_values_list)
-            job = self._sampler.run(
-                gradient_circuits, gradient_parameter_values_list, **run_options
+            offset = np.array(
+                [(-1) ** (random.randint(0, 1)) for _ in range(len(circuit.parameters))]
             )
-            results = job.result()
-            # Combines the results and coefficients to reconstruct the gradient values
-            # for the original circuit parameters
-            dists = [Counter() for _ in range(len(parameter_values_))]
-            for i, param in enumerate(circuit_parameters):
-                if param not in param_set:
-                    continue
+            plus = parameter_values_ + self._epsilon * offset
+            minus = parameter_values_ - self._epsilon * offset
+            offsets.append(offset)
+
+            job = self._sampler.run([circuit] * 2, [plus, minus], **run_options)
+            jobs.append(job)
+
+        # combine the results
+        results = [job.result() for job in jobs]
+        gradients = []
+        for i, result in enumerate(results):
+            dists = [Counter() for _ in range(circuits[i].num_parameters)]
+            for idx in result_indices_all[i]:
                 # plus
-                dists[i].update(
+                dists[idx].update(
                     Counter(
                         {
-                            k: v / (2 * base_parameter_values_list[0][i])
-                            for k, v in results.quasi_dists[0].items()
+                            k: v / (2 * self._epsilon * offsets[i][idx])
+                            for k, v in result.quasi_dists[0].items()
                         }
                     )
                 )
                 # minus
-                dists[i].update(
+                dists[idx].update(
                     Counter(
                         {
-                            k: -1 * v / (2 * base_parameter_values_list[0][i])
-                            for k, v in results.quasi_dists[1].items()
+                            k: -1 * v / (2 * self._epsilon * offsets[i][idx])
+                            for k, v in result.quasi_dists[1].items()
                         }
                     )
                 )
-
             gradients.append([QuasiDistribution(dist) for dist in dists])
 
         return SamplerGradientResult(quasi_dists=gradients, metadata=run_options)

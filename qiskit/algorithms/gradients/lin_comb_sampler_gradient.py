@@ -15,7 +15,7 @@ Gradient of probabilities with linear combination of unitaries (LCU)
 
 from __future__ import annotations
 
-from collections import Counter, defaultdict
+from collections import Counter
 from typing import Sequence
 
 from qiskit.circuit import Parameter, ParameterExpression, QuantumCircuit
@@ -42,78 +42,77 @@ class LinCombSamplerGradient(BaseSamplerGradient):
                 setting. Higher priority setting overrides lower priority setting.
         """
 
-        self._gradient_circuit_data_dict = None
-        if self._gradient_circuit_data_dict is None:
-            self._gradient_circuit_data_dict = {}
+        self._gradient_circuit_data_dict = {}
         super().__init__(sampler, **run_options)
 
-    def _evaluate(
+    def _run(
         self,
         circuits: Sequence[QuantumCircuit],
         parameter_values: Sequence[Sequence[float]],
         parameters: Sequence[Sequence[Parameter] | None] | None = None,
         **run_options,
     ) -> SamplerGradientResult:
-        parameters = parameters or [None for _ in range(len(circuits))]
-        gradients = []
+        """Compute the sampler gradients on the given circuits."""
+        # if parameters is none, all parameters in each circuit are differentiated.
+        if parameters is None:
+            parameters = [None for _ in range(len(circuits))]
 
+        jobs, result_indices_all, coeffs_all = [], [], []
         for circuit, parameter_values_, parameters_ in zip(circuits, parameter_values, parameters):
-            index = self._circuit_ids.get(id(circuit))
-            if index is not None:
-                circuit_index = index
+            # a set of parameters to be differentiated
+            if parameters_ is None:
+                param_set = set(circuit.parameters)
             else:
-                # if circuit is not passed in the constructor.
-                circuit_index = len(self._circuits)
-                self._circuit_ids[id(circuit)] = circuit_index
-                self._gradient_circuit_data_dict[circuit_index] = make_lin_comb_gradient_circuit(
+                param_set = set(parameters_)
+
+            gradient_circuit_data = self._gradient_circuit_data_dict.get(id(circuit))
+            if gradient_circuit_data is None:
+                gradient_circuit_data = make_lin_comb_gradient_circuit(
                     circuit, add_measurement=True
                 )
-                self._circuits.append(circuit)
+                self._gradient_circuit_data_dict[id(circuit)] = gradient_circuit_data
 
-            gradient_circuit_data = self._gradient_circuit_data_dict[circuit_index]
-            circuit_parameters = self._circuits[circuit_index].parameters
-            parameter_value_map = {}
+            # only compute the gradients for parameters in the parameter set
+            gradient_circuits = []
+            result_indices = []
+            coeffs = []
+            for i, param in enumerate(circuit.parameters):
+                if param in param_set:
+                    gradient_circuits.extend(
+                        grad_data.gradient_circuit for grad_data in gradient_circuit_data[param]
+                    )
+                    result_indices.extend(i for _ in gradient_circuit_data[param])
+                    for grad_data in gradient_circuit_data[param]:
+                        coeff = grad_data.coeff
+                        # if the parameter is a parameter expression, we need to substitute
+                        if isinstance(coeff, ParameterExpression):
+                            local_map = {
+                                p: parameter_values_[circuit.parameters.data.index(p)]
+                                for p in coeff.parameters
+                            }
+                            bound_coeff = float(coeff.bind(local_map))
+                        else:
+                            bound_coeff = coeff
+                        coeffs.append(bound_coeff)
 
-            # a parameter set for the parameter option
-            parameters = parameters_ or self._circuits[circuit_index].parameters
-            param_set = set(parameters)
+            n = len(gradient_circuits)
+            job = self._sampler.run(gradient_circuits, [parameter_values_ for _ in range(n)])
+            jobs.append(job)
+            result_indices_all.append(result_indices)
+            coeffs_all.append(coeffs)
 
-            result_index = 0
-            result_index_map = defaultdict(list)
-            gradient_circuit = []
-            # gradient circuit indices and result indices
-            for i, param in enumerate(circuit_parameters):
-                parameter_value_map[param] = parameter_values_[i]
-                if not param in param_set:
-                    continue
-                for grad in gradient_circuit_data[param]:
-                    gradient_circuit.append(grad.gradient_circuit)
-                    result_index_map[param].append(result_index)
-                    result_index += 1
-            gradient_parameter_values_list = [parameter_values_] * len(gradient_circuit)
-
-            job = self._sampler.run(gradient_circuit, gradient_parameter_values_list, **run_options)
-            results = job.result()
-
-            param_set = set(parameters)
-            dists = [Counter() for _ in range(len(parameter_values_))]
-            num_bitstrings = 2 ** self._circuits[circuit_index].num_qubits
-            i = 0
-            for i, param in enumerate(circuit_parameters):
-                if param not in param_set:
-                    continue
-                for j, grad in enumerate(gradient_circuit_data[param]):
-                    coeff = grad.coeff
-                    result_index = result_index_map[param][j]
-                    # if coeff has parameters, substitute them with the given parameter values
-                    if isinstance(coeff, ParameterExpression):
-                        local_map = {p: parameter_value_map[p] for p in coeff.parameters}
-                        bound_coeff = float(coeff.bind(local_map))
-                    else:
-                        bound_coeff = coeff
-                    for k, v in results.quasi_dists[result_index].items():
-                        sign, k2 = divmod(k, num_bitstrings)
-                        dists[i][k2] += (-1) ** sign * bound_coeff * v
-
+        # combine the results
+        results = [job.result() for job in jobs]
+        gradients = []
+        for i, result in enumerate(results):
+            dists = [Counter() for _ in range(circuits[i].num_parameters)]
+            num_bitstrings = 2 ** circuits[i].num_qubits
+            for grad_quasi_, idx, coeff in zip(
+                result.quasi_dists, result_indices_all[i], coeffs_all[i]
+            ):
+                for k_, v in grad_quasi_.items():
+                    sign, k = divmod(k_, num_bitstrings)
+                    dists[idx][k] += (-1) ** sign * coeff * v
             gradients.append([QuasiDistribution(dist) for dist in dists])
+
         return SamplerGradientResult(quasi_dists=gradients, metadata=run_options)

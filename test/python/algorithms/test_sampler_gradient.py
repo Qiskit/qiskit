@@ -55,7 +55,7 @@ class TestSamplerGradient(QiskitTestCase):
             [{0: -0.499999, 1: 0.499999}],
         ]
         for i, param in enumerate(param_list):
-            quasi_dists = gradient.evaluate([qc], [param]).quasi_dists[0]
+            quasi_dists = gradient.run([qc], [param]).result().quasi_dists[0]
             for j, quasi_dist in enumerate(quasi_dists):
                 for k in quasi_dist:
                     self.assertAlmostEqual(quasi_dist[k], correct_results[i][j][k], 3)
@@ -79,7 +79,7 @@ class TestSamplerGradient(QiskitTestCase):
             [{0: -0.176777, 1: 0.176777}, {0: -0.426777, 1: 0.426777}, {0: -0.426777, 1: 0.426777}],
         ]
         for i, param in enumerate(param_list):
-            quasi_dists = gradient.evaluate([qc], [param]).quasi_dists[0]
+            quasi_dists = gradient.run([qc], [param]).result().quasi_dists[0]
             for j, quasi_dist in enumerate(quasi_dists):
                 for k in quasi_dist:
                     self.assertAlmostEqual(quasi_dist[k], correct_results[i][j][k], 3)
@@ -173,7 +173,7 @@ class TestSamplerGradient(QiskitTestCase):
             ],
         ]
         for i, param in enumerate(param_list):
-            quasi_dists = gradient.evaluate([qc], [param]).quasi_dists[0]
+            quasi_dists = gradient.run([qc], [param]).result().quasi_dists[0]
             for j, quasi_dist in enumerate(quasi_dists):
                 for k in quasi_dist:
                     self.assertAlmostEqual(quasi_dist[k], correct_results[i][j][k], 3)
@@ -193,7 +193,7 @@ class TestSamplerGradient(QiskitTestCase):
             [{0: -0.5, 1: 0, 2: 0, 3: 0.5}],
         ]
         for i, param in enumerate(param_list):
-            quasi_dists = gradient.evaluate([qc], [param]).quasi_dists[0]
+            quasi_dists = gradient.run([qc], [param]).result().quasi_dists[0]
             for j, quasi_dist in enumerate(quasi_dists):
                 for k in quasi_dist:
                     self.assertAlmostEqual(quasi_dist[k], correct_results[i][j][k], 3)
@@ -213,7 +213,7 @@ class TestSamplerGradient(QiskitTestCase):
             [{0: -0.5, 1: 0, 2: 0, 3: 0.5}],
         ]
         for i, param in enumerate(param_list):
-            quasi_dists = gradient.evaluate([qc], [param]).quasi_dists[0]
+            quasi_dists = gradient.run([qc], [param]).result().quasi_dists[0]
             for j, quasi_dist in enumerate(quasi_dists):
                 for k in quasi_dist:
                     self.assertAlmostEqual(quasi_dist[k], correct_results[i][j][k], 3)
@@ -235,7 +235,7 @@ class TestSamplerGradient(QiskitTestCase):
             [{0: -0.5, 1: 0, 2: 0, 3: 0.5}],
         ]
         for i, param in enumerate(param_list):
-            quasi_dists = gradient.evaluate([qc], [param]).quasi_dists[0]
+            quasi_dists = gradient.run([qc], [param]).result().quasi_dists[0]
             for j, quasi_dist in enumerate(quasi_dists):
                 for k in quasi_dist:
                     self.assertAlmostEqual(quasi_dist[k], correct_results[i][j][k], 3)
@@ -255,7 +255,7 @@ class TestSamplerGradient(QiskitTestCase):
             [{0: -0.5, 1: 0, 2: 0.5, 3: 0}],
         ]
         for i, param in enumerate(param_list):
-            quasi_dists = gradient.evaluate([qc], [param]).quasi_dists[0]
+            quasi_dists = gradient.run([qc], [param]).result().quasi_dists[0]
             for j, quasi_dist in enumerate(quasi_dists):
                 for k in quasi_dist:
                     self.assertAlmostEqual(quasi_dist[k], correct_results[i][j][k], 3)
@@ -329,10 +329,10 @@ class TestSamplerGradient(QiskitTestCase):
         ]
 
         for i, param in enumerate(param_list):
-            quasi_dists = gradient.evaluate([qc], [param]).quasi_dists[0]
+            quasi_dists = gradient.run([qc], [param]).result().quasi_dists[0]
             for j, quasi_dist in enumerate(quasi_dists):
                 for k in quasi_dist:
-                    self.assertAlmostEqual(quasi_dist[k], correct_results[i][j][k], 3)
+                    self.assertAlmostEqual(quasi_dist[k], correct_results[i][j][k], 2)
 
     @combine(grad=[FiniteDiffSamplerGradient, ParamShiftSamplerGradient, LinCombSamplerGradient])
     def test_gradient_parameters(self, grad):
@@ -350,7 +350,7 @@ class TestSamplerGradient(QiskitTestCase):
             [{0: -0.5 / np.sqrt(2), 1: 0.5 / np.sqrt(2)}, {}],
         ]
         for i, param in enumerate(param_list):
-            quasi_dists = gradient.evaluate([qc], [param], parameters=[[a]]).quasi_dists[0]
+            quasi_dists = gradient.run([qc], [param], parameters=[[a]]).result().quasi_dists[0]
             for j, quasi_dist in enumerate(quasi_dists):
                 if correct_results[i][j]:
                     for k in quasi_dist:
@@ -376,7 +376,7 @@ class TestSamplerGradient(QiskitTestCase):
             [{0: -0.5 / np.sqrt(2), 1: 0.5 / np.sqrt(2)}],
             [{0: -0.499999, 1: 0.499999}],
         ]
-        quasi_dists = gradient.evaluate([qc, qc2], param_list).quasi_dists
+        quasi_dists = gradient.run([qc, qc2], param_list).result().quasi_dists
         for j, q_dists in enumerate(quasi_dists):
             quasi_dist = q_dists[0]
             for k in quasi_dist:
@@ -388,9 +388,11 @@ class TestSamplerGradient(QiskitTestCase):
         qc3.ry(a, 0)
         qc3.measure_all()
         param_list2 = [[np.pi / 4], [np.pi / 4, np.pi / 4], [np.pi / 4, np.pi / 4]]
-        quasi_dists = gradient.evaluate(
-            [qc, qc3, qc3], param_list2, parameters=[[a], [c], None]
-        ).quasi_dists
+        quasi_dists = (
+            gradient.run([qc, qc3, qc3], param_list2, parameters=[[a], [c], None])
+            .result()
+            .quasi_dists
+        )
         correct_results = [
             [{0: -0.5 / np.sqrt(2), 1: 0.5 / np.sqrt(2)}],
             [{0: -0.25, 1: 0.25} if p == c else {} for p in qc3.parameters],
@@ -415,11 +417,11 @@ class TestSamplerGradient(QiskitTestCase):
         gradient = grad(sampler)
         param_list = [[np.pi / 4], [np.pi / 2]]
         with self.assertRaises(QiskitError):
-            gradient.evaluate([qc], param_list)
+            gradient.run([qc], param_list)
         with self.assertRaises(QiskitError):
-            gradient.evaluate([qc, qc], param_list, parameters=[[a]])
+            gradient.run([qc, qc], param_list, parameters=[[a]])
         with self.assertRaises(QiskitError):
-            gradient.evaluate([qc], [[np.pi / 4, np.pi / 4]])
+            gradient.run([qc], [[np.pi / 4, np.pi / 4]])
 
     def test_spsa_gradient(self):
         """Test the SPSA sampler gradient"""
@@ -438,9 +440,8 @@ class TestSamplerGradient(QiskitTestCase):
             ],
         ]
         gradient = SPSASamplerGradient(sampler, seed=123)
-        # quasi_dists = gradient.evaluate([qc], param_list).quasi_dists
         for i, param in enumerate(param_list):
-            quasi_dists = gradient.evaluate([qc], [param]).quasi_dists[0]
+            quasi_dists = gradient.run([qc], [param]).result().quasi_dists[0]
             for j, quasi_dist in enumerate(quasi_dists):
                 for k in quasi_dist:
                     self.assertAlmostEqual(quasi_dist[k], correct_results[i][j][k], 3)
@@ -461,9 +462,9 @@ class TestSamplerGradient(QiskitTestCase):
             ],
         ]
         gradient = SPSASamplerGradient(sampler, seed=123)
-        quasi_dists = gradient.evaluate(
-            [qc] * 3, param_list2, parameters=[None, [b], None]
-        ).quasi_dists
+        quasi_dists = (
+            gradient.run([qc] * 3, param_list2, parameters=[None, [b], None]).result().quasi_dists
+        )
 
         for i, result in enumerate(quasi_dists):
             for j, q_dists in enumerate(result):
