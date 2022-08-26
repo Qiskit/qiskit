@@ -247,13 +247,18 @@ class TestGateDirection(QiskitTestCase):
         self.assertEqual(circuit_to_dag(expected), after)
 
     def test_regression_gh_8387(self):
-        qc=QuantumCircuit(3)
+        qc = QuantumCircuit(3)
         qc.cz(1, 0)
         qc.barrier()
         qc.cz(2, 0)
 
-        coupling_map = CouplingMap([[0,1], [1,2]])
-        _ = transpile(qc, basis_gates=['cz', 'cx', 'u3', 'u2', 'u1'], coupling_map=coupling_map,  optimization_level=2)
+        coupling_map = CouplingMap([[0, 1], [1, 2]])
+        _ = transpile(
+            qc,
+            basis_gates=["cz", "cx", "u3", "u2", "u1"],
+            coupling_map=coupling_map,
+            optimization_level=2,
+        )
 
 
 if __name__ == "__main__":
