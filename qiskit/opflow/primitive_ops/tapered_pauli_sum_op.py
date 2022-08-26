@@ -367,11 +367,21 @@ class Z2Symmetries:
         Returns:
             :class`PauliSumOp` corresponding to the converted operator.
 
+        Raises:
+            OpflowError: Z2 symmetries, single qubit pauli and single qubit list cannot be empty
+
         """
+
+        if not self._symmetries or not self._sq_paulis or not self._sq_list:
+            raise OpflowError(
+                "Z2 symmetries, single qubit pauli and single qubit list cannot be empty."
+            )
+
         if not operator.is_zero():
             for clifford in self.cliffords:
                 operator = cast(PauliSumOp, clifford @ operator @ clifford)
                 operator = operator.reduce(atol=0)
+
         return operator
 
     def taper_clifford(self, operator: PauliSumOp) -> OperatorBase:
@@ -382,12 +392,20 @@ class Z2Symmetries:
         The `tapering_values` will be stored into the resulted operator for a record.
 
         Args:
-            operator: The partially tapered operator resulting from a call to
-            :meth:`convert_clifford`.
+            operator: Partially tapered operator resulting from a call to :meth:`convert_clifford`
 
         Returns:
             If tapering_values is None: [:class`PauliSumOp`]; otherwise, :class:`PauliSumOp`
+
+        Raises:
+            OpflowError: Z2 symmetries, single qubit pauli and single qubit list cannot be empty
+
         """
+
+        if not self._symmetries or not self._sq_paulis or not self._sq_list:
+            raise OpflowError(
+                "Z2 symmetries, single qubit pauli and single qubit list cannot be empty."
+            )
         # If the operator is zero then we can skip the following. We still need to taper the
         # operator to reduce its size i.e. the number of qubits so for example 0*"IIII" could
         # taper to 0*"II" when symmetries remove two qubits.
@@ -418,12 +436,14 @@ class Z2Symmetries:
         1 new operator with M less qubits.
 
         Args:
-            operator: the to-be-tapered operator.
+            operator: the to-be-tapered operator
 
         Returns:
             If tapering_values is None: [:class`PauliSumOp`]; otherwise, :class:`PauliSumOp`
+
         Raises:
             OpflowError: Z2 symmetries, single qubit pauli and single qubit list cannot be empty
+
         """
 
         if not self._symmetries or not self._sq_paulis or not self._sq_list:
