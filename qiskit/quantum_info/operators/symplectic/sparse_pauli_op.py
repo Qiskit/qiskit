@@ -21,7 +21,6 @@ import numpy as np
 import retworkx as rx
 
 from qiskit._accelerate.sparse_pauli_op import unordered_unique  # pylint: disable=import-error
-from qiskit.circuit import Parameter, ParameterExpression
 from qiskit.exceptions import QiskitError
 from qiskit.quantum_info.operators.custom_iterator import CustomIterator
 from qiskit.quantum_info.operators.linear_op import LinearOp
@@ -51,7 +50,7 @@ class SparsePauliOp(LinearOp):
     the :attr:`~SparsePauliOp.coeffs` attribute.
     """
 
-    def __init__(self, data, coeffs=None, *, ignore_pauli_phase=False, copy=True):
+    def __init__(self, data, coeffs=None, *, ignore_pauli_phase=False, copy=True, dtype=None):
         """Initialize an operator object.
 
         Args:
@@ -72,6 +71,7 @@ class SparsePauliOp(LinearOp):
                 this option when giving :obj:`~PauliList` data.  (Default: False)
             copy (bool): copy the input data if True, otherwise assign it directly, if possible.
                 (Default: True)
+            dtype (type | None): dtype for coeffs.
 
         Raises:
             QiskitError: If the input data or coeffs are invalid.
@@ -89,15 +89,13 @@ class SparsePauliOp(LinearOp):
 
         pauli_list = PauliList(data.copy() if copy and hasattr(data, "copy") else data)
 
+        if dtype is None:
+            dtype = coeffs.dtype if isinstance(coeffs, np.ndarray) else complex
+
         if coeffs is None:
-            coeffs = np.ones(pauli_list.size, dtype=complex)
+            coeffs = np.ones(pauli_list.size, dtype=dtype)
         else:
-            try:
-                coeffs = np.array(coeffs, copy=copy, dtype=complex)
-            except TypeError:
-                # Initialize as array of objects if there are parameters.
-                # This is generally avoided since it makes numpy slower.
-                coeffs = np.array(coeffs, copy=copy, dtype=object)
+            coeffs = np.array(coeffs, copy=copy, dtype=dtype)
 
         if ignore_pauli_phase:
             # Fast path used in copy operations, where the phase of the PauliList is already known
@@ -138,19 +136,16 @@ class SparsePauliOp(LinearOp):
 
     def __eq__(self, other):
         """Entrywise comparison of two SparsePauliOp operators"""
-        close_coeffs = []
-        for i in range(self.coeffs.shape[0]):
-            # Check for Parameters separately
-            if isinstance(self.coeffs[i], ParameterExpression):
-                close_coeffs.append(self._coeffs[i] == other._coeffs[i])
-            else:
-                close_coeffs.append(np.isclose(self.coeffs[i], other.coeffs[i]))
-
         return (
             super().__eq__(other)
+            and self.coeffs.dtype == other.coeffs.dtype
             and self.coeffs.shape == other.coeffs.shape
-            and np.all(close_coeffs)
             and self.paulis == other.paulis
+            and (
+                np.allclose(self.coeffs, other.coeffs)
+                if self.coeffs.dtype != object
+                else (self.coeffs == other.coeffs).all()
+            )
         )
 
     def equiv(self, other, atol: Optional[float] = None):
@@ -424,7 +419,19 @@ class SparsePauliOp(LinearOp):
             rtol = self.rtol
 
         # Filter non-zero coefficients
-        non_zero = np.logical_not(np.isclose(self.coeffs, 0, atol=atol, rtol=rtol))
+        if self.coeffs.dtype == object:
+            non_zero = np.logical_not(
+                [
+                    np.isclose(coeff, 0, atol=atol, rtol=rtol)
+                    if not hasattr(coeff, "sympify")
+                    else complex(coeff.sympify())
+                    if coeff.sympify().is_Number
+                    else False  # Symbol is not zero.
+                    for coeff in self.coeffs
+                ]
+            )
+        else:
+            non_zero = np.logical_not(np.isclose(self.coeffs, 0, atol=atol, rtol=rtol))
         paulis_x = self.paulis.x[non_zero]
         paulis_z = self.paulis.z[non_zero]
         nz_coeffs = self.coeffs[non_zero]
@@ -437,21 +444,28 @@ class SparsePauliOp(LinearOp):
             # No zero operator or duplicate operator
             return self.copy()
 
-        coeffs = np.zeros(indexes.shape[0], dtype=complex)
+        coeffs = np.zeros(indexes.shape[0], dtype=self.coeffs.dtype)
         np.add.at(coeffs, inverses, nz_coeffs)
         # Delete zero coefficient rows
-        is_zero = []
-        for coeff in coeffs:
-            if isinstance(coeff, (Parameter, ParameterExpression)):
-                is_zero.append(False)
-            else:
-                is_zero.append(np.isclose(coeff, 0, atol=atol, rtol=rtol))
+        if self.coeffs.dtype == object:
+            is_zero = np.array(
+                [
+                    np.isclose(coeff, 0, atol=atol, rtol=rtol)
+                    if not hasattr(coeff, "sympify")
+                    else complex(coeff.sympify())
+                    if coeff.sympify().is_Number
+                    else False  # Symbol is not zero.
+                    for coeff in coeffs
+                ]
+            )
+        else:
+            is_zero = np.isclose(coeffs, 0, atol=atol, rtol=rtol)
         # Check edge case that we deleted all Paulis
         # In this case we return an identity Pauli with a zero coefficient
         if np.all(is_zero):
             x = np.zeros((1, self.num_qubits), dtype=bool)
             z = np.zeros((1, self.num_qubits), dtype=bool)
-            coeffs = np.array([0j], dtype=complex)
+            coeffs = np.array([0j], dtype=self.coeffs.dtype)
         else:
             non_zero = np.logical_not(is_zero)
             non_zero_indexes = indexes[non_zero]
