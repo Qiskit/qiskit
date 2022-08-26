@@ -125,9 +125,6 @@ used to train Quantum Boltzmann Machine Neural Networks for example.
     PVQDResult
     EvolutionResult
     EvolutionProblem
-    SciPyRealEvolver
-    SciPyImaginaryEvolver
-
 
 
 Factorizers
@@ -265,7 +262,6 @@ from .phase_estimators import (
 from .exceptions import AlgorithmError
 from .aux_ops_evaluator import eval_observables
 from .evolvers.trotterization import TrotterQRTE
-from .evolvers.classical_methods import SciPyRealEvolver, SciPyImaginaryEvolver
 from .evolvers.variational.var_qite import VarQITE
 from .evolvers.variational.var_qrte import VarQRTE
 
@@ -294,7 +290,6 @@ __all__ = [
     "RealEvolver",
     "ImaginaryEvolver",
     "TrotterQRTE",
-    "SciPyRealEvolver",
     "SciPyImaginaryEvolver",
     "VarQITE",
     "VarQRTE",
