@@ -11,4 +11,5 @@ Create quantum circuits
   :maxdepth: 1
 
   Create a quantum circuit <how_to/create_a_quantum_circuit>
+  Compose quantum circuits <how_to/compose_quantum_circuits>
 
