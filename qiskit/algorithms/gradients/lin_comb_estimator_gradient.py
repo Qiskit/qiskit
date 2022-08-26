@@ -15,7 +15,6 @@ Gradient of probabilities with linear combination of unitaries (LCU)
 
 from __future__ import annotations
 
-from copy import copy
 from typing import Sequence
 
 import numpy as np
@@ -120,4 +119,6 @@ class LinCombEstimatorGradient(BaseEstimatorGradient):
             gradients.append(gradient_)
             metadata_.append({"gradient_variance": np.var(gradient_)})
 
-        return EstimatorGradientResult(values=gradients, metadata=metadata_, run_options=run_options)
+        return EstimatorGradientResult(
+            values=gradients, metadata=metadata_, run_options=run_options
+        )

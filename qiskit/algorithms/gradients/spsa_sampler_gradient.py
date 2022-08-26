@@ -16,7 +16,6 @@ from __future__ import annotations
 
 import random
 from collections import Counter
-from copy import copy
 from typing import Sequence
 
 import numpy as np
@@ -112,4 +111,6 @@ class SPSASamplerGradient(BaseSamplerGradient):
                 )
             gradients.append([QuasiDistribution(dist) for dist in dists])
 
-        return SamplerGradientResult(quasi_dists=gradients, metadata=metadata_, run_options=run_options)
+        return SamplerGradientResult(
+            quasi_dists=gradients, metadata=metadata_, run_options=run_options
+        )

@@ -14,7 +14,6 @@
 
 from __future__ import annotations
 
-from copy import copy
 from collections import Counter
 from typing import Sequence
 
@@ -100,4 +99,6 @@ class FiniteDiffSamplerGradient(BaseSamplerGradient):
                 )
             gradients.append([QuasiDistribution(dist) for dist in dists])
 
-        return SamplerGradientResult(quasi_dists=gradients, metadata=metadata_, run_options=run_options)
+        return SamplerGradientResult(
+            quasi_dists=gradients, metadata=metadata_, run_options=run_options
+        )
