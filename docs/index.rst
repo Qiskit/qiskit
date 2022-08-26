@@ -6,6 +6,7 @@ Qiskit Terra documentation
   :maxdepth: 2
   :hidden:
 
+  How to <how_to>
   API References <apidocs/terra>
   Circuit Library <apidocs/circuit_library>
   Release Notes <release_notes>
