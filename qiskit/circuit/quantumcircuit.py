@@ -716,10 +716,11 @@ class QuantumCircuit:
     @deprecate_function(
         "The QuantumCircuit.combine() method is being deprecated. "
         "Use the compose() method which is more flexible w.r.t "
-        "circuit register compatibility."
+        "circuit register compatibility.",
+        docstring_version="0.17.0",
     )
     def combine(self, rhs: "QuantumCircuit") -> "QuantumCircuit":
-        """DEPRECATED - Returns rhs appended to self if self contains compatible registers.
+        """Returns rhs appended to self if self contains compatible registers.
 
         Two circuits are compatible if they contain the same registers
         or if they contain different registers with unique names. The
