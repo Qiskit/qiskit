@@ -156,6 +156,7 @@ class InstructionSet:
                 raise CircuitError("missing qargs or cargs in old-style InstructionSet.add")
             instruction = CircuitInstruction(instruction, tuple(qargs), tuple(cargs))
         self._instructions.append(instruction)
+        return self
 
     def inverse(self):
         """Invert all instructions."""
