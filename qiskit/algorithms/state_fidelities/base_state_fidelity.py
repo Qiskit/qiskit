@@ -42,12 +42,12 @@ class BaseStateFidelity(ABC):
         self._left_parameters = []
         self._right_parameters = []
 
-    def _check_values_shape(
-        self,
-        values: Sequence[Sequence[float]] | None,
+    @staticmethod
+    def _preprocess_values(
         circuits: QuantumCircuit,
-        label: str | None = " ",
-    ) -> list[list[float]] | None:
+        values: Sequence[Sequence[float]] | None = None,
+        label: str = " ",
+    ) -> Sequence[Sequence[float]] | None:
         """
         Checks whether the passed values match the shape of the parameters
         of the corresponding circuits and formats values to 2D list.
@@ -96,12 +96,11 @@ class BaseStateFidelity(ABC):
             ValueError: when ``circuit_1`` and ``circuit_2`` don't have the same number of qubits.
         """
 
-        if circuit_1 is not None and circuit_2 is not None:
-            if circuit_1.num_qubits != circuit_2.num_qubits:
-                raise ValueError(
-                    f"The number of qubits for the left circuit ({circuit_1.num_qubits}) "
-                    f"and right circuit ({circuit_2.num_qubits}) do not coincide."
-                )
+        if circuit_1.num_qubits != circuit_2.num_qubits:
+            raise ValueError(
+                f"The number of qubits for the left circuit ({circuit_1.num_qubits}) "
+                f"and right circuit ({circuit_2.num_qubits}) do not coincide."
+            )
 
     @abstractmethod
     def _create_fidelity_circuit(
@@ -121,8 +120,8 @@ class BaseStateFidelity(ABC):
 
     def _set_circuits(
         self,
-        circuits_1: Sequence[QuantumCircuit] | None = None,
-        circuits_2: Sequence[QuantumCircuit] | None = None,
+        circuits_1: Sequence[QuantumCircuit],
+        circuits_2: Sequence[QuantumCircuit],
     ) -> None:
         """
         Update the list of fidelity circuits to be evaluated.
@@ -173,7 +172,9 @@ class BaseStateFidelity(ABC):
         self._circuits = circuits
 
     def _set_values(
-        self, values_1: Sequence[Sequence[float]] | None, values_2: Sequence[Sequence[float]] | None
+        self,
+        values_1: Sequence[Sequence[float]] | None = None,
+        values_2: Sequence[Sequence[float]] | None = None,
     ) -> None:
         """
         Update the list of parameter values to evaluate the corresponding
@@ -225,8 +226,8 @@ class BaseStateFidelity(ABC):
 
         self._set_circuits(circuits_1, circuits_2)
 
-        values_1 = self._check_values_shape(values_1, circuits_1, "1")
-        values_2 = self._check_values_shape(values_2, circuits_2, "2")
+        values_1 = self._preprocess_values(values_1, circuits_1, "1")
+        values_2 = self._preprocess_values(values_2, circuits_2, "2")
 
         self._set_values(values_1, values_2)
 
@@ -238,7 +239,7 @@ class BaseStateFidelity(ABC):
         values_1: Sequence[Sequence[float]] | None = None,
         values_2: Sequence[Sequence[float]] | None = None,
         **run_options,
-    ) -> list[float]:
+    ) -> Sequence[float]:
         """Compute the state overlap (fidelity) calculation between 2
         parametrized circuits (first and second) for a specific set of parameter
         values (first and second). This calculation depends on the particular
