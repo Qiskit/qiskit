@@ -27,6 +27,7 @@ any of the backends.
 
 import logging
 import os
+import shutil
 import subprocess
 import tempfile
 
@@ -442,7 +443,7 @@ def _latex_circuit_drawer(
         image = utils._trim(image)
         if filename:
             if filename.endswith(".pdf"):
-                os.rename(base + ".pdf", filename)
+                shutil.move(base + ".pdf", filename)
             else:
                 try:
                     image.save(filename)
