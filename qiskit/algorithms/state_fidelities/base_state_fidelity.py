@@ -15,13 +15,13 @@ Base fidelity interface
 
 from __future__ import annotations
 from abc import ABC, abstractmethod
-from typing import Sequence, Mapping
+from collections.abc import Sequence, Mapping
 import numpy as np
 
 from qiskit import QuantumCircuit
 from qiskit.circuit import ParameterVector
 from qiskit.primitives.primitive_job import PrimitiveJob
-
+from .state_fidelity_result import StateFidelityResult
 
 class BaseStateFidelity(ABC):
     """
@@ -54,7 +54,7 @@ class BaseStateFidelity(ABC):
             values: parameter values corresponding to the circuits to be checked
 
         Returns:
-            Returns a 2D list if values match, `None` if no parameters are passed
+            Returns a 2D list if values match, ``None`` if no parameters are passed
 
         Raises:
             ValueError: if the number of parameter values doesn't match the number of
@@ -89,7 +89,8 @@ class BaseStateFidelity(ABC):
             circuit_2: (Parametrized) quantum circuit
 
         Raises:
-            ValueError: when ``circuit_1`` and ``circuit_2`` don't have the same number of qubits.
+            ValueError: when ``circuit_1`` and ``circuit_2`` don't have the
+            same number of qubits.
         """
 
         if circuit_1.num_qubits != circuit_2.num_qubits:
@@ -110,7 +111,7 @@ class BaseStateFidelity(ABC):
             circuit_2: (Parametrized) quantum circuit
 
         Returns:
-            The fidelity quantum circuit corresponding to circuit_1 and circuit_2.
+            The fidelity quantum circuit corresponding to ``circuit_1`` and ``circuit_2``.
         """
         raise NotImplementedError
 
@@ -149,9 +150,9 @@ class BaseStateFidelity(ABC):
                 self._check_qubits_match(circuit_1, circuit_2)
 
                 # re-parametrize input circuits
+                # TODO: make smarter checks to avoid unnecesary reparametrizations
                 left_parameters = ParameterVector("x", circuit_1.num_parameters)
                 parametrized_circuit_1 = circuit_1.assign_parameters(left_parameters)
-
                 right_parameters = ParameterVector("y", circuit_2.num_parameters)
                 parametrized_circuit_2 = circuit_2.assign_parameters(right_parameters)
 
@@ -174,8 +175,10 @@ class BaseStateFidelity(ABC):
         """Preprocess input parameter values and return in list format.
 
         Args:
-           circuits_1: (Parametrized) quantum circuits preparing the first list of quantum states.
-           circuits_2: (Parametrized) quantum circuits preparing the second list of quantum states.
+           circuits_1: (Parametrized) quantum circuits preparing the
+                        first list of quantum states.
+           circuits_2: (Parametrized) quantum circuits preparing the
+                        second list of quantum states.
            values_1: Numerical parameters to be bound to the first circuits.
            values_2: Numerical parameters to be bound to the second circuits.
 
@@ -210,7 +213,7 @@ class BaseStateFidelity(ABC):
         values_1: Sequence[Sequence[float]] | None = None,
         values_2: Sequence[Sequence[float]] | None = None,
         **run_options,
-    ) -> Sequence[float]:
+    ) -> StateFidelityResult:
         """Compute the state overlap (fidelity) calculation between 2
         (parametrized) circuits (first and second) for a specific set of parameter
         values (first and second). This calculation depends on the particular
@@ -221,6 +224,9 @@ class BaseStateFidelity(ABC):
             values_1: Numerical parameters to be bound to the first circuits
             values_2: Numerical parameters to be bound to the second circuits.
             run_options: Backend runtime options used for circuit execution.
+
+        Returns:
+            The result of the fidelity calculation.
         """
         ...
 
@@ -245,10 +251,12 @@ class BaseStateFidelity(ABC):
             run_options: Backend runtime options used for circuit execution.
 
         Returns:
-            Primitive job for the fidelity calculation
+            Primitive job for the fidelity calculation.
+            The job's result is an instance of ``StateFidelityResult``.
         """
 
-        job = PrimitiveJob(self._run, circuits_1, circuits_2, values_1, values_2, **run_options)
+        job = PrimitiveJob(self._run, circuits_1, circuits_2,
+                           values_1, values_2, **run_options)
 
         job.submit()
         return job

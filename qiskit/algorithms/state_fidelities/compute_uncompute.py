@@ -14,10 +14,11 @@ Compute-uncompute fidelity interface using primitives
 """
 
 from __future__ import annotations
-from typing import Sequence
+from collections.abc import Sequence
+from copy import copy
 
 from qiskit import QuantumCircuit
-from qiskit.primitives import Sampler
+from qiskit.primitives import BaseSampler
 from .base_state_fidelity import BaseStateFidelity
 from .state_fidelity_result import StateFidelityResult
 
@@ -27,7 +28,7 @@ class ComputeUncompute(BaseStateFidelity):
     with the compute-uncompute method.
     """
 
-    def __init__(self, sampler: Sampler, **run_options) -> None:
+    def __init__(self, sampler: BaseSampler, **run_options) -> None:
         r"""
         Initializes the class to evaluate the state_fidelities defined as the state overlap
 
@@ -99,14 +100,15 @@ class ComputeUncompute(BaseStateFidelity):
         # The priority of run options is as follows:
         # run_options in `evaluate` method > fidelity's default run_options >
         # primitive's default run_options.
-        run_options = run_options or self._default_run_options
+        run_opts = copy(self._default_run_options)
+        run_opts.update(**run_options)
 
         if len(values) > 0:
             job = self._sampler.run(
-                circuits=circuits, parameter_values=values, **run_options
+                circuits=circuits, parameter_values=values, **run_opts
             )
         else:
-            job = self._sampler.run(circuits=circuits, **run_options)
+            job = self._sampler.run(circuits=circuits, **run_opts)
 
         result = job.result()
 
@@ -114,4 +116,4 @@ class ComputeUncompute(BaseStateFidelity):
         # negative values in some way (e.g. clipping to zero)
         overlaps = [prob_dist.get(0, 0) for prob_dist in result.quasi_dists]
 
-        return StateFidelityResult(values=overlaps, metadata=run_options)
+        return StateFidelityResult(fidelities=overlaps, metadata=run_opts)

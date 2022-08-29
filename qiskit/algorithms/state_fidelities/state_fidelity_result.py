@@ -15,6 +15,7 @@ Fidelity result class
 
 from __future__ import annotations
 
+from collections.abc import Sequence, Mapping
 from typing import Any
 from dataclasses import dataclass
 
@@ -24,9 +25,9 @@ class StateFidelityResult:
     """Result of Fidelity computation.
 
     Args:
-        values (list[float]): List of fidelity values for each pair of input circuits.
+        fidelities: List of fidelity values for each pair of input circuits.
         metadata: Additional information on the fidelity calculations.
     """
 
-    values: list[float]
-    metadata: list[dict[str, Any]]
+    fidelities: Sequence[float]
+    metadata: Sequence[Mapping[str, Any]]
