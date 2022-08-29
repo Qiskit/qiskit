@@ -1,10 +1,10 @@
 ---
 features:
   - |
-    Added a new class :class:'~qiskit.algorithms.optimizers.SuffixAveragingOptimizer' for 
-    variational quantum algorithms has been added to the :mod:'qiskit.algorithms.optimizers' module. 
+    Added a new class :class:`~qiskit.algorithms.optimizers.SuffixAveragingOptimizer` for 
+    variational quantum algorithms has been added to the :mod:`qiskit.algorithms.optimizers` module. 
     This optimizer class gives a result at a suffix averaged point of circuit parameters obtained 
-    by some optimizer, such as :class:'~qiskit.algorithms.optimizers.ADAM' to improve the result at final iterate.
+    by some optimizer, such as :class:`~qiskit.algorithms.optimizers.ADAM` to improve the result at final iterate.
     A detailed motivation for taking suffix averaging can be found in: https://arxiv.org/abs/2111.07952.
     Fot example:
       from qiskit import Aer
