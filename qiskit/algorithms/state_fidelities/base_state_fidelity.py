@@ -46,16 +46,14 @@ class BaseStateFidelity(ABC):
     def _preprocess_values(
         circuits: QuantumCircuit,
         values: Sequence[Sequence[float]] | None = None,
-        label: str = " ",
     ) -> Sequence[Sequence[float]] | None:
         """
         Checks whether the passed values match the shape of the parameters
         of the corresponding circuits and formats values to 2D list.
 
         Args:
-            values: parameter values corresponding to the circuits to be checked
             circuits: list of circuits to be checked
-            label: optional label to allow for circuit identification in error message
+            values: parameter values corresponding to the circuits to be checked
 
         Returns:
             Returns a 2D list if values match, `None` if no parameters are passed
@@ -73,7 +71,7 @@ class BaseStateFidelity(ABC):
             for circuit in circuits:
                 if circuit.num_parameters != 0:
                     raise ValueError(
-                        f"`values_{label}` cannot be `None` because circuit_{label} has "
+                        f"`values` cannot be `None` because circuit <{circuit.name}> has "
                         f"{circuit.num_parameters} free parameters."
                     )
             return None
@@ -118,7 +116,7 @@ class BaseStateFidelity(ABC):
         """
         raise NotImplementedError
 
-    def _set_circuits(
+    def _construct_circuits(
         self,
         circuits_1: Sequence[QuantumCircuit],
         circuits_2: Sequence[QuantumCircuit],
@@ -168,25 +166,27 @@ class BaseStateFidelity(ABC):
                 # update cache
                 self._circuit_cache[id(circuit_1), id(circuit_2)] = circuit
 
-        # set circuits
-        self._circuits = circuits
+        return circuits
 
-    def _set_values(
+    def _construct_value_list(
         self,
+        circuits_1: Sequence[QuantumCircuit],
+        circuits_2: Sequence[QuantumCircuit],
         values_1: Sequence[Sequence[float]] | None = None,
         values_2: Sequence[Sequence[float]] | None = None,
-    ) -> None:
-        """
-        Update the list of parameter values to evaluate the corresponding
-        fidelity circuits with.
+    ) -> Sequence[Sequence[float]]:
+        """Preprocess input parameter values and return in list format.
 
         Args:
-            values_1: Numerical parameters to be bound to the first circuits.
-            values_2: Numerical parameters to be bound to the second circuits.
+           circuits_1: (Parametrized) quantum circuits preparing the first list of quantum states.
+           circuits_2: (Parametrized) quantum circuits preparing the second list of quantum states.
+           values_1: Numerical parameters to be bound to the first circuits.
+           values_2: Numerical parameters to be bound to the second circuits.
 
-        Raises:
-            ValueError: if the length of the input value lists doesn't match.
         """
+
+        values_1 = self._preprocess_values(circuits_1, values_1)
+        values_2 = self._preprocess_values(circuits_2, values_2)
 
         values = []
         if values_2 is not None or values_1 is not None:
@@ -204,32 +204,7 @@ class BaseStateFidelity(ABC):
                         )
                     values.append(val_1 + val_2)
 
-        # set values
-        self._parameter_values = values
-
-    def _preprocess_inputs(
-        self,
-        circuits_1: Sequence[QuantumCircuit],
-        circuits_2: Sequence[QuantumCircuit],
-        values_1: Sequence[Sequence[float]] | None = None,
-        values_2: Sequence[Sequence[float]] | None = None,
-    ) -> None:
-        """Preprocess input circuits and parameter values and update corresponding lists.
-
-        Args:
-           circuits_1: (Parametrized) quantum circuits preparing the first list of quantum states.
-           circuits_2: (Parametrized) quantum circuits preparing the second list of quantum states.
-           values_1: Numerical parameters to be bound to the first circuits.
-           values_2: Numerical parameters to be bound to the second circuits.
-
-        """
-
-        self._set_circuits(circuits_1, circuits_2)
-
-        values_1 = self._preprocess_values(values_1, circuits_1, "1")
-        values_2 = self._preprocess_values(values_2, circuits_2, "2")
-
-        self._set_values(values_1, values_2)
+        return values
 
     @abstractmethod
     def _run(

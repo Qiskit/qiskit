@@ -89,9 +89,10 @@ class ComputeUncompute(BaseStateFidelity):
             ValueError: At least one pair of circuits must be defined.
         """
 
-        self._preprocess_inputs(circuits_1, circuits_2, values_1, values_2)
+        circuits = self._construct_circuits(circuits_1, circuits_2)
+        values = self._construct_value_list(circuits_1, circuits_2, values_1, values_2)
 
-        if len(self._circuits) == 0:
+        if len(circuits) == 0:
             raise ValueError(
                 "At least one pair of circuits must be defined to calculate the state overlap."
             )
@@ -101,12 +102,12 @@ class ComputeUncompute(BaseStateFidelity):
         # primitive's default run_options.
         run_options = run_options or self._default_run_options
 
-        if len(self._parameter_values) > 0:
+        if len(values) > 0:
             job = self._sampler.run(
-                circuits=self._circuits, parameter_values=self._parameter_values, **run_options
+                circuits=circuits, parameter_values=values, **run_options
             )
         else:
-            job = self._sampler.run(circuits=self._circuits, **run_options)
+            job = self._sampler.run(circuits=circuits, **run_options)
 
         result = job.result()
 
