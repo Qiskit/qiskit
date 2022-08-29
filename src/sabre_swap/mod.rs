@@ -12,29 +12,38 @@
 
 #![allow(clippy::too_many_arguments)]
 
-pub mod edge_list;
 pub mod neighbor_table;
-pub mod qubits_decay;
-pub mod sabre_rng;
+pub mod sabre_dag;
+pub mod swap_map;
 
+use std::cmp::Ordering;
+
+use hashbrown::{HashMap, HashSet};
 use ndarray::prelude::*;
+use numpy::IntoPyArray;
 use numpy::PyReadonlyArray2;
 use pyo3::prelude::*;
 use pyo3::wrap_pyfunction;
 use pyo3::Python;
-
-use hashbrown::HashSet;
 use rand::prelude::SliceRandom;
+use rand::prelude::*;
+use rand_pcg::Pcg64Mcg;
 use rayon::prelude::*;
+use retworkx_core::dictmap::*;
+use retworkx_core::petgraph::prelude::*;
+use retworkx_core::petgraph::visit::EdgeRef;
+use retworkx_core::shortest_path::dijkstra;
 
 use crate::getenv_use_multiple_threads;
 use crate::nlayout::NLayout;
 
-use edge_list::EdgeList;
 use neighbor_table::NeighborTable;
-use qubits_decay::QubitsDecay;
-use sabre_rng::SabreRng;
+use sabre_dag::SabreDAG;
+use swap_map::SwapMap;
 
+const EXTENDED_SET_SIZE: usize = 20; // Size of lookahead window.
+const DECAY_RATE: f64 = 0.001; // Decay coefficient for penalizing serial swaps.
+const DECAY_RESET_INTERVAL: u8 = 5; // How often to reset all decay rates to 1.
 const EXTENDED_SET_WEIGHT: f64 = 0.5; // Weight of lookahead window compared to front_layer.
 
 #[pyclass]
@@ -53,16 +62,15 @@ pub enum Heuristic {
 ///
 /// Candidate swaps are sorted so SWAP(i,j) and SWAP(j,i) are not duplicated.
 fn obtain_swaps(
-    front_layer: &EdgeList,
+    front_layer: &[[usize; 2]],
     neighbors: &NeighborTable,
     layout: &NLayout,
 ) -> HashSet<[usize; 2]> {
     // This will likely under allocate as it's a function of the number of
     // neighbors for the qubits in the layer too, but this is basically a
     // minimum allocation assuming each qubit has only 1 unique neighbor
-    let mut candidate_swaps: HashSet<[usize; 2]> =
-        HashSet::with_capacity(2 * front_layer.edges.len());
-    for node in &front_layer.edges {
+    let mut candidate_swaps: HashSet<[usize; 2]> = HashSet::with_capacity(2 * front_layer.len());
+    for node in front_layer {
         for v in node {
             let physical = layout.logic_to_phys[*v];
             for neighbor in &neighbors.neighbors[physical] {
@@ -79,49 +87,274 @@ fn obtain_swaps(
     candidate_swaps
 }
 
-/// Run the sabre heuristic scoring
+fn obtain_extended_set(
+    dag: &SabreDAG,
+    front_layer: &[NodeIndex],
+    required_predecessors: &mut [u32],
+) -> Vec<[usize; 2]> {
+    let mut extended_set: Vec<[usize; 2]> = Vec::new();
+    let mut decremented: Vec<usize> = Vec::new();
+    let mut tmp_front_layer: Vec<NodeIndex> = front_layer.to_vec();
+    let mut done: bool = false;
+    while !tmp_front_layer.is_empty() && !done {
+        let mut new_tmp_front_layer = Vec::new();
+        for node in tmp_front_layer {
+            for edge in dag.dag.edges(node) {
+                let successor_index = edge.target();
+                let successor = successor_index.index();
+                decremented.push(successor);
+                required_predecessors[successor] -= 1;
+                if required_predecessors[successor] == 0 {
+                    new_tmp_front_layer.push(successor_index);
+                    let node_weight = dag.dag.node_weight(successor_index).unwrap();
+                    let qargs = &node_weight.1;
+                    if qargs.len() == 2 {
+                        let extended_set_edges: [usize; 2] = [qargs[0], qargs[1]];
+                        extended_set.push(extended_set_edges);
+                    }
+                }
+            }
+            if extended_set.len() >= EXTENDED_SET_SIZE {
+                done = true;
+                break;
+            }
+        }
+        tmp_front_layer = new_tmp_front_layer;
+    }
+    for node in decremented {
+        required_predecessors[node] += 1;
+    }
+    extended_set
+}
+
+fn cmap_from_neighor_table(neighbor_table: &NeighborTable) -> DiGraph<(), ()> {
+    DiGraph::<(), ()>::from_edges(neighbor_table.neighbors.iter().enumerate().flat_map(
+        |(u, targets)| {
+            targets
+                .iter()
+                .map(move |v| (NodeIndex::new(u), NodeIndex::new(*v)))
+        },
+    ))
+}
+
+/// Run sabre swap on a circuit
 ///
-/// Args:
-///     layers (EdgeList): The input layer edge list to score and find the
-///         best swaps
-///     layout (NLayout): The current layout
-///     neighbor_table (NeighborTable): The table of neighbors for each node
-///         in the coupling graph
-///     extended_set (EdgeList): The extended set
-///     distance_matrix (ndarray): The 2D array distance matrix for the coupling
-///         graph
-///     qubits_decay (QubitsDecay): The current qubit decay factors for
-///     heuristic (Heuristic): The chosen heuristic method to use
 /// Returns:
-///     ndarray: A 2d array of the best swap candidates all with the minimum score
+///     (SwapMap, gate_order): A tuple where the first element is a mapping of
+///     DAGCircuit node ids to a list of virtual qubit swaps that should be
+///     added before that operation. The second element is a numpy array of
+///     node ids that represents the traversal order used by sabre.
 #[pyfunction]
+pub fn build_swap_map(
+    py: Python,
+    num_qubits: usize,
+    dag: &SabreDAG,
+    neighbor_table: &NeighborTable,
+    distance_matrix: PyReadonlyArray2<f64>,
+    heuristic: &Heuristic,
+    seed: u64,
+    layout: &mut NLayout,
+) -> PyResult<(SwapMap, PyObject)> {
+    let mut gate_order: Vec<usize> = Vec::with_capacity(dag.dag.node_count());
+    let run_in_parallel = getenv_use_multiple_threads();
+    let mut out_map: HashMap<usize, Vec<[usize; 2]>> = HashMap::new();
+    let mut front_layer: Vec<NodeIndex> = dag.first_layer.clone();
+    let max_iterations_without_progress = 10 * neighbor_table.neighbors.len();
+    let mut ops_since_progress: Vec<[usize; 2]> = Vec::new();
+    let mut required_predecessors: Vec<u32> = vec![0; dag.dag.node_count()];
+    let mut extended_set: Option<Vec<[usize; 2]>> = None;
+    let mut num_search_steps: u8 = 0;
+    let dist = distance_matrix.as_array();
+    let coupling_graph: DiGraph<(), ()> = cmap_from_neighor_table(neighbor_table);
+    let mut qubits_decay: Vec<f64> = vec![1.; num_qubits];
+    let mut rng = Pcg64Mcg::seed_from_u64(seed);
+
+    for node in dag.dag.node_indices() {
+        for edge in dag.dag.edges(node) {
+            required_predecessors[edge.target().index()] += 1;
+        }
+    }
+    while !front_layer.is_empty() {
+        let mut execute_gate_list: Vec<NodeIndex> = Vec::new();
+        // Remove as many immediately applicable gates as possible
+        let mut new_front_layer: Vec<NodeIndex> = Vec::new();
+        for node in front_layer {
+            let node_weight = dag.dag.node_weight(node).unwrap();
+            let qargs = &node_weight.1;
+            if qargs.len() == 2 {
+                let physical_qargs: [usize; 2] = [
+                    layout.logic_to_phys[qargs[0]],
+                    layout.logic_to_phys[qargs[1]],
+                ];
+                if coupling_graph
+                    .find_edge(
+                        NodeIndex::new(physical_qargs[0]),
+                        NodeIndex::new(physical_qargs[1]),
+                    )
+                    .is_none()
+                {
+                    new_front_layer.push(node);
+                } else {
+                    execute_gate_list.push(node);
+                }
+            } else {
+                execute_gate_list.push(node);
+            }
+        }
+        front_layer = new_front_layer.clone();
+
+        // Backtrack to the last time we made progress, then greedily insert swaps to route
+        // the gate with the smallest distance between its arguments.  This is f block a release
+        // valve for the algorithm to avoid infinite loops only, and should generally not
+        // come into play for most circuits.
+        if execute_gate_list.is_empty()
+            && ops_since_progress.len() > max_iterations_without_progress
+        {
+            // If we're stuck in a loop without making progress first undo swaps:
+            ops_since_progress
+                .drain(..)
+                .rev()
+                .for_each(|swap| layout.swap_logical(swap[0], swap[1]));
+            // Then pick the  closest pair in the current layer
+            let target_qubits = front_layer
+                .iter()
+                .map(|n| {
+                    let node_weight = dag.dag.node_weight(*n).unwrap();
+                    let qargs = &node_weight.1;
+                    [qargs[0], qargs[1]]
+                })
+                .min_by(|qargs_a, qargs_b| {
+                    let dist_a = dist[[
+                        layout.logic_to_phys[qargs_a[0]],
+                        layout.logic_to_phys[qargs_a[1]],
+                    ]];
+                    let dist_b = dist[[
+                        layout.logic_to_phys[qargs_b[0]],
+                        layout.logic_to_phys[qargs_b[1]],
+                    ]];
+                    dist_a.partial_cmp(&dist_b).unwrap_or(Ordering::Equal)
+                })
+                .unwrap();
+            // find Shortest path between target qubits
+            let mut shortest_paths: DictMap<NodeIndex, Vec<NodeIndex>> = DictMap::new();
+            let u = layout.logic_to_phys[target_qubits[0]];
+            let v = layout.logic_to_phys[target_qubits[1]];
+            (dijkstra(
+                &coupling_graph,
+                NodeIndex::<u32>::new(u),
+                Some(NodeIndex::<u32>::new(v)),
+                |_| Ok(1.),
+                Some(&mut shortest_paths),
+            ) as PyResult<Vec<Option<f64>>>)?;
+            let shortest_path: Vec<usize> = shortest_paths
+                .get(&NodeIndex::new(v))
+                .unwrap()
+                .iter()
+                .map(|n| n.index())
+                .collect();
+            // Insert greedy swaps along that shortest path
+            let split: usize = shortest_path.len() / 2;
+            let forwards = &shortest_path[1..split];
+            let backwards = &shortest_path[split..shortest_path.len() - 1];
+            let mut greedy_swaps: Vec<[usize; 2]> = Vec::with_capacity(split);
+            for swap in forwards {
+                let logical_swap_bit = layout.phys_to_logic[*swap];
+                greedy_swaps.push([target_qubits[0], logical_swap_bit]);
+                layout.swap_logical(target_qubits[0], logical_swap_bit);
+            }
+            backwards.iter().rev().for_each(|swap| {
+                let logical_swap_bit = layout.phys_to_logic[*swap];
+                greedy_swaps.push([target_qubits[1], logical_swap_bit]);
+                layout.swap_logical(target_qubits[1], logical_swap_bit);
+            });
+            ops_since_progress = greedy_swaps;
+            continue;
+        }
+        if !execute_gate_list.is_empty() {
+            for node in execute_gate_list {
+                let node_weight = dag.dag.node_weight(node).unwrap();
+                gate_order.push(node_weight.0);
+                let out_swaps: Vec<[usize; 2]> = ops_since_progress.drain(..).collect();
+                if !out_swaps.is_empty() {
+                    out_map.insert(dag.dag.node_weight(node).unwrap().0, out_swaps);
+                }
+                for edge in dag.dag.edges(node) {
+                    let successor = edge.target().index();
+                    required_predecessors[successor] -= 1;
+                    if required_predecessors[successor] == 0 {
+                        front_layer.push(edge.target());
+                    }
+                }
+            }
+            qubits_decay.fill_with(|| 1.);
+            extended_set = None;
+            continue;
+        }
+        let first_layer: Vec<[usize; 2]> = front_layer
+            .iter()
+            .map(|n| {
+                let node_weight = dag.dag.node_weight(*n).unwrap();
+                let qargs = &node_weight.1;
+                [qargs[0], qargs[1]]
+            })
+            .collect();
+        if extended_set.is_none() {
+            extended_set = Some(obtain_extended_set(
+                dag,
+                &front_layer,
+                &mut required_predecessors,
+            ));
+        }
+
+        let best_swap = sabre_score_heuristic(
+            &first_layer,
+            layout,
+            neighbor_table,
+            extended_set.as_ref().unwrap(),
+            &dist,
+            &qubits_decay,
+            heuristic,
+            &mut rng,
+            run_in_parallel,
+        );
+        num_search_steps += 1;
+        if num_search_steps % DECAY_RESET_INTERVAL == 0 {
+            qubits_decay.fill_with(|| 1.);
+        } else {
+            qubits_decay[best_swap[0]] += DECAY_RATE;
+            qubits_decay[best_swap[1]] += DECAY_RATE;
+        }
+        ops_since_progress.push(best_swap);
+    }
+    Ok((SwapMap { map: out_map }, gate_order.into_pyarray(py).into()))
+}
+
 pub fn sabre_score_heuristic(
-    layer: EdgeList,
+    layer: &[[usize; 2]],
     layout: &mut NLayout,
     neighbor_table: &NeighborTable,
-    extended_set: EdgeList,
-    distance_matrix: PyReadonlyArray2<f64>,
-    qubits_decay: QubitsDecay,
+    extended_set: &[[usize; 2]],
+    dist: &ArrayView2<f64>,
+    qubits_decay: &[f64],
     heuristic: &Heuristic,
-    rng: &mut SabreRng,
+    rng: &mut Pcg64Mcg,
+    run_in_parallel: bool,
 ) -> [usize; 2] {
     // Run in parallel only if we're not already in a multiprocessing context
     // unless force threads is set.
-    let run_in_parallel = getenv_use_multiple_threads();
-    let dist = distance_matrix.as_array();
-    let candidate_swaps = obtain_swaps(&layer, neighbor_table, layout);
+    let candidate_swaps = obtain_swaps(layer, neighbor_table, layout);
     let mut min_score = f64::MAX;
     let mut best_swaps: Vec<[usize; 2]> = Vec::new();
     for swap_qubits in candidate_swaps {
         layout.swap_logical(swap_qubits[0], swap_qubits[1]);
         let score = score_heuristic(
             heuristic,
-            &layer.edges,
-            &extended_set.edges,
+            layer,
+            extended_set,
             layout,
             &swap_qubits,
-            &dist,
-            &qubits_decay.decay,
+            dist,
+            qubits_decay,
         );
         if score < min_score {
             min_score = score;
@@ -137,7 +370,9 @@ pub fn sabre_score_heuristic(
     } else {
         best_swaps.sort_unstable();
     }
-    *best_swaps.choose(&mut rng.rng).unwrap()
+    let best_swap = *best_swaps.choose(rng).unwrap();
+    layout.swap_logical(best_swap[0], best_swap[1]);
+    best_swap
 }
 
 #[inline]
@@ -196,11 +431,10 @@ fn score_heuristic(
 
 #[pymodule]
 pub fn sabre_swap(_py: Python, m: &PyModule) -> PyResult<()> {
-    m.add_wrapped(wrap_pyfunction!(sabre_score_heuristic))?;
+    m.add_wrapped(wrap_pyfunction!(build_swap_map))?;
     m.add_class::<Heuristic>()?;
-    m.add_class::<EdgeList>()?;
-    m.add_class::<QubitsDecay>()?;
     m.add_class::<NeighborTable>()?;
-    m.add_class::<SabreRng>()?;
+    m.add_class::<SabreDAG>()?;
+    m.add_class::<SwapMap>()?;
     Ok(())
 }

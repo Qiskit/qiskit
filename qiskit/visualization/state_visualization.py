@@ -43,6 +43,11 @@ def plot_state_hinton(
 ):
     """Plot a hinton diagram for the density matrix of a quantum state.
 
+    The hinton diagram represents the values of a matrix using
+    squares, whose size indicate the magnitude of their corresponding value
+    and their color, its sign. A white square means the value is positive and
+    a black one means negative.
+
     Args:
         state (Statevector or DensityMatrix or ndarray): An N-qubit quantum state.
         title (str): a string that represents the plot title
@@ -70,20 +75,23 @@ def plot_state_hinton(
         MissingOptionalLibraryError: Requires matplotlib.
         VisualizationError: if input is not a valid N-qubit state.
 
-    Example:
+    Examples:
         .. jupyter-execute::
 
+            import numpy as np
             from qiskit import QuantumCircuit
             from qiskit.quantum_info import DensityMatrix
             from qiskit.visualization import plot_state_hinton
-            %matplotlib inline
 
             qc = QuantumCircuit(2)
-            qc.h(0)
-            qc.cx(0, 1)
+            qc.h([0, 1])
+            qc.cz(0,1)
+            qc.ry(np.pi/3 , 0)
+            qc.rx(np.pi/5, 1)
 
-            state = DensityMatrix.from_instruction(qc)
+            state = DensityMatrix(qc)
             plot_state_hinton(state, title="New Hinton Plot")
+
     """
     from matplotlib import pyplot as plt
 
@@ -178,7 +186,8 @@ def plot_state_hinton(
 def plot_bloch_vector(bloch, title="", ax=None, figsize=None, coord_type="cartesian"):
     """Plot the Bloch sphere.
 
-    Plot a sphere, axes, the Bloch vector, and its projections onto each axis.
+    Plot a Bloch sphere with the specified coordinates, that can be given in both
+    cartesian and spherical systems.
 
     Args:
         bloch (list[double]): array of three elements where [<x>, <y>, <z>] (Cartesian)
@@ -198,13 +207,21 @@ def plot_bloch_vector(bloch, title="", ax=None, figsize=None, coord_type="cartes
     Raises:
         MissingOptionalLibraryError: Requires matplotlib.
 
-    Example:
+    Examples:
         .. jupyter-execute::
 
            from qiskit.visualization import plot_bloch_vector
-           %matplotlib inline
 
            plot_bloch_vector([0,1,0], title="New Bloch Sphere")
+
+        .. jupyter-execute::
+
+           # You can use spherical coordinates instead of cartesian.
+
+           import numpy as np
+
+           plot_bloch_vector([1, np.pi/2, np.pi/3], coord_type='spherical')
+
     """
     from qiskit.visualization.bloch import Bloch
 
@@ -231,9 +248,13 @@ def plot_bloch_vector(bloch, title="", ax=None, figsize=None, coord_type="cartes
 def plot_bloch_multivector(
     state, title="", figsize=None, *, rho=None, reverse_bits=False, filename=None
 ):
-    """Plot the Bloch sphere.
+    r"""Plot a Bloch sphere for each qubit.
 
-    Plot a sphere, axes, the Bloch vector, and its projections onto each axis.
+    Each component :math:`(x,y,z)` of the Bloch sphere labeled as 'qubit i' represents the expected
+    value of the corresponding Pauli operator acting only on that qubit, that is, the expected value
+    of :math:`I_{N-1} \otimes\dotsb\otimes I_{i+1}\otimes P_i \otimes I_{i-1}\otimes\dotsb\otimes
+    I_0`, where :math:`N` is the number of qubits, :math:`P\in \{X,Y,Z\}` and :math:`I` is the
+    identity operator.
 
     Args:
         state (Statevector or DensityMatrix or ndarray): an N-qubit quantum state.
@@ -249,20 +270,35 @@ def plot_bloch_multivector(
         MissingOptionalLibraryError: Requires matplotlib.
         VisualizationError: if input is not a valid N-qubit state.
 
-    Example:
+    Examples:
         .. jupyter-execute::
 
             from qiskit import QuantumCircuit
             from qiskit.quantum_info import Statevector
             from qiskit.visualization import plot_bloch_multivector
-            %matplotlib inline
 
             qc = QuantumCircuit(2)
             qc.h(0)
             qc.x(1)
 
-            state = Statevector.from_instruction(qc)
+            state = Statevector(qc)
             plot_bloch_multivector(state)
+
+        .. jupyter-execute::
+
+           # You can reverse the order of the qubits.
+
+           from qiskit.quantum_info import DensityMatrix
+
+           qc = QuantumCircuit(2)
+           qc.h([0, 1])
+           qc.t(1)
+           qc.s(0)
+           qc.cx(0,1)
+
+           matrix = DensityMatrix(qc)
+           plot_bloch_multivector(matrix, title='My Bloch Spheres', reverse_bits=True)
+
     """
     from matplotlib import pyplot as plt
 
@@ -334,21 +370,39 @@ def plot_state_city(
         ValueError: When 'color' is not a list of len=2.
         VisualizationError: if input is not a valid N-qubit state.
 
-    Example:
+    Examples:
         .. jupyter-execute::
+
+           # You can choose different colors for the real and imaginary parts of the density matrix.
 
            from qiskit import QuantumCircuit
            from qiskit.quantum_info import DensityMatrix
            from qiskit.visualization import plot_state_city
-           %matplotlib inline
 
            qc = QuantumCircuit(2)
            qc.h(0)
            qc.cx(0, 1)
 
-           state = DensityMatrix.from_instruction(qc)
-           plot_state_city(state, color=['midnightblue', 'midnightblue'],
-                title="New State City")
+           state = DensityMatrix(qc)
+           plot_state_city(state, color=['midnightblue', 'crimson'], title="New State City")
+
+        .. jupyter-execute::
+
+           # You can make the bars more transparent to better see the ones that are behind
+           # if they overlap.
+
+           import numpy as np
+           from qiskit.quantum_info import Statevector
+
+           qc = QuantumCircuit(2)
+           qc.h([0, 1])
+           qc.cz(0,1)
+           qc.ry(np.pi/3, 0)
+           qc.rx(np.pi/5, 1)
+
+           state = Statevector(qc)
+           plot_state_city(state, alpha=0.6)
+
     """
     from matplotlib import pyplot as plt
     from mpl_toolkits.mplot3d.art3d import Poly3DCollection
@@ -543,21 +597,38 @@ def plot_state_paulivec(
         MissingOptionalLibraryError: Requires matplotlib.
         VisualizationError: if input is not a valid N-qubit state.
 
-    Example:
+    Examples:
         .. jupyter-execute::
+
+           # You can set a color for all the bars.
 
            from qiskit import QuantumCircuit
            from qiskit.quantum_info import Statevector
            from qiskit.visualization import plot_state_paulivec
-           %matplotlib inline
 
            qc = QuantumCircuit(2)
            qc.h(0)
            qc.cx(0, 1)
 
-           state = Statevector.from_instruction(qc)
-           plot_state_paulivec(state, color='midnightblue',
-                title="New PauliVec plot")
+           state = Statevector(qc)
+           plot_state_paulivec(state, color='midnightblue', title="New PauliVec plot")
+
+        .. jupyter-execute::
+
+           # If you introduce a list with less colors than bars, the color of the bars will
+           # alternate following the sequence from the list.
+
+           import numpy as np
+           from qiskit.quantum_info import DensityMatrix
+
+           qc = QuantumCircuit(2)
+           qc.h([0, 1])
+           qc.cz(0, 1)
+           qc.ry(np.pi/3, 0)
+           qc.rx(np.pi/5, 1)
+
+           matrix = DensityMatrix(qc)
+           plot_state_paulivec(matrix, color=['crimson', 'midnightblue', 'seagreen'])
     """
     from matplotlib import pyplot as plt
 
@@ -698,20 +769,38 @@ def plot_state_qsphere(
 
         QiskitError: Input statevector does not have valid dimensions.
 
-    Example:
+    Examples:
         .. jupyter-execute::
 
            from qiskit import QuantumCircuit
            from qiskit.quantum_info import Statevector
            from qiskit.visualization import plot_state_qsphere
-           %matplotlib inline
 
            qc = QuantumCircuit(2)
            qc.h(0)
            qc.cx(0, 1)
 
-           state = Statevector.from_instruction(qc)
+           state = Statevector(qc)
            plot_state_qsphere(state)
+
+        .. jupyter-execute::
+
+           # You can show the phase of each state and use
+           # degrees instead of radians
+
+           from qiskit.quantum_info import DensityMatrix
+           import numpy as np
+
+           qc = QuantumCircuit(2)
+           qc.h([0, 1])
+           qc.cz(0,1)
+           qc.ry(np.pi/3, 0)
+           qc.rx(np.pi/5, 1)
+           qc.z(1)
+
+           matrix = DensityMatrix(qc)
+           plot_state_qsphere(matrix,
+                show_state_phases = True, use_degrees = True)
     """
     from matplotlib import gridspec
     from matplotlib import pyplot as plt

@@ -16,7 +16,7 @@ the frequency of a channel.
 from typing import Optional, Union, Tuple
 
 from qiskit.circuit.parameterexpression import ParameterExpression
-from qiskit.pulse.channels import PulseChannel
+from qiskit.pulse.channels import PulseChannel, PulseError
 from qiskit.pulse.instructions.instruction import Instruction
 
 
@@ -46,7 +46,13 @@ class SetFrequency(Instruction):
             frequency: New frequency of the channel in Hz.
             channel: The channel this instruction operates on.
             name: Name of this set channel frequency instruction.
+        Raises:
+            PulseError: If channel is not a PulseChannel.
         """
+        if not isinstance(channel, PulseChannel):
+            raise PulseError(
+                "The `channel` argument to `SetFrequency` must be of type `channels.PulseChannel`."
+            )
         if not isinstance(frequency, ParameterExpression):
             frequency = float(frequency)
         super().__init__(operands=(frequency, channel), name=name)
@@ -93,9 +99,15 @@ class ShiftFrequency(Instruction):
             frequency: Frequency shift of the channel in Hz.
             channel: The channel this instruction operates on.
             name: Name of this set channel frequency instruction.
+        Raises:
+            PulseError: If channel is not a PulseChannel.
         """
         if not isinstance(frequency, ParameterExpression):
             frequency = float(frequency)
+        if not isinstance(channel, PulseChannel):
+            raise PulseError(
+                "The `channel` argument to `ShiftFrequency` must be of type `channels.PulseChannel`."
+            )
         super().__init__(operands=(frequency, channel), name=name)
 
     @property

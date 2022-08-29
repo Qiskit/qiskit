@@ -896,6 +896,13 @@ class TestMatplotlibDrawer(QiskitTestCase):
         circuit.append(U1Gate(0).control(1), [1, 0]).c_if(cr, 31)
         self.circuit_drawer(circuit, cregbundle=False, filename="fold_with_conditions.png")
 
+    def test_idle_wires_barrier(self):
+        """Test that idle_wires False works with barrier"""
+        circuit = QuantumCircuit(4, 4)
+        circuit.x(2)
+        circuit.barrier()
+        self.circuit_drawer(circuit, cregbundle=False, filename="idle_wires_barrier.png")
+
     def test_wire_order(self):
         """Test the wire_order option"""
         qr = QuantumRegister(4, "q")
@@ -912,6 +919,17 @@ class TestMatplotlibDrawer(QiskitTestCase):
             wire_order=[2, 1, 3, 0, 6, 8, 9, 5, 4, 7],
             filename="wire_order.png",
         )
+
+    def test_barrier_label(self):
+        """Test the barrier label"""
+        circuit = QuantumCircuit(2)
+        circuit.x(0)
+        circuit.y(1)
+        circuit.barrier()
+        circuit.y(0)
+        circuit.x(1)
+        circuit.barrier(label="End Y/X")
+        self.circuit_drawer(circuit, filename="barrier_label.png")
 
 
 if __name__ == "__main__":
