@@ -32,28 +32,30 @@ class SciPyRealEvolver(RealEvolver, SciPyEvolver):
     Evolves an initial state :math:`|\Psi\rangle` for a time :math:`t`
     under a Hamiltonian  :math:`H`, as provided in the ``evolution_problem``.
 
-    In order to perform one timestep :math:`\delta t` of the evolution, we need to implement:
+    In order to perform one timestep :math:`\Delta t` of the evolution, we need to implement:
 
     .. math::
 
-        |\Psi ( t + \delta t ) \rangle = \exp(-i \delta t H) |\Psi (t ) \rangle
+        |\Psi ( t + \Delta t ) \rangle = \exp(-i \Delta t H) |\Psi (t ) \rangle
 
     Which can be approximated as:
 
     .. math::
 
-        \exp(-i \delta t H) = \left(1+ i \frac{\delta t}{2} H \right) ^{-1}
-                                \left( 1 - i \frac{\delta t}{2} H \right)
-                                + O\left( \delta t^3 \right)
+        \exp(-i \Delta t H) = \left(1+ i \frac{\Delta t}{2} H \right) ^{-1}
+                                \left( 1 - i \frac{\Delta t}{2} H \right)
+                                + O\left( \Delta t^3 \right)
 
     Note that this operator is unitary, and thus we won't need to renormalize the state at
-    each step. In order to find :math:`|\Psi ( t + \delta t ) \rangle` we then
+    each step. In order to find :math:`|\Psi ( t + \Delta t ) \rangle` we then
     need to solve a linear system of equations:
 
     .. math::
 
-        \left( 1+ i \frac{\delta t}{2} H \right) |\Psi ( t + \delta t ) \rangle
-                = \left( 1 - i \frac{\delta t}{2} H \right) |\Psi( t ) \rangle
+        \left( 1+ i \frac{\Delta t}{2} H \right) |\Psi ( t + \Delta t ) \rangle
+                = \left( 1 - i \frac{\Delta t}{2} H \right) |\Psi( t ) \rangle
+
+    This system of equations will be solved using the Bi-conjugate Gradient method.
 
     """
 
@@ -195,7 +197,7 @@ class SciPyRealEvolver(RealEvolver, SciPyEvolver):
         r"""Calculate the timestep for the given time and threshold.
 
         We use the fact that the Taylor expansion term of third order in our expansion would be
-        :math:`\frac{ ( -i H \delta t ) ^3}{12}` to compute an approximation for how
+        :math:`\frac{ ( -i H \Delta t ) ^3}{12}` to compute an approximation for how
         many timesteps we need to reach a certain precision.
 
         Args:

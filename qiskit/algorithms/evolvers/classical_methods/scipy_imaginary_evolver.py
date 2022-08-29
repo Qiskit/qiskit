@@ -31,11 +31,7 @@ class SciPyImaginaryEvolver(ImaginaryEvolver, SciPyEvolver):
     Evolves an initial state :math:`|\Psi\rangle` for an imaginary time :math:`\tau = it`
     under a Hamiltonian  :math:`H`, as provided in the ``evolution_problem``.
 
-    For each timestep we use SciPy's `expm_multiply` function to evolve the state. Internally,
-    this function performs integration steps as well. The number of timesteps specified
-    by the user is just to renormalize the state to avoid overflow errors and to get the
-    values of the observables at those times. Note that increasing the number of timesteps
-    will not direclty increase the accuracy of the integration.
+    For each timestep we use a taylor expansion of :math:`\exp(- \Delta \tau H)` to evolve the system.
 
     """
 
@@ -130,9 +126,12 @@ class SciPyImaginaryEvolver(ImaginaryEvolver, SciPyEvolver):
             initial_state = evolution_problem.initial_state.to_matrix(massive=True).transpose()
 
         hamiltonian = evolution_problem.hamiltonian.to_spmatrix()
+
+        #Create the evolution operator for one timestep.
         idnty = sp.identity(hamiltonian.shape[0], format="csr")
         timestep = evolution_problem.time / self.timesteps
         ev_operator = idnty - hamiltonian * timestep + hamiltonian @ hamiltonian * timestep**2 / 2
+
         # Get the auxiliary operators as sparse matrices.
         if isinstance(evolution_problem.aux_operators, list):
             aux_ops = [aux_op.to_spmatrix() for aux_op in evolution_problem.aux_operators]
