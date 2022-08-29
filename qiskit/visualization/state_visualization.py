@@ -1225,14 +1225,13 @@ def state_to_latex(
     return prefix + latex_str + suffix
 
 
-def num_to_latex_ket(raw_value: complex, first_term: bool, max_size: int) -> Optional[str]:
+def num_to_latex_ket(raw_value: complex, first_term: bool, decimals: int = 0) -> Optional[str]:
     """Convert a complex number to latex code suitable for a ket expression
 
     Args:
         raw_value: Value to convert
         first_term: If True then generate latex code for the first term in an expression
-        max_size: Maximum number of non-zero terms in the expression. If the number of
-                 non-zero terms is larger than the max_size, then the representation is truncated.
+        decimals: Number of decimal places to round to (default: 0).
     Returns:
         String with latex code or None if no term is required
     """
@@ -1243,7 +1242,7 @@ def num_to_latex_ket(raw_value: complex, first_term: bool, max_size: int) -> Opt
         real_value = 0
         imag_value = 0
     else:
-        raw_value = np.around(raw_value, max_size)
+        raw_value = np.around(raw_value, decimals=decimals)
         value = sympy.nsimplify(raw_value, constants=(sympy.pi,), rational=False)
         real_value = float(sympy.re(value))
         imag_value = float(sympy.im(value))
