@@ -127,7 +127,7 @@ class SciPyImaginaryEvolver(ImaginaryEvolver, SciPyEvolver):
 
         hamiltonian = evolution_problem.hamiltonian.to_spmatrix()
 
-        #Create the evolution operator for one timestep.
+        # Create the evolution operator for one timestep.
         idnty = sp.identity(hamiltonian.shape[0], format="csr")
         timestep = evolution_problem.time / self.timesteps
         ev_operator = idnty - hamiltonian * timestep + hamiltonian @ hamiltonian * timestep**2 / 2
