@@ -67,7 +67,7 @@ This method changes the circuit to which it is applied instead of returning anot
 .. jupyter-execute::
 
     qc2.append(qc1, qargs=[3,1], cargs=[1])
-    qc2.draw()
+    qc2.draw(cregbundle=False)
 
 Unlike :meth:`~qiskit.circuit.QuantumCircuit.compose()`, :meth:`~qiskit.circuit.QuantumCircuit.append()` turns the smaller circuit into a single :class:`~qiskit.circuit.Instruction`, so in order to unroll it you can use :meth:`~qiskit.circuit.QuantumCircuit.decompose()`
 
