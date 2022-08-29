@@ -1,15 +1,29 @@
+# This code is part of Qiskit.
+#
+# (C) Copyright IBM 2022.
+#
+# This code is licensed under the Apache License, Version 2.0. You may
+# obtain a copy of this license in the LICENSE.txt file in the root directory
+# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+#
+# Any modifications or derivative works of this code must retain this
+# copyright notice, and modified files need to carry a notice indicating
+# that they have been altered from the originals.
+
 """ Test of Suffix averaging """
 
 import unittest
-import numpy as np
-from qiskit.algorithms.optimizers.suffix_averaging import SuffixAveragingOptimizer
 from test.python.algorithms import QiskitAlgorithmsTestCase
+
+import numpy as np
+
 from qiskit import BasicAer
-from qiskit.circuit.library import RealAmplitudes
-from qiskit.utils import QuantumInstance, algorithm_globals
-from qiskit.opflow import PauliSumOp
-from qiskit.algorithms.optimizers import ADAM
 from qiskit.algorithms import VQE
+from qiskit.algorithms.optimizers import ADAM
+from qiskit.algorithms.optimizers.suffix_averaging import SuffixAveragingOptimizer
+from qiskit.circuit.library import RealAmplitudes
+from qiskit.opflow import PauliSumOp
+from qiskit.utils import QuantumInstance, algorithm_globals
 
 
 class TestOptimizerSA(QiskitAlgorithmsTestCase):
@@ -35,6 +49,7 @@ class TestOptimizerSA(QiskitAlgorithmsTestCase):
         n_params_suffix = 5
         maxiter = 7
 
+        # pylint: disable=unused-argument
         def store_intermediate_result(eval_count, parameters, mean, std):
             circ_params.append(parameters)
 
