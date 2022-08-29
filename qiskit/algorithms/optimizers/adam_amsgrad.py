@@ -40,6 +40,7 @@ class ADAM(Optimizer):
 
         [1]: Kingma, Diederik & Ba, Jimmy (2014), Adam: A Method for Stochastic Optimization.
              `arXiv:1412.6980 <https://arxiv.org/abs/1412.6980>`_
+
         [2]: Sashank J. Reddi and Satyen Kale and Sanjiv Kumar (2018),
              On the Convergence of Adam and Beyond.
              `arXiv:1904.09237 <https://arxiv.org/abs/1904.09237>`_
