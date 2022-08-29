@@ -203,7 +203,7 @@ Algorithms that estimate the phases of eigenstates of a unitary.
 State Fidelities
 ----------
 
-Algorithms that compute the fidelity of pairs of quantum staties.
+Algorithms that compute the fidelity of pairs of quantum states.
 
 .. autosummary::
    :toctree: ../stubs/
