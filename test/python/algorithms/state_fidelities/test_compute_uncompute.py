@@ -44,7 +44,11 @@ class TestComputeUncompute(QiskitTestCase):
 
         zero = QuantumCircuit(2)
 
-        self._circuit = [rx_rotations, ry_rotations, plus, zero]
+        rx_rotation = QuantumCircuit(2)
+        rx_rotation.rx(parameters[0], 0)
+        rx_rotation.h(1)
+
+        self._circuit = [rx_rotations, ry_rotations, plus, zero, rx_rotation]
         self._sampler = Sampler()
         self._left_params = np.array([[0, 0], [np.pi / 2, 0], [0, np.pi / 2], [np.pi, np.pi]])
         self._right_params = np.array([[0, 0], [0, 0], [np.pi / 2, 0], [0, 0]])
@@ -135,7 +139,8 @@ class TestComputeUncompute(QiskitTestCase):
             job.result()
 
     def test_param_mismatch(self):
-        """test for fidelity with different number of left/right parameters."""
+        """test for fidelity with different number of left/right parameters that
+        do not match the circuits'."""
 
         fidelity = ComputeUncompute(self._sampler)
         n = len(self._left_params)
@@ -159,7 +164,25 @@ class TestComputeUncompute(QiskitTestCase):
 
         with self.assertRaises(ValueError):
             job = fidelity.run([self._circuit[0]] * n, [self._circuit[1]] * n)
-            job.result()
+            result = job.result()
+            np.testing.assert_allclose(
+                result.fidelities, np.array([1.0, 0.5, 0.5, 0.0]), atol=1e-16
+            )
+
+    def test_asymmetric_params(self):
+        """test for fidelity when the 2 circuits have different number of
+        left/right parameters."""
+
+        fidelity = ComputeUncompute(self._sampler)
+        n = len(self._left_params)
+        right_params = [[p] for p in self._right_params[:, 0]]
+        job = fidelity.run(
+            [self._circuit[0]] * n,
+            [self._circuit[4]] * n,
+            self._left_params,
+            right_params,
+        )
+        job.result()
 
     def test_async_join(self):
         """test for run method using join."""

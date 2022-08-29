@@ -189,12 +189,8 @@ class BaseStateFidelity(ABC):
            values_2: Numerical parameters to be bound to the second circuits.
 
         Returns:
-            2D List of parameter values for fidelity circuit
+             List of parameter values for fidelity circuit.
 
-        Raises:
-            ValueError: If the number of parameters in the first circuit list
-                        do not match the number of parameters in the second
-                        circuit list.
         """
 
         values_1 = self._preprocess_values(circuits_1, values_1)
@@ -208,13 +204,6 @@ class BaseStateFidelity(ABC):
                 values = values_2
             else:
                 for (val_1, val_2) in zip(values_1, values_2):
-                    if len(val_1) != len(val_2):
-                        raise ValueError(
-                            f"The number of parameters in the first circuit "
-                            f"(currently {len(val_1)}) "
-                            f"has to be equal to the number of parameters in "
-                            f"the second circuit, (currently {len(val_2)})."
-                        )
                     values.append(val_1 + val_2)
 
         return values
