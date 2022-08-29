@@ -22,6 +22,7 @@ from qiskit.primitives import BaseSampler
 from .base_state_fidelity import BaseStateFidelity
 from .state_fidelity_result import StateFidelityResult
 
+
 class ComputeUncompute(BaseStateFidelity):
     """
     This class leverages the sampler primitive to calculate the fidelity of two quantum circuits
@@ -104,9 +105,7 @@ class ComputeUncompute(BaseStateFidelity):
         run_opts.update(**run_options)
 
         if len(values) > 0:
-            job = self._sampler.run(
-                circuits=circuits, parameter_values=values, **run_opts
-            )
+            job = self._sampler.run(circuits=circuits, parameter_values=values, **run_opts)
         else:
             job = self._sampler.run(circuits=circuits, **run_opts)
 

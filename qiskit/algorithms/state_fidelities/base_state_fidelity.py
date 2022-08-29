@@ -23,6 +23,7 @@ from qiskit.circuit import ParameterVector
 from qiskit.primitives.primitive_job import PrimitiveJob
 from .state_fidelity_result import StateFidelityResult
 
+
 class BaseStateFidelity(ABC):
     """
     An interface to calculate state_fidelities (state overlaps) for pairs of
@@ -119,7 +120,7 @@ class BaseStateFidelity(ABC):
         self,
         circuits_1: Sequence[QuantumCircuit],
         circuits_2: Sequence[QuantumCircuit],
-    ) -> None:
+    ) -> Sequence[QuantumCircuit]:
         """
         Construct the list of fidelity circuits to be evaluated.
         These circuits represent the state overlap between pairs of input circuits,
@@ -128,6 +129,9 @@ class BaseStateFidelity(ABC):
         Args:
             circuits_1: (Parametrized) quantum circuits.
             circuits_2: (Parametrized) quantum circuits.
+
+        Returns:
+            List of constructed fidelity circuits.
 
         Raises:
             ValueError: if the length of the input circuit lists doesn't match.
@@ -171,8 +175,10 @@ class BaseStateFidelity(ABC):
         circuits_2: Sequence[QuantumCircuit],
         values_1: Sequence[Sequence[float]] | None = None,
         values_2: Sequence[Sequence[float]] | None = None,
-    ) -> Sequence[Sequence[float]]:
-        """Preprocess input parameter values and return in list format.
+    ) -> Sequence[float]:
+        """
+        Preprocess input parameter values to match the fidelity
+        circuit parametrization, and return in list format.
 
         Args:
            circuits_1: (Parametrized) quantum circuits preparing the
@@ -182,6 +188,13 @@ class BaseStateFidelity(ABC):
            values_1: Numerical parameters to be bound to the first circuits.
            values_2: Numerical parameters to be bound to the second circuits.
 
+        Returns:
+            2D List of parameter values for fidelity circuit
+
+        Raises:
+            ValueError: If the number of parameters in the first circuit list
+                        do not match the number of parameters in the second
+                        circuit list.
         """
 
         values_1 = self._preprocess_values(circuits_1, values_1)
@@ -197,9 +210,10 @@ class BaseStateFidelity(ABC):
                 for (val_1, val_2) in zip(values_1, values_2):
                     if len(val_1) != len(val_2):
                         raise ValueError(
-                            f"The number of left parameters (currently {len(val_1)})"
-                            f"has to be equal to the number of right parameters."
-                            f"(currently {len(val_2)})"
+                            f"The number of parameters in the first circuit "
+                            f"(currently {len(val_1)}) "
+                            f"has to be equal to the number of parameters in "
+                            f"the second circuit, (currently {len(val_2)})."
                         )
                     values.append(val_1 + val_2)
 
@@ -255,8 +269,7 @@ class BaseStateFidelity(ABC):
             The job's result is an instance of ``StateFidelityResult``.
         """
 
-        job = PrimitiveJob(self._run, circuits_1, circuits_2,
-                           values_1, values_2, **run_options)
+        job = PrimitiveJob(self._run, circuits_1, circuits_2, values_1, values_2, **run_options)
 
         job.submit()
         return job
