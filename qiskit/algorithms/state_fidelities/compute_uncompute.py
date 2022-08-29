@@ -18,7 +18,6 @@ from typing import Sequence
 
 from qiskit import QuantumCircuit
 from qiskit.primitives import Sampler
-from qiskit.primitives.primitive_job import PrimitiveJob
 from .base_state_fidelity import BaseStateFidelity
 from .state_fidelity_result import StateFidelityResult
 
@@ -116,32 +115,3 @@ class ComputeUncompute(BaseStateFidelity):
         overlaps = [prob_dist.get(0, 0) for prob_dist in result.quasi_dists]
 
         return StateFidelityResult(values=overlaps, metadata=run_options)
-
-    def run(
-        self,
-        circuits_1: Sequence[QuantumCircuit],
-        circuits_2: Sequence[QuantumCircuit],
-        values_1: Sequence[Sequence[float]] | None = None,
-        values_2: Sequence[Sequence[float]] | None = None,
-        **run_options,
-    ) -> PrimitiveJob:
-        r"""
-        Run asynchronously the state overlap (fidelity) calculation between 2
-        (parametrized) circuits (left and right) for a specific set of parameter
-        values (left and right).
-
-        Args:
-            circuits_1: (Parametrized) quantum circuits preparing :math:`|\psi\rangle`.
-            circuits_2: (Parametrized) quantum circuits preparing :math:`|\phi\rangle`.
-            values_1: Numerical parameters to be bound to the left circuits.
-            values_2: Numerical parameters to be bound to the right circuits.
-            run_options: Backend runtime options used for circuit execution.
-
-        Returns:
-            Primitive job for the fidelity calculation
-        """
-
-        job = PrimitiveJob(self._run, circuits_1, circuits_2, values_1, values_2, **run_options)
-
-        job.submit()
-        return job
