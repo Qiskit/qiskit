@@ -77,30 +77,29 @@ class SuffixAveragingOptimizer(Optimizer):
 
         self._circ_params = []
 
-        if isinstance(self._optimizer, SPSA):
+        original_callback = self._optimizer.callback
+        if isinstance(self._optimizer, (SPSA, QNSPSA)):
 
-            # pylint: disable=unused-argument
-            def load_params(nfev, x_next, fx_next, update_step, is_accepted):
+            def callback(nfev, x_next, fx_next, update_step, is_accepted):
                 self._circ_params.append(x_next)
-
-        elif isinstance(self._optimizer, QNSPSA):
-
-            # pylint: disable=unused-argument
-            def load_params(nfev, x_next, fx_next, update_step, is_accepted):
-                self._circ_params.append(x_next)
+                if original_callback is not None:
+                    original_callback(nfev, x_next, fx_next, update_step, is_accepted)
 
         elif isinstance(self._optimizer, GradientDescent):
 
-            # pylint: disable=unused-argument
-            def load_params(nfevs, x_next, fx_next, stepsize):
+            def callback(nfevs, x_next, fx_next, stepsize):
                 self._circ_params.append(x_next)
+                if original_callback is not None:
+                    original_callback(nfevs, x_next, fx_next, stepsize)
 
         else:
 
-            def load_params(x):
+            def callback(x):
                 self._circ_params.append(x)
+                if original_callback is not None:
+                    original_callback(x)
 
-        self._optimizer.callback = load_params
+        self._optimizer.callback = callback
         super().__init__()
 
     def get_support_level(self):
