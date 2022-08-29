@@ -1,3 +1,17 @@
+# This code is part of Qiskit.
+#
+# (C) Copyright IBM 2022.
+#
+# This code is licensed under the Apache License, Version 2.0. You may
+# obtain a copy of this license in the LICENSE.txt file in the root directory
+# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+#
+# Any modifications or derivative works of this code must retain this
+# copyright notice, and modified files need to carry a notice indicating
+# that they have been altered from the originals.
+
+"""Suffix Averaging optimier"""
+
 import warnings
 from typing import Callable, List, Optional, Tuple
 
@@ -5,7 +19,7 @@ import numpy as np
 
 from qiskit.algorithms.optimizers import NFT, QNSPSA, SPSA, GradientDescent
 
-from .optimizer import POINT, Optimizer, OptimizerResult, OptimizerSupportLevel
+from .optimizer import POINT, Optimizer, OptimizerResult
 
 
 class SuffixAveragingOptimizer(Optimizer):
@@ -18,7 +32,8 @@ class SuffixAveragingOptimizer(Optimizer):
 
     .. math::
 
-        \overline{\vec{\theta}} = \frac{1}{n_params_suffix} \sum_{t=T-n_params_suffix-1}^{T} \vec{\theta}^{(t)}.
+        \overline{\vec{\theta}} = \frac{1}{n_params_suffix} \sum_{t=T-n_params_suffix-1}^{T}
+        \vec{\theta}^{(t)}.
 
     Examples:
         .. code-block::python
@@ -64,16 +79,19 @@ class SuffixAveragingOptimizer(Optimizer):
 
         if isinstance(self._optimizer, SPSA):
 
+            # pylint: disable=unused-argument
             def load_params(nfev, x_next, fx_next, update_step, is_accepted):
                 self._circ_params.append(x_next)
 
         elif isinstance(self._optimizer, QNSPSA):
 
+            # pylint: disable=unused-argument
             def load_params(nfev, x_next, fx_next, update_step, is_accepted):
                 self._circ_params.append(x_next)
 
         elif isinstance(self._optimizer, GradientDescent):
 
+            # pylint: disable=unused-argument
             def load_params(nfevs, x_next, fx_next, stepsize):
                 self._circ_params.append(x_next)
 
@@ -83,14 +101,11 @@ class SuffixAveragingOptimizer(Optimizer):
                 self._circ_params.append(x)
 
         self._optimizer.callback = load_params
+        super().__init__()
 
     def get_support_level(self):
         """Return support level dictionary"""
-        return {
-            "gradient": OptimizerSupportLevel.supported,
-            "bounds": OptimizerSupportLevel.supported,
-            "initial_point": OptimizerSupportLevel.supported,
-        }
+        return self._optimizer.get_support_level()
 
     def _return_suffix_average(self) -> List[float]:
 

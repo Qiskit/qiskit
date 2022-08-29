@@ -168,6 +168,9 @@ class OptimizerSupportLevel(IntEnum):
 
 
 class OptimizerCallback(Protocol):
+    """Callback protocol for optimizer."""
+
+    # pylint: disable=invalid-name
     def __call__(self, xk, state: Optional[OptimizeResult] = None) -> bool:
         ...
 
