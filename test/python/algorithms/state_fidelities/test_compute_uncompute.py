@@ -164,10 +164,7 @@ class TestComputeUncompute(QiskitTestCase):
 
         with self.assertRaises(ValueError):
             job = fidelity.run([self._circuit[0]] * n, [self._circuit[1]] * n)
-            result = job.result()
-            np.testing.assert_allclose(
-                result.fidelities, np.array([1.0, 0.5, 0.5, 0.0]), atol=1e-16
-            )
+            job.result()
 
     def test_asymmetric_params(self):
         """test for fidelity when the 2 circuits have different number of
@@ -182,7 +179,10 @@ class TestComputeUncompute(QiskitTestCase):
             self._left_params,
             right_params,
         )
-        job.result()
+        result = job.result()
+        np.testing.assert_allclose(
+            result.fidelities, np.array([0.5, 0.25, 0.25, 0.0]), atol=1e-16
+        )
 
     def test_async_join(self):
         """test for run method using join."""
