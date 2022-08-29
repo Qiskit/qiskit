@@ -23,14 +23,14 @@ Visualize the circuit
 
 There are three different ways to visualize a circuit. You can use
 
-* The ``print` function.
+* The ``print()`` function.
 * The :meth:`~qiskit.circuit.QuantumCircuit.draw()` method.
 * The :func:`~qiskit.visualization.circuit_drawer()` function.
 
-``print``
----------
+``print()``
+-----------
 
-If you call the `print` function on a :class:`~qiskit.circuit.QuantumCircuit` object, you will get an `ASCII art version <https://en.wikipedia.org/wiki/ASCII_art>`_ of the circuit diagram.
+If you call the ``print()`` function on a :class:`~qiskit.circuit.QuantumCircuit` object, you will get an `ASCII art version <https://en.wikipedia.org/wiki/ASCII_art>`_ of the circuit diagram.
 
 .. jupyter-execute::
 
