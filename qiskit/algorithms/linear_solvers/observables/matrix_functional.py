@@ -13,6 +13,7 @@
 """The matrix functional of the vector solution to the linear systems."""
 
 from typing import Union, List
+import warnings
 import numpy as np
 from scipy.sparse import diags
 
@@ -25,10 +26,7 @@ from .linear_system_observable import LinearSystemObservable
 
 
 class MatrixFunctional(LinearSystemObservable):
-    """A class for the matrix functional of the vector solution to the linear systems.
-
-    The MatrixFunctional class is deprecated as of Qiskit Terra 0.22.0
-    and will be removed no sooner than 3 months after the release date.
+    """The deprecated class for the matrix functional of the vector solution to the linear systems.
 
     Examples:
 
@@ -89,6 +87,9 @@ class MatrixFunctional(LinearSystemObservable):
             off_diag: The off diagonal of the tridiagonal Toeplitz symmetric matrix to compute
                 the functional.
         """
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")
+            super().__init__()
         self._main_diag = main_diag
         self._off_diag = off_diag
 

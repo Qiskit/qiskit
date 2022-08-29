@@ -18,13 +18,18 @@ import numpy as np
 
 from qiskit import QuantumCircuit
 from qiskit.opflow import TensoredOp
+from qiskit.utils.deprecation import deprecate_function
 
 
 class LinearSystemObservable(ABC):
-    """An abstract class for linear system observables in Qiskit.
-    The LinearSystemObservable class is deprecated as of Qiskit Terra 0.22.0
-    and will be removed no sooner than 3 months after the release date.
-    """
+    """The deprecated abstract class for linear system observables in Qiskit."""
+
+    @deprecate_function(
+        "The LinearSystemObservable class is deprecated as of Qiskit Terra 0.22.0 "
+        "and will be removed no sooner than 3 months after the release date. "
+    )
+    def __init__(self) -> None:
+        pass
 
     @abstractmethod
     def observable(self, num_qubits: int) -> Union[TensoredOp, List[TensoredOp]]:

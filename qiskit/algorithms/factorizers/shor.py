@@ -41,7 +41,7 @@ logger = logging.getLogger(__name__)
 
 
 class Shor:
-    """Shor's factoring algorithm.
+    """The deprecated Shor's factoring algorithm.
 
     The Shor class is deprecated as of Qiskit Terra 0.22.0
     and will be removed no sooner than 3 months after the release date.
@@ -490,12 +490,7 @@ class Shor:
 
 
 class ShorResult(AlgorithmResult):
-    """Shor Result.
-    The Shor Result class is deprecated as of Qiskit Terra 0.22.0
-    and will be removed no sooner than 3 months after the release date.
-    It is replaced by the tutorial at
-    `Shor <https://qiskit.org/textbook/ch-algorithms/shor.html>`_
-    """
+    """The deprecated Shor Result."""
 
     def __init__(self) -> None:
         super().__init__()

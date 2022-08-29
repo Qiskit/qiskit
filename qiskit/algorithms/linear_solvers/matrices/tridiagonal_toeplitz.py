@@ -24,10 +24,7 @@ from .linear_system_matrix import LinearSystemMatrix
 
 
 class TridiagonalToeplitz(LinearSystemMatrix):
-    r"""Class of tridiagonal Toeplitz symmetric matrices.
-
-    The TridiagonalToeplitz class is deprecated as of Qiskit Terra 0.22.0
-    and will be removed no sooner than 3 months after the release date.
+    r"""The deprecated class of tridiagonal Toeplitz symmetric matrices.
 
     Given the main entry, :math:`a`, and the off diagonal entry, :math:`b`, the :math:`4\times 4`
     dimensional tridiagonal Toeplitz symmetric matrix is

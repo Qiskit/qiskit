@@ -40,12 +40,8 @@ from .observables.linear_system_observable import LinearSystemObservable
 
 
 class HHL(LinearSolver):
-    r"""The HHL class is deprecated as of Qiskit Terra 0.22.0
-    and will be removed no sooner than 3 months after the release date.
-    It is replaced by the tutorial at
-    `HHL <https://qiskit.org/textbook/ch-applications/hhl_tutorial.html>`_
-
-    Systems of linear equations arise naturally in many real-life applications in a wide range
+    r"""The deprecated systems of linear equations arise naturally in many real-life applications
+    in a wide range
     of areas, such as in the solution of Partial Differential Equations, the calibration of
     financial models, fluid simulation or numerical field calculation. The problem can be defined
     as, given a matrix :math:`A\in\mathbb{C}^{N\times N}` and a vector

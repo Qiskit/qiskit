@@ -23,10 +23,7 @@ from .linear_system_matrix import LinearSystemMatrix
 
 
 class NumPyMatrix(LinearSystemMatrix):
-    """Class of matrices given as a numpy array.
-
-    The NumPyMatrix class is deprecated as of Qiskit Terra 0.22.0
-    and will be removed no sooner than 3 months after the release date.
+    """The deprecated class of matrices given as a numpy array.
 
     Examples:
 

@@ -24,10 +24,7 @@ from .observables.linear_system_observable import LinearSystemObservable
 
 
 class NumPyLinearSolver(LinearSolver):
-    """The Numpy Linear Solver algorithm (classical).
-
-    The NumPyLinearSolver class is deprecated as of Qiskit Terra 0.22.0
-    and will be removed no sooner than 3 months after the release date.
+    """The deprecated Numpy Linear Solver algorithm (classical).
 
     This linear system solver computes the exact value of the given observable(s) or the full
     solution vector if no observable is specified.

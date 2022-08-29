@@ -24,10 +24,7 @@ from .linear_system_observable import LinearSystemObservable
 
 
 class AbsoluteAverage(LinearSystemObservable):
-    r"""An observable for the absolute average of a linear system of equations solution.
-
-    The AbsoluteAverage class is deprecated as of Qiskit Terra 0.22.0
-    and will be removed no sooner than 3 months after the release date.
+    r"""The deprecated observable for the absolute average of a linear system of equations solution.
 
     For a vector :math:`x=(x_1,...,x_N)`, the absolute average is defined as
     :math:`\abs{\frac{1}{N}\sum_{i=1}^{N}x_i}`.
