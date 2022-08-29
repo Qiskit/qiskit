@@ -37,7 +37,7 @@ You can use these two methods to assign values to the :class:`~qiskit.circuit.Pa
 * :meth:`~qiskit.circuit.QuantumCircuit.assign_parameters()` 
 
 :meth:`~qiskit.circuit.QuantumCircuit.bind_parameters()`
--------------------------------------------------------
+--------------------------------------------------------
 
 In order to use this method, you have to specify either a dictionary of the form ``{parameter: value,...}`` or an iterable formed only by numeric values, that will be assigned following the order from :attr:`~qiskit.circuit.QuantumCircuit.parameters`.
 
@@ -52,7 +52,7 @@ In order to use this method, you have to specify either a dictionary of the form
         display(qc_bind_list[i].draw('mpl'))
 
 :meth:`~qiskit.circuit.QuantumCircuit.assign_parameters()`
----------------------------------------------------------
+----------------------------------------------------------
 
 This method works identically like :meth:`~qiskit.circuit.QuantumCircuit.bind_parameters()`  except that you can also assign other :class:`~qiskit.circuit.Parameter` objects instead of only numbers to the :class:`~qiskit.circuit.Parameter`\ s in your circuit.
 
