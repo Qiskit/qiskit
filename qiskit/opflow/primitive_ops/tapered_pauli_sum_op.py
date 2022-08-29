@@ -365,7 +365,7 @@ class Z2Symmetries:
             operator: to-be-tapered operator
 
         Returns:
-            :class`PauliSumOp` corresponding to the converted operator.
+            :class:`PauliSumOp` corresponding to the converted operator.
 
         Raises:
             OpflowError: Z2 symmetries, single qubit pauli and single qubit list cannot be empty
@@ -395,7 +395,7 @@ class Z2Symmetries:
             operator: Partially tapered operator resulting from a call to :meth:`convert_clifford`
 
         Returns:
-            If tapering_values is None: [:class`PauliSumOp`]; otherwise, :class:`PauliSumOp`
+            If tapering_values is None: [:class:`PauliSumOp`]; otherwise, :class:`PauliSumOp`
 
         Raises:
             OpflowError: Z2 symmetries, single qubit pauli and single qubit list cannot be empty
@@ -439,7 +439,7 @@ class Z2Symmetries:
             operator: the to-be-tapered operator
 
         Returns:
-            If tapering_values is None: [:class`PauliSumOp`]; otherwise, :class:`PauliSumOp`
+            If tapering_values is None: [:class:`PauliSumOp`]; otherwise, :class:`PauliSumOp`
 
         Raises:
             OpflowError: Z2 symmetries, single qubit pauli and single qubit list cannot be empty
