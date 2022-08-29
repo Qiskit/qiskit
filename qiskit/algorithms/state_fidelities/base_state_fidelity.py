@@ -40,9 +40,6 @@ class BaseStateFidelity(ABC):
         # use cache for preventing unnecessary circuit compositions
         self._circuit_cache: Mapping[(int, int), QuantumCircuit] = {}
 
-        self._left_parameters = []
-        self._right_parameters = []
-
     @staticmethod
     def _preprocess_values(
         circuits: QuantumCircuit,
@@ -153,11 +150,9 @@ class BaseStateFidelity(ABC):
 
                 # re-parametrize input circuits
                 left_parameters = ParameterVector("x", circuit_1.num_parameters)
-                self._left_parameters.append(left_parameters)
                 parametrized_circuit_1 = circuit_1.assign_parameters(left_parameters)
 
                 right_parameters = ParameterVector("y", circuit_2.num_parameters)
-                self._right_parameters.append(right_parameters)
                 parametrized_circuit_2 = circuit_2.assign_parameters(right_parameters)
 
                 circuit = self._create_fidelity_circuit(
