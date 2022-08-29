@@ -247,7 +247,7 @@ class TestGateDirection(QiskitTestCase):
         self.assertEqual(circuit_to_dag(expected), after)
 
     def test_regression_gh_8387(self):
-        """ Regression test for flipping of CZ gate """
+        """Regression test for flipping of CZ gate"""
         qc = QuantumCircuit(3)
         qc.cz(1, 0)
         qc.barrier()
