@@ -66,12 +66,6 @@ Because this optional or keyword argument is actually the first of this method, 
     qc.draw('mpl')
 
 
-``'latex'``
-^^^^^^^^^^^^
-
-.. jupyter-execute::
-
-    qc.draw('latex')
 
 ``'latex_source'``
 ^^^^^^^^^^^^^^^^^^
