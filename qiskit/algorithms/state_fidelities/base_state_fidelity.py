@@ -122,7 +122,7 @@ class BaseStateFidelity(ABC):
         circuits_2: Sequence[QuantumCircuit],
     ) -> None:
         """
-        Update the list of fidelity circuits to be evaluated.
+        Construct the list of fidelity circuits to be evaluated.
         These circuits represent the state overlap between pairs of input circuits,
         and their construction depends on the fidelity method implementations.
 
@@ -216,7 +216,7 @@ class BaseStateFidelity(ABC):
         **run_options,
     ) -> Sequence[float]:
         """Compute the state overlap (fidelity) calculation between 2
-        parametrized circuits (first and second) for a specific set of parameter
+        (parametrized) circuits (first and second) for a specific set of parameter
         values (first and second). This calculation depends on the particular
         fidelity method implementation.
         Args:

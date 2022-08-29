@@ -69,7 +69,7 @@ class ComputeUncompute(BaseStateFidelity):
     ) -> StateFidelityResult:
         r"""
         Compute the state overlap (fidelity) calculation between 2
-        parametrized circuits (left and right) for a specific set of parameter
+        (parametrized) circuits (left and right) for a specific set of parameter
         values (left and right) following the compute-uncompute method, where
         the fidelity corresponds to:
 
@@ -127,7 +127,7 @@ class ComputeUncompute(BaseStateFidelity):
     ) -> PrimitiveJob:
         r"""
         Run asynchronously the state overlap (fidelity) calculation between 2
-        parametrized circuits (left and right) for a specific set of parameter
+        (parametrized) circuits (left and right) for a specific set of parameter
         values (left and right).
 
         Args:
