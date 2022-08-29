@@ -488,7 +488,8 @@ def _latex_circuit_drawer(
         image = utils._trim(image)
         if filename:
             if filename.endswith(".pdf"):
-                os.rename(base + ".pdf", filename)
+                import shutil
+                shutil.move(base + ".pdf", filename)
             else:
                 try:
                     image.save(filename)
