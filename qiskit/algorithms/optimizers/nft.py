@@ -17,6 +17,7 @@ from typing import Optional
 import numpy as np
 from scipy.optimize import OptimizeResult
 
+from .optimizer import OptimizerCallback
 from .scipy_optimizer import SciPyOptimizer
 
 
@@ -37,6 +38,7 @@ class NFT(SciPyOptimizer):
         disp: bool = False,
         reset_interval: int = 32,
         options: Optional[dict] = None,
+        callback: Optional[OptimizerCallback] = None,
         **kwargs,
     ) -> None:
         """
@@ -50,6 +52,7 @@ class NFT(SciPyOptimizer):
             reset_interval: The minimum estimates directly once
                             in ``reset_interval`` times.
             options: A dictionary of solver options.
+            callback: A callback function passed parrameters in each iteration step.
             kwargs: additional kwargs for scipy.optimize.minimize.
 
         Notes:
@@ -66,7 +69,7 @@ class NFT(SciPyOptimizer):
         for k, v in list(locals().items()):
             if k in self._OPTIONS:
                 options[k] = v
-        super().__init__(method=nakanishi_fujii_todo, options=options, **kwargs)
+        super().__init__(method=nakanishi_fujii_todo, options=options, callback=callback, **kwargs)
 
 
 # pylint: disable=invalid-name

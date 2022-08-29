@@ -59,6 +59,7 @@ class SLSQP(SciPyOptimizer):
             eps: Step size used for numerical approximation of the Jacobian.
             options: A dictionary of solver options.
             max_evals_grouped: Max number of default gradient evaluations performed simultaneously.
+            callback: A callback function passed parrameters in each iteration step.
             kwargs: additional kwargs for scipy.optimize.minimize.
         """
         if options is None:

@@ -91,7 +91,7 @@ class ADAM(Optimizer):
             amsgrad: True to use AMSGRAD, False if not
             snapshot_dir: If not None save the optimizer's parameter
                 after every step to the given directory
-            callback:
+            callback: A callback function passed parrameters in each iteration step.
         """
         super().__init__(callback)
         for k, v in list(locals().items()):

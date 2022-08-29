@@ -88,6 +88,7 @@ class GSLS(Optimizer):
             min_gradient_norm: If the gradient norm is below this threshold, the algorithm stops.
             max_failed_rejection_sampling: Maximum number of attempts to sample points within
                 bounds.
+            callback: A callback function passed parrameters in each iteration step.
         """
         super().__init__(callback)
         for k, v in list(locals().items()):

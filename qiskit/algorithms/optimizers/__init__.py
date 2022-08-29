@@ -102,6 +102,15 @@ The global optimizers are as follows:
    ESCH
    ISRES
 
+Other Optimizers
+==================
+
+.. autosummary::
+   :toctree: ../stubs/
+   :nosignatures:
+
+    SuffixAveragingOptimizer
+
 """
 
 from .adam_amsgrad import ADAM
@@ -109,8 +118,8 @@ from .aqgd import AQGD
 from .bobyqa import BOBYQA
 from .cg import CG
 from .cobyla import COBYLA
-from .gsls import GSLS
 from .gradient_descent import GradientDescent
+from .gsls import GSLS
 from .imfil import IMFIL
 from .l_bfgs_b import L_BFGS_B
 from .nelder_mead import NELDER_MEAD

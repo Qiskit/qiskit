@@ -138,7 +138,7 @@ class Minimizer(Protocol):
         x0: np.ndarray,
         jac: Callable[[np.ndarray], np.ndarray] | None,
         bounds: list[tuple[float, float]] | None,
-    ) -> scipy.optimize.OptimizeResult | OptimizerResult:
+    ) -> OptimizeResult | OptimizerResult:
         """Minimize the objective function.
 
         This interface is based on `SciPy's optimize module <https://docs.scipy.org/doc
@@ -171,7 +171,7 @@ class OptimizerCallback(Protocol):
     """Callback protocol for optimizer."""
 
     # pylint: disable=invalid-name
-    def __call__(self, xk, state: Optional[OptimizeResult] = None) -> bool:
+    def __call__(self, xk):
         ...
 
 

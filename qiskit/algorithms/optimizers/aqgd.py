@@ -79,6 +79,7 @@ class AQGD(Optimizer):
             param_tol: Tolerance for change in norm of parameters.
             averaging: Length of window over which to average objective values for objective
                 convergence criterion
+            callback: A callback function passed parrameters in each iteration step.
 
         Raises:
             AlgorithmError: If the length of ``maxiter``, `momentum``, and ``eta`` is not the same.

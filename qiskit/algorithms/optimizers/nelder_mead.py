@@ -65,6 +65,7 @@ class NELDER_MEAD(SciPyOptimizer):  # pylint: disable=invalid-name
             tol: Tolerance for termination.
             adaptive: Adapt algorithm parameters to dimensionality of problem.
             options: A dictionary of solver options.
+            callback: A callback function passed parrameters in each iteration step.
             kwargs: additional kwargs for scipy.optimize.minimize.
         """
         if options is None:
