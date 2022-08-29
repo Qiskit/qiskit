@@ -112,4 +112,8 @@ impl NLayout {
     pub fn swap_physical(&mut self, bit_a: usize, bit_b: usize) {
         self.swap(bit_a, bit_b)
     }
+
+    pub fn copy(&self) -> NLayout {
+        self.clone()
+    }
 }
