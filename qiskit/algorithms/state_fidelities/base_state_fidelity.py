@@ -217,15 +217,23 @@ class BaseStateFidelity(ABC):
         values_2: Sequence[Sequence[float]] | None = None,
         **run_options,
     ) -> StateFidelityResult:
-        """Compute the state overlap (fidelity) calculation between 2
+        r"""
+        Compute the state overlap (fidelity) calculation between two
         (parametrized) circuits (first and second) for a specific set of parameter
         values (first and second). This calculation depends on the particular
-        fidelity method implementation.
+        fidelity method implementation, but always represents:
+
+            :math:`|\langle\psi(x)|\phi(y)\rangle|^2`
+
+        where :math:`x` and :math:`y` are optional parametrizations of the
+        states :math:`\psi` and :math:`\phi` prepared by the circuits
+        ``circuit_1`` and ``circuit_2``, respectively.
+
         Args:
-            circuits_1: (Parametrized) quantum circuits preparing one set of states
-            circuits_2: (Parametrized) quantum circuits preparing another set of states
-            values_1: Numerical parameters to be bound to the first circuits
-            values_2: Numerical parameters to be bound to the second circuits.
+            circuits_1: (Parametrized) quantum circuits preparing :math:`|\psi\rangle`.
+            circuits_2: (Parametrized) quantum circuits preparing :math:`|\phi\rangle`.
+            values_1: Numerical parameters to be bound to the first set of circuits
+            values_2: Numerical parameters to be bound to the second set of circuits.
             run_options: Backend runtime options used for circuit execution.
 
         Returns:
@@ -242,15 +250,22 @@ class BaseStateFidelity(ABC):
         **run_options,
     ) -> PrimitiveJob:
         r"""
-        Run asynchronously the state overlap (fidelity) calculation between 2
-        (parametrized) circuits (left and right) for a specific set of parameter
-        values (left and right).
+        Run asynchronously the state overlap (fidelity) calculation between two
+        (parametrized) circuits (first and second) for a specific set of parameter
+        values (first and second).This calculation depends on the particular
+        fidelity method implementation, but always represents:
+
+            :math:`|\langle\psi(x)|\phi(y)\rangle|^2`
+
+        where :math:`x` and :math:`y` are optional parametrizations of the
+        states :math:`\psi` and :math:`\phi` prepared by the circuits
+        ``circuit_1`` and ``circuit_2``, respectively.
 
         Args:
             circuits_1: (Parametrized) quantum circuits preparing :math:`|\psi\rangle`.
             circuits_2: (Parametrized) quantum circuits preparing :math:`|\phi\rangle`.
-            values_1: Numerical parameters to be bound to the left circuits.
-            values_2: Numerical parameters to be bound to the right circuits.
+            values_1: Numerical parameters to be bound to the first set of circuits.
+            values_2: Numerical parameters to be bound to the second set of circuits.
             run_options: Backend runtime options used for circuit execution.
 
         Returns:

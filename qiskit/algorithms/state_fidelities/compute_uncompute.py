@@ -25,13 +25,14 @@ from .state_fidelity_result import StateFidelityResult
 
 class ComputeUncompute(BaseStateFidelity):
     """
-    This class leverages the sampler primitive to calculate the fidelity of two quantum circuits
-    with the compute-uncompute method.
+    This class leverages the sampler primitive to calculate the fidelity of
+    two quantum circuits with the compute-uncompute method.
     """
 
     def __init__(self, sampler: BaseSampler, **run_options) -> None:
         r"""
-        Initializes the class to evaluate the state_fidelities defined as the state overlap
+        Initializes the class to evaluate the compute-uncompute state fidelity using
+        the sampler primitive. This fidelity is defined as the state overlap
 
             :math:`|\langle\psi(x)|\phi(y)\rangle|^2`,
 
@@ -69,10 +70,11 @@ class ComputeUncompute(BaseStateFidelity):
         **run_options,
     ) -> StateFidelityResult:
         r"""
-        Compute the state overlap (fidelity) calculation between 2
-        (parametrized) circuits (left and right) for a specific set of parameter
-        values (left and right) following the compute-uncompute method, where
-        the fidelity corresponds to:
+        Compute the state overlap (fidelity) calculation between two
+        (parametrized) circuits (first and second) for a specific set of parameter
+        values (first and second) following the compute-uncompute method
+
+        The fidelity corresponds to:
 
             :math:`|\langle\psi(x)|\phi(y)\rangle|^2`
 
