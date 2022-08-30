@@ -10,22 +10,27 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 """
-=====================================
+=====================================================================
 State Fidelity Interfaces (:mod:`qiskit.algorithms.state_fidelities`)
-=====================================
+=====================================================================
+
 .. currentmodule:: qiskit.algorithms.state_fidelities
 
 State Fidelities
-=========
+================
+
 .. autosummary::
    :toctree: ../stubs/
+
    BaseStateFidelity
    ComputeUncompute
 
 Results
 =======
+
  .. autosummary::
     :toctree: ../stubs/
+
     StateFidelityResult
 """
 

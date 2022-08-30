@@ -200,8 +200,9 @@ Algorithms that estimate the phases of eigenstates of a unitary.
    PhaseEstimationResult
    IterativePhaseEstimation
 
+
 State Fidelities
-----------
+----------------
 
 Algorithms that compute the fidelity of pairs of quantum states.
 
@@ -211,7 +212,7 @@ Algorithms that compute the fidelity of pairs of quantum states.
    state_fidelities
 
 Exceptions
-==========
+----------
 
 .. autosummary::
    :toctree: ../stubs/
