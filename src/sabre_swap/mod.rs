@@ -320,7 +320,7 @@ pub fn build_swap_map(
         num_search_steps += 1;
         if num_search_steps >= DECAY_RESET_INTERVAL {
             qubits_decay.fill_with(|| 1.);
-            num_search_steps = 0
+            num_search_steps = 0;
         } else {
             qubits_decay[best_swap[0]] += DECAY_RATE;
             qubits_decay[best_swap[1]] += DECAY_RATE;
