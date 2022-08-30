@@ -20,15 +20,11 @@ from ddt import ddt, data
 from qiskit.algorithms.observables_evaluator import eval_observables
 from qiskit.primitives import Estimator
 from test.python.algorithms import QiskitAlgorithmsTestCase
-from qiskit.algorithms.list_or_dict import ListOrDict
 from qiskit.quantum_info import Statevector
 from qiskit import QuantumCircuit
 from qiskit.circuit.library import EfficientSU2
 from qiskit.opflow import (
     PauliSumOp,
-    X,
-    Z,
-    I,
     OperatorBase,
 )
 from qiskit.utils import algorithm_globals
