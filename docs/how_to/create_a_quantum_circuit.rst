@@ -28,7 +28,7 @@ In order to create a :class:`~qiskit.circuit.QuantumCircuit` by only specifying 
     qc.draw()
 
 
-If you don't want to include any classical bits, you don't have to write `QuantumCircuit(n_qubits,0)` but you can omit the number of classical bits.
+If you don't want to include any classical bits, you don't have to write ``QuantumCircuit(n_qubits,0)`` but you can omit the number of classical bits.
 
 .. jupyter-execute::
 
