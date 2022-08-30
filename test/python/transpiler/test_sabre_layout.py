@@ -19,7 +19,9 @@ from qiskit.transpiler import CouplingMap
 from qiskit.transpiler.passes import SabreLayout
 from qiskit.converters import circuit_to_dag
 from qiskit.test import QiskitTestCase
+from qiskit.compiler.transpiler import transpile
 from qiskit.providers.fake_provider import FakeAlmaden
+from qiskit.providers.fake_provider import FakeKolkata
 
 
 class TestSabreLayout(QiskitTestCase):
@@ -98,6 +100,45 @@ class TestSabreLayout(QiskitTestCase):
         self.assertEqual(layout[qr1[0]], 3)
         self.assertEqual(layout[qr1[1]], 12)
         self.assertEqual(layout[qr1[2]], 11)
+
+    def test_layout_with_classical_bits(self):
+        """Test sabre layout with classical bits recreate from issue #8635."""
+        qc = QuantumCircuit.from_qasm_str(
+            """
+OPENQASM 2.0;
+include "qelib1.inc";
+qreg q4833[1];
+qreg q4834[6];
+qreg q4835[7];
+creg c982[2];
+creg c983[2];
+creg c984[2];
+rzz(0) q4833[0],q4834[4];
+cu(0,-6.1035156e-05,0,1e-05) q4834[1],q4835[2];
+swap q4834[0],q4834[2];
+cu(-1.1920929e-07,0,-0.33333333,0) q4833[0],q4834[2];
+ccx q4835[2],q4834[5],q4835[4];
+measure q4835[4] -> c984[0];
+ccx q4835[2],q4835[5],q4833[0];
+measure q4835[5] -> c984[1];
+measure q4834[0] -> c982[1];
+u(10*pi,0,1.9) q4834[5];
+measure q4834[3] -> c984[1];
+measure q4835[0] -> c982[0];
+rz(0) q4835[1];
+"""
+        )
+        res = transpile(qc, FakeKolkata(), layout_method="sabre", seed_transpiler=1234)
+        self.assertIsInstance(res, QuantumCircuit)
+        layout = res._layout
+        self.assertEqual(layout[qc.qubits[0]], 14)
+        self.assertEqual(layout[qc.qubits[1]], 19)
+        self.assertEqual(layout[qc.qubits[2]], 7)
+        self.assertEqual(layout[qc.qubits[3]], 13)
+        self.assertEqual(layout[qc.qubits[4]], 6)
+        self.assertEqual(layout[qc.qubits[5]], 16)
+        self.assertEqual(layout[qc.qubits[6]], 18)
+        self.assertEqual(layout[qc.qubits[7]], 26)
 
 
 if __name__ == "__main__":
