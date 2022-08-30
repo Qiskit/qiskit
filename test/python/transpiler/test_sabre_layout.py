@@ -103,7 +103,8 @@ class TestSabreLayout(QiskitTestCase):
 
     def test_layout_with_classical_bits(self):
         """Test sabre layout with classical bits recreate from issue #8635."""
-        qc = QuantumCircuit.from_qasm_str("""
+        qc = QuantumCircuit.from_qasm_str(
+            """
 OPENQASM 2.0;
 include "qelib1.inc";
 qreg q4833[1];
@@ -125,7 +126,8 @@ u(10*pi,0,1.9) q4834[5];
 measure q4834[3] -> c984[1];
 measure q4835[0] -> c982[0];
 rz(0) q4835[1];
-""")
+"""
+        )
         res = transpile(qc, FakeKolkata(), layout_method="sabre", seed_transpiler=1234)
         self.assertIsInstance(res, QuantumCircuit)
         layout = res._layout
