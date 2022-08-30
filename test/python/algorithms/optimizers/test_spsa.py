@@ -182,47 +182,16 @@ class TestSPSA(QiskitAlgorithmsTestCase):
             self.assertTrue(all(isinstance(value, expected_types[i]) for value in values))
             self.assertEqual(len(history[key]), maxiter)
 
-    def test_estimate_stddev(self):
-        """Test the estimate_stddev"""
-
-        def objective(x):
-            ret = 0.0
-            for array in x:
-                ret += sum(array)
-            return ret
-
-        points = np.arange(8.0)
-        result = SPSA.estimate_stddev(objective, [points, points * 0.8])
-
-        self.assertEqual(result, 0.0)
-
-    def test_estimate_stddev_split(self):
-        """Test the estimate_stddev with max_evals_grouped"""
-
-        def objective(x):
-            ret = 0.0
-            for array in x:
-                ret += sum(array)
-            return ret
-
-        points = np.arange(8.0)
-        result = SPSA.estimate_stddev(objective, [points, points * 0.8], max_evals_grouped=2)
-
-        self.assertEqual(result, 8.18124930781885)
-
-    def test_estimate_stddev_uneven_split(self):
-        """Test the estimate_stddev with uneven split
+    @data(1, 2, 3, 4)
+    def test_estimate_stddev(self, max_evals_grouped):
+        """Test the estimate_stddev
         See https://github.com/Qiskit/qiskit-nature/issues/797"""
 
         def objective(x):
-            ret = 0.0
-            for array in x:
-                ret += sum(array)
-            return ret
+            if isinstance(x, list):
+                return [sum(x_i) for x_i in x]
+            return sum(x)
 
-        points = np.arange(8.0)
-        result = SPSA.estimate_stddev(
-            objective, [points, points * 0.8], avg=13, max_evals_grouped=3
-        )
-
-        self.assertEqual(result, 11.340000000000002)
+        point = np.ones(5)
+        result = SPSA.estimate_stddev(objective, point, avg=10, max_evals_grouped=max_evals_grouped)
+        self.assertAlmostEqual(result, 0)
