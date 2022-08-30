@@ -188,8 +188,8 @@ class TestSPSA(QiskitAlgorithmsTestCase):
         See https://github.com/Qiskit/qiskit-nature/issues/797"""
 
         def objective(x):
-            if isinstance(x, list):
-                return [sum(x_i) for x_i in x]
+            if len(x.shape == 2):
+                return np.array([sum(x_i) for x_i in x])
             return sum(x)
 
         point = np.ones(5)
