@@ -21,7 +21,6 @@ from collections.abc import Sequence
 from copy import copy
 
 from qiskit.circuit import QuantumCircuit, Parameter
-from qiskit.exceptions import QiskitError
 from qiskit.primitives import BaseSampler
 from qiskit.primitives.primitive_job import PrimitiveJob
 from .sampler_gradient_result import SamplerGradientResult
@@ -47,7 +46,7 @@ class BaseSamplerGradient(ABC):
         parameter_values: Sequence[Sequence[float]],
         parameters: Sequence[Sequence[Parameter] | None] | None = None,
         **run_options,
-    ) -> SamplerGradientResult:
+    ) -> PrimitiveJob:
         """Run the job of the sampler gradient on the given circuits.
 
         Args:
@@ -70,13 +69,15 @@ class BaseSamplerGradient(ABC):
         Raises:
             QiskitError: Invalid arguments are given.
         """
-
+        # if ``parameters`` is none, all parameters in each circuit are differentiated.
+        if parameters is None:
+            parameters = [None for _ in range(len(circuits))]
         # Validate the arguments.
         self._validate_arguments(circuits, parameter_values, parameters)
         # The priority of run option is as follows:
         # run_options in `run` method > gradient's default run_options > primitive's default run_options.
         run_opts = copy(self._default_run_options)
-        run_opts.update(**run_options)
+        run_opts.update(run_options)
         job = PrimitiveJob(self._run, circuits, parameter_values, parameters, **run_opts)
         job.submit()
         return job
@@ -86,7 +87,7 @@ class BaseSamplerGradient(ABC):
         self,
         circuits: Sequence[QuantumCircuit],
         parameter_values: Sequence[Sequence[float]],
-        parameters: Sequence[Sequence[Parameter]] | None = None,
+        parameters: Sequence[Sequence[Parameter] | None],
         **run_options,
     ) -> SamplerGradientResult:
         """Compute the sampler gradients on the given circuits."""
@@ -109,24 +110,29 @@ class BaseSamplerGradient(ABC):
                 each circuit are calculated.
 
         Raises:
-            QiskitError: Invalid arguments are given.
+            ValueError: Invalid arguments are given.
         """
         # Validate the arguments.
         if len(circuits) != len(parameter_values):
-            raise QiskitError(
+            raise ValueError(
                 f"The number of circuits ({len(circuits)}) does not match "
                 f"the number of parameter value sets ({len(parameter_values)})."
             )
         if parameters is not None:
             if len(circuits) != len(parameters):
-                raise QiskitError(
+                raise ValueError(
                     f"The number of circuits ({len(circuits)}) does not match "
                     f"the number of the specified parameter sets ({len(parameters)})."
                 )
 
         for i, (circuit, parameter_value) in enumerate(zip(circuits, parameter_values)):
+            if  not circuit.num_parameters:
+                raise ValueError(
+                    f"The {i}-th circuit is not parameterised."
+                )
+
             if len(parameter_value) != circuit.num_parameters:
-                raise QiskitError(
+                raise ValueError(
                     f"The number of values ({len(parameter_value)}) does not match "
                     f"the number of parameters ({circuit.num_parameters}) for the {i}-th circuit."
                 )

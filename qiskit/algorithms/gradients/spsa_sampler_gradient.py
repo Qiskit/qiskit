@@ -14,7 +14,6 @@
 
 from __future__ import annotations
 
-import random
 from collections import Counter
 from typing import Sequence
 
@@ -50,7 +49,8 @@ class SPSASamplerGradient(BaseSamplerGradient):
                 run_options in `run` method > gradient's default run_options > primitive's default
                 setting. Higher priority setting overrides lower priority setting."""
         self._epsilon = epsilon
-        self._seed = random.seed(seed) if seed else None
+        self._seed = np.random.default_rng(seed) if seed else np.random.default_rng()
+
 
         super().__init__(sampler, **run_options)
 
@@ -58,14 +58,10 @@ class SPSASamplerGradient(BaseSamplerGradient):
         self,
         circuits: Sequence[QuantumCircuit],
         parameter_values: Sequence[Sequence[float]],
-        parameters: Sequence[Sequence[Parameter] | None] | None = None,
+        parameters: Sequence[Sequence[Parameter] | None],
         **run_options,
     ) -> SamplerGradientResult:
         """Compute the sampler gradients on the given circuits."""
-        # if parameters is none, all parameters in each circuit are differentiated.
-        if parameters is None:
-            parameters = [None for _ in range(len(circuits))]
-
         jobs, result_indices_all, offsets = [], [], []
         for circuit, parameter_values_, parameters_ in zip(circuits, parameter_values, parameters):
             # indices of parameters to be differentiated
@@ -75,9 +71,8 @@ class SPSASamplerGradient(BaseSamplerGradient):
                 indices = [circuit.parameters.data.index(p) for p in parameters_]
             result_indices_all.append(indices)
 
-            offset = np.array(
-                [(-1) ** (random.randint(0, 1)) for _ in range(len(circuit.parameters))]
-            )
+            offset = (-1) ** (self._seed.integers(0, 2, len(circuit.parameters)))
+
             plus = parameter_values_ + self._epsilon * offset
             minus = parameter_values_ - self._epsilon * offset
             offsets.append(offset)
@@ -111,6 +106,7 @@ class SPSASamplerGradient(BaseSamplerGradient):
                 )
             gradients.append([QuasiDistribution(dist) for dist in dists])
 
+        # TODO: include primitive's run_options as well
         return SamplerGradientResult(
-            quasi_dists=gradients, metadata=metadata_, run_options=run_options
+            gradients=gradients, metadata=metadata_, run_options=run_options
         )

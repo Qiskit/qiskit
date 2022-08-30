@@ -26,7 +26,7 @@ from qiskit.result import QuasiDistribution
 
 from .base_sampler_gradient import BaseSamplerGradient
 from .sampler_gradient_result import SamplerGradientResult
-from .utils import make_param_shift_base_parameter_values, make_param_shift_gradient_circuit_data
+from .utils import param_shift_preprocessing, make_param_shift_parameter_values
 
 
 class ParamShiftSamplerGradient(BaseSamplerGradient):
@@ -40,22 +40,17 @@ class ParamShiftSamplerGradient(BaseSamplerGradient):
                 run_options in `run` method > gradient's default run_options > primitive's default
                 setting. Higher priority setting overrides lower priority setting.
         """
-        self._gradient_circuit_data_dict = {}
-        self._base_parameter_values_dict = {}
+        self._gradient_circuits = {}
         super().__init__(sampler, **run_options)
 
     def _run(
         self,
         circuits: Sequence[QuantumCircuit],
         parameter_values: Sequence[Sequence[float]],
-        parameters: Sequence[Sequence[Parameter] | None] | None = None,
+        parameters: Sequence[Sequence[Parameter] | None],
         **run_options,
     ) -> SamplerGradientResult:
         """Compute the sampler gradients on the given circuits."""
-        # if parameters is none, all parameters in each circuit are differentiated.
-        if parameters is None:
-            parameters = [None for _ in range(len(circuits))]
-
         jobs, result_indices_all, coeffs_all = [], [], []
         for circuit, parameter_values_, parameters_ in zip(circuits, parameter_values, parameters):
             # a set of parameters to be differentiated
@@ -64,66 +59,133 @@ class ParamShiftSamplerGradient(BaseSamplerGradient):
             else:
                 param_set = set(parameters_)
 
-            gradient_circuit_data = self._gradient_circuit_data_dict.get(id(circuit))
-            base_parameter_values_all = self._base_parameter_values_dict.get(id(circuit))
+            # if self._gradient_circuits.get(id(circuit)):
+            #     gradient_circuit_data, base_parameter_values_all = self._gradient_circuits[
+            #         id(circuit)
+            #     ]
+            # else:
+            #     gradient_circuit_data, base_parameter_values_all = param_shift_preprocessing(
+            #         circuit
+            #     )
+            #     self._gradient_circuits[id(circuit)] = (
+            #         gradient_circuit_data,
+            #         base_parameter_values_all,
+            #     )
 
-            if gradient_circuit_data is None and base_parameter_values_all is None:
-                gradient_circuit_data = make_param_shift_gradient_circuit_data(circuit)
-                self._gradient_circuit_data_dict[id(circuit)] = gradient_circuit_data
-                base_parameter_values_all = make_param_shift_base_parameter_values(
-                    gradient_circuit_data
+            # plus_offsets, minus_offsets = [], []
+            # gradient_circuit = gradient_circuit_data.gradient_circuit
+            # gradient_parameter_values = np.zeros(
+            #     len(gradient_circuit_data.gradient_circuit.parameters)
+            # )
+
+            # # only compute the gradients for parameters in the parameter set
+            # result_map = []
+            # coeffs = []
+            # for i, param in enumerate(circuit.parameters):
+            #     g_params = gradient_circuit_data.gradient_parameter_map[param]
+            #     indices = [gradient_circuit.parameters.data.index(g_param) for g_param in g_params]
+            #     gradient_parameter_values[indices] = parameter_values_[i]
+            #     if param in param_set:
+            #         plus_offsets.extend(base_parameter_values_all[idx] for idx in indices)
+            #         minus_offsets.extend(
+            #             base_parameter_values_all[idx + len(gradient_circuit.parameters)]
+            #             for idx in indices
+            #         )
+            #         result_map.extend(i for _ in range(len(indices)))
+            #         for g_param in g_params:
+            #             coeff = gradient_circuit_data.coeff_map[g_param]
+            #             # if coeff has parameters, we need to substitute
+            #             if isinstance(coeff, ParameterExpression):
+            #                 local_map = {
+            #                     p: parameter_values_[circuit.parameters.data.index(p)]
+            #                     for p in coeff.parameters
+            #                 }
+            #                 bound_coeff = float(coeff.bind(local_map))
+            #             else:
+            #                 bound_coeff = coeff
+            #             coeffs.append(bound_coeff / 2)
+
+            # # add the base parameter values to the parameter values
+            # gradient_parameter_values_plus = [
+            #     gradient_parameter_values + plus_offset for plus_offset in plus_offsets
+            # ]
+            # gradient_parameter_values_minus = [
+            #     gradient_parameter_values + minus_offset for minus_offset in minus_offsets
+            # ]
+
+            if self._gradient_circuits.get(id(circuit)):
+                gradient_circuit_data, base_parameter_values_all = self._gradient_circuits[
+                    id(circuit)
+                ]
+            else:
+                gradient_circuit_data, base_parameter_values_all = param_shift_preprocessing(
+                    circuit
                 )
-                self._base_parameter_values_dict[id(circuit)] = base_parameter_values_all
+                self._gradient_circuits[id(circuit)] = (
+                    gradient_circuit_data,
+                    base_parameter_values_all,
+                )
 
-            plus_offsets, minus_offsets = [], []
-            gradient_circuit = gradient_circuit_data.gradient_circuit
-            gradient_parameter_values = np.zeros(
-                len(gradient_circuit_data.gradient_circuit.parameters)
+            # plus_offsets, minus_offsets = [], []
+            # gradient_circuit = gradient_circuit_data.gradient_circuit
+            # gradient_parameter_values = np.zeros(
+            #     len(gradient_circuit_data.gradient_circuit.parameters)
+            # )
+
+            # # only compute the gradients for parameters in the parameter set
+            # result_indices = []
+            # coeffs = []
+            # for i, param in enumerate(circuit.parameters):
+            #     g_params = gradient_circuit_data.gradient_parameter_map[param]
+            #     indices = [gradient_circuit.parameters.data.index(g_param) for g_param in g_params]
+            #     gradient_parameter_values[indices] = parameter_values_[i]
+            #     if param in param_set:
+            #         plus_offsets.extend(base_parameter_values_all[idx] for idx in indices)
+            #         minus_offsets.extend(
+            #             base_parameter_values_all[idx + len(gradient_circuit.parameters)]
+            #             for idx in indices
+            #         )
+            #         result_indices.extend(i for _ in range(len(indices)))
+            #         for g_param in g_params:
+            #             coeff = gradient_circuit_data.coeff_map[g_param]
+            #             # if coeff has parameters, we need to substitute
+            #             if isinstance(coeff, ParameterExpression):
+            #                 local_map = {
+            #                     p: parameter_values_[circuit.parameters.data.index(p)]
+            #                     for p in coeff.parameters
+            #                 }
+            #                 bound_coeff = float(coeff.bind(local_map))
+            #             else:
+            # #                 bound_coeff = coeff
+            # #             coeffs.append(bound_coeff / 2)
+
+            # # add the base parameter values to the parameter values
+            # gradient_parameter_values_plus = [
+            #     gradient_parameter_values + plus_offset for plus_offset in plus_offsets
+            # ]
+            # gradient_parameter_values_minus = [
+            #     gradient_parameter_values + minus_offset for minus_offset in minus_offsets
+            # ]
+            (
+                gradient_parameter_values_plus,
+                gradient_parameter_values_minus,
+                result_indices,
+                coeffs,
+            ) = make_param_shift_parameter_values(
+                gradient_circuit_data=gradient_circuit_data,
+                base_parameter_values=base_parameter_values_all,
+                parameter_values=parameter_values_,
+                param_set=param_set,
             )
-
-            # only compute the gradients for parameters in the parameter set
-            result_map = []
-            coeffs = []
-            for i, param in enumerate(circuit.parameters):
-                g_params = gradient_circuit_data.gradient_parameter_map[param]
-                indices = [gradient_circuit.parameters.data.index(g_param) for g_param in g_params]
-                gradient_parameter_values[indices] = parameter_values_[i]
-                if param in param_set:
-                    plus_offsets.extend(base_parameter_values_all[idx] for idx in indices)
-                    minus_offsets.extend(
-                        base_parameter_values_all[idx + len(gradient_circuit.parameters)]
-                        for idx in indices
-                    )
-                    result_map.extend(i for _ in range(len(indices)))
-                    for g_param in g_params:
-                        coeff = gradient_circuit_data.coeff_map[g_param]
-                        # if coeff has parameters, we need to substitute
-                        if isinstance(coeff, ParameterExpression):
-                            local_map = {
-                                p: parameter_values_[circuit.parameters.data.index(p)]
-                                for p in coeff.parameters
-                            }
-                            bound_coeff = float(coeff.bind(local_map))
-                        else:
-                            bound_coeff = coeff
-                        coeffs.append(bound_coeff / 2)
-
-            # add the base parameter values to the parameter values
-            gradient_parameter_values_plus = [
-                gradient_parameter_values + plus_offset for plus_offset in plus_offsets
-            ]
-            gradient_parameter_values_minus = [
-                gradient_parameter_values + minus_offset for minus_offset in minus_offsets
-            ]
             n = 2 * len(gradient_parameter_values_plus)
 
             job = self._sampler.run(
-                [gradient_circuit] * n,
+                [gradient_circuit_data.gradient_circuit] * n,
                 gradient_parameter_values_plus + gradient_parameter_values_minus,
                 **run_options,
             )
             jobs.append(job)
-            result_indices_all.append(result_map)
+            result_indices_all.append(result_indices)
             coeffs_all.append(coeffs)
 
         # combine the results
@@ -140,6 +202,8 @@ class ParamShiftSamplerGradient(BaseSamplerGradient):
                     Counter({k: -v * coeff for k, v in result.quasi_dists[j + n].items()})
                 )
             gradients.append([QuasiDistribution(dist) for dist in dists])
+
+        # TODO: include primitive's run_options as well
         return SamplerGradientResult(
-            quasi_dists=gradients, metadata=metadata_, run_options=run_options
+            gradients=gradients, metadata=metadata_, run_options=run_options
         )

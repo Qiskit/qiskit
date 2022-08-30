@@ -26,19 +26,26 @@ Base Classes
    BaseSamplerGradient
    BaseEstimatorGradient
 
-Gradients
+Estimator Gradients
 =========
 
 .. autosummary::
    :toctree: ../stubs/
 
    FiniteDiffEstimatorGradient
-   FiniteDiffSamplerGradient
    LinCombEstimatorGradient
-   LinCombSamplerGradient
    ParamShiftEstimatorGradient
-   ParamShiftSamplerGradient
    SPSAEstimatorGradient
+
+Sampler Gradients
+=========
+
+.. autosummary::
+   :toctree: ../stubs/
+
+   FiniteDiffSamplerGradient
+   LinCombSamplerGradient
+   ParamShiftSamplerGradient
    SPSASamplerGradient
 
 Results

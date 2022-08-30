@@ -34,8 +34,11 @@ Pauli_Z = Pauli("Z")
 
 class LinCombEstimatorGradient(BaseEstimatorGradient):
     """Compute the gradients of the expectation values.
-    This method employs a linear combination of unitaries,
-    see e.g. https://arxiv.org/pdf/1811.11184.pdf
+    This method employs a linear combination of unitaries [1].
+
+    **Reference:**
+    [1] Schuld et al., Evaluating analytic gradients on quantum hardware, 2018
+    `arXiv:1811.11184 <https://arxiv.org/pdf/1811.11184.pdf>`_
     """
 
     def __init__(self, estimator: BaseEstimator, **run_options):
@@ -54,14 +57,10 @@ class LinCombEstimatorGradient(BaseEstimatorGradient):
         circuits: Sequence[QuantumCircuit],
         observables: Sequence[BaseOperator | PauliSumOp],
         parameter_values: Sequence[Sequence[float]],
-        parameters: Sequence[Sequence[Parameter] | None] | None = None,
+        parameters: Sequence[Sequence[Parameter] | None],
         **run_options,
     ) -> EstimatorGradientResult:
         """Compute the estimator gradients on the given circuits."""
-        # if parameters is none, all parameters in each circuit are differentiated.
-        if parameters is None:
-            parameters = [None for _ in range(len(circuits))]
-
         jobs, result_indices_all, coeffs_all = [], [], []
         for circuit, observable, parameter_values_, parameters_ in zip(
             circuits, observables, parameter_values, parameters
@@ -71,7 +70,7 @@ class LinCombEstimatorGradient(BaseEstimatorGradient):
                 param_set = set(circuit.parameters)
             else:
                 param_set = set(parameters_)
-
+            # TODO: support measurement in different basis (Y and Z+iY)
             observable_ = observable.expand(Pauli_Z)
             gradient_circuit_data = self._gradient_circuit_data_dict.get(id(circuit))
             if gradient_circuit_data is None:
@@ -119,6 +118,7 @@ class LinCombEstimatorGradient(BaseEstimatorGradient):
             gradients.append(gradient_)
             metadata_.append({"gradient_variance": np.var(gradient_)})
 
+        # TODO: include primitive's run_options as well
         return EstimatorGradientResult(
-            values=gradients, metadata=metadata_, run_options=run_options
+            gradients=gradients, metadata=metadata_, run_options=run_options
         )

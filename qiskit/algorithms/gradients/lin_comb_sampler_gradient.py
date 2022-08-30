@@ -29,8 +29,11 @@ from .utils import make_lin_comb_gradient_circuit
 
 class LinCombSamplerGradient(BaseSamplerGradient):
     """Compute the gradients of the sampling probability.
-    This method employs a linear combination of unitaries,
-    see e.g. https://arxiv.org/pdf/1811.11184.pdf
+    This method employs a linear combination of unitaries [1].
+
+    **Reference:**
+    [1] Schuld et al., Evaluating analytic gradients on quantum hardware, 2018
+    `arXiv:1811.11184 <https://arxiv.org/pdf/1811.11184.pdf>`_
     """
 
     def __init__(self, sampler: BaseSampler, **run_options):
@@ -49,14 +52,10 @@ class LinCombSamplerGradient(BaseSamplerGradient):
         self,
         circuits: Sequence[QuantumCircuit],
         parameter_values: Sequence[Sequence[float]],
-        parameters: Sequence[Sequence[Parameter] | None] | None = None,
+        parameters: Sequence[Sequence[Parameter] | None],
         **run_options,
     ) -> SamplerGradientResult:
         """Compute the sampler gradients on the given circuits."""
-        # if parameters is none, all parameters in each circuit are differentiated.
-        if parameters is None:
-            parameters = [None for _ in range(len(circuits))]
-
         jobs, result_indices_all, coeffs_all = [], [], []
         for circuit, parameter_values_, parameters_ in zip(circuits, parameter_values, parameters):
             # a set of parameters to be differentiated
@@ -64,7 +63,7 @@ class LinCombSamplerGradient(BaseSamplerGradient):
                 param_set = set(circuit.parameters)
             else:
                 param_set = set(parameters_)
-
+            # TODO: support measurement in different basis (Y and Z+iY)
             gradient_circuit_data = self._gradient_circuit_data_dict.get(id(circuit))
             if gradient_circuit_data is None:
                 gradient_circuit_data = make_lin_comb_gradient_circuit(
@@ -114,6 +113,8 @@ class LinCombSamplerGradient(BaseSamplerGradient):
                     sign, k = divmod(k_, num_bitstrings)
                     dists[idx][k] += (-1) ** sign * coeff * v
             gradients.append([QuasiDistribution(dist) for dist in dists])
+
+        # TODO: include primitive's run_options as well
         return SamplerGradientResult(
-            quasi_dists=gradients, metadata=metadata_, run_options=run_options
+            gradients=gradients, metadata=metadata_, run_options=run_options
         )

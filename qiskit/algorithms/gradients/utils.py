@@ -101,6 +101,7 @@ def make_param_shift_gradient_circuit_data(
         "ryy",
         "rxx",
         "rzz",
+        "rzx",
     ]
 
     circuit2 = transpile(circuit, basis_gates=supported_gates, optimization_level=0)
@@ -204,6 +205,81 @@ def make_param_shift_base_parameter_values(
     return plus_offsets + minus_offsets
 
 
+def param_shift_preprocessing(circuit: QuantumCircuit) -> ParameterShiftGradientCircuitData:
+    """Preprocessing for the parameter shift method.
+
+    Args:
+        circuit: The original quantum circuit
+
+    Returns:
+        necessary data to calculate gradients with the parameter shift method.
+    """
+    gradient_circuit_data = make_param_shift_gradient_circuit_data(circuit)
+    base_parameter_values = make_param_shift_base_parameter_values(gradient_circuit_data)
+
+    return gradient_circuit_data, base_parameter_values
+
+
+def make_param_shift_parameter_values(
+    gradient_circuit_data: ParameterShiftGradientCircuitData,
+    base_parameter_values: list[np.ndarray],
+    parameter_values: np.ndarray,
+    param_set: set[Parameter],
+) -> list[np.ndarray]:
+    """Makes parameter values for the parameter shift method. Each parameter value will be added to
+        the base parameter values in later calculations.
+
+    Args:
+        gradient_circuit_data: gradient circuit data for the parameter shift method.
+        base_parameter_values: base parameter values for the parameter shift method.
+        parameter_values: parameter values to be added to the base parameter values.
+
+    Returns:
+        The parameter values for the parameter shift method.
+    """
+    circuit = gradient_circuit_data.circuit
+    gradient_circuit = gradient_circuit_data.gradient_circuit
+    gradient_parameter_values = np.zeros(
+        len(gradient_circuit_data.gradient_circuit.parameters)
+    )
+    plus_offsets, minus_offsets = [], []
+    result_indices = []
+    coeffs = []
+    for i, param in enumerate(circuit.parameters):
+        g_params = gradient_circuit_data.gradient_parameter_map[param]
+        indices = [gradient_circuit.parameters.data.index(g_param) for g_param in g_params]
+        gradient_parameter_values[indices] = parameter_values[i]
+        if param in param_set:
+            plus_offsets.extend(base_parameter_values[idx] for idx in indices)
+            minus_offsets.extend(
+                base_parameter_values[idx + len(gradient_circuit.parameters)]
+                for idx in indices
+            )
+            result_indices.extend(i for _ in range(len(indices)))
+            for g_param in g_params:
+                coeff = gradient_circuit_data.coeff_map[g_param]
+                # if coeff has parameters, we need to substitute
+                if isinstance(coeff, ParameterExpression):
+                    local_map = {
+                        p: parameter_values[circuit.parameters.data.index(p)]
+                        for p in coeff.parameters
+                    }
+                    bound_coeff = float(coeff.bind(local_map))
+                else:
+                    bound_coeff = coeff
+                coeffs.append(bound_coeff / 2)
+
+    # add the base parameter values to the parameter values
+    gradient_parameter_values_plus = [
+        gradient_parameter_values + plus_offset for plus_offset in plus_offsets
+    ]
+    gradient_parameter_values_minus = [
+        gradient_parameter_values + minus_offset for minus_offset in minus_offsets
+    ]
+    return gradient_parameter_values_plus, gradient_parameter_values_minus, result_indices, coeffs
+
+
+
 @dataclass
 class LinearCombGradientCircuit:
     """Gradient circuit for the linear combination of unitaries method.
@@ -253,8 +329,8 @@ def make_lin_comb_gradient_circuit(
         "y",
         "z",
     ]
-    circuit2 = transpile(circuit, basis_gates=supported_gates, optimization_level=0)
 
+    circuit2 = transpile(circuit, basis_gates=supported_gates, optimization_level=0)
     qr_aux = QuantumRegister(1, "aux")
     cr_aux = ClassicalRegister(1, "aux")
     circuit2.add_register(qr_aux)
@@ -286,37 +362,30 @@ def _gate_gradient(gate: Gate) -> Instruction:
     """Returns the derivative of the gate"""
     # pylint: disable=too-many-return-statements
     if isinstance(gate, RXGate):
-        # theta
         return CXGate()
     if isinstance(gate, RYGate):
-        # theta
         return CYGate()
     if isinstance(gate, RZGate):
-        # theta
         return CZGate()
     if isinstance(gate, RXXGate):
-        # theta
         cxx_circ = QuantumCircuit(3)
         cxx_circ.cx(0, 1)
         cxx_circ.cx(0, 2)
         cxx = cxx_circ.to_instruction()
         return cxx
     if isinstance(gate, RYYGate):
-        # theta
         cyy_circ = QuantumCircuit(3)
         cyy_circ.cy(0, 1)
         cyy_circ.cy(0, 2)
         cyy = cyy_circ.to_instruction()
         return cyy
     if isinstance(gate, RZZGate):
-        # theta
         czz_circ = QuantumCircuit(3)
         czz_circ.cz(0, 1)
         czz_circ.cz(0, 2)
         czz = czz_circ.to_instruction()
         return czz
     if isinstance(gate, RZXGate):
-        # theta
         czx_circ = QuantumCircuit(3)
         czx_circ.cx(0, 2)
         czx_circ.cz(0, 1)

@@ -26,10 +26,12 @@ class SamplerGradientResult:
     """Result of SamplerGradient.
 
     Args:
-        quasi_dists: The gradients of the quasi distributions.
+        gradients: The gradients of the quasi distributions.
         metadata: Additional information about the job.
+        run_options: run_options for the sampler. Currently, sampler's default run_options is not
+        included.
     """
 
-    quasi_dists: list[list[QuasiDistribution]]
+    gradients: list[list[QuasiDistribution]]
     metadata: list[dict[str, Any]]
     run_options: dict[str, Any]

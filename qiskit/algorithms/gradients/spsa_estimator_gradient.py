@@ -15,7 +15,6 @@
 from __future__ import annotations
 
 from typing import Sequence
-import random
 
 import numpy as np
 
@@ -50,7 +49,7 @@ class SPSAEstimatorGradient(BaseEstimatorGradient):
                 run_options in `run` method > gradient's default run_options > primitive's default
                 setting. Higher priority setting overrides lower priority setting."""
         self._epsilon = epsilon
-        self._seed = random.seed(seed) if seed else None
+        self._seed = np.random.default_rng(seed) if seed else np.random.default_rng()
 
         super().__init__(estimator, **run_options)
 
@@ -59,14 +58,10 @@ class SPSAEstimatorGradient(BaseEstimatorGradient):
         circuits: Sequence[QuantumCircuit],
         observables: Sequence[BaseOperator | PauliSumOp],
         parameter_values: Sequence[Sequence[float]],
-        parameters: Sequence[Sequence[Parameter] | None] | None = None,
+        parameters: Sequence[Sequence[Parameter] | None],
         **run_options,
     ) -> EstimatorGradientResult:
         """Compute the estimator gradients on the given circuits."""
-        # if parameters is none, all parameters in each circuit are differentiated.
-        if parameters is None:
-            parameters = [None for _ in range(len(circuits))]
-
         jobs, result_indices_all, offsets = [], [], []
         for circuit, observable, parameter_values_, parameters_ in zip(
             circuits, observables, parameter_values, parameters
@@ -78,9 +73,7 @@ class SPSAEstimatorGradient(BaseEstimatorGradient):
                 indices = [circuit.parameters.data.index(p) for p in parameters_]
             result_indices_all.append(indices)
 
-            offset = np.array(
-                [(-1) ** (random.randint(0, 1)) for _ in range(len(circuit.parameters))]
-            )
+            offset = (-1) ** (self._seed.integers(0, 2, len(circuit.parameters)))
             plus = parameter_values_ + self._epsilon * offset
             minus = parameter_values_ - self._epsilon * offset
             offsets.append(offset)
@@ -100,6 +93,7 @@ class SPSAEstimatorGradient(BaseEstimatorGradient):
             gradients.append(gradient)
             metadata_.append({"gradient_variance": np.var(gradient_)})
 
+        # TODO: include primitive's run_options as well
         return EstimatorGradientResult(
-            values=gradients, metadata=metadata_, run_options=run_options
+            gradients=gradients, metadata=metadata_, run_options=run_options
         )

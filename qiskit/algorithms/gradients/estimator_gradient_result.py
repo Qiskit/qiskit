@@ -26,10 +26,12 @@ class EstimatorGradientResult:
     """Result of EstimatorGradient.
 
     Args:
-        values: The gradients of the expectation values.
+        gradients: The gradients of the expectation values.
         metadata: Additional information about the job.
+        run_options: run_options for the estimator. Currently, estimator's default run_options is not
+        included.
     """
 
-    values: list[np.ndarray]
+    gradients: list[np.ndarray]
     metadata: list[dict[str, Any]]
     run_options: dict[str, Any]

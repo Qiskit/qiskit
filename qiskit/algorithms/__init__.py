@@ -140,6 +140,17 @@ Algorithms to find factors of a number.
    ShorResult
 
 
+Gradients
+----------
+
+Algorithms to calculate the gradient of a quantum circuit.
+
+.. autosummary::
+   :toctree: ../stubs/
+
+   gradients
+
+
 Linear Solvers
 --------------
 

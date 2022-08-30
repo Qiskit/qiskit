@@ -33,7 +33,7 @@ class FiniteDiffSamplerGradient(BaseSamplerGradient):
     def __init__(
         self,
         sampler: BaseSampler,
-        epsilon: float = 1e-2,
+        epsilon: float = 1e-6,
         **run_options,
     ):
         """
@@ -99,6 +99,7 @@ class FiniteDiffSamplerGradient(BaseSamplerGradient):
                 )
             gradients.append([QuasiDistribution(dist) for dist in dists])
 
+        # TODO: include primitive's run_options as well
         return SamplerGradientResult(
-            quasi_dists=gradients, metadata=metadata_, run_options=run_options
+            gradients=gradients, metadata=metadata_, run_options=run_options
         )

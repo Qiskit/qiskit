@@ -32,7 +32,7 @@ class FiniteDiffEstimatorGradient(BaseEstimatorGradient):
     Compute the gradients of the expectation values by finite difference method.
     """
 
-    def __init__(self, estimator: BaseEstimator, epsilon: float = 1e-2, **run_options):
+    def __init__(self, estimator: BaseEstimator, epsilon: float = 1e-6, **run_options):
         """
         Args:
             estimator: The estimator used to compute the gradients.
@@ -50,14 +50,10 @@ class FiniteDiffEstimatorGradient(BaseEstimatorGradient):
         circuits: Sequence[QuantumCircuit],
         observables: Sequence[BaseOperator | PauliSumOp],
         parameter_values: Sequence[Sequence[float]],
-        parameters: Sequence[Sequence[Parameter] | None] | None = None,
+        parameters: Sequence[Sequence[Parameter] | None],
         **run_options,
     ) -> EstimatorGradientResult:
         """Compute the estimator gradients on the given circuits."""
-        # if parameters is none, all parameters in each circuit are differentiated.
-        if parameters is None:
-            parameters = [None for _ in range(len(circuits))]
-
         jobs, result_indices_all = [], []
         for circuit, observable, parameter_values_, parameters_ in zip(
             circuits, observables, parameter_values, parameters
@@ -91,6 +87,7 @@ class FiniteDiffEstimatorGradient(BaseEstimatorGradient):
             gradients.append(gradient)
             metadata_.append({"gradient_variance": np.var(gradient_)})
 
+        # TODO: include primitive's run_options as well
         return EstimatorGradientResult(
-            values=gradients, metadata=metadata_, run_options=run_options
+            gradients=gradients, metadata=metadata_, run_options=run_options
         )
