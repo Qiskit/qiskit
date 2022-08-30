@@ -36,6 +36,8 @@ from . import (
     RZXGate,
     SGate,
     SdgGate,
+    CSGate,
+    CSdgGate,
     SwapGate,
     CSwapGate,
     iSwapGate,
@@ -61,6 +63,7 @@ from . import (
     ECRGate,
     ZGate,
     CZGate,
+    CCZGate,
 )
 
 
@@ -495,6 +498,33 @@ q = QuantumRegister(1, "q")
 def_sdg = QuantumCircuit(q)
 def_sdg.append(U1Gate(-pi / 2), [q[0]], [])
 _sel.add_equivalence(SdgGate(), def_sdg)
+
+# CSGate
+#
+# q_0: ──■──   q_0: ───────■────────
+#      ┌─┴─┐        ┌───┐┌─┴──┐┌───┐
+# q_1: ┤ S ├ = q_1: ┤ H ├┤ Sx ├┤ H ├
+#      └───┘        └───┘└────┘└───┘
+q = QuantumRegister(2, "q")
+def_cs = QuantumCircuit(q)
+def_cs.append(HGate(), [q[1]], [])
+def_cs.append(CSXGate(), [q[0], q[1]], [])
+def_cs.append(HGate(), [q[1]], [])
+_sel.add_equivalence(CSGate(), def_cs)
+
+# CSdgGate
+#
+# q_0: ───■───   q_0: ───────■────■────────
+#      ┌──┴──┐        ┌───┐┌─┴─┐┌─┴──┐┌───┐
+# q_1: ┤ Sdg ├ = q_1: ┤ H ├┤ X ├┤ Sx ├┤ H ├
+#      └─────┘        └───┘└───┘└────┘└───┘
+q = QuantumRegister(2, "q")
+def_csdg = QuantumCircuit(q)
+def_csdg.append(HGate(), [q[1]], [])
+def_csdg.append(CXGate(), [q[0], q[1]], [])
+def_csdg.append(CSXGate(), [q[0], q[1]], [])
+def_csdg.append(HGate(), [q[1]], [])
+_sel.add_equivalence(CSdgGate(), def_csdg)
 
 # SdgGate
 #
@@ -1221,6 +1251,24 @@ for inst, qargs, cargs in [
 ]:
     def_cz.append(inst, qargs, cargs)
 _sel.add_equivalence(CZGate(), def_cz)
+
+# CCZGate
+#
+# q_0: ─■─   q_0: ───────■───────
+#       │                │
+# q_1: ─■─ = q_1: ───────■───────
+#       │         ┌───┐┌─┴─┐┌───┐
+# q_2: ─■─   q_2: ┤ H ├┤ X ├┤ H ├
+#                 └───┘└───┘└───┘
+q = QuantumRegister(3, "q")
+def_ccz = QuantumCircuit(q)
+for inst, qargs, cargs in [
+    (HGate(), [q[2]], []),
+    (CCXGate(), [q[0], q[1], q[2]], []),
+    (HGate(), [q[2]], []),
+]:
+    def_ccz.append(inst, qargs, cargs)
+_sel.add_equivalence(CCZGate(), def_ccz)
 
 # XGate
 #              global phase: π/2

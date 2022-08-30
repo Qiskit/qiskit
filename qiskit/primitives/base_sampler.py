@@ -172,7 +172,7 @@ class BaseSampler(ABC):
         return self
 
     @deprecate_function(
-        "The BaseSampler.__enter__ method is deprecated as of Qiskit Terra 0.21.0 "
+        "The BaseSampler.__enter__ method is deprecated as of Qiskit Terra 0.22.0 "
         "and will be removed no sooner than 3 months after the releasedate. "
         "BaseSampler should be initialized directly.",
     )
@@ -180,7 +180,7 @@ class BaseSampler(ABC):
         return self
 
     @deprecate_function(
-        "The BaseSampler.__exit__ method is deprecated as of Qiskit Terra 0.21.0 "
+        "The BaseSampler.__exit__ method is deprecated as of Qiskit Terra 0.22.0 "
         "and will be removed no sooner than 3 months after the releasedate. "
         "BaseSampler should be initialized directly.",
     )
@@ -210,7 +210,7 @@ class BaseSampler(ABC):
         return tuple(self._parameters)
 
     @deprecate_function(
-        "The BaseSampler.__call__ method is deprecated as of Qiskit Terra 0.21.0 "
+        "The BaseSampler.__call__ method is deprecated as of Qiskit Terra 0.22.0 "
         "and will be removed no sooner than 3 months after the releasedate. "
         "Use run method instead.",
     )
