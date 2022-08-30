@@ -39,7 +39,6 @@ from qiskit.transpiler.passes import RemoveDiagonalGatesBeforeMeasure
 from qiskit.transpiler.passes import Collect2qBlocks
 from qiskit.transpiler.passes import ConsolidateBlocks
 from qiskit.transpiler.passes import UnitarySynthesis
-from qiskit.transpiler.passes import ContainsInstruction
 from qiskit.transpiler.passes import GatesInBasis
 from qiskit.transpiler.runningpassmanager import ConditionalController
 from qiskit.transpiler.preset_passmanagers import common
@@ -263,7 +262,7 @@ def level_3_pass_manager(pass_manager_config: PassManagerConfig) -> StagedPassMa
         # Check if any gate is not in the basis, and if so, run unroll passes
         _unroll_if_out_of_basis = [
             GatesInBasis(basis_gates, target=target),
-            ConditionalController(unroll, condition=_unroll_condition)
+            ConditionalController(unroll, condition=_unroll_condition),
         ]
 
         optimization.append(_depth_check + _size_check)
@@ -282,15 +281,19 @@ def level_3_pass_manager(pass_manager_config: PassManagerConfig) -> StagedPassMa
             # the coupling map which with a target doesn't give a full picture
             if target is not None and optimization is not None:
                 optimization.append(
-                    _opt + _unroll_if_out_of_basis + _depth_check + _size_check + _direction, do_while=_opt_control
+                    _opt + _unroll_if_out_of_basis + _depth_check + _size_check + _direction,
+                    do_while=_opt_control,
                 )
             elif optimization is not None:
                 optimization.append(
-                    _opt + _unroll_if_out_of_basis + _depth_check + _size_check, do_while=_opt_control
+                    _opt + _unroll_if_out_of_basis + _depth_check + _size_check,
+                    do_while=_opt_control,
                 )
         else:
             pre_optimization = common.generate_pre_op_passmanager(remove_reset_in_zero=True)
-            optimization.append(_opt + _unroll_if_out_of_basis + _depth_check + _size_check, do_while=_opt_control)
+            optimization.append(
+                _opt + _unroll_if_out_of_basis + _depth_check + _size_check, do_while=_opt_control
+            )
         opt_loop = _depth_check + _opt + _unroll_if_out_of_basis
         optimization.append(opt_loop, do_while=_opt_control)
     else:

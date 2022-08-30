@@ -26,6 +26,7 @@ from qiskit.transpiler import CouplingMap, Layout, PassManager, TranspilerError
 from qiskit.circuit.library import U2Gate, U3Gate, QuantumVolume
 from qiskit.test import QiskitTestCase
 from qiskit.providers.fake_provider import (
+    FakeBelem,
     FakeTenerife,
     FakeMelbourne,
     FakeJohannesburg,
@@ -41,6 +42,7 @@ from qiskit.circuit.library import GraphState
 from qiskit.quantum_info import random_unitary
 from qiskit.transpiler.preset_passmanagers import generate_preset_pass_manager
 from qiskit.utils.optionals import HAS_TOQM
+from qiskit.transpiler.passes import Collect2qBlocks, GatesInBasis
 
 
 def emptycircuit():
