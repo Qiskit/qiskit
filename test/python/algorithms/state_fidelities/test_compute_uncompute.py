@@ -180,9 +180,7 @@ class TestComputeUncompute(QiskitTestCase):
             right_params,
         )
         result = job.result()
-        np.testing.assert_allclose(
-            result.fidelities, np.array([0.5, 0.25, 0.25, 0.0]), atol=1e-16
-        )
+        np.testing.assert_allclose(result.fidelities, np.array([0.5, 0.25, 0.25, 0.0]), atol=1e-16)
 
     def test_async_join(self):
         """test for run method using join."""
