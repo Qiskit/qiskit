@@ -36,7 +36,7 @@ class SPSASamplerGradient(BaseSamplerGradient):
     def __init__(
         self,
         sampler: BaseSampler,
-        epsilon: float = 1e-2,
+        epsilon: float = 1e-6,
         seed: int | None = None,
         **run_options,
     ):
@@ -51,7 +51,6 @@ class SPSASamplerGradient(BaseSamplerGradient):
         self._epsilon = epsilon
         self._seed = np.random.default_rng(seed) if seed else np.random.default_rng()
 
-
         super().__init__(sampler, **run_options)
 
     def _run(
@@ -62,14 +61,14 @@ class SPSASamplerGradient(BaseSamplerGradient):
         **run_options,
     ) -> SamplerGradientResult:
         """Compute the sampler gradients on the given circuits."""
-        jobs, result_indices_all, offsets = [], [], []
+        jobs, result_indices_all, offsets, metadata_ = [], [], [], []
         for circuit, parameter_values_, parameters_ in zip(circuits, parameter_values, parameters):
             # indices of parameters to be differentiated
             if parameters_ is None:
                 indices = list(range(circuit.num_parameters))
             else:
                 indices = [circuit.parameters.data.index(p) for p in parameters_]
-            result_indices_all.append(indices)
+            metadata_.append({"parameters": [circuit.parameters[idx] for idx in indices]})
 
             offset = (-1) ** (self._seed.integers(0, 2, len(circuit.parameters)))
 
@@ -82,29 +81,21 @@ class SPSASamplerGradient(BaseSamplerGradient):
 
         # combine the results
         results = [job.result() for job in jobs]
-        gradients, metadata_ = [], []
+        gradients = []
         for i, result in enumerate(results):
-            dists = [Counter() for _ in range(circuits[i].num_parameters)]
-            for idx in result_indices_all[i]:
-                # plus
-                dists[idx].update(
-                    Counter(
-                        {
-                            k: v / (2 * self._epsilon * offsets[i][idx])
-                            for k, v in result.quasi_dists[0].items()
-                        }
-                    )
-                )
-                # minus
-                dists[idx].update(
-                    Counter(
-                        {
-                            k: -1 * v / (2 * self._epsilon * offsets[i][idx])
-                            for k, v in result.quasi_dists[1].items()
-                        }
-                    )
-                )
-            gradients.append([QuasiDistribution(dist) for dist in dists])
+            grad_dists = np.zeros(2 ** circuits[i].num_qubits)
+            dist_plus = result.quasi_dists[0]
+            dist_minus = result.quasi_dists[1]
+            grad_dists[list(dist_plus.keys())] += list(dist_plus.values())
+            grad_dists[list(dist_minus.keys())] -= list(dist_minus.values())
+            grad_dists /= 2 * self._epsilon
+
+            indices = [circuits[i].parameters.data.index(p) for p in metadata_[i]["parameters"]]
+            gradient_ = []
+            for j in indices:
+                gradient_.append({k: offsets[i][j] * dist for k, dist in enumerate(grad_dists)})
+
+            gradients.append(gradient_)
 
         # TODO: include primitive's run_options as well
         return SamplerGradientResult(

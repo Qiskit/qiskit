@@ -18,6 +18,8 @@ from __future__ import annotations
 from collections import Counter
 from typing import Sequence
 
+import numpy as np
+
 from qiskit.circuit import Parameter, ParameterExpression, QuantumCircuit
 from qiskit.primitives import BaseSampler
 from qiskit.result import QuasiDistribution
@@ -56,13 +58,15 @@ class LinCombSamplerGradient(BaseSamplerGradient):
         **run_options,
     ) -> SamplerGradientResult:
         """Compute the sampler gradients on the given circuits."""
-        jobs, result_indices_all, coeffs_all = [], [], []
+        jobs, result_indices_all, coeffs_all, metadata_ = [], [], [], []
         for circuit, parameter_values_, parameters_ in zip(circuits, parameter_values, parameters):
             # a set of parameters to be differentiated
             if parameters_ is None:
                 param_set = set(circuit.parameters)
             else:
                 param_set = set(parameters_)
+            metadata_.append({"parameters": [p for p in circuit.parameters if p in param_set]})
+
             # TODO: support measurement in different basis (Y and Z+iY)
             gradient_circuit_data = self._gradient_circuit_data_dict.get(id(circuit))
             if gradient_circuit_data is None:
@@ -72,15 +76,15 @@ class LinCombSamplerGradient(BaseSamplerGradient):
                 self._gradient_circuit_data_dict[id(circuit)] = gradient_circuit_data
 
             # only compute the gradients for parameters in the parameter set
-            gradient_circuits = []
-            result_indices = []
-            coeffs = []
+            gradient_circuits, result_indices, coeffs = [], [], []
+            result_idx = 0
             for i, param in enumerate(circuit.parameters):
                 if param in param_set:
                     gradient_circuits.extend(
                         grad_data.gradient_circuit for grad_data in gradient_circuit_data[param]
                     )
-                    result_indices.extend(i for _ in gradient_circuit_data[param])
+                    result_indices.extend(result_idx for _ in gradient_circuit_data[param])
+                    result_idx += 1
                     for grad_data in gradient_circuit_data[param]:
                         coeff = grad_data.coeff
                         # if the parameter is a parameter expression, we need to substitute
@@ -95,24 +99,28 @@ class LinCombSamplerGradient(BaseSamplerGradient):
                         coeffs.append(bound_coeff)
 
             n = len(gradient_circuits)
-            job = self._sampler.run(gradient_circuits, [parameter_values_ for _ in range(n)])
+            job = self._sampler.run(gradient_circuits, [parameter_values_]*n, **run_options)
             jobs.append(job)
             result_indices_all.append(result_indices)
             coeffs_all.append(coeffs)
 
         # combine the results
         results = [job.result() for job in jobs]
-        gradients, metadata_ = [], []
+        gradients = []
         for i, result in enumerate(results):
-            dists = [Counter() for _ in range(circuits[i].num_parameters)]
-            num_bitstrings = 2 ** circuits[i].num_qubits
-            for grad_quasi_, idx, coeff in zip(
-                result.quasi_dists, result_indices_all[i], coeffs_all[i]
-            ):
-                for k_, v in grad_quasi_.items():
-                    sign, k = divmod(k_, num_bitstrings)
-                    dists[idx][k] += (-1) ** sign * coeff * v
-            gradients.append([QuasiDistribution(dist) for dist in dists])
+            n = 2 ** circuits[i].num_qubits
+            grad_dists = np.zeros((len(metadata_[i]["parameters"]), n))
+            for idx, coeff, dist in zip(
+                result_indices_all[i], coeffs_all[i], result.quasi_dists):
+                grad_dists[idx][list(dist.keys())[:n]] += (np.array(list(dist.values())[:n]) * coeff)
+                grad_dists[idx][list(dist.keys())[:n]] -= (np.array(list(dist.values())[n:]) * coeff)
+
+            gradient_ = []
+            for grad_dist in grad_dists:
+                gradient_.append(
+                    {i: dist for i, dist in enumerate(grad_dist)}
+                )
+            gradients.append(gradient_)
 
         # TODO: include primitive's run_options as well
         return SamplerGradientResult(

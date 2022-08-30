@@ -28,7 +28,7 @@ from qiskit.algorithms.gradients import (
 )
 from qiskit.circuit import Parameter
 from qiskit.circuit.library import EfficientSU2, RealAmplitudes
-from qiskit.primitives import Estimator
+from qiskit.primitives import Estimator, Sampler
 from qiskit.quantum_info import SparsePauliOp
 from qiskit.test import QiskitTestCase
 
@@ -229,7 +229,7 @@ class TestEstimatorGradient(QiskitTestCase):
         gradient = grad(estimator)
         param_list = [[np.pi / 4, np.pi / 2]]
         correct_results = [
-            [-0.70710678 if p == a else 0 for p in qc.parameters],
+            [-0.70710678],
         ]
         op = SparsePauliOp.from_list([("Z", 1)])
         for i, param in enumerate(param_list):
@@ -265,7 +265,7 @@ class TestEstimatorGradient(QiskitTestCase):
         param_list2 = [[np.pi / 4], [np.pi / 4, np.pi / 4], [np.pi / 4, np.pi / 4]]
         correct_results2 = [
             [-0.70710678],
-            [-0.5 if p == c else 0 for p in qc3.parameters],
+            [-0.5],
             [-0.5, -0.5],
         ]
         gradients2 = (
@@ -290,6 +290,8 @@ class TestEstimatorGradient(QiskitTestCase):
         param_list = [[np.pi / 4], [np.pi / 2]]
         op = SparsePauliOp.from_list([("Z", 1)])
         with self.assertRaises(ValueError):
+            _ = grad(Sampler())
+        with self.assertRaises(ValueError):
             gradient.run([qc], [op], param_list)
         with self.assertRaises(ValueError):
             gradient.run([qc, qc], [op, op], param_list, parameters=[[a]])
@@ -313,7 +315,7 @@ class TestEstimatorGradient(QiskitTestCase):
         gradients = gradient.run([qc], [op], param_list).result().gradients
         np.testing.assert_almost_equal(gradients, correct_results, 3)
 
-        # multi parameters
+        #multi parameters
         gradient = SPSAEstimatorGradient(estimator, seed=123)
         param_list2 = [[1, 1], [1, 1], [3, 3]]
         gradients2 = (
@@ -321,8 +323,9 @@ class TestEstimatorGradient(QiskitTestCase):
             .result()
             .gradients
         )
-        correct_results2 = [[-0.84147098, 0.84147098], [0.0, 0.84147098], [-0.14112001, 0.14112001]]
-        np.testing.assert_almost_equal(gradients2, correct_results2, 3)
+        correct_results2 = [[-0.84147098, 0.84147098], [0.84147098], [-0.14112001, 0.14112001]]
+        for grad, correct in zip(gradients2, correct_results2):
+            np.testing.assert_almost_equal(grad, correct, 3)
 
 
 if __name__ == "__main__":

@@ -36,7 +36,14 @@ class BaseSamplerGradient(ABC):
             run_options: Backend runtime options used for circuit execution. The order of priority is:
                 run_options in `run` method > gradient's default run_options > primitive's default
                 setting. Higher priority setting overrides lower priority setting.
+
+        Raises:
+            ValueError: If the sampler is not an instance of BaseEstimator.
         """
+        if not isinstance(sampler, BaseSampler):
+            raise ValueError(
+                f"The sampler should be an instance of BaseSampler, but got {type(sampler)}"
+                )
         self._sampler: BaseSampler = sampler
         self._default_run_options = run_options
 
@@ -67,7 +74,7 @@ class BaseSamplerGradient(ABC):
             the sampling probability for the j-th parameter in ``circuits[i]``.
 
         Raises:
-            QiskitError: Invalid arguments are given.
+            ValueError: Invalid arguments are given.
         """
         # if ``parameters`` is none, all parameters in each circuit are differentiated.
         if parameters is None:

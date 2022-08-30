@@ -28,7 +28,7 @@ from qiskit.algorithms.gradients import (
 )
 from qiskit.circuit import Parameter
 from qiskit.circuit.library import EfficientSU2, RealAmplitudes
-from qiskit.primitives import Sampler
+from qiskit.primitives import Estimator, Sampler
 from qiskit.test import QiskitTestCase
 
 
@@ -346,16 +346,13 @@ class TestSamplerGradient(QiskitTestCase):
         gradient = grad(sampler)
         param_list = [[np.pi / 4, np.pi / 2]]
         correct_results = [
-            [{0: -0.5 / np.sqrt(2), 1: 0.5 / np.sqrt(2)}, {}],
+            [{0: -0.5 / np.sqrt(2), 1: 0.5 / np.sqrt(2)}],
         ]
         for i, param in enumerate(param_list):
             gradients = gradient.run([qc], [param], parameters=[[a]]).result().gradients[0]
             for j, quasi_dist in enumerate(gradients):
-                if correct_results[i][j]:
-                    for k in quasi_dist:
-                        self.assertAlmostEqual(quasi_dist[k], correct_results[i][j][k], 3)
-                else:
-                    self.assertEqual(quasi_dist, {})
+                for k in quasi_dist:
+                    self.assertAlmostEqual(quasi_dist[k], correct_results[i][j][k], 3)
 
     @combine(grad=[FiniteDiffSamplerGradient, ParamShiftSamplerGradient, LinCombSamplerGradient])
     def test_gradient_multi_arguments(self, grad):
@@ -394,16 +391,13 @@ class TestSamplerGradient(QiskitTestCase):
         )
         correct_results = [
             [{0: -0.5 / np.sqrt(2), 1: 0.5 / np.sqrt(2)}],
-            [{0: -0.25, 1: 0.25} if p == c else {} for p in qc3.parameters],
+            [{0: -0.25, 1: 0.25}],
             [{0: -0.25, 1: 0.25}, {0: -0.25, 1: 0.25}],
         ]
         for i, result in enumerate(gradients):
             for j, q_dists in enumerate(result):
-                if correct_results[i][j]:
-                    for k in q_dists:
-                        self.assertAlmostEqual(q_dists[k], correct_results[i][j][k], 3)
-                else:
-                    self.assertEqual(q_dists, {})
+                for k in q_dists:
+                    self.assertAlmostEqual(q_dists[k], correct_results[i][j][k], 3)
 
     @combine(grad=[FiniteDiffSamplerGradient, ParamShiftSamplerGradient, LinCombSamplerGradient])
     def test_gradient_validation(self, grad):
@@ -415,6 +409,8 @@ class TestSamplerGradient(QiskitTestCase):
         qc.measure_all()
         gradient = grad(sampler)
         param_list = [[np.pi / 4], [np.pi / 2]]
+        with self.assertRaises(ValueError):
+            _ = grad(Estimator())
         with self.assertRaises(ValueError):
             gradient.run([qc], param_list)
         with self.assertRaises(ValueError):
@@ -452,8 +448,7 @@ class TestSamplerGradient(QiskitTestCase):
                 {0: -0.2273244, 1: 0.6480598, 2: -0.2273244, 3: -0.1934111},
             ],
             [
-                {0: -0.2273244, 1: 0.6480598, 2: -0.2273244, 3: -0.1934111} if p == b else {}
-                for p in qc.parameters
+                {0: -0.2273244, 1: 0.6480598, 2: -0.2273244, 3: -0.1934111},
             ],
             [
                 {0: -0.0141129, 1: -0.0564471, 2: -0.3642884, 3: 0.4348484},
@@ -467,11 +462,8 @@ class TestSamplerGradient(QiskitTestCase):
 
         for i, result in enumerate(gradients):
             for j, q_dists in enumerate(result):
-                if correct_results2[i][j]:
-                    for k in q_dists:
-                        self.assertAlmostEqual(q_dists[k], correct_results2[i][j][k], 3)
-                else:
-                    self.assertEqual(q_dists, {})
+                for k in q_dists:
+                    self.assertAlmostEqual(q_dists[k], correct_results2[i][j][k], 3)
 
 
 if __name__ == "__main__":

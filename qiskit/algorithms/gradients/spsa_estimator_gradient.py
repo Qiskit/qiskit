@@ -36,7 +36,7 @@ class SPSAEstimatorGradient(BaseEstimatorGradient):
     def __init__(
         self,
         estimator: BaseEstimator,
-        epsilon: float = 1e-2,
+        epsilon: float = 1e-6,
         seed: int | None = None,
         **run_options,
     ):
@@ -62,7 +62,7 @@ class SPSAEstimatorGradient(BaseEstimatorGradient):
         **run_options,
     ) -> EstimatorGradientResult:
         """Compute the estimator gradients on the given circuits."""
-        jobs, result_indices_all, offsets = [], [], []
+        jobs, offsets, metadata_ = [], [], []
         for circuit, observable, parameter_values_, parameters_ in zip(
             circuits, observables, parameter_values, parameters
         ):
@@ -71,7 +71,7 @@ class SPSAEstimatorGradient(BaseEstimatorGradient):
                 indices = list(range(circuit.num_parameters))
             else:
                 indices = [circuit.parameters.data.index(p) for p in parameters_]
-            result_indices_all.append(indices)
+            metadata_.append({"parameters": [circuit.parameters[idx] for idx in indices]})
 
             offset = (-1) ** (self._seed.integers(0, 2, len(circuit.parameters)))
             plus = parameter_values_ + self._epsilon * offset
@@ -83,15 +83,12 @@ class SPSAEstimatorGradient(BaseEstimatorGradient):
 
         # combine the results
         results = [job.result() for job in jobs]
-        gradients, metadata_ = [], []
+        gradients = []
         for i, result in enumerate(results):
             n = len(result.values) // 2  # is always a multiple of 2
-            gradient_ = (result.values[:n] - result.values[n:]) / (2 * self._epsilon * offsets[i])
-            indices = result_indices_all[i]
-            gradient = np.zeros(circuits[i].num_parameters)
-            gradient[indices] = gradient_[indices]
-            gradients.append(gradient)
-            metadata_.append({"gradient_variance": np.var(gradient_)})
+            gradient = (result.values[:n] - result.values[n:]) / (2 * self._epsilon * offsets[i])
+            indices = [circuits[i].parameters.data.index(p) for p in metadata_[i]["parameters"]]
+            gradients.append(gradient[indices])
 
         # TODO: include primitive's run_options as well
         return EstimatorGradientResult(

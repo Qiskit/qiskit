@@ -43,7 +43,14 @@ class BaseEstimatorGradient(ABC):
             run_options: Backend runtime options used for circuit execution. The order of priority is:
                 run_options in `run` method > gradient's default run_options > primitive's default
                 setting. Higher priority setting overrides lower priority setting.
+
+        Raises:
+            ValueError: If the estimator is not an instance of BaseEstimator.
         """
+        if not isinstance(estimator, BaseEstimator):
+            raise ValueError(
+                f"The estimator should be an instance of BaseEstimator, but got {type(estimator)}"
+                )
         self._estimator: BaseEstimator = estimator
         self._default_run_options = run_options
 
@@ -76,7 +83,7 @@ class BaseEstimatorGradient(ABC):
             to the j-th parameter.
 
         Raises:
-            QiskitError: Invalid arguments are given.
+            ValueError: Invalid arguments are given.
         """
         # if ``parameters`` is none, all parameters in each circuit are differentiated.
         if parameters is None:

@@ -52,52 +52,38 @@ class FiniteDiffSamplerGradient(BaseSamplerGradient):
         self,
         circuits: Sequence[QuantumCircuit],
         parameter_values: Sequence[Sequence[float]],
-        parameters: Sequence[Sequence[Parameter] | None] | None = None,
+        parameters: Sequence[Sequence[Parameter] | None],
         **run_options,
     ) -> SamplerGradientResult:
         """Compute the sampler gradients on the given circuits."""
-        # if parameters is none, all parameters in each circuit are differentiated.
-        if parameters is None:
-            parameters = [None for _ in range(len(circuits))]
-
-        jobs, result_indices_all = [], []
+        jobs, metadata_ = [], []
         for circuit, parameter_values_, parameters_ in zip(circuits, parameter_values, parameters):
             # indices of parameters to be differentiated
             if parameters_ is None:
                 indices = list(range(circuit.num_parameters))
             else:
                 indices = [circuit.parameters.data.index(p) for p in parameters_]
-            result_indices_all.append(indices)
-
+            metadata_.append({"parameters": [circuit.parameters[idx] for idx in indices]})
             offset = np.identity(circuit.num_parameters)[indices, :]
             plus = parameter_values_ + self._epsilon * offset
             minus = parameter_values_ - self._epsilon * offset
             n = 2 * len(indices)
-
             job = self._sampler.run([circuit] * n, plus.tolist() + minus.tolist(), **run_options)
             jobs.append(job)
 
         # combine the results
         results = [job.result() for job in jobs]
-        gradients, metadata_ = [], []
+        gradients= []
         for i, result in enumerate(results):
             n = len(result.quasi_dists) // 2
-            dists = [Counter() for _ in range(circuits[i].num_parameters)]
-            for j, idx in enumerate(result_indices_all[i]):
-                # plus
-                dists[idx].update(
-                    Counter({k: v / (2 * self._epsilon) for k, v in result.quasi_dists[j].items()})
-                )
-                # minus
-                dists[idx].update(
-                    Counter(
-                        {
-                            k: -1 * v / (2 * self._epsilon)
-                            for k, v in result.quasi_dists[j + n].items()
-                        }
-                    )
-                )
-            gradients.append([QuasiDistribution(dist) for dist in dists])
+            gradient_ = []
+            for dist_plus, dist_minus in zip(result.quasi_dists[:n], result.quasi_dists[n:]):
+                grad_dist = np.zeros(2 ** circuits[i].num_qubits)
+                grad_dist[list(dist_plus.keys())] += list(dist_plus.values())
+                grad_dist[list(dist_minus.keys())] -= list(dist_minus.values())
+                grad_dist /= (2 * self._epsilon)
+                gradient_.append({i:dist for i, dist in enumerate(grad_dist)})
+            gradients.append(gradient_)
 
         # TODO: include primitive's run_options as well
         return SamplerGradientResult(

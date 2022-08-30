@@ -54,7 +54,7 @@ class FiniteDiffEstimatorGradient(BaseEstimatorGradient):
         **run_options,
     ) -> EstimatorGradientResult:
         """Compute the estimator gradients on the given circuits."""
-        jobs, result_indices_all = [], []
+        jobs, metadata_ = [], []
         for circuit, observable, parameter_values_, parameters_ in zip(
             circuits, observables, parameter_values, parameters
         ):
@@ -63,7 +63,7 @@ class FiniteDiffEstimatorGradient(BaseEstimatorGradient):
                 indices = list(range(circuit.num_parameters))
             else:
                 indices = [circuit.parameters.data.index(p) for p in parameters_]
-            result_indices_all.append(indices)
+            metadata_.append({"parameters": [circuit.parameters[idx] for idx in indices]})
 
             offset = np.identity(circuit.num_parameters)[indices, :]
             plus = parameter_values_ + self._epsilon * offset
@@ -77,15 +77,11 @@ class FiniteDiffEstimatorGradient(BaseEstimatorGradient):
 
         # combine the results
         results = [job.result() for job in jobs]
-        gradients, metadata_ = [], []
-        for i, result in enumerate(results):
+        gradients = []
+        for result in results:
             n = len(result.values) // 2  # is always a multiple of 2
             gradient_ = (result.values[:n] - result.values[n:]) / (2 * self._epsilon)
-            indices = result_indices_all[i]
-            gradient = np.zeros(circuits[i].num_parameters)
-            gradient[indices] = gradient_
-            gradients.append(gradient)
-            metadata_.append({"gradient_variance": np.var(gradient_)})
+            gradients.append(gradient_)
 
         # TODO: include primitive's run_options as well
         return EstimatorGradientResult(

@@ -61,7 +61,7 @@ class LinCombEstimatorGradient(BaseEstimatorGradient):
         **run_options,
     ) -> EstimatorGradientResult:
         """Compute the estimator gradients on the given circuits."""
-        jobs, result_indices_all, coeffs_all = [], [], []
+        jobs, result_indices_all, coeffs_all, metadata_ = [], [], [], []
         for circuit, observable, parameter_values_, parameters_ in zip(
             circuits, observables, parameter_values, parameters
         ):
@@ -70,6 +70,8 @@ class LinCombEstimatorGradient(BaseEstimatorGradient):
                 param_set = set(circuit.parameters)
             else:
                 param_set = set(parameters_)
+            metadata_.append({"parameters": [p for p in circuit.parameters if p in param_set]})
+
             # TODO: support measurement in different basis (Y and Z+iY)
             observable_ = observable.expand(Pauli_Z)
             gradient_circuit_data = self._gradient_circuit_data_dict.get(id(circuit))
@@ -78,15 +80,16 @@ class LinCombEstimatorGradient(BaseEstimatorGradient):
                 self._gradient_circuit_data_dict[id(circuit)] = gradient_circuit_data
 
             # only compute the gradients for parameters in the parameter set
-            gradient_circuits = []
-            result_indices = []
-            coeffs = []
+            gradient_circuits, result_indices, coeffs = [], [], []
+            result_idx = 0
             for i, param in enumerate(circuit.parameters):
                 if param in param_set:
                     gradient_circuits.extend(
                         grad_data.gradient_circuit for grad_data in gradient_circuit_data[param]
                     )
-                    result_indices.extend(i for _ in gradient_circuit_data[param])
+
+                    result_indices.extend(result_idx for _ in gradient_circuit_data[param])
+                    result_idx += 1
                     for grad_data in gradient_circuit_data[param]:
                         coeff = grad_data.coeff
                         # if the parameter is a parameter expression, we need to substitute
@@ -102,7 +105,7 @@ class LinCombEstimatorGradient(BaseEstimatorGradient):
 
             n = len(gradient_circuits)
             job = self._estimator.run(
-                gradient_circuits, [observable_] * n, [parameter_values_ for _ in range(n)]
+                gradient_circuits, [observable_] * n, [parameter_values_] * n, **run_options
             )
             jobs.append(job)
             result_indices_all.append(result_indices)
@@ -110,9 +113,9 @@ class LinCombEstimatorGradient(BaseEstimatorGradient):
 
         # combine the results
         results = [job.result() for job in jobs]
-        gradients, metadata_ = [], []
+        gradients = []
         for i, result in enumerate(results):
-            gradient_ = np.zeros(len(circuits[i].parameters))
+            gradient_ = np.zeros(len(metadata_[i]['parameters']))
             for grad_, idx, coeff in zip(result.values, result_indices_all[i], coeffs_all[i]):
                 gradient_[idx] += coeff * grad_
             gradients.append(gradient_)
