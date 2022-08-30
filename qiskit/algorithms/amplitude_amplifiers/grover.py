@@ -19,7 +19,7 @@ from typing import Iterator, List, Optional, Union
 import numpy as np
 
 from qiskit import ClassicalRegister, QuantumCircuit
-from qiskit.providers import Backend, BaseBackend
+from qiskit.providers import Backend
 from qiskit.quantum_info import partial_trace
 from qiskit.utils import QuantumInstance
 from .amplification_problem import AmplificationProblem
@@ -28,6 +28,14 @@ from .amplitude_amplifier import AmplitudeAmplifier, AmplitudeAmplifierResult
 
 class Grover(AmplitudeAmplifier):
     r"""Grover's Search algorithm.
+
+    .. note::
+
+        If you want to learn more about the theory behind Grover's Search algorithm, check
+        out the `Qiskit Textbook <https://qiskit.org/textbook/ch-algorithms/grover.html>`_.
+        or the `Qiskit Tutorials
+        <https://qiskit.org/documentation/tutorials/algorithms/07_grover_examples.html>`_
+        for more concrete how-to examples.
 
     Grover's Search [1, 2] is a well known quantum algorithm that can be used for
     searching through unstructured collections of records for particular targets
@@ -97,7 +105,6 @@ class Grover(AmplitudeAmplifier):
         [3]: Brassard, G., Hoyer, P., Mosca, M., & Tapp, A. (2000).
             Quantum Amplitude Amplification and Estimation.
             `arXiv:quant-ph/0005055 <http://arxiv.org/abs/quant-ph/0005055>`_.
-
     """
 
     def __init__(
@@ -105,7 +112,7 @@ class Grover(AmplitudeAmplifier):
         iterations: Optional[Union[List[int], Iterator[int], int]] = None,
         growth_rate: Optional[float] = None,
         sample_from_iterations: bool = False,
-        quantum_instance: Optional[Union[QuantumInstance, Backend, BaseBackend]] = None,
+        quantum_instance: Optional[Union[QuantumInstance, Backend]] = None,
     ) -> None:
         r"""
         Args:
@@ -143,7 +150,7 @@ class Grover(AmplitudeAmplifier):
 
         if growth_rate is not None:
             # yield iterations ** 1, iterations ** 2, etc. and casts to int
-            self._iterations = map(lambda x: int(growth_rate ** x), itertools.count(1))
+            self._iterations = map(lambda x: int(growth_rate**x), itertools.count(1))
         elif isinstance(iterations, int):
             self._iterations = [iterations]
         else:
@@ -165,14 +172,12 @@ class Grover(AmplitudeAmplifier):
         return self._quantum_instance
 
     @quantum_instance.setter
-    def quantum_instance(
-        self, quantum_instance: Union[QuantumInstance, BaseBackend, Backend]
-    ) -> None:
+    def quantum_instance(self, quantum_instance: Union[QuantumInstance, Backend]) -> None:
         """Set quantum instance.
         Args:
             quantum_instance: The quantum instance used to run this algorithm.
         """
-        if isinstance(quantum_instance, (BaseBackend, Backend)):
+        if isinstance(quantum_instance, Backend):
             quantum_instance = QuantumInstance(quantum_instance)
         self._quantum_instance = quantum_instance
 
@@ -195,7 +200,7 @@ class Grover(AmplitudeAmplifier):
             max_power = np.inf  # no cap on the power
             iterator = iter(self._iterations)
         else:
-            max_iterations = max(10, 2 ** amplification_problem.oracle.num_qubits)
+            max_iterations = max(10, 2**amplification_problem.oracle.num_qubits)
             max_power = np.ceil(
                 2 ** (len(amplification_problem.grover_operator.reflection_qubits) / 2)
             )
@@ -292,7 +297,7 @@ class Grover(AmplitudeAmplifier):
         Returns:
             The optimal number of iterations for Grover's algorithm to succeed.
         """
-        amplitude = np.sqrt(num_solutions / 2 ** num_qubits)
+        amplitude = np.sqrt(num_solutions / 2**num_qubits)
         return round(np.arccos(amplitude) / (2 * np.arcsin(amplitude)))
 
     def construct_circuit(

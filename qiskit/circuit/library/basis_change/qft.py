@@ -13,9 +13,10 @@
 """Quantum Fourier Transform Circuit."""
 
 from typing import Optional
+import warnings
 import numpy as np
 
-from qiskit.circuit import QuantumCircuit, QuantumRegister
+from qiskit.circuit import QuantumCircuit, QuantumRegister, CircuitInstruction
 
 from ..blueprintcircuit import BlueprintCircuit
 
@@ -220,14 +221,30 @@ class QFT(BlueprintCircuit):
         inverted = self.copy(name=name)
 
         # data consists of the QFT gate only
-        iqft = self.data[0][0].inverse()
+        iqft = self.data[0].operation.inverse()
         iqft.name = name
 
         inverted.data.clear()
-        inverted._append(iqft, inverted.qubits, [])
+        inverted._append(CircuitInstruction(iqft, inverted.qubits, []))
 
         inverted._inverse = not self._inverse
         return inverted
+
+    def _warn_if_precision_loss(self):
+        """Issue a warning if constructing the circuit will lose precision.
+
+        If we need an angle smaller than ``pi * 2**-1022``, we start to lose precision by going into
+        the subnormal numbers.  We won't lose _all_ precision until an exponent of about 1075, but
+        beyond 1022 we're using fractional bits to represent leading zeros."""
+        max_num_entanglements = self.num_qubits - self.approximation_degree - 1
+        if max_num_entanglements > -np.finfo(float).minexp:  # > 1022 for doubles.
+            warnings.warn(
+                "precision loss in QFT."
+                f" The rotation needed to represent {max_num_entanglements} entanglements"
+                " is smaller than the smallest normal floating-point number.",
+                category=RuntimeWarning,
+                stacklevel=3,
+            )
 
     def _check_configuration(self, raise_on_failure: bool = True) -> bool:
         """Check if the current configuration is valid."""
@@ -236,7 +253,7 @@ class QFT(BlueprintCircuit):
             valid = False
             if raise_on_failure:
                 raise AttributeError("The number of qubits has not been set.")
-
+        self._warn_if_precision_loss()
         return valid
 
     def _build(self) -> None:
@@ -256,7 +273,9 @@ class QFT(BlueprintCircuit):
             circuit.h(j)
             num_entanglements = max(0, j - max(0, self.approximation_degree - (num_qubits - j - 1)))
             for k in reversed(range(j - num_entanglements, j)):
-                lam = np.pi / (2 ** (j - k))
+                # Use negative exponents so that the angle safely underflows to zero, rather than
+                # using a temporary variable that overflows to infinity in the worst case.
+                lam = np.pi * (2.0 ** (k - j))
                 circuit.cp(lam, j, k)
 
             if self.insert_barriers:

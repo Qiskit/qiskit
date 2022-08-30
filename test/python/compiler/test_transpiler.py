@@ -32,11 +32,13 @@ from qiskit.circuit import Parameter, Gate, Qubit, Clbit
 from qiskit.compiler import transpile
 from qiskit.dagcircuit import DAGOutNode
 from qiskit.converters import circuit_to_dag
-from qiskit.circuit.library import CXGate, U3Gate, U2Gate, U1Gate, RXGate, RYGate, RZGate
+from qiskit.circuit.library import CXGate, U3Gate, U2Gate, U1Gate, RXGate, RYGate, RZGate, UGate
+from qiskit.circuit.measure import Measure
 from qiskit.test import QiskitTestCase
-from qiskit.test.mock import FakeMelbourne, FakeRueschlikon, FakeAlmaden
+from qiskit.providers.fake_provider import FakeMelbourne, FakeRueschlikon, FakeAlmaden, FakeMumbaiV2
 from qiskit.transpiler import Layout, CouplingMap
 from qiskit.transpiler import PassManager
+from qiskit.transpiler.target import Target
 from qiskit.transpiler.exceptions import TranspilerError
 from qiskit.transpiler.passes import BarrierBeforeFinalMeasurements, GateDirection
 from qiskit.quantum_info import Operator, random_unitary
@@ -77,7 +79,6 @@ class TestTranspile(QiskitTestCase):
             backend=backend,
             coupling_map=coupling_map,
             basis_gates=basis_gates,
-            pass_manager=None,
         )
 
         circuit3 = transpile(
@@ -105,13 +106,18 @@ class TestTranspile(QiskitTestCase):
         """Transpile pipeline can handle manual layout on non-adjacent qubits.
 
         circuit:
-        qr0:-[H]--.------------  -> 1
-                  |
-        qr1:-----(+)--.--------  -> 2
-                      |
-        qr2:---------(+)--.----  -> 3
-                          |
-        qr3:-------------(+)---  -> 5
+
+        .. parsed-literal::
+
+                  ┌───┐
+            qr_0: ┤ H ├──■──────────── -> 1
+                  └───┘┌─┴─┐
+            qr_1: ─────┤ X ├──■─────── -> 2
+                       └───┘┌─┴─┐
+            qr_2: ──────────┤ X ├──■── -> 3
+                            └───┘┌─┴─┐
+            qr_3: ───────────────┤ X ├ -> 5
+                                 └───┘
 
         device:
         0  -  1  -  2  -  3  -  4  -  5  -  6
@@ -140,9 +146,9 @@ class TestTranspile(QiskitTestCase):
 
         qubit_indices = {bit: idx for idx, bit in enumerate(new_circuit.qubits)}
 
-        for gate, qargs, _ in new_circuit.data:
-            if isinstance(gate, CXGate):
-                self.assertIn([qubit_indices[x] for x in qargs], coupling_map)
+        for instruction in new_circuit.data:
+            if isinstance(instruction.operation, CXGate):
+                self.assertIn([qubit_indices[x] for x in instruction.qubits], coupling_map)
 
     def test_transpile_qft_grid(self):
         """Transpile pipeline can handle 8-qubit QFT on 14-qubit grid."""
@@ -159,9 +165,9 @@ class TestTranspile(QiskitTestCase):
 
         qubit_indices = {bit: idx for idx, bit in enumerate(new_circuit.qubits)}
 
-        for gate, qargs, _ in new_circuit.data:
-            if isinstance(gate, CXGate):
-                self.assertIn([qubit_indices[x] for x in qargs], coupling_map)
+        for instruction in new_circuit.data:
+            if isinstance(instruction.operation, CXGate):
+                self.assertIn([qubit_indices[x] for x in instruction.qubits], coupling_map)
 
     def test_already_mapped_1(self):
         """Circuit not remapped if matches topology.
@@ -192,7 +198,7 @@ class TestTranspile(QiskitTestCase):
             initial_layout=Layout.generate_trivial_layout(qr),
         )
         qubit_indices = {bit: idx for idx, bit in enumerate(new_qc.qubits)}
-        cx_qubits = [qargs for (gate, qargs, _) in new_qc.data if gate.name == "cx"]
+        cx_qubits = [instr.qubits for instr in new_qc.data if instr.operation.name == "cx"]
         cx_qubits_physical = [
             [qubit_indices[ctrl], qubit_indices[tgt]] for [ctrl, tgt] in cx_qubits
         ]
@@ -204,6 +210,35 @@ class TestTranspile(QiskitTestCase):
         """Test that a manual layout that satisfies a coupling map does not get altered.
 
         See: https://github.com/Qiskit/qiskit-terra/issues/2036
+
+        circuit:
+
+        .. parsed-literal::
+
+                  ┌───┐                  ┌───┐ ░ ┌─┐
+            qn_0: ┤ H ├──■────────────■──┤ H ├─░─┤M├─── -> 9
+                  └───┘  │            │  └───┘ ░ └╥┘
+            qn_1: ───────┼────────────┼────────░──╫──── -> 6
+                         │            │        ░  ║
+            qn_2: ───────┼────────────┼────────░──╫──── -> 5
+                         │            │        ░  ║
+            qn_3: ───────┼────────────┼────────░──╫──── -> 0
+                         │            │        ░  ║
+            qn_4: ───────┼────────────┼────────░──╫──── -> 1
+                  ┌───┐┌─┴─┐┌──────┐┌─┴─┐┌───┐ ░  ║ ┌─┐
+            qn_5: ┤ H ├┤ X ├┤ P(2) ├┤ X ├┤ H ├─░──╫─┤M├ -> 4
+                  └───┘└───┘└──────┘└───┘└───┘ ░  ║ └╥┘
+            cn: 2/════════════════════════════════╩══╩═
+                                                  0  1
+
+        device:
+        0 -- 1 -- 2 -- 3 -- 4
+        |                   |
+        5 -- 6 -- 7 -- 8 -- 9
+        |                   |
+        10 - 11 - 12 - 13 - 14
+        |                   |
+        15 - 16 - 17 - 18 - 19
         """
         basis_gates = ["u1", "u2", "u3", "cx", "id"]
         coupling_map = [
@@ -296,7 +331,7 @@ class TestTranspile(QiskitTestCase):
             qc, coupling_map=coupling_map, basis_gates=basis_gates, initial_layout=initial_layout
         )
         qubit_indices = {bit: idx for idx, bit in enumerate(new_qc.qubits)}
-        cx_qubits = [qargs for (gate, qargs, _) in new_qc.data if gate.name == "cx"]
+        cx_qubits = [instr.qubits for instr in new_qc.data if instr.operation.name == "cx"]
         cx_qubits_physical = [
             [qubit_indices[ctrl], qubit_indices[tgt]] for [ctrl, tgt] in cx_qubits
         ]
@@ -466,8 +501,8 @@ class TestTranspile(QiskitTestCase):
         qubit_indices = {bit: idx for idx, bit in enumerate(new_circ.qubits)}
         mapped_qubits = []
 
-        for _, qargs, _ in new_circ.data:
-            mapped_qubits.append(qubit_indices[qargs[0]])
+        for instruction in new_circ.data:
+            mapped_qubits.append(qubit_indices[instruction.qubits[0]])
 
         self.assertEqual(mapped_qubits, [4, 6, 10])
 
@@ -627,7 +662,13 @@ class TestTranspile(QiskitTestCase):
 
     def test_optimize_to_nothing(self):
         """Optimize gates up to fixed point in the default pipeline
-        See https://github.com/Qiskit/qiskit-terra/issues/2035"""
+        See https://github.com/Qiskit/qiskit-terra/issues/2035
+        """
+        #       ┌───┐     ┌───┐┌───┐┌───┐     ┌───┐
+        # q0_0: ┤ H ├──■──┤ X ├┤ Y ├┤ Z ├──■──┤ H ├──■────■──
+        #       └───┘┌─┴─┐└───┘└───┘└───┘┌─┴─┐└───┘┌─┴─┐┌─┴─┐
+        # q0_1: ─────┤ X ├───────────────┤ X ├─────┤ X ├┤ X ├
+        #            └───┘               └───┘     └───┘└───┘
         qr = QuantumRegister(2)
         circ = QuantumCircuit(qr)
         circ.h(qr[0])
@@ -1010,6 +1051,7 @@ class TestTranspile(QiskitTestCase):
         transpiled_circuit = transpile(
             circ,
             backend=backend,
+            layout_method="trivial",
         )
         self.assertEqual(transpiled_circuit.calibrations, circ.calibrations)
         self.assertEqual(list(transpiled_circuit.count_ops().keys()), ["mycustom"])
@@ -1048,7 +1090,7 @@ class TestTranspile(QiskitTestCase):
 
         backend = FakeAlmaden()
         with self.assertRaises(QiskitError):
-            transpile(circ, backend=backend)
+            transpile(circ, backend=backend, layout_method="trivial")
 
     def test_transpile_calibrated_nonbasis_gate_on_diff_qubit(self):
         """Test if the non-basis gates are transpiled if they are on different qubit that
@@ -1087,7 +1129,7 @@ class TestTranspile(QiskitTestCase):
         circ.add_calibration(x_180, [0], q0_x180)
         circ.add_calibration("h", [1], q0_x180)  # 'h' is calibrated on qubit 1
 
-        transpiled_circ = transpile(circ, FakeAlmaden())
+        transpiled_circ = transpile(circ, FakeAlmaden(), layout_method="trivial")
         self.assertEqual(set(transpiled_circ.count_ops().keys()), {"u2", "mycustom", "h"})
 
     def test_parameterized_calibrations_transpile(self):
@@ -1104,10 +1146,10 @@ class TestTranspile(QiskitTestCase):
 
         circ.add_calibration("rxt", [0], q0_rxt(tau), [2 * 3.14 * tau])
 
-        transpiled_circ = transpile(circ, FakeAlmaden())
+        transpiled_circ = transpile(circ, FakeAlmaden(), layout_method="trivial")
         self.assertEqual(set(transpiled_circ.count_ops().keys()), {"rxt"})
         circ = circ.assign_parameters({tau: 1})
-        transpiled_circ = transpile(circ, FakeAlmaden())
+        transpiled_circ = transpile(circ, FakeAlmaden(), layout_method="trivial")
         self.assertEqual(set(transpiled_circ.count_ops().keys()), {"rxt"})
 
     def test_inst_durations_from_calibrations(self):
@@ -1164,7 +1206,7 @@ class TestTranspile(QiskitTestCase):
                 pulse.library.Gaussian(duration=128, amp=0.1, sigma=16), pulse.ControlChannel(4)
             )
         circ.add_calibration("my_custom_gate", [0, 1, 2, 3, 4], my_schedule, [])
-        trans_circ = transpile(circ, backend, optimization_level=opt_level)
+        trans_circ = transpile(circ, backend, optimization_level=opt_level, layout_method="trivial")
         self.assertEqual({"measure": 5, "my_custom_gate": 1, "barrier": 1}, trans_circ.count_ops())
 
     @data(0, 1, 2, 3)
@@ -1194,11 +1236,23 @@ class TestTranspile(QiskitTestCase):
         backend = FakeRueschlikon()
         backend.configuration().dt = 0.5e-6
         out = transpile([qc, qc], backend)
-        self.assertEqual(out[0].data[0][0].unit, "dt")
-        self.assertEqual(out[1].data[0][0].unit, "dt")
+        self.assertEqual(out[0].data[0].operation.unit, "dt")
+        self.assertEqual(out[1].data[0].operation.unit, "dt")
 
         out = transpile(qc, dt=1e-9)
-        self.assertEqual(out.data[0][0].unit, "dt")
+        self.assertEqual(out.data[0].operation.unit, "dt")
+
+    def test_scheduling_backend_v2(self):
+        """Test that scheduling method works with Backendv2."""
+        qc = QuantumCircuit(2)
+        qc.h(0)
+        qc.cx(0, 1)
+        qc.measure_all()
+
+        backend = FakeMumbaiV2()
+        out = transpile([qc, qc], backend, scheduling_method="alap")
+        self.assertIn("delay", out[0].count_ops())
+        self.assertIn("delay", out[1].count_ops())
 
     @data(1, 2, 3)
     def test_no_infinite_loop(self, optimization_level):
@@ -1376,6 +1430,39 @@ class TestTranspile(QiskitTestCase):
         else:
             # Optimization level 3 eliminates the pointless swap
             self.assertEqual(res, QuantumCircuit(2))
+
+    @data(0, 1, 2, 3)
+    def test_target_ideal_gates(self, opt_level):
+        """Test that transpile() with a custom ideal sim target works."""
+        theta = Parameter("θ")
+        phi = Parameter("ϕ")
+        lam = Parameter("λ")
+        target = Target(2)
+        target.add_instruction(UGate(theta, phi, lam))
+        target.add_instruction(CXGate())
+        target.add_instruction(Measure())
+        qubit_reg = QuantumRegister(2, name="q")
+        clbit_reg = ClassicalRegister(2, name="c")
+        qc = QuantumCircuit(qubit_reg, clbit_reg, name="bell")
+        qc.h(qubit_reg[0])
+        qc.cx(qubit_reg[0], qubit_reg[1])
+        if opt_level != 3:
+            qc.measure(qubit_reg, clbit_reg)
+        result = transpile(qc, target=target, optimization_level=opt_level)
+        # The Unitary synthesis optimization pass results for optimization level 3
+        # results in a different output than the other optimization levels
+        # and can differ based on fp precision. To avoid relying on a hard match
+        # do a unitary equiv
+
+        if opt_level == 3:
+            result_op = Operator.from_circuit(result)
+            self.assertTrue(result_op.equiv(qc))
+        else:
+            expected = QuantumCircuit(qubit_reg, clbit_reg)
+            expected.u(np.pi / 2, 0, np.pi, qubit_reg[0])
+            expected.cx(qubit_reg[0], qubit_reg[1])
+            expected.measure(qubit_reg, clbit_reg)
+            self.assertEqual(result, expected)
 
 
 class StreamHandlerRaiseException(StreamHandler):

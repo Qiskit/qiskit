@@ -36,9 +36,9 @@ Standard gates (:mod:`qiskit.circuit.library.standard_gates`)
    CXGate
    CYGate
    CZGate
+   CCZGate
    HGate
    IGate
-   MSGate
    MCPhaseGate
    PhaseGate
    RCCXGate
@@ -50,10 +50,13 @@ Standard gates (:mod:`qiskit.circuit.library.standard_gates`)
    RZGate
    RZZGate
    RZXGate
-   XYGate
+   XXMinusYYGate
+   XXPlusYYGate
    ECRGate
    SGate
    SdgGate
+   CSGate
+   CSdgGate
    SwapGate
    iSwapGate
    SXGate
@@ -73,7 +76,6 @@ Standard gates (:mod:`qiskit.circuit.library.standard_gates`)
 from .h import HGate, CHGate
 from .i import IGate
 from .p import PhaseGate, CPhaseGate, MCPhaseGate
-from .ms import MSGate
 from .r import RGate
 from .rx import RXGate, CRXGate
 from .rxx import RXXGate
@@ -82,9 +84,10 @@ from .ryy import RYYGate
 from .rz import RZGate, CRZGate
 from .rzz import RZZGate
 from .rzx import RZXGate
-from .xy import XYGate
+from .xx_minus_yy import XXMinusYYGate
+from .xx_plus_yy import XXPlusYYGate
 from .ecr import ECRGate
-from .s import SGate, SdgGate
+from .s import SGate, SdgGate, CSGate, CSdgGate
 from .swap import SwapGate, CSwapGate
 from .iswap import iSwapGate
 from .sx import SXGate, SXdgGate, CSXGate
@@ -97,6 +100,6 @@ from .u3 import U3Gate, CU3Gate
 from .x import XGate, CXGate, CCXGate, C3XGate, C3SXGate, C4XGate, RCCXGate, RC3XGate
 from .x import MCXGate, MCXGrayCode, MCXRecursive, MCXVChain
 from .y import YGate, CYGate
-from .z import ZGate, CZGate
+from .z import ZGate, CZGate, CCZGate
 
 from .multi_control_rotation_gates import mcrx, mcry, mcrz

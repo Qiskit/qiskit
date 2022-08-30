@@ -27,6 +27,8 @@ from qiskit.circuit.library import (
     ECRGate,
     UGate,
     CCXGate,
+    RZXGate,
+    CZGate,
 )
 from qiskit.circuit.measure import Measure
 from qiskit.circuit.parameter import Parameter
@@ -38,7 +40,7 @@ from qiskit.transpiler.timing_constraints import TimingConstraints
 from qiskit.transpiler import Target
 from qiskit.transpiler import InstructionProperties
 from qiskit.test import QiskitTestCase
-from qiskit.test.mock.fake_backend_v2 import FakeBackendV2
+from qiskit.providers.fake_provider import FakeBackendV2, FakeMumbaiFractionalCX
 
 
 class TestTarget(QiskitTestCase):
@@ -394,6 +396,24 @@ class TestTarget(QiskitTestCase):
         ]
         for gate in ideal_sim_expected:
             self.assertIn(gate, self.ideal_sim_target.operations_for_qargs(None))
+
+    def test_get_operation_names_for_qargs(self):
+        with self.assertRaises(KeyError):
+            self.empty_target.operation_names_for_qargs((0,))
+        expected = {"rz", "id", "sx", "x", "measure"}
+        res = self.ibm_target.operation_names_for_qargs((0,))
+        for gate in expected:
+            self.assertIn(gate, res)
+        expected = {"ecr"}
+        res = self.fake_backend_target.operation_names_for_qargs((1, 0))
+        for gate in expected:
+            self.assertIn(gate, res)
+        expected = {"cx"}
+        res = self.fake_backend_target.operation_names_for_qargs((0, 1))
+        self.assertEqual(expected, res)
+        ideal_sim_expected = ["u", "rx", "ry", "rz", "cx", "ecr", "ccx", "measure"]
+        for gate in ideal_sim_expected:
+            self.assertIn(gate, self.ideal_sim_target.operation_names_for_qargs(None))
 
     def test_coupling_map(self):
         self.assertEqual(
@@ -889,6 +909,118 @@ Instructions:
                 f"Generated constraints differs from expected for attribute {i}"
                 f"{getattr(generated_constraints, i)}!={getattr(expected_constraints, i)}",
             )
+
+    def test_get_non_global_operation_name_ideal_backend(self):
+        self.assertEqual(self.aqt_target.get_non_global_operation_names(), [])
+        self.assertEqual(self.ideal_sim_target.get_non_global_operation_names(), [])
+        self.assertEqual(self.ibm_target.get_non_global_operation_names(), [])
+        self.assertEqual(self.fake_backend_target.get_non_global_operation_names(), [])
+
+    def test_get_non_global_operation_name_ideal_backend_strict_direction(self):
+        self.assertEqual(self.aqt_target.get_non_global_operation_names(True), [])
+        self.assertEqual(self.ideal_sim_target.get_non_global_operation_names(True), [])
+        self.assertEqual(self.ibm_target.get_non_global_operation_names(True), [])
+        self.assertEqual(
+            self.fake_backend_target.get_non_global_operation_names(True), ["cx", "ecr"]
+        )
+
+    def test_instruction_supported(self):
+        self.assertTrue(self.aqt_target.instruction_supported("r", (0,)))
+        self.assertFalse(self.aqt_target.instruction_supported("cx", (0, 1)))
+        self.assertTrue(self.ideal_sim_target.instruction_supported("cx", (0, 1)))
+        self.assertFalse(self.ideal_sim_target.instruction_supported("cx", (0, 524)))
+        self.assertTrue(self.fake_backend_target.instruction_supported("cx", (0, 1)))
+        self.assertFalse(self.fake_backend_target.instruction_supported("cx", (1, 0)))
+        self.assertFalse(self.ideal_sim_target.instruction_supported("cx", (0, 1, 2)))
+
+    def test_instruction_supported_parameters(self):
+        mumbai = FakeMumbaiFractionalCX()
+        self.assertTrue(
+            mumbai.target.instruction_supported(
+                qargs=(0, 1), operation_class=RZXGate, parameters=[math.pi / 4]
+            )
+        )
+        self.assertTrue(mumbai.target.instruction_supported(qargs=(0, 1), operation_class=RZXGate))
+        self.assertTrue(
+            mumbai.target.instruction_supported(operation_class=RZXGate, parameters=[math.pi / 4])
+        )
+        self.assertFalse(mumbai.target.instruction_supported("rzx", parameters=[math.pi / 4]))
+        self.assertTrue(mumbai.target.instruction_supported("rz", parameters=[Parameter("angle")]))
+        self.assertTrue(
+            mumbai.target.instruction_supported("rzx_45", qargs=(0, 1), parameters=[math.pi / 4])
+        )
+        self.assertTrue(mumbai.target.instruction_supported("rzx_45", qargs=(0, 1)))
+        self.assertTrue(mumbai.target.instruction_supported("rzx_45", parameters=[math.pi / 4]))
+        self.assertFalse(mumbai.target.instruction_supported("rzx_45", parameters=[math.pi / 6]))
+        self.assertFalse(
+            mumbai.target.instruction_supported("rzx_45", parameters=[Parameter("angle")])
+        )
+        self.assertTrue(
+            self.ideal_sim_target.instruction_supported(
+                qargs=(0,), operation_class=RXGate, parameters=[Parameter("angle")]
+            )
+        )
+        self.assertTrue(
+            self.ideal_sim_target.instruction_supported(
+                qargs=(0,), operation_class=RXGate, parameters=[math.pi]
+            )
+        )
+        self.assertTrue(
+            self.ideal_sim_target.instruction_supported(
+                operation_class=RXGate, parameters=[math.pi]
+            )
+        )
+        self.assertTrue(
+            self.ideal_sim_target.instruction_supported(
+                operation_class=RXGate, parameters=[Parameter("angle")]
+            )
+        )
+        self.assertTrue(
+            self.ideal_sim_target.instruction_supported(
+                "rx", qargs=(0,), parameters=[Parameter("angle")]
+            )
+        )
+        self.assertTrue(
+            self.ideal_sim_target.instruction_supported("rx", qargs=(0,), parameters=[math.pi])
+        )
+        self.assertTrue(self.ideal_sim_target.instruction_supported("rx", parameters=[math.pi]))
+        self.assertTrue(
+            self.ideal_sim_target.instruction_supported("rx", parameters=[Parameter("angle")])
+        )
+
+    def test_instruction_supported_multiple_parameters(self):
+        target = Target(1)
+        target.add_instruction(
+            UGate(self.theta, self.phi, self.lam),
+            {(0,): InstructionProperties(duration=270.22e-9, error=0.00713)},
+        )
+        self.assertFalse(target.instruction_supported("u", parameters=[math.pi]))
+        self.assertTrue(target.instruction_supported("u", parameters=[math.pi, math.pi, math.pi]))
+        self.assertTrue(
+            target.instruction_supported(
+                operation_class=UGate, parameters=[math.pi, math.pi, math.pi]
+            )
+        )
+        self.assertFalse(
+            target.instruction_supported(operation_class=UGate, parameters=[Parameter("x")])
+        )
+
+    def test_instruction_supported_arg_len_mismatch(self):
+        self.assertFalse(
+            self.ideal_sim_target.instruction_supported(operation_class=UGate, parameters=[math.pi])
+        )
+        self.assertFalse(self.ideal_sim_target.instruction_supported("u", parameters=[math.pi]))
+
+    def test_instruction_supported_class_not_in_target(self):
+        self.assertFalse(
+            self.ibm_target.instruction_supported(operation_class=CZGate, parameters=[math.pi])
+        )
+
+    def test_instruction_supported_no_args(self):
+        self.assertFalse(self.ibm_target.instruction_supported())
+
+    def test_instruction_supported_no_operation(self):
+        self.assertFalse(self.ibm_target.instruction_supported(qargs=(0,), parameters=[math.pi]))
 
 
 class TestPulseTarget(QiskitTestCase):

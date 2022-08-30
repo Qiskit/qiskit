@@ -98,11 +98,11 @@ class BasicAerUnitarySimulatorPyTest(providers.BackendTestCase):
         # Test 1 to max_qubits for random n-qubit unitary gate
         for i in range(max_qubits):
             num_qubits = i + 1
-            unitary_init = Operator(np.eye(2 ** num_qubits))
+            unitary_init = Operator(np.eye(2**num_qubits))
             qr = QuantumRegister(num_qubits, "qr")
             for _ in range(num_trials):
                 # Create random unitary
-                unitary = random_unitary(2 ** num_qubits)
+                unitary = random_unitary(2**num_qubits)
                 # Compute expected output state
                 unitary_target = unitary.dot(unitary_init)
                 # Simulate output on circuit

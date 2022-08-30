@@ -81,9 +81,9 @@ class PiecewisePolynomialPauliRotations(FunctionalPauliRotations):
              Optimizing Quantum Circuits for Arithmetic.
              `arXiv:1805.12445 <http://arxiv.org/abs/1805.12445>`_
 
-        [2]: Carrera Vazquez, A., Hiptmair, R., & Woerner, S. (2020).
+        [2]: Carrera Vazquez, A., Hiptmair, R., & Woerner, S. (2022).
              Enhancing the Quantum Linear Systems Algorithm using Richardson Extrapolation.
-             `arXiv:2009.04484 <http://arxiv.org/abs/2009.04484>`_
+             `ACM Transactions on Quantum Computing 3, 1, Article 2 <https://doi.org/10.1145/3490631>`_
     """
 
     def __init__(
@@ -131,9 +131,9 @@ class PiecewisePolynomialPauliRotations(FunctionalPauliRotations):
         if (
             self.num_state_qubits is not None
             and len(self._breakpoints) == len(self.coeffs)
-            and self._breakpoints[-1] < 2 ** self.num_state_qubits
+            and self._breakpoints[-1] < 2**self.num_state_qubits
         ):
-            return self._breakpoints + [2 ** self.num_state_qubits]
+            return self._breakpoints + [2**self.num_state_qubits]
 
         return self._breakpoints
 

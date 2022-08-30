@@ -15,7 +15,7 @@
 import itertools
 import logging
 from copy import deepcopy
-from typing import List, Optional, Union, cast, Dict
+from typing import Dict, List, Optional, Union, cast
 
 import numpy as np
 
@@ -89,6 +89,7 @@ class Z2Symmetries:
         sq_paulis: List[Pauli],
         sq_list: List[int],
         tapering_values: Optional[List[int]] = None,
+        tol: float = 1e-14,
     ):
         """
         Args:
@@ -98,6 +99,8 @@ class Z2Symmetries:
             sq_list: the list of support of the single-qubit Pauli objects used to build
                                  the Clifford operators
             tapering_values: values determines the sector.
+            tol: Tolerance threshold for ignoring real and complex parts of a coefficient.
+
         Raises:
             OpflowError: Invalid paulis
         """
@@ -122,6 +125,17 @@ class Z2Symmetries:
         self._sq_paulis = sq_paulis
         self._sq_list = sq_list
         self._tapering_values = tapering_values
+        self._tol = tol
+
+    @property
+    def tol(self):
+        """Tolerance threshold for ignoring real and complex parts of a coefficient."""
+        return self._tol
+
+    @tol.setter
+    def tol(self, value):
+        """Set the tolerance threshold for ignoring real and complex parts of a coefficient."""
+        self._tol = value
 
     @property
     def symmetries(self):
@@ -303,7 +317,7 @@ class Z2Symmetries:
                         and stacked_symmetries[row, col + symm_shape[1] // 2] == 1
                     ):
                         sq_paulis.append(
-                            Pauli(np.zeros(symm_shape[1] // 2), np.zeros(symm_shape[1] // 2))
+                            Pauli((np.zeros(symm_shape[1] // 2), np.zeros(symm_shape[1] // 2)))
                         )
                         sq_paulis[row].z[col] = True
                         sq_paulis[row].x[col] = False
@@ -333,7 +347,7 @@ class Z2Symmetries:
                         and stacked_symmetries[row, col + symm_shape[1] // 2] == 0
                     ):
                         sq_paulis.append(
-                            Pauli(np.zeros(symm_shape[1] // 2), np.zeros(symm_shape[1] // 2))
+                            Pauli((np.zeros(symm_shape[1] // 2), np.zeros(symm_shape[1] // 2)))
                         )
                         sq_paulis[row].z[col] = True
                         sq_paulis[row].x[col] = True
@@ -366,6 +380,7 @@ class Z2Symmetries:
         if not operator.is_zero():
             for clifford in self.cliffords:
                 operator = cast(PauliSumOp, clifford @ operator @ clifford)
+                operator = operator.reduce(atol=0)
 
         if self._tapering_values is None:
             tapered_ops_list = [
@@ -391,7 +406,9 @@ class Z2Symmetries:
             z_temp = np.delete(pauli_term.primitive.paulis.z[0].copy(), np.asarray(self._sq_list))
             x_temp = np.delete(pauli_term.primitive.paulis.x[0].copy(), np.asarray(self._sq_list))
             pauli_list.append((Pauli((z_temp, x_temp)).to_label(), coeff_out))
+
         spo = SparsePauliOp.from_list(pauli_list).simplify(atol=0.0)
+        spo = spo.chop(self.tol)
         z2_symmetries = self.copy()
         z2_symmetries.tapering_values = curr_tapering_values
 

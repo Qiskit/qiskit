@@ -22,10 +22,8 @@ Generic isometries from m to n qubits.
 
 import itertools
 import numpy as np
-
 from qiskit.circuit.exceptions import CircuitError
 from qiskit.circuit.instruction import Instruction
-from qiskit.circuit.operation import Operation
 from qiskit.circuit.quantumcircuit import QuantumCircuit
 from qiskit.circuit.quantumregister import QuantumRegister
 from qiskit.exceptions import QiskitError
@@ -36,7 +34,7 @@ from qiskit.extensions.quantum_initializer.mcg_up_to_diagonal import MCGupDiag
 _EPS = 1e-10  # global variable used to chop very small numbers to zero
 
 
-class Isometry(Instruction, Operation):
+class Isometry(Instruction):
     """
     Decomposition of arbitrary isometries from m to n qubits. In particular, this allows to
     decompose unitaries (m=n) and to do state preparation (m=0).
@@ -74,6 +72,8 @@ class Isometry(Instruction, Operation):
         if len(isometry.shape) == 1:
             isometry = isometry.reshape(isometry.shape[0], 1)
 
+        self.iso_data = isometry
+
         self.num_ancillas_zero = num_ancillas_zero
         self.num_ancillas_dirty = num_ancillas_dirty
         self._inverse = None
@@ -104,14 +104,22 @@ class Isometry(Instruction, Operation):
         super().__init__("isometry", num_qubits, 0, [isometry])
 
     def _define(self):
+
         # TODO The inverse().inverse() is because there is code to uncompute (_gates_to_uncompute)
         #  an isometry, but not for generating its decomposition. It would be cheaper to do the
         #  later here instead.
-        gate = self.inverse().inverse()
+        gate = self.inv_gate()
+        gate = gate.inverse()
         q = QuantumRegister(self.num_qubits)
         iso_circuit = QuantumCircuit(q)
         iso_circuit.append(gate, q[:])
         self.definition = iso_circuit
+
+    def inverse(self):
+        self.params = []
+        inv = super().inverse()
+        self.params = [self.iso_data]
+        return inv
 
     def _gates_to_uncompute(self):
         """
@@ -128,14 +136,14 @@ class Isometry(Instruction, Operation):
         ) = self._define_qubit_role(q)
         # Copy the isometry (this is computationally expensive for large isometries but guarantees
         # to keep a copyof the input isometry)
-        remaining_isometry = self.params[0].astype(complex)  # note: "astype" does copy the isometry
+        remaining_isometry = self.iso_data.astype(complex)  # note: "astype" does copy the isometry
         diag = []
-        m = int(np.log2((self.params[0]).shape[1]))
+        m = int(np.log2((self.iso_data).shape[1]))
         # Decompose the column with index column_index and attache the gate to the circuit object.
         # Return the isometry that is left to decompose, where the columns up to index column_index
         # correspond to the firstfew columns of the identity matrix up to diag, and hence we only
         # have to save a list containing them.
-        for column_index in range(2 ** m):
+        for column_index in range(2**m):
             self._decompose_column(circuit, q, diag, remaining_isometry, column_index)
             # extract phase of the state that was sent to the basis state ket(column_index)
             diag.append(remaining_isometry[column_index, 0])
@@ -149,7 +157,7 @@ class Isometry(Instruction, Operation):
         """
         Decomposes the column with index column_index.
         """
-        n = int(np.log2(self.params[0].shape[0]))
+        n = int(np.log2(self.iso_data.shape[0]))
         for s in range(n):
             self._disentangle(circuit, q, diag, remaining_isometry, column_index, s)
 
@@ -164,11 +172,11 @@ class Isometry(Instruction, Operation):
         # (note that we remove columns of the isometry during the procedure for efficiency)
         k_prime = 0
         v = remaining_isometry
-        n = int(np.log2(self.params[0].shape[0]))
+        n = int(np.log2(self.iso_data.shape[0]))
 
         # MCG to set one entry to zero (preparation for disentangling with UCGate):
-        index1 = 2 * _a(k, s + 1) * 2 ** s + _b(k, s + 1)
-        index2 = (2 * _a(k, s + 1) + 1) * 2 ** s + _b(k, s + 1)
+        index1 = 2 * _a(k, s + 1) * 2**s + _b(k, s + 1)
+        index2 = (2 * _a(k, s + 1) + 1) * 2**s + _b(k, s + 1)
         target_label = n - s - 1
         # Check if a MCG is required
         if _k_s(k, s) == 0 and _b(k, s + 1) != 0 and np.abs(v[index2, k_prime]) > self._epsilon:
@@ -216,7 +224,7 @@ class Isometry(Instruction, Operation):
     # The qubit with label n-s-1 is disentangled into the basis state k_s(k,s).
     def _find_squs_for_disentangling(self, v, k, s):
         k_prime = 0
-        n = int(np.log2(self.params[0].shape[0]))
+        n = int(np.log2(self.iso_data.shape[0]))
         if _b(k, s + 1) == 0:
             i_start = _a(k, s + 1)
         else:
@@ -225,8 +233,8 @@ class Isometry(Instruction, Operation):
         squs = [
             _reverse_qubit_state(
                 [
-                    v[2 * i * 2 ** s + _b(k, s), k_prime],
-                    v[(2 * i + 1) * 2 ** s + _b(k, s), k_prime],
+                    v[2 * i * 2**s + _b(k, s), k_prime],
+                    v[(2 * i + 1) * 2**s + _b(k, s), k_prime],
                 ],
                 _k_s(k, s),
                 self._epsilon,
@@ -243,7 +251,7 @@ class Isometry(Instruction, Operation):
             q_ancillas_zero,
             q_ancillas_dirty,
         ) = self._define_qubit_role(q)
-        n = int(np.log2(self.params[0].shape[0]))
+        n = int(np.log2(self.iso_data.shape[0]))
         qubits = q_input + q_ancillas_for_output
         # Note that we have to reverse the control labels, since controls are provided by
         # increasing qubit number toa UCGate by convention
@@ -265,7 +273,7 @@ class Isometry(Instruction, Operation):
             q_ancillas_zero,
             q_ancillas_dirty,
         ) = self._define_qubit_role(q)
-        n = int(np.log2(self.params[0].shape[0]))
+        n = int(np.log2(self.iso_data.shape[0]))
         qubits = q_input + q_ancillas_for_output
         control_qubits = _reverse_qubit_oder(_get_qubits_by_label(control_labels, qubits, n))
         target_qubit = _get_qubits_by_label([target_label], qubits, n)[0]
@@ -285,8 +293,10 @@ class Isometry(Instruction, Operation):
         return mcg_up_to_diag._get_diagonal()
 
     def _define_qubit_role(self, q):
-        n = int(np.log2((self.params[0]).shape[0]))
-        m = int(np.log2((self.params[0]).shape[1]))
+
+        n = int(np.log2(self.iso_data.shape[0]))
+        m = int(np.log2(self.iso_data.shape[1]))
+
         # Define the role of the qubits
         q_input = q[:m]
         q_ancillas_for_output = q[m:n]
@@ -298,10 +308,12 @@ class Isometry(Instruction, Operation):
         """Isometry parameter has to be an ndarray."""
         if isinstance(parameter, np.ndarray):
             return parameter
+        if isinstance(parameter, (list, int)):
+            return parameter
         else:
             raise CircuitError(f"invalid param type {type(parameter)} for gate {self.name}")
 
-    def inverse(self):
+    def inv_gate(self):
         """Return the adjoint of the unitary."""
         if self._inverse is None:
             # call to generate the circuit that takes the isometry to the first 2^m columns
@@ -504,11 +516,11 @@ def _merge_UCGate_and_diag(single_qubit_gates, diag):
 
 
 def _a(k, s):
-    return k // 2 ** s
+    return k // 2**s
 
 
 def _b(k, s):
-    return k - (_a(k, s) * 2 ** s)
+    return k - (_a(k, s) * 2**s)
 
 
 # given a binary representation of k with binary digits [k_{n-1},..,k_1,k_0],

@@ -1,0 +1,41 @@
+[package]
+name = "qiskit-terra"
+version = "0.22.0"
+edition = "2018"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[lib]
+name = "qiskit_accelerate"
+crate-type = ["cdylib"]
+
+[dependencies]
+rayon = "1.5"
+numpy = "0.16.2"
+rand = "0.8"
+rand_pcg = "0.3"
+rand_distr = "0.4.3"
+ahash = "0.8.0"
+num-complex = "0.4"
+num-bigint = "0.4"
+retworkx-core = "0.11"
+
+[dependencies.pyo3]
+version = "0.16.6"
+features = ["extension-module", "hashbrown", "num-complex", "num-bigint"]
+
+[dependencies.ndarray]
+version = "^0.15.6"
+features = ["rayon"]
+
+[dependencies.hashbrown]
+version = "0.12.3"
+features = ["rayon"]
+
+[dependencies.indexmap]
+version = "1.9.1"
+features = ["rayon"]
+
+[profile.release]
+lto = 'fat'
+codegen-units = 1

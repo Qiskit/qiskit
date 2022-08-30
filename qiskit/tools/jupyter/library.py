@@ -39,8 +39,8 @@ def circuit_data_table(circuit: QuantumCircuit) -> wid.HTML:
         Output widget.
     """
 
+    circuit = circuit.decompose()
     ops = circuit.count_ops()
-
     num_nl = circuit.num_nonlocal_gates()
 
     html = "<table>"
@@ -214,6 +214,6 @@ def circuit_library_widget(circuit: QuantumCircuit) -> None:
     top = circuit_diagram_widget()
 
     with top.children[0]:
-        display(circuit.draw(output="mpl"))
+        display(circuit.decompose().draw(output="mpl"))
 
     display(wid.VBox(children=[top, bottom], layout=wid.Layout(width="100%", height="auto")))

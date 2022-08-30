@@ -236,7 +236,7 @@ class QuantumChannel(LinearOp):
 
         # Check if input is an N-qubit CPTP channel.
         num_qubits = int(np.log2(self._input_dim))
-        if self._input_dim != self._output_dim or 2 ** num_qubits != self._input_dim:
+        if self._input_dim != self._output_dim or 2**num_qubits != self._input_dim:
             raise QiskitError(
                 "Cannot convert QuantumChannel to Instruction: channel is not an N-qubit channel."
             )

@@ -16,7 +16,7 @@
 import unittest
 from test import combine
 import logging
-from ddt import ddt
+from ddt import ddt, data, unpack
 
 import numpy as np
 
@@ -525,228 +525,21 @@ class TestStabilizerState(QiskitTestCase):
                 self.assertTrue(np.allclose(probs, target))
                 self.assertDictAlmostEqual(probs_dict, target_dict)
 
-    def test_expval_single_qubit(self):
-        """Test expectation_value method of a single qubit"""
-
-        num_qubits = 1
-
-        qc = QuantumCircuit(num_qubits)
-        stab = StabilizerState(qc)
-        pairs = [("Z", 1), ("X", 0), ("Y", 0), ("I", 1)]
-        for label, target in pairs:
-            with self.subTest(msg=f"<{label}>"):
-                op = Pauli(label)
-                expval = stab.expectation_value(op)
-                self.assertEqual(expval, target)
-
-        qc = QuantumCircuit(num_qubits)
-        qc.x(0)
-        stab = StabilizerState(qc)
-        pairs = [("Z", -1), ("X", 0), ("Y", 0), ("I", 1)]
-        for label, target in pairs:
-            with self.subTest(msg=f"<{label}>"):
-                op = Pauli(label)
-                expval = stab.expectation_value(op)
-                self.assertEqual(expval, target)
-
-        qc = QuantumCircuit(num_qubits)
-        qc.h(0)
-        stab = StabilizerState(qc)
-        pairs = [("Z", 0), ("X", 1), ("Y", 0), ("I", 1)]
-        for label, target in pairs:
-            with self.subTest(msg=f"<{label}>"):
-                op = Pauli(label)
-                expval = stab.expectation_value(op)
-                self.assertEqual(expval, target)
-
-    def test_expval_two_qubits(self):
-        """Test expectation_value method of two qubits"""
-
-        num_qubits = 2
-
-        qc = QuantumCircuit(num_qubits)
-        stab = StabilizerState(qc)
-        pairs = [
-            ("II", 1),
-            ("XX", 0),
-            ("YY", 0),
-            ("ZZ", 1),
-            ("IX", 0),
-            ("IY", 0),
-            ("IZ", 1),
-            ("XY", 0),
-            ("XZ", 0),
-            ("YZ", 0),
-        ]
-        for label, target in pairs:
-            with self.subTest(msg=f"<{label}>"):
-                op = Pauli(label)
-                expval = stab.expectation_value(op)
-                self.assertEqual(expval, target)
-
-        qc = QuantumCircuit(num_qubits)
-        qc.x(0)
-        qc.x(1)
-        stab = StabilizerState(qc)
-        pairs = [
-            ("II", 1),
-            ("XX", 0),
-            ("YY", 0),
-            ("ZZ", 1),
-            ("IX", 0),
-            ("IY", 0),
-            ("IZ", -1),
-            ("XY", 0),
-            ("XZ", 0),
-            ("YZ", 0),
-        ]
-        for label, target in pairs:
-            with self.subTest(msg=f"<{label}>"):
-                op = Pauli(label)
-                expval = stab.expectation_value(op)
-                self.assertEqual(expval, target)
-
-        qc = QuantumCircuit(num_qubits)
-        qc.h(0)
-        qc.h(1)
-        stab = StabilizerState(qc)
-        pairs = [
-            ("II", 1),
-            ("XX", 1),
-            ("YY", 0),
-            ("ZZ", 0),
-            ("IX", 1),
-            ("IY", 0),
-            ("IZ", 0),
-            ("XY", 0),
-            ("XZ", 0),
-            ("YZ", 0),
-        ]
-        for label, target in pairs:
-            with self.subTest(msg=f"<{label}>"):
-                op = Pauli(label)
-                expval = stab.expectation_value(op)
-                self.assertEqual(expval, target)
-
-        qc = QuantumCircuit(num_qubits)
-        qc.x(0)
-        qc.h(1)
-        stab = StabilizerState(qc)
-        pairs = [
-            ("II", 1),
-            ("XX", 0),
-            ("YY", 0),
-            ("ZZ", 0),
-            ("IX", 0),
-            ("IY", 0),
-            ("IZ", -1),
-            ("XY", 0),
-            ("XZ", -1),
-            ("YZ", 0),
-        ]
-        for label, target in pairs:
-            with self.subTest(msg=f"<{label}>"):
-                op = Pauli(label)
-                expval = stab.expectation_value(op)
-                self.assertEqual(expval, target)
-
-        qc = QuantumCircuit(num_qubits)
-        qc.h(0)
-        qc.cx(0, 1)
-        stab = StabilizerState(qc)
-        pairs = [
-            ("II", 1),
-            ("XX", 1),
-            ("YY", -1),
-            ("ZZ", 1),
-            ("IX", 0),
-            ("IY", 0),
-            ("IZ", 0),
-            ("XY", 0),
-            ("XZ", 0),
-            ("YZ", 0),
-        ]
-        for label, target in pairs:
-            with self.subTest(msg=f"<{label}>"):
-                op = Pauli(label)
-                expval = stab.expectation_value(op)
-                self.assertEqual(expval, target)
-
-        qc = QuantumCircuit(num_qubits)
-        qc.h(0)
-        qc.x(1)
-        qc.cx(0, 1)
-        stab = StabilizerState(qc)
-        pairs = [
-            ("II", 1),
-            ("XX", 1),
-            ("YY", 1),
-            ("ZZ", -1),
-            ("IX", 0),
-            ("IY", 0),
-            ("IZ", 0),
-            ("XY", 0),
-            ("XZ", 0),
-            ("YZ", 0),
-        ]
-        for label, target in pairs:
-            with self.subTest(msg=f"<{label}>"):
-                op = Pauli(label)
-                expval = stab.expectation_value(op)
-                self.assertEqual(expval, target)
-
-        qc = QuantumCircuit(2)
-        qc.h(0)
-        qc.cx(0, 1)
-        qc.sdg(0)
-        qc.sdg(1)
-        qc.h(0)
-        qc.h(1)
-        stab = StabilizerState(qc)
-        pairs = [
-            ("II", 1),
-            ("XX", 1),
-            ("YY", 1),
-            ("ZZ", -1),
-            ("IX", 0),
-            ("IY", 0),
-            ("IZ", 0),
-            ("XY", 0),
-            ("XZ", 0),
-            ("YZ", 0),
-        ]
-        for label, target in pairs:
-            with self.subTest(msg=f"<{label}>"):
-                op = Pauli(label)
-                expval = stab.expectation_value(op)
-                self.assertEqual(expval, target)
-
     @combine(num_qubits=[2, 3, 4, 5])
-    def test_expval_random(self, num_qubits):
-        """Test expectation_value method of random Cliffords"""
+    def test_expval_from_random_clifford(self, num_qubits):
+        """Test that the expectation values for a random Clifford,
+        where the Pauli operators are all its stabilizers,
+        are equal to 1."""
 
         for _ in range(self.samples):
             cliff = random_clifford(num_qubits, seed=self.rng)
-            op = random_pauli(num_qubits, seed=self.rng)
             qc = cliff.to_circuit()
-            stab = StabilizerState(cliff)
-            exp_val = stab.expectation_value(op)
-            target = Statevector(qc).expectation_value(op)
-            self.assertAlmostEqual(exp_val, target)
-
-    @combine(num_qubits=[2, 3, 4, 5])
-    def test_expval_random_subsystem(self, num_qubits):
-        """Test expectation_value method of random Cliffords and a subsystem"""
-
-        for _ in range(self.samples):
-            cliff = random_clifford(num_qubits, seed=self.rng)
-            op = random_pauli(2, seed=self.rng)
-            qargs = np.random.choice(num_qubits, size=2, replace=False)
-            qc = cliff.to_circuit()
-            stab = StabilizerState(cliff)
-            exp_val = stab.expectation_value(op, qargs)
-            target = Statevector(qc).expectation_value(op, qargs)
-            self.assertAlmostEqual(exp_val, target)
+            stab = StabilizerState(qc)
+            stab_gen = stab.clifford.to_dict()["stabilizer"]
+            for i in range(num_qubits):
+                op = Pauli(stab_gen[i])
+                exp_val = stab.expectation_value(op)
+                self.assertEqual(exp_val, 1)
 
     def test_sample_counts_reset_bell(self):
         """Test sample_counts after reset for Bell state"""
@@ -878,6 +671,270 @@ class TestStabilizerState(QiskitTestCase):
                 memory = stab.sample_memory(self.shots, qargs=qargs)
                 self.assertEqual(len(memory), self.shots)
                 self.assertEqual(set(memory), set(target))
+
+
+@ddt
+class TestStabilizerStateExpectationValue(QiskitTestCase):
+    """Tests for StabilizerState.expectation_value method."""
+
+    rng = np.random.default_rng(12345)
+    samples = 10
+    shots = 1000
+    threshold = 0.1 * shots
+
+    @data(("Z", 1), ("X", 0), ("Y", 0), ("I", 1), ("Z", 1), ("-Z", -1), ("iZ", 1j), ("-iZ", -1j))
+    @unpack
+    def test_expval_single_qubit_0(self, label, target):
+        """Test expectation_value method of a single qubit on |0>"""
+        qc = QuantumCircuit(1)
+        stab = StabilizerState(qc)
+        op = Pauli(label)
+        expval = stab.expectation_value(op)
+        self.assertEqual(expval, target)
+
+    @data(("Z", -1), ("X", 0), ("Y", 0), ("I", 1))
+    @unpack
+    def test_expval_single_qubit_1(self, label, target):
+        """Test expectation_value method of a single qubit on |1>"""
+        qc = QuantumCircuit(1)
+        qc.x(0)
+        stab = StabilizerState(qc)
+        op = Pauli(label)
+        expval = stab.expectation_value(op)
+        self.assertEqual(expval, target)
+
+    @data(("Z", 0), ("X", 1), ("Y", 0), ("I", 1), ("X", 1), ("-X", -1), ("iX", 1j), ("-iX", -1j))
+    @unpack
+    def test_expval_single_qubit_plus(self, label, target):
+        """Test expectation_value method of a single qubit on |+>"""
+        qc = QuantumCircuit(1)
+        qc.h(0)
+        stab = StabilizerState(qc)
+        op = Pauli(label)
+        expval = stab.expectation_value(op)
+        self.assertEqual(expval, target)
+
+    @data(
+        ("II", 1),
+        ("XX", 0),
+        ("YY", 0),
+        ("ZZ", 1),
+        ("IX", 0),
+        ("IY", 0),
+        ("IZ", 1),
+        ("XY", 0),
+        ("XZ", 0),
+        ("YZ", 0),
+        ("-ZZ", -1),
+        ("iZZ", 1j),
+        ("-iZZ", -1j),
+    )
+    @unpack
+    def test_expval_two_qubits_00(self, label, target):
+        """Test expectation_value method of two qubits in |00>"""
+
+        num_qubits = 2
+
+        qc = QuantumCircuit(num_qubits)
+        stab = StabilizerState(qc)
+
+        op = Pauli(label)
+        expval = stab.expectation_value(op)
+        self.assertEqual(expval, target)
+
+    @data(
+        ("II", 1),
+        ("XX", 0),
+        ("YY", 0),
+        ("ZZ", 1),
+        ("IX", 0),
+        ("IY", 0),
+        ("IZ", -1),
+        ("XY", 0),
+        ("XZ", 0),
+        ("YZ", 0),
+    )
+    @unpack
+    def test_expval_two_qubits_11(self, label, target):
+        """Test expectation_value method of two qubits in |11>"""
+        qc = QuantumCircuit(2)
+        qc.x(0)
+        qc.x(1)
+        stab = StabilizerState(qc)
+        op = Pauli(label)
+        expval = stab.expectation_value(op)
+        self.assertEqual(expval, target)
+
+    @data(
+        ("II", 1),
+        ("XX", 1),
+        ("YY", 0),
+        ("ZZ", 0),
+        ("IX", 1),
+        ("IY", 0),
+        ("IZ", 0),
+        ("XY", 0),
+        ("XZ", 0),
+        ("YZ", 0),
+        ("-XX", -1),
+        ("iXX", 1j),
+        ("-iXX", -1j),
+    )
+    @unpack
+    def test_expval_two_qubits_plusplus(self, label, target):
+        """Test expectation_value method of two qubits in |++>"""
+        qc = QuantumCircuit(2)
+        qc.h(0)
+        qc.h(1)
+        stab = StabilizerState(qc)
+
+        op = Pauli(label)
+        expval = stab.expectation_value(op)
+        self.assertEqual(expval, target)
+
+    @data(
+        ("II", 1),
+        ("XX", 0),
+        ("YY", 0),
+        ("ZZ", 0),
+        ("IX", 0),
+        ("IY", 0),
+        ("IZ", -1),
+        ("XY", 0),
+        ("XZ", -1),
+        ("YZ", 0),
+    )
+    @unpack
+    def test_expval_two_qubits_plus1(self, label, target):
+        """Test expectation_value method of two qubits in |+1>"""
+        qc = QuantumCircuit(2)
+        qc.x(0)
+        qc.h(1)
+        stab = StabilizerState(qc)
+
+        op = Pauli(label)
+        expval = stab.expectation_value(op)
+        self.assertEqual(expval, target)
+
+    @data(
+        ("II", 1),
+        ("XX", 1),
+        ("YY", -1),
+        ("ZZ", 1),
+        ("IX", 0),
+        ("IY", 0),
+        ("IZ", 0),
+        ("XY", 0),
+        ("XZ", 0),
+        ("YZ", 0),
+        ("-YY", 1),
+        ("iYY", -1j),
+        ("-iYY", 1j),
+    )
+    @unpack
+    def test_expval_two_qubits_bell_phi_plus(self, label, target):
+        """Test expectation_value method of two qubits in bell phi plus"""
+        qc = QuantumCircuit(2)
+        qc.h(0)
+        qc.cx(0, 1)
+        stab = StabilizerState(qc)
+
+        op = Pauli(label)
+        expval = stab.expectation_value(op)
+        self.assertEqual(expval, target)
+
+    @data(
+        ("II", 1),
+        ("XX", 1),
+        ("YY", 1),
+        ("ZZ", -1),
+        ("IX", 0),
+        ("IY", 0),
+        ("IZ", 0),
+        ("XY", 0),
+        ("XZ", 0),
+        ("YZ", 0),
+        ("-XX", -1),
+        ("-YY", -1),
+        ("iXX", 1j),
+        ("iYY", 1j),
+        ("-iXX", -1j),
+        ("-iYY", -1j),
+    )
+    @unpack
+    def test_expval_two_qubits_bell_phi_minus(self, label, target):
+        """Test expectation_value method of two qubits in bell phi minus"""
+
+        qc = QuantumCircuit(2)
+        qc.h(0)
+        qc.x(1)
+        qc.cx(0, 1)
+        stab = StabilizerState(qc)
+
+        op = Pauli(label)
+        expval = stab.expectation_value(op)
+        self.assertEqual(expval, target)
+
+    @data(
+        ("II", 1),
+        ("XX", 1),
+        ("YY", 1),
+        ("ZZ", -1),
+        ("IX", 0),
+        ("IY", 0),
+        ("IZ", 0),
+        ("XY", 0),
+        ("XZ", 0),
+        ("YZ", 0),
+        ("-XX", -1),
+        ("-YY", -1),
+        ("iXX", 1j),
+        ("iYY", 1j),
+        ("-iXX", -1j),
+        ("-iYY", -1j),
+    )
+    @unpack
+    def test_expval_two_qubits_bell_sdg_h(self, label, target):
+        """Test expectation_value method of two qubits in bell followed by sdg and h"""
+        qc = QuantumCircuit(2)
+        qc.h(0)
+        qc.cx(0, 1)
+        qc.sdg(0)
+        qc.sdg(1)
+        qc.h(0)
+        qc.h(1)
+        stab = StabilizerState(qc)
+
+        op = Pauli(label)
+        expval = stab.expectation_value(op)
+        self.assertEqual(expval, target)
+
+    @combine(num_qubits=[2, 3, 4, 5])
+    def test_expval_random(self, num_qubits):
+        """Test expectation_value method of random Cliffords"""
+
+        for _ in range(self.samples):
+            cliff = random_clifford(num_qubits, seed=self.rng)
+            op = random_pauli(num_qubits, group_phase=True, seed=self.rng)
+            qc = cliff.to_circuit()
+            stab = StabilizerState(cliff)
+            exp_val = stab.expectation_value(op)
+            target = Statevector(qc).expectation_value(op)
+            self.assertAlmostEqual(exp_val, target)
+
+    @combine(num_qubits=[2, 3, 4, 5])
+    def test_expval_random_subsystem(self, num_qubits):
+        """Test expectation_value method of random Cliffords and a subsystem"""
+
+        for _ in range(self.samples):
+            cliff = random_clifford(num_qubits, seed=self.rng)
+            op = random_pauli(2, group_phase=True, seed=self.rng)
+            qargs = np.random.choice(num_qubits, size=2, replace=False)
+            qc = cliff.to_circuit()
+            stab = StabilizerState(cliff)
+            exp_val = stab.expectation_value(op, qargs)
+            target = Statevector(qc).expectation_value(op, qargs)
+            self.assertAlmostEqual(exp_val, target)
 
 
 if __name__ == "__main__":

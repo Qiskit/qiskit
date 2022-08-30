@@ -95,7 +95,7 @@ class BasicAerProvider(ProviderV1):
         of an optional dependency or on the existence of a binary).
 
         Returns:
-            dict[str:BaseBackend]: a dict of Basic Aer backend instances for
+            dict[str:Backend]: a dict of Basic Aer backend instances for
                 the backends that could be instantiated, keyed by backend name.
         """
         ret = OrderedDict()
@@ -112,7 +112,7 @@ class BasicAerProvider(ProviderV1):
         Args:
             backend_cls (class): backend class.
         Returns:
-            BaseBackend: a backend instance.
+            Backend: a backend instance.
         Raises:
             QiskitError: if the backend could not be instantiated.
         """

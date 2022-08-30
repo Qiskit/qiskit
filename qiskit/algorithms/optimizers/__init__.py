@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2018, 2020.
+# (C) Copyright IBM 2018, 2022.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -37,6 +37,26 @@ Optimizer Base Class
    OptimizerResult
    OptimizerSupportLevel
    Optimizer
+   Minimizer
+
+Steppable Optimizer Base Class
+==============================
+
+.. autosummary::
+   :toctree: ../stubs/
+
+   optimizer_utils
+
+.. autosummary::
+   :toctree: ../stubs/
+   :nosignatures:
+
+   SteppableOptimizer
+   AskData
+   TellData
+   OptimizerState
+
+
 
 Local Optimizers
 ================
@@ -52,6 +72,7 @@ Local Optimizers
    L_BFGS_B
    GSLS
    GradientDescent
+   GradientDescentState
    NELDER_MEAD
    NFT
    P_BFGS
@@ -61,6 +82,7 @@ Local Optimizers
    QNSPSA
    TNC
    SciPyOptimizer
+   UMDA
 
 Qiskit also provides the following optimizers, which are built-out using the optimizers from
 the `scikit-quant` package. The `scikit-quant` package is not installed by default but must be
@@ -108,7 +130,7 @@ from .bobyqa import BOBYQA
 from .cg import CG
 from .cobyla import COBYLA
 from .gsls import GSLS
-from .gradient_descent import GradientDescent
+from .gradient_descent import GradientDescent, GradientDescentState
 from .imfil import IMFIL
 from .l_bfgs_b import L_BFGS_B
 from .nelder_mead import NELDER_MEAD
@@ -118,7 +140,8 @@ from .nlopts.direct_l import DIRECT_L
 from .nlopts.direct_l_rand import DIRECT_L_RAND
 from .nlopts.esch import ESCH
 from .nlopts.isres import ISRES
-from .optimizer import Optimizer, OptimizerResult, OptimizerSupportLevel
+from .steppable_optimizer import SteppableOptimizer, AskData, TellData, OptimizerState
+from .optimizer import Minimizer, Optimizer, OptimizerResult, OptimizerSupportLevel
 from .p_bfgs import P_BFGS
 from .powell import POWELL
 from .qnspsa import QNSPSA
@@ -127,16 +150,24 @@ from .slsqp import SLSQP
 from .snobfit import SNOBFIT
 from .spsa import SPSA
 from .tnc import TNC
+from .umda import UMDA
 
 __all__ = [
     "Optimizer",
     "OptimizerSupportLevel",
+    "SteppableOptimizer",
+    "AskData",
+    "TellData",
+    "OptimizerState",
+    "OptimizerResult",
+    "Minimizer",
     "ADAM",
     "AQGD",
     "CG",
     "COBYLA",
     "GSLS",
     "GradientDescent",
+    "GradientDescentState",
     "L_BFGS_B",
     "NELDER_MEAD",
     "NFT",
@@ -155,4 +186,5 @@ __all__ = [
     "SNOBFIT",
     "BOBYQA",
     "IMFIL",
+    "UMDA",
 ]
