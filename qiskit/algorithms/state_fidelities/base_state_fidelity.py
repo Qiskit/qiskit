@@ -206,6 +206,9 @@ class BaseStateFidelity(ABC):
             else:
                 for (val_1, val_2) in zip(values_1, values_2):
                     values.append(val_1 + val_2)
+        else:
+            # ensure 2d list even if it is empty
+            values = [values]
 
         return values
 

@@ -106,10 +106,7 @@ class ComputeUncompute(BaseStateFidelity):
         run_opts = copy(self._default_run_options)
         run_opts.update(**run_options)
 
-        if len(values) > 0:
-            job = self._sampler.run(circuits=circuits, parameter_values=values, **run_opts)
-        else:
-            job = self._sampler.run(circuits=circuits, **run_opts)
+        job = self._sampler.run(circuits=circuits, parameter_values=values, **run_opts)
 
         result = job.result()
 
