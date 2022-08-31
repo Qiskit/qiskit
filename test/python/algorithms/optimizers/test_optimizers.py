@@ -38,6 +38,7 @@ from qiskit.algorithms.optimizers import (
     P_BFGS,
     POWELL,
     SLSQP,
+    SNOBFIT,
     SPSA,
     QNSPSA,
     TNC,
@@ -192,6 +193,14 @@ class TestOptimizers(QiskitAlgorithmsTestCase):
             self.run_optimizer(optimizer, max_nfev=50000, bounds=bounds)
         except MissingOptionalLibraryError as ex:
             self.skipTest(str(ex))
+
+    @data((None,), ([(-6, 6)] * 4 + [(None, None)],))
+    @unpack
+    def test_snobfit(self, bounds):
+        """snobfit test"""
+        optimizer = SNOBFIT()
+        with self.assertRaises(ValueError):
+            self.run_optimizer(optimizer, max_nfev=10000, bounds=bounds)
 
 
 @ddt
