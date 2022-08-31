@@ -36,10 +36,11 @@ class Counts(dict):
             data (dict): The dictionary input for the counts. Where the keys
                 represent a measured classical value and the value is an
                 integer the number of shots with that result.
-                The keys can be one of several formats:
+                All keys must be of the same format. This format must be one of the following.
 
                      * A hexadecimal string of the form ``"0x4a"``
-                     * A bit string prefixed with ``0b`` for example ``'0b1011'``
+                     * A bit string prefixed with ``0b``, for example ``'0b1011'``
+                     * A bit string prefixed with no prefix, for example ``'1011'``
                      * A bit string formatted across register and memory slots.
                        For example, ``'00 10'``.
                      * A dit string, for example ``'02'``. Note for objects created
@@ -80,9 +81,13 @@ class Counts(dict):
                     self.hex_raw = {hex(key): value for key, value in self.int_raw.items()}
                 else:
                     if not creg_sizes and not memory_slots:
+                        # bit strings with no leading 0b or dit strings
                         self.hex_raw = None
                         self.int_raw = None
-                        bin_data = data
+                        if all(isinstance(k, str) for k in data):
+                            bin_data = data
+                        else:
+                            raise ValueError("All keys must be of the same type")
                     else:
                         hex_dict = {}
                         int_dict = {}
