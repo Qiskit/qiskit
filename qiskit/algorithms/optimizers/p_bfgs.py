@@ -71,7 +71,7 @@ class P_BFGS(SciPyOptimizer):  # pylint: disable=invalid-name
             max_processes: maximum number of processes allowed, has a min. value of 1 if not None.
             options: A dictionary of solver options.
             max_evals_grouped: Max number of default gradient evaluations performed simultaneously.
-            callback: A callback function passed parrameters in each iteration step.
+            callback: A callback function passed parameters in each iteration step.
             kwargs: additional kwargs for scipy.optimize.minimize.
         """
         if max_processes:

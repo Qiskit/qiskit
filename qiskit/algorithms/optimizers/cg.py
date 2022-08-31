@@ -57,7 +57,7 @@ class CG(SciPyOptimizer):
             eps: If jac is approximated, use this value for the step size.
             options: A dictionary of solver options.
             max_evals_grouped: Max number of default gradient evaluations performed simultaneously.
-            callback: A callback function passed parrameters in each iteration step.
+            callback: A callback function passed parameters in each iteration step.
             kwargs: additional kwargs for scipy.optimize.minimize.
         """
         if options is None:

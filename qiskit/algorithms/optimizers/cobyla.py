@@ -52,7 +52,7 @@ class COBYLA(SciPyOptimizer):
             tol: Final accuracy in the optimization (not precisely guaranteed).
                  This is a lower bound on the size of the trust region.
             options: A dictionary of solver options.
-            callback: A callback function passed parrameters in each iteration step.
+            callback: A callback function passed parameters in each iteration step.
             kwargs: additional kwargs for scipy.optimize.minimize.
         """
         if options is None:

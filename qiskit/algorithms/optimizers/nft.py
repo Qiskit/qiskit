@@ -53,7 +53,7 @@ class NFT(SciPyOptimizer):
             reset_interval: The minimum estimates directly once
                             in ``reset_interval`` times.
             options: A dictionary of solver options.
-            callback: A callback function passed parrameters in each iteration step.
+            callback: A callback function passed parameters in each iteration step.
             kwargs: additional kwargs for scipy.optimize.minimize.
 
         Notes:
