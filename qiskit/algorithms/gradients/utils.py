@@ -21,7 +21,6 @@ from __future__ import annotations
 from collections import defaultdict
 from copy import deepcopy
 from dataclasses import dataclass
-from typing import Dict, List
 
 import numpy as np
 
@@ -67,9 +66,9 @@ class ParameterShiftGradientCircuit:
 
     circuit: QuantumCircuit
     gradient_circuit: QuantumCircuit
-    gradient_parameter_map: Dict[Parameter, Parameter]
-    gradient_virtual_parameter_map: Dict[Parameter, Parameter]
-    coeff_map: Dict[Parameter, float | ParameterExpression]
+    gradient_parameter_map: dict[Parameter, Parameter]
+    gradient_virtual_parameter_map: dict[Parameter, Parameter]
+    coeff_map: dict[Parameter, float | ParameterExpression]
 
 
 def make_param_shift_gradient_circuit_data(
@@ -177,7 +176,7 @@ def make_param_shift_gradient_circuit_data(
 
 def make_param_shift_base_parameter_values(
     gradient_circuit_data: ParameterShiftGradientCircuit,
-) -> List[np.ndarray]:
+) -> list[np.ndarray]:
     """Makes base parameter values for the parameter shift method. Each base parameter value will
         be added to the given parameter values in later calculations.
 
@@ -293,7 +292,7 @@ class LinearCombGradientCircuit:
 
 def make_lin_comb_gradient_circuit(
     circuit: QuantumCircuit, add_measurement: bool = False
-) -> Dict[Parameter, List[LinearCombGradientCircuit]]:
+) -> dict[Parameter, list[LinearCombGradientCircuit]]:
     """Makes gradient circuits for the linear combination of unitaries method.
 
     Args:

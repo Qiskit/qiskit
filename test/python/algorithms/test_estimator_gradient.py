@@ -261,7 +261,7 @@ class TestEstimatorGradient(QiskitTestCase):
             with self.assertRaises(ValueError):
                 _ = grad(Sampler(), epsilon=1e-6)
             with self.assertRaises(ValueError):
-                _ = grad(estimator, epsilon='1e-6')
+                _ = grad(estimator, epsilon="1e-6")
         else:
             gradient = grad(estimator)
             with self.assertRaises(ValueError):

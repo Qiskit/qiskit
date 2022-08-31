@@ -45,9 +45,7 @@ class FiniteDiffEstimatorGradient(BaseEstimatorGradient):
             ValueError: If `epsilon` is not float.
         """
         if not isinstance(epsilon, float):
-            raise ValueError(
-                f"epsilon must be a float, but got {type(epsilon)} instead."
-            )
+            raise ValueError(f"epsilon must be a float, but got {type(epsilon)} instead.")
         self._epsilon = epsilon
         self._base_parameter_values_dict = {}
         super().__init__(estimator, **run_options)

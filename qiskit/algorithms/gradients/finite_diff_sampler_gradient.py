@@ -46,9 +46,7 @@ class FiniteDiffSamplerGradient(BaseSamplerGradient):
             ValueError: If `epsilon` is not float.
         """
         if not isinstance(epsilon, float):
-            raise ValueError(
-                f"epsilon must be a float, but got {type(epsilon)} instead."
-            )
+            raise ValueError(f"epsilon must be a float, but got {type(epsilon)} instead.")
         self._epsilon = epsilon
         super().__init__(sampler, **run_options)
 
