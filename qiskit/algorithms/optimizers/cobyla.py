@@ -14,7 +14,7 @@
 
 from typing import Optional
 
-from .optimizer import OptimizerCallback
+from .optimizer import OptimizerCallback, OptimizerSupportLevel
 from .scipy_optimizer import SciPyOptimizer
 
 
@@ -31,6 +31,7 @@ class COBYLA(SciPyOptimizer):
     """
 
     _OPTIONS = ["maxiter", "disp", "rhobeg"]
+    _callback_suppoert_level = OptimizerSupportLevel.supported
 
     # pylint: disable=unused-argument
     def __init__(

@@ -64,6 +64,7 @@ class ADAM(Optimizer):
         "amsgrad",
         "snapshot_dir",
     ]
+    _callback_suppoert_level = OptimizerSupportLevel.supported
 
     def __init__(
         self,
@@ -265,6 +266,8 @@ class ADAM(Optimizer):
                 self.save_params(self._snapshot_dir)
 
             if self.callback is not None:
+                # pylint: disable=not-callable
+                # This is a bug of pylint.
                 self.callback(params_new)
 
             # check termination

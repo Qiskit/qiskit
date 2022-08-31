@@ -16,7 +16,7 @@ from typing import Optional
 
 import numpy as np
 
-from .optimizer import OptimizerCallback
+from .optimizer import OptimizerCallback, OptimizerSupportLevel
 from .scipy_optimizer import SciPyOptimizer
 
 
@@ -45,6 +45,7 @@ class L_BFGS_B(SciPyOptimizer):  # pylint: disable=invalid-name
     """
 
     _OPTIONS = ["maxfun", "maxiter", "ftol", "iprint", "eps"]
+    _callback_suppoert_level = OptimizerSupportLevel.supported
 
     # pylint: disable=unused-argument
     def __init__(

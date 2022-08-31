@@ -15,22 +15,21 @@
 This implementation allows both, standard first-order as well as second-order SPSA.
 """
 
-from typing import Iterator, Optional, Union, Callable, Tuple, Dict, List, Any
 import logging
 import warnings
-from time import time
-
 from collections import deque
-import scipy
+from time import time
+from typing import Any, Callable, Dict, Iterator, List, Optional, Tuple, Union
+
 import numpy as np
+import scipy
 
 from qiskit.utils import algorithm_globals
 from qiskit.utils.deprecation import deprecate_function
 
-from .optimizer import Optimizer, OptimizerSupportLevel, OptimizerResult, POINT
+from .optimizer import POINT, Optimizer, OptimizerCallback, OptimizerResult, OptimizerSupportLevel
 
 # number of function evaluations, parameters, loss, stepsize, accepted
-CALLBACK = Callable[[int, np.ndarray, float, float, bool], None]
 TERMINATIONCHECKER = Callable[[int, np.ndarray, float, float, bool], bool]
 
 logger = logging.getLogger(__name__)
@@ -159,6 +158,8 @@ class SPSA(Optimizer):
 
     """
 
+    _callback_suppoert_level = OptimizerSupportLevel.supported
+
     def __init__(
         self,
         maxiter: int = 100,
@@ -175,7 +176,7 @@ class SPSA(Optimizer):
         hessian_delay: int = 0,
         lse_solver: Optional[Callable[[np.ndarray, np.ndarray], np.ndarray]] = None,
         initial_hessian: Optional[np.ndarray] = None,
-        callback: Optional[CALLBACK] = None,
+        callback: Optional[OptimizerCallback] = None,
         termination_checker: Optional[TERMINATIONCHECKER] = None,
     ) -> None:
         r"""
@@ -240,12 +241,11 @@ class SPSA(Optimizer):
 
 
         """
-        super().__init__()
+        super().__init__(callback)
 
         # general optimizer arguments
         self.maxiter = maxiter
         self.trust_region = trust_region
-        self.callback = callback
         self.termination_checker = termination_checker
 
         # if learning rate and perturbation are arrays, check they are sufficiently long
@@ -275,7 +275,7 @@ class SPSA(Optimizer):
         self.initial_hessian = initial_hessian
 
         # runtime arguments
-        self._nfev = None  # the number of function evaluations
+        self._nfev: Optional[int] = None  # the number of function evaluations
         self._smoothed_hessian = None  # smoothed average of the Hessians
 
     @staticmethod
@@ -573,6 +573,8 @@ class SPSA(Optimizer):
 
                 if fx + self.allowed_increase <= fx_next:  # accept only if loss improved
                     if self.callback is not None:
+                        # pylint: disable=not-callable
+                        # This is a bug of pylint.
                         self.callback(
                             self._nfev,  # number of function evals
                             x_next,  # next parameters
@@ -600,6 +602,8 @@ class SPSA(Optimizer):
                     self._nfev += 1
                     fx_next = fun(x_next)
 
+                # pylint: disable=not-callable
+                # This is a bug of pylint.
                 self.callback(
                     self._nfev,  # number of function evals
                     x_next,  # next parameters

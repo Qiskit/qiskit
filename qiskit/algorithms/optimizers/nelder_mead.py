@@ -14,7 +14,7 @@
 
 from typing import Optional
 
-from .optimizer import OptimizerCallback
+from .optimizer import OptimizerCallback, OptimizerSupportLevel
 from .scipy_optimizer import SciPyOptimizer
 
 
@@ -40,6 +40,7 @@ class NELDER_MEAD(SciPyOptimizer):  # pylint: disable=invalid-name
     """
 
     _OPTIONS = ["maxiter", "maxfev", "disp", "xatol", "adaptive"]
+    _callback_suppoert_level = OptimizerSupportLevel.supported
 
     # pylint: disable=unused-argument
     def __init__(

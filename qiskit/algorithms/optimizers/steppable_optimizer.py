@@ -12,10 +12,11 @@
 
 """SteppableOptimizer interface"""
 
-from abc import abstractmethod, ABC
+from abc import ABC, abstractmethod
 from dataclasses import dataclass
-from typing import Union, Callable, Optional, Tuple, List
-from .optimizer import Optimizer, POINT, OptimizerResult
+from typing import Callable, List, Optional, Tuple, Union
+
+from .optimizer import POINT, Optimizer, OptimizerCallback, OptimizerResult
 
 
 @dataclass
@@ -151,12 +152,13 @@ class SteppableOptimizer(Optimizer):
     def __init__(
         self,
         maxiter: int = 100,
+        callback: Optional[OptimizerCallback] = None,
     ):
         """
         Args:
             maxiter: Number of steps in the optimization process before ending the loop.
         """
-        super().__init__()
+        super().__init__(callback)
         self._state: Optional[OptimizerState] = None
         self.maxiter = maxiter
 

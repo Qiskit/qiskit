@@ -17,7 +17,7 @@ from typing import Optional
 import numpy as np
 from scipy.optimize import OptimizeResult
 
-from .optimizer import OptimizerCallback
+from .optimizer import OptimizerCallback, OptimizerSupportLevel
 from .scipy_optimizer import SciPyOptimizer
 
 
@@ -29,6 +29,7 @@ class NFT(SciPyOptimizer):
     """
 
     _OPTIONS = ["maxiter", "maxfev", "disp", "reset_interval"]
+    _callback_suppoert_level = OptimizerSupportLevel.supported
 
     # pylint: disable=unused-argument
     def __init__(

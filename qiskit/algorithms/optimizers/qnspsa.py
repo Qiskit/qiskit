@@ -12,15 +12,17 @@
 
 """The QN-SPSA optimizer."""
 
-from typing import Any, Iterator, Optional, Union, Callable, Dict
+from typing import Any, Callable, Dict, Iterator, Optional, Union
 
 import numpy as np
-from qiskit.providers import Backend
+
 from qiskit.circuit import ParameterVector, QuantumCircuit
-from qiskit.opflow import StateFn, CircuitSampler, ExpectationBase
+from qiskit.opflow import CircuitSampler, ExpectationBase, StateFn
+from qiskit.providers import Backend
 from qiskit.utils import QuantumInstance
 
-from .spsa import SPSA, CALLBACK, TERMINATIONCHECKER, _batch_evaluate
+from .optimizer import OptimizerCallback
+from .spsa import SPSA, TERMINATIONCHECKER, _batch_evaluate
 
 # the function to compute the fidelity
 FIDELITY = Callable[[np.ndarray, np.ndarray], float]
@@ -97,7 +99,7 @@ class QNSPSA(SPSA):
         hessian_delay: int = 0,
         lse_solver: Optional[Callable[[np.ndarray, np.ndarray], np.ndarray]] = None,
         initial_hessian: Optional[np.ndarray] = None,
-        callback: Optional[CALLBACK] = None,
+        callback: Optional[OptimizerCallback] = None,
         termination_checker: Optional[TERMINATIONCHECKER] = None,
     ) -> None:
         r"""

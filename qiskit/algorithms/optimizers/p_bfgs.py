@@ -23,7 +23,7 @@ import numpy as np
 from qiskit.utils import algorithm_globals
 from qiskit.utils.validation import validate_min
 
-from .optimizer import POINT, OptimizerCallback, OptimizerResult
+from .optimizer import POINT, OptimizerCallback, OptimizerResult, OptimizerSupportLevel
 from .scipy_optimizer import SciPyOptimizer
 
 logger = logging.getLogger(__name__)
@@ -44,6 +44,7 @@ class P_BFGS(SciPyOptimizer):  # pylint: disable=invalid-name
     """
 
     _OPTIONS = ["maxfun", "ftol", "iprint"]
+    _callback_suppoert_level = OptimizerSupportLevel.supported
 
     # pylint: disable=unused-argument
     def __init__(

@@ -13,13 +13,13 @@
 """A standard gradient descent optimizer."""
 
 from dataclasses import dataclass, field
-from typing import Dict, Any, Union, Callable, Optional, Tuple, List, Iterator
-import numpy as np
-from .optimizer import Optimizer, OptimizerSupportLevel, OptimizerResult, POINT
-from .steppable_optimizer import AskData, TellData, OptimizerState, SteppableOptimizer
-from .optimizer_utils import LearningRate
+from typing import Any, Callable, Dict, Iterator, List, Optional, Tuple, Union
 
-CALLBACK = Callable[[int, np.ndarray, float, float], None]
+import numpy as np
+
+from .optimizer import POINT, Optimizer, OptimizerCallback, OptimizerResult, OptimizerSupportLevel
+from .optimizer_utils import LearningRate
+from .steppable_optimizer import AskData, OptimizerState, SteppableOptimizer, TellData
 
 
 @dataclass
@@ -172,12 +172,14 @@ class GradientDescent(SteppableOptimizer):
 
     """
 
+    _callback_suppoert_level = OptimizerSupportLevel.supported
+
     def __init__(
         self,
         maxiter: int = 100,
         learning_rate: Union[float, List[float], np.ndarray, Callable[[], Iterator]] = 0.01,
         tol: float = 1e-7,
-        callback: Optional[CALLBACK] = None,
+        callback: Optional[OptimizerCallback] = None,
         perturbation: Optional[float] = None,
     ) -> None:
         """
@@ -194,8 +196,7 @@ class GradientDescent(SteppableOptimizer):
         Raises:
             ValueError: If ``learning_rate`` is an array and its lenght is less than ``maxiter``.
         """
-        super().__init__(maxiter=maxiter)
-        self.callback = callback
+        super().__init__(maxiter=maxiter, callback=callback)
         self._state: Optional[GradientDescentState] = None
         self._perturbation = perturbation
         self._tol = tol
@@ -252,6 +253,8 @@ class GradientDescent(SteppableOptimizer):
         norm of current gradient.
         """
         if self.callback is not None:
+            # pylint: disable=not-callable
+            # This is a bug of pylint.
             self.callback(
                 self.state.nfev,
                 self.state.x,

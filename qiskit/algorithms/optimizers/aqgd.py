@@ -20,13 +20,7 @@ import numpy as np
 from qiskit.utils.validation import validate_range_exclusive_max
 
 from ..exceptions import AlgorithmError
-from .optimizer import (
-    POINT,
-    Optimizer,
-    OptimizerCallback,
-    OptimizerResult,
-    OptimizerSupportLevel,
-)
+from .optimizer import POINT, Optimizer, OptimizerCallback, OptimizerResult, OptimizerSupportLevel
 
 logger = logging.getLogger(__name__)
 
@@ -53,6 +47,7 @@ class AQGD(Optimizer):
     """
 
     _OPTIONS = ["maxiter", "eta", "tol", "disp", "momentum", "param_tol", "averaging"]
+    _callback_suppoert_level = OptimizerSupportLevel.supported
 
     def __init__(
         self,
@@ -326,6 +321,8 @@ class AQGD(Optimizer):
             logger.info("Epoch: %4d | Stepsize: %6.4f | Momentum: %6.4f", epoch, eta, mom_coeff)
 
             if self.callback is not None:
+                # pylint: disable=not-callable
+                # This is a bug of pylint.
                 self.callback(params)
 
             sum_max_iters = sum(self._maxiter[0 : epoch + 1])

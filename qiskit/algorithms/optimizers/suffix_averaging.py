@@ -75,29 +75,36 @@ class SuffixAveragingOptimizer(Optimizer):
         self._n_params_suffix = n_params_suffix
         self._optimizer = optimizer
 
-        self._circ_params = []
+        self._circ_params: list[POINT] = []
 
         original_callback = self._optimizer.callback
         if isinstance(self._optimizer, (SPSA, QNSPSA)):
 
-            def callback(nfev, x_next, fx_next, update_step, is_accepted):
+            def callback(
+                nfev: int,
+                x_next: POINT,
+                fx_next: float,
+                stepsize: np.floating,
+                is_accepted: bool,
+            ):
                 self._circ_params.append(x_next)
                 if original_callback is not None:
-                    original_callback(nfev, x_next, fx_next, update_step, is_accepted)
+                    original_callback(nfev, x_next, fx_next, stepsize, is_accepted)
 
         elif isinstance(self._optimizer, GradientDescent):
 
-            def callback(nfevs, x_next, fx_next, stepsize):
-                self._circ_params.append(x_next)
+            def callback(nfev: int, x: POINT, fun: float, stepsize: float):
+                self._circ_params.append(x)
                 if original_callback is not None:
-                    original_callback(nfevs, x_next, fx_next, stepsize)
+                    original_callback(nfev, x, fun, stepsize)
 
         else:
 
             def callback(x):
                 self._circ_params.append(x)
                 if original_callback is not None:
-                    original_callback(x)
+                    return original_callback(x)
+                return None
 
         self._optimizer.callback = callback
         super().__init__()
@@ -106,10 +113,10 @@ class SuffixAveragingOptimizer(Optimizer):
         """Return support level dictionary"""
         return self._optimizer.get_support_level()
 
-    def _return_suffix_average(self) -> List[float]:
+    def _return_suffix_average(self) -> np.ndarray:
 
         if isinstance(self._optimizer, NFT):
-            n_params = int(len(self._circ_params[0]))
+            n_params = 1 if isinstance(self._circ_params[0], float) else len(self._circ_params[0])
             n_iterates = int(len(self._circ_params))
             n_repitition = int(len(self._circ_params) / n_params)
             if n_repitition < self._n_params_suffix:
@@ -130,7 +137,7 @@ class SuffixAveragingOptimizer(Optimizer):
 
             if n_iterates < self._n_params_suffix:
                 warnings.warn("The total number of iterations is less than n_params_suffix.")
-                return np.average(self._circ_params, axis=0)
+                return np.average(np.asarray(self._circ_params), axis=0)
 
             averaged_param = np.zeros_like(self._circ_params[0])
             for j in range(self._n_params_suffix):

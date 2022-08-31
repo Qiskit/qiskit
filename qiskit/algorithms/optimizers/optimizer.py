@@ -18,11 +18,12 @@ import logging
 import sys
 from abc import ABC, abstractmethod
 from enum import IntEnum
-from typing import Any, Callable, Dict, List, Optional, Tuple, Union
+from typing import Any, Callable, Dict, List, Optional, Tuple, Union, overload
 
 import numpy as np
 from scipy.optimize import OptimizeResult
 
+from qiskit import QiskitError
 from qiskit.algorithms.algorithm_result import AlgorithmResult
 
 if sys.version_info >= (3, 8):
@@ -167,15 +168,51 @@ class OptimizerSupportLevel(IntEnum):
 
 
 class OptimizerCallback(Protocol):
-    """Callback protocol for optimizer."""
+    """Callback protocol for optimizer.
+
+    Argument xk is the current parameter vector.
+    For more details, see the description of callback parameter in `SciPy's optimize module
+    <https://docs.scipy.org/doc/scipy/reference/generated/scipy.optimize.minimize.html>`__.
+    """
 
     # pylint: disable=invalid-name
+    @overload
     def __call__(self, xk):
+        ...
+
+    @overload
+    def __call__(self, xk, state: OptimizeResult) -> bool:
+        ...
+
+    @overload
+    def __call__(
+        self,
+        nfev: int,
+        x: POINT,
+        fun: float,
+        stepsize: float,
+    ):
+        ...
+
+    @overload
+    def __call__(
+        self,
+        nfev: int,
+        x_next: POINT,
+        fx_next: float,
+        stepsize: np.floating,
+        is_accepted: bool,
+    ):
+        ...
+
+    def __call__(self, xk, state=None):
         ...
 
 
 class Optimizer(ABC):
     """Base class for optimization algorithm."""
+
+    _callback_suppoert_level = OptimizerSupportLevel.not_supported
 
     @abstractmethod
     def __init__(self, callback: Optional[OptimizerCallback] = None):
@@ -189,7 +226,7 @@ class Optimizer(ABC):
         self._initial_point_support_level = self.get_support_level()["initial_point"]
         self._options = {}
         self._max_evals_grouped = 1
-        self.callback = callback
+        self._callback = callback
 
     @abstractmethod
     def get_support_level(self):
@@ -308,6 +345,19 @@ class Optimizer(ABC):
 
         """
         raise NotImplementedError("The settings method is not implemented per default.")
+
+    @property
+    def callback(self) -> Optional[OptimizerCallback]:
+        """A callback function passed information in each iteration step."""
+        if self._callback_suppoert_level == OptimizerSupportLevel.not_supported:
+            raise QiskitError(f"{self.__class__.__name__} does not support callback.")
+        return self._callback
+
+    @callback.setter
+    def callback(self, value: OptimizerCallback):
+        if self._callback_suppoert_level == OptimizerSupportLevel.not_supported:
+            raise QiskitError(f"{self.__class__.__name__} does not support callback.")
+        self._callback = value
 
     @abstractmethod
     def minimize(

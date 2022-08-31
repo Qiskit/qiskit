@@ -54,6 +54,7 @@ class GSLS(Optimizer):
         "min_gradient_norm",
         "max_failed_rejection_sampling",
     ]
+    _callback_suppoert_level = OptimizerSupportLevel.supported
 
     # pylint: disable=unused-argument
     def __init__(
@@ -247,6 +248,8 @@ class GSLS(Optimizer):
             iter_count += 1
 
             if self.callback is not None:
+                # pylint: disable=not-callable
+                # This is a bug of pylint.
                 self.callback(x)
 
             # Check termination criterion

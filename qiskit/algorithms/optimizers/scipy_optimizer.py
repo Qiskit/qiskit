@@ -49,6 +49,7 @@ class SciPyOptimizer(Optimizer):
         "trust-exact",
         "trust-constr",
     }
+    _callback_suppoert_level = OptimizerSupportLevel.supported
 
     def __init__(
         self,
