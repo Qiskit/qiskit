@@ -160,6 +160,7 @@ from .snobfit import SNOBFIT
 from .spsa import SPSA
 from .tnc import TNC
 from .umda import UMDA
+from .suffix_averaging import SuffixAveragingOptimizer
 
 __all__ = [
     "Optimizer",
@@ -196,4 +197,5 @@ __all__ = [
     "BOBYQA",
     "IMFIL",
     "UMDA",
+    "SuffixAveragingOptimizer",
 ]

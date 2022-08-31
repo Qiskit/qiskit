@@ -21,7 +21,6 @@ from enum import IntEnum
 from typing import Any, Callable, Dict, List, Optional, Tuple, Union
 
 import numpy as np
-import scipy
 from scipy.optimize import OptimizeResult
 
 from qiskit.algorithms.algorithm_result import AlgorithmResult
