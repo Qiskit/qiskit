@@ -17,9 +17,11 @@ from typing import Callable, List, Optional, Tuple
 
 import numpy as np
 
-from qiskit.algorithms.optimizers import NFT, QNSPSA, SPSA, GradientDescent
-
+from .gradient_descent import GradientDescent
+from .nft import NFT
 from .optimizer import POINT, Optimizer, OptimizerResult
+from .qnspsa import QNSPSA
+from .spsa import SPSA
 
 
 class SuffixAveragingOptimizer(Optimizer):
