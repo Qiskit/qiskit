@@ -55,7 +55,8 @@ class BaseStateFidelity(ABC):
             values: parameter values corresponding to the circuits to be checked
 
         Returns:
-            Returns a 2D list if values match, ``None`` if no parameters are passed
+            Returns a 2D value list if values match, and an empty 2D list
+            if no parameters are passed.
 
         Raises:
             ValueError: if the number of parameter values doesn't match the number of
@@ -73,7 +74,7 @@ class BaseStateFidelity(ABC):
                         f"`values` cannot be `None` because circuit <{circuit.name}> has "
                         f"{circuit.num_parameters} free parameters."
                     )
-            return None
+            return [[]]
         else:
             # ensure 2d list
             if not isinstance(values, list):
@@ -193,22 +194,17 @@ class BaseStateFidelity(ABC):
              List of parameter values for fidelity circuit.
 
         """
-
         values_1 = self._preprocess_values(circuits_1, values_1)
         values_2 = self._preprocess_values(circuits_2, values_2)
 
         values = []
-        if values_2 is not None or values_1 is not None:
-            if values_2 is None:
-                values = values_1
-            elif values_1 is None:
-                values = values_2
-            else:
-                for (val_1, val_2) in zip(values_1, values_2):
-                    values.append(val_1 + val_2)
+        if len(values_2[0]) == 0:
+            values = values_1
+        elif len(values_1[0]) == 0:
+            values = values_2
         else:
-            # ensure 2d list even if it is empty
-            values = [values]
+            for (val_1, val_2) in zip(values_1, values_2):
+                values.append(val_1 + val_2)
 
         return values
 
