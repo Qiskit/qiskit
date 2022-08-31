@@ -52,7 +52,10 @@ class TestEstimatorGradient(QiskitTestCase):
         qc.h(0)
         qc.p(a, 0)
         qc.h(0)
-        gradient = grad(estimator)
+        if grad is FiniteDiffEstimatorGradient:
+            gradient = grad(estimator, epsilon=1e-6)
+        else:
+            gradient = grad(estimator)
         op = SparsePauliOp.from_list([("Z", 1)])
         param_list = [[np.pi / 4], [0], [np.pi / 2]]
         correct_results = [[-1 / np.sqrt(2)], [0], [-1]]
@@ -74,7 +77,10 @@ class TestEstimatorGradient(QiskitTestCase):
         qc.h(0)
         qc.u(a, b, c, 0)
         qc.h(0)
-        gradient = grad(estimator)
+        if grad is FiniteDiffEstimatorGradient:
+            gradient = grad(estimator, epsilon=1e-6)
+        else:
+            gradient = grad(estimator)
         op = SparsePauliOp.from_list([("Z", 1)])
 
         param_list = [[np.pi / 4, 0, 0], [np.pi / 4, np.pi / 4, np.pi / 4]]
@@ -92,7 +98,10 @@ class TestEstimatorGradient(QiskitTestCase):
         estimator = Estimator()
         qc = EfficientSU2(2, reps=1)
         op = SparsePauliOp.from_list([("ZI", 1)])
-        gradient = grad(estimator)
+        if grad is FiniteDiffEstimatorGradient:
+            gradient = grad(estimator, epsilon=1e-6)
+        else:
+            gradient = grad(estimator)
         param_list = [
             [np.pi / 4 for param in qc.parameters],
             [np.pi / 2 for param in qc.parameters],
@@ -130,7 +139,10 @@ class TestEstimatorGradient(QiskitTestCase):
             for i, param in enumerate(param_list):
                 a = Parameter("a")
                 qc = QuantumCircuit(2)
-                gradient = grad(estimator)
+                if grad is FiniteDiffEstimatorGradient:
+                    gradient = grad(estimator, epsilon=1e-6)
+                else:
+                    gradient = grad(estimator)
 
                 if gate is RZZGate:
                     qc.h([0, 1])
@@ -153,7 +165,10 @@ class TestEstimatorGradient(QiskitTestCase):
         qc.u(qc.parameters[0], qc.parameters[1], qc.parameters[3], 1)
         qc.p(2 * qc.parameters[0] + 1, 0)
         qc.rxx(qc.parameters[0] + 2, 0, 1)
-        gradient = grad(estimator)
+        if grad is FiniteDiffEstimatorGradient:
+            gradient = grad(estimator, epsilon=1e-6)
+        else:
+            gradient = grad(estimator)
         param_list = [[np.pi / 4 for _ in qc.parameters], [np.pi / 2 for _ in qc.parameters]]
         correct_results = [
             [-0.7266653, -0.4905135, -0.0068606, -0.9228880],
@@ -175,7 +190,10 @@ class TestEstimatorGradient(QiskitTestCase):
         qc = QuantumCircuit(1)
         qc.rx(a, 0)
         qc.rx(b, 0)
-        gradient = grad(estimator)
+        if grad is FiniteDiffEstimatorGradient:
+            gradient = grad(estimator, epsilon=1e-6)
+        else:
+            gradient = grad(estimator)
         param_list = [[np.pi / 4, np.pi / 2]]
         correct_results = [
             [-0.70710678],
@@ -197,7 +215,10 @@ class TestEstimatorGradient(QiskitTestCase):
         qc.rx(a, 0)
         qc2 = QuantumCircuit(1)
         qc2.rx(b, 0)
-        gradient = grad(estimator)
+        if grad is FiniteDiffEstimatorGradient:
+            gradient = grad(estimator, epsilon=1e-6)
+        else:
+            gradient = grad(estimator)
         param_list = [[np.pi / 4], [np.pi / 2]]
         correct_results = [
             [-0.70710678],
@@ -235,11 +256,18 @@ class TestEstimatorGradient(QiskitTestCase):
         a = Parameter("a")
         qc = QuantumCircuit(1)
         qc.rx(a, 0)
-        gradient = grad(estimator)
+        if grad is FiniteDiffEstimatorGradient:
+            gradient = grad(estimator, epsilon=1e-6)
+            with self.assertRaises(ValueError):
+                _ = grad(Sampler(), epsilon=1e-6)
+            with self.assertRaises(ValueError):
+                _ = grad(estimator, epsilon='1e-6')
+        else:
+            gradient = grad(estimator)
+            with self.assertRaises(ValueError):
+                _ = grad(Sampler())
         param_list = [[np.pi / 4], [np.pi / 2]]
         op = SparsePauliOp.from_list([("Z", 1)])
-        with self.assertRaises(ValueError):
-            _ = grad(Sampler())
         with self.assertRaises(ValueError):
             gradient.run([qc], [op], param_list)
         with self.assertRaises(ValueError):

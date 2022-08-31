@@ -31,7 +31,7 @@ class FiniteDiffSamplerGradient(BaseSamplerGradient):
     def __init__(
         self,
         sampler: BaseSampler,
-        epsilon: float = 1e-6,
+        epsilon: float,
         **run_options,
     ):
         """
@@ -41,8 +41,14 @@ class FiniteDiffSamplerGradient(BaseSamplerGradient):
             run_options: Backend runtime options used for circuit execution. The order of priority is:
                 run_options in `run` method > gradient's default run_options > primitive's default
                 setting. Higher priority setting overrides lower priority setting.
-        """
 
+        Raises:
+            ValueError: If `epsilon` is not float.
+        """
+        if not isinstance(epsilon, float):
+            raise ValueError(
+                f"epsilon must be a float, but got {type(epsilon)} instead."
+            )
         self._epsilon = epsilon
         super().__init__(sampler, **run_options)
 

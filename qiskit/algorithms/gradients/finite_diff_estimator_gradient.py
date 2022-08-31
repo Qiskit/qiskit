@@ -32,7 +32,7 @@ class FiniteDiffEstimatorGradient(BaseEstimatorGradient):
     Compute the gradients of the expectation values by finite difference method.
     """
 
-    def __init__(self, estimator: BaseEstimator, epsilon: float = 1e-6, **run_options):
+    def __init__(self, estimator: BaseEstimator, epsilon: float, **run_options):
         """
         Args:
             estimator: The estimator used to compute the gradients.
@@ -40,7 +40,14 @@ class FiniteDiffEstimatorGradient(BaseEstimatorGradient):
             run_options: Backend runtime options used for circuit execution. The order of priority is:
                 run_options in `run` method > gradient's default run_options > primitive's default
                 setting. Higher priority setting overrides lower priority setting.
+
+        Raises:
+            ValueError: If `epsilon` is not float.
         """
+        if not isinstance(epsilon, float):
+            raise ValueError(
+                f"epsilon must be a float, but got {type(epsilon)} instead."
+            )
         self._epsilon = epsilon
         self._base_parameter_values_dict = {}
         super().__init__(estimator, **run_options)

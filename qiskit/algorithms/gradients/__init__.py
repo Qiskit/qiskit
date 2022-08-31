@@ -11,9 +11,9 @@
 # that they have been altered from the originals.
 
 """
-=====================================
+==============================================
 Gradients (:mod:`qiskit.algorithms.gradients`)
-=====================================
+==============================================
 
 .. currentmodule:: qiskit.algorithms.gradients
 
@@ -27,7 +27,7 @@ Base Classes
    BaseEstimatorGradient
 
 Estimator Gradients
-=========
+===================
 
 .. autosummary::
    :toctree: ../stubs/
@@ -38,7 +38,7 @@ Estimator Gradients
    SPSAEstimatorGradient
 
 Sampler Gradients
-=========
+=================
 
 .. autosummary::
    :toctree: ../stubs/

@@ -50,7 +50,10 @@ class TestSamplerGradient(QiskitTestCase):
         qc.p(a, 0)
         qc.h(0)
         qc.measure_all()
-        gradient = grad(sampler)
+        if grad is FiniteDiffSamplerGradient:
+            gradient = grad(sampler, epsilon=1e-6)
+        else:
+            gradient = grad(sampler)
         param_list = [[np.pi / 4], [0], [np.pi / 2]]
         correct_results = [
             [{0: -0.5 / np.sqrt(2), 1: 0.5 / np.sqrt(2)}],
@@ -75,7 +78,10 @@ class TestSamplerGradient(QiskitTestCase):
         qc.u(a, b, c, 0)
         qc.h(0)
         qc.measure_all()
-        gradient = grad(sampler)
+        if grad is FiniteDiffSamplerGradient:
+            gradient = grad(sampler, epsilon=1e-6)
+        else:
+            gradient = grad(sampler)
         param_list = [[np.pi / 4, 0, 0], [np.pi / 4, np.pi / 4, np.pi / 4]]
         correct_results = [
             [{0: -0.5 / np.sqrt(2), 1: 0.5 / np.sqrt(2)}, {0: 0, 1: 0}, {0: 0, 1: 0}],
@@ -93,7 +99,10 @@ class TestSamplerGradient(QiskitTestCase):
         sampler = Sampler()
         qc = EfficientSU2(2, reps=1)
         qc.measure_all()
-        gradient = grad(sampler)
+        if grad is FiniteDiffSamplerGradient:
+            gradient = grad(sampler, epsilon=1e-6)
+        else:
+            gradient = grad(sampler)
         param_list = [
             [np.pi / 4 for param in qc.parameters],
             [np.pi / 2 for param in qc.parameters],
@@ -203,7 +212,10 @@ class TestSamplerGradient(QiskitTestCase):
             qc = QuantumCircuit(2)
             qc.append(gate(a), [qc.qubits[0], qc.qubits[1]], [])
             qc.measure_all()
-            gradient = grad(sampler)
+            if grad is FiniteDiffSamplerGradient:
+                gradient = grad(sampler, epsilon=1e-6)
+            else:
+                gradient = grad(sampler)
             gradients = gradient.run([qc], [param]).result().gradients[0]
             for j, quasi_dist in enumerate(gradients):
                 for k in quasi_dist:
@@ -220,7 +232,10 @@ class TestSamplerGradient(QiskitTestCase):
         qc.p(2 * qc.parameters[0] + 1, 0)
         qc.rxx(qc.parameters[0] + 2, 0, 1)
         qc.measure_all()
-        gradient = grad(sampler)
+        if grad is FiniteDiffSamplerGradient:
+            gradient = grad(sampler, epsilon=1e-6)
+        else:
+            gradient = grad(sampler)
         param_list = [[np.pi / 4 for _ in qc.parameters], [np.pi / 2 for _ in qc.parameters]]
         correct_results = [
             [
@@ -293,7 +308,10 @@ class TestSamplerGradient(QiskitTestCase):
         qc.rx(a, 0)
         qc.rz(b, 0)
         qc.measure_all()
-        gradient = grad(sampler)
+        if grad is FiniteDiffSamplerGradient:
+            gradient = grad(sampler, epsilon=1e-6)
+        else:
+            gradient = grad(sampler)
         param_list = [[np.pi / 4, np.pi / 2]]
         correct_results = [
             [{0: -0.5 / np.sqrt(2), 1: 0.5 / np.sqrt(2)}],
@@ -316,7 +334,10 @@ class TestSamplerGradient(QiskitTestCase):
         qc2 = QuantumCircuit(1)
         qc2.rx(b, 0)
         qc2.measure_all()
-        gradient = grad(sampler)
+        if grad is FiniteDiffSamplerGradient:
+            gradient = grad(sampler, epsilon=1e-6)
+        else:
+            gradient = grad(sampler)
         param_list = [[np.pi / 4], [np.pi / 2]]
         correct_results = [
             [{0: -0.5 / np.sqrt(2), 1: 0.5 / np.sqrt(2)}],
@@ -357,10 +378,17 @@ class TestSamplerGradient(QiskitTestCase):
         qc = QuantumCircuit(1)
         qc.rx(a, 0)
         qc.measure_all()
-        gradient = grad(sampler)
+        if grad is FiniteDiffSamplerGradient:
+            gradient = grad(sampler, epsilon=1e-6)
+            with self.assertRaises(ValueError):
+                _ = grad(Estimator(), epsilon=1e-6)
+            with self.assertRaises(ValueError):
+                _ = grad(sampler, epsilon='1e-6')
+        else:
+            gradient = grad(sampler)
+            with self.assertRaises(ValueError):
+                _ = grad(Estimator())
         param_list = [[np.pi / 4], [np.pi / 2]]
-        with self.assertRaises(ValueError):
-            _ = grad(Estimator())
         with self.assertRaises(ValueError):
             gradient.run([qc], param_list)
         with self.assertRaises(ValueError):
