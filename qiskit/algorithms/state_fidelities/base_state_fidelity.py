@@ -101,7 +101,7 @@ class BaseStateFidelity(ABC):
             )
 
     @abstractmethod
-    def _create_fidelity_circuit(
+    def create_fidelity_circuit(
         self, circuit_1: QuantumCircuit, circuit_2: QuantumCircuit
     ) -> QuantumCircuit:
         """
@@ -161,7 +161,7 @@ class BaseStateFidelity(ABC):
                 parameters_2 = ParameterVector("y", circuit_2.num_parameters)
                 parametrized_circuit_2 = circuit_2.assign_parameters(parameters_2)
 
-                circuit = self._create_fidelity_circuit(
+                circuit = self.create_fidelity_circuit(
                     parametrized_circuit_1, parametrized_circuit_2
                 )
                 circuits.append(circuit)
@@ -240,7 +240,7 @@ class BaseStateFidelity(ABC):
         Returns:
             The result of the fidelity calculation.
         """
-        ...
+        raise NotImplementedError
 
     def run(
         self,

@@ -47,7 +47,7 @@ class ComputeUncompute(BaseStateFidelity):
         self._default_run_options = run_options
         super().__init__()
 
-    def _create_fidelity_circuit(self, circuit_1, circuit_2) -> QuantumCircuit:
+    def create_fidelity_circuit(self, circuit_1, circuit_2) -> QuantumCircuit:
         """
         Creates fidelity circuit following the compute-uncompute method.
         Args:
