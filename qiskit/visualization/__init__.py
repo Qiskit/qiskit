@@ -42,17 +42,26 @@ This section contains functions that visualize measurement outcome counts and qu
 APIs
 ----
 
+Counts Visualization
+~~~~~~~~~~~~~~~~~~~~
+
 .. autosummary::
    :toctree: ../stubs/
 
    plot_histogram
+
+State Visualization
+~~~~~~~~~~~~~~~~~~~
+
+.. autosummary::
+   :toctree: ../stubs/
+
    plot_bloch_vector
    plot_bloch_multivector
    plot_state_city
    plot_state_hinton
    plot_state_paulivec
    plot_state_qsphere
-
 
 Example Usage
 -------------
