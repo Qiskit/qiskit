@@ -330,6 +330,7 @@ class Optimizer(ABC):
         return ret
 
     @property
+    @abstractmethod
     def settings(self) -> Dict[str, Any]:
         """The optimizer settings in a dictionary format.
 

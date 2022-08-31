@@ -13,7 +13,7 @@
 """Suffix Averaging optimier"""
 
 import warnings
-from typing import Callable, List, Optional, Tuple
+from typing import Any, Callable, Dict, List, Optional, Tuple
 
 import numpy as np
 
@@ -147,6 +147,10 @@ class SuffixAveragingOptimizer(Optimizer):
             averaged_param /= self._n_params_suffix
 
         return averaged_param
+
+    @property
+    def settings(self) -> Dict[str, Any]:
+        return {"optimizer": self._optimizer, "n_params_suffix": self._n_params_suffix}
 
     def minimize(
         self,
