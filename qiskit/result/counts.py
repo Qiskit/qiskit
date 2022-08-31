@@ -40,7 +40,7 @@ class Counts(dict):
 
                      * A hexadecimal string of the form ``"0x4a"``
                      * A bit string prefixed with ``0b``, for example ``'0b1011'``
-                     * A bit string prefixed with no prefix, for example ``'1011'``
+                     * A bit string with no prefix, for example ``'1011'``
                      * A bit string formatted across register and memory slots.
                        For example, ``'00 10'``.
                      * A dit string, for example ``'02'``. Note for objects created
