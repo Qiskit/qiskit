@@ -161,7 +161,7 @@ class Clifford(BaseOperator, AdjointMixin, Operation):
                 self.tableau = tableau
 
             # Validate table is a symplectic matrix
-            if validate and not Clifford._is_symplectic(self.tableau[:, :-1]):
+            if validate and not Clifford._is_symplectic(self.symplectic_matrix):
                 raise QiskitError(
                     "Invalid Clifford. Input StabilizerTable is not a valid symplectic matrix."
                 )
@@ -224,7 +224,7 @@ class Clifford(BaseOperator, AdjointMixin, Operation):
     )
     def table(self):
         """Return StabilizerTable"""
-        return StabilizerTable(self.tableau[:, :-1], phase=self.tableau[:, -1])
+        return StabilizerTable(self.symplectic_matrix, phase=self.phase)
 
     @table.setter
     @deprecate_function(
@@ -239,8 +239,8 @@ class Clifford(BaseOperator, AdjointMixin, Operation):
         # another StabilizerTable of the same size.
         if not isinstance(value, StabilizerTable):
             value = StabilizerTable(value)
-        self.tableau[:, :-1] = value._table._array
-        self.tableau[:, -1] = value._table._phase
+        self.symplectic_matrix = value._table._array
+        self.phase = value._table._phase
 
     @property
     @deprecate_function(
@@ -289,6 +289,15 @@ class Clifford(BaseOperator, AdjointMixin, Operation):
         if not isinstance(value, StabilizerTable):
             value = StabilizerTable(value)
         self.tableau[: self.num_qubits, :-1] = value.array
+
+    @property
+    def symplectic_matrix(self):
+        """Return boolean symplectic matrix."""
+        return self.tableau[:, :-1]
+
+    @symplectic_matrix.setter
+    def symplectic_matrix(self, value):
+        self.tableau[:, :-1] = value
 
     @property
     def phase(self):
@@ -398,7 +407,7 @@ class Clifford(BaseOperator, AdjointMixin, Operation):
         # A valid Clifford is always unitary, so this function is really
         # checking that the underlying Stabilizer table array is a valid
         # Clifford array.
-        return Clifford._is_symplectic(self.tableau[:, :-1])
+        return Clifford._is_symplectic(self.symplectic_matrix)
 
     # ---------------------------------------------------------------------
     # BaseOperator Abstract Methods
@@ -472,10 +481,10 @@ class Clifford(BaseOperator, AdjointMixin, Operation):
 
         num_qubits = self.num_qubits
 
-        array1 = table1.tableau[:, :-1].astype(int)
+        array1 = table1.symplectic_matrix.astype(int)
         phase1 = table1.phase.astype(int)
 
-        array2 = table2.tableau[:, :-1].astype(int)
+        array2 = table2.symplectic_matrix.astype(int)
         phase2 = table2.phase.astype(int)
 
         # Update Pauli table
