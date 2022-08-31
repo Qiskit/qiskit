@@ -49,7 +49,7 @@ However, if you change the ``output`` argument, you can get other different rend
 
 * ``'text'``: renders the circuit with ASCII art. It's the default option.
 * ``'mpl'``: uses `matplotlib <https://matplotlib.org/>`_ to render the circuit.
-* ``'latex'``: uses :math:`\LaTeX` to render the circuit.
+* ``'latex'``: uses :math:`\LaTeX` to render the circuit. It requires a full `LaTeX <https://latex.org/forum/>`_ distribution and the package ``pdflatex``.
 * ``'latex_source'``: outputs the :math:`\LaTeX` source code that creates the ``'latex'`` rendering of the circuit.
 
 Because this optional or keyword argument is actually the first of this method, one can type ``qc.draw(option)`` instead of ``qc.draw(output=option)``.
