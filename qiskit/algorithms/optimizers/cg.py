@@ -33,7 +33,7 @@ class CG(SciPyOptimizer):
     """
 
     _OPTIONS = ["maxiter", "disp", "gtol", "eps"]
-    _callback_suppoert_level = OptimizerSupportLevel.supported
+    _callback_support_level = OptimizerSupportLevel.supported
 
     # pylint: disable=unused-argument
     def __init__(

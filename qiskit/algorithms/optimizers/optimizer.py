@@ -212,7 +212,7 @@ class OptimizerCallback(Protocol):
 class Optimizer(ABC):
     """Base class for optimization algorithm."""
 
-    _callback_suppoert_level = OptimizerSupportLevel.not_supported
+    _callback_support_level = OptimizerSupportLevel.not_supported
 
     @abstractmethod
     def __init__(self, callback: Optional[OptimizerCallback] = None):
@@ -349,13 +349,13 @@ class Optimizer(ABC):
     @property
     def callback(self) -> Optional[OptimizerCallback]:
         """A callback function passed information in each iteration step."""
-        if self._callback_suppoert_level == OptimizerSupportLevel.not_supported:
+        if self._callback_support_level == OptimizerSupportLevel.not_supported:
             raise QiskitError(f"{self.__class__.__name__} does not support callback.")
         return self._callback
 
     @callback.setter
     def callback(self, value: OptimizerCallback):
-        if self._callback_suppoert_level == OptimizerSupportLevel.not_supported:
+        if self._callback_support_level == OptimizerSupportLevel.not_supported:
             raise QiskitError(f"{self.__class__.__name__} does not support callback.")
         self._callback = value
 

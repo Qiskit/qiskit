@@ -54,7 +54,7 @@ class GSLS(Optimizer):
         "min_gradient_norm",
         "max_failed_rejection_sampling",
     ]
-    _callback_suppoert_level = OptimizerSupportLevel.supported
+    _callback_support_level = OptimizerSupportLevel.supported
 
     # pylint: disable=unused-argument
     def __init__(

@@ -172,7 +172,7 @@ class GradientDescent(SteppableOptimizer):
 
     """
 
-    _callback_suppoert_level = OptimizerSupportLevel.supported
+    _callback_support_level = OptimizerSupportLevel.supported
 
     def __init__(
         self,

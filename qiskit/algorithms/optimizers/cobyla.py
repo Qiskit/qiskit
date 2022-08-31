@@ -31,7 +31,7 @@ class COBYLA(SciPyOptimizer):
     """
 
     _OPTIONS = ["maxiter", "disp", "rhobeg"]
-    _callback_suppoert_level = OptimizerSupportLevel.supported
+    _callback_support_level = OptimizerSupportLevel.supported
 
     # pylint: disable=unused-argument
     def __init__(

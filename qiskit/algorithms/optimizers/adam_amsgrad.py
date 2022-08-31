@@ -64,7 +64,7 @@ class ADAM(Optimizer):
         "amsgrad",
         "snapshot_dir",
     ]
-    _callback_suppoert_level = OptimizerSupportLevel.supported
+    _callback_support_level = OptimizerSupportLevel.supported
 
     def __init__(
         self,

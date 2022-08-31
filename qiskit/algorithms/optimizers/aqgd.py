@@ -47,7 +47,7 @@ class AQGD(Optimizer):
     """
 
     _OPTIONS = ["maxiter", "eta", "tol", "disp", "momentum", "param_tol", "averaging"]
-    _callback_suppoert_level = OptimizerSupportLevel.supported
+    _callback_support_level = OptimizerSupportLevel.supported
 
     def __init__(
         self,

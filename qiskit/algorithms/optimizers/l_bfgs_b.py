@@ -45,7 +45,7 @@ class L_BFGS_B(SciPyOptimizer):  # pylint: disable=invalid-name
     """
 
     _OPTIONS = ["maxfun", "maxiter", "ftol", "iprint", "eps"]
-    _callback_suppoert_level = OptimizerSupportLevel.supported
+    _callback_support_level = OptimizerSupportLevel.supported
 
     # pylint: disable=unused-argument
     def __init__(

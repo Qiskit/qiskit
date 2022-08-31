@@ -29,7 +29,7 @@ class NFT(SciPyOptimizer):
     """
 
     _OPTIONS = ["maxiter", "maxfev", "disp", "reset_interval"]
-    _callback_suppoert_level = OptimizerSupportLevel.supported
+    _callback_support_level = OptimizerSupportLevel.supported
 
     # pylint: disable=unused-argument
     def __init__(
