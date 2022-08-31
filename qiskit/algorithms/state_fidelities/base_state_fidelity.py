@@ -96,8 +96,8 @@ class BaseStateFidelity(ABC):
 
         if circuit_1.num_qubits != circuit_2.num_qubits:
             raise ValueError(
-                f"The number of qubits for the left circuit ({circuit_1.num_qubits}) "
-                f"and right circuit ({circuit_2.num_qubits}) do not coincide."
+                f"The number of qubits for the first circuit ({circuit_1.num_qubits}) "
+                f"and second circuit ({circuit_2.num_qubits}) do not coincide."
             )
 
     @abstractmethod
@@ -155,10 +155,10 @@ class BaseStateFidelity(ABC):
 
                 # re-parametrize input circuits
                 # TODO: make smarter checks to avoid unnecesary reparametrizations
-                left_parameters = ParameterVector("x", circuit_1.num_parameters)
-                parametrized_circuit_1 = circuit_1.assign_parameters(left_parameters)
-                right_parameters = ParameterVector("y", circuit_2.num_parameters)
-                parametrized_circuit_2 = circuit_2.assign_parameters(right_parameters)
+                parameters_1 = ParameterVector("x", circuit_1.num_parameters)
+                parametrized_circuit_1 = circuit_1.assign_parameters(parameters_1)
+                parameters_2 = ParameterVector("y", circuit_2.num_parameters)
+                parametrized_circuit_2 = circuit_2.assign_parameters(parameters_2)
 
                 circuit = self._create_fidelity_circuit(
                     parametrized_circuit_1, parametrized_circuit_2
