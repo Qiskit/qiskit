@@ -149,7 +149,7 @@ class CollisionAnalysis(AnalysisPass):
                     self.native_cmap.append((q0, q1))
 
         neighbor = defaultdict(set)
-        for j, k in native_cmap:
+        for j, k in self.native_cmap:
             neighbor[j].add(k)
             neighbor[k].add(j)
 
