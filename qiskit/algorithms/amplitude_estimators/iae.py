@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2018, 2020.
+# (C) Copyright IBM 2018, 2022.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -12,13 +12,17 @@
 
 """The Iterative Quantum Amplitude Estimation Algorithm."""
 
-from typing import Optional, Union, List, Tuple, Dict, cast
+from __future__ import annotations
+from typing import Union, List, Tuple, Dict, cast
+import warnings
 import numpy as np
 from scipy.stats import beta
 
 from qiskit import ClassicalRegister, QuantumCircuit
-from qiskit.providers import Backend
+from qiskit.providers import Backend, JobStatus
+from qiskit.primitives import BaseSampler
 from qiskit.utils import QuantumInstance
+from qiskit.utils.deprecation import deprecate_function
 
 from .amplitude_estimator import AmplitudeEstimator, AmplitudeEstimatorResult
 from .estimation_problem import EstimationProblem
@@ -52,7 +56,8 @@ class IterativeAmplitudeEstimation(AmplitudeEstimator):
         alpha: float,
         confint_method: str = "beta",
         min_ratio: float = 2,
-        quantum_instance: Optional[Union[QuantumInstance, Backend]] = None,
+        quantum_instance: None | [Union[QuantumInstance, Backend]] = None,
+        sampler: None | BaseSampler = None,
     ) -> None:
         r"""
         The output of the algorithm is an estimate for the amplitude `a`, that with at least
@@ -66,7 +71,8 @@ class IterativeAmplitudeEstimation(AmplitudeEstimator):
                 each iteration, can be 'chernoff' for the Chernoff intervals or 'beta' for the
                 Clopper-Pearson intervals (default)
             min_ratio: Minimal q-ratio (:math:`K_{i+1} / K_i`) for FindNextK
-            quantum_instance: Quantum Instance or Backend
+            quantum_instance: Pending deprecation\: Quantum Instance or Backend
+            sampler: base sampler
 
         Raises:
             AlgorithmError: if the method to compute the confidence intervals is not supported
@@ -89,17 +95,33 @@ class IterativeAmplitudeEstimation(AmplitudeEstimator):
         super().__init__()
 
         # set quantum instance
-        self.quantum_instance = quantum_instance
+        if quantum_instance is not None:
+            warnings.warn(
+                "The quantum_instance argument has been superseded by the sampler argument. "
+                "This argument will be deprecated in a future release and subsequently "
+                "removed after that.",
+                category=PendingDeprecationWarning,
+            )
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")
+            self.quantum_instance = quantum_instance
 
         # store parameters
         self._epsilon = epsilon_target
         self._alpha = alpha
         self._min_ratio = min_ratio
         self._confint_method = confint_method
+        self._sampler = sampler
 
     @property
-    def quantum_instance(self) -> Optional[QuantumInstance]:
-        """Get the quantum instance.
+    @deprecate_function(
+        "The IterativeAmplitudeEstimation.quantum_instance getter is pending deprecation. "
+        "This property will be deprecated in a future release and subsequently "
+        "removed after that.",
+        category=PendingDeprecationWarning,
+    )
+    def quantum_instance(self) -> None | QuantumInstance:
+        """Pending deprecation: Get the quantum instance.
 
         Returns:
             The quantum instance used to run this algorithm.
@@ -107,8 +129,14 @@ class IterativeAmplitudeEstimation(AmplitudeEstimator):
         return self._quantum_instance
 
     @quantum_instance.setter
+    @deprecate_function(
+        "The IterativeAmplitudeEstimation.quantum_instance setter is pending deprecation. "
+        "This property will be deprecated in a future release and subsequently "
+        "removed after that.",
+        category=PendingDeprecationWarning,
+    )
     def quantum_instance(self, quantum_instance: Union[QuantumInstance, Backend]) -> None:
-        """Set quantum instance.
+        """Pending deprecation: Set quantum instance.
 
         Args:
             quantum_instance: The quantum instance used to run this algorithm.
@@ -279,6 +307,21 @@ class IterativeAmplitudeEstimation(AmplitudeEstimator):
     def estimate(
         self, estimation_problem: EstimationProblem
     ) -> "IterativeAmplitudeEstimationResult":
+        """Run the amplitude estimation algorithm on provided estimation problem.
+
+        Args:
+            estimation_problem: The estimation problem.
+
+        Returns:
+            An amplitude estimation results object.
+
+        Raises:
+            ValueError: A quantum instance or Sampler must be provided.
+            AlgorithmError: Sampler run error
+        """
+        if self._quantum_instance is None and self._sampler is None:
+            raise ValueError("A quantum instance or sampler must be provided.")
+
         # initialize memory variables
         powers = [0]  # list of powers k: Q^k, (called 'k' in paper)
         ratios = []  # list of multiplication factors (called 'q' in paper)
@@ -293,9 +336,39 @@ class IterativeAmplitudeEstimation(AmplitudeEstimator):
         )
         upper_half_circle = True  # initially theta is in the upper half-circle
 
-        # for statevector we can directly return the probability to measure 1
-        # note, that no iterations here are necessary
-        if self._quantum_instance.is_statevector:
+        if self._sampler is not None:
+            circuit = self.construct_circuit(estimation_problem, k=0, measurement=True)
+            job = self._sampler.run([circuit])
+            if job.status() is not JobStatus.DONE:
+                raise AlgorithmError("The job was not completed successfully. ")
+            result = job.result()
+
+            # calculate the probability of measuring '1'
+            num_qubits = circuit.num_qubits - circuit.num_ancillas
+            prob = 0
+            for bit, probabilities in result.quasi_dists[0].items():
+                i = int(bit)
+                # get bitstring of objective qubits
+                full_state = bin(i)[2:].zfill(circuit.num_qubits)[::-1]
+                state = "".join([full_state[i] for i in estimation_problem.objective_qubits])
+
+                # check if it is a good state
+                if estimation_problem.is_good_state(state[::-1]):
+                    prob = prob + probabilities
+
+            prob = cast(float, prob)  # tell MyPy it's a float and not Tuple[int, float ]
+
+            a_confidence_interval = [prob, prob]  # type: List[float]
+            a_intervals.append(a_confidence_interval)
+
+            theta_i_interval = [
+                np.arccos(1 - 2 * a_i) / 2 / np.pi for a_i in a_confidence_interval  # type: ignore
+            ]
+            theta_intervals.append(theta_i_interval)
+            num_oracle_queries = 0  # no Q-oracle call, only a single one to A
+        elif self._quantum_instance.is_statevector:
+            # for statevector we can directly return the probability to measure 1
+            # note, that no iterations here are necessary
             # simulate circuit
             circuit = self.construct_circuit(estimation_problem, k=0, measurement=False)
             ret = self._quantum_instance.execute(circuit)
