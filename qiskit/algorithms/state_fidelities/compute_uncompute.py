@@ -113,8 +113,9 @@ class ComputeUncompute(BaseStateFidelity):
 
         result = job.result()
 
-        # if error mitigation is added in the future, we will have to handle
-        # negative values in some way (e.g. clipping to zero)
-        overlaps = [prob_dist.get(0, 0) for prob_dist in result.quasi_dists]
+        raw_fidelities = [prob_dist.get(0, 0) for prob_dist in result.quasi_dists]
+        fidelities = self._truncate_fidelities(raw_fidelities)
 
-        return StateFidelityResult(fidelities=overlaps, metadata=run_opts)
+        return StateFidelityResult(
+            fidelities=fidelities, raw_fidelities=raw_fidelities, metadata=run_opts
+        )

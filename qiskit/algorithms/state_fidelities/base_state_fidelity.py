@@ -277,3 +277,16 @@ class BaseStateFidelity(ABC):
 
         job.submit()
         return job
+
+    def _truncate_fidelities(self, fidelities: Sequence[float]) -> Sequence[float]:
+        """
+        Ensure fidelity result in [0,1]
+
+        Args:
+           fidelities: sequence of raw fidelity results
+
+        Returns:
+             List of truncated fidelities.
+
+        """
+        return [0 if f < 0 else 1 if f > 1 else f for f in fidelities]
