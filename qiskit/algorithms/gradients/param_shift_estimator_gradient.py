@@ -38,7 +38,7 @@ class ParamShiftEstimatorGradient(BaseEstimatorGradient):
         Args:
             estimator: The estimator used to compute the gradients.
             run_options: Backend runtime options used for circuit execution. The order of priority is:
-                run_options in `run` method > gradient's default run_options > primitive's default
+                run_options in ``run`` method > gradient's default run_options > primitive's default
                 setting. Higher priority setting overrides lower priority setting.
         """
         self._gradient_circuits = {}

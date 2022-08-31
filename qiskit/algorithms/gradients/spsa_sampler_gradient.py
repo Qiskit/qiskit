@@ -34,18 +34,24 @@ class SPSASamplerGradient(BaseSamplerGradient):
     def __init__(
         self,
         sampler: BaseSampler,
-        epsilon: float = 1e-6,
+        epsilon: float,
         seed: int | None = None,
         **run_options,
     ):
         """
         Args:
             sampler: The sampler used to compute the gradients.
-            epsilon: The offset size for the finite difference gradients.
+            epsilon: The offset size for the SPSA gradients.
             seed: The seed for a random perturbation vector.
             run_options: Backend runtime options used for circuit execution. The order of priority is:
                 run_options in `run` method > gradient's default run_options > primitive's default
-                setting. Higher priority setting overrides lower priority setting."""
+                setting. Higher priority setting overrides lower priority setting.
+
+        Raises:
+            ValueError: If ``epsilon`` is not float.
+        """
+        if not isinstance(epsilon, float):
+            raise ValueError(f"epsilon must be a float, but got {type(epsilon)} instead.")
         self._epsilon = epsilon
         self._seed = np.random.default_rng(seed) if seed else np.random.default_rng()
 

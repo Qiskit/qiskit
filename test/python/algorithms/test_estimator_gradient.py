@@ -280,6 +280,8 @@ class TestEstimatorGradient(QiskitTestCase):
     def test_spsa_gradient(self):
         """Test the SPSA estimator gradient"""
         estimator = Estimator()
+        with self.assertRaises(ValueError):
+            _ = SPSAEstimatorGradient(estimator, epsilon="1e-6")
         a = Parameter("a")
         b = Parameter("b")
         qc = QuantumCircuit(2)
@@ -288,12 +290,12 @@ class TestEstimatorGradient(QiskitTestCase):
         param_list = [[1, 1]]
         correct_results = [[-0.84147098, 0.84147098]]
         op = SparsePauliOp.from_list([("ZI", 1)])
-        gradient = SPSAEstimatorGradient(estimator, seed=123)
+        gradient = SPSAEstimatorGradient(estimator, epsilon=1e-6, seed=123)
         gradients = gradient.run([qc], [op], param_list).result().gradients
         np.testing.assert_almost_equal(gradients, correct_results, 3)
 
         # multi parameters
-        gradient = SPSAEstimatorGradient(estimator, seed=123)
+        gradient = SPSAEstimatorGradient(estimator, epsilon=1e-6, seed=123)
         param_list2 = [[1, 1], [1, 1], [3, 3]]
         gradients2 = (
             gradient.run([qc] * 3, [op] * 3, param_list2, parameters=[None, [b], None])

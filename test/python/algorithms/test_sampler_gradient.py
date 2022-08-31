@@ -399,6 +399,9 @@ class TestSamplerGradient(QiskitTestCase):
     def test_spsa_gradient(self):
         """Test the SPSA sampler gradient"""
         sampler = Sampler()
+        with self.assertRaises(ValueError):
+            _ = SPSASamplerGradient(sampler, epsilon="1e-6")
+
         a = Parameter("a")
         b = Parameter("b")
         qc = QuantumCircuit(2)
@@ -412,7 +415,7 @@ class TestSamplerGradient(QiskitTestCase):
                 {0: -0.2273244, 1: 0.6480598, 2: -0.2273244, 3: -0.1934111},
             ],
         ]
-        gradient = SPSASamplerGradient(sampler, seed=123)
+        gradient = SPSASamplerGradient(sampler, epsilon=1e-6, seed=123)
         for i, param in enumerate(param_list):
             gradients = gradient.run([qc], [param]).result().gradients[0]
             for j, quasi_dist in enumerate(gradients):
@@ -433,7 +436,7 @@ class TestSamplerGradient(QiskitTestCase):
                 {0: 0.0141129, 1: 0.0564471, 2: 0.3642884, 3: -0.4348484},
             ],
         ]
-        gradient = SPSASamplerGradient(sampler, seed=123)
+        gradient = SPSASamplerGradient(sampler, epsilon=1e-6, seed=123)
         gradients = (
             gradient.run([qc] * 3, param_list2, parameters=[None, [b], None]).result().gradients
         )

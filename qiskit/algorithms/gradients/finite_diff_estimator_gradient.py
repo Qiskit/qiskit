@@ -38,11 +38,11 @@ class FiniteDiffEstimatorGradient(BaseEstimatorGradient):
             estimator: The estimator used to compute the gradients.
             epsilon: The offset size for the finite difference gradients.
             run_options: Backend runtime options used for circuit execution. The order of priority is:
-                run_options in `run` method > gradient's default run_options > primitive's default
+                run_options in ``run`` method > gradient's default run_options > primitive's default
                 setting. Higher priority setting overrides lower priority setting.
 
         Raises:
-            ValueError: If `epsilon` is not float.
+            ValueError: If ``epsilon`` is not float.
         """
         if not isinstance(epsilon, float):
             raise ValueError(f"epsilon must be a float, but got {type(epsilon)} instead.")
