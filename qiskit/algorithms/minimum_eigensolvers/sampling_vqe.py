@@ -187,15 +187,18 @@ class SamplingVQE(SamplingMinimumEigensolver):
 
         eval_time = time() - start_time
 
+        final_state = self.sampler.run([ansatz], [opt_result.x]).result().quasi_dists
+
         result = SamplingVQEResult()
         result.optimal_point = opt_result.x
         result.optimal_parameters = dict(zip(ansatz.parameters, opt_result.x))
         result.optimal_value = opt_result.fun
         result.cost_function_evals = opt_result.nfev
         result.optimizer_time = eval_time
-        result.eigenvalue = opt_result.fun + 0j
-        # result.eigenstate = self._get_eigenstate(result.optimal_parameters)
         result.best_measurement = best_measurement
+
+        result.eigenvalue = opt_result.fun
+        result.eigenstate = final_state
 
         logger.info(
             "Optimization complete in %s seconds.\nFound opt_params %s.",
@@ -203,18 +206,16 @@ class SamplingVQE(SamplingMinimumEigensolver):
             result.optimal_point,
         )
 
-        # if aux_operators is not None:
-        #     bound_ansatz = self.ansatz.bind_parameters(result.optimal_point)
-
-        #     aux_values = eval_observables(
-        #         self.quantum_instance, bound_ansatz, aux_operators, expectation=expectation
-        #     )
-        #     result.aux_operator_eigenvalues = aux_values
+        if aux_operators is not None:
+            result.aux_operator_values = self._eval_aux_ops(ansatz, opt_result.x, aux_operators)
 
         return result
 
     def get_energy_evaluation(
-        self, operator: BaseOperator | PauliSumOp, ansatz: QuantumCircuit
+        self,
+        operator: BaseOperator | PauliSumOp,
+        ansatz: QuantumCircuit,
+        return_best_measurement: bool = False,
     ) -> tuple[Callable[[np.ndarray], float | list[float]], dict]:
         """Returns a function handle to evaluates the energy at given parameters for the ansatz.
 
@@ -254,9 +255,31 @@ class SamplingVQE(SamplingMinimumEigensolver):
 
             return value if len(value) > 1 else value[0]
 
-            # return means if len(means) > 1 else means[0]
+        if return_best_measurement:
+            return energy_evaluation, best_measurement
 
-        return energy_evaluation, best_measurement
+        return energy_evaluation
+
+    def _eval_aux_ops(self, ansatz, parameters, aux_operators):
+        # convert to list if necessary and store the keys
+        if isinstance(aux_operators, dict):
+            is_dict = True
+            keys = list(aux_operators.keys())
+            aux_operators = list(aux_operators.values())
+        else:
+            is_dict = False
+
+        # evaluate all aux operators
+        num = len(aux_operators)
+        results = diagonal_estimation(
+            self.sampler, aux_operators, num * [ansatz], num * [parameters]
+        )
+
+        # bring back into the right shape and return
+        if is_dict:
+            return dict(zip(keys, results))
+
+        return results
 
 
 class SamplingVQEResult(SamplingMinimumEigensolverResult):

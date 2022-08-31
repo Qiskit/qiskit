@@ -10,8 +10,8 @@ from qiskit.quantum_info.operators.base_operator import BaseOperator
 
 def diagonal_estimation(
     sampler: BaseSampler,
-    observable: PauliSumOp | BaseOperator,
-    circuit: QuantumCircuit,
+    observable: PauliSumOp | BaseOperator | list[PauliSumOp | BaseOperator],
+    circuit: QuantumCircuit | list[QuantumCircuit],
     values: np.ndarray | list[np.ndarray] | None = None,
     aggregation: float | Callable[[list[tuple[float, float]]], float] | None = None,
     **run_options,
@@ -24,9 +24,12 @@ def diagonal_estimation(
         circuit: The circuits preparing the quantum states. Note that this circuit must
             contain measurements already.
         values: The parameter values for the circuits. Can be a list of values which
-            will be evaluated in a batch.
+            will be evaluated in a batch. If the observable and circuit are a single object and
+            the values are a list of arrays, the observable and circuit are broadcasted to
+            the size of the values.
         aggregation: The aggregation function to aggregate the measurement outcomes. If a float
             this specified the CVaR :math:`\alpha` parameter.
+        run_options: Run options for the sampler.
 
     Returns:
         A tuple containing a list of expectation values and a list of the best measurements in
@@ -38,10 +41,16 @@ def diagonal_estimation(
     elif not isinstance(values, list):
         values = [values]
 
-    num_batches = len(values) if isinstance(values, list) else 1
+    # broadcast if necessary
+    if not isinstance(circuit, list) and not isinstance(observable, list):
+        observable = init_observable(observable)  # only do this conversion once, before broadcast
+        num_batches = len(values)
+        observables = [observable] * num_batches
+        circuits = [circuit] * num_batches
+    else:
+        observables = [init_observable(obs) for obs in observable]
 
-    samples = sampler.run(num_batches * [circuit], values, **run_options).result().quasi_dists
-    observable = init_observable(observable)
+    samples = sampler.run(circuits, values, **run_options).result().quasi_dists
 
     # a list of dictionaries containing: {state: (measurement probability, value)}
     evaluations = [
@@ -49,7 +58,7 @@ def diagonal_estimation(
             state: (probability, evaluate_sparsepauli(state, observable))
             for state, probability in sampled.items()
         }
-        for sampled in samples
+        for observable, sampled in zip(observables, samples)
     ]
 
     # get the best measurements

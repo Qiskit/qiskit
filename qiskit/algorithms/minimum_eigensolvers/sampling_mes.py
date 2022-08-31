@@ -13,11 +13,15 @@
 """The Sampling Minimum Eigensolver interface."""
 
 from abc import ABC, abstractmethod
-from typing import Optional, Tuple
+from typing import Optional, Tuple, Any
+
+# from collections.abc import Any
+# from dataclasses import dataclass
 
 import numpy as np
 
-from qiskit.opflow import OperatorBase
+from qiskit.quantum_info.operators.base_operator import BaseOperator
+from qiskit.opflow import PauliSumOp
 from ..algorithm_result import AlgorithmResult
 from ..list_or_dict import ListOrDict
 
@@ -27,23 +31,19 @@ class SamplingMinimumEigensolver(ABC):
 
     @abstractmethod
     def compute_minimum_eigenvalue(
-        self, operator: OperatorBase, aux_operators: Optional[ListOrDict[OperatorBase]] = None
+        self,
+        operator: BaseOperator | PauliSumOp,
+        aux_operators: ListOrDict[BaseOperator | PauliSumOp] | None = None,
     ) -> "SamplingMinimumEigensolverResult":
-        """
-        Computes minimum eigenvalue. Operator and aux_operators can be supplied here and
-        if not None will override any already set into algorithm so it can be reused with
-        different operators. While an operator is required by algorithms, aux_operators
-        are optional. To 'remove' a previous aux_operators array use an empty list here.
+        """Compute the minimum eigenvalue of a diagonal operator.
 
         Args:
-            operator: Qubit operator of the Observable
+            operator: Diagonal qubit operator.
             aux_operators: Optional list of auxiliary operators to be evaluated with the
-                eigenstate of the minimum eigenvalue main result and their expectation values
-                returned. For instance in chemistry these can be dipole operators, total particle
-                count operators so we can get values for these at the ground state.
+                final state.
 
         Returns:
-            MinimumEigensolverResult
+            A :class:`~.SamplingMinimumEigensolverResult` containing the optimization result.
         """
         pass
 
@@ -127,12 +127,12 @@ class SamplingMinimumEigensolverResult(AlgorithmResult):
         self._optimal_parameters = value
 
     @property
-    def best_measurement(self) -> Optional[str]:
+    def best_measurement(self) -> Optional[dict[str, Any]]:
         """Return the best measurement (as bitstring) over the entire optimization."""
         return self._best_measurement
 
     @best_measurement.setter
-    def best_measurement(self, value: str) -> None:
+    def best_measurement(self, value: dict[str, Any]) -> None:
         """Set the best measurement (as bitstring) over the entire optimization."""
         self._best_measurement = value
 
@@ -141,8 +141,8 @@ class SamplingMinimumEigensolverResult(AlgorithmResult):
         disp = (
             "SamplingMinimumEigensolverResult:\n"
             + f"\tEigenvalue: {self.eigenvalue}\n"
-            + f"\tBest measurement: {self.best_measurement}\n"
             + f"\tOptimal point: {self.optimal_point}"
+            + f"\tBest measurement\n: {self.best_measurement}\n"
         )
         if self.aux_operator_values is not None:
             disp += f"\n\tAuxiliary operator values: {self.aux_operator_values}\n"
