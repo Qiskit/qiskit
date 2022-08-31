@@ -230,7 +230,7 @@ Utility methods used by algorithms.
 
    eval_observables
 """
-
+from .algorithm_job import AlgorithmJob
 from .algorithm_result import AlgorithmResult
 from .evolvers import EvolutionResult, EvolutionProblem
 from .evolvers.real_evolver import RealEvolver
@@ -277,6 +277,7 @@ from .evolvers.variational.var_qrte import VarQRTE
 from .evolvers.pvqd import PVQD, PVQDResult
 
 __all__ = [
+    "AlgorithmJob",
     "AlgorithmResult",
     "VariationalAlgorithm",
     "VariationalResult",

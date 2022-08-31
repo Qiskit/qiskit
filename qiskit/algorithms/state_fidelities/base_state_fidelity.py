@@ -19,8 +19,8 @@ from collections.abc import Sequence, Mapping
 import numpy as np
 
 from qiskit import QuantumCircuit
+from qiskit.algorithms import AlgorithmJob
 from qiskit.circuit import ParameterVector
-from qiskit.primitives.primitive_job import PrimitiveJob
 from .state_fidelity_result import StateFidelityResult
 
 
@@ -248,7 +248,7 @@ class BaseStateFidelity(ABC):
         values_1: Sequence[Sequence[float]] | None = None,
         values_2: Sequence[Sequence[float]] | None = None,
         **run_options,
-    ) -> PrimitiveJob:
+    ) -> AlgorithmJob:
         r"""
         Run asynchronously the state overlap (fidelity) calculation between two
         (parametrized) circuits (first and second) for a specific set of parameter
@@ -273,7 +273,7 @@ class BaseStateFidelity(ABC):
             The job's result is an instance of ``StateFidelityResult``.
         """
 
-        job = PrimitiveJob(self._run, circuits_1, circuits_2, values_1, values_2, **run_options)
+        job = AlgorithmJob(self._run, circuits_1, circuits_2, values_1, values_2, **run_options)
 
         job.submit()
         return job
