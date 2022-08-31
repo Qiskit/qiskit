@@ -15,14 +15,12 @@ Gradient of probabilities with linear combination of unitaries (LCU)
 
 from __future__ import annotations
 
-from collections import Counter
 from typing import Sequence
 
 import numpy as np
 
 from qiskit.circuit import Parameter, ParameterExpression, QuantumCircuit
 from qiskit.primitives import BaseSampler
-from qiskit.result import QuasiDistribution
 
 from .base_sampler_gradient import BaseSamplerGradient
 from .sampler_gradient_result import SamplerGradientResult
@@ -47,7 +45,7 @@ class LinCombSamplerGradient(BaseSamplerGradient):
                 setting. Higher priority setting overrides lower priority setting.
         """
 
-        self._gradient_circuit_data_dict = {}
+        self._gradient_circuits = {}
         super().__init__(sampler, **run_options)
 
     def _run(
@@ -68,12 +66,10 @@ class LinCombSamplerGradient(BaseSamplerGradient):
             metadata_.append({"parameters": [p for p in circuit.parameters if p in param_set]})
 
             # TODO: support measurement in different basis (Y and Z+iY)
-            gradient_circuit_data = self._gradient_circuit_data_dict.get(id(circuit))
-            if gradient_circuit_data is None:
-                gradient_circuit_data = make_lin_comb_gradient_circuit(
-                    circuit, add_measurement=True
-                )
-                self._gradient_circuit_data_dict[id(circuit)] = gradient_circuit_data
+            gradient_circuits_ = self._gradient_circuits.get(id(circuit))
+            if gradient_circuits_ is None:
+                gradient_circuits_ = make_lin_comb_gradient_circuit(circuit, add_measurement=True)
+                self._gradient_circuits[id(circuit)] = gradient_circuits_
 
             # only compute the gradients for parameters in the parameter set
             gradient_circuits, result_indices, coeffs = [], [], []
@@ -81,11 +77,11 @@ class LinCombSamplerGradient(BaseSamplerGradient):
             for i, param in enumerate(circuit.parameters):
                 if param in param_set:
                     gradient_circuits.extend(
-                        grad_data.gradient_circuit for grad_data in gradient_circuit_data[param]
+                        grad.gradient_circuit for grad in gradient_circuits_[param]
                     )
-                    result_indices.extend(result_idx for _ in gradient_circuit_data[param])
+                    result_indices.extend(result_idx for _ in gradient_circuits_[param])
                     result_idx += 1
-                    for grad_data in gradient_circuit_data[param]:
+                    for grad_data in gradient_circuits_[param]:
                         coeff = grad_data.coeff
                         # if the parameter is a parameter expression, we need to substitute
                         if isinstance(coeff, ParameterExpression):
@@ -99,7 +95,7 @@ class LinCombSamplerGradient(BaseSamplerGradient):
                         coeffs.append(bound_coeff)
 
             n = len(gradient_circuits)
-            job = self._sampler.run(gradient_circuits, [parameter_values_]*n, **run_options)
+            job = self._sampler.run(gradient_circuits, [parameter_values_] * n, **run_options)
             jobs.append(job)
             result_indices_all.append(result_indices)
             coeffs_all.append(coeffs)
@@ -110,16 +106,13 @@ class LinCombSamplerGradient(BaseSamplerGradient):
         for i, result in enumerate(results):
             n = 2 ** circuits[i].num_qubits
             grad_dists = np.zeros((len(metadata_[i]["parameters"]), n))
-            for idx, coeff, dist in zip(
-                result_indices_all[i], coeffs_all[i], result.quasi_dists):
-                grad_dists[idx][list(dist.keys())[:n]] += (np.array(list(dist.values())[:n]) * coeff)
-                grad_dists[idx][list(dist.keys())[:n]] -= (np.array(list(dist.values())[n:]) * coeff)
+            for idx, coeff, dist in zip(result_indices_all[i], coeffs_all[i], result.quasi_dists):
+                grad_dists[idx][list(dist.keys())[:n]] += np.array(list(dist.values())[:n]) * coeff
+                grad_dists[idx][list(dist.keys())[:n]] -= np.array(list(dist.values())[n:]) * coeff
 
             gradient_ = []
             for grad_dist in grad_dists:
-                gradient_.append(
-                    {i: dist for i, dist in enumerate(grad_dist)}
-                )
+                gradient_.append(dict(enumerate(grad_dist)))
             gradients.append(gradient_)
 
         # TODO: include primitive's run_options as well

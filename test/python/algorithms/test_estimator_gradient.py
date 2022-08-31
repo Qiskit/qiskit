@@ -20,14 +20,16 @@ import numpy as np
 from ddt import ddt
 
 from qiskit import QuantumCircuit
-from qiskit.algorithms.gradients import (
-    FiniteDiffEstimatorGradient,
-    ParamShiftEstimatorGradient,
-    LinCombEstimatorGradient,
-    SPSAEstimatorGradient,
-)
+from qiskit.algorithms.gradients import (FiniteDiffEstimatorGradient,
+                                         LinCombEstimatorGradient,
+                                         ParamShiftEstimatorGradient,
+                                         SPSAEstimatorGradient)
 from qiskit.circuit import Parameter
 from qiskit.circuit.library import EfficientSU2, RealAmplitudes
+from qiskit.circuit.library.standard_gates.rxx import RXXGate
+from qiskit.circuit.library.standard_gates.ryy import RYYGate
+from qiskit.circuit.library.standard_gates.rzx import RZXGate
+from qiskit.circuit.library.standard_gates.rzz import RZZGate
 from qiskit.primitives import Estimator, Sampler
 from qiskit.quantum_info import SparsePauliOp
 from qiskit.test import QiskitTestCase
@@ -111,86 +113,31 @@ class TestEstimatorGradient(QiskitTestCase):
             np.testing.assert_almost_equal(gradients, correct_results[i], 3)
 
     @combine(
-        grad=[FiniteDiffEstimatorGradient, ParamShiftEstimatorGradient, LinCombEstimatorGradient]
+        grad=[FiniteDiffEstimatorGradient, ParamShiftEstimatorGradient, LinCombEstimatorGradient],
     )
-    def test_gradient_rxx(self, grad):
-        """Test the estimator gradient for rxx"""
+    def test_gradient_2qubit_gate(self, grad):
+        """Test the estimator gradient for 2 qubit gates"""
         estimator = Estimator()
-        a = Parameter("a")
-        qc = QuantumCircuit(2)
-        qc.rxx(a, 0, 1)
-        gradient = grad(estimator)
-        param_list = [[np.pi / 4], [np.pi / 2]]
-        correct_results = [
-            [-0.70710678],
-            [-1],
-        ]
-        op = SparsePauliOp.from_list([("ZI", 1)])
-        for i, param in enumerate(param_list):
-            gradients = gradient.run([qc], [op], [param]).result().gradients[0]
-            np.testing.assert_almost_equal(gradients, correct_results[i], 3)
+        for gate in [RXXGate, RYYGate, RZZGate, RZXGate]:
+            param_list = [[np.pi / 4], [np.pi / 2]]
+            correct_results = [
+                [-0.70710678],
+                [-1],
+            ]
+            op = SparsePauliOp.from_list([("ZI", 1)])
+            for i, param in enumerate(param_list):
+                a = Parameter("a")
+                qc = QuantumCircuit(2)
+                gradient = grad(estimator)
 
-    @combine(
-        grad=[FiniteDiffEstimatorGradient, ParamShiftEstimatorGradient, LinCombEstimatorGradient]
-    )
-    def test_gradient_ryy(self, grad):
-        """Test the estimator gradient for ryy"""
-        estimator = Estimator()
-        a = Parameter("a")
-        qc = QuantumCircuit(2)
-        qc.ryy(a, 0, 1)
-        gradient = grad(estimator)
-        param_list = [[np.pi / 4], [np.pi / 2]]
-        correct_results = [
-            [-0.70710678],
-            [-1],
-        ]
-        op = SparsePauliOp.from_list([("ZI", 1)])
-        for i, param in enumerate(param_list):
-            gradients = gradient.run([qc], [op], [param]).result().gradients[0]
-            np.testing.assert_almost_equal(gradients, correct_results[i], 3)
-
-    @combine(
-        grad=[FiniteDiffEstimatorGradient, ParamShiftEstimatorGradient, LinCombEstimatorGradient]
-    )
-    def test_gradient_rzz(self, grad):
-        """Test the estimator gradient for rzz"""
-        estimator = Estimator()
-        a = Parameter("a")
-        qc = QuantumCircuit(2)
-        qc.h([0, 1])
-        qc.rzz(a, 0, 1)
-        qc.h([0, 1])
-        gradient = grad(estimator)
-        param_list = [[np.pi / 4], [np.pi / 2]]
-        correct_results = [
-            [-0.70710678],
-            [-1],
-        ]
-        op = SparsePauliOp.from_list([("ZI", 1)])
-        for i, param in enumerate(param_list):
-            gradients = gradient.run([qc], [op], [param]).result().gradients[0]
-            np.testing.assert_almost_equal(gradients, correct_results[i], 3)
-
-    @combine(
-        grad=[FiniteDiffEstimatorGradient, ParamShiftEstimatorGradient, LinCombEstimatorGradient]
-    )
-    def test_gradient_rzx(self, grad):
-        """Test the estimator gradient for rzx"""
-        estimator = Estimator()
-        a = Parameter("a")
-        qc = QuantumCircuit(2)
-        qc.rzx(a, 0, 1)
-        gradient = grad(estimator)
-        param_list = [[np.pi / 4], [np.pi / 2]]
-        correct_results = [
-            [-0.70710678],
-            [-1],
-        ]
-        op = SparsePauliOp.from_list([("ZI", 1)])
-        for i, param in enumerate(param_list):
-            gradients = gradient.run([qc], [op], [param]).result().gradients[0]
-            np.testing.assert_almost_equal(gradients, correct_results[i], 3)
+                if gate is RZZGate:
+                    qc.h([0, 1])
+                    qc.append(gate(a), [qc.qubits[0], qc.qubits[1]], [])
+                    qc.h([0, 1])
+                else:
+                    qc.append(gate(a), [qc.qubits[0], qc.qubits[1]], [])
+                gradients = gradient.run([qc], [op], [param]).result().gradients[0]
+                np.testing.assert_almost_equal(gradients, correct_results[i], 3)
 
     @combine(
         grad=[FiniteDiffEstimatorGradient, ParamShiftEstimatorGradient, LinCombEstimatorGradient]
@@ -315,7 +262,7 @@ class TestEstimatorGradient(QiskitTestCase):
         gradients = gradient.run([qc], [op], param_list).result().gradients
         np.testing.assert_almost_equal(gradients, correct_results, 3)
 
-        #multi parameters
+        # multi parameters
         gradient = SPSAEstimatorGradient(estimator, seed=123)
         param_list2 = [[1, 1], [1, 1], [3, 3]]
         gradients2 = (

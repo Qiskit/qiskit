@@ -20,14 +20,16 @@ import numpy as np
 from ddt import ddt
 
 from qiskit import QuantumCircuit
-from qiskit.algorithms.gradients import (
-    FiniteDiffSamplerGradient,
-    LinCombSamplerGradient,
-    ParamShiftSamplerGradient,
-    SPSASamplerGradient,
-)
+from qiskit.algorithms.gradients import (FiniteDiffSamplerGradient,
+                                         LinCombSamplerGradient,
+                                         ParamShiftSamplerGradient,
+                                         SPSASamplerGradient)
 from qiskit.circuit import Parameter
 from qiskit.circuit.library import EfficientSU2, RealAmplitudes
+from qiskit.circuit.library.standard_gates.rxx import RXXGate
+from qiskit.circuit.library.standard_gates.ryy import RYYGate
+from qiskit.circuit.library.standard_gates.rzx import RZXGate
+from qiskit.circuit.library.standard_gates.rzz import RZZGate
 from qiskit.primitives import Estimator, Sampler
 from qiskit.test import QiskitTestCase
 
@@ -178,82 +180,28 @@ class TestSamplerGradient(QiskitTestCase):
                     self.assertAlmostEqual(quasi_dist[k], correct_results[i][j][k], 3)
 
     @combine(grad=[FiniteDiffSamplerGradient, ParamShiftSamplerGradient, LinCombSamplerGradient])
-    def test_gradient_rxx(self, grad):
-        """Test the sampler gradient for rxx"""
+    def test_gradient_2qubit_gate(self, grad):
+        """Test the sampler gradient for 2 qubit gates"""
         sampler = Sampler()
-        a = Parameter("a")
-        qc = QuantumCircuit(2)
-        qc.rxx(a, 0, 1)
-        qc.measure_all()
-        gradient = grad(sampler)
-        param_list = [[np.pi / 4], [np.pi / 2]]
-        correct_results = [
-            [{0: -0.5 / np.sqrt(2), 1: 0, 2: 0, 3: 0.5 / np.sqrt(2)}],
-            [{0: -0.5, 1: 0, 2: 0, 3: 0.5}],
-        ]
-        for i, param in enumerate(param_list):
-            gradients = gradient.run([qc], [param]).result().gradients[0]
-            for j, quasi_dist in enumerate(gradients):
-                for k in quasi_dist:
-                    self.assertAlmostEqual(quasi_dist[k], correct_results[i][j][k], 3)
+        for gate in [RXXGate, RYYGate, RZZGate, RZXGate]:
+            param_list = [[np.pi / 4], [np.pi / 2]]
 
-    @combine(grad=[FiniteDiffSamplerGradient, ParamShiftSamplerGradient, LinCombSamplerGradient])
-    def test_gradient_ryy(self, grad):
-        """Test the sampler gradient for ryy"""
-        sampler = Sampler()
-        a = Parameter("a")
-        qc = QuantumCircuit(2)
-        qc.ryy(a, 0, 1)
-        qc.measure_all()
-        gradient = grad(sampler)
-        param_list = [[np.pi / 4], [np.pi / 2]]
-        correct_results = [
-            [{0: -0.5 / np.sqrt(2), 1: 0, 2: 0, 3: 0.5 / np.sqrt(2)}],
-            [{0: -0.5, 1: 0, 2: 0, 3: 0.5}],
-        ]
+            if gate is RZXGate:
+                correct_results = [
+                    [{0: -0.5 / np.sqrt(2), 1: 0, 2: 0.5 / np.sqrt(2), 3: 0}],
+                    [{0: -0.5, 1: 0, 2: 0.5, 3: 0}],
+                ]
+            else:
+                correct_results = [
+                    [{0: -0.5 / np.sqrt(2), 1: 0, 2: 0, 3: 0.5 / np.sqrt(2)}],
+                    [{0: -0.5, 1: 0, 2: 0, 3: 0.5}],
+                ]
         for i, param in enumerate(param_list):
-            gradients = gradient.run([qc], [param]).result().gradients[0]
-            for j, quasi_dist in enumerate(gradients):
-                for k in quasi_dist:
-                    self.assertAlmostEqual(quasi_dist[k], correct_results[i][j][k], 3)
-
-    @combine(grad=[FiniteDiffSamplerGradient, ParamShiftSamplerGradient, LinCombSamplerGradient])
-    def test_gradient_rzz(self, grad):
-        """Test the sampler gradient for rzz"""
-        sampler = Sampler()
-        a = Parameter("a")
-        qc = QuantumCircuit(2)
-        qc.h([0, 1])
-        qc.rzz(a, 0, 1)
-        qc.h([0, 1])
-        qc.measure_all()
-        gradient = grad(sampler)
-        param_list = [[np.pi / 4], [np.pi / 2]]
-        correct_results = [
-            [{0: -0.5 / np.sqrt(2), 1: 0, 2: 0, 3: 0.5 / np.sqrt(2)}],
-            [{0: -0.5, 1: 0, 2: 0, 3: 0.5}],
-        ]
-        for i, param in enumerate(param_list):
-            gradients = gradient.run([qc], [param]).result().gradients[0]
-            for j, quasi_dist in enumerate(gradients):
-                for k in quasi_dist:
-                    self.assertAlmostEqual(quasi_dist[k], correct_results[i][j][k], 3)
-
-    @combine(grad=[FiniteDiffSamplerGradient, ParamShiftSamplerGradient, LinCombSamplerGradient])
-    def test_gradient_rzx(self, grad):
-        """Test the sampler gradient for rzx"""
-        sampler = Sampler()
-        a = Parameter("a")
-        qc = QuantumCircuit(2)
-        qc.rzx(a, 0, 1)
-        qc.measure_all()
-        gradient = grad(sampler)
-        param_list = [[np.pi / 4], [np.pi / 2]]
-        correct_results = [
-            [{0: -0.5 / np.sqrt(2), 1: 0, 2: 0.5 / np.sqrt(2), 3: 0}],
-            [{0: -0.5, 1: 0, 2: 0.5, 3: 0}],
-        ]
-        for i, param in enumerate(param_list):
+            a = Parameter("a")
+            qc = QuantumCircuit(2)
+            qc.append(gate(a), [qc.qubits[0], qc.qubits[1]], [])
+            qc.measure_all()
+            gradient = grad(sampler)
             gradients = gradient.run([qc], [param]).result().gradients[0]
             for j, quasi_dist in enumerate(gradients):
                 for k in quasi_dist:

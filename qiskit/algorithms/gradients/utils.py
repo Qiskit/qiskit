@@ -50,7 +50,7 @@ from qiskit.circuit.library.standard_gates import (
 
 
 @dataclass
-class ParameterShiftGradientCircuitData:
+class ParameterShiftGradientCircuit:
     """Stores gradient circuit data for the parameter shift method
 
     Args:
@@ -74,7 +74,7 @@ class ParameterShiftGradientCircuitData:
 
 def make_param_shift_gradient_circuit_data(
     circuit: QuantumCircuit,
-) -> ParameterShiftGradientCircuitData:
+) -> ParameterShiftGradientCircuit:
     """Makes a gradient circuit data for the parameter shift method. This re-assigns each parameter in
         ``circuit`` to a unique parameter, and construct a new gradient circuit with those new
         parameters. Also, it makes maps used in later calculations.
@@ -166,7 +166,7 @@ def make_param_shift_gradient_circuit_data(
             subs_map[parameter_variable] = new_parameter_variable
         g_circuit.global_phase = g_circuit.global_phase.subs(subs_map)
 
-    return ParameterShiftGradientCircuitData(
+    return ParameterShiftGradientCircuit(
         circuit=circuit2,
         gradient_circuit=g_circuit,
         gradient_virtual_parameter_map=g_virtual_parameter_map,
@@ -176,7 +176,7 @@ def make_param_shift_gradient_circuit_data(
 
 
 def make_param_shift_base_parameter_values(
-    gradient_circuit_data: ParameterShiftGradientCircuitData,
+    gradient_circuit_data: ParameterShiftGradientCircuit,
 ) -> List[np.ndarray]:
     """Makes base parameter values for the parameter shift method. Each base parameter value will
         be added to the given parameter values in later calculations.
@@ -205,7 +205,7 @@ def make_param_shift_base_parameter_values(
     return plus_offsets + minus_offsets
 
 
-def param_shift_preprocessing(circuit: QuantumCircuit) -> ParameterShiftGradientCircuitData:
+def param_shift_preprocessing(circuit: QuantumCircuit) -> ParameterShiftGradientCircuit:
     """Preprocessing for the parameter shift method.
 
     Args:
@@ -221,7 +221,7 @@ def param_shift_preprocessing(circuit: QuantumCircuit) -> ParameterShiftGradient
 
 
 def make_param_shift_parameter_values(
-    gradient_circuit_data: ParameterShiftGradientCircuitData,
+    gradient_circuit_data: ParameterShiftGradientCircuit,
     base_parameter_values: list[np.ndarray],
     parameter_values: np.ndarray,
     param_set: set[Parameter],
@@ -233,6 +233,7 @@ def make_param_shift_parameter_values(
         gradient_circuit_data: gradient circuit data for the parameter shift method.
         base_parameter_values: base parameter values for the parameter shift method.
         parameter_values: parameter values to be added to the base parameter values.
+        param_set: set of parameters to be used in the parameter shift method.
 
     Returns:
         The parameter values for the parameter shift method.

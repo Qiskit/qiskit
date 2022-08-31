@@ -14,14 +14,12 @@
 
 from __future__ import annotations
 
-from collections import Counter
 from typing import Sequence
 
 import numpy as np
 
 from qiskit.circuit import Parameter, QuantumCircuit
 from qiskit.primitives import BaseSampler
-from qiskit.result import QuasiDistribution
 
 from .base_sampler_gradient import BaseSamplerGradient
 from .sampler_gradient_result import SamplerGradientResult
@@ -61,7 +59,7 @@ class SPSASamplerGradient(BaseSamplerGradient):
         **run_options,
     ) -> SamplerGradientResult:
         """Compute the sampler gradients on the given circuits."""
-        jobs, result_indices_all, offsets, metadata_ = [], [], [], []
+        jobs, offsets, metadata_ = [], [], []
         for circuit, parameter_values_, parameters_ in zip(circuits, parameter_values, parameters):
             # indices of parameters to be differentiated
             if parameters_ is None:
@@ -92,8 +90,10 @@ class SPSASamplerGradient(BaseSamplerGradient):
 
             indices = [circuits[i].parameters.data.index(p) for p in metadata_[i]["parameters"]]
             gradient_ = []
-            for j in indices:
-                gradient_.append({k: offsets[i][j] * dist for k, dist in enumerate(grad_dists)})
+
+            gradient_.extend(
+                {k: offsets[i][j] * dist for k, dist in enumerate(grad_dists)} for j in indices
+            )
 
             gradients.append(gradient_)
 

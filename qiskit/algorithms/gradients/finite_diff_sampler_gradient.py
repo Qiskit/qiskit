@@ -14,14 +14,12 @@
 
 from __future__ import annotations
 
-from collections import Counter
 from typing import Sequence
 
 import numpy as np
 
 from qiskit.circuit import Parameter, QuantumCircuit
 from qiskit.primitives import BaseSampler
-from qiskit.result import QuasiDistribution
 
 from .base_sampler_gradient import BaseSamplerGradient
 from .sampler_gradient_result import SamplerGradientResult
@@ -73,7 +71,7 @@ class FiniteDiffSamplerGradient(BaseSamplerGradient):
 
         # combine the results
         results = [job.result() for job in jobs]
-        gradients= []
+        gradients = []
         for i, result in enumerate(results):
             n = len(result.quasi_dists) // 2
             gradient_ = []
@@ -81,8 +79,8 @@ class FiniteDiffSamplerGradient(BaseSamplerGradient):
                 grad_dist = np.zeros(2 ** circuits[i].num_qubits)
                 grad_dist[list(dist_plus.keys())] += list(dist_plus.values())
                 grad_dist[list(dist_minus.keys())] -= list(dist_minus.values())
-                grad_dist /= (2 * self._epsilon)
-                gradient_.append({i:dist for i, dist in enumerate(grad_dist)})
+                grad_dist /= 2 * self._epsilon
+                gradient_.append(dict(enumerate(grad_dist)))
             gradients.append(gradient_)
 
         # TODO: include primitive's run_options as well

@@ -19,7 +19,7 @@ from typing import Sequence
 
 import numpy as np
 
-from qiskit.circuit import Parameter, ParameterExpression, QuantumCircuit
+from qiskit.circuit import Parameter, QuantumCircuit
 from qiskit.opflow import PauliSumOp
 from qiskit.primitives import BaseEstimator
 from qiskit.quantum_info.operators.base_operator import BaseOperator
@@ -65,15 +65,15 @@ class ParamShiftEstimatorGradient(BaseEstimatorGradient):
             metadata_.append({"parameters": [p for p in circuit.parameters if p in param_set]})
 
             if self._gradient_circuits.get(id(circuit)):
-                gradient_circuit_data, base_parameter_values_all = self._gradient_circuits[
+                gradient_circuit, base_parameter_values_all = self._gradient_circuits[
                     id(circuit)
                 ]
             else:
-                gradient_circuit_data, base_parameter_values_all = param_shift_preprocessing(
+                gradient_circuit, base_parameter_values_all = param_shift_preprocessing(
                     circuit
                 )
                 self._gradient_circuits[id(circuit)] = (
-                    gradient_circuit_data,
+                    gradient_circuit,
                     base_parameter_values_all,
                 )
 
@@ -83,14 +83,14 @@ class ParamShiftEstimatorGradient(BaseEstimatorGradient):
                 result_indices,
                 coeffs,
             ) = make_param_shift_parameter_values(
-                gradient_circuit_data=gradient_circuit_data,
+                gradient_circuit_data=gradient_circuit,
                 base_parameter_values=base_parameter_values_all,
                 parameter_values=parameter_values_,
                 param_set=param_set,
             )
             n = 2 * len(gradient_parameter_values_plus)
             job = self._estimator.run(
-                [gradient_circuit_data.gradient_circuit] * n,
+                [gradient_circuit.gradient_circuit] * n,
                 [observable] * n,
                 gradient_parameter_values_plus + gradient_parameter_values_minus,
                 **run_options,

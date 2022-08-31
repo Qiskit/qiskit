@@ -15,14 +15,12 @@ Gradient of probabilities with parameter shift
 
 from __future__ import annotations
 
-from collections import Counter
 from typing import Sequence
 
 import numpy as np
 
-from qiskit.circuit import Parameter, ParameterExpression, QuantumCircuit
+from qiskit.circuit import Parameter, QuantumCircuit
 from qiskit.primitives import BaseSampler
-from qiskit.result import QuasiDistribution
 
 from .base_sampler_gradient import BaseSamplerGradient
 from .sampler_gradient_result import SamplerGradientResult
@@ -61,15 +59,15 @@ class ParamShiftSamplerGradient(BaseSamplerGradient):
             metadata_.append({"parameters": [p for p in circuit.parameters if p in param_set]})
 
             if self._gradient_circuits.get(id(circuit)):
-                gradient_circuit_data, base_parameter_values_all = self._gradient_circuits[
+                gradient_circuit, base_parameter_values_all = self._gradient_circuits[
                     id(circuit)
                 ]
             else:
-                gradient_circuit_data, base_parameter_values_all = param_shift_preprocessing(
+                gradient_circuit, base_parameter_values_all = param_shift_preprocessing(
                     circuit
                 )
                 self._gradient_circuits[id(circuit)] = (
-                    gradient_circuit_data,
+                    gradient_circuit,
                     base_parameter_values_all,
                 )
 
@@ -79,7 +77,7 @@ class ParamShiftSamplerGradient(BaseSamplerGradient):
                 result_indices,
                 coeffs,
             ) = make_param_shift_parameter_values(
-                gradient_circuit_data=gradient_circuit_data,
+                gradient_circuit_data=gradient_circuit,
                 base_parameter_values=base_parameter_values_all,
                 parameter_values=parameter_values_,
                 param_set=param_set,
@@ -87,7 +85,7 @@ class ParamShiftSamplerGradient(BaseSamplerGradient):
             n = 2 * len(gradient_parameter_values_plus)
 
             job = self._sampler.run(
-                [gradient_circuit_data.gradient_circuit] * n,
+                [gradient_circuit.gradient_circuit] * n,
                 gradient_parameter_values_plus + gradient_parameter_values_minus,
                 **run_options,
             )
@@ -109,7 +107,7 @@ class ParamShiftSamplerGradient(BaseSamplerGradient):
 
             gradient_ = []
             for grad_dist in grad_dists:
-                gradient_.append({i: dist for i, dist in enumerate(grad_dist)})
+                gradient_.append(dict(enumerate(grad_dist)))
             gradients.append(gradient_)
 
         # TODO: include primitive's run_options as well
