@@ -229,18 +229,22 @@ mock_backends_with_scheduling = [b for b in mock_backends if _fully_supports_sch
 @st.composite
 def transpiler_conf(draw):
     """Composite search strategy to pick a valid transpiler config."""
-    opt_level = draw(st.integers(min_value=0, max_value=3))
-    layout_method = draw(st.sampled_from(layout_methods))
-    routing_method = draw(st.sampled_from(routing_methods))
+    all_backends = st.one_of(st.none(), st.sampled_from(mock_backends))
+    scheduling_backends = st.sampled_from(mock_backends_with_scheduling)
     scheduling_method = draw(st.sampled_from(scheduling_methods))
-
-    compatible_backends = st.one_of(st.none(), st.sampled_from(mock_backends))
-    if scheduling_method is not None or backend_needs_durations:
-        compatible_backends = st.sampled_from(mock_backends_with_scheduling)
-
-    backend = draw(st.one_of(compatible_backends))
-
-    return (backend, opt_level, layout_method, routing_method, scheduling_method)
+    backend = (
+        draw(scheduling_backends)
+        if scheduling_method or backend_needs_durations
+        else draw(all_backends)
+    )
+    return {
+        "backend": backend,
+        "optimization_level": draw(st.integers(min_value=0, max_value=3)),
+        "layout_method": draw(st.sampled_from(layout_methods)),
+        "routing_method": draw(st.sampled_from(routing_methods)),
+        "scheduling_method": scheduling_method,
+        "seed_transpiler": draw(st.integers(min_value=0, max_value=1_000_000)),
+    }
 
 
 class QCircuitMachine(RuleBasedStateMachine):
@@ -337,21 +341,23 @@ class QCircuitMachine(RuleBasedStateMachine):
         self.qc.qasm()
 
     @precondition(lambda self: any(isinstance(d[0], Measure) for d in self.qc.data))
-    @rule(conf=transpiler_conf())
-    def equivalent_transpile(self, conf):
+    @rule(kwargs=transpiler_conf())
+    def equivalent_transpile(self, kwargs):
         """Simulate, transpile and simulate the present circuit. Verify that the
         counts are not significantly different before and after transpilation.
 
         """
-        backend, opt_level, layout_method, routing_method, scheduling_method = conf
-
-        assume(backend is None or backend.configuration().n_qubits >= len(self.qc.qubits))
-
-        print(
-            f"Evaluating circuit at level {opt_level} on {backend} "
-            f"using layout_method={layout_method} routing_method={routing_method} "
-            f"and scheduling_method={scheduling_method}:\n{self.qc.qasm()}"
+        assume(
+            kwargs["backend"] is None
+            or kwargs["backend"].configuration().n_qubits >= len(self.qc.qubits)
         )
+
+        call = (
+            "transpile(qc, "
+            + ", ".join(f"{key:s}={value!r}" for key, value in kwargs.items() if value is not None)
+            + ")"
+        )
+        print(f"Evaluating {call} for:\n{self.qc.qasm()}")
 
         shots = 4096
 
@@ -360,18 +366,9 @@ class QCircuitMachine(RuleBasedStateMachine):
         aer_counts = self.backend.run(self.qc, shots=shots).result().get_counts()
 
         try:
-            xpiled_qc = transpile(
-                self.qc,
-                backend=backend,
-                optimization_level=opt_level,
-                layout_method=layout_method,
-                routing_method=routing_method,
-                scheduling_method=scheduling_method,
-            )
+            xpiled_qc = transpile(self.qc, **kwargs)
         except Exception as e:
-            failed_qasm = "Exception caught during transpilation of circuit: \n{}".format(
-                self.qc.qasm()
-            )
+            failed_qasm = f"Exception caught during transpilation of circuit: \n{self.qc.qasm()}"
             raise RuntimeError(failed_qasm) from e
 
         xpiled_aer_counts = self.backend.run(xpiled_qc, shots=shots).result().get_counts()
