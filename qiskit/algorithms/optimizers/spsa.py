@@ -23,6 +23,7 @@ from typing import Any, Callable, Dict, Iterator, List, Optional, Tuple, Union
 
 import numpy as np
 import scipy
+from scipy.optimize import OptimizeResult
 
 from qiskit.utils import algorithm_globals
 from qiskit.utils.deprecation import deprecate_function
@@ -178,6 +179,7 @@ class SPSA(Optimizer):
         initial_hessian: Optional[np.ndarray] = None,
         callback: Optional[OptimizerCallback] = None,
         termination_checker: Optional[TERMINATIONCHECKER] = None,
+        new_callback_signature: bool = False,
     ) -> None:
         r"""
         Args:
@@ -233,6 +235,7 @@ class SPSA(Optimizer):
                 To prevent additional evaluations of the objective method, if the objective has not yet
                 been evaluated, the objective is estimated by taking the mean of the objective
                 evaluations used in the estimate of the gradient.
+            new_callback_signature: use new callback signature (``OptimizerCallback``).
 
 
         Raises:
@@ -277,6 +280,18 @@ class SPSA(Optimizer):
         # runtime arguments
         self._nfev: Optional[int] = None  # the number of function evaluations
         self._smoothed_hessian = None  # smoothed average of the Hessians
+
+        if callback is not None and not new_callback_signature:
+            warnings.warn(
+                "The argument signature of 'GradientDescent.callback' will change from "
+                "`Callable[[int, np.ndarray, float, float], None]` to `OptimizerCallback` in a "
+                "future release of Qiskit Terra. Former signature is deprecated as of "
+                "Qiskit Terra 0.22, and will be removed in a future release.  To immediately switch "
+                "to the new behaviour, pass the keyword argument 'old_callback_signature=True'.",
+                FutureWarning,
+                stacklevel=2,
+            )
+        self._new_callback_signature = new_callback_signature
 
     @staticmethod
     def calibrate(
@@ -575,13 +590,23 @@ class SPSA(Optimizer):
                     if self.callback is not None:
                         # pylint: disable=not-callable
                         # This is a bug of pylint.
-                        self.callback(
-                            self._nfev,  # number of function evals
-                            x_next,  # next parameters
-                            fx_next,  # loss at next parameters
-                            np.linalg.norm(update),  # size of the update step
-                            False,
-                        )  # not accepted
+                        if not self._new_callback_signature:
+                            self.callback(
+                                self._nfev,  # number of function evals
+                                x_next,  # next parameters
+                                fx_next,  # loss at next parameters
+                                np.linalg.norm(update),  # size of the update step
+                                False,  # not accepted
+                            )
+                        else:
+                            state = OptimizeResult(
+                                x=x_next,
+                                nfev=self._nfev,
+                                fun=fx_next,
+                                stepsize=np.linalg.norm(update),
+                                is_accepted=False,
+                            )
+                            self.callback(x_next, state)
 
                     logger.info(
                         "Iteration %s/%s rejected in %s.",
@@ -604,13 +629,23 @@ class SPSA(Optimizer):
 
                 # pylint: disable=not-callable
                 # This is a bug of pylint.
-                self.callback(
-                    self._nfev,  # number of function evals
-                    x_next,  # next parameters
-                    fx_next,  # loss at next parameters
-                    np.linalg.norm(update),  # size of the update step
-                    True,
-                )  # accepted
+                if not self._new_callback_signature:
+                    self.callback(
+                        self._nfev,  # number of function evals
+                        x_next,  # next parameters
+                        fx_next,  # loss at next parameters
+                        np.linalg.norm(update),  # size of the update step
+                        True,  # accepted
+                    )
+                else:
+                    state = OptimizeResult(
+                        x=x_next,
+                        nfev=self._nfev,
+                        fun=fx_next,
+                        stepsize=np.linalg.norm(update),
+                        is_accepted=True,
+                    )
+                    self.callback(x_next, state)
 
             # update parameters
             x = x_next

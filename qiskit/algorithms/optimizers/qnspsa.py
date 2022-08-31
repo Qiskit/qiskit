@@ -101,6 +101,7 @@ class QNSPSA(SPSA):
         initial_hessian: Optional[np.ndarray] = None,
         callback: Optional[OptimizerCallback] = None,
         termination_checker: Optional[TERMINATIONCHECKER] = None,
+        new_callback_signature: bool = False,
     ) -> None:
         r"""
         Args:
@@ -154,6 +155,7 @@ class QNSPSA(SPSA):
                 To prevent additional evaluations of the objective method, if the objective has not yet
                 been evaluated, the objective is estimated by taking the mean of the objective
                 evaluations used in the estimate of the gradient.
+            new_callback_signature: use new callback signature (``OptimizerCallback``).
 
 
         """
@@ -174,6 +176,7 @@ class QNSPSA(SPSA):
             perturbation_dims=perturbation_dims,
             initial_hessian=initial_hessian,
             termination_checker=termination_checker,
+            new_callback_signature=new_callback_signature,
         )
 
         self.fidelity = fidelity

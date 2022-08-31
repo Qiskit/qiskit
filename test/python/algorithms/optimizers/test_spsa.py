@@ -161,23 +161,54 @@ class TestSPSA(QiskitAlgorithmsTestCase):
     def test_callback(self):
         """Test using the callback."""
 
-        def objective(x):
-            return (np.linalg.norm(x) - 2) ** 2
+        with self.subTest("Old callback signature."):
 
-        history = {"nfevs": [], "points": [], "fvals": [], "updates": [], "accepted": []}
+            def objective(x):
+                return (np.linalg.norm(x) - 2) ** 2
 
-        def callback(nfev, point, fval, update, accepted):
-            history["nfevs"].append(nfev)
-            history["points"].append(point)
-            history["fvals"].append(fval)
-            history["updates"].append(update)
-            history["accepted"].append(accepted)
+            history = {"nfevs": [], "points": [], "fvals": [], "updates": [], "accepted": []}
 
-        maxiter = 10
-        spsa = SPSA(maxiter=maxiter, learning_rate=0.01, perturbation=0.01, callback=callback)
-        _ = spsa.minimize(objective, x0=np.array([0.5, 0.5]))
+            def old_callback(nfev, point, fval, update, accepted):
+                history["nfevs"].append(nfev)
+                history["points"].append(point)
+                history["fvals"].append(fval)
+                history["updates"].append(update)
+                history["accepted"].append(accepted)
 
-        expected_types = [int, np.ndarray, float, float, bool]
-        for i, (key, values) in enumerate(history.items()):
-            self.assertTrue(all(isinstance(value, expected_types[i]) for value in values))
-            self.assertEqual(len(history[key]), maxiter)
+            maxiter = 10
+            with self.assertWarns(FutureWarning):
+                spsa = SPSA(
+                    maxiter=maxiter, learning_rate=0.01, perturbation=0.01, callback=old_callback
+                )
+            _ = spsa.minimize(objective, x0=np.array([0.5, 0.5]))
+
+            expected_types = [int, np.ndarray, float, float, bool]
+            for i, (key, values) in enumerate(history.items()):
+                self.assertTrue(all(isinstance(value, expected_types[i]) for value in values))
+                self.assertEqual(len(history[key]), maxiter)
+
+        with self.subTest("New callback signature."):
+
+            history = {"nfevs": [], "points": [], "fvals": [], "updates": [], "accepted": []}
+
+            def callback(x, state):
+                history["nfevs"].append(state.nfev)
+                history["points"].append(x)
+                history["fvals"].append(state.fun)
+                history["updates"].append(state.stepsize)
+                history["accepted"].append(state.is_accepted)
+
+            maxiter = 10
+            spsa = SPSA(
+                maxiter=maxiter,
+                learning_rate=0.01,
+                perturbation=0.01,
+                callback=callback,
+                new_callback_signature=True,
+            )
+            _ = spsa.minimize(objective, x0=np.array([0.5, 0.5]))
+
+            expected_types = [int, np.ndarray, float, float, bool]
+            for i, (key, values) in enumerate(history.items()):
+                self.assertTrue(all(isinstance(value, expected_types[i]) for value in values))
+                self.assertEqual(len(history[key]), maxiter)

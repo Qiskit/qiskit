@@ -184,27 +184,6 @@ class OptimizerCallback(Protocol):
     def __call__(self, xk, state: OptimizeResult) -> bool:
         ...
 
-    @overload
-    def __call__(
-        self,
-        nfev: int,
-        x: POINT,
-        fun: float,
-        stepsize: float,
-    ):
-        ...
-
-    @overload
-    def __call__(
-        self,
-        nfev: int,
-        x_next: POINT,
-        fx_next: float,
-        stepsize: np.floating,
-        is_accepted: bool,
-    ):
-        ...
-
     def __call__(self, xk, state=None):
         ...
 

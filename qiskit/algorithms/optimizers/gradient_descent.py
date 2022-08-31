@@ -14,8 +14,10 @@
 
 from dataclasses import dataclass, field
 from typing import Any, Callable, Dict, Iterator, List, Optional, Tuple, Union
+from warnings import warn
 
 import numpy as np
+from scipy.optimize import OptimizeResult
 
 from .optimizer import POINT, Optimizer, OptimizerCallback, OptimizerResult, OptimizerSupportLevel
 from .optimizer_utils import LearningRate
@@ -181,6 +183,7 @@ class GradientDescent(SteppableOptimizer):
         tol: float = 1e-7,
         callback: Optional[OptimizerCallback] = None,
         perturbation: Optional[float] = None,
+        new_callback_signature: bool = False,
     ) -> None:
         """
         Args:
@@ -193,6 +196,7 @@ class GradientDescent(SteppableOptimizer):
                 approximated with a forward finite difference scheme with ``perturbation``
                 perturbation in both directions (defaults to 1e-2 if required).
                 Ignored when we have an explicit function for the gradient.
+            new_callback_signature: use new callback signature (``OptimizerCallback``).
         Raises:
             ValueError: If ``learning_rate`` is an array and its lenght is less than ``maxiter``.
         """
@@ -208,6 +212,17 @@ class GradientDescent(SteppableOptimizer):
                     f"is smaller than maxiter ({maxiter})."
                 )
         self.learning_rate = learning_rate
+        if callback is not None and not new_callback_signature:
+            warn(
+                "The argument signature of 'GradientDescent.callback' will change from "
+                "`Callable[[int, np.ndarray, float, float], None]` to `OptimizerCallback` in a "
+                "future release of Qiskit Terra. Former signature is deprecated as of "
+                "Qiskit Terra 0.22, and will be removed in a future release.  To immediately switch "
+                "to the new behaviour, pass the keyword argument 'old_callback_signature=True'.",
+                FutureWarning,
+                stacklevel=2,
+            )
+        self._new_callback_signature = new_callback_signature
 
     @property
     def state(self) -> GradientDescentState:
@@ -255,12 +270,21 @@ class GradientDescent(SteppableOptimizer):
         if self.callback is not None:
             # pylint: disable=not-callable
             # This is a bug of pylint.
-            self.callback(
-                self.state.nfev,
-                self.state.x,
-                self.state.fun(self.state.x),
-                self.state.stepsize,
-            )
+            if not self._new_callback_signature:
+                self.callback(
+                    self.state.nfev,
+                    self.state.x,
+                    self.state.fun(self.state.x),
+                    self.state.stepsize,
+                )
+            else:
+                state = OptimizeResult(
+                    nfev=self.state.nfev,
+                    x=self.state.x,
+                    fun=self.state.fun(self.state.x),
+                    stepsize=self.state.stepsize,
+                )
+                self.callback(self.state.x, state)
 
     @property
     def settings(self) -> Dict[str, Any]:

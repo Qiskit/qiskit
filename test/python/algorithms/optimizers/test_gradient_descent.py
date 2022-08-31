@@ -14,6 +14,8 @@
 
 from test.python.algorithms import QiskitAlgorithmsTestCase
 import numpy as np
+from scipy.optimize import OptimizeResult
+
 from qiskit.algorithms.optimizers import GradientDescent, GradientDescentState
 from qiskit.algorithms.optimizers.steppable_optimizer import TellData, AskData
 from qiskit.circuit.library import PauliTwoDesign
@@ -75,20 +77,36 @@ class TestGradientDescent(QiskitAlgorithmsTestCase):
     def test_callback(self):
         """Test the callback."""
 
-        history = []
+        with self.subTest("Old callback signature."):
+            history = []
 
-        def callback(*args):
-            history.append(args)
+            def callback(*args):
+                history.append(args)
 
-        optimizer = GradientDescent(maxiter=1, callback=callback)
+            with self.assertWarns(FutureWarning):
+                optimizer = GradientDescent(maxiter=1, callback=callback)
 
-        _ = optimizer.minimize(self.objective, np.array([1, -1]))
+            _ = optimizer.minimize(self.objective, np.array([1, -1]))
 
-        self.assertEqual(len(history), 1)
-        self.assertIsInstance(history[0][0], int)  # nfevs
-        self.assertIsInstance(history[0][1], np.ndarray)  # parameters
-        self.assertIsInstance(history[0][2], float)  # function value
-        self.assertIsInstance(history[0][3], float)  # norm of the gradient
+            self.assertEqual(len(history), 1)
+            self.assertIsInstance(history[0][0], int)  # nfevs
+            self.assertIsInstance(history[0][1], np.ndarray)  # parameters
+            self.assertIsInstance(history[0][2], float)  # function value
+            self.assertIsInstance(history[0][3], float)  # norm of the gradient
+
+        with self.subTest("New callback signature."):
+            history = []
+
+            optimizer = GradientDescent(maxiter=1, callback=callback, new_callback_signature=True)
+
+            _ = optimizer.minimize(self.objective, np.array([1, -1]))
+
+            self.assertEqual(len(history), 1)
+            self.assertIsInstance(history[0][0], np.ndarray)  # parameters
+            self.assertIsInstance(history[0][1], OptimizeResult)  # state
+            self.assertIsInstance(history[0][1].nfev, int)  # nfevs
+            self.assertIsInstance(history[0][1].fun, float)  # function value
+            self.assertIsInstance(history[0][1].stepsize, float)  # norm of the gradient
 
     def test_minimize(self):
         """Test setting the learning rate as iterator and minimizing the funciton."""
