@@ -92,10 +92,39 @@ class TestSolovayKitaev(QiskitTestCase):
 
         self.basic_approx = generate_basic_approximations([HGate(), TGate(), TdgGate()], 3)
 
+    def test_transpile(self):
+        """Test the unitary synthesis transpiler pass through transpile."""
+        circuit = QuantumCircuit(2)
+        circuit.rx(0.8, 0)
+        # circuit.cx(0, 1)
+        # circuit.x(1)
+
+        compiled = transpile(
+            circuit,
+            # basis_gates=["s", "h"],   # should work with passing the basis gates here, too
+            unitary_synthesis_method="sk",
+            unitary_synthesis_plugin_config={"basis_gates": ["s", "h"]},
+            optimization_level=1,
+        )
+
+        reference = QuantumCircuit(2, global_phase=np.pi)
+        reference.h(0)
+        reference.s(0)
+        reference.h(0)
+        # reference.cx(0, 1)
+        # reference.h(0)
+        # reference.s(0)
+        # reference.s(0)
+        # reference.h(0)
+
+        self.assertEqual(compiled, reference)
+
     def test_unitary_synthesis(self):
         """Test the unitary synthesis transpiler pass with Solovay-Kitaev."""
-        circuit = QuantumCircuit(1)
+        circuit = QuantumCircuit(2)
         circuit.rx(0.8, 0)
+        circuit.cx(0, 1)
+        circuit.x(1)
 
         _1q = Collect1qRuns()
         _2q = Collect2qBlocks()
@@ -104,8 +133,13 @@ class TestSolovayKitaev(QiskitTestCase):
         passes = PassManager([_1q, _2q, _cons, _synth])
         compiled = passes.run(circuit)
 
-        reference = QuantumCircuit(1, global_phase=3 * np.pi / 4)
+        reference = QuantumCircuit(2, global_phase=np.pi)
         reference.h(0)
+        reference.s(0)
+        reference.h(0)
+        reference.cx(0, 1)
+        reference.h(0)
+        reference.s(0)
         reference.s(0)
         reference.h(0)
 

@@ -47,6 +47,7 @@ from qiskit.transpiler.passes import RemoveResetInZeroState
 from qiskit.transpiler.passes import Optimize1qGatesDecomposition
 from qiskit.transpiler.passes import ApplyLayout
 from qiskit.transpiler.passes import CheckGateDirection
+from qiskit.transpiler.passes import Collect1qRuns
 from qiskit.transpiler.passes import Collect2qBlocks
 from qiskit.transpiler.passes import ConsolidateBlocks
 from qiskit.transpiler.passes import UnitarySynthesis
@@ -252,6 +253,7 @@ def level_1_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
                 target=target,
             ),
             Unroll3qOrMore(),
+            Collect1qRuns(),
             Collect2qBlocks(),
             ConsolidateBlocks(basis_gates=basis_gates, target=target),
             UnitarySynthesis(
