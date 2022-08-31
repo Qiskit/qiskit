@@ -289,4 +289,4 @@ class BaseStateFidelity(ABC):
              List of truncated fidelities.
 
         """
-        return [0 if f < 0 else 1 if f > 1 else f for f in fidelities]
+        return np.clip(fidelities, 0, 1).tolist()
