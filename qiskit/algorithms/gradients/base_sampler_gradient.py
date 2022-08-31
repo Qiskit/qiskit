@@ -43,7 +43,7 @@ class BaseSamplerGradient(ABC):
         if not isinstance(sampler, BaseSampler):
             raise ValueError(
                 f"The sampler should be an instance of BaseSampler, but got {type(sampler)}"
-                )
+            )
         self._sampler: BaseSampler = sampler
         self._default_run_options = run_options
 
@@ -133,10 +133,8 @@ class BaseSamplerGradient(ABC):
                 )
 
         for i, (circuit, parameter_value) in enumerate(zip(circuits, parameter_values)):
-            if  not circuit.num_parameters:
-                raise ValueError(
-                    f"The {i}-th circuit is not parameterised."
-                )
+            if not circuit.num_parameters:
+                raise ValueError(f"The {i}-th circuit is not parameterised.")
 
             if len(parameter_value) != circuit.num_parameters:
                 raise ValueError(

@@ -59,13 +59,9 @@ class ParamShiftSamplerGradient(BaseSamplerGradient):
             metadata_.append({"parameters": [p for p in circuit.parameters if p in param_set]})
 
             if self._gradient_circuits.get(id(circuit)):
-                gradient_circuit, base_parameter_values_all = self._gradient_circuits[
-                    id(circuit)
-                ]
+                gradient_circuit, base_parameter_values_all = self._gradient_circuits[id(circuit)]
             else:
-                gradient_circuit, base_parameter_values_all = param_shift_preprocessing(
-                    circuit
-                )
+                gradient_circuit, base_parameter_values_all = param_shift_preprocessing(circuit)
                 self._gradient_circuits[id(circuit)] = (
                     gradient_circuit,
                     base_parameter_values_all,
@@ -102,8 +98,12 @@ class ParamShiftSamplerGradient(BaseSamplerGradient):
             for idx, coeff, dist_plus, dist_minus in zip(
                 result_indices_all[i], coeffs_all[i], result.quasi_dists[:n], result.quasi_dists[n:]
             ):
-                grad_dists[idx][list(dist_plus.keys())] += (np.array(list(dist_plus.values())) * coeff)
-                grad_dists[idx][list(dist_minus.keys())] -= (np.array(list(dist_minus.values())) * coeff)
+                grad_dists[idx][list(dist_plus.keys())] += (
+                    np.array(list(dist_plus.values())) * coeff
+                )
+                grad_dists[idx][list(dist_minus.keys())] -= (
+                    np.array(list(dist_minus.values())) * coeff
+                )
 
             gradient_ = []
             for grad_dist in grad_dists:

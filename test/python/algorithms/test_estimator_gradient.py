@@ -20,10 +20,12 @@ import numpy as np
 from ddt import ddt
 
 from qiskit import QuantumCircuit
-from qiskit.algorithms.gradients import (FiniteDiffEstimatorGradient,
-                                         LinCombEstimatorGradient,
-                                         ParamShiftEstimatorGradient,
-                                         SPSAEstimatorGradient)
+from qiskit.algorithms.gradients import (
+    FiniteDiffEstimatorGradient,
+    LinCombEstimatorGradient,
+    ParamShiftEstimatorGradient,
+    SPSAEstimatorGradient,
+)
 from qiskit.circuit import Parameter
 from qiskit.circuit.library import EfficientSU2, RealAmplitudes
 from qiskit.circuit.library.standard_gates.rxx import RXXGate

@@ -50,7 +50,7 @@ class BaseEstimatorGradient(ABC):
         if not isinstance(estimator, BaseEstimator):
             raise ValueError(
                 f"The estimator should be an instance of BaseEstimator, but got {type(estimator)}"
-                )
+            )
         self._estimator: BaseEstimator = estimator
         self._default_run_options = run_options
 
@@ -155,10 +155,8 @@ class BaseEstimatorGradient(ABC):
                 )
 
         for i, (circuit, parameter_value) in enumerate(zip(circuits, parameter_values)):
-            if  not circuit.num_parameters:
-                raise ValueError(
-                    f"The {i}-th circuit is not parameterised."
-                )
+            if not circuit.num_parameters:
+                raise ValueError(f"The {i}-th circuit is not parameterised.")
             if len(parameter_value) != circuit.num_parameters:
                 raise ValueError(
                     f"The number of values ({len(parameter_value)}) does not match "

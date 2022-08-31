@@ -65,13 +65,9 @@ class ParamShiftEstimatorGradient(BaseEstimatorGradient):
             metadata_.append({"parameters": [p for p in circuit.parameters if p in param_set]})
 
             if self._gradient_circuits.get(id(circuit)):
-                gradient_circuit, base_parameter_values_all = self._gradient_circuits[
-                    id(circuit)
-                ]
+                gradient_circuit, base_parameter_values_all = self._gradient_circuits[id(circuit)]
             else:
-                gradient_circuit, base_parameter_values_all = param_shift_preprocessing(
-                    circuit
-                )
+                gradient_circuit, base_parameter_values_all = param_shift_preprocessing(circuit)
                 self._gradient_circuits[id(circuit)] = (
                     gradient_circuit,
                     base_parameter_values_all,
@@ -104,7 +100,7 @@ class ParamShiftEstimatorGradient(BaseEstimatorGradient):
         gradients = []
         for i, result in enumerate(results):
             n = len(result.values) // 2  # is always a multiple of 2
-            gradient_ = (result.values[:n] - result.values[n:])
+            gradient_ = result.values[:n] - result.values[n:]
             values = np.zeros(len(metadata_[i]["parameters"]))
             for grad_, idx, coeff in zip(gradient_, result_indices_all[i], coeffs_all[i]):
                 values[idx] += coeff * grad_

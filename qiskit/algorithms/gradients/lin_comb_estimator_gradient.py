@@ -115,7 +115,7 @@ class LinCombEstimatorGradient(BaseEstimatorGradient):
         results = [job.result() for job in jobs]
         gradients = []
         for i, result in enumerate(results):
-            gradient_ = np.zeros(len(metadata_[i]['parameters']))
+            gradient_ = np.zeros(len(metadata_[i]["parameters"]))
             for grad_, idx, coeff in zip(result.values, result_indices_all[i], coeffs_all[i]):
                 gradient_[idx] += coeff * grad_
             gradients.append(gradient_)
