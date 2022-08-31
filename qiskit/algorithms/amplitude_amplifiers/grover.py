@@ -19,6 +19,7 @@ from typing import Iterator, List, Optional, Union
 import numpy as np
 
 from qiskit import ClassicalRegister, QuantumCircuit
+from qiskit.primitives import BaseSampler
 from qiskit.providers import Backend
 from qiskit.quantum_info import partial_trace
 from qiskit.utils import QuantumInstance
@@ -113,6 +114,7 @@ class Grover(AmplitudeAmplifier):
         growth_rate: Optional[float] = None,
         sample_from_iterations: bool = False,
         quantum_instance: Optional[Union[QuantumInstance, Backend]] = None,
+        sampler: Optional[BaseSampler] = None,
     ) -> None:
         r"""
         Args:
@@ -159,6 +161,8 @@ class Grover(AmplitudeAmplifier):
         self._quantum_instance = None
         if quantum_instance is not None:
             self.quantum_instance = quantum_instance
+
+        self._sampler = None or sampler
 
         self._sample_from_iterations = sample_from_iterations
         self._iterations_arg = iterations
@@ -228,34 +232,38 @@ class Grover(AmplitudeAmplifier):
             if self._sample_from_iterations:
                 power = np.random.randint(power)
             # Run a grover experiment for a given power of the Grover operator.
-            if self._quantum_instance.is_statevector:
-                qc = self.construct_circuit(amplification_problem, power, measurement=False)
-                circuit_results = self._quantum_instance.execute(qc).get_statevector()
-                num_bits = len(amplification_problem.objective_qubits)
-
-                # trace out work qubits
-                if qc.width() != num_bits:
-                    indices = [
-                        i
-                        for i in range(qc.num_qubits)
-                        if i not in amplification_problem.objective_qubits
-                    ]
-                    rho = partial_trace(circuit_results, indices)
-                    circuit_results = np.diag(rho.data)
-
-                max_amplitude = max(circuit_results.max(), circuit_results.min(), key=abs)
-                max_amplitude_idx = np.where(circuit_results == max_amplitude)[0][0]
-                top_measurement = np.binary_repr(max_amplitude_idx, num_bits)
-                max_probability = np.abs(max_amplitude) ** 2
-                shots = 1
+            # TODO: sampler.run and collect results
+            if self._sampler:
+                circuit_result = self._sampler.run(...)
             else:
-                qc = self.construct_circuit(amplification_problem, power, measurement=True)
-                circuit_results = self._quantum_instance.execute(qc).get_counts(qc)
-                top_measurement = max(circuit_results.items(), key=operator.itemgetter(1))[0]
-                shots = sum(circuit_results.values())
-                max_probability = (
-                    max(circuit_results.items(), key=operator.itemgetter(1))[1] / shots
-                )
+                if self._quantum_instance.is_statevector:
+                    qc = self.construct_circuit(amplification_problem, power, measurement=False)
+                    circuit_results = self._quantum_instance.execute(qc).get_statevector()
+                    num_bits = len(amplification_problem.objective_qubits)
+
+                    # trace out work qubits
+                    if qc.width() != num_bits:
+                        indices = [
+                            i
+                            for i in range(qc.num_qubits)
+                            if i not in amplification_problem.objective_qubits
+                        ]
+                        rho = partial_trace(circuit_results, indices)
+                        circuit_results = np.diag(rho.data)
+
+                    max_amplitude = max(circuit_results.max(), circuit_results.min(), key=abs)
+                    max_amplitude_idx = np.where(circuit_results == max_amplitude)[0][0]
+                    top_measurement = np.binary_repr(max_amplitude_idx, num_bits)
+                    max_probability = np.abs(max_amplitude) ** 2
+                    shots = 1
+                else:
+                    qc = self.construct_circuit(amplification_problem, power, measurement=True)
+                    circuit_results = self._quantum_instance.execute(qc).get_counts(qc)
+                    top_measurement = max(circuit_results.items(), key=operator.itemgetter(1))[0]
+                    shots = sum(circuit_results.values())
+                    max_probability = (
+                        max(circuit_results.items(), key=operator.itemgetter(1))[1] / shots
+                    )
 
             all_circuit_results.append(circuit_results)
 
