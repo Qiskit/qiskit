@@ -412,25 +412,27 @@ class TestPassesInspection(QiskitTestCase):
     @data(0, 1, 2, 3)
     def test_backend_with_custom_stages(self, optimization_level):
         """Test transpile() executes backend specific custom stage."""
-        target = FakeLagosV2()
 
-        def get_scheduling_stage(backend):
-            dd_sequence = [XGate(), XGate()]
-            pm = PassManager(
-                [
-                    ALAPScheduleAnalysis(backend.instruction_durations),
-                    PadDynamicalDecoupling(backend.instruction_durations, dd_sequence),
-                ]
-            )
-            return pm
+        class TargetBackend(FakeLagosV2):
+            """Fake Lagos subclass with custom transpiler stages."""
 
-        def get_post_translation_stage(_backend):
-            pm = PassManager([RemoveResetInZeroState()])
-            return pm
+            def get_scheduling_stage(self):
+                """Custom scheduling passes."""
+                dd_sequence = [XGate(), XGate()]
+                pm = PassManager(
+                    [
+                        ALAPScheduleAnalysis(self.instruction_durations),
+                        PadDynamicalDecoupling(self.instruction_durations, dd_sequence),
+                    ]
+                )
+                return pm
 
-        target.get_scheduling_stage = get_scheduling_stage
-        target.get_post_translation_stage = get_post_translation_stage
+            def get_post_translation_stage(self):
+                """Custom post translation stage."""
+                pm = PassManager([RemoveResetInZeroState()])
+                return pm
 
+        target = TargetBackend()
         qr = QuantumRegister(2, "q")
         qc = QuantumCircuit(qr)
         qc.h(qr[0])
@@ -438,7 +440,7 @@ class TestPassesInspection(QiskitTestCase):
         _ = transpile(qc, target, optimization_level=optimization_level, callback=self.callback)
         self.assertIn("ALAPScheduleAnalysis", self.passes)
         self.assertIn("PadDynamicalDecoupling", self.passes)
-        self.assertIn("RemoveResetInZeroState()", self.passes)
+        self.assertIn("RemoveResetInZeroState", self.passes)
 
 
 @ddt
@@ -1065,31 +1067,36 @@ class TestGeenratePresetPassManagers(QiskitTestCase):
     @data(0, 1, 2, 3)
     def test_backend_with_custom_stages(self, optimization_level):
         """Test generated preset pass manager includes backend specific custom stages."""
-        target = FakeLagosV2()
 
-        def get_scheduling_stage(backend):
-            dd_sequence = [XGate(), XGate()]
-            pm = PassManager(
-                [
-                    ALAPScheduleAnalysis(backend.instruction_durations),
-                    PadDynamicalDecoupling(backend.instruction_durations, dd_sequence),
-                ]
-            )
-            return pm
+        class TargetBackend(FakeLagosV2):
+            """Fake lagos subclass with custom transpiler stages."""
 
-        def get_post_translation_stage(_backend):
-            pm = PassManager([RemoveResetInZeroState()])
-            return pm
+            def get_scheduling_stage(self):
+                """Custom scheduling stage."""
+                dd_sequence = [XGate(), XGate()]
+                pm = PassManager(
+                    [
+                        ALAPScheduleAnalysis(self.instruction_durations),
+                        PadDynamicalDecoupling(self.instruction_durations, dd_sequence),
+                    ]
+                )
+                return pm
 
-        target.get_scheduling_stage = get_scheduling_stage
-        target.get_post_translation_stage = get_post_translation_stage
+            def get_post_translation_stage(self):
+                """Custom post translation stage."""
+                pm = PassManager([RemoveResetInZeroState()])
+                return pm
+
+        target = TargetBackend()
         pm = generate_preset_pass_manager(optimization_level, target)
         self.assertIsInstance(pm, PassManager)
-        pass_list = [x.__class__.__name__ for x in pm.passes()]
+        pass_list = [y.__class__.__name__ for x in pm.passes() for y in x["passes"]]
         self.assertIn("PadDynamicalDecoupling", pass_list)
         self.assertIn("ALAPScheduleAnalysis", pass_list)
         self.assertIsNotNone(pm.post_translation)  # pylint: disable=no-member
         post_translation_pass_list = [
-            x.__class__.__name__ for x in pm.post_translation.passes()  # pylint: disable=no-member
+            y.__class__.__name__
+            for x in pm.post_translation.passes()  # pylint: disable=no-member
+            for y in x["passes"]
         ]
         self.assertIn("RemoveResetInZeroState", post_translation_pass_list)
