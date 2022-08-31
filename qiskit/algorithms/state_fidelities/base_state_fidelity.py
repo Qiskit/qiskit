@@ -33,7 +33,7 @@ class BaseStateFidelity(ABC):
     def __init__(
         self,
     ) -> None:
-        """Initializes the class to evaluate state_fidelities."""
+        """Initializes the class to evaluate state fidelities."""
 
         self._circuits: Sequence[QuantumCircuit] = []
         self._parameter_values: Sequence[Sequence[float]] = []
@@ -146,6 +146,7 @@ class BaseStateFidelity(ABC):
         circuits = []
         for (circuit_1, circuit_2) in zip(circuits_1, circuits_2):
 
+            # TODO: improve caching, what if the circuit is modified without changing the id?
             circuit = self._circuit_cache.get((id(circuit_1), id(circuit_2)))
 
             if circuit is not None:
