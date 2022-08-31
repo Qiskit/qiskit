@@ -404,6 +404,54 @@ Custom Basis Gates
    transpiler will ensure that it continues to be well supported by Qiskit
    moving forward.
 
+.. _custom_transpiler_backend:
+
+Custom Transpiler Passes
+^^^^^^^^^^^^^^^^^^^^^^^^
+As part of the transpiler there is a provision for backends to provide custom
+stage implementation to facilitate hardware specific optimizations and
+circuit transformations. Currently there are two hook points supported,
+``get_post_translation_stage()`` which is used for a backend to specify a
+:class:`~PassManager` which will be run after basis translation stage in the
+compiler and ``get_scheduling_stage()`` which is used for a backend to
+specify a :class:`~PassManager` which will be run for the scheduling stage
+by default (which is the last defined stage in a default compilation). These
+hook points in a :class:`~.BackendV2` class should only be used if your
+backend has special requirements for compilation that are not met by the
+default backend
+
+To leverage these hook points you just need to add the methods to your
+:class:`~.BackendV2` implementation and have them return a
+:class:`~.PassManager` object. For example::
+
+    from qiskit.circuit.library import XGate
+    from qiskit.transpiler.passes import (
+        ALAPScheduleAnalysis,
+        PadDynamicalDecoupling,
+        ResetAfterMeasureSimplification
+    )
+
+    class Mybackend(BackendV2):
+
+        def get_scheduling_stage(self):
+            dd_sequence = [XGate(), XGate()]
+            pm = PassManager([
+                ALAPScheduleAnalysis(self.instruction_durations),
+                PadDynamicalDecoupling(self.instruction_durations, dd_sequence)
+            ])
+            return pm
+
+        def get_post_translation_stage(self):
+            pm = PassManager([ResetAfterMeasureSimplification()])
+            return pm
+
+This snippet of a backend implementation will now have the :func:`~.transpile`
+function run a custom stage for scheduling (unless the user manually requests a
+different one explicitly) which will insert dynamical decoupling sequences and
+also simplify resets after measurements after the basis translation stage. This
+way if these two compilation steps are **required** for running on ``Mybackend``
+the transpiler will be able to perform these steps without any manual user input.
+
 Run Method
 ----------
 

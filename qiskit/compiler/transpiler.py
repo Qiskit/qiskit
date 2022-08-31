@@ -660,6 +660,9 @@ def _parse_transpile_args(
     }
 
     list_transpile_args = []
+    if scheduling_method is None and hasattr(backend, "get_scheduling_stage"):
+        scheduling_method = backend.get_scheduling_stage()
+
     for key, value in {
         "inst_map": inst_map,
         "coupling_map": coupling_map,
@@ -691,6 +694,8 @@ def _parse_transpile_args(
             "pass_manager_config": kwargs,
         }
         list_transpile_args.append(transpile_args)
+    if hasattr(backend, "get_post_translation_stage"):
+        shared_dict["post_translation_pm"] = backend.get_post_translation_stage()
 
     return list_transpile_args, shared_dict
 

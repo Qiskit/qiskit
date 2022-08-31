@@ -23,7 +23,12 @@ from qiskit import QuantumCircuit, ClassicalRegister, QuantumRegister
 from qiskit.circuit import Qubit
 from qiskit.compiler import transpile, assemble
 from qiskit.transpiler import CouplingMap, Layout, PassManager, TranspilerError
-from qiskit.circuit.library import U2Gate, U3Gate
+from qiskit.transpiler.passes import (
+    ALAPScheduleAnalysis,
+    PadDynamicalDecoupling,
+    RemoveResetInZeroState,
+)
+from qiskit.circuit.library import U2Gate, U3Gate, XGate
 from qiskit.test import QiskitTestCase
 from qiskit.providers.fake_provider import (
     FakeTenerife,
@@ -403,6 +408,37 @@ class TestPassesInspection(QiskitTestCase):
             transpiled._layout,
             Layout.from_qubit_list([ancilla[0], ancilla[1], qr[1], ancilla[2], qr[0]]),
         )
+
+    @data(0, 1, 2, 3)
+    def test_backend_with_custom_stages(self, optimization_level):
+        """Test transpile() executes backend specific custom stage."""
+        target = FakeLagosV2()
+
+        def get_scheduling_stage(backend):
+            dd_sequence = [XGate(), XGate()]
+            pm = PassManager(
+                [
+                    ALAPScheduleAnalysis(backend.instruction_durations),
+                    PadDynamicalDecoupling(backend.instruction_durations, dd_sequence),
+                ]
+            )
+            return pm
+
+        def get_post_translation_stage(_backend):
+            pm = PassManager([RemoveResetInZeroState()])
+            return pm
+
+        target.get_scheduling_stage = get_scheduling_stage
+        target.get_post_translation_stage = get_post_translation_stage
+
+        qr = QuantumRegister(2, "q")
+        qc = QuantumCircuit(qr)
+        qc.h(qr[0])
+        qc.cx(qr[0], qr[1])
+        _ = transpile(qc, target, optimization_level=optimization_level, callback=self.callback)
+        self.assertIn("ALAPScheduleAnalysis", self.passes)
+        self.assertIn("PadDynamicalDecoupling", self.passes)
+        self.assertIn("RemoveResetInZeroState()", self.passes)
 
 
 @ddt
@@ -1025,3 +1061,35 @@ class TestGeenratePresetPassManagers(QiskitTestCase):
         """Assert we fail with an invalid optimization_level."""
         with self.assertRaises(ValueError):
             generate_preset_pass_manager(42)
+
+    @data(0, 1, 2, 3)
+    def test_backend_with_custom_stages(self, optimization_level):
+        """Test generated preset pass manager includes backend specific custom stages."""
+        target = FakeLagosV2()
+
+        def get_scheduling_stage(backend):
+            dd_sequence = [XGate(), XGate()]
+            pm = PassManager(
+                [
+                    ALAPScheduleAnalysis(backend.instruction_durations),
+                    PadDynamicalDecoupling(backend.instruction_durations, dd_sequence),
+                ]
+            )
+            return pm
+
+        def get_post_translation_stage(_backend):
+            pm = PassManager([RemoveResetInZeroState()])
+            return pm
+
+        target.get_scheduling_stage = get_scheduling_stage
+        target.get_post_translation_stage = get_post_translation_stage
+        pm = generate_preset_pass_manager(optimization_level, target)
+        self.assertIsInstance(pm, PassManager)
+        pass_list = [x.__class__.__name__ for x in pm.passes()]
+        self.assertIn("PadDynamicalDecoupling", pass_list)
+        self.assertIn("ALAPScheduleAnalysis", pass_list)
+        self.assertIsNotNone(pm.post_translation)  # pylint: disable=no-member
+        post_translation_pass_list = [
+            x.__class__.__name__ for x in pm.post_translation.passes()  # pylint: disable=no-member
+        ]
+        self.assertIn("RemoveResetInZeroState", post_translation_pass_list)
