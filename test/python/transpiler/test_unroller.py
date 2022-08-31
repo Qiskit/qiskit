@@ -22,7 +22,7 @@ from qiskit.converters import circuit_to_dag, dag_to_circuit
 from qiskit.quantum_info import Operator
 from qiskit.test import QiskitTestCase
 from qiskit.exceptions import QiskitError
-from qiskit.circuit import Parameter
+from qiskit.circuit import Parameter, Qubit, Clbit
 from qiskit.circuit.library import U1Gate, U2Gate, U3Gate, CU1Gate, CU3Gate
 
 
@@ -296,6 +296,121 @@ class TestUnroller(QiskitTestCase):
         qcd = dag_to_circuit(out_dag)
 
         self.assertEqual(Operator(qc), Operator(qcd))
+
+    def test_if_simple(self):
+        """Test a simple if statement unrolls correctly."""
+        qubits = [Qubit(), Qubit()]
+        clbits = [Clbit(), Clbit()]
+
+        qc = QuantumCircuit(qubits, clbits)
+        qc.h(0)
+        qc.measure(0, 0)
+        with qc.if_test((clbits[0], 0)):
+            qc.x(0)
+        qc.h(0)
+        qc.measure(0, 1)
+        with qc.if_test((clbits[1], 0)):
+            qc.h(1)
+            qc.cx(1, 0)
+        dag = circuit_to_dag(qc)
+        unrolled_dag = Unroller(["u", "cx"]).run(dag)
+
+        expected = QuantumCircuit(qubits, clbits)
+        expected.u(pi / 2, 0, pi, 0)
+        expected.measure(0, 0)
+        with expected.if_test((clbits[0], 0)):
+            expected.u(pi, 0, pi, 0)
+        expected.u(pi / 2, 0, pi, 0)
+        expected.measure(0, 1)
+        with expected.if_test((clbits[1], 0)):
+            expected.u(pi / 2, 0, pi, 1)
+            expected.cx(1, 0)
+        expected_dag = circuit_to_dag(expected)
+        self.assertEqual(unrolled_dag, expected_dag)
+
+    def test_if_else_simple(self):
+        """Test a simple if-else statement unrolls correctly."""
+        qubits = [Qubit(), Qubit()]
+        clbits = [Clbit(), Clbit()]
+
+        qc = QuantumCircuit(qubits, clbits)
+        qc.h(0)
+        qc.measure(0, 0)
+        with qc.if_test((clbits[0], 0)) as else_:
+            qc.x(0)
+        with else_:
+            qc.z(0)
+        qc.h(0)
+        qc.measure(0, 1)
+        with qc.if_test((clbits[1], 0)) as else_:
+            qc.h(1)
+            qc.cx(1, 0)
+        with else_:
+            qc.h(0)
+            qc.cx(0, 1)
+        dag = circuit_to_dag(qc)
+        unrolled_dag = Unroller(["u", "cx"]).run(dag)
+
+        expected = QuantumCircuit(qubits, clbits)
+        expected.u(pi / 2, 0, pi, 0)
+        expected.measure(0, 0)
+        with expected.if_test((clbits[0], 0)) as else_:
+            expected.u(pi, 0, pi, 0)
+        with else_:
+            expected.u(0, 0, pi, 0)
+        expected.u(pi / 2, 0, pi, 0)
+        expected.measure(0, 1)
+        with expected.if_test((clbits[1], 0)) as else_:
+            expected.u(pi / 2, 0, pi, 1)
+            expected.cx(1, 0)
+        with else_:
+            expected.u(pi / 2, 0, pi, 0)
+            expected.cx(0, 1)
+        expected_dag = circuit_to_dag(expected)
+        self.assertEqual(unrolled_dag, expected_dag)
+
+    def test_nested_control_flow(self):
+        """Test unrolling nested control flow blocks."""
+        qr = QuantumRegister(2)
+        cr1 = ClassicalRegister(1)
+        cr2 = ClassicalRegister(1)
+        cr3 = ClassicalRegister(1)
+        qc = QuantumCircuit(qr, cr1, cr2, cr3)
+        with qc.for_loop(range(3)):
+            with qc.while_loop((cr1, 0)):
+                qc.x(0)
+            with qc.while_loop((cr2, 0)):
+                qc.y(0)
+            with qc.while_loop((cr3, 0)):
+                qc.z(0)
+        dag = circuit_to_dag(qc)
+        unrolled_dag = Unroller(["u", "cx"]).run(dag)
+
+        expected = QuantumCircuit(qr, cr1, cr2, cr3)
+        with expected.for_loop(range(3)):
+            with expected.while_loop((cr1, 0)):
+                expected.u(pi, 0, pi, 0)
+            with expected.while_loop((cr2, 0)):
+                expected.u(pi, pi / 2, pi / 2, 0)
+            with expected.while_loop((cr3, 0)):
+                expected.u(0, 0, pi, 0)
+        expected_dag = circuit_to_dag(expected)
+        self.assertEqual(unrolled_dag, expected_dag)
+
+    def test_parameterized_angle(self):
+        """Test unrolling with parameterized angle"""
+        qc = QuantumCircuit(1)
+        index = Parameter("index")
+        with qc.for_loop((0, 0.5 * pi), index) as param:
+            qc.rx(param, 0)
+        dag = circuit_to_dag(qc)
+        unrolled_dag = Unroller(["u", "cx"]).run(dag)
+
+        expected = QuantumCircuit(1)
+        with expected.for_loop((0, 0.5 * pi), index) as param:
+            expected.u(param, -pi / 2, pi / 2, 0)
+        expected_dag = circuit_to_dag(expected)
+        self.assertEqual(unrolled_dag, expected_dag)
 
 
 class TestUnrollAllInstructions(QiskitTestCase):

@@ -36,13 +36,3 @@ class FakeQuito(fake_pulse_backend.FakePulseBackend):
     props_filename = "props_quito.json"
     defs_filename = "defs_quito.json"
     backend_name = "fake_quito"
-
-
-class FakeLegacyQuito(fake_pulse_backend.FakePulseLegacyBackend):
-    """A fake 5 qubit backend."""
-
-    dirname = os.path.dirname(__file__)
-    conf_filename = "conf_quito.json"
-    props_filename = "props_quito.json"
-    defs_filename = "defs_quito.json"
-    backend_name = "fake_quito"

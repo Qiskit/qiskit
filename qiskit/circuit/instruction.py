@@ -69,6 +69,7 @@ class Instruction:
 
         Raises:
             CircuitError: when the register is not in the correct format.
+            TypeError: when the optional label is provided, but it is not a string.
         """
         if not isinstance(num_qubits, int) or not isinstance(num_clbits, int):
             raise CircuitError("num_qubits and num_clbits must be integer.")
@@ -86,6 +87,8 @@ class Instruction:
         #       already set is a temporary work around that can be removed after
         #       the next stable qiskit-aer release
         if not hasattr(self, "_label"):
+            if label is not None and not isinstance(label, str):
+                raise TypeError("label expects a string or None")
             self._label = label
         # tuple (ClassicalRegister, int), tuple (Clbit, bool) or tuple (Clbit, int)
         # when the instruction has a conditional ("if")

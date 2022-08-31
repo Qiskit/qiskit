@@ -17,7 +17,7 @@ from typing import Optional, List, Tuple, Union, Iterable, Set
 from qiskit.circuit import Barrier, Delay
 from qiskit.circuit import Instruction, Qubit, ParameterExpression
 from qiskit.circuit.duration import duration_in_dt
-from qiskit.providers import BaseBackend
+from qiskit.providers import Backend
 from qiskit.transpiler.exceptions import TranspilerError
 from qiskit.utils.units import apply_prefix
 
@@ -60,7 +60,7 @@ class InstructionDurations:
         return string
 
     @classmethod
-    def from_backend(cls, backend: BaseBackend):
+    def from_backend(cls, backend: Backend):
         """Construct an :class:`InstructionDurations` object from the backend.
 
         Args:

@@ -1,0 +1,5 @@
+---
+fixes:
+  - |
+    Fixes a bug in the :class:`~.RZXCalibrationBuilder` transpiler pass that was causing pulses to sometimes be
+    constructed with incorrect durations.

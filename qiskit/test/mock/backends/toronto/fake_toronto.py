@@ -36,13 +36,3 @@ class FakeToronto(fake_pulse_backend.FakePulseBackend):
     props_filename = "props_toronto.json"
     defs_filename = "defs_toronto.json"
     backend_name = "fake_toronto"
-
-
-class FakeLegacyToronto(fake_pulse_backend.FakePulseLegacyBackend):
-    """A fake 27 qubit backend."""
-
-    dirname = os.path.dirname(__file__)
-    conf_filename = "conf_toronto.json"
-    props_filename = "props_toronto.json"
-    defs_filename = "defs_toronto.json"
-    backend_name = "fake_toronto"

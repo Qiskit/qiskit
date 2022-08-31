@@ -54,22 +54,3 @@ class FakeJohannesburg(fake_pulse_backend.FakePulseBackend):
     props_filename = "props_johannesburg.json"
     defs_filename = "defs_johannesburg.json"
     backend_name = "fake_johannesburg"
-
-
-class FakeLegacyJohannesburg(fake_pulse_backend.FakePulseLegacyBackend):
-    """A fake Johannesburg backend.
-
-    00 ↔ 01 ↔ 02 ↔ 03 ↔ 04
-     ↕                   ↕
-    05 ↔ 06 ↔ 07 ↔ 08 ↔ 09
-     ↕         ↕         ↕
-    10 ↔ 11 ↔ 12 ↔ 13 ↔ 14
-     ↕                   ↕
-    15 ↔ 16 ↔ 17 ↔ 18 ↔ 19
-    """
-
-    dirname = os.path.dirname(__file__)
-    conf_filename = "conf_johannesburg.json"
-    props_filename = "props_johannesburg.json"
-    defs_filename = "defs_johannesburg.json"
-    backend_name = "fake_johannesburg"

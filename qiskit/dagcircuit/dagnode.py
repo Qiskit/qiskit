@@ -16,241 +16,15 @@
 
 import warnings
 
-from qiskit.exceptions import QiskitError
-
 
 class DAGNode:
     """Parent class for DAGOpNode, DAGInNode, and DAGOutNode."""
 
-    __slots__ = ["_type", "_op", "_qargs", "_cargs", "_wire", "_node_id"]
+    __slots__ = ["_node_id"]
 
-    def __init__(self, type=None, op=None, name=None, qargs=None, cargs=None, wire=None, nid=-1):
+    def __init__(self, nid=-1):
         """Create a node"""
-        if type is not None:
-            warnings.warn(
-                "The DAGNode 'type' kwarg is deprecated as of 0.19.0 and "
-                "will be removed no earlier than 3 months after the release date. "
-                "Use DAGOpNode, DAGInNode, or DAGOutNode instead of DAGNode.",
-                DeprecationWarning,
-                2,
-            )
-        self._type = type
-        if op is not None:
-            warnings.warn(
-                "The DAGNode 'op' kwarg is deprecated as of 0.19.0 and "
-                "will be removed no earlier than 3 months after the release date."
-                "Use DAGOpNode instead of DAGNode.",
-                DeprecationWarning,
-                2,
-            )
-        self._op = op
-        if name is not None:
-            warnings.warn(
-                "The DAGNode 'name' attribute is deprecated as of 0.19.0 and "
-                "will be removed no earlier than 3 months after the release date. "
-                "You can use 'DAGNode.op.name' if the DAGNode is of type 'op'.",
-                DeprecationWarning,
-                2,
-            )
-        if qargs is not None:
-            warnings.warn(
-                "The DAGNode 'qargs' attribute is deprecated as of 0.19.0 and "
-                "will be removed no earlier than 3 months after the release date. "
-                "You can use DAGOpNode instead of DAGNode.",
-                DeprecationWarning,
-                2,
-            )
-        self._qargs = qargs
-        if cargs is not None:
-            warnings.warn(
-                "The DAGNode 'cargs' attribute is deprecated as of 0.19.0 and "
-                "will be removed no earlier than 3 months after the release date. "
-                "You can use DAGOpNode instead of DAGNode.",
-                DeprecationWarning,
-                2,
-            )
-        self._cargs = cargs
-        if wire is not None:
-            warnings.warn(
-                "The DAGNode 'wire' kwarg is deprecated as of 0.19.0 and "
-                "will be removed no earlier than 3 months after the release date."
-                "Use DAGInNode or DAGOutNode instead of DAGNode.",
-                DeprecationWarning,
-                2,
-            )
-        self._wire = wire
         self._node_id = nid
-
-    @property
-    def type(self):
-        """Returns the type object"""
-        warnings.warn(
-            "The DAGNode 'type' attribute is deprecated as of 0.19.0 and "
-            "will be removed no earlier than 3 months after the release date. "
-            "Use DAGOpNode, DAGInNode, or DAGOutNode instead of DAGNode.",
-            DeprecationWarning,
-            2,
-        )
-        return self._type
-
-    @type.setter
-    def type(self, dag_type):
-        """Sets the value of the type object"""
-        warnings.warn(
-            "The DAGNode 'type' attribute is deprecated as of 0.19.0 and "
-            "will be removed no earlier than 3 months after the release date. "
-            "Use DAGOpNode, DAGInNode, or DAGOutNode instead of DAGNode.",
-            DeprecationWarning,
-            2,
-        )
-        if dag_type not in ["op", "in", "out"]:
-            raise QiskitError("The DAGNode type must be 'op', 'in', or 'out'")
-        self._type = dag_type
-
-    @property
-    def op(self):
-        """Returns the Instruction object corresponding to the op for the node, else None"""
-        warnings.warn(
-            "The DAGNode 'op' attribute is deprecated as of 0.19.0 and "
-            "will be removed no earlier than 3 months after the release date. "
-            "Use DAGOpNode instead of DAGNode.",
-            DeprecationWarning,
-            2,
-        )
-        if not self.type or self.type != "op":
-            raise QiskitError("The node %s is not an op node" % (str(self)))
-        return self._op
-
-    @op.setter
-    def op(self, data):
-        """Sets the op for the node"""
-        warnings.warn(
-            "The DAGNode 'op' attribute is deprecated as of 0.19.0 and "
-            "will be removed no earlier than 3 months after the release date. "
-            "Use DAGOpNode instead of DAGNode.",
-            DeprecationWarning,
-            2,
-        )
-        self._op = data
-
-    @property
-    def name(self):
-        """Returns the Instruction name corresponding to the op for this node"""
-        if self.type and self.type == "op":
-            return self.op.name
-        return None
-
-    @name.setter
-    def name(self, name):
-        """Sets the Instruction name corresponding to the op for this node"""
-        if self.type and self.type == "op":
-            self.op.name = name
-
-    @property
-    def condition(self):
-        """Returns the condition of the node.op"""
-        if not self.type or self.type != "op":
-            raise QiskitError("The node %s is not an op node" % (str(self)))
-        warnings.warn(
-            "The DAGNode 'condition' attribute is deprecated as of 0.18.0 and "
-            "will be removed no earlier than 3 months after the release date. "
-            "You can use 'DAGNode.op.condition' if the DAGNode is of type 'op'.",
-            DeprecationWarning,
-            2,
-        )
-        return self.op.condition
-
-    @condition.setter
-    def condition(self, new_condition):
-        """Sets the node.condition which sets the node.op.condition."""
-        if not self.type or self.type != "op":
-            raise QiskitError("The node %s is not an op node" % (str(self)))
-        warnings.warn(
-            "The DAGNode 'condition' attribute is deprecated as of 0.18.0 and "
-            "will be removed no earlier than 3 months after the release date. "
-            "You can use 'DAGNode.op.condition' if the DAGNode is of type 'op'.",
-            DeprecationWarning,
-            2,
-        )
-        self.op.condition = new_condition
-
-    @property
-    def qargs(self):
-        """
-        Returns list of Qubit, else an empty list.
-        """
-        warnings.warn(
-            "The DAGNode 'qargs' attribute is deprecated as of 0.19.0 and "
-            "will be removed no earlier than 3 months after the release date. "
-            "Use DAGOpNode instead of DAGNode.",
-            DeprecationWarning,
-            2,
-        )
-        return self._qargs
-
-    @qargs.setter
-    def qargs(self, new_qargs):
-        """Sets the qargs to be the given list of qargs."""
-        warnings.warn(
-            "The DAGNode 'qargs' attribute is deprecated as of 0.19.0 and "
-            "will be removed no earlier than 3 months after the release date. "
-            "Use DAGOpNode instead of DAGNode.",
-            DeprecationWarning,
-            2,
-        )
-        self._qargs = new_qargs
-
-    @property
-    def cargs(self):
-        """
-        Returns list of Clbit, else an empty list.
-        """
-        warnings.warn(
-            "The DAGNode 'cargs' attribute is deprecated as of 0.19.0 and "
-            "will be removed no earlier than 3 months after the release date. "
-            "Use DAGOpNode instead of DAGNode.",
-            DeprecationWarning,
-            2,
-        )
-        return self._cargs
-
-    @cargs.setter
-    def cargs(self, new_cargs):
-        """Sets the cargs to be the given list of cargs."""
-        warnings.warn(
-            "The DAGNode 'cargs' attribute is deprecated as of 0.19.0 and "
-            "will be removed no earlier than 3 months after the release date. "
-            "Use DAGOpNode instead of DAGNode.",
-            DeprecationWarning,
-            2,
-        )
-        self._cargs = new_cargs
-
-    @property
-    def wire(self):
-        """Returns the Bit object, else None."""
-        warnings.warn(
-            "The DAGNode 'wire' attribute is deprecated as of 0.19.0 and "
-            "will be removed no earlier than 3 months after the release date. "
-            "Use DAGInNode or DAGOutNode instead of DAGNode.",
-            DeprecationWarning,
-            2,
-        )
-        if self.type not in ["in", "out"]:
-            raise QiskitError("The node %s is not an input/output node" % str(self))
-        return self._wire
-
-    @wire.setter
-    def wire(self, data):
-        """Sets the Bit object"""
-        warnings.warn(
-            "The DAGNode 'wire' attribute is deprecated as of 0.19.0 and "
-            "will be removed no earlier than 3 months after the release date. "
-            "Use DAGInNode or DAGOutNode instead of DAGNode.",
-            DeprecationWarning,
-            2,
-        )
-        self._wire = data
 
     def __lt__(self, other):
         return self._node_id < other._node_id
@@ -320,12 +94,11 @@ class DAGNode:
 class DAGOpNode(DAGNode):
     """Object to represent an Instruction at a node in the DAGCircuit."""
 
-    __slots__ = ["_type", "op", "qargs", "cargs", "sort_key"]
+    __slots__ = ["op", "qargs", "cargs", "sort_key"]
 
     def __init__(self, op, qargs=None, cargs=None):
         """Create an Instruction node"""
         super().__init__()
-        self._type = "op"  # Remove when DAGNode.type is removed
         self.op = op
         self.qargs = qargs
         self.cargs = cargs
@@ -349,12 +122,11 @@ class DAGOpNode(DAGNode):
 class DAGInNode(DAGNode):
     """Object to represent an incoming wire node in the DAGCircuit."""
 
-    __slots__ = ["_type", "wire", "sort_key"]
+    __slots__ = ["wire", "sort_key"]
 
     def __init__(self, wire):
         """Create an incoming node"""
         super().__init__()
-        self._type = "in"  # Remove when DAGNode.type is removed
         self.wire = wire
         # TODO sort_key which is used in dagcircuit.topological_nodes
         # only works as str([]) for DAGInNodes. Need to figure out why.
@@ -368,12 +140,11 @@ class DAGInNode(DAGNode):
 class DAGOutNode(DAGNode):
     """Object to represent an outgoing wire node in the DAGCircuit."""
 
-    __slots__ = ["_type", "wire", "sort_key"]
+    __slots__ = ["wire", "sort_key"]
 
     def __init__(self, wire):
         """Create an outgoing node"""
         super().__init__()
-        self._type = "out"  # Remove when DAGNode.type is removed
         self.wire = wire
         # TODO sort_key which is used in dagcircuit.topological_nodes
         # only works as str([]) for DAGOutNodes. Need to figure out why.

@@ -14,4 +14,3 @@
 
 from .fake_melbourne import FakeMelbourneV2
 from .fake_melbourne import FakeMelbourne
-from .fake_melbourne import FakeLegacyMelbourne

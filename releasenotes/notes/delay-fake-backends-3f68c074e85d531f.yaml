@@ -1,0 +1,12 @@
+---
+fixes:
+  - |
+    The :class:`~.BackendV2` based fake backends in
+    the :mod:`qiskit.providers.fake_provider` module, such as
+    ``FakeMontrealV2``, previously were missing the :class:`~qiskit.circuit.Delay` operation
+    support from their :attr:`~.BackendV2.target` attribute. This prevented
+    compiling some :class:`~.QuantumCircuit` objects that contained
+    :class:`~qiskit.circuit.Delay` instructions to these backends. This has been corrected
+    by adding the :class:`~qiskit.circuit.Delay` to the :class:`~.Target` object for each
+    fake backend to ensure that the compiler knows that :class:`~qiskit.circuit.Delay` is
+    a valid operation on the fake backends.

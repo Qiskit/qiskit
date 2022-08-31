@@ -17,7 +17,6 @@ import numpy as np
 from scipy.optimize import brute
 from scipy.stats import norm, chi2
 
-from qiskit.providers import BaseBackend
 from qiskit.providers import Backend
 from qiskit import ClassicalRegister, QuantumRegister, QuantumCircuit
 from qiskit.utils import QuantumInstance
@@ -52,7 +51,7 @@ class MaximumLikelihoodAmplitudeEstimation(AmplitudeEstimator):
         self,
         evaluation_schedule: Union[List[int], int],
         minimizer: Optional[MINIMIZER] = None,
-        quantum_instance: Optional[Union[QuantumInstance, BaseBackend, Backend]] = None,
+        quantum_instance: Optional[Union[QuantumInstance, Backend]] = None,
     ) -> None:
         r"""
         Args:
@@ -109,15 +108,13 @@ class MaximumLikelihoodAmplitudeEstimation(AmplitudeEstimator):
         return self._quantum_instance
 
     @quantum_instance.setter
-    def quantum_instance(
-        self, quantum_instance: Union[QuantumInstance, BaseBackend, Backend]
-    ) -> None:
+    def quantum_instance(self, quantum_instance: Union[QuantumInstance, Backend]) -> None:
         """Set quantum instance.
 
         Args:
             quantum_instance: The quantum instance used to run this algorithm.
         """
-        if isinstance(quantum_instance, (BaseBackend, Backend)):
+        if isinstance(quantum_instance, Backend):
             quantum_instance = QuantumInstance(quantum_instance)
         self._quantum_instance = quantum_instance
 

@@ -180,7 +180,7 @@ class TestBackendV2(QiskitTestCase):
         expected.sx(0)
         expected.rz(math.pi / 2, 0)
         expected.cx(1, 0)
-        expected.barrier(qr[0:2])
+        expected.barrier(qr[0], qr[1])
         expected.measure(qr[0], cr[0])
         expected.measure(qr[1], cr[1])
         self.assertEqual(expected, tqc)

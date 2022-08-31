@@ -12,13 +12,16 @@
 
 """Test the Unroll3qOrMore pass"""
 import numpy as np
+
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
+from qiskit.circuit.library import CCXGate, RCCXGate
 from qiskit.transpiler.passes import Unroll3qOrMore
 from qiskit.converters import circuit_to_dag, dag_to_circuit
 from qiskit.quantum_info.operators import Operator
 from qiskit.quantum_info.random import random_unitary
 from qiskit.test import QiskitTestCase
 from qiskit.extensions import UnitaryGate
+from qiskit.transpiler import Target
 
 
 class TestUnroll3qOrMore(QiskitTestCase):
@@ -91,3 +94,39 @@ class TestUnroll3qOrMore(QiskitTestCase):
         after_dag = pass_.run(dag)
         after_circ = dag_to_circuit(after_dag)
         self.assertTrue(Operator(circuit).equiv(Operator(after_circ)))
+
+    def test_target(self):
+        """Test target is respected by the unroll 3q or more pass."""
+        target = Target(num_qubits=3)
+        target.add_instruction(CCXGate())
+        qc = QuantumCircuit(3)
+        qc.ccx(0, 1, 2)
+        qc.append(RCCXGate(), [0, 1, 2])
+        unroll_pass = Unroll3qOrMore(target=target)
+        res = unroll_pass(qc)
+        self.assertIn("ccx", res.count_ops())
+        self.assertNotIn("rccx", res.count_ops())
+
+    def test_basis_gates(self):
+        """Test basis_gates are respected by the unroll 3q or more pass."""
+        basis_gates = ["rccx"]
+        qc = QuantumCircuit(3)
+        qc.ccx(0, 1, 2)
+        qc.append(RCCXGate(), [0, 1, 2])
+        unroll_pass = Unroll3qOrMore(basis_gates=basis_gates)
+        res = unroll_pass(qc)
+        self.assertNotIn("ccx", res.count_ops())
+        self.assertIn("rccx", res.count_ops())
+
+    def test_target_over_basis_gates(self):
+        """Test target is respected over basis_gates  by the unroll 3q or more pass."""
+        target = Target(num_qubits=3)
+        basis_gates = ["rccx"]
+        target.add_instruction(CCXGate())
+        qc = QuantumCircuit(3)
+        qc.ccx(0, 1, 2)
+        qc.append(RCCXGate(), [0, 1, 2])
+        unroll_pass = Unroll3qOrMore(target=target, basis_gates=basis_gates)
+        res = unroll_pass(qc)
+        self.assertIn("ccx", res.count_ops())
+        self.assertNotIn("rccx", res.count_ops())

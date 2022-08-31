@@ -36,13 +36,3 @@ class FakeManhattan(fake_pulse_backend.FakePulseBackend):
     props_filename = "props_manhattan.json"
     defs_filename = "defs_manhattan.json"
     backend_name = "fake_manhattan"
-
-
-class FakeLegacyManhattan(fake_pulse_backend.FakePulseLegacyBackend):
-    """A fake Manhattan backend."""
-
-    dirname = os.path.dirname(__file__)
-    conf_filename = "conf_manhattan.json"
-    props_filename = "props_manhattan.json"
-    defs_filename = "defs_manhattan.json"
-    backend_name = "fake_manhattan"

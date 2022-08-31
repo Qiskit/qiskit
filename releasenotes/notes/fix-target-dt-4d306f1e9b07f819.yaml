@@ -1,0 +1,8 @@
+---
+fixes:
+  - |
+    Fixed an issue with :class:`~.BackendV2` based fake backend classes from the 
+    ``qiskit.providers.fake_provider`` module such as ``FakeMontrealV2`` where the
+    value for the :attr:`~.BackendV2.dt` attribute (and the :attr:`.Target.dt` attribute) 
+    were not properly being converted to seconds. This would cause issues when
+    using these fake backends with scheduling.

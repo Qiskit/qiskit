@@ -1,0 +1,9 @@
+---
+upgrade:
+  - |
+    For the :class:`~DagNode`, the previously deprecated ``type``, ``op``,
+    ``qargs``, ``cargs``, and ``wire`` kwargs and attributes have been removed.
+    These classes were originally deprecated in the 0.19.0 release. The ``op``,
+    ``qargs``, and ``cargs`` kwargs and attributes can be accessed through the
+    :class:`~DagOpNode`, and the ``wire`` kwarg and attribute can be accessed
+    through the :class:`~DagInNode` or :class:`~DagOutNode`.

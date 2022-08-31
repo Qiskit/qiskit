@@ -13,4 +13,3 @@
 """Mock tenerife backend"""
 
 from .fake_tenerife import FakeTenerife
-from .fake_tenerife import FakeLegacyTenerife

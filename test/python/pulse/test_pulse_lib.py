@@ -205,6 +205,8 @@ class TestParametricPulses(QiskitTestCase):
             check_drag(duration=50, sigma=16, amp=1, beta=20)
         with self.assertRaises(PulseError):
             check_drag(duration=50, sigma=4, amp=0.8, beta=20)
+        with self.assertRaises(PulseError):
+            check_drag(duration=50, sigma=4, amp=0.8, beta=-20)
 
     def test_constant_samples(self):
         """Test the constant pulse and its sampled construction."""
@@ -216,7 +218,7 @@ class TestParametricPulses(QiskitTestCase):
             const = Constant(duration=150, amp=1.1 + 0.4j)
 
         with patch("qiskit.pulse.library.parametric_pulses.Pulse.limit_amplitude", new=False):
-            const = qiskit.pulse.library.parametric_pulses.Constant(duration=150, amp=0.1 + 0.4j)
+            const = qiskit.pulse.library.parametric_pulses.Constant(duration=150, amp=1.1 + 0.4j)
 
     def test_parameters(self):
         """Test that the parameters can be extracted as a dict through the `parameters`

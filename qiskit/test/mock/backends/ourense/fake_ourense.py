@@ -44,17 +44,3 @@ class FakeOurense(fake_qasm_backend.FakeQasmBackend):
     conf_filename = "conf_ourense.json"
     props_filename = "props_ourense.json"
     backend_name = "fake_ourense"
-
-
-class FakeLegacyOurense(fake_qasm_backend.FakeQasmLegacyBackend):
-    """A fake 5 qubit backend.
-
-    0 ↔ 1 ↔ 3 ↔ 4
-        ↕
-        2
-    """
-
-    dirname = os.path.dirname(__file__)
-    conf_filename = "conf_ourense.json"
-    props_filename = "props_ourense.json"
-    backend_name = "fake_ourense"

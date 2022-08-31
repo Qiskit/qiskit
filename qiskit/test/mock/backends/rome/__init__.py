@@ -14,4 +14,3 @@
 
 from .fake_rome import FakeRomeV2
 from .fake_rome import FakeRome
-from .fake_rome import FakeLegacyRome

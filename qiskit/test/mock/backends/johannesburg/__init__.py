@@ -14,4 +14,3 @@
 
 from .fake_johannesburg import FakeJohannesburgV2
 from .fake_johannesburg import FakeJohannesburg
-from .fake_johannesburg import FakeLegacyJohannesburg

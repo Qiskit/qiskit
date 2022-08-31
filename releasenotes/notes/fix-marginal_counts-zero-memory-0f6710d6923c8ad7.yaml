@@ -1,0 +1,7 @@
+---
+fixes:
+  - |
+    :func:`.marginal_counts` will now succeed when asked to marginalise memory
+    with an ``indices`` parameter containing non-zero elements.  Previously,
+    shots whose hexadecimal result representation was sufficiently small could
+    raise a ``ValueError``.  See `#8044 <https://github.com/Qiskit/qiskit-terra/issues/8044>`__.

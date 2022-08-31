@@ -125,6 +125,11 @@ class TestCircuitAssembler(QiskitTestCase):
         """Test assembling with shots having type other than int"""
         self.assertRaises(QiskitError, assemble, self.backend, shots="1024")
 
+    def test_shots_of_type_numpy_int64(self):
+        """Test assembling with shots having type numpy.int64"""
+        qobj = assemble(self.circ, shots=np.int64(2048))
+        self.assertEqual(qobj.config.shots, 2048)
+
     def test_default_shots_greater_than_max_shots(self):
         """Test assembling with default shots greater than max shots"""
         self.backend_config.max_shots = 5

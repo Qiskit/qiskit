@@ -13,15 +13,13 @@
 """The Eigensolver interface"""
 
 from abc import ABC, abstractmethod
-from typing import Dict, Optional, List, Union, Tuple, TypeVar
+from typing import Optional, List, Tuple
 
 import numpy as np
+
 from qiskit.opflow import OperatorBase
 from ..algorithm_result import AlgorithmResult
-
-# Introduced new type to maintain readability.
-_T = TypeVar("_T")  # Pylint does not allow single character class names.
-ListOrDict = Union[List[Optional[_T]], Dict[str, _T]]
+from ..list_or_dict import ListOrDict
 
 
 class Eigensolver(ABC):

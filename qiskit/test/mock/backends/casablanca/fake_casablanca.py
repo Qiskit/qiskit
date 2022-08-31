@@ -36,13 +36,3 @@ class FakeCasablanca(fake_pulse_backend.FakePulseBackend):
     props_filename = "props_casablanca.json"
     defs_filename = "defs_casablanca.json"
     backend_name = "fake_casablanca"
-
-
-class FakeLegacyCasablanca(fake_pulse_backend.FakePulseLegacyBackend):
-    """A fake 7 qubit backend."""
-
-    dirname = os.path.dirname(__file__)
-    conf_filename = "conf_casablanca.json"
-    props_filename = "props_casablanca.json"
-    defs_filename = "defs_casablanca.json"
-    backend_name = "fake_casablanca"

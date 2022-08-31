@@ -48,19 +48,3 @@ class FakeEssex(fake_qasm_backend.FakeQasmBackend):
     conf_filename = "conf_essex.json"
     props_filename = "props_essex.json"
     backend_name = "fake_essex"
-
-
-class FakeLegacyEssex(fake_qasm_backend.FakeQasmLegacyBackend):
-    """A fake 5 qubit backend.
-
-    0 ↔ 1 ↔ 2
-        ↕
-        3
-        ↕
-        4
-    """
-
-    dirname = os.path.dirname(__file__)
-    conf_filename = "conf_essex.json"
-    props_filename = "props_essex.json"
-    backend_name = "fake_essex"

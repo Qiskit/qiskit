@@ -14,4 +14,3 @@
 
 from .fake_paris import FakeParisV2
 from .fake_paris import FakeParis
-from .fake_paris import FakeLegacyParis

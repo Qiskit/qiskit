@@ -36,13 +36,3 @@ class FakeRome(fake_pulse_backend.FakePulseBackend):
     props_filename = "props_rome.json"
     defs_filename = "defs_rome.json"
     backend_name = "fake_rome"
-
-
-class FakeLegacyRome(fake_pulse_backend.FakePulseLegacyBackend):
-    """A fake 5 qubit backend."""
-
-    dirname = os.path.dirname(__file__)
-    conf_filename = "conf_rome.json"
-    props_filename = "props_rome.json"
-    defs_filename = "defs_rome.json"
-    backend_name = "fake_rome"

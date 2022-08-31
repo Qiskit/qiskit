@@ -14,4 +14,3 @@
 
 from .fake_toronto import FakeTorontoV2
 from .fake_toronto import FakeToronto
-from .fake_toronto import FakeLegacyToronto

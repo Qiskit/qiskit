@@ -1,0 +1,8 @@
+---
+fixes:
+  - |
+    Fixed an issue with the :func:`~.transpile` function when run with a
+    :class:`~.BackendV2` based backend and setting the ``scheduling_method``
+    keyword argument. Previously, the function would not correctly process
+    the default durations of the instructions supported by the backend which
+    would lead to an error.

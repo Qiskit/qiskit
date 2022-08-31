@@ -23,21 +23,20 @@ from qiskit.result import QuasiDistribution
 
 @dataclass(frozen=True)
 class SamplerResult:
-    """
-    Result of Sampler
+    """Result of Sampler.
 
     .. code-block:: python
 
         result = sampler(circuits, params)
 
     where the i-th elements of ``result`` correspond to the circuit given by ``circuit_indices[i]``,
-    and the parameter_values bounds by ``params[i]``.
+    and the parameter values bounds by ``params[i]``.
     For example, ``results.quasi_dists[i]`` gives the quasi-probabilities of bitstrings, and
     ``result.metadata[i]`` is a metadata dictionary for this circuit and parameters.
 
     Args:
-        quasi_dists (list[QuasiDistribution]): list of the quasi-probabilities.
-        metadata (list[dict]): list of the metadata.
+        quasi_dists (list[QuasiDistribution]): List of the quasi-probabilities.
+        metadata (list[dict]): List of the metadata.
     """
 
     quasi_dists: list[QuasiDistribution]

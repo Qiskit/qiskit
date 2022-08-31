@@ -14,4 +14,3 @@
 
 from .fake_ourense import FakeOurenseV2
 from .fake_ourense import FakeOurense
-from .fake_ourense import FakeLegacyOurense

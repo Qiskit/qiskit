@@ -20,7 +20,7 @@ ahash = "0.7.6"
 num-complex = "0.4"
 
 [dependencies.pyo3]
-version = "0.16.3"
+version = "0.16.4"
 features = ["extension-module", "hashbrown", "num-complex"]
 
 [dependencies.ndarray]

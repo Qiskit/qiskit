@@ -14,6 +14,7 @@
 
 
 from typing import Optional, Tuple, Union, Iterable, Set
+import itertools
 
 from qiskit.circuit import ClassicalRegister, Clbit, QuantumCircuit
 from qiskit.circuit.instructionset import InstructionSet
@@ -135,6 +136,22 @@ class IfElseOp(ControlFlowOp):
             return (self.params[0],)
         else:
             return (self.params[0], self.params[1])
+
+    def replace_blocks(self, blocks: Iterable[QuantumCircuit]) -> "IfElseOp":
+        """Replace blocks and return new instruction.
+
+        Args:
+            blocks: Iterable of circuits for "if" and "else" condition. If there is no "else"
+                circuit it may be set to None or ommited.
+
+        Returns:
+            New IfElseOp with replaced blocks.
+        """
+
+        true_body, false_body = (
+            ablock for ablock, _ in itertools.zip_longest(blocks, range(2), fillvalue=None)
+        )
+        return IfElseOp(self.condition, true_body, false_body=false_body, label=self.label)
 
     def c_if(self, classical, val):
         raise NotImplementedError(

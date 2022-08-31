@@ -1,0 +1,8 @@
+---
+fixes:
+  - |
+    The :class:`.SabreSwap` transpiler pass, used in :func:`.transpile` when
+    ``routing_method="sabre"`` is set, will no longer sporadically drop
+    classically conditioned gates and their successors from circuits during the
+    routing phase of transpilation.  See
+    `#8040 <https://github.com/Qiskit/qiskit-terra/issues/8040>`__.

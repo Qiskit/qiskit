@@ -14,4 +14,3 @@
 
 from .fake_athens import FakeAthensV2
 from .fake_athens import FakeAthens
-from .fake_athens import FakeLegacyAthens

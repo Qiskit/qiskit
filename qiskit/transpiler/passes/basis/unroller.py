@@ -14,8 +14,9 @@
 
 from qiskit.transpiler.basepasses import TransformationPass
 from qiskit.exceptions import QiskitError
-from qiskit.circuit import ControlledGate
+from qiskit.circuit import ControlledGate, ControlFlowOp
 from qiskit.converters.circuit_to_dag import circuit_to_dag
+from qiskit.converters.dag_to_circuit import dag_to_circuit
 
 
 class Unroller(TransformationPass):
@@ -68,7 +69,15 @@ class Unroller(TransformationPass):
                 else:
                     continue
 
-            # TODO: allow choosing other possible decompositions
+            if isinstance(node.op, ControlFlowOp):
+                unrolled_blocks = []
+                for block in node.op.blocks:
+                    dag_block = circuit_to_dag(block)
+                    unrolled_dag_block = self.run(dag_block)
+                    unrolled_circ_block = dag_to_circuit(unrolled_dag_block)
+                    unrolled_blocks.append(unrolled_circ_block)
+                node.op = node.op.replace_blocks(unrolled_blocks)
+                continue
             try:
                 phase = node.op.definition.global_phase
                 rule = node.op.definition.data

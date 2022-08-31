@@ -36,13 +36,3 @@ class FakeValencia(fake_pulse_backend.FakePulseBackend):
     props_filename = "props_valencia.json"
     defs_filename = "defs_valencia.json"
     backend_name = "fake_valencia"
-
-
-class FakeLegacyValencia(fake_pulse_backend.FakePulseLegacyBackend):
-    """A fake 5 qubit backend."""
-
-    dirname = os.path.dirname(__file__)
-    conf_filename = "conf_valencia.json"
-    props_filename = "props_valencia.json"
-    defs_filename = "defs_valencia.json"
-    backend_name = "fake_valencia"

@@ -108,7 +108,7 @@ def level_0_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
             plugin_config=unitary_synthesis_plugin_config,
             target=target,
         ),
-        Unroll3qOrMore(),
+        Unroll3qOrMore(target=target, basis_gates=basis_gates),
     ]
 
     # 2. Choose an initial layout if not set by user (default: trivial layout)
@@ -190,7 +190,7 @@ def level_0_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
                 plugin_config=unitary_synthesis_plugin_config,
                 target=target,
             ),
-            Unroll3qOrMore(),
+            Unroll3qOrMore(target=target, basis_gates=basis_gates),
             Collect2qBlocks(),
             Collect1qRuns(),
             ConsolidateBlocks(basis_gates=basis_gates, target=target),

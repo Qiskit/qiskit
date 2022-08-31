@@ -14,4 +14,3 @@
 
 from .fake_poughkeepsie import FakePoughkeepsieV2
 from .fake_poughkeepsie import FakePoughkeepsie
-from .fake_poughkeepsie import FakeLegacyPoughkeepsie

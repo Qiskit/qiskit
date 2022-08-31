@@ -48,19 +48,3 @@ class FakeYorktown(fake_qasm_backend.FakeQasmBackend):
     conf_filename = "conf_yorktown.json"
     props_filename = "props_yorktown.json"
     backend_name = "fake_yorktown"
-
-
-class FakeLegacyYorktown(fake_qasm_backend.FakeQasmLegacyBackend):
-    """A fake 5 qubit backend.
-
-        1
-      / |
-    0 - 2 - 3
-        | /
-        4
-    """
-
-    dirname = os.path.dirname(__file__)
-    conf_filename = "conf_yorktown.json"
-    props_filename = "props_yorktown.json"
-    backend_name = "fake_yorktown"
