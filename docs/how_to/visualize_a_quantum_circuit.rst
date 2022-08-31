@@ -78,7 +78,7 @@ Because this optional or keyword argument is actually the first of this method, 
 :func:`~qiskit.visualization.circuit_drawer()`
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-If you prefer to use a self-contained function instead of a :class:`~qiskit.circuit.QuantumCircuit` method to draw your circuit, you can do it with :func:`~qiskit.visualization.circuit_drawer()` from ``qiskit.visualization``. It has the exact same behavior as the :meth:`~qiskit.circuit.QuantumCircuit.draw()` method above, except that it requires the circuit to be included as an argument.
+If you prefer to use a self-contained function instead of a :class:`~qiskit.circuit.QuantumCircuit` method to draw your circuit, you can do it with :func:`~qiskit.visualization.circuit_drawer()` from :mod:`qiskit.visualization`. It has the exact same behavior as the :meth:`~qiskit.circuit.QuantumCircuit.draw()` method above, except that it requires the circuit to be included as an argument.
 
 .. note::
     In Qiskit Terra :math:`\leq 0.7`, the default behavior for the ``circuit_drawer()`` function is to use the ``'latex'`` output backend, and in :math:`0.6.x` that includes a fallback to ``'mpl'`` if ``'latex'`` fails for any reason. Starting with release :math:`> 0.7`, the default changes to the ``'text'`` output.
