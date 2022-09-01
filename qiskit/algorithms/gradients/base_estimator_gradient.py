@@ -45,7 +45,7 @@ class BaseEstimatorGradient(ABC):
                 setting. Higher priority setting overrides lower priority setting.
 
         Raises:
-            ValueError: If the estimator is not an instance of BaseEstimator.
+            ValueError: If the estimator is not an instance of ``BaseEstimator``.
         """
         if not isinstance(estimator, BaseEstimator):
             raise ValueError(
