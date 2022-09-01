@@ -21,15 +21,11 @@ from dataclasses import dataclass
 
 @dataclass(frozen=True)
 class SamplerGradientResult:
-    """Result of SamplerGradient.
+    """Result of SamplerGradient."""
 
-    Args:
-        gradients: The gradients of the sampling probabilities.
-        metadata: Additional information about the job.
-        run_options: run_options for the sampler. Currently, sampler's default run_options is not
-        included.
-    """
-
-    gradients: list[list[dict[int: float]]]
+    gradients: list[list[dict[int:float]]]
+    """The gradients of the sampling probabilities."""
     metadata: list[dict[str, Any]]
+    """Additional information about the job."""
     run_options: dict[str, Any]
+    """run_options for the sampler. Currently, sampler's default run_options is not included"""

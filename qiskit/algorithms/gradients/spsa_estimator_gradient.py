@@ -19,8 +19,10 @@ from typing import Sequence
 import numpy as np
 
 from qiskit.circuit import Parameter, QuantumCircuit
+from qiskit.exceptions import QiskitError
 from qiskit.opflow import PauliSumOp
 from qiskit.primitives import BaseEstimator
+from qiskit.providers import JobStatus
 from qiskit.quantum_info.operators.base_operator import BaseOperator
 
 from .base_estimator_gradient import BaseEstimatorGradient
@@ -100,6 +102,8 @@ class SPSAEstimatorGradient(BaseEstimatorGradient):
             jobs.append(job)
 
         # combine the results
+        if any(job.status() is not JobStatus.DONE for job in jobs):
+            raise QiskitError("The gradient job was not completed successfully. ")
         results = [job.result() for job in jobs]
         gradients = []
         for i, result in enumerate(results):

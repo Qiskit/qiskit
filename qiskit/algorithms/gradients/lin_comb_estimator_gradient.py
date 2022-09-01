@@ -20,9 +20,11 @@ from typing import Sequence
 import numpy as np
 
 from qiskit.circuit import Parameter, ParameterExpression, QuantumCircuit
+from qiskit.exceptions import QiskitError
 from qiskit.opflow import PauliSumOp
 from qiskit.primitives import BaseEstimator
 from qiskit.primitives.utils import init_observable
+from qiskit.providers import JobStatus
 from qiskit.quantum_info import Pauli
 from qiskit.quantum_info.operators.base_operator import BaseOperator
 
@@ -116,6 +118,8 @@ class LinCombEstimatorGradient(BaseEstimatorGradient):
             coeffs_all.append(coeffs)
 
         # combine the results
+        if any(job.status() is not JobStatus.DONE for job in jobs):
+            raise QiskitError("The gradient job was not completed successfully. ")
         results = [job.result() for job in jobs]
         gradients = []
         for i, result in enumerate(results):

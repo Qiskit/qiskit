@@ -20,7 +20,9 @@ from typing import Sequence
 import numpy as np
 
 from qiskit.circuit import Parameter, QuantumCircuit
+from qiskit.exceptions import QiskitError
 from qiskit.primitives import BaseSampler
+from qiskit.providers import JobStatus
 
 from .base_sampler_gradient import BaseSamplerGradient
 from .sampler_gradient_result import SamplerGradientResult
@@ -90,6 +92,8 @@ class ParamShiftSamplerGradient(BaseSamplerGradient):
             coeffs_all.append(coeffs)
 
         # combine the results
+        if any(job.status() is not JobStatus.DONE for job in jobs):
+            raise QiskitError("The gradient job was not completed successfully. ")
         results = [job.result() for job in jobs]
         gradients = []
         for i, result in enumerate(results):
