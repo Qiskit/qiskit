@@ -11,7 +11,7 @@
 # that they have been altered from the originals.
 
 """
-Abstract Base class of Gradient for Estimator.
+Abstract base class of gradient for ``Estimator``.
 """
 
 from __future__ import annotations
