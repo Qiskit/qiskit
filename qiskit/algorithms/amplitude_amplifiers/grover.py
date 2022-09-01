@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2018, 2021.
+# (C) Copyright IBM 2018, 2022.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -15,6 +15,7 @@
 import itertools
 import operator
 from typing import Iterator, List, Optional, Union
+import warnings
 
 import numpy as np
 
@@ -134,6 +135,7 @@ class Grover(AmplitudeAmplifier):
                 powers of the Grover operator, a random integer sample between 0 and smaller value
                 than the iteration is used as a power, see [1], Section 4.
             quantum_instance: A Quantum Instance or Backend to run the circuits.
+            sampler: A Sampler to use for sampling the results of the circuits.
 
         Raises:
             ValueError: If ``growth_rate`` is a float but not larger than 1.
@@ -160,6 +162,13 @@ class Grover(AmplitudeAmplifier):
 
         self._quantum_instance = None
         if quantum_instance is not None:
+            warnings.warn(
+                "Passing `quantum_instance` to Grover "
+                "is deprecated as of Qiskit Terra 0.22.0, and will be removed no earlier than "
+                "3 months after that release date. You should use `sampler` instead. ",
+                DeprecationWarning,
+                stacklevel=2,
+            )
             self.quantum_instance = quantum_instance
 
         self._sampler = None or sampler
@@ -232,9 +241,14 @@ class Grover(AmplitudeAmplifier):
             if self._sample_from_iterations:
                 power = np.random.randint(power)
             # Run a grover experiment for a given power of the Grover operator.
-            # TODO: sampler.run and collect results
             if self._sampler:
-                circuit_result = self._sampler.run(...)
+                qc = self.construct_circuit(amplification_problem, power, measurement=True)
+                results = self._sampler.run([qc]).result()
+                num_bits = len(amplification_problem.objective_qubits)
+                circuit_results = {np.binary_repr(k, num_bits) :v for k,v in results.quasi_dists[0].items()}
+                top_measurement = max(circuit_results.items(), key=lambda x: x[1])[0]
+                max_probability = max(circuit_results.items(), key=lambda x: x[1])[1]
+
             else:
                 if self._quantum_instance.is_statevector:
                     qc = self.construct_circuit(amplification_problem, power, measurement=False)
