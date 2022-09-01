@@ -85,7 +85,7 @@ class TestBackendV1(QiskitAlgorithmsTestCase):
         qi = QuantumInstance(
             self._provider.get_backend("fake_vigo"), seed_simulator=12, seed_transpiler=32
         )
-        with self.assertWarns(DeprecationWarning):
+        with self.assertWarns(PendingDeprecationWarning):
             grover = Grover(quantum_instance=qi)
         result = grover.amplify(problem)
         self.assertIn(result.top_measurement, ["11"])
@@ -98,7 +98,7 @@ class TestBackendV1(QiskitAlgorithmsTestCase):
         backend = self._provider.get_backend("fake_vigo")
         backend._configuration.max_experiments = 1
         qi = QuantumInstance(backend, seed_simulator=12, seed_transpiler=32)
-        with self.assertWarns(DeprecationWarning):
+        with self.assertWarns(PendingDeprecationWarning):
             grover = Grover(quantum_instance=qi)
         result = grover.amplify(problem)
         self.assertIn(result.top_measurement, ["11"])
