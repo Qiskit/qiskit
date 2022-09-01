@@ -154,7 +154,12 @@ class QuantumCircuitData(MutableSequence):
         expanded_qargs = [self._circuit.qbit_argument_conversion(qarg) for qarg in qargs or []]
         expanded_cargs = [self._circuit.cbit_argument_conversion(carg) for carg in cargs or []]
 
-        broadcast_args = list(operation.broadcast_arguments(expanded_qargs, expanded_cargs))
+        if isinstance(operation, Instruction):
+            broadcast_args = list(operation.broadcast_arguments(expanded_qargs, expanded_cargs))
+        else:
+            broadcast_args = list(
+                Instruction.broadcast_arguments(operation, expanded_qargs, expanded_cargs)
+            )
 
         if len(broadcast_args) > 1:
             raise CircuitError(
