@@ -100,22 +100,10 @@ def plot_histogram(
 
             # Plot two counts in the same figure with legends and colors specified.
 
-            from qiskit import QuantumCircuit, BasicAer, transpile
             from qiskit.visualization import plot_histogram
 
-            qc = QuantumCircuit(2, 2)
-            qc.h(0)
-            qc.cx(0, 1)
-            qc.measure([0, 1], [0, 1])
-
-            backend = BasicAer.get_backend('qasm_simulator')
-
-            transpiled_qc = transpile(qc, backend=backend)
-            job1 = backend.run(transpiled_qc)
-            job2 = backend.run(transpiled_qc)
-
-            counts1 = job1.result().get_counts()
-            counts2 = job2.result().get_counts()
+            counts1 = {'00': 525, '11': 499}
+            counts2 = {'00': 511, '11': 514}
 
             legend = ['First execution', 'Second execution']
 
