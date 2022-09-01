@@ -14,7 +14,7 @@ features:
     its constructor, ``swap_trials``. The ``swap_trials`` argument is used
     to specify how many random seed trials to run on the :class:`~.SabreSwap`
     pass internally. It corresponds to the ``trials`` arugment on the
-    :class:`~.SabreSwap` pass. When set For each iteration of
-    :class:`~.SabreLayout` :class:`~.SabreSwap` will be run internally with
-    ``swap_trials``random seed trials. If ``swap_trials`` is not specified
-    the will default to use the number of physical CPUs on the local system.
+    :class:`~.SabreSwap` pass. When set, each iteration of
+    :class:`~.SabreSwap` will be run internally ``swap_trials`` times. 
+    If ``swap_trials`` is not specified the will default to use
+    the number of physical CPUs on the local system.
