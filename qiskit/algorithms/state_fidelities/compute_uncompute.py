@@ -83,10 +83,10 @@ class ComputeUncompute(BaseStateFidelity):
 
     def _run(
         self,
-        circuits_1: Sequence[QuantumCircuit],
-        circuits_2: Sequence[QuantumCircuit],
-        values_1: Sequence[Sequence[float]] | None = None,
-        values_2: Sequence[Sequence[float]] | None = None,
+        circuits_1: QuantumCircuit | Sequence[QuantumCircuit],
+        circuits_2: QuantumCircuit | Sequence[QuantumCircuit],
+        values_1: Sequence[float] | Sequence[Sequence[float]] | None = None,
+        values_2: Sequence[float] | Sequence[Sequence[float]] | None = None,
         **run_options,
     ) -> StateFidelityResult:
         r"""

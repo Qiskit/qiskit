@@ -57,7 +57,7 @@ class TestComputeUncompute(QiskitTestCase):
         """test for fidelity with one pair of parameters"""
         fidelity = ComputeUncompute(self._sampler)
         job = fidelity.run(
-            [self._circuit[0]], [self._circuit[1]], self._left_params[0], self._right_params[0]
+            self._circuit[0], self._circuit[1], self._left_params[0], self._right_params[0]
         )
         result = job.result()
         np.testing.assert_allclose(result.fidelities, np.array([1.0]))
@@ -182,33 +182,35 @@ class TestComputeUncompute(QiskitTestCase):
         result = job.result()
         np.testing.assert_allclose(result.fidelities, np.array([0.5, 0.25, 0.25, 0.0]), atol=1e-16)
 
-    def test_async_join(self):
-        """test for run method using join."""
-
-        fidelity = ComputeUncompute(self._sampler)
-        jobs = []
-        for left_param, right_param in zip(self._left_params, self._right_params):
-            job = fidelity.run([self._circuit[0]], [self._circuit[1]], left_param, right_param)
-            jobs.append(job)
-
-        results = [job.result().fidelities[0] for job in jobs]
-        np.testing.assert_allclose(results, np.array([1.0, 0.5, 0.25, 0.0]), atol=1e-16)
-
-    def test_values_types(self):
+    def test_input_format(self):
+        """test for different input format variations"""
 
         fidelity = ComputeUncompute(self._sampler)
         circuit = RealAmplitudes(2)
         values = np.random.random(circuit.num_parameters)
         shift = np.ones_like(values) * 0.01
 
+        # lists of circuits, lists of numpy arrays
         job = fidelity.run([circuit], [circuit], [values], [values + shift])
         result_1 = job.result()
 
+        # lists of circuits, lists of lists
         shift_val = values + shift
         job = fidelity.run([circuit], [circuit], [values.tolist()], [shift_val.tolist()])
         result_2 = job.result()
 
+        # circuits, lists
+        shift_val = values + shift
+        job = fidelity.run(circuit, circuit, values.tolist(), shift_val.tolist())
+        result_3 = job.result()
+
+        # circuits, np.arrays
+        job = fidelity.run(circuit, circuit, values, values + shift)
+        result_4 = job.result()
+
         np.testing.assert_allclose(result_1.fidelities, result_2.fidelities, atol=1e-16)
+        np.testing.assert_allclose(result_1.fidelities, result_3.fidelities, atol=1e-16)
+        np.testing.assert_allclose(result_1.fidelities, result_4.fidelities, atol=1e-16)
 
 
 if __name__ == "__main__":

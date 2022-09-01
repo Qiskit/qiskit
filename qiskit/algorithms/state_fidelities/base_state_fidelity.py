@@ -48,8 +48,8 @@ class BaseStateFidelity(ABC):
 
     @staticmethod
     def _preprocess_values(
-        circuits: QuantumCircuit,
-        values: Sequence[Sequence[float]] | None = None,
+        circuits: Sequence[QuantumCircuit],
+        values: Sequence[float] | Sequence[Sequence[float]] | None = None,
     ) -> Sequence[Sequence[float]]:
         """
         Checks whether the passed values match the shape of the parameters
@@ -126,8 +126,8 @@ class BaseStateFidelity(ABC):
 
     def _construct_circuits(
         self,
-        circuits_1: Sequence[QuantumCircuit],
-        circuits_2: Sequence[QuantumCircuit],
+        circuits_1: QuantumCircuit | Sequence[QuantumCircuit],
+        circuits_2: QuantumCircuit | Sequence[QuantumCircuit],
     ) -> Sequence[QuantumCircuit]:
         """
         Constructs the list of fidelity circuits to be evaluated.
@@ -144,6 +144,11 @@ class BaseStateFidelity(ABC):
         Raises:
             ValueError: if the length of the input circuit lists doesn't match.
         """
+
+        if isinstance(circuits_1, QuantumCircuit):
+            circuits_1 = [circuits_1]
+        if isinstance(circuits_2, QuantumCircuit):
+            circuits_2 = [circuits_2]
 
         if not len(circuits_1) == len(circuits_2):
             raise ValueError(
@@ -182,8 +187,8 @@ class BaseStateFidelity(ABC):
         self,
         circuits_1: Sequence[QuantumCircuit],
         circuits_2: Sequence[QuantumCircuit],
-        values_1: Sequence[Sequence[float]] | None = None,
-        values_2: Sequence[Sequence[float]] | None = None,
+        values_1: Sequence[float] | Sequence[Sequence[float]] | None = None,
+        values_2: Sequence[float] | Sequence[Sequence[float]] | None = None,
     ) -> Sequence[float]:
         """
         Preprocesses input parameter values to match the fidelity
@@ -218,10 +223,10 @@ class BaseStateFidelity(ABC):
     @abstractmethod
     def _run(
         self,
-        circuits_1: Sequence[QuantumCircuit],
-        circuits_2: Sequence[QuantumCircuit],
-        values_1: Sequence[Sequence[float]] | None = None,
-        values_2: Sequence[Sequence[float]] | None = None,
+        circuits_1: QuantumCircuit | Sequence[QuantumCircuit],
+        circuits_2: QuantumCircuit | Sequence[QuantumCircuit],
+        values_1: Sequence[float] | Sequence[Sequence[float]] | None = None,
+        values_2: Sequence[float] | Sequence[Sequence[float]] | None = None,
         **run_options,
     ) -> StateFidelityResult:
         r"""
@@ -246,10 +251,10 @@ class BaseStateFidelity(ABC):
 
     def run(
         self,
-        circuits_1: Sequence[QuantumCircuit],
-        circuits_2: Sequence[QuantumCircuit],
-        values_1: Sequence[Sequence[float]] | None = None,
-        values_2: Sequence[Sequence[float]] | None = None,
+        circuits_1: QuantumCircuit | Sequence[QuantumCircuit],
+        circuits_2: QuantumCircuit | Sequence[QuantumCircuit],
+        values_1: Sequence[float] | Sequence[Sequence[float]] | None = None,
+        values_2: Sequence[float] | Sequence[Sequence[float]] | None = None,
         **run_options,
     ) -> AlgorithmJob:
         r"""
