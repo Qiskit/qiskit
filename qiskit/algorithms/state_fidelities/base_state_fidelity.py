@@ -68,10 +68,6 @@ class BaseStateFidelity(ABC):
                         circuit parameters
         """
 
-        # Support ndarray
-        if isinstance(values, np.ndarray):
-            values = values.tolist()
-
         if values is None:
             for circuit in circuits:
                 if circuit.num_parameters != 0:
@@ -81,6 +77,12 @@ class BaseStateFidelity(ABC):
                     )
             return [[]]
         else:
+            # Support ndarray
+            if isinstance(values, np.ndarray):
+                values = values.tolist()
+            if len(values) > 0 and isinstance(values[0], np.ndarray):
+                values = [v.tolist() for v in values]
+
             # ensure 2d list
             if not isinstance(values, list):
                 values = [values]

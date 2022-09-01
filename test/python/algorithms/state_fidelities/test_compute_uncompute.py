@@ -17,6 +17,7 @@ import unittest
 import numpy as np
 
 from qiskit.circuit import QuantumCircuit, ParameterVector
+from qiskit.circuit.library import RealAmplitudes
 from qiskit.primitives import Sampler
 from qiskit.algorithms.state_fidelities import ComputeUncompute
 from qiskit.test import QiskitTestCase
@@ -192,6 +193,22 @@ class TestComputeUncompute(QiskitTestCase):
 
         results = [job.result().fidelities[0] for job in jobs]
         np.testing.assert_allclose(results, np.array([1.0, 0.5, 0.25, 0.0]), atol=1e-16)
+
+    def test_values_types(self):
+
+        fidelity = ComputeUncompute(self._sampler)
+        circuit = RealAmplitudes(2)
+        values = np.random.random(circuit.num_parameters)
+        shift = np.ones_like(values) * 0.01
+
+        job = fidelity.run([circuit], [circuit], [values], [values + shift])
+        result_1 = job.result()
+
+        shift_val = values + shift
+        job = fidelity.run([circuit], [circuit], [values.tolist()], [shift_val.tolist()])
+        result_2 = job.result()
+
+        np.testing.assert_allclose(result_1.fidelities, result_2.fidelities, atol=1e-16)
 
 
 if __name__ == "__main__":
