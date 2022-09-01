@@ -39,8 +39,7 @@ class TestComputeUncompute(QiskitTestCase):
         ry_rotations.ry(parameters[1], 1)
 
         plus = QuantumCircuit(2)
-        plus.h(0)
-        plus.h(1)
+        plus.h([0, 1])
 
         zero = QuantumCircuit(2)
 
