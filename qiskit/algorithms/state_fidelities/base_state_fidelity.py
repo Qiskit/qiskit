@@ -35,9 +35,6 @@ class BaseStateFidelity(ABC):
     ) -> None:
         """Initializes the class to evaluate state fidelities."""
 
-        self._circuits: Sequence[QuantumCircuit] = []
-        self._parameter_values: Sequence[Sequence[float]] = []
-
         # use cache for preventing unnecessary circuit compositions
         self._circuit_cache: Mapping[(int, int), QuantumCircuit] = {}
 
@@ -255,10 +252,12 @@ class BaseStateFidelity(ABC):
         r"""
         Run asynchronously the state overlap (fidelity) calculation between two
         (parametrized) circuits (first and second) for a specific set of parameter
-        values (first and second).This calculation depends on the particular
+        values (first and second). This calculation depends on the particular
         fidelity method implementation, but always represents:
 
-            :math:`|\langle\psi(x)|\phi(y)\rangle|^2`
+        .. math::
+
+            |\langle\psi(x)|\phi(y)\rangle|^2
 
         where :math:`x` and :math:`y` are optional parametrizations of the
         states :math:`\psi` and :math:`\phi` prepared by the circuits
