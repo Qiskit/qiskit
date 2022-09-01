@@ -29,6 +29,7 @@ class Counts(dict):
 
     bitstring_regex = re.compile(r"^[01\s]+$")
 
+    # pylint: disable=missing-raises-doc
     def __init__(self, data, time_taken=None, creg_sizes=None, memory_slots=None):
         """Build a counts object
 
@@ -135,7 +136,7 @@ class Counts(dict):
         max_values_counts = [x[0] for x in self.items() if x[1] == max_value]
         if len(max_values_counts) != 1:
             raise exceptions.QiskitError(
-                "Multiple values have the same maximum counts: %s" % ",".join(max_values_counts)
+                f"Multiple values have the same maximum counts: {','.join(max_values_counts)}."
             )
         return max_values_counts[0]
 
