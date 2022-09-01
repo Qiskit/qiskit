@@ -42,10 +42,10 @@ class FiniteDiffEstimatorGradient(BaseEstimatorGradient):
                 setting. Higher priority setting overrides lower priority setting.
 
         Raises:
-            ValueError: If ``epsilon`` is not float.
+            ValueError: If ``epsilon`` is not positive.
         """
-        if not isinstance(epsilon, float):
-            raise ValueError(f"epsilon must be a float, but got {type(epsilon)} instead.")
+        if epsilon <= 0:
+            raise ValueError(f"epsilon ({epsilon}) should be positive.")
         self._epsilon = epsilon
         self._base_parameter_values_dict = {}
         super().__init__(estimator, **run_options)

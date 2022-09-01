@@ -383,7 +383,7 @@ class TestSamplerGradient(QiskitTestCase):
             with self.assertRaises(ValueError):
                 _ = grad(Estimator(), epsilon=1e-6)
             with self.assertRaises(ValueError):
-                _ = grad(sampler, epsilon="1e-6")
+                _ = grad(sampler, epsilon=-0.1)
         else:
             gradient = grad(sampler)
             with self.assertRaises(ValueError):
@@ -400,7 +400,7 @@ class TestSamplerGradient(QiskitTestCase):
         """Test the SPSA sampler gradient"""
         sampler = Sampler()
         with self.assertRaises(ValueError):
-            _ = SPSASamplerGradient(sampler, epsilon="1e-6")
+            _ = SPSASamplerGradient(sampler, epsilon=-0.1)
 
         a = Parameter("a")
         b = Parameter("b")

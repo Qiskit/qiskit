@@ -50,11 +50,10 @@ class SPSAEstimatorGradient(BaseEstimatorGradient):
                 setting. Higher priority setting overrides lower priority setting.
 
         Raises:
-            ValueError: If ``epsilon`` is not float.
+            ValueError: If ``epsilon`` is not positive.
         """
-        if not isinstance(epsilon, float):
-            raise ValueError(f"epsilon must be a float, but got {type(epsilon)} instead.")
-
+        if epsilon <= 0:
+            raise ValueError(f"epsilon ({epsilon}) should be positive.")
         self._epsilon = epsilon
         self._seed = np.random.default_rng(seed) if seed else np.random.default_rng()
 
