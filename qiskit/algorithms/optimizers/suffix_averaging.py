@@ -96,32 +96,23 @@ class SuffixAveragingOptimizer(Optimizer):
 
         if isinstance(self._optimizer, NFT):
             n_params = 1 if isinstance(self._circ_params[0], float) else len(self._circ_params[0])
-            n_iterates = int(len(self._circ_params))
             n_repitition = int(len(self._circ_params) / n_params)
             if n_repitition < self._n_params_suffix:
                 warnings.warn("The total number of iterations is less than n_params_suffix.")
-                averaged_param = np.zeros_like(self._circ_params[0])
-                for j in range(n_repitition):
-                    averaged_param += self._circ_params[n_iterates - n_params * j - 1]
-                averaged_param /= self._n_params_suffix
+                averaged_param = np.mean(self._circ_params[:-n_params*n_repitition:-n_params], axis=0)
                 return averaged_param
 
-            averaged_param = np.zeros_like(self._circ_params[0])
-            for j in range(self._n_params_suffix):
-                averaged_param += self._circ_params[n_iterates - n_params * j - 1]
-            averaged_param /= self._n_params_suffix
+            averaged_param = np.mean(self._circ_params[:-n_params*self._n_params_suffix:-n_params], axis=0)
 
         else:
             n_iterates = len(self._circ_params)
 
             if n_iterates < self._n_params_suffix:
                 warnings.warn("The total number of iterations is less than n_params_suffix.")
-                return np.average(np.asarray(self._circ_params), axis=0)
+                averaged_param = np.mean(self._circ_params, axis=0)
+                return averaged_param
 
-            averaged_param = np.zeros_like(self._circ_params[0])
-            for j in range(self._n_params_suffix):
-                averaged_param += self._circ_params[n_iterates - j - 1]
-            averaged_param /= self._n_params_suffix
+            averaged_param = np.mean(self._circ_params[-self._n_params_suffix:], axis=0)
 
         return averaged_param
 
@@ -139,6 +130,8 @@ class SuffixAveragingOptimizer(Optimizer):
 
         result = self._optimizer.minimize(fun, x0, jac=jac, bounds=bounds)
         result.x = self._return_suffix_average()
-        result.fun = fun(np.copy(result.x))
+        result.fun = fun(result.x)
+
+        self._circ_params = []
 
         return result
