@@ -472,8 +472,18 @@ class TestEquivalenceLibraryVisualization(QiskitVisualizationTestCase):
     @unittest.skipUnless(optionals.HAS_GRAPHVIZ, "Graphviz not installed")
     def test_session_equivalence_draw(self):
         """Verify SessionEquivalenceLibrary drawing with reference image."""
-        from qiskit.circuit.equivalence_library import SessionEquivalenceLibrary as sel
+        sel = EquivalenceLibrary()
+        gate = OneQubitZeroParamGate()
+        first_equiv = QuantumCircuit(1)
+        first_equiv.h(0)
+
+        sel.add_equivalence(gate, first_equiv)
+
+        second_equiv = QuantumCircuit(1)
+        second_equiv.append(U2Gate(0, np.pi), [0])
+
+        sel.add_equivalence(gate, second_equiv)
 
         image = sel.draw()
-        image_ref = path_to_diagram_reference("session_equivalence_library.png")
+        image_ref = path_to_diagram_reference("equivalence_library.png")
         self.assertImagesAreEqual(image, image_ref, 0.04)
