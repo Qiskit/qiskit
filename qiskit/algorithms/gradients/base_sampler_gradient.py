@@ -11,7 +11,7 @@
 # that they have been altered from the originals.
 
 """
-Abstract Base class of Gradient for Sampler.
+Abstract base class of gradient for ``Sampler``.
 """
 
 from __future__ import annotations
