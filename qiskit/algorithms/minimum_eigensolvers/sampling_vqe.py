@@ -245,14 +245,16 @@ class SamplingVQE(SamplingMinimumEigensolver):
             value, best = diagonal_estimation(self.sampler, operator, ansatz, parameters)
 
             # keep track of the best sample
-            for best_i in best:
-                if (
-                    best_measurement["best"] is None
-                    or best_i["value"] < best_measurement["best"]["value"]
-                ):
-                    best_measurement["best"] = best_i
+            if return_best_measurement:
+                for best_i in best:
+                    if (
+                        best_measurement["best"] is None
+                        or best_i["value"] < best_measurement["best"]["value"]
+                    ):
+                        best_measurement["best"] = best_i
 
-            return value if len(value) > 1 else value[0]
+            result = value if len(value) > 1 else value[0]
+            return np.real(result)
 
         if return_best_measurement:
             return energy_evaluation, best_measurement

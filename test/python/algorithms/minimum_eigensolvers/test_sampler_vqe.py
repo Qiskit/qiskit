@@ -86,7 +86,7 @@ class TestSamplerVQE(QiskitAlgorithmsTestCase):
         result = vqe.compute_minimum_eigenvalue(operator=self.op)
 
         with self.subTest(msg="test eigenvalue"):
-            self.assertAlmostEqual(result.eigenvalue, self.optimal_value)
+            self.assertAlmostEqual(result.eigenvalue, self.optimal_value, places=5)
 
         with self.subTest(msg="test dimension of optimal point"):
             self.assertEqual(len(result.optimal_point), ansatz.num_parameters)
