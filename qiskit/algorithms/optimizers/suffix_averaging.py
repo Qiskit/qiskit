@@ -37,29 +37,6 @@ class SuffixAveragingOptimizer(Optimizer):
         \overline{\vec{\theta}} = \frac{1}{n_params_suffix} \sum_{t=T-n_params_suffix-1}^{T}
         \vec{\theta}^{(t)}.
 
-    Examples:
-        .. code-block::python
-            from qiskit import Aer
-            from qiskit.utils import QuantumInstance
-            from qiskit.algorithms import VQE
-            from qiskit.opflow.gradients import Gradient
-            from qiskit.circuit.library import TwoLocal
-            from qiskit.algorithms.optimizers import ADAM
-            from qiskit.algorithms.optimizers.suffix_averaging import SuffixAveragingOptimizer
-
-            backend = Aer.get_backend("qasm_simulator")
-            quantum_instance = QuantumInstance(backend=backend, shots=1000)
-            ansatz = TwoLocal(4, ["rx", "rz"], "cx", "linear")
-            optimizer = ADAM(maxiter=1000)
-            suffix_optimizer = SuffixAveragingOptimizer(optimizer, n_params_suffix=50)
-            gradient = Gradient(grad_method="param_shift")
-            vqe = VQE(
-                ansatz = ansatz,
-                optimizer = suffix_optimizer,
-                gradient = gradient,
-                quantum_instance = quantum_instance
-            )
-
     References:
         [1] S. Tamiya and H. Yamasaki. 2021.
         Stochastic Gradient Line Bayesian Optimization
