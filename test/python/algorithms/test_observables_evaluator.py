@@ -13,13 +13,12 @@
 
 import unittest
 from typing import Tuple, Sequence, List
-
+from test.python.algorithms import QiskitAlgorithmsTestCase
 import numpy as np
 from ddt import ddt, data
 
 from qiskit.algorithms.observables_evaluator import eval_observables
 from qiskit.primitives import Estimator
-from test.python.algorithms import QiskitAlgorithmsTestCase
 from qiskit.quantum_info import Statevector
 from qiskit import QuantumCircuit
 from qiskit.circuit.library import EfficientSU2
