@@ -24,22 +24,22 @@ Visualize the circuit
 There are three different ways to visualize a circuit. You can use
 
 * The ``print()`` function.
-* The :meth:`~qiskit.circuit.QuantumCircuit.draw()` method.
-* The :func:`~qiskit.visualization.circuit_drawer()` function.
+* The :meth:`~.QuantumCircuit.draw` method.
+* The :func:`~.circuit_drawer` function.
 
 ``print()``
 -----------
 
-If you call the ``print()`` function on a :class:`~qiskit.circuit.QuantumCircuit` object, you will get an `ASCII art version <https://en.wikipedia.org/wiki/ASCII_art>`_ of the circuit diagram.
+If you call the ``print()`` function on a :class:`~.QuantumCircuit` object, you will get an `ASCII art version <https://en.wikipedia.org/wiki/ASCII_art>`_ of the circuit diagram.
 
 .. jupyter-execute::
 
     print(qc)
 
-:meth:`~qiskit.circuit.QuantumCircuit.draw()`
+:meth:`~.QuantumCircuit.draw`
 ---------------------------------------------
 
-You can also call the :meth:`~qiskit.circuit.QuantumCircuit.draw()` method on a :class:`~qiskit.circuit.QuantumCircuit` object to visualize it. If you don't specify any arguments you will get a plain text representation of the circuit.
+You can also call the :meth:`~.QuantumCircuit.draw` method on a :class:`~.QuantumCircuit` object to visualize it. If you don't specify any arguments you will get a plain text representation of the circuit.
 
 .. jupyter-execute::
 
@@ -55,7 +55,7 @@ However, if you change the ``output`` argument, you can get other different rend
 Because this optional or keyword argument is actually the first of this method, one can type ``qc.draw(option)`` instead of ``qc.draw(output=option)``.
 
 .. note::
-    By default, the ``draw()`` method returns the rendered image as an object and does not output anything. The exact class returned depends on the output specified: ``'text'`` (the default) returns a ``TextDrawer`` object, ``'mpl'`` returns a ``matplotlib.figure.Figure`` object, and ``'latex'`` returns a ``PIL.Image`` object. Having the return types enables modifying or directly interacting with the rendered output from the drawers. Jupyter notebooks understand these return types and render them for us in this guide, but when running outside of Jupyter, you do not have this feature automatically. However, the ``draw()`` method has optional arguments to display or save the output. When specified, the ``filename`` kwarg takes a path to which it saves the rendered output. Alternatively, if you're using the ``'mpl'`` or ``'latex'`` outputs, you can leverage the ``interactive`` kwarg to open the image in a new window (this will not always work from within a notebook but will be demonstrated anyway).
+    By default, the :meth:`~.QuantumCircuit.draw` method returns the rendered image as an object and does not output anything. The exact class returned depends on the output specified: ``'text'`` (the default) returns a ``TextDrawer`` object, ``'mpl'`` returns a `matplotlib.figure.Figure <https://matplotlib.org/stable/api/figure_api.html?highlight=figure#matplotlib.figure.Figure>`_ object, and ``'latex'`` returns a ``PIL.Image`` object. Having the return types enables modifying or directly interacting with the rendered output from the drawers. Jupyter notebooks understand these return types and render them for us in this guide, but when running outside of Jupyter, you do not have this feature automatically. However, the :meth:`~.QuantumCircuit.draw` method has optional arguments to display or save the output. When specified, the ``filename`` kwarg takes a path to which it saves the rendered output. Alternatively, if you're using the ``'mpl'`` or ``'latex'`` outputs, you can leverage the ``interactive`` kwarg to open the image in a new window (this will not always work from within a notebook).
 
 
 ``'mpl'``
@@ -75,13 +75,13 @@ Because this optional or keyword argument is actually the first of this method, 
     qc.draw('latex_source')
 
 
-:func:`~qiskit.visualization.circuit_drawer()`
+:func:`~.circuit_drawer`
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-If you prefer to use a self-contained function instead of a :class:`~qiskit.circuit.QuantumCircuit` method to draw your circuit, you can do it with :func:`~qiskit.visualization.circuit_drawer()` from :mod:`qiskit.visualization`. It has the exact same behavior as the :meth:`~qiskit.circuit.QuantumCircuit.draw()` method above, except that it requires the circuit to be included as an argument.
+If you prefer to use a self-contained function instead of a :class:`~.QuantumCircuit` method to draw your circuit, you can do it with :func:`~.circuit_drawer` from :mod:`qiskit.visualization`. It has the exact same behavior as the :meth:`~.QuantumCircuit.draw` method above, except that it requires the circuit to be included as an argument.
 
 .. note::
-    In Qiskit Terra :math:`\leq 0.7`, the default behavior for the ``circuit_drawer()`` function is to use the ``'latex'`` output backend, and in :math:`0.6.x` that includes a fallback to ``'mpl'`` if ``'latex'`` fails for any reason. Starting with release :math:`> 0.7`, the default changes to the ``'text'`` output.
+    In Qiskit Terra :math:`\leq 0.7`, the default behavior for the :func:`~.circuit_drawer` function is to use the ``'latex'`` output backend, and in :math:`0.6.x` that includes a fallback to ``'mpl'`` if ``'latex'`` fails for any reason. Starting with release :math:`> 0.7`, the default changes to the ``'text'`` output.
 
 
 .. jupyter-execute::
@@ -90,8 +90,3 @@ If you prefer to use a self-contained function instead of a :class:`~qiskit.circ
 
     circuit_drawer(qc, output='mpl')
 
-.. jupyter-execute::
-
-    import qiskit.tools.jupyter
-    %qiskit_version_table
-    %qiskit_copyright

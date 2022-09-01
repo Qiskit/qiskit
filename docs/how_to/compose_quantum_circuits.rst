@@ -2,7 +2,7 @@
 Compose quantum circuits
 ========================
 
-This guide shows how to combine different :class:`~qiskit.circuit.QuantumCircuit` objects.
+This guide shows how to combine different :class:`~.QuantumCircuit` objects.
 
 Build the circuits
 ==================
@@ -26,17 +26,17 @@ Combine the circuits
 
 Now that we have built the circuits, they can be combined with two different methods:
 
-* :meth:`~qiskit.circuit.QuantumCircuit.compose()`
-* :meth:`~qiskit.circuit.QuantumCircuit.append()`
+* :meth:`~.QuantumCircuit.compose`
+* :meth:`~.QuantumCircuit.append`
 
 One detail these two methods have in common is that if the circuits have different sizes, they have to be applied to the one that has the most of both qubits and classical bits.
 
-:meth:`~qiskit.circuit.QuantumCircuit.compose()`
+:meth:`~.QuantumCircuit.compose`
 ------------------------------------------------
 
-In order to combine two circuits with :meth:`~qiskit.circuit.QuantumCircuit.compose()`, you only have to specify the circuit you want to insert. That way the qubits and bits of the smaller circuit will be included into the first qubits and bits of the bigger one in the original order they had. 
+In order to combine two circuits with :meth:`~.QuantumCircuit.compose`, you only have to specify the circuit you want to insert. That way the qubits and bits of the smaller circuit will be included into the first qubits and bits of the bigger one in the original order they had. 
 
-By default, :meth:`~qiskit.circuit.QuantumCircuit.compose()` does not change the circuit to which it is applied but returns the composed circuit. This can be changed by setting the ``inplace`` argument to ``True``.
+By default, :meth:`~.QuantumCircuit.compose` does not change the circuit to which it is applied but returns the composed circuit. This can be changed by setting the ``inplace`` argument to ``True``.
 
 .. jupyter-execute::
 
@@ -57,10 +57,10 @@ You can also apply the gates from the smaller circuit before those of the bigger
     qc5 = qc2.compose(qc1, front=True)
     qc5.draw()
 
-:meth:`~qiskit.circuit.QuantumCircuit.append()`
+:meth:`~.QuantumCircuit.append`
 -----------------------------------------------
 
-In order to combine two circuits with :meth:`~qiskit.circuit.QuantumCircuit.append()`, you have to specify the circuit you want to add and the qubits and classical bits (if there are any) into which you want the circuit to be inserted.
+In order to combine two circuits with :meth:`~.QuantumCircuit.append`, you have to specify the circuit you want to add and the qubits and classical bits (if there are any) into which you want the circuit to be inserted.
 
 This method changes the circuit to which it is applied instead of returning another one.
 
@@ -69,18 +69,12 @@ This method changes the circuit to which it is applied instead of returning anot
     qc2.append(qc1, qargs=[3,1], cargs=[1])
     qc2.draw(cregbundle=False)
 
-Unlike :meth:`~qiskit.circuit.QuantumCircuit.compose()`, :meth:`~qiskit.circuit.QuantumCircuit.append()` turns the smaller circuit into a single :class:`~qiskit.circuit.Instruction`, so in order to unroll it you can use :meth:`~qiskit.circuit.QuantumCircuit.decompose()`
+Unlike :meth:`~.QuantumCircuit.compose`, :meth:`~.QuantumCircuit.append` turns the smaller circuit into a single :class:`~qiskit.circuit.Instruction`, so in order to unroll it you can use :meth:`~.QuantumCircuit.decompose`
 
 .. jupyter-execute::
 
     qc2.decompose().draw()
 
-
-.. jupyter-execute::
-
-    import qiskit.tools.jupyter
-    %qiskit_version_table
-    %qiskit_copyright
 
 
 

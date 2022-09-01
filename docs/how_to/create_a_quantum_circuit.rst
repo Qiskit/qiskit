@@ -5,15 +5,15 @@ Create a quantum circuit
 
 This guide shows how to initialize a quantum circuit.
 
-There are two ways to create a :class:`~qiskit.circuit.QuantumCircuit` object:
+There are two ways to create a :class:`~.QuantumCircuit` object:
 
 * Specifying the number of qubits and bits.
-* Creating :class:`~qiskit.circuit.QuantumRegister`\ s and :class:`~qiskit.circuit.ClassicalRegister`\ s
+* Creating :class:`~.QuantumRegister`\ s and :class:`~.ClassicalRegister`\ s.
 
 Create from number of qubits and bits
 =====================================
 
-In order to create a :class:`~qiskit.circuit.QuantumCircuit` by only specifying the number of bits and qubits, you need to follow these steps.
+In order to create a :class:`~.QuantumCircuit` by only specifying the number of bits and qubits, you need to follow these steps.
 
 .. jupyter-execute::
 
@@ -28,7 +28,7 @@ In order to create a :class:`~qiskit.circuit.QuantumCircuit` by only specifying 
     qc.draw()
 
 
-If you don't want to include any classical bits, you don't have to write ``QuantumCircuit(n_qubits,0)`` but you can omit the number of classical bits.
+If you don't want to include any classical bits, you don't have to write `QuantumCircuit(n_qubits,0)` but you can omit the number of classical bits.
 
 .. jupyter-execute::
 
@@ -43,7 +43,7 @@ Create from quantum and classical registers
 Create quantum registers
 ------------------------
 
-In order to create a quantum register, you have to define a :class:`~qiskit.circuit.QuantumRegister` object, passing as argument the desired number of qubits.
+In order to create a quantum register, you have to define a :class:`~.QuantumRegister` object, passing as argument the desired number of qubits.
 
 .. jupyter-execute::
 
@@ -58,7 +58,7 @@ In order to create a quantum register, you have to define a :class:`~qiskit.circ
 Create classical registers
 --------------------------
 
-Analogously to the quantum registers, a classical register can be created by defining a :class:`~qiskit.circuit.ClassicalRegister` object, passing the number of classical bits as an argument.
+Analogously to the quantum registers, a classical register can be created by defining a :class:`~.ClassicalRegister` object, passing the number of classical bits as an argument.
 
 .. jupyter-execute::
 
@@ -73,7 +73,7 @@ Analogously to the quantum registers, a classical register can be created by def
 Initialize the quantum circuit
 ------------------------------
 
-Now that you have defined the quantum and classical registers, you can define a :class:`~qiskit.circuit.QuantumCircuit` from them. Each register has to be introduced as a separate argument.
+Now that you have defined the quantum and classical registers, you can define a :class:`~.QuantumCircuit` from them. Each register has to be introduced as a separate argument.
 
 .. jupyter-execute::
 
@@ -81,7 +81,7 @@ Now that you have defined the quantum and classical registers, you can define a 
     qc = QuantumCircuit(qr1, qr2, cr1, cr2)
     qc.draw()
 
-You can put the registers in any order, even mixing classical and quantum. However, the relative order of the :class:`~qiskit.circuit.QuantumRegister`\ s does affect the order of the qubits on the final circuit. In particular, the qubits from the first :class:`~qiskit.circuit.QuantumRegister` will be the first and so on. The same applies to the :class:`~qiskit.circuit.ClassicalRegister`\ s.
+You can put the registers in any order, even mixing classical and quantum. However, the relative order of the :class:`~.QuantumRegister`\ s does affect the order of the qubits on the final circuit. In particular, the qubits from the first :class:`~.QuantumRegister` will be the first and so on. The same applies to the :class:`~.ClassicalRegister`\ s.
 
 .. jupyter-execute::
 
@@ -105,10 +105,4 @@ You can put the registers in any order, even mixing classical and quantum. Howev
     qc2.draw()
 
 
-
-.. jupyter-execute::
-
-    import qiskit.tools.jupyter
-    %qiskit_version_table
-    %qiskit_copyright
 
