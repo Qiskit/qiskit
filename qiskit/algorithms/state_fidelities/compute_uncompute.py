@@ -27,25 +27,27 @@ from .state_fidelity_result import StateFidelityResult
 
 
 class ComputeUncompute(BaseStateFidelity):
-    """
-    This class leverages the sampler primitive to calculate the fidelity of
-    two quantum circuits with the compute-uncompute method.
+    r"""
+    This class leverages the sampler primitive to calculate the state
+    fidelity of two quantum circuits following the compute-uncompute
+    method (see [1] for further reference).
+    The fidelity can be defined as the state overlap
+    .. math::
+            |\langle\psi(x)|\phi(y)\rangle|^2
+
+    where :math:`x` and :math:`y` are optional parametrizations of the
+    states :math:`\psi` and :math:`\phi` prepared by the circuits
+    ``circuit_1`` and ``circuit_2``, respectively.
+
+    References:
+        1. Havlíček, V., Córcoles, A. D., Temme, K., Harrow, A. W., Kandala,
+            A., Chow, J. M., & Gambetta, J. M. (2019). Supervised learning
+            with quantum-enhanced feature spaces. Nature, 567(7747), 209-212.
+           `arXiv:1804.11326v2 [quant-ph] <https://arxiv.org/pdf/1804.11326.pdf>`_
     """
 
     def __init__(self, sampler: BaseSampler, **run_options) -> None:
-        r"""
-        Initializes the class to evaluate the compute-uncompute state fidelity using
-        the sampler primitive. This fidelity is defined as the state overlap
 
-            :math:`|\langle\psi(x)|\phi(y)\rangle|^2`,
-
-        where :math:`x` and :math:`y` are optional parametrizations of the
-        states :math:`\psi` and :math:`\phi` prepared by the circuits
-        ``circuit_1`` and ``circuit_2``, respectively.
-        Args:
-            sampler: Sampler primitive instance.
-            run_options: Backend runtime options used for circuit execution.
-        """
         self._sampler = sampler
         self._default_run_options = run_options
         super().__init__()
@@ -54,7 +56,9 @@ class ComputeUncompute(BaseStateFidelity):
         self, circuit_1: QuantumCircuit, circuit_2: QuantumCircuit
     ) -> QuantumCircuit:
         """
-        Creates fidelity circuit following the compute-uncompute method.
+        Combines ``circuit_1`` and ``circuit_2`` to create the
+        fidelity circuit following the compute-uncompute method.
+
         Args:
             circuit_1: (Parametrized) quantum circuit
             circuit_2: (Parametrized) quantum circuit
@@ -77,11 +81,7 @@ class ComputeUncompute(BaseStateFidelity):
         r"""
         Compute the state overlap (fidelity) calculation between two
         (parametrized) circuits (first and second) for a specific set of parameter
-        values (first and second) following the compute-uncompute method
-
-        The fidelity corresponds to:
-
-            :math:`|\langle\psi(x)|\phi(y)\rangle|^2`
+        values (first and second) following the compute-uncompute method.
 
         Args:
             circuits_1: (Parametrized) quantum circuits preparing :math:`|\psi\rangle`.
@@ -122,8 +122,12 @@ class ComputeUncompute(BaseStateFidelity):
         if status is JobStatus.DONE:
             raw_fidelities = [prob_dist.get(0, 0) for prob_dist in result.quasi_dists]
             fidelities = self._truncate_fidelities(raw_fidelities)
+
             return StateFidelityResult(
-                fidelities=fidelities, raw_fidelities=raw_fidelities, metadata=run_opts
+                fidelities=fidelities,
+                raw_fidelities=raw_fidelities,
+                metadata=result.metadata,
+                run_options=run_opts,
             )
         else:
             raise QiskitError(

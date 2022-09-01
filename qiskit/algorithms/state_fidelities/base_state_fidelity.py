@@ -25,15 +25,23 @@ from .state_fidelity_result import StateFidelityResult
 
 
 class BaseStateFidelity(ABC):
-    """
+    r"""
     An interface to calculate state_fidelities (state overlaps) for pairs of
-    (parametrized) quantum circuits.
+    (parametrized) quantum circuits. The calculation depends on the particular
+    fidelity method implementation, but can be always defined as the state overlap
+
+    .. math::
+            |\langle\psi(x)|\phi(y)\rangle|^2
+
+    where :math:`x` and :math:`y` are optional parametrizations of the
+    states :math:`\psi` and :math:`\phi` prepared by the circuits
+    ``circuit_1`` and ``circuit_2``, respectively.
+
     """
 
     def __init__(
         self,
     ) -> None:
-        """Initializes the class to evaluate state fidelities."""
 
         # use cache for preventing unnecessary circuit compositions
         self._circuit_cache: Mapping[(int, int), QuantumCircuit] = {}
@@ -95,7 +103,7 @@ class BaseStateFidelity(ABC):
         if circuit_1.num_qubits != circuit_2.num_qubits:
             raise ValueError(
                 f"The number of qubits for the first circuit ({circuit_1.num_qubits}) "
-                f"and second circuit ({circuit_2.num_qubits}) do not coincide."
+                f"and second circuit ({circuit_2.num_qubits}) are not the same."
             )
 
     @abstractmethod
@@ -217,14 +225,7 @@ class BaseStateFidelity(ABC):
         r"""
         Compute the state overlap (fidelity) calculation between two
         (parametrized) circuits (first and second) for a specific set of parameter
-        values (first and second). This calculation depends on the particular
-        fidelity method implementation, but always represents:
-
-            :math:`|\langle\psi(x)|\phi(y)\rangle|^2`
-
-        where :math:`x` and :math:`y` are optional parametrizations of the
-        states :math:`\psi` and :math:`\phi` prepared by the circuits
-        ``circuit_1`` and ``circuit_2``, respectively.
+        values (first and second).
 
         Args:
             circuits_1: (Parametrized) quantum circuits preparing :math:`|\psi\rangle`.
@@ -253,15 +254,7 @@ class BaseStateFidelity(ABC):
         Run asynchronously the state overlap (fidelity) calculation between two
         (parametrized) circuits (first and second) for a specific set of parameter
         values (first and second). This calculation depends on the particular
-        fidelity method implementation, but always represents:
-
-        .. math::
-
-            |\langle\psi(x)|\phi(y)\rangle|^2
-
-        where :math:`x` and :math:`y` are optional parametrizations of the
-        states :math:`\psi` and :math:`\phi` prepared by the circuits
-        ``circuit_1`` and ``circuit_2``, respectively.
+        fidelity method implementation.
 
         Args:
             circuits_1: (Parametrized) quantum circuits preparing :math:`|\psi\rangle`.

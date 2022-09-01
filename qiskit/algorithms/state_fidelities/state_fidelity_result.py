@@ -30,4 +30,6 @@ class StateFidelityResult:
     """List of raw fidelity values for each pair of input circuits, which might not be in [0,1]
     depending on the error mitigation method used."""
     metadata: Sequence[Mapping[str, Any]]
-    """Metadata values"""
+    """Additional information about the fidelity calculation."""
+    run_options: Mapping[str, Any]
+    """Runtime options for the execution of the fidelity job."""
