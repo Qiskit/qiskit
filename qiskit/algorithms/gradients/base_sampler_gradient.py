@@ -27,7 +27,7 @@ from .sampler_gradient_result import SamplerGradientResult
 
 
 class BaseSamplerGradient(ABC):
-    """Base class for a SamplerGradient to compute the gradients of the sampling probability."""
+    """Base class for a ``SamplerGradient`` to compute the gradients of the sampling probability."""
 
     def __init__(self, sampler: BaseSampler, **run_options):
         """
