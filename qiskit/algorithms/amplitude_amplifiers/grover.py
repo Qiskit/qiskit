@@ -24,6 +24,7 @@ from qiskit.primitives import BaseSampler
 from qiskit.providers import Backend
 from qiskit.quantum_info import partial_trace
 from qiskit.utils import QuantumInstance
+from qiskit.utils.deprecation import deprecate_function
 from .amplification_problem import AmplificationProblem
 from .amplitude_amplifier import AmplitudeAmplifier, AmplitudeAmplifierResult
 
@@ -134,7 +135,7 @@ class Grover(AmplitudeAmplifier):
             sample_from_iterations: If True, instead of taking the values in ``iterations`` as
                 powers of the Grover operator, a random integer sample between 0 and smaller value
                 than the iteration is used as a power, see [1], Section 4.
-            quantum_instance: A Quantum Instance or Backend to run the circuits.
+            quantum_instance: Pending deprecation\: A Quantum Instance or Backend to run the circuits.
             sampler: A Sampler to use for sampling the results of the circuits.
 
         Raises:
@@ -163,10 +164,10 @@ class Grover(AmplitudeAmplifier):
         self._quantum_instance = None
         if quantum_instance is not None:
             warnings.warn(
-                "Passing `quantum_instance` to Grover "
-                "is deprecated as of Qiskit Terra 0.22.0, and will be removed no earlier than "
-                "3 months after that release date. You should use `sampler` instead. ",
-                DeprecationWarning,
+                "The quantum_instance argument has been superseded by the sampler argument. "
+                "This argument will be deprecated in a future release and subsequently "
+                "removed after that.",
+                category=PendingDeprecationWarning,
                 stacklevel=2,
             )
             self.quantum_instance = quantum_instance
@@ -177,6 +178,12 @@ class Grover(AmplitudeAmplifier):
         self._iterations_arg = iterations
 
     @property
+    @deprecate_function(
+        "The Grover.quantum_instance getter is pending deprecation. "
+        "This property will be deprecated in a future release and subsequently "
+        "removed after that.",
+        category=PendingDeprecationWarning,
+    )
     def quantum_instance(self) -> Optional[QuantumInstance]:
         """Get the quantum instance.
         Returns:
@@ -185,6 +192,12 @@ class Grover(AmplitudeAmplifier):
         return self._quantum_instance
 
     @quantum_instance.setter
+    @deprecate_function(
+        "The Grover.quantum_instance setter is pending deprecation. "
+        "This property will be deprecated in a future release and subsequently "
+        "removed after that.",
+        category=PendingDeprecationWarning,
+    )
     def quantum_instance(self, quantum_instance: Union[QuantumInstance, Backend]) -> None:
         """Set quantum instance.
         Args:
