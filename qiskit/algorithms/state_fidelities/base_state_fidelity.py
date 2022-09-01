@@ -234,7 +234,10 @@ class BaseStateFidelity(ABC):
             circuits_2: (Parametrized) quantum circuits preparing :math:`|\phi\rangle`.
             values_1: Numerical parameters to be bound to the first set of circuits
             values_2: Numerical parameters to be bound to the second set of circuits.
-            run_options: Backend runtime options used for circuit execution.
+            run_options: Backend runtime options used for circuit execution. The order
+            of priority is: run_options in ``run`` method > fidelity's default
+            run_options > primitive's default setting.
+            Higher priority setting overrides lower priority setting.
 
         Returns:
             The result of the fidelity calculation.
@@ -266,7 +269,10 @@ class BaseStateFidelity(ABC):
             circuits_2: (Parametrized) quantum circuits preparing :math:`|\phi\rangle`.
             values_1: Numerical parameters to be bound to the first set of circuits.
             values_2: Numerical parameters to be bound to the second set of circuits.
-            run_options: Backend runtime options used for circuit execution.
+            run_options: Backend runtime options used for circuit execution. The order
+            of priority is: run_options in ``run`` method > fidelity's default
+            run_options > primitive's default setting.
+            Higher priority setting overrides lower priority setting.
 
         Returns:
             Primitive job for the fidelity calculation.

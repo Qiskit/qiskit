@@ -18,7 +18,10 @@ from collections.abc import Sequence
 from copy import copy
 
 from qiskit import QuantumCircuit
+from qiskit.exceptions import QiskitError
 from qiskit.primitives import BaseSampler
+from qiskit.providers import JobStatus
+
 from .base_state_fidelity import BaseStateFidelity
 from .state_fidelity_result import StateFidelityResult
 
@@ -47,7 +50,9 @@ class ComputeUncompute(BaseStateFidelity):
         self._default_run_options = run_options
         super().__init__()
 
-    def create_fidelity_circuit(self, circuit_1, circuit_2) -> QuantumCircuit:
+    def create_fidelity_circuit(
+        self, circuit_1: QuantumCircuit, circuit_2: QuantumCircuit
+    ) -> QuantumCircuit:
         """
         Creates fidelity circuit following the compute-uncompute method.
         Args:
@@ -83,22 +88,25 @@ class ComputeUncompute(BaseStateFidelity):
             circuits_2: (Parametrized) quantum circuits preparing :math:`|\phi\rangle`.
             values_1: Numerical parameters to be bound to the first circuits.
             values_2: Numerical parameters to be bound to the second circuits.
-            run_options: Backend runtime options used for circuit execution.
+            run_options: Backend runtime options used for circuit execution. The order
+            of priority is: run_options in ``run`` method > fidelity's default
+            run_options > primitive's default setting.
+            Higher priority setting overrides lower priority setting.
 
         Returns:
             The result of the fidelity calculation.
 
         Raises:
             ValueError: At least one pair of circuits must be defined.
+            QiskitError: If the sampler job is not completed successfully.
         """
 
         circuits = self._construct_circuits(circuits_1, circuits_2)
-        values = self._construct_value_list(circuits_1, circuits_2, values_1, values_2)
-
         if len(circuits) == 0:
             raise ValueError(
                 "At least one pair of circuits must be defined to calculate the state overlap."
             )
+        values = self._construct_value_list(circuits_1, circuits_2, values_1, values_2)
 
         # The priority of run options is as follows:
         # run_options in `evaluate` method > fidelity's default run_options >
@@ -109,10 +117,16 @@ class ComputeUncompute(BaseStateFidelity):
         job = self._sampler.run(circuits=circuits, parameter_values=values, **run_opts)
 
         result = job.result()
+        status = job.status()
 
-        raw_fidelities = [prob_dist.get(0, 0) for prob_dist in result.quasi_dists]
-        fidelities = self._truncate_fidelities(raw_fidelities)
-
-        return StateFidelityResult(
-            fidelities=fidelities, raw_fidelities=raw_fidelities, metadata=run_opts
-        )
+        if status is JobStatus.DONE:
+            raw_fidelities = [prob_dist.get(0, 0) for prob_dist in result.quasi_dists]
+            fidelities = self._truncate_fidelities(raw_fidelities)
+            return StateFidelityResult(
+                fidelities=fidelities, raw_fidelities=raw_fidelities, metadata=run_opts
+            )
+        else:
+            raise QiskitError(
+                f"The sampler fidelity job was not completed succesfully. "
+                f"Job status = {status}."
+            )
