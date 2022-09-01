@@ -17,6 +17,7 @@
 import sys
 from importlib.abc import MetaPathFinder, Loader
 import importlib
+import warnings
 
 
 def _new_namespace(fullname, old_namespace, new_package):
@@ -30,10 +31,11 @@ def _new_namespace(fullname, old_namespace, new_package):
 class QiskitLoader(Loader):
     """Load qiskit element as a namespace package."""
 
-    def __init__(self, new_package, old_namespace):
+    def __init__(self, new_package, old_namespace, deprecate=False):
         super().__init__()
         self.new_package = new_package
         self.old_namespace = old_namespace
+        self.deprecate = deprecate
 
     def module_repr(self, module):
         return repr(module)
@@ -43,16 +45,23 @@ class QiskitLoader(Loader):
         fullname = _new_namespace(fullname, self.old_namespace, self.new_package)
         module = importlib.import_module(fullname)
         sys.modules[old_name] = module
+        if self.deprecate:
+            warnings.warn(
+                f"Importing {old_name} is deprecated and will be removed in "
+                f"a future release. Instead you should import {fullname}.",
+                DeprecationWarning,
+            )
         return module
 
 
 class QiskitElementImport(MetaPathFinder):
     """Meta importer to enable unified qiskit namespace."""
 
-    def __init__(self, old_namespace, new_package):
+    def __init__(self, old_namespace, new_package, deprecate=False):
         super().__init__()
         self.old_namespace = old_namespace
         self.new_package = new_package
+        self.deprecate = deprecate
 
     def find_spec(self, fullname, path=None, target=None):
         """Return the ModuleSpec for Qiskit element."""
@@ -62,7 +71,9 @@ class QiskitElementImport(MetaPathFinder):
                     _new_namespace(fullname, self.old_namespace, self.new_package)
                 )
                 return importlib.util.spec_from_loader(
-                    fullname, QiskitLoader(self.new_package, self.old_namespace), origin="qiskit"
+                    fullname,
+                    QiskitLoader(self.new_package, self.old_namespace, deprecate=self.deprecate),
+                    origin="qiskit",
                 )
             except ModuleNotFoundError:
                 return None

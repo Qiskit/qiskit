@@ -39,7 +39,9 @@ from qiskit import namespace
 # Add hook to redirect imports from qiskit.providers.aer* to qiskit_aer*
 # this is necessary for backwards compatibility for users when qiskit-aer
 # and qiskit-terra shared the qiskit namespace
-new_meta_path_finder = namespace.QiskitElementImport("qiskit.providers.aer", "qiskit_aer")
+new_meta_path_finder = namespace.QiskitElementImport(
+    "qiskit.providers.aer", "qiskit_aer", deprecate=True
+)
 sys.meta_path = [new_meta_path_finder] + sys.meta_path
 
 # qiskit errors operator
