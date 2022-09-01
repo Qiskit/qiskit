@@ -23,8 +23,8 @@ from dataclasses import dataclass
 class SamplerGradientResult:
     """Result of SamplerGradient."""
 
-    gradients: list[list[dict[int:float]]]
-    """The gradients of the sampling probabilities."""
+    gradients: list[list[dict[int, float]]]
+    """The gradients of the sample probabilities."""
     metadata: list[dict[str, Any]]
     """Additional information about the job."""
     run_options: dict[str, Any]
