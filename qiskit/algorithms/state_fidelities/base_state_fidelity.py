@@ -26,9 +26,9 @@ from .state_fidelity_result import StateFidelityResult
 
 class BaseStateFidelity(ABC):
     r"""
-    An interface to calculate state_fidelities (state overlaps) for pairs of
+    An interface to calculate state fidelities (state overlaps) for pairs of
     (parametrized) quantum circuits. The calculation depends on the particular
-    fidelity method implementation, but can be always defined as the state overlap
+    fidelity method implementation, but can be always defined as the state overlap:
 
     .. math::
             |\langle\psi(x)|\phi(y)\rangle|^2
@@ -56,12 +56,12 @@ class BaseStateFidelity(ABC):
         of the corresponding circuits and formats values to 2D list.
 
         Args:
-            circuits: list of circuits to be checked
-            values: parameter values corresponding to the circuits to be checked
+            circuits: List of circuits to be checked.
+            values: Parameter values corresponding to the circuits to be checked.
 
         Returns:
-            Returns a 2D value list if values match, and an empty 2D list
-            if no parameters are passed.
+            A 2D value list if the values match the circuits, or an empty 2D list
+            if values is None.
 
         Raises:
             ValueError: if the number of parameter values doesn't match the number of
@@ -92,8 +92,8 @@ class BaseStateFidelity(ABC):
         """
         Checks that the number of qubits of 2 circuits matches.
         Args:
-            circuit_1: (Parametrized) quantum circuit
-            circuit_2: (Parametrized) quantum circuit
+            circuit_1: (Parametrized) quantum circuit.
+            circuit_2: (Parametrized) quantum circuit.
 
         Raises:
             ValueError: when ``circuit_1`` and ``circuit_2`` don't have the
@@ -114,8 +114,8 @@ class BaseStateFidelity(ABC):
         Implementation-dependent method to create a fidelity circuit
         from 2 circuit inputs.
         Args:
-            circuit_1: (Parametrized) quantum circuit
-            circuit_2: (Parametrized) quantum circuit
+            circuit_1: (Parametrized) quantum circuit.
+            circuit_2: (Parametrized) quantum circuit.
 
         Returns:
             The fidelity quantum circuit corresponding to ``circuit_1`` and ``circuit_2``.
@@ -128,7 +128,7 @@ class BaseStateFidelity(ABC):
         circuits_2: Sequence[QuantumCircuit],
     ) -> Sequence[QuantumCircuit]:
         """
-        Construct the list of fidelity circuits to be evaluated.
+        Constructs the list of fidelity circuits to be evaluated.
         These circuits represent the state overlap between pairs of input circuits,
         and their construction depends on the fidelity method implementations.
 
@@ -184,7 +184,7 @@ class BaseStateFidelity(ABC):
         values_2: Sequence[Sequence[float]] | None = None,
     ) -> Sequence[float]:
         """
-        Preprocess input parameter values to match the fidelity
+        Preprocesses input parameter values to match the fidelity
         circuit parametrization, and return in list format.
 
         Args:
@@ -223,7 +223,7 @@ class BaseStateFidelity(ABC):
         **run_options,
     ) -> StateFidelityResult:
         r"""
-        Compute the state overlap (fidelity) calculation between two
+        Computes the state overlap (fidelity) calculation between two
         (parametrized) circuits (first and second) for a specific set of parameter
         values (first and second).
 
@@ -251,7 +251,7 @@ class BaseStateFidelity(ABC):
         **run_options,
     ) -> AlgorithmJob:
         r"""
-        Run asynchronously the state overlap (fidelity) calculation between two
+        Runs asynchronously the state overlap (fidelity) calculation between two
         (parametrized) circuits (first and second) for a specific set of parameter
         values (first and second). This calculation depends on the particular
         fidelity method implementation.
@@ -278,10 +278,10 @@ class BaseStateFidelity(ABC):
 
     def _truncate_fidelities(self, fidelities: Sequence[float]) -> Sequence[float]:
         """
-        Ensure fidelity result in [0,1]
+        Ensures fidelity result in [0,1].
 
         Args:
-           fidelities: sequence of raw fidelity results
+           fidelities: Sequence of raw fidelity results.
 
         Returns:
              List of truncated fidelities.

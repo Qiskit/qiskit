@@ -31,7 +31,8 @@ class ComputeUncompute(BaseStateFidelity):
     This class leverages the sampler primitive to calculate the state
     fidelity of two quantum circuits following the compute-uncompute
     method (see [1] for further reference).
-    The fidelity can be defined as the state overlap
+    The fidelity can be defined as the state overlap:
+
     .. math::
             |\langle\psi(x)|\phi(y)\rangle|^2
 
@@ -39,7 +40,7 @@ class ComputeUncompute(BaseStateFidelity):
     states :math:`\psi` and :math:`\phi` prepared by the circuits
     ``circuit_1`` and ``circuit_2``, respectively.
 
-    References:
+    **Reference:**
         1. Havlíček, V., Córcoles, A. D., Temme, K., Harrow, A. W., Kandala,
             A., Chow, J. M., & Gambetta, J. M. (2019). Supervised learning
             with quantum-enhanced feature spaces. Nature, 567(7747), 209-212.
@@ -47,8 +48,18 @@ class ComputeUncompute(BaseStateFidelity):
     """
 
     def __init__(self, sampler: BaseSampler, **run_options) -> None:
-
-        self._sampler = sampler
+        """
+        Args:
+            sampler: Sampler primitive instance.
+            run_options: Backend runtime options used for circuit execution.
+        Raises:
+            ValueError: If the sampler is not an instance of ``BaseSampler``.
+        """
+        if not isinstance(sampler, BaseSampler):
+            raise ValueError(
+                f"The sampler should be an instance of BaseSampler, " f"but got {type(sampler)}"
+            )
+        self._sampler: BaseSampler = sampler
         self._default_run_options = run_options
         super().__init__()
 
@@ -60,8 +71,8 @@ class ComputeUncompute(BaseStateFidelity):
         fidelity circuit following the compute-uncompute method.
 
         Args:
-            circuit_1: (Parametrized) quantum circuit
-            circuit_2: (Parametrized) quantum circuit
+            circuit_1: (Parametrized) quantum circuit.
+            circuit_2: (Parametrized) quantum circuit.
 
         Returns:
             The fidelity quantum circuit corresponding to circuit_1 and circuit_2.
@@ -79,7 +90,7 @@ class ComputeUncompute(BaseStateFidelity):
         **run_options,
     ) -> StateFidelityResult:
         r"""
-        Compute the state overlap (fidelity) calculation between two
+        Computes the state overlap (fidelity) calculation between two
         (parametrized) circuits (first and second) for a specific set of parameter
         values (first and second) following the compute-uncompute method.
 
