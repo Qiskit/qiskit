@@ -229,6 +229,17 @@ Utility methods used by algorithms.
    :toctree: ../stubs/
 
    eval_observables
+
+Utility classes
+---------------
+
+Utility classes used by algorithms (mainly for type-hinting purposes).
+
+.. autosummary::
+   :toctree: ../stubs/
+
+   AlgorithmJob
+
 """
 from .algorithm_job import AlgorithmJob
 from .algorithm_result import AlgorithmResult

@@ -45,7 +45,7 @@ class BaseStateFidelity(ABC):
     def _preprocess_values(
         circuits: QuantumCircuit,
         values: Sequence[Sequence[float]] | None = None,
-    ) -> Sequence[Sequence[float]] | None:
+    ) -> Sequence[Sequence[float]]:
         """
         Checks whether the passed values match the shape of the parameters
         of the corresponding circuits and formats values to 2D list.
