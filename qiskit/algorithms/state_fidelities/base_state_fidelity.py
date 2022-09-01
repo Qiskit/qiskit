@@ -35,9 +35,6 @@ class BaseStateFidelity(ABC):
     ) -> None:
         """Initializes the class to evaluate state fidelities."""
 
-        self._circuits: Sequence[QuantumCircuit] = []
-        self._parameter_values: Sequence[Sequence[float]] = []
-
         # use cache for preventing unnecessary circuit compositions
         self._circuit_cache: Mapping[(int, int), QuantumCircuit] = {}
 
