@@ -96,14 +96,16 @@ class AerWrapper:
     def __bool__(self):
         if self.aer is None:
             try:
-                from qiskit.providers import aer
+                with warnings.catch_warnings():
+                    warnings.simplefilter("ignore")
+                    from qiskit.providers import aer
 
                 self.aer = aer.Aer
                 warnings.warn(
-                    "The qiskit.Aer entry point will be deprecated in a future release and "
-                    "subsequently removed. Instead you should use this "
-                    "directly from the root of the qiskit-aer package.",
-                    PendingDeprecationWarning,
+                    "The qiskit.Aer entry point is deprecated and will be removed in a future "
+                    "release. Instead you should use this directly from the root of the "
+                    "qiskit-aer package: 'qiskit_aer.Aer'",
+                    DeprecationWarning,
                     stacklevel=2,
                 )
             except ImportError:
@@ -113,15 +115,16 @@ class AerWrapper:
     def __getattr__(self, attr):
         if not self.aer:
             try:
-                from qiskit.providers import aer
+                with warnings.catch_warnings():
+                    warnings.simplefilter("ignore")
+                    from qiskit.providers import aer
 
                 self.aer = aer.Aer
                 warnings.warn(
-                    "The qiskit.Aer entry point will be deprecated in a future release and "
-                    "subsequently removed. Instead you should use this "
-                    "directly from the root of the qiskit-aer package.",
-                    PendingDeprecationWarning,
-                    stacklevel=2,
+                    "The qiskit.Aer entry point is deprecated and will be removed in a future "
+                    "release. Instead you should use this directly from the root of the "
+                    "qiskit-aer package: 'qiskit_aer.Aer'",
+                    DeprecationWarning,
                 )
             except ImportError as ex:
                 raise MissingOptionalLibraryError(
