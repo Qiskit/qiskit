@@ -212,7 +212,7 @@ class BaseEstimator(ABC):
         return self
 
     @deprecate_function(
-        "The BaseEstimator.__enter__ method is deprecated as of Qiskit Terra 0.21.0 "
+        "The BaseEstimator.__enter__ method is deprecated as of Qiskit Terra 0.22.0 "
         "and will be removed no sooner than 3 months after the releasedate. "
         "BaseEstimator should be initialized directly.",
     )
@@ -220,7 +220,7 @@ class BaseEstimator(ABC):
         return self
 
     @deprecate_function(
-        "The BaseEstimator.__exit__ method is deprecated as of Qiskit Terra 0.21.0 "
+        "The BaseEstimator.__exit__ method is deprecated as of Qiskit Terra 0.22.0 "
         "and will be removed no sooner than 3 months after the releasedate. "
         "BaseEstimator should be initialized directly.",
     )
@@ -259,7 +259,7 @@ class BaseEstimator(ABC):
         return tuple(self._parameters)
 
     @deprecate_function(
-        "The BaseSampler.__call__ method is deprecated as of Qiskit Terra 0.21.0 "
+        "The BaseSampler.__call__ method is deprecated as of Qiskit Terra 0.22.0 "
         "and will be removed no sooner than 3 months after the releasedate. "
         "Use run method instead.",
     )

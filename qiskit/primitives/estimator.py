@@ -30,7 +30,7 @@ from qiskit.quantum_info.operators.base_operator import BaseOperator
 from .base_estimator import BaseEstimator
 from .estimator_result import EstimatorResult
 from .primitive_job import PrimitiveJob
-from .utils import init_circuit, init_observable
+from .utils import bound_circuit_to_instruction, init_circuit, init_observable
 
 
 class Estimator(BaseEstimator):
@@ -114,7 +114,7 @@ class Estimator(BaseEstimator):
                     f"The number of qubits of a circuit ({circ.num_qubits}) does not match "
                     f"the number of qubits of a observable ({obs.num_qubits})."
                 )
-            final_state = Statevector(circ)
+            final_state = Statevector(bound_circuit_to_instruction(circ))
             expectation_value = final_state.expectation_value(obs)
             if shots is None:
                 expectation_values.append(expectation_value)
