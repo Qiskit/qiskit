@@ -13,7 +13,6 @@
 """The minimum eigensolver interface and result."""
 
 from abc import ABC, abstractmethod
-from dataclasses import dataclass
 
 from qiskit.opflow import OperatorBase
 from ..algorithm_result import AlgorithmResult
@@ -40,7 +39,7 @@ class MinimumEigensolver(ABC):
         Args:
             operator: Qubit operator of the observable.
             aux_operators: Optional list of auxiliary operators to be evaluated with the
-                eigenstate of the minimum eigenvalue main result and their expectation values
+                parameters of the minimum eigenvalue main result and their expectation values
                 returned. For instance in chemistry these can be dipole operators and total particle
                 count operators, so we can get values for these at the ground state.
 
@@ -53,7 +52,7 @@ class MinimumEigensolver(ABC):
     def supports_aux_operators(cls) -> bool:
         """Whether computing the expectation value of auxiliary operators is supported.
 
-        If the minimum eigensolver computes an eigenstate of the main operator then it can compute
+        If the minimum eigensolver computes an eigenvalue of the main operator then it can compute
         the expectation value of the aux_operators for that state. Otherwise they will be ignored.
 
         Returns:
@@ -62,8 +61,33 @@ class MinimumEigensolver(ABC):
         return False
 
 
-@dataclass(frozen=True)
 class MinimumEigensolverResult(AlgorithmResult):
     """Minimum eigensolver result."""
-    eigenvalue: float
-    aux_operator_eigenvalues: list
+
+    def __init__(self) -> None:
+        super().__init__()
+        self._eigenvalue = None
+        self._aux_operator_eigenvalues = None
+
+    @property
+    def eigenvalue(self) -> complex | None:
+        """returns eigen value"""
+        return self._eigenvalue
+
+    @eigenvalue.setter
+    def eigenvalue(self, value: complex) -> None:
+        """set eigen value"""
+        self._eigenvalue = value
+
+    @property
+    def aux_operator_eigenvalues(self) -> ListOrDict[tuple[complex, complex]] | None:
+        """Return aux operator expectation values.
+
+        These values are in fact tuples formatted as (mean, standard deviation).
+        """
+        return self._aux_operator_eigenvalues
+
+    @aux_operator_eigenvalues.setter
+    def aux_operator_eigenvalues(self, value: ListOrDict[tuple[complex, complex]]) -> None:
+        """set aux operator eigen values"""
+        self._aux_operator_eigenvalues = value

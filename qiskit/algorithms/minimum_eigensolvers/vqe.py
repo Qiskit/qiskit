@@ -27,8 +27,10 @@ from qiskit.opflow import (
 from qiskit.primitives import BaseEstimator
 from qiskit.utils.validation import validate_min
 
+
 from ..exceptions import AlgorithmError
 from ..optimizers import Optimizer, Minimizer, SLSQP
+from ..variational_algorithm import VariationalResult
 from .minimum_eigensolver import MinimumEigensolver, MinimumEigensolverResult
 
 logger = logging.getLogger(__name__)
@@ -89,6 +91,7 @@ class VQE(MinimumEigensolver):
         optimizer: A classical optimizer to find the minimum energy. This can either be a
             Qiskit :class:`.Optimizer` or a callable implementing the :class:`.Minimizer` protocol.
             Defaults to :class:`.SLSQP`.
+        gradient: An optional gradient function or operator for the optimizer.
         initial_point: An optional initial point (i.e. initial parameter values) for the optimizer.
             If not provided, a random initial point with values in the interval :math:`[0, 2\pi]`
             is used.
@@ -117,7 +120,7 @@ class VQE(MinimumEigensolver):
             ansatz: The parameterized circuit used as ansatz for the wave function.
             optimizer: The classical optimizer. Can either be a Qiskit optimizer or a callable
                 that takes an array as input and returns a Qiskit or SciPy optimization result.
-            gradient: An optional gradient function or operator for optimizer.
+            gradient: An optional gradient function or operator for the optimizer.
             initial_point: An optional initial point (i.e. initial parameter values)
                 for the optimizer. If ``None`` then VQE will look to the ansatz for a preferred
                 point and if not will simply compute a random one.
@@ -224,16 +227,15 @@ class VQE(MinimumEigensolver):
                 for i, x in enumerate(non_nones):
                     aux_values[x] = aux_eigs[i]
 
-        result = VQEResult(
-            eigenvalue=opt_result.fun + 0j,
-            cost_function_evals=opt_result.nfev,
-            optimal_point=optimal_point,
-            optimal_parameters=dict(zip(self.ansatz.parameters, optimal_point)),
-            optimal_value=opt_result.fun,
-            optimizer_time=eval_time,
-            aux_operator_eigenvalues=aux_values,
-            # TODO Add variances for the eigenvalues.
-        )
+        result = VQEResult()
+        result.eigenvalue = opt_result.fun + 0j
+        result.aux_operator_eigenvalues = aux_values
+        result.cost_function_evals = opt_result.nfev
+        result.optimal_point = optimal_point
+        result.optimal_parameters = dict(zip(self.ansatz.parameters, optimal_point))
+        result.optimal_value = opt_result.fun
+        result.optimizer_time = eval_time
+        # TODO Add variances for the eigenvalues.
 
         return result
 
@@ -265,11 +267,19 @@ def _check_operator_ansatz(operator: OperatorBase, ansatz: QuantumCircuit) -> Qu
     return ansatz
 
 
-@dataclass(frozen=True)
-class VQEResult(MinimumEigensolverResult):
-    "Variational quantum eigensolver result."
-    cost_function_evals: int
-    optimal_point: np.ndarray
-    optimal_parameters: dict[Parameter, float]
-    optimal_value: float
-    optimizer_time: float
+class VQEResult(VariationalResult, MinimumEigensolverResult):
+    """Variational quantum eigensolver result."""
+
+    def __init__(self) -> None:
+        super().__init__()
+        self._cost_function_evals = None
+
+    @property
+    def cost_function_evals(self) -> int | None:
+        """Returns number of cost optimizer evaluations"""
+        return self._cost_function_evals
+
+    @cost_function_evals.setter
+    def cost_function_evals(self, value: int) -> None:
+        """Sets number of cost function evaluations"""
+        self._cost_function_evals = value
