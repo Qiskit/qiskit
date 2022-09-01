@@ -38,7 +38,7 @@ class BaseSamplerGradient(ABC):
                 setting. Higher priority setting overrides lower priority setting.
 
         Raises:
-            ValueError: If the sampler is not an instance of BaseEstimator.
+            ValueError: If the sampler is not an instance of ``BaseSampler``.
         """
         if not isinstance(sampler, BaseSampler):
             raise ValueError(
