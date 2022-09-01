@@ -10,7 +10,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 """
-Base fidelity interface
+Base state fidelity interface
 """
 
 from __future__ import annotations
@@ -141,7 +141,7 @@ class BaseStateFidelity(ABC):
         if not len(circuits_1) == len(circuits_2):
             raise ValueError(
                 f"The length of the first circuit list({len(circuits_1)}) "
-                f"and second circuit list ({len(circuits_2)}) does not coincide."
+                f"and second circuit list ({len(circuits_2)}) is not the same."
             )
 
         circuits = []
