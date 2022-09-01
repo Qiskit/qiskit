@@ -83,7 +83,7 @@ class TestObservablesEvaluator(QiskitAlgorithmsTestCase):
         )
 
         bound_ansatz = ansatz.bind_parameters(parameters)
-        states = [bound_ansatz] * len(observables)
+        states = bound_ansatz
         expected_result = self.get_exact_expectation(bound_ansatz, observables)
         estimator = Estimator()
         decimal = 6
