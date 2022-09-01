@@ -13,19 +13,18 @@
 """ Test TrotterQRTE. """
 
 import unittest
-
-from qiskit.algorithms.time_evolvers.evolution_problem import EvolutionProblem
-from qiskit.algorithms.time_evolvers.trotterization.trotter_qrte import TrotterQRTE
-from qiskit.primitives import Estimator
 from test.python.opflow import QiskitOpflowTestCase
 from ddt import ddt, data, unpack
 import numpy as np
 from numpy.testing import assert_raises
 
-from qiskit import BasicAer, QuantumCircuit
+from qiskit.algorithms.time_evolvers.evolution_problem import EvolutionProblem
+from qiskit.algorithms.time_evolvers.trotterization.trotter_qrte import TrotterQRTE
+from qiskit.primitives import Estimator
+from qiskit import QuantumCircuit
 from qiskit.circuit.library import ZGate
-from qiskit.quantum_info import Statevector
-from qiskit.utils import algorithm_globals, QuantumInstance
+from qiskit.quantum_info import Statevector, Pauli
+from qiskit.utils import algorithm_globals
 from qiskit.circuit import Parameter
 from qiskit.opflow import (
     X,
@@ -36,7 +35,6 @@ from qiskit.opflow import (
     I,
     Y,
     SummedOp,
-    ExpectationFactory,
 )
 from qiskit.synthesis import SuzukiTrotter, QDrift
 
@@ -79,7 +77,7 @@ class TestTrotterQRTE(QiskitOpflowTestCase):
         """Test for default TrotterQRTE on a single qubit with auxiliary operators."""
         operator = SummedOp([X, Z])
         # LieTrotter with 1 rep
-        aux_ops = [X, Y]
+        aux_ops = [Pauli("X"), Pauli("Y")]
 
         initial_state = Zero
         time = 3
@@ -90,18 +88,12 @@ class TestTrotterQRTE(QiskitOpflowTestCase):
             Statevector([0.98008514 + 0.13970775j, 0.01991486 + 0.13970775j], dims=(2,))
         )
         expected_aux_ops_evaluated = [(0.078073, 0.0), (0.268286, 0.0)]
-        expected_aux_ops_evaluated_qasm = [
-            (0.05799999999999995, 0.011161518713866855),
-            (0.2495, 0.010826759383582883),
-        ]
 
         algorithm_globals.random_seed = 0
         trotter_qrte = TrotterQRTE(estimator=estimator)
         evolution_result = trotter_qrte.evolve(evolution_problem)
 
-        np.testing.assert_equal(
-            evolution_result.evolved_state.eval(), expected_evolved_state
-        )
+        np.testing.assert_equal(evolution_result.evolved_state.eval(), expected_evolved_state)
 
         np.testing.assert_array_almost_equal(
             evolution_result.aux_ops_evaluated, expected_aux_ops_evaluated

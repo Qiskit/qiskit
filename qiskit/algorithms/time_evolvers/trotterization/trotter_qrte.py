@@ -22,17 +22,13 @@ from qiskit.opflow import (
     SummedOp,
     PauliOp,
     CircuitOp,
-    ExpectationBase,
-    CircuitSampler,
     PauliSumOp,
     StateFn,
     OperatorBase,
 )
 from qiskit.circuit.library import PauliEvolutionGate
 from qiskit.primitives import Estimator
-from qiskit.providers import Backend
 from qiskit.synthesis import ProductFormula, LieTrotter
-from qiskit.utils import QuantumInstance
 
 
 class TrotterQRTE(RealEvolver):
@@ -113,9 +109,7 @@ class TrotterQRTE(RealEvolver):
                 "``t_param`` from the EvolutionProblem should be set to None."
             )
 
-        if evolution_problem.aux_operators is not None and (
-            self.estimator is None
-        ):
+        if evolution_problem.aux_operators is not None and (self.estimator is None):
             raise ValueError(
                 "aux_operators were provided for evaluations but no ``estimator`` was provided."
             )
