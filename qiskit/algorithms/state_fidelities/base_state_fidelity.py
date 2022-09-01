@@ -31,6 +31,7 @@ class BaseStateFidelity(ABC):
     fidelity method implementation, but can be always defined as the state overlap:
 
     .. math::
+
             |\langle\psi(x)|\phi(y)\rangle|^2
 
     where :math:`x` and :math:`y` are optional parametrizations of the
@@ -39,16 +40,14 @@ class BaseStateFidelity(ABC):
 
     """
 
-    def __init__(
-        self,
-    ) -> None:
+    def __init__(self) -> None:
 
         # use cache for preventing unnecessary circuit compositions
         self._circuit_cache: Mapping[(int, int), QuantumCircuit] = {}
 
     @staticmethod
     def _preprocess_values(
-        circuits: Sequence[QuantumCircuit],
+        circuits: QuantumCircuit | Sequence[QuantumCircuit],
         values: Sequence[float] | Sequence[Sequence[float]] | None = None,
     ) -> Sequence[Sequence[float]]:
         """
@@ -67,6 +66,9 @@ class BaseStateFidelity(ABC):
             ValueError: if the number of parameter values doesn't match the number of
                         circuit parameters
         """
+
+        if isinstance(circuits, QuantumCircuit):
+            circuits = [circuits]
 
         if values is None:
             for circuit in circuits:
