@@ -171,29 +171,32 @@ pub fn build_swap_map(
         .take(num_trials)
         .collect();
     let result = if run_in_parallel {
-        // Collect into an intermediate Vec for deterministic ordering.
-        // If min_by_key() were used directly on the parallel iterator
-        // (which would be more efficient) then for trials with equal
-        // minimum swap counts the output selected would potentially
-        // vary based on the execution time between the parallel trials.
-        let trial_results: Vec<TrialResult> = seed_vec
+        seed_vec
             .into_par_iter()
-            .map(|seed_trial| {
-                swap_map_trial(
-                    num_qubits,
-                    dag,
-                    neighbor_table,
-                    &dist,
-                    &coupling_graph,
-                    heuristic,
-                    seed_trial,
-                    layout.clone(),
+            .enumerate()
+            .map(|(index, seed_trial)| {
+                (
+                    index,
+                    swap_map_trial(
+                        num_qubits,
+                        dag,
+                        neighbor_table,
+                        &dist,
+                        &coupling_graph,
+                        heuristic,
+                        seed_trial,
+                        layout.clone(),
+                    ),
                 )
             })
-            .collect();
-        trial_results
-            .into_iter()
-            .min_by_key(|result| result.out_map.values().map(|x| x.len()).sum::<usize>())
+            .min_by_key(|(index, result)| {
+                [
+                    result.out_map.values().map(|x| x.len()).sum::<usize>(),
+                    *index,
+                ]
+            })
+            .unwrap()
+            .1
     } else {
         seed_vec
             .into_iter()
@@ -210,8 +213,8 @@ pub fn build_swap_map(
                 )
             })
             .min_by_key(|result| result.out_map.values().map(|x| x.len()).sum::<usize>())
-    }
-    .unwrap();
+            .unwrap()
+    };
     *layout = result.layout;
     (
         SwapMap {
