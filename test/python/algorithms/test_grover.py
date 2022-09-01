@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2018, 2020.
+# (C) Copyright IBM 2018, 2022.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -101,7 +101,7 @@ class TestGrover(QiskitAlgorithmsTestCase):
 
     def test_implicit_phase_oracle_is_good_state(self):
         """Test implicit default for is_good_state with PhaseOracle."""
-        with self.assertWarns(DeprecationWarning):
+        with self.assertWarns(PendingDeprecationWarning):
             grover = Grover(iterations=2, quantum_instance=self.statevector)
         oracle = PhaseOracle("x | x")
         problem = AmplificationProblem(oracle)
@@ -111,7 +111,7 @@ class TestGrover(QiskitAlgorithmsTestCase):
     @data([1, 2, 3], None, 2)
     def test_iterations_with_good_state(self, iterations):
         """Test the algorithm with different iteration types and with good state"""
-        with self.assertWarns(DeprecationWarning):
+        with self.assertWarns(PendingDeprecationWarning):
             grover = Grover(iterations, quantum_instance=self.statevector)
         problem = AmplificationProblem(Statevector.from_label("111"), is_good_state=["111"])
         result = grover.amplify(problem)
@@ -119,7 +119,7 @@ class TestGrover(QiskitAlgorithmsTestCase):
 
     def test_fixed_iterations_without_good_state(self):
         """Test the algorithm with iterations as an int and without good state"""
-        with self.assertWarns(DeprecationWarning):
+        with self.assertWarns(PendingDeprecationWarning):
             grover = Grover(iterations=2, quantum_instance=self.statevector)
         problem = AmplificationProblem(Statevector.from_label("111"))
         result = grover.amplify(problem)
@@ -128,7 +128,7 @@ class TestGrover(QiskitAlgorithmsTestCase):
     @data([1, 2, 3], None)
     def test_iterations_without_good_state(self, iterations):
         """Test the correct error is thrown for none/list of iterations and without good state"""
-        with self.assertWarns(DeprecationWarning):
+        with self.assertWarns(PendingDeprecationWarning):
             grover = Grover(iterations, quantum_instance=self.statevector)
         problem = AmplificationProblem(Statevector.from_label("111"))
         with self.assertRaisesRegex(
@@ -148,7 +148,7 @@ class TestGrover(QiskitAlgorithmsTestCase):
                 if count % wait == 0:
                     value += 1
 
-        with self.assertWarns(DeprecationWarning):
+        with self.assertWarns(PendingDeprecationWarning):
             grover = Grover(iterations=iterator(), quantum_instance=self.statevector)
         problem = AmplificationProblem(Statevector.from_label("111"), is_good_state=["111"])
         result = grover.amplify(problem)
@@ -156,7 +156,7 @@ class TestGrover(QiskitAlgorithmsTestCase):
 
     def test_growth_rate(self):
         """Test running the algorithm on a growth rate"""
-        with self.assertWarns(DeprecationWarning):
+        with self.assertWarns(PendingDeprecationWarning):
             grover = Grover(growth_rate=8 / 7, quantum_instance=self.statevector)
         problem = AmplificationProblem(Statevector.from_label("111"), is_good_state=["111"])
         result = grover.amplify(problem)
@@ -169,7 +169,7 @@ class TestGrover(QiskitAlgorithmsTestCase):
             while True:
                 yield 0
 
-        with self.assertWarns(DeprecationWarning):
+        with self.assertWarns(PendingDeprecationWarning):
             grover = Grover(iterations=zero(), quantum_instance=self.statevector)
         n = 5
         problem = AmplificationProblem(Statevector.from_label("1" * n), is_good_state=["1" * n])
@@ -179,7 +179,7 @@ class TestGrover(QiskitAlgorithmsTestCase):
     def test_max_power(self):
         """Test the iteration stops when the maximum power is reached."""
         lam = 10.0
-        with self.assertWarns(DeprecationWarning):
+        with self.assertWarns(PendingDeprecationWarning):
             grover = Grover(growth_rate=lam, quantum_instance=self.statevector)
         problem = AmplificationProblem(Statevector.from_label("111"), is_good_state=["111"])
         result = grover.amplify(problem)
@@ -191,7 +191,7 @@ class TestGrover(QiskitAlgorithmsTestCase):
         oracle.cz(0, 1)
         problem = AmplificationProblem(oracle, is_good_state=["11"])
 
-        with self.assertWarns(DeprecationWarning):
+        with self.assertWarns(PendingDeprecationWarning):
             grover = Grover(quantum_instance=self.qasm)
         result = grover.amplify(problem)
         self.assertIn(result.top_measurement, ["11"])
@@ -201,7 +201,7 @@ class TestGrover(QiskitAlgorithmsTestCase):
         mark_state = Statevector.from_label("11")
         problem = AmplificationProblem(mark_state, is_good_state=["11"])
 
-        with self.assertWarns(DeprecationWarning):
+        with self.assertWarns(PendingDeprecationWarning):
             grover = Grover(quantum_instance=self.qasm)
         result = grover.amplify(problem)
         self.assertIn(result.top_measurement, ["11"])
@@ -215,7 +215,7 @@ class TestGrover(QiskitAlgorithmsTestCase):
             oracle=oracle, grover_operator=grover_op, is_good_state=["11"]
         )
 
-        with self.assertWarns(DeprecationWarning):
+        with self.assertWarns(PendingDeprecationWarning):
             grover = Grover(quantum_instance=self.qasm)
         ret = grover.amplify(problem)
         self.assertIn(ret.top_measurement, ["11"])
@@ -250,7 +250,7 @@ class TestGrover(QiskitAlgorithmsTestCase):
         oracle.cz(0, 1)
         # is_good_state=['00'] is intentionally selected to obtain a list of results
         problem = AmplificationProblem(oracle, is_good_state=["00"])
-        with self.assertWarns(DeprecationWarning):
+        with self.assertWarns(PendingDeprecationWarning):
             grover = Grover(iterations=[1, 2, 3, 4], quantum_instance=self.qasm)
         result = grover.amplify(problem)
         expected_results = [
@@ -266,7 +266,7 @@ class TestGrover(QiskitAlgorithmsTestCase):
         oracle = QuantumCircuit(2)
         oracle.cz(0, 1)
         problem = AmplificationProblem(oracle, is_good_state=["11"])
-        with self.assertWarns(DeprecationWarning):
+        with self.assertWarns(PendingDeprecationWarning):
             grover = Grover(quantum_instance=self.qasm)
         result = grover.amplify(problem)
         self.assertEqual(result.max_probability, 1.0)
@@ -275,7 +275,7 @@ class TestGrover(QiskitAlgorithmsTestCase):
         """Test oracle_evaluation for PhaseOracle"""
         oracle = PhaseOracle("x1 & x2 & (not x3)")
         problem = AmplificationProblem(oracle, is_good_state=oracle.evaluate_bitstring)
-        with self.assertWarns(DeprecationWarning):
+        with self.assertWarns(PendingDeprecationWarning):
             grover = Grover(quantum_instance=self.qasm)
         result = grover.amplify(problem)
         self.assertTrue(result.oracle_evaluation)
