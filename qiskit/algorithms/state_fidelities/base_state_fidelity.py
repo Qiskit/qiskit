@@ -249,7 +249,7 @@ class BaseStateFidelity(ABC):
         r"""
         Run asynchronously the state overlap (fidelity) calculation between two
         (parametrized) circuits (first and second) for a specific set of parameter
-        values (first and second).This calculation depends on the particular
+        values (first and second). This calculation depends on the particular
         fidelity method implementation, but always represents:
 
             :math:`|\langle\psi(x)|\phi(y)\rangle|^2`
