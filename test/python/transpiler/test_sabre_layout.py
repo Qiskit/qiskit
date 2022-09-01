@@ -22,6 +22,7 @@ from qiskit.test import QiskitTestCase
 from qiskit.compiler.transpiler import transpile
 from qiskit.providers.fake_provider import FakeAlmaden
 from qiskit.providers.fake_provider import FakeKolkata
+from qiskit.providers.fake_provider import FakeMontreal
 
 
 class TestSabreLayout(QiskitTestCase):
@@ -139,6 +140,73 @@ rz(0) q4835[1];
         self.assertEqual(layout[qc.qubits[5]], 16)
         self.assertEqual(layout[qc.qubits[6]], 18)
         self.assertEqual(layout[qc.qubits[7]], 26)
+
+    # pylint: disable=line-too-long
+    def test_layout_many_search_trials(self):
+        """Test recreate failure from randomized testing that overflowed."""
+        qc = QuantumCircuit.from_qasm_str(
+            """
+    OPENQASM 2.0;
+include "qelib1.inc";
+qreg q18585[14];
+creg c1423[5];
+creg c1424[4];
+creg c1425[3];
+barrier q18585[4],q18585[5],q18585[12],q18585[1];
+cz q18585[11],q18585[3];
+cswap q18585[8],q18585[10],q18585[6];
+u(-2.00001,6.1035156e-05,-1.9) q18585[2];
+barrier q18585[3],q18585[6],q18585[5],q18585[8],q18585[10],q18585[9],q18585[11],q18585[2],q18585[12],q18585[7],q18585[13],q18585[4],q18585[0],q18585[1];
+cp(0) q18585[2],q18585[4];
+cu(-0.99999,0,0,0) q18585[7],q18585[1];
+cu(0,0,0,2.1507119) q18585[6],q18585[3];
+barrier q18585[13],q18585[0],q18585[12],q18585[3],q18585[2],q18585[10];
+ry(-1.1044662) q18585[13];
+barrier q18585[13];
+id q18585[12];
+barrier q18585[12],q18585[6];
+cu(-1.9,1.9,-1.5,0) q18585[10],q18585[0];
+barrier q18585[13];
+id q18585[8];
+barrier q18585[12];
+barrier q18585[12],q18585[1],q18585[9];
+sdg q18585[2];
+rz(-10*pi) q18585[6];
+u(0,27.566433,1.9) q18585[1];
+barrier q18585[12],q18585[11],q18585[9],q18585[4],q18585[7],q18585[0],q18585[13],q18585[3];
+cu(-0.99999,-5.9604645e-08,-0.5,2.00001) q18585[3],q18585[13];
+rx(-5.9604645e-08) q18585[7];
+p(1.1) q18585[13];
+barrier q18585[12],q18585[13],q18585[10],q18585[9],q18585[7],q18585[4];
+z q18585[10];
+measure q18585[7] -> c1423[2];
+barrier q18585[0],q18585[3],q18585[7],q18585[4],q18585[1],q18585[8],q18585[6],q18585[11],q18585[5];
+barrier q18585[5],q18585[2],q18585[8],q18585[3],q18585[6];
+"""
+        )
+        res = transpile(
+            qc,
+            FakeMontreal(),
+            layout_method="sabre",
+            routing_method="stochastic",
+            seed_transpiler=12345,
+        )
+        self.assertIsInstance(res, QuantumCircuit)
+        layout = res._layout
+        self.assertEqual(layout[qc.qubits[0]], 11)
+        self.assertEqual(layout[qc.qubits[1]], 22)
+        self.assertEqual(layout[qc.qubits[2]], 17)
+        self.assertEqual(layout[qc.qubits[3]], 12)
+        self.assertEqual(layout[qc.qubits[4]], 18)
+        self.assertEqual(layout[qc.qubits[5]], 9)
+        self.assertEqual(layout[qc.qubits[6]], 16)
+        self.assertEqual(layout[qc.qubits[7]], 25)
+        self.assertEqual(layout[qc.qubits[8]], 19)
+        self.assertEqual(layout[qc.qubits[9]], 3)
+        self.assertEqual(layout[qc.qubits[10]], 14)
+        self.assertEqual(layout[qc.qubits[11]], 15)
+        self.assertEqual(layout[qc.qubits[12]], 20)
+        self.assertEqual(layout[qc.qubits[13]], 8)
 
 
 if __name__ == "__main__":
