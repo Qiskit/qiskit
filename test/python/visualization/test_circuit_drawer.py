@@ -102,3 +102,20 @@ class TestCircuitDrawer(QiskitTestCase):
                 else:
                     self.assertIn(im.format.lower(), filename.split(".")[-1])
             os.remove(filename)
+
+    def test_wire_order_raises(self):
+        """Verify we raise if using wire order incorrectly."""
+
+        circuit = QuantumCircuit(3, 3)
+        circuit.x(1)
+        with self.assertRaisesRegex(VisualizationError, "the same length as"):
+            visualization.circuit_drawer(circuit, wire_order=[0, 1, 2])
+
+        with self.assertRaisesRegex(VisualizationError, "one and only one entry"):
+            visualization.circuit_drawer(circuit, wire_order=[2, 1, 0, 3, 1, 5])
+
+        with self.assertRaisesRegex(VisualizationError, "cannot be set when the reverse_bits"):
+            visualization.circuit_drawer(circuit, wire_order=[0, 1, 2, 5, 4, 3], reverse_bits=True)
+
+        with self.assertWarnsRegex(RuntimeWarning, "Cregbundle set"):
+            visualization.circuit_drawer(circuit, cregbundle=True, wire_order=[0, 1, 2, 5, 4, 3])
