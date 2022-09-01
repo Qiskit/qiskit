@@ -23,7 +23,7 @@ from qiskit.result import QuasiDistribution
 
 @dataclass(frozen=True)
 class SamplerGradientResult:
-    """Result of SamplerGradient.
+    """Result of ``SamplerGradient``.
 
     Args:
         gradients: The gradients of the quasi distributions.
