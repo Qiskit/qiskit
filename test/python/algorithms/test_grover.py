@@ -15,7 +15,6 @@
 import unittest
 from test.python.algorithms import QiskitAlgorithmsTestCase
 import itertools
-import warnings
 import numpy as np
 from ddt import ddt, data
 
@@ -98,11 +97,6 @@ class TestGrover(QiskitAlgorithmsTestCase):
         self.qasm = QuantumInstance(
             BasicAer.get_backend("qasm_simulator"), seed_simulator=12, seed_transpiler=32
         )
-        with warnings.catch_warnings(record=True) as caught_warnings:
-            warnings.filterwarnings(
-                "always",
-                category=DeprecationWarning,
-            )
         self._sampler = Sampler()
 
     def test_implicit_phase_oracle_is_good_state(self):
@@ -153,6 +147,7 @@ class TestGrover(QiskitAlgorithmsTestCase):
                 count += 1
                 if count % wait == 0:
                     value += 1
+
         with self.assertWarns(DeprecationWarning):
             grover = Grover(iterations=iterator(), quantum_instance=self.statevector)
         problem = AmplificationProblem(Statevector.from_label("111"), is_good_state=["111"])

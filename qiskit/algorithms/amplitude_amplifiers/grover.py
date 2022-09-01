@@ -245,7 +245,9 @@ class Grover(AmplitudeAmplifier):
                 qc = self.construct_circuit(amplification_problem, power, measurement=True)
                 results = self._sampler.run([qc]).result()
                 num_bits = len(amplification_problem.objective_qubits)
-                circuit_results = {np.binary_repr(k, num_bits) :v for k,v in results.quasi_dists[0].items()}
+                circuit_results = {
+                    np.binary_repr(k, num_bits): v for k, v in results.quasi_dists[0].items()
+                }
                 top_measurement = max(circuit_results.items(), key=lambda x: x[1])[0]
                 max_probability = max(circuit_results.items(), key=lambda x: x[1])[1]
 
