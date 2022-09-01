@@ -23,7 +23,7 @@ import numpy as np
 
 @dataclass(frozen=True)
 class EstimatorGradientResult:
-    """Result of EstimatorGradient.
+    """Result of ``EstimatorGradient``.
 
     Args:
         gradients: The gradients of the expectation values.
