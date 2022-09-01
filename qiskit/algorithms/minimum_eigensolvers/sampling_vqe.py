@@ -20,7 +20,7 @@ from collections.abc import Callable
 
 import numpy as np
 
-from qiskit.circuit import Parameter, QuantumCircuit
+from qiskit.circuit import QuantumCircuit
 from qiskit.circuit.library import RealAmplitudes
 from qiskit.utils.validation import validate_min, validate_range
 from qiskit.primitives import BaseSampler
@@ -28,7 +28,6 @@ from qiskit.primitives import BaseSampler
 from qiskit.quantum_info.operators.base_operator import BaseOperator
 from qiskit.opflow import PauliSumOp
 
-from ..aux_ops_evaluator import eval_observables
 from ..exceptions import AlgorithmError
 from ..list_or_dict import ListOrDict
 from ..optimizers import SLSQP, Minimizer, Optimizer
@@ -118,7 +117,7 @@ class SamplingVQE(SamplingMinimumEigensolver):
             # try to set the number of qubits on the ansatz, if possible
             try:
                 logger.info(
-                    f"Trying to resize ansatz to match operator on {operator.num_qubits} qubits."
+                    "Trying to resize ansatz to match operator on %s qubits.", {operator.num_qubits}
                 )
                 ansatz.num_qubits = operator.num_qubits
             except AttributeError as ex:
@@ -144,18 +143,19 @@ class SamplingVQE(SamplingMinimumEigensolver):
         if self.ansatz is None:
             ansatz = RealAmplitudes(num_qubits=operator.num_qubits)
         else:
-
             ansatz = self.ansatz.copy()
 
+        # check that the number of qubits of operator and ansatz match, and resize if possible
+        ansatz = self._check_operator_ansatz(operator, ansatz)
         ansatz.measure_all()
 
         if self.sampler is None:
             raise ValueError("The sampler is None, but must be set.")
 
-        if self.optimizer is None:
-            optimizer = SLSQP()
+        optimizer = SLSQP() if self.optimizer is None else self.optimizer
 
         if isinstance(optimizer, Optimizer):
+            # note that this changes the optimizer instance -- should we reset after the VQE run?
             optimizer.set_max_evals_grouped(self.max_evals_grouped)
 
         if self.initial_point is None:
@@ -165,14 +165,15 @@ class SamplingVQE(SamplingMinimumEigensolver):
                 f"The dimension of the initial point ({len(self.initial_point)}) does not match the "
                 f"number of parameters in the circuit ({ansatz.num_parameters})."
             )
-
-        # check that the number of qubits of operator and ansatz match, and resize if possible
-        ansatz = self._check_operator_ansatz(operator, ansatz)
+        else:
+            initial_point = self.initial_point
 
         # set an expectation for this algorithm run (will be reset to None at the end)
         # initial_point = _validate_initial_point(self.initial_point, self.ansatz)
 
-        energy_evaluation, best_measurement = self.get_energy_evaluation(operator, ansatz)
+        energy_evaluation, best_measurement = self.get_energy_evaluation(
+            operator, ansatz, return_best_measurement=True
+        )
 
         start_time = time()
 
@@ -192,11 +193,9 @@ class SamplingVQE(SamplingMinimumEigensolver):
         result = SamplingVQEResult()
         result.optimal_point = opt_result.x
         result.optimal_parameters = dict(zip(ansatz.parameters, opt_result.x))
-        result.optimal_value = opt_result.fun
         result.cost_function_evals = opt_result.nfev
         result.optimizer_time = eval_time
-        result.best_measurement = best_measurement
-
+        result.best_measurement = best_measurement["best"]
         result.eigenvalue = opt_result.fun
         result.eigenstate = final_state
 
@@ -223,9 +222,9 @@ class SamplingVQE(SamplingMinimumEigensolver):
 
         Args:
             operator: The operator whose energy to evaluate.
-            return_expectation: If True, return the ``ExpectationBase`` expectation converter used
-                in the construction of the expectation value. Useful e.g. to evaluate other
-                operators with the same expectation value converter.
+            ansatz: The ansatz preparing the quantum state.
+            return_best_measurement: If True, a handle to a dictionary containing the best
+                measurement evaluated with the cost function.
 
 
         Returns:
@@ -288,6 +287,7 @@ class SamplingVQEResult(SamplingMinimumEigensolverResult):
     def __init__(self) -> None:
         super().__init__()
         self._cost_function_evals = None
+        self._optimizer_time = None
 
     @property
     def cost_function_evals(self) -> int | None:
@@ -300,11 +300,11 @@ class SamplingVQEResult(SamplingMinimumEigensolverResult):
         self._cost_function_evals = value
 
     @property
-    def eigenstate(self) -> np.ndarray | None:
-        """return eigen state"""
-        return self._eigenstate
+    def optimizer_time(self) -> float | None:
+        """Returns time the optimization took."""
+        return self._optimizer_time
 
-    @eigenstate.setter
-    def eigenstate(self, value: np.ndarray) -> None:
-        """set eigen state"""
-        self._eigenstate = value
+    @optimizer_time.setter
+    def optimizer_time(self, value: float) -> None:
+        """Sets time the optimization took."""
+        self._optimizer_time = value
