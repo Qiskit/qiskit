@@ -252,7 +252,9 @@ class BaseStateFidelity(ABC):
         values (first and second). This calculation depends on the particular
         fidelity method implementation, but always represents:
 
-            :math:`|\langle\psi(x)|\phi(y)\rangle|^2`
+        .. math::
+
+            |\langle\psi(x)|\phi(y)\rangle|^2
 
         where :math:`x` and :math:`y` are optional parametrizations of the
         states :math:`\psi` and :math:`\phi` prepared by the circuits
