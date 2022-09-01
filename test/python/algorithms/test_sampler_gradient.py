@@ -446,6 +446,31 @@ class TestSamplerGradient(QiskitTestCase):
                 for k in q_dists:
                     self.assertAlmostEqual(q_dists[k], correct_results2[i][j][k], 3)
 
+        # batch size
+        param_list = [[1, 1]]
+        gradient = SPSASamplerGradient(sampler, epsilon=1e-6, batch_size=4, seed=123)
+        gradients = gradient.run([qc], param_list).result().gradients
+        correct_results3 = [
+            [
+                {
+                    0: -0.1620149622932887,
+                    1: -0.25872053011771756,
+                    2: 0.3723827084675668,
+                    3: 0.04835278392088804,
+                },
+                {
+                    0: -0.1620149622932887,
+                    1: 0.3723827084675668,
+                    2: -0.25872053011771756,
+                    3: 0.04835278392088804,
+                },
+            ]
+        ]
+        for i, result in enumerate(gradients):
+            for j, q_dists in enumerate(result):
+                for k in q_dists:
+                    self.assertAlmostEqual(q_dists[k], correct_results3[i][j][k], 3)
+
 
 if __name__ == "__main__":
     unittest.main()

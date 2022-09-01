@@ -18,20 +18,18 @@ from __future__ import annotations
 from typing import Any
 from dataclasses import dataclass
 
-from qiskit.result import QuasiDistribution
-
 
 @dataclass(frozen=True)
 class SamplerGradientResult:
     """Result of SamplerGradient.
 
     Args:
-        gradients: The gradients of the quasi distributions.
+        gradients: The gradients of the sampling probabilities.
         metadata: Additional information about the job.
         run_options: run_options for the sampler. Currently, sampler's default run_options is not
         included.
     """
 
-    gradients: list[list[QuasiDistribution]]
+    gradients: list[list[dict[int: float]]]
     metadata: list[dict[str, Any]]
     run_options: dict[str, Any]

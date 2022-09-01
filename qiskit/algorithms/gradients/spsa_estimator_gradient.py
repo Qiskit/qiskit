@@ -37,6 +37,7 @@ class SPSAEstimatorGradient(BaseEstimatorGradient):
         self,
         estimator: BaseEstimator,
         epsilon: float,
+        batch_size: int = 1,
         seed: int | None = None,
         **run_options,
     ):
@@ -44,6 +45,7 @@ class SPSAEstimatorGradient(BaseEstimatorGradient):
         Args:
             estimator: The estimator used to compute the gradients.
             epsilon: The offset size for the SPSA gradients.
+            batch_size: The number of gradients to average.
             seed: The seed for a random perturbation vector.
             run_options: Backend runtime options used for circuit execution. The order of priority is:
                 run_options in ``run`` method > gradient's default run_options > primitive's default
@@ -55,6 +57,7 @@ class SPSAEstimatorGradient(BaseEstimatorGradient):
         if epsilon <= 0:
             raise ValueError(f"epsilon ({epsilon}) should be positive.")
         self._epsilon = epsilon
+        self._batch_size = batch_size
         self._seed = np.random.default_rng(seed) if seed else np.random.default_rng()
 
         super().__init__(estimator, **run_options)
@@ -79,12 +82,21 @@ class SPSAEstimatorGradient(BaseEstimatorGradient):
                 indices = [circuit.parameters.data.index(p) for p in parameters_]
             metadata_.append({"parameters": [circuit.parameters[idx] for idx in indices]})
 
-            offset = (-1) ** (self._seed.integers(0, 2, len(circuit.parameters)))
-            plus = parameter_values_ + self._epsilon * offset
-            minus = parameter_values_ - self._epsilon * offset
+            offset = [
+                (-1) ** (self._seed.integers(0, 2, len(circuit.parameters)))
+                for _ in range(self._batch_size)
+            ]
+
+            plus = [parameter_values_ + self._epsilon * offset_ for offset_ in offset]
+            minus = [parameter_values_ - self._epsilon * offset_ for offset_ in offset]
             offsets.append(offset)
 
-            job = self._estimator.run([circuit] * 2, [observable] * 2, [plus, minus], **run_options)
+            job = self._estimator.run(
+                [circuit] * 2 * self._batch_size,
+                [observable] * 2 * self._batch_size,
+                plus + minus,
+                **run_options,
+            )
             jobs.append(job)
 
         # combine the results
@@ -92,7 +104,11 @@ class SPSAEstimatorGradient(BaseEstimatorGradient):
         gradients = []
         for i, result in enumerate(results):
             n = len(result.values) // 2  # is always a multiple of 2
-            gradient = (result.values[:n] - result.values[n:]) / (2 * self._epsilon * offsets[i])
+            gradient_ = (result.values[:n] - result.values[n:]) / (2 * self._epsilon)
+            # take the average of the spsa gradients
+            gradient = np.average(
+                np.array([grad / offset for grad, offset in zip(gradient_, offsets[i])]), axis=0
+            )
             indices = [circuits[i].parameters.data.index(p) for p in metadata_[i]["parameters"]]
             gradients.append(gradient[indices])
 

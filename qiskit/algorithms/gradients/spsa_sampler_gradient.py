@@ -35,6 +35,7 @@ class SPSASamplerGradient(BaseSamplerGradient):
         self,
         sampler: BaseSampler,
         epsilon: float,
+        batch_size: int = 1,
         seed: int | None = None,
         **run_options,
     ):
@@ -42,6 +43,7 @@ class SPSASamplerGradient(BaseSamplerGradient):
         Args:
             sampler: The sampler used to compute the gradients.
             epsilon: The offset size for the SPSA gradients.
+            batch_size: number of gradients to average.
             seed: The seed for a random perturbation vector.
             run_options: Backend runtime options used for circuit execution. The order of priority is:
                 run_options in `run` method > gradient's default run_options > primitive's default
@@ -52,6 +54,7 @@ class SPSASamplerGradient(BaseSamplerGradient):
         """
         if epsilon <= 0:
             raise ValueError(f"epsilon ({epsilon}) should be positive.")
+        self._batch_size = batch_size
         self._epsilon = epsilon
         self._seed = np.random.default_rng(seed) if seed else np.random.default_rng()
 
@@ -74,33 +77,40 @@ class SPSASamplerGradient(BaseSamplerGradient):
                 indices = [circuit.parameters.data.index(p) for p in parameters_]
             metadata_.append({"parameters": [circuit.parameters[idx] for idx in indices]})
 
-            offset = (-1) ** (self._seed.integers(0, 2, len(circuit.parameters)))
-
-            plus = parameter_values_ + self._epsilon * offset
-            minus = parameter_values_ - self._epsilon * offset
+            offset = np.array(
+                [
+                    (-1) ** (self._seed.integers(0, 2, len(circuit.parameters)))
+                    for _ in range(self._batch_size)
+                ]
+            )
+            plus = [parameter_values_ + self._epsilon * offset_ for offset_ in offset]
+            minus = [parameter_values_ - self._epsilon * offset_ for offset_ in offset]
             offsets.append(offset)
 
-            job = self._sampler.run([circuit] * 2, [plus, minus], **run_options)
+            job = self._sampler.run([circuit] * 2 * self._batch_size, plus + minus, **run_options)
             jobs.append(job)
 
         # combine the results
         results = [job.result() for job in jobs]
         gradients = []
         for i, result in enumerate(results):
-            grad_dists = np.zeros(2 ** circuits[i].num_qubits)
-            dist_plus = result.quasi_dists[0]
-            dist_minus = result.quasi_dists[1]
-            grad_dists[list(dist_plus.keys())] += list(dist_plus.values())
-            grad_dists[list(dist_minus.keys())] -= list(dist_minus.values())
+            grad_dists = np.zeros((self._batch_size, 2 ** circuits[i].num_qubits))
+            for j, (dist_plus, dist_minus) in enumerate(
+                zip(result.quasi_dists[: self._batch_size], result.quasi_dists[self._batch_size :])
+            ):
+                grad_dists[j, list(dist_plus.keys())] += list(dist_plus.values())
+                grad_dists[j, list(dist_minus.keys())] -= list(dist_minus.values())
             grad_dists /= 2 * self._epsilon
-
-            indices = [circuits[i].parameters.data.index(p) for p in metadata_[i]["parameters"]]
             gradient_ = []
-
-            gradient_.extend(
-                {k: offsets[i][j] * dist for k, dist in enumerate(grad_dists)} for j in indices
-            )
-
+            indices = [circuits[i].parameters.data.index(p) for p in metadata_[i]["parameters"]]
+            for j in range(circuits[i].num_parameters):
+                if not j in indices:
+                    continue
+                grad = np.mean(
+                    np.array([delta * dist for dist, delta in zip(grad_dists, offsets[i][:, j])]),
+                    axis=0,
+                )
+                gradient_.append(dict(enumerate(grad)))
             gradients.append(gradient_)
 
         # TODO: include primitive's run_options as well

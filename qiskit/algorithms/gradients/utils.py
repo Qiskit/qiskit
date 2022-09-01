@@ -71,7 +71,7 @@ class ParameterShiftGradientCircuit:
     coeff_map: dict[Parameter, float | ParameterExpression]
 
 
-def make_param_shift_gradient_circuit_data(
+def _make_param_shift_gradient_circuit_data(
     circuit: QuantumCircuit,
 ) -> ParameterShiftGradientCircuit:
     """Makes a gradient circuit data for the parameter shift method. This re-assigns each parameter in
@@ -174,7 +174,7 @@ def make_param_shift_gradient_circuit_data(
     )
 
 
-def make_param_shift_base_parameter_values(
+def _make_param_shift_base_parameter_values(
     gradient_circuit_data: ParameterShiftGradientCircuit,
 ) -> list[np.ndarray]:
     """Makes base parameter values for the parameter shift method. Each base parameter value will
@@ -204,7 +204,7 @@ def make_param_shift_base_parameter_values(
     return plus_offsets + minus_offsets
 
 
-def param_shift_preprocessing(circuit: QuantumCircuit) -> ParameterShiftGradientCircuit:
+def _param_shift_preprocessing(circuit: QuantumCircuit) -> ParameterShiftGradientCircuit:
     """Preprocessing for the parameter shift method.
 
     Args:
@@ -213,13 +213,13 @@ def param_shift_preprocessing(circuit: QuantumCircuit) -> ParameterShiftGradient
     Returns:
         necessary data to calculate gradients with the parameter shift method.
     """
-    gradient_circuit_data = make_param_shift_gradient_circuit_data(circuit)
-    base_parameter_values = make_param_shift_base_parameter_values(gradient_circuit_data)
+    gradient_circuit_data = _make_param_shift_gradient_circuit_data(circuit)
+    base_parameter_values = _make_param_shift_base_parameter_values(gradient_circuit_data)
 
     return gradient_circuit_data, base_parameter_values
 
 
-def make_param_shift_parameter_values(
+def _make_param_shift_parameter_values(
     gradient_circuit_data: ParameterShiftGradientCircuit,
     base_parameter_values: list[np.ndarray],
     parameter_values: np.ndarray,
@@ -290,7 +290,7 @@ class LinearCombGradientCircuit:
     coeff: float | ParameterExpression
 
 
-def make_lin_comb_gradient_circuit(
+def _make_lin_comb_gradient_circuit(
     circuit: QuantumCircuit, add_measurement: bool = False
 ) -> dict[Parameter, list[LinearCombGradientCircuit]]:
     """Makes gradient circuits for the linear combination of unitaries method.

@@ -27,7 +27,7 @@ from qiskit.quantum_info.operators.base_operator import BaseOperator
 from .base_estimator_gradient import BaseEstimatorGradient
 from .estimator_gradient_result import EstimatorGradientResult
 
-from .utils import param_shift_preprocessing, make_param_shift_parameter_values
+from .utils import _param_shift_preprocessing, _make_param_shift_parameter_values
 
 
 class ParamShiftEstimatorGradient(BaseEstimatorGradient):
@@ -67,7 +67,7 @@ class ParamShiftEstimatorGradient(BaseEstimatorGradient):
             if self._gradient_circuits.get(id(circuit)):
                 gradient_circuit, base_parameter_values_all = self._gradient_circuits[id(circuit)]
             else:
-                gradient_circuit, base_parameter_values_all = param_shift_preprocessing(circuit)
+                gradient_circuit, base_parameter_values_all = _param_shift_preprocessing(circuit)
                 self._gradient_circuits[id(circuit)] = (
                     gradient_circuit,
                     base_parameter_values_all,
@@ -78,7 +78,7 @@ class ParamShiftEstimatorGradient(BaseEstimatorGradient):
                 gradient_parameter_values_minus,
                 result_indices,
                 coeffs,
-            ) = make_param_shift_parameter_values(
+            ) = _make_param_shift_parameter_values(
                 gradient_circuit_data=gradient_circuit,
                 base_parameter_values=base_parameter_values_all,
                 parameter_values=parameter_values_,

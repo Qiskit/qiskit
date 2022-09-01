@@ -22,12 +22,14 @@ import numpy as np
 from qiskit.circuit import Parameter, ParameterExpression, QuantumCircuit
 from qiskit.opflow import PauliSumOp
 from qiskit.primitives import BaseEstimator
+from qiskit.primitives.utils import init_observable
 from qiskit.quantum_info import Pauli
 from qiskit.quantum_info.operators.base_operator import BaseOperator
 
 from .base_estimator_gradient import BaseEstimatorGradient
 from .estimator_gradient_result import EstimatorGradientResult
-from .utils import make_lin_comb_gradient_circuit
+from .utils import _make_lin_comb_gradient_circuit
+
 
 Pauli_Z = Pauli("Z")
 
@@ -65,6 +67,8 @@ class LinCombEstimatorGradient(BaseEstimatorGradient):
         for circuit, observable, parameter_values_, parameters_ in zip(
             circuits, observables, parameter_values, parameters
         ):
+            # Make the observable as observable as :class:`~qiskit.quantum_info.SparsePauliOp`.
+            observables = init_observable(observable)
             # a set of parameters to be differentiated
             if parameters_ is None:
                 param_set = set(circuit.parameters)
@@ -76,7 +80,7 @@ class LinCombEstimatorGradient(BaseEstimatorGradient):
             observable_ = observable.expand(Pauli_Z)
             gradient_circuits_ = self._gradient_circuits.get(id(circuit))
             if gradient_circuits_ is None:
-                gradient_circuits_ = make_lin_comb_gradient_circuit(circuit)
+                gradient_circuits_ = _make_lin_comb_gradient_circuit(circuit)
                 self._gradient_circuits[id(circuit)] = gradient_circuits_
 
             # only compute the gradients for parameters in the parameter set
