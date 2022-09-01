@@ -30,7 +30,7 @@ from .estimator_gradient_result import EstimatorGradientResult
 
 
 class BaseEstimatorGradient(ABC):
-    """Base class for an EstimatorGradient to compute the gradients of the expectation value."""
+    """Base class for an ``EstimatorGradient`` to compute the gradients of the expectation value."""
 
     def __init__(
         self,
