@@ -53,6 +53,7 @@ class ComputeUncompute(BaseStateFidelity):
         Args:
             sampler: Sampler primitive instance.
             run_options: Backend runtime options used for circuit execution.
+
         Raises:
             ValueError: If the sampler is not an instance of ``BaseSampler``.
         """
