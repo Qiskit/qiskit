@@ -137,20 +137,19 @@ stages:
     - stage: "Lint_Docs_Prelim_Tests"
       displayName: "Preliminary tests"
       jobs:
-        - template: ".azure/lint-linux.yml"
-          parameters:
-            pythonVersion: ${{ parameters.minimumPythonVersion }}
-
-        - template: ".azure/docs-linux.yml"
-          parameters:
-            pythonVersion: ${{ parameters.minimumPythonVersion }}
-
         - template: ".azure/test-linux.yml"
           parameters:
             pythonVersion: ${{ parameters.minimumPythonVersion }}
-            testQPY: false
+            testQPY: true
             testImages: false
             rustVersion: ${{ parameters.minimumRustVersion }}
+
+        - template: ".azure/test-linux.yml"
+          parameters:
+            pythonVersion: ${{ parameters.maximumPythonVersion }}
+            testQPY: true
+            testImages: false
+            installFromSdist: true
 
     # The rest of the PR pipeline is to test the oldest and newest supported
     # versions of Python, along with the integration tests (via the tutorials).
@@ -161,32 +160,18 @@ stages:
       displayName: "Main tests"
       dependsOn: "Lint_Docs_Prelim_Tests"
       jobs:
-        - template: ".azure/tutorials-linux.yml"
-          parameters:
-            pythonVersion: ${{ parameters.tutorialsPythonVersion }}
-
         - template: ".azure/test-linux.yml"
           parameters:
             pythonVersion: ${{ parameters.maximumPythonVersion }}
             testQPY: true
-            testImages: true
+            testImages: false
             installFromSdist: true
 
-        - template: ".azure/test-macos.yml"
+        - template: ".azure/test-linux.yml"
           parameters:
-            pythonVersion: ${{ parameters.minimumPythonVersion }}
-
-        - template: ".azure/test-macos.yml"
-          parameters:
-            pythonVersion: ${{ parameters.maximumPythonVersion }}
-
-        - template: ".azure/test-windows.yml"
-          parameters:
-            pythonVersion: ${{ parameters.minimumPythonVersion }}
-
-        - template: ".azure/test-windows.yml"
-          parameters:
-            pythonVersion: ${{ parameters.maximumPythonVersion }}
+            pythonVersion: "3.8"
+            testQPY: true
+            testImages: false
 
   # Push to main or the stable branches.  The triggering branches are set in the
   # triggers at the top of this file.
