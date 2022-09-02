@@ -13,23 +13,20 @@
 """The variational quantum eigensolver algorithm."""
 
 from __future__ import annotations
-from dataclasses import dataclass
 import logging
 from time import time
 
 import numpy as np
 
 from qiskit.circuit import QuantumCircuit, Parameter
-from qiskit.circuit.library import RealAmplitudes
 from qiskit.opflow import (
     OperatorBase,
 )
 from qiskit.primitives import BaseEstimator
 from qiskit.utils.validation import validate_min
 
-
 from ..exceptions import AlgorithmError
-from ..optimizers import Optimizer, Minimizer, SLSQP
+from ..optimizers import Optimizer, Minimizer
 from ..variational_algorithm import VariationalResult
 from .minimum_eigensolver import MinimumEigensolver, MinimumEigensolverResult
 
@@ -85,12 +82,12 @@ class VQE(MinimumEigensolver):
         optimizer = partial(minimize, method="L-BFGS-B")
 
     Attributes:
-        estimator: The estimator primitive to compute the expectation value of the circuits.
         ansatz: A parameterized circuit, preparing the ansatz for the wave function. If not
             provided, this defaults to a :class:`.RealAmplitudes` circuit.
         optimizer: A classical optimizer to find the minimum energy. This can either be a
             Qiskit :class:`.Optimizer` or a callable implementing the :class:`.Minimizer` protocol.
             Defaults to :class:`.SLSQP`.
+        estimator: The estimator primitive to compute the expectation value of the circuits.
         gradient: An optional gradient function or operator for the optimizer.
         initial_point: An optional initial point (i.e. initial parameter values) for the optimizer.
             If not provided, a random initial point with values in the interval :math:`[0, 2\pi]`
@@ -105,9 +102,10 @@ class VQE(MinimumEigensolver):
 
     def __init__(
         self,
+        ansatz: QuantumCircuit,
+        optimizer: Optimizer | Minimizer,
         estimator: BaseEstimator,
-        ansatz: QuantumCircuit | None = None,
-        optimizer: Optimizer | Minimizer | None = None,
+        *,
         gradient=None,
         initial_point: np.ndarray | None = None,
         max_evals_grouped: int = 1,
@@ -116,10 +114,10 @@ class VQE(MinimumEigensolver):
     ) -> None:
         """
         Args:
-            estimator: The estimator primitive to compute the expectation value of the circuits.
             ansatz: The parameterized circuit used as ansatz for the wave function.
             optimizer: The classical optimizer. Can either be a Qiskit optimizer or a callable
                 that takes an array as input and returns a Qiskit or SciPy optimization result.
+            estimator: The estimator primitive to compute the expectation value of the circuits.
             gradient: An optional gradient function or operator for the optimizer.
             initial_point: An optional initial point (i.e. initial parameter values)
                 for the optimizer. If ``None`` then VQE will look to the ansatz for a preferred
@@ -136,9 +134,9 @@ class VQE(MinimumEigensolver):
 
         validate_min("max_evals_grouped", max_evals_grouped, 1)
 
-        self.estimator = estimator
         self.ansatz = ansatz
         self.optimizer = optimizer
+        self.estimator = estimator
         self.gradient = gradient
         self.initial_point = initial_point
         self.max_evals_grouped = max_evals_grouped
@@ -148,17 +146,11 @@ class VQE(MinimumEigensolver):
         self._eval_count = 0
 
     def compute_minimum_eigenvalue(self, operator: OperatorBase, aux_operators=None):
-        # Set defaults
-        if self.ansatz is None:
-            ansatz = RealAmplitudes(num_qubits=operator.num_qubits)
-        else:
-            ansatz = self.ansatz.copy()
-            _check_operator_ansatz(operator, ansatz)
+        ansatz = self._check_operator_ansatz(operator)
 
-        if self.optimizer is None:
-            optimizer = SLSQP()
-        else:
-            optimizer = self.optimizer
+        if isinstance(self.optimizer, Optimizer):
+            # note that this changes the optimizer instance -- should we reset after the VQE run?
+            self.optimizer.set_max_evals_grouped(self.max_evals_grouped)
 
         if isinstance(aux_operators, dict):
             aux_ops = list(aux_operators.values())
@@ -195,12 +187,12 @@ class VQE(MinimumEigensolver):
         start_time = time()
 
         # Perform optimization
-        if callable(optimizer):
-            opt_result = optimizer(  # pylint: disable=not-callable
+        if callable(self.optimizer):
+            opt_result = self.optimizer(  # pylint: disable=not-callable
                 fun=expectation, x0=initial_point  # , jac=gradient, bounds=bounds
             )
         else:
-            opt_result = optimizer.minimize(
+            opt_result = self.optimizer.minimize(
                 fun=expectation, x0=initial_point  # , jac=gradient, bounds=bounds
             )
 
@@ -243,28 +235,28 @@ class VQE(MinimumEigensolver):
     def supports_aux_operators(cls) -> bool:
         return True
 
+    def _check_operator_ansatz(self, operator: OperatorBase) -> QuantumCircuit:
+        """Check that the number of qubits of operator and ansatz match and that the ansatz is
+        parameterized.
+        """
+        ansatz = self.ansatz.copy()
+        if operator.num_qubits != ansatz.num_qubits:
+            try:
+                logger.info(
+                    f"Trying to resize ansatz to match operator on {operator.num_qubits} qubits."
+                )
+                ansatz.num_qubits = operator.num_qubits
+            except AttributeError as error:
+                raise AlgorithmError(
+                    "The number of qubits of the ansatz does not match the "
+                    "operator, and the ansatz does not allow setting the "
+                    "number of qubits using `num_qubits`."
+                ) from error
 
-def _check_operator_ansatz(operator: OperatorBase, ansatz: QuantumCircuit) -> QuantumCircuit:
-    """Check that the number of qubits of operator and ansatz match and that the ansatz is
-    parameterized."""
-    if operator.num_qubits != ansatz.num_qubits:
-        # Try to set the number of qubits on the ansatz.
-        try:
-            logger.info(
-                f"Trying to resize ansatz to match operator on {operator.num_qubits} qubits."
-            )
-            ansatz.num_qubits = operator.num_qubits
-        except AttributeError as ex:
-            raise AlgorithmError(
-                "The number of qubits of the ansatz does not match the "
-                "operator, and the ansatz does not allow setting the "
-                "number of qubits using `num_qubits`."
-            ) from ex
+        if ansatz.num_parameters == 0:
+            raise AlgorithmError("The ansatz must be parameterized, but has no free parameters.")
 
-    if ansatz.num_parameters == 0:
-        raise AlgorithmError("The ansatz must be parameterized, but has no free parameters.")
-
-    return ansatz
+        return ansatz
 
 
 class VQEResult(VariationalResult, MinimumEigensolverResult):
@@ -276,10 +268,10 @@ class VQEResult(VariationalResult, MinimumEigensolverResult):
 
     @property
     def cost_function_evals(self) -> int | None:
-        """Returns number of cost optimizer evaluations"""
+        """Returns number of cost optimizer evaluations."""
         return self._cost_function_evals
 
     @cost_function_evals.setter
     def cost_function_evals(self, value: int) -> None:
-        """Sets number of cost function evaluations"""
+        """Sets number of cost function evaluations."""
         self._cost_function_evals = value
