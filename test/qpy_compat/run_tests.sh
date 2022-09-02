@@ -21,23 +21,30 @@ echo "PYTHONHASHSEED=$PYTHONHASHSEED"
 
 python -m venv qiskit_venv
 qiskit_venv/bin/pip install ../..
+python_dev="qiskit_venv/bin/python"
 
 for version in $(git tag --sort=-creatordate) ; do
     parts=( ${version//./ } )
     if [[ ${parts[1]} -lt 18 ]] ; then
         break
     fi
-    echo "Building venv for qiskit-terra $version"
-    python -m venv $version
-    ./$version/bin/pip install "qiskit-terra==$version"
+    python_stable="stable_venv/$version/bin/python"
+    # Build venv if necessary.
+    if [[ ! -x "${python_stable}" ]] || ! ${python_stable} -c 'import qiskit'; then
+        echo "Building venv for qiskit-terra $version"
+        # Remove corrupt venv.
+        rm -rf stable_venv/$version
+        python -m venv stable_venv/$version
+        ./stable_venv/$version/bin/pip install "qiskit-terra==$version"
+    fi
     echo "Generating qpy files with qiskit-terra $version"
-    ./$version/bin/python test_qpy.py generate --version=$version
+    "$python_stable" test_qpy.py generate --version=$version
     echo "Loading qpy files from $version with dev qiskit-terra"
-    qiskit_venv/bin/python test_qpy.py load --version=$version
+    "$python_dev" test_qpy.py load --version=$version
     rm *qpy
 done
 
 # Test dev compatibility
-dev_version=`qiskit_venv/bin/python -c 'import qiskit;print(qiskit.__version__)'`
-qiskit_venv/bin/python test_qpy.py generate --version=$dev_version
-qiskit_venv/bin/python test_qpy.py load --version=$dev_version
+dev_version=$("$python_dev" -c 'import qiskit;print(qiskit.__version__)')
+"$python_dev" test_qpy.py generate --version=$dev_version
+"$python_dev" test_qpy.py load --version=$dev_version
