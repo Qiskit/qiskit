@@ -32,6 +32,7 @@ Results
     :toctree: ../stubs/
 
     StateFidelityResult
+
 """
 
 from .base_state_fidelity import BaseStateFidelity
