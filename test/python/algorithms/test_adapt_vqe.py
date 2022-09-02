@@ -11,15 +11,18 @@
 # that they have been altered from the originals.
 
 """ Test of the AdaptVQE minimum eigensolver """
+
 import unittest
-from qiskit.opflow.operator_globals import X, Y
+
 from test.python.algorithms import QiskitAlgorithmsTestCase
+
+from qiskit.opflow.operator_globals import X, Y
 from qiskit.algorithms.minimum_eigen_solvers.vqe import VQE
 from qiskit.algorithms.minimum_eigen_solvers.adapt_vqe import TerminationCriterion
-from qiskit.circuit import QuantumCircuit, QuantumRegister,Parameter
+from qiskit.circuit import QuantumCircuit, QuantumRegister
 from qiskit.circuit.library import EvolvedOperatorAnsatz
 from qiskit.quantum_info import SparsePauliOp
-from qiskit.opflow import PauliSumOp,CircuitStateFn,StateFn,Gradient
+from qiskit.opflow import PauliSumOp, MatrixExpectation
 from qiskit.utils import algorithm_globals, QuantumInstance
 from qiskit import BasicAer
 from qiskit.algorithms.minimum_eigen_solvers.adapt_vqe import AdaptVQE
@@ -151,29 +154,21 @@ class TestAdaptVQE(QiskitAlgorithmsTestCase):
             solver=solver,
             excitation_pool=self.excitation_pool,
         )
-        res = calc.compute_minimum_eigenvalue(operator=self.h2_op)
+        _ = calc.compute_minimum_eigenvalue(operator=self.h2_op)
 
         self.assertEqual(solver.ansatz, calc._solver.ansatz)
 
     def test_gradient_calculation(self):
         """Test to check if the gradient calculation"""
-        H= X
-        a = Parameter("a")
-        qc = QuantumCircuit(1)
-        qc.rx(a, 0)
-        qc.draw()
-        op = ~StateFn(H) @ CircuitStateFn(primitive=qc, coeff=1.0)
-        gradient = Gradient(grad_method="param_shift")
-        grad = gradient.convert(op)
-        value_dict = {a: 3.14 }
-        grad_result = grad.assign_parameters(value_dict).eval()
-        print('Gradient', grad_result)
-        #ansatz = EvolvedOperatorAnsatz(operators=op, initial_state=qc)
-        solver =VQE()
-        calc = AdaptVQE(solver=solver,excitation_pool=[CircuitStateFn(primitive=qc,coeff=1.0)])
-        res = calc._compute_gradients(operator=StateFn(H),theta=value_dict,expectation=solver.expectation)
-        print(res)
-        #self.assertAlmostEqual(res, grad_result)
+        solver = VQE(
+            ansatz=QuantumCircuit(1),
+            expectation=MatrixExpectation(),
+            quantum_instance=self.quantum_instance,
+        )
+        calc = AdaptVQE(solver=solver, excitation_pool=[X])
+        res = calc._compute_gradients(operator=Y, theta=[], expectation=solver.expectation)
+        # compare with manually computed reference value
+        self.assertAlmostEqual(res[0][0], 2.0)
 
 
 if __name__ == "__main__":
