@@ -41,11 +41,10 @@ class ComputeUncompute(BaseStateFidelity):
     ``circuit_1`` and ``circuit_2``, respectively.
 
     **Reference:**
-        1. Havlíček, V., Córcoles, A. D., Temme, K., Harrow, A. W., Kandala,
-            A., Chow, J. M., & Gambetta, J. M. (2019). Supervised learning
-            with quantum-enhanced feature spaces. Nature, 567(7747), 209-212.
-           `arXiv:1804.11326v2 [quant-ph] <https://arxiv.org/pdf/1804.11326.pdf>`_
-
+    [1] Havlíček, V., Córcoles, A. D., Temme, K., Harrow, A. W., Kandala,
+    A., Chow, J. M., & Gambetta, J. M. (2019). Supervised learning
+    with quantum-enhanced feature spaces. Nature, 567(7747), 209-212.
+    `arXiv:1804.11326v2 [quant-ph] <https://arxiv.org/pdf/1804.11326.pdf>`_
     """
 
     def __init__(self, sampler: BaseSampler, **run_options) -> None:
