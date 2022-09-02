@@ -28,11 +28,9 @@ from qiskit.algorithms.gradients import (
 )
 from qiskit.circuit import Parameter
 from qiskit.circuit.library import EfficientSU2, RealAmplitudes
-from qiskit.circuit.library.standard_gates.rxx import RXXGate
-from qiskit.circuit.library.standard_gates.ryy import RYYGate
-from qiskit.circuit.library.standard_gates.rzx import RZXGate
-from qiskit.circuit.library.standard_gates.rzz import RZZGate
+from qiskit.circuit.library.standard_gates import RXXGate, RYYGate, RZXGate, RZZGate
 from qiskit.primitives import Estimator, Sampler
+from qiskit.result import QuasiDistribution
 from qiskit.test import QiskitTestCase
 
 
@@ -470,6 +468,53 @@ class TestSamplerGradient(QiskitTestCase):
             for j, q_dists in enumerate(result):
                 for k in q_dists:
                     self.assertAlmostEqual(q_dists[k], correct_results3[i][j][k], 3)
+
+    @combine(grad=[ParamShiftSamplerGradient, LinCombSamplerGradient])
+    def test_gradient_random_parameters(self, grad):
+        """Test param shift and lin comb w/ random parameters"""
+        rng = np.random.default_rng(123)
+        qc = RealAmplitudes(num_qubits=3, reps=1)
+        params = qc.parameters
+        qc.rx(3.0 * params[0] + params[1].sin(), 0)
+        qc.ry(params[0].exp() + 2 * params[1], 1)
+        qc.rz(params[0] * params[1] - params[2], 2)
+        qc.p(2 * params[0] + 1, 0)
+        qc.u(params[0].sin(), params[1] - 2, params[2] * params[3], 1)
+        qc.sx(2)
+        qc.rxx(params[0].sin(), 1, 2)
+        qc.ryy(params[1].cos(), 2, 0)
+        qc.rzz(params[2] * 2, 0, 1)
+        qc.crx(params[0].exp(), 1, 2)
+        qc.cry(params[1].arctan(), 2, 0)
+        qc.crz(params[2] * -2, 0, 1)
+        qc.dcx(0, 1)
+        qc.csdg(0, 1)
+        qc.toffoli(0, 1, 2)
+        qc.iswap(0, 2)
+        qc.swap(1, 2)
+        qc.global_phase = params[0] * params[1] + params[2].cos().exp()
+        qc.measure_all()
+
+        sampler = Sampler()
+        findiff = FiniteDiffSamplerGradient(sampler, 1e-6)
+        gradient = grad(sampler)
+
+        num_qubits = qc.num_qubits
+        num_tries = 10
+        param_values = rng.normal(0, 2, (num_tries, qc.num_parameters)).tolist()
+        result1 = findiff.run([qc] * num_tries, param_values).result().gradients
+        result2 = gradient.run([qc] * num_tries, param_values).result().gradients
+        self.assertEqual(len(result1), len(result2))
+        for res1, res2 in zip(result1, result2):
+            array1 = _quasi2array(res1, num_qubits)
+            array2 = _quasi2array(res2, num_qubits)
+            np.testing.assert_allclose(array1, array2, rtol=1e-4)
+
+def _quasi2array(quasis: list[QuasiDistribution], num_qubits: int) -> np.ndarray:
+    ret = np.zeros((len(quasis), 2**num_qubits))
+    for i, quasi in enumerate(quasis):
+        ret[i, list(quasi.keys())] = list(quasi.values())
+    return ret
 
 
 if __name__ == "__main__":

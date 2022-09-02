@@ -28,12 +28,10 @@ from qiskit.algorithms.gradients import (
 )
 from qiskit.circuit import Parameter
 from qiskit.circuit.library import EfficientSU2, RealAmplitudes
-from qiskit.circuit.library.standard_gates.rxx import RXXGate
-from qiskit.circuit.library.standard_gates.ryy import RYYGate
-from qiskit.circuit.library.standard_gates.rzx import RZXGate
-from qiskit.circuit.library.standard_gates.rzz import RZZGate
+from qiskit.circuit.library.standard_gates import RXXGate, RYYGate, RZXGate, RZZGate
 from qiskit.primitives import Estimator, Sampler
 from qiskit.quantum_info import SparsePauliOp
+from qiskit.quantum_info.random import random_pauli_list
 from qiskit.test import QiskitTestCase
 
 
@@ -311,6 +309,47 @@ class TestEstimatorGradient(QiskitTestCase):
         gradient = SPSAEstimatorGradient(estimator, epsilon=1e-6, batch_size=5, seed=123)
         gradients = gradient.run([qc], [op], param_list).result().gradients
         np.testing.assert_allclose(gradients, correct_results, atol=1e-3)
+
+    @combine(grad=[ParamShiftEstimatorGradient, LinCombEstimatorGradient])
+    def test_gradient_random_parameters(self, grad):
+        """Test param shift and lin comb w/ random parameters"""
+        rng = np.random.default_rng(123)
+        qc = RealAmplitudes(num_qubits=3, reps=1)
+        params = qc.parameters
+        qc.rx(3.0 * params[0] + params[1].sin(), 0)
+        qc.ry(params[0].exp() + 2 * params[1], 1)
+        qc.rz(params[0] * params[1] - params[2], 2)
+        qc.p(2 * params[0] + 1, 0)
+        qc.u(params[0].sin(), params[1] - 2, params[2] * params[3], 1)
+        qc.sx(2)
+        qc.rxx(params[0].sin(), 1, 2)
+        qc.ryy(params[1].cos(), 2, 0)
+        qc.rzz(params[2] * 2, 0, 1)
+        qc.crx(params[0].exp(), 1, 2)
+        qc.cry(params[1].arctan(), 2, 0)
+        qc.crz(params[2] * -2, 0, 1)
+        qc.dcx(0, 1)
+        qc.csdg(0, 1)
+        qc.toffoli(0, 1, 2)
+        qc.iswap(0, 2)
+        qc.swap(1, 2)
+        qc.global_phase = params[0] * params[1] + params[2].cos().exp()
+
+        size = 10
+        op = SparsePauliOp(random_pauli_list(num_qubits=qc.num_qubits, size=size, seed=rng))
+        op.coeffs = rng.normal(0, 10, size)
+
+        estimator = Estimator()
+        findiff = FiniteDiffEstimatorGradient(estimator, 1e-6)
+        gradient = grad(estimator)
+
+        num_tries = 10
+        param_values = rng.normal(0, 2, (num_tries, qc.num_parameters)).tolist()
+        np.testing.assert_allclose(
+            findiff.run([qc] * num_tries, [op] * num_tries, param_values).result().gradients,
+            gradient.run([qc] * num_tries, [op] * num_tries, param_values).result().gradients,
+            rtol=1e-4,
+        )
 
 
 if __name__ == "__main__":
