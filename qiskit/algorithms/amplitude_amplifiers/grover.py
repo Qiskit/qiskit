@@ -20,8 +20,9 @@ import warnings
 import numpy as np
 
 from qiskit import ClassicalRegister, QuantumCircuit
+from qiskit.exceptions import QiskitError
 from qiskit.primitives import BaseSampler
-from qiskit.providers import Backend
+from qiskit.providers import Backend, JobStatus
 from qiskit.quantum_info import partial_trace
 from qiskit.utils import QuantumInstance
 from qiskit.utils.deprecation import deprecate_function
@@ -218,9 +219,15 @@ class Grover(AmplitudeAmplifier):
             as ``result.top_measurement``.
 
         Raises:
+            ValueError: If a quantum instance or sumpler is not set.
+            QiskitError: If a sampler job fails.
             TypeError: If ``is_good_state`` is not provided and is required (i.e. when iterations
             is ``None`` or a ``list``)
+
         """
+        if self._sampler is None and self._quantum_instance is None:
+            raise ValueError("A quantum instance or sampler must be provided.")
+
         if isinstance(self._iterations, list):
             max_iterations = len(self._iterations)
             max_power = np.inf  # no cap on the power
@@ -256,7 +263,10 @@ class Grover(AmplitudeAmplifier):
             # Run a grover experiment for a given power of the Grover operator.
             if self._sampler:
                 qc = self.construct_circuit(amplification_problem, power, measurement=True)
-                results = self._sampler.run([qc]).result()
+                job = self._sampler.run([qc])
+                if job.status() is not JobStatus.DONE:
+                    raise QiskitError("The job was not completed successfully. ")
+                result = job.result()
                 num_bits = len(amplification_problem.objective_qubits)
                 circuit_results = {
                     np.binary_repr(k, num_bits): v for k, v in results.quasi_dists[0].items()
