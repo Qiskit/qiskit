@@ -1,4 +1,4 @@
-.. figure:: images/qiskit_circ.png
+.. figure:: images/qiskit_main.svg
   :align: center
 
 ##############################
