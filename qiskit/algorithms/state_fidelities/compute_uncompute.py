@@ -30,7 +30,7 @@ class ComputeUncompute(BaseStateFidelity):
     This class leverages the sampler primitive to calculate the state
     fidelity of two quantum circuits following the compute-uncompute
     method (see [1] for further reference).
-    The fidelity can be defined as the state overlap:
+    The fidelity can be defined as the state overlap.
 
     .. math::
 
@@ -45,6 +45,7 @@ class ComputeUncompute(BaseStateFidelity):
     A., Chow, J. M., & Gambetta, J. M. (2019). Supervised learning
     with quantum-enhanced feature spaces. Nature, 567(7747), 209-212.
     `arXiv:1804.11326v2 [quant-ph] <https://arxiv.org/pdf/1804.11326.pdf>`_
+    
     """
 
     def __init__(self, sampler: BaseSampler, **run_options) -> None:
