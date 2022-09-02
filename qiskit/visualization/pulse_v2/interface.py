@@ -228,6 +228,9 @@ def draw(
         formatter.axis_break.max_length: Length of new waveform or idle time duration
             after axis break is applied. Longer intervals are truncated to this length
             (default `1000`).
+        formatter.control.fill_waveform: Set `True` to fill waveforms with face color
+            (default `True`). When you disable this option, you should set finite line width
+            to `formatter.line_width.fill_waveform`, otherwise nothing will appear in the graph.
         formatter.control.apply_phase_modulation: Set `True` to apply phase modulation
             to the waveforms (default `True`).
         formatter.control.show_snapshot_channel: Set `True` to show snapshot instructions
