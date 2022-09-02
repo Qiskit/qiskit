@@ -1683,6 +1683,30 @@ class TestTextDrawerMultiQGates(QiskitTestCase):
             str(_text_circuit_drawer(circ, vertical_compression="high", cregbundle=True)), expected
         )
 
+    def test_control_gate_label_with_cond_2_med_space(self):
+        """Control gate has a label and a conditional (on label, compression=med)
+        See https://github.com/Qiskit/qiskit-terra/issues/4361"""
+        expected = "\n".join(
+            [
+                "        ┌──────┐",
+                "q_0: |0>┤ my h ├",
+                "        └──┬───┘",
+                "q_1: |0>───■────",
+                "         my║ch  ",
+                "   c: 0 ═══■════",
+                "          0x1   ",
+            ]
+        )
+
+        qr = QuantumRegister(2, "q")
+        cr = ClassicalRegister(1, "c")
+        circ = QuantumCircuit(qr, cr)
+        hgate = HGate(label="my h")
+        controlh = hgate.control(label="my ch").c_if(cr, 1)
+        circ.append(controlh, [1, 0])
+
+        self.assertEqual(str(_text_circuit_drawer(circ, vertical_compression="medium")), expected)
+
     def test_control_gate_label_with_cond_2_med(self):
         """Control gate has a label and a conditional (on label, compression=med)
         See https://github.com/Qiskit/qiskit-terra/issues/4361"""
