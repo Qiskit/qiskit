@@ -13,6 +13,7 @@
 """Test library of Pauli feature map circuits."""
 
 import unittest
+from test import combine
 
 import numpy as np
 
@@ -37,7 +38,7 @@ class TestDataPreparation(QiskitTestCase):
 
         with self.subTest(msg="rotation blocks is H gate"):
             self.assertEqual(len(encoding.rotation_blocks), 1)
-            self.assertIsInstance(encoding.rotation_blocks[0].data[0][0], HGate)
+            self.assertIsInstance(encoding.rotation_blocks[0].data[0].operation, HGate)
 
     @data((2, 3, ["X", "YY"]), (5, 2, ["ZZZXZ", "XZ"]))
     @unpack
@@ -151,6 +152,15 @@ class TestDataPreparation(QiskitTestCase):
             zz_evolution(ref, 1, 2)
 
         self.assertTrue(Operator(encoding).equiv(ref))
+
+    @combine(entanglement=["linear", "reverse_linear", "pairwise"])
+    def test_zz_entanglement(self, entanglement):
+        """Test the ZZ feature map works with pairwise, linear and reverse_linear entanglement."""
+        num_qubits = 5
+        encoding = ZZFeatureMap(num_qubits, entanglement=entanglement, reps=1)
+        ops = encoding.decompose().count_ops()
+        expected_ops = {"h": num_qubits, "p": 2 * num_qubits - 1, "cx": 2 * (num_qubits - 1)}
+        self.assertEqual(ops, expected_ops)
 
     def test_pauli_alpha(self):
         """Test  Pauli rotation factor (getter, setter)."""

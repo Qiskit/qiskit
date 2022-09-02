@@ -34,7 +34,7 @@ from qiskit.result.mitigation.utils import (
 )
 from qiskit.result.utils import marginal_counts
 from qiskit.test import QiskitTestCase
-from qiskit.test.mock import FakeYorktown
+from qiskit.providers.fake_provider import FakeYorktown
 
 
 class TestReadoutMitigation(QiskitTestCase):

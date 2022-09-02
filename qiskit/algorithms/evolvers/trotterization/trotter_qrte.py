@@ -187,7 +187,7 @@ class TrotterQRTE(RealEvolver):
                 f"PauliSumOp | SummedOp, {type(hamiltonian)} provided."
             )
         if isinstance(hamiltonian, OperatorBase):
-            hamiltonian = hamiltonian.bind_parameters(evolution_problem.hamiltonian_value_dict)
+            hamiltonian = hamiltonian.bind_parameters(evolution_problem.param_value_dict)
         if isinstance(hamiltonian, SummedOp):
             hamiltonian = self._summed_op_to_pauli_sum_op(hamiltonian)
         # the evolution gate

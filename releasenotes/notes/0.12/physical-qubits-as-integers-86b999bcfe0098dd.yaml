@@ -9,7 +9,7 @@ features:
 
     For Example:
 
-    .. jupyter-execute::
+    .. code-block:: python
 
         from qiskit import QuantumCircuit
         from qiskit import transpile

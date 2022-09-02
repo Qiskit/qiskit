@@ -18,6 +18,7 @@ Qiskit Terra API Reference
    extensions
    providers_basicaer
    providers
+   providers_fake_provider
    providers_models
    pulse
    scheduler
@@ -35,6 +36,7 @@ Qiskit Terra API Reference
    transpiler_passes
    transpiler_preset
    transpiler_plugins
+   transpiler_synthesis_plugins
    transpiler_builtin_plugins
    utils
    utils_mitigation
