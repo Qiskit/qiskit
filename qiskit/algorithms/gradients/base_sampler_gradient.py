@@ -59,8 +59,8 @@ class BaseSamplerGradient(ABC):
         Args:
             circuits: The list of quantum circuits to compute the gradients.
             parameter_values: The list of parameter values to be bound to the circuit.
-            parameters: The Sequence of Sequence of Parameters to calculate only the gradients of
-                the specified parameters. Each Sequence of Parameters corresponds to a circuit in
+            parameters: The sequence of parameters to calculate only the gradients of
+                the specified parameters. Each sequence of parameters corresponds to a circuit in
                 ``circuits``. Defaults to None, which means that the gradients of all parameters in
                 each circuit are calculated.
             run_options: Backend runtime options used for circuit execution. The order of priority is:
@@ -105,7 +105,7 @@ class BaseSamplerGradient(ABC):
         circuits: Sequence[QuantumCircuit],
         parameter_values: Sequence[Sequence[float]],
         parameters: Sequence[Sequence[Parameter] | None] | None = None,
-    ):
+    ) -> None:
         """Validate the arguments of the ``run`` method.
 
         Args:

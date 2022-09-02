@@ -119,7 +119,7 @@ class TestEstimatorGradient(QiskitTestCase):
         ]
         for i, param in enumerate(param_list):
             gradients = gradient.run([qc], [op], [param]).result().gradients[0]
-            np.testing.assert_almost_equal(gradients, correct_results[i], 3)
+            np.testing.assert_allclose(gradients, correct_results[i], atol=1e-3)
 
     @combine(
         grad=[FiniteDiffEstimatorGradient, ParamShiftEstimatorGradient, LinCombEstimatorGradient],
@@ -149,7 +149,7 @@ class TestEstimatorGradient(QiskitTestCase):
                 else:
                     qc.append(gate(a), [qc.qubits[0], qc.qubits[1]], [])
                 gradients = gradient.run([qc], [op], [param]).result().gradients[0]
-                np.testing.assert_almost_equal(gradients, correct_results[i], 3)
+                np.testing.assert_allclose(gradients, correct_results[i], atol=1e-3)
 
     @combine(
         grad=[FiniteDiffEstimatorGradient, ParamShiftEstimatorGradient, LinCombEstimatorGradient]
@@ -175,7 +175,7 @@ class TestEstimatorGradient(QiskitTestCase):
         op = SparsePauliOp.from_list([("ZI", 1)])
         for i, param in enumerate(param_list):
             gradients = gradient.run([qc], [op], [param]).result().gradients[0]
-            np.testing.assert_almost_equal(gradients, correct_results[i], 3)
+            np.testing.assert_allclose(gradients, correct_results[i], atol=1e-3)
 
     @combine(
         grad=[FiniteDiffEstimatorGradient, ParamShiftEstimatorGradient, LinCombEstimatorGradient]
@@ -199,7 +199,7 @@ class TestEstimatorGradient(QiskitTestCase):
         op = SparsePauliOp.from_list([("Z", 1)])
         for i, param in enumerate(param_list):
             gradients = gradient.run([qc], [op], [param], parameters=[[a]]).result().gradients[0]
-            np.testing.assert_almost_equal(gradients, correct_results[i], 3)
+            np.testing.assert_allclose(gradients, correct_results[i], atol=1e-3)
 
     @combine(
         grad=[FiniteDiffEstimatorGradient, ParamShiftEstimatorGradient, LinCombEstimatorGradient]
@@ -224,7 +224,7 @@ class TestEstimatorGradient(QiskitTestCase):
         ]
         op = SparsePauliOp.from_list([("Z", 1)])
         gradients = gradient.run([qc, qc2], [op] * 2, param_list).result().gradients
-        np.testing.assert_almost_equal(gradients, correct_results, 3)
+        np.testing.assert_allclose(gradients, correct_results, atol=1e-3)
 
         c = Parameter("c")
         qc3 = QuantumCircuit(1)
@@ -241,9 +241,9 @@ class TestEstimatorGradient(QiskitTestCase):
             .result()
             .gradients
         )
-        np.testing.assert_almost_equal(gradients2[0], correct_results2[0], 3)
-        np.testing.assert_almost_equal(gradients2[1], correct_results2[1], 3)
-        np.testing.assert_almost_equal(gradients2[2], correct_results2[2], 3)
+        np.testing.assert_allclose(gradients2[0], correct_results2[0], atol=1e-3)
+        np.testing.assert_allclose(gradients2[1], correct_results2[1], atol=1e-3)
+        np.testing.assert_allclose(gradients2[2], correct_results2[2], atol=1e-3)
 
     @combine(
         grad=[FiniteDiffEstimatorGradient, ParamShiftEstimatorGradient, LinCombEstimatorGradient]
@@ -290,7 +290,7 @@ class TestEstimatorGradient(QiskitTestCase):
         op = SparsePauliOp.from_list([("ZI", 1)])
         gradient = SPSAEstimatorGradient(estimator, epsilon=1e-6, seed=123)
         gradients = gradient.run([qc], [op], param_list).result().gradients
-        np.testing.assert_almost_equal(gradients, correct_results, 3)
+        np.testing.assert_allclose(gradients, correct_results, atol=1e-3)
 
         # multi parameters
         gradient = SPSAEstimatorGradient(estimator, epsilon=1e-6, seed=123)
@@ -302,7 +302,13 @@ class TestEstimatorGradient(QiskitTestCase):
         )
         correct_results2 = [[-0.84147098, 0.84147098], [0.84147098], [-0.14112001, 0.14112001]]
         for grad, correct in zip(gradients2, correct_results2):
-            np.testing.assert_almost_equal(grad, correct, 3)
+            np.testing.assert_allclose(grad, correct, atol=1e-3)
+
+        # batch size
+        correct_results = [[-0.84147098, 0.1682942]]
+        gradient = SPSAEstimatorGradient(estimator, epsilon=1e-6, batch_size=5, seed=123)
+        gradients = gradient.run([qc], [op], param_list).result().gradients
+        np.testing.assert_allclose(gradients, correct_results, atol=1e-3)
 
     @combine(grad=[ParamShiftEstimatorGradient, LinCombEstimatorGradient])
     def test_gradient_random_parameters(self, grad):

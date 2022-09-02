@@ -20,11 +20,13 @@ from typing import Sequence
 import numpy as np
 
 from qiskit.circuit import Parameter, ParameterExpression, QuantumCircuit
+from qiskit.exceptions import QiskitError
 from qiskit.primitives import BaseSampler
+from qiskit.providers import JobStatus
 
 from .base_sampler_gradient import BaseSamplerGradient
 from .sampler_gradient_result import SamplerGradientResult
-from .utils import make_lin_comb_gradient_circuit
+from .utils import _make_lin_comb_gradient_circuit
 
 
 class LinCombSamplerGradient(BaseSamplerGradient):
@@ -68,7 +70,7 @@ class LinCombSamplerGradient(BaseSamplerGradient):
             # TODO: support measurement in different basis (Y and Z+iY)
             gradient_circuits_ = self._gradient_circuits.get(id(circuit))
             if gradient_circuits_ is None:
-                gradient_circuits_ = make_lin_comb_gradient_circuit(circuit, add_measurement=True)
+                gradient_circuits_ = _make_lin_comb_gradient_circuit(circuit, add_measurement=True)
                 self._gradient_circuits[id(circuit)] = gradient_circuits_
 
             # only compute the gradients for parameters in the parameter set
@@ -101,6 +103,8 @@ class LinCombSamplerGradient(BaseSamplerGradient):
             coeffs_all.append(coeffs)
 
         # combine the results
+        if any(job.status() is not JobStatus.DONE for job in jobs):
+            raise QiskitError("The gradient job was not completed successfully. ")
         results = [job.result() for job in jobs]
         gradients = []
         for i, result in enumerate(results):
