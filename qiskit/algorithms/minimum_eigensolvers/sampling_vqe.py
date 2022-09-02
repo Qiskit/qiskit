@@ -94,7 +94,6 @@ class SamplingVQE(SamplingMinimumEigensolver):
                 multiple points to compute the gradient can be passed and if computed in parallel
                 improve overall execution time. Deprecated if a gradient operator or function is
                 given.
-
         """
         super().__init__()
 
@@ -138,7 +137,6 @@ class SamplingVQE(SamplingMinimumEigensolver):
         operator: BaseOperator | PauliSumOp,
         aux_operators: ListOrDict[BaseOperator | PauliSumOp] | None = None,
     ) -> SamplingMinimumEigensolverResult:
-        # super().compute_minimum_eigenvalue(operator, aux_operators)
         # set defaults
         if self.ansatz is None:
             ansatz = RealAmplitudes(num_qubits=operator.num_qubits)
@@ -242,14 +240,15 @@ class SamplingVQE(SamplingMinimumEigensolver):
 
         def energy_evaluation(parameters):
             # Create dict associating each parameter with the lists of parameterization values for it
-            value, best = diagonal_estimation(self.sampler, operator, ansatz, parameters)
+            value, best = diagonal_estimation(
+                self.sampler, operator, ansatz, parameters, return_best_measurement=True
+            )
 
             # keep track of the best sample
             if return_best_measurement:
                 for best_i in best:
-                    if (
-                        best_measurement["best"] is None
-                        or best_i["value"] < best_measurement["best"]["value"]
+                    if best_measurement["best"] is None or _compare_measurements(
+                        best_i, best_measurement["best"]
                     ):
                         best_measurement["best"] = best_i
 
@@ -273,7 +272,11 @@ class SamplingVQE(SamplingMinimumEigensolver):
         # evaluate all aux operators
         num = len(aux_operators)
         results = diagonal_estimation(
-            self.sampler, aux_operators, num * [ansatz], num * [parameters]
+            self.sampler,
+            aux_operators,
+            num * [ansatz],
+            num * [parameters],
+            return_best_measurement=False,
         )
 
         # bring back into the right shape and return
@@ -310,3 +313,19 @@ class SamplingVQEResult(SamplingMinimumEigensolverResult):
     def optimizer_time(self, value: float) -> None:
         """Sets time the optimization took."""
         self._optimizer_time = value
+
+
+def _compare_measurements(candidate, current_best):
+    """Compare two best measurements. Returns True if the candidate is better than current value.
+
+    This compares the following two criteria, in this precedence:
+
+        1. The smaller objective value is better
+        2. The higher probability for the objective value is better
+
+    """
+    if candidate["value"] < current_best["value"]:
+        return True
+    elif candidate["value"] == current_best["value"]:
+        return candidate["probability"] > current_best["probability"]
+    return False

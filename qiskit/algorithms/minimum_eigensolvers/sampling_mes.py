@@ -15,9 +15,6 @@
 from abc import ABC, abstractmethod
 from typing import Optional, Tuple, Any
 
-# from collections.abc import Any
-# from dataclasses import dataclass
-
 import numpy as np
 
 from qiskit.quantum_info.operators.base_operator import BaseOperator
@@ -62,7 +59,11 @@ class SamplingMinimumEigensolver(ABC):
 
 
 class SamplingMinimumEigensolverResult(AlgorithmResult):
-    """Minimum Eigensolver Result."""
+    """Minimum Eigensolver Result.
+
+    In contrast to the result of a :class:`~.MinimumEigenSolver`, this result also contains
+    the best measurement of the overall optimization and the samples of the final state.
+    """
 
     def __init__(self) -> None:
         super().__init__()
