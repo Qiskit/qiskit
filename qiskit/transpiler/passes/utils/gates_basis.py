@@ -13,7 +13,6 @@
 """Check if all gates in the DAGCircuit are in the specified basis gates."""
 
 from qiskit.transpiler.basepasses import AnalysisPass
-from qiskit.transpiler.exceptions import TranspilerError
 
 
 class GatesInBasis(AnalysisPass):
@@ -26,15 +25,9 @@ class GatesInBasis(AnalysisPass):
             basis_gates (list): The list of strings representing the set of basis gates.
             target (Target): The target representing the backend. If specified
                 this will be used instead of the ``basis_gates`` parameter
-
-        Raises:
-            TranspilerError: If neither basis_gates or target is set.
         """
         super().__init__()
-        if basis_gates is None and target is None:
-            raise TranspilerError(
-                "A value for 'basis_gates' or 'target' must be set to use this pass"
-            )
+        self._basis_gates = None
         if basis_gates is not None:
             self._basis_gates = set(basis_gates).union(
                 {"measure", "reset", "barrier", "snapshot", "delay"}
@@ -43,6 +36,9 @@ class GatesInBasis(AnalysisPass):
 
     def run(self, dag):
         """Run the GatesInBasis pass on `dag`."""
+        if self._basis_gates is None and self._target is None:
+            self.property_set["all_gates_in_basis"] = True
+            return
         gates_out_of_basis = False
         if self._target is not None:
             qubit_map = {qubit: index for index, qubit in enumerate(dag.qubits)}
