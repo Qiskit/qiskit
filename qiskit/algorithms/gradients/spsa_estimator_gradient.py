@@ -104,15 +104,17 @@ class SPSAEstimatorGradient(BaseEstimatorGradient):
         # combine the results
         if any(job.status() is not JobStatus.DONE for job in jobs):
             raise QiskitError("The gradient job was not completed successfully. ")
+
         results = [job.result() for job in jobs]
         gradients = []
         for i, result in enumerate(results):
             n = len(result.values) // 2  # is always a multiple of 2
-            gradient_ = (result.values[:n] - result.values[n:]) / (2 * self._epsilon)
-            # take the average of the spsa gradients
-            gradient = np.average(
-                np.array([grad / offset for grad, offset in zip(gradient_, offsets[i])]), axis=0
-            )
+            diffs = (result.values[:n] - result.values[n:]) / (2 * self._epsilon)
+            # calculate the gradient for each batch. Note that (``diff`` / ``offset``) is the gradient
+            # since ``offset`` is a perturbation vector of 1s and -1s.
+            batch_gradients = np.array([diff / offset for diff, offset in zip(diffs, offsets[i])])
+            # take the average of the batch gradients
+            gradient = np.mean(batch_gradients, axis=0)
             indices = [circuits[i].parameters.data.index(p) for p in metadata_[i]["parameters"]]
             gradients.append(gradient[indices])
 

@@ -62,7 +62,7 @@ class TestEstimatorGradient(QiskitTestCase):
         op = SparsePauliOp.from_list([("Z", 1)])
         value = gradient.run([qc], [op], [param]).result().gradients[0]
         self.assertAlmostEqual(value[0], correct_result, 3)
-        op = Operator.from_label('Z')
+        op = Operator.from_label("Z")
         value = gradient.run([qc], [op], [param]).result().gradients[0]
         self.assertAlmostEqual(value[0], correct_result, 3)
 
