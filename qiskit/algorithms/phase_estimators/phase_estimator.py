@@ -12,7 +12,6 @@
 
 """The Phase Estimator interface."""
 
-from typing import Optional
 from abc import ABC, abstractmethod
 from qiskit.circuit import QuantumCircuit
 from qiskit.algorithms.algorithm_result import AlgorithmResult
@@ -32,10 +31,10 @@ class PhaseEstimator(ABC):
     @abstractmethod
     def estimate(
         self,
-        unitary: Optional[QuantumCircuit] = None,
-        state_preparation: Optional[QuantumCircuit] = None,
-        pe_circuit: Optional[QuantumCircuit] = None,
-        num_unitary_qubits: Optional[int] = None,
+        unitary: None | QuantumCircuit = None,
+        state_preparation: None | QuantumCircuit = None,
+        pe_circuit: None | QuantumCircuit = None,
+        num_unitary_qubits: None | int = None,
     ) -> "PhaseEstimatorResult":
         """Estimate the phase."""
         raise NotImplementedError

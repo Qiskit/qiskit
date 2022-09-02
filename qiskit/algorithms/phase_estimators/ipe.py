@@ -14,17 +14,17 @@
 """The Iterative Quantum Phase Estimation Algorithm."""
 
 
-from typing import Optional, Union
+from typing import Union
 import numpy
 import qiskit
 from qiskit.circuit import QuantumCircuit, QuantumRegister
 from qiskit.circuit.classicalregister import ClassicalRegister
 from qiskit.providers import Backend
 from qiskit.utils import QuantumInstance
+from qiskit.algorithms.exceptions import AlgorithmError
 from .phase_estimator import PhaseEstimator
 from .phase_estimator import PhaseEstimatorResult
 from ...primitives import Sampler
-from qiskit.algorithms.exceptions import AlgorithmError
 
 
 class IterativePhaseEstimation(PhaseEstimator):
@@ -40,9 +40,9 @@ class IterativePhaseEstimation(PhaseEstimator):
     def __init__(
         self,
         num_iterations: int,
-        quantum_instance: Optional[Union[QuantumInstance, Backend]] = None,
-        sampler: Optional[Sampler] = None,
-        shots: int = None,
+        quantum_instance: None | Union[QuantumInstance, Backend] = None,
+        sampler: None | Sampler = None,
+        shots: None | int = None,
     ) -> None:
 
         """Args:
@@ -69,7 +69,7 @@ class IterativePhaseEstimation(PhaseEstimator):
         unitary: QuantumCircuit,
         state_preparation: QuantumCircuit,
         k: int,
-        omega: float = 0,
+        omega: float = 0.0,
         measurement: bool = False,
     ) -> QuantumCircuit:
         """Construct the kth iteration Quantum Phase Estimation circuit.
@@ -78,15 +78,15 @@ class IterativePhaseEstimation(PhaseEstimator):
 
         Args:
             unitary: The circuit representing the unitary operator whose eigenvalue (via phase)
-                     will be measured.
+                 will be measured.
             state_preparation: The circuit that prepares the state whose eigenphase will be
-                     measured.  If this parameter is omitted, no preparation circuit
-                     will be run and input state will be the all-zero state in the
-                     computational basis.
+                 measured.  If this parameter is omitted, no preparation circuit
+                 will be run and input state will be the all-zero state in the
+                 computational basis.
             k: the iteration idx.
             omega: the feedback angle.
             measurement: Boolean flag to indicate if measurement should
-                    be included in the circuit.
+                be included in the circuit.
 
         Returns:
             QuantumCircuit: the quantum circuit per iteration
@@ -176,6 +176,9 @@ class IterativePhaseEstimation(PhaseEstimator):
 
         Returns:
             Estimated phase in an IterativePhaseEstimationResult object.
+
+        Raises:
+            AlgorithmError: If neither sampler nor quantum instance is provided.
         """
         if self._sampler is None and self._quantum_instance is None:
             raise AlgorithmError(

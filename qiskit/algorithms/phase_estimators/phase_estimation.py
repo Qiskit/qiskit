@@ -15,8 +15,10 @@
 
 
 import warnings
-from typing import Optional, Union
+from typing import Union
+
 import numpy
+
 from qiskit.circuit import QuantumCircuit
 import qiskit
 from qiskit import circuit
@@ -24,10 +26,10 @@ from qiskit.circuit.classicalregister import ClassicalRegister
 from qiskit.providers import Backend
 from qiskit.utils import QuantumInstance
 from qiskit.result import Result
+from qiskit.algorithms.exceptions import AlgorithmError
 from .phase_estimation_result import PhaseEstimationResult, _sort_phases
 from .phase_estimator import PhaseEstimator
 from ...primitives import Sampler
-from qiskit.algorithms.exceptions import AlgorithmError
 
 
 class PhaseEstimation(PhaseEstimator):
@@ -83,9 +85,9 @@ class PhaseEstimation(PhaseEstimator):
     def __init__(
         self,
         num_evaluation_qubits: int,
-        quantum_instance: Optional[Union[QuantumInstance, Backend]] = None,
-        sampler: Optional[Sampler] = None,
-        shots: int = None,
+        quantum_instance: None | QuantumInstance | Backend = None,
+        sampler: None | Sampler = None,
+        shots: None | int = None,
     ) -> None:
         """
         Args:
@@ -108,7 +110,7 @@ class PhaseEstimation(PhaseEstimator):
         self.shots = shots
 
     def construct_circuit(
-        self, unitary: QuantumCircuit, state_preparation: Optional[QuantumCircuit] = None
+        self, unitary: QuantumCircuit, state_preparation: None | QuantumCircuit = None
     ) -> QuantumCircuit:
         """Return the circuit to be executed to estimate phases.
 
@@ -230,10 +232,10 @@ class PhaseEstimation(PhaseEstimator):
     # pylint: disable=missing-param-doc
     def estimate(
         self,
-        unitary: Optional[QuantumCircuit] = None,
-        state_preparation: Optional[QuantumCircuit] = None,
-        pe_circuit: Optional[QuantumCircuit] = None,
-        num_unitary_qubits: Optional[int] = None,
+        unitary: None | QuantumCircuit = None,
+        state_preparation: None | QuantumCircuit = None,
+        pe_circuit: None | QuantumCircuit = None,
+        num_unitary_qubits: None | int = None,
     ) -> PhaseEstimationResult:
         """Build a phase estimation circuit and run the corresponding algorithm.
 
@@ -247,6 +249,9 @@ class PhaseEstimation(PhaseEstimator):
 
         Returns:
             An instance of qiskit.algorithms.phase_estimator_result.PhaseEstimationResult.
+
+        Raises:
+            AlgorithmError: If neither sampler nor quantum instance is provided.
         """
         if self._sampler is None and self._quantum_instance is None:
             raise AlgorithmError(
