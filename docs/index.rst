@@ -7,6 +7,7 @@ Qiskit Terra documentation
   :hidden:
 
   API References <apidocs/terra>
+  Explanation <explanation>
   Circuit Library <apidocs/circuit_library>
   Release Notes <release_notes>
 
