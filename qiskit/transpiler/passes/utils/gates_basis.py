@@ -38,22 +38,22 @@ class GatesInBasis(AnalysisPass):
         """Run the GatesInBasis pass on `dag`."""
         if self._basis_gates is None and self._target is None:
             self.property_set["all_gates_in_basis"] = True
+            return
+        gates_out_of_basis = False
+        if self._target is not None:
+            qubit_map = {qubit: index for index, qubit in enumerate(dag.qubits)}
+            for gate in dag.op_nodes():
+                # Barrier is universal and supported by all backends
+                if gate.name == "barrier":
+                    continue
+                if not self._target.instruction_supported(
+                    gate.name, tuple(qubit_map[bit] for bit in gate.qargs)
+                ):
+                    gates_out_of_basis = True
+                    break
         else:
-            gates_out_of_basis = False
-            if self._target is not None:
-                qubit_map = {qubit: index for index, qubit in enumerate(dag.qubits)}
-                for gate in dag.op_nodes():
-                    # Barrier is universal and supported by all backends
-                    if gate.name == "barrier":
-                        continue
-                    if not self._target.instruction_supported(
-                        gate.name, tuple(qubit_map[bit] for bit in gate.qargs)
-                    ):
-                        gates_out_of_basis = True
-                        break
-            else:
-                for gate in dag._op_names:
-                    if gate not in self._basis_gates:
-                        gates_out_of_basis = True
-                        break
-            self.property_set["all_gates_in_basis"] = not gates_out_of_basis
+            for gate in dag._op_names:
+                if gate not in self._basis_gates:
+                    gates_out_of_basis = True
+                    break
+        self.property_set["all_gates_in_basis"] = not gates_out_of_basis
