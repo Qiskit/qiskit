@@ -20,6 +20,7 @@ from qiskit.transpiler.passmanager_config import PassManagerConfig
 from qiskit.transpiler.timing_constraints import TimingConstraints
 from qiskit.transpiler.passmanager import PassManager
 from qiskit.transpiler.passmanager import StagedPassManager
+from qiskit.transpiler import ConditionalController
 
 from qiskit.transpiler.passes import SetLayout
 from qiskit.transpiler.passes import VF2Layout
@@ -32,6 +33,7 @@ from qiskit.transpiler.passes import Depth
 from qiskit.transpiler.passes import Size
 from qiskit.transpiler.passes import Optimize1qGatesDecomposition
 from qiskit.transpiler.passes import CommutativeCancellation
+from qiskit.transpiler.passes import GatesInBasis
 from qiskit.transpiler.preset_passmanagers import common
 from qiskit.transpiler.passes.layout.vf2_layout import VF2LayoutStopReason
 
@@ -233,8 +235,17 @@ def level_2_pass_manager(pass_manager_config: PassManagerConfig) -> StagedPassMa
     if optimization_method is None:
         optimization = PassManager()
         unroll = [pass_ for x in translation.passes() for pass_ in x["passes"]]
+        # Build nested Flow controllers
+        def _unroll_condition(property_set):
+            return not property_set["all_gates_in_basis"]
+
+        # Check if any gate is not in the basis, and if so, run unroll passes
+        _unroll_if_out_of_basis = [
+            GatesInBasis(basis_gates, target=target),
+            ConditionalController(unroll, condition=_unroll_condition),
+        ]
         optimization.append(_depth_check + _size_check)
-        opt_loop = _opt + unroll + _depth_check + _size_check
+        opt_loop = _opt + _unroll_if_out_of_basis + _depth_check + _size_check
         optimization.append(opt_loop, do_while=_opt_control)
     else:
         optimization = plugin_manager.get_passmanager_stage(
