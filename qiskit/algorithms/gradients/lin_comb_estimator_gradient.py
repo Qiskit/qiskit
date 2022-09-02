@@ -70,7 +70,7 @@ class LinCombEstimatorGradient(BaseEstimatorGradient):
             circuits, observables, parameter_values, parameters
         ):
             # Make the observable as observable as :class:`~qiskit.quantum_info.SparsePauliOp`.
-            observables = init_observable(observable)
+            observable = init_observable(observable)
             # a set of parameters to be differentiated
             if parameters_ is None:
                 param_set = set(circuit.parameters)
