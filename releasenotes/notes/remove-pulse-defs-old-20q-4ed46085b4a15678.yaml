@@ -4,7 +4,7 @@ upgrade:
     The fake backend objects :class:`~.FakeJohannesburg`,
     :class:`~.FakeJohannesburgV2`, :class:`~.FakeAlmaden`,
     :class:`~.FakeAlmadenV2, :class:`~.FakeSingapore`, and
-    :class:`~.FakeSingaporeV2` not longer contain the pulse defaults payloads.
+    :class:`~.FakeSingaporeV2` no longer contain the pulse defaults payloads.
     This means for the :class:`~.BackendV1` based classes the
     :meth:`.BackendV1.defaults` method and pulse simulation via
     :meth:`.BackendV1.run` is no longer available. For :class:`~.BackendV2`
