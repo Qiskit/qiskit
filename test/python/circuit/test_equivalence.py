@@ -13,6 +13,7 @@
 
 """Test Qiskit's EquivalenceLibrary class."""
 
+import unittest
 import numpy as np
 
 from qiskit.test import QiskitTestCase
@@ -21,8 +22,10 @@ from qiskit.circuit import QuantumCircuit, Parameter, Gate
 from qiskit.circuit.library import U2Gate
 from qiskit.circuit.exceptions import CircuitError
 from qiskit.converters import circuit_to_instruction, circuit_to_gate
-
 from qiskit.circuit import EquivalenceLibrary
+from qiskit.utils import optionals
+
+from ..visualization.visualization import QiskitVisualizationTestCase, path_to_diagram_reference
 
 
 class OneQubitZeroParamGate(Gate):
@@ -461,3 +464,26 @@ class TestSessionEquivalenceLibrary(QiskitTestCase):
 
         self.assertEqual(len(decomps), 1)
         self.assertEqual(decomps[0], qc2)
+
+
+class TestEquivalenceLibraryVisualization(QiskitVisualizationTestCase):
+    """Test cases for EquivalenceLibrary visualization."""
+
+    @unittest.skipUnless(optionals.HAS_GRAPHVIZ, "Graphviz not installed")
+    def test_equivalence_draw(self):
+        """Verify EquivalenceLibrary drawing with reference image."""
+        sel = EquivalenceLibrary()
+        gate = OneQubitZeroParamGate()
+        first_equiv = QuantumCircuit(1)
+        first_equiv.h(0)
+
+        sel.add_equivalence(gate, first_equiv)
+
+        second_equiv = QuantumCircuit(1)
+        second_equiv.append(U2Gate(0, np.pi), [0])
+
+        sel.add_equivalence(gate, second_equiv)
+
+        image = sel.draw()
+        image_ref = path_to_diagram_reference("equivalence_library.png")
+        self.assertImagesAreEqual(image, image_ref, 0.04)
