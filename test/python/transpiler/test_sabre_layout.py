@@ -55,14 +55,14 @@ class TestSabreLayout(QiskitTestCase):
         circuit.cx(qr[1], qr[2])
 
         dag = circuit_to_dag(circuit)
-        pass_ = SabreLayout(CouplingMap(self.cmap20), seed=0)
+        pass_ = SabreLayout(CouplingMap(self.cmap20), seed=0, swap_trials=32)
         pass_.run(dag)
 
         layout = pass_.property_set["layout"]
-        self.assertEqual(layout[qr[0]], 11)
-        self.assertEqual(layout[qr[1]], 6)
-        self.assertEqual(layout[qr[2]], 12)
-        self.assertEqual(layout[qr[3]], 5)
+        self.assertEqual(layout[qr[0]], 10)
+        self.assertEqual(layout[qr[1]], 12)
+        self.assertEqual(layout[qr[2]], 7)
+        self.assertEqual(layout[qr[3]], 11)
         self.assertEqual(layout[qr[4]], 13)
 
     def test_6q_circuit_20q_coupling(self):
@@ -95,12 +95,12 @@ class TestSabreLayout(QiskitTestCase):
         pass_.run(dag)
 
         layout = pass_.property_set["layout"]
-        self.assertEqual(layout[qr0[0]], 8)
-        self.assertEqual(layout[qr0[1]], 2)
+        self.assertEqual(layout[qr0[0]], 2)
+        self.assertEqual(layout[qr0[1]], 3)
         self.assertEqual(layout[qr0[2]], 10)
-        self.assertEqual(layout[qr1[0]], 3)
-        self.assertEqual(layout[qr1[1]], 12)
-        self.assertEqual(layout[qr1[2]], 11)
+        self.assertEqual(layout[qr1[0]], 1)
+        self.assertEqual(layout[qr1[1]], 7)
+        self.assertEqual(layout[qr1[2]], 5)
 
     def test_layout_with_classical_bits(self):
         """Test sabre layout with classical bits recreate from issue #8635."""
@@ -193,18 +193,18 @@ barrier q18585[5],q18585[2],q18585[8],q18585[3],q18585[6];
         )
         self.assertIsInstance(res, QuantumCircuit)
         layout = res._layout
-        self.assertEqual(layout[qc.qubits[0]], 11)
+        self.assertEqual(layout[qc.qubits[0]], 19)
         self.assertEqual(layout[qc.qubits[1]], 22)
         self.assertEqual(layout[qc.qubits[2]], 17)
-        self.assertEqual(layout[qc.qubits[3]], 12)
+        self.assertEqual(layout[qc.qubits[3]], 14)
         self.assertEqual(layout[qc.qubits[4]], 18)
         self.assertEqual(layout[qc.qubits[5]], 9)
-        self.assertEqual(layout[qc.qubits[6]], 16)
+        self.assertEqual(layout[qc.qubits[6]], 11)
         self.assertEqual(layout[qc.qubits[7]], 25)
-        self.assertEqual(layout[qc.qubits[8]], 19)
+        self.assertEqual(layout[qc.qubits[8]], 16)
         self.assertEqual(layout[qc.qubits[9]], 3)
-        self.assertEqual(layout[qc.qubits[10]], 14)
-        self.assertEqual(layout[qc.qubits[11]], 15)
+        self.assertEqual(layout[qc.qubits[10]], 12)
+        self.assertEqual(layout[qc.qubits[11]], 13)
         self.assertEqual(layout[qc.qubits[12]], 20)
         self.assertEqual(layout[qc.qubits[13]], 8)
 

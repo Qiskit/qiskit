@@ -25,7 +25,7 @@ jobs:
       - name: Run randomized tests
         run: make test_randomized
         env:
-          RUST_BACKTRACE=1
+          RUST_BACKTRACE: 1
       - name: Create comment on failed test run
         if: ${{ failure() }}
         uses: peter-evans/create-or-update-comment@v1
