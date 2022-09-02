@@ -159,7 +159,7 @@ class BaseStateFidelity(ABC):
         if isinstance(circuits_2, QuantumCircuit):
             circuits_2 = [circuits_2]
 
-        if not len(circuits_1) == len(circuits_2):
+        if len(circuits_1) != len(circuits_2):
             raise ValueError(
                 f"The length of the first circuit list({len(circuits_1)}) "
                 f"and second circuit list ({len(circuits_2)}) is not the same."
