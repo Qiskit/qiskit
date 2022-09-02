@@ -45,7 +45,7 @@ class ComputeUncompute(BaseStateFidelity):
     A., Chow, J. M., & Gambetta, J. M. (2019). Supervised learning
     with quantum-enhanced feature spaces. Nature, 567(7747), 209-212.
     `arXiv:1804.11326v2 [quant-ph] <https://arxiv.org/pdf/1804.11326.pdf>`_
-    
+
     """
 
     def __init__(self, sampler: BaseSampler, **run_options) -> None:
