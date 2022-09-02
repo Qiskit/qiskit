@@ -102,9 +102,9 @@ class ComputeUncompute(BaseStateFidelity):
             values_1: Numerical parameters to be bound to the first circuits.
             values_2: Numerical parameters to be bound to the second circuits.
             run_options: Backend runtime options used for circuit execution. The order
-            of priority is: run_options in ``run`` method > fidelity's default
-            run_options > primitive's default setting.
-            Higher priority setting overrides lower priority setting.
+                of priority is\: run_options in ``run`` method > fidelity's default
+                run_options > primitive's default setting.
+                Higher priority setting overrides lower priority setting.
 
         Returns:
             The result of the fidelity calculation.
