@@ -22,7 +22,7 @@ Overview
 ========
 
 The visualization module contain functions that visualizes measurement outcome counts, quantum
-states, circuits, pulses, devices and more. 
+states, circuits, pulses, devices and more.
 
 Prerequisites
 =============
