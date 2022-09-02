@@ -266,7 +266,7 @@ class Grover(AmplitudeAmplifier):
                 job = self._sampler.run([qc])
                 if job.status() is not JobStatus.DONE:
                     raise QiskitError("The job was not completed successfully. ")
-                result = job.result()
+                results = job.result()
                 num_bits = len(amplification_problem.objective_qubits)
                 circuit_results = {
                     np.binary_repr(k, num_bits): v for k, v in results.quasi_dists[0].items()
