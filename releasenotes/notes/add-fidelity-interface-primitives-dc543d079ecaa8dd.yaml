@@ -1,7 +1,7 @@
 ---
 features:
   - |
-    Add new interfaces to calculate state fidelities/overlaps
+    Add new algorithms to calculate state fidelities/overlaps
     for pairs of quantum circuits (that can be parametrized). Apart from
     the base class (:class:`qiskit.algorithms.state_fidelities.BaseStateFidelity`),
     there is now an implementation of the compute-uncompute method that leverages
