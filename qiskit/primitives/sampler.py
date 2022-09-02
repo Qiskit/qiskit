@@ -29,7 +29,6 @@ from qiskit.result import QuasiDistribution
 from .base_sampler import BaseSampler
 from .primitive_job import PrimitiveJob
 from .sampler_result import SamplerResult
-from .settings import ReferenceSettings
 from .utils import final_measurement_mapping, init_circuit
 
 
@@ -54,7 +53,7 @@ class Sampler(BaseSampler):
         self,
         circuits: QuantumCircuit | Iterable[QuantumCircuit] | None = None,
         parameters: Iterable[Iterable[Parameter]] | None = None,
-        settings: ReferenceSettings | None = None,
+        run_options: dict | None = None,
     ):
         """
         Args:
@@ -77,9 +76,7 @@ class Sampler(BaseSampler):
                 preprocessed_circuits.append(circuit)
         else:
             preprocessed_circuits = None
-        if settings is None:
-            settings = ReferenceSettings()
-        super().__init__(settings, preprocessed_circuits, parameters)
+        super().__init__(preprocessed_circuits, parameters, run_options)
         self._is_closed = False
 
     def _call(
