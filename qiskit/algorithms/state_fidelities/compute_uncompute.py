@@ -18,9 +18,8 @@ from collections.abc import Sequence
 from copy import copy
 
 from qiskit import QuantumCircuit
-from qiskit.exceptions import QiskitError
+from qiskit.algorithms import AlgorithmError
 from qiskit.primitives import BaseSampler
-from qiskit.providers import JobStatus
 
 from .base_state_fidelity import BaseStateFidelity
 from .state_fidelity_result import StateFidelityResult
@@ -111,7 +110,7 @@ class ComputeUncompute(BaseStateFidelity):
 
         Raises:
             ValueError: At least one pair of circuits must be defined.
-            QiskitError: If the sampler job is not completed successfully.
+            AlgorithmError: If the sampler job is not completed successfully.
         """
 
         circuits = self._construct_circuits(circuits_1, circuits_2)
@@ -129,21 +128,17 @@ class ComputeUncompute(BaseStateFidelity):
 
         job = self._sampler.run(circuits=circuits, parameter_values=values, **run_opts)
 
-        result = job.result()
-        status = job.status()
+        try:
+            result = job.result()
+        except Exception as exc:
+            raise AlgorithmError("Sampler job failed!") from exc
 
-        if status is JobStatus.DONE:
-            raw_fidelities = [prob_dist.get(0, 0) for prob_dist in result.quasi_dists]
-            fidelities = self._truncate_fidelities(raw_fidelities)
+        raw_fidelities = [prob_dist.get(0, 0) for prob_dist in result.quasi_dists]
+        fidelities = self._truncate_fidelities(raw_fidelities)
 
-            return StateFidelityResult(
-                fidelities=fidelities,
-                raw_fidelities=raw_fidelities,
-                metadata=result.metadata,
-                run_options=run_opts,
-            )
-        else:
-            raise QiskitError(
-                f"The sampler fidelity job was not completed succesfully. "
-                f"Job status = {status}."
-            )
+        return StateFidelityResult(
+            fidelities=fidelities,
+            raw_fidelities=raw_fidelities,
+            metadata=result.metadata,
+            run_options=run_opts,
+        )

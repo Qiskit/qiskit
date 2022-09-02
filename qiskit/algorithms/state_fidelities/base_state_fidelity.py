@@ -65,6 +65,7 @@ class BaseStateFidelity(ABC):
         Raises:
             ValueError: if the number of parameter values doesn't match the number of
                         circuit parameters
+            TypeError: if the input values are not a sequence.
         """
 
         if isinstance(circuits, QuantumCircuit):
@@ -79,16 +80,21 @@ class BaseStateFidelity(ABC):
                     )
             return [[]]
         else:
+
             # Support ndarray
             if isinstance(values, np.ndarray):
                 values = values.tolist()
             if len(values) > 0 and isinstance(values[0], np.ndarray):
                 values = [v.tolist() for v in values]
 
-            # ensure 2d list
-            if not isinstance(values, list):
-                values = [values]
-            if len(values) > 0 and not isinstance(values[0], list):
+            if not isinstance(values, Sequence):
+                raise TypeError(
+                    f"Expected a sequence of numerical parameter values, "
+                    f"but got input type {type(values)} instead."
+                )
+
+            # ensure 2d
+            if len(values) > 0 and not isinstance(values[0], Sequence):
                 values = [values]
             return values
 
@@ -191,7 +197,7 @@ class BaseStateFidelity(ABC):
         circuits_2: Sequence[QuantumCircuit],
         values_1: Sequence[float] | Sequence[Sequence[float]] | None = None,
         values_2: Sequence[float] | Sequence[Sequence[float]] | None = None,
-    ) -> Sequence[float]:
+    ) -> list[float]:
         """
         Preprocesses input parameter values to match the fidelity
         circuit parametrization, and return in list format.
@@ -213,9 +219,9 @@ class BaseStateFidelity(ABC):
 
         values = []
         if len(values_2[0]) == 0:
-            values = values_1
+            values = list(values_1)
         elif len(values_1[0]) == 0:
-            values = values_2
+            values = list(values_2)
         else:
             for (val_1, val_2) in zip(values_1, values_2):
                 values.append(val_1 + val_2)

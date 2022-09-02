@@ -11,8 +11,14 @@
 # that they have been altered from the originals.
 
 """
-This module introduces the AlgorithmJob class for typing purposes
+AlgorithmJob class
 """
 from qiskit.primitives.primitive_job import PrimitiveJob
 
-AlgorithmJob = PrimitiveJob
+
+class AlgorithmJob(PrimitiveJob):
+    """
+    This empty class is introduced for typing purposes.
+    """
+
+    pass
