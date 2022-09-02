@@ -24,6 +24,9 @@ from qiskit.utils import QuantumInstance
 from .phase_estimator import PhaseEstimator
 from .phase_estimator import PhaseEstimatorResult
 
+# from .. import AlgorithmError
+from ...primitives import Sampler
+
 
 class IterativePhaseEstimation(PhaseEstimator):
     """Run the Iterative quantum phase estimation (QPE) algorithm.
@@ -39,11 +42,16 @@ class IterativePhaseEstimation(PhaseEstimator):
         self,
         num_iterations: int,
         quantum_instance: Optional[Union[QuantumInstance, Backend]] = None,
+        sampler: Optional[Sampler] = None,
+        shots: int = None,
     ) -> None:
 
         """Args:
-          num_iterations: The number of iterations (rounds) of the phase estimation to run.
-          quantum_instance: The quantum instance on which the circuit will be run.
+            num_iterations: The number of iterations (rounds) of the phase estimation to run.
+            quantum_instance: The quantum instance on which the circuit will be run.
+            sampler: The sampler primitive on which the circuit will be sampled.
+            shots: The number of shots to be used by a sampler. If ``None``, exact probabilities
+                will be calculated.
 
         Raises:
           ValueError: if num_iterations is not greater than zero.
@@ -54,6 +62,8 @@ class IterativePhaseEstimation(PhaseEstimator):
         if num_iterations <= 0:
             raise ValueError("`num_iterations` must be greater than zero.")
         self._num_iterations = num_iterations
+        self._sampler = sampler
+        self.shots = shots
 
     def construct_circuit(
         self,
@@ -117,7 +127,17 @@ class IterativePhaseEstimation(PhaseEstimator):
         # k runs from the number of iterations back to 1
         for k in range(self._num_iterations, 0, -1):
             omega_coef /= 2
-            if self._quantum_instance.is_statevector:
+
+            if self._sampler is not None:
+
+                qc = self.construct_circuit(
+                    unitary, state_preparation, k, -2 * numpy.pi * omega_coef
+                )
+                sampler_job = self._sampler.run([qc], shots=self.shots)
+                result = sampler_job.result().quasi_dists[0]
+                x = 1 if result.get(1, 0) > result.get(0, 0) else 0
+
+            elif self._quantum_instance.is_statevector:
                 qc = self.construct_circuit(
                     unitary, state_preparation, k, -2 * numpy.pi * omega_coef, measurement=False
                 )
@@ -158,6 +178,8 @@ class IterativePhaseEstimation(PhaseEstimator):
         Returns:
             Estimated phase in an IterativePhaseEstimationResult object.
         """
+        # if self._sampler is None and self._quantum_instance is None:
+        #     raise AlgorithmError("Neither a sampler nor a quantum instance was provided. Please provide one of them.")
 
         phase = self._estimate_phase_iteratively(unitary, state_preparation)
 

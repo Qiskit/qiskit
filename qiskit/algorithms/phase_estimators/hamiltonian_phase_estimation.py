@@ -29,6 +29,7 @@ from qiskit.providers import Backend
 from .phase_estimation import PhaseEstimation
 from .hamiltonian_phase_estimation_result import HamiltonianPhaseEstimationResult
 from .phase_estimation_scale import PhaseEstimationScale
+from ...primitives import Sampler
 
 
 class HamiltonianPhaseEstimation:
@@ -89,15 +90,23 @@ class HamiltonianPhaseEstimation:
         self,
         num_evaluation_qubits: int,
         quantum_instance: Optional[Union[QuantumInstance, Backend]] = None,
+        sampler: Optional[Sampler] = None,
+        shots: int = None,
     ) -> None:
         """
         Args:
             num_evaluation_qubits: The number of qubits used in estimating the phase. The phase will
                 be estimated as a binary string with this many bits.
             quantum_instance: The quantum instance on which the circuit will be run.
+            sampler: The sampler primitive on which the circuit will be sampled.
+            shots: The number of shots to be used by a sampler. If ``None``, exact probabilities
+                will be calculated.
         """
         self._phase_estimation = PhaseEstimation(
-            num_evaluation_qubits=num_evaluation_qubits, quantum_instance=quantum_instance
+            num_evaluation_qubits=num_evaluation_qubits,
+            quantum_instance=quantum_instance,
+            sampler=sampler,
+            shots=shots,
         )
 
     def _get_scale(self, hamiltonian, bound=None) -> None:

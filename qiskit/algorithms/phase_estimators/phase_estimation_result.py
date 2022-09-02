@@ -145,6 +145,12 @@ class PhaseEstimationResult(PhaseEstimatorResult):
         return phases
 
 
+def _get_bitstring(length: int, number: int) -> str:
+    unpadded_bitstring = "{0:b}".format(number)[::-1]
+    padding = "0" * (length - len(unpadded_bitstring))
+    return unpadded_bitstring + padding
+
+
 def _bit_string_to_phase(binary_string: str) -> float:
     """Convert bit string to a normalized phase in :math:`[0,1)`.
 

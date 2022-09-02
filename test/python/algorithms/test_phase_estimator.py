@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2018, 2020.
+# (C) Copyright IBM 2018, 2022.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -13,6 +13,8 @@
 """Test phase estimation"""
 
 import unittest
+
+from qiskit.primitives import Sampler
 from test.python.algorithms import QiskitAlgorithmsTestCase
 from ddt import ddt, data, unpack
 import numpy as np
@@ -312,6 +314,134 @@ class TestPhaseEstimation(QiskitAlgorithmsTestCase):
         with self.subTest("test bitstring representation"):
             phases = result.filter_phases(1e-15, as_float=False)
             self.assertEqual(list(phases.keys()), ["000000", "100000"])
+
+    # sampler tests
+
+    # def one_phase_sampler(
+    #     self,
+    #     unitary_circuit,
+    #     state_preparation=None,
+    #     shots=None,
+    #     phase_estimator=None,
+    #     num_iterations=6,
+    # ):
+    #     """Run phase estimation with operator, eigenvalue pair `unitary_circuit`,
+    #     `state_preparation`. Return the estimated phase as a value in :math:`[0,1)`.
+    #     """
+    #     sampler = Sampler()
+    #     if phase_estimator is None:
+    #         phase_estimator = IterativePhaseEstimation
+    #     if phase_estimator == IterativePhaseEstimation:
+    #         p_est = IterativePhaseEstimation(
+    #             num_iterations=num_iterations, sampler=sampler, shots=shots
+    #         )
+    #     elif phase_estimator == PhaseEstimation:
+    #         p_est = PhaseEstimation(num_evaluation_qubits=6, sampler=sampler, shots=shots)
+    #     else:
+    #         raise ValueError("Unrecognized phase_estimator")
+    #     result = p_est.estimate(unitary=unitary_circuit, state_preparation=state_preparation)
+    #     phase = result.phase
+    #     return phase
+    #
+    # @data(
+    #     (X.to_circuit(), 0.5, None, IterativePhaseEstimation),
+    #     (X.to_circuit(), 0.5, 1000, IterativePhaseEstimation),
+    #     (None, 0.0, 1000, IterativePhaseEstimation),
+    #     (X.to_circuit(), 0.5, 1000, PhaseEstimation),
+    #     (None, 0.0, 1000, PhaseEstimation),
+    #     (X.to_circuit(), 0.5, None, PhaseEstimation),
+    # )
+    # @unpack
+    # def test_qpe_Z_sampler(self, state_preparation, expected_phase, shots, phase_estimator):
+    #     """eigenproblem Z, |0> and |1>"""
+    #     unitary_circuit = Z.to_circuit()
+    #     phase = self.one_phase_sampler(
+    #         unitary_circuit,
+    #         state_preparation,
+    #         shots=shots,
+    #         phase_estimator=phase_estimator,
+    #     )
+    #     self.assertEqual(phase, expected_phase)
+    #
+    # @data(
+    #     (H.to_circuit(), 0.0, IterativePhaseEstimation),
+    #     ((H @ X).to_circuit(), 0.5, IterativePhaseEstimation),
+    #     (H.to_circuit(), 0.0, PhaseEstimation),
+    #     ((H @ X).to_circuit(), 0.5, PhaseEstimation),
+    # )
+    # @unpack
+    # def test_qpe_X_plus_minus_sampler(self, state_preparation, expected_phase, phase_estimator):
+    #     """eigenproblem X, (|+>, |->)"""
+    #     unitary_circuit = X.to_circuit()
+    #     phase = self.one_phase_sampler(unitary_circuit, state_preparation, phase_estimator=phase_estimator)
+    #     self.assertEqual(phase, expected_phase)
+    #
+    # @data(
+    #     (X.to_circuit(), 0.125, IterativePhaseEstimation),
+    #     (I.to_circuit(), 0.875, IterativePhaseEstimation),
+    #     (X.to_circuit(), 0.125, PhaseEstimation),
+    #     (I.to_circuit(), 0.875, PhaseEstimation),
+    # )
+    # @unpack
+    # def test_qpe_RZ_sampler(self, state_preparation, expected_phase, phase_estimator):
+    #     """eigenproblem RZ, (|0>, |1>)"""
+    #     alpha = np.pi / 2
+    #     unitary_circuit = QuantumCircuit(1)
+    #     unitary_circuit.rz(alpha, 0)
+    #     phase = self.one_phase_sampler(unitary_circuit, state_preparation, phase_estimator=phase_estimator)
+    #     self.assertEqual(phase, expected_phase)
+    #
+    # def test_check_num_iterations_sampler(self):
+    #     """test check for num_iterations greater than zero"""
+    #     unitary_circuit = X.to_circuit()
+    #     state_preparation = None
+    #     with self.assertRaises(ValueError):
+    #         self.one_phase_sampler(unitary_circuit, state_preparation, num_iterations=-1)
+    #
+    # def phase_estimation_sampler(
+    #     self,
+    #     unitary_circuit,
+    #     sampler: Sampler,
+    #     state_preparation=None,
+    #     num_evaluation_qubits=6,
+    #     construct_circuit=False,
+    # ):
+    #     """Run phase estimation with operator, eigenvalue pair `unitary_circuit`,
+    #     `state_preparation`. Return all results
+    #     """
+    #     phase_est = PhaseEstimation(num_evaluation_qubits=num_evaluation_qubits, sampler=sampler)
+    #     if construct_circuit:
+    #         pe_circuit = phase_est.construct_circuit(unitary_circuit, state_preparation)
+    #         result = phase_est.estimate_from_pe_circuit(pe_circuit, unitary_circuit.num_qubits)
+    #     else:
+    #         result = phase_est.estimate(
+    #             unitary=unitary_circuit, state_preparation=state_preparation
+    #         )
+    #     return result
+    #
+    # @data(True, False)
+    # def test_qpe_Zplus_sampler(self, construct_circuit):
+    #     """superposition eigenproblem Z, |+>"""
+    #     unitary_circuit = Z.to_circuit()
+    #     state_preparation = H.to_circuit()  # prepare |+>
+    #     sampler = Sampler()
+    #     result = self.phase_estimation_sampler(
+    #         unitary_circuit,
+    #         sampler,
+    #         state_preparation,
+    #         construct_circuit=construct_circuit,
+    #     )
+    #
+    #     phases = result.filter_phases(1e-15, as_float=True)
+    #     with self.subTest("test phases has correct values"):
+    #         self.assertEqual(list(phases.keys()), [0.0, 0.5])
+    #
+    #     with self.subTest("test phases has correct probabilities"):
+    #         np.testing.assert_allclose(list(phases.values()), [0.5, 0.5])
+    #
+    #     with self.subTest("test bitstring representation"):
+    #         phases = result.filter_phases(1e-15, as_float=False)
+    #         self.assertEqual(list(phases.keys()), ["000000", "100000"])
 
 
 if __name__ == "__main__":

@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2020.
+# (C) Copyright IBM 2020, 2022.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -26,6 +26,9 @@ from qiskit.utils import QuantumInstance
 from qiskit.result import Result
 from .phase_estimation_result import PhaseEstimationResult, _sort_phases
 from .phase_estimator import PhaseEstimator
+
+# from .. import AlgorithmError
+from ...primitives import Sampler
 
 
 class PhaseEstimation(PhaseEstimator):
@@ -82,12 +85,17 @@ class PhaseEstimation(PhaseEstimator):
         self,
         num_evaluation_qubits: int,
         quantum_instance: Optional[Union[QuantumInstance, Backend]] = None,
+        sampler: Optional[Sampler] = None,
+        shots: int = None,
     ) -> None:
         """
         Args:
             num_evaluation_qubits: The number of qubits used in estimating the phase. The phase will
                 be estimated as a binary string with this many bits.
             quantum_instance: The quantum instance on which the circuit will be run.
+            sampler: The sampler primitive on which the circuit will be sampled.
+            shots: The number of shots to be used by a sampler. If ``None``, exact probabilities
+                will be calculated.
         """
 
         self._measurements_added = False
@@ -97,6 +105,8 @@ class PhaseEstimation(PhaseEstimator):
         if isinstance(quantum_instance, Backend):
             quantum_instance = QuantumInstance(quantum_instance)
         self._quantum_instance = quantum_instance
+        self._sampler = sampler
+        self.shots = shots
 
     def construct_circuit(
         self, unitary: QuantumCircuit, state_preparation: Optional[QuantumCircuit] = None
@@ -197,9 +207,16 @@ class PhaseEstimation(PhaseEstimator):
         Returns:
             An instance of qiskit.algorithms.phase_estimator_result.PhaseEstimationResult.
         """
+
         self._add_measurement_if_required(pe_circuit)
-        circuit_result = self._quantum_instance.execute(pe_circuit)
-        phases = self._compute_phases(num_unitary_qubits, circuit_result)
+
+        if self._sampler is not None:
+            circuit_job = self._sampler.run([pe_circuit], shots=self.shots)
+            circuit_result = circuit_job.result()
+            phases = circuit_result.quasi_dists[0]
+        else:
+            circuit_result = self._quantum_instance.execute(pe_circuit)
+            phases = self._compute_phases(num_unitary_qubits, circuit_result)
         return PhaseEstimationResult(
             self._num_evaluation_qubits, circuit_result=circuit_result, phases=phases
         )
@@ -226,6 +243,9 @@ class PhaseEstimation(PhaseEstimator):
         Returns:
             An instance of qiskit.algorithms.phase_estimator_result.PhaseEstimationResult.
         """
+        # if self._sampler is None and self._quantum_instance is None:
+        #     raise AlgorithmError("Neither a sampler nor a quantum instance was provided. Please provide one of them.")
+
         if unitary is not None:
             if pe_circuit is not None:
                 raise ValueError("Only one of `pe_circuit` and `unitary` may be passed.")
