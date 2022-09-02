@@ -73,7 +73,7 @@ class VQE(MinimumEigensolver):
             result.fun = # optimal function value
             return result
 
-    The above signature also allows to directly pass any SciPy minimizer, for instance as
+    The above signature also allows one to directly pass any SciPy minimizer, for instance as
 
     .. code-block:: python
 
@@ -83,11 +83,9 @@ class VQE(MinimumEigensolver):
         optimizer = partial(minimize, method="L-BFGS-B")
 
     Attributes:
-        ansatz: A parameterized circuit, preparing the ansatz for the wave function. If not
-            provided, this defaults to a :class:`.RealAmplitudes` circuit.
+        ansatz: The parameterized circuit used as an ansatz for the wave function.
         optimizer: A classical optimizer to find the minimum energy. This can either be a
             Qiskit :class:`.Optimizer` or a callable implementing the :class:`.Minimizer` protocol.
-            Defaults to :class:`.SLSQP`.
         estimator: The estimator primitive to compute the expectation value of the circuits.
         gradient: An optional gradient function or operator for the optimizer.
         initial_point: An optional initial point (i.e. initial parameter values) for the optimizer.
