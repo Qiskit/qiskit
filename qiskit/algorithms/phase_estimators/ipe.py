@@ -132,8 +132,11 @@ class IterativePhaseEstimation(PhaseEstimator):
                 qc = self.construct_circuit(
                     unitary, state_preparation, k, -2 * numpy.pi * omega_coef, True
                 )
-                sampler_job = self._sampler.run([qc], shots=self.shots)
-                result = sampler_job.result().quasi_dists[0]
+                try:
+                    sampler_job = self._sampler.run([qc], shots=self.shots)
+                    result = sampler_job.result().quasi_dists[0]
+                except Exception as exc:
+                    raise AlgorithmError("The primitive job failed!") from exc
                 x = 1 if result.get(1, 0) > result.get(0, 0) else 0
 
             elif self._quantum_instance.is_statevector:

@@ -212,8 +212,11 @@ class PhaseEstimation(PhaseEstimator):
         self._add_measurement_if_required(pe_circuit)
 
         if self._sampler is not None:
-            circuit_job = self._sampler.run([pe_circuit], shots=self.shots)
-            circuit_result = circuit_job.result()
+            try:
+                circuit_job = self._sampler.run([pe_circuit], shots=self.shots)
+                circuit_result = circuit_job.result()
+            except Exception as exc:
+                raise AlgorithmError("The primitive job failed!") from exc
             phases = circuit_result.quasi_dists[0]
             phases_bitstrings = {}
             for key, phase in phases.items():
