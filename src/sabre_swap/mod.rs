@@ -53,6 +53,12 @@ pub enum Heuristic {
     Decay,
 }
 
+struct TrialResult {
+    out_map: HashMap<usize, Vec<[usize; 2]>>,
+    gate_order: Vec<usize>,
+    layout: NLayout,
+}
+
 /// Return a set of candidate swaps that affect qubits in front_layer.
 ///
 /// For each virtual qubit in front_layer, find its current location
@@ -154,18 +160,88 @@ pub fn build_swap_map(
     heuristic: &Heuristic,
     seed: u64,
     layout: &mut NLayout,
-) -> PyResult<(SwapMap, PyObject)> {
-    let mut gate_order: Vec<usize> = Vec::with_capacity(dag.dag.node_count());
+    num_trials: usize,
+) -> (SwapMap, PyObject) {
     let run_in_parallel = getenv_use_multiple_threads();
+    let dist = distance_matrix.as_array();
+    let coupling_graph: DiGraph<(), ()> = cmap_from_neighor_table(neighbor_table);
+    let outer_rng = Pcg64Mcg::seed_from_u64(seed);
+    let seed_vec: Vec<u64> = outer_rng
+        .sample_iter(&rand::distributions::Standard)
+        .take(num_trials)
+        .collect();
+    let result = if run_in_parallel {
+        seed_vec
+            .into_par_iter()
+            .enumerate()
+            .map(|(index, seed_trial)| {
+                (
+                    index,
+                    swap_map_trial(
+                        num_qubits,
+                        dag,
+                        neighbor_table,
+                        &dist,
+                        &coupling_graph,
+                        heuristic,
+                        seed_trial,
+                        layout.clone(),
+                    ),
+                )
+            })
+            .min_by_key(|(index, result)| {
+                [
+                    result.out_map.values().map(|x| x.len()).sum::<usize>(),
+                    *index,
+                ]
+            })
+            .unwrap()
+            .1
+    } else {
+        seed_vec
+            .into_iter()
+            .map(|seed_trial| {
+                swap_map_trial(
+                    num_qubits,
+                    dag,
+                    neighbor_table,
+                    &dist,
+                    &coupling_graph,
+                    heuristic,
+                    seed_trial,
+                    layout.clone(),
+                )
+            })
+            .min_by_key(|result| result.out_map.values().map(|x| x.len()).sum::<usize>())
+            .unwrap()
+    };
+    *layout = result.layout;
+    (
+        SwapMap {
+            map: result.out_map,
+        },
+        result.gate_order.into_pyarray(py).into(),
+    )
+}
+
+fn swap_map_trial(
+    num_qubits: usize,
+    dag: &SabreDAG,
+    neighbor_table: &NeighborTable,
+    dist: &ArrayView2<f64>,
+    coupling_graph: &DiGraph<(), ()>,
+    heuristic: &Heuristic,
+    seed: u64,
+    mut layout: NLayout,
+) -> TrialResult {
+    let max_iterations_without_progress = 10 * neighbor_table.neighbors.len();
+    let mut gate_order: Vec<usize> = Vec::with_capacity(dag.dag.node_count());
+    let mut ops_since_progress: Vec<[usize; 2]> = Vec::new();
     let mut out_map: HashMap<usize, Vec<[usize; 2]>> = HashMap::new();
     let mut front_layer: Vec<NodeIndex> = dag.first_layer.clone();
-    let max_iterations_without_progress = 10 * neighbor_table.neighbors.len();
-    let mut ops_since_progress: Vec<[usize; 2]> = Vec::new();
     let mut required_predecessors: Vec<u32> = vec![0; dag.dag.node_count()];
     let mut extended_set: Option<Vec<[usize; 2]>> = None;
     let mut num_search_steps: u8 = 0;
-    let dist = distance_matrix.as_array();
-    let coupling_graph: DiGraph<(), ()> = cmap_from_neighor_table(neighbor_table);
     let mut qubits_decay: Vec<f64> = vec![1.; num_qubits];
     let mut rng = Pcg64Mcg::seed_from_u64(seed);
 
@@ -245,7 +321,8 @@ pub fn build_swap_map(
                 Some(NodeIndex::<u32>::new(v)),
                 |_| Ok(1.),
                 Some(&mut shortest_paths),
-            ) as PyResult<Vec<Option<f64>>>)?;
+            ) as PyResult<Vec<Option<f64>>>)
+                .unwrap();
             let shortest_path: Vec<usize> = shortest_paths
                 .get(&NodeIndex::new(v))
                 .unwrap()
@@ -308,28 +385,32 @@ pub fn build_swap_map(
 
         let best_swap = sabre_score_heuristic(
             &first_layer,
-            layout,
+            &mut layout,
             neighbor_table,
             extended_set.as_ref().unwrap(),
-            &dist,
+            dist,
             &qubits_decay,
             heuristic,
             &mut rng,
-            run_in_parallel,
         );
         num_search_steps += 1;
-        if num_search_steps % DECAY_RESET_INTERVAL == 0 {
+        if num_search_steps >= DECAY_RESET_INTERVAL {
             qubits_decay.fill_with(|| 1.);
+            num_search_steps = 0;
         } else {
             qubits_decay[best_swap[0]] += DECAY_RATE;
             qubits_decay[best_swap[1]] += DECAY_RATE;
         }
         ops_since_progress.push(best_swap);
     }
-    Ok((SwapMap { map: out_map }, gate_order.into_pyarray(py).into()))
+    TrialResult {
+        out_map,
+        gate_order,
+        layout,
+    }
 }
 
-pub fn sabre_score_heuristic(
+fn sabre_score_heuristic(
     layer: &[[usize; 2]],
     layout: &mut NLayout,
     neighbor_table: &NeighborTable,
@@ -338,7 +419,6 @@ pub fn sabre_score_heuristic(
     qubits_decay: &[f64],
     heuristic: &Heuristic,
     rng: &mut Pcg64Mcg,
-    run_in_parallel: bool,
 ) -> [usize; 2] {
     // Run in parallel only if we're not already in a multiprocessing context
     // unless force threads is set.
@@ -365,11 +445,7 @@ pub fn sabre_score_heuristic(
         }
         layout.swap_logical(swap_qubits[0], swap_qubits[1]);
     }
-    if run_in_parallel {
-        best_swaps.par_sort_unstable();
-    } else {
-        best_swaps.sort_unstable();
-    }
+    best_swaps.sort_unstable();
     let best_swap = *best_swaps.choose(rng).unwrap();
     layout.swap_logical(best_swap[0], best_swap[1]);
     best_swap
