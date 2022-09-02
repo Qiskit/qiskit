@@ -136,7 +136,7 @@ class Grover(AmplitudeAmplifier):
             sample_from_iterations: If True, instead of taking the values in ``iterations`` as
                 powers of the Grover operator, a random integer sample between 0 and smaller value
                 than the iteration is used as a power, see [1], Section 4.
-            quantum_instance: Pending deprecation\: A Quantum Instance or Backend to run the circuits.
+            quantum_instance: Pending deprecation: A Quantum Instance or Backend to run the circuits.
             sampler: A Sampler to use for sampling the results of the circuits.
 
         Raises:
