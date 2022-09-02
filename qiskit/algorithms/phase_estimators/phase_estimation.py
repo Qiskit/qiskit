@@ -26,9 +26,8 @@ from qiskit.utils import QuantumInstance
 from qiskit.result import Result
 from .phase_estimation_result import PhaseEstimationResult, _sort_phases
 from .phase_estimator import PhaseEstimator
-
-# from .. import AlgorithmError
 from ...primitives import Sampler
+from qiskit.algorithms.exceptions import AlgorithmError
 
 
 class PhaseEstimation(PhaseEstimator):
@@ -132,7 +131,7 @@ class PhaseEstimation(PhaseEstimator):
         return pe_circuit
 
     def _add_measurement_if_required(self, pe_circuit):
-        if not self._quantum_instance.is_statevector:
+        if self._sampler or not self._quantum_instance.is_statevector:
             # Measure only the evaluation qubits.
             regname = "meas"
             creg = ClassicalRegister(self._num_evaluation_qubits, regname)
@@ -214,6 +213,12 @@ class PhaseEstimation(PhaseEstimator):
             circuit_job = self._sampler.run([pe_circuit], shots=self.shots)
             circuit_result = circuit_job.result()
             phases = circuit_result.quasi_dists[0]
+            phases_bitstrings = {}
+            for key, phase in phases.items():
+                bitstring_key = self._get_bitstring(self._num_evaluation_qubits, key)
+                phases_bitstrings[bitstring_key] = phase
+            phases = phases_bitstrings
+
         else:
             circuit_result = self._quantum_instance.execute(pe_circuit)
             phases = self._compute_phases(num_unitary_qubits, circuit_result)
@@ -243,8 +248,10 @@ class PhaseEstimation(PhaseEstimator):
         Returns:
             An instance of qiskit.algorithms.phase_estimator_result.PhaseEstimationResult.
         """
-        # if self._sampler is None and self._quantum_instance is None:
-        #     raise AlgorithmError("Neither a sampler nor a quantum instance was provided. Please provide one of them.")
+        if self._sampler is None and self._quantum_instance is None:
+            raise AlgorithmError(
+                "Neither a sampler nor a quantum instance was provided. Please provide one of them."
+            )
 
         if unitary is not None:
             if pe_circuit is not None:

@@ -13,11 +13,10 @@
 """Test phase estimation"""
 
 import unittest
-
-from qiskit.primitives import Sampler
 from test.python.algorithms import QiskitAlgorithmsTestCase
 from ddt import ddt, data, unpack
 import numpy as np
+from qiskit.primitives import Sampler
 from qiskit.algorithms.phase_estimators import (
     PhaseEstimation,
     HamiltonianPhaseEstimation,
@@ -179,6 +178,151 @@ class TestHamiltonianPhaseEstimation(QiskitAlgorithmsTestCase):
             self.assertAlmostEqual(phases[0], 1.5, delta=0.001)
             self.assertAlmostEqual(phases[1], -1.5, delta=0.001)
 
+    # sampler tests
+    def hamiltonian_pe_sampler(
+        self,
+        hamiltonian,
+        state_preparation=None,
+        num_evaluation_qubits=6,
+        evolution=None,
+        bound=None,
+    ):
+        """Run HamiltonianPhaseEstimation and return result with all  phases."""
+        sampler = Sampler()
+        phase_est = HamiltonianPhaseEstimation(
+            num_evaluation_qubits=num_evaluation_qubits, sampler=sampler
+        )
+        result = phase_est.estimate(
+            hamiltonian=hamiltonian,
+            state_preparation=state_preparation,
+            evolution=evolution,
+            bound=bound,
+        )
+        return result
+
+    @data(MatrixEvolution(), PauliTrotterEvolution("suzuki", 4))
+    def test_pauli_sum_1_sampler(self, evolution):
+        """Two eigenvalues from Pauli sum with X, Z"""
+        hamiltonian = 0.5 * X + Z
+        state_preparation = StateFn(H.to_circuit())
+
+        result = self.hamiltonian_pe_sampler(hamiltonian, state_preparation, evolution=evolution)
+        phase_dict = result.filter_phases(0.162, as_float=True)
+        phases = list(phase_dict.keys())
+        phases.sort()
+
+        self.assertAlmostEqual(phases[0], -1.125, delta=0.001)
+        self.assertAlmostEqual(phases[1], 1.125, delta=0.001)
+
+    @data(MatrixEvolution(), PauliTrotterEvolution("suzuki", 3))
+    def test_pauli_sum_2_sampler(self, evolution):
+        """Two eigenvalues from Pauli sum with X, Y, Z"""
+        hamiltonian = 0.5 * X + Y + Z
+        state_preparation = None
+
+        result = self.hamiltonian_pe_sampler(hamiltonian, state_preparation, evolution=evolution)
+        phase_dict = result.filter_phases(0.1, as_float=True)
+        phases = list(phase_dict.keys())
+        phases.sort()
+
+        self.assertAlmostEqual(phases[0], -1.484, delta=0.001)
+        self.assertAlmostEqual(phases[1], 1.484, delta=0.001)
+
+    def test_single_pauli_op_sampler(self):
+        """Two eigenvalues from Pauli sum with X, Y, Z"""
+        hamiltonian = Z
+        state_preparation = None
+
+        result = self.hamiltonian_pe_sampler(hamiltonian, state_preparation, evolution=None)
+        eigv = result.most_likely_eigenvalue
+        with self.subTest("First eigenvalue"):
+            self.assertAlmostEqual(eigv, 1.0, delta=0.001)
+
+        state_preparation = StateFn(X.to_circuit())
+
+        result = self.hamiltonian_pe_sampler(hamiltonian, state_preparation, bound=1.05)
+        eigv = result.most_likely_eigenvalue
+        with self.subTest("Second eigenvalue"):
+            self.assertAlmostEqual(eigv, -0.98, delta=0.01)
+
+    def test_H2_hamiltonian_sampler(self):
+        """Test H2 hamiltonian"""
+        hamiltonian = (
+            (-1.0523732457728587 * (I ^ I))
+            + (0.3979374248431802 * (I ^ Z))
+            + (-0.3979374248431802 * (Z ^ I))
+            + (-0.011280104256235324 * (Z ^ Z))
+            + (0.18093119978423147 * (X ^ X))
+        )
+        state_preparation = StateFn((I ^ H).to_circuit())
+        evo = PauliTrotterEvolution(trotter_mode="suzuki", reps=4)
+        result = self.hamiltonian_pe_sampler(hamiltonian, state_preparation, evolution=evo)
+        with self.subTest("Most likely eigenvalues"):
+            self.assertAlmostEqual(result.most_likely_eigenvalue, -1.855, delta=0.001)
+        with self.subTest("Most likely phase"):
+            self.assertAlmostEqual(result.phase, 0.5937, delta=0.001)
+        with self.subTest("All eigenvalues"):
+            phase_dict = result.filter_phases(0.1)
+            phases = sorted(list(phase_dict.keys()))
+            self.assertAlmostEqual(phases[0], -1.8551, delta=0.001)
+            self.assertAlmostEqual(phases[1], -1.2376, delta=0.001)
+            self.assertAlmostEqual(phases[2], -0.8979, delta=0.001)
+
+    def test_matrix_evolution_sampler(self):
+        """1Q Hamiltonian with MatrixEvolution"""
+        hamiltonian = (0.5 * X) + (0.6 * Y) + (0.7 * I)
+        state_preparation = None
+        result = self.hamiltonian_pe_sampler(
+            hamiltonian, state_preparation, evolution=MatrixEvolution()
+        )
+        phase_dict = result.filter_phases(0.2, as_float=True)
+        phases = sorted(list(phase_dict.keys()))
+        self.assertAlmostEqual(phases[0], -0.090, delta=0.001)
+        self.assertAlmostEqual(phases[1], 1.490, delta=0.001)
+
+    def _setup_from_bound_sampler(self, evolution, op_class):
+        hamiltonian = 0.5 * X + Y + Z
+        state_preparation = None
+        bound = 1.2 * sum(abs(hamiltonian.coeff * coeff) for coeff in hamiltonian.coeffs)
+        if op_class == "MatrixOp":
+            hamiltonian = hamiltonian.to_matrix_op()
+        sampler = Sampler()
+        phase_est = HamiltonianPhaseEstimation(num_evaluation_qubits=6, sampler=sampler)
+        result = phase_est.estimate(
+            hamiltonian=hamiltonian,
+            bound=bound,
+            evolution=evolution,
+            state_preparation=state_preparation,
+        )
+        return result
+
+    def test_from_bound_sampler(self):
+        """HamiltonianPhaseEstimation with bound"""
+        for op_class in ("SummedOp", "MatrixOp"):
+            result = self._setup_from_bound_sampler(MatrixEvolution(), op_class)
+            cutoff = 0.01
+            phases = result.filter_phases(cutoff)
+            with self.subTest(f"test phases has the correct length: {op_class}"):
+                self.assertEqual(len(phases), 2)
+                with self.subTest(f"test scaled phases are correct: {op_class}"):
+                    self.assertEqual(list(phases.keys()), [1.5, -1.5])
+                    phases = result.filter_phases(cutoff, scaled=False)
+                with self.subTest(f"test unscaled phases are correct: {op_class}"):
+                    self.assertEqual(list(phases.keys()), [0.25, 0.75])
+
+    def test_trotter_from_bound_sampler(self):
+        """HamiltonianPhaseEstimation with bound and Trotterization"""
+        result = self._setup_from_bound_sampler(
+            PauliTrotterEvolution(trotter_mode="suzuki", reps=3), op_class="SummedOp"
+        )
+        phase_dict = result.filter_phases(0.1)
+        phases = list(phase_dict.keys())
+        with self.subTest("test phases has the correct length"):
+            self.assertEqual(len(phases), 2)
+        with self.subTest("test phases has correct values"):
+            self.assertAlmostEqual(phases[0], 1.5, delta=0.001)
+            self.assertAlmostEqual(phases[1], -1.5, delta=0.001)
+
 
 @ddt
 class TestPhaseEstimation(QiskitAlgorithmsTestCase):
@@ -317,131 +461,135 @@ class TestPhaseEstimation(QiskitAlgorithmsTestCase):
 
     # sampler tests
 
-    # def one_phase_sampler(
-    #     self,
-    #     unitary_circuit,
-    #     state_preparation=None,
-    #     shots=None,
-    #     phase_estimator=None,
-    #     num_iterations=6,
-    # ):
-    #     """Run phase estimation with operator, eigenvalue pair `unitary_circuit`,
-    #     `state_preparation`. Return the estimated phase as a value in :math:`[0,1)`.
-    #     """
-    #     sampler = Sampler()
-    #     if phase_estimator is None:
-    #         phase_estimator = IterativePhaseEstimation
-    #     if phase_estimator == IterativePhaseEstimation:
-    #         p_est = IterativePhaseEstimation(
-    #             num_iterations=num_iterations, sampler=sampler, shots=shots
-    #         )
-    #     elif phase_estimator == PhaseEstimation:
-    #         p_est = PhaseEstimation(num_evaluation_qubits=6, sampler=sampler, shots=shots)
-    #     else:
-    #         raise ValueError("Unrecognized phase_estimator")
-    #     result = p_est.estimate(unitary=unitary_circuit, state_preparation=state_preparation)
-    #     phase = result.phase
-    #     return phase
-    #
-    # @data(
-    #     (X.to_circuit(), 0.5, None, IterativePhaseEstimation),
-    #     (X.to_circuit(), 0.5, 1000, IterativePhaseEstimation),
-    #     (None, 0.0, 1000, IterativePhaseEstimation),
-    #     (X.to_circuit(), 0.5, 1000, PhaseEstimation),
-    #     (None, 0.0, 1000, PhaseEstimation),
-    #     (X.to_circuit(), 0.5, None, PhaseEstimation),
-    # )
-    # @unpack
-    # def test_qpe_Z_sampler(self, state_preparation, expected_phase, shots, phase_estimator):
-    #     """eigenproblem Z, |0> and |1>"""
-    #     unitary_circuit = Z.to_circuit()
-    #     phase = self.one_phase_sampler(
-    #         unitary_circuit,
-    #         state_preparation,
-    #         shots=shots,
-    #         phase_estimator=phase_estimator,
-    #     )
-    #     self.assertEqual(phase, expected_phase)
-    #
-    # @data(
-    #     (H.to_circuit(), 0.0, IterativePhaseEstimation),
-    #     ((H @ X).to_circuit(), 0.5, IterativePhaseEstimation),
-    #     (H.to_circuit(), 0.0, PhaseEstimation),
-    #     ((H @ X).to_circuit(), 0.5, PhaseEstimation),
-    # )
-    # @unpack
-    # def test_qpe_X_plus_minus_sampler(self, state_preparation, expected_phase, phase_estimator):
-    #     """eigenproblem X, (|+>, |->)"""
-    #     unitary_circuit = X.to_circuit()
-    #     phase = self.one_phase_sampler(unitary_circuit, state_preparation, phase_estimator=phase_estimator)
-    #     self.assertEqual(phase, expected_phase)
-    #
-    # @data(
-    #     (X.to_circuit(), 0.125, IterativePhaseEstimation),
-    #     (I.to_circuit(), 0.875, IterativePhaseEstimation),
-    #     (X.to_circuit(), 0.125, PhaseEstimation),
-    #     (I.to_circuit(), 0.875, PhaseEstimation),
-    # )
-    # @unpack
-    # def test_qpe_RZ_sampler(self, state_preparation, expected_phase, phase_estimator):
-    #     """eigenproblem RZ, (|0>, |1>)"""
-    #     alpha = np.pi / 2
-    #     unitary_circuit = QuantumCircuit(1)
-    #     unitary_circuit.rz(alpha, 0)
-    #     phase = self.one_phase_sampler(unitary_circuit, state_preparation, phase_estimator=phase_estimator)
-    #     self.assertEqual(phase, expected_phase)
-    #
-    # def test_check_num_iterations_sampler(self):
-    #     """test check for num_iterations greater than zero"""
-    #     unitary_circuit = X.to_circuit()
-    #     state_preparation = None
-    #     with self.assertRaises(ValueError):
-    #         self.one_phase_sampler(unitary_circuit, state_preparation, num_iterations=-1)
-    #
-    # def phase_estimation_sampler(
-    #     self,
-    #     unitary_circuit,
-    #     sampler: Sampler,
-    #     state_preparation=None,
-    #     num_evaluation_qubits=6,
-    #     construct_circuit=False,
-    # ):
-    #     """Run phase estimation with operator, eigenvalue pair `unitary_circuit`,
-    #     `state_preparation`. Return all results
-    #     """
-    #     phase_est = PhaseEstimation(num_evaluation_qubits=num_evaluation_qubits, sampler=sampler)
-    #     if construct_circuit:
-    #         pe_circuit = phase_est.construct_circuit(unitary_circuit, state_preparation)
-    #         result = phase_est.estimate_from_pe_circuit(pe_circuit, unitary_circuit.num_qubits)
-    #     else:
-    #         result = phase_est.estimate(
-    #             unitary=unitary_circuit, state_preparation=state_preparation
-    #         )
-    #     return result
-    #
-    # @data(True, False)
-    # def test_qpe_Zplus_sampler(self, construct_circuit):
-    #     """superposition eigenproblem Z, |+>"""
-    #     unitary_circuit = Z.to_circuit()
-    #     state_preparation = H.to_circuit()  # prepare |+>
-    #     sampler = Sampler()
-    #     result = self.phase_estimation_sampler(
-    #         unitary_circuit,
-    #         sampler,
-    #         state_preparation,
-    #         construct_circuit=construct_circuit,
-    #     )
-    #
-    #     phases = result.filter_phases(1e-15, as_float=True)
-    #     with self.subTest("test phases has correct values"):
-    #         self.assertEqual(list(phases.keys()), [0.0, 0.5])
-    #
-    #     with self.subTest("test phases has correct probabilities"):
-    #         np.testing.assert_allclose(list(phases.values()), [0.5, 0.5])
-    #
-    #     with self.subTest("test bitstring representation"):
-    #         phases = result.filter_phases(1e-15, as_float=False)
-    #         self.assertEqual(list(phases.keys()), ["000000", "100000"])
+    def one_phase_sampler(
+        self,
+        unitary_circuit,
+        state_preparation=None,
+        shots=None,
+        phase_estimator=None,
+        num_iterations=6,
+    ):
+        """Run phase estimation with operator, eigenvalue pair `unitary_circuit`,
+        `state_preparation`. Return the estimated phase as a value in :math:`[0,1)`.
+        """
+        sampler = Sampler()
+        if phase_estimator is None:
+            phase_estimator = IterativePhaseEstimation
+        if phase_estimator == IterativePhaseEstimation:
+            p_est = IterativePhaseEstimation(
+                num_iterations=num_iterations, sampler=sampler, shots=shots
+            )
+        elif phase_estimator == PhaseEstimation:
+            p_est = PhaseEstimation(num_evaluation_qubits=6, sampler=sampler, shots=shots)
+        else:
+            raise ValueError("Unrecognized phase_estimator")
+        result = p_est.estimate(unitary=unitary_circuit, state_preparation=state_preparation)
+        phase = result.phase
+        return phase
+
+    @data(
+        (X.to_circuit(), 0.5, None, IterativePhaseEstimation),
+        (X.to_circuit(), 0.5, 1000, IterativePhaseEstimation),
+        (None, 0.0, 1000, IterativePhaseEstimation),
+        (X.to_circuit(), 0.5, 1000, PhaseEstimation),
+        (None, 0.0, 1000, PhaseEstimation),
+        (X.to_circuit(), 0.5, None, PhaseEstimation),
+    )
+    @unpack
+    def test_qpe_Z_sampler(self, state_preparation, expected_phase, shots, phase_estimator):
+        """eigenproblem Z, |0> and |1>"""
+        unitary_circuit = Z.to_circuit()
+        phase = self.one_phase_sampler(
+            unitary_circuit,
+            state_preparation,
+            shots=shots,
+            phase_estimator=phase_estimator,
+        )
+        self.assertEqual(phase, expected_phase)
+
+    @data(
+        (H.to_circuit(), 0.0, IterativePhaseEstimation),
+        ((H @ X).to_circuit(), 0.5, IterativePhaseEstimation),
+        (H.to_circuit(), 0.0, PhaseEstimation),
+        ((H @ X).to_circuit(), 0.5, PhaseEstimation),
+    )
+    @unpack
+    def test_qpe_X_plus_minus_sampler(self, state_preparation, expected_phase, phase_estimator):
+        """eigenproblem X, (|+>, |->)"""
+        unitary_circuit = X.to_circuit()
+        phase = self.one_phase_sampler(
+            unitary_circuit, state_preparation, phase_estimator=phase_estimator
+        )
+        self.assertEqual(phase, expected_phase)
+
+    @data(
+        (X.to_circuit(), 0.125, IterativePhaseEstimation),
+        (I.to_circuit(), 0.875, IterativePhaseEstimation),
+        (X.to_circuit(), 0.125, PhaseEstimation),
+        (I.to_circuit(), 0.875, PhaseEstimation),
+    )
+    @unpack
+    def test_qpe_RZ_sampler(self, state_preparation, expected_phase, phase_estimator):
+        """eigenproblem RZ, (|0>, |1>)"""
+        alpha = np.pi / 2
+        unitary_circuit = QuantumCircuit(1)
+        unitary_circuit.rz(alpha, 0)
+        phase = self.one_phase_sampler(
+            unitary_circuit, state_preparation, phase_estimator=phase_estimator
+        )
+        self.assertEqual(phase, expected_phase)
+
+    def test_check_num_iterations_sampler(self):
+        """test check for num_iterations greater than zero"""
+        unitary_circuit = X.to_circuit()
+        state_preparation = None
+        with self.assertRaises(ValueError):
+            self.one_phase_sampler(unitary_circuit, state_preparation, num_iterations=-1)
+
+    def phase_estimation_sampler(
+        self,
+        unitary_circuit,
+        sampler: Sampler,
+        state_preparation=None,
+        num_evaluation_qubits=6,
+        construct_circuit=False,
+    ):
+        """Run phase estimation with operator, eigenvalue pair `unitary_circuit`,
+        `state_preparation`. Return all results
+        """
+        phase_est = PhaseEstimation(num_evaluation_qubits=num_evaluation_qubits, sampler=sampler)
+        if construct_circuit:
+            pe_circuit = phase_est.construct_circuit(unitary_circuit, state_preparation)
+            result = phase_est.estimate_from_pe_circuit(pe_circuit, unitary_circuit.num_qubits)
+        else:
+            result = phase_est.estimate(
+                unitary=unitary_circuit, state_preparation=state_preparation
+            )
+        return result
+
+    @data(True, False)
+    def test_qpe_Zplus_sampler(self, construct_circuit):
+        """superposition eigenproblem Z, |+>"""
+        unitary_circuit = Z.to_circuit()
+        state_preparation = H.to_circuit()  # prepare |+>
+        sampler = Sampler()
+        result = self.phase_estimation_sampler(
+            unitary_circuit,
+            sampler,
+            state_preparation,
+            construct_circuit=construct_circuit,
+        )
+
+        phases = result.filter_phases(1e-15, as_float=True)
+        with self.subTest("test phases has correct values"):
+            self.assertEqual(list(phases.keys()), [0.0, 0.5])
+
+        with self.subTest("test phases has correct probabilities"):
+            np.testing.assert_allclose(list(phases.values()), [0.5, 0.5])
+
+        with self.subTest("test bitstring representation"):
+            phases = result.filter_phases(1e-15, as_float=False)
+            self.assertEqual(list(phases.keys()), ["000000", "100000"])
 
 
 if __name__ == "__main__":

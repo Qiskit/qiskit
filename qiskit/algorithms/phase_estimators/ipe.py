@@ -23,9 +23,8 @@ from qiskit.providers import Backend
 from qiskit.utils import QuantumInstance
 from .phase_estimator import PhaseEstimator
 from .phase_estimator import PhaseEstimatorResult
-
-# from .. import AlgorithmError
 from ...primitives import Sampler
+from qiskit.algorithms.exceptions import AlgorithmError
 
 
 class IterativePhaseEstimation(PhaseEstimator):
@@ -131,7 +130,7 @@ class IterativePhaseEstimation(PhaseEstimator):
             if self._sampler is not None:
 
                 qc = self.construct_circuit(
-                    unitary, state_preparation, k, -2 * numpy.pi * omega_coef
+                    unitary, state_preparation, k, -2 * numpy.pi * omega_coef, True
                 )
                 sampler_job = self._sampler.run([qc], shots=self.shots)
                 result = sampler_job.result().quasi_dists[0]
@@ -178,9 +177,10 @@ class IterativePhaseEstimation(PhaseEstimator):
         Returns:
             Estimated phase in an IterativePhaseEstimationResult object.
         """
-        # if self._sampler is None and self._quantum_instance is None:
-        #     raise AlgorithmError("Neither a sampler nor a quantum instance was provided. Please provide one of them.")
-
+        if self._sampler is None and self._quantum_instance is None:
+            raise AlgorithmError(
+                "Neither a sampler nor a quantum instance was provided. Please provide one of them."
+            )
         phase = self._estimate_phase_iteratively(unitary, state_preparation)
 
         return IterativePhaseEstimationResult(self._num_iterations, phase)
