@@ -18,17 +18,18 @@ from time import time
 
 import numpy as np
 
-from qiskit.circuit import QuantumCircuit, Parameter
-from qiskit.opflow import (
-    OperatorBase,
-)
+from qiskit.circuit import QuantumCircuit
+from qiskit.quantum_info.operators.base_operator import BaseOperator
+from qiskit.opflow import PauliSumOp
 from qiskit.primitives import BaseEstimator
 from qiskit.utils.validation import validate_min
 
 from ..exceptions import AlgorithmError
+from ..list_or_dict import ListOrDict
 from ..optimizers import Optimizer, Minimizer
 from ..variational_algorithm import VariationalResult
 from .minimum_eigensolver import MinimumEigensolver, MinimumEigensolverResult
+
 
 logger = logging.getLogger(__name__)
 
@@ -145,23 +146,16 @@ class VQE(MinimumEigensolver):
         # TODO remove this
         self._eval_count = 0
 
-    def compute_minimum_eigenvalue(self, operator: OperatorBase, aux_operators=None):
+    def compute_minimum_eigenvalue(
+        self,
+        operator: BaseOperator | PauliSumOp,
+        aux_operators: ListOrDict[BaseOperator | PauliSumOp] | None = None,
+    ) -> VQEResult:
         ansatz = self._check_operator_ansatz(operator)
 
         if isinstance(self.optimizer, Optimizer):
             # note that this changes the optimizer instance -- should we reset after the VQE run?
             self.optimizer.set_max_evals_grouped(self.max_evals_grouped)
-
-        if isinstance(aux_operators, dict):
-            aux_ops = list(aux_operators.values())
-        elif aux_operators:
-            # Not None and not empty list
-            non_nones = [i for i, x in enumerate(aux_operators) if x is not None]
-            aux_ops = [x for x in aux_operators if x is not None]
-        else:
-            aux_ops = None
-
-        operators = [operator] + ([] if aux_ops is None else aux_ops)
 
         self._eval_count = 0
 
@@ -181,8 +175,13 @@ class VQE(MinimumEigensolver):
             return value
 
         initial_point = self.initial_point
-        if not initial_point:
+        if initial_point is None:
             initial_point = np.random.random(ansatz.num_parameters)
+        elif len(initial_point) != ansatz.num_parameters:
+            raise ValueError(
+                f"The dimension of the initial point ({len(self.initial_point)}) does not match "
+                f"the number of parameters in the circuit ({ansatz.num_parameters})."
+            )
 
         start_time = time()
 
@@ -203,21 +202,10 @@ class VQE(MinimumEigensolver):
             f"Optimization complete in {eval_time} seconds.\nFound opt_params {optimal_point}."
         )
 
-        # Compute auxiliary operator eigenvalues
         aux_values = None
-        if aux_ops:
-            num_aux_ops = len(aux_ops)
-            aux_job = self.estimator.run(
-                [ansatz] * num_aux_ops, operators[1:], [optimal_point] * num_aux_ops
-            )
-            aux_eigs = aux_job.result().values
-            aux_eigs = list(zip(aux_eigs, [0] * len(aux_eigs)))
-            if isinstance(aux_operators, dict):
-                aux_values = dict(zip(aux_operators.keys(), aux_eigs))
-            else:
-                aux_values = [None] * len(aux_operators)
-                for i, x in enumerate(non_nones):
-                    aux_values[x] = aux_eigs[i]
+        if aux_operators:
+            # Not None and not empty list
+            aux_values = self._eval_aux_ops(ansatz, optimal_point, aux_operators)
 
         result = VQEResult()
         result.eigenvalue = opt_result.fun + 0j
@@ -227,15 +215,13 @@ class VQE(MinimumEigensolver):
         result.optimal_parameters = dict(zip(self.ansatz.parameters, optimal_point))
         result.optimal_value = opt_result.fun
         result.optimizer_time = eval_time
-        # TODO Add variances for the eigenvalues.
-
         return result
 
     @classmethod
     def supports_aux_operators(cls) -> bool:
         return True
 
-    def _check_operator_ansatz(self, operator: OperatorBase) -> QuantumCircuit:
+    def _check_operator_ansatz(self, operator: BaseOperator | PauliSumOp) -> QuantumCircuit:
         """Check that the number of qubits of operator and ansatz match and that the ansatz is
         parameterized.
         """
@@ -257,6 +243,31 @@ class VQE(MinimumEigensolver):
             raise AlgorithmError("The ansatz must be parameterized, but has no free parameters.")
 
         return ansatz
+
+    def _eval_aux_ops(self, ansatz, parameters, aux_operators):
+        """Compute auxiliary operator eigenvalues."""
+        if isinstance(aux_operators, dict):
+            aux_ops = list(aux_operators.values())
+        else:
+            non_nones = [i for i, x in enumerate(aux_operators) if x is not None]
+            aux_ops = [x for x in aux_operators if x is not None]
+
+        aux_values = None
+        if aux_ops:
+            num_aux_ops = len(aux_ops)
+            aux_job = self.estimator.run(
+                [ansatz] * num_aux_ops, aux_ops, [parameters] * num_aux_ops
+            )
+            aux_eigs = aux_job.result().values
+            aux_eigs = list(zip(aux_eigs, [0] * len(aux_eigs)))
+            if isinstance(aux_operators, dict):
+                aux_values = dict(zip(aux_operators.keys(), aux_eigs))
+            else:
+                aux_values = [None] * len(aux_operators)
+                for i, x in enumerate(non_nones):
+                    aux_values[x] = aux_eigs[i]
+
+        return aux_values
 
 
 class VQEResult(VariationalResult, MinimumEigensolverResult):
