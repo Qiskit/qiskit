@@ -105,17 +105,17 @@ class SPSASamplerGradient(BaseSamplerGradient):
                 grad_dists[j, list(dist_plus.keys())] += list(dist_plus.values())
                 grad_dists[j, list(dist_minus.keys())] -= list(dist_minus.values())
             grad_dists /= 2 * self._epsilon
-            gradient_ = []
+            gradient = []
             indices = [circuits[i].parameters.data.index(p) for p in metadata_[i]["parameters"]]
             for j in range(circuits[i].num_parameters):
                 if not j in indices:
                     continue
-                grad = np.mean(
-                    np.array([delta * dist for dist, delta in zip(grad_dists, offsets[i][:, j])]),
+                gradient_ = np.mean(
+                    np.array([offset * grad for grad, offset in zip(grad_dists, offsets[i][:, j])]),
                     axis=0,
                 )
-                gradient_.append(dict(enumerate(grad)))
-            gradients.append(gradient_)
+                gradient.append(dict(enumerate(gradient_)))
+            gradients.append(gradient)
 
         # TODO: include primitive's run_options as well
         return SamplerGradientResult(
