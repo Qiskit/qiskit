@@ -123,6 +123,7 @@ class BaseStateFidelity(ABC):
         """
         Implementation-dependent method to create a fidelity circuit
         from 2 circuit inputs.
+
         Args:
             circuit_1: (Parametrized) quantum circuit.
             circuit_2: (Parametrized) quantum circuit.
