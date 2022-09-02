@@ -8,4 +8,4 @@ features:
     ``get_scheduling_stage()`` or ``get_post_translation_stage()`` the
     transpiler will use the returned :class:`~.PassManager` object to run
     additional custom transpiler passes when targetting that backend.
-    For more details on how to use this see :ref:`custom_transpiler_backend`
+    For more details on how to use this see :ref:`custom_transpiler_backend`.

@@ -80,7 +80,6 @@ class PassManagerConfig:
             init_method (str): The plugin name for the init stage plugin to use
             optimization_method (str): The plugin name for the optimization stage plugin
                 to use.
-            optimization_level (int): The optimization level being used for compilation.
             post_translation_pm (PassManager): An optional pass manager representing a
                 post-translation stage.
         """

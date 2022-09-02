@@ -418,7 +418,7 @@ specify a :class:`~PassManager` which will be run for the scheduling stage
 by default (which is the last defined stage in a default compilation). These
 hook points in a :class:`~.BackendV2` class should only be used if your
 backend has special requirements for compilation that are not met by the
-default backend
+default backend.
 
 To leverage these hook points you just need to add the methods to your
 :class:`~.BackendV2` implementation and have them return a
