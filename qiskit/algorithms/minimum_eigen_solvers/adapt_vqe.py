@@ -26,7 +26,6 @@ from qiskit.algorithms import VQE
 from qiskit.algorithms.list_or_dict import ListOrDict
 from qiskit.algorithms.minimum_eigen_solvers.vqe import VQEResult
 from qiskit.algorithms import VariationalAlgorithm
-from qiskit.circuit import QuantumCircuit
 from qiskit.opflow import OperatorBase, PauliSumOp, ExpectationFactory
 from qiskit.opflow.expectations.expectation_base import ExpectationBase
 from qiskit.circuit.library import EvolvedOperatorAnsatz
