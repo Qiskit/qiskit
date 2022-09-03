@@ -13,7 +13,7 @@
 
 """The Quantum Phase Estimation Algorithm."""
 
-
+from __future__ import annotations
 import warnings
 from typing import Union
 
@@ -89,16 +89,23 @@ class PhaseEstimation(PhaseEstimator):
         sampler: None | Sampler = None,
         shots: None | int = None,
     ) -> None:
-        """
+        r"""
         Args:
             num_evaluation_qubits: The number of qubits used in estimating the phase. The phase will
                 be estimated as a binary string with this many bits.
-            quantum_instance: The quantum instance on which the circuit will be run.
+            quantum_instance: Pending deprecation\: The quantum instance on which the
+                circuit will be run.
             sampler: The sampler primitive on which the circuit will be sampled.
             shots: The number of shots to be used by a sampler. If ``None``, exact probabilities
                 will be calculated.
         """
-
+        if quantum_instance is not None:
+            warnings.warn(
+                "The quantum_instance argument has been superseded by the sampler argument. "
+                "This argument will be deprecated in a future release and subsequently "
+                "removed after that.",
+                category=PendingDeprecationWarning,
+            )
         self._measurements_added = False
         if num_evaluation_qubits is not None:
             self._num_evaluation_qubits = num_evaluation_qubits
@@ -207,6 +214,9 @@ class PhaseEstimation(PhaseEstimator):
 
         Returns:
             An instance of qiskit.algorithms.phase_estimator_result.PhaseEstimationResult.
+
+        Raises:
+            AlgorithmError: Primitive job failed.
         """
 
         self._add_measurement_if_required(pe_circuit)

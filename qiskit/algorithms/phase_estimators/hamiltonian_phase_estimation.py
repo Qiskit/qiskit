@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2020.
+# (C) Copyright IBM 2020, 2022.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -12,7 +12,9 @@
 
 """Phase estimation for the spectrum of a Hamiltonian"""
 
+from __future__ import annotations
 from typing import Union
+import warnings
 
 from qiskit import QuantumCircuit
 from qiskit.utils import QuantumInstance
@@ -94,15 +96,23 @@ class HamiltonianPhaseEstimation:
         sampler: None | Sampler = None,
         shots: None | int = None,
     ) -> None:
-        """
+        r"""
         Args:
             num_evaluation_qubits: The number of qubits used in estimating the phase. The phase will
                 be estimated as a binary string with this many bits.
-            quantum_instance: The quantum instance on which the circuit will be run.
+            quantum_instance: Pending deprecation\: The quantum instance on which
+                the circuit will be run.
             sampler: The sampler primitive on which the circuit will be sampled.
             shots: The number of shots to be used by a sampler. If ``None``, exact probabilities
                 will be calculated.
         """
+        if quantum_instance is not None:
+            warnings.warn(
+                "The quantum_instance argument has been superseded by the sampler argument. "
+                "This argument will be deprecated in a future release and subsequently "
+                "removed after that.",
+                category=PendingDeprecationWarning,
+            )
         self._phase_estimation = PhaseEstimation(
             num_evaluation_qubits=num_evaluation_qubits,
             quantum_instance=quantum_instance,

@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2021.
+# (C) Copyright IBM 2021, 2022.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -13,8 +13,9 @@
 
 """The Iterative Quantum Phase Estimation Algorithm."""
 
-
+from __future__ import annotations
 from typing import Union
+import warnings
 import numpy
 import qiskit
 from qiskit.circuit import QuantumCircuit, QuantumRegister
@@ -44,10 +45,10 @@ class IterativePhaseEstimation(PhaseEstimator):
         sampler: None | Sampler = None,
         shots: None | int = None,
     ) -> None:
-
-        """Args:
+        r"""Args:
             num_iterations: The number of iterations (rounds) of the phase estimation to run.
-            quantum_instance: The quantum instance on which the circuit will be run.
+            quantum_instance: Pending deprecation\: The quantum instance on which the
+                circuit will be run.
             sampler: The sampler primitive on which the circuit will be sampled.
             shots: The number of shots to be used by a sampler. If ``None``, exact probabilities
                 will be calculated.
@@ -55,6 +56,13 @@ class IterativePhaseEstimation(PhaseEstimator):
         Raises:
           ValueError: if num_iterations is not greater than zero.
         """
+        if quantum_instance is not None:
+            warnings.warn(
+                "The quantum_instance argument has been superseded by the sampler argument. "
+                "This argument will be deprecated in a future release and subsequently "
+                "removed after that.",
+                category=PendingDeprecationWarning,
+            )
         if isinstance(quantum_instance, Backend):
             quantum_instance = QuantumInstance(quantum_instance)
         self._quantum_instance = quantum_instance
