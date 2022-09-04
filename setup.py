@@ -108,6 +108,12 @@ setup(
             "default = qiskit.transpiler.passes.synthesis.high_level_synthesis_plugins:DefaultSynthesisLinearFunction",
             "depth_opt = test_stuff:LinearFunctionSynthesisPluginForDepth",
             "count_opt = test_stuff:LinearFunctionSynthesisPluginForCount",
+        "qiskit.transpiler.routing": [
+            "basic = qiskit.transpiler.preset_passmanagers.builtin_plugins:BasicSwapPassManager",
+            "stochastic = qiskit.transpiler.preset_passmanagers.builtin_plugins:StochasticSwapPassManager",
+            "lookahead = qiskit.transpiler.preset_passmanagers.builtin_plugins:LookaheadSwapPassManager",
+            "sabre = qiskit.transpiler.preset_passmanagers.builtin_plugins:SabreSwapPassManager",
+            "none = qiskit.transpiler.preset_passmanagers.builtin_plugins:NoneRoutingPassManager",
         ],
     },
 )
