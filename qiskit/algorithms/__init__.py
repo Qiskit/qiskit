@@ -94,6 +94,17 @@ knowledge to do this in that application domain.
    VQD
 
 
+Variational Quantum Time Evolution
+----------------------------------
+
+Classes used by variational quantum time evolution algorithms - VarQITE and VarQRTE.
+
+.. autosummary::
+   :toctree: ../stubs/
+
+   evolvers.variational
+
+
 Evolvers
 --------
 
@@ -108,10 +119,13 @@ used to train Quantum Boltzmann Machine Neural Networks for example.
     RealEvolver
     ImaginaryEvolver
     TrotterQRTE
+    VarQITE
+    VarQRTE
     PVQD
     PVQDResult
     EvolutionResult
     EvolutionProblem
+
 
 Factorizers
 -----------
@@ -187,8 +201,18 @@ Algorithms that estimate the phases of eigenstates of a unitary.
    IterativePhaseEstimation
 
 
+State Fidelities
+----------------
+
+Algorithms that compute the fidelity of pairs of quantum states.
+
+.. autosummary::
+   :toctree: ../stubs/
+
+   state_fidelities
+
 Exceptions
-==========
+----------
 
 .. autosummary::
    :toctree: ../stubs/
@@ -205,8 +229,19 @@ Utility methods used by algorithms.
    :toctree: ../stubs/
 
    eval_observables
-"""
 
+Utility classes
+---------------
+
+Utility classes used by algorithms (mainly for type-hinting purposes).
+
+.. autosummary::
+   :toctree: ../stubs/
+
+   AlgorithmJob
+
+"""
+from .algorithm_job import AlgorithmJob
 from .algorithm_result import AlgorithmResult
 from .evolvers import EvolutionResult, EvolutionProblem
 from .evolvers.real_evolver import RealEvolver
@@ -248,9 +283,13 @@ from .phase_estimators import (
 from .exceptions import AlgorithmError
 from .aux_ops_evaluator import eval_observables
 from .evolvers.trotterization import TrotterQRTE
+from .evolvers.variational.var_qite import VarQITE
+from .evolvers.variational.var_qrte import VarQRTE
+
 from .evolvers.pvqd import PVQD, PVQDResult
 
 __all__ = [
+    "AlgorithmJob",
     "AlgorithmResult",
     "VariationalAlgorithm",
     "VariationalResult",
@@ -273,6 +312,8 @@ __all__ = [
     "RealEvolver",
     "ImaginaryEvolver",
     "TrotterQRTE",
+    "VarQITE",
+    "VarQRTE",
     "EvolutionResult",
     "EvolutionProblem",
     "LinearSolverResult",
