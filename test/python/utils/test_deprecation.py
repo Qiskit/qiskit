@@ -60,7 +60,8 @@ class DummyClass:
         This is the long description
 
         Args:
-            if_arg1: `if_arg1` description
+            if_arg1: `if_arg1` description with
+               multi-line
             index_arg2: `index_arg2` description
             other_if_arg1: `other_if_arg1` description
 
@@ -105,3 +106,49 @@ class TestDeprecation(QiskitTestCase):
             " with other_if_arg1.",
         )
         self.assertEqual(output, 1)
+
+    def test_docstring_deprecate_function(self):
+        """Test deprecate_function docstring."""
+
+        dummy = DummyClass()
+        deprecated_docstring = dummy.foo_deprecated.__doc__
+        expected = """A multi-line
+        docstring.
+
+        .. deprecated:: 1.2.3
+          The DummyClass.foo() method is being deprecated. Use the DummyClass.some_othermethod()
+
+        Here are more details.
+
+        Args:
+            index_arg2: `index_arg2` description
+
+        Returns:
+            int: returns `arg2[index_arg2]`
+
+        Raises:
+            QiskitError: if `len(self.arg2) < index_arg2`
+        """
+        self.assertEqual(deprecated_docstring, expected)
+
+    def test_docstring_deprecate_arguments(self):
+        """Test deprecate_arguments docstring."""
+
+        dummy = DummyClass()
+        deprecated_docstring = dummy.bar_with_deprecated_arg.__doc__
+        expected = """
+        A multi-line short
+        docstring.
+
+        This is the long description
+
+        Args:
+            if_arg1: `if_arg1` description with
+               multi-line
+            index_arg2: `index_arg2` description
+            other_if_arg1: `other_if_arg1` description
+
+        Returns:
+            int or None: if `if_arg1 == self.arg1`, returns `arg2[index_arg2]`
+        """
+        self.assertEqual(deprecated_docstring, expected)
