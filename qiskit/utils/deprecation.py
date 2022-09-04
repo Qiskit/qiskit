@@ -17,7 +17,9 @@ import warnings
 from typing import Type
 
 
-def deprecate_arguments(kwarg_map, category: Type[Warning] = DeprecationWarning, docstring_version=None):
+def deprecate_arguments(
+    kwarg_map, category: Type[Warning] = DeprecationWarning, docstring_version=None
+):
     """Decorator to automatically alias deprecated argument names and warn upon use."""
 
     def decorator(func):
@@ -39,7 +41,12 @@ def deprecate_arguments(kwarg_map, category: Type[Warning] = DeprecationWarning,
     return decorator
 
 
-def deprecate_function(msg: str, stacklevel: int = 2, category: Type[Warning] = DeprecationWarning, docstring_version: str=None):
+def deprecate_function(
+    msg: str,
+    stacklevel: int = 2,
+    category: Type[Warning] = DeprecationWarning,
+    docstring_version: str = None,
+):
     """Emit a warning prior to calling decorated function.
 
     Args:
