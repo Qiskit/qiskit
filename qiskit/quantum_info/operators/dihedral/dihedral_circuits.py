@@ -148,11 +148,46 @@ def _append_circuit(elem, circuit, qargs=None):
             elem._append_phase(7, new_qubits[1])
             elem._append_phase(7, new_qubits[0])
 
+        elif instruction.operation.name == "cs" or gate.name == "cs":
+            if len(new_qubits) != 2:
+                raise QiskitError("Invalid qubits for 2-qubit gate cs.")
+            elem._append_phase(1, new_qubits[1])
+            elem._append_phase(1, new_qubits[0])
+            elem._append_cx(new_qubits[1], new_qubits[0])
+            elem._append_phase(7, new_qubits[0])
+            elem._append_cx(new_qubits[1], new_qubits[0])
+
+        elif instruction.operation.name == "csdg" or gate.name == "csdg":
+            if len(new_qubits) != 2:
+                raise QiskitError("Invalid qubits for 2-qubit gate csdg.")
+            elem._append_phase(7, new_qubits[1])
+            elem._append_phase(7, new_qubits[0])
+            elem._append_cx(new_qubits[1], new_qubits[0])
+            elem._append_phase(1, new_qubits[0])
+            elem._append_cx(new_qubits[1], new_qubits[0])
+
         elif instruction.operation.name == "swap" or gate.name == "swap":
             if len(new_qubits) != 2:
                 raise QiskitError("Invalid qubits for 2-qubit gate swap.")
             elem._append_cx(new_qubits[0], new_qubits[1])
             elem._append_cx(new_qubits[1], new_qubits[0])
+            elem._append_cx(new_qubits[0], new_qubits[1])
+
+        elif instruction.operation.name == "ccz" or gate.name == "ccz":
+            if len(new_qubits) != 3:
+                raise QiskitError("Invalid qubits for 3-qubit gate ccz.")
+            elem._append_cx(new_qubits[1], new_qubits[2])
+            elem._append_phase(7, new_qubits[2])
+            elem._append_cx(new_qubits[0], new_qubits[2])
+            elem._append_phase(1, new_qubits[2])
+            elem._append_cx(new_qubits[1], new_qubits[2])
+            elem._append_phase(1, new_qubits[1])
+            elem._append_phase(7, new_qubits[2])
+            elem._append_cx(new_qubits[0], new_qubits[2])
+            elem._append_cx(new_qubits[0], new_qubits[1])
+            elem._append_phase(1, new_qubits[2])
+            elem._append_phase(1, new_qubits[0])
+            elem._append_phase(7, new_qubits[1])
             elem._append_cx(new_qubits[0], new_qubits[1])
 
         elif instruction.operation.name == "id":
