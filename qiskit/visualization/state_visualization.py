@@ -1225,13 +1225,13 @@ def state_to_latex(
     return prefix + latex_str + suffix
 
 
-def num_to_latex_ket(raw_value: complex, first_term: bool, decimals: int = 0) -> Optional[str]:
+def num_to_latex_ket(raw_value: complex, first_term: bool, decimals: int = 10) -> Optional[str]:
     """Convert a complex number to latex code suitable for a ket expression
 
     Args:
         raw_value: Value to convert
         first_term: If True then generate latex code for the first term in an expression
-        decimals: Number of decimal places to round to (default: 0).
+        decimals: Number of decimal places to round to (default: 10).
     Returns:
         String with latex code or None if no term is required
     """
@@ -1287,22 +1287,21 @@ def num_to_latex_ket(raw_value: complex, first_term: bool, decimals: int = 0) ->
         return None
 
 
-def numbers_to_latex_terms(numbers: List[complex], max_size: int) -> List[str]:
+def numbers_to_latex_terms(numbers: List[complex], decimals: int = 10) -> List[str]:
     """Convert a list of numbers to latex formatted terms
 
     The first non-zero term is treated differently. For this term a leading + is suppressed.
 
     Args:
         numbers: List of numbers to format
-        max_size: Maximum number of non-zero terms in the expression. If the number of
-         non-zero terms is larger than the max_size, then the representation is truncated.
+        decimals: Number of decimal places to round to (default: 10).
     Returns:
         List of formatted terms
     """
     first_term = True
     terms = []
     for number in numbers:
-        term = num_to_latex_ket(number, first_term, max_size)
+        term = num_to_latex_ket(number, first_term, decimals)
         if term is not None:
             first_term = False
         terms.append(term)
