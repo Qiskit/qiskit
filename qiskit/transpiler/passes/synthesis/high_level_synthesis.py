@@ -13,12 +13,12 @@
 
 """Synthesize higher-level objects."""
 
-import stevedore
 
 from qiskit.converters import circuit_to_dag
 from qiskit.transpiler.basepasses import TransformationPass
 from qiskit.dagcircuit.dagcircuit import DAGCircuit
 from qiskit.transpiler.exceptions import TranspilerError
+from .high_level_synthesis_plugins import HighLevelSynthesisPluginManager
 
 
 # ToDo: possibly choose a better name for this data structure.
@@ -63,7 +63,10 @@ class HLSConfig:
 #           (which is exactly what UnitarySynthesisPlugin is right now), and to rename/inherit
 #           UnitarySynthesisPlugin from that.
 # ToDo [2]: Do we have a way to specify optimization criteria (e.g., 2q gate count vs. depth)?
-# ToDo [3]: Do we also need a PluginManager, similar to UnitarySynthesisPluginManager?
+
+# ToDo: more general plugin interface, which says whether plugin is suitable for a given obj, if not,
+#       jump to default, if not - to none
+
 class HighLevelSynthesis(TransformationPass):
     """Synthesize higher-level objects by choosing the appropriate synthesis method
     based on the node's name and the HLS-config (if provided).
@@ -88,18 +91,15 @@ class HighLevelSynthesis(TransformationPass):
             the hls_config).
         """
 
+        hls_plugin_manager = HighLevelSynthesisPluginManager()
+
         for node in dag.op_nodes():
-            # Get available plugins corresponding to the name of the current operation (node)
-            # ToDo [4]: check how (un)efficient it is to call stevedore for every gate in the circuit
-            available_plugins = stevedore.ExtensionManager(
-                "qiskit.synthesis." + node.name, invoke_on_load=True, propagate_map_exceptions=True
-            )
 
             if node.name in self.hls_config.methods.keys():
                 # the operation's name appears in the user-provided config
-                # note that the plugin might be "default" or "none"
+                # but note that the plugin_name might be "default" or "none"
                 plugin_name, plugin_args = self.hls_config.methods[node.name]
-            elif self.hls_config.default_or_none and "default" in available_plugins.names():
+            elif self.hls_config.default_or_none and "default" in hls_plugin_manager.method_names(node.name):
                 # the operation's name does not appear in the user-specified config,
                 # but we should use the "default" method when possible
                 plugin_name, plugin_args = "default", {}
@@ -112,14 +112,14 @@ class HighLevelSynthesis(TransformationPass):
                 # don't synthesize this operation
                 continue
 
-            if plugin_name not in available_plugins:
+            if plugin_name not in hls_plugin_manager.method_names(node.name):
                 raise TranspilerError(
                     "Specified method: %s not found in available plugins for %s"
                     % (plugin_name, node.name)
                 )
 
             # print(f"  Using method {plugin_name} for {node.name}")
-            plugin_method = available_plugins[plugin_name].obj
+            plugin_method = hls_plugin_manager.method(node.name, plugin_name)
 
             # ToDo: [5] similarly to UnitarySynthesis, we should pass additional parameters
             #       e.g. coupling_map to the synthesis algorithm.
