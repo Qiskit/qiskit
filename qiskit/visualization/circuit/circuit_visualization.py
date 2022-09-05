@@ -35,8 +35,8 @@ from qiskit.utils import optionals as _optionals
 from . import latex as _latex
 from . import text as _text
 from . import matplotlib as _matplotlib
-from . import circuit_utils
-from .. import utils
+from . import _utils
+from ..utils import _trim as trim_image
 from ..exceptions import VisualizationError
 
 
@@ -341,7 +341,7 @@ def _text_circuit_drawer(
     Raises:
         VisualizationError: When the filename extenstion is not .txt.
     """
-    qubits, clbits, nodes = circuit_utils._get_layered_instructions(
+    qubits, clbits, nodes = _utils._get_layered_instructions(
         circuit,
         reverse_bits=reverse_bits,
         justify=justify,
@@ -485,7 +485,7 @@ def _latex_circuit_drawer(
             logger.warning(message)
             raise VisualizationError(message) from exc
         image = Image.open(base + ".png")
-        image = utils._trim(image)
+        image = utils._trim_image(image)
         if filename:
             if filename.endswith(".pdf"):
                 os.rename(base + ".pdf", filename)
@@ -540,7 +540,7 @@ def _generate_latex_source(
     Returns:
         str: Latex string appropriate for writing to file.
     """
-    qubits, clbits, nodes = circuit_utils._get_layered_instructions(
+    qubits, clbits, nodes = _utils._get_layered_instructions(
         circuit,
         reverse_bits=reverse_bits,
         justify=justify,
@@ -630,7 +630,7 @@ def _matplotlib_circuit_drawer(
             if the ``ax`` kwarg is not set.
     """
 
-    qubits, clbits, nodes = circuit_utils._get_layered_instructions(
+    qubits, clbits, nodes = _utils._get_layered_instructions(
         circuit,
         reverse_bits=reverse_bits,
         justify=justify,

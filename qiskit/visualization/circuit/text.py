@@ -25,7 +25,7 @@ from qiskit.circuit import Measure
 from qiskit.circuit.library.standard_gates import IGate, RZZGate, SwapGate, SXGate, SXdgGate
 from qiskit.circuit.tools.pi_check import pi_check
 
-from .circuit_utils import (
+from ._utils import (
     get_gate_ctrl_text,
     get_param_str,
     get_wire_map,

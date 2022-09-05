@@ -41,7 +41,8 @@ class TestDagDrawer(QiskitVisualizationTestCase):
     @unittest.skipUnless(_optionals.HAS_GRAPHVIZ, "Graphviz not installed")
     def test_dag_drawer_invalid_style(self):
         """Test dag draw with invalid style."""
-        self.assertRaises(VisualizationError, msg="Invalid style multicolor")
+        with self.assertRaisesRegex(VisualizationError, "Invalid style multicolor"):
+            dag_drawer(self.dag)
 
     @unittest.skipUnless(_optionals.HAS_GRAPHVIZ, "Graphviz not installed")
     def test_dag_drawer_checks_filename_correct_format(self):
