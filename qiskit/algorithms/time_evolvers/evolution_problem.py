@@ -12,12 +12,13 @@
 
 """Evolution problem class."""
 
-from typing import Union, Optional, Dict
+from typing import Dict
 
 from qiskit import QuantumCircuit
 from qiskit.circuit import Parameter
-from qiskit.opflow import OperatorBase, StateFn
+from qiskit.opflow import PauliSumOp
 from ..list_or_dict import ListOrDict
+from ...quantum_info.operators.base_operator import BaseOperator
 
 
 class EvolutionProblem:
@@ -29,13 +30,14 @@ class EvolutionProblem:
 
     def __init__(
         self,
-        hamiltonian: OperatorBase,
+        hamiltonian: BaseOperator | PauliSumOp,
         time: float,
-        initial_state: Optional[Union[StateFn, QuantumCircuit]] = None,
-        aux_operators: Optional[ListOrDict[OperatorBase]] = None,
+        initial_state: QuantumCircuit | None = None,
+        aux_operators: ListOrDict[BaseOperator | PauliSumOp] | None = None,
         truncation_threshold: float = 1e-12,
-        t_param: Optional[Parameter] = None,
-        param_value_dict: Optional[Dict[Parameter, complex]] = None,
+        t_param: Parameter | None = None,
+        param_value_dict: Dict[Parameter, complex]
+        | None = None,  # parametrization will become supported in BaseOperator soon
     ):
         """
         Args:
@@ -90,20 +92,5 @@ class EvolutionProblem:
         Raises:
             ValueError: If Hamiltonian parameters cannot be bound with data provided.
         """
-        if isinstance(self.hamiltonian, OperatorBase):
-            t_param_set = set()
-            if self.t_param is not None:
-                t_param_set.add(self.t_param)
-            hamiltonian_dict_param_set = set()
-            if self.param_value_dict is not None:
-                hamiltonian_dict_param_set = hamiltonian_dict_param_set.union(
-                    set(self.param_value_dict.keys())
-                )
-            params_set = t_param_set.union(hamiltonian_dict_param_set)
-            hamiltonian_param_set = set(self.hamiltonian.parameters)
-
-            if hamiltonian_param_set != params_set:
-                raise ValueError(
-                    f"Provided parameters {params_set} do not match Hamiltonian parameters "
-                    f"{hamiltonian_param_set}."
-                )
+        if isinstance(self.hamiltonian, PauliSumOp) and self.hamiltonian.parameters:
+            raise ValueError("A global parametrized coefficient for PauliSumOp is not allowed.")

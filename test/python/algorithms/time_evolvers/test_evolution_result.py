@@ -12,8 +12,8 @@
 """Class for testing evolution result."""
 import unittest
 
+from qiskit.algorithms.time_evolvers.evolution_result import EvolutionResult
 from test.python.algorithms import QiskitAlgorithmsTestCase
-from qiskit.algorithms.evolvers.evolution_result import EvolutionResult
 from qiskit.opflow import Zero
 
 

@@ -12,13 +12,15 @@
 
 """Test evolver problem class."""
 import unittest
+
+from qiskit.algorithms.time_evolvers.evolution_problem import EvolutionProblem
+from qiskit.quantum_info import Pauli, SparsePauliOp
 from test.python.algorithms import QiskitAlgorithmsTestCase
 from ddt import data, ddt, unpack
 from numpy.testing import assert_raises
 
-from qiskit.algorithms.evolvers.evolution_problem import EvolutionProblem
 from qiskit.circuit import Parameter
-from qiskit.opflow import Y, Z, One, X, Zero
+from qiskit.opflow import Y, Z, One, X, Zero, PauliSumOp
 
 
 @ddt
@@ -89,25 +91,9 @@ class TestEvolutionProblem(QiskitAlgorithmsTestCase):
     def test_validate_params(self):
         """Tests expected errors are thrown on parameters mismatch."""
         param_x = Parameter("x")
-        param_y = Parameter("y")
         with self.subTest(msg="Parameter missing in dict."):
-            hamiltonian = param_x * X + param_y * Y
-            param_dict = {param_y: 2}
-            evolution_problem = EvolutionProblem(hamiltonian, 2, Zero, param_value_dict=param_dict)
-            with assert_raises(ValueError):
-                evolution_problem.validate_params()
-
-        with self.subTest(msg="Empty dict."):
-            hamiltonian = param_x * X + param_y * Y
-            param_dict = {}
-            evolution_problem = EvolutionProblem(hamiltonian, 2, Zero, param_value_dict=param_dict)
-            with assert_raises(ValueError):
-                evolution_problem.validate_params()
-
-        with self.subTest(msg="Extra parameter in dict."):
-            hamiltonian = param_x * X + param_y * Y
-            param_dict = {param_y: 2, param_x: 1, Parameter("z"): 1}
-            evolution_problem = EvolutionProblem(hamiltonian, 2, Zero, param_value_dict=param_dict)
+            hamiltonian = PauliSumOp(SparsePauliOp([Pauli("X"), Pauli("Y")]), param_x)
+            evolution_problem = EvolutionProblem(hamiltonian, 2, Zero)
             with assert_raises(ValueError):
                 evolution_problem.validate_params()
 
