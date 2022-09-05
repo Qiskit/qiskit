@@ -30,7 +30,7 @@ from qiskit.algorithms.gradients import (
 from qiskit.circuit import Parameter
 from qiskit.circuit.library import EfficientSU2, RealAmplitudes
 from qiskit.circuit.library.standard_gates import RXXGate, RYYGate, RZXGate, RZZGate
-from qiskit.primitives import Estimator, Sampler
+from qiskit.primitives import Sampler
 from qiskit.result import QuasiDistribution
 from qiskit.test import QiskitTestCase
 
@@ -380,13 +380,9 @@ class TestSamplerGradient(QiskitTestCase):
         if grad is FiniteDiffSamplerGradient:
             gradient = grad(sampler, epsilon=1e-6)
             with self.assertRaises(ValueError):
-                _ = grad(Estimator(), epsilon=1e-6)
-            with self.assertRaises(ValueError):
                 _ = grad(sampler, epsilon=-0.1)
         else:
             gradient = grad(sampler)
-            with self.assertRaises(ValueError):
-                _ = grad(Estimator())
         param_list = [[np.pi / 4], [np.pi / 2]]
         with self.assertRaises(ValueError):
             gradient.run([qc], param_list)

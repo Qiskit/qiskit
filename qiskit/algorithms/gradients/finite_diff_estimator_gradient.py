@@ -18,11 +18,10 @@ from typing import Sequence
 
 import numpy as np
 
+from qiskit.algorithms import AlgorithmError
 from qiskit.circuit import Parameter, QuantumCircuit
-from qiskit.exceptions import QiskitError
 from qiskit.opflow import PauliSumOp
 from qiskit.primitives import BaseEstimator
-from qiskit.providers import JobStatus
 from qiskit.quantum_info.operators.base_operator import BaseOperator
 
 from .base_estimator_gradient import BaseEstimatorGradient
@@ -83,10 +82,11 @@ class FiniteDiffEstimatorGradient(BaseEstimatorGradient):
             jobs.append(job)
 
         # combine the results
-        if any(job.status() is not JobStatus.DONE for job in jobs):
-            raise QiskitError("The gradient job was not completed successfully. ")
+        try:
+            results = [job.result() for job in jobs]
+        except Exception as exc:
+            raise AlgorithmError("Estimator job failed.") from exc
 
-        results = [job.result() for job in jobs]
         gradients = []
         for result in results:
             n = len(result.values) // 2  # is always a multiple of 2

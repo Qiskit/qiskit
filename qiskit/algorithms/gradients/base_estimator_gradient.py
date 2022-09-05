@@ -23,7 +23,7 @@ from copy import copy
 from qiskit.circuit import Parameter, QuantumCircuit
 from qiskit.opflow import PauliSumOp
 from qiskit.primitives import BaseEstimator
-from qiskit.primitives.primitive_job import PrimitiveJob
+from qiskit.algorithms import AlgorithmJob
 from qiskit.quantum_info.operators.base_operator import BaseOperator
 
 from .estimator_gradient_result import EstimatorGradientResult
@@ -43,14 +43,7 @@ class BaseEstimatorGradient(ABC):
             run_options: Backend runtime options used for circuit execution. The order of priority is:
                 run_options in ``run`` method > gradient's default run_options > primitive's default
                 setting. Higher priority setting overrides lower priority setting.
-
-        Raises:
-            ValueError: If the estimator is not an instance of ``BaseEstimator``.
         """
-        if not isinstance(estimator, BaseEstimator):
-            raise ValueError(
-                f"The estimator should be an instance of BaseEstimator, but got {type(estimator)}"
-            )
         self._estimator: BaseEstimator = estimator
         self._default_run_options = run_options
 
@@ -61,7 +54,7 @@ class BaseEstimatorGradient(ABC):
         parameter_values: Sequence[Sequence[float]],
         parameters: Sequence[Sequence[Parameter] | None] | None = None,
         **run_options,
-    ) -> PrimitiveJob:
+    ) -> AlgorithmJob:
         """Run the job of the estimator gradient on the given circuits.
 
         Args:
@@ -95,7 +88,7 @@ class BaseEstimatorGradient(ABC):
         run_opts = copy(self._default_run_options)
         run_opts.update(run_options)
 
-        job = PrimitiveJob(
+        job = AlgorithmJob(
             self._run, circuits, observables, parameter_values, parameters, **run_opts
         )
         job.submit()

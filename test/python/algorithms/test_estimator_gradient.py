@@ -29,7 +29,7 @@ from qiskit.algorithms.gradients import (
 from qiskit.circuit import Parameter
 from qiskit.circuit.library import EfficientSU2, RealAmplitudes
 from qiskit.circuit.library.standard_gates import RXXGate, RYYGate, RZXGate, RZZGate
-from qiskit.primitives import Estimator, Sampler
+from qiskit.primitives import Estimator
 from qiskit.quantum_info import SparsePauliOp, Operator
 from qiskit.quantum_info.random import random_pauli_list
 from qiskit.test import QiskitTestCase
@@ -284,13 +284,9 @@ class TestEstimatorGradient(QiskitTestCase):
         if grad is FiniteDiffEstimatorGradient:
             gradient = grad(estimator, epsilon=1e-6)
             with self.assertRaises(ValueError):
-                _ = grad(Sampler(), epsilon=1e-6)
-            with self.assertRaises(ValueError):
                 _ = grad(estimator, epsilon=-0.1)
         else:
             gradient = grad(estimator)
-            with self.assertRaises(ValueError):
-                _ = grad(Sampler())
         param_list = [[np.pi / 4], [np.pi / 2]]
         op = SparsePauliOp.from_list([("Z", 1)])
         with self.assertRaises(ValueError):

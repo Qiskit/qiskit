@@ -18,10 +18,9 @@ from typing import Sequence
 
 import numpy as np
 
+from qiskit.algorithms import AlgorithmError
 from qiskit.circuit import Parameter, QuantumCircuit
-from qiskit.exceptions import QiskitError
 from qiskit.primitives import BaseSampler
-from qiskit.providers import JobStatus
 
 from .base_sampler_gradient import BaseSamplerGradient
 from .sampler_gradient_result import SamplerGradientResult
@@ -76,9 +75,11 @@ class FiniteDiffSamplerGradient(BaseSamplerGradient):
             jobs.append(job)
 
         # combine the results
-        if any(job.status() is not JobStatus.DONE for job in jobs):
-            raise QiskitError("The gradient job was not completed successfully. ")
-        results = [job.result() for job in jobs]
+        try:
+            results = [job.result() for job in jobs]
+        except Exception as exc:
+            raise AlgorithmError("Sampler job failed.") from exc
+
         gradients = []
         for i, result in enumerate(results):
             n = len(result.quasi_dists) // 2

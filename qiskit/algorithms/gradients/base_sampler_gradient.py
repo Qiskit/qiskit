@@ -22,7 +22,7 @@ from copy import copy
 
 from qiskit.circuit import QuantumCircuit, Parameter
 from qiskit.primitives import BaseSampler
-from qiskit.primitives.primitive_job import PrimitiveJob
+from qiskit.algorithms import AlgorithmJob
 from .sampler_gradient_result import SamplerGradientResult
 
 
@@ -36,14 +36,7 @@ class BaseSamplerGradient(ABC):
             run_options: Backend runtime options used for circuit execution. The order of priority is:
                 run_options in `run` method > gradient's default run_options > primitive's default
                 setting. Higher priority setting overrides lower priority setting.
-
-        Raises:
-            ValueError: If the sampler is not an instance of ``BaseSampler``.
         """
-        if not isinstance(sampler, BaseSampler):
-            raise ValueError(
-                f"The sampler should be an instance of BaseSampler, but got {type(sampler)}"
-            )
         self._sampler: BaseSampler = sampler
         self._default_run_options = run_options
 
@@ -53,7 +46,7 @@ class BaseSamplerGradient(ABC):
         parameter_values: Sequence[Sequence[float]],
         parameters: Sequence[Sequence[Parameter] | None] | None = None,
         **run_options,
-    ) -> PrimitiveJob:
+    ) -> AlgorithmJob:
         """Run the job of the sampler gradient on the given circuits.
 
         Args:
@@ -68,7 +61,7 @@ class BaseSamplerGradient(ABC):
                 setting. Higher priority setting overrides lower priority setting.
 
         Returns:
-            Primitive job contains the gradients of the sampling probability. The i-th result
+            The job object of the gradients of the sampling probability. The i-th result
             corresponds to ``circuits[i]`` evaluated with parameters bound as ``parameter_values[i]``.
             The j-th quasi-probability distribution in the i-th result corresponds to the gradients of
             the sampling probability for the j-th parameter in ``circuits[i]``.
@@ -85,7 +78,7 @@ class BaseSamplerGradient(ABC):
         # run_options in `run` method > gradient's default run_options > primitive's default run_options.
         run_opts = copy(self._default_run_options)
         run_opts.update(run_options)
-        job = PrimitiveJob(self._run, circuits, parameter_values, parameters, **run_opts)
+        job = AlgorithmJob(self._run, circuits, parameter_values, parameters, **run_opts)
         job.submit()
         return job
 

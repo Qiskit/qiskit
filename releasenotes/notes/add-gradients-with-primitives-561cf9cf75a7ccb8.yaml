@@ -1,7 +1,7 @@
 ---
 features:
   - |
-    New gradient classes using the primitives has been added. They internally
+    New gradient Algorithms using the primitives have been added. They internally
     use the primitives to calculate the gradients. There are 3 types of
     gradient classes (Finite Difference, Parameter Shift, and
     Linear Combination of Unitary) for a sampler and estimator.
@@ -11,4 +11,5 @@ features:
 
       estimator = Estimator(...)
       gradient = ParamShiftEstimatorGradient(estimator)
-      results = gradient.evaluate(circuits, observables, parameters)
+      job = gradient.run(circuits, observables, parameters)
+      gradients = job.result().gradients
