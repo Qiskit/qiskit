@@ -99,10 +99,14 @@ class SuffixAveragingOptimizer(Optimizer):
             n_repitition = int(len(self._circ_params) / n_params)
             if n_repitition < self._n_params_suffix:
                 warnings.warn("The total number of iterations is less than n_params_suffix.")
-                averaged_param = np.mean(self._circ_params[:-n_params*n_repitition:-n_params], axis=0)
+                averaged_param = np.mean(
+                    self._circ_params[: -n_params * n_repitition : -n_params], axis=0
+                )
                 return averaged_param
 
-            averaged_param = np.mean(self._circ_params[:-n_params*self._n_params_suffix:-n_params], axis=0)
+            averaged_param = np.mean(
+                self._circ_params[: -n_params * self._n_params_suffix : -n_params], axis=0
+            )
 
         else:
             n_iterates = len(self._circ_params)
@@ -112,7 +116,7 @@ class SuffixAveragingOptimizer(Optimizer):
                 averaged_param = np.mean(self._circ_params, axis=0)
                 return averaged_param
 
-            averaged_param = np.mean(self._circ_params[-self._n_params_suffix:], axis=0)
+            averaged_param = np.mean(self._circ_params[-self._n_params_suffix :], axis=0)
 
         return averaged_param
 

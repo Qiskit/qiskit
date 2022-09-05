@@ -71,7 +71,9 @@ class TestOptimizerSA(QiskitAlgorithmsTestCase):
         result = vqe.compute_minimum_eigenvalue(operator=self.qubit_op)
 
         n_param = len(circ_params[0])
-        average_params = np.mean(circ_params[-2:-n_params_suffix*(n_param+1):-(n_param+1)], axis=0)
+        average_params = np.mean(
+            circ_params[-2 : -n_params_suffix * (n_param + 1) : -(n_param + 1)], axis=0
+        )
 
         np.testing.assert_array_almost_equal(result.optimal_point, average_params)
 
