@@ -34,7 +34,6 @@ from qiskit.opflow import (
     StateFn,
     I,
     Y,
-    SummedOp,
 )
 from qiskit.synthesis import SuzukiTrotter, QDrift
 
@@ -63,7 +62,7 @@ class TestTrotterQRTE(QiskitOpflowTestCase):
     @unpack
     def test_trotter_qrte_trotter_single_qubit(self, product_formula, expected_state):
         """Test for default TrotterQRTE on a single qubit."""
-        operator = SummedOp([X, Z])
+        operator = X + Z
         initial_state = StateFn([1, 0])
         time = 1
         evolution_problem = EvolutionProblem(operator, time, initial_state)
@@ -75,7 +74,7 @@ class TestTrotterQRTE(QiskitOpflowTestCase):
 
     def test_trotter_qrte_trotter_single_qubit_aux_ops(self):
         """Test for default TrotterQRTE on a single qubit with auxiliary operators."""
-        operator = SummedOp([X, Z])
+        operator = X + Z
         # LieTrotter with 1 rep
         aux_ops = [Pauli("X"), Pauli("Y")]
 
@@ -101,7 +100,7 @@ class TestTrotterQRTE(QiskitOpflowTestCase):
 
     @data(
         (
-            SummedOp([(X ^ Y), (Y ^ X)]),
+            (X ^ Y) + (Y ^ X),
             VectorStateFn(
                 Statevector(
                     [-0.41614684 + 0.0j, 0.0 + 0.0j, 0.0 + 0.0j, 0.90929743 + 0.0j], dims=(2, 2)
@@ -129,28 +128,9 @@ class TestTrotterQRTE(QiskitOpflowTestCase):
     def test_trotter_qrte_trotter_two_qubits(self, operator, expected_state):
         """Test for TrotterQRTE on two qubits with various types of a Hamiltonian."""
         # LieTrotter with 1 rep
-        initial_state = StateFn([1, 0, 0, 0])
+        initial_state = QuantumCircuit(2)
         evolution_problem = EvolutionProblem(operator, 1, initial_state)
 
-        trotter_qrte = TrotterQRTE()
-        evolution_result = trotter_qrte.evolve(evolution_problem)
-        np.testing.assert_equal(evolution_result.evolved_state.eval(), expected_state)
-
-    def test_trotter_qrte_trotter_two_qubits_with_params(self):
-        """Test for TrotterQRTE on two qubits with a parametrized Hamiltonian."""
-        # LieTrotter with 1 rep
-        initial_state = StateFn([1, 0, 0, 0])
-        w_param = Parameter("w")
-        u_param = Parameter("u")
-        params_dict = {w_param: 2.0, u_param: 3.0}
-        operator = w_param * (Z ^ Z) / 2.0 + (Z ^ I) + u_param * (I ^ Z) / 3.0
-        time = 1
-        evolution_problem = EvolutionProblem(
-            operator, time, initial_state, param_value_dict=params_dict
-        )
-        expected_state = VectorStateFn(
-            Statevector([-0.9899925 - 0.14112001j, 0.0 + 0.0j, 0.0 + 0.0j, 0.0 + 0.0j], dims=(2, 2))
-        )
         trotter_qrte = TrotterQRTE()
         evolution_result = trotter_qrte.evolve(evolution_problem)
         np.testing.assert_equal(evolution_result.evolved_state.eval(), expected_state)
@@ -172,7 +152,7 @@ class TestTrotterQRTE(QiskitOpflowTestCase):
     @unpack
     def test_trotter_qrte_qdrift(self, initial_state, expected_state):
         """Test for TrotterQRTE with QDrift."""
-        operator = SummedOp([X, Z])
+        operator = X + Z
         time = 1
         evolution_problem = EvolutionProblem(operator, time, initial_state)
 

@@ -68,6 +68,20 @@ class TrotterQRTE(RealEvolver):
         self.product_formula = product_formula
         self.estimator = estimator
 
+    @property
+    def estimator(self) -> BaseEstimator | None:
+        """
+        Returns an estimator.
+        """
+        return self.estimator
+
+    @estimator.setter
+    def estimator(self, estimator: BaseEstimator) -> None:
+        """
+        Sets an estimator.
+        """
+        self.estimator = estimator
+
     @classmethod
     def supports_aux_operators(cls) -> bool:
         """
@@ -98,9 +112,11 @@ class TrotterQRTE(RealEvolver):
             auxiliary operators evaluated for a resulting state on an estimator primitive.
 
         Raises:
-            ValueError: If ``t_param`` is not set to None in the EvolutionProblem (feature not
+            ValueError: If ``t_param`` is not set to ``None`` in the EvolutionProblem (feature not
                 currently supported).
+            ValueError: If ``aux_operators` are provided but no ``Estimator`` is provided.
             ValueError: If the ``initial_state`` is not provided in the EvolutionProblem.
+            ValueError: If an unsupported Hamiltonian type is provided.
         """
         evolution_problem.validate_params()
         if evolution_problem.t_param is not None:
@@ -116,8 +132,7 @@ class TrotterQRTE(RealEvolver):
         hamiltonian = evolution_problem.hamiltonian
         if not isinstance(hamiltonian, (PauliOp, PauliSumOp)):
             raise ValueError(
-                "TrotterQRTE only accepts PauliOp | "
-                f"PauliSumOp, {type(hamiltonian)} provided."
+                "TrotterQRTE only accepts PauliOp | " f"PauliSumOp, {type(hamiltonian)} provided."
             )
         # the evolution gate
         evolution_gate = CircuitOp(
@@ -143,4 +158,3 @@ class TrotterQRTE(RealEvolver):
             )
 
         return EvolutionResult(evolved_state, evaluated_aux_ops)
-
