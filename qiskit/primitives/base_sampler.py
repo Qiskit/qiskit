@@ -322,7 +322,6 @@ class BaseSampler(ABC):
         self,
         circuits: Sequence[QuantumCircuit],
         parameter_values: Sequence[Sequence[float]] | None = None,
-        parameters: Sequence[Sequence[Parameter]] | None = None,
         **run_options,
     ) -> Job:
         """Run the job of the sampling of bitstrings.
@@ -330,8 +329,6 @@ class BaseSampler(ABC):
         Args:
             circuits: the list of circuit objects.
             parameter_values: Parameters to be bound to the circuit.
-            parameters: Parameters of each of the quantum circuits.
-                Defaults to ``[circ.parameters for circ in circuits]``.
             run_options: Backend runtime options used for circuit execution.
 
         Returns:
@@ -354,22 +351,6 @@ class BaseSampler(ABC):
                         "but parameter values are not given."
                     )
             parameter_values = [[]] * len(circuits)
-
-        if parameters is None:
-            parameter_views = [circ.parameters for circ in circuits]
-        else:
-            parameter_views = [ParameterView(par) for par in parameters]
-            if len(self._parameters) != len(self._circuits):
-                raise QiskitError(
-                    f"Different number of parameters ({len(self._parameters)}) and "
-                    f"circuits ({len(self._circuits)})"
-                )
-            for i, (circ, params) in enumerate(zip(self._circuits, self._parameters)):
-                if circ.num_parameters != len(params):
-                    raise QiskitError(
-                        f"Different numbers of parameters of {i}-th circuit: "
-                        f"expected {circ.num_parameters}, actual {len(params)}."
-                    )
 
         # Validation
         if len(circuits) != len(parameter_values):
@@ -407,7 +388,6 @@ class BaseSampler(ABC):
         return self._run(
             circuits,
             parameter_values,
-            parameter_views,
             **run_opts.__dict__,
         )
 
@@ -426,7 +406,6 @@ class BaseSampler(ABC):
         self,
         circuits: Sequence[QuantumCircuit],
         parameter_values: Sequence[Sequence[float]],
-        parameters: Sequence[ParameterView],
         **run_options,
     ) -> Job:
         raise NotImplementedError(

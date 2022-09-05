@@ -152,7 +152,6 @@ class Estimator(BaseEstimator):
         circuits: Sequence[QuantumCircuit],
         observables: Sequence[BaseOperator | PauliSumOp],
         parameter_values: Sequence[Sequence[float]],
-        parameters: Sequence[ParameterView],
         **run_options,
     ) -> PrimitiveJob:
         circuit_indices = []
@@ -164,7 +163,7 @@ class Estimator(BaseEstimator):
                 circuit_indices.append(len(self._circuits))
                 self._circuit_ids[id(circuit)] = len(self._circuits)
                 self._circuits.append(circuit)
-                self._parameters.append(parameters[i])
+                self._parameters.append(circuit.parameters)
         observable_indices = []
         for observable in observables:
             index = self._observable_ids.get(id(observable))

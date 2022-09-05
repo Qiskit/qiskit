@@ -135,7 +135,6 @@ class Sampler(BaseSampler):
         self,
         circuits: Sequence[QuantumCircuit],
         parameter_values: Sequence[Sequence[float]],
-        parameters: Sequence[ParameterView],
         **run_options,
     ) -> PrimitiveJob:
         circuit_indices = []
@@ -149,7 +148,7 @@ class Sampler(BaseSampler):
                 circuit, qargs = self._preprocess_circuit(circuit)
                 self._circuits.append(circuit)
                 self._qargs_list.append(qargs)
-                self._parameters.append(parameters[i])
+                self._parameters.append(circuit.parameters)
         job = PrimitiveJob(self._call, circuit_indices, parameter_values, **run_options)
         job.submit()
         return job
