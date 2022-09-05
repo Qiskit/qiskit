@@ -59,7 +59,7 @@ class SamplingMinimumEigensolver(ABC):
 
 
 class SamplingMinimumEigensolverResult(AlgorithmResult):
-    """Minimum Eigensolver Result.
+    """Sampling Minimum Eigensolver Result.
 
     In contrast to the result of a :class:`~.MinimumEigenSolver`, this result also contains
     the best measurement of the overall optimization and the samples of the final state.
@@ -69,8 +69,6 @@ class SamplingMinimumEigensolverResult(AlgorithmResult):
         super().__init__()
         self._eigenvalue = None
         self._eigenstate = None
-        self._optimal_point = None
-        self._optimal_parameters = None
         self._aux_operator_values = None
         self._best_measurement = None
 
@@ -108,26 +106,6 @@ class SamplingMinimumEigensolverResult(AlgorithmResult):
         self._aux_operator_values = value
 
     @property
-    def optimal_point(self) -> Optional[np.ndarray]:
-        """Return the optimal point."""
-        return self._optimal_point
-
-    @optimal_point.setter
-    def optimal_point(self, value: np.ndarray) -> None:
-        """Set the optimal point."""
-        self._optimal_point = value
-
-    @property
-    def optimal_parameters(self) -> Optional[dict]:
-        """Return the optimal parameters as dictionary with `{parameter: value}` pairs."""
-        return self._optimal_parameters
-
-    @optimal_parameters.setter
-    def optimal_parameters(self, value: dict) -> None:
-        """Set the optimal parameters as dictionary with `{parameter: value}` pairs."""
-        self._optimal_parameters = value
-
-    @property
     def best_measurement(self) -> Optional[dict[str, Any]]:
         """Return the best measurement (as bitstring) over the entire optimization."""
         return self._best_measurement
@@ -142,7 +120,6 @@ class SamplingMinimumEigensolverResult(AlgorithmResult):
         disp = (
             "SamplingMinimumEigensolverResult:\n"
             + f"\tEigenvalue: {self.eigenvalue}\n"
-            + f"\tOptimal point: {self.optimal_point}"
             + f"\tBest measurement\n: {self.best_measurement}\n"
         )
         if self.aux_operator_values is not None:

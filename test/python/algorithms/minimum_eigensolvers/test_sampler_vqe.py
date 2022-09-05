@@ -25,7 +25,7 @@ from qiskit.algorithms.minimum_eigensolvers import SamplingVQE
 from qiskit.algorithms.optimizers import (
     L_BFGS_B,
     # QNSPSA,
-    SPSA,
+    # SPSA,
     OptimizerResult,
 )
 from qiskit.circuit.library import RealAmplitudes
@@ -78,6 +78,9 @@ class TestSamplerVQE(QiskitAlgorithmsTestCase):
         with self.subTest(msg="test eigenvalue"):
             self.assertAlmostEqual(result.eigenvalue, self.optimal_value, places=5)
 
+        with self.subTest(msg="test optimal_value"):
+            self.assertAlmostEqual(result.optimal_value, self.optimal_value, places=5)
+
         with self.subTest(msg="test dimension of optimal point"):
             self.assertEqual(len(result.optimal_point), ansatz.num_parameters)
 
@@ -129,19 +132,6 @@ class TestSamplerVQE(QiskitAlgorithmsTestCase):
         vqe = SamplingVQE(ansatz=circuit, sampler=Sampler())
         with self.assertRaises(RuntimeError):
             vqe.compute_minimum_eigenvalue(operator=self.op)
-
-    def test_max_evals_grouped(self):
-        """Test max_evals_grouped is correctly set on the optimizer."""
-        optimizer = SPSA(maxiter=1, learning_rate=0.01, perturbation=0.01)  # could be any
-        vqe = SamplingVQE(optimizer=optimizer, max_evals_grouped=2, sampler=Sampler())
-
-        # TODO this test currently breaks
-        # _ = vqe.compute_minimum_eigenvalue(self.op)
-        # self.assertEqual(optimizer._max_evals_grouped, 2)
-
-        vqe.max_evals_grouped = 1
-        _ = vqe.compute_minimum_eigenvalue(self.op)
-        self.assertEqual(optimizer._max_evals_grouped, 1)
 
     # def test_batch_evaluate_with_qnspsa(self):
     #     """Test batch evaluating with QNSPSA works."""

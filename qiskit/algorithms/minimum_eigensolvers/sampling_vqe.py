@@ -16,13 +16,12 @@ from __future__ import annotations
 
 import logging
 from time import time
-from collections.abc import Callable
+from collections.abc import Callable, Sequence
 
 import numpy as np
 
 from qiskit.circuit import QuantumCircuit
 from qiskit.circuit.library import RealAmplitudes
-from qiskit.utils.validation import validate_min, validate_range
 from qiskit.primitives import BaseSampler
 
 from qiskit.quantum_info.operators.base_operator import BaseOperator
@@ -31,6 +30,7 @@ from qiskit.opflow import PauliSumOp
 from ..exceptions import AlgorithmError
 from ..list_or_dict import ListOrDict
 from ..optimizers import SLSQP, Minimizer, Optimizer
+from ..variational_algorithm import VariationalAlgorithm, VariationalResult
 from .sampling_mes import (
     SamplingMinimumEigensolver,
     SamplingMinimumEigensolverResult,
@@ -40,7 +40,7 @@ from .diagonal_estimator import diagonal_estimation
 logger = logging.getLogger(__name__)
 
 
-class SamplingVQE(SamplingMinimumEigensolver):
+class SamplingVQE(VariationalAlgorithm, SamplingMinimumEigensolver):
     r"""The Variational Quantum Eigensolver algorithm.
 
     Attributes:
@@ -53,8 +53,6 @@ class SamplingVQE(SamplingMinimumEigensolver):
             If not provided, a random initial point with values in the interval :math:`[0, 2\pi]`
             is used.
         sampler: The sampler primitive to sample the circuits.
-        max_evals_grouped: Specifies how many parameter sets can be evaluated simultaneously.
-            This information is forwarded to the optimizer, which can use it for batch evaluation.
         aggregation: A float or callable to specify how the objective function evaluated on the
             basis states should be aggregated. If a float, this specifies the :math:`\alpha \in [0,1]`
             parameter for a CVaR expectation value (see also [1]).
@@ -70,11 +68,10 @@ class SamplingVQE(SamplingMinimumEigensolver):
         self,
         ansatz: QuantumCircuit | None = None,
         optimizer: Optimizer | Minimizer | None = None,
-        initial_point: np.ndarray | None = None,
+        initial_point: Sequence[float] | None = None,
         sampler: BaseSampler | None = None,
         # TODO
         # gradient:
-        max_evals_grouped: int = 1,
         aggregation: float | Callable[[list[float]], float] | None = None,
     ) -> None:
         """
@@ -87,26 +84,28 @@ class SamplingVQE(SamplingMinimumEigensolver):
                 for the optimizer. If ``None`` then VQE will look to the ansatz for a preferred
                 point and if not will simply compute a random one.
             sampler: The sampler primitive to sample the circuits.
-            max_evals_grouped: Max number of evaluations performed simultaneously. Signals the
-                given optimizer that more than one set of parameters can be supplied so that
-                potentially the expectation values can be computed in parallel. Typically this is
-                possible when a finite difference gradient is used by the optimizer such that
-                multiple points to compute the gradient can be passed and if computed in parallel
-                improve overall execution time. Deprecated if a gradient operator or function is
-                given.
+            aggregation: A float or callable to specify how the objective function evaluated on the
+                basis states should be aggregated.
         """
         super().__init__()
 
-        validate_min("max_evals_grouped", max_evals_grouped, 1)
-        if aggregation is not None:
-            validate_range("aggregation", aggregation, 0, 1)
-
         self.ansatz = ansatz
         self.optimizer = optimizer
-        self.initial_point = initial_point
         self.sampler = sampler
-        self.max_evals_grouped = max_evals_grouped
         self.aggregation = aggregation
+
+        # this has to go via getters and setters due to the VariationalAlgorithm interface
+        self._initial_point = initial_point
+
+    @property
+    def initial_point(self) -> Sequence[float] | None:
+        """Return the initial point."""
+        return self._initial_point
+
+    @initial_point.setter
+    def initial_point(self, value: Sequence[float] | None) -> None:
+        """Set the initial point."""
+        self._initial_point = value
 
     def _check_operator_ansatz(
         self, operator: BaseOperator, ansatz: QuantumCircuit
@@ -152,10 +151,6 @@ class SamplingVQE(SamplingMinimumEigensolver):
 
         optimizer = SLSQP() if self.optimizer is None else self.optimizer
 
-        if isinstance(optimizer, Optimizer):
-            # note that this changes the optimizer instance -- should we reset after the VQE run?
-            optimizer.set_max_evals_grouped(self.max_evals_grouped)
-
         if self.initial_point is None:
             initial_point = np.random.uniform(0, 2 * np.pi, ansatz.num_parameters)
         elif len(self.initial_point) != ansatz.num_parameters:
@@ -191,10 +186,11 @@ class SamplingVQE(SamplingMinimumEigensolver):
         result = SamplingVQEResult()
         result.optimal_point = opt_result.x
         result.optimal_parameters = dict(zip(ansatz.parameters, opt_result.x))
+        result.optimal_value = opt_result.fun
         result.cost_function_evals = opt_result.nfev
         result.optimizer_time = eval_time
         result.best_measurement = best_measurement["best"]
-        result.eigenvalue = opt_result.fun
+        result.eigenvalue = opt_result.fun + 0j
         result.eigenstate = final_state
 
         logger.info(
@@ -286,13 +282,12 @@ class SamplingVQE(SamplingMinimumEigensolver):
         return results
 
 
-class SamplingVQEResult(SamplingMinimumEigensolverResult):
+class SamplingVQEResult(VariationalResult, SamplingMinimumEigensolverResult):
     """VQE Result."""
 
     def __init__(self) -> None:
         super().__init__()
         self._cost_function_evals = None
-        self._optimizer_time = None
 
     @property
     def cost_function_evals(self) -> int | None:
@@ -303,16 +298,6 @@ class SamplingVQEResult(SamplingMinimumEigensolverResult):
     def cost_function_evals(self, value: int) -> None:
         """Sets number of cost function evaluations"""
         self._cost_function_evals = value
-
-    @property
-    def optimizer_time(self) -> float | None:
-        """Returns time the optimization took."""
-        return self._optimizer_time
-
-    @optimizer_time.setter
-    def optimizer_time(self, value: float) -> None:
-        """Sets time the optimization took."""
-        self._optimizer_time = value
 
 
 def _compare_measurements(candidate, current_best):
