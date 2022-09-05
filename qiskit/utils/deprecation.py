@@ -24,11 +24,7 @@ def deprecate_arguments(
 
     def decorator(func):
         if docstring_version and kwarg_map:
-            msg = ["One or more keyword argument are being deprecated:", ""]
-            for old_arg, new_arg in kwarg_map.items():
-                msg.append("* The argument {} is being replaced with {}".format(old_arg, new_arg))
-            msg.append("")  # Finish with an empty line
-            _extend_docstring(func, msg, docstring_version)
+            _extend_docstring(func, docstring_version, kwarg_map)
 
         @functools.wraps(func)
         def wrapper(*args, **kwargs):
@@ -62,7 +58,7 @@ def deprecate_function(
 
     def decorator(func):
         if docstring_version:
-            _extend_docstring(func, msg.expandtabs().splitlines(), docstring_version)
+            _extend_docstring(func, docstring_version, {None: msg.expandtabs().splitlines()})
 
         @functools.wraps(func)
         def wrapper(*args, **kwargs):
@@ -98,12 +94,15 @@ def _rename_kwargs(func_name, kwargs, kwarg_map, category: Type[Warning] = Depre
                 kwargs[new_arg] = kwargs.pop(old_arg)
 
 
-def _extend_docstring(func, msg_lines, version):
+def _extend_docstring(func, version, kwarg_map):
+    """kwarg_map[None] means message in no kwarg, and it will be
+    append to the long desscription"""
     docstr = func.__doc__
     if docstr:
         docstr_lines = docstr.expandtabs().splitlines()
     else:
         docstr_lines = ["DEPRECATED"]
+
     indent = 1000
     first_empty_line = None
     for line_no, line in enumerate(docstr_lines[1:], start=1):
@@ -119,10 +118,47 @@ def _extend_docstring(func, msg_lines, version):
     if indent != 1000:
         spaces = " " * indent
 
-    new_doc_str_lines = docstr_lines[:first_empty_line] + [
-        "",
-        spaces + f".. deprecated:: {version}",
-    ]
-    for msg_line in msg_lines:
-        new_doc_str_lines.append(spaces + "  " + msg_line)
-    func.__doc__ = "\n".join(new_doc_str_lines + docstr_lines[first_empty_line:])
+    new_doc_str_lines = docstr_lines[:first_empty_line]
+    if None in kwarg_map:
+        new_doc_str_lines += ["", spaces + f".. deprecated:: {version}"]
+        for msg_line in kwarg_map[None]:
+            new_doc_str_lines.append(spaces + "  " + msg_line)
+
+    arg_indent = indent
+    args_section = False
+    deprecated_arg = False
+    for docstr_line in docstr_lines[first_empty_line:]:
+        stripped = docstr_line.lstrip()
+        current_indent = len(docstr_line) - len(stripped)
+        if args_section:
+            if deprecated_arg and current_indent == arg_indent:
+                new_doc_str_lines.append(docstr_line)
+                deprecated_arg = False
+            else:
+                if not deprecated_arg:
+                    for k in kwarg_map.keys():
+                        if k is None:
+                            continue
+                        if stripped.startswith(k):
+                            arg_indent = len(docstr_line) - len(stripped)
+                            deprecated_arg = True
+                            spaces = " " * arg_indent
+                            new_doc_str_lines.append(spaces + k + ":")
+                            spaces += " " * 4
+                            new_doc_str_lines += [
+                                spaces + f".. deprecated:: {version}",
+                                spaces + f"    The keyword argument `{k}` is deprecated.",
+                                spaces + f"    Please, use `{kwarg_map[k]}` instead.",
+                                "",
+                            ]
+                            break
+                    else:
+                        new_doc_str_lines.append(docstr_line)
+        else:
+            new_doc_str_lines.append(docstr_line)
+        if docstr_line.lstrip() == "Args:":
+            args_section = True
+        if args_section and docstr_line.lstrip() == "":
+            args_section = False
+
+    func.__doc__ = "\n".join(new_doc_str_lines)
