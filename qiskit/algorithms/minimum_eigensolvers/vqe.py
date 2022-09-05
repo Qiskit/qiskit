@@ -13,8 +13,10 @@
 """The variational quantum eigensolver algorithm."""
 
 from __future__ import annotations
+
 import logging
 from time import time
+from collections.abc import Sequence
 
 import numpy as np
 
@@ -26,14 +28,14 @@ from qiskit.primitives import BaseEstimator
 from ..exceptions import AlgorithmError
 from ..list_or_dict import ListOrDict
 from ..optimizers import Optimizer, Minimizer
-from ..variational_algorithm import VariationalResult
+from ..variational_algorithm import VariationalAlgorithm, VariationalResult
 from .minimum_eigensolver import MinimumEigensolver, MinimumEigensolverResult
 
 
 logger = logging.getLogger(__name__)
 
 
-class VQE(MinimumEigensolver):
+class VQE(VariationalAlgorithm, MinimumEigensolver):
     r"""The variational quantum eigensolver (VQE) algorithm.
 
     VQE is a quantum algorithm that uses a variational technique to find the minimum eigenvalue of
@@ -103,7 +105,7 @@ class VQE(MinimumEigensolver):
         estimator: BaseEstimator,
         *,
         gradient=None,
-        initial_point: np.ndarray | None = None,
+        initial_point: Sequence[float] | None = None,
         # TODO Attach callback to optimizer instead.
         callback=None,
     ) -> None:
@@ -124,20 +126,31 @@ class VQE(MinimumEigensolver):
         self.optimizer = optimizer
         self.estimator = estimator
         self.gradient = gradient
-        self.initial_point = initial_point
+
+        # this has to go via getters and setters due to the VariationalAlgorithm interface
+        self._initial_point = initial_point
+
+        # TODO Remove this
         self.callback = callback
 
-        # TODO remove this
-        self._eval_count = 0
+    @property
+    def initial_point(self) -> Sequence[float] | None:
+        """Return the initial point."""
+        return self._initial_point
+
+    @initial_point.setter
+    def initial_point(self, value: Sequence[float] | None) -> None:
+        """Set the initial point."""
+        self._initial_point = value
 
     def compute_minimum_eigenvalue(
         self,
         operator: BaseOperator | PauliSumOp,
         aux_operators: ListOrDict[BaseOperator | PauliSumOp] | None = None,
     ) -> VQEResult:
-        ansatz = self._check_operator_ansatz(operator)
+        iter_count = 0
 
-        self._eval_count = 0
+        ansatz = self._check_operator_ansatz(operator)
 
         def energy_evaluation(point):
             job = self.estimator.run([ansatz], [operator], [point])
@@ -148,10 +161,12 @@ class VQE(MinimumEigensolver):
         #     return job.result()
 
         def expectation(point):
+            nonlocal iter_count
             energy = energy_evaluation(point)
-            self._eval_count += 1
+            iter_count += 1
+            # TODO remove this
             if self.callback is not None:
-                self.callback(self._eval_count, point, energy, 0)
+                self.callback(iter_count, point, energy, 0)
             return energy
 
         initial_point = self.initial_point
