@@ -577,14 +577,17 @@ class TestSampler(QiskitTestCase):
         qc1.measure_all()
         qc2 = RealAmplitudes(num_qubits=1, reps=1)
         qc2.measure_all()
+        qc3 = QuantumCircuit(1)
 
         sampler = Sampler()
         with self.assertRaises(QiskitError):
-            sampler.run([qc1], [[1e2]]).result()
+            sampler.run([qc1], [[1e2]])
         with self.assertRaises(QiskitError):
-            sampler.run([qc2], [[]]).result()
+            sampler.run([qc2], [[]])
         with self.assertRaises(QiskitError):
-            sampler.run([qc2], [[1e2]]).result()
+            sampler.run([qc2], [[1e2]])
+        with self.assertRaises(QiskitError):
+            result = sampler.run([qc3], [[]])
 
     def test_run_empty_parameter(self):
         """Test for empty parameter"""
