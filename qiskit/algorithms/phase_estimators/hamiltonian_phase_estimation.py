@@ -13,7 +13,7 @@
 """Phase estimation for the spectrum of a Hamiltonian"""
 
 from __future__ import annotations
-from typing import Union
+
 import warnings
 
 from qiskit import QuantumCircuit
@@ -32,7 +32,7 @@ from qiskit.providers import Backend
 from .phase_estimation import PhaseEstimation
 from .hamiltonian_phase_estimation_result import HamiltonianPhaseEstimationResult
 from .phase_estimation_scale import PhaseEstimationScale
-from ...primitives import Sampler
+from ...primitives import BaseSampler
 
 
 class HamiltonianPhaseEstimation:
@@ -92,9 +92,9 @@ class HamiltonianPhaseEstimation:
     def __init__(
         self,
         num_evaluation_qubits: int,
-        quantum_instance: None | Union[QuantumInstance, Backend] = None,
-        sampler: None | Sampler = None,
-        shots: None | int = None,
+        quantum_instance: QuantumInstance | Backend | None = None,
+        sampler: BaseSampler | None = None,
+        shots: int | None = None,
     ) -> None:
         r"""
         Args:
@@ -148,9 +148,9 @@ class HamiltonianPhaseEstimation:
     def estimate(
         self,
         hamiltonian: OperatorBase,
-        state_preparation: None | StateFn = None,
-        evolution: None | EvolutionBase = None,
-        bound: None | float = None,
+        state_preparation: StateFn | None = None,
+        evolution: EvolutionBase | None = None,
+        bound: float | None = None,
     ) -> HamiltonianPhaseEstimationResult:
         """Run the Hamiltonian phase estimation algorithm.
 

@@ -11,8 +11,8 @@
 # that they have been altered from the originals.
 
 """Result of running PhaseEstimation"""
-
-from typing import Dict, Union
+from __future__ import annotations
+from typing import Dict
 import numpy
 
 from qiskit.utils.deprecation import deprecate_function
@@ -36,7 +36,7 @@ class PhaseEstimationResult(PhaseEstimatorResult):
         self,
         num_evaluation_qubits: int,
         circuit_result: Result,
-        phases: Union[numpy.ndarray, Dict[str, float]],
+        phases: numpy.ndarray | Dict[str, float],
     ) -> None:
         """
         Args:
@@ -52,7 +52,7 @@ class PhaseEstimationResult(PhaseEstimatorResult):
         self._circuit_result = circuit_result
 
     @property
-    def phases(self) -> Union[numpy.ndarray, dict]:
+    def phases(self) -> numpy.ndarray | dict:
         """Return all phases and their frequencies computed by QPE.
 
         This is an array or dict whose values correspond to weights on bit strings.

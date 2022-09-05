@@ -15,7 +15,6 @@
 
 from __future__ import annotations
 import warnings
-from typing import Union
 
 import numpy
 
@@ -29,7 +28,7 @@ from qiskit.result import Result
 from qiskit.algorithms.exceptions import AlgorithmError
 from .phase_estimation_result import PhaseEstimationResult, _sort_phases
 from .phase_estimator import PhaseEstimator
-from ...primitives import Sampler
+from ...primitives import BaseSampler
 
 
 class PhaseEstimation(PhaseEstimator):
@@ -85,9 +84,9 @@ class PhaseEstimation(PhaseEstimator):
     def __init__(
         self,
         num_evaluation_qubits: int,
-        quantum_instance: None | QuantumInstance | Backend = None,
-        sampler: None | Sampler = None,
-        shots: None | int = None,
+        quantum_instance: QuantumInstance | Backend | None = None,
+        sampler: BaseSampler | None = None,
+        shots: int | None = None,
     ) -> None:
         r"""
         Args:
@@ -98,7 +97,14 @@ class PhaseEstimation(PhaseEstimator):
             sampler: The sampler primitive on which the circuit will be sampled.
             shots: The number of shots to be used by a sampler. If ``None``, exact probabilities
                 will be calculated.
+
+        Raises:
+            AlgorithmError: If neither sampler nor quantum instance is provided.
         """
+        if sampler is None and quantum_instance is None:
+            raise AlgorithmError(
+                "Neither a sampler nor a quantum instance was provided. Please provide one of them."
+            )
         if quantum_instance is not None:
             warnings.warn(
                 "The quantum_instance argument has been superseded by the sampler argument. "
@@ -117,7 +123,7 @@ class PhaseEstimation(PhaseEstimator):
         self.shots = shots
 
     def construct_circuit(
-        self, unitary: QuantumCircuit, state_preparation: None | QuantumCircuit = None
+        self, unitary: QuantumCircuit, state_preparation: QuantumCircuit | None = None
     ) -> QuantumCircuit:
         """Return the circuit to be executed to estimate phases.
 
@@ -154,7 +160,7 @@ class PhaseEstimation(PhaseEstimator):
 
     def _compute_phases(
         self, num_unitary_qubits: int, circuit_result: Result
-    ) -> Union[numpy.ndarray, qiskit.result.Counts]:
+    ) -> numpy.ndarray | qiskit.result.Counts:
         """Compute frequencies/counts of phases from the result of running the QPE circuit.
 
         How the frequencies are computed depends on whether the backend computes amplitude or
@@ -245,10 +251,10 @@ class PhaseEstimation(PhaseEstimator):
     # pylint: disable=missing-param-doc
     def estimate(
         self,
-        unitary: None | QuantumCircuit = None,
-        state_preparation: None | QuantumCircuit = None,
-        pe_circuit: None | QuantumCircuit = None,
-        num_unitary_qubits: None | int = None,
+        unitary: QuantumCircuit | None = None,
+        state_preparation: QuantumCircuit | None = None,
+        pe_circuit: QuantumCircuit | None = None,
+        num_unitary_qubits: int | None = None,
     ) -> PhaseEstimationResult:
         """Build a phase estimation circuit and run the corresponding algorithm.
 
@@ -262,15 +268,7 @@ class PhaseEstimation(PhaseEstimator):
 
         Returns:
             An instance of qiskit.algorithms.phase_estimator_result.PhaseEstimationResult.
-
-        Raises:
-            AlgorithmError: If neither sampler nor quantum instance is provided.
         """
-        if self._sampler is None and self._quantum_instance is None:
-            raise AlgorithmError(
-                "Neither a sampler nor a quantum instance was provided. Please provide one of them."
-            )
-
         if unitary is not None:
             if pe_circuit is not None:
                 raise ValueError("Only one of `pe_circuit` and `unitary` may be passed.")

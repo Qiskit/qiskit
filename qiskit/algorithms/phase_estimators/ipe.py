@@ -14,9 +14,11 @@
 """The Iterative Quantum Phase Estimation Algorithm."""
 
 from __future__ import annotations
-from typing import Union
+
 import warnings
+
 import numpy
+
 import qiskit
 from qiskit.circuit import QuantumCircuit, QuantumRegister
 from qiskit.circuit.classicalregister import ClassicalRegister
@@ -25,7 +27,7 @@ from qiskit.utils import QuantumInstance
 from qiskit.algorithms.exceptions import AlgorithmError
 from .phase_estimator import PhaseEstimator
 from .phase_estimator import PhaseEstimatorResult
-from ...primitives import Sampler
+from ...primitives import BaseSampler
 
 
 class IterativePhaseEstimation(PhaseEstimator):
@@ -41,9 +43,9 @@ class IterativePhaseEstimation(PhaseEstimator):
     def __init__(
         self,
         num_iterations: int,
-        quantum_instance: None | Union[QuantumInstance, Backend] = None,
-        sampler: None | Sampler = None,
-        shots: None | int = None,
+        quantum_instance: QuantumInstance | Backend | None = None,
+        sampler: BaseSampler | None = None,
+        shots: int | None = None,
     ) -> None:
         r"""Args:
             num_iterations: The number of iterations (rounds) of the phase estimation to run.
@@ -54,8 +56,13 @@ class IterativePhaseEstimation(PhaseEstimator):
                 will be calculated.
 
         Raises:
-          ValueError: if num_iterations is not greater than zero.
+            ValueError: if num_iterations is not greater than zero.
+            AlgorithmError: If neither sampler nor quantum instance is provided.
         """
+        if sampler is None and quantum_instance is None:
+            raise AlgorithmError(
+                "Neither a sampler nor a quantum instance was provided. Please provide one of them."
+            )
         if quantum_instance is not None:
             warnings.warn(
                 "The quantum_instance argument has been superseded by the sampler argument. "
@@ -191,10 +198,6 @@ class IterativePhaseEstimation(PhaseEstimator):
         Raises:
             AlgorithmError: If neither sampler nor quantum instance is provided.
         """
-        if self._sampler is None and self._quantum_instance is None:
-            raise AlgorithmError(
-                "Neither a sampler nor a quantum instance was provided. Please provide one of them."
-            )
         phase = self._estimate_phase_iteratively(unitary, state_preparation)
 
         return IterativePhaseEstimationResult(self._num_iterations, phase)
