@@ -71,7 +71,7 @@ def generate_unroll_3q(
         unitary_synthesis_method (str): The unitary synthesis method to use
         unitary_synthesis_plugin_config (dict): The optional dictionary plugin
             configuration, this is plugin specific refer to the specified plugin's
-            documenation for how to use.
+            documentation for how to use.
         hls_config: hls config
 
     Returns:
@@ -257,7 +257,7 @@ def generate_translation_passmanager(
             is True/None.
         unitary_synthesis_plugin_config (dict): The optional dictionary plugin
             configuration, this is plugin specific refer to the specified plugin's
-            documenation for how to use.
+            documentation for how to use.
         backend_props (BackendProperties): Properties of a backend to
             synthesize for (e.g. gate fidelities).
         unitary_synthesis_method (str): The unitary synthesis method to use
