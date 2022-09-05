@@ -10,13 +10,16 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 """Tests evaluator of auxiliary operators for algorithms."""
-
+from __future__ import annotations
 import unittest
-from typing import Tuple, Sequence, List
+from typing import Tuple
+
 from test.python.algorithms import QiskitAlgorithmsTestCase
 import numpy as np
 from ddt import ddt, data
 
+from qiskit.algorithms.list_or_dict import ListOrDict
+from qiskit.quantum_info.operators.base_operator import BaseOperator
 from qiskit.algorithms.observables_evaluator import eval_observables
 from qiskit.primitives import Estimator
 from qiskit.quantum_info import Statevector
@@ -24,7 +27,6 @@ from qiskit import QuantumCircuit
 from qiskit.circuit.library import EfficientSU2
 from qiskit.opflow import (
     PauliSumOp,
-    OperatorBase,
 )
 from qiskit.utils import algorithm_globals
 
@@ -40,29 +42,44 @@ class TestObservablesEvaluator(QiskitAlgorithmsTestCase):
 
         self.threshold = 1e-8
 
-    def get_exact_expectation(self, ansatz: QuantumCircuit, observables: Sequence[OperatorBase]):
+    def get_exact_expectation(
+        self, ansatz: QuantumCircuit, observables: ListOrDict[BaseOperator | PauliSumOp]
+    ):
         """
         Calculates the exact expectation to be used as an expected result for unit tests.
         """
-
+        if isinstance(observables, dict):
+            observables_list = list(observables.values())
+        else:
+            observables_list = observables
         # the exact value is a list of (mean, variance) where we expect 0 variance
         exact = [
-            (Statevector(ansatz).expectation_value(observable), 0) for observable in observables
+            (Statevector(ansatz).expectation_value(observable), 0)
+            for observable in observables_list
         ]
+
+        if isinstance(observables, dict):
+            return dict(zip(observables.keys(), exact))
 
         return exact
 
     def _run_test(
         self,
-        expected_result: List[Tuple[complex, complex]],
-        quantum_state: Sequence[QuantumCircuit],
+        expected_result: ListOrDict[Tuple[complex, complex]],
+        quantum_state: QuantumCircuit,
         decimal: int,
-        observables: Sequence[OperatorBase],
+        observables: ListOrDict[BaseOperator | PauliSumOp],
         estimator: Estimator,
     ):
         result = eval_observables(estimator, quantum_state, observables, self.threshold)
 
-        np.testing.assert_array_almost_equal(result, expected_result, decimal=decimal)
+        if isinstance(observables, dict):
+            np.testing.assert_equal(list(result.keys()), list(expected_result.keys()))
+            np.testing.assert_array_almost_equal(
+                list(result.values()), list(expected_result.values()), decimal=decimal
+            )
+        else:
+            np.testing.assert_array_almost_equal(result, expected_result, decimal=decimal)
 
     @data(
         [
@@ -72,8 +89,15 @@ class TestObservablesEvaluator(QiskitAlgorithmsTestCase):
         [
             PauliSumOp.from_list([("ZZ", 2.0)]),
         ],
+        {
+            "op1": PauliSumOp.from_list([("II", 2.0)]),
+            "op2": PauliSumOp.from_list([("II", 0.5), ("ZZ", 0.5), ("YY", 0.5), ("XX", -0.5)]),
+        },
+        {
+            "op1": PauliSumOp.from_list([("ZZ", 2.0)]),
+        },
     )
-    def test_eval_observables(self, observables: Sequence[OperatorBase]):
+    def test_eval_observables(self, observables: ListOrDict[BaseOperator | PauliSumOp]):
         """Tests evaluator of auxiliary operators for algorithms."""
 
         ansatz = EfficientSU2(2)

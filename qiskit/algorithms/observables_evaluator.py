@@ -11,7 +11,8 @@
 # that they have been altered from the originals.
 """Evaluator of auxiliary operators for algorithms."""
 from __future__ import annotations
-from typing import Tuple, List, Sequence
+
+from typing import Tuple, List
 
 import numpy as np
 
@@ -19,6 +20,8 @@ from qiskit import QuantumCircuit
 from qiskit.opflow import (
     PauliSumOp,
 )
+from . import AlgorithmError
+from .list_or_dict import ListOrDict
 from ..primitives import EstimatorResult, BaseEstimator
 from ..quantum_info.operators.base_operator import BaseOperator
 
@@ -26,9 +29,9 @@ from ..quantum_info.operators.base_operator import BaseOperator
 def eval_observables(
     estimator: BaseEstimator,
     quantum_state: QuantumCircuit,
-    observables: Sequence[BaseOperator | PauliSumOp],
+    observables: ListOrDict[BaseOperator | PauliSumOp],
     threshold: float = 1e-12,
-) -> List[Tuple[complex, complex]]:
+) -> ListOrDict[Tuple[complex, complex]]:
     """
     Accepts a sequence of operators and calculates their expectation values - means
     and standard deviations. They are calculated with respect to a quantum state provided. A user
@@ -38,15 +41,17 @@ def eval_observables(
         estimator: An estimator primitive used for calculations.
         quantum_state: An unparametrized quantum circuit representing a quantum state that
             expectation values are computed against.
-        observables: A sequence of operators whose expectation values are to be calculated.
+        observables: A list or a dictionary of operators whose expectation values are to be
+            calculated.
         threshold: A threshold value that defines which mean values should be neglected (helpful for
             ignoring numerical instabilities close to 0).
 
     Returns:
-        A list of tuples (mean, standard deviation).
+        A list or a dictionary of tuples (mean, standard deviation).
 
     Raises:
         ValueError: If a ``quantum_state`` with free parameters is provided.
+        AlgorithmError: If a primitive job is not successful.
     """
 
     if (
@@ -57,12 +62,17 @@ def eval_observables(
             "A parametrized representation of a quantum_state was provided. It is not "
             "allowed - it cannot have free parameters."
         )
-
+    if isinstance(observables, dict):
+        observables_list = list(observables.values())
+    else:
+        observables_list = observables
     quantum_state = [quantum_state] * len(observables)
-    estimator_job = estimator.run(quantum_state, observables)
-    expectation_values = estimator_job.result().values
+    try:
+        estimator_job = estimator.run(quantum_state, observables_list)
+        expectation_values = estimator_job.result().values
+    except Exception as exc:
+        raise AlgorithmError("The primitive job failed!") from exc
 
-    # compute standard deviations
     std_devs = _compute_std_devs(estimator_job, len(expectation_values))
 
     # Discard values below threshold
@@ -71,29 +81,32 @@ def eval_observables(
     observables_results = list(zip(observables_means, std_devs))
 
     # Return None eigenvalues for None operators if observables is a list.
-
     return _prepare_result(observables_results, observables)
 
 
 def _prepare_result(
     observables_results: List[Tuple[complex, complex]],
-    observables: Sequence[BaseOperator],
-) -> List[Tuple[complex, complex]]:
+    observables: ListOrDict[BaseOperator | PauliSumOp],
+) -> ListOrDict[Tuple[complex, complex]]:
     """
     Prepares a list of eigenvalues and standard deviations from ``observables_results`` and
     ``observables``.
 
     Args:
         observables_results: A list of of tuples (mean, standard deviation).
-        observables: A list of operators whose expectation values are to be
+        observables: A list or a dictionary of operators whose expectation values are to be
             calculated.
 
     Returns:
-        A list of tuples (mean, standard deviation).
+        A list or a dictionary of tuples (mean, standard deviation).
     """
 
-    observables_eigenvalues = [None] * len(observables)
-    key_value_iterator = enumerate(observables_results)
+    if isinstance(observables, list):
+        observables_eigenvalues = [None] * len(observables)
+        key_value_iterator = enumerate(observables_results)
+    else:
+        observables_eigenvalues = {}
+        key_value_iterator = zip(observables.keys(), observables_results)
 
     for key, value in key_value_iterator:
         if observables[key] is not None:
