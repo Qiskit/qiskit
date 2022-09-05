@@ -11,7 +11,7 @@
 # that they have been altered from the originals.
 """Evaluator of auxiliary operators for algorithms."""
 
-from typing import Tuple, Union, List, Sequence, Optional
+from typing import Tuple, List, Sequence
 
 import numpy as np
 
@@ -19,14 +19,14 @@ from qiskit import QuantumCircuit
 from qiskit.opflow import (
     PauliSumOp,
 )
-from ..primitives import Estimator, EstimatorResult
+from ..primitives import EstimatorResult, BaseEstimator
 from ..quantum_info.operators.base_operator import BaseOperator
 
 
 def eval_observables(
-    estimator: Estimator,
+    estimator: BaseEstimator,
     quantum_state: QuantumCircuit,
-    observables: Sequence[Union[BaseOperator, PauliSumOp]],
+    observables: Sequence[BaseOperator | PauliSumOp],
     threshold: float = 1e-12,
 ) -> List[Tuple[complex, complex]]:
     """
@@ -77,7 +77,7 @@ def eval_observables(
 
 def _prepare_result(
     observables_results: List[Tuple[complex, complex]],
-    observables: Sequence[BaseOperator],
+    observables: Sequence[BaseOperator | PauliSumOp],
 ) -> List[Tuple[complex, complex]]:
     """
     Prepares a list of eigenvalues and standard deviations from ``observables_results`` and
@@ -104,7 +104,7 @@ def _prepare_result(
 def _compute_std_devs(
     estimator_result: EstimatorResult,
     results_length: int,
-) -> List[Optional[complex]]:
+) -> List[complex | None]:
     """
     Calculates a list of standard deviations from expectation values of observables provided.
 

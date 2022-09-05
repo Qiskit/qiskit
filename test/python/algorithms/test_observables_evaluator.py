@@ -13,6 +13,8 @@
 
 import unittest
 from typing import Tuple, Sequence, List
+
+from qiskit.quantum_info.operators.base_operator import BaseOperator
 from test.python.algorithms import QiskitAlgorithmsTestCase
 import numpy as np
 from ddt import ddt, data
@@ -24,7 +26,6 @@ from qiskit import QuantumCircuit
 from qiskit.circuit.library import EfficientSU2
 from qiskit.opflow import (
     PauliSumOp,
-    OperatorBase,
 )
 from qiskit.utils import algorithm_globals
 
@@ -40,7 +41,9 @@ class TestObservablesEvaluator(QiskitAlgorithmsTestCase):
 
         self.threshold = 1e-8
 
-    def get_exact_expectation(self, ansatz: QuantumCircuit, observables: Sequence[OperatorBase]):
+    def get_exact_expectation(
+        self, ansatz: QuantumCircuit, observables: Sequence[BaseOperator | PauliSumOp]
+    ):
         """
         Calculates the exact expectation to be used as an expected result for unit tests.
         """
@@ -57,7 +60,7 @@ class TestObservablesEvaluator(QiskitAlgorithmsTestCase):
         expected_result: List[Tuple[complex, complex]],
         quantum_state: Sequence[QuantumCircuit],
         decimal: int,
-        observables: Sequence[OperatorBase],
+        observables: Sequence[BaseOperator | PauliSumOp],
         estimator: Estimator,
     ):
         result = eval_observables(estimator, quantum_state, observables, self.threshold)
@@ -73,7 +76,7 @@ class TestObservablesEvaluator(QiskitAlgorithmsTestCase):
             PauliSumOp.from_list([("ZZ", 2.0)]),
         ],
     )
-    def test_eval_observables(self, observables: Sequence[OperatorBase]):
+    def test_eval_observables(self, observables: Sequence[BaseOperator | PauliSumOp]):
         """Tests evaluator of auxiliary operators for algorithms."""
 
         ansatz = EfficientSU2(2)
