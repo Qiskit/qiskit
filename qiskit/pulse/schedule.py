@@ -1036,7 +1036,15 @@ class ScheduleBlock:
             name = self.prefix + str(next(self.instances_counter))
             if sys.platform != "win32" and not is_main_process():
                 name += f"-{mp.current_process().pid}"
+
+        # This points to the parent schedule object in the current scope.
+        # Note that schedule block can be nested without referencing, e.g. .append(child_block),
+        # and parent=None indicates the root program of the current scope.
+        # The nested schedule block objects should not have _reference_manager and
+        # should refer to the one of the root program.
+        # This also means referenced program should be assigned to the root program, not to child.
         self._parent = None
+
         self._name = name
         self._parameter_manager = ParameterManager()
         self._reference_manager = ReferenceManager()
