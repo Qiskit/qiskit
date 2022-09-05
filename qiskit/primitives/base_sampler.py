@@ -126,7 +126,7 @@ class BaseSampler(ABC):
             circuits: Quantum circuits to be executed.
             parameters: Parameters of each of the quantum circuits.
                 Defaults to ``[circ.parameters for circ in circuits]``.
-            run_options: runtime options.
+            run_options: Default runtime options.
 
         Raises:
             QiskitError: For mismatch of circuits and parameters list.
@@ -229,12 +229,8 @@ class BaseSampler(ABC):
 
         Args:
             **fields: The fields to update the options
-
-        Returns:
-            self
         """
         self._run_options.update_options(**fields)
-        return self
 
     @deprecate_function(
         "The BaseSampler.__call__ method is deprecated as of Qiskit Terra 0.21.0 "

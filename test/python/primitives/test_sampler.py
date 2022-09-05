@@ -650,7 +650,7 @@ class TestSampler(QiskitTestCase):
             [self._pqc], parameter_values=[[0, 1, 1, 2, 3, 5]], shots=None, seed=15
         ).result()
         self.assertDictAlmostEqual(result_42.quasi_dists, result_15.quasi_dists)
-        
+
     def test_primitive_job_status_done(self):
         """test primitive job's status"""
         bell = self._circuit[1]

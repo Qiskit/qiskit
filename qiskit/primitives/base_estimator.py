@@ -278,12 +278,8 @@ class BaseEstimator(ABC):
 
         Args:
             **fields: The fields to update the options
-
-        Returns:
-            self
         """
         self._run_options.update_options(**fields)
-        return self
 
     @deprecate_function(
         "The BaseSampler.__call__ method is deprecated as of Qiskit Terra 0.21.0 "
@@ -323,7 +319,7 @@ class BaseEstimator(ABC):
             circuits: the list of circuit indices or circuit objects.
             observables: the list of observable indices or observable objects.
             parameter_values: concrete parameters to be bound.
-            run_options: runtime options used for circuit execution.
+            run_options: Default runtime options used for circuit execution.
 
         Returns:
             EstimatorResult: The result of the estimator.

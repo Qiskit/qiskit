@@ -60,7 +60,7 @@ class Sampler(BaseSampler):
             circuits: circuits to be executed
             parameters: Parameters of each of the quantum circuits.
                 Defaults to ``[circ.parameters for circ in circuits]``.
-            run_options: runtime options.
+            run_options: Default runtime options.
 
         Raises:
             QiskitError: if some classical bits are not used for measurements.

@@ -56,6 +56,17 @@ class Estimator(BaseEstimator):
         parameters: Iterable[Iterable[Parameter]] | None = None,
         run_options: dict | None = None,
     ):
+        """
+        Args:
+            circuits: circuits that represent quantum states.
+            observables: observables to be estimated.
+            parameters: Parameters of each of the quantum circuits.
+                Defaults to ``[circ.parameters for circ in circuits]``.
+            run_options: Default runtime options.
+
+        Raises:
+            QiskitError: if some classical bits are not used for measurements.
+        """
         if isinstance(circuits, QuantumCircuit):
             circuits = (circuits,)
         if circuits is not None:
