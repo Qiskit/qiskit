@@ -91,8 +91,6 @@ class VQE(MinimumEigensolver):
         initial_point: An optional initial point (i.e. initial parameter values) for the optimizer.
             If not provided, a random initial point with values in the interval :math:`[0, 2\pi]`
             is used.
-        max_evals_grouped: Specifies how many parameter sets can be evaluated simultaneously.
-            This information is forwarded to the optimizer, which can use it for batch evaluation.
 
     References:
         [1] Peruzzo et al, "A variational eigenvalue solver on a quantum processor"
@@ -107,7 +105,6 @@ class VQE(MinimumEigensolver):
         *,
         gradient=None,
         initial_point: np.ndarray | None = None,
-        max_evals_grouped: int = 1,
         # TODO Attach callback to optimizer instead.
         callback=None,
     ) -> None:
@@ -121,24 +118,14 @@ class VQE(MinimumEigensolver):
             initial_point: An optional initial point (i.e. initial parameter values)
                 for the optimizer. If ``None`` then VQE will look to the ansatz for a preferred
                 point and if not will simply compute a random one.
-            max_evals_grouped: Max number of evaluations performed simultaneously. Signals the
-                given optimizer that more than one set of parameters can be supplied so that
-                potentially the expectation values can be computed in parallel. Typically this is
-                possible when a finite difference gradient is used by the optimizer such that
-                multiple points to compute the gradient can be passed and if computed in parallel
-                improve overall execution time. Deprecated if a gradient operator or function is
-                given.
         """
         super().__init__()
-
-        validate_min("max_evals_grouped", max_evals_grouped, 1)
 
         self.ansatz = ansatz
         self.optimizer = optimizer
         self.estimator = estimator
         self.gradient = gradient
         self.initial_point = initial_point
-        self.max_evals_grouped = max_evals_grouped
         self.callback = callback
 
         # TODO remove this
@@ -150,10 +137,6 @@ class VQE(MinimumEigensolver):
         aux_operators: ListOrDict[BaseOperator | PauliSumOp] | None = None,
     ) -> VQEResult:
         ansatz = self._check_operator_ansatz(operator)
-
-        if isinstance(self.optimizer, Optimizer):
-            # note that this changes the optimizer instance -- should we reset after the VQE run?
-            self.optimizer.set_max_evals_grouped(self.max_evals_grouped)
 
         self._eval_count = 0
 
