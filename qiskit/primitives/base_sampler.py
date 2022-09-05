@@ -364,7 +364,8 @@ class BaseSampler(ABC):
             if circuit.num_clbits == 0:
                 raise QiskitError(
                     f"The {i}-th circuit does not have any classical bit. "
-                    "Sampler requires classical bits."
+                    "Sampler requires classical bits, plus measurements "
+                    "on the desired qubits."
                 )
 
             mapping = final_measurement_mapping(circuit)
