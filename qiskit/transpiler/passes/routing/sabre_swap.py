@@ -23,6 +23,7 @@ from qiskit.transpiler.basepasses import TransformationPass
 from qiskit.transpiler.exceptions import TranspilerError
 from qiskit.transpiler.layout import Layout
 from qiskit.dagcircuit import DAGOpNode
+from qiskit.tools.parallel import CPU_COUNT
 
 # pylint: disable=import-error
 from qiskit._accelerate.sabre_swap import (
@@ -61,6 +62,11 @@ class SabreSwap(TransformationPass):
     scored according to some heuristic cost function. The best SWAP is
     implemented and ``current_layout`` updated.
 
+    This transpiler pass adds onto the SABRE algorithm in that it will run
+    multiple trials of the algorithm with different seeds. The best output,
+    deteremined by the trial with the least amount of SWAPed inserted, will
+    be selected from the random trials.
+
     **References:**
 
     [1] Li, Gushu, Yufei Ding, and Yuan Xie. "Tackling the qubit mapping problem
@@ -68,13 +74,7 @@ class SabreSwap(TransformationPass):
     `arXiv:1809.02573 <https://arxiv.org/pdf/1809.02573.pdf>`_
     """
 
-    def __init__(
-        self,
-        coupling_map,
-        heuristic="basic",
-        seed=None,
-        fake_run=False,
-    ):
+    def __init__(self, coupling_map, heuristic="basic", seed=None, fake_run=False, trials=None):
         r"""SabreSwap initializer.
 
         Args:
@@ -84,6 +84,12 @@ class SabreSwap(TransformationPass):
             seed (int): random seed used to tie-break among candidate swaps.
             fake_run (bool): if true, it only pretend to do routing, i.e., no
                 swap is effectively added.
+            trials (int): The number of seed trials to run sabre with. These will
+                be run in parallel (unless the PassManager is already running in
+                parallel). If not specified this defaults to the number of physical
+                CPUs on the local system. For reproducible results it is recommended
+                that you set this explicitly, as the output will be deterministic for
+                a fixed number of trials.
 
         Raises:
             TranspilerError: If the specified heuristic is not valid.
@@ -158,6 +164,11 @@ class SabreSwap(TransformationPass):
             self.seed = np.random.default_rng(None).integers(0, ii32.max, dtype=int)
         else:
             self.seed = seed
+        if trials is None:
+            self.trials = CPU_COUNT
+        else:
+            self.trials = trials
+
         self.fake_run = fake_run
         self._qubit_indices = None
         self._clbit_indices = None
@@ -216,6 +227,7 @@ class SabreSwap(TransformationPass):
             self.heuristic,
             self.seed,
             layout,
+            self.trials,
         )
 
         layout_mapping = layout.layout_mapping()
