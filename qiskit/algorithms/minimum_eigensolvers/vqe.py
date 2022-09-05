@@ -16,7 +16,7 @@ from __future__ import annotations
 
 import logging
 from time import time
-from collections.abc import Sequence
+from collections.abc import Callable, Sequence
 
 import numpy as np
 
@@ -148,26 +148,7 @@ class VQE(VariationalAlgorithm, MinimumEigensolver):
         operator: BaseOperator | PauliSumOp,
         aux_operators: ListOrDict[BaseOperator | PauliSumOp] | None = None,
     ) -> VQEResult:
-        iter_count = 0
-
         ansatz = self._check_operator_ansatz(operator)
-
-        def energy_evaluation(point):
-            job = self.estimator.run([ansatz], [operator], [point])
-            return job.result().values[0]
-
-        # def gradient_evaluation(point):
-        #     job = self.gradient.run([self.ansatz], [operator], [point])
-        #     return job.result()
-
-        def expectation(point):
-            nonlocal iter_count
-            energy = energy_evaluation(point)
-            iter_count += 1
-            # TODO remove this
-            if self.callback is not None:
-                self.callback(iter_count, point, energy, 0)
-            return energy
 
         initial_point = self.initial_point
         if initial_point is None:
@@ -179,6 +160,8 @@ class VQE(VariationalAlgorithm, MinimumEigensolver):
             )
 
         start_time = time()
+
+        expectation = self.get_energy_evaluation(operator, ansatz)
 
         # Perform optimization
         if callable(self.optimizer):
@@ -216,6 +199,32 @@ class VQE(VariationalAlgorithm, MinimumEigensolver):
     @classmethod
     def supports_aux_operators(cls) -> bool:
         return True
+
+    def get_energy_evaluation(
+        self,
+        operator: BaseOperator | PauliSumOp,
+        ansatz: QuantumCircuit,
+    ) -> tuple[Callable[[np.ndarray], float | list[float]], dict]:
+        """Returns a function handle to evaluates the energy at given parameters for the ansatz.
+        This is the objective function to be passed to the optimizer that is used for evaluation.
+        Args:
+            operator: The operator whose energy to evaluate.
+            ansatz: The ansatz preparing the quantum state.
+        Returns:
+            Energy of the hamiltonian of each parameter.
+        """
+        iter_count = 0
+
+        def energy_evaluation(point):
+            nonlocal iter_count
+            job = self.estimator.run([ansatz], [operator], [point])
+            energy = job.result().values[0]
+            iter_count += 1
+            if self.callback is not None:
+                self.callback(iter_count, point, energy, 0)
+            return energy
+
+        return energy_evaluation
 
     def _check_operator_ansatz(self, operator: BaseOperator | PauliSumOp) -> QuantumCircuit:
         """Check that the number of qubits of operator and ansatz match and that the ansatz is
