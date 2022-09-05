@@ -45,27 +45,11 @@ def random_cnotdihedral_circuit(num_qubits, num_gates, gates="all", seed=None):
     """Generate a pseudo random CNOTDihedral circuit."""
 
     if gates == "all":
-        if num_qubits == 1:
-            gates = ["i", "x", "y", "z", "t", "tdg", "s", "sdg"]
-        elif num_qubits < 3:
-            gates = ["i", "x", "y", "z", "t", "tdg", "s", "sdg", "cx", "cz", "cs", "csdg", "swap"]
-        else:
-            gates = [
-                "i",
-                "x",
-                "y",
-                "z",
-                "t",
-                "tdg",
-                "s",
-                "sdg",
-                "cx",
-                "cz",
-                "cs",
-                "csdg",
-                "swap",
-                "ccz",
-            ]
+        gates = ["i", "x", "y", "z", "t", "tdg", "s", "sdg"]
+        if num_qubits >= 2:
+            gates += ["cx", "cz", "cs", "csdg", "swap"]
+        if num_qubits >= 3:
+            gates += ["ccz"]
 
     instructions = {
         "i": (IGate(), 1),
