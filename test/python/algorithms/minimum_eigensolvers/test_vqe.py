@@ -22,7 +22,7 @@ import numpy as np
 from scipy.optimize import minimize as scipy_minimize
 from ddt import data, ddt, unpack
 
-from qiskit import BasicAer, QuantumCircuit
+from qiskit import QuantumCircuit
 from qiskit.algorithms import AlgorithmError
 from qiskit.algorithms.minimum_eigensolvers.vqe import VQE
 from qiskit.algorithms.optimizers import (
@@ -37,28 +37,11 @@ from qiskit.algorithms.optimizers import (
     OptimizerResult,
 )
 from qiskit.circuit.library import EfficientSU2, RealAmplitudes, TwoLocal
-from qiskit.exceptions import MissingOptionalLibraryError
-from qiskit.opflow import (
-    AerPauliExpectation,
-    Gradient,
-    I,
-    MatrixExpectation,
-    PauliExpectation,
-    PauliSumOp,
-    PrimitiveOp,
-    TwoQubitReduction,
-    X,
-    Z,
-)
+from qiskit.opflow import PauliSumOp, TwoQubitReduction
 from qiskit.quantum_info import SparsePauliOp, Operator
 from qiskit.primitives import Estimator
-from qiskit.quantum_info import Statevector
-from qiskit.transpiler import PassManager, PassManagerConfig
-from qiskit.transpiler.preset_passmanagers import level_1_pass_manager
-from qiskit.utils import QuantumInstance, algorithm_globals, has_aer
+from qiskit.utils import algorithm_globals
 
-if has_aer():
-    from qiskit import Aer
 
 logger = "LocalLogger"
 
@@ -92,12 +75,22 @@ class TestVQE(QiskitAlgorithmsTestCase):
         super().setUp()
         self.seed = 50
         algorithm_globals.random_seed = self.seed
-        self.h2_op = (
-            -1.052373245772859 * (I ^ I)
-            + 0.39793742484318045 * (I ^ Z)
-            - 0.39793742484318045 * (Z ^ I)
-            - 0.01128010425623538 * (Z ^ Z)
-            + 0.18093119978423156 * (X ^ X)
+        # self.h2_op = (
+        #     -1.052373245772859 * (I ^ I)
+        #     + 0.39793742484318045 * (I ^ Z)
+        #     - 0.39793742484318045 * (Z ^ I)
+        #     - 0.01128010425623538 * (Z ^ Z)
+        #     + 0.18093119978423156 * (X ^ X)
+        # )
+        self.h2_op = SparsePauliOp(
+            ["II", "IZ", "ZI", "ZZ", "XX"],
+            coeffs=[
+                -1.052373245772859,
+                0.39793742484318045,
+                -0.39793742484318045,
+                -0.01128010425623538,
+                0.18093119978423156,
+            ],
         )
         self.h2_energy = -1.85727503
 
@@ -186,7 +179,6 @@ class TestVQE(QiskitAlgorithmsTestCase):
     #     result = vqe.compute_minimum_eigenvalue(operator=self.h2_op)
     #     self.assertAlmostEqual(result.eigenvalue.real, self.h2_energy, places=places)
 
-    # @unittest.skipUnless(has_aer(), "qiskit-aer doesn't appear to be installed.")
     # @data(
     #     CG(maxiter=1),
     #     L_BFGS_B(maxfun=1),
@@ -195,20 +187,12 @@ class TestVQE(QiskitAlgorithmsTestCase):
     #     TNC(maxiter=1),
     # )
     # def test_with_gradient(self, optimizer):
-    #     """Test VQE using Gradient()."""
-    #     quantum_instance = QuantumInstance(
-    #         backend=Aer.get_backend("qasm_simulator"),
-    #         shots=1,
-    #         seed_simulator=algorithm_globals.random_seed,
-    #         seed_transpiler=algorithm_globals.random_seed,
-    #     )
+    #     """Test VQE using gradient primitive."""
     #     vqe = VQE(
-    #         ansatz=self.ry_wavefunction,
-    #         optimizer=optimizer,
+    #         self.ry_wavefunction,
+    #         optimizer,
+    #         Estimator(),
     #         gradient=Gradient(),
-    #         expectation=AerPauliExpectation(),
-    #         quantum_instance=quantum_instance,
-    #         max_evals_grouped=1000,
     #     )
     #     vqe.compute_minimum_eigenvalue(operator=self.h2_op)
 

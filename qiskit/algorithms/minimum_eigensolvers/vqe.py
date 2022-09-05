@@ -20,10 +20,12 @@ from collections.abc import Callable, Sequence
 
 import numpy as np
 
+from qiskit.algorithms.gradients import BaseEstimatorGradient
 from qiskit.circuit import QuantumCircuit
-from qiskit.quantum_info.operators.base_operator import BaseOperator
 from qiskit.opflow import PauliSumOp
 from qiskit.primitives import BaseEstimator
+from qiskit.quantum_info.operators.base_operator import BaseOperator
+
 
 from ..exceptions import AlgorithmError
 from ..list_or_dict import ListOrDict
@@ -104,7 +106,7 @@ class VQE(VariationalAlgorithm, MinimumEigensolver):
         optimizer: Optimizer | Minimizer,
         estimator: BaseEstimator,
         *,
-        gradient=None,
+        gradient=BaseEstimatorGradient,
         initial_point: Sequence[float] | None = None,
         # TODO Attach callback to optimizer instead.
         callback=None,
@@ -166,11 +168,11 @@ class VQE(VariationalAlgorithm, MinimumEigensolver):
         # Perform optimization
         if callable(self.optimizer):
             opt_result = self.optimizer(  # pylint: disable=not-callable
-                fun=expectation, x0=initial_point  # , jac=gradient, bounds=bounds
+                fun=expectation, x0=initial_point,# jac=self.gradient, # bounds=bounds
             )
         else:
             opt_result = self.optimizer.minimize(
-                fun=expectation, x0=initial_point  # , jac=gradient, bounds=bounds
+                fun=expectation, x0=initial_point, #jac=self.gradient, # bounds=bounds
             )
 
         eval_time = time() - start_time
