@@ -485,7 +485,7 @@ def _latex_circuit_drawer(
             logger.warning(message)
             raise VisualizationError(message) from exc
         image = Image.open(base + ".png")
-        image = utils._trim_image(image)
+        image = trim_image(image)
         if filename:
             if filename.endswith(".pdf"):
                 os.rename(base + ".pdf", filename)
