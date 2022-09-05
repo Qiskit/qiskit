@@ -12,9 +12,9 @@
 
 """The projected Variational Quantum Dynamics Algorithm."""
 
-from typing import Optional, Union, List, Tuple, Callable
-
+from typing import List, Tuple, Callable
 import logging
+
 import numpy as np
 
 from qiskit import QiskitError
@@ -22,16 +22,16 @@ from qiskit.algorithms.optimizers import Optimizer, Minimizer
 from qiskit.circuit import QuantumCircuit, ParameterVector
 from qiskit.circuit.library import PauliEvolutionGate
 from qiskit.extensions import HamiltonianGate
-from qiskit.opflow import OperatorBase, CircuitSampler, ExpectationBase, StateFn, MatrixOp
-from qiskit.primitives import Estimator
+from qiskit.opflow import ExpectationBase, MatrixOp, PauliSumOp
+from qiskit.primitives import BaseEstimator, BaseSampler
+from qiskit.quantum_info.operators.base_operator import BaseOperator
 from qiskit.synthesis import EvolutionSynthesis, LieTrotter
-
 from .pvqd_result import PVQDResult
 from .utils import _get_observable_evaluator, _is_gradient_supported
-
 from ..evolution_problem import EvolutionProblem
 from ..evolution_result import EvolutionResult
 from ..real_evolver import RealEvolver
+from ...state_fidelities import ComputeUncompute
 
 logger = logging.getLogger(__name__)
 
@@ -116,12 +116,13 @@ class PVQD(RealEvolver):
         ansatz: QuantumCircuit,
         initial_parameters: np.ndarray,
         expectation: ExpectationBase,
-        estimator: Estimator,
-        optimizer: Optional[Union[Optimizer, Minimizer]] = None,
-        num_timesteps: Optional[int] = None,
-        evolution: Optional[EvolutionSynthesis] = None,
+        sampler: BaseSampler,
+        estimator: BaseEstimator | None = None,
+        optimizer: Optimizer | Minimizer | None = None,
+        num_timesteps: int | None = None,
+        evolution: EvolutionSynthesis | None = None,
         use_parameter_shift: bool = True,
-        initial_guess: Optional[np.ndarray] = None,
+        initial_guess: np.ndarray | None = None,
     ) -> None:
         """
         Args:
@@ -135,7 +136,8 @@ class PVQD(RealEvolver):
                 using the :class:`.Minimizer` protocol. This argument is optional since it is
                 not required for :meth:`get_loss`, but it has to be set before :meth:`evolve`
                 is called.
-            num_timestep: The number of time steps. If ``None`` it will be set such that the timestep
+            num_timestep: The number of time steps. If ``None`` it will be set such that the
+            timestep
                 is close to 0.01.
             evolution: The evolution synthesis to use for the construction of the Trotter step.
                 Defaults to first-order Lie-Trotter decomposition, see also
@@ -157,12 +159,13 @@ class PVQD(RealEvolver):
         self.initial_guess = initial_guess
         self.expectation = expectation
         self.estimator = estimator
+        self.sampler = sampler
         self.evolution = evolution
         self.use_parameter_shift = use_parameter_shift
 
     def step(
         self,
-        hamiltonian: OperatorBase,
+        hamiltonian: BaseOperator | PauliSumOp,
         ansatz: QuantumCircuit,
         theta: np.ndarray,
         dt: float,
@@ -203,11 +206,11 @@ class PVQD(RealEvolver):
 
     def get_loss(
         self,
-        hamiltonian: OperatorBase,
+        hamiltonian: BaseOperator | PauliSumOp,
         ansatz: QuantumCircuit,
         dt: float,
         current_parameters: np.ndarray,
-    ) -> Tuple[Callable[[np.ndarray], float], Optional[Callable[[np.ndarray], np.ndarray]]]:
+    ) -> Tuple[Callable[[np.ndarray], float], Callable[[np.ndarray], np.ndarray]] | None:
 
         """Get a function to evaluate the infidelity between Trotter step and ansatz.
 
@@ -237,13 +240,8 @@ class PVQD(RealEvolver):
         # define the overlap of the Trotterized state and the ansatz
         x = ParameterVector("w", ansatz.num_parameters)
         shifted = ansatz.assign_parameters(current_parameters + x)
-        overlap = StateFn(trotterized).adjoint() @ StateFn(shifted)
 
-        converted = self.expectation.convert(overlap)
-
-        def evaluate_loss(
-            displacement: Union[np.ndarray, List[np.ndarray]]
-        ) -> Union[float, List[float]]:
+        def evaluate_loss(displacement: np.ndarray | List[np.ndarray]) -> float | List[float]:
             """Evaluate the overlap of the ansatz with the Trotterized evolution.
 
             Args:
@@ -258,12 +256,13 @@ class PVQD(RealEvolver):
             else:
                 value_dict = dict(zip(x, displacement))
 
-            # TODO fidelity primitive
-            sampled = self._sampler.convert(converted, params=value_dict)
+            fidelity = ComputeUncompute(self.sampler)
+            job = fidelity.run([trotterized], [shifted], None, list(value_dict.values()))
+            fidelity = job.result().fidelities[0]
 
             # in principle we could add different loss functions here, but we're currently
             # not aware of a use-case for a different one than in the paper
-            return 1 - np.abs(sampled.eval()) ** 2
+            return 1 - np.abs(fidelity.eval()) ** 2
 
         if _is_gradient_supported(ansatz) and self.use_parameter_shift:
 
@@ -307,6 +306,7 @@ class PVQD(RealEvolver):
         Raises:
             ValueError: If the evolution time is not positive or the timestep is too small.
             NotImplementedError: If the evolution problem contains an initial state.
+            Warning: If observables provided but an estimator not provided.
         """
         self._validate_setup()
 
@@ -327,6 +327,10 @@ class PVQD(RealEvolver):
 
         # get the function to evaluate the observables for a given set of ansatz parameters
         if observables is not None:
+            if self.estimator is None:
+                raise Warning(
+                    "Observables provided to be estimated but the estimator was not provided. "
+                )
             evaluate_observables = _get_observable_evaluator(
                 self.ansatz, observables, self.estimator
             )

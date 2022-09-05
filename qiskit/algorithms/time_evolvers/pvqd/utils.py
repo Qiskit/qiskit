@@ -12,8 +12,8 @@
 
 
 """Utilities for p-VQD."""
-
-from typing import Union, List, Callable
+from __future__ import annotations
+from typing import List, Callable
 import logging
 
 import numpy as np
@@ -21,9 +21,9 @@ import numpy as np
 from qiskit.circuit import QuantumCircuit, Parameter, ParameterExpression
 from qiskit.compiler import transpile
 from qiskit.exceptions import QiskitError
-from qiskit.opflow import ListOp, CircuitSampler, ExpectationBase, StateFn, OperatorBase
 from qiskit.opflow.gradients.circuit_gradients import ParamShift
-from qiskit.primitives import Estimator
+from qiskit.primitives import BaseEstimator
+from qiskit.quantum_info.operators.base_operator import BaseOperator
 
 logger = logging.getLogger(__name__)
 
@@ -71,17 +71,14 @@ def _is_gradient_supported(ansatz: QuantumCircuit) -> bool:
 
 def _get_observable_evaluator(
     ansatz: QuantumCircuit,
-    observables: Union[OperatorBase, List[OperatorBase]],
-    estimator: Estimator,
-) -> Callable[[np.ndarray], Union[float, List[float]]]:
+    observables: BaseOperator | List[BaseOperator],
+    estimator: BaseEstimator,
+) -> Callable[[np.ndarray], float | List[float]]:
     """Get a callable to evaluate a (list of) observable(s) for given circuit parameters."""
-
-    if isinstance(observables, list):
-        observables = ListOp(observables)
 
     ansatz_parameters = ansatz.parameter
 
-    def evaluate_observables(theta: np.ndarray) -> Union[float, List[float]]:
+    def evaluate_observables(theta: np.ndarray) -> float | List[float]:
         """Evaluate the observables for the ansatz parameters ``theta``.
 
         Args:

@@ -12,12 +12,11 @@
 
 """Result object for p-VQD."""
 
-from typing import Union, Optional, List, Tuple
+from typing import List, Tuple
+
 import numpy as np
 
 from qiskit.circuit import QuantumCircuit
-from qiskit.opflow import StateFn, OperatorBase
-
 from ..evolution_result import EvolutionResult
 
 
@@ -26,13 +25,13 @@ class PVQDResult(EvolutionResult):
 
     def __init__(
         self,
-        evolved_state: Union[StateFn, QuantumCircuit],
-        aux_ops_evaluated: Optional[List[Tuple[complex, complex]]] = None,
-        times: Optional[List[float]] = None,
-        parameters: Optional[List[np.ndarray]] = None,
-        fidelities: Optional[List[float]] = None,
-        estimated_error: Optional[float] = None,
-        observables: Optional[List[List[float]]] = None,
+        evolved_state: QuantumCircuit,
+        aux_ops_evaluated: List[Tuple[complex, complex]] | None = None,
+        times: List[float] | None = None,
+        parameters: List[np.ndarray] | None = None,
+        fidelities: List[float] | None = None,
+        estimated_error: float | None = None,
+        observables: List[List[float]] | None = None,
     ):
         """
         Args:
