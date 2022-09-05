@@ -56,36 +56,6 @@ class SuffixAveragingOptimizer(Optimizer):
 
         self._circ_params: list[POINT] = []
 
-        original_callback = self._optimizer.callback
-        if isinstance(self._optimizer, (SPSA, QNSPSA)):
-
-            def callback(
-                nfev: int,
-                x_next: POINT,
-                fx_next: float,
-                stepsize: np.floating,
-                is_accepted: bool,
-            ):
-                self._circ_params.append(x_next)
-                if original_callback is not None:
-                    original_callback(nfev, x_next, fx_next, stepsize, is_accepted)
-
-        elif isinstance(self._optimizer, GradientDescent):
-
-            def callback(nfev: int, x: POINT, fun: float, stepsize: float):
-                self._circ_params.append(x)
-                if original_callback is not None:
-                    original_callback(nfev, x, fun, stepsize)
-
-        else:
-
-            def callback(x):
-                self._circ_params.append(x)
-                if original_callback is not None:
-                    return original_callback(x)
-                return None
-
-        self._optimizer.callback = callback
         super().__init__()
 
     def get_support_level(self):
@@ -132,10 +102,43 @@ class SuffixAveragingOptimizer(Optimizer):
         bounds: Optional[List[Tuple[float, float]]] = None,
     ) -> OptimizerResult:
 
+        original_callback = self._optimizer.callback
+        if isinstance(self._optimizer, (SPSA, QNSPSA)):
+
+            def callback(
+                nfev: int,
+                x_next: POINT,
+                fx_next: float,
+                stepsize: np.floating,
+                is_accepted: bool,
+            ):
+                self._circ_params.append(x_next)
+                if original_callback is not None:
+                    original_callback(nfev, x_next, fx_next, stepsize, is_accepted)
+
+        elif isinstance(self._optimizer, GradientDescent):
+
+            def callback(nfev: int, x: POINT, fun: float, stepsize: float):
+                self._circ_params.append(x)
+                if original_callback is not None:
+                    original_callback(nfev, x, fun, stepsize)
+
+        else:
+
+            def callback(x):
+                self._circ_params.append(x)
+                if original_callback is not None:
+                    return original_callback(x)
+                return None
+
+        self._optimizer.callback = callback
+
+        self._circ_params = []
+
         result = self._optimizer.minimize(fun, x0, jac=jac, bounds=bounds)
         result.x = self._return_suffix_average()
         result.fun = fun(result.x)
 
-        self._circ_params = []
+        self._optimizer.callback = original_callback
 
         return result
