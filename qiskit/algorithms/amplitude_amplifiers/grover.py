@@ -20,9 +20,9 @@ import warnings
 import numpy as np
 
 from qiskit import ClassicalRegister, QuantumCircuit
-from qiskit.exceptions import QiskitError
+from qiskit.algorithms.exceptions import AlgorithmError
 from qiskit.primitives import BaseSampler
-from qiskit.providers import Backend, JobStatus
+from qiskit.providers import Backend
 from qiskit.quantum_info import partial_trace
 from qiskit.utils import QuantumInstance
 from qiskit.utils.deprecation import deprecate_function
@@ -173,7 +173,7 @@ class Grover(AmplitudeAmplifier):
             )
             self.quantum_instance = quantum_instance
 
-        self._sampler = None or sampler
+        self._sampler = sampler
 
         self._sample_from_iterations = sample_from_iterations
         self._iterations_arg = iterations
@@ -264,9 +264,13 @@ class Grover(AmplitudeAmplifier):
             if self._sampler:
                 qc = self.construct_circuit(amplification_problem, power, measurement=True)
                 job = self._sampler.run([qc])
-                if job.status() is not JobStatus.DONE:
-                    raise QiskitError("The job was not completed successfully. ")
-                results = job.result()
+
+                # combine the results
+                try:
+                    results = job.result()
+                except Exception as exc:
+                    raise AlgorithmError("Sampler job failed.") from exc
+
                 num_bits = len(amplification_problem.objective_qubits)
                 circuit_results = {
                     np.binary_repr(k, num_bits): v for k, v in results.quasi_dists[0].items()

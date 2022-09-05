@@ -4,4 +4,4 @@ features:
 
     :class:`~.Grover` supports the primitives and can use :class:`~.Sampler` to
     calculate the results. Accordingly, ``quantum instance`` in :class:`~.Grover`
-    is deprecate and will be removed in a future release.
+    is pending deprecation and will be deprecated in a future release.
