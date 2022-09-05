@@ -39,6 +39,8 @@ from qiskit.transpiler.passes import RemoveDiagonalGatesBeforeMeasure
 from qiskit.transpiler.passes import Collect2qBlocks
 from qiskit.transpiler.passes import ConsolidateBlocks
 from qiskit.transpiler.passes import UnitarySynthesis
+from qiskit.transpiler.passes import GatesInBasis
+from qiskit.transpiler.runningpassmanager import ConditionalController
 from qiskit.transpiler.preset_passmanagers import common
 from qiskit.transpiler.passes.layout.vf2_layout import VF2LayoutStopReason
 from qiskit.transpiler.preset_passmanagers.plugin import (
@@ -255,6 +257,16 @@ def level_3_pass_manager(pass_manager_config: PassManagerConfig) -> StagedPassMa
     if optimization_method is None:
         optimization = PassManager()
         unroll = [pass_ for x in translation.passes() for pass_ in x["passes"]]
+        # Build nested Flow controllers
+        def _unroll_condition(property_set):
+            return not property_set["all_gates_in_basis"]
+
+        # Check if any gate is not in the basis, and if so, run unroll passes
+        _unroll_if_out_of_basis = [
+            GatesInBasis(basis_gates, target=target),
+            ConditionalController(unroll, condition=_unroll_condition),
+        ]
+
         optimization.append(_depth_check + _size_check)
         if (coupling_map and not coupling_map.is_symmetric) or (
             target is not None and target.get_non_global_operation_names(strict_direction=True)
@@ -271,16 +283,20 @@ def level_3_pass_manager(pass_manager_config: PassManagerConfig) -> StagedPassMa
             # the coupling map which with a target doesn't give a full picture
             if target is not None and optimization is not None:
                 optimization.append(
-                    _opt + unroll + _depth_check + _size_check + _direction, do_while=_opt_control
+                    _opt + _unroll_if_out_of_basis + _depth_check + _size_check + _direction,
+                    do_while=_opt_control,
                 )
             elif optimization is not None:
                 optimization.append(
-                    _opt + unroll + _depth_check + _size_check, do_while=_opt_control
+                    _opt + _unroll_if_out_of_basis + _depth_check + _size_check,
+                    do_while=_opt_control,
                 )
         else:
             pre_optimization = common.generate_pre_op_passmanager(remove_reset_in_zero=True)
-            optimization.append(_opt + unroll + _depth_check + _size_check, do_while=_opt_control)
-        opt_loop = _depth_check + _opt + unroll
+            optimization.append(
+                _opt + _unroll_if_out_of_basis + _depth_check + _size_check, do_while=_opt_control
+            )
+        opt_loop = _depth_check + _opt + _unroll_if_out_of_basis
         optimization.append(opt_loop, do_while=_opt_control)
     else:
         optimization = plugin_manager.get_passmanager_stage(
