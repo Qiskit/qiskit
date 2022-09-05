@@ -139,20 +139,20 @@ class VQE(MinimumEigensolver):
 
         self._eval_count = 0
 
-        def energy(point):
+        def energy_evaluation(point):
             job = self.estimator.run([ansatz], [operator], [point])
             return job.result().values[0]
 
-        # def gradient(point):
+        # def gradient_evaluation(point):
         #     job = self.gradient.run([self.ansatz], [operator], [point])
         #     return job.result()
 
         def expectation(point):
-            value = energy(point)
+            energy = energy_evaluation(point)
             self._eval_count += 1
             if self.callback is not None:
-                self.callback(self._eval_count, point, value, 0)
-            return value
+                self.callback(self._eval_count, point, energy, 0)
+            return energy
 
         initial_point = self.initial_point
         if initial_point is None:
@@ -185,6 +185,7 @@ class VQE(MinimumEigensolver):
         aux_values = None
         if aux_operators:
             # Not None and not empty list
+            # TODO use eval_operators
             aux_values = self._eval_aux_ops(ansatz, optimal_point, aux_operators)
 
         result = VQEResult()
@@ -224,8 +225,16 @@ class VQE(MinimumEigensolver):
 
         return ansatz
 
-    def _eval_aux_ops(self, ansatz, parameters, aux_operators):
+    def _eval_aux_ops(
+        self,
+        ansatz: QuantumCircuit,
+        parameters: np.ndarray,
+        aux_operators: ListOrDict[BaseOperator | PauliSumOp],
+    ) -> ListOrDict[tuple(complex, complex)]:
         """Compute auxiliary operator eigenvalues."""
+
+        # TODO This is going to be replaced by eval_observables. See PR #8683.
+
         if isinstance(aux_operators, dict):
             aux_ops = list(aux_operators.values())
         else:
