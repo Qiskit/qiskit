@@ -3,7 +3,7 @@
 
 **Qiskit** is an open-source framework for working with noisy quantum computers at the level of pulses, circuits, and algorithms.
 
-Qiskit is made up of elements that work together to enable quantum computing. This element is **Terra** and is the foundation on which the rest of Qiskit is built.
+The core component of Qiskit is `qiskit-terra`.
 
 ## Installation
 
@@ -47,21 +47,19 @@ In this case, the output will be:
 {'00': 513, '11': 511}
 ```
 
-A script is available [here](examples/python/ibmq/hello_quantum.py), where we also show how to
-run the same program on a real quantum computer via IBMQ.
+A script is available [here](examples/python/ibmq/hello_quantum.py), where we also show how to run the same program on a real quantum computer via IBM Quantum.
 
 ### Executing your code on a real quantum chip
 
 You can also use Qiskit to execute your code on a
-**real quantum chip**.
-In order to do so, you need to configure Qiskit for using the credentials in
-your IBM Q account:
+**real quantum chip**. 
+In order to do so, you need to configure Qiskit with credentials for using a quantum computer cloud provider. For example, to connect with IBM Quantum account:
 
-#### Configure your IBMQ credentials
+#### Configure your IBM Quantum credentials
 
-1. Create an _[IBM Q](https://quantum-computing.ibm.com) > Account_ if you haven't already done so.
+1. Create an _[IBM Quantum](https://quantum-computing.ibm.com)_ account if you haven't already done so.
 
-2. Get an API token from the IBM Q website under _My Account > API Token_.
+2. Get an API token from the IBM Quantum website under _[Account settings](https://quantum-computing.ibm.com/account) > API Token_. ![](docs/images/ibm_account1.png | width=40%) ![](docs/images/ibm_account2.png | width=40%)
 
 3. Take your token from step 2, here called `MY_API_TOKEN`, and run:
 
@@ -79,7 +77,7 @@ in your program simply via:
 >>> IBMQ.load_account()
 ```
 
-Those who do not want to save their credentials to disk should use instead:
+Those who do not want to save their credentials locally should use instead:
 
 ```python
 >>> from qiskit import IBMQ
@@ -98,7 +96,7 @@ If you'd like to contribute to Qiskit Terra, please take a look at our
 We use [GitHub issues](https://github.com/Qiskit/qiskit-terra/issues) for tracking requests and bugs. Please
 [join the Qiskit Slack community](https://ibm.co/joinqiskitslack)
 and use our [Qiskit Slack channel](https://qiskit.slack.com) for discussion and simple questions.
-For questions that are more suited for a forum we use the Qiskit tag in the [Stack Exchange](https://quantumcomputing.stackexchange.com/questions/tagged/qiskit).
+For questions that are more suited for a forum we use the `qiskit` tag in the [Stack Exchange](https://quantumcomputing.stackexchange.com/questions/tagged/qiskit).
 
 ## Next Steps
 
@@ -126,7 +124,7 @@ release.
 Additionally, as part of each release detailed release notes are written to
 document in detail what has changed as part of a release. This includes any
 documentation on potential breaking changes on upgrade and new features.
-For example, You can find the release notes for the `0.9.0` release in the
+For example, you can find the release notes for the `0.9.0` release in the
 Qiskit documentation here:
 
 https://qiskit.org/documentation/release_notes.html#terra-0-9
