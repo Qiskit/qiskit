@@ -38,7 +38,6 @@ from qiskit.algorithms.optimizers import (
     P_BFGS,
     POWELL,
     SLSQP,
-    SNOBFIT,
     SPSA,
     QNSPSA,
     TNC,
