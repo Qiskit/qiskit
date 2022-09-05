@@ -220,10 +220,9 @@ class Grover(AmplitudeAmplifier):
 
         Raises:
             ValueError: If a quantum instance or sumpler is not set.
-            QiskitError: If a sampler job fails.
+            AlgorithmError: If a sampler job fails.
             TypeError: If ``is_good_state`` is not provided and is required (i.e. when iterations
             is ``None`` or a ``list``)
-
         """
         if self._sampler is None and self._quantum_instance is None:
             raise ValueError("A quantum instance or sampler must be provided.")
