@@ -1052,6 +1052,28 @@ class TestTextDrawerGatesInCircuit(QiskitTestCase):
         circuit.h(qr1[1])
         self.assertEqual(str(_text_circuit_drawer(circuit, justify="right")), expected)
 
+    def test_text_barrier_label(self):
+        """Show barrier label"""
+        expected = "\n".join(
+            [
+                "        ┌───┐ ░ ┌───┐ End Y/X ",
+                "q_0: |0>┤ X ├─░─┤ Y ├────░────",
+                "        ├───┤ ░ ├───┤    ░    ",
+                "q_1: |0>┤ Y ├─░─┤ X ├────░────",
+                "        └───┘ ░ └───┘    ░    ",
+            ]
+        )
+
+        qr = QuantumRegister(2, "q")
+        circuit = QuantumCircuit(qr)
+        circuit.x(0)
+        circuit.y(1)
+        circuit.barrier()
+        circuit.y(0)
+        circuit.x(1)
+        circuit.barrier(label="End Y/X")
+        self.assertEqual(str(_text_circuit_drawer(circuit)), expected)
+
     def test_text_overlap_cx(self):
         """Overlapping CX gates are drawn not overlapping"""
         expected = "\n".join(
@@ -1661,7 +1683,7 @@ class TestTextDrawerMultiQGates(QiskitTestCase):
             str(_text_circuit_drawer(circ, vertical_compression="high", cregbundle=True)), expected
         )
 
-    def test_control_gate_label_with_cond_2_med(self):
+    def test_control_gate_label_with_cond_2_med_space(self):
         """Control gate has a label and a conditional (on label, compression=med)
         See https://github.com/Qiskit/qiskit-terra/issues/4361"""
         expected = "\n".join(
@@ -1670,8 +1692,7 @@ class TestTextDrawerMultiQGates(QiskitTestCase):
                 "q_0: |0>┤ my h ├",
                 "        └──┬───┘",
                 "q_1: |0>───■────",
-                "         my ch  ",
-                "           ║    ",
+                "         my║ch  ",
                 "   c: 0 ═══■════",
                 "          0x1   ",
             ]
@@ -1682,6 +1703,31 @@ class TestTextDrawerMultiQGates(QiskitTestCase):
         circ = QuantumCircuit(qr, cr)
         hgate = HGate(label="my h")
         controlh = hgate.control(label="my ch").c_if(cr, 1)
+        circ.append(controlh, [1, 0])
+
+        self.assertEqual(str(_text_circuit_drawer(circ, vertical_compression="medium")), expected)
+
+    def test_control_gate_label_with_cond_2_med(self):
+        """Control gate has a label and a conditional (on label, compression=med)
+        See https://github.com/Qiskit/qiskit-terra/issues/4361"""
+        expected = "\n".join(
+            [
+                "          ┌──────┐ ",
+                "q_0: |0>──┤ my h ├─",
+                "          └──┬───┘ ",
+                "q_1: |0>─────■─────",
+                "         my ctrl-h ",
+                "             ║     ",
+                "   c: 0 ═════■═════",
+                "            0x1    ",
+            ]
+        )
+
+        qr = QuantumRegister(2, "q")
+        cr = ClassicalRegister(1, "c")
+        circ = QuantumCircuit(qr, cr)
+        hgate = HGate(label="my h")
+        controlh = hgate.control(label="my ctrl-h").c_if(cr, 1)
         circ.append(controlh, [1, 0])
 
         self.assertEqual(str(_text_circuit_drawer(circ, vertical_compression="medium")), expected)
@@ -2024,7 +2070,6 @@ class TestTextDrawerVerticalCompressionMedium(QiskitTestCase):
                 "      └─╥─┘└─╥─┘",
                 "c0: 0 ══■════╬══",
                 "       0x1   ║  ",
-                "             ║  ",
                 "c1: 0 ═══════■══",
                 "            0x1 ",
             ]
@@ -2123,6 +2168,98 @@ class TestTextDrawerVerticalCompressionMedium(QiskitTestCase):
         circuit = QuantumCircuit.from_qasm_str(qasm_string)
         self.assertEqual(
             str(_text_circuit_drawer(circuit, vertical_compression="medium", cregbundle=True)),
+            expected,
+        )
+
+    def test_text_barrier_med_compress_1(self):
+        """Medium vertical compression avoids connection break."""
+        circuit = QuantumCircuit(4)
+        circuit.cx(1, 3)
+        circuit.x(1)
+        circuit.barrier((2, 3), label="Bar 1")
+
+        expected = "\n".join(
+            [
+                "                    ",
+                "q_0: |0>────────────",
+                "              ┌───┐ ",
+                "q_1: |0>──■───┤ X ├─",
+                "          │   └───┘ ",
+                "          │   Bar 1 ",
+                "q_2: |0>──┼─────░───",
+                "        ┌─┴─┐   ░   ",
+                "q_3: |0>┤ X ├───░───",
+                "        └───┘   ░   ",
+            ]
+        )
+
+        self.assertEqual(
+            str(_text_circuit_drawer(circuit, vertical_compression="medium", cregbundle=False)),
+            expected,
+        )
+
+    def test_text_barrier_med_compress_2(self):
+        """Medium vertical compression avoids overprint."""
+        circuit = QuantumCircuit(4)
+        circuit.barrier((0, 1, 2), label="a")
+        circuit.cx(1, 3)
+        circuit.x(1)
+        circuit.barrier((2, 3), label="Bar 1")
+
+        expected = "\n".join(
+            [
+                "         a             ",
+                "q_0: |0>─░─────────────",
+                "         ░       ┌───┐ ",
+                "q_1: |0>─░───■───┤ X ├─",
+                "         ░   │   └───┘ ",
+                "         ░   │   Bar 1 ",
+                "q_2: |0>─░───┼─────░───",
+                "         ░ ┌─┴─┐   ░   ",
+                "q_3: |0>───┤ X ├───░───",
+                "           └───┘   ░   ",
+            ]
+        )
+
+        self.assertEqual(
+            str(_text_circuit_drawer(circuit, vertical_compression="medium", cregbundle=False)),
+            expected,
+        )
+
+    def test_text_barrier_med_compress_3(self):
+        """Medium vertical compression avoids conditional connection break."""
+        qr = QuantumRegister(1, "qr")
+        qc1 = ClassicalRegister(3, "cr")
+        qc2 = ClassicalRegister(1, "cr2")
+        circuit = QuantumCircuit(qr, qc1, qc2)
+        circuit.x(0).c_if(qc1, 3)
+        circuit.x(0).c_if(qc2[0], 1)
+
+        expected = "\n".join(
+            [
+                "        ┌───┐┌───┐",
+                " qr: |0>┤ X ├┤ X ├",
+                "        └─╥─┘└─╥─┘",
+                "cr_0: 0 ══■════╬══",
+                "          ║    ║  ",
+                "cr_2: 0 ══o════╬══",
+                "          ║    ║  ",
+                " cr2: 0 ══╬════■══",
+                "          ║       ",
+                "cr_1: 0 ══■═══════",
+                "         0x3      ",
+            ]
+        )
+
+        self.assertEqual(
+            str(
+                _text_circuit_drawer(
+                    circuit,
+                    vertical_compression="medium",
+                    wire_order=[0, 1, 3, 4, 2],
+                    cregbundle=False,
+                )
+            ),
             expected,
         )
 
