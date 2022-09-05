@@ -194,14 +194,6 @@ class TestOptimizers(QiskitAlgorithmsTestCase):
         except MissingOptionalLibraryError as ex:
             self.skipTest(str(ex))
 
-    @data((None,), ([(-6, 6)] * 4 + [(None, None)],))
-    @unpack
-    def test_snobfit(self, bounds):
-        """snobfit test"""
-        optimizer = SNOBFIT()
-        with self.assertRaises(ValueError):
-            self.run_optimizer(optimizer, max_nfev=10000, bounds=bounds)
-
 
 @ddt
 class TestOptimizerSerialization(QiskitAlgorithmsTestCase):
