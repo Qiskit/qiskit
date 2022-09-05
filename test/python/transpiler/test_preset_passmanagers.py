@@ -23,9 +23,10 @@ from qiskit import QuantumCircuit, ClassicalRegister, QuantumRegister
 from qiskit.circuit import Qubit
 from qiskit.compiler import transpile, assemble
 from qiskit.transpiler import CouplingMap, Layout, PassManager, TranspilerError
-from qiskit.circuit.library import U2Gate, U3Gate
+from qiskit.circuit.library import U2Gate, U3Gate, QuantumVolume
 from qiskit.test import QiskitTestCase
 from qiskit.providers.fake_provider import (
+    FakeBelem,
     FakeTenerife,
     FakeMelbourne,
     FakeJohannesburg,
@@ -41,6 +42,7 @@ from qiskit.circuit.library import GraphState
 from qiskit.quantum_info import random_unitary
 from qiskit.transpiler.preset_passmanagers import generate_preset_pass_manager
 from qiskit.utils.optionals import HAS_TOQM
+from qiskit.transpiler.passes import Collect2qBlocks, GatesInBasis
 
 
 def emptycircuit():
@@ -206,6 +208,31 @@ class TestPresetPassManager(QiskitTestCase):
         ) as mock:
             transpile(circuit, backend=FakeJohannesburg(), optimization_level=level)
         mock.assert_called_once()
+
+    def test_unroll_only_if_not_gates_in_basis(self):
+        """Test that the list of passes _unroll only runs if a gate is not in the basis."""
+        qcomp = FakeBelem()
+        qv_circuit = QuantumVolume(3)
+        gates_in_basis_true_count = 0
+        collect_2q_blocks_count = 0
+
+        # pylint: disable=unused-argument
+        def counting_callback_func(pass_, dag, time, property_set, count):
+            nonlocal gates_in_basis_true_count
+            nonlocal collect_2q_blocks_count
+            if isinstance(pass_, GatesInBasis) and property_set["all_gates_in_basis"]:
+                gates_in_basis_true_count += 1
+            if isinstance(pass_, Collect2qBlocks):
+                collect_2q_blocks_count += 1
+
+        transpile(
+            qv_circuit,
+            backend=qcomp,
+            optimization_level=3,
+            callback=counting_callback_func,
+            translation_method="synthesis",
+        )
+        self.assertEqual(gates_in_basis_true_count + 1, collect_2q_blocks_count)
 
 
 @ddt
@@ -698,26 +725,26 @@ class TestFinalLayouts(QiskitTestCase):
         }
 
         sabre_layout = {
-            18: qr[0],
-            13: qr[1],
-            14: qr[2],
-            17: qr[3],
-            19: qr[4],
+            11: qr[0],
+            17: qr[1],
+            16: qr[2],
+            6: qr[3],
+            18: qr[4],
             0: ancilla[0],
             1: ancilla[1],
             2: ancilla[2],
             3: ancilla[3],
             4: ancilla[4],
             5: ancilla[5],
-            6: ancilla[6],
-            7: ancilla[7],
-            8: ancilla[8],
-            9: ancilla[9],
-            10: ancilla[10],
-            11: ancilla[11],
-            12: ancilla[12],
+            7: ancilla[6],
+            8: ancilla[7],
+            9: ancilla[8],
+            10: ancilla[9],
+            12: ancilla[10],
+            13: ancilla[11],
+            14: ancilla[12],
             15: ancilla[13],
-            16: ancilla[14],
+            19: ancilla[14],
         }
 
         expected_layout_level0 = trivial_layout
@@ -913,7 +940,7 @@ class TestTranspileLevelsSwap(QiskitTestCase):
             optimization_level=level,
             basis_gates=basis,
             coupling_map=coupling_map,
-            seed_transpiler=42,
+            seed_transpiler=42123,
         )
         self.assertIsInstance(result, QuantumCircuit)
         resulting_basis = {node.name for node in circuit_to_dag(result).op_nodes()}

@@ -41,7 +41,7 @@ class Play(Instruction):
             name: Name of the instruction for display purposes. Defaults to ``pulse.name``.
 
         Raises:
-            PulseError: If pulse is not a Pulse type.
+            PulseError: If pulse is not a Pulse type, or channel is not a PulseChannel.
         """
         if not isinstance(pulse, Pulse):
             raise PulseError("The `pulse` argument to `Play` must be of type `library.Pulse`.")

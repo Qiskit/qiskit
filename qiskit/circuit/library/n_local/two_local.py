@@ -61,6 +61,13 @@ class TwoLocal(NLocal):
     * ``'full'`` entanglement is each qubit is entangled with all the others.
     * ``'linear'`` entanglement is qubit :math:`i` entangled with qubit :math:`i + 1`,
       for all :math:`i \in \{0, 1, ... , n - 2\}`, where :math:`n` is the total number of qubits.
+    * ``'reverse_linear'`` entanglement is qubit :math:`i` entangled with qubit :math:`i + 1`,
+      for all :math:`i \in \{n-2, n-3, ... , 1, 0\}`, where :math:`n` is the total number of qubits.
+      Note that if ``entanglement_blocks = 'cx'`` then this option provides the same unitary as
+      ``'full'`` with fewer entangling gates.
+    * ``'pairwise'`` entanglement is one layer where qubit :math:`i` is entangled with qubit
+      :math:`i + 1`, for all even values of :math:`i`, and then a second layer where qubit :math:`i`
+      is entangled with qubit :math:`i + 1`, for all odd values of :math:`i`.
     * ``'circular'`` entanglement is linear entanglement but with an additional entanglement of the
       first and last qubit before the linear part.
     * ``'sca'`` (shifted-circular-alternating) entanglement is a generalized and modified version
@@ -179,10 +186,12 @@ class TwoLocal(NLocal):
             entanglement_blocks: The gates used in the entanglement layer. Can be specified in
                 the same format as `rotation_blocks`.
             entanglement: Specifies the entanglement structure. Can be a string ('full', 'linear'
-                , 'circular' or 'sca'), a list of integer-pairs specifying the indices of qubits
-                entangled with one another, or a callable returning such a list provided with
+                , 'reverse_linear, 'circular' or 'sca'), a list of integer-pairs specifying the indices
+                of qubits entangled with one another, or a callable returning such a list provided with
                 the index of the entanglement layer.
                 Default to 'full' entanglement.
+                Note that if ``entanglement_blocks = 'cx'``, then ``'full'`` entanglement provides the
+                same unitary as ``'reverse_linear'`` but the latter option has fewer entangling gates.
                 See the Examples section for more detail.
             reps: Specifies how often a block consisting of a rotation layer and entanglement
                 layer is repeated.
