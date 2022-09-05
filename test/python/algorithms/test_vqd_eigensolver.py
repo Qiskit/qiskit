@@ -38,6 +38,8 @@ from qiskit.opflow import (
     X,
     Z,
 )
+from qiskit.primitives import Sampler, Estimator
+from qiskit.algorithms.state_fidelities import ComputeUncompute
 
 from qiskit.utils import QuantumInstance, algorithm_globals, has_aer
 
@@ -84,6 +86,7 @@ class TestVQD(QiskitAlgorithmsTestCase):
             seed_simulator=self.seed,
             seed_transpiler=self.seed,
         )
+
 
     def test_basic_aer_statevector(self):
         """Test the VQD on BasicAer's statevector simulator."""

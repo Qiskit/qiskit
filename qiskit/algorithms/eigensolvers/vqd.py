@@ -50,7 +50,7 @@ logger = logging.getLogger(__name__)
 
 
 class VQD(VariationalAlgorithm, Eigensolver):
-    r"""The Variational Quantum Deflation algorithm.
+    r"""The Variational Quantum Deflation algorithm. Implementation using primitives.
 
     `VQD <https://arxiv.org/abs/1805.08138>`__ is a quantum algorithm that uses a
     variational technique to find
@@ -91,6 +91,8 @@ class VQD(VariationalAlgorithm, Eigensolver):
 
     def __init__(
         self,
+        estimator,
+        fidelity,
         ansatz: Optional[QuantumCircuit] = None,
         k: int = 2,
         betas: Optional[List[float]] = None,
@@ -101,7 +103,7 @@ class VQD(VariationalAlgorithm, Eigensolver):
         include_custom: bool = False,
         max_evals_grouped: int = 1,
         callback: Optional[Callable[[int, np.ndarray, float, float], None]] = None,
-        quantum_instance: Optional[Union[QuantumInstance, Backend]] = None,
+
     ) -> None:
         """
 
@@ -151,104 +153,41 @@ class VQD(VariationalAlgorithm, Eigensolver):
 
         super().__init__()
 
-        self._max_evals_grouped = max_evals_grouped
+        self.estimator = estimator
+        self.fidelity = fidelity
+
+        self.max_evals_grouped = max_evals_grouped
+        self.optimizer.set_max_evals_grouped(max_evals_grouped)
+
         self._circuit_sampler = None  # type: Optional[CircuitSampler]
-        self._expectation = None
         self.expectation = expectation
         self._include_custom = include_custom
 
         # set ansatz -- still supporting pre 0.18.0 sorting
-
-        self._ansatz = None
+        if ansatz is None:
+            ansatz = RealAmplitudes()
         self.ansatz = ansatz
 
         self.k = k
         self.betas = betas
 
-        self._optimizer = None
+        if optimizer is None:
+            optimizer = SLSQP()
+
+        if isinstance(optimizer, Optimizer):
+            optimizer.set_max_evals_grouped(self.max_evals_grouped)
+
         self.optimizer = optimizer
 
-        self._initial_point = None
         self.initial_point = initial_point
-        self._gradient = None
         self.gradient = gradient
-        self._quantum_instance = None
-
-        if quantum_instance is not None:
-            self.quantum_instance = quantum_instance
 
         self._eval_time = None
         self._eval_count = 0
-        self._callback = None
+
         self.callback = callback
 
         logger.info(self.print_settings())
-
-    @property
-    def ansatz(self) -> QuantumCircuit:
-        """Returns the ansatz."""
-        return self._ansatz
-
-    @ansatz.setter
-    def ansatz(self, ansatz: Optional[QuantumCircuit]):
-        """Sets the ansatz.
-
-        Args:
-            ansatz: The parameterized circuit used as an ansatz.
-                If None is passed, RealAmplitudes is used by default.
-
-        """
-        if ansatz is None:
-            ansatz = RealAmplitudes()
-
-        self._ansatz = ansatz
-
-    @property
-    def gradient(self) -> Optional[Union[GradientBase, Callable]]:
-        """Returns the gradient."""
-        return self._gradient
-
-    @gradient.setter
-    def gradient(self, gradient: Optional[Union[GradientBase, Callable]]):
-        """Sets the gradient."""
-        self._gradient = gradient
-
-    @property
-    def quantum_instance(self) -> Optional[QuantumInstance]:
-        """Returns quantum instance."""
-        return self._quantum_instance
-
-    @quantum_instance.setter
-    def quantum_instance(self, quantum_instance: Union[QuantumInstance, Backend]) -> None:
-        """Sets a quantum_instance."""
-        if not isinstance(quantum_instance, QuantumInstance):
-            quantum_instance = QuantumInstance(quantum_instance)
-
-        self._quantum_instance = quantum_instance
-        self._circuit_sampler = CircuitSampler(
-            quantum_instance, param_qobj=is_aer_provider(quantum_instance.backend)
-        )
-
-    @property
-    def initial_point(self) -> Optional[np.ndarray]:
-        """Returns initial point."""
-        return self._initial_point
-
-    @initial_point.setter
-    def initial_point(self, initial_point: np.ndarray):
-        """Sets initial point"""
-        self._initial_point = initial_point
-
-    @property
-    def max_evals_grouped(self) -> int:
-        """Returns max_evals_grouped"""
-        return self._max_evals_grouped
-
-    @max_evals_grouped.setter
-    def max_evals_grouped(self, max_evals_grouped: int):
-        """Sets max_evals_grouped"""
-        self._max_evals_grouped = max_evals_grouped
-        self.optimizer.set_max_evals_grouped(max_evals_grouped)
 
     @property
     def include_custom(self) -> bool:
@@ -264,25 +203,6 @@ class VQD(VariationalAlgorithm, Eigensolver):
             self._include_custom = include_custom
             self.expectation = None
 
-    @property
-    def callback(self) -> Optional[Callable[[int, np.ndarray, float, float, int], None]]:
-        """Returns callback"""
-        return self._callback
-
-    @callback.setter
-    def callback(self, callback: Optional[Callable[[int, np.ndarray, float, float, int], None]]):
-        """Sets callback"""
-        self._callback = callback
-
-    @property
-    def expectation(self) -> Optional[ExpectationBase]:
-        """The expectation value algorithm used to construct the expectation measurement from
-        the observable."""
-        return self._expectation
-
-    @expectation.setter
-    def expectation(self, exp: Optional[ExpectationBase]) -> None:
-        self._expectation = exp
 
     def _check_operator_ansatz(self, operator: OperatorBase):
         """Check that the number of qubits of operator and ansatz match."""
@@ -297,27 +217,6 @@ class VQD(VariationalAlgorithm, Eigensolver):
                         "operator, and the ansatz does not allow setting the "
                         "number of qubits using `num_qubits`."
                     ) from ex
-
-    @property
-    def optimizer(self) -> Optimizer:
-        """Returns optimizer"""
-        return self._optimizer
-
-    @optimizer.setter
-    def optimizer(self, optimizer: Optional[Optimizer]):
-        """Sets the optimizer attribute.
-
-        Args:
-            optimizer: The optimizer to be used. If None is passed, SLSQP is used by default.
-
-        """
-        if optimizer is None:
-            optimizer = SLSQP()
-
-        if isinstance(optimizer, Optimizer):
-            optimizer.set_max_evals_grouped(self.max_evals_grouped)
-
-        self._optimizer = optimizer
 
     @property
     def setting(self):
@@ -353,88 +252,6 @@ class VQD(VariationalAlgorithm, Eigensolver):
         ret += f"{self._optimizer.setting}"
         ret += "===============================================================\n"
         return ret
-
-    def construct_expectation(
-        self,
-        parameter: Union[List[float], List[Parameter], np.ndarray],
-        operator: OperatorBase,
-        return_expectation: bool = False,
-    ) -> Union[OperatorBase, Tuple[OperatorBase, ExpectationBase]]:
-        r"""
-        Generate the ansatz circuit and expectation value measurement, and return their
-        runnable composition.
-
-        Args:
-            parameter: Parameters for the ansatz circuit.
-            operator: Qubit operator of the Observable
-            return_expectation: If True, return the ``ExpectationBase`` expectation converter used
-                in the construction of the expectation value. Useful e.g. to compute the standard
-                deviation of the expectation value.
-
-        Returns:
-            The Operator equalling the measurement of the ansatz :class:`StateFn` by the
-            Observable's expectation :class:`StateFn`, and, optionally, the expectation converter.
-
-        Raises:
-            AlgorithmError: If no operator has been provided.
-            AlgorithmError: If no expectation is passed and None could be inferred via the
-                ExpectationFactory.
-        """
-        if operator is None:
-            raise AlgorithmError("The operator was never provided.")
-
-        self._check_operator_ansatz(operator)
-
-        # if expectation was never created, try to create one
-        if self.expectation is None:
-            expectation = ExpectationFactory.build(
-                operator=operator,
-                backend=self.quantum_instance,
-                include_custom=self._include_custom,
-            )
-        else:
-            expectation = self.expectation
-
-        wave_function = self.ansatz.assign_parameters(parameter)
-
-        observable_meas = expectation.convert(StateFn(operator, is_measurement=True))
-        ansatz_circuit_op = CircuitStateFn(wave_function)
-        expect_op = observable_meas.compose(ansatz_circuit_op).reduce()
-
-        if return_expectation:
-            return expect_op, expectation
-
-        return expect_op
-
-    def construct_circuit(
-        self,
-        parameter: Union[List[float], List[Parameter], np.ndarray],
-        operator: OperatorBase,
-    ) -> List[QuantumCircuit]:
-        """Return the circuits used to compute the expectation value.
-
-        Args:
-            parameter: Parameters for the ansatz circuit.
-            operator: Qubit operator of the Observable
-
-        Returns:
-            A list of the circuits used to compute the expectation value.
-        """
-        expect_op = self.construct_expectation(parameter, operator).to_circuit_op()
-
-        circuits = []
-
-        # recursively extract circuits
-        def extract_circuits(op):
-            if isinstance(op, CircuitStateFn):
-                circuits.append(op.primitive)
-            elif isinstance(op, ListOp):
-                for op_i in op.oplist:
-                    extract_circuits(op_i)
-
-        extract_circuits(expect_op)
-
-        return circuits
 
     @classmethod
     def supports_aux_operators(cls) -> bool:
@@ -492,15 +309,17 @@ class VQD(VariationalAlgorithm, Eigensolver):
         return aux_operator_eigenvalues
 
     def compute_eigenvalues(
-        self, operator: OperatorBase, aux_operators: Optional[ListOrDict[OperatorBase]] = None
+        self,
+        operator: OperatorBase,
+        aux_operators: Optional[ListOrDict[OperatorBase]] = None
     ) -> EigensolverResult:
         super().compute_eigenvalues(operator, aux_operators)
 
-        if self.quantum_instance is None:
-            raise AlgorithmError(
-                "A QuantumInstance or Backend must be supplied to run the quantum algorithm."
-            )
-        self.quantum_instance.circuit_summary = True
+        # if self.quantum_instance is None:
+        #     raise AlgorithmError(
+        #         "A QuantumInstance or Backend must be supplied to run the quantum algorithm."
+        #     )
+        # self.quantum_instance.circuit_summary = True
 
         # this sets the size of the ansatz, so it must be called before the initial point
         # validation
@@ -555,31 +374,31 @@ class VQD(VariationalAlgorithm, Eigensolver):
         for step in range(1, self.k + 1):
 
             self._eval_count = 0
-            energy_evaluation, expectation = self.get_energy_evaluation(
+            energy_evaluation = self.get_energy_evaluation(
                 step, operator, return_expectation=True, prev_states=result.optimal_parameters
             )
 
-            # Convert the gradient operator into a callable function that is compatible with the
-            # optimization routine. Only used for the ground state currently as Gradient() doesnt
-            # support SumOps yet
-            if isinstance(self._gradient, GradientBase):
-                gradient = self._gradient.gradient_wrapper(
-                    StateFn(operator, is_measurement=True) @ StateFn(self.ansatz),
-                    bind_params=list(self.ansatz.parameters),
-                    backend=self._quantum_instance,
-                )
-            else:
-                gradient = self._gradient
+            # # Convert the gradient operator into a callable function that is compatible with the
+            # # optimization routine. Only used for the ground state currently as Gradient() doesnt
+            # # support SumOps yet
+            # if isinstance(self._gradient, GradientBase):
+            #     gradient = self._gradient.gradient_wrapper(
+            #         StateFn(operator, is_measurement=True) @ StateFn(self.ansatz),
+            #         bind_params=list(self.ansatz.parameters),
+            #         backend=self._quantum_instance,
+            #     )
+            # else:
+            #     gradient = self._gradient
 
             start_time = time()
 
             if callable(self.optimizer):
                 opt_result = self.optimizer(  # pylint: disable=not-callable
-                    fun=energy_evaluation, x0=initial_point, jac=gradient, bounds=bounds
+                    fun=energy_evaluation, x0=initial_point, bounds=bounds
                 )
             else:
                 opt_result = self.optimizer.minimize(
-                    fun=energy_evaluation, x0=initial_point, jac=gradient, bounds=bounds
+                    fun=energy_evaluation, x0=initial_point, bounds=bounds
                 )
 
             eval_time = time() - start_time
@@ -598,10 +417,11 @@ class VQD(VariationalAlgorithm, Eigensolver):
             )
 
             result.eigenvalues.append(eigenvalue)
-            result.eigenstates.append(self._get_eigenstate(result.optimal_parameters[-1]))
+            # result.eigenstates.append(self._get_eigenstate(result.optimal_parameters[-1]))
 
             if aux_operators is not None:
                 bound_ansatz = self.ansatz.bind_parameters(result.optimal_point[-1])
+                # replace this by the new eval_observables
                 aux_value = eval_observables(
                     self.quantum_instance, bound_ansatz, aux_operators, expectation=expectation
                 )
@@ -685,59 +505,56 @@ class VQD(VariationalAlgorithm, Eigensolver):
             )
 
         self._check_operator_ansatz(operator)
-        overlap_op = []
 
-        ansatz_params = self.ansatz.parameters
-        expect_op, expectation = self.construct_expectation(
-            ansatz_params, operator, return_expectation=True
-        )
-
+        # THIS IS FOR FIDELITY
+        prev_circs = []
         for state in range(step - 1):
-
-            prev_circ = self.ansatz.bind_parameters(prev_states[state])
-            overlap_op.append(~CircuitStateFn(prev_circ) @ CircuitStateFn(self.ansatz))
+            prev_circs.append(self.ansatz.bind_parameters(prev_states[state]))
 
         def energy_evaluation(parameters):
             parameter_sets = np.reshape(parameters, (-1, num_parameters))
-            # Dict associating each parameter with the lists of parameterization values for it
-            param_bindings = dict(zip(ansatz_params, parameter_sets.transpose().tolist()))
 
-            sampled_expect_op = self._circuit_sampler.convert(expect_op, params=param_bindings)
-            means = np.real(sampled_expect_op.eval())
+            estimator_job = self.estimator.run([self.ansatz], [operator], [parameter_sets])
+            estimator_result = estimator_job.result().values[0]
+            means = np.real(estimator_result)
 
-            for state in range(step - 1):
-                sampled_final_op = self._circuit_sampler.convert(
-                    overlap_op[state], params=param_bindings
-                )
-                cost = sampled_final_op.eval()
+            fidelity_job = self.fidelity.run([prev_circs],
+                                    [self.ansatz] * len(prev_circs),
+                                    [parameter_sets] * len(prev_circs),
+                                    [parameter_sets]* len(prev_circs))
+
+            costs = fidelity_job.run().fidelities
+            for (state, cost) in zip(range(step - 1, costs)):
                 means += np.real(self.betas[state] * np.conj(cost) * cost)
 
-            if self._callback is not None:
-                variance = np.real(expectation.compute_variance(sampled_expect_op))
-                estimator_error = np.sqrt(variance / self.quantum_instance.run_config.shots)
-                for i, param_set in enumerate(parameter_sets):
-                    self._eval_count += 1
-                    self._callback(self._eval_count, param_set, means[i], estimator_error[i], step)
-            else:
-                self._eval_count += len(means)
+            # if self._callback is not None:
+            #     variance = np.real(expectation.compute_variance(sampled_expect_op))
+            #     estimator_error = np.sqrt(variance / self.quantum_instance.run_config.shots)
+            #     for i, param_set in enumerate(parameter_sets):
+            #         self._eval_count += 1
+            #         self._callback(self._eval_count, param_set, means[i], estimator_error[i], step)
+
+            self._eval_count += len(means)
 
             return means if len(means) > 1 else means[0]
 
-        if return_expectation:
-            return energy_evaluation, expectation
+        # if return_expectation:
+        #     return energy_evaluation, expectation
 
         return energy_evaluation
 
-    def _get_eigenstate(self, optimal_parameters) -> Union[List[float], Dict[str, int]]:
-        """Get the simulation outcome of the ansatz, provided with parameters."""
-        optimal_circuit = self.ansatz.bind_parameters(optimal_parameters)
-        state_fn = self._circuit_sampler.convert(StateFn(optimal_circuit)).eval()
-        if self.quantum_instance.is_statevector:
-            state = state_fn.primitive.data  # VectorStateFn -> Statevector -> np.array
-        else:
-            state = state_fn.to_dict_fn().primitive  # SparseVectorStateFn -> DictStateFn -> dict
-
-        return state
+    # def _get_eigenstate(self, optimal_parameters) -> Union[List[float], Dict[str, int]]:
+    #     """Get the simulation outcome of the ansatz, provided with parameters."""
+    #     optimal_circuit = self.ansatz.bind_parameters(optimal_parameters)
+    #     state_fn = self._circuit_sampler.convert(StateFn(optimal_circuit)).eval()
+    #
+    #     state_fn = self.estimator.run([self.ansatz], self.)
+    #     if self.quantum_instance.is_statevector:
+    #         state = state_fn.primitive.data  # VectorStateFn -> Statevector -> np.array
+    #     else:
+    #         state = state_fn.to_dict_fn().primitive  # SparseVectorStateFn -> DictStateFn -> dict
+    #
+    #     return state
 
 
 class VQDResult(VariationalResult, EigensolverResult):

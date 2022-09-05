@@ -10,7 +10,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-""" Eigen Solvers Package """
+""" Eigensolvers Package """
 
 from .numpy_eigensolver import NumPyEigensolver
 from .eigensolver import Eigensolver, EigensolverResult
