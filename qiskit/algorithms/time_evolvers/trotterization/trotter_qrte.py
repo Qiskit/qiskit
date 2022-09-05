@@ -12,23 +12,22 @@
 
 """An algorithm to implement a Trotterization real time-evolution."""
 
-from typing import Union, Optional
+from __future__ import annotations
+
+from qiskit.algorithms.observables_evaluator import eval_observables
 
 from qiskit import QuantumCircuit
-from qiskit.algorithms.observables_evaluator import eval_observables
 from qiskit.algorithms.time_evolvers.evolution_problem import EvolutionProblem
 from qiskit.algorithms.time_evolvers.evolution_result import EvolutionResult
 from qiskit.algorithms.time_evolvers.real_evolver import RealEvolver
 from qiskit.opflow import (
-    SummedOp,
     PauliOp,
     CircuitOp,
     PauliSumOp,
     StateFn,
-    OperatorBase,
 )
 from qiskit.circuit.library import PauliEvolutionGate
-from qiskit.primitives import Estimator
+from qiskit.primitives import BaseEstimator
 from qiskit.synthesis import ProductFormula, LieTrotter
 
 
@@ -54,8 +53,8 @@ class TrotterQRTE(RealEvolver):
 
     def __init__(
         self,
-        product_formula: Optional[ProductFormula] = None,
-        estimator: Estimator = None,
+        product_formula: ProductFormula | None = None,
+        estimator: BaseEstimator | None = None,
     ) -> None:
         """
         Args:
@@ -115,15 +114,11 @@ class TrotterQRTE(RealEvolver):
                 "aux_operators were provided for evaluations but no ``estimator`` was provided."
             )
         hamiltonian = evolution_problem.hamiltonian
-        if not isinstance(hamiltonian, (PauliOp, PauliSumOp, SummedOp)):
+        if not isinstance(hamiltonian, (PauliOp, PauliSumOp)):
             raise ValueError(
                 "TrotterQRTE only accepts PauliOp | "
-                f"PauliSumOp | SummedOp, {type(hamiltonian)} provided."
+                f"PauliSumOp, {type(hamiltonian)} provided."
             )
-        if isinstance(hamiltonian, OperatorBase):
-            hamiltonian = hamiltonian.bind_parameters(evolution_problem.param_value_dict)
-        if isinstance(hamiltonian, SummedOp):
-            hamiltonian = self._summed_op_to_pauli_sum_op(hamiltonian)
         # the evolution gate
         evolution_gate = CircuitOp(
             PauliEvolutionGate(hamiltonian, evolution_problem.time, synthesis=self.product_formula)
@@ -149,30 +144,3 @@ class TrotterQRTE(RealEvolver):
 
         return EvolutionResult(evolved_state, evaluated_aux_ops)
 
-    @staticmethod
-    def _summed_op_to_pauli_sum_op(
-        hamiltonian: SummedOp,
-    ) -> Union[PauliSumOp, PauliOp]:
-        """
-        Tries binding parameters in a Hamiltonian.
-
-        Args:
-            hamiltonian: The Hamiltonian that defines an evolution.
-
-        Returns:
-            Hamiltonian.
-
-        Raises:
-            ValueError: If the ``SummedOp`` Hamiltonian contains operators of an invalid type.
-        """
-        # PauliSumOp does not allow parametrized coefficients but after binding the parameters
-        # we need to convert it into a PauliSumOp for the PauliEvolutionGate.
-        op_list = []
-        for op in hamiltonian.oplist:
-            if not isinstance(op, PauliOp):
-                raise ValueError(
-                    "Content of the Hamiltonian not of type PauliOp. The "
-                    f"following type detected: {type(op)}."
-                )
-            op_list.append(op)
-        return sum(op_list)
