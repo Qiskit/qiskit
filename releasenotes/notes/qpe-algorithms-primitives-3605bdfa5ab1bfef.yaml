@@ -1,0 +1,31 @@
+---
+features:
+  - |
+    Added options for quantum phase estimation algorithms
+    (:class:`qiskit.algorithms.IterativePhaseEstimation`,
+    :class:`qiskit.algorithms.PhaseEstimation`,
+    :class:`qiskit.algorithms.HamiltonianPhaseEstimation`) to use
+    :class:`~qiskit.primitives.BaseSampler` primitive. See the example below.
+    Using :class:`~qiskit.utils.QuantumInstance` or `qiskit.providers.Backend` will now issue a
+    ``DeprecationWarning``.
+
+    .. code-block:: python
+
+      from qiskit.primitives import Sampler
+      from qiskit.algorithms.phase_estimators import HamiltonianPhaseEstimation
+      from qiskit.opflow.evolutions import MatrixEvolution
+      from qiskit.opflow import X, Y, I
+
+      sampler = Sampler()
+      num_evaluation_qubits = 6
+      phase_est = HamiltonianPhaseEstimation(
+          num_evaluation_qubits=num_evaluation_qubits, sampler=sampler
+      )
+
+      hamiltonian = (0.5 * X) + (0.6 * Y) + (0.7 * I)
+      result = phase_est.estimate(
+          hamiltonian=hamiltonian,
+          state_preparation=None,
+          evolution=MatrixEvolution(),
+          bound=1.05,
+      )
