@@ -13,12 +13,11 @@
 """Test evolver problem class."""
 import unittest
 
-from qiskit.algorithms.time_evolvers.evolution_problem import EvolutionProblem
-from qiskit.quantum_info import Pauli, SparsePauliOp
 from test.python.algorithms import QiskitAlgorithmsTestCase
 from ddt import data, ddt, unpack
 from numpy.testing import assert_raises
-
+from qiskit.algorithms.time_evolvers.evolution_problem import EvolutionProblem
+from qiskit.quantum_info import Pauli, SparsePauliOp
 from qiskit.circuit import Parameter
 from qiskit.opflow import Y, Z, One, X, Zero, PauliSumOp
 
