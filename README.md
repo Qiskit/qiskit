@@ -59,9 +59,7 @@ In order to do so, you need to configure Qiskit with credentials for using a qua
 
 1. Create an _[IBM Quantum](https://quantum-computing.ibm.com)_ account if you haven't already done so.
 
-2. Get an API token from the IBM Quantum website under _[Account settings](https://quantum-computing.ibm.com/account) > API Token_.
-<img src="docs/images/ibm_account1.png" width="40%"/>
-<img src="docs/images/ibm_account2.png" width="40%"/>
+2. Get an API token from the IBM Quantum website under _[Account settings](https://quantum-computing.ibm.com/account) > API Token_.<img src="docs/images/ibm_account1.png" width="40%"/><img src="docs/images/ibm_account2.png" width="40%"/>
 3. Take your token from step 2, here called `MY_API_TOKEN`, and run:
 
    ```python
