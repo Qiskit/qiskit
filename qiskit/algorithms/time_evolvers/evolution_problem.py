@@ -11,7 +11,7 @@
 # that they have been altered from the originals.
 
 """Evolution problem class."""
-
+from __future__ import annotations
 from typing import Dict
 
 from qiskit import QuantumCircuit

@@ -11,7 +11,7 @@
 # that they have been altered from the originals.
 
 """Class for holding evolution result."""
-
+from __future__ import annotations
 from typing import Tuple
 
 from qiskit import QuantumCircuit
