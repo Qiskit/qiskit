@@ -24,14 +24,15 @@ from qiskit.algorithms import AlgorithmError
 from qiskit.algorithms.minimum_eigensolvers import SamplingVQE
 from qiskit.algorithms.optimizers import (
     L_BFGS_B,
-    # QNSPSA,
-    # SPSA,
+    QNSPSA,
+    SPSA,
     OptimizerResult,
 )
-from qiskit.circuit.library import RealAmplitudes
+from qiskit.circuit.library import RealAmplitudes, TwoLocal
 from qiskit.opflow import PauliSumOp
 from qiskit.quantum_info import SparsePauliOp, Pauli
 from qiskit.primitives import Sampler
+from qiskit.algorithms.state_fidelities import ComputeUncompute
 
 # if has_aer():
 #     from qiskit import Aer
@@ -133,37 +134,49 @@ class TestSamplerVQE(QiskitAlgorithmsTestCase):
         with self.assertRaises(RuntimeError):
             vqe.compute_minimum_eigenvalue(operator=self.op)
 
-    # def test_batch_evaluate_with_qnspsa(self):
-    #     """Test batch evaluating with QNSPSA works."""
-    #     ansatz = TwoLocal(2, rotation_blocks=["ry", "rz"], entanglement_blocks="cz")
+    def test_batch_evaluate_with_qnspsa(self):
+        """Test batch evaluating with QNSPSA works."""
+        ansatz = TwoLocal(2, rotation_blocks=["ry", "rz"], entanglement_blocks="cz")
 
-    #     wrapped_backend = BasicAer.get_backend("qasm_simulator")
-    #     inner_backend = BasicAer.get_backend("statevector_simulator")
+        wrapped_sampler = Sampler()
+        inner_sampler = Sampler()
 
-    #     callcount = {"count": 0}
+        callcount = {"count": 0}
 
-    #     def wrapped_run(circuits, **kwargs):
-    #         kwargs["callcount"]["count"] += 1
-    #         return inner_backend.run(circuits)
+        def wrapped_run(*args, **kwargs):
+            kwargs["callcount"]["count"] += 1
+            return inner_sampler.run(*args, **kwargs)
 
-    #     wrapped_backend.run = partial(wrapped_run, callcount=callcount)
+        wrapped_sampler.run = partial(wrapped_run, callcount=callcount)
 
-    #     fidelity = QNSPSA.get_fidelity(ansatz, backend=wrapped_backend)
-    #     qnspsa = QNSPSA(fidelity, maxiter=5)
+        # fidelity = QNSPSA.get_fidelity(ansatz, backend=wrapped_backend)
+        fidelity = ComputeUncompute(wrapped_sampler)
 
-    #     vqe = VQE(
-    #         ansatz=ansatz,
-    #         optimizer=qnspsa,
-    #         max_evals_grouped=100,
-    #         quantum_instance=wrapped_backend,
-    #     )
-    #     _ = vqe.compute_minimum_eigenvalue(Z ^ Z)
+        def fidelity_callable(left, right):
+            batchsize = np.asarray(left).shape[0]
+            job = fidelity.run(batchsize * [ansatz], batchsize * [ansatz], left, right)
+            return job.result().fidelities
 
-    #     # 1 calibration + 1 stddev estimation + 1 initial blocking
-    #     # + 5 (1 loss + 1 fidelity + 1 blocking) + 1 return loss + 1 VQE eval
-    #     expected = 1 + 1 + 1 + 5 * 3 + 1 + 1
+        qnspsa = QNSPSA(fidelity_callable, maxiter=5)
+        qnspsa.set_max_evals_grouped(100)
 
-    #     self.assertEqual(callcount["count"], expected)
+        # qnspsa = SPSA(maxiter=1, learning_rate=0.01, perturbation=0.01)
+        # qnspsa.set_max_evals_grouped(100)
+
+        vqe = SamplingVQE(
+            ansatz=ansatz,
+            optimizer=qnspsa,
+            # max_evals_grouped=100,
+            # quantum_instance=wrapped_backend,
+            sampler=wrapped_sampler,
+        )
+        _ = vqe.compute_minimum_eigenvalue(Pauli("ZZ"))
+
+        # 1 calibration + 1 stddev estimation + 1 initial blocking
+        # + 5 (1 loss + 1 fidelity + 1 blocking) + 1 return loss + 1 VQE eval
+        expected = 1 + 1 + 1 + 5 * 3 + 1 + 1
+
+        self.assertEqual(callcount["count"], expected)
 
     def test_optimizer_scipy_callable(self):
         """Test passing a SciPy optimizer directly as callable."""

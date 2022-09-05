@@ -35,7 +35,9 @@ from .sampling_mes import (
     SamplingMinimumEigensolver,
     SamplingMinimumEigensolverResult,
 )
-from .diagonal_estimator import diagonal_estimation
+
+# from .diagonal_estimator import diagonal_estimation
+from .diagonal_estimator import _DiagonalEstimator
 
 logger = logging.getLogger(__name__)
 
@@ -233,12 +235,22 @@ class SamplingVQE(VariationalAlgorithm, SamplingMinimumEigensolver):
             raise RuntimeError("The ansatz must be parameterized, but has 0 free parameters.")
 
         best_measurement = {"best": None}
+        estimator = _DiagonalEstimator(self.sampler)
 
         def energy_evaluation(parameters):
-            # Create dict associating each parameter with the lists of parameterization values for it
-            value, best = diagonal_estimation(
-                self.sampler, operator, ansatz, parameters, return_best_measurement=True
-            )
+            # handle broadcasting
+            if len(np.asarray(parameters).shape) == 2:
+                parameters = np.asarray(parameters).tolist()
+                batchsize = len(parameters)
+            else:
+                parameters = [parameters]
+                batchsize = 1
+
+            result = estimator.run(
+                batchsize * [ansatz], batchsize * [operator], parameters
+            ).result()
+            value = result.values
+            best = result.best_measurements
 
             # keep track of the best sample
             if return_best_measurement:
@@ -267,19 +279,15 @@ class SamplingVQE(VariationalAlgorithm, SamplingMinimumEigensolver):
 
         # evaluate all aux operators
         num = len(aux_operators)
-        results = diagonal_estimation(
-            self.sampler,
-            aux_operators,
-            num * [ansatz],
-            num * [parameters],
-            return_best_measurement=False,
-        )
+        estimator = _DiagonalEstimator(self.sampler)
+        results = estimator.run(num * [ansatz], aux_operators, num * [parameters]).result()
+        values = results.values
 
         # bring back into the right shape and return
         if is_dict:
-            return dict(zip(keys, results))
+            return dict(zip(keys, values))
 
-        return results
+        return values
 
 
 class SamplingVQEResult(VariationalResult, SamplingMinimumEigensolverResult):

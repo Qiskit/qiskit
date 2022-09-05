@@ -12,98 +12,157 @@
 
 """Expectation value for a diagonal observable using a sampler primitive."""
 
-from collections.abc import Callable
+from collections.abc import Callable, Sequence
+from typing import Any
+
+from dataclasses import dataclass
 
 import numpy as np
+from qiskit.algorithms.algorithm_job import AlgorithmJob
 from qiskit.circuit import QuantumCircuit
-from qiskit.primitives import BaseSampler
+from qiskit.circuit.parametertable import ParameterView
+from qiskit.primitives import BaseSampler, BaseEstimator, EstimatorResult
 from qiskit.primitives.utils import init_observable
 from qiskit.opflow import PauliSumOp
 from qiskit.quantum_info import SparsePauliOp
 from qiskit.quantum_info.operators.base_operator import BaseOperator
 
 
-def diagonal_estimation(
-    sampler: BaseSampler,
-    observable: PauliSumOp | BaseOperator | list[PauliSumOp | BaseOperator],
-    circuit: QuantumCircuit | list[QuantumCircuit],
-    values: np.ndarray | list[np.ndarray] | None = None,
-    aggregation: float | Callable[[list[tuple[float, float]]], float] | None = None,
-    return_best_measurement: bool = False,
-    **run_options,
-) -> list[complex] | tuple[list[complex], list[dict]]:
-    r"""Evaluate a the expectation of quantum state with respect to a diagonal operator.
+@dataclass(frozen=True)
+class _DiagonalEstimatorResult(EstimatorResult):
+    """A result from an expectation of a diagonal observable."""
 
-    Args:
-        sampler: The sampler used to evaluate the circuits.
-        observable: The diagonal operator.
-        circuit: The circuits preparing the quantum states. Note that this circuit must
-            contain measurements already.
-        values: The parameter values for the circuits. Can be a list of values which
-            will be evaluated in a batch. If the observable and circuit are a single object and
-            the values are a list of arrays, the observable and circuit are broadcasted to
-            the size of the values.
-        aggregation: The aggregation function to aggregate the measurement outcomes. If a float
-            this specified the CVaR :math:`\alpha` parameter.
-        return_best_measurement: If True, return a dict specifying the best measurement along
-            to the expectation value.
-        run_options: Run options for the sampler.
+    best_measurements: dict[str, Any] | None = None
 
-    Returns:
-        A tuple containing a list of expectation values and a list of the best measurements in
-        each expectation value.
-    """
-    # TODO check if observables are all diagonal
 
-    if values is None:
-        values = [np.array([])]
-    elif not isinstance(values, list):
-        values = [values]
+class _DiagonalEstimator(BaseEstimator):
+    """An estimator for diagonal observables."""
 
-    # broadcast if necessary
-    if not isinstance(circuit, list) and not isinstance(observable, list):
-        observable = init_observable(observable)  # only do this conversion once, before broadcast
-        num_batches = len(values)
-        observables = [observable] * num_batches
-        circuits = [circuit] * num_batches
-    else:
-        observables = [init_observable(obs) for obs in observable]
-        circuits = circuit
+    def __init__(
+        self,
+        sampler: BaseSampler,
+        aggregation: float | Callable[[list[tuple[float, float]]], float] | None = None,
+        **run_options,
+    ) -> None:
+        r"""Evaluate a the expectation of quantum state with respect to a diagonal operator.
 
-    samples = sampler.run(circuits, values, **run_options).result().quasi_dists
+        Args:
+            sampler: The sampler used to evaluate the circuits.
+            aggregation: The aggregation function to aggregate the measurement outcomes. If a float
+                this specified the CVaR :math:`\alpha` parameter.
+            run_options: Run options for the sampler.
 
-    # a list of dictionaries containing: {state: (measurement probability, value)}
-    evaluations = [
-        {
-            state: (probability, _evaluate_sparsepauli(state, observable))
-            for state, probability in sampled.items()
-        }
-        for observable, sampled in zip(observables, samples)
-    ]
+        """
+        super().__init__()
+        self.sampler = sampler
+        if not callable(aggregation):
+            aggregation = _get_cvar_aggregation(aggregation)
 
-    if not callable(aggregation):
-        aggregation = _get_cvar_aggregation(aggregation)
+        self.aggregation = aggregation
+        self.run_options = run_options
 
-    results = [aggregation(evaluated.values()) for evaluated in evaluations]
+    def _run(
+        self,
+        circuits: Sequence[QuantumCircuit],
+        observables: Sequence[BaseOperator | PauliSumOp],
+        parameter_values: Sequence[Sequence[float]],
+        parameters: Sequence[ParameterView],
+        **run_options,
+    ) -> AlgorithmJob:
+        circuit_indices = []
+        for i, circuit in enumerate(circuits):
+            index = self._circuit_ids.get(id(circuit))
+            if index is not None:
+                circuit_indices.append(index)
+            else:
+                circuit_indices.append(len(self._circuits))
+                self._circuit_ids[id(circuit)] = len(self._circuits)
+                self._circuits.append(circuit)
+                self._parameters.append(parameters[i])
+        observable_indices = []
+        for observable in observables:
+            index = self._observable_ids.get(id(observable))
+            if index is not None:
+                observable_indices.append(index)
+            else:
+                # TODO check observable is diagonal
+                observable_indices.append(len(self._observables))
+                self._observable_ids[id(observable)] = len(self._observables)
+                self._observables.append(init_observable(observable))
 
-    if not return_best_measurement:
-        return results
-
-    # get the best measurements
-    best_measurements = []
-    num_qubits = circuits[0].num_qubits
-    for evaluated in evaluations:
-        best_result = min(evaluated.items(), key=lambda x: x[1][1])
-        best_measurements.append(
-            {
-                "state": best_result[0],
-                "bitstring": bin(best_result[0])[2:].zfill(num_qubits),
-                "value": best_result[1][1],
-                "probability": best_result[1][0],
-            }
+        job = AlgorithmJob(
+            self._call, circuit_indices, observable_indices, parameter_values, **run_options
         )
+        job.submit()
+        return job
 
-    return results, best_measurements
+    def _call(
+        self,
+        circuits: Sequence[int],
+        observables: Sequence[int],
+        parameter_values: Sequence[Sequence[float]],
+        **run_options,
+    ) -> _DiagonalEstimatorResult:
+        # TODO check if observables are all diagonal
+        # if values is None:
+        #     values = [np.array([])]
+        # elif not isinstance(values, list):
+        #     values = [values]
+
+        # broadcast if necessary
+        # if not isinstance(circuit, list) and not isinstance(observable, list):
+        #     observable = init_observable(
+        #         observable
+        #     )  # only do this conversion once, before broadcast
+        #     num_batches = len(values)
+        #     observables = [observable] * num_batches
+        #     circuits = [circuit] * num_batches
+        # else:
+        #     observables = [init_observable(obs) for obs in observable]
+        #     circuits = circuit
+
+        if len(run_options) > 0:
+            local_run_options = self.run_options.copy()
+            local_run_options.update(**run_options)
+        else:
+            local_run_options = self.run_options
+
+        job = self.sampler.run(
+            [self._circuits[i] for i in circuits],
+            parameter_values,
+            **local_run_options,
+        )
+        samples = job.result().quasi_dists
+
+        # a list of dictionaries containing: {state: (measurement probability, value)}
+        evaluations = [
+            {
+                state: (probability, _evaluate_sparsepauli(state, self._observables[i]))
+                for state, probability in sampled.items()
+            }
+            for i, sampled in zip(observables, samples)
+        ]
+
+        results = [self.aggregation(evaluated.values()) for evaluated in evaluations]
+
+        # get the best measurements
+        best_measurements = []
+        num_qubits = self._circuits[0].num_qubits
+        for evaluated in evaluations:
+            best_result = min(evaluated.items(), key=lambda x: x[1][1])
+            best_measurements.append(
+                {
+                    "state": best_result[0],
+                    "bitstring": bin(best_result[0])[2:].zfill(num_qubits),
+                    "value": best_result[1][1],
+                    "probability": best_result[1][0],
+                }
+            )
+
+        metadata = None
+        return _DiagonalEstimatorResult(
+            values=results, metadata=metadata, best_measurements=best_measurements
+        )
 
 
 def _get_cvar_aggregation(alpha):
