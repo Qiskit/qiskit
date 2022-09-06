@@ -242,7 +242,7 @@ class FasterAmplitudeEstimation(AmplitudeEstimator):
 
         Raises:
             ValueError: A quantum instance or Sampler must be provided.
-            AlgorithmError: Sampler run error
+            AlgorithmError: Sampler run error.
         """
         if self._quantum_instance is None and self._sampler is None:
             raise ValueError("A quantum instance or sampler must be provided.")
