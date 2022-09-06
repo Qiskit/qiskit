@@ -31,7 +31,7 @@ from .utils import _get_observable_evaluator, _is_gradient_supported
 from ..evolution_problem import EvolutionProblem
 from ..evolution_result import EvolutionResult
 from ..real_evolver import RealEvolver
-from ...state_fidelities import ComputeUncompute
+from ...state_fidelities import ComputeUncompute, BaseStateFidelity
 
 logger = logging.getLogger(__name__)
 
@@ -116,7 +116,7 @@ class PVQD(RealEvolver):
         ansatz: QuantumCircuit,
         initial_parameters: np.ndarray,
         expectation: ExpectationBase,
-        sampler: BaseSampler,
+        fidelity_primitive: BaseStateFidelity,
         estimator: BaseEstimator | None = None,
         optimizer: Optimizer | Minimizer | None = None,
         num_timesteps: int | None = None,
@@ -159,7 +159,7 @@ class PVQD(RealEvolver):
         self.initial_guess = initial_guess
         self.expectation = expectation
         self.estimator = estimator
-        self.sampler = sampler
+        self.fidelity_primitive = fidelity_primitive
         self.evolution = evolution
         self.use_parameter_shift = use_parameter_shift
 
@@ -256,8 +256,9 @@ class PVQD(RealEvolver):
             else:
                 value_dict = dict(zip(x, displacement))
 
-            fidelity = ComputeUncompute(self.sampler)
-            job = fidelity.run([trotterized], [shifted], None, list(value_dict.values()))
+            job = self.fidelity_primitive.run(
+                [trotterized], [shifted], None, list(value_dict.values())
+            )
             fidelity = job.result().fidelities[0]
 
             # in principle we could add different loss functions here, but we're currently
