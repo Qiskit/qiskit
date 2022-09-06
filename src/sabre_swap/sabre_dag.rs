@@ -54,7 +54,7 @@ impl SabreDAG {
             }
             for x in cargs {
                 if clbit_pos[*x] != usize::MAX {
-                    dag.add_edge(NodeIndex::new(qubit_pos[*x]), gate_index, ());
+                    dag.add_edge(NodeIndex::new(clbit_pos[*x]), gate_index, ());
                 }
                 clbit_pos[*x] = gate_index.index();
             }
