@@ -123,7 +123,7 @@ class TestCircuitDrawer(QiskitTestCase):
 
     def test_reverse_bits(self):
         """Test reverse_bits should not raise warnings when no classical qubits:
-        See:"""
+        See: https://github.com/Qiskit/qiskit-terra/pull/8689"""
         circuit = QuantumCircuit(3)
         circuit.x(1)
 
