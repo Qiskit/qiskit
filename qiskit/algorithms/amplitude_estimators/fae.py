@@ -147,7 +147,7 @@ class FasterAmplitudeEstimation(AmplitudeEstimator):
 
                 # check if it is a good state
                 if estimation_problem.is_good_state(state[::-1]):
-                    prob = prob + probabilities
+                    prob += probabilities
 
             cos_estimate = 1 - 2 * prob
         elif self._quantum_instance.is_statevector:
