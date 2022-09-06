@@ -465,7 +465,6 @@ class TestPhaseEstimation(QiskitAlgorithmsTestCase):
         self,
         unitary_circuit,
         state_preparation=None,
-        shots=None,
         phase_estimator=None,
         num_iterations=6,
     ):
@@ -494,13 +493,12 @@ class TestPhaseEstimation(QiskitAlgorithmsTestCase):
         (X.to_circuit(), 0.5, None, PhaseEstimation),
     )
     @unpack
-    def test_qpe_Z_sampler(self, state_preparation, expected_phase, shots, phase_estimator):
+    def test_qpe_Z_sampler(self, state_preparation, expected_phase, phase_estimator):
         """eigenproblem Z, |0> and |1>"""
         unitary_circuit = Z.to_circuit()
         phase = self.one_phase_sampler(
             unitary_circuit,
             state_preparation,
-            shots=shots,
             phase_estimator=phase_estimator,
         )
         self.assertEqual(phase, expected_phase)
