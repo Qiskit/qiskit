@@ -85,10 +85,13 @@ class _DiagonalEstimator(BaseEstimator):
             if index is not None:
                 observable_indices.append(index)
             else:
-                # TODO check observable is diagonal
+                observable = init_observable(observable)  # convert to SparsePauliOp
+                _check_observable_is_diagonal(observable)  # check it's diagonal
+
+                # add to cache
                 observable_indices.append(len(self._observables))
                 self._observable_ids[id(observable)] = len(self._observables)
-                self._observables.append(init_observable(observable))
+                self._observables.append(observable)
 
         job = AlgorithmJob(
             self._call, circuit_indices, observable_indices, parameter_values, **run_options
@@ -103,24 +106,6 @@ class _DiagonalEstimator(BaseEstimator):
         parameter_values: Sequence[Sequence[float]],
         **run_options,
     ) -> _DiagonalEstimatorResult:
-        # TODO check if observables are all diagonal
-        # if values is None:
-        #     values = [np.array([])]
-        # elif not isinstance(values, list):
-        #     values = [values]
-
-        # broadcast if necessary
-        # if not isinstance(circuit, list) and not isinstance(observable, list):
-        #     observable = init_observable(
-        #         observable
-        #     )  # only do this conversion once, before broadcast
-        #     num_batches = len(values)
-        #     observables = [observable] * num_batches
-        #     circuits = [circuit] * num_batches
-        # else:
-        #     observables = [init_observable(obs) for obs in observable]
-        #     circuits = circuit
-
         if len(run_options) > 0:
             local_run_options = self.run_options.copy()
             local_run_options.update(**run_options)
@@ -143,7 +128,7 @@ class _DiagonalEstimator(BaseEstimator):
             for i, sampled in zip(observables, samples)
         ]
 
-        results = [self.aggregation(evaluated.values()) for evaluated in evaluations]
+        results = np.array([self.aggregation(evaluated.values()) for evaluated in evaluations])
 
         # get the best measurements
         best_measurements = []
@@ -210,3 +195,9 @@ def _evaluate_bitstring(state: int, paulistring: str) -> float:
     return np.prod(
         [-1 if state & (1 << (n - i)) else 1 for i, pauli in enumerate(paulistring) if pauli == "Z"]
     )
+
+
+def _check_observable_is_diagonal(observable: SparsePauliOp) -> bool:
+    is_diagonal = not np.any(observable.paulis.x)
+    if not is_diagonal:
+        raise ValueError("The observable must be diagonal.")

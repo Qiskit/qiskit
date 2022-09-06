@@ -22,29 +22,30 @@ from scipy.optimize import minimize as scipy_minimize
 from qiskit.circuit import QuantumCircuit, ParameterVector
 from qiskit.algorithms import AlgorithmError
 from qiskit.algorithms.minimum_eigensolvers import SamplingVQE
-from qiskit.algorithms.optimizers import (
-    L_BFGS_B,
-    QNSPSA,
-    SPSA,
-    OptimizerResult,
-)
+from qiskit.algorithms.optimizers import L_BFGS_B, QNSPSA, GradientDescent, OptimizerResult
 from qiskit.circuit.library import RealAmplitudes, TwoLocal
 from qiskit.opflow import PauliSumOp
 from qiskit.quantum_info import SparsePauliOp, Pauli
 from qiskit.primitives import Sampler
 from qiskit.algorithms.state_fidelities import ComputeUncompute
+from qiskit.algorithms.gradients import ParamShiftEstimatorGradient
 
-# if has_aer():
-#     from qiskit import Aer
+from qiskit.test.decorators import slow_test
 
 
 # pylint: disable=invalid-name, unused-argument
-def _mock_optimizer(fun, x0, jac=None, bounds=None):
-    """A mock of a callable that can be used as minimizer in the VQE."""
+def _mock_optimizer(fun, x0, jac=None, bounds=None, inputs=None):
+    """A mock of a callable that can be used as minimizer in the VQE.
+
+    If ``inputs`` is given as a dictionary, stores the inputs in that dictionary.
+    """
     result = OptimizerResult()
     result.x = np.zeros_like(x0)
     result.fun = fun(result.x)
     result.nit = 0
+
+    if inputs is not None:
+        inputs.update({"fun": fun, "x0": x0, "jac": jac, "bounds": bounds})
     return result
 
 
@@ -101,6 +102,29 @@ class TestSamplerVQE(QiskitAlgorithmsTestCase):
         result = vqe.compute_minimum_eigenvalue(operator=self.op)
         self.assertAlmostEqual(result.eigenvalue, self.optimal_value, places=5)
 
+    def test_gradient_passed(self):
+        """Test the gradient is properly passed into the optimizer."""
+        inputs = {}
+        vqe = SamplingVQE(
+            optimizer=partial(_mock_optimizer, inputs=inputs),
+            sampler=Sampler(),
+            gradient=ParamShiftEstimatorGradient(),
+        )
+        _ = vqe.compute_minimum_eigenvalue(operator=self.op)
+
+        self.assertIsNotNone(inputs["jac"])
+
+    @slow_test
+    def test_gradient_run(self):
+        """Test using the gradient to calculate the minimum."""
+        vqe = SamplingVQE(
+            optimizer=GradientDescent(maxiter=200, learning_rate=0.1),
+            sampler=Sampler(),
+            gradient=ParamShiftEstimatorGradient(),
+        )
+        result = vqe.compute_minimum_eigenvalue(operator=self.op)
+        self.assertAlmostEqual(result.eigenvalue, self.optimal_value, places=5)
+
     def test_invalid_initial_point(self):
         """Test the proper error is raised when the initial point has the wrong size."""
         ansatz = RealAmplitudes(2, reps=1)
@@ -149,7 +173,6 @@ class TestSamplerVQE(QiskitAlgorithmsTestCase):
 
         wrapped_sampler.run = partial(wrapped_run, callcount=callcount)
 
-        # fidelity = QNSPSA.get_fidelity(ansatz, backend=wrapped_backend)
         fidelity = ComputeUncompute(wrapped_sampler)
 
         def fidelity_callable(left, right):
@@ -160,14 +183,9 @@ class TestSamplerVQE(QiskitAlgorithmsTestCase):
         qnspsa = QNSPSA(fidelity_callable, maxiter=5)
         qnspsa.set_max_evals_grouped(100)
 
-        # qnspsa = SPSA(maxiter=1, learning_rate=0.01, perturbation=0.01)
-        # qnspsa.set_max_evals_grouped(100)
-
         vqe = SamplingVQE(
             ansatz=ansatz,
             optimizer=qnspsa,
-            # max_evals_grouped=100,
-            # quantum_instance=wrapped_backend,
             sampler=wrapped_sampler,
         )
         _ = vqe.compute_minimum_eigenvalue(Pauli("ZZ"))
@@ -214,16 +232,12 @@ class TestSamplerVQE(QiskitAlgorithmsTestCase):
             self.assertEqual(len(result.aux_operator_values.keys()), 1)
             self.assertAlmostEqual(result.aux_operator_values["magnetization"], 0j, places=5)
 
-        # TODO check None or 0 aux ops
+    def test_nondiag_observable_raises(self):
+        """Test passing a non-diagonal observable raises an error."""
+        vqe = SamplingVQE(sampler=Sampler())
 
-        # TODO check if we can add stddev
-
-        # TODO check for diagonal operator
-        # nondiag = [Pauli("XI")]
-        # with self.subTest(auxops=nondiag):
-        #     with self.assertRaises(ValueError):
-        #         _ = vqe.compute_minimum_eigenvalue(self.op, aux_operators=nondiag)
-        #         print(_.aux_operator_values)
+        with self.assertRaises(ValueError):
+            _ = vqe.compute_minimum_eigenvalue(Pauli("X"))
 
 
 if __name__ == "__main__":

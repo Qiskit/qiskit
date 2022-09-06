@@ -23,6 +23,7 @@ import numpy as np
 from qiskit.circuit import QuantumCircuit
 from qiskit.circuit.library import RealAmplitudes
 from qiskit.primitives import BaseSampler
+from qiskit.algorithms.gradients import BaseEstimatorGradient
 
 from qiskit.quantum_info.operators.base_operator import BaseOperator
 from qiskit.opflow import PauliSumOp
@@ -55,6 +56,9 @@ class SamplingVQE(VariationalAlgorithm, SamplingMinimumEigensolver):
             If not provided, a random initial point with values in the interval :math:`[0, 2\pi]`
             is used.
         sampler: The sampler primitive to sample the circuits.
+        gradient: The estimator gradient to evaluate gradients. Note that this is an
+            *estimator* gradient and not a sampler gradient, as it is used to evaluate the
+            gradients of the expectation value.
         aggregation: A float or callable to specify how the objective function evaluated on the
             basis states should be aggregated. If a float, this specifies the :math:`\alpha \in [0,1]`
             parameter for a CVaR expectation value (see also [1]).
@@ -72,8 +76,7 @@ class SamplingVQE(VariationalAlgorithm, SamplingMinimumEigensolver):
         optimizer: Optimizer | Minimizer | None = None,
         initial_point: Sequence[float] | None = None,
         sampler: BaseSampler | None = None,
-        # TODO
-        # gradient:
+        gradient: BaseEstimatorGradient | None = None,
         aggregation: float | Callable[[list[float]], float] | None = None,
     ) -> None:
         """
@@ -94,6 +97,7 @@ class SamplingVQE(VariationalAlgorithm, SamplingMinimumEigensolver):
         self.ansatz = ansatz
         self.optimizer = optimizer
         self.sampler = sampler
+        self.gradient = gradient
         self.aggregation = aggregation
 
         # this has to go via getters and setters due to the VariationalAlgorithm interface
@@ -166,20 +170,17 @@ class SamplingVQE(VariationalAlgorithm, SamplingMinimumEigensolver):
         # set an expectation for this algorithm run (will be reset to None at the end)
         # initial_point = _validate_initial_point(self.initial_point, self.ansatz)
 
-        energy_evaluation, best_measurement = self.get_energy_evaluation(
+        energy, gradient, best_measurement = self.get_energy_and_gradient(
             operator, ansatz, return_best_measurement=True
         )
 
         start_time = time()
 
         if callable(optimizer):
-            opt_result = optimizer(  # pylint: disable=not-callable
-                fun=energy_evaluation, x0=initial_point  # , jac=gradient, bounds=bounds
-            )
+            # pylint: disable=not-callable
+            opt_result = optimizer(fun=energy, x0=initial_point, jac=gradient)
         else:
-            opt_result = optimizer.minimize(
-                fun=energy_evaluation, x0=initial_point  # , jac=gradient, bounds=bounds
-            )
+            opt_result = optimizer.minimize(fun=energy, x0=initial_point, jac=gradient)
 
         eval_time = time() - start_time
 
@@ -206,13 +207,15 @@ class SamplingVQE(VariationalAlgorithm, SamplingMinimumEigensolver):
 
         return result
 
-    def get_energy_evaluation(
+    def get_energy_and_gradient(
         self,
         operator: BaseOperator | PauliSumOp,
         ansatz: QuantumCircuit,
         return_best_measurement: bool = False,
-    ) -> tuple[Callable[[np.ndarray], float | list[float]], dict]:
-        """Returns a function handle to evaluates the energy at given parameters for the ansatz.
+    ) -> tuple[
+        Callable[[np.ndarray], float | list[float]], Callable[[np.ndarray], np.ndarray] | None, dict
+    ]:
+        """Returns a function handle to evaluates the energy and the gradient at given parameters.
 
         This is the objective function to be passed to the optimizer that is used for evaluation.
 
@@ -224,8 +227,9 @@ class SamplingVQE(VariationalAlgorithm, SamplingMinimumEigensolver):
 
 
         Returns:
-            Energy of the hamiltonian of each parameter, and, optionally, the expectation
-            converter.
+            A 3-tuple of a callable evaluating the energy, a callable evaluating the
+            gradient, and (optionally) a dictionary containing the best measurement of the
+            energy evaluation.
 
         Raises:
             RuntimeError: If the circuit is not parameterized (i.e. has 0 free parameters).
@@ -237,7 +241,7 @@ class SamplingVQE(VariationalAlgorithm, SamplingMinimumEigensolver):
         best_measurement = {"best": None}
         estimator = _DiagonalEstimator(self.sampler)
 
-        def energy_evaluation(parameters):
+        def energy(parameters):
             # handle broadcasting
             if len(np.asarray(parameters).shape) == 2:
                 parameters = np.asarray(parameters).tolist()
@@ -263,10 +267,21 @@ class SamplingVQE(VariationalAlgorithm, SamplingMinimumEigensolver):
             result = value if len(value) > 1 else value[0]
             return np.real(result)
 
-        if return_best_measurement:
-            return energy_evaluation, best_measurement
+        if self.gradient is not None:
+            self.gradient.estimator = estimator
 
-        return energy_evaluation
+            def energy_gradient(parameters):
+                # broadcasting not required for the estimator gradients
+                result = self.gradient.run([ansatz], [operator], [parameters]).result()
+                return result.gradients[0]
+
+        else:
+            energy_gradient = None
+
+        if return_best_measurement:
+            return energy, energy_gradient, best_measurement
+
+        return energy, energy_gradient
 
     def _eval_aux_ops(self, ansatz, parameters, aux_operators):
         # convert to list if necessary and store the keys

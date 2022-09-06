@@ -33,7 +33,7 @@ from .utils import _make_param_shift_parameter_values, _param_shift_preprocessin
 class ParamShiftEstimatorGradient(BaseEstimatorGradient):
     """Compute the gradients of the expectation values by the parameter shift rule"""
 
-    def __init__(self, estimator: BaseEstimator, **run_options):
+    def __init__(self, estimator: BaseEstimator | None = None, **run_options):
         """
         Args:
             estimator: The estimator used to compute the gradients.
@@ -85,7 +85,7 @@ class ParamShiftEstimatorGradient(BaseEstimatorGradient):
                 param_set=param_set,
             )
             n = 2 * len(gradient_parameter_values_plus)
-            job = self._estimator.run(
+            job = self.estimator.run(
                 [gradient_circuit.gradient_circuit] * n,
                 [observable] * n,
                 gradient_parameter_values_plus + gradient_parameter_values_minus,
