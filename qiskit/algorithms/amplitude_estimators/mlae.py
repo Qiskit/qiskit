@@ -13,7 +13,7 @@
 """The Maximum Likelihood Amplitude Estimation algorithm."""
 
 from __future__ import annotations
-from typing import List, Union, Tuple, Dict, Callable
+import typing
 import warnings
 import numpy as np
 from scipy.optimize import brute
@@ -29,7 +29,9 @@ from .amplitude_estimator import AmplitudeEstimator, AmplitudeEstimatorResult
 from .estimation_problem import EstimationProblem
 from ..exceptions import AlgorithmError
 
-MINIMIZER = Callable[[Callable[[float], float], List[Tuple[float, float]]], float]
+MINIMIZER = typing.Callable[
+    [typing.Callable[[float], float], typing.List[typing.Tuple[float, float]]], float
+]
 
 
 class MaximumLikelihoodAmplitudeEstimation(AmplitudeEstimator):
@@ -53,9 +55,9 @@ class MaximumLikelihoodAmplitudeEstimation(AmplitudeEstimator):
 
     def __init__(
         self,
-        evaluation_schedule: Union[List[int], int],
+        evaluation_schedule: list[int] | int,
         minimizer: None | MINIMIZER = None,
-        quantum_instance: None | Union[QuantumInstance, Backend] = None,
+        quantum_instance: None | QuantumInstance | Backend = None,
         sampler: None | BaseSampler = None,
     ) -> None:
         r"""
@@ -137,7 +139,7 @@ class MaximumLikelihoodAmplitudeEstimation(AmplitudeEstimator):
         "removed after that.",
         category=PendingDeprecationWarning,
     )
-    def quantum_instance(self, quantum_instance: Union[QuantumInstance, Backend]) -> None:
+    def quantum_instance(self, quantum_instance: QuantumInstance | Backend) -> None:
         """Pending deprecation: Set quantum instance.
 
         Args:
@@ -149,7 +151,7 @@ class MaximumLikelihoodAmplitudeEstimation(AmplitudeEstimator):
 
     def construct_circuits(
         self, estimation_problem: EstimationProblem, measurement: bool = False
-    ) -> List[QuantumCircuit]:
+    ) -> list[QuantumCircuit]:
         """Construct the Amplitude Estimation w/o QPE quantum circuits.
 
         Args:
@@ -199,7 +201,7 @@ class MaximumLikelihoodAmplitudeEstimation(AmplitudeEstimator):
         alpha: float,
         kind: str = "fisher",
         apply_post_processing: bool = False,
-    ) -> Tuple[float, float]:
+    ) -> tuple[float, float]:
         """Compute the `alpha` confidence interval using the method `kind`.
 
         The confidence level is (1 - `alpha`) and supported kinds are 'fisher',
@@ -245,11 +247,11 @@ class MaximumLikelihoodAmplitudeEstimation(AmplitudeEstimator):
 
     def compute_mle(
         self,
-        circuit_results: Union[List[Dict[str, int]], List[np.ndarray]],
+        circuit_results: list[dict[str, int]] | list[np.ndarray],
         estimation_problem: EstimationProblem,
         num_state_qubits: None | int = None,
         return_counts: bool = False,
-    ) -> Union[float, Tuple[float, List[float]]]:
+    ) -> float | tuple[float, list[float]]:
         """Compute the MLE via a grid-search.
 
         This is a stable approach if sufficient gridpoints are used.
@@ -412,22 +414,22 @@ class MaximumLikelihoodAmplitudeEstimationResult(AmplitudeEstimatorResult):
         self._minimizer = value
 
     @property
-    def good_counts(self) -> List[float]:
+    def good_counts(self) -> list[float]:
         """Return the percentage of good counts per circuit power."""
         return self._good_counts
 
     @good_counts.setter
-    def good_counts(self, counts: List[float]) -> None:
+    def good_counts(self, counts: list[float]) -> None:
         """Set the percentage of good counts per circuit power."""
         self._good_counts = counts
 
     @property
-    def evaluation_schedule(self) -> List[int]:
+    def evaluation_schedule(self) -> list[int]:
         """Return the evaluation schedule for the powers of the Grover operator."""
         return self._evaluation_schedule
 
     @evaluation_schedule.setter
-    def evaluation_schedule(self, evaluation_schedule: List[int]) -> None:
+    def evaluation_schedule(self, evaluation_schedule: list[int]) -> None:
         """Set the evaluation schedule for the powers of the Grover operator."""
         self._evaluation_schedule = evaluation_schedule
 
@@ -514,7 +516,7 @@ def _compute_fisher_information(
 
 def _fisher_confint(
     result: MaximumLikelihoodAmplitudeEstimationResult, alpha: float = 0.05, observed: bool = False
-) -> Tuple[float, float]:
+) -> tuple[float, float]:
     """Compute the `alpha` confidence interval based on the Fisher information.
 
     Args:
@@ -549,7 +551,7 @@ def _likelihood_ratio_confint(
     result: MaximumLikelihoodAmplitudeEstimationResult,
     alpha: float = 0.05,
     nevals: None | int = None,
-) -> List[float]:
+) -> list[float]:
     """Compute the likelihood-ratio confidence interval.
 
     Args:
@@ -597,10 +599,10 @@ def _likelihood_ratio_confint(
 
 
 def _get_counts(
-    circuit_results: List[Union[np.ndarray, List[float], Dict[str, int]]],
+    circuit_results: list[np.ndarray | list[float], dict[str, int]],
     estimation_problem: EstimationProblem,
     num_state_qubits: int,
-) -> Tuple[List[float], List[int]]:
+) -> tuple[list[float], list[int]]:
     """Get the good and total counts.
 
     Returns:

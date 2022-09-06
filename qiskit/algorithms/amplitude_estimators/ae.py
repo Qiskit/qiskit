@@ -13,7 +13,6 @@
 """The Quantum Phase Estimation-based Amplitude Estimation algorithm."""
 
 from __future__ import annotations
-from typing import Union, List, Tuple, Dict
 from collections import OrderedDict
 import warnings
 import numpy as np
@@ -128,7 +127,7 @@ class AmplitudeEstimation(AmplitudeEstimator):
         "removed after that.",
         category=PendingDeprecationWarning,
     )
-    def quantum_instance(self, quantum_instance: Union[QuantumInstance, Backend]) -> None:
+    def quantum_instance(self, quantum_instance: QuantumInstance | Backend) -> None:
         """Pending deprecation: Set quantum instance.
 
         Args:
@@ -179,9 +178,9 @@ class AmplitudeEstimation(AmplitudeEstimator):
 
     def evaluate_measurements(
         self,
-        circuit_results: Union[Dict[str, int], np.ndarray],
+        circuit_results: dict[str, int] | np.ndarray,
         threshold: float = 1e-6,
-    ) -> Tuple[Dict[int, float], Dict[float, float]]:
+    ) -> tuple[dict[int, float], dict[float, float]]:
         """Evaluate the results from the circuit simulation.
 
         Given the probabilities from statevector simulation of the QAE circuit, compute the
@@ -410,7 +409,7 @@ class AmplitudeEstimation(AmplitudeEstimator):
     @staticmethod
     def compute_confidence_interval(
         result: "AmplitudeEstimationResult", alpha: float = 0.05, kind: str = "likelihood_ratio"
-    ) -> Tuple[float, float]:
+    ) -> tuple[float, float]:
         """Compute the (1 - alpha) confidence interval.
 
         Args:
@@ -476,12 +475,12 @@ class AmplitudeEstimationResult(AmplitudeEstimatorResult):
         self._mle_processed = value
 
     @property
-    def samples_processed(self) -> Dict[float, float]:
+    def samples_processed(self) -> dict[float, float]:
         """Return the post-processed measurement samples with their measurement probability."""
         return self._samples_processed
 
     @samples_processed.setter
-    def samples_processed(self, value: Dict[float, float]) -> None:
+    def samples_processed(self, value: dict[float, float]) -> None:
         """Set the post-processed measurement samples."""
         self._samples_processed = value
 
@@ -496,22 +495,22 @@ class AmplitudeEstimationResult(AmplitudeEstimatorResult):
         self._mle = value
 
     @property
-    def samples(self) -> Dict[float, float]:
+    def samples(self) -> dict[float, float]:
         """Return the measurement samples with their measurement probability."""
         return self._samples
 
     @samples.setter
-    def samples(self, value: Dict[float, float]) -> None:
+    def samples(self, value: dict[float, float]) -> None:
         """Set the measurement samples with their measurement probability."""
         self._samples = value
 
     @property
-    def measurements(self) -> Dict[int, float]:
+    def measurements(self) -> dict[int, float]:
         """Return the measurements as integers with their measurement probability."""
         return self._y_measurements
 
     @measurements.setter
-    def measurements(self, value: Dict[int, float]) -> None:
+    def measurements(self, value: dict[int, float]) -> None:
         """Set the measurements as integers with their measurement probability."""
         self._y_measurements = value
 
@@ -561,7 +560,7 @@ def _compute_fisher_information(result: AmplitudeEstimationResult, observed: boo
 
 def _fisher_confint(
     result: AmplitudeEstimationResult, alpha: float, observed: bool = False
-) -> List[float]:
+) -> list[float]:
     """Compute the Fisher information confidence interval for the MLE of the previous run.
 
     Args:
@@ -581,7 +580,7 @@ def _fisher_confint(
     return tuple(result.post_processing(bound) for bound in confint)
 
 
-def _likelihood_ratio_confint(result: AmplitudeEstimationResult, alpha: float) -> List[float]:
+def _likelihood_ratio_confint(result: AmplitudeEstimationResult, alpha: float) -> list[float]:
     """Compute the likelihood ratio confidence interval for the MLE of the previous run.
 
     Args:

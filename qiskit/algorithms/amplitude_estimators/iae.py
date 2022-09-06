@@ -13,7 +13,7 @@
 """The Iterative Quantum Amplitude Estimation Algorithm."""
 
 from __future__ import annotations
-from typing import Union, List, Tuple, Dict, cast
+from typing import cast
 import warnings
 import numpy as np
 from scipy.stats import beta
@@ -26,6 +26,7 @@ from qiskit.utils.deprecation import deprecate_function
 
 from .amplitude_estimator import AmplitudeEstimator, AmplitudeEstimatorResult
 from .estimation_problem import EstimationProblem
+from .ae_utils import _probabilities_from_sampler_result
 from ..exceptions import AlgorithmError
 
 
@@ -56,7 +57,7 @@ class IterativeAmplitudeEstimation(AmplitudeEstimator):
         alpha: float,
         confint_method: str = "beta",
         min_ratio: float = 2,
-        quantum_instance: None | [Union[QuantumInstance, Backend]] = None,
+        quantum_instance: None | QuantumInstance | Backend = None,
         sampler: None | BaseSampler = None,
     ) -> None:
         r"""
@@ -135,7 +136,7 @@ class IterativeAmplitudeEstimation(AmplitudeEstimator):
         "removed after that.",
         category=PendingDeprecationWarning,
     )
-    def quantum_instance(self, quantum_instance: Union[QuantumInstance, Backend]) -> None:
+    def quantum_instance(self, quantum_instance: QuantumInstance | Backend) -> None:
         """Pending deprecation: Set quantum instance.
 
         Args:
@@ -167,9 +168,9 @@ class IterativeAmplitudeEstimation(AmplitudeEstimator):
         self,
         k: int,
         upper_half_circle: bool,
-        theta_interval: Tuple[float, float],
+        theta_interval: tuple[float, float],
         min_ratio: float = 2.0,
-    ) -> Tuple[int, bool]:
+    ) -> tuple[int, bool]:
         """Find the largest integer k_next, such that the interval (4 * k_next + 2)*theta_interval
         lies completely in [0, pi] or [pi, 2pi], for theta_interval = (theta_lower, theta_upper).
 
@@ -266,9 +267,9 @@ class IterativeAmplitudeEstimation(AmplitudeEstimator):
     def _good_state_probability(
         self,
         problem: EstimationProblem,
-        counts_or_statevector: Union[Dict[str, int], np.ndarray],
+        counts_or_statevector: dict[str, int] | np.ndarray,
         num_state_qubits: int,
-    ) -> Union[Tuple[int, float], float]:
+    ) -> tuple[int, float] | float:
         """Get the probability to measure '1' in the last qubit.
 
         Args:
@@ -346,20 +347,12 @@ class IterativeAmplitudeEstimation(AmplitudeEstimator):
 
             # calculate the probability of measuring '1'
             num_qubits = circuit.num_qubits - circuit.num_ancillas
-            prob = 0
-            for bit, probabilities in result.quasi_dists[0].items():
-                i = int(bit)
-                # get bitstring of objective qubits
-                full_state = bin(i)[2:].zfill(circuit.num_qubits)[::-1]
-                state = "".join([full_state[i] for i in estimation_problem.objective_qubits])
-
-                # check if it is a good state
-                if estimation_problem.is_good_state(state[::-1]):
-                    prob = prob + probabilities
-
+            prob = _probabilities_from_sampler_result(
+                circuit.num_qubits, result, estimation_problem
+            )
             prob = cast(float, prob)  # tell MyPy it's a float and not Tuple[int, float ]
 
-            a_confidence_interval = [prob, prob]  # type: List[float]
+            a_confidence_interval = [prob, prob]  # type: list[float]
             a_intervals.append(a_confidence_interval)
 
             theta_i_interval = [
@@ -382,7 +375,7 @@ class IterativeAmplitudeEstimation(AmplitudeEstimator):
             prob = self._good_state_probability(estimation_problem, statevector, num_qubits)
             prob = cast(float, prob)  # tell MyPy it's a float and not Tuple[int, float ]
 
-            a_confidence_interval = [prob, prob]  # type: List[float]
+            a_confidence_interval = [prob, prob]  # type: list[float]
             a_intervals.append(a_confidence_interval)
 
             theta_i_interval = [
@@ -557,59 +550,59 @@ class IterativeAmplitudeEstimationResult(AmplitudeEstimatorResult):
         self._epsilon_estimated_processed = value
 
     @property
-    def estimate_intervals(self) -> List[List[float]]:
+    def estimate_intervals(self) -> list[list[float]]:
         """Return the confidence intervals for the estimate in each iteration."""
         return self._estimate_intervals
 
     @estimate_intervals.setter
-    def estimate_intervals(self, value: List[List[float]]) -> None:
+    def estimate_intervals(self, value: list[list[float]]) -> None:
         """Set the confidence intervals for the estimate in each iteration."""
         self._estimate_intervals = value
 
     @property
-    def theta_intervals(self) -> List[List[float]]:
+    def theta_intervals(self) -> list[list[float]]:
         """Return the confidence intervals for the angles in each iteration."""
         return self._theta_intervals
 
     @theta_intervals.setter
-    def theta_intervals(self, value: List[List[float]]) -> None:
+    def theta_intervals(self, value: list[list[float]]) -> None:
         """Set the confidence intervals for the angles in each iteration."""
         self._theta_intervals = value
 
     @property
-    def powers(self) -> List[int]:
+    def powers(self) -> list[int]:
         """Return the powers of the Grover operator in each iteration."""
         return self._powers
 
     @powers.setter
-    def powers(self, value: List[int]) -> None:
+    def powers(self, value: list[int]) -> None:
         """Set the powers of the Grover operator in each iteration."""
         self._powers = value
 
     @property
-    def ratios(self) -> List[float]:
+    def ratios(self) -> list[float]:
         r"""Return the ratios :math:`K_{i+1}/K_{i}` for each iteration :math:`i`."""
         return self._ratios
 
     @ratios.setter
-    def ratios(self, value: List[float]) -> None:
+    def ratios(self, value: list[float]) -> None:
         r"""Set the ratios :math:`K_{i+1}/K_{i}` for each iteration :math:`i`."""
         self._ratios = value
 
     @property
-    def confidence_interval_processed(self) -> Tuple[float, float]:
+    def confidence_interval_processed(self) -> tuple[float, float]:
         """Return the post-processed confidence interval."""
         return self._confidence_interval_processed
 
     @confidence_interval_processed.setter
-    def confidence_interval_processed(self, value: Tuple[float, float]) -> None:
+    def confidence_interval_processed(self, value: tuple[float, float]) -> None:
         """Set the post-processed confidence interval."""
         self._confidence_interval_processed = value
 
 
 def _chernoff_confint(
     value: float, shots: int, max_rounds: int, alpha: float
-) -> Tuple[float, float]:
+) -> tuple[float, float]:
     """Compute the Chernoff confidence interval for `shots` i.i.d. Bernoulli trials.
 
     The confidence interval is
@@ -633,7 +626,7 @@ def _chernoff_confint(
     return lower, upper
 
 
-def _clopper_pearson_confint(counts: int, shots: int, alpha: float) -> Tuple[float, float]:
+def _clopper_pearson_confint(counts: int, shots: int, alpha: float) -> tuple[float, float]:
     """Compute the Clopper-Pearson confidence interval for `shots` i.i.d. Bernoulli trials.
 
     Args:

@@ -13,7 +13,6 @@
 """Faster Amplitude Estimation."""
 
 from __future__ import annotations
-from typing import Union, List, Tuple
 import warnings
 import numpy as np
 
@@ -26,6 +25,7 @@ from qiskit.algorithms.exceptions import AlgorithmError
 
 from .amplitude_estimator import AmplitudeEstimator, AmplitudeEstimatorResult
 from .estimation_problem import EstimationProblem
+from .ae_utils import _probabilities_from_sampler_result
 
 
 class FasterAmplitudeEstimation(AmplitudeEstimator):
@@ -54,7 +54,7 @@ class FasterAmplitudeEstimation(AmplitudeEstimator):
         delta: float,
         maxiter: int,
         rescale: bool = True,
-        quantum_instance: None | Union[QuantumInstance, Backend] = None,
+        quantum_instance: None | QuantumInstance | Backend = None,
         sampler: None | BaseSampler = None,
     ) -> None:
         r"""
@@ -113,7 +113,7 @@ class FasterAmplitudeEstimation(AmplitudeEstimator):
         "removed after that.",
         category=PendingDeprecationWarning,
     )
-    def quantum_instance(self, quantum_instance: Union[QuantumInstance, Backend]) -> None:
+    def quantum_instance(self, quantum_instance: QuantumInstance | Backend) -> None:
         """Pending deprecation: Set quantum instance.
 
         Args:
@@ -138,17 +138,9 @@ class FasterAmplitudeEstimation(AmplitudeEstimator):
 
             self._num_oracle_calls += (2 * k + 1) * shots
             # sum over all probabilities where the objective qubits are 1
-            prob = 0
-            for bit, probabilities in result.quasi_dists[0].items():
-                i = int(bit)
-                # get bitstring of objective qubits
-                full_state = bin(i)[2:].zfill(circuit.num_qubits)[::-1]
-                state = "".join([full_state[i] for i in estimation_problem.objective_qubits])
-
-                # check if it is a good state
-                if estimation_problem.is_good_state(state[::-1]):
-                    prob += probabilities
-
+            prob = _probabilities_from_sampler_result(
+                circuit.num_qubits, result, estimation_problem
+            )
             cos_estimate = 1 - 2 * prob
         elif self._quantum_instance.is_statevector:
             circuit = self.construct_circuit(estimation_problem, k, measurement=False)
@@ -189,7 +181,7 @@ class FasterAmplitudeEstimation(AmplitudeEstimator):
 
     def construct_circuit(
         self, estimation_problem: EstimationProblem, k: int, measurement: bool = False
-    ) -> Union[QuantumCircuit, Tuple[QuantumCircuit, List[int]]]:
+    ) -> QuantumCircuit | tuple[QuantumCircuit, list[int]]:
         r"""Construct the circuit :math:`Q^k X |0\rangle>`.
 
         The A operator is the unitary specifying the QAE problem and Q the associated Grover
@@ -370,11 +362,11 @@ class FasterAmplitudeEstimationResult(AmplitudeEstimatorResult):
         self._num_first_state_steps = num_steps
 
     @property
-    def theta_intervals(self) -> List[List[float]]:
+    def theta_intervals(self) -> list[list[float]]:
         """Return the confidence intervals for the angles in each iteration."""
         return self._theta_intervals
 
     @theta_intervals.setter
-    def theta_intervals(self, value: List[List[float]]) -> None:
+    def theta_intervals(self, value: list[list[float]]) -> None:
         """Set the confidence intervals for the angles in each iteration."""
         self._theta_intervals = value
