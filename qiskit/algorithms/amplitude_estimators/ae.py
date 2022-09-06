@@ -76,7 +76,7 @@ class AmplitudeEstimation(AmplitudeEstimator):
                 implementation from `qiskit.circuit.library.QFT` when None.
             quantum_instance: Pending deprecation\: The backend (or `QuantumInstance`) to execute
                 the circuits on.
-            sampler: base sampler
+            sampler: A sampler primitive to evaluate the circuits.
 
         Raises:
             ValueError: If the number of evaluation qubits is smaller than 1.
