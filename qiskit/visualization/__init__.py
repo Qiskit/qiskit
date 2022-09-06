@@ -131,9 +131,9 @@ The figures created by counts and state visualizations functions are mostly gene
 * ``legend`` (``list``): a list of strings to use for labels of the data.
 * ``figsize`` (``tuple``): figure size in inches .
 * ``color`` (``list``): a list of strings for plotting.
-* ``ax`` (`Matplotlib.axes.Axes <https://matplotlib.org/stable/api/axes_api.html>`_): An optional
+* ``ax`` (`matplotlib.axes.Axes <https://matplotlib.org/stable/api/axes_api.html>`_): An optional
   ``Axes`` object to be used for the visualization output. If none is specified a new
-  `Matplotlib.figure.Figure <https://matplotlib.org/stable/api/figure_api.html>`_ will be created
+  `matplotlib.figure.Figure <https://matplotlib.org/stable/api/figure_api.html>`_ will be created
   and used. Additionally, if specified there will be no returned ``Figure`` since it is redundant.
 * ``filename`` (``str``): file path to save image to.
 
@@ -159,7 +159,7 @@ You can specify ``legend``, ``title``, ``figsize`` and ``color`` by passing to t
    plot_histogram(data, legend=legend, title=title, figsize=figsize, color=color)
 
 You can save the figure to file either by passing the file name to ``filename`` kwarg or use
-`Matplotlib.figure.Figure.savefig
+`matplotlib.figure.Figure.savefig
 <https://matplotlib.org/stable/api/figure_api.html#matplotlib.figure.Figure.savefig>`_ method.
 
 
