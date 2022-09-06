@@ -399,7 +399,7 @@ def _draw_shaped_waveform(
             channels=channel,
             xvals=re_xvals,
             yvals=re_yvals,
-            fill=True,
+            fill=formatter["control.fill_waveform"],
             meta=re_meta,
             styles=re_style,
         )
@@ -425,7 +425,7 @@ def _draw_shaped_waveform(
             channels=channel,
             xvals=im_xvals,
             yvals=im_yvals,
-            fill=True,
+            fill=formatter["control.fill_waveform"],
             meta=im_meta,
             styles=im_style,
         )

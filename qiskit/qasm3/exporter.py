@@ -110,7 +110,7 @@ _RESERVED_KEYWORDS = frozenset(
 
 
 class Exporter:
-    """QASM3 expoter main class."""
+    """QASM3 exporter main class."""
 
     def __init__(
         self,
