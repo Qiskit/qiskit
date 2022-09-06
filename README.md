@@ -21,8 +21,7 @@ To install from source, follow the instructions in the [documentation](https://q
 
 Now that Qiskit is installed, it's time to begin working with Terra.
 
-We are ready to try out a quantum circuit example, which is simulated locally using
-the Qiskit BasicAer element. This is a simple example that makes an entangled state.
+We are ready to try out a quantum circuit example, which is simulated locally using Qiskit's `BasicAer`. This is a simple example that makes an entangled state.
 
 ```
 $ python
