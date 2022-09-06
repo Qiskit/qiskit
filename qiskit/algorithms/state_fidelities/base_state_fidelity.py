@@ -19,9 +19,9 @@ from collections.abc import Sequence, Mapping
 import numpy as np
 
 from qiskit import QuantumCircuit
-from qiskit.algorithms import AlgorithmJob
 from qiskit.circuit import ParameterVector
 from .state_fidelity_result import StateFidelityResult
+from ..algorithm_job import AlgorithmJob
 
 
 class BaseStateFidelity(ABC):
