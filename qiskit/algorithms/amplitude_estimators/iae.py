@@ -317,7 +317,7 @@ class IterativeAmplitudeEstimation(AmplitudeEstimator):
 
         Raises:
             ValueError: A quantum instance or Sampler must be provided.
-            AlgorithmError: Sampler job run error
+            AlgorithmError: Sampler job run error.
         """
         if self._quantum_instance is None and self._sampler is None:
             raise ValueError("A quantum instance or sampler must be provided.")
