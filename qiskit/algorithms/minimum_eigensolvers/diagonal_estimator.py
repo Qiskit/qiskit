@@ -58,13 +58,12 @@ class _DiagonalEstimator(BaseEstimator):
             run_options: Run options for the sampler.
 
         """
-        super().__init__()
+        super().__init__(run_options=run_options)
         self.sampler = sampler
         if not callable(aggregation):
             aggregation = _get_cvar_aggregation(aggregation)
 
         self.aggregation = aggregation
-        self.run_options = run_options
         self.callback = callback
 
     def _run(
@@ -112,16 +111,10 @@ class _DiagonalEstimator(BaseEstimator):
         parameter_values: Sequence[Sequence[float]],
         **run_options,
     ) -> _DiagonalEstimatorResult:
-        if len(run_options) > 0:
-            local_run_options = self.run_options.copy()
-            local_run_options.update(**run_options)
-        else:
-            local_run_options = self.run_options
-
         job = self.sampler.run(
             [self._circuits[i] for i in circuits],
             parameter_values,
-            **local_run_options,
+            **run_options,
         )
         sampler_result = job.result()
         samples = sampler_result.quasi_dists
