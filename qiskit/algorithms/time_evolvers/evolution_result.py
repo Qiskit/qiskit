@@ -12,7 +12,6 @@
 
 """Class for holding evolution result."""
 from __future__ import annotations
-from typing import Tuple
 
 from qiskit import QuantumCircuit
 from qiskit.algorithms.list_or_dict import ListOrDict
@@ -25,7 +24,7 @@ class EvolutionResult(AlgorithmResult):
     def __init__(
         self,
         evolved_state: QuantumCircuit,
-        aux_ops_evaluated: ListOrDict[Tuple[complex, complex]] | None = None,
+        aux_ops_evaluated: ListOrDict[tuple[complex, complex]] | None = None,
     ):
         """
         Args:

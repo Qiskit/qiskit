@@ -12,12 +12,12 @@
 
 """Evolution problem class."""
 from __future__ import annotations
-from typing import Dict
 
 from qiskit import QuantumCircuit
-from qiskit.circuit import Parameter
+from qiskit.circuit import Parameter, ParameterExpression
 from qiskit.opflow import PauliSumOp
 from ..list_or_dict import ListOrDict
+from ...quantum_info import Statevector
 from ...quantum_info.operators.base_operator import BaseOperator
 
 
@@ -36,7 +36,7 @@ class EvolutionProblem:
         aux_operators: ListOrDict[BaseOperator | PauliSumOp] | None = None,
         truncation_threshold: float = 1e-12,
         t_param: Parameter | None = None,
-        param_value_dict: Dict[Parameter, complex]
+        param_value_dict: dict[Parameter, complex]
         | None = None,  # parametrization will become supported in BaseOperator soon
     ):
         """
@@ -92,5 +92,7 @@ class EvolutionProblem:
         Raises:
             ValueError: If Hamiltonian parameters cannot be bound with data provided.
         """
-        if isinstance(self.hamiltonian, PauliSumOp) and self.hamiltonian.parameters:
+        if isinstance(self.hamiltonian, PauliSumOp) and isinstance(
+            self.hamiltonian.coeff, ParameterExpression
+        ):
             raise ValueError("A global parametrized coefficient for PauliSumOp is not allowed.")
