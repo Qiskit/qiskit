@@ -40,10 +40,9 @@ class PhaseEstimator(ABC):
         """Estimate the phase."""
         raise NotImplementedError
 
-    def _get_bitstring(self, length: int, number: int) -> str:
-        unpadded_bitstring = "{0:b}".format(number)[::-1]
-        padding = "0" * (length - len(unpadded_bitstring))
-        return unpadded_bitstring + padding
+    @staticmethod
+    def _get_reversed_bitstring(length: int, number: int) -> str:
+        return f"{number:b}".zfill(length)[::-1]
 
 
 class PhaseEstimatorResult(AlgorithmResult):

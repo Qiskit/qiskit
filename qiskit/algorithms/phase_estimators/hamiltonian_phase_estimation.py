@@ -21,12 +21,12 @@ from qiskit.utils import QuantumInstance
 from qiskit.opflow import (
     EvolutionBase,
     PauliTrotterEvolution,
-    OperatorBase,
     SummedOp,
     PauliOp,
     MatrixOp,
     PauliSumOp,
     StateFn,
+    OperatorBase,
 )
 from qiskit.providers import Backend
 from .phase_estimation import PhaseEstimation
@@ -130,6 +130,7 @@ class HamiltonianPhaseEstimation:
         """
         # scale so that phase does not wrap.
         scaled_hamiltonian = -pe_scale.scale * hamiltonian
+        # TODO replace with evo = PauliEvolutionGate(operator, time, synthesis)
         unitary = evolution.convert(scaled_hamiltonian.exp_i())
         if not isinstance(unitary, QuantumCircuit):
             unitary_circuit = unitary.to_circuit()

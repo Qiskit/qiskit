@@ -12,7 +12,6 @@
 
 """Result of running PhaseEstimation"""
 from __future__ import annotations
-from typing import Dict
 import numpy
 
 from qiskit.utils.deprecation import deprecate_function
@@ -36,7 +35,7 @@ class PhaseEstimationResult(PhaseEstimatorResult):
         self,
         num_evaluation_qubits: int,
         circuit_result: Result,
-        phases: numpy.ndarray | Dict[str, float],
+        phases: numpy.ndarray | dict[str, float],
     ) -> None:
         """
         Args:
@@ -97,7 +96,7 @@ class PhaseEstimationResult(PhaseEstimatorResult):
         phase = _bit_string_to_phase(binary_phase_string)
         return phase
 
-    def filter_phases(self, cutoff: float = 0.0, as_float: bool = True) -> Dict:
+    def filter_phases(self, cutoff: float = 0.0, as_float: bool = True) -> dict:
         """Return a filtered dict of phases (keys) and frequencies (values).
 
         Only phases with frequencies (counts) larger than `cutoff` are included.
@@ -145,12 +144,6 @@ class PhaseEstimationResult(PhaseEstimatorResult):
         return phases
 
 
-def _get_bitstring(length: int, number: int) -> str:
-    unpadded_bitstring = "{0:b}".format(number)[::-1]
-    padding = "0" * (length - len(unpadded_bitstring))
-    return unpadded_bitstring + padding
-
-
 def _bit_string_to_phase(binary_string: str) -> float:
     """Convert bit string to a normalized phase in :math:`[0,1)`.
 
@@ -169,7 +162,7 @@ def _bit_string_to_phase(binary_string: str) -> float:
     return int(binary_string, 2) / (2**n_qubits)
 
 
-def _sort_phases(phases: Dict) -> Dict:
+def _sort_phases(phases: dict) -> dict:
     """Sort a dict of bit strings representing phases (keys) and frequencies (values) by bit string.
 
     The bit strings are sorted according to increasing phase. This relies on Python

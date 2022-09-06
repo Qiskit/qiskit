@@ -12,7 +12,6 @@
 
 """Scaling for Hamiltonian and eigenvalues to avoid phase wrapping"""
 from __future__ import annotations
-from typing import Dict, List
 import numpy
 from qiskit.opflow import SummedOp
 
@@ -91,7 +90,7 @@ class PhaseEstimationScale:
         else:
             return (phi - 1) * w + id_coefficient
 
-    def scale_phases(self, phases: List | Dict, id_coefficient: float = 0.0) -> Dict | List:
+    def scale_phases(self, phases: list | dict, id_coefficient: float = 0.0) -> dict | list:
         """Convert a list or dict of phases to eigenvalues.
 
         The values in the list, or keys in the dict, are values of ``phi` and

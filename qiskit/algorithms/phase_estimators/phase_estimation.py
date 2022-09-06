@@ -232,7 +232,7 @@ class PhaseEstimation(PhaseEstimator):
             phases = circuit_result.quasi_dists[0]
             phases_bitstrings = {}
             for key, phase in phases.items():
-                bitstring_key = self._get_bitstring(self._num_evaluation_qubits, key)
+                bitstring_key = self._get_reversed_bitstring(self._num_evaluation_qubits, key)
                 phases_bitstrings[bitstring_key] = phase
             phases = phases_bitstrings
 
