@@ -90,8 +90,8 @@ Here is an example of using :func:`plot_state_city` to visualize a quantum state
 
    from qiskit.tools.visualization import plot_state_city
 
-   state = [[0+1.0j, 0-1.0j],
-            [1-0.5j, 1+0.5j]]
+   state = [[ 0.75  , 0.433j],
+            [-0.433j, 0.25  ]]
    plot_state_city(state)
 
 The state can be array-like list of lists, ``numpy.array``, or more commonly
