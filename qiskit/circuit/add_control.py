@@ -17,6 +17,8 @@ from typing import Union, Optional
 from qiskit.circuit.exceptions import CircuitError
 from qiskit.extensions import UnitaryGate
 from . import ControlledGate, Gate, QuantumRegister, QuantumCircuit
+from qiskit.circuit.library.standard_gates import (MCXRecursive, RZGate, RYGate, 
+                                                   CXGate, CCXGate, C3XGate, C4XGate, MCXGate)
 
 
 def add_control(
@@ -188,19 +190,33 @@ def control(
                             lamb, q_control, q_target[bit_indices[qargs[0]]], use_basis_gates=True
                         )
                     else:
-                        controlled_circ.mcrz(
-                            lamb, q_control, q_target[bit_indices[qargs[0]]], use_basis_gates=True
+                        mcx_control, abc_control = define_mcx_control_and_ancilla(q_control)
+
+                        print('MCX Control:', mcx_control)
+
+                        mcxr_rule = define_mcx_rule(mcx_control)
+
+                        a, b, c = get_abc_matrices(lamb, theta, phi)
+
+                        controlled_circ.unitary(c, q_target[bit_indices[qargs[0]]])
+                        if abc_control is not None:
+                            controlled_circ.control(abc_control)
+
+                        controlled_circ.append(
+                            mcxr_rule, [q_target[bit_indices[qargs[0]]]] + mcx_control
                         )
-                        controlled_circ.mcry(
-                            theta,
-                            q_control,
-                            q_target[bit_indices[qargs[0]]],
-                            q_ancillae,
-                            use_basis_gates=True,
+
+                        controlled_circ.unitary(b, q_target[bit_indices[qargs[0]]])
+                        if abc_control is not None:
+                            controlled_circ.control(abc_control)
+
+                        controlled_circ.append(
+                            mcxr_rule, [q_target[bit_indices[qargs[0]]]] + mcx_control
                         )
-                        controlled_circ.mcrz(
-                            phi, q_control, q_target[bit_indices[qargs[0]]], use_basis_gates=True
-                        )
+
+                        controlled_circ.unitary(a, q_target[bit_indices[qargs[0]]])
+                        controlled_circ.control(abc_control)
+
             elif gate.name == "z":
                 controlled_circ.h(q_target[bit_indices[qargs[0]]])
                 controlled_circ.mcx(q_control, q_target[bit_indices[qargs[0]]], q_ancillae)
@@ -247,6 +263,47 @@ def control(
     )
     return cgate
 
+def define_mcx_rule(qubits, q_ancilla = None):
+    rule = []
+
+    if len(qubits) == 2:
+        rule += [(CXGate(), qubits[:], [])]
+    elif len(qubits) == 3:
+        rule += [(CCXGate(), qubits[:], [])]
+    elif len(qubits) == 4:
+        rule += [(C3XGate(), qubits[:], [])]
+    elif len(qubits) == 5:
+        rule += [(C4XGate(), qubits[:], [])]
+    elif len(qubits) == 6:
+        rule += [(MCXGate(len(qubits) - 1), qubits[:], [])]
+    else: 
+        rule = MCXRecursive(len(qubits) - 1)._recurse(qubits, q_ancilla)
+    return rule
+
+def define_mcx_control_and_ancilla(control_qubits): 
+    if len(control_qubits) < 7:
+        mcx_controls = list(control_qubits)
+        abc_ancilla = None
+    else: 
+        mcx_controls = control_qubits[1:]
+        abc_ancilla = control_qubits[0]
+    return mcx_controls, abc_ancilla
+
+def get_abc_matrices(lamb, theta, phi):
+    # A
+    a_rz = RZGate(lamb).to_matrix()
+    a_ry = RYGate(theta / 2).to_matrix()
+    a_matrix = a_rz.dot(a_ry)
+
+    # B
+    b_ry = RYGate(-theta / 2).to_matrix()
+    b_rz = RZGate(-(lamb + phi) / 2).to_matrix()
+    b_matrix = b_ry.dot(b_rz)
+
+    # C
+    c_matrix = RZGate((lamb - phi) / 2).to_matrix()
+
+    return a_matrix, b_matrix, c_matrix
 
 def _gate_to_dag(operation):
     from qiskit.converters.circuit_to_dag import circuit_to_dag
