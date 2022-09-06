@@ -18,7 +18,7 @@ import warnings
 import numpy as np
 
 from qiskit.circuit import QuantumCircuit, ClassicalRegister
-from qiskit.providers import Backend, JobStatus
+from qiskit.providers import Backend
 from qiskit.primitives import BaseSampler
 from qiskit.utils import QuantumInstance
 from qiskit.utils.deprecation import deprecate_function
@@ -64,7 +64,7 @@ class FasterAmplitudeEstimation(AmplitudeEstimator):
             rescale: Whether to rescale the problem passed to `estimate`.
             quantum_instance: Pending deprecation\: The quantum instance or backend
                 to run the circuits.
-            sampler: base sampler
+            sampler: A sampler primitive to evaluate the circuits.
 
         .. note::
 
@@ -130,10 +130,13 @@ class FasterAmplitudeEstimation(AmplitudeEstimator):
         if self._sampler is not None:
             circuit = self.construct_circuit(estimation_problem, k, measurement=True)
             job = self._sampler.run([circuit])
-            if job.status() is not JobStatus.DONE:
-                raise AlgorithmError("The job was not completed successfully. ")
-            result = job.result()
+            try:
+                job = self._sampler.run([circuit])
+                result = job.result()
+            except Exception as exc:
+                raise AlgorithmError("The job was not completed successfully. ") from exc
 
+            self._num_oracle_calls += (2 * k + 1) * shots
             # sum over all probabilities where the objective qubits are 1
             prob = 0
             for bit, probabilities in result.quasi_dists[0].items():
@@ -246,7 +249,9 @@ class FasterAmplitudeEstimation(AmplitudeEstimator):
 
         self._num_oracle_calls = 0
         user_defined_shots = (
-            self._quantum_instance._run_config.shots if self._quantum_instance is not None else 0
+            self._sampler.run_options.get("shots", 1)
+            if self._sampler is not None
+            else self._quantum_instance._run_config.shots
         )
 
         if self._rescale:
@@ -255,7 +260,8 @@ class FasterAmplitudeEstimation(AmplitudeEstimator):
             problem = estimation_problem
 
         if self._sampler is not None or self._quantum_instance.is_statevector:
-            cos = self._cos_estimate(problem, k=0, shots=1)
+            shots = self._sampler.run_options.get("shots", 1) if self._sampler is not None else 1
+            cos = self._cos_estimate(problem, k=0, shots=shots)
             theta = np.arccos(cos) / 2
             theta_ci = [theta, theta]
             theta_cis = [theta_ci]

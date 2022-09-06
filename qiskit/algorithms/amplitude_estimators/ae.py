@@ -21,7 +21,7 @@ from scipy.stats import chi2, norm
 from scipy.optimize import bisect
 
 from qiskit import QuantumCircuit, ClassicalRegister
-from qiskit.providers import Backend, JobStatus
+from qiskit.providers import Backend
 from qiskit.primitives import BaseSampler
 from qiskit.utils import QuantumInstance
 from qiskit.utils.deprecation import deprecate_function
@@ -232,7 +232,9 @@ class AmplitudeEstimation(AmplitudeEstimator):
         measurements = OrderedDict()
         samples = OrderedDict()
         shots = (
-            self._quantum_instance._run_config.shots if self._quantum_instance is not None else 1
+            self._sampler.run_options.get("shots", 1)
+            if self._sampler is not None
+            else self._quantum_instance._run_config.shots
         )
 
         for state, count in counts.items():
@@ -316,7 +318,7 @@ class AmplitudeEstimation(AmplitudeEstimator):
             ValueError: If `state_preparation` or `objective_qubits` are not set in the
                 `estimation_problem`.
             ValueError: A quantum instance or Sampler must be provided.
-            AlgorithmError: Sampler run error
+            AlgorithmError: Sampler job run error
         """
         # check if A factory or state_preparation has been set
         if estimation_problem.state_preparation is None:
@@ -337,11 +339,13 @@ class AmplitudeEstimation(AmplitudeEstimator):
         samples = OrderedDict()
         if self._sampler is not None:
             circuit = self.construct_circuit(estimation_problem, measurement=True)
-            job = self._sampler.run([circuit])
-            if job.status() is not JobStatus.DONE:
-                raise AlgorithmError("The job was not completed successfully. ")
-            ret = job.result()
-            result.shots = 1
+            try:
+                job = self._sampler.run([circuit])
+                ret = job.result()
+            except Exception as exc:
+                raise AlgorithmError("The job was not completed successfully. ") from exc
+
+            result.shots = self._sampler.run_options.get("shots", 1)
             circuit_results = {
                 np.binary_repr(k, circuit.num_qubits): v for k, v in ret.quasi_dists[0].items()
             }

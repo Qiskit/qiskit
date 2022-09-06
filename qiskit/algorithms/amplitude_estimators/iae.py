@@ -19,7 +19,7 @@ import numpy as np
 from scipy.stats import beta
 
 from qiskit import ClassicalRegister, QuantumCircuit
-from qiskit.providers import Backend, JobStatus
+from qiskit.providers import Backend
 from qiskit.primitives import BaseSampler
 from qiskit.utils import QuantumInstance
 from qiskit.utils.deprecation import deprecate_function
@@ -72,7 +72,7 @@ class IterativeAmplitudeEstimation(AmplitudeEstimator):
                 Clopper-Pearson intervals (default)
             min_ratio: Minimal q-ratio (:math:`K_{i+1} / K_i`) for FindNextK
             quantum_instance: Pending deprecation\: Quantum Instance or Backend
-            sampler: base sampler
+            sampler: A sampler primitive to evaluate the circuits.
 
         Raises:
             AlgorithmError: if the method to compute the confidence intervals is not supported
@@ -317,7 +317,7 @@ class IterativeAmplitudeEstimation(AmplitudeEstimator):
 
         Raises:
             ValueError: A quantum instance or Sampler must be provided.
-            AlgorithmError: Sampler run error
+            AlgorithmError: Sampler job run error
         """
         if self._quantum_instance is None and self._sampler is None:
             raise ValueError("A quantum instance or sampler must be provided.")
@@ -338,10 +338,11 @@ class IterativeAmplitudeEstimation(AmplitudeEstimator):
 
         if self._sampler is not None:
             circuit = self.construct_circuit(estimation_problem, k=0, measurement=True)
-            job = self._sampler.run([circuit])
-            if job.status() is not JobStatus.DONE:
-                raise AlgorithmError("The job was not completed successfully. ")
-            result = job.result()
+            try:
+                job = self._sampler.run([circuit])
+                result = job.result()
+            except Exception as exc:
+                raise AlgorithmError("The job was not completed successfully. ") from exc
 
             # calculate the probability of measuring '1'
             num_qubits = circuit.num_qubits - circuit.num_ancillas

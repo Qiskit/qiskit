@@ -19,7 +19,7 @@ import numpy as np
 from scipy.optimize import brute
 from scipy.stats import norm, chi2
 
-from qiskit.providers import Backend, JobStatus
+from qiskit.providers import Backend
 from qiskit import ClassicalRegister, QuantumRegister, QuantumCircuit
 from qiskit.utils import QuantumInstance
 from qiskit.primitives import BaseSampler
@@ -70,7 +70,7 @@ class MaximumLikelihoodAmplitudeEstimation(AmplitudeEstimator):
                 argument and a list of (float, float) tuples (as bounds) as second argument and
                 returns a single float which is the found minimum.
             quantum_instance: Pending deprecation\: Quantum Instance or Backend
-            sampler: base sampler
+            sampler: A sampler primitive to evaluate the circuits.
 
         Raises:
             ValueError: If the number of oracle circuits is smaller than 1.
@@ -300,7 +300,7 @@ class MaximumLikelihoodAmplitudeEstimation(AmplitudeEstimator):
             ValueError: A quantum instance or Sampler must be provided.
             AlgorithmError: If `state_preparation` is not set in
                 `estimation_problem`.
-            AlgorithmError: Sampler run error
+            AlgorithmError: Sampler job run error
         """
         if self._quantum_instance is None and self._sampler is None:
             raise ValueError("A quantum instance or sampler must be provided.")
@@ -316,10 +316,12 @@ class MaximumLikelihoodAmplitudeEstimation(AmplitudeEstimator):
 
         if self._sampler is not None:
             circuits = self.construct_circuits(estimation_problem, measurement=True)
-            job = self._sampler.run(circuits)
-            if job.status() is not JobStatus.DONE:
-                raise AlgorithmError("The job was not completed successfully. ")
-            ret = job.result()
+            try:
+                job = self._sampler.run(circuits)
+                ret = job.result()
+            except Exception as exc:
+                raise AlgorithmError("The job was not completed successfully. ") from exc
+
             result.circuit_results = []
             for i, quasi_dist in enumerate(ret.quasi_dists):
                 circuit_result = {
