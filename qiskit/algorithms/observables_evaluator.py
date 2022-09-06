@@ -120,8 +120,8 @@ def _compute_std_devs(
 ) -> List[complex | None]:
     """
     Calculates a list of standard deviations from expectation values of observables provided. If
-    the choice of an underlying hardware is not shot-based and hence does not provide variance data,
-    the standard deviation values will be set to ``None``.
+    there is no variance data available from a primitive, the standard deviation values will be set
+    to ``None``.
 
     Args:
         estimator_result: An estimator result.
@@ -138,8 +138,11 @@ def _compute_std_devs(
         if metadata and "variance" in metadata.keys() and "shots" in metadata.keys():
             variance = metadata["variance"]
             shots = metadata["shots"]
-            std_devs.append(np.sqrt(variance / shots))
+            if variance is None or shots is None:
+                std_devs.append(None)
+            else:
+                std_devs.append(np.sqrt(variance / shots))
         else:
-            std_devs.append(None)
+            std_devs.append(0)
 
     return std_devs
