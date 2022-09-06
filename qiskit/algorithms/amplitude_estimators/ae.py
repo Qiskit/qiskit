@@ -63,7 +63,7 @@ class AmplitudeEstimation(AmplitudeEstimator):
         num_eval_qubits: int,
         phase_estimation_circuit: None | QuantumCircuit = None,
         iqft: None | QuantumCircuit = None,
-        quantum_instance: None | Union[QuantumInstance, Backend] = None,
+        quantum_instance: None | QuantumInstance | Backend = None,
         sampler: None | BaseSampler = None,
     ) -> None:
         r"""
