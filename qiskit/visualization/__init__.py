@@ -119,9 +119,6 @@ import warnings
 from .array import array_to_latex
 
 from .circuit import circuit_drawer
-from .circuit import text
-from .circuit import matplotlib
-from .circuit import latex
 from .counts_visualization import plot_histogram
 from .bloch import Bloch, Arrow3D
 from .state_visualization import (
@@ -145,6 +142,10 @@ from .pulse_v2 import draw as pulse_drawer_v2
 from .timeline import draw as timeline_drawer
 
 from .exceptions import VisualizationError
+
+# These modules aren't part of the public interface, and were moved in Terra 0.22.  They're
+# re-imported here to allow a backwards compatible path, and should be deprecated in Terra 0.23.
+from .circuit import text, matplotlib, latex
 
 _DEPRECATED_NAMES = {
     "HAS_MATPLOTLIB",
