@@ -94,6 +94,7 @@ class VQE(VariationalAlgorithm, MinimumEigensolver):
         initial_point: An optional initial point (i.e. initial parameter values) for the optimizer.
             If not provided, a random initial point with values in the interval :math:`[0, 2\pi]`
             is used.
+        callback: An optional callback function to plot the energy at each evaluation.
 
     References:
         [1] Peruzzo et al, "A variational eigenvalue solver on a quantum processor"
@@ -108,7 +109,7 @@ class VQE(VariationalAlgorithm, MinimumEigensolver):
         *,
         gradient: BaseEstimatorGradient | None = None,
         initial_point: Sequence[float] | None = None,
-        # TODO Attach callback to optimizer instead.
+        # TODO Remove callback and attach to optimizer instead.
         callback: Callable[[int, np.ndarray, float, float], None] | None = None,
     ) -> None:
         """
@@ -121,6 +122,7 @@ class VQE(VariationalAlgorithm, MinimumEigensolver):
             initial_point: An optional initial point (i.e. initial parameter values)
                 for the optimizer. If ``None`` then VQE will look to the ansatz for a preferred
                 point and if not will simply compute a random one.
+            callback: An optional callback function to plot the energy at each evaluation.
         """
         super().__init__()
 
@@ -129,10 +131,11 @@ class VQE(VariationalAlgorithm, MinimumEigensolver):
         self.estimator = estimator
         self.gradient = gradient
 
-        # this has to go via getters and setters due to the VariationalAlgorithm interface
+        # TODO Change Variational Algorithm interface to use a public attribute.
+        # This has to go via getters and setters due to the VariationalAlgorithm interface.
         self._initial_point = initial_point
 
-        # TODO Remove this
+        # TODO Remove callback and attach to optimizer instead.
         self.callback = callback
 
     @property
@@ -170,7 +173,7 @@ class VQE(VariationalAlgorithm, MinimumEigensolver):
         else:
             eval_gradient = None
 
-        # Perform optimization
+        # Perform optimization.
         if callable(self.optimizer):
             opt_result = self.optimizer(fun=eval_energy, x0=initial_point, jac=eval_gradient)
         else:
@@ -188,7 +191,7 @@ class VQE(VariationalAlgorithm, MinimumEigensolver):
         aux_values = None
         if aux_operators:
             # Not None and not empty list
-            # TODO use eval_operators
+            # TODO This is going to be replaced by eval_observables. See PR #8683.
             aux_values = self._eval_aux_ops(ansatz, optimal_point, aux_operators)
 
         result = VQEResult()
