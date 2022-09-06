@@ -22,15 +22,12 @@ from scipy.optimize import minimize as scipy_minimize
 from qiskit.circuit import QuantumCircuit, ParameterVector
 from qiskit.algorithms import AlgorithmError
 from qiskit.algorithms.minimum_eigensolvers import SamplingVQE
-from qiskit.algorithms.optimizers import L_BFGS_B, QNSPSA, GradientDescent, OptimizerResult
+from qiskit.algorithms.optimizers import L_BFGS_B, QNSPSA, OptimizerResult
 from qiskit.circuit.library import RealAmplitudes, TwoLocal
 from qiskit.opflow import PauliSumOp
 from qiskit.quantum_info import SparsePauliOp, Pauli
 from qiskit.primitives import Sampler
 from qiskit.algorithms.state_fidelities import ComputeUncompute
-from qiskit.algorithms.gradients import ParamShiftEstimatorGradient
-
-from qiskit.test.decorators import slow_test
 
 
 # pylint: disable=invalid-name, unused-argument
@@ -99,29 +96,6 @@ class TestSamplerVQE(QiskitAlgorithmsTestCase):
     def test_default_values(self):
         """Test all default values are set as expected."""
         vqe = SamplingVQE(sampler=Sampler())
-        result = vqe.compute_minimum_eigenvalue(operator=self.op)
-        self.assertAlmostEqual(result.eigenvalue, self.optimal_value, places=5)
-
-    def test_gradient_passed(self):
-        """Test the gradient is properly passed into the optimizer."""
-        inputs = {}
-        vqe = SamplingVQE(
-            optimizer=partial(_mock_optimizer, inputs=inputs),
-            sampler=Sampler(),
-            gradient=ParamShiftEstimatorGradient(),
-        )
-        _ = vqe.compute_minimum_eigenvalue(operator=self.op)
-
-        self.assertIsNotNone(inputs["jac"])
-
-    @slow_test
-    def test_gradient_run(self):
-        """Test using the gradient to calculate the minimum."""
-        vqe = SamplingVQE(
-            optimizer=GradientDescent(maxiter=200, learning_rate=0.1),
-            sampler=Sampler(),
-            gradient=ParamShiftEstimatorGradient(),
-        )
         result = vqe.compute_minimum_eigenvalue(operator=self.op)
         self.assertAlmostEqual(result.eigenvalue, self.optimal_value, places=5)
 

@@ -12,7 +12,9 @@
 
 """Expectation value for a diagonal observable using a sampler primitive."""
 
-from collections.abc import Callable, Sequence
+from __future__ import annotations
+
+from collections.abc import Callable, Sequence, Mapping
 from typing import Any
 
 from dataclasses import dataclass
@@ -32,7 +34,7 @@ from qiskit.quantum_info.operators.base_operator import BaseOperator
 class _DiagonalEstimatorResult(EstimatorResult):
     """A result from an expectation of a diagonal observable."""
 
-    best_measurements: dict[str, Any] | None = None
+    best_measurements: Mapping[str, Any] | None = None
 
 
 class _DiagonalEstimator(BaseEstimator):
@@ -41,7 +43,8 @@ class _DiagonalEstimator(BaseEstimator):
     def __init__(
         self,
         sampler: BaseSampler,
-        aggregation: float | Callable[[list[tuple[float, float]]], float] | None = None,
+        aggregation: float | Callable[[Sequence[tuple[float, float]]], float] | None = None,
+        callback: Callable[[Sequence[Mapping[str, Any]]], None] | None = None,
         **run_options,
     ) -> None:
         r"""Evaluate a the expectation of quantum state with respect to a diagonal operator.
@@ -50,6 +53,8 @@ class _DiagonalEstimator(BaseEstimator):
             sampler: The sampler used to evaluate the circuits.
             aggregation: The aggregation function to aggregate the measurement outcomes. If a float
                 this specified the CVaR :math:`\alpha` parameter.
+            callback: A callback which is given the best measurements of all circuits in each
+                evaluation.
             run_options: Run options for the sampler.
 
         """
@@ -60,6 +65,7 @@ class _DiagonalEstimator(BaseEstimator):
 
         self.aggregation = aggregation
         self.run_options = run_options
+        self.callback = callback
 
     def _run(
         self,
@@ -117,7 +123,8 @@ class _DiagonalEstimator(BaseEstimator):
             parameter_values,
             **local_run_options,
         )
-        samples = job.result().quasi_dists
+        sampler_result = job.result()
+        samples = sampler_result.quasi_dists
 
         # a list of dictionaries containing: {state: (measurement probability, value)}
         evaluations = [
@@ -144,9 +151,11 @@ class _DiagonalEstimator(BaseEstimator):
                 }
             )
 
-        metadata = None
+        if self.callback is not None:
+            self.callback(best_measurements)
+
         return _DiagonalEstimatorResult(
-            values=results, metadata=metadata, best_measurements=best_measurements
+            values=results, metadata=sampler_result.metadata, best_measurements=best_measurements
         )
 
 

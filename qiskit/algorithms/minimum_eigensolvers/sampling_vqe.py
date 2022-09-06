@@ -23,7 +23,6 @@ import numpy as np
 from qiskit.circuit import QuantumCircuit
 from qiskit.circuit.library import RealAmplitudes
 from qiskit.primitives import BaseSampler
-from qiskit.algorithms.gradients import BaseEstimatorGradient
 
 from qiskit.quantum_info.operators.base_operator import BaseOperator
 from qiskit.opflow import PauliSumOp
@@ -37,7 +36,6 @@ from .sampling_mes import (
     SamplingMinimumEigensolverResult,
 )
 
-# from .diagonal_estimator import diagonal_estimation
 from .diagonal_estimator import _DiagonalEstimator
 
 logger = logging.getLogger(__name__)
@@ -56,9 +54,6 @@ class SamplingVQE(VariationalAlgorithm, SamplingMinimumEigensolver):
             If not provided, a random initial point with values in the interval :math:`[0, 2\pi]`
             is used.
         sampler: The sampler primitive to sample the circuits.
-        gradient: The estimator gradient to evaluate gradients. Note that this is an
-            *estimator* gradient and not a sampler gradient, as it is used to evaluate the
-            gradients of the expectation value.
         aggregation: A float or callable to specify how the objective function evaluated on the
             basis states should be aggregated. If a float, this specifies the :math:`\alpha \in [0,1]`
             parameter for a CVaR expectation value (see also [1]).
@@ -76,7 +71,6 @@ class SamplingVQE(VariationalAlgorithm, SamplingMinimumEigensolver):
         optimizer: Optimizer | Minimizer | None = None,
         initial_point: Sequence[float] | None = None,
         sampler: BaseSampler | None = None,
-        gradient: BaseEstimatorGradient | None = None,
         aggregation: float | Callable[[list[float]], float] | None = None,
     ) -> None:
         """
@@ -97,7 +91,6 @@ class SamplingVQE(VariationalAlgorithm, SamplingMinimumEigensolver):
         self.ansatz = ansatz
         self.optimizer = optimizer
         self.sampler = sampler
-        self.gradient = gradient
         self.aggregation = aggregation
 
         # this has to go via getters and setters due to the VariationalAlgorithm interface
@@ -170,7 +163,7 @@ class SamplingVQE(VariationalAlgorithm, SamplingMinimumEigensolver):
         # set an expectation for this algorithm run (will be reset to None at the end)
         # initial_point = _validate_initial_point(self.initial_point, self.ansatz)
 
-        energy, gradient, best_measurement = self.get_energy_and_gradient(
+        energy, best_measurement = self.get_energy_and_gradient(
             operator, ansatz, return_best_measurement=True
         )
 
@@ -178,9 +171,9 @@ class SamplingVQE(VariationalAlgorithm, SamplingMinimumEigensolver):
 
         if callable(optimizer):
             # pylint: disable=not-callable
-            opt_result = optimizer(fun=energy, x0=initial_point, jac=gradient)
+            opt_result = optimizer(fun=energy, x0=initial_point)
         else:
-            opt_result = optimizer.minimize(fun=energy, x0=initial_point, jac=gradient)
+            opt_result = optimizer.minimize(fun=energy, x0=initial_point)
 
         eval_time = time() - start_time
 
@@ -239,7 +232,15 @@ class SamplingVQE(VariationalAlgorithm, SamplingMinimumEigensolver):
             raise RuntimeError("The ansatz must be parameterized, but has 0 free parameters.")
 
         best_measurement = {"best": None}
-        estimator = _DiagonalEstimator(self.sampler)
+
+        def store_best_measurement(best):
+            for best_i in best:
+                if best_measurement["best"] is None or _compare_measurements(
+                    best_i, best_measurement["best"]
+                ):
+                    best_measurement["best"] = best_i
+
+        estimator = _DiagonalEstimator(self.sampler, callback=store_best_measurement)
 
         def energy(parameters):
             # handle broadcasting
@@ -254,34 +255,14 @@ class SamplingVQE(VariationalAlgorithm, SamplingMinimumEigensolver):
                 batchsize * [ansatz], batchsize * [operator], parameters
             ).result()
             value = result.values
-            best = result.best_measurements
-
-            # keep track of the best sample
-            if return_best_measurement:
-                for best_i in best:
-                    if best_measurement["best"] is None or _compare_measurements(
-                        best_i, best_measurement["best"]
-                    ):
-                        best_measurement["best"] = best_i
 
             result = value if len(value) > 1 else value[0]
             return np.real(result)
 
-        if self.gradient is not None:
-            self.gradient.estimator = estimator
-
-            def energy_gradient(parameters):
-                # broadcasting not required for the estimator gradients
-                result = self.gradient.run([ansatz], [operator], [parameters]).result()
-                return result.gradients[0]
-
-        else:
-            energy_gradient = None
-
         if return_best_measurement:
-            return energy, energy_gradient, best_measurement
+            return energy, best_measurement
 
-        return energy, energy_gradient
+        return energy
 
     def _eval_aux_ops(self, ansatz, parameters, aux_operators):
         # convert to list if necessary and store the keys
@@ -296,7 +277,7 @@ class SamplingVQE(VariationalAlgorithm, SamplingMinimumEigensolver):
         num = len(aux_operators)
         estimator = _DiagonalEstimator(self.sampler)
         results = estimator.run(num * [ansatz], aux_operators, num * [parameters]).result()
-        values = results.values
+        values = list(results.values)  # convert array to list
 
         # bring back into the right shape and return
         if is_dict:

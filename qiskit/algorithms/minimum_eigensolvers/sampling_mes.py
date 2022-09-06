@@ -12,10 +12,10 @@
 
 """The Sampling Minimum Eigensolver interface."""
 
+from __future__ import annotations
 from abc import ABC, abstractmethod
-from typing import Optional, Tuple, Any
-
-import numpy as np
+from collections.abc import Mapping
+from typing import Any
 
 from qiskit.quantum_info.operators.base_operator import BaseOperator
 from qiskit.opflow import PauliSumOp
@@ -73,27 +73,27 @@ class SamplingMinimumEigensolverResult(AlgorithmResult):
         self._best_measurement = None
 
     @property
-    def eigenvalue(self) -> Optional[complex]:
+    def eigenvalue(self) -> complex | None:
         """Return the approximation to the eigenvalue."""
         return self._eigenvalue
 
     @eigenvalue.setter
-    def eigenvalue(self, value: complex) -> None:
+    def eigenvalue(self, value: complex | None) -> None:
         """Set the approximation to the eigenvalue."""
         self._eigenvalue = value
 
     @property
-    def eigenstate(self) -> Optional[np.ndarray]:
-        """return eigen state"""
+    def eigenstate(self) -> Mapping[int, float] | None:
+        """Return samples of the final state."""
         return self._eigenstate
 
     @eigenstate.setter
-    def eigenstate(self, value: np.ndarray) -> None:
-        """set eigen state"""
+    def eigenstate(self, value: Mapping[int, float] | None) -> None:
+        """Set samples of the final state."""
         self._eigenstate = value
 
     @property
-    def aux_operator_values(self) -> Optional[ListOrDict[Tuple[complex, complex]]]:
+    def aux_operator_values(self) -> ListOrDict[tuple[complex, complex]] | None:
         """Return aux operator expectation values.
 
         These values are in fact tuples formatted as (mean, standard deviation).
@@ -101,17 +101,17 @@ class SamplingMinimumEigensolverResult(AlgorithmResult):
         return self._aux_operator_values
 
     @aux_operator_values.setter
-    def aux_operator_values(self, value: ListOrDict[Tuple[complex, complex]]) -> None:
+    def aux_operator_values(self, value: ListOrDict[tuple[complex, complex]] | None) -> None:
         """set aux operator eigen values"""
         self._aux_operator_values = value
 
     @property
-    def best_measurement(self) -> Optional[dict[str, Any]]:
+    def best_measurement(self) -> Mapping[str, Any] | None:
         """Return the best measurement (as bitstring) over the entire optimization."""
         return self._best_measurement
 
     @best_measurement.setter
-    def best_measurement(self, value: dict[str, Any]) -> None:
+    def best_measurement(self, value: Mapping[str, Any]) -> None:
         """Set the best measurement (as bitstring) over the entire optimization."""
         self._best_measurement = value
 

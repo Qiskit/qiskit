@@ -30,15 +30,11 @@ from .estimator_gradient_result import EstimatorGradientResult
 
 
 class BaseEstimatorGradient(ABC):
-    """Base class for an ``EstimatorGradient`` to compute the gradients of the expectation value.
-
-    Attributes:
-        estimator: The estimator used to compute the gradients.
-    """
+    """Base class for an ``EstimatorGradient`` to compute the gradients of the expectation value."""
 
     def __init__(
         self,
-        estimator: BaseEstimator | None = None,
+        estimator: BaseEstimator,
         **run_options,
     ):
         """
@@ -48,7 +44,7 @@ class BaseEstimatorGradient(ABC):
                 run_options in ``run`` method > gradient's default run_options > primitive's default
                 setting. Higher priority setting overrides lower priority setting.
         """
-        self.estimator: BaseEstimator | None = estimator
+        self._estimator: BaseEstimator = estimator
         self._default_run_options = run_options
 
     def run(
@@ -81,11 +77,7 @@ class BaseEstimatorGradient(ABC):
 
         Raises:
             ValueError: Invalid arguments are given.
-            ValueError: If the estimator is None.
         """
-        if self.estimator is None:
-            raise ValueError("The estimator cannot be None.")
-
         # if ``parameters`` is none, all parameters in each circuit are differentiated.
         if parameters is None:
             parameters = [None for _ in range(len(circuits))]
