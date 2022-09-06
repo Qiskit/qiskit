@@ -1,0 +1,4 @@
+---
+fixes:
+  - |
+    When :func:`~circuit_drawer` was used with `reverse_bits=True` on a circuit without classical bits, warning about `cregbundle` was raised, creating confusion. The warning was removed for this case.

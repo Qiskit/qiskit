@@ -15,6 +15,7 @@
 import unittest
 import os
 from unittest.mock import patch
+from warnings import catch_warnings, simplefilter
 
 from qiskit import QuantumCircuit
 from qiskit.test import QiskitTestCase
@@ -119,3 +120,13 @@ class TestCircuitDrawer(QiskitTestCase):
 
         with self.assertWarnsRegex(RuntimeWarning, "Cregbundle set"):
             visualization.circuit_drawer(circuit, cregbundle=True, wire_order=[0, 1, 2, 5, 4, 3])
+
+    def test_reverse_bits(self):
+        """Test reverse_bits should not raise warnings when no classical qubits:
+        See:"""
+        circuit = QuantumCircuit(3)
+        circuit.x(1)
+
+        with catch_warnings():
+            simplefilter("error")
+            visualization.circuit_drawer(circuit, reverse_bits=True)

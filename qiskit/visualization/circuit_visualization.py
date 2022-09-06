@@ -208,7 +208,7 @@ def circuit_drawer(
             "wire_order list for the index of each qubit and each clbit in the circuit."
         )
 
-    if cregbundle and (reverse_bits or wire_order is not None):
+    if circuit.clbits and cregbundle and (reverse_bits or wire_order is not None):
         cregbundle = False
         warn(
             "Cregbundle set to False since either reverse_bits or wire_order has been set.",
