@@ -476,11 +476,9 @@ class TestPhaseEstimation(QiskitAlgorithmsTestCase):
         if phase_estimator is None:
             phase_estimator = IterativePhaseEstimation
         if phase_estimator == IterativePhaseEstimation:
-            p_est = IterativePhaseEstimation(
-                num_iterations=num_iterations, sampler=sampler, shots=shots
-            )
+            p_est = IterativePhaseEstimation(num_iterations=num_iterations, sampler=sampler)
         elif phase_estimator == PhaseEstimation:
-            p_est = PhaseEstimation(num_evaluation_qubits=6, sampler=sampler, shots=shots)
+            p_est = PhaseEstimation(num_evaluation_qubits=6, sampler=sampler)
         else:
             raise ValueError("Unrecognized phase_estimator")
         result = p_est.estimate(unitary=unitary_circuit, state_preparation=state_preparation)

@@ -86,7 +86,6 @@ class PhaseEstimation(PhaseEstimator):
         num_evaluation_qubits: int,
         quantum_instance: QuantumInstance | Backend | None = None,
         sampler: BaseSampler | None = None,
-        shots: int | None = None,
     ) -> None:
         r"""
         Args:
@@ -95,8 +94,6 @@ class PhaseEstimation(PhaseEstimator):
             quantum_instance: Pending deprecation\: The quantum instance on which the
                 circuit will be run.
             sampler: The sampler primitive on which the circuit will be sampled.
-            shots: The number of shots to be used by a sampler. If ``None``, exact probabilities
-                will be calculated.
 
         Raises:
             AlgorithmError: If neither sampler nor quantum instance is provided.
@@ -120,7 +117,6 @@ class PhaseEstimation(PhaseEstimator):
             quantum_instance = QuantumInstance(quantum_instance)
         self._quantum_instance = quantum_instance
         self._sampler = sampler
-        self.shots = shots
 
     def construct_circuit(
         self, unitary: QuantumCircuit, state_preparation: QuantumCircuit | None = None
@@ -229,7 +225,7 @@ class PhaseEstimation(PhaseEstimator):
 
         if self._sampler is not None:
             try:
-                circuit_job = self._sampler.run([pe_circuit], shots=self.shots)
+                circuit_job = self._sampler.run([pe_circuit])
                 circuit_result = circuit_job.result()
             except Exception as exc:
                 raise AlgorithmError("The primitive job failed!") from exc

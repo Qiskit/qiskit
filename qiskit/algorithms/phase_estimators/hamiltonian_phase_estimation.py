@@ -94,7 +94,6 @@ class HamiltonianPhaseEstimation:
         num_evaluation_qubits: int,
         quantum_instance: QuantumInstance | Backend | None = None,
         sampler: BaseSampler | None = None,
-        shots: int | None = None,
     ) -> None:
         r"""
         Args:
@@ -103,8 +102,6 @@ class HamiltonianPhaseEstimation:
             quantum_instance: Pending deprecation\: The quantum instance on which
                 the circuit will be run.
             sampler: The sampler primitive on which the circuit will be sampled.
-            shots: The number of shots to be used by a sampler. If ``None``, exact probabilities
-                will be calculated.
         """
         if quantum_instance is not None:
             warnings.warn(
@@ -117,7 +114,6 @@ class HamiltonianPhaseEstimation:
             num_evaluation_qubits=num_evaluation_qubits,
             quantum_instance=quantum_instance,
             sampler=sampler,
-            shots=shots,
         )
 
     def _get_scale(self, hamiltonian, bound=None) -> None:

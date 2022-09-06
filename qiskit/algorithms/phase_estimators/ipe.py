@@ -45,15 +45,12 @@ class IterativePhaseEstimation(PhaseEstimator):
         num_iterations: int,
         quantum_instance: QuantumInstance | Backend | None = None,
         sampler: BaseSampler | None = None,
-        shots: int | None = None,
     ) -> None:
         r"""Args:
             num_iterations: The number of iterations (rounds) of the phase estimation to run.
             quantum_instance: Pending deprecation\: The quantum instance on which the
                 circuit will be run.
             sampler: The sampler primitive on which the circuit will be sampled.
-            shots: The number of shots to be used by a sampler. If ``None``, exact probabilities
-                will be calculated.
 
         Raises:
             ValueError: if num_iterations is not greater than zero.
@@ -77,7 +74,6 @@ class IterativePhaseEstimation(PhaseEstimator):
             raise ValueError("`num_iterations` must be greater than zero.")
         self._num_iterations = num_iterations
         self._sampler = sampler
-        self.shots = shots
 
     def construct_circuit(
         self,
@@ -148,7 +144,7 @@ class IterativePhaseEstimation(PhaseEstimator):
                     unitary, state_preparation, k, -2 * numpy.pi * omega_coef, True
                 )
                 try:
-                    sampler_job = self._sampler.run([qc], shots=self.shots)
+                    sampler_job = self._sampler.run([qc])
                     result = sampler_job.result().quasi_dists[0]
                 except Exception as exc:
                     raise AlgorithmError("The primitive job failed!") from exc
