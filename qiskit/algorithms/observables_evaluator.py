@@ -55,7 +55,7 @@ def eval_observables(
     """
 
     if (
-        isinstance(quantum_state, QuantumCircuit)  # Statevector cannot be parametrized
+        isinstance(quantum_state, QuantumCircuit)  # State cannot be parametrized
         and len(quantum_state.parameters) > 0
     ):
         raise ValueError(
@@ -119,7 +119,9 @@ def _compute_std_devs(
     results_length: int,
 ) -> List[complex | None]:
     """
-    Calculates a list of standard deviations from expectation values of observables provided.
+    Calculates a list of standard deviations from expectation values of observables provided. If
+    the choice of an underlying hardware is not shot-based and hence does not provide variance data,
+    the standard deviation values will be set to ``None``.
 
     Args:
         estimator_result: An estimator result.
@@ -138,6 +140,6 @@ def _compute_std_devs(
             shots = metadata["shots"]
             std_devs.append(np.sqrt(variance / shots))
         else:
-            std_devs.append(0)
+            std_devs.append(None)
 
     return std_devs
