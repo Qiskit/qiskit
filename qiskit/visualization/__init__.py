@@ -119,6 +119,9 @@ import warnings
 from .array import array_to_latex
 
 from .circuit import circuit_drawer
+from .circuit import text
+from .circuit import matplotlib
+from .circuit import latex
 from .counts_visualization import plot_histogram
 from .bloch import Bloch, Arrow3D
 from .state_visualization import (
