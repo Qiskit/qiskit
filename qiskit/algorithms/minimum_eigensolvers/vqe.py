@@ -106,10 +106,10 @@ class VQE(VariationalAlgorithm, MinimumEigensolver):
         optimizer: Optimizer | Minimizer,
         estimator: BaseEstimator,
         *,
-        gradient=BaseEstimatorGradient,
+        gradient: BaseEstimatorGradient | None = None,
         initial_point: Sequence[float] | None = None,
         # TODO Attach callback to optimizer instead.
-        callback=None,
+        callback: Callable[[int, np.ndarray, float, float], None] | None = None,
     ) -> None:
         """
         Args:
@@ -163,16 +163,19 @@ class VQE(VariationalAlgorithm, MinimumEigensolver):
 
         start_time = time()
 
-        expectation = self.get_energy_evaluation(operator, ansatz)
+        eval_energy = self.get_eval_energy(ansatz, operator)
+
+        if self.gradient is not None:
+            eval_gradient = self.get_eval_gradient(ansatz, operator)
+        else:
+            eval_gradient = None
 
         # Perform optimization
         if callable(self.optimizer):
-            opt_result = self.optimizer(  # pylint: disable=not-callable
-                fun=expectation, x0=initial_point,# jac=self.gradient, # bounds=bounds
-            )
+            opt_result = self.optimizer(fun=eval_energy, x0=initial_point, jac=eval_gradient)
         else:
             opt_result = self.optimizer.minimize(
-                fun=expectation, x0=initial_point, #jac=self.gradient, # bounds=bounds
+                fun=eval_energy, x0=initial_point, jac=eval_gradient
             )
 
         eval_time = time() - start_time
@@ -202,10 +205,10 @@ class VQE(VariationalAlgorithm, MinimumEigensolver):
     def supports_aux_operators(cls) -> bool:
         return True
 
-    def get_energy_evaluation(
+    def get_eval_energy(
         self,
-        operator: BaseOperator | PauliSumOp,
         ansatz: QuantumCircuit,
+        operator: BaseOperator | PauliSumOp,
     ) -> tuple[Callable[[np.ndarray], float | list[float]], dict]:
         """Returns a function handle to evaluates the energy at given parameters for the ansatz.
         This is the objective function to be passed to the optimizer that is used for evaluation.
@@ -217,16 +220,30 @@ class VQE(VariationalAlgorithm, MinimumEigensolver):
         """
         iter_count = 0
 
-        def energy_evaluation(point):
+        def eval_energy(point):
             nonlocal iter_count
             job = self.estimator.run([ansatz], [operator], [point])
             energy = job.result().values[0]
             iter_count += 1
             if self.callback is not None:
-                self.callback(iter_count, point, energy, 0)
+                self.callback(iter_count, point, energy, 0.0)
             return energy
 
-        return energy_evaluation
+        return eval_energy
+
+    def get_eval_gradient(
+        self,
+        ansatz: QuantumCircuit,
+        operator: BaseOperator | PauliSumOp,
+    ) -> tuple[Callable[[np.ndarray], np.ndarray]]:
+        """Returns a function handle to evaluate the gradient for a given point."""
+
+        def eval_gradient(parameters):
+            # broadcasting not required for the estimator gradients
+            result = self.gradient.run([ansatz], [operator], [parameters]).result()
+            return result.gradients[0]
+
+        return eval_gradient
 
     def _check_operator_ansatz(self, operator: BaseOperator | PauliSumOp) -> QuantumCircuit:
         """Check that the number of qubits of operator and ansatz match and that the ansatz is
