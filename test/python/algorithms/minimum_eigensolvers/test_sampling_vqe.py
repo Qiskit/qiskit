@@ -22,7 +22,7 @@ from scipy.optimize import minimize as scipy_minimize
 from qiskit.circuit import QuantumCircuit, ParameterVector
 from qiskit.algorithms import AlgorithmError
 from qiskit.algorithms.minimum_eigensolvers import SamplingVQE
-from qiskit.algorithms.optimizers import L_BFGS_B, QNSPSA, OptimizerResult
+from qiskit.algorithms.optimizers import L_BFGS_B, QNSPSA, OptimizerResult, SLSQP
 from qiskit.circuit.library import RealAmplitudes, TwoLocal
 from qiskit.opflow import PauliSumOp
 from qiskit.quantum_info import SparsePauliOp, Pauli
@@ -131,6 +131,13 @@ class TestSamplerVQE(QiskitAlgorithmsTestCase):
         vqe = SamplingVQE(ansatz=circuit, sampler=Sampler())
         with self.assertRaises(RuntimeError):
             vqe.compute_minimum_eigenvalue(operator=self.op)
+
+    def test_batch_evaluate_slsqp(self):
+        """Test batching with SLSQP (as representative of SciPyOptimizer)."""
+        optimizer = SLSQP(max_evals_grouped=10)
+        vqe = SamplingVQE(optimizer=optimizer, sampler=Sampler())
+        result = vqe.compute_minimum_eigenvalue(operator=self.op)
+        self.assertAlmostEqual(result.eigenvalue, self.optimal_value, places=5)
 
     def test_batch_evaluate_with_qnspsa(self):
         """Test batch evaluating with QNSPSA works."""
