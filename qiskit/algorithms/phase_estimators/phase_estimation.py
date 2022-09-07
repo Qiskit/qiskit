@@ -142,7 +142,7 @@ class PhaseEstimation(PhaseEstimator):
         return pe_circuit
 
     def _add_measurement_if_required(self, pe_circuit):
-        if self._sampler or not self._quantum_instance.is_statevector:
+        if self._sampler is not None or not self._quantum_instance.is_statevector:
             # Measure only the evaluation qubits.
             regname = "meas"
             creg = ClassicalRegister(self._num_evaluation_qubits, regname)
