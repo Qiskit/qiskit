@@ -116,28 +116,36 @@ import os
 import sys
 import warnings
 
-from qiskit.visualization.counts_visualization import plot_histogram
-from qiskit.visualization.state_visualization import (
+from .array import array_to_latex
+
+from .circuit import circuit_drawer
+from .counts_visualization import plot_histogram
+from .bloch import Bloch, Arrow3D
+from .state_visualization import (
     plot_state_hinton,
     plot_bloch_vector,
     plot_bloch_multivector,
     plot_state_city,
     plot_state_paulivec,
     plot_state_qsphere,
+    state_drawer,
 )
-from qiskit.visualization.transition_visualization import visualize_transition
-from qiskit.visualization.array import array_to_latex
-
-from .circuit_visualization import circuit_drawer
+from .transition_visualization import visualize_transition
 from .dag_visualization import dag_drawer
-from .exceptions import VisualizationError
 from .gate_map import plot_gate_map, plot_circuit_layout, plot_error_map, plot_coupling_map
 from .pass_manager_visualization import pass_manager_drawer
+
 from .pulse.interpolation import step_wise, linear, cubic_spline
 from .pulse.qcstyle import PulseStyle, SchedStyle
-from .pulse_visualization import pulse_drawer
 from .pulse_v2 import draw as pulse_drawer_v2
+
 from .timeline import draw as timeline_drawer
+
+from .exceptions import VisualizationError
+
+# These modules aren't part of the public interface, and were moved in Terra 0.22.  They're
+# re-imported here to allow a backwards compatible path, and should be deprecated in Terra 0.23.
+from .circuit import text, matplotlib, latex
 
 _DEPRECATED_NAMES = {
     "HAS_MATPLOTLIB",
