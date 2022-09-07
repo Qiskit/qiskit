@@ -22,12 +22,14 @@ from dataclasses import dataclass
 
 @dataclass(frozen=True)
 class StateFidelityResult:
-    """Result of Fidelity computation.
-
-    Args:
-        fidelities: List of fidelity values for each pair of input circuits.
-        metadata: Additional information on the fidelity calculations.
-    """
+    """This class stores the result of StateFidelity computations."""
 
     fidelities: Sequence[float]
+    """List of truncated fidelity values for each pair of input circuits, ensured to be in [0,1]."""
+    raw_fidelities: Sequence[float]
+    """List of raw fidelity values for each pair of input circuits, which might not be in [0,1]
+    depending on the error mitigation method used."""
     metadata: Sequence[Mapping[str, Any]]
+    """Additional information about the fidelity calculation."""
+    run_options: Mapping[str, Any]
+    """Runtime options for the execution of the fidelity job."""

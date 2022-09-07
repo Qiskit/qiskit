@@ -693,7 +693,6 @@ class VQD(VariationalAlgorithm, Eigensolver):
         )
 
         for state in range(step - 1):
-
             prev_circ = self.ansatz.bind_parameters(prev_states[state])
             overlap_op.append(~CircuitStateFn(prev_circ) @ CircuitStateFn(self.ansatz))
 
@@ -720,7 +719,6 @@ class VQD(VariationalAlgorithm, Eigensolver):
                     self._callback(self._eval_count, param_set, means[i], estimator_error[i], step)
             else:
                 self._eval_count += len(means)
-
             return means if len(means) > 1 else means[0]
 
         if return_expectation:

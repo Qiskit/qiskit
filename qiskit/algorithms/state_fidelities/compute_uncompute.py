@@ -18,41 +18,63 @@ from collections.abc import Sequence
 from copy import copy
 
 from qiskit import QuantumCircuit
+from qiskit.algorithms import AlgorithmError
 from qiskit.primitives import BaseSampler
+
 from .base_state_fidelity import BaseStateFidelity
 from .state_fidelity_result import StateFidelityResult
 
 
 class ComputeUncompute(BaseStateFidelity):
-    """
-    This class leverages the sampler primitive to calculate the fidelity of
-    two quantum circuits with the compute-uncompute method.
+    r"""
+    This class leverages the sampler primitive to calculate the state
+    fidelity of two quantum circuits following the compute-uncompute
+    method (see [1] for further reference).
+    The fidelity can be defined as the state overlap.
+
+    .. math::
+
+            |\langle\psi(x)|\phi(y)\rangle|^2
+
+    where :math:`x` and :math:`y` are optional parametrizations of the
+    states :math:`\psi` and :math:`\phi` prepared by the circuits
+    ``circuit_1`` and ``circuit_2``, respectively.
+
+    **Reference:**
+    [1] Havlíček, V., Córcoles, A. D., Temme, K., Harrow, A. W., Kandala,
+    A., Chow, J. M., & Gambetta, J. M. (2019). Supervised learning
+    with quantum-enhanced feature spaces. Nature, 567(7747), 209-212.
+    `arXiv:1804.11326v2 [quant-ph] <https://arxiv.org/pdf/1804.11326.pdf>`_
+
     """
 
     def __init__(self, sampler: BaseSampler, **run_options) -> None:
-        r"""
-        Initializes the class to evaluate the compute-uncompute state fidelity using
-        the sampler primitive. This fidelity is defined as the state overlap
-
-            :math:`|\langle\psi(x)|\phi(y)\rangle|^2`,
-
-        where :math:`x` and :math:`y` are optional parametrizations of the
-        states :math:`\psi` and :math:`\phi` prepared by the circuits
-        ``circuit_1`` and ``circuit_2``, respectively.
+        """
         Args:
             sampler: Sampler primitive instance.
             run_options: Backend runtime options used for circuit execution.
+
+        Raises:
+            ValueError: If the sampler is not an instance of ``BaseSampler``.
         """
-        self._sampler = sampler
+        if not isinstance(sampler, BaseSampler):
+            raise ValueError(
+                f"The sampler should be an instance of BaseSampler, " f"but got {type(sampler)}"
+            )
+        self._sampler: BaseSampler = sampler
         self._default_run_options = run_options
         super().__init__()
 
-    def _create_fidelity_circuit(self, circuit_1, circuit_2) -> QuantumCircuit:
+    def create_fidelity_circuit(
+        self, circuit_1: QuantumCircuit, circuit_2: QuantumCircuit
+    ) -> QuantumCircuit:
         """
-        Creates fidelity circuit following the compute-uncompute method.
+        Combines ``circuit_1`` and ``circuit_2`` to create the
+        fidelity circuit following the compute-uncompute method.
+
         Args:
-            circuit_1: (Parametrized) quantum circuit
-            circuit_2: (Parametrized) quantum circuit
+            circuit_1: (Parametrized) quantum circuit.
+            circuit_2: (Parametrized) quantum circuit.
 
         Returns:
             The fidelity quantum circuit corresponding to circuit_1 and circuit_2.
@@ -63,42 +85,41 @@ class ComputeUncompute(BaseStateFidelity):
 
     def _run(
         self,
-        circuits_1: Sequence[QuantumCircuit],
-        circuits_2: Sequence[QuantumCircuit],
-        values_1: Sequence[Sequence[float]] | None = None,
-        values_2: Sequence[Sequence[float]] | None = None,
+        circuits_1: QuantumCircuit | Sequence[QuantumCircuit],
+        circuits_2: QuantumCircuit | Sequence[QuantumCircuit],
+        values_1: Sequence[float] | Sequence[Sequence[float]] | None = None,
+        values_2: Sequence[float] | Sequence[Sequence[float]] | None = None,
         **run_options,
     ) -> StateFidelityResult:
         r"""
-        Compute the state overlap (fidelity) calculation between two
+        Computes the state overlap (fidelity) calculation between two
         (parametrized) circuits (first and second) for a specific set of parameter
-        values (first and second) following the compute-uncompute method
-
-        The fidelity corresponds to:
-
-            :math:`|\langle\psi(x)|\phi(y)\rangle|^2`
+        values (first and second) following the compute-uncompute method.
 
         Args:
             circuits_1: (Parametrized) quantum circuits preparing :math:`|\psi\rangle`.
             circuits_2: (Parametrized) quantum circuits preparing :math:`|\phi\rangle`.
             values_1: Numerical parameters to be bound to the first circuits.
             values_2: Numerical parameters to be bound to the second circuits.
-            run_options: Backend runtime options used for circuit execution.
+            run_options: Backend runtime options used for circuit execution. The order
+                of priority is\: run_options in ``run`` method > fidelity's default
+                run_options > primitive's default setting.
+                Higher priority setting overrides lower priority setting.
 
         Returns:
             The result of the fidelity calculation.
 
         Raises:
             ValueError: At least one pair of circuits must be defined.
+            AlgorithmError: If the sampler job is not completed successfully.
         """
 
         circuits = self._construct_circuits(circuits_1, circuits_2)
-        values = self._construct_value_list(circuits_1, circuits_2, values_1, values_2)
-
         if len(circuits) == 0:
             raise ValueError(
                 "At least one pair of circuits must be defined to calculate the state overlap."
             )
+        values = self._construct_value_list(circuits_1, circuits_2, values_1, values_2)
 
         # The priority of run options is as follows:
         # run_options in `evaluate` method > fidelity's default run_options >
@@ -106,15 +127,19 @@ class ComputeUncompute(BaseStateFidelity):
         run_opts = copy(self._default_run_options)
         run_opts.update(**run_options)
 
-        if len(values) > 0:
-            job = self._sampler.run(circuits=circuits, parameter_values=values, **run_opts)
-        else:
-            job = self._sampler.run(circuits=circuits, **run_opts)
+        job = self._sampler.run(circuits=circuits, parameter_values=values, **run_opts)
 
-        result = job.result()
+        try:
+            result = job.result()
+        except Exception as exc:
+            raise AlgorithmError("Sampler job failed!") from exc
 
-        # if error mitigation is added in the future, we will have to handle
-        # negative values in some way (e.g. clipping to zero)
-        overlaps = [prob_dist.get(0, 0) for prob_dist in result.quasi_dists]
+        raw_fidelities = [prob_dist.get(0, 0) for prob_dist in result.quasi_dists]
+        fidelities = self._truncate_fidelities(raw_fidelities)
 
-        return StateFidelityResult(fidelities=overlaps, metadata=run_opts)
+        return StateFidelityResult(
+            fidelities=fidelities,
+            raw_fidelities=raw_fidelities,
+            metadata=result.metadata,
+            run_options=run_opts,
+        )

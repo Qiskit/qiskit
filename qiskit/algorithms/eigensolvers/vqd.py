@@ -103,7 +103,7 @@ class VQD(VariationalAlgorithm, Eigensolver):
         include_custom: bool = False,
         max_evals_grouped: int = 1,
         callback: Optional[Callable[[int, np.ndarray, float, float], None]] = None,
-
+        **run_options
     ) -> None:
         """
 
@@ -157,7 +157,6 @@ class VQD(VariationalAlgorithm, Eigensolver):
         self.fidelity = fidelity
 
         self.max_evals_grouped = max_evals_grouped
-        self.optimizer.set_max_evals_grouped(max_evals_grouped)
 
         self._circuit_sampler = None  # type: Optional[CircuitSampler]
         self.expectation = expectation
@@ -176,9 +175,10 @@ class VQD(VariationalAlgorithm, Eigensolver):
 
         if isinstance(optimizer, Optimizer):
             optimizer.set_max_evals_grouped(self.max_evals_grouped)
-
         self.optimizer = optimizer
 
+
+        self._initial_point = None
         self.initial_point = initial_point
         self.gradient = gradient
 
@@ -186,6 +186,7 @@ class VQD(VariationalAlgorithm, Eigensolver):
         self._eval_count = 0
 
         self.callback = callback
+        self._default_run_options = run_options
 
         logger.info(self.print_settings())
 
@@ -203,6 +204,15 @@ class VQD(VariationalAlgorithm, Eigensolver):
             self._include_custom = include_custom
             self.expectation = None
 
+    @property
+    def initial_point(self) -> Optional[np.ndarray]:
+        """Returns initial point."""
+        return self._initial_point
+
+    @initial_point.setter
+    def initial_point(self, initial_point: np.ndarray):
+        """Sets initial point"""
+        self._initial_point = initial_point
 
     def _check_operator_ansatz(self, operator: OperatorBase):
         """Check that the number of qubits of operator and ansatz match."""
@@ -249,7 +259,7 @@ class VQD(VariationalAlgorithm, Eigensolver):
         else:
             ret += "ansatz has not been set"
         ret += "===============================================================\n"
-        ret += f"{self._optimizer.setting}"
+        ret += f"{self.optimizer.setting}"
         ret += "===============================================================\n"
         return ret
 
@@ -311,15 +321,12 @@ class VQD(VariationalAlgorithm, Eigensolver):
     def compute_eigenvalues(
         self,
         operator: OperatorBase,
-        aux_operators: Optional[ListOrDict[OperatorBase]] = None
+        aux_operators: Optional[ListOrDict[OperatorBase]] = None,
+        **run_options
     ) -> EigensolverResult:
         super().compute_eigenvalues(operator, aux_operators)
 
-        # if self.quantum_instance is None:
-        #     raise AlgorithmError(
-        #         "A QuantumInstance or Backend must be supplied to run the quantum algorithm."
-        #     )
-        # self.quantum_instance.circuit_summary = True
+        self._default_run_options.update(**run_options)
 
         # this sets the size of the ansatz, so it must be called before the initial point
         # validation
@@ -375,20 +382,8 @@ class VQD(VariationalAlgorithm, Eigensolver):
 
             self._eval_count = 0
             energy_evaluation = self.get_energy_evaluation(
-                step, operator, return_expectation=True, prev_states=result.optimal_parameters
+                step, operator, prev_states=result.optimal_parameters
             )
-
-            # # Convert the gradient operator into a callable function that is compatible with the
-            # # optimization routine. Only used for the ground state currently as Gradient() doesnt
-            # # support SumOps yet
-            # if isinstance(self._gradient, GradientBase):
-            #     gradient = self._gradient.gradient_wrapper(
-            #         StateFn(operator, is_measurement=True) @ StateFn(self.ansatz),
-            #         bind_params=list(self.ansatz.parameters),
-            #         backend=self._quantum_instance,
-            #     )
-            # else:
-            #     gradient = self._gradient
 
             start_time = time()
 
@@ -408,22 +403,14 @@ class VQD(VariationalAlgorithm, Eigensolver):
             result.optimal_value.append(opt_result.fun)
             result.cost_function_evals.append(opt_result.nfev)
             result.optimizer_time.append(eval_time)
-
-            eigenvalue = (
-                StateFn(operator, is_measurement=True)
-                .compose(CircuitStateFn(self.ansatz.bind_parameters(result.optimal_parameters[-1])))
-                .reduce()
-                .eval()
-            )
-
-            result.eigenvalues.append(eigenvalue)
-            # result.eigenstates.append(self._get_eigenstate(result.optimal_parameters[-1]))
+            result.eigenvalues.append(opt_result.fun + 0j)
+            # result.eigenstates.append()
 
             if aux_operators is not None:
                 bound_ansatz = self.ansatz.bind_parameters(result.optimal_point[-1])
                 # replace this by the new eval_observables
                 aux_value = eval_observables(
-                    self.quantum_instance, bound_ansatz, aux_operators, expectation=expectation
+                    self.estimator, bound_ansatz, aux_operators
                 )
                 aux_values.append(aux_value)
 
@@ -449,7 +436,7 @@ class VQD(VariationalAlgorithm, Eigensolver):
                 )
 
         # To match the signature of NumpyEigenSolver Result
-        result.eigenstates = ListOp([StateFn(vec) for vec in result.eigenstates])
+        # result.eigenstates = ListOp([StateFn(vec) for vec in result.eigenstates])
         result.eigenvalues = np.array(result.eigenvalues)
         result.optimal_point = np.array(result.optimal_point)
         result.optimal_value = np.array(result.optimal_value)
@@ -465,7 +452,6 @@ class VQD(VariationalAlgorithm, Eigensolver):
         self,
         step: int,
         operator: OperatorBase,
-        return_expectation: bool = False,
         prev_states: Optional[List[np.ndarray]] = None,
     ) -> Callable[[np.ndarray], Union[float, List[float]]]:
         """Returns a function handle to evaluates the energy at given parameters for the ansatz.
@@ -506,55 +492,38 @@ class VQD(VariationalAlgorithm, Eigensolver):
 
         self._check_operator_ansatz(operator)
 
-        # THIS IS FOR FIDELITY
         prev_circs = []
         for state in range(step - 1):
             prev_circs.append(self.ansatz.bind_parameters(prev_states[state]))
 
         def energy_evaluation(parameters):
-            parameter_sets = np.reshape(parameters, (-1, num_parameters))
+            estimator_job = self.estimator.run(circuits=[self.ansatz],
+                                               observables=[operator],
+                                               parameter_values=[parameters],
+                                               **self._default_run_options)
+            estimator_result = estimator_job.result()
+            means = np.real(estimator_result.values)
 
-            estimator_job = self.estimator.run([self.ansatz], [operator], [parameter_sets])
-            estimator_result = estimator_job.result().values[0]
-            means = np.real(estimator_result)
+            if step > 1:
+                fidelity_job = self.fidelity.run([self.ansatz] * len(prev_circs), prev_circs,
+                                                 [parameters] * len(prev_circs), [prev_states[:-1]])
+                costs = fidelity_job.result().fidelities
 
-            fidelity_job = self.fidelity.run([prev_circs],
-                                    [self.ansatz] * len(prev_circs),
-                                    [parameter_sets] * len(prev_circs),
-                                    [parameter_sets]* len(prev_circs))
+                for (state, cost) in zip(range(step - 1), costs):
+                    means += np.real(self.betas[state] * cost)
 
-            costs = fidelity_job.run().fidelities
-            for (state, cost) in zip(range(step - 1, costs)):
-                means += np.real(self.betas[state] * np.conj(cost) * cost)
-
-            # if self._callback is not None:
-            #     variance = np.real(expectation.compute_variance(sampled_expect_op))
-            #     estimator_error = np.sqrt(variance / self.quantum_instance.run_config.shots)
-            #     for i, param_set in enumerate(parameter_sets):
-            #         self._eval_count += 1
-            #         self._callback(self._eval_count, param_set, means[i], estimator_error[i], step)
-
-            self._eval_count += len(means)
-
+            if self.callback is not None:
+                variance = np.array([estimator_result.metadata[0].pop("variance", 0)])
+                shots = np.array([estimator_result.metadata[0].pop("shots", 0)])
+                estimator_error = np.sqrt(variance / shots)
+                for i, param_set in enumerate([parameters]):
+                    self._eval_count += 1
+                    self.callback(self._eval_count, param_set, means[i], estimator_error[i], step)
+            else:
+                self._eval_count += len(means)
             return means if len(means) > 1 else means[0]
 
-        # if return_expectation:
-        #     return energy_evaluation, expectation
-
         return energy_evaluation
-
-    # def _get_eigenstate(self, optimal_parameters) -> Union[List[float], Dict[str, int]]:
-    #     """Get the simulation outcome of the ansatz, provided with parameters."""
-    #     optimal_circuit = self.ansatz.bind_parameters(optimal_parameters)
-    #     state_fn = self._circuit_sampler.convert(StateFn(optimal_circuit)).eval()
-    #
-    #     state_fn = self.estimator.run([self.ansatz], self.)
-    #     if self.quantum_instance.is_statevector:
-    #         state = state_fn.primitive.data  # VectorStateFn -> Statevector -> np.array
-    #     else:
-    #         state = state_fn.to_dict_fn().primitive  # SparseVectorStateFn -> DictStateFn -> dict
-    #
-    #     return state
 
 
 class VQDResult(VariationalResult, EigensolverResult):

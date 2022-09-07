@@ -85,6 +85,7 @@ Optimizations
    HoareOptimizer
    TemplateOptimization
    EchoRZXWeylDecomposition
+   ResetAfterMeasureSimplification
    OptimizeCliffords
 
 Calibration
@@ -222,6 +223,7 @@ from .optimization import TemplateOptimization
 from .optimization import InverseCancellation
 from .optimization import EchoRZXWeylDecomposition
 from .optimization import CollectLinearFunctions
+from .optimization import ResetAfterMeasureSimplification
 from .optimization import OptimizeCliffords
 
 # circuit analysis
