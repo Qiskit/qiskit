@@ -162,10 +162,7 @@ obtained from a :class:`~qiskit.circuit.QuantumCircuit`:
    state = DensityMatrix(qc)
    plot_state_city(state)
 
-You can find code examples for each visualization functions on the individual function `API page
-<#apis>`_.
-
-
+You can find code examples for each visualization functions on the individual function API page.
 
 
 Device Visualizations
