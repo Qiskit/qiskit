@@ -67,30 +67,30 @@ class SamplingVQE(VariationalAlgorithm, SamplingMinimumEigensolver):
 
     def __init__(
         self,
+        sampler: BaseSampler,
         ansatz: QuantumCircuit | None = None,
         optimizer: Optimizer | Minimizer | None = None,
         initial_point: Sequence[float] | None = None,
-        sampler: BaseSampler | None = None,
         aggregation: float | Callable[[list[float]], float] | None = None,
     ) -> None:
         """
 
         Args:
+            sampler: The sampler primitive to sample the circuits.
             ansatz: The parameterized circuit used as ansatz for the wave function.
             optimizer: The classical optimizer. Can either be a Qiskit optimizer or a callable
                 that takes an array as input and returns a Qiskit or SciPy optimization result.
             initial_point: An optional initial point (i.e. initial parameter values)
                 for the optimizer. If ``None`` then VQE will look to the ansatz for a preferred
                 point and if not will simply compute a random one.
-            sampler: The sampler primitive to sample the circuits.
             aggregation: A float or callable to specify how the objective function evaluated on the
                 basis states should be aggregated.
         """
         super().__init__()
 
+        self.sampler = sampler
         self.ansatz = ansatz
         self.optimizer = optimizer
-        self.sampler = sampler
         self.aggregation = aggregation
 
         # this has to go via getters and setters due to the VariationalAlgorithm interface
@@ -144,9 +144,6 @@ class SamplingVQE(VariationalAlgorithm, SamplingMinimumEigensolver):
         # check that the number of qubits of operator and ansatz match, and resize if possible
         ansatz = self._check_operator_ansatz(operator, ansatz)
         ansatz.measure_all()
-
-        if self.sampler is None:
-            raise ValueError("The sampler is None, but must be set.")
 
         optimizer = SLSQP() if self.optimizer is None else self.optimizer
 

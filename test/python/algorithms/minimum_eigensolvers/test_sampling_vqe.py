@@ -71,7 +71,7 @@ class TestSamplerVQE(QiskitAlgorithmsTestCase):
         initial_point = np.zeros(ansatz.num_parameters)
         initial_point[-ansatz.num_qubits :] = np.pi / 2
 
-        vqe = SamplingVQE(ansatz, optimizer, initial_point, sampler=Sampler())
+        vqe = SamplingVQE(Sampler(), ansatz, optimizer, initial_point)
         result = vqe.compute_minimum_eigenvalue(operator=self.op)
 
         with self.subTest(msg="test eigenvalue"):
@@ -95,7 +95,7 @@ class TestSamplerVQE(QiskitAlgorithmsTestCase):
 
     def test_default_values(self):
         """Test all default values are set as expected."""
-        vqe = SamplingVQE(sampler=Sampler())
+        vqe = SamplingVQE(Sampler())
         result = vqe.compute_minimum_eigenvalue(operator=self.op)
         self.assertAlmostEqual(result.eigenvalue, self.optimal_value, places=5)
 
@@ -104,7 +104,7 @@ class TestSamplerVQE(QiskitAlgorithmsTestCase):
         ansatz = RealAmplitudes(2, reps=1)
         initial_point = np.array([1])
 
-        vqe = SamplingVQE(ansatz, initial_point=initial_point, sampler=Sampler())
+        vqe = SamplingVQE(sampler=Sampler(), ansatz=ansatz, initial_point=initial_point)
 
         with self.assertRaises(ValueError):
             _ = vqe.compute_minimum_eigenvalue(operator=self.op)
@@ -112,7 +112,7 @@ class TestSamplerVQE(QiskitAlgorithmsTestCase):
     def test_ansatz_resize(self):
         """Test the ansatz is properly resized if it's a blueprint circuit."""
         ansatz = RealAmplitudes(1, reps=1)
-        vqe = SamplingVQE(ansatz, sampler=Sampler())
+        vqe = SamplingVQE(Sampler(), ansatz)
         result = vqe.compute_minimum_eigenvalue(operator=self.op)
         self.assertAlmostEqual(result.eigenvalue, self.optimal_value, places=5)
 
@@ -120,7 +120,7 @@ class TestSamplerVQE(QiskitAlgorithmsTestCase):
         """Test an error is raised if the ansatz has the wrong number of qubits."""
         ansatz = QuantumCircuit(1)
         ansatz.compose(RealAmplitudes(1, reps=2))
-        vqe = SamplingVQE(ansatz, sampler=Sampler())
+        vqe = SamplingVQE(Sampler(), ansatz)
 
         with self.assertRaises(AlgorithmError):
             _ = vqe.compute_minimum_eigenvalue(operator=self.op)
@@ -128,14 +128,14 @@ class TestSamplerVQE(QiskitAlgorithmsTestCase):
     def test_missing_varform_params(self):
         """Test specifying a variational form with no parameters raises an error."""
         circuit = QuantumCircuit(self.op.num_qubits)
-        vqe = SamplingVQE(ansatz=circuit, sampler=Sampler())
+        vqe = SamplingVQE(sampler=Sampler(), ansatz=circuit)
         with self.assertRaises(RuntimeError):
             vqe.compute_minimum_eigenvalue(operator=self.op)
 
     def test_batch_evaluate_slsqp(self):
         """Test batching with SLSQP (as representative of SciPyOptimizer)."""
         optimizer = SLSQP(max_evals_grouped=10)
-        vqe = SamplingVQE(optimizer=optimizer, sampler=Sampler())
+        vqe = SamplingVQE(sampler=Sampler(), optimizer=optimizer)
         result = vqe.compute_minimum_eigenvalue(operator=self.op)
         self.assertAlmostEqual(result.eigenvalue, self.optimal_value, places=5)
 
@@ -165,9 +165,9 @@ class TestSamplerVQE(QiskitAlgorithmsTestCase):
         qnspsa.set_max_evals_grouped(100)
 
         vqe = SamplingVQE(
+            sampler=wrapped_sampler,
             ansatz=ansatz,
             optimizer=qnspsa,
-            sampler=wrapped_sampler,
         )
         _ = vqe.compute_minimum_eigenvalue(Pauli("ZZ"))
 
@@ -180,9 +180,8 @@ class TestSamplerVQE(QiskitAlgorithmsTestCase):
     def test_optimizer_scipy_callable(self):
         """Test passing a SciPy optimizer directly as callable."""
         vqe = SamplingVQE(
-            optimizer=partial(scipy_minimize, method="COBYLA", options={"maxiter": 2}),
-            # optimizer=partial(scipy_minimize, method="POWELL", options={"maxfev": 2}),
             sampler=Sampler(),
+            optimizer=partial(scipy_minimize, method="COBYLA", options={"maxiter": 2}),
         )
         result = vqe.compute_minimum_eigenvalue(Pauli("Z"))
         self.assertEqual(result.cost_function_evals, 2)
@@ -197,7 +196,7 @@ class TestSamplerVQE(QiskitAlgorithmsTestCase):
     def test_auxops(self):
         """Test passing auxiliary operators."""
         ansatz = RealAmplitudes(2, reps=1)
-        vqe = SamplingVQE(ansatz, sampler=Sampler())
+        vqe = SamplingVQE(Sampler(), ansatz)
 
         as_list = [Pauli("ZZ"), Pauli("II")]
         with self.subTest(auxops=as_list):
