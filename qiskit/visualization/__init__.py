@@ -34,40 +34,22 @@ development environment:
 
    pip install 'qiskit[visualization]'
 
-Counts and State Visualizations
-===============================
+Counts Visualizations
+=====================
 
-This section contains functions that visualize measurement outcome counts and quantum states.
+This section contains functions that visualize measurement outcome counts.
 
 APIs
 ----
-
-Counts Visualization
-^^^^^^^^^^^^^^^^^^^^
 
 .. autosummary::
    :toctree: ../stubs/
 
    plot_histogram
 
-State Visualization
-^^^^^^^^^^^^^^^^^^^
-
-.. autosummary::
-   :toctree: ../stubs/
-
-   plot_bloch_vector
-   plot_bloch_multivector
-   plot_state_city
-   plot_state_hinton
-   plot_state_paulivec
-   plot_state_qsphere
 
 Example Usage
 -------------
-
-Counts Visualization
-^^^^^^^^^^^^^^^^^^^^
 
 Here is an example of using :func:`plot_histogram` to visualize measurement outcome counts:
 
@@ -81,8 +63,26 @@ Here is an example of using :func:`plot_histogram` to visualize measurement outc
 The data can be a dictionary with bit string as key and counts as value, or more commonly a
 :class:`~qiskit.result.Counts` object obtained from :meth:`~qiskit.result.Result.get_counts`.
 
-State Visualization
-^^^^^^^^^^^^^^^^^^^
+State Visualizations
+====================
+
+This section contains functions that visualize quantum states.
+
+APIs
+----
+.. autosummary::
+   :toctree: ../stubs/
+
+   plot_bloch_vector
+   plot_bloch_multivector
+   plot_state_city
+   plot_state_hinton
+   plot_state_paulivec
+   plot_state_qsphere
+
+
+Example Usage
+-------------
 
 Here is an example of using :func:`plot_state_city` to visualize a quantum state:
 
