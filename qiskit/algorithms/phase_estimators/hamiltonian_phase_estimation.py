@@ -35,7 +35,7 @@ from .hamiltonian_phase_estimation_result import HamiltonianPhaseEstimationResul
 from .phase_estimation_scale import PhaseEstimationScale
 from ...circuit.library import PauliEvolutionGate
 from ...primitives import BaseSampler
-from ...quantum_info import SparsePauliOp
+from ...quantum_info import SparsePauliOp, Statevector
 from ...quantum_info.operators.base_operator import BaseOperator
 from ...synthesis import EvolutionSynthesis
 
@@ -158,8 +158,8 @@ class HamiltonianPhaseEstimation:
 
     def estimate(
         self,
-        hamiltonian: OperatorBase | OperatorBase | PauliSumOp,
-        state_preparation: StateFn | None = None,
+        hamiltonian: OperatorBase | BaseOperator | PauliSumOp,
+        state_preparation: StateFn | QuantumCircuit | Statevector | None = None,
         evolution: EvolutionSynthesis | EvolutionBase | None = None,
         bound: float | None = None,
     ) -> HamiltonianPhaseEstimationResult:
@@ -195,6 +195,11 @@ class HamiltonianPhaseEstimation:
                     f"Expecting Hamiltonian type OperatorBase or BaseOperator or PauliSumOp, "
                     f"got {type(hamiltonian)}."
                 )
+            # TODO add unit test for Statevector
+            if isinstance(state_preparation, Statevector):
+                circuit = QuantumCircuit(state_preparation.num_qubits)
+                circuit.prepare_state(state_preparation.data)
+                state_preparation = circuit
             if isinstance(hamiltonian, PauliSumOp):
                 id_coefficient, hamiltonian_no_id = _remove_identity_pauli_sum_op(hamiltonian)
             else:
