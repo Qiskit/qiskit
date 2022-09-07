@@ -421,10 +421,10 @@ class BaseEstimator(ABC):
 
     def run(
         self,
-        circuits: Sequence[QuantumCircuit],
-        observables: Sequence[BaseOperator | PauliSumOp],
-        parameter_values: Sequence[Sequence[float]] | None = None,
-        parameters: Sequence[Sequence[Parameter]] | None = None,
+        circuits: QuantumCircuit | Sequence[QuantumCircuit],
+        observables: BaseOperator | PauliSumOp | Sequence[BaseOperator | PauliSumOp],
+        parameter_values: Sequence[float] | Sequence[Sequence[float]] | None = None,
+        parameters: Sequence[Parameter] | Sequence[Sequence[Parameter]] | None = None,
         **run_options,
     ) -> Job:
         """Run the job of the estimation of expectation value(s).
@@ -449,8 +449,8 @@ class BaseEstimator(ABC):
             values = parameter_values[i].
 
         Args:
-            circuits: the list of circuit objects.
-            observables: the list of observable objects.
+            circuits: one or more circuit objects.
+            observables: one or more observable objects.
             parameter_values: concrete parameters to be bound.
             parameters: Parameters of quantum circuits, specifying the order in which values
                 will be bound. Defaults to ``[circ.parameters for circ in circuits]``
@@ -467,6 +467,23 @@ class BaseEstimator(ABC):
         # Support ndarray
         if isinstance(parameter_values, np.ndarray):
             parameter_values = parameter_values.tolist()
+
+        if not isinstance(circuits, Sequence):
+            circuits = [circuits]
+        if not isinstance(observables, Sequence):
+            observables = [observables]
+        if (
+            parameter_values is not None
+            and len(parameter_values) > 1
+            and not isinstance(parameter_values[0], Sequence)
+        ):
+            parameter_values = [parameter_values]  # type: ignore[assignment]
+        if (
+            parameters is not None
+            and len(parameters) > 1
+            and not isinstance(parameters[0], Sequence)
+        ):
+            parameters = [parameters]
 
         # Allow optional
         if parameter_values is None:

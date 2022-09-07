@@ -571,6 +571,19 @@ class TestSampler(QiskitTestCase):
         self.assertTupleEqual(keys, tuple(range(4)))
         np.testing.assert_allclose(values, [0, 0, 0, 1])
 
+    def test_run_single_circuit(self):
+        """Test for single circuit case."""
+        circuits = [self._circuit[1], self._pqc]
+        params = [None, self._pqc_params[0]]
+        targets = [self._target[1], self._pqc_target[0]]
+
+        sampler = Sampler()
+        for idx, circ in enumerate(circuits):
+            with self.subTest(circ=circ.name):
+                result = sampler.run(circ, params[idx]).result()
+                self._compare_probs(result.quasi_dists, targets[idx])
+                self.assertEqual(len(result.metadata), 1)
+
     def test_run_errors(self):
         """Test for errors"""
         qc1 = QuantumCircuit(1)

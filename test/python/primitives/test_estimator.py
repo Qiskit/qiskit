@@ -451,6 +451,12 @@ class TestEstimator(QiskitTestCase):
         self.assertIsInstance(result, EstimatorResult)
         np.testing.assert_allclose(result.values, [-1.284366511861733])
 
+    def test_run_non_list(self):
+        """Test running with non-list inputs."""
+        est = Estimator()
+        result = est.run(self.psi[0], self.hamiltonian[0], self.theta[0]).result()
+        np.testing.assert_allclose(result.values, [1.5555572817900956])
+
     def test_run_1qubit(self):
         """Test for 1-qubit cases"""
         qc = QuantumCircuit(1)
