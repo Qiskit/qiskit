@@ -187,7 +187,9 @@ class QNSPSA(SPSA):
         self._nfev += 6
 
         loss_values = _batch_evaluate(loss, loss_points, self._max_evals_grouped)
-        fidelity_values = _batch_evaluate(self.fidelity, fidelity_points, self._max_evals_grouped)
+        fidelity_values = _batch_evaluate(
+            self.fidelity, fidelity_points, self._max_evals_grouped, unpack_points=True
+        )
 
         # compute the gradient approximation and additionally return the loss function evaluations
         gradient_estimate = (loss_values[0] - loss_values[1]) / (2 * eps) * delta1

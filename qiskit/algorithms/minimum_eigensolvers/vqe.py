@@ -109,7 +109,7 @@ class VQE(VariationalAlgorithm, MinimumEigensolver):
         *,
         gradient: BaseEstimatorGradient | None = None,
         initial_point: Sequence[float] | None = None,
-        # TODO Remove callback and attach to optimizer instead.
+        # TODO remove callback and attach to optimizer instead
         callback: Callable[[int, np.ndarray, float, float], None] | None = None,
     ) -> None:
         """
@@ -131,11 +131,11 @@ class VQE(VariationalAlgorithm, MinimumEigensolver):
         self.estimator = estimator
         self.gradient = gradient
 
-        # TODO Change Variational Algorithm interface to use a public attribute.
-        # This has to go via getters and setters due to the VariationalAlgorithm interface.
+        # TODO change VariationalAlgorithm interface to use a public attribute
+        # this has to go via getters and setters due to the VariationalAlgorithm interface
         self._initial_point = initial_point
 
-        # TODO Remove callback and attach to optimizer instead.
+        # TODO remove callback and attach to optimizer instead
         self.callback = callback
 
     @property
@@ -173,7 +173,7 @@ class VQE(VariationalAlgorithm, MinimumEigensolver):
         else:
             eval_gradient = None
 
-        # Perform optimization.
+        # perform optimization
         if callable(self.optimizer):
             opt_result = self.optimizer(fun=eval_energy, x0=initial_point, jac=eval_gradient)
         else:
@@ -190,8 +190,8 @@ class VQE(VariationalAlgorithm, MinimumEigensolver):
 
         aux_values = None
         if aux_operators:
-            # Not None and not empty list
-            # TODO This is going to be replaced by eval_observables. See PR #8683.
+            # not None and not empty list
+            # TODO this is going to be replaced by eval_observables (see PR #8683)
             aux_values = self._eval_aux_ops(ansatz, optimal_point, aux_operators)
 
         result = VQEResult()
@@ -222,14 +222,20 @@ class VQE(VariationalAlgorithm, MinimumEigensolver):
             Energy of the hamiltonian of each parameter.
         """
         iter_count = 0
+        num_parameters = ansatz.num_parameters
 
-        def eval_energy(point):
+        def eval_energy(parameters):
             nonlocal iter_count
-            job = self.estimator.run([ansatz], [operator], [point])
+
+            # handle broadcasting: ensure parameters is of shape [array, array, ...]
+            parameters = np.reshape(parameters, (-1, num_parameters)).tolist()
+            batchsize = len(parameters)
+
+            job = self.estimator.run(batchsize * [ansatz], batchsize * [operator], parameters)
             energy = job.result().values[0]
             iter_count += 1
             if self.callback is not None:
-                self.callback(iter_count, point, energy, 0.0)
+                self.callback(iter_count, parameters, energy, 0.0)
             return energy
 
         return eval_energy
@@ -239,7 +245,7 @@ class VQE(VariationalAlgorithm, MinimumEigensolver):
         ansatz: QuantumCircuit,
         operator: BaseOperator | PauliSumOp,
     ) -> tuple[Callable[[np.ndarray], np.ndarray]]:
-        """Returns a function handle to evaluate the gradient for a given point."""
+        """Returns a function handle to evaluate the gradient at given parameters for the ansatz."""
 
         def eval_gradient(parameters):
             # broadcasting not required for the estimator gradients
@@ -279,7 +285,7 @@ class VQE(VariationalAlgorithm, MinimumEigensolver):
     ) -> ListOrDict[tuple(complex, complex)]:
         """Compute auxiliary operator eigenvalues."""
 
-        # TODO This is going to be replaced by eval_observables. See PR #8683.
+        # TODO this is going to be replaced by eval_observables (see PR #8683)
 
         if isinstance(aux_operators, dict):
             aux_ops = list(aux_operators.values())
