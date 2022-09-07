@@ -19,7 +19,15 @@ from ..algorithm_result import AlgorithmResult
 
 
 class EvolutionResult(AlgorithmResult):
-    """Class for holding evolution result."""
+    """
+    Class for holding evolution result.
+
+    Attributes:
+        evolved_state (QuantumCircuit): An evolved quantum state.
+        aux_ops_evaluated (ListOrDict[tuple[complex, complex]] | None): Optional list of
+            observables for which expected values on an evolved state are calculated. These values
+            are in fact tuples formatted as (mean, standard deviation).
+    """
 
     def __init__(
         self,
