@@ -138,13 +138,11 @@ class HamiltonianPhaseEstimation:
 
         if self._phase_estimation._sampler is not None:
 
-            evo = PauliEvolutionGate(hamiltonian, pe_scale.scale, synthesis=evolution)
+            evo = PauliEvolutionGate(hamiltonian, -pe_scale.scale, synthesis=evolution)
             unitary = QuantumCircuit(evo.num_qubits)
-            unitary.append(evo, list(range(evo.num_qubits)))
-            print("Sampler")
-            print(pe_scale.scale)
-            print(unitary.to_gate().to_matrix())
-            return unitary
+            unitary.append(evo, unitary.qubits)
+
+            return unitary.decompose().decompose()
         else:
             # scale so that phase does not wrap.
             scaled_hamiltonian = -pe_scale.scale * hamiltonian
