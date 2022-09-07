@@ -18,7 +18,7 @@ import numpy as np
 
 from qiskit.circuit.parameterexpression import ParameterExpression
 from qiskit.pulse.exceptions import UnassignedDurationError, QiskitError
-from qiskit.utils import deprecate_function
+from qiskit.utils import deprecate_function  # pylint: disable=cyclic-import
 
 
 def format_meas_map(meas_map: List[List[int]]) -> Dict[int, List[int]]:
