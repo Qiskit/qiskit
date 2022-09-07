@@ -147,11 +147,8 @@ class HamiltonianPhaseEstimation:
             # scale so that phase does not wrap.
             scaled_hamiltonian = -pe_scale.scale * hamiltonian
             unitary = evolution.convert(scaled_hamiltonian.exp_i())
-            print(unitary.to_matrix())
             if not isinstance(unitary, QuantumCircuit):
                 unitary = unitary.to_circuit()
-            print("Old")
-            print(pe_scale.scale)
 
             return unitary.decompose().decompose()
 
@@ -204,7 +201,6 @@ class HamiltonianPhaseEstimation:
                 id_coefficient = 0.0
                 hamiltonian_no_id = hamiltonian
             pe_scale = self._get_scale(hamiltonian_no_id, bound)
-            print(f"Sampler Hamiltonian:{hamiltonian_no_id}")
             unitary = self._get_unitary(hamiltonian_no_id, pe_scale, evolution)
         else:
             if evolution is None:
@@ -228,7 +224,6 @@ class HamiltonianPhaseEstimation:
                 #   occupies more of the range of values representable by the qubit register.
                 # The coefficient of this term will be added to the eigenvalues.
                 id_coefficient, hamiltonian_no_id = _remove_identity(hamiltonian)
-                print(f"Old Hamiltonian:{hamiltonian_no_id}")
                 # get the rescaling object
                 pe_scale = self._get_scale(hamiltonian_no_id, bound)
 
@@ -252,7 +247,6 @@ class HamiltonianPhaseEstimation:
         phase_estimation_result = self._phase_estimation.estimate(
             unitary=unitary, state_preparation=state_preparation
         )
-        print(phase_estimation_result.phases)
         return HamiltonianPhaseEstimationResult(
             phase_estimation_result=phase_estimation_result,
             id_coefficient=id_coefficient,
@@ -290,7 +284,6 @@ def _remove_identity_pauli_sum_op(pauli_sum: PauliSumOp | SparsePauliOp):
     idcoeff = 0.0
     if isinstance(pauli_sum, PauliSumOp):
         for operator in pauli_sum:
-            print(operator.primitive.paulis)
             if operator.primitive.paulis == ["I" * pauli_sum.num_qubits]:
                 idcoeff += operator.primitive.coeffs[0]
                 pauli_sum = pauli_sum - operator.primitive.coeffs[0] * _get_identity(

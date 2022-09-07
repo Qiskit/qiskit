@@ -12,7 +12,6 @@
 
 """Scaling for Hamiltonian and eigenvalues to avoid phase wrapping"""
 from __future__ import annotations
-import numpy
 import numpy as np
 
 from qiskit.opflow import SummedOp, PauliSumOp
@@ -65,7 +64,7 @@ class PhaseEstimationScale:
         Returns:
             The scale factor.
         """
-        return numpy.pi / self._bound
+        return np.pi / self._bound
 
     def scale_phase(self, phi: float, id_coefficient: float = 0.0) -> float:
         r"""Convert a phase into an eigenvalue.
@@ -143,7 +142,8 @@ class PhaseEstimationScale:
             return PhaseEstimationScale(bound)
         elif isinstance(pauli_sum, BaseOperator):
             raise ValueError(
-                f"For the operator of type {type(pauli_sum)} the bound needs to be provided in the algorithm."
+                f"For the operator of type {type(pauli_sum)} the bound needs to be provided in the "
+                f"algorithm."
             )
         else:
             if pauli_sum.primitive_strings() != {"Pauli"}:
