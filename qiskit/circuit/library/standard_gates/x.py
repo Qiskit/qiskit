@@ -1093,22 +1093,8 @@ class MCXRecursive(MCXGate):
             qc._append(C4XGate(), q[:], [])
             self.definition = qc
         else:
-            num_ctrl_qubits = len(q) - 1
-            q_ancilla = q[-1]
-            q_target = q[-2]
-            middle = ceil(num_ctrl_qubits / 2)
-            first_half = [*q[:middle]]
-            second_half = [*q[middle:num_ctrl_qubits - 1], q_ancilla]
-
-            qc._append(MCXVChain(num_ctrl_qubits=len(first_half), dirty_ancillas=True), \
-                        [*first_half, q_ancilla, *q[middle:middle + len(first_half) - 2]], [])
-            qc._append(MCXVChain(num_ctrl_qubits=len(second_half), dirty_ancillas=True), \
-                        [*second_half, q_target, *q[:len(second_half) - 2]], [])
-            qc._append(MCXVChain(num_ctrl_qubits=len(first_half), dirty_ancillas=True), \
-                        [*first_half, q_ancilla, *q[middle:middle + len(first_half) - 2]], [])
-            qc._append(MCXVChain(num_ctrl_qubits=len(second_half), dirty_ancillas=True), \
-                        [*second_half, q_target, *q[:len(second_half) - 2]], [])
-
+            for instr, qargs, cargs in self._recurse(q[:-1], q_ancilla=q[-1]):
+                qc._append(instr, qargs, cargs)
             self.definition = qc
 
     def _recurse(self, q, q_ancilla=None):
