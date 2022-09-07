@@ -98,9 +98,7 @@ def instruction_duration_validation(duration: int):
         )
 
 
-@deprecate_function(
-    "Use the standard qiskit.utils.deprecate_function with the non-alternative message"
-)
+@deprecate_function("Deprecated since Terra 0.22.0. Use 'qiskit.utils.deprecate_function' instead.")
 def deprecated_functionality(func):
     """A decorator that raises deprecation warning without showing alternative method."""
     return deprecate_function(
