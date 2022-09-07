@@ -1,13 +1,11 @@
 ---
 features:
   - |
-    Added options for quantum phase estimation algorithms
-    (:class:`~qiskit.algorithms.IterativePhaseEstimation`,
+    Added :class:`~qiskit.primitives.BaseSampler` as ``init`` parameter
+    for the following phase estimation algorithms:
+    :class:`~qiskit.algorithms.IterativePhaseEstimation`,
     :class:`~qiskit.algorithms.PhaseEstimation`,
-    :class:`~qiskit.algorithms.HamiltonianPhaseEstimation`) to use
-    :class:`~qiskit.primitives.BaseSampler` primitive. See the example below.
-    Using :class:`~qiskit.utils.QuantumInstance` or :class:`~qiskit.providers.Backend` will now
-    issue a ``DeprecationWarning``.
+    :class:`~qiskit.algorithms.HamiltonianPhaseEstimation`.
 
     .. code-block:: python
 
@@ -29,3 +27,11 @@ features:
           evolution=MatrixEvolution(),
           bound=1.05,
       )
+deprecations:
+  - |
+    Using :class:`~qiskit.utils.QuantumInstance` or :class:`~qiskit.providers.Backend` as
+    ``init`` parameters will now issue a ``PendingDeprecationWarning``
+    for the following phase estimation algorithms:
+    :class:`~qiskit.algorithms.IterativePhaseEstimation`,
+    :class:`~qiskit.algorithms.PhaseEstimation`,
+    :class:`~qiskit.algorithms.HamiltonianPhaseEstimation`
