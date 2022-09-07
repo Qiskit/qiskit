@@ -32,7 +32,7 @@ class EvolutionProblem:
         self,
         hamiltonian: BaseOperator | PauliSumOp,
         time: float,
-        initial_state: QuantumCircuit | None = None,
+        initial_state: QuantumCircuit | Statevector | None = None,
         aux_operators: ListOrDict[BaseOperator | PauliSumOp] | None = None,
         truncation_threshold: float = 1e-12,
         t_param: Parameter | None = None,
@@ -63,6 +63,10 @@ class EvolutionProblem:
         self.param_value_dict = param_value_dict
         self.hamiltonian = hamiltonian
         self.time = time
+        if isinstance(initial_state, Statevector):
+            circuit = QuantumCircuit(initial_state.num_qubits)
+            circuit.prepare_state(initial_state.data)
+            initial_state = circuit
         self.initial_state = initial_state
         self.aux_operators = aux_operators
         self.truncation_threshold = truncation_threshold

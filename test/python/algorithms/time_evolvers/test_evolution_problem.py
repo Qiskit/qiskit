@@ -12,12 +12,12 @@
 
 """Test evolver problem class."""
 import unittest
-
 from test.python.algorithms import QiskitAlgorithmsTestCase
 from ddt import data, ddt, unpack
 from numpy.testing import assert_raises
+from qiskit import QuantumCircuit
 from qiskit.algorithms.time_evolvers.evolution_problem import EvolutionProblem
-from qiskit.quantum_info import Pauli, SparsePauliOp
+from qiskit.quantum_info import Pauli, SparsePauliOp, Statevector
 from qiskit.circuit import Parameter
 from qiskit.opflow import Y, Z, One, X, Zero, PauliSumOp
 
@@ -48,12 +48,12 @@ class TestEvolutionProblem(QiskitAlgorithmsTestCase):
         self.assertEqual(evo_problem.t_param, expected_t_param)
         self.assertEqual(evo_problem.param_value_dict, expected_param_value_dict)
 
-    def test_init_all(self):
+    @data(QuantumCircuit(1), Statevector([1, 0]))
+    def test_init_all(self, initial_state):
         """Tests that all fields are initialized correctly."""
         t_parameter = Parameter("t")
         hamiltonian = t_parameter * Z + Y
         time = 2
-        initial_state = One
         aux_operators = [X, Y]
         param_value_dict = {t_parameter: 3.2}
 
@@ -68,14 +68,14 @@ class TestEvolutionProblem(QiskitAlgorithmsTestCase):
 
         expected_hamiltonian = Y + t_parameter * Z
         expected_time = 2
-        expected_initial_state = One
+        expected_type = QuantumCircuit
         expected_aux_operators = [X, Y]
         expected_t_param = t_parameter
         expected_param_value_dict = {t_parameter: 3.2}
 
         self.assertEqual(evo_problem.hamiltonian, expected_hamiltonian)
         self.assertEqual(evo_problem.time, expected_time)
-        self.assertEqual(evo_problem.initial_state, expected_initial_state)
+        self.assertEqual(type(evo_problem.initial_state), expected_type)
         self.assertEqual(evo_problem.aux_operators, expected_aux_operators)
         self.assertEqual(evo_problem.t_param, expected_t_param)
         self.assertEqual(evo_problem.param_value_dict, expected_param_value_dict)
