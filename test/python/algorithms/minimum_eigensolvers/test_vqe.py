@@ -37,13 +37,13 @@ from qiskit.algorithms.optimizers import (
     TNC,
 )
 from qiskit.algorithms.state_fidelities import ComputeUncompute
-from qiskit.circuit.library import EfficientSU2, RealAmplitudes, TwoLocal
+from qiskit.circuit.library import RealAmplitudes, TwoLocal
 from qiskit.opflow import PauliSumOp, TwoQubitReduction
 from qiskit.quantum_info import SparsePauliOp, Operator, Pauli
 from qiskit.primitives import Estimator, Sampler
 from qiskit.utils import algorithm_globals
 
-
+# pylint: disable=invalid-name
 def _mock_optimizer(fun, x0, jac=None, bounds=None, inputs=None) -> OptimizerResult:
     """A mock of a callable that can be used as minimizer in the VQE."""
     result = OptimizerResult()
@@ -228,7 +228,6 @@ class TestVQE(QiskitAlgorithmsTestCase):
     def test_reuse(self):
         """Test re-using a VQE algorithm instance."""
         ansatz = TwoLocal(rotation_blocks=["ry", "rz"], entanglement_blocks="cz")
-        optimizer = SLSQP()
         vqe = VQE(Estimator(), ansatz, SLSQP())
         with self.subTest(msg="assert VQE works once all info is available"):
             result = vqe.compute_minimum_eigenvalue(operator=self.h2_op)
