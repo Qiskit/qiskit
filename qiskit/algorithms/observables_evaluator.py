@@ -66,6 +66,8 @@ def eval_observables(
         observables_list = list(observables.values())
     else:
         observables_list = observables
+
+    observables_list = _handle_zero_ops(observables_list)
     quantum_state = [quantum_state] * len(observables)
     try:
         estimator_job = estimator.run(quantum_state, observables_list)
@@ -82,6 +84,18 @@ def eval_observables(
 
     # Return None eigenvalues for None operators if observables is a list.
     return _prepare_result(observables_results, observables)
+
+
+def _handle_zero_ops(
+    observables_list: list[BaseOperator | PauliSumOp],
+) -> list[BaseOperator | PauliSumOp]:
+    """Replaces all occurrence of operators equal to 0 in the list with an equivalent ``PauliSumOp``
+    operator."""
+    zero_op = PauliSumOp.from_list([("I" * observables_list[0].num_qubits, 0)])
+    for ind, observable in enumerate(observables_list):
+        if observable == 0:
+            observables_list[ind] = zero_op
+    return observables_list
 
 
 def _prepare_result(

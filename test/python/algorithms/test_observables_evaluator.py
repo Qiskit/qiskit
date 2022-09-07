@@ -27,6 +27,8 @@ from qiskit import QuantumCircuit
 from qiskit.circuit.library import EfficientSU2
 from qiskit.opflow import (
     PauliSumOp,
+    X,
+    Y,
 )
 from qiskit.utils import algorithm_globals
 
@@ -118,6 +120,22 @@ class TestObservablesEvaluator(QiskitAlgorithmsTestCase):
             observables,
             estimator,
         )
+
+    def test_eval_observables_zero_op(self):
+        """Tests if a zero operator is handled correctly."""
+        ansatz = EfficientSU2(2)
+        parameters = np.array(
+            [1.2, 4.2, 1.4, 2.0, 1.2, 4.2, 1.4, 2.0, 1.2, 4.2, 1.4, 2.0, 1.2, 4.2, 1.4, 2.0],
+            dtype=float,
+        )
+
+        bound_ansatz = ansatz.bind_parameters(parameters)
+        state = bound_ansatz
+        estimator = Estimator()
+        observables = [(X ^ X) + (Y ^ Y), 0]
+        result = eval_observables(estimator, state, observables, self.threshold)
+        expected_result = [(0.015607318055509564, 0), (0.0, 0)]
+        np.testing.assert_array_almost_equal(result, expected_result)
 
 
 if __name__ == "__main__":
