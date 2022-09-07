@@ -38,6 +38,7 @@ from ..exceptions import AlgorithmError
 
 logger = logging.getLogger(__name__)
 
+
 class VQD(VariationalAlgorithm, Eigensolver):
     r"""The Variational Quantum Deflation algorithm. Implementation using primitives.
 
@@ -206,7 +207,6 @@ class VQD(VariationalAlgorithm, Eigensolver):
     @classmethod
     def supports_aux_operators(cls) -> bool:
         return True
-
 
     def _eval_observables(
         self,
