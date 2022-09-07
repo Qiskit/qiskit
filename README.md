@@ -67,7 +67,7 @@ In order to do so, you need to configure Qiskit with credentials for using a qua
    >>> IBMQ.save_account('MY_API_TOKEN')
     ```
 
-After calling `IBMQ.save_account()`, your credentials will be stored on disk.
+After calling `IBMQ.save_account()`, your credentials will be stored locally, in a file.
 Once they are stored, at any point in the future you can load and use them
 in your program simply via:
 
