@@ -232,11 +232,11 @@ class VQE(VariationalAlgorithm, MinimumEigensolver):
             batchsize = len(parameters)
 
             job = self.estimator.run(batchsize * [ansatz], batchsize * [operator], parameters)
-            energy = job.result().values[0]
+            values = job.result().values
             iter_count += 1
             if self.callback is not None:
-                self.callback(iter_count, parameters, energy, 0.0)
-            return energy
+                self.callback(iter_count, parameters, values[0], 0.0)
+            return values[0] if len(values) == 1 else values
 
         return eval_energy
 
