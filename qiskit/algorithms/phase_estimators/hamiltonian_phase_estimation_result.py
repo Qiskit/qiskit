@@ -13,7 +13,7 @@
 """Result from running HamiltonianPhaseEstimation"""
 
 from __future__ import annotations
-from typing import cast
+from typing import cast, Mapping
 from qiskit.algorithms.algorithm_result import AlgorithmResult
 from .phase_estimation_result import PhaseEstimationResult
 from .phase_estimation_scale import PhaseEstimationScale
@@ -53,7 +53,7 @@ class HamiltonianPhaseEstimationResult(AlgorithmResult):
 
     def filter_phases(
         self, cutoff: float = 0.0, scaled: bool = True, as_float: bool = True
-    ) -> dict[str | float, float]:
+    ) -> Mapping[str | float, float]:
         """Filter phases as does `PhaseEstimatorResult.filter_phases`, with
         the addition that `phi` is shifted and translated to return eigenvalues
         of the Hamiltonian.

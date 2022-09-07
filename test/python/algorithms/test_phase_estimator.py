@@ -13,10 +13,9 @@
 """Test phase estimation"""
 
 import unittest
-
+from test.python.algorithms import QiskitAlgorithmsTestCase
 from ddt import ddt, data, unpack
 import numpy as np
-from test.python.algorithms import QiskitAlgorithmsTestCase
 from qiskit.synthesis import MatrixExponential, SuzukiTrotter
 from qiskit.primitives import Sampler
 from qiskit.algorithms.phase_estimators import (
@@ -115,9 +114,6 @@ class TestHamiltonianPhaseEstimation(QiskitAlgorithmsTestCase):
         evo = PauliTrotterEvolution(trotter_mode="suzuki", reps=4)
 
         result = self.hamiltonian_pe(hamiltonian, state_preparation, evolution=evo)
-        phase_dict = result.filter_phases(0.1)
-        phases = list(phase_dict.keys())
-        print(phases)
         with self.subTest("Most likely eigenvalues"):
             self.assertAlmostEqual(result.most_likely_eigenvalue, -1.855, delta=0.001)
         with self.subTest("Most likely phase"):
@@ -125,7 +121,6 @@ class TestHamiltonianPhaseEstimation(QiskitAlgorithmsTestCase):
         with self.subTest("All eigenvalues"):
             phase_dict = result.filter_phases(0.1)
             phases = list(phase_dict.keys())
-            print(phases)
             self.assertAlmostEqual(phases[0], -0.8979, delta=0.001)
             self.assertAlmostEqual(phases[1], -1.8551, delta=0.001)
             self.assertAlmostEqual(phases[2], -1.2376, delta=0.001)
@@ -135,7 +130,6 @@ class TestHamiltonianPhaseEstimation(QiskitAlgorithmsTestCase):
         hamiltonian = (0.5 * X) + (0.6 * Y) + (0.7 * I)
         state_preparation = None
         result = self.hamiltonian_pe(hamiltonian, state_preparation, evolution=MatrixEvolution())
-        print(result)
         phase_dict = result.filter_phases(0.2, as_float=True)
         phases = list(phase_dict.keys())
         self.assertAlmostEqual(phases[0], 1.490, delta=0.001)
@@ -225,7 +219,6 @@ class TestHamiltonianPhaseEstimation(QiskitAlgorithmsTestCase):
     def test_pauli_sum_2_sampler(self, evolution):
         """Two eigenvalues from Pauli sum with X, Y, Z"""
         hamiltonian = 0.5 * X + Y + Z
-        print(type(hamiltonian))
         state_preparation = None
 
         result = self.hamiltonian_pe_sampler(hamiltonian, state_preparation, evolution=evolution)
@@ -266,9 +259,6 @@ class TestHamiltonianPhaseEstimation(QiskitAlgorithmsTestCase):
         state_preparation = StateFn((I ^ H).to_circuit())
         evo = SuzukiTrotter(reps=4)
         result = self.hamiltonian_pe_sampler(hamiltonian, state_preparation, evolution=evo)
-        phase_dict = result.filter_phases(0.1)
-        phases = list(phase_dict.keys())
-        print(phases)
         with self.subTest("Most likely eigenvalues"):
             self.assertAlmostEqual(result.most_likely_eigenvalue, -1.855, delta=0.001)
         with self.subTest("Most likely phase"):
@@ -287,7 +277,6 @@ class TestHamiltonianPhaseEstimation(QiskitAlgorithmsTestCase):
         result = self.hamiltonian_pe_sampler(
             hamiltonian, state_preparation, evolution=MatrixExponential()
         )
-        print(result)
         phase_dict = result.filter_phases(0.2, as_float=True)
         phases = sorted(list(phase_dict.keys()))
         self.assertAlmostEqual(phases[0], -0.090, delta=0.001)
