@@ -54,12 +54,17 @@ class QuasiDistribution(dict):
         if data:
             first_key = next(iter(data.keys()))
             if isinstance(first_key, int):
+                # `self._num_bits` is not always the exact number of qubits measured,
+                # but the number of bits to represent the largest key.
                 self._num_bits = len(bin(max(data.keys()))) - 2
             elif isinstance(first_key, str):
                 if first_key.startswith("0x") or first_key.startswith("0b"):
                     data = {int(key, 0): value for key, value in data.items()}
+                    # `self._num_bits` is not always the exact number of qubits measured,
+                    # but the number of bits to represent the largest key.
                     self._num_bits = len(bin(max(data.keys()))) - 2
                 elif self._bitstring_regex.search(first_key):
+                    # `self._num_bits` is the exact number of qubits measured.
                     self._num_bits = max(len(key) for key in data)
                     data = {int(key, 2): value for key, value in data.items()}
                 else:
@@ -110,14 +115,17 @@ class QuasiDistribution(dict):
 
         Parameters:
             num_bits (int): number of bits in the binary bitstrings (leading
-                zeros will be padded). If None, the length will be derived
-                from the largest key present.
+                zeros will be padded). If None, a default value will be used.
+                If keys are given as integers or strings with binary or hex prefix,
+                the default value will be derived from the largest key present.
+                If keys are given as bitstrings without prefix,
+                the default value will be derived from the largest key length.
 
         Returns:
             dict: A dictionary where the keys are binary strings in the format
                 ``"0110"``
         """
-        n = num_bits or self._num_bits
+        n = self._num_bits if num_bits is None else num_bits
         return {format(key, "b").zfill(n): value for key, value in self.items()}
 
     def hex_probabilities(self):
