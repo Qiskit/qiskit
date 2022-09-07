@@ -13,7 +13,10 @@
 """Scaling for Hamiltonian and eigenvalues to avoid phase wrapping"""
 from __future__ import annotations
 import numpy
+import numpy as np
+
 from qiskit.opflow import SummedOp, PauliSumOp
+from qiskit.quantum_info import SparsePauliOp, Operator
 from qiskit.quantum_info.operators.base_operator import BaseOperator
 
 
@@ -113,7 +116,7 @@ class PhaseEstimationScale:
         return phases
 
     @classmethod
-    def from_pauli_sum(cls, pauli_sum: SummedOp) -> "PhaseEstimationScale" | float:
+    def from_pauli_sum(cls, pauli_sum: SummedOp | PauliSumOp | SparsePauliOp | Operator) -> "PhaseEstimationScale" | float:
         """Create a PhaseEstimationScale from a `SummedOp` representing a sum of Pauli Operators.
 
         It is assumed that the ``pauli_sum`` is the sum of ``PauliOp`` objects. The bound on
@@ -130,11 +133,16 @@ class PhaseEstimationScale:
         Returns:
             A ``PhaseEstimationScale`` object
         """
-        # TODO how to support BaseOperator?
-        if isinstance(pauli_sum, PauliSumOp):
+        if isinstance(pauli_sum, (PauliSumOp, SparsePauliOp)):
             bound = abs(pauli_sum.coeff) * sum(abs(pauli_sum.coeffs))
             return PhaseEstimationScale(bound)
-
+        elif isinstance(pauli_sum, Operator):
+            bound = np.sum(np.abs(np.eigvalsh(pauli_sum)))
+            return PhaseEstimationScale(bound)
+        elif isinstance(pauli_sum, BaseOperator):
+            raise ValueError(
+                f"For the operator of type {type(pauli_sum)} the bound needs to be provided in the algorithm."
+            )
         else:
             if pauli_sum.primitive_strings() != {"Pauli"}:
                 raise ValueError(
