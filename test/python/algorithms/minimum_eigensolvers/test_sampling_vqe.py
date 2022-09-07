@@ -173,7 +173,8 @@ class TestSamplerVQE(QiskitAlgorithmsTestCase):
     def test_optimizer_scipy_callable(self):
         """Test passing a SciPy optimizer directly as callable."""
         vqe = SamplingVQE(
-            optimizer=partial(scipy_minimize, method="POWELL", options={"maxfev": 2}),
+            optimizer=partial(scipy_minimize, method="COBYLA", options={"maxiter": 2}),
+            # optimizer=partial(scipy_minimize, method="POWELL", options={"maxfev": 2}),
             sampler=Sampler(),
         )
         result = vqe.compute_minimum_eigenvalue(Pauli("Z"))
