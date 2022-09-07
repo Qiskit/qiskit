@@ -19,8 +19,8 @@ from __future__ import annotations
 from typing import Optional, List, Callable
 import logging
 from time import time
-import numpy as np
 from warnings import warn
+import numpy as np
 
 from qiskit.circuit import QuantumCircuit
 from qiskit.circuit.library import RealAmplitudes
@@ -89,7 +89,7 @@ class VQD(VariationalAlgorithm, Eigensolver):
         betas: list[float] | None = None,
         optimizer: Optimizer | Minimizer | None = None,
         initial_point: np.ndarray | None = None,
-        gradient: Callable = None,
+        gradient: Callable | None = None,
         callback: Callable[[int, np.ndarray, float, float], None] | None = None,
     ) -> None:
         """

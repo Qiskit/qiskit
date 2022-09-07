@@ -78,8 +78,8 @@ class TestVQD(QiskitAlgorithmsTestCase):
         self.estimator_shots = Estimator(run_options={"shots": 2048, "seed": 50})
         self.fidelity = ComputeUncompute(Sampler())
 
-    def test_basic_aer_statevector(self):
-        """Test the VQD on BasicAer's statevector simulator."""
+    def test_basic_statevector(self):
+        """Test the VQD on statevector simulator."""
         wavefunction = self.ryrz_wavefunction
         vqd = VQD(
             estimator=self.estimator,
@@ -162,7 +162,6 @@ class TestVQD(QiskitAlgorithmsTestCase):
             self.assertTrue(all(isinstance(param, float) for param in params))
 
         ref_eval_count = [1, 2, 3, 1, 2, 3]
-        # ref_mean = [-1.063, -1.457, -1.360, 37.340, 48.543, 28.586] # new reference for qasm simulator
         ref_mean = [
             -1.07,
             -1.45,
@@ -170,7 +169,8 @@ class TestVQD(QiskitAlgorithmsTestCase):
             37.43,
             48.55,
             28.94,
-        ]  # new reference for statevector simulator
+        ]  # new reference for statevector simulator. The old unit test was on qasm.
+
         ref_std = [0.011, 0.010, 0.014, 0.011, 0.010, 0.015]
         ref_step = [1, 1, 1, 2, 2, 2]
 
@@ -178,30 +178,6 @@ class TestVQD(QiskitAlgorithmsTestCase):
         np.testing.assert_array_almost_equal(history["mean"], ref_mean, decimal=2)
         np.testing.assert_array_almost_equal(history["std"], ref_std, decimal=2)
         np.testing.assert_array_almost_equal(history["step"], ref_step, decimal=0)
-
-    # def test_reuse(self):
-    #     """Test re-using a VQD algorithm instance."""
-    #     vqd = VQD(estimator=self.estimator, fidelity=self.fidelity,k=1)
-    #     with self.subTest(msg="assert running empty raises AlgorithmError"):
-    #         with self.assertRaises(AlgorithmError):
-    #             _ = vqd.compute_eigenvalues(operator=self.h2_op)
-    #
-    #     ansatz = TwoLocal(rotation_blocks=["ry", "rz"], entanglement_blocks="cz")
-    #     vqd.ansatz = ansatz
-    #     with self.subTest(msg="assert missing operator raises AlgorithmError"):
-    #         with self.assertRaises(AlgorithmError):
-    #             _ = vqd.compute_eigenvalues(operator=self.h2_op)
-    #
-    #     vqd.expectation = MatrixExpectation()
-    #     with self.subTest(msg="assert VQE works once all info is available"):
-    #         result = vqd.compute_eigenvalues(operator=self.h2_op)
-    #         np.testing.assert_array_almost_equal(result.eigenvalues.real, self.h2_energy, decimal=2)
-    #
-    #     operator = PrimitiveOp(np.array([[1, 0, 0, 0], [0, -1, 0, 0], [0, 0, 2, 0], [0, 0, 0, 3]]))
-    #
-    #     with self.subTest(msg="assert minimum eigensolver interface works"):
-    #         result = vqd.compute_eigenvalues(operator=operator)
-    #         self.assertAlmostEqual(result.eigenvalues.real[0], -1.0, places=5)
 
     def test_vqd_optimizer(self):
         """Test running same VQD twice to re-use optimizer, then switch optimizer"""
@@ -226,28 +202,6 @@ class TestVQD(QiskitAlgorithmsTestCase):
         with self.subTest("Optimizer replace"):
             vqd.optimizer = L_BFGS_B()
             run_check()
-
-    # def test_set_ansatz_to_none(self):
-    #     """Tests that setting the ansatz to None results in the default behavior"""
-    #     vqd = VQD(
-    #         estimator=self.estimator, fidelity=self.fidelity,
-    #         k=1,
-    #         ansatz=self.ryrz_wavefunction,
-    #         optimizer=L_BFGS_B(),
-    #     )
-    #     vqd.ansatz = None
-    #     self.assertIsInstance(vqd.ansatz, RealAmplitudes)
-    #
-    # def test_set_optimizer_to_none(self):
-    #     """Tests that setting the optimizer to None results in the default behavior"""
-    #     vqd = VQD(
-    #         estimator=self.estimator, fidelity=self.fidelity,
-    #         k=1,
-    #         ansatz=self.ryrz_wavefunction,
-    #         optimizer=L_BFGS_B(),
-    #     )
-    #     vqd.optimizer = None
-    #     self.assertIsInstance(vqd.optimizer, SLSQP)
 
     def test_aux_operators_list(self):
         """Test list-based aux_operators."""
