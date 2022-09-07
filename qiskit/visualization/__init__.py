@@ -18,14 +18,8 @@ Visualizations (:mod:`qiskit.visualization`)
 .. currentmodule:: qiskit.visualization
 
 
-Overview
-========
-
 The visualization module contain functions that visualizes measurement outcome counts, quantum
 states, circuits, pulses, devices and more.
-
-Prerequisites
-=============
 
 To use visualization functions, you are required to install visualization optionals to your
 development environment:
