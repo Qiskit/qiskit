@@ -1,0 +1,4 @@
+---
+upgrade:
+  - |
+   The functions `qiskit.pulse.builder.inline` and `qiskit.pulse.builder.pad` are deprecated since  0.18.0 (July 2021) and are being now removed.
