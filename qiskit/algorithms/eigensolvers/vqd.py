@@ -20,6 +20,7 @@ from typing import Optional, List, Callable
 import logging
 from time import time
 import numpy as np
+from warnings import warn
 
 from qiskit.circuit import QuantumCircuit
 from qiskit.circuit.library import RealAmplitudes
@@ -28,7 +29,6 @@ from qiskit.quantum_info.operators.base_operator import BaseOperator
 from qiskit.opflow import PauliSumOp
 from qiskit.primitives import BaseEstimator
 from qiskit.algorithms.state_fidelities import BaseStateFidelity
-from qiskit.utils.validation import validate_min
 from ..list_or_dict import ListOrDict
 from ..optimizers import Optimizer, SLSQP, Minimizer
 from ..variational_algorithm import VariationalAlgorithm, VariationalResult
@@ -82,19 +82,21 @@ class VQD(VariationalAlgorithm, Eigensolver):
 
     def __init__(
         self,
+        estimator: BaseEstimator,
+        fidelity: BaseStateFidelity,
         ansatz: QuantumCircuit | None = None,
         k: int = 2,
         betas: list[float] | None = None,
         optimizer: Optimizer | Minimizer | None = None,
-        initial_point: np.ndarray| None = None,
-        estimator: BaseEstimator | None = None,
-        fidelity: BaseStateFidelity | None = None,
-        max_evals_grouped: int = 1,
+        initial_point: np.ndarray | None = None,
+        gradient: Callable = None,
         callback: Callable[[int, np.ndarray, float, float], None] | None = None,
     ) -> None:
         """
 
         Args:
+            estimator: The estimator primitive.
+            fidelity: The fidelity class using primitives.
             ansatz: A parameterized circuit used as ansatz for the wave function.
             k: the number of eigenvalues to return. Returns the lowest k eigenvalues.
             betas: beta parameters in the VQD paper.
@@ -107,15 +109,12 @@ class VQD(VariationalAlgorithm, Eigensolver):
             initial_point: An optional initial point (i.e. initial parameter values)
                 for the optimizer. If ``None`` then VQD will look to the ansatz for a preferred
                 point and if not will simply compute a random one.
-            estimator: The estimator primitive.
-            fidelity: The fidelity class using primitives.
+            gradient: An optional fidelity gradient using primitives.
             callback: a callback that can access the intermediate data during the optimization.
                 Four parameter values are passed to the callback as follows during each evaluation
                 by the optimizer for its current set of parameters as it works towards the minimum.
                 These are: the evaluation count, the optimizer parameters for the ansatz, the
                 evaluated mean, the evaluated standard deviation, and the current step.
-            quantum_instance: Quantum Instance or Backend
-
         """
         super().__init__()
 
@@ -125,7 +124,6 @@ class VQD(VariationalAlgorithm, Eigensolver):
         self.betas = betas
         self.callback = callback
 
-        # TODO: property?
         if ansatz is None:
             ansatz = RealAmplitudes()
         self.ansatz = ansatz
@@ -133,6 +131,12 @@ class VQD(VariationalAlgorithm, Eigensolver):
         if optimizer is None:
             optimizer = SLSQP()
         self.optimizer = optimizer
+
+        if gradient is not None:
+            warn(
+                "The current VQD implementation does not offer gradient support."
+                "Continuing without gradients."
+            )
 
         # this has to go via getters and setters due to the VariationalAlgorithm interface
         self._initial_point = initial_point
@@ -208,7 +212,7 @@ class VQD(VariationalAlgorithm, Eigensolver):
     def compute_eigenvalues(
         self,
         operator: BaseOperator | PauliSumOp,
-        aux_operators: ListOrDict[BaseOperator | PauliSumOp] | None = None
+        aux_operators: ListOrDict[BaseOperator | PauliSumOp] | None = None,
     ) -> EigensolverResult:
         super().compute_eigenvalues(operator, aux_operators)
 
@@ -294,9 +298,7 @@ class VQD(VariationalAlgorithm, Eigensolver):
             if aux_operators is not None:
                 bound_ansatz = self.ansatz.bind_parameters(result.optimal_point[-1])
                 # replace this by the new eval_observables
-                aux_value = eval_observables(
-                    self.estimator, bound_ansatz, aux_operators
-                )
+                aux_value = eval_observables(self.estimator, bound_ansatz, aux_operators)
                 aux_values.append(aux_value)
 
             if step == 1:
@@ -376,16 +378,19 @@ class VQD(VariationalAlgorithm, Eigensolver):
             prev_circs.append(self.ansatz.bind_parameters(prev_states[state]))
 
         def energy_evaluation(parameters):
-            estimator_job = self.estimator.run(circuits=[self.ansatz],
-                                               observables=[operator],
-                                               parameter_values=[parameters]
-                                               )
+            estimator_job = self.estimator.run(
+                circuits=[self.ansatz], observables=[operator], parameter_values=[parameters]
+            )
             estimator_result = estimator_job.result()
             means = np.real(estimator_result.values)
 
             if step > 1:
-                fidelity_job = self.fidelity.run([self.ansatz] * len(prev_circs), prev_circs,
-                                                 [parameters] * len(prev_circs), [prev_states[:-1]])
+                fidelity_job = self.fidelity.run(
+                    [self.ansatz] * len(prev_circs),
+                    prev_circs,
+                    [parameters] * len(prev_circs),
+                    [prev_states[:-1]],
+                )
                 costs = fidelity_job.result().fidelities
 
                 for (state, cost) in zip(range(step - 1), costs):

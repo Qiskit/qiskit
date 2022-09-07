@@ -75,7 +75,7 @@ class TestVQD(QiskitAlgorithmsTestCase):
         self.ry_wavefunction = TwoLocal(rotation_blocks="ry", entanglement_blocks="cz")
 
         self.estimator = Estimator()
-        self.estimator_shots = Estimator(run_options={"shots":2048, "seed":50})
+        self.estimator_shots = Estimator(run_options={"shots": 2048, "seed": 50})
         self.fidelity = ComputeUncompute(Sampler())
 
     def test_basic_aer_statevector(self):
@@ -84,7 +84,6 @@ class TestVQD(QiskitAlgorithmsTestCase):
         vqd = VQD(
             estimator=self.estimator,
             fidelity=self.fidelity,
-            k=2,
             ansatz=wavefunction,
             optimizer=COBYLA(),
         )
@@ -110,7 +109,8 @@ class TestVQD(QiskitAlgorithmsTestCase):
         wavefunction = QuantumCircuit(1)
         optimizer = SLSQP(maxiter=50)
         vqd = VQD(
-            estimator=self.estimator, fidelity=self.fidelity,
+            estimator=self.estimator,
+            fidelity=self.fidelity,
             k=1,
             ansatz=wavefunction,
             optimizer=optimizer,
@@ -121,12 +121,14 @@ class TestVQD(QiskitAlgorithmsTestCase):
     def test_missing_varform_params(self):
         """Test specifying a variational form with no parameters raises an error."""
         circuit = QuantumCircuit(self.h2_op.num_qubits)
-        vqd = VQD(estimator=self.estimator, fidelity=self.fidelity,
-            k=1, ansatz=circuit,
+        vqd = VQD(
+            estimator=self.estimator,
+            fidelity=self.fidelity,
+            k=1,
+            ansatz=circuit,
         )
         with self.assertRaises(RuntimeError):
             vqd.compute_eigenvalues(operator=self.h2_op)
-
 
     def test_callback(self):
         """Test the callback on VQD."""
@@ -143,10 +145,12 @@ class TestVQD(QiskitAlgorithmsTestCase):
         wavefunction = self.ry_wavefunction
 
         vqd = VQD(
-            estimator=self.estimator_shots, fidelity=self.fidelity,
+            estimator=self.estimator_shots,
+            fidelity=self.fidelity,
             ansatz=wavefunction,
             optimizer=optimizer,
-            callback=store_intermediate_result)
+            callback=store_intermediate_result,
+        )
 
         vqd.compute_eigenvalues(operator=self.h2_op)
 
@@ -159,7 +163,14 @@ class TestVQD(QiskitAlgorithmsTestCase):
 
         ref_eval_count = [1, 2, 3, 1, 2, 3]
         # ref_mean = [-1.063, -1.457, -1.360, 37.340, 48.543, 28.586] # new reference for qasm simulator
-        ref_mean = [-1.07, -1.45, -1.37, 37.43, 48.55, 28.94] # new reference for statevector simulator
+        ref_mean = [
+            -1.07,
+            -1.45,
+            -1.37,
+            37.43,
+            48.55,
+            28.94,
+        ]  # new reference for statevector simulator
         ref_std = [0.011, 0.010, 0.014, 0.011, 0.010, 0.015]
         ref_step = [1, 1, 1, 2, 2, 2]
 
@@ -195,7 +206,8 @@ class TestVQD(QiskitAlgorithmsTestCase):
     def test_vqd_optimizer(self):
         """Test running same VQD twice to re-use optimizer, then switch optimizer"""
         vqd = VQD(
-            estimator=self.estimator, fidelity=self.fidelity,
+            estimator=self.estimator,
+            fidelity=self.fidelity,
             k=2,
             optimizer=SLSQP(),
         )
@@ -214,7 +226,6 @@ class TestVQD(QiskitAlgorithmsTestCase):
         with self.subTest("Optimizer replace"):
             vqd.optimizer = L_BFGS_B()
             run_check()
-
 
     # def test_set_ansatz_to_none(self):
     #     """Tests that setting the ansatz to None results in the default behavior"""
@@ -241,7 +252,12 @@ class TestVQD(QiskitAlgorithmsTestCase):
     def test_aux_operators_list(self):
         """Test list-based aux_operators."""
         wavefunction = self.ry_wavefunction
-        vqd = VQD(estimator=self.estimator, fidelity=self.fidelity, k=2, ansatz=wavefunction,)
+        vqd = VQD(
+            estimator=self.estimator,
+            fidelity=self.fidelity,
+            k=2,
+            ansatz=wavefunction,
+        )
 
         # Start with an empty list
         result = vqd.compute_eigenvalues(self.h2_op, aux_operators=[])
@@ -286,7 +302,11 @@ class TestVQD(QiskitAlgorithmsTestCase):
     def test_aux_operators_dict(self):
         """Test dictionary compatibility of aux_operators"""
         wavefunction = self.ry_wavefunction
-        vqd = VQD(estimator=self.estimator, fidelity=self.fidelity, ansatz=wavefunction, )
+        vqd = VQD(
+            estimator=self.estimator,
+            fidelity=self.fidelity,
+            ansatz=wavefunction,
+        )
 
         # Start with an empty dictionary
         result = vqd.compute_eigenvalues(self.h2_op, aux_operators={})
@@ -336,7 +356,8 @@ class TestVQD(QiskitAlgorithmsTestCase):
         """Test non-zero standard deviations of aux operators with PauliExpectation."""
         wavefunction = self.ry_wavefunction
         vqd = VQD(
-            estimator=self.estimator, fidelity=self.fidelity,
+            estimator=self.estimator,
+            fidelity=self.fidelity,
             ansatz=wavefunction,
             initial_point=[
                 1.70256666,
@@ -392,7 +413,7 @@ class TestVQD(QiskitAlgorithmsTestCase):
         """Test non-zero standard deviations of aux operators with AerPauliExpectation."""
         wavefunction = self.ry_wavefunction
         vqd = VQD(
-            estimator = self.estimator,
+            estimator=self.estimator,
             fidelity=self.fidelity,
             ansatz=wavefunction,
             optimizer=COBYLA(maxiter=0),
