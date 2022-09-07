@@ -73,7 +73,7 @@ Here is an example of using :func:`plot_histogram` to visualize measurement outc
 
 .. jupyter-execute::
 
-   from qiskit.tools.visualization import plot_histogram
+   from qiskit.visualization import plot_histogram
 
    counts = {"00": 501, "11": 499}
    plot_histogram(counts)
@@ -88,7 +88,7 @@ Here is an example of using :func:`plot_state_city` to visualize a quantum state
 
 .. jupyter-execute::
 
-   from qiskit.tools.visualization import plot_state_city
+   from qiskit.visualization import plot_state_city
 
    state = [[ 0.75  , 0.433j],
             [-0.433j, 0.25  ]]
@@ -140,7 +140,7 @@ The figures created by counts and state visualizations functions are mostly gene
 
 .. jupyter-execute::
 
-   from qiskit.tools.visualization import plot_histogram
+   from qiskit.visualization import plot_histogram
 
    counts1 = {'00': 525, '11': 499}
    counts2 = {'00': 511, '11': 514}
@@ -235,7 +235,7 @@ Single Qubit State Transition Visualizations
 
    visualize_transition
 
-Array/Matrix Visualizations
+Array/Matrix Visualizations21
 ===========================
 
 .. autosummary::
