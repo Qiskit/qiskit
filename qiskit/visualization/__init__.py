@@ -84,9 +84,6 @@ Counts Visualizations
 
 This section contains functions that visualize measurement outcome counts.
 
-APIs
-----
-
 .. autosummary::
    :toctree: ../stubs/
 
@@ -113,8 +110,6 @@ State Visualizations
 
 This section contains functions that visualize quantum states.
 
-APIs
-----
 .. autosummary::
    :toctree: ../stubs/
 
