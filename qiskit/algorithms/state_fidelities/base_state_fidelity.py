@@ -70,6 +70,7 @@ class BaseStateFidelity(ABC):
 
         if isinstance(circuits, QuantumCircuit):
             circuits = [circuits]
+
         if values is None:
             for circuit in circuits:
                 if circuit.num_parameters != 0:
