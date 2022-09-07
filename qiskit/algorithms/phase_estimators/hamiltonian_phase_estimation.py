@@ -27,6 +27,7 @@ from qiskit.opflow import (
     OperatorBase,
     EvolutionBase,
     PauliTrotterEvolution,
+    I,
 )
 from qiskit.providers import Backend
 from .phase_estimation import PhaseEstimation
@@ -34,6 +35,7 @@ from .hamiltonian_phase_estimation_result import HamiltonianPhaseEstimationResul
 from .phase_estimation_scale import PhaseEstimationScale
 from ...circuit.library import PauliEvolutionGate
 from ...primitives import BaseSampler
+from ...quantum_info import SparsePauliOp
 from ...quantum_info.operators.base_operator import BaseOperator
 from ...synthesis import EvolutionSynthesis
 
@@ -135,31 +137,33 @@ class HamiltonianPhaseEstimation:
         """
 
         if self._phase_estimation._sampler is not None:
-            # TODO pe_scale here is wrong type
+
             evo = PauliEvolutionGate(hamiltonian, pe_scale.scale, synthesis=evolution)
-            print("----")
-            print(hamiltonian.num_qubits)
-            print(evo.num_qubits)
             unitary = QuantumCircuit(evo.num_qubits)
-            print(unitary.num_qubits)
-            print(pe_scale)
-            print(evolution)
-            print("----")
             unitary.append(evo, list(range(evo.num_qubits)))
+            print("Sampler")
+            print(pe_scale.scale)
+            print(unitary.to_gate().to_matrix())
+            return unitary
         else:
             # scale so that phase does not wrap.
             scaled_hamiltonian = -pe_scale.scale * hamiltonian
             unitary = evolution.convert(scaled_hamiltonian.exp_i())
+            print(unitary.to_matrix())
             if not isinstance(unitary, QuantumCircuit):
                 unitary = unitary.to_circuit()
+            print("Old")
+            print(pe_scale.scale)
+
+            return unitary.decompose().decompose()
+
         # Decomposing twice allows some 1Q Hamiltonians to give correct results
         # when using MatrixEvolution(), that otherwise would give incorrect results.
         # It does not break any others that we tested.
-        return unitary.decompose().decompose()
 
     def estimate(
         self,
-        hamiltonian: OperatorBase,
+        hamiltonian: OperatorBase | OperatorBase | PauliSumOp,
         state_preparation: StateFn | None = None,
         evolution: EvolutionSynthesis | EvolutionBase | None = None,
         bound: float | None = None,
@@ -191,13 +195,19 @@ class HamiltonianPhaseEstimation:
         if self._phase_estimation._sampler is not None:
             if evolution is not None and not isinstance(evolution, EvolutionSynthesis):
                 raise TypeError(f"Expecting type EvolutionSynthesis, got {type(evolution)}")
-            if not isinstance(hamiltonian, (BaseOperator, PauliSumOp)):
+            if not isinstance(hamiltonian, (OperatorBase, BaseOperator, PauliSumOp)):
                 raise TypeError(
-                    f"Expecting Hamiltonian type BaseOperator or PauliSumOp, got {type(hamiltonian)}."
+                    f"Expecting Hamiltonian type OperatorBase or BaseOperator or PauliSumOp, "
+                    f"got {type(hamiltonian)}."
                 )
-            id_coefficient = 0.0
-            pe_scale = self._get_scale(hamiltonian, bound)
-            unitary = self._get_unitary(hamiltonian, pe_scale, evolution)
+            if isinstance(hamiltonian, PauliSumOp):
+                id_coefficient, hamiltonian_no_id = _remove_identity_pauli_sum_op(hamiltonian)
+            else:
+                id_coefficient = 0.0
+                hamiltonian_no_id = hamiltonian
+            pe_scale = self._get_scale(hamiltonian_no_id, bound)
+            print(f"Sampler Hamiltonian:{hamiltonian_no_id}")
+            unitary = self._get_unitary(hamiltonian_no_id, pe_scale, evolution)
         else:
             if evolution is None:
                 evolution = PauliTrotterEvolution()
@@ -211,7 +221,7 @@ class HamiltonianPhaseEstimation:
 
             if isinstance(hamiltonian, SummedOp):
                 # remove identitiy terms
-                # The term propto the identity is removed from hamiltonian.
+                # The term prop to the identity is removed from hamiltonian.
                 # This is done for three reasons:
                 # 1. Work around an unknown bug that otherwise causes the energies to be wrong in some
                 #    cases.
@@ -220,7 +230,7 @@ class HamiltonianPhaseEstimation:
                 #   occupies more of the range of values representable by the qubit register.
                 # The coefficient of this term will be added to the eigenvalues.
                 id_coefficient, hamiltonian_no_id = _remove_identity(hamiltonian)
-
+                print(f"Old Hamiltonian:{hamiltonian_no_id}")
                 # get the rescaling object
                 pe_scale = self._get_scale(hamiltonian_no_id, bound)
 
@@ -244,7 +254,7 @@ class HamiltonianPhaseEstimation:
         phase_estimation_result = self._phase_estimation.estimate(
             unitary=unitary, state_preparation=state_preparation
         )
-
+        print(phase_estimation_result.phases)
         return HamiltonianPhaseEstimationResult(
             phase_estimation_result=phase_estimation_result,
             id_coefficient=id_coefficient,
@@ -252,7 +262,7 @@ class HamiltonianPhaseEstimation:
         )
 
 
-def _remove_identity(pauli_sum):
+def _remove_identity(pauli_sum: SummedOp):
     """Remove any identity operators from `pauli_sum`. Return
     the sum of the coefficients of the identities and the new operator.
     """
@@ -266,3 +276,29 @@ def _remove_identity(pauli_sum):
             idcoeff += op.coeff
 
     return idcoeff, SummedOp(ops)
+
+
+def _remove_identity_pauli_sum_op(pauli_sum: PauliSumOp | SparsePauliOp):
+    """Remove any identity operators from `pauli_sum`. Return
+    the sum of the coefficients of the identities and the new operator.
+    """
+
+    def _get_identity(size):
+        identity = I
+        for _ in range(size - 1):
+            identity = identity ^ I
+        return identity
+
+    idcoeff = 0.0
+    if isinstance(pauli_sum, PauliSumOp):
+        for operator in pauli_sum:
+            print(operator.primitive.paulis)
+            if operator.primitive.paulis == ["I" * pauli_sum.num_qubits]:
+                idcoeff += operator.primitive.coeffs[0]
+                pauli_sum = pauli_sum - operator.primitive.coeffs[0] * _get_identity(
+                    pauli_sum.num_qubits
+                )
+    elif isinstance(pauli_sum, SparsePauliOp):
+        pass
+
+    return idcoeff, pauli_sum.reduce()
