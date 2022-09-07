@@ -228,7 +228,8 @@ class SamplingVQE(VariationalAlgorithm, SamplingMinimumEigensolver):
             RuntimeError: If the circuit is not parameterized (i.e. has 0 free parameters).
 
         """
-        if ansatz.num_parameters == 0:
+        num_parameters = ansatz.num_parameters
+        if num_parameters == 0:
             raise RuntimeError("The ansatz must be parameterized, but has 0 free parameters.")
 
         best_measurement = {"best": None}
@@ -243,13 +244,9 @@ class SamplingVQE(VariationalAlgorithm, SamplingMinimumEigensolver):
         estimator = _DiagonalEstimator(self.sampler, callback=store_best_measurement)
 
         def energy(parameters):
-            # handle broadcasting
-            if len(np.asarray(parameters).shape) == 2:
-                parameters = np.asarray(parameters).tolist()
-                batchsize = len(parameters)
-            else:
-                parameters = [parameters]
-                batchsize = 1
+            # handle broadcasting: ensure parameters is of shape [array, array, ...]
+            parameters = np.reshape(parameters, (-1, num_parameters)).tolist()
+            batchsize = len(parameters)
 
             result = estimator.run(
                 batchsize * [ansatz], batchsize * [operator], parameters
