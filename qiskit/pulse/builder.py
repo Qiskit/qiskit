@@ -339,7 +339,6 @@ be used to align all pulses as late as possible in a pulse program.
     align_sequential
     circuit_scheduler_settings
     frequency_offset
-    inline
     pad
     phase_offset
     transpiler_settings
