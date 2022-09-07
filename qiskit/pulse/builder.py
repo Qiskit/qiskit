@@ -473,7 +473,6 @@ from qiskit.pulse import (
     macros,
     library,
     transforms,
-    utils,
 )
 from qiskit.pulse.instructions import directives
 from qiskit.pulse.schedule import Schedule, ScheduleBlock
@@ -1370,35 +1369,6 @@ def general_transforms(alignment_context: AlignmentKind) -> ContextManager[None]
     finally:
         current = builder.pop_context()
         builder.append_block(current)
-
-
-@utils.deprecated_functionality
-@contextmanager
-def inline() -> ContextManager[None]:
-    """Deprecated. Inline all instructions within this context into the parent context,
-    inheriting the scheduling policy of the parent context.
-
-    .. warning:: This will cause all scheduling directives within this context
-        to be ignored.
-    """
-
-    def _flatten(block):
-        for inst in block.blocks:
-            if isinstance(inst, ScheduleBlock):
-                yield from _flatten(inst)
-            else:
-                yield inst
-
-    builder = _active_builder()
-
-    # set a placeholder
-    builder.push_context(transforms.AlignLeft())
-    try:
-        yield
-    finally:
-        placeholder = builder.pop_context()
-        for inst in _flatten(placeholder):
-            builder.append_instruction(inst)
 
 
 @contextmanager
