@@ -1,0 +1,12 @@
+---
+features:
+  - |
+    Added `~qiskit.algorithms.time_evolvers` package with interfaces that will cover
+    primitive-enabled time evolution algorithms:
+    :class:`~qiskit.algorithms.time_evolvers.EvolutionProblem`,
+    :class:`~qiskit.algorithms.time_evolvers.EvolutionResult`,
+    :class:`~qiskit.algorithms.time_evolvers.ImaginaryEvolver`,
+    :class:`~qiskit.algorithms.time_evolvers.RealEvolver`.
+deprecations:
+  - |
+    `~qiskit.algorithms.evolvers` package will now issue a ``PendingDeprecationWarning``.
