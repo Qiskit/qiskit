@@ -110,5 +110,5 @@ class ParamShiftEstimatorGradient(BaseEstimatorGradient):
                 values[idx] += coeff * grad_
             gradients.append(values)
 
-        run_opt = self._update_result_run_options(run_options)
+        run_opt = self._get_local_run_options(run_options)
         return EstimatorGradientResult(gradients=gradients, metadata=metadata_, run_options=run_opt)

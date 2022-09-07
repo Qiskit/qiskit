@@ -166,7 +166,7 @@ class BaseEstimatorGradient(ABC):
                     f"({observable.num_qubits})."
                 )
 
-    def _update_result_run_options(self, run_options: dict) -> Options:
+    def _get_local_run_options(self, run_options: dict) -> Options:
         """Update the run options in the results.
 
         Args:

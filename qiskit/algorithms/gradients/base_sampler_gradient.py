@@ -138,7 +138,7 @@ class BaseSamplerGradient(ABC):
                     f"the number of parameters ({circuit.num_parameters}) for the {i}-th circuit."
                 )
 
-    def _update_result_run_options(self, run_options: dict) -> dict:
+    def _get_local_run_options(self, run_options: dict) -> dict:
         """Update the run options in the results.
 
         Args:

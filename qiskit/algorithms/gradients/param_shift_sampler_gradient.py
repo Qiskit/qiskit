@@ -115,5 +115,5 @@ class ParamShiftSamplerGradient(BaseSamplerGradient):
                 gradient_.append(dict(enumerate(grad_dist)))
             gradients.append(gradient_)
 
-        run_opt = self._update_result_run_options(run_options)
+        run_opt = self._get_local_run_options(run_options)
         return SamplerGradientResult(gradients=gradients, metadata=metadata_, run_options=run_opt)

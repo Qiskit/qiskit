@@ -91,5 +91,5 @@ class FiniteDiffEstimatorGradient(BaseEstimatorGradient):
             n = len(result.values) // 2  # is always a multiple of 2
             gradient_ = (result.values[:n] - result.values[n:]) / (2 * self._epsilon)
             gradients.append(gradient_)
-        run_opt = self._update_result_run_options(run_options)
+        run_opt = self._get_local_run_options(run_options)
         return EstimatorGradientResult(gradients=gradients, metadata=metadata_, run_options=run_opt)
