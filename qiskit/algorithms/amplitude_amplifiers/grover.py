@@ -161,7 +161,14 @@ class Grover(AmplitudeAmplifier):
             self._iterations = [iterations]
         else:
             self._iterations = iterations
+        if quantum_instance is not None and sampler is not None:
+            raise ValueError("Only one of quantum_instance or sampler can be passed, not both!")
 
+        # check positionally passing the sampler in the place of quantum_instance
+        # which will be removed in future
+        if isinstance(quantum_instance, BaseSampler):
+            sampler = quantum_instance
+            quantum_instance = None
         self._quantum_instance = None
         if quantum_instance is not None:
             warnings.warn(
