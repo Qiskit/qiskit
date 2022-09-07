@@ -316,6 +316,40 @@ class TestGrover(QiskitAlgorithmsTestCase):
         self.assertTrue(result.oracle_evaluation)
         self.assertEqual("011", result.top_measurement)
 
+    def test_shots(self):
+        """Test shots"""
+        # qasm simulator
+        oracle = QuantumCircuit(2)
+        oracle.cz(0, 1)
+        problem = AmplificationProblem(oracle, is_good_state=["11"])
+        with self.subTest("qasm simulator"):
+            grover = Grover(
+                quantum_instance=QuantumInstance(
+                    BasicAer.get_backend("qasm_simulator"), shots=100
+                ),
+            )
+            result = grover.amplify(problem)
+            self.assertEqual(result.shots, 100)
+        with self.subTest("statevector simulator"):
+            grover = Grover(
+                quantum_instance=QuantumInstance(
+                    BasicAer.get_backend("statevector_simulator"), shots=100
+                ),
+            )
+            result = grover.amplify(problem)
+            self.assertEqual(result.shots, 1)
+        with self.subTest("sampler"):
+            sampler = Sampler(run_options={"shots": 100})
+            grover = Grover(sampler=sampler)
+            result = grover.amplify(problem)
+            self.assertEqual(result.shots, 100)
+
+    def test_sampler(self):
+        """Test sampler"""
+        grover = Grover()
+        grover.sampler = self._sampler
+        self.assertEqual(grover.sampler, self._sampler)
+
 
 if __name__ == "__main__":
     unittest.main()

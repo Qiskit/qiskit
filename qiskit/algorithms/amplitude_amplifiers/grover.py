@@ -208,6 +208,24 @@ class Grover(AmplitudeAmplifier):
             quantum_instance = QuantumInstance(quantum_instance)
         self._quantum_instance = quantum_instance
 
+    @property
+    def sampler(self) -> Optional[BaseSampler]:
+        """Get the sampler.
+
+        Returns:
+            The sampler used to run this algorithm.
+        """
+        return self._sampler
+
+    @sampler.setter
+    def sampler(self, sampler: BaseSampler) -> None:
+        """Set the sampler.
+
+        Args:
+            sampler: The sampler used to run this algorithm.
+        """
+        self._sampler = sampler
+
     def amplify(self, amplification_problem: AmplificationProblem) -> "GroverResult":
         """Run the Grover algorithm.
 
@@ -219,7 +237,7 @@ class Grover(AmplitudeAmplifier):
             as ``result.top_measurement``.
 
         Raises:
-            ValueError: If a quantum instance or sumpler is not set.
+            ValueError: If a quantum instance or sampler is not set.
             AlgorithmError: If a sampler job fails.
             TypeError: If ``is_good_state`` is not provided and is required (i.e. when iterations
             is ``None`` or a ``list``)
@@ -260,11 +278,10 @@ class Grover(AmplitudeAmplifier):
             if self._sample_from_iterations:
                 power = np.random.randint(power)
             # Run a grover experiment for a given power of the Grover operator.
-            if self._sampler:
+            if self._sampler is not None:
                 qc = self.construct_circuit(amplification_problem, power, measurement=True)
                 job = self._sampler.run([qc])
 
-                # combine the results
                 try:
                     results = job.result()
                 except Exception as exc:
@@ -276,6 +293,7 @@ class Grover(AmplitudeAmplifier):
                 }
                 top_measurement = max(circuit_results.items(), key=lambda x: x[1])[0]
                 max_probability = max(circuit_results.items(), key=lambda x: x[1])[1]
+                shots = self._sampler.run_options.get("shots")
 
             else:
                 if self._quantum_instance.is_statevector:
@@ -333,6 +351,7 @@ class Grover(AmplitudeAmplifier):
         result.oracle_evaluation = oracle_evaluation
         result.circuit_results = all_circuit_results
         result.max_probability = max_probability
+        result.shots = shots
 
         return result
 
@@ -411,3 +430,21 @@ class GroverResult(AmplitudeAmplifierResult):
             value: A new value for the powers.
         """
         self._iterations = value
+
+    @property
+    def shots(self) -> int:
+        """Return the number of shots used. Is 1 for statevector-based simulations.
+
+        Returns:
+            The number of shots used.
+        """
+        return self._shots
+
+    @shots.setter
+    def shots(self, value: int) -> None:
+        """Set the number of shots used.
+
+        Args:
+            value: A value for the number of shots.
+        """
+        self._shots = value

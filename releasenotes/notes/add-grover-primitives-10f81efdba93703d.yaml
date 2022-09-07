@@ -5,3 +5,9 @@ features:
     :class:`~.Grover` supports the primitives and can use :class:`~.Sampler` to
     calculate the results. Accordingly, ``quantum instance`` in :class:`~.Grover`
     is pending deprecation and will be deprecated in a future release.
+
+deprecations:
+   - |
+     Using a :class:`~.QuantumInstance` in :class:`~.Grover` is
+     pending deprecation and will be deprecated in a future release. Instead, use
+     a :class:`.BaseSampler` to calculate the results, see also the features of this release.
