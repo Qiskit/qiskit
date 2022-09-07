@@ -94,7 +94,6 @@ class VQE(VariationalAlgorithm, MinimumEigensolver):
         initial_point: An optional initial point (i.e. initial parameter values) for the optimizer.
             If not provided, a random initial point with values in the interval :math:`[0, 2\pi]`
             is used.
-        callback: An optional callback function to plot the energy at each evaluation.
 
     References:
         [1] Peruzzo et al, "A variational eigenvalue solver on a quantum processor"
@@ -109,8 +108,6 @@ class VQE(VariationalAlgorithm, MinimumEigensolver):
         *,
         gradient: BaseEstimatorGradient | None = None,
         initial_point: Sequence[float] | None = None,
-        # TODO remove callback and attach to optimizer instead
-        callback: Callable[[int, np.ndarray, float, float], None] | None = None,
     ) -> None:
         """
         Args:
@@ -122,7 +119,6 @@ class VQE(VariationalAlgorithm, MinimumEigensolver):
             initial_point: An optional initial point (i.e. initial parameter values)
                 for the optimizer. If ``None`` then VQE will look to the ansatz for a preferred
                 point and if not will simply compute a random one.
-            callback: An optional callback function to plot the energy at each evaluation.
         """
         super().__init__()
 
@@ -134,9 +130,6 @@ class VQE(VariationalAlgorithm, MinimumEigensolver):
         # TODO change VariationalAlgorithm interface to use a public attribute
         # this has to go via getters and setters due to the VariationalAlgorithm interface
         self._initial_point = initial_point
-
-        # TODO remove callback and attach to optimizer instead
-        self.callback = callback
 
     @property
     def initial_point(self) -> Sequence[float] | None:
@@ -221,21 +214,15 @@ class VQE(VariationalAlgorithm, MinimumEigensolver):
         Returns:
             Energy of the hamiltonian of each parameter.
         """
-        iter_count = 0
         num_parameters = ansatz.num_parameters
 
         def eval_energy(parameters):
-            nonlocal iter_count
-
             # handle broadcasting: ensure parameters is of shape [array, array, ...]
             parameters = np.reshape(parameters, (-1, num_parameters)).tolist()
             batchsize = len(parameters)
 
             job = self.estimator.run(batchsize * [ansatz], batchsize * [operator], parameters)
             values = job.result().values
-            iter_count += 1
-            if self.callback is not None:
-                self.callback(iter_count, parameters, values[0], 0.0)
             return values[0] if len(values) == 1 else values
 
         return eval_energy
