@@ -147,8 +147,8 @@ def _extend_docstring(func, version, kwarg_map):
                             spaces += " " * 4
                             new_doc_str_lines += [
                                 spaces + f".. deprecated:: {version}",
-                                spaces + f"    The keyword argument `{k}` is deprecated.",
-                                spaces + f"    Please, use `{kwarg_map[k]}` instead.",
+                                spaces + f"    The keyword argument ``{k}`` is deprecated.",
+                                spaces + f"    Please, use ``{kwarg_map[k]}`` instead.",
                                 "",
                             ]
                             break
