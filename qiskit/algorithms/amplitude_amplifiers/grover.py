@@ -225,7 +225,7 @@ class Grover(AmplitudeAmplifier):
         return self._sampler
 
     @sampler.setter
-    def sampler(self, sampler: BaseSampler) -> None:
+    def sampler(self, sampler: Optional[BaseSampler]) -> None:
         """Set the sampler.
 
         Args:
