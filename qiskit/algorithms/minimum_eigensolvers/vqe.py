@@ -86,10 +86,10 @@ class VQE(VariationalAlgorithm, MinimumEigensolver):
         optimizer = partial(minimize, method="L-BFGS-B")
 
     Attributes:
+        estimator: The estimator primitive to compute the expectation value of the circuits.
         ansatz: The parameterized circuit used as an ansatz for the wave function.
         optimizer: A classical optimizer to find the minimum energy. This can either be a
             Qiskit :class:`.Optimizer` or a callable implementing the :class:`.Minimizer` protocol.
-        estimator: The estimator primitive to compute the expectation value of the circuits.
         gradient: An optional gradient function or operator for the optimizer.
         initial_point: An optional initial point (i.e. initial parameter values) for the optimizer.
             If not provided, a random initial point with values in the interval :math:`[0, 2\pi]`
@@ -102,19 +102,19 @@ class VQE(VariationalAlgorithm, MinimumEigensolver):
 
     def __init__(
         self,
+        estimator: BaseEstimator,
         ansatz: QuantumCircuit,
         optimizer: Optimizer | Minimizer,
-        estimator: BaseEstimator,
         *,
         gradient: BaseEstimatorGradient | None = None,
         initial_point: Sequence[float] | None = None,
     ) -> None:
         """
         Args:
+            estimator: The estimator primitive to compute the expectation value of the circuits.
             ansatz: The parameterized circuit used as ansatz for the wave function.
             optimizer: The classical optimizer. Can either be a Qiskit optimizer or a callable
                 that takes an array as input and returns a Qiskit or SciPy optimization result.
-            estimator: The estimator primitive to compute the expectation value of the circuits.
             gradient: An optional gradient function or operator for the optimizer.
             initial_point: An optional initial point (i.e. initial parameter values)
                 for the optimizer. If ``None`` then VQE will look to the ansatz for a preferred
@@ -122,9 +122,9 @@ class VQE(VariationalAlgorithm, MinimumEigensolver):
         """
         super().__init__()
 
+        self.estimator = estimator
         self.ansatz = ansatz
         self.optimizer = optimizer
-        self.estimator = estimator
         self.gradient = gradient
 
         # TODO change VariationalAlgorithm interface to use a public attribute

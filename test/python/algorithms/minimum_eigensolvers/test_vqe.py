@@ -47,21 +47,6 @@ from qiskit.test.decorators import slow_test
 from qiskit.utils import algorithm_globals
 
 
-logger = "LocalLogger"
-
-
-class LogPass(DummyAP):
-    """A dummy analysis pass that logs when executed"""
-
-    def __init__(self, message):
-        super().__init__()
-        self.message = message
-
-    def run(self, dag):
-        logging.getLogger(logger).info(self.message)
-
-
-# pylint: disable=invalid-name, unused-argument
 def _mock_optimizer(fun, x0, jac=None, bounds=None, inputs=None) -> OptimizerResult:
     """A mock of a callable that can be used as minimizer in the VQE."""
     result = OptimizerResult()
@@ -99,7 +84,7 @@ class TestVQE(QiskitAlgorithmsTestCase):
 
     def test_basic_aer_statevector(self):
         """Test VQE using reference Estimator."""
-        vqe = VQE(self.ryrz_wavefunction, L_BFGS_B(), Estimator())
+        vqe = VQE(Estimator(), self.ryrz_wavefunction, L_BFGS_B())
 
         result = vqe.compute_minimum_eigenvalue(operator=self.h2_op)
 
@@ -122,7 +107,7 @@ class TestVQE(QiskitAlgorithmsTestCase):
         """Test running the VQE on a plain QuantumCircuit object."""
         wavefunction = QuantumCircuit(2).compose(EfficientSU2(2))
         optimizer = SLSQP(maxiter=50)
-        vqe = VQE(wavefunction, optimizer, Estimator())
+        vqe = VQE(Estimator(), wavefunction, optimizer)
         result = vqe.compute_minimum_eigenvalue(self.h2_op)
         self.assertAlmostEqual(result.eigenvalue.real, self.h2_energy, places=5)
 
@@ -132,9 +117,9 @@ class TestVQE(QiskitAlgorithmsTestCase):
         initial_point = np.array([1])
 
         vqe = VQE(
+            Estimator(),
             ansatz,
             SLSQP(),
-            Estimator(),
             initial_point=initial_point,
         )
 
@@ -144,7 +129,7 @@ class TestVQE(QiskitAlgorithmsTestCase):
     def test_ansatz_resize(self):
         """Test the ansatz is properly resized if it's a blueprint circuit."""
         ansatz = RealAmplitudes(1, reps=1)
-        vqe = VQE(ansatz, SLSQP(), Estimator())
+        vqe = VQE(Estimator(), ansatz, SLSQP())
         result = vqe.compute_minimum_eigenvalue(self.h2_op)
         self.assertAlmostEqual(result.eigenvalue.real, self.h2_energy, places=5)
 
@@ -152,7 +137,7 @@ class TestVQE(QiskitAlgorithmsTestCase):
         """Test an error is raised if the ansatz has the wrong number of qubits."""
         ansatz = QuantumCircuit(1)
         ansatz.compose(RealAmplitudes(1, reps=2))
-        vqe = VQE(ansatz, SLSQP(), Estimator())
+        vqe = VQE(Estimator(), ansatz, SLSQP())
 
         with self.assertRaises(AlgorithmError):
             _ = vqe.compute_minimum_eigenvalue(operator=self.h2_op)
@@ -160,7 +145,7 @@ class TestVQE(QiskitAlgorithmsTestCase):
     def test_missing_ansatz_params(self):
         """Test specifying an ansatz with no parameters raises an error."""
         ansatz = QuantumCircuit(self.h2_op.num_qubits)
-        vqe = VQE(ansatz, SLSQP(), Estimator())
+        vqe = VQE(Estimator(), ansatz, SLSQP())
         with self.assertRaises(AlgorithmError):
             vqe.compute_minimum_eigenvalue(operator=self.h2_op)
 
@@ -169,9 +154,9 @@ class TestVQE(QiskitAlgorithmsTestCase):
         """VQE Optimizers test"""
         optimizer = SLSQP(maxiter=50, max_evals_grouped=5)
         vqe = VQE(
+            Estimator(),
             self.ryrz_wavefunction,
             optimizer,
-            estimator=Estimator(),
         )
         result = vqe.compute_minimum_eigenvalue(operator=self.h2_op)
         self.assertAlmostEqual(result.eigenvalue.real, self.h2_energy, places=5)
@@ -187,9 +172,9 @@ class TestVQE(QiskitAlgorithmsTestCase):
         """Test VQE using gradient primitive."""
         estimator = Estimator()
         vqe = VQE(
+            estimator,
             self.ry_wavefunction,
             optimizer,
-            estimator,
             gradient=ParamShiftEstimatorGradient(estimator),
         )
         result = vqe.compute_minimum_eigenvalue(operator=self.h2_op)
@@ -200,9 +185,9 @@ class TestVQE(QiskitAlgorithmsTestCase):
         inputs = {}
         estimator = Estimator()
         vqe = VQE(
+            estimator,
             RealAmplitudes(),
             partial(_mock_optimizer, inputs=inputs),
-            estimator,
             gradient=ParamShiftEstimatorGradient(estimator),
         )
         _ = vqe.compute_minimum_eigenvalue(operator=self.h2_op)
@@ -214,9 +199,9 @@ class TestVQE(QiskitAlgorithmsTestCase):
         """Test using the gradient to calculate the minimum."""
         estimator = Estimator()
         vqe = VQE(
+            estimator,
             RealAmplitudes(),
             GradientDescent(maxiter=200, learning_rate=0.1),
-            estimator,
             gradient=ParamShiftEstimatorGradient(estimator),
         )
         result = vqe.compute_minimum_eigenvalue(operator=self.h2_op)
@@ -245,9 +230,9 @@ class TestVQE(QiskitAlgorithmsTestCase):
         )
         tapered_qubit_op = TwoQubitReduction(num_particles=2).convert(qubit_op)
         vqe = VQE(
+            Estimator(),
             self.ry_wavefunction,
             SPSA(maxiter=300, last_avg=5),
-            estimator=Estimator(),
         )
         result = vqe.compute_minimum_eigenvalue(tapered_qubit_op)
         self.assertAlmostEqual(result.eigenvalue.real, self.h2_energy, places=2)
@@ -256,8 +241,7 @@ class TestVQE(QiskitAlgorithmsTestCase):
         """Test re-using a VQE algorithm instance."""
         ansatz = TwoLocal(rotation_blocks=["ry", "rz"], entanglement_blocks="cz")
         optimizer = SLSQP()
-        estimator = Estimator()
-        vqe = VQE(ansatz, optimizer, estimator)
+        vqe = VQE(Estimator(), ansatz, SLSQP())
         with self.subTest(msg="assert VQE works once all info is available"):
             result = vqe.compute_minimum_eigenvalue(operator=self.h2_op)
             self.assertAlmostEqual(result.eigenvalue.real, self.h2_energy, places=5)
@@ -268,12 +252,12 @@ class TestVQE(QiskitAlgorithmsTestCase):
             result = vqe.compute_minimum_eigenvalue(operator=operator)
             self.assertAlmostEqual(result.eigenvalue.real, -1.0, places=5)
 
-    def test_vqe_optimizer(self):
+    def test_vqe_optimizer_reuse(self):
         """Test running same VQE twice to re-use optimizer, then switch optimizer"""
         vqe = VQE(
-            ansatz=self.ryrz_wavefunction,
-            optimizer=SLSQP(),
-            estimator=Estimator(),
+            Estimator(),
+            self.ryrz_wavefunction,
+            SLSQP(),
         )
 
         def run_check():
@@ -323,9 +307,9 @@ class TestVQE(QiskitAlgorithmsTestCase):
         qnspsa.set_max_evals_grouped(100)
 
         vqe = VQE(
+            wrapped_estimator,
             ansatz,
             qnspsa,
-            wrapped_estimator,
         )
         _ = vqe.compute_minimum_eigenvalue(Pauli("ZZ"))
 
@@ -333,7 +317,7 @@ class TestVQE(QiskitAlgorithmsTestCase):
         expected_sampler_runs = 5
         # 1 calibration + 1 stddev estimation + 1 initial blocking
         # + 5 (1 loss + 1 blocking) + 1 return loss
-        expected_estimator_runs = 1 + 1 + 1 + 5 * 2 + 1 + 1
+        expected_estimator_runs = 1 + 1 + 1 + 5 * 2 + 1
 
         self.assertEqual(callcount["sampler"], expected_sampler_runs)
         self.assertEqual(callcount["estimator"], expected_estimator_runs)
@@ -341,9 +325,9 @@ class TestVQE(QiskitAlgorithmsTestCase):
     def test_optimizer_scipy_callable(self):
         """Test passing a SciPy optimizer directly as callable."""
         vqe = VQE(
-            ansatz=self.ryrz_wavefunction,
-            optimizer=partial(scipy_minimize, method="L-BFGS-B", options={"maxiter": 10}),
-            estimator=Estimator(),
+            Estimator(),
+            self.ryrz_wavefunction,
+            partial(scipy_minimize, method="L-BFGS-B", options={"maxiter": 10}),
         )
         result = vqe.compute_minimum_eigenvalue(self.h2_op)
         self.assertAlmostEqual(result.eigenvalue.real, self.h2_energy, places=2)
@@ -351,7 +335,7 @@ class TestVQE(QiskitAlgorithmsTestCase):
     def test_optimizer_callable(self):
         """Test passing a optimizer directly as callable."""
         ansatz = RealAmplitudes(1, reps=1)
-        vqe = VQE(ansatz, _mock_optimizer, estimator=Estimator())
+        vqe = VQE(Estimator(), ansatz, _mock_optimizer)
         result = vqe.compute_minimum_eigenvalue(SparsePauliOp("Z"))
         self.assertTrue(np.all(result.optimal_point == np.zeros(ansatz.num_parameters)))
 
