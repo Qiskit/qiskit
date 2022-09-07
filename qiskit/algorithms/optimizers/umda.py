@@ -145,6 +145,7 @@ class UMDA(Optimizer):
         self._evaluations = None
 
         self._n_variables = None
+        self._history = []
 
     def _initialization(self):
         vector = np.zeros((4, self._n_variables))
@@ -206,7 +207,7 @@ class UMDA(Optimizer):
         self._n_variables = len(x0)
         self._best_cost_global = 999999999999
         self._best_ind_global = 9999999
-        history = []
+        self._history = []
         self._evaluations = np.array(0)
 
         self._vector = self._initialization()
@@ -223,7 +224,7 @@ class UMDA(Optimizer):
 
             best_mae_local = min(self._evaluations)
 
-            history.append(best_mae_local)
+            self._history.append(best_mae_local)
             best_ind_local = np.where(self._evaluations == best_mae_local)[0][0]
             best_ind_local = self._generation[best_ind_local]
 
@@ -242,7 +243,7 @@ class UMDA(Optimizer):
 
         result.x = self._best_ind_global
         result.fun = self._best_cost_global
-        result.nfev = len(history) * self._size_gen
+        result.nfev = len(self._history) * self._size_gen
 
         return result
 
@@ -286,6 +287,11 @@ class UMDA(Optimizer):
             raise ValueError("The maximum number of iterations should be greater than 0.")
 
         self._maxiter = value
+
+    @property
+    def history(self) -> list:
+        """Returns the history of best individuals fround during the execution"""
+        return self._history
 
     @property
     def alpha(self) -> float:
