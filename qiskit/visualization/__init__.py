@@ -17,7 +17,6 @@ Visualizations (:mod:`qiskit.visualization`)
 
 .. currentmodule:: qiskit.visualization
 
-
 The visualization module contain functions that visualizes measurement outcome counts, quantum
 states, circuits, pulses, devices and more.
 
@@ -27,7 +26,6 @@ development environment:
 .. code-block:: bash
 
    pip install 'qiskit[visualization]'
-
 
 Common Keyword Arguments
 ========================
@@ -45,7 +43,6 @@ individual documentation for exact details.
   `matplotlib.figure.Figure <https://matplotlib.org/stable/api/figure_api.html>`_ will be created
   and used. Additionally, if specified there will be no returned ``Figure`` since it is redundant.
 * ``filename`` (``str``): file path to save image to.
-
 
 .. jupyter-execute::
 
@@ -89,7 +86,6 @@ This section contains functions that visualize measurement outcome counts.
 
    plot_histogram
 
-
 Example Usage
 -------------
 
@@ -119,7 +115,6 @@ This section contains functions that visualize quantum states.
    plot_state_hinton
    plot_state_paulivec
    plot_state_qsphere
-
 
 Example Usage
 -------------
@@ -158,7 +153,6 @@ obtained from a :class:`~qiskit.circuit.QuantumCircuit`:
    plot_state_city(state)
 
 You can find code examples for each visualization functions on the individual function API page.
-
 
 Device Visualizations
 =====================
