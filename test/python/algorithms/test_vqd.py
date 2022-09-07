@@ -216,30 +216,6 @@ class TestVQD(QiskitAlgorithmsTestCase):
             vqd.optimizer = L_BFGS_B()
             run_check()
 
-    @data(MatrixExpectation(), None)
-    def test_backend_change(self, user_expectation):
-        """Test that VQE works when backend changes."""
-        vqd = VQD(
-            estimator=self.estimator, fidelity=self.fidelity,
-            k=1,
-            ansatz=TwoLocal(rotation_blocks=["ry", "rz"], entanglement_blocks="cz"),
-            optimizer=SLSQP(maxiter=2),
-            expectation=user_expectation,
-        )
-        result0 = vqd.compute_eigenvalues(operator=self.h2_op)
-        if user_expectation is not None:
-            with self.subTest("User expectation kept."):
-                self.assertEqual(vqd.expectation, user_expectation)
-
-        # works also if no expectation is set, since it will be determined automatically
-        result1 = vqd.compute_eigenvalues(operator=self.h2_op)
-
-        if user_expectation is not None:
-            with self.subTest("Change backend with user expectation, it is kept."):
-                self.assertEqual(vqd.expectation, user_expectation)
-
-        with self.subTest("Check results."):
-            self.assertEqual(len(result0.optimal_point), len(result1.optimal_point))
 
     # def test_set_ansatz_to_none(self):
     #     """Tests that setting the ansatz to None results in the default behavior"""
