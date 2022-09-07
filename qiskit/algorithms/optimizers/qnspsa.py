@@ -80,7 +80,8 @@ class QNSPSA(SPSA):
                 return np.real(result.values[0])
 
             # fidelity for estimation of the geometric tensor
-            fidelity = QNSPSA.get_fidelity(ansatz, sampler=Sampler())
+            sampler = Sampler()
+            fidelity = QNSPSA.get_fidelity(ansatz, sampler)
 
             # run QN-SPSA
             qnspsa = QNSPSA(fidelity, maxiter=300)
@@ -264,6 +265,7 @@ class QNSPSA(SPSA):
 
             Using this function with a backend and expectation converter is pending deprecation,
             instead pass a Qiskit Primitive sampler, such as :class:`~.Sampler`.
+            The sampler can be passed as keyword argument or, positionally, as second argument.
 
         Let ``circuit`` be a parameterized quantum circuit performing the operation
         :math:`U(\theta)` given a set of parameters :math:`\theta`. Then this method returns
