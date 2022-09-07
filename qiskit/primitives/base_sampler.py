@@ -101,6 +101,7 @@ from qiskit.circuit import Parameter, QuantumCircuit
 from qiskit.circuit.parametertable import ParameterView
 from qiskit.exceptions import QiskitError
 from qiskit.providers import JobV1 as Job
+from qiskit.providers import Options
 from qiskit.utils.deprecation import deprecate_arguments, deprecate_function
 
 from .sampler_result import SamplerResult
@@ -112,18 +113,20 @@ class BaseSampler(ABC):
     Base class of Sampler that calculates quasi-probabilities of bitstrings from quantum circuits.
     """
 
-    __hash__ = None  # type: ignore
+    __hash__ = None
 
     def __init__(
         self,
         circuits: Iterable[QuantumCircuit] | QuantumCircuit | None = None,
         parameters: Iterable[Iterable[Parameter]] | None = None,
+        run_options: dict | None = None,
     ):
         """
         Args:
             circuits: Quantum circuits to be executed.
             parameters: Parameters of each of the quantum circuits.
                 Defaults to ``[circ.parameters for circ in circuits]``.
+            run_options: Default runtime options.
 
         Raises:
             QiskitError: For mismatch of circuits and parameters list.
@@ -153,6 +156,9 @@ class BaseSampler(ABC):
                     f"Different number of parameters ({len(self._parameters)}) "
                     f"and circuits ({len(self._circuits)})"
                 )
+        self._run_options = Options()
+        if run_options is not None:
+            self._run_options.update_options(**run_options)
 
     def __new__(
         cls,
@@ -209,6 +215,23 @@ class BaseSampler(ABC):
         """
         return tuple(self._parameters)
 
+    @property
+    def run_options(self) -> Options:
+        """Return options values for the estimator.
+
+        Returns:
+            run_options
+        """
+        return self._run_options
+
+    def set_run_options(self, **fields) -> BaseSampler:
+        """Set options values for the estimator.
+
+        Args:
+            **fields: The fields to update the options
+        """
+        self._run_options.update_options(**fields)
+
     @deprecate_function(
         "The BaseSampler.__call__ method is deprecated as of Qiskit Terra 0.22.0 "
         "and will be removed no sooner than 3 months after the releasedate. "
@@ -243,7 +266,7 @@ class BaseSampler(ABC):
 
         # Allow objects
         circuits = [
-            self._circuit_ids.get(id(circuit))  # type: ignore
+            self._circuit_ids.get(id(circuit))
             if not isinstance(circuit, (int, np.integer))
             else circuit
             for circuit in circuits
@@ -285,11 +308,13 @@ class BaseSampler(ABC):
                 f"The number of circuits is {len(self.circuits)}, "
                 f"but the index {max(circuits)} is given."
             )
+        run_opts = copy(self.run_options)
+        run_opts.update_options(**run_options)
 
         return self._call(
             circuits=circuits,
             parameter_values=parameter_values,
-            **run_options,
+            **run_opts.__dict__,
         )
 
     def run(
@@ -358,8 +383,15 @@ class BaseSampler(ABC):
                     f"The number of values ({len(parameter_value)}) does not match "
                     f"the number of parameters ({circuit.num_parameters}) for the {i}-th circuit."
                 )
+        run_opts = copy(self.run_options)
+        run_opts.update_options(**run_options)
 
-        return self._run(circuits, parameter_values, parameter_views, **run_options)
+        return self._run(
+            circuits,
+            parameter_values,
+            parameter_views,
+            **run_opts.__dict__,
+        )
 
     @abstractmethod
     def _call(

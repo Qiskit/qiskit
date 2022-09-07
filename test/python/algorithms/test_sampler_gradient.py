@@ -507,6 +507,45 @@ class TestSamplerGradient(QiskitTestCase):
             array2 = _quasi2array(res2, num_qubits)
             np.testing.assert_allclose(array1, array2, rtol=1e-4)
 
+    @combine(
+        grad=[
+            FiniteDiffSamplerGradient,
+            ParamShiftSamplerGradient,
+            LinCombSamplerGradient,
+            SPSASamplerGradient,
+        ],
+    )
+    def test_run_options(self, grad):
+        """Test sampler gradient's run options"""
+        a = Parameter("a")
+        qc = QuantumCircuit(1)
+        qc.rx(a, 0)
+        qc.measure_all()
+        sampler = Sampler(run_options={"shots": 100})
+        with self.subTest("sampler"):
+            if grad is FiniteDiffSamplerGradient or grad is SPSASamplerGradient:
+                gradient = grad(sampler, epsilon=1e-6)
+            else:
+                gradient = grad(sampler)
+            result = gradient.run([qc], [[1]]).result()
+            self.assertEqual(result.run_options.get("shots"), 100)
+
+        with self.subTest("gradient init"):
+            if grad is FiniteDiffSamplerGradient or grad is SPSASamplerGradient:
+                gradient = grad(sampler, epsilon=1e-6, run_options={"shots": 200})
+            else:
+                gradient = grad(sampler, run_options={"shots": 200})
+            result = gradient.run([qc], [[1]]).result()
+            self.assertEqual(result.run_options.get("shots"), 200)
+
+        with self.subTest("gradient run"):
+            if grad is FiniteDiffSamplerGradient or grad is SPSASamplerGradient:
+                gradient = grad(sampler, epsilon=1e-6, run_options={"shots": 200})
+            else:
+                gradient = grad(sampler, run_options={"shots": 200})
+            result = gradient.run([qc], [[1]], shots=300).result()
+            self.assertEqual(result.run_options.get("shots"), 300)
+
 
 def _quasi2array(quasis: List[QuasiDistribution], num_qubits: int) -> np.ndarray:
     ret = np.zeros((len(quasis), 2**num_qubits))
