@@ -12,15 +12,13 @@
 
 """Test the variational quantum eigensolver algorithm."""
 
-import logging
 import unittest
 from test.python.algorithms import QiskitAlgorithmsTestCase
-from test.python.transpiler._dummy_passes import DummyAP
 
 from functools import partial
 import numpy as np
 from scipy.optimize import minimize as scipy_minimize
-from ddt import data, ddt, unpack
+from ddt import data, ddt
 
 from qiskit import QuantumCircuit
 from qiskit.algorithms import AlgorithmError
@@ -29,21 +27,20 @@ from qiskit.algorithms.minimum_eigensolvers.vqe import VQE
 from qiskit.algorithms.optimizers import (
     CG,
     COBYLA,
+    GradientDescent,
     L_BFGS_B,
+    OptimizerResult,
     P_BFGS,
     QNSPSA,
     SLSQP,
     SPSA,
     TNC,
-    GradientDescent,
-    OptimizerResult,
 )
 from qiskit.algorithms.state_fidelities import ComputeUncompute
 from qiskit.circuit.library import EfficientSU2, RealAmplitudes, TwoLocal
 from qiskit.opflow import PauliSumOp, TwoQubitReduction
 from qiskit.quantum_info import SparsePauliOp, Operator, Pauli
 from qiskit.primitives import Estimator, Sampler
-from qiskit.test.decorators import slow_test
 from qiskit.utils import algorithm_globals
 
 
@@ -82,14 +79,15 @@ class TestVQE(QiskitAlgorithmsTestCase):
         self.ryrz_wavefunction = TwoLocal(rotation_blocks=["ry", "rz"], entanglement_blocks="cz")
         self.ry_wavefunction = TwoLocal(rotation_blocks="ry", entanglement_blocks="cz")
 
-    def test_basic_aer_statevector(self):
+    @data(L_BFGS_B(), COBYLA())
+    def test_basic_aer_statevector(self, estimator):
         """Test VQE using reference Estimator."""
-        vqe = VQE(Estimator(), self.ryrz_wavefunction, L_BFGS_B())
+        vqe = VQE(Estimator(), self.ryrz_wavefunction, estimator)
 
         result = vqe.compute_minimum_eigenvalue(operator=self.h2_op)
 
         with self.subTest(msg="test eigenvalue"):
-            self.assertAlmostEqual(result.eigenvalue.real, self.h2_energy)
+            self.assertAlmostEqual(result.eigenvalue.real, self.h2_energy, places=5)
 
         with self.subTest(msg="test optimal_value"):
             self.assertAlmostEqual(result.optimal_value, self.h2_energy)
@@ -102,14 +100,6 @@ class TestVQE(QiskitAlgorithmsTestCase):
 
         with self.subTest(msg="assert optimizer_time is set"):
             self.assertIsNotNone(result.optimizer_time)
-
-    def test_circuit_input(self):
-        """Test running the VQE on a plain QuantumCircuit object."""
-        wavefunction = QuantumCircuit(2).compose(EfficientSU2(2))
-        optimizer = SLSQP(maxiter=50)
-        vqe = VQE(Estimator(), wavefunction, optimizer)
-        result = vqe.compute_minimum_eigenvalue(self.h2_op)
-        self.assertAlmostEqual(result.eigenvalue.real, self.h2_energy, places=5)
 
     def test_invalid_initial_point(self):
         """Test the proper error is raised when the initial point has the wrong size."""
@@ -149,9 +139,8 @@ class TestVQE(QiskitAlgorithmsTestCase):
         with self.assertRaises(AlgorithmError):
             vqe.compute_minimum_eigenvalue(operator=self.h2_op)
 
-    @unpack
     def test_max_evals_grouped(self):
-        """VQE Optimizers test"""
+        """Test with SLSQP with max_evals_grouped."""
         optimizer = SLSQP(maxiter=50, max_evals_grouped=5)
         vqe = VQE(
             Estimator(),
@@ -194,7 +183,6 @@ class TestVQE(QiskitAlgorithmsTestCase):
 
         self.assertIsNotNone(inputs["jac"])
 
-    # @slow_test
     def test_gradient_run(self):
         """Test using the gradient to calculate the minimum."""
         estimator = Estimator()
