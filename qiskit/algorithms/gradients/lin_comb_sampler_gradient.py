@@ -120,7 +120,5 @@ class LinCombSamplerGradient(BaseSamplerGradient):
                 gradient_.append(dict(enumerate(grad_dist)))
             gradients.append(gradient_)
 
-        # TODO: include primitive's run_options as well
-        return SamplerGradientResult(
-            gradients=gradients, metadata=metadata_, run_options=run_options
-        )
+        run_opt = self._get_local_run_options(run_options)
+        return SamplerGradientResult(gradients=gradients, metadata=metadata_, run_options=run_opt)
