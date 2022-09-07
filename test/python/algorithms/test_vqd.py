@@ -75,6 +75,7 @@ class TestVQD(QiskitAlgorithmsTestCase):
         self.ry_wavefunction = TwoLocal(rotation_blocks="ry", entanglement_blocks="cz")
 
         self.estimator = Estimator()
+        self.estimator_shots = Estimator(run_options={"shots":2048})
         self.fidelity = ComputeUncompute(Sampler())
 
     def test_basic_aer_statevector(self):
@@ -142,12 +143,10 @@ class TestVQD(QiskitAlgorithmsTestCase):
         wavefunction = self.ry_wavefunction
 
         vqd = VQD(
-            estimator=self.estimator, fidelity=self.fidelity,
+            estimator=self.estimator_shots, fidelity=self.fidelity,
             ansatz=wavefunction,
             optimizer=optimizer,
-            callback=store_intermediate_result,
-            shots=2048,
-            seed=50)
+            callback=store_intermediate_result)
 
         vqd.compute_eigenvalues(operator=self.h2_op)
 

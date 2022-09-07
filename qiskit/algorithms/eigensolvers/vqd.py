@@ -91,7 +91,6 @@ class VQD(VariationalAlgorithm, Eigensolver):
         fidelity: BaseStateFidelity | None = None,
         max_evals_grouped: int = 1,
         callback: Callable[[int, np.ndarray, float, float], None] | None = None,
-        **run_options
     ) -> None:
         """
 
@@ -140,7 +139,6 @@ class VQD(VariationalAlgorithm, Eigensolver):
 
         self._eval_time = None
         self._eval_count = 0
-        self._default_run_options = run_options
 
         logger.info(self.print_settings())
 
@@ -210,12 +208,9 @@ class VQD(VariationalAlgorithm, Eigensolver):
     def compute_eigenvalues(
         self,
         operator: BaseOperator | PauliSumOp,
-        aux_operators: ListOrDict[BaseOperator | PauliSumOp] | None = None,
-        **run_options
+        aux_operators: ListOrDict[BaseOperator | PauliSumOp] | None = None
     ) -> EigensolverResult:
         super().compute_eigenvalues(operator, aux_operators)
-
-        self._default_run_options.update(**run_options)
 
         # this sets the size of the ansatz, so it must be called before the initial point
         # validation
@@ -383,8 +378,8 @@ class VQD(VariationalAlgorithm, Eigensolver):
         def energy_evaluation(parameters):
             estimator_job = self.estimator.run(circuits=[self.ansatz],
                                                observables=[operator],
-                                               parameter_values=[parameters],
-                                               **self._default_run_options)
+                                               parameter_values=[parameters]
+                                               )
             estimator_result = estimator_job.result()
             means = np.real(estimator_result.values)
 
