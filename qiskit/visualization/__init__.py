@@ -235,7 +235,7 @@ Single Qubit State Transition Visualizations
 
    visualize_transition
 
-Array/Matrix Visualizations21
+Array/Matrix Visualizations
 ===========================
 
 .. autosummary::
