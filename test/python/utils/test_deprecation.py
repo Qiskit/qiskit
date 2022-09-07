@@ -145,8 +145,8 @@ class TestDeprecation(QiskitTestCase):
         Args:
             if_arg1:
                 .. deprecated:: 1.2.3
-                    The keyword argument `if_arg1` is deprecated.
-                    Please, use `other_if_arg1` instead.
+                    The keyword argument ``if_arg1`` is deprecated.
+                    Please, use ``other_if_arg1`` instead.
 
             index_arg2: `index_arg2` description
             other_if_arg1: `other_if_arg1` description
