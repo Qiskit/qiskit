@@ -26,7 +26,8 @@ from qiskit.circuit.library import RealAmplitudes
 from qiskit.opflow.primitive_ops.pauli_op import PauliOp
 from qiskit.quantum_info.operators.base_operator import BaseOperator
 from qiskit.opflow import PauliSumOp
-
+from qiskit.primitives import BaseEstimator
+from qiskit.algorithms.state_fidelities import BaseStateFidelity
 from qiskit.utils.validation import validate_min
 from ..list_or_dict import ListOrDict
 from ..optimizers import Optimizer, SLSQP, Minimizer
@@ -81,14 +82,13 @@ class VQD(VariationalAlgorithm, Eigensolver):
 
     def __init__(
         self,
-        estimator,
-        fidelity,
-        gradient = None, # TODO: add gradient support
         ansatz: QuantumCircuit | None = None,
         k: int = 2,
         betas: list[float] | None = None,
         optimizer: Optimizer | Minimizer | None = None,
         initial_point: np.ndarray| None = None,
+        estimator: BaseEstimator | None = None,
+        fidelity: BaseStateFidelity | None = None,
         max_evals_grouped: int = 1,
         callback: Callable[[int, np.ndarray, float, float], None] | None = None,
         **run_options
@@ -108,27 +108,8 @@ class VQD(VariationalAlgorithm, Eigensolver):
             initial_point: An optional initial point (i.e. initial parameter values)
                 for the optimizer. If ``None`` then VQD will look to the ansatz for a preferred
                 point and if not will simply compute a random one.
-            gradient: An optional gradient function or operator for optimizer.
-                Only used to compute the ground state at the moment.
-            expectation: The Expectation converter for taking the average value of the
-                Observable over the ansatz state function. When ``None`` (the default) an
-                :class:`~qiskit.opflow.expectations.ExpectationFactory` is used to select
-                an appropriate expectation based on the operator and backend. When using Aer
-                qasm_simulator backend, with paulis, it is however much faster to leverage custom
-                Aer function for the computation but, although VQD performs much faster
-                with it, the outcome is ideal, with no shot noise, like using a state vector
-                simulator. If you are just looking for the quickest performance when choosing Aer
-                qasm_simulator and the lack of shot noise is not an issue then set `include_custom`
-                parameter here to ``True`` (defaults to ``False``).
-            include_custom: When `expectation` parameter here is None setting this to ``True`` will
-                allow the factory to include the custom Aer pauli expectation.
-            max_evals_grouped: Max number of evaluations performed simultaneously. Signals the
-                given optimizer that more than one set of parameters can be supplied so that
-                multiple points to compute the gradient can be passed and if computed in parallel
-                potentially the expectation values can be computed in parallel. Typically this is
-                possible when a finite difference gradient is used by the optimizer such that
-                improve overall execution time. Deprecated if a gradient operator or function is
-                given.
+            estimator: The estimator primitive.
+            fidelity: The fidelity class using primitives.
             callback: a callback that can access the intermediate data during the optimization.
                 Four parameter values are passed to the callback as follows during each evaluation
                 by the optimizer for its current set of parameters as it works towards the minimum.
@@ -137,40 +118,28 @@ class VQD(VariationalAlgorithm, Eigensolver):
             quantum_instance: Quantum Instance or Backend
 
         """
-        validate_min("max_evals_grouped", max_evals_grouped, 1)
-
         super().__init__()
 
         self.estimator = estimator
         self.fidelity = fidelity
+        self.k = k
+        self.betas = betas
+        self.callback = callback
 
-        # TODO: remove?
-        self.max_evals_grouped = max_evals_grouped
-
-        # set ansatz -- still supporting pre 0.18.0 sorting
-        # TODO: property
+        # TODO: property?
         if ansatz is None:
             ansatz = RealAmplitudes()
         self.ansatz = ansatz
 
-        self.k = k
-        self.betas = betas
-
         if optimizer is None:
             optimizer = SLSQP()
-
-        if isinstance(optimizer, Optimizer):
-            optimizer.set_max_evals_grouped(self.max_evals_grouped)
         self.optimizer = optimizer
 
-        self._initial_point = None
-        self.initial_point = initial_point
+        # this has to go via getters and setters due to the VariationalAlgorithm interface
+        self._initial_point = initial_point
 
         self._eval_time = None
         self._eval_count = 0
-
-        self.callback = callback
-
         self._default_run_options = run_options
 
         logger.info(self.print_settings())
@@ -252,10 +221,10 @@ class VQD(VariationalAlgorithm, Eigensolver):
         # validation
         self._check_operator_ansatz(operator)
 
-        # set an expectation for this algorithm run (will be reset to None at the end)
         initial_point = _validate_initial_point(self.initial_point, self.ansatz)
 
         bounds = _validate_bounds(self.ansatz)
+
         # We need to handle the array entries being zero or Optional i.e. having value None
         if aux_operators:
             zero_op = PauliSumOp.from_list([("I" * self.ansatz.num_qubits, 0)])
@@ -307,7 +276,7 @@ class VQD(VariationalAlgorithm, Eigensolver):
 
             start_time = time()
 
-            # TODO: add gradient support
+            # TODO: add gradient support after FidelityGradients are implemented
             if callable(self.optimizer):
                 opt_result = self.optimizer(  # pylint: disable=not-callable
                     fun=energy_evaluation, x0=initial_point, bounds=bounds
@@ -375,17 +344,12 @@ class VQD(VariationalAlgorithm, Eigensolver):
         prev_states: Optional[List[np.ndarray]] = None,
     ) -> Callable[[np.ndarray], float | List[float]]:
         """Returns a function handle to evaluates the energy at given parameters for the ansatz.
-
         This return value is the objective function to be passed to the optimizer for evaluation.
 
         Args:
             step: level of energy being calculated. 0 for ground, 1 for first excited state...
             operator: The operator whose energy to evaluate.
-            return_expectation: If True, return the ``ExpectationBase`` expectation converter used
-                in the construction of the expectation value. Useful e.g. to evaluate other
-                operators with the same expectation value converter.
             prev_states: List of parameters from previous rounds of optimization.
-
 
         Returns:
             A callable that computes and returns the energy of the hamiltonian
