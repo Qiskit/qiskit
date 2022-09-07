@@ -16,7 +16,7 @@ See https://arxiv.org/abs/1805.08138.
 """
 
 from __future__ import annotations
-from typing import Optional, List, Callable
+from typing import Optional, List, Callable, Tuple
 import logging
 from time import time
 from warnings import warn
@@ -27,7 +27,7 @@ from qiskit.circuit.library import RealAmplitudes
 from qiskit.opflow.primitive_ops.pauli_op import PauliOp
 from qiskit.quantum_info.operators.base_operator import BaseOperator
 from qiskit.opflow import PauliSumOp
-from qiskit.primitives import BaseEstimator
+from qiskit.primitives import BaseEstimator, EstimatorResult
 from qiskit.algorithms.state_fidelities import BaseStateFidelity
 from ..list_or_dict import ListOrDict
 from ..optimizers import Optimizer, SLSQP, Minimizer
@@ -35,10 +35,8 @@ from ..variational_algorithm import VariationalAlgorithm, VariationalResult
 from .eigensolver import Eigensolver, EigensolverResult
 from ..minimum_eigen_solvers.vqe import _validate_bounds, _validate_initial_point
 from ..exceptions import AlgorithmError
-from ..aux_ops_evaluator import eval_observables
 
 logger = logging.getLogger(__name__)
-
 
 class VQD(VariationalAlgorithm, Eigensolver):
     r"""The Variational Quantum Deflation algorithm. Implementation using primitives.
@@ -209,6 +207,128 @@ class VQD(VariationalAlgorithm, Eigensolver):
     def supports_aux_operators(cls) -> bool:
         return True
 
+
+    def _eval_observables(
+        self,
+        estimator: BaseEstimator,
+        quantum_state: QuantumCircuit,
+        observables: ListOrDict[BaseOperator | PauliSumOp],
+        threshold: float = 1e-12,
+    ) -> ListOrDict[Tuple[complex, complex]]:
+        """
+        Accepts a sequence of operators and calculates their expectation values - means
+        and standard deviations. They are calculated with respect to a quantum state provided. A user
+        can optionally provide a threshold value which filters mean values falling below the threshold.
+
+        Args:
+            estimator: An estimator primitive used for calculations.
+            quantum_state: An unparametrized quantum circuit representing a quantum state that
+                expectation values are computed against.
+            observables: A list or a dictionary of operators whose expectation values are to be
+                calculated.
+            threshold: A threshold value that defines which mean values should be neglected (helpful for
+                ignoring numerical instabilities close to 0).
+
+        Returns:
+            A list or a dictionary of tuples (mean, standard deviation).
+
+        Raises:
+            ValueError: If a ``quantum_state`` with free parameters is provided.
+            AlgorithmError: If a primitive job is not successful.
+        """
+
+        if (
+            isinstance(quantum_state, QuantumCircuit)  # State cannot be parametrized
+            and len(quantum_state.parameters) > 0
+        ):
+            raise ValueError(
+                "A parametrized representation of a quantum_state was provided. It is not "
+                "allowed - it cannot have free parameters."
+            )
+        if isinstance(observables, dict):
+            observables_list = list(observables.values())
+        else:
+            observables_list = observables
+        quantum_state = [quantum_state] * len(observables)
+        try:
+            estimator_job = estimator.run(quantum_state, observables_list)
+            expectation_values = estimator_job.result().values
+        except Exception as exc:
+            from . import AlgorithmError
+
+            raise AlgorithmError("The primitive job failed!") from exc
+
+        std_devs = self._compute_std_devs(estimator_job, len(expectation_values))
+
+        # Discard values below threshold
+        observables_means = expectation_values * (np.abs(expectation_values) > threshold)
+        # zip means and standard deviations into tuples
+        observables_results = list(zip(observables_means, std_devs))
+
+        # Return None eigenvalues for None operators if observables is a list.
+        return self._prepare_result(observables_results, observables)
+
+    @staticmethod
+    def _prepare_result(
+        observables_results: List[Tuple[complex, complex]],
+        observables: ListOrDict[BaseOperator | PauliSumOp],
+    ) -> ListOrDict[Tuple[complex, complex]]:
+        """
+        Prepares a list of eigenvalues and standard deviations from ``observables_results`` and
+        ``observables``.
+
+        Args:
+            observables_results: A list of of tuples (mean, standard deviation).
+            observables: A list or a dictionary of operators whose expectation values are to be
+                calculated.
+
+        Returns:
+            A list or a dictionary of tuples (mean, standard deviation).
+        """
+
+        if isinstance(observables, list):
+            observables_eigenvalues = [None] * len(observables)
+            key_value_iterator = enumerate(observables_results)
+        else:
+            observables_eigenvalues = {}
+            key_value_iterator = zip(observables.keys(), observables_results)
+
+        for key, value in key_value_iterator:
+            if observables[key] is not None:
+                observables_eigenvalues[key] = value
+        return observables_eigenvalues
+
+    @staticmethod
+    def _compute_std_devs(
+        estimator_result: EstimatorResult,
+        results_length: int,
+    ) -> List[complex | None]:
+        """
+        Calculates a list of standard deviations from expectation values of observables provided. If
+        the choice of an underlying hardware is not shot-based and hence does not provide variance data,
+        the standard deviation values will be set to ``None``.
+
+        Args:
+            estimator_result: An estimator result.
+            results_length: Number of expectation values calculated.
+
+        Returns:
+            A list of standard deviations.
+        """
+        if not estimator_result.metadata:
+            return [0] * results_length
+
+        std_devs = []
+        for metadata in estimator_result.metadata:
+            if metadata and "variance" in metadata.keys() and "shots" in metadata.keys():
+                variance = metadata["variance"]
+                shots = metadata["shots"]
+                std_devs.append(np.sqrt(variance / shots))
+            else:
+                std_devs.append(None)
+
+        return std_devs
+
     def compute_eigenvalues(
         self,
         operator: BaseOperator | PauliSumOp,
@@ -297,8 +417,8 @@ class VQD(VariationalAlgorithm, Eigensolver):
 
             if aux_operators is not None:
                 bound_ansatz = self.ansatz.bind_parameters(result.optimal_point[-1])
-                # replace this by the new eval_observables
-                aux_value = eval_observables(self.estimator, bound_ansatz, aux_operators)
+                # TODO: replace this by the new eval_observables once merged
+                aux_value = self._eval_observables(self.estimator, bound_ansatz, aux_operators)
                 aux_values.append(aux_value)
 
             if step == 1:
