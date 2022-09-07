@@ -22,6 +22,7 @@ from copy import copy
 
 from qiskit.circuit import QuantumCircuit, Parameter
 from qiskit.primitives import BaseSampler
+from qiskit.providers import Options
 from qiskit.algorithms import AlgorithmJob
 from .sampler_gradient_result import SamplerGradientResult
 
@@ -29,7 +30,7 @@ from .sampler_gradient_result import SamplerGradientResult
 class BaseSamplerGradient(ABC):
     """Base class for a ``SamplerGradient`` to compute the gradients of the sampling probability."""
 
-    def __init__(self, sampler: BaseSampler, **run_options):
+    def __init__(self, sampler: BaseSampler, run_options: dict | None = None):
         """
         Args:
             sampler: The sampler used to compute the gradients.
@@ -38,7 +39,9 @@ class BaseSamplerGradient(ABC):
                 setting. Higher priority setting overrides lower priority setting.
         """
         self._sampler: BaseSampler = sampler
-        self._default_run_options = run_options
+        self._default_run_options = Options()
+        if run_options is not None:
+            self._default_run_options.update_options(**run_options)
 
     def run(
         self,
@@ -77,8 +80,8 @@ class BaseSamplerGradient(ABC):
         # The priority of run option is as follows:
         # run_options in `run` method > gradient's default run_options > primitive's default run_options.
         run_opts = copy(self._default_run_options)
-        run_opts.update(run_options)
-        job = AlgorithmJob(self._run, circuits, parameter_values, parameters, **run_opts)
+        run_opts.update_options(**run_options)
+        job = AlgorithmJob(self._run, circuits, parameter_values, parameters, **run_opts.__dict__)
         job.submit()
         return job
 
@@ -134,3 +137,16 @@ class BaseSamplerGradient(ABC):
                     f"The number of values ({len(parameter_value)}) does not match "
                     f"the number of parameters ({circuit.num_parameters}) for the {i}-th circuit."
                 )
+
+    def _get_local_run_options(self, run_options: dict) -> dict:
+        """Update the run options in the results.
+
+        Args:
+            run_options: The run options to update.
+
+        Returns:
+            The updated run options.
+        """
+        run_opts = copy(self._sampler.run_options)
+        run_opts.update_options(**run_options)
+        return run_opts
