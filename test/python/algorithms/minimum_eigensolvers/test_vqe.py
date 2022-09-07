@@ -321,15 +321,23 @@ class TestVQE(QiskitAlgorithmsTestCase):
         ansatz = TwoLocal(2, rotation_blocks=["ry", "rz"], entanglement_blocks="cz")
 
         wrapped_sampler = Sampler()
+        inner_sampler = Sampler()
+
+        wrapped_estimator = Estimator()
         inner_estimator = Estimator()
 
-        callcount = {"count": 0}
+        callcount = {"sampler": 0, "estimator": 0}
 
-        def wrapped_run(*args, **kwargs):
-            kwargs["callcount"]["count"] += 1
+        def wrapped_estimator_run(*args, **kwargs):
+            kwargs["callcount"]["estimator"] += 1
             return inner_estimator.run(*args, **kwargs)
 
-        wrapped_sampler.run = partial(wrapped_run, callcount=callcount)
+        def wrapped_sampler_run(*args, **kwargs):
+            kwargs["callcount"]["sampler"] += 1
+            return inner_sampler.run(*args, **kwargs)
+
+        wrapped_estimator.run = partial(wrapped_estimator_run, callcount=callcount)
+        wrapped_sampler.run = partial(wrapped_sampler_run, callcount=callcount)
 
         fidelity = ComputeUncompute(wrapped_sampler)
 
@@ -344,15 +352,18 @@ class TestVQE(QiskitAlgorithmsTestCase):
         vqe = VQE(
             ansatz,
             qnspsa,
-            wrapped_sampler,
+            wrapped_estimator,
         )
         _ = vqe.compute_minimum_eigenvalue(Pauli("ZZ"))
 
+        # 5 (fidelity)
+        expected_sampler_runs = 5
         # 1 calibration + 1 stddev estimation + 1 initial blocking
-        # + 5 (1 loss + 1 fidelity + 1 blocking) + 1 return loss + 1 VQE eval
-        expected = 1 + 1 + 1 + 5 * 3 + 1 + 1
+        # + 5 (1 loss + 1 blocking) + 1 return loss
+        expected_estimator_runs = 1 + 1 + 1 + 5 * 2 + 1
 
-        self.assertEqual(callcount["count"], expected)
+        self.assertEqual(callcount["sampler"], expected_sampler_runs)
+        self.assertEqual(callcount["estimator"], expected_estimator_runs)
 
     def test_optimizer_scipy_callable(self):
         """Test passing a SciPy optimizer directly as callable."""
