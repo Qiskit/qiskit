@@ -75,7 +75,6 @@ class FiniteDiffEstimatorGradient(BaseEstimatorGradient):
             plus = parameter_values_ + self._epsilon * offset
             minus = parameter_values_ - self._epsilon * offset
             n = 2 * len(indices)
-
             job = self._estimator.run(
                 [circuit] * n, [observable] * n, plus.tolist() + minus.tolist(), **run_options
             )
@@ -92,8 +91,5 @@ class FiniteDiffEstimatorGradient(BaseEstimatorGradient):
             n = len(result.values) // 2  # is always a multiple of 2
             gradient_ = (result.values[:n] - result.values[n:]) / (2 * self._epsilon)
             gradients.append(gradient_)
-
-        # TODO: include primitive's run_options as well
-        return EstimatorGradientResult(
-            gradients=gradients, metadata=metadata_, run_options=run_options
-        )
+        run_opt = self._get_local_run_options(run_options)
+        return EstimatorGradientResult(gradients=gradients, metadata=metadata_, run_options=run_opt)
