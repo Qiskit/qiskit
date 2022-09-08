@@ -12,8 +12,6 @@
 """Evaluator of auxiliary operators for algorithms."""
 from __future__ import annotations
 
-from typing import Tuple, List
-
 import numpy as np
 
 from qiskit import QuantumCircuit
@@ -31,7 +29,7 @@ def eval_observables(
     quantum_state: QuantumCircuit,
     observables: ListOrDict[BaseOperator | PauliSumOp],
     threshold: float = 1e-12,
-) -> ListOrDict[Tuple[complex, complex]]:
+) -> ListOrDict[tuple[complex, complex]]:
     """
     Accepts a sequence of operators and calculates their expectation values - means
     and standard deviations. They are calculated with respect to a quantum state provided. A user
@@ -99,15 +97,15 @@ def _handle_zero_ops(
 
 
 def _prepare_result(
-    observables_results: List[Tuple[complex, complex]],
+    observables_results: list[tuple[complex, complex]],
     observables: ListOrDict[BaseOperator | PauliSumOp],
-) -> ListOrDict[Tuple[complex, complex]]:
+) -> ListOrDict[tuple[complex, complex]]:
     """
     Prepares a list of eigenvalues and standard deviations from ``observables_results`` and
     ``observables``.
 
     Args:
-        observables_results: A list of of tuples (mean, standard deviation).
+        observables_results: A list of tuples (mean, standard deviation).
         observables: A list or a dictionary of operators whose expectation values are to be
             calculated.
 
@@ -131,7 +129,7 @@ def _prepare_result(
 def _compute_std_devs(
     estimator_result: EstimatorResult,
     results_length: int,
-) -> List[complex | None]:
+) -> list[complex | None]:
     """
     Calculates a list of standard deviations from expectation values of observables provided. If
     there is no variance data available from a primitive, the standard deviation values will be set
