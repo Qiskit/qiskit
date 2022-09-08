@@ -27,7 +27,7 @@ class DummyClass:
         self.arg2 = arg2
 
     @deprecate_function(
-        "The DummyClass.foo() method is being deprecated. " "Use the DummyClass.some_othermethod()",
+        "The DummyClass.foo() method is being deprecated. Use the DummyClass.some_othermethod()",
         docstring_version="1.2.3",
     )
     def foo_deprecated(self, index_arg2: int):
