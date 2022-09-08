@@ -23,7 +23,7 @@ from ...quantum_info import Statevector
 from ...quantum_info.operators.base_operator import BaseOperator
 
 
-class EvolutionProblem:
+class TimeEvolutionProblem:
     """Evolution problem class.
 
     This class is the input to time evolution algorithms and must contain information on the total
