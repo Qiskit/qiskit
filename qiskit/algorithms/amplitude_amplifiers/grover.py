@@ -259,7 +259,6 @@ class Grover(AmplitudeAmplifier):
         if self._quantum_instance is not None and self._sampler is not None:
             raise ValueError("Only one of quantum_instance or sampler can be passed, not both!")
 
-
         if isinstance(self._iterations, list):
             max_iterations = len(self._iterations)
             max_power = np.inf  # no cap on the power

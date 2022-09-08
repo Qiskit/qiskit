@@ -137,7 +137,7 @@ class TestGrover(QiskitAlgorithmsTestCase):
         result = grover.amplify(problem)
         self.assertEqual(result.top_measurement, "111")
 
-    @idata(itertools.product([True, False],[[1, 2, 3], None]))
+    @idata(itertools.product([True, False], [[1, 2, 3], None]))
     @unpack
     def test_iterations_without_good_state(self, use_sampler, iterations):
         """Test the correct error is thrown for none/list of iterations and without good state"""
