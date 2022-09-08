@@ -55,7 +55,7 @@ def eval_observables(
     """
 
     if (
-        isinstance(quantum_state, QuantumCircuit)  # Statevector cannot be parametrized
+        isinstance(quantum_state, QuantumCircuit)  # State cannot be parametrized
         and len(quantum_state.parameters) > 0
     ):
         raise ValueError(
@@ -66,6 +66,8 @@ def eval_observables(
         observables_list = list(observables.values())
     else:
         observables_list = observables
+
+    observables_list = _handle_zero_ops(observables_list)
     quantum_state = [quantum_state] * len(observables)
     try:
         estimator_job = estimator.run(quantum_state, observables_list)
@@ -82,6 +84,18 @@ def eval_observables(
 
     # Return None eigenvalues for None operators if observables is a list.
     return _prepare_result(observables_results, observables)
+
+
+def _handle_zero_ops(
+    observables_list: list[BaseOperator | PauliSumOp],
+) -> list[BaseOperator | PauliSumOp]:
+    """Replaces all occurrence of operators equal to 0 in the list with an equivalent ``PauliSumOp``
+    operator."""
+    zero_op = PauliSumOp.from_list([("I" * observables_list[0].num_qubits, 0)])
+    for ind, observable in enumerate(observables_list):
+        if observable == 0:
+            observables_list[ind] = zero_op
+    return observables_list
 
 
 def _prepare_result(
@@ -119,7 +133,9 @@ def _compute_std_devs(
     results_length: int,
 ) -> List[complex | None]:
     """
-    Calculates a list of standard deviations from expectation values of observables provided.
+    Calculates a list of standard deviations from expectation values of observables provided. If
+    there is no variance data available from a primitive, the standard deviation values will be set
+    to ``None``.
 
     Args:
         estimator_result: An estimator result.
@@ -136,7 +152,10 @@ def _compute_std_devs(
         if metadata and "variance" in metadata.keys() and "shots" in metadata.keys():
             variance = metadata["variance"]
             shots = metadata["shots"]
-            std_devs.append(np.sqrt(variance / shots))
+            if variance is None or shots is None:
+                std_devs.append(None)
+            else:
+                std_devs.append(np.sqrt(variance / shots))
         else:
             std_devs.append(0)
 
