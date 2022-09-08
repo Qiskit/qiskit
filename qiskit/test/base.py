@@ -228,6 +228,8 @@ class QiskitTestCase(BaseQiskitTestCase):
             # Internal deprecation warning emitted by jupyter client when
             # calling nbconvert in python 3.10
             r"There is no current event loop",
+            # Caused by internal scikit-learn scipy usage
+            r"The 'sym_pos' keyword is deprecated and should be replaced by using",
         ]
         for msg in allow_DeprecationWarning_message:
             warnings.filterwarnings("default", category=DeprecationWarning, message=msg)
