@@ -12,7 +12,6 @@
 
 """Class for holding evolution result."""
 from __future__ import annotations
-from typing import Tuple
 
 from qiskit import QuantumCircuit
 from qiskit.algorithms.list_or_dict import ListOrDict
@@ -20,12 +19,20 @@ from ..algorithm_result import AlgorithmResult
 
 
 class EvolutionResult(AlgorithmResult):
-    """Class for holding evolution result."""
+    """
+    Class for holding evolution result.
+
+    Attributes:
+        evolved_state (QuantumCircuit): An evolved quantum state.
+        aux_ops_evaluated (ListOrDict[tuple[complex, complex]] | None): Optional list of
+            observables for which expected values on an evolved state are calculated. These values
+            are in fact tuples formatted as (mean, standard deviation).
+    """
 
     def __init__(
         self,
         evolved_state: QuantumCircuit,
-        aux_ops_evaluated: ListOrDict[Tuple[complex, complex]] | None = None,
+        aux_ops_evaluated: ListOrDict[tuple[complex, complex]] | None = None,
     ):
         """
         Args:

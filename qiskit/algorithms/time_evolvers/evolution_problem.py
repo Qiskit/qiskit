@@ -12,12 +12,14 @@
 
 """Evolution problem class."""
 from __future__ import annotations
-from typing import Dict
+
+from typing import Mapping
 
 from qiskit import QuantumCircuit
-from qiskit.circuit import Parameter
+from qiskit.circuit import Parameter, ParameterExpression
 from qiskit.opflow import PauliSumOp
 from ..list_or_dict import ListOrDict
+from ...quantum_info import Statevector
 from ...quantum_info.operators.base_operator import BaseOperator
 
 
@@ -26,17 +28,33 @@ class EvolutionProblem:
 
     This class is the input to time evolution algorithms and must contain information on the total
     evolution time, a quantum state to be evolved and under which Hamiltonian the state is evolved.
+
+    Attributes:
+        hamiltonian (BaseOperator | PauliSumOp): The Hamiltonian under which to evolve the system.
+        initial_state (QuantumCircuit | Statevector | None): The quantum state to be evolved for
+            methods like Trotterization. For variational time evolutions, where the evolution
+            happens in an ansatz, this argument is not required.
+        aux_operators (ListOrDict[BaseOperator | PauliSumOp] | None): Optional list of auxiliary
+            operators to be evaluated with the evolved ``initial_state`` and their expectation
+            values returned.
+        truncation_threshold (float): Defines a threshold under which values can be assumed to be 0.
+            Used when ``aux_operators`` is provided.
+        t_param (Parameter | None): Time parameter in case of a time-dependent Hamiltonian. This
+            free parameter must be within the ``hamiltonian``.
+        param_value_dict (dict[Parameter, complex] | None): Maps free parameters in the problem to
+            values. Depending on the algorithm, it might refer to e.g. a Hamiltonian or an initial
+            state.
     """
 
     def __init__(
         self,
         hamiltonian: BaseOperator | PauliSumOp,
         time: float,
-        initial_state: QuantumCircuit | None = None,
+        initial_state: QuantumCircuit | Statevector | None = None,
         aux_operators: ListOrDict[BaseOperator | PauliSumOp] | None = None,
         truncation_threshold: float = 1e-12,
         t_param: Parameter | None = None,
-        param_value_dict: Dict[Parameter, complex]
+        param_value_dict: Mapping[Parameter, complex]
         | None = None,  # parametrization will become supported in BaseOperator soon
     ):
         """
@@ -63,6 +81,10 @@ class EvolutionProblem:
         self.param_value_dict = param_value_dict
         self.hamiltonian = hamiltonian
         self.time = time
+        if isinstance(initial_state, Statevector):
+            circuit = QuantumCircuit(initial_state.num_qubits)
+            circuit.prepare_state(initial_state.data)
+            initial_state = circuit
         self.initial_state = initial_state
         self.aux_operators = aux_operators
         self.truncation_threshold = truncation_threshold
@@ -92,5 +114,7 @@ class EvolutionProblem:
         Raises:
             ValueError: If Hamiltonian parameters cannot be bound with data provided.
         """
-        if isinstance(self.hamiltonian, PauliSumOp) and self.hamiltonian.parameters:
+        if isinstance(self.hamiltonian, PauliSumOp) and isinstance(
+            self.hamiltonian.coeff, ParameterExpression
+        ):
             raise ValueError("A global parametrized coefficient for PauliSumOp is not allowed.")
