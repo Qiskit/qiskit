@@ -70,7 +70,7 @@ You can save the figure to file either by passing the file name to ``filename`` 
 `matplotlib.figure.Figure.savefig
 <https://matplotlib.org/stable/api/figure_api.html#matplotlib.figure.Figure.savefig>`_ method.
 
-.. jupyter-execute::
+.. code-block:: python
 
    plot_histogram(data, filename='new_hist.png')
 
