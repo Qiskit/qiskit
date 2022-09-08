@@ -37,11 +37,21 @@ class EquivalenceLibrary:
 
         Args:
             base (Optional[EquivalenceLibrary]):  Base equivalence library to
-                will be referenced if an entry is not found in this library.
+                be referenced if an entry is not found in this library.
         """
         self._base = base
 
         self._map = {}
+
+        self._graph = rx.PyDiGraph()
+        self._nodes_to_indices = dict()
+        self._next_node = -1
+
+    def _lazy_setdefault(self, key):
+        if key not in self._nodes_to_indices:
+            self._next_node += 1
+            self._nodes_to_indices[key] = self._graph.add_node(key)
+        return self._nodes_to_indices[key]
 
     def add_equivalence(self, gate, equivalent_circuit):
         """Add a new equivalence to the library. Future queries for the Gate
@@ -64,6 +74,21 @@ class EquivalenceLibrary:
         key = Key(name=gate.name, num_qubits=gate.num_qubits)
 
         equiv = Equivalence(params=gate.params.copy(), circuit=equivalent_circuit.copy())
+
+        target = self._lazy_setdefault(key)
+
+        sources = {
+            Key(name=instruction.operation.name, num_qubits=len(instruction.qubits))
+            for instruction in equivalent_circuit
+        }
+        edges = [
+            (self._lazy_setdefault(source), target, {"index": self._next_node, "rule": equiv, "source": source})
+            for source in sources
+        ]
+
+        self._graph.add_edges_from(edges)
+
+
 
         if key not in self._map:
             self._map[key] = Entry(search_base=True, equivalences=[])
