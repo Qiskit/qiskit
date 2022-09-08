@@ -105,6 +105,9 @@ def _extend_docstring(func, version, kwarg_map):
     else:
         docstr_lines = ["DEPRECATED"]
 
+    # Mostly based on:
+    # https://peps.python.org/pep-0257/#handling-docstring-indentation
+    # --v-v-v-v-v-v-v--
     indent = 1000
     first_empty_line = None
     for line_no, line in enumerate(docstr_lines[1:], start=1):
@@ -119,6 +122,7 @@ def _extend_docstring(func, version, kwarg_map):
     spaces = ""
     if indent != 1000:
         spaces = " " * indent
+    # --^-^-^-^-^-^-^--
 
     new_doc_str_lines = docstr_lines[:first_empty_line]
     if None in kwarg_map:
