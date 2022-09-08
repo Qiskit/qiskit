@@ -15,7 +15,6 @@ Primitive result abstract base class
 
 from abc import ABC
 from dataclasses import fields
-from functools import cached_property
 from typing import Any, Sized, Tuple
 
 
@@ -41,23 +40,23 @@ class BasePrimitiveResult(ABC):
             if len(value) != self.num_experiments:
                 raise ValueError("Inconsistent number of experiments across data fields.")
 
-    @cached_property
+    @property
     def num_experiments(self) -> int:
         """Number of experiments in any inheriting result dataclass."""
         value: Sized = self._field_values[0]
         return len(value)
 
-    @cached_property
+    @property
     def experiments(self) -> Tuple[Tuple[Any, ...], ...]:
         """Experiment data tuples from any inheriting result dataclass."""
         return tuple(zip(*self._field_values))
 
-    @cached_property
+    @property
     def _field_names(self) -> Tuple[str, ...]:
         """Tuple of field names in any inheriting result dataclass."""
         return tuple(field.name for field in fields(self))
 
-    @cached_property
+    @property
     def _field_values(self) -> Tuple[Any, ...]:
         """Tuple of field values in any inheriting result dataclass."""
         return tuple(getattr(self, name) for name in self._field_names)
