@@ -11,8 +11,7 @@
 # that they have been altered from the originals.
 
 """Result object for p-VQD."""
-
-from typing import List, Tuple
+from __future__ import annotations
 
 import numpy as np
 
@@ -26,12 +25,12 @@ class PVQDResult(EvolutionResult):
     def __init__(
         self,
         evolved_state: QuantumCircuit,
-        aux_ops_evaluated: List[Tuple[complex, complex]] | None = None,
-        times: List[float] | None = None,
-        parameters: List[np.ndarray] | None = None,
-        fidelities: List[float] | None = None,
+        aux_ops_evaluated: list[tuple[complex, complex]] | None = None,
+        times: list[float] | None = None,
+        parameters: list[np.ndarray] | None = None,
+        fidelities: list[float] | None = None,
         estimated_error: float | None = None,
-        observables: List[List[float]] | None = None,
+        observables: list[list[float]] | None = None,
     ):
         """
         Args:

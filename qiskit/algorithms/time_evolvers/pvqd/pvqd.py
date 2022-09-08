@@ -11,19 +11,20 @@
 # that they have been altered from the originals.
 
 """The projected Variational Quantum Dynamics Algorithm."""
+from __future__ import annotations
 
-from typing import List, Tuple, Callable
 import logging
+from typing import Callable
 
 import numpy as np
 
 from qiskit import QiskitError
 from qiskit.algorithms.optimizers import Optimizer, Minimizer
-from qiskit.circuit import QuantumCircuit, ParameterVector
+from qiskit.circuit import QuantumCircuit, ParameterVector, Parameter
 from qiskit.circuit.library import PauliEvolutionGate
 from qiskit.extensions import HamiltonianGate
-from qiskit.opflow import ExpectationBase, MatrixOp, PauliSumOp
-from qiskit.primitives import BaseEstimator, BaseSampler
+from qiskit.opflow import MatrixOp, PauliSumOp
+from qiskit.primitives import BaseEstimator
 from qiskit.quantum_info.operators.base_operator import BaseOperator
 from qiskit.synthesis import EvolutionSynthesis, LieTrotter
 from .pvqd_result import PVQDResult
@@ -31,7 +32,7 @@ from .utils import _get_observable_evaluator, _is_gradient_supported
 from ..evolution_problem import EvolutionProblem
 from ..evolution_result import EvolutionResult
 from ..real_evolver import RealEvolver
-from ...state_fidelities import ComputeUncompute, BaseStateFidelity
+from ...state_fidelities import BaseStateFidelity
 
 logger = logging.getLogger(__name__)
 
@@ -51,7 +52,6 @@ class PVQD(RealEvolver):
 
         ansatz (QuantumCircuit): The parameterized circuit representing the time-evolved state.
         initial_parameters (np.ndarray): The parameters of the ansatz at time 0.
-        expectation (ExpectationBase): The method to compute expectation values.
         optimizer (Optional[Union[Optimizer, Minimizer]]): The classical optimization routine
             used to maximize the fidelity of the Trotter step and ansatz.
         num_timesteps (Optional[int]): The number of timesteps to take. If None, it is automatically
@@ -74,10 +74,9 @@ class PVQD(RealEvolver):
 
             from qiskit import BasicAer
             from qiskit.circuit.library import EfficientSU2
-            from qiskit.opflow import X, Z, I, MatrixExpectation
+            from qiskit.opflow import X, Z, I
 
             backend = BasicAer.get_backend("statevector_simulator")
-            expectation = MatrixExpectation()
             hamiltonian = 0.1 * (Z ^ Z) + (I ^ X) + (X ^ I)
             observable = Z ^ Z
             ansatz = EfficientSU2(2, reps=1)
@@ -93,7 +92,6 @@ class PVQD(RealEvolver):
                 num_timesteps=100,
                 optimizer=optimizer,
                 quantum_instance=backend,
-                expectation=expectation
             )
 
             # specify the evolution problem
@@ -115,7 +113,6 @@ class PVQD(RealEvolver):
         self,
         ansatz: QuantumCircuit,
         initial_parameters: np.ndarray,
-        expectation: ExpectationBase,
         fidelity_primitive: BaseStateFidelity,
         estimator: BaseEstimator | None = None,
         optimizer: Optimizer | Minimizer | None = None,
@@ -130,7 +127,6 @@ class PVQD(RealEvolver):
                 time evolved quantum state.
             initial_parameters: The initial parameters for the ansatz. Together with the ansatz,
                 these define the initial state of the time evolution.
-            expectation: The expectation converter to evaluate expectation values.
             optimizer: The classical optimizers used to minimize the overlap between
                 Trotterization and ansatz. Can be either a :class:`.Optimizer` or a callable
                 using the :class:`.Minimizer` protocol. This argument is optional since it is
@@ -157,7 +153,6 @@ class PVQD(RealEvolver):
         self.num_timesteps = num_timesteps
         self.optimizer = optimizer
         self.initial_guess = initial_guess
-        self.expectation = expectation
         self.estimator = estimator
         self.fidelity_primitive = fidelity_primitive
         self.evolution = evolution
@@ -170,7 +165,7 @@ class PVQD(RealEvolver):
         theta: np.ndarray,
         dt: float,
         initial_guess: np.ndarray,
-    ) -> Tuple[np.ndarray, float]:
+    ) -> tuple[np.ndarray, float]:
         """Perform a single time step.
 
         Args:
@@ -210,7 +205,7 @@ class PVQD(RealEvolver):
         ansatz: QuantumCircuit,
         dt: float,
         current_parameters: np.ndarray,
-    ) -> Tuple[Callable[[np.ndarray], float], Callable[[np.ndarray], np.ndarray]] | None:
+    ) -> tuple[Callable[[np.ndarray], float], Callable[[np.ndarray], np.ndarray]] | None:
 
         """Get a function to evaluate the infidelity between Trotter step and ansatz.
 
@@ -241,7 +236,7 @@ class PVQD(RealEvolver):
         x = ParameterVector("w", ansatz.num_parameters)
         shifted = ansatz.assign_parameters(current_parameters + x)
 
-        def evaluate_loss(displacement: np.ndarray | List[np.ndarray]) -> float | List[float]:
+        def evaluate_loss(displacement: np.ndarray | list[np.ndarray]) -> float | list[float]:
             """Evaluate the overlap of the ansatz with the Trotterized evolution.
 
             Args:
@@ -256,14 +251,20 @@ class PVQD(RealEvolver):
             else:
                 value_dict = dict(zip(x, displacement))
 
-            job = self.fidelity_primitive.run(
-                [trotterized], [shifted], None, list(value_dict.values())
-            )
-            fidelity = job.result().fidelities[0]
+            param_dicts = self._transpose_param_dicts(value_dict)
+            num_of_param_sets = len(param_dicts)
+            states1 = [trotterized] * num_of_param_sets
+            states2 = [shifted] * num_of_param_sets
+            param_dicts2 = [list(param_dict.values()) for param_dict in param_dicts]
+            # the first state does not have free parameters so values_1 will be None by default
+            job = self.fidelity_primitive.run(states1, states2, values_2=param_dicts2)
+            fidelities = job.result().fidelities
+            if len(fidelities) == 1:
+                fidelities = fidelities[0]
 
-            # in principle we could add different loss functions here, but we're currently
+            # in principle, we could add different loss functions here, but we're currently
             # not aware of a use-case for a different one than in the paper
-            return 1 - np.abs(fidelity.eval()) ** 2
+            return 1 - np.abs(fidelities) ** 2
 
         if _is_gradient_supported(ansatz) and self.use_parameter_shift:
 
@@ -294,6 +295,19 @@ class PVQD(RealEvolver):
             evaluate_gradient = None
 
         return evaluate_loss, evaluate_gradient
+
+    def _transpose_param_dicts(self, params: dict) -> list[dict[Parameter, float]]:
+        p_0 = list(params.values())[0]
+        if isinstance(p_0, (list, np.ndarray)):
+            num_parameterizations = len(p_0)
+            param_bindings = [
+                {param: value_list[i] for param, value_list in params.items()}  # type: ignore
+                for i in range(num_parameterizations)
+            ]
+        else:
+            param_bindings = [params]
+
+        return param_bindings
 
     def evolve(self, evolution_problem: EvolutionProblem) -> EvolutionResult:
         """
@@ -378,7 +392,7 @@ class PVQD(RealEvolver):
         if skip is None:
             skip = {}
 
-        required_attributes = {"quantum_instance", "optimizer"}.difference(skip)
+        required_attributes = {"fidelity_primitive", "optimizer"}.difference(skip)
 
         for attr in required_attributes:
             if getattr(self, attr, None) is None:

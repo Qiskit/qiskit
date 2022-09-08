@@ -13,8 +13,8 @@
 
 """Utilities for p-VQD."""
 from __future__ import annotations
-from typing import List, Callable
 import logging
+from typing import Callable
 
 import numpy as np
 
@@ -71,14 +71,12 @@ def _is_gradient_supported(ansatz: QuantumCircuit) -> bool:
 
 def _get_observable_evaluator(
     ansatz: QuantumCircuit,
-    observables: BaseOperator | List[BaseOperator],
+    observables: BaseOperator | list[BaseOperator],
     estimator: BaseEstimator,
-) -> Callable[[np.ndarray], float | List[float]]:
+) -> Callable[[np.ndarray], float | list[float]]:
     """Get a callable to evaluate a (list of) observable(s) for given circuit parameters."""
 
-    ansatz_parameters = ansatz.parameter
-
-    def evaluate_observables(theta: np.ndarray) -> float | List[float]:
+    def evaluate_observables(theta: np.ndarray) -> float | list[float]:
         """Evaluate the observables for the ansatz parameters ``theta``.
 
         Args:
@@ -87,12 +85,17 @@ def _get_observable_evaluator(
         Returns:
             The observables evaluated at the ansatz parameters.
         """
-        value_dict = dict(zip(ansatz_parameters, theta))
-        states = [ansatz] * len(observables)
+        if isinstance(observables, list):
+            num_observables = len(observables)
+            obs = observables
+        else:
+            num_observables = 1
+            obs = [observables]
+        states = [ansatz] * num_observables
+        parameter_values = [theta] * num_observables
 
-        estimator_job = estimator.run(
-            states, observables, parameter_values=list(value_dict.values())
-        )
-        return estimator_job.result().values()
+        estimator_job = estimator.run(states, obs, parameter_values=parameter_values)
+
+        return estimator_job.result().values
 
     return evaluate_observables
