@@ -51,7 +51,7 @@ A script is available [here](examples/python/ibmq/hello_quantum.py), where we al
 ### Executing your code on a real quantum chip
 
 You can also use Qiskit to execute your code on a
-**real quantum chip**. 
+**real quantum chip**.
 In order to do so, you need to configure Qiskit with credentials for using a quantum computer cloud provider. For example, to connect with IBM Quantum account:
 
 #### Configure your IBM Quantum credentials
