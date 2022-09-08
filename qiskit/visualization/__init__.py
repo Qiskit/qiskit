@@ -48,8 +48,8 @@ individual documentation for exact details.
 
    from qiskit.visualization import plot_histogram
 
-   counts1 = {'00': 525, '11': 499}
-   counts2 = {'00': 511, '11': 514}
+   counts1 = {'00': 499, '11': 501}
+   counts2 = {'00': 511, '11': 489}
 
    data = [counts1, counts2]
    plot_histogram(data)
