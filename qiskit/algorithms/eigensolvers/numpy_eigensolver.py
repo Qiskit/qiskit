@@ -139,24 +139,22 @@ class NumPyEigensolver(Eigensolver):
             eigval = eigval[indices]
             eigvec = eigvec[:, indices]
         self._ret.eigenvalues = eigval
-        self._ret.eigenstates = eigvec.T
+        self._eigenstates = eigvec.T
 
     def _get_ground_state_energy(self, operator: OperatorBase) -> None:
-        if self._ret.eigenvalues is None or self._ret.eigenstates is None:
+        if self._ret.eigenvalues is None or self._eigenstates is None:
             self._solve(operator)
 
     def _get_energies(
         self, operator: OperatorBase, aux_operators: Optional[ListOrDict[OperatorBase]]
     ) -> None:
-        if self._ret.eigenvalues is None or self._ret.eigenstates is None:
+        if self._ret.eigenvalues is None or self._eigenstates is None:
             self._solve(operator)
 
         if aux_operators is not None:
             aux_op_vals = []
             for i in range(self._k):
-                aux_op_vals.append(
-                    self._eval_aux_operators(aux_operators, self._ret.eigenstates[i])
-                )
+                aux_op_vals.append(self._eval_aux_operators(aux_operators, self._eigenstates[i]))
             self._ret.aux_operator_eigenvalues = aux_op_vals
 
     @staticmethod
@@ -234,7 +232,7 @@ class NumPyEigensolver(Eigensolver):
             aux_ops = []
             cnt = 0
             for i in range(len(self._ret.eigenvalues)):
-                eigvec = self._ret.eigenstates[i]
+                eigvec = self._eigenstates[i]
                 eigval = self._ret.eigenvalues[i]
                 if self._ret.aux_operator_eigenvalues is not None:
                     aux_op = self._ret.aux_operator_eigenvalues[i]
@@ -249,7 +247,7 @@ class NumPyEigensolver(Eigensolver):
                 if cnt == k_orig:
                     break
 
-            self._ret.eigenstates = np.array(eigvecs)
+            self._eigenstates = np.array(eigvecs)
             self._ret.eigenvalues = np.array(eigvals)
             # conversion to np.array breaks in case of aux_ops
             self._ret.aux_operator_eigenvalues = aux_ops
@@ -258,8 +256,8 @@ class NumPyEigensolver(Eigensolver):
 
         # evaluate ground state after filtering (in case a filter is set)
         self._get_ground_state_energy(operator)
-        if self._ret.eigenstates is not None:
-            self._ret.eigenstates = ListOp([StateFn(vec) for vec in self._ret.eigenstates])
+        if self._eigenstates is not None:
+            self._eigenstates = ListOp([StateFn(vec) for vec in self._eigenstates])
 
         logger.debug("EigensolverResult:\n%s", self._ret)
         return self._ret
