@@ -206,7 +206,7 @@ class AmplitudeEstimation(AmplitudeEstimator):
 
         Args:
             circuit_results: The circuit result from the QAE circuit. Can be either a counts dict
-                or a statevector.
+                or a statevector or a quasi-probabilities dict.
             threshold: Measurements with probabilities below the threshold are discarded.
 
         Returns:
@@ -215,7 +215,10 @@ class AmplitudeEstimation(AmplitudeEstimator):
         """
         # compute grid sample and measurement dicts
         if isinstance(circuit_results, dict):
-            samples, measurements = self._evaluate_count_results(circuit_results)
+            if set(map(type, circuit_results.values())) == {int}:
+                samples, measurements = self._evaluate_count_results(circuit_results)
+            else:
+                samples, measurements = self._evaluate_quasi_probabilities_results(circuit_results)
         else:
             samples, measurements = self._evaluate_statevector_results(circuit_results)
 
@@ -241,6 +244,19 @@ class AmplitudeEstimation(AmplitudeEstimator):
             # due to the finite accuracy of the sine, we round the result to 7 decimals
             a = np.round(np.power(np.sin(y * np.pi / 2**self._m), 2), decimals=7)
             samples[a] = samples.get(a, 0) + probability
+
+        return samples, measurements
+
+    def _evaluate_quasi_probabilities_results(self, circuit_results):
+        # construct probabilities
+        measurements = OrderedDict()
+        samples = OrderedDict()
+        for state, probability in circuit_results.items():
+            state = state[::-1]
+            y = int(state[: self._m], 2)
+            measurements[y] = probability
+            a = np.round(np.power(np.sin(y * np.pi / 2**self._m), 2), decimals=7)
+            samples[a] = samples.get(a, 0.0) + probability
 
         return samples, measurements
 
@@ -352,8 +368,6 @@ class AmplitudeEstimation(AmplitudeEstimator):
         result.num_evaluation_qubits = self._m
         result.post_processing = estimation_problem.post_processing
 
-        measurements = OrderedDict()
-        samples = OrderedDict()
         if self._sampler is not None:
             circuit = self.construct_circuit(estimation_problem, measurement=True)
             try:
@@ -362,20 +376,11 @@ class AmplitudeEstimation(AmplitudeEstimator):
             except Exception as exc:
                 raise AlgorithmError("The job was not completed successfully. ") from exc
 
-            result.shots = self._sampler.run_options.get("shots", 1)
-            circuit_results = {
+            result.circuit_results = {
                 np.binary_repr(k, circuit.num_qubits): v for k, v in ret.quasi_dists[0].items()
             }
-            for state, probability in circuit_results.items():
-                state = state[::-1]
-                y = int(state[: self._m], 2)
-                measurements[y] = probability
-                a = np.round(np.power(np.sin(y * np.pi / 2**self._m), 2), decimals=7)
-                samples[a] = samples.get(a, 0.0) + probability
-            # cutoff probabilities below the threshold
-            threshold: float = 1e-6
-            samples = {a: p for a, p in samples.items() if p > threshold}
-            measurements = {y: p for y, p in measurements.items() if p > threshold}
+            result.shots = self._sampler.run_options.get("shots", 1)
+            samples, measurements = self.evaluate_measurements(result.circuit_results)
         elif self._quantum_instance.is_statevector:
             circuit = self.construct_circuit(estimation_problem, measurement=False)
             # run circuit on statevector simulator
