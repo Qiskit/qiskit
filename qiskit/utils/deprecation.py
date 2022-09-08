@@ -109,22 +109,21 @@ def _extend_docstring(func, version, kwarg_map):
     # https://peps.python.org/pep-0257/#handling-docstring-indentation
     # --v-v-v-v-v-v-v--
     indent = 1000
-    first_empty_line = None
+    pre_args_line = None
     for line_no, line in enumerate(docstr_lines[1:], start=1):
         stripped = line.lstrip()
         if stripped:
             indent = min(indent, len(line) - len(stripped))
-        else:
-            if first_empty_line is None:
-                first_empty_line = line_no
-    if first_empty_line is None:
-        first_empty_line = len(docstr_lines)
+        if line.lstrip() == "Args:" and pre_args_line is None:
+            pre_args_line = line_no - 1
+    if pre_args_line is None:
+        pre_args_line = len(docstr_lines)
     spaces = ""
     if indent != 1000:
         spaces = " " * indent
     # --^-^-^-^-^-^-^--
 
-    new_doc_str_lines = docstr_lines[:first_empty_line]
+    new_doc_str_lines = docstr_lines[:pre_args_line]
     if None in kwarg_map:
         new_doc_str_lines += ["", spaces + f".. deprecated:: {version}"]
         for msg_line in kwarg_map[None]:
@@ -133,7 +132,7 @@ def _extend_docstring(func, version, kwarg_map):
     arg_indent = indent
     args_section = False
     deprecated_arg = False
-    for docstr_line in docstr_lines[first_empty_line:]:
+    for docstr_line in docstr_lines[pre_args_line:]:
         stripped = docstr_line.lstrip()
         current_indent = len(docstr_line) - len(stripped)
         if args_section:

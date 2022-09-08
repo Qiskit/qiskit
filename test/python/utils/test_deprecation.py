@@ -115,10 +115,10 @@ class TestDeprecation(QiskitTestCase):
         expected = """A multi-line
         docstring.
 
+        Here are more details.
+
         .. deprecated:: 1.2.3
           The DummyClass.foo() method is being deprecated. Use the DummyClass.some_othermethod()
-
-        Here are more details.
 
         Args:
             index_arg2: `index_arg2` description
