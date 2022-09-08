@@ -225,6 +225,10 @@ class TestCNOTDihedral(unittest.TestCase):
         elemcs10 = CNOTDihedral(circcs10)
         self.assertEqual(elem1, elemcs10, "Error: 2-qubit CS identity does not hold")
 
+        circ_cs = CSGate()
+        elem_cs = CNOTDihedral(circ_cs)
+        self.assertEqual(elem1, elem_cs, "Error: 2-qubit CS identity does not hold")
+
         # TI*CS*TdgI = CS
         #
         #      ┌───┐┌───┐                 ┌─────┐
@@ -346,6 +350,10 @@ class TestCNOTDihedral(unittest.TestCase):
         circsdg10.csdg(1, 0)
         elemcsdg10 = CNOTDihedral(circsdg10)
         self.assertEqual(elem1, elemcsdg10, "Error: 2-qubit CSdg identity does not hold")
+
+        circ_csdg = CSdgGate()
+        elem_csdg = CNOTDihedral(circ_csdg)
+        self.assertEqual(elem1, elem_csdg, "Error: 2-qubit CS identity does not hold")
 
         # XI*CS*XI*ISdg = CSdg
         #
@@ -578,9 +586,13 @@ class TestCNOTDihedral(unittest.TestCase):
         """Tests identities for CCZ gate"""
 
         # Check the definition of a CCZ gate
+        circ_ccz = CCZGate()
+        elem_ccz = CNOTDihedral(circ_ccz)
+
         circ1 = QuantumCircuit(3)
         circ1.ccz(0, 1, 2)
         elem1 = CNOTDihedral(circ1)
+        self.assertEqual(elem1, elem_ccz, "Error: 3-qubit CCZ identity does not hold")
 
         circ2 = QuantumCircuit(3)
         circ2.cx(1, 2)
