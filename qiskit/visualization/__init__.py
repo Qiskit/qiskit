@@ -44,6 +44,8 @@ individual documentation for exact details.
   and used. Additionally, if specified there will be no returned ``Figure`` since it is redundant.
 * ``filename`` (``str``): file path to save image to.
 
+The following example demonstrates the common usage of these arguments:
+
 .. jupyter-execute::
 
    from qiskit.visualization import plot_histogram
