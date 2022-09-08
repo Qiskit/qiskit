@@ -21,13 +21,13 @@ from qiskit.algorithms.time_evolvers.evolution_problem import EvolutionProblem
 from qiskit.algorithms.time_evolvers.evolution_result import EvolutionResult
 from qiskit.algorithms.time_evolvers.real_evolver import RealEvolver
 from qiskit.opflow import (
-    PauliOp,
     CircuitOp,
     PauliSumOp,
     StateFn,
 )
 from qiskit.circuit.library import PauliEvolutionGate
 from qiskit.primitives import BaseEstimator
+from qiskit.quantum_info import Pauli
 from qiskit.synthesis import ProductFormula, LieTrotter
 
 
@@ -40,7 +40,7 @@ class TrotterQRTE(RealEvolver):
         .. jupyter-execute::
 
             from qiskit.opflow import X, Z, Zero
-            from qiskit.algorithms import EvolutionProblem, TrotterQRTE
+            from qiskit.algorithms.time_evolvers import EvolutionProblem, TrotterQRTE
 
             operator = X + Z
             initial_state = Zero
@@ -66,21 +66,21 @@ class TrotterQRTE(RealEvolver):
         if product_formula is None:
             product_formula = LieTrotter()
         self.product_formula = product_formula
-        self.estimator = estimator
+        self._estimator = estimator
 
     @property
     def estimator(self) -> BaseEstimator | None:
         """
         Returns an estimator.
         """
-        return self.estimator
+        return self._estimator
 
     @estimator.setter
     def estimator(self, estimator: BaseEstimator) -> None:
         """
         Sets an estimator.
         """
-        self.estimator = estimator
+        self._estimator = estimator
 
     @classmethod
     def supports_aux_operators(cls) -> bool:
@@ -105,7 +105,7 @@ class TrotterQRTE(RealEvolver):
 
         Args:
             evolution_problem: Instance defining evolution problem. For the included Hamiltonian,
-                ``PauliOp``, ``SummedOp`` or ``PauliSumOp`` are supported by TrotterQRTE.
+                ``Pauli`` or ``PauliSumOp`` are supported by TrotterQRTE.
 
         Returns:
             Evolution result that includes an evolved state as a quantum circuit and, optionally,
@@ -130,9 +130,9 @@ class TrotterQRTE(RealEvolver):
                 "aux_operators were provided for evaluations but no ``estimator`` was provided."
             )
         hamiltonian = evolution_problem.hamiltonian
-        if not isinstance(hamiltonian, (PauliOp, PauliSumOp)):
+        if not isinstance(hamiltonian, (Pauli, PauliSumOp)):
             raise ValueError(
-                "TrotterQRTE only accepts PauliOp | " f"PauliSumOp, {type(hamiltonian)} provided."
+                f"TrotterQRTE only accepts Pauli | PauliSumOp, {type(hamiltonian)} provided."
             )
         # the evolution gate
         evolution_gate = CircuitOp(

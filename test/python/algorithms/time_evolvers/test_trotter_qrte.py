@@ -13,7 +13,8 @@
 """ Test TrotterQRTE. """
 
 import unittest
-from test.python.opflow import QiskitOpflowTestCase
+
+from test.python.algorithms import QiskitAlgorithmsTestCase
 from ddt import ddt, data, unpack
 import numpy as np
 from numpy.testing import assert_raises
@@ -39,7 +40,7 @@ from qiskit.synthesis import SuzukiTrotter, QDrift
 
 
 @ddt
-class TestTrotterQRTE(QiskitOpflowTestCase):
+class TestTrotterQRTE(QiskitAlgorithmsTestCase):
     """TrotterQRTE tests."""
 
     def setUp(self):
@@ -116,7 +117,7 @@ class TestTrotterQRTE(QiskitOpflowTestCase):
             ),
         ),
         (
-            Y ^ Y,
+            Pauli("YY"),
             VectorStateFn(
                 Statevector(
                     [0.54030231 + 0.0j, 0.0 + 0.0j, 0.0 + 0.0j, 0.0 + 0.84147098j], dims=(2, 2)
