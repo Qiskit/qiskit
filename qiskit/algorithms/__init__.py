@@ -297,7 +297,7 @@ from .evolvers.trotterization import TrotterQRTE
 from .evolvers.variational.var_qite import VarQITE
 from .evolvers.variational.var_qrte import VarQRTE
 
-from .evolvers.pvqd import PVQD, PVQDResult
+from .time_evolvers.pvqd import PVQD, PVQDResult
 
 __all__ = [
     "AlgorithmJob",
