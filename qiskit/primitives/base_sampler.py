@@ -350,7 +350,7 @@ class BaseSampler(ABC):
         if (
             parameter_values is not None
             and len(parameter_values) > 1
-            and not isinstance(parameter_values[0], Sequence)
+            and not isinstance(parameter_values[0], (Sequence, Iterable))
         ):
             parameter_values = [parameter_values]  # type: ignore[assignment]
         if (
