@@ -26,13 +26,13 @@ from qiskit.opflow import PauliSumOp
 from qiskit.primitives import BaseEstimator
 from qiskit.quantum_info.operators.base_operator import BaseOperator
 
-
 from ..exceptions import AlgorithmError
 from ..list_or_dict import ListOrDict
 from ..optimizers import Optimizer, Minimizer
 from ..variational_algorithm import VariationalAlgorithm, VariationalResult
 from .minimum_eigensolver import MinimumEigensolver, MinimumEigensolverResult
 
+from qiskit.algorithms.observables_evaluator import eval_observables
 
 logger = logging.getLogger(__name__)
 
@@ -184,7 +184,6 @@ class VQE(VariationalAlgorithm, MinimumEigensolver):
         aux_values = None
         if aux_operators:
             # not None and not empty list
-            # TODO this is going to be replaced by eval_observables (see PR #8683)
             aux_values = self._eval_aux_ops(ansatz, optimal_point, aux_operators)
 
         result = VQEResult()
@@ -272,19 +271,21 @@ class VQE(VariationalAlgorithm, MinimumEigensolver):
     ) -> ListOrDict[tuple(complex, complex)]:
         """Compute auxiliary operator eigenvalues."""
 
-        # TODO this is going to be replaced by eval_observables (see PR #8683)
-
-        if isinstance(aux_operators, dict):
-            aux_ops = list(aux_operators.values())
-        else:
+        if isinstance(aux_operators, list):
             non_nones = [i for i, x in enumerate(aux_operators) if x is not None]
-            aux_ops = [x for x in aux_operators if x is not None]
+            filtered_ops = [x for x in aux_operators if x is not None]
+        else:
+            # filtered_ops = {k: v for k, v in aux_operators.items() if v is not None}
+            filtered_ops = list(aux_operators.values())
 
+        # TODO this is going to be replaced by eval_observables (see PR #8683)
+        # bound_ansatz = ansatz.bind_parameters(parameters)
+        # aux_values = eval_observables(self.estimator, bound_ansatz, filtered_ops)
         aux_values = None
-        if aux_ops:
-            num_aux_ops = len(aux_ops)
+        if filtered_ops:
+            num_aux_ops = len(filtered_ops)
             aux_job = self.estimator.run(
-                [ansatz] * num_aux_ops, aux_ops, [parameters] * num_aux_ops
+                [ansatz] * num_aux_ops, filtered_ops, [parameters] * num_aux_ops
             )
             aux_eigs = aux_job.result().values
             aux_eigs = list(zip(aux_eigs, [0] * len(aux_eigs)))
@@ -295,7 +296,14 @@ class VQE(VariationalAlgorithm, MinimumEigensolver):
                 for i, x in enumerate(non_nones):
                     aux_values[x] = aux_eigs[i]
 
-        return aux_values
+        if isinstance(aux_values, list):
+            aux_eigs = [None] * len(aux_operators)
+            for i, x in enumerate(non_nones):
+                aux_eigs[x] = aux_values[i]
+        else:
+            aux_eigs = aux_values
+
+        return aux_eigs
 
 
 class VQEResult(VariationalResult, MinimumEigensolverResult):
