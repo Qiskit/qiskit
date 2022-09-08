@@ -88,12 +88,12 @@ class TestPVQD(QiskitTestCase):
 
         # run pVQD keeping track of the energy and the magnetization
         pvqd = PVQD(
+            fidelity_primitive,
             self.ansatz,
             self.initial_parameters,
-            fidelity_primitive,
             estimator,
-            num_timesteps=num_timesteps,
             optimizer=optimizer,
+            num_timesteps=num_timesteps,
         )
         problem = EvolutionProblem(hamiltonian, time, aux_operators=[hamiltonian, self.observable])
         result = pvqd.evolve(problem)
@@ -113,9 +113,9 @@ class TestPVQD(QiskitTestCase):
         estimator = Estimator()
         fidelity_primitive = ComputeUncompute(sampler)
         pvqd = PVQD(
+            fidelity_primitive,
             self.ansatz,
             self.initial_parameters,
-            fidelity_primitive,
             estimator,
             optimizer=L_BFGS_B(maxiter=100),
         )
@@ -141,9 +141,9 @@ class TestPVQD(QiskitTestCase):
         fidelity_primitive = ComputeUncompute(sampler)
 
         pvqd = PVQD(
+            fidelity_primitive,
             self.ansatz,
             self.initial_parameters,
-            fidelity_primitive,
             estimator,
             use_parameter_shift=False,
         )
@@ -168,12 +168,12 @@ class TestPVQD(QiskitTestCase):
         estimator = Estimator()
         fidelity_primitive = ComputeUncompute(sampler)
         pvqd = PVQD(
+            fidelity_primitive,
             self.ansatz,
             self.initial_parameters,
-            fidelity_primitive,
             estimator,
-            num_timesteps=0,
             optimizer=L_BFGS_B(),
+            num_timesteps=0,
         )
         problem = EvolutionProblem(
             self.hamiltonian, time=0.01, aux_operators=[self.hamiltonian, self.observable]
@@ -190,12 +190,12 @@ class TestPVQD(QiskitTestCase):
         fidelity_primitive = ComputeUncompute(sampler)
 
         pvqd = PVQD(
+            fidelity_primitive,
             self.ansatz,
             self.initial_parameters,
-            fidelity_primitive,
             estimator,
-            num_timesteps=10,
             optimizer=SPSA(maxiter=0, learning_rate=0.1, perturbation=0.01),
+            num_timesteps=10,
             initial_guess=initial_guess,
         )
         problem = EvolutionProblem(
@@ -215,9 +215,9 @@ class TestPVQD(QiskitTestCase):
         fidelity_primitive = ComputeUncompute(sampler)
 
         pvqd = PVQD(
+            fidelity_primitive,
             QuantumCircuit(2),
             np.array([]),
-            fidelity_primitive,
             optimizer=SPSA(maxiter=10, learning_rate=0.1, perturbation=0.01),
         )
 
@@ -239,9 +239,9 @@ class TestPVQD(QiskitTestCase):
         fidelity_primitive = ComputeUncompute(sampler)
 
         pvqd = PVQD(
+            fidelity_primitive,
             self.ansatz,
             self.initial_parameters,
-            fidelity_primitive,
             optimizer=SPSA(maxiter=0, learning_rate=0.1, perturbation=0.01),
         )
 
@@ -294,9 +294,9 @@ class TestPVQDUtils(QiskitTestCase):
         fidelity_primitive = ComputeUncompute(sampler)
 
         pvqd = PVQD(
+            fidelity_primitive=fidelity_primitive,
             ansatz=None,
             initial_parameters=np.array([]),
-            fidelity_primitive=fidelity_primitive,
             estimator=estimator,
             optimizer=optimizer,
         )

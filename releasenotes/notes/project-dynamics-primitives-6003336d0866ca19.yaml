@@ -34,8 +34,8 @@ features:
 
         # setup the algorithm
         pvqd = PVQD(
-            ansatz,
             fidelity,
+            ansatz,
             estimator,
             initial_parameters,
             num_timesteps=100,

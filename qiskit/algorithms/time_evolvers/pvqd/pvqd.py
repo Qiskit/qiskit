@@ -70,15 +70,22 @@ class PVQD(RealEvolver):
 
         .. code-block:: python
 
-            import numpy as np
+        import numpy as np
 
+            from qiskit.algorithms.state_fidelities import ComputeUncompute
+            from qiskit.algorithms.time_evolvers.pvqd import PVQD
+            from qiskit.primitives import Estimator
             from qiskit import BasicAer
             from qiskit.circuit.library import EfficientSU2
             from qiskit.opflow import X, Z, I
+            from qiskit.quantum_info import Pauli
+            from qiskit.algorithms.optimizers import L_BFGS_B
 
-            backend = BasicAer.get_backend("statevector_simulator")
+            sampler = Sampler()
+            fidelity = ComputeUncompute(sampler)
+            estimator = Estimator()
             hamiltonian = 0.1 * (Z ^ Z) + (I ^ X) + (X ^ I)
-            observable = Z ^ Z
+            observable = Pauli("ZZ")
             ansatz = EfficientSU2(2, reps=1)
             initial_parameters = np.zeros(ansatz.num_parameters)
 
@@ -87,11 +94,12 @@ class PVQD(RealEvolver):
 
             # setup the algorithm
             pvqd = PVQD(
+                fidelity,
                 ansatz,
+                estimator,
                 initial_parameters,
                 num_timesteps=100,
                 optimizer=optimizer,
-                quantum_instance=backend,
             )
 
             # specify the evolution problem
@@ -111,9 +119,9 @@ class PVQD(RealEvolver):
 
     def __init__(
         self,
+        fidelity_primitive: BaseStateFidelity,
         ansatz: QuantumCircuit,
         initial_parameters: np.ndarray,
-        fidelity_primitive: BaseStateFidelity,
         estimator: BaseEstimator | None = None,
         optimizer: Optimizer | Minimizer | None = None,
         num_timesteps: int | None = None,
@@ -123,18 +131,20 @@ class PVQD(RealEvolver):
     ) -> None:
         """
         Args:
+            fidelity_primitive: A fidelity primitive used by the algorithm.
             ansatz: A parameterized circuit preparing the variational ansatz to model the
                 time evolved quantum state.
             initial_parameters: The initial parameters for the ansatz. Together with the ansatz,
                 these define the initial state of the time evolution.
+            estimator: An estimator primitive used for calculating expected values of auxiliary
+                operators (if provided).
             optimizer: The classical optimizers used to minimize the overlap between
                 Trotterization and ansatz. Can be either a :class:`.Optimizer` or a callable
                 using the :class:`.Minimizer` protocol. This argument is optional since it is
                 not required for :meth:`get_loss`, but it has to be set before :meth:`evolve`
                 is called.
-            num_timestep: The number of time steps. If ``None`` it will be set such that the
-            timestep
-                is close to 0.01.
+            num_timesteps: The number of time steps. If ``None`` it will be set such that the
+                timestep is close to 0.01.
             evolution: The evolution synthesis to use for the construction of the Trotter step.
                 Defaults to first-order Lie-Trotter decomposition, see also
                 :mod:`~qiskit.synthesis.evolution` for different options.
