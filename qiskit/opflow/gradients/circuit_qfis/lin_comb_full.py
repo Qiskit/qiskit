@@ -171,6 +171,10 @@ class LinCombFull(CircuitQFI):
                                     open_ctrl=True,
                                     trim_after_grad_gate=(location_j < location_i),
                                 )
+                                print(i, j)
+                                print(f'i: {gate_i}')
+                                print(qfi_circuit.draw())
+
 
                                 # create a copy of the original circuit with the same registers
                                 qfi_circuit = LinComb.apply_grad_gate(
@@ -183,6 +187,8 @@ class LinCombFull(CircuitQFI):
                                     open_ctrl=False,
                                     trim_after_grad_gate=(location_j >= location_i),
                                 )
+                                print(f'j: {gate_j}')
+                                print(qfi_circuit.draw())
 
                                 qfi_circuit.h(qr_work)
                                 # Convert the quantum circuit into a CircuitStateFn and add the

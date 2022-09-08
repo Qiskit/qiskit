@@ -281,7 +281,7 @@ class LinearCombGradientCircuit:
 
 
 def _make_lin_comb_gradient_circuit(
-    circuit: QuantumCircuit, add_measurement: bool = False
+    circuit: QuantumCircuit, add_measurement: bool = False, imaginary: bool = False
 ) -> dict[Parameter, list[LinearCombGradientCircuit]]:
     """Makes gradient circuits for the linear combination of unitaries method.
 
@@ -380,7 +380,7 @@ def _gate_gradient(gate: Gate) -> Instruction:
     raise TypeError(f"Unrecognized parameterized gate, {gate}")
 
 
-def _make_qfi_lin_comb_circuit(
+def _make_lin_comb_qfi_circuit(
     circuit: QuantumCircuit, add_measurement: bool = False
 ) -> dict[Parameter, list[LinearCombGradientCircuit]]:
     """Makes gradient circuits for the linear combination of unitaries method.
@@ -417,6 +417,7 @@ def _make_qfi_lin_comb_circuit(
     ]
 
     circuit2 = transpile(circuit, basis_gates=supported_gates, optimization_level=0)
+
     qr_aux = QuantumRegister(1, "aux")
     cr_aux = ClassicalRegister(1, "aux")
     circuit2.add_register(qr_aux)
@@ -424,16 +425,21 @@ def _make_qfi_lin_comb_circuit(
     circuit2.h(qr_aux)
     circuit2.data.insert(0, circuit2.data.pop())
     # circuit2.sdg(qr_aux)
-    circuit2.data.insert(1, circuit2.data.pop())
+    #circuit2.data.insert(1, circuit2.data.pop())
+
+    # print(circuit2)
 
     grad_dict = defaultdict(list)
     for i, (inst_i, qregs_i, _) in enumerate(circuit2.data):
         if not inst_i.is_parameterized():
             continue
         for j, (inst_j, qregs_j, _) in enumerate(circuit2.data):
-            if inst_j.is_parameterized() and j >= i:
+            if inst_j.is_parameterized():
                 param_i = inst_i.params[0]
                 param_j = inst_j.params[0]
+                if circuit2.parameters.data.index(param_i) > circuit2.parameters.data.index(param_j):
+                    continue
+                print(inst_i)
                 for p_i in param_i.parameters:
                     for p_j in param_j.parameters:
                         print(f'i={p_i}, j={p_j}')
@@ -454,9 +460,10 @@ def _make_qfi_lin_comb_circuit(
                         circuit3.h(qr_aux)
                         if add_measurement:
                             circuit3.measure(qr_aux, cr_aux)
-                        # grad_dict[p_i].append(
-                        #     LinearCombGradientCircuit(circuit3, param.gradient(p_i))
-                        # )
+                        grad_dict[circuit2.parameters.data.index(param_i),circuit2.parameters.data.index(param_j)].append(
+                            LinearCombGradientCircuit(circuit3, param_i.gradient(p_i) * param_j.gradient(p_j))
+                        )
+                        # grad_dict[p_i, p_j].append(circuit3)
                         print(circuit3)
 
     return grad_dict
