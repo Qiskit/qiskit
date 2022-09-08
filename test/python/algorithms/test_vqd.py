@@ -405,6 +405,23 @@ class TestVQD(QiskitAlgorithmsTestCase):
         self.assertAlmostEqual(result.aux_operator_eigenvalues[0][2][1], 0.0)
         self.assertAlmostEqual(result.aux_operator_eigenvalues[0][3][1], 0.0)
 
+    def test_args(self):
+        wavefunction = self.ry_wavefunction
+        vqd = VQD(
+            self.estimator,
+            self.fidelity,
+            wavefunction,
+            COBYLA(maxiter=0),
+        )
+
+        aux_op1 = PauliSumOp.from_list([("II", 2.0)])
+        aux_op2 = PauliSumOp.from_list([("II", 0.5), ("ZZ", 0.5), ("YY", 0.5), ("XX", -0.5)])
+        aux_ops = [aux_op1, aux_op2]
+        result = vqd.compute_eigenvalues(self.h2_op, aux_operators=aux_ops)
+
+        self.assertAlmostEqual(
+            result.aux_operator_eigenvalues[0][1][0], 0.6698863565455391, places=1
+        )
 
 if __name__ == "__main__":
     unittest.main()

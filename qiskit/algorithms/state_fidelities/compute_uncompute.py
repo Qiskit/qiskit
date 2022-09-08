@@ -18,9 +18,9 @@ from collections.abc import Sequence
 from copy import copy
 
 from qiskit import QuantumCircuit
-from qiskit.algorithms import AlgorithmError
 from qiskit.primitives import BaseSampler
 
+from ..exceptions import AlgorithmError
 from .base_state_fidelity import BaseStateFidelity
 from .state_fidelity_result import StateFidelityResult
 

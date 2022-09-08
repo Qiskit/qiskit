@@ -84,6 +84,7 @@ class VQD(VariationalAlgorithm, Eigensolver):
         estimator: BaseEstimator,
         fidelity: BaseStateFidelity,
         ansatz: QuantumCircuit | None = None,
+        *,
         k: int = 2,
         betas: list[float] | None = None,
         optimizer: Optimizer | Minimizer | None = None,
@@ -254,8 +255,6 @@ class VQD(VariationalAlgorithm, Eigensolver):
             estimator_job = estimator.run(quantum_state, observables_list)
             expectation_values = estimator_job.result().values
         except Exception as exc:
-            from . import AlgorithmError
-
             raise AlgorithmError("The primitive job failed!") from exc
 
         std_devs = self._compute_std_devs(estimator_job, len(expectation_values))
