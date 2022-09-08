@@ -198,7 +198,10 @@ def control(
                         # Getting euler angles from zyz decomposition
                         th, ph, lb, alpha = OneQubitEulerDecomposer._params_xzx(gate.to_matrix())
 
-                        a, b, c = get_abc_matrices(lb, th, ph)
+                        if alpha: 
+                            global_phase = alpha
+
+                        a, b, c = get_abc_matrices(ph, th, lb)
 
                         controlled_circ.unitary(c, q_target[bit_indices[qargs[0]]])
                         if abc_control is not None:
@@ -275,9 +278,9 @@ def define_mcx_rule(q_controls, q_target, q_ancilla = None):
     elif len(q_controls) == 4:
         rule += [(C4XGate(), controls_and_target, [])]
     elif len(q_controls) >= 5 and  len(q_controls) <7:
-        rule += [(MCXGate(len(q_controls) - 1), controls_and_target, [])]
+        rule += [(MCXGate(len(q_controls)), controls_and_target, [])]
     else: 
-        rule = MCXRecursive(len(q_controls) - 1)._recurse(controls_and_target, q_ancilla)
+        rule = MCXRecursive(len(q_controls))._recurse(controls_and_target, q_ancilla)
     return rule
 
 def define_mcx_control_and_ancilla(control_qubits): 
@@ -292,11 +295,11 @@ def define_mcx_control_and_ancilla(control_qubits):
 def get_abc_matrices(lamb, theta, phi):
     # A
     a_rz = RZGate(lamb).to_matrix()
-    a_ry = RYGate(theta / 2).to_matrix()
+    a_ry = RYGate(-theta / 2).to_matrix()
     a_matrix = a_rz.dot(a_ry)
 
     # B
-    b_ry = RYGate(-theta / 2).to_matrix()
+    b_ry = RYGate(theta / 2).to_matrix()
     b_rz = RZGate(-(phi + lamb) / 2).to_matrix()
     b_matrix = b_ry.dot(b_rz)
 
