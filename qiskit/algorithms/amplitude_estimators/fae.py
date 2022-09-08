@@ -92,6 +92,24 @@ class FasterAmplitudeEstimation(AmplitudeEstimator):
         self._sampler = sampler
 
     @property
+    def sampler(self) -> None | BaseSampler:
+        """Get the sampler primitive.
+
+        Returns:
+            The sampler primitive to evaluate the circuits.
+        """
+        return self._sampler
+
+    @sampler.setter
+    def sampler(self, sampler: BaseSampler) -> None:
+        """Set sampler primitive.
+
+        Args:
+            sampler: A sampler primitive to evaluate the circuits.
+        """
+        self._sampler = sampler
+
+    @property
     @deprecate_function(
         "The FasterAmplitudeEstimation.quantum_instance getter is pending deprecation. "
         "This property will be deprecated in a future release and subsequently "
