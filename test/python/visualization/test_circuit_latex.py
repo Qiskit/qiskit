@@ -681,7 +681,7 @@ class TestLatexSourceGenerator(QiskitVisualizationTestCase):
         self.assertEqualToReference(filename)
 
     def test_wire_order(self):
-        """Test the wire_order option"""
+        """Test the wire_order option to latex drawer"""
         filename = self._get_resource_path("test_latex_wire_order.tex")
         qr = QuantumRegister(4, "q")
         cr = ClassicalRegister(4, "c")

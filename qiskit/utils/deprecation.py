@@ -24,7 +24,7 @@ def deprecate_arguments(
 
     def decorator(func):
         if docstring_version and kwarg_map:
-            _extend_docstring(func, docstring_version, kwarg_map)
+            func.__doc__ = "\n".join(_extend_docstring(func, docstring_version, kwarg_map))
 
         @functools.wraps(func)
         def wrapper(*args, **kwargs):
@@ -58,7 +58,9 @@ def deprecate_function(
 
     def decorator(func):
         if docstring_version:
-            _extend_docstring(func, docstring_version, {None: msg.expandtabs().splitlines()})
+            func.__doc__ = "\n".join(
+                _extend_docstring(func, docstring_version, {None: msg.expandtabs().splitlines()})
+            )
 
         @functools.wraps(func)
         def wrapper(*args, **kwargs):
@@ -161,4 +163,4 @@ def _extend_docstring(func, version, kwarg_map):
         if args_section and docstr_line.lstrip() == "":
             args_section = False
 
-    func.__doc__ = "\n".join(new_doc_str_lines)
+    return new_doc_str_lines
