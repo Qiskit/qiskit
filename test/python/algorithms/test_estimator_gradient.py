@@ -374,6 +374,45 @@ class TestEstimatorGradient(QiskitTestCase):
             rtol=1e-4,
         )
 
+    @combine(
+        grad=[
+            FiniteDiffEstimatorGradient,
+            ParamShiftEstimatorGradient,
+            LinCombEstimatorGradient,
+            SPSAEstimatorGradient,
+        ],
+    )
+    def test_run_options(self, grad):
+        """Test estimator gradient's run options"""
+        a = Parameter("a")
+        qc = QuantumCircuit(1)
+        qc.rx(a, 0)
+        op = SparsePauliOp.from_list([("Z", 1)])
+        estimator = Estimator(run_options={"shots": 100})
+        with self.subTest("estimator"):
+            if grad is FiniteDiffEstimatorGradient or grad is SPSAEstimatorGradient:
+                gradient = grad(estimator, epsilon=1e-6)
+            else:
+                gradient = grad(estimator)
+            result = gradient.run([qc], [op], [[1]]).result()
+            self.assertEqual(result.run_options.get("shots"), 100)
+
+        with self.subTest("gradient init"):
+            if grad is FiniteDiffEstimatorGradient or grad is SPSAEstimatorGradient:
+                gradient = grad(estimator, epsilon=1e-6, run_options={"shots": 200})
+            else:
+                gradient = grad(estimator, run_options={"shots": 200})
+            result = gradient.run([qc], [op], [[1]]).result()
+            self.assertEqual(result.run_options.get("shots"), 200)
+
+        with self.subTest("gradient run"):
+            if grad is FiniteDiffEstimatorGradient or grad is SPSAEstimatorGradient:
+                gradient = grad(estimator, epsilon=1e-6, run_options={"shots": 200})
+            else:
+                gradient = grad(estimator, run_options={"shots": 200})
+            result = gradient.run([qc], [op], [[1]], shots=300).result()
+            self.assertEqual(result.run_options.get("shots"), 300)
+
 
 if __name__ == "__main__":
     unittest.main()
