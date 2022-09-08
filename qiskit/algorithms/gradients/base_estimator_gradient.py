@@ -23,6 +23,7 @@ from copy import copy
 from qiskit.circuit import Parameter, QuantumCircuit
 from qiskit.opflow import PauliSumOp
 from qiskit.primitives import BaseEstimator
+from qiskit.providers import Options
 from qiskit.algorithms import AlgorithmJob
 from qiskit.quantum_info.operators.base_operator import BaseOperator
 
@@ -35,7 +36,7 @@ class BaseEstimatorGradient(ABC):
     def __init__(
         self,
         estimator: BaseEstimator,
-        **run_options,
+        run_options: dict | None = None,
     ):
         """
         Args:
@@ -45,7 +46,9 @@ class BaseEstimatorGradient(ABC):
                 setting. Higher priority setting overrides lower priority setting.
         """
         self._estimator: BaseEstimator = estimator
-        self._default_run_options = run_options
+        self._default_run_options = Options()
+        if run_options is not None:
+            self._default_run_options.update_options(**run_options)
 
     def run(
         self,
@@ -86,10 +89,9 @@ class BaseEstimatorGradient(ABC):
         # The priority of run option is as follows:
         # run_options in ``run`` method > gradient's default run_options > primitive's default setting.
         run_opts = copy(self._default_run_options)
-        run_opts.update(run_options)
-
+        run_opts.update_options(**run_options)
         job = AlgorithmJob(
-            self._run, circuits, observables, parameter_values, parameters, **run_opts
+            self._run, circuits, observables, parameter_values, parameters, **run_opts.__dict__
         )
         job.submit()
         return job
@@ -163,3 +165,16 @@ class BaseEstimatorGradient(ABC):
                     f"not match the number of qubits of the {i}-th observable "
                     f"({observable.num_qubits})."
                 )
+
+    def _get_local_run_options(self, run_options: dict) -> Options:
+        """Update the run options in the results.
+
+        Args:
+            run_options: The run options to update.
+
+        Returns:
+            The updated run options.
+        """
+        run_opts = copy(self._estimator.run_options)
+        run_opts.update_options(**run_options)
+        return run_opts
