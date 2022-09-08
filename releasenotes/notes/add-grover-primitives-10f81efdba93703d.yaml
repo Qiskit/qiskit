@@ -6,6 +6,14 @@ features:
     calculate the results. Accordingly, ``quantum instance`` in :class:`~.Grover`
     is pending deprecation and will be deprecated in a future release.
 
+    Example::
+    .. code-block:: python
+
+      sampler = Sampler(...)
+      problem = AmplificationProblem(...)
+      grover = Grover(sampler)
+      result = grover.amplify(problem)
+
 deprecations:
    - |
      Using a :class:`~.QuantumInstance` in :class:`~.Grover` is

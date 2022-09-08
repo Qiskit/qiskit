@@ -256,6 +256,10 @@ class Grover(AmplitudeAmplifier):
         if self._sampler is None and self._quantum_instance is None:
             raise ValueError("A quantum instance or sampler must be provided.")
 
+        if self._quantum_instance is not None and self._sampler is not None:
+            raise ValueError("Only one of quantum_instance or sampler can be passed, not both!")
+
+
         if isinstance(self._iterations, list):
             max_iterations = len(self._iterations)
             max_power = np.inf  # no cap on the power
@@ -302,8 +306,7 @@ class Grover(AmplitudeAmplifier):
                 circuit_results = {
                     np.binary_repr(k, num_bits): v for k, v in results.quasi_dists[0].items()
                 }
-                top_measurement = max(circuit_results.items(), key=lambda x: x[1])[0]
-                max_probability = max(circuit_results.items(), key=lambda x: x[1])[1]
+                top_measurement, max_probability = max(circuit_results.items(), key=lambda x: x[1])
                 shots = self._sampler.run_options.get("shots")
 
             else:
@@ -362,7 +365,6 @@ class Grover(AmplitudeAmplifier):
         result.oracle_evaluation = oracle_evaluation
         result.circuit_results = all_circuit_results
         result.max_probability = max_probability
-        result.shots = shots
 
         return result
 
@@ -422,7 +424,6 @@ class GroverResult(AmplitudeAmplifierResult):
         super().__init__()
         self._iterations = None
         self._circuit_results = None
-        self._shots = None
 
     @property
     def iterations(self) -> List[int]:
@@ -441,21 +442,3 @@ class GroverResult(AmplitudeAmplifierResult):
             value: A new value for the powers.
         """
         self._iterations = value
-
-    @property
-    def shots(self) -> int:
-        """Return the number of shots used. Is 1 for statevector-based simulations.
-
-        Returns:
-            The number of shots used.
-        """
-        return self._shots
-
-    @shots.setter
-    def shots(self, value: int) -> None:
-        """Set the number of shots used.
-
-        Args:
-            value: A value for the number of shots.
-        """
-        self._shots = value
