@@ -128,7 +128,7 @@ used to train Quantum Boltzmann Machine Neural Networks for example.
 
 
 Time Evolvers
---------
+-------------
 
 Primitives-enabled algorithms to evolve quantum states in time. Both real and imaginary time
 evolution is possible with algorithms that support them. For machine learning, Quantum Imaginary
