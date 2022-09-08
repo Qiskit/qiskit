@@ -1,0 +1,9 @@
+---
+features:
+  - |
+    Added `~qiskit.algorithms.observables_evaluator` with
+    :class:`~qiskit.primitives.BaseEstimator` as ``init`` parameter. It will soon replace
+    `~qiskit.algorithms.aux_ops_evaluator`.
+deprecations:
+  - |
+    Using `~qiskit.algorithms.aux_ops_evaluator` will now issue a ``PendingDeprecationWarning``.
