@@ -161,6 +161,7 @@ class Grover(AmplitudeAmplifier):
             self._iterations = [iterations]
         else:
             self._iterations = iterations
+
         if quantum_instance is not None and sampler is not None:
             raise ValueError("Only one of quantum_instance or sampler can be passed, not both!")
 
@@ -169,6 +170,7 @@ class Grover(AmplitudeAmplifier):
         if isinstance(quantum_instance, BaseSampler):
             sampler = quantum_instance
             quantum_instance = None
+
         self._quantum_instance = None
         if quantum_instance is not None:
             warnings.warn(
@@ -178,7 +180,9 @@ class Grover(AmplitudeAmplifier):
                 category=PendingDeprecationWarning,
                 stacklevel=2,
             )
-            self.quantum_instance = quantum_instance
+            with warnings.catch_warnings():
+                warnings.simplefilter("ignore", category=PendingDeprecationWarning)
+                self.quantum_instance = quantum_instance
 
         self._sampler = sampler
 
