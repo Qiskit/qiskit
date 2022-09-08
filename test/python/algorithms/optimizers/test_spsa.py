@@ -181,3 +181,17 @@ class TestSPSA(QiskitAlgorithmsTestCase):
         for i, (key, values) in enumerate(history.items()):
             self.assertTrue(all(isinstance(value, expected_types[i]) for value in values))
             self.assertEqual(len(history[key]), maxiter)
+
+    @data(1, 2, 3, 4)
+    def test_estimate_stddev(self, max_evals_grouped):
+        """Test the estimate_stddev
+        See https://github.com/Qiskit/qiskit-nature/issues/797"""
+
+        def objective(x):
+            if len(x.shape) == 2:
+                return np.array([sum(x_i) for x_i in x])
+            return sum(x)
+
+        point = np.ones(5)
+        result = SPSA.estimate_stddev(objective, point, avg=10, max_evals_grouped=max_evals_grouped)
+        self.assertAlmostEqual(result, 0)

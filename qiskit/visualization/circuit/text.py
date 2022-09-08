@@ -24,7 +24,8 @@ from qiskit.circuit import Reset
 from qiskit.circuit import Measure
 from qiskit.circuit.library.standard_gates import IGate, RZZGate, SwapGate, SXGate, SXdgGate
 from qiskit.circuit.tools.pi_check import pi_check
-from qiskit.visualization.utils import (
+
+from ._utils import (
     get_gate_ctrl_text,
     get_param_str,
     get_wire_map,
@@ -33,7 +34,7 @@ from qiskit.visualization.utils import (
     get_wire_label,
     get_condition_label_val,
 )
-from .exceptions import VisualizationError
+from ..exceptions import VisualizationError
 
 
 class TextDrawerCregBundle(VisualizationError):
@@ -867,9 +868,7 @@ class TextDrawing:
         for top, bot in zip(top_line, bot_line):
             if top in ["┴", "╨"] and bot in ["┬", "╥"]:
                 return False
-        for line in (bot_line, top_line):
-            no_spaces = line.replace(" ", "")
-            if len(no_spaces) > 0 and all(c.isalpha() or c.isnumeric() for c in no_spaces):
+            if (top.isalnum() and bot != " ") or (bot.isalnum() and top != " "):
                 return False
         return True
 
@@ -959,6 +958,8 @@ class TextDrawing:
                 ret += "╫"
             elif topc in "║╫╬" and botc in " ":
                 ret += "║"
+            elif topc in "│┼╪" and botc in " ":
+                ret += "│"
             elif topc == "└" and botc == "┌" and icod == "top":
                 ret += "├"
             elif topc == "┘" and botc == "┐":
@@ -1518,8 +1519,10 @@ class Layer:
                     wire_char = "║"
                     if index == 0 and len(affected_bits) > 1:
                         affected_bit.connect(wire_char, ["bot"])
-                    else:
+                    elif index == len(affected_bits) - 1:
                         affected_bit.connect(wire_char, ["top"])
+                    else:
+                        affected_bit.connect(wire_char, ["bot", "top"])
                 else:
                     if index == 0:
                         affected_bit.connect(wire_char, ["bot"])
