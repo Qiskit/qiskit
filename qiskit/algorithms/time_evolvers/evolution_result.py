@@ -11,22 +11,28 @@
 # that they have been altered from the originals.
 
 """Class for holding evolution result."""
-
-from typing import Optional, Union, Tuple
+from __future__ import annotations
 
 from qiskit import QuantumCircuit
 from qiskit.algorithms.list_or_dict import ListOrDict
-from qiskit.opflow import StateFn, OperatorBase
 from ..algorithm_result import AlgorithmResult
 
 
 class EvolutionResult(AlgorithmResult):
-    """Class for holding evolution result."""
+    """
+    Class for holding evolution result.
+
+    Attributes:
+        evolved_state (QuantumCircuit): An evolved quantum state.
+        aux_ops_evaluated (ListOrDict[tuple[complex, complex]] | None): Optional list of
+            observables for which expected values on an evolved state are calculated. These values
+            are in fact tuples formatted as (mean, standard deviation).
+    """
 
     def __init__(
         self,
-        evolved_state: Union[StateFn, QuantumCircuit, OperatorBase],
-        aux_ops_evaluated: Optional[ListOrDict[Tuple[complex, complex]]] = None,
+        evolved_state: QuantumCircuit,
+        aux_ops_evaluated: ListOrDict[tuple[complex, complex]] | None = None,
     ):
         """
         Args:
