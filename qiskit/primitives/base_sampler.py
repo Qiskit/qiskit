@@ -105,7 +105,6 @@ from qiskit.providers import Options
 from qiskit.utils.deprecation import deprecate_arguments, deprecate_function
 
 from .sampler_result import SamplerResult
-from .utils import final_measurement_mapping
 
 
 class BaseSampler(ABC):
@@ -391,14 +390,6 @@ class BaseSampler(ABC):
                     f"The {i}-th circuit does not have any classical bit. "
                     "Sampler requires classical bits, plus measurements "
                     "on the desired qubits."
-                )
-
-            mapping = final_measurement_mapping(circuit)
-            if set(range(circuit.num_clbits)) != set(mapping.values()):
-                raise QiskitError(
-                    f"Some classical bits of the {i}-th circuit are not used for measurements."
-                    f" the number of classical bits ({circuit.num_clbits}),"
-                    f" the used classical bits ({set(mapping.values())})."
                 )
 
         run_opts = copy(self.run_options)
