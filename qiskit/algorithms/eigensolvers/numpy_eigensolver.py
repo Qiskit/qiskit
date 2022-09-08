@@ -70,6 +70,7 @@ class NumPyEigensolver(Eigensolver):
 
         self._ret = EigensolverResult()
         self._eigenstates = None
+
     @property
     def k(self) -> int:
         """returns k (number of eigenvalues requested)"""
