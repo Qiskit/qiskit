@@ -50,6 +50,7 @@ class EquivalenceLibrary:
     def _lazy_setdefault(self, key):
         if key not in self._nodes_to_indices:
             self._next_node += 1
+            print("in lazy", self._next_node)
             self._nodes_to_indices[key] = self._graph.add_node(key)
         return self._nodes_to_indices[key]
 
@@ -76,6 +77,7 @@ class EquivalenceLibrary:
         equiv = Equivalence(params=gate.params.copy(), circuit=equivalent_circuit.copy())
 
         target = self._lazy_setdefault(key)
+        print(target)
 
         sources = {
             Key(name=instruction.operation.name, num_qubits=len(instruction.qubits))
@@ -85,6 +87,7 @@ class EquivalenceLibrary:
             (self._lazy_setdefault(source), target, {"index": self._next_node, "rule": equiv, "source": source})
             for source in sources
         ]
+        print(edges)
 
         self._graph.add_edges_from(edges)
 
