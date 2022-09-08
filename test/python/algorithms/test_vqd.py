@@ -16,9 +16,8 @@ import unittest
 from test.python.algorithms import QiskitAlgorithmsTestCase
 
 import numpy as np
-from ddt import data, ddt, unpack
 
-from qiskit import BasicAer, QuantumCircuit
+from qiskit import QuantumCircuit
 from qiskit.algorithms.eigensolvers import VQD
 from qiskit.algorithms import AlgorithmError
 from qiskit.algorithms.optimizers import (
@@ -26,29 +25,20 @@ from qiskit.algorithms.optimizers import (
     L_BFGS_B,
     SLSQP,
 )
-from qiskit.circuit.library import EfficientSU2, RealAmplitudes, TwoLocal
-from qiskit.exceptions import MissingOptionalLibraryError
+from qiskit.circuit.library import TwoLocal
 from qiskit.opflow import (
-    AerPauliExpectation,
-    I,
-    MatrixExpectation,
     MatrixOp,
-    PauliExpectation,
     PauliSumOp,
-    PrimitiveOp,
+    I,
     X,
     Z,
 )
 from qiskit.primitives import Sampler, Estimator
 from qiskit.algorithms.state_fidelities import ComputeUncompute
 
-from qiskit.utils import algorithm_globals, has_aer
-
-if has_aer():
-    from qiskit import Aer
+from qiskit.utils import algorithm_globals
 
 
-@ddt
 class TestVQD(QiskitAlgorithmsTestCase):
     """Test VQD"""
 
@@ -75,11 +65,11 @@ class TestVQD(QiskitAlgorithmsTestCase):
         self.ry_wavefunction = TwoLocal(rotation_blocks="ry", entanglement_blocks="cz")
 
         self.estimator = Estimator()
-        self.estimator_shots = Estimator(run_options={"shots": 2048, "seed": 50})
+        self.estimator_shots = Estimator(run_options={"shots": 2048, "seed": self.seed})
         self.fidelity = ComputeUncompute(Sampler())
 
-    def test_basic_statevector(self):
-        """Test the VQD on statevector simulator."""
+    def test_basic_operator(self):
+        """Test the VQD without aux_operators."""
         wavefunction = self.ryrz_wavefunction
         vqd = VQD(
             estimator=self.estimator,
@@ -162,14 +152,9 @@ class TestVQD(QiskitAlgorithmsTestCase):
             self.assertTrue(all(isinstance(param, float) for param in params))
 
         ref_eval_count = [1, 2, 3, 1, 2, 3]
-        ref_mean = [
-            -1.07,
-            -1.45,
-            -1.37,
-            37.43,
-            48.55,
-            28.94,
-        ]  # new reference for statevector simulator. The old unit test was on qasm.
+        ref_mean = [-1.07, -1.45, -1.37, 37.43, 48.55, 28.94]
+        # new ref_mean for statevector simulator. The old unit test was on qasm
+        # and the ref_mean values were slightly different.
 
         ref_std = [0.011, 0.010, 0.014, 0.011, 0.010, 0.015]
         ref_step = [1, 1, 1, 2, 2, 2]
@@ -275,7 +260,6 @@ class TestVQD(QiskitAlgorithmsTestCase):
         aux_ops = {"aux_op1": aux_op1, "aux_op2": aux_op2}
         result = vqd.compute_eigenvalues(self.h2_op, aux_operators=aux_ops)
         self.assertEqual(len(result.eigenvalues), 2)
-        # self.assertEqual(len(result.eigenstates), 2)
         self.assertEqual(result.eigenvalues.dtype, np.complex128)
         self.assertAlmostEqual(result.eigenvalues[0], -1.85727503)
         self.assertEqual(len(result.aux_operator_eigenvalues), 2)
@@ -291,7 +275,6 @@ class TestVQD(QiskitAlgorithmsTestCase):
         extra_ops = {**aux_ops, "None_operator": None, "zero_operator": 0}
         result = vqd.compute_eigenvalues(self.h2_op, aux_operators=extra_ops)
         self.assertEqual(len(result.eigenvalues), 2)
-        # self.assertEqual(len(result.eigenstates), 2)
         self.assertEqual(result.eigenvalues.dtype, np.complex128)
         self.assertAlmostEqual(result.eigenvalues[0], -1.85727503)
         self.assertEqual(len(result.aux_operator_eigenvalues), 2)
@@ -306,8 +289,8 @@ class TestVQD(QiskitAlgorithmsTestCase):
         self.assertAlmostEqual(result.aux_operator_eigenvalues[0]["aux_op2"][1], 0.0)
         self.assertAlmostEqual(result.aux_operator_eigenvalues[0]["zero_operator"][1], 0.0)
 
-    def test_aux_operator_std_dev_pauli(self):
-        """Test non-zero standard deviations of aux operators with PauliExpectation."""
+    def test_aux_operator_std_dev(self):
+        """Test non-zero standard deviations of aux operators."""
         wavefunction = self.ry_wavefunction
         vqd = VQD(
             estimator=self.estimator,
@@ -362,66 +345,6 @@ class TestVQD(QiskitAlgorithmsTestCase):
         self.assertAlmostEqual(result.aux_operator_eigenvalues[0][2][1], 0.0)
         self.assertAlmostEqual(result.aux_operator_eigenvalues[0][3][1], 0.0)
 
-    @unittest.skipUnless(has_aer(), "qiskit-aer doesn't appear to be installed.")
-    def test_aux_operator_std_dev_aer_pauli(self):
-        """Test non-zero standard deviations of aux operators with AerPauliExpectation."""
-        wavefunction = self.ry_wavefunction
-        vqd = VQD(
-            estimator=self.estimator,
-            fidelity=self.fidelity,
-            ansatz=wavefunction,
-            optimizer=COBYLA(maxiter=0),
-        )
-
-        # Go again with two auxiliary operators
-        aux_op1 = PauliSumOp.from_list([("II", 2.0)])
-        aux_op2 = PauliSumOp.from_list([("II", 0.5), ("ZZ", 0.5), ("YY", 0.5), ("XX", -0.5)])
-        aux_ops = [aux_op1, aux_op2]
-        result = vqd.compute_eigenvalues(self.h2_op, aux_operators=aux_ops)
-        self.assertEqual(len(result.aux_operator_eigenvalues), 2)
-        # expectation values
-        self.assertAlmostEqual(result.aux_operator_eigenvalues[0][0][0], 2.0, places=1)
-        self.assertAlmostEqual(
-            result.aux_operator_eigenvalues[0][1][0], 0.6698863565455391, places=1
-        )
-        # standard deviations
-        self.assertAlmostEqual(result.aux_operator_eigenvalues[0][0][1], 0.0)
-        self.assertAlmostEqual(result.aux_operator_eigenvalues[0][1][1], 0.0, places=6)
-
-        # Go again with additional None and zero operators
-        aux_ops = [*aux_ops, None, 0]
-        result = vqd.compute_eigenvalues(self.h2_op, aux_operators=aux_ops)
-        self.assertEqual(len(result.aux_operator_eigenvalues[-1]), 4)
-        # expectation values
-        self.assertAlmostEqual(result.aux_operator_eigenvalues[0][0][0], 2.0, places=6)
-        self.assertAlmostEqual(
-            result.aux_operator_eigenvalues[0][1][0], 0.6036400943063891, places=6
-        )
-        self.assertEqual(result.aux_operator_eigenvalues[0][2][0], 0.0)
-        self.assertEqual(result.aux_operator_eigenvalues[0][3][0], 0.0)
-        # standard deviations
-        self.assertAlmostEqual(result.aux_operator_eigenvalues[0][0][1], 0.0)
-        self.assertAlmostEqual(result.aux_operator_eigenvalues[0][1][1], 0.0, places=6)
-        self.assertAlmostEqual(result.aux_operator_eigenvalues[0][2][1], 0.0)
-        self.assertAlmostEqual(result.aux_operator_eigenvalues[0][3][1], 0.0)
-
-    def test_args(self):
-        wavefunction = self.ry_wavefunction
-        vqd = VQD(
-            self.estimator,
-            self.fidelity,
-            wavefunction,
-            COBYLA(maxiter=0),
-        )
-
-        aux_op1 = PauliSumOp.from_list([("II", 2.0)])
-        aux_op2 = PauliSumOp.from_list([("II", 0.5), ("ZZ", 0.5), ("YY", 0.5), ("XX", -0.5)])
-        aux_ops = [aux_op1, aux_op2]
-        result = vqd.compute_eigenvalues(self.h2_op, aux_operators=aux_ops)
-
-        self.assertAlmostEqual(
-            result.aux_operator_eigenvalues[0][1][0], 0.6698863565455391, places=1
-        )
 
 if __name__ == "__main__":
     unittest.main()
