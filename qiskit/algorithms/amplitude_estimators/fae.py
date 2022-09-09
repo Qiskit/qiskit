@@ -147,13 +147,14 @@ class FasterAmplitudeEstimation(AmplitudeEstimator):
 
         if self._sampler is not None:
             circuit = self.construct_circuit(estimation_problem, k, measurement=True)
-            job = self._sampler.run([circuit])
             try:
-                job = self._sampler.run([circuit])
+                job = self._sampler.run([circuit], shots=shots)
                 result = job.result()
             except Exception as exc:
                 raise AlgorithmError("The job was not completed successfully. ") from exc
 
+            if shots is None:
+                shots = 1
             self._num_oracle_calls += (2 * k + 1) * shots
             # sum over all probabilities where the objective qubits are 1
             prob = _probabilities_from_sampler_result(
@@ -259,9 +260,7 @@ class FasterAmplitudeEstimation(AmplitudeEstimator):
 
         self._num_oracle_calls = 0
         user_defined_shots = (
-            self._sampler.run_options.get("shots", 1)
-            if self._sampler is not None
-            else self._quantum_instance._run_config.shots
+            self._quantum_instance._run_config.shots if self._quantum_instance is not None else None
         )
 
         if self._rescale:
@@ -270,7 +269,7 @@ class FasterAmplitudeEstimation(AmplitudeEstimator):
             problem = estimation_problem
 
         if self._sampler is not None or self._quantum_instance.is_statevector:
-            shots = self._sampler.run_options.get("shots", 1) if self._sampler is not None else 1
+            shots = self._sampler.run_options.get("shots") if self._sampler is not None else 1
             cos = self._cos_estimate(problem, k=0, shots=shots)
             theta = np.arccos(cos) / 2
             theta_ci = [theta, theta]
@@ -336,6 +335,7 @@ class FasterAmplitudeEstimation(AmplitudeEstimator):
         # reset shots to what the user had defined
         if self._quantum_instance is not None:
             self._quantum_instance._run_config.shots = user_defined_shots
+
         return result
 
 

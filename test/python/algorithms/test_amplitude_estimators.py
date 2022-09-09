@@ -96,6 +96,8 @@ class TestBernoulli(QiskitAlgorithmsTestCase):
             seed_transpiler=2,
         )
 
+        self._sampler = Sampler(run_options={"seed": 2})
+
         def qasm(shots=100):
             return QuantumInstance(
                 backend=BasicAer.get_backend("qasm_simulator"),
@@ -105,6 +107,11 @@ class TestBernoulli(QiskitAlgorithmsTestCase):
             )
 
         self._qasm = qasm
+
+        def sampler_shots(shots=100):
+            return Sampler(run_options={"shots": shots, "seed": 2})
+
+        self._sampler_shots = sampler_shots
 
     @idata(
         [
@@ -133,39 +140,20 @@ class TestBernoulli(QiskitAlgorithmsTestCase):
 
     @idata(
         [
-            [0.2, AmplitudeEstimation(2, sampler=Sampler()), {"estimation": 0.5, "mle": 0.2}],
-            [0.49, AmplitudeEstimation(3, sampler=Sampler()), {"estimation": 0.5, "mle": 0.49}],
-            [
-                0.2,
-                MaximumLikelihoodAmplitudeEstimation([0, 1, 2], sampler=Sampler()),
-                {"estimation": 0.2},
-            ],
-            [
-                0.49,
-                MaximumLikelihoodAmplitudeEstimation(3, sampler=Sampler()),
-                {"estimation": 0.49},
-            ],
-            [0.2, IterativeAmplitudeEstimation(0.1, 0.1, sampler=Sampler()), {"estimation": 0.2}],
-            [
-                0.49,
-                IterativeAmplitudeEstimation(0.001, 0.01, sampler=Sampler()),
-                {"estimation": 0.49},
-            ],
-            [
-                0.2,
-                FasterAmplitudeEstimation(0.1, 3, rescale=False, sampler=Sampler()),
-                {"estimation": 0.2},
-            ],
-            [
-                0.12,
-                FasterAmplitudeEstimation(0.1, 2, rescale=False, sampler=Sampler()),
-                {"estimation": 0.12},
-            ],
+            [0.2, AmplitudeEstimation(2), {"estimation": 0.5, "mle": 0.2}],
+            [0.49, AmplitudeEstimation(3), {"estimation": 0.5, "mle": 0.49}],
+            [0.2, MaximumLikelihoodAmplitudeEstimation([0, 1, 2]), {"estimation": 0.2}],
+            [0.49, MaximumLikelihoodAmplitudeEstimation(3), {"estimation": 0.49}],
+            [0.2, IterativeAmplitudeEstimation(0.1, 0.1), {"estimation": 0.2}],
+            [0.49, IterativeAmplitudeEstimation(0.001, 0.01), {"estimation": 0.49}],
+            [0.2, FasterAmplitudeEstimation(0.1, 3, rescale=False), {"estimation": 0.2}],
+            [0.12, FasterAmplitudeEstimation(0.1, 2, rescale=False), {"estimation": 0.12}],
         ]
     )
     @unpack
     def test_sampler(self, prob, qae, expect):
         """sampler test"""
+        qae.sampler = self._sampler
         problem = EstimationProblem(BernoulliStateIn(prob), 0, BernoulliGrover(prob))
 
         result = qae.estimate(problem)
@@ -208,49 +196,28 @@ class TestBernoulli(QiskitAlgorithmsTestCase):
 
     @idata(
         [
+            [0.2, 100, AmplitudeEstimation(4), {"estimation": 0.14644, "mle": 0.198783}],
+            [0.0, 1000, AmplitudeEstimation(2), {"estimation": 0.0, "mle": 0.0}],
             [
                 0.2,
-                AmplitudeEstimation(4, sampler=Sampler(run_options={"shots": 100, "seed": 2})),
-                {"estimation": 0.14644, "mle": 0.198783},
+                100,
+                MaximumLikelihoodAmplitudeEstimation([0, 1, 2, 4, 8]),
+                {"estimation": 0.200307},
             ],
-            [
-                0.0,
-                AmplitudeEstimation(2, sampler=Sampler(run_options={"shots": 1000, "seed": 2})),
-                {"estimation": 0.0, "mle": 0.0},
-            ],
-            [
-                0.2,
-                MaximumLikelihoodAmplitudeEstimation(
-                    [0, 1, 2, 4, 8], sampler=Sampler(run_options={"shots": 100, "seed": 2})
-                ),
-                {"estimation": 0.2003077},
-            ],
-            [
-                0.8,
-                IterativeAmplitudeEstimation(
-                    0.1, 0.05, sampler=Sampler(run_options={"shots": 10, "seed": 2})
-                ),
-                {"estimation": 0.900000},
-            ],
-            [
-                0.2,
-                FasterAmplitudeEstimation(
-                    0.1, 3, rescale=False, sampler=Sampler(run_options={"shots": 1000, "seed": 2})
-                ),
-                {"estimation": 0.203000},
-            ],
+            [0.8, 10, IterativeAmplitudeEstimation(0.1, 0.05), {"estimation": 0.900000}],
+            [0.2, 1000, FasterAmplitudeEstimation(0.1, 3, rescale=False), {"estimation": 0.203000}],
             [
                 0.12,
-                FasterAmplitudeEstimation(
-                    0.01, 3, rescale=False, sampler=Sampler(run_options={"shots": 100, "seed": 2})
-                ),
+                100,
+                FasterAmplitudeEstimation(0.01, 3, rescale=False),
                 {"estimation": 0.099999},
             ],
         ]
     )
     @unpack
-    def test_sampler_with_shots(self, prob, qae, expect):
+    def test_sampler_with_shots(self, prob, shots, qae, expect):
         """sampler with shots test"""
+        qae.sampler = self._sampler_shots(shots)
         problem = EstimationProblem(BernoulliStateIn(prob), [0], BernoulliGrover(prob))
 
         result = qae.estimate(problem)
