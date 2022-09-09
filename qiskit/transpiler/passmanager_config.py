@@ -183,5 +183,4 @@ class PassManagerConfig:
             f"\tunitary_synthesis_method: {self.unitary_synthesis_method}\n"
             f"\tunitary_synthesis_plugin_config: {self.unitary_synthesis_plugin_config}\n"
             f"\ttarget: {str(self.target).replace(newline, newline_tab)}\n"
-            f"\thls_config: {self.hls_config}\n"
         )
