@@ -29,15 +29,15 @@ from qiskit.quantum_info.operators.base_operator import BaseOperator
 from qiskit.synthesis import EvolutionSynthesis, LieTrotter
 from .pvqd_result import PVQDResult
 from .utils import _get_observable_evaluator, _is_gradient_supported
-from ..evolution_problem import EvolutionProblem
-from ..evolution_result import EvolutionResult
-from ..real_evolver import RealEvolver
+from ..time_evolution_problem import TimeEvolutionProblem
+from ..time_evolution_result import TimeEvolutionResult
+from ..real_time_evolver import RealTimeEvolver
 from ...state_fidelities import BaseStateFidelity
 
 logger = logging.getLogger(__name__)
 
 
-class PVQD(RealEvolver):
+class PVQD(RealTimeEvolver):
     """The projected Variational Quantum Dynamics (p-VQD) Algorithm.
 
     In each timestep, this algorithm computes the next state with a Trotter formula
@@ -320,7 +320,7 @@ class PVQD(RealEvolver):
 
         return param_bindings
 
-    def evolve(self, evolution_problem: EvolutionProblem) -> EvolutionResult:
+    def evolve(self, evolution_problem: TimeEvolutionProblem) -> TimeEvolutionResult:
         """
         Args:
             evolution_problem: The evolution problem containing the hamiltonian, total evolution

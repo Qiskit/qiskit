@@ -16,10 +16,10 @@ from __future__ import annotations
 import numpy as np
 
 from qiskit.circuit import QuantumCircuit
-from ..evolution_result import EvolutionResult
+from ..time_evolution_result import TimeEvolutionResult
 
 
-class PVQDResult(EvolutionResult):
+class PVQDResult(TimeEvolutionResult):
     """The result object for the p-VQD algorithm."""
 
     def __init__(
