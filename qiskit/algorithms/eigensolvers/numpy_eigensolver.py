@@ -30,6 +30,37 @@ logger = logging.getLogger(__name__)
 # pylint: disable=invalid-name
 
 
+class NumPyEigensolverResult(EigensolverResult):
+    """Eigensolver Result."""
+
+    def __init__(self) -> None:
+        super().__init__()
+        self._eigenstates = None
+
+    @property
+    def eigenvalues(self) -> Optional[np.ndarray]:
+        """returns eigen values"""
+        return self._eigenvalues
+
+    @eigenvalues.setter
+    def eigenvalues(self, value: np.ndarray) -> None:
+        """set eigen values"""
+        self._eigenvalues = value
+
+    @property
+    def aux_operator_eigenvalues(self) -> Optional[List[ListOrDict[Tuple[complex, complex]]]]:
+        """Return aux operator expectation values.
+
+        These values are in fact tuples formatted as (mean, standard deviation).
+        """
+        return self._aux_operator_eigenvalues
+
+    @aux_operator_eigenvalues.setter
+    def aux_operator_eigenvalues(self, value: List[ListOrDict[Tuple[complex, complex]]]) -> None:
+        """set aux operator eigen values"""
+        self._aux_operator_eigenvalues = value
+
+
 class NumPyEigensolver(Eigensolver):
     r"""
     The NumPy Eigensolver algorithm.
@@ -68,8 +99,7 @@ class NumPyEigensolver(Eigensolver):
 
         self._filter_criterion = filter_criterion
 
-        self._ret = EigensolverResult()
-        self._eigenstates = None
+        self._ret = NumPyEigensolverResult()
 
     @property
     def k(self) -> int:
@@ -140,22 +170,24 @@ class NumPyEigensolver(Eigensolver):
             eigval = eigval[indices]
             eigvec = eigvec[:, indices]
         self._ret.eigenvalues = eigval
-        self._eigenstates = eigvec.T
+        self._ret.eigenstates = eigvec.T
 
     def _get_ground_state_energy(self, operator: OperatorBase) -> None:
-        if self._ret.eigenvalues is None or self._eigenstates is None:
+        if self._ret.eigenvalues is None or self._ret.eigenstates is None:
             self._solve(operator)
 
     def _get_energies(
         self, operator: OperatorBase, aux_operators: Optional[ListOrDict[OperatorBase]]
     ) -> None:
-        if self._ret.eigenvalues is None or self._eigenstates is None:
+        if self._ret.eigenvalues is None or self._ret.eigenstates is None:
             self._solve(operator)
 
         if aux_operators is not None:
             aux_op_vals = []
             for i in range(self._k):
-                aux_op_vals.append(self._eval_aux_operators(aux_operators, self._eigenstates[i]))
+                aux_op_vals.append(
+                    self._eval_aux_operators(aux_operators, self._ret.eigenstates[i])
+                )
             self._ret.aux_operator_eigenvalues = aux_op_vals
 
     @staticmethod
@@ -233,7 +265,7 @@ class NumPyEigensolver(Eigensolver):
             aux_ops = []
             cnt = 0
             for i in range(len(self._ret.eigenvalues)):
-                eigvec = self._eigenstates[i]
+                eigvec = self._ret.eigenstates[i]
                 eigval = self._ret.eigenvalues[i]
                 if self._ret.aux_operator_eigenvalues is not None:
                     aux_op = self._ret.aux_operator_eigenvalues[i]
@@ -248,7 +280,7 @@ class NumPyEigensolver(Eigensolver):
                 if cnt == k_orig:
                     break
 
-            self._eigenstates = np.array(eigvecs)
+            self._ret.eigenstates = np.array(eigvecs)
             self._ret.eigenvalues = np.array(eigvals)
             # conversion to np.array breaks in case of aux_ops
             self._ret.aux_operator_eigenvalues = aux_ops
@@ -257,8 +289,8 @@ class NumPyEigensolver(Eigensolver):
 
         # evaluate ground state after filtering (in case a filter is set)
         self._get_ground_state_energy(operator)
-        if self._eigenstates is not None:
-            self._eigenstates = ListOp([StateFn(vec) for vec in self._eigenstates])
+        if self._ret.eigenstates is not None:
+            self._ret.eigenstates = ListOp([StateFn(vec) for vec in self._ret.eigenstates])
 
         logger.debug("EigensolverResult:\n%s", self._ret)
         return self._ret
