@@ -51,6 +51,11 @@ class CliffordSynthesisPluginMain:
         return decomposition
 
 
+class CliffordSynthesisPluginSkip:
+    def run(self, cliff, **options):
+        print(f"    -> Running CliffordSynthesisPluginSkip")
+        return None
+
 
 
 def test():
@@ -80,39 +85,39 @@ def test():
     print("")
 
     print(f"Creating config & transpile for depth")
-    hls_config = HLSConfig(default_or_none=True)
-    hls_config.set_method("linear_function", "depth_opt", None)
+    hls_config = HLSConfig(use_default_on_unspecified=True)
+    hls_config.set_methods("linear_function", [("depth_opt", {})])
     # hls_config.print()
     qct = transpile(qc, optimization_level=1, hls_config=hls_config)
     print(qct)
     print("")
 
     print(f"Creating config & transpile for 2q count")
-    hls_config = HLSConfig(default_or_none=True)
-    hls_config.set_method("linear_function", "count_opt", None)
+    hls_config = HLSConfig(use_default_on_unspecified=True)
+    hls_config.set_methods("linear_function", [("count_opt", {})])
     # hls_config.print()
     qct = transpile(qc, optimization_level=1, hls_config=hls_config)
     print(qct)
     print("")
 
     print(f"Creating config & transpile for depth (only linear functions)")
-    hls_config = HLSConfig(default_or_none=False)
-    hls_config.set_method("linear_function", "depth_opt", None)
+    hls_config = HLSConfig(use_default_on_unspecified=False)
+    hls_config.set_methods("linear_function", [("depth_opt", {})])
     # hls_config.print()
     qct = transpile(qc, optimization_level=1, hls_config=hls_config)
     print(qct)
     print("")
 
     print(f"Creating config & transpile for 2q count (only linear functions)")
-    hls_config = HLSConfig(default_or_none=False)
-    hls_config.set_method("linear_function", "count_opt", None)
+    hls_config = HLSConfig(use_default_on_unspecified=False)
+    hls_config.set_methods("linear_function", [("count_opt", {})])
     # hls_config.print()
     qct = transpile(qc, optimization_level=1, hls_config=hls_config)
     print(qct)
     print("")
 
     print(f"Creating config & transpile for 2q count (do nothing)")
-    hls_config = HLSConfig(default_or_none=False)
+    hls_config = HLSConfig(use_default_on_unspecified=False)
     # hls_config.print()
     qct = transpile(qc, optimization_level=1, hls_config=hls_config)
     print(qct)
@@ -122,8 +127,8 @@ def test():
     # entry points:
     try:
         print(f"Creating config & transpile for 2q count with undefined method")
-        hls_config = HLSConfig(default_or_none=True)
-        hls_config.set_method("linear_function", "undefined", None)
+        hls_config = HLSConfig(use_default_on_unspecified=True)
+        hls_config.set_methods("linear_function", [("undefined", {})])
         # hls_config.print()
         qct = transpile(qc, optimization_level=1, hls_config=hls_config)
         print(qct)
@@ -135,9 +140,27 @@ def test():
     # The code below works, because we never encounter an Operation with name "undefined_op".
     # Is this fine, or is this an error?
     print(f"Creating config & transpile for 2q count (for some undefined gate name)")
-    hls_config = HLSConfig(default_or_none=True)
-    hls_config.set_method("undefined_op", "undefined", None)
+    hls_config = HLSConfig(use_default_on_unspecified=True)
+    hls_config.set_methods("undefined_op", [("undefined", {})])
     # hls_config.print()
+    qct = transpile(qc, optimization_level=1, hls_config=hls_config)
+    print(qct)
+    print("")
+
+    print(f"Creating config & transpile for depth -- NEW!")
+    hls_config = HLSConfig(use_default_on_unspecified=True,
+                           linear_function=[("depth_opt", {})],
+                           clifford=[])
+    hls_config.print()
+    qct = transpile(qc, optimization_level=1, hls_config=hls_config)
+    print(qct)
+    print("")
+
+    print(f"Creating clifford -- NEW!")
+    hls_config = HLSConfig(use_default_on_unspecified=True,
+                           linear_function=[("depth_opt", {})],
+                           )
+    hls_config.print()
     qct = transpile(qc, optimization_level=1, hls_config=hls_config)
     print(qct)
     print("")
@@ -208,4 +231,4 @@ def test3():
 if __name__ == "__main__":
     test()
     # test2()
-    test3()
+    # test3()

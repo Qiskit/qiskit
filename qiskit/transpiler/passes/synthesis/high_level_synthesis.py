@@ -21,38 +21,47 @@ from qiskit.transpiler.exceptions import TranspilerError
 from .high_level_synthesis_plugins import HighLevelSynthesisPluginManager
 
 
-# ToDo: possibly choose a better name for this data structure.
 class HLSConfig:
     """
-    To each higher-level-object (e.g., "clifford", "linear_function", etc.) we associate a
-    pair consisting of the name of a synthesis algorithm and additional arguments it requires.
-    There are two special values for the name:
-        "default" is the default synthesis algorithm (chosen by Qiskit developers)
-        "none" is to skip synthesizing this object
-    All other names should be declared in entry points in setup.
+    For each higher-level-object (e.g., "clifford", "linear_function", etc.) the high-level-synthesis
+    config allows to specify a list of "methods", each method represented by a pair consisting of a
+    name of the synthesis algorithm and of a dictionary providing additional arguments for this algorithm.
+
+    The names of the synthesis algorithms should be declared in ``entry_points`` for
+    ``qiskit.synthesis`` in ``setup.py``, in the form <higher-level-object-name>.<synthesis-method-name>.
+
+    The standard higher-level-objects are recommended to have a synthesis method called "default",
+    which would be called automatically when synthesizing these objects, without having to
+    explicitly set these methods in the config.
+
+    To avoid synthesizing a given higher-level-object, one can give it an empty list of methods.
     """
 
-    def __init__(self, default_or_none: True):
+    def __init__(self, use_default_on_unspecified: True, **kwargs):
         """
         Creates a high-level-synthesis config.
         Args:
-            default_or_none: specifies the default method for every higher-level object,
-                either "default" (use the "default" synthesize method if available),
-                or "none" (skip synthesizing)
+            use_default_on_unspecified (bool): if True, every higher-level-object without an
+                explicitly specified list of methods will be synthesized using the "default"
+                algorithm if it exists.
+            kwargs: a dictionary mapping higher-level-objects to lists of synthesis methods.
         """
-        self.default_or_none = default_or_none
+        self.use_default_on_unspecified = use_default_on_unspecified
         self.methods = dict()
 
-    def set_method(self, hls_name: str, method_name: str, method_args=None):
-        """Sets the synthesis method for a given higher-level-object."""
-        if method_args is None:
-            method_args = dict()
-        self.methods[hls_name] = (method_name, method_args)
+        for key, value in kwargs.items():
+            print("%s == %s" % (key, value))
+            self.set_methods(key, value)
+
+    def set_methods(self, hls_name, hls_methods):
+        """Sets the list of synthesis methods for a given higher-level-object. This overwrites
+        the lists of methods if also set previously."""
+        self.methods[hls_name] = hls_methods
 
     def print(self):
         """This is temporary for debugging."""
         print("HLS CONFIG:")
-        print(f"default_or_none = {self.default_or_none}")
+        print(f"use_default_on_unspecified = {self.use_default_on_unspecified}")
         for hls_name in self.methods:
             print(f"  name = {hls_name}, method = {self.methods[hls_name]}")
 
@@ -96,34 +105,36 @@ class HighLevelSynthesis(TransformationPass):
         for node in dag.op_nodes():
 
             if node.name in self.hls_config.methods.keys():
-                # the operation's name appears in the user-provided config
-                # but note that the plugin_name might be "default" or "none"
-                plugin_name, plugin_args = self.hls_config.methods[node.name]
-            elif self.hls_config.default_or_none and "default" in hls_plugin_manager.method_names(node.name):
+                # the operation's name appears in the user-provided config,
+                # we use the list of methods provided by the user
+                methods = self.hls_config.methods[node.name]
+            elif self.hls_config.use_default_on_unspecified and "default" in hls_plugin_manager.method_names(node.name):
                 # the operation's name does not appear in the user-specified config,
-                # but we should use the "default" method when possible
-                plugin_name, plugin_args = "default", {}
+                # we use the "default" method when instructed to do so and the "default" method is available
+                methods = [("default", {})]
             else:
-                # the operation's name does not appear in the user-specified config,
-                # and either the "default" method is not available or we should skip these
-                plugin_name, plugin_args = "none", {}
+                methods = []
 
-            if plugin_name == "none":
-                # don't synthesize this operation
-                continue
+            for method in methods:
+                plugin_name, plugin_args = method
 
-            if plugin_name not in hls_plugin_manager.method_names(node.name):
-                raise TranspilerError(
-                    "Specified method: %s not found in available plugins for %s"
-                    % (plugin_name, node.name)
-                )
+                if plugin_name not in hls_plugin_manager.method_names(node.name):
+                    raise TranspilerError(
+                        "Specified method: %s not found in available plugins for %s"
+                        % (plugin_name, node.name)
+                    )
 
-            # print(f"  Using method {plugin_name} for {node.name}")
-            plugin_method = hls_plugin_manager.method(node.name, plugin_name)
+                print(f"  Using method {plugin_name} for {node.name}")
+                plugin_method = hls_plugin_manager.method(node.name, plugin_name)
 
-            # ToDo: [5] similarly to UnitarySynthesis, we should pass additional parameters
-            #       e.g. coupling_map to the synthesis algorithm.
-            decomposition = plugin_method.run(node.op, **plugin_args)
-            dag.substitute_node_with_dag(node, circuit_to_dag(decomposition))
+                # ToDo: similarly to UnitarySynthesis, we should pass additional parameters
+                #       e.g. coupling_map to the synthesis algorithm.
+                decomposition = plugin_method.run(node.op, **plugin_args)
+
+                # The synthesis methods that are not suited for the given higher-level-object
+                # will return None, in which case the next method in the list will be used.
+                if decomposition is not None:
+                    dag.substitute_node_with_dag(node, circuit_to_dag(decomposition))
+                    break
 
         return dag
