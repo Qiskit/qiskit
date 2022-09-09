@@ -38,12 +38,28 @@ class LinearMixin(MultiplyMixin, ABC):
     """
 
     def __add__(self, other):
+        # enable easy use of sum(...)
+        if not isinstance(other, type(self)) and other == 0:
+            return self
+
+        qargs = getattr(other, "qargs", None)
+        return self._add(other, qargs=qargs)
+
+    def __radd__(self, other):
+        # enable easy use of sum(...)
+        if not isinstance(other, type(self)) and other == 0:
+            return self
+
         qargs = getattr(other, "qargs", None)
         return self._add(other, qargs=qargs)
 
     def __sub__(self, other):
         qargs = getattr(other, "qargs", None)
         return self._add(-other, qargs=qargs)
+
+    def __rsub__(self, other):
+        qargs = getattr(other, "qargs", None)
+        return (-self)._add(other, qargs=qargs)
 
     @abstractmethod
     def _add(self, other, qargs=None):
