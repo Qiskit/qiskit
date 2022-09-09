@@ -568,6 +568,24 @@ class TestEstimator(QiskitTestCase):
         self.assertIsInstance(result, EstimatorResult)
         np.testing.assert_allclose(result.values, [-1.307397243478641])
 
+    def test_run_options(self):
+        """Test for run_options"""
+        with self.subTest("init"):
+            estimator = Estimator(run_options={"shots": 3000})
+            self.assertEqual(estimator.run_options.get("shots"), 3000)
+        with self.subTest("set_run_options"):
+            estimator.set_run_options(shots=1024, seed=15)
+            self.assertEqual(estimator.run_options.get("shots"), 1024)
+            self.assertEqual(estimator.run_options.get("seed"), 15)
+        with self.subTest("run"):
+            result = estimator.run(
+                [self.ansatz],
+                [self.observable],
+                parameter_values=[[0, 1, 1, 2, 3, 5]],
+            ).result()
+            self.assertIsInstance(result, EstimatorResult)
+            np.testing.assert_allclose(result.values, [-1.307397243478641])
+
 
 if __name__ == "__main__":
     unittest.main()

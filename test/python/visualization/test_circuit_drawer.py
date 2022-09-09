@@ -20,7 +20,7 @@ from qiskit import QuantumCircuit
 from qiskit.test import QiskitTestCase
 from qiskit.utils import optionals
 from qiskit import visualization
-from qiskit.visualization import text
+from qiskit.visualization.circuit import text
 from qiskit.visualization.exceptions import VisualizationError
 
 if optionals.HAS_MATPLOTLIB:
