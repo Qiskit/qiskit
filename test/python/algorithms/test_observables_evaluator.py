@@ -145,7 +145,13 @@ class TestObservablesEvaluator(QiskitAlgorithmsTestCase):
         observables = [(X ^ X) + (Y ^ Y), 0]
         result = eval_observables(estimator, state, observables, self.threshold)
         expected_result = [(0.015607318055509564, (0, 0)), (0.0, (0, 0))]
-        np.testing.assert_array_equal(result, expected_result)
+        means = [element[0] for element in result]
+        expected_means = [element[0] for element in expected_result]
+        np.testing.assert_array_almost_equal(means, expected_means, decimal=0.01)
+
+        vars_and_shots = [element[1] for element in result]
+        expected_vars_and_shots = [element[1] for element in expected_result]
+        np.testing.assert_array_equal(vars_and_shots, expected_vars_and_shots)
 
 
 if __name__ == "__main__":
