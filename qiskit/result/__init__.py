@@ -25,6 +25,7 @@ Experiment Results (:mod:`qiskit.result`)
    Counts
    marginal_counts
    marginal_distribution
+   marginal_memory
 
 Distributions
 =============
@@ -50,6 +51,7 @@ from .result import Result
 from .exceptions import ResultError
 from .utils import marginal_counts
 from .utils import marginal_distribution
+from .utils import marginal_memory
 from .counts import Counts
 
 from .distributions.probability import ProbDistribution

@@ -94,7 +94,7 @@ class TestUnrollCustomDefinitions(QiskitTestCase):
         gate = TestCompositeGate()
         q = QuantumRegister(1, "q")
         gate.definition = QuantumCircuit(q)
-        gate.definition.data = [(TestGate(), [q[0]], [])]
+        gate.definition.append(TestGate(), [q[0]], [])
 
         qc = QuantumCircuit(q)
         qc.append(gate, [0])
@@ -122,7 +122,7 @@ class TestUnrollCustomDefinitions(QiskitTestCase):
 
         q = QuantumRegister(1, "q")
         gate.definition = QuantumCircuit(q)
-        gate.definition.data = [(TestGate(), [q[0]], [])]
+        gate.definition.append(TestGate(), [q[0]], [])
 
         qc = QuantumCircuit(1)
         qc.append(gate, [0])

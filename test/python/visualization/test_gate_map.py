@@ -17,14 +17,14 @@ import sys
 from io import BytesIO
 from PIL import Image
 from ddt import ddt, data
-from qiskit.test.mock import FakeProvider
 from qiskit.providers.fake_provider import (
+    FakeProvider,
     FakeKolkata,
     FakeWashington,
     FakeKolkataV2,
     FakeWashingtonV2,
 )
-from qiskit.visualization.gate_map import (
+from qiskit.visualization import (
     plot_gate_map,
     plot_coupling_map,
     plot_circuit_layout,
