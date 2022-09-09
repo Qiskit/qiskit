@@ -10,22 +10,22 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""Interface for Quantum Real Time Evolution."""
+"""Interface for Quantum Imaginary Time Evolution."""
 
 from abc import ABC, abstractmethod
 
-from .evolution_problem import EvolutionProblem
-from .evolution_result import EvolutionResult
+from .time_evolution_problem import TimeEvolutionProblem
+from .time_evolution_result import TimeEvolutionResult
 
 
-class RealEvolver(ABC):
-    """Interface for Quantum Real Time Evolution."""
+class ImaginaryTimeEvolver(ABC):
+    """Interface for Quantum Imaginary Time Evolution."""
 
     @abstractmethod
-    def evolve(self, evolution_problem: EvolutionProblem) -> EvolutionResult:
-        r"""Perform real time evolution :math:`\exp(-i t H)|\Psi\rangle`.
+    def evolve(self, evolution_problem: TimeEvolutionProblem) -> TimeEvolutionResult:
+        r"""Perform imaginary time evolution :math:`\exp(-\tau H)|\Psi\rangle`.
 
-        Evolves an initial state :math:`|\Psi\rangle` for a time :math:`t`
+        Evolves an initial state :math:`|\Psi\rangle` for an imaginary time :math:`\tau`
         under a Hamiltonian  :math:`H`, as provided in the ``evolution_problem``.
 
         Args:

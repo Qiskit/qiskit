@@ -155,6 +155,7 @@ class PVQD(RealEvolver):
                 previous iteration result is used as initial guess. If None, this is set to
                 a random vector with elements in the interval :math:`[-0.01, 0.01]`.
         """
+        super().__init__()
         if evolution is None:
             evolution = LieTrotter()
 
