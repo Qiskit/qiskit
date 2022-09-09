@@ -5,6 +5,6 @@ other:
     in the the Qiskit transpiler at `optimization_level=3`.  The transpiler should, by default,
     preserve unitarity of the input up to known transformations such as one-sided permutations
     and similarity transformations.  This was broken by the previous use of `approximation_degree=None`
-    leading to incorrect results in cases such as Trotterized evolution with many tine steps where the
+    leading to incorrect results in cases such as Trotterized evolution with many time steps where
     unitaries were being overly approximated leading to incorrect results.  It was decided that
     transformations that break unitary equivilence should be explicitly activated by the user.
