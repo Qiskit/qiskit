@@ -16,7 +16,6 @@ from typing import Union, Optional
 
 from qiskit.circuit.exceptions import CircuitError
 from qiskit.extensions import UnitaryGate
-from . import ControlledGate, Gate, QuantumRegister, QuantumCircuit
 from qiskit.circuit.library.standard_gates import (
     MCXRecursive,
     RZGate,
@@ -28,6 +27,7 @@ from qiskit.circuit.library.standard_gates import (
     MCXGate,
 )
 from qiskit.quantum_info import OneQubitEulerDecomposer
+from . import ControlledGate, Gate, QuantumRegister, QuantumCircuit
 
 
 def add_control(
@@ -282,6 +282,10 @@ def control(
 
 
 def define_mcx_rule(q_controls, q_target, q_ancilla=None):
+    """
+    Applies a N-controlled cnot to the target qubit based on the number
+    of qubits in the q_controls
+    """
     rule = []
 
     controls_and_target = q_controls + [q_target]
@@ -301,6 +305,11 @@ def define_mcx_rule(q_controls, q_target, q_ancilla=None):
 
 
 def define_mcx_control_and_ancilla(control_qubits):
+    """
+    Defines which qubits are to be used as control
+    and as an ancilla for the multicontrolled cnot
+    gate
+    """
     if len(control_qubits) < 7:
         mcx_controls = list(control_qubits)
         abc_ancilla = None
@@ -310,7 +319,11 @@ def define_mcx_control_and_ancilla(control_qubits):
     return mcx_controls, abc_ancilla
 
 
-def get_abc_matrices(lamb, theta, phi):
+def get_abc_matrices(phi, theta, lamb):
+    """
+    Creates A,B and C matrices such that
+    ABC = I
+    """
     # A
     a_rz = RZGate(lamb).to_matrix()
     a_ry = RYGate(theta / 2).to_matrix()
