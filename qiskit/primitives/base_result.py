@@ -13,9 +13,15 @@
 Primitive result abstract base class
 """
 
+from __future__ import annotations
+
 from abc import ABC
+from collections.abc import Iterator, Sequence
 from dataclasses import fields
-from typing import Any, Sized, Tuple
+from typing import Any, Dict
+
+
+ExperimentData = Dict[str, Any]
 
 
 class BasePrimitiveResult(ABC):
@@ -34,29 +40,44 @@ class BasePrimitiveResult(ABC):
         classes must have this decorator.
 
         Raises:
+            TypeError: If one of the data fields is not a Sequence.
             ValueError: Inconsistent number of experiments across data fields.
         """
-        for value in self._field_values:  # type: Sized
+        for value in self._field_values:  # type: Sequence
+            # TODO: enforce all data fields to be tuples instead of sequences
+            if not isinstance(value, Sequence) or isinstance(value, str):
+                raise TypeError(f"Expected sequence, provided {type(value)} instead.")
             if len(value) != self.num_experiments:
                 raise ValueError("Inconsistent number of experiments across data fields.")
 
-    @property
+    @property  # TODO: functools.cached_property when py37 is droppped
     def num_experiments(self) -> int:
         """Number of experiments in any inheriting result dataclass."""
-        value: Sized = self._field_values[0]
+        value: Sequence = self._field_values[0]
         return len(value)
 
-    @property
-    def experiments(self) -> Tuple[Tuple[Any, ...], ...]:
-        """Experiment data tuples from any inheriting result dataclass."""
-        return tuple(zip(*self._field_values))
+    @property  # TODO: functools.cached_property when py37 is droppped
+    def experiments(self) -> tuple[ExperimentData, ...]:
+        """Experiment data dicts in any inheriting result dataclass."""
+        return tuple(self._generate_experiments())
 
-    @property
-    def _field_names(self) -> Tuple[str, ...]:
+    def _generate_experiments(self) -> Iterator[ExperimentData]:
+        """Generate experiment data dicts in any inheriting result dataclass."""
+        names: tuple[str, ...] = self._field_names
+        for values in zip(*self._field_values):
+            yield {n: v for n, v in zip(names, values)}
+
+    def decompose(self) -> Iterator[BasePrimitiveResult]:
+        """Generate single experiment result objects from self."""
+        for values in zip(*self._field_values):
+            yield self.__class__(*[(v,) for v in values])
+
+    @property  # TODO: functools.cached_property when py37 is droppped
+    def _field_names(self) -> tuple[str, ...]:
         """Tuple of field names in any inheriting result dataclass."""
         return tuple(field.name for field in fields(self))
 
-    @property
-    def _field_values(self) -> Tuple[Any, ...]:
+    @property  # TODO: functools.cached_property when py37 is droppped
+    def _field_values(self) -> tuple:
         """Tuple of field values in any inheriting result dataclass."""
         return tuple(getattr(self, name) for name in self._field_names)
