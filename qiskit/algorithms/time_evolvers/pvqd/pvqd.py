@@ -14,6 +14,7 @@
 from __future__ import annotations
 
 import logging
+import warnings
 from typing import Callable
 
 import numpy as np
@@ -22,8 +23,7 @@ from qiskit import QiskitError
 from qiskit.algorithms.optimizers import Optimizer, Minimizer
 from qiskit.circuit import QuantumCircuit, ParameterVector, Parameter
 from qiskit.circuit.library import PauliEvolutionGate
-from qiskit.extensions import HamiltonianGate
-from qiskit.opflow import MatrixOp, PauliSumOp
+from qiskit.opflow import PauliSumOp
 from qiskit.primitives import BaseEstimator
 from qiskit.quantum_info.operators.base_operator import BaseOperator
 from qiskit.synthesis import EvolutionSynthesis, LieTrotter
@@ -119,7 +119,7 @@ class PVQD(RealTimeEvolver):
 
     def __init__(
         self,
-        fidelity_primitive: BaseStateFidelity,
+        fidelity: BaseStateFidelity,
         ansatz: QuantumCircuit,
         initial_parameters: np.ndarray,
         estimator: BaseEstimator | None = None,
@@ -131,13 +131,13 @@ class PVQD(RealTimeEvolver):
     ) -> None:
         """
         Args:
-            fidelity_primitive: A fidelity primitive used by the algorithm.
+            fidelity: A fidelity primitive used by the algorithm.
             ansatz: A parameterized circuit preparing the variational ansatz to model the
                 time evolved quantum state.
             initial_parameters: The initial parameters for the ansatz. Together with the ansatz,
                 these define the initial state of the time evolution.
             estimator: An estimator primitive used for calculating expected values of auxiliary
-                operators (if provided).
+                operators (if provided via the problem).
             optimizer: The classical optimizers used to minimize the overlap between
                 Trotterization and ansatz. Can be either a :class:`.Optimizer` or a callable
                 using the :class:`.Minimizer` protocol. This argument is optional since it is
@@ -165,7 +165,7 @@ class PVQD(RealTimeEvolver):
         self.optimizer = optimizer
         self.initial_guess = initial_guess
         self.estimator = estimator
-        self.fidelity_primitive = fidelity_primitive
+        self.fidelity_primitive = fidelity
         self.evolution = evolution
         self.use_parameter_shift = use_parameter_shift
 
@@ -236,10 +236,7 @@ class PVQD(RealTimeEvolver):
         # use Trotterization to evolve the current state
         trotterized = ansatz.bind_parameters(current_parameters)
 
-        if isinstance(hamiltonian, MatrixOp):
-            evolution_gate = HamiltonianGate(hamiltonian.primitive, time=dt)
-        else:
-            evolution_gate = PauliEvolutionGate(hamiltonian, time=dt, synthesis=self.evolution)
+        evolution_gate = PauliEvolutionGate(hamiltonian, time=dt, synthesis=self.evolution)
 
         trotterized.append(evolution_gate, ansatz.qubits)
 
@@ -332,7 +329,6 @@ class PVQD(RealTimeEvolver):
         Raises:
             ValueError: If the evolution time is not positive or the timestep is too small.
             NotImplementedError: If the evolution problem contains an initial state.
-            Warning: If observables provided but an estimator not provided.
         """
         self._validate_setup()
 
@@ -354,8 +350,9 @@ class PVQD(RealTimeEvolver):
         # get the function to evaluate the observables for a given set of ansatz parameters
         if observables is not None:
             if self.estimator is None:
-                raise Warning(
-                    "Observables provided to be estimated but the estimator was not provided. "
+                warnings.warn(
+                    "The evolution problem contained aux_operators but no estimator was provided. "
+                    "The algorithm continues without calculating these quantities. "
                 )
             evaluate_observables = _get_observable_evaluator(
                 self.ansatz, observables, self.estimator
@@ -403,7 +400,7 @@ class PVQD(RealTimeEvolver):
         if skip is None:
             skip = {}
 
-        required_attributes = {"fidelity_primitive", "optimizer"}.difference(skip)
+        required_attributes = {"optimizer"}.difference(skip)
 
         for attr in required_attributes:
             if getattr(self, attr, None) is None:

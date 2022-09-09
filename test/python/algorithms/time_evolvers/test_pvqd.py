@@ -18,8 +18,9 @@ from ddt import ddt, data, unpack
 import numpy as np
 
 from qiskit.algorithms.state_fidelities import ComputeUncompute
+from qiskit.opflow import PauliSumOp
 from qiskit.primitives import Sampler, Estimator
-from qiskit.quantum_info import Pauli
+from qiskit.quantum_info import Pauli, SparsePauliOp
 from qiskit.test import QiskitTestCase
 from qiskit import QiskitError
 from qiskit.circuit import QuantumCircuit, Parameter, Gate
@@ -27,7 +28,6 @@ from qiskit.algorithms.evolvers import EvolutionProblem
 from qiskit.algorithms.time_evolvers.pvqd import PVQD
 from qiskit.algorithms.optimizers import L_BFGS_B, GradientDescent, SPSA, OptimizerResult
 from qiskit.circuit.library import EfficientSU2
-from qiskit.opflow import X, Z, I
 
 
 # pylint: disable=unused-argument, invalid-name
@@ -57,15 +57,12 @@ class TestPVQD(QiskitTestCase):
 
     def setUp(self):
         super().setUp()
-        self.hamiltonian = 0.1 * (Z ^ Z) + (I ^ X) + (X ^ I)
+        self.hamiltonian = 0.1 * SparsePauliOp([Pauli("ZZ"), Pauli("IX"), Pauli("XI")])
         self.observable = Pauli("ZZ")
         self.ansatz = EfficientSU2(2, reps=1)
         self.initial_parameters = np.zeros(self.ansatz.num_parameters)
 
-    @data(
-        ("ising", True, 2),
-        ("pauli", False, None),
-    )
+    @data(("ising", True, 2), ("pauli", False, None), ("pauli_sum_op", True, 2))
     @unpack
     def test_pvqd(self, hamiltonian_type, gradient, num_timesteps):
         """Test a simple evolution."""
@@ -73,6 +70,8 @@ class TestPVQD(QiskitTestCase):
 
         if hamiltonian_type == "ising":
             hamiltonian = self.hamiltonian
+        elif hamiltonian_type == "pauli_sum_op":
+            hamiltonian = PauliSumOp(self.hamiltonian)
         else:  # hamiltonian_type == "pauli":
             hamiltonian = Pauli("XX")
 
@@ -123,7 +122,7 @@ class TestPVQD(QiskitTestCase):
         # perform optimization for a timestep of 0, then the optimal parameters are the current
         # ones and the fidelity is 1
         theta_next, fidelity = pvqd.step(
-            self.hamiltonian.to_matrix_op(),
+            self.hamiltonian,
             self.ansatz,
             self.initial_parameters,
             dt=0.0,
@@ -254,7 +253,7 @@ class TestPVQDUtils(QiskitTestCase):
 
     def setUp(self):
         super().setUp()
-        self.hamiltonian = 0.1 * (Z ^ Z) + (I ^ X) + (X ^ I)
+        self.hamiltonian = 0.1 * SparsePauliOp([Pauli("ZZ"), Pauli("IX"), Pauli("XI")])
         self.ansatz = EfficientSU2(2, reps=1)
 
     def test_gradient_supported(self):
@@ -294,7 +293,7 @@ class TestPVQDUtils(QiskitTestCase):
         fidelity_primitive = ComputeUncompute(sampler)
 
         pvqd = PVQD(
-            fidelity_primitive=fidelity_primitive,
+            fidelity=fidelity_primitive,
             ansatz=None,
             initial_parameters=np.array([]),
             estimator=estimator,
