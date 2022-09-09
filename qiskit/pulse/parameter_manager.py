@@ -279,7 +279,7 @@ class ParameterSetter(NodeVisitor):
                 continue
             new_value = self._param_map[param]
             if isinstance(new_value, ParameterExpression):
-                new_parameters = new_parameters | new_value.parameters
+                new_parameters |= new_value.parameters
         param_manager._parameters = new_parameters
 
 
@@ -302,17 +302,17 @@ class ParameterGetter(NodeVisitor):
         """
         # Note that node.parameters returns parameters of main program with subroutines.
         # The manager of main program is not aware of parameters in subroutines.
-        self.parameters = self.parameters | node._parameter_manager.parameters
+        self.parameters |= node._parameter_manager.parameters
 
     def visit_Schedule(self, node: Schedule):
         """Visit ``Schedule``. Recursively visit schedule children and search parameters."""
-        self.parameters = self.parameters | node.parameters
+        self.parameters |= node.parameters
 
     def visit_AlignmentKind(self, node: AlignmentKind):
         """Get parameters from block's ``AlignmentKind`` specification."""
         for param in node._context_params:
             if isinstance(param, ParameterExpression):
-                self.parameters = self.parameters | param.parameters
+                self.parameters |= param.parameters
 
     # Mid layer: Get parameters from instructions
 
@@ -322,7 +322,7 @@ class ParameterGetter(NodeVisitor):
         .. note:: ``Call`` instruction has a special parameter handling logic.
             This instruction separately keeps parameters and program.
         """
-        self.parameters = self.parameters | node.parameters
+        self.parameters |= node.parameters
 
     def visit_Instruction(self, node: instructions.Instruction):
         """Get parameters from general pulse instruction.
@@ -337,19 +337,19 @@ class ParameterGetter(NodeVisitor):
 
     def visit_Channel(self, node: channels.Channel):
         """Get parameters from ``Channel`` object."""
-        self.parameters = self.parameters | node.parameters
+        self.parameters |= node.parameters
 
     def visit_ParametricPulse(self, node: ParametricPulse):
         """Get parameters from ``ParametricPulse`` object."""
         for op_value in node.parameters.values():
             if isinstance(op_value, ParameterExpression):
-                self.parameters = self.parameters | op_value.parameters
+                self.parameters |= op_value.parameters
 
     def visit_SymbolicPulse(self, node: SymbolicPulse):
         """Get parameters from ``SymbolicPulse`` object."""
         for op_value in node.parameters.values():
             if isinstance(op_value, ParameterExpression):
-                self.parameters = self.parameters | op_value.parameters
+                self.parameters |= op_value.parameters
 
     def visit_Waveform(self, node: Waveform):
         """Get parameters from ``Waveform`` object.
@@ -361,7 +361,7 @@ class ParameterGetter(NodeVisitor):
     def generic_visit(self, node: Any):
         """Get parameters from object that doesn't belong to Qiskit Pulse module."""
         if isinstance(node, ParameterExpression):
-            self.parameters = self.parameters | node.parameters
+            self.parameters |= node.parameters
 
 
 class ParameterManager:
@@ -434,4 +434,4 @@ class ParameterManager:
         """
         visitor = ParameterGetter()
         visitor.visit(new_node)
-        self._parameters = self.parameters | visitor.parameters
+        self._parameters |= visitor.parameters

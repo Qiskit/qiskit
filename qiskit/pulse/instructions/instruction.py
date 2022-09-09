@@ -209,12 +209,12 @@ class Instruction(ABC):
                     if isinstance(param, Parameter):
                         params.add(param)
                     else:
-                        param = param | _get_parameters_recursive(param)
+                        params |= _get_parameters_recursive(param)
             return params
 
         parameters = set()
         for op in self.operands:
-            parameters = parameters | _get_parameters_recursive(op)
+            parameters |= _get_parameters_recursive(op)
         return parameters
 
     def is_parameterized(self) -> bool:

@@ -118,7 +118,7 @@ class Call(instruction.Instruction):
         params = set()
         for value in self._arguments.values():
             if isinstance(value, ParameterExpression):
-                params = params | value.parameters
+                params |= value.parameters
         return params
 
     @property
