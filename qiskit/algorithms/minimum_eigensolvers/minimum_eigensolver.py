@@ -14,7 +14,9 @@
 
 from abc import ABC, abstractmethod
 
-from qiskit.opflow import OperatorBase
+from qiskit.opflow import PauliSumOp
+from qiskit.quantum_info.operators.base_operator import BaseOperator
+
 from ..algorithm_result import AlgorithmResult
 from ..list_or_dict import ListOrDict
 
@@ -28,13 +30,14 @@ class MinimumEigensolver(ABC):
 
     @abstractmethod
     def compute_minimum_eigenvalue(
-        self, operator: OperatorBase, aux_operators: ListOrDict[OperatorBase] | None = None
+        self,
+        operator: BaseOperator | PauliSumOp,
+        aux_operators: ListOrDict[BaseOperator | PauliSumOp] | None = None,
     ) -> "MinimumEigensolverResult":
         """
-        Computes minimum eigenvalue. Operator and aux_operators can be supplied here and
-        if not None will override any already set into algorithm so it can be reused with
-        different operators. While an operator is required by algorithms, aux_operators
-        are optional.
+        Computes minimum eigenvalue. Operator and aux_operators can be supplied here and if not None
+        will override any already set into algorithm so it can be reused with different operators.
+        While an operator is required by algorithms, aux_operators are optional.
 
         Args:
             operator: Qubit operator of the observable.
@@ -71,12 +74,12 @@ class MinimumEigensolverResult(AlgorithmResult):
 
     @property
     def eigenvalue(self) -> complex | None:
-        """returns eigen value"""
+        """Return the eigenvalue."""
         return self._eigenvalue
 
     @eigenvalue.setter
     def eigenvalue(self, value: complex) -> None:
-        """set eigen value"""
+        """Set the eigenvalue."""
         self._eigenvalue = value
 
     @property
@@ -89,5 +92,5 @@ class MinimumEigensolverResult(AlgorithmResult):
 
     @aux_operator_eigenvalues.setter
     def aux_operator_eigenvalues(self, value: ListOrDict[tuple[complex, complex]]) -> None:
-        """set aux operator eigen values"""
+        """set aux operator eigenvalues"""
         self._aux_operator_eigenvalues = value

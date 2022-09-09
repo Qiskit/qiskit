@@ -366,7 +366,7 @@ class TestVQE(QiskitAlgorithmsTestCase):
 
     def test_aux_operators_dict(self):
         """Test dictionary compatibility of aux_operators"""
-        vqe = VQE(Estimator(), self.ry_wavefunction, SLSQP())
+        vqe = VQE(Estimator(), self.ry_wavefunction, SLSQP(maxiter=300))
 
         # Start with an empty dictionary
         result = vqe.compute_minimum_eigenvalue(self.h2_op, aux_operators={})
