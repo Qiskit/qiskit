@@ -55,7 +55,7 @@ Options
 .. autosummary::
    :toctree: ../stubs/
 
-   Options
+   ReferenceOptions
 
 """
 
