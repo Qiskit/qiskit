@@ -146,7 +146,7 @@ class BaseSampler(ABC):
 
         # To guarantee that they exist as instance variable.
         # With only dynamic set, the python will not know if the attribute exists or not.
-        self._circuit_ids: dict[int, tuple] = self._circuit_ids
+        self._circuit_ids: dict[tuple, int] = self._circuit_ids
 
         if parameters is None:
             self._parameters = [circ.parameters for circ in self._circuits]
