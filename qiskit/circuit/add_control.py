@@ -17,8 +17,16 @@ from typing import Union, Optional
 from qiskit.circuit.exceptions import CircuitError
 from qiskit.extensions import UnitaryGate
 from . import ControlledGate, Gate, QuantumRegister, QuantumCircuit
-from qiskit.circuit.library.standard_gates import (MCXRecursive, RZGate, RYGate, 
-                                                   CXGate, CCXGate, C3XGate, C4XGate, MCXGate)
+from qiskit.circuit.library.standard_gates import (
+    MCXRecursive,
+    RZGate,
+    RYGate,
+    CXGate,
+    CCXGate,
+    C3XGate,
+    C4XGate,
+    MCXGate,
+)
 from qiskit.quantum_info import OneQubitEulerDecomposer
 
 
@@ -193,12 +201,14 @@ def control(
                     else:
                         mcx_control, abc_control = define_mcx_control_and_ancilla(q_control)
 
-                        mcxr_rule = define_mcx_rule(mcx_control, q_target[bit_indices[qargs[0]]], abc_control)
+                        mcxr_rule = define_mcx_rule(
+                            mcx_control, q_target[bit_indices[qargs[0]]], abc_control
+                        )
 
                         # Getting euler angles from zyz decomposition
                         th, ph, lb, alpha = OneQubitEulerDecomposer._params_zyz(gate.to_matrix())
 
-                        if alpha: 
+                        if alpha:
                             global_phase = alpha
                             theta = th
                             phi = ph
@@ -268,7 +278,8 @@ def control(
     )
     return cgate
 
-def define_mcx_rule(q_controls, q_target, q_ancilla = None):
+
+def define_mcx_rule(q_controls, q_target, q_ancilla=None):
     rule = []
 
     controls_and_target = q_controls + [q_target]
@@ -280,20 +291,22 @@ def define_mcx_rule(q_controls, q_target, q_ancilla = None):
         rule += [(C3XGate(), controls_and_target, [])]
     elif len(q_controls) == 4:
         rule += [(C4XGate(), controls_and_target, [])]
-    elif len(q_controls) >= 5 and  len(q_controls) <7:
+    elif len(q_controls) >= 5 and len(q_controls) < 7:
         rule += [(MCXGate(len(q_controls)), controls_and_target, [])]
-    else: 
+    else:
         rule = MCXRecursive(len(q_controls))._recurse(controls_and_target, q_ancilla)
     return rule
 
-def define_mcx_control_and_ancilla(control_qubits): 
+
+def define_mcx_control_and_ancilla(control_qubits):
     if len(control_qubits) < 7:
         mcx_controls = list(control_qubits)
         abc_ancilla = None
-    else: 
+    else:
         mcx_controls = control_qubits[1:]
         abc_ancilla = control_qubits[0]
     return mcx_controls, abc_ancilla
+
 
 def get_abc_matrices(lamb, theta, phi):
     # A
@@ -310,6 +323,7 @@ def get_abc_matrices(lamb, theta, phi):
     c_matrix = RZGate((phi - lamb) / 2).to_matrix()
 
     return a_matrix, b_matrix, c_matrix
+
 
 def _gate_to_dag(operation):
     from qiskit.converters.circuit_to_dag import circuit_to_dag
