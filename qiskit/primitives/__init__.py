@@ -48,11 +48,21 @@ Results
 
    EstimatorResult
    SamplerResult
+
+Options
+=======
+
+.. autosummary::
+   :toctree: ../stubs/
+
+   Options
+
 """
 
 from .base_estimator import BaseEstimator
 from .base_sampler import BaseSampler
 from .estimator import Estimator
 from .estimator_result import EstimatorResult
+from .options import Options
 from .sampler import Sampler
 from .sampler_result import SamplerResult

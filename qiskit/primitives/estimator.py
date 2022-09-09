@@ -29,6 +29,7 @@ from qiskit.quantum_info.operators.base_operator import BaseOperator
 
 from .base_estimator import BaseEstimator
 from .estimator_result import EstimatorResult
+from .options import Options
 from .primitive_job import PrimitiveJob
 from .utils import bound_circuit_to_instruction, init_circuit, init_observable
 
@@ -54,7 +55,7 @@ class Estimator(BaseEstimator):
         circuits: QuantumCircuit | Iterable[QuantumCircuit] | None = None,
         observables: BaseOperator | PauliSumOp | Iterable[BaseOperator | PauliSumOp] | None = None,
         parameters: Iterable[Iterable[Parameter]] | None = None,
-        run_options: dict | None = None,
+        options: Options | None = None,
     ):
         """
         Args:
@@ -62,7 +63,7 @@ class Estimator(BaseEstimator):
             observables: observables to be estimated.
             parameters: Parameters of each of the quantum circuits.
                 Defaults to ``[circ.parameters for circ in circuits]``.
-            run_options: Default runtime options.
+            options: Options for primitives.
 
         Raises:
             QiskitError: if some classical bits are not used for measurements.
@@ -81,7 +82,7 @@ class Estimator(BaseEstimator):
             circuits=circuits,
             observables=observables,  # type: ignore
             parameters=parameters,
-            run_options=run_options,
+            run_options=options.run_options if isinstance(options, Options) else options,
         )
         self._is_closed = False
 
