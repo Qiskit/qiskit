@@ -50,7 +50,8 @@ class TestObservablesEvaluator(QiskitAlgorithmsTestCase):
             observables_list = list(observables.values())
         else:
             observables_list = observables
-        # the exact value is a list of (mean, (variance, shots)) where we expect 0 variance and 0 shots
+        # the exact value is a list of (mean, (variance, shots)) where we expect 0 variance and
+        # 0 shots
         exact = [
             (Statevector(ansatz).expectation_value(observable), (0, 0))
             for observable in observables_list
@@ -104,6 +105,8 @@ class TestObservablesEvaluator(QiskitAlgorithmsTestCase):
         {
             "op1": PauliSumOp.from_list([("ZZ", 2.0)]),
         },
+        [],
+        {},
     )
     def test_eval_observables(self, observables: ListOrDict[BaseOperator | PauliSumOp]):
         """Tests evaluator of auxiliary operators for algorithms."""

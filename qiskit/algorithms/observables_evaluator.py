@@ -86,10 +86,11 @@ def _handle_zero_ops(
 ) -> list[BaseOperator | PauliSumOp]:
     """Replaces all occurrence of operators equal to 0 in the list with an equivalent ``PauliSumOp``
     operator."""
-    zero_op = PauliSumOp.from_list([("I" * observables_list[0].num_qubits, 0)])
-    for ind, observable in enumerate(observables_list):
-        if observable == 0:
-            observables_list[ind] = zero_op
+    if observables_list:
+        zero_op = PauliSumOp.from_list([("I" * observables_list[0].num_qubits, 0)])
+        for ind, observable in enumerate(observables_list):
+            if observable == 0:
+                observables_list[ind] = zero_op
     return observables_list
 
 
