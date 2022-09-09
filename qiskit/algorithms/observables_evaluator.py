@@ -12,14 +12,10 @@
 """Evaluator of auxiliary operators for algorithms."""
 from __future__ import annotations
 
-from typing import Tuple, List
-
 import numpy as np
 
 from qiskit import QuantumCircuit
-from qiskit.opflow import (
-    PauliSumOp,
-)
+from qiskit.opflow import PauliSumOp
 from . import AlgorithmError
 from .list_or_dict import ListOrDict
 from ..primitives import EstimatorResult, BaseEstimator
@@ -31,7 +27,7 @@ def eval_observables(
     quantum_state: QuantumCircuit,
     observables: ListOrDict[BaseOperator | PauliSumOp],
     threshold: float = 1e-12,
-) -> ListOrDict[Tuple[complex, complex]]:
+) -> ListOrDict[tuple[complex, tuple[complex | None, int | None]]]:
     """
     Accepts a sequence of operators and calculates their expectation values - means
     and standard deviations. They are calculated with respect to a quantum state provided. A user
@@ -75,19 +71,18 @@ def eval_observables(
     except Exception as exc:
         raise AlgorithmError("The primitive job failed!") from exc
 
-    std_devs = _compute_std_devs(estimator_job, len(expectation_values))
+    variance_and_shots = _prep_variance_and_shots(estimator_job, len(expectation_values))
 
     # Discard values below threshold
     observables_means = expectation_values * (np.abs(expectation_values) > threshold)
     # zip means and standard deviations into tuples
-    observables_results = list(zip(observables_means, std_devs))
+    observables_results = list(zip(observables_means, variance_and_shots))
 
-    # Return None eigenvalues for None operators if observables is a list.
     return _prepare_result(observables_results, observables)
 
 
 def _handle_zero_ops(
-    observables_list: list[BaseOperator | PauliSumOp],
+    observables_list: list[BaseOperator | PauliSumOp | int],
 ) -> list[BaseOperator | PauliSumOp]:
     """Replaces all occurrence of operators equal to 0 in the list with an equivalent ``PauliSumOp``
     operator."""
@@ -99,20 +94,20 @@ def _handle_zero_ops(
 
 
 def _prepare_result(
-    observables_results: List[Tuple[complex, complex]],
+    observables_results: list[tuple[complex, tuple[complex | None, int | None]]],
     observables: ListOrDict[BaseOperator | PauliSumOp],
-) -> ListOrDict[Tuple[complex, complex]]:
+) -> ListOrDict[tuple[complex, tuple[complex | None, int | None]]]:
     """
-    Prepares a list of eigenvalues and standard deviations from ``observables_results`` and
-    ``observables``.
+    Prepares a list of tuples of eigenvalues and (variance, shots) tuples from
+    ``observables_results`` and ``observables``.
 
     Args:
-        observables_results: A list of of tuples (mean, standard deviation).
+        observables_results: A list of tuples (mean, standard deviation).
         observables: A list or a dictionary of operators whose expectation values are to be
             calculated.
 
     Returns:
-        A list or a dictionary of tuples (mean, standard deviation).
+        A list or a dictionary of tuples (mean, (variance, shots)).
     """
 
     if isinstance(observables, list):
@@ -128,35 +123,32 @@ def _prepare_result(
     return observables_eigenvalues
 
 
-def _compute_std_devs(
+def _prep_variance_and_shots(
     estimator_result: EstimatorResult,
     results_length: int,
-) -> List[complex | None]:
+) -> list[tuple[complex | None, int | None]]:
     """
-    Calculates a list of standard deviations from expectation values of observables provided. If
-    there is no variance data available from a primitive, the standard deviation values will be set
-    to ``None``.
+    Prepares a list of tuples with variances and shots from results provided by expectation values
+    calculations. If there is no variance or shots data available from a primitive, the values will
+    be set to ``0``.
 
     Args:
         estimator_result: An estimator result.
         results_length: Number of expectation values calculated.
 
     Returns:
-        A list of standard deviations.
+        A list of tuples of the form (variance, shots).
     """
     if not estimator_result.metadata:
-        return [0] * results_length
+        return [(0, 0)] * results_length
 
-    std_devs = []
+    results = []
     for metadata in estimator_result.metadata:
         if metadata and "variance" in metadata.keys() and "shots" in metadata.keys():
             variance = metadata["variance"]
             shots = metadata["shots"]
-            if variance is None or shots is None:
-                std_devs.append(None)
-            else:
-                std_devs.append(np.sqrt(variance / shots))
+            results.append((variance, shots))
         else:
-            std_devs.append(0)
+            results.append((0, 0))
 
-    return std_devs
+    return results
