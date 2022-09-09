@@ -18,6 +18,7 @@ from typing import Callable
 
 import numpy as np
 
+from qiskit.algorithms import AlgorithmError
 from qiskit.circuit import QuantumCircuit, Parameter, ParameterExpression
 from qiskit.compiler import transpile
 from qiskit.exceptions import QiskitError
@@ -84,6 +85,9 @@ def _get_observable_evaluator(
 
         Returns:
             The observables evaluated at the ansatz parameters.
+
+        Raises:
+            AlgorithmError: If a primitive job fails.
         """
         if isinstance(observables, list):
             num_observables = len(observables)
@@ -94,8 +98,12 @@ def _get_observable_evaluator(
         states = [ansatz] * num_observables
         parameter_values = [theta] * num_observables
 
-        estimator_job = estimator.run(states, obs, parameter_values=parameter_values)
+        try:
+            estimator_job = estimator.run(states, obs, parameter_values=parameter_values)
+            results = estimator_job.result().values
+        except Exception as exc:
+            raise AlgorithmError("The primitive job failed!") from exc
 
-        return estimator_job.result().values
+        return results
 
     return evaluate_observables

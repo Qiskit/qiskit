@@ -32,6 +32,7 @@ from .utils import _get_observable_evaluator, _is_gradient_supported
 from ..time_evolution_problem import TimeEvolutionProblem
 from ..time_evolution_result import TimeEvolutionResult
 from ..real_time_evolver import RealTimeEvolver
+from ... import AlgorithmError
 from ...state_fidelities import BaseStateFidelity
 
 logger = logging.getLogger(__name__)
@@ -252,6 +253,9 @@ class PVQD(RealTimeEvolver):
 
             Returns:
                 The fidelity of the ansatz with parameters ``theta`` and the Trotterized evolution.
+
+            Raises:
+                AlgorithmError: If a primitive job fails.
             """
             if isinstance(displacement, list):
                 displacement = np.asarray(displacement)
@@ -265,8 +269,12 @@ class PVQD(RealTimeEvolver):
             states2 = [shifted] * num_of_param_sets
             param_dicts2 = [list(param_dict.values()) for param_dict in param_dicts]
             # the first state does not have free parameters so values_1 will be None by default
-            job = self.fidelity_primitive.run(states1, states2, values_2=param_dicts2)
-            fidelities = job.result().fidelities
+            try:
+                job = self.fidelity_primitive.run(states1, states2, values_2=param_dicts2)
+                fidelities = job.result().fidelities
+            except Exception as exc:
+                raise AlgorithmError("The primitive job failed!") from exc
+
             if len(fidelities) == 1:
                 fidelities = fidelities[0]
 
