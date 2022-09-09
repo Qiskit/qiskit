@@ -1,0 +1,4 @@
+---
+features:
+  - |
+    ``BaseOperator`` subclasses (like ScalarOp, SparsePauliOp and PauliList) can now be used with ``sum(...)``
