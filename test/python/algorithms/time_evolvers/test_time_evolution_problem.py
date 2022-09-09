@@ -16,14 +16,14 @@ from test.python.algorithms import QiskitAlgorithmsTestCase
 from ddt import data, ddt, unpack
 from numpy.testing import assert_raises
 from qiskit import QuantumCircuit
-from qiskit.algorithms.time_evolvers.evolution_problem import EvolutionProblem
+from qiskit.algorithms import TimeEvolutionProblem
 from qiskit.quantum_info import Pauli, SparsePauliOp, Statevector
 from qiskit.circuit import Parameter
 from qiskit.opflow import Y, Z, One, X, Zero, PauliSumOp
 
 
 @ddt
-class TestEvolutionProblem(QiskitAlgorithmsTestCase):
+class TestTimeEvolutionProblem(QiskitAlgorithmsTestCase):
     """Test evolver problem class."""
 
     def test_init_default(self):
@@ -32,7 +32,7 @@ class TestEvolutionProblem(QiskitAlgorithmsTestCase):
         time = 2.5
         initial_state = One
 
-        evo_problem = EvolutionProblem(hamiltonian, time, initial_state)
+        evo_problem = TimeEvolutionProblem(hamiltonian, time, initial_state)
 
         expected_hamiltonian = Y
         expected_time = 2.5
@@ -57,7 +57,7 @@ class TestEvolutionProblem(QiskitAlgorithmsTestCase):
         aux_operators = [X, Y]
         param_value_dict = {t_parameter: 3.2}
 
-        evo_problem = EvolutionProblem(
+        evo_problem = TimeEvolutionProblem(
             hamiltonian,
             time,
             initial_state,
@@ -85,14 +85,14 @@ class TestEvolutionProblem(QiskitAlgorithmsTestCase):
     def test_init_errors(self, hamiltonian, time, initial_state):
         """Tests expected errors are thrown on invalid time argument."""
         with assert_raises(ValueError):
-            _ = EvolutionProblem(hamiltonian, time, initial_state)
+            _ = TimeEvolutionProblem(hamiltonian, time, initial_state)
 
     def test_validate_params(self):
         """Tests expected errors are thrown on parameters mismatch."""
         param_x = Parameter("x")
         with self.subTest(msg="Parameter missing in dict."):
             hamiltonian = PauliSumOp(SparsePauliOp([Pauli("X"), Pauli("Y")]), param_x)
-            evolution_problem = EvolutionProblem(hamiltonian, 2, Zero)
+            evolution_problem = TimeEvolutionProblem(hamiltonian, 2, Zero)
             with assert_raises(ValueError):
                 evolution_problem.validate_params()
 

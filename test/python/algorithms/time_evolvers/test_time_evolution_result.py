@@ -12,17 +12,17 @@
 """Class for testing evolution result."""
 import unittest
 from test.python.algorithms import QiskitAlgorithmsTestCase
-from qiskit.algorithms.time_evolvers.evolution_result import EvolutionResult
+from qiskit.algorithms import TimeEvolutionResult
 from qiskit.opflow import Zero
 
 
-class TestEvolutionResult(QiskitAlgorithmsTestCase):
+class TestTimeEvolutionResult(QiskitAlgorithmsTestCase):
     """Class for testing evolution result and relevant metadata."""
 
     def test_init_state(self):
         """Tests that a class is initialized correctly with an evolved_state."""
         evolved_state = Zero
-        evo_result = EvolutionResult(evolved_state=evolved_state)
+        evo_result = TimeEvolutionResult(evolved_state=evolved_state)
 
         expected_state = Zero
         expected_aux_ops_evaluated = None
@@ -34,7 +34,7 @@ class TestEvolutionResult(QiskitAlgorithmsTestCase):
         """Tests that a class is initialized correctly with an evolved_observable."""
         evolved_state = Zero
         evolved_aux_ops_evaluated = [(5j, 5j), (1.0, 8j), (5 + 1j, 6 + 1j)]
-        evo_result = EvolutionResult(evolved_state, evolved_aux_ops_evaluated)
+        evo_result = TimeEvolutionResult(evolved_state, evolved_aux_ops_evaluated)
 
         expected_state = Zero
         expected_aux_ops_evaluated = [(5j, 5j), (1.0, 8j), (5 + 1j, 6 + 1j)]

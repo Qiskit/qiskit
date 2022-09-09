@@ -18,7 +18,7 @@ from qiskit.algorithms.list_or_dict import ListOrDict
 from ..algorithm_result import AlgorithmResult
 
 
-class EvolutionResult(AlgorithmResult):
+class TimeEvolutionResult(AlgorithmResult):
     """
     Class for holding evolution result.
 
