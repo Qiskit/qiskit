@@ -14,8 +14,6 @@ It is compliant with the new Quantum Time Evolution Framework and makes use of
 :class:`qiskit.synthesis.evolution.ProductFormula` and
 :class:`~qiskit.circuit.library.PauliEvolutionGate` implementations."""
 
-from qiskit.algorithms.time_evolvers.trotterization.trotter_qrte import (
-    TrotterQRTE,
-)
+from qiskit.algorithms.time_evolvers.trotterization.trotter_qrte import TrotterQRTE
 
 __all__ = ["TrotterQRTE"]

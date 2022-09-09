@@ -19,7 +19,7 @@ from ddt import ddt, data, unpack
 import numpy as np
 from numpy.testing import assert_raises
 
-from qiskit.algorithms.time_evolvers.evolution_problem import EvolutionProblem
+from qiskit.algorithms.time_evolvers.time_evolution_problem import TimeEvolutionProblem
 from qiskit.algorithms.time_evolvers.trotterization.trotter_qrte import TrotterQRTE
 from qiskit.primitives import Estimator
 from qiskit import QuantumCircuit
@@ -66,7 +66,7 @@ class TestTrotterQRTE(QiskitAlgorithmsTestCase):
         operator = X + Z
         initial_state = StateFn([1, 0])
         time = 1
-        evolution_problem = EvolutionProblem(operator, time, initial_state)
+        evolution_problem = TimeEvolutionProblem(operator, time, initial_state)
 
         trotter_qrte = TrotterQRTE(product_formula=product_formula)
         evolution_result_state_circuit = trotter_qrte.evolve(evolution_problem).evolved_state
@@ -81,13 +81,12 @@ class TestTrotterQRTE(QiskitAlgorithmsTestCase):
 
         initial_state = Zero
         time = 3
-        evolution_problem = EvolutionProblem(operator, time, initial_state, aux_ops)
+        evolution_problem = TimeEvolutionProblem(operator, time, initial_state, aux_ops)
         estimator = Estimator()
 
         expected_evolved_state = VectorStateFn(
             Statevector([0.98008514 + 0.13970775j, 0.01991486 + 0.13970775j], dims=(2,))
         )
-        expected_aux_ops_evaluated = [(0.078073, 0.0), (0.268286, 0.0)]
 
         algorithm_globals.random_seed = 0
         trotter_qrte = TrotterQRTE(estimator=estimator)
@@ -95,9 +94,16 @@ class TestTrotterQRTE(QiskitAlgorithmsTestCase):
 
         np.testing.assert_equal(evolution_result.evolved_state.eval(), expected_evolved_state)
 
-        np.testing.assert_array_almost_equal(
-            evolution_result.aux_ops_evaluated, expected_aux_ops_evaluated
-        )
+        aux_ops_result = evolution_result.aux_ops_evaluated
+        expected_aux_ops_result = [(0.078073, (0.0, 0.0)), (0.268286, (0.0, 0.0))]
+
+        means = [element[0] for element in aux_ops_result]
+        expected_means = [element[0] for element in expected_aux_ops_result]
+        np.testing.assert_array_almost_equal(means, expected_means)
+
+        vars_and_shots = [element[1] for element in aux_ops_result]
+        expected_vars_and_shots = [element[1] for element in expected_aux_ops_result]
+        np.testing.assert_array_equal(vars_and_shots, expected_vars_and_shots)
 
     @data(
         (
@@ -130,7 +136,7 @@ class TestTrotterQRTE(QiskitAlgorithmsTestCase):
         """Test for TrotterQRTE on two qubits with various types of a Hamiltonian."""
         # LieTrotter with 1 rep
         initial_state = QuantumCircuit(2)
-        evolution_problem = EvolutionProblem(operator, 1, initial_state)
+        evolution_problem = TimeEvolutionProblem(operator, 1, initial_state)
 
         trotter_qrte = TrotterQRTE()
         evolution_result = trotter_qrte.evolve(evolution_problem)
@@ -155,7 +161,7 @@ class TestTrotterQRTE(QiskitAlgorithmsTestCase):
         """Test for TrotterQRTE with QDrift."""
         operator = X + Z
         time = 1
-        evolution_problem = EvolutionProblem(operator, time, initial_state)
+        evolution_problem = TimeEvolutionProblem(operator, time, initial_state)
 
         algorithm_globals.random_seed = 0
         trotter_qrte = TrotterQRTE(product_formula=QDrift())
@@ -172,7 +178,7 @@ class TestTrotterQRTE(QiskitAlgorithmsTestCase):
         algorithm_globals.random_seed = 0
         trotter_qrte = TrotterQRTE()
         with assert_raises(ValueError):
-            evolution_problem = EvolutionProblem(
+            evolution_problem = TimeEvolutionProblem(
                 operator,
                 time,
                 initial_state,

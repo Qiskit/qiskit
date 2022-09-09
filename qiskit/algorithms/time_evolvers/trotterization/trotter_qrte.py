@@ -14,12 +14,14 @@
 
 from __future__ import annotations
 
+import warnings
+
 from qiskit.algorithms.observables_evaluator import eval_observables
 
 from qiskit import QuantumCircuit
-from qiskit.algorithms.time_evolvers.evolution_problem import EvolutionProblem
-from qiskit.algorithms.time_evolvers.evolution_result import EvolutionResult
-from qiskit.algorithms.time_evolvers.real_evolver import RealEvolver
+from qiskit.algorithms.time_evolvers.time_evolution_problem import TimeEvolutionProblem
+from qiskit.algorithms.time_evolvers.time_evolution_result import TimeEvolutionResult
+from qiskit.algorithms.time_evolvers.real_time_evolver import RealTimeEvolver
 from qiskit.opflow import (
     CircuitOp,
     PauliSumOp,
@@ -31,21 +33,25 @@ from qiskit.quantum_info import Pauli
 from qiskit.synthesis import ProductFormula, LieTrotter
 
 
-class TrotterQRTE(RealEvolver):
+class TrotterQRTE(RealTimeEvolver):
     """Quantum Real Time Evolution using Trotterization.
     Type of Trotterization is defined by a ProductFormula provided.
 
+    Attributes:
+        product_formula: A Lie-Trotter-Suzuki product formula. The default is the Lie-Trotter
+            first order product formula with a single repetition.
+
     Examples:
 
-        .. jupyter-execute::
+        .. code-block:: python
 
             from qiskit.opflow import X, Z, Zero
-            from qiskit.algorithms.time_evolvers import EvolutionProblem, TrotterQRTE
+            from qiskit.algorithms.time_evolvers import TimeEvolutionProblem, TrotterQRTE
 
             operator = X + Z
             initial_state = Zero
             time = 1
-            evolution_problem = EvolutionProblem(operator, 1, initial_state)
+            evolution_problem = TimeEvolutionProblem(operator, 1, initial_state)
             # LieTrotter with 1 rep
             trotter_qrte = TrotterQRTE()
             evolved_state = trotter_qrte.evolve(evolution_problem).evolved_state
@@ -93,7 +99,7 @@ class TrotterQRTE(RealEvolver):
         """
         return True
 
-    def evolve(self, evolution_problem: EvolutionProblem) -> EvolutionResult:
+    def evolve(self, evolution_problem: TimeEvolutionProblem) -> TimeEvolutionResult:
         """
         Evolves a quantum state for a given time using the Trotterization method
         based on a product formula provided. The result is provided in the form of a quantum
@@ -114,7 +120,6 @@ class TrotterQRTE(RealEvolver):
         Raises:
             ValueError: If ``t_param`` is not set to ``None`` in the EvolutionProblem (feature not
                 currently supported).
-            ValueError: If ``aux_operators` are provided but no ``Estimator`` is provided.
             ValueError: If the ``initial_state`` is not provided in the EvolutionProblem.
             ValueError: If an unsupported Hamiltonian type is provided.
         """
@@ -125,9 +130,10 @@ class TrotterQRTE(RealEvolver):
                 "``t_param`` from the EvolutionProblem should be set to None."
             )
 
-        if evolution_problem.aux_operators is not None and (self.estimator is None):
-            raise ValueError(
-                "aux_operators were provided for evaluations but no ``estimator`` was provided."
+        if evolution_problem.aux_operators is not None and self.estimator is None:
+            warnings.warn(
+                "The evolution problem contained aux_operators but no estimator was provided. "
+                "The algorithm continues without calculating these quantities. "
             )
         hamiltonian = evolution_problem.hamiltonian
         if not isinstance(hamiltonian, (Pauli, PauliSumOp)):
@@ -157,4 +163,4 @@ class TrotterQRTE(RealEvolver):
                 evolution_problem.truncation_threshold,
             )
 
-        return EvolutionResult(evolved_state, evaluated_aux_ops)
+        return TimeEvolutionResult(evolved_state, evaluated_aux_ops)
