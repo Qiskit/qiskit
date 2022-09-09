@@ -229,7 +229,7 @@ class Grover(AmplitudeAmplifier):
         return self._sampler
 
     @sampler.setter
-    def sampler(self, sampler: Optional[BaseSampler]) -> None:
+    def sampler(self, sampler: BaseSampler) -> None:
         """Set the sampler.
 
         Args:
@@ -306,7 +306,6 @@ class Grover(AmplitudeAmplifier):
                     np.binary_repr(k, num_bits): v for k, v in results.quasi_dists[0].items()
                 }
                 top_measurement, max_probability = max(circuit_results.items(), key=lambda x: x[1])
-                shots = self._sampler.run_options.get("shots")
 
             else:
                 if self._quantum_instance.is_statevector:
@@ -422,7 +421,6 @@ class GroverResult(AmplitudeAmplifierResult):
     def __init__(self) -> None:
         super().__init__()
         self._iterations = None
-        self._circuit_results = None
 
     @property
     def iterations(self) -> List[int]:
