@@ -20,6 +20,8 @@ from collections.abc import Iterator, Sequence
 from dataclasses import fields
 from typing import Any, Dict
 
+from numpy import ndarray
+
 
 ExperimentData = Dict[str, Any]
 
@@ -40,13 +42,15 @@ class BasePrimitiveResult(ABC):
         classes must have this decorator.
 
         Raises:
-            TypeError: If one of the data fields is not a Sequence.
+            TypeError: If one of the data fields is not a Sequence or `numpy.ndarray`.
             ValueError: Inconsistent number of experiments across data fields.
         """
         for value in self._field_values:  # type: Sequence
             # TODO: enforce all data fields to be tuples instead of sequences
-            if not isinstance(value, Sequence) or isinstance(value, str):
-                raise TypeError(f"Expected sequence, provided {type(value)} instead.")
+            if not isinstance(value, (Sequence, ndarray)) or isinstance(value, str):
+                raise TypeError(
+                    f"Expected sequence or `numpy.ndarray`, provided {type(value)} instead."
+                )
             if len(value) != self.num_experiments:
                 raise ValueError("Inconsistent number of experiments across data fields.")
 
@@ -65,7 +69,7 @@ class BasePrimitiveResult(ABC):
         """Generate experiment data dicts in any inheriting result dataclass."""
         names: tuple[str, ...] = self._field_names
         for values in zip(*self._field_values):
-            yield {n: v for n, v in zip(names, values)}
+            yield dict(zip(names, values))
 
     def decompose(self) -> Iterator[BasePrimitiveResult]:
         """Generate single experiment result objects from self."""
