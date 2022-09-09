@@ -29,7 +29,12 @@ from qiskit.result import QuasiDistribution
 from .base_sampler import BaseSampler
 from .primitive_job import PrimitiveJob
 from .sampler_result import SamplerResult
-from .utils import _circuit_key, bound_circuit_to_instruction, final_measurement_mapping, init_circuit
+from .utils import (
+    _circuit_key,
+    bound_circuit_to_instruction,
+    final_measurement_mapping,
+    init_circuit,
+)
 
 
 class Sampler(BaseSampler):
