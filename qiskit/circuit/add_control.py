@@ -196,12 +196,15 @@ def control(
                         mcxr_rule = define_mcx_rule(mcx_control, q_target[bit_indices[qargs[0]]], abc_control)
 
                         # Getting euler angles from zyz decomposition
-                        th, ph, lb, alpha = OneQubitEulerDecomposer._params_xzx(gate.to_matrix())
+                        th, ph, lb, alpha = OneQubitEulerDecomposer._params_zyz(gate.to_matrix())
 
                         if alpha: 
                             global_phase = alpha
+                            theta = th
+                            phi = ph
+                            lamb = lb
 
-                        a, b, c = get_abc_matrices(ph, th, lb)
+                        a, b, c = get_abc_matrices(phi, theta, lamb)
 
                         controlled_circ.unitary(c, q_target[bit_indices[qargs[0]]])
                         if abc_control is not None:
@@ -295,11 +298,11 @@ def define_mcx_control_and_ancilla(control_qubits):
 def get_abc_matrices(lamb, theta, phi):
     # A
     a_rz = RZGate(lamb).to_matrix()
-    a_ry = RYGate(-theta / 2).to_matrix()
+    a_ry = RYGate(theta / 2).to_matrix()
     a_matrix = a_rz.dot(a_ry)
 
     # B
-    b_ry = RYGate(theta / 2).to_matrix()
+    b_ry = RYGate(-theta / 2).to_matrix()
     b_rz = RZGate(-(phi + lamb) / 2).to_matrix()
     b_matrix = b_ry.dot(b_rz)
 
