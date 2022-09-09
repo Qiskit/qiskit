@@ -54,7 +54,8 @@ class TimeEvolutionProblem:
         aux_operators: ListOrDict[BaseOperator | PauliSumOp] | None = None,
         truncation_threshold: float = 1e-12,
         t_param: Parameter | None = None,
-        param_value_dict: Mapping[Parameter, complex] | None = None,  # parametrization will become supported in BaseOperator soon
+        param_value_dict: Mapping[Parameter, complex]
+        | None = None,  # parametrization will become supported in BaseOperator soon
     ):
         """
         Args:
