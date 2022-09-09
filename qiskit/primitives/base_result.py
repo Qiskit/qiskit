@@ -42,7 +42,7 @@ class BasePrimitiveResult(ABC):
         classes must have this decorator.
 
         Raises:
-            TypeError: If one of the data fields is not a Sequence or `numpy.ndarray`.
+            TypeError: If one of the data fields is not a Sequence or ``numpy.ndarray``.
             ValueError: Inconsistent number of experiments across data fields.
         """
         for value in self._field_values:  # type: Sequence
