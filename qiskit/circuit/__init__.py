@@ -88,15 +88,11 @@ Supplementary Information
    Now, we add an :class:`~.XGate` only if the value of the :class:`~.ClassicalRegister` is 0.
    That way, if the state is :math:`|0\\rangle`, it will be changed to :math:`|1\\rangle` and
    if the state is :math:`|1\\rangle`, it will not be changed at all, so the final state will
-   always be :math:`|1\\rangle`. After that, we measure the state and add another
-   :class:`~.XGate` if the value of the first classical bit is set to 1, which will always
-   happen, so we end up with the :math:`|0\\rangle` state.
+   always be :math:`|1\\rangle`.
 
    .. jupyter-execute::
 
       qc.x(0).c_if(cr, 0)
-      qc.measure(0, 0)
-      qc.x(0).c_if(0, 1)
       qc.measure(0, 0)
 
       qc.draw('mpl')
