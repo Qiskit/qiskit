@@ -21,8 +21,7 @@ from qiskit.transpiler.synthesis import cnot_synth
 
 
 class HighLevelSynthesisPluginManager:
-    """Class tracking the installed high-level-synthesis plugins.
-    """
+    """Class tracking the installed high-level-synthesis plugins."""
 
     def __init__(self):
         self.plugins = stevedore.ExtensionManager(

@@ -76,6 +76,7 @@ class HLSConfig:
 # ToDo: more general plugin interface, which says whether plugin is suitable for a given obj, if not,
 #       jump to default, if not - to none
 
+
 class HighLevelSynthesis(TransformationPass):
     """Synthesize higher-level objects by choosing the appropriate synthesis method
     based on the node's name and the HLS-config (if provided).
@@ -108,7 +109,10 @@ class HighLevelSynthesis(TransformationPass):
                 # the operation's name appears in the user-provided config,
                 # we use the list of methods provided by the user
                 methods = self.hls_config.methods[node.name]
-            elif self.hls_config.use_default_on_unspecified and "default" in hls_plugin_manager.method_names(node.name):
+            elif (
+                self.hls_config.use_default_on_unspecified
+                and "default" in hls_plugin_manager.method_names(node.name)
+            ):
                 # the operation's name does not appear in the user-specified config,
                 # we use the "default" method when instructed to do so and the "default" method is available
                 methods = [("default", {})]
