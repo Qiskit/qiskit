@@ -270,8 +270,6 @@ nG0(pi,pi/2) q[0],r[0];\n"""
         qc = QuantumCircuit(4)
         qc.mcx([0, 1, 2], 3)
 
-        print(qc.decompose().draw())
-
         # qasm output doesn't support parameterized gate yet.
         # param0 for "gate mcuq(param0) is not used inside the definition
         expected_qasm = """OPENQASM 2.0;
