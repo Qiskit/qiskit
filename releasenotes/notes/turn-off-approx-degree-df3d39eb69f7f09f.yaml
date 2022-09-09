@@ -1,5 +1,5 @@
 ---
-other:
+upgrade:
   - |
     This PR turns off the implicit use of `approximation_degree!=1.0` by default
     in the the Qiskit transpiler at `optimization_level=3`.  The transpiler should, by default,
