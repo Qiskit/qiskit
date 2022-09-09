@@ -113,6 +113,7 @@ from qiskit.circuit.parametertable import ParameterView
 from qiskit.exceptions import QiskitError
 from qiskit.opflow import PauliSumOp
 from qiskit.providers import JobV1 as Job
+from qiskit.providers import Options
 from qiskit.quantum_info.operators import SparsePauliOp
 from qiskit.quantum_info.operators.base_operator import BaseOperator
 from qiskit.utils.deprecation import deprecate_arguments, deprecate_function
@@ -127,13 +128,14 @@ class BaseEstimator(ABC):
     Base class for Estimator that estimates expectation values of quantum circuits and observables.
     """
 
-    __hash__ = None  # type: ignore
+    __hash__ = None
 
     def __init__(
         self,
         circuits: Iterable[QuantumCircuit] | QuantumCircuit | None = None,
         observables: Iterable[SparsePauliOp] | SparsePauliOp | None = None,
         parameters: Iterable[Iterable[Parameter]] | None = None,
+        run_options: dict | None = None,
     ):
         """
         Creating an instance of an Estimator, or using one in a ``with`` context opens a session that
@@ -146,6 +148,7 @@ class BaseEstimator(ABC):
                 will be bound. Defaults to ``[circ.parameters for circ in circuits]``
                 The indexing is such that ``parameters[i, j]`` is the j-th formal parameter of
                 ``circuits[i]``.
+            run_options: runtime options.
 
         Raises:
             QiskitError: For mismatch of circuits and parameters list.
@@ -186,6 +189,9 @@ class BaseEstimator(ABC):
                         f"Different numbers of parameters of {i}-th circuit: "
                         f"expected {circ.num_parameters}, actual {len(params)}."
                     )
+        self._run_options = Options()
+        if run_options is not None:
+            self._run_options.update_options(**run_options)
 
     def __new__(
         cls,
@@ -213,7 +219,7 @@ class BaseEstimator(ABC):
         return self
 
     @deprecate_function(
-        "The BaseEstimator.__enter__ method is deprecated as of Qiskit Terra 0.21.0 "
+        "The BaseEstimator.__enter__ method is deprecated as of Qiskit Terra 0.22.0 "
         "and will be removed no sooner than 3 months after the releasedate. "
         "BaseEstimator should be initialized directly.",
     )
@@ -221,7 +227,7 @@ class BaseEstimator(ABC):
         return self
 
     @deprecate_function(
-        "The BaseEstimator.__exit__ method is deprecated as of Qiskit Terra 0.21.0 "
+        "The BaseEstimator.__exit__ method is deprecated as of Qiskit Terra 0.22.0 "
         "and will be removed no sooner than 3 months after the releasedate. "
         "BaseEstimator should be initialized directly.",
     )
@@ -259,8 +265,25 @@ class BaseEstimator(ABC):
         """
         return tuple(self._parameters)
 
+    @property
+    def run_options(self) -> Options:
+        """Return options values for the estimator.
+
+        Returns:
+            run_options
+        """
+        return self._run_options
+
+    def set_run_options(self, **fields) -> BaseEstimator:
+        """Set options values for the estimator.
+
+        Args:
+            **fields: The fields to update the options
+        """
+        self._run_options.update_options(**fields)
+
     @deprecate_function(
-        "The BaseSampler.__call__ method is deprecated as of Qiskit Terra 0.21.0 "
+        "The BaseSampler.__call__ method is deprecated as of Qiskit Terra 0.22.0 "
         "and will be removed no sooner than 3 months after the releasedate. "
         "Use run method instead.",
     )
@@ -297,7 +320,7 @@ class BaseEstimator(ABC):
             circuits: the list of circuit indices or circuit objects.
             observables: the list of observable indices or observable objects.
             parameter_values: concrete parameters to be bound.
-            run_options: runtime options used for circuit execution.
+            run_options: Default runtime options used for circuit execution.
 
         Returns:
             EstimatorResult: The result of the estimator.
@@ -324,7 +347,7 @@ class BaseEstimator(ABC):
                 "initialize the session."
             )
         observables = [
-            self._observable_ids.get(id(observable))  # type: ignore
+            self._observable_ids.get(id(observable))
             if not isinstance(observable, (int, np.integer))
             else observable
             for observable in observables
@@ -387,12 +410,14 @@ class BaseEstimator(ABC):
                 f"The number of circuits is {len(self.observables)}, "
                 f"but the index {max(observables)} is given."
             )
+        run_opts = copy(self.run_options)
+        run_opts.update_options(**run_options)
 
         return self._call(
             circuits=circuits,
             observables=observables,
             parameter_values=parameter_values,
-            **run_options,
+            **run_opts.__dict__,
         )
 
     def run(
@@ -496,8 +521,16 @@ class BaseEstimator(ABC):
                     f"not match the number of qubits of the {i}-th observable "
                     f"({observable.num_qubits})."
                 )
+        run_opts = copy(self.run_options)
+        run_opts.update_options(**run_options)
 
-        return self._run(circuits, observables, parameter_values, parameter_views, **run_options)
+        return self._run(
+            circuits,
+            observables,
+            parameter_values,
+            parameter_views,
+            **run_opts.__dict__,
+        )
 
     @abstractmethod
     def _call(

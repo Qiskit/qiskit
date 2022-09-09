@@ -140,6 +140,17 @@ Algorithms to find factors of a number.
    ShorResult
 
 
+Gradients
+----------
+
+Algorithms to calculate the gradient of a quantum circuit.
+
+.. autosummary::
+   :toctree: ../stubs/
+
+   gradients
+
+
 Linear Solvers
 --------------
 
@@ -201,8 +212,18 @@ Algorithms that estimate the phases of eigenstates of a unitary.
    IterativePhaseEstimation
 
 
+State Fidelities
+----------------
+
+Algorithms that compute the fidelity of pairs of quantum states.
+
+.. autosummary::
+   :toctree: ../stubs/
+
+   state_fidelities
+
 Exceptions
-==========
+----------
 
 .. autosummary::
    :toctree: ../stubs/
@@ -219,8 +240,19 @@ Utility methods used by algorithms.
    :toctree: ../stubs/
 
    eval_observables
-"""
 
+Utility classes
+---------------
+
+Utility classes used by algorithms (mainly for type-hinting purposes).
+
+.. autosummary::
+   :toctree: ../stubs/
+
+   AlgorithmJob
+
+"""
+from .algorithm_job import AlgorithmJob
 from .algorithm_result import AlgorithmResult
 from .evolvers import EvolutionResult, EvolutionProblem
 from .evolvers.real_evolver import RealEvolver
@@ -264,9 +296,11 @@ from .aux_ops_evaluator import eval_observables
 from .evolvers.trotterization import TrotterQRTE
 from .evolvers.variational.var_qite import VarQITE
 from .evolvers.variational.var_qrte import VarQRTE
+
 from .evolvers.pvqd import PVQD, PVQDResult
 
 __all__ = [
+    "AlgorithmJob",
     "AlgorithmResult",
     "VariationalAlgorithm",
     "VariationalResult",
