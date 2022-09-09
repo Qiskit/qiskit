@@ -24,17 +24,12 @@ from qiskit.algorithms.time_evolvers.trotterization.trotter_qrte import TrotterQ
 from qiskit.primitives import Estimator
 from qiskit import QuantumCircuit
 from qiskit.circuit.library import ZGate
-from qiskit.quantum_info import Statevector, Pauli
+from qiskit.quantum_info import Statevector, Pauli, SparsePauliOp
 from qiskit.utils import algorithm_globals
 from qiskit.circuit import Parameter
 from qiskit.opflow import (
-    X,
-    Z,
-    Zero,
     VectorStateFn,
-    StateFn,
-    I,
-    Y,
+    PauliSumOp,
 )
 from qiskit.synthesis import SuzukiTrotter, QDrift
 
@@ -63,8 +58,8 @@ class TestTrotterQRTE(QiskitAlgorithmsTestCase):
     @unpack
     def test_trotter_qrte_trotter_single_qubit(self, product_formula, expected_state):
         """Test for default TrotterQRTE on a single qubit."""
-        operator = X + Z
-        initial_state = StateFn([1, 0])
+        operator = PauliSumOp(SparsePauliOp([Pauli("X"), Pauli("Z")]))
+        initial_state = QuantumCircuit(1)
         time = 1
         evolution_problem = TimeEvolutionProblem(operator, time, initial_state)
 
@@ -75,11 +70,11 @@ class TestTrotterQRTE(QiskitAlgorithmsTestCase):
 
     def test_trotter_qrte_trotter_single_qubit_aux_ops(self):
         """Test for default TrotterQRTE on a single qubit with auxiliary operators."""
-        operator = X + Z
+        operator = PauliSumOp(SparsePauliOp([Pauli("X"), Pauli("Z")]))
         # LieTrotter with 1 rep
         aux_ops = [Pauli("X"), Pauli("Y")]
 
-        initial_state = Zero
+        initial_state = QuantumCircuit(1)
         time = 3
         evolution_problem = TimeEvolutionProblem(operator, time, initial_state, aux_ops)
         estimator = Estimator()
@@ -107,7 +102,7 @@ class TestTrotterQRTE(QiskitAlgorithmsTestCase):
 
     @data(
         (
-            (X ^ Y) + (Y ^ X),
+            PauliSumOp(SparsePauliOp([Pauli("XY"), Pauli("YX")])),
             VectorStateFn(
                 Statevector(
                     [-0.41614684 + 0.0j, 0.0 + 0.0j, 0.0 + 0.0j, 0.90929743 + 0.0j], dims=(2, 2)
@@ -115,7 +110,7 @@ class TestTrotterQRTE(QiskitAlgorithmsTestCase):
             ),
         ),
         (
-            (Z ^ Z) + (Z ^ I) + (I ^ Z),
+            PauliSumOp(SparsePauliOp([Pauli("ZZ"), Pauli("ZI"), Pauli("IZ")])),
             VectorStateFn(
                 Statevector(
                     [-0.9899925 - 0.14112001j, 0.0 + 0.0j, 0.0 + 0.0j, 0.0 + 0.0j], dims=(2, 2)
@@ -144,7 +139,7 @@ class TestTrotterQRTE(QiskitAlgorithmsTestCase):
 
     @data(
         (
-            Zero,
+            QuantumCircuit(1),
             VectorStateFn(
                 Statevector([0.23071786 - 0.69436148j, 0.4646314 - 0.49874749j], dims=(2,))
             ),
@@ -159,7 +154,7 @@ class TestTrotterQRTE(QiskitAlgorithmsTestCase):
     @unpack
     def test_trotter_qrte_qdrift(self, initial_state, expected_state):
         """Test for TrotterQRTE with QDrift."""
-        operator = X + Z
+        operator = PauliSumOp(SparsePauliOp([Pauli("X"), Pauli("Z")]))
         time = 1
         evolution_problem = TimeEvolutionProblem(operator, time, initial_state)
 
@@ -172,8 +167,10 @@ class TestTrotterQRTE(QiskitAlgorithmsTestCase):
     @unpack
     def test_trotter_qrte_trotter_errors(self, t_param, param_value_dict):
         """Test TrotterQRTE with raising errors."""
-        operator = X * Parameter("t") + Z
-        initial_state = Zero
+        operator = Parameter("t") * PauliSumOp(SparsePauliOp([Pauli("X")])) + PauliSumOp(
+            SparsePauliOp([Pauli("Z")])
+        )
+        initial_state = QuantumCircuit(1)
         time = 1
         algorithm_globals.random_seed = 0
         trotter_qrte = TrotterQRTE()
