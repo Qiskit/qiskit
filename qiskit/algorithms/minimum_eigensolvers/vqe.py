@@ -127,9 +127,8 @@ class VQE(VariationalAlgorithm, MinimumEigensolver):
         self.optimizer = optimizer
         self.gradient = gradient
 
-        # TODO change VariationalAlgorithm interface to use a public attribute
         # this has to go via getters and setters due to the VariationalAlgorithm interface
-        self._initial_point = initial_point
+        self.initial_point = initial_point
 
     @property
     def initial_point(self) -> Sequence[float] | None:
@@ -146,61 +145,65 @@ class VQE(VariationalAlgorithm, MinimumEigensolver):
         operator: BaseOperator | PauliSumOp,
         aux_operators: ListOrDict[BaseOperator | PauliSumOp] | None = None,
     ) -> VQEResult:
-        ansatz = self._check_operator_ansatz(operator)
+        self._check_operator_ansatz(operator)
 
         initial_point = self.initial_point
         if initial_point is None:
-            initial_point = np.random.random(ansatz.num_parameters)
-        elif len(initial_point) != ansatz.num_parameters:
+            initial_point = np.random.random(self.ansatz.num_parameters)
+        elif len(initial_point) != self.ansatz.num_parameters:
             raise ValueError(
                 f"The dimension of the initial point ({len(self.initial_point)}) does not match "
-                f"the number of parameters in the circuit ({ansatz.num_parameters})."
+                f"the number of parameters in the circuit ({self.ansatz.num_parameters})."
             )
 
         start_time = time()
 
-        eval_energy = self.get_eval_energy(ansatz, operator)
+        energy_evaluation = self._get_energy_evaluation(self.ansatz, operator)
 
         if self.gradient is not None:
-            eval_gradient = self.get_eval_gradient(ansatz, operator)
+            gradient_evaluation = self._get_gradient_evaluation(self.ansatz, operator)
         else:
-            eval_gradient = None
+            gradient_evaluation = None
 
         # perform optimization
         if callable(self.optimizer):
-            opt_result = self.optimizer(fun=eval_energy, x0=initial_point, jac=eval_gradient)
+            opt_result = self.optimizer(
+                fun=energy_evaluation, x0=initial_point, jac=gradient_evaluation
+            )
         else:
             opt_result = self.optimizer.minimize(
-                fun=eval_energy, x0=initial_point, jac=eval_gradient
+                fun=energy_evaluation, x0=initial_point, jac=gradient_evaluation
             )
 
         eval_time = time() - start_time
 
-        optimal_point = opt_result.x
-        logger.info(
-            f"Optimization complete in {eval_time} seconds.\nFound opt_params {optimal_point}."
-        )
-
-        aux_values = None
-        if aux_operators:
-            # not None and not empty list
-            aux_values = self._eval_aux_ops(ansatz, optimal_point, aux_operators)
-
         result = VQEResult()
         result.eigenvalue = opt_result.fun + 0j
-        result.aux_operator_eigenvalues = aux_values
         result.cost_function_evals = opt_result.nfev
-        result.optimal_point = optimal_point
-        result.optimal_parameters = dict(zip(self.ansatz.parameters, optimal_point))
+        result.optimal_point = opt_result.x
+        result.optimal_parameters = dict(zip(self.ansatz.parameters, opt_result.x))
         result.optimal_value = opt_result.fun
         result.optimizer_time = eval_time
+
+        logger.info(
+            f"Optimization complete in {eval_time} seconds.\nFound opt_params {result.optimal_point}."
+        )
+
+        if aux_operators:
+            # not None and not empty list or dict
+            bound_ansatz = self.ansatz.bind_parameters(opt_result.x)
+            # aux_values = eval_observables(self.estimator, bound_ansatz, aux_operators)
+            # TODO remove once eval_operators have been ported.
+            aux_values = self._eval_aux_ops(bound_ansatz, aux_operators)
+            result.aux_operator_eigenvalues = aux_values
+
         return result
 
     @classmethod
     def supports_aux_operators(cls) -> bool:
         return True
 
-    def get_eval_energy(
+    def _get_energy_evaluation(
         self,
         ansatz: QuantumCircuit,
         operator: BaseOperator | PauliSumOp,
@@ -226,31 +229,30 @@ class VQE(VariationalAlgorithm, MinimumEigensolver):
 
         return eval_energy
 
-    def get_eval_gradient(
+    def _get_gradient_evaluation(
         self,
         ansatz: QuantumCircuit,
         operator: BaseOperator | PauliSumOp,
     ) -> tuple[Callable[[np.ndarray], np.ndarray]]:
         """Returns a function handle to evaluate the gradient at given parameters for the ansatz."""
 
-        def eval_gradient(parameters):
+        def gradient_evaluation(parameters):
             # broadcasting not required for the estimator gradients
             result = self.gradient.run([ansatz], [operator], [parameters]).result()
             return result.gradients[0]
 
-        return eval_gradient
+        return gradient_evaluation
 
     def _check_operator_ansatz(self, operator: BaseOperator | PauliSumOp) -> QuantumCircuit:
         """Check that the number of qubits of operator and ansatz match and that the ansatz is
         parameterized.
         """
-        ansatz = self.ansatz.copy()
-        if operator.num_qubits != ansatz.num_qubits:
+        if operator.num_qubits != self.ansatz.num_qubits:
             try:
                 logger.info(
                     f"Trying to resize ansatz to match operator on {operator.num_qubits} qubits."
                 )
-                ansatz.num_qubits = operator.num_qubits
+                self.ansatz.num_qubits = operator.num_qubits
             except AttributeError as error:
                 raise AlgorithmError(
                     "The number of qubits of the ansatz does not match the "
@@ -258,52 +260,30 @@ class VQE(VariationalAlgorithm, MinimumEigensolver):
                     "number of qubits using `num_qubits`."
                 ) from error
 
-        if ansatz.num_parameters == 0:
+        if self.ansatz.num_parameters == 0:
             raise AlgorithmError("The ansatz must be parameterized, but has no free parameters.")
-
-        return ansatz
 
     def _eval_aux_ops(
         self,
         ansatz: QuantumCircuit,
-        parameters: np.ndarray,
         aux_operators: ListOrDict[BaseOperator | PauliSumOp],
     ) -> ListOrDict[tuple(complex, complex)]:
         """Compute auxiliary operator eigenvalues."""
 
-        if isinstance(aux_operators, list):
-            non_nones = [i for i, x in enumerate(aux_operators) if x is not None]
-            filtered_ops = [x for x in aux_operators if x is not None]
+        if isinstance(aux_operators, dict):
+            aux_ops = list(aux_operators.values())
         else:
-            # filtered_ops = {k: v for k, v in aux_operators.items() if v is not None}
-            filtered_ops = list(aux_operators.values())
+            aux_ops = aux_operators
 
-        # TODO this is going to be replaced by eval_observables (see PR #8683)
-        # bound_ansatz = ansatz.bind_parameters(parameters)
-        # aux_values = eval_observables(self.estimator, bound_ansatz, filtered_ops)
-        aux_values = None
-        if filtered_ops:
-            num_aux_ops = len(filtered_ops)
-            aux_job = self.estimator.run(
-                [ansatz] * num_aux_ops, filtered_ops, [parameters] * num_aux_ops
-            )
-            aux_eigs = aux_job.result().values
-            aux_eigs = list(zip(aux_eigs, [0] * len(aux_eigs)))
-            if isinstance(aux_operators, dict):
-                aux_values = dict(zip(aux_operators.keys(), aux_eigs))
-            else:
-                aux_values = [None] * len(aux_operators)
-                for i, x in enumerate(non_nones):
-                    aux_values[x] = aux_eigs[i]
+        num_aux_ops = len(aux_ops)
+        aux_job = self.estimator.run([ansatz] * num_aux_ops, aux_ops)
+        aux_values = aux_job.result().values
+        aux_values = list(zip(aux_values, [0] * len(aux_values)))
 
-        if isinstance(aux_values, list):
-            aux_eigs = [None] * len(aux_operators)
-            for i, x in enumerate(non_nones):
-                aux_eigs[x] = aux_values[i]
-        else:
-            aux_eigs = aux_values
+        if isinstance(aux_operators, dict):
+            aux_values = dict(zip(aux_operators.keys(), aux_values))
 
-        return aux_eigs
+        return aux_values
 
 
 class VQEResult(VariationalResult, MinimumEigensolverResult):

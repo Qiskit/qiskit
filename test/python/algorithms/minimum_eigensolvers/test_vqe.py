@@ -228,7 +228,7 @@ class TestVQE(QiskitAlgorithmsTestCase):
     def test_reuse(self):
         """Test re-using a VQE algorithm instance."""
         ansatz = TwoLocal(rotation_blocks=["ry", "rz"], entanglement_blocks="cz")
-        vqe = VQE(Estimator(), ansatz, SLSQP())
+        vqe = VQE(Estimator(), ansatz, SLSQP(maxiter=300))
         with self.subTest(msg="assert VQE works once all info is available"):
             result = vqe.compute_minimum_eigenvalue(operator=self.h2_op)
             self.assertAlmostEqual(result.eigenvalue.real, self.h2_energy, places=5)
@@ -326,10 +326,9 @@ class TestVQE(QiskitAlgorithmsTestCase):
         result = vqe.compute_minimum_eigenvalue(SparsePauliOp("Z"))
         self.assertTrue(np.all(result.optimal_point == np.zeros(ansatz.num_parameters)))
 
-    #     TODO waiting for eval_operators to be ported.
     def test_aux_operators_list(self):
         """Test list-based aux_operators."""
-        vqe = VQE(Estimator(), self.ry_wavefunction, SLSQP())
+        vqe = VQE(Estimator(), self.ry_wavefunction, SLSQP(maxiter=300))
 
         # Start with an empty list
         result = vqe.compute_minimum_eigenvalue(self.h2_op, aux_operators=[])
@@ -350,20 +349,20 @@ class TestVQE(QiskitAlgorithmsTestCase):
         self.assertAlmostEqual(result.aux_operator_eigenvalues[0][1], 0.0)
         self.assertAlmostEqual(result.aux_operator_eigenvalues[1][1], 0.0)
 
-        # # Go again with additional None and zero operators
-        # extra_ops = [*aux_ops, None, 0]
+        # Go again with additional zero operator
+        # TODO waiting for eval_operators to be ported.
+        # extra_ops = [*aux_ops, 0]
         # result = vqe.compute_minimum_eigenvalue(self.h2_op, aux_operators=extra_ops)
         # self.assertAlmostEqual(result.eigenvalue.real, self.h2_energy, places=6)
-        # self.assertEqual(len(result.aux_operator_eigenvalues), 4)
+        # self.assertEqual(len(result.aux_operator_eigenvalues), 3)
         # # # expectation values
         # self.assertAlmostEqual(result.aux_operator_eigenvalues[0][0], 2, places=6)
         # self.assertAlmostEqual(result.aux_operator_eigenvalues[1][0], 0, places=6)
-        # self.assertEqual(result.aux_operator_eigenvalues[2], None)
-        # self.assertEqual(result.aux_operator_eigenvalues[3][0], 0.0)
+        # self.assertEqual(result.aux_operator_eigenvalues[2][0], 0.0)
         # # # standard deviations
         # self.assertAlmostEqual(result.aux_operator_eigenvalues[0][1], 0.0)
         # self.assertAlmostEqual(result.aux_operator_eigenvalues[1][1], 0.0)
-        # self.assertAlmostEqual(result.aux_operator_eigenvalues[3][1], 0.0)
+        # self.assertAlmostEqual(result.aux_operator_eigenvalues[2][1], 0.0)
 
     def test_aux_operators_dict(self):
         """Test dictionary compatibility of aux_operators"""
@@ -382,22 +381,22 @@ class TestVQE(QiskitAlgorithmsTestCase):
         self.assertAlmostEqual(result.eigenvalue.real, self.h2_energy, places=6)
         self.assertEqual(len(result.aux_operator_eigenvalues), 2)
         # expectation values
-        self.assertAlmostEqual(result.aux_operator_eigenvalues["aux_op1"][0], 2, places=6)
-        self.assertAlmostEqual(result.aux_operator_eigenvalues["aux_op2"][0], 0, places=6)
+        self.assertAlmostEqual(result.aux_operator_eigenvalues["aux_op1"][0], 2, places=5)
+        self.assertAlmostEqual(result.aux_operator_eigenvalues["aux_op2"][0], 0, places=5)
         # standard deviations
         self.assertAlmostEqual(result.aux_operator_eigenvalues["aux_op1"][1], 0.0)
         self.assertAlmostEqual(result.aux_operator_eigenvalues["aux_op2"][1], 0.0)
 
-        # Go again with additional None and zero operators
-        # extra_ops = {**aux_ops, "None_operator": None, "zero_operator": 0}
+        # TODO waiting for eval_operators to be ported.
+        # Go again with additional zero operator
+        # extra_ops = {**aux_ops, "zero_operator": 0}
         # result = vqe.compute_minimum_eigenvalue(self.h2_op, aux_operators=extra_ops)
         # self.assertAlmostEqual(result.eigenvalue.real, self.h2_energy, places=6)
         # self.assertEqual(len(result.aux_operator_eigenvalues), 3)
         # # expectation values
-        # self.assertAlmostEqual(result.aux_operator_eigenvalues["aux_op1"][0], 2, places=6)
-        # self.assertAlmostEqual(result.aux_operator_eigenvalues["aux_op2"][0], 0, places=6)
+        # self.assertAlmostEqual(result.aux_operator_eigenvalues["aux_op1"][0], 2, places=5)
+        # self.assertAlmostEqual(result.aux_operator_eigenvalues["aux_op2"][0], 0, places=5)
         # self.assertEqual(result.aux_operator_eigenvalues["zero_operator"][0], 0.0)
-        # self.assertTrue("None_operator" not in result.aux_operator_eigenvalues.keys())
         # # standard deviations
         # self.assertAlmostEqual(result.aux_operator_eigenvalues["aux_op1"][1], 0.0)
         # self.assertAlmostEqual(result.aux_operator_eigenvalues["aux_op2"][1], 0.0)
