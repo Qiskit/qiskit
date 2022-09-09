@@ -225,7 +225,7 @@ class BaseSampler(ABC):
         """
         return self._run_options
 
-    def set_run_options(self, **fields) -> BaseSampler:
+    def set_run_options(self, **fields):
         """Set options values for the estimator.
 
         Args:
