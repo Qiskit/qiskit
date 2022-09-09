@@ -30,7 +30,7 @@ from qiskit.algorithms.gradients import (
 from qiskit.circuit import Parameter
 from qiskit.circuit.library import EfficientSU2, RealAmplitudes
 from qiskit.circuit.library.standard_gates import RXXGate, RYYGate, RZXGate, RZZGate
-from qiskit.primitives import Sampler
+from qiskit.primitives import ReferenceOptions, Sampler
 from qiskit.result import QuasiDistribution
 from qiskit.test import QiskitTestCase
 
@@ -521,7 +521,7 @@ class TestSamplerGradient(QiskitTestCase):
         qc = QuantumCircuit(1)
         qc.rx(a, 0)
         qc.measure_all()
-        sampler = Sampler(run_options={"shots": 100})
+        sampler = Sampler(options=ReferenceOptions({"shots": 100}))
         with self.subTest("sampler"):
             if grad is FiniteDiffSamplerGradient or grad is SPSASamplerGradient:
                 gradient = grad(sampler, epsilon=1e-6)

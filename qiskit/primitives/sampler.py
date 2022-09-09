@@ -27,7 +27,7 @@ from qiskit.quantum_info import Statevector
 from qiskit.result import QuasiDistribution
 
 from .base_sampler import BaseSampler
-from .options import Options
+from .options import ReferenceOptions
 from .primitive_job import PrimitiveJob
 from .sampler_result import SamplerResult
 from .utils import bound_circuit_to_instruction, final_measurement_mapping, init_circuit
@@ -54,7 +54,7 @@ class Sampler(BaseSampler):
         self,
         circuits: QuantumCircuit | Iterable[QuantumCircuit] | None = None,
         parameters: Iterable[Iterable[Parameter]] | None = None,
-        options: Options | None = None,
+        options: ReferenceOptions | None = None,
     ):
         """
         Args:
@@ -80,7 +80,7 @@ class Sampler(BaseSampler):
         super().__init__(
             preprocessed_circuits,
             parameters,
-            run_options=options.run_options if isinstance(options, Options) else options,
+            run_options=options.run_options if isinstance(options, ReferenceOptions) else options,
         )
         self._is_closed = False
 

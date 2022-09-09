@@ -22,7 +22,7 @@ from qiskit import QuantumCircuit
 from qiskit.circuit import Parameter
 from qiskit.circuit.library import RealAmplitudes
 from qiskit.exceptions import QiskitError
-from qiskit.primitives import Options, Sampler, SamplerResult
+from qiskit.primitives import ReferenceOptions, Sampler, SamplerResult
 from qiskit.providers import JobStatus, JobV1
 from qiskit.test import QiskitTestCase
 
@@ -675,7 +675,7 @@ class TestSampler(QiskitTestCase):
     def test_run_options(self):
         """Test for run_options"""
         with self.subTest("init"):
-            sampler = Sampler(options=Options({"shots": 3000}))
+            sampler = Sampler(options=ReferenceOptions({"shots": 3000}))
             self.assertEqual(sampler.run_options.get("shots"), 3000)
         with self.subTest("set_run_options"):
             sampler.set_run_options(shots=1024, seed=15)

@@ -29,7 +29,7 @@ from qiskit.quantum_info.operators.base_operator import BaseOperator
 
 from .base_estimator import BaseEstimator
 from .estimator_result import EstimatorResult
-from .options import Options
+from .options import ReferenceOptions
 from .primitive_job import PrimitiveJob
 from .utils import bound_circuit_to_instruction, init_circuit, init_observable
 
@@ -55,7 +55,7 @@ class Estimator(BaseEstimator):
         circuits: QuantumCircuit | Iterable[QuantumCircuit] | None = None,
         observables: BaseOperator | PauliSumOp | Iterable[BaseOperator | PauliSumOp] | None = None,
         parameters: Iterable[Iterable[Parameter]] | None = None,
-        options: Options | None = None,
+        options: ReferenceOptions | None = None,
     ):
         """
         Args:
@@ -82,7 +82,7 @@ class Estimator(BaseEstimator):
             circuits=circuits,
             observables=observables,  # type: ignore
             parameters=parameters,
-            run_options=options.run_options if isinstance(options, Options) else options,
+            run_options=options.run_options if isinstance(options, ReferenceOptions) else options,
         )
         self._is_closed = False
 

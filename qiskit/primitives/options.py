@@ -17,7 +17,7 @@ from dataclasses import dataclass, field
 
 
 @dataclass
-class Options:
+class ReferenceOptions:
     """Options for the primitive programs."""
 
     run_options: dict = field(default_factory=dict)

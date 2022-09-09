@@ -20,7 +20,7 @@ from qiskit.circuit import QuantumCircuit
 from qiskit.circuit.library import RealAmplitudes
 from qiskit.exceptions import QiskitError
 from qiskit.opflow import PauliSumOp
-from qiskit.primitives import Estimator, EstimatorResult, Options
+from qiskit.primitives import Estimator, EstimatorResult, ReferenceOptions
 from qiskit.providers import JobV1
 from qiskit.quantum_info import Operator, SparsePauliOp
 from qiskit.test import QiskitTestCase
@@ -571,7 +571,7 @@ class TestEstimator(QiskitTestCase):
     def test_run_options(self):
         """Test for run_options"""
         with self.subTest("init"):
-            estimator = Estimator(options=Options({"shots": 3000}))
+            estimator = Estimator(options=ReferenceOptions({"shots": 3000}))
             self.assertEqual(estimator.run_options.get("shots"), 3000)
         with self.subTest("set_run_options"):
             estimator.set_run_options(shots=1024, seed=15)
