@@ -14,8 +14,11 @@
 Default plugins for synthesizing high-level-objects in Qiskit.
 """
 
+import abc
+
 import stevedore
 
+from qiskit.circuit import Operation
 from qiskit.quantum_info import decompose_clifford
 from qiskit.transpiler.synthesis import cnot_synth
 
@@ -51,7 +54,31 @@ class HighLevelSynthesisPluginManager:
         return self.plugins[plugin_name].obj
 
 
-class DefaultSynthesisClifford:
+class HighLevelSynthesisPlugin(abc.ABC):
+    """Abstract high-level synthesis plugin class.
+
+    This abstract class defines the interface for high-level synthesis plugins.
+    """
+
+    @abc.abstractmethod
+    def run(self, high_level_object, **options):
+        """Run synthesis for the given Operation.
+
+        Args:
+            high_level_object (Operation): The Operation to synthesize to a
+                :class:`~qiskit.dagcircuit.DAGCircuit` object
+            options: The optional kwargs.
+
+        Returns:
+            QuantumCircuit: The quantum circuit representation of the Operation
+                when successful, and ``None`` otherwise.
+        """
+        pass
+
+
+class DefaultSynthesisClifford(HighLevelSynthesisPlugin):
+    """The default clifford synthesis plugin."""
+
     def run(self, clifford, **options):
         """Run synthesis for the given Clifford."""
 
@@ -60,7 +87,9 @@ class DefaultSynthesisClifford:
         return decomposition
 
 
-class DefaultSynthesisLinearFunction:
+class DefaultSynthesisLinearFunction(HighLevelSynthesisPlugin):
+    """The default linear function synthesis plugin."""
+
     def run(self, linear_function, **options):
         """Run synthesis for the given LinearFunction."""
 

@@ -66,11 +66,6 @@ class HLSConfig:
             print(f"  name = {hls_name}, method = {self.methods[hls_name]}")
 
 
-# ToDo [1]: Make sure that plugin_method is an instance of a certain API
-#           (for instance, every plugin for Unitary Synthesis derives from UnitarySynthesisPlugin).
-#           It probably makes sense to create a more general HigherLevelSynthesisPlugin
-#           (which is exactly what UnitarySynthesisPlugin is right now), and to rename/inherit
-#           UnitarySynthesisPlugin from that.
 # ToDo [2]: Do we have a way to specify optimization criteria (e.g., 2q gate count vs. depth)?
 
 # ToDo: more general plugin interface, which says whether plugin is suitable for a given obj, if not,
