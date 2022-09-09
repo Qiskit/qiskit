@@ -18,5 +18,7 @@ from dataclasses import dataclass, field
 
 @dataclass
 class Options:
+    """Options for the primitive programs."""
+
     run_options: dict = field(default_factory=dict)
     """Runtime options used in run method."""
