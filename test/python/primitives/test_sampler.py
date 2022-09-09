@@ -572,19 +572,33 @@ class TestSampler(QiskitTestCase):
         np.testing.assert_allclose(values, [0, 0, 0, 1])
 
     def test_run_errors(self):
-        """Test for errors"""
+        """Test for errors with run method"""
         qc1 = QuantumCircuit(1)
         qc1.measure_all()
         qc2 = RealAmplitudes(num_qubits=1, reps=1)
         qc2.measure_all()
+        qc3 = QuantumCircuit(1)
+        qc4 = QuantumCircuit(1, 1)
 
         sampler = Sampler()
-        with self.assertRaises(QiskitError):
-            sampler.run([qc1], [[1e2]]).result()
-        with self.assertRaises(QiskitError):
-            sampler.run([qc2], [[]]).result()
-        with self.assertRaises(QiskitError):
-            sampler.run([qc2], [[1e2]]).result()
+        with self.subTest("set parameter values to a non-parameterized circuit"):
+            with self.assertRaises(QiskitError):
+                _ = sampler.run([qc1], [[1e2]])
+        with self.subTest("missing all parameter values for a parameterized circuit"):
+            with self.assertRaises(QiskitError):
+                _ = sampler.run([qc2], [[]])
+        with self.subTest("missing some parameter values for a parameterized circuit"):
+            with self.assertRaises(QiskitError):
+                _ = sampler.run([qc2], [[1e2]])
+        with self.subTest("too many parameter values for a parameterized circuit"):
+            with self.assertRaises(QiskitError):
+                _ = sampler.run([qc2], [[1e2]] * 100)
+        with self.subTest("no classical bits"):
+            with self.assertRaises(QiskitError):
+                _ = sampler.run([qc3], [[]])
+        with self.subTest("no measurement"):
+            with self.assertRaises(QiskitError):
+                _ = sampler.run([qc4], [[]])
 
     def test_run_empty_parameter(self):
         """Test for empty parameter"""
