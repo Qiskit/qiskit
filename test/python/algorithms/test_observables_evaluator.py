@@ -22,14 +22,10 @@ from qiskit.algorithms.list_or_dict import ListOrDict
 from qiskit.quantum_info.operators.base_operator import BaseOperator
 from qiskit.algorithms.observables_evaluator import eval_observables
 from qiskit.primitives import Estimator
-from qiskit.quantum_info import Statevector
+from qiskit.quantum_info import Statevector, SparsePauliOp
 from qiskit import QuantumCircuit
 from qiskit.circuit.library import EfficientSU2
-from qiskit.opflow import (
-    PauliSumOp,
-    X,
-    Y,
-)
+from qiskit.opflow import PauliSumOp
 from qiskit.utils import algorithm_globals
 
 
@@ -142,7 +138,7 @@ class TestObservablesEvaluator(QiskitAlgorithmsTestCase):
         bound_ansatz = ansatz.bind_parameters(parameters)
         state = bound_ansatz
         estimator = Estimator()
-        observables = [(X ^ X) + (Y ^ Y), 0]
+        observables = [SparsePauliOp(["XX", "YY"]), 0]
         result = eval_observables(estimator, state, observables, self.threshold)
         expected_result = [(0.015607318055509564, (0, 0)), (0.0, (0, 0))]
         means = [element[0] for element in result]
