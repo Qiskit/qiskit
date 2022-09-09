@@ -208,8 +208,8 @@ def control(
                         # Getting euler angles from zyz decomposition
                         th, ph, lb, alpha = OneQubitEulerDecomposer._params_zyz(gate.to_matrix())
 
-                        if alpha:
-                            global_phase = alpha
+                        local_phase = alpha
+                        if local_phase:
                             theta = th
                             phi = ph
                             lamb = lb
@@ -231,6 +231,8 @@ def control(
                         controlled_circ.unitary(a, q_target[bit_indices[qargs[0]]])
                         if abc_control is not None:
                             controlled_circ.control(abc_control)
+
+                        controlled_circ.mcp(local_phase, mcx_control[:-1], mcx_control[-1])
 
             elif gate.name == "z":
                 controlled_circ.h(q_target[bit_indices[qargs[0]]])
