@@ -72,7 +72,9 @@ def generate_unroll_3q(
         unitary_synthesis_plugin_config (dict): The optional dictionary plugin
             configuration, this is plugin specific refer to the specified plugin's
             documentation for how to use.
-        hls_config: hls config
+        hls_config (HLSConfig): An optional configuration class to use for
+                :class:`~qiskit.transpiler.passes.HighLevelSynthesis` pass.
+                Specifies how to synthesize various high-level objects.
 
     Returns:
         PassManager: The unroll 3q or more pass manager
@@ -261,7 +263,9 @@ def generate_translation_passmanager(
         backend_props (BackendProperties): Properties of a backend to
             synthesize for (e.g. gate fidelities).
         unitary_synthesis_method (str): The unitary synthesis method to use
-        hls_config: hls config
+        hls_config (HLSConfig): An optional configuration class to use for
+            :class:`~qiskit.transpiler.passes.HighLevelSynthesis` pass.
+            Specifies how to synthesize various high-level objects.
 
     Returns:
         PassManager: The basis translation pass manager

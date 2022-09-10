@@ -23,16 +23,18 @@ from .high_level_synthesis_plugins import HighLevelSynthesisPluginManager
 
 class HLSConfig:
     """
-    For each higher-level-object (e.g., "clifford", "linear_function", etc.) the high-level-synthesis
-    config allows to specify a list of "methods", each method represented by a pair consisting of a
-    name of the synthesis algorithm and of a dictionary providing additional arguments for this algorithm.
+    For each higher-level-object (e.g., "clifford", "linear_function", etc.) the
+    high-level-synthesis config allows to specify a list of "methods", each method
+    represented by a pair consisting of a name of the synthesis algorithm and of a dictionary
+    providing additional arguments for this algorithm.
 
     The names of the synthesis algorithms should be declared in ``entry_points`` for
-    ``qiskit.synthesis`` in ``setup.py``, in the form <higher-level-object-name>.<synthesis-method-name>.
+    ``qiskit.synthesis`` in ``setup.py``, in the form
+    <higher-level-object-name>.<synthesis-method-name>.
 
-    The standard higher-level-objects are recommended to have a synthesis method called "default",
-    which would be called automatically when synthesizing these objects, without having to
-    explicitly set these methods in the config.
+    The standard higher-level-objects are recommended to have a synthesis method
+    called "default", which would be called automatically when synthesizing these objects,
+    without having to explicitly set these methods in the config.
 
     To avoid synthesizing a given higher-level-object, one can give it an empty list of methods.
     """
@@ -66,10 +68,7 @@ class HLSConfig:
             print(f"  name = {hls_name}, method = {self.methods[hls_name]}")
 
 
-# ToDo [2]: Do we have a way to specify optimization criteria (e.g., 2q gate count vs. depth)?
-
-# ToDo: more general plugin interface, which says whether plugin is suitable for a given obj, if not,
-#       jump to default, if not - to none
+# ToDo: Do we have a way to specify optimization criteria (e.g., 2q gate count vs. depth)?
 
 
 class HighLevelSynthesis(TransformationPass):
@@ -94,6 +93,9 @@ class HighLevelSynthesis(TransformationPass):
         Returns:
             Output dag with certain Operations synthesized (as specified by
             the hls_config).
+
+        Raises:
+            TranspilerError: when the specified synthesis method is not available.
         """
 
         hls_plugin_manager = HighLevelSynthesisPluginManager()
@@ -109,7 +111,8 @@ class HighLevelSynthesis(TransformationPass):
                 and "default" in hls_plugin_manager.method_names(node.name)
             ):
                 # the operation's name does not appear in the user-specified config,
-                # we use the "default" method when instructed to do so and the "default" method is available
+                # we use the "default" method when instructed to do so and the "default"
+                # method is available
                 methods = [("default", {})]
             else:
                 methods = []

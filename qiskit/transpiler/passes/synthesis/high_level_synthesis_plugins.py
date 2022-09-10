@@ -18,7 +18,6 @@ import abc
 
 import stevedore
 
-from qiskit.circuit import Operation
 from qiskit.quantum_info import decompose_clifford
 from qiskit.transpiler.synthesis import cnot_synth
 
@@ -79,20 +78,16 @@ class HighLevelSynthesisPlugin(abc.ABC):
 class DefaultSynthesisClifford(HighLevelSynthesisPlugin):
     """The default clifford synthesis plugin."""
 
-    def run(self, clifford, **options):
+    def run(self, high_level_object, **options):
         """Run synthesis for the given Clifford."""
-
-        print(f"    -> Running DefaultSynthesisClifford")
-        decomposition = decompose_clifford(clifford)
+        decomposition = decompose_clifford(high_level_object)
         return decomposition
 
 
 class DefaultSynthesisLinearFunction(HighLevelSynthesisPlugin):
     """The default linear function synthesis plugin."""
 
-    def run(self, linear_function, **options):
+    def run(self, high_level_object, **options):
         """Run synthesis for the given LinearFunction."""
-
-        print(f"    -> Running DefaultSynthesisLinearFunction")
-        decomposition = cnot_synth(linear_function.linear)
+        decomposition = cnot_synth(high_level_object.linear)
         return decomposition

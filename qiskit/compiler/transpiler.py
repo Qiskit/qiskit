@@ -38,6 +38,7 @@ from qiskit.transpiler.basepasses import BasePass
 from qiskit.transpiler.exceptions import TranspilerError
 from qiskit.transpiler.instruction_durations import InstructionDurations, InstructionDurationsType
 from qiskit.transpiler.passes import ApplyLayout
+from qiskit.transpiler.passes.synthesis.high_level_synthesis import HLSConfig
 from qiskit.transpiler.passmanager_config import PassManagerConfig
 from qiskit.transpiler.preset_passmanagers import (
     level_0_pass_manager,
@@ -80,7 +81,7 @@ def transpile(
     unitary_synthesis_method: str = "default",
     unitary_synthesis_plugin_config: dict = None,
     target: Target = None,
-    hls_config=None,
+    hls_config: Optional[HLSConfig] = None,
     init_method: str = None,
     optimization_method: str = None,
 ) -> Union[QuantumCircuit, List[QuantumCircuit]]:
@@ -261,7 +262,10 @@ def transpile(
             the ``backend`` argument, but if you have manually constructed a
             :class:`~qiskit.transpiler.Target` object you can specify it manually here.
             This will override the target from ``backend``.
-        hls_config: high-level-synthesis config
+        hls_config: An optional configuration class that will be passed directly
+            to the high-level synthesis transformation pass. This configuration
+            class allows to specify for various high-level objects the lists of
+            synthesis algorithms and their parameters.
         init_method: The plugin name to use for the ``init`` stage. By default an external
             plugin is not used. You can see a list of installed plugins by
             using :func:`~.list_stage_plugins` with ``"init"`` for the stage

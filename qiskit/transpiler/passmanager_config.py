@@ -78,7 +78,9 @@ class PassManagerConfig:
                 :class:`~qiskit.transpiler.passes.UnitarySynthesis` pass. Will
                 search installed plugins for a valid method.
             target (Target): The backend target
-            hls_config (str): hls config
+            hls_config (HLSConfig): An optional configuration class to use for
+                :class:`~qiskit.transpiler.passes.HighLevelSynthesis` pass.
+                Specifies how to synthesize various high-level objects.
             init_method (str): The plugin name for the init stage plugin to use
             optimization_method (str): The plugin name for the optimization stage plugin
                 to use.
