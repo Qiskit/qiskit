@@ -57,8 +57,10 @@ class Shor:
     """
 
     @deprecate_function(
-        "The Shor class is deprecated as of Qiskit Terra 0.22.0 "
-        "and will be removed no sooner than 3 months after the release date. "
+        """The Shor class is deprecated as of Qiskit Terra 0.22.0 and will be removed
+        no sooner than 3 months after the release date.
+        It is replaced by the tutorial at https://qiskit.org/textbook/ch-algorithms/shor.html
+        """
     )
     def __init__(self, quantum_instance: Optional[Union[QuantumInstance, Backend]] = None) -> None:
         """
