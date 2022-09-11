@@ -275,8 +275,6 @@ class TestHighLeverSynthesis(QiskitTestCase):
             pm = PassManager([HighLevelSynthesis(hls_config=hls_config)])
             tqc = pm.run(qc)
             ops = tqc.count_ops()
-            print(tqc)
-            print(ops)
             # The repeat method for OpA without "n" specified returns None.
             self.assertNotIn("op_a", ops.keys())
             self.assertEqual(ops["id"], 2)
