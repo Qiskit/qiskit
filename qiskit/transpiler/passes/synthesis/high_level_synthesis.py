@@ -39,7 +39,7 @@ class HLSConfig:
     To avoid synthesizing a given higher-level-object, one can give it an empty list of methods.
     """
 
-    def __init__(self, use_default_on_unspecified: True, **kwargs):
+    def __init__(self, use_default_on_unspecified=True, **kwargs):
         """
         Creates a high-level-synthesis config.
         Args:
