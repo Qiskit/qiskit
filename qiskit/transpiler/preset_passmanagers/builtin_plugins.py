@@ -206,7 +206,9 @@ class SabreSwapPassManager(PassManagerStagePlugin):
             pass_manager_config.initial_layout,
         )
         if optimization_level == 0:
-            routing_pass = SabreSwap(coupling_map, heuristic="basic", seed=seed_transpiler)
+            routing_pass = SabreSwap(
+                coupling_map, heuristic="basic", seed=seed_transpiler, trials=5
+            )
             return common.generate_routing_passmanager(
                 routing_pass,
                 target,
@@ -215,7 +217,9 @@ class SabreSwapPassManager(PassManagerStagePlugin):
                 use_barrier_before_measurement=True,
             )
         if optimization_level == 1:
-            routing_pass = SabreSwap(coupling_map, heuristic="lookahead", seed=seed_transpiler)
+            routing_pass = SabreSwap(
+                coupling_map, heuristic="lookahead", seed=seed_transpiler, trials=5
+            )
             return common.generate_routing_passmanager(
                 routing_pass,
                 target,
@@ -227,7 +231,9 @@ class SabreSwapPassManager(PassManagerStagePlugin):
                 use_barrier_before_measurement=True,
             )
         if optimization_level == 2:
-            routing_pass = SabreSwap(coupling_map, heuristic="decay", seed=seed_transpiler)
+            routing_pass = SabreSwap(
+                coupling_map, heuristic="decay", seed=seed_transpiler, trials=10
+            )
             return common.generate_routing_passmanager(
                 routing_pass,
                 target,
@@ -238,7 +244,9 @@ class SabreSwapPassManager(PassManagerStagePlugin):
                 use_barrier_before_measurement=True,
             )
         if optimization_level == 3:
-            routing_pass = SabreSwap(coupling_map, heuristic="decay", seed=seed_transpiler)
+            routing_pass = SabreSwap(
+                coupling_map, heuristic="decay", seed=seed_transpiler, trials=20
+            )
             return common.generate_routing_passmanager(
                 routing_pass,
                 target,
