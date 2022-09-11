@@ -46,7 +46,7 @@ class TestTimeEvolutionProblem(QiskitAlgorithmsTestCase):
         self.assertEqual(evo_problem.initial_state, expected_initial_state)
         self.assertEqual(evo_problem.aux_operators, expected_aux_operators)
         self.assertEqual(evo_problem.t_param, expected_t_param)
-        self.assertEqual(evo_problem.param_value_dict, expected_param_value_dict)
+        self.assertEqual(evo_problem.param_value_map, expected_param_value_dict)
 
     @data(QuantumCircuit(1), Statevector([1, 0]))
     def test_init_all(self, initial_state):
@@ -63,7 +63,7 @@ class TestTimeEvolutionProblem(QiskitAlgorithmsTestCase):
             initial_state,
             aux_operators,
             t_param=t_parameter,
-            param_value_dict=param_value_dict,
+            param_value_map=param_value_dict,
         )
 
         expected_hamiltonian = Y + t_parameter * Z
@@ -78,7 +78,7 @@ class TestTimeEvolutionProblem(QiskitAlgorithmsTestCase):
         self.assertEqual(type(evo_problem.initial_state), expected_type)
         self.assertEqual(evo_problem.aux_operators, expected_aux_operators)
         self.assertEqual(evo_problem.t_param, expected_t_param)
-        self.assertEqual(evo_problem.param_value_dict, expected_param_value_dict)
+        self.assertEqual(evo_problem.param_value_map, expected_param_value_dict)
 
     @data([Y, -1, One], [Y, -1.2, One], [Y, 0, One])
     @unpack

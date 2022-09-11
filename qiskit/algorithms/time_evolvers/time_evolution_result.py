@@ -10,7 +10,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""Class for holding evolution result."""
+"""Class for holding time evolution result."""
 from __future__ import annotations
 
 from qiskit import QuantumCircuit
@@ -20,7 +20,7 @@ from ..algorithm_result import AlgorithmResult
 
 class TimeEvolutionResult(AlgorithmResult):
     """
-    Class for holding evolution result.
+    Class for holding time evolution result.
 
     Attributes:
         evolved_state (QuantumCircuit): An evolved quantum state.
