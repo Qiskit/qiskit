@@ -52,7 +52,6 @@ class HLSConfig:
         self.methods = dict()
 
         for key, value in kwargs.items():
-            print("%s == %s" % (key, value))
             self.set_methods(key, value)
 
     def set_methods(self, hls_name, hls_methods):
@@ -126,7 +125,6 @@ class HighLevelSynthesis(TransformationPass):
                         % (plugin_name, node.name)
                     )
 
-                print(f"  Using method {plugin_name} for {node.name}")
                 plugin_method = hls_plugin_manager.method(node.name, plugin_name)
 
                 # ToDo: similarly to UnitarySynthesis, we should pass additional parameters
