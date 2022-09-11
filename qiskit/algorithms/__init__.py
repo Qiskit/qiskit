@@ -257,6 +257,7 @@ Utility methods used by algorithms.
    :toctree: ../stubs/
 
    eval_observables
+   estimate_observables
 
 Utility classes
 ---------------
@@ -314,6 +315,7 @@ from .phase_estimators import (
 )
 from .exceptions import AlgorithmError
 from .aux_ops_evaluator import eval_observables
+from .observables_evaluator import estimate_observables
 from .evolvers.trotterization import TrotterQRTE
 from .evolvers.variational.var_qite import VarQITE
 from .evolvers.variational.var_qrte import VarQRTE
@@ -377,4 +379,5 @@ __all__ = [
     "IterativePhaseEstimation",
     "AlgorithmError",
     "eval_observables",
+    "estimate_observables",
 ]

@@ -22,7 +22,7 @@ from ..primitives import EstimatorResult, BaseEstimator
 from ..quantum_info.operators.base_operator import BaseOperator
 
 
-def eval_observables(
+def estimate_observables(
     estimator: BaseEstimator,
     quantum_state: QuantumCircuit,
     observables: ListOrDict[BaseOperator | PauliSumOp],
@@ -86,10 +86,11 @@ def _handle_zero_ops(
 ) -> list[BaseOperator | PauliSumOp]:
     """Replaces all occurrence of operators equal to 0 in the list with an equivalent ``PauliSumOp``
     operator."""
-    zero_op = PauliSumOp.from_list([("I" * observables_list[0].num_qubits, 0)])
-    for ind, observable in enumerate(observables_list):
-        if observable == 0:
-            observables_list[ind] = zero_op
+    if observables_list:
+        zero_op = PauliSumOp.from_list([("I" * observables_list[0].num_qubits, 0)])
+        for ind, observable in enumerate(observables_list):
+            if observable == 0:
+                observables_list[ind] = zero_op
     return observables_list
 
 
@@ -144,11 +145,13 @@ def _prep_variance_and_shots(
 
     results = []
     for metadata in estimator_result.metadata:
-        if metadata and "variance" in metadata.keys() and "shots" in metadata.keys():
-            variance = metadata["variance"]
-            shots = metadata["shots"]
-            results.append((variance, shots))
-        else:
-            results.append((0, 0))
+        variance, shots = 0.0, 0
+        if metadata:
+            if "variance" in metadata.keys():
+                variance = metadata["variance"]
+            if "shots" in metadata.keys():
+                shots = metadata["shots"]
+
+        results.append((variance, shots))
 
     return results
