@@ -23,7 +23,7 @@ class RealEvolver(ABC):
     """Pending deprecation: Interface for Quantum Real Time Evolution.
 
     The RealEvolver interface has been superseded by the
-    :class:`qiskit.algorithms.time_evolvers.RealEvolver` interface.
+    :class:`qiskit.algorithms.time_evolvers.RealTimeEvolver` interface.
     This interface will be deprecated in a future release and subsequently
     removed after that.
 
@@ -31,7 +31,7 @@ class RealEvolver(ABC):
 
     @deprecate_function(
         "The RealEvolver interface has been superseded by the "
-        "qiskit.algorithms.time_evolvers.RealEvolver interface. "
+        "qiskit.algorithms.time_evolvers.RealTimeEvolver interface. "
         "This interface will be deprecated in a future release and subsequently "
         "removed after that.",
         category=PendingDeprecationWarning,

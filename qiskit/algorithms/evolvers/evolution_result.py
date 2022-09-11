@@ -25,7 +25,7 @@ class EvolutionResult(AlgorithmResult):
     """Pending deprecation: Class for holding evolution result.
 
     The EvolutionResult class has been superseded by the
-    :class:`qiskit.algorithms.time_evolvers.EvolutionResult` class.
+    :class:`qiskit.algorithms.time_evolvers.TimeEvolutionResult` class.
     This class will be deprecated in a future release and subsequently
     removed after that.
 
@@ -33,7 +33,7 @@ class EvolutionResult(AlgorithmResult):
 
     @deprecate_function(
         "The EvolutionResult class has been superseded by the "
-        "qiskit.algorithms.time_evolvers.EvolutionResult class. "
+        "qiskit.algorithms.time_evolvers.TimeEvolutionResult class. "
         "This class will be deprecated in a future release and subsequently "
         "removed after that.",
         category=PendingDeprecationWarning,

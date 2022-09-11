@@ -25,7 +25,7 @@ class EvolutionProblem:
     """Pending deprecation: Evolution problem class.
 
     The EvolutionProblem class has been superseded by the
-    :class:`qiskit.algorithms.time_evolvers.EvolutionProblem` class.
+    :class:`qiskit.algorithms.time_evolvers.TimeEvolutionProblem` class.
     This class will be deprecated in a future release and subsequently
     removed after that.
 
@@ -35,7 +35,7 @@ class EvolutionProblem:
 
     @deprecate_function(
         "The EvolutionProblem class has been superseded by the "
-        "qiskit.algorithms.time_evolvers.EvolutionProblem class. "
+        "qiskit.algorithms.time_evolvers.TimeEvolutionProblem class. "
         "This class will be deprecated in a future release and subsequently "
         "removed after that.",
         category=PendingDeprecationWarning,
