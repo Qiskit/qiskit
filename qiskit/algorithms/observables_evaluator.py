@@ -22,7 +22,7 @@ from ..primitives import EstimatorResult, BaseEstimator
 from ..quantum_info.operators.base_operator import BaseOperator
 
 
-def eval_observables(
+def estimate_observables(
     estimator: BaseEstimator,
     quantum_state: QuantumCircuit,
     observables: ListOrDict[BaseOperator | PauliSumOp],
@@ -145,11 +145,13 @@ def _prep_variance_and_shots(
 
     results = []
     for metadata in estimator_result.metadata:
-        if metadata and "variance" in metadata.keys() and "shots" in metadata.keys():
-            variance = metadata["variance"]
-            shots = metadata["shots"]
-            results.append((variance, shots))
-        else:
-            results.append((0, 0))
+        variance, shots = 0.0, 0
+        if metadata:
+            if "variance" in metadata.keys():
+                variance = metadata["variance"]
+            if "shots" in metadata.keys():
+                shots = metadata["shots"]
+
+        results.append((variance, shots))
 
     return results

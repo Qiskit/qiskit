@@ -20,7 +20,7 @@ from ddt import ddt, data
 
 from qiskit.algorithms.list_or_dict import ListOrDict
 from qiskit.quantum_info.operators.base_operator import BaseOperator
-from qiskit.algorithms.observables_evaluator import eval_observables
+from qiskit.algorithms import estimate_observables
 from qiskit.primitives import Estimator
 from qiskit.quantum_info import Statevector, SparsePauliOp
 from qiskit import QuantumCircuit
@@ -70,7 +70,7 @@ class TestObservablesEvaluator(QiskitAlgorithmsTestCase):
         observables: ListOrDict[BaseOperator | PauliSumOp],
         estimator: Estimator,
     ):
-        result = eval_observables(estimator, quantum_state, observables, self.threshold)
+        result = estimate_observables(estimator, quantum_state, observables, self.threshold)
 
         if isinstance(observables, dict):
             np.testing.assert_equal(list(result.keys()), list(expected_result.keys()))
@@ -108,7 +108,7 @@ class TestObservablesEvaluator(QiskitAlgorithmsTestCase):
         [],
         {},
     )
-    def test_eval_observables(self, observables: ListOrDict[BaseOperator | PauliSumOp]):
+    def test_estimate_observables(self, observables: ListOrDict[BaseOperator | PauliSumOp]):
         """Tests evaluator of auxiliary operators for algorithms."""
 
         ansatz = EfficientSU2(2)
@@ -130,7 +130,7 @@ class TestObservablesEvaluator(QiskitAlgorithmsTestCase):
             estimator,
         )
 
-    def test_eval_observables_zero_op(self):
+    def test_estimate_observables_zero_op(self):
         """Tests if a zero operator is handled correctly."""
         ansatz = EfficientSU2(2)
         parameters = np.array(
@@ -142,7 +142,7 @@ class TestObservablesEvaluator(QiskitAlgorithmsTestCase):
         state = bound_ansatz
         estimator = Estimator()
         observables = [SparsePauliOp(["XX", "YY"]), 0]
-        result = eval_observables(estimator, state, observables, self.threshold)
+        result = estimate_observables(estimator, state, observables, self.threshold)
         expected_result = [(0.015607318055509564, (0, 0)), (0.0, (0, 0))]
         means = [element[0] for element in result]
         expected_means = [element[0] for element in expected_result]
