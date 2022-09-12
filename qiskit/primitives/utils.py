@@ -15,7 +15,7 @@ Utility functions for primitives
 
 from __future__ import annotations
 
-from qiskit.circuit import ParameterExpression, QuantumCircuit, Instruction
+from qiskit.circuit import Instruction, ParameterExpression, QuantumCircuit
 from qiskit.extensions.quantum_initializer.initializer import Initialize
 from qiskit.opflow import PauliSumOp
 from qiskit.quantum_info import SparsePauliOp, Statevector
@@ -118,6 +118,8 @@ def _circuit_key(circuit: QuantumCircuit) -> tuple:
         id(circuit),
         circuit.name,
         len(circuit.data),
+        circuit.num_qubits,
+        circuit.num_clbits,
         circuit.num_parameters,
         None if circuit._op_start_times is None else tuple(circuit._op_start_times),
     )
