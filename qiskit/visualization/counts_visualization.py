@@ -95,21 +95,37 @@ def plot_histogram(
         VisualizationError: When legend is provided and the length doesn't
             match the input data.
 
-    Example:
+    Examples:
         .. jupyter-execute::
 
-           from qiskit import QuantumCircuit, BasicAer, execute
-           from qiskit.visualization import plot_histogram
-           %matplotlib inline
+            # Plot two counts in the same figure with legends and colors specified.
 
-           qc = QuantumCircuit(2, 2)
-           qc.h(0)
-           qc.cx(0, 1)
-           qc.measure([0, 1], [0, 1])
+            from qiskit.visualization import plot_histogram
 
-           backend = BasicAer.get_backend('qasm_simulator')
-           job = execute(qc, backend)
-           plot_histogram(job.result().get_counts(), color='midnightblue', title="New Histogram")
+            counts1 = {'00': 525, '11': 499}
+            counts2 = {'00': 511, '11': 514}
+
+            legend = ['First execution', 'Second execution']
+
+            plot_histogram([counts1, counts2], legend=legend, color=['crimson','midnightblue'],
+                            title="New Histogram")
+
+        .. jupyter-execute::
+
+            # You can sort the bitstrings using different methods.
+
+            counts = {'001': 596, '011': 211, '010': 50, '000': 117, '101': 33, '111': 8,
+                    '100': 6, '110': 3}
+
+            # Sort by the probability in descending order
+            hist1 = plot_histogram(counts, sort='value_desc')
+
+            # Sort by the hamming distance (the number of bit flips to change from
+            # one bitstring to the other) from a target string.
+            hist2 = plot_histogram(counts, sort='hamming', target_string='001')
+
+            display(hist1, hist2)
+
     """
     import matplotlib.pyplot as plt
     from matplotlib.ticker import MaxNLocator
