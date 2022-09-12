@@ -55,32 +55,39 @@ else:
     from shared_memory import SharedMemory, SharedMemoryManager
 
 logger = logging.getLogger(__name__)
+BasisGate = List[str]
+InstMaps = List[InstructionScheduleMap]
+CouplingUnion = Union[CouplingMap, List[List[int]]]
+InitialLayoutUnion = Union[Layout, Dict, List]
 TimingConstraints = Dict[str, int]
-CallableType = Callable[[BasePass, DAGCircuit, float, PropertySet, int], Any]
+CallbackType = Callable[[BasePass, DAGCircuit, float, PropertySet, int], Any]
+OutputNameUnion = Union[str, List[str]]
 
 def transpile(
     circuits: Union[QuantumCircuit, List[QuantumCircuit]],
-    backend: Union[Backend, None, List[Backend]] = None,
-    basis_gates: Union[str, None, List[str]] = None,
-    inst_map: Union[InstructionScheduleMap, None, List[InstructionScheduleMap]] = None,
-    coupling_map: Union[None, CouplingMap, List[CouplingMap], List[List[int]], List[List[List[int]]]] = None, #?
-    backend_properties: Union[BackendProperties, None, List[BackendProperties]] = None,
-    initial_layout: Union[None, Layout, List[Layout], Dict, List[Dict], List, List[List]] = None, #?
-    layout_method: Union[str, None, List[str]] = None,
-    routing_method: Union[str, None, List[str]] = None,
-    translation_method: Union[str, None, List[str]] = None,
-    scheduling_method: Union[str, None, List[str]] = None,
-    instruction_durations: Union[InstructionDurationsType, None, List[InstructionDurationsType]] = None, 
-    dt: Union[float, None, List[float]] = None,
-    approximation_degree: Union[float, None, List[float]] = None,
-    timing_constraints: Union[None, TimingConstraints, List[TimingConstraints]] = None,
-    seed_transpiler: Union[int, None, List[int]] = None,
-    optimization_level: Union[int, None, List[int]] = None,
-    callback: Union[CallableType, None, List[CallableType]] = None,
-    output_name: Union[str, None, List[str]] = None,
-    unitary_synthesis_method: Union[str, None, List[str]] = "default", #?
-    unitary_synthesis_plugin_config: Union[dict, None, List[dict]] = None, #?
-    target: Union[Target, None, List[Target]] = None, #?
+    backend: Optional[Backend, List[Backend]] = None,
+    basis_gates: Optional[BasisGate, List[BasisGate]] = None,
+    inst_map: Optional[InstMaps, List[InstMaps]] = None,
+    coupling_map: Optional[CouplingUnion, List[CouplingUnion]] = None,
+    backend_properties: Optional[BackendProperties, List[BackendProperties]] = None,
+    initial_layout: Optional[InitialLayoutUnion, List[InitialLayoutUnion]] = None,
+    layout_method: Optional[str, List[str]] = None,
+    routing_method: Optional[str, List[str]] = None,
+    translation_method: Optional[str, List[str]] = None,
+    scheduling_method: Optional[str, List[str]] = None,
+    instruction_durations: Optional[InstructionDurationsType, List[InstructionDurationsType]] = None, 
+    dt: Optional[float, List[float]] = None,
+    approximation_degree: Optional[float, List[float]] = None,
+    timing_constraints: Optional[TimingConstraints, List[TimingConstraints]] = None,
+    seed_transpiler: Optional[int, List[int]] = None,
+    optimization_level: Optional[int, List[int]] = None,
+    callback: Optional[CallbackType, List[CallbackType]] = None,
+    output_name: Optional[OutputNameUnion, List[OutputNameUnion]] = None,
+    unitary_synthesis_method: Optinal[str, List[str]] = "default", 
+    unitary_synthesis_plugin_config: Optional[dict, List[dict]] = None,
+    target: Optional[Target, List[Target]] = None,
+    init_method: Optional[str, List[str]] = None,
+    optimization_method: Optional[str, List[str]] = None,
 ) -> Union[QuantumCircuit, List[QuantumCircuit]]:
     """Transpile one or more circuits, according to some desired transpilation targets.
 
