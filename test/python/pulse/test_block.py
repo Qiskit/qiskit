@@ -376,7 +376,7 @@ class TestBlockOperation(BaseTestBlock):
 
         with pulse.build(name="test_block") as sched_block:
             pulse.play(pulse.Constant(160, 1.0), pulse.DriveChannel(0))
-            pulse.acquire(50, pulse.MeasureChannel(0), pulse.MemorySlot(0))
+            pulse.acquire(50, pulse.AcquireChannel(0), pulse.MemorySlot(0))
 
         backend = FakeArmonk()
         test_result = backend.run(sched_block).result()
