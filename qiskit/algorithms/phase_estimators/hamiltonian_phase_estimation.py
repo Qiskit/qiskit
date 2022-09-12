@@ -195,7 +195,7 @@ class HamiltonianPhaseEstimation:
                     f"Expecting Hamiltonian type OperatorBase or BaseOperator or PauliSumOp, "
                     f"got {type(hamiltonian)}."
                 )
-            # TODO add unit test for Statevector
+
             if isinstance(state_preparation, Statevector):
                 circuit = QuantumCircuit(state_preparation.num_qubits)
                 circuit.prepare_state(state_preparation.data)
