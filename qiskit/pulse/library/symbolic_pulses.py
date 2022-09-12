@@ -588,7 +588,7 @@ class _PulseType(type):
             "Typechecking with the symbolic pulse subclass will be deprecated. "
             f"'{cls_alias}' subclass instance is turned into SymbolicPulse instance. "
             f"Use self.pulse_type == '{cls_alias}' instead.",
-            UserWarning,
+            PendingDeprecationWarning,
         )
 
         if not isinstance(instance, SymbolicPulse):

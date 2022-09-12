@@ -64,13 +64,13 @@ class ParametricPulseShapes(Enum):
         if isinstance(instance, library.SymbolicPulse):
             return cls(instance.pulse_type)
         if isinstance(instance, library.parametric_pulses.Gaussian):
-            return cls("Gaussian")
+            return ParametricPulseShapes.gaussian
         if isinstance(instance, library.parametric_pulses.GaussianSquare):
-            return cls("GaussianSquare")
+            return ParametricPulseShapes.gaussian_square
         if isinstance(instance, library.parametric_pulses.Drag):
-            return cls("Drag")
+            return ParametricPulseShapes.drag
         if isinstance(instance, library.parametric_pulses.Constant):
-            return cls("Constant")
+            return ParametricPulseShapes.constant
 
         raise QiskitError(f"'{instance}' is not valid pulse type.")
 
