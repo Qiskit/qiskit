@@ -30,6 +30,7 @@ Estimator
 
    BaseEstimator
    Estimator
+   BackendEstimator
 
 Sampler
 =======
@@ -52,6 +53,7 @@ Results
 
 from .base_estimator import BaseEstimator
 from .base_sampler import BaseSampler
+from .backend_estimator import BackendEstimator
 from .estimator import Estimator
 from .estimator_result import EstimatorResult
 from .sampler import Sampler

@@ -1,0 +1,635 @@
+# This code is part of Qiskit.
+#
+# (C) Copyright IBM 2022.
+#
+# This code is licensed under the Apache License, Version 2.0. You may
+# obtain a copy of this license in the LICENSE.txt file in the root directory
+# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+#
+# Any modifications or derivative works of this code must retain this
+# copyright notice, and modified files need to carry a notice indicating
+# that they have been altered from the originals.
+
+"""Tests for Estimator."""
+
+import unittest
+from test import combine
+
+from ddt import ddt
+import numpy as np
+
+from qiskit.circuit import QuantumCircuit
+from qiskit.circuit.library import RealAmplitudes
+from qiskit.exceptions import QiskitError
+from qiskit.opflow import PauliSumOp
+from qiskit.primitives import BackendEstimator, EstimatorResult
+from qiskit.providers import JobV1
+from qiskit.quantum_info import Operator, SparsePauliOp
+from qiskit.test import QiskitTestCase
+from qiskit.providers.fake_provider import FakeNairobi, FakeNairobiV2
+
+BACKENDS = [FakeNairobi(), FakeNairobiV2()]
+
+
+@ddt
+class TestBackendEstimator(QiskitTestCase):
+    """Test Estimator"""
+
+    def setUp(self):
+        super().setUp()
+        self.ansatz = RealAmplitudes(num_qubits=2, reps=2)
+        self.observable = PauliSumOp.from_list(
+            [
+                ("II", -1.052373245772859),
+                ("IZ", 0.39793742484318045),
+                ("ZI", -0.39793742484318045),
+                ("ZZ", -0.01128010425623538),
+                ("XX", 0.18093119978423156),
+            ]
+        )
+        self.expvals = -1.0284380963435145, -1.284366511861733
+
+        self.psi = (RealAmplitudes(num_qubits=2, reps=2), RealAmplitudes(num_qubits=2, reps=3))
+        self.params = tuple(psi.parameters for psi in self.psi)
+        self.hamiltonian = (
+            SparsePauliOp.from_list([("II", 1), ("IZ", 2), ("XI", 3)]),
+            SparsePauliOp.from_list([("IZ", 1)]),
+            SparsePauliOp.from_list([("ZI", 1), ("ZZ", 1)]),
+        )
+        self.theta = (
+            [0, 1, 1, 2, 3, 5],
+            [0, 1, 1, 2, 3, 5, 8, 13],
+            [1, 2, 3, 4, 5, 6],
+        )
+
+    @combine(backend=BACKENDS)
+    def test_estimator(self, backend):
+        """test for a simple use case"""
+        lst = [("XX", 1), ("YY", 2), ("ZZ", 3)]
+        with self.subTest("PauliSumOp"):
+            observable = PauliSumOp.from_list(lst)
+            ansatz = RealAmplitudes(num_qubits=2, reps=2)
+            with self.assertWarns(DeprecationWarning):
+                est = BackendEstimator(backend, [ansatz], [observable])
+                result = est([0], [0], parameter_values=[[0, 1, 1, 2, 3, 5]])
+            self.assertIsInstance(result, EstimatorResult)
+            self.assertAlmostEqual(1.84209213, result.values[0], delta=0.5)
+
+        with self.subTest("SparsePauliOp"):
+            observable = SparsePauliOp.from_list(lst)
+            ansatz = RealAmplitudes(num_qubits=2, reps=2)
+            with self.assertWarns(DeprecationWarning):
+                est = BackendEstimator(backend, [ansatz], [observable])
+                result = est([0], [0], parameter_values=[[0, 1, 1, 2, 3, 5]])
+            self.assertIsInstance(result, EstimatorResult)
+            self.assertAlmostEqual(1.84209213, result.values[0], delta=0.5)
+
+    @combine(backend=BACKENDS)
+    def test_estimator_param_reverse(self, backend):
+        """test for the reverse parameter"""
+        observable = PauliSumOp.from_list([("XX", 1), ("YY", 2), ("ZZ", 3)])
+        ansatz = RealAmplitudes(num_qubits=2, reps=2)
+        with self.assertWarns(DeprecationWarning):
+            est = BackendEstimator(
+                backend=backend,
+                circuits=[ansatz],
+                observables=[observable],
+                parameters=[ansatz.parameters[::-1]],
+            )
+            result = est([0], [0], parameter_values=[[0, 1, 1, 2, 3, 5][::-1]])
+        self.assertIsInstance(result, EstimatorResult)
+        self.assertAlmostEqual(1.84209213, result.values[0], delta=0.5)
+
+    @combine(backend=BACKENDS)
+    def test_init_observable_from_operator(self, backend):
+        """test for evaluate without parameters"""
+        circuit = self.ansatz.bind_parameters([0, 1, 1, 2, 3, 5])
+        matrix = Operator(
+            [
+                [-1.06365335, 0.0, 0.0, 0.1809312],
+                [0.0, -1.83696799, 0.1809312, 0.0],
+                [0.0, 0.1809312, -0.24521829, 0.0],
+                [0.1809312, 0.0, 0.0, -1.06365335],
+            ]
+        )
+        with self.assertWarns(DeprecationWarning):
+            est = BackendEstimator(backend, [circuit], [matrix])
+            result = est([0], [0])
+        self.assertIsInstance(result, EstimatorResult)
+        self.assertAlmostEqual(-1.284366511861733, result.values, delta=0.4)
+
+    @combine(backend=BACKENDS)
+    def test_evaluate(self, backend):
+        """test for evaluate"""
+        with self.assertWarns(DeprecationWarning):
+            est = BackendEstimator(backend, [self.ansatz], [self.observable])
+            result = est([0], [0], parameter_values=[[0, 1, 1, 2, 3, 5]])
+        self.assertIsInstance(result, EstimatorResult)
+        self.assertAlmostEqual(-1.284366511861733, result.values[0], delta=0.4)
+
+    @combine(backend=BACKENDS)
+    def test_evaluate_multi_params(self, backend):
+        """test for evaluate with multiple parameters"""
+        with self.assertWarns(DeprecationWarning):
+            est = BackendEstimator(backend, [self.ansatz], [self.observable])
+            result = est(
+                [0] * 2, [0] * 2, parameter_values=[[0, 1, 1, 2, 3, 5], [1, 1, 2, 3, 5, 8]]
+            )
+        self.assertIsInstance(result, EstimatorResult)
+        self.assertAlmostEqual(-1.284366511861733, result.values[0], delta=0.4)
+        self.assertAlmostEqual(-1.3187526349078742, result.values[1], delta=0.4)
+
+    @combine(backend=BACKENDS)
+    def test_evaluate_no_params(self, backend):
+        """test for evaluate without parameters"""
+        circuit = self.ansatz.bind_parameters([0, 1, 1, 2, 3, 5])
+        with self.assertWarns(DeprecationWarning):
+            est = BackendEstimator(backend, [circuit], [self.observable])
+            result = est([0], [0])
+        self.assertIsInstance(result, EstimatorResult)
+        self.assertAlmostEqual(-1.284366511861733, result.values[0], delta=0.4)
+
+    @combine(backend=BACKENDS)
+    def test_run_with_multiple_observables_and_none_parameters(self, backend):
+        """test for evaluate without parameters"""
+        circuit = QuantumCircuit(3)
+        circuit.h(0)
+        circuit.cx(0, 1)
+        circuit.cx(1, 2)
+        with self.assertWarns(DeprecationWarning):
+            est = BackendEstimator(backend, circuit, ["ZZZ", "III"])
+            result = est(circuits=[0, 0], observables=[0, 1])
+        self.assertIsInstance(result, EstimatorResult)
+        self.assertAlmostEqual(0.0, result.values[0], delta=0.2)
+        self.assertAlmostEqual(1.0, result.values[1], delta=0.2)
+
+    @combine(backend=BACKENDS)
+    def test_estimator_example(self, backend):
+        """test for Estimator example"""
+        psi1 = RealAmplitudes(num_qubits=2, reps=2)
+        psi2 = RealAmplitudes(num_qubits=2, reps=3)
+
+        params1 = psi1.parameters
+        params2 = psi2.parameters
+
+        op1 = SparsePauliOp.from_list([("II", 1), ("IZ", 2), ("XI", 3)])
+        op2 = SparsePauliOp.from_list([("IZ", 1)])
+        op3 = SparsePauliOp.from_list([("ZI", 1), ("ZZ", 1)])
+
+        with self.assertWarns(DeprecationWarning):
+            est = BackendEstimator(
+                backend=backend,
+                circuits=[psi1, psi2],
+                observables=[op1, op2, op3],
+                parameters=[params1, params2],
+            )
+        theta1 = [0, 1, 1, 2, 3, 5]
+        theta2 = [0, 1, 1, 2, 3, 5, 8, 13]
+        theta3 = [1, 2, 3, 4, 5, 6]
+
+        # calculate [ <psi1(theta1)|op1|psi1(theta1)> ]
+        with self.assertWarns(DeprecationWarning):
+            result = est([0], [0], [theta1])
+        self.assertIsInstance(result, EstimatorResult)
+        np.testing.assert_allclose(result.values, [1.5555572817900956], rtol=0.05, atol=0.2)
+        self.assertEqual(len(result.metadata), 1)
+
+        # calculate [ <psi1(theta1)|op2|psi1(theta1)>, <psi1(theta1)|op3|psi1(theta1)> ]
+        with self.assertWarns(DeprecationWarning):
+            result = est([0, 0], [1, 2], [theta1] * 2)
+        self.assertIsInstance(result, EstimatorResult)
+        np.testing.assert_allclose(
+            result.values, [-0.5516530027638437, 0.07535238795415422], rtol=0.05, atol=0.2
+        )
+        self.assertEqual(len(result.metadata), 2)
+
+        # calculate [ <psi2(theta2)|op2|psi2(theta2)> ]
+        with self.assertWarns(DeprecationWarning):
+            result = est([1], [1], [theta2])
+        self.assertIsInstance(result, EstimatorResult)
+        np.testing.assert_allclose(result.values, [0.17849238433885167], rtol=0.05, atol=0.2)
+        self.assertEqual(len(result.metadata), 1)
+
+        # calculate [ <psi1(theta1)|op1|psi1(theta1)>, <psi1(theta3)|op1|psi1(theta3)> ]
+        with self.assertWarns(DeprecationWarning):
+            result = est([0, 0], [0, 0], [theta1, theta3])
+        self.assertIsInstance(result, EstimatorResult)
+        np.testing.assert_allclose(
+            result.values, [1.5555572817900956, 1.0656325933346835], rtol=0.05, atol=0.2
+        )
+        self.assertEqual(len(result.metadata), 2)
+
+        # calculate [ <psi1(theta1)|op1|psi1(theta1)>,
+        #             <psi2(theta2)|op2|psi2(theta2)>,
+        #             <psi1(theta3)|op3|psi1(theta3)> ]
+        with self.assertWarns(DeprecationWarning):
+            result = est([0, 1, 0], [0, 1, 2], [theta1, theta2, theta3])
+        self.assertIsInstance(result, EstimatorResult)
+        np.testing.assert_allclose(
+            result.values,
+            [1.5555572817900956, 0.17849238433885167, -1.0876631752254926],
+            rtol=0.05,
+            atol=0.2,
+        )
+        self.assertEqual(len(result.metadata), 3)
+
+        # It is possible to pass objects.
+        # calculate [ <psi2(theta2)|H2|psi2(theta2)> ]
+        with self.assertWarns(DeprecationWarning):
+            result = est([psi2], [op2], [theta2])
+        np.testing.assert_allclose(result.values, [0.17849238433885167], rtol=0.05, atol=0.2)
+        self.assertEqual(len(result.metadata), 1)
+
+    @combine(backend=BACKENDS)
+    def test_1qubit(self, backend):
+        """Test for 1-qubit cases"""
+        qc = QuantumCircuit(1)
+        qc2 = QuantumCircuit(1)
+        qc2.x(0)
+
+        op = SparsePauliOp.from_list([("I", 1)])
+        op2 = SparsePauliOp.from_list([("Z", 1)])
+
+        with self.assertWarns(DeprecationWarning):
+            est = BackendEstimator(
+                backend=backend, circuits=[qc, qc2], observables=[op, op2], parameters=[[]] * 2
+            )
+            result = est([0], [0], [[]])
+        self.assertIsInstance(result, EstimatorResult)
+        self.assertAlmostEqual(1, result.values[0], delta=0.4)
+
+        with self.assertWarns(DeprecationWarning):
+            result = est([0], [1], [[]])
+        self.assertIsInstance(result, EstimatorResult)
+        self.assertAlmostEqual(1, result.values[0], delta=0.4)
+
+        with self.assertWarns(DeprecationWarning):
+            result = est([1], [0], [[]])
+        self.assertIsInstance(result, EstimatorResult)
+        self.assertAlmostEqual(1, result.values[0], delta=0.4)
+
+        with self.assertWarns(DeprecationWarning):
+            result = est([1], [1], [[]])
+        self.assertIsInstance(result, EstimatorResult)
+        self.assertAlmostEqual(-1, result.values[0], delta=0.4)
+
+    @combine(backend=BACKENDS)
+    def test_2qubits(self, backend):
+        """Test for 2-qubit cases (to check endian)"""
+        qc = QuantumCircuit(2)
+        qc2 = QuantumCircuit(2)
+        qc2.x(0)
+
+        op = SparsePauliOp.from_list([("II", 1)])
+        op2 = SparsePauliOp.from_list([("ZI", 1)])
+        op3 = SparsePauliOp.from_list([("IZ", 1)])
+
+        with self.assertWarns(DeprecationWarning):
+            est = BackendEstimator(
+                backend=backend, circuits=[qc, qc2], observables=[op, op2, op3], parameters=[[]] * 2
+            )
+            result = est([0], [0], [[]])
+        self.assertIsInstance(result, EstimatorResult)
+        np.testing.assert_allclose(result.values, [1], rtol=0.05, atol=0.1)
+
+        with self.assertWarns(DeprecationWarning):
+            result = est([1], [0], [[]])
+        self.assertIsInstance(result, EstimatorResult)
+        np.testing.assert_allclose(result.values, [1], rtol=0.05, atol=0.1)
+
+        with self.assertWarns(DeprecationWarning):
+            result = est([0], [1], [[]])
+        self.assertIsInstance(result, EstimatorResult)
+        np.testing.assert_allclose(result.values, [1], rtol=0.05, atol=0.1)
+
+        with self.assertWarns(DeprecationWarning):
+            result = est([1], [1], [[]])
+        self.assertIsInstance(result, EstimatorResult)
+        np.testing.assert_allclose(result.values, [1], rtol=0.05, atol=0.1)
+
+        with self.assertWarns(DeprecationWarning):
+            result = est([0], [2], [[]])
+        self.assertIsInstance(result, EstimatorResult)
+        np.testing.assert_allclose(result.values, [1], rtol=0.05, atol=0.1)
+
+        with self.assertWarns(DeprecationWarning):
+            result = est([1], [2], [[]])
+        self.assertIsInstance(result, EstimatorResult)
+        np.testing.assert_allclose(result.values, [-1], rtol=0.05, atol=0.1)
+
+    @combine(backend=BACKENDS)
+    def test_errors(self, backend):
+        """Test for errors"""
+        qc = QuantumCircuit(1)
+        qc2 = QuantumCircuit(2)
+
+        op = SparsePauliOp.from_list([("I", 1)])
+        op2 = SparsePauliOp.from_list([("II", 1)])
+
+        with self.assertWarns(DeprecationWarning):
+            est = BackendEstimator(
+                backend=backend, circuits=[qc, qc2], observables=[op, op2], parameters=[[]] * 2
+            )
+        with self.assertRaises(QiskitError), self.assertWarns(DeprecationWarning):
+            est([0], [1], [[]])
+        with self.assertRaises(QiskitError), self.assertWarns(DeprecationWarning):
+            est([1], [0], [[]])
+        with self.assertRaises(QiskitError), self.assertWarns(DeprecationWarning):
+            est([0], [0], [[1e4]])
+        with self.assertRaises(QiskitError), self.assertWarns(DeprecationWarning):
+            est([1], [1], [[1, 2]])
+        with self.assertRaises(QiskitError), self.assertWarns(DeprecationWarning):
+            est([0, 1], [1], [[1]])
+        with self.assertRaises(QiskitError), self.assertWarns(DeprecationWarning):
+            est([0], [0, 1], [[1]])
+
+    @combine(backend=BACKENDS)
+    def test_empty_parameter(self, backend):
+        """Test for empty parameter"""
+        n = 2
+        qc = QuantumCircuit(n)
+        op = SparsePauliOp.from_list([("I" * n, 1)])
+        with self.assertWarns(DeprecationWarning):
+            estimator = BackendEstimator(backend=backend, circuits=[qc] * 10, observables=[op] * 10)
+        with self.subTest("one circuit"):
+            with self.assertWarns(DeprecationWarning):
+                result = estimator([0], [1], shots=1000)
+            np.testing.assert_allclose(result.values, [1])
+            self.assertEqual(len(result.metadata), 1)
+
+        with self.subTest("two circuits"):
+            with self.assertWarns(DeprecationWarning):
+                result = estimator([2, 4], [3, 5], shots=1000)
+            np.testing.assert_allclose(result.values, [1, 1])
+            self.assertEqual(len(result.metadata), 2)
+
+    @combine(backend=BACKENDS)
+    def test_numpy_params(self, backend):
+        """Test for numpy array as parameter values"""
+        qc = RealAmplitudes(num_qubits=2, reps=2)
+        op = SparsePauliOp.from_list([("IZ", 1), ("XI", 2), ("ZY", -1)])
+        k = 5
+        params_array = np.random.rand(k, qc.num_parameters)
+        params_list = params_array.tolist()
+        params_list_array = list(params_array)
+        with self.assertWarns(DeprecationWarning):
+            estimator = BackendEstimator(backend=backend, circuits=qc, observables=op)
+            target = estimator([0] * k, [0] * k, params_list)
+
+        with self.subTest("ndarrary"):
+            with self.assertWarns(DeprecationWarning):
+                result = estimator([0] * k, [0] * k, params_array)
+            self.assertEqual(len(result.metadata), k)
+            np.testing.assert_allclose(result.values, target.values, rtol=0.15, atol=0.2)
+
+        with self.subTest("list of ndarray"):
+            with self.assertWarns(DeprecationWarning):
+                result = estimator([0] * k, [0] * k, params_list_array)
+            self.assertEqual(len(result.metadata), k)
+            np.testing.assert_allclose(result.values, target.values, rtol=0.15, atol=0.2)
+
+    @combine(backend=BACKENDS)
+    def test_passing_objects(self, backend):
+        """Test passsing object for Estimator."""
+
+        with self.subTest("Valid test"):
+            with self.assertWarns(DeprecationWarning):
+                estimator = BackendEstimator(
+                    backend=backend, circuits=[self.ansatz], observables=[self.observable]
+                )
+                result = estimator(
+                    circuits=[self.ansatz, self.ansatz],
+                    observables=[self.observable, self.observable],
+                    parameter_values=[list(range(6)), [0, 1, 1, 2, 3, 5]],
+                )
+        self.assertAlmostEqual(result.values[0], self.expvals[0], delta=0.1)
+        self.assertAlmostEqual(result.values[1], self.expvals[1], delta=0.1)
+
+        with self.subTest("Invalid circuit test"):
+            circuit = QuantumCircuit(2)
+            with self.assertWarns(DeprecationWarning):
+                estimator = BackendEstimator(
+                    backend=backend, circuits=[self.ansatz], observables=[self.observable]
+                )
+            with self.assertRaises(QiskitError), self.assertWarns(DeprecationWarning):
+                result = estimator(
+                    circuits=[self.ansatz, circuit],
+                    observables=[self.observable, self.observable],
+                    parameter_values=[list(range(6)), [0, 1, 1, 2, 3, 5]],
+                )
+
+        with self.subTest("Invalid observable test"):
+            observable = SparsePauliOp(["ZX"])
+            with self.assertWarns(DeprecationWarning):
+                estimator = BackendEstimator(
+                    backend=backend, circuits=[self.ansatz], observables=[self.observable]
+                )
+            with self.assertRaises(QiskitError), self.assertWarns(DeprecationWarning):
+                result = estimator(
+                    circuits=[self.ansatz, self.ansatz],
+                    observables=[observable, self.observable],
+                    parameter_values=[list(range(6)), [0, 1, 1, 2, 3, 5]],
+                )
+
+    @combine(backend=BACKENDS)
+    def test_with_shots_option(self, backend):
+        """test with shots option."""
+        with self.assertWarns(DeprecationWarning):
+            est = BackendEstimator(backend, [self.ansatz], [self.observable])
+            result = est(
+                [0], [0], parameter_values=[[0, 1, 1, 2, 3, 5]], shots=1024, seed_simulator=15
+            )
+        self.assertIsInstance(result, EstimatorResult)
+        np.testing.assert_allclose(result.values, [-1.307397243478641], rtol=0.05)
+
+    @combine(backend=BACKENDS)
+    def test_estimator_run(self, backend):
+        """Test Estimator.run()"""
+        psi1, psi2 = self.psi
+        hamiltonian1, hamiltonian2, hamiltonian3 = self.hamiltonian
+        theta1, theta2, theta3 = self.theta
+        estimator = BackendEstimator(backend)
+
+        # Specify the circuit and observable by indices.
+        # calculate [ <psi1(theta1)|H1|psi1(theta1)> ]
+        job = estimator.run([psi1], [hamiltonian1], [theta1])
+        self.assertIsInstance(job, JobV1)
+        result = job.result()
+        self.assertIsInstance(result, EstimatorResult)
+        np.testing.assert_allclose(result.values, [1.5555572817900956], rtol=0.5, atol=0.2)
+
+        # Objects can be passed instead of indices.
+        # Note that passing objects has an overhead
+        # since the corresponding indices need to be searched.
+        # User can append a circuit and observable.
+        # calculate [ <psi2(theta2)|H2|psi2(theta2)> ]
+        result2 = estimator.run([psi2], [hamiltonian1], [theta2]).result()
+        np.testing.assert_allclose(result2.values, [2.97797666], rtol=0.5, atol=0.2)
+
+        # calculate [ <psi1(theta1)|H2|psi1(theta1)>, <psi1(theta1)|H3|psi1(theta1)> ]
+        result3 = estimator.run([psi1, psi1], [hamiltonian2, hamiltonian3], [theta1] * 2).result()
+        np.testing.assert_allclose(result3.values, [-0.551653, 0.07535239], rtol=0.5, atol=0.2)
+
+        # calculate [ <psi1(theta1)|H1|psi1(theta1)>,
+        #             <psi2(theta2)|H2|psi2(theta2)>,
+        #             <psi1(theta3)|H3|psi1(theta3)> ]
+        result4 = estimator.run(
+            [psi1, psi2, psi1], [hamiltonian1, hamiltonian2, hamiltonian3], [theta1, theta2, theta3]
+        ).result()
+        np.testing.assert_allclose(
+            result4.values, [1.55555728, 0.17849238, -1.08766318], rtol=0.5, atol=0.2
+        )
+
+    @combine(backend=BACKENDS)
+    def test_estimator_run_no_params(self, backend):
+        """test for estimator without parameters"""
+        circuit = self.ansatz.bind_parameters([0, 1, 1, 2, 3, 5])
+        est = BackendEstimator(backend)
+        result = est.run([circuit], [self.observable]).result()
+        self.assertIsInstance(result, EstimatorResult)
+        np.testing.assert_allclose(result.values, [-1.284366511861733], rtol=0.05)
+
+    @combine(backend=BACKENDS)
+    def test_run_1qubit(self, backend):
+        """Test for 1-qubit cases"""
+        qc = QuantumCircuit(1)
+        qc2 = QuantumCircuit(1)
+        qc2.x(0)
+
+        op = SparsePauliOp.from_list([("I", 1)])
+        op2 = SparsePauliOp.from_list([("Z", 1)])
+
+        est = BackendEstimator(backend)
+        result = est.run([qc], [op], [[]]).result()
+        self.assertIsInstance(result, EstimatorResult)
+        np.testing.assert_allclose(result.values, [1], rtol=0.1)
+
+        result = est.run([qc], [op2], [[]]).result()
+        self.assertIsInstance(result, EstimatorResult)
+        np.testing.assert_allclose(result.values, [1], rtol=0.1)
+
+        result = est.run([qc2], [op], [[]]).result()
+        self.assertIsInstance(result, EstimatorResult)
+        np.testing.assert_allclose(result.values, [1], rtol=0.1)
+
+        result = est.run([qc2], [op2], [[]]).result()
+        self.assertIsInstance(result, EstimatorResult)
+        np.testing.assert_allclose(result.values, [-1], rtol=0.1)
+
+    @combine(backend=BACKENDS)
+    def test_run_2qubits(self, backend):
+        """Test for 2-qubit cases (to check endian)"""
+        qc = QuantumCircuit(2)
+        qc2 = QuantumCircuit(2)
+        qc2.x(0)
+
+        op = SparsePauliOp.from_list([("II", 1)])
+        op2 = SparsePauliOp.from_list([("ZI", 1)])
+        op3 = SparsePauliOp.from_list([("IZ", 1)])
+
+        est = BackendEstimator(backend)
+        result = est.run([qc], [op], [[]]).result()
+        self.assertIsInstance(result, EstimatorResult)
+        np.testing.assert_allclose(result.values, [1], rtol=0.1)
+
+        result = est.run([qc2], [op], [[]]).result()
+        self.assertIsInstance(result, EstimatorResult)
+        np.testing.assert_allclose(result.values, [1], rtol=0.1)
+
+        result = est.run([qc], [op2], [[]]).result()
+        self.assertIsInstance(result, EstimatorResult)
+        np.testing.assert_allclose(result.values, [1], rtol=0.1)
+
+        result = est.run([qc2], [op2], [[]]).result()
+        self.assertIsInstance(result, EstimatorResult)
+        np.testing.assert_allclose(result.values, [1], rtol=0.1)
+
+        result = est.run([qc], [op3], [[]]).result()
+        self.assertIsInstance(result, EstimatorResult)
+        np.testing.assert_allclose(result.values, [1], rtol=0.1)
+
+        result = est.run([qc2], [op3], [[]]).result()
+        self.assertIsInstance(result, EstimatorResult)
+        np.testing.assert_allclose(result.values, [-1], rtol=0.1)
+
+    @combine(backend=BACKENDS)
+    def test_run_errors(self, backend):
+        """Test for errors"""
+        qc = QuantumCircuit(1)
+        qc2 = QuantumCircuit(2)
+
+        op = SparsePauliOp.from_list([("I", 1)])
+        op2 = SparsePauliOp.from_list([("II", 1)])
+
+        est = BackendEstimator(backend)
+        with self.assertRaises(QiskitError):
+            est.run([qc], [op2], [[]]).result()
+        with self.assertRaises(QiskitError):
+            est.run([qc2], [op], [[]]).result()
+        with self.assertRaises(QiskitError):
+            est.run([qc], [op], [[1e4]]).result()
+        with self.assertRaises(QiskitError):
+            est.run([qc2], [op2], [[1, 2]]).result()
+        with self.assertRaises(QiskitError):
+            est.run([qc, qc2], [op2], [[1]]).result()
+        with self.assertRaises(QiskitError):
+            est.run([qc], [op, op2], [[1]]).result()
+
+    @combine(backend=BACKENDS)
+    def test_run_numpy_params(self, backend):
+        """Test for numpy array as parameter values"""
+        qc = RealAmplitudes(num_qubits=2, reps=2)
+        op = SparsePauliOp.from_list([("IZ", 1), ("XI", 2), ("ZY", -1)])
+        k = 5
+        params_array = np.random.rand(k, qc.num_parameters)
+        params_list = params_array.tolist()
+        params_list_array = list(params_array)
+        estimator = BackendEstimator(backend)
+        target = estimator.run([qc] * k, [op] * k, params_list).result()
+
+        with self.subTest("ndarrary"):
+            result = estimator.run([qc] * k, [op] * k, params_array).result()
+            self.assertEqual(len(result.metadata), k)
+            np.testing.assert_allclose(result.values, target.values, rtol=0.2, atol=0.2)
+
+        with self.subTest("list of ndarray"):
+            result = estimator.run([qc] * k, [op] * k, params_list_array).result()
+            self.assertEqual(len(result.metadata), k)
+            np.testing.assert_allclose(result.values, target.values, rtol=0.2, atol=0.2)
+
+    @combine(backend=BACKENDS)
+    def test_run_with_shots_option(self, backend):
+        """test with shots option."""
+        est = BackendEstimator(backend)
+        result = est.run(
+            [self.ansatz],
+            [self.observable],
+            parameter_values=[[0, 1, 1, 2, 3, 5]],
+            shots=1024,
+            seed=15,
+        ).result()
+        self.assertIsInstance(result, EstimatorResult)
+        np.testing.assert_allclose(result.values, [-1.307397243478641], rtol=0.05)
+
+    @combine(backend=BACKENDS)
+    def test_run_options(self, backend):
+        """Test for run_options"""
+        with self.subTest("init"):
+            estimator = BackendEstimator(backend, run_options={"shots": 3000})
+            self.assertEqual(estimator.run_options.get("shots"), 3000)
+        with self.subTest("set_run_options"):
+            estimator.set_run_options(shots=1024, seed=15)
+            self.assertEqual(estimator.run_options.get("shots"), 1024)
+            self.assertEqual(estimator.run_options.get("seed"), 15)
+        with self.subTest("run"):
+            result = estimator.run(
+                [self.ansatz],
+                [self.observable],
+                parameter_values=[[0, 1, 1, 2, 3, 5]],
+            ).result()
+            self.assertIsInstance(result, EstimatorResult)
+            np.testing.assert_allclose(result.values, [-1.307397243478641], rtol=0.1)
+
+
+if __name__ == "__main__":
+    unittest.main()
