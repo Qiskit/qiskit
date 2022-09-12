@@ -85,3 +85,16 @@ class NumPyMinimumEigensolver(MinimumEigensolver):
         logger.debug(f"MinimumEigensolver:\n{self._ret}")
 
         return self._ret
+
+class NumPyMinimumEigensolverResult(MinimumEigensolverResult):
+    """NumPy minimum eigensolver result."""
+
+    @property
+    def eigenstate(self) -> Optional[np.ndarray]:
+        """Return eigenstate."""
+        return self._eigenstate
+
+    @eigenstate.setter
+    def eigenstate(self, value: np.ndarray) -> None:
+        """Set eigenstate."""
+        self._eigenstate = value
