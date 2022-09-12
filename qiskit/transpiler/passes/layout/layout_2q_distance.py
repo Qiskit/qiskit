@@ -18,9 +18,11 @@ The lower the number, the better the selection.
 Therefore, 0 is a perfect layout selection.
 """
 
+import math
 from qiskit.transpiler.basepasses import AnalysisPass
 from qiskit.converters import circuit_to_dag
 from qiskit.circuit.controlflow import IfElseOp, WhileLoopOp, ForLoopOp
+from qiskit.circuit.controlflow import ControlFlowOp
 
 
 class Layout2qDistance(AnalysisPass):
@@ -67,47 +69,36 @@ class Layout2qDistance(AnalysisPass):
 
         virtual_physical_map = layout.get_virtual_bits()
         dist_matrix = self.coupling_map.distance_matrix
-        breakpoint()
         for gate in dag.two_qubit_ops():
             physical_q0 = virtual_physical_map[gate.qargs[0]]
             physical_q1 = virtual_physical_map[gate.qargs[1]]
 
             sum_distance += dist_matrix[physical_q0, physical_q1] - 1
-        for node in dag.control_flow_ops():
+        for node in dag.op_nodes(op=ControlFlowOp):
             sum_distance += self._control_flow_2q_distance(node.op)
 
         self.property_set[self.property_name] = sum_distance
-
 
     def _control_flow_2q_distance(self, cfop):
         distance = 0
         if self.weight_loops:
             if isinstance(cfop, IfElseOp):
                 for block in cfop.blocks:
-                    _pass = Layout2qDistance(self.coupling_map,
-                                             property_name=self.property_name)
                     dag_block = circuit_to_dag(block)
-                    _pass.run(dag_block)
-                    breakpoint()
-                    distance += _pass.property_set[self.property_name]
+                    self.run(dag_block)
+                    distance += self.property_set[self.property_name]
             elif isinstance(cfop, ForLoopOp):
                 index_set, _, block = cfop.params
-                _pass = Layout2qDistance(self.coupling_map,
-                                         property_name=self.property_name)
                 dag_block = circuit_to_dag(block)
-                _pass.run(dag_block)
-                distance += len(index_set) * _pass.property_set[self.property_name]
+                self.run(dag_block)
+                distance += len(index_set) * self.property_set[self.property_name]
             elif isinstance(cfop, WhileLoopOp):
                 body = cfop.blocks[0]
                 if body.num_nonlocal_gates():
                     # Indeterminate number of loops so indeterminate 2q distance
-                    import math
                     distance = math.nan
         else:
             for block in cfop.blocks:
-                _pass = Layout2qDistance(self.coupling_map,
-                                         property_name=self.property_name)
                 dag_block = circuit_to_dag(block)
-                _pass.run(dag_block)
+                self.run(dag_block)
         return distance
-        

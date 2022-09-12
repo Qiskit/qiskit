@@ -34,7 +34,6 @@ from qiskit.circuit.classicalregister import ClassicalRegister, Clbit
 from qiskit.circuit.gate import Gate
 from qiskit.circuit.instruction import Instruction
 from qiskit.circuit.parameterexpression import ParameterExpression
-from qiskit.circuit.controlflow import ControlFlowOp
 from qiskit.dagcircuit.exceptions import DAGCircuitError
 from qiskit.dagcircuit.dagnode import DAGNode, DAGOpNode, DAGInNode, DAGOutNode
 from qiskit.utils import optionals as _optionals
@@ -1438,10 +1437,6 @@ class DAGCircuit:
             if len(node.qargs) >= 3:
                 ops.append(node)
         return ops
-
-    def control_flow_ops(self):
-        """return control flow operations"""
-        return self.op_nodes(op=ControlFlowOp)
 
     def longest_path(self):
         """Returns the longest path in the dag as a list of DAGOpNodes, DAGInNodes, and DAGOutNodes."""
