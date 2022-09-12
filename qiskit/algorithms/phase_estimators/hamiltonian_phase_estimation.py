@@ -294,7 +294,5 @@ def _remove_identity_pauli_sum_op(pauli_sum: PauliSumOp | SparsePauliOp):
                 pauli_sum = pauli_sum - operator.primitive.coeffs[0] * _get_identity(
                     pauli_sum.num_qubits
                 )
-    elif isinstance(pauli_sum, SparsePauliOp):
-        pass
 
     return idcoeff, pauli_sum.reduce()

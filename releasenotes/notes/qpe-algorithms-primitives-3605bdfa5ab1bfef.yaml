@@ -11,8 +11,10 @@ features:
 
       from qiskit.primitives import Sampler
       from qiskit.algorithms.phase_estimators import HamiltonianPhaseEstimation
-      from qiskit.opflow.evolutions import MatrixEvolution
-      from qiskit.opflow import X, Y, I
+      from qiskit.synthesis import MatrixExponential
+      from qiskit.quantum_info import SparsePauliOp
+      from qiskit.opflow import PauliSumOp
+
 
       sampler = Sampler()
       num_evaluation_qubits = 6
@@ -20,11 +22,11 @@ features:
           num_evaluation_qubits=num_evaluation_qubits, sampler=sampler
       )
 
-      hamiltonian = (0.5 * X) + (0.6 * Y) + (0.7 * I)
+      hamiltonian = PauliSumOp(SparsePauliOp.from_list([("X", 0.5), ("Y", 0.6), ("I", 0.7)]))
       result = phase_est.estimate(
           hamiltonian=hamiltonian,
           state_preparation=None,
-          evolution=MatrixEvolution(),
+          evolution=MatrixExponential(),
           bound=1.05,
       )
 deprecations:
