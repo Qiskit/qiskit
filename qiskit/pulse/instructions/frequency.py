@@ -16,8 +16,9 @@ the frequency of a channel.
 from typing import Optional, Union, Tuple
 
 from qiskit.circuit.parameterexpression import ParameterExpression
-from qiskit.pulse.channels import PulseChannel, PulseError
+from qiskit.pulse.channels import PulseChannel
 from qiskit.pulse.instructions.instruction import Instruction
+from qiskit.pulse.exceptions import PulseError
 
 
 class SetFrequency(Instruction):
@@ -46,16 +47,17 @@ class SetFrequency(Instruction):
             frequency: New frequency of the channel in Hz.
             channel: The channel this instruction operates on.
             name: Name of this set channel frequency instruction.
-        Raises:
-            PulseError: If channel is not a PulseChannel.
         """
-        if not isinstance(channel, PulseChannel):
-            raise PulseError(
-                "The `channel` argument to `SetFrequency` must be of type `channels.PulseChannel`."
-            )
-        if not isinstance(frequency, ParameterExpression):
-            frequency = float(frequency)
         super().__init__(operands=(frequency, channel), name=name)
+
+    def _validate(self):
+        """Called after initialization to validate instruction data.
+
+        Raises:
+            PulseError: If the input ``channel`` is not type :class:`PulseChannel`.
+        """
+        if not isinstance(self.channel, PulseChannel):
+            raise PulseError(f"Expected a pulse channel, got {self.channel} instead.")
 
     @property
     def frequency(self) -> Union[float, ParameterExpression]:
@@ -95,16 +97,17 @@ class ShiftFrequency(Instruction):
             frequency: Frequency shift of the channel in Hz.
             channel: The channel this instruction operates on.
             name: Name of this set channel frequency instruction.
-        Raises:
-            PulseError: If channel is not a PulseChannel.
         """
-        if not isinstance(frequency, ParameterExpression):
-            frequency = float(frequency)
-        if not isinstance(channel, PulseChannel):
-            raise PulseError(
-                "The `channel` argument to `ShiftFrequency` must be of type `channels.PulseChannel`."
-            )
         super().__init__(operands=(frequency, channel), name=name)
+
+    def _validate(self):
+        """Called after initialization to validate instruction data.
+
+        Raises:
+            PulseError: If the input ``channel`` is not type :class:`PulseChannel`.
+        """
+        if not isinstance(self.channel, PulseChannel):
+            raise PulseError(f"Expected a pulse channel, got {self.channel} instead.")
 
     @property
     def frequency(self) -> Union[float, ParameterExpression]:

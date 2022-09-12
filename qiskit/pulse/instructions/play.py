@@ -39,19 +39,23 @@ class Play(Instruction):
                    :py:class:`~qiskit.pulse.library.Waveform`.
             channel: The channel to which the pulse is applied.
             name: Name of the instruction for display purposes. Defaults to ``pulse.name``.
-
-        Raises:
-            PulseError: If pulse is not a Pulse type, or channel is not a PulseChannel.
         """
-        if not isinstance(pulse, Pulse):
-            raise PulseError("The `pulse` argument to `Play` must be of type `library.Pulse`.")
-        if not isinstance(channel, PulseChannel):
-            raise PulseError(
-                "The `channel` argument to `Play` must be of type `channels.PulseChannel`."
-            )
         if name is None:
             name = pulse.name
         super().__init__(operands=(pulse, channel), name=name)
+
+    def _validate(self):
+        """Called after initialization to validate instruction data.
+
+        Raises:
+            PulseError: If pulse is not a Pulse type.
+            PulseError: If the input ``channel`` is not type :class:`PulseChannel`.
+        """
+        if not isinstance(self.pulse, Pulse):
+            raise PulseError("The `pulse` argument to `Play` must be of type `library.Pulse`.")
+
+        if not isinstance(self.channel, PulseChannel):
+            raise PulseError(f"Expected a pulse channel, got {self.channel} instead.")
 
     @property
     def pulse(self) -> Pulse:

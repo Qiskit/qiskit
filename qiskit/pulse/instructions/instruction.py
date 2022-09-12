@@ -26,7 +26,7 @@ from typing import Callable, Iterable, List, Optional, Set, Tuple
 
 from qiskit.circuit import Parameter
 from qiskit.pulse.channels import Channel
-from qiskit.pulse.exceptions import PulseError, UnassignedReferenceError
+from qiskit.pulse.exceptions import PulseError
 
 
 # pylint: disable=missing-return-doc
@@ -47,22 +47,21 @@ class Instruction(ABC):
         Args:
             operands: The argument list.
             name: Optional display name for this instruction.
-
-        Raises:
-            PulseError: If duration is negative.
-            PulseError: If the input ``channels`` are not all of
-                type :class:`Channel`.
         """
         self._operands = operands
         self._name = name
         self._hash = None
+        self._validate()
 
-        try:
-            for channel in self.channels:
-                if not isinstance(channel, Channel):
-                    raise PulseError(f"Expected a channel, got {channel} instead.")
-        except UnassignedReferenceError:
-            pass
+    def _validate(self):
+        """Called after initialization to validate instruction data.
+
+        Raises:
+            PulseError: If the input ``channels`` are not all of type :class:`Channel`.
+        """
+        for channel in self.channels:
+            if not isinstance(channel, Channel):
+                raise PulseError(f"Expected a channel, got {channel} instead.")
 
     @property
     def name(self) -> str:
