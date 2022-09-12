@@ -14,11 +14,11 @@
 
 import unittest
 
-from qiskit.circuit.library import ZGate, XGate, HGate, IGate
-from qiskit.quantum_info import Pauli, SparsePauliOp
 from test.python.algorithms import QiskitAlgorithmsTestCase
 from ddt import ddt, data, unpack
 import numpy as np
+from qiskit.circuit.library import ZGate, XGate, HGate, IGate
+from qiskit.quantum_info import Pauli, SparsePauliOp
 from qiskit.synthesis import MatrixExponential, SuzukiTrotter
 from qiskit.primitives import Sampler
 from qiskit.algorithms.phase_estimators import (
@@ -208,7 +208,7 @@ class TestHamiltonianPhaseEstimation(QiskitAlgorithmsTestCase):
     def test_pauli_sum_1_sampler(self, evolution):
         """Two eigenvalues from Pauli sum with X, Z"""
         hamiltonian = PauliSumOp(SparsePauliOp.from_list([("X", 0.5), ("Z", 1)]))
-        state_preparation = StateFn(H.to_circuit())
+        state_preparation = QuantumCircuit(1).compose(HGate())
 
         result = self.hamiltonian_pe_sampler(hamiltonian, state_preparation, evolution=evolution)
         phase_dict = result.filter_phases(0.162, as_float=True)
@@ -242,7 +242,7 @@ class TestHamiltonianPhaseEstimation(QiskitAlgorithmsTestCase):
         with self.subTest("First eigenvalue"):
             self.assertAlmostEqual(eigv, 1.0, delta=0.001)
 
-        state_preparation = StateFn(X.to_circuit())
+        state_preparation = QuantumCircuit(1).compose(XGate())
 
         result = self.hamiltonian_pe_sampler(hamiltonian, state_preparation, bound=1.05)
         eigv = result.most_likely_eigenvalue
@@ -263,7 +263,7 @@ class TestHamiltonianPhaseEstimation(QiskitAlgorithmsTestCase):
                 ]
             )
         )
-        state_preparation = StateFn((I ^ H).to_circuit())
+        state_preparation = QuantumCircuit(2).compose(IGate()).compose(HGate())
         evo = SuzukiTrotter(reps=4)
         result = self.hamiltonian_pe_sampler(hamiltonian, state_preparation, evolution=evo)
         with self.subTest("Most likely eigenvalues"):
@@ -425,7 +425,7 @@ class TestPhaseEstimation(QiskitAlgorithmsTestCase):
             phases = result.filter_phases(1e-15, as_float=False)
             self.assertEqual(list(phases.keys()), ["000000", "100000"])
 
-    #     # sampler tests
+    # sampler tests
     def one_phase_sampler(
         self,
         unitary_circuit,

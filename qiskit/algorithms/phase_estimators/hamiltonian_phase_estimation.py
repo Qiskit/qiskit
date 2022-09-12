@@ -246,7 +246,7 @@ class HamiltonianPhaseEstimation:
             else:
                 raise TypeError(f"Hermitian operator of type {type(hamiltonian)} not supported.")
 
-        if state_preparation is not None:
+        if state_preparation is not None and isinstance(state_preparation, StateFn):
             state_preparation = state_preparation.to_circuit_op().to_circuit()
         # run phase estimation
         phase_estimation_result = self._phase_estimation.estimate(
