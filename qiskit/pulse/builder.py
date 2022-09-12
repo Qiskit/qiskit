@@ -613,7 +613,7 @@ class _PulseBuilder:
         """
         self._backend_ctx_token = BUILDER_CONTEXTVAR.set(self)
         output = self._context_stack[0]
-        output.name = self._name or output.name
+        output._name = self._name or output.name
 
         return output
 

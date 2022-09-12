@@ -1098,12 +1098,6 @@ class ScheduleBlock:
         """Return name of this schedule"""
         return self._name
 
-    @name.setter
-    def name(self, new_name: str):
-        """Update the name of this schedule."""
-        self._name = new_name
-        self._reference_manager._scope = new_name
-
     @property
     def metadata(self) -> Dict[str, Any]:
         """The user provided metadata associated with the schedule.
