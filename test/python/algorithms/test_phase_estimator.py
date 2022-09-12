@@ -18,7 +18,7 @@ from test.python.algorithms import QiskitAlgorithmsTestCase
 from ddt import ddt, data, unpack
 import numpy as np
 from qiskit.circuit.library import ZGate, XGate, HGate, IGate
-from qiskit.quantum_info import Pauli, SparsePauliOp
+from qiskit.quantum_info import Pauli, SparsePauliOp, Statevector
 from qiskit.synthesis import MatrixExponential, SuzukiTrotter
 from qiskit.primitives import Sampler
 from qiskit.algorithms.phase_estimators import (
@@ -249,7 +249,11 @@ class TestHamiltonianPhaseEstimation(QiskitAlgorithmsTestCase):
         with self.subTest("Second eigenvalue"):
             self.assertAlmostEqual(eigv, -0.98, delta=0.01)
 
-    def test_H2_hamiltonian_sampler(self):
+    @data(
+        Statevector(QuantumCircuit(2).compose(IGate()).compose(HGate())),
+        QuantumCircuit(2).compose(IGate()).compose(HGate()),
+    )
+    def test_H2_hamiltonian_sampler(self, state_preparation):
         """Test H2 hamiltonian"""
 
         hamiltonian = PauliSumOp(
@@ -263,7 +267,6 @@ class TestHamiltonianPhaseEstimation(QiskitAlgorithmsTestCase):
                 ]
             )
         )
-        state_preparation = QuantumCircuit(2).compose(IGate()).compose(HGate())
         evo = SuzukiTrotter(reps=4)
         result = self.hamiltonian_pe_sampler(hamiltonian, state_preparation, evolution=evo)
         with self.subTest("Most likely eigenvalues"):
