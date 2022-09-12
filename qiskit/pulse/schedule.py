@@ -1915,13 +1915,13 @@ def _get_references(block_elms: List["BlockComponent"]) -> Set[Reference]:
     Returns:
         A set of unique reference instructions.
     """
-    references = []
+    references = set()
     for elm in block_elms:
         if isinstance(elm, ScheduleBlock):
-            references += _get_references(elm._blocks)
+            references |= _get_references(elm._blocks)
         elif isinstance(elm, Reference):
-            references.append(elm)
-    return set(references)
+            references.add(elm)
+    return references
 
 
 def _collect_scoped_parameters(
