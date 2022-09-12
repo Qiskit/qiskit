@@ -113,6 +113,9 @@ class IterativeAmplitudeEstimation(AmplitudeEstimator):
         self._min_ratio = min_ratio
         self._confint_method = confint_method
         self._sampler = sampler
+        # Keep circuits cached while estimate is processed to preserve their python ids.
+        # This can be removed once Sampler fixes the way it handles circuits ids.
+        self._circuits_cache: list[QuantumCircuit] = []
 
     @property
     def sampler(self) -> None | BaseSampler:
@@ -355,7 +358,7 @@ class IterativeAmplitudeEstimation(AmplitudeEstimator):
         )
         upper_half_circle = True  # initially theta is in the upper half-circle
 
-        if self._sampler is not None:
+        if self._sampler is not None and self._sampler.run_options.get("shots") is None:
             circuit = self.construct_circuit(estimation_problem, k=0, measurement=True)
             try:
                 job = self._sampler.run([circuit])
@@ -378,7 +381,7 @@ class IterativeAmplitudeEstimation(AmplitudeEstimator):
             ]
             theta_intervals.append(theta_i_interval)
             num_oracle_queries = 0  # no Q-oracle call, only a single one to A
-        elif self._quantum_instance.is_statevector:
+        elif self._quantum_instance is not None and self._quantum_instance.is_statevector:
             # for statevector we can directly return the probability to measure 1
             # note, that no iterations here are necessary
             # simulate circuit
@@ -404,8 +407,13 @@ class IterativeAmplitudeEstimation(AmplitudeEstimator):
 
         else:
             num_iterations = 0  # keep track of the number of iterations
-            shots = self._quantum_instance._run_config.shots  # number of shots per iteration
-
+            # number of shots per iteration
+            shots = (
+                self._quantum_instance._run_config.shots
+                if self._quantum_instance is not None
+                else self._sampler.run_options.get("shots", 1)
+            )
+            self._circuits_cache = []
             # do while loop, keep in mind that we scaled theta mod 2pi such that it lies in [0,1]
             while theta_intervals[-1][1] - theta_intervals[-1][0] > self._epsilon / np.pi:
                 num_iterations += 1
@@ -424,10 +432,22 @@ class IterativeAmplitudeEstimation(AmplitudeEstimator):
 
                 # run measurements for Q^k A|0> circuit
                 circuit = self.construct_circuit(estimation_problem, k, measurement=True)
-                ret = self._quantum_instance.execute(circuit)
-
-                # get the counts and store them
-                counts = ret.get_counts(circuit)
+                self._circuits_cache.append(circuit)
+                counts = {}
+                if self._quantum_instance is not None:
+                    ret = self._quantum_instance.execute(circuit)
+                    # get the counts and store them
+                    counts = ret.get_counts(circuit)
+                else:
+                    try:
+                        job = self._sampler.run([circuit])
+                        ret = job.result()
+                        counts = {
+                            np.binary_repr(k, circuit.num_qubits): round(v * shots)
+                            for k, v in ret.quasi_dists[0].items()
+                        }
+                    except Exception as exc:
+                        raise AlgorithmError("The job was not completed successfully. ") from exc
 
                 # calculate the probability of measuring '1', 'prob' is a_i in the paper
                 num_qubits = circuit.num_qubits - circuit.num_ancillas
@@ -482,6 +502,8 @@ class IterativeAmplitudeEstimation(AmplitudeEstimator):
                 a_u = cast(float, a_u)
                 a_l = cast(float, a_l)
                 a_intervals.append([a_l, a_u])
+
+        self._circuits_cache = []
 
         # get the latest confidence interval for the estimate of a
         confidence_interval = tuple(a_intervals[-1])

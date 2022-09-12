@@ -368,7 +368,7 @@ class AmplitudeEstimation(AmplitudeEstimator):
         result.num_evaluation_qubits = self._m
         result.post_processing = estimation_problem.post_processing
 
-        if self._sampler is not None:
+        if self._sampler is not None and self._sampler.run_options.get("shots") is None:
             circuit = self.construct_circuit(estimation_problem, measurement=True)
             try:
                 job = self._sampler.run([circuit])
@@ -379,9 +379,9 @@ class AmplitudeEstimation(AmplitudeEstimator):
             result.circuit_results = {
                 np.binary_repr(k, circuit.num_qubits): v for k, v in ret.quasi_dists[0].items()
             }
-            result.shots = self._sampler.run_options.get("shots", 1)
+            result.shots = 1
             samples, measurements = self.evaluate_measurements(result.circuit_results)
-        elif self._quantum_instance.is_statevector:
+        elif self._quantum_instance is not None and self._quantum_instance.is_statevector:
             circuit = self.construct_circuit(estimation_problem, measurement=False)
             # run circuit on statevector simulator
             statevector = self._quantum_instance.execute(circuit).get_statevector()
@@ -393,7 +393,21 @@ class AmplitudeEstimation(AmplitudeEstimator):
         else:
             # run circuit on QASM simulator
             circuit = self.construct_circuit(estimation_problem, measurement=True)
-            counts = self._quantum_instance.execute(circuit).get_counts()
+            counts = {}
+            if self._quantum_instance is not None:
+                counts = self._quantum_instance.execute(circuit).get_counts()
+            else:
+                shots = self._sampler.run_options.get("shots", 1)
+                try:
+                    job = self._sampler.run([circuit])
+                    ret = job.result()
+                    counts = {
+                        np.binary_repr(k, circuit.num_qubits): round(v * shots)
+                        for k, v in ret.quasi_dists[0].items()
+                    }
+                except Exception as exc:
+                    raise AlgorithmError("The job was not completed successfully. ") from exc
+
             result.circuit_results = counts
 
             # store shots
