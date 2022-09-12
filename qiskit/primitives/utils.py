@@ -114,6 +114,17 @@ def final_measurement_mapping(circuit: QuantumCircuit) -> dict[int, int]:
 
 
 def _circuit_key(circuit: QuantumCircuit) -> tuple:
+    """Private key function for QuantumCircuit.
+
+    This is the workaround until :meth:`QuantumCircuit.__hash__` will be introduced.
+    If key collision is found, please add elements to avoid it.
+
+    Args:
+        circuit: Input quantum circuit.
+
+    Returns:
+        Key for directory.
+    """
     return (
         id(circuit),
         circuit.name,
