@@ -56,7 +56,7 @@ class TestReference(QiskitTestCase):
         with pulse.build() as sched_z1:
             builder.append_schedule(sched_y1)
 
-        sched_param = next(iter(sched_z1.scoped_parameters))
+        sched_param = next(iter(sched_z1.scoped_parameters()))
         self.assertEqual(sched_param.name, "root::name")
 
         # object equality
@@ -108,7 +108,7 @@ class TestReference(QiskitTestCase):
         sched_y1.assign_references({("x1", "d0"): sched_x1})
         sched_z1.assign_references({("y1", "d0"): sched_y1})
 
-        sched_param = next(iter(sched_z1.scoped_parameters))
+        sched_param = next(iter(sched_z1.scoped_parameters()))
         self.assertEqual(sched_param.name, "root::y1,d0::x1,d0::name")
 
         # object equality
@@ -160,7 +160,7 @@ class TestReference(QiskitTestCase):
         with pulse.build() as sched_z1:
             builder.call(sched_y1, name="y1")
 
-        sched_param = next(iter(sched_z1.scoped_parameters))
+        sched_param = next(iter(sched_z1.scoped_parameters()))
         self.assertEqual(sched_param.name, "root::y1::x1::name")
 
         # object equality
@@ -376,7 +376,7 @@ class TestReference(QiskitTestCase):
         """Testcase for scope-aware parameter getter.
 
         When a single parameter object is used in multiple scopes,
-        the scoped_parameters property must return parameter objects associated to each scope,
+        the scoped_parameters method must return parameter objects associated to each scope,
         while parameters property returns a single parameter object.
         """
         param = circuit.Parameter("name")
@@ -392,7 +392,7 @@ class TestReference(QiskitTestCase):
             pulse.call(sched_y1, name="y1")
 
         self.assertEqual(len(sched_z1.parameters), 1)
-        self.assertEqual(len(sched_z1.scoped_parameters), 2)
+        self.assertEqual(len(sched_z1.scoped_parameters()), 2)
 
         self.assertEqual(sched_z1.search_parameters("root::x1::name")[0], param)
         self.assertEqual(sched_z1.search_parameters("root::y1::name")[0], param)
@@ -558,7 +558,7 @@ class TestSubroutineWithCXGate(QiskitTestCase):
         self.assertSetEqual(params, {"cr"})
 
         # Parameter names are scoepd
-        scoped_params = set(p.name for p in sched.scoped_parameters)
+        scoped_params = set(p.name for p in sched.scoped_parameters())
         self.assertSetEqual(scoped_params, {"root::cr"})
 
         # Assign CR and XP schedule to the empty reference
@@ -571,7 +571,7 @@ class TestSubroutineWithCXGate(QiskitTestCase):
         self.assertEqual(assigned_refs[("xp", "q0")], self.xp_sched)
 
         # Parameter added from subroutines
-        scoped_params = set(p.name for p in sched.scoped_parameters)
+        scoped_params = set(p.name for p in sched.scoped_parameters())
         ref_params = {
             # This is the cr parameter that belongs to phase_offset instruction in the root scope
             "root::cr",

@@ -898,14 +898,14 @@ class ScheduleBlock:
         with pulse.build() as sched1:
             pulse.play(pulse.Constant(100, amp1), pulse.DriveChannel(0))
 
-        print(sched1.scoped_parameters)
+        print(sched1.scoped_parameters())
 
-    The :attr:`~ScheduleBlock.scoped_parameters` property returns all :class:`~.Parameter`
+    The :meth:`~ScheduleBlock.scoped_parameters` method returns all :class:`~.Parameter`
     objects defined in the schedule block. The parameter name is updated to reflect
     its scope information, i.e. where it is defined.
     The outer scope is called "root". Since the "amp" parameter is directly used
     in the current builder context, it is prefixed with "root".
-    Note that the :class:`Parameter` object returned by :attr:`~ScheduleBlock.scoped_parameters`
+    Note that the :class:`Parameter` object returned by :meth:`~ScheduleBlock.scoped_parameters`
     preserves the hidden `UUID`_ key, and thus the scoped name doesn't break references
     to the original :class:`Parameter`.
 
@@ -923,7 +923,7 @@ class ScheduleBlock:
                 pulse.reference("grand_child")
                 pulse.play(pulse.Constant(200, amp2), pulse.DriveChannel(0))
 
-        print(sched2.scoped_parameters)
+        print(sched2.scoped_parameters())
 
     This only returns "root::amp" because the "grand_child" reference is unknown.
     Now you assign the actual pulse program to this reference.
@@ -931,7 +931,7 @@ class ScheduleBlock:
     .. jupyter-execute::
 
         sched2.assign_references({("grand_child", ): sched1})
-        print(sched2.scoped_parameters)
+        print(sched2.scoped_parameters())
 
     Now you get two parameters "root::amp" and "root::grand_child::amp".
     The second parameter name indicates it is defined within the referred program "grand_child".
@@ -954,7 +954,7 @@ class ScheduleBlock:
             pulse.play(pulse.Constant(300, amp3), pulse.DriveChannel(0))
             pulse.call(sched2, name="child")
 
-        print(main.scoped_parameters)
+        print(main.scoped_parameters())
 
     This implicitly creates a reference named "child" within
     the root program and assigns ``sched2`` to it.
@@ -991,7 +991,7 @@ class ScheduleBlock:
 
         main.references[("child", )].references[("grand_child", )]
 
-    Note that :attr:`ScheduleBlock.parameters` and :attr:`ScheduleBlock.scoped_parameters`
+    Note that :attr:`ScheduleBlock.parameters` and :meth:`ScheduleBlock.scoped_parameters()`
     still collect all parameters also from the subroutine once it's assigned.
 
     .. _UUID: https://docs.python.org/3/library/uuid.html#module-uuid
@@ -1188,52 +1188,20 @@ class ScheduleBlock:
             blocks.append(elm)
         return tuple(blocks)
 
-    def _collect_parameters(
-        self,
-        scope: str,
-        add_scope: bool = False,
-    ) -> Dict[Tuple[str, int], Parameter]:
-        """A helper method to return parameters.
-
-        Parameters defined in the nested subroutines are recursively investigated and
-        returned with parameters within the current scope.
-        To distinguish where the parameters are defined, set ``add_scope=True``.
-
-        Args:
-            scope: Name of current scope.
-            add_scope: Set ``True`` to prepend scope to parameter name.
-
-        Returns:
-            All parameters defined under the current scope.
-        """
-        parameters_out = {}
-        for param in self._parameter_manager.parameters:
-            if add_scope:
-                param = _scope_parameter(param, scope, Reference.scope_delimiter)
-            # This avoids unexpected merging of parameter objects defined in different scopes.
-            # Note that the search_parameters method is scope-aware.
-            # However, when the same parameter object is used in multiple scopes,
-            # if it would return one object from a random scope, the search could fail.
-            # This logic evaluates the parameter equality not only with uuid, but also with name.
-            scope_aware_key = param.name, hash(param)
-            parameters_out[scope_aware_key] = param
-
-        for sub_namespace, subroutine in self.references.items():
-            if subroutine is None:
-                continue
-            composite_key = Reference.key_delimiter.join(sub_namespace)
-            full_path = f"{scope}{Reference.scope_delimiter}{composite_key}"
-            sub_parameters = subroutine._collect_parameters(scope=full_path, add_scope=add_scope)
-            parameters_out.update(sub_parameters)
-
-        return parameters_out
-
     @property
     def parameters(self) -> Tuple[Parameter]:
         """Return unassigned parameters with raw names."""
-        return tuple(self._collect_parameters(scope="root", add_scope=False).values())
+        # Need new object not to mutate parameter_manager.parameters
+        out_params = set()
 
-    @property
+        out_params |= self._parameter_manager.parameters
+        for subroutine in self.references.values():
+            if subroutine is None:
+                continue
+            out_params |= set(subroutine.parameters)
+
+        return tuple(out_params)
+
     def scoped_parameters(self) -> Tuple[Parameter]:
         """Return unassigned parameters with scoped names.
 
@@ -1246,7 +1214,12 @@ class ScheduleBlock:
             For example, "root::xgate,q0::amp" for the parameter "amp" defined in the
             reference specified by the key strings ("xgate", "q0").
         """
-        return tuple(self._collect_parameters(scope="root", add_scope=True).values())
+        return tuple(
+            sorted(
+                _collect_scoped_parameters(self, current_scope="root").values(),
+                key=lambda p: p.name,
+            )
+        )
 
     @property
     def references(self) -> ReferenceManager:
@@ -1667,8 +1640,12 @@ class ScheduleBlock:
         Returns:
             Parameter objects that have corresponding name.
         """
-        matched = [p for p in self.scoped_parameters if re.search(parameter_regex, p.name)]
-        return sorted(matched, key=lambda p: p.name)
+        pattern = re.compile(parameter_regex)
+
+        return sorted(
+            _collect_scoped_parameters(self, current_scope="root", filter_regex=pattern).values(),
+            key=lambda p: p.name,
+        )
 
     def __len__(self) -> int:
         """Return number of instructions in the schedule."""
@@ -1947,13 +1924,55 @@ def _get_references(block_elms: List["BlockComponent"]) -> Set[Reference]:
     return set(references)
 
 
-def _scope_parameter(param: Parameter, scope: str, delimiter: str = ":") -> Parameter:
-    """Override parameter object with program scope information."""
-    new_name = f"{scope}{delimiter}{param.name}"
-    scoped_param = Parameter.__new__(Parameter, new_name, uuid=getattr(param, "_uuid"))
-    scoped_param.__init__(new_name)
+def _collect_scoped_parameters(
+    schedule: ScheduleBlock,
+    current_scope: str,
+    filter_regex: Optional[re.Pattern] = None,
+) -> Dict[Tuple[str, int], Parameter]:
+    """A helper function to collect parameters from all references in scope-aware fashion.
 
-    return scoped_param
+    Parameter object is renamed with attached scope information but its UUID is remained.
+    This means object is treated identically on the assignment logic.
+    This function returns a dictionary of all parameters existing in the target program
+    including its reference, which is keyed on the unique identifier consisting of
+    scoped parameter name and parameter object UUID.
+
+    This logic prevents parameter clash in the different scope.
+    For example, when two parameter objects with the same UUID exist in different references,
+    both of them appear in the output dictionary, even though they are technically the same object.
+    This feature is particularly convenient to search parameter object with associated scope.
+
+    Args:
+        schedule: Schedule to get parameters.
+        current_scope: Name of scope where schedule exist.
+        filter_regex: Optional. Compiled regex to sort parameter by name.
+
+    Returns:
+        A dictionary of scoped parameter objects.
+    """
+    parameters_out = {}
+    for param in schedule._parameter_manager.parameters:
+        new_name = f"{current_scope}{Reference.scope_delimiter}{param.name}"
+
+        if filter_regex and not re.search(filter_regex, new_name):
+            continue
+        scoped_param = Parameter.__new__(Parameter, new_name, uuid=getattr(param, "_uuid"))
+        scoped_param.__init__(new_name)
+
+        unique_key = new_name, hash(param)
+        parameters_out[unique_key] = scoped_param
+
+    for sub_namespace, subroutine in schedule.references.items():
+        if subroutine is None:
+            continue
+        composite_key = Reference.key_delimiter.join(sub_namespace)
+        full_path = f"{current_scope}{Reference.scope_delimiter}{composite_key}"
+        sub_parameters = _collect_scoped_parameters(
+            subroutine, current_scope=full_path, filter_regex=filter_regex
+        )
+        parameters_out.update(sub_parameters)
+
+    return parameters_out
 
 
 # These type aliases are defined at the bottom of the file, because as of 2022-01-18 they are
