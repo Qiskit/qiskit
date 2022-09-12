@@ -25,6 +25,7 @@ from qiskit.circuit import QuantumCircuit
 from qiskit.opflow import PauliSumOp
 from qiskit.primitives import BaseEstimator
 from qiskit.quantum_info.operators.base_operator import BaseOperator
+from qiskit.utils import algorithm_globals
 
 from ..exceptions import AlgorithmError
 from ..list_or_dict import ListOrDict
@@ -32,7 +33,7 @@ from ..optimizers import Optimizer, Minimizer
 from ..variational_algorithm import VariationalAlgorithm, VariationalResult
 from .minimum_eigensolver import MinimumEigensolver, MinimumEigensolverResult
 
-from qiskit.algorithms.observables_evaluator import eval_observables
+# from qiskit.algorithms.observables_evaluator import eval_observables
 
 logger = logging.getLogger(__name__)
 
@@ -147,14 +148,7 @@ class VQE(VariationalAlgorithm, MinimumEigensolver):
     ) -> VQEResult:
         self._check_operator_ansatz(operator)
 
-        initial_point = self.initial_point
-        if initial_point is None:
-            initial_point = np.random.random(self.ansatz.num_parameters)
-        elif len(initial_point) != self.ansatz.num_parameters:
-            raise ValueError(
-                f"The dimension of the initial point ({len(self.initial_point)}) does not match "
-                f"the number of parameters in the circuit ({self.ansatz.num_parameters})."
-            )
+        initial_point = _validate_initial_point(self.initial_point, self.ansatz)
 
         start_time = time()
 
@@ -218,7 +212,7 @@ class VQE(VariationalAlgorithm, MinimumEigensolver):
         """
         num_parameters = ansatz.num_parameters
 
-        def eval_energy(parameters):
+        def energy_evaluation(parameters):
             # handle broadcasting: ensure parameters is of shape [array, array, ...]
             parameters = np.reshape(parameters, (-1, num_parameters)).tolist()
             batchsize = len(parameters)
@@ -227,7 +221,7 @@ class VQE(VariationalAlgorithm, MinimumEigensolver):
             values = job.result().values
             return values[0] if len(values) == 1 else values
 
-        return eval_energy
+        return energy_evaluation
 
     def _get_gradient_evaluation(
         self,
@@ -284,6 +278,34 @@ class VQE(VariationalAlgorithm, MinimumEigensolver):
             aux_values = dict(zip(aux_operators.keys(), aux_values))
 
         return aux_values
+
+
+def _validate_initial_point(point, ansatz):
+    expected_size = ansatz.num_parameters
+
+    if point is None:
+        # get bounds if ansatz has them set, otherwise use [-2pi, 2pi] for each parameter
+        bounds = getattr(ansatz, "parameter_bounds", None)
+        if bounds is None:
+            bounds = [(-2 * np.pi, 2 * np.pi)] * expected_size
+
+        # replace all Nones by [-2pi, 2pi]
+        lower_bounds = []
+        upper_bounds = []
+        for lower, upper in bounds:
+            lower_bounds.append(lower if lower is not None else -2 * np.pi)
+            upper_bounds.append(upper if upper is not None else 2 * np.pi)
+
+        # sample from within bounds
+        point = algorithm_globals.random.uniform(lower_bounds, upper_bounds)
+
+    elif len(point) != expected_size:
+        raise ValueError(
+            f"The dimension of the initial point ({len(point)}) does not match the "
+            f"number of parameters in the circuit ({expected_size})."
+        )
+
+    return point
 
 
 class VQEResult(VariationalResult, MinimumEigensolverResult):
