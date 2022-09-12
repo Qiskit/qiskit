@@ -72,12 +72,12 @@ def _sequential_allocation(block) -> rx.PyDAG:
     dag = rx.PyDAG()
 
     edges = []
+    prev_id = None
     for elm in block.blocks:
         node_id = dag.add_node(elm)
-        if dag.num_nodes() == 1:
-            continue
-        prev_id = dag.node_indices()[-1]
-        edges.append((prev_id, node_id))
+        if dag.num_nodes() > 1:
+            edges.append((prev_id, node_id))
+        prev_id = node_id
     dag.add_edges_from_no_data(edges)
     return dag
 
