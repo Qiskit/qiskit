@@ -54,13 +54,18 @@ class HHL(LinearSolver):
     using the conjugate gradient method. Here :math:`\kappa` denotes the condition number of the
     system and :math:`\epsilon` the accuracy of the approximation.
 
-    The HHL is a quantum algorithm to estimate a function of the solution with running time
+    The deprecated HHL is a quantum algorithm to estimate a function of the solution with running time
     complexity of :math:`\mathcal{ O }(\log(N)s^{2}\kappa^{2}/\epsilon)` when
     :math:`A` is a Hermitian matrix under the assumptions of efficient oracles for loading the
     data, Hamiltonian simulation and computing a function of the solution. This is an exponential
     speed up in the size of the system, however one crucial remark to keep in mind is that the
     classical algorithm returns the full solution, while the HHL can only approximate functions of
     the solution vector.
+
+    The HHL class is deprecated as of Qiskit Terra 0.22.0
+    and will be removed no sooner than 3 months after the release date.
+    It is replaced by the tutorial at
+    `HHL <https://qiskit.org/textbook/ch-applications/hhl_tutorial.html>`_
 
     Examples:
 
@@ -104,8 +109,10 @@ class HHL(LinearSolver):
     """
 
     @deprecate_function(
-        "The HHL class is deprecated as of Qiskit Terra 0.22.0 "
-        "and will be removed no sooner than 3 months after the release date. "
+        """The HHL class is deprecated as of Qiskit Terra 0.22.0 and will be removed
+        no sooner than 3 months after the release date.
+        It is replaced by the tutorial at https://qiskit.org/textbook/ch-applications/hhl_tutorial.html"
+        """
     )
     def __init__(
         self,
