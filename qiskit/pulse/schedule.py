@@ -1406,7 +1406,7 @@ class ScheduleBlock:
             schedule = copy.deepcopy(self)
             return schedule.replace(old, new, inplace=True)
 
-        if new not in self._blocks:
+        if old not in self._blocks:
             # Avoid unnecessary update of reference and parameter manager
             return self
 
@@ -1417,7 +1417,7 @@ class ScheduleBlock:
             all_references.update(new.references)
             new._reference_manager.clear()
             new._parent = self
-        for ref_key, subroutine in self.references:
+        for ref_key, subroutine in self.references.items():
             if ref_key in all_references:
                 warnings.warn(
                     f"Reference {ref_key} conflicts with substituted program {new.name}. "
