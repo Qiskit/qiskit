@@ -1975,7 +1975,8 @@ def call(
 
     Args:
         target: Target circuit or pulse schedule to call.
-        name: Optional. Name of subroutine if defined.
+        name: Optional. A unique name of subroutine if defined. When the name is explicitly
+            provided, one cannot call different schedule blocks with the same name.
         value_dict: Optional. Parameters assigned to the ``target`` program.
             If this dictionary is provided, the ``target`` program is copied and
             then stored in the main built schedule and its parameters are assigned to the given values.

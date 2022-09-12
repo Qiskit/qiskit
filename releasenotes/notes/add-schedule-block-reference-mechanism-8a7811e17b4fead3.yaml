@@ -33,3 +33,11 @@ features:
     :meth:`~qiskit.pulse.schedule.ScheduleBlock.scoped_parameters` and
     :meth:`~qiskit.pulse.schedule.ScheduleBlock.search_parameters` have been added to
     the schedule block. See API documentation for more details.
+upgrade:
+  - |
+    Behavior of the :func:`~qiskit.pulse.builder.call` pulse builder function has been upgraded.
+    When a :class:`.ScheduleBlock` instance is called by this method, it internally creates
+    a :class:`.Reference` in the current context, and immediately assigns the called program to
+    the reference. Thus, the :class:`.Call` instruction is no longer generated.
+    Along with this change, it is prohibited to call different blocks with the same ``name``
+    argument. Such operation will result in an error.
