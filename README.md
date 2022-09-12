@@ -3,7 +3,7 @@
 
 **Qiskit** is an open-source framework for working with noisy quantum computers at the level of pulses, circuits, and algorithms.
 
-The core component of Qiskit is `qiskit-terra`.
+The core component of Qiskit is **Terra**.
 
 ## Installation
 
