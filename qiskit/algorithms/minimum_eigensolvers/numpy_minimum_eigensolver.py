@@ -62,9 +62,7 @@ class NumPyMinimumEigensolver(MinimumEigensolver):
     @filter_criterion.setter
     def filter_criterion(
         self,
-        filter_criterion: Callable[
-            [list | np.ndarray, float, ListOrDict[float] | None], bool
-        ],
+        filter_criterion: Callable[[list | np.ndarray, float, ListOrDict[float] | None], bool],
     ) -> None:
         """set the filter criterion"""
         self._ces.filter_criterion = filter_criterion
@@ -74,7 +72,9 @@ class NumPyMinimumEigensolver(MinimumEigensolver):
         return NumPyEigensolver.supports_aux_operators()
 
     def compute_minimum_eigenvalue(
-        self, operator: BaseOperator | PauliSumOp, aux_operators: ListOrDict[BaseOperator | PauliSumOp] | None = None
+        self,
+        operator: BaseOperator | PauliSumOp,
+        aux_operators: ListOrDict[BaseOperator | PauliSumOp] | None = None,
     ) -> MinimumEigensolverResult:
         super().compute_minimum_eigenvalue(operator, aux_operators)
         result_ces = self._ces.compute_eigenvalues(operator, aux_operators)
