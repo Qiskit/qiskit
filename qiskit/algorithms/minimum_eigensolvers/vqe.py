@@ -171,9 +171,7 @@ class VQE(VariationalAlgorithm, MinimumEigensolver):
 
         # perform optimization
         if callable(optimizer):
-            opt_result = optimizer(
-                fun=energy_evaluation, x0=initial_point, jac=gradient_evaluation
-            )
+            opt_result = optimizer(fun=energy_evaluation, x0=initial_point, jac=gradient_evaluation)
         else:
             opt_result = optimizer.minimize(
                 fun=energy_evaluation, x0=initial_point, jac=gradient_evaluation
@@ -247,7 +245,9 @@ class VQE(VariationalAlgorithm, MinimumEigensolver):
 
         return gradient_evaluation
 
-    def _check_operator_ansatz(self, operator: BaseOperator | PauliSumOp, ansatz: QuantumCircuit) -> QuantumCircuit:
+    def _check_operator_ansatz(
+        self, operator: BaseOperator | PauliSumOp, ansatz: QuantumCircuit
+    ) -> QuantumCircuit:
         """Check that the number of qubits of operator and ansatz match and that the ansatz is
         parameterized.
         """
