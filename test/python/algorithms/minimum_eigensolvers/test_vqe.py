@@ -23,7 +23,7 @@ from ddt import data, ddt
 from qiskit import QuantumCircuit
 from qiskit.algorithms import AlgorithmError
 from qiskit.algorithms.gradients import ParamShiftEstimatorGradient
-from qiskit.algorithms.minimum_eigensolvers.vqe import VQE
+from qiskit.algorithms.minimum_eigensolvers import VQE
 from qiskit.algorithms.optimizers import (
     CG,
     COBYLA,

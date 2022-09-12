@@ -13,11 +13,14 @@
 """The minimum eigensolvers package."""
 
 from .minimum_eigensolver import MinimumEigensolver, MinimumEigensolverResult
+from .numpy_minimum_eigensolver import NumPyMinimumEigensolver, NumPyMinimumEigensolverResult
 from .vqe import VQE, VQEResult
 
 __all__ = [
     "MinimumEigensolver",
     "MinimumEigensolverResult",
+    "NumPyMinimumEigensolver",
+    "NumPyMinimumEigensolverResult",
     "VQE",
     "VQEResult",
 ]

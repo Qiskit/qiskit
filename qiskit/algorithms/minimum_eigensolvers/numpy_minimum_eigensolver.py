@@ -92,6 +92,10 @@ class NumPyMinimumEigensolver(MinimumEigensolver):
 class NumPyMinimumEigensolverResult(MinimumEigensolverResult):
     """NumPy minimum eigensolver result."""
 
+    def __init__(self) -> None:
+        super().__init__()
+        self._eigenstate = None
+
     @property
     def eigenstate(self) -> np.ndarray | None:
         """Return eigenstate."""
