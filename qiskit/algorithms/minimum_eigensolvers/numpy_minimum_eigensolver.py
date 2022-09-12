@@ -18,7 +18,8 @@ from typing import Callable
 import logging
 import numpy as np
 
-from qiskit.opflow import OperatorBase
+from qiskit.opflow import PauliSumOp
+from qiskit.quantum_info.operators.base_operator import BaseOperator
 
 # TODO this path will need updating
 from ..eigen_solvers.numpy_eigen_solver import NumPyEigensolver
@@ -73,7 +74,7 @@ class NumPyMinimumEigensolver(MinimumEigensolver):
         return NumPyEigensolver.supports_aux_operators()
 
     def compute_minimum_eigenvalue(
-        self, operator: OperatorBase, aux_operators: ListOrDict[OperatorBase] | None = None
+        self, operator: BaseOperator | PauliSumOp, aux_operators: ListOrDict[BaseOperator | PauliSumOp] | None = None
     ) -> MinimumEigensolverResult:
         super().compute_minimum_eigenvalue(operator, aux_operators)
         result_ces = self._ces.compute_eigenvalues(operator, aux_operators)
