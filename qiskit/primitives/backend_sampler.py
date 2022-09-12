@@ -50,6 +50,7 @@ class BackendSampler(BaseSampler):
             parameters: Parameters of each of the quantum circuits.
                 Defaults to ``[circ.parameters for circ in circuits]``.
             bound_pass_manager: An optional pass manager to run after
+                parameter binding.
             skip_transpilation: If this is set to True the internal compilation
                 of the input circuits is skipped and the circuit objects
                 will be directly executed when this objected is called.
