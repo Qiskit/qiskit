@@ -55,7 +55,7 @@ class NumPyMinimumEigensolver(MinimumEigensolver):
     def filter_criterion(
         self,
     ) -> Callable[[list | np.ndarray, float, ListOrDict[float] | None], bool] | None:
-        """returns the filter criterion if set"""
+        """Filters the eigenstates/eigenvalues."""
         return self._ces.filter_criterion
 
     @filter_criterion.setter
@@ -63,7 +63,6 @@ class NumPyMinimumEigensolver(MinimumEigensolver):
         self,
         filter_criterion: Callable[[list | np.ndarray, float, ListOrDict[float] | None], bool],
     ) -> None:
-        """set the filter criterion"""
         self._ces.filter_criterion = filter_criterion
 
     @classmethod
@@ -84,7 +83,7 @@ class NumPyMinimumEigensolver(MinimumEigensolver):
             if result_ces.aux_operator_eigenvalues:
                 result.aux_operator_eigenvalues = result_ces.aux_operator_eigenvalues[0]
 
-        logger.debug(f"MinimumEigensolver:\n{result}")
+        logger.debug("NumPy minimum eigensolver result: %s", result)
 
         return result
 
@@ -98,10 +97,9 @@ class NumPyMinimumEigensolverResult(MinimumEigensolverResult):
 
     @property
     def eigenstate(self) -> np.ndarray | None:
-        """Return eigenstate."""
+        """The eigenstate corresponding to the computed minimum eigenvalue."""
         return self._eigenstate
 
     @eigenstate.setter
     def eigenstate(self, value: np.ndarray) -> None:
-        """Set eigenstate."""
         self._eigenstate = value
