@@ -48,6 +48,16 @@ class NumPyEigensolverResult(EigensolverResult):
         self._eigenvalues = value
 
     @property
+    def eigenstates(self) -> Optional[np.ndarray]:
+        """return eigen states"""
+        return self._eigenstates
+
+    @eigenstates.setter
+    def eigenstates(self, value: np.ndarray) -> None:
+        """set eigen states"""
+        self._eigenstates = value
+
+    @property
     def aux_operator_eigenvalues(self) -> Optional[List[ListOrDict[Tuple[complex, complex]]]]:
         """Return aux operator expectation values.
 
