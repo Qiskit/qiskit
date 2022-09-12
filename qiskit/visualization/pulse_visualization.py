@@ -89,9 +89,9 @@ def pulse_drawer(
             import numpy as np
             import qiskit
             from qiskit import pulse
-            from qiskit.providers.fake_provider import FakeAlmaden
+            from qiskit.providers.fake_provider import FakeBoeblingen
 
-            inst_map = FakeAlmaden().defaults().instruction_schedule_map
+            inst_map = FakeBoeblingen().defaults().instruction_schedule_map
 
             sched = pulse.Schedule()
             sched += inst_map.get('u3', 0, np.pi, 0, np.pi)
@@ -117,9 +117,9 @@ def pulse_drawer(
             import numpy as np
             import qiskit
             from qiskit import pulse
-            from qiskit.providers.fake_provider import FakeAlmaden
+            from qiskit.providers.fake_provider import FakeBoeblingen
 
-            inst_map = FakeAlmaden().defaults().instruction_schedule_map
+            inst_map = FakeBoeblingen().defaults().instruction_schedule_map
 
             sched = pulse.Schedule()
             sched += inst_map.get('u3', 0, np.pi, 0, np.pi)
