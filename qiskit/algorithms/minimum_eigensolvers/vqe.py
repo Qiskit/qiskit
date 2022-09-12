@@ -22,6 +22,7 @@ import numpy as np
 
 from qiskit.algorithms.gradients import BaseEstimatorGradient
 from qiskit.circuit import QuantumCircuit
+from qiskit.circuit.library import RealAmplitudes
 from qiskit.opflow import PauliSumOp
 from qiskit.primitives import BaseEstimator
 from qiskit.quantum_info.operators.base_operator import BaseOperator
@@ -29,7 +30,7 @@ from qiskit.utils import algorithm_globals
 
 from ..exceptions import AlgorithmError
 from ..list_or_dict import ListOrDict
-from ..optimizers import Optimizer, Minimizer
+from ..optimizers import Optimizer, Minimizer, SLSQP
 from ..variational_algorithm import VariationalAlgorithm, VariationalResult
 from .minimum_eigensolver import MinimumEigensolver, MinimumEigensolverResult
 
@@ -104,18 +105,19 @@ class VQE(VariationalAlgorithm, MinimumEigensolver):
     def __init__(
         self,
         estimator: BaseEstimator,
-        ansatz: QuantumCircuit,
-        optimizer: Optimizer | Minimizer,
-        *,
+        ansatz: QuantumCircuit | None = None,
+        optimizer: Optimizer | Minimizer | None = None,
         gradient: BaseEstimatorGradient | None = None,
         initial_point: Sequence[float] | None = None,
     ) -> None:
         """
         Args:
             estimator: The estimator primitive to compute the expectation value of the circuits.
-            ansatz: The parameterized circuit used as ansatz for the wave function.
-            optimizer: The classical optimizer. Can either be a Qiskit optimizer or a callable
-                that takes an array as input and returns a Qiskit or SciPy optimization result.
+            ansatz: A parameterized circuit, preparing the ansatz for the wave function. If not
+                provided, this defaults to a :class:`.RealAmplitudes` circuit.
+            optimizer: A classical optimizer to find the minimum energy. This can either be a
+                Qiskit :class:`.Optimizer` or a callable implementing the :class:`.Minimizer` protocol.
+                Defaults to :class:`.SLSQP`.
             gradient: An optional gradient function or operator for the optimizer.
             initial_point: An optional initial point (i.e. initial parameter values)
                 for the optimizer. If ``None`` then VQE will look to the ansatz for a preferred
@@ -146,26 +148,34 @@ class VQE(VariationalAlgorithm, MinimumEigensolver):
         operator: BaseOperator | PauliSumOp,
         aux_operators: ListOrDict[BaseOperator | PauliSumOp] | None = None,
     ) -> VQEResult:
-        self._check_operator_ansatz(operator)
+        # set defaults
+        if self.ansatz is None:
+            ansatz = RealAmplitudes(num_qubits=operator.num_qubits)
+        else:
+            ansatz = self.ansatz
 
-        initial_point = _validate_initial_point(self.initial_point, self.ansatz)
+        ansatz = self._check_operator_ansatz(operator, ansatz)
+
+        optimizer = SLSQP() if self.optimizer is None else self.optimizer
+
+        initial_point = _validate_initial_point(self.initial_point, ansatz)
 
         start_time = time()
 
-        energy_evaluation = self._get_energy_evaluation(self.ansatz, operator)
+        energy_evaluation = self._get_energy_evaluation(ansatz, operator)
 
         if self.gradient is not None:
-            gradient_evaluation = self._get_gradient_evaluation(self.ansatz, operator)
+            gradient_evaluation = self._get_gradient_evaluation(ansatz, operator)
         else:
             gradient_evaluation = None
 
         # perform optimization
-        if callable(self.optimizer):
-            opt_result = self.optimizer(
+        if callable(optimizer):
+            opt_result = optimizer(
                 fun=energy_evaluation, x0=initial_point, jac=gradient_evaluation
             )
         else:
-            opt_result = self.optimizer.minimize(
+            opt_result = optimizer.minimize(
                 fun=energy_evaluation, x0=initial_point, jac=gradient_evaluation
             )
 
@@ -175,7 +185,7 @@ class VQE(VariationalAlgorithm, MinimumEigensolver):
         result.eigenvalue = opt_result.fun + 0j
         result.cost_function_evals = opt_result.nfev
         result.optimal_point = opt_result.x
-        result.optimal_parameters = dict(zip(self.ansatz.parameters, opt_result.x))
+        result.optimal_parameters = dict(zip(ansatz.parameters, opt_result.x))
         result.optimal_value = opt_result.fun
         result.optimizer_time = eval_time
 
@@ -185,7 +195,7 @@ class VQE(VariationalAlgorithm, MinimumEigensolver):
 
         if aux_operators:
             # not None and not empty list or dict
-            bound_ansatz = self.ansatz.bind_parameters(opt_result.x)
+            bound_ansatz = ansatz.bind_parameters(opt_result.x)
             # aux_values = eval_observables(self.estimator, bound_ansatz, aux_operators)
             # TODO remove once eval_operators have been ported.
             aux_values = self._eval_aux_ops(bound_ansatz, aux_operators)
@@ -237,16 +247,16 @@ class VQE(VariationalAlgorithm, MinimumEigensolver):
 
         return gradient_evaluation
 
-    def _check_operator_ansatz(self, operator: BaseOperator | PauliSumOp) -> QuantumCircuit:
+    def _check_operator_ansatz(self, operator: BaseOperator | PauliSumOp, ansatz: QuantumCircuit) -> QuantumCircuit:
         """Check that the number of qubits of operator and ansatz match and that the ansatz is
         parameterized.
         """
-        if operator.num_qubits != self.ansatz.num_qubits:
+        if operator.num_qubits != ansatz.num_qubits:
             try:
                 logger.info(
                     f"Trying to resize ansatz to match operator on {operator.num_qubits} qubits."
                 )
-                self.ansatz.num_qubits = operator.num_qubits
+                ansatz.num_qubits = operator.num_qubits
             except AttributeError as error:
                 raise AlgorithmError(
                     "The number of qubits of the ansatz does not match the "
@@ -254,8 +264,10 @@ class VQE(VariationalAlgorithm, MinimumEigensolver):
                     "number of qubits using `num_qubits`."
                 ) from error
 
-        if self.ansatz.num_parameters == 0:
+        if ansatz.num_parameters == 0:
             raise AlgorithmError("The ansatz must be parameterized, but has no free parameters.")
+
+        return ansatz
 
     def _eval_aux_ops(
         self,
