@@ -134,8 +134,11 @@ class PhaseEstimationScale:
         Returns:
             A ``PhaseEstimationScale`` object
         """
-        if isinstance(pauli_sum, (PauliSumOp, SparsePauliOp)):
+        if isinstance(pauli_sum, PauliSumOp):
             bound = abs(pauli_sum.coeff) * sum(abs(coeff) for coeff in pauli_sum.coeffs)
+            return PhaseEstimationScale(bound)
+        elif isinstance(pauli_sum, SparsePauliOp):
+            bound = sum(abs(coeff) for coeff in pauli_sum.coeffs)
             return PhaseEstimationScale(bound)
         elif isinstance(pauli_sum, Operator):
             bound = np.sum(np.abs(np.eigvalsh(pauli_sum)))

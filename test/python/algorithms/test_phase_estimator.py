@@ -13,6 +13,9 @@
 """Test phase estimation"""
 
 import unittest
+
+from qiskit.circuit.library import ZGate, XGate, HGate, IGate
+from qiskit.quantum_info import Pauli, SparsePauliOp
 from test.python.algorithms import QiskitAlgorithmsTestCase
 from ddt import ddt, data, unpack
 import numpy as np
@@ -25,7 +28,7 @@ from qiskit.algorithms.phase_estimators import (
 )
 import qiskit
 from qiskit import QuantumCircuit
-from qiskit.opflow import H, X, Y, Z, I, StateFn, PauliTrotterEvolution, MatrixEvolution
+from qiskit.opflow import H, X, Y, Z, I, StateFn, PauliTrotterEvolution, MatrixEvolution, PauliSumOp
 
 
 @ddt
@@ -204,7 +207,7 @@ class TestHamiltonianPhaseEstimation(QiskitAlgorithmsTestCase):
     @data(MatrixExponential(), SuzukiTrotter(reps=4))
     def test_pauli_sum_1_sampler(self, evolution):
         """Two eigenvalues from Pauli sum with X, Z"""
-        hamiltonian = 0.5 * X + Z
+        hamiltonian = PauliSumOp(SparsePauliOp.from_list([("X", 0.5), ("Z", 1)]))
         state_preparation = StateFn(H.to_circuit())
 
         result = self.hamiltonian_pe_sampler(hamiltonian, state_preparation, evolution=evolution)
@@ -218,7 +221,7 @@ class TestHamiltonianPhaseEstimation(QiskitAlgorithmsTestCase):
     @data(MatrixExponential(), SuzukiTrotter(reps=3))
     def test_pauli_sum_2_sampler(self, evolution):
         """Two eigenvalues from Pauli sum with X, Y, Z"""
-        hamiltonian = 0.5 * X + Y + Z
+        hamiltonian = PauliSumOp(SparsePauliOp.from_list([("X", 0.5), ("Z", 1), ("Y", 1)]))
         state_preparation = None
 
         result = self.hamiltonian_pe_sampler(hamiltonian, state_preparation, evolution=evolution)
@@ -229,32 +232,36 @@ class TestHamiltonianPhaseEstimation(QiskitAlgorithmsTestCase):
         self.assertAlmostEqual(phases[0], -1.484, delta=0.001)
         self.assertAlmostEqual(phases[1], 1.484, delta=0.001)
 
-    # TODO handle PauliOp
-    # def test_single_pauli_op_sampler(self):
-    #     """Two eigenvalues from Pauli sum with X, Y, Z"""
-    #     hamiltonian = Z
-    #     state_preparation = None
-    #
-    #     result = self.hamiltonian_pe_sampler(hamiltonian, state_preparation, evolution=None)
-    #     eigv = result.most_likely_eigenvalue
-    #     with self.subTest("First eigenvalue"):
-    #         self.assertAlmostEqual(eigv, 1.0, delta=0.001)
-    #
-    #     state_preparation = StateFn(X.to_circuit())
-    #
-    #     result = self.hamiltonian_pe_sampler(hamiltonian, state_preparation, bound=1.05)
-    #     eigv = result.most_likely_eigenvalue
-    #     with self.subTest("Second eigenvalue"):
-    #         self.assertAlmostEqual(eigv, -0.98, delta=0.01)
+    def test_single_pauli_op_sampler(self):
+        """Two eigenvalues from Pauli sum with X, Y, Z"""
+        hamiltonian = SparsePauliOp(Pauli("Z"))
+        state_preparation = None
+
+        result = self.hamiltonian_pe_sampler(hamiltonian, state_preparation, evolution=None)
+        eigv = result.most_likely_eigenvalue
+        with self.subTest("First eigenvalue"):
+            self.assertAlmostEqual(eigv, 1.0, delta=0.001)
+
+        state_preparation = StateFn(X.to_circuit())
+
+        result = self.hamiltonian_pe_sampler(hamiltonian, state_preparation, bound=1.05)
+        eigv = result.most_likely_eigenvalue
+        with self.subTest("Second eigenvalue"):
+            self.assertAlmostEqual(eigv, -0.98, delta=0.01)
 
     def test_H2_hamiltonian_sampler(self):
         """Test H2 hamiltonian"""
-        hamiltonian = (
-            (-1.0523732457728587 * (I ^ I))
-            + (0.3979374248431802 * (I ^ Z))
-            + (-0.3979374248431802 * (Z ^ I))
-            + (-0.011280104256235324 * (Z ^ Z))
-            + (0.18093119978423147 * (X ^ X))
+
+        hamiltonian = PauliSumOp(
+            SparsePauliOp.from_list(
+                [
+                    ("II", -1.0523732457728587),
+                    ("IZ", 0.3979374248431802),
+                    ("ZI", -0.3979374248431802),
+                    ("ZZ", -0.011280104256235324),
+                    ("XX", 0.18093119978423147),
+                ]
+            )
         )
         state_preparation = StateFn((I ^ H).to_circuit())
         evo = SuzukiTrotter(reps=4)
@@ -272,7 +279,7 @@ class TestHamiltonianPhaseEstimation(QiskitAlgorithmsTestCase):
 
     def test_matrix_evolution_sampler(self):
         """1Q Hamiltonian with MatrixEvolution"""
-        hamiltonian = (0.5 * X) + (0.6 * Y) + (0.7 * I)
+        hamiltonian = PauliSumOp(SparsePauliOp.from_list([("X", 0.5), ("Y", 0.6), ("I", 0.7)]))
         state_preparation = None
         result = self.hamiltonian_pe_sampler(
             hamiltonian, state_preparation, evolution=MatrixExponential()
@@ -418,7 +425,7 @@ class TestPhaseEstimation(QiskitAlgorithmsTestCase):
             phases = result.filter_phases(1e-15, as_float=False)
             self.assertEqual(list(phases.keys()), ["000000", "100000"])
 
-    # sampler tests
+    #     # sampler tests
     def one_phase_sampler(
         self,
         unitary_circuit,
@@ -448,17 +455,17 @@ class TestPhaseEstimation(QiskitAlgorithmsTestCase):
         return phase
 
     @data(
-        (X.to_circuit(), 0.5, None, IterativePhaseEstimation),
-        (X.to_circuit(), 0.5, 1000, IterativePhaseEstimation),
+        (QuantumCircuit(1).compose(XGate()), 0.5, None, IterativePhaseEstimation),
+        (QuantumCircuit(1).compose(XGate()), 0.5, 1000, IterativePhaseEstimation),
         (None, 0.0, 1000, IterativePhaseEstimation),
-        (X.to_circuit(), 0.5, 1000, PhaseEstimation),
+        (QuantumCircuit(1).compose(XGate()), 0.5, 1000, PhaseEstimation),
         (None, 0.0, 1000, PhaseEstimation),
-        (X.to_circuit(), 0.5, None, PhaseEstimation),
+        (QuantumCircuit(1).compose(XGate()), 0.5, None, PhaseEstimation),
     )
     @unpack
     def test_qpe_Z_sampler(self, state_preparation, expected_phase, shots, phase_estimator):
         """eigenproblem Z, |0> and |1>"""
-        unitary_circuit = Z.to_circuit()
+        unitary_circuit = QuantumCircuit(1).compose(ZGate())
         phase = self.one_phase_sampler(
             unitary_circuit,
             state_preparation=state_preparation,
@@ -468,15 +475,15 @@ class TestPhaseEstimation(QiskitAlgorithmsTestCase):
         self.assertEqual(phase, expected_phase)
 
     @data(
-        (H.to_circuit(), 0.0, IterativePhaseEstimation),
-        ((H @ X).to_circuit(), 0.5, IterativePhaseEstimation),
-        (H.to_circuit(), 0.0, PhaseEstimation),
-        ((H @ X).to_circuit(), 0.5, PhaseEstimation),
+        (QuantumCircuit(1).compose(HGate()), 0.0, IterativePhaseEstimation),
+        (QuantumCircuit(1).compose(HGate()).compose(ZGate()), 0.5, IterativePhaseEstimation),
+        (QuantumCircuit(1).compose(HGate()), 0.0, PhaseEstimation),
+        (QuantumCircuit(1).compose(HGate()).compose(ZGate()), 0.5, PhaseEstimation),
     )
     @unpack
     def test_qpe_X_plus_minus_sampler(self, state_preparation, expected_phase, phase_estimator):
         """eigenproblem X, (|+>, |->)"""
-        unitary_circuit = X.to_circuit()
+        unitary_circuit = QuantumCircuit(1).compose(XGate())
         phase = self.one_phase_sampler(
             unitary_circuit,
             state_preparation,
@@ -485,10 +492,10 @@ class TestPhaseEstimation(QiskitAlgorithmsTestCase):
         self.assertEqual(phase, expected_phase)
 
     @data(
-        (X.to_circuit(), 0.125, IterativePhaseEstimation),
-        (I.to_circuit(), 0.875, IterativePhaseEstimation),
-        (X.to_circuit(), 0.125, PhaseEstimation),
-        (I.to_circuit(), 0.875, PhaseEstimation),
+        (QuantumCircuit(1).compose(XGate()), 0.125, IterativePhaseEstimation),
+        (QuantumCircuit(1).compose(IGate()), 0.875, IterativePhaseEstimation),
+        (QuantumCircuit(1).compose(XGate()), 0.125, PhaseEstimation),
+        (QuantumCircuit(1).compose(IGate()), 0.875, PhaseEstimation),
     )
     @unpack
     def test_qpe_RZ_sampler(self, state_preparation, expected_phase, phase_estimator):
@@ -505,7 +512,7 @@ class TestPhaseEstimation(QiskitAlgorithmsTestCase):
 
     def test_check_num_iterations_sampler(self):
         """test check for num_iterations greater than zero"""
-        unitary_circuit = X.to_circuit()
+        unitary_circuit = QuantumCircuit(1).compose(XGate())
         state_preparation = None
         with self.assertRaises(ValueError):
             self.one_phase_sampler(unitary_circuit, state_preparation, num_iterations=-1)
@@ -534,8 +541,8 @@ class TestPhaseEstimation(QiskitAlgorithmsTestCase):
     @data(True, False)
     def test_qpe_Zplus_sampler(self, construct_circuit):
         """superposition eigenproblem Z, |+>"""
-        unitary_circuit = Z.to_circuit()
-        state_preparation = H.to_circuit()  # prepare |+>
+        unitary_circuit = QuantumCircuit(1).compose(ZGate())
+        state_preparation = QuantumCircuit(1).compose(HGate())  # prepare |+>
         sampler = Sampler()
         result = self.phase_estimation_sampler(
             unitary_circuit,
