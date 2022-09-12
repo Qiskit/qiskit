@@ -2,9 +2,9 @@
 Order of qubits in Qiskit
 =========================
 
-While most physics textbooks represent an :math:`n`-qubit system as the tensor product :math:`Q_0\otimes Q_1 \otimes ... \otimes Q_{n-1}`, where :math:`Q_j` is the :math:`j^{\mathrm{th}}` qubit, Qiskit uses the inverse order, that is, :math:`Q_{n-1}\otimes ... \otimes Q_1 \otimes Q_{0}`.  This is done in order to follow the order of bit strings, in which the :math:`n^{\mathrm{th}}` bit or most significant bit (MSB) is placed on the left (with index 0) while the least significant bit (LSB) is placed on the right (index :math:`n-1`). This ordering convention is called little-endian while the one from the physics textbooks is called big-endian.
+While most physics textbooks represent an :math:`n`-qubit system as the tensor product :math:`Q_0\otimes Q_1 \otimes ... \otimes Q_{n-1}`, where :math:`Q_j` is the :math:`j^{\mathrm{th}}` qubit, Qiskit uses the inverse order, that is, :math:`Q_{n-1}\otimes ... \otimes Q_1 \otimes Q_{0}`.  This is done to follow the order of bit strings, in which the :math:`n^{\mathrm{th}}` bit or most significant bit (MSB) is placed on the left (with index 0) while the least significant bit (LSB) is placed on the right (index :math:`n-1`). This ordering convention is called little-endian while the one from the physics textbooks is called big-endian.
 
-This means that if for example we have a 3-qubit system with qubit 0 in state :math:`|1\rangle` and qubits 1 and 2 in state :math:`|1\rangle`, Qiskit would represent this state as :math:`|001\rangle` while most physics textbooks would represent this state as :math:`|100\rangle`. 
+This means that if we have, for example, a 3-qubit system with qubit 0 in state :math:`|1\rangle` and qubits 1 and 2 in state :math:`|0\rangle`, Qiskit would represent this state as :math:`|001\rangle` while most physics textbooks would represent this state as :math:`|100\rangle`. 
 
 The matrix representation of any multi-qubit gate is also affected by this different qubit ordering. For example, if we consider the single-qubit gate
 
@@ -27,7 +27,7 @@ while in a physics textbook it would be written as
 
 For more details about how this ordering of MSB and LSB affects the matrix representation of any particular gate, check its entry in the circuit :mod:`~qiskit.circuit.library`.
 
-This different order can also make visualizing the circuit corresponding to an algorithm taken from a textbook a bit more complicated. Fortunately, Qiskit provides a way to represent a :class:`~.QuantumCircuit` with the most significant qubits on top, similarly to what they look like in the textbooks. This can be done by setting the ``reverse_bits`` argument of the :meth:`~.QuantumCircuit.draw` method to ``True``.
+This different order can also make the circuit corresponding to an algorithm from a textbook a bit more complicated to visualize. Fortunately, Qiskit provides a way to represent a :class:`~.QuantumCircuit` with the most significant qubits on top, similarly to what they look like in the textbooks. This can be done by setting the ``reverse_bits`` argument of the :meth:`~.QuantumCircuit.draw` method to ``True``.
 
 Let's try this for a 3-qubit Quantum Fourier Transform (:class:`~.QFT`).
 
