@@ -13,10 +13,11 @@
 """Management of schedule block references."""
 
 from typing import Tuple
+from collections import UserDict
 from qiskit.pulse.exceptions import PulseError
 
 
-class ReferenceManager(dict):
+class ReferenceManager(UserDict):
     """Dictionary wrapper to manage pulse schedule references."""
 
     def unassigned(self) -> Tuple[Tuple[str, ...], ...]:

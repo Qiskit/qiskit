@@ -38,6 +38,7 @@ import itertools
 import multiprocessing as mp
 import re
 import sys
+import warnings
 from typing import List, Tuple, Iterable, Union, Dict, Callable, Set, Optional, Any
 
 import numpy as np
@@ -1438,24 +1439,33 @@ class ScheduleBlock:
             schedule = copy.deepcopy(self)
             return schedule.replace(old, new, inplace=True)
 
+        if new not in self._blocks:
+            # Avoid unnecessary update of reference and parameter manager
+            return self
+
         # Temporarily copies references
         all_references = ReferenceManager()
-        all_references.update(self.references)
-
         if isinstance(new, ScheduleBlock):
             new = copy.deepcopy(new)
-
-            # This dict.update bypasses existing reference check.
-            # Overriding existing reference should be okey because we replace the block.
             all_references.update(new.references)
             new._reference_manager.clear()
             new._parent = self
+        for ref_key, subroutine in self.references:
+            if ref_key in all_references:
+                warnings.warn(
+                    f"Reference {ref_key} conflicts with substituted program {new.name}. "
+                    "Existing reference has been replaced with new reference.",
+                    UserWarning,
+                )
+                continue
+            all_references[ref_key] = subroutine
 
         # Regenerate parameter table by regenerating elements.
         # Note that removal of parameters in old is not sufficient,
         # because corresponding parameters might be also used in another block element.
         self._parameter_manager.clear()
         self._parameter_manager.update_parameter_table(self._alignment_context)
+
         new_elms = []
         for elm in self._blocks:
             if elm == old:
