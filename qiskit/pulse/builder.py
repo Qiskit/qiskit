@@ -1709,18 +1709,17 @@ def acquire(
 
         from qiskit import pulse
 
-        d0 = pulse.MeasureChannel(0)
+        acq0 = pulse.AcquireChannel(0)
         mem0 = pulse.MemorySlot(0)
 
         with pulse.build() as pulse_prog:
-            pulse.acquire(100, d0, mem0)
+            pulse.acquire(100, acq0, mem0)
 
             # measurement metadata
             kernel = pulse.configuration.Kernel('linear_discriminator')
-            pulse.acquire(100, d0, mem0, kernel=kernel)
+            pulse.acquire(100, acq0, mem0, kernel=kernel)
 
-    .. note:: The type of data acquire will depend on the execution
-        ``meas_level``.
+    .. note:: The type of data acquire will depend on the execution ``meas_level``.
 
     Args:
         duration: Duration to acquire data for
