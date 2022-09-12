@@ -50,7 +50,6 @@ class NumPyMinimumEigensolver(MinimumEigensolver):
                 feasible element, the result can even be empty.
         """
         self._ces = NumPyEigensolver(filter_criterion=filter_criterion)
-        self._ret = MinimumEigensolverResult()
 
     @property
     def filter_criterion(
@@ -75,19 +74,19 @@ class NumPyMinimumEigensolver(MinimumEigensolver):
         self,
         operator: BaseOperator | PauliSumOp,
         aux_operators: ListOrDict[BaseOperator | PauliSumOp] | None = None,
-    ) -> MinimumEigensolverResult:
+    ) -> NumPyMinimumEigensolverResult:
         super().compute_minimum_eigenvalue(operator, aux_operators)
         result_ces = self._ces.compute_eigenvalues(operator, aux_operators)
-        self._ret = MinimumEigensolverResult()
+        result = NumPyMinimumEigensolverResult()
         if result_ces.eigenvalues is not None and len(result_ces.eigenvalues) > 0:
-            self._ret.eigenvalue = result_ces.eigenvalues[0]
-            self._ret.eigenstate = result_ces.eigenstates[0]
+            result.eigenvalue = result_ces.eigenvalues[0]
+            result.eigenstate = result_ces.eigenstates[0]
             if result_ces.aux_operator_eigenvalues:
-                self._ret.aux_operator_eigenvalues = result_ces.aux_operator_eigenvalues[0]
+                result.aux_operator_eigenvalues = result_ces.aux_operator_eigenvalues[0]
 
-        logger.debug(f"MinimumEigensolver:\n{self._ret}")
+        logger.debug(f"MinimumEigensolver:\n{result}")
 
-        return self._ret
+        return result
 
 
 class NumPyMinimumEigensolverResult(MinimumEigensolverResult):
