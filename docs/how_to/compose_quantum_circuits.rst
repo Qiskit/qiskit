@@ -7,7 +7,7 @@ This guide shows how to combine different :class:`~.QuantumCircuit` objects.
 Build the circuits
 ==================
 
-The first step is creating the circuits we want to combine.
+The first step is creating the circuits you want to combine.
 
 .. jupyter-execute::
 
@@ -24,7 +24,7 @@ The first step is creating the circuits we want to combine.
 Combine the circuits
 ====================
 
-Now that we have built the circuits, they can be combined with two different methods:
+Now that you have built the circuits, they can be combined with two different methods:
 
 * :meth:`~.QuantumCircuit.compose`
 * :meth:`~.QuantumCircuit.append`
