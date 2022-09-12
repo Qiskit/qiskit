@@ -29,7 +29,7 @@ class BackendSampler(BaseSampler):
     """A :class:`~.BaseSampler` implementation that provides an interface for leveraging
     the sampler interface from any backend.
 
-    This class provides a sampler interface from any backend and doesn't
+    This class provides a sampler interface from any backend and doesn't do
     any measurement mitigation, it just computes the probability distribution
     from the counts.
     """
