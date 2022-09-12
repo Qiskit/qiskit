@@ -27,6 +27,10 @@ The plugin interfaces are built using setuptools
 which enable packages external to qiskit to advertise they include a synthesis
 plugin.
 
+See :mod:`qiskit.transpiler.preset_passmanagers.plugin` for details on how
+to write plugins for transpiler stages.
+
+
 Writing Plugins
 ===============
 
