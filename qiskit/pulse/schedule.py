@@ -1189,7 +1189,7 @@ class ScheduleBlock:
         return tuple(blocks)
 
     @property
-    def parameters(self) -> Tuple[Parameter]:
+    def parameters(self) -> Set[Parameter]:
         """Return unassigned parameters with raw names."""
         # Need new object not to mutate parameter_manager.parameters
         out_params = set()
@@ -1198,9 +1198,9 @@ class ScheduleBlock:
         for subroutine in self.references.values():
             if subroutine is None:
                 continue
-            out_params |= set(subroutine.parameters)
+            out_params |= subroutine.parameters
 
-        return tuple(out_params)
+        return out_params
 
     def scoped_parameters(self) -> Tuple[Parameter]:
         """Return unassigned parameters with scoped names.
