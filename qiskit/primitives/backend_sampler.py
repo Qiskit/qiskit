@@ -211,25 +211,6 @@ class BackendSampler(BaseSampler):
         else:
             return cast("list[QuantumCircuit]", self._bound_pass_manager.run(circuits))
 
-    @staticmethod
-    def result_to_dict(
-        result: SamplerResult, circuits: Sequence["QuantumCircuit"], circuit_indices: Sequence[int]
-    ) -> dict:
-        """Convert ``SamplerResult`` to a dictionary
-        Args:
-            result: The result of ``Sampler``
-            circuits: The circuits
-            circuit_indices: The circuit indices
-        Returns:
-            A dictionary representing the result.
-        """
-        ret = result.__dict__
-        ret["quasi_dists"] = [
-            dist.binary_probabilities(circuits[index].num_clbits)
-            for index, dist in zip(circuit_indices, result.quasi_dists)
-        ]
-        return ret
-
     def _run(
         self,
         circuits: Sequence["QuantumCircuit"],
