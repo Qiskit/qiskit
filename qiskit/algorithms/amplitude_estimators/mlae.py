@@ -348,7 +348,7 @@ class MaximumLikelihoodAmplitudeEstimation(AmplitudeEstimator):
                     np.binary_repr(k, circuits[i].num_qubits): v for k, v in quasi_dist.items()
                 }
                 result.circuit_results.append(circuit_result)
-            result.shots = 1
+            result.shots = self._sampler.run_options.get("shots", 1)
         elif self._quantum_instance.is_statevector:
             # run circuit on statevector simulator
             circuits = self.construct_circuits(estimation_problem, measurement=False)

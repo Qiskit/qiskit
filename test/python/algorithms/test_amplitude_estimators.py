@@ -146,7 +146,7 @@ class TestBernoulli(QiskitAlgorithmsTestCase):
             [0.49, MaximumLikelihoodAmplitudeEstimation(3), {"estimation": 0.49}],
             [0.2, IterativeAmplitudeEstimation(0.1, 0.1), {"estimation": 0.2}],
             [0.49, IterativeAmplitudeEstimation(0.001, 0.01), {"estimation": 0.49}],
-            [0.2, FasterAmplitudeEstimation(0.1, 3, rescale=False), {"estimation": 0.2}],
+            [0.2, FasterAmplitudeEstimation(0.1, 3, rescale=False), {"estimation": 0.199}],
             [0.12, FasterAmplitudeEstimation(0.1, 2, rescale=False), {"estimation": 0.12}],
         ]
     )
@@ -205,12 +205,12 @@ class TestBernoulli(QiskitAlgorithmsTestCase):
                 {"estimation": 0.200307},
             ],
             [0.8, 10, IterativeAmplitudeEstimation(0.1, 0.05), {"estimation": 0.900000}],
-            [0.2, 1000, FasterAmplitudeEstimation(0.1, 3, rescale=False), {"estimation": 0.203000}],
+            [0.2, 1000, FasterAmplitudeEstimation(0.1, 3, rescale=False), {"estimation": 0.199073}],
             [
                 0.12,
                 100,
                 FasterAmplitudeEstimation(0.01, 3, rescale=False),
-                {"estimation": 0.099999},
+                {"estimation": 0.120016},
             ],
         ]
     )

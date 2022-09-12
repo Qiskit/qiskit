@@ -90,6 +90,9 @@ class FasterAmplitudeEstimation(AmplitudeEstimator):
         self._maxiter = maxiter
         self._num_oracle_calls = 0
         self._sampler = sampler
+        # Keep circuits cached while estimate is processed to preserve their python ids.
+        # This can be removed once Sampler fixes the way it handles circuits ids.
+        self._circuits_cache: list[QuantumCircuit] = []
 
     @property
     def sampler(self) -> None | BaseSampler:
@@ -147,6 +150,7 @@ class FasterAmplitudeEstimation(AmplitudeEstimator):
 
         if self._sampler is not None:
             circuit = self.construct_circuit(estimation_problem, k, measurement=True)
+            self._circuits_cache.append(circuit)
             try:
                 job = self._sampler.run([circuit], shots=shots)
                 result = job.result()
@@ -268,9 +272,9 @@ class FasterAmplitudeEstimation(AmplitudeEstimator):
         else:
             problem = estimation_problem
 
-        if self._sampler is not None or self._quantum_instance.is_statevector:
-            shots = self._sampler.run_options.get("shots") if self._sampler is not None else 1
-            cos = self._cos_estimate(problem, k=0, shots=shots)
+        self._circuits_cache = []
+        if self._quantum_instance is not None and self._quantum_instance.is_statevector:
+            cos = self._cos_estimate(problem, k=0, shots=1)
             theta = np.arccos(cos) / 2
             theta_ci = [theta, theta]
             theta_cis = [theta_ci]
@@ -312,6 +316,7 @@ class FasterAmplitudeEstimation(AmplitudeEstimator):
                     ]
                 theta_cis.append(theta_ci)
 
+        self._circuits_cache = []
         theta = np.mean(theta_ci)
         rescaling = 4 if self._rescale else 1
         value = (rescaling * np.sin(theta)) ** 2
@@ -321,7 +326,7 @@ class FasterAmplitudeEstimation(AmplitudeEstimator):
         result.num_oracle_queries = self._num_oracle_calls
         result.num_steps = num_steps
         result.num_first_state_steps = num_first_stage_steps
-        if self._sampler is not None or self._quantum_instance.is_statevector:
+        if self._quantum_instance is not None and self._quantum_instance.is_statevector:
             result.success_probability = 1
         else:
             result.success_probability = 1 - (2 * self._maxiter - j_0) * self._delta
