@@ -445,6 +445,7 @@ import contextvars
 import functools
 import itertools
 import uuid
+import warnings
 from contextlib import contextmanager
 from typing import (
     Any,
@@ -806,6 +807,13 @@ class _PulseBuilder:
             for param in params:
                 local_assignment[param] = value
         if value_dict:
+            if local_assignment.keys() & value_dict.keys():
+                warnings.warn(
+                    "Some parameters provided by 'value_dict' conflict with one through "
+                    "keyword arguments. Parameter values in the keyword arguments "
+                    "are overridden by the dictionary values.",
+                    UserWarning,
+                )
             local_assignment.update(value_dict)
 
         if isinstance(subroutine, ScheduleBlock):
