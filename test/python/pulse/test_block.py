@@ -483,6 +483,24 @@ class TestBlockEquality(BaseTestBlock):
 
         self.assertNotEqual(block1, block2)
 
+    def test_instruction_out_of_order_sequential_more(self):
+        """Test equality is False if three blocks have instructions in different order.
+
+        This could detect a particular bug as discussed in this thread:
+        https://github.com/Qiskit/qiskit-terra/pull/8005#discussion_r966191018
+        """
+        block1 = pulse.ScheduleBlock(alignment_context=self.sequential_context)
+        block1 += pulse.Play(self.test_waveform0, self.d0)
+        block1 += pulse.Play(self.test_waveform0, self.d0)
+        block1 += pulse.Play(self.test_waveform0, self.d1)
+
+        block2 = pulse.ScheduleBlock(alignment_context=self.sequential_context)
+        block2 += pulse.Play(self.test_waveform0, self.d0)
+        block2 += pulse.Play(self.test_waveform0, self.d1)
+        block2 += pulse.Play(self.test_waveform0, self.d0)
+
+        self.assertNotEqual(block1, block2)
+
     def test_instruction_in_order_sequential(self):
         """Test equality is True if two blocks have instructions in same order."""
         block1 = pulse.ScheduleBlock(alignment_context=self.sequential_context)
