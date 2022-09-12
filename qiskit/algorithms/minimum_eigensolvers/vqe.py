@@ -188,7 +188,9 @@ class VQE(VariationalAlgorithm, MinimumEigensolver):
         result.optimizer_time = eval_time
 
         logger.info(
-            f"Optimization complete in {eval_time} seconds.\nFound opt_params {result.optimal_point}."
+            "Optimization complete in %s seconds.\nFound opt_params %s",
+            eval_time,
+            result.optimal_point,
         )
 
         if aux_operators:
@@ -254,7 +256,7 @@ class VQE(VariationalAlgorithm, MinimumEigensolver):
         if operator.num_qubits != ansatz.num_qubits:
             try:
                 logger.info(
-                    f"Trying to resize ansatz to match operator on {operator.num_qubits} qubits."
+                    "Trying to resize ansatz to match operator on %s qubits.", operator.num_qubits
                 )
                 ansatz.num_qubits = operator.num_qubits
             except AttributeError as error:
