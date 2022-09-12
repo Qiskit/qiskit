@@ -180,7 +180,7 @@ class TestTrotterQRTE(QiskitAlgorithmsTestCase):
                 time,
                 initial_state,
                 t_param=t_param,
-                param_value_dict=param_value_dict,
+                param_value_map=param_value_dict,
             )
             _ = trotter_qrte.evolve(evolution_problem)
 

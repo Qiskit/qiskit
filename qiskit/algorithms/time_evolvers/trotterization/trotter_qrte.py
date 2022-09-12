@@ -16,7 +16,7 @@ from __future__ import annotations
 
 import warnings
 
-from qiskit.algorithms.observables_evaluator import eval_observables
+from qiskit.algorithms.observables_evaluator import estimate_observables
 
 from qiskit import QuantumCircuit
 from qiskit.algorithms.time_evolvers.time_evolution_problem import TimeEvolutionProblem
@@ -156,7 +156,7 @@ class TrotterQRTE(RealTimeEvolver):
 
         evaluated_aux_ops = None
         if evolution_problem.aux_operators is not None:
-            evaluated_aux_ops = eval_observables(
+            evaluated_aux_ops = estimate_observables(
                 self.estimator,
                 evolved_state.primitive,
                 evolution_problem.aux_operators,
