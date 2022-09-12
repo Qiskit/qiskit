@@ -49,20 +49,42 @@ class SabreLayout(AnalysisPass):
     `arXiv:1809.02573 <https://arxiv.org/pdf/1809.02573.pdf>`_
     """
 
-    def __init__(self, coupling_map, routing_pass=None, seed=None, max_iterations=3):
+    def __init__(
+        self, coupling_map, routing_pass=None, seed=None, max_iterations=3, swap_trials=None
+    ):
         """SabreLayout initializer.
 
         Args:
             coupling_map (Coupling): directed graph representing a coupling map.
             routing_pass (BasePass): the routing pass to use while iterating.
+                This is mutually exclusive with the ``swap_trials`` argument and
+                if both are set an error will be raised.
             seed (int): seed for setting a random first trial layout.
             max_iterations (int): number of forward-backward iterations.
+            swap_trials (int): The number of trials to run of
+                :class:`~.SabreSwap` for each iteration. This is equivalent to
+                the ``trials`` argument on :class:`~.SabreSwap`. If this is not
+                specified (and ``routing_pass`` isn't set) by default the number
+                of physical CPUs on your local system will be used. For
+                reproducibility between environments it is best to set this
+                to an explicit number because the output will potentially depend
+                on the number of trials run. This option is mutually exclusive
+                with the ``routing_pass`` argument and an error will be raised
+                if both are used.
+
+        Raises:
+            TranspilerError: If both ``routing_pass`` and ``swap_trials`` are
+                specified
         """
         super().__init__()
         self.coupling_map = coupling_map
+        if routing_pass is not None and swap_trials is not None:
+            raise TranspilerError("Both routing_pass and swap_trials can't be set at the same time")
         self.routing_pass = routing_pass
         self.seed = seed
         self.max_iterations = max_iterations
+        self.trials = swap_trials
+        self.swap_trials = swap_trials
 
     def run(self, dag):
         """Run the SabreLayout pass on `dag`.
@@ -86,7 +108,9 @@ class SabreLayout(AnalysisPass):
         initial_layout = Layout({q: dag.qubits[i] for i, q in enumerate(physical_qubits)})
 
         if self.routing_pass is None:
-            self.routing_pass = SabreSwap(self.coupling_map, "decay", seed=self.seed, fake_run=True)
+            self.routing_pass = SabreSwap(
+                self.coupling_map, "decay", seed=self.seed, fake_run=True, trials=self.swap_trials
+            )
         else:
             self.routing_pass.fake_run = True
 
