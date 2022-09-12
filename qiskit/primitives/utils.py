@@ -128,10 +128,12 @@ def _circuit_key(circuit: QuantumCircuit) -> tuple:
     return (
         id(circuit),
         circuit.name,
-        len(circuit.data),
         circuit.num_qubits,
         circuit.num_clbits,
         circuit.num_parameters,
+        tuple(
+            (d.qubits, d.clbits, d.operation.name, tuple(d.operation.params)) for d in circuit.data
+        ),
         None if circuit._op_start_times is None else tuple(circuit._op_start_times),
     )
 
