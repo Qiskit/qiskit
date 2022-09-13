@@ -319,23 +319,23 @@ def define_mcx_control_and_ancilla(control_qubits):
     return mcx_controls, abc_ancilla
 
 
-def get_abc_matrices(phi, theta, lamb):
+def get_abc_matrices(beta, gamma, delta):
     """
     Creates A,B and C matrices such that
     ABC = I
     """
     # A
-    a_rz = RZGate(lamb).to_matrix()
-    a_ry = RYGate(theta / 2).to_matrix()
+    a_rz = RZGate(beta).to_matrix()
+    a_ry = RYGate(gamma / 2).to_matrix()
     a_matrix = a_rz.dot(a_ry)
 
     # B
-    b_ry = RYGate(-theta / 2).to_matrix()
-    b_rz = RZGate(-(phi + lamb) / 2).to_matrix()
+    b_ry = RYGate(-gamma / 2).to_matrix()
+    b_rz = RZGate(-(delta + beta) / 2).to_matrix()
     b_matrix = b_ry.dot(b_rz)
 
     # C
-    c_matrix = RZGate((phi - lamb) / 2).to_matrix()
+    c_matrix = RZGate((delta - beta) / 2).to_matrix()
 
     return a_matrix, b_matrix, c_matrix
 
