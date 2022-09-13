@@ -241,16 +241,19 @@ class Operator(LinearOp):
         if layout is not None:
             virtual_to_physical = layout.get_virtual_bits()
             qargs = [virtual_to_physical[bit] for bit in circuit.qubits]
-            if final_layout is not None:
-                final_virtual_to_physical = final_layout.get_virtual_bits()
-                final_physical_to_virtual = final_layout.get_physical_bits()
-                qargs = [
-                    circuit.find_bit(final_physical_to_virtual[qarg_bit]).index for qarg_bit in qargs
-                ]
-
         # Convert circuit to an instruction
         instruction = circuit.to_instruction()
         op._append_instruction(instruction, qargs=qargs)
+        # If final layout is set permute output indices based on layout
+        if final_layout is not None:
+            # TODO: Do this without the intermediate Permutation object by just
+            # operating directly on the array directly
+            from qiskit.circuit.library import Permutation
+
+            final_physical_to_virtual = final_layout.get_physical_bits()
+            perm_pattern = [final_layout._v2p[v] for v in circuit.qubits]
+            perm_op = Operator(Permutation(len(final_physical_to_virtual), perm_pattern))
+            op &= perm_op
         return op
 
     def is_unitary(self, atol=None, rtol=None):
