@@ -21,10 +21,6 @@ A sampler is initialized with the following elements.
 * quantum circuits (:math:`\psi_i(\theta)`): list of (parameterized) quantum circuits.
   (a list of :class:`~qiskit.circuit.QuantumCircuit`))
 
-* parameters: a list of parameters of the quantum circuits.
-  (:class:`~qiskit.circuit.parametertable.ParameterView` or
-  a list of :class:`~qiskit.circuit.Parameter`).
-
 The sampler is run with the following inputs.
 
 * circuits: a list of QuantumCircuit objects to evaluate.
@@ -60,7 +56,6 @@ Here is an example of how sampler is used.
     print([q.binary_probabilities() for q in result.quasi_dists])
 
     # executes three Bell circuits
-    # Argument `parameters` is optional.
     sampler = Sampler()
     result = sampler.run([bell, bell, bell]).result()
     print([q.binary_probabilities() for q in result.quasi_dists])

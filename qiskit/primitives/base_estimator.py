@@ -36,10 +36,6 @@ The estimator is called with the following inputs.
 
 * observables: a list of the observables.
 
-* parameters: a list of parameters of the quantum circuits.
-  (:class:`~qiskit.circuit.parametertable.ParameterView` or
-  a list of :class:`~qiskit.circuit.Parameter`).
-
 * parameter values (:math:`\theta_k`): list of sets of values
   to be bound to the parameters of the quantum circuits.
   (list of list of float)
@@ -66,9 +62,6 @@ Here is an example of how estimator is used.
 
     psi1 = RealAmplitudes(num_qubits=2, reps=2)
     psi2 = RealAmplitudes(num_qubits=2, reps=3)
-
-    params1 = psi1.parameters
-    params2 = psi2.parameters
 
     H1 = SparsePauliOp.from_list([("II", 1), ("IZ", 2), ("XI", 3)])
     H2 = SparsePauliOp.from_list([("IZ", 1)])
