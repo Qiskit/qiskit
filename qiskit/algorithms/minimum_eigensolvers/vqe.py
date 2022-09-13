@@ -216,10 +216,12 @@ class VQE(VariationalAlgorithm, MinimumEigensolver):
         """Returns a function handle to evaluates the energy at given parameters for the ansatz.
         This is the objective function to be passed to the optimizer that is used for evaluation.
         Args:
-            operator: The operator whose energy to evaluate.
             ansatz: The ansatz preparing the quantum state.
+            operator: The operator whose energy to evaluate.
         Returns:
             Energy of the hamiltonian of each parameter.
+        Raises:
+            AlgorithmError: If the primitive job to evaluate the energy fails.
         """
         num_parameters = ansatz.num_parameters
 
@@ -233,8 +235,11 @@ class VQE(VariationalAlgorithm, MinimumEigensolver):
             parameters = np.reshape(parameters, (-1, num_parameters)).tolist()
             batchsize = len(parameters)
 
-            job = self.estimator.run(batchsize * [ansatz], batchsize * [operator], parameters)
-            values = job.result().values
+            try:
+                job = self.estimator.run(batchsize * [ansatz], batchsize * [operator], parameters)
+                values = job.result().values
+            except Exception as exc:
+                raise AlgorithmError("The primitive job to evaluate the energy failed!") from exc
 
             # TODO recover variance from estimator if has metadata has shots?
 
@@ -252,12 +257,25 @@ class VQE(VariationalAlgorithm, MinimumEigensolver):
         ansatz: QuantumCircuit,
         operator: BaseOperator | PauliSumOp,
     ) -> tuple[Callable[[np.ndarray], np.ndarray]]:
-        """Returns a function handle to evaluate the gradient at given parameters for the ansatz."""
+        """Returns a function handle to evaluate the gradient at given parameters for the ansatz.
+
+        Args:
+            ansatz: The ansatz preparing the quantum state.
+            operator: The operator whose energy to evaluate.
+
+        Raises:
+            AlgorithmError: If the primitive job to evaluate the gradient fails.
+        """
 
         def evaluate_gradient(parameters):
             # broadcasting not required for the estimator gradients
-            result = self.gradient.run([ansatz], [operator], [parameters]).result()
-            return result.gradients[0]
+            try:
+                result = self.gradient.run([ansatz], [operator], [parameters]).result()
+                gradients = result.gradients
+            except Exception as exc:
+                raise AlgorithmError("The primitive job to evaluate the gradient failed!") from exc
+
+            return gradients[0]
 
         return evaluate_gradient
 
