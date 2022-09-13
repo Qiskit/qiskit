@@ -53,10 +53,8 @@ class Operator(LinearOp):
         """Initialize an operator object.
 
         Args:
-            data (QuantumCircuit or
-                  Operation or
-                  BaseOperator or
-                  matrix): data to initialize operator.
+            data (QuantumCircuit or Operation or BaseOperator or matrix):
+                                data to initialize operator.
             input_dims (tuple): the input subsystem dimensions.
                                 [Default: None]
             output_dims (tuple): the output subsystem dimensions.
