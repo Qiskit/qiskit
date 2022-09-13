@@ -257,11 +257,14 @@ class VQE(VariationalAlgorithm, MinimumEigensolver):
         ansatz: QuantumCircuit,
         operator: BaseOperator | PauliSumOp,
     ) -> tuple[Callable[[np.ndarray], np.ndarray]]:
-        """Returns a function handle to evaluate the gradient at given parameters for the ansatz.
+        """Get a function handle to evaluate the gradient at given parameters for the ansatz.
 
         Args:
             ansatz: The ansatz preparing the quantum state.
             operator: The operator whose energy to evaluate.
+
+        Returns:
+            A function handle to evaluate the gradient at given parameters for the ansatz.
 
         Raises:
             AlgorithmError: If the primitive job to evaluate the gradient fails.
