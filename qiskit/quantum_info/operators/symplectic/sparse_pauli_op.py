@@ -28,9 +28,7 @@ from qiskit.quantum_info.operators.mixins import generate_apidocs
 from qiskit.quantum_info.operators.operator import Operator
 from qiskit.quantum_info.operators.symplectic.pauli import BasePauli
 from qiskit.quantum_info.operators.symplectic.pauli_list import PauliList
-from qiskit.quantum_info.operators.symplectic.pauli_table import PauliTable
 from qiskit.quantum_info.operators.symplectic.pauli_utils import pauli_basis
-from qiskit.utils.deprecation import deprecate_function
 
 
 class SparsePauliOp(LinearOp):
@@ -54,7 +52,7 @@ class SparsePauliOp(LinearOp):
         """Initialize an operator object.
 
         Args:
-            data (PauliList or SparsePauliOp or PauliTable or Pauli or list or str): Pauli list of
+            data (PauliList or SparsePauliOp or Pauli or list or str): Pauli list of
                 terms.  A list of Pauli strings or a Pauli string is also allowed.
             coeffs (np.ndarray): complex coefficients for Pauli terms.
 
@@ -172,29 +170,6 @@ class SparsePauliOp(LinearOp):
     def __len__(self):
         """Return the size."""
         return self.size
-
-    # pylint: disable=bad-docstring-quotes
-
-    @property
-    @deprecate_function(
-        "The SparsePauliOp.table method is deprecated as of Qiskit Terra 0.19.0 "
-        "and will be removed no sooner than 3 months after the releasedate. "
-        "Use SparsePauliOp.paulis method instead.",
-    )
-    def table(self):
-        """DEPRECATED - Return the the PauliTable."""
-        return PauliTable(np.column_stack((self.paulis.x, self.paulis.z)))
-
-    @table.setter
-    @deprecate_function(
-        "The SparsePauliOp.table method is deprecated as of Qiskit Terra 0.19.0 "
-        "and will be removed no sooner than 3 months after the releasedate. "
-        "Use SparsePauliOp.paulis method instead.",
-    )
-    def table(self, value):
-        if not isinstance(value, PauliTable):
-            value = PauliTable(value)
-        self._pauli_list = PauliList(value)
 
     @property
     def paulis(self):
@@ -673,7 +648,7 @@ class SparsePauliOp(LinearOp):
         # Non-normalized basis factor
         denom = 2**num_qubits
         # Compute coefficients from basis
-        basis = pauli_basis(num_qubits, pauli_list=True)
+        basis = pauli_basis(num_qubits)
         for i, mat in enumerate(basis.matrix_iter()):
             coeff = np.trace(mat.dot(data)) / denom
             if not np.isclose(coeff, 0, atol=atol, rtol=rtol):
@@ -848,7 +823,7 @@ class SparsePauliOp(LinearOp):
         use the :meth:`to_labels` method.
 
         Returns:
-            LabelIterator: label iterator object for the PauliTable.
+            LabelIterator: label iterator object for the SparsePauliOp.
         """
 
         class LabelIterator(CustomIterator):
