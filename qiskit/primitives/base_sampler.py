@@ -127,7 +127,7 @@ class BaseSampler(ABC):
             circuits: Quantum circuits to be executed.
             parameters: Parameters of each of the quantum circuits.
                 Defaults to ``[circ.parameters for circ in circuits]``.
-            options: Default runtime options.
+            options: Default options.
 
         Raises:
             QiskitError: For mismatch of circuits and parameters list.

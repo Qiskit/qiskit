@@ -62,7 +62,7 @@ class Estimator(BaseEstimator):
             observables: observables to be estimated.
             parameters: Parameters of each of the quantum circuits.
                 Defaults to ``[circ.parameters for circ in circuits]``.
-            options: Default runtime options.
+            options: Default options.
 
         Raises:
             QiskitError: if some classical bits are not used for measurements.

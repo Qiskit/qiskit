@@ -147,7 +147,7 @@ class BaseEstimator(ABC):
                 will be bound. Defaults to ``[circ.parameters for circ in circuits]``
                 The indexing is such that ``parameters[i, j]`` is the j-th formal parameter of
                 ``circuits[i]``.
-            options: runtime options.
+            options: Default options.
 
         Raises:
             QiskitError: For mismatch of circuits and parameters list.
