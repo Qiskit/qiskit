@@ -126,7 +126,6 @@ def _circuit_key(circuit: QuantumCircuit) -> tuple:
         Key for directory.
     """
     return (
-        id(circuit),
         circuit.name,
         circuit.num_qubits,
         circuit.num_clbits,
