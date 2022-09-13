@@ -81,9 +81,9 @@ class TestPauliListInit(QiskitTestCase):
         """Test array initialization."""
         # Matrix array initialization
 
-        with self.subTest(msg='Empty array'):
-            x = np.array([], dtype=bool).reshape((1,0))
-            z = np.array([], dtype=bool).reshape((1,0))
+        with self.subTest(msg="Empty array"):
+            x = np.array([], dtype=bool).reshape((1, 0))
+            z = np.array([], dtype=bool).reshape((1, 0))
             pauli_list = PauliList.from_symplectic(x, z)
             np.testing.assert_equal(pauli_list.z, z)
             np.testing.assert_equal(pauli_list.x, x)
