@@ -63,11 +63,14 @@ def canonicalize_control_flow(circuit: QuantumCircuit) -> QuantumCircuit:
     base_bit_order = {bit: i for i, bit in enumerate(circuit.qubits)}
     base_bit_order.update((bit, i) for i, bit in enumerate(circuit.clbits))
 
-    def worker(circuit, bit_map):
-        # This isn't quite QuantumCircuit.copy_empty_like because of the bit reordering.
+    def worker(circuit, bit_map=None):
+        if bit_map is None:
+            bit_map = {bit: bit for bits in (circuit.qubits, circuit.clbits) for bit in bits}
+
         def bit_key(bit):
             return base_bit_order[bit_map[bit]]
 
+        # This isn't quite QuantumCircuit.copy_empty_like because of the bit reordering.
         out = QuantumCircuit(
             sorted(circuit.qubits, key=bit_key),
             sorted(circuit.clbits, key=bit_key),
@@ -119,5 +122,4 @@ def canonicalize_control_flow(circuit: QuantumCircuit) -> QuantumCircuit:
             out._append(new_instruction)
         return out
 
-    initial_bit_map = {bit: bit for bits in (circuit.qubits, circuit.clbits) for bit in bits}
-    return worker(circuit, initial_bit_map)
+    return worker(circuit)
