@@ -2,7 +2,7 @@
 features:
   - |
 
-    :class:`~.Grover` supports the primitives and can use :class:`~.Sampler` to
+    :class:`~.Grover` supports the primitives and can use :class:`~.BaseSampler` to
     calculate the results. Accordingly, ``quantum instance`` in :class:`~.Grover`
     is pending deprecation and will be deprecated in a future release.
 
