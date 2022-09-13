@@ -18,14 +18,11 @@
 from abc import ABC
 from abc import abstractmethod
 import datetime
-import logging
 from typing import List, Union, Iterable, Tuple
 
 from qiskit.providers.provider import Provider
 from qiskit.providers.models.backendstatus import BackendStatus
 from qiskit.circuit.gate import Instruction
-
-logger = logging.getLogger(__name__)
 
 
 class Backend:
@@ -351,15 +348,6 @@ class BackendV2(Backend, ABC):
     @property
     def operation_names(self) -> List[str]:
         """A list of instruction names that the backend supports."""
-        non_global_ops = self.target.get_non_global_operation_names(strict_direction=True)
-        if non_global_ops:
-            invalid_str = ",".join(non_global_ops)
-            msg = (
-                f"This backend's operations: {invalid_str} only apply to a subset of "
-                "qubits. Using this property to get 'basis_gates' for the "
-                "transpiler may potentially create invalid output"
-            )
-            logger.warning(msg)
         return list(self.target.operation_names)
 
     @property

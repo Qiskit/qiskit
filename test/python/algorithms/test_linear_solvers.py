@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2020, 2021.
+# (C) Copyright IBM 2020, 2022.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -13,6 +13,7 @@
 """Test the quantum linear system solver algorithm."""
 
 import unittest
+import warnings
 from test.python.algorithms import QiskitAlgorithmsTestCase
 from scipy.linalg import expm
 import numpy as np
@@ -30,6 +31,22 @@ from qiskit.utils import QuantumInstance
 from qiskit import quantum_info
 
 
+def _factory_tridiagonal_toeplitz(
+    num_state_qubits: int, main_diag: float, off_diag: float, trotter_steps: int = 1
+):
+    with warnings.catch_warnings(record=True):
+        warnings.simplefilter("ignore")
+        return TridiagonalToeplitz(
+            num_state_qubits, main_diag, off_diag, trotter_steps=trotter_steps
+        )
+
+
+def _factory_numpy_matrix(matrix: np.ndarray):
+    with warnings.catch_warnings(record=True):
+        warnings.simplefilter("ignore")
+        return NumPyMatrix(matrix)
+
+
 @ddt
 class TestMatrices(QiskitAlgorithmsTestCase):
     """Tests based on the matrices classes.
@@ -40,10 +57,10 @@ class TestMatrices(QiskitAlgorithmsTestCase):
 
     @idata(
         [
-            [TridiagonalToeplitz(2, 1, -1 / 3)],
-            [TridiagonalToeplitz(3, 2, 1), 1.1, 3],
+            [_factory_tridiagonal_toeplitz(2, 1, -1 / 3)],
+            [_factory_tridiagonal_toeplitz(3, 2, 1), 1.1, 3],
             [
-                NumPyMatrix(
+                _factory_numpy_matrix(
                     np.array(
                         [
                             [1 / 2, 1 / 6, 0, 0],
@@ -80,8 +97,8 @@ class TestMatrices(QiskitAlgorithmsTestCase):
 
     @idata(
         [
-            [TridiagonalToeplitz(2, 1.5, 2.5)],
-            [TridiagonalToeplitz(4, -1, 1.6)],
+            [_factory_tridiagonal_toeplitz(2, 1.5, 2.5)],
+            [_factory_tridiagonal_toeplitz(4, -1, 1.6)],
         ]
     )
     @unpack
@@ -101,6 +118,18 @@ class TestMatrices(QiskitAlgorithmsTestCase):
         np.testing.assert_almost_equal(matrix_lambda_max, exact_lambda_max, decimal=6)
 
 
+def _factory_absolute_average():
+    with warnings.catch_warnings(record=True):
+        warnings.simplefilter("ignore")
+        return AbsoluteAverage()
+
+
+def _factory_matrix_functional(main_diag: float, off_diag: int):
+    with warnings.catch_warnings(record=True):
+        warnings.simplefilter("ignore")
+        return MatrixFunctional(main_diag, off_diag)
+
+
 @ddt
 class TestObservables(QiskitAlgorithmsTestCase):
     """Tests based on the observables classes.
@@ -111,8 +140,8 @@ class TestObservables(QiskitAlgorithmsTestCase):
 
     @idata(
         [
-            [AbsoluteAverage(), [1.0, -2.1, 3.2, -4.3]],
-            [AbsoluteAverage(), [-9 / 4, -0.3, 8 / 7, 10, -5, 11.1, 13 / 11, -27 / 12]],
+            [_factory_absolute_average(), [1.0, -2.1, 3.2, -4.3]],
+            [_factory_absolute_average(), [-9 / 4, -0.3, 8 / 7, 10, -5, 11.1, 13 / 11, -27 / 12]],
         ]
     )
     @unpack
@@ -139,9 +168,9 @@ class TestObservables(QiskitAlgorithmsTestCase):
 
     @idata(
         [
-            [MatrixFunctional(1, -1 / 3), [1.0, -2.1, 3.2, -4.3]],
+            [_factory_matrix_functional(1, -1 / 3), [1.0, -2.1, 3.2, -4.3]],
             [
-                MatrixFunctional(2 / 3, 11 / 7),
+                _factory_matrix_functional(2 / 3, 11 / 7),
                 [-9 / 4, -0.3, 8 / 7, 10, -5, 11.1, 13 / 11, -27 / 12],
             ],
         ]
@@ -237,16 +266,16 @@ class TestLinearSolver(QiskitAlgorithmsTestCase):
     @idata(
         [
             [
-                TridiagonalToeplitz(2, 1, 1 / 3, trotter_steps=2),
+                _factory_tridiagonal_toeplitz(2, 1, 1 / 3, trotter_steps=2),
                 [1.0, -2.1, 3.2, -4.3],
-                MatrixFunctional(1, 1 / 2),
+                _factory_matrix_functional(1, 1 / 2),
             ],
             [
                 np.array(
                     [[0, 0, 1.585, 0], [0, 0, -0.585, 1], [1.585, -0.585, 0, 0], [0, 1, 0, 0]]
                 ),
                 [1.0, 0, 0, 0],
-                MatrixFunctional(1, 1 / 2),
+                _factory_matrix_functional(1, 1 / 2),
             ],
             [
                 [
@@ -256,18 +285,18 @@ class TestLinearSolver(QiskitAlgorithmsTestCase):
                     [0, 0, 1 / 6, 1 / 2],
                 ],
                 [1.0, -2.1, 3.2, -4.3],
-                MatrixFunctional(1, 1 / 2),
+                _factory_matrix_functional(1, 1 / 2),
             ],
             [
                 np.array([[82, 34], [34, 58]]),
                 np.array([[1], [0]]),
-                AbsoluteAverage(),
+                _factory_absolute_average(),
                 3,
             ],
             [
-                TridiagonalToeplitz(3, 1, -1 / 2, trotter_steps=2),
+                _factory_tridiagonal_toeplitz(3, 1, -1 / 2, trotter_steps=2),
                 [-9 / 4, -0.3, 8 / 7, 10, -5, 11.1, 13 / 11, -27 / 12],
-                AbsoluteAverage(),
+                _factory_absolute_average(),
             ],
         ]
     )
@@ -287,8 +316,11 @@ class TestLinearSolver(QiskitAlgorithmsTestCase):
         qc = QuantumCircuit(num_qubits)
         qc.isometry(rhs, list(range(num_qubits)), None)
 
-        hhl = HHL()
-        solution = hhl.solve(matrix, qc, observable)
+        with warnings.catch_warnings(record=True) as caught_warnings:
+            warnings.simplefilter("always")
+            hhl = HHL()
+            self.assertTrue("HHL class is deprecated" in str(caught_warnings[0].message))
+            solution = hhl.solve(matrix, qc, observable)
         approx_result = solution.observable
 
         # Calculate analytical value
@@ -304,7 +336,10 @@ class TestLinearSolver(QiskitAlgorithmsTestCase):
 
     def test_hhl_qi(self):
         """Test the HHL quantum instance getter and setter."""
-        hhl = HHL()
+        with warnings.catch_warnings(record=True) as caught_warnings:
+            warnings.simplefilter("always")
+            hhl = HHL()
+            self.assertTrue("HHL class is deprecated" in str(caught_warnings[0].message))
         self.assertIsNone(hhl.quantum_instance)  # Defaults to None
 
         # First set a valid quantum instance and check via getter
