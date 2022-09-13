@@ -330,7 +330,7 @@ class TestGrover(QiskitAlgorithmsTestCase):
                 print(i, dist)
                 keys, values = zip(*sorted(dist.items()))
                 self.assertTupleEqual(keys, ("00", "01", "10", "11"))
-                #TODO: check values
+                # TODO: check values
                 if i == 0:
                     np.testing.assert_allclose(values, [0, 0, 0, 1], atol=0.2)
                 else:
