@@ -23,6 +23,7 @@ from qiskit.circuit import Parameter
 from qiskit.circuit.library import RealAmplitudes
 from qiskit.exceptions import QiskitError
 from qiskit.primitives import Sampler, SamplerResult
+from qiskit.primitives.utils import _circuit_key
 from qiskit.providers import JobStatus, JobV1
 from qiskit.test import QiskitTestCase
 
@@ -685,6 +686,17 @@ class TestSampler(QiskitTestCase):
             params, target = self._generate_params_target([1])
             result = sampler.run([self._pqc], parameter_values=params).result()
             self._compare_probs(result.quasi_dists, target)
+
+    def test_different_circuits(self):
+        """Test collision of quantum circuits."""
+
+        def test_func(n):
+            qc = QuantumCircuit(1, 1, name="foo")
+            qc.ry(n, 0)
+            return qc
+
+        keys = [_circuit_key(test_func(i)) for i in range(5)]
+        self.assertEqual(len(keys), len(set(keys)))
 
 
 if __name__ == "__main__":
