@@ -24,7 +24,7 @@ from qiskit.circuit import Parameter, ParameterExpression, QuantumCircuit
 from qiskit.opflow import PauliSumOp
 from qiskit.primitives import BaseEstimator
 from qiskit.primitives.utils import init_observable
-from qiskit.quantum_info import Pauli
+from qiskit.quantum_info import Pauli, SparsePauliOp
 from qiskit.quantum_info.operators.base_operator import BaseOperator
 
 from .base_estimator_gradient import BaseEstimatorGradient
@@ -61,6 +61,7 @@ class LinCombEstimatorGradient(BaseEstimatorGradient):
         observables: Sequence[BaseOperator | PauliSumOp],
         parameter_values: Sequence[Sequence[float]],
         parameters: Sequence[Sequence[Parameter] | None],
+        aux_meas_op = None,
         **run_options,
     ) -> EstimatorGradientResult:
         """Compute the estimator gradients on the given circuits."""
@@ -78,7 +79,11 @@ class LinCombEstimatorGradient(BaseEstimatorGradient):
             metadata_.append({"parameters": [p for p in circuit.parameters if p in param_set]})
 
             # TODO: support measurement in different basis (Y and Z+iY)
-            observable_ = observable.expand(Pauli_Z)
+            if aux_meas_op is not None:
+                op2 = SparsePauliOp.from_list([("Z", 1), ("Y", complex(0,-1))])
+                observable_ = observable.expand(op2)
+            else:
+                observable_ = observable.expand(Pauli_Z)
             gradient_circuits_ = self._gradient_circuits.get(id(circuit))
             if gradient_circuits_ is None:
                 gradient_circuits_ = _make_lin_comb_gradient_circuit(circuit)
@@ -124,7 +129,7 @@ class LinCombEstimatorGradient(BaseEstimatorGradient):
 
         gradients = []
         for i, result in enumerate(results):
-            gradient_ = np.zeros(len(metadata_[i]["parameters"]))
+            gradient_ = np.zeros(len(metadata_[i]["parameters"]), dtype='complex_')
             for grad_, idx, coeff in zip(result.values, result_indices_all[i], coeffs_all[i]):
                 gradient_[idx] += coeff * grad_
             gradients.append(gradient_)
