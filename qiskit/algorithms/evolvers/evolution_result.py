@@ -17,12 +17,27 @@ from typing import Optional, Union, Tuple
 from qiskit import QuantumCircuit
 from qiskit.algorithms.list_or_dict import ListOrDict
 from qiskit.opflow import StateFn, OperatorBase
+from qiskit.utils.deprecation import deprecate_function
 from ..algorithm_result import AlgorithmResult
 
 
 class EvolutionResult(AlgorithmResult):
-    """Class for holding evolution result."""
+    """Pending deprecation: Class for holding evolution result.
 
+    The EvolutionResult class has been superseded by the
+    :class:`qiskit.algorithms.time_evolvers.TimeEvolutionResult` class.
+    This class will be deprecated in a future release and subsequently
+    removed after that.
+
+    """
+
+    @deprecate_function(
+        "The EvolutionResult class has been superseded by the "
+        "qiskit.algorithms.time_evolvers.TimeEvolutionResult class. "
+        "This class will be deprecated in a future release and subsequently "
+        "removed after that.",
+        category=PendingDeprecationWarning,
+    )
     def __init__(
         self,
         evolved_state: Union[StateFn, QuantumCircuit, OperatorBase],
