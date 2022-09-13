@@ -119,7 +119,5 @@ class SPSAEstimatorGradient(BaseEstimatorGradient):
             indices = [circuits[i].parameters.data.index(p) for p in metadata_[i]["parameters"]]
             gradients.append(gradient[indices])
 
-        # TODO: include primitive's run_options as well
-        return EstimatorGradientResult(
-            gradients=gradients, metadata=metadata_, run_options=run_options
-        )
+        run_opt = self._get_local_run_options(run_options)
+        return EstimatorGradientResult(gradients=gradients, metadata=metadata_, run_options=run_opt)
