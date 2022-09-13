@@ -1,0 +1,12 @@
+---
+features:
+  - |
+     Added :class:`qiskit.algorithms.eigensolvers` package to include
+     interfaces for primitive-enabled algorithms. Refactored
+     :class:`qiskit.algorithms.eigensolvers.VQD` to leverage primitives.
+deprecations:
+  - |
+     :class:`qiskit.algorithms.eigen_solvers` package will now issue a ``PendingDeprecationWarning``. It
+     will be deprecated in a future release and subsequently removed after that. This is being
+     replaced by the new :class:`qiskit.algorithms.eigensolvers` package that will host
+     primitive-enabled algorithms.
