@@ -163,19 +163,19 @@ class VQE(VariationalAlgorithm, MinimumEigensolver):
 
         start_time = time()
 
-        energy_evaluation = self._get_energy_evaluation(ansatz, operator)
+        evaluate_energy = self._get_evaluate_energy(ansatz, operator)
 
         if self.gradient is not None:
-            gradient_evaluation = self._get_gradient_evaluation(ansatz, operator)
+            evaluate_gradient = self._get_evalute_gradient(ansatz, operator)
         else:
-            gradient_evaluation = None
+            evaluate_gradient = None
 
         # perform optimization
         if callable(optimizer):
-            opt_result = optimizer(fun=energy_evaluation, x0=initial_point, jac=gradient_evaluation)
+            opt_result = optimizer(fun=evaluate_energy, x0=initial_point, jac=evaluate_gradient)
         else:
             opt_result = optimizer.minimize(
-                fun=energy_evaluation, x0=initial_point, jac=gradient_evaluation
+                fun=evaluate_energy, x0=initial_point, jac=evaluate_gradient
             )
 
         eval_time = time() - start_time
@@ -208,7 +208,7 @@ class VQE(VariationalAlgorithm, MinimumEigensolver):
     def supports_aux_operators(cls) -> bool:
         return True
 
-    def _get_energy_evaluation(
+    def _get_evaluate_energy(
         self,
         ansatz: QuantumCircuit,
         operator: BaseOperator | PauliSumOp,
@@ -226,7 +226,7 @@ class VQE(VariationalAlgorithm, MinimumEigensolver):
         # avoid creating an instance variable to remain stateless regarding results
         eval_count = 0
 
-        def energy_evaluation(parameters):
+        def evaluate_energy(parameters):
             nonlocal eval_count
 
             # handle broadcasting: ensure parameters is of shape [array, array, ...]
@@ -245,21 +245,21 @@ class VQE(VariationalAlgorithm, MinimumEigensolver):
 
             return values[0] if len(values) == 1 else values
 
-        return energy_evaluation
+        return evaluate_energy
 
-    def _get_gradient_evaluation(
+    def _get_evalute_gradient(
         self,
         ansatz: QuantumCircuit,
         operator: BaseOperator | PauliSumOp,
     ) -> tuple[Callable[[np.ndarray], np.ndarray]]:
         """Returns a function handle to evaluate the gradient at given parameters for the ansatz."""
 
-        def gradient_evaluation(parameters):
+        def evaluate_gradient(parameters):
             # broadcasting not required for the estimator gradients
             result = self.gradient.run([ansatz], [operator], [parameters]).result()
             return result.gradients[0]
 
-        return gradient_evaluation
+        return evaluate_gradient
 
     def _check_operator_ansatz(
         self, operator: BaseOperator | PauliSumOp, ansatz: QuantumCircuit
