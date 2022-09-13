@@ -15,8 +15,6 @@ Tests the interface for HighLevelSynthesis transpiler pass.
 """
 
 
-import copy
-
 import unittest.mock
 
 from qiskit.circuit import QuantumCircuit, Operation
@@ -54,10 +52,6 @@ class OpA(Operation):
     def num_clbits(self):
         return 0
 
-    def copy(self):
-        """Make a deep copy of current Operation."""
-        return copy.deepcopy(self)
-
 
 class OpB(Operation):
     """Another simple operation."""
@@ -73,10 +67,6 @@ class OpB(Operation):
     @property
     def num_clbits(self):
         return 0
-
-    def copy(self):
-        """Make a deep copy of current Operation."""
-        return copy.deepcopy(self)
 
 
 class OpADefaultSynthesisPlugin(HighLevelSynthesisPlugin):
