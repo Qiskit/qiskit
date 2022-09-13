@@ -109,6 +109,7 @@ class VQE(VariationalAlgorithm, MinimumEigensolver):
         optimizer: Optimizer | Minimizer | None = None,
         gradient: BaseEstimatorGradient | None = None,
         initial_point: Sequence[float] | None = None,
+        callback: Callable[[int, np.ndarray, float, float], None] | None = None,
     ) -> None:
         """
         Args:
@@ -129,9 +130,9 @@ class VQE(VariationalAlgorithm, MinimumEigensolver):
         self.ansatz = ansatz
         self.optimizer = optimizer
         self.gradient = gradient
-
         # this has to go via getters and setters due to the VariationalAlgorithm interface
         self.initial_point = initial_point
+        self.callback = callback
 
     @property
     def initial_point(self) -> Sequence[float] | None:
@@ -222,13 +223,26 @@ class VQE(VariationalAlgorithm, MinimumEigensolver):
         """
         num_parameters = ansatz.num_parameters
 
+        # avoid creating an instance variable to remain stateless regarding results
+        eval_count = 0
+
         def energy_evaluation(parameters):
+            nonlocal eval_count
+
             # handle broadcasting: ensure parameters is of shape [array, array, ...]
             parameters = np.reshape(parameters, (-1, num_parameters)).tolist()
             batchsize = len(parameters)
 
             job = self.estimator.run(batchsize * [ansatz], batchsize * [operator], parameters)
             values = job.result().values
+
+            # TODO recover variance from estimator if has metadata has shots?
+
+            if self.callback is not None:
+                for params, value in zip(parameters, values):
+                    eval_count += 1
+                    self.callback(eval_count, params, value, 0.0)
+
             return values[0] if len(values) == 1 else values
 
         return energy_evaluation
