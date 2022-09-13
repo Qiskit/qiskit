@@ -41,9 +41,7 @@ def _is_boolean_expression(gate_text, op):
         return False
     from qiskit.circuit.classicalfunction import BooleanExpression
 
-    return (gate_text == op.name and type(op) is BooleanExpression) or (
-        gate_text == op.base_gate.name and type(op.base_gate) is BooleanExpression
-    )
+    return isinstance(op, BooleanExpression) and gate_text == op.name
 
 
 def get_gate_ctrl_text(op, drawer, style=None, calibrations=None):
