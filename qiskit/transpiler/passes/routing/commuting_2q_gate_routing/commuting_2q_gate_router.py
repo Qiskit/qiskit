@@ -115,15 +115,15 @@ class Commuting2qGateRouter(TransformationPass):
                 the hardware. If this field is not given if should be contained in the
                 property set of the pass. This allows other passes to determine the most
                 appropriate swap strategy at run-time.
-            edge_coloring: An optional edge coloring of the coupling map (I.e. no two edges
-                have the same color). If the edge coloring is given then the commuting gates
-                that can be simultaneously applied given the current qubit permutation will be
+            edge_coloring: An optional edge coloring of the coupling map (I.e. no two edges that
+                share a node have the same color). If the edge coloring is given then the commuting
+                gates that can be simultaneously applied given the current qubit permutation are
                 grouped according to the edge coloring and applied according to this edge
                 coloring. Here, a color is an int which is used as the index to define and
                 access the groups of commuting gates that can be applied simultaneously.
                 If the edge coloring is not given then the sets will be built-up using a
-                greedy algorithm. The edge coloring is useful for position gates such as
-                ``RZZGate``\s next to swap gates.
+                greedy algorithm. The edge coloring is useful to position gates such as
+                ``RZZGate``\s next to swap gates to exploit CX cancellations.
         """
         super().__init__()
         self._swap_strategy = swap_strategy
