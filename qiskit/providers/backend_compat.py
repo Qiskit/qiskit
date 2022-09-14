@@ -168,17 +168,20 @@ def qubit_props_list_from_props(
 
 
 class BackendV2Converter(BackendV2):
-    """A converter class that takes a BackendV1 instance and wraps it in a BackendV2 interface
+    """A converter class that takes a :class:`~.BackendV1` instance and wraps it in a
+    :class:`~.BackendV2` interface.
 
-    This can be used to provide a consistent modern interface when a
-
+    This class implements the :class:`~.BackendV2` interface and is used to enable
+    common access patterns between :class:`~.BackendV1` and :class:`~.BackendV2`. This
+    class should only be used if you need a :class:`~.BackendV2` and still need
+    compatibility with :class:`~.BackendV1`.
     """
 
     def __init__(
         self,
         backend: BackendV1,
     ):
-        """Initialize a BackendV2 based backend
+        """Initialize a BackendV2 converter instance based on a BackendV1 instance.
 
         Args:
             backend: The input :class:`~.BackendV1` based backend to wrap in a
@@ -221,10 +224,6 @@ class BackendV2Converter(BackendV2):
     @classmethod
     def _default_options(cls):
         return None
-
-    @property
-    def dt(self) -> Union[float, None]:
-        return self.target.dt
 
     @property
     def dtm(self) -> float:
