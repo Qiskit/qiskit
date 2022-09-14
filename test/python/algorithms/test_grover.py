@@ -98,7 +98,7 @@ class TestGrover(QiskitAlgorithmsTestCase):
             BasicAer.get_backend("qasm_simulator"), seed_simulator=12, seed_transpiler=32
         )
         self._sampler = Sampler()
-        self._sampler_with_shots = Sampler(run_options={"shots": 1024, "seed": 123})
+        self._sampler_with_shots = Sampler(options={"shots": 1024, "seed": 123})
 
     @data("ideal", "shots", False)
     def test_implicit_phase_oracle_is_good_state(self, use_sampler):
@@ -210,7 +210,7 @@ class TestGrover(QiskitAlgorithmsTestCase):
         if use_sampler == "ideal":
             grover = Grover(iterations=zero(), sampler=self._sampler)
         elif use_sampler == "shots":
-            sampler = Sampler(run_options={"shots": 10, "seed": 123})
+            sampler = Sampler(options={"shots": 10, "seed": 123})
             grover = Grover(iterations=zero(), sampler=sampler)
         else:
             with self.assertWarns(PendingDeprecationWarning):
