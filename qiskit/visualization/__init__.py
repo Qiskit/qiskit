@@ -70,7 +70,7 @@ You can save the figure to file either by passing the file name to ``filename`` 
 `matplotlib.figure.Figure.savefig
 <https://matplotlib.org/stable/api/figure_api.html#matplotlib.figure.Figure.savefig>`_ method.
 
-.. jupyter-execute::
+.. code-block:: python
 
    plot_histogram(data, filename='new_hist.png')
 
@@ -244,7 +244,6 @@ from .array import array_to_latex
 
 from .circuit import circuit_drawer
 from .counts_visualization import plot_histogram
-from .bloch import Bloch, Arrow3D
 from .state_visualization import (
     plot_state_hinton,
     plot_bloch_vector,

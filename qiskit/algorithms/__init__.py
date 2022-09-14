@@ -108,6 +108,11 @@ Classes used by variational quantum time evolution algorithms - VarQITE and VarQ
 Evolvers
 --------
 
+Pending deprecation: This package has been superseded by the package below. It will be
+deprecated in a future release and subsequently removed after that:
+
+`Time Evolvers`_
+
 Algorithms to evolve quantum states in time. Both real and imaginary time evolution is possible
 with algorithms that support them. For machine learning, Quantum Imaginary Time Evolution might be
 used to train Quantum Boltzmann Machine Neural Networks for example.

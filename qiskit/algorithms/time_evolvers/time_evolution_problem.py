@@ -10,7 +10,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""Evolution problem class."""
+"""Time evolution problem class."""
 from __future__ import annotations
 
 from collections.abc import Mapping
@@ -24,7 +24,7 @@ from ...quantum_info.operators.base_operator import BaseOperator
 
 
 class TimeEvolutionProblem:
-    """Evolution problem class.
+    """Time evolution problem class.
 
     This class is the input to time evolution algorithms and must contain information on the total
     evolution time, a quantum state to be evolved and under which Hamiltonian the state is evolved.
@@ -41,7 +41,7 @@ class TimeEvolutionProblem:
             Used when ``aux_operators`` is provided.
         t_param (Parameter | None): Time parameter in case of a time-dependent Hamiltonian. This
             free parameter must be within the ``hamiltonian``.
-        param_value_dict (dict[Parameter, complex] | None): Maps free parameters in the problem to
+        param_value_map (dict[Parameter, complex] | None): Maps free parameters in the problem to
             values. Depending on the algorithm, it might refer to e.g. a Hamiltonian or an initial
             state.
     """
@@ -54,8 +54,7 @@ class TimeEvolutionProblem:
         aux_operators: ListOrDict[BaseOperator | PauliSumOp] | None = None,
         truncation_threshold: float = 1e-12,
         t_param: Parameter | None = None,
-        param_value_dict: Mapping[Parameter, complex]
-        | None = None,  # parametrization will become supported in BaseOperator soon
+        param_value_map: Mapping[Parameter, complex] | None = None,
     ):
         """
         Args:
@@ -70,7 +69,7 @@ class TimeEvolutionProblem:
                 Used when ``aux_operators`` is provided.
             t_param: Time parameter in case of a time-dependent Hamiltonian. This
                 free parameter must be within the ``hamiltonian``.
-            param_value_dict: Maps free parameters in the problem to values. Depending on the
+            param_value_map: Maps free parameters in the problem to values. Depending on the
                 algorithm, it might refer to e.g. a Hamiltonian or an initial state.
 
         Raises:
@@ -78,7 +77,7 @@ class TimeEvolutionProblem:
         """
 
         self.t_param = t_param
-        self.param_value_dict = param_value_dict
+        self.param_value_map = param_value_map
         self.hamiltonian = hamiltonian
         self.time = time
         if isinstance(initial_state, Statevector):
