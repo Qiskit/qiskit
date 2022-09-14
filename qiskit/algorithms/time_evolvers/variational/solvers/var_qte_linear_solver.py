@@ -22,10 +22,8 @@ from qiskit.algorithms.time_evolvers.variational.variational_principles.variatio
     VariationalPrinciple,
 )
 from qiskit.circuit import Parameter
-from qiskit.opflow import (
-    OperatorBase,
-)
-from qiskit.primitives import BaseEstimator
+from qiskit.opflow import PauliSumOp
+from qiskit.quantum_info.operators.base_operator import BaseOperator
 
 
 class VarQTELinearSolver:
@@ -33,9 +31,8 @@ class VarQTELinearSolver:
 
     def __init__(
         self,
-        estimator: BaseEstimator,
         var_principle: VariationalPrinciple,
-        hamiltonian: OperatorBase,
+        hamiltonian: BaseOperator | PauliSumOp,
         ansatz: QuantumCircuit,
         gradient_params: list[Parameter],
         t_param: Parameter | None = None,
@@ -60,7 +57,6 @@ class VarQTELinearSolver:
             imag_part_tol: Allowed value of an imaginary part that can be neglected if no
                 imaginary part is expected.
         """
-        self._estimator = estimator
         self._var_principle = var_principle
         self._hamiltonian = hamiltonian
         self._ansatz = ansatz
@@ -107,10 +103,7 @@ class VarQTELinearSolver:
             param_values.append(time_value)
 
         metric_tensor_lse_lhs = self._var_principle.metric_tensor(
-            self._ansatz,
-            self._bind_params,
-            self._gradient_params,
-            param_values,
+            self._ansatz, self._bind_params, param_values
         )
         evolution_grad_lse_rhs = self._var_principle.evolution_grad(
             self._hamiltonian,

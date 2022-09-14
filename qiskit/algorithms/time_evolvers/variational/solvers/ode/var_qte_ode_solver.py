@@ -19,9 +19,7 @@ from typing import Type
 import numpy as np
 from scipy.integrate import OdeSolver, solve_ivp
 
-from .abstract_ode_function import (
-    AbstractOdeFunction,
-)
+from .abstract_ode_function import AbstractOdeFunction
 from .forward_euler_solver import ForwardEulerSolver
 
 

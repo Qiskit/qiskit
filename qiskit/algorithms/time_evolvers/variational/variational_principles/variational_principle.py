@@ -18,16 +18,12 @@ from abc import ABC, abstractmethod
 import numpy as np
 
 from qiskit import QuantumCircuit
+from qiskit.algorithms.gradients import BaseEstimatorGradient
+from qiskit.algorithms.gradients.qfi import QFI
 from qiskit.circuit import Parameter
-from qiskit.opflow import (
-    CircuitQFI,
-    CircuitGradient,
-    QFI,
-    Gradient,
-    CircuitStateFn,
-    OperatorBase,
-)
-from qiskit.primitives import BaseEstimator
+from qiskit.opflow import PauliSumOp
+from qiskit.quantum_info import Pauli
+from qiskit.quantum_info.operators.base_operator import BaseOperator
 
 
 class VariationalPrinciple(ABC):
@@ -36,8 +32,10 @@ class VariationalPrinciple(ABC):
 
     def __init__(
         self,
-        qfi_method: str | CircuitQFI = "lin_comb_full",
-        grad_method: str | CircuitGradient = "lin_comb",
+        qfi: QFI,
+        gradient: BaseEstimatorGradient,
+        # qfi_method: str | CircuitQFI = "lin_comb_full",
+        # grad_method: str | CircuitGradient = "lin_comb",
     ) -> None:
         """
         Args:
@@ -47,46 +45,46 @@ class VariationalPrinciple(ABC):
                 ``'lin_comb_full'`` or ``'overlap_block_diag'`` or ``'overlap_diag'`` or
                 ``CircuitQFI``.
         """
-        self._qfi_method = qfi_method
-        self.qfi = QFI(qfi_method)
-        self._grad_method = grad_method
-        self._evolution_gradient = Gradient(self._grad_method)
-        self._qfi_gradient_callable = None
-        self._evolution_gradient_callable = None
+        # self._qfi_method = qfi_method
+        # self.qfi = QFI(qfi_method)
+        self.qfi = qfi
+        self.gradient = gradient
+        # self._grad_method = grad_method
+        # self._evolution_gradient = Gradient(self._grad_method)
+        # self._qfi_gradient_callable = None
+        # self._evolution_gradient_callable = None
 
     def metric_tensor(
-        self,
-        estimator: BaseEstimator,
-        ansatz: QuantumCircuit,
-        bind_params: list[Parameter],
-        gradient_params: list[Parameter],
-        param_values: list[complex],
+        self, ansatz: QuantumCircuit, gradient_params: list[Parameter], param_values: list[complex]
     ) -> np.ndarray:
         """
         Calculates a metric tensor according to the rules of this variational principle.
 
         Args:
             ansatz: Quantum state in the form of a parametrized quantum circuit.
-            bind_params: List of parameters that are supposed to be bound.
             gradient_params: List of parameters with respect to which gradients should be computed.
             param_values: Values of parameters to be bound.
 
         Returns:
             Metric tensor.
         """
-        if self._qfi_gradient_callable is None:
-            self._qfi_gradient_callable = self.qfi.gradient_wrapper(
-                CircuitStateFn(ansatz), bind_params, gradient_params
-            )
-        metric_tensor = 0.25 * self._qfi_gradient_callable(param_values)
+        # if self._qfi_gradient_callable is None:
+        #     self._qfi_gradient_callable = self.qfi.gradient_wrapper(
+        #         CircuitStateFn(ansatz), bind_params, gradient_params
+        #     )
+        # metric_tensor = 0.25 * self._qfi_gradient_callable(param_values)
+        # TODO which observables to provide?
+        metric_tensor = (
+            0.25
+            * self.qfi._run([ansatz], [Pauli("I")], [param_values], [gradient_params]).gradients[0]
+        )
 
         return metric_tensor
 
     @abstractmethod
     def evolution_grad(
         self,
-        estimator: BaseEstimator,
-        hamiltonian: OperatorBase,
+        hamiltonian: BaseOperator | PauliSumOp,
         ansatz: QuantumCircuit,
         param_dict: dict[Parameter, complex],
         bind_params: list[Parameter],

@@ -20,14 +20,12 @@ import numpy as np
 from scipy.integrate import OdeSolver
 
 from qiskit import QuantumCircuit
-from qiskit.algorithms.aux_ops_evaluator import eval_observables
-from qiskit.algorithms.evolvers.evolution_problem import EvolutionProblem
-from qiskit.algorithms.evolvers.evolution_result import EvolutionResult
+from qiskit.algorithms.time_evolvers.time_evolution_problem import TimeEvolutionProblem
+from qiskit.algorithms.time_evolvers.time_evolution_result import TimeEvolutionResult
 from qiskit.circuit import Parameter
 from qiskit.primitives import BaseEstimator
-from qiskit.opflow import (
-    OperatorBase,
-)
+from qiskit.opflow import PauliSumOp
+from qiskit.quantum_info.operators.base_operator import BaseOperator
 from .solvers.ode.forward_euler_solver import ForwardEulerSolver
 from .solvers.ode.ode_function_factory import OdeFunctionFactory
 from .solvers.var_qte_linear_solver import (
@@ -55,7 +53,7 @@ class VarQTE(ABC):
 
     def __init__(
         self,
-        ansatz: OperatorBase | QuantumCircuit,
+        ansatz: BaseOperator | QuantumCircuit,
         variational_principle: VariationalPrinciple,
         estimator: BaseEstimator | None = None,
         initial_parameters: dict[Parameter, complex] | list[complex] | np.ndarray | None = None,
@@ -72,7 +70,7 @@ class VarQTE(ABC):
             initial_parameters: Initial parameter values for an ansatz. If ``None`` provided,
                 they are initialized uniformly at random.
             estimator: An estimator primitive used for calculating expectation values of
-                EvolutionProblem.aux_operators.
+                TimeEvolutionProblem.aux_operators.
             ode_solver: ODE solver callable that implements a SciPy ``OdeSolver`` interface or a
                 string indicating a valid method offered by SciPy.
             lse_solver: Linear system of equations solver callable. It accepts ``A`` and ``b`` to
@@ -101,7 +99,7 @@ class VarQTE(ABC):
         self.imag_part_tol = imag_part_tol
         self.num_instability_tol = num_instability_tol
 
-    def evolve(self, evolution_problem: EvolutionProblem) -> EvolutionResult:
+    def evolve(self, evolution_problem: TimeEvolutionProblem) -> TimeEvolutionResult:
         """
         Apply Variational Quantum Imaginary Time Evolution (VarQITE) w.r.t. the given
         operator.
@@ -137,21 +135,21 @@ class VarQTE(ABC):
 
         evaluated_aux_ops = None
         if evolution_problem.aux_operators is not None:
-            evaluated_aux_ops = eval_observables(
+            evaluated_aux_ops = estimate_observables(
                 evolved_state,
                 evolution_problem.aux_operators,
             )
 
-        return EvolutionResult(evolved_state, evaluated_aux_ops)
+        return TimeEvolutionResult(evolved_state, evaluated_aux_ops)
 
     def _evolve(
         self,
         init_state_param_dict: dict[Parameter, complex],
-        hamiltonian: OperatorBase,
+        hamiltonian: BaseOperator | PauliSumOp,
         time: float,
         t_param: Parameter | None = None,
         error_calculator: Any = None,
-    ) -> OperatorBase:
+    ) -> BaseOperator | QuantumCircuit:
         r"""
         Helper method for performing time evolution. Works both for imaginary and real case.
 
@@ -256,7 +254,7 @@ class VarQTE(ABC):
         init_state_param_dict = dict(zip(init_state_parameters, init_state_parameter_values))
         return init_state_param_dict
 
-    def _validate_aux_ops(self, evolution_problem: EvolutionProblem) -> None:
+    def _validate_aux_ops(self, evolution_problem: TimeEvolutionProblem) -> None:
         if evolution_problem.aux_operators is not None:
             if self.estimator is None:
                 raise ValueError(

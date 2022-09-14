@@ -19,30 +19,28 @@ import numpy as np
 from scipy.integrate import OdeSolver
 
 from qiskit import QuantumCircuit
-from qiskit.algorithms.evolvers.real_evolver import RealEvolver
+from qiskit.algorithms.time_evolvers.real_time_evolver import RealTimeEvolver
 from qiskit.circuit import Parameter
-from qiskit.opflow import OperatorBase
 from qiskit.primitives import BaseEstimator
+from qiskit.quantum_info.operators.base_operator import BaseOperator
 from . import RealMcLachlanPrinciple
 from .solvers.ode.forward_euler_solver import ForwardEulerSolver
 from .variational_principles import RealVariationalPrinciple
 from .var_qte import VarQTE
 
 
-class VarQRTE(VarQTE, RealEvolver):
+class VarQRTE(VarQTE, RealTimeEvolver):
     """Variational Quantum Real Time Evolution algorithm.
 
     .. code-block::python
 
-        from qiskit.algorithms import EvolutionProblem
+        from qiskit.algorithms import TimeEvolutionProblem
         from qiskit.algorithms import VarQITE
         from qiskit import BasicAer
         from qiskit.circuit.library import EfficientSU2
         from qiskit.opflow import SummedOp, I, Z, Y, X
-        from qiskit.algorithms.evolvers.variational import (
-            RealMcLachlanPrinciple,
-        )
-        from qiskit.algorithms import EvolutionProblem
+        from qiskit.algorithms.time_evolvers.variational import RealMcLachlanPrinciple
+        from qiskit.algorithms import TimeEvolutionProblem
         import numpy as np
 
         observable = SummedOp(
@@ -65,14 +63,14 @@ class VarQRTE(VarQTE, RealEvolver):
         var_principle = RealMcLachlanPrinciple()
         backend = BasicAer.get_backend("statevector_simulator")
         time = 1
-        evolution_problem = EvolutionProblem(observable, time)
+        evolution_problem = TimeEvolutionProblem(observable, time)
         var_qrte = VarQRTE(ansatz, var_principle, param_dict, quantum_instance=backend)
         evolution_result = var_qite.evolve(evolution_problem)
     """
 
     def __init__(
         self,
-        ansatz: OperatorBase | QuantumCircuit,
+        ansatz: BaseOperator | QuantumCircuit,
         variational_principle: RealVariationalPrinciple | None = None,
         initial_parameters: dict[Parameter, complex] | list[complex] | np.ndarray | None = None,
         estimator: BaseEstimator | None = None,
@@ -90,7 +88,7 @@ class VarQRTE(VarQTE, RealEvolver):
             initial_parameters: Initial parameter values for an ansatz. If ``None`` provided,
                 they are initialized uniformly at random.
             estimator: An estimator primitive used for calculating expectation values of
-                EvolutionProblem.aux_operators.
+                TimeEvolutionProblem.aux_operators.
             ode_solver: ODE solver callable that implements a SciPy ``OdeSolver`` interface or a
                 string indicating a valid method offered by SciPy.
             lse_solver: Linear system of equations solver callable. It accepts ``A`` and ``b`` to
@@ -106,6 +104,7 @@ class VarQRTE(VarQTE, RealEvolver):
                 non-negative.
         """
         if variational_principle is None:
+            # TODO add default QFI and gradient to var principles
             variational_principle = RealMcLachlanPrinciple()
         super().__init__(
             ansatz,

@@ -11,7 +11,7 @@
 # that they have been altered from the originals.
 
 """
-Solvers (:mod:`qiskit.algorithms.evolvers.variational.solvers`)
+Solvers (:mod:`qiskit.algorithms.time_evolvers.variational.solvers`)
 ===============================================================
 
 This package contains the necessary classes to solve systems of equations arising in the
@@ -38,7 +38,11 @@ ODE Solver
     VarQTEOdeSolver
 """
 
-from qiskit.algorithms.evolvers.variational.solvers.ode.var_qte_ode_solver import VarQTEOdeSolver
-from qiskit.algorithms.evolvers.variational.solvers.var_qte_linear_solver import VarQTELinearSolver
+from qiskit.algorithms.time_evolvers.variational.solvers.ode.var_qte_ode_solver import (
+    VarQTEOdeSolver,
+)
+from qiskit.algorithms.time_evolvers.variational.solvers.var_qte_linear_solver import (
+    VarQTELinearSolver,
+)
 
 __all__ = ["VarQTELinearSolver", "VarQTEOdeSolver"]

@@ -14,20 +14,20 @@
 from __future__ import annotations
 
 import numpy as np
-from numpy import real
 
 from qiskit import QuantumCircuit
+from qiskit.algorithms.gradients import BaseEstimatorGradient
+from qiskit.algorithms.gradients.qfi import QFI
 from qiskit.circuit import Parameter
 from qiskit.opflow import (
     StateFn,
     SummedOp,
     Y,
     I,
-    CircuitQFI,
-    OperatorBase,
+    PauliSumOp,
 )
 from qiskit.opflow.gradients.circuit_gradients import LinComb
-from qiskit.primitives import BaseEstimator
+from qiskit.quantum_info.operators.base_operator import BaseOperator
 from .real_variational_principle import (
     RealVariationalPrinciple,
 )
@@ -42,7 +42,9 @@ class RealMcLachlanPrinciple(RealVariationalPrinciple):
 
     def __init__(
         self,
-        qfi_method: str | CircuitQFI = "lin_comb_full",
+        qfi: QFI,
+        gradient: BaseEstimatorGradient,
+        # qfi_method: str | CircuitQFI = "lin_comb_full",
     ) -> None:
         """
         Args:
@@ -50,16 +52,16 @@ class RealMcLachlanPrinciple(RealVariationalPrinciple):
                 ``'lin_comb_full'`` or ``'overlap_block_diag'`` or ``'overlap_diag'`` or
                 ``CircuitQFI``.
         """
+        # TODO make sure to add aux meas op in primitive run method
         self._grad_method = LinComb(aux_meas_op=-Y)
         self._energy_param = None
         self._energy = None
 
-        super().__init__(qfi_method)
+        super().__init__(qfi, gradient)
 
     def evolution_grad(
         self,
-        estimator: BaseEstimator,
-        hamiltonian: OperatorBase,
+        hamiltonian: BaseOperator | PauliSumOp,
         ansatz: QuantumCircuit,
         param_dict: dict[Parameter, complex],
         bind_params: list[Parameter],
@@ -83,28 +85,34 @@ class RealMcLachlanPrinciple(RealVariationalPrinciple):
         Returns:
             An evolution gradient.
         """
-        if self._evolution_gradient_callable is None:
-            self._energy_param = Parameter("alpha")
-            modified_hamiltonian = self._construct_expectation(
-                hamiltonian, ansatz, self._energy_param
-            )
-
-            self._evolution_gradient_callable = self._evolution_gradient.gradient_wrapper(
-                modified_hamiltonian,
-                bind_params + [self._energy_param],
-                gradient_params,
-            )
-
-            energy = StateFn(hamiltonian, is_measurement=True) @ StateFn(ansatz)
-            self._energy = expectation.convert(energy)
-
-        if circuit_sampler is not None:
-            energy = circuit_sampler.convert(self._energy, param_dict).eval()
-        else:
-            energy = self._energy.assign_parameters(param_dict).eval()
-
-        param_values.append(real(energy))
-        evolution_grad = 0.5 * self._evolution_gradient_callable(param_values)
+        # if self._evolution_gradient_callable is None:
+        #     self._energy_param = Parameter("alpha")
+        #     modified_hamiltonian = self._construct_expectation(
+        #         hamiltonian, ansatz, self._energy_param
+        #     )
+        #
+        #     self._evolution_gradient_callable = self._evolution_gradient.gradient_wrapper(
+        #         modified_hamiltonian,
+        #         bind_params + [self._energy_param],
+        #         gradient_params,
+        #     )
+        #
+        #     energy = StateFn(hamiltonian, is_measurement=True) @ StateFn(ansatz)
+        #     self._energy = expectation.convert(energy)
+        #
+        # if circuit_sampler is not None:
+        #     energy = circuit_sampler.convert(self._energy, param_dict).eval()
+        # else:
+        #     energy = self._energy.assign_parameters(param_dict).eval()
+        #
+        # param_values.append(real(energy))
+        # evolution_grad = 0.5 * self._evolution_gradient_callable(param_values)
+        # TODO make sure to handle energy term correctly
+        evolution_grad = (
+            self.gradient.run([ansatz], [hamiltonian], [param_values], [gradient_params])
+            .result()
+            .gradients[0]
+        )
 
         # quick fix due to an error on opflow; to be addressed in a separate PR
         evolution_grad = (-1) * evolution_grad
@@ -112,8 +120,8 @@ class RealMcLachlanPrinciple(RealVariationalPrinciple):
 
     @staticmethod
     def _construct_expectation(
-        hamiltonian: OperatorBase, ansatz: QuantumCircuit, energy_param: Parameter
-    ) -> OperatorBase:
+        hamiltonian: BaseOperator | PauliSumOp, ansatz: QuantumCircuit, energy_param: Parameter
+    ) -> BaseOperator:
         """
         Modifies a Hamiltonian according to the rules of this variational principle.
 

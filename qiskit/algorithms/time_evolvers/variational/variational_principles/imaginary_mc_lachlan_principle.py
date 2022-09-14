@@ -16,8 +16,8 @@ import numpy as np
 
 from qiskit import QuantumCircuit
 from qiskit.circuit import Parameter
-from qiskit.opflow import StateFn, OperatorBase
-from qiskit.primitives import BaseEstimator
+from qiskit.opflow import PauliSumOp
+from qiskit.quantum_info.operators.base_operator import BaseOperator
 from .imaginary_variational_principle import (
     ImaginaryVariationalPrinciple,
 )
@@ -32,8 +32,7 @@ class ImaginaryMcLachlanPrinciple(ImaginaryVariationalPrinciple):
 
     def evolution_grad(
         self,
-        estimator: BaseEstimator,
-        hamiltonian: OperatorBase,
+        hamiltonian: BaseOperator | PauliSumOp,
         ansatz: QuantumCircuit,
         param_dict: dict[Parameter, complex],
         bind_params: list[Parameter],
@@ -57,11 +56,16 @@ class ImaginaryMcLachlanPrinciple(ImaginaryVariationalPrinciple):
         Returns:
             An evolution gradient.
         """
-        if self._evolution_gradient_callable is None:
-            operator = StateFn(hamiltonian, is_measurement=True) @ StateFn(ansatz)
-            self._evolution_gradient_callable = self._evolution_gradient.gradient_wrapper(
-                operator, bind_params, gradient_params
-            )
-        evolution_grad_lse_rhs = -0.5 * self._evolution_gradient_callable(param_values)
+        # if self._evolution_gradient_callable is None:
+        #     operator = StateFn(hamiltonian, is_measurement=True) @ StateFn(ansatz)
+        #     self._evolution_gradient_callable = self._evolution_gradient.gradient_wrapper(
+        #         operator, bind_params, gradient_params
+        #     )
+        # evolution_grad_lse_rhs = -0.5 * self._evolution_gradient_callable(param_values)
+        evolution_grad_lse_rhs = (
+            self.gradient.run([ansatz], [hamiltonian], [param_values], [gradient_params])
+            .result()
+            .gradients[0]
+        )
 
-        return evolution_grad_lse_rhs
+        return -0.5 * evolution_grad_lse_rhs

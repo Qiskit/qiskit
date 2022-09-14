@@ -16,9 +16,7 @@ from __future__ import annotations
 from abc import ABC, abstractmethod
 from typing import Iterable
 from qiskit.circuit import Parameter
-from ..var_qte_linear_solver import (
-    VarQTELinearSolver,
-)
+from ..var_qte_linear_solver import VarQTELinearSolver
 
 
 class AbstractOdeFunction(ABC):

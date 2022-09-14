@@ -10,12 +10,12 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 """
-Variational Quantum Time Evolutions (:mod:`qiskit.algorithms.evolvers.variational`)
+Variational Quantum Time Evolutions (:mod:`qiskit.algorithms.time_evolvers.variational`)
 ===================================================================================
 
 Algorithms for performing Variational Quantum Time Evolution of quantum states,
 which can be tailored to near-term devices.
-:class:`~qiskit.algorithms.evolvers.variational.VarQTE` base class exposes an interface, compliant
+:class:`~qiskit.algorithms.time_evolvers.variational.VarQTE` base class exposes an interface, compliant
 with the Quantum Time Evolution Framework in Qiskit Terra, that is implemented by
 :class:`~qiskit.algorithms.VarQRTE` and :class:`~qiskit.algorithms.VarQITE` classes for real and
 imaginary time evolution respectively. The variational approach is taken according to a variational
@@ -28,10 +28,8 @@ Examples:
     from qiskit import BasicAer
     from qiskit.circuit.library import EfficientSU2
     from qiskit.opflow import SummedOp, I, Z, Y, X
-    from qiskit.algorithms.evolvers.variational import (
-        ImaginaryMcLachlanPrinciple,
-    )
-    from qiskit.algorithms import EvolutionProblem
+    from qiskit.algorithms.time_evolvers.variational import ImaginaryMcLachlanPrinciple
+    from qiskit.algorithms import TimeEvolutionProblem
     from qiskit.algorithms import VarQITE
 
     # define a Hamiltonian
@@ -67,7 +65,7 @@ Examples:
     time = 1
 
     # define evolution problem
-    evolution_problem = EvolutionProblem(observable, time)
+    evolution_problem = TimeEvolutionProblem(observable, time)
 
     # instantiate the algorithm
     var_qite = VarQITE(ansatz, var_principle, param_dict, quantum_instance=backend)
@@ -75,7 +73,7 @@ Examples:
     # run the algorithm/evolve the state
     evolution_result = var_qite.evolve(evolution_problem)
 
-.. currentmodule:: qiskit.algorithms.evolvers.variational
+.. currentmodule:: qiskit.algorithms.time_evolvers.variational
 
 Variational Principles
 ----------------------

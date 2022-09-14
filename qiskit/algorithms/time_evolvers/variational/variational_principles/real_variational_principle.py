@@ -15,9 +15,8 @@ from __future__ import annotations
 
 from abc import ABC
 
-from qiskit.opflow import (
-    CircuitQFI,
-)
+from qiskit.algorithms.gradients import BaseEstimatorGradient
+from qiskit.algorithms.gradients.qfi import QFI
 from .variational_principle import (
     VariationalPrinciple,
 )
@@ -29,14 +28,19 @@ class RealVariationalPrinciple(VariationalPrinciple, ABC):
 
     def __init__(
         self,
-        qfi_method: str | CircuitQFI = "lin_comb_full",
+        qfi: QFI,
+        gradient: BaseEstimatorGradient,
+        # qfi_method: str | CircuitQFI = "lin_comb_full",
     ) -> None:
         """
         Args:
             qfi_method: The method used to compute the QFI. Can be either ``'lin_comb_full'`` or
                 ``'overlap_block_diag'`` or ``'overlap_diag'`` or ``CircuitQFI``.
         """
+        # TODO check if other than lin_comb_full can be supported
         super().__init__(
-            qfi_method,
-            self._grad_method,
+            qfi,
+            gradient,
+            # qfi_method,
+            # self._grad_method,
         )

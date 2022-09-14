@@ -22,9 +22,7 @@ import numpy as np
 from qiskit.circuit import Parameter
 from .abstract_ode_function import AbstractOdeFunction
 from .ode_function import OdeFunction
-from ..var_qte_linear_solver import (
-    VarQTELinearSolver,
-)
+from ..var_qte_linear_solver import VarQTELinearSolver
 
 
 class OdeFunctionType(Enum):
