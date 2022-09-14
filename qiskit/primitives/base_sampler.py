@@ -105,6 +105,7 @@ from qiskit.providers import Options
 from qiskit.utils.deprecation import deprecate_arguments, deprecate_function
 
 from .sampler_result import SamplerResult
+from .utils import final_measurement_mapping
 
 
 class BaseSampler(ABC):
@@ -119,14 +120,14 @@ class BaseSampler(ABC):
         self,
         circuits: Iterable[QuantumCircuit] | QuantumCircuit | None = None,
         parameters: Iterable[Iterable[Parameter]] | None = None,
-        run_options: dict | None = None,
+        options: dict | None = None,
     ):
         """
         Args:
             circuits: Quantum circuits to be executed.
             parameters: Parameters of each of the quantum circuits.
                 Defaults to ``[circ.parameters for circ in circuits]``.
-            run_options: Default runtime options.
+            options: Default options.
 
         Raises:
             QiskitError: For mismatch of circuits and parameters list.
@@ -157,8 +158,8 @@ class BaseSampler(ABC):
                     f"and circuits ({len(self._circuits)})"
                 )
         self._run_options = Options()
-        if run_options is not None:
-            self._run_options.update_options(**run_options)
+        if options is not None:
+            self._run_options.update_options(**options)
 
     def __new__(
         cls,
@@ -216,15 +217,15 @@ class BaseSampler(ABC):
         return tuple(self._parameters)
 
     @property
-    def run_options(self) -> Options:
+    def options(self) -> Options:
         """Return options values for the estimator.
 
         Returns:
-            run_options
+            options
         """
         return self._run_options
 
-    def set_run_options(self, **fields) -> BaseSampler:
+    def set_options(self, **fields):
         """Set options values for the estimator.
 
         Args:
@@ -308,7 +309,7 @@ class BaseSampler(ABC):
                 f"The number of circuits is {len(self.circuits)}, "
                 f"but the index {max(circuits)} is given."
             )
-        run_opts = copy(self.run_options)
+        run_opts = copy(self.options)
         run_opts.update_options(**run_options)
 
         return self._call(
@@ -383,7 +384,24 @@ class BaseSampler(ABC):
                     f"The number of values ({len(parameter_value)}) does not match "
                     f"the number of parameters ({circuit.num_parameters}) for the {i}-th circuit."
                 )
-        run_opts = copy(self.run_options)
+
+        for i, circuit in enumerate(circuits):
+            if circuit.num_clbits == 0:
+                raise QiskitError(
+                    f"The {i}-th circuit does not have any classical bit. "
+                    "Sampler requires classical bits, plus measurements "
+                    "on the desired qubits."
+                )
+
+            mapping = final_measurement_mapping(circuit)
+            if set(range(circuit.num_clbits)) != set(mapping.values()):
+                raise QiskitError(
+                    f"Some classical bits of the {i}-th circuit are not used for measurements."
+                    f" the number of classical bits ({circuit.num_clbits}),"
+                    f" the used classical bits ({set(mapping.values())})."
+                )
+
+        run_opts = copy(self.options)
         run_opts.update_options(**run_options)
 
         return self._run(

@@ -53,14 +53,14 @@ class Sampler(BaseSampler):
         self,
         circuits: QuantumCircuit | Iterable[QuantumCircuit] | None = None,
         parameters: Iterable[Iterable[Parameter]] | None = None,
-        run_options: dict | None = None,
+        options: dict | None = None,
     ):
         """
         Args:
             circuits: circuits to be executed
             parameters: Parameters of each of the quantum circuits.
                 Defaults to ``[circ.parameters for circ in circuits]``.
-            run_options: Default runtime options.
+            options: Default options.
 
         Raises:
             QiskitError: if some classical bits are not used for measurements.
@@ -76,7 +76,7 @@ class Sampler(BaseSampler):
                 preprocessed_circuits.append(circuit)
         else:
             preprocessed_circuits = None
-        super().__init__(preprocessed_circuits, parameters, run_options)
+        super().__init__(preprocessed_circuits, parameters, options)
         self._is_closed = False
 
     def _call(
@@ -158,12 +158,6 @@ class Sampler(BaseSampler):
     def _preprocess_circuit(circuit: QuantumCircuit):
         circuit = init_circuit(circuit)
         q_c_mapping = final_measurement_mapping(circuit)
-        if set(range(circuit.num_clbits)) != set(q_c_mapping.values()):
-            raise QiskitError(
-                "some classical bits are not used for measurements."
-                f" the number of classical bits {circuit.num_clbits},"
-                f" the used classical bits {set(q_c_mapping.values())}."
-            )
         c_q_mapping = sorted((c, q) for q, c in q_c_mapping.items())
         qargs = [q for _, q in c_q_mapping]
         circuit = circuit.remove_final_measurements(inplace=False)
