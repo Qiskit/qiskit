@@ -96,7 +96,7 @@ class TestBernoulli(QiskitAlgorithmsTestCase):
             seed_transpiler=2,
         )
 
-        self._sampler = Sampler(run_options={"seed": 2})
+        self._sampler = Sampler(options={"seed": 2})
 
         def qasm(shots=100):
             return QuantumInstance(
@@ -109,7 +109,7 @@ class TestBernoulli(QiskitAlgorithmsTestCase):
         self._qasm = qasm
 
         def sampler_shots(shots=100):
-            return Sampler(run_options={"shots": shots, "seed": 2})
+            return Sampler(options={"shots": shots, "seed": 2})
 
         self._sampler_shots = sampler_shots
 
@@ -379,7 +379,7 @@ class TestSineIntegral(QiskitAlgorithmsTestCase):
             seed_transpiler=41,
         )
 
-        self._sampler = Sampler(run_options={"seed": 123})
+        self._sampler = Sampler(options={"seed": 123})
 
         def qasm(shots=100):
             return QuantumInstance(
@@ -392,7 +392,7 @@ class TestSineIntegral(QiskitAlgorithmsTestCase):
         self._qasm = qasm
 
         def sampler_shots(shots=100):
-            return Sampler(run_options={"shots": shots, "seed": 7192})
+            return Sampler(options={"shots": shots, "seed": 7192})
 
         self._sampler_shots = sampler_shots
 
@@ -564,7 +564,7 @@ class TestFasterAmplitudeEstimation(QiskitAlgorithmsTestCase):
 
     def setUp(self):
         super().setUp()
-        self._sampler = Sampler(run_options={"seed": 2})
+        self._sampler = Sampler(options={"seed": 2})
 
     def test_rescaling(self):
         """Test the rescaling."""

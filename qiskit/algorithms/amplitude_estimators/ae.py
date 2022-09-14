@@ -265,7 +265,7 @@ class AmplitudeEstimation(AmplitudeEstimator):
         measurements = OrderedDict()
         samples = OrderedDict()
         shots = (
-            self._sampler.run_options.get("shots", 1)
+            self._sampler.options.get("shots", 1)
             if self._sampler is not None
             else self._quantum_instance._run_config.shots
         )
@@ -368,7 +368,7 @@ class AmplitudeEstimation(AmplitudeEstimator):
         result.num_evaluation_qubits = self._m
         result.post_processing = estimation_problem.post_processing
 
-        if self._sampler is not None and self._sampler.run_options.get("shots") is None:
+        if self._sampler is not None and self._sampler.options.get("shots") is None:
             circuit = self.construct_circuit(estimation_problem, measurement=True)
             try:
                 job = self._sampler.run([circuit])
@@ -397,7 +397,7 @@ class AmplitudeEstimation(AmplitudeEstimator):
             if self._quantum_instance is not None:
                 counts = self._quantum_instance.execute(circuit).get_counts()
             else:
-                shots = self._sampler.run_options.get("shots", 1)
+                shots = self._sampler.options.get("shots", 1)
                 try:
                     job = self._sampler.run([circuit])
                     ret = job.result()

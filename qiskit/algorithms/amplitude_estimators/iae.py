@@ -358,7 +358,7 @@ class IterativeAmplitudeEstimation(AmplitudeEstimator):
         )
         upper_half_circle = True  # initially theta is in the upper half-circle
 
-        if self._sampler is not None and self._sampler.run_options.get("shots") is None:
+        if self._sampler is not None and self._sampler.options.get("shots") is None:
             circuit = self.construct_circuit(estimation_problem, k=0, measurement=True)
             try:
                 job = self._sampler.run([circuit])
@@ -411,7 +411,7 @@ class IterativeAmplitudeEstimation(AmplitudeEstimator):
             shots = (
                 self._quantum_instance._run_config.shots
                 if self._quantum_instance is not None
-                else self._sampler.run_options.get("shots", 1)
+                else self._sampler.options.get("shots", 1)
             )
             self._circuits_cache = []
             # do while loop, keep in mind that we scaled theta mod 2pi such that it lies in [0,1]

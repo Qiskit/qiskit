@@ -334,7 +334,7 @@ class MaximumLikelihoodAmplitudeEstimation(AmplitudeEstimator):
         result.minimizer = self._minimizer
         result.post_processing = estimation_problem.post_processing
 
-        if self._sampler is not None and self._sampler.run_options.get("shots") is None:
+        if self._sampler is not None and self._sampler.options.get("shots") is None:
             circuits = self.construct_circuits(estimation_problem, measurement=True)
             try:
                 job = self._sampler.run(circuits)
@@ -366,7 +366,7 @@ class MaximumLikelihoodAmplitudeEstimation(AmplitudeEstimator):
             shots = (
                 self._quantum_instance._run_config.shots
                 if self._quantum_instance is not None
-                else self._sampler.run_options.get("shots", 1)
+                else self._sampler.options.get("shots", 1)
             )
             circuits = self.construct_circuits(estimation_problem, measurement=True)
             if self._quantum_instance is not None:
