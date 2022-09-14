@@ -236,7 +236,7 @@ class BaseStateFidelity(ABC):
         circuits_2: QuantumCircuit | Sequence[QuantumCircuit],
         values_1: Sequence[float] | Sequence[Sequence[float]] | None = None,
         values_2: Sequence[float] | Sequence[Sequence[float]] | None = None,
-        **run_options,
+        **options,
     ) -> StateFidelityResult:
         r"""
         Computes the state overlap (fidelity) calculation between two
@@ -248,9 +248,9 @@ class BaseStateFidelity(ABC):
             circuits_2: (Parametrized) quantum circuits preparing :math:`|\phi\rangle`.
             values_1: Numerical parameters to be bound to the first set of circuits
             values_2: Numerical parameters to be bound to the second set of circuits.
-            run_options: Backend runtime options used for circuit execution. The order
-                of priority is\: run_options in ``run`` method > fidelity's default
-                run_options > primitive's default setting.
+            optionsPrimitive backend runtime options used for circuit execution. The order
+                of priority is\: options in ``run`` method > fidelity's default
+                options > primitive's default setting.
                 Higher priority setting overrides lower priority setting.
 
         Returns:
@@ -264,7 +264,7 @@ class BaseStateFidelity(ABC):
         circuits_2: QuantumCircuit | Sequence[QuantumCircuit],
         values_1: Sequence[float] | Sequence[Sequence[float]] | None = None,
         values_2: Sequence[float] | Sequence[Sequence[float]] | None = None,
-        **run_options,
+        **options,
     ) -> AlgorithmJob:
         r"""
         Runs asynchronously the state overlap (fidelity) calculation between two
@@ -277,9 +277,9 @@ class BaseStateFidelity(ABC):
             circuits_2: (Parametrized) quantum circuits preparing :math:`|\phi\rangle`.
             values_1: Numerical parameters to be bound to the first set of circuits.
             values_2: Numerical parameters to be bound to the second set of circuits.
-            run_options: Backend runtime options used for circuit execution. The order
-                of priority is\: run_options in ``run`` method > fidelity's default
-                run_options > primitive's default setting.
+            optionsPrimitive backend runtime options used for circuit execution. The order
+                of priority is\: options in ``run`` method > fidelity's default
+                options > primitive's default setting.
                 Higher priority setting overrides lower priority setting.
 
         Returns:
@@ -287,7 +287,7 @@ class BaseStateFidelity(ABC):
             The job's result is an instance of ``StateFidelityResult``.
         """
 
-        job = AlgorithmJob(self._run, circuits_1, circuits_2, values_1, values_2, **run_options)
+        job = AlgorithmJob(self._run, circuits_1, circuits_2, values_1, values_2, **options)
 
         job.submit()
         return job

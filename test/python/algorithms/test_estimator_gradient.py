@@ -395,23 +395,23 @@ class TestEstimatorGradient(QiskitTestCase):
             else:
                 gradient = grad(estimator)
             result = gradient.run([qc], [op], [[1]]).result()
-            self.assertEqual(result.run_options.get("shots"), 100)
+            self.assertEqual(result.options.get("shots"), 100)
 
         with self.subTest("gradient init"):
             if grad is FiniteDiffEstimatorGradient or grad is SPSAEstimatorGradient:
-                gradient = grad(estimator, epsilon=1e-6, run_options={"shots": 200})
+                gradient = grad(estimator, epsilon=1e-6, options={"shots": 200})
             else:
-                gradient = grad(estimator, run_options={"shots": 200})
+                gradient = grad(estimator, options={"shots": 200})
             result = gradient.run([qc], [op], [[1]]).result()
-            self.assertEqual(result.run_options.get("shots"), 200)
+            self.assertEqual(result.options.get("shots"), 200)
 
         with self.subTest("gradient run"):
             if grad is FiniteDiffEstimatorGradient or grad is SPSAEstimatorGradient:
-                gradient = grad(estimator, epsilon=1e-6, run_options={"shots": 200})
+                gradient = grad(estimator, epsilon=1e-6, options={"shots": 200})
             else:
-                gradient = grad(estimator, run_options={"shots": 200})
+                gradient = grad(estimator, options={"shots": 200})
             result = gradient.run([qc], [op], [[1]], shots=300).result()
-            self.assertEqual(result.run_options.get("shots"), 300)
+            self.assertEqual(result.options.get("shots"), 300)
 
 
 if __name__ == "__main__":
