@@ -91,5 +91,14 @@ class TestSampledExpval(QiskitTestCase):
         self.assertAlmostEqual(sampled_expectation_value(DIST, '1011'), 0.0211)
 
 
+    def test_probdist(self):
+        dist = ProbDistribution(PROBS)
+        result = sampled_expectation_value(dist, 'IZIZ')
+        self.assertAlmostEqual(result, 0.8864)
+
+        result2 = sampled_expectation_value(dist, '00ZI')
+        self.assertAlmostEqual(result2, 0.4376)
+
+
 if __name__ == "__main__":
     unittest.main(verbosity=2)
