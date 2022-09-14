@@ -15,6 +15,7 @@
 import copy
 from . import calc_inverse_matrix
 
+
 def transpose_cx_circ(qc):
     """Transpose all cx gates in a circuit."""
     data = qc.data
