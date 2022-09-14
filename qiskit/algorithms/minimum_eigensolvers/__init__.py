@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2020.
+# (C) Copyright IBM 2022.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -12,7 +12,14 @@
 
 """Minimum Eigensolvers."""
 
-from .sampling_mes import SamplingMinimumEigensolver
-from .sampling_vqe import SamplingVQE
+from .sampling_mes import SamplingMinimumEigensolver, SamplingMinimumEigensolverResult
+from .sampling_vqe import SamplingVQE, SamplingVQEResult
+from .qaoa import QAOA
 
-__all__ = ["SamplingMinimumEigensolver", "SamplingVQE"]
+__all__ = [
+    "SamplingMinimumEigensolver",
+    "SamplingMinimumEigensolverResult",
+    "SamplingVQE",
+    "SamplingVQEResult",
+    "QAOA",
+]

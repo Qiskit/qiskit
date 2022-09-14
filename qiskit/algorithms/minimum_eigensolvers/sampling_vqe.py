@@ -22,10 +22,9 @@ import numpy as np
 
 from qiskit.circuit import QuantumCircuit
 from qiskit.circuit.library import RealAmplitudes
-from qiskit.primitives import BaseSampler
-
-from qiskit.quantum_info.operators.base_operator import BaseOperator
 from qiskit.opflow import PauliSumOp
+from qiskit.primitives import BaseSampler
+from qiskit.quantum_info.operators.base_operator import BaseOperator
 
 from ..exceptions import AlgorithmError
 from ..list_or_dict import ListOrDict
@@ -45,6 +44,7 @@ class SamplingVQE(VariationalAlgorithm, SamplingMinimumEigensolver):
     r"""The Variational Quantum Eigensolver algorithm.
 
     Attributes:
+        sampler: The sampler primitive to sample the circuits.
         ansatz: A parameterized circuit, preparing the ansatz for the wave function. If not
             provided, this defaults to a :class:`.RealAmplitudes` circuit.
         optimizer: A classical optimizer to find the minimum energy. This can either be a
@@ -53,7 +53,6 @@ class SamplingVQE(VariationalAlgorithm, SamplingMinimumEigensolver):
         initial_point: An optional initial point (i.e. initial parameter values) for the optimizer.
             If not provided, a random initial point with values in the interval :math:`[0, 2\pi]`
             is used.
-        sampler: The sampler primitive to sample the circuits.
         aggregation: A float or callable to specify how the objective function evaluated on the
             basis states should be aggregated. If a float, this specifies the :math:`\alpha \in [0,1]`
             parameter for a CVaR expectation value (see also [1]).
@@ -106,10 +105,14 @@ class SamplingVQE(VariationalAlgorithm, SamplingMinimumEigensolver):
         """Set the initial point."""
         self._initial_point = value
 
-    def _check_operator_ansatz(
-        self, operator: BaseOperator, ansatz: QuantumCircuit
-    ) -> QuantumCircuit:
+    def _check_operator_ansatz(self, operator: BaseOperator | PauliSumOp) -> QuantumCircuit:
         """Check that the number of qubits of operator and ansatz match."""
+        # set defaults
+        if self.ansatz is None:
+            ansatz = RealAmplitudes(num_qubits=operator.num_qubits)
+        else:
+            ansatz = self.ansatz.copy()
+
         if operator.num_qubits != ansatz.num_qubits:
             # try to set the number of qubits on the ansatz, if possible
             try:
@@ -135,14 +138,8 @@ class SamplingVQE(VariationalAlgorithm, SamplingMinimumEigensolver):
         operator: BaseOperator | PauliSumOp,
         aux_operators: ListOrDict[BaseOperator | PauliSumOp] | None = None,
     ) -> SamplingMinimumEigensolverResult:
-        # set defaults
-        if self.ansatz is None:
-            ansatz = RealAmplitudes(num_qubits=operator.num_qubits)
-        else:
-            ansatz = self.ansatz.copy()
-
         # check that the number of qubits of operator and ansatz match, and resize if possible
-        ansatz = self._check_operator_ansatz(operator, ansatz)
+        ansatz = self._check_operator_ansatz(operator)
         ansatz.measure_all()
 
         optimizer = SLSQP() if self.optimizer is None else self.optimizer
