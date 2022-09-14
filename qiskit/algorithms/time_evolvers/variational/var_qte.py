@@ -37,6 +37,7 @@ from .variational_principles.variational_principle import (
 from .solvers.ode.var_qte_ode_solver import (
     VarQTEOdeSolver,
 )
+from ... import estimate_observables
 
 
 class VarQTE(ABC):
