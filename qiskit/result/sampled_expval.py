@@ -18,7 +18,7 @@ from .distributions import QuasiDistribution, ProbDistribution
 
 
 # A dict defining the diagonal of each non-identity operator
-OPERS = {'Z': [1, -1], '0': [1, 0], '1':[0, 1]}
+OPERS = {"Z": [1, -1], "0": [1, 0], "1": [0, 1]}
 
 
 def sampled_expectation_value(dist, oper):
@@ -31,12 +31,13 @@ def sampled_expectation_value(dist, oper):
     from .counts import Counts
     from qiskit.quantum_info import Pauli, SparsePauliOp
     from qiskit.opflow import PauliOp, PauliSumOp
+
     # This should be removed when these return bit-string keys
     if isinstance(dist, (QuasiDistribution, ProbDistribution)):
         dist = dist.binary_probabilities()
-    
+
     if not isinstance(dist, (Counts, QuasiDistribution, ProbDistribution, dict)):
-        raise QiskitError('Invalid input distribution type')
+        raise QiskitError("Invalid input distribution type")
     if isinstance(oper, str):
         oper_strs = [oper.upper()]
         coeffs = [1.0]
@@ -54,10 +55,10 @@ def sampled_expectation_value(dist, oper):
         oper_strs = oper.paulis.to_labels()
         coeffs = oper.coeffs
     else:
-        raise QiskitError('Invalid operator type')
+        raise QiskitError("Invalid operator type")
     out = 0
     for idx, string in enumerate(oper_strs):
-        out += coeffs[idx]*_bitstring_expval(dist, string)
+        out += coeffs[idx] * _bitstring_expval(dist, string)
 
     return out.real
 
@@ -75,8 +76,8 @@ def _bitstring_expval(dist, oper_str):
     """
     # Sparsify operator string to just non-identity terms
     str_len = len(oper_str)
-    inds = np.array([kk for kk in range(str_len) if oper_str[kk] != 'I'], np.int32)
-    short_str = ''.join(oper_str[kk] for kk in inds)
+    inds = np.array([kk for kk in range(str_len) if oper_str[kk] != "I"], np.int32)
+    short_str = "".join(oper_str[kk] for kk in inds)
     # Compute denominator
     denom = sum(dist.values())
     # Do the actual expval here
