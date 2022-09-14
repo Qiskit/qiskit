@@ -228,6 +228,7 @@ from .quantumcircuit import QuantumCircuit
 from .classicalregister import ClassicalRegister, Clbit
 from .quantumregister import QuantumRegister, Qubit, AncillaRegister, AncillaQubit
 from .gate import Gate
+from .instruction import Instruction
 
 # pylint: disable=cyclic-import
 from .controlledgate import ControlledGate

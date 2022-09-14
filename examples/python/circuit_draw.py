@@ -15,19 +15,27 @@ Example showing how to draw a quantum circuit using Qiskit.
 """
 
 from qiskit import QuantumCircuit
+from qiskit.circuit import Instruction
+from qiskit.circuit import CircuitInstruction, Qubit, QuantumRegister
+circuit = QuantumCircuit()
 
+
+def instructions_bell_circuit():
+    instructions_list = []
+    instruction = CircuitInstruction(operation=Instruction(name='h', num_qubits=1, num_clbits=0, params=[]), qubits=(Qubit(QuantumRegister(2, 'q'), 0),), clbits=())
+    instructions_list.append(instruction)
+    instruction = CircuitInstruction(operation=Instruction(name='cx', num_qubits=2, num_clbits=0, params=[]), qubits=(Qubit(QuantumRegister(2, 'q'), 0), Qubit(QuantumRegister(2, 'q'), 1)), clbits=())
+    instructions_list.append(instruction)
+    return instructions_list
+    
+
+print(circuit.from_instructions(instructions_bell_circuit()))
 
 def build_bell_circuit():
-    """Returns a circuit putting 2 qubits in the Bell state."""
-    qc = QuantumCircuit(2, 2)
-    qc.h(0)
-    qc.cx(0, 1)
-    qc.measure([0, 1], [0, 1])
-    return qc
+    qcirc = QuantumCircuit(2,2)
+    qcirc.h(0)
+    qcirc.cx(0,1)
+    return qcirc
 
-
-# Create the circuit
-bell_circuit = build_bell_circuit()
-
-# Use the internal .draw() to print the circuit
-print(bell_circuit)
+# Read instructions from the circuit
+print(circuit.from_instructions(build_bell_circuit()))

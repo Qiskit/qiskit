@@ -285,6 +285,20 @@ class QuantumCircuit:
             raise TypeError("Only a dictionary or None is accepted for circuit metadata")
         self._metadata = metadata
 
+    @classmethod
+    def from_instructions(cls, instructions: Iterable[CircuitInstruction], *, name=None, metadata=None, global_phase=0):
+        out = cls(name=name, metadata=metadata, global_phase=global_phase)
+        qc = QuantumCircuit()
+        nr_qb = 0
+        for instruction in instructions:
+            input = instruction[1][0]
+            if isinstance(input, Qubit):
+                nr_qb = nr_qb + 1     
+        qc = QuantumCircuit(nr_qb)
+        for instruction in instructions:	
+             qc._append(instruction)
+        return qc
+
     @property
     def data(self) -> QuantumCircuitData:
         """Return the circuit data (instructions and context).
@@ -1478,7 +1492,6 @@ class QuantumCircuit:
         duplicate_bits = set(self._qubit_indices).union(self._clbit_indices).intersection(bits)
         if duplicate_bits:
             raise CircuitError(f"Attempted to add bits found already in circuit: {duplicate_bits}")
-
         for bit in bits:
             if isinstance(bit, AncillaQubit):
                 self._ancillas.append(bit)
