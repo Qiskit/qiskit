@@ -94,6 +94,8 @@ Backend
    BackendV1
    BackendV2
    QubitProperties
+   BackendV2Converter
+   convert_to_target
 
 Options
 -------
@@ -677,6 +679,8 @@ from qiskit.providers.backend import Backend
 from qiskit.providers.backend import BackendV1
 from qiskit.providers.backend import BackendV2
 from qiskit.providers.backend import QubitProperties
+from qiskit.providers.backend_compat import BackendV2Converter
+from qiskit.providers.backend_compat import convert_to_target
 from qiskit.providers.options import Options
 from qiskit.providers.job import Job
 from qiskit.providers.job import JobV1
