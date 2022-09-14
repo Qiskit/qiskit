@@ -19,8 +19,7 @@ import logging
 import numpy as np
 from scipy import sparse as scisparse
 
-# from qiskit.opflow import I, ListOp, OperatorBase, StateFn
-from qiskit.opflow import PauliSumOp
+from qiskit.opflow import PauliSumOp, I, ListOp, StateFn
 from qiskit.quantum_info.operators.base_operator import BaseOperator
 from qiskit.utils.validation import validate_min
 
@@ -29,6 +28,7 @@ from .eigensolver import Eigensolver, EigensolverResult
 from ..list_or_dict import ListOrDict
 
 logger = logging.getLogger(__name__)
+# pylint: disable=invalid-name
 
 
 class NumPyEigensolver(Eigensolver):
@@ -190,7 +190,7 @@ class NumPyEigensolver(Eigensolver):
                 else:
                     value = StateFn(operator, is_measurement=True).eval(wavefn)
                 value = value if np.abs(value) > threshold else 0.0
-            # The value get's wrapped into a tuple: (mean, standard deviation).
+            # The value gets wrapped into a tuple: (mean, standard deviation).
             # Since this is an exact computation, the standard deviation is known to be zero.
             values[key] = (value, 0.0)
         return values
@@ -199,7 +199,7 @@ class NumPyEigensolver(Eigensolver):
         self,
         operator: BaseOperator | PauliSumOp,
         aux_operators: ListOrDict[BaseOperator | PauliSumOp] | None = None,
-    ) -> NumpyEigensolverResult:
+    ) -> NumPyEigensolverResult:
 
         super().compute_eigenvalues(operator, aux_operators)
 
@@ -225,7 +225,7 @@ class NumPyEigensolver(Eigensolver):
             # need to consider all elements if a filter is set
             self._k = 2**operator.num_qubits
 
-        self._ret = NumpyEigensolverResult()
+        self._ret = NumPyEigensolverResult()
         self._solve(operator)
 
         # compute energies before filtering, as this also evaluates the aux operators
@@ -278,7 +278,7 @@ class NumPyEigensolverResult(EigensolverResult):
         self._eigenstates = None
 
     @property
-    def eigenstates(self) -> Optional[np.ndarray]:
+    def eigenstates(self) -> np.ndarray | None:
         """Return eigenstates."""
         return self._eigenstates
 
