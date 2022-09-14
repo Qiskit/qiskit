@@ -571,7 +571,9 @@ class TestEstimator(QiskitTestCase):
     def test_run_options(self):
         """Test for run_options"""
         with self.subTest("init"):
-            estimator = Estimator(options=ReferenceOptions({"shots": 3000}))
+            options = ReferenceOptions()
+            options.run_options.shots = 3000
+            estimator = Estimator(options=options)
             self.assertEqual(estimator.run_options.get("shots"), 3000)
         with self.subTest("set_run_options"):
             estimator.set_run_options(shots=1024, seed=15)

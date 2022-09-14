@@ -16,6 +16,7 @@ Sampler class
 from __future__ import annotations
 
 from collections.abc import Iterable, Sequence
+from dataclasses import asdict
 from typing import Any
 
 import numpy as np
@@ -77,10 +78,14 @@ class Sampler(BaseSampler):
                 preprocessed_circuits.append(circuit)
         else:
             preprocessed_circuits = None
+
+        run_options = (
+            asdict(options.run_options) if isinstance(options, ReferenceOptions) else options
+        )
         super().__init__(
             preprocessed_circuits,
             parameters,
-            run_options=options.run_options if isinstance(options, ReferenceOptions) else options,
+            run_options=run_options,
         )
         self._is_closed = False
 

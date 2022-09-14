@@ -16,6 +16,7 @@ Estimator class
 from __future__ import annotations
 
 from collections.abc import Iterable, Sequence
+from dataclasses import asdict
 from typing import Any
 
 import numpy as np
@@ -78,11 +79,14 @@ class Estimator(BaseEstimator):
         if observables is not None:
             observables = tuple(init_observable(observable) for observable in observables)
 
+        run_options = (
+            asdict(options.run_options) if isinstance(options, ReferenceOptions) else options
+        )
         super().__init__(
             circuits=circuits,
             observables=observables,  # type: ignore
             parameters=parameters,
-            run_options=options.run_options if isinstance(options, ReferenceOptions) else options,
+            run_options=run_options,
         )
         self._is_closed = False
 

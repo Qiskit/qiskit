@@ -675,7 +675,9 @@ class TestSampler(QiskitTestCase):
     def test_run_options(self):
         """Test for run_options"""
         with self.subTest("init"):
-            sampler = Sampler(options=ReferenceOptions({"shots": 3000}))
+            options = ReferenceOptions()
+            options.run_options.shots = 3000
+            sampler = Sampler(options=options)
             self.assertEqual(sampler.run_options.get("shots"), 3000)
         with self.subTest("set_run_options"):
             sampler.set_run_options(shots=1024, seed=15)

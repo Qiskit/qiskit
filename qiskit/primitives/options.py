@@ -13,12 +13,32 @@
 Options for reference primitives.
 """
 
+from __future__ import annotations
+
 from dataclasses import dataclass, field
+
+import numpy as np
+
+
+@dataclass
+class RunOptions:
+    """Runtime options for the reference implementation."""
+
+    shots: int | None = None
+    """
+    The number of shots. If None, it calculates the probabilities.
+    Otherwise, it samples from multinomial distributions.
+    """
+    seed: int | np.random.Generator | None = None
+    """
+    Set a fixed seed or generator for the multinomial distribution. If shots is None, this option
+    is ignored.
+    """
 
 
 @dataclass
 class ReferenceOptions:
     """Options for the primitive programs."""
 
-    run_options: dict = field(default_factory=dict)
+    run_options: dict = field(default_factory=RunOptions)
     """Runtime options used in run method."""
