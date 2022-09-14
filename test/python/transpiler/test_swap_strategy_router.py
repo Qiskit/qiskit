@@ -12,7 +12,7 @@
 
 """Tests for swap strategy routers."""
 
-from ddt import ddt, data, unpack
+from ddt import ddt, data
 
 from qiskit.circuit import QuantumCircuit, Qubit, QuantumRegister
 from qiskit.transpiler import PassManager, CouplingMap, Layout, TranspilerError
@@ -503,11 +503,10 @@ class TestPauliEvolutionSwapStrategies(QiskitTestCase):
         self.assertEqual(circ, self.pm_.run(circ))
 
     @data(
-        ({(0, 1): 0, (2, 3): 0, (1, 2): 1}, 9),  # better coloring for the swap strategy
-        ({(0, 1): 1, (2, 3): 1, (1, 2): 0}, 11),  # worse, i.e., less CX cancellation.
+        {(0, 1): 0, (2, 3): 0, (1, 2): 1},  # better coloring for the swap strategy
+        {(0, 1): 1, (2, 3): 1, (1, 2): 0},  # worse, i.e., less CX cancellation.
     )
-    @unpack
-    def test_edge_coloring(self, edge_coloring, cx_count):
+    def test_edge_coloring(self, edge_coloring):
         """Test that the edge coloring works."""
         op = PauliSumOp.from_list([("IIZZ", 1), ("IZZI", 2), ("ZZII", 3), ("ZIZI", 4)])
         swaps = (((1, 2),),)
@@ -530,7 +529,39 @@ class TestPauliEvolutionSwapStrategies(QiskitTestCase):
             ]
         )
 
-        self.assertEqual(pm_.run(circ).count_ops()["cx"], cx_count)
+        expected = QuantumCircuit(4)
+        if edge_coloring[(0, 1)] == 1:
+            expected.cx(1, 2)
+            expected.rz(4, 2)
+            expected.cx(1, 2)
+            expected.cx(0, 1)
+            expected.rz(2, 1)
+            expected.cx(0, 1)
+            expected.cx(2, 3)
+            expected.rz(6, 3)
+            expected.cx(2, 3)
+            expected.cx(1, 2)
+            expected.cx(2, 1)
+            expected.cx(1, 2)
+            expected.cx(2, 3)
+            expected.rz(8, 3)
+            expected.cx(2, 3)
+        else:
+            expected.cx(0, 1)
+            expected.rz(2, 1)
+            expected.cx(0, 1)
+            expected.cx(2, 3)
+            expected.rz(6, 3)
+            expected.cx(2, 3)
+            expected.cx(1, 2)
+            expected.rz(4, 2)
+            expected.cx(2, 1)
+            expected.cx(1, 2)
+            expected.cx(2, 3)
+            expected.rz(8, 3)
+            expected.cx(2, 3)
+
+        self.assertEqual(pm_.run(circ), expected)
 
 
 class TestSwapRouterExceptions(QiskitTestCase):
