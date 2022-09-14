@@ -277,7 +277,7 @@ class BaseStateFidelity(ABC):
             circuits_2: (Parametrized) quantum circuits preparing :math:`|\phi\rangle`.
             values_1: Numerical parameters to be bound to the first set of circuits.
             values_2: Numerical parameters to be bound to the second set of circuits.
-            optionsPrimitive backend runtime options used for circuit execution. The order
+            options: Primitive backend runtime options used for circuit execution. The order
                 of priority is\: options in ``run`` method > fidelity's default
                 options > primitive's default setting.
                 Higher priority setting overrides lower priority setting.
