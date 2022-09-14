@@ -16,7 +16,7 @@ See https://arxiv.org/abs/1805.08138.
 """
 
 from __future__ import annotations
-from typing import Optional, List, Callable, Tuple
+from typing import Callable
 import logging
 from time import time
 from warnings import warn
@@ -29,6 +29,7 @@ from qiskit.quantum_info.operators.base_operator import BaseOperator
 from qiskit.opflow import PauliSumOp
 from qiskit.primitives import BaseEstimator, EstimatorResult
 from qiskit.algorithms.state_fidelities import BaseStateFidelity
+
 from ..list_or_dict import ListOrDict
 from ..optimizers import Optimizer, SLSQP, Minimizer
 from ..variational_algorithm import VariationalAlgorithm, VariationalResult
@@ -144,8 +145,6 @@ class VQD(VariationalAlgorithm, Eigensolver):
         self._eval_time = None
         self._eval_count = 0
 
-        logger.info(self.print_settings())
-
     @property
     def initial_point(self) -> np.ndarray | None:
         """Returns initial point."""
@@ -170,52 +169,18 @@ class VQD(VariationalAlgorithm, Eigensolver):
                         "number of qubits using `num_qubits`."
                     ) from ex
 
-    @property
-    def setting(self):
-        """Prepare the setting of VQD as a string."""
-        ret = f"Algorithm: {self.__class__.__name__}\n"
-        params = ""
-        for key, value in self.__dict__.items():
-            if key[0] == "_":
-                if "initial_point" in key and value is None:
-                    params += "-- {}: {}\n".format(key[1:], "Random seed")
-                else:
-                    params += f"-- {key[1:]}: {value}\n"
-        ret += f"{params}"
-        return ret
-
-    def print_settings(self):
-        """Preparing the setting of VQD into a string.
-
-        Returns:
-            str: the formatted setting of VQD.
-        """
-        ret = "\n"
-        ret += "==================== Setting of {} ============================\n".format(
-            self.__class__.__name__
-        )
-        ret += f"{self.setting}"
-        ret += "===============================================================\n"
-        if self.ansatz is not None:
-            ret += "{}".format(self.ansatz.draw(output="text"))
-        else:
-            ret += "ansatz has not been set"
-        ret += "===============================================================\n"
-        ret += f"{self.optimizer.setting}"
-        ret += "===============================================================\n"
-        return ret
-
     @classmethod
     def supports_aux_operators(cls) -> bool:
         return True
 
+    # TODO: Replace with import
     def _eval_observables(
         self,
         estimator: BaseEstimator,
         quantum_state: QuantumCircuit,
         observables: ListOrDict[BaseOperator | PauliSumOp],
         threshold: float = 1e-12,
-    ) -> ListOrDict[Tuple[complex, complex]]:
+    ) -> ListOrDict[tuple[complex, complex]]:
         """
         Accepts a sequence of operators and calculates their expectation values - means
         and standard deviations. They are calculated with respect to a quantum state provided. A user
@@ -267,11 +232,12 @@ class VQD(VariationalAlgorithm, Eigensolver):
         # Return None eigenvalues for None operators if observables is a list.
         return self._prepare_result(observables_results, observables)
 
+    # TODO: Replace with import
     @staticmethod
     def _prepare_result(
-        observables_results: List[Tuple[complex, complex]],
+        observables_results: list[tuple[complex, complex]],
         observables: ListOrDict[BaseOperator | PauliSumOp],
-    ) -> ListOrDict[Tuple[complex, complex]]:
+    ) -> ListOrDict[tuple[complex, complex]]:
         """
         Prepares a list of eigenvalues and standard deviations from ``observables_results`` and
         ``observables``.
@@ -297,11 +263,12 @@ class VQD(VariationalAlgorithm, Eigensolver):
                 observables_eigenvalues[key] = value
         return observables_eigenvalues
 
+    # TODO: Replace with import
     @staticmethod
     def _compute_std_devs(
         estimator_result: EstimatorResult,
         results_length: int,
-    ) -> List[complex | None]:
+    ) -> list[complex | None]:
         """
         Calculates a list of standard deviations from expectation values of observables provided. If
         the choice of an underlying hardware is not shot-based and hence does not provide variance data,
@@ -455,8 +422,8 @@ class VQD(VariationalAlgorithm, Eigensolver):
         self,
         step: int,
         operator: BaseOperator | PauliSumOp,
-        prev_states: Optional[List[np.ndarray]] = None,
-    ) -> Callable[[np.ndarray], float | List[float]]:
+        prev_states: list[np.ndarray] | None = None,
+    ) -> Callable[[np.ndarray], float | list[float]]:
         """Returns a function handle to evaluates the energy at given parameters for the ansatz.
         This return value is the objective function to be passed to the optimizer for evaluation.
 
@@ -535,7 +502,7 @@ class VQDResult(VariationalResult, EigensolverResult):
         self._cost_function_evals = None
 
     @property
-    def cost_function_evals(self) -> Optional[int]:
+    def cost_function_evals(self) -> int | None:
         """Returns number of cost optimizer evaluations"""
         return self._cost_function_evals
 
