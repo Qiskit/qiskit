@@ -672,15 +672,15 @@ class TestSampler(QiskitTestCase):
         job = sampler.run(circuits=[bell])
         self.assertEqual(job.status(), JobStatus.DONE)
 
-    def test_run_options(self):
-        """Test for run_options"""
+    def test_options(self):
+        """Test for options"""
         with self.subTest("init"):
-            sampler = Sampler(run_options={"shots": 3000})
-            self.assertEqual(sampler.run_options.get("shots"), 3000)
-        with self.subTest("set_run_options"):
-            sampler.set_run_options(shots=1024, seed=15)
-            self.assertEqual(sampler.run_options.get("shots"), 1024)
-            self.assertEqual(sampler.run_options.get("seed"), 15)
+            sampler = Sampler(options={"shots": 3000})
+            self.assertEqual(sampler.options.get("shots"), 3000)
+        with self.subTest("set_options"):
+            sampler.set_options(shots=1024, seed=15)
+            self.assertEqual(sampler.options.get("shots"), 1024)
+            self.assertEqual(sampler.options.get("seed"), 15)
         with self.subTest("run"):
             params, target = self._generate_params_target([1])
             result = sampler.run([self._pqc], parameter_values=params).result()
