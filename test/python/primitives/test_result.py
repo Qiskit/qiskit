@@ -42,7 +42,7 @@ class Result(BasePrimitiveResult):
 class TestBasePrimitiveResult(QiskitTestCase):
     """Tests BasePrimitiveResult."""
 
-    @data(0, 1.2, True, "sequence", {"name": "value"})
+    @data(0, 1.2, True, "sequence", b"sequence", {"name": "value"})
     def test_post_init_type_error(self, field_1):
         """Tests post init type error."""
         self.assertRaises(TypeError, Result, *(field_1, []))
