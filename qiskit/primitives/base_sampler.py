@@ -120,14 +120,14 @@ class BaseSampler(ABC):
         self,
         circuits: Iterable[QuantumCircuit] | QuantumCircuit | None = None,
         parameters: Iterable[Iterable[Parameter]] | None = None,
-        run_options: dict | None = None,
+        options: dict | None = None,
     ):
         """
         Args:
             circuits: Quantum circuits to be executed.
             parameters: Parameters of each of the quantum circuits.
                 Defaults to ``[circ.parameters for circ in circuits]``.
-            run_options: Default runtime options.
+            options: Default options.
 
         Raises:
             QiskitError: For mismatch of circuits and parameters list.
@@ -158,8 +158,8 @@ class BaseSampler(ABC):
                     f"and circuits ({len(self._circuits)})"
                 )
         self._run_options = Options()
-        if run_options is not None:
-            self._run_options.update_options(**run_options)
+        if options is not None:
+            self._run_options.update_options(**options)
 
     def __new__(
         cls,
@@ -217,15 +217,15 @@ class BaseSampler(ABC):
         return tuple(self._parameters)
 
     @property
-    def run_options(self) -> Options:
+    def options(self) -> Options:
         """Return options values for the estimator.
 
         Returns:
-            run_options
+            options
         """
         return self._run_options
 
-    def set_run_options(self, **fields) -> BaseSampler:
+    def set_options(self, **fields):
         """Set options values for the estimator.
 
         Args:
@@ -309,7 +309,7 @@ class BaseSampler(ABC):
                 f"The number of circuits is {len(self.circuits)}, "
                 f"but the index {max(circuits)} is given."
             )
-        run_opts = copy(self.run_options)
+        run_opts = copy(self.options)
         run_opts.update_options(**run_options)
 
         return self._call(
@@ -401,7 +401,7 @@ class BaseSampler(ABC):
                     f" the used classical bits ({set(mapping.values())})."
                 )
 
-        run_opts = copy(self.run_options)
+        run_opts = copy(self.options)
         run_opts.update_options(**run_options)
 
         return self._run(

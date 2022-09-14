@@ -134,7 +134,7 @@ class BaseEstimator(ABC):
         circuits: Iterable[QuantumCircuit] | QuantumCircuit | None = None,
         observables: Iterable[SparsePauliOp] | SparsePauliOp | None = None,
         parameters: Iterable[Iterable[Parameter]] | None = None,
-        run_options: dict | None = None,
+        options: dict | None = None,
     ):
         """
         Creating an instance of an Estimator, or using one in a ``with`` context opens a session that
@@ -147,7 +147,7 @@ class BaseEstimator(ABC):
                 will be bound. Defaults to ``[circ.parameters for circ in circuits]``
                 The indexing is such that ``parameters[i, j]`` is the j-th formal parameter of
                 ``circuits[i]``.
-            run_options: runtime options.
+            options: Default options.
 
         Raises:
             QiskitError: For mismatch of circuits and parameters list.
@@ -189,8 +189,8 @@ class BaseEstimator(ABC):
                         f"expected {circ.num_parameters}, actual {len(params)}."
                     )
         self._run_options = Options()
-        if run_options is not None:
-            self._run_options.update_options(**run_options)
+        if options is not None:
+            self._run_options.update_options(**options)
 
     def __new__(
         cls,
@@ -265,15 +265,15 @@ class BaseEstimator(ABC):
         return tuple(self._parameters)
 
     @property
-    def run_options(self) -> Options:
+    def options(self) -> Options:
         """Return options values for the estimator.
 
         Returns:
-            run_options
+            options
         """
         return self._run_options
 
-    def set_run_options(self, **fields) -> BaseEstimator:
+    def set_options(self, **fields) -> BaseEstimator:
         """Set options values for the estimator.
 
         Args:
@@ -409,7 +409,7 @@ class BaseEstimator(ABC):
                 f"The number of circuits is {len(self.observables)}, "
                 f"but the index {max(observables)} is given."
             )
-        run_opts = copy(self.run_options)
+        run_opts = copy(self.options)
         run_opts.update_options(**run_options)
 
         return self._call(
@@ -520,7 +520,7 @@ class BaseEstimator(ABC):
                     f"not match the number of qubits of the {i}-th observable "
                     f"({observable.num_qubits})."
                 )
-        run_opts = copy(self.run_options)
+        run_opts = copy(self.options)
         run_opts.update_options(**run_options)
 
         return self._run(
