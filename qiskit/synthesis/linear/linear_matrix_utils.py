@@ -16,29 +16,6 @@ import numpy as np
 from qiskit.exceptions import QiskitError
 
 
-def _calc_rank(mat):
-    """Calculate the rank of a square binary matrix."""
-    # This function takes as input a binary square matrix mat
-    # Returns the rank of mat over the binary field F_2
-    n = mat.shape[1]
-    xmat = np.identity(n, dtype=int)
-
-    for i in range(n):
-        y = np.dot(mat[i, :], xmat) % 2
-        not_y = (y + 1) % 2
-        good = xmat[:, np.nonzero(not_y)]
-        good = good[:, 0, :]
-        bad = xmat[:, np.nonzero(y)]
-        bad = bad[:, 0, :]
-        if bad.shape[1] > 0:
-            bad = np.add(bad, np.roll(bad, 1, axis=1))
-            bad = bad % 2
-            bad = np.delete(bad, 0, axis=1)
-            xmat = np.concatenate((good, bad), axis=1)
-    # now columns of X span the binary null-space of A
-    return n - xmat.shape[1]
-
-
 def random_invertible_binary_matrix(num_qubits, seed=None):
     """Generates a random invertible n x n binary matrix."""
     if isinstance(seed, np.random.Generator):
@@ -49,15 +26,15 @@ def random_invertible_binary_matrix(num_qubits, seed=None):
     rank = 0
     while rank != num_qubits:
         mat = rng.integers(2, size=(num_qubits, num_qubits))
-        rank = _calc_rank(mat)
+        mat = _gauss_elimination(mat)
+        rank = _compute_rank_after_gauss_elim(mat)
     return mat
 
 
 def _gauss_elimination(mat, ncols=None, full_elim=False):
     """Gauss elimination of a matrix mat with m rows and n columns.
     If full_elim = True, it allows full elimination of mat[:, 0 : ncols]
-    Returns the matrix mat and the permutation perm that was done on the rows
-    during the process."""
+    Returns the matrix mat."""
 
     # Treat the matrix A as containing integer values
     mat = np.array(mat, dtype=int, copy=False)
@@ -66,8 +43,6 @@ def _gauss_elimination(mat, ncols=None, full_elim=False):
     n = mat.shape[1]  # no. of columns
     if ncols is not None:
         n = min(n, ncols)  # no. of active columns
-
-    perm = np.array(range(n))  # permutation on the rows
 
     r = 0  # current rank
     k = 0  # current pivot column
@@ -84,13 +59,12 @@ def _gauss_elimination(mat, ncols=None, full_elim=False):
             if is_non_zero:
                 break
         if not is_non_zero:
-            return mat, perm  # A is in the canonical form
+            return mat  # A is in the canonical form
 
         if new_r != r:
             tmp = mat[new_r].copy()
             mat[new_r] = mat[r]
             mat[r] = tmp
-            perm[r], perm[new_r] = perm[new_r], perm[r]
 
         if full_elim:
             for i in range(0, r):
@@ -102,7 +76,7 @@ def _gauss_elimination(mat, ncols=None, full_elim=False):
                 mat[i] = mat[i] ^ mat[r]
         r += 1
 
-    return mat, perm
+    return mat
 
 
 def calc_inverse_matrix(mat, verify=False):

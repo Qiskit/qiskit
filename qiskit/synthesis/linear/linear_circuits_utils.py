@@ -13,6 +13,7 @@
 """Utility functions for handling linear reversible circuits."""
 
 import copy
+import numpy as np
 from . import calc_inverse_matrix
 
 
