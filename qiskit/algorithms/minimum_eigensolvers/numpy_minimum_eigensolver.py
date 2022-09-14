@@ -49,21 +49,21 @@ class NumPyMinimumEigensolver(MinimumEigensolver):
                 whether to consider this value or not. If there is no
                 feasible element, the result can even be empty.
         """
-        self._ces = NumPyEigensolver(filter_criterion=filter_criterion)
+        self._eigensolver = NumPyEigensolver(filter_criterion=filter_criterion)
 
     @property
     def filter_criterion(
         self,
     ) -> Callable[[list | np.ndarray, float, ListOrDict[float] | None], bool] | None:
-        """Filters the eigenstates/eigenvalues."""
-        return self._ces.filter_criterion
+        """Returns the criterion for filtering eigenstates/eigenvalues."""
+        return self._eigensolver.filter_criterion
 
     @filter_criterion.setter
     def filter_criterion(
         self,
         filter_criterion: Callable[[list | np.ndarray, float, ListOrDict[float] | None], bool],
     ) -> None:
-        self._ces.filter_criterion = filter_criterion
+        self._eigensolver.filter_criterion = filter_criterion
 
     @classmethod
     def supports_aux_operators(cls) -> bool:
@@ -75,13 +75,13 @@ class NumPyMinimumEigensolver(MinimumEigensolver):
         aux_operators: ListOrDict[BaseOperator | PauliSumOp] | None = None,
     ) -> NumPyMinimumEigensolverResult:
         super().compute_minimum_eigenvalue(operator, aux_operators)
-        result_ces = self._ces.compute_eigenvalues(operator, aux_operators)
+        eigensolver_result = self._eigensolver.compute_eigenvalues(operator, aux_operators)
         result = NumPyMinimumEigensolverResult()
-        if result_ces.eigenvalues is not None and len(result_ces.eigenvalues) > 0:
-            result.eigenvalue = result_ces.eigenvalues[0]
-            result.eigenstate = result_ces.eigenstates[0]
-            if result_ces.aux_operator_eigenvalues:
-                result.aux_operator_eigenvalues = result_ces.aux_operator_eigenvalues[0]
+        if eigensolver_result.eigenvalues is not None and len(eigensolver_result.eigenvalues) > 0:
+            result.eigenvalue = eigensolver_result.eigenvalues[0]
+            result.eigenstate = eigensolver_result.eigenstates[0]
+            if eigensolver_result.aux_operator_eigenvalues:
+                result.aux_operator_eigenvalues = eigensolver_result.aux_operator_eigenvalues[0]
 
         logger.debug("NumPy minimum eigensolver result: %s", result)
 

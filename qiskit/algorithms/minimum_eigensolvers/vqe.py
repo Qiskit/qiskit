@@ -117,12 +117,17 @@ class VQE(VariationalAlgorithm, MinimumEigensolver):
             ansatz: A parameterized circuit, preparing the ansatz for the wave function. If not
                 provided, this defaults to a :class:`.RealAmplitudes` circuit.
             optimizer: A classical optimizer to find the minimum energy. This can either be a
-                Qiskit :class:`.Optimizer` or a callable implementing the :class:`.Minimizer` protocol.
-                Defaults to :class:`.SLSQP`.
-            gradient: An optional gradient function or operator for the optimizer.
-            initial_point: An optional initial point (i.e. initial parameter values)
+                Qiskit :class:`.Optimizer` or a callable implementing the :class:`.Minimizer`
+                protocol. Defaults to :class:`.SLSQP`.
+            gradient: An optional gradient function or operator for the optimizer. initial_point: An
+            optional initial point (i.e. initial parameter values)
                 for the optimizer. If ``None`` then VQE will look to the ansatz for a preferred
                 point and if not will simply compute a random one.
+            callback: A callback that can access the intermediate data during the optimization.
+                Four parameter values are passed to the callback as follows during each evaluation
+                by the optimizer for its current set of parameters as it works towards the minimum.
+                These are: the evaluation count, the optimizer parameters for the ansatz, the
+                evaluated mean and the evaluated standard deviation.
         """
         super().__init__()
 

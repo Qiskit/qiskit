@@ -37,9 +37,10 @@ class MinimumEigensolver(ABC):
         aux_operators: ListOrDict[BaseOperator | PauliSumOp] | None = None,
     ) -> "MinimumEigensolverResult":
         """
-        Computes minimum eigenvalue. Operator and aux_operators can be supplied here and if not None
-        will override any already set into algorithm so it can be reused with different operators.
-        While an operator is required by algorithms, aux_operators are optional.
+        Computes the minimum eigenvalue. The `operator` and `aux_operators` can be supplied here
+        and if not ``None`` will override any already set into algorithm so it can be reused with
+        different operators. While an ``operator`` is required by algorithms, ``aux_operators`` are
+        optional.
 
         Args:
             operator: Qubit operator of the observable.
@@ -57,8 +58,9 @@ class MinimumEigensolver(ABC):
     def supports_aux_operators(cls) -> bool:
         """Whether computing the expectation value of auxiliary operators is supported.
 
-        If the minimum eigensolver computes an eigenvalue of the main operator then it can compute
-        the expectation value of the aux_operators for that state. Otherwise they will be ignored.
+        If the minimum eigensolver computes an eigenvalue of the main ``operator`` then it can
+        compute the expectation value of the ``aux_operators`` for that state. Otherwise they will
+        be ignored.
 
         Returns:
             True if aux_operator expectations can be evaluated, False otherwise
@@ -76,17 +78,16 @@ class MinimumEigensolverResult(AlgorithmResult):
 
     @property
     def eigenvalue(self) -> complex | None:
-        """Return the eigenvalue."""
+        """The computed minimum eigenvalue."""
         return self._eigenvalue
 
     @eigenvalue.setter
     def eigenvalue(self, value: complex) -> None:
-        """Set the eigenvalue."""
         self._eigenvalue = value
 
     @property
     def aux_operator_eigenvalues(self) -> ListOrDict[tuple[complex, complex]] | None:
-        """Return aux operator expectation values.
+        """The aux operator expectation values.
 
         These values are in fact tuples formatted as (mean, standard deviation).
         """
@@ -94,5 +95,4 @@ class MinimumEigensolverResult(AlgorithmResult):
 
     @aux_operator_eigenvalues.setter
     def aux_operator_eigenvalues(self, value: ListOrDict[tuple[complex, complex]]) -> None:
-        """set aux operator eigenvalues"""
         self._aux_operator_eigenvalues = value
