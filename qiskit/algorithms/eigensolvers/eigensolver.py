@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2020.
+# (C) Copyright IBM 2022.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -10,20 +10,22 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""The Eigensolver interface"""
+"""The eigensolver interface and result."""
+
+from __future__ import annotations
 
 from abc import ABC, abstractmethod
-from typing import Optional, List, Tuple
-
 import numpy as np
 
-from qiskit.opflow import OperatorBase
+from qiskit.opflow import PauliSumOp
+from qiskit.quantum_info.operators.base_operator import BaseOperator
+
 from ..algorithm_result import AlgorithmResult
 from ..list_or_dict import ListOrDict
 
 
 class Eigensolver(ABC):
-    """The Eigensolver Interface.
+    """The eigensolver interface.
 
     Algorithms that can compute eigenvalues for an operator
     may implement this interface to allow different algorithms to be
@@ -32,23 +34,25 @@ class Eigensolver(ABC):
 
     @abstractmethod
     def compute_eigenvalues(
-        self, operator: OperatorBase, aux_operators: Optional[ListOrDict[OperatorBase]] = None
+        self,
+        operator: BaseOperator | PauliSumOp,
+        aux_operators: ListOrDict[BaseOperator | PauliSumOp] | None = None,
     ) -> "EigensolverResult":
         """
-        Computes eigenvalues. Operator and aux_operators can be supplied here and
-        if not None will override any already set into algorithm so it can be reused with
-        different operators. While an operator is required by algorithms, aux_operators
-        are optional. To 'remove' a previous aux_operators array use an empty list here.
+        Computes eigenvalues. ``operator`` and ``aux_operators`` can be supplied here and,
+        if not ``None``, will override any already set into algorithm so it can be reused with
+        different operators. While an ``operator`` is required by algorithms, ``aux_operators``
+        are optional. To 'remove' a previous ``aux_operators`` array use an empty list here.
 
         Args:
-            operator: Qubit operator of the Observable
+            operator: Qubit operator of the observable
             aux_operators: Optional list of auxiliary operators to be evaluated with the
                 eigenstate of the minimum eigenvalue main result and their expectation values
-                returned. For instance in chemistry these can be dipole operators, total particle
-                count operators so we can get values for these at the ground state.
+                returned. For instance, in chemistry these can be dipole operators and total particle
+                count operators, so we can get values for these at the ground state.
 
         Returns:
-            EigensolverResult
+             An eigensolver result.
         """
         return EigensolverResult()
 
@@ -56,14 +60,17 @@ class Eigensolver(ABC):
     def supports_aux_operators(cls) -> bool:
         """Whether computing the expectation value of auxiliary operators is supported.
 
+        If the eigensolver computes the eigenvalues of the main operator, then it can compute
+        the expectation value of the aux_operators for that state. Otherwise they will be ignored.
+
         Returns:
-            True if aux_operator expectations can be evaluated, False otherwise
+            ``True`` if ``aux_operator`` expectations can be evaluated, ``False`` otherwise
         """
         return False
 
 
 class EigensolverResult(AlgorithmResult):
-    """Eigensolver Result."""
+    """Eigensolver result."""
 
     def __init__(self) -> None:
         super().__init__()
@@ -71,24 +78,24 @@ class EigensolverResult(AlgorithmResult):
         self._aux_operator_eigenvalues = None
 
     @property
-    def eigenvalues(self) -> Optional[np.ndarray]:
-        """returns eigen values"""
+    def eigenvalues(self) -> np.ndarray | None:
+        """Return the eigenvalues."""
         return self._eigenvalues
 
     @eigenvalues.setter
     def eigenvalues(self, value: np.ndarray) -> None:
-        """set eigen values"""
+        """Set the eigenvalues."""
         self._eigenvalues = value
 
     @property
-    def aux_operator_eigenvalues(self) -> Optional[List[ListOrDict[Tuple[complex, complex]]]]:
-        """Return aux operator expectation values.
+    def aux_operator_eigenvalues(self) -> list[ListOrDict[tuple[complex, complex]]] | None:
+        """Return the aux operator expectation values.
 
         These values are in fact tuples formatted as (mean, standard deviation).
         """
         return self._aux_operator_eigenvalues
 
     @aux_operator_eigenvalues.setter
-    def aux_operator_eigenvalues(self, value: List[ListOrDict[Tuple[complex, complex]]]) -> None:
-        """set aux operator eigen values"""
+    def aux_operator_eigenvalues(self, value: list[ListOrDict[tuple[complex, complex]]]) -> None:
+        """Set the aux operator eigenvalues."""
         self._aux_operator_eigenvalues = value
