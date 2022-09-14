@@ -20,13 +20,13 @@ from qiskit.quantum_info.states import Statevector
 from qiskit import QuantumCircuit
 from qiskit.opflow import StateFn
 
-from .scipy_evolver import SciPyEvolver
+from .scipy_evolver import _create_obs_final, _create_observable_output, _evaluate_aux_ops
 from ..evolution_problem import EvolutionProblem
 from ..evolution_result import EvolutionResult
 from ..real_evolver import RealEvolver
 
 
-class SciPyRealEvolver(RealEvolver, SciPyEvolver):
+class SciPyRealEvolver(RealEvolver):
     r"""Classical Evolver for real time evolution.
 
     Evolves an initial state :math:`|\Psi\rangle` for a time :math:`t`
@@ -55,7 +55,7 @@ class SciPyRealEvolver(RealEvolver, SciPyEvolver):
         \left( 1+ i \frac{\Delta t}{2} H \right) |\Psi ( t + \Delta t ) \rangle
                 = \left( 1 - i \frac{\Delta t}{2} H \right) |\Psi( t ) \rangle
 
-    This system of equations will be solved using the Bi-conjugate Gradient method.
+    This system of equations will be solved using the Bi-conjugate Gradient (BiCG) method.
 
     """
 
@@ -64,8 +64,8 @@ class SciPyRealEvolver(RealEvolver, SciPyEvolver):
     ):
         r"""
         Args:
-            threshold: The threshold for the error. If timesteps is `None` this will be used
-                to estimate the necessary number of timesteps to reach a threshold error.
+            threshold: The threshold for the error. This will be used to estimate the necessary
+            number of timesteps to reach a threshold error.
             bicg_err: Needs to be a value between 0 and 1. `bicg_err` will be the percentage of error
                 that comes from solving the linear system of equation with BiCG and
                 the rest will be the error that comes from the Taylor expansion.
@@ -79,7 +79,9 @@ class SciPyRealEvolver(RealEvolver, SciPyEvolver):
         """
 
         if max_iterations < 1:
-            raise ValueError("`max_itertations` must be a positive integer.")
+            raise ValueError(
+                f"`max_iterations` must be a positive integer, was given {max_iterations}"
+            )
 
         if bicg_err < 0 or bicg_err > 1:
             raise ValueError("`bicg_err` must be between 0 and 1.")
@@ -120,15 +122,15 @@ class SciPyRealEvolver(RealEvolver, SciPyEvolver):
 
         # Perform the time evolution and stores the value of the operators at each timestep.
         for ts in range(timesteps):
-            ops_ev_mean[:, ts] = self._evaluate_aux_ops(aux_ops, state)
+            ops_ev_mean[:, ts] = _evaluate_aux_ops(aux_ops, state)
 
             state = self._step(state, lhs_operator, rhs_operator, bicg_tol)
 
-        ops_ev_mean[:, timesteps] = self._evaluate_aux_ops(aux_ops, state)
+        ops_ev_mean[:, timesteps] = _evaluate_aux_ops(aux_ops, state)
 
-        aux_ops_history = self._create_observable_output(ops_ev_mean, evolution_problem)
+        aux_ops_history = _create_observable_output(ops_ev_mean, evolution_problem)
 
-        aux_ops = self._create_obs_final(ops_ev_mean[:, -1], evolution_problem)
+        aux_ops = _create_obs_final(ops_ev_mean[:, -1], evolution_problem)
 
         return EvolutionResult(
             evolved_state=StateFn(state), aux_ops_evaluated=aux_ops, observables=aux_ops_history

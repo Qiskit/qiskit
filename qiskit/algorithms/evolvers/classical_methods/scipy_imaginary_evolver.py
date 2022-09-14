@@ -10,7 +10,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""Classical Quantum Real Time Evolution."""
+"""Classical Quantum Imaginary Time Evolution."""
 from typing import Tuple, List, Optional
 import numpy as np
 import scipy.sparse as sp
@@ -22,10 +22,10 @@ from qiskit.quantum_info.states import Statevector
 from ..evolution_problem import EvolutionProblem
 from ..evolution_result import EvolutionResult
 from ..imaginary_evolver import ImaginaryEvolver
-from .scipy_evolver import SciPyEvolver
+from .scipy_evolver import _evaluate_aux_ops, _create_observable_output, _create_obs_final
 
 
-class SciPyImaginaryEvolver(ImaginaryEvolver, SciPyEvolver):
+class SciPyImaginaryEvolver(ImaginaryEvolver):
     r"""Classical Evolver for imaginary time evolution.
 
     Evolves an initial state :math:`|\Psi\rangle` for an imaginary time :math:`\tau = it`
@@ -46,8 +46,8 @@ class SciPyImaginaryEvolver(ImaginaryEvolver, SciPyEvolver):
         Raises:
             ValueError: If `timesteps` is not a positive integer.
         """
-        if isinstance(timesteps, int) and timesteps < 1:
-            raise ValueError("`timesteps` must be a positive integer.")
+        if timesteps < 1:
+            raise ValueError(f"`timesteps` must be a positive integer, was given {timesteps}")
 
         self.timesteps = timesteps
 
@@ -79,7 +79,7 @@ class SciPyImaginaryEvolver(ImaginaryEvolver, SciPyEvolver):
         ops_ev_mean = np.empty(shape=(operators_number, self.timesteps + 1), dtype=complex)
 
         for ts in range(self.timesteps):
-            ops_ev_mean[:, ts] = self._evaluate_aux_ops(aux_ops, state)
+            ops_ev_mean[:, ts] = _evaluate_aux_ops(aux_ops, state)
             state = ev_operator @ state
 
             if np.nan in state:
@@ -96,10 +96,10 @@ class SciPyImaginaryEvolver(ImaginaryEvolver, SciPyEvolver):
             # Finally we normalize with respect to the norm.
             state = state / state_norm
 
-        ops_ev_mean[:, self.timesteps] = self._evaluate_aux_ops(aux_ops, state)
+        ops_ev_mean[:, self.timesteps] = _evaluate_aux_ops(aux_ops, state)
 
-        aux_ops_history = self._create_observable_output(ops_ev_mean, evolution_problem)
-        aux_ops = self._create_obs_final(ops_ev_mean[:, -1], evolution_problem)
+        aux_ops_history = _create_observable_output(ops_ev_mean, evolution_problem)
+        aux_ops = _create_obs_final(ops_ev_mean[:, -1], evolution_problem)
 
         return EvolutionResult(
             evolved_state=StateFn(state), aux_ops_evaluated=aux_ops, observables=aux_ops_history

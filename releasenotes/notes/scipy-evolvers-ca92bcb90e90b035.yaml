@@ -1,7 +1,7 @@
 ---
 features:
   - |
-    Added two newss classes :class:`~.ScipyRealEvolver` and
+    Added two new classes :class:`~.ScipyRealEvolver` and
     :class:`~.ScipyImaginaryEvolver` that implement integration methods
     for time evolution of a quantum state.
     Added a new attribute to :class:`~.EvolutionResult`,
