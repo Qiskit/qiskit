@@ -37,6 +37,7 @@ from qiskit.test import QiskitTestCase
 
 from qiskit.algorithms.gradients.lin_comb_qfi import LinCombQFI
 
+
 class TestQFI(QiskitTestCase):
     """Test QFI"""
 
@@ -123,7 +124,29 @@ class TestQFI(QiskitTestCase):
         qfi_result = qfi.run([ansatz], [op], [param], [None]).result().qfis
         np.testing.assert_array_almost_equal(qfi_result[0], reference, decimal=3)
 
-    test 
+    def test_qfi_derivative(self):
+        """Test the derivative option of QFI"""
+        a, b = Parameter("a"), Parameter("b")
+        qc = QuantumCircuit(1)
+        qc.h(0)
+        qc.rz(a, 0)
+        qc.rx(b, 0)
+
+        op = SparsePauliOp.from_list([("I", 1)])
+        qfi = LinCombQFI(self.estimator)
+        # test imaginary derivative
+        param_list = [[np.pi / 4, 0], [np.pi / 2, np.pi / 4]]
+        correct_values = [[[0, 0.707106781], [0.707106781, -0.5]], [[0, 1], [1, 0]]]
+        for i, param in enumerate(param_list):
+            qfi_result = qfi.run([qc], [op], [param], [None], derivative="imag").result().qfis
+            np.testing.assert_allclose(qfi_result[0], correct_values[i], atol=1e-3)
+
+        # test real + imaginary derivative
+        correct_values = [[[1, 0.707106781j], [0.707106781j, 0.5]], [[1, 1j], [1j, 1]]]
+        for i, param in enumerate(param_list):
+            qfi_result = qfi.run([qc], [op], [param], [None], derivative="both").result().qfis
+            np.testing.assert_allclose(qfi_result[0], correct_values[i], atol=1e-3)
+
 
 # @ddt
 # class TestEstimatorGradient(QiskitTestCase):
