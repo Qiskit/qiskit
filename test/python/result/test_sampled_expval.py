@@ -46,23 +46,23 @@ class TestSampledExpval(QiskitTestCase):
     def test_simple(self):
         """Test that basic exp values work"""
 
-        DIST2 = {"00": 0.5, "11": 0.5}
-        DIST3 = {"000": 0.5, "111": 0.5}
+        dist2 = {"00": 0.5, "11": 0.5}
+        dist3 = {"000": 0.5, "111": 0.5}
         # ZZ even GHZ is 1.0
-        self.assertAlmostEqual(sampled_expectation_value(DIST2, "ZZ"), 1.0)
+        self.assertAlmostEqual(sampled_expectation_value(dist2, "ZZ"), 1.0)
         # ZZ odd GHZ is 0.0
-        self.assertAlmostEqual(sampled_expectation_value(DIST3, "ZZZ"), 0.0)
+        self.assertAlmostEqual(sampled_expectation_value(dist3, "ZZZ"), 0.0)
         # All id ops goes to 1.0
-        self.assertAlmostEqual(sampled_expectation_value(DIST3, "III"), 1.0)
+        self.assertAlmostEqual(sampled_expectation_value(dist3, "III"), 1.0)
         # flipping one to I makes even GHZ 0.0
-        self.assertAlmostEqual(sampled_expectation_value(DIST2, "IZ"), 0.0)
-        self.assertAlmostEqual(sampled_expectation_value(DIST2, "ZI"), 0.0)
+        self.assertAlmostEqual(sampled_expectation_value(dist2, "IZ"), 0.0)
+        self.assertAlmostEqual(sampled_expectation_value(dist2, "ZI"), 0.0)
         # Generic Z on PROBS
         self.assertAlmostEqual(sampled_expectation_value(PROBS, "ZZZZ"), 0.7554)
 
     def test_same(self):
         """Test that all operators agree with each other for counts input"""
-        ANS = 0.9356
+        ans = 0.9356
         counts = Counts(
             {
                 "001": 67,
@@ -75,29 +75,29 @@ class TestSampledExpval(QiskitTestCase):
                 "000": 4855,
             }
         )
-        OPER = "IZZ"
+        oper = "IZZ"
 
-        exp1 = sampled_expectation_value(counts, OPER)
-        self.assertAlmostEqual(exp1, ANS)
+        exp1 = sampled_expectation_value(counts, oper)
+        self.assertAlmostEqual(exp1, ans)
 
-        exp2 = sampled_expectation_value(counts, Pauli(OPER))
-        self.assertAlmostEqual(exp2, ANS)
+        exp2 = sampled_expectation_value(counts, Pauli(oper))
+        self.assertAlmostEqual(exp2, ans)
 
-        exp3 = sampled_expectation_value(counts, PauliOp(Pauli(OPER)))
-        self.assertAlmostEqual(exp3, ANS)
+        exp3 = sampled_expectation_value(counts, PauliOp(Pauli(oper)))
+        self.assertAlmostEqual(exp3, ans)
 
-        exp4 = sampled_expectation_value(counts, PauliSumOp.from_list([[OPER, 1]]))
-        self.assertAlmostEqual(exp4, ANS)
+        exp4 = sampled_expectation_value(counts, PauliSumOp.from_list([[oper, 1]]))
+        self.assertAlmostEqual(exp4, ans)
 
-        exp5 = sampled_expectation_value(counts, SparsePauliOp.from_list([[OPER, 1]]))
-        self.assertAlmostEqual(exp5, ANS)
+        exp5 = sampled_expectation_value(counts, SparsePauliOp.from_list([[oper, 1]]))
+        self.assertAlmostEqual(exp5, ans)
 
     def test_asym_ops(self):
         """Test that asymmetric exp values work"""
-        DIST = QuasiDistribution(PROBS)
-        self.assertAlmostEqual(sampled_expectation_value(DIST, "0III"), 0.5318)
-        self.assertAlmostEqual(sampled_expectation_value(DIST, "III0"), 0.5285)
-        self.assertAlmostEqual(sampled_expectation_value(DIST, "1011"), 0.0211)
+        dist = QuasiDistribution(PROBS)
+        self.assertAlmostEqual(sampled_expectation_value(dist, "0III"), 0.5318)
+        self.assertAlmostEqual(sampled_expectation_value(dist, "III0"), 0.5285)
+        self.assertAlmostEqual(sampled_expectation_value(dist, "1011"), 0.0211)
 
     def test_probdist(self):
         """Test that ProbDistro"""

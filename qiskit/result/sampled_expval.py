@@ -13,9 +13,11 @@
 """Routines for computing expectation values from sampled distributions"""
 import numpy as np
 
+
+# pylint: disable=import-error
+from qiskit._accelerate.sampled_exp_val import sampled_expval_float, sampled_expval_complex
 from qiskit.exceptions import QiskitError
 from .distributions import QuasiDistribution, ProbDistribution
-from qiskit._accelerate.sampled_exp_val import sampled_expval_float, sampled_expval_complex
 
 
 # A dict defining the diagonal of each non-identity operator
@@ -27,7 +29,12 @@ def sampled_expectation_value(dist, oper):
 
     Parameters:
         dist (Counts or QuasiDistribution or ProbDistribution or dict): Input sampled distribution
-        oper (str or Pauli or PauliOp or PauliSumOp)
+        oper (str or Pauli or PauliOp or PauliSumOp): The operator for the observable
+
+    Returns:
+        float: The expectation value
+    Raises:
+        QiskitError: if the input distribution or operator is an invalid type
     """
     from .counts import Counts
     from qiskit.quantum_info import Pauli, SparsePauliOp
