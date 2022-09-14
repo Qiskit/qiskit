@@ -47,7 +47,7 @@ class BasePrimitiveResult(ABC):
         """
         for value in self._field_values:  # type: Sequence
             # TODO: enforce all data fields to be tuples instead of sequences
-            if not isinstance(value, (Sequence, ndarray)) or isinstance(value, str):
+            if not isinstance(value, (Sequence, ndarray)) or isinstance(value, (str, bytes)):
                 raise TypeError(
                     f"Expected sequence or `numpy.ndarray`, provided {type(value)} instead."
                 )
