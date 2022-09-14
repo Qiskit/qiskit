@@ -163,7 +163,9 @@ class NumPyEigensolver(Eigensolver):
 
     @staticmethod
     def _eval_aux_operators(
-        aux_operators: ListOrDict[BaseOperator | PauliSumOp], wavefn, threshold: float = 1e-12
+        aux_operators: ListOrDict[BaseOperator | PauliSumOp],
+        wavefn: np.ndarray,
+        threshold: float = 1e-12,
     ) -> ListOrDict[tuple[complex, complex]]:
 
         values: ListOrDict[tuple[complex, complex]]
@@ -188,6 +190,7 @@ class NumPyEigensolver(Eigensolver):
                 if isinstance(mat, scisparse.spmatrix):
                     value = mat.dot(wavefn).dot(np.conj(wavefn))
                 else:
+                    # TODO: How can we remove this opflow dependency?
                     value = StateFn(operator, is_measurement=True).eval(wavefn)
                 value = value if np.abs(value) > threshold else 0.0
             # The value gets wrapped into a tuple: (mean, standard deviation).
