@@ -108,6 +108,11 @@ Classes used by variational quantum time evolution algorithms - VarQITE and VarQ
 Evolvers
 --------
 
+Pending deprecation: This package has been superseded by the package below. It will be
+deprecated in a future release and subsequently removed after that:
+
+`Time Evolvers`_
+
 Algorithms to evolve quantum states in time. Both real and imaginary time evolution is possible
 with algorithms that support them. For machine learning, Quantum Imaginary Time Evolution might be
 used to train Quantum Boltzmann Machine Neural Networks for example.
@@ -125,6 +130,23 @@ used to train Quantum Boltzmann Machine Neural Networks for example.
     PVQDResult
     EvolutionResult
     EvolutionProblem
+
+
+Time Evolvers
+-------------
+
+Primitives-enabled algorithms to evolve quantum states in time. Both real and imaginary time
+evolution is possible with algorithms that support them. For machine learning, Quantum Imaginary
+Time Evolution might be used to train Quantum Boltzmann Machine Neural Networks for example.
+
+.. autosummary::
+   :toctree: ../stubs/
+   :nosignatures:
+
+    RealTimeEvolver
+    ImaginaryTimeEvolver
+    TimeEvolutionResult
+    TimeEvolutionProblem
 
 
 Factorizers
@@ -257,6 +279,10 @@ from .algorithm_result import AlgorithmResult
 from .evolvers import EvolutionResult, EvolutionProblem
 from .evolvers.real_evolver import RealEvolver
 from .evolvers.imaginary_evolver import ImaginaryEvolver
+from .time_evolvers.imaginary_time_evolver import ImaginaryTimeEvolver
+from .time_evolvers.real_time_evolver import RealTimeEvolver
+from .time_evolvers.time_evolution_problem import TimeEvolutionProblem
+from .time_evolvers.time_evolution_result import TimeEvolutionResult
 from .variational_algorithm import VariationalAlgorithm, VariationalResult
 from .amplitude_amplifiers import Grover, GroverResult, AmplificationProblem, AmplitudeAmplifier
 from .amplitude_estimators import (
@@ -322,11 +348,15 @@ __all__ = [
     "NumPyEigensolver",
     "RealEvolver",
     "ImaginaryEvolver",
+    "RealTimeEvolver",
+    "ImaginaryTimeEvolver",
     "TrotterQRTE",
     "VarQITE",
     "VarQRTE",
     "EvolutionResult",
     "EvolutionProblem",
+    "TimeEvolutionResult",
+    "TimeEvolutionProblem",
     "LinearSolverResult",
     "Eigensolver",
     "EigensolverResult",
