@@ -61,10 +61,10 @@ class TestSampledExpval(QiskitTestCase):
     
     
     def test_same(self):
-        """Test that all operators agree with each other for dict input"""
+        """Test that all operators agree with each other for counts input"""
         ANS = 0.9356
-        counts = {'001': 67, '110': 113, '100': 83, '011': 205,
-                  '111': 4535, '101': 100, '010': 42, '000': 4855}
+        counts = Counts({'001': 67, '110': 113, '100': 83, '011': 205,
+                         '111': 4535, '101': 100, '010': 42, '000': 4855})
         OPER = 'IZZ'
 
         exp1 = sampled_expectation_value(counts, OPER)
