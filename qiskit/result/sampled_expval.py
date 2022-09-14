@@ -14,9 +14,7 @@
 import numpy as np
 
 from qiskit.exceptions import QiskitError
-from qiskit.result import Counts, QuasiDistribution, ProbDistribution
-from qiskit.quantum_info import Pauli, SparsePauliOp
-from qiskit.opflow import PauliOp, PauliSumOp
+from .distributions import QuasiDistribution, ProbDistribution
 
 
 # A dict defining the diagonal of each non-identity operator
@@ -30,6 +28,9 @@ def sampled_expectation_value(dist, oper):
         dist (Counts or QuasiDistribution or ProbDistribution or dict): Input sampled distribution
         oper (str or Pauli or PauliOp or PauliSumOp)
     """
+    from .counts import Counts
+    from qiskit.quantum_info import Pauli, SparsePauliOp
+    from qiskit.opflow import PauliOp, PauliSumOp
     # This should be removed when these return bit-string keys
     if isinstance(dist, (QuasiDistribution, ProbDistribution)):
         dist = dist.binary_probabilities()

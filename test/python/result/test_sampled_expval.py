@@ -14,8 +14,7 @@
 
 import unittest
 
-from qiskit.quantum_info.analysis import sampled_expectation_value
-from qiskit.result import Counts, QuasiDistribution, ProbDistribution
+from qiskit.result import Counts, QuasiDistribution, ProbDistribution, sampled_expectation_value
 from qiskit.quantum_info import Pauli, SparsePauliOp
 from qiskit.opflow import PauliOp, PauliSumOp
 from qiskit.test import QiskitTestCase
