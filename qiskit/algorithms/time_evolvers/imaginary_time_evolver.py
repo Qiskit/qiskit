@@ -14,33 +14,15 @@
 
 from abc import ABC, abstractmethod
 
-from qiskit.utils.deprecation import deprecate_function
-from .evolution_problem import EvolutionProblem
-from .evolution_result import EvolutionResult
+from .time_evolution_problem import TimeEvolutionProblem
+from .time_evolution_result import TimeEvolutionResult
 
 
-class ImaginaryEvolver(ABC):
-    """Pending deprecation: Interface for Quantum Imaginary Time Evolution.
-
-    The ImaginaryEvolver interface has been superseded by the
-    :class:`qiskit.algorithms.time_evolvers.ImaginaryTimeEvolver` interface.
-    This interface will be deprecated in a future release and subsequently
-    removed after that.
-
-    """
-
-    @deprecate_function(
-        "The ImaginaryEvolver interface has been superseded by the "
-        "qiskit.algorithms.time_evolvers.ImaginaryTimeEvolver interface. "
-        "This interface will be deprecated in a future release and subsequently "
-        "removed after that.",
-        category=PendingDeprecationWarning,
-    )
-    def __init__(self) -> None:
-        pass
+class ImaginaryTimeEvolver(ABC):
+    """Interface for Quantum Imaginary Time Evolution."""
 
     @abstractmethod
-    def evolve(self, evolution_problem: EvolutionProblem) -> EvolutionResult:
+    def evolve(self, evolution_problem: TimeEvolutionProblem) -> TimeEvolutionResult:
         r"""Perform imaginary time evolution :math:`\exp(-\tau H)|\Psi\rangle`.
 
         Evolves an initial state :math:`|\Psi\rangle` for an imaginary time :math:`\tau`
