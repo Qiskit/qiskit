@@ -65,7 +65,7 @@ class TestVQD(QiskitAlgorithmsTestCase):
         self.ry_wavefunction = TwoLocal(rotation_blocks="ry", entanglement_blocks="cz")
 
         self.estimator = Estimator()
-        self.estimator_shots = Estimator(run_options={"shots": 2048, "seed": self.seed})
+        self.estimator_shots = Estimator(options={"shots": 2048, "seed": self.seed})
         self.fidelity = ComputeUncompute(Sampler())
 
     def test_basic_operator(self):
