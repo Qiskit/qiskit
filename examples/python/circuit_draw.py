@@ -17,25 +17,35 @@ Example showing how to draw a quantum circuit using Qiskit.
 from qiskit import QuantumCircuit
 from qiskit.circuit import Instruction
 from qiskit.circuit import CircuitInstruction, Qubit, QuantumRegister
+
 circuit = QuantumCircuit()
 
 
 def instructions_bell_circuit():
     instructions_list = []
-    instruction = CircuitInstruction(operation=Instruction(name='h', num_qubits=1, num_clbits=0, params=[]), qubits=(Qubit(QuantumRegister(2, 'q'), 0),), clbits=())
+    instruction = CircuitInstruction(
+        operation=Instruction(name="h", num_qubits=1, num_clbits=0, params=[]),
+        qubits=(Qubit(QuantumRegister(2, "q"), 0),),
+        clbits=(),
+    )
     instructions_list.append(instruction)
-    instruction = CircuitInstruction(operation=Instruction(name='cx', num_qubits=2, num_clbits=0, params=[]), qubits=(Qubit(QuantumRegister(2, 'q'), 0), Qubit(QuantumRegister(2, 'q'), 1)), clbits=())
+    instruction = CircuitInstruction(
+        operation=Instruction(name="cx", num_qubits=2, num_clbits=0, params=[]),
+        qubits=(Qubit(QuantumRegister(2, "q"), 0), Qubit(QuantumRegister(2, "q"), 1)),
+        clbits=(),
+    )
     instructions_list.append(instruction)
     return instructions_list
-    
+
 
 print(circuit.from_instructions(instructions_bell_circuit()))
 
+
 def build_bell_circuit():
-    qcirc = QuantumCircuit(2,2)
+    qcirc = QuantumCircuit(2, 2)
     qcirc.h(0)
-    qcirc.cx(0,1)
+    qcirc.cx(0, 1)
     return qcirc
 
-# Read instructions from the circuit
+
 print(circuit.from_instructions(build_bell_circuit()))

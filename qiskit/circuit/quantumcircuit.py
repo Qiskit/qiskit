@@ -286,17 +286,25 @@ class QuantumCircuit:
         self._metadata = metadata
 
     @classmethod
-    def from_instructions(cls, instructions: Iterable[CircuitInstruction], *, name=None, metadata=None, global_phase=0):
+    def from_instructions(
+        cls, instructions: Iterable[CircuitInstruction], *, name=None, metadata=None, global_phase=0
+    ):
+        """Return a circuit from instructions
+
+        Returns:
+            QuantumCircuit: a circuit from instructions
+        """
         out = cls(name=name, metadata=metadata, global_phase=global_phase)
         qc = QuantumCircuit()
+        qc._data = out._data
         nr_qb = 0
         for instruction in instructions:
-            input = instruction[1][0]
-            if isinstance(input, Qubit):
-                nr_qb = nr_qb + 1     
+            cir_instruction = instruction[1][0]
+            if isinstance(cir_instruction, Qubit):
+                nr_qb = nr_qb + 1
         qc = QuantumCircuit(nr_qb)
-        for instruction in instructions:	
-             qc._append(instruction)
+        for instruction in instructions:
+            qc._append(instruction)
         return qc
 
     @property
