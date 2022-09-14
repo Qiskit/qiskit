@@ -149,6 +149,7 @@ class PVQD(RealEvolver):
                 a random vector with elements in the interval :math:`[-0.01, 0.01]`.
             quantum_instance: The backend or quantum instance used to evaluate the circuits.
         """
+        super().__init__()
         if evolution is None:
             evolution = LieTrotter()
 
