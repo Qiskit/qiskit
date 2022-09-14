@@ -19,8 +19,9 @@ import logging
 import numpy as np
 from scipy import sparse as scisparse
 
-from qiskit.opflow import PauliSumOp, I, ListOp, StateFn
+from qiskit.opflow import PauliSumOp
 from qiskit.quantum_info.operators.base_operator import BaseOperator
+from qiskit.quantum_info import Statevector
 from qiskit.utils.validation import validate_min
 
 from ..exceptions import AlgorithmError
@@ -190,8 +191,13 @@ class NumPyEigensolver(Eigensolver):
                 if isinstance(mat, scisparse.spmatrix):
                     value = mat.dot(wavefn).dot(np.conj(wavefn))
                 else:
-                    # TODO: How can we remove this opflow dependency?
-                    value = StateFn(operator, is_measurement=True).eval(wavefn)
+                    if isinstance(operator, PauliSumOp):
+                        value = (
+                            Statevector(wavefn).expectation_value(operator.primitive)
+                            * operator.coeff
+                        )
+                    else:
+                        value = Statevector(wavefn).expectation_value(operator)
                 value = value if np.abs(value) > threshold else 0.0
             # The value gets wrapped into a tuple: (mean, standard deviation).
             # Since this is an exact computation, the standard deviation is known to be zero.
@@ -210,7 +216,7 @@ class NumPyEigensolver(Eigensolver):
             raise AlgorithmError("Operator was never provided")
 
         self._check_set_k(operator)
-        zero_op = I.tensorpower(operator.num_qubits) * 0.0
+        zero_op = PauliSumOp.from_list([("I", 1)]).tensorpower(operator.num_qubits) * 0.0
         if isinstance(aux_operators, list) and len(aux_operators) > 0:
             # For some reason Chemistry passes aux_ops with 0 qubits and paulis sometimes.
             aux_operators = [zero_op if op == 0 else op for op in aux_operators]
@@ -267,7 +273,7 @@ class NumPyEigensolver(Eigensolver):
         # evaluate ground state after filtering (in case a filter is set)
         self._get_ground_state_energy(operator)
         if self._ret.eigenstates is not None:
-            self._ret.eigenstates = ListOp([StateFn(vec) for vec in self._ret.eigenstates])
+            self._ret.eigenstates = PauliSumOp([Statevector(vec) for vec in self._ret.eigenstates])
 
         logger.debug("NumpyEigensolverResult:\n%s", self._ret)
         return self._ret
