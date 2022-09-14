@@ -15,6 +15,7 @@ import numpy as np
 
 from qiskit.exceptions import QiskitError
 from .distributions import QuasiDistribution, ProbDistribution
+from qiskit._accelerate.sampled_exp_val import sampled_expval_float, sampled_expval_complex
 
 
 # A dict defining the diagonal of each non-identity operator
@@ -40,52 +41,23 @@ def sampled_expectation_value(dist, oper):
         raise QiskitError("Invalid input distribution type")
     if isinstance(oper, str):
         oper_strs = [oper.upper()]
-        coeffs = [1.0]
+        coeffs = np.asarray([1.0])
     elif isinstance(oper, Pauli):
         oper_strs = [oper.to_label()]
-        coeffs = [1.0]
+        coeffs = np.asarray([1.0])
     elif isinstance(oper, PauliOp):
         oper_strs = [oper.primitive.to_label()]
-        coeffs = [1.0]
+        coeffs = np.asarray([1.0])
     elif isinstance(oper, PauliSumOp):
         _lst = oper.primitive.to_list()
         oper_strs = [item[0] for item in _lst]
-        coeffs = [item[1] for item in _lst]
+        coeffs = np.asarray([item[1] for item in _lst])
     elif isinstance(oper, SparsePauliOp):
         oper_strs = oper.paulis.to_labels()
-        coeffs = oper.coeffs
+        coeffs = np.asarray(oper.coeffs)
     else:
         raise QiskitError("Invalid operator type")
-    out = 0
-    for idx, string in enumerate(oper_strs):
-        out += coeffs[idx] * _bitstring_expval(dist, string)
-
-    return out.real
-
-
-def _bitstring_expval(dist, oper_str):
-    """Computes the expectation value of a sampled distribution
-    for a operator expressed by a string.
-
-    Parameters:
-        dist (Counts or QuasiDistribution or ProbDistribution or dict): A a sampled distribution
-        oper_str (str): An operator string
-
-    Returns:
-        float: Expectation value
-    """
-    # Sparsify operator string to just non-identity terms
-    str_len = len(oper_str)
-    inds = np.array([kk for kk in range(str_len) if oper_str[kk] != "I"], np.int32)
-    short_str = "".join(oper_str[kk] for kk in inds)
-    # Compute denominator
-    denom = sum(dist.values())
-    # Do the actual expval here
-    exp_val = 0
-    for bits, val in dist.items():
-        temp_prod = 1.0
-        for idx, oper in enumerate(short_str):
-            temp_prod *= OPERS[oper][int(bits[inds[idx]])]
-        exp_val += val * temp_prod
-    exp_val /= denom
-    return exp_val
+    if coeffs.dtype == np.dtype(complex).type:
+        return sampled_expval_complex(oper_strs, coeffs, dist)
+    else:
+        return sampled_expval_float(oper_strs, coeffs, dist)
