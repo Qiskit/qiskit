@@ -14,4 +14,4 @@
 
 
 from .graysynth import graysynth, cnot_synth
-from .linear_utils import random_invertible_binary_matrix, calc_inverse_matrix
+from .linear_matrix_utils import random_invertible_binary_matrix, calc_inverse_matrix
