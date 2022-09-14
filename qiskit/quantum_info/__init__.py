@@ -107,6 +107,7 @@ Analysis
 
    hellinger_distance
    hellinger_fidelity
+   sampled_expectation_value
 
 Synthesis
 =========
@@ -163,4 +164,7 @@ from .synthesis import (
     XXDecomposer,
 )
 
-from .analysis import hellinger_distance, hellinger_fidelity
+from .analysis import (hellinger_distance,
+                       hellinger_fidelity,
+                       sampled_expectation_value
+)
