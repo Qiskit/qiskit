@@ -42,7 +42,7 @@ logger = logging.getLogger(__name__)
 class VQD(VariationalAlgorithm, Eigensolver):
     r"""The Variational Quantum Deflation algorithm. Implementation using primitives.
 
-    `VQD <https://arxiv.org/abs/1805.08138>`__ is ae quantum algorithm that uses a
+    `VQD <https://arxiv.org/abs/1805.08138>`__ is a quantum algorithm that uses a
     variational technique to find
     the k eigenvalues of the Hamiltonian :math:`H` of a given system.
 

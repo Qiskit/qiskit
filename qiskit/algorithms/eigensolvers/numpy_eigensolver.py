@@ -10,16 +10,20 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""The Eigensolver algorithm."""
+"""The NumPy eigensolver algorithm."""
 
+from __future__ import annotations
+
+from typing import Callable
 import logging
-from typing import Callable, List, Optional, Tuple, Union
-
 import numpy as np
 from scipy import sparse as scisparse
 
-from qiskit.opflow import I, ListOp, OperatorBase, StateFn
+# from qiskit.opflow import I, ListOp, OperatorBase, StateFn
+from qiskit.opflow import PauliSumOp
+from qiskit.quantum_info.operators.base_operator import BaseOperator
 from qiskit.utils.validation import validate_min
+
 from ..exceptions import AlgorithmError
 from .eigensolver import Eigensolver, EigensolverResult
 from ..list_or_dict import ListOrDict
@@ -27,53 +31,9 @@ from ..list_or_dict import ListOrDict
 logger = logging.getLogger(__name__)
 
 
-# pylint: disable=invalid-name
-
-
-class NumPyEigensolverResult(EigensolverResult):
-    """Eigensolver Result."""
-
-    def __init__(self) -> None:
-        super().__init__()
-        self._eigenstates = None
-
-    @property
-    def eigenvalues(self) -> Optional[np.ndarray]:
-        """returns eigen values"""
-        return self._eigenvalues
-
-    @eigenvalues.setter
-    def eigenvalues(self, value: np.ndarray) -> None:
-        """set eigen values"""
-        self._eigenvalues = value
-
-    @property
-    def eigenstates(self) -> Optional[np.ndarray]:
-        """return eigen states"""
-        return self._eigenstates
-
-    @eigenstates.setter
-    def eigenstates(self, value: np.ndarray) -> None:
-        """set eigen states"""
-        self._eigenstates = value
-
-    @property
-    def aux_operator_eigenvalues(self) -> Optional[List[ListOrDict[Tuple[complex, complex]]]]:
-        """Return aux operator expectation values.
-
-        These values are in fact tuples formatted as (mean, standard deviation).
-        """
-        return self._aux_operator_eigenvalues
-
-    @aux_operator_eigenvalues.setter
-    def aux_operator_eigenvalues(self, value: List[ListOrDict[Tuple[complex, complex]]]) -> None:
-        """set aux operator eigen values"""
-        self._aux_operator_eigenvalues = value
-
-
 class NumPyEigensolver(Eigensolver):
     r"""
-    The NumPy Eigensolver algorithm.
+    The NumPy eigensolver algorithm.
 
     NumPy Eigensolver computes up to the first :math:`k` eigenvalues of a complex-valued square
     matrix of dimension :math:`n \times n`, with :math:`k \leq n`.
@@ -88,7 +48,7 @@ class NumPyEigensolver(Eigensolver):
         self,
         k: int = 1,
         filter_criterion: Callable[
-            [Union[List, np.ndarray], float, Optional[ListOrDict[float]]], bool
+            [list | np.ndarray, float, ListOrDict[float] | None], bool
         ] = None,
     ) -> None:
         """
@@ -113,12 +73,12 @@ class NumPyEigensolver(Eigensolver):
 
     @property
     def k(self) -> int:
-        """returns k (number of eigenvalues requested)"""
+        """Return k (number of eigenvalues requested)."""
         return self._in_k
 
     @k.setter
     def k(self, k: int) -> None:
-        """set k (number of eigenvalues requested)"""
+        """Set k (number of eigenvalues requested)."""
         validate_min("k", k, 1)
         self._in_k = k
         self._k = k
@@ -126,25 +86,24 @@ class NumPyEigensolver(Eigensolver):
     @property
     def filter_criterion(
         self,
-    ) -> Optional[Callable[[Union[List, np.ndarray], float, Optional[ListOrDict[float]]], bool]]:
-        """returns the filter criterion if set"""
+    ) -> Callable[[list | np.ndarray, float, ListOrDict[float] | None], bool] | None:
+        """Return the filter criterion if set."""
         return self._filter_criterion
 
     @filter_criterion.setter
     def filter_criterion(
         self,
-        filter_criterion: Optional[
-            Callable[[Union[List, np.ndarray], float, Optional[ListOrDict[float]]], bool]
-        ],
+        filter_criterion: Callable[[list | np.ndarray, float, ListOrDict[float] | None], bool]
+        | None,
     ) -> None:
-        """set the filter criterion"""
+        """Set the filter criterion."""
         self._filter_criterion = filter_criterion
 
     @classmethod
     def supports_aux_operators(cls) -> bool:
         return True
 
-    def _check_set_k(self, operator: OperatorBase) -> None:
+    def _check_set_k(self, operator: BaseOperator | PauliSumOp) -> None:
         if operator is not None:
             if self._in_k > 2**operator.num_qubits:
                 self._k = 2**operator.num_qubits
@@ -154,7 +113,7 @@ class NumPyEigensolver(Eigensolver):
             else:
                 self._k = self._in_k
 
-    def _solve(self, operator: OperatorBase) -> None:
+    def _solve(self, operator: BaseOperator | PauliSumOp) -> None:
         sp_mat = operator.to_spmatrix()
         # If matrix is diagonal, the elements on the diagonal are the eigenvalues. Solve by sorting.
         if scisparse.csr_matrix(sp_mat.diagonal()).nnz == sp_mat.nnz:
@@ -182,12 +141,14 @@ class NumPyEigensolver(Eigensolver):
         self._ret.eigenvalues = eigval
         self._ret.eigenstates = eigvec.T
 
-    def _get_ground_state_energy(self, operator: OperatorBase) -> None:
+    def _get_ground_state_energy(self, operator: BaseOperator | PauliSumOp) -> None:
         if self._ret.eigenvalues is None or self._ret.eigenstates is None:
             self._solve(operator)
 
     def _get_energies(
-        self, operator: OperatorBase, aux_operators: Optional[ListOrDict[OperatorBase]]
+        self,
+        operator: BaseOperator | PauliSumOp,
+        aux_operators: ListOrDict[BaseOperator | PauliSumOp] | None,
     ) -> None:
         if self._ret.eigenvalues is None or self._ret.eigenstates is None:
             self._solve(operator)
@@ -202,10 +163,10 @@ class NumPyEigensolver(Eigensolver):
 
     @staticmethod
     def _eval_aux_operators(
-        aux_operators: ListOrDict[OperatorBase], wavefn, threshold: float = 1e-12
-    ) -> ListOrDict[Tuple[complex, complex]]:
+        aux_operators: ListOrDict[BaseOperator | PauliSumOp], wavefn, threshold: float = 1e-12
+    ) -> ListOrDict[tuple[complex, complex]]:
 
-        values: ListOrDict[Tuple[complex, complex]]
+        values: ListOrDict[tuple[complex, complex]]
 
         # As a list, aux_operators can contain None operators for which None values are returned.
         # As a dict, the None operators in aux_operators have been dropped in compute_eigenvalues.
@@ -235,8 +196,11 @@ class NumPyEigensolver(Eigensolver):
         return values
 
     def compute_eigenvalues(
-        self, operator: OperatorBase, aux_operators: Optional[ListOrDict[OperatorBase]] = None
-    ) -> EigensolverResult:
+        self,
+        operator: BaseOperator | PauliSumOp,
+        aux_operators: ListOrDict[BaseOperator | PauliSumOp] | None = None,
+    ) -> NumpyEigensolverResult:
+
         super().compute_eigenvalues(operator, aux_operators)
 
         if operator is None:
@@ -261,7 +225,7 @@ class NumPyEigensolver(Eigensolver):
             # need to consider all elements if a filter is set
             self._k = 2**operator.num_qubits
 
-        self._ret = EigensolverResult()
+        self._ret = NumpyEigensolverResult()
         self._solve(operator)
 
         # compute energies before filtering, as this also evaluates the aux operators
@@ -302,5 +266,23 @@ class NumPyEigensolver(Eigensolver):
         if self._ret.eigenstates is not None:
             self._ret.eigenstates = ListOp([StateFn(vec) for vec in self._ret.eigenstates])
 
-        logger.debug("EigensolverResult:\n%s", self._ret)
+        logger.debug("NumpyEigensolverResult:\n%s", self._ret)
         return self._ret
+
+
+class NumPyEigensolverResult(EigensolverResult):
+    """NumPy eigensolver result."""
+
+    def __init__(self) -> None:
+        super().__init__()
+        self._eigenstates = None
+
+    @property
+    def eigenstates(self) -> Optional[np.ndarray]:
+        """Return eigenstates."""
+        return self._eigenstates
+
+    @eigenstates.setter
+    def eigenstates(self, value: np.ndarray) -> None:
+        """Set eigenstates."""
+        self._eigenstates = value
