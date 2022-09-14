@@ -9,6 +9,7 @@
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
+# pylint: disable=cyclic-import
 
 """Routines for computing expectation values from sampled distributions"""
 import numpy as np
@@ -29,7 +30,8 @@ def sampled_expectation_value(dist, oper):
 
     Parameters:
         dist (Counts or QuasiDistribution or ProbDistribution or dict): Input sampled distribution
-        oper (str or Pauli or PauliOp or PauliSumOp): The operator for the observable
+        oper (str or Pauli or PauliOp or PauliSumOp or SparsePauliOp): The operator for 
+                                                                       the observable
 
     Returns:
         float: The expectation value
