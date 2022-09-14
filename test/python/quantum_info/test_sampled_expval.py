@@ -43,7 +43,7 @@ PROBS = {'1000': 0.0022,
 class TestSampledExpval(QiskitTestCase):
     """Test sampled expectation values"""
 
-    def test_simple1(self):
+    def test_simple(self):
         """Test that basic exp values work"""
 
         DIST2 = {'00': 0.5, '11': 0.5}
@@ -83,6 +83,13 @@ class TestSampledExpval(QiskitTestCase):
         exp5 = sampled_expectation_value(counts, SparsePauliOp.from_list([[OPER, 1]]))
         self.assertAlmostEqual(exp5, ANS)
 
+
+    def test_asym_ops(self):
+        """Test that asymmetric exp values work"""
+        DIST = QuasiDistribution(PROBS)
+        self.assertAlmostEqual(sampled_expectation_value(DIST, '0III'), 0.5318)
+        self.assertAlmostEqual(sampled_expectation_value(DIST, 'III0'), 0.5285)
+        self.assertAlmostEqual(sampled_expectation_value(DIST, '1011'), 0.0211)
 
 
 if __name__ == "__main__":
