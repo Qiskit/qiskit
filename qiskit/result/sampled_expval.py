@@ -44,7 +44,7 @@ def sampled_expectation_value(dist, oper):
         oper_strs = [oper.to_label()]
         coeffs = [1.0]
     elif isinstance(oper, PauliOp):
-        oper_strs = [oper.to_label()]
+        oper_strs = [oper.primitive.to_label()]
         coeffs = [1.0]
     elif isinstance(oper, PauliSumOp):
         _lst = oper.primitive.to_list()
