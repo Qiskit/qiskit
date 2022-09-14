@@ -399,8 +399,8 @@ def _get_layered_instructions(
     # default to left
     justify = justify if justify in ("right", "none") else "left"
 
-    qubits = circuit.qubits
-    clbits = circuit.clbits
+    qubits = circuit.qubits.copy()
+    clbits = circuit.clbits.copy()
     nodes = []
 
     # Create a mapping of each register to the max layer number for all measure ops
