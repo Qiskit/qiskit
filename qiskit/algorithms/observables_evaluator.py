@@ -16,7 +16,7 @@ import numpy as np
 
 from qiskit import QuantumCircuit
 from qiskit.opflow import PauliSumOp
-from . import AlgorithmError
+from .exceptions import AlgorithmError
 from .list_or_dict import ListOrDict
 from ..primitives import EstimatorResult, BaseEstimator
 from ..quantum_info.operators.base_operator import BaseOperator
