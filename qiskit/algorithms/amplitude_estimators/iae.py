@@ -113,9 +113,6 @@ class IterativeAmplitudeEstimation(AmplitudeEstimator):
         self._min_ratio = min_ratio
         self._confint_method = confint_method
         self._sampler = sampler
-        # Keep circuits cached while estimate is processed to preserve their python ids.
-        # This can be removed once Sampler fixes the way it handles circuits ids.
-        self._circuits_cache: list[QuantumCircuit] = []
 
     @property
     def sampler(self) -> None | BaseSampler:
@@ -413,7 +410,6 @@ class IterativeAmplitudeEstimation(AmplitudeEstimator):
                 if self._quantum_instance is not None
                 else self._sampler.options.get("shots", 1)
             )
-            self._circuits_cache = []
             # do while loop, keep in mind that we scaled theta mod 2pi such that it lies in [0,1]
             while theta_intervals[-1][1] - theta_intervals[-1][0] > self._epsilon / np.pi:
                 num_iterations += 1
@@ -432,7 +428,6 @@ class IterativeAmplitudeEstimation(AmplitudeEstimator):
 
                 # run measurements for Q^k A|0> circuit
                 circuit = self.construct_circuit(estimation_problem, k, measurement=True)
-                self._circuits_cache.append(circuit)
                 counts = {}
                 if self._quantum_instance is not None:
                     ret = self._quantum_instance.execute(circuit)
@@ -502,8 +497,6 @@ class IterativeAmplitudeEstimation(AmplitudeEstimator):
                 a_u = cast(float, a_u)
                 a_l = cast(float, a_l)
                 a_intervals.append([a_l, a_u])
-
-        self._circuits_cache = []
 
         # get the latest confidence interval for the estimate of a
         confidence_interval = tuple(a_intervals[-1])
