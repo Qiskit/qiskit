@@ -287,7 +287,9 @@ class BaseStateFidelity(ABC):
             The job's result is an instance of ``StateFidelityResult``.
         """
 
-        job = AlgorithmJob(self._run, circuits_1, circuits_2, values_1, values_2, **options)
+        job = AlgorithmJob(
+            self._run, circuits_1, circuits_2, values_1, values_2, **options.__dict__
+        )
 
         job.submit()
         return job
