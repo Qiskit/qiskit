@@ -373,7 +373,7 @@ def _plotting_core(
     if kind == "counts":
         ax.set_ylabel("Count", fontsize=14)
     else:
-        ax.set_ylabel("Probability", fontsize=14)
+        ax.set_ylabel("Quasi-probability", fontsize=14)
     all_vals = np.concatenate(all_pvalues).ravel()
     min_ylim = 0.0
     if kind == "distribution":
