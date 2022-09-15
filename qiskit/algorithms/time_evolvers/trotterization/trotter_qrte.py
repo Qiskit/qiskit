@@ -23,9 +23,7 @@ from qiskit.algorithms.time_evolvers.time_evolution_problem import TimeEvolution
 from qiskit.algorithms.time_evolvers.time_evolution_result import TimeEvolutionResult
 from qiskit.algorithms.time_evolvers.real_time_evolver import RealTimeEvolver
 from qiskit.opflow import (
-    CircuitOp,
     PauliSumOp,
-    StateFn,
 )
 from qiskit.circuit.library import PauliEvolutionGate
 from qiskit.primitives import BaseEstimator
@@ -141,15 +139,13 @@ class TrotterQRTE(RealTimeEvolver):
                 f"TrotterQRTE only accepts Pauli | PauliSumOp, {type(hamiltonian)} provided."
             )
         # the evolution gate
-        evolution_gate = CircuitOp(
-            PauliEvolutionGate(hamiltonian, evolution_problem.time, synthesis=self.product_formula)
-        )
+        evolution_gate = PauliEvolutionGate(hamiltonian, evolution_problem.time, synthesis=self.product_formula)
 
         if evolution_problem.initial_state is not None:
             initial_state = evolution_problem.initial_state
-            if isinstance(initial_state, QuantumCircuit):
-                initial_state = StateFn(initial_state)
-            evolved_state = evolution_gate @ initial_state
+            evolved_state = QuantumCircuit(initial_state.num_qubits)
+            evolved_state.append(initial_state, evolved_state.qubits)
+            evolved_state.append(evolution_gate, evolved_state.qubits)
 
         else:
             raise ValueError("``initial_state`` must be provided in the EvolutionProblem.")
@@ -158,7 +154,7 @@ class TrotterQRTE(RealTimeEvolver):
         if evolution_problem.aux_operators is not None:
             evaluated_aux_ops = estimate_observables(
                 self.estimator,
-                evolved_state.primitive,
+                evolved_state,
                 evolution_problem.aux_operators,
                 evolution_problem.truncation_threshold,
             )
