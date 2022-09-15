@@ -1091,17 +1091,21 @@ class DAGCircuit:
                     if bit not in node_cargs
                 ]
             if len(wires) != len(node_wire_order):
-                raise DAGCircuitError(f"expected {len(node_wire_order)} wires, got {len(wires)}")
+                raise DAGCircuitError(
+                    f"bit mapping invalid: expected {len(node_wire_order)}, got {len(wires)}"
+                )
             wire_map = dict(zip(wires, node_wire_order))
             if len(wire_map) != len(node_wire_order):
-                raise DAGCircuitError("duplicate wires")
+                raise DAGCircuitError("bit mapping invalid: some bits have duplicate entries")
         for input_dag_wire, our_wire in wire_map.items():
             if our_wire not in self.input_map:
-                raise DAGCircuitError(f"{our_wire} is not in this DAG")
+                raise DAGCircuitError(f"bit mapping invalid: {our_wire} is not in this DAG")
             # Support mapping indiscriminately between Qubit and AncillaQubit, etc.
             check_type = Qubit if isinstance(our_wire, Qubit) else Clbit
             if not isinstance(input_dag_wire, check_type):
-                raise DAGCircuitError(f"{input_dag_wire} and {our_wire} are different bit types")
+                raise DAGCircuitError(
+                    f"bit mapping invalid: {input_dag_wire} and {our_wire} are different bit types"
+                )
 
         reverse_wire_map = {b: a for a, b in wire_map.items()}
         creg_map = {}
