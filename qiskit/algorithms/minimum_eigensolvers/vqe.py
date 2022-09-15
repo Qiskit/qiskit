@@ -218,13 +218,13 @@ class VQE(VariationalAlgorithm, MinimumEigensolver):
         ansatz: QuantumCircuit,
         operator: BaseOperator | PauliSumOp,
     ) -> tuple[Callable[[np.ndarray], float | list[float]], dict]:
-        """Returns a function handle to evaluates the energy at given parameters for the ansatz.
+        """Returns a function handle to evaluate the energy at given parameters for the ansatz.
         This is the objective function to be passed to the optimizer that is used for evaluation.
         Args:
             ansatz: The ansatz preparing the quantum state.
             operator: The operator whose energy to evaluate.
         Returns:
-            Energy of the hamiltonian of each parameter.
+            Energy of the Hamiltonian of each parameter.
         Raises:
             AlgorithmError: If the primitive job to evaluate the energy fails.
         """

@@ -10,7 +10,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""The NumPy minimum eigensolver algorithm."""
+"""The NumPy minimum eigensolver algorithm and result."""
 
 from __future__ import annotations
 
