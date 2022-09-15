@@ -97,7 +97,7 @@ class NumPyMinimumEigensolverResult(MinimumEigensolverResult):
 
     @property
     def eigenstate(self) -> np.ndarray | None:
-        """The eigenstate corresponding to the computed minimum eigenvalue."""
+        """Returns the eigenstate corresponding to the computed minimum eigenvalue."""
         return self._eigenstate
 
     @eigenstate.setter
