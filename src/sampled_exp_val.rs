@@ -41,8 +41,8 @@ fn bitstring_expval(dist: &HashMap<String, f64>, mut oper_str: String) -> f64 {
         .map(|(bits, val)| {
             let temp_product: f64 = oper_str.bytes().enumerate().fold(1.0, |acc, (idx, oper)| {
                 let diagonal: [f64; 2] = OPERS[oper as usize];
-                let index: usize =
-                    bits.chars().nth(inds[idx]).unwrap().to_digit(10).unwrap() as usize;
+                let index_char: char = bits.as_bytes()[inds[idx]] as char;
+                let index: usize = index_char.to_digit(10).unwrap() as usize;
                 acc * diagonal[index]
             });
             val * temp_product
