@@ -3447,6 +3447,13 @@ class TestTextIdleWires(QiskitTestCase):
         circuit.delay(100, qr[2])
         self.assertEqual(str(_text_circuit_drawer(circuit, idle_wires=False)), expected)
 
+    def test_does_not_mutate_circuit(self):
+        """Using 'idle_wires=False' should not mutate the circuit.  Regression test of gh-8739."""
+        circuit = QuantumCircuit(1)
+        before_qubits = circuit.num_qubits
+        circuit.draw(idle_wires=False)
+        self.assertEqual(circuit.num_qubits, before_qubits)
+
 
 class TestTextNonRational(QiskitTestCase):
     """non-rational numbers are correctly represented"""

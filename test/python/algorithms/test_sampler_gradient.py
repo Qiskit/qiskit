@@ -521,7 +521,7 @@ class TestSamplerGradient(QiskitTestCase):
         qc = QuantumCircuit(1)
         qc.rx(a, 0)
         qc.measure_all()
-        sampler = Sampler(run_options={"shots": 100})
+        sampler = Sampler(options={"shots": 100})
         with self.subTest("sampler"):
             if grad is FiniteDiffSamplerGradient or grad is SPSASamplerGradient:
                 gradient = grad(sampler, epsilon=1e-6)
