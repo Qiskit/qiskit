@@ -22,6 +22,334 @@ Notable Changes
 ###############
 
 *************
+Qiskit 0.38.0
+*************
+
+Terra 0.21.2
+============
+
+No change
+
+.. _Release Notes_Aer_0.11.0:
+
+Aer 0.11.0
+==========
+
+.. _Release Notes_Aer_0.11.0_Prelude:
+
+Prelude
+-------
+
+.. releasenotes/notes/0.11/prepare-0.11-63503170f57ab66d.yaml @ b'b7c4a322f8409fc2809b57b0701d1da6717c7efd'
+
+The Qiskit Aer 0.11.0 release highlights are:
+
+* The migration to a new self-contained Python namespace ``qiskit_aer``
+* The introduction of the :class:`~.AerStatevector` class
+* The introduction of Aer implementations of :mod:`~qiskit.primitives`,
+  :class:`~qiskit_aer.primitives.Sampler` and :class:`~qiskit_aer.primitives.Estimator`
+* Introduction of support for running with `cuQuantum <https://developer.nvidia.com/cuquantum-sdk>`__
+
+
+.. _Release Notes_Aer_0.11.0_New Features:
+
+New Features
+------------
+
+.. releasenotes/notes/0.11/add-backendv2-support-to-noise-model-78fe515040918793.yaml @ b'b7c4a322f8409fc2809b57b0701d1da6717c7efd'
+
+- Added support for :class:`~.BackendV2` to
+  :meth:`~.NoiseModel.from_backend`.
+  Now it can generate a :class:`~.NoiseModel` object from an
+  input :class:`~.BackendV2` instance. When a :class:`~.BackendV2`
+  input is used on :meth:`~.NoiseModel.from_backend` the two deprecated
+  options, ``standard_gates`` and ``warnings``, are gracefully ignored.
+
+.. releasenotes/notes/0.11/add-primitives-65bf67ea8f0c29b1.yaml @ b'b7c4a322f8409fc2809b57b0701d1da6717c7efd'
+
+- Added Aer implementation of :mod:`~qiskit.primitives`,
+  :class:`~.qiskit_aer.primitives.Sampler` and :class:`~.qiskit_aer.primitives.Estimator.
+  Thes implementations of the :class:`~qiskit.primitives.BaseSampler` and
+  :class:`~qiskit.primitives.BaseEstimator` interfaces leverage qiskit aer to
+  efficiently perform the computation of the primitive operations. You can
+  refer to the :mod:`qiskit.primitives` docs for a more detailed description
+  of the primitives API.
+
+.. releasenotes/notes/0.11/add_aer_runtime_library-6a0efd6a75a510b9.yaml @ b'b7c4a322f8409fc2809b57b0701d1da6717c7efd'
+
+- Added a shared library to Qiskit Aer that allows external programs to use
+  Aer's simulation methods. This is an experimental feature and its API
+  may be changed without the deprecation period.
+
+.. releasenotes/notes/0.11/arm64-macos-wheels-3778e83a8d036168.yaml @ b'b7c4a322f8409fc2809b57b0701d1da6717c7efd'
+
+- Added support for M1 macOS systems. Precompiled binaries for supported
+  Python versions >=3.8 on arm64 macOS will now be published on PyPI for this
+  and future releases.
+
+.. releasenotes/notes/0.11/cuQuantum-support-d33abe5b1cb778a8.yaml @ b'b7c4a322f8409fc2809b57b0701d1da6717c7efd'
+
+- Added support for cuQuantum, NVIDIA's APIs for quantum computing,
+  to accelerate statevector, density matrix and unitary simulators
+  by using GPUs.
+  This is experiemental implementation for cuQuantum Beta 2. (0.1.0)
+  cuStateVec APIs are enabled to accelerate instead of Aer's implementations
+  by building Aer by setting path of cuQuantum to ``CUSTATEVEC_ROOT``.
+  (binary distribution is not available currently.)
+  cuStateVector is enabled by setting ``device='GPU'`` and
+  ``cuStateVec_threshold`` options. cuStateVec is enabled when number of
+  qubits of input circuit is equal or greater than ``cuStateVec_threshold``.
+
+.. releasenotes/notes/0.11/non-x86_ibm_cpu-493e51313ba222a6.yaml @ b'b7c4a322f8409fc2809b57b0701d1da6717c7efd'
+
+- Added partial support for running on ppc64le and s390x Linux platforms.
+  This release will start publishing pre-compiled binaries for ppc64le and
+  s390x Linux platforms on all Python versions. However, unlike other
+  supported platforms not all of Qiskit's upstream dependencies support these
+  platforms yet. So a C/C++ compiler may be required to build and install
+  these dependencies and a simple ``pip install qiskit-aer`` with just a
+  working Python environment will not be sufficient to install Qiskit Aer.
+  Additionally, these same constraints prevent us from testing the
+  pre-compiled wheels before publishing them, so the same guarantees around
+  platform support that exist for the other platforms don't apply to these
+  platforms.
+
+.. releasenotes/notes/0.11/support_initialize_with_label-bc08f29928d3e3f3.yaml @ b'b7c4a322f8409fc2809b57b0701d1da6717c7efd'
+
+- Allow initialization with a label, that consists of ``+-rl``. Now the following
+  code works:
+
+  .. code-block:: python
+
+      import qiskit
+      from qiskit.providers.aer import AerSimulator
+
+      qc = qiskit.QuantumCircuit(4)
+      qc.initialize('+-rl')
+      qc.save_statevector()
+
+      AerSimulator(method="statevector").run(qc)
+
+
+.. _Release Notes_Aer_0.11.0_Known Issues:
+
+Known Issues
+------------
+
+.. releasenotes/notes/0.11/non-x86_ibm_cpu-493e51313ba222a6.yaml @ b'b7c4a322f8409fc2809b57b0701d1da6717c7efd'
+
+- When running on Linux s390x platforms (or other big endian platforms)
+  running circuits that contain :class:`~.UnitaryGate` operations will not
+  work because of an endianess bug.
+  See `#1506 <https://github.com/Qiskit/qiskit-aer/issues/1506>`__ for more
+  details.
+
+
+.. _Release Notes_Aer_0.11.0_Upgrade Notes:
+
+Upgrade Notes
+-------------
+
+.. releasenotes/notes/0.11/MPI-chunk-swap-optimization-8e693483ed271583.yaml @ b'b7c4a322f8409fc2809b57b0701d1da6717c7efd'
+
+- MPI parallelization for large number of qubits is optimized to apply
+  multiple chunk-swaps as all-to-all communication that can decrease
+  data size exchanged over MPI processes. This upgrade improve scalability
+  of parallelization.
+
+.. releasenotes/notes/0.11/change_default_fusion_parameters-cec337a003208e06.yaml @ b'b7c4a322f8409fc2809b57b0701d1da6717c7efd'
+
+- Set default ``fusion_max_qubit`` and ``fusion_threshold`` depending on the configured
+  ``method`` for :class:`~AerSimulator`. Previously, the default values of
+  ``fusion_max_qubit`` and ``fusion_threshold`` were ``5`` and ``14`` respectively for
+  all simulation methods. However, their optimal values depend on running methods. If you
+  depended on the previous defaults you can explicitly set ``fusion_max_qubit=5`` or
+  ``fusion_threshold=14`` to retain the previous default behavior. For example::
+
+      from qiskit_aer import AerSimulator
+
+      sim = AerSimulator(method='mps', fusion_max_qubit=5, fusion_threshold=14)
+
+.. releasenotes/notes/0.11/cuQuantum_22.05.0.41_support-cb0e797b57d20c3a.yaml @ b'b7c4a322f8409fc2809b57b0701d1da6717c7efd'
+
+- This is update to support cuQuantum 22.5.0.41 including bug fix of
+  thread safety in some cuStateVec APIs. Now Qiskit Aer turns on
+  multi-threading for multi-shots and multi-chunk parallelization
+  when enabling cuStateVec.
+
+.. releasenotes/notes/0.11/drop-python36-61553302523fa240.yaml @ b'b7c4a322f8409fc2809b57b0701d1da6717c7efd'
+
+- Running qiskit-aer with Python 3.6 is no longer supported. Python >= 3.7
+  is now required to install and run qiskit-aer.
+
+.. releasenotes/notes/0.11/new-namespace-9c3b9fd73ed504e6.yaml @ b'b7c4a322f8409fc2809b57b0701d1da6717c7efd'
+
+- The ``qiskit-aer`` Python package has moved to be a self-contained
+  namespace, ``qiskit_aer``. Previously, it shared
+  a namespace with ``qiskit-terra`` by being ``qiskit.providers.aer``.
+  `This was problematic for several reasons <https://github.com/Qiskit/qiskit/issues/559>`__,
+  and this release moves away from it. For the time being ``import qiskit.providers.aer``
+  will continue to work and redirect to ``qiskit_aer`` automatically. Imports from the legacy
+  ``qiskit.provider.aer`` namespace will emit a ``DeprecationWarning`` in the
+  future. To avoid any potential issues starting with this release,
+  updating all imports from ``qiskit.providers.aer`` to ``qiskit_aer`` and
+  from ``qiskit.Aer`` to ``qiskit_aer.Aer`` is recommended.
+
+.. releasenotes/notes/0.11/remove_snapsho_operations-a78f13f23c7743b6.yaml @ b'b7c4a322f8409fc2809b57b0701d1da6717c7efd'
+
+- Removed snapshot instructions (such as ``SnapshotStatevector``) which were deprecated since 0.9.0.
+  Applications that use these instructions need to be modified to use corresponding save
+  instructions (such as :class:`.SaveStatevector`).
+
+.. releasenotes/notes/0.11/remove_snapsho_operations-a78f13f23c7743b6.yaml @ b'b7c4a322f8409fc2809b57b0701d1da6717c7efd'
+
+- Removed the ``qiskit_aer.extensions`` module completely.  With the removal of
+  the snapshot instructions, this module has become empty and no longer serves
+  a purpose.
+
+.. releasenotes/notes/0.11/terra-version-bump-68eac37136428805.yaml @ b'b7c4a322f8409fc2809b57b0701d1da6717c7efd'
+
+- The required version of Qiskit Terra has been bumped to 0.20.0.
+
+
+.. _Release Notes_Aer_0.11.0_Bug Fixes:
+
+Bug Fixes
+---------
+
+.. releasenotes/notes/0.11/MPI_chunk_fixes-1ea74548cd3c3515.yaml @ b'b7c4a322f8409fc2809b57b0701d1da6717c7efd'
+
+- Fixes for MPI chunk distribution. Including fix for global indexing
+  for Thrust implementations, fix for cache blocking of non-gate operations.
+  Also savestatevector returns same statevector to all processes
+  (only 1st process received statevector previously.)
+
+.. releasenotes/notes/0.11/allow_multiplexer_without_control_qubits-f5cb8bdbe6302e55.yaml @ b'b7c4a322f8409fc2809b57b0701d1da6717c7efd'
+
+- Handles a multiplexer gate as a unitary gate if it has no control qubits.
+  Previously, if a multiplexer gate does not have control qubits, quantum state
+  was not updated.
+
+.. releasenotes/notes/0.11/delay-pass-units-a31341568057fdb3.yaml @ b'b7c4a322f8409fc2809b57b0701d1da6717c7efd'
+
+- Fixes a bug in :class:`.RelaxationNoisePass` where instruction durations
+  were always assumed to be in *dt* time units, regardless of the actual
+  unit of the isntruction. Now unit conversion is correctly handled for
+  all instruction duration units.
+
+  See `#1453 <https://github.com/Qiskit/qiskit-aer/issues/1453>`__
+  for details.
+
+.. releasenotes/notes/0.11/fix-for-loop-no-parameter-aa5b04b1da0e956b.yaml @ b'b7c4a322f8409fc2809b57b0701d1da6717c7efd'
+
+- Fixed simulation of ``for`` loops where the loop parameter was not used in
+  the body of the loop.  For example, previously this code would fail, but
+  will now succeed:
+
+  .. code-block:: python
+
+      import qiskit
+      from qiskit.providers.aer import AerSimulator
+
+      qc = qiskit.QuantumCircuit(2)
+      with qc.for_loop(range(4)) as i:
+          qc.h(0)
+          qc.cx(0, 1)
+
+      AerSimulator(method="statevector").run(qc)
+
+.. releasenotes/notes/0.11/fix-invalid-t2-error-a3685e4a3ad0a1e7.yaml @ b'b7c4a322f8409fc2809b57b0701d1da6717c7efd'
+
+- Fixes a bug in ``NoiseModel.from_backend()`` that raised an error when
+  T2 value greater than 2 * T1 was supplied by the backend.
+  After this fix, it becomes to truncate T2 value up to 2 * T1 and
+  issue a user warning if truncates.
+  The bug was introduced at #1391 and, before that, ``NoiseModel.from_backend()`` had
+  truncated the T2 value up to 2 * T1 silently.
+
+  See `Issue 1464 <https://github.com/Qiskit/qiskit-aer/issues/1464>`__
+  for details.
+
+.. releasenotes/notes/0.11/fix-qerror-assemble-9919a93b210ca776.yaml @ b'b7c4a322f8409fc2809b57b0701d1da6717c7efd'
+
+- Fix performance regression in noisy simulations due to large increase in
+  serialization overhead for loading noise models from Python into C++
+  resulting from unintended nested Python multiprocessing calls.
+  See `issue 1407 <https://github.com/Qiskit/qiskit-aer/issues/1407>`__
+  for details.
+
+.. releasenotes/notes/0.11/fix-seed-generation-MPI-ee1f0ad44e913d4f.yaml @ b'b7c4a322f8409fc2809b57b0701d1da6717c7efd'
+
+- This is the fix for Issue #1557. Different seed numbers are generated for
+  each process if `seed_simulator` option is not set. This fix average seed
+  set in Circuit for all processes to use the same seed number.
+
+.. releasenotes/notes/0.11/fix_MPI_distribution-23cdf0d15258816f.yaml @ b'b7c4a322f8409fc2809b57b0701d1da6717c7efd'
+
+- This is a fix of MPI parallelization for multi-chunk parallelization and
+  multi-shot distribution over parallel processes. There were missing
+  distribution configuration that prevents MPI distribution, is now fixed.
+
+.. releasenotes/notes/0.11/fix_cacheblocking__multi_control_gates-f6a7fca4f3db2f61.yaml @ b'b7c4a322f8409fc2809b57b0701d1da6717c7efd'
+
+- This is fix for cache blocking transpiler and chunk parallelization for
+  GPUs or MPI. This fix fixes issue with qubits which has many control or
+  target qubits (> blocking_qubits). From this fix, only target qubits of
+  the multi-controlled gate is cache blocked in blocking_qubits.
+  But it does not support case if number of target qubits is still larger
+  than blocking_qubits (i.e. large unitary matrix multiplication)
+
+.. releasenotes/notes/0.11/fix_qerror_to_dict-13a7683ac4adddd4.yaml @ b'b7c4a322f8409fc2809b57b0701d1da6717c7efd'
+
+- Fixes a bug in :meth:`.QuantumError.to_dict` where N-qubit circuit
+  instructions where the assembled instruction always applied to
+  qubits ``[0, ..., N-1]`` rather than the instruction qubits. This
+  bug also affected device and fake backend noise models.
+
+  See `Issue 1415 <https://github.com/Qiskit/qiskit-aer/issues/1415>`__
+  for details.
+
+.. releasenotes/notes/0.11/make_random_seed_reproducible-a7abdfc09ec67bd8.yaml @ b'b7c4a322f8409fc2809b57b0701d1da6717c7efd'
+
+- Because a seed was randomly assigned to each circuit if seed_simulator is not set,
+  multi-circuit simulation was not reproducible with another multi-circuit simulation.
+  Users needed to run multiple single-circuit simulation with the seed_simulator which
+  is randomly assigned in the multi-circuit simulation. This fix allows users to reproduce
+  multi-circuit simulation with another multi-circuit simulation by setting seed_simulator
+  of the first circuit in the first multi-circuit simulation. This fix also resolve an
+  issue reported in https://github.com/Qiskit/qiskit-aer/issues/1511, where simulation
+  with parameter-binds returns identical results for each circuit instance.
+
+.. releasenotes/notes/0.11/multi-shots-pauli-noise-improvements-87637a02e81806cf.yaml @ b'b7c4a322f8409fc2809b57b0701d1da6717c7efd'
+
+- Fix performance issue in multi-shots batched optimization for GPU when
+  using Pauli noise. This fix allows multi-threading to runtime noise
+  sampling, and uses nested OpenMP parallelization when using multiple GPUs.
+  This is fix for
+  `issue 1473 <https://github.com/Qiskit/qiskit-aer/issues/1473>`
+
+.. releasenotes/notes/0.11/support_for_cuQuantum0.40-566391cc42be2341.yaml @ b'b7c4a322f8409fc2809b57b0701d1da6717c7efd'
+
+- This is the fix for cuStateVec support, fix for build error
+  because of specification change of some APIs of cuStateVec
+  from cuQuantum version 0.40.
+
+.. releasenotes/notes/fix_bug_in_tail_while-6a9201d1ad6ba6e8.yaml @ b'44b8fbef5d2c353f880f2de94291c85154c0d687'
+
+- Fixes an issue when while_loop is the tail of QuantumCircuit. while_loop
+  is translated to jump and mark instructions. However, if a while_loop is
+  at the end of a circuit, its mark instruction is truncated wrongly. This
+  fix corrects the truncation algorithm to always remain mark instructions.
+
+
+
+
+IBM Q Provider 0.19.2
+=====================
+
+No change
+
+*************
 Qiskit 0.37.2
 *************
 
