@@ -278,8 +278,8 @@ class VQE(VariationalAlgorithm, MinimumEigensolver):
         def evaluate_gradient(parameters):
             # broadcasting not required for the estimator gradients
             try:
-                result = self.gradient.run([ansatz], [operator], [parameters]).result()
-                gradients = result.gradients
+                job = self.gradient.run([ansatz], [operator], [parameters])
+                gradients = job.result().gradients
             except Exception as exc:
                 raise AlgorithmError("The primitive job to evaluate the gradient failed!") from exc
 
