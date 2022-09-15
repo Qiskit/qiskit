@@ -191,7 +191,7 @@ def plot_histogram(
             label = None
             if not idx and legend:
                 label = legend[item]
-            if val >= 0:
+            if val > 0:
                 rects.append(
                     ax.bar(
                         idx + item * width,
@@ -214,7 +214,7 @@ def plot_histogram(
                         ax.text(
                             rec.get_x() + rec.get_width() / 2.0,
                             1.05 * height,
-                            "%.3f" % float(height),
+                            str(height),
                             ha="center",
                             va="bottom",
                             zorder=3,
@@ -230,9 +230,9 @@ def plot_histogram(
                         )
 
     # add some text for labels, title, and axes ticks
-    ax.set_ylabel("Probabilities", fontsize=14)
+    ax.set_ylabel("Count", fontsize=14)
     all_vals = np.concatenate(all_pvalues).ravel()
-    ax.set_ylim([0.0, min([1.2, max(1.2 * val for val in all_vals)])])
+    ax.set_ylim([0.0, min([sum(all_vals), max(1.1 * val for val in all_vals)])])
     if "desc" in sort:
         ax.invert_xaxis()
 
@@ -316,8 +316,7 @@ def _plot_histogram_data(data, labels, number_to_keep):
             else:
                 labels_dict[key] = 1
                 values.append(execution[key])
-        values = np.array(values, dtype=float)
-        pvalues = values / sum(values)
+        pvalues = np.array(values, dtype=int)
         all_pvalues.append(pvalues)
         numelem = len(values)
         ind = np.arange(numelem)  # the x locations for the groups
