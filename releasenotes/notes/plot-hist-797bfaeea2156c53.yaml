@@ -1,0 +1,11 @@
+---
+features:
+  - |
+    Adds ``plot_distribution``for plotting distributions over quasi-probabilities.
+    This is suitable for ``Counts``, ``QuasiDistribution`` and ``ProbDistribution``.
+    Raw `dict` can be passed as well.
+upgrade:
+  - |
+    Modifies ``plot_histogram`` to return an actual histogram of discrete binned values.
+    As the values are discrete, only ``Counts`` and ``dict`` objects are allowed.
+    ``dict`` objects are not validated for correctness, e.g. discrete values.
