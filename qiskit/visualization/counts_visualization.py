@@ -151,7 +151,7 @@ def plot_histogram(
 
     # Set bar colors
     if color is None:
-        color = plt.rcParams['axes.prop_cycle'].by_key()['color']
+        color = plt.rcParams["axes.prop_cycle"].by_key()["color"]
     elif isinstance(color, str):
         color = [color]
 
@@ -204,7 +204,7 @@ def plot_histogram(
                 )
         bar_center = (width / 2) * (length - 1)
         ax.set_xticks(all_inds[item] + bar_center)
-        ax.set_xticklabels(labels_dict.keys(), rotation=70, ha='right', rotation_mode='anchor')
+        ax.set_xticklabels(labels_dict.keys(), rotation=70, ha="right", rotation_mode="anchor")
         # attach some text labels
         if bar_labels:
             for rect in rects:
