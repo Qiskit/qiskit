@@ -21,8 +21,8 @@ from qiskit.exceptions import QiskitError
 from .distributions import QuasiDistribution, ProbDistribution
 
 
-# A dict defining the diagonal of each non-identity operator
-OPERS = {"Z": [1, -1], "0": [1, 0], "1": [0, 1]}
+# A list of valid diagonal operators
+OPERS = ["Z", "I", "0", "1"]
 
 
 def sampled_expectation_value(dist, oper):
@@ -66,6 +66,17 @@ def sampled_expectation_value(dist, oper):
         coeffs = np.asarray(oper.coeffs)
     else:
         raise QiskitError("Invalid operator type")
+
+    # Do some validation here
+    bitstring_len = len(next(iter(dist)))
+    if any(len(op) != bitstring_len for op in oper_strs):
+        raise QiskitError(
+            f"One or more operators not same length ({bitstring_len}) as input bitstrings"
+        )
+    for op in oper_strs:
+        if any(set(op).difference(OPERS)):
+            raise QiskitError(f"Input operator {op} is not diagonal")
+    # Dispatch to Rust routines
     if coeffs.dtype == np.dtype(complex).type:
         return sampled_expval_complex(oper_strs, coeffs, dist)
     else:
