@@ -46,13 +46,13 @@ DIST_MEAS = {"hamming": hamming_distance}
 @_optionals.HAS_MATPLOTLIB.require_in_call
 def plot_histogram(
     data,
-    figsize=(7, 5),
+    figsize=None,
     color=None,
     number_to_keep=None,
     sort="asc",
     target_string=None,
     legend=None,
-    bar_labels=True,
+    bar_labels=False,
     title=None,
     ax=None,
     filename=None,
@@ -151,7 +151,7 @@ def plot_histogram(
 
     # Set bar colors
     if color is None:
-        color = ["#648fff", "#dc267f", "#785ef0", "#ffb000", "#fe6100"]
+        color = plt.rcParams['axes.prop_cycle'].by_key()['color']
     elif isinstance(color, str):
         color = [color]
 
@@ -204,7 +204,7 @@ def plot_histogram(
                 )
         bar_center = (width / 2) * (length - 1)
         ax.set_xticks(all_inds[item] + bar_center)
-        ax.set_xticklabels(labels_dict.keys(), fontsize=14, rotation=70)
+        ax.set_xticklabels(labels_dict.keys(), rotation=70, ha='right', rotation_mode='anchor')
         # attach some text labels
         if bar_labels:
             for rect in rects:
@@ -230,15 +230,13 @@ def plot_histogram(
                         )
 
     # add some text for labels, title, and axes ticks
-    ax.set_ylabel("Probabilities", fontsize=14)
+    ax.set_ylabel("Probabilities")
     all_vals = np.concatenate(all_pvalues).ravel()
-    ax.set_ylim([0.0, min([1.2, max(1.2 * val for val in all_vals)])])
+    ax.set_ylim([0.0, min([1.1, max(1.1 * val for val in all_vals)])])
     if "desc" in sort:
         ax.invert_xaxis()
 
     ax.yaxis.set_major_locator(MaxNLocator(5))
-    for tick in ax.yaxis.get_major_ticks():
-        tick.label1.set_fontsize(14)
     plt.grid(which="major", axis="y", zorder=0, linestyle="--")
     if title:
         plt.title(title)
@@ -250,7 +248,6 @@ def plot_histogram(
             ncol=1,
             borderaxespad=0,
             frameon=True,
-            fontsize=12,
         )
     if fig:
         matplotlib_close_if_inline(fig)
