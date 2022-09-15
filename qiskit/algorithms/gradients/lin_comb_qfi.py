@@ -20,7 +20,6 @@ from typing import Sequence
 import numpy as np
 
 from qiskit.algorithms import AlgorithmError
-from qiskit.algorithms.gradients.base_qfi import BaseQFI
 from qiskit.circuit import Parameter, ParameterExpression, QuantumCircuit
 from qiskit.opflow import PauliSumOp
 from qiskit.primitives import BaseEstimator
@@ -80,6 +79,8 @@ class LinCombQFI(BaseQFI):
         for circuit, observable, parameter_values_, parameters_ in zip(
             circuits, observables, parameter_values, parameters
         ):
+            # Make the observable as observable as :class:`~qiskit.quantum_info.SparsePauliOp`.
+            observable = init_observable(observable)
             # a set of parameters to be differentiated
             if parameters_ is None:
                 param_set = set(circuit.parameters)
@@ -87,8 +88,7 @@ class LinCombQFI(BaseQFI):
                 param_set = set(parameters_)
             metadata_.append({"parameters": [p for p in circuit.parameters if p in param_set]})
 
-            # compute the second term in the QFI
-            # print(circuit)
+            # compute the second term (the phase fix) in the QFI
             if phase_fix:
                 gradient_job = self._gradient.run(
                     circuits=[circuit],
@@ -120,10 +120,7 @@ class LinCombQFI(BaseQFI):
                 for j, param_j in enumerate(circuit.parameters):
                     if not param_j in param_set or i > j:
                         continue
-                    # print(i, j)
-
                     qfi_circuits.extend(grad.gradient_circuit for grad in qfi_circuits_[i, j])
-
                     result_indices.extend(
                         (result_map[i], result_map[j]) for _ in qfi_circuits_[i, j]
                     )
@@ -151,11 +148,8 @@ class LinCombQFI(BaseQFI):
             else:
                 raise ValueError(f"Derivative {derivative} not supported.")
 
-            print('qfi op',op2)
             observable_ = observable.expand(op2)
 
-            # observable_ = observable.expand(Pauli_Z)
-            # print(qfi_circuits, result_indices, coeffs)
             n = len(qfi_circuits)
             job = self._estimator.run(
                 qfi_circuits, [observable_] * n, [parameter_values_] * n, **run_options
@@ -171,8 +165,6 @@ class LinCombQFI(BaseQFI):
         except Exception as exc:
             raise AlgorithmError("Estimator job failed.") from exc
 
-        # print(f"gradient_results: {gradient_results}")
-
         if phase_fix:
             for gradient_result in gradient_results:
                 phase_fix_ = np.outer(
@@ -186,7 +178,6 @@ class LinCombQFI(BaseQFI):
             ]
 
         qfis = []
-        print(f"phase_fixes {phase_fixes}")
         for i, result in enumerate(results):
 
             qfi_ = np.zeros(
@@ -194,11 +185,9 @@ class LinCombQFI(BaseQFI):
             )
             for grad_, idx, coeff in zip(result.values, result_indices_all[i], coeffs_all[i]):
                 qfi_[idx] += coeff * grad_
-            # print(f"qfi_:  {qfi_}")
             qfi = qfi_ - phase_fixes[i]
-            # print(f"qfi:  {qfi}")
             qfi += np.triu(qfi_, k=1).T
             qfis.append(qfi)
 
-        # print(qfis[0])
-        return QFIResult(qfis=qfis, metadata=metadata_, run_options=run_options)
+        run_opt = self._get_local_run_options(run_options)
+        return QFIResult(qfis=qfis, metadata=metadata_, run_options=run_opt)

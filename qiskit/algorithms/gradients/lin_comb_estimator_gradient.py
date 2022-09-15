@@ -77,15 +77,14 @@ class LinCombEstimatorGradient(BaseEstimatorGradient):
 
             # TODO: support measurement in different basis (Y and Z+iY)
             if derivative == "real":
-                op2= SparsePauliOp.from_list([("Z", 1)])
+                op2 = SparsePauliOp.from_list([("Z", 1)])
 
             elif derivative == "imag":
-                op2= SparsePauliOp.from_list([("Y", -1)])
+                op2 = SparsePauliOp.from_list([("Y", -1)])
 
             elif derivative == "both":
-                op2 = SparsePauliOp.from_list([("Z", 1), ("Y", complex(0,-1))])
+                op2 = SparsePauliOp.from_list([("Z", 1), ("Y", complex(0, -1))])
 
-            print('gradient op',op2)
             observable_ = observable.expand(op2)
 
             gradient_circuits_ = self._gradient_circuits.get(id(circuit))
@@ -133,7 +132,7 @@ class LinCombEstimatorGradient(BaseEstimatorGradient):
 
         gradients = []
         for i, result in enumerate(results):
-            gradient_ = np.zeros(len(metadata_[i]["parameters"]), dtype='complex_')
+            gradient_ = np.zeros(len(metadata_[i]["parameters"]), dtype="complex_")
             for grad_, idx, coeff in zip(result.values, result_indices_all[i], coeffs_all[i]):
                 gradient_[idx] += coeff * grad_
             gradients.append(gradient_)

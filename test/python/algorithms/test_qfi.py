@@ -63,7 +63,6 @@ class TestQFI(QiskitTestCase):
 
         qfi = LinCombQFI(self.estimator)
         for i, param in enumerate(param_list):
-            print(param)
             qfis = qfi.run([qc], [op], [param]).result().qfis
             np.testing.assert_allclose(qfis[0], correct_values[i], atol=1e-3)
 
@@ -187,15 +186,11 @@ class TestQFI(QiskitTestCase):
         op = SparsePauliOp.from_list([("Z", 1)])
         param_list = [[np.pi / 4]]
         qfi = LinCombQFI(self.estimator)
-        qfi_result = qfi.run(
-            [qc], [op] , param_list
-        ).result().qfis
+        qfi_result = qfi.run([qc], [op], param_list).result().qfis
         correct_values = [[-1.20710678]]
         np.testing.assert_allclose(qfi_result[0], correct_values, atol=1e-3)
         op = Operator.from_label("Z")
-        qfi_result = qfi.run(
-            [qc], [op] , param_list
-        ).result().qfis
+        qfi_result = qfi.run([qc], [op], param_list).result().qfis
         np.testing.assert_allclose(qfi_result[0], correct_values, atol=1e-3)
 
     def test_qfi_specify_parameters(self):
@@ -208,9 +203,7 @@ class TestQFI(QiskitTestCase):
         op = SparsePauliOp.from_list([("Z", 1)])
         qfi = LinCombQFI(self.estimator)
         param_list = [np.pi / 4, np.pi / 4]
-        qfi_result = qfi.run(
-            [qc], [op] , [param_list], [[a]]
-        ).result().qfis
+        qfi_result = qfi.run([qc], [op], [param_list], [[a]]).result().qfis
         np.testing.assert_allclose(qfi_result[0], [[-1.25]], atol=1e-3)
 
     def test_qfi_multi_arguments(self):
@@ -236,8 +229,6 @@ class TestQFI(QiskitTestCase):
         for i, _ in enumerate(param_list):
             np.testing.assert_allclose(qfi_results[i], correct_values[i], atol=1e-3)
 
-
-
     def test_gradient_validation(self):
         """Test estimator gradient's validation"""
         a = Parameter("a")
@@ -261,7 +252,7 @@ class TestQFI(QiskitTestCase):
         qc = QuantumCircuit(1)
         qc.rx(a, 0)
         op = SparsePauliOp.from_list([("Z", 1)])
-        estimator = Estimator(run_options={"shots": 100})
+        estimator = Estimator(options={"shots": 100})
 
         with self.subTest("estimator"):
             qfi = LinCombQFI(estimator)
