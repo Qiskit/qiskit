@@ -673,6 +673,39 @@ class DAGCircuit:
             new_condition = (new_creg, new_cond_val)
         return new_condition
 
+    def _map_condition_with_import(self, op, wire_map, creg_map):
+        """Map the condition in ``op`` to its counterpart in ``self`` using ``wire_map`` and
+        ``creg_map`` as lookup caches.  All single-bit conditions should have a cache hit in the
+        ``wire_map``, but registers may involve a full linear search the first time they are
+        encountered.  ``creg_map`` is mutated by this function.  ``wire_map`` is not; it is an error
+        if a wire is not in the map.
+
+        This is different to ``_map_condition`` because it always succeeds; since the mapping for
+        all wires in the condition is assumed to exist, there can be no fragmented registers.  If
+        there is no matching register (has the same bits in the same order) in ``self``, a new
+        register alias is added to represent the condition.  This does not change the bits available
+        to ``self``, it just adds a new aliased grouping of them."""
+        op_condition = getattr(op, "condition", None)
+        if op_condition is None:
+            return op
+        new_op = copy.copy(op)
+        target, value = op_condition
+        if isinstance(target, Clbit):
+            new_op.condition = (wire_map[target], value)
+        else:
+            if target.name not in creg_map:
+                mapped_bits = [wire_map[bit] for bit in target]
+                for our_creg in self.cregs.values():
+                    if mapped_bits == list(our_creg):
+                        new_target = our_creg
+                        break
+                else:
+                    new_target = ClassicalRegister(bits=[wire_map[bit] for bit in target])
+                    self.add_creg(new_target)
+                creg_map[target.name] = new_target
+            new_op.condition = (creg_map[target.name], value)
+        return new_op
+
     def compose(self, other, qubits=None, clbits=None, front=False, inplace=True):
         """Compose the ``other`` circuit onto the output of this circuit.
 
@@ -1018,10 +1051,31 @@ class DAGCircuit:
         for nd in node_block:
             self._decrement_op(nd.op)
 
-    def _substitute_node_with_dag__wire_map(self, node, input_dag, wires, propagate_condition):
-        """Build the wire mappings for :meth:`.substitute_node_with_dag, returning a mapping of
-        wires in ``input_dag`` to wires in ``self``.  This is the canonicalisation routine for the
-        ``wires`` argument of :meth:`.DAGCircuit.substitute_node_with_dag`."""
+    def substitute_node_with_dag(self, node, input_dag, wires=None, propagate_condition=True):
+        """Replace one node with dag.
+
+        Args:
+            node (DAGOpNode): node to substitute
+            input_dag (DAGCircuit): circuit that will substitute the node
+            wires (list[Bit] | Dict[Bit, Bit]): gives an order for (qu)bits
+                in the input circuit. If a list, then the bits refer to those in the ``input_dag``,
+                and the order gets matched to the node wires by qargs first, then cargs, then
+                conditions.  If a dictionary, then a mapping of bits in the ``input_dag`` to those
+                that the ``node`` acts on.
+            propagate_condition (bool): If ``True`` (default), then any ``condition`` attribute on
+                the operation within ``node`` is propagated to each node in the ``input_dag``.  If
+                ``False``, then the ``input_dag`` is assumed to faithfully implement suitable
+                conditional logic already.
+
+        Returns:
+            dict: maps node IDs from `input_dag` to their new node incarnations in `self`.
+
+        Raises:
+            DAGCircuitError: if met with unexpected predecessor/successors
+        """
+        if not isinstance(node, DAGOpNode):
+            raise DAGCircuitError(f"expected node DAGOpNode, got {type(node)}")
+
         if isinstance(wires, dict):
             wire_map = wires
         else:
@@ -1048,122 +1102,46 @@ class DAGCircuit:
             check_type = Qubit if isinstance(our_wire, Qubit) else Clbit
             if not isinstance(input_dag_wire, check_type):
                 raise DAGCircuitError(f"{input_dag_wire} and {our_wire} are different bit types")
-        return wire_map
 
-    def _substitute_node_with_dag__propagate_condition(
-        self, op, input_dag, wire_map, reverse_wire_map, creg_map
-    ):
-        """Propagate the condition in the operation ``op`` onto every operation in ``input_dag``,
-        in terms of the wires that are already in ``input_dag``.  If any condition bits have no
-        corresponding wires in the replacement DAG, dummy wires are added to ensure validity, and
-        the corresponding mappings are added to the wire maps.  If the condition target is a
-        register, a dummy register alias over the associated bits is added to the replacement DAG
-        and the ``creg_map``, so it can be mapped back during later :class:`.DAGOpNode` updates."""
-        op_condition = getattr(op, "condition", None)
-        if op_condition is None:
-            return input_dag
-        new_dag = input_dag.copy_empty_like()
-        target, value = op_condition
-        if isinstance(target, Clbit):
-            new_target = reverse_wire_map.get(target, Clbit())
-            if new_target not in wire_map:
-                new_dag.add_clbits([new_target])
-                wire_map[new_target], reverse_wire_map[target] = target, new_target
-            target_cargs = {new_target}
-        else:  # ClassicalRegister
-            mapped_bits = [reverse_wire_map.get(bit, Clbit()) for bit in target]
-            for ours, theirs in zip(target, mapped_bits):
-                wire_map[theirs], reverse_wire_map[ours] = ours, theirs
-            new_target = ClassicalRegister(bits=mapped_bits)
-            creg_map[new_target.name] = target
-            new_dag.add_creg(new_target)
-            target_cargs = set(new_target)
-        new_condition = (new_target, value)
-        for node in input_dag.topological_op_nodes():
-            op_condition = getattr(node.op, "condition", None)
-            if op_condition is not None:
-                raise DAGCircuitError(
-                    "cannot propagate a condition to an element that already has one"
-                )
-            if target_cargs.intersection(node.cargs):
-                # This is for backwards compatibility with early versions of the method, as it is
-                # a tested part of the API.  In the newer model of a condition being an integral
-                # part of the operation (not a separate property to be copied over), this error
-                # is overzealous, because it forbids a custom instruction from implementing the
-                # condition within its definition rather than at the top level.
-                raise DAGCircuitError(
-                    "cannot propagate a condition to an element that acts on those bits"
-                )
-            new_op = copy.copy(node.op)
-            new_op.condition = new_condition
-            new_dag.apply_operation_back(new_op, node.qargs, node.cargs)
-        return new_dag
-
-    def _substitute_node_with_dag__map_condition(self, op, wire_map, creg_map):
-        """Map the condition in ``op`` to its counterpart in ``self`` using ``wire_map`` and
-        ``creg_map`` as lookup caches.  All single-bit conditions will have a cache hit, but
-        registers may involve a full linear search the first time they are encountered.
-
-        This is different to ``_map_condition`` because it always succeeds; since the mapping for
-        all wires in the condition will definitely exist, there can be no fragmented registers.  If
-        there is no matching register (has the same bits in the same order) in ``self``, a new
-        register alias is added to represent the condition.  This does not change the bits available
-        to ``self``, it just adds a new aliased grouping of them."""
-        op_condition = getattr(op, "condition", None)
-        if op_condition is None:
-            return op
-        new_op = copy.copy(op)
-        target, value = op_condition
-        if isinstance(target, Clbit):
-            new_op.condition = (wire_map[target], value)
-        else:
-            if target.name not in creg_map:
-                mapped_bits = [wire_map[bit] for bit in target]
-                for our_creg in self.cregs.values():
-                    if mapped_bits == list(our_creg):
-                        new_target = our_creg
-                        break
-                else:
-                    new_target = ClassicalRegister(bits=[wire_map[bit] for bit in target])
-                    self.add_creg(new_target)
-                creg_map[target.name] = new_target
-            new_op.condition = (creg_map[target.name], value)
-        return new_op
-
-    def substitute_node_with_dag(self, node, input_dag, wires=None, propagate_condition=True):
-        """Replace one node with dag.
-
-        Args:
-            node (DAGOpNode): node to substitute
-            input_dag (DAGCircuit): circuit that will substitute the node
-            wires (list[Bit] | Dict[Bit, Bit]): gives an order for (qu)bits
-                in the input circuit. If a list, then the bits refer to those in the ``input_dag``,
-                and the order gets matched to the node wires by qargs first, then cargs, then
-                conditions.  If a dictionary, then a mapping of bits in the ``input_dag`` to those
-                that the ``node`` acts on.
-            propagate_condition (bool): If ``True`` (default), then any ``condition`` attribute on
-                the operation within ``node`` is propagated to each node in the ``input_dag``.  If
-                ``False``, then the ``input_dag`` is assumed to faithfully implement suitable
-                conditional logic already.
-
-        Returns:
-            dict: maps node IDs from `input_dag` to their new node incarnations in `self`.
-
-        Raises:
-            DAGCircuitError: if met with unexpected predecessor/successors
-        """
-        if not isinstance(node, DAGOpNode):
-            raise DAGCircuitError(f"expected node DAGOpNode, got {type(node)}")
-
-        wire_map = self._substitute_node_with_dag__wire_map(
-            node, input_dag, wires, propagate_condition
-        )
         reverse_wire_map = {b: a for a, b in wire_map.items()}
         creg_map = {}
-        if propagate_condition:
-            in_dag = self._substitute_node_with_dag__propagate_condition(
-                node.op, input_dag, wire_map, reverse_wire_map, creg_map
-            )
+        op_condition = getattr(node.op, "condition", None)
+        if propagate_condition and op_condition is not None:
+            in_dag = input_dag.copy_empty_like()
+            target, value = op_condition
+            if isinstance(target, Clbit):
+                new_target = reverse_wire_map.get(target, Clbit())
+                if new_target not in wire_map:
+                    in_dag.add_clbits([new_target])
+                    wire_map[new_target], reverse_wire_map[target] = target, new_target
+                target_cargs = {new_target}
+            else:  # ClassicalRegister
+                mapped_bits = [reverse_wire_map.get(bit, Clbit()) for bit in target]
+                for ours, theirs in zip(target, mapped_bits):
+                    # Update to any new dummy bits we just created to the wire maps.
+                    wire_map[theirs], reverse_wire_map[ours] = ours, theirs
+                new_target = ClassicalRegister(bits=mapped_bits)
+                creg_map[new_target.name] = target
+                in_dag.add_creg(new_target)
+                target_cargs = set(new_target)
+            new_condition = (new_target, value)
+            for in_node in input_dag.topological_op_nodes():
+                if getattr(in_node.op, "condition", None) is not None:
+                    raise DAGCircuitError(
+                        "cannot propagate a condition to an element that already has one"
+                    )
+                if target_cargs.intersection(in_node.cargs):
+                    # This is for backwards compatibility with early versions of the method, as it is
+                    # a tested part of the API.  In the newer model of a condition being an integral
+                    # part of the operation (not a separate property to be copied over), this error
+                    # is overzealous, because it forbids a custom instruction from implementing the
+                    # condition within its definition rather than at the top level.
+                    raise DAGCircuitError(
+                        "cannot propagate a condition to an element that acts on those bits"
+                    )
+                new_op = copy.copy(in_node.op)
+                new_op.condition = new_condition
+                in_dag.apply_operation_back(new_op, in_node.qargs, in_node.cargs)
         else:
             in_dag = input_dag
 
@@ -1236,7 +1214,7 @@ class DAGCircuit:
         for old_node_index, new_node_index in node_map.items():
             # update node attributes
             old_node = in_dag._multi_graph[old_node_index]
-            m_op = self._substitute_node_with_dag__map_condition(old_node.op, wire_map, creg_map)
+            m_op = self._map_condition_with_import(old_node.op, wire_map, creg_map)
             m_qargs = [wire_map[x] for x in old_node.qargs]
             m_cargs = [wire_map[x] for x in old_node.cargs]
             new_node = DAGOpNode(m_op, qargs=m_qargs, cargs=m_cargs)
