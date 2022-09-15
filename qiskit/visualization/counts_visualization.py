@@ -19,6 +19,7 @@ import functools
 import numpy as np
 
 from qiskit.utils import optionals as _optionals
+from qiskit.result import Counts
 from .exceptions import VisualizationError
 from .utils import matplotlib_close_if_inline
 
@@ -43,7 +44,6 @@ VALID_SORTS = ["asc", "desc", "hamming", "value", "value_desc"]
 DIST_MEAS = {"hamming": hamming_distance}
 
 
-@_optionals.HAS_MATPLOTLIB.require_in_call
 def plot_histogram(
     data,
     figsize=(7, 5),
@@ -57,7 +57,7 @@ def plot_histogram(
     ax=None,
     filename=None,
 ):
-    """Plot a histogram of data.
+    """Plot a histogram of input counts data.
 
     Args:
         data (list or dict): This is either a list of dictionaries or a single
@@ -71,13 +71,13 @@ def plot_histogram(
             the x-axis sort.
         sort (string): Could be `'asc'`, `'desc'`, `'hamming'`, `'value'`, or
             `'value_desc'`. If set to `'value'` or `'value_desc'` the x axis
-            will be sorted by the maximum probability for each bitstring.
+            will be sorted by the number of counts for each bitstring.
             Defaults to `'asc'`.
         target_string (str): Target string if 'sort' is a distance measure.
         legend(list): A list of strings to use for labels of the data.
             The number of entries must match the length of data (if data is a
             list or 1 if it's a dict)
-        bar_labels (bool): Label each bar in histogram with probability value.
+        bar_labels (bool): Label each bar in histogram with counts value.
         title (str): A string to use for the plot title
         ax (matplotlib.axes.Axes): An optional Axes object to be used for
             the visualization output. If none is specified a new matplotlib
@@ -94,6 +94,7 @@ def plot_histogram(
         MissingOptionalLibraryError: Matplotlib not available.
         VisualizationError: When legend is provided and the length doesn't
             match the input data.
+        VisualizationError: Input must be Counts or a dict
 
     Examples:
         .. jupyter-execute::
@@ -117,7 +118,7 @@ def plot_histogram(
             counts = {'001': 596, '011': 211, '010': 50, '000': 117, '101': 33, '111': 8,
                     '100': 6, '110': 3}
 
-            # Sort by the probability in descending order
+            # Sort by the counts in descending order
             hist1 = plot_histogram(counts, sort='value_desc')
 
             # Sort by the hamming distance (the number of bit flips to change from
@@ -127,6 +128,141 @@ def plot_histogram(
             display(hist1, hist2)
 
     """
+    if not isinstance(data, list):
+        data = [data]
+    for dat in data:
+        if not isinstance(dat, (Counts, dict)):
+            raise VisualizationError("Input must be Counts or a dict")
+    return _plotting_core(
+        data,
+        figsize,
+        color,
+        number_to_keep,
+        sort,
+        target_string,
+        legend,
+        bar_labels,
+        title,
+        ax,
+        filename,
+        kind="counts",
+    )
+
+
+def plot_distribution(
+    data,
+    figsize=(7, 5),
+    color=None,
+    number_to_keep=None,
+    sort="asc",
+    target_string=None,
+    legend=None,
+    bar_labels=True,
+    title=None,
+    ax=None,
+    filename=None,
+):
+    """Plot a distribution from input sampled data.
+
+    Args:
+        data (list or dict): This is either a list of dictionaries or a single
+            dict containing the values to represent (ex {'001': 130})
+        figsize (tuple): Figure size in inches.
+        color (list or str): String or list of strings for distribution bar colors.
+        number_to_keep (int): The number of terms to plot per dataset.  The rest is made into a
+            single bar called 'rest'.  If multiple datasets are given, the ``number_to_keep``
+            applies to each dataset individually, which may result in more bars than
+            ``number_to_keep + 1``.  The ``number_to_keep`` applies to the total values, rather than
+            the x-axis sort.
+        sort (string): Could be `'asc'`, `'desc'`, `'hamming'`, `'value'`, or
+            `'value_desc'`. If set to `'value'` or `'value_desc'` the x axis
+            will be sorted by the maximum probability for each bitstring.
+            Defaults to `'asc'`.
+        target_string (str): Target string if 'sort' is a distance measure.
+        legend(list): A list of strings to use for labels of the data.
+            The number of entries must match the length of data (if data is a
+            list or 1 if it's a dict)
+        bar_labels (bool): Label each bar in histogram with probability value.
+        title (str): A string to use for the plot title
+        ax (matplotlib.axes.Axes): An optional Axes object to be used for
+            the visualization output. If none is specified a new matplotlib
+            Figure will be created and used. Additionally, if specified there
+            will be no returned Figure since it is redundant.
+        filename (str): file path to save image to.
+
+    Returns:
+        matplotlib.Figure:
+            A figure for the rendered distribution, if the ``ax``
+            kwarg is not set.
+
+    Raises:
+        MissingOptionalLibraryError: Matplotlib not available.
+        VisualizationError: When legend is provided and the length doesn't
+            match the input data.
+
+    Examples:
+        .. jupyter-execute::
+
+            # Plot two counts in the same figure with legends and colors specified.
+
+            from qiskit.visualization import plot_distribution
+
+            counts1 = {'00': 525, '11': 499}
+            counts2 = {'00': 511, '11': 514}
+
+            legend = ['First execution', 'Second execution']
+
+            plot_distribution([counts1, counts2], legend=legend, color=['crimson','midnightblue'],
+                            title="New Distribution")
+
+        .. jupyter-execute::
+
+            # You can sort the bitstrings using different methods.
+
+            counts = {'001': 596, '011': 211, '010': 50, '000': 117, '101': 33, '111': 8,
+                    '100': 6, '110': 3}
+
+            # Sort by the counts in descending order
+            dist1 = plot_distribution(counts, sort='value_desc')
+
+            # Sort by the hamming distance (the number of bit flips to change from
+            # one bitstring to the other) from a target string.
+            dist2 = plot_distribution(counts, sort='hamming', target_string='001')
+
+            display(dist1, dist2)
+
+    """
+    return _plotting_core(
+        data,
+        figsize,
+        color,
+        number_to_keep,
+        sort,
+        target_string,
+        legend,
+        bar_labels,
+        title,
+        ax,
+        filename,
+        kind="distribution",
+    )
+
+
+@_optionals.HAS_MATPLOTLIB.require_in_call
+def _plotting_core(
+    data,
+    figsize=(7, 5),
+    color=None,
+    number_to_keep=None,
+    sort="asc",
+    target_string=None,
+    legend=None,
+    bar_labels=True,
+    title=None,
+    ax=None,
+    filename=None,
+    kind="counts",
+):
     import matplotlib.pyplot as plt
     from matplotlib.ticker import MaxNLocator
 
@@ -184,7 +320,7 @@ def plot_histogram(
     length = len(data)
     width = 1 / (len(data) + 1)  # the width of the bars
 
-    labels_dict, all_pvalues, all_inds = _plot_histogram_data(data, labels, number_to_keep)
+    labels_dict, all_pvalues, all_inds = _plot_data(data, labels, number_to_keep, kind=kind)
     rects = []
     for item, _ in enumerate(data):
         for idx, val in enumerate(all_pvalues[item]):
@@ -210,6 +346,8 @@ def plot_histogram(
             for rect in rects:
                 for rec in rect:
                     height = rec.get_height()
+                    if kind == "distribution":
+                        height = round(height, 3)
                     if height >= 1e-3:
                         ax.text(
                             rec.get_x() + rec.get_width() / 2.0,
@@ -230,9 +368,15 @@ def plot_histogram(
                         )
 
     # add some text for labels, title, and axes ticks
-    ax.set_ylabel("Count", fontsize=14)
+    if kind == "counts":
+        ax.set_ylabel("Count", fontsize=14)
+    else:
+        ax.set_ylabel("Probability", fontsize=14)
     all_vals = np.concatenate(all_pvalues).ravel()
-    ax.set_ylim([0.0, min([1.1 * sum(all_vals), max(1.1 * val for val in all_vals)])])
+    min_ylim = 0.0
+    if kind == 'distribution':
+        min_ylim = min(0.0, min(1.1 * val for val in all_vals))
+    ax.set_ylim([min_ylim, min([1.1 * sum(all_vals), max(1.1 * val for val in all_vals)])])
     if "desc" in sort:
         ax.invert_xaxis()
 
@@ -280,7 +424,7 @@ def _unify_labels(data):
     return out
 
 
-def _plot_histogram_data(data, labels, number_to_keep):
+def _plot_data(data, labels, number_to_keep, kind="counts"):
     """Generate the data needed for plotting counts.
 
     Parameters:
@@ -289,6 +433,7 @@ def _plot_histogram_data(data, labels, number_to_keep):
         labels (list): The list of bitstring labels for the plot.
         number_to_keep (int): The number of terms to plot and rest
             is made into a single bar called 'rest'.
+        kind (str): One of 'counts' or 'distribution`
 
     Returns:
         tuple: tuple containing:
@@ -316,7 +461,11 @@ def _plot_histogram_data(data, labels, number_to_keep):
             else:
                 labels_dict[key] = 1
                 values.append(execution[key])
-        pvalues = np.array(values, dtype=int)
+        if kind == "counts":
+            pvalues = np.array(values, dtype=int)
+        else:
+            pvalues = np.array(values, dtype=float)
+            pvalues /= np.sum(pvalues)
         all_pvalues.append(pvalues)
         numelem = len(values)
         ind = np.arange(numelem)  # the x locations for the groups
