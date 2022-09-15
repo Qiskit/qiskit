@@ -93,6 +93,10 @@ class TestComputeUncompute(QiskitTestCase):
         results = job.result()
         np.testing.assert_allclose(results.fidelities, np.array([0.25]), atol=1e-16)
 
+        job = fidelity.run([self._circuit[2]], [self._circuit[3]], [], [])
+        results = job.result()
+        np.testing.assert_allclose(results.fidelities, np.array([0.25]), atol=1e-16)
+
     def test_left_param(self):
         """test for fidelity with only left parameters"""
         fidelity = ComputeUncompute(self._sampler)
@@ -220,11 +224,10 @@ class TestComputeUncompute(QiskitTestCase):
         circuit_2 = self._circuit[1]
         circuit_2.measure_all()
 
-        job = fidelity.run(
-            circuit_1, circuit_2, self._left_params[0], self._right_params[0]
-        )
+        job = fidelity.run(circuit_1, circuit_2, self._left_params[0], self._right_params[0])
         result = job.result()
         np.testing.assert_allclose(result.fidelities, np.array([1.0]))
+
 
 if __name__ == "__main__":
     unittest.main()
