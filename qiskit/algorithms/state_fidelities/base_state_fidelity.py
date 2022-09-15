@@ -96,6 +96,9 @@ class BaseStateFidelity(ABC):
             # ensure 2d
             if len(values) > 0 and not isinstance(values[0], Sequence):
                 values = [values]
+            elif len(values) == 0:
+                # empty list
+                values = [[]]
             return values
 
     def _check_qubits_match(self, circuit_1: QuantumCircuit, circuit_2: QuantumCircuit) -> None:
@@ -288,7 +291,7 @@ class BaseStateFidelity(ABC):
         """
 
         job = AlgorithmJob(
-            self._run, circuits_1, circuits_2, values_1, values_2, **options.__dict__
+            self._run, circuits_1, circuits_2, values_1, values_2, **options
         )
 
         job.submit()

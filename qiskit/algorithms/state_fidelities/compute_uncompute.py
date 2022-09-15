@@ -85,6 +85,11 @@ class ComputeUncompute(BaseStateFidelity):
         Returns:
             The fidelity quantum circuit corresponding to circuit_1 and circuit_2.
         """
+        if len(circuit_1.clbits) > 0:
+            circuit_1.remove_final_measurements()
+        if len(circuit_2.clbits) > 0:
+            circuit_2.remove_final_measurements()
+
         circuit = circuit_1.compose(circuit_2.inverse())
         circuit.measure_all()
         return circuit
@@ -101,7 +106,7 @@ class ComputeUncompute(BaseStateFidelity):
             The updated run options.
         """
         opts = copy(self._sampler.options)
-        opts.update_options(**options)
+        opts.update_options(**options.__dict__)
         return opts
 
     def _run(
@@ -148,7 +153,7 @@ class ComputeUncompute(BaseStateFidelity):
         opts = copy(self._default_options)
         opts.update_options(**options)
 
-        job = self._sampler.run(circuits=circuits, parameter_values=values, **opts)
+        job = self._sampler.run(circuits=circuits, parameter_values=values, **opts.__dict__)
 
         try:
             result = job.result()

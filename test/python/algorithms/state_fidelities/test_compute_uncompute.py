@@ -212,6 +212,19 @@ class TestComputeUncompute(QiskitTestCase):
         np.testing.assert_allclose(result_1.fidelities, result_3.fidelities, atol=1e-16)
         np.testing.assert_allclose(result_1.fidelities, result_4.fidelities, atol=1e-16)
 
+    def test_input_measurements(self):
+        """test for fidelity with measurements on input circuits"""
+        fidelity = ComputeUncompute(self._sampler)
+        circuit_1 = self._circuit[0]
+        circuit_1.measure_all()
+        circuit_2 = self._circuit[1]
+        circuit_2.measure_all()
+
+        job = fidelity.run(
+            circuit_1, circuit_2, self._left_params[0], self._right_params[0]
+        )
+        result = job.result()
+        np.testing.assert_allclose(result.fidelities, np.array([1.0]))
 
 if __name__ == "__main__":
     unittest.main()
