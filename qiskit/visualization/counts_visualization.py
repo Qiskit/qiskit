@@ -232,7 +232,7 @@ def plot_histogram(
     # add some text for labels, title, and axes ticks
     ax.set_ylabel("Count", fontsize=14)
     all_vals = np.concatenate(all_pvalues).ravel()
-    ax.set_ylim([0.0, min([sum(all_vals), max(1.1 * val for val in all_vals)])])
+    ax.set_ylim([0.0, min([1.1 * sum(all_vals), max(1.1 * val for val in all_vals)])])
     if "desc" in sort:
         ax.invert_xaxis()
 
