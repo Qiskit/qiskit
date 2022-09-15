@@ -94,17 +94,6 @@ knowledge to do this in that application domain.
    VQD
 
 
-Variational Quantum Time Evolution
-----------------------------------
-
-Classes used by variational quantum time evolution algorithms - VarQITE and VarQRTE.
-
-.. autosummary::
-   :toctree: ../stubs/
-
-   evolvers.variational
-
-
 Evolvers
 --------
 
