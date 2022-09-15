@@ -11,8 +11,8 @@
 # that they have been altered from the originals.
 
 """
-Linear solvers (:mod:`qiskit.algorithms.linear_solvers`)
-=========================================================
+The deprecated Linear solvers (:mod:`qiskit.algorithms.linear_solvers`)
+=======================================================================
 It  contains classical and quantum algorithms to solve systems of linear equations such as
 :class:`~qiskit.algorithms.HHL`.
 Although the quantum algorithm accepts a general Hermitian matrix as input, Qiskit's default
