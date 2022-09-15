@@ -1,7 +1,7 @@
 ---
 upgrade:
   - |
-    This PR turns off the implicit use of `approximation_degree!=1.0` by default
+    The implicit use of ``approximation_degree!=1.0`` by default in
     in the the Qiskit transpiler at `optimization_level=3`.  The transpiler should, by default,
     preserve unitarity of the input up to known transformations such as one-sided permutations
     and similarity transformations.  This was broken by the previous use of `approximation_degree=None`
