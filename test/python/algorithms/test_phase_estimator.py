@@ -441,10 +441,10 @@ class TestPhaseEstimation(QiskitAlgorithmsTestCase):
         `state_preparation`. Return the estimated phase as a value in :math:`[0,1)`.
         """
         if shots is not None:
-            run_options = {"shots": shots}
+            options = {"shots": shots}
         else:
-            run_options = {}
-        sampler = Sampler(run_options=run_options)
+            options = {}
+        sampler = Sampler(options=options)
         if phase_estimator is None:
             phase_estimator = IterativePhaseEstimation
         if phase_estimator == IterativePhaseEstimation:
