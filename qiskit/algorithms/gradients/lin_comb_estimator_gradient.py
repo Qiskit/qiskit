@@ -129,7 +129,5 @@ class LinCombEstimatorGradient(BaseEstimatorGradient):
                 gradient_[idx] += coeff * grad_
             gradients.append(gradient_)
 
-        # TODO: include primitive's run_options as well
-        return EstimatorGradientResult(
-            gradients=gradients, metadata=metadata_, run_options=run_options
-        )
+        run_opt = self._get_local_run_options(run_options)
+        return EstimatorGradientResult(gradients=gradients, metadata=metadata_, run_options=run_opt)

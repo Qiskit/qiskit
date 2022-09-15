@@ -20,6 +20,8 @@ from typing import Any
 
 import numpy as np
 
+from qiskit.providers import Options
+
 
 @dataclass(frozen=True)
 class EstimatorGradientResult:
@@ -29,6 +31,5 @@ class EstimatorGradientResult:
     """The gradients of the expectation values."""
     metadata: list[dict[str, Any]]
     """Additional information about the job."""
-    run_options: dict[str, Any]
-    """run_options for the estimator. Currently, estimator's default run_options is not
-        included."""
+    run_options: Options
+    """run_options for the job."""
