@@ -19,7 +19,7 @@ import functools
 import numpy as np
 
 from qiskit.utils import optionals as _optionals
-from qiskit.result import Counts
+from qiskit.result import QuasiDistribution, ProbDistribution
 from .exceptions import VisualizationError
 from .utils import matplotlib_close_if_inline
 
@@ -131,8 +131,10 @@ def plot_histogram(
     if not isinstance(data, list):
         data = [data]
     for dat in data:
-        if not isinstance(dat, (Counts, dict)):
-            raise VisualizationError("Input must be Counts or a dict")
+        if isinstance(dat, (QuasiDistribution, ProbDistribution)):
+            raise VisualizationError(
+                "Input must be Counts or a dict, " "consider using 'plot_distribution'"
+            )
     return _plotting_core(
         data,
         figsize,
@@ -374,7 +376,7 @@ def _plotting_core(
         ax.set_ylabel("Probability", fontsize=14)
     all_vals = np.concatenate(all_pvalues).ravel()
     min_ylim = 0.0
-    if kind == 'distribution':
+    if kind == "distribution":
         min_ylim = min(0.0, min(1.1 * val for val in all_vals))
     ax.set_ylim([min_ylim, min([1.1 * sum(all_vals), max(1.1 * val for val in all_vals)])])
     if "desc" in sort:
