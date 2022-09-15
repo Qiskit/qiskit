@@ -74,6 +74,7 @@ from qiskit.pulse.builder import (
     call,
     delay,
     play,
+    reference,
     set_frequency,
     set_phase,
     shift_frequency,

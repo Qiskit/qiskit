@@ -779,45 +779,49 @@ class QASM3Builder:
         """Builds a list of call statements"""
         ret = []
         for instruction in instructions:
+            if isinstance(instruction.operation, ForLoopOp):
+                ret.append(self.build_for_loop(instruction))
+                continue
+            if isinstance(instruction.operation, WhileLoopOp):
+                ret.append(self.build_while_loop(instruction))
+                continue
+            if isinstance(instruction.operation, IfElseOp):
+                ret.append(self.build_if_statement(instruction))
+                continue
+            # Build the node, ignoring any condition.
             if isinstance(instruction.operation, Gate):
-                if instruction.operation.condition:
-                    eqcondition = self.build_eqcondition(instruction.operation.condition)
-                    operation_without_condition = instruction.operation.copy()
-                    operation_without_condition.condition = None
-                    true_body = self.build_program_block(
-                        [instruction.replace(operation=operation_without_condition)]
-                    )
-                    ret.append(ast.BranchingStatement(eqcondition, true_body))
-                else:
-                    ret.append(self.build_gate_call(instruction))
+                nodes = [self.build_gate_call(instruction)]
             elif isinstance(instruction.operation, Barrier):
                 operands = [
                     self.build_single_bit_reference(operand) for operand in instruction.qubits
                 ]
-                ret.append(ast.QuantumBarrier(operands))
+                nodes = [ast.QuantumBarrier(operands)]
             elif isinstance(instruction.operation, Measure):
                 measurement = ast.QuantumMeasurement(
                     [self.build_single_bit_reference(operand) for operand in instruction.qubits]
                 )
                 qubit = self.build_single_bit_reference(instruction.clbits[0])
-                ret.append(ast.QuantumMeasurementAssignment(qubit, measurement))
+                nodes = [ast.QuantumMeasurementAssignment(qubit, measurement)]
             elif isinstance(instruction.operation, Reset):
-                for operand in instruction.qubits:
-                    ret.append(ast.QuantumReset(self.build_single_bit_reference(operand)))
+                nodes = [
+                    ast.QuantumReset(self.build_single_bit_reference(operand))
+                    for operand in instruction.qubits
+                ]
             elif isinstance(instruction.operation, Delay):
-                ret.append(self.build_delay(instruction))
-            elif isinstance(instruction.operation, ForLoopOp):
-                ret.append(self.build_for_loop(instruction))
-            elif isinstance(instruction.operation, WhileLoopOp):
-                ret.append(self.build_while_loop(instruction))
-            elif isinstance(instruction.operation, IfElseOp):
-                ret.append(self.build_if_statement(instruction))
+                nodes = [self.build_delay(instruction)]
             elif isinstance(instruction.operation, BreakLoopOp):
-                ret.append(ast.BreakStatement())
+                nodes = [ast.BreakStatement()]
             elif isinstance(instruction.operation, ContinueLoopOp):
-                ret.append(ast.ContinueStatement())
+                nodes = [ast.ContinueStatement()]
             else:
-                ret.append(self.build_subroutine_call(instruction))
+                nodes = [self.build_subroutine_call(instruction)]
+
+            if instruction.operation.condition is None:
+                ret.extend(nodes)
+            else:
+                eqcondition = self.build_eqcondition(instruction.operation.condition)
+                body = ast.ProgramBlock(nodes)
+                ret.append(ast.BranchingStatement(eqcondition, body))
         return ret
 
     def build_if_statement(self, instruction: CircuitInstruction) -> ast.BranchingStatement:

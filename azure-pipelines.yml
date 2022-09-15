@@ -50,7 +50,6 @@ parameters:
     type: string
     default: "1.56.1"
 
-
   # These two versions of Python can be chosen somewhat arbitrarily, but we get
   # slightly better coverage per PR if they're neither the maximum nor minimum
   # supported versions.
@@ -65,6 +64,10 @@ parameters:
     type: string
     default: "3.8"
 
+  - name: "documentationPythonVersion"
+    displayName: "Version of Python to use to build Sphinx documentation"
+    type: string
+    default: "3.9"
 
 # Conditional compilation logic.  This is all the logic for "what to run"; each
 # stage in turn delegates to various templates in ".azure" that provide the
@@ -143,7 +146,7 @@ stages:
 
         - template: ".azure/docs-linux.yml"
           parameters:
-            pythonVersion: ${{ parameters.minimumPythonVersion }}
+            pythonVersion: ${{ parameters.documentationPythonVersion }}
 
         - template: ".azure/test-linux.yml"
           parameters:
