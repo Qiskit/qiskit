@@ -175,6 +175,6 @@ class BaseEstimatorGradient(ABC):
         Returns:
             The updated run options.
         """
-        run_opts = copy(self._estimator.run_options)
+        run_opts = copy(self._estimator.options)
         run_opts.update_options(**run_options)
         return run_opts

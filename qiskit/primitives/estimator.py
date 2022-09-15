@@ -54,7 +54,7 @@ class Estimator(BaseEstimator):
         circuits: QuantumCircuit | Iterable[QuantumCircuit] | None = None,
         observables: BaseOperator | PauliSumOp | Iterable[BaseOperator | PauliSumOp] | None = None,
         parameters: Iterable[Iterable[Parameter]] | None = None,
-        run_options: dict | None = None,
+        options: dict | None = None,
     ):
         """
         Args:
@@ -62,7 +62,7 @@ class Estimator(BaseEstimator):
             observables: observables to be estimated.
             parameters: Parameters of each of the quantum circuits.
                 Defaults to ``[circ.parameters for circ in circuits]``.
-            run_options: Default runtime options.
+            options: Default options.
 
         Raises:
             QiskitError: if some classical bits are not used for measurements.
@@ -81,7 +81,7 @@ class Estimator(BaseEstimator):
             circuits=circuits,
             observables=observables,  # type: ignore
             parameters=parameters,
-            run_options=run_options,
+            options=options,
         )
         self._is_closed = False
 
