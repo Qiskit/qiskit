@@ -126,7 +126,18 @@ class TestCircuitDrawer(QiskitTestCase):
         See: https://github.com/Qiskit/qiskit-terra/pull/8689"""
         circuit = QuantumCircuit(3)
         circuit.x(1)
-
+        expected = "\n".join(
+            [
+                "          ",
+                "q_2: ─────",
+                "     ┌───┐",
+                "q_1: ┤ X ├",
+                "     └───┘",
+                "q_0: ─────",
+                "          ",
+            ]
+        )
         with catch_warnings():
             simplefilter("error")
-            visualization.circuit_drawer(circuit, reverse_bits=True)
+            result = visualization.circuit_drawer(circuit, reverse_bits=True)
+        self.assertEqual(result.__str__(), expected)
