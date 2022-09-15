@@ -430,6 +430,7 @@ def _make_lin_comb_qfi_circuit(
     # print(circuit2)
 
     grad_dict = defaultdict(list)
+    print(circuit2.data)
     for i, (inst_i, qregs_i, _) in enumerate(circuit2.data):
         if not inst_i.is_parameterized():
             continue
@@ -438,12 +439,14 @@ def _make_lin_comb_qfi_circuit(
                 param_i = inst_i.params[0]
                 param_j = inst_j.params[0]
 
-                #print(inst_i)
+                if i > j:
+                    continue
                 for p_i in param_i.parameters:
                     for p_j in param_j.parameters:
                         if circuit2.parameters.data.index(p_i) > circuit2.parameters.data.index(p_j):
                             continue
-                        #print(f'i={p_i}, j={p_j}')
+                        print(f'i={i}, j={j}')
+                        print(f'p_i: {p_i}, p_j: {p_j}')
                         gate_i = _gate_gradient(inst_i)
                         gate_j = _gate_gradient(inst_j)
                         circuit3 = circuit2.copy()
@@ -465,6 +468,6 @@ def _make_lin_comb_qfi_circuit(
                             LinearCombGradientCircuit(circuit3, param_i.gradient(p_i) * param_j.gradient(p_j))
                         )
                         # grad_dict[p_i, p_j].append(circuit3)
-                        #print(circuit3)
+                        print(circuit3)
 
     return grad_dict

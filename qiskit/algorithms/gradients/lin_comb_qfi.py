@@ -148,6 +148,8 @@ class LinCombQFI(BaseQFI):
 
             elif derivative == "both":
                 op2 = SparsePauliOp.from_list([("Z", 1), ("Y", complex(0, -1))])
+            else:
+                raise ValueError(f"Derivative {derivative} not supported.")
 
             print('qfi op',op2)
             observable_ = observable.expand(op2)
