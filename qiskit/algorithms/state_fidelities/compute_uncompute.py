@@ -146,7 +146,7 @@ class ComputeUncompute(BaseStateFidelity):
         # options in `evaluate` method > fidelity's default options >
         # primitive's default options.
         opts = copy(self._default_options)
-        opts.update(**options)
+        opts.update_options(**options)
 
         job = self._sampler.run(circuits=circuits, parameter_values=values, **opts)
 
