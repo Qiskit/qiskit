@@ -9,7 +9,7 @@
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
-"""Evaluator of auxiliary operators for algorithms."""
+"""Evaluator of observables for algorithms."""
 from __future__ import annotations
 
 import numpy as np
@@ -27,7 +27,7 @@ def estimate_observables(
     quantum_state: QuantumCircuit,
     observables: ListOrDict[BaseOperator | PauliSumOp],
     threshold: float = 1e-12,
-) -> ListOrDict[tuple[complex, tuple[complex | None, int | None]]]:
+) -> ListOrDict[tuple[complex, tuple[complex, int]]]:
     """
     Accepts a sequence of operators and calculates their expectation values - means
     and standard deviations. They are calculated with respect to a quantum state provided. A user
@@ -43,7 +43,7 @@ def estimate_observables(
             ignoring numerical instabilities close to 0).
 
     Returns:
-        A list or a dictionary of tuples (mean, standard deviation).
+        A list or a dictionary of tuples (mean, (variance, shots)).
 
     Raises:
         ValueError: If a ``quantum_state`` with free parameters is provided.
@@ -82,7 +82,7 @@ def estimate_observables(
 
 
 def _handle_zero_ops(
-    observables_list: list[BaseOperator | PauliSumOp | int],
+    observables_list: list[BaseOperator | PauliSumOp],
 ) -> list[BaseOperator | PauliSumOp]:
     """Replaces all occurrence of operators equal to 0 in the list with an equivalent ``PauliSumOp``
     operator."""
@@ -95,15 +95,15 @@ def _handle_zero_ops(
 
 
 def _prepare_result(
-    observables_results: list[tuple[complex, tuple[complex | None, int | None]]],
+    observables_results: list[tuple[complex, tuple[complex, int]]],
     observables: ListOrDict[BaseOperator | PauliSumOp],
-) -> ListOrDict[tuple[complex, tuple[complex | None, int | None]]]:
+) -> ListOrDict[tuple[complex, tuple[complex, int]]]:
     """
     Prepares a list of tuples of eigenvalues and (variance, shots) tuples from
     ``observables_results`` and ``observables``.
 
     Args:
-        observables_results: A list of tuples (mean, standard deviation).
+        observables_results: A list of tuples (mean, (variance, shots)).
         observables: A list or a dictionary of operators whose expectation values are to be
             calculated.
 
@@ -112,6 +112,7 @@ def _prepare_result(
     """
 
     if isinstance(observables, list):
+        # by construction, all None values will be overwritten
         observables_eigenvalues = [None] * len(observables)
         key_value_iterator = enumerate(observables_results)
     else:
@@ -119,15 +120,14 @@ def _prepare_result(
         key_value_iterator = zip(observables.keys(), observables_results)
 
     for key, value in key_value_iterator:
-        if observables[key] is not None:
-            observables_eigenvalues[key] = value
+        observables_eigenvalues[key] = value
     return observables_eigenvalues
 
 
 def _prep_variance_and_shots(
     estimator_result: EstimatorResult,
     results_length: int,
-) -> list[tuple[complex | None, int | None]]:
+) -> list[tuple[complex, int]]:
     """
     Prepares a list of tuples with variances and shots from results provided by expectation values
     calculations. If there is no variance or shots data available from a primitive, the values will
