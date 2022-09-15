@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2020, 2021.
+# (C) Copyright IBM 2020, 2021, 2022.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -49,9 +49,9 @@ class Call(instruction.Instruction):
         Raises:
             PulseError: If subroutine is not valid data format.
         """
-        from qiskit.pulse.schedule import ScheduleBlock, Schedule
+        from qiskit.pulse.schedule import Schedule, ScheduleBlock
 
-        if not isinstance(subroutine, (ScheduleBlock, Schedule)):
+        if not isinstance(subroutine, (Schedule, ScheduleBlock)):
             raise PulseError(f"Subroutine type {subroutine.__class__.__name__} cannot be called.")
 
         value_dict = value_dict or {}
@@ -112,18 +112,13 @@ class Call(instruction.Instruction):
 
         return subroutine
 
-    def is_parameterized(self) -> bool:
-        """Return True iff the instruction is parameterized."""
-        return any(isinstance(value, ParameterExpression) for value in self.arguments.values())
-
     @property
     def parameters(self) -> Set:
         """Unassigned parameters which determine the instruction behavior."""
         params = set()
         for value in self._arguments.values():
             if isinstance(value, ParameterExpression):
-                for param in value.parameters:
-                    params.add(param)
+                params |= value.parameters
         return params
 
     @property
@@ -156,7 +151,7 @@ class Call(instruction.Instruction):
         """A helper function to generate hash of parameters."""
         return hash(tuple(self.arguments.items()))
 
-    def __eq__(self, other: "Instruction") -> bool:
+    def __eq__(self, other: instruction.Instruction) -> bool:
         """Check if this instruction is equal to the `other` instruction.
 
         Instructions are equal if they share the same type, operands, and channels.
