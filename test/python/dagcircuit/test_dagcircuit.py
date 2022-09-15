@@ -1224,6 +1224,68 @@ class TestCircuitProperties(QiskitTestCase):
         self.assertEqual(self.dag.num_tensor_factors(), 2)
 
 
+class TestCircuitControlFlowProperties(QiskitTestCase):
+    """Properties tests of DAGCircuit with control-flow instructions."""
+
+    def setUp(self):
+        super().setUp()
+        qc = QuantumCircuit(5, 1)
+        qc.h(0)
+        qc.measure(0, 0)
+        with qc.if_test((qc.clbits[0], True)) as else_:
+            qc.x(1)
+            qc.cx(2, 3)
+        with else_:
+            qc.x(1)
+            with qc.for_loop(range(3)):
+                qc.z(2)
+                with qc.for_loop((4, 0, 1)):
+                    qc.z(2)
+        with qc.while_loop((qc.clbits[0], True)):
+            qc.h(0)
+            qc.measure(0, 0)
+
+        self.dag = circuit_to_dag(qc)
+
+    def test_circuit_size(self):
+        """Test total number of operations in circuit."""
+        self.assertEqual(self.dag.size(recurse=False), 4)
+        self.assertEqual(self.dag.size(recurse=True), 17)
+
+    def test_circuit_depth(self):
+        """Test circuit depth."""
+        self.assertEqual(self.dag.depth(recurse=False), 4)
+        self.assertEqual(self.dag.depth(recurse=True), 16)
+
+    def test_circuit_width(self):
+        """Test number of qubits + clbits in circuit."""
+        self.assertEqual(self.dag.width(), 6)
+
+    def test_circuit_num_qubits(self):
+        """Test number of qubits in circuit."""
+        self.assertEqual(self.dag.num_qubits(), 5)
+
+    def test_circuit_operations(self):
+        """Test circuit operations breakdown by kind of op."""
+
+        self.assertDictEqual(
+            self.dag.count_ops(recurse=False), {"h": 1, "measure": 1, "if_else": 1, "while_loop": 1}
+        )
+        self.assertDictEqual(
+            self.dag.count_ops(recurse=True),
+            {
+                "h": 2,
+                "measure": 2,
+                "if_else": 1,
+                "x": 2,
+                "cx": 1,
+                "for_loop": 2,
+                "z": 2,
+                "while_loop": 1,
+            },
+        )
+
+
 class TestCircuitSpecialCases(QiskitTestCase):
     """DAGCircuit test for special cases, usually for regression."""
 
