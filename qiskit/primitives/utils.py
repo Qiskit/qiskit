@@ -15,7 +15,7 @@ Utility functions for primitives
 
 from __future__ import annotations
 
-from qiskit.circuit import ParameterExpression, QuantumCircuit, Instruction
+from qiskit.circuit import Instruction, ParameterExpression, QuantumCircuit
 from qiskit.extensions.quantum_initializer.initializer import Initialize
 from qiskit.opflow import PauliSumOp
 from qiskit.quantum_info import SparsePauliOp, Statevector
@@ -111,6 +111,30 @@ def final_measurement_mapping(circuit: QuantumCircuit) -> dict[int, int]:
     # Sort so that classical bits are in numeric order low->high.
     mapping = dict(sorted(mapping.items(), key=lambda item: item[1]))
     return mapping
+
+
+def _circuit_key(circuit: QuantumCircuit) -> tuple:
+    """Private key function for QuantumCircuit.
+
+    This is the workaround until :meth:`QuantumCircuit.__hash__` will be introduced.
+    If key collision is found, please add elements to avoid it.
+
+    Args:
+        circuit: Input quantum circuit.
+
+    Returns:
+        Key for directory.
+    """
+    return (
+        id(circuit),
+        circuit.num_qubits,
+        circuit.num_clbits,
+        circuit.num_parameters,
+        tuple(
+            (d.qubits, d.clbits, d.operation.name, tuple(d.operation.params)) for d in circuit.data
+        ),
+        None if circuit._op_start_times is None else tuple(circuit._op_start_times),
+    )
 
 
 def bound_circuit_to_instruction(circuit: QuantumCircuit) -> Instruction:
