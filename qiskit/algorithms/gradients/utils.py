@@ -439,8 +439,6 @@ def _make_lin_comb_qfi_circuit(
                 param_i = inst_i.params[0]
                 param_j = inst_j.params[0]
 
-                if i > j:
-                    continue
                 for p_i in param_i.parameters:
                     for p_j in param_j.parameters:
                         if circuit2.parameters.data.index(p_i) > circuit2.parameters.data.index(p_j):
@@ -450,16 +448,28 @@ def _make_lin_comb_qfi_circuit(
                         gate_i = _gate_gradient(inst_i)
                         gate_j = _gate_gradient(inst_j)
                         circuit3 = circuit2.copy()
-                        # insert gate_j to j-th position
-                        circuit3.append(gate_j, [qr_aux[0]] + qregs_j, [])
-                        circuit3.data.insert(j, circuit3.data.pop())
-                        # insert gate_i to i-th position with two X gates at its sides
-                        circuit3.append(XGate(), [qr_aux[0]], [])
-                        circuit3.data.insert(i, circuit3.data.pop())
-                        circuit3.append(gate_i, [qr_aux[0]] + qregs_i, [])
-                        circuit3.data.insert(i, circuit3.data.pop())
-                        circuit3.append(XGate(), [qr_aux[0]], [])
-                        circuit3.data.insert(i, circuit3.data.pop())
+                        if i < j:
+                            # insert gate_j to j-th position
+                            circuit3.append(gate_j, [qr_aux[0]] + qregs_j, [])
+                            circuit3.data.insert(j, circuit3.data.pop())
+                            # insert gate_i to i-th position with two X gates at its sides
+                            circuit3.append(XGate(), [qr_aux[0]], [])
+                            circuit3.data.insert(i, circuit3.data.pop())
+                            circuit3.append(gate_i, [qr_aux[0]] + qregs_i, [])
+                            circuit3.data.insert(i, circuit3.data.pop())
+                            circuit3.append(XGate(), [qr_aux[0]], [])
+                            circuit3.data.insert(i, circuit3.data.pop())
+                        else:
+                            # insert gate_i to i-th position
+                            circuit3.append(gate_i, [qr_aux[0]] + qregs_i, [])
+                            circuit3.data.insert(i, circuit3.data.pop())
+                            # insert gate_j to j-th position with two X gates at its sides
+                            circuit3.append(XGate(), [qr_aux[0]], [])
+                            circuit3.data.insert(j, circuit3.data.pop())
+                            circuit3.append(gate_j, [qr_aux[0]] + qregs_j, [])
+                            circuit3.data.insert(j, circuit3.data.pop())
+                            circuit3.append(XGate(), [qr_aux[0]], [])
+                            circuit3.data.insert(j, circuit3.data.pop())
 
                         circuit3.h(qr_aux)
                         if add_measurement:
