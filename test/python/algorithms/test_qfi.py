@@ -82,8 +82,8 @@ class TestQFI(QiskitTestCase):
         # test for different values
         correct_values = [[1, 0], [0, 1]]
         op = SparsePauliOp.from_list([("I", 1)])
-        qfi = LinCombQFI(self.estimator)
-        qfi_result = qfi.run([qc], [op], [param], [None], phase_fix=False).result().qfis
+        qfi = LinCombQFI(self.estimator, phase_fix=False)
+        qfi_result = qfi.run([qc], [op], [param]).result().qfis
         np.testing.assert_allclose(qfi_result[0], correct_values, atol=1e-3)
 
     def test_qfi_maxcut(self):
@@ -120,7 +120,7 @@ class TestQFI(QiskitTestCase):
 
         op = SparsePauliOp.from_list([("IIII", 1)])
         qfi = LinCombQFI(self.estimator)
-        qfi_result = qfi.run([ansatz], [op], [param], [None]).result().qfis
+        qfi_result = qfi.run([ansatz], [op], [param]).result().qfis
         np.testing.assert_array_almost_equal(qfi_result[0], reference, decimal=3)
 
     def test_qfi_derivative(self):
@@ -132,18 +132,19 @@ class TestQFI(QiskitTestCase):
         qc.rx(b, 0)
 
         op = SparsePauliOp.from_list([("I", 1)])
-        qfi = LinCombQFI(self.estimator)
+        qfi = LinCombQFI(self.estimator, derivative="imag")
         # test imaginary derivative
         param_list = [[np.pi / 4, 0], [np.pi / 2, np.pi / 4]]
         correct_values = [[[0, 0.707106781], [0.707106781, -0.5]], [[0, 1], [1, 0]]]
         for i, param in enumerate(param_list):
-            qfi_result = qfi.run([qc], [op], [param], [None], derivative="imag").result().qfis
+            qfi_result = qfi.run([qc], [op], [param]).result().qfis
             np.testing.assert_allclose(qfi_result[0], correct_values[i], atol=1e-3)
 
         # test real + imaginary derivative
+        qfi = LinCombQFI(self.estimator, derivative="complex")
         correct_values = [[[1, 0.707106781j], [0.707106781j, 0.5]], [[1, 1j], [1j, 1]]]
         for i, param in enumerate(param_list):
-            qfi_result = qfi.run([qc], [op], [param], [None], derivative="both").result().qfis
+            qfi_result = qfi.run([qc], [op], [param]).result().qfis
             np.testing.assert_allclose(qfi_result[0], correct_values[i], atol=1e-3)
 
     def test_qfi_coefficients(self):
@@ -175,7 +176,7 @@ class TestQFI(QiskitTestCase):
             ],
         ]
         for i, param in enumerate(param_list):
-            qfi_result = qfi.run([qc], [op], [param], [None]).result().qfis
+            qfi_result = qfi.run([qc], [op], [param]).result().qfis
             np.testing.assert_allclose(qfi_result[0], correct_values[i], atol=1e-3)
 
     def test_qfi_operators(self):

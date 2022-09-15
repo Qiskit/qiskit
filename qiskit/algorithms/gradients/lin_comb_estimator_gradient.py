@@ -41,24 +41,26 @@ class LinCombEstimatorGradient(BaseEstimatorGradient):
     `arXiv:1811.11184 <https://arxiv.org/pdf/1811.11184.pdf>`_
     """
 
-    def __init__(self, estimator: BaseEstimator, **run_options):
+    def __init__(self, estimator: BaseEstimator, derivative: str = "real", **run_options):
         """
         Args:
             estimator: The estimator used to compute the gradients.
+            derivative: The type of derivative. Can be either "real", "imag", or "complex".
+                Defaults to "real".
             run_options: Backend runtime options used for circuit execution. The order of priority is:
                 run_options in ``run`` method > gradient's default run_options > primitive's default
                 setting. Higher priority setting overrides lower priority setting.
         """
         self._gradient_circuits = {}
+        self._derivative = derivative
         super().__init__(estimator, **run_options)
 
     def _run(
         self,
         circuits: Sequence[QuantumCircuit],
         observables: Sequence[BaseOperator | PauliSumOp],
-        parameter_values: Sequence[Sequence[float]],
+        parameter_values: Sequence[Sequence[float | complex]],
         parameters: Sequence[Sequence[Parameter] | None],
-        derivative: str = "real",
         **run_options,
     ) -> EstimatorGradientResult:
         """Compute the estimator gradients on the given circuits."""
@@ -75,15 +77,14 @@ class LinCombEstimatorGradient(BaseEstimatorGradient):
                 param_set = set(parameters_)
             metadata_.append({"parameters": [p for p in circuit.parameters if p in param_set]})
 
-            # TODO: support measurement in different basis (Y and Z+iY)
-            if derivative == "real":
+            if self._derivative == "real":
                 op2 = SparsePauliOp.from_list([("Z", 1)])
-
-            elif derivative == "imag":
+            elif self._derivative == "imag":
                 op2 = SparsePauliOp.from_list([("Y", -1)])
-
-            elif derivative == "both":
+            elif self._derivative == "complex":
                 op2 = SparsePauliOp.from_list([("Z", 1), ("Y", complex(0, -1))])
+            else:
+                raise ValueError(f"Derivative type {self._derivative} is not supported.")
 
             observable_ = observable.expand(op2)
 

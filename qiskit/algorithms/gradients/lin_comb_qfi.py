@@ -30,14 +30,20 @@ from qiskit.quantum_info.operators.base_operator import BaseOperator
 from .base_qfi import BaseQFI
 from .qfi_result import QFIResult
 from .estimator_gradient_result import EstimatorGradientResult
-from .utils import _make_lin_comb_gradient_circuit, _make_lin_comb_qfi_circuit
+from .utils import  _make_lin_comb_qfi_circuit
 from .lin_comb_estimator_gradient import LinCombEstimatorGradient
 
 Pauli_Z = Pauli("Z")
 
 
 class LinCombQFI(BaseQFI):
-    def __init__(self, estimator: BaseEstimator, **run_options):
+    def __init__(
+        self,
+        estimator: BaseEstimator,
+        phase_fix: bool = True,
+        derivative: str = "real",
+        **run_options,
+    ):
         r"""Computes the Quantum Fisher Information (QFI) given a pure,
         parameterized quantum state, where QFI is:
 
@@ -48,22 +54,25 @@ class LinCombQFI(BaseQFI):
 
         Args:
             estimator: The estimator used to compute the gradients.
+            phase_fix: Whether to calculate the second term (phase fix) of the QFI. Default to True.
+            derivative: The type of derivative. Can be either "real", "imag", or "complex".
+                Defaults to "real".
             run_options: Backend runtime options used for circuit execution. The order of priority is:
                 run_options in ``run`` method > gradient's default run_options > primitive's default
                 setting. Higher priority setting overrides lower priority setting.
         """
-        self._gradient_circuits = {}
         super().__init__(estimator, **run_options)
-        self._gradient = LinCombEstimatorGradient(estimator)
+        self._phase_fix = phase_fix
+        self._derivative = derivative
+        self._gradient = LinCombEstimatorGradient(estimator, derivative="complex", **run_options)
+        self._gradient_circuits = {}
 
     def _run(
         self,
         circuits: Sequence[QuantumCircuit],
         observables: Sequence[BaseOperator | PauliSumOp],
-        parameter_values: Sequence[Sequence[float]],
+        parameter_values: Sequence[Sequence[float | complex]],
         parameters: Sequence[Sequence[Parameter] | None],
-        phase_fix: bool = True,
-        derivative: str = "real",
         **run_options,
     ) -> EstimatorGradientResult:
         """Compute the estimator gradients on the given circuits."""
@@ -89,13 +98,12 @@ class LinCombQFI(BaseQFI):
             metadata_.append({"parameters": [p for p in circuit.parameters if p in param_set]})
 
             # compute the second term (the phase fix) in the QFI
-            if phase_fix:
+            if self._phase_fix:
                 gradient_job = self._gradient.run(
                     circuits=[circuit],
                     observables=[observable],
                     parameter_values=[parameter_values_],
                     parameters=[parameters_],
-                    derivative="both",
                 )
                 gradient_jobs.append(gradient_job)
 
@@ -137,17 +145,14 @@ class LinCombQFI(BaseQFI):
                             bound_coeff = coeff
                         coeffs.append(bound_coeff)
 
-            if derivative == "real":
+            if self._derivative == "real":
                 op2 = SparsePauliOp.from_list([("Z", 1)])
-
-            elif derivative == "imag":
+            elif self._derivative == "imag":
                 op2 = SparsePauliOp.from_list([("Y", -1)])
-
-            elif derivative == "both":
+            elif self._derivative == "complex":
                 op2 = SparsePauliOp.from_list([("Z", 1), ("Y", complex(0, -1))])
             else:
-                raise ValueError(f"Derivative {derivative} not supported.")
-
+                raise ValueError(f"Derivative type {self._derivative} is not supported.")
             observable_ = observable.expand(op2)
 
             n = len(qfi_circuits)
@@ -165,7 +170,7 @@ class LinCombQFI(BaseQFI):
         except Exception as exc:
             raise AlgorithmError("Estimator job failed.") from exc
 
-        if phase_fix:
+        if self._phase_fix:
             for gradient_result in gradient_results:
                 phase_fix_ = np.outer(
                     np.conjugate(gradient_result.gradients[0]), gradient_result.gradients[0]
@@ -179,7 +184,6 @@ class LinCombQFI(BaseQFI):
 
         qfis = []
         for i, result in enumerate(results):
-
             qfi_ = np.zeros(
                 (len(metadata_[i]["parameters"]), len(metadata_[i]["parameters"])), dtype="complex_"
             )
