@@ -16,6 +16,16 @@ import numpy as np
 from qiskit.exceptions import QiskitError
 
 
+def check_invertible_binary_matrix(mat):
+    """Check that a binary matrix is invertible."""
+    if len(mat.shape) != 2 or mat.shape[0] != mat.shape[1]:
+        return False
+
+    mat = _gauss_elimination(mat)
+    rank = _compute_rank_after_gauss_elim(mat)
+    return rank == mat.shape[0]
+
+
 def random_invertible_binary_matrix(num_qubits, seed=None):
     """Generates a random invertible n x n binary matrix."""
     if isinstance(seed, np.random.Generator):
@@ -62,9 +72,7 @@ def _gauss_elimination(mat, ncols=None, full_elim=False):
             return mat  # A is in the canonical form
 
         if new_r != r:
-            tmp = mat[new_r].copy()
-            mat[new_r] = mat[r]
-            mat[r] = tmp
+            mat[[r, new_r]] = mat[[new_r, r]]
 
         if full_elim:
             for i in range(0, r):
