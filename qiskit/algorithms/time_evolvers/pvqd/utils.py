@@ -18,13 +18,13 @@ from typing import Callable
 
 import numpy as np
 
-from qiskit.algorithms import AlgorithmError
 from qiskit.circuit import QuantumCircuit, Parameter, ParameterExpression
 from qiskit.compiler import transpile
 from qiskit.exceptions import QiskitError
 from qiskit.opflow.gradients.circuit_gradients import ParamShift
 from qiskit.primitives import BaseEstimator
 from qiskit.quantum_info.operators.base_operator import BaseOperator
+from ...exceptions import AlgorithmError
 
 logger = logging.getLogger(__name__)
 
