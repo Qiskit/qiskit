@@ -14,7 +14,7 @@
 
 import unittest
 
-from qiskit.circuit import QuantumCircuit
+from qiskit.circuit import QuantumCircuit, Qubit, Clbit
 from qiskit.transpiler.passes.optimization import CollectLinearFunctions
 from qiskit.transpiler.passes.synthesis import (
     LinearFunctionsSynthesis,
@@ -328,6 +328,53 @@ class TestLinearFunctionsPasses(QiskitTestCase):
         self.assertEqual(circuit2.count_ops()["linear_function"], 1)
         self.assertNotIn("cx", circuit2.count_ops().keys())
         self.assertNotIn("swap", circuit2.count_ops().keys())
+
+    def test_if_else(self):
+        """Test that collection recurses into a simple if-else."""
+        pass_ = CollectLinearFunctions()
+
+        circuit = QuantumCircuit(4)
+        circuit.cx(0, 1)
+        circuit.cx(1, 0)
+        circuit.cx(2, 3)
+
+        test = QuantumCircuit(4, 1)
+        test.h(0)
+        test.measure(0, 0)
+        test.if_else((0, True), circuit.copy(), circuit.copy(), range(4), [0])
+
+        expected = QuantumCircuit(4, 1)
+        expected.h(0)
+        expected.measure(0, 0)
+        expected.if_else((0, True), pass_(circuit), pass_(circuit), range(4), [0])
+
+        self.assertEqual(pass_(test), expected)
+
+    def test_nested_control_flow(self):
+        """Test that collection recurses into nested control flow."""
+        pass_ = CollectLinearFunctions()
+        qubits = [Qubit() for _ in [None] * 4]
+        clbit = Clbit()
+
+        circuit = QuantumCircuit(qubits, [clbit])
+        circuit.cx(0, 1)
+        circuit.cx(1, 0)
+        circuit.cx(2, 3)
+
+        true_body = QuantumCircuit(qubits, [clbit])
+        true_body.while_loop((clbit, True), circuit.copy(), [0, 1, 2, 3], [0])
+
+        test = QuantumCircuit(qubits, [clbit])
+        test.for_loop(range(2), None, circuit.copy(), [0, 1, 2, 3], [0])
+        test.if_else((clbit, True), true_body, None, [0, 1, 2, 3], [0])
+
+        expected_if_body = QuantumCircuit(qubits, [clbit])
+        expected_if_body.while_loop((clbit, True), pass_(circuit), [0, 1, 2, 3], [0])
+        expected = QuantumCircuit(qubits, [clbit])
+        expected.for_loop(range(2), None, pass_(circuit), [0, 1, 2, 3], [0])
+        expected.if_else((clbit, True), pass_(expected_if_body), None, [0, 1, 2, 3], [0])
+
+        self.assertEqual(pass_(test), expected)
 
 
 if __name__ == "__main__":
