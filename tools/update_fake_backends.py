@@ -300,17 +300,23 @@ def _main():
 
                 with open(config_path, "w") as fd:
                     fd.write(json.dumps(config_dict, cls=BackendEncoder))
-                summary.conf_msg = f"conf_{name}.json okey"
+                summary.conf_msg = f"conf_{name}.json ok"
+            else:
+                summary.conf_msg = "backend.configuration() == None"
             if props:
                 props_path = os.path.join(args.dir, name, "props_%s.json" % name)
                 with open(props_path, "w") as fd:
                     fd.write(json.dumps(props.to_dict(), cls=BackendEncoder))
-                summary.props_msg = f"props_{name}.json okey"
+                summary.props_msg = f"props_{name}.json ok"
+            else:
+                summary.props_msg = "backend.properties() == None"
             if defs:
                 defs_path = os.path.join(args.dir, name, "defs_%s.json" % name)
                 with open(defs_path, "w") as fd:
                     fd.write(json.dumps(defs.to_dict(), cls=BackendEncoder))
-                summary.defs_msg = f"defs_{name}.json okey"
+                summary.defs_msg = f"defs_{name}.json ok"
+            else:
+                summary.defs_msg = "backend.defaults() == None"
 
             print(summary.generate_summary())
 
