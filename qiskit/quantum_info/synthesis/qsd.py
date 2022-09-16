@@ -94,7 +94,7 @@ def qs_decomposition(
 
                 decomposer_2q = decomp_2q
             else:
-                decomposer_2q = two_qubit_decompose.TwoQubitBasisDecomposer(CXGate())
+                decomposer_2q = two_qubit_decompose.two_qubit_cnot_decompose
         circ = decomposer_2q(mat)
     else:
         qr = QuantumRegister(nqubits)
