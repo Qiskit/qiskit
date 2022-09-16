@@ -29,7 +29,7 @@ from qiskit.quantum_info.operators.base_operator import BaseOperator
 from .base_estimator import BaseEstimator
 from .estimator_result import EstimatorResult
 from .primitive_job import PrimitiveJob
-from .utils import bound_circuit_to_instruction, init_circuit, init_observable
+from .utils import _circuit_key, bound_circuit_to_instruction, init_circuit, init_observable
 
 
 class Estimator(BaseEstimator):
@@ -53,7 +53,7 @@ class Estimator(BaseEstimator):
         circuits: QuantumCircuit | Iterable[QuantumCircuit] | None = None,
         observables: BaseOperator | PauliSumOp | Iterable[BaseOperator | PauliSumOp] | None = None,
         parameters: Iterable[Iterable[Parameter]] | None = None,
-        run_options: dict | None = None,
+        options: dict | None = None,
     ):
         """
         Args:
@@ -61,7 +61,7 @@ class Estimator(BaseEstimator):
             observables: observables to be estimated.
             parameters: Parameters of each of the quantum circuits.
                 Defaults to ``[circ.parameters for circ in circuits]``.
-            run_options: Default runtime options.
+            options: Default options.
 
         Raises:
             QiskitError: if some classical bits are not used for measurements.
@@ -80,7 +80,7 @@ class Estimator(BaseEstimator):
             circuits=circuits,
             observables=observables,  # type: ignore
             parameters=parameters,
-            run_options=run_options,
+            options=options,
         )
         self._is_closed = False
 
@@ -155,12 +155,13 @@ class Estimator(BaseEstimator):
     ) -> PrimitiveJob:
         circuit_indices = []
         for circuit in circuits:
-            index = self._circuit_ids.get(id(circuit))
+            key = _circuit_key(circuit)
+            index = self._circuit_ids.get(key)
             if index is not None:
                 circuit_indices.append(index)
             else:
                 circuit_indices.append(len(self._circuits))
-                self._circuit_ids[id(circuit)] = len(self._circuits)
+                self._circuit_ids[key] = len(self._circuits)
                 self._circuits.append(circuit)
                 self._parameters.append(circuit.parameters)
         observable_indices = []

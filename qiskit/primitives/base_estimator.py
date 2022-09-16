@@ -112,6 +112,7 @@ from qiskit.quantum_info.operators.base_operator import BaseOperator
 from qiskit.utils.deprecation import deprecate_arguments, deprecate_function
 
 from .estimator_result import EstimatorResult
+from .utils import _circuit_key
 
 
 class BaseEstimator(ABC):
@@ -127,7 +128,7 @@ class BaseEstimator(ABC):
         circuits: Iterable[QuantumCircuit] | QuantumCircuit | None = None,
         observables: Iterable[SparsePauliOp] | SparsePauliOp | None = None,
         parameters: Iterable[Iterable[Parameter]] | None = None,
-        run_options: dict | None = None,
+        options: dict | None = None,
     ):
         """
         Creating an instance of an Estimator, or using one in a ``with`` context opens a session that
@@ -140,7 +141,7 @@ class BaseEstimator(ABC):
                 will be bound. Defaults to ``[circ.parameters for circ in circuits]``
                 The indexing is such that ``parameters[i, j]`` is the j-th formal parameter of
                 ``circuits[i]``.
-            run_options: runtime options.
+            options: Default options.
 
         Raises:
             QiskitError: For mismatch of circuits and parameters list.
@@ -163,7 +164,7 @@ class BaseEstimator(ABC):
 
         # To guarantee that they exist as instance variable.
         # With only dynamic set, the python will not know if the attribute exists or not.
-        self._circuit_ids: dict[int, int] = self._circuit_ids
+        self._circuit_ids: dict[tuple, int] = self._circuit_ids
         self._observable_ids: dict[int, int] = self._observable_ids
 
         if parameters is None:
@@ -182,8 +183,8 @@ class BaseEstimator(ABC):
                         f"expected {circ.num_parameters}, actual {len(params)}."
                     )
         self._run_options = Options()
-        if run_options is not None:
-            self._run_options.update_options(**run_options)
+        if options is not None:
+            self._run_options.update_options(**options)
 
     def __new__(
         cls,
@@ -198,9 +199,9 @@ class BaseEstimator(ABC):
             self._circuit_ids = {}
         elif isinstance(circuits, Iterable):
             circuits = copy(circuits)
-            self._circuit_ids = {id(circuit): i for i, circuit in enumerate(circuits)}
+            self._circuit_ids = {_circuit_key(circuit): i for i, circuit in enumerate(circuits)}
         else:
-            self._circuit_ids = {id(circuits): 0}
+            self._circuit_ids = {_circuit_key(circuits): 0}
         if observables is None:
             self._observable_ids = {}
         elif isinstance(observables, Iterable):
@@ -258,15 +259,15 @@ class BaseEstimator(ABC):
         return tuple(self._parameters)
 
     @property
-    def run_options(self) -> Options:
+    def options(self) -> Options:
         """Return options values for the estimator.
 
         Returns:
-            run_options
+            options
         """
         return self._run_options
 
-    def set_run_options(self, **fields) -> BaseEstimator:
+    def set_options(self, **fields) -> BaseEstimator:
         """Set options values for the estimator.
 
         Args:
@@ -328,7 +329,7 @@ class BaseEstimator(ABC):
 
         # Allow objects
         circuits = [
-            self._circuit_ids.get(id(circuit))
+            self._circuit_ids.get(_circuit_key(circuit))
             if not isinstance(circuit, (int, np.integer))
             else circuit
             for circuit in circuits
@@ -402,7 +403,7 @@ class BaseEstimator(ABC):
                 f"The number of circuits is {len(self.observables)}, "
                 f"but the index {max(observables)} is given."
             )
-        run_opts = copy(self.run_options)
+        run_opts = copy(self.options)
         run_opts.update_options(**run_options)
 
         return self._call(
@@ -492,7 +493,7 @@ class BaseEstimator(ABC):
                     f"not match the number of qubits of the {i}-th observable "
                     f"({observable.num_qubits})."
                 )
-        run_opts = copy(self.run_options)
+        run_opts = copy(self.options)
         run_opts.update_options(**run_options)
 
         return self._run(
