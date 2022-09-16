@@ -119,6 +119,7 @@ from qiskit.quantum_info.operators.base_operator import BaseOperator
 from qiskit.utils.deprecation import deprecate_arguments, deprecate_function
 
 from .estimator_result import EstimatorResult
+from .utils import _circuit_key
 
 
 class BaseEstimator(ABC):
@@ -170,7 +171,7 @@ class BaseEstimator(ABC):
 
         # To guarantee that they exist as instance variable.
         # With only dynamic set, the python will not know if the attribute exists or not.
-        self._circuit_ids: dict[int, int] = self._circuit_ids
+        self._circuit_ids: dict[tuple, int] = self._circuit_ids
         self._observable_ids: dict[int, int] = self._observable_ids
 
         if parameters is None:
@@ -205,9 +206,9 @@ class BaseEstimator(ABC):
             self._circuit_ids = {}
         elif isinstance(circuits, Iterable):
             circuits = copy(circuits)
-            self._circuit_ids = {id(circuit): i for i, circuit in enumerate(circuits)}
+            self._circuit_ids = {_circuit_key(circuit): i for i, circuit in enumerate(circuits)}
         else:
-            self._circuit_ids = {id(circuits): 0}
+            self._circuit_ids = {_circuit_key(circuits): 0}
         if observables is None:
             self._observable_ids = {}
         elif isinstance(observables, Iterable):
@@ -335,7 +336,7 @@ class BaseEstimator(ABC):
 
         # Allow objects
         circuits = [
-            self._circuit_ids.get(id(circuit))
+            self._circuit_ids.get(_circuit_key(circuit))
             if not isinstance(circuit, (int, np.integer))
             else circuit
             for circuit in circuits
