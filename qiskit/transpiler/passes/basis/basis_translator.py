@@ -277,7 +277,7 @@ class BasisTranslator(TransformationPass):
             dag_op = bound_target_dag.op_nodes()[0].op
             # dag_op may be the same instance as other ops in the dag,
             # so if there is a condition, need to copy
-            if node.op.condition:
+            if getattr(node.op, "condition", None):
                 dag_op = dag_op.copy()
             dag.substitute_node(node, dag_op, inplace=True)
 
