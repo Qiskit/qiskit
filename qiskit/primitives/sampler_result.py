@@ -20,14 +20,16 @@ from typing import Any
 
 from qiskit.result import QuasiDistribution
 
+from .base_result import BasePrimitiveResult
+
 
 @dataclass(frozen=True)
-class SamplerResult:
+class SamplerResult(BasePrimitiveResult):
     """Result of Sampler.
 
     .. code-block:: python
 
-        result = sampler(circuits, params)
+        result = sampler.run(circuits, params).result()
 
     where the i-th elements of ``result`` correspond to the circuit given by ``circuits[i]``,
     and the parameter values bounds by ``params[i]``.

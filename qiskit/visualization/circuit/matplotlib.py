@@ -30,8 +30,11 @@ from qiskit.circuit.library.standard_gates import (
     ZGate,
 )
 from qiskit.extensions import Initialize
-from qiskit.visualization.qcstyle import load_style
-from qiskit.visualization.utils import (
+from qiskit.circuit.tools.pi_check import pi_check
+from qiskit.utils import optionals as _optionals
+
+from .qcstyle import load_style
+from ._utils import (
     get_gate_ctrl_text,
     get_param_str,
     get_wire_map,
@@ -39,10 +42,8 @@ from qiskit.visualization.utils import (
     get_bit_reg_index,
     get_wire_label,
     get_condition_label_val,
-    matplotlib_close_if_inline,
 )
-from qiskit.circuit.tools.pi_check import pi_check
-from qiskit.utils import optionals as _optionals
+from ..utils import matplotlib_close_if_inline
 
 # Default gate width and height
 WID = 0.65
@@ -414,7 +415,9 @@ class MatplotlibDrawer:
                 self._data[node] = {}
                 self._data[node]["width"] = WID
                 num_ctrl_qubits = 0 if not hasattr(op, "num_ctrl_qubits") else op.num_ctrl_qubits
-                if op._directive or isinstance(op, Measure):
+                if (
+                    getattr(op, "_directive", False) and (not op.label or not self._plot_barriers)
+                ) or isinstance(op, Measure):
                     self._data[node]["raw_gate_text"] = op.name
                     continue
 
@@ -604,7 +607,9 @@ class MatplotlibDrawer:
             barrier_offset = 0
             if not self._plot_barriers:
                 # only adjust if everything in the layer wasn't plotted
-                barrier_offset = -1 if all(nd.op._directive for nd in layer) else 0
+                barrier_offset = (
+                    -1 if all(getattr(nd.op, "_directive", False) for nd in layer) else 0
+                )
             prev_x_index = anc_x_index + layer_width + barrier_offset - 1
 
         return prev_x_index + 1
@@ -793,7 +798,7 @@ class MatplotlibDrawer:
                     print(op)
 
                 # add conditional
-                if op.condition:
+                if getattr(op, "condition", None):
                     cond_xy = [
                         self._c_anchors[ii].plot_coord(anc_x_index, layer_width, self._x_offset)
                         for ii in self._clbits_dict
@@ -809,7 +814,7 @@ class MatplotlibDrawer:
                     self._measure(node)
 
                 # draw barriers, snapshots, etc.
-                elif op._directive:
+                elif getattr(op, "_directive", False):
                     if self._plot_barriers:
                         self._barrier(node)
 
@@ -829,7 +834,9 @@ class MatplotlibDrawer:
             barrier_offset = 0
             if not self._plot_barriers:
                 # only adjust if everything in the layer wasn't plotted
-                barrier_offset = -1 if all(nd.op._directive for nd in layer) else 0
+                barrier_offset = (
+                    -1 if all(getattr(nd.op, "_directive", False) for nd in layer) else 0
+                )
 
             prev_x_index = anc_x_index + layer_width + barrier_offset - 1
 
@@ -1009,11 +1016,16 @@ class MatplotlibDrawer:
 
     def _barrier(self, node):
         """Draw a barrier"""
-        for xy in self._data[node]["q_xy"]:
+        for i, xy in enumerate(self._data[node]["q_xy"]):
             xpos, ypos = xy
+            # For the topmost barrier, reduce the rectangle if there's a label to allow for the text.
+            if i == 0 and node.op.label is not None:
+                ypos_adj = -0.35
+            else:
+                ypos_adj = 0.0
             self._ax.plot(
                 [xpos, xpos],
-                [ypos + 0.5, ypos - 0.5],
+                [ypos + 0.5 + ypos_adj, ypos - 0.5],
                 linewidth=self._lwidth1,
                 linestyle="dashed",
                 color=self._style["lc"],
@@ -1022,7 +1034,7 @@ class MatplotlibDrawer:
             box = self._patches_mod.Rectangle(
                 xy=(xpos - (0.3 * WID), ypos - 0.5),
                 width=0.6 * WID,
-                height=1,
+                height=1.0 + ypos_adj,
                 fc=self._style["bc"],
                 ec=None,
                 alpha=0.6,
@@ -1030,6 +1042,21 @@ class MatplotlibDrawer:
                 zorder=PORDER_GRAY,
             )
             self._ax.add_patch(box)
+
+            # display the barrier label at the top if there is one
+            if i == 0 and node.op.label is not None:
+                dir_ypos = ypos + 0.65 * HIG
+                self._ax.text(
+                    xpos,
+                    dir_ypos,
+                    node.op.label,
+                    ha="center",
+                    va="top",
+                    fontsize=self._fs,
+                    color=self._data[node]["tc"],
+                    clip_on=True,
+                    zorder=PORDER_TEXT,
+                )
 
     def _gate(self, node, xy=None):
         """Draw a 1-qubit gate"""

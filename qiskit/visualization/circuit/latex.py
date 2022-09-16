@@ -10,7 +10,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""latex visualization backends."""
+"""latex visualization backend."""
 
 import io
 import math
@@ -22,9 +22,10 @@ from qiskit.circuit import Clbit, Qubit, ClassicalRegister, QuantumRegister, Qua
 from qiskit.circuit.controlledgate import ControlledGate
 from qiskit.circuit.library.standard_gates import SwapGate, XGate, ZGate, RZZGate, U1Gate, PhaseGate
 from qiskit.circuit.measure import Measure
-from qiskit.visualization.qcstyle import load_style
 from qiskit.circuit.tools.pi_check import pi_check
-from .utils import (
+
+from .qcstyle import load_style
+from ._utils import (
     get_gate_ctrl_text,
     get_param_str,
     get_wire_map,
@@ -286,7 +287,10 @@ class QCircuitImage:
         if self._cregbundle and (
             self._nodes
             and self._nodes[0]
-            and (self._nodes[0][0].op.name == "measure" or self._nodes[0][0].op.condition)
+            and (
+                self._nodes[0][0].op.name == "measure"
+                or getattr(self._nodes[0][0].op, "condition", None)
+            )
         ):
             columns += 1
 
@@ -410,7 +414,10 @@ class QCircuitImage:
         if self._cregbundle and (
             self._nodes
             and self._nodes[0]
-            and (self._nodes[0][0].op.name == "measure" or self._nodes[0][0].op.condition)
+            and (
+                self._nodes[0][0].op.name == "measure"
+                or getattr(self._nodes[0][0].op, "condition", None)
+            )
         ):
             column += 1
 
@@ -421,13 +428,13 @@ class QCircuitImage:
                 op = node.op
                 num_cols_op = 1
                 wire_list = [self._wire_map[qarg] for qarg in node.qargs if qarg in self._qubits]
-                if op.condition:
+                if getattr(op, "condition", None):
                     self._add_condition(op, wire_list, column)
 
                 if isinstance(op, Measure):
                     self._build_measure(node, column)
 
-                elif op._directive:  # barrier, snapshot, etc.
+                elif getattr(op, "_directive", False):  # barrier, snapshot, etc.
                     self._build_barrier(node, column)
 
                 else:
@@ -563,7 +570,7 @@ class QCircuitImage:
         self._latex[wire1][col] = "\\meter"
 
         idx_str = ""
-        cond_offset = 1.5 if node.op.condition else 0.0
+        cond_offset = 1.5 if getattr(node.op, "condition", None) else 0.0
         if self._cregbundle:
             register = get_bit_register(self._circuit, node.cargs[0])
             if register is not None:
@@ -597,7 +604,10 @@ class QCircuitImage:
                     first = last = index
             pos = self._wire_map[self._qubits[first]]
             self._latex[pos][col - 1] += " \\barrier[0em]{" + str(last - first) + "}"
-            self._latex[pos][col] = "\\qw"
+            if node.op.label is not None:
+                pos = indexes[0]
+                label = node.op.label.replace(" ", "\\,")
+                self._latex[pos][col] = "\\cds{0}{^{\\mathrm{%s}}}" % label
 
     def _add_controls(self, wire_list, ctrlqargs, ctrl_state, col):
         """Add one or more controls to a gate"""

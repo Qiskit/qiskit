@@ -190,6 +190,7 @@ Gates and Instructions
    Delay
    Instruction
    InstructionSet
+   Operation
    EquivalenceLibrary
 
 Control Flow Operations
@@ -232,6 +233,7 @@ from .gate import Gate
 from .controlledgate import ControlledGate
 from .instruction import Instruction
 from .instructionset import InstructionSet
+from .operation import Operation
 from .barrier import Barrier
 from .delay import Delay
 from .measure import Measure
@@ -243,6 +245,7 @@ from .quantumcircuitdata import CircuitInstruction
 from .equivalence import EquivalenceLibrary
 from .classicalfunction.types import Int1, Int2
 from .classicalfunction import classical_function, BooleanExpression
+from .commutation_checker import CommutationChecker
 
 from .controlflow import (
     ControlFlowOp,
