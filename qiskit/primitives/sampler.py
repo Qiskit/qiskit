@@ -29,7 +29,12 @@ from qiskit.result import QuasiDistribution
 from .base_sampler import BaseSampler
 from .primitive_job import PrimitiveJob
 from .sampler_result import SamplerResult
-from .utils import bound_circuit_to_instruction, final_measurement_mapping, init_circuit
+from .utils import (
+    _circuit_key,
+    bound_circuit_to_instruction,
+    final_measurement_mapping,
+    init_circuit,
+)
 
 
 class Sampler(BaseSampler):
@@ -53,14 +58,14 @@ class Sampler(BaseSampler):
         self,
         circuits: QuantumCircuit | Iterable[QuantumCircuit] | None = None,
         parameters: Iterable[Iterable[Parameter]] | None = None,
-        run_options: dict | None = None,
+        options: dict | None = None,
     ):
         """
         Args:
             circuits: circuits to be executed
             parameters: Parameters of each of the quantum circuits.
                 Defaults to ``[circ.parameters for circ in circuits]``.
-            run_options: Default runtime options.
+            options: Default options.
 
         Raises:
             QiskitError: if some classical bits are not used for measurements.
@@ -76,7 +81,7 @@ class Sampler(BaseSampler):
                 preprocessed_circuits.append(circuit)
         else:
             preprocessed_circuits = None
-        super().__init__(preprocessed_circuits, parameters, run_options)
+        super().__init__(preprocessed_circuits, parameters, options)
         self._is_closed = False
 
     def _call(
@@ -140,12 +145,13 @@ class Sampler(BaseSampler):
     ) -> PrimitiveJob:
         circuit_indices = []
         for i, circuit in enumerate(circuits):
-            index = self._circuit_ids.get(id(circuit))
+            key = _circuit_key(circuit)
+            index = self._circuit_ids.get(key)
             if index is not None:
                 circuit_indices.append(index)
             else:
                 circuit_indices.append(len(self._circuits))
-                self._circuit_ids[id(circuit)] = len(self._circuits)
+                self._circuit_ids[key] = len(self._circuits)
                 circuit, qargs = self._preprocess_circuit(circuit)
                 self._circuits.append(circuit)
                 self._qargs_list.append(qargs)
