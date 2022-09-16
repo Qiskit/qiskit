@@ -122,7 +122,7 @@ New Features
   .. code-block:: python
 
       import qiskit
-      from qiskit.providers.aer import AerSimulator
+      from qiskit_aer import AerSimulator
 
       qc = qiskit.QuantumCircuit(4)
       qc.initialize('+-rl')
@@ -249,7 +249,7 @@ Bug Fixes
   .. code-block:: python
 
       import qiskit
-      from qiskit.providers.aer import AerSimulator
+      from qiskit_aer import AerSimulator
 
       qc = qiskit.QuantumCircuit(2)
       with qc.for_loop(range(4)) as i:
