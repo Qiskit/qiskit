@@ -553,10 +553,10 @@ class TestOptimize1qGatesDecomposition(QiskitTestCase):
         test = QuantumCircuit(qr, cr)
         test.h(0)
         test.measure(0, 0)
-        test_true = QuantumCircuit(qr, cr)
-        test_true.rz(0.1, qr[0])
-        test_true.rz(0.1, qr[0])
-        test_true.rz(0.1, qr[0])
+        test_true = QuantumCircuit(qr)
+        test_true.h(qr[0])
+        test_true.h(qr[0])
+        test_true.h(qr[0])
         test.if_else((0, True), test_true.copy(), None, range(num_qubits), [0])
 
         expected = QuantumCircuit(qr, cr)
@@ -570,6 +570,7 @@ class TestOptimize1qGatesDecomposition(QiskitTestCase):
         passmanager.append(BasisTranslator(sel, basis))
         passmanager.append(Optimize1qGatesDecomposition(basis))
         result = passmanager.run(test)
+        self.assertEqual(result, expected)
 
     def test_nested_control_flow(self):
         """Test that collection recurses into nested control flow."""
