@@ -12,4 +12,4 @@ deprecations:
     ``BooleanExpression`` directly from :mod:`qiskit.circuit` is deprecated.
     This is part of the move to make ``tweedledum`` an optional dependency rather
     than a full requirement.  Instead, you should import these names from
-    ``qiskit.circuit.classicalfunction``.
+    :mod:`qiskit.circuit.classicalfunction`.
