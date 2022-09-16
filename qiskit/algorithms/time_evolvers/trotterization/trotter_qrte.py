@@ -144,8 +144,8 @@ class TrotterQRTE(RealTimeEvolver):
         if evolution_problem.initial_state is not None:
             initial_state = evolution_problem.initial_state
             evolved_state = QuantumCircuit(initial_state.num_qubits)
-            evolved_state.append(initial_state, evolved_state.qubits)
             evolved_state.append(evolution_gate, evolved_state.qubits)
+            evolved_state.append(initial_state, evolved_state.qubits)
 
         else:
             raise ValueError("``initial_state`` must be provided in the EvolutionProblem.")

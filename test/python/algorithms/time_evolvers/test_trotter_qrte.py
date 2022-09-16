@@ -43,12 +43,12 @@ class TestTrotterQRTE(QiskitAlgorithmsTestCase):
     @data(
         (
             None,
-                Statevector([0.29192658 - 0.45464871j, 0.70807342 - 0.45464871j], dims=(2,))
+                Statevector([0.29192658 - 0.45464871j, 0.70807342 - 0.45464871j])
             ,
         ),
         (
             SuzukiTrotter(),
-            Statevector([0.29192658 - 0.84147098j, 0.0 - 0.45464871j], dims=(2,)),
+            Statevector([0.29192658 - 0.84147098j, 0.0 - 0.45464871j]),
         ),
     )
     @unpack
@@ -147,7 +147,8 @@ class TestTrotterQRTE(QiskitAlgorithmsTestCase):
         algorithm_globals.random_seed = 0
         trotter_qrte = TrotterQRTE(product_formula=QDrift())
         evolution_result = trotter_qrte.evolve(evolution_problem)
-        print(evolution_result.evolved_state)
+        print(Statevector.from_instruction(evolution_result.evolved_state))
+        print(expected_state)
         np.testing.assert_almost_equal(Statevector.from_instruction(evolution_result.evolved_state), expected_state)
 
     @data((Parameter("t"), {}), (None, {Parameter("x"): 2}), (None, None))
