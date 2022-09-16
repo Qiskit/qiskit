@@ -45,7 +45,10 @@ class VQE(VariationalAlgorithm, MinimumEigensolver):
     VQE is a quantum algorithm that uses a variational technique to find the minimum eigenvalue of
     the Hamiltonian :math:`H` of a given system [1].
 
-    An instance of VQE requires defining two algorithmic sub-components: a trial state (a.k.a.
+    The central sub-component of VQE is an Estimator primitive, which must be passed in as the
+    first argument. This is used to estimate the expectation values of :math:`H`.
+
+    An instance of VQE also requires defining two algorithmic sub-components: a trial state (a.k.a.
     ansatz) which is a :class:`QuantumCircuit`, and one of the classical
     :mod:`~qiskit.algorithms.optimizers`.
 
@@ -55,11 +58,6 @@ class VQE(VariationalAlgorithm, MinimumEigensolver):
 
     The optimizer can either be one of Qiskit's optimizers, such as
     :class:`~qiskit.algorithms.optimizers.SPSA` or a callable with the following signature:
-
-    .. note::
-
-        The callable _must_ have the argument names ``fun, x0, jac, bounds`` as indicated
-        in the following code block.
 
     .. code-block:: python
 
@@ -96,6 +94,11 @@ class VQE(VariationalAlgorithm, MinimumEigensolver):
         initial_point: An optional initial point (i.e. initial parameter values) for the optimizer.
             If not provided, a random initial point with values in the interval :math:`[0, 2\pi]`
             is used.
+        callback: A callback that can access the intermediate data during the optimization.
+            Four parameter values are passed to the callback as follows during each evaluation
+            by the optimizer for its current set of parameters as it works towards the minimum.
+            These are: the evaluation count, the optimizer parameters for the ansatz, the
+            evaluated mean and the evaluated standard deviation.
 
     References:
         [1] Peruzzo et al, "A variational eigenvalue solver on a quantum processor"
@@ -154,17 +157,13 @@ class VQE(VariationalAlgorithm, MinimumEigensolver):
         operator: BaseOperator | PauliSumOp,
         aux_operators: ListOrDict[BaseOperator | PauliSumOp] | None = None,
     ) -> VQEResult:
-        # set defaults
-        if self.ansatz is None:
-            ansatz = RealAmplitudes(num_qubits=operator.num_qubits)
-        else:
-            ansatz = self.ansatz
-
-        ansatz = self._check_operator_ansatz(operator, ansatz)
+        ansatz = self._check_operator_ansatz(operator)
 
         optimizer = SLSQP() if self.optimizer is None else self.optimizer
 
         initial_point = _validate_initial_point(self.initial_point, ansatz)
+
+        bounds = _validate_bounds(ansatz)
 
         start_time = time()
 
@@ -177,16 +176,18 @@ class VQE(VariationalAlgorithm, MinimumEigensolver):
 
         # perform optimization
         if callable(optimizer):
-            opt_result = optimizer(fun=evaluate_energy, x0=initial_point, jac=evaluate_gradient)
+            opt_result = optimizer(
+                fun=evaluate_energy, x0=initial_point, jac=evaluate_gradient, bounds=bounds
+            )
         else:
             opt_result = optimizer.minimize(
-                fun=evaluate_energy, x0=initial_point, jac=evaluate_gradient
+                fun=evaluate_energy, x0=initial_point, jac=evaluate_gradient, bounds=bounds
             )
 
         eval_time = time() - start_time
 
         result = VQEResult()
-        result.eigenvalue = opt_result.fun + 0j
+        result.eigenvalue = opt_result.fun
         result.cost_function_evals = opt_result.nfev
         result.optimal_point = opt_result.x
         result.optimal_parameters = dict(zip(ansatz.parameters, opt_result.x))
@@ -287,12 +288,16 @@ class VQE(VariationalAlgorithm, MinimumEigensolver):
 
         return evaluate_gradient
 
-    def _check_operator_ansatz(
-        self, operator: BaseOperator | PauliSumOp, ansatz: QuantumCircuit
-    ) -> QuantumCircuit:
+    def _check_operator_ansatz(self, operator: BaseOperator | PauliSumOp) -> QuantumCircuit:
         """Check that the number of qubits of operator and ansatz match and that the ansatz is
         parameterized.
         """
+        # set defaults
+        if self.ansatz is None:
+            ansatz = RealAmplitudes(num_qubits=operator.num_qubits)
+        else:
+            ansatz = self.ansatz
+
         if operator.num_qubits != ansatz.num_qubits:
             try:
                 logger.info(
@@ -334,7 +339,7 @@ class VQE(VariationalAlgorithm, MinimumEigensolver):
         return aux_values
 
 
-def _validate_initial_point(point, ansatz):
+def _validate_initial_point(point: Sequence[float], ansatz: QuantumCircuit) -> Sequence[float]:
     expected_size = ansatz.num_parameters
 
     if point is None:
@@ -360,6 +365,20 @@ def _validate_initial_point(point, ansatz):
         )
 
     return point
+
+
+def _validate_bounds(ansatz: QuantumCircuit) -> list[tuple(float | None, float | None)]:
+    if hasattr(ansatz, "parameter_bounds") and ansatz.parameter_bounds is not None:
+        bounds = ansatz.parameter_bounds
+        if len(bounds) != ansatz.num_parameters:
+            raise ValueError(
+                f"The number of bounds ({len(bounds)}) does not match the number of "
+                f"parameters in the circuit ({ansatz.num_parameters})."
+            )
+    else:
+        bounds = [(None, None)] * ansatz.num_parameters
+
+    return bounds
 
 
 class VQEResult(VariationalResult, MinimumEigensolverResult):
