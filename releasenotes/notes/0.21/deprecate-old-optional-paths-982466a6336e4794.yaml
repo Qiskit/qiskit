@@ -1,0 +1,9 @@
+---
+deprecations:
+  - |
+    Accessing several old toggles (``HAS_MATPLOTLIB``, ``HAS_PDFTOCAIRO``,
+    ``HAS_PYLATEX`` and ``HAS_PIL``) from the :mod:`qiskit.visualization` module
+    is now deprecated, and these import paths will be removed in a future
+    version of Qiskit Terra.  The same objects should instead be accessed
+    through :mod:`qiskit.utils.optionals`, which contains testers for almost all
+    of Terra's optional dependencies.

@@ -30,6 +30,7 @@ import warnings
 import unittest
 from unittest.util import safe_repr
 
+from qiskit.tools.parallel import get_platform_parallel_default
 from qiskit.utils import optionals as _optionals
 from .decorators import enforce_subclasses_call
 from .utils import Path, setup_test_logging
@@ -144,6 +145,24 @@ class BaseQiskitTestCase(BaseTestCase):
             msg = self._formatMessage(msg, error_msg)
             raise self.failureException(msg)
 
+    def enable_parallel_processing(self):
+        """
+        Enables parallel processing, for the duration of a test, on platforms
+        that support it. This is done by temporarily overriding the value of
+        the QISKIT_PARALLEL environment variable with the platform specific default.
+        """
+        parallel_default = str(get_platform_parallel_default()).upper()
+
+        def set_parallel_env(name, value):
+            os.environ[name] = value
+
+        self.addCleanup(
+            lambda value: set_parallel_env("QISKIT_PARALLEL", value),
+            os.getenv("QISKIT_PARALLEL", parallel_default),
+        )
+
+        os.environ["QISKIT_PARALLEL"] = parallel_default
+
 
 class QiskitTestCase(BaseQiskitTestCase):
     """Terra-specific extra functionality for test cases."""
@@ -209,6 +228,8 @@ class QiskitTestCase(BaseQiskitTestCase):
             # Internal deprecation warning emitted by jupyter client when
             # calling nbconvert in python 3.10
             r"There is no current event loop",
+            # Caused by internal scikit-learn scipy usage
+            r"The 'sym_pos' keyword is deprecated and should be replaced by using",
         ]
         for msg in allow_DeprecationWarning_message:
             warnings.filterwarnings("default", category=DeprecationWarning, message=msg)

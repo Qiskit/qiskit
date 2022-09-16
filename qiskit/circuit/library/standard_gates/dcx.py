@@ -23,6 +23,9 @@ class DCXGate(Gate):
     A 2-qubit Clifford gate consisting of two back-to-back
     CNOTs with alternate controls.
 
+    Can be applied to a :class:`~qiskit.circuit.QuantumCircuit`
+    with the :meth:`~qiskit.circuit.QuantumCircuit.dcx` method.
+
     .. parsed-literal::
                   ┌───┐
         q_0: ──■──┤ X ├

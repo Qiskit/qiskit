@@ -74,60 +74,61 @@ def circuit_to_instruction(circuit, parameter_map=None, equivalence_library=None
             ).format(circuit.parameters, parameter_dict)
         )
 
-    instruction = Instruction(
+    out_instruction = Instruction(
         name=circuit.name,
         num_qubits=circuit.num_qubits,
         num_clbits=circuit.num_clbits,
         params=[*parameter_dict.values()],
         label=label,
     )
-    instruction.condition = None
+    out_instruction.condition = None
 
     target = circuit.assign_parameters(parameter_dict, inplace=False)
 
     if equivalence_library is not None:
-        equivalence_library.add_equivalence(instruction, target)
-
-    definition = target.data
+        equivalence_library.add_equivalence(out_instruction, target)
 
     regs = []
-    if instruction.num_qubits > 0:
-        q = QuantumRegister(instruction.num_qubits, "q")
+    if out_instruction.num_qubits > 0:
+        q = QuantumRegister(out_instruction.num_qubits, "q")
         regs.append(q)
 
-    if instruction.num_clbits > 0:
-        c = ClassicalRegister(instruction.num_clbits, "c")
+    if out_instruction.num_clbits > 0:
+        c = ClassicalRegister(out_instruction.num_clbits, "c")
         regs.append(c)
 
     qubit_map = {bit: q[idx] for idx, bit in enumerate(circuit.qubits)}
     clbit_map = {bit: c[idx] for idx, bit in enumerate(circuit.clbits)}
 
     definition = [
-        (inst, [qubit_map[y] for y in qargs], [clbit_map[y] for y in cargs])
-        for inst, qargs, cargs in definition
+        instruction.replace(
+            qubits=[qubit_map[y] for y in instruction.qubits],
+            clbits=[clbit_map[y] for y in instruction.clbits],
+        )
+        for instruction in target.data
     ]
 
     # fix condition
     for rule in definition:
-        condition = rule[0].condition
+        condition = getattr(rule.operation, "condition", None)
         if condition:
             reg, val = condition
             if isinstance(reg, Clbit):
-                rule[0].condition = (clbit_map[reg], val)
+                rule.operation.condition = (clbit_map[reg], val)
             elif reg.size == c.size:
-                rule[0].condition = (c, val)
+                rule.operation.condition = (c, val)
             else:
                 raise QiskitError(
                     "Cannot convert condition in circuit with "
                     "multiple classical registers to instruction"
                 )
 
-    qc = QuantumCircuit(*regs, name=instruction.name)
-    for instr, qargs, cargs in definition:
-        qc._append(instr, qargs, cargs)
+    qc = QuantumCircuit(*regs, name=out_instruction.name)
+    for instruction in definition:
+        qc._append(instruction)
     if circuit.global_phase:
         qc.global_phase = circuit.global_phase
 
-    instruction.definition = qc
+    out_instruction.definition = qc
 
-    return instruction
+    return out_instruction

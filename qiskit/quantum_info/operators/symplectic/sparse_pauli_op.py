@@ -13,11 +13,14 @@
 N-Qubit Sparse Pauli Operator class.
 """
 
+from collections import defaultdict
 from numbers import Number
-from typing import Dict
+from typing import Dict, Optional
 
 import numpy as np
+import retworkx as rx
 
+from qiskit._accelerate.sparse_pauli_op import unordered_unique  # pylint: disable=import-error
 from qiskit.exceptions import QiskitError
 from qiskit.quantum_info.operators.custom_iterator import CustomIterator
 from qiskit.quantum_info.operators.linear_op import LinearOp
@@ -25,10 +28,7 @@ from qiskit.quantum_info.operators.mixins import generate_apidocs
 from qiskit.quantum_info.operators.operator import Operator
 from qiskit.quantum_info.operators.symplectic.pauli import BasePauli
 from qiskit.quantum_info.operators.symplectic.pauli_list import PauliList
-from qiskit.quantum_info.operators.symplectic.pauli_table import PauliTable
 from qiskit.quantum_info.operators.symplectic.pauli_utils import pauli_basis
-from qiskit.utils.deprecation import deprecate_function
-from qiskit._accelerate.sparse_pauli_op import unordered_unique  # pylint: disable=import-error
 
 
 class SparsePauliOp(LinearOp):
@@ -52,7 +52,7 @@ class SparsePauliOp(LinearOp):
         """Initialize an operator object.
 
         Args:
-            data (PauliList or SparsePauliOp or PauliTable or Pauli or list or str): Pauli list of
+            data (PauliList or SparsePauliOp or Pauli or list or str): Pauli list of
                 terms.  A list of Pauli strings or a Pauli string is also allowed.
             coeffs (np.ndarray): complex coefficients for Pauli terms.
 
@@ -99,9 +99,10 @@ class SparsePauliOp(LinearOp):
             self._coeffs = coeffs
         else:
             # move the phase of `pauli_list` to `self._coeffs`
-            phase = pauli_list.phase
-            self._coeffs = np.asarray((-1j) ** phase * coeffs, dtype=complex)
-            pauli_list._phase = np.mod(pauli_list._phase - phase, 4)
+            phase = pauli_list._phase
+            count_y = pauli_list._count_y()
+            self._coeffs = np.asarray((-1j) ** (phase - count_y) * coeffs, dtype=complex)
+            pauli_list._phase = np.mod(count_y, 4)
             self._pauli_list = pauli_list
 
         if self._coeffs.shape != (self._pauli_list.size,):
@@ -136,18 +137,21 @@ class SparsePauliOp(LinearOp):
             and self.paulis == other.paulis
         )
 
-    def equiv(self, other):
+    def equiv(self, other, atol: Optional[float] = None):
         """Check if two SparsePauliOp operators are equivalent.
 
         Args:
             other (SparsePauliOp): an operator object.
+            atol: Absolute numerical tolerance for checking equivalence.
 
         Returns:
             bool: True if the operator is equivalent to ``self``.
         """
         if not super().__eq__(other):
             return False
-        return np.allclose((self - other).simplify().coeffs, [0])
+        if atol is None:
+            atol = self.atol
+        return np.allclose((self - other).simplify().coeffs, 0.0, atol=atol)
 
     @property
     def settings(self) -> Dict:
@@ -166,29 +170,6 @@ class SparsePauliOp(LinearOp):
     def __len__(self):
         """Return the size."""
         return self.size
-
-    # pylint: disable=bad-docstring-quotes
-
-    @property
-    @deprecate_function(
-        "The SparsePauliOp.table method is deprecated as of Qiskit Terra 0.19.0 "
-        "and will be removed no sooner than 3 months after the releasedate. "
-        "Use SparsePauliOp.paulis method instead.",
-    )
-    def table(self):
-        """DEPRECATED - Return the the PauliTable."""
-        return PauliTable(np.column_stack((self.paulis.x, self.paulis.z)))
-
-    @table.setter
-    @deprecate_function(
-        "The SparsePauliOp.table method is deprecated as of Qiskit Terra 0.19.0 "
-        "and will be removed no sooner than 3 months after the releasedate. "
-        "Use SparsePauliOp.paulis method instead.",
-    )
-    def table(self, value):
-        if not isinstance(value, PauliTable):
-            value = PauliTable(value)
-        self._pauli_list = PauliList(value)
 
     @property
     def paulis(self):
@@ -245,7 +226,7 @@ class SparsePauliOp(LinearOp):
         # Hence we need to multiply coeffs by -1 for rows with an
         # odd number of Y terms.
         ret = self.copy()
-        minus = (-1) ** np.mod(np.sum(ret.paulis.x & ret.paulis.z, axis=1), 2)
+        minus = (-1) ** ret.paulis._count_y()
         ret._coeffs *= minus
         return ret
 
@@ -287,7 +268,7 @@ class SparsePauliOp(LinearOp):
         else:
             q = np.logical_and(z1[:, np.newaxis], x2).reshape((-1, num_qubits))
         # `np.mod` will be applied to `phase` in `SparsePauliOp.__init__`
-        phase = phase + 2 * np.sum(q, axis=1)
+        phase = phase + 2 * q.sum(axis=1, dtype=np.uint8)
 
         x3 = np.logical_xor(x1[:, np.newaxis], x2).reshape((-1, num_qubits))
         z3 = np.logical_xor(z1[:, np.newaxis], z2).reshape((-1, num_qubits))
@@ -438,6 +419,117 @@ class SparsePauliOp(LinearOp):
             PauliList.from_symplectic(z, x), coeffs, ignore_pauli_phase=True, copy=False
         )
 
+    def argsort(self, weight=False):
+        """Return indices for sorting the rows of the table.
+
+        Returns the composition of permutations in the order of sorting
+        by coefficient and sorting by Pauli.
+        By using the `weight` kwarg the output can additionally be sorted
+        by the number of non-identity terms in the Pauli, where the set of
+        all Pauli's of a given weight are still ordered lexicographically.
+
+        **Example**
+
+        Here is an example of how to use SparsePauliOp argsort.
+
+        .. jupyter-execute::
+
+            import numpy as np
+            from qiskit.quantum_info import SparsePauliOp
+
+            # 2-qubit labels
+            labels = ["XX", "XX", "XX", "YI", "II", "XZ", "XY", "XI"]
+            # coeffs
+            coeffs = [2.+1.j, 2.+2.j, 3.+0.j, 3.+0.j, 4.+0.j, 5.+0.j, 6.+0.j, 7.+0.j]
+
+            # init
+            spo = SparsePauliOp(labels, coeffs)
+            print('Initial Ordering')
+            print(spo)
+
+            # Lexicographic Ordering
+            srt = spo.argsort()
+            print('Lexicographically sorted')
+            print(srt)
+
+            # Lexicographic Ordering
+            srt = spo.argsort(weight=False)
+            print('Lexicographically sorted')
+            print(srt)
+
+            # Weight Ordering
+            srt = spo.argsort(weight=True)
+            print('Weight sorted')
+            print(srt)
+
+        Args:
+            weight (bool): optionally sort by weight if True (Default: False).
+            By using the weight kwarg the output can additionally be sorted
+            by the number of non-identity terms in the Pauli.
+
+        Returns:
+            array: the indices for sorting the table.
+        """
+        sort_coeffs_inds = np.argsort(self._coeffs, kind="stable")
+        pauli_list = self._pauli_list[sort_coeffs_inds]
+        sort_pauli_inds = pauli_list.argsort(weight=weight, phase=False)
+        return sort_coeffs_inds[sort_pauli_inds]
+
+    def sort(self, weight=False):
+        """Sort the rows of the table.
+
+        After sorting the coefficients using numpy's argsort, sort by Pauli.
+        Pauli sort takes precedence.
+        If Pauli is the same, it will be sorted by coefficient.
+        By using the `weight` kwarg the output can additionally be sorted
+        by the number of non-identity terms in the Pauli, where the set of
+        all Pauli's of a given weight are still ordered lexicographically.
+
+        **Example**
+
+        Here is an example of how to use SparsePauliOp sort.
+
+        .. jupyter-execute::
+
+            import numpy as np
+            from qiskit.quantum_info import SparsePauliOp
+
+            # 2-qubit labels
+            labels = ["XX", "XX", "XX", "YI", "II", "XZ", "XY", "XI"]
+            # coeffs
+            coeffs = [2.+1.j, 2.+2.j, 3.+0.j, 3.+0.j, 4.+0.j, 5.+0.j, 6.+0.j, 7.+0.j]
+
+            # init
+            spo = SparsePauliOp(labels, coeffs)
+            print('Initial Ordering')
+            print(spo)
+
+            # Lexicographic Ordering
+            srt = spo.sort()
+            print('Lexicographically sorted')
+            print(srt)
+
+            # Lexicographic Ordering
+            srt = spo.sort(weight=False)
+            print('Lexicographically sorted')
+            print(srt)
+
+            # Weight Ordering
+            srt = spo.sort(weight=True)
+            print('Weight sorted')
+            print(srt)
+
+        Args:
+            weight (bool): optionally sort by weight if True (Default: False).
+            By using the weight kwarg the output can additionally be sorted
+            by the number of non-identity terms in the Pauli.
+
+        Returns:
+            SparsePauliOp: a sorted copy of the original table.
+        """
+        indices = self.argsort(weight=weight)
+        return SparsePauliOp(self._pauli_list[indices], self._coeffs[indices])
+
     def chop(self, tol=1e-14):
         """Set real and imaginary parts of the coefficients to 0 if ``< tol`` in magnitude.
 
@@ -556,7 +648,7 @@ class SparsePauliOp(LinearOp):
         # Non-normalized basis factor
         denom = 2**num_qubits
         # Compute coefficients from basis
-        basis = pauli_basis(num_qubits, pauli_list=True)
+        basis = pauli_basis(num_qubits)
         for i, mat in enumerate(basis.matrix_iter()):
             coeff = np.trace(mat.dot(data)) / denom
             if not np.isclose(coeff, 0, atol=atol, rtol=rtol):
@@ -611,7 +703,7 @@ class SparsePauliOp(LinearOp):
         return SparsePauliOp(paulis, coeffs, copy=False)
 
     @staticmethod
-    def from_sparse_list(obj, num_qubits):
+    def from_sparse_list(obj, num_qubits, do_checks=True):
         """Construct from a list of local Pauli strings and coefficients.
 
         Each list element is a 3-tuple of a local Pauli string, indices where to apply it,
@@ -636,6 +728,7 @@ class SparsePauliOp(LinearOp):
         Args:
             obj (Iterable[Tuple[str, List[int], complex]]): The list 3-tuples specifying the Paulis.
             num_qubits (int): The number of qubits of the operator.
+            do_checks (bool): The flag of checking if the input indices are not duplicated.
 
         Returns:
             SparsePauliOp: The SparsePauliOp representation of the Pauli terms.
@@ -643,6 +736,7 @@ class SparsePauliOp(LinearOp):
         Raises:
             QiskitError: If the list of Paulis is empty.
             QiskitError: If the number of qubits is incompatible with the indices of the Pauli terms.
+            QiskitError: If the designated qubit is already assigned.
         """
         obj = list(obj)  # To convert zip or other iterable
 
@@ -654,6 +748,8 @@ class SparsePauliOp(LinearOp):
         labels = np.zeros(size, dtype=f"<U{num_qubits}")
 
         for i, (paulis, indices, coeff) in enumerate(obj):
+            if do_checks and len(indices) != len(set(indices)):
+                raise QiskitError("Input indices are duplicated.")
             # construct the full label based off the non-trivial Paulis and indices
             label = ["I"] * num_qubits
             for pauli, index in zip(paulis, indices):
@@ -727,7 +823,7 @@ class SparsePauliOp(LinearOp):
         use the :meth:`to_labels` method.
 
         Returns:
-            LabelIterator: label iterator object for the PauliTable.
+            LabelIterator: label iterator object for the SparsePauliOp.
         """
 
         class LabelIterator(CustomIterator):
@@ -771,6 +867,54 @@ class SparsePauliOp(LinearOp):
                 return coeff * mat
 
         return MatrixIterator(self)
+
+    def _create_graph(self, qubit_wise):
+        """Transform measurement operator grouping problem into graph coloring problem
+
+        Args:
+            qubit_wise (bool): whether the commutation rule is applied to the whole operator,
+                or on a per-qubit basis.
+
+        Returns:
+            retworkx.PyGraph: A class of undirected graphs
+        """
+
+        edges = self.paulis._noncommutation_graph(qubit_wise)
+        graph = rx.PyGraph()
+        graph.add_nodes_from(range(self.size))
+        graph.add_edges_from_no_data(edges)
+        return graph
+
+    def group_commuting(self, qubit_wise=False):
+        """Partition a SparsePauliOp into sets of commuting Pauli strings.
+
+        Args:
+            qubit_wise (bool): whether the commutation rule is applied to the whole operator,
+                or on a per-qubit basis.  For example:
+
+                .. code-block:: python
+
+                    >>> op = SparsePauliOp.from_list([("XX", 2), ("YY", 1), ("IZ",2j), ("ZZ",1j)])
+                    >>> op.group_commuting()
+                    [SparsePauliOp(["IZ", "ZZ"], coeffs=[0.+2.j, 0.+1j]),
+                     SparsePauliOp(["XX", "YY"], coeffs=[2.+0.j, 1.+0.j])]
+                    >>> op.group_commuting(qubit_wise=True)
+                    [SparsePauliOp(['XX'], coeffs=[2.+0.j]),
+                     SparsePauliOp(['YY'], coeffs=[1.+0.j]),
+                     SparsePauliOp(['IZ', 'ZZ'], coeffs=[0.+2.j, 0.+1.j])]
+
+        Returns:
+            List[SparsePauliOp]: List of SparsePauliOp where each SparsePauliOp contains
+                commuting Pauli operators.
+        """
+
+        graph = self._create_graph(qubit_wise)
+        # Keys in coloring_dict are nodes, values are colors
+        coloring_dict = rx.graph_greedy_color(graph)
+        groups = defaultdict(list)
+        for idx, color in coloring_dict.items():
+            groups[color].append(idx)
+        return [self[group] for group in groups.values()]
 
 
 # Update docstrings for API docs

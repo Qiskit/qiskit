@@ -19,7 +19,7 @@ import numpy as np
 from ddt import ddt, data
 
 from qiskit.algorithms.list_or_dict import ListOrDict
-from qiskit.providers import BaseBackend, Backend
+from qiskit.providers import Backend
 from qiskit.quantum_info import Statevector
 from qiskit.algorithms import eval_observables
 from qiskit import BasicAer, QuantumCircuit
@@ -83,7 +83,7 @@ class TestAuxOpsEvaluator(QiskitAlgorithmsTestCase):
         decimal: int,
         expectation: ExpectationBase,
         observables: ListOrDict[OperatorBase],
-        quantum_instance: Union[QuantumInstance, BaseBackend, Backend],
+        quantum_instance: Union[QuantumInstance, Backend],
     ):
         result = eval_observables(
             quantum_instance, quantum_state, observables, expectation, self.threshold

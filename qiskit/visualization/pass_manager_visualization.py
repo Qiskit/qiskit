@@ -19,9 +19,9 @@ import inspect
 import tempfile
 
 from qiskit.utils import optionals as _optionals
-from qiskit.visualization import utils
-from qiskit.visualization.exceptions import VisualizationError
 from qiskit.transpiler.basepasses import AnalysisPass, TransformationPass
+from . import utils
+from .exceptions import VisualizationError
 
 DEFAULT_STYLE = {AnalysisPass: "red", TransformationPass: "blue"}
 

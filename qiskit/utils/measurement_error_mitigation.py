@@ -16,7 +16,7 @@ import copy
 from typing import List, Optional, Tuple, Dict, Callable
 
 from qiskit import compiler
-from qiskit.providers import BaseBackend
+from qiskit.providers import Backend
 from qiskit.circuit import QuantumCircuit
 from qiskit.qobj import QasmQobj
 from qiskit.assembler.run_config import RunConfig
@@ -51,12 +51,12 @@ def get_measured_qubits(
     qubit_mappings = {}
     for idx, qc in enumerate(transpiled_circuits):
         measured_qubits = []
-        for inst, qargs, _ in qc.data:
-            if inst.name != "measure":
+        for instruction in qc.data:
+            if instruction.operation.name != "measure":
                 continue
             for qreg in qc.qregs:
-                if qargs[0] in qreg:
-                    index = qreg[:].index(qargs[0])
+                if instruction.qubits[0] in qreg:
+                    index = qreg[:].index(instruction.qubits[0])
                     measured_qubits.append(index)
                     break
         measured_qubits_str = "_".join([str(x) for x in measured_qubits])
@@ -119,7 +119,7 @@ def get_measured_qubits_from_qobj(qobj: QasmQobj) -> Tuple[List[int], Dict[str, 
 def build_measurement_error_mitigation_circuits(
     qubit_list: List[int],
     fitter_cls: Callable,
-    backend: BaseBackend,
+    backend: Backend,
     backend_config: Optional[Dict] = None,
     compile_config: Optional[Dict] = None,
     mit_pattern: Optional[List[List[int]]] = None,
@@ -194,7 +194,7 @@ def build_measurement_error_mitigation_circuits(
 def build_measurement_error_mitigation_qobj(
     qubit_list: List[int],
     fitter_cls: Callable,
-    backend: BaseBackend,
+    backend: Backend,
     backend_config: Optional[Dict] = None,
     compile_config: Optional[Dict] = None,
     run_config: Optional[RunConfig] = None,

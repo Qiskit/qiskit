@@ -33,7 +33,7 @@ class TestCircuitToGate(QiskitTestCase):
         q = QuantumRegister(10, "q")
 
         self.assertIsInstance(gate, Gate)
-        self.assertEqual(gate.definition[0][1], [q[1], q[6]])
+        self.assertEqual(gate.definition[0].qubits, (q[1], q[6]))
 
     def test_circuit_with_registerless_bits(self):
         """Test a circuit with registerless bits can be converted to a gate."""
@@ -47,9 +47,9 @@ class TestCircuitToGate(QiskitTestCase):
         self.assertIsInstance(gate, Gate)
         self.assertEqual(gate.num_qubits, len(qr1) + len(qubits) + len(qr2))
         gate_definition = gate.definition
-        _, cx_qargs, cx_cargs = gate_definition.data[0]
-        self.assertEqual(cx_qargs, [gate_definition.qubits[3], gate_definition.qubits[5]])
-        self.assertEqual(cx_cargs, [])
+        cx = gate_definition.data[0]
+        self.assertEqual(cx.qubits, (gate_definition.qubits[3], gate_definition.qubits[5]))
+        self.assertEqual(cx.clbits, ())
 
     def test_circuit_with_overlapping_registers(self):
         """Test that the conversion works when the given circuit has bits that are contained in more
@@ -64,9 +64,9 @@ class TestCircuitToGate(QiskitTestCase):
         self.assertIsInstance(gate, Gate)
         self.assertEqual(gate.num_qubits, len(qubits))
         gate_definition = gate.definition
-        _, cx_qargs, cx_cargs = gate_definition.data[0]
-        self.assertEqual(cx_qargs, [gate_definition.qubits[3], gate_definition.qubits[5]])
-        self.assertEqual(cx_cargs, [])
+        cx = gate_definition.data[0]
+        self.assertEqual(cx.qubits, (gate_definition.qubits[3], gate_definition.qubits[5]))
+        self.assertEqual(cx.clbits, ())
 
     def test_raises(self):
         """test circuit which can't be converted raises"""

@@ -1,0 +1,10 @@
+---
+fixes:
+  - |
+    The method :meth:`qiskit.result.marginal_counts`, when passed a :class:`.Result` from a
+    pulse backend, would fail, because it contains an array of
+    :class:`.ExperimentResult` objects, each of which have an :class:`QobjExperimentHeader`, and those
+    :class:`ExperimentHeaders` lack `creg_sizes` instance-variables.  If the :class:`Result` came
+    from a simulator backend (e.g. Aer), that instance-variable would be there.
+    We fix :class:`marginal_counts` so that it skips logic that needs `creg_sizes` if the
+    field is not present, or non-None.

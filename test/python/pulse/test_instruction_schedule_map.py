@@ -35,7 +35,7 @@ from qiskit.pulse.channels import DriveChannel
 from qiskit.qobj import PulseQobjInstruction
 from qiskit.qobj.converters import QobjToInstructionConverter
 from qiskit.test import QiskitTestCase
-from qiskit.test.mock import FakeOpenPulse2Q, FakeAthens
+from qiskit.providers.fake_provider import FakeOpenPulse2Q, FakeAthens
 
 
 class TestInstructionScheduleMap(QiskitTestCase):

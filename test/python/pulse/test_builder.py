@@ -21,8 +21,8 @@ from qiskit.pulse import builder, exceptions, macros
 from qiskit.pulse.instructions import directives
 from qiskit.pulse.transforms import target_qobj_transform
 from qiskit.test import QiskitTestCase
-from qiskit.test.mock import FakeOpenPulse2Q
-from qiskit.test.mock.utils.configurable_backend import (
+from qiskit.providers.fake_provider import FakeOpenPulse2Q
+from qiskit.providers.fake_provider.utils.configurable_backend import (
     ConfigurableFakeBackend as ConfigurableBackend,
 )
 from qiskit.pulse import library, instructions
@@ -181,28 +181,6 @@ class TestContexts(TestBuilder):
         reference.insert(19, instructions.Delay(5, d1), inplace=True)
         # d2
         reference.insert(0, instructions.Delay(11, d2), inplace=True)
-
-        self.assertScheduleEqual(schedule, reference)
-
-    def test_inline(self):
-        """Test the inlining context."""
-        d0 = pulse.DriveChannel(0)
-        d1 = pulse.DriveChannel(1)
-
-        with pulse.build() as schedule:
-            pulse.delay(3, d0)
-            with pulse.inline():
-                # this alignment will be ignored due to inlining.
-                with pulse.align_right():
-                    pulse.delay(5, d1)
-                    pulse.delay(7, d0)
-
-        reference = pulse.Schedule()
-        # d0
-        reference += instructions.Delay(3, d0)
-        reference += instructions.Delay(7, d0)
-        # d1
-        reference += instructions.Delay(5, d1)
 
         self.assertScheduleEqual(schedule, reference)
 
@@ -819,7 +797,8 @@ class TestGates(TestBuilder):
     def test_u1(self):
         """Test u1 gate."""
         with pulse.build(self.backend) as schedule:
-            pulse.u1(np.pi / 2, 0)
+            with pulse.transpiler_settings(layout_method="trivial"):
+                pulse.u1(np.pi / 2, 0)
 
         reference_qc = circuit.QuantumCircuit(1)
         reference_qc.append(circuit.library.U1Gate(np.pi / 2), [0])

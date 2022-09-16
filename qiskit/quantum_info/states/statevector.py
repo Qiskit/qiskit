@@ -218,6 +218,12 @@ class Statevector(QuantumState, TolerancesMixin):
         else:
             raise QiskitError("Key must be int or a valid binary string.")
 
+    def __iter__(self):
+        yield from self._data
+
+    def __len__(self):
+        return len(self._data)
+
     @property
     def data(self):
         """Return data."""
@@ -469,7 +475,7 @@ class Statevector(QuantumState, TolerancesMixin):
             return pauli_phase * expval_pauli_no_x(self.data, self.num_qubits, z_mask)
 
         x_max = qubits[pauli.x][-1]
-        y_phase = (-1j) ** np.sum(pauli.x & pauli.z)
+        y_phase = (-1j) ** pauli._count_y()
 
         return pauli_phase * expval_pauli_with_x(
             self.data, self.num_qubits, z_mask, x_mask, y_phase, x_max
@@ -859,15 +865,15 @@ class Statevector(QuantumState, TolerancesMixin):
         if obj.definition.global_phase:
             statevec._data *= np.exp(1j * float(obj.definition.global_phase))
         qubits = {qubit: i for i, qubit in enumerate(obj.definition.qubits)}
-        for instr, qregs, cregs in obj.definition:
-            if cregs:
+        for instruction in obj.definition:
+            if instruction.clbits:
                 raise QiskitError(
-                    f"Cannot apply instruction with classical registers: {instr.name}"
+                    f"Cannot apply instruction with classical bits: {instruction.operation.name}"
                 )
             # Get the integer position of the flat register
             if qargs is None:
-                new_qargs = [qubits[tup] for tup in qregs]
+                new_qargs = [qubits[tup] for tup in instruction.qubits]
             else:
-                new_qargs = [qargs[qubits[tup]] for tup in qregs]
-            Statevector._evolve_instruction(statevec, instr, qargs=new_qargs)
+                new_qargs = [qargs[qubits[tup]] for tup in instruction.qubits]
+            Statevector._evolve_instruction(statevec, instruction.operation, qargs=new_qargs)
         return statevec
