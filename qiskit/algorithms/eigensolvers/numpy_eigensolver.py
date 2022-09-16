@@ -24,7 +24,6 @@ from qiskit.quantum_info.operators.base_operator import BaseOperator
 from qiskit.quantum_info import Statevector
 from qiskit.utils.validation import validate_min
 
-from ..exceptions import AlgorithmError
 from .eigensolver import Eigensolver, EigensolverResult
 from ..list_or_dict import ListOrDict
 
@@ -211,9 +210,6 @@ class NumPyEigensolver(Eigensolver):
     ) -> NumPyEigensolverResult:
 
         super().compute_eigenvalues(operator, aux_operators)
-
-        if operator is None:
-            raise AlgorithmError("Operator was never provided")
 
         self._check_set_k(operator)
         zero_op = PauliSumOp.from_list([("I", 1)]).tensorpower(operator.num_qubits) * 0.0

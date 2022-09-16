@@ -71,7 +71,7 @@ def estimate_observables(
     except Exception as exc:
         raise AlgorithmError("The primitive job failed!") from exc
 
-    variance_and_shots = _prep_variance_and_shots(estimator_job, len(expectation_values))
+    variance_and_shots = _prep_variance_and_shots(estimator_job.result(), len(expectation_values))
 
     # Discard values below threshold
     observables_means = expectation_values * (np.abs(expectation_values) > threshold)

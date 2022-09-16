@@ -152,6 +152,30 @@ class TestObservablesEvaluator(QiskitAlgorithmsTestCase):
         expected_vars_and_shots = [element[1] for element in expected_result]
         np.testing.assert_array_equal(vars_and_shots, expected_vars_and_shots)
 
+    def test_estimate_observables_shots(self):
+        """Tests that variances and shots are returned properly."""
+        ansatz = EfficientSU2(2)
+        parameters = np.array(
+            [1.2, 4.2, 1.4, 2.0, 1.2, 4.2, 1.4, 2.0, 1.2, 4.2, 1.4, 2.0, 1.2, 4.2, 1.4, 2.0],
+            dtype=float,
+        )
+
+        bound_ansatz = ansatz.bind_parameters(parameters)
+        state = bound_ansatz
+        estimator = Estimator(options={"shots": 2048})
+        observables = [PauliSumOp.from_list([("ZZ", 2.0)])]
+        result = estimate_observables(estimator, state, observables, self.threshold)
+        exact_result = self.get_exact_expectation(bound_ansatz, observables)
+        expected_result = [(exact_result[0][0], (1.0898, 2048))]
+
+        means = [element[0] for element in result]
+        expected_means = [element[0] for element in expected_result]
+        np.testing.assert_array_almost_equal(means, expected_means, decimal=0.01)
+
+        vars_and_shots = [element[1] for element in result]
+        expected_vars_and_shots = [element[1] for element in expected_result]
+        np.testing.assert_array_almost_equal(vars_and_shots, expected_vars_and_shots, decimal=0.01)
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -88,14 +88,18 @@ class EigensolverResult(AlgorithmResult):
         self._eigenvalues = value
 
     @property
-    def aux_operator_eigenvalues(self) -> list[ListOrDict[tuple[complex, complex]]] | None:
+    def aux_operator_eigenvalues(
+        self,
+    ) -> list[ListOrDict[tuple[complex, tuple[complex, int]]]] | None:
         """Return the aux operator expectation values.
 
-        These values are in fact tuples formatted as (mean, standard deviation).
+        These values are in fact tuples formatted as (mean, (variance, shots)).
         """
         return self._aux_operator_eigenvalues
 
     @aux_operator_eigenvalues.setter
-    def aux_operator_eigenvalues(self, value: list[ListOrDict[tuple[complex, complex]]]) -> None:
+    def aux_operator_eigenvalues(
+        self, value: list[ListOrDict[tuple[complex, tuple[complex, int]]]]
+    ) -> None:
         """Set the aux operator eigenvalues."""
         self._aux_operator_eigenvalues = value

@@ -72,7 +72,7 @@ Amplitude Estimators
    MaximumLikelihoodAmplitudeEstimationResult
 
 
-Eigensolvers
+Eigen Solvers
 ------------
 
 Algorithms to find eigenvalues of an operator. For chemistry these can be used to find excited
@@ -93,6 +93,17 @@ knowledge to do this in that application domain.
    NumPyEigensolver
    VQD
 
+Eigensolvers
+------------
+
+Algorithms to find eigenvalues of an operator. For chemistry these can be used to find excited
+states of a molecule, and qiskit-nature has some algorithms that leverage chemistry specific
+knowledge to do this in that application domain.
+
+.. autosummary::
+   :toctree: ../stubs/
+
+   eigensolvers
 
 Evolvers
 --------

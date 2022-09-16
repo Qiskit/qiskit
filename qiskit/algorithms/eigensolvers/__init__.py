@@ -10,10 +10,44 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-""" Eigensolvers Package """
+"""
+=====================================================================
+Eigensolvers Package (:mod:`qiskit.algorithms.eigensolvers`)
+=====================================================================
 
-from .numpy_eigensolver import NumPyEigensolver
+.. currentmodule:: qiskit.algorithms.eigensolvers
+
+Eigensolvers
+================
+
+.. autosummary::
+   :toctree: ../stubs/
+
+   Eigensolver
+   NumPyEigensolver
+   VQD
+
+Results
+=======
+
+ .. autosummary::
+    :toctree: ../stubs/
+
+    EigensolverResult
+    NumPyEigensolverResult
+    VQDResult
+
+"""
+
+from .numpy_eigensolver import NumPyEigensolver, NumPyEigensolverResult
 from .eigensolver import Eigensolver, EigensolverResult
 from .vqd import VQD, VQDResult
 
-__all__ = ["NumPyEigensolver", "Eigensolver", "EigensolverResult", "VQD", "VQDResult"]
+__all__ = [
+    "NumPyEigensolver",
+    "NumPyEigensolverResult",
+    "Eigensolver",
+    "EigensolverResult",
+    "VQD",
+    "VQDResult",
+]
