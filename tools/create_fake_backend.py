@@ -43,10 +43,9 @@ HEADER = """# This code is part of Qiskit.
 
 init_py = Template(
     """${HEADER}
-\"\"\"Mock ${capital_backend_name} backend\"\"\"
+\"\"\"Fake ${capital_backend_name} device ({no_qubits} qubits)\"\"\"
 
 from .fake_${backend_name} import Fake${capital_backend_name}V2
-from .fake_${backend_name} import Fake${capital_backend_name}
 """
 )
 
@@ -58,7 +57,7 @@ Fake ${capital_backend_name} device (${no_qubits} qubit).
 \"\"\"
 
 import os
-from qiskit.providers.fake_provider import fake_pulse_backend, fake_backend
+from qiskit.providers.fake_provider import fake_backend
 
 
 class Fake${capital_backend_name}V2(fake_backend.FakeBackendV2):
@@ -70,15 +69,6 @@ class Fake${capital_backend_name}V2(fake_backend.FakeBackendV2):
     defs_filename = "defs_${backend_name}.json"
     backend_name = "fake_${backend_name}_v2"
 
-
-class Fake${capital_backend_name}(fake_pulse_backend.FakePulseBackend):
-    \"\"\"A fake ${no_qubits} qubit backend.\"\"\"
-
-    dirname = os.path.dirname(__file__)
-    conf_filename = "conf_${backend_name}.json"
-    props_filename = "props_${backend_name}.json"
-    defs_filename = "defs_${backend_name}.json"
-    backend_name = "fake_${backend_name}"
 """
 )
 
@@ -156,31 +146,19 @@ def _main():
 
     # Step 4. update <backend_dir>/../__init__.py
     init_file = os.path.join(backend_dir, "..", "__init__.py")
-    backend_v1_line = f"from .{vars_['backend_name']} import Fake{vars_['capital_backend_name']}\n"
     backend_v2_line = (
         f"from .{vars_['backend_name']} import Fake{vars_['capital_backend_name']}V2\n"
     )
-    _insert_line_in_section(backend_v1_line, "# BackendV1", "from", backend_dir, init_file)
     _insert_line_in_section(backend_v2_line, "# BackendV2", "from", backend_dir, init_file)
 
     # Step 5. update <backend_dir>/../../__init__.py
     init_file = os.path.join(backend_dir, "..", "..", "__init__.py")
-    backend_v1_line = f"    Fake{vars_['capital_backend_name']}\n"
     backend_v2_line = f"    Fake{vars_['capital_backend_name']}V2\n"
-    _insert_line_in_section(backend_v1_line, "Fake V1 Backends", "    ", backend_dir, init_file)
     _insert_line_in_section(backend_v2_line, "Fake V2 Backends", "    ", backend_dir, init_file)
 
     # Step 6. update <backend_dir>/../../fake_provider.py
     init_file = os.path.join(backend_dir, "..", "..", "fake_provider.py")
-    backend_v1_line = f"            Fake{vars_['capital_backend_name']}(),\n"
     backend_v2_line = f"            Fake{vars_['capital_backend_name']}V2(),\n"
-    _insert_line_in_section(
-        backend_v1_line,
-        "class FakeProvider(ProviderV1)",
-        "            Fake",
-        backend_dir,
-        init_file,
-    )
     _insert_line_in_section(
         backend_v2_line,
         "class FakeProviderForBackendV2",
