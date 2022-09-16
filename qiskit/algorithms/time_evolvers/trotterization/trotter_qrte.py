@@ -22,9 +22,7 @@ from qiskit import QuantumCircuit
 from qiskit.algorithms.time_evolvers.time_evolution_problem import TimeEvolutionProblem
 from qiskit.algorithms.time_evolvers.time_evolution_result import TimeEvolutionResult
 from qiskit.algorithms.time_evolvers.real_time_evolver import RealTimeEvolver
-from qiskit.opflow import (
-    PauliSumOp,
-)
+from qiskit.opflow import PauliSumOp
 from qiskit.circuit.library import PauliEvolutionGate
 from qiskit.primitives import BaseEstimator
 from qiskit.quantum_info import Pauli
@@ -45,13 +43,15 @@ class TrotterQRTE(RealTimeEvolver):
 
             from qiskit.opflow import X, Z, Zero
             from qiskit.algorithms.time_evolvers import TimeEvolutionProblem, TrotterQRTE
+            from qiskit.primitives import Estimator
 
             operator = X + Z
             initial_state = Zero
             time = 1
             evolution_problem = TimeEvolutionProblem(operator, 1, initial_state)
             # LieTrotter with 1 rep
-            trotter_qrte = TrotterQRTE()
+            estimator = Estimator()
+            trotter_qrte = TrotterQRTE(estimator=estimator)
             evolved_state = trotter_qrte.evolve(evolution_problem).evolved_state
     """
 
@@ -139,13 +139,15 @@ class TrotterQRTE(RealTimeEvolver):
                 f"TrotterQRTE only accepts Pauli | PauliSumOp, {type(hamiltonian)} provided."
             )
         # the evolution gate
-        evolution_gate = PauliEvolutionGate(hamiltonian, evolution_problem.time, synthesis=self.product_formula)
+        evolution_gate = PauliEvolutionGate(
+            hamiltonian, evolution_problem.time, synthesis=self.product_formula
+        )
 
         if evolution_problem.initial_state is not None:
             initial_state = evolution_problem.initial_state
             evolved_state = QuantumCircuit(initial_state.num_qubits)
-            evolved_state.append(evolution_gate, evolved_state.qubits)
             evolved_state.append(initial_state, evolved_state.qubits)
+            evolved_state.append(evolution_gate, evolved_state.qubits)
 
         else:
             raise ValueError("``initial_state`` must be provided in the EvolutionProblem.")

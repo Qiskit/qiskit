@@ -43,8 +43,7 @@ class TestTrotterQRTE(QiskitAlgorithmsTestCase):
     @data(
         (
             None,
-                Statevector([0.29192658 - 0.45464871j, 0.70807342 - 0.45464871j])
-            ,
+            Statevector([0.29192658 - 0.45464871j, 0.70807342 - 0.45464871j]),
         ),
         (
             SuzukiTrotter(),
@@ -61,9 +60,10 @@ class TestTrotterQRTE(QiskitAlgorithmsTestCase):
 
         trotter_qrte = TrotterQRTE(product_formula=product_formula)
         evolution_result_state_circuit = trotter_qrte.evolve(evolution_problem).evolved_state
-        print(Statevector.from_instruction(evolution_result_state_circuit))
 
-        np.testing.assert_almost_equal(Statevector.from_instruction(evolution_result_state_circuit), expected_state)
+        np.testing.assert_array_almost_equal(
+            Statevector.from_instruction(evolution_result_state_circuit).data, expected_state.data
+        )
 
     def test_trotter_qrte_trotter_single_qubit_aux_ops(self):
         """Test for default TrotterQRTE on a single qubit with auxiliary operators."""
@@ -81,9 +81,11 @@ class TestTrotterQRTE(QiskitAlgorithmsTestCase):
         algorithm_globals.random_seed = 0
         trotter_qrte = TrotterQRTE(estimator=estimator)
         evolution_result = trotter_qrte.evolve(evolution_problem)
-        print(evolution_result.evolved_state)
 
-        np.testing.assert_almost_equal(Statevector.from_instruction(evolution_result.evolved_state), expected_evolved_state)
+        np.testing.assert_array_almost_equal(
+            Statevector.from_instruction(evolution_result.evolved_state).data,
+            expected_evolved_state.data,
+        )
 
         aux_ops_result = evolution_result.aux_ops_evaluated
         expected_aux_ops_result = [(0.078073, (0.0, 0.0)), (0.268286, (0.0, 0.0))]
@@ -99,21 +101,15 @@ class TestTrotterQRTE(QiskitAlgorithmsTestCase):
     @data(
         (
             PauliSumOp(SparsePauliOp([Pauli("XY"), Pauli("YX")])),
-                Statevector(
-                    [-0.41614684 + 0.0j, 0.0 + 0.0j, 0.0 + 0.0j, 0.90929743 + 0.0j]
-            ),
+            Statevector([-0.41614684 + 0.0j, 0.0 + 0.0j, 0.0 + 0.0j, 0.90929743 + 0.0j]),
         ),
         (
             PauliSumOp(SparsePauliOp([Pauli("ZZ"), Pauli("ZI"), Pauli("IZ")])),
-                Statevector(
-                    [-0.9899925 - 0.14112001j, 0.0 + 0.0j, 0.0 + 0.0j, 0.0 + 0.0j]
-            ),
+            Statevector([-0.9899925 - 0.14112001j, 0.0 + 0.0j, 0.0 + 0.0j, 0.0 + 0.0j]),
         ),
         (
             Pauli("YY"),
-                Statevector(
-                    [0.54030231 + 0.0j, 0.0 + 0.0j, 0.0 + 0.0j, 0.0 + 0.84147098j]
-            ),
+            Statevector([0.54030231 + 0.0j, 0.0 + 0.0j, 0.0 + 0.0j, 0.0 + 0.84147098j]),
         ),
     )
     @unpack
@@ -125,16 +121,16 @@ class TestTrotterQRTE(QiskitAlgorithmsTestCase):
 
         trotter_qrte = TrotterQRTE()
         evolution_result = trotter_qrte.evolve(evolution_problem)
-        print(evolution_result.evolved_state)
-        np.testing.assert_almost_equal(Statevector.from_instruction(evolution_result.evolved_state), expected_state)
+
+        np.testing.assert_array_almost_equal(
+            Statevector.from_instruction(evolution_result.evolved_state).data, expected_state.data
+        )
 
     @data(
-        (
-            QuantumCircuit(1),
-                Statevector([0.23071786 - 0.69436148j, 0.4646314 - 0.49874749j])),
+        (QuantumCircuit(1), Statevector([0.23071786 - 0.69436148j, 0.4646314 - 0.49874749j])),
         (
             QuantumCircuit(1).compose(ZGate(), [0]),
-                Statevector([0.23071786 - 0.69436148j, 0.4646314 - 0.49874749j]),
+            Statevector([0.23071786 - 0.69436148j, 0.4646314 - 0.49874749j]),
         ),
     )
     @unpack
@@ -147,9 +143,10 @@ class TestTrotterQRTE(QiskitAlgorithmsTestCase):
         algorithm_globals.random_seed = 0
         trotter_qrte = TrotterQRTE(product_formula=QDrift())
         evolution_result = trotter_qrte.evolve(evolution_problem)
-        print(Statevector.from_instruction(evolution_result.evolved_state))
-        print(expected_state)
-        np.testing.assert_almost_equal(Statevector.from_instruction(evolution_result.evolved_state), expected_state)
+
+        np.testing.assert_array_almost_equal(
+            Statevector.from_instruction(evolution_result.evolved_state).data, expected_state.data
+        )
 
     @data((Parameter("t"), {}), (None, {Parameter("x"): 2}), (None, None))
     @unpack
