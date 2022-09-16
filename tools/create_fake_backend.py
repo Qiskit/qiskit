@@ -43,7 +43,7 @@ HEADER = """# This code is part of Qiskit.
 
 init_py = Template(
     """${HEADER}
-\"\"\"Fake ${capital_backend_name} device ({no_qubits} qubits)\"\"\"
+\"\"\"Fake ${capital_backend_name} device (${no_qubits} qubits)\"\"\"
 
 from .fake_${backend_name} import Fake${capital_backend_name}V2
 """
@@ -53,7 +53,7 @@ fake_be_py = Template(
     """${HEADER}
 
 \"\"\"
-Fake ${capital_backend_name} device (${no_qubits} qubit).
+Fake ${capital_backend_name} device (${no_qubits} qubits).
 \"\"\"
 
 import os
