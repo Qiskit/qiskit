@@ -24,6 +24,7 @@ For example::
 from abc import ABC, abstractmethod
 from typing import Callable, Iterable, List, Optional, Set, Tuple
 
+from qiskit.circuit import Parameter
 from qiskit.pulse.channels import Channel
 from qiskit.pulse.exceptions import PulseError
 
@@ -46,16 +47,18 @@ class Instruction(ABC):
         Args:
             operands: The argument list.
             name: Optional display name for this instruction.
-
-        Raises:
-            PulseError: If duration is negative.
-            PulseError: If the input ``channels`` are not all of
-                type :class:`Channel`.
         """
         self._operands = operands
         self._name = name
         self._hash = None
+        self._validate()
 
+    def _validate(self):
+        """Called after initialization to validate instruction data.
+
+        Raises:
+            PulseError: If the input ``channels`` are not all of type :class:`Channel`.
+        """
         for channel in self.channels:
             if not isinstance(channel, Channel):
                 raise PulseError(f"Expected a channel, got {channel} instead.")
@@ -197,16 +200,25 @@ class Instruction(ABC):
     @property
     def parameters(self) -> Set:
         """Parameters which determine the instruction behavior."""
+
+        def _get_parameters_recursive(obj):
+            params = set()
+            if hasattr(obj, "parameters"):
+                for param in obj.parameters:
+                    if isinstance(param, Parameter):
+                        params.add(param)
+                    else:
+                        params |= _get_parameters_recursive(param)
+            return params
+
         parameters = set()
         for op in self.operands:
-            if hasattr(op, "parameters"):
-                for op_param in op.parameters:
-                    parameters.add(op_param)
+            parameters |= _get_parameters_recursive(op)
         return parameters
 
     def is_parameterized(self) -> bool:
         """Return True iff the instruction is parameterized."""
-        return any(chan.is_parameterized() for chan in self.channels)
+        return any(self.parameters)
 
     def draw(
         self,

@@ -18,17 +18,19 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any
 
+from .base_result import BasePrimitiveResult
+
 if TYPE_CHECKING:
     import numpy as np
 
 
 @dataclass(frozen=True)
-class EstimatorResult:
+class EstimatorResult(BasePrimitiveResult):
     """Result of Estimator.
 
     .. code-block:: python
 
-        result = estimator(circuits, observables, params)
+        result = estimator.run(circuits, observables, params).result()
 
     where the i-th elements of ``result`` correspond to the circuit and observable given by
     ``circuits[i]``, ``observables[i]``, and the parameter values bounds by ``params[i]``.
