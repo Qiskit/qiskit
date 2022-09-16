@@ -151,7 +151,7 @@ for tutorial in experiments_tutorials:
 
 with open("aer_sources.txt", "r") as fd:
     for source_str in fd:
-        target_str = source_str.replace("qiskit.providers.aer", "qiskit_aer")
+        target_str = f"../{source_str.replace('qiskit.providers.aer', 'qiskit_aer')}"
         redirects[source_str] = target_str
 
 nbsphinx_timeout = 300
