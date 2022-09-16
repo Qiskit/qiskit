@@ -165,7 +165,6 @@ Fake V1 backends are fake backends with IBM Quantum systems snapshots implemente
     FakeAlmaden
     FakeArmonk
     FakeAthens
-    FakeAuckland
     FakeBelem
     FakeBoeblingen
     FakeBogota

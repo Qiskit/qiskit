@@ -16,7 +16,7 @@ Fake Auckland device (27 qubit).
 """
 
 import os
-from qiskit.providers.fake_provider import fake_pulse_backend, fake_backend
+from qiskit.providers.fake_provider import fake_backend
 
 
 class FakeAucklandV2(fake_backend.FakeBackendV2):
@@ -27,13 +27,3 @@ class FakeAucklandV2(fake_backend.FakeBackendV2):
     props_filename = "props_auckland.json"
     defs_filename = "defs_auckland.json"
     backend_name = "fake_auckland_v2"
-
-
-class FakeAuckland(fake_pulse_backend.FakePulseBackend):
-    """A fake 27 qubit backend."""
-
-    dirname = os.path.dirname(__file__)
-    conf_filename = "conf_auckland.json"
-    props_filename = "props_auckland.json"
-    defs_filename = "defs_auckland.json"
-    backend_name = "fake_auckland"

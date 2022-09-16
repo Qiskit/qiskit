@@ -62,7 +62,6 @@ from .yorktown import FakeYorktownV2
 from .almaden import FakeAlmaden
 from .armonk import FakeArmonk
 from .athens import FakeAthens
-from .auckland import FakeAuckland
 from .belem import FakeBelem
 from .boeblingen import FakeBoeblingen
 from .bogota import FakeBogota

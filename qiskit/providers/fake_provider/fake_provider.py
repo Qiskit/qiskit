@@ -160,7 +160,6 @@ class FakeProvider(ProviderV1):
             FakeAlmaden(),
             FakeArmonk(),
             FakeAthens(),
-            FakeAuckland(),
             FakeBelem(),
             FakeBoeblingen(),
             FakeBogota(),

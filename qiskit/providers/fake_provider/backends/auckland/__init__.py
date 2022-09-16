@@ -13,4 +13,3 @@
 """Mock Auckland backend"""
 
 from .fake_auckland import FakeAucklandV2
-from .fake_auckland import FakeAuckland
