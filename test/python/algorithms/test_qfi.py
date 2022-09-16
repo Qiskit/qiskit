@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2019, 2021.
+# (C) Copyright IBM 2022.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -14,28 +14,18 @@
 """ Test Quantum Gradient Framework """
 
 import unittest
-from qiskit.circuit.parametervector import ParameterVector
-from test import combine
 
 import numpy as np
-from ddt import ddt
 
 from qiskit import QuantumCircuit
-from qiskit.algorithms.gradients import (
-    FiniteDiffEstimatorGradient,
-    LinCombEstimatorGradient,
-    ParamShiftEstimatorGradient,
-    SPSAEstimatorGradient,
-)
+from qiskit.algorithms.gradients.lin_comb_estimator_gradient import DerivativeType
+from qiskit.algorithms.gradients.lin_comb_estimator_qfi import LinCombEstimatorQFI
 from qiskit.circuit import Parameter
-from qiskit.circuit.library import EfficientSU2, RealAmplitudes
-from qiskit.circuit.library.standard_gates import RXXGate, RYYGate, RZXGate, RZZGate
+from qiskit.circuit.library import RealAmplitudes
+from qiskit.circuit.parametervector import ParameterVector
 from qiskit.primitives import Estimator
-from qiskit.quantum_info import SparsePauliOp, Operator
-from qiskit.quantum_info.random import random_pauli_list
+from qiskit.quantum_info import Operator, SparsePauliOp
 from qiskit.test import QiskitTestCase
-
-from qiskit.algorithms.gradients.lin_comb_qfi import LinCombQFI
 
 
 class TestQFI(QiskitTestCase):
@@ -61,7 +51,7 @@ class TestQFI(QiskitTestCase):
         param_list = [[np.pi / 4, 0.1], [np.pi, 0.1], [np.pi / 2, 0.1]]
         correct_values = [[[1, 0], [0, 0.5]], [[1, 0], [0, 0]], [[1, 0], [0, 1]]]
 
-        qfi = LinCombQFI(self.estimator)
+        qfi = LinCombEstimatorQFI(self.estimator)
         for i, param in enumerate(param_list):
             qfis = qfi.run([qc], [op], [param]).result().qfis
             np.testing.assert_allclose(qfis[0], correct_values[i], atol=1e-3)
@@ -82,7 +72,7 @@ class TestQFI(QiskitTestCase):
         # test for different values
         correct_values = [[1, 0], [0, 1]]
         op = SparsePauliOp.from_list([("I", 1)])
-        qfi = LinCombQFI(self.estimator, phase_fix=False)
+        qfi = LinCombEstimatorQFI(self.estimator, phase_fix=False)
         qfi_result = qfi.run([qc], [op], [param]).result().qfis
         np.testing.assert_allclose(qfi_result[0], correct_values, atol=1e-3)
 
@@ -119,7 +109,7 @@ class TestQFI(QiskitTestCase):
         param = [0.4, 0.69]
 
         op = SparsePauliOp.from_list([("IIII", 1)])
-        qfi = LinCombQFI(self.estimator)
+        qfi = LinCombEstimatorQFI(self.estimator)
         qfi_result = qfi.run([ansatz], [op], [param]).result().qfis
         np.testing.assert_array_almost_equal(qfi_result[0], reference, decimal=3)
 
@@ -132,7 +122,7 @@ class TestQFI(QiskitTestCase):
         qc.rx(b, 0)
 
         op = SparsePauliOp.from_list([("I", 1)])
-        qfi = LinCombQFI(self.estimator, derivative="imag")
+        qfi = LinCombEstimatorQFI(self.estimator, derivative_type=DerivativeType.IMAG)
         # test imaginary derivative
         param_list = [[np.pi / 4, 0], [np.pi / 2, np.pi / 4]]
         correct_values = [[[0, 0.707106781], [0.707106781, -0.5]], [[0, 1], [1, 0]]]
@@ -141,7 +131,7 @@ class TestQFI(QiskitTestCase):
             np.testing.assert_allclose(qfi_result[0], correct_values[i], atol=1e-3)
 
         # test real + imaginary derivative
-        qfi = LinCombQFI(self.estimator, derivative="complex")
+        qfi = LinCombEstimatorQFI(self.estimator, derivative_type=DerivativeType.COMPLEX)
         correct_values = [[[1, 0.707106781j], [0.707106781j, 0.5]], [[1, 1j], [1j, 1]]]
         for i, param in enumerate(param_list):
             qfi_result = qfi.run([qc], [op], [param]).result().qfis
@@ -155,7 +145,7 @@ class TestQFI(QiskitTestCase):
 
         op = SparsePauliOp.from_list([("II", 1)])
 
-        qfi = LinCombQFI(self.estimator)
+        qfi = LinCombEstimatorQFI(self.estimator)
         # test imaginary derivative
         param_list = [
             [np.pi / 4 for param in qc.parameters],
@@ -186,7 +176,7 @@ class TestQFI(QiskitTestCase):
         qc.rx(a, 0)
         op = SparsePauliOp.from_list([("Z", 1)])
         param_list = [[np.pi / 4]]
-        qfi = LinCombQFI(self.estimator)
+        qfi = LinCombEstimatorQFI(self.estimator)
         qfi_result = qfi.run([qc], [op], param_list).result().qfis
         correct_values = [[-1.20710678]]
         np.testing.assert_allclose(qfi_result[0], correct_values, atol=1e-3)
@@ -202,7 +192,7 @@ class TestQFI(QiskitTestCase):
         qc.rx(a, 0)
         qc.ry(b, 0)
         op = SparsePauliOp.from_list([("Z", 1)])
-        qfi = LinCombQFI(self.estimator)
+        qfi = LinCombEstimatorQFI(self.estimator)
         param_list = [np.pi / 4, np.pi / 4]
         qfi_result = qfi.run([qc], [op], [param_list], [[a]]).result().qfis
         np.testing.assert_allclose(qfi_result[0], [[-1.25]], atol=1e-3)
@@ -218,7 +208,7 @@ class TestQFI(QiskitTestCase):
         qc2.rx(a, 0)
         qc2.ry(b, 0)
         op = SparsePauliOp.from_list([("Z", 1)])
-        qfi = LinCombQFI(self.estimator)
+        qfi = LinCombEstimatorQFI(self.estimator)
 
         param_list = [[np.pi / 4], [np.pi / 2]]
         correct_values = [
@@ -235,7 +225,7 @@ class TestQFI(QiskitTestCase):
         a = Parameter("a")
         qc = QuantumCircuit(1)
         qc.rx(a, 0)
-        qfi = LinCombQFI(self.estimator)
+        qfi = LinCombEstimatorQFI(self.estimator)
         param_list = [[np.pi / 4], [np.pi / 2]]
         op = SparsePauliOp.from_list([("Z", 1)])
         with self.assertRaises(ValueError):
@@ -256,17 +246,17 @@ class TestQFI(QiskitTestCase):
         estimator = Estimator(options={"shots": 100})
 
         with self.subTest("estimator"):
-            qfi = LinCombQFI(estimator)
+            qfi = LinCombEstimatorQFI(estimator)
             result = qfi.run([qc], [op], [[1]]).result()
             self.assertEqual(result.run_options.get("shots"), 100)
 
         with self.subTest("gradient init"):
-            qfi = LinCombQFI(estimator, run_options={"shots": 200})
+            qfi = LinCombEstimatorQFI(estimator, run_options={"shots": 200})
             result = qfi.run([qc], [op], [[1]]).result()
             self.assertEqual(result.run_options.get("shots"), 200)
 
         with self.subTest("gradient run"):
-            qfi = LinCombQFI(estimator, run_options={"shots": 200})
+            qfi = LinCombEstimatorQFI(estimator, run_options={"shots": 200})
             result = qfi.run([qc], [op], [[1]], shots=300).result()
             self.assertEqual(result.run_options.get("shots"), 300)
 

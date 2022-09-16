@@ -14,6 +14,7 @@ Gradient of probabilities with linear combination of unitaries (LCU)
 """
 
 from __future__ import annotations
+from enum import Enum
 
 from typing import Sequence
 
@@ -32,6 +33,14 @@ from .estimator_gradient_result import EstimatorGradientResult
 from .utils import _make_lin_comb_gradient_circuit
 
 
+class DerivativeType(Enum):
+    """Types of derivative."""
+
+    REAL = "real"
+    IMAG = "imag"
+    COMPLEX = "complex"
+
+
 class LinCombEstimatorGradient(BaseEstimatorGradient):
     """Compute the gradients of the expectation values.
     This method employs a linear combination of unitaries [1].
@@ -41,18 +50,27 @@ class LinCombEstimatorGradient(BaseEstimatorGradient):
     `arXiv:1811.11184 <https://arxiv.org/pdf/1811.11184.pdf>`_
     """
 
-    def __init__(self, estimator: BaseEstimator, derivative: str = "real", **run_options):
+    def __init__(
+        self,
+        estimator: BaseEstimator,
+        derivative_type: DerivativeType = DerivativeType.REAL,
+        **run_options,
+    ):
         """
         Args:
             estimator: The estimator used to compute the gradients.
-            derivative: The type of derivative. Can be either "real", "imag", or "complex".
-                Defaults to "real".
+            derivative_type: The type of derivative. Can be either ``DerivativeType.REAL``
+                ``DerivativeType.IMAG``, or ``DerivativeType.COMPLEX``. Defaults to
+                ``DerivativeType.REAL``.
+                For ``DerivativeType.REAL`` we compute 2Re[(dω⟨ψ(ω)|)O(θ)|ψ(ω)〉],
+                for ``DerivativeType.IMAG`` we compute 2Im[(dω⟨ψ(ω)|)O(θ)|ψ(ω)〉], and
+                for ``DerivativeType.COMPLEX`` we compute 2(dω⟨ψ(ω)|)O(θ)|ψ(ω)〉.
             run_options: Backend runtime options used for circuit execution. The order of priority is:
                 run_options in ``run`` method > gradient's default run_options > primitive's default
                 setting. Higher priority setting overrides lower priority setting.
         """
         self._gradient_circuits = {}
-        self._derivative = derivative
+        self._derivative_type = derivative_type
         super().__init__(estimator, **run_options)
 
     def _run(
@@ -77,14 +95,14 @@ class LinCombEstimatorGradient(BaseEstimatorGradient):
                 param_set = set(parameters_)
             metadata_.append({"parameters": [p for p in circuit.parameters if p in param_set]})
 
-            if self._derivative == "real":
+            if self._derivative_type == DerivativeType.REAL:
                 op2 = SparsePauliOp.from_list([("Z", 1)])
-            elif self._derivative == "imag":
+            elif self._derivative_type == DerivativeType.IMAG:
                 op2 = SparsePauliOp.from_list([("Y", -1)])
-            elif self._derivative == "complex":
+            elif self._derivative_type == DerivativeType.COMPLEX:
                 op2 = SparsePauliOp.from_list([("Z", 1), ("Y", complex(0, -1))])
             else:
-                raise ValueError(f"Derivative type {self._derivative} is not supported.")
+                raise ValueError(f"Derivative type {self._derivative_type} is not supported.")
 
             observable_ = observable.expand(op2)
 

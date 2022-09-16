@@ -24,47 +24,54 @@ from qiskit.circuit import Parameter, ParameterExpression, QuantumCircuit
 from qiskit.opflow import PauliSumOp
 from qiskit.primitives import BaseEstimator
 from qiskit.primitives.utils import init_observable
-from qiskit.quantum_info import Pauli, SparsePauliOp
+from qiskit.quantum_info import SparsePauliOp
 from qiskit.quantum_info.operators.base_operator import BaseOperator
 
 from .base_qfi import BaseQFI
 from .qfi_result import QFIResult
 from .estimator_gradient_result import EstimatorGradientResult
-from .utils import  _make_lin_comb_qfi_circuit
-from .lin_comb_estimator_gradient import LinCombEstimatorGradient
-
-Pauli_Z = Pauli("Z")
+from .utils import _make_lin_comb_qfi_circuit
+from .lin_comb_estimator_gradient import LinCombEstimatorGradient, DerivativeType
 
 
-class LinCombQFI(BaseQFI):
+class LinCombEstimatorQFI(BaseQFI):
     def __init__(
         self,
         estimator: BaseEstimator,
         phase_fix: bool = True,
-        derivative: str = "real",
+        derivative_type: DerivativeType = DerivativeType.REAL,
         **run_options,
     ):
-        r"""Computes the Quantum Fisher Information (QFI) given a pure,
-        parameterized quantum state, where QFI is:
+        """Computes the Quantum Fisher Information (QFI) given a pure,
+        parameterized quantum state. This method employs a linear
+        combination of unitaries [1].
 
-        .. math::
+        **Reference:**
+        [1] Schuld et al., Evaluating analytic gradients on quantum hardware, 2018
+        `arXiv:1811.11184 <https://arxiv.org/pdf/1811.11184.pdf>`_
 
-            \mathrm{QFI}_{kl}= 4 \mathrm{Re}[\langle \partial_k \psi | \partial_l \psi \rangle
-                - \langle\partial_k \psi | \psi \rangle \langle\psi | \partial_l \psi \rangle].
 
         Args:
             estimator: The estimator used to compute the gradients.
-            phase_fix: Whether to calculate the second term (phase fix) of the QFI. Default to True.
-            derivative: The type of derivative. Can be either "real", "imag", or "complex".
-                Defaults to "real".
+            phase_fix: Whether to calculate the second term (phase fix) of the QFI, which is
+                Re[(dω⟨<ψ(ω)|)|ψ(ω)><ψ(ω)|(dω|ψ(ω))>]. Default to ``True``.
+            derivative_type: The type of derivative. Can be either ``DerivativeType.REAL``
+                ``DerivativeType.IMAG``, or ``DerivativeType.COMPLEX``. Defaults to
+                ``DerivativeType.REAL``.
+                For ``DerivativeType.REAL`` we compute 4Re[(dω⟨ψ(ω)|)O(θ)|ψ(ω)〉],
+                for ``DerivativeType.IMAG`` we compute 4Im[(dω⟨ψ(ω)|)O(θ)|ψ(ω)〉], and
+                for ``DerivativeType.COMPLEX`` we compute 4(dω⟨ψ(ω)|)O(θ)|ψ(ω)〉.
+
             run_options: Backend runtime options used for circuit execution. The order of priority is:
                 run_options in ``run`` method > gradient's default run_options > primitive's default
                 setting. Higher priority setting overrides lower priority setting.
         """
         super().__init__(estimator, **run_options)
         self._phase_fix = phase_fix
-        self._derivative = derivative
-        self._gradient = LinCombEstimatorGradient(estimator, derivative="complex", **run_options)
+        self._derivative_type = derivative_type
+        self._gradient = LinCombEstimatorGradient(
+            estimator, derivative_type=DerivativeType.COMPLEX, **run_options
+        )
         self._gradient_circuits = {}
 
     def _run(
@@ -109,7 +116,6 @@ class LinCombQFI(BaseQFI):
 
             # compute the first term in the QFI
             qfi_circuits_ = _make_lin_comb_qfi_circuit(circuit)
-            n = len(circuit.parameters)
             # only compute the gradients for parameters in the parameter set
             qfi_circuits, result_indices, coeffs = [], [], []
             result_map = {}
@@ -145,15 +151,17 @@ class LinCombQFI(BaseQFI):
                             bound_coeff = coeff
                         coeffs.append(bound_coeff)
 
-            if self._derivative == "real":
-                op2 = SparsePauliOp.from_list([("Z", 1)])
-            elif self._derivative == "imag":
-                op2 = SparsePauliOp.from_list([("Y", -1)])
-            elif self._derivative == "complex":
-                op2 = SparsePauliOp.from_list([("Z", 1), ("Y", complex(0, -1))])
-            else:
-                raise ValueError(f"Derivative type {self._derivative} is not supported.")
-            observable_ = observable.expand(op2)
+            # if self._derivative_type == DerivativeType.REAL:
+            #     op2 = SparsePauliOp.from_list([("Z", 1)])
+            # elif self._derivative_type == DerivativeType.IMAG:
+            #     op2 = SparsePauliOp.from_list([("Y", -1)])
+            # elif self._derivative_type == DerivativeType.COMPLEX:
+            #     op2 = SparsePauliOp.from_list([("Z", 1), ("Y", complex(0, -1))])
+            # else:
+            #     raise ValueError(f"Derivative type {self._derivative_type} is not supported.")
+            # observable_ = observable.expand(op2)
+
+            observable_ = self._expand_observable(observable)
 
             n = len(qfi_circuits)
             job = self._estimator.run(
@@ -195,3 +203,15 @@ class LinCombQFI(BaseQFI):
 
         run_opt = self._get_local_run_options(run_options)
         return QFIResult(qfis=qfis, metadata=metadata_, run_options=run_opt)
+
+    def _expand_observable(self, observable: BaseOperator | PauliSumOp) -> BaseOperator:
+        """Expands the observable based on the derivative type."""
+        if self._derivative_type == DerivativeType.REAL:
+            op2 = SparsePauliOp.from_list([("Z", 1)])
+        elif self._derivative_type == DerivativeType.IMAG:
+            op2 = SparsePauliOp.from_list([("Y", -1)])
+        elif self._derivative_type == DerivativeType.COMPLEX:
+            op2 = SparsePauliOp.from_list([("Z", 1), ("Y", complex(0, -1))])
+        else:
+            raise ValueError(f"Derivative type {self._derivative_type} is not supported.")
+        return observable.expand(op2)

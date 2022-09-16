@@ -31,7 +31,14 @@ from .estimator_gradient_result import EstimatorGradientResult
 
 
 class BaseQFI(ABC):
-    """Base class for an ``QFI`` to compute the qfi of the expectation value."""
+    r"""Base class to computes the Quantum Fisher Information (QFI) given a pure,
+    parameterized quantum state, where QFI is:
+
+    .. math::
+
+        \mathrm{QFI}_{kl}= 4 \mathrm{Re}[\langle \partial_k \psi | \partial_l \psi \rangle
+            - \langle\partial_k \psi | \psi \rangle \langle\psi | \partial_l \psi \rangle].
+    """
 
     def __init__(
         self,
@@ -83,7 +90,7 @@ class BaseQFI(ABC):
         """
         # if ``parameters`` is none, all parameters in each circuit are differentiated.
         if parameters is None:
-            parameters = [None for _ in range(len(circuits))]
+            parameters = [None] * len(circuits)
         # Validate the arguments.
         self._validate_arguments(circuits, observables, parameter_values, parameters)
         # The priority of run option is as follows:
