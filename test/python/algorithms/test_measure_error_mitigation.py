@@ -35,7 +35,7 @@ if optionals.HAS_AER:
     from qiskit import Aer
     from qiskit_aer import noise
 if optionals.HAS_IGNIS:
-    # pylint: disable=import-error,no-name-in-module
+    # pylint: disable=import-error,no-name-in-module,ungrouped-imports
     from qiskit.ignis.mitigation.measurement import (
         CompleteMeasFitter as CompleteMeasFitter_IG,
         TensoredMeasFitter as TensoredMeasFitter_IG,
