@@ -13,10 +13,12 @@
 """Test the VF2Layout pass"""
 
 import unittest
+from math import pi
+
 import numpy
 import retworkx
 
-from qiskit import QuantumRegister, QuantumCircuit
+from qiskit import QuantumRegister, QuantumCircuit, ClassicalRegister
 from qiskit.transpiler import CouplingMap, Target, TranspilerError
 from qiskit.transpiler.passes.layout.vf2_layout import VF2Layout, VF2LayoutStopReason
 from qiskit.converters import circuit_to_dag
@@ -26,8 +28,11 @@ from qiskit.providers.fake_provider import (
     FakeRueschlikon,
     FakeManhattan,
     FakeYorktown,
+    FakeGuadalupeV2,
 )
 from qiskit.circuit.library import GraphState, CXGate
+from qiskit.transpiler import PassManager
+from qiskit.transpiler.preset_passmanagers.common import generate_embed_passmanager
 
 
 class LayoutTestCase(QiskitTestCase):
@@ -497,7 +502,7 @@ class TestMultipleTrials(QiskitTestCase):
             "DEBUG:qiskit.transpiler.passes.layout.vf2_layout:Trial 159 is >= configured max trials 159",
             cm.output,
         )
-        self.assertEqual(set(property_set["layout"].get_physical_bits()), {49, 40, 58, 3, 4})
+        self.assertEqual(set(property_set["layout"].get_physical_bits()), {49, 40, 58, 0, 1})
 
     def test_no_limits_with_negative(self):
         """Test that we're not enforcing a trial limit if set to negative."""
@@ -518,7 +523,48 @@ class TestMultipleTrials(QiskitTestCase):
             vf2_pass(qc, property_set)
         for output in cm.output:
             self.assertNotIn("is >= configured max trials", output)
-        self.assertEqual(set(property_set["layout"].get_physical_bits()), {3, 1, 2})
+        self.assertEqual(set(property_set["layout"].get_physical_bits()), {3, 1, 0})
+
+    def test_qregs_valid_layout_output(self):
+        """Test that vf2 layout doesn't add extra qubits.
+
+        Reproduce from https://github.com/Qiskit/qiskit-terra/issues/8667
+        """
+        backend = FakeGuadalupeV2()
+        qr = QuantumRegister(16, name="qr")
+        cr = ClassicalRegister(5)
+        qc = QuantumCircuit(qr, cr)
+        qc.rz(pi / 2, qr[0])
+        qc.sx(qr[0])
+        qc.sx(qr[1])
+        qc.rz(-pi / 4, qr[1])
+        qc.sx(qr[1])
+        qc.rz(pi / 2, qr[1])
+        qc.rz(2.8272143, qr[0])
+        qc.rz(0.43324854, qr[1])
+        qc.sx(qr[1])
+        qc.rz(-0.95531662, qr[7])
+        qc.sx(qr[7])
+        qc.rz(3 * pi / 4, qr[7])
+        qc.barrier([qr[1], qr[10], qr[4], qr[0], qr[7]])
+        vf2_pass = VF2Layout(
+            seed=12345,
+            target=backend.target,
+        )
+        vf2_pass(qc)
+        self.assertEqual(len(vf2_pass.property_set["layout"].get_physical_bits()), 16)
+        self.assertEqual(len(vf2_pass.property_set["layout"].get_virtual_bits()), 16)
+        pm = PassManager(
+            [
+                VF2Layout(
+                    seed=12345,
+                    target=backend.target,
+                )
+            ]
+        )
+        pm += generate_embed_passmanager(backend.coupling_map)
+        res = pm.run(qc)
+        self.assertEqual(res.num_qubits, 16)
 
 
 if __name__ == "__main__":
