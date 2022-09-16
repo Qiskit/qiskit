@@ -1,0 +1,321 @@
+from plum import dispatch
+from typing import Union
+import numpy as np
+
+from qiskit.quantum_info.operators.symplectic import Pauli, SparsePauliOp
+from qiskit.quantum_info.states import Statevector, DensityMatrix, StabilizerState
+from qiskit.quantum_info.states.quantum_state import QuantumState
+from qiskit.quantum_info import Operator
+
+from qiskit.circuit import QuantumCircuit
+
+from qiskit.result.counts import Counts
+from qiskit.result import QuasiDistribution
+
+from qiskit._accelerate import pauli_expval
+
+# type of collection of qubit indices to measure
+QargsT = Union[list, range]
+
+
+###
+### Make a uniform interface to a couple of properties of Statevector and DensityMatrix
+###
+
+
+@dispatch
+def _to_rust_array(state: Statevector):
+    return state.data
+
+
+@dispatch
+def _to_rust_array(state: DensityMatrix):
+    return np.ravel(state.data, order="F")
+
+
+@dispatch
+def sum_of_probs(state: Statevector):
+    return np.linalg.norm(state.data)
+
+
+@dispatch
+def sum_of_probs(state: DensityMatrix):
+    return state.trace()
+
+
+###
+### Make a uniform interface `expval_pauli` to the four rust routines.
+###
+
+
+@dispatch
+def expval_pauli(state: Statevector, z_mask):
+    return pauli_expval.expval_pauli_no_x(_to_rust_array(state), state.num_qubits, z_mask)
+
+
+@dispatch
+def expval_pauli(state: Statevector, z_mask, x_mask, y_phase, x_max):
+    return pauli_expval.expval_pauli_with_x(
+        _to_rust_array(state), state.num_qubits, z_mask, x_mask, y_phase, x_max
+    )
+
+
+@dispatch
+def expval_pauli(state: DensityMatrix, z_mask):
+    data = _to_rust_array(state)
+    return pauli_expval.density_expval_pauli_no_x(data, state.num_qubits, z_mask)
+
+
+@dispatch
+def expval_pauli(state: DensityMatrix, z_mask, x_mask, y_phase, x_max):
+    data = _to_rust_array(state)
+    return pauli_expval.density_expval_pauli_with_x(
+        data, state.num_qubits, z_mask, x_mask, y_phase, x_max
+    )
+
+
+# This is currently used twice.
+def pauli_phase(pauli: Pauli):
+    return (-1j) ** pauli.phase if pauli.phase else 1
+
+
+## Function `expectation_value`.
+## expectation_value(oper, state)
+## expectation_value(oper, state, qargs) # to restrict to a subset of qubits
+## expectation_value(state) # if the operator is implied
+## expectation_value(state, qargs) # operator implied, restricted subset of qubits
+
+## Compare this to the implementations in quantum_info classes.
+## Here, we have a single method for Statevector, DensityMatrix rather than two.
+## Furthermore, the internal structure of `state` is not accessed in this method.
+@dispatch(precedence=1)
+def expectation_value(pauli: Pauli, state: Union[Statevector, DensityMatrix], qargs: QargsT):
+
+    qubits = np.array(qargs)
+    x_mask = np.dot(1 << qubits, pauli.x)
+    z_mask = np.dot(1 << qubits, pauli.z)
+    _pauli_phase = pauli_phase(pauli)
+
+    if x_mask + z_mask == 0:
+        return _pauli_phase * sum_of_probs(state)
+
+    if x_mask == 0:
+        return _pauli_phase * expval_pauli(state, z_mask)
+
+    x_max = qubits[pauli.x][-1]
+    y_phase = (-1j) ** pauli._count_y()
+    return _pauli_phase * expval_pauli(state, z_mask, x_mask, y_phase, x_max)
+
+
+@dispatch(precedence=1)
+def expectation_value(oper: Pauli, state: StabilizerState, qargs: QargsT):
+
+    qubits = qargs
+    num_qubits = oper.num_qubits
+    # Construct Pauli on num_qubits
+    pauli = Pauli(num_qubits * "I")
+    phase = 0
+    _pauli_phase = pauli_phase(oper)
+
+    for pos, qubit in enumerate(qubits):
+        pauli.x[qubit] = oper.x[pos]
+        pauli.z[qubit] = oper.z[pos]
+        phase += pauli.x[qubit] & pauli.z[qubit]
+
+    # Check if there is a stabilizer that anti-commutes with an odd number of qubits
+    # If so the expectation value is 0
+    for p in range(num_qubits):
+        stab = state.clifford.stabilizer
+        num_anti = 0
+        num_anti += np.count_nonzero(pauli.z & stab.X[p])
+        num_anti += np.count_nonzero(pauli.x & stab.Z[p])
+        if num_anti % 2 == 1:
+            return 0
+
+    # Otherwise pauli is (-1)^a prod_j S_j^b_j for Clifford stabilizers
+    # If pauli anti-commutes with D_j then b_j = 1.
+    # Multiply pauli by stabilizers with anti-commuting destabilizers
+    pauli_z = (pauli.z).copy()  # Make a copy of pauli.z
+    for p in range(num_qubits):
+        # Check if destabilizer anti-commutes
+        destab = state.clifford.destabilizer
+        num_anti = 0
+        num_anti += np.count_nonzero(pauli.z & destab.X[p])
+        num_anti += np.count_nonzero(pauli.x & destab.Z[p])
+        if num_anti % 2 == 0:
+            continue
+
+        # If anti-commutes multiply Pauli by stabilizer
+        stab = state.clifford.stabilizer
+        phase += 2 * state.clifford.table.phase[p + num_qubits]
+        phase += np.count_nonzero(stab.Z[p] & stab.X[p])
+        phase += 2 * np.count_nonzero(pauli_z & stab.X[p])
+        pauli_z = pauli_z ^ stab.Z[p]
+
+    # For valid stabilizers, `phase` can only be 0 (= 1) or 2 (= -1) at this point.
+    if phase % 4 != 0:
+        return -_pauli_phase
+
+    return _pauli_phase
+
+
+# Here we also support the caller use the Python idiom of passing `None`.
+@dispatch
+def expectation_value(
+    oper: Union[Pauli, SparsePauliOp], state: QuantumState, x: type(None) = None
+):  # must be absent or explicit None
+    return expectation_value(oper, state, range(oper.num_qubits))
+
+
+@dispatch(precedence=1)
+def expectation_value(oper: str, state: QuantumState, qargs: Union[QargsT, type(None)] = None):
+    return expectation_value(Pauli(oper), state, qargs)
+
+
+@dispatch(precedence=1)
+def expectation_value(oper: SparsePauliOp, state: QuantumState, qargs: QargsT):
+    return sum(
+        coeff * expectation_value(Pauli((z, x)), state, qargs)
+        for z, x, coeff in zip(oper.paulis.z, oper.paulis.x, oper.coeffs)
+    )
+
+
+@dispatch(precedence=1)
+def expectation_value(oper: SparsePauliOp, state):
+    return sum(
+        coeff * expectation_value(Pauli((z, x)), state)
+        for z, x, coeff in zip(oper.paulis.z, oper.paulis.x, oper.coeffs)
+    )
+
+
+@dispatch
+def expectation_value(oper, state: Statevector, qargs: QargsT):
+    val = state.evolve(oper, qargs=qargs)
+    conj = state.conjugate()
+    return np.dot(conj.data, val.data)
+
+
+@dispatch
+def expectation_value(oper: Operator, state: DensityMatrix, qargs: QargsT):
+    return np.trace(Operator(state).dot(oper, qargs=qargs).data)
+
+
+@dispatch
+def expectation_value(oper, state: DensityMatrix, qargs: QargsT):
+    return expectation_value(Operator(oper), state, qargs)
+
+
+@dispatch
+def expectation_value(oper, state: QuantumCircuit, qargs: QargsT):
+    return expectation_value(oper, Statevector(state), qargs)
+
+
+# We may want to use this as a normal function for performance when oper is all Zs
+# def expectation_value(counts: Counts):
+#     _sum = 0
+#     total_counts = 0
+#     for bitstr, _count in counts.items():
+#         _sum += _count * (-1) ** bitstr.count("1")
+#         total_counts += _count
+#     return _sum / total_counts
+
+
+def _op_to_int(oper: str):
+    """
+    Interpret ``oper`` as a binary number and return its integer representation.
+
+    The character `I` is interpreted as a bit equal to zero
+    and any other character is equal to one.
+    """
+    n = len(oper)
+    mask = 0
+    zero_proj = []
+    one_proj = []
+    for i, c in enumerate(oper):
+        if c == '0':
+            zero_proj.append(i)
+        elif c == '1':
+            one_proj.append(i)
+        if c != "I":
+            mask += 1 << (n - i - 1)
+    return mask, zero_proj, one_proj
+
+
+# Indices in qargs correspond to counting from the rightmost digit of the string.
+# TODO: So both are correct or both are incorrect. Find out which.
+@dispatch
+def expectation_value(oper: str, counts: Counts):
+    _sum = 0
+    total_counts = 0
+    mask, zero_proj, one_proj = _op_to_int(oper)
+    for bitstr, _count in counts.items():
+        flag = 0
+        for zi in zero_proj:
+            if bitstr[zi] != '0':
+                flag = 1
+                break
+        if flag == 1:
+            continue
+        flag = 0
+        for oi in one_proj:
+            if bitstr[oi] != '1':
+                flag = 1
+                break
+        if flag == 1:
+            continue
+        parity = bin(int(bitstr, base=2) & mask).count("1")
+        _sum += _count * (-1) ** parity
+        total_counts += _count
+    return _sum / total_counts
+
+
+# We may want to use this for performance when oper is all Zs
+# def expectation_value(quasi_dist: QuasiDistribution):
+#     _sum = 0
+#     for bitstr, prob in quasi_dist.items():
+#         _sum += prob * (-1) ** bin(bitstr).count("1")
+#     return _sum
+
+# The only difference wrt the method for Counts is that we
+# don't accumualate total number of counts and normalize.
+# We should probably make a normalized copy of counts and
+# then use a single function for the work.
+@dispatch
+def expectation_value(oper: str, quasi_dist: QuasiDistribution):
+    _sum = 0
+    mask, zero_proj, one_proj = _op_to_int(oper)
+    for bitstr, prob in quasi_dist.items():
+        flag = 0
+        for zi in zero_proj:
+            if bitstr[zi] != '0':
+                flag = 1
+                break
+        if flag == 1:
+            continue
+        flag = 0
+        for oi in one_proj:
+            if bitstr[oi] != '1':
+                flag = 1
+                break
+        if flag == 1:
+            continue
+        parity = bin(bitstr & mask).count("1")
+        _sum += prob * (-1) ** parity
+    return _sum
+
+
+@dispatch
+def expectation_value(oper: Pauli, state: Union[Counts, QuasiDistribution]):
+    return expectation_value(oper.to_label(), state)
+
+
+@dispatch
+def expectation_value(oper: Union[Pauli, SparsePauliOp], state):
+    return expectation_value(oper, state, range(oper.num_qubits))
+
+
+# expectation_value.__doc__ = """
+# expectation_value(oper, state, qargs=None)
+
+# Compute the expectation value of operator ``oper`` on state ``state``.
+# """

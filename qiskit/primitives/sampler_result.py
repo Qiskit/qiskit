@@ -43,3 +43,19 @@ class SamplerResult(BasePrimitiveResult):
 
     quasi_dists: list[QuasiDistribution]
     metadata: list[dict[str, Any]]
+
+
+# TODO: we now require the operator to be specified explicitly. Fix these
+# to reflect that.
+# from plum import dispatch
+# from qiskit.operations import expectation_value
+
+
+# @dispatch
+# def expectation_value(sampler_result: SamplerResult):
+#     return [expectation_value(qd) for qd in sampler_result.quasi_dists]
+
+
+# @dispatch
+# def expectation_value(sampler_result: SamplerResult, qargs: str):
+#     return [expectation_value(qd, qargs) for qd in sampler_result.quasi_dists]
