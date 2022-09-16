@@ -188,7 +188,6 @@ class FakeProvider(ProviderV1):
             FakeOpenPulse3Q(),
             FakeOurense(),
             FakeParis(),
-            FakePerth(),
             FakePoughkeepsie(),
             FakeQasmSimulator(),
             FakeQuito(),

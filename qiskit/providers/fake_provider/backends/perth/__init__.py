@@ -10,7 +10,6 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""Fake Perth device (7 qubit)."""
+"""Fake Perth device (7 qubits)"""
 
 from .fake_perth import FakePerthV2
-from .fake_perth import FakePerth

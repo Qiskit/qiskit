@@ -10,12 +10,13 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
+
 """
 Fake Perth device (7 qubit).
 """
 
 import os
-from qiskit.providers.fake_provider import fake_pulse_backend, fake_backend
+from qiskit.providers.fake_provider import fake_backend
 
 
 class FakePerthV2(fake_backend.FakeBackendV2):
@@ -26,13 +27,3 @@ class FakePerthV2(fake_backend.FakeBackendV2):
     props_filename = "props_perth.json"
     defs_filename = "defs_perth.json"
     backend_name = "fake_perth_v2"
-
-
-class FakePerth(fake_pulse_backend.FakePulseBackend):
-    """A fake 7 qubit backend."""
-
-    dirname = os.path.dirname(__file__)
-    conf_filename = "conf_perth.json"
-    props_filename = "props_perth.json"
-    defs_filename = "defs_perth.json"
-    backend_name = "fake_perth"

@@ -190,7 +190,6 @@ Fake V1 backends are fake backends with IBM Quantum systems snapshots implemente
     FakeNairobi
     FakeOurense
     FakeParis
-    FakePerth
     FakePoughkeepsie
     FakeQuito
     FakeRochester

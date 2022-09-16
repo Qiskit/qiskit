@@ -88,7 +88,6 @@ from .mumbai import FakeMumbai
 from .nairobi import FakeNairobi
 from .ourense import FakeOurense
 from .paris import FakeParis
-from .perth import FakePerth
 from .poughkeepsie import FakePoughkeepsie
 from .quito import FakeQuito
 from .rochester import FakeRochester

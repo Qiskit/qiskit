@@ -1,4 +1,5 @@
 ---
 features:
   - |
-    The fake backend :class:`~FakePerth` was added with the information from IBM Quantum `ibm_perth` system.
+    The fake backend :class:`~FakePerth` was added with the information
+    from IBM Quantum `ibm_perth` system.
