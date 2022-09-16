@@ -12,18 +12,18 @@
 
 
 """
-Fake Perth device (7 qubit).
+Fake Perth device (7 qubits).
 """
 
 import os
 from qiskit.providers.fake_provider import fake_backend
 
 
-class FakePerthV2(fake_backend.FakeBackendV2):
+class FakePerth(fake_backend.FakeBackendV2):
     """A fake 7 qubit backend."""
 
     dirname = os.path.dirname(__file__)
     conf_filename = "conf_perth.json"
     props_filename = "props_perth.json"
     defs_filename = "defs_perth.json"
-    backend_name = "fake_perth_v2"
+    backend_name = "fake_perth"

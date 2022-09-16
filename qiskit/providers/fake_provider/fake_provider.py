@@ -116,7 +116,7 @@ class FakeProviderForBackendV2(ProviderV1):
             FakeNairobiV2(),
             FakeOurenseV2(),
             FakeParisV2(),
-            FakePerthV2(),
+            FakePerth(),
             FakePoughkeepsieV2(),
             FakeQuitoV2(),
             FakeRochesterV2(),

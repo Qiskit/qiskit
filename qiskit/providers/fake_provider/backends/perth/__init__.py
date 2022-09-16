@@ -12,4 +12,4 @@
 
 """Fake Perth device (7 qubits)"""
 
-from .fake_perth import FakePerthV2
+from .fake_perth import FakePerth
