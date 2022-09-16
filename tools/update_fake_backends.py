@@ -223,11 +223,11 @@ class _Summary:
         output = []
         if self.readout_summary:
             output.append("Readout errors == 1:")
-            output += [f"{line}" for line in self.readout_summary]
+            output.extend(self.readout_summary)
 
         if self.gate_summary:
             output.append("Gate errors == 1:")
-            output += [f"{line}" for line in self.gate_summary]
+            output.extend(self.gate_summary)
 
         if output:
             result += output
