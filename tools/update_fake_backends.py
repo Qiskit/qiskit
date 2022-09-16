@@ -123,8 +123,8 @@ class _PropertyStats:
         """calculates:
         * gate_total
         * gate_errors"""
-        self._gate_total = defaultdict(lambda: 0)
-        self._gate_errors = defaultdict(lambda: [])
+        self._gate_total = defaultdict(int)
+        self._gate_errors = defaultdict(list)
         for gate in self.properties.gates:
             if gate.gate == "reset":
                 continue
@@ -157,7 +157,7 @@ class _Summary:
 
     @property
     def readout_summary(self):
-        """[cached] the readout error == 1 summary"""
+        """[cached] the broken-readouts summary"""
         if self._readout_summary is None:
             self._readout_summary = []
             for qubit in self.properties.readout_errors:
@@ -176,7 +176,7 @@ class _Summary:
             if total_readout_rate[0] != 0 or total_readout_rate_was[0] != 0:
                 self._rate_table.append(
                     [
-                        "readout error",
+                        "broken readout / total qubits",
                         _Summary._format_rate(total_readout_rate),
                         _Summary._format_rate(total_readout_rate_was),
                     ]
@@ -189,7 +189,7 @@ class _Summary:
                 rate_was = self.current_properties.gate_rate(gate)
                 self._rate_table.append(
                     [
-                        f"{gate} error",
+                        f"broken {gate} / total {gate}",
                         _Summary._format_rate(rate),
                         _Summary._format_rate(rate_was),
                     ]
@@ -199,7 +199,7 @@ class _Summary:
             if total_gate_rate[0] != 0 or total_gate_rate_was[0] != 0:
                 self._rate_table.append(
                     [
-                        "all gates",
+                        "broken operations / total operation",
                         _Summary._format_rate(total_gate_rate),
                         _Summary._format_rate(total_gate_rate_was),
                     ]
@@ -208,7 +208,7 @@ class _Summary:
 
     @property
     def gate_summary(self):
-        """[cached] the gate error == 1 summary"""
+        """[cached] the broken gate summary"""
         if self._gate_summary is None:
             self._gate_summary = []
             for gate, qubits in self.properties.gate_errors.items():
@@ -222,11 +222,11 @@ class _Summary:
         result = [f"\n{self.name}", "=" * len(self.name)]
         output = []
         if self.readout_summary:
-            output.append("Readout errors == 1:")
+            output.append("Gates with broken readout (when readout_error == 1):")
             output.extend(self.readout_summary)
 
         if self.gate_summary:
-            output.append("Gate errors == 1:")
+            output.append("Broken operations (gates with errors == 1)")
             output.extend(self.gate_summary)
 
         if output:
@@ -239,13 +239,18 @@ class _Summary:
                 tabulate(
                     self.rate_table,
                     [
-                        "error == 1",
+                        "",
                         f"new {self.properties.date}",
                         f"current {self.current_properties.date}",
                     ],
                     tablefmt="fancy_grid",
                     colalign=("right", "center", "center"),
                 )
+            )
+            result.append(
+                'The calibration you are pulling (in the "new" column) contain some broken '
+                "error values (when the error is 1). However, if the rate of broken "
+                "errors is better than the current one, you might want to update the files.\n"
             )
 
         result += [self.conf_msg, self.defs_msg]
