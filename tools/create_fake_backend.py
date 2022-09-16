@@ -45,7 +45,7 @@ init_py = Template(
     """${HEADER}
 \"\"\"Fake ${capital_backend_name} device (${no_qubits} qubits)\"\"\"
 
-from .fake_${backend_name} import Fake${capital_backend_name}V2
+from .fake_${backend_name} import Fake${capital_backend_name}
 """
 )
 
@@ -60,14 +60,14 @@ import os
 from qiskit.providers.fake_provider import fake_backend
 
 
-class Fake${capital_backend_name}V2(fake_backend.FakeBackendV2):
+class Fake${capital_backend_name}(fake_backend.FakeBackendV2):
     \"\"\"A fake ${no_qubits} qubit backend.\"\"\"
 
     dirname = os.path.dirname(__file__)
     conf_filename = "conf_${backend_name}.json"
     props_filename = "props_${backend_name}.json"
     defs_filename = "defs_${backend_name}.json"
-    backend_name = "fake_${backend_name}_v2"
+    backend_name = "fake_${backend_name}"
 
 """
 )
@@ -146,22 +146,20 @@ def _main():
 
     # Step 4. update <backend_dir>/../__init__.py
     init_file = os.path.join(backend_dir, "..", "__init__.py")
-    backend_v2_line = (
-        f"from .{vars_['backend_name']} import Fake{vars_['capital_backend_name']}V2\n"
-    )
+    backend_v2_line = f"from .{vars_['backend_name']} import Fake{vars_['capital_backend_name']}\n"
     _insert_line_in_section(backend_v2_line, "# BackendV2", "from", backend_dir, init_file)
 
     # Step 5. update <backend_dir>/../../__init__.py
     init_file = os.path.join(backend_dir, "..", "..", "__init__.py")
-    backend_v2_line = f"    Fake{vars_['capital_backend_name']}V2\n"
+    backend_v2_line = f"    Fake{vars_['capital_backend_name']}\n"
     _insert_line_in_section(backend_v2_line, "Fake V2 Backends", "    ", backend_dir, init_file)
 
     # Step 6. update <backend_dir>/../../fake_provider.py
     init_file = os.path.join(backend_dir, "..", "..", "fake_provider.py")
-    backend_v2_line = f"            Fake{vars_['capital_backend_name']}V2(),\n"
+    backend_v2_line = f"            Fake{vars_['capital_backend_name']}(),\n"
     _insert_line_in_section(
         backend_v2_line,
-        "class FakeProviderForBackendV2",
+        "class FakeProviderForBackend",
         "            Fake",
         backend_dir,
         init_file,
