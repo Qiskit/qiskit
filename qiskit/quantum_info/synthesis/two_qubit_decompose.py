@@ -1412,9 +1412,8 @@ class TwoQubitDecomposeUpToDiagonal:
     """
 
     def __init__(self):
-        self.sy = np.array([[0, -1j], [1j, 0]])
-        self.sz = np.array([[1, 0], [0, -1]])
-        self.sysy = np.kron(self.sy, self.sy)
+        sy = np.array([[0, -1j], [1j, 0]])
+        self.sysy = np.kron(sy, sy)
 
     def _u4_to_su4(self, u4):
         from scipy import linalg as la
