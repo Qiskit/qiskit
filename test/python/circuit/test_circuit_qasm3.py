@@ -22,7 +22,7 @@ import unittest
 from ddt import ddt, data
 
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit, transpile
-from qiskit.circuit import Parameter, Qubit, Clbit, Instruction, Gate
+from qiskit.circuit import Parameter, Qubit, Clbit, Instruction, Gate, Delay, Barrier
 from qiskit.test import QiskitTestCase
 from qiskit.qasm3 import Exporter, dumps, dump, QASM3ExporterError
 from qiskit.qasm3.exporter import QASM3Builder
@@ -1695,6 +1695,60 @@ class TestCircuitQASM3ExporterTemporaryCasesWithBadParameterisation(QiskitTestCa
             ]
         )
         self.assertEqual(Exporter(includes=[]).dumps(circuit), expected_qasm)
+
+    def test_unusual_conditions(self):
+        """Test that special QASM constructs such as ``measure`` are correctly handled when the
+        Terra instructions have old-style conditions."""
+        qc = QuantumCircuit(3, 2)
+        qc.h(0)
+        qc.measure(0, 0)
+        qc.measure(1, 1).c_if(0, True)
+        qc.reset([0, 1]).c_if(0, True)
+        with qc.while_loop((qc.clbits[0], True)):
+            qc.break_loop().c_if(0, True)
+            qc.continue_loop().c_if(0, True)
+        # Terra forbids delay and barrier from being conditioned through `c_if`, but in theory they
+        # should work fine in a dynamic-circuits sense (although what a conditional barrier _means_
+        # is a whole other kettle of fish).
+        delay = Delay(16, "dt")
+        delay.condition = (qc.clbits[0], True)
+        qc.append(delay, [0], [])
+        barrier = Barrier(2)
+        barrier.condition = (qc.clbits[0], True)
+        qc.append(barrier, [0, 1], [])
+
+        expected = """
+OPENQASM 3;
+include "stdgates.inc";
+bit[2] c;
+qubit[3] _all_qubits;
+let q = _all_qubits[0:2];
+h q[0];
+c[0] = measure q[0];
+if (c[0] == 1) {
+  c[1] = measure q[1];
+}
+if (c[0] == 1) {
+  reset q[0];
+}
+if (c[0] == 1) {
+  reset q[1];
+}
+while (c[0] == 1) {
+  if (c[0] == 1) {
+    break;
+  }
+  if (c[0] == 1) {
+    continue;
+  }
+}
+if (c[0] == 1) {
+  delay[16dt] q[0];
+}
+if (c[0] == 1) {
+  barrier q[0], q[1];
+}"""
+        self.assertEqual(dumps(qc).strip(), expected.strip())
 
 
 @ddt
