@@ -41,13 +41,13 @@ def qs_decomposition(
 
         \frac{9}{16} 4^n - frac{3}{2} 2^n
 
-    If opt_a1 = True, the CX count is further reduced by,
+    If opt_a1 = True, the default, the CX count is reduced by,
 
     .. math::
 
         \frac{1}{3} 4^{n - 2} - 1.
 
-    If opt_a2 = True, the CX count is reduced by,
+    If opt_a2 = True, the default, the CX count is reduced by,
 
     .. math::
 
