@@ -87,13 +87,15 @@ class VQE(VariationalAlgorithm, MinimumEigensolver):
 
     Attributes:
         estimator: The estimator primitive to compute the expectation value of the circuits.
-        ansatz: The parameterized circuit used as an ansatz for the wave function.
+        ansatz: A parameterized circuit, preparing the ansatz for the wave function. If
+            provided with ``None``, this defaults to a :class:`.RealAmplitudes` circuit.
         optimizer: A classical optimizer to find the minimum energy. This can either be a
-            Qiskit :class:`.Optimizer` or a callable implementing the :class:`.Minimizer` protocol.
-        gradient: An optional gradient function or operator for the optimizer.
-        initial_point: An optional initial point (i.e. initial parameter values) for the optimizer.
-            If not provided, a random initial point with values in the interval :math:`[0, 2\pi]`
-            is used.
+            Qiskit :class:`.Optimizer` or a callable implementing the :class:`.Minimizer`
+            protocol.
+        gradient: An optional estimator gradient to be used with the optimizer.
+        initial_point: An optional initial point (i.e. initial parameter values)
+            for the optimizer. If ``None`` then VQE will look to the ansatz for a preferred
+            point and if not will simply compute a random one.
         callback: A callback that can access the intermediate data during the optimization.
             Four parameter values are passed to the callback as follows during each evaluation
             by the optimizer for its current set of parameters as it works towards the minimum.
@@ -108,8 +110,9 @@ class VQE(VariationalAlgorithm, MinimumEigensolver):
     def __init__(
         self,
         estimator: BaseEstimator,
-        ansatz: QuantumCircuit | None = None,
-        optimizer: Optimizer | Minimizer | None = None,
+        ansatz: QuantumCircuit | None,
+        optimizer: Optimizer | Minimizer,
+        *,
         gradient: BaseEstimatorGradient | None = None,
         initial_point: Sequence[float] | None = None,
         callback: Callable[[int, np.ndarray, float, float], None] | None = None,
@@ -117,13 +120,13 @@ class VQE(VariationalAlgorithm, MinimumEigensolver):
         """
         Args:
             estimator: The estimator primitive to compute the expectation value of the circuits.
-            ansatz: A parameterized circuit, preparing the ansatz for the wave function. If not
-                provided, this defaults to a :class:`.RealAmplitudes` circuit.
+            ansatz: A parameterized circuit, preparing the ansatz for the wave function. If
+                provided with ``None``, this defaults to a :class:`.RealAmplitudes` circuit.
             optimizer: A classical optimizer to find the minimum energy. This can either be a
                 Qiskit :class:`.Optimizer` or a callable implementing the :class:`.Minimizer`
-                protocol. Defaults to :class:`.SLSQP`.
-            gradient: An optional gradient function or operator for the optimizer. initial_point: An
-            optional initial point (i.e. initial parameter values)
+                protocol.
+            gradient: An optional estimator gradient to be used with the optimizer.
+            initial_point: An optional initial point (i.e. initial parameter values)
                 for the optimizer. If ``None`` then VQE will look to the ansatz for a preferred
                 point and if not will simply compute a random one.
             callback: A callback that can access the intermediate data during the optimization.
@@ -159,8 +162,6 @@ class VQE(VariationalAlgorithm, MinimumEigensolver):
     ) -> VQEResult:
         ansatz = self._check_operator_ansatz(operator)
 
-        optimizer = SLSQP() if self.optimizer is None else self.optimizer
-
         initial_point = _validate_initial_point(self.initial_point, ansatz)
 
         bounds = _validate_bounds(ansatz)
@@ -175,12 +176,12 @@ class VQE(VariationalAlgorithm, MinimumEigensolver):
             evaluate_gradient = None
 
         # perform optimization
-        if callable(optimizer):
-            opt_result = optimizer(
+        if callable(self.optimizer):
+            opt_result = self.optimizer(
                 fun=evaluate_energy, x0=initial_point, jac=evaluate_gradient, bounds=bounds
             )
         else:
-            opt_result = optimizer.minimize(
+            opt_result = self.optimizer.minimize(
                 fun=evaluate_energy, x0=initial_point, jac=evaluate_gradient, bounds=bounds
             )
 
