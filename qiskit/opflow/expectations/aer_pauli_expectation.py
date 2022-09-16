@@ -81,7 +81,7 @@ class AerPauliExpectation(ExpectationBase):
     @classmethod
     def _replace_pauli_sums(cls, operator):
         try:
-            from qiskit.providers.aer.library import SaveExpectationValue
+            from qiskit_aer.library import SaveExpectationValue
         except ImportError as ex:
             raise MissingOptionalLibraryError(
                 libname="qiskit-aer",

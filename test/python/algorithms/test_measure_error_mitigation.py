@@ -33,7 +33,7 @@ from qiskit.utils import optionals
 if optionals.HAS_AER:
     # pylint: disable=import-error,no-name-in-module
     from qiskit import Aer
-    from qiskit.providers.aer import noise
+    from qiskit_aer import noise
 if optionals.HAS_IGNIS:
     # pylint: disable=import-error,no-name-in-module
     from qiskit.ignis.mitigation.measurement import (

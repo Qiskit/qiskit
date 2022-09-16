@@ -65,7 +65,7 @@ deprecation is to give providers enough time to do their own deprecation of a
 potential end user impacting change in a user facing part of the interface
 prior to bumping their version. For example, let's say we changed the signature
 to ``Backend.run()`` in ``BackendV34`` in a backwards incompatible way, before
-Aer could update its :class:`~qiskit.providers.aer.aerbackend.AerBackend` class
+Aer could update its :class:`~qiskit_aer.aerbackend.AerBackend` class
 to use version 34 they'd need to deprecate the old signature prior to switching
 over. The changeover for Aer is not guaranteed to be lockstep with Terra so we
 need to ensure there is a sufficient amount of time for Aer to complete its

@@ -60,7 +60,7 @@ def is_aer_provider_available():
     if sys.platform == "darwin":
         return False
     try:
-        import qiskit.providers.aer  # pylint: disable=unused-import
+        import qiskit_aer  # pylint: disable=unused-import
     except ImportError:
         return False
     return True

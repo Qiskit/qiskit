@@ -46,9 +46,9 @@ from qiskit.utils import optionals
 
 if optionals.HAS_AER:
     # pylint: disable=import-error,no-name-in-module
-    from qiskit.providers.aer import Aer
-    from qiskit.providers.aer.noise import NoiseModel
-    from qiskit.providers.aer.noise.errors.standard_errors import pauli_error
+    from qiskit_aer import Aer
+    from qiskit_aer.noise import NoiseModel
+    from qiskit_aer.noise.errors.standard_errors import pauli_error
 
 # fixed seed for tests - for both simulator and transpiler
 SEED = 42

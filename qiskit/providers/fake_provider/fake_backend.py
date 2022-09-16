@@ -370,13 +370,13 @@ class FakeBackendV2(BackendV2):
 
         from qiskit.circuit import Delay
         from qiskit.providers.exceptions import BackendPropertyError
-        from qiskit.providers.aer.noise import NoiseModel
-        from qiskit.providers.aer.noise.device.models import (
+        from qiskit_aer.noise import NoiseModel
+        from qiskit_aer.noise.device.models import (
             _excited_population,
             basic_device_gate_errors,
             basic_device_readout_errors,
         )
-        from qiskit.providers.aer.noise.passes import RelaxationNoisePass
+        from qiskit_aer.noise.passes import RelaxationNoisePass
 
         if self._props_dict is None:
             self._set_props_dict_from_json()
@@ -397,7 +397,7 @@ class FakeBackendV2(BackendV2):
         with warnings.catch_warnings():
             warnings.filterwarnings(
                 "ignore",
-                module="qiskit.providers.aer.noise.device.models",
+                module="qiskit_aer.noise.device.models",
             )
             gate_errors = basic_device_gate_errors(
                 properties,
@@ -455,7 +455,7 @@ class FakeBackend(BackendV1):
     def _setup_sim(self):
         if _optionals.HAS_AER:
             from qiskit.providers import aer
-            from qiskit.providers.aer.noise import NoiseModel
+            from qiskit_aer.noise import NoiseModel
 
             self.sim = aer.AerSimulator()
             if self.properties():
@@ -548,7 +548,7 @@ class FakeBackend(BackendV1):
         if pulse_job:
             if _optionals.HAS_AER:
                 from qiskit.providers import aer
-                from qiskit.providers.aer.pulse import PulseSystemModel
+                from qiskit_aer.pulse import PulseSystemModel
 
                 system_model = PulseSystemModel.from_backend(self)
                 sim = aer.Aer.get_backend("pulse_simulator")

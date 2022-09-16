@@ -70,7 +70,7 @@ def has_aer():
     """check if Aer is installed"""
     if not _PROVIDER_CHECK.checked_aer:
         try:
-            from qiskit.providers.aer import AerProvider
+            from qiskit_aer import AerProvider
 
             _PROVIDER_CHECK.has_aer = True
         except Exception as ex:  # pylint: disable=broad-except
@@ -91,11 +91,11 @@ def is_aer_provider(backend):
         bool: True is AerProvider
     """
     if has_aer():
-        from qiskit.providers.aer import AerProvider
+        from qiskit_aer import AerProvider
 
         if isinstance(_get_backend_provider(backend), AerProvider):
             return True
-        from qiskit.providers.aer.backends.aerbackend import AerBackend
+        from qiskit_aer.backends.aerbackend import AerBackend
 
         return isinstance(backend, AerBackend)
 
@@ -153,7 +153,7 @@ def is_statevector_backend(backend):
         bool: True is statevector
     """
     if has_aer():
-        from qiskit.providers.aer.backends import AerSimulator, StatevectorSimulator
+        from qiskit_aer.backends import AerSimulator, StatevectorSimulator
 
         if isinstance(backend, StatevectorSimulator):
             return True

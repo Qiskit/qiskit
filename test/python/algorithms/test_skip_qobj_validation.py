@@ -103,7 +103,7 @@ class TestSkipQobjValidation(QiskitAlgorithmsTestCase):
         # build noise model
         # Asymmetric readout error on qubit-0 only
         try:
-            from qiskit.providers.aer.noise import NoiseModel
+            from qiskit_aer.noise import NoiseModel
             from qiskit import Aer
 
             self.backend = Aer.get_backend("qasm_simulator")
