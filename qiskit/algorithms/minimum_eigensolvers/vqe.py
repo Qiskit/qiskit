@@ -34,7 +34,7 @@ from ..optimizers import Optimizer, Minimizer, SLSQP
 from ..variational_algorithm import VariationalAlgorithm, VariationalResult
 from .minimum_eigensolver import MinimumEigensolver, MinimumEigensolverResult
 
-# from qiskit.algorithms.observables_evaluator import eval_observables
+from ..observables_evaluator import estimate_observables
 
 logger = logging.getLogger(__name__)
 
@@ -201,12 +201,9 @@ class VQE(VariationalAlgorithm, MinimumEigensolver):
             result.optimal_point,
         )
 
-        if aux_operators:
-            # not None and not empty list or dict
+        if aux_operators is not None:
             bound_ansatz = ansatz.bind_parameters(opt_result.x)
-            # aux_values = eval_observables(self.estimator, bound_ansatz, aux_operators)
-            # TODO remove once eval_operators have been ported.
-            aux_values = self._eval_aux_ops(bound_ansatz, aux_operators)
+            aux_values = estimate_observables(self.estimator, bound_ansatz, aux_operators)
             result.aux_operator_eigenvalues = aux_values
 
         return result
