@@ -87,8 +87,8 @@ class ConsolidateBlocks(TransformationPass):
                 block_cargs = set()
                 for nd in block:
                     block_qargs |= set(nd.qargs)
-                    if isinstance(nd, DAGOpNode) and nd.op.condition:
-                        block_cargs |= set(nd.op.condition[0])
+                    if isinstance(nd, DAGOpNode) and getattr(nd.op, "condition", None):
+                        block_cargs |= set(getattr(nd.op, "condition", None)[0])
                     all_block_gates.add(nd)
                 q = QuantumRegister(len(block_qargs))
                 qc = QuantumCircuit(q)
