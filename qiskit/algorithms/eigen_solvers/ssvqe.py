@@ -855,7 +855,7 @@ class SSVQE(VariationalAlgorithm, Eigensolver):
         sampled_expect_op_list = [
             self._circuit_sampler_list[n].convert(expect_op_list[n]) for n in range(self.num_states)
         ]
-        list_of_means = [np.real(sampled_expect_op_list[n].eval()) for n in range(self.num_states)]
+        list_of_means = np.asarray([np.real(sampled_expect_op_list[n].eval()) for n in range(self.num_states)])
         return list_of_means
 
 

@@ -145,7 +145,7 @@ class TestSSVQE(QiskitAlgorithmsTestCase):
             wavefunction = EfficientSU2(2, reps=1)
             ssvqe = SSVQE(num_states=2, ansatz=wavefunction, weight_vector=[2,1], expectation=expectation)
             params = [0] * wavefunction.num_parameters
-            circuits = ssvqe.construct_circuit(parameter=params, operator=self.h2_op)
+            circuits = ssvqe.construct_circuits(parameter=params, operator=self.h2_op)
 
             for circuits_list in circuits:
                 self.assertEqual(len(circuits_list), num_circuits)
@@ -160,7 +160,7 @@ class TestSSVQE(QiskitAlgorithmsTestCase):
         """Test specifying a variational form with no parameters raises an error."""
         circuit = QuantumCircuit(self.h2_op.num_qubits)
         ssvqe = SSVQE(
-            k=1, ansatz=circuit, quantum_instance=BasicAer.get_backend("statevector_simulator")
+            num_states=1, ansatz=circuit, quantum_instance=BasicAer.get_backend("statevector_simulator")
         )
         with self.assertRaises(RuntimeError):
             ssvqe.compute_eigenvalues(operator=self.h2_op)
@@ -271,9 +271,8 @@ class TestSSVQE(QiskitAlgorithmsTestCase):
         def store_intermediate_result(eval_count, parameters, mean, std, step):
             history["eval_count"].append(eval_count)
             history["parameters"].append(parameters)
-            history["mean"].append(mean)
-            history["std"].append(std)
-            history["step"].append(step)
+            history["mean_list"].append(mean)
+            history["std_list"].append(std)
 
         optimizer = COBYLA(maxiter=3)
         wavefunction = self.ry_wavefunction
@@ -318,7 +317,7 @@ class TestSSVQE(QiskitAlgorithmsTestCase):
 
         ssvqe.expectation = MatrixExpectation()
         ssvqe.quantum_instance = self.statevector_simulator
-        with self.subTest(msg="assert VQE works once all info is available"):
+        with self.subTest(msg="assert SSVQE works once all info is available"):
             result = ssvqe.compute_eigenvalues(operator=self.h2_op)
             np.testing.assert_array_almost_equal(result.eigenvalues.real, self.h2_energy, decimal=2)
 
