@@ -134,10 +134,9 @@ Fake V2 backends are fake backends with IBM Quantum systems snapshots implemente
     FakeMontrealV2
     FakeMumbaiV2
     FakeNairobiV2
-    FakeOsloV2
+    FakeOslo
     FakeOurenseV2
     FakeParisV2
-    FakePerth
     FakePoughkeepsieV2
     FakeQuitoV2
     FakeRochesterV2
@@ -189,7 +188,6 @@ Fake V1 backends are fake backends with IBM Quantum systems snapshots implemente
     FakeMontreal
     FakeMumbai
     FakeNairobi
-    FakeOslo
     FakeOurense
     FakeParis
     FakePoughkeepsie

@@ -10,7 +10,6 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""Mock oslo backend"""
+"""Fake Oslo device (7 qubits)"""
 
-from .fake_oslo import FakeOsloV2
 from .fake_oslo import FakeOslo
