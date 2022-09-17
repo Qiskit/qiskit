@@ -132,7 +132,7 @@ class SSVQE(VariationalAlgorithm, Eigensolver):
 
     def __init__(
         self,
-        num_states: int,
+        num_states: Optional[int] = 2,
         ansatz: Optional[QuantumCircuit] = None,
         optimizer: Optional[Union[Optimizer, MINIMIZER]] = None,
         initial_point: Optional[np.ndarray] = None,
