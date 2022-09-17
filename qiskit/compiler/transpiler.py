@@ -55,35 +55,33 @@ else:
     from shared_memory import SharedMemory, SharedMemoryManager
 
 logger = logging.getLogger(__name__)
-BasisGate = List[str]
-InstMaps = List[InstructionScheduleMap]
-CouplingUnion = Union[CouplingMap, List[List[int]]]
-InitialLayoutUnion = Union[Layout, Dict, List]
-TimingConstraints = Dict[str, int]
+CouplingMapType = Union[CouplingMap, List[List[int]]]
+InitialLayoutType = Union[Layout, Dict, List]
+TimingConstraintsType = Dict[str, int]
 CallbackType = Callable[[BasePass, DAGCircuit, float, PropertySet, int], Any]
-OutputNameUnion = Union[str, List[str]]
+OutputNameType = Union[str, List[str]]
 
 def transpile(
     circuits: Union[QuantumCircuit, List[QuantumCircuit]],
     backend: Optional[Backend, List[Backend]] = None,
-    basis_gates: Optional[BasisGate, List[BasisGate]] = None,
-    inst_map: Optional[InstMaps, List[InstMaps]] = None,
-    coupling_map: Optional[CouplingUnion, List[CouplingUnion]] = None,
+    basis_gates: Optional[List[str], List[List[str]]] = None,
+    inst_map: Optional[List[InstructionScheduleMap], List[List[InstructionScheduleMap]]] = None,
+    coupling_map: Optional[CouplingMapType, List[CouplingMapType]] = None,
     backend_properties: Optional[BackendProperties, List[BackendProperties]] = None,
-    initial_layout: Optional[InitialLayoutUnion, List[InitialLayoutUnion]] = None,
+    initial_layout: Optional[InitialLayoutType, List[InitialLayoutType]] = None,
     layout_method: Optional[str, List[str]] = None,
     routing_method: Optional[str, List[str]] = None,
     translation_method: Optional[str, List[str]] = None,
     scheduling_method: Optional[str, List[str]] = None,
     instruction_durations: Optional[InstructionDurationsType, List[InstructionDurationsType]] = None, 
     dt: Optional[float, List[float]] = None,
-    approximation_degree: Optional[float, List[float]] = None,
-    timing_constraints: Optional[TimingConstraints, List[TimingConstraints]] = None,
+    approximation_degree: Optional[float, List[float]] = 1.0,
+    timing_constraints: Optional[TimingConstraintsType, List[TimingConstraintsType]] = None,
     seed_transpiler: Optional[int, List[int]] = None,
     optimization_level: Optional[int, List[int]] = None,
     callback: Optional[CallbackType, List[CallbackType]] = None,
-    output_name: Optional[OutputNameUnion, List[OutputNameUnion]] = None,
-    unitary_synthesis_method: Optinal[str, List[str]] = "default", 
+    output_name: Optional[OutputNameType, List[OutputNameType]] = None,
+    unitary_synthesis_method: Optional[str, List[str]] = "default", 
     unitary_synthesis_plugin_config: Optional[dict, List[dict]] = None,
     target: Optional[Target, List[Target]] = None,
     init_method: Optional[str, List[str]] = None,
