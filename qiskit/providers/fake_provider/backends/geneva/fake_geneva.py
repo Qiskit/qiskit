@@ -10,25 +10,16 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
+
 """
-Fake Geneva device (27 qubit).
+Fake Geneva device (27 qubits).
 """
 
 import os
-from qiskit.providers.fake_provider import fake_pulse_backend, fake_backend
+from qiskit.providers.fake_provider import fake_backend
 
 
-class FakeGenevaV2(fake_backend.FakeBackendV2):
-    """A fake 27 qubit backend."""
-
-    dirname = os.path.dirname(__file__)
-    conf_filename = "conf_geneva.json"
-    props_filename = "props_geneva.json"
-    defs_filename = "defs_geneva.json"
-    backend_name = "fake_geneva_v2"
-
-
-class FakeGeneva(fake_pulse_backend.FakePulseBackend):
+class FakeGeneva(fake_backend.FakeBackendV2):
     """A fake 27 qubit backend."""
 
     dirname = os.path.dirname(__file__)

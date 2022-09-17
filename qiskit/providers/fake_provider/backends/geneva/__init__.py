@@ -10,7 +10,6 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""Mock geneva backend"""
+"""Fake Geneva device (27 qubits)"""
 
-from .fake_geneva import FakeGenevaV2
 from .fake_geneva import FakeGeneva
