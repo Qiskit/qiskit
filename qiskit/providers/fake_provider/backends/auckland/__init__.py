@@ -10,6 +10,6 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""Mock Auckland backend"""
+"""Fake Auckland device (27 qubits)"""
 
-from .fake_auckland import FakeAucklandV2
+from .fake_auckland import FakeAuckland

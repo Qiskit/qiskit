@@ -12,18 +12,18 @@
 
 
 """
-Fake Auckland device (27 qubit).
+Fake Auckland device (27 qubits).
 """
 
 import os
 from qiskit.providers.fake_provider import fake_backend
 
 
-class FakeAucklandV2(fake_backend.FakeBackendV2):
+class FakeAuckland(fake_backend.FakeBackendV2):
     """A fake 27 qubit backend."""
 
     dirname = os.path.dirname(__file__)
     conf_filename = "conf_auckland.json"
     props_filename = "props_auckland.json"
     defs_filename = "defs_auckland.json"
-    backend_name = "fake_auckland_v2"
+    backend_name = "fake_auckland"
