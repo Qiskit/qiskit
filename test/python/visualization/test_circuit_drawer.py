@@ -15,7 +15,6 @@
 import unittest
 import os
 from unittest.mock import patch
-from warnings import catch_warnings, simplefilter
 
 from qiskit import QuantumCircuit
 from qiskit.test import QiskitTestCase
@@ -137,9 +136,7 @@ class TestCircuitDrawer(QiskitTestCase):
                 "          ",
             ]
         )
-        with catch_warnings():
-            simplefilter("error")
-            result = visualization.circuit_drawer(circuit, reverse_bits=True)
+        result = visualization.circuit_drawer(circuit, reverse_bits=True)
         self.assertEqual(result.__str__(), expected)
 
     def test_no_explict_cregbundle(self):
@@ -162,7 +159,5 @@ class TestCircuitDrawer(QiskitTestCase):
                 "                    ",
             ]
         )
-        with catch_warnings():
-            simplefilter("error")
-            result = visualization.circuit_drawer(circuit)
+        result = visualization.circuit_drawer(circuit)
         self.assertEqual(result.__str__(), expected)
