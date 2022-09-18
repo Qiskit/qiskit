@@ -143,7 +143,9 @@ class TestSSVQE(QiskitAlgorithmsTestCase):
         """Test construct circuits returns List[QuantumCircuits] and the right number of them."""
         try:
             wavefunction = EfficientSU2(2, reps=1)
-            ssvqe = SSVQE(num_states=2, ansatz=wavefunction, weight_vector=[2,1], expectation=expectation)
+            ssvqe = SSVQE(num_states=2, optimizer=COBYLA(maxiter=1),
+                        ansatz=wavefunction, weight_vector=[2,1], expectation=expectation)
+            ssvqe.compute_eigenvalues(operator=self.h2_op)
             params = [0] * wavefunction.num_parameters
             circuits = ssvqe.construct_circuits(parameter=params, operator=self.h2_op)
 
@@ -287,9 +289,8 @@ class TestSSVQE(QiskitAlgorithmsTestCase):
         ssvqe.compute_eigenvalues(operator=self.h2_op)
 
         self.assertTrue(all(isinstance(count, int) for count in history["eval_count"]))
-        for n in range(2):
-            self.assertTrue(all(isinstance(mean_list[n], float) for mean_list in history["mean_list"]))
-            self.assertTrue(all(isinstance(std_list[n], float) for std_list in history["std_list"]))
+        self.assertTrue(all(isinstance(mean, float) for mean_list in history["mean_list"] for mean in mean_list))
+        self.assertTrue(all(isinstance(std, float) for std_list in history["std_list"] for std in std_list))
         for params in history["parameters"]:
             self.assertTrue(all(isinstance(param, float) for param in params))
 
