@@ -542,16 +542,25 @@ class SSVQE(VariationalAlgorithm, Eigensolver):
 
         circuits = [[]] * self.num_states
         # recursively extract circuits
-        def extract_circuits(op_list):
-            for n in range(self.num_states):
+        #def extract_circuits(op_list):
+        #    for n in range(self.num_states):
 
-                if isinstance(op_list[n], CircuitStateFn):
-                    circuits[n].append(op_list[n].primitive)
-                elif isinstance(op_list[n], ListOp):
-                    for op_i in op_list[n].oplist:
-                        extract_circuits(op_i)
+        #        if isinstance(op_list[n], CircuitStateFn):
+        #            circuits[n].append(op_list[n].primitive)
+        #        elif isinstance(op_list[n], ListOp):
+        #            for op_i in op_list[n].oplist:
+        #                extract_circuits(op_i)
 
-        extract_circuits(expect_op_list)
+        #extract_circuits(expect_op_list)
+        def extract_circuits(op, index):
+            if isinstance(op, CircuitStateFn):
+                circuits[index].append(op.primitive)
+            elif isinstance(op, ListOp):
+                for op_i in op.oplist:
+                    extract_circuits(op_i, index)
+
+        for index in range(self.num_states):
+            extract_circuits(expect_op_list[index], index)
 
         return circuits
 
