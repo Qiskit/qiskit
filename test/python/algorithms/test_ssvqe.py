@@ -150,10 +150,15 @@ class TestSSVQE(QiskitAlgorithmsTestCase):
             params = [0] * wavefunction.num_parameters
             circuits = ssvqe.construct_circuits(parameter=params, operator=self.h2_op)
 
-            for circuits_list in circuits:
-                self.assertEqual(len(circuits_list), num_circuits)
-            for circuits_list in circuits:
-                for circ in circuits:
+            #for circuits_list in circuits:
+            #    self.assertEqual(len(circuits_list), num_circuits)
+            for n in range(ssvqe.num_states):
+                self.assertEqual(len(circuits[n]), num_circuits)
+            #for circuits_list in circuits:
+            #    for circ in circuits:
+            #        self.assertIsInstance(circ, QuantumCircuit)
+            for n in range(ssvqe.num_states):
+                for circ in circuits[n]:
                     self.assertIsInstance(circ, QuantumCircuit)
         except MissingOptionalLibraryError as ex:
             self.skipTest(str(ex))
