@@ -59,7 +59,7 @@ def circuit_drawer(
     fold=None,
     ax=None,
     initial_state=False,
-    cregbundle=True,
+    cregbundle=None,
     wire_order=None,
 ):
     """Draw the quantum circuit. Use the output parameter to choose the drawing format:
@@ -142,7 +142,7 @@ def circuit_drawer(
         initial_state (bool): Optional. Adds ``|0>`` in the beginning of the wire.
             Default is False.
         cregbundle (bool): Optional. If set True, bundle classical registers.
-            Default is True.
+            Default is True, except for `text`.
         wire_order (list): Optional. A list of integers used to reorder the display
             of the bits. The list must have an entry for every bit with the bits
             in the range 0 to (num_qubits + num_clbits).
@@ -302,7 +302,7 @@ def _text_circuit_drawer(
     with_layout=True,
     fold=None,
     initial_state=True,
-    cregbundle=False,
+    cregbundle=None,
     encoding=None,
     wire_order=None,
 ):
