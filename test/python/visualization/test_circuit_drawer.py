@@ -141,3 +141,28 @@ class TestCircuitDrawer(QiskitTestCase):
             simplefilter("error")
             result = visualization.circuit_drawer(circuit, reverse_bits=True)
         self.assertEqual(result.__str__(), expected)
+
+    def test_no_explict_cregbundle(self):
+        """Test no explicit cregbundle should not raise warnings about being disabled
+        See: https://github.com/Qiskit/qiskit-terra/issues/8690"""
+        inner = QuantumCircuit(1, 1)
+        inner.measure(0, 0)
+        circuit = QuantumCircuit(2, 2)
+        circuit.append(inner, [0], [0])
+        expected = "\n".join(
+            [
+                "     ┌─────────────┐",
+                "q_0: ┤0            ├",
+                "     │             │",
+                "q_1: ┤  circuit-92 ├",
+                "     │             │",
+                "c_0: ╡0            ╞",
+                "     └─────────────┘",
+                "c_1: ═══════════════",
+                "                    ",
+            ]
+        )
+        with catch_warnings():
+            simplefilter("error")
+            result = visualization.circuit_drawer(circuit)
+        self.assertEqual(result.__str__(), expected)
