@@ -302,14 +302,11 @@ class SSVQE(VariationalAlgorithm, Eigensolver):
         return self._initialized_ansatz_list
 
     @initialized_ansatz_list.setter
-    def initialized_ansatz_list(self, initial_states):
+    def initialized_ansatz_list(self, initialized_states):
         """Sets the list of ansatz circuits initialized in the set of initial states.
         Args: initial_states: The list of orthogonal initial states."""
 
-        self._initialized_ansatz_list = [
-            initial_states[n].compose(self.ansatz) for n in range(self.num_states)
-        ]
-
+        self._initialized_ansatz_list = initialized_states
     @property
     def gradient(self) -> Optional[Union[GradientBase, Callable]]:
         """Returns the gradient."""
@@ -540,29 +537,21 @@ class SSVQE(VariationalAlgorithm, Eigensolver):
         for n in range(self.num_states):
             expect_op_list[n] = expect_op_list[n].to_circuit_op()
 
-        circuits = [[]] * self.num_states
-        # recursively extract circuits
-        #def extract_circuits(op_list):
-        #    for n in range(self.num_states):
-
-        #        if isinstance(op_list[n], CircuitStateFn):
-        #            circuits[n].append(op_list[n].primitive)
-        #        elif isinstance(op_list[n], ListOp):
-        #            for op_i in op_list[n].oplist:
-        #                extract_circuits(op_i)
-
-        #extract_circuits(expect_op_list)
-        def extract_circuits(op, index):
+        circuits = []
+        list_of_circuits = []
+        def extract_circuits(op):
             if isinstance(op, CircuitStateFn):
-                circuits[index].append(op.primitive)
+                circuits.append(op.primitive)
             elif isinstance(op, ListOp):
                 for op_i in op.oplist:
-                    extract_circuits(op_i, index)
+                    extract_circuits(op_i)
 
-        for index in range(self.num_states):
-            extract_circuits(expect_op_list[index], index)
+        for n in range(self.num_states):
+            extract_circuits(expect_op_list[n])
+            list_of_circuits.append(circuits)
+            circuits = []
 
-        return circuits
+        return list_of_circuits
 
     @classmethod
     def supports_aux_operators(cls) -> bool:
