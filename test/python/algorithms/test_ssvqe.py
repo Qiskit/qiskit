@@ -152,13 +152,12 @@ class TestSSVQE(QiskitAlgorithmsTestCase):
 
             #for circuits_list in circuits:
             #    self.assertEqual(len(circuits_list), num_circuits)
-            for n in range(ssvqe.num_states):
-                self.assertEqual(len(circuits[n]), num_circuits)
+            self.assertEqual(len(circuits), num_circuits)
             #for circuits_list in circuits:
             #    for circ in circuits:
             #        self.assertIsInstance(circ, QuantumCircuit)
-            for n in range(ssvqe.num_states):
-                for circ in circuits[n]:
+            for circ_list in circuits:
+                for circ in circ_list:
                     self.assertIsInstance(circ, QuantumCircuit)
         except MissingOptionalLibraryError as ex:
             self.skipTest(str(ex))
