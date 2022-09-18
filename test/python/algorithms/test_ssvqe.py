@@ -490,7 +490,7 @@ class TestSSVQE(QiskitAlgorithmsTestCase):
         self.assertEqual(len(result.eigenvalues), 2)
         self.assertEqual(len(result.eigenstates), 2)
         self.assertEqual(result.eigenvalues.dtype, np.complex128)
-        self.assertAlmostEqual(result.eigenvalues[0], -1.85727493)
+        self.assertAlmostEqual(np.sort(result.eigenvalues)[0], -1.85727493)
         self.assertEqual(len(result.aux_operator_eigenvalues), 2)
         self.assertEqual(len(result.aux_operator_eigenvalues[0]), 3)
         # expectation values
