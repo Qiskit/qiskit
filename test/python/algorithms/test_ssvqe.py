@@ -111,7 +111,7 @@ class TestSSVQE(QiskitAlgorithmsTestCase):
             )
 
         with self.subTest(msg="test dimension of optimal point"):
-            self.assertEqual(len(result.optimal_point[-1]), 8)
+            self.assertEqual(len(result.optimal_point), 8)
 
         with self.subTest(msg="assert cost_function_evals is set"):
             self.assertIsNotNone(result.cost_function_evals)
@@ -144,7 +144,8 @@ class TestSSVQE(QiskitAlgorithmsTestCase):
         try:
             wavefunction = EfficientSU2(2, reps=1)
             ssvqe = SSVQE(num_states=2, optimizer=COBYLA(maxiter=1),
-                        ansatz=wavefunction, weight_vector=[2,1], expectation=expectation)
+                        ansatz=wavefunction, weight_vector=[2,1],
+                        expectation=expectation, quantum_instance=self.statevector_simulator)
             ssvqe.compute_eigenvalues(operator=self.h2_op)
             params = [0] * wavefunction.num_parameters
             circuits = ssvqe.construct_circuits(parameter=params, operator=self.h2_op)
@@ -270,7 +271,7 @@ class TestSSVQE(QiskitAlgorithmsTestCase):
         """Test the callback on SSVQE."""
         history = {"eval_count": [], "parameters": [], "mean_list": [], "std_list": []}
 
-        def store_intermediate_result(eval_count, parameters, mean, std, step):
+        def store_intermediate_result(eval_count, parameters, mean, std):
             history["eval_count"].append(eval_count)
             history["parameters"].append(parameters)
             history["mean_list"].append(mean)
@@ -289,8 +290,8 @@ class TestSSVQE(QiskitAlgorithmsTestCase):
         ssvqe.compute_eigenvalues(operator=self.h2_op)
 
         self.assertTrue(all(isinstance(count, int) for count in history["eval_count"]))
-        self.assertTrue(all(isinstance(mean, float) for mean_list in history["mean_list"] for mean in mean_list))
-        self.assertTrue(all(isinstance(std, float) for std_list in history["std_list"] for std in std_list))
+        self.assertTrue(all(isinstance(mean, float) for mean in history["mean_list"]))
+        self.assertTrue(all(isinstance(std, float) for std in history["std_list"]))
         for params in history["parameters"]:
             self.assertTrue(all(isinstance(param, float) for param in params))
 
