@@ -150,9 +150,8 @@ class TestSSVQE(QiskitAlgorithmsTestCase):
             params = [0] * wavefunction.num_parameters
             circuits = ssvqe.construct_circuits(parameter=params, operator=self.h2_op)
 
-            #for circuits_list in circuits:
-            #    self.assertEqual(len(circuits_list), num_circuits)
-            self.assertEqual(len(circuits), num_circuits)
+            for circuits_list in circuits:
+                self.assertEqual(len(circuits_list), num_circuits)
             #for circuits_list in circuits:
             #    for circ in circuits:
             #        self.assertIsInstance(circ, QuantumCircuit)
@@ -478,7 +477,7 @@ class TestSSVQE(QiskitAlgorithmsTestCase):
         self.assertEqual(len(result.eigenvalues), 2)
         self.assertEqual(len(result.eigenstates), 2)
         self.assertEqual(result.eigenvalues.dtype, np.complex128)
-        self.assertAlmostEqual(result.eigenvalues[0], -1.85727493)
+        self.assertAlmostEqual(result.eigenvalues[0], -1.85727503)
         self.assertEqual(len(result.aux_operator_eigenvalues), 2)
         self.assertEqual(len(result.aux_operator_eigenvalues[0]), 2)
         # expectation values
@@ -494,7 +493,7 @@ class TestSSVQE(QiskitAlgorithmsTestCase):
         self.assertEqual(len(result.eigenvalues), 2)
         self.assertEqual(len(result.eigenstates), 2)
         self.assertEqual(result.eigenvalues.dtype, np.complex128)
-        self.assertAlmostEqual(np.sort(result.eigenvalues)[0], -1.85727493)
+        self.assertAlmostEqual(np.sort(result.eigenvalues)[0], -1.85727503)
         self.assertEqual(len(result.aux_operator_eigenvalues), 2)
         self.assertEqual(len(result.aux_operator_eigenvalues[0]), 3)
         # expectation values

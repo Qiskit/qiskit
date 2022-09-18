@@ -274,7 +274,7 @@ class SSVQE(VariationalAlgorithm, Eigensolver):
             If None is passed, RealAmplitudes is used by default.
         """
         if ansatz is None:
-            ansatz = RealAmplitudes()
+            ansatz = RealAmplitudes(reps=6)
 
         self._ansatz = ansatz
 
