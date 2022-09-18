@@ -269,12 +269,13 @@ class TestSSVQE(QiskitAlgorithmsTestCase):
 
     def test_callback(self):
         """Test the callback on SSVQE."""
-        history = {"eval_count": [], "parameters": [], "mean_list": [], "std_list": []}
+        history = {"eval_count": [], "parameters": [], "mean_list": [], "weighted_sum_mean_list": [], "std_list": []}
 
-        def store_intermediate_result(eval_count, parameters, mean, std):
+        def store_intermediate_result(eval_count, parameters, mean, weighted_sum_mean, std):
             history["eval_count"].append(eval_count)
             history["parameters"].append(parameters)
             history["mean_list"].append(mean)
+            history["weighted_sum_mean_list"].append(weighted_sum_mean)
             history["std_list"].append(std)
 
         optimizer = COBYLA(maxiter=3)
@@ -291,6 +292,7 @@ class TestSSVQE(QiskitAlgorithmsTestCase):
 
         self.assertTrue(all(isinstance(count, int) for count in history["eval_count"]))
         self.assertTrue(all(isinstance(mean, float) for mean in history["mean_list"]))
+        self.assertTrue(all(isinstance(mean, float) for mean in history["weighted_sum_mean_list"]))
         self.assertTrue(all(isinstance(std, float) for std in history["std_list"]))
         for params in history["parameters"]:
             self.assertTrue(all(isinstance(param, float) for param in params))
@@ -408,7 +410,9 @@ class TestSSVQE(QiskitAlgorithmsTestCase):
     def test_aux_operators_list(self):
         """Test list-based aux_operators."""
         wavefunction = self.ry_wavefunction
-        ssvqe = SSVQE(num_states=2, weight_vector=[2,1], ansatz=wavefunction, quantum_instance=self.statevector_simulator)
+        ssvqe = SSVQE(num_states=2, weight_vector=[2,1],
+                        ansatz=wavefunction,
+                        quantum_instance=self.statevector_simulator)
 
         # Start with an empty list
         result = ssvqe.compute_eigenvalues(self.h2_op, aux_operators=[])
@@ -437,7 +441,7 @@ class TestSSVQE(QiskitAlgorithmsTestCase):
         extra_ops = [*aux_ops, None, 0]
         result = ssvqe.compute_eigenvalues(self.h2_op, aux_operators=extra_ops)
         np.testing.assert_array_almost_equal(
-            result.eigenvalues.real, self.h2_energy_excited, decimal=2
+            np.sort(result.eigenvalues.real), self.h2_energy_excited, decimal=2
         )
         self.assertEqual(len(result.aux_operator_eigenvalues), 2)
         # expectation values
@@ -470,7 +474,7 @@ class TestSSVQE(QiskitAlgorithmsTestCase):
         self.assertEqual(len(result.eigenvalues), 2)
         self.assertEqual(len(result.eigenstates), 2)
         self.assertEqual(result.eigenvalues.dtype, np.complex128)
-        self.assertAlmostEqual(result.eigenvalues[0], -1.85727503)
+        self.assertAlmostEqual(result.eigenvalues[0], -1.85727493)
         self.assertEqual(len(result.aux_operator_eigenvalues), 2)
         self.assertEqual(len(result.aux_operator_eigenvalues[0]), 2)
         # expectation values
@@ -486,7 +490,7 @@ class TestSSVQE(QiskitAlgorithmsTestCase):
         self.assertEqual(len(result.eigenvalues), 2)
         self.assertEqual(len(result.eigenstates), 2)
         self.assertEqual(result.eigenvalues.dtype, np.complex128)
-        self.assertAlmostEqual(result.eigenvalues[0], -1.85727503)
+        self.assertAlmostEqual(result.eigenvalues[0], -1.85727493)
         self.assertEqual(len(result.aux_operator_eigenvalues), 2)
         self.assertEqual(len(result.aux_operator_eigenvalues[0]), 3)
         # expectation values
