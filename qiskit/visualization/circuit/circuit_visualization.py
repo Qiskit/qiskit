@@ -241,7 +241,7 @@ def circuit_drawer(
             idle_wires=idle_wires,
             with_layout=with_layout,
             initial_state=initial_state,
-            cregbundle=cregbundle,
+            cregbundle=cregbundle if cregbundle is not None else True,
             wire_order=wire_order,
         )
     elif output == "latex_source":
@@ -256,7 +256,7 @@ def circuit_drawer(
             idle_wires=idle_wires,
             with_layout=with_layout,
             initial_state=initial_state,
-            cregbundle=cregbundle,
+            cregbundle=cregbundle if cregbundle is not None else True,
             wire_order=wire_order,
         )
     elif output == "mpl":
@@ -652,7 +652,7 @@ def _matplotlib_circuit_drawer(
         fold=fold,
         ax=ax,
         initial_state=initial_state,
-        cregbundle=cregbundle,
+        cregbundle=cregbundle if cregbundle is not None else True,
         global_phase=None,
         calibrations=None,
         qregs=None,
