@@ -19,15 +19,15 @@ from ddt import ddt, data
 import numpy as np
 
 from qiskit import BasicAer
-from qiskit.algorithms.evolvers.variational import (
+from qiskit.algorithms.time_evolvers.variational import (
     ImaginaryMcLachlanPrinciple,
 )
-from qiskit.algorithms.evolvers.variational.solvers.var_qte_linear_solver import (
+from qiskit.algorithms.time_evolvers.variational.solvers.var_qte_linear_solver import (
     VarQTELinearSolver,
 )
 from qiskit.circuit.library import EfficientSU2
 from qiskit.opflow import SummedOp, X, Y, I, Z
-from .expected_results.test_varqte_linear_solver_expected_1 import (
+from expected_results.test_varqte_linear_solver_expected_1 import (
     expected_metric_res_1,
 )
 
@@ -71,7 +71,6 @@ class TestVarQTELinearSolver(QiskitAlgorithmsTestCase):
             parameters,
             t_param,
             linear_solver,
-            quantum_instance=backend,
         )
 
         nat_grad_res, metric_res, grad_res = linear_solver.solve_lse(param_dict)

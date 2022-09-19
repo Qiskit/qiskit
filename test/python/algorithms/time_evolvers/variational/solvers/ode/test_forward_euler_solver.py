@@ -18,7 +18,7 @@ import numpy as np
 from ddt import ddt, data, unpack
 from scipy.integrate import solve_ivp
 
-from qiskit.algorithms.evolvers.variational.solvers.ode.forward_euler_solver import (
+from qiskit.algorithms.time_evolvers.variational.solvers.ode.forward_euler_solver import (
     ForwardEulerSolver,
 )
 

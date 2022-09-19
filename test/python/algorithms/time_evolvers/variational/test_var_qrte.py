@@ -14,16 +14,17 @@
 
 import unittest
 
-from test.python.algorithms import QiskitAlgorithmsTestCase
 from ddt import data, ddt
 import numpy as np
+
+from qiskit.algorithms.time_evolvers.variational.var_qrte import VarQRTE
+from test.python.algorithms import QiskitAlgorithmsTestCase
 from qiskit.test import slow_test
-from qiskit.utils import QuantumInstance, algorithm_globals
-from qiskit.algorithms import EvolutionProblem, VarQRTE
-from qiskit.algorithms.evolvers.variational import (
+from qiskit.utils import algorithm_globals
+from qiskit.algorithms import TimeEvolutionProblem
+from qiskit.algorithms.time_evolvers.variational import (
     RealMcLachlanPrinciple,
 )
-from qiskit import BasicAer
 from qiskit.circuit.library import EfficientSU2
 from qiskit.opflow import (
     SummedOp,
@@ -31,7 +32,6 @@ from qiskit.opflow import (
     Y,
     I,
     Z,
-    ExpectationFactory,
 )
 
 
@@ -43,27 +43,6 @@ class TestVarQRTE(QiskitAlgorithmsTestCase):
         super().setUp()
         self.seed = 11
         np.random.seed(self.seed)
-        backend_statevector = BasicAer.get_backend("statevector_simulator")
-        backend_qasm = BasicAer.get_backend("qasm_simulator")
-        self.quantum_instance = QuantumInstance(
-            backend=backend_statevector,
-            shots=1,
-            seed_simulator=self.seed,
-            seed_transpiler=self.seed,
-        )
-        self.quantum_instance_qasm = QuantumInstance(
-            backend=backend_qasm,
-            shots=4000,
-            seed_simulator=self.seed,
-            seed_transpiler=self.seed,
-        )
-        self.backends_dict = {
-            "qi_sv": self.quantum_instance,
-            "qi_qasm": self.quantum_instance_qasm,
-            "b_sv": backend_statevector,
-        }
-
-        self.backends_names = ["qi_qasm", "b_sv", "qi_sv"]
 
     @slow_test
     def test_run_d_1_with_aux_ops(self):
@@ -92,7 +71,7 @@ class TestVarQRTE(QiskitAlgorithmsTestCase):
 
         time = 0.1
 
-        evolution_problem = EvolutionProblem(observable, time, aux_operators=aux_ops)
+        evolution_problem = TimeEvolutionProblem(observable, time, aux_operators=aux_ops)
 
         thetas_expected_sv = [
             0.88967020378258,
@@ -126,18 +105,12 @@ class TestVarQRTE(QiskitAlgorithmsTestCase):
         for backend_name in self.backends_names:
             with self.subTest(msg=f"Test {backend_name} backend."):
                 algorithm_globals.random_seed = self.seed
-                backend = self.backends_dict[backend_name]
-                expectation = ExpectationFactory.build(
-                    operator=observable,
-                    backend=backend,
-                )
+
                 var_qrte = VarQRTE(
                     ansatz,
                     var_principle,
                     init_param_values,
-                    expectation=expectation,
                     num_timesteps=25,
-                    quantum_instance=backend,
                 )
                 evolution_result = var_qrte.evolve(evolution_problem)
 
@@ -191,8 +164,6 @@ class TestVarQRTE(QiskitAlgorithmsTestCase):
 
         param_dict = dict(zip(parameters, init_param_values))
 
-        backend = BasicAer.get_backend("statevector_simulator")
-
         time = 1
         var_qrte = VarQRTE(
             ansatz,
@@ -200,7 +171,6 @@ class TestVarQRTE(QiskitAlgorithmsTestCase):
             param_dict,
             ode_solver="RK45",
             num_timesteps=25,
-            quantum_instance=backend,
         )
 
         thetas_expected = [
@@ -221,7 +191,7 @@ class TestVarQRTE(QiskitAlgorithmsTestCase):
         self._test_helper(observable, thetas_expected, time, var_qrte)
 
     def _test_helper(self, observable, thetas_expected, time, var_qrte):
-        evolution_problem = EvolutionProblem(observable, time)
+        evolution_problem = TimeEvolutionProblem(observable, time)
         evolution_result = var_qrte.evolve(evolution_problem)
         evolved_state = evolution_result.evolved_state
 

@@ -16,12 +16,12 @@ import unittest
 from test.python.algorithms import QiskitAlgorithmsTestCase
 import numpy as np
 
-from qiskit.algorithms.evolvers.variational import (
+from qiskit.algorithms.time_evolvers.variational import (
     ImaginaryMcLachlanPrinciple,
 )
 from qiskit.circuit.library import EfficientSU2
 from qiskit.opflow import SummedOp, X, Y, I, Z
-from ..expected_results.test_imaginary_mc_lachlan_variational_principle_expected1 import (
+from test.python.algorithms.time_evolvers.variational.variational_principles.expected_results.test_imaginary_mc_lachlan_variational_principle_expected1 import (
     expected_bound_metric_tensor_1,
 )
 
@@ -51,7 +51,7 @@ class TestImaginaryMcLachlanPrinciple(QiskitAlgorithmsTestCase):
         var_principle = ImaginaryMcLachlanPrinciple()
 
         bound_metric_tensor = var_principle.metric_tensor(
-            ansatz, parameters, parameters, param_dict.values(), None, None
+            ansatz, parameters, list(param_dict.values())
         )
 
         np.testing.assert_almost_equal(bound_metric_tensor, expected_bound_metric_tensor_1)
@@ -80,13 +80,10 @@ class TestImaginaryMcLachlanPrinciple(QiskitAlgorithmsTestCase):
         bound_evolution_grad = var_principle.evolution_grad(
             observable,
             ansatz,
-            None,
             param_dict,
             parameters,
             parameters,
-            param_dict.values(),
-            None,
-            None,
+            list(param_dict.values()),
         )
 
         expected_bound_evolution_grad = [

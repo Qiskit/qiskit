@@ -1291,7 +1291,6 @@ class TestQFI(QiskitOpflowTestCase):
         qc.rz(a, 0)
         qc.rx(b, 0)
 
-
         # convert the circuit to a QFI object
         op = CircuitStateFn(qc)
         qfi = LinCombFull(phase_fix=False).convert(operator=op, params=[a, b])

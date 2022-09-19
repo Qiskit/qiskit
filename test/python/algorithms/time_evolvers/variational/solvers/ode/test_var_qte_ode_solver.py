@@ -16,20 +16,20 @@ import unittest
 from test.python.algorithms import QiskitAlgorithmsTestCase
 from ddt import ddt, data, unpack
 import numpy as np
-from qiskit.algorithms.evolvers.variational.solvers.ode.forward_euler_solver import (
+from qiskit.algorithms.time_evolvers.variational.solvers.ode.forward_euler_solver import (
     ForwardEulerSolver,
 )
-from qiskit.algorithms.evolvers.variational.solvers.var_qte_linear_solver import (
+from qiskit.algorithms.time_evolvers.variational.solvers.var_qte_linear_solver import (
     VarQTELinearSolver,
 )
-from qiskit.algorithms.evolvers.variational.solvers.ode.var_qte_ode_solver import (
+from qiskit.algorithms.time_evolvers.variational.solvers.ode.var_qte_ode_solver import (
     VarQTEOdeSolver,
 )
-from qiskit.algorithms.evolvers.variational.solvers.ode.ode_function import (
+from qiskit.algorithms.time_evolvers.variational.solvers.ode.ode_function import (
     OdeFunction,
 )
 from qiskit import BasicAer
-from qiskit.algorithms.evolvers.variational import (
+from qiskit.algorithms.time_evolvers.variational import (
     ImaginaryMcLachlanPrinciple,
 )
 from qiskit.circuit.library import EfficientSU2
@@ -100,8 +100,6 @@ class TestVarQTEOdeSolver(QiskitAlgorithmsTestCase):
 
         param_dict = dict(zip(parameters, init_param_values))
 
-        backend = BasicAer.get_backend("statevector_simulator")
-
         var_principle = ImaginaryMcLachlanPrinciple()
 
         time = 1
@@ -116,7 +114,6 @@ class TestVarQTEOdeSolver(QiskitAlgorithmsTestCase):
             parameters,
             t_param,
             linear_solver,
-            quantum_instance=backend,
         )
         ode_function_generator = OdeFunction(linear_solver, None, param_dict, t_param)
 
