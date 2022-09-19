@@ -18,6 +18,7 @@ import argparse
 import sys
 from string import Template
 import os
+from reno.utils import get_random_string
 
 from update_fake_backends import DEFAULT_DIR
 from qiskit import IBMQ
@@ -165,9 +166,11 @@ def _main():
         init_file,
     )
 
-    # Step 7. releasenotes/notes/fake_<backend_name>-deadbeef.yaml
+    # Step 7. releasenotes/notes/fake_<backend_name>-<random_string>.yaml
     result = reno_template.substitute(vars_)
-    with open(os.path.join(RENO_DIR, f"fake_{args.backend_name}-deadbeef.yaml"), "w") as fd:
+    with open(
+        os.path.join(RENO_DIR, f"fake_{args.backend_name}-{get_random_string()}.yaml"), "w"
+    ) as fd:
         fd.write(result)
 
 
