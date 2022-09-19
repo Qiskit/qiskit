@@ -78,7 +78,7 @@ class SSVQE(VariationalAlgorithm, Eigensolver):
     An instance of SSVQE requires defining two algorithmic sub-components:
     a trial state (a.k.a. ansatz) which is a :class:`QuantumCircuit`, and one of the classical
     :mod:`~qiskit.algorithms.optimizers`. The ansatz is varied, via its set of parameters, by the
-    optimizer, such that it works towards a set of mutually orthogonal states, as determined by the 
+    optimizer, such that it works towards a set of mutually orthogonal states, as determined by the
     parameters applied to the ansatz, that will result in the minimum weighted sum of expectation values
     being measured of the input operator (Hamiltonian) with respect to these states. The weights
     given to this list of expectation values is given by *weight_vector*.
@@ -269,7 +269,7 @@ class SSVQE(VariationalAlgorithm, Eigensolver):
 
     @num_states.setter
     def num_states(self, num: int) -> None:
-        """ Sets the number of low-lying eigenstates which the algorithm will attempt to find.
+        """Sets the number of low-lying eigenstates which the algorithm will attempt to find.
         Args:
             num: The number of eigenstates to find.
         """
