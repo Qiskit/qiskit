@@ -42,6 +42,7 @@ from .melbourne import FakeMelbourneV2
 from .montreal import FakeMontrealV2
 from .mumbai import FakeMumbaiV2
 from .nairobi import FakeNairobiV2
+from .oslo import FakeOslo
 from .ourense import FakeOurenseV2
 from .paris import FakeParisV2
 from .perth import FakePerth
