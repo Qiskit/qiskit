@@ -294,9 +294,9 @@ class TestSSVQE(QiskitAlgorithmsTestCase):
         ssvqe.compute_eigenvalues(operator=self.h2_op)
 
         self.assertTrue(all(isinstance(count, int) for count in history["eval_count"]))
-        self.assertTrue(all(isinstance(mean, float) for mean in history["mean_list"]))
+        self.assertTrue(all(isinstance(mean, float) for mean_list in history["mean_list"] for mean in mean_list))
         self.assertTrue(all(isinstance(mean, float) for mean in history["weighted_sum_mean_list"]))
-        self.assertTrue(all(isinstance(std, float) for std in history["std_list"]))
+        self.assertTrue(all(isinstance(std, float) for std_list in history["std_list"] for std in std_list))
         for params in history["parameters"]:
             self.assertTrue(all(isinstance(param, float) for param in params))
 
