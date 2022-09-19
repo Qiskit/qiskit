@@ -425,7 +425,7 @@ def _make_lin_comb_qfi_circuit(
     circuit2.h(qr_aux)
     circuit2.data.insert(0, circuit2.data.pop())
     # circuit2.sdg(qr_aux)
-    #circuit2.data.insert(1, circuit2.data.pop())
+    # circuit2.data.insert(1, circuit2.data.pop())
 
     # print(circuit2)
 
@@ -437,12 +437,14 @@ def _make_lin_comb_qfi_circuit(
             if inst_j.is_parameterized():
                 param_i = inst_i.params[0]
                 param_j = inst_j.params[0]
-                if circuit2.parameters.data.index(param_i) > circuit2.parameters.data.index(param_j):
+                if circuit2.parameters.data.index(param_i) > circuit2.parameters.data.index(
+                    param_j
+                ):
                     continue
-                print(inst_i)
+
                 for p_i in param_i.parameters:
                     for p_j in param_j.parameters:
-                        print(f'i={p_i}, j={p_j}')
+
                         gate_i = _gate_gradient(inst_i)
                         gate_j = _gate_gradient(inst_j)
                         circuit3 = circuit2.copy()
@@ -460,10 +462,14 @@ def _make_lin_comb_qfi_circuit(
                         circuit3.h(qr_aux)
                         if add_measurement:
                             circuit3.measure(qr_aux, cr_aux)
-                        grad_dict[circuit2.parameters.data.index(param_i),circuit2.parameters.data.index(param_j)].append(
-                            LinearCombGradientCircuit(circuit3, param_i.gradient(p_i) * param_j.gradient(p_j))
+                        grad_dict[
+                            circuit2.parameters.data.index(param_i),
+                            circuit2.parameters.data.index(param_j),
+                        ].append(
+                            LinearCombGradientCircuit(
+                                circuit3, param_i.gradient(p_i) * param_j.gradient(p_j)
+                            )
                         )
                         # grad_dict[p_i, p_j].append(circuit3)
-                        print(circuit3)
 
     return grad_dict

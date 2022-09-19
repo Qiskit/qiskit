@@ -61,7 +61,7 @@ class LinCombEstimatorGradient(BaseEstimatorGradient):
         observables: Sequence[BaseOperator | PauliSumOp],
         parameter_values: Sequence[Sequence[float]],
         parameters: Sequence[Sequence[Parameter] | None],
-        aux_meas_op = None,
+        aux_meas_op=None,
         **run_options,
     ) -> EstimatorGradientResult:
         """Compute the estimator gradients on the given circuits."""
@@ -80,7 +80,7 @@ class LinCombEstimatorGradient(BaseEstimatorGradient):
 
             # TODO: support measurement in different basis (Y and Z+iY)
             if aux_meas_op is not None:
-                op2 = SparsePauliOp.from_list([("Z", 1), ("Y", complex(0,-1))])
+                op2 = SparsePauliOp.from_list([("Z", 1), ("Y", complex(0, -1))])
                 observable_ = observable.expand(op2)
             else:
                 observable_ = observable.expand(Pauli_Z)
@@ -129,7 +129,7 @@ class LinCombEstimatorGradient(BaseEstimatorGradient):
 
         gradients = []
         for i, result in enumerate(results):
-            gradient_ = np.zeros(len(metadata_[i]["parameters"]), dtype='complex_')
+            gradient_ = np.zeros(len(metadata_[i]["parameters"]), dtype="complex_")
             for grad_, idx, coeff in zip(result.values, result_indices_all[i], coeffs_all[i]):
                 gradient_[idx] += coeff * grad_
             gradients.append(gradient_)

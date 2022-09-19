@@ -60,7 +60,6 @@ class QFI:
         """Compute the estimator gradients on the given circuits."""
         jobs, result_indices_all, coeffs_all, metadata_, phasefixes = [], [], [], [], []
 
-
         for circuit, observable, parameter_values_, parameters_ in zip(
             circuits, observables, parameter_values, parameters
         ):
@@ -71,16 +70,18 @@ class QFI:
             metadata_.append({"parameters": [p for p in circuit.parameters if p in param_set]})
             observable_ = observable.expand(Pauli_Z)
 
-            print(circuit)
             gradient_result = self._gradient.run(
-                circuits=[circuit], observables=[observable], parameter_values=[parameter_values_], aux_meas_op=True
+                circuits=[circuit],
+                observables=[observable],
+                parameter_values=[parameter_values_],
+                aux_meas_op=True,
             ).result()
 
-            print(gradient_result)
-            phasefix = np.outer(np.conjugate(gradient_result.gradients[0]), gradient_result.gradients[0])
+            phasefix = np.outer(
+                np.conjugate(gradient_result.gradients[0]), gradient_result.gradients[0]
+            )
             phasefixes.append(phasefix)
             qfi_circuits_ = _make_lin_comb_qfi_circuit(circuit)
-            print(param_set)
 
             n = len(circuit.parameters)
             # only compute the gradients for parameters in the parameter set
@@ -103,14 +104,13 @@ class QFI:
                 for j, param_j in enumerate(circuit.parameters):
                     if not param_j in param_set or i > j:
                         continue
-                    print(i, j)
 
-                    qfi_circuits.extend(
-                        grad.gradient_circuit for grad in qfi_circuits_[i,j]
+                    qfi_circuits.extend(grad.gradient_circuit for grad in qfi_circuits_[i, j])
+
+                    result_indices.extend(
+                        (result_map[i], result_map[j]) for _ in qfi_circuits_[i, j]
                     )
-
-                    result_indices.extend((result_map[i], result_map[j]) for _ in qfi_circuits_[i,j])
-                    for grad in qfi_circuits_[i,j]:
+                    for grad in qfi_circuits_[i, j]:
                         coeff = grad.coeff
                         # if the parameter is a parameter expression, we need to substitute
                         if isinstance(coeff, ParameterExpression):
@@ -123,7 +123,6 @@ class QFI:
                             bound_coeff = coeff
                         coeffs.append(bound_coeff)
 
-            print(qfi_circuits, result_indices, coeffs)
             n = len(qfi_circuits)
             job = self._estimator.run(
                 qfi_circuits, [observable_] * n, [parameter_values_] * n, **run_options
@@ -144,17 +143,11 @@ class QFI:
             qfi_ = np.zeros((len(metadata_[i]["parameters"]), len(metadata_[i]["parameters"])))
             for grad_, idx, coeff in zip(result.values, result_indices_all[i], coeffs_all[i]):
                 qfi_[idx] += coeff * grad_
-            print(f'qfi_:  {qfi_}')
             qfi = qfi_ - phasefixes[i]
-            print(f'qfi:  {qfi}')
             qfi += np.triu(qfi_, k=1).T
             qfis.append(qfi)
 
-
-        return EstimatorGradientResult(
-            gradients=qfis, metadata=metadata_, run_options=run_options
-        )
-
+        return EstimatorGradientResult(gradients=qfis, metadata=metadata_, run_options=run_options)
 
         #     # Make the observable as observable as :class:`~qiskit.quantum_info.SparsePauliOp`.
         #     observable = init_observable(observable)
