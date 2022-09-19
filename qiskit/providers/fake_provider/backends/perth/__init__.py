@@ -9,4 +9,7 @@
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
-"""Stores expected results that are lengthy."""
+
+"""Fake Perth device (7 qubits)"""
+
+from .fake_perth import FakePerth
