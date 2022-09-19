@@ -157,9 +157,6 @@ class TestSSVQE(QiskitAlgorithmsTestCase):
 
             for circuits_list in circuits:
                 self.assertEqual(len(circuits_list), num_circuits)
-            # for circuits_list in circuits:
-            #    for circ in circuits:
-            #        self.assertIsInstance(circ, QuantumCircuit)
             for circ_list in circuits:
                 for circ in circ_list:
                     self.assertIsInstance(circ, QuantumCircuit)
@@ -192,7 +189,6 @@ class TestSSVQE(QiskitAlgorithmsTestCase):
             quantum_instance=self.qasm_simulator,
         )
 
-        # TODO benchmark this later.
         result = ssvqe.compute_eigenvalues(operator=self.h2_op)
         np.testing.assert_array_almost_equal(
             result.eigenvalues.real, self.h2_energy_excited, decimal=1
