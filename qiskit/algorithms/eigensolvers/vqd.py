@@ -56,7 +56,7 @@ class VQD(VariationalAlgorithm, Eigensolver):
 
     An instance of VQD requires defining three algorithmic sub-components:
     an integer k denoting the number of eigenstates to calculate, a trial
-    state (a.k.a. ansatz)which is a :class:`QuantumCircuit`,
+    state (a.k.a. ansatz) which is a :class:`QuantumCircuit`,
     and one of the classical :mod:`~qiskit.algorithms.optimizers`.
     The ansatz is varied, via its set of parameters, by the optimizer,
     such that it works towards a state, as determined by the parameters
@@ -79,6 +79,32 @@ class VQD(VariationalAlgorithm, Eigensolver):
     will default it to :math:`-2\pi`; similarly, if the ansatz returns ``None``
     as the upper bound, the default value will be :math:`2\pi`.
 
+    The following attributes can be set via the initializer but can also be read and
+    updated once the VQD object has been constructed.
+
+    Attributes:
+            estimator (BaseEstimator): The primitive instance used to perform the expectation
+                estimation as indicated in the VQD paper.
+            fidelity (BaseStateFidelity): The fidelity class instance used to compute the
+                overlap estimation as indicated in the VQD paper.
+            ansatz (QuantumCircuit): A parameterized circuit used as ansatz for the wave function.
+            optimizer(Optimizer): A classical optimizer. Can either be a Qiskit optimizer or a callable
+                that takes an array as input and returns a Qiskit or SciPy optimization result.
+            k (int): the number of eigenvalues to return. Returns the lowest k eigenvalues.
+            betas (list[float]): beta parameters in the VQD paper.
+                Should have length k - 1, with k the number of excited states.
+                These hyper-parameters balance the contribution of each overlap term to the cost
+                function and have a default value computed as the mean square sum of the
+                coefficients of the observable.
+            initial_point (np.ndarray): An optional initial point (i.e. initial parameter values)
+                for the optimizer. If ``None`` then VQD will look to the ansatz for a preferred
+                point and if not will simply compute a random one.
+            callback (Callable): a callback that can access the intermediate data during the optimization.
+                Four parameter values are passed to the callback as follows during each evaluation
+                by the optimizer for its current set of parameters as it works towards the minimum.
+                These are: the evaluation count, the optimizer parameters for the ansatz, the
+                evaluated mean, the evaluated standard deviation, and the current step.
+
     """
 
     def __init__(
@@ -86,12 +112,11 @@ class VQD(VariationalAlgorithm, Eigensolver):
         estimator: BaseEstimator,
         fidelity: BaseStateFidelity,
         ansatz: QuantumCircuit | None = None,
+        optimizer: Optimizer | Minimizer | None = None,
         *,
         k: int = 2,
         betas: list[float] | None = None,
-        optimizer: Optimizer | Minimizer | None = None,
         initial_point: np.ndarray | None = None,
-        gradient: Callable | None = None,
         callback: Callable[[int, np.ndarray, float, float], None] | None = None,
     ) -> None:
         """
@@ -100,18 +125,17 @@ class VQD(VariationalAlgorithm, Eigensolver):
             estimator: The estimator primitive.
             fidelity: The fidelity class using primitives.
             ansatz: A parameterized circuit used as ansatz for the wave function.
+            optimizer: A classical optimizer. Can either be a Qiskit optimizer or a callable
+                that takes an array as input and returns a Qiskit or SciPy optimization result.
             k: the number of eigenvalues to return. Returns the lowest k eigenvalues.
             betas: beta parameters in the VQD paper.
                 Should have length k - 1, with k the number of excited states.
                 These hyperparameters balance the contribution of each overlap term to the cost
                 function and have a default value computed as the mean square sum of the
                 coefficients of the observable.
-            optimizer: A classical optimizer. Can either be a Qiskit optimizer or a callable
-                that takes an array as input and returns a Qiskit or SciPy optimization result.
             initial_point: An optional initial point (i.e. initial parameter values)
                 for the optimizer. If ``None`` then VQD will look to the ansatz for a preferred
                 point and if not will simply compute a random one.
-            gradient: An optional fidelity gradient using primitives.
             callback: a callback that can access the intermediate data during the optimization.
                 Four parameter values are passed to the callback as follows during each evaluation
                 by the optimizer for its current set of parameters as it works towards the minimum.
@@ -122,26 +146,13 @@ class VQD(VariationalAlgorithm, Eigensolver):
 
         self.estimator = estimator
         self.fidelity = fidelity
+        self.ansatz = ansatz
+        self.optimizer = optimizer
         self.k = k
         self.betas = betas
-        self.callback = callback
-
-        if ansatz is None:
-            ansatz = RealAmplitudes()
-        self.ansatz = ansatz
-
-        if optimizer is None:
-            optimizer = SLSQP()
-        self.optimizer = optimizer
-
-        if gradient is not None:
-            warn(
-                "The current VQD implementation does not offer gradient support."
-                "Continuing without gradients."
-            )
-
         # this has to go via getters and setters due to the VariationalAlgorithm interface
-        self._initial_point = initial_point
+        self.initial_point = initial_point
+        self.callback = callback
 
         self._eval_time = None
         self._eval_count = 0
@@ -179,6 +190,12 @@ class VQD(VariationalAlgorithm, Eigensolver):
         operator: BaseOperator | PauliSumOp,
         aux_operators: ListOrDict[BaseOperator | PauliSumOp] | None = None,
     ) -> EigensolverResult:
+
+        if self.ansatz is None:
+            self.ansatz = RealAmplitudes()
+        if self.optimizer is None:
+            self.optimizer = SLSQP()
+
         super().compute_eigenvalues(operator, aux_operators)
 
         # this sets the size of the ansatz, so it must be called before the initial point
