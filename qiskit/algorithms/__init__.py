@@ -92,6 +92,7 @@ knowledge to do this in that application domain.
 
    NumPyEigensolver
    VQD
+   SSVQE
 
 
 Evolvers
@@ -355,6 +356,8 @@ __all__ = [
     "EigensolverResult",
     "Shor",
     "ShorResult",
+    "SSVQE",
+    "SSVQEResult",
     "VQE",
     "VQEResult",
     "QAOA",
