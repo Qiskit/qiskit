@@ -227,7 +227,7 @@ class TestComputeUncompute(QiskitTestCase):
         job = fidelity.run(circuit_1, circuit_2, self._left_params[0], self._right_params[0])
         result = job.result()
         np.testing.assert_allclose(result.fidelities, np.array([1.0]))
-        
+
 
 if __name__ == "__main__":
     unittest.main()
