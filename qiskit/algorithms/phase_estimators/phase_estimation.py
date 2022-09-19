@@ -62,7 +62,7 @@ class PhaseEstimation(PhaseEstimator):
     For phase estimation, there are two methods:
 
     first. `estimate`, which takes a state preparation circuit to prepare an input state, and
-      a unitary that will act on the the input state. In this case, an instance of
+      a unitary that will act on the input state. In this case, an instance of
       :class:`qiskit.circuit.PhaseEstimation`, a QPE circuit, containing
       the state preparation and input unitary will be constructed.
     second. `estimate_from_pe_circuit`, which takes a quantum-phase-estimation circuit in which
@@ -247,10 +247,8 @@ class PhaseEstimation(PhaseEstimator):
     # pylint: disable=missing-param-doc
     def estimate(
         self,
-        unitary: QuantumCircuit | None = None,
+        unitary: QuantumCircuit,
         state_preparation: QuantumCircuit | None = None,
-        pe_circuit: QuantumCircuit | None = None,
-        num_unitary_qubits: int | None = None,
     ) -> PhaseEstimationResult:
         """Build a phase estimation circuit and run the corresponding algorithm.
 
@@ -265,24 +263,7 @@ class PhaseEstimation(PhaseEstimator):
         Returns:
             An instance of qiskit.algorithms.phase_estimator_result.PhaseEstimationResult.
         """
-        if unitary is not None:
-            if pe_circuit is not None:
-                raise ValueError("Only one of `pe_circuit` and `unitary` may be passed.")
-            pe_circuit = self.construct_circuit(unitary, state_preparation)
-            num_unitary_qubits = unitary.num_qubits
-
-        elif pe_circuit is not None:
-            warnings.warn(
-                "Passing `pe_circuit` to the PhaseEstimation.estimate() method "
-                "is deprecated as of 0.18, and will be removed no earlier than "
-                "3 months after that release date. "
-                "You should use the PhaseEstimation.estimate_from_pe_circuit() method "
-                "instead.",
-                DeprecationWarning,
-                stacklevel=2,
-            )
-
-        else:
-            raise ValueError("One of `pe_circuit` and `unitary` must be passed.")
+        pe_circuit = self.construct_circuit(unitary, state_preparation)
+        num_unitary_qubits = unitary.num_qubits
 
         return self.estimate_from_pe_circuit(pe_circuit, num_unitary_qubits)

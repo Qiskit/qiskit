@@ -24,7 +24,6 @@ from qiskit.opflow import (
     MatrixOp,
     PauliSumOp,
     StateFn,
-    OperatorBase,
     EvolutionBase,
     PauliTrotterEvolution,
     I,
