@@ -31,7 +31,7 @@ from qiskit.synthesis import ProductFormula, LieTrotter
 
 class TrotterQRTE(RealTimeEvolver):
     """Quantum Real Time Evolution using Trotterization.
-    Type of Trotterization is defined by a ProductFormula provided.
+    Type of Trotterization is defined by a ``ProductFormula`` provided.
 
     Attributes:
         product_formula: A Lie-Trotter-Suzuki product formula. The default is the Lie-Trotter
@@ -41,14 +41,16 @@ class TrotterQRTE(RealTimeEvolver):
 
         .. code-block:: python
 
-            from qiskit.opflow import X, Z, Zero
+            from qiskit.opflow import PauliSumOp
+            from qiskit.quantum_info import Pauli, SparsePauliOp
+            from qiskit import QuantumCircuit
             from qiskit.algorithms.time_evolvers import TimeEvolutionProblem, TrotterQRTE
             from qiskit.primitives import Estimator
 
-            operator = X + Z
-            initial_state = Zero
+            operator = PauliSumOp(SparsePauliOp([Pauli("X"), Pauli("Z")]))
+            initial_state = QuantumCircuit(1)
             time = 1
-            evolution_problem = TimeEvolutionProblem(operator, 1, initial_state)
+            evolution_problem = TimeEvolutionProblem(operator, time, initial_state)
             # LieTrotter with 1 rep
             estimator = Estimator()
             trotter_qrte = TrotterQRTE(estimator=estimator)
@@ -65,7 +67,7 @@ class TrotterQRTE(RealTimeEvolver):
             product_formula: A Lie-Trotter-Suzuki product formula. The default is the Lie-Trotter
                 first order product formula with a single repetition.
             estimator: An estimator primitive used for calculating expectation values of
-                EvolutionProblem.aux_operators.
+                ``TimeEvolutionProblem.aux_operators``.
         """
         if product_formula is None:
             product_formula = LieTrotter()
@@ -92,8 +94,8 @@ class TrotterQRTE(RealTimeEvolver):
         Whether computing the expectation value of auxiliary operators is supported.
 
         Returns:
-            True if ``aux_operators`` expectations in the EvolutionProblem can be evaluated, False
-                otherwise.
+            ``True`` if ``aux_operators`` expectations in the ``TimeEvolutionProblem`` can be
+            evaluated, ``False`` otherwise.
         """
         return True
 
@@ -116,22 +118,22 @@ class TrotterQRTE(RealTimeEvolver):
             auxiliary operators evaluated for a resulting state on an estimator primitive.
 
         Raises:
-            ValueError: If ``t_param`` is not set to ``None`` in the EvolutionProblem (feature not
-                currently supported).
-            ValueError: If the ``initial_state`` is not provided in the EvolutionProblem.
+            ValueError: If ``t_param`` is not set to ``None`` in the ``TimeEvolutionProblem``
+                (feature not currently supported).
+            ValueError: If the ``initial_state`` is not provided in the ``TimeEvolutionProblem``.
             ValueError: If an unsupported Hamiltonian type is provided.
         """
         evolution_problem.validate_params()
         if evolution_problem.t_param is not None:
             raise ValueError(
-                "TrotterQRTE does not accept a time dependent hamiltonian,"
-                "``t_param`` from the EvolutionProblem should be set to None."
+                "TrotterQRTE does not accept a time dependent Hamiltonian,"
+                "``t_param`` from the ``TimeEvolutionProblem`` should be set to ``None``."
             )
 
         if evolution_problem.aux_operators is not None and self.estimator is None:
             warnings.warn(
-                "The evolution problem contained aux_operators but no estimator was provided. "
-                "The algorithm continues without calculating these quantities. "
+                "The time evolution problem contained ``aux_operators`` but no estimator was "
+                "provided. The algorithm continues without calculating these quantities. "
             )
         hamiltonian = evolution_problem.hamiltonian
         if not isinstance(hamiltonian, (Pauli, PauliSumOp)):
@@ -150,7 +152,7 @@ class TrotterQRTE(RealTimeEvolver):
             evolved_state.append(evolution_gate, evolved_state.qubits)
 
         else:
-            raise ValueError("``initial_state`` must be provided in the EvolutionProblem.")
+            raise ValueError("``initial_state`` must be provided in the ``TimeEvolutionProblem``.")
 
         evaluated_aux_ops = None
         if evolution_problem.aux_operators is not None:
