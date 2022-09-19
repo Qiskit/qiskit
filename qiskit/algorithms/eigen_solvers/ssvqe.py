@@ -67,15 +67,21 @@ MINIMIZER = Callable[
 
 class SSVQE(VariationalAlgorithm, Eigensolver):
     r"""The Subspace Search Variational Quantum Eigensolver algorithm.
-    `VQE <https://arxiv.org/abs/1810.09434>`__ is a quantum algorithm that uses a
+    `SSVQE <https://arxiv.org/abs/1810.09434>`__ is a quantum algorithm that uses a
     variational technique to find
     the low-lying eigenvalues of the Hamiltonian :math:`H` of a given system.
+    SSVQE can be seen as a natural generalization of VQE. Instead of
+    minimizing the expectation value of :math:`H`, SSVQE takes a set of
+    mutually orthogonal input states, applies the same parameterized
+    ansatz to all of them, then minimizes a weighted sum
+    of the expectation values of :math:`H` with respect to these states.
     An instance of SSVQE requires defining two algorithmic sub-components:
     a trial state (a.k.a. ansatz) which is a :class:`QuantumCircuit`, and one of the classical
     :mod:`~qiskit.algorithms.optimizers`. The ansatz is varied, via its set of parameters, by the
-    optimizer, such that it works towards a state, as determined by the parameters applied to the
-    ansatz, that will result in the minimum expectation value being measured of the input operator
-    (Hamiltonian).
+    optimizer, such that it works towards a set of mutually orthogonal states, as determined by the 
+    parameters applied to the ansatz, that will result in the minimum weighted sum of expectation values
+    being measured of the input operator (Hamiltonian) with respect to these states. The weights
+    given to this list of expectation values is given by *weight_vector*.
     An optional array of parameter values, via the *initial_point*, may be provided as the
     starting point for the search of the low-lying eigenvalues. This feature is particularly useful
     such as when there are reasons to believe that the solution point is close to a particular
@@ -90,7 +96,7 @@ class SSVQE(VariationalAlgorithm, Eigensolver):
     of ``None``, then SSVQE will look to the ansatz for a preferred value, based on its
     given initial state. If the ansatz returns ``None``,
     then a random point will be generated within the parameter bounds set, as per above.
-    If the ansatz provides ``None`` as the lower bound, then VQE
+    If the ansatz provides ``None`` as the lower bound, then SSVQE
     will default it to :math:`-2\pi`; similarly, if the ansatz returns ``None``
     as the upper bound, the default value will be :math:`2\pi`.
     An optional list of initial states, via the *initial_states*, may also be provided. Choosing
@@ -151,7 +157,7 @@ class SSVQE(VariationalAlgorithm, Eigensolver):
     ) -> None:
         """
         Args:
-        num_states: The number of states which the algorithm will attempt to find.
+        num_states: The number of eigenstates that the algorithm will attempt to find.
             ansatz: A parameterized circuit used as Ansatz for the wave function.
             optimizer: A classical optimizer. Can either be a Qiskit optimizer or a callable
                 that takes an array as input and returns a Qiskit or SciPy optimization result.
@@ -164,7 +170,7 @@ class SSVQE(VariationalAlgorithm, Eigensolver):
             weight_vector: An optional list or array of real positive numbers with length
                 equal to the value of *num_states* to be used in the weighted energy summation
                 objective function. This fixes the ordering of the returned eigenstate/eigenvalue
-                pairs.
+                pairs. If ``None``, then SSVQE will default to [n, n-1, ..., 1] for `num_states` = n.
             gradient: An optional gradient function or operator for optimizer.
             expectation: The Expectation converter for taking the average value of the
                 Observable over the ansatz state function. When ``None`` (the default) an
@@ -261,13 +267,21 @@ class SSVQE(VariationalAlgorithm, Eigensolver):
         """Returns the number of low-lying eigenstates which the algorithm will attempt to find."""
         return self._num_states
 
+    @num_states.setter
+    def num_states(self, num: int) -> None:
+        """ Sets the number of low-lying eigenstates which the algorithm will attempt to find.
+        Args:
+            num: The number of eigenstates to find.
+        """
+        self._num_states = num
+
     @property
     def ansatz(self) -> QuantumCircuit:
         """Returns the ansatz."""
         return self._ansatz
 
     @ansatz.setter
-    def ansatz(self, ansatz: Optional[QuantumCircuit]):
+    def ansatz(self, ansatz: Optional[QuantumCircuit]) -> None:
         """Sets the ansatz.
         Args:
             ansatz: The parameterized circuit used as an ansatz.
@@ -285,7 +299,7 @@ class SSVQE(VariationalAlgorithm, Eigensolver):
         return self._initial_states
 
     @initial_states.setter
-    def initial_states(self, states):
+    def initial_states(self, states: List[Union[QuantumCircuit, Statevector]]) -> None:
         """Sets the initial states.
         Args:
         states: The initial states to be used by the algorithm."""
@@ -302,7 +316,7 @@ class SSVQE(VariationalAlgorithm, Eigensolver):
         return self._initialized_ansatz_list
 
     @initialized_ansatz_list.setter
-    def initialized_ansatz_list(self, initialized_states):
+    def initialized_ansatz_list(self, initialized_states: List[QuantumCircuit]) -> None:
         """Sets the list of ansatz circuits initialized in the set of initial states.
         Args: initial_states: The list of orthogonal initial states."""
 
@@ -362,7 +376,7 @@ class SSVQE(VariationalAlgorithm, Eigensolver):
         return self._include_custom
 
     @include_custom.setter
-    def include_custom(self, include_custom: bool):
+    def include_custom(self, include_custom: bool) -> None:
         """Sets include_custom. If set to another value than the one that was previsously set,
         the expectation attribute is reset to None.
         """
@@ -439,9 +453,9 @@ class SSVQE(VariationalAlgorithm, Eigensolver):
 
     def print_settings(self):
         """
-        Preparing the setting of VQE into a string.
+        Preparing the setting of SSVQE into a string.
         Returns:
-            str: the formatted setting of VQE
+            str: the formatted setting of SSVQE
         """
         ret = "\n"
         ret += "==================== Setting of {} ============================\n".format(
@@ -521,17 +535,20 @@ class SSVQE(VariationalAlgorithm, Eigensolver):
 
         return expect_op_list
 
-    def construct_circuits(  # check back on this later to make adjustments.
+    def construct_circuits(
         self,
         parameter: Union[List[float], List[Parameter], np.ndarray],
         operator: OperatorBase,
     ) -> List[QuantumCircuit]:
-        """Return the circuits used to compute the expectation value.
+        """Return the circuits used to compute the expectation values with respect to
+        each state involved in the weighted summation of expectation values.
         Args:
             parameter: Parameters for the ansatz circuit.
             operator: Qubit operator of the Observable
         Returns:
-            A list of lists of the circuits used to compute the expectation value.
+            A list of lists of the circuits used to compute the expectation value,
+            where the nth list is a list of the circuits used to compute the expectation
+            value of the nth state.
         """
         expect_op_list = self.construct_expectation_list(parameter, operator)
 
