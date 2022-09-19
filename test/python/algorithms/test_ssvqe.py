@@ -301,12 +301,14 @@ class TestSSVQE(QiskitAlgorithmsTestCase):
             self.assertTrue(all(isinstance(param, float) for param in params))
 
         ref_eval_count = [1, 2, 3]
-        ref_mean = [-1.063, -1.457, -1.360, 37.340, 48.543, 28.586]
-        ref_std = [0.011, 0.010, 0.014, 0.011, 0.010, 0.015]
+        ref_mean = [-1.063, -1.457, -1.360]
+        ref_weighted_sum_mean = [1,2,3]
+        ref_std = [0.011, 0.010, 0.014]
 
         np.testing.assert_array_almost_equal(history["eval_count"], ref_eval_count, decimal=0)
-        np.testing.assert_array_almost_equal(history["mean"], ref_mean, decimal=2)
-        np.testing.assert_array_almost_equal(history["std"], ref_std, decimal=2)
+        np.testing.assert_array_almost_equal(history["mean_list"], ref_mean, decimal=2)
+        np.testing.assert_array_almost_equal(history["std_list"], ref_std, decimal=2)
+        np.testing.assert_array_almost_equal(history["weighted_sum_mean_list"], ref_weighted_sum_mean, decimal=2)
 
     def test_reuse(self):
         """Test re-using an SSVQE algorithm instance."""
