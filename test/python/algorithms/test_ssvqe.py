@@ -303,7 +303,7 @@ class TestSSVQE(QiskitAlgorithmsTestCase):
         ref_eval_count = [1, 2, 3]
         ref_mean = [[-1.06, -1.43], [-1.46, -1.06], [-1.36, -0.94]]
         ref_weighted_sum_mean = [-3.55, -3.98, -3.66]
-        ref_std = [0.011, 0.010, 0.014]
+        ref_std = [[0.01, 0.01], [0.01, 0.01], [0.01, 0.01]]
 
         np.testing.assert_array_almost_equal(history["eval_count"], ref_eval_count, decimal=0)
         np.testing.assert_array_almost_equal(history["mean_list"], ref_mean, decimal=2)
