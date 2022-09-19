@@ -14,6 +14,7 @@
 
 import unittest
 from test.python.algorithms import QiskitAlgorithmsTestCase
+from qiskit.quantum_info.operators import Operator
 
 import numpy as np
 from ddt import data, ddt
@@ -37,11 +38,21 @@ class TestNumPyEigensolver(QiskitAlgorithmsTestCase):
                 ("XX", 0.18093119978423156),
             ]
         )
+        self.qubit_op_2 = Operator(self.qubit_op)
 
     def test_ce(self):
         """Test basics"""
         algo = NumPyEigensolver()
         result = algo.compute_eigenvalues(operator=self.qubit_op, aux_operators=[])
+        self.assertEqual(len(result.eigenvalues), 1)
+        self.assertEqual(len(result.eigenstates), 1)
+        self.assertEqual(result.eigenvalues.dtype, np.float64)
+        self.assertAlmostEqual(result.eigenvalues[0], -1.85727503)
+
+    def test_ce2(self):
+        """Test basics"""
+        algo = NumPyEigensolver()
+        result = algo.compute_eigenvalues(operator=self.qubit_op_2, aux_operators=[])
         self.assertEqual(len(result.eigenvalues), 1)
         self.assertEqual(len(result.eigenstates), 1)
         self.assertEqual(result.eigenvalues.dtype, np.float64)

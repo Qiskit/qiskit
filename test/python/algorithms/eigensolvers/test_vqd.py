@@ -25,7 +25,7 @@ from qiskit.algorithms.optimizers import (
     L_BFGS_B,
     SLSQP,
 )
-from qiskit.circuit.library import TwoLocal
+from qiskit.circuit.library import TwoLocal, RealAmplitudes
 from qiskit.opflow import (
     MatrixOp,
     PauliSumOp,
@@ -118,8 +118,9 @@ class TestVQD(QiskitAlgorithmsTestCase):
         vqd = VQD(
             estimator=self.estimator,
             fidelity=self.fidelity,
-            k=1,
             ansatz=circuit,
+            optimizer=SLSQP(),
+            k=1,
         )
         with self.assertRaises(RuntimeError):
             vqd.compute_eigenvalues(operator=self.h2_op)
@@ -173,8 +174,9 @@ class TestVQD(QiskitAlgorithmsTestCase):
         vqd = VQD(
             estimator=self.estimator,
             fidelity=self.fidelity,
-            k=2,
+            ansatz=RealAmplitudes(),
             optimizer=SLSQP(),
+            k=2,
         )
 
         def run_check():
@@ -198,8 +200,9 @@ class TestVQD(QiskitAlgorithmsTestCase):
         vqd = VQD(
             estimator=self.estimator_shots,
             fidelity=self.fidelity,
-            k=2,
             ansatz=wavefunction,
+            optimizer=SLSQP(),
+            k=2,
         )
 
         # Start with an empty list
@@ -253,6 +256,7 @@ class TestVQD(QiskitAlgorithmsTestCase):
             estimator=self.estimator_shots,
             fidelity=self.fidelity,
             ansatz=wavefunction,
+            optimizer=SLSQP(),
         )
 
         # Start with an empty dictionary

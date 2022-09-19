@@ -19,11 +19,9 @@ from __future__ import annotations
 from typing import Callable
 import logging
 from time import time
-from warnings import warn
 import numpy as np
 
 from qiskit.circuit import QuantumCircuit
-from qiskit.circuit.library import RealAmplitudes
 from qiskit.opflow.primitive_ops.pauli_op import PauliOp
 from qiskit.quantum_info.operators.base_operator import BaseOperator
 from qiskit.opflow import PauliSumOp
@@ -31,7 +29,7 @@ from qiskit.primitives import BaseEstimator
 from qiskit.algorithms.state_fidelities import BaseStateFidelity
 
 from ..list_or_dict import ListOrDict
-from ..optimizers import Optimizer, SLSQP, Minimizer
+from ..optimizers import Optimizer, Minimizer
 from ..variational_algorithm import VariationalAlgorithm, VariationalResult
 from .eigensolver import Eigensolver, EigensolverResult
 from ..minimum_eigen_solvers.vqe import _validate_bounds, _validate_initial_point
@@ -99,12 +97,11 @@ class VQD(VariationalAlgorithm, Eigensolver):
             initial_point (np.ndarray): An optional initial point (i.e. initial parameter values)
                 for the optimizer. If ``None`` then VQD will look to the ansatz for a preferred
                 point and if not will simply compute a random one.
-            callback (Callable): a callback that can access the intermediate data during the optimization.
-                Four parameter values are passed to the callback as follows during each evaluation
-                by the optimizer for its current set of parameters as it works towards the minimum.
-                These are: the evaluation count, the optimizer parameters for the ansatz, the
-                evaluated mean, the evaluated standard deviation, and the current step.
-
+            callback (Callable): a callback that can access the intermediate data
+                during the optimization. Four parameter values are passed to the callback as
+                follows during each evaluation by the optimizer: the evaluation count,
+                the optimizer parameters for the ansatz, the evaluated mean, the evaluated
+                standard deviation, and the current step.
     """
 
     def __init__(
@@ -136,11 +133,11 @@ class VQD(VariationalAlgorithm, Eigensolver):
             initial_point: An optional initial point (i.e. initial parameter values)
                 for the optimizer. If ``None`` then VQD will look to the ansatz for a preferred
                 point and if not will simply compute a random one.
-            callback: a callback that can access the intermediate data during the optimization.
-                Four parameter values are passed to the callback as follows during each evaluation
-                by the optimizer for its current set of parameters as it works towards the minimum.
-                These are: the evaluation count, the optimizer parameters for the ansatz, the
-                evaluated mean, the evaluated standard deviation, and the current step.
+            callback: a callback that can access the intermediate data
+                during the optimization. Four parameter values are passed to the callback as
+                follows during each evaluation by the optimizer: the evaluation count,
+                the optimizer parameters for the ansatz, the evaluated mean, the evaluated
+                standard deviation, and the current step.
         """
         super().__init__()
 

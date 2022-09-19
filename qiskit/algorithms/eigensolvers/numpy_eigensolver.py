@@ -114,30 +114,38 @@ class NumPyEigensolver(Eigensolver):
                 self._k = self._in_k
 
     def _solve(self, operator: BaseOperator | PauliSumOp) -> None:
-        sp_mat = operator.to_spmatrix()
-        # If matrix is diagonal, the elements on the diagonal are the eigenvalues. Solve by sorting.
-        if scisparse.csr_matrix(sp_mat.diagonal()).nnz == sp_mat.nnz:
-            diag = sp_mat.diagonal()
-            indices = np.argsort(diag)[: self._k]
-            eigval = diag[indices]
-            eigvec = np.zeros((sp_mat.shape[0], self._k))
-            for i, idx in enumerate(indices):
-                eigvec[idx, i] = 1.0
-        else:
-            if self._k >= 2**operator.num_qubits - 1:
-                logger.debug("SciPy doesn't support to get all eigenvalues, using NumPy instead.")
-                if operator.is_hermitian():
-                    eigval, eigvec = np.linalg.eigh(operator.to_matrix())
-                else:
-                    eigval, eigvec = np.linalg.eig(operator.to_matrix())
+        if isinstance(operator, PauliSumOp):
+            sp_mat = operator.to_spmatrix()
+            # If matrix is diagonal, the elements on the diagonal are the eigenvalues. Solve by sorting.
+            if scisparse.csr_matrix(sp_mat.diagonal()).nnz == sp_mat.nnz:
+                diag = sp_mat.diagonal()
+                indices = np.argsort(diag)[: self._k]
+                eigval = diag[indices]
+                eigvec = np.zeros((sp_mat.shape[0], self._k))
+                for i, idx in enumerate(indices):
+                    eigvec[idx, i] = 1.0
             else:
-                if operator.is_hermitian():
-                    eigval, eigvec = scisparse.linalg.eigsh(sp_mat, k=self._k, which="SA")
+                if self._k >= 2**operator.num_qubits - 1:
+                    logger.debug("SciPy doesn't support to get all eigenvalues, using NumPy instead.")
+                    if operator.is_hermitian():
+                        eigval, eigvec = np.linalg.eigh(operator.to_matrix())
+                    else:
+                        eigval, eigvec = np.linalg.eig(operator.to_matrix())
                 else:
-                    eigval, eigvec = scisparse.linalg.eigs(sp_mat, k=self._k, which="SR")
-            indices = np.argsort(eigval)[: self._k]
-            eigval = eigval[indices]
-            eigvec = eigvec[:, indices]
+                    if operator.is_hermitian():
+                        eigval, eigvec = scisparse.linalg.eigsh(sp_mat, k=self._k, which="SA")
+                    else:
+                        eigval, eigvec = scisparse.linalg.eigs(sp_mat, k=self._k, which="SR")
+
+                    indices = np.argsort(eigval)[: self._k]
+                    eigval = eigval[indices]
+                    eigvec = eigvec[:, indices]
+        else:
+            logger.debug("SciPy not supported, using NumPy instead.")
+            if operator.is_hermitian():
+                eigval, eigvec = np.linalg.eigh(operator.to_matrix())
+            else:
+                eigval, eigvec = np.linalg.eig(operator.to_matrix())
         self._ret.eigenvalues = eigval
         self._ret.eigenstates = eigvec.T
 
