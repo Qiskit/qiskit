@@ -111,8 +111,8 @@ class VQD(VariationalAlgorithm, Eigensolver):
         self,
         estimator: BaseEstimator,
         fidelity: BaseStateFidelity,
-        ansatz: QuantumCircuit | None = None,
-        optimizer: Optimizer | Minimizer | None = None,
+        ansatz: QuantumCircuit | None,
+        optimizer: Optimizer | Minimizer,
         *,
         k: int = 2,
         betas: list[float] | None = None,
@@ -190,11 +190,6 @@ class VQD(VariationalAlgorithm, Eigensolver):
         operator: BaseOperator | PauliSumOp,
         aux_operators: ListOrDict[BaseOperator | PauliSumOp] | None = None,
     ) -> EigensolverResult:
-
-        if self.ansatz is None:
-            self.ansatz = RealAmplitudes()
-        if self.optimizer is None:
-            self.optimizer = SLSQP()
 
         super().compute_eigenvalues(operator, aux_operators)
 
