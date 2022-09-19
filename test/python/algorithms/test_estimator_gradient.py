@@ -30,7 +30,7 @@ from qiskit.circuit import Parameter
 from qiskit.circuit.library import EfficientSU2, RealAmplitudes
 from qiskit.circuit.library.standard_gates import RXXGate, RYYGate, RZXGate, RZZGate
 from qiskit.primitives import Estimator
-from qiskit.quantum_info import SparsePauliOp, Operator
+from qiskit.quantum_info import Operator, SparsePauliOp
 from qiskit.quantum_info.random import random_pauli_list
 from qiskit.test import QiskitTestCase
 
@@ -382,13 +382,13 @@ class TestEstimatorGradient(QiskitTestCase):
             SPSAEstimatorGradient,
         ],
     )
-    def test_run_options(self, grad):
+    def test_options(self, grad):
         """Test estimator gradient's run options"""
         a = Parameter("a")
         qc = QuantumCircuit(1)
         qc.rx(a, 0)
         op = SparsePauliOp.from_list([("Z", 1)])
-        estimator = Estimator(run_options={"shots": 100})
+        estimator = Estimator(options={"shots": 100})
         with self.subTest("estimator"):
             if grad is FiniteDiffEstimatorGradient or grad is SPSAEstimatorGradient:
                 gradient = grad(estimator, epsilon=1e-6)
