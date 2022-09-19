@@ -41,18 +41,19 @@ class EquivalenceLibrary:
         """
         self._base = base
 
-        self._map = {}
-
         self._graph = rx.PyDiGraph()
-        self._nodes_to_indices = dict()
-        self._next_node = -1
+
+        self._all_gates_in_lib = set()
+        self._num_gates_for_rule = dict()
+        self._key_to_node_index = dict()
+        self._rule_count = 0
 
     def _lazy_setdefault(self, key):
-        if key not in self._nodes_to_indices:
-            self._next_node += 1
-            print("in lazy", self._next_node)
-            self._nodes_to_indices[key] = self._graph.add_node(key)
-        return self._nodes_to_indices[key]
+        if key not in self._key_to_node_index:
+            self._key_to_node_index[key] = self._graph.add_node(
+                Entry(search_base=True, equivalences=[])
+            )
+        return self._key_to_node_index[key]
 
     def add_equivalence(self, gate, equivalent_circuit):
         """Add a new equivalence to the library. Future queries for the Gate
@@ -68,35 +69,34 @@ class EquivalenceLibrary:
             equivalent_circuit (QuantumCircuit): A circuit equivalently
                 implementing the given Gate.
         """
-
         _raise_if_shape_mismatch(gate, equivalent_circuit)
         _raise_if_param_mismatch(gate.params, equivalent_circuit.parameters)
 
         key = Key(name=gate.name, num_qubits=gate.num_qubits)
-
         equiv = Equivalence(params=gate.params.copy(), circuit=equivalent_circuit.copy())
 
         target = self._lazy_setdefault(key)
-        print(target)
+        self._all_gates_in_lib.add(key)
 
         sources = {
             Key(name=instruction.operation.name, num_qubits=len(instruction.qubits))
             for instruction in equivalent_circuit
         }
+        self._all_gates_in_lib |= sources
         edges = [
-            (self._lazy_setdefault(source), target, {"index": self._next_node, "rule": equiv, "source": source})
+            (
+                self._lazy_setdefault(source),
+                target,
+                {"index": self._rule_count, "rule": equiv, "source": source},
+            )
             for source in sources
         ]
-        print(edges)
+        self._num_gates_for_rule[self._rule_count] = len(sources)
+        self._rule_count += 1
 
         self._graph.add_edges_from(edges)
 
-
-
-        if key not in self._map:
-            self._map[key] = Entry(search_base=True, equivalences=[])
-
-        self._map[key].equivalences.append(equiv)
+        self._graph[target].equivalences.append(equiv)
 
     def has_entry(self, gate):
         """Check if a library contains any decompositions for gate.
@@ -108,10 +108,11 @@ class EquivalenceLibrary:
             Bool: True if gate has a known decomposition in the library.
                 False otherwise.
         """
-
         key = Key(name=gate.name, num_qubits=gate.num_qubits)
 
-        return key in self._map or (self._base.has_entry(gate) if self._base is not None else False)
+        return key in self._key_to_node_index or (
+            self._base.has_entry(gate) if self._base is not None else False
+        )
 
     def set_entry(self, gate, entry):
         """Set the equivalence record for a Gate. Future queries for the Gate
@@ -126,16 +127,14 @@ class EquivalenceLibrary:
             entry (List['QuantumCircuit']) : A list of QuantumCircuits, each
                 equivalently implementing the given Gate.
         """
-
         for equiv in entry:
             _raise_if_shape_mismatch(gate, equiv)
             _raise_if_param_mismatch(gate.params, equiv.parameters)
 
         key = Key(name=gate.name, num_qubits=gate.num_qubits)
-
         equivs = [Equivalence(params=gate.params.copy(), circuit=equiv.copy()) for equiv in entry]
 
-        self._map[key] = Entry(search_base=False, equivalences=equivs)
+        self._graph[self._key_to_node_index[key]] = Entry(search_base=False, equivalences=equivs)
 
     def get_entry(self, gate):
         """Gets the set of QuantumCircuits circuits from the library which
@@ -156,9 +155,7 @@ class EquivalenceLibrary:
                 ordering of the StandardEquivalenceLibrary will not generally be
                 consistent across Qiskit versions.
         """
-
         key = Key(name=gate.name, num_qubits=gate.num_qubits)
-
         query_params = gate.params
 
         return [_rebind_equiv(equiv, query_params) for equiv in self._get_equivalences(key)]
@@ -227,17 +224,20 @@ class EquivalenceLibrary:
 
     def _get_all_keys(self):
         base_keys = self._base._get_all_keys() if self._base is not None else set()
-
-        self_keys = set(self._map.keys())
+        self_keys = set(self._key_to_node_index.keys())
 
         return self_keys | {
             base_key
             for base_key in base_keys
-            if base_key not in self._map or self._map[base_key].search_base
+            if base_key not in self._key_to_node_index
+            or self._graph[self._key_to_node_index[base_key]].search_base
         }
 
     def _get_equivalences(self, key):
-        search_base, equivalences = self._map.get(key, (True, []))
+        if key not in self._key_to_node_index:
+            search_base, equivalences = True, []
+        else:
+            search_base, equivalences = self._graph[self._key_to_node_index[key]]
 
         if search_base and self._base is not None:
             return equivalences + self._base._get_equivalences(key)

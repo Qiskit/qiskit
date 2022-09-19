@@ -364,6 +364,7 @@ class BasisSearchVisitor(retworkx.visit.DijkstraVisitor):
         self.graph = graph
         self.target_basis = set(target_basis)
         self._source_gates_remain = set(source_basis)
+        print("\n\nInit source basis", source_basis, self._source_gates_remain, type(self._source_gates_remain))
         self._num_gates_remain_for_rule = dict(num_gates_for_rule)
         self._basis_transforms = []
         self._predecessors = dict()
@@ -371,6 +372,7 @@ class BasisSearchVisitor(retworkx.visit.DijkstraVisitor):
 
     def discover_vertex(self, v, score):
         gate = self.graph[v]
+        print("\n\nDiscover source basis", gate, type(gate), self._source_gates_remain, type(self._source_gates_remain))
         self._source_gates_remain.discard(gate)
         self._opt_cost_map[gate] = score
         rule = self._predecessors.get(gate, None)
@@ -467,56 +469,23 @@ def _basis_search(equiv_lib, source_basis, target_basis):
     if not source_basis:
         return []
 
-    all_gates_in_lib = set()
-
-    graph = retworkx.PyDiGraph()
-    nodes_to_indices = dict()
-    num_gates_for_rule = dict()
-
-    def lazy_setdefault(key):
-        if key not in nodes_to_indices:
-            nodes_to_indices[key] = graph.add_node(key)
-        return nodes_to_indices[key]
-
-    rcounter = 0  # running sum of the number of equivalence rules in the library.
-    for key in equiv_lib._get_all_keys():
-        target = lazy_setdefault(key)
-        all_gates_in_lib.add(key)
-        for equiv in equiv_lib._get_equivalences(key):
-            sources = {
-                Key(name=instruction.operation.name, num_qubits=len(instruction.qubits))
-                for instruction in equiv.circuit
-            }
-            all_gates_in_lib |= sources
-            edges = [
-                (
-                    lazy_setdefault(source),
-                    target,
-                    {"index": rcounter, "rule": equiv, "source": source},
-                )
-                for source in sources
-            ]
-
-            num_gates_for_rule[rcounter] = len(sources)
-            graph.add_edges_from(edges)
-            rcounter += 1
-
     # This is only neccessary since gates in target basis are currently reported by
     # their names and we need to have in addition the number of qubits they act on.
     target_basis_keys = [
         key
         for gate in target_basis
-        for key in filter(lambda key, name=gate: key.name == name, all_gates_in_lib)
+        for key in filter(lambda key, name=gate: key.name == name, equiv_lib._all_gates_in_lib)
     ]
 
-    vis = BasisSearchVisitor(graph, source_basis, target_basis_keys, num_gates_for_rule)
+    vis = BasisSearchVisitor(equiv_lib._graph, source_basis, target_basis_keys, equiv_lib._num_gates_for_rule)
     # we add a dummy node and connect it with gates in the target basis.
     # we'll start the search from this dummy node.
-    dummy = graph.add_node("dummy starting node")
-    graph.add_edges_from_no_data([(dummy, nodes_to_indices[key]) for key in target_basis_keys])
+    dummy = equiv_lib._graph.add_node("dummy starting node")
+
+    equiv_lib._graph.add_edges_from_no_data([(dummy, equiv_lib._key_to_node_index[key]) for key in target_basis_keys])
     rtn = None
     try:
-        retworkx.digraph_dijkstra_search(graph, [dummy], vis.edge_cost, vis)
+        retworkx.digraph_dijkstra_search(equiv_lib._graph, [dummy], vis.edge_cost, vis)
     except StopIfBasisRewritable:
         rtn = vis.basis_transforms
 
