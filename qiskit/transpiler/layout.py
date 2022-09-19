@@ -157,8 +157,7 @@ class Layout:
     def add(self, virtual_bit, physical_bit=None):
         """
         Adds a map element between `bit` and `physical_bit`. If `physical_bit` is not
-        defined, `bit` will be mapped to a new physical bit (extending the length of the
-        layout by one.)
+        defined, `bit` will be mapped to a new physical bit.
 
         Args:
             virtual_bit (tuple): A (qu)bit. For example, (QuantumRegister(3, 'qr'), 2).
