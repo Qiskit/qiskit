@@ -228,6 +228,5 @@ class TestComputeUncompute(QiskitTestCase):
         result = job.result()
         np.testing.assert_allclose(result.fidelities, np.array([1.0]))
 
-
 if __name__ == "__main__":
     unittest.main()
