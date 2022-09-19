@@ -18,10 +18,11 @@ from abc import ABC, abstractmethod
 import numpy as np
 
 from qiskit import QuantumCircuit
-from qiskit.algorithms.gradients import BaseEstimatorGradient
+from qiskit.algorithms.gradients import BaseEstimatorGradient, ParamShiftEstimatorGradient
 from qiskit.algorithms.gradients.qfi import QFI
 from qiskit.circuit import Parameter
 from qiskit.opflow import PauliSumOp
+from qiskit.primitives import Estimator
 from qiskit.quantum_info import Pauli
 from qiskit.quantum_info.operators.base_operator import BaseOperator
 
@@ -32,8 +33,8 @@ class VariationalPrinciple(ABC):
 
     def __init__(
         self,
-        qfi: QFI,
-        gradient: BaseEstimatorGradient,
+        qfi: QFI | None = None,
+        gradient: BaseEstimatorGradient | None = None,
         # qfi_method: str | CircuitQFI = "lin_comb_full",
         # grad_method: str | CircuitGradient = "lin_comb",
     ) -> None:
@@ -47,6 +48,17 @@ class VariationalPrinciple(ABC):
         """
         # self._qfi_method = qfi_method
         # self.qfi = QFI(qfi_method)
+        if qfi is not None and qfi._estimator is not None and gradient is None:
+            estimator = qfi._estimator
+            gradient = ParamShiftEstimatorGradient(estimator)
+        elif gradient is not None and gradient._estimator is not None and qfi is None:
+            estimator = gradient._estimator
+            qfi = QFI(estimator)
+        elif qfi is None and gradient is None:
+            estimator = Estimator()
+            qfi = QFI(estimator)
+            gradient = ParamShiftEstimatorGradient(estimator)
+
         self.qfi = qfi
         self.gradient = gradient
         # self._grad_method = grad_method
@@ -74,9 +86,12 @@ class VariationalPrinciple(ABC):
         #     )
         # metric_tensor = 0.25 * self._qfi_gradient_callable(param_values)
         # TODO which observables to provide?
+        pass
         metric_tensor = (
             0.25
-            * self.qfi._run([ansatz], [Pauli("I")], [param_values], [gradient_params]).gradients[0]
+            * self.qfi._run(
+                [ansatz], [Pauli("I" * ansatz.num_qubits)], [param_values], [gradient_params]
+            ).gradients[0]
         )
 
         return metric_tensor

@@ -28,8 +28,8 @@ class RealVariationalPrinciple(VariationalPrinciple, ABC):
 
     def __init__(
         self,
-        qfi: QFI,
-        gradient: BaseEstimatorGradient,
+        qfi: QFI | None = None,
+        gradient: BaseEstimatorGradient | None = None,
         # qfi_method: str | CircuitQFI = "lin_comb_full",
     ) -> None:
         """

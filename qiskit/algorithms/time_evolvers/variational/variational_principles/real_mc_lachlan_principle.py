@@ -42,8 +42,8 @@ class RealMcLachlanPrinciple(RealVariationalPrinciple):
 
     def __init__(
         self,
-        qfi: QFI,
-        gradient: BaseEstimatorGradient,
+        qfi: QFI | None = None,
+        gradient: BaseEstimatorGradient | None = None,
         # qfi_method: str | CircuitQFI = "lin_comb_full",
     ) -> None:
         """
@@ -53,7 +53,7 @@ class RealMcLachlanPrinciple(RealVariationalPrinciple):
                 ``CircuitQFI``.
         """
         # TODO make sure to add aux meas op in primitive run method
-        self._grad_method = LinComb(aux_meas_op=-Y)
+        # self._grad_method = LinComb(aux_meas_op=-Y)
         self._energy_param = None
         self._energy = None
 

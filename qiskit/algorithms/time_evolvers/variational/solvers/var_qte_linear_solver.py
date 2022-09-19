@@ -61,7 +61,7 @@ class VarQTELinearSolver:
         self._hamiltonian = hamiltonian
         self._ansatz = ansatz
         self._gradient_params = gradient_params
-        self._bind_params = gradient_params + [t_param] if t_param else gradient_params
+        self._bind_params = gradient_params
         self._time_param = t_param
         self.lse_solver = lse_solver
         self._quantum_instance = None
@@ -99,12 +99,13 @@ class VarQTELinearSolver:
             Solution to the LSE, A from Ax=b, b from Ax=b.
         """
         param_values = list(param_dict.values())
-        if self._time_param is not None:
-            param_values.append(time_value)
-
         metric_tensor_lse_lhs = self._var_principle.metric_tensor(
             self._ansatz, self._bind_params, param_values
         )
+        if self._time_param is not None:
+            # TODO this turns into OperatorBase
+            self._hamiltonian = self._hamiltonian.assign_parameters({self._time_param: time_value})
+
         evolution_grad_lse_rhs = self._var_principle.evolution_grad(
             self._hamiltonian,
             self._ansatz,

@@ -137,6 +137,7 @@ class VarQTE(ABC):
         evaluated_aux_ops = None
         if evolution_problem.aux_operators is not None:
             evaluated_aux_ops = estimate_observables(
+                self.estimator,
                 evolved_state,
                 evolution_problem.aux_operators,
             )
