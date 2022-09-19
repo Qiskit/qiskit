@@ -134,6 +134,7 @@ Fake V2 backends are fake backends with IBM Quantum systems snapshots implemente
     FakeMontrealV2
     FakeMumbaiV2
     FakeNairobiV2
+    FakeOslo
     FakeOurenseV2
     FakeParisV2
     FakePerth
