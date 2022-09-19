@@ -300,7 +300,7 @@ class TestSSVQE(QiskitAlgorithmsTestCase):
         for params in history["parameters"]:
             self.assertTrue(all(isinstance(param, float) for param in params))
 
-        ref_eval_count = [1, 2, 3, 1, 2, 3] #these will likely need to change.
+        ref_eval_count = [1, 2, 3]
         ref_mean = [-1.063, -1.457, -1.360, 37.340, 48.543, 28.586]
         ref_std = [0.011, 0.010, 0.014, 0.011, 0.010, 0.015]
 
