@@ -33,7 +33,7 @@ from .list_or_dict import ListOrDict
 
 @deprecate_function(
     "The eval_observables function has been superseded by the "
-    "qiskit.algorithms.observables_evaluator.eval_observables function. "
+    "qiskit.algorithms.observables_evaluator.estimate_observables function. "
     "This function will be deprecated in a future release and subsequently "
     "removed after that.",
     category=PendingDeprecationWarning,
