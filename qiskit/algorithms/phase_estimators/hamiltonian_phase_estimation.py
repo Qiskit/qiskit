@@ -158,7 +158,7 @@ class HamiltonianPhaseEstimation:
 
     def estimate(
         self,
-        hamiltonian: OperatorBase | BaseOperator | PauliSumOp,
+        hamiltonian: PauliOp | MatrixOp | SummedOp | BaseOperator | PauliSumOp,
         state_preparation: StateFn | QuantumCircuit | Statevector | None = None,
         evolution: EvolutionSynthesis | EvolutionBase | None = None,
         bound: float | None = None,
@@ -183,16 +183,21 @@ class HamiltonianPhaseEstimation:
             and diagnostic information.
 
         Raises:
+            TypeError: If ``evolution`` is not of type ``EvolutionSynthesis`` when a ``Sampler`` is
+                provided.
+            TypeError: If ``hamiltonian`` type is not ``BaseOperator`` or ``PauliSumOp`` when a
+                ``Sampler`` is provided.
             ValueError: If ``bound`` is ``None`` and ``hamiltonian`` is not a Pauli sum, i.e. a
                 ``PauliSumOp`` or a ``SummedOp`` whose terms are of type ``PauliOp``.
-            TypeError: If ``evolution`` is not of type ``EvolutionSynthesis`` nor ``EvolutionBase``.
+            TypeError: If ``evolution`` is not of type ``EvolutionBase`` when no ``Sampler`` is
+                provided..
         """
         if self._phase_estimation._sampler is not None:
             if evolution is not None and not isinstance(evolution, EvolutionSynthesis):
                 raise TypeError(f"Expecting type EvolutionSynthesis, got {type(evolution)}")
-            if not isinstance(hamiltonian, (OperatorBase, BaseOperator, PauliSumOp)):
+            if not isinstance(hamiltonian, (BaseOperator, PauliSumOp)):
                 raise TypeError(
-                    f"Expecting Hamiltonian type OperatorBase or BaseOperator or PauliSumOp, "
+                    f"Expecting Hamiltonian type BaseOperator or PauliSumOp, "
                     f"got {type(hamiltonian)}."
                 )
 
@@ -276,7 +281,7 @@ def _remove_identity(pauli_sum: SummedOp):
 
 
 def _remove_identity_pauli_sum_op(pauli_sum: PauliSumOp | SparsePauliOp):
-    """Remove any identity operators from `pauli_sum`. Return
+    """Remove any identity operators from ``pauli_sum``. Return
     the sum of the coefficients of the identities and the new operator.
     """
 

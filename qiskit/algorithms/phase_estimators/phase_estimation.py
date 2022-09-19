@@ -208,7 +208,7 @@ class PhaseEstimation(PhaseEstimator):
     def estimate_from_pe_circuit(
         self, pe_circuit: QuantumCircuit, num_unitary_qubits: int
     ) -> PhaseEstimationResult:
-        """Run the the phase estimation algorithm on a phase estimation circuit
+        """Run the phase estimation algorithm on a phase estimation circuit
 
         Args:
             pe_circuit: The phase estimation circuit.
