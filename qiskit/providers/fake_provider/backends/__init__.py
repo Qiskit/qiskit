@@ -19,6 +19,7 @@ Mocked versions of real quantum backends.
 from .almaden import FakeAlmadenV2
 from .armonk import FakeArmonkV2
 from .athens import FakeAthensV2
+from .auckland import FakeAuckland
 from .belem import FakeBelemV2
 from .boeblingen import FakeBoeblingenV2
 from .bogota import FakeBogotaV2
