@@ -92,7 +92,7 @@ class TestSSVQE(QiskitAlgorithmsTestCase):
         ssvqe = SSVQE(
             num_states=2,
             ansatz=wavefunction,
-            weight_vector=[2,1],
+            weight_vector=[2, 1],
             optimizer=COBYLA(),
             quantum_instance=QuantumInstance(
                 BasicAer.get_backend("statevector_simulator"),
@@ -143,16 +143,21 @@ class TestSSVQE(QiskitAlgorithmsTestCase):
         """Test construct circuits returns List[QuantumCircuits] and the right number of them."""
         try:
             wavefunction = EfficientSU2(2, reps=1)
-            ssvqe = SSVQE(num_states=2, optimizer=COBYLA(maxiter=1),
-                        ansatz=wavefunction, weight_vector=[2,1],
-                        expectation=expectation, quantum_instance=self.statevector_simulator)
+            ssvqe = SSVQE(
+                num_states=2,
+                optimizer=COBYLA(maxiter=1),
+                ansatz=wavefunction,
+                weight_vector=[2, 1],
+                expectation=expectation,
+                quantum_instance=self.statevector_simulator,
+            )
             ssvqe.compute_eigenvalues(operator=self.h2_op)
             params = [0] * wavefunction.num_parameters
             circuits = ssvqe.construct_circuits(parameter=params, operator=self.h2_op)
 
             for circuits_list in circuits:
                 self.assertEqual(len(circuits_list), num_circuits)
-            #for circuits_list in circuits:
+            # for circuits_list in circuits:
             #    for circ in circuits:
             #        self.assertIsInstance(circ, QuantumCircuit)
             for circ_list in circuits:
@@ -166,7 +171,9 @@ class TestSSVQE(QiskitAlgorithmsTestCase):
         """Test specifying a variational form with no parameters raises an error."""
         circuit = QuantumCircuit(self.h2_op.num_qubits)
         ssvqe = SSVQE(
-            num_states=1, ansatz=circuit, quantum_instance=BasicAer.get_backend("statevector_simulator")
+            num_states=1,
+            ansatz=circuit,
+            quantum_instance=BasicAer.get_backend("statevector_simulator"),
         )
         with self.assertRaises(RuntimeError):
             ssvqe.compute_eigenvalues(operator=self.h2_op)
@@ -176,8 +183,9 @@ class TestSSVQE(QiskitAlgorithmsTestCase):
         optimizer = COBYLA(maxiter=1000)
         wavefunction = self.ry_wavefunction
 
-        ssvqe = SSVQE(num_states=2,
-            weight_vector=[2,1],
+        ssvqe = SSVQE(
+            num_states=2,
+            weight_vector=[2, 1],
             ansatz=wavefunction,
             optimizer=optimizer,
             max_evals_grouped=1,
@@ -204,7 +212,7 @@ class TestSSVQE(QiskitAlgorithmsTestCase):
         )
         ssvqe = SSVQE(
             num_states=2,
-            weight_vector=[2,1],
+            weight_vector=[2, 1],
             ansatz=wavefunction,
             optimizer=optimizer,
             max_evals_grouped=1,
@@ -231,7 +239,7 @@ class TestSSVQE(QiskitAlgorithmsTestCase):
 
         ssvqe = SSVQE(
             num_states=2,
-            weight_vector=[2,1],
+            weight_vector=[2, 1],
             ansatz=wavefunction,
             optimizer=optimizer,
             expectation=PauliExpectation(),
@@ -260,7 +268,7 @@ class TestSSVQE(QiskitAlgorithmsTestCase):
         )
         ssvqe = SSVQE(
             num_states=2,
-            weight_vector=[2,1],
+            weight_vector=[2, 1],
             ansatz=wavefunction,
             optimizer=optimizer,
             expectation=AerPauliExpectation(),
@@ -272,7 +280,13 @@ class TestSSVQE(QiskitAlgorithmsTestCase):
 
     def test_callback(self):
         """Test the callback on SSVQE."""
-        history = {"eval_count": [], "parameters": [], "mean_list": [], "weighted_sum_mean_list": [], "std_list": []}
+        history = {
+            "eval_count": [],
+            "parameters": [],
+            "mean_list": [],
+            "weighted_sum_mean_list": [],
+            "std_list": [],
+        }
 
         def store_intermediate_result(eval_count, parameters, mean, weighted_sum_mean, std):
             history["eval_count"].append(eval_count)
@@ -284,8 +298,9 @@ class TestSSVQE(QiskitAlgorithmsTestCase):
         optimizer = COBYLA(maxiter=3)
         wavefunction = self.ry_wavefunction
 
-        ssvqe = SSVQE(num_states=2,
-        weight_vector=[2,1],
+        ssvqe = SSVQE(
+            num_states=2,
+            weight_vector=[2, 1],
             ansatz=wavefunction,
             optimizer=optimizer,
             callback=store_intermediate_result,
@@ -294,9 +309,13 @@ class TestSSVQE(QiskitAlgorithmsTestCase):
         ssvqe.compute_eigenvalues(operator=self.h2_op)
 
         self.assertTrue(all(isinstance(count, int) for count in history["eval_count"]))
-        self.assertTrue(all(isinstance(mean, float) for mean_list in history["mean_list"] for mean in mean_list))
+        self.assertTrue(
+            all(isinstance(mean, float) for mean_list in history["mean_list"] for mean in mean_list)
+        )
         self.assertTrue(all(isinstance(mean, float) for mean in history["weighted_sum_mean_list"]))
-        self.assertTrue(all(isinstance(std, float) for std_list in history["std_list"] for std in std_list))
+        self.assertTrue(
+            all(isinstance(std, float) for std_list in history["std_list"] for std in std_list)
+        )
         for params in history["parameters"]:
             self.assertTrue(all(isinstance(param, float) for param in params))
 
@@ -308,12 +327,13 @@ class TestSSVQE(QiskitAlgorithmsTestCase):
         np.testing.assert_array_almost_equal(history["eval_count"], ref_eval_count, decimal=0)
         np.testing.assert_array_almost_equal(history["mean_list"], ref_mean, decimal=2)
         np.testing.assert_array_almost_equal(history["std_list"], ref_std, decimal=2)
-        np.testing.assert_array_almost_equal(history["weighted_sum_mean_list"], ref_weighted_sum_mean, decimal=2)
+        np.testing.assert_array_almost_equal(
+            history["weighted_sum_mean_list"], ref_weighted_sum_mean, decimal=2
+        )
 
     def test_reuse(self):
         """Test re-using an SSVQE algorithm instance."""
-        ssvqe = SSVQE(num_states=1,
-                    weight_vector=[1])
+        ssvqe = SSVQE(num_states=1, weight_vector=[1])
         with self.subTest(msg="assert running empty raises AlgorithmError"):
             with self.assertRaises(AlgorithmError):
                 _ = ssvqe.compute_eigenvalues(operator=self.h2_op)
@@ -338,9 +358,9 @@ class TestSSVQE(QiskitAlgorithmsTestCase):
 
     def test_ssvqe_optimizer(self):
         """Test running same SSVQE twice to re-use optimizer, then switch optimizer"""
-        ssvqe= SSVQE(
+        ssvqe = SSVQE(
             num_states=2,
-            weight_vector=[2,1],
+            weight_vector=[2, 1],
             optimizer=SLSQP(),
             quantum_instance=QuantumInstance(BasicAer.get_backend("statevector_simulator")),
         )
@@ -415,9 +435,12 @@ class TestSSVQE(QiskitAlgorithmsTestCase):
     def test_aux_operators_list(self):
         """Test list-based aux_operators."""
         wavefunction = self.ry_wavefunction
-        ssvqe = SSVQE(num_states=2, weight_vector=[2,1],
-                        ansatz=wavefunction,
-                        quantum_instance=self.statevector_simulator)
+        ssvqe = SSVQE(
+            num_states=2,
+            weight_vector=[2, 1],
+            ansatz=wavefunction,
+            quantum_instance=self.statevector_simulator,
+        )
 
         # Start with an empty list
         result = ssvqe.compute_eigenvalues(self.h2_op, aux_operators=[])

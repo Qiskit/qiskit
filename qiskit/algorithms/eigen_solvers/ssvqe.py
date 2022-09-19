@@ -307,6 +307,7 @@ class SSVQE(VariationalAlgorithm, Eigensolver):
         Args: initial_states: The list of orthogonal initial states."""
 
         self._initialized_ansatz_list = initialized_states
+
     @property
     def gradient(self) -> Optional[Union[GradientBase, Callable]]:
         """Returns the gradient."""
@@ -539,6 +540,7 @@ class SSVQE(VariationalAlgorithm, Eigensolver):
 
         circuits = []
         list_of_circuits = []
+
         def extract_circuits(op):
             if isinstance(op, CircuitStateFn):
                 circuits.append(op.primitive)
@@ -853,7 +855,9 @@ class SSVQE(VariationalAlgorithm, Eigensolver):
         sampled_expect_op_list = [
             self._circuit_sampler_list[n].convert(expect_op_list[n]) for n in range(self.num_states)
         ]
-        list_of_means = np.asarray([sampled_expect_op_list[n].eval() for n in range(self.num_states)])
+        list_of_means = np.asarray(
+            [sampled_expect_op_list[n].eval() for n in range(self.num_states)]
+        )
         return list_of_means
 
 
