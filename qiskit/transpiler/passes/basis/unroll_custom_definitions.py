@@ -14,7 +14,8 @@
 
 from qiskit.exceptions import QiskitError
 from qiskit.transpiler.basepasses import TransformationPass
-from qiskit.circuit import ControlledGate
+from qiskit.transpiler.passes.utils import control_flow
+from qiskit.circuit import ControlledGate, ControlFlowOp
 from qiskit.converters.circuit_to_dag import circuit_to_dag
 
 
@@ -56,6 +57,9 @@ class UnrollCustomDefinitions(TransformationPass):
         device_insts = basic_insts | set(self._basis_gates)
 
         for node in dag.op_nodes():
+            if isinstance(node.op, ControlFlowOp):
+                node.op = control_flow.map_blocks(self.run, node.op)
+                continue
 
             if getattr(node.op, "_directive", False):
                 continue
