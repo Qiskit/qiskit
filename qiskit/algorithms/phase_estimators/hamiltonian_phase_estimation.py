@@ -34,8 +34,7 @@ from .hamiltonian_phase_estimation_result import HamiltonianPhaseEstimationResul
 from .phase_estimation_scale import PhaseEstimationScale
 from ...circuit.library import PauliEvolutionGate
 from ...primitives import BaseSampler
-from ...quantum_info import SparsePauliOp, Statevector
-from ...quantum_info.operators.base_operator import BaseOperator
+from ...quantum_info import SparsePauliOp, Statevector, Pauli
 from ...synthesis import EvolutionSynthesis
 
 
@@ -78,7 +77,7 @@ class HamiltonianPhaseEstimation:
     bound to obtain a scale factor, scaling the operator, and shifting and scaling the measured
     phases to recover the eigenvalues.
 
-    Note that, although we speak of "evolving" the state according the the Hamiltonian, in the
+    Note that, although we speak of "evolving" the state according the Hamiltonian, in the
     present algorithm, we are not actually considering time evolution. Rather, the role of time is
     played by the scaling factor, which is chosen to best extract the eigenvalues of the
     Hamiltonian.
@@ -157,7 +156,7 @@ class HamiltonianPhaseEstimation:
 
     def estimate(
         self,
-        hamiltonian: PauliOp | MatrixOp | SummedOp | BaseOperator | PauliSumOp,
+        hamiltonian: PauliOp | MatrixOp | SummedOp | Pauli | SparsePauliOp | PauliSumOp,
         state_preparation: StateFn | QuantumCircuit | Statevector | None = None,
         evolution: EvolutionSynthesis | EvolutionBase | None = None,
         bound: float | None = None,
@@ -178,7 +177,7 @@ class HamiltonianPhaseEstimation:
                 the higher the resolution of computed phases.
 
         Returns:
-            HamiltonianPhaseEstimationResult instance containing the result of the estimation
+            ``HamiltonianPhaseEstimationResult`` instance containing the result of the estimation
             and diagnostic information.
 
         Raises:
@@ -194,9 +193,9 @@ class HamiltonianPhaseEstimation:
         if self._phase_estimation._sampler is not None:
             if evolution is not None and not isinstance(evolution, EvolutionSynthesis):
                 raise TypeError(f"Expecting type EvolutionSynthesis, got {type(evolution)}")
-            if not isinstance(hamiltonian, (BaseOperator, PauliSumOp)):
+            if not isinstance(hamiltonian, (Pauli, SparsePauliOp, PauliSumOp)):
                 raise TypeError(
-                    f"Expecting Hamiltonian type BaseOperator or PauliSumOp, "
+                    f"Expecting Hamiltonian type Pauli, SparsePauliOp or PauliSumOp, "
                     f"got {type(hamiltonian)}."
                 )
 
