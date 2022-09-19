@@ -243,7 +243,6 @@ class PhaseEstimation(PhaseEstimator):
             self._num_evaluation_qubits, circuit_result=circuit_result, phases=phases
         )
 
-    # pylint: disable=missing-raises-doc
     # pylint: disable=missing-param-doc
     def estimate(
         self,

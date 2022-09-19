@@ -173,7 +173,7 @@ class IterativePhaseEstimation(PhaseEstimator):
             omega_coef = omega_coef + x / 2
         return omega_coef
 
-    # pylint: disable=arguments-differ
+    # pylint: disable=signature-differs
     def estimate(
         self, unitary: QuantumCircuit, state_preparation: QuantumCircuit
     ) -> "IterativePhaseEstimationResult":
