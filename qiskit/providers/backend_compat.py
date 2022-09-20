@@ -191,7 +191,7 @@ def qubit_props_list_from_props(
     properties: BackendProperties,
 ) -> List[QubitProperties]:
     """Uses BackendProperties to construct
-    and return a list of IBMQubitProperties.
+    and return a list of QubitProperties.
     """
     qubit_props: List[QubitProperties] = []
     for qubit, _ in enumerate(properties.qubits):
