@@ -14,7 +14,7 @@
 
 """Backend abstract interface for providers."""
 
-from typing import List, Iterable, Any, Dict
+from typing import List, Iterable, Any, Dict, Optional
 
 from qiskit.providers.backend import BackendV1, BackendV2
 from qiskit.transpiler.target import Target, InstructionProperties
@@ -37,6 +37,7 @@ def convert_to_target(
     configuration: BackendConfiguration,
     properties: BackendProperties = None,
     defaults: PulseDefaults = None,
+    custom_name_mapping: Optional[Dict[str, "Operation"]] = None,
 ) -> Target:
     """Uses configuration, properties and pulse defaults
     to construct and return Target class.
@@ -99,6 +100,8 @@ def convert_to_target(
     }
     custom_gates = {}
     target = None
+    if custom_name_mapping is not None:
+        name_mapping.update(custom_name_mapping)
     # Parse from properties if it exsits
     if properties is not None:
         qubit_properties = qubit_props_list_from_props(properties=properties)
@@ -230,12 +233,19 @@ class BackendV2Converter(BackendV2):
     def __init__(
         self,
         backend: BackendV1,
+        name_mapping: Optional[Dict[str, "Operation"]] = None,
     ):
         """Initialize a BackendV2 converter instance based on a BackendV1 instance.
 
         Args:
             backend: The input :class:`~.BackendV1` based backend to wrap in a
                 :class:`~.BackendV2` interface
+            name_mapping: An optional dictionary that maps custom gate/operation names in
+                ``backend`` to an :class:`~.Operation` object representing that
+                gate/operation. By default most standard gates names are mapped to the
+                standard gate object from :mod:`qiskit.circuit.library` this only needs
+                to be specified if the input ``backend`` defines gates in names outside
+                that set.
         """
         self._backend = backend
         self._config = self._backend.configuration()
@@ -252,6 +262,7 @@ class BackendV2Converter(BackendV2):
             self._properties = self._backend.properties()
         self._defaults = None
         self._target = None
+        self._name_mapping = name_mapping
 
     @property
     def target(self):
@@ -264,7 +275,12 @@ class BackendV2Converter(BackendV2):
                 self._defaults = self._backend.defaults()
             if self._properties is None and hasattr(self._backend, "properties"):
                 self._properties = self._backend.properties()
-            self._target = convert_to_target(self._config, self._properties, self._defaults)
+            self._target = convert_to_target(
+                self._config,
+                self._properties,
+                self._defaults,
+                custom_name_mapping=self._name_mapping,
+            )
         return self._target
 
     @property
