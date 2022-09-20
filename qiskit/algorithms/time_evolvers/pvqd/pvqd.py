@@ -70,7 +70,7 @@ class PVQD(RealTimeEvolver):
 
         .. code-block:: python
 
-        import numpy as np
+            import numpy as np
 
             from qiskit.algorithms.state_fidelities import ComputeUncompute
             from qiskit.algorithms.time_evolvers.pvqd import PVQD
