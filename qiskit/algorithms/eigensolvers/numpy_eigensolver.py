@@ -21,7 +21,7 @@ from scipy import sparse as scisparse
 
 from qiskit.opflow import PauliSumOp
 from qiskit.quantum_info.operators.base_operator import BaseOperator
-from qiskit.quantum_info import Statevector
+from qiskit.quantum_info import Statevector, SparsePauliOp
 from qiskit.utils.validation import validate_min
 
 from .eigensolver import Eigensolver, EigensolverResult
@@ -126,7 +126,9 @@ class NumPyEigensolver(Eigensolver):
                     eigvec[idx, i] = 1.0
             else:
                 if self._k >= 2**operator.num_qubits - 1:
-                    logger.debug("SciPy doesn't support to get all eigenvalues, using NumPy instead.")
+                    logger.debug(
+                        "SciPy doesn't support to get all eigenvalues, using NumPy instead."
+                    )
                     if operator.is_hermitian():
                         eigval, eigvec = np.linalg.eigh(operator.to_matrix())
                     else:
@@ -137,15 +139,21 @@ class NumPyEigensolver(Eigensolver):
                     else:
                         eigval, eigvec = scisparse.linalg.eigs(sp_mat, k=self._k, which="SR")
 
-                    indices = np.argsort(eigval)[: self._k]
-                    eigval = eigval[indices]
-                    eigvec = eigvec[:, indices]
+                indices = np.argsort(eigval)[: self._k]
+                eigval = eigval[indices]
+                eigvec = eigvec[:, indices]
         else:
             logger.debug("SciPy not supported, using NumPy instead.")
-            if operator.is_hermitian():
-                eigval, eigvec = np.linalg.eigh(operator.to_matrix())
+
+            if operator.data.all() == operator.data.conj().T.all():
+                eigval, eigvec = np.linalg.eigh(operator.data)
             else:
-                eigval, eigvec = np.linalg.eig(operator.to_matrix())
+                eigval, eigvec = np.linalg.eig(operator.data)
+
+            indices = np.argsort(eigval)[: self._k]
+            eigval = eigval[indices]
+            eigvec = eigvec[:, indices]
+
         self._ret.eigenvalues = eigval
         self._ret.eigenstates = eigvec.T
 
@@ -277,7 +285,7 @@ class NumPyEigensolver(Eigensolver):
         # evaluate ground state after filtering (in case a filter is set)
         self._get_ground_state_energy(operator)
         if self._ret.eigenstates is not None:
-            self._ret.eigenstates = PauliSumOp([Statevector(vec) for vec in self._ret.eigenstates])
+            self._ret.eigenstates = [Statevector(vec) for vec in self._ret.eigenstates]
 
         logger.debug("NumpyEigensolverResult:\n%s", self._ret)
         return self._ret
