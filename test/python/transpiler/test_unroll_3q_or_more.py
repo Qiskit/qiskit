@@ -14,6 +14,7 @@
 import numpy as np
 
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
+from qiskit.circuit import Qubit, Clbit
 from qiskit.circuit.library import CCXGate, RCCXGate
 from qiskit.transpiler.passes import Unroll3qOrMore
 from qiskit.converters import circuit_to_dag, dag_to_circuit
@@ -130,3 +131,52 @@ class TestUnroll3qOrMore(QiskitTestCase):
         res = unroll_pass(qc)
         self.assertIn("ccx", res.count_ops())
         self.assertNotIn("rccx", res.count_ops())
+
+    def test_if_else(self):
+        """Test that a simple if-else over 3+ qubits unrolls correctly."""
+        pass_ = Unroll3qOrMore(basis_gates=["u", "cx"])
+
+        true_body = QuantumCircuit(3, 1)
+        true_body.h(0)
+        true_body.ccx(0, 1, 2)
+        false_body = QuantumCircuit(3, 1)
+        false_body.rccx(2, 1, 0)
+
+        test = QuantumCircuit(3, 1)
+        test.h(0)
+        test.measure(0, 0)
+        test.if_else((0, True), true_body, false_body, [0, 1, 2], [0])
+
+        expected = QuantumCircuit(3, 1)
+        expected.h(0)
+        expected.measure(0, 0)
+        expected.if_else((0, True), pass_(true_body), pass_(false_body), [0, 1, 2], [0])
+
+        self.assertEqual(pass_(test), expected)
+
+    def test_nested_control_flow(self):
+        """Test that the unroller recurses into nested control flow."""
+        pass_ = Unroll3qOrMore(basis_gates=["u", "cx"])
+        qubits = [Qubit() for _ in [None] * 3]
+        clbit = Clbit()
+
+        for_body = QuantumCircuit(qubits, [clbit])
+        for_body.ccx(0, 1, 2)
+
+        while_body = QuantumCircuit(qubits, [clbit])
+        while_body.rccx(0, 1, 2)
+
+        true_body = QuantumCircuit(qubits, [clbit])
+        true_body.while_loop((clbit, True), while_body, [0, 1, 2], [0])
+
+        test = QuantumCircuit(qubits, [clbit])
+        test.for_loop(range(2), None, for_body, [0, 1, 2], [0])
+        test.if_else((clbit, True), true_body, None, [0, 1, 2], [0])
+
+        expected_if_body = QuantumCircuit(qubits, [clbit])
+        expected_if_body.while_loop((clbit, True), pass_(while_body), [0, 1, 2], [0])
+        expected = QuantumCircuit(qubits, [clbit])
+        expected.for_loop(range(2), None, pass_(for_body), [0, 1, 2], [0])
+        expected.if_else(range(2), pass_(expected_if_body), None, [0, 1, 2], [0])
+
+        self.assertEqual(pass_(test), expected)
