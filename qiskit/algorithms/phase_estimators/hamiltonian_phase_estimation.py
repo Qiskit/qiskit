@@ -164,7 +164,10 @@ class HamiltonianPhaseEstimation:
         """Run the Hamiltonian phase estimation algorithm.
 
         Args:
-            hamiltonian: A Hermitian operator.
+            hamiltonian: A Hermitian operator. If the algorithm is used with a ``Sampler``
+                primitive, the allowed types are ``Pauli``, ``SparsePauliOp``, and ``PauliSumOp``.
+                If the algorithm is used with a ``QuantumInstance``, ``PauliOp, ``MatrixOp``,
+                ``PauliSumOp``, and ``SummedOp`` types are allowed.
             state_preparation: The ``StateFn`` to be prepared, whose eigenphase will be
                 measured. If this parameter is omitted, no preparation circuit will be run and
                 input state will be the all-zero state in the computational basis.
@@ -183,12 +186,12 @@ class HamiltonianPhaseEstimation:
         Raises:
             TypeError: If ``evolution`` is not of type ``EvolutionSynthesis`` when a ``Sampler`` is
                 provided.
-            TypeError: If ``hamiltonian`` type is not ``BaseOperator`` or ``PauliSumOp`` when a
-                ``Sampler`` is provided.
+            TypeError: If ``hamiltonian`` type is not ``Pauli`` or ``SparsePauliOp`` or
+                ``PauliSumOp`` when a ``Sampler`` is provided.
             ValueError: If ``bound`` is ``None`` and ``hamiltonian`` is not a Pauli sum, i.e. a
                 ``PauliSumOp`` or a ``SummedOp`` whose terms are of type ``PauliOp``.
             TypeError: If ``evolution`` is not of type ``EvolutionBase`` when no ``Sampler`` is
-                provided..
+                provided.
         """
         if self._phase_estimation._sampler is not None:
             if evolution is not None and not isinstance(evolution, EvolutionSynthesis):
