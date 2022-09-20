@@ -69,7 +69,7 @@ class ExpectationFactory:
             if backend_to_check is None:
                 # If user has Aer but didn't specify a backend, use the Aer fast expectation
                 if has_aer():
-                    from qiskit import Aer
+                    from qiskit_aer import Aer
 
                     backend_to_check = Aer.get_backend("qasm_simulator")
                 # If user doesn't have Aer, use statevector_simulator
