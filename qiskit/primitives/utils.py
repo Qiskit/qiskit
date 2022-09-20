@@ -121,7 +121,7 @@ def _circuit_key(circuit: QuantumCircuit, functional: bool = False) -> tuple:
 
     Args:
         circuit: Input quantum circuit.
-        functional: If True, the returned key only includes functional circuit data (i.e. execution related)
+        functional: If True, the returned key only includes functional data (i.e. execution related)
 
     Returns:
         Composite key for circuit.
