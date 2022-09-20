@@ -223,7 +223,7 @@ class BackendV2Converter(BackendV2):
 
     @classmethod
     def _default_options(cls):
-        return None
+        return Options()
 
     @property
     def dtm(self) -> float:
