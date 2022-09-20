@@ -450,6 +450,8 @@ class TestVQE(QiskitAlgorithmsTestCase):
             self.assertEqual(result.aux_operator_eigenvalues["aux_op2"][1][1], 0)
             self.assertEqual(result.aux_operator_eigenvalues["zero_operator"][1][1], 0)
 
+    # TODO test with non-zero metadata. Affected by PR #8105.
+
 
 if __name__ == "__main__":
     unittest.main()

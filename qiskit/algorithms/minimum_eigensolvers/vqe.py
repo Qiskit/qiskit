@@ -30,7 +30,7 @@ from qiskit.utils import algorithm_globals
 
 from ..exceptions import AlgorithmError
 from ..list_or_dict import ListOrDict
-from ..optimizers import Optimizer, Minimizer, SLSQP
+from ..optimizers import Optimizer, Minimizer
 from ..variational_algorithm import VariationalAlgorithm, VariationalResult
 from .minimum_eigensolver import MinimumEigensolver, MinimumEigensolverResult
 
