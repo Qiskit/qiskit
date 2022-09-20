@@ -97,7 +97,7 @@ class AerWrapper:
         if self.aer is None:
             try:
                 with warnings.catch_warnings():
-                    warnings.simplefilter("ignore")
+                    warnings.simplefilter("ignore::DeprecationWarning:::qiskit.namespace")
                     from qiskit.providers import aer
 
                 self.aer = aer.Aer
@@ -116,7 +116,7 @@ class AerWrapper:
         if not self.aer:
             try:
                 with warnings.catch_warnings():
-                    warnings.simplefilter("ignore")
+                    warnings.simplefilter("ignore::DeprecationWarning:qiskit.namespace")
                     from qiskit.providers import aer
 
                 self.aer = aer.Aer
