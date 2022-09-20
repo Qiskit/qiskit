@@ -231,6 +231,7 @@ Algorithms that compute the fidelity of pairs of quantum states.
 
    state_fidelities
 
+
 Exceptions
 ----------
 
@@ -239,6 +240,16 @@ Exceptions
 
    AlgorithmError
 
+
+Trotterization-based Quantum Real Time Evolution
+------------------------------------------------
+
+Package for primitives-enabled Trotterization-based quantum time evolution algorithm - TrotterQRTE.
+
+.. autosummary::
+   :toctree: ../stubs/
+
+   time_evolvers.trotterization
 
 Utility methods
 ---------------
@@ -250,6 +261,7 @@ Utility methods used by algorithms.
 
    eval_observables
    estimate_observables
+
 
 Utility classes
 ---------------
