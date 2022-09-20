@@ -26,7 +26,8 @@ QuantumCircuit:
 
    .. jupyter-execute::
 
-      from qiskit.circuit import classical_function,  Int1
+      from qiskit.circuit.classicalfunction import classical_function
+      from qiskit.circuit.classicalfunction.types import Int1
 
       @classical_function
       def grover_oracle(a: Int1, b: Int1, c: Int1, d: Int1) -> Int1:
