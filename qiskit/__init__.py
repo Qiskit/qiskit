@@ -97,7 +97,9 @@ class AerWrapper:
         if self.aer is None:
             try:
                 with warnings.catch_warnings():
-                    warnings.simplefilter("ignore::DeprecationWarning:::qiskit.namespace")
+                    warnings.filterwarnings(
+                        "ignore", category=DeprecationWarning, module="qiskit.namespace"
+                    )
                     from qiskit.providers import aer
 
                 self.aer = aer.Aer
@@ -116,7 +118,9 @@ class AerWrapper:
         if not self.aer:
             try:
                 with warnings.catch_warnings():
-                    warnings.simplefilter("ignore::DeprecationWarning:qiskit.namespace")
+                    warnings.filterwarnings(
+                        "ignore", category=DeprecationWarning, module="qiskit.namespace"
+                    )
                     from qiskit.providers import aer
 
                 self.aer = aer.Aer
@@ -125,7 +129,7 @@ class AerWrapper:
                     "release. Instead you should use this directly from the root of the "
                     "qiskit-aer package: 'qiskit_aer.Aer'",
                     DeprecationWarning,
-                    stacklevel=2
+                    stacklevel=2,
                 )
             except ImportError as ex:
                 raise MissingOptionalLibraryError(

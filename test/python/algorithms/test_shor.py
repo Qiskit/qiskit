@@ -18,7 +18,8 @@ import math
 from test.python.algorithms import QiskitAlgorithmsTestCase
 from ddt import ddt, data, idata, unpack
 
-from qiskit import Aer, ClassicalRegister
+from qiskit_aer import Aer  # pylint: disable=import-error
+from qiskit.circuit import ClassicalRegister
 from qiskit.utils import QuantumInstance
 from qiskit.algorithms import Shor
 from qiskit.test import slow_test

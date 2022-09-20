@@ -14,7 +14,7 @@
 
 import unittest
 from test.python.algorithms import QiskitAlgorithmsTestCase
-from qiskit import Aer
+from qiskit_aer import Aer  # pylint: disable=import-error
 from qiskit.circuit.library import RealAmplitudes
 from qiskit.utils import QuantumInstance, algorithm_globals
 from qiskit.opflow import PauliSumOp

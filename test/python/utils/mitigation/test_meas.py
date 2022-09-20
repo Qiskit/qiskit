@@ -46,9 +46,9 @@ from qiskit.utils import optionals
 
 if optionals.HAS_AER:
     # pylint: disable=import-error,no-name-in-module
-    from qiskit.providers.aer import Aer
-    from qiskit.providers.aer.noise import NoiseModel
-    from qiskit.providers.aer.noise.errors.standard_errors import pauli_error
+    from qiskit_aer import Aer
+    from qiskit_aer.noise import NoiseModel
+    from qiskit_aer.noise.errors.standard_errors import pauli_error
 
 # fixed seed for tests - for both simulator and transpiler
 SEED = 42
@@ -156,7 +156,7 @@ def meas_calibration_circ_execution(shots: int, seed: int):
     noise_model.add_all_qubit_quantum_error(error_meas, "measure")
 
     # run the circuits multiple times
-    backend = qiskit.Aer.get_backend("qasm_simulator")
+    backend = Aer.get_backend("qasm_simulator")
     cal_results = qiskit.execute(
         meas_calibs, backend=backend, shots=shots, noise_model=noise_model, seed_simulator=seed
     ).result()
@@ -193,7 +193,7 @@ def tensored_calib_circ_execution(shots: int, seed: int):
     noise_model.add_all_qubit_quantum_error(error_meas, "measure")
 
     # run the circuits multiple times
-    backend = qiskit.Aer.get_backend("qasm_simulator")
+    backend = Aer.get_backend("qasm_simulator")
     cal_results = qiskit.execute(
         meas_calibs, backend=backend, shots=shots, noise_model=noise_model, seed_simulator=seed
     ).result()

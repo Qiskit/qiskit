@@ -68,10 +68,11 @@ class UMDA(Optimizer):
         .. code-block:: python
 
             from qiskit.opflow import X, Z, I
-            from qiskit import Aer
             from qiskit.algorithms.optimizers import UMDA
             from qiskit.algorithms import QAOA
             from qiskit.utils import QuantumInstance
+
+            from qiskit_aer import Aer
 
 
             H2_op = (-1.052373245772859 * I ^ I) + \

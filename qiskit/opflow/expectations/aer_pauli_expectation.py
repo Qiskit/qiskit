@@ -16,6 +16,7 @@ import logging
 from functools import reduce
 from operator import add
 from typing import Union
+import warnings
 
 from qiskit.exceptions import MissingOptionalLibraryError
 from qiskit.opflow.expectations.expectation_base import ExpectationBase
@@ -81,7 +82,11 @@ class AerPauliExpectation(ExpectationBase):
     @classmethod
     def _replace_pauli_sums(cls, operator):
         try:
-            from qiskit.providers.aer.library import SaveExpectationValue
+            with warnings.catch_warnings():
+                warnings.filterwarnings(
+                    "ignore", category=DeprecationWarning, module="qiskit.namespace"
+                )
+                from qiskit.providers.aer.library import SaveExpectationValue
         except ImportError as ex:
             raise MissingOptionalLibraryError(
                 libname="qiskit-aer",
