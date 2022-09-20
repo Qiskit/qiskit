@@ -34,6 +34,7 @@ PAULI_SUM_OP = PauliSumOp.from_list(
 
 OPERATOR = Operator(PAULI_SUM_OP.to_matrix())
 
+
 @ddt
 class TestNumPyEigensolver(QiskitAlgorithmsTestCase):
     """Test NumPy Eigen solver"""

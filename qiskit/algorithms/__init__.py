@@ -73,7 +73,7 @@ Amplitude Estimators
 
 
 Eigen Solvers
-------------
+-------------
 
 Algorithms to find eigenvalues of an operator. For chemistry these can be used to find excited
 states of a molecule, and qiskit-nature has some algorithms that leverage chemistry specific
