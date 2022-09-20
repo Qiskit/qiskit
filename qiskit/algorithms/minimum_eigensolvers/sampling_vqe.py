@@ -193,9 +193,7 @@ class SamplingVQE(VariationalAlgorithm, SamplingMinimumEigensolver):
         operator: BaseOperator | PauliSumOp,
         ansatz: QuantumCircuit,
         return_best_measurement: bool = False,
-    ) -> tuple[
-        Callable[[np.ndarray], float | list[float]], dict
-    ]:
+    ) -> tuple[Callable[[np.ndarray], np.ndarray | float], dict]:
         """Returns a function handle to evaluate the energy at given parameters.
 
         This is the objective function to be passed to the optimizer that is used for evaluation.
