@@ -67,8 +67,9 @@ class SamplingVQE(VariationalAlgorithm, SamplingMinimumEigensolver):
     def __init__(
         self,
         sampler: BaseSampler,
-        ansatz: QuantumCircuit | None = None,
-        optimizer: Optimizer | Minimizer | None = None,
+        ansatz: QuantumCircuit,
+        optimizer: Optimizer | Minimizer,
+        *,
         initial_point: Sequence[float] | None = None,
         aggregation: float | Callable[[list[float]], float] | None = None,
     ) -> None:
@@ -107,11 +108,7 @@ class SamplingVQE(VariationalAlgorithm, SamplingMinimumEigensolver):
 
     def _check_operator_ansatz(self, operator: BaseOperator | PauliSumOp) -> QuantumCircuit:
         """Check that the number of qubits of operator and ansatz match."""
-        # set defaults
-        if self.ansatz is None:
-            ansatz = RealAmplitudes(num_qubits=operator.num_qubits)
-        else:
-            ansatz = self.ansatz.copy()
+        ansatz = self.ansatz.copy()
 
         if operator.num_qubits != ansatz.num_qubits:
             # try to set the number of qubits on the ansatz, if possible
@@ -142,8 +139,6 @@ class SamplingVQE(VariationalAlgorithm, SamplingMinimumEigensolver):
         ansatz = self._check_operator_ansatz(operator)
         ansatz.measure_all()
 
-        optimizer = SLSQP() if self.optimizer is None else self.optimizer
-
         if self.initial_point is None:
             initial_point = np.random.uniform(0, 2 * np.pi, ansatz.num_parameters)
         elif len(self.initial_point) != ansatz.num_parameters:
@@ -157,17 +152,17 @@ class SamplingVQE(VariationalAlgorithm, SamplingMinimumEigensolver):
         # set an expectation for this algorithm run (will be reset to None at the end)
         # initial_point = _validate_initial_point(self.initial_point, self.ansatz)
 
-        energy, best_measurement = self.get_energy_and_gradient(
+        evaluate_energy, best_measurement = self._get_evaluate_energy(
             operator, ansatz, return_best_measurement=True
         )
 
         start_time = time()
 
-        if callable(optimizer):
+        if callable(self.optimizer):
             # pylint: disable=not-callable
-            opt_result = optimizer(fun=energy, x0=initial_point)
+            opt_result = self.optimizer(fun=evaluate_energy, x0=initial_point)
         else:
-            opt_result = optimizer.minimize(fun=energy, x0=initial_point)
+            opt_result = self.optimizer.minimize(fun=evaluate_energy, x0=initial_point)
 
         eval_time = time() - start_time
 
@@ -194,15 +189,15 @@ class SamplingVQE(VariationalAlgorithm, SamplingMinimumEigensolver):
 
         return result
 
-    def get_energy_and_gradient(
+    def _get_evaluate_energy(
         self,
         operator: BaseOperator | PauliSumOp,
         ansatz: QuantumCircuit,
         return_best_measurement: bool = False,
     ) -> tuple[
-        Callable[[np.ndarray], float | list[float]], Callable[[np.ndarray], np.ndarray] | None, dict
+        Callable[[np.ndarray], float | list[float]], dict
     ]:
-        """Returns a function handle to evaluates the energy and the gradient at given parameters.
+        """Returns a function handle to evaluate the energy at given parameters.
 
         This is the objective function to be passed to the optimizer that is used for evaluation.
 
@@ -212,11 +207,9 @@ class SamplingVQE(VariationalAlgorithm, SamplingMinimumEigensolver):
             return_best_measurement: If True, a handle to a dictionary containing the best
                 measurement evaluated with the cost function.
 
-
         Returns:
-            A 3-tuple of a callable evaluating the energy, a callable evaluating the
-            gradient, and (optionally) a dictionary containing the best measurement of the
-            energy evaluation.
+            A tuple of a callable evaluating the energy and (optionally) a dictionary containing the
+            best measurement of the energy evaluation.
 
         Raises:
             RuntimeError: If the circuit is not parameterized (i.e. has 0 free parameters).
@@ -235,9 +228,9 @@ class SamplingVQE(VariationalAlgorithm, SamplingMinimumEigensolver):
                 ):
                     best_measurement["best"] = best_i
 
-        estimator = _DiagonalEstimator(self.sampler, callback=store_best_measurement)
+        estimator = _DiagonalEstimator(sampler=self.sampler, callback=store_best_measurement)
 
-        def energy(parameters):
+        def evaluate_energy(parameters):
             # handle broadcasting: ensure parameters is of shape [array, array, ...]
             parameters = np.reshape(parameters, (-1, num_parameters)).tolist()
             batchsize = len(parameters)
@@ -251,9 +244,9 @@ class SamplingVQE(VariationalAlgorithm, SamplingMinimumEigensolver):
             return np.real(result)
 
         if return_best_measurement:
-            return energy, best_measurement
+            return evaluate_energy, best_measurement
 
-        return energy
+        return evaluate_energy
 
     def _eval_aux_ops(self, ansatz, parameters, aux_operators):
         # convert to list if necessary and store the keys
@@ -266,7 +259,7 @@ class SamplingVQE(VariationalAlgorithm, SamplingMinimumEigensolver):
 
         # evaluate all aux operators
         num = len(aux_operators)
-        estimator = _DiagonalEstimator(self.sampler)
+        estimator = _DiagonalEstimator(sampler=self.sampler)
         results = estimator.run(num * [ansatz], aux_operators, num * [parameters]).result()
         values = list(results.values)  # convert array to list
 

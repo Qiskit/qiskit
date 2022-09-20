@@ -45,7 +45,7 @@ class _DiagonalEstimator(BaseEstimator):
         sampler: BaseSampler,
         aggregation: float | Callable[[Sequence[tuple[float, float]]], float] | None = None,
         callback: Callable[[Sequence[Mapping[str, Any]]], None] | None = None,
-        **run_options,
+        **options,
     ) -> None:
         r"""Evaluate a the expectation of quantum state with respect to a diagonal operator.
 
@@ -58,7 +58,7 @@ class _DiagonalEstimator(BaseEstimator):
             run_options: Run options for the sampler.
 
         """
-        super().__init__(run_options=run_options)
+        super().__init__(options=options)
         self.sampler = sampler
         if not callable(aggregation):
             aggregation = _get_cvar_aggregation(aggregation)
