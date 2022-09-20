@@ -217,7 +217,7 @@ class VQE(VariationalAlgorithm, MinimumEigensolver):
         self,
         ansatz: QuantumCircuit,
         operator: BaseOperator | PauliSumOp,
-    ) -> tuple[Callable[[np.ndarray], float | list[float]], dict]:
+    ) -> Callable[[np.ndarray], np.ndarray | float]:
         """Returns a function handle to evaluate the energy at given parameters for the ansatz.
         This is the objective function to be passed to the optimizer that is used for evaluation.
         Args:
@@ -233,7 +233,7 @@ class VQE(VariationalAlgorithm, MinimumEigensolver):
         # avoid creating an instance variable to remain stateless regarding results
         eval_count = 0
 
-        def evaluate_energy(parameters):
+        def evaluate_energy(parameters: np.ndarray) -> np.ndarray | float:
             nonlocal eval_count
 
             # handle broadcasting: ensure parameters is of shape [array, array, ...]
@@ -246,7 +246,7 @@ class VQE(VariationalAlgorithm, MinimumEigensolver):
             except Exception as exc:
                 raise AlgorithmError("The primitive job to evaluate the energy failed!") from exc
 
-            # TODO recover variance from estimator if has metadata has shots?
+            # TODO recover variance from estimator if metadata has shots?
 
             if self.callback is not None:
                 for params, value in zip(parameters, values):
@@ -275,7 +275,7 @@ class VQE(VariationalAlgorithm, MinimumEigensolver):
             AlgorithmError: If the primitive job to evaluate the gradient fails.
         """
 
-        def evaluate_gradient(parameters):
+        def evaluate_gradient(parameters: np.ndarray) -> np.ndarray:
             # broadcasting not required for the estimator gradients
             try:
                 job = self.gradient.run([ansatz], [operator], [parameters])
