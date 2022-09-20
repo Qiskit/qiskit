@@ -89,7 +89,9 @@ class TestNumPyMinimumEigensolver(QiskitAlgorithmsTestCase):
             np.testing.assert_array_almost_equal(result.aux_operator_eigenvalues[1], [0, 0])
 
         with self.subTest("Test after setting first aux_operators as main operator"):
-            result = algo.compute_minimum_eigenvalue(operator=self.aux_ops_list[0], aux_operators=[])
+            result = algo.compute_minimum_eigenvalue(
+                operator=self.aux_ops_list[0], aux_operators=[]
+            )
             self.assertAlmostEqual(result.eigenvalue, 2 + 0j)
             self.assertIsNone(result.aux_operator_eigenvalues)
 
@@ -155,7 +157,9 @@ class TestNumPyMinimumEigensolver(QiskitAlgorithmsTestCase):
 
         with self.subTest("Test with additional zero and None operators."):
             extra_ops = {"None_op": None, "zero_op": 0, **self.aux_ops_dict}
-            result = algo.compute_minimum_eigenvalue(operator=self.qubit_op, aux_operators=extra_ops)
+            result = algo.compute_minimum_eigenvalue(
+                operator=self.qubit_op, aux_operators=extra_ops
+            )
             self.assertAlmostEqual(result.eigenvalue, -1.85727503 + 0j)
             self.assertEqual(len(result.aux_operator_eigenvalues), 3)
             np.testing.assert_array_almost_equal(result.aux_operator_eigenvalues["aux_op1"], [2, 0])
@@ -182,7 +186,9 @@ class TestNumPyMinimumEigensolver(QiskitAlgorithmsTestCase):
 
         with self.subTest("Test with additional zero and None operators."):
             extra_ops = [*aux_ops, None, 0]
-            result = algo.compute_minimum_eigenvalue(operator=self.qubit_op, aux_operators=extra_ops)
+            result = algo.compute_minimum_eigenvalue(
+                operator=self.qubit_op, aux_operators=extra_ops
+            )
             self.assertAlmostEqual(result.eigenvalue, -1.85727503 + 0j)
             self.assertEqual(len(result.aux_operator_eigenvalues), 4)
             # expectation values
@@ -215,7 +221,9 @@ class TestNumPyMinimumEigensolver(QiskitAlgorithmsTestCase):
 
         with self.subTest("Test with additional zero and None operators."):
             extra_ops = {**aux_ops, "None_operator": None, "zero_operator": 0}
-            result = algo.compute_minimum_eigenvalue(operator=self.qubit_op, aux_operators=extra_ops)
+            result = algo.compute_minimum_eigenvalue(
+                operator=self.qubit_op, aux_operators=extra_ops
+            )
             self.assertAlmostEqual(result.eigenvalue, -1.85727503 + 0j)
             self.assertEqual(len(result.aux_operator_eigenvalues), 3)
             # expectation values
