@@ -314,28 +314,6 @@ class VQE(VariationalAlgorithm, MinimumEigensolver):
 
         return ansatz
 
-    def _eval_aux_ops(
-        self,
-        ansatz: QuantumCircuit,
-        aux_operators: ListOrDict[BaseOperator | PauliSumOp],
-    ) -> ListOrDict[tuple(complex, complex)]:
-        """Compute auxiliary operator eigenvalues."""
-
-        if isinstance(aux_operators, dict):
-            aux_ops = list(aux_operators.values())
-        else:
-            aux_ops = aux_operators
-
-        num_aux_ops = len(aux_ops)
-        aux_job = self.estimator.run([ansatz] * num_aux_ops, aux_ops)
-        aux_values = aux_job.result().values
-        aux_values = list(zip(aux_values, [0] * len(aux_values)))
-
-        if isinstance(aux_operators, dict):
-            aux_values = dict(zip(aux_operators.keys(), aux_values))
-
-        return aux_values
-
 
 def _validate_initial_point(point: Sequence[float], ansatz: QuantumCircuit) -> Sequence[float]:
     expected_size = ansatz.num_parameters
