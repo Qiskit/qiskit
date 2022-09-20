@@ -11,14 +11,13 @@ upgrade:
     will first add any missing physical bits between 0 and the max physical bit
     contained in the :class:`~.Layout`. So for the 1 and 3 example it now
     adds 0, 2, 4, 5 and for the 2 and 3 example it adds 0, 1, 4, 5 to the
-    :class:`~.Layout`. This change was made for both increased predicitbility
+    :class:`~.Layout`. This change was made for both increased predictability
     of the outcome, and also to fix a class of bugs caused by the unexpected
-    behavior. As physical bits on a backend always are contigous sequences from
+    behavior. As physical bits on a backend always are contiguous sequences from
     0 to :math:`n` adding new bits when there are still unused physical bits
     could potentially cause the layout to use more bits than available on the
-    backend. If you desire the previous behavior you can specify the desired
-    physical bit manually when call :meth:`.Layout.add` to retain the
-    previous behavior.
+    backend. If you desire the previous behavior, you can specify the desired
+    physical bit manually when calling :meth:`.Layout.add`.
 fixes:
   - |
     Fixed the behavior of :meth:`.Layout.add` which was potentially causing the
