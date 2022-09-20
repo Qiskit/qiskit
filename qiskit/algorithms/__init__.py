@@ -102,7 +102,7 @@ Classes used by variational quantum time evolution algorithms - VarQITE and VarQ
 .. autosummary::
    :toctree: ../stubs/
 
-   evolvers.variational
+   time_evolvers.variational
 
 
 Evolvers
@@ -124,8 +124,6 @@ used to train Quantum Boltzmann Machine Neural Networks for example.
     RealEvolver
     ImaginaryEvolver
     TrotterQRTE
-    VarQITE
-    VarQRTE
     PVQD
     PVQDResult
     EvolutionResult
@@ -147,6 +145,8 @@ Time Evolution might be used to train Quantum Boltzmann Machine Neural Networks 
     ImaginaryTimeEvolver
     TimeEvolutionResult
     TimeEvolutionProblem
+    VarQITE
+    VarQRTE
 
 
 Factorizers
