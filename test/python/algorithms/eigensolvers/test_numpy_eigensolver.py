@@ -39,9 +39,6 @@ OPERATOR = Operator(PAULI_SUM_OP.to_matrix())
 class TestNumPyEigensolver(QiskitAlgorithmsTestCase):
     """Test NumPy Eigen solver"""
 
-    def setUp(self):
-        super().setUp()
-
     @data(PAULI_SUM_OP, OPERATOR)
     def test_ce(self, op):
         """Test basics"""
