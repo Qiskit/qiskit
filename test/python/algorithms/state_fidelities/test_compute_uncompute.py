@@ -21,7 +21,6 @@ from qiskit.circuit.library import RealAmplitudes
 from qiskit.primitives import Sampler
 from qiskit.algorithms.state_fidelities import ComputeUncompute
 from qiskit.test import QiskitTestCase
-from qiskit import QiskitError
 
 
 class TestComputeUncompute(QiskitTestCase):
@@ -144,7 +143,7 @@ class TestComputeUncompute(QiskitTestCase):
 
         fidelity = ComputeUncompute(self._sampler)
         n = len(self._left_params)
-        with self.assertRaises(QiskitError):
+        with self.assertRaises(ValueError):
             job = fidelity.run(
                 [self._circuit[0]] * n,
                 [self._circuit[1]] * n,
@@ -153,7 +152,7 @@ class TestComputeUncompute(QiskitTestCase):
             )
             job.result()
 
-        with self.assertRaises(QiskitError):
+        with self.assertRaises(ValueError):
             job = fidelity.run(
                 [self._circuit[0]] * n,
                 [self._circuit[1]] * n,
