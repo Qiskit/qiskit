@@ -21,7 +21,7 @@ from scipy import sparse as scisparse
 
 from qiskit.opflow import PauliSumOp
 from qiskit.quantum_info.operators.base_operator import BaseOperator
-from qiskit.quantum_info import Statevector, SparsePauliOp
+from qiskit.quantum_info import Statevector
 from qiskit.utils.validation import validate_min
 
 from .eigensolver import Eigensolver, EigensolverResult
