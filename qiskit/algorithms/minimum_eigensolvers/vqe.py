@@ -86,21 +86,25 @@ class VQE(VariationalAlgorithm, MinimumEigensolver):
         optimizer = partial(minimize, method="L-BFGS-B")
 
     Attributes:
-        estimator: The estimator primitive to compute the expectation value of the circuits.
-        ansatz: A parameterized circuit, preparing the ansatz for the wave function. If
-            provided with ``None``, this defaults to a :class:`.RealAmplitudes` circuit.
-        optimizer: A classical optimizer to find the minimum energy. This can either be a
-            Qiskit :class:`.Optimizer` or a callable implementing the :class:`.Minimizer`
-            protocol.
-        gradient: An optional estimator gradient to be used with the optimizer.
-        initial_point: An optional initial point (i.e. initial parameter values)
-            for the optimizer. If ``None`` then VQE will look to the ansatz for a preferred
+        estimator (BaseEstimator): The estimator primitive to compute the expectation value of the
+            circuits.
+        ansatz (Quantum Circuit | None): A parameterized circuit, preparing the ansatz for the wave
+            function. If provided with ``None``, this defaults to a :class:`.RealAmplitudes`
+            circuit.
+        optimizer (Optimizer | Minimizer): A classical optimizer to find the minimum energy. This
+            can either be a Qiskit :class:`.Optimizer` or a callable implementing the
+            :class:`.Minimizer` protocol.
+        gradient (BaseEstimatorGradient | None): An optional estimator gradient to be used with the
+            optimizer.
+        initial_point (Sequence[float] | None): An optional initial point (i.e. initial parameter
+            values) for the optimizer. If ``None`` then VQE will look to the ansatz for a preferred
             point and if not will simply compute a random one.
-        callback: A callback that can access the intermediate data during the optimization.
-            Four parameter values are passed to the callback as follows during each evaluation
-            by the optimizer for its current set of parameters as it works towards the minimum.
-            These are: the evaluation count, the optimizer parameters for the ansatz, the
-            evaluated mean and the evaluated standard deviation.
+        callback (Callable[[int, np.ndarray, float, float], None] | None): A callback that can
+            access the intermediate data during the optimization. Four parameter values are passed
+            to the callback as follows during each evaluation by the optimizer for its current set
+            of parameters as it works towards the minimum. These are: the evaluation count, the
+            optimizer parameters for the ansatz, the evaluated mean and the evaluated standard
+            deviation.
 
     References:
         [1] Peruzzo et al, "A variational eigenvalue solver on a quantum processor"
