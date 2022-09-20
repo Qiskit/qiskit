@@ -411,7 +411,6 @@ class TestVQE(QiskitAlgorithmsTestCase):
         with self.subTest("Test with an empty dictionary."):
             result = vqe.compute_minimum_eigenvalue(self.h2_op, aux_operators={})
             self.assertAlmostEqual(result.eigenvalue.real, self.h2_energy, places=6)
-            # self.assertIsNone(result.aux_operator_eigenvalues)
             self.assertIsInstance(result.aux_operator_eigenvalues, dict)
             self.assertEqual(len(result.aux_operator_eigenvalues), 0)
 
