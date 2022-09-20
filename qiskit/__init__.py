@@ -125,6 +125,7 @@ class AerWrapper:
                     "release. Instead you should use this directly from the root of the "
                     "qiskit-aer package: 'qiskit_aer.Aer'",
                     DeprecationWarning,
+                    stacklevel=2
                 )
             except ImportError as ex:
                 raise MissingOptionalLibraryError(
