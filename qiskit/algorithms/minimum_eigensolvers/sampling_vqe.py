@@ -21,7 +21,6 @@ from collections.abc import Callable, Sequence
 import numpy as np
 
 from qiskit.circuit import QuantumCircuit
-from qiskit.circuit.library import RealAmplitudes
 from qiskit.opflow import PauliSumOp
 from qiskit.primitives import BaseSampler
 from qiskit.quantum_info.operators.base_operator import BaseOperator
