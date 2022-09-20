@@ -420,15 +420,15 @@ class SparsePauliOp(LinearOp):
 
         # Filter non-zero coefficients
         if self.coeffs.dtype == object:
+
+            def to_complex(coeff):
+                if not hasattr(coeff, "sympify"):
+                    return coeff
+                sympified = coeff.sympify()
+                return complex(sympified) if sympified.is_Number else np.nan
+
             non_zero = np.logical_not(
-                [
-                    np.isclose(coeff, 0, atol=atol, rtol=rtol)
-                    if not hasattr(coeff, "sympify")
-                    else complex(coeff.sympify())
-                    if coeff.sympify().is_Number
-                    else False  # Symbol is not zero.
-                    for coeff in self.coeffs
-                ]
+                np.isclose([to_complex(x) for x in self.coeffs], 0, atol=atol, rtol=rtol)
             )
         else:
             non_zero = np.logical_not(np.isclose(self.coeffs, 0, atol=atol, rtol=rtol))
@@ -449,14 +449,7 @@ class SparsePauliOp(LinearOp):
         # Delete zero coefficient rows
         if self.coeffs.dtype == object:
             is_zero = np.array(
-                [
-                    np.isclose(coeff, 0, atol=atol, rtol=rtol)
-                    if not hasattr(coeff, "sympify")
-                    else complex(coeff.sympify())
-                    if coeff.sympify().is_Number
-                    else False  # Symbol is not zero.
-                    for coeff in coeffs
-                ]
+                [np.isclose(to_complex(coeff), 0, atol=atol, rtol=rtol) for coeff in coeffs]
             )
         else:
             is_zero = np.isclose(coeffs, 0, atol=atol, rtol=rtol)
