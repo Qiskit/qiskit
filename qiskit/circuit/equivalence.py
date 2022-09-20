@@ -40,6 +40,7 @@ class EquivalenceLibrary:
                 be referenced if an entry is not found in this library.
         """
         self._base = base
+        print("\n\n\nBASE", base)
 
         self._graph = rx.PyDiGraph()
 
@@ -51,7 +52,7 @@ class EquivalenceLibrary:
     def _lazy_setdefault(self, key):
         if key not in self._key_to_node_index:
             self._key_to_node_index[key] = self._graph.add_node(
-                Entry(search_base=True, equivalences=[])
+                {"key": key, "entry": Entry(search_base=True, equivalences=[])}
             )
         return self._key_to_node_index[key]
 
@@ -69,6 +70,8 @@ class EquivalenceLibrary:
             equivalent_circuit (QuantumCircuit): A circuit equivalently
                 implementing the given Gate.
         """
+
+        print("\nIn add eq", gate, equivalent_circuit)
         _raise_if_shape_mismatch(gate, equivalent_circuit)
         _raise_if_param_mismatch(gate.params, equivalent_circuit.parameters)
 
@@ -96,7 +99,9 @@ class EquivalenceLibrary:
 
         self._graph.add_edges_from(edges)
 
-        self._graph[target].equivalences.append(equiv)
+        self._graph[target]["entry"].equivalences.append(equiv)
+
+        print("\nall gates in equiv", self._all_gates_in_lib)
 
     def has_entry(self, gate):
         """Check if a library contains any decompositions for gate.
@@ -128,13 +133,15 @@ class EquivalenceLibrary:
                 equivalently implementing the given Gate.
         """
         for equiv in entry:
+            for key in equiv:
+                self._all_gates_in_lib |= key
             _raise_if_shape_mismatch(gate, equiv)
             _raise_if_param_mismatch(gate.params, equiv.parameters)
 
         key = Key(name=gate.name, num_qubits=gate.num_qubits)
         equivs = [Equivalence(params=gate.params.copy(), circuit=equiv.copy()) for equiv in entry]
 
-        self._graph[self._key_to_node_index[key]] = Entry(search_base=False, equivalences=equivs)
+        self._graph[self._key_to_node_index[key]]["entry"] = Entry(search_base=False, equivalences=equivs)
 
     def get_entry(self, gate):
         """Gets the set of QuantumCircuits circuits from the library which
@@ -230,16 +237,23 @@ class EquivalenceLibrary:
             base_key
             for base_key in base_keys
             if base_key not in self._key_to_node_index
-            or self._graph[self._key_to_node_index[base_key]].search_base
+            or self._graph[self._key_to_node_index[base_key]]["entry"].search_base
         }
 
     def _get_equivalences(self, key):
         if key not in self._key_to_node_index:
             search_base, equivalences = True, []
         else:
-            search_base, equivalences = self._graph[self._key_to_node_index[key]]
+            search_base, equivalences = self._graph[self._key_to_node_index[key]]["entry"]
 
+        print('\nget_equiv', key, search_base, equivalences)
         if search_base and self._base is not None:
+            base_equiv = self._base._get_equivalences(key)
+            for equiv in base_equiv:
+                for key in equiv:
+                    print("all in base", key)
+                    self._all_gates_in_lib |= key
+
             return equivalences + self._base._get_equivalences(key)
         return equivalences
 
