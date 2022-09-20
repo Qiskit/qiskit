@@ -14,14 +14,11 @@
 
 from __future__ import annotations
 
-import warnings
-
-from qiskit.algorithms.observables_evaluator import estimate_observables
-
 from qiskit import QuantumCircuit
 from qiskit.algorithms.time_evolvers.time_evolution_problem import TimeEvolutionProblem
 from qiskit.algorithms.time_evolvers.time_evolution_result import TimeEvolutionResult
 from qiskit.algorithms.time_evolvers.real_time_evolver import RealTimeEvolver
+from qiskit.algorithms.observables_evaluator import estimate_observables
 from qiskit.opflow import PauliSumOp
 from qiskit.circuit.library import PauliEvolutionGate
 from qiskit.primitives import BaseEstimator
@@ -33,10 +30,6 @@ class TrotterQRTE(RealTimeEvolver):
     """Quantum Real Time Evolution using Trotterization.
     Type of Trotterization is defined by a ``ProductFormula`` provided.
 
-    Attributes:
-        product_formula: A Lie-Trotter-Suzuki product formula. The default is the Lie-Trotter
-            first order product formula with a single repetition.
-
     Examples:
 
         .. code-block:: python
@@ -44,7 +37,8 @@ class TrotterQRTE(RealTimeEvolver):
             from qiskit.opflow import PauliSumOp
             from qiskit.quantum_info import Pauli, SparsePauliOp
             from qiskit import QuantumCircuit
-            from qiskit.algorithms.time_evolvers import TimeEvolutionProblem, TrotterQRTE
+            from qiskit.algorithms import TimeEvolutionProblem
+            from qiskit.algorithms.time_evolvers import TrotterQRTE
             from qiskit.primitives import Estimator
 
             operator = PauliSumOp(SparsePauliOp([Pauli("X"), Pauli("Z")]))
@@ -64,15 +58,27 @@ class TrotterQRTE(RealTimeEvolver):
     ) -> None:
         """
         Args:
-            product_formula: A Lie-Trotter-Suzuki product formula. The default is the Lie-Trotter
-                first order product formula with a single repetition.
+            product_formula: A Lie-Trotter-Suzuki product formula. If ``None`` provided, the
+                Lie-Trotter first order product formula with a single repetition is used.
             estimator: An estimator primitive used for calculating expectation values of
                 ``TimeEvolutionProblem.aux_operators``.
         """
+
+        self.product_formula = product_formula
+        self.estimator = estimator
+
+    @property
+    def product_formula(self) -> ProductFormula:
+        """Returns a product formula."""
+        return self._product_formula
+
+    @product_formula.setter
+    def product_formula(self, product_formula: ProductFormula | None):
+        """Sets a product formula. If ``None`` provided, sets the Lie-Trotter first order product
+        formula with a single repetition."""
         if product_formula is None:
             product_formula = LieTrotter()
-        self.product_formula = product_formula
-        self._estimator = estimator
+        self._product_formula = product_formula
 
     @property
     def estimator(self) -> BaseEstimator | None:
@@ -107,7 +113,7 @@ class TrotterQRTE(RealTimeEvolver):
         evaluated on an evolved state using an estimator primitive provided.
 
         .. note::
-            Time-dependent Hamiltonians are not yet supported.
+            Time-dependent Hamiltonians are not supported.
 
         Args:
             evolution_problem: Instance defining evolution problem. For the included Hamiltonian,
@@ -120,6 +126,8 @@ class TrotterQRTE(RealTimeEvolver):
         Raises:
             ValueError: If ``t_param`` is not set to ``None`` in the ``TimeEvolutionProblem``
                 (feature not currently supported).
+            ValueError: If ``aux_operators`` provided in the time evolution problem but no estimator
+                provided to the algorithm.
             ValueError: If the ``initial_state`` is not provided in the ``TimeEvolutionProblem``.
             ValueError: If an unsupported Hamiltonian type is provided.
         """
@@ -131,7 +139,7 @@ class TrotterQRTE(RealTimeEvolver):
             )
 
         if evolution_problem.aux_operators is not None and self.estimator is None:
-            warnings.warn(
+            raise ValueError(
                 "The time evolution problem contained ``aux_operators`` but no estimator was "
                 "provided. The algorithm continues without calculating these quantities. "
             )

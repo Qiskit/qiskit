@@ -2,7 +2,7 @@
 features:
   - |
     Added :class:`qiskit.algorithms.time_evolvers.trotterization.TrotterQRTE` with
-    :class:`qiskit.primitives.BaseEstimator` as ``init`` parameter. It will soon replace
+    :class:`qiskit.primitives.BaseEstimator` as ``init`` parameter. It replaces
     :class:`qiskit.algorithms.evolvers.trotterization.TrotterQRTE`.
 deprecations:
   - |
