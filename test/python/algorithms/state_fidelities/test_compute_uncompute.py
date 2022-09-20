@@ -21,7 +21,6 @@ from qiskit.circuit.library import RealAmplitudes
 from qiskit.primitives import Sampler
 from qiskit.algorithms.state_fidelities import ComputeUncompute
 from qiskit.test import QiskitTestCase
-from qiskit import QiskitError
 
 
 class TestComputeUncompute(QiskitTestCase):
