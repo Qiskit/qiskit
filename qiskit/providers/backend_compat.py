@@ -10,16 +10,17 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
+# pylint: disable=no-value-for-parameter,unused-wildcard-import,wildcard-import
+
 """Backend abstract interface for providers."""
 
-
-from typing import List, Union, Iterable, Any, Dict
+from typing import List, Iterable, Any, Dict
 
 from qiskit.providers.backend import BackendV1, BackendV2
 from qiskit.transpiler.target import Target, InstructionProperties
 from qiskit.providers.backend import QubitProperties
 from qiskit.utils.units import apply_prefix
-from qiskit.circuit.library.standard_gates import IGate, SXGate, XGate, CXGate, RZGate
+from qiskit.circuit.library.standard_gates import *
 from qiskit.circuit.parameter import Parameter
 from qiskit.circuit.gate import Gate
 from qiskit.circuit.delay import Delay
@@ -28,6 +29,7 @@ from qiskit.circuit.reset import Reset
 from qiskit.providers.models.backendconfiguration import BackendConfiguration
 from qiskit.providers.models.backendproperties import BackendProperties
 from qiskit.providers.models.pulsedefaults import PulseDefaults
+from qiskit.providers.options import Options
 from qiskit.providers.exceptions import BackendPropertyError
 
 
@@ -39,13 +41,61 @@ def convert_to_target(
     """Uses configuration, properties and pulse defaults
     to construct and return Target class.
     """
+    # Standard gates library mapping, multicontrolled gates not included since they're
+    # variable width
     name_mapping = {
         "id": IGate(),
         "sx": SXGate(),
         "x": XGate(),
         "cx": CXGate(),
         "rz": RZGate(Parameter("λ")),
+        "r": RGate(Parameter("ϴ"), Parameter("φ")),
         "reset": Reset(),
+        "c3sx": C3SXGate(),
+        "ccx": CCXGate(),
+        "dcx": DCXGate(),
+        "ch": CHGate(),
+        "cp": CPhaseGate(Parameter("ϴ")),
+        "crx": CRXGate(Parameter("ϴ")),
+        "cry": CRYGate(Parameter("ϴ")),
+        "crz": CRZGate(Parameter("ϴ")),
+        "cswap": CSwapGate(),
+        "csx": CSXGate(),
+        "cu": CUGate(Parameter("ϴ"), Parameter("φ"), Parameter("λ")),
+        "cu1": CU1Gate(Parameter("λ")),
+        "cu3": CU3Gate(Parameter("ϴ"), Parameter("φ"), Parameter("λ")),
+        "cy": CYGate(),
+        "cz": CZGate(),
+        "ccz": CCZGate(),
+        "h": HGate(),
+        "p": PhaseGate(Parameter("ϴ")),
+        "rccx": RCCXGate(),
+        "rcccx": RC3XGate(),
+        "rx": RXGate(Parameter("ϴ")),
+        "rxx": RXXGate(Parameter("ϴ")),
+        "ry": RYGate(Parameter("ϴ")),
+        "ryy": RYYGate(Parameter("ϴ")),
+        "rzz": RZZGate(Parameter("ϴ")),
+        "rzx": RZXGate(Parameter("ϴ")),
+        "xx_minus_yy": XXMinusYYGate(Parameter("ϴ")),
+        "xx_plus_yy": XXPlusYYGate(Parameter("ϴ")),
+        "ecr": ECRGate(),
+        "s": SGate(),
+        "sdg": SdgGate(),
+        "cs": CSGate(),
+        "csdg": CSdgGate(),
+        "swap": SwapGate(),
+        "iswap": iSwapGate(),
+        "sxdg": SXdgGate(),
+        "t": TGate(),
+        "tdg": TdgGate(),
+        "u": UGate(Parameter("ϴ"), Parameter("φ"), Parameter("λ")),
+        "u1": U1Gate(Parameter("λ")),
+        "u2": U2Gate(Parameter("φ"), Parameter("λ")),
+        "u3": U3Gate(Parameter("ϴ"), Parameter("φ"), Parameter("λ")),
+        "y": YGate(),
+        "z": ZGate(),
+        "delay": Delay(),
     }
     custom_gates = {}
     target = None
@@ -128,10 +178,12 @@ def convert_to_target(
                             target[inst][(qubit,)].calibration = sched
                     elif qarg in target[inst]:
                         target[inst][qarg].calibration = sched
-    if "delay" not in target:
-        target.add_instruction(
-            Delay(Parameter("t")), {(bit,): None for bit in range(target.num_qubits)}
-        )
+    for op in configuration.basis_gates:
+        if op not in target and op in name_mapping:
+            target.add_instruction(
+                name_mapping[op], {(bit,): None for bit in range(target.num_qubits)}
+            )
+
     return target
 
 
