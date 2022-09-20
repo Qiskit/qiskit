@@ -113,7 +113,7 @@ class TestGrover(QiskitAlgorithmsTestCase):
     @unpack
     def test_iterations_with_good_state(self, use_sampler, iterations):
         """Test the algorithm with different iteration types and with good state"""
-        grover = self._prepare_grover(use_sampler)
+        grover = self._prepare_grover(use_sampler, iterations)
         problem = AmplificationProblem(Statevector.from_label("111"), is_good_state=["111"])
         result = grover.amplify(problem)
         self.assertEqual(result.top_measurement, "111")
