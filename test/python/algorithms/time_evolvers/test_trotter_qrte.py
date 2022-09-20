@@ -27,7 +27,7 @@ from qiskit.circuit.library import ZGate
 from qiskit.quantum_info import Statevector, Pauli, SparsePauliOp
 from qiskit.utils import algorithm_globals
 from qiskit.circuit import Parameter
-from qiskit.opflow import PauliSumOp
+from qiskit.opflow import PauliSumOp, X, MatrixOp
 from qiskit.synthesis import SuzukiTrotter, QDrift
 
 
@@ -150,20 +150,44 @@ class TestTrotterQRTE(QiskitAlgorithmsTestCase):
 
     @data((Parameter("t"), {}), (None, {Parameter("x"): 2}), (None, None))
     @unpack
-    def test_trotter_qrte_trotter_errors(self, t_param, param_value_dict):
-        """Test TrotterQRTE with raising errors."""
+    def test_trotter_qrte_trotter_param_errors(self, t_param, param_value_dict):
+        """Test TrotterQRTE with raising errors for parameters."""
         operator = Parameter("t") * PauliSumOp(SparsePauliOp([Pauli("X")])) + PauliSumOp(
             SparsePauliOp([Pauli("Z")])
         )
         initial_state = QuantumCircuit(1)
+        self._run_error_test(initial_state, operator, None, None, t_param, param_value_dict)
+
+    @data(([Pauli("X"), Pauli("Y")], None))
+    @unpack
+    def test_trotter_qrte_trotter_aux_ops_errors(self, aux_ops, estimator):
+        """Test TrotterQRTE with raising errors."""
+        operator = PauliSumOp(SparsePauliOp([Pauli("X")])) + PauliSumOp(SparsePauliOp([Pauli("Z")]))
+        initial_state = QuantumCircuit(1)
+        self._run_error_test(initial_state, operator, aux_ops, estimator, None, None)
+
+    @data(
+        (SparsePauliOp([Pauli("X"), Pauli("Z")]), QuantumCircuit(1)),
+        (X, QuantumCircuit(1)),
+        (MatrixOp([[1, 1], [0, 1]]), QuantumCircuit(1)),
+        (PauliSumOp(SparsePauliOp([Pauli("X")])) + PauliSumOp(SparsePauliOp([Pauli("Z")])), None),
+    )
+    @unpack
+    def test_trotter_qrte_trotter_hamiltonian_errors(self, operator, initial_state):
+        """Test TrotterQRTE with raising errors for evolution problem content."""
+        self._run_error_test(initial_state, operator, None, None, None, None)
+
+    @staticmethod
+    def _run_error_test(initial_state, operator, aux_ops, estimator, t_param, param_value_dict):
         time = 1
         algorithm_globals.random_seed = 0
-        trotter_qrte = TrotterQRTE()
+        trotter_qrte = TrotterQRTE(estimator=estimator)
         with assert_raises(ValueError):
             evolution_problem = TimeEvolutionProblem(
                 operator,
                 time,
                 initial_state,
+                aux_ops,
                 t_param=t_param,
                 param_value_map=param_value_dict,
             )
