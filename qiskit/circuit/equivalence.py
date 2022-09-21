@@ -40,20 +40,28 @@ class EquivalenceLibrary:
                 be referenced if an entry is not found in this library.
         """
         self._base = base
-        print("\n\n\nBASE", base)
+        # print("\n\n\nBASE", base)
 
-        self._graph = rx.PyDiGraph()
+        self._graph = base._graph if base is not None else rx.PyDiGraph()
 
         self._all_gates_in_lib = set()
         self._num_gates_for_rule = dict()
         self._key_to_node_index = dict()
         self._rule_count = 0
+        if base is not None:
+            # print("base key", base._key_to_node_index)
+            # print("base all", base._all_gates_in_lib)
+            # print("base num", base._num_gates_for_rule)
+            self._all_gates_in_lib = base._all_gates_in_lib
+            self._num_gates_for_rule = base._num_gates_for_rule
+            self._key_to_node_index = base._key_to_node_index
+            # print("key to node", self._key_to_node_index)
+            self._rule_count = base._rule_count
 
-    def _lazy_setdefault(self, key):
+    def _lazy_setdefault(self, key, add_weight=True):
         if key not in self._key_to_node_index:
-            self._key_to_node_index[key] = self._graph.add_node(
-                {"key": key, "entry": Entry(search_base=True, equivalences=[])}
-            )
+            node_wt = {"key": key, "entry": Entry(search_base=True, equivalences=[])}# if add_weight else {}
+            self._key_to_node_index[key] = self._graph.add_node(node_wt)
         return self._key_to_node_index[key]
 
     def add_equivalence(self, gate, equivalent_circuit):
@@ -71,14 +79,14 @@ class EquivalenceLibrary:
                 implementing the given Gate.
         """
 
-        print("\nIn add eq", gate, equivalent_circuit)
+        # print("\nIn add eq", gate, equivalent_circuit)
         _raise_if_shape_mismatch(gate, equivalent_circuit)
         _raise_if_param_mismatch(gate.params, equivalent_circuit.parameters)
 
         key = Key(name=gate.name, num_qubits=gate.num_qubits)
         equiv = Equivalence(params=gate.params.copy(), circuit=equivalent_circuit.copy())
 
-        target = self._lazy_setdefault(key)
+        target = self._lazy_setdefault(key, True)
         self._all_gates_in_lib.add(key)
 
         sources = {
@@ -88,7 +96,7 @@ class EquivalenceLibrary:
         self._all_gates_in_lib |= sources
         edges = [
             (
-                self._lazy_setdefault(source),
+                self._lazy_setdefault(source, False),
                 target,
                 {"index": self._rule_count, "rule": equiv, "source": source},
             )
@@ -101,7 +109,7 @@ class EquivalenceLibrary:
 
         self._graph[target]["entry"].equivalences.append(equiv)
 
-        print("\nall gates in equiv", self._all_gates_in_lib)
+        # print("\nall gates in equiv", self._all_gates_in_lib)
 
     def has_entry(self, gate):
         """Check if a library contains any decompositions for gate.
@@ -233,6 +241,9 @@ class EquivalenceLibrary:
         base_keys = self._base._get_all_keys() if self._base is not None else set()
         self_keys = set(self._key_to_node_index.keys())
 
+        # print("\n\nKEYS", self_keys)
+        # print("\nall", self._all_gates_in_lib)
+
         return self_keys | {
             base_key
             for base_key in base_keys
@@ -246,14 +257,8 @@ class EquivalenceLibrary:
         else:
             search_base, equivalences = self._graph[self._key_to_node_index[key]]["entry"]
 
-        print('\nget_equiv', key, search_base, equivalences)
+        # print('\nget_equiv', key, search_base, equivalences)
         if search_base and self._base is not None:
-            base_equiv = self._base._get_equivalences(key)
-            for equiv in base_equiv:
-                for key in equiv:
-                    print("all in base", key)
-                    self._all_gates_in_lib |= key
-
             return equivalences + self._base._get_equivalences(key)
         return equivalences
 

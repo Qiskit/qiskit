@@ -364,22 +364,22 @@ class BasisSearchVisitor(retworkx.visit.DijkstraVisitor):
         self.graph = graph
         self.target_basis = set(target_basis)
         self._source_gates_remain = set(source_basis)
-        print("\n\nInit source basis", source_basis, self._source_gates_remain, type(self._source_gates_remain))
+        # print("\n\nInit source basis", source_basis, self._source_gates_remain, type(self._source_gates_remain))
         self._num_gates_remain_for_rule = dict(num_gates_for_rule)
         self._basis_transforms = []
         self._predecessors = dict()
         self._opt_cost_map = dict()
 
     def discover_vertex(self, v, score):
-        print("\n\ngraph of v", self.graph[v])
+        # print("\n\ngraph of v", self.graph[v])
         gate = self.graph[v]["key"]
-        print("\n\nDiscover source basis", gate, type(gate), self._source_gates_remain, type(self._source_gates_remain))
+        # print("\n\nDiscover source basis", gate, type(gate), self._source_gates_remain, type(self._source_gates_remain))
         if not isinstance(gate, str):# in self._source_gates_remain:
-            print("GOT HERE")
+            # print("GOT HERE")
             self._source_gates_remain.discard(gate)
-        print("GOT HERE 2")
+        # print("GOT HERE 2")
         self._opt_cost_map[gate] = score
-        print("GOT HERE 3")
+        # print("GOT HERE 3")
         rule = self._predecessors.get(gate, None)
         if rule is not None:
             logger.debug(
@@ -389,7 +389,7 @@ class BasisSearchVisitor(retworkx.visit.DijkstraVisitor):
                 score,
             )
             self._basis_transforms.append((gate.name, gate.num_qubits, rule.params, rule.circuit))
-        print("GOT HERE 4")
+        # print("GOT HERE 4")
         # we can stop the search if we have found all gates in the original ciruit.
         if not self._source_gates_remain:
             # if we start from source gates and apply `basis_transforms` in reverse order, we'll end
@@ -397,9 +397,9 @@ class BasisSearchVisitor(retworkx.visit.DijkstraVisitor):
             # additional transformations that are not required to map our source gates to the given
             # target basis.
             self._basis_transforms.reverse()
-            print("GOT HERE 6")
+            # print("GOT HERE 6")
             raise StopIfBasisRewritable
-        print("GOT HERE 5")
+        # print("GOT HERE 5")
 
     def examine_edge(self, edge):
         _, target, edata = edge
@@ -467,6 +467,13 @@ def _basis_search(equiv_lib, source_basis, target_basis):
 
     logger.debug("Begining basis search from %s to %s.", source_basis, target_basis)
 
+    #print("KEYSSSS", equiv_lib._get_all_keys())
+    count = 3
+    for key in equiv_lib._get_all_keys():
+        # print("equiv key", key)
+        count -= 1
+        if count == 0:
+            break
     #equiv_lib._all_gates_in_lib = set(equiv_lib._get_all_keys
     source_basis = {
         (gate_name, gate_num_qubits)
@@ -480,22 +487,22 @@ def _basis_search(equiv_lib, source_basis, target_basis):
 
     # This is only neccessary since gates in target basis are currently reported by
     # their names and we need to have in addition the number of qubits they act on.
-    print("\nall_gates", equiv_lib._all_gates_in_lib)
+    # print("\nall_gates", equiv_lib._all_gates_in_lib)
     target_basis_keys = [
         key
         for gate in target_basis
         for key in filter(lambda key, name=gate: key.name == name, equiv_lib._all_gates_in_lib)
     ]
-    print("\nkey to node", equiv_lib._key_to_node_index)
-    for v in equiv_lib._graph.node_indices():
-        print("\ngraph", equiv_lib._graph[v])
-    print("\nsource_basis", source_basis)
-    print("\ntarget_basis_keys", target_basis_keys)
-    print("\nnum_gates", equiv_lib._num_gates_for_rule)
-    print("\nall_gates", equiv_lib._all_gates_in_lib)
+    # print("\nkey to node", equiv_lib._key_to_node_index)
+    #for v in equiv_lib._graph.node_indices():
+    #   print("\ngraph", equiv_lib._graph[v])
+    # print("\nsource_basis", source_basis)
+    # print("\ntarget_basis_keys", target_basis_keys)
+    # print("\nnum_gates", equiv_lib._num_gates_for_rule)
+    # print("\nall_gates", equiv_lib._all_gates_in_lib)
     vis = BasisSearchVisitor(equiv_lib._graph, source_basis, target_basis_keys, equiv_lib._num_gates_for_rule)
 
-    print("\nvis", vis)
+    # print("\nvis", vis)
     # we add a dummy node and connect it with gates in the target basis.
     # we'll start the search from this dummy node.
     dummy = equiv_lib._graph.add_node({"key": ("dummy starting node", 0)})
@@ -511,7 +518,7 @@ def _basis_search(equiv_lib, source_basis, target_basis):
         for gate_name, gate_num_qubits, params, equiv in rtn:
             logger.debug("%s/%s => %s\n%s", gate_name, gate_num_qubits, params, equiv)
 
-    print("\nrtn", rtn)
+    # print("\nrtn", rtn)
     return rtn
 
 
