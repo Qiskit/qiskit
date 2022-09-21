@@ -10,9 +10,9 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-# pylint: disable=no-value-for-parameter,unused-wildcard-import,wildcard-import
-
 """Backend abstract interface for providers."""
+
+from __future__ import annotations
 
 from typing import List, Iterable, Any, Dict, Optional
 
@@ -40,12 +40,15 @@ def convert_to_target(
     properties: BackendProperties = None,
     defaults: PulseDefaults = None,
     custom_name_mapping: Optional[Dict[str, Any]] = None,
-) -> Target:
-    from qiskit.transpiler.target import Target, InstructionProperties  # pylint: disable=cyclic-import
-
+) -> "Target":
     """Uses configuration, properties and pulse defaults
     to construct and return Target class.
     """
+    from qiskit.transpiler.target import (
+        Target,
+        InstructionProperties,
+    )  # pylint: disable=cyclic-import
+
     # Standard gates library mapping, multicontrolled gates not included since they're
     # variable width
     name_mapping = get_standard_gate_name_mapping()
