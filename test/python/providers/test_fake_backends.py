@@ -29,6 +29,7 @@ from qiskit.providers.fake_provider import (
     FakeProvider,
     FakeMumbaiV2,
     FakeYorktown,
+    FakeMumbai,
 )
 from qiskit.providers.backend_compat import BackendV2Converter
 from qiskit.providers.backend import BackendV2
@@ -182,7 +183,7 @@ class TestFakeBackends(QiskitTestCase):
         self.assertEqual(max_count, "11")
 
     def test_converter_delay_circuit(self):
-        backend = FakeYorktown()
+        backend = FakeMumbai()
         backend_v2 = BackendV2Converter(backend)
         self.assertIsInstance(backend_v2, BackendV2)
         qc = QuantumCircuit(2)

@@ -96,7 +96,7 @@ def convert_to_target(
         "u3": U3Gate(Parameter("ϴ"), Parameter("φ"), Parameter("λ")),
         "y": YGate(),
         "z": ZGate(),
-        "delay": Delay(),
+        "delay": Delay(Parameter("t")),
     }
     custom_gates = {}
     target = None
@@ -181,7 +181,12 @@ def convert_to_target(
                             target[inst][(qubit,)].calibration = sched
                     elif qarg in target[inst]:
                         target[inst][qarg].calibration = sched
-    for op in configuration.basis_gates:
+    combined_global_ops = set()
+    if configuration.basis_gates:
+        combined_global_ops.update(configuration.basis_gates)
+    if configuration.supported_instructions:
+        combined_global_ops.update(configuration.supported_instructions)
+    for op in combined_global_ops:
         if op not in target and op in name_mapping:
             target.add_instruction(
                 name_mapping[op], {(bit,): None for bit in range(target.num_qubits)}
