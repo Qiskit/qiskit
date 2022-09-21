@@ -82,7 +82,6 @@ knowledge to do this in that application domain.
 .. autosummary::
    :toctree: ../stubs/
    :nosignatures:
-   :noindex:
 
    Eigensolver
    EigensolverResult
@@ -90,7 +89,6 @@ knowledge to do this in that application domain.
 .. autosummary::
    :toctree: ../stubs/
    :nosignatures:
-   :noindex:
 
    NumPyEigensolver
    VQD

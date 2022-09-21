@@ -16,10 +16,12 @@ See https://arxiv.org/abs/1805.08138.
 """
 
 from __future__ import annotations
+
 import logging
 from time import time
+from collections.abc import Callable, Sequence
+
 import numpy as np
-from collections.abc import Callable
 
 from qiskit.circuit import QuantumCircuit
 from qiskit.opflow.primitive_ops.pauli_op import PauliOp
@@ -94,7 +96,7 @@ class VQD(VariationalAlgorithm, Eigensolver):
                 These hyper-parameters balance the contribution of each overlap term to the cost
                 function and have a default value computed as the mean square sum of the
                 coefficients of the observable.
-            initial_point (np.ndarray): An optional initial point (i.e. initial parameter values)
+            initial_point (Sequence[float]): An optional initial point (i.e. initial parameter values)
                 for the optimizer. If ``None`` then VQD will look to the ansatz for a preferred
                 point and if not will simply compute a random one.
             callback (Callable): a callback that can access the intermediate data
@@ -108,12 +110,12 @@ class VQD(VariationalAlgorithm, Eigensolver):
         self,
         estimator: BaseEstimator,
         fidelity: BaseStateFidelity,
-        ansatz: QuantumCircuit | None,
+        ansatz: QuantumCircuit,
         optimizer: Optimizer | Minimizer,
         *,
         k: int = 2,
         betas: list[float] | None = None,
-        initial_point: np.ndarray | None = None,
+        initial_point: Sequence[float] | None = None,
         callback: Callable[[int, np.ndarray, float, float], None] | None = None,
     ) -> None:
         """
@@ -155,12 +157,12 @@ class VQD(VariationalAlgorithm, Eigensolver):
         self._eval_count = 0
 
     @property
-    def initial_point(self) -> np.ndarray | None:
+    def initial_point(self) -> Sequence[float] | None:
         """Returns initial point."""
         return self._initial_point
 
     @initial_point.setter
-    def initial_point(self, initial_point: np.ndarray):
+    def initial_point(self, initial_point: Sequence[float]):
         """Sets initial point"""
         self._initial_point = initial_point
 
@@ -186,7 +188,7 @@ class VQD(VariationalAlgorithm, Eigensolver):
         self,
         operator: BaseOperator | PauliSumOp,
         aux_operators: ListOrDict[BaseOperator | PauliSumOp] | None = None,
-    ) -> EigensolverResult:
+    ) -> VQDResult:
 
         super().compute_eigenvalues(operator, aux_operators)
 
@@ -228,13 +230,7 @@ class VQD(VariationalAlgorithm, Eigensolver):
             self.betas = [upper_bound * 10] * (self.k)
             logger.info("beta autoevaluated to %s", self.betas[0])
 
-        result = VQDResult()
-        result.optimal_point = []
-        result.optimal_parameters = []
-        result.optimal_value = []
-        result.cost_function_evals = []
-        result.optimizer_time = []
-        result.eigenvalues = []
+        result = self._build_vqd_result()
 
         if aux_operators is not None:
             aux_values = []
@@ -242,7 +238,7 @@ class VQD(VariationalAlgorithm, Eigensolver):
         for step in range(1, self.k + 1):
 
             self._eval_count = 0
-            energy_evaluation = self._get_energy_evaluation(
+            energy_evaluation = self._get_evaluate_energy(
                 step, operator, prev_states=result.optimal_parameters
             )
 
@@ -260,12 +256,7 @@ class VQD(VariationalAlgorithm, Eigensolver):
 
             eval_time = time() - start_time
 
-            result.optimal_point.append(opt_result.x)
-            result.optimal_parameters.append(dict(zip(self.ansatz.parameters, opt_result.x)))
-            result.optimal_value.append(opt_result.fun)
-            result.cost_function_evals.append(opt_result.nfev)
-            result.optimizer_time.append(eval_time)
-            result.eigenvalues.append(opt_result.fun + 0j)
+            self._update_vqd_result(result, opt_result, eval_time, self.ansatz)
 
             if aux_operators is not None:
                 bound_ansatz = self.ansatz.bind_parameters(result.optimal_point[-1])
@@ -293,7 +284,7 @@ class VQD(VariationalAlgorithm, Eigensolver):
                     self._eval_count,
                 )
 
-        # To match the signature of NumpyEigenSolver Result
+        # To match the signature of NumPyEigensolver Result
         result.eigenvalues = np.array(result.eigenvalues)
         result.optimal_point = np.array(result.optimal_point)
         result.optimal_value = np.array(result.optimal_value)
@@ -305,15 +296,14 @@ class VQD(VariationalAlgorithm, Eigensolver):
 
         return result
 
-    def _get_energy_evaluation(
+    def _get_evaluate_energy(
         self,
         step: int,
         operator: BaseOperator | PauliSumOp,
         prev_states: list[np.ndarray] | None = None,
     ) -> Callable[[np.ndarray], float | list[float]]:
-        """Returns a function handle to evaluates the energy at given parameters for the ansatz.
-        This return value is the objective function to be passed to the optimizer for evaluation.
-
+        """Returns a function handle to evaluate the energy at given parameters for the ansatz.
+        This is the objective function to be passed to the optimizer that is used for evaluation.
         Args:
             step: level of energy being calculated. 0 for ground, 1 for first excited state...
             operator: The operator whose energy to evaluate.
@@ -321,7 +311,7 @@ class VQD(VariationalAlgorithm, Eigensolver):
 
         Returns:
             A callable that computes and returns the energy of the hamiltonian
-            of each parameter, and, optionally, the expectation
+            of each parameter.
 
         Raises:
             RuntimeError: If the circuit is not parameterized (i.e. has 0 free parameters).
@@ -345,14 +335,20 @@ class VQD(VariationalAlgorithm, Eigensolver):
         for state in range(step - 1):
             prev_circs.append(self.ansatz.bind_parameters(prev_states[state]))
 
-        def energy_evaluation(parameters):
-            estimator_job = self.estimator.run(
-                circuits=[self.ansatz], observables=[operator], parameter_values=[parameters]
-            )
-            estimator_result = estimator_job.result()
-            means = np.real(estimator_result.values)
+        def evaluate_energy(parameters: np.ndarray) -> np.ndarray | float:
+
+            try:
+                estimator_job = self.estimator.run(
+                    circuits=[self.ansatz], observables=[operator], parameter_values=[parameters]
+                )
+                estimator_result = estimator_job.result()
+                means = np.real(estimator_result.values)
+
+            except Exception as exc:
+                raise AlgorithmError("The primitive job to evaluate the energy failed!") from exc
 
             if step > 1:
+                # Compute overlap cost
                 fidelity_job = self.fidelity.run(
                     [self.ansatz] * len(prev_circs),
                     prev_circs,
@@ -375,7 +371,30 @@ class VQD(VariationalAlgorithm, Eigensolver):
                 self._eval_count += len(means)
             return means if len(means) > 1 else means[0]
 
-        return energy_evaluation
+        return evaluate_energy
+
+    @staticmethod
+    def _build_vqd_result() -> VQDResult:
+
+        result = VQDResult()
+        result.optimal_point = []
+        result.optimal_parameters = []
+        result.optimal_value = []
+        result.cost_function_evals = []
+        result.optimizer_time = []
+        result.eigenvalues = []
+        return result
+
+    @staticmethod
+    def _update_vqd_result(result, opt_result, eval_time, ansatz) -> VQDResult:
+
+        result.optimal_point.append(opt_result.x)
+        result.optimal_parameters.append(dict(zip(ansatz.parameters, opt_result.x)))
+        result.optimal_value.append(opt_result.fun)
+        result.cost_function_evals.append(opt_result.nfev)
+        result.optimizer_time.append(eval_time)
+        result.eigenvalues.append(opt_result.fun + 0j)
+        return result
 
 
 class VQDResult(VariationalResult, EigensolverResult):
