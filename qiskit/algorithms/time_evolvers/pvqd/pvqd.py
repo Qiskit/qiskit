@@ -14,7 +14,6 @@
 from __future__ import annotations
 
 import logging
-import warnings
 from typing import Callable
 
 import numpy as np
@@ -334,7 +333,8 @@ class PVQD(RealTimeEvolver):
             A result object containing the evolution information and evaluated observables.
 
         Raises:
-            ValueError: If the evolution time is not positive or the timestep is too small.
+            ValueError: If ``aux_operators`` provided in the time evolution problem but no estimator
+                provided to the algorithm.
             NotImplementedError: If the evolution problem contains an initial state.
         """
         self._validate_setup()
@@ -357,9 +357,8 @@ class PVQD(RealTimeEvolver):
         # get the function to evaluate the observables for a given set of ansatz parameters
         if observables is not None:
             if self.estimator is None:
-                warnings.warn(
+                raise ValueError(
                     "The evolution problem contained aux_operators but no estimator was provided. "
-                    "The algorithm continues without calculating these quantities. "
                 )
             evaluate_observables = _get_observable_evaluator(
                 self.ansatz, observables, self.estimator

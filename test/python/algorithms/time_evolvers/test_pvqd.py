@@ -247,6 +247,26 @@ class TestPVQD(QiskitTestCase):
         with self.assertRaises(NotImplementedError):
             _ = pvqd.evolve(problem)
 
+    def test_aux_ops_raises(self):
+        """Test passing auxiliary operators with no estimator raises an error."""
+
+        problem = EvolutionProblem(
+            self.hamiltonian, time=0.02, aux_operators=[self.hamiltonian, self.observable]
+        )
+
+        sampler = Sampler()
+        fidelity_primitive = ComputeUncompute(sampler)
+
+        pvqd = PVQD(
+            fidelity_primitive,
+            self.ansatz,
+            self.initial_parameters,
+            optimizer=SPSA(maxiter=0, learning_rate=0.1, perturbation=0.01),
+        )
+
+        with self.assertRaises(ValueError):
+            _ = pvqd.evolve(problem)
+
 
 class TestPVQDUtils(QiskitTestCase):
     """Test some utility functions for PVQD."""
