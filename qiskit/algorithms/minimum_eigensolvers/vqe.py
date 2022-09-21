@@ -161,18 +161,18 @@ class VQE(VariationalAlgorithm, MinimumEigensolver):
         operator: BaseOperator | PauliSumOp,
         aux_operators: ListOrDict[BaseOperator | PauliSumOp] | None = None,
     ) -> VQEResult:
-        self._check_operator_ansatz(operator)
+        ansatz = self._check_operator_ansatz(operator)
 
-        initial_point = _validate_initial_point(self.initial_point, self.ansatz)
+        initial_point = _validate_initial_point(self.initial_point, ansatz)
 
-        bounds = _validate_bounds(self.ansatz)
+        bounds = _validate_bounds(ansatz)
 
         start_time = time()
 
-        evaluate_energy = self._get_evaluate_energy(self.ansatz, operator)
+        evaluate_energy = self._get_evaluate_energy(ansatz, operator)
 
         if self.gradient is not None:
-            evaluate_gradient = self._get_evaluate_gradient(self.ansatz, operator)
+            evaluate_gradient = self._get_evaluate_gradient(ansatz, operator)
         else:
             evaluate_gradient = None
 
@@ -192,7 +192,7 @@ class VQE(VariationalAlgorithm, MinimumEigensolver):
         result.eigenvalue = opt_result.fun
         result.cost_function_evals = opt_result.nfev
         result.optimal_point = opt_result.x
-        result.optimal_parameters = dict(zip(self.ansatz.parameters, opt_result.x))
+        result.optimal_parameters = dict(zip(ansatz.parameters, opt_result.x))
         result.optimal_value = opt_result.fun
         result.optimizer_time = eval_time
 
@@ -203,7 +203,7 @@ class VQE(VariationalAlgorithm, MinimumEigensolver):
         )
 
         if aux_operators is not None:
-            bound_ansatz = self.ansatz.bind_parameters(opt_result.x)
+            bound_ansatz = ansatz.bind_parameters(opt_result.x)
             aux_values = estimate_observables(self.estimator, bound_ansatz, aux_operators)
             result.aux_operator_eigenvalues = aux_values
 
