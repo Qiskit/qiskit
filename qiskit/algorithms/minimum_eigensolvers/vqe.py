@@ -29,7 +29,7 @@ from qiskit.utils import algorithm_globals
 
 from ..exceptions import AlgorithmError
 from ..list_or_dict import ListOrDict
-from ..optimizers import Optimizer, Minimizer
+from ..optimizers import Optimizer, Minimizer, OptimizerResult
 from ..variational_algorithm import VariationalAlgorithm, VariationalResult
 from .minimum_eigensolver import MinimumEigensolver, MinimumEigensolverResult
 
@@ -178,36 +178,28 @@ class VQE(VariationalAlgorithm, MinimumEigensolver):
 
         # perform optimization
         if callable(self.optimizer):
-            opt_result = self.optimizer(
+            optimizer_result = self.optimizer(
                 fun=evaluate_energy, x0=initial_point, jac=evaluate_gradient, bounds=bounds
             )
         else:
-            opt_result = self.optimizer.minimize(
+            optimizer_result = self.optimizer.minimize(
                 fun=evaluate_energy, x0=initial_point, jac=evaluate_gradient, bounds=bounds
             )
 
         eval_time = time() - start_time
 
-        result = VQEResult()
-        result.eigenvalue = opt_result.fun
-        result.cost_function_evals = opt_result.nfev
-        result.optimal_point = opt_result.x
-        result.optimal_parameters = dict(zip(ansatz.parameters, opt_result.x))
-        result.optimal_value = opt_result.fun
-        result.optimizer_time = eval_time
-
         logger.info(
-            "Optimization complete in %s seconds.\nFound opt_params %s",
+            "Optimization complete in %s seconds.\nFound optimal point %s",
             eval_time,
-            result.optimal_point,
+            optimizer_result.x,
         )
 
+        aux_values = None
         if aux_operators is not None:
-            bound_ansatz = ansatz.bind_parameters(opt_result.x)
+            bound_ansatz = ansatz.bind_parameters(optimizer_result.x)
             aux_values = estimate_observables(self.estimator, bound_ansatz, aux_operators)
-            result.aux_operator_eigenvalues = aux_values
 
-        return result
+        return _build_vqe_result(optimizer_result, eval_time, ansatz, aux_values)
 
     @classmethod
     def supports_aux_operators(cls) -> bool:
@@ -353,6 +345,23 @@ def _validate_bounds(ansatz: QuantumCircuit) -> list[tuple(float | None, float |
         bounds = [(None, None)] * ansatz.num_parameters
 
     return bounds
+
+
+def _build_vqe_result(
+    optimizer_result: OptimizerResult,
+    eval_time: float,
+    ansatz: QuantumCircuit,
+    aux_values: ListOrDict[tuple[complex, tuple[complex, int]]],
+) -> VQEResult:
+    result = VQEResult()
+    result.eigenvalue = optimizer_result.fun
+    result.cost_function_evals = optimizer_result.nfev
+    result.optimal_point = optimizer_result.x
+    result.optimal_parameters = dict(zip(ansatz.parameters, optimizer_result.x))
+    result.optimal_value = optimizer_result.fun
+    result.optimizer_time = eval_time
+    result.aux_operator_eigenvalues = aux_values
+    return result
 
 
 class VQEResult(VariationalResult, MinimumEigensolverResult):
