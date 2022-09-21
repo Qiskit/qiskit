@@ -56,8 +56,9 @@ class ConvertConditionsToIfOps(TransformationPass):
             else:
                 target, value = node.op.condition
                 clbits = list(node.cargs)
-                condition_clbits = {target} if isinstance(target, Clbit) else set(target)
-                clbits += condition_clbits - set(clbits)
+                condition_clbits = [target] if isinstance(target, Clbit) else list(target)
+                clbits_set = set(clbits)
+                clbits += [bit for bit in condition_clbits if bit not in clbits_set]
                 block_body = QuantumCircuit(list(node.qargs) + clbits)
                 if isinstance(target, ClassicalRegister):
                     block_body.add_register(target)
