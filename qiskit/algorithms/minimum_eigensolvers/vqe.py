@@ -172,7 +172,7 @@ class VQE(VariationalAlgorithm, MinimumEigensolver):
         evaluate_energy = self._get_evaluate_energy(self.ansatz, operator)
 
         if self.gradient is not None:
-            evaluate_gradient = self._get_evalute_gradient(self.ansatz, operator)
+            evaluate_gradient = self._get_evaluate_gradient(self.ansatz, operator)
         else:
             evaluate_gradient = None
 
@@ -257,7 +257,7 @@ class VQE(VariationalAlgorithm, MinimumEigensolver):
 
         return evaluate_energy
 
-    def _get_evalute_gradient(
+    def _get_evaluate_gradient(
         self,
         ansatz: QuantumCircuit,
         operator: BaseOperator | PauliSumOp,
@@ -287,16 +287,19 @@ class VQE(VariationalAlgorithm, MinimumEigensolver):
 
         return evaluate_gradient
 
-    def _check_operator_ansatz(self, operator: BaseOperator | PauliSumOp):
+    def _check_operator_ansatz(self, operator: BaseOperator | PauliSumOp) -> QuantumCircuit:
         """Check that the number of qubits of operator and ansatz match and that the ansatz is
         parameterized.
         """
-        if operator.num_qubits != self.ansatz.num_qubits:
+        # avoid changing the original ansatz as a user may not expect this behavior
+        ansatz = self.ansatz.copy()
+
+        if operator.num_qubits != ansatz.num_qubits:
             try:
                 logger.info(
                     "Trying to resize ansatz to match operator on %s qubits.", operator.num_qubits
                 )
-                self.ansatz.num_qubits = operator.num_qubits
+                ansatz.num_qubits = operator.num_qubits
             except AttributeError as error:
                 raise AlgorithmError(
                     "The number of qubits of the ansatz does not match the "
@@ -304,8 +307,10 @@ class VQE(VariationalAlgorithm, MinimumEigensolver):
                     "number of qubits using `num_qubits`."
                 ) from error
 
-        if self.ansatz.num_parameters == 0:
+        if ansatz.num_parameters == 0:
             raise AlgorithmError("The ansatz must be parameterized, but has no free parameters.")
+
+        return ansatz
 
 
 def _validate_initial_point(point: Sequence[float], ansatz: QuantumCircuit) -> Sequence[float]:
