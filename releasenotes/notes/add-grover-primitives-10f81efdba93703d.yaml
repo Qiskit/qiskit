@@ -1,7 +1,6 @@
 ---
 features:
   - |
-
     :class:`~.Grover` supports the primitives and can use :class:`~.BaseSampler` to
     calculate the results. Accordingly, ``quantum instance`` in :class:`~.Grover`
     is pending deprecation and will be deprecated in a future release.
@@ -9,9 +8,15 @@ features:
     Example::
     .. code-block:: python
 
-      sampler = Sampler(...)
-      problem = AmplificationProblem(...)
-      grover = Grover(sampler)
+      from qiskit import QuantumCircuit
+      from qiskit.primitives import Sampler
+      from qiskit.algorithms import Grover, AmplificationProblem
+
+      sampler = Sampler()
+      oracle = QuantumCircuit(2)
+      oracle.cz(0, 1)
+      problem = AmplificationProblem(oracle, is_good_state=["11"])
+      grover = Grover(sampler=sampler)
       result = grover.amplify(problem)
 
 deprecations:
