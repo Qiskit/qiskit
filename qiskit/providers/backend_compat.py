@@ -62,7 +62,7 @@ def convert_to_target(
         "crz": CRZGate(Parameter("ϴ")),
         "cswap": CSwapGate(),
         "csx": CSXGate(),
-        "cu": CUGate(Parameter("ϴ"), Parameter("φ"), Parameter("λ")),
+        "cu": CUGate(Parameter("ϴ"), Parameter("φ"), Parameter("λ"), Parameter("γ")),
         "cu1": CU1Gate(Parameter("λ")),
         "cu3": CU3Gate(Parameter("ϴ"), Parameter("φ"), Parameter("λ")),
         "cy": CYGate(),
