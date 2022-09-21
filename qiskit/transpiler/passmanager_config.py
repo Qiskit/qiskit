@@ -41,7 +41,6 @@ class PassManagerConfig:
         target=None,
         init_method=None,
         optimization_method=None,
-        post_translation_pm=None,
     ):
         """Initialize a PassManagerConfig object
 
@@ -80,8 +79,6 @@ class PassManagerConfig:
             init_method (str): The plugin name for the init stage plugin to use
             optimization_method (str): The plugin name for the optimization stage plugin
                 to use.
-            post_translation_pm (PassManager): An optional pass manager representing a
-                post-translation stage.
         """
         self.initial_layout = initial_layout
         self.basis_gates = basis_gates
@@ -101,7 +98,6 @@ class PassManagerConfig:
         self.unitary_synthesis_method = unitary_synthesis_method
         self.unitary_synthesis_plugin_config = unitary_synthesis_plugin_config
         self.target = target
-        self.post_translation_pm = post_translation_pm
 
     @classmethod
     def from_backend(cls, backend, **pass_manager_options):
@@ -153,10 +149,10 @@ class PassManagerConfig:
         if res.target is None:
             if backend_version >= 2:
                 res.target = backend.target
-        if res.scheduling_method is None and hasattr(backend, "get_scheduling_stage"):
-            res.scheduling_method = backend.get_scheduling_stage()
-        if hasattr(backend, "get_post_translation_stage"):
-            res.post_translation_pm = backend.get_post_translation_stage()
+        if res.scheduling_method is None and hasattr(backend, "get_scheduling_stage_method"):
+            res.scheduling_method = backend.get_scheduling_stage_method()
+        if res.translation_method is None and hasattr(backend, "get_translation_stage_method"):
+            res.translation_method = backend.get_translation_stage_method()
         return res
 
     def __str__(self):

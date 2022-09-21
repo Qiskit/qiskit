@@ -411,46 +411,46 @@ Custom Transpiler Passes
 As part of the transpiler there is a provision for backends to provide custom
 stage implementation to facilitate hardware specific optimizations and
 circuit transformations. Currently there are two hook points supported,
-``get_post_translation_stage()`` which is used for a backend to specify a
-:class:`~PassManager` which will be run after basis translation stage in the
-compiler and ``get_scheduling_stage()`` which is used for a backend to
-specify a :class:`~PassManager` which will be run for the scheduling stage
+``get_translation_stage_method()`` which is used for a backend to specify a
+string of the translation stage plugin to use in the compiler and
+``get_scheduling_stage_method()`` which is used for a backend to
+specify a string scheduling method pluging to use for the scheduling stage
 by default (which is the last defined stage in a default compilation). These
 hook points in a :class:`~.BackendV2` class should only be used if your
 backend has special requirements for compilation that are not met by the
-default backend.
+default backend/:class:`~.Target` interface. Ideally we can expand these
+interfaces to cover more details and information to inform the transpiler on
+how/when to perform certain steps/optimizations.
 
 To leverage these hook points you just need to add the methods to your
-:class:`~.BackendV2` implementation and have them return a
-:class:`~.PassManager` object. For example::
+:class:`~.BackendV2` implementation and have them return a string method
+For example::
 
-    from qiskit.circuit.library import XGate
-    from qiskit.transpiler.passes import (
-        ALAPScheduleAnalysis,
-        PadDynamicalDecoupling,
-        ResetAfterMeasureSimplification
-    )
 
     class Mybackend(BackendV2):
 
-        def get_scheduling_stage(self):
-            dd_sequence = [XGate(), XGate()]
-            pm = PassManager([
-                ALAPScheduleAnalysis(self.instruction_durations),
-                PadDynamicalDecoupling(self.instruction_durations, dd_sequence)
-            ])
-            return pm
+        def get_scheduling_stage_method(self):
+            return "SpecialDD"
 
-        def get_post_translation_stage(self):
-            pm = PassManager([ResetAfterMeasureSimplification()])
-            return pm
+        def get_translation_stage_method(self):
+            return "BasisTranslatorWithCustom1qOptimization"
 
 This snippet of a backend implementation will now have the :func:`~.transpile`
-function run a custom stage for scheduling (unless the user manually requests a
-different one explicitly) which will insert dynamical decoupling sequences and
-also simplify resets after measurements after the basis translation stage. This
-way if these two compilation steps are **required** for running on ``Mybackend``
-the transpiler will be able to perform these steps without any manual user input.
+function use the ``SpecialDD`` plugin for the scheduling stage and
+the ``BasisTranslatorWithCustom1qOptimization`` plugin for the translation
+stage by default when the target is set to ``Mybackend`` (unless the user manually
+explicitly selects a different method). For this interface to work though transpiler
+stage plugins must be implemented for the returned plugin name. You can refer
+to :mod:`qiskit.transpiler.preset_passmanagers.plugin` module documentation for
+details on how to implement plugins. The typical expectation is that if your backend
+requires custom passes as part of a compilation stage the provider package will
+include the transpiler stage plugins that use those passes. However, this is not
+required and any valid method (from a built-in method or external plugin) can
+be used.
+
+This way if these two compilation steps are **required** for running or providing
+efficient output on ``Mybackend`` the transpiler will be able to perform these
+custom steps without any manual user input.
 
 Run Method
 ----------

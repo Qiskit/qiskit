@@ -82,6 +82,7 @@ def transpile(
     target: Target = None,
     init_method: str = None,
     optimization_method: str = None,
+    ignore_backend_default_methods: bool = False,
 ) -> Union[QuantumCircuit, List[QuantumCircuit]]:
     """Transpile one or more circuits, according to some desired transpilation targets.
 
@@ -269,6 +270,11 @@ def transpile(
             plugin is not used. You can see a list of installed plugins by
             using :func:`~.list_stage_plugins` with ``"optimization"`` for the
             ``stage_name`` argument.
+        ignore_backend_default_methods: If set to ``True`` any default methods specified by
+            a backend will be ignored. Some backends specify alternative default methods
+            to support custom compilation target passes/plugins which support backend
+            specific compilation techniques. If you'd prefer that these did not run and
+            use the defaults for a given optimization level this can be used.
 
     Returns:
         The transpiled circuit(s).
@@ -336,6 +342,7 @@ def transpile(
         target,
         init_method,
         optimization_method,
+        ignore_backend_default_methods,
     )
     # Get transpile_args to configure the circuit transpilation job(s)
     if coupling_map in unique_transpile_args:
@@ -588,6 +595,7 @@ def _parse_transpile_args(
     target,
     init_method,
     optimization_method,
+    ignore_backend_default_methods,
 ) -> Tuple[List[Dict], Dict]:
     """Resolve the various types of args allowed to the transpile() function through
     duck typing, overriding args, etc. Refer to the transpile() docstring for details on
@@ -660,8 +668,11 @@ def _parse_transpile_args(
     }
 
     list_transpile_args = []
-    if scheduling_method is None and hasattr(backend, "get_scheduling_stage"):
-        scheduling_method = backend.get_scheduling_stage()
+    if not ignore_backend_default_methods:
+        if scheduling_method is None and hasattr(backend, "get_scheduling_stage_method"):
+            scheduling_method = backend.get_scheduling_stage_method()
+        if translation_method is None and hasattr(backend, "get_translation_stage_method"):
+            translation_method = backend.get_translation_stage_method()
 
     for key, value in {
         "inst_map": inst_map,
@@ -694,8 +705,6 @@ def _parse_transpile_args(
             "pass_manager_config": kwargs,
         }
         list_transpile_args.append(transpile_args)
-    if hasattr(backend, "get_post_translation_stage"):
-        shared_dict["post_translation_pm"] = backend.get_post_translation_stage()
 
     return list_transpile_args, shared_dict
 

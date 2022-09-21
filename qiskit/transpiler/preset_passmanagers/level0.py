@@ -176,8 +176,6 @@ def level_0_pass_manager(pass_manager_config: PassManagerConfig) -> StagedPassMa
         sched = common.generate_scheduling(
             instruction_durations, scheduling_method, timing_constraints, inst_map
         )
-    elif isinstance(scheduling_method, PassManager):
-        sched = scheduling_method
     else:
         sched = plugin_manager.get_passmanager_stage(
             "scheduling", scheduling_method, pass_manager_config, optimization_level=0
@@ -193,9 +191,6 @@ def level_0_pass_manager(pass_manager_config: PassManagerConfig) -> StagedPassMa
         optimization = plugin_manager.get_passmanager_stage(
             "optimization", optimization_method, pass_manager_config, optimization_level=0
         )
-    post_translation = None
-    if pass_manager_config.post_translation_pm is not None:
-        post_translation = pass_manager_config.post_translation_pm
 
     return StagedPassManager(
         init=init,
@@ -203,7 +198,6 @@ def level_0_pass_manager(pass_manager_config: PassManagerConfig) -> StagedPassMa
         pre_routing=pre_routing,
         routing=routing,
         translation=translation,
-        post_translation=post_translation,
         pre_optimization=pre_opt,
         optimization=optimization,
         scheduling=sched,
