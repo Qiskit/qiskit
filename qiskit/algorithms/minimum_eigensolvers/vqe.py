@@ -216,7 +216,7 @@ class VQE(VariationalAlgorithm, MinimumEigensolver):
             ansatz: The ansatz preparing the quantum state.
             operator: The operator whose energy to evaluate.
         Returns:
-            Energy of the Hamiltonian of each parameter.
+            A callable that computes and returns the energy of the hamiltonian of each parameter.
         Raises:
             AlgorithmError: If the primitive job to evaluate the energy fails.
         """
