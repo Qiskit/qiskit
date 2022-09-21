@@ -15,7 +15,7 @@
 from qiskit.transpiler.passes.basis import UnrollCustomDefinitions
 
 from qiskit.test import QiskitTestCase
-from qiskit.circuit import EquivalenceLibrary, Gate
+from qiskit.circuit import EquivalenceLibrary, Gate, Qubit, Clbit
 from qiskit.circuit import QuantumCircuit, QuantumRegister
 from qiskit.converters import circuit_to_dag
 from qiskit.exceptions import QiskitError
@@ -135,3 +135,73 @@ class TestUnrollCustomDefinitions(QiskitTestCase):
         expected_dag = circuit_to_dag(expected)
 
         self.assertEqual(out, expected_dag)
+
+    def test_if_else(self):
+        """Test that a simple if-else unrolls correctly."""
+        eq_lib = EquivalenceLibrary()
+
+        equiv = QuantumCircuit(1)
+        equiv.h(0)
+        eq_lib.add_equivalence(TestGate(), equiv)
+
+        equiv = QuantumCircuit(1)
+        equiv.z(0)
+        eq_lib.add_equivalence(TestCompositeGate(), equiv)
+
+        pass_ = UnrollCustomDefinitions(eq_lib, basis_gates=["h", "z", "cx"])
+
+        true_body = QuantumCircuit(1)
+        true_body.h(0)
+        true_body.append(TestGate(), [0])
+        false_body = QuantumCircuit(1)
+        false_body.append(TestCompositeGate(), [0])
+
+        test = QuantumCircuit(1, 1)
+        test.h(0)
+        test.measure(0, 0)
+        test.if_else((0, True), true_body, false_body, [0], [])
+
+        expected = QuantumCircuit(1, 1)
+        expected.h(0)
+        expected.measure(0, 0)
+        expected.if_else((0, True), pass_(true_body), pass_(false_body), [0], [])
+
+        self.assertEqual(pass_(test), expected)
+
+    def test_nested_control_flow(self):
+        """Test that the unroller recurses into nested control flow."""
+        eq_lib = EquivalenceLibrary()
+        base_gate = TestGate()
+        equiv = QuantumCircuit(1)
+        equiv.h(0)
+        eq_lib.add_equivalence(base_gate, equiv)
+        base_gate = TestCompositeGate()
+        equiv = QuantumCircuit(1)
+        equiv.z(0)
+        eq_lib.add_equivalence(base_gate, equiv)
+
+        pass_ = UnrollCustomDefinitions(eq_lib, basis_gates=["h", "z", "cx"])
+
+        qubit = Qubit()
+        clbit = Clbit()
+
+        for_body = QuantumCircuit(1)
+        for_body.append(TestGate(), [0], [])
+
+        while_body = QuantumCircuit(1)
+        while_body.append(TestCompositeGate(), [0], [])
+
+        true_body = QuantumCircuit([qubit, clbit])
+        true_body.while_loop((clbit, True), while_body, [0], [0])
+
+        test = QuantumCircuit([qubit, clbit])
+        test.for_loop(range(2), None, for_body, [0], [0])
+        test.if_else((clbit, True), true_body, None, [0], [0])
+
+        expected_if_body = QuantumCircuit([qubit, clbit])
+        expected_if_body.while_loop((clbit, True), pass_(while_body), [0], [0])
+        expected = QuantumCircuit([qubit, clbit])
+        expected.for_loop(range(2), None, pass_(for_body), [0], [0])
+        expected.if_else(range(2), pass_(expected_if_body), None, [0], [0])
+
+        self.assertEqual(pass_(test), expected)
