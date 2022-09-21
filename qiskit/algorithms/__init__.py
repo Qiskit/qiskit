@@ -113,10 +113,8 @@ used to train Quantum Boltzmann Machine Neural Networks for example.
     RealEvolver
     ImaginaryEvolver
     TrotterQRTE
-    PVQD
-    PVQDResult
-    TimeEvolutionResult
-    TimeEvolutionProblem
+    EvolutionResult
+    EvolutionProblem
 
 
 Time Evolvers
@@ -132,6 +130,8 @@ Time Evolution might be used to train Quantum Boltzmann Machine Neural Networks 
 
     RealTimeEvolver
     ImaginaryTimeEvolver
+    PVQD
+    PVQDResult
     TimeEvolutionResult
     TimeEvolutionProblem
 
