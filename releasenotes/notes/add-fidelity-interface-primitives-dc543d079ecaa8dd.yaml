@@ -7,7 +7,8 @@ features:
     there is now an implementation of the compute-uncompute method that leverages
     the sampler primitive (:class:`qiskit.algorithms.state_fidelities.ComputeUncompute`).
 
-    Example::
+    For example:
+
     .. code-block:: python
 
       import numpy as np
