@@ -1130,6 +1130,15 @@ class TestStatevector(QiskitTestCase):
             " |111111111111101\\rangle+ |111111111111110\\rangle+ |111111111111111\\rangle",
         )
 
+    def test_state_to_latex_with_prefix(self):
+        """Test adding prefix to state vector latex output"""
+        psi = Statevector(np.array([np.sqrt(1 / 2), 0, 0, np.sqrt(1 / 2)]))
+        prefix = "|\\psi_{AB}\\rangle = "
+        latex_sv = state_to_latex(psi)
+        latex_expected = prefix + latex_sv
+        latex_representation = state_to_latex(psi, prefix=prefix)
+        self.assertEqual(latex_representation, latex_expected)
+
     def test_state_to_latex_for_large_sparse_statevector(self):
         """Test conversion of large sparse state vector"""
         sv = Statevector(np.eye(2**15, 1))
