@@ -28,13 +28,23 @@ from qiskit.quantum_info import SparsePauliOp
 from qiskit.quantum_info.operators.base_operator import BaseOperator
 
 from .base_qfi import BaseQFI
-from .qfi_result import QFIResult
 from .estimator_gradient_result import EstimatorGradientResult
+from .lin_comb_estimator_gradient import DerivativeType, LinCombEstimatorGradient
+from .qfi_result import QFIResult
 from .utils import _make_lin_comb_qfi_circuit
-from .lin_comb_estimator_gradient import LinCombEstimatorGradient, DerivativeType
 
 
-class LinCombEstimatorQFI(BaseQFI):
+class LinCombQFI(BaseQFI):
+    """Computes the Quantum Fisher Information (QFI) given a pure,
+    parameterized quantum state. This method employs a linear
+    combination of unitaries [1].
+
+    **Reference:**
+    [1] Schuld et al., Evaluating analytic gradients on quantum hardware, 2018
+    `arXiv:1811.11184 <https://arxiv.org/pdf/1811.11184.pdf>`_
+
+    """
+
     def __init__(
         self,
         estimator: BaseEstimator,
@@ -42,15 +52,7 @@ class LinCombEstimatorQFI(BaseQFI):
         derivative_type: DerivativeType = DerivativeType.REAL,
         **run_options,
     ):
-        """Computes the Quantum Fisher Information (QFI) given a pure,
-        parameterized quantum state. This method employs a linear
-        combination of unitaries [1].
-
-        **Reference:**
-        [1] Schuld et al., Evaluating analytic gradients on quantum hardware, 2018
-        `arXiv:1811.11184 <https://arxiv.org/pdf/1811.11184.pdf>`_
-
-
+        """
         Args:
             estimator: The estimator used to compute the gradients.
             phase_fix: Whether to calculate the second term (phase fix) of the QFI, which is
@@ -111,6 +113,7 @@ class LinCombEstimatorQFI(BaseQFI):
                     observables=[observable],
                     parameter_values=[parameter_values_],
                     parameters=[parameters_],
+                    **run_options,
                 )
                 gradient_jobs.append(gradient_job)
 
@@ -151,16 +154,6 @@ class LinCombEstimatorQFI(BaseQFI):
                             bound_coeff = coeff
                         coeffs.append(bound_coeff)
 
-            # if self._derivative_type == DerivativeType.REAL:
-            #     op2 = SparsePauliOp.from_list([("Z", 1)])
-            # elif self._derivative_type == DerivativeType.IMAG:
-            #     op2 = SparsePauliOp.from_list([("Y", -1)])
-            # elif self._derivative_type == DerivativeType.COMPLEX:
-            #     op2 = SparsePauliOp.from_list([("Z", 1), ("Y", complex(0, -1))])
-            # else:
-            #     raise ValueError(f"Derivative type {self._derivative_type} is not supported.")
-            # observable_ = observable.expand(op2)
-
             observable_ = self._expand_observable(observable)
 
             n = len(qfi_circuits)
@@ -178,6 +171,7 @@ class LinCombEstimatorQFI(BaseQFI):
         except Exception as exc:
             raise AlgorithmError("Estimator job failed.") from exc
 
+        # compute the phase fix
         if self._phase_fix:
             for gradient_result in gradient_results:
                 phase_fix_ = np.outer(
