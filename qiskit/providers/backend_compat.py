@@ -19,7 +19,6 @@ from typing import List, Iterable, Any, Dict, Optional
 from qiskit.exceptions import QiskitError
 
 from qiskit.providers.backend import BackendV1, BackendV2
-from qiskit.transpiler.target import Target, InstructionProperties
 from qiskit.providers.backend import QubitProperties
 from qiskit.utils.units import apply_prefix
 from qiskit.circuit.library.standard_gates import get_standard_gate_name_mapping
@@ -40,8 +39,10 @@ def convert_to_target(
     configuration: BackendConfiguration,
     properties: BackendProperties = None,
     defaults: PulseDefaults = None,
-    custom_name_mapping: Optional[Dict[str, "Operation"]] = None,
+    custom_name_mapping: Optional[Dict[str, Any]] = None,
 ) -> Target:
+    from qiskit.transpiler.target import Target, InstructionProperties  # pylint: disable=cyclic-import
+
     """Uses configuration, properties and pulse defaults
     to construct and return Target class.
     """
@@ -192,7 +193,7 @@ class BackendV2Converter(BackendV2):
     def __init__(
         self,
         backend: BackendV1,
-        name_mapping: Optional[Dict[str, "Operation"]] = None,
+        name_mapping: Optional[Dict[str, Any]] = None,
     ):
         """Initialize a BackendV2 converter instance based on a BackendV1 instance.
 
