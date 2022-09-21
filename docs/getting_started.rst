@@ -577,11 +577,17 @@ platforms are best effort only.
 
 Tier 3 platforms are currently:
 
+ * Linux ppc64le (distributions compatible with the
+   `manylinux 2014 <https://www.python.org/dev/peps/pep-0599/>`__ packaging
+   specification)
+ * Linux s390x (distributions compatible with the
+   `manylinux 2014 <https://www.python.org/dev/peps/pep-0599/>`__ packaging
+   specification)
+ * macOS arm64 (10.15 or newer)
  * Linux i686 (distributions compatible with the
    `manylinux 2014 <https://www.python.org/dev/peps/pep-0599/>`__ packaging
    specification) for Python >= 3.10
  * Windows 32 bit for Python >= 3.10
- * macOS arm64 (10.15 or newer)
 
 Ready to get going?...
 ======================
