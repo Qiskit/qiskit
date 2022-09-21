@@ -113,7 +113,7 @@ def final_measurement_mapping(circuit: QuantumCircuit) -> dict[int, int]:
     return mapping
 
 
-def _circuit_key(circuit: QuantumCircuit, functional: bool = False) -> tuple:
+def _circuit_key(circuit: QuantumCircuit, functional: bool = True) -> tuple:
     """Private key function for QuantumCircuit.
 
     This is the workaround until :meth:`QuantumCircuit.__hash__` will be introduced.
@@ -121,7 +121,7 @@ def _circuit_key(circuit: QuantumCircuit, functional: bool = False) -> tuple:
 
     Args:
         circuit: Input quantum circuit.
-        functional: If True, the returned key only includes functional data (i.e. execution related)
+        functional: If True, the returned key only includes functional data (i.e. execution related).
 
     Returns:
         Composite key for circuit.
@@ -138,7 +138,6 @@ def _circuit_key(circuit: QuantumCircuit, functional: bool = False) -> tuple:
     if functional:
         return functional_key
     return (
-        id(circuit),
         circuit.name,
         *functional_key,
     )
