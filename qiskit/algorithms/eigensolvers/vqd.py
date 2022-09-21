@@ -19,6 +19,7 @@ from __future__ import annotations
 import logging
 from time import time
 import numpy as np
+from collections.abc import Callable
 
 from qiskit.circuit import QuantumCircuit
 from qiskit.opflow.primitive_ops.pauli_op import PauliOp
