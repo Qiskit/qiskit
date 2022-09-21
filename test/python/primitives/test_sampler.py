@@ -18,12 +18,14 @@ from test import combine
 import numpy as np
 from ddt import ddt
 
-from qiskit import QuantumCircuit
+from qiskit import QuantumCircuit, pulse, transpile
 from qiskit.circuit import Parameter
 from qiskit.circuit.library import RealAmplitudes
 from qiskit.exceptions import QiskitError
 from qiskit.primitives import Sampler, SamplerResult
+from qiskit.primitives.utils import _circuit_key
 from qiskit.providers import JobStatus, JobV1
+from qiskit.providers.fake_provider import FakeAlmaden
 from qiskit.test import QiskitTestCase
 
 
@@ -572,19 +574,33 @@ class TestSampler(QiskitTestCase):
         np.testing.assert_allclose(values, [0, 0, 0, 1])
 
     def test_run_errors(self):
-        """Test for errors"""
+        """Test for errors with run method"""
         qc1 = QuantumCircuit(1)
         qc1.measure_all()
         qc2 = RealAmplitudes(num_qubits=1, reps=1)
         qc2.measure_all()
+        qc3 = QuantumCircuit(1)
+        qc4 = QuantumCircuit(1, 1)
 
         sampler = Sampler()
-        with self.assertRaises(QiskitError):
-            sampler.run([qc1], [[1e2]]).result()
-        with self.assertRaises(QiskitError):
-            sampler.run([qc2], [[]]).result()
-        with self.assertRaises(QiskitError):
-            sampler.run([qc2], [[1e2]]).result()
+        with self.subTest("set parameter values to a non-parameterized circuit"):
+            with self.assertRaises(QiskitError):
+                _ = sampler.run([qc1], [[1e2]])
+        with self.subTest("missing all parameter values for a parameterized circuit"):
+            with self.assertRaises(QiskitError):
+                _ = sampler.run([qc2], [[]])
+        with self.subTest("missing some parameter values for a parameterized circuit"):
+            with self.assertRaises(QiskitError):
+                _ = sampler.run([qc2], [[1e2]])
+        with self.subTest("too many parameter values for a parameterized circuit"):
+            with self.assertRaises(QiskitError):
+                _ = sampler.run([qc2], [[1e2]] * 100)
+        with self.subTest("no classical bits"):
+            with self.assertRaises(QiskitError):
+                _ = sampler.run([qc3], [[]])
+        with self.subTest("no measurement"):
+            with self.assertRaises(QiskitError):
+                _ = sampler.run([qc4], [[]])
 
     def test_run_empty_parameter(self):
         """Test for empty parameter"""
@@ -658,19 +674,47 @@ class TestSampler(QiskitTestCase):
         job = sampler.run(circuits=[bell])
         self.assertEqual(job.status(), JobStatus.DONE)
 
-    def test_run_options(self):
-        """Test for run_options"""
+    def test_options(self):
+        """Test for options"""
         with self.subTest("init"):
-            sampler = Sampler(run_options={"shots": 3000})
-            self.assertEqual(sampler.run_options.get("shots"), 3000)
-        with self.subTest("set_run_options"):
-            sampler.set_run_options(shots=1024, seed=15)
-            self.assertEqual(sampler.run_options.get("shots"), 1024)
-            self.assertEqual(sampler.run_options.get("seed"), 15)
+            sampler = Sampler(options={"shots": 3000})
+            self.assertEqual(sampler.options.get("shots"), 3000)
+        with self.subTest("set_options"):
+            sampler.set_options(shots=1024, seed=15)
+            self.assertEqual(sampler.options.get("shots"), 1024)
+            self.assertEqual(sampler.options.get("seed"), 15)
         with self.subTest("run"):
             params, target = self._generate_params_target([1])
             result = sampler.run([self._pqc], parameter_values=params).result()
             self._compare_probs(result.quasi_dists, target)
+
+    def test_different_circuits(self):
+        """Test collision of quantum circuits."""
+
+        with self.subTest("Ry circuit"):
+
+            def test_func(n):
+                qc = QuantumCircuit(1, 1, name="foo")
+                qc.ry(n, 0)
+                return qc
+
+            keys = [_circuit_key(test_func(i)) for i in range(5)]
+            self.assertEqual(len(keys), len(set(keys)))
+
+        with self.subTest("pulse circuit"):
+
+            def test_with_scheduling(n):
+                custom_gate = pulse.Schedule(name="custom_x_gate")
+                custom_gate.insert(
+                    0, pulse.Play(pulse.Constant(160 * n, 0.1), pulse.DriveChannel(0)), inplace=True
+                )
+                qc = QuantumCircuit(1)
+                qc.x(0)
+                qc.add_calibration("x", qubits=(0,), schedule=custom_gate)
+                return transpile(qc, FakeAlmaden(), scheduling_method="alap")
+
+            keys = [_circuit_key(test_with_scheduling(i)) for i in range(1, 5)]
+            self.assertEqual(len(keys), len(set(keys)))
 
 
 if __name__ == "__main__":
