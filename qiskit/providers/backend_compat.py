@@ -16,6 +16,8 @@
 
 from typing import List, Iterable, Any, Dict, Optional
 
+from qiskit.exceptions import QiskitError
+
 from qiskit.providers.backend import BackendV1, BackendV2
 from qiskit.transpiler.target import Target, InstructionProperties
 from qiskit.providers.backend import QubitProperties
@@ -31,6 +33,11 @@ from qiskit.providers.models.backendproperties import BackendProperties
 from qiskit.providers.models.pulsedefaults import PulseDefaults
 from qiskit.providers.options import Options
 from qiskit.providers.exceptions import BackendPropertyError
+
+# Some BackendConfiguration objects contain pulse only instructions in their
+# supported_instructions field. Filter these out since they don't go in a
+# TARGET
+PULSE_INSTRUCTIONS = {"acquire", "shiftf", "setf", "play"}
 
 
 def convert_to_target(
@@ -98,7 +105,6 @@ def convert_to_target(
         "z": ZGate(),
         "delay": Delay(Parameter("t")),
     }
-    custom_gates = {}
     target = None
     if custom_name_mapping is not None:
         name_mapping.update(custom_name_mapping)
@@ -113,10 +119,11 @@ def convert_to_target(
             if name in name_mapping:
                 if name not in gates:
                     gates[name] = {}
-            elif name not in custom_gates:
-                custom_gate = Gate(name, len(gate.qubits), [])
-                custom_gates[name] = custom_gate
-                gates[name] = {}
+            else:
+                raise QiskitError(
+                    f"Operation name {name} does not have a known mapping. Use "
+                    "custom_name_mapping to map this name to an Operation object"
+                )
 
             qubits = tuple(gate.qubits)
             gate_props = {}
@@ -154,8 +161,10 @@ def convert_to_target(
             if name in name_mapping:
                 target.add_instruction(name_mapping[name], gate_props)
             else:
-                custom_gate = Gate(name, gate_len, [])
-                target.add_instruction(custom_gate, gate_props)
+                raise QiskitError(
+                    f"Operation name {name} does not have a known mapping. "
+                    "Use custom_name_mapping to map this name to an Operation object"
+                )
         target.add_instruction(Measure())
     # parse global configuration properties
     if hasattr(configuration, "dt"):
@@ -186,12 +195,18 @@ def convert_to_target(
         combined_global_ops.update(configuration.basis_gates)
     if configuration.supported_instructions:
         combined_global_ops.update(configuration.supported_instructions)
+    combined_global_ops -= PULSE_INSTRUCTIONS
     for op in combined_global_ops:
-        if op not in target and op in name_mapping:
-            target.add_instruction(
-                name_mapping[op], {(bit,): None for bit in range(target.num_qubits)}
-            )
-
+        if op not in target:
+            if op in name_mapping:
+                target.add_instruction(
+                    name_mapping[op], {(bit,): None for bit in range(target.num_qubits)}
+                )
+            else:
+                raise QiskitError(
+                    f"Operation name '{op}' does not have a known mapping. Use "
+                    "custom_name_mapping to map this name to an Operation object"
+                )
     return target
 
 
