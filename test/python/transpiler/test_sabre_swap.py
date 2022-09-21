@@ -262,6 +262,51 @@ class TestSabreSwap(QiskitTestCase):
             actual = PassManager([TrivialLayout(cm), SabreSwap(cm)]).run(qc)
             self.assertEqual(expected, actual)
 
+    def test_classical_condition_cargs(self):
+        """Test that classical conditions are preserved even if missing from cargs DAGNode field.
+
+        Created from reproduction in https://github.com/Qiskit/qiskit-terra/issues/8675
+        """
+        with self.subTest("missing measurement"):
+            qc = QuantumCircuit(3, 1)
+            qc.cx(0, 2).c_if(0, 0)
+            qc.measure(1, 0)
+            qc.h(2).c_if(0, 0)
+            expected = QuantumCircuit(3, 1)
+            expected.swap(1, 2)
+            expected.cx(0, 1).c_if(0, 0)
+            expected.measure(2, 0)
+            expected.h(1).c_if(0, 0)
+            result = SabreSwap(CouplingMap.from_line(3), seed=12345)(qc)
+            self.assertEqual(result, expected)
+        with self.subTest("reordered measurement"):
+            qc = QuantumCircuit(3, 1)
+            qc.cx(0, 1).c_if(0, 0)
+            qc.measure(1, 0)
+            qc.h(0).c_if(0, 0)
+            expected = QuantumCircuit(3, 1)
+            expected.cx(0, 1).c_if(0, 0)
+            expected.measure(1, 0)
+            expected.h(0).c_if(0, 0)
+            result = SabreSwap(CouplingMap.from_line(3), seed=12345)(qc)
+            self.assertEqual(result, expected)
+
+    def test_conditional_measurement(self):
+        """Test that instructions with cargs and conditions are handled correctly."""
+        qc = QuantumCircuit(3, 2)
+        qc.cx(0, 2).c_if(0, 0)
+        qc.measure(2, 0).c_if(1, 0)
+        qc.h(2).c_if(0, 0)
+        qc.measure(1, 1)
+        expected = QuantumCircuit(3, 2)
+        expected.swap(1, 2)
+        expected.cx(0, 1).c_if(0, 0)
+        expected.measure(1, 0).c_if(1, 0)
+        expected.h(1).c_if(0, 0)
+        expected.measure(2, 1)
+        result = SabreSwap(CouplingMap.from_line(3), seed=12345)(qc)
+        self.assertEqual(result, expected)
+
 
 if __name__ == "__main__":
     unittest.main()

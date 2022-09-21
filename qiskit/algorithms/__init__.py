@@ -94,19 +94,13 @@ knowledge to do this in that application domain.
    VQD
 
 
-Variational Quantum Time Evolution
-----------------------------------
-
-Classes used by variational quantum time evolution algorithms - VarQITE and VarQRTE.
-
-.. autosummary::
-   :toctree: ../stubs/
-
-   evolvers.variational
-
-
 Evolvers
 --------
+
+Pending deprecation: This package has been superseded by the package below. It will be
+deprecated in a future release and subsequently removed after that:
+
+`Time Evolvers`_
 
 Algorithms to evolve quantum states in time. Both real and imaginary time evolution is possible
 with algorithms that support them. For machine learning, Quantum Imaginary Time Evolution might be
@@ -119,12 +113,27 @@ used to train Quantum Boltzmann Machine Neural Networks for example.
     RealEvolver
     ImaginaryEvolver
     TrotterQRTE
-    VarQITE
-    VarQRTE
     PVQD
     PVQDResult
     EvolutionResult
     EvolutionProblem
+
+
+Time Evolvers
+-------------
+
+Primitives-enabled algorithms to evolve quantum states in time. Both real and imaginary time
+evolution is possible with algorithms that support them. For machine learning, Quantum Imaginary
+Time Evolution might be used to train Quantum Boltzmann Machine Neural Networks for example.
+
+.. autosummary::
+   :toctree: ../stubs/
+   :nosignatures:
+
+    RealTimeEvolver
+    ImaginaryTimeEvolver
+    TimeEvolutionResult
+    TimeEvolutionProblem
 
 
 Factorizers
@@ -138,6 +147,17 @@ Algorithms to find factors of a number.
 
    Shor
    ShorResult
+
+
+Gradients
+----------
+
+Algorithms to calculate the gradient of a quantum circuit.
+
+.. autosummary::
+   :toctree: ../stubs/
+
+   gradients
 
 
 Linear Solvers
@@ -201,8 +221,18 @@ Algorithms that estimate the phases of eigenstates of a unitary.
    IterativePhaseEstimation
 
 
+State Fidelities
+----------------
+
+Algorithms that compute the fidelity of pairs of quantum states.
+
+.. autosummary::
+   :toctree: ../stubs/
+
+   state_fidelities
+
 Exceptions
-==========
+----------
 
 .. autosummary::
    :toctree: ../stubs/
@@ -219,12 +249,28 @@ Utility methods used by algorithms.
    :toctree: ../stubs/
 
    eval_observables
-"""
+   estimate_observables
 
+Utility classes
+---------------
+
+Utility classes used by algorithms (mainly for type-hinting purposes).
+
+.. autosummary::
+   :toctree: ../stubs/
+
+   AlgorithmJob
+
+"""
+from .algorithm_job import AlgorithmJob
 from .algorithm_result import AlgorithmResult
 from .evolvers import EvolutionResult, EvolutionProblem
 from .evolvers.real_evolver import RealEvolver
 from .evolvers.imaginary_evolver import ImaginaryEvolver
+from .time_evolvers.imaginary_time_evolver import ImaginaryTimeEvolver
+from .time_evolvers.real_time_evolver import RealTimeEvolver
+from .time_evolvers.time_evolution_problem import TimeEvolutionProblem
+from .time_evolvers.time_evolution_result import TimeEvolutionResult
 from .variational_algorithm import VariationalAlgorithm, VariationalResult
 from .amplitude_amplifiers import Grover, GroverResult, AmplificationProblem, AmplitudeAmplifier
 from .amplitude_estimators import (
@@ -261,13 +307,13 @@ from .phase_estimators import (
 )
 from .exceptions import AlgorithmError
 from .aux_ops_evaluator import eval_observables
+from .observables_evaluator import estimate_observables
 from .evolvers.trotterization import TrotterQRTE
-from .evolvers.variational.var_qite import VarQITE
-from .evolvers.variational.var_qrte import VarQRTE
 
 from .evolvers.pvqd import PVQD, PVQDResult
 
 __all__ = [
+    "AlgorithmJob",
     "AlgorithmResult",
     "VariationalAlgorithm",
     "VariationalResult",
@@ -289,11 +335,13 @@ __all__ = [
     "NumPyEigensolver",
     "RealEvolver",
     "ImaginaryEvolver",
+    "RealTimeEvolver",
+    "ImaginaryTimeEvolver",
     "TrotterQRTE",
-    "VarQITE",
-    "VarQRTE",
     "EvolutionResult",
     "EvolutionProblem",
+    "TimeEvolutionResult",
+    "TimeEvolutionProblem",
     "LinearSolverResult",
     "Eigensolver",
     "EigensolverResult",
@@ -319,4 +367,5 @@ __all__ = [
     "IterativePhaseEstimation",
     "AlgorithmError",
     "eval_observables",
+    "estimate_observables",
 ]
