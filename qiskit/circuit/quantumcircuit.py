@@ -2057,13 +2057,12 @@ class QuantumCircuit:
                     )
                 else:
                     depth = int(filter_function(instruction)) * weight
-                levels = {
-                    wire_map[bit]: op_stack[wire_map[bit]] + depth
-                    for bit in itertools.chain(instruction.qubits, instruction.clbits)
-                }
-                for bit in condition_bits:
-                    if bit not in levels:
-                        levels[bit] += weight
+                all_bits = itertools.chain(
+                    instruction.qubits,
+                    instruction.clbits,
+                    set(condition_bits) - set(instruction.clbits),
+                )
+                levels = {wire_map[bit]: op_stack[wire_map[bit]] + depth for bit in all_bits}
                 max_level = max(levels.values())
                 for bit in levels:
                     op_stack[bit] = max_level
