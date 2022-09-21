@@ -14,7 +14,6 @@
 
 import unittest
 from test.python.algorithms import QiskitAlgorithmsTestCase
-from qiskit_aer import Aer  # pylint: disable=import-error
 from qiskit.circuit.library import RealAmplitudes
 from qiskit.utils import QuantumInstance, algorithm_globals
 from qiskit.opflow import PauliSumOp
@@ -22,6 +21,14 @@ from qiskit.algorithms.optimizers import AQGD
 from qiskit.algorithms import VQE, AlgorithmError
 from qiskit.opflow.gradients import Gradient
 from qiskit.test import slow_test
+from qiskit.utils import optionals
+
+if optionals.HAS_AER:
+    # pylint: disable=import-error,no-name-in-module
+    from qiskit_aer import Aer  # pylint: disable=import-error
+else:
+    Aer = None
+
 
 
 @unittest.skipUnless(Aer, "Aer is required to run these tests")
