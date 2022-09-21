@@ -22,12 +22,8 @@ from qiskit.providers.backend import BackendV1, BackendV2
 from qiskit.transpiler.target import Target, InstructionProperties
 from qiskit.providers.backend import QubitProperties
 from qiskit.utils.units import apply_prefix
-from qiskit.circuit.library.standard_gates import *
-from qiskit.circuit.parameter import Parameter
-from qiskit.circuit.gate import Gate
-from qiskit.circuit.delay import Delay
+from qiskit.circuit.library.standard_gates import get_standard_gate_name_mapping
 from qiskit.circuit.measure import Measure
-from qiskit.circuit.reset import Reset
 from qiskit.providers.models.backendconfiguration import BackendConfiguration
 from qiskit.providers.models.backendproperties import BackendProperties
 from qiskit.providers.models.pulsedefaults import PulseDefaults
@@ -51,60 +47,7 @@ def convert_to_target(
     """
     # Standard gates library mapping, multicontrolled gates not included since they're
     # variable width
-    name_mapping = {
-        "id": IGate(),
-        "sx": SXGate(),
-        "x": XGate(),
-        "cx": CXGate(),
-        "rz": RZGate(Parameter("λ")),
-        "r": RGate(Parameter("ϴ"), Parameter("φ")),
-        "reset": Reset(),
-        "c3sx": C3SXGate(),
-        "ccx": CCXGate(),
-        "dcx": DCXGate(),
-        "ch": CHGate(),
-        "cp": CPhaseGate(Parameter("ϴ")),
-        "crx": CRXGate(Parameter("ϴ")),
-        "cry": CRYGate(Parameter("ϴ")),
-        "crz": CRZGate(Parameter("ϴ")),
-        "cswap": CSwapGate(),
-        "csx": CSXGate(),
-        "cu": CUGate(Parameter("ϴ"), Parameter("φ"), Parameter("λ"), Parameter("γ")),
-        "cu1": CU1Gate(Parameter("λ")),
-        "cu3": CU3Gate(Parameter("ϴ"), Parameter("φ"), Parameter("λ")),
-        "cy": CYGate(),
-        "cz": CZGate(),
-        "ccz": CCZGate(),
-        "h": HGate(),
-        "p": PhaseGate(Parameter("ϴ")),
-        "rccx": RCCXGate(),
-        "rcccx": RC3XGate(),
-        "rx": RXGate(Parameter("ϴ")),
-        "rxx": RXXGate(Parameter("ϴ")),
-        "ry": RYGate(Parameter("ϴ")),
-        "ryy": RYYGate(Parameter("ϴ")),
-        "rzz": RZZGate(Parameter("ϴ")),
-        "rzx": RZXGate(Parameter("ϴ")),
-        "xx_minus_yy": XXMinusYYGate(Parameter("ϴ")),
-        "xx_plus_yy": XXPlusYYGate(Parameter("ϴ")),
-        "ecr": ECRGate(),
-        "s": SGate(),
-        "sdg": SdgGate(),
-        "cs": CSGate(),
-        "csdg": CSdgGate(),
-        "swap": SwapGate(),
-        "iswap": iSwapGate(),
-        "sxdg": SXdgGate(),
-        "t": TGate(),
-        "tdg": TdgGate(),
-        "u": UGate(Parameter("ϴ"), Parameter("φ"), Parameter("λ")),
-        "u1": U1Gate(Parameter("λ")),
-        "u2": U2Gate(Parameter("φ"), Parameter("λ")),
-        "u3": U3Gate(Parameter("ϴ"), Parameter("φ"), Parameter("λ")),
-        "y": YGate(),
-        "z": ZGate(),
-        "delay": Delay(Parameter("t")),
-    }
+    name_mapping = get_standard_gate_name_mapping()
     target = None
     if custom_name_mapping is not None:
         name_mapping.update(custom_name_mapping)
@@ -134,10 +77,7 @@ def convert_to_target(
                     gate_props["duration"] = apply_prefix(param.value, param.unit)
             gates[name][qubits] = InstructionProperties(**gate_props)
         for gate, props in gates.items():
-            if gate in name_mapping:
-                inst = name_mapping.get(gate)
-            else:
-                inst = custom_gates[gate]
+            inst = name_mapping[gate]
             target.add_instruction(inst, props)
         # Create measurement instructions:
         measure_props = {}
@@ -157,7 +97,6 @@ def convert_to_target(
                 if hasattr(gate, "coupling_map")
                 else {None: None}
             )
-            gate_len = len(gate.coupling_map[0]) if hasattr(gate, "coupling_map") else 0
             if name in name_mapping:
                 target.add_instruction(name_mapping[name], gate_props)
             else:
