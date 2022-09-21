@@ -12,7 +12,17 @@
 """This package contains Trotterization-based Quantum Real Time Evolution algorithm.
 It is compliant with the new Quantum Time Evolution Framework and makes use of
 :class:`qiskit.synthesis.evolution.ProductFormula` and
-:class:`~qiskit.circuit.library.PauliEvolutionGate` implementations."""
+:class:`~qiskit.circuit.library.PauliEvolutionGate` implementations.
+
+Trotterization-based Quantum Real Time Evolution
+------------------------------------------------
+
+.. autosummary::
+   :toctree: ../stubs/
+   :nosignatures:
+
+    TrotterQRTE
+"""
 
 from qiskit.algorithms.time_evolvers.trotterization.trotter_qrte import TrotterQRTE
 
