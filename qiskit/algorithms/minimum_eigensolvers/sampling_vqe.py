@@ -27,7 +27,7 @@ from qiskit.quantum_info.operators.base_operator import BaseOperator
 
 from ..exceptions import AlgorithmError
 from ..list_or_dict import ListOrDict
-from ..optimizers import SLSQP, Minimizer, Optimizer
+from ..optimizers import Minimizer, Optimizer
 from ..variational_algorithm import VariationalAlgorithm, VariationalResult
 from .sampling_mes import (
     SamplingMinimumEigensolver,
