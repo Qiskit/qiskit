@@ -136,6 +136,17 @@ Time Evolution might be used to train Quantum Boltzmann Machine Neural Networks 
     TimeEvolutionProblem
 
 
+Trotterization-based Quantum Real Time Evolution
+------------------------------------------------
+
+Package for primitives-enabled Trotterization-based quantum time evolution algorithm - TrotterQRTE.
+
+.. autosummary::
+   :toctree: ../stubs/
+
+   time_evolvers.trotterization
+
+
 Factorizers
 -----------
 
@@ -240,16 +251,6 @@ Exceptions
 
    AlgorithmError
 
-
-Trotterization-based Quantum Real Time Evolution
-------------------------------------------------
-
-Package for primitives-enabled Trotterization-based quantum time evolution algorithm - TrotterQRTE.
-
-.. autosummary::
-   :toctree: ../stubs/
-
-   time_evolvers.trotterization
 
 Utility methods
 ---------------
