@@ -15,8 +15,7 @@ from __future__ import annotations
 
 from abc import ABC
 
-from qiskit.algorithms.gradients import BaseEstimatorGradient
-from qiskit.algorithms.gradients.qfi import QFI
+from qiskit.algorithms.gradients import BaseEstimatorGradient, BaseQFI
 from .variational_principle import (
     VariationalPrinciple,
 )
@@ -28,7 +27,7 @@ class RealVariationalPrinciple(VariationalPrinciple, ABC):
 
     def __init__(
         self,
-        qfi: QFI | None = None,
+        qfi: BaseQFI | None = None,
         gradient: BaseEstimatorGradient | None = None,
         # qfi_method: str | CircuitQFI = "lin_comb_full",
     ) -> None:

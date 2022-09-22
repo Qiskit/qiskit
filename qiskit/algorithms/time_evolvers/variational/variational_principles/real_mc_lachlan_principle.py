@@ -16,17 +16,14 @@ from __future__ import annotations
 import numpy as np
 
 from qiskit import QuantumCircuit
-from qiskit.algorithms.gradients import BaseEstimatorGradient
-from qiskit.algorithms.gradients.qfi import QFI
+from qiskit.algorithms.gradients import BaseEstimatorGradient, BaseQFI
 from qiskit.circuit import Parameter
 from qiskit.opflow import (
     StateFn,
     SummedOp,
-    Y,
     I,
     PauliSumOp,
 )
-from qiskit.opflow.gradients.circuit_gradients import LinComb
 from qiskit.quantum_info.operators.base_operator import BaseOperator
 from .real_variational_principle import (
     RealVariationalPrinciple,
@@ -42,7 +39,7 @@ class RealMcLachlanPrinciple(RealVariationalPrinciple):
 
     def __init__(
         self,
-        qfi: QFI | None = None,
+        qfi: BaseQFI | None = None,
         gradient: BaseEstimatorGradient | None = None,
         # qfi_method: str | CircuitQFI = "lin_comb_full",
     ) -> None:

@@ -18,8 +18,12 @@ from abc import ABC, abstractmethod
 import numpy as np
 
 from qiskit import QuantumCircuit
-from qiskit.algorithms.gradients import BaseEstimatorGradient, ParamShiftEstimatorGradient
-from qiskit.algorithms.gradients.qfi import QFI
+from qiskit.algorithms.gradients import (
+    BaseEstimatorGradient,
+    ParamShiftEstimatorGradient,
+    BaseQFI,
+    LinCombQFI,
+)
 from qiskit.circuit import Parameter
 from qiskit.opflow import PauliSumOp
 from qiskit.primitives import Estimator
@@ -33,7 +37,7 @@ class VariationalPrinciple(ABC):
 
     def __init__(
         self,
-        qfi: QFI | None = None,
+        qfi: BaseQFI | None = None,
         gradient: BaseEstimatorGradient | None = None,
         # qfi_method: str | CircuitQFI = "lin_comb_full",
         # grad_method: str | CircuitGradient = "lin_comb",
@@ -51,12 +55,13 @@ class VariationalPrinciple(ABC):
         if qfi is not None and qfi._estimator is not None and gradient is None:
             estimator = qfi._estimator
             gradient = ParamShiftEstimatorGradient(estimator)
+        # TODO this is real/imag specific and must be moved; real needs a different basis
         elif gradient is not None and gradient._estimator is not None and qfi is None:
             estimator = gradient._estimator
-            qfi = QFI(estimator)
+            qfi = LinCombQFI(estimator)
         elif qfi is None and gradient is None:
             estimator = Estimator()
-            qfi = QFI(estimator)
+            qfi = LinCombQFI(estimator)
             gradient = ParamShiftEstimatorGradient(estimator)
 
         self.qfi = qfi
@@ -91,7 +96,7 @@ class VariationalPrinciple(ABC):
             0.25
             * self.qfi._run(
                 [ansatz], [Pauli("I" * ansatz.num_qubits)], [param_values], [gradient_params]
-            ).gradients[0]
+            ).qfis[0]
         )
 
         return metric_tensor

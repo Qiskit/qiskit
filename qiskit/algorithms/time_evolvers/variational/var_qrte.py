@@ -109,8 +109,8 @@ class VarQRTE(VarQTE, RealTimeEvolver):
         super().__init__(
             ansatz,
             variational_principle,
-            initial_parameters,
             estimator,
+            initial_parameters,
             ode_solver,
             lse_solver=lse_solver,
             num_timesteps=num_timesteps,
