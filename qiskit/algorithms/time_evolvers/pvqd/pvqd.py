@@ -324,7 +324,11 @@ class PVQD(RealTimeEvolver):
         return param_bindings
 
     def evolve(self, evolution_problem: TimeEvolutionProblem) -> TimeEvolutionResult:
-        """
+        r"""Perform real time evolution :math:`\exp(-i t H)|\Psi\rangle`.
+
+        Evolves an initial state :math:`|\Psi\rangle` for a time :math:`t`
+        under a Hamiltonian  :math:`H`, as provided in the ``evolution_problem``.
+
         Args:
             evolution_problem: The evolution problem containing the hamiltonian, total evolution
                 time and observables to evaluate.
