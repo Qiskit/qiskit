@@ -248,7 +248,7 @@ class Operator(LinearOp):
         if final_layout is not None:
             # TODO: Do this without the intermediate Permutation object by just
             # operating directly on the array directly
-            from qiskit.circuit.library import Permutation
+            from qiskit.circuit.library import Permutation  # pylint: disable=cyclic-import
 
             final_physical_to_virtual = final_layout.get_physical_bits()
             perm_pattern = [final_layout._v2p[v] for v in circuit.qubits]
