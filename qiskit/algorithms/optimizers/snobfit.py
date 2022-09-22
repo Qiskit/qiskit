@@ -84,6 +84,9 @@ class SNOBFIT(Optimizer):
         import skquant.opt as skq
         from SQSnobFit import optset
 
+        if bounds is None or any(None in bound_tuple for bound_tuple in bounds):
+            raise ValueError("Optimizer SNOBFIT requires bounds for all parameters.")
+
         snobfit_settings = {
             "maxmp": self._maxmp,
             "maxfail": self._maxfail,

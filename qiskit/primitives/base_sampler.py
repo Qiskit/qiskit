@@ -21,10 +21,6 @@ A sampler is initialized with the following elements.
 * quantum circuits (:math:`\psi_i(\theta)`): list of (parameterized) quantum circuits.
   (a list of :class:`~qiskit.circuit.QuantumCircuit`))
 
-* parameters: a list of parameters of the quantum circuits.
-  (:class:`~qiskit.circuit.parametertable.ParameterView` or
-  a list of :class:`~qiskit.circuit.Parameter`).
-
 The sampler is run with the following inputs.
 
 * circuits: a list of QuantumCircuit objects to evaluate.
@@ -60,7 +56,6 @@ Here is an example of how sampler is used.
     print([q.binary_probabilities() for q in result.quasi_dists])
 
     # executes three Bell circuits
-    # Argument `parameters` is optional.
     sampler = Sampler()
     result = sampler.run([bell, bell, bell]).result()
     print([q.binary_probabilities() for q in result.quasi_dists])
@@ -105,7 +100,7 @@ from qiskit.providers import Options
 from qiskit.utils.deprecation import deprecate_arguments, deprecate_function
 
 from .sampler_result import SamplerResult
-from .utils import final_measurement_mapping
+from .utils import _circuit_key, final_measurement_mapping
 
 
 class BaseSampler(ABC):
@@ -120,14 +115,14 @@ class BaseSampler(ABC):
         self,
         circuits: Iterable[QuantumCircuit] | QuantumCircuit | None = None,
         parameters: Iterable[Iterable[Parameter]] | None = None,
-        run_options: dict | None = None,
+        options: dict | None = None,
     ):
         """
         Args:
             circuits: Quantum circuits to be executed.
             parameters: Parameters of each of the quantum circuits.
                 Defaults to ``[circ.parameters for circ in circuits]``.
-            run_options: Default runtime options.
+            options: Default options.
 
         Raises:
             QiskitError: For mismatch of circuits and parameters list.
@@ -146,7 +141,7 @@ class BaseSampler(ABC):
 
         # To guarantee that they exist as instance variable.
         # With only dynamic set, the python will not know if the attribute exists or not.
-        self._circuit_ids: dict[int, int] = self._circuit_ids
+        self._circuit_ids: dict[tuple, int] = self._circuit_ids
 
         if parameters is None:
             self._parameters = [circ.parameters for circ in self._circuits]
@@ -158,8 +153,8 @@ class BaseSampler(ABC):
                     f"and circuits ({len(self._circuits)})"
                 )
         self._run_options = Options()
-        if run_options is not None:
-            self._run_options.update_options(**run_options)
+        if options is not None:
+            self._run_options.update_options(**options)
 
     def __new__(
         cls,
@@ -173,9 +168,9 @@ class BaseSampler(ABC):
             self._circuit_ids = {}
         elif isinstance(circuits, Iterable):
             circuits = copy(circuits)
-            self._circuit_ids = {id(circuit): i for i, circuit in enumerate(circuits)}
+            self._circuit_ids = {_circuit_key(circuit): i for i, circuit in enumerate(circuits)}
         else:
-            self._circuit_ids = {id(circuits): 0}
+            self._circuit_ids = {_circuit_key(circuits): 0}
         return self
 
     @deprecate_function(
@@ -217,15 +212,15 @@ class BaseSampler(ABC):
         return tuple(self._parameters)
 
     @property
-    def run_options(self) -> Options:
+    def options(self) -> Options:
         """Return options values for the estimator.
 
         Returns:
-            run_options
+            options
         """
         return self._run_options
 
-    def set_run_options(self, **fields) -> BaseSampler:
+    def set_options(self, **fields):
         """Set options values for the estimator.
 
         Args:
@@ -267,7 +262,7 @@ class BaseSampler(ABC):
 
         # Allow objects
         circuits = [
-            self._circuit_ids.get(id(circuit))
+            self._circuit_ids.get(_circuit_key(circuit))
             if not isinstance(circuit, (int, np.integer))
             else circuit
             for circuit in circuits
@@ -309,7 +304,7 @@ class BaseSampler(ABC):
                 f"The number of circuits is {len(self.circuits)}, "
                 f"but the index {max(circuits)} is given."
             )
-        run_opts = copy(self.run_options)
+        run_opts = copy(self.options)
         run_opts.update_options(**run_options)
 
         return self._call(
@@ -322,7 +317,6 @@ class BaseSampler(ABC):
         self,
         circuits: QuantumCircuit | Sequence[QuantumCircuit],
         parameter_values: Sequence[float] | Sequence[Sequence[float]] | None = None,
-        parameters: Sequence[Parameter] | Sequence[Sequence[Parameter]] | None = None,
         **run_options,
     ) -> Job:
         """Run the job of the sampling of bitstrings.
@@ -330,8 +324,6 @@ class BaseSampler(ABC):
         Args:
             circuits: One of more circuit objects.
             parameter_values: Parameters to be bound to the circuit.
-            parameters: Parameters of each of the quantum circuits.
-                Defaults to ``[circ.parameters for circ in circuits]``.
             run_options: Backend runtime options used for circuit execution.
 
         Returns:
@@ -353,12 +345,6 @@ class BaseSampler(ABC):
             and not isinstance(parameter_values[0], (Sequence, Iterable))
         ):
             parameter_values = [parameter_values]  # type: ignore[assignment]
-        if (
-            parameters is not None
-            and len(parameters) > 1
-            and not isinstance(parameters[0], Sequence)
-        ):
-            parameters = [parameters]
 
         # Allow optional
         if parameter_values is None:
@@ -369,22 +355,6 @@ class BaseSampler(ABC):
                         "but parameter values are not given."
                     )
             parameter_values = [[]] * len(circuits)
-
-        if parameters is None:
-            parameter_views = [circ.parameters for circ in circuits]
-        else:
-            parameter_views = [ParameterView(par) for par in parameters]
-            if len(self._parameters) != len(self._circuits):
-                raise QiskitError(
-                    f"Different number of parameters ({len(self._parameters)}) and "
-                    f"circuits ({len(self._circuits)})"
-                )
-            for i, (circ, params) in enumerate(zip(self._circuits, self._parameters)):
-                if circ.num_parameters != len(params):
-                    raise QiskitError(
-                        f"Different numbers of parameters of {i}-th circuit: "
-                        f"expected {circ.num_parameters}, actual {len(params)}."
-                    )
 
         # Validation
         if len(circuits) != len(parameter_values):
@@ -416,13 +386,12 @@ class BaseSampler(ABC):
                     f" the used classical bits ({set(mapping.values())})."
                 )
 
-        run_opts = copy(self.run_options)
+        run_opts = copy(self.options)
         run_opts.update_options(**run_options)
 
         return self._run(
             circuits,
             parameter_values,
-            parameter_views,
             **run_opts.__dict__,
         )
 
@@ -441,7 +410,6 @@ class BaseSampler(ABC):
         self,
         circuits: Sequence[QuantumCircuit],
         parameter_values: Sequence[Sequence[float]],
-        parameters: Sequence[ParameterView],
         **run_options,
     ) -> Job:
         raise NotImplementedError(

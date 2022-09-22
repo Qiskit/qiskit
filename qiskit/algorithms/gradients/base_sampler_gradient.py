@@ -147,6 +147,6 @@ class BaseSamplerGradient(ABC):
         Returns:
             The updated run options.
         """
-        run_opts = copy(self._sampler.run_options)
+        run_opts = copy(self._sampler.options)
         run_opts.update_options(**run_options)
         return run_opts
