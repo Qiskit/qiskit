@@ -22,7 +22,7 @@ from qiskit.transpiler.timing_constraints import TimingConstraints
 from qiskit.transpiler.passmanager import PassManager
 from qiskit.transpiler.passmanager import StagedPassManager
 
-from qiskit.transpiler.passes import SetLayout, HighLevelSynthesis
+from qiskit.transpiler.passes import SetLayout
 from qiskit.transpiler.passes import VF2Layout
 from qiskit.transpiler.passes import TrivialLayout
 from qiskit.transpiler.passes import DenseLayout
