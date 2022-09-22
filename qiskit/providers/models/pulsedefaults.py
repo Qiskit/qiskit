@@ -15,8 +15,7 @@
 import copy
 from typing import Any, Dict, List
 
-from qiskit.pulse.instruction_schedule_map import InstructionScheduleMap, CalibrationPublisher
-from qiskit.pulse.schedule import Schedule
+from qiskit.pulse.instruction_schedule_map import InstructionScheduleMap, PulseQobjDef
 from qiskit.qobj import PulseLibraryItem, PulseQobjInstruction
 from qiskit.qobj.converters import QobjToInstructionConverter
 
@@ -108,7 +107,7 @@ class Command:
         Args:
             name (str): The name of the command
             qubits: The qubits for the command
-            sequence (PulseQobjInstruction): The sequence for the Command
+            sequence (List[PulseQobjInstruction]): The sequence for the Command
             kwargs: Optional additional fields
         """
         self._data = {}
@@ -200,13 +199,16 @@ class PulseDefaults:
         self.pulse_library = pulse_library
         self.cmd_def = cmd_def
         self.instruction_schedule_map = InstructionScheduleMap()
-
         self.converter = QobjToInstructionConverter(pulse_library)
+
         for inst in cmd_def:
-            pulse_insts = [self.converter(inst) for inst in inst.sequence]
-            schedule = Schedule(*pulse_insts, name=inst.name)
-            schedule.metadata["publisher"] = CalibrationPublisher.BACKEND_PROVIDER
-            self.instruction_schedule_map.add(inst.name, inst.qubits, schedule)
+            entry = PulseQobjDef(
+                name=inst.name,
+                qubits=inst.qubits,
+                converter=self.converter,
+            )
+            entry.define(inst.sequence)
+            self.instruction_schedule_map._add(entry)
 
         if meas_kernel is not None:
             self.meas_kernel = meas_kernel
@@ -267,7 +269,9 @@ class PulseDefaults:
         Returns:
             PulseDefaults: The PulseDefaults from the input dictionary.
         """
-        in_data = copy.copy(data)
+        # Pulse defaults data is nested dictionary.
+        # Some elements of the inner dictionaries are poped, and thus do deepcopy here.
+        in_data = copy.deepcopy(data)
         in_data["pulse_library"] = [
             PulseLibraryItem.from_dict(x) for x in in_data.pop("pulse_library")
         ]
