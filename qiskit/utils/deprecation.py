@@ -56,8 +56,9 @@ def deprecate_function(
         msg: Warning message to emit.
         stacklevel: The warning stackevel to use, defaults to 2.
         category: warning category, defaults to DeprecationWarning
-        since (str): If a version number, extends the docstring with a deprecation warning
-           box. If `None`, no docstring box will be added. Default: None
+        modify_docstring: docstring box will be added. Default: True
+        since: If a version number, extends the docstring with a deprecation warning
+           box. If `modify_docstring == True`, then mandatory
 
     Returns:
         Callable: The decorated, deprecated callable.
