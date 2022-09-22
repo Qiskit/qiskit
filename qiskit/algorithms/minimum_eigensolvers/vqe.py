@@ -23,7 +23,7 @@ import numpy as np
 from qiskit.algorithms.gradients import BaseEstimatorGradient
 from qiskit.circuit import QuantumCircuit
 from qiskit.opflow import PauliSumOp
-from qiskit.primitives import BaseEstimator
+from qiskit.primitives import BaseEstimator, EstimatorResult
 from qiskit.quantum_info.operators.base_operator import BaseOperator
 from qiskit.utils import algorithm_globals
 
@@ -230,22 +230,26 @@ class VQE(VariationalAlgorithm, MinimumEigensolver):
 
             # handle broadcasting: ensure parameters is of shape [array, array, ...]
             parameters = np.reshape(parameters, (-1, num_parameters)).tolist()
-            batchsize = len(parameters)
+            batch_size = len(parameters)
 
             try:
-                job = self.estimator.run(batchsize * [ansatz], batchsize * [operator], parameters)
-                values = job.result().values
+                job = self.estimator.run(batch_size * [ansatz], batch_size * [operator], parameters)
+                estimator_result = job.result()
             except Exception as exc:
                 raise AlgorithmError("The primitive job to evaluate the energy failed!") from exc
 
-            # TODO recover variance from estimator if metadata has shots?
+            values = estimator_result.values
+
+            metadata = _prep_metadata(estimator_result)
 
             if self.callback is not None:
-                for params, value in zip(parameters, values):
+                for params, value, meta in zip(parameters, values, metadata):
                     eval_count += 1
-                    self.callback(eval_count, params, value, 0.0)
+                    self.callback(eval_count, params, value, meta[0])
 
-            return values[0] if len(values) == 1 else values
+            energy = values[0] if len(values) == 1 else values
+
+            return energy
 
         return evaluate_energy
 
@@ -345,6 +349,33 @@ def _validate_bounds(ansatz: QuantumCircuit) -> list[tuple(float | None, float |
         bounds = [(None, None)] * ansatz.num_parameters
 
     return bounds
+
+
+def _prep_metadata(
+    estimator_result: EstimatorResult,
+) -> list[tuple[float, dict]]:
+    """
+    Prepares a list of tuples of (variance, metadata) from the estimator result.
+
+    Args:
+        observables_results: A list of tuples (mean, (variance, shots)).
+
+    Returns:
+        A list of tuples (variance, metadata)).
+    """
+    if not estimator_result.metadata:
+        return [(0.0, {})] * len(estimator_result.values)
+
+    results = []
+    for metadata in estimator_result.metadata:
+        variance = 0.0
+        if metadata:
+            if "variance" in metadata.keys():
+                variance = metadata["variance"]
+
+        results.append((variance, metadata))
+
+    return results
 
 
 def _build_vqe_result(
