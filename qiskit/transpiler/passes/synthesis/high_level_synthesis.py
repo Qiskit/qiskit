@@ -23,10 +23,13 @@ from .high_level_synthesis_plugins import HighLevelSynthesisPluginManager
 
 class HLSConfig:
     """
-    For each higher-level-object (e.g., "clifford", "linear_function", etc.) the
-    high-level-synthesis config allows to specify a list of "methods", each method
-    represented by a pair consisting of a name of the synthesis algorithm and of a dictionary
-    providing additional arguments for this algorithm.
+    The high-level-synthesis config allows to specify a list of "methods" used by
+    :class:`~.HighLevelSynthesis` transformation pass to synthesize different types
+    of higher-level-objects. A higher-level object is an object of type
+    :class:`~.Operation` (e.g., "clifford", "linear_function", etc.), and the list
+    of applicable synthesis methods is strictly tied to the name of the operation.
+    In the config, each method is represented by a pair consisting of a name of the synthesis
+    algorithm and of a dictionary providing additional arguments for this algorithm.
 
     The names of the synthesis algorithms should be declared in ``entry_points`` for
     ``qiskit.synthesis`` in ``setup.py``, in the form
@@ -37,6 +40,9 @@ class HLSConfig:
     without having to explicitly set these methods in the config.
 
     To avoid synthesizing a given higher-level-object, one can give it an empty list of methods.
+
+    For an explicit example of creating and using such config files, refer to the
+    documentation for :class:`~.HighLevelSynthesis`.
     """
 
     def __init__(self, use_default_on_unspecified=True, **kwargs):
