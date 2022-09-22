@@ -31,7 +31,7 @@ def _probabilities_from_sampler_result(num_qubits, result, estimation_problem):
 
         # check if it is a good state
         if estimation_problem.is_good_state(state[::-1]):
-            prob = prob + probabilities
+            prob += probabilities
 
     return prob
 
