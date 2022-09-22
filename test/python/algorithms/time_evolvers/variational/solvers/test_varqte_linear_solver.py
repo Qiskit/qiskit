@@ -13,12 +13,13 @@
 """Test solver of linear equations."""
 
 import unittest
-
 from test.python.algorithms import QiskitAlgorithmsTestCase
-from ddt import ddt, data
 import numpy as np
+from expected_results.test_varqte_linear_solver_expected_1 import (
+    expected_metric_res_1,
+)
 
-from qiskit import BasicAer
+from qiskit.quantum_info import SparsePauliOp
 from qiskit.algorithms.time_evolvers.variational import (
     ImaginaryMcLachlanPrinciple,
 )
@@ -26,28 +27,22 @@ from qiskit.algorithms.time_evolvers.variational.solvers.var_qte_linear_solver i
     VarQTELinearSolver,
 )
 from qiskit.circuit.library import EfficientSU2
-from qiskit.opflow import SummedOp, X, Y, I, Z
-from expected_results.test_varqte_linear_solver_expected_1 import (
-    expected_metric_res_1,
-)
 
 
-@ddt
 class TestVarQTELinearSolver(QiskitAlgorithmsTestCase):
     """Test solver of linear equations."""
 
-    @data(BasicAer.get_backend("statevector_simulator"), None)
-    def test_solve_lse(self, backend):
+    def test_solve_lse(self):
         """Test SLE solver."""
 
-        observable = SummedOp(
+        observable = SparsePauliOp.from_list(
             [
-                0.2252 * (I ^ I),
-                0.5716 * (Z ^ Z),
-                0.3435 * (I ^ Z),
-                -0.4347 * (Z ^ I),
-                0.091 * (Y ^ Y),
-                0.091 * (X ^ X),
+                ("II", 0.2252),
+                ("ZZ", 0.5716),
+                ("IZ", 0.3435),
+                ("ZI", -0.4347),
+                ("YY", 0.091),
+                ("XX", 0.091),
             ]
         )
 

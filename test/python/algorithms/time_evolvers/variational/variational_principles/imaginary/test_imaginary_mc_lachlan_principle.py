@@ -13,17 +13,17 @@
 """Test imaginary McLachlan's variational principle."""
 
 import unittest
+from test.python.algorithms.time_evolvers.variational.variational_principles.expected_results.test_imaginary_mc_lachlan_variational_principle_expected1 import (
+    expected_bound_metric_tensor_1,
+)
 from test.python.algorithms import QiskitAlgorithmsTestCase
 import numpy as np
 
+from qiskit.quantum_info import SparsePauliOp
 from qiskit.algorithms.time_evolvers.variational import (
     ImaginaryMcLachlanPrinciple,
 )
 from qiskit.circuit.library import EfficientSU2
-from qiskit.opflow import SummedOp, X, Y, I, Z
-from test.python.algorithms.time_evolvers.variational.variational_principles.expected_results.test_imaginary_mc_lachlan_variational_principle_expected1 import (
-    expected_bound_metric_tensor_1,
-)
 
 
 class TestImaginaryMcLachlanPrinciple(QiskitAlgorithmsTestCase):
@@ -31,14 +31,14 @@ class TestImaginaryMcLachlanPrinciple(QiskitAlgorithmsTestCase):
 
     def test_calc_metric_tensor(self):
         """Test calculating a metric tensor."""
-        observable = SummedOp(
+        observable = SparsePauliOp.from_list(
             [
-                0.2252 * (I ^ I),
-                0.5716 * (Z ^ Z),
-                0.3435 * (I ^ Z),
-                -0.4347 * (Z ^ I),
-                0.091 * (Y ^ Y),
-                0.091 * (X ^ X),
+                ("II", 0.2252),
+                ("ZZ", 0.5716),
+                ("IZ", 0.3435),
+                ("ZI", -0.4347),
+                ("YY", 0.091),
+                ("XX", 0.091),
             ]
         )
 
@@ -58,14 +58,14 @@ class TestImaginaryMcLachlanPrinciple(QiskitAlgorithmsTestCase):
 
     def test_calc_calc_evolution_grad(self):
         """Test calculating evolution gradient."""
-        observable = SummedOp(
+        observable = SparsePauliOp.from_list(
             [
-                0.2252 * (I ^ I),
-                0.5716 * (Z ^ Z),
-                0.3435 * (I ^ Z),
-                -0.4347 * (Z ^ I),
-                0.091 * (Y ^ Y),
-                0.091 * (X ^ X),
+                ("II", 0.2252),
+                ("ZZ", 0.5716),
+                ("IZ", 0.3435),
+                ("ZI", -0.4347),
+                ("YY", 0.091),
+                ("XX", 0.091),
             ]
         )
 

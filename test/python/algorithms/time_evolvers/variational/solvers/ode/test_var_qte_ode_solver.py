@@ -16,6 +16,8 @@ import unittest
 from test.python.algorithms import QiskitAlgorithmsTestCase
 from ddt import ddt, data, unpack
 import numpy as np
+
+from qiskit.quantum_info import SparsePauliOp
 from qiskit.algorithms.time_evolvers.variational.solvers.ode.forward_euler_solver import (
     ForwardEulerSolver,
 )
@@ -28,18 +30,10 @@ from qiskit.algorithms.time_evolvers.variational.solvers.ode.var_qte_ode_solver 
 from qiskit.algorithms.time_evolvers.variational.solvers.ode.ode_function import (
     OdeFunction,
 )
-from qiskit import BasicAer
 from qiskit.algorithms.time_evolvers.variational import (
     ImaginaryMcLachlanPrinciple,
 )
 from qiskit.circuit.library import EfficientSU2
-from qiskit.opflow import (
-    SummedOp,
-    X,
-    Y,
-    I,
-    Z,
-)
 
 
 @ddt
@@ -77,14 +71,14 @@ class TestVarQTEOdeSolver(QiskitAlgorithmsTestCase):
     @unpack
     def test_run_no_backend(self, ode_solver, expected_result):
         """Test ODE solver with no backend."""
-        observable = SummedOp(
+        observable = SparsePauliOp.from_list(
             [
-                0.2252 * (I ^ I),
-                0.5716 * (Z ^ Z),
-                0.3435 * (I ^ Z),
-                -0.4347 * (Z ^ I),
-                0.091 * (Y ^ Y),
-                0.091 * (X ^ X),
+                ("II", 0.2252),
+                ("ZZ", 0.5716),
+                ("IZ", 0.3435),
+                ("ZI", -0.4347),
+                ("YY", 0.091),
+                ("XX", 0.091),
             ]
         )
 
