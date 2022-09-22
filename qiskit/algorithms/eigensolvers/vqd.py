@@ -96,9 +96,6 @@ class VQD(VariationalAlgorithm, Eigensolver):
                 These hyper-parameters balance the contribution of each overlap term to the cost
                 function and have a default value computed as the mean square sum of the
                 coefficients of the observable.
-            initial_point (Sequence[float]): An optional initial point (i.e. initial parameter values)
-                for the optimizer. If ``None`` then VQD will look to the ansatz for a preferred
-                point and if not will simply compute a random one.
             callback (Callable): a callback that can access the intermediate data
                 during the optimization. Four parameter values are passed to the callback as
                 follows during each evaluation by the optimizer: the evaluation count,
@@ -116,6 +113,7 @@ class VQD(VariationalAlgorithm, Eigensolver):
         k: int = 2,
         betas: list[float] | None = None,
         initial_point: Sequence[float] | None = None,
+        history: bool | None = False,
         callback: Callable[[int, np.ndarray, float, float], None] | None = None,
     ) -> None:
         """
@@ -132,9 +130,12 @@ class VQD(VariationalAlgorithm, Eigensolver):
                 These hyperparameters balance the contribution of each overlap term to the cost
                 function and have a default value computed as the mean square sum of the
                 coefficients of the observable.
-            initial_point: An optional initial point (i.e. initial parameter values)
+            initial_point: an optional initial point (i.e. initial parameter values)
                 for the optimizer. If ``None`` then VQD will look to the ansatz for a preferred
                 point and if not will simply compute a random one.
+            history: whether to return or not the optimization history
+                (evaluation count, parameter values, evaluated mean, estimator variance, shots, step)
+                as part of the result metadata.
             callback: a callback that can access the intermediate data
                 during the optimization. Four parameter values are passed to the callback as
                 follows during each evaluation by the optimizer: the evaluation count,
@@ -155,6 +156,16 @@ class VQD(VariationalAlgorithm, Eigensolver):
 
         self._eval_time = None
         self._eval_count = 0
+
+        self._history = None
+        if history:
+            # keep track of optimization history to return as part of result metadata
+            self._history = {"parameters": [],
+                             "mean": [],
+                             "variances": [],
+                             "shots": [],
+                             "step": []
+                             }
 
     @property
     def initial_point(self) -> Sequence[float] | None:
@@ -294,7 +305,17 @@ class VQD(VariationalAlgorithm, Eigensolver):
         if aux_operators is not None:
             result.aux_operator_eigenvalues = aux_values
 
+        if self._history is not None:
+            result.metadata["history"] = self._history
+
         return result
+
+    def _update_history(self, parameters, mean, variance, shots, step):
+        self._history["parameters"].append(parameters)
+        self._history["mean"].append(mean)
+        self._history["variances"].append(variance)
+        self._history["shots"].append(shots)
+        self._history["step"].append(step)
 
     def _get_evaluate_energy(
         self,
@@ -360,15 +381,20 @@ class VQD(VariationalAlgorithm, Eigensolver):
                 for (state, cost) in zip(range(step - 1), costs):
                     means += np.real(self.betas[state] * cost)
 
+            variance = np.array([estimator_result.metadata[0].pop("variance", 0)])
+            shots = np.array([estimator_result.metadata[0].pop("shots", 0)])
+
             if self.callback is not None:
-                variance = np.array([estimator_result.metadata[0].pop("variance", 0)])
-                shots = np.array([estimator_result.metadata[0].pop("shots", 0)])
                 estimator_error = np.sqrt(variance / shots)
                 for i, param_set in enumerate([parameters]):
                     self._eval_count += 1
                     self.callback(self._eval_count, param_set, means[i], estimator_error[i], step)
             else:
                 self._eval_count += len(means)
+
+            if self._history is not None:
+                self._update_history(parameters, means, variance, shots, step)
+
             return means if len(means) > 1 else means[0]
 
         return evaluate_energy
@@ -403,6 +429,7 @@ class VQDResult(VariationalResult, EigensolverResult):
     def __init__(self) -> None:
         super().__init__()
         self._cost_function_evals = None
+        self._metadata = {}
 
     @property
     def cost_function_evals(self) -> list[int] | None:
@@ -413,3 +440,13 @@ class VQDResult(VariationalResult, EigensolverResult):
     def cost_function_evals(self, value: list[int]) -> None:
         """Sets number of cost function evaluations"""
         self._cost_function_evals = value
+
+    @property
+    def metadata(self) -> dict | None:
+        """Returns metadata"""
+        return self._metadata
+
+    @cost_function_evals.setter
+    def metadata(self, data: dict) -> None:
+        """Sets metadata"""
+        self._metadata = data
