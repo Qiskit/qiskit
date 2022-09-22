@@ -5,7 +5,8 @@ features:
     calculate the results. Accordingly, ``quantum instance`` in :class:`~.Grover`
     is pending deprecation and will be deprecated in a future release.
 
-    Example::
+    Example:
+
     .. code-block:: python
 
       from qiskit import QuantumCircuit
