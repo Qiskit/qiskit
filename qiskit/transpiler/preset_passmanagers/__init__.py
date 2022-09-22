@@ -149,10 +149,10 @@ def generate_preset_pass_manager(
             the ``unitary_synthesis`` argument. As this is custom for each
             unitary synthesis plugin refer to the plugin documentation for how
             to use this option.
-        hls_config (HLSConfig): An optional configuration class that will be passed directly
-            to the high-level synthesis transformation pass. This configuration
-            class allows to specify for various high-level objects the lists of
-            synthesis algorithms and their parameters.
+        hls_config (HLSConfig): An optional configuration class :class:`~.HLSConfig`
+            that will be passed directly to :class:`~.HighLevelSynthesis` transformation pass.
+            This configuration class allows to specify for various high-level objects
+            the lists of synthesis algorithms and their parameters.
         init_method (str): The plugin name to use for the ``init`` stage of
             the output :class:`~.StagedPassManager`. By default an external
             plugin is not used. You can see a list of installed plugins by
