@@ -1,0 +1,14 @@
+---
+features:
+  - |
+    The :meth:`.Operator.from_circuit` constructor method now will reverse
+    the output permutation caused by the routing/swap mapping stage of the
+    transpiler. By default if a transpiled circuit had Swap gates inserted
+    the output matrix will have that permutation reversed so the returned
+    matrix will be equivalent to the original un-transpiled circuit. If you'd
+    like to disable this default behavior the ``ignore_set_layout`` keyword
+    argument can be set to ``True`` to do this (in addition to previous behavior
+    of ignoring the initial layout from transpilation). If you'd like to
+    manually set a final layout you can use the new ``final_layout`` keyword
+    argument to pass in a :class:`~.Layout` object to use for the output
+    permutation.
