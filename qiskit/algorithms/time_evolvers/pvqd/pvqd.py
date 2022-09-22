@@ -76,14 +76,13 @@ class PVQD(RealTimeEvolver):
             from qiskit.primitives import Estimator
             from qiskit import BasicAer
             from qiskit.circuit.library import EfficientSU2
-            from qiskit.opflow import X, Z, I
-            from qiskit.quantum_info import Pauli
+            from qiskit.quantum_info import Pauli, SparsePauliOp
             from qiskit.algorithms.optimizers import L_BFGS_B
 
             sampler = Sampler()
             fidelity = ComputeUncompute(sampler)
             estimator = Estimator()
-            hamiltonian = 0.1 * (Z ^ Z) + (I ^ X) + (X ^ I)
+            hamiltonian = 0.1 * SparsePauliOp([Pauli("ZZ"), Pauli("IX"), Pauli("XI")])
             observable = Pauli("ZZ")
             ansatz = EfficientSU2(2, reps=1)
             initial_parameters = np.zeros(ansatz.num_parameters)
