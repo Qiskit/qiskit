@@ -6,16 +6,17 @@ features:
     added to the :mod:`qiskit.circuit.classicalfunction` module. This class
     allows for creating an oracle from a Python boolean expression. For example:
 
-    .. jupyter-execute::
+    .. code-block::
 
-      from qiskit.circuit import BooleanExpression, QuantumCircuit
+      from qiskit.circuit import QuantumCircuit
+      from qiskit.circuit.classicalfunction import BooleanExpression
       
       expression = BooleanExpression('~x & (y | z)')
       circuit = QuantumCircuit(4)
       circuit.append(expression, [0, 1, 2, 3])
       circuit.draw('mpl')
 
-    .. jupyter-execute::
+    .. code-block::
 
       circuit.decompose().draw('mpl')
 
@@ -28,7 +29,8 @@ features:
 
     .. code-block::
 
-      from qiskit.circuit import BooleanExpression, QuantumCircuit
+      from qiskit.circuit import QuantumCircuit
+      from qiskit.circuit.classicalfunction import BooleanExpression
 
       boolean_exp = BooleanExpression.from_dimacs_file("simple_v3_c2.cnf")
       circuit = QuantumCircuit(boolean_exp.num_qubits)
@@ -67,7 +69,7 @@ features:
     added to the :mod:`qiskit.circuit.library` module. This class enables the
     construction of phase oracle circuits from Python boolean expressions.
 
-    .. jupyter-execute::
+    .. code-block::
 
       from qiskit.circuit.library.phase_oracle import PhaseOracle
 
@@ -77,7 +79,7 @@ features:
     These phase oracles can be used as part of a larger algorithm, for example
     with :class:`qiskit.algorithms.AmplificationProblem`:
 
-    .. jupyter-execute::
+    .. code-block::
 
       from qiskit.algorithms import AmplificationProblem, Grover
       from qiskit import BasicAer

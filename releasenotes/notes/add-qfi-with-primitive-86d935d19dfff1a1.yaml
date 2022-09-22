@@ -1,0 +1,13 @@
+---
+features:
+  - |
+    New Quantum Fisher Information (QFI) Algorithm using the primitives has been added. It
+    internally uses the primitives to calculate the QFI.
+
+    Example::
+    .. code-block:: python
+
+      estimator = Estimator(...)
+      qfi = LinCombQFI(estimator)
+      job = qfi.run(circuits, observables, parameters)
+      qfis = job.result().qfis

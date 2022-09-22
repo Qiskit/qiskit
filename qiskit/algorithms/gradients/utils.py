@@ -25,28 +25,14 @@ from dataclasses import dataclass
 import numpy as np
 
 from qiskit import transpile
-from qiskit.circuit import (
-    ClassicalRegister,
-    Gate,
-    Instruction,
-    Parameter,
-    ParameterExpression,
-    QuantumCircuit,
-    QuantumRegister,
-)
-from qiskit.circuit.library.standard_gates import (
-    CXGate,
-    CYGate,
-    CZGate,
-    RXGate,
-    RXXGate,
-    RYGate,
-    RYYGate,
-    RZGate,
-    RZXGate,
-    RZZGate,
-    XGate,
-)
+from qiskit.circuit import (ClassicalRegister, Gate, Instruction, Parameter,
+                            ParameterExpression, QuantumCircuit,
+                            QuantumRegister)
+from qiskit.circuit.library.standard_gates import (CXGate, CYGate, CZGate,
+                                                   RXGate, RXXGate, RYGate,
+                                                   RYYGate, RZGate, RZXGate,
+                                                   RZZGate, XGate)
+from qiskit.quantum_info import SparsePauliOp
 
 
 @dataclass
@@ -281,7 +267,8 @@ class LinearCombGradientCircuit:
 
 
 def _make_lin_comb_gradient_circuit(
-    circuit: QuantumCircuit, add_measurement: bool = False, imaginary: bool = False
+    circuit: QuantumCircuit,
+    add_measurement: bool = False,
 ) -> dict[Parameter, list[LinearCombGradientCircuit]]:
     """Makes gradient circuits for the linear combination of unitaries method.
 
@@ -424,10 +411,6 @@ def _make_lin_comb_qfi_circuit(
     circuit2.add_bits(cr_aux)
     circuit2.h(qr_aux)
     circuit2.data.insert(0, circuit2.data.pop())
-    # circuit2.sdg(qr_aux)
-    # circuit2.data.insert(1, circuit2.data.pop())
-
-    # print(circuit2)
 
     grad_dict = defaultdict(list)
     for i, (inst_i, qregs_i, _) in enumerate(circuit2.data):
@@ -437,39 +420,193 @@ def _make_lin_comb_qfi_circuit(
             if inst_j.is_parameterized():
                 param_i = inst_i.params[0]
                 param_j = inst_j.params[0]
-                if circuit2.parameters.data.index(param_i) > circuit2.parameters.data.index(
-                    param_j
-                ):
-                    continue
 
                 for p_i in param_i.parameters:
                     for p_j in param_j.parameters:
-
+                        if circuit2.parameters.data.index(p_i) > circuit2.parameters.data.index(
+                            p_j
+                        ):
+                            continue
                         gate_i = _gate_gradient(inst_i)
                         gate_j = _gate_gradient(inst_j)
                         circuit3 = circuit2.copy()
-                        # insert gate_j to j-th position
-                        circuit3.append(gate_j, [qr_aux[0]] + qregs_j, [])
-                        circuit3.data.insert(j, circuit3.data.pop())
-                        # insert gate_i to i-th position with two X gates at its sides
-                        circuit3.append(XGate(), [qr_aux[0]], [])
-                        circuit3.data.insert(i, circuit3.data.pop())
-                        circuit3.append(gate_i, [qr_aux[0]] + qregs_i, [])
-                        circuit3.data.insert(i, circuit3.data.pop())
-                        circuit3.append(XGate(), [qr_aux[0]], [])
-                        circuit3.data.insert(i, circuit3.data.pop())
+                        if i < j:
+                            # insert gate_j to j-th position
+                            circuit3.append(gate_j, [qr_aux[0]] + qregs_j, [])
+                            circuit3.data.insert(j, circuit3.data.pop())
+                            # insert gate_i to i-th position with two X gates at its sides
+                            circuit3.append(XGate(), [qr_aux[0]], [])
+                            circuit3.data.insert(i, circuit3.data.pop())
+                            circuit3.append(gate_i, [qr_aux[0]] + qregs_i, [])
+                            circuit3.data.insert(i, circuit3.data.pop())
+                            circuit3.append(XGate(), [qr_aux[0]], [])
+                            circuit3.data.insert(i, circuit3.data.pop())
+                        else:
+                            # insert gate_i to i-th position
+                            circuit3.append(gate_i, [qr_aux[0]] + qregs_i, [])
+                            circuit3.data.insert(i, circuit3.data.pop())
+                            # insert gate_j to j-th position with two X gates at its sides
+                            circuit3.append(XGate(), [qr_aux[0]], [])
+                            circuit3.data.insert(j, circuit3.data.pop())
+                            circuit3.append(gate_j, [qr_aux[0]] + qregs_j, [])
+                            circuit3.data.insert(j, circuit3.data.pop())
+                            circuit3.append(XGate(), [qr_aux[0]], [])
+                            circuit3.data.insert(j, circuit3.data.pop())
 
                         circuit3.h(qr_aux)
                         if add_measurement:
                             circuit3.measure(qr_aux, cr_aux)
                         grad_dict[
-                            circuit2.parameters.data.index(param_i),
-                            circuit2.parameters.data.index(param_j),
+                            circuit2.parameters.data.index(p_i), circuit2.parameters.data.index(p_j)
                         ].append(
                             LinearCombGradientCircuit(
                                 circuit3, param_i.gradient(p_i) * param_j.gradient(p_j)
                             )
                         )
-                        # grad_dict[p_i, p_j].append(circuit3)
 
     return grad_dict
+
+def _make_approximated_qfi_layers(
+    circuit: QuantumCircuit,
+) -> dict[Parameter, list[LinearCombGradientCircuit]]:
+    """Makes qfi circuits for the approximated method.
+
+    Args:
+        circuit: The original quantum circuit.
+
+    Returns:
+        A list to represent the layers of instructions for the qfi circuit.
+    """
+    supported_gates = [
+        "rx",
+        "ry",
+        "rz",
+        "cx",
+        "cy",
+        "cz",
+        "cx",
+        "swap",
+        "iswap",
+        "h",
+        "t",
+        "s",
+        "sdg",
+        "x",
+        "y",
+        "z",
+    ]
+
+    circuit2 = transpile(circuit, basis_gates=supported_gates, optimization_level=0)
+    # initialize layers
+    layer_pos = [0] * circuit2.num_qubits
+    layers = []
+    layers.append([])
+
+    for i, (inst, qregs, _) in enumerate(circuit2.data):
+        if inst.is_parameterized():
+            qubit_idx = circuit2.qubits.index(qregs[0])
+            if layer_pos[qubit_idx] % 2 == 0:
+                layer_pos[qubit_idx] += 1
+                if len(layers) == layer_pos[qubit_idx]:
+                    layers.append([])
+            layers[layer_pos[qubit_idx]].append((inst, qregs, i))
+        else:
+            qubit_indices = [circuit2.qubits.index(q) for q in qregs]
+            if len(qubit_indices) == 1:
+                qubit_idx = qubit_indices[0]
+                if layer_pos[qubit_idx] % 2 == 1:
+                    layer_pos[qubit_idx] += 1
+                    if len(layers) == layer_pos[qubit_idx]:
+                        layers.append([[]])
+                layers[layer_pos[qubit_idx]].append((inst, qregs, i))
+            else:
+                last_layer=max(layer_pos[qubit_idx] for qubit_idx in qubit_indices)
+                if last_layer % 2 == 1:
+                    layers.append([])
+                    last_layer += 1
+                layers[last_layer].append((inst, qregs, i))
+                for qubit_idx in qubit_indices:
+                    layer_pos[qubit_idx] = last_layer
+    return layers
+
+def _make_approximated_qfi_generators(circuit, layers):
+    """Makes gradient circuits for the approximated method.
+
+    Args:
+        layers: The layers of the original quantum circuit.
+
+    Returns:
+        A dictionary mapping a parameter to the corresponding list of ``LinearCombGradientCircuit``
+    """
+    num_qubits = circuit.num_qubits
+    single_ops = [{} for _ in range(len(layers))]
+    double_ops = [{} for _ in range(len(layers))]
+
+    for i, layer in enumerate(layers):
+        if i % 2 == 0:
+            continue
+        for j, (inst_j, qregs_j, _) in enumerate(layer):
+            generator_str = _gate_gradient(inst_j)
+            qubit_idx = circuit.qubits.index(qregs_j[0])
+            op = SparsePauliOp.from_sparse_list([(generator_str, [qubit_idx], 1)], num_qubits=num_qubits)
+            single_ops[i][j] = op
+
+        for j, (inst_j, qregs_j, _) in enumerate(layer):
+            generator_str_j = _gate_gradient(inst_j)
+            for k, (inst_k, qregs_k, _) in enumerate(layer):
+                if j < k:
+                    generator_str_k = _gate_gradient(inst_k)
+                    qubit_idx_j = circuit.qubits.index(qregs_j[0])
+                    qubit_idx_k = circuit.qubits.index(qregs_k[0])
+                    op = SparsePauliOp.from_sparse_list([(generator_str_j + generator_str_k,
+                    [qubit_idx_j, qubit_idx_k], 1)], num_qubits=num_qubits)
+                    double_ops[i][j, k] = op
+                    double_ops[i][k, j] = op
+    return single_ops, double_ops
+
+
+def _gate_generator_str(gate: Gate):
+    if isinstance(gate, RXGate):
+        return "X"
+    if isinstance(gate, RYGate):
+        return "Y"
+    if isinstance(gate, RZGate):
+        return "Z"
+    raise TypeError(f"Unrecognized parameterized gate, {gate}")
+
+
+
+# def _gate_gradient(gate: Gate) -> Instruction:
+#     """Returns the derivative of the gate"""
+#     # pylint: disable=too-many-return-statements
+#     if isinstance(gate, RXGate):
+#         return CXGate()
+#     if isinstance(gate, RYGate):
+#         return CYGate()
+#     if isinstance(gate, RZGate):
+#         return CZGate()
+#     if isinstance(gate, RXXGate):
+#         cxx_circ = QuantumCircuit(3)
+#         cxx_circ.cx(0, 1)
+#         cxx_circ.cx(0, 2)
+#         cxx = cxx_circ.to_instruction()
+#         return cxx
+#     if isinstance(gate, RYYGate):
+#         cyy_circ = QuantumCircuit(3)
+#         cyy_circ.cy(0, 1)
+#         cyy_circ.cy(0, 2)
+#         cyy = cyy_circ.to_instruction()
+#         return cyy
+#     if isinstance(gate, RZZGate):
+#         czz_circ = QuantumCircuit(3)
+#         czz_circ.cz(0, 1)
+#         czz_circ.cz(0, 2)
+#         czz = czz_circ.to_instruction()
+#         return czz
+#     if isinstance(gate, RZXGate):
+#         czx_circ = QuantumCircuit(3)
+#         czx_circ.cx(0, 2)
+#         czx_circ.cz(0, 1)
+#         czx = czx_circ.to_instruction()
+#         return czx
+#     raise TypeError(f"Unrecognized parameterized gate, {gate}")

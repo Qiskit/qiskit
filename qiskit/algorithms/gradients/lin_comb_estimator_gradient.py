@@ -14,6 +14,7 @@ Gradient of probabilities with linear combination of unitaries (LCU)
 """
 
 from __future__ import annotations
+from enum import Enum
 
 from typing import Sequence
 
@@ -24,7 +25,7 @@ from qiskit.circuit import Parameter, ParameterExpression, QuantumCircuit
 from qiskit.opflow import PauliSumOp
 from qiskit.primitives import BaseEstimator
 from qiskit.primitives.utils import init_observable
-from qiskit.quantum_info import Pauli, SparsePauliOp
+from qiskit.quantum_info import SparsePauliOp
 from qiskit.quantum_info.operators.base_operator import BaseOperator
 
 from .base_estimator_gradient import BaseEstimatorGradient
@@ -32,7 +33,12 @@ from .estimator_gradient_result import EstimatorGradientResult
 from .utils import _make_lin_comb_gradient_circuit
 
 
-Pauli_Z = Pauli("Z")
+class DerivativeType(Enum):
+    """Types of derivative."""
+
+    REAL = "real"
+    IMAG = "imag"
+    COMPLEX = "complex"
 
 
 class LinCombEstimatorGradient(BaseEstimatorGradient):
@@ -44,24 +50,35 @@ class LinCombEstimatorGradient(BaseEstimatorGradient):
     `arXiv:1811.11184 <https://arxiv.org/pdf/1811.11184.pdf>`_
     """
 
-    def __init__(self, estimator: BaseEstimator, **run_options):
+    def __init__(
+        self,
+        estimator: BaseEstimator,
+        derivative_type: DerivativeType = DerivativeType.REAL,
+        **run_options,
+    ):
         """
         Args:
             estimator: The estimator used to compute the gradients.
+            derivative_type: The type of derivative. Can be either ``DerivativeType.REAL``
+                ``DerivativeType.IMAG``, or ``DerivativeType.COMPLEX``. Defaults to
+                ``DerivativeType.REAL``.
+                For ``DerivativeType.REAL`` we compute 2Re[(dω⟨ψ(ω)|)O(θ)|ψ(ω)〉],
+                for ``DerivativeType.IMAG`` we compute 2Im[(dω⟨ψ(ω)|)O(θ)|ψ(ω)〉], and
+                for ``DerivativeType.COMPLEX`` we compute 2(dω⟨ψ(ω)|)O(θ)|ψ(ω)〉.
             run_options: Backend runtime options used for circuit execution. The order of priority is:
                 run_options in ``run`` method > gradient's default run_options > primitive's default
                 setting. Higher priority setting overrides lower priority setting.
         """
         self._gradient_circuits = {}
+        self._derivative_type = derivative_type
         super().__init__(estimator, **run_options)
 
     def _run(
         self,
         circuits: Sequence[QuantumCircuit],
         observables: Sequence[BaseOperator | PauliSumOp],
-        parameter_values: Sequence[Sequence[float]],
+        parameter_values: Sequence[Sequence[float | complex]],
         parameters: Sequence[Sequence[Parameter] | None],
-        aux_meas_op=None,
         **run_options,
     ) -> EstimatorGradientResult:
         """Compute the estimator gradients on the given circuits."""
@@ -78,12 +95,17 @@ class LinCombEstimatorGradient(BaseEstimatorGradient):
                 param_set = set(parameters_)
             metadata_.append({"parameters": [p for p in circuit.parameters if p in param_set]})
 
-            # TODO: support measurement in different basis (Y and Z+iY)
-            if aux_meas_op is not None:
+            if self._derivative_type == DerivativeType.REAL:
+                op2 = SparsePauliOp.from_list([("Z", 1)])
+            elif self._derivative_type == DerivativeType.IMAG:
+                op2 = SparsePauliOp.from_list([("Y", -1)])
+            elif self._derivative_type == DerivativeType.COMPLEX:
                 op2 = SparsePauliOp.from_list([("Z", 1), ("Y", complex(0, -1))])
-                observable_ = observable.expand(op2)
             else:
-                observable_ = observable.expand(Pauli_Z)
+                raise ValueError(f"Derivative type {self._derivative_type} is not supported.")
+
+            observable_ = observable.expand(op2)
+
             gradient_circuits_ = self._gradient_circuits.get(id(circuit))
             if gradient_circuits_ is None:
                 gradient_circuits_ = _make_lin_comb_gradient_circuit(circuit)
