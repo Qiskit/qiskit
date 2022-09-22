@@ -202,7 +202,6 @@ def level_3_pass_manager(pass_manager_config: PassManagerConfig) -> StagedPassMa
             plugin_config=unitary_synthesis_plugin_config,
             target=target,
         ),
-        HighLevelSynthesis(hls_config=hls_config),
         Optimize1qGatesDecomposition(basis_gates),
         CommutativeCancellation(),
     ]
