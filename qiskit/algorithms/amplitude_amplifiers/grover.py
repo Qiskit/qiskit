@@ -211,7 +211,7 @@ class Grover(AmplitudeAmplifier):
         category=PendingDeprecationWarning,
     )
     def quantum_instance(self, quantum_instance: Union[QuantumInstance, Backend]) -> None:
-        """Pending deprecation: Set quantum instance.
+        """Pending deprecation\: Set quantum instance.
         Args:
             quantum_instance: The quantum instance used to run this algorithm.
         """
