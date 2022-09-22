@@ -73,8 +73,8 @@ class DummyClass:
         return None
 
 
-class TestDeprecation(QiskitTestCase):
-    """Test deprecation decorators."""
+class TestDeprecationRaise(QiskitTestCase):
+    """Test deprecation decorators raise warning."""
 
     def assertDeprecationWarning(self, warn, expected_msg):
         """Checks there only one exception and `expected_msg` is the message"""
@@ -107,7 +107,11 @@ class TestDeprecation(QiskitTestCase):
         )
         self.assertEqual(output, 1)
 
-    def test_docstring_deprecate_function(self):
+
+class TestDeprecationDocstring(QiskitTestCase):
+    """Test deprecation decorators docstring modification for DummyClass."""
+
+    def test_dummyclass_deprecate_function(self):
         """Test deprecate_function docstring."""
 
         dummy = DummyClass()
@@ -131,8 +135,8 @@ class TestDeprecation(QiskitTestCase):
         """
         self.assertEqual(deprecated_docstring, expected)
 
-    def test_docstring_deprecate_arguments(self):
-        """Test deprecate_arguments docstring."""
+    def test_dummayclass_deprecate_arguments(self):
+        """Test deprecate_arguments docstring for DummyClass."""
 
         dummy = DummyClass()
         deprecated_docstring = dummy.bar_with_deprecated_arg.__doc__
