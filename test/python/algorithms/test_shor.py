@@ -28,7 +28,7 @@ if optionals.HAS_AER:
     # pylint: disable=import-error,no-name-in-module
     from qiskit_aer import Aer  # pylint: disable=import-error
 else:
-    Aer = None
+    Aer = None  # pylint: disable=invalid-name
 
 
 @unittest.skipUnless(Aer, "qiskit-aer is required for these tests")
