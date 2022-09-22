@@ -262,7 +262,8 @@ def transpile(
             the ``backend`` argument, but if you have manually constructed a
             :class:`~qiskit.transpiler.Target` object you can specify it manually here.
             This will override the target from ``backend``.
-        hls_config: An optional configuration class that will be passed directly
+        hls_config: An optional configuration class
+            :class:`~qiskit.transpiler.passes.synthesis.HLSConfig` that will be passed directly
             to the high-level synthesis transformation pass. This configuration
             class allows to specify for various high-level objects the lists of
             synthesis algorithms and their parameters.
