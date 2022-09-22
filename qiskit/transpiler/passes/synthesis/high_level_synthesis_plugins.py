@@ -10,9 +10,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""
-Default plugins for synthesizing high-level-objects in Qiskit.
-"""
+"""Default plugins for synthesizing high-level-objects in Qiskit."""
 
 import abc
 

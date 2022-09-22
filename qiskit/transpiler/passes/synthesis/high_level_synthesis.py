@@ -22,8 +22,7 @@ from .high_level_synthesis_plugins import HighLevelSynthesisPluginManager
 
 
 class HLSConfig:
-    """
-    The high-level-synthesis config allows to specify a list of "methods" used by
+    """The high-level-synthesis config allows to specify a list of "methods" used by
     :class:`~.HighLevelSynthesis` transformation pass to synthesize different types
     of higher-level-objects. A higher-level object is an object of type
     :class:`~.Operation` (e.g., "clifford", "linear_function", etc.), and the list
@@ -46,8 +45,8 @@ class HLSConfig:
     """
 
     def __init__(self, use_default_on_unspecified=True, **kwargs):
-        """
-        Creates a high-level-synthesis config.
+        """Creates a high-level-synthesis config.
+
         Args:
             use_default_on_unspecified (bool): if True, every higher-level-object without an
                 explicitly specified list of methods will be synthesized using the "default"
@@ -65,20 +64,14 @@ class HLSConfig:
         the lists of methods if also set previously."""
         self.methods[hls_name] = hls_methods
 
-    def print(self):
-        """This is temporary for debugging."""
-        print("HLS CONFIG:")
-        print(f"use_default_on_unspecified = {self.use_default_on_unspecified}")
-        for hls_name in self.methods:
-            print(f"  name = {hls_name}, method = {self.methods[hls_name]}")
-
 
 # ToDo: Do we have a way to specify optimization criteria (e.g., 2q gate count vs. depth)?
 
 
 class HighLevelSynthesis(TransformationPass):
     """Synthesize higher-level objects by choosing the appropriate synthesis method
-    based on the object's name and the HLS-config (if provided).
+    based on the object's name and the high-level-synthesis config of type
+    :class:`~.HLSConfig` (if provided).
 
     As an example, let us assume that ``op_a`` and ``op_b`` are names of two higher-level objects,
     that ``op_a``-objects have two synthesis methods ``default`` which does require any additional

@@ -264,8 +264,8 @@ def transpile(
             This will override the target from ``backend``.
         hls_config: An optional configuration class
             :class:`~qiskit.transpiler.passes.synthesis.HLSConfig` that will be passed directly
-            to the high-level synthesis transformation pass. This configuration
-            class allows to specify for various high-level objects the lists of
+            to :class:`~qiskit.transpiler.passes.synthesis.HighLevelSynthesis` transformation pass.
+            This configuration class allows to specify for various high-level objects the lists of
             synthesis algorithms and their parameters.
         init_method: The plugin name to use for the ``init`` stage. By default an external
             plugin is not used. You can see a list of installed plugins by
