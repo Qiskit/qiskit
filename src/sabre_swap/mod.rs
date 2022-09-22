@@ -16,6 +16,8 @@ pub mod neighbor_table;
 pub mod sabre_dag;
 pub mod swap_map;
 
+use std::convert::TryInto;
+
 use std::cmp::Ordering;
 
 use hashbrown::{HashMap, HashSet};
@@ -41,6 +43,7 @@ use neighbor_table::NeighborTable;
 use sabre_dag::SabreDAG;
 use swap_map::SwapMap;
 
+const LANES: usize = 8;
 const EXTENDED_SET_SIZE: usize = 20; // Size of lookahead window.
 const DECAY_RATE: f64 = 0.001; // Decay coefficient for penalizing serial swaps.
 const DECAY_RESET_INTERVAL: u8 = 5; // How often to reset all decay rates to 1.
@@ -453,10 +456,25 @@ fn sabre_score_heuristic(
 
 #[inline]
 fn compute_cost(layer: &[[usize; 2]], layout: &NLayout, dist: &ArrayView2<f64>) -> f64 {
-    layer
+    let chunks = layer.chunks_exact(LANES);
+    let remainder = chunks.remainder();
+    let sum = chunks.fold([0.; LANES], |mut acc, chunk| {
+        let chunk: [[usize; 2]; LANES] = chunk.try_into().unwrap();
+        for i in 0..LANES {
+            let gate = chunk[i];
+            acc[i] += dist[[layout.logic_to_phys[gate[0]], layout.logic_to_phys[gate[1]]]]
+        }
+        acc
+    });
+    let remainder: f64 = remainder
         .iter()
         .map(|gate| dist[[layout.logic_to_phys[gate[0]], layout.logic_to_phys[gate[1]]]])
-        .sum()
+        .sum();
+    let mut reduced = 0.;
+    for val in sum {
+        reduced += val;
+    }
+    reduced + remainder
 }
 
 fn score_lookahead(
