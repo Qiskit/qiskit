@@ -148,7 +148,7 @@ class BaseSamplerGradient(ABC):
         Returns:
             The gradient default + sampler options.
         """
-        return self._get_local_options(self._default_options)
+        return self._get_local_options(self._default_options.__dict__)
 
     def update_default_options(self, **options):
         """Update the gradient's default options setting.

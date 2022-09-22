@@ -49,7 +49,7 @@ class ComputeUncompute(BaseStateFidelity):
 
     """
 
-    def __init__(self, sampler: BaseSampler, **options) -> None:
+    def __init__(self, sampler: BaseSampler, options: Options | None = None) -> None:
         """
         Args:
             sampler: Sampler primitive instance.
@@ -152,7 +152,7 @@ class ComputeUncompute(BaseStateFidelity):
             fidelities=fidelities,
             raw_fidelities=raw_fidelities,
             metadata=result.metadata,
-            options=self._get_local_options(opts),
+            options=self._get_local_options(opts.__dict__),
         )
 
     @property
@@ -164,7 +164,7 @@ class ComputeUncompute(BaseStateFidelity):
         Returns:
             The fidelity default + estimator options.
         """
-        return self._get_local_options(self._default_options)
+        return self._get_local_options(self._default_options.__dict__)
 
     def update_default_options(self, **options):
         """Update the fidelity's default options setting.
@@ -188,5 +188,5 @@ class ComputeUncompute(BaseStateFidelity):
             The fidelity default + estimator + run options.
         """
         opts = copy(self._sampler.options)
-        opts.update_options(**options.__dict__)
+        opts.update_options(**options)
         return opts
