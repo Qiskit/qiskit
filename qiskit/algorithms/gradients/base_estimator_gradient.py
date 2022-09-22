@@ -168,16 +168,37 @@ class BaseEstimatorGradient(ABC):
                     f"({observable.num_qubits})."
                 )
 
-    def _get_local_options(self, options: Options) -> Options:
-        """Update the runtime options in the results to reflect the final setting,
-        where the options can come from the primitive's default setting, the gradient's
-        default options, or the options in the ``run`` method.
-
-        Args:
-            options: The run options to update.
+    @property
+    def options(self) -> Options:
+        """Return the union of estimator options setting and gradient default options,
+        where, if the same field is set in both, the gradient's default options override
+        the primitive's default setting.
 
         Returns:
-            The updated run options.
+            The gradient default + estimator options.
+        """
+        return self._get_local_options(self._default_options)
+
+    def update_default_options(self, **options):
+        """Update the gradient's default options setting.
+
+        Args:
+            **options: The fields to update the default options.
+        """
+
+        self._default_options.update_options(**options)
+
+    def _get_local_options(self, options: Options) -> Options:
+        """Return the union of the primitive's default setting,
+        the gradient default options, and the options in the ``run`` method.
+        The order of priority is: options in ``run`` method > gradient's
+                default options > primitive's default setting.
+
+        Args:
+            options: The fields to update the options
+
+        Returns:
+            The gradient default + estimator + run options.
         """
         opts = copy(self._estimator.options)
         opts.update_options(**options)

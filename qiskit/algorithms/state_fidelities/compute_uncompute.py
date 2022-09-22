@@ -94,21 +94,6 @@ class ComputeUncompute(BaseStateFidelity):
         circuit.measure_all()
         return circuit
 
-    def _get_local_options(self, options: Options) -> Options:
-        """Update the runtime options in the results to reflect the final setting,
-        where the options can come from the primitive's default setting, the fidelity
-        default options, or the options in the ``run`` method.
-
-        Args:
-            options: The run options to update.
-
-        Returns:
-            The updated run options.
-        """
-        opts = copy(self._sampler.options)
-        opts.update_options(**options.__dict__)
-        return opts
-
     def _run(
         self,
         circuits_1: QuantumCircuit | Sequence[QuantumCircuit],
@@ -169,3 +154,39 @@ class ComputeUncompute(BaseStateFidelity):
             metadata=result.metadata,
             options=self._get_local_options(opts),
         )
+
+    @property
+    def options(self) -> Options:
+        """Return the union of estimator options setting and fidelity default options,
+        where, if the same field is set in both, the fidelity's default options override
+        the primitive's default setting.
+
+        Returns:
+            The fidelity default + estimator options.
+        """
+        return self._get_local_options(self._default_options)
+
+    def update_default_options(self, **options):
+        """Update the fidelity's default options setting.
+
+        Args:
+            **options: The fields to update the default options.
+        """
+
+        self._default_options.update_options(**options)
+
+    def _get_local_options(self, options: Options) -> Options:
+        """Return the union of the primitive's default setting,
+        the fidelity default options, and the options in the ``run`` method.
+        The order of priority is: options in ``run`` method > fidelity's
+                default options > primitive's default setting.
+
+        Args:
+            options: The fields to update the options
+
+        Returns:
+            The fidelity default + estimator + run options.
+        """
+        opts = copy(self._sampler.options)
+        opts.update_options(**options.__dict__)
+        return opts
