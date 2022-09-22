@@ -16,15 +16,21 @@ import functools
 import warnings
 from typing import Type
 
+from qiskit.exceptions import QiskitError
+
 
 def deprecate_arguments(
-    kwarg_map, category: Type[Warning] = DeprecationWarning, docstring_version=None
+    kwarg_map, category: Type[Warning] = DeprecationWarning, modify_docstring=True, since=None
 ):
     """Decorator to automatically alias deprecated argument names and warn upon use."""
 
     def decorator(func):
-        if docstring_version and kwarg_map:
-            func.__doc__ = "\n".join(_extend_docstring(func, docstring_version, kwarg_map))
+        if modify_docstring and since is None:
+            raise QiskitError(
+                "Modifying the docstring needs a version. Add parameter `since` with it."
+            )
+        if modify_docstring and since and kwarg_map:
+            func.__doc__ = "\n".join(_extend_docstring(func, since, kwarg_map))
 
         @functools.wraps(func)
         def wrapper(*args, **kwargs):
@@ -41,7 +47,8 @@ def deprecate_function(
     msg: str,
     stacklevel: int = 2,
     category: Type[Warning] = DeprecationWarning,
-    docstring_version: str = None,
+    modify_docstring=True,
+    since: str = None,
 ):
     """Emit a warning prior to calling decorated function.
 
@@ -49,7 +56,7 @@ def deprecate_function(
         msg: Warning message to emit.
         stacklevel: The warning stackevel to use, defaults to 2.
         category: warning category, defaults to DeprecationWarning
-        docstring_version (str): If a version number, extends the docstring with a deprecation warning
+        since (str): If a version number, extends the docstring with a deprecation warning
            box. If `None`, no docstring box will be added. Default: None
 
     Returns:
@@ -57,9 +64,14 @@ def deprecate_function(
     """
 
     def decorator(func):
-        if docstring_version:
+        if modify_docstring and since is None:
+            raise QiskitError(
+                "Modifying the docstring needs a version. Add parameter `since` with it."
+            )
+
+        if modify_docstring and since:
             func.__doc__ = "\n".join(
-                _extend_docstring(func, docstring_version, {None: msg.expandtabs().splitlines()})
+                _extend_docstring(func, since, {None: msg.expandtabs().splitlines()})
             )
 
         @functools.wraps(func)

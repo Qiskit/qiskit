@@ -98,7 +98,7 @@ class DAGCircuit:
     @_optionals.HAS_NETWORKX.require_in_call
     @deprecate_function(
         "The to_networkx() method is deprecated and will be removed in a future release.",
-        docstring_version="0.21.0",
+        since="0.21.0",
     )
     def to_networkx(self):
         """Returns a copy of the DAGCircuit in networkx format."""
@@ -116,7 +116,7 @@ class DAGCircuit:
     @_optionals.HAS_NETWORKX.require_in_call
     @deprecate_function(
         "The from_networkx() method is deprecated and will be removed in a future release.",
-        docstring_version="0.21.0",
+        since="0.21.0",
     )
     def from_networkx(cls, graph):
         """Take a networkx MultiDigraph and create a new DAGCircuit.
@@ -506,7 +506,7 @@ class DAGCircuit:
         no earlier than 3 months after the release date. You should use the DAGCircuit.copy_empty_like
         method instead, which acts identically.
         """,
-        docstring_version="0.20.0",
+        since="0.20.0",
     )
     def _copy_circuit_metadata(self):
         """DEPRECATED"""

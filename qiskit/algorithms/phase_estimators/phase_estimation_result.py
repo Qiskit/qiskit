@@ -72,7 +72,7 @@ class PhaseEstimationResult(PhaseEstimatorResult):
         """The 'PhaseEstimationResult.most_likely_phase' attribute
                         is deprecated as of 0.18.0 and will be removed no earlier than 3 months
                         after the release date. It has been renamed as the 'phase' attribute.""",
-        docstring_version="0.18.0",
+        since="0.18.0",
     )
     def most_likely_phase(self) -> float:
         r"""DEPRECATED - Return the most likely phase as a number in :math:`[0.0, 1.0)`.

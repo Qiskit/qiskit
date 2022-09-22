@@ -25,7 +25,7 @@ from qiskit.utils.deprecation import deprecate_arguments
 class Decompose(TransformationPass):
     """Expand a gate in a circuit using its decomposition rules."""
 
-    @deprecate_arguments({"gate": "gates_to_decompose"}, docstring_version="0.19.0")
+    @deprecate_arguments({"gate": "gates_to_decompose"}, since="0.19.0")
     def __init__(
         self,
         gate: Optional[Type[Gate]] = None,

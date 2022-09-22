@@ -61,7 +61,7 @@ class Shor:
         no sooner than 3 months after the release date.
         It is replaced by the tutorial at https://qiskit.org/textbook/ch-algorithms/shor.html
         """,
-        docstring_version="0.22.0",
+        since="0.22.0",
     )
     def __init__(self, quantum_instance: Optional[Union[QuantumInstance, Backend]] = None) -> None:
         """

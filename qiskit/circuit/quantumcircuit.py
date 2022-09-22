@@ -717,7 +717,7 @@ class QuantumCircuit:
         "The QuantumCircuit.combine() method is being deprecated. "
         "Use the compose() method which is more flexible w.r.t "
         "circuit register compatibility.",
-        docstring_version="0.17.0",
+        since="0.17.0",
     )
     def combine(self, rhs: "QuantumCircuit") -> "QuantumCircuit":
         """Returns rhs appended to self if self contains compatible registers.
@@ -770,7 +770,7 @@ class QuantumCircuit:
         "The QuantumCircuit.extend() method is being deprecated. Use the "
         "compose() (potentially with the inplace=True argument) and tensor() "
         "methods which are more flexible w.r.t circuit register compatibility.",
-        docstring_version="0.17.0",
+        since="0.17.0",
     )
     def extend(self, rhs: "QuantumCircuit") -> "QuantumCircuit":
         """DEPRECATED - Append QuantumCircuit to the RHS if it contains compatible registers.
@@ -1111,7 +1111,8 @@ class QuantumCircuit:
     @deprecate_function(
         "The QuantumCircuit.__add__() method is being deprecated."
         "Use the compose() method which is more flexible w.r.t "
-        "circuit register compatibility."
+        "circuit register compatibility.",
+        modify_docstring=False,
     )
     def __add__(self, rhs: "QuantumCircuit") -> "QuantumCircuit":
         """Overload + to implement self.combine."""
@@ -1120,7 +1121,8 @@ class QuantumCircuit:
     @deprecate_function(
         "The QuantumCircuit.__iadd__() method is being deprecated. Use the "
         "compose() (potentially with the inplace=True argument) and tensor() "
-        "methods which are more flexible w.r.t circuit register compatibility."
+        "methods which are more flexible w.r.t circuit register compatibility.",
+        modify_docstring=False,
     )
     def __iadd__(self, rhs: "QuantumCircuit") -> "QuantumCircuit":
         """Overload += to implement self.extend."""
@@ -3768,7 +3770,7 @@ class QuantumCircuit:
         "after the release date. You should use the "
         "QuantumCircuit.p method instead, which acts "
         "identically.",
-        docstring_version="0.16.0",
+        since="0.16.0",
     )
     def u1(self, theta: ParameterValueType, qubit: QubitSpecifier) -> InstructionSet:
         r"""Apply :class:`~qiskit.circuit.library.U1Gate`.
@@ -3792,7 +3794,7 @@ class QuantumCircuit:
         "after the release date. You should use the "
         "QuantumCircuit.cp method instead, which acts "
         "identically.",
-        docstring_version="0.16.0",
+        since="0.16.0",
     )
     def cu1(
         self,
@@ -3830,7 +3832,7 @@ class QuantumCircuit:
         "after the release date. You should use the "
         "QuantumCircuit.mcp method instead, which acts "
         "identically.",
-        docstring_version="0.16.0",
+        since="0.16.0",
     )
     def mcu1(
         self,
@@ -3863,7 +3865,7 @@ class QuantumCircuit:
         "u(π/2, φ, λ). Alternatively, you can decompose it in"
         "terms of QuantumCircuit.p and QuantumCircuit.sx: "
         "u2(φ,λ) = p(π/2+φ) sx p(λ-π/2) (1 pulse on hardware).",
-        docstring_version="0.16.0",
+        since="0.16.0",
     )
     def u2(
         self, phi: ParameterValueType, lam: ParameterValueType, qubit: QubitSpecifier
@@ -3890,7 +3892,7 @@ class QuantumCircuit:
         "QuantumCircuit.u instead, which acts identically. Alternatively, you can "
         "decompose u3 in terms of QuantumCircuit.p and QuantumCircuit.sx: "
         "u3(ϴ,φ,λ) = p(φ+π) sx p(ϴ+π) sx p(λ) (2 pulses on hardware).",
-        docstring_version="0.16.0",
+        since="0.16.0",
     )
     def u3(
         self,
@@ -3921,7 +3923,7 @@ class QuantumCircuit:
         "removed no earlier than 3 months after the release date. You should "
         "use the QuantumCircuit.cu method instead, where "
         "cu3(ϴ,φ,λ) = cu(ϴ,φ,λ,0).",
-        docstring_version="0.16.0",
+        since="0.16.0",
     )
     def cu3(
         self,

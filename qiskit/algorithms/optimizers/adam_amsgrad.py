@@ -199,7 +199,7 @@ class ADAM(Optimizer):
             "initial_point": "x0",
             "gradient_function": "jac",
         },
-        docstring_version="0.19.0",
+        since="0.19.0",
     )
     # pylint: disable=arguments-differ
     def minimize(

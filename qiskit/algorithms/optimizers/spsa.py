@@ -652,7 +652,7 @@ class SPSA(Optimizer):
         "sooner than 3 months after the release date. Instead, use SPSA.minimize as a replacement, "
         "which supports the same arguments but follows the interface of scipy.optimize and returns "
         "a complete result object containing additional information.",
-        docstring_version="0.21.0",
+        since="0.21.0",
     )
     def optimize(
         self,

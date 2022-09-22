@@ -28,7 +28,7 @@ class DummyClass:
 
     @deprecate_function(
         "The DummyClass.foo() method is being deprecated. Use the DummyClass.some_othermethod()",
-        docstring_version="1.2.3",
+        since="1.2.3",
     )
     def foo_deprecated(self, index_arg2: int):
         """A multi-line
@@ -49,7 +49,7 @@ class DummyClass:
             raise QiskitError("there is an error")
         return self.arg2[index_arg2]
 
-    @deprecate_arguments({"if_arg1": "other_if_arg1"}, docstring_version="1.2.3")
+    @deprecate_arguments({"if_arg1": "other_if_arg1"}, since="1.2.3")
     def bar_with_deprecated_arg(
         self, if_arg1: int = None, index_arg2: int = None, other_if_arg1: int = None
     ):

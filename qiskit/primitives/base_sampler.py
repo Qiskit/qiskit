@@ -176,7 +176,7 @@ class BaseSampler(ABC):
     @deprecate_function(
         "The BaseSampler.__enter__ method is deprecated as of Qiskit Terra 0.22.0 "
         "and will be removed no sooner than 3 months after the release date. "
-        "BaseSampler should be initialized directly.",
+        "BaseSampler should be initialized directly."
     )
     def __enter__(self):
         return self
@@ -184,7 +184,7 @@ class BaseSampler(ABC):
     @deprecate_function(
         "The BaseSampler.__exit__ method is deprecated as of Qiskit Terra 0.22.0 "
         "and will be removed no sooner than 3 months after the release date. "
-        "BaseSampler should be initialized directly.",
+        "BaseSampler should be initialized directly."
     )
     def __exit__(self, *exc_info):
         self.close()
@@ -231,9 +231,9 @@ class BaseSampler(ABC):
     @deprecate_function(
         "The BaseSampler.__call__ method is deprecated as of Qiskit Terra 0.22.0 "
         "and will be removed no sooner than 3 months after the release date. "
-        "Use run method instead.",
+        "Use run method instead."
     )
-    @deprecate_arguments({"circuit_indices": "circuits"}, docstring_version="0.21.0")
+    @deprecate_arguments({"circuit_indices": "circuits"}, since="0.21.0")
     def __call__(
         self,
         circuits: Sequence[int | QuantumCircuit],

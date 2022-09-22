@@ -16,13 +16,13 @@ from qiskit.utils.deprecation import deprecate_function
 from qiskit.pulse import macros, utils
 
 format_meas_map = deprecate_function(
-    '"format_meas_map" has been moved to "qiskit.pulse.utils"', docstring_version="0.15.0"
+    '"format_meas_map" has been moved to "qiskit.pulse.utils"', since="0.15.0"
 )(utils.format_meas_map)
 
-measure = deprecate_function(
-    '"measure" has been moved to "qiskit.pulse.macros"', docstring_version="0.15.0"
-)(macros.measure)
+measure = deprecate_function('"measure" has been moved to "qiskit.pulse.macros"', since="0.15.0")(
+    macros.measure
+)
 
 measure_all = deprecate_function(
-    '"measure_all" has been moved to "qiskit.pulse.macros"', docstring_version="0.15.0"
+    '"measure_all" has been moved to "qiskit.pulse.macros"', since="0.15.0"
 )(macros.measure_all)

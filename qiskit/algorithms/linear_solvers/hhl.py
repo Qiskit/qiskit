@@ -113,7 +113,7 @@ class HHL(LinearSolver):
         no sooner than 3 months after the release date.
         It is replaced by the tutorial at https://qiskit.org/textbook/ch-applications/hhl_tutorial.html"
         """,
-        docstring_version="0.22.0",
+        since="0.22.0",
     )
     def __init__(
         self,

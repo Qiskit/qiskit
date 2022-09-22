@@ -26,7 +26,7 @@ class LinearSystemMatrix(BlueprintCircuit, ABC):
     @deprecate_function(
         "The LinearSystemMatrix class is deprecated as of Qiskit Terra 0.22.0 "
         "and will be removed no sooner than 3 months after the release date. ",
-        docstring_version="0.22.0",
+        since="0.22.0",
     )
     def __init__(
         self,
