@@ -252,8 +252,8 @@ class AmplitudeEstimation(AmplitudeEstimator):
         measurements = OrderedDict()
         samples = OrderedDict()
         for state, probability in circuit_results.items():
-            state = state[::-1]
-            y = int(state[: self._m], 2)
+            # reverts the last _m items
+            y = int(state[: -self._m - 1 : -1], 2)
             measurements[y] = probability
             a = np.round(np.power(np.sin(y * np.pi / 2**self._m), 2), decimals=7)
             samples[a] = samples.get(a, 0.0) + probability
@@ -350,7 +350,7 @@ class AmplitudeEstimation(AmplitudeEstimator):
         Raises:
             ValueError: If `state_preparation` or `objective_qubits` are not set in the
                 `estimation_problem`.
-            ValueError: A quantum instance or Sampler must be provided.
+            ValueError: A quantum instance or sampler must be provided.
             AlgorithmError: Sampler job run error.
         """
         # check if A factory or state_preparation has been set
