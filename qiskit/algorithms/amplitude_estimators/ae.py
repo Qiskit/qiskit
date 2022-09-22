@@ -351,7 +351,7 @@ class AmplitudeEstimation(AmplitudeEstimator):
             ValueError: If `state_preparation` or `objective_qubits` are not set in the
                 `estimation_problem`.
             ValueError: A quantum instance or Sampler must be provided.
-            AlgorithmError: Sampler job run error
+            AlgorithmError: Sampler job run error.
         """
         # check if A factory or state_preparation has been set
         if estimation_problem.state_preparation is None:
