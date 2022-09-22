@@ -40,14 +40,15 @@ def convert_to_target(
     properties: BackendProperties = None,
     defaults: PulseDefaults = None,
     custom_name_mapping: Optional[Dict[str, Any]] = None,
-) -> "Target":
+):
     """Uses configuration, properties and pulse defaults
     to construct and return Target class.
     """
+    # pylint: disable=cyclic-import
     from qiskit.transpiler.target import (
         Target,
         InstructionProperties,
-    )  # pylint: disable=cyclic-import
+    )
 
     # Standard gates library mapping, multicontrolled gates not included since they're
     # variable width
