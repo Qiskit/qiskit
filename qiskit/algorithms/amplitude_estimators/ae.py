@@ -60,10 +60,10 @@ class AmplitudeEstimation(AmplitudeEstimator):
     def __init__(
         self,
         num_eval_qubits: int,
-        phase_estimation_circuit: None | QuantumCircuit = None,
-        iqft: None | QuantumCircuit = None,
-        quantum_instance: None | QuantumInstance | Backend = None,
-        sampler: None | BaseSampler = None,
+        phase_estimation_circuit: QuantumCircuit | None = None,
+        iqft: QuantumCircuit | None = None,
+        quantum_instance: QuantumInstance | Backend | None = None,
+        sampler: BaseSampler | None = None,
     ) -> None:
         r"""
         Args:
@@ -106,7 +106,7 @@ class AmplitudeEstimation(AmplitudeEstimator):
         self._sampler = sampler
 
     @property
-    def sampler(self) -> None | BaseSampler:
+    def sampler(self) -> BaseSampler | None:
         """Get the sampler primitive.
 
         Returns:
@@ -130,7 +130,7 @@ class AmplitudeEstimation(AmplitudeEstimator):
         "removed after that.",
         category=PendingDeprecationWarning,
     )
-    def quantum_instance(self) -> None | QuantumInstance:
+    def quantum_instance(self) -> QuantumInstance | None:
         """Pending deprecation: Get the quantum instance.
 
         Returns:

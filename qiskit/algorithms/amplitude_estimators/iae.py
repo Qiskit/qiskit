@@ -58,7 +58,7 @@ class IterativeAmplitudeEstimation(AmplitudeEstimator):
         confint_method: str = "beta",
         min_ratio: float = 2,
         quantum_instance: QuantumInstance | Backend | None = None,
-        sampler: None | BaseSampler = None,
+        sampler: BaseSampler | None = None,
     ) -> None:
         r"""
         The output of the algorithm is an estimate for the amplitude `a`, that with at least
@@ -115,7 +115,7 @@ class IterativeAmplitudeEstimation(AmplitudeEstimator):
         self._sampler = sampler
 
     @property
-    def sampler(self) -> None | BaseSampler:
+    def sampler(self) -> BaseSampler | None:
         """Get the sampler primitive.
 
         Returns:
@@ -139,7 +139,7 @@ class IterativeAmplitudeEstimation(AmplitudeEstimator):
         "removed after that.",
         category=PendingDeprecationWarning,
     )
-    def quantum_instance(self) -> None | QuantumInstance:
+    def quantum_instance(self) -> QuantumInstance | None:
         """Pending deprecation: Get the quantum instance.
 
         Returns:

@@ -50,7 +50,7 @@ class AmplitudeEstimatorResult(AlgorithmResult):
         self._confidence_interval_processed = None
 
     @property
-    def circuit_results(self) -> None | np.ndarray | dict[str, int]:
+    def circuit_results(self) -> np.ndarray | dict[str, int] | None:
         """Return the circuit results. Can be a statevector or counts dictionary."""
         return self._circuit_results
 

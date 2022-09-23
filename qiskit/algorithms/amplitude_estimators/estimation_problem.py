@@ -34,9 +34,9 @@ class EstimationProblem:
         self,
         state_preparation: QuantumCircuit,
         objective_qubits: int | list[int],
-        grover_operator: None | QuantumCircuit = None,
-        post_processing: None | Callable[[float], float] = None,
-        is_good_state: None | Callable[[str], bool] = None,
+        grover_operator: QuantumCircuit | None = None,
+        post_processing: Callable[[float], float] | None = None,
+        is_good_state: Callable[[str], bool] | None = None,
     ) -> None:
         r"""
         Args:
@@ -60,7 +60,7 @@ class EstimationProblem:
         self._is_good_state = is_good_state
 
     @property
-    def state_preparation(self) -> None | QuantumCircuit:
+    def state_preparation(self) -> QuantumCircuit | None:
         r"""Get the :math:`\mathcal{A}` operator encoding the amplitude :math:`a`.
 
         Returns:
@@ -111,7 +111,7 @@ class EstimationProblem:
         return self._post_processing
 
     @post_processing.setter
-    def post_processing(self, post_processing: None | Callable[[float], float]) -> None:
+    def post_processing(self, post_processing: Callable[[float], float] | None) -> None:
         """Set the post processing function.
 
         Args:
@@ -133,7 +133,7 @@ class EstimationProblem:
         return self._is_good_state
 
     @is_good_state.setter
-    def is_good_state(self, is_good_state: None | Callable[[str], bool]) -> None:
+    def is_good_state(self, is_good_state: Callable[[str], bool] | None) -> None:
         """Set the ``is_good_state`` function.
 
         Args:
@@ -143,7 +143,7 @@ class EstimationProblem:
         self._is_good_state = is_good_state
 
     @property
-    def grover_operator(self) -> None | QuantumCircuit:
+    def grover_operator(self) -> QuantumCircuit | None:
         r"""Get the :math:`\mathcal{Q}` operator, or Grover operator.
 
         If the Grover operator is not set, we try to build it from the :math:`\mathcal{A}` operator
@@ -173,7 +173,7 @@ class EstimationProblem:
         return GroverOperator(oracle, self.state_preparation)
 
     @grover_operator.setter
-    def grover_operator(self, grover_operator: None | QuantumCircuit) -> None:
+    def grover_operator(self, grover_operator: QuantumCircuit | None) -> None:
         r"""Set the :math:`\mathcal{Q}` operator.
 
         Args:

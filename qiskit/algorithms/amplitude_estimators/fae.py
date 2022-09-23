@@ -54,8 +54,8 @@ class FasterAmplitudeEstimation(AmplitudeEstimator):
         delta: float,
         maxiter: int,
         rescale: bool = True,
-        quantum_instance: None | QuantumInstance | Backend = None,
-        sampler: None | BaseSampler = None,
+        quantum_instance: QuantumInstance | Backend | None = None,
+        sampler: BaseSampler | None = None,
     ) -> None:
         r"""
         Args:
@@ -92,7 +92,7 @@ class FasterAmplitudeEstimation(AmplitudeEstimator):
         self._sampler = sampler
 
     @property
-    def sampler(self) -> None | BaseSampler:
+    def sampler(self) -> BaseSampler | None:
         """Get the sampler primitive.
 
         Returns:
@@ -116,7 +116,7 @@ class FasterAmplitudeEstimation(AmplitudeEstimator):
         "removed after that.",
         category=PendingDeprecationWarning,
     )
-    def quantum_instance(self) -> None | QuantumInstance:
+    def quantum_instance(self) -> QuantumInstance | None:
         """Pending deprecation: Get the quantum instance.
 
         Returns:

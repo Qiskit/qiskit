@@ -56,9 +56,9 @@ class MaximumLikelihoodAmplitudeEstimation(AmplitudeEstimator):
     def __init__(
         self,
         evaluation_schedule: list[int] | int,
-        minimizer: None | MINIMIZER = None,
-        quantum_instance: None | QuantumInstance | Backend = None,
-        sampler: None | BaseSampler = None,
+        minimizer: MINIMIZER | None = None,
+        quantum_instance: QuantumInstance | Backend | None = None,
+        sampler: BaseSampler | None = None,
     ) -> None:
         r"""
         Args:
@@ -118,7 +118,7 @@ class MaximumLikelihoodAmplitudeEstimation(AmplitudeEstimator):
         self._sampler = sampler
 
     @property
-    def sampler(self) -> None | BaseSampler:
+    def sampler(self) -> BaseSampler | None:
         """Get the sampler primitive.
 
         Returns:
@@ -142,7 +142,7 @@ class MaximumLikelihoodAmplitudeEstimation(AmplitudeEstimator):
         "removed after that.",
         category=PendingDeprecationWarning,
     )
-    def quantum_instance(self) -> None | QuantumInstance:
+    def quantum_instance(self) -> QuantumInstance | None:
         """Pending deprecation: Get the quantum instance.
 
         Returns:
@@ -267,7 +267,7 @@ class MaximumLikelihoodAmplitudeEstimation(AmplitudeEstimator):
         self,
         circuit_results: list[dict[str, int]] | list[np.ndarray],
         estimation_problem: EstimationProblem,
-        num_state_qubits: None | int = None,
+        num_state_qubits: int | None = None,
         return_counts: bool = False,
     ) -> float | tuple[float, list[float]]:
         """Compute the MLE via a grid-search.
@@ -486,7 +486,7 @@ def _safe_max(array, default=(np.pi / 2)):
 
 def _compute_fisher_information(
     result: "MaximumLikelihoodAmplitudeEstimationResult",
-    num_sum_terms: None | int = None,
+    num_sum_terms: int | None = None,
     observed: bool = False,
 ) -> float:
     """Compute the Fisher information.
@@ -578,7 +578,7 @@ def _fisher_confint(
 def _likelihood_ratio_confint(
     result: MaximumLikelihoodAmplitudeEstimationResult,
     alpha: float = 0.05,
-    nevals: None | int = None,
+    nevals: int | None = None,
 ) -> list[float]:
     """Compute the likelihood-ratio confidence interval.
 
