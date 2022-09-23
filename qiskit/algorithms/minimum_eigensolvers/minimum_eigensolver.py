@@ -94,5 +94,7 @@ class MinimumEigensolverResult(AlgorithmResult):
         return self._aux_operator_eigenvalues
 
     @aux_operator_eigenvalues.setter
-    def aux_operator_eigenvalues(self, value: ListOrDict[tuple[complex, tuple[complex, int]]]) -> None:
+    def aux_operator_eigenvalues(
+        self, value: ListOrDict[tuple[complex, tuple[complex, int]]]
+    ) -> None:
         self._aux_operator_eigenvalues = value
