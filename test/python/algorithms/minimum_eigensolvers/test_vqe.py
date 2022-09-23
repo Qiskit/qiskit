@@ -225,54 +225,40 @@ class TestVQE(QiskitAlgorithmsTestCase):
         result = vqe.compute_minimum_eigenvalue(tapered_qubit_op)
         self.assertAlmostEqual(result.eigenvalue.real, self.h2_energy, places=2)
 
-    def test_callback(self):
+    @data({}, {"shots": 1000})
+    def test_callback(self, options):
         """Test the callback on VQE."""
-        history = {"eval_count": [], "parameters": [], "mean": [], "std_dev": []}
+        history = {"eval_count": [], "parameters": [], "mean": [], "variance": [], "shots": []}
+        expected_shots = options["shots"] if "shots" in options else 0
 
-        def store_intermediate_result(eval_count, parameters, mean, std_dev):
+        def store_intermediate_result(eval_count, parameters, mean, variance, shots):
             history["eval_count"].append(eval_count)
             history["parameters"].append(parameters)
             history["mean"].append(mean)
-            history["std_dev"].append(std_dev)
+            history["variance"].append(variance)
+            history["shots"].append(shots)
 
         optimizer = COBYLA(maxiter=3)
         wavefunction = self.ry_wavefunction
 
-        with self.subTest("Test without specifying shots."):
-            estimator = Estimator()
+        estimator = Estimator(options=options)
 
-            vqe = VQE(
-                estimator,
-                ansatz=wavefunction,
-                optimizer=optimizer,
-                callback=store_intermediate_result,
-            )
-            vqe.compute_minimum_eigenvalue(operator=self.h2_op)
+        vqe = VQE(
+            estimator,
+            wavefunction,
+            optimizer,
+            callback=store_intermediate_result,
+        )
+        vqe.compute_minimum_eigenvalue(operator=self.h2_op)
 
-            self.assertTrue(all(isinstance(count, int) for count in history["eval_count"]))
-            self.assertTrue(all(isinstance(mean, float) for mean in history["mean"]))
-            self.assertTrue(all(std_dev == 0.0 for std_dev in history["std_dev"]))
-
-            for params in history["parameters"]:
-                self.assertTrue(all(isinstance(param, float) for param in params))
-
-        with self.subTest("Test when specifying shots."):
-            estimator = Estimator(options={"shots": 1000})
-
-            vqe = VQE(
-                estimator,
-                ansatz=wavefunction,
-                optimizer=optimizer,
-                callback=store_intermediate_result,
-            )
-            vqe.compute_minimum_eigenvalue(operator=self.h2_op)
-
-            self.assertTrue(all(isinstance(count, int) for count in history["eval_count"]))
-            self.assertTrue(all(isinstance(mean, float) for mean in history["mean"]))
-            self.assertTrue(all(isinstance(std_dev, float) for std_dev in history["std_dev"]))
-
-            for params in history["parameters"]:
-                self.assertTrue(all(isinstance(param, float) for param in params))
+        self.assertTrue(all(isinstance(count, int) for count in history["eval_count"]))
+        self.assertTrue(all(isinstance(mean, float) for mean in history["mean"]))
+        self.assertTrue(all(isinstance(variance, float) for variance in history["variance"]))
+        if expected_shots == 0:
+            np.testing.assert_array_equal(history["variance"], 0.0)
+        np.testing.assert_array_equal(history["shots"], expected_shots)
+        for params in history["parameters"]:
+            self.assertTrue(all(isinstance(param, float) for param in params))
 
     def test_reuse(self):
         """Test re-using a VQE algorithm instance."""

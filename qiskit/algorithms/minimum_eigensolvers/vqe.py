@@ -117,7 +117,7 @@ class VQE(VariationalAlgorithm, MinimumEigensolver):
         *,
         gradient: BaseEstimatorGradient | None = None,
         initial_point: Sequence[float] | None = None,
-        callback: Callable[[int, np.ndarray, float, float], None] | None = None,
+        callback: Callable[[int, np.ndarray, float, float, int], None] | None = None,
     ) -> None:
         """
         Args:
@@ -134,7 +134,7 @@ class VQE(VariationalAlgorithm, MinimumEigensolver):
                 Four parameter values are passed to the callback as follows during each evaluation
                 by the optimizer for its current set of parameters as it works towards the minimum.
                 These are: the evaluation count, the optimizer parameters for the ansatz, the
-                evaluated mean and the evaluated standard deviation.
+                evaluated mean, the evaluated variance, and the number of shots.
         """
         super().__init__()
 
@@ -194,10 +194,11 @@ class VQE(VariationalAlgorithm, MinimumEigensolver):
             optimizer_result.x,
         )
 
-        aux_values = None
         if aux_operators is not None:
             bound_ansatz = ansatz.bind_parameters(optimizer_result.x)
             aux_values = estimate_observables(self.estimator, bound_ansatz, aux_operators)
+        else:
+            aux_values = None
 
         return _build_vqe_result(optimizer_result, eval_time, ansatz, aux_values)
 
@@ -239,15 +240,14 @@ class VQE(VariationalAlgorithm, MinimumEigensolver):
                 raise AlgorithmError("The primitive job to evaluate the energy failed!") from exc
 
             values = estimator_result.values
-            metadata = estimator_result.metadata
 
             if self.callback is not None:
+                metadata = estimator_result.metadata
                 for params, value, meta in zip(parameters, values, metadata):
                     eval_count += 1
                     variance = meta.pop("variance", 0.0)
                     shots = meta.pop("shots", 0)
-                    estimator_error = np.sqrt(variance / shots) if shots > 0 else 0.0
-                    self.callback(eval_count, params, value, estimator_error)
+                    self.callback(eval_count, params, value, variance, shots)
 
             energy = values[0] if len(values) == 1 else values
 
@@ -379,10 +379,9 @@ class VQEResult(VariationalResult, MinimumEigensolverResult):
 
     @property
     def cost_function_evals(self) -> int | None:
-        """Returns number of cost optimizer evaluations."""
+        """The number of cost optimizer evaluations."""
         return self._cost_function_evals
 
     @cost_function_evals.setter
     def cost_function_evals(self, value: int) -> None:
-        """Sets number of cost function evaluations."""
         self._cost_function_evals = value
