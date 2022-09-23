@@ -131,7 +131,7 @@ class AmplitudeEstimation(AmplitudeEstimator):
         category=PendingDeprecationWarning,
     )
     def quantum_instance(self) -> QuantumInstance | None:
-        """Pending deprecation: Get the quantum instance.
+        """Pending deprecation; Get the quantum instance.
 
         Returns:
             The quantum instance used to run this algorithm.
