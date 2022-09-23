@@ -23,10 +23,10 @@ deprecations:
 
     .. code-block:: python
 
-      estimator = Estimator(circuits, observables, parameters)
+      estimator = Estimator()
       result = estimator.run(circuits, observables, parameter_values).result()
 
-      sampler = Sampler(circuits, parameters)
+      sampler = Sampler()
       result = sampler.run(circuits, parameter_values).result()
 
     Context manager for primitives was deprecated.
@@ -34,4 +34,5 @@ deprecations:
     the session's context manager provides equivalent functionality.
 
     ``circuits``, ``observables``, and ``parameters`` in the constructor was deprecated.
-    These objects can be passed from ``run`` methods.
+    ``circuits`` and ``observables`` can be passed from ``run`` methods.
+    ``run`` methods do not support ``parameters``. Users need to resort parameter values by themselves.

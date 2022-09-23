@@ -210,11 +210,16 @@ class SabreSwap(TransformationPass):
 
         dag_list = []
         for node in dag.topological_op_nodes():
+            cargs = {self._clbit_indices[x] for x in node.cargs}
+            if node.op.condition is not None:
+                for clbit in dag._bits_in_condition(node.op.condition):
+                    cargs.add(self._clbit_indices[clbit])
+
             dag_list.append(
                 (
                     node._node_id,
                     [self._qubit_indices[x] for x in node.qargs],
-                    [self._clbit_indices[x] for x in node.cargs],
+                    cargs,
                 )
             )
         front_layer = np.asarray([x._node_id for x in dag.front_layer()], dtype=np.uintp)

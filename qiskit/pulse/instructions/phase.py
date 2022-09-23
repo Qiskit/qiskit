@@ -18,8 +18,9 @@ relative amount.
 from typing import Optional, Union, Tuple
 
 from qiskit.circuit import ParameterExpression
-from qiskit.pulse.channels import PulseChannel, PulseError
+from qiskit.pulse.channels import PulseChannel
 from qiskit.pulse.instructions.instruction import Instruction
+from qiskit.pulse.exceptions import PulseError
 
 
 class ShiftPhase(Instruction):
@@ -52,15 +53,17 @@ class ShiftPhase(Instruction):
             phase: The rotation angle in radians.
             channel: The channel this instruction operates on.
             name: Display name for this instruction.
+        """
+        super().__init__(operands=(phase, channel), name=name)
+
+    def _validate(self):
+        """Called after initialization to validate instruction data.
 
         Raises:
-            PulseError: If channel is not a PulseChannel.
+            PulseError: If the input ``channel`` is not type :class:`PulseChannel`.
         """
-        if not isinstance(channel, PulseChannel):
-            raise PulseError(
-                "The `channel` argument to `ShiftPhase` must be of type `channels.PulseChannel`."
-            )
-        super().__init__(operands=(phase, channel), name=name)
+        if not isinstance(self.channel, PulseChannel):
+            raise PulseError(f"Expected a pulse channel, got {self.channel} instead.")
 
     @property
     def phase(self) -> Union[complex, ParameterExpression]:
@@ -83,10 +86,6 @@ class ShiftPhase(Instruction):
     def duration(self) -> int:
         """Duration of this instruction."""
         return 0
-
-    def is_parameterized(self) -> bool:
-        """Return True iff the instruction is parameterized."""
-        return isinstance(self.phase, ParameterExpression) or super().is_parameterized()
 
 
 class SetPhase(Instruction):
@@ -115,14 +114,17 @@ class SetPhase(Instruction):
             phase: The rotation angle in radians.
             channel: The channel this instruction operates on.
             name: Display name for this instruction.
-        Raises:
-            PulseError: If channel is not a PulseChannel.
         """
-        if not isinstance(channel, PulseChannel):
-            raise PulseError(
-                "The `channel` argument to `SetPhase` must be of type `channels.PulseChannel`."
-            )
         super().__init__(operands=(phase, channel), name=name)
+
+    def _validate(self):
+        """Called after initialization to validate instruction data.
+
+        Raises:
+            PulseError: If the input ``channel`` is not type :class:`PulseChannel`.
+        """
+        if not isinstance(self.channel, PulseChannel):
+            raise PulseError(f"Expected a pulse channel, got {self.channel} instead.")
 
     @property
     def phase(self) -> Union[complex, ParameterExpression]:
@@ -145,7 +147,3 @@ class SetPhase(Instruction):
     def duration(self) -> int:
         """Duration of this instruction."""
         return 0
-
-    def is_parameterized(self) -> bool:
-        """Return True iff the instruction is parameterized."""
-        return isinstance(self.phase, ParameterExpression) or super().is_parameterized()
