@@ -99,8 +99,8 @@ class VQD(VariationalAlgorithm, Eigensolver):
             callback (Callable): a callback that can access the intermediate data
                 during the optimization. Four parameter values are passed to the callback as
                 follows during each evaluation by the optimizer: the evaluation count,
-                the optimizer parameters for the ansatz, the evaluated mean, the evaluated
-                standard deviation, and the current step.
+                the optimizer parameters for the ansatz, the evaluated mean, the evaluation
+                metadata, and the current step.
     """
 
     def __init__(
@@ -113,7 +113,6 @@ class VQD(VariationalAlgorithm, Eigensolver):
         k: int = 2,
         betas: list[float] | None = None,
         initial_point: Sequence[float] | None = None,
-        history: bool | None = False,
         callback: Callable[[int, np.ndarray, float, float], None] | None = None,
     ) -> None:
         """
@@ -133,14 +132,11 @@ class VQD(VariationalAlgorithm, Eigensolver):
             initial_point: an optional initial point (i.e. initial parameter values)
                 for the optimizer. If ``None`` then VQD will look to the ansatz for a preferred
                 point and if not will simply compute a random one.
-            history: whether to return or not the optimization history
-                (evaluation count, parameter values, evaluated mean, estimator variance, shots, step)
-                as part of the result metadata.
             callback: a callback that can access the intermediate data
                 during the optimization. Four parameter values are passed to the callback as
                 follows during each evaluation by the optimizer: the evaluation count,
-                the optimizer parameters for the ansatz, the evaluated mean, the evaluated
-                standard deviation, and the current step.
+                the optimizer parameters for the ansatz, the evaluated mean, the evaluation
+                metadata, and the current step.
         """
         super().__init__()
 
@@ -156,11 +152,6 @@ class VQD(VariationalAlgorithm, Eigensolver):
 
         self._eval_time = None
         self._eval_count = 0
-
-        self._history = None
-        if history:
-            # keep track of optimization history to return as part of result metadata
-            self._history = {"parameters": [], "mean": [], "variances": [], "shots": [], "step": []}
 
     @property
     def initial_point(self) -> Sequence[float] | None:
@@ -267,7 +258,7 @@ class VQD(VariationalAlgorithm, Eigensolver):
             if aux_operators is not None:
                 bound_ansatz = self.ansatz.bind_parameters(result.optimal_point[-1])
                 aux_value = estimate_observables(self.estimator, bound_ansatz, aux_operators)
-                aux_values.append((aux_value[0], {"variance": aux_value[1][0], "shots": aux_value[1][1]}))
+                aux_values.append(aux_value)
 
             if step == 1:
 
@@ -300,17 +291,7 @@ class VQD(VariationalAlgorithm, Eigensolver):
         if aux_operators is not None:
             result.aux_operator_eigenvalues = aux_values
 
-        if self._history is not None:
-            result.metadata["history"] = self._history
-
         return result
-
-    def _update_history(self, parameters, mean, variance, shots, step):
-        self._history["parameters"].append(parameters)
-        self._history["mean"].append(mean)
-        self._history["variances"].append(variance)
-        self._history["shots"].append(shots)
-        self._history["step"].append(step)
 
     def _get_evaluate_energy(
         self,
@@ -376,19 +357,13 @@ class VQD(VariationalAlgorithm, Eigensolver):
                 for (state, cost) in zip(range(step - 1), costs):
                     means += np.real(self.betas[state] * cost)
 
-            variance = np.array([estimator_result.metadata[0].pop("variance", 0)])
-            shots = np.array([estimator_result.metadata[0].pop("shots", 0)])
-
             if self.callback is not None:
-                estimator_error = np.sqrt(variance / shots)
-                for i, param_set in enumerate([parameters]):
+                metadata = estimator_result.metadata
+                for params, mean, meta in zip([parameters], means, metadata):
                     self._eval_count += 1
-                    self.callback(self._eval_count, param_set, means[i], estimator_error[i], step)
+                    self.callback(self._eval_count, params, mean, meta, step)
             else:
                 self._eval_count += len(means)
-
-            if self._history is not None:
-                self._update_history(parameters, means, variance, shots, step)
 
             return means if len(means) > 1 else means[0]
 

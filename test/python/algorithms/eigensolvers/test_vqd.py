@@ -127,13 +127,13 @@ class TestVQD(QiskitAlgorithmsTestCase):
 
     def test_callback(self):
         """Test the callback on VQD."""
-        history = {"eval_count": [], "parameters": [], "mean": [], "std": [], "step": []}
+        history = {"eval_count": [], "parameters": [], "mean": [], "metadata": [], "step": []}
 
-        def store_intermediate_result(eval_count, parameters, mean, std, step):
+        def store_intermediate_result(eval_count, parameters, mean, metadata, step):
             history["eval_count"].append(eval_count)
             history["parameters"].append(parameters)
             history["mean"].append(mean)
-            history["std"].append(std)
+            history["metadata"].append(metadata)
             history["step"].append(step)
 
         optimizer = COBYLA(maxiter=3)
@@ -151,7 +151,7 @@ class TestVQD(QiskitAlgorithmsTestCase):
 
         self.assertTrue(all(isinstance(count, int) for count in history["eval_count"]))
         self.assertTrue(all(isinstance(mean, float) for mean in history["mean"]))
-        self.assertTrue(all(isinstance(std, float) for std in history["std"]))
+        self.assertTrue(all(isinstance(metadata, dict) for metadata in history["metadata"]))
         self.assertTrue(all(isinstance(count, int) for count in history["step"]))
         for params in history["parameters"]:
             self.assertTrue(all(isinstance(param, float) for param in params))
@@ -166,7 +166,8 @@ class TestVQD(QiskitAlgorithmsTestCase):
 
         np.testing.assert_array_almost_equal(history["eval_count"], ref_eval_count, decimal=0)
         np.testing.assert_array_almost_equal(history["mean"], ref_mean, decimal=2)
-        np.testing.assert_array_almost_equal(history["std"], ref_std, decimal=2)
+        std = [np.sqrt(m["variance"] / m["shots"]) for m in history["metadata"]]
+        np.testing.assert_array_almost_equal(std, ref_std, decimal=2)
         np.testing.assert_array_almost_equal(history["step"], ref_step, decimal=0)
 
     def test_vqd_optimizer(self):
