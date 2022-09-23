@@ -100,8 +100,7 @@ class VQE(VariationalAlgorithm, MinimumEigensolver):
             access the intermediate data during the optimization. Four parameter values are passed
             to the callback as follows during each evaluation by the optimizer for its current set
             of parameters as it works towards the minimum. These are: the evaluation count, the
-            optimizer parameters for the ansatz, the evaluated mean and the evaluated standard
-            deviation.
+            optimizer parameters for the ansatz, the evaluated mean and the metadata dictionary.
 
     References:
         [1] Peruzzo et al, "A variational eigenvalue solver on a quantum processor"
@@ -147,12 +146,11 @@ class VQE(VariationalAlgorithm, MinimumEigensolver):
 
     @property
     def initial_point(self) -> Sequence[float] | None:
-        """Return the initial point."""
+        """The initial point of the optimization."""
         return self._initial_point
 
     @initial_point.setter
     def initial_point(self, value: Sequence[float] | None) -> None:
-        """Set the initial point."""
         self._initial_point = value
 
     def compute_minimum_eigenvalue(
