@@ -57,7 +57,7 @@ class IterativeAmplitudeEstimation(AmplitudeEstimator):
         alpha: float,
         confint_method: str = "beta",
         min_ratio: float = 2,
-        quantum_instance: None | QuantumInstance | Backend = None,
+        quantum_instance: QuantumInstance | Backend | None = None,
         sampler: None | BaseSampler = None,
     ) -> None:
         r"""
