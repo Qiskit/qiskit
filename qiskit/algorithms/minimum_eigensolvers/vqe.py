@@ -25,15 +25,14 @@ from qiskit.circuit import QuantumCircuit
 from qiskit.opflow import PauliSumOp
 from qiskit.primitives import BaseEstimator
 from qiskit.quantum_info.operators.base_operator import BaseOperator
-from qiskit.utils import algorithm_globals
 
 from ..exceptions import AlgorithmError
 from ..list_or_dict import ListOrDict
 from ..optimizers import Optimizer, Minimizer, OptimizerResult
 from ..variational_algorithm import VariationalAlgorithm, VariationalResult
 from .minimum_eigensolver import MinimumEigensolver, MinimumEigensolverResult
-
 from ..observables_evaluator import estimate_observables
+from ..utils import _validate_initial_point, _validate_bounds
 
 logger = logging.getLogger(__name__)
 
@@ -307,48 +306,6 @@ class VQE(VariationalAlgorithm, MinimumEigensolver):
             raise AlgorithmError("The ansatz must be parameterized, but has no free parameters.")
 
         return ansatz
-
-
-def _validate_initial_point(point: Sequence[float], ansatz: QuantumCircuit) -> Sequence[float]:
-    expected_size = ansatz.num_parameters
-
-    if point is None:
-        # get bounds if ansatz has them set, otherwise use [-2pi, 2pi] for each parameter
-        bounds = getattr(ansatz, "parameter_bounds", None)
-        if bounds is None:
-            bounds = [(-2 * np.pi, 2 * np.pi)] * expected_size
-
-        # replace all Nones by [-2pi, 2pi]
-        lower_bounds = []
-        upper_bounds = []
-        for lower, upper in bounds:
-            lower_bounds.append(lower if lower is not None else -2 * np.pi)
-            upper_bounds.append(upper if upper is not None else 2 * np.pi)
-
-        # sample from within bounds
-        point = algorithm_globals.random.uniform(lower_bounds, upper_bounds)
-
-    elif len(point) != expected_size:
-        raise ValueError(
-            f"The dimension of the initial point ({len(point)}) does not match the "
-            f"number of parameters in the circuit ({expected_size})."
-        )
-
-    return point
-
-
-def _validate_bounds(ansatz: QuantumCircuit) -> list[tuple(float | None, float | None)]:
-    if hasattr(ansatz, "parameter_bounds") and ansatz.parameter_bounds is not None:
-        bounds = ansatz.parameter_bounds
-        if len(bounds) != ansatz.num_parameters:
-            raise ValueError(
-                f"The number of bounds ({len(bounds)}) does not match the number of "
-                f"parameters in the circuit ({ansatz.num_parameters})."
-            )
-    else:
-        bounds = [(None, None)] * ansatz.num_parameters
-
-    return bounds
 
 
 def _build_vqe_result(

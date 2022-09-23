@@ -1,0 +1,52 @@
+# This code is part of Qiskit.
+#
+# (C) Copyright IBM 2022.
+#
+# This code is licensed under the Apache License, Version 2.0. You may
+# obtain a copy of this license in the LICENSE.txt file in the root directory
+# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+#
+# Any modifications or derivative works of this code must retain this
+# copyright notice, and modified files need to carry a notice indicating
+# that they have been altered from the originals.
+
+"""Validate an initial point."""
+
+from __future__ import annotations
+
+from collections.abc import Sequence
+
+import numpy as np
+
+from qiskit.circuit import QuantumCircuit
+from qiskit.utils import algorithm_globals
+
+
+def _validate_initial_point(
+    point: Sequence[float] | None, ansatz: QuantumCircuit
+) -> Sequence[float]:
+    expected_size = ansatz.num_parameters
+
+    if point is None:
+        # get bounds if ansatz has them set, otherwise use [-2pi, 2pi] for each parameter
+        bounds = getattr(ansatz, "parameter_bounds", None)
+        if bounds is None:
+            bounds = [(-2 * np.pi, 2 * np.pi)] * expected_size
+
+        # replace all Nones by [-2pi, 2pi]
+        lower_bounds = []
+        upper_bounds = []
+        for lower, upper in bounds:
+            lower_bounds.append(lower if lower is not None else -2 * np.pi)
+            upper_bounds.append(upper if upper is not None else 2 * np.pi)
+
+        # sample from within bounds
+        point = algorithm_globals.random.uniform(lower_bounds, upper_bounds)
+
+    elif len(point) != expected_size:
+        raise ValueError(
+            f"The dimension of the initial point ({len(point)}) does not match the "
+            f"number of parameters in the circuit ({expected_size})."
+        )
+
+    return point
