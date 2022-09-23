@@ -13,19 +13,17 @@
 """ Test of the AdaptVQE minimum eigensolver """
 
 import unittest
-
 from test.python.algorithms import QiskitAlgorithmsTestCase
 
-from qiskit.opflow.operator_globals import X, Y
-from qiskit.algorithms.minimum_eigen_solvers.vqe import VQE
-from qiskit.algorithms.minimum_eigen_solvers.adapt_vqe import TerminationCriterion
+from qiskit.algorithms.minimum_eigensolvers import VQE
+from qiskit.algorithms.minimum_eigensolvers.adapt_vqe import AdaptVQE, TerminationCriterion
+from qiskit.algorithms.optimizers import SLSQP
 from qiskit.circuit import QuantumCircuit, QuantumRegister
 from qiskit.circuit.library import EvolvedOperatorAnsatz
+from qiskit.opflow import PauliSumOp
+from qiskit.opflow.operator_globals import X, Y
+from qiskit.primitives import Estimator
 from qiskit.quantum_info import SparsePauliOp
-from qiskit.opflow import PauliSumOp, MatrixExpectation
-from qiskit.utils import algorithm_globals, QuantumInstance
-from qiskit import BasicAer
-from qiskit.algorithms.minimum_eigen_solvers.adapt_vqe import AdaptVQE
 
 
 class TestAdaptVQE(QiskitAlgorithmsTestCase):
@@ -33,8 +31,6 @@ class TestAdaptVQE(QiskitAlgorithmsTestCase):
 
     def setUp(self):
         super().setUp()
-        self.seed = 50
-        algorithm_globals.random_seed = self.seed
         self.h2_op = PauliSumOp.from_list(
             [
                 ("IIII", -0.8105479805373266),
@@ -82,18 +78,12 @@ class TestAdaptVQE(QiskitAlgorithmsTestCase):
         self.initial_state.x(0)
         self.initial_state.x(1)
         self.ansatz = EvolvedOperatorAnsatz(self.excitation_pool, initial_state=self.initial_state)
-        self.quantum_instance = BasicAer.get_backend("statevector_simulator")
-        self.qasm_simulator = QuantumInstance(
-            BasicAer.get_backend("qasm_simulator"),
-            shots=4096,
-            seed_simulator=self.seed,
-            seed_transpiler=self.seed,
-        )
+        self.optimizer = SLSQP()
 
     def test_default(self):
         """Default execution"""
         calc = AdaptVQE(
-            solver=VQE(ansatz=self.ansatz, quantum_instance=self.quantum_instance),
+            solver=VQE(Estimator(), self.ansatz, self.optimizer),
             excitation_pool=self.excitation_pool,
         )
         res = calc.compute_minimum_eigenvalue(operator=self.h2_op)
@@ -102,22 +92,10 @@ class TestAdaptVQE(QiskitAlgorithmsTestCase):
 
         self.assertAlmostEqual(res.eigenvalue, expected_eigenvalue, places=6)
 
-    def test_qasm_simulator(self):
-        """Test using qasm simulator"""
-        calc = AdaptVQE(
-            solver=VQE(ansatz=self.ansatz, quantum_instance=self.qasm_simulator),
-            excitation_pool=self.excitation_pool,
-        )
-        res = calc.compute_minimum_eigenvalue(operator=self.h2_op)
-
-        expected_eigenvalue = -1.8
-
-        self.assertAlmostEqual(res.eigenvalue, expected_eigenvalue, places=1)
-
     def test_converged(self):
         """Test to check termination criteria"""
         calc = AdaptVQE(
-            solver=VQE(ansatz=self.ansatz, quantum_instance=self.quantum_instance),
+            solver=VQE(Estimator(), self.ansatz, self.optimizer),
             excitation_pool=self.excitation_pool,
             threshold=1e-3,
         )
@@ -128,7 +106,7 @@ class TestAdaptVQE(QiskitAlgorithmsTestCase):
     def test_maximum(self):
         """Test to check termination criteria"""
         calc = AdaptVQE(
-            solver=VQE(ansatz=self.ansatz, quantum_instance=self.quantum_instance),
+            solver=VQE(Estimator(), self.ansatz, self.optimizer),
             excitation_pool=self.excitation_pool,
             max_iterations=1,
         )
@@ -139,7 +117,7 @@ class TestAdaptVQE(QiskitAlgorithmsTestCase):
     def test_cyclicity(self):
         """Test to check termination criteria"""
         calc = AdaptVQE(
-            solver=VQE(ansatz=self.ansatz, quantum_instance=self.quantum_instance),
+            solver=VQE(Estimator(), self.ansatz, self.optimizer),
             excitation_pool=self.excitation_pool,
             max_iterations=100,
         )
@@ -149,7 +127,7 @@ class TestAdaptVQE(QiskitAlgorithmsTestCase):
 
     def test_vqe_solver(self):
         """Test to check if the VQE solver remains the same or not"""
-        solver = VQE(ansatz=self.ansatz, quantum_instance=self.quantum_instance)
+        solver = VQE(Estimator(), self.ansatz, self.optimizer)
         calc = AdaptVQE(
             solver=solver,
             excitation_pool=self.excitation_pool,
@@ -160,13 +138,9 @@ class TestAdaptVQE(QiskitAlgorithmsTestCase):
 
     def test_gradient_calculation(self):
         """Test to check if the gradient calculation"""
-        solver = VQE(
-            ansatz=QuantumCircuit(1),
-            expectation=MatrixExpectation(),
-            quantum_instance=self.quantum_instance,
-        )
+        solver = VQE(Estimator(), QuantumCircuit(1), self.optimizer)
         calc = AdaptVQE(solver=solver, excitation_pool=[X])
-        res = calc._compute_gradients(operator=Y, theta=[], expectation=solver.expectation)
+        res = calc._compute_gradients(operator=Y, theta=[])
         # compare with manually computed reference value
         self.assertAlmostEqual(res[0][0], 2.0)
 

@@ -11,27 +11,27 @@
 # that they have been altered from the originals.
 
 """An implementation of the AdaptVQE algorithm."""
+
 from __future__ import annotations
-from typing import Optional, List, Tuple, Union
+
+from enum import Enum
+from typing import Optional, Sequence
 
 import copy
 import re
 import logging
 
-from enum import Enum
 import numpy as np
-from qiskit import QiskitError
 
-from qiskit.algorithms import VQE
+from qiskit import QiskitError
 from qiskit.algorithms.list_or_dict import ListOrDict
-from qiskit.algorithms.minimum_eigen_solvers.vqe import VQEResult
-from qiskit.algorithms import VariationalAlgorithm
-from qiskit.opflow import OperatorBase, PauliSumOp, ExpectationFactory
-from qiskit.opflow.expectations.expectation_base import ExpectationBase
+from qiskit.opflow import OperatorBase, PauliSumOp, commutator
 from qiskit.circuit.library import EvolvedOperatorAnsatz
 from qiskit.utils.validation import validate_min
-from qiskit.algorithms.aux_ops_evaluator import eval_observables
-from ..exceptions import AlgorithmError
+
+from .vqe import VQE, VQEResult
+from ..observables_evaluator import estimate_observables
+from ..variational_algorithm import VariationalAlgorithm
 
 
 logger = logging.getLogger(__name__)
@@ -60,9 +60,9 @@ class AdaptVQE(VariationalAlgorithm):
     def __init__(
         self,
         solver: VQE,
-        excitation_pool: List[OperatorBase] = None,
+        excitation_pool: list[OperatorBase] = None,
         threshold: float = 1e-5,
-        max_iterations: Optional[int] = None,
+        max_iterations: int | None = None,
     ) -> None:
         """
         Args:
@@ -79,50 +79,41 @@ class AdaptVQE(VariationalAlgorithm):
         self._tmp_ansatz = self._solver.ansatz
         self._max_iterations = max_iterations
         self._excitation_pool = excitation_pool
-        self._excitation_list: List[OperatorBase] = []
+        self._excitation_list: list[OperatorBase] = []
 
     @property
-    def initial_point(self) -> Optional[np.ndarray]:
-        """Returns the initial point."""
+    def initial_point(self) -> Sequence[float] | None:
+        """Return the initial point."""
         return self._solver.initial_point
 
     @initial_point.setter
-    def initial_point(self, initial_point: Optional[np.ndarray]) -> None:
-        """Sets the initial point."""
-        self._solver.initial_point = initial_point
+    def initial_point(self, value: Sequence[float] | None) -> None:
+        """Set the initial point."""
+        self._solver.initial_point = value
 
     def _compute_gradients(
         self,
-        theta: List[float],
+        theta: list[float],
         operator: OperatorBase,
-        expectation: ExpectationBase,
-    ) -> List[Tuple[complex, complex]]:
+    ) -> list[tuple[complex, complex]]:
         """
         Computes the gradients for all available excitation operators.
 
         Args:
             theta: List of (up to now) optimal parameters.
             operator: operator whose gradient needs to be computed.
-            expectation: Expectation Base
         Returns:
             List of pairs consisting of the computed gradient and excitation operator.
         """
-        commutators = []
-        for exc in self._excitation_pool:
-            # The excitations operators are applied later as exp(i*theta*excitation).
-            # For this commutator, we need to explicitly pull in the imaginary phase.
-            commutator = 1j * ((operator @ exc) - (exc @ operator)).reduce()
-            commutators.append(commutator)
-
+        # The excitations operators are applied later as exp(i*theta*excitation).
+        # For this commutator, we need to explicitly pull in the imaginary phase.
+        commutators = [1j * commutator(operator, exc) for exc in self._excitation_pool]
         wave_function = self._solver.ansatz.assign_parameters(theta)
-
-        res = eval_observables(
-            self._solver.quantum_instance, wave_function, commutators, expectation
-        )
+        res = estimate_observables(self._solver.estimator, wave_function, commutators)
         return res
 
     @staticmethod
-    def _check_cyclicity(indices: List[int]) -> bool:
+    def _check_cyclicity(indices: list[int]) -> bool:
         """
         Auxiliary function to check for cycles in the indices of the selected excitations.
 
@@ -152,7 +143,7 @@ class AdaptVQE(VariationalAlgorithm):
     def compute_minimum_eigenvalue(
         self,
         operator: OperatorBase,
-        aux_operators: Optional[ListOrDict[OperatorBase]] = None,
+        aux_operators: ListOrDict[OperatorBase] | None = None,
     ) -> AdaptVQEResult:
         """Computes the minimum eigenvalue.
 
@@ -175,35 +166,20 @@ class AdaptVQE(VariationalAlgorithm):
         if not isinstance(self._tmp_ansatz, EvolvedOperatorAnsatz):
             raise QiskitError("The AdaptVQE ansatz must be of the EvolvedOperatorAnsatz type.")
 
-        if self._solver.quantum_instance is None:
-            raise AlgorithmError(
-                "A QuantumInstance or Backend must be supplied to run the quantum algorithm."
-            )
-
-        # construct the expectation
-        if self._solver.expectation is None:
-            expectation = ExpectationFactory.build(
-                operator=operator,
-                backend=self._solver.quantum_instance,
-                include_custom=self._solver.include_custom,
-            )
-        else:
-            expectation = self._solver.expectation
-
         # Overwrite the solver's ansatz with the initial state
         solver_ansatz = copy.deepcopy(self._solver.ansatz)
         self._solver.ansatz = self._tmp_ansatz.initial_state
 
-        prev_op_indices: List[int] = []
-        theta: List[float] = []
-        max_grad: Tuple[float, Optional[PauliSumOp]] = (0.0, None)
+        prev_op_indices: list[int] = []
+        theta: list[float] = []
+        max_grad: tuple[float, Optional[PauliSumOp]] = (0.0, None)
         self._excitation_list = []
         iteration = 0
         while self._max_iterations is None or iteration < self._max_iterations:
             iteration += 1
             logger.info("--- Iteration #%s ---", str(iteration))
             # compute gradients
-            cur_grads = self._compute_gradients(theta, operator, expectation)
+            cur_grads = self._compute_gradients(theta, operator)
             # pick maximum gradient
             max_grad_index, max_grad = max(
                 enumerate(cur_grads), key=lambda item: np.abs(item[1][0])
@@ -253,9 +229,7 @@ class AdaptVQE(VariationalAlgorithm):
         if aux_operators is not None:
             bound_ansatz = self._solver.ansatz.bind_parameters(result.optimal_point)
 
-            aux_values = eval_observables(
-                self._solver.quantum_instance, bound_ansatz, aux_operators, expectation
-            )
+            aux_values = estimate_observables(self._solver.estimator, bound_ansatz, aux_operators)
             result.aux_operator_eigenvalues = aux_values
         else:
             aux_values = None
