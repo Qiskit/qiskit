@@ -40,19 +40,22 @@ logger = logging.getLogger(__name__)
 class VQE(VariationalAlgorithm, MinimumEigensolver):
     r"""The variational quantum eigensolver (VQE) algorithm.
 
-    VQE is a quantum algorithm that uses a variational technique to find the minimum eigenvalue of
-    the Hamiltonian :math:`H` of a given system [1].
+    VQE is a hybrid quantum-classical algorithm that uses a variational technique to find the
+    minimum eigenvalue of a given Hamiltonian operator.
 
-    The central sub-component of VQE is an Estimator primitive, which must be passed in as the
-    first argument. This is used to estimate the expectation values of :math:`H`.
+    The VQE algorithm is executed using an Estimator primitive, which must be specified as the first
+    argument on instantiation.
 
-    An instance of VQE also requires defining two algorithmic sub-components: a trial state (a.k.a.
-    ansatz) which is a :class:`QuantumCircuit`, and one of the classical
-    :mod:`~qiskit.algorithms.optimizers`.
+    An instance of VQE also requires defining an ansatz (a.k.a. trial state), given by a
+    parameterized :class:`.QuantumCircuit`, as well as a classical optimizer. The optimizer varies
+    the circuit parameters :math:`\vec\theta` such that the expectation value of the operator
+    :math:`H` on the corresponding state :math:`|{\psi(\vec\theta)\rangle` approaches a minimum,
 
-    The ansatz is varied, via its set of parameters, by the optimizer, such that it works towards a
-    state, as determined by the parameters applied to the ansatz, that will result in the minimum
-    expectation value being measured of the input operator (Hamiltonian).
+    ..math::
+
+        \min_{\vec\theta} \langle\psi(\vec\theta)|H|\psi(\vec\theta)\rangle.
+
+    The Estimator is used to compute this expectation value for every optimization step.
 
     The optimizer can either be one of Qiskit's optimizers, such as
     :class:`~qiskit.algorithms.optimizers.SPSA` or a callable with the following signature:
@@ -146,7 +149,6 @@ class VQE(VariationalAlgorithm, MinimumEigensolver):
 
     @property
     def initial_point(self) -> Sequence[float] | None:
-        """The initial point of the optimization."""
         return self._initial_point
 
     @initial_point.setter
