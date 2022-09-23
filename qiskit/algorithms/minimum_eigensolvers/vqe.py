@@ -23,7 +23,7 @@ import numpy as np
 from qiskit.algorithms.gradients import BaseEstimatorGradient
 from qiskit.circuit import QuantumCircuit
 from qiskit.opflow import PauliSumOp
-from qiskit.primitives import BaseEstimator, EstimatorResult
+from qiskit.primitives import BaseEstimator
 from qiskit.quantum_info.operators.base_operator import BaseOperator
 from qiskit.utils import algorithm_globals
 
@@ -117,7 +117,7 @@ class VQE(VariationalAlgorithm, MinimumEigensolver):
         *,
         gradient: BaseEstimatorGradient | None = None,
         initial_point: Sequence[float] | None = None,
-        callback: Callable[[int, np.ndarray, float, float, int], None] | None = None,
+        callback: Callable[[int, np.ndarray, float, dict], None] | None = None,
     ) -> None:
         """
         Args:
@@ -134,7 +134,7 @@ class VQE(VariationalAlgorithm, MinimumEigensolver):
                 Four parameter values are passed to the callback as follows during each evaluation
                 by the optimizer for its current set of parameters as it works towards the minimum.
                 These are: the evaluation count, the optimizer parameters for the ansatz, the
-                evaluated mean, the evaluated variance, and the number of shots.
+                evaluated mean and the metadata dictionary.
         """
         super().__init__()
 
@@ -245,9 +245,7 @@ class VQE(VariationalAlgorithm, MinimumEigensolver):
                 metadata = estimator_result.metadata
                 for params, value, meta in zip(parameters, values, metadata):
                     eval_count += 1
-                    variance = meta.pop("variance", 0.0)
-                    shots = meta.pop("shots", 0)
-                    self.callback(eval_count, params, value, variance, shots)
+                    self.callback(eval_count, params, value, meta)
 
             energy = values[0] if len(values) == 1 else values
 

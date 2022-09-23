@@ -225,23 +225,21 @@ class TestVQE(QiskitAlgorithmsTestCase):
         result = vqe.compute_minimum_eigenvalue(tapered_qubit_op)
         self.assertAlmostEqual(result.eigenvalue.real, self.h2_energy, places=2)
 
-    @data({}, {"shots": 1000})
-    def test_callback(self, options):
+    def test_callback(self):
         """Test the callback on VQE."""
-        history = {"eval_count": [], "parameters": [], "mean": [], "variance": [], "shots": []}
-        expected_shots = options["shots"] if "shots" in options else 0
+        history = {"eval_count": [], "parameters": [], "mean": [], "metadata": []}
+        # expected_shots = options["shots"] if "shots" in options else 0
 
-        def store_intermediate_result(eval_count, parameters, mean, variance, shots):
+        def store_intermediate_result(eval_count, parameters, mean, metadata):
             history["eval_count"].append(eval_count)
             history["parameters"].append(parameters)
             history["mean"].append(mean)
-            history["variance"].append(variance)
-            history["shots"].append(shots)
+            history["metadata"].append(metadata)
 
         optimizer = COBYLA(maxiter=3)
         wavefunction = self.ry_wavefunction
 
-        estimator = Estimator(options=options)
+        estimator = Estimator()
 
         vqe = VQE(
             estimator,
@@ -253,10 +251,7 @@ class TestVQE(QiskitAlgorithmsTestCase):
 
         self.assertTrue(all(isinstance(count, int) for count in history["eval_count"]))
         self.assertTrue(all(isinstance(mean, float) for mean in history["mean"]))
-        self.assertTrue(all(isinstance(variance, float) for variance in history["variance"]))
-        if expected_shots == 0:
-            np.testing.assert_array_equal(history["variance"], 0.0)
-        np.testing.assert_array_equal(history["shots"], expected_shots)
+        self.assertTrue(all(isinstance(metadata, dict) for metadata in history["metadata"]))
         for params in history["parameters"]:
             self.assertTrue(all(isinstance(param, float) for param in params))
 
