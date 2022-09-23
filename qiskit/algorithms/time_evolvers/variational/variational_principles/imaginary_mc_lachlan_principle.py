@@ -15,8 +15,15 @@
 import numpy as np
 
 from qiskit import QuantumCircuit
+from qiskit.algorithms.gradients import (
+    BaseQFI,
+    BaseEstimatorGradient,
+    LinCombQFI,
+    ParamShiftEstimatorGradient,
+)
 from qiskit.circuit import Parameter
 from qiskit.opflow import PauliSumOp
+from qiskit.primitives import Estimator
 from qiskit.quantum_info.operators.base_operator import BaseOperator
 from .imaginary_variational_principle import (
     ImaginaryVariationalPrinciple,
@@ -29,6 +36,32 @@ class ImaginaryMcLachlanPrinciple(ImaginaryVariationalPrinciple):
     parametrized trial state. The principle leads to a system of linear equations handled by a
     linear solver. The imaginary variant means that we consider imaginary time dynamics.
     """
+
+    def __init__(
+        self,
+        qfi: BaseQFI | None = None,
+        gradient: BaseEstimatorGradient | None = None,
+        # qfi_method: str | CircuitQFI = "lin_comb_full",
+        # grad_method: str | CircuitGradient = "lin_comb",
+    ) -> None:
+        """
+        Args:
+            grad_method: The method used to compute the state gradient. Can be either
+                ``'param_shift'`` or ``'lin_comb'`` or ``'fin_diff'`` or ``CircuitGradient``.
+            qfi_method: The method used to compute the QFI. Can be either
+                ``'lin_comb_full'`` or ``'overlap_block_diag'`` or ``'overlap_diag'`` or
+                ``CircuitQFI``.
+        """
+
+        if gradient is not None and gradient._estimator is not None and qfi is None:
+            estimator = gradient._estimator
+            qfi = LinCombQFI(estimator)
+        elif qfi is None and gradient is None:
+            estimator = Estimator()
+            qfi = LinCombQFI(estimator)
+            gradient = ParamShiftEstimatorGradient(estimator)
+
+        super().__init__(qfi, gradient)
 
     def evolution_grad(
         self,

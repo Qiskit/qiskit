@@ -55,13 +55,8 @@ class VariationalPrinciple(ABC):
         if qfi is not None and qfi._estimator is not None and gradient is None:
             estimator = qfi._estimator
             gradient = ParamShiftEstimatorGradient(estimator)
-        # TODO this is real/imag specific and must be moved; real needs a different basis
-        elif gradient is not None and gradient._estimator is not None and qfi is None:
-            estimator = gradient._estimator
-            qfi = LinCombQFI(estimator)
-        elif qfi is None and gradient is None:
+        elif gradient is None:
             estimator = Estimator()
-            qfi = LinCombQFI(estimator)
             gradient = ParamShiftEstimatorGradient(estimator)
 
         self.qfi = qfi

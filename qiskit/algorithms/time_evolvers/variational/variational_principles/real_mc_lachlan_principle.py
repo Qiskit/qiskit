@@ -16,7 +16,13 @@ from __future__ import annotations
 import numpy as np
 
 from qiskit import QuantumCircuit
-from qiskit.algorithms.gradients import BaseEstimatorGradient, BaseQFI
+from qiskit.algorithms.gradients import (
+    BaseEstimatorGradient,
+    BaseQFI,
+    LinCombQFI,
+    ParamShiftEstimatorGradient,
+)
+from qiskit.algorithms.gradients.lin_comb_estimator_gradient import DerivativeType
 from qiskit.circuit import Parameter
 from qiskit.opflow import (
     StateFn,
@@ -24,6 +30,7 @@ from qiskit.opflow import (
     I,
     PauliSumOp,
 )
+from qiskit.primitives import Estimator
 from qiskit.quantum_info.operators.base_operator import BaseOperator
 from .real_variational_principle import (
     RealVariationalPrinciple,
@@ -51,6 +58,13 @@ class RealMcLachlanPrinciple(RealVariationalPrinciple):
         """
         # TODO make sure to add aux meas op in primitive run method
         # self._grad_method = LinComb(aux_meas_op=-Y)
+        if gradient is not None and gradient._estimator is not None and qfi is None:
+            estimator = gradient._estimator
+            qfi = LinCombQFI(estimator, derivative_type=DerivativeType.IMAG)
+        elif qfi is None and gradient is None:
+            estimator = Estimator()
+            qfi = LinCombQFI(estimator, derivative_type=DerivativeType.IMAG)
+            gradient = ParamShiftEstimatorGradient(estimator)
         self._energy_param = None
         self._energy = None
 
