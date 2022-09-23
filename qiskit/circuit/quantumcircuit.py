@@ -2019,7 +2019,19 @@ class QuantumCircuit:
         # pylint: disable=cyclic-import
         from qiskit.circuit.controlflow import ControlFlowOp, ForLoopOp
 
-        def _depth_inner(circuit, weight=1, wire_map=None):
+        def _depth_inner(circuit, wire_map=None):
+            """Recursive component of the depth calculation.
+
+            Args:
+                circuit (QuantumCircuit): the body of instructions currently under consideration.
+                    This can be the outer circuit, or the body of an inner scope, like a loop.
+                wire_map (Mapping[Bit, Bit]): mapping where the keys are bits used to define the
+                    current body, and the values are the corresponding bits they are applied to in
+                    the outer circuit.
+
+            Returns:
+                int: The depth of this body.
+            """
             if wire_map is None:
                 wire_map = {bit: bit for bits in (circuit.qubits, circuit.clbits) for bit in bits}
             # The height of each bit.
@@ -2042,8 +2054,8 @@ class QuantumCircuit:
                     condition_bits = []
                 if recurse and isinstance(instruction.operation, ControlFlowOp):
                     op = instruction.operation
-                    new_weight = len(op.params[0]) * weight if isinstance(op, ForLoopOp) else weight
-                    if new_weight == 0:
+                    weight = len(op.params[0]) if isinstance(op, ForLoopOp) else 1
+                    if weight == 0:
                         return 0
                     all_bits = itertools.chain(
                         zip(op.blocks[0].qubits, instruction.qubits),
@@ -2052,11 +2064,9 @@ class QuantumCircuit:
                     )
                     new_wire_map = {inner: wire_map[outer] for inner, outer in all_bits}
                     # No multiplication by `weight` because the recursive call handles it.
-                    depth = max(
-                        _depth_inner(block, new_weight, new_wire_map) for block in op.blocks
-                    )
+                    depth = weight * max(_depth_inner(block, new_wire_map) for block in op.blocks)
                 else:
-                    depth = int(filter_function(instruction)) * weight
+                    depth = int(filter_function(instruction))
                 all_bits = itertools.chain(
                     instruction.qubits,
                     instruction.clbits,
