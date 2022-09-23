@@ -160,12 +160,7 @@ class VQD(VariationalAlgorithm, Eigensolver):
         self._history = None
         if history:
             # keep track of optimization history to return as part of result metadata
-            self._history = {"parameters": [],
-                             "mean": [],
-                             "variances": [],
-                             "shots": [],
-                             "step": []
-                             }
+            self._history = {"parameters": [], "mean": [], "variances": [], "shots": [], "step": []}
 
     @property
     def initial_point(self) -> Sequence[float] | None:
@@ -446,7 +441,7 @@ class VQDResult(VariationalResult, EigensolverResult):
         """Returns metadata"""
         return self._metadata
 
-    @cost_function_evals.setter
+    @metadata.setter
     def metadata(self, data: dict) -> None:
         """Sets metadata"""
         self._metadata = data
