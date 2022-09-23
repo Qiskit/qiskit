@@ -467,14 +467,6 @@ def _basis_search(equiv_lib, source_basis, target_basis):
 
     logger.debug("Begining basis search from %s to %s.", source_basis, target_basis)
 
-    #print("KEYSSSS", equiv_lib._get_all_keys())
-    count = 3
-    for key in equiv_lib._get_all_keys():
-        # print("equiv key", key)
-        count -= 1
-        if count == 0:
-            break
-    #equiv_lib._all_gates_in_lib = set(equiv_lib._get_all_keys
     source_basis = {
         (gate_name, gate_num_qubits)
         for gate_name, gate_num_qubits in source_basis
@@ -491,18 +483,10 @@ def _basis_search(equiv_lib, source_basis, target_basis):
     target_basis_keys = [
         key
         for gate in target_basis
-        for key in filter(lambda key, name=gate: key.name == name, equiv_lib._all_gates_in_lib)
+        for key in filter(lambda key, name=gate: key.name == name, equiv_lib._get_all_keys())
     ]
-    # print("\nkey to node", equiv_lib._key_to_node_index)
-    #for v in equiv_lib._graph.node_indices():
-    #   print("\ngraph", equiv_lib._graph[v])
-    # print("\nsource_basis", source_basis)
-    # print("\ntarget_basis_keys", target_basis_keys)
-    # print("\nnum_gates", equiv_lib._num_gates_for_rule)
-    # print("\nall_gates", equiv_lib._all_gates_in_lib)
     vis = BasisSearchVisitor(equiv_lib._graph, source_basis, target_basis_keys, equiv_lib._num_gates_for_rule)
 
-    # print("\nvis", vis)
     # we add a dummy node and connect it with gates in the target basis.
     # we'll start the search from this dummy node.
     dummy = equiv_lib._graph.add_node({"key": ("dummy starting node", 0)})
@@ -518,7 +502,6 @@ def _basis_search(equiv_lib, source_basis, target_basis):
         for gate_name, gate_num_qubits, params, equiv in rtn:
             logger.debug("%s/%s => %s\n%s", gate_name, gate_num_qubits, params, equiv)
 
-    # print("\nrtn", rtn)
     return rtn
 
 

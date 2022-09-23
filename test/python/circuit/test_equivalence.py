@@ -206,6 +206,7 @@ class TestEquivalenceLibraryWithBase(QiskitTestCase):
 
         entry = eq_lib.get_entry(gate)
 
+        print("\n\n\nEQ ", entry[0], second_equiv, entry[1], first_equiv)
         self.assertEqual(len(entry), 2)
         self.assertEqual(entry[0], second_equiv)
         self.assertEqual(entry[1], first_equiv)
