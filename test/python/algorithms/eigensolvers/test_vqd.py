@@ -42,9 +42,10 @@ from qiskit.utils import algorithm_globals
 class TestVQD(QiskitAlgorithmsTestCase):
     """Test VQD"""
 
-    def _get_stdev(self, var_shots):
-        var, shots = var_shots
-        return np.sqrt(var / shots) if shots > 0 else None
+    def _get_stdev(self, metadata):
+        var = metadata.get("variance", 0)
+        shots = metadata.get("shots", 0)
+        return np.sqrt(var / shots) if shots > 0 else 0
 
     def setUp(self):
         super().setUp()
@@ -227,7 +228,7 @@ class TestVQD(QiskitAlgorithmsTestCase):
         self.assertAlmostEqual(result.aux_operator_eigenvalues[0][1][0], 0, places=2)
         # standard deviations
         self.assertAlmostEqual(
-            self._get_stdev(result.aux_operator_eigenvalues[0][1][1]), 0.0, places=2
+            self._get_stdev(result.aux_operator_eigenvalues[0][0][1]), 0.0, places=2
         )
         self.assertAlmostEqual(
             self._get_stdev(result.aux_operator_eigenvalues[0][1][1]), 0.0, places=2

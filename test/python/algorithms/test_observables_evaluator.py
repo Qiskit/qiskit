@@ -53,7 +53,7 @@ class TestObservablesEvaluator(QiskitAlgorithmsTestCase):
         # the exact value is a list of (mean, (variance, shots)) where we expect 0 variance and
         # 0 shots
         exact = [
-            (Statevector(ansatz).expectation_value(observable), (0, 0))
+            (Statevector(ansatz).expectation_value(observable), {})
             for observable in observables_list
         ]
 
@@ -143,7 +143,7 @@ class TestObservablesEvaluator(QiskitAlgorithmsTestCase):
         estimator = Estimator()
         observables = [SparsePauliOp(["XX", "YY"]), 0]
         result = estimate_observables(estimator, state, observables, self.threshold)
-        expected_result = [(0.015607318055509564, (0, 0)), (0.0, (0, 0))]
+        expected_result = [(0.015607318055509564, {}), (0.0, {})]
         means = [element[0] for element in result]
         expected_means = [element[0] for element in expected_result]
         np.testing.assert_array_almost_equal(means, expected_means, decimal=0.01)
@@ -166,15 +166,19 @@ class TestObservablesEvaluator(QiskitAlgorithmsTestCase):
         observables = [PauliSumOp.from_list([("ZZ", 2.0)])]
         result = estimate_observables(estimator, state, observables, self.threshold)
         exact_result = self.get_exact_expectation(bound_ansatz, observables)
-        expected_result = [(exact_result[0][0], (1.0898, 2048))]
+        expected_result = [(exact_result[0][0], {"variance": 1.0898, "shots": 2048})]
 
         means = [element[0] for element in result]
         expected_means = [element[0] for element in expected_result]
         np.testing.assert_array_almost_equal(means, expected_means, decimal=0.01)
 
         vars_and_shots = [element[1] for element in result]
+        print(vars_and_shots)
         expected_vars_and_shots = [element[1] for element in expected_result]
-        np.testing.assert_array_almost_equal(vars_and_shots, expected_vars_and_shots, decimal=0.01)
+        print(expected_vars_and_shots)
+        for computed, expected in zip(vars_and_shots, expected_vars_and_shots):
+
+            self.assertAlmostEqual(computed, expected, 2)
 
 
 if __name__ == "__main__":
