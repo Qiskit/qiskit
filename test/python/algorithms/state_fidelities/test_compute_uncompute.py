@@ -21,7 +21,6 @@ from qiskit.circuit.library import RealAmplitudes
 from qiskit.primitives import Sampler
 from qiskit.algorithms.state_fidelities import ComputeUncompute
 from qiskit.test import QiskitTestCase
-from qiskit import QiskitError
 
 
 class TestComputeUncompute(QiskitTestCase):
@@ -140,34 +139,6 @@ class TestComputeUncompute(QiskitTestCase):
                 self._left_params,
                 self._right_params,
             )
-            job.result()
-
-    def test_param_mismatch(self):
-        """test for fidelity with different number of left/right parameters that
-        do not match the circuits'."""
-
-        fidelity = ComputeUncompute(self._sampler)
-        n = len(self._left_params)
-        with self.assertRaises(QiskitError):
-            job = fidelity.run(
-                [self._circuit[0]] * n,
-                [self._circuit[1]] * n,
-                self._left_params,
-                self._right_params[:-2],
-            )
-            job.result()
-
-        with self.assertRaises(QiskitError):
-            job = fidelity.run(
-                [self._circuit[0]] * n,
-                [self._circuit[1]] * n,
-                self._left_params[:-2],
-                self._right_params[:-2],
-            )
-            job.result()
-
-        with self.assertRaises(ValueError):
-            job = fidelity.run([self._circuit[0]] * n, [self._circuit[1]] * n)
             job.result()
 
     def test_asymmetric_params(self):

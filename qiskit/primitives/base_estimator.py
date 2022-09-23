@@ -36,10 +36,6 @@ The estimator is called with the following inputs.
 
 * observables: a list of the observables.
 
-* parameters: a list of parameters of the quantum circuits.
-  (:class:`~qiskit.circuit.parametertable.ParameterView` or
-  a list of :class:`~qiskit.circuit.Parameter`).
-
 * parameter values (:math:`\theta_k`): list of sets of values
   to be bound to the parameters of the quantum circuits.
   (list of list of float)
@@ -66,9 +62,6 @@ Here is an example of how estimator is used.
 
     psi1 = RealAmplitudes(num_qubits=2, reps=2)
     psi2 = RealAmplitudes(num_qubits=2, reps=3)
-
-    params1 = psi1.parameters
-    params2 = psi2.parameters
 
     H1 = SparsePauliOp.from_list([("II", 1), ("IZ", 2), ("XI", 3)])
     H2 = SparsePauliOp.from_list([("IZ", 1)])
@@ -119,6 +112,7 @@ from qiskit.quantum_info.operators.base_operator import BaseOperator
 from qiskit.utils.deprecation import deprecate_arguments, deprecate_function
 
 from .estimator_result import EstimatorResult
+from .utils import _circuit_key
 
 
 class BaseEstimator(ABC):
@@ -170,7 +164,7 @@ class BaseEstimator(ABC):
 
         # To guarantee that they exist as instance variable.
         # With only dynamic set, the python will not know if the attribute exists or not.
-        self._circuit_ids: dict[int, int] = self._circuit_ids
+        self._circuit_ids: dict[tuple, int] = self._circuit_ids
         self._observable_ids: dict[int, int] = self._observable_ids
 
         if parameters is None:
@@ -205,9 +199,9 @@ class BaseEstimator(ABC):
             self._circuit_ids = {}
         elif isinstance(circuits, Iterable):
             circuits = copy(circuits)
-            self._circuit_ids = {id(circuit): i for i, circuit in enumerate(circuits)}
+            self._circuit_ids = {_circuit_key(circuit): i for i, circuit in enumerate(circuits)}
         else:
-            self._circuit_ids = {id(circuits): 0}
+            self._circuit_ids = {_circuit_key(circuits): 0}
         if observables is None:
             self._observable_ids = {}
         elif isinstance(observables, Iterable):
@@ -335,7 +329,7 @@ class BaseEstimator(ABC):
 
         # Allow objects
         circuits = [
-            self._circuit_ids.get(id(circuit))
+            self._circuit_ids.get(_circuit_key(circuit))
             if not isinstance(circuit, (int, np.integer))
             else circuit
             for circuit in circuits
@@ -424,7 +418,6 @@ class BaseEstimator(ABC):
         circuits: Sequence[QuantumCircuit],
         observables: Sequence[BaseOperator | PauliSumOp],
         parameter_values: Sequence[Sequence[float]] | None = None,
-        parameters: Sequence[Sequence[Parameter]] | None = None,
         **run_options,
     ) -> Job:
         """Run the job of the estimation of expectation value(s).
@@ -452,10 +445,6 @@ class BaseEstimator(ABC):
             circuits: the list of circuit objects.
             observables: the list of observable objects.
             parameter_values: concrete parameters to be bound.
-            parameters: Parameters of quantum circuits, specifying the order in which values
-                will be bound. Defaults to ``[circ.parameters for circ in circuits]``
-                The indexing is such that ``parameters[i, j]`` is the j-th formal parameter of
-                ``circuits[i]``.
             run_options: runtime options used for circuit execution.
 
         Returns:
@@ -477,22 +466,6 @@ class BaseEstimator(ABC):
                         "but parameter values are not given."
                     )
             parameter_values = [[]] * len(circuits)
-
-        if parameters is None:
-            parameter_views = [circ.parameters for circ in circuits]
-        else:
-            parameter_views = [ParameterView(par) for par in parameters]
-            if len(self._parameters) != len(self._circuits):
-                raise QiskitError(
-                    f"Different number of parameters ({len(self._parameters)}) and "
-                    f"circuits ({len(self._circuits)})"
-                )
-            for i, (circ, params) in enumerate(zip(self._circuits, self._parameters)):
-                if circ.num_parameters != len(params):
-                    raise QiskitError(
-                        f"Different numbers of parameters of {i}-th circuit: "
-                        f"expected {circ.num_parameters}, actual {len(params)}."
-                    )
 
         # Validation
         if len(circuits) != len(observables):
@@ -527,7 +500,6 @@ class BaseEstimator(ABC):
             circuits,
             observables,
             parameter_values,
-            parameter_views,
             **run_opts.__dict__,
         )
 
@@ -548,7 +520,6 @@ class BaseEstimator(ABC):
         circuits: Sequence[QuantumCircuit],
         observables: Sequence[BaseOperator | PauliSumOp],
         parameter_values: Sequence[Sequence[float]],
-        parameters: list[ParameterView],
         **run_options,
     ) -> Job:
         raise NotImplementedError(

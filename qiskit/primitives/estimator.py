@@ -21,7 +21,6 @@ from typing import Any
 import numpy as np
 
 from qiskit.circuit import Parameter, QuantumCircuit
-from qiskit.circuit.parametertable import ParameterView
 from qiskit.exceptions import QiskitError
 from qiskit.opflow import PauliSumOp
 from qiskit.quantum_info import Statevector
@@ -30,7 +29,7 @@ from qiskit.quantum_info.operators.base_operator import BaseOperator
 from .base_estimator import BaseEstimator
 from .estimator_result import EstimatorResult
 from .primitive_job import PrimitiveJob
-from .utils import bound_circuit_to_instruction, init_circuit, init_observable
+from .utils import _circuit_key, bound_circuit_to_instruction, init_circuit, init_observable
 
 
 class Estimator(BaseEstimator):
@@ -152,19 +151,19 @@ class Estimator(BaseEstimator):
         circuits: Sequence[QuantumCircuit],
         observables: Sequence[BaseOperator | PauliSumOp],
         parameter_values: Sequence[Sequence[float]],
-        parameters: Sequence[ParameterView],
         **run_options,
     ) -> PrimitiveJob:
         circuit_indices = []
-        for i, circuit in enumerate(circuits):
-            index = self._circuit_ids.get(id(circuit))
+        for circuit in circuits:
+            key = _circuit_key(circuit)
+            index = self._circuit_ids.get(key)
             if index is not None:
                 circuit_indices.append(index)
             else:
                 circuit_indices.append(len(self._circuits))
-                self._circuit_ids[id(circuit)] = len(self._circuits)
+                self._circuit_ids[key] = len(self._circuits)
                 self._circuits.append(circuit)
-                self._parameters.append(parameters[i])
+                self._parameters.append(circuit.parameters)
         observable_indices = []
         for observable in observables:
             index = self._observable_ids.get(id(observable))
