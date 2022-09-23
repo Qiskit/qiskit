@@ -272,7 +272,7 @@ class VQD(VariationalAlgorithm, Eigensolver):
             if aux_operators is not None:
                 bound_ansatz = self.ansatz.bind_parameters(result.optimal_point[-1])
                 aux_value = estimate_observables(self.estimator, bound_ansatz, aux_operators)
-                aux_values.append(aux_value)
+                aux_values.append((aux_value[0], {"variance": aux_value[1][0], "shots": aux_value[1][1]}))
 
             if step == 1:
 
