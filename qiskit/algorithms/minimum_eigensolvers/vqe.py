@@ -239,13 +239,15 @@ class VQE(VariationalAlgorithm, MinimumEigensolver):
                 raise AlgorithmError("The primitive job to evaluate the energy failed!") from exc
 
             values = estimator_result.values
-
-            metadata = _prep_metadata(estimator_result)
+            metadata = estimator_result.metadata
 
             if self.callback is not None:
                 for params, value, meta in zip(parameters, values, metadata):
                     eval_count += 1
-                    self.callback(eval_count, params, value, meta[0])
+                    variance = meta.pop("variance", 0.0)
+                    shots = meta.pop("shots", 0)
+                    estimator_error = np.sqrt(variance / shots) if shots > 0 else 0.0
+                    self.callback(eval_count, params, value, estimator_error)
 
             energy = values[0] if len(values) == 1 else values
 
@@ -349,33 +351,6 @@ def _validate_bounds(ansatz: QuantumCircuit) -> list[tuple(float | None, float |
         bounds = [(None, None)] * ansatz.num_parameters
 
     return bounds
-
-
-def _prep_metadata(
-    estimator_result: EstimatorResult,
-) -> list[tuple[float, dict]]:
-    """
-    Prepares a list of tuples of (variance, metadata) from the estimator result.
-
-    Args:
-        observables_results: A list of tuples (mean, (variance, shots)).
-
-    Returns:
-        A list of tuples (variance, metadata)).
-    """
-    if not estimator_result.metadata:
-        return [(0.0, {})] * len(estimator_result.values)
-
-    results = []
-    for metadata in estimator_result.metadata:
-        variance = 0.0
-        if metadata:
-            if "variance" in metadata.keys():
-                variance = metadata["variance"]
-
-        results.append((variance, metadata))
-
-    return results
 
 
 def _build_vqe_result(

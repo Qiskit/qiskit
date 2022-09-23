@@ -227,13 +227,13 @@ class TestVQE(QiskitAlgorithmsTestCase):
 
     def test_callback(self):
         """Test the callback on VQE."""
-        history = {"eval_count": [], "parameters": [], "mean": [], "variance": []}
+        history = {"eval_count": [], "parameters": [], "mean": [], "std_dev": []}
 
-        def store_intermediate_result(eval_count, parameters, mean, variance):
+        def store_intermediate_result(eval_count, parameters, mean, std_dev):
             history["eval_count"].append(eval_count)
             history["parameters"].append(parameters)
             history["mean"].append(mean)
-            history["variance"].append(variance)
+            history["std_dev"].append(std_dev)
 
         optimizer = COBYLA(maxiter=3)
         wavefunction = self.ry_wavefunction
@@ -251,7 +251,7 @@ class TestVQE(QiskitAlgorithmsTestCase):
 
             self.assertTrue(all(isinstance(count, int) for count in history["eval_count"]))
             self.assertTrue(all(isinstance(mean, float) for mean in history["mean"]))
-            self.assertTrue(all(variance == 0.0 for variance in history["variance"]))
+            self.assertTrue(all(std_dev == 0.0 for std_dev in history["std_dev"]))
 
             for params in history["parameters"]:
                 self.assertTrue(all(isinstance(param, float) for param in params))
@@ -269,7 +269,7 @@ class TestVQE(QiskitAlgorithmsTestCase):
 
             self.assertTrue(all(isinstance(count, int) for count in history["eval_count"]))
             self.assertTrue(all(isinstance(mean, float) for mean in history["mean"]))
-            self.assertTrue(all(isinstance(variance, float) for variance in history["variance"]))
+            self.assertTrue(all(isinstance(std_dev, float) for std_dev in history["std_dev"]))
 
             for params in history["parameters"]:
                 self.assertTrue(all(isinstance(param, float) for param in params))
