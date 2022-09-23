@@ -117,7 +117,7 @@ class FasterAmplitudeEstimation(AmplitudeEstimator):
         category=PendingDeprecationWarning,
     )
     def quantum_instance(self) -> QuantumInstance | None:
-        """Pending deprecation: Get the quantum instance.
+        """Pending deprecation; Get the quantum instance.
 
         Returns:
             The quantum instance used to run this algorithm.
@@ -132,7 +132,7 @@ class FasterAmplitudeEstimation(AmplitudeEstimator):
         category=PendingDeprecationWarning,
     )
     def quantum_instance(self, quantum_instance: QuantumInstance | Backend) -> None:
-        """Pending deprecation: Set quantum instance.
+        """Pending deprecation; Set quantum instance.
 
         Args:
             quantum_instance: The quantum instance used to run this algorithm.
