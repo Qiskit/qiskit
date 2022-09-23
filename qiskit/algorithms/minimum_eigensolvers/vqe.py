@@ -96,7 +96,7 @@ class VQE(VariationalAlgorithm, MinimumEigensolver):
         initial_point (Sequence[float] | None): An optional initial point (i.e. initial parameter
             values) for the optimizer. If ``None`` then VQE will look to the ansatz for a preferred
             point and if not will simply compute a random one.
-        callback (Callable[[int, np.ndarray, float, float], None] | None): A callback that can
+        callback (Callable[[int, np.ndarray, float, dict], None] | None): A callback that can
             access the intermediate data during the optimization. Four parameter values are passed
             to the callback as follows during each evaluation by the optimizer for its current set
             of parameters as it works towards the minimum. These are: the evaluation count, the
