@@ -41,15 +41,15 @@ class VQE(VariationalAlgorithm, MinimumEigensolver):
     r"""The variational quantum eigensolver (VQE) algorithm.
 
     VQE is a hybrid quantum-classical algorithm that uses a variational technique to find the
-    minimum eigenvalue of a given Hamiltonian operator.
+    minimum eigenvalue of a given Hamiltonian operator :math:`\vec\theta`.
 
-    The VQE algorithm is executed using an Estimator primitive, which must be specified as the first
-    argument on instantiation.
+    The VQE algorithm is executed using an :attr:`estimator` primitive, which must be specified as
+    the first argument on instantiation.
 
-    An instance of VQE also requires defining an ansatz (a.k.a. trial state), given by a
-    parameterized :class:`.QuantumCircuit`, as well as a classical optimizer. The optimizer varies
-    the circuit parameters :math:`\vec\theta` such that the expectation value of the operator
-    :math:`H` on the corresponding state :math:`|{\psi(\vec\theta)\rangle` approaches a minimum,
+    An instance of ``VQE`` also requires an :attr:`ansatz` parameterized :class:`.QuantumCircuit` to
+    prepare the trial state :math:`|\psi(\vec\theta)\rangle`, as well as a classical
+    :attr:`optimizer`. The optimizer varies the circuit parameters :math:`\vec\theta` such that the
+    expectation value of the operator :math:`H` on the corresponding state approaches a minimum,
 
     ..math::
 
@@ -88,22 +88,22 @@ class VQE(VariationalAlgorithm, MinimumEigensolver):
 
     Attributes:
         estimator (BaseEstimator): The estimator primitive to compute the expectation value of the
-            circuits.
-        ansatz (Quantum Circuit): A parameterized circuit, preparing the ansatz for the wave
-            function.
+            Hamiltonian operator.
+        ansatz (QuantumCircuit): A parameterized quantum circuit to prepare the trial state.
         optimizer (Optimizer | Minimizer): A classical optimizer to find the minimum energy. This
             can either be a Qiskit :class:`.Optimizer` or a callable implementing the
             :class:`.Minimizer` protocol.
         gradient (BaseEstimatorGradient | None): An optional estimator gradient to be used with the
             optimizer.
         initial_point (Sequence[float] | None): An optional initial point (i.e. initial parameter
-            values) for the optimizer. If ``None`` then VQE will look to the ansatz for a preferred
-            point and if not will simply compute a random one.
-        callback (Callable[[int, np.ndarray, float, dict], None] | None): A callback that can
-            access the intermediate data during the optimization. Four parameter values are passed
-            to the callback as follows during each evaluation by the optimizer for its current set
-            of parameters as it works towards the minimum. These are: the evaluation count, the
-            optimizer parameters for the ansatz, the evaluated mean and the metadata dictionary.
+            values) for the optimizer. The length of the initial point must match the number of
+            :attr:`ansatz` parameters. If ``None``, a random point will be generated within certain
+            parameter bounds. ``VQE`` will look to the ansatz for these bounds. If the ansatz does
+            not specify bounds, bounds of :math:`-2\pi`, :math:`2\pi` will be used.
+        callback (Callable[[int, np.ndarray, float, dict], None] | None): A callback that can access
+            the intermediate data at each optimization step. These data are: the evaluation count,
+            the optimizer parameters for the ansatz, the evaluated mean, and the metadata
+            dictionary.
 
     References:
         [1] Peruzzo et al, "A variational eigenvalue solver on a quantum processor"
@@ -122,20 +122,21 @@ class VQE(VariationalAlgorithm, MinimumEigensolver):
     ) -> None:
         """
         Args:
-            estimator: The estimator primitive to compute the expectation value of the circuits.
-            ansatz: A parameterized circuit, preparing the ansatz for the wave function.
-            optimizer: A classical optimizer to find the minimum energy. This can either be a
-                Qiskit :class:`.Optimizer` or a callable implementing the :class:`.Minimizer`
-                protocol.
+            estimator: The estimator primitive to compute the expectation value of the
+                Hamiltonian operator.
+            ansatz: A parameterized quantum circuit to prepare the trial state.
+            optimizer: A classical optimizer to find the minimum energy. This
+                can either be a Qiskit :class:`.Optimizer` or a callable implementing the
+                :class:`.Minimizer` protocol.
             gradient: An optional estimator gradient to be used with the optimizer.
-            initial_point: An optional initial point (i.e. initial parameter values)
-                for the optimizer. If ``None`` then VQE will look to the ansatz for a preferred
-                point and if not will simply compute a random one.
-            callback: A callback that can access the intermediate data during the optimization.
-                Four parameter values are passed to the callback as follows during each evaluation
-                by the optimizer for its current set of parameters as it works towards the minimum.
-                These are: the evaluation count, the optimizer parameters for the ansatz, the
-                evaluated mean and the metadata dictionary.
+            initial_point: An optional initial point (i.e. initial parameter values) for the optimizer.
+                The length of the initial point must match the number of :attr:`ansatz` parameters.
+                If ``None``, a random point will be generated within certain parameter bounds.
+                ``VQE`` will look to the ansatz for these bounds. If the ansatz does not specify
+                bounds, bounds of :math:`-2\pi`, :math:`2\pi` will be used.
+            callback: A callback that can access the intermediate data at each optimization step.
+                These data are: the evaluation count, the optimizer parameters for the ansatz, the
+                evaluated mean, and the metadata dictionary.
         """
         super().__init__()
 
