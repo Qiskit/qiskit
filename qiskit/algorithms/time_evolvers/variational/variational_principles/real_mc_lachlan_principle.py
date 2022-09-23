@@ -14,8 +14,10 @@
 from __future__ import annotations
 
 import numpy as np
+from numpy import real
 
 from qiskit import QuantumCircuit
+from qiskit.algorithms import AlgorithmError
 from qiskit.algorithms.gradients import (
     BaseEstimatorGradient,
     BaseQFI,
@@ -31,6 +33,7 @@ from qiskit.opflow import (
     PauliSumOp,
 )
 from qiskit.primitives import Estimator
+from qiskit.quantum_info import Pauli, SparsePauliOp
 from qiskit.quantum_info.operators.base_operator import BaseOperator
 from .real_variational_principle import (
     RealVariationalPrinciple,
@@ -96,31 +99,23 @@ class RealMcLachlanPrinciple(RealVariationalPrinciple):
         Returns:
             An evolution gradient.
         """
-        # if self._evolution_gradient_callable is None:
-        #     self._energy_param = Parameter("alpha")
-        #     modified_hamiltonian = self._construct_expectation(
-        #         hamiltonian, ansatz, self._energy_param
-        #     )
-        #
-        #     self._evolution_gradient_callable = self._evolution_gradient.gradient_wrapper(
-        #         modified_hamiltonian,
-        #         bind_params + [self._energy_param],
-        #         gradient_params,
-        #     )
-        #
-        #     energy = StateFn(hamiltonian, is_measurement=True) @ StateFn(ansatz)
-        #     self._energy = expectation.convert(energy)
-        #
-        # if circuit_sampler is not None:
-        #     energy = circuit_sampler.convert(self._energy, param_dict).eval()
-        # else:
-        #     energy = self._energy.assign_parameters(param_dict).eval()
-        #
-        # param_values.append(real(energy))
-        # evolution_grad = 0.5 * self._evolution_gradient_callable(param_values)
-        # TODO make sure to handle energy term correctly
+        try:
+            estimator_job = self.gradient._estimator.run([ansatz], [hamiltonian], [param_values])
+            energy = estimator_job.result().values[0]
+        except Exception as exc:
+            raise AlgorithmError("The primitive job failed!") from exc
+
+        modified_hamiltonian = self._construct_modified_hamiltonian(hamiltonian, real(energy))
+        pass
+
         evolution_grad = (
-            self.gradient.run([ansatz], [hamiltonian], [param_values], [gradient_params])
+            0.5
+            * self.gradient.run(
+                [ansatz],
+                [modified_hamiltonian],
+                parameters=[gradient_params],
+                parameter_values=[param_values],
+            )
             .result()
             .gradients[0]
         )
@@ -130,8 +125,8 @@ class RealMcLachlanPrinciple(RealVariationalPrinciple):
         return evolution_grad
 
     @staticmethod
-    def _construct_expectation(
-        hamiltonian: BaseOperator | PauliSumOp, ansatz: QuantumCircuit, energy_param: Parameter
+    def _construct_modified_hamiltonian(
+        hamiltonian: BaseOperator | PauliSumOp, energy: float
     ) -> BaseOperator:
         """
         Modifies a Hamiltonian according to the rules of this variational principle.
@@ -141,14 +136,10 @@ class RealMcLachlanPrinciple(RealVariationalPrinciple):
                 given either as a composed op consisting of a Hermitian observable and a
                 ``CircuitStateFn`` or a ``ListOp`` of a ``CircuitStateFn`` with a ``ComboFn``. The
                 latter case enables the evaluation of a Quantum Natural Gradient.
-            ansatz: Quantum state in the form of a parametrized quantum circuit.
-            energy_param: Parameter for energy correction.
 
         Returns:
-            An modified Hamiltonian composed with an ansatz.
+            A modified Hamiltonian.
         """
-        energy_term = I ^ hamiltonian.num_qubits
-        energy_term *= -1
-        energy_term *= energy_param
-        modified_hamiltonian = SummedOp([hamiltonian, energy_term]).reduce()
-        return StateFn(modified_hamiltonian, is_measurement=True) @ StateFn(ansatz)
+
+        energy_term = PauliSumOp(SparsePauliOp(Pauli("I" * hamiltonian.num_qubits)), -energy)
+        return hamiltonian + energy_term
