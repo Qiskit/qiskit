@@ -334,22 +334,8 @@ class MaximumLikelihoodAmplitudeEstimation(AmplitudeEstimator):
         result.minimizer = self._minimizer
         result.post_processing = estimation_problem.post_processing
 
-        if self._sampler is not None and self._sampler.options.get("shots") is None:
-            circuits = self.construct_circuits(estimation_problem, measurement=True)
-            try:
-                job = self._sampler.run(circuits)
-                ret = job.result()
-            except Exception as exc:
-                raise AlgorithmError("The job was not completed successfully. ") from exc
-
-            result.circuit_results = []
-            for i, quasi_dist in enumerate(ret.quasi_dists):
-                circuit_result = {
-                    np.binary_repr(k, circuits[i].num_qubits): v for k, v in quasi_dist.items()
-                }
-                result.circuit_results.append(circuit_result)
-            result.shots = 1
-        elif self._quantum_instance is not None and self._quantum_instance.is_statevector:
+        shots = 0
+        if self._quantum_instance is not None and self._quantum_instance.is_statevector:
             # run circuit on statevector simulator
             circuits = self.construct_circuits(estimation_problem, measurement=False)
             ret = self._quantum_instance.execute(circuits)
@@ -360,36 +346,41 @@ class MaximumLikelihoodAmplitudeEstimation(AmplitudeEstimator):
 
             # to count the number of Q-oracle calls (don't count shots)
             result.shots = 1
-
         else:
-            # run circuit on QASM simulator
-            shots = (
-                self._quantum_instance._run_config.shots
-                if self._quantum_instance is not None
-                else self._sampler.options.get("shots", 1)
-            )
             circuits = self.construct_circuits(estimation_problem, measurement=True)
             if self._quantum_instance is not None:
+                # run circuit on QASM simulator
                 ret = self._quantum_instance.execute(circuits)
                 # get counts and construct MLE input
                 result.circuit_results = [ret.get_counts(circuit) for circuit in circuits]
+                shots = self._quantum_instance._run_config.shots
             else:
                 try:
                     job = self._sampler.run(circuits)
                     ret = job.result()
+                except Exception as exc:
+                    raise AlgorithmError("The job was not completed successfully. ") from exc
+
+                result.circuit_results = []
+                shots = ret.metadata[0].get("shots")
+                if shots is None:
+                    for i, quasi_dist in enumerate(ret.quasi_dists):
+                        circuit_result = {
+                            np.binary_repr(k, circuits[i].num_qubits): v
+                            for k, v in quasi_dist.items()
+                        }
+                        result.circuit_results.append(circuit_result)
+                    shots = 1
+                else:
                     # get counts and construct MLE input
-                    result.circuit_results = []
                     for circuit in circuits:
                         counts = {
                             np.binary_repr(k, circuit.num_qubits): round(v * shots)
                             for k, v in ret.quasi_dists[0].items()
                         }
                         result.circuit_results.append(counts)
-                except Exception as exc:
-                    raise AlgorithmError("The job was not completed successfully. ") from exc
 
-            # to count the number of Q-oracle calls
-            result.shots = shots
+        result.shots = shots
 
         # run maximum likelihood estimation
         num_state_qubits = circuits[0].num_qubits - circuits[0].num_ancillas

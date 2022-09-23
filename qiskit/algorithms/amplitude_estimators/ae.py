@@ -264,12 +264,7 @@ class AmplitudeEstimation(AmplitudeEstimator):
         # construct probabilities
         measurements = OrderedDict()
         samples = OrderedDict()
-        shots = (
-            self._sampler.options.get("shots", 1)
-            if self._sampler is not None
-            else self._quantum_instance._run_config.shots
-        )
-
+        shots = sum(counts.values())
         for state, count in counts.items():
             y = int(state.replace(" ", "")[: self._m][::-1], 2)
             probability = count / shots
@@ -368,51 +363,44 @@ class AmplitudeEstimation(AmplitudeEstimator):
         result.num_evaluation_qubits = self._m
         result.post_processing = estimation_problem.post_processing
 
-        if self._sampler is not None and self._sampler.options.get("shots") is None:
-            circuit = self.construct_circuit(estimation_problem, measurement=True)
-            try:
-                job = self._sampler.run([circuit])
-                ret = job.result()
-            except Exception as exc:
-                raise AlgorithmError("The job was not completed successfully. ") from exc
-
-            result.circuit_results = {
-                np.binary_repr(k, circuit.num_qubits): v for k, v in ret.quasi_dists[0].items()
-            }
-            result.shots = 1
-            samples, measurements = self.evaluate_measurements(result.circuit_results)
-        elif self._quantum_instance is not None and self._quantum_instance.is_statevector:
+        shots = 0
+        if self._quantum_instance is not None and self._quantum_instance.is_statevector:
             circuit = self.construct_circuit(estimation_problem, measurement=False)
             # run circuit on statevector simulator
             statevector = self._quantum_instance.execute(circuit).get_statevector()
             result.circuit_results = statevector
             # store number of shots: convention is 1 shot for statevector,
             # needed so that MLE works!
-            result.shots = 1
-            samples, measurements = self.evaluate_measurements(result.circuit_results)
+            shots = 1
         else:
-            # run circuit on QASM simulator
             circuit = self.construct_circuit(estimation_problem, measurement=True)
-            counts = {}
             if self._quantum_instance is not None:
-                counts = self._quantum_instance.execute(circuit).get_counts()
+                # run circuit on QASM simulator
+                result.circuit_results = self._quantum_instance.execute(circuit).get_counts()
+                shots = sum(result.circuit_results.values())
             else:
-                shots = self._sampler.options.get("shots", 1)
                 try:
                     job = self._sampler.run([circuit])
                     ret = job.result()
-                    counts = {
-                        np.binary_repr(k, circuit.num_qubits): round(v * shots)
-                        for k, v in ret.quasi_dists[0].items()
-                    }
                 except Exception as exc:
                     raise AlgorithmError("The job was not completed successfully. ") from exc
 
-            result.circuit_results = counts
+                shots = ret.metadata[0].get("shots")
+                if shots is None:
+                    result.circuit_results = {
+                        np.binary_repr(k, circuit.num_qubits): v
+                        for k, v in ret.quasi_dists[0].items()
+                    }
+                    shots = 1
+                else:
+                    result.circuit_results = {
+                        np.binary_repr(k, circuit.num_qubits): round(v * shots)
+                        for k, v in ret.quasi_dists[0].items()
+                    }
 
-            # store shots
-            result.shots = sum(counts.values())
-            samples, measurements = self.evaluate_measurements(result.circuit_results)
+        # store shots
+        result.shots = shots
+        samples, measurements = self.evaluate_measurements(result.circuit_results)
 
         result.samples = samples
         result.samples_processed = {

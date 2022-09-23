@@ -355,30 +355,7 @@ class IterativeAmplitudeEstimation(AmplitudeEstimator):
         )
         upper_half_circle = True  # initially theta is in the upper half-circle
 
-        if self._sampler is not None and self._sampler.options.get("shots") is None:
-            circuit = self.construct_circuit(estimation_problem, k=0, measurement=True)
-            try:
-                job = self._sampler.run([circuit])
-                result = job.result()
-            except Exception as exc:
-                raise AlgorithmError("The job was not completed successfully. ") from exc
-
-            # calculate the probability of measuring '1'
-            num_qubits = circuit.num_qubits - circuit.num_ancillas
-            prob = _probabilities_from_sampler_result(
-                circuit.num_qubits, result, estimation_problem
-            )
-            prob = cast(float, prob)  # tell MyPy it's a float and not Tuple[int, float ]
-
-            a_confidence_interval = [prob, prob]  # type: list[float]
-            a_intervals.append(a_confidence_interval)
-
-            theta_i_interval = [
-                np.arccos(1 - 2 * a_i) / 2 / np.pi for a_i in a_confidence_interval  # type: ignore
-            ]
-            theta_intervals.append(theta_i_interval)
-            num_oracle_queries = 0  # no Q-oracle call, only a single one to A
-        elif self._quantum_instance is not None and self._quantum_instance.is_statevector:
+        if self._quantum_instance is not None and self._quantum_instance.is_statevector:
             # for statevector we can directly return the probability to measure 1
             # note, that no iterations here are necessary
             # simulate circuit
@@ -405,11 +382,7 @@ class IterativeAmplitudeEstimation(AmplitudeEstimator):
         else:
             num_iterations = 0  # keep track of the number of iterations
             # number of shots per iteration
-            shots = (
-                self._quantum_instance._run_config.shots
-                if self._quantum_instance is not None
-                else self._sampler.options.get("shots", 1)
-            )
+            shots = 0
             # do while loop, keep in mind that we scaled theta mod 2pi such that it lies in [0,1]
             while theta_intervals[-1][1] - theta_intervals[-1][0] > self._epsilon / np.pi:
                 num_iterations += 1
@@ -433,16 +406,47 @@ class IterativeAmplitudeEstimation(AmplitudeEstimator):
                     ret = self._quantum_instance.execute(circuit)
                     # get the counts and store them
                     counts = ret.get_counts(circuit)
+                    shots = self._quantum_instance._run_config.shots
                 else:
                     try:
                         job = self._sampler.run([circuit])
                         ret = job.result()
-                        counts = {
-                            np.binary_repr(k, circuit.num_qubits): round(v * shots)
-                            for k, v in ret.quasi_dists[0].items()
-                        }
                     except Exception as exc:
                         raise AlgorithmError("The job was not completed successfully. ") from exc
+
+                    shots = ret.metadata[0].get("shots")
+                    if shots is None:
+                        circuit = self.construct_circuit(estimation_problem, k=0, measurement=True)
+                        try:
+                            job = self._sampler.run([circuit])
+                            ret = job.result()
+                        except Exception as exc:
+                            raise AlgorithmError(
+                                "The job was not completed successfully. "
+                            ) from exc
+
+                        # calculate the probability of measuring '1'
+                        prob = _probabilities_from_sampler_result(
+                            circuit.num_qubits, ret, estimation_problem
+                        )
+                        prob = cast(
+                            float, prob
+                        )  # tell MyPy it's a float and not Tuple[int, float ]
+
+                        a_confidence_interval = [prob, prob]  # type: list[float]
+                        a_intervals.append(a_confidence_interval)
+
+                        theta_i_interval = [
+                            np.arccos(1 - 2 * a_i) / 2 / np.pi for a_i in a_confidence_interval
+                        ]
+                        theta_intervals.append(theta_i_interval)
+                        num_oracle_queries = 0  # no Q-oracle call, only a single one to A
+                        break
+
+                    counts = {
+                        np.binary_repr(k, circuit.num_qubits): round(v * shots)
+                        for k, v in ret.quasi_dists[0].items()
+                    }
 
                 # calculate the probability of measuring '1', 'prob' is a_i in the paper
                 num_qubits = circuit.num_qubits - circuit.num_ancillas
