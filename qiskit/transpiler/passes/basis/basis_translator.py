@@ -364,22 +364,15 @@ class BasisSearchVisitor(retworkx.visit.DijkstraVisitor):
         self.graph = graph
         self.target_basis = set(target_basis)
         self._source_gates_remain = set(source_basis)
-        # print("\n\nInit source basis", source_basis, self._source_gates_remain, type(self._source_gates_remain))
         self._num_gates_remain_for_rule = dict(num_gates_for_rule)
         self._basis_transforms = []
         self._predecessors = dict()
         self._opt_cost_map = dict()
 
     def discover_vertex(self, v, score):
-        # print("\n\ngraph of v", self.graph[v])
         gate = self.graph[v]["key"]
-        # print("\n\nDiscover source basis", gate, type(gate), self._source_gates_remain, type(self._source_gates_remain))
-        if not isinstance(gate, str):# in self._source_gates_remain:
-            # print("GOT HERE")
-            self._source_gates_remain.discard(gate)
-        # print("GOT HERE 2")
+        self._source_gates_remain.discard(gate)
         self._opt_cost_map[gate] = score
-        # print("GOT HERE 3")
         rule = self._predecessors.get(gate, None)
         if rule is not None:
             logger.debug(
@@ -389,7 +382,6 @@ class BasisSearchVisitor(retworkx.visit.DijkstraVisitor):
                 score,
             )
             self._basis_transforms.append((gate.name, gate.num_qubits, rule.params, rule.circuit))
-        # print("GOT HERE 4")
         # we can stop the search if we have found all gates in the original ciruit.
         if not self._source_gates_remain:
             # if we start from source gates and apply `basis_transforms` in reverse order, we'll end
@@ -397,9 +389,7 @@ class BasisSearchVisitor(retworkx.visit.DijkstraVisitor):
             # additional transformations that are not required to map our source gates to the given
             # target basis.
             self._basis_transforms.reverse()
-            # print("GOT HERE 6")
             raise StopIfBasisRewritable
-        # print("GOT HERE 5")
 
     def examine_edge(self, edge):
         _, target, edata = edge
@@ -479,22 +469,26 @@ def _basis_search(equiv_lib, source_basis, target_basis):
 
     # This is only neccessary since gates in target basis are currently reported by
     # their names and we need to have in addition the number of qubits they act on.
-    # print("\nall_gates", equiv_lib._all_gates_in_lib)
     target_basis_keys = [
         key
         for gate in target_basis
-        for key in filter(lambda key, name=gate: key.name == name, equiv_lib._get_all_keys())
+        for key in filter(
+            lambda key, name=gate: key.name == name, equiv_lib.key_to_node_index.keys()
+        )
     ]
-    vis = BasisSearchVisitor(equiv_lib._graph, source_basis, target_basis_keys, equiv_lib._num_gates_for_rule)
+    graph = equiv_lib.graph
+    vis = BasisSearchVisitor(graph, source_basis, target_basis_keys, equiv_lib.num_gates_for_rule)
 
     # we add a dummy node and connect it with gates in the target basis.
     # we'll start the search from this dummy node.
-    dummy = equiv_lib._graph.add_node({"key": ("dummy starting node", 0)})
+    dummy = graph.add_node({"key": ("dummy starting node", 0)})
 
-    equiv_lib._graph.add_edges_from_no_data([(dummy, equiv_lib._key_to_node_index[key]) for key in target_basis_keys])
+    graph.add_edges_from_no_data(
+        [(dummy, equiv_lib.key_to_node_index[key]) for key in target_basis_keys]
+    )
     rtn = None
     try:
-        retworkx.digraph_dijkstra_search(equiv_lib._graph, [dummy], vis.edge_cost, vis)
+        retworkx.digraph_dijkstra_search(graph, [dummy], vis.edge_cost, vis)
     except StopIfBasisRewritable:
         rtn = vis.basis_transforms
 

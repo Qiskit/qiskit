@@ -12,6 +12,7 @@
 
 """Gate equivalence library."""
 
+import copy
 from collections import namedtuple
 
 from retworkx.visualization import graphviz_draw
@@ -22,8 +23,6 @@ from .exceptions import CircuitError
 from .parameterexpression import ParameterExpression
 
 Key = namedtuple("Key", ["name", "num_qubits"])
-
-Entry = namedtuple("Entry", ["search_base", "equivalences"])
 
 Equivalence = namedtuple("Equivalence", ["params", "circuit"])  # Ordered to match Gate.params
 
@@ -41,22 +40,48 @@ class EquivalenceLibrary:
         """
         self._base = base
 
-        self._graph = base._graph if base is not None else rx.PyDiGraph()
-
         if base is None:
             self._graph = rx.PyDiGraph()
-            self._num_gates_for_rule = dict()
             self._key_to_node_index = dict()
+            self._num_gates_for_rule = dict()
             self._rule_count = 0
         else:
-            self._graph = base._graph.copy()
-            self._num_gates_for_rule = base._num_gates_for_rule.copy()
-            self._key_to_node_index = base._key_to_node_index.copy()
+            self._graph = copy.deepcopy(base._graph)
+            self._key_to_node_index = copy.deepcopy(base._key_to_node_index)
+            self._num_gates_for_rule = copy.copy(base._num_gates_for_rule)
             self._rule_count = base._rule_count
 
-    def _lazy_setdefault(self, key, add_weight=True):
+    @property
+    def graph(self) -> rx.PyDiGraph:
+        """Return graph representing the equivalence library data.
+
+        Returns:
+            PyDiGraph: A graph object with equivalence data in each node.
+        """
+        return self._graph
+
+    @property
+    def key_to_node_index(self) -> dict:
+        """Return map of keys to node indices
+
+        Returns:
+            dict: A map of Keys to node indices
+        """
+        return self._key_to_node_index
+
+    @property
+    def num_gates_for_rule(self) -> dict:
+        """Return map of number of gates in each rule.
+
+        Returns:
+            dict: A map of the number of gates in each rule.
+        """
+        return self._num_gates_for_rule
+
+    def _set_default_node(self, key):
+        """Create a new node if key not found"""
         if key not in self._key_to_node_index:
-            node_wt = {"key": key, "entry": Entry(search_base=True, equivalences=[])}# if add_weight else {}
+            node_wt = {"key": key, "equivs": []}
             self._key_to_node_index[key] = self._graph.add_node(node_wt)
         return self._key_to_node_index[key]
 
@@ -81,8 +106,8 @@ class EquivalenceLibrary:
         key = Key(name=gate.name, num_qubits=gate.num_qubits)
         equiv = Equivalence(params=gate.params.copy(), circuit=equivalent_circuit.copy())
 
-        target = self._lazy_setdefault(key, add_weight=True)
-        self._graph[target]["entry"].equivalences.append(equiv)
+        target = self._set_default_node(key)
+        self._graph[target]["equivs"].append(equiv)
 
         sources = {
             Key(name=instruction.operation.name, num_qubits=len(instruction.qubits))
@@ -90,16 +115,16 @@ class EquivalenceLibrary:
         }
         edges = [
             (
-                self._lazy_setdefault(source, add_weight=False),
+                self._set_default_node(source),
                 target,
                 {"index": self._rule_count, "rule": equiv, "source": source},
             )
             for source in sources
         ]
+        self._graph.add_edges_from(edges)
+
         self._num_gates_for_rule[self._rule_count] = len(sources)
         self._rule_count += 1
-
-        self._graph.add_edges_from(edges)
 
     def has_entry(self, gate):
         """Check if a library contains any decompositions for gate.
@@ -113,9 +138,7 @@ class EquivalenceLibrary:
         """
         key = Key(name=gate.name, num_qubits=gate.num_qubits)
 
-        return key in self._key_to_node_index or (
-            self._base.has_entry(gate) if self._base is not None else False
-        )
+        return key in self._key_to_node_index
 
     def set_entry(self, gate, entry):
         """Set the equivalence record for a Gate. Future queries for the Gate
@@ -137,9 +160,9 @@ class EquivalenceLibrary:
         key = Key(name=gate.name, num_qubits=gate.num_qubits)
         equivs = [Equivalence(params=gate.params.copy(), circuit=equiv.copy()) for equiv in entry]
 
-        node_key = self._lazy_setdefault(key, add_weight=True)
+        node_key = self._set_default_node(key)
 
-        self._graph[node_key]["entry"] = Entry(search_base=False, equivalences=equivs)
+        self._graph[node_key]["equivs"] = equivs
 
     def get_entry(self, gate):
         """Gets the set of QuantumCircuits circuits from the library which
@@ -196,7 +219,7 @@ class EquivalenceLibrary:
         graph = rx.PyDiGraph()
 
         node_map = {}
-        for key in self._get_all_keys():
+        for key in self._key_to_node_index.keys():
             name, num_qubits = key
             equivalences = self._get_equivalences(key)
 
@@ -227,26 +250,12 @@ class EquivalenceLibrary:
 
         return graph
 
-    def _get_all_keys(self):
-        base_keys = self._base._get_all_keys() if self._base is not None else set()
-        self_keys = set(self._key_to_node_index.keys())
-
-        return self_keys# | {
-        #     base_key
-        #     for base_key in base_keys
-        #     if base_key not in self._key_to_node_index
-        #     or self._graph[self._key_to_node_index[base_key]]["entry"].search_base
-        # }
-
     def _get_equivalences(self, key):
-        if key not in self._key_to_node_index:
-            search_base, equivalences = True, []
-        else:
-            search_base, equivalences = self._graph[self._key_to_node_index[key]]["entry"]
-
-        #if search_base and self._base is not None:
-        #    return equivalences + self._base._get_equivalences(key)
-        return equivalences
+        return (
+            self._graph[self._key_to_node_index[key]]["equivs"]
+            if key in self._key_to_node_index
+            else []
+        )
 
 
 def _raise_if_param_mismatch(gate_params, circuit_parameters):
