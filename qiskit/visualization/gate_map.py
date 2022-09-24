@@ -27,10 +27,6 @@ from .utils import matplotlib_close_if_inline
 
 def _get_backend_interface_version(backend):
     backend_interface_version = getattr(backend, "version", None)
-    # Handle deprecated BaseBackend based backends which have a version()
-    # method
-    if not isinstance(backend_interface_version, int):
-        backend_interface_version = 0
     return backend_interface_version
 
 
@@ -54,7 +50,7 @@ def plot_gate_map(
     """Plots the gate map of a device.
 
     Args:
-        backend (BaseBackend): The backend instance that will be used to plot the device
+        backend (Backend): The backend instance that will be used to plot the device
             gate map.
         figsize (tuple): Output figure size (wxh) in inches.
         plot_directed (bool): Plot directed coupling map.
@@ -599,9 +595,9 @@ def plot_coupling_map(
             %matplotlib inline
 
             num_qubits = 8
-            coupling_map = [[0, 1], [1, 2], [2, 3], [3, 5], [4, 5], [5, 6], [2, 4], [6, 7]]
             qubit_coordinates = [[0, 1], [1, 1], [1, 0], [1, 2], [2, 0], [2, 2], [2, 1], [3, 1]]
-            plot_coupling_map(num_qubits, coupling_map, qubit_coordinates)
+            coupling_map = [[0, 1], [1, 2], [2, 3], [3, 5], [4, 5], [5, 6], [2, 4], [6, 7]]
+            plot_coupling_map(num_qubits, qubit_coordinates, coupling_map)
     """
     import matplotlib.pyplot as plt
     import matplotlib.patches as mpatches
@@ -755,7 +751,7 @@ def plot_circuit_layout(circuit, backend, view="virtual", qubit_coordinates=None
 
     Args:
         circuit (QuantumCircuit): Input quantum circuit.
-        backend (BaseBackend): Target backend.
+        backend (Backend): Target backend.
         view (str): Layout view: either 'virtual' or 'physical'.
         qubit_coordinates (Sequence): An optional sequence input (list or array being the
             most common) of 2d coordinates for each qubit. The length of the
@@ -962,6 +958,8 @@ def plot_error_map(backend, figsize=(12, 9), show_title=True, qubit_coordinates=
             if prop_dict is None or None in prop_dict:
                 continue
             for qargs, inst_props in prop_dict.items():
+                if inst_props is None:
+                    continue
                 if gate == "measure":
                     if inst_props.error is not None:
                         read_err[qargs[0]] = inst_props.error

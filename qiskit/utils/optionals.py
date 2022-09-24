@@ -40,12 +40,20 @@ Qiskit Components
       - :mod:`Qiskit Ignis <qiskit.ignis>` provides tools for quantum hardware verification, noise
         characterization, and error correction.
 
+    * - .. py:data:: HAS_TOQM
+      - `Qiskit TOQM <https://github.com/qiskit-toqm/qiskit-toqm>`__ provides transpiler passes
+        for the `Time-optimal Qubit mapping algorithm <https://doi.org/10.1145/3445814.3446706>`__.
+
 
 External Python Libraries
 -------------------------
 
 .. list-table::
     :widths: 25 75
+
+    * - .. py:data:: HAS_CONSTRAINT
+      - `python-constraint <https://github.com/python-constraint/python-constraint>__ is a
+        constraint satisfaction problem solver, used in the :class:`~.CSPLayout` transpiler pass.
 
     * - .. py:data:: HAS_CPLEX
       - The `IBM CPLEX Optimizer <https://www.ibm.com/analytics/cplex-optimizer>`__ is a
@@ -138,10 +146,15 @@ External Python Libraries
         `testtools <https://pypi.org/project/testtools/>`__ library is installed.  This is generally
         only needed for Qiskit developers.
 
+    * - .. py:data:: HAS_TWEEDLEDUM
+      - `Tweedledum <https://github.com/boschmitt/tweedledum>`__ is an extension library for
+        synthesis and optimization of circuits that may involve classical oracles.  Qiskit Terra's
+        :class:`.PhaseOracle` uses this, which is used in turn by amplification algorithms via
+        the :class:`.AmplificationProblem`.
+
     * - .. py:data:: HAS_Z3
       - `Z3 <https://github.com/Z3Prover/z3>`__ is a theorem prover, used in the
         :class:`.CrosstalkAdaptiveSchedule` and :class:`.HoareOptimizer` transpiler passes.
-
 
 External Command-Line Tools
 ---------------------------
@@ -205,6 +218,13 @@ HAS_IGNIS = _LazyImportTester(
     "qiskit.ignis",
     name="Qiskit Ignis",
     install="pip install qiskit-ignis",
+)
+HAS_TOQM = _LazyImportTester("qiskit_toqm", name="Qiskit TOQM", install="pip install qiskit-toqm")
+
+HAS_CONSTRAINT = _LazyImportTester(
+    "constraint",
+    name="python-constraint",
+    install="pip install python-constraint",
 )
 
 HAS_CPLEX = _LazyImportTester(
@@ -277,6 +297,7 @@ HAS_SKQUANT = _LazyImportTester(
 HAS_SQSNOBFIT = _LazyImportTester("SQSnobFit", install="pip install SQSnobFit")
 HAS_SYMENGINE = _LazyImportTester("symengine", install="pip install symengine")
 HAS_TESTTOOLS = _LazyImportTester("testtools", install="pip install testtools")
+HAS_TWEEDLEDUM = _LazyImportTester("tweedledum", install="pip install tweedledum")
 HAS_Z3 = _LazyImportTester("z3", install="pip install z3-solver")
 
 HAS_GRAPHVIZ = _LazySubprocessTester(

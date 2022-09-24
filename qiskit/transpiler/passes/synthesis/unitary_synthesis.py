@@ -22,10 +22,10 @@ from qiskit.transpiler import CouplingMap, Target
 from qiskit.transpiler.basepasses import TransformationPass
 from qiskit.transpiler.exceptions import TranspilerError
 from qiskit.dagcircuit.dagcircuit import DAGCircuit
-from qiskit.extensions.quantum_initializer import isometry
 from qiskit.quantum_info.synthesis import one_qubit_decompose
 from qiskit.quantum_info.synthesis.xx_decompose import XXDecomposer
 from qiskit.quantum_info.synthesis.two_qubit_decompose import TwoQubitBasisDecomposer
+from qiskit.quantum_info.synthesis.qsd import qs_decomposition
 from qiskit.circuit.parameter import Parameter
 from qiskit.circuit.library.standard_gates import (
     iSwapGate,
@@ -211,7 +211,9 @@ class UnitarySynthesis(TransformationPass):
         self._approximation_degree = approximation_degree
         self._min_qubits = min_qubits
         self.method = method
-        self.plugins = plugin.UnitarySynthesisPluginManager()
+        self.plugins = None
+        if method != "default":
+            self.plugins = plugin.UnitarySynthesisPluginManager()
         self._coupling_map = coupling_map
         self._backend_props = backend_props
         self._pulse_optimize = pulse_optimize
@@ -245,14 +247,16 @@ class UnitarySynthesis(TransformationPass):
                 plugins can be queried with
                 :func:`~qiskit.transpiler.passes.synthesis.plugin.unitary_synthesis_plugin_names`
         """
-        if self.method not in self.plugins.ext_plugins:
+        if self.method != "default" and self.method not in self.plugins.ext_plugins:
             raise TranspilerError("Specified method: %s not found in plugin list" % self.method)
         # Return fast if we have no synth gates (ie user specified an empty
         # list or the synth gates are all in the basis
         if not self._synth_gates:
             return dag
-
-        plugin_method = self.plugins.ext_plugins[self.method].obj
+        if self.plugins:
+            plugin_method = self.plugins.ext_plugins[self.method].obj
+        else:
+            plugin_method = DefaultUnitarySynthesis()
         plugin_kwargs = {"config": self._plugin_config}
         _gate_lengths = _gate_errors = None
         dag_bit_indices = {}
@@ -298,8 +302,10 @@ class UnitarySynthesis(TransformationPass):
         # Handle approximation degree as a special case for backwards compatibility, it's
         # not part of the plugin interface and only something needed for the default
         # pass.
+        # pylint: disable=attribute-defined-outside-init
         default_method._approximation_degree = self._approximation_degree
         if self.method == "default":
+            # pylint: disable=attribute-defined-outside-init
             plugin_method._approximation_degree = self._approximation_degree
 
         for node in dag.named_nodes(*self._synth_gates):
@@ -539,7 +545,7 @@ class DefaultUnitarySynthesis(plugin.UnitarySynthesisPlugin):
                 preferred_direction,
             )
         else:
-            synth_dag = circuit_to_dag(isometry.Isometry(unitary, 0, 0).definition)
+            synth_dag = circuit_to_dag(qs_decomposition(unitary))
 
         return synth_dag, wires
 
@@ -563,15 +569,21 @@ class DefaultUnitarySynthesis(plugin.UnitarySynthesisPlugin):
         if natural_direction in {None, True} and (
             coupling_map or (target is not None and decomposer2q and not preferred_direction)
         ):
-            cmap = coupling_map
-            neighbors0 = cmap.neighbors(qubits[0])
-            zero_one = qubits[1] in neighbors0
-            neighbors1 = cmap.neighbors(qubits[1])
-            one_zero = qubits[0] in neighbors1
-            if zero_one and not one_zero:
-                preferred_direction = [0, 1]
-            if one_zero and not zero_one:
-                preferred_direction = [1, 0]
+            if coupling_map is not None:
+                cmap = coupling_map
+            else:
+                cmap = target.build_coupling_map()
+            # If we don't have a defined coupling map (either from the input)
+            # or from the target we can't check for a natural direction
+            if cmap is not None:
+                neighbors0 = cmap.neighbors(qubits[0])
+                zero_one = qubits[1] in neighbors0
+                neighbors1 = cmap.neighbors(qubits[1])
+                one_zero = qubits[0] in neighbors1
+                if zero_one and not one_zero:
+                    preferred_direction = [0, 1]
+                if one_zero and not zero_one:
+                    preferred_direction = [1, 0]
         if (
             natural_direction in {None, True}
             and preferred_direction is None

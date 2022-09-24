@@ -14,7 +14,7 @@
 Visualization functions for measurement counts.
 """
 
-from collections import Counter, OrderedDict
+from collections import OrderedDict
 import functools
 import numpy as np
 
@@ -64,8 +64,11 @@ def plot_histogram(
             dict containing the values to represent (ex {'001': 130})
         figsize (tuple): Figure size in inches.
         color (list or str): String or list of strings for histogram bar colors.
-        number_to_keep (int): The number of terms to plot and rest
-            is made into a single bar called 'rest'.
+        number_to_keep (int): The number of terms to plot per dataset.  The rest is made into a
+            single bar called 'rest'.  If multiple datasets are given, the ``number_to_keep``
+            applies to each dataset individually, which may result in more bars than
+            ``number_to_keep + 1``.  The ``number_to_keep`` applies to the total values, rather than
+            the x-axis sort.
         sort (string): Could be `'asc'`, `'desc'`, `'hamming'`, `'value'`, or
             `'value_desc'`. If set to `'value'` or `'value_desc'` the x axis
             will be sorted by the maximum probability for each bitstring.
@@ -92,21 +95,37 @@ def plot_histogram(
         VisualizationError: When legend is provided and the length doesn't
             match the input data.
 
-    Example:
+    Examples:
         .. jupyter-execute::
 
-           from qiskit import QuantumCircuit, BasicAer, execute
-           from qiskit.visualization import plot_histogram
-           %matplotlib inline
+            # Plot two counts in the same figure with legends and colors specified.
 
-           qc = QuantumCircuit(2, 2)
-           qc.h(0)
-           qc.cx(0, 1)
-           qc.measure([0, 1], [0, 1])
+            from qiskit.visualization import plot_histogram
 
-           backend = BasicAer.get_backend('qasm_simulator')
-           job = execute(qc, backend)
-           plot_histogram(job.result().get_counts(), color='midnightblue', title="New Histogram")
+            counts1 = {'00': 525, '11': 499}
+            counts2 = {'00': 511, '11': 514}
+
+            legend = ['First execution', 'Second execution']
+
+            plot_histogram([counts1, counts2], legend=legend, color=['crimson','midnightblue'],
+                            title="New Histogram")
+
+        .. jupyter-execute::
+
+            # You can sort the bitstrings using different methods.
+
+            counts = {'001': 596, '011': 211, '010': 50, '000': 117, '101': 33, '111': 8,
+                    '100': 6, '110': 3}
+
+            # Sort by the probability in descending order
+            hist1 = plot_histogram(counts, sort='value_desc')
+
+            # Sort by the hamming distance (the number of bit flips to change from
+            # one bitstring to the other) from a target string.
+            hist2 = plot_histogram(counts, sort='hamming', target_string='001')
+
+            display(hist1, hist2)
+
     """
     import matplotlib.pyplot as plt
     from matplotlib.ticker import MaxNLocator
@@ -148,7 +167,7 @@ def plot_histogram(
     if sort in DIST_MEAS:
         dist = []
         for item in labels:
-            dist.append(DIST_MEAS[sort](item, target_string))
+            dist.append(DIST_MEAS[sort](item, target_string) if item != "rest" else 0)
 
         labels = [list(x) for x in zip(*sorted(zip(dist, labels), key=lambda pair: pair[0]))][1]
     elif "value" in sort:
@@ -241,6 +260,26 @@ def plot_histogram(
         return fig.savefig(filename)
 
 
+def _keep_largest_items(execution, number_to_keep):
+    """Keep only the largest values in a dictionary, and sum the rest into a new key 'rest'."""
+    sorted_counts = sorted(execution.items(), key=lambda p: p[1])
+    rest = sum(count for key, count in sorted_counts[:-number_to_keep])
+    return dict(sorted_counts[-number_to_keep:], rest=rest)
+
+
+def _unify_labels(data):
+    """Make all dictionaries in data have the same set of keys, using 0 for missing values."""
+    data = tuple(data)
+    all_labels = set().union(*(execution.keys() for execution in data))
+    base = {label: 0 for label in all_labels}
+    out = []
+    for execution in data:
+        new_execution = base.copy()
+        new_execution.update(execution)
+        out.append(new_execution)
+    return out
+
+
 def _plot_histogram_data(data, labels, number_to_keep):
     """Generate the data needed for plotting counts.
 
@@ -259,22 +298,21 @@ def _plot_histogram_data(data, labels, number_to_keep):
                     experiment.
     """
     labels_dict = OrderedDict()
-
     all_pvalues = []
     all_inds = []
+
+    if isinstance(data, dict):
+        data = [data]
+    if number_to_keep is not None:
+        data = _unify_labels(_keep_largest_items(execution, number_to_keep) for execution in data)
+
     for execution in data:
-        if number_to_keep is not None:
-            data_temp = dict(Counter(execution).most_common(number_to_keep))
-            data_temp["rest"] = sum(execution.values()) - sum(data_temp.values())
-            execution = data_temp
         values = []
         for key in labels:
             if key not in execution:
                 if number_to_keep is None:
                     labels_dict[key] = 1
                     values.append(0)
-                else:
-                    values.append(-1)
             else:
                 labels_dict[key] = 1
                 values.append(execution[key])

@@ -20,13 +20,7 @@ import numpy as np
 from ddt import ddt
 
 from qiskit import QiskitError
-from qiskit.quantum_info.operators import (
-    Operator,
-    Pauli,
-    PauliList,
-    PauliTable,
-    SparsePauliOp,
-)
+from qiskit.quantum_info.operators import Operator, Pauli, PauliList, PauliTable, SparsePauliOp
 from qiskit.test import QiskitTestCase
 
 
@@ -182,6 +176,15 @@ class TestSparsePauliOpConversions(QiskitTestCase):
         """Test from_list via Pauli + indices raises correctly, if number of qubits invalid."""
         with self.assertRaises(QiskitError):
             _ = SparsePauliOp.from_sparse_list([("Z", [2], 1)], 1)
+
+    def test_from_index_list_same_index(self):
+        """Test from_list via Pauli + number of qubits raises correctly, if indices duplicate."""
+        with self.assertRaises(QiskitError):
+            _ = SparsePauliOp.from_sparse_list([("ZZ", [0, 0], 1)], 2)
+        with self.assertRaises(QiskitError):
+            _ = SparsePauliOp.from_sparse_list([("ZI", [0, 0], 1)], 2)
+        with self.assertRaises(QiskitError):
+            _ = SparsePauliOp.from_sparse_list([("IZ", [0, 0], 1)], 2)
 
     def test_from_zip(self):
         """Test from_list method for zipped input."""
@@ -340,6 +343,11 @@ class TestSparsePauliOpMethods(QiskitTestCase):
         self.assertEqual(value, target)
         np.testing.assert_array_equal(op.paulis.phase, np.zeros(op.size))
 
+        op = spp_op1 @ spp_op2
+        value = op.to_operator()
+        self.assertEqual(value, target)
+        np.testing.assert_array_equal(op.paulis.phase, np.zeros(op.size))
+
     @combine(num_qubits=[1, 2, 3])
     def test_qargs_compose(self, num_qubits):
         """Test 3-qubit compose method with {num_qubits}-qubit qargs."""
@@ -445,8 +453,13 @@ class TestSparsePauliOpMethods(QiskitTestCase):
         spp_op = self.random_spp_op(num_qubits, 2**num_qubits)
         target = value * Operator(spp_op)
         op = value * spp_op
-        value = op.to_operator()
-        self.assertEqual(value, target)
+        value_mat = op.to_operator()
+        self.assertEqual(value_mat, target)
+        np.testing.assert_array_equal(op.paulis.phase, np.zeros(op.size))
+        target = Operator(spp_op) * value
+        op = spp_op * value
+        value_mat = op.to_operator()
+        self.assertEqual(value_mat, target)
         np.testing.assert_array_equal(op.paulis.phase, np.zeros(op.size))
 
     @combine(num_qubits=[1, 2, 3], value=[1, 1j, -3 + 4.4j])
@@ -496,6 +509,132 @@ class TestSparsePauliOpMethods(QiskitTestCase):
         np.testing.assert_array_equal(simplified_op.coeffs, [0])
         np.testing.assert_array_equal(zero_op.paulis.phase, np.zeros(zero_op.size))
         np.testing.assert_array_equal(simplified_op.paulis.phase, np.zeros(simplified_op.size))
+
+    def test_sort(self):
+        """Test sort method."""
+        with self.assertRaises(QiskitError):
+            target = SparsePauliOp([], [])
+
+        with self.subTest(msg="1 qubit real number"):
+            target = SparsePauliOp(
+                ["I", "I", "I", "I"], [-3.0 + 0.0j, 1.0 + 0.0j, 2.0 + 0.0j, 4.0 + 0.0j]
+            )
+            value = SparsePauliOp(["I", "I", "I", "I"], [1, 2, -3, 4]).sort()
+            self.assertEqual(target, value)
+
+        with self.subTest(msg="1 qubit complex"):
+            target = SparsePauliOp(
+                ["I", "I", "I", "I"], [-1.0 + 0.0j, 0.0 - 1.0j, 0.0 + 1.0j, 1.0 + 0.0j]
+            )
+            value = SparsePauliOp(
+                ["I", "I", "I", "I"], [1.0 + 0.0j, 0.0 + 1.0j, 0.0 - 1.0j, -1.0 + 0.0j]
+            ).sort()
+            self.assertEqual(target, value)
+
+        with self.subTest(msg="1 qubit Pauli I, X, Y, Z"):
+            target = SparsePauliOp(
+                ["I", "X", "Y", "Z"], [-1.0 + 2.0j, 1.0 + 0.0j, 2.0 + 0.0j, 3.0 - 4.0j]
+            )
+            value = SparsePauliOp(
+                ["Y", "X", "Z", "I"], [2.0 + 0.0j, 1.0 + 0.0j, 3.0 - 4.0j, -1.0 + 2.0j]
+            ).sort()
+            self.assertEqual(target, value)
+
+        with self.subTest(msg="1 qubit weight order"):
+            target = SparsePauliOp(
+                ["I", "X", "Y", "Z"], [-1.0 + 2.0j, 1.0 + 0.0j, 2.0 + 0.0j, 3.0 - 4.0j]
+            )
+            value = SparsePauliOp(
+                ["Y", "X", "Z", "I"], [2.0 + 0.0j, 1.0 + 0.0j, 3.0 - 4.0j, -1.0 + 2.0j]
+            ).sort(weight=True)
+            self.assertEqual(target, value)
+
+        with self.subTest(msg="1 qubit multi Pauli"):
+            target = SparsePauliOp(
+                ["I", "I", "I", "I", "X", "X", "Y", "Z"],
+                [
+                    -1.0 + 2.0j,
+                    1.0 + 0.0j,
+                    2.0 + 0.0j,
+                    3.0 - 4.0j,
+                    -1.0 + 4.0j,
+                    -1.0 + 5.0j,
+                    -1.0 + 3.0j,
+                    -1.0 + 2.0j,
+                ],
+            )
+            value = SparsePauliOp(
+                ["I", "I", "I", "I", "X", "Z", "Y", "X"],
+                [
+                    2.0 + 0.0j,
+                    1.0 + 0.0j,
+                    3.0 - 4.0j,
+                    -1.0 + 2.0j,
+                    -1.0 + 5.0j,
+                    -1.0 + 2.0j,
+                    -1.0 + 3.0j,
+                    -1.0 + 4.0j,
+                ],
+            ).sort()
+            self.assertEqual(target, value)
+
+        with self.subTest(msg="2 qubit standard order"):
+            target = SparsePauliOp(
+                ["II", "XI", "XX", "XX", "XX", "XY", "XZ", "YI"],
+                [
+                    4.0 + 0.0j,
+                    7.0 + 0.0j,
+                    2.0 + 1.0j,
+                    2.0 + 2.0j,
+                    3.0 + 0.0j,
+                    6.0 + 0.0j,
+                    5.0 + 0.0j,
+                    3.0 + 0.0j,
+                ],
+            )
+            value = SparsePauliOp(
+                ["XX", "XX", "XX", "YI", "II", "XZ", "XY", "XI"],
+                [
+                    2.0 + 1.0j,
+                    2.0 + 2.0j,
+                    3.0 + 0.0j,
+                    3.0 + 0.0j,
+                    4.0 + 0.0j,
+                    5.0 + 0.0j,
+                    6.0 + 0.0j,
+                    7.0 + 0.0j,
+                ],
+            ).sort()
+            self.assertEqual(target, value)
+
+        with self.subTest(msg="2 qubit weight order"):
+            target = SparsePauliOp(
+                ["II", "XI", "YI", "XX", "XX", "XX", "XY", "XZ"],
+                [
+                    4.0 + 0.0j,
+                    7.0 + 0.0j,
+                    3.0 + 0.0j,
+                    2.0 + 1.0j,
+                    2.0 + 2.0j,
+                    3.0 + 0.0j,
+                    6.0 + 0.0j,
+                    5.0 + 0.0j,
+                ],
+            )
+            value = SparsePauliOp(
+                ["XX", "XX", "XX", "YI", "II", "XZ", "XY", "XI"],
+                [
+                    2.0 + 1.0j,
+                    2.0 + 2.0j,
+                    3.0 + 0.0j,
+                    3.0 + 0.0j,
+                    4.0 + 0.0j,
+                    5.0 + 0.0j,
+                    6.0 + 0.0j,
+                    7.0 + 0.0j,
+                ],
+            ).sort(weight=True)
+            self.assertEqual(target, value)
 
     def test_chop(self):
         """Test chop, which individually truncates real and imaginary parts of the coeffs."""
@@ -579,6 +718,13 @@ class TestSparsePauliOpMethods(QiskitTestCase):
         if not spp_op2.equiv(zero):
             self.assertFalse(spp_op2.equiv(spp_op2 + spp_op2))
 
+    def test_equiv_atol(self):
+        """Test equiv method with atol."""
+        op1 = SparsePauliOp.from_list([("X", 1), ("Y", 2)])
+        op2 = op1 + 1e-7 * SparsePauliOp.from_list([("I", 1)])
+        self.assertFalse(op1.equiv(op2))
+        self.assertTrue(op1.equiv(op2, atol=1e-7))
+
     def test_eq_equiv(self):
         """Test __eq__ and equiv methods with some specific cases."""
         with self.subTest("shuffled"):
@@ -592,6 +738,41 @@ class TestSparsePauliOpMethods(QiskitTestCase):
             spp_op2 = SparsePauliOp.from_list([("X", 1), ("Y", 1), ("Z", 0)])
             self.assertNotEqual(spp_op1, spp_op2)
             self.assertTrue(spp_op1.equiv(spp_op2))
+
+    def test_group_commuting(self):
+        """Test general grouping commuting operators"""
+
+        def commutes(left: Pauli, right: Pauli) -> bool:
+            return len(left) == len(right) and left.commutes(right)
+
+        input_labels = ["IX", "IY", "IZ", "XX", "YY", "ZZ", "XY", "YX", "ZX", "ZY", "XZ", "YZ"]
+        np.random.shuffle(input_labels)
+        coefs = np.random.random(len(input_labels)) + np.random.random(len(input_labels)) * 1j
+        sparse_pauli_list = SparsePauliOp(input_labels, coefs)
+        groups = sparse_pauli_list.group_commuting()
+        # checking that every input Pauli in sparse_pauli_list is in a group in the ouput
+        output_labels = [pauli.to_label() for group in groups for pauli in group.paulis]
+        self.assertListEqual(sorted(output_labels), sorted(input_labels))
+        # checking that every coeffs are grouped according to sparse_pauli_list group
+        paulis_coeff_dict = dict(
+            sum([list(zip(group.paulis.to_labels(), group.coeffs)) for group in groups], [])
+        )
+        self.assertDictEqual(dict(zip(input_labels, coefs)), paulis_coeff_dict)
+
+        # Within each group, every operator commutes with every other operator.
+        for group in groups:
+            self.assertTrue(
+                all(commutes(pauli1, pauli2) for pauli1, pauli2 in it.combinations(group.paulis, 2))
+            )
+        # For every pair of groups, at least one element from one group does not commute with
+        # at least one element of the other.
+        for group1, group2 in it.combinations(groups, 2):
+            self.assertFalse(
+                all(
+                    commutes(group1_pauli, group2_pauli)
+                    for group1_pauli, group2_pauli in it.product(group1.paulis, group2.paulis)
+                )
+            )
 
 
 if __name__ == "__main__":

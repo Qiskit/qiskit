@@ -21,13 +21,14 @@ from qiskit.circuit.library.standard_gates import IGate, XGate, YGate, ZGate, HG
 from qiskit.quantum_info.operators.base_operator import BaseOperator
 from qiskit.quantum_info.operators.operator import Operator
 from qiskit.quantum_info.operators.scalar_op import ScalarOp
-from qiskit.quantum_info.synthesis.clifford_decompose import decompose_clifford
 from qiskit.quantum_info.operators.mixins import generate_apidocs, AdjointMixin
+from qiskit.circuit.operation import Operation
+from qiskit.quantum_info.operators.symplectic.base_pauli import _count_y
 from .stabilizer_table import StabilizerTable
 from .clifford_circuits import _append_circuit
 
 
-class Clifford(BaseOperator, AdjointMixin):
+class Clifford(BaseOperator, AdjointMixin, Operation):
     """An N-qubit unitary operator from the Clifford group.
 
     **Representation**
@@ -383,6 +384,8 @@ class Clifford(BaseOperator, AdjointMixin):
                Phys. Rev. A 70, 052328 (2004).
                `arXiv:quant-ph/0406196 <https://arxiv.org/abs/quant-ph/0406196>`_
         """
+        from qiskit.quantum_info.synthesis.clifford_decompose import decompose_clifford
+
         return decompose_clifford(self)
 
     def to_instruction(self):
@@ -517,7 +520,7 @@ class Clifford(BaseOperator, AdjointMixin):
             ret.table.phase ^= clifford.dot(ret).table.phase
         if method in ["C", "T"]:
             # Apply conjugate
-            ret.table.phase ^= np.mod(np.sum(ret.table.X & ret.table.Z, axis=1), 2).astype(bool)
+            ret.table.phase ^= np.mod(_count_y(ret.table.X, ret.table.Z), 2).astype(bool)
         return ret
 
     def _pad_with_identity(self, clifford, qargs):

@@ -19,9 +19,9 @@ import unittest
 from PIL import Image
 
 from qiskit.circuit import QuantumRegister, QuantumCircuit, Qubit, Clbit
-from qiskit.tools.visualization import dag_drawer
+from qiskit.visualization import dag_drawer
 from qiskit.exceptions import InvalidFileError
-from qiskit.visualization.exceptions import VisualizationError
+from qiskit.visualization import VisualizationError
 from qiskit.converters import circuit_to_dag
 from qiskit.utils import optionals as _optionals
 from .visualization import path_to_diagram_reference, QiskitVisualizationTestCase
@@ -38,10 +38,13 @@ class TestDagDrawer(QiskitVisualizationTestCase):
         circuit.cx(qr[0], qr[1])
         self.dag = circuit_to_dag(circuit)
 
+    @unittest.skipUnless(_optionals.HAS_GRAPHVIZ, "Graphviz not installed")
     def test_dag_drawer_invalid_style(self):
         """Test dag draw with invalid style."""
-        self.assertRaises(VisualizationError, dag_drawer, self.dag, style="multicolor")
+        with self.assertRaisesRegex(VisualizationError, "Invalid style multicolor"):
+            dag_drawer(self.dag, style="multicolor")
 
+    @unittest.skipUnless(_optionals.HAS_GRAPHVIZ, "Graphviz not installed")
     def test_dag_drawer_checks_filename_correct_format(self):
         """filename must contain name and extension"""
         with self.assertRaisesRegex(
@@ -49,9 +52,14 @@ class TestDagDrawer(QiskitVisualizationTestCase):
         ):
             dag_drawer(self.dag, filename="aaabc")
 
+    @unittest.skipUnless(_optionals.HAS_GRAPHVIZ, "Graphviz not installed")
     def test_dag_drawer_checks_filename_extension(self):
         """filename must have a valid extension"""
-        with self.assertRaisesRegex(InvalidFileError, "Filename extension must be one of: .*"):
+        with self.assertRaisesRegex(
+            ValueError,
+            "The specified value for the image_type argument, 'abc' is not a "
+            "valid choice. It must be one of: .*",
+        ):
             dag_drawer(self.dag, filename="aa.abc")
 
     @unittest.skipUnless(_optionals.HAS_GRAPHVIZ, "Graphviz not installed")

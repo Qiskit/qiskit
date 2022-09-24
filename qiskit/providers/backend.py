@@ -18,14 +18,11 @@
 from abc import ABC
 from abc import abstractmethod
 import datetime
-import logging
 from typing import List, Union, Iterable, Tuple
 
 from qiskit.providers.provider import Provider
 from qiskit.providers.models.backendstatus import BackendStatus
 from qiskit.circuit.gate import Instruction
-
-logger = logging.getLogger(__name__)
 
 
 class Backend:
@@ -211,10 +208,10 @@ class BackendV1(Backend, ABC):
     def run(self, run_input, **options):
         """Run on the backend.
 
-        This method that will return a :class:`~qiskit.providers.Job` object
-        that run circuits. Depending on the backend this may be either an async
-        or sync call. It is the discretion of the provider to decide whether
-        running should  block until the execution is finished or not. The Job
+        This method returns a :class:`~qiskit.providers.Job` object
+        that runs circuits. Depending on the backend this may be either an async
+        or sync call. It is at the discretion of the provider to decide whether
+        running should block until the execution is finished or not: the Job
         class can handle either situation.
 
         Args:
@@ -351,15 +348,6 @@ class BackendV2(Backend, ABC):
     @property
     def operation_names(self) -> List[str]:
         """A list of instruction names that the backend supports."""
-        non_global_ops = self.target.get_non_global_operation_names(strict_direction=True)
-        if non_global_ops:
-            invalid_str = ",".join(non_global_ops)
-            msg = (
-                f"This backend's operations: {invalid_str} only apply to a subset of "
-                "qubits. Using this property to get 'basis_gates' for the "
-                "transpiler may potentially create invalid output"
-            )
-            logger.warning(msg)
         return list(self.target.operation_names)
 
     @property
@@ -553,7 +541,7 @@ class BackendV2(Backend, ABC):
                 ``(control_qubit, target_qubit)``.
 
         Returns:
-            List[ControlChannel]: The Qubit measurement acquisition line.
+            List[ControlChannel]: The multi qubit control line.
 
         Raises:
             NotImplementedError: if the backend doesn't support querying the
@@ -603,10 +591,10 @@ class BackendV2(Backend, ABC):
     def run(self, run_input, **options):
         """Run on the backend.
 
-        This method that will return a :class:`~qiskit.providers.Job` object
-        that run circuits. Depending on the backend this may be either an async
-        or sync call. It is the discretion of the provider to decide whether
-        running should  block until the execution is finished or not. The Job
+        This method returns a :class:`~qiskit.providers.Job` object
+        that runs circuits. Depending on the backend this may be either an async
+        or sync call. It is at the discretion of the provider to decide whether
+        running should block until the execution is finished or not: the Job
         class can handle either situation.
 
         Args:

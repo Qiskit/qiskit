@@ -177,6 +177,7 @@ Quantum Circuit Construction
    Clbit
    AncillaRegister
    AncillaQubit
+   CircuitInstruction
 
 Gates and Instructions
 ----------------------
@@ -187,11 +188,9 @@ Gates and Instructions
    Gate
    ControlledGate
    Delay
-   Barrier
-   Measure
-   Reset
    Instruction
    InstructionSet
+   Operation
    EquivalenceLibrary
 
 Control Flow Operations
@@ -234,6 +233,7 @@ from .gate import Gate
 from .controlledgate import ControlledGate
 from .instruction import Instruction
 from .instructionset import InstructionSet
+from .operation import Operation
 from .barrier import Barrier
 from .delay import Delay
 from .measure import Measure
@@ -241,9 +241,10 @@ from .reset import Reset
 from .parameter import Parameter
 from .parametervector import ParameterVector
 from .parameterexpression import ParameterExpression
+from .quantumcircuitdata import CircuitInstruction
 from .equivalence import EquivalenceLibrary
-from .classicalfunction.types import Int1, Int2
-from .classicalfunction import classical_function, BooleanExpression
+from . import library
+from .commutation_checker import CommutationChecker
 
 from .controlflow import (
     ControlFlowOp,
@@ -253,3 +254,28 @@ from .controlflow import (
     BreakLoopOp,
     ContinueLoopOp,
 )
+
+
+_DEPRECATED_NAMES = {
+    "Int1": "qiskit.circuit.classicalfunction.types",
+    "Int2": "qiskit.circuit.classicalfunction.types",
+    "classical_function": "qiskit.circuit.classicalfunction",
+    "BooleanExpression": "qiskit.circuit.classicalfunction",
+}
+
+
+def __getattr__(name):
+    if name in _DEPRECATED_NAMES:
+        import importlib
+        import warnings
+
+        module_name = _DEPRECATED_NAMES[name]
+        warnings.warn(
+            f"Accessing '{name}' from '{__name__}' is deprecated since Qiskit Terra 0.22 "
+            f"and will be removed in 0.23.  Import from '{module_name}' instead. "
+            "This will require installing 'tweedledum' as an optional dependency from Terra 0.23.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+        return getattr(importlib.import_module(module_name), name)
+    raise AttributeError(f"module '{__name__}' has no attribute '{name}'")
