@@ -92,6 +92,7 @@ knowledge to do this in that application domain.
 
    NumPyEigensolver
    VQD
+   SSVQE
 
 
 Evolvers
@@ -299,7 +300,15 @@ from .amplitude_estimators import (
     MaximumLikelihoodAmplitudeEstimationResult,
     EstimationProblem,
 )
-from .eigen_solvers import NumPyEigensolver, Eigensolver, EigensolverResult, VQD, VQDResult
+from .eigen_solvers import (
+    NumPyEigensolver,
+    Eigensolver,
+    EigensolverResult,
+    VQD,
+    VQDResult,
+    SSVQE,
+    SSVQEResult,
+)
 from .factorizers import Shor, ShorResult
 from .linear_solvers import HHL, LinearSolver, NumPyLinearSolver, LinearSolverResult
 from .minimum_eigen_solvers import (
@@ -360,6 +369,8 @@ __all__ = [
     "EigensolverResult",
     "Shor",
     "ShorResult",
+    "SSVQE",
+    "SSVQEResult",
     "VQE",
     "VQEResult",
     "QAOA",
