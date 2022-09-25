@@ -38,7 +38,7 @@ class SPSASamplerGradient(BaseSamplerGradient):
         epsilon: float,
         batch_size: int = 1,
         seed: int | None = None,
-        **run_options,
+        **options,
     ):
         """
         Args:
@@ -46,9 +46,10 @@ class SPSASamplerGradient(BaseSamplerGradient):
             epsilon: The offset size for the SPSA gradients.
             batch_size: number of gradients to average.
             seed: The seed for a random perturbation vector.
-            run_options: Backend runtime options used for circuit execution. The order of priority is:
-                run_options in `run` method > gradient's default run_options > primitive's default
-                setting. Higher priority setting overrides lower priority setting.
+            options: Primitive backend runtime options used for circuit execution.
+                The order of priority is: options in ``run`` method > gradient's
+                default options > primitive's default setting.
+                Higher priority setting overrides lower priority setting
 
         Raises:
             ValueError: If ``epsilon`` is not positive.
@@ -59,14 +60,14 @@ class SPSASamplerGradient(BaseSamplerGradient):
         self._epsilon = epsilon
         self._seed = np.random.default_rng(seed)
 
-        super().__init__(sampler, **run_options)
+        super().__init__(sampler, **options)
 
     def _run(
         self,
         circuits: Sequence[QuantumCircuit],
         parameter_values: Sequence[Sequence[float]],
         parameters: Sequence[Sequence[Parameter] | None],
-        **run_options,
+        **options,
     ) -> SamplerGradientResult:
         """Compute the sampler gradients on the given circuits."""
         jobs, offsets, metadata_ = [], [], []
@@ -88,7 +89,7 @@ class SPSASamplerGradient(BaseSamplerGradient):
             minus = [parameter_values_ - self._epsilon * offset_ for offset_ in offset]
             offsets.append(offset)
 
-            job = self._sampler.run([circuit] * 2 * self._batch_size, plus + minus, **run_options)
+            job = self._sampler.run([circuit] * 2 * self._batch_size, plus + minus, **options)
             jobs.append(job)
 
         # combine the results
@@ -120,5 +121,5 @@ class SPSASamplerGradient(BaseSamplerGradient):
                 gradient.append(dict(enumerate(gradient_j)))
             gradients.append(gradient)
 
-        run_opt = self._get_local_run_options(run_options)
-        return SamplerGradientResult(gradients=gradients, metadata=metadata_, run_options=run_opt)
+        opt = self._get_local_options(options)
+        return SamplerGradientResult(gradients=gradients, metadata=metadata_, options=opt)
