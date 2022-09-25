@@ -370,10 +370,6 @@ class StagedPassManager(PassManager):
     want to set that to the earliest stage in sequence that it covers.
     """
 
-    invalid_stage_regex = re.compile(
-        r"\s|\+|\-|\*|\/|\\|\%|\<|\>|\@|\!|\~|\^|\&|\:|\[|\]|\{|\}|\(|\)"
-    )
-
     def __init__(self, stages: Optional[Iterable[str]] = None, **kwargs) -> None:
         """Initialize a new StagedPassManager object
 
@@ -413,7 +409,7 @@ class StagedPassManager(PassManager):
 
     def _validate_stages(self, stages: Iterable[str]) -> None:
         invalid_stages = [
-            stage for stage in stages if self.invalid_stage_regex.search(stage) is not None
+            stage for stage in stages if not isinstance(stage, str) or not stage.isidentifier()
         ]
         if invalid_stages:
             with io.StringIO() as msg:
