@@ -68,14 +68,14 @@ class TestSciPyImaginaryEvolver(QiskitAlgorithmsTestCase):
         expected_state_matrix = expected_state.to_matrix(massive=True)
 
         evolution_problem = EvolutionProblem(hamiltonian, tau, initial_state)
-        classic_evolver = SciPyImaginaryEvolver(timesteps=300)
+        classic_evolver = SciPyImaginaryEvolver(steps=300)
         result = classic_evolver.evolve(evolution_problem)
 
         with self.subTest("Amplitudes"):
             np.testing.assert_allclose(
                 np.absolute(result.evolved_state.to_matrix(massive=True)),
                 np.absolute(expected_state_matrix),
-                atol=1e-3,
+                atol=1e-10,
                 rtol=0,
             )
 
@@ -83,7 +83,7 @@ class TestSciPyImaginaryEvolver(QiskitAlgorithmsTestCase):
             np.testing.assert_allclose(
                 np.angle(result.evolved_state.to_matrix(massive=True)),
                 np.angle(expected_state_matrix),
-                atol=1e-3,
+                atol=1e-10,
                 rtol=0,
             )
 
@@ -109,7 +109,7 @@ class TestSciPyImaginaryEvolver(QiskitAlgorithmsTestCase):
             hamiltonian, time_ev, initial_state, aux_operators=observables
         )
 
-        classic_evolver = SciPyImaginaryEvolver(timesteps=300)
+        classic_evolver = SciPyImaginaryEvolver(steps=300)
         result = classic_evolver.evolve(evolution_problem)
 
         z_mean, z_std = result.observables["Z"]
@@ -119,9 +119,8 @@ class TestSciPyImaginaryEvolver(QiskitAlgorithmsTestCase):
         expected_z = 1 / (np.cosh(time_vector) ** 2 + np.sinh(time_vector) ** 2)
         expected_z_std = np.zeros_like(expected_z)
 
-        threshold = 1e-3
-        np.testing.assert_allclose(z_mean, expected_z**nqubits, atol=2 * threshold, rtol=0)
-        np.testing.assert_allclose(z_std, expected_z_std, atol=2 * threshold, rtol=0)
+        np.testing.assert_allclose(z_mean, expected_z**nqubits, atol=1e-10, rtol=0)
+        np.testing.assert_allclose(z_std, expected_z_std, atol=1e-10, rtol=0)
 
     def test_quantum_circuit_initial_state(self):
         """Tests if the system can be evolved with a quantum circuit as an initial state."""
@@ -131,7 +130,7 @@ class TestSciPyImaginaryEvolver(QiskitAlgorithmsTestCase):
         qc.cx(0, range(1, 3))
 
         evolution_problem = EvolutionProblem(hamiltonian=X ^ X ^ X, time=1.0, initial_state=qc)
-        classic_evolver = SciPyImaginaryEvolver(timesteps=5)
+        classic_evolver = SciPyImaginaryEvolver(steps=5)
         result = classic_evolver.evolve(evolution_problem)
         self.assertEqual(result.evolved_state, VectorStateFn(Statevector(qc)))
 
@@ -140,7 +139,7 @@ class TestSciPyImaginaryEvolver(QiskitAlgorithmsTestCase):
         evolution_problem = EvolutionProblem(
             hamiltonian=X ^ X ^ X, time=1.0, initial_state=Zero, t_param=0
         )
-        classic_evolver = SciPyImaginaryEvolver(timesteps=5)
+        classic_evolver = SciPyImaginaryEvolver(steps=5)
         with self.assertRaises(ValueError):
             classic_evolver.evolve(evolution_problem)
 
@@ -150,16 +149,16 @@ class TestSciPyImaginaryEvolver(QiskitAlgorithmsTestCase):
 
         with self.subTest("0 timesteps"):
             with self.assertRaises(ValueError):
-                classic_evolver = SciPyImaginaryEvolver(timesteps=0)
+                classic_evolver = SciPyImaginaryEvolver(steps=0)
                 classic_evolver.evolve(evolution_problem)
 
         with self.subTest("1 timestep"):
-            classic_evolver = SciPyImaginaryEvolver(timesteps=1)
+            classic_evolver = SciPyImaginaryEvolver(steps=1)
             classic_evolver.evolve(evolution_problem)
 
         with self.subTest("Negative timesteps"):
             with self.assertRaises(ValueError):
-                classic_evolver = SciPyImaginaryEvolver(timesteps=-5)
+                classic_evolver = SciPyImaginaryEvolver(steps=-5)
                 classic_evolver.evolve(evolution_problem)
 
 

@@ -13,7 +13,6 @@
 """Test Classical Real Evolver."""
 import unittest
 from test.python.algorithms import QiskitAlgorithmsTestCase
-from typing import List
 from ddt import data, ddt, unpack
 import numpy as np
 from qiskit.opflow import StateFn, OperatorBase
@@ -48,14 +47,14 @@ class TestClassicalRealEvolver(QiskitAlgorithmsTestCase):
     ):
         """Initializes a classical real evolver and evolves a state."""
         evolution_problem = EvolutionProblem(hamiltonian, time_ev, initial_state)
-        classic_evolver = SciPyRealEvolver(threshold=1e-3)
+        classic_evolver = SciPyRealEvolver(steps=1)
         result = classic_evolver.evolve(evolution_problem)
 
         with self.subTest("Amplitudes"):
             np.testing.assert_allclose(
                 np.absolute(result.evolved_state.to_matrix()),
                 np.absolute(expected_state.to_matrix()),
-                atol=1e-3,
+                atol=1e-10,
                 rtol=0,
             )
 
@@ -77,8 +76,7 @@ class TestClassicalRealEvolver(QiskitAlgorithmsTestCase):
         evolution_problem = EvolutionProblem(
             hamiltonian, time_ev, initial_state, aux_operators=observables
         )
-        threshold = 1e-3
-        classic_evolver = SciPyRealEvolver(threshold=threshold, bicg_err=0.1)
+        classic_evolver = SciPyRealEvolver(steps=10)
         result = classic_evolver.evolve(evolution_problem)
 
         z_mean, z_std = result.observables["Z"]
@@ -88,8 +86,8 @@ class TestClassicalRealEvolver(QiskitAlgorithmsTestCase):
         expected_z = 1 - 2 * (np.sin(time_vector)) ** 2
         expected_z_std = np.zeros_like(expected_z)
 
-        np.testing.assert_allclose(z_mean, expected_z, atol=2 * threshold, rtol=0)
-        np.testing.assert_allclose(z_std, expected_z_std, atol=2 * threshold, rtol=0)
+        np.testing.assert_allclose(z_mean, expected_z, atol=1e-10, rtol=0)
+        np.testing.assert_allclose(z_std, expected_z_std, atol=1e-10, rtol=0)
 
     def test_quantum_circuit_initial_state(self):
         """Tests if the system can be evolved with a quantum circuit as an initial state."""
@@ -100,12 +98,12 @@ class TestClassicalRealEvolver(QiskitAlgorithmsTestCase):
         evolution_problem = EvolutionProblem(
             hamiltonian=X ^ X ^ X, time=2 * np.pi, initial_state=qc
         )
-        classic_evolver = SciPyRealEvolver(max_iterations=500)
+        classic_evolver = SciPyRealEvolver(steps=500)
         result = classic_evolver.evolve(evolution_problem)
         np.testing.assert_almost_equal(
             result.evolved_state.to_matrix(),
             np.array([1, 0, 0, 0, 0, 0, 0, 1]) / np.sqrt(2),
-            decimal=3,
+            decimal=10,
         )
 
     def test_error_time_dependency(self):
@@ -113,7 +111,7 @@ class TestClassicalRealEvolver(QiskitAlgorithmsTestCase):
         evolution_problem = EvolutionProblem(
             hamiltonian=X ^ X ^ X, time=1.0, initial_state=Zero, t_param=0
         )
-        classic_evolver = SciPyRealEvolver(max_iterations=5)
+        classic_evolver = SciPyRealEvolver(steps=5)
         with self.assertRaises(ValueError):
             classic_evolver.evolve(evolution_problem)
 
@@ -125,17 +123,17 @@ class TestClassicalRealEvolver(QiskitAlgorithmsTestCase):
 
         with self.subTest("0 timesteps"):
             with self.assertRaises(ValueError):
-                classic_evolver = SciPyRealEvolver(max_iterations=0)
+                classic_evolver = SciPyRealEvolver(steps=0)
                 classic_evolver.evolve(evolution_problem)
 
         with self.subTest("1 timestep"):
-            classic_evolver = SciPyRealEvolver(max_iterations=1)
+            classic_evolver = SciPyRealEvolver(steps=1)
             result = classic_evolver.evolve(evolution_problem)
             np.testing.assert_equal(result.observables["time"], np.array([0.0, 1.0]))
 
         with self.subTest("Negative timesteps"):
             with self.assertRaises(ValueError):
-                classic_evolver = SciPyRealEvolver(max_iterations=-5)
+                classic_evolver = SciPyRealEvolver(steps=-5)
                 classic_evolver.evolve(evolution_problem)
 
 

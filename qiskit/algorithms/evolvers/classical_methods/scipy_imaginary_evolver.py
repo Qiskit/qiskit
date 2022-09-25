@@ -11,18 +11,11 @@
 # that they have been altered from the originals.
 
 """Classical Quantum Imaginary Time Evolution."""
-from typing import Tuple, List, Optional
-import numpy as np
-import scipy.sparse as sp
-from qiskit import QuantumCircuit
-from qiskit.opflow import StateFn
-from qiskit.quantum_info.states import Statevector
-
 
 from ..evolution_problem import EvolutionProblem
 from ..evolution_result import EvolutionResult
 from ..imaginary_evolver import ImaginaryEvolver
-from .scipy_evolver import _evaluate_aux_ops, _create_observable_output, _create_obs_final
+from .utils import _evolve
 
 
 class SciPyImaginaryEvolver(ImaginaryEvolver):
@@ -35,109 +28,134 @@ class SciPyImaginaryEvolver(ImaginaryEvolver):
 
     """
 
-    def __init__(
-        self,
-        timesteps: Optional[int] = 100,
-    ):
-        """
+    def __init__(self, steps: int):
+        r"""
         Args:
-            timesteps: The number of timesteps in the simulation.
-
+            steps: The number of timesteps in the simulation.
         Raises:
-            ValueError: If `timesteps` is not a positive integer.
+            ValueError: If `steps` is not a positive integer.
         """
-        if timesteps < 1:
-            raise ValueError(f"`timesteps` must be a positive integer, was given {timesteps}")
-
-        self.timesteps = timesteps
+        if steps <= 0:
+            raise ValueError("Variable `steps` needs to be a positive integer.")
+        self.steps = steps
 
     def evolve(self, evolution_problem: EvolutionProblem) -> EvolutionResult:
-        r"""Perform imaginary time evolution :math:`\exp(- \tau H)|\Psi\rangle`.
+        r"""Perform imaginary time evolution :math:`\exp(-\tau H)|\Psi\rangle`.
+
+        Evolves an initial state :math:`|\Psi\rangle` for an imaginary time :math:`\tau`
+        under a Hamiltonian  :math:`H`, as provided in the ``evolution_problem``.
 
         Args:
             evolution_problem: The definition of the evolution problem.
 
         Returns:
             Evolution result which includes an evolved quantum state.
-
-        Raises:
-            ValueError: If a `NaN` is encountered in the final state of the system.
-            RuntimeError: If the Hamiltonian in the evolution problem is time dependent.
-            RuntimeError: If the state norm goes to 0 during time evolution
         """
+        return _evolve(evolution_problem, self.steps, real_time=False)
 
-        if evolution_problem.t_param is not None:
-            raise ValueError("Time dependent Hamiltonians are not currently supported.")
+    # def __init__(
+    #     self,
+    #     timesteps: Optional[int] = 100,
+    # ):
+    #     """
+    #     Args:
+    #         timesteps: The number of timesteps in the simulation.
 
-        # Get the initial state, Hamiltonian and the auxiliary operators.
-        state, ev_operator, aux_ops = self._sparsify(evolution_problem=evolution_problem)
+    #     Raises:
+    #         ValueError: If `timesteps` is not a positive integer.
+    #     """
+    #     if timesteps < 1:
+    #         raise ValueError(f"`timesteps` must be a positive integer, was given {timesteps}")
 
-        # Create empty arrays to store the time evolution of the auxiliary operators.
-        operators_number = (
-            0 if evolution_problem.aux_operators is None else len(evolution_problem.aux_operators)
-        )
-        ops_ev_mean = np.empty(shape=(operators_number, self.timesteps + 1), dtype=complex)
+    #     self.timesteps = timesteps
 
-        for ts in range(self.timesteps):
-            ops_ev_mean[:, ts] = _evaluate_aux_ops(aux_ops, state)
-            state = ev_operator @ state
+    # def evolve(self, evolution_problem: EvolutionProblem) -> EvolutionResult:
+    #     r"""Perform imaginary time evolution :math:`\exp(- \tau H)|\Psi\rangle`.
 
-            if np.nan in state:
-                raise RuntimeError(
-                    "An overflow has probably occured. Try increasing the amount of timesteps."
-                )
-            # We need to normalize first with respect to the max value to avoid having a norm
-            # with a value that overflows.
-            state = state / state.max()
-            # We then check that the state hasn't gone to zero.
-            state_norm = np.linalg.norm(state)
-            if state_norm == 0:
-                raise RuntimeError("The norm of the state went to 0.")
-            # Finally we normalize with respect to the norm.
-            state = state / state_norm
+    #     Args:
+    #         evolution_problem: The definition of the evolution problem.
 
-        ops_ev_mean[:, self.timesteps] = _evaluate_aux_ops(aux_ops, state)
+    #     Returns:
+    #         Evolution result which includes an evolved quantum state.
 
-        aux_ops_history = _create_observable_output(ops_ev_mean, evolution_problem)
-        aux_ops = _create_obs_final(ops_ev_mean[:, -1], evolution_problem)
+    #     Raises:
+    #         ValueError: If a `NaN` is encountered in the final state of the system.
+    #         RuntimeError: If the Hamiltonian in the evolution problem is time dependent.
+    #         RuntimeError: If the state norm goes to 0 during time evolution
+    #     """
 
-        return EvolutionResult(
-            evolved_state=StateFn(state), aux_ops_evaluated=aux_ops, observables=aux_ops_history
-        )
+    #     if evolution_problem.t_param is not None:
+    #         raise ValueError("Time dependent Hamiltonians are not currently supported.")
 
-    def _sparsify(
-        self, evolution_problem: EvolutionProblem
-    ) -> Tuple[np.ndarray, sp.csr_matrix, List[sp.csr_matrix], float]:
-        """Returns the operators needed for the evolution.
+    #     # Get the initial state, Hamiltonian and the auxiliary operators.
+    #     state, ev_operator, aux_ops = self._sparsify(evolution_problem=evolution_problem)
 
-        Args:
-            evolution_problem: The definition of the evolution problem.
+    #     # Create empty arrays to store the time evolution of the auxiliary operators.
+    #     operators_number = (
+    #         0 if evolution_problem.aux_operators is None else len(evolution_problem.aux_operators)
+    #     )
+    #     ops_ev_mean = np.empty(shape=(operators_number, self.timesteps + 1), dtype=complex)
 
-        Returns:
-            A tuple with the initial state as an array, the evolution operator as a sparse matrix,
-            and list of the operators to evaluate at each timestep as sparse matrices.
+    #     for ts in range(self.timesteps):
+    #         ops_ev_mean[:, ts] = _evaluate_aux_ops(aux_ops, state)
+    #         state = ev_operator @ state
 
-        """
+    #         if np.nan in state:
+    #             raise RuntimeError(
+    #                 "An overflow has probably occured. Try increasing the amount of timesteps."
+    #             )
+    #         # We need to normalize first with respect to the max value to avoid having a norm
+    #         # with a value that overflows.
+    #         state = state / state.max()
+    #         # We then check that the state hasn't gone to zero.
+    #         state_norm = np.linalg.norm(state)
+    #         if state_norm == 0:
+    #             raise RuntimeError("The norm of the state went to 0.")
+    #         # Finally we normalize with respect to the norm.
+    #         state = state / state_norm
 
-        # Convert the initial state and Hamiltonian into sparse matrices.
-        if isinstance(evolution_problem.initial_state, QuantumCircuit):
-            initial_state = Statevector(evolution_problem.initial_state).data.T
-        else:
-            initial_state = evolution_problem.initial_state.to_matrix(massive=True).transpose()
+    #     ops_ev_mean[:, self.timesteps] = _evaluate_aux_ops(aux_ops, state)
 
-        hamiltonian = evolution_problem.hamiltonian.to_spmatrix()
+    #     aux_ops_history = _create_observable_output(ops_ev_mean, evolution_problem)
+    #     aux_ops = _create_obs_final(ops_ev_mean[:, -1], evolution_problem)
 
-        # Create the evolution operator for one timestep.
-        idnty = sp.identity(hamiltonian.shape[0], format="csr")
-        timestep = evolution_problem.time / self.timesteps
-        ev_operator = idnty - hamiltonian * timestep + hamiltonian @ hamiltonian * timestep**2 / 2
+    #     return EvolutionResult(
+    #         evolved_state=StateFn(state), aux_ops_evaluated=aux_ops, observables=aux_ops_history
+    #     )
 
-        # Get the auxiliary operators as sparse matrices.
-        if isinstance(evolution_problem.aux_operators, list):
-            aux_ops = [aux_op.to_spmatrix() for aux_op in evolution_problem.aux_operators]
-        elif isinstance(evolution_problem.aux_operators, dict):
-            aux_ops = [aux_op.to_spmatrix() for aux_op in evolution_problem.aux_operators.values()]
-        else:
-            aux_ops = []
+    # def _sparsify(
+    #     self, evolution_problem: EvolutionProblem
+    # ) -> Tuple[np.ndarray, sp.csr_matrix, List[sp.csr_matrix], float]:
+    #     """Returns the operators needed for the evolution.
 
-        return initial_state, ev_operator, aux_ops
+    #     Args:
+    #         evolution_problem: The definition of the evolution problem.
+
+    #     Returns:
+    #         A tuple with the initial state as an array, the evolution operator as a sparse matrix,
+    #         and list of the operators to evaluate at each timestep as sparse matrices.
+
+    #     """
+
+    #     # Convert the initial state and Hamiltonian into sparse matrices.
+    #     if isinstance(evolution_problem.initial_state, QuantumCircuit):
+    #         initial_state = Statevector(evolution_problem.initial_state).data.T
+    #     else:
+    #         initial_state = evolution_problem.initial_state.to_matrix(massive=True).transpose()
+
+    #     hamiltonian = evolution_problem.hamiltonian.to_spmatrix()
+
+    #     # Create the evolution operator for one timestep.
+    #     idnty = sp.identity(hamiltonian.shape[0], format="csr")
+    #     timestep = evolution_problem.time / self.timesteps
+    #     ev_operator = idnty - hamiltonian * timestep + hamiltonian @ hamiltonian * timestep**2 / 2
+
+    #     # Get the auxiliary operators as sparse matrices.
+    #     if isinstance(evolution_problem.aux_operators, list):
+    #         aux_ops = [aux_op.to_spmatrix() for aux_op in evolution_problem.aux_operators]
+    #     elif isinstance(evolution_problem.aux_operators, dict):
+    #         aux_ops = [aux_op.to_spmatrix() for aux_op in evolution_problem.aux_operators.values()]
+    #     else:
+    #         aux_ops = []
+
+    #     return initial_state, ev_operator, aux_ops
