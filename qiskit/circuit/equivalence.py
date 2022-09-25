@@ -23,7 +23,6 @@ from .exceptions import CircuitError
 from .parameterexpression import ParameterExpression
 
 Key = namedtuple("Key", ["name", "num_qubits"])
-
 Equivalence = namedtuple("Equivalence", ["params", "circuit"])  # Ordered to match Gate.params
 
 
@@ -62,7 +61,7 @@ class EquivalenceLibrary:
 
     @property
     def key_to_node_index(self) -> dict:
-        """Return map of keys to node indices
+        """Return map of Keys to node indices
 
         Returns:
             dict: A map of Keys to node indices
@@ -81,8 +80,7 @@ class EquivalenceLibrary:
     def _set_default_node(self, key):
         """Create a new node if key not found"""
         if key not in self._key_to_node_index:
-            node_wt = {"key": key, "equivs": []}
-            self._key_to_node_index[key] = self._graph.add_node(node_wt)
+            self._key_to_node_index[key] = self._graph.add_node({"key": key, "equivs": []})
         return self._key_to_node_index[key]
 
     def add_equivalence(self, gate, equivalent_circuit):
@@ -160,9 +158,7 @@ class EquivalenceLibrary:
         key = Key(name=gate.name, num_qubits=gate.num_qubits)
         equivs = [Equivalence(params=gate.params.copy(), circuit=equiv.copy()) for equiv in entry]
 
-        node_key = self._set_default_node(key)
-
-        self._graph[node_key]["equivs"] = equivs
+        self._graph[self._set_default_node(key)]["equivs"] = equivs
 
     def get_entry(self, gate):
         """Gets the set of QuantumCircuits circuits from the library which
@@ -251,6 +247,7 @@ class EquivalenceLibrary:
         return graph
 
     def _get_equivalences(self, key):
+        """Get all the equivalences for the given key"""
         return (
             self._graph[self._key_to_node_index[key]]["equivs"]
             if key in self._key_to_node_index

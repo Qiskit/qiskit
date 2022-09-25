@@ -154,6 +154,52 @@ class TestEquivalenceLibraryWithoutBase(QiskitTestCase):
 
         self.assertFalse(eq_lib.has_entry(OneQubitZeroParamGate()))
 
+    def test_equivalence_graph(self):
+        """Verify valid graph created by add_equivalence"""
+
+        import retworkx as rx
+        from qiskit.circuit.equivalence import Key, Equivalence
+
+        eq_lib = EquivalenceLibrary()
+
+        gate = OneQubitZeroParamGate()
+        first_equiv = QuantumCircuit(1)
+        first_equiv.h(0)
+        eq_lib.add_equivalence(gate, first_equiv)
+
+        equiv_copy = eq_lib._get_equivalences(Key(name="1q0p", num_qubits=1))[0].circuit
+
+        egraph = rx.PyDiGraph()
+        node_wt = {
+            "key": Key(name="1q0p", num_qubits=1),
+            "equivs": [Equivalence(params=[], circuit=equiv_copy)],
+        }
+        egraph.add_node(node_wt)
+
+        node_wt = {"key": Key(name="h", num_qubits=1), "equivs": []}
+        egraph.add_node(node_wt)
+
+        edge_wt = {
+            "index": 0,
+            "rule": Equivalence(params=[], circuit=equiv_copy),
+            "source": Key(name="h", num_qubits=1),
+        }
+        egraph.add_edge(0, 1, edge_wt)
+
+        for node in eq_lib.graph.nodes():
+            self.assertTrue(node in egraph.nodes())
+            for edge in eq_lib.graph.edges():
+                self.assertTrue(edge in egraph.edges())
+
+        self.assertEqual(len(eq_lib.graph.nodes()), len(egraph.nodes()))
+        self.assertEqual(len(eq_lib.graph.edges()), len(egraph.edges()))
+
+        key_map = {Key(name="1q0p", num_qubits=1): 0, Key(name="h", num_qubits=1): 1}
+        self.assertEqual(key_map, eq_lib.key_to_node_index)
+
+        num_gates = {0: 1}
+        self.assertEqual(num_gates, eq_lib.num_gates_for_rule)
+
 
 class TestEquivalenceLibraryWithBase(QiskitTestCase):
     """Test cases for EquivalenceLibrary with base library."""
