@@ -40,6 +40,7 @@ class BIPMappingModel:
             A CPLEX problem model object, which is set by calling
             :method:`create_cpx_problem`. After calling :method:`solve_cpx_problem`,
             the solution will be stored in :attr:`solution`). None if it's not yet set.
+
     """
 
     def __init__(self, dag, coupling_map, qubit_subset, dummy_timesteps=None):
@@ -71,6 +72,10 @@ class BIPMappingModel:
 
         self.problem = None
         self.solution = None
+        self.w = {}
+        self.y = {}
+        self.x = {}
+        self.z = {}
         self.num_vqubits = len(self._dag.qubits)
         self.num_pqubits = self._coupling.size()
         self._arcs = self._coupling.get_edges()
@@ -153,10 +158,9 @@ class BIPMappingModel:
         self,
         objective: str,
         backend_prop: BackendProperties = None,
-        line_symm: bool = False,
         depth_obj_weight: float = 0.1,
         default_cx_error_rate: float = 5e-3,
-        user_constraints: Optional[callable] = None,
+        user_model_modifier: Optional[callable] = None,
     ):
         """Create integer programming model to compile a circuit.
 
@@ -175,19 +179,15 @@ class BIPMappingModel:
                 types of objective function such as ``'gate_error'`` or ``'balanced'``.
                 If this is not available, default_cx_error_rate is used instead.
 
-            line_symm:
-                Use symmetry breaking constrainst for line topology. Should
-                only be True if the hardware graph is a chain/line/path.
-
             depth_obj_weight:
                 Weight of depth objective in ``'balanced'`` objective function.
 
             default_cx_error_rate:
                 Default CX error rate to be used if backend_prop is not available.
 
-            user_constraints:
-                A function that takes a BIPMappingModel as input and adds user constraints
-                directly to the model.
+            user_model_modifier:
+                A function that takes a BIPMappingModel as input and performs any desired
+                modification directly on the model.
 
         Raises:
             TranspilerError: if unknown objective type is specified or invalid options are specified.
@@ -222,11 +222,6 @@ class BIPMappingModel:
                     x[t, q, i, i] = mdl.binary_var(name=f"x_{t}_{q}_{i}_{i}")
                     for j in self._coupling.neighbors(i):
                         x[t, q, i, j] = mdl.binary_var(name=f"x_{t}_{q}_{i}_{j}")
-
-        # Store for future reference (e.g., user constraints)
-        self.w = w
-        self.y = y
-        self.x = x
 
         # *** Define main constraints ***
         # Assignment constraints for w variables
@@ -347,17 +342,7 @@ class BIPMappingModel:
                 # We cannot use the next time step unless this one is used too
                 mdl.add_constraint(z[t] >= z[t + 1], ctname=f"dummy_precedence_{t}")
 
-        # Symmetry breaking on the line -- only works on line topology!
-        # if line_symm:
-        #     for h in range(1, self.num_vqubits):
-        #         mdl.add_constraint(
-        #             sum(w[0, p, 0] for p in range(h))
-        #             + sum(w[0, q, self.num_pqubits - 1] for q in range(h, self.num_vqubits))
-        #             >= 1,
-        #             ctname=f"sym_break_line_{h}",
-        #         )
-
-        # *** Define objevtive function ***
+        # *** Define objective function ***
         if objective == "depth":
             objexr = sum(z[t] for t in range(self.depth) if self._is_dummy_step(t))
             for t in range(self.depth - 1):
@@ -398,11 +383,14 @@ class BIPMappingModel:
         else:
             raise TranspilerError(f"Unknown objective type: {objective}")
 
-        self.x = x
+        # Store for future reference (e.g., user constraints)
         self.w = w
+        self.y = y
+        self.x = x
+        self.z = z
         self.problem = mdl
-        if (user_constraints is not None):
-            user_constraints(self)
+        if user_model_modifier is not None:
+            user_model_modifier(self)
         logger.info("BIP problem stats: %s", self.problem.statistics)
 
     def _max_expected_fidelity(self, node, i, j):

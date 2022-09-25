@@ -73,7 +73,7 @@ class BIPMapping(TransformationPass):
         max_swaps_inbetween_layers=None,
         depth_obj_weight=0.1,
         default_cx_error_rate=5e-3,
-        user_constraints=None,
+        user_model_modifier=None,
     ):
         """BIPMapping initializer.
 
@@ -108,8 +108,10 @@ class BIPMapping(TransformationPass):
             default_cx_error_rate (float):
                 Default CX error rate to be used if backend_prop is not available.
 
-            user_constraints (function):
-                A function that takes as input a BIPMapperModel class, and adds any user constraints.
+            user_model_modifier (function):
+                A function that takes as input a BIPMapperModel class, and perfoms any desired
+                model modifications directly. For example, it can add user constraints such as
+                symmetry breaking constraints.
 
         Raises:
             MissingOptionalLibraryError: if cplex or docplex are not installed.
@@ -127,7 +129,9 @@ class BIPMapping(TransformationPass):
         self.max_swaps_inbetween_layers = max_swaps_inbetween_layers
         self.depth_obj_weight = depth_obj_weight
         self.default_cx_error_rate = default_cx_error_rate
-        self.user_constraints = user_constraints
+        self.user_model_modifier = user_model_modifier
+        self._cpx_status = None
+        self._found_solution = False
 
     def run(self, dag):
         """Run the BIPMapping pass on `dag`, assuming the number of virtual qubits (defined in
@@ -178,12 +182,14 @@ class BIPMapping(TransformationPass):
             backend_prop=self.backend_prop,
             depth_obj_weight=self.depth_obj_weight,
             default_cx_error_rate=self.default_cx_error_rate,
-            user_constraints=self.user_constraints,
+            user_model_modifier=self.user_model_modifier,
         )
 
         status = model.solve_cpx_problem(time_limit=self.time_limit, threads=self.threads)
+        self._cpx_status = status
         if model.solution is None:
             logger.warning("Failed to solve a BIP problem. Status: %s", status)
+            self._found_solution = False
             return original_dag
 
         # Get the optimized initial layout
@@ -231,6 +237,8 @@ class BIPMapping(TransformationPass):
         self.property_set["layout"] = self._to_full_layout(optimized_layout)
         self.property_set["final_layout"] = self._to_full_layout(final_layout)
 
+        self._found_solution = True
+
         return mapped_dag
 
     @staticmethod
@@ -257,3 +265,14 @@ class BIPMapping(TransformationPass):
                 layout[idle_q] = qreg[idx]
             layout.add_register(qreg)
         return layout
+
+    @property
+    def cpx_status(self):
+        """Get the status of the last Cplex execution."""
+        return self._cpx_status
+
+    @property
+    def found_solution(self):
+        """Return True if solution was found during last execution,
+        False otherwise."""
+        return self._found_solution
