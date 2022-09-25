@@ -408,9 +408,9 @@ class StagedPassManager(PassManager):
             setattr(self, stage, pm)
 
     def _validate_stages(self, stages: Iterable[str]) -> None:
-        invalid_stages = [
-            stage for stage in stages if not isinstance(stage, str) or not stage.isidentifier()
-        ]
+        if not isinstance(stages, Iterable) or any([not isinstance(s, str) for s in stages]):
+            raise TypeError("StagedPassManager stages must be of type Iterable[str] or None")
+        invalid_stages = [stage for stage in stages if not stage.isidentifier()]
         if invalid_stages:
             with io.StringIO() as msg:
                 msg.write(f"The following stage names are not valid: {invalid_stages[0]}")
