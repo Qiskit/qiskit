@@ -13,7 +13,6 @@
 """Manager for a set of Passes and their scheduling during transpilation."""
 
 import io
-import re
 from typing import Union, List, Tuple, Callable, Dict, Any, Optional, Iterator, Iterable
 
 import dill
