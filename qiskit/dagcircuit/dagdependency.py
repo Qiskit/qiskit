@@ -28,6 +28,24 @@ from qiskit.exceptions import MissingOptionalLibraryError
 from qiskit.circuit.commutation_checker import CommutationChecker
 
 
+# ToDo: DagDependency needs to be refactored:
+#  - Removing redundant and template-optimization-specific fields from DAGDepNode:
+#    As a minimum, we should remove direct predecessors and direct successors,
+#    as these can be queried directly from the underlying graph data structure.
+#    We should also remove fields that are specific to template-optimization pass.
+#    for instance lists of transitive predecessors and successors (moreover, we
+#    should investigate the possibility of using rx.descendants() instead of caching).
+#  - We should rethink the API of DAGDependency:
+#    Currently, most of the functions (such as "add_op_node", "_update_edges", etc.)
+#    are only used when creating a new DAGDependency from another representation of a circuit.
+#    A part of the reason is that doing local changes to DAGDependency is tricky:
+#    as an example, suppose that DAGDependency contains a gate A such that A = B * C;
+#    in general we cannot simply replace A by the pair B, C, as there may be
+#    other nodes that commute with A but do not commute with B or C, so we would need to
+#    change DAGDependency more globally to support that. In other words, we should rethink
+#    what DAGDependency can be good for and rethink that API accordingly.
+
+
 class DAGDependency:
     """Object to represent a quantum circuit as a directed acyclic graph
     via operation dependencies (i.e. lack of commutation).
@@ -483,6 +501,10 @@ class DAGDependency:
         is added if max_node is "reachable" from prev_node (this means that the two
         nodes can be made adjacent by commuting them with other nodes), but the two nodes
         themselves do not commute.
+
+        Currently. this function is only used when creating a new DAGDependency from another
+        representation of a circuit, and hence there are no removed nodes (this is why
+        iterating over all nodes is fine).
         """
         max_node_id = len(self._multi_graph) - 1
         max_node = self.get_node(max_node_id)
