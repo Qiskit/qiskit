@@ -14,7 +14,7 @@
 
 """These are bad examples and raise errors in in the classicalfunction compiler"""
 
-from qiskit.circuit import Int1, Int2
+from qiskit.circuit.classicalfunction.types import Int1, Int2
 
 
 def id_no_type_arg(a) -> Int1:
