@@ -89,7 +89,6 @@ class TestNumPyEigensolver(QiskitAlgorithmsTestCase):
     @data(X, Y, Z)
     def test_ce_k1_1q(self, op):
         """Test for 1 qubit operator"""
-        print("HERE")
         algo = NumPyEigensolver(k=1)
         result = algo.compute_eigenvalues(operator=op)
         np.testing.assert_array_almost_equal(result.eigenvalues, [-1])

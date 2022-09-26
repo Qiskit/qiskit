@@ -11,28 +11,26 @@
 # that they have been altered from the originals.
 
 """Result object for p-VQD."""
+from __future__ import annotations
 
-from typing import Union, Optional, List, Tuple
 import numpy as np
 
 from qiskit.circuit import QuantumCircuit
-from qiskit.opflow import StateFn, OperatorBase
-
-from ..evolution_result import EvolutionResult
+from ..time_evolution_result import TimeEvolutionResult
 
 
-class PVQDResult(EvolutionResult):
+class PVQDResult(TimeEvolutionResult):
     """The result object for the p-VQD algorithm."""
 
     def __init__(
         self,
-        evolved_state: Union[StateFn, QuantumCircuit, OperatorBase],
-        aux_ops_evaluated: Optional[List[Tuple[complex, complex]]] = None,
-        times: Optional[List[float]] = None,
-        parameters: Optional[List[np.ndarray]] = None,
-        fidelities: Optional[List[float]] = None,
-        estimated_error: Optional[float] = None,
-        observables: Optional[List[List[float]]] = None,
+        evolved_state: QuantumCircuit,
+        aux_ops_evaluated: list[tuple[complex, complex]] | None = None,
+        times: list[float] | None = None,
+        parameters: list[np.ndarray] | None = None,
+        fidelities: list[float] | None = None,
+        estimated_error: float | None = None,
+        observables: list[list[float]] | None = None,
     ):
         """
         Args:
