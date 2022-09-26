@@ -379,6 +379,7 @@ class VQD(VariationalAlgorithm, Eigensolver):
         result.cost_function_evals = []
         result.optimizer_time = []
         result.eigenvalues = []
+        result.optimizer_result = []
         return result
 
     @staticmethod
@@ -390,6 +391,7 @@ class VQD(VariationalAlgorithm, Eigensolver):
         result.cost_function_evals.append(opt_result.nfev)
         result.optimizer_time.append(eval_time)
         result.eigenvalues.append(opt_result.fun + 0j)
+        result.optimizer_result.append(opt_result)
         return result
 
 
