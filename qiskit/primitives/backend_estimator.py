@@ -124,9 +124,6 @@ class BackendEstimator(BaseEstimator):
                 will be directly executed when this object is called.
             run_options: Any backends specific options to set for running
         """
-        if backend is None:
-            raise ValueError("Backend must be provided")
-
         if observables is not None:
             if isinstance(observables, (PauliSumOp, BaseOperator)):
                 observables = (observables,)
@@ -137,6 +134,9 @@ class BackendEstimator(BaseEstimator):
             observables=observables,
             parameters=parameters,
         )
+        if backend is None:
+            raise ValueError("Backend must be provided")
+
         self._is_closed = False
 
         self._abelian_grouping = abelian_grouping
@@ -302,11 +302,10 @@ class BackendEstimator(BaseEstimator):
         circuits: Sequence[QuantumCircuit],
         observables: Sequence[BaseOperator | PauliSumOp],
         parameter_values: Sequence[Sequence[float]],
-        parameters: Sequence["ParameterView"],
         **run_options,
     ) -> PrimitiveJob:
         circuit_indices = []
-        for i, circuit in enumerate(circuits):
+        for circuit in circuits:
             index = self._circuit_ids.get(id(circuit))
             if index is not None:
                 circuit_indices.append(index)
@@ -314,7 +313,7 @@ class BackendEstimator(BaseEstimator):
                 circuit_indices.append(len(self._circuits))
                 self._circuit_ids[id(circuit)] = len(self._circuits)
                 self._circuits.append(circuit)
-                self._parameters.append(parameters[i])
+                self._parameters.append(circuit.parameters)
         observable_indices = []
         for observable in observables:
             index = self._observable_ids.get(id(observable))

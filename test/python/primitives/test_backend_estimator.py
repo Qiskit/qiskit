@@ -20,7 +20,6 @@ import numpy as np
 
 from qiskit.circuit import QuantumCircuit
 from qiskit.circuit.library import RealAmplitudes
-from qiskit.exceptions import QiskitError
 from qiskit.opflow import PauliSumOp
 from qiskit.primitives import BackendEstimator, EstimatorResult
 from qiskit.providers import JobV1
@@ -70,7 +69,7 @@ class TestBackendEstimator(QiskitTestCase):
             observable = PauliSumOp.from_list(lst)
             ansatz = RealAmplitudes(num_qubits=2, reps=2)
             with self.assertWarns(DeprecationWarning):
-                est = BackendEstimator(backend, [ansatz], [observable])
+                est = BackendEstimator(backend=backend, circuits=[ansatz], observables=[observable])
                 result = est([0], [0], parameter_values=[[0, 1, 1, 2, 3, 5]])
             self.assertIsInstance(result, EstimatorResult)
             self.assertAlmostEqual(1.84209213, result.values[0], delta=0.5)
@@ -79,7 +78,7 @@ class TestBackendEstimator(QiskitTestCase):
             observable = SparsePauliOp.from_list(lst)
             ansatz = RealAmplitudes(num_qubits=2, reps=2)
             with self.assertWarns(DeprecationWarning):
-                est = BackendEstimator(backend, [ansatz], [observable])
+                est = BackendEstimator(backend=backend, circuits=[ansatz], observables=[observable])
                 result = est([0], [0], parameter_values=[[0, 1, 1, 2, 3, 5]])
             self.assertIsInstance(result, EstimatorResult)
             self.assertAlmostEqual(1.84209213, result.values[0], delta=0.5)
@@ -113,7 +112,7 @@ class TestBackendEstimator(QiskitTestCase):
             ]
         )
         with self.assertWarns(DeprecationWarning):
-            est = BackendEstimator(backend, [circuit], [matrix])
+            est = BackendEstimator(backend=backend, circuits=[circuit], observables=[matrix])
             result = est([0], [0])
         self.assertIsInstance(result, EstimatorResult)
         self.assertAlmostEqual(-1.284366511861733, result.values, delta=0.4)
@@ -122,7 +121,9 @@ class TestBackendEstimator(QiskitTestCase):
     def test_evaluate(self, backend):
         """test for evaluate"""
         with self.assertWarns(DeprecationWarning):
-            est = BackendEstimator(backend, [self.ansatz], [self.observable])
+            est = BackendEstimator(
+                backend=backend, circuits=[self.ansatz], observables=[self.observable]
+            )
             result = est([0], [0], parameter_values=[[0, 1, 1, 2, 3, 5]])
         self.assertIsInstance(result, EstimatorResult)
         self.assertAlmostEqual(-1.284366511861733, result.values[0], delta=0.4)
@@ -131,7 +132,9 @@ class TestBackendEstimator(QiskitTestCase):
     def test_evaluate_multi_params(self, backend):
         """test for evaluate with multiple parameters"""
         with self.assertWarns(DeprecationWarning):
-            est = BackendEstimator(backend, [self.ansatz], [self.observable])
+            est = BackendEstimator(
+                backend=backend, circuits=[self.ansatz], observables=[self.observable]
+            )
             result = est(
                 [0] * 2, [0] * 2, parameter_values=[[0, 1, 1, 2, 3, 5], [1, 1, 2, 3, 5, 8]]
             )
@@ -144,7 +147,9 @@ class TestBackendEstimator(QiskitTestCase):
         """test for evaluate without parameters"""
         circuit = self.ansatz.bind_parameters([0, 1, 1, 2, 3, 5])
         with self.assertWarns(DeprecationWarning):
-            est = BackendEstimator(backend, [circuit], [self.observable])
+            est = BackendEstimator(
+                backend=backend, circuits=[circuit], observables=[self.observable]
+            )
             result = est([0], [0])
         self.assertIsInstance(result, EstimatorResult)
         self.assertAlmostEqual(-1.284366511861733, result.values[0], delta=0.4)
@@ -157,7 +162,7 @@ class TestBackendEstimator(QiskitTestCase):
         circuit.cx(0, 1)
         circuit.cx(1, 2)
         with self.assertWarns(DeprecationWarning):
-            est = BackendEstimator(backend, circuit, ["ZZZ", "III"])
+            est = BackendEstimator(backend=backend, circuits=circuit, observables=["ZZZ", "III"])
             result = est(circuits=[0, 0], observables=[0, 1])
         self.assertIsInstance(result, EstimatorResult)
         self.assertAlmostEqual(0.0, result.values[0], delta=0.2)
@@ -330,17 +335,17 @@ class TestBackendEstimator(QiskitTestCase):
             est = BackendEstimator(
                 backend=backend, circuits=[qc, qc2], observables=[op, op2], parameters=[[]] * 2
             )
-        with self.assertRaises(QiskitError), self.assertWarns(DeprecationWarning):
+        with self.assertRaises(ValueError), self.assertWarns(DeprecationWarning):
             est([0], [1], [[]])
-        with self.assertRaises(QiskitError), self.assertWarns(DeprecationWarning):
+        with self.assertRaises(ValueError), self.assertWarns(DeprecationWarning):
             est([1], [0], [[]])
-        with self.assertRaises(QiskitError), self.assertWarns(DeprecationWarning):
+        with self.assertRaises(ValueError), self.assertWarns(DeprecationWarning):
             est([0], [0], [[1e4]])
-        with self.assertRaises(QiskitError), self.assertWarns(DeprecationWarning):
+        with self.assertRaises(ValueError), self.assertWarns(DeprecationWarning):
             est([1], [1], [[1, 2]])
-        with self.assertRaises(QiskitError), self.assertWarns(DeprecationWarning):
+        with self.assertRaises(ValueError), self.assertWarns(DeprecationWarning):
             est([0, 1], [1], [[1]])
-        with self.assertRaises(QiskitError), self.assertWarns(DeprecationWarning):
+        with self.assertRaises(ValueError), self.assertWarns(DeprecationWarning):
             est([0], [0, 1], [[1]])
 
     @combine(backend=BACKENDS)
@@ -411,7 +416,7 @@ class TestBackendEstimator(QiskitTestCase):
                 estimator = BackendEstimator(
                     backend=backend, circuits=[self.ansatz], observables=[self.observable]
                 )
-            with self.assertRaises(QiskitError), self.assertWarns(DeprecationWarning):
+            with self.assertRaises(ValueError), self.assertWarns(DeprecationWarning):
                 result = estimator(
                     circuits=[self.ansatz, circuit],
                     observables=[self.observable, self.observable],
@@ -424,7 +429,7 @@ class TestBackendEstimator(QiskitTestCase):
                 estimator = BackendEstimator(
                     backend=backend, circuits=[self.ansatz], observables=[self.observable]
                 )
-            with self.assertRaises(QiskitError), self.assertWarns(DeprecationWarning):
+            with self.assertRaises(ValueError), self.assertWarns(DeprecationWarning):
                 result = estimator(
                     circuits=[self.ansatz, self.ansatz],
                     observables=[observable, self.observable],
@@ -435,7 +440,9 @@ class TestBackendEstimator(QiskitTestCase):
     def test_with_shots_option(self, backend):
         """test with shots option."""
         with self.assertWarns(DeprecationWarning):
-            est = BackendEstimator(backend, [self.ansatz], [self.observable])
+            est = BackendEstimator(
+                backend=backend, circuits=[self.ansatz], observables=[self.observable]
+            )
             result = est(
                 [0], [0], parameter_values=[[0, 1, 1, 2, 3, 5]], shots=1024, seed_simulator=15
             )
@@ -448,7 +455,7 @@ class TestBackendEstimator(QiskitTestCase):
         psi1, psi2 = self.psi
         hamiltonian1, hamiltonian2, hamiltonian3 = self.hamiltonian
         theta1, theta2, theta3 = self.theta
-        estimator = BackendEstimator(backend)
+        estimator = BackendEstimator(backend=backend)
 
         # Specify the circuit and observable by indices.
         # calculate [ <psi1(theta1)|H1|psi1(theta1)> ]
@@ -484,7 +491,7 @@ class TestBackendEstimator(QiskitTestCase):
     def test_estimator_run_no_params(self, backend):
         """test for estimator without parameters"""
         circuit = self.ansatz.bind_parameters([0, 1, 1, 2, 3, 5])
-        est = BackendEstimator(backend)
+        est = BackendEstimator(backend=backend)
         result = est.run([circuit], [self.observable]).result()
         self.assertIsInstance(result, EstimatorResult)
         np.testing.assert_allclose(result.values, [-1.284366511861733], rtol=0.05)
@@ -499,7 +506,7 @@ class TestBackendEstimator(QiskitTestCase):
         op = SparsePauliOp.from_list([("I", 1)])
         op2 = SparsePauliOp.from_list([("Z", 1)])
 
-        est = BackendEstimator(backend)
+        est = BackendEstimator(backend=backend)
         result = est.run([qc], [op], [[]]).result()
         self.assertIsInstance(result, EstimatorResult)
         np.testing.assert_allclose(result.values, [1], rtol=0.1)
@@ -527,7 +534,7 @@ class TestBackendEstimator(QiskitTestCase):
         op2 = SparsePauliOp.from_list([("ZI", 1)])
         op3 = SparsePauliOp.from_list([("IZ", 1)])
 
-        est = BackendEstimator(backend)
+        est = BackendEstimator(backend=backend)
         result = est.run([qc], [op], [[]]).result()
         self.assertIsInstance(result, EstimatorResult)
         np.testing.assert_allclose(result.values, [1], rtol=0.1)
@@ -561,18 +568,18 @@ class TestBackendEstimator(QiskitTestCase):
         op = SparsePauliOp.from_list([("I", 1)])
         op2 = SparsePauliOp.from_list([("II", 1)])
 
-        est = BackendEstimator(backend)
-        with self.assertRaises(QiskitError):
+        est = BackendEstimator(backend=backend)
+        with self.assertRaises(ValueError):
             est.run([qc], [op2], [[]]).result()
-        with self.assertRaises(QiskitError):
+        with self.assertRaises(ValueError):
             est.run([qc2], [op], [[]]).result()
-        with self.assertRaises(QiskitError):
+        with self.assertRaises(ValueError):
             est.run([qc], [op], [[1e4]]).result()
-        with self.assertRaises(QiskitError):
+        with self.assertRaises(ValueError):
             est.run([qc2], [op2], [[1, 2]]).result()
-        with self.assertRaises(QiskitError):
+        with self.assertRaises(ValueError):
             est.run([qc, qc2], [op2], [[1]]).result()
-        with self.assertRaises(QiskitError):
+        with self.assertRaises(ValueError):
             est.run([qc], [op, op2], [[1]]).result()
 
     @combine(backend=BACKENDS)
@@ -584,7 +591,7 @@ class TestBackendEstimator(QiskitTestCase):
         params_array = np.random.rand(k, qc.num_parameters)
         params_list = params_array.tolist()
         params_list_array = list(params_array)
-        estimator = BackendEstimator(backend)
+        estimator = BackendEstimator(backend=backend)
         target = estimator.run([qc] * k, [op] * k, params_list).result()
 
         with self.subTest("ndarrary"):
@@ -600,7 +607,7 @@ class TestBackendEstimator(QiskitTestCase):
     @combine(backend=BACKENDS)
     def test_run_with_shots_option(self, backend):
         """test with shots option."""
-        est = BackendEstimator(backend)
+        est = BackendEstimator(backend=backend)
         result = est.run(
             [self.ansatz],
             [self.observable],
@@ -615,7 +622,7 @@ class TestBackendEstimator(QiskitTestCase):
     def test_run_options(self, backend):
         """Test for run_options"""
         with self.subTest("init"):
-            estimator = BackendEstimator(backend, run_options={"shots": 3000})
+            estimator = BackendEstimator(backend=backend, run_options={"shots": 3000})
             self.assertEqual(estimator.run_options.get("shots"), 3000)
         with self.subTest("set_run_options"):
             estimator.set_run_options(shots=1024, seed=15)
