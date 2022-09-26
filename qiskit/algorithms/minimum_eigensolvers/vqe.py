@@ -190,8 +190,9 @@ class VQE(VariationalAlgorithm, MinimumEigensolver):
         )
 
         if aux_operators is not None:
-            bound_ansatz = self.ansatz.bind_parameters(optimizer_result.x)
-            aux_values = estimate_observables(self.estimator, bound_ansatz, aux_operators)
+            aux_values = estimate_observables(
+                self.estimator, self.ansatz, aux_operators, optimizer_result.x
+            )
         else:
             aux_values = None
 
