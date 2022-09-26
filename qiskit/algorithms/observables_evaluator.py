@@ -18,7 +18,7 @@ from qiskit import QuantumCircuit
 from qiskit.opflow import PauliSumOp
 from .exceptions import AlgorithmError
 from .list_or_dict import ListOrDict
-from ..primitives import EstimatorResult, BaseEstimator
+from ..primitives import BaseEstimator
 from ..quantum_info.operators.base_operator import BaseOperator
 
 
@@ -32,7 +32,6 @@ def estimate_observables(
     Accepts a sequence of operators and calculates their expectation values - means
     and standard deviations. They are calculated with respect to a quantum state provided. A user
     can optionally provide a threshold value which filters mean values falling below the threshold.
-
     Args:
         estimator: An estimator primitive used for calculations.
         quantum_state: An unparametrized quantum circuit representing a quantum state that
@@ -41,10 +40,8 @@ def estimate_observables(
             calculated.
         threshold: A threshold value that defines which mean values should be neglected (helpful for
             ignoring numerical instabilities close to 0).
-
     Returns:
         A list or a dictionary of tuples (mean, (variance, shots)).
-
     Raises:
         ValueError: If a ``quantum_state`` with free parameters is provided.
         AlgorithmError: If a primitive job is not successful.
@@ -71,12 +68,11 @@ def estimate_observables(
     except Exception as exc:
         raise AlgorithmError("The primitive job failed!") from exc
 
-    variance_and_shots = _prep_variance_and_shots(estimator_job.result(), len(expectation_values))
-
+    metadata = estimator_job.result().metadata
     # Discard values below threshold
     observables_means = expectation_values * (np.abs(expectation_values) > threshold)
     # zip means and standard deviations into tuples
-    observables_results = list(zip(observables_means, variance_and_shots))
+    observables_results = list(zip(observables_means, metadata))
 
     return _prepare_result(observables_results, observables)
 
@@ -101,12 +97,10 @@ def _prepare_result(
     """
     Prepares a list of tuples of eigenvalues and (variance, shots) tuples from
     ``observables_results`` and ``observables``.
-
     Args:
         observables_results: A list of tuples (mean, (variance, shots)).
         observables: A list or a dictionary of operators whose expectation values are to be
             calculated.
-
     Returns:
         A list or a dictionary of tuples (mean, (variance, shots)).
     """
@@ -122,36 +116,3 @@ def _prepare_result(
     for key, value in key_value_iterator:
         observables_eigenvalues[key] = value
     return observables_eigenvalues
-
-
-def _prep_variance_and_shots(
-    estimator_result: EstimatorResult,
-    results_length: int,
-) -> list[tuple[complex, int]]:
-    """
-    Prepares a list of tuples with variances and shots from results provided by expectation values
-    calculations. If there is no variance or shots data available from a primitive, the values will
-    be set to ``0``.
-
-    Args:
-        estimator_result: An estimator result.
-        results_length: Number of expectation values calculated.
-
-    Returns:
-        A list of tuples of the form (variance, shots).
-    """
-    if not estimator_result.metadata:
-        return [(0, 0)] * results_length
-
-    results = []
-    for metadata in estimator_result.metadata:
-        variance, shots = 0.0, 0
-        if metadata:
-            if "variance" in metadata.keys():
-                variance = metadata["variance"]
-            if "shots" in metadata.keys():
-                shots = metadata["shots"]
-
-        results.append((variance, shots))
-
-    return results

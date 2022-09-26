@@ -377,35 +377,28 @@ class TestVQE(QiskitAlgorithmsTestCase):
             aux_op2 = PauliSumOp.from_list([("II", 0.5), ("ZZ", 0.5), ("YY", 0.5), ("XX", -0.5)])
             aux_ops = [aux_op1, aux_op2]
             result = vqe.compute_minimum_eigenvalue(self.h2_op, aux_operators=aux_ops)
-            self.assertAlmostEqual(result.eigenvalue.real, self.h2_energy, places=6)
+            self.assertAlmostEqual(result.eigenvalue.real, self.h2_energy, places=5)
             self.assertEqual(len(result.aux_operator_eigenvalues), 2)
             # expectation values
             self.assertAlmostEqual(result.aux_operator_eigenvalues[0][0], 2.0, places=6)
             self.assertAlmostEqual(result.aux_operator_eigenvalues[1][0], 0.0, places=6)
-            # variances
-            self.assertEqual(result.aux_operator_eigenvalues[0][1][0], 0.0)
-            self.assertEqual(result.aux_operator_eigenvalues[1][1][0], 0.0)
-            # shots
-            self.assertEqual(result.aux_operator_eigenvalues[0][1][1], 0)
-            self.assertEqual(result.aux_operator_eigenvalues[1][1][1], 0)
+            # metadata
+            self.assertIsInstance(result.aux_operator_eigenvalues[0][1], dict)
+            self.assertIsInstance(result.aux_operator_eigenvalues[1][1], dict)
 
         with self.subTest("Test with additional zero operator."):
             extra_ops = [*aux_ops, 0]
             result = vqe.compute_minimum_eigenvalue(self.h2_op, aux_operators=extra_ops)
-            self.assertAlmostEqual(result.eigenvalue.real, self.h2_energy, places=6)
+            self.assertAlmostEqual(result.eigenvalue.real, self.h2_energy, places=5)
             self.assertEqual(len(result.aux_operator_eigenvalues), 3)
             # expectation values
             self.assertAlmostEqual(result.aux_operator_eigenvalues[0][0], 2.0, places=6)
             self.assertAlmostEqual(result.aux_operator_eigenvalues[1][0], 0.0, places=6)
             self.assertAlmostEqual(result.aux_operator_eigenvalues[2][0], 0.0)
-            # variances
-            self.assertEqual(result.aux_operator_eigenvalues[0][1][0], 0.0)
-            self.assertEqual(result.aux_operator_eigenvalues[1][1][0], 0.0)
-            self.assertEqual(result.aux_operator_eigenvalues[2][1][0], 0.0)
-            # shots
-            self.assertEqual(result.aux_operator_eigenvalues[0][1][1], 0)
-            self.assertEqual(result.aux_operator_eigenvalues[1][1][1], 0)
-            self.assertEqual(result.aux_operator_eigenvalues[2][1][1], 0)
+            # metadata
+            self.assertIsInstance(result.aux_operator_eigenvalues[0][1], dict)
+            self.assertIsInstance(result.aux_operator_eigenvalues[1][1], dict)
+            self.assertIsInstance(result.aux_operator_eigenvalues[2][1], dict)
 
     def test_aux_operators_dict(self):
         """Test dictionary compatibility of aux_operators"""
@@ -426,14 +419,11 @@ class TestVQE(QiskitAlgorithmsTestCase):
             self.assertEqual(len(result.aux_operator_eigenvalues), 2)
 
             # expectation values
-            self.assertAlmostEqual(result.aux_operator_eigenvalues["aux_op1"][0], 2, places=5)
-            self.assertAlmostEqual(result.aux_operator_eigenvalues["aux_op2"][0], 0, places=5)
-            # variances
-            self.assertEqual(result.aux_operator_eigenvalues["aux_op1"][1][0], 0.0)
-            self.assertEqual(result.aux_operator_eigenvalues["aux_op2"][1][0], 0.0)
-            # shots
-            self.assertEqual(result.aux_operator_eigenvalues["aux_op1"][1][1], 0)
-            self.assertEqual(result.aux_operator_eigenvalues["aux_op2"][1][1], 0)
+            self.assertAlmostEqual(result.aux_operator_eigenvalues["aux_op1"][0], 2.0, places=5)
+            self.assertAlmostEqual(result.aux_operator_eigenvalues["aux_op2"][0], 0.0, places=5)
+            # metadata
+            self.assertIsInstance(result.aux_operator_eigenvalues["aux_op1"][1], dict)
+            self.assertIsInstance(result.aux_operator_eigenvalues["aux_op2"][1], dict)
 
         with self.subTest("Test with additional zero operator."):
             extra_ops = {**aux_ops, "zero_operator": 0}
@@ -441,19 +431,13 @@ class TestVQE(QiskitAlgorithmsTestCase):
             self.assertAlmostEqual(result.eigenvalue.real, self.h2_energy, places=6)
             self.assertEqual(len(result.aux_operator_eigenvalues), 3)
             # expectation values
-            self.assertAlmostEqual(result.aux_operator_eigenvalues["aux_op1"][0], 2, places=5)
-            self.assertAlmostEqual(result.aux_operator_eigenvalues["aux_op2"][0], 0, places=5)
+            self.assertAlmostEqual(result.aux_operator_eigenvalues["aux_op1"][0], 2.0, places=5)
+            self.assertAlmostEqual(result.aux_operator_eigenvalues["aux_op2"][0], 0.0, places=5)
             self.assertAlmostEqual(result.aux_operator_eigenvalues["zero_operator"][0], 0.0)
-            # variances
-            self.assertEqual(result.aux_operator_eigenvalues["aux_op1"][1][0], 0.0)
-            self.assertEqual(result.aux_operator_eigenvalues["aux_op2"][1][0], 0.0)
-            self.assertEqual(result.aux_operator_eigenvalues["zero_operator"][1][0], 0.0)
-            # shots
-            self.assertEqual(result.aux_operator_eigenvalues["aux_op1"][1][1], 0)
-            self.assertEqual(result.aux_operator_eigenvalues["aux_op2"][1][1], 0)
-            self.assertEqual(result.aux_operator_eigenvalues["zero_operator"][1][1], 0)
-
-    # TODO test with non-zero metadata. Affected by PR #8105.
+            # metadata
+            self.assertIsInstance(result.aux_operator_eigenvalues["aux_op1"][1], dict)
+            self.assertIsInstance(result.aux_operator_eigenvalues["aux_op2"][1], dict)
+            self.assertIsInstance(result.aux_operator_eigenvalues["zero_operator"][1], dict)
 
 
 if __name__ == "__main__":
