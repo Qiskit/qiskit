@@ -1,0 +1,4 @@
+---
+features:
+  - |
+    Flexible dtype for :class:`~SparsePauliOp` is supported.
