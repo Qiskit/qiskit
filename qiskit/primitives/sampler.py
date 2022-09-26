@@ -128,7 +128,7 @@ class Sampler(BaseSampler):
             ]
             for metadatum in metadata:
                 metadatum["shots"] = shots
-        quasis = [QuasiDistribution(dict(enumerate(p))) for p in probabilities]
+        quasis = [QuasiDistribution(dict(enumerate(p)), shots=shots) for p in probabilities]
 
         return SamplerResult(quasis, metadata)
 
