@@ -95,11 +95,6 @@ class VQE(VariationalAlgorithm, MinimumEigensolver):
             :class:`.Minimizer` protocol.
         gradient (BaseEstimatorGradient | None): An optional estimator gradient to be used with the
             optimizer.
-        initial_point (Sequence[float] | None): An optional initial point (i.e. initial parameter
-            values) for the optimizer. The length of the initial point must match the number of
-            :attr:`ansatz` parameters. If ``None``, a random point will be generated within certain
-            parameter bounds. ``VQE`` will look to the ansatz for these bounds. If the ansatz does
-            not specify bounds, bounds of :math:`-2\pi`, :math:`2\pi` will be used.
         callback (Callable[[int, np.ndarray, float, dict], None] | None): A callback that can access
             the intermediate data at each optimization step. These data are: the evaluation count,
             the optimizer parameters for the ansatz, the evaluated mean, and the metadata
@@ -107,7 +102,7 @@ class VQE(VariationalAlgorithm, MinimumEigensolver):
 
     References:
         [1] Peruzzo et al, "A variational eigenvalue solver on a quantum processor"
-            `arXiv:1304.3061 https://arxiv.org/abs/1304.3061>`_
+            `arXiv:1304.3061 <https://arxiv.org/abs/1304.3061>`__
     """
 
     def __init__(
@@ -317,6 +312,7 @@ class VQE(VariationalAlgorithm, MinimumEigensolver):
         result.optimal_value = optimizer_result.fun
         result.optimizer_time = eval_time
         result.aux_operator_eigenvalues = aux_values
+        result.optimizer_result = optimizer_result
         return result
 
 

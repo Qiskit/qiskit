@@ -101,6 +101,12 @@ class TestVQE(QiskitAlgorithmsTestCase):
         with self.subTest(msg="assert optimizer_time is set"):
             self.assertIsNotNone(result.optimizer_time)
 
+        with self.subTest(msg="assert optimizer_result is set"):
+            self.assertIsNotNone(result.optimizer_result)
+
+        with self.subTest(msg="assert optimizer_result."):
+            self.assertAlmostEqual(result.optimizer_result.fun, self.h2_energy, places=5)
+
     def test_invalid_initial_point(self):
         """Test the proper error is raised when the initial point has the wrong size."""
         ansatz = self.ryrz_wavefunction
