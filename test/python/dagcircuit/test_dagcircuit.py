@@ -1480,12 +1480,12 @@ class TestDagSubstitute(QiskitTestCase):
     def test_raise_if_substituting_dag_modifies_its_conditional(self):
         """Verify that we raise if the input dag modifies any of the bits in node.op.condition."""
 
-        # Our unroller's rely on substitute_node_with_dag carrying the condition
-        # from the node over to the input dag, which it does by making every
-        # node in the input dag conditioned over the same bits. However, if the
-        # input dag e.g. measures to one of those bits, the behavior of the
-        # remainder of the DAG would be different, so detect and raise in that
-        # case.
+        # The `propagate_condition=True` argument (and behaviour of `substitute_node_with_dag`
+        # before the parameter was added) treats the replacement DAG as implementing only the
+        # un-controlled operation.  The original contract considers it an error to replace a node
+        # with an operation that may modify one of the condition bits in case this affects
+        # subsequent operations, so when `propagate_condition=True`, this error behaviour is
+        # maintained.
 
         instr = Instruction("opaque", 1, 1, [])
         instr.condition = self.condition
@@ -1499,8 +1499,184 @@ class TestDagSubstitute(QiskitTestCase):
 
         sub_dag.apply_operation_back(Measure(), [sub_qr[0]], [sub_cr[0]])
 
-        with self.assertRaises(DAGCircuitError):
+        msg = "cannot propagate a condition to an element to acts on those bits"
+        with self.assertRaises(DAGCircuitError, msg=msg):
             self.dag.substitute_node_with_dag(instr_node, sub_dag)
+
+    def test_substitute_without_propagating_bit_conditional(self):
+        """Test that `substitute_node_with_dag` functions when the condition is not propagated
+        through to a DAG that implements the conditional logical by other means."""
+        base_qubits = [Qubit(), Qubit()]
+        base_clbits = [Clbit()]
+        base = DAGCircuit()
+        base.add_qubits(base_qubits)
+        base.add_clbits(base_clbits)
+        base.apply_operation_back(HGate(), [base_qubits[0]], [])
+        conditioned = CZGate()
+        conditioned.condition = (base_clbits[0], True)
+        target = base.apply_operation_back(conditioned, base_qubits, [])
+        base.apply_operation_back(XGate(), [base_qubits[1]], [])
+
+        sub = QuantumCircuit(2, 1)
+        sub.h(0)
+        sub.cx(0, 1).c_if(0, True)
+        sub.h(0)
+
+        expected = DAGCircuit()
+        expected.add_qubits(base_qubits)
+        expected.add_clbits(base_clbits)
+        expected.apply_operation_back(HGate(), [base_qubits[0]], [])
+        expected.apply_operation_back(HGate(), [base_qubits[0]], [])
+        cx = CXGate()
+        cx.condition = (base_clbits[0], True)
+        expected.apply_operation_back(cx, base_qubits, [])
+        expected.apply_operation_back(HGate(), [base_qubits[0]], [])
+        expected.apply_operation_back(XGate(), [base_qubits[1]], [])
+
+        base.substitute_node_with_dag(target, circuit_to_dag(sub), propagate_condition=False)
+        self.assertEqual(base, expected)
+
+    def test_substitute_without_propagating_register_conditional(self):
+        """Test that `substitute_node_with_dag` functions when the condition is not propagated
+        through to a DAG that implements the conditional logical by other means."""
+        base_qubits = [Qubit(), Qubit()]
+        base_creg = ClassicalRegister(2)
+        base = DAGCircuit()
+        base.add_qubits(base_qubits)
+        base.add_creg(base_creg)
+        base.apply_operation_back(HGate(), [base_qubits[0]], [])
+        conditioned = CZGate()
+        conditioned.condition = (base_creg, 3)
+        target = base.apply_operation_back(conditioned, base_qubits, [])
+        base.apply_operation_back(XGate(), [base_qubits[1]], [])
+
+        sub = QuantumCircuit(QuantumRegister(2), ClassicalRegister(2))
+        sub.h(0)
+        sub.cx(0, 1).c_if(sub.cregs[0], 3)
+        sub.h(0)
+
+        expected = DAGCircuit()
+        expected.add_qubits(base_qubits)
+        expected.add_creg(base_creg)
+        expected.apply_operation_back(HGate(), [base_qubits[0]], [])
+        expected.apply_operation_back(HGate(), [base_qubits[0]], [])
+        cx = CXGate()
+        cx.condition = (base_creg, 3)
+        expected.apply_operation_back(cx, base_qubits, [])
+        expected.apply_operation_back(HGate(), [base_qubits[0]], [])
+        expected.apply_operation_back(XGate(), [base_qubits[1]], [])
+
+        base.substitute_node_with_dag(target, circuit_to_dag(sub), propagate_condition=False)
+        self.assertEqual(base, expected)
+
+    def test_substitute_with_provided_wire_map_propagate_condition(self):
+        """Test that the ``wires`` argument can be a direct mapping while propagating the
+        condition."""
+        base_qubits = [Qubit(), Qubit()]
+        base_clbits = [Clbit()]
+        base = DAGCircuit()
+        base.add_qubits(base_qubits)
+        base.add_clbits(base_clbits)
+        base.apply_operation_back(HGate(), [base_qubits[0]], [])
+        conditioned_cz = CZGate()
+        conditioned_cz.condition = (base_clbits[0], True)
+        target = base.apply_operation_back(conditioned_cz, base_qubits, [])
+        base.apply_operation_back(XGate(), [base_qubits[1]], [])
+
+        # Note that `sub` here doesn't have any classical bits at all.
+        sub = QuantumCircuit(2)
+        sub.h(0)
+        sub.cx(0, 1)
+        sub.h(0)
+
+        conditioned_h = HGate()
+        conditioned_h.condition = conditioned_cz.condition
+        conditioned_cx = CXGate()
+        conditioned_cx.condition = conditioned_cz.condition
+
+        expected = DAGCircuit()
+        expected.add_qubits(base_qubits)
+        expected.add_clbits(base_clbits)
+        expected.apply_operation_back(HGate(), [base_qubits[0]], [])
+        expected.apply_operation_back(conditioned_h.copy(), [base_qubits[0]], [])
+        expected.apply_operation_back(conditioned_cx, base_qubits, [])
+        expected.apply_operation_back(conditioned_h.copy(), [base_qubits[0]], [])
+        expected.apply_operation_back(XGate(), [base_qubits[1]], [])
+
+        wire_map = dict(zip(sub.qubits, base_qubits))
+        base.substitute_node_with_dag(
+            target, circuit_to_dag(sub), propagate_condition=True, wires=wire_map
+        )
+        self.assertEqual(base, expected)
+
+    def test_substitute_with_provided_wire_map_no_propagate_condition(self):
+        """Test that the ``wires`` argument can be a direct mapping while not propagating the
+        condition."""
+        base_qubits = [Qubit(), Qubit()]
+        base_clbits = [Clbit()]
+        base = DAGCircuit()
+        base.add_qubits(base_qubits)
+        base.add_clbits(base_clbits)
+        base.apply_operation_back(HGate(), [base_qubits[0]], [])
+        conditioned_cz = CZGate()
+        conditioned_cz.condition = (base_clbits[0], True)
+        target = base.apply_operation_back(conditioned_cz, base_qubits, [])
+        base.apply_operation_back(XGate(), [base_qubits[1]], [])
+
+        sub = QuantumCircuit(2, 1)
+        sub.h(0)
+        sub.cx(0, 1).c_if(0, True)
+        sub.h(0)
+
+        conditioned_cx = CXGate()
+        conditioned_cx.condition = conditioned_cz.condition
+
+        expected = DAGCircuit()
+        expected.add_qubits(base_qubits)
+        expected.add_clbits(base_clbits)
+        expected.apply_operation_back(HGate(), [base_qubits[0]], [])
+        expected.apply_operation_back(HGate(), [base_qubits[0]], [])
+        expected.apply_operation_back(conditioned_cx, base_qubits, [])
+        expected.apply_operation_back(HGate(), [base_qubits[0]], [])
+        expected.apply_operation_back(XGate(), [base_qubits[1]], [])
+
+        wire_map = dict(zip(sub.qubits, base_qubits))
+        wire_map[sub.clbits[0]] = base_clbits[0]
+        base.substitute_node_with_dag(
+            target, circuit_to_dag(sub), propagate_condition=False, wires=wire_map
+        )
+        self.assertEqual(base, expected)
+
+    def test_creates_additional_alias_register(self):
+        """Test that a sub-condition that has no associated register in the main DAG will be
+        translated faithfully by adding a new aliasing register."""
+        base_qreg = QuantumRegister(2)
+        base_creg = ClassicalRegister(3)
+        base = DAGCircuit()
+        base.add_qreg(base_qreg)
+        base.add_creg(base_creg)
+        target = base.apply_operation_back(Instruction("dummy", 2, 2, []), base_qreg, base_creg[:2])
+
+        sub = QuantumCircuit(QuantumRegister(2), ClassicalRegister(2))
+        sub.cx(0, 1).c_if(sub.cregs[0], 3)
+
+        base.substitute_node_with_dag(target, circuit_to_dag(sub))
+
+        # Check that a new register was added, and retrieve it to verify the bits in it.
+        self.assertEqual(len(base.cregs), 2)
+        cregs = base.cregs.copy()
+        cregs.pop(base_creg.name)
+        added_creg = tuple(cregs.values())[0]
+        self.assertEqual(list(added_creg), list(base_creg[:2]))
+
+        expected = DAGCircuit()
+        expected.add_qreg(base_qreg)
+        expected.add_creg(base_creg)
+        expected.add_creg(added_creg)
+        cx = CXGate()
+        cx.condition = (added_creg, 3)
+        expected.apply_operation_back(cx, base_qreg, [])
+        self.assertEqual(base, expected)
 
 
 @ddt

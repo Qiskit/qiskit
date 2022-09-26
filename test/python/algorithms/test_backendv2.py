@@ -85,7 +85,8 @@ class TestBackendV2(QiskitAlgorithmsTestCase):
         qi = QuantumInstance(
             self._provider.get_backend("fake_yorktown"), seed_simulator=12, seed_transpiler=32
         )
-        grover = Grover(quantum_instance=qi)
+        with self.assertWarns(PendingDeprecationWarning):
+            grover = Grover(quantum_instance=qi)
         result = grover.amplify(problem)
         self.assertIn(result.top_measurement, ["11"])
 
@@ -99,7 +100,8 @@ class TestBackendV2(QiskitAlgorithmsTestCase):
         qi = QuantumInstance(
             self._provider.get_backend("fake_yorktown"), seed_simulator=12, seed_transpiler=32
         )
-        grover = Grover(quantum_instance=qi)
+        with self.assertWarns(PendingDeprecationWarning):
+            grover = Grover(quantum_instance=qi)
         result = grover.amplify(problem)
         self.assertIn(result.top_measurement, ["11"])
 
