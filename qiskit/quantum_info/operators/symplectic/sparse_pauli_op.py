@@ -49,9 +49,7 @@ class SparsePauliOp(LinearOp):
     are stored as a complex Numpy array vector and can be accessed using
     the :attr:`~SparsePauliOp.coeffs` attribute.
 
-    -------------
-    dtype
-    -------------
+    **dtype of coefficients**
 
     The default dtype of coeffs is complex.
     User can configure dtype by passing ``np.ndarray`` with different dtype.
