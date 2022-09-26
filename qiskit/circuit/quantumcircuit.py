@@ -835,7 +835,8 @@ class QuantumCircuit:
                 this can be anything that :obj:`.append` will accept.
             qubits (list[Qubit|int]): qubits of self to compose onto.
             clbits (list[Clbit|int]): clbits of self to compose onto.
-            front (bool): If True, front composition will be performed (not implemented yet).
+            front (bool): If True, front composition will be performed.  This is not possible within
+                control-flow builder context managers.
             inplace (bool): If True, modify the object. Otherwise return composed circuit.
             wrap (bool): If True, wraps the other circuit into a gate (or instruction, depending on
                 whether it contains only unitary instructions) before composing it onto self.
@@ -844,12 +845,18 @@ class QuantumCircuit:
             QuantumCircuit: the composed circuit (returns None if inplace==True).
 
         Raises:
-            CircuitError: if composing on the front.
-            QiskitError: if ``other`` is wider or there are duplicate edge mappings.
+            CircuitError: if no correct wire mapping can be made between the two circuits, such as
+                if ``other`` is wider than ``self``.
+            CircuitError: if trying to emit a new circuit while ``self`` has a partially built
+                control-flow context active, such as the context-manager forms of :meth:`if_test`,
+                :meth:`for_loop` and :meth:`while_loop`.
+            CircuitError: if trying to compose to the front of a circuit when a control-flow builder
+                block is active; there is no clear meaning to this action.
 
-        Examples::
+        Examples:
+            .. code-block:: python
 
-            lhs.compose(rhs, qubits=[3, 2], inplace=True)
+                >>> lhs.compose(rhs, qubits=[3, 2], inplace=True)
 
             .. parsed-literal::
 
@@ -869,6 +876,19 @@ class QuantumCircuit:
                 lcr_1: 0 ═══════════                           lcr_1: 0 ═══════════════════════
 
         """
+        if inplace and front and self._control_flow_scopes:
+            # If we're composing onto ourselves while in a stateful control-flow builder context,
+            # there's no clear meaning to composition to the "front" of the circuit.
+            raise CircuitError(
+                "Cannot compose to the front of a circuit while a control-flow context is active."
+            )
+        if not inplace and self._control_flow_scopes:
+            # If we're inside a stateful control-flow builder scope, even if we successfully cloned
+            # the partial builder scope (not simple), the scope wouldn't be controlled by an active
+            # `with` statement, so the output circuit would be permanently broken.
+            raise CircuitError(
+                "Cannot emit a new composed circuit while a control-flow context is active."
+            )
 
         if inplace:
             dest = self
@@ -962,8 +982,9 @@ class QuantumCircuit:
             mapped_instrs += dest.data
             dest.data.clear()
             dest._parameter_table.clear()
+        append = dest._control_flow_scopes[-1].append if dest._control_flow_scopes else dest._append
         for instr in mapped_instrs:
-            dest._append(instr)
+            append(instr)
 
         for gate, cals in other.calibrations.items():
             dest._calibrations[gate].update(cals)
@@ -1677,6 +1698,7 @@ class QuantumCircuit:
             "sx",
             "sxdg",
             "cz",
+            "ccz",
             "cy",
             "swap",
             "ch",
@@ -1689,6 +1711,8 @@ class QuantumCircuit:
             "cp",
             "cu3",
             "csx",
+            "cs",
+            "csdg",
             "cu",
             "rxx",
             "rzz",
@@ -2842,9 +2866,13 @@ class QuantumCircuit:
                             inner.operation.params[idx] = param.bind({parameter: value})
                         self._rebind_definition(inner.operation, parameter, value)
 
-    def barrier(self, *qargs: QubitSpecifier) -> InstructionSet:
+    def barrier(self, *qargs: QubitSpecifier, label=None) -> InstructionSet:
         """Apply :class:`~qiskit.circuit.Barrier`. If qargs is empty, applies to all qubits in the
         circuit.
+
+        Args:
+            qargs (QubitSpecifier): Specification for one or more qubit arguments.
+            label (str): The string label of the barrier.
 
         Returns:
             qiskit.circuit.InstructionSet: handle to the added instructions.
@@ -2868,7 +2896,7 @@ class QuantumCircuit:
             else:
                 qubits.append(qarg)
 
-        return self.append(Barrier(len(qubits)), qubits, [])
+        return self.append(Barrier(len(qubits), label=label), qubits, [])
 
     def delay(
         self,
@@ -3434,6 +3462,66 @@ class QuantumCircuit:
         from .library.standard_gates.s import SdgGate
 
         return self.append(SdgGate(), [qubit], [])
+
+    def cs(
+        self,
+        control_qubit: QubitSpecifier,
+        target_qubit: QubitSpecifier,
+        label: Optional[str] = None,
+        ctrl_state: Optional[Union[str, int]] = None,
+    ) -> InstructionSet:
+        """Apply :class:`~qiskit.circuit.library.CSGate`.
+
+        For the full matrix form of this gate, see the underlying gate documentation.
+
+        Args:
+            control_qubit: The qubit(s) used as the control.
+            target_qubit: The qubit(s) targeted by the gate.
+            label: The string label of the gate in the circuit.
+            ctrl_state:
+                The control state in decimal, or as a bitstring (e.g. '1').  Defaults to controlling
+                on the '1' state.
+
+        Returns:
+            A handle to the instructions created.
+        """
+        from .library.standard_gates.s import CSGate
+
+        return self.append(
+            CSGate(label=label, ctrl_state=ctrl_state),
+            [control_qubit, target_qubit],
+            [],
+        )
+
+    def csdg(
+        self,
+        control_qubit: QubitSpecifier,
+        target_qubit: QubitSpecifier,
+        label: Optional[str] = None,
+        ctrl_state: Optional[Union[str, int]] = None,
+    ) -> InstructionSet:
+        """Apply :class:`~qiskit.circuit.library.CSdgGate`.
+
+        For the full matrix form of this gate, see the underlying gate documentation.
+
+        Args:
+            control_qubit: The qubit(s) used as the control.
+            target_qubit: The qubit(s) targeted by the gate.
+            label: The string label of the gate in the circuit.
+            ctrl_state:
+                The control state in decimal, or as a bitstring (e.g. '1').  Defaults to controlling
+                on the '1' state.
+
+        Returns:
+            A handle to the instructions created.
+        """
+        from .library.standard_gates.s import CSdgGate
+
+        return self.append(
+            CSdgGate(label=label, ctrl_state=ctrl_state),
+            [control_qubit, target_qubit],
+            [],
+        )
 
     def swap(self, qubit1: QubitSpecifier, qubit2: QubitSpecifier) -> InstructionSet:
         """Apply :class:`~qiskit.circuit.library.SwapGate`.
@@ -4203,6 +4291,38 @@ class QuantumCircuit:
 
         return self.append(
             CZGate(label=label, ctrl_state=ctrl_state), [control_qubit, target_qubit], []
+        )
+
+    def ccz(
+        self,
+        control_qubit1: QubitSpecifier,
+        control_qubit2: QubitSpecifier,
+        target_qubit: QubitSpecifier,
+        label: Optional[str] = None,
+        ctrl_state: Optional[Union[str, int]] = None,
+    ) -> InstructionSet:
+        r"""Apply :class:`~qiskit.circuit.library.CCZGate`.
+
+        For the full matrix form of this gate, see the underlying gate documentation.
+
+        Args:
+            control_qubit1: The qubit(s) used as the first control.
+            control_qubit2: The qubit(s) used as the second control.
+            target_qubit: The qubit(s) targeted by the gate.
+            label: The string label of the gate in the circuit.
+            ctrl_state:
+                The control state in decimal, or as a bitstring (e.g. '10').  Defaults to controlling
+                on the '11' state.
+
+        Returns:
+            A handle to the instructions created.
+        """
+        from .library.standard_gates.z import CCZGate
+
+        return self.append(
+            CCZGate(label=label, ctrl_state=ctrl_state),
+            [control_qubit1, control_qubit2, target_qubit],
+            [],
         )
 
     def pauli(
