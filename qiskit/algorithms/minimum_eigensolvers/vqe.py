@@ -46,10 +46,10 @@ class VQE(VariationalAlgorithm, MinimumEigensolver):
     The VQE algorithm is executed using an :attr:`estimator` primitive, which must be specified as
     the first argument on instantiation.
 
-    An instance of ``VQE`` also requires an :attr:`ansatz` parameterized :class:`.QuantumCircuit` to
-    prepare the trial state :math:`|\psi(\vec\theta)\rangle`, as well as a classical
-    :attr:`optimizer`. The optimizer varies the circuit parameters :math:`\vec\theta` such that the
-    expectation value of the operator on the corresponding state approaches a minimum,
+    An instance of ``VQE`` also requires an :attr:`ansatz`, a parameterized :class:`.QuantumCircuit`, to
+    prepare the trial state :math:`|\psi(\vec\theta)\rangle`. It also needs a classical
+    :attr:`optimizer` which varies the circuit parameters :math:`\vec\theta` such that the
+    expectation value of the operator on the corresponding state approaches a minimum.
 
     .. math::
 
@@ -77,7 +77,7 @@ class VQE(VariationalAlgorithm, MinimumEigensolver):
             result.fun = # optimal function value
             return result
 
-    The above signature also allows one to directly pass any SciPy minimizer, for instance as
+    The above signature also allows one to use any SciPy minimizer, for instance as
 
     .. code-block:: python
 
