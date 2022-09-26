@@ -25,14 +25,9 @@ from qiskit.algorithms.optimizers import (
     L_BFGS_B,
     SLSQP,
 )
+
 from qiskit.circuit.library import TwoLocal, RealAmplitudes
-from qiskit.opflow import (
-    MatrixOp,
-    PauliSumOp,
-    I,
-    X,
-    Z,
-)
+from qiskit.opflow import PauliSumOp
 from qiskit.primitives import Sampler, Estimator
 from qiskit.algorithms.state_fidelities import ComputeUncompute
 
@@ -51,6 +46,9 @@ class TestVQD(QiskitAlgorithmsTestCase):
         super().setUp()
         self.seed = 50
         algorithm_globals.random_seed = self.seed
+        I = PauliSumOp.from_list([("I", 1)])
+        X = PauliSumOp.from_list([("X", 1)])
+        Z = PauliSumOp.from_list([("Z", 1)])
         self.h2_op = (
             -1.052373245772859 * (I ^ I)
             + 0.39793742484318045 * (I ^ Z)
@@ -60,9 +58,6 @@ class TestVQD(QiskitAlgorithmsTestCase):
         )
         self.h2_energy = -1.85727503
         self.h2_energy_excited = [-1.85727503, -1.24458455]
-
-        self.test_op = MatrixOp(np.diagflat([3, 5, -1, 0.8, 0.2, 2, 1, -3])).to_pauli_op()
-        self.test_results = [-3, -1]
 
         self.ryrz_wavefunction = TwoLocal(
             rotation_blocks=["ry", "rz"], entanglement_blocks="cz", reps=1
