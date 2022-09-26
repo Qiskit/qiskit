@@ -48,6 +48,34 @@ class SparsePauliOp(LinearOp):
     using the :attr:`~SparsePauliOp.paulis` attribute. The coefficients
     are stored as a complex Numpy array vector and can be accessed using
     the :attr:`~SparsePauliOp.coeffs` attribute.
+
+    -------------
+    dtype
+    -------------
+
+    The default dtype of coeffs is complex.
+    User can configure dtype by passing ``np.ndarray`` with different dtype.
+    For example, parameterized SparsePauliOp can be made as follows:
+
+    .. code-block:: python
+
+        >>> import numpy as np
+        >>> from qiskit.circuit import ParameterVector
+        >>> from qiskit.quantum_info import SparsePauliOp
+
+        >>> SparsePauliOp(["II", "XZ"], np.array(ParameterVector("a", 2)))
+        SparsePauliOp(['II', 'XZ'],
+              coeffs=[ParameterExpression(1.0*a[0]), ParameterExpression(1.0*a[1])])
+
+    .. note::
+
+      Parameterized SparasePauliOp does not supprot the following methods:
+
+      - ``to_matrix(sparse=True)`` since scipy.sparse cannot have objects as elements.
+      - ``to_operator()`` since Operator does not support objects.
+      - ``sort``, ``argsort`` since Parameter does not support comparison.
+      - ``equiv`` since Parameter cannot be converted into complex.
+
     """
 
     def __init__(self, data, coeffs=None, *, ignore_pauli_phase=False, copy=True):
