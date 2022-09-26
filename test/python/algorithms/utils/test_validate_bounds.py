@@ -18,7 +18,7 @@ from unittest.mock import Mock
 
 import numpy as np
 
-from qiskit.algorithms.utils import _validate_bounds
+from qiskit.algorithms.utils import validate_bounds
 from qiskit.utils import algorithm_globals
 
 
@@ -35,14 +35,14 @@ class TestValidateBounds(QiskitAlgorithmsTestCase):
         """Test with no ansatz bounds."""
         self.ansatz.num_parameters = 1
         self.ansatz.parameter_bounds = None
-        bounds = _validate_bounds(self.ansatz)
+        bounds = validate_bounds(self.ansatz)
         self.assertEqual(bounds, [(None, None)])
 
     def test_with_ansatz_bounds(self):
         """Test with ansatz bounds."""
         self.ansatz.num_parameters = 1
         self.ansatz.parameter_bounds = self.bounds
-        bounds = _validate_bounds(self.ansatz)
+        bounds = validate_bounds(self.ansatz)
         self.assertEqual(bounds, self.bounds)
 
     def test_with_mismatched_num_params(self):
@@ -50,4 +50,4 @@ class TestValidateBounds(QiskitAlgorithmsTestCase):
         self.ansatz.num_parameters = 2
         self.ansatz.parameter_bounds = self.bounds
         with self.assertRaises(ValueError):
-            _ = _validate_bounds(self.ansatz)
+            _ = validate_bounds(self.ansatz)

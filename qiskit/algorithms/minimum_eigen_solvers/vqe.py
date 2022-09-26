@@ -121,13 +121,6 @@ class VQE(VariationalAlgorithm, MinimumEigensolver):
 
     """
 
-    @deprecate_function(
-        "The VQE class has been superseded by the "
-        "qiskit.algorithms.minimum_eigensolvers.VQE class. "
-        "This class will be deprecated in a future release and subsequently "
-        "removed after that.",
-        category=PendingDeprecationWarning,
-    )
     def __init__(
         self,
         ansatz: Optional[QuantumCircuit] = None,

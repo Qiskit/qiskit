@@ -12,10 +12,10 @@
 
 """Common Qiskit algorithms utility functions."""
 
-from .validate_initial_point import _validate_initial_point
-from .validate_bounds import _validate_bounds
+from .validate_initial_point import validate_initial_point
+from .validate_bounds import validate_bounds
 
 __all__ = [
-    "_validate_initial_point",
-    "_validate_bounds",
+    "validate_initial_point",
+    "validate_bounds",
 ]

@@ -34,17 +34,17 @@ class TestValidateInitialPoint(QiskitAlgorithmsTestCase):
     def test_with_no_initial_point_or_bounds(self):
         """Test with no user-defined initial point and no ansatz bounds."""
         self.ansatz.parameter_bounds = None
-        initial_point = _validate_initial_point(None, self.ansatz)
+        initial_point = validate_initial_point(None, self.ansatz)
         np.testing.assert_array_almost_equal(initial_point, [1.721111])
 
     def test_with_no_initial_point(self):
         """Test with no user-defined initial point with ansatz bounds."""
         self.ansatz.parameter_bounds = [(-np.pi / 2, np.pi / 2)]
-        initial_point = _validate_initial_point(None, self.ansatz)
+        initial_point = validate_initial_point(None, self.ansatz)
         np.testing.assert_array_almost_equal(initial_point, [0.430278])
 
     def test_with_mismatched_params(self):
         """Test with mistmatched parameters and bounds.."""
         self.ansatz.parameter_bounds = None
         with self.assertRaises(ValueError):
-            _ = _validate_initial_point([1.0, 2.0], self.ansatz)
+            _ = validate_initial_point([1.0, 2.0], self.ansatz)

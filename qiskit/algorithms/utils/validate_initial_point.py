@@ -22,7 +22,7 @@ from qiskit.circuit import QuantumCircuit
 from qiskit.utils import algorithm_globals
 
 
-def _validate_initial_point(
+def validate_initial_point(
     point: Sequence[float] | None, ansatz: QuantumCircuit
 ) -> Sequence[float]:
     expected_size = ansatz.num_parameters

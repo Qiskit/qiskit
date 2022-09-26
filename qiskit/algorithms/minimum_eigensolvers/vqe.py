@@ -136,7 +136,7 @@ class VQE(VariationalAlgorithm, MinimumEigensolver):
                 bounds, bounds of :math:`-2\pi`, :math:`2\pi` will be used.
             callback: A callback that can access the intermediate data at each optimization step.
                 These data are: the evaluation count, the optimizer parameters for the ansatz, the
-                evaluated mean, and the metadata dictionary.
+                estimated value, and the metadata dictionary.
         """
         super().__init__()
 

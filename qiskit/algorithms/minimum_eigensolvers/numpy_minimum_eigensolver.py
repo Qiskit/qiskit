@@ -35,13 +35,6 @@ class NumPyMinimumEigensolver(MinimumEigensolver):
     The NumPy minimum eigensolver algorithm.
     """
 
-    @deprecate_function(
-        "The NumPyMinimumEigensolver class has been superseded by the "
-        "qiskit.algorithms.minimum_eigensolvers.NumPyMinimumEigensolver class. "
-        "This class will be deprecated in a future release and subsequently "
-        "removed after that.",
-        category=PendingDeprecationWarning,
-    )
     def __init__(
         self,
         filter_criterion: Callable[

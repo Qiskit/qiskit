@@ -4,7 +4,6 @@ features:
      Added :class:`qiskit.algorithms.minimum_eigensolvers` package to include
      interfaces for primitive-enabled algorithms. Refactored
      :class:`qiskit.algorithms.minimum_eigensolvers.VQE` to leverage primitives.
-     Please see the Qiskit Runtime migration guide for more information.
 deprecations:
   - |
      :class:`qiskit.algorithms.minimum_eigen_solvers` package will now issue a
