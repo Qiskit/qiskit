@@ -23,13 +23,30 @@ from qiskit.utils import algorithm_globals
 
 
 def validate_initial_point(
-    point: Sequence[float] | None, ansatz: QuantumCircuit
+    point: Sequence[float] | None, circuit: QuantumCircuit
 ) -> Sequence[float]:
-    expected_size = ansatz.num_parameters
+    r"""
+    Validate a choice of initial point against a choice of circuit. If no point is provided, a
+    random point will be generated within certain parameter bounds. It will first look to the
+    circuit for these bounds. If the circuit does not specify bounds, bounds of :math:`-2\pi`,
+    :math:`2\pi` will be used.
+
+    Args:
+        point: An initial point.
+        circuit: A parameterized quantum circuit.
+
+    Returns:
+        A validated initial point.
+
+    Raises:
+        ValueError: If the dimension of the initial point does not match the number of circuit
+        parameters.
+    """
+    expected_size = circuit.num_parameters
 
     if point is None:
-        # get bounds if ansatz has them set, otherwise use [-2pi, 2pi] for each parameter
-        bounds = getattr(ansatz, "parameter_bounds", None)
+        # get bounds if circuit has them set, otherwise use [-2pi, 2pi] for each parameter
+        bounds = getattr(circuit, "parameter_bounds", None)
         if bounds is None:
             bounds = [(-2 * np.pi, 2 * np.pi)] * expected_size
 

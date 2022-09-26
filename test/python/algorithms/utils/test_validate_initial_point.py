@@ -18,12 +18,12 @@ from unittest.mock import Mock
 
 import numpy as np
 
-from qiskit.algorithms.utils import _validate_initial_point
+from qiskit.algorithms.utils import validate_initial_point
 from qiskit.utils import algorithm_globals
 
 
 class TestValidateInitialPoint(QiskitAlgorithmsTestCase):
-    """Test the ``_validate_initial_point`` utility function."""
+    """Test the ``validate_initial_point`` utility function."""
 
     def setUp(self):
         super().setUp()

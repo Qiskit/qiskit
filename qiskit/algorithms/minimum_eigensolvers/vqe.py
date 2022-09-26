@@ -32,7 +32,7 @@ from ..optimizers import Optimizer, Minimizer, OptimizerResult
 from ..variational_algorithm import VariationalAlgorithm, VariationalResult
 from .minimum_eigensolver import MinimumEigensolver, MinimumEigensolverResult
 from ..observables_evaluator import estimate_observables
-from ..utils import _validate_initial_point, _validate_bounds
+from ..utils import validate_initial_point, validate_bounds
 
 logger = logging.getLogger(__name__)
 
@@ -120,7 +120,7 @@ class VQE(VariationalAlgorithm, MinimumEigensolver):
         initial_point: Sequence[float] | None = None,
         callback: Callable[[int, np.ndarray, float, dict], None] | None = None,
     ) -> None:
-        """
+        r"""
         Args:
             estimator: The estimator primitive to compute the expectation value of the
                 Hamiltonian operator.
@@ -163,9 +163,9 @@ class VQE(VariationalAlgorithm, MinimumEigensolver):
     ) -> VQEResult:
         self._check_operator_ansatz(operator)
 
-        initial_point = _validate_initial_point(self.initial_point, self.ansatz)
+        initial_point = validate_initial_point(self.initial_point, self.ansatz)
 
-        bounds = _validate_bounds(self.ansatz)
+        bounds = validate_bounds(self.ansatz)
 
         start_time = time()
 
@@ -200,7 +200,7 @@ class VQE(VariationalAlgorithm, MinimumEigensolver):
         else:
             aux_values = None
 
-        return _build_vqe_result(optimizer_result, aux_values, eval_time)
+        return self._build_vqe_result(optimizer_result, aux_values, eval_time)
 
     @classmethod
     def supports_aux_operators(cls) -> bool:

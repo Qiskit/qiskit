@@ -23,7 +23,7 @@ from qiskit.utils import algorithm_globals
 
 
 class TestValidateBounds(QiskitAlgorithmsTestCase):
-    """Test the ``_validate_bounds`` utility function."""
+    """Test the ``validate_bounds`` utility function."""
 
     def setUp(self):
         super().setUp()

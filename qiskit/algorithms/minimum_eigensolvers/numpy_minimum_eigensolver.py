@@ -20,7 +20,6 @@ import numpy as np
 
 from qiskit.opflow import PauliSumOp
 from qiskit.quantum_info.operators.base_operator import BaseOperator
-from qiskit.utils.deprecation import deprecate_function
 
 # TODO this path will need updating
 from ..eigen_solvers.numpy_eigen_solver import NumPyEigensolver
