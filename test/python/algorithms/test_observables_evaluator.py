@@ -173,12 +173,10 @@ class TestObservablesEvaluator(QiskitAlgorithmsTestCase):
         np.testing.assert_array_almost_equal(means, expected_means, decimal=0.01)
 
         vars_and_shots = [element[1] for element in result]
-        print(vars_and_shots)
         expected_vars_and_shots = [element[1] for element in expected_result]
-        print(expected_vars_and_shots)
         for computed, expected in zip(vars_and_shots, expected_vars_and_shots):
-
-            self.assertAlmostEqual(computed, expected, 2)
+            self.assertAlmostEqual(computed.pop("variance"), expected.pop("variance"), 2)
+            self.assertEqual(computed.pop("shots"), expected.pop("shots"))
 
 
 if __name__ == "__main__":
