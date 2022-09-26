@@ -438,7 +438,7 @@ class TestParametricPulses(QiskitTestCase):
         gaussian_pulse = Gaussian(160, 0.1, 40)
 
         self.assertTrue(isinstance(gaussian_pulse, SymbolicPulse))
-        with self.assertWarns(UserWarning):
+        with self.assertWarns(PendingDeprecationWarning):
             self.assertTrue(isinstance(gaussian_pulse, Gaussian))
             self.assertFalse(isinstance(gaussian_pulse, GaussianSquare))
             self.assertFalse(isinstance(gaussian_pulse, Drag))
@@ -449,7 +449,7 @@ class TestParametricPulses(QiskitTestCase):
         gaussian_square_pulse = GaussianSquare(800, 0.1, 64, 544)
 
         self.assertTrue(isinstance(gaussian_square_pulse, SymbolicPulse))
-        with self.assertWarns(UserWarning):
+        with self.assertWarns(PendingDeprecationWarning):
             self.assertFalse(isinstance(gaussian_square_pulse, Gaussian))
             self.assertTrue(isinstance(gaussian_square_pulse, GaussianSquare))
             self.assertFalse(isinstance(gaussian_square_pulse, Drag))
@@ -460,7 +460,7 @@ class TestParametricPulses(QiskitTestCase):
         drag_pulse = Drag(160, 0.1, 40, 1.5)
 
         self.assertTrue(isinstance(drag_pulse, SymbolicPulse))
-        with self.assertWarns(UserWarning):
+        with self.assertWarns(PendingDeprecationWarning):
             self.assertFalse(isinstance(drag_pulse, Gaussian))
             self.assertFalse(isinstance(drag_pulse, GaussianSquare))
             self.assertTrue(isinstance(drag_pulse, Drag))
@@ -471,7 +471,7 @@ class TestParametricPulses(QiskitTestCase):
         constant_pulse = Constant(160, 0.1, 40, 1.5)
 
         self.assertTrue(isinstance(constant_pulse, SymbolicPulse))
-        with self.assertWarns(UserWarning):
+        with self.assertWarns(PendingDeprecationWarning):
             self.assertFalse(isinstance(constant_pulse, Gaussian))
             self.assertFalse(isinstance(constant_pulse, GaussianSquare))
             self.assertFalse(isinstance(constant_pulse, Drag))
