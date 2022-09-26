@@ -644,13 +644,6 @@ class VQE(VariationalAlgorithm, MinimumEigensolver):
 class VQEResult(VariationalResult, MinimumEigensolverResult):
     """VQE Result."""
 
-    @deprecate_function(
-        "The VQEResult class has been superseded by the "
-        "qiskit.algorithms.minimum_eigensolvers.VQEResult class. "
-        "This class will be deprecated in a future release and subsequently "
-        "removed after that.",
-        category=PendingDeprecationWarning,
-    )
     def __init__(self) -> None:
         super().__init__()
         self._cost_function_evals = None
