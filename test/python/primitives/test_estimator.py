@@ -18,7 +18,6 @@ import numpy as np
 
 from qiskit.circuit import QuantumCircuit
 from qiskit.circuit.library import RealAmplitudes
-from qiskit.exceptions import QiskitError
 from qiskit.opflow import PauliSumOp
 from qiskit.primitives import Estimator, EstimatorResult
 from qiskit.providers import JobV1
@@ -288,17 +287,17 @@ class TestEstimator(QiskitTestCase):
 
         with self.assertWarns(DeprecationWarning):
             est = Estimator([qc, qc2], [op, op2], [[]] * 2)
-        with self.assertRaises(QiskitError), self.assertWarns(DeprecationWarning):
+        with self.assertRaises(ValueError), self.assertWarns(DeprecationWarning):
             est([0], [1], [[]])
-        with self.assertRaises(QiskitError), self.assertWarns(DeprecationWarning):
+        with self.assertRaises(ValueError), self.assertWarns(DeprecationWarning):
             est([1], [0], [[]])
-        with self.assertRaises(QiskitError), self.assertWarns(DeprecationWarning):
+        with self.assertRaises(ValueError), self.assertWarns(DeprecationWarning):
             est([0], [0], [[1e4]])
-        with self.assertRaises(QiskitError), self.assertWarns(DeprecationWarning):
+        with self.assertRaises(ValueError), self.assertWarns(DeprecationWarning):
             est([1], [1], [[1, 2]])
-        with self.assertRaises(QiskitError), self.assertWarns(DeprecationWarning):
+        with self.assertRaises(ValueError), self.assertWarns(DeprecationWarning):
             est([0, 1], [1], [[1]])
-        with self.assertRaises(QiskitError), self.assertWarns(DeprecationWarning):
+        with self.assertRaises(ValueError), self.assertWarns(DeprecationWarning):
             est([0], [0, 1], [[1]])
 
     def test_empty_parameter(self):
@@ -362,7 +361,7 @@ class TestEstimator(QiskitTestCase):
             circuit = QuantumCircuit(2)
             with self.assertWarns(DeprecationWarning):
                 estimator = Estimator([self.ansatz], [self.observable])
-            with self.assertRaises(QiskitError), self.assertWarns(DeprecationWarning):
+            with self.assertRaises(ValueError), self.assertWarns(DeprecationWarning):
                 result = estimator(
                     circuits=[self.ansatz, circuit],
                     observables=[self.observable, self.observable],
@@ -373,7 +372,7 @@ class TestEstimator(QiskitTestCase):
             observable = SparsePauliOp(["ZX"])
             with self.assertWarns(DeprecationWarning):
                 estimator = Estimator([self.ansatz], [self.observable])
-            with self.assertRaises(QiskitError), self.assertWarns(DeprecationWarning):
+            with self.assertRaises(ValueError), self.assertWarns(DeprecationWarning):
                 result = estimator(
                     circuits=[self.ansatz, self.ansatz],
                     observables=[observable, self.observable],
@@ -521,17 +520,17 @@ class TestEstimator(QiskitTestCase):
         op2 = SparsePauliOp.from_list([("II", 1)])
 
         est = Estimator()
-        with self.assertRaises(QiskitError):
+        with self.assertRaises(ValueError):
             est.run([qc], [op2], [[]]).result()
-        with self.assertRaises(QiskitError):
+        with self.assertRaises(ValueError):
             est.run([qc2], [op], [[]]).result()
-        with self.assertRaises(QiskitError):
+        with self.assertRaises(ValueError):
             est.run([qc], [op], [[1e4]]).result()
-        with self.assertRaises(QiskitError):
+        with self.assertRaises(ValueError):
             est.run([qc2], [op2], [[1, 2]]).result()
-        with self.assertRaises(QiskitError):
+        with self.assertRaises(ValueError):
             est.run([qc, qc2], [op2], [[1]]).result()
-        with self.assertRaises(QiskitError):
+        with self.assertRaises(ValueError):
             est.run([qc], [op, op2], [[1]]).result()
 
     def test_run_numpy_params(self):
