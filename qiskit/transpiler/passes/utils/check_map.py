@@ -13,6 +13,8 @@
 """Check if a DAG circuit is already mapped to a coupling map."""
 
 from qiskit.transpiler.basepasses import AnalysisPass
+from qiskit.circuit.controlflow import ControlFlowOp
+from qiskit.transpiler.layout import Layout
 
 
 class CheckMap(AnalysisPass):
@@ -41,6 +43,8 @@ class CheckMap(AnalysisPass):
         Args:
             dag (DAGCircuit): DAG to map.
         """
+        from qiskit.converters import circuit_to_dag
+
         self.property_set["is_swap_mapped"] = True
 
         if self.coupling_map is None or len(self.coupling_map.graph) == 0:
@@ -64,3 +68,13 @@ class CheckMap(AnalysisPass):
                 )
                 self.property_set["is_swap_mapped"] = False
                 return
+        for cf_instr in dag.op_nodes(op=ControlFlowOp):
+            layout = Layout(dict(enumerate(cf_instr.qargs)))
+            for block in cf_instr.op.blocks:
+                dag_block = circuit_to_dag(block)
+                mapped_dag = dag_block.copy_empty_like()
+                order = layout.reorder_bits(mapped_dag.qubits)
+                mapped_dag.compose(dag_block, qubits=order)
+                self.run(mapped_dag)
+                if not self.property_set["is_swap_mapped"]:
+                    return
