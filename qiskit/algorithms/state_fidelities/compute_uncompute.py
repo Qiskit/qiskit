@@ -20,6 +20,7 @@ from copy import copy
 from qiskit import QuantumCircuit
 from qiskit.algorithms import AlgorithmError
 from qiskit.primitives import BaseSampler
+from qiskit.providers import Options
 
 from .base_state_fidelity import BaseStateFidelity
 from .state_fidelity_result import StateFidelityResult
@@ -48,11 +49,14 @@ class ComputeUncompute(BaseStateFidelity):
 
     """
 
-    def __init__(self, sampler: BaseSampler, **run_options) -> None:
+    def __init__(self, sampler: BaseSampler, options: Options | None = None) -> None:
         """
         Args:
             sampler: Sampler primitive instance.
-            run_options: Backend runtime options used for circuit execution.
+            options: Primitive backend runtime options used for circuit execution.
+                The order of priority is: options in ``run`` method > fidelity's
+                default options > primitive's default setting.
+                Higher priority setting overrides lower priority setting.
 
         Raises:
             ValueError: If the sampler is not an instance of ``BaseSampler``.
@@ -62,7 +66,9 @@ class ComputeUncompute(BaseStateFidelity):
                 f"The sampler should be an instance of BaseSampler, " f"but got {type(sampler)}"
             )
         self._sampler: BaseSampler = sampler
-        self._default_run_options = run_options
+        self._default_options = Options()
+        if options is not None:
+            self._default_options.update_options(**options)
         super().__init__()
 
     def create_fidelity_circuit(
@@ -79,6 +85,11 @@ class ComputeUncompute(BaseStateFidelity):
         Returns:
             The fidelity quantum circuit corresponding to circuit_1 and circuit_2.
         """
+        if len(circuit_1.clbits) > 0:
+            circuit_1.remove_final_measurements()
+        if len(circuit_2.clbits) > 0:
+            circuit_2.remove_final_measurements()
+
         circuit = circuit_1.compose(circuit_2.inverse())
         circuit.measure_all()
         return circuit
@@ -89,7 +100,7 @@ class ComputeUncompute(BaseStateFidelity):
         circuits_2: QuantumCircuit | Sequence[QuantumCircuit],
         values_1: Sequence[float] | Sequence[Sequence[float]] | None = None,
         values_2: Sequence[float] | Sequence[Sequence[float]] | None = None,
-        **run_options,
+        **options,
     ) -> StateFidelityResult:
         r"""
         Computes the state overlap (fidelity) calculation between two
@@ -101,10 +112,10 @@ class ComputeUncompute(BaseStateFidelity):
             circuits_2: (Parametrized) quantum circuits preparing :math:`|\phi\rangle`.
             values_1: Numerical parameters to be bound to the first circuits.
             values_2: Numerical parameters to be bound to the second circuits.
-            run_options: Backend runtime options used for circuit execution. The order
-                of priority is\: run_options in ``run`` method > fidelity's default
-                run_options > primitive's default setting.
-                Higher priority setting overrides lower priority setting.
+            options: Primitive backend runtime options used for circuit execution.
+                    The order of priority is: options in ``run`` method > fidelity's
+                    default options > primitive's default setting.
+                    Higher priority setting overrides lower priority setting.
 
         Returns:
             The result of the fidelity calculation.
@@ -122,12 +133,12 @@ class ComputeUncompute(BaseStateFidelity):
         values = self._construct_value_list(circuits_1, circuits_2, values_1, values_2)
 
         # The priority of run options is as follows:
-        # run_options in `evaluate` method > fidelity's default run_options >
-        # primitive's default run_options.
-        run_opts = copy(self._default_run_options)
-        run_opts.update(**run_options)
+        # options in `evaluate` method > fidelity's default options >
+        # primitive's default options.
+        opts = copy(self._default_options)
+        opts.update_options(**options)
 
-        job = self._sampler.run(circuits=circuits, parameter_values=values, **run_opts)
+        job = self._sampler.run(circuits=circuits, parameter_values=values, **opts.__dict__)
 
         try:
             result = job.result()
@@ -141,5 +152,41 @@ class ComputeUncompute(BaseStateFidelity):
             fidelities=fidelities,
             raw_fidelities=raw_fidelities,
             metadata=result.metadata,
-            run_options=run_opts,
+            options=self._get_local_options(opts.__dict__),
         )
+
+    @property
+    def options(self) -> Options:
+        """Return the union of estimator options setting and fidelity default options,
+        where, if the same field is set in both, the fidelity's default options override
+        the primitive's default setting.
+
+        Returns:
+            The fidelity default + estimator options.
+        """
+        return self._get_local_options(self._default_options.__dict__)
+
+    def update_default_options(self, **options):
+        """Update the fidelity's default options setting.
+
+        Args:
+            **options: The fields to update the default options.
+        """
+
+        self._default_options.update_options(**options)
+
+    def _get_local_options(self, options: Options) -> Options:
+        """Return the union of the primitive's default setting,
+        the fidelity default options, and the options in the ``run`` method.
+        The order of priority is: options in ``run`` method > fidelity's
+                default options > primitive's default setting.
+
+        Args:
+            options: The fields to update the options
+
+        Returns:
+            The fidelity default + estimator + run options.
+        """
+        opts = copy(self._sampler.options)
+        opts.update_options(**options)
+        return opts
