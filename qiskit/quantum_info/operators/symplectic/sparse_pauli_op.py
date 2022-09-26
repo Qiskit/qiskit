@@ -65,7 +65,7 @@ class SparsePauliOp(LinearOp):
 
     .. note::
 
-      Parameterized SparasePauliOp does not supprot the following methods:
+      Parameterized SparasePauliOp does not support the following methods:
 
       - ``to_matrix(sparse=True)`` since scipy.sparse cannot have objects as elements.
       - ``to_operator()`` since Operator does not support objects.
