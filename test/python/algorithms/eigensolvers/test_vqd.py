@@ -46,9 +46,9 @@ class TestVQD(QiskitAlgorithmsTestCase):
         super().setUp()
         self.seed = 50
         algorithm_globals.random_seed = self.seed
-        I = PauliSumOp.from_list([("I", 1)]) # pylint: disable=invalid-name
-        X = PauliSumOp.from_list([("X", 1)]) # pylint: disable=invalid-name
-        Z = PauliSumOp.from_list([("Z", 1)]) # pylint: disable=invalid-name
+        I = PauliSumOp.from_list([("I", 1)])  # pylint: disable=invalid-name
+        X = PauliSumOp.from_list([("X", 1)])  # pylint: disable=invalid-name
+        Z = PauliSumOp.from_list([("Z", 1)])  # pylint: disable=invalid-name
         self.h2_op = (
             -1.052373245772859 * (I ^ I)
             + 0.39793742484318045 * (I ^ Z)
