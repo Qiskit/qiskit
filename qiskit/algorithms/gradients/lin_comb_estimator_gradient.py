@@ -44,16 +44,17 @@ class LinCombEstimatorGradient(BaseEstimatorGradient):
     `arXiv:1811.11184 <https://arxiv.org/pdf/1811.11184.pdf>`_
     """
 
-    def __init__(self, estimator: BaseEstimator, **run_options):
+    def __init__(self, estimator: BaseEstimator, **options):
         """
         Args:
             estimator: The estimator used to compute the gradients.
-            run_options: Backend runtime options used for circuit execution. The order of priority is:
-                run_options in ``run`` method > gradient's default run_options > primitive's default
-                setting. Higher priority setting overrides lower priority setting.
+            options: Primitive backend runtime options used for circuit execution.
+                The order of priority is: options in ``run`` method > gradient's
+                default options > primitive's default setting.
+                Higher priority setting overrides lower priority setting
         """
         self._gradient_circuits = {}
-        super().__init__(estimator, **run_options)
+        super().__init__(estimator, **options)
 
     def _run(
         self,
@@ -61,14 +62,14 @@ class LinCombEstimatorGradient(BaseEstimatorGradient):
         observables: Sequence[BaseOperator | PauliSumOp],
         parameter_values: Sequence[Sequence[float]],
         parameters: Sequence[Sequence[Parameter] | None],
-        **run_options,
+        **options,
     ) -> EstimatorGradientResult:
         """Compute the estimator gradients on the given circuits."""
         jobs, result_indices_all, coeffs_all, metadata_ = [], [], [], []
         for circuit, observable, parameter_values_, parameters_ in zip(
             circuits, observables, parameter_values, parameters
         ):
-            # Make the observable as observable as :class:`~qiskit.quantum_info.SparsePauliOp`.
+            # Make the observable as :class:`~qiskit.quantum_info.SparsePauliOp`.
             observable = init_observable(observable)
             # a set of parameters to be differentiated
             if parameters_ is None:
@@ -110,7 +111,7 @@ class LinCombEstimatorGradient(BaseEstimatorGradient):
 
             n = len(gradient_circuits)
             job = self._estimator.run(
-                gradient_circuits, [observable_] * n, [parameter_values_] * n, **run_options
+                gradient_circuits, [observable_] * n, [parameter_values_] * n, **options
             )
             jobs.append(job)
             result_indices_all.append(result_indices)
@@ -129,5 +130,5 @@ class LinCombEstimatorGradient(BaseEstimatorGradient):
                 gradient_[idx] += coeff * grad_
             gradients.append(gradient_)
 
-        run_opt = self._get_local_run_options(run_options)
-        return EstimatorGradientResult(gradients=gradients, metadata=metadata_, run_options=run_opt)
+        opt = self._get_local_options(options)
+        return EstimatorGradientResult(gradients=gradients, metadata=metadata_, options=opt)
