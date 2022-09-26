@@ -212,6 +212,7 @@ Algorithms that can find the minimum eigenvalue of an operator and leverage prim
 
 .. autosummary::
    :toctree: ../stubs/
+   
    minimum_eigensolvers
 
 
