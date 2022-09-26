@@ -187,6 +187,8 @@ Minimum Eigen Solvers
 ---------------------
 
 Algorithms that can find the minimum eigenvalue of an operator.
+These algorithms are pending depreciation. One should instead make use of the
+Minimum Eigensolver classes in the section below, which leverage Runtime primitives.
 
 .. autosummary::
    :toctree: ../stubs/
