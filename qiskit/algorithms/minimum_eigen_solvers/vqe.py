@@ -40,7 +40,6 @@ from qiskit.providers import Backend
 from qiskit.utils import QuantumInstance, algorithm_globals
 from qiskit.utils.backend_utils import is_aer_provider
 from qiskit.utils.validation import validate_min
-from qiskit.utils.deprecation import deprecate_function
 
 from ..aux_ops_evaluator import eval_observables
 from ..exceptions import AlgorithmError
