@@ -41,7 +41,7 @@ class VQE(VariationalAlgorithm, MinimumEigensolver):
     r"""The variational quantum eigensolver (VQE) algorithm.
 
     VQE is a hybrid quantum-classical algorithm that uses a variational technique to find the
-    minimum eigenvalue of a given Hamiltonian operator :math:`\vec\theta`.
+    minimum eigenvalue of a given Hamiltonian operator :math:`H`.
 
     The VQE algorithm is executed using an :attr:`estimator` primitive, which must be specified as
     the first argument on instantiation.
@@ -49,9 +49,9 @@ class VQE(VariationalAlgorithm, MinimumEigensolver):
     An instance of ``VQE`` also requires an :attr:`ansatz` parameterized :class:`.QuantumCircuit` to
     prepare the trial state :math:`|\psi(\vec\theta)\rangle`, as well as a classical
     :attr:`optimizer`. The optimizer varies the circuit parameters :math:`\vec\theta` such that the
-    expectation value of the operator :math:`H` on the corresponding state approaches a minimum,
+    expectation value of the operator on the corresponding state approaches a minimum,
 
-    ..math::
+    .. math::
 
         \min_{\vec\theta} \langle\psi(\vec\theta)|H|\psi(\vec\theta)\rangle.
 
