@@ -43,19 +43,19 @@ class VQE(VariationalAlgorithm, MinimumEigensolver):
     VQE is a hybrid quantum-classical algorithm that uses a variational technique to find the
     minimum eigenvalue of a given Hamiltonian operator :math:`H`.
 
-    The VQE algorithm is executed using an :attr:`estimator` primitive, which must be specified as
-    the first argument on instantiation.
+    The ``VQE`` algorithm is executed using an :attr:`estimator` primitive, which computes
+    expectation values of operators (observables).
 
-    An instance of ``VQE`` also requires an :attr:`ansatz`, a parameterized :class:`.QuantumCircuit`, to
-    prepare the trial state :math:`|\psi(\vec\theta)\rangle`. It also needs a classical
-    :attr:`optimizer` which varies the circuit parameters :math:`\vec\theta` such that the
-    expectation value of the operator on the corresponding state approaches a minimum.
+    An instance of ``VQE`` also requires an :attr:`ansatz`, a parameterized
+    :class:`.QuantumCircuit`, to prepare the trial state :math:`|\psi(\vec\theta)\rangle`. It also
+    needs a classical :attr:`optimizer` which varies the circuit parameters :math:`\vec\theta` such
+    that the expectation value of the operator on the corresponding state approaches a minimum.
 
     .. math::
 
         \min_{\vec\theta} \langle\psi(\vec\theta)|H|\psi(\vec\theta)\rangle.
 
-    The Estimator is used to compute this expectation value for every optimization step.
+    The :attr:`estimator` is used to compute this expectation value for every optimization step.
 
     The optimizer can either be one of Qiskit's optimizers, such as
     :class:`~qiskit.algorithms.optimizers.SPSA` or a callable with the following signature:
