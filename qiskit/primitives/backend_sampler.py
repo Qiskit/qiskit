@@ -216,7 +216,6 @@ class BackendSampler(BaseSampler):
         self,
         circuits: Sequence["QuantumCircuit"],
         parameter_values: Sequence[Sequence[float]],
-        parameters: Sequence["ParameterView"],
         **run_options,
     ) -> PrimitiveJob:
         circuit_indices = []
@@ -228,7 +227,7 @@ class BackendSampler(BaseSampler):
                 circuit_indices.append(len(self._circuits))
                 self._circuit_ids[id(circuit)] = len(self._circuits)
                 self._circuits.append(circuit)
-                self._parameters.append(parameters[i])
+                self._parameters.append(circuit.parameters)
         job = PrimitiveJob(self._call, circuit_indices, parameter_values, **run_options)
         job.submit()
         return job
