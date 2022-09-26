@@ -21,7 +21,6 @@ from ddt import ddt
 from qiskit import QuantumCircuit
 from qiskit.circuit import Parameter
 from qiskit.circuit.library import RealAmplitudes
-from qiskit.exceptions import QiskitError
 from qiskit.primitives import BackendSampler, SamplerResult
 from qiskit.providers import JobStatus, JobV1
 from qiskit.test import QiskitTestCase
@@ -340,11 +339,11 @@ class TestBackendSampler(QiskitTestCase):
             sampler = BackendSampler(
                 backend=backend, circuits=[qc1, qc2], parameters=[qc1.parameters, qc2.parameters]
             )
-        with self.assertRaises(QiskitError), self.assertWarns(DeprecationWarning):
+        with self.assertRaises(ValueError), self.assertWarns(DeprecationWarning):
             sampler([0], [[1e2]])
-        with self.assertRaises(QiskitError), self.assertWarns(DeprecationWarning):
+        with self.assertRaises(ValueError), self.assertWarns(DeprecationWarning):
             sampler([1], [[]])
-        with self.assertRaises(QiskitError), self.assertWarns(DeprecationWarning):
+        with self.assertRaises(ValueError), self.assertWarns(DeprecationWarning):
             sampler([1], [[1e2]])
 
     @combine(backend=BACKENDS)
@@ -488,11 +487,11 @@ class TestBackendSampler(QiskitTestCase):
         qc2.measure_all()
 
         sampler = BackendSampler(backend=backend)
-        with self.assertRaises(QiskitError):
+        with self.assertRaises(ValueError):
             sampler.run([qc1], [[1e2]]).result()
-        with self.assertRaises(QiskitError):
+        with self.assertRaises(ValueError):
             sampler.run([qc2], [[]]).result()
-        with self.assertRaises(QiskitError):
+        with self.assertRaises(ValueError):
             sampler.run([qc2], [[1e2]]).result()
 
     @combine(backend=BACKENDS)

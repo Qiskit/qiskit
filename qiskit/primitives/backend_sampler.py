@@ -219,7 +219,7 @@ class BackendSampler(BaseSampler):
         **run_options,
     ) -> PrimitiveJob:
         circuit_indices = []
-        for i, circuit in enumerate(circuits):
+        for circuit in circuits:
             index = self._circuit_ids.get(id(circuit))
             if index is not None:
                 circuit_indices.append(index)
