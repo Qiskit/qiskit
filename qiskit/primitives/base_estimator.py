@@ -20,7 +20,7 @@ Overview of Estimator
 Estimator class estimates expectation values of quantum circuits and observables.
 
 An estimator is initialized with an empty parameter set. The estimator is used to
-create a :class:`qiskit.primitives.PrimitiveJob`, via the
+create a :class:`~qiskit.providers.JobV1`, via the
 :meth:`qiskit.primitives.Estimator.run()` method. This method is called
 with the following parameters
 
@@ -34,8 +34,8 @@ with the following parameters
   to be bound to the parameters of the quantum circuits
   (list of list of float).
 
-The method returns a :class:`~qiskit.primitives.PrimitiveJob` object, calling
-:meth:`qiskit.primitives.PrimitiveJob.result()` yields the
+The method returns a :class:`~qiskit.providers.JobV1` object, calling
+:meth:`qiskit.providers.JobV1.result()` yields the
 a list of expectation values plus optional metadata like confidence intervals for
 the estimation.
 
@@ -66,21 +66,15 @@ Here is an example of how the estimator is used.
 
     # calculate [ <psi1(theta1)|H1|psi1(theta1)> ]
     job = estimator.run([psi1], [H1], [theta1])
-    try:
-        job_result = job.result() # It will block until the job finishes.
-        print("The primitive-job finished with result {}".format(job_result))
-    except JobError as ex:
-        print("Something wrong happened!: {}".format(ex))
+    job_result = job.result() # It will block until the job finishes.
+    print(f"The primitive-job finished with result {job_result}"))
 
     # calculate [ <psi1(theta1)|H1|psi1(theta1)>,
     #             <psi2(theta2)|H2|psi2(theta2)>,
     #             <psi1(theta3)|H3|psi1(theta3)> ]
     job2 = estimator.run([psi1, psi2, psi1], [H1, H2, H3], [theta1, theta2, theta3])
-    try:
-        job_result = job2.result()
-        print("The primitive-job finished with result {}".format(job_result))
-    except JobError as ex:
-        print("Something wrong happened!: {}".format(ex))
+    job_result = job2.result()
+    print(f"The primitive-job finished with result {job_result}")
 """
 from __future__ import annotations
 
@@ -282,10 +276,6 @@ class BaseEstimator(ABC):
         """Run the estimation of expectation value(s).
 
         ``circuits``, ``observables``, and ``parameter_values`` should have the same
-                Parameters of quantum circuits, specifying the order in which values
-                will be bound. Defaults to ``[circ.parameters for circ in circuits]``
-                The indexing is such that ``parameters[i, j]`` is the j-th formal parameter of
-                ``circuits[i]``.
         length. The i-th element of the result is the expectation of observable
 
         .. code-block:: python

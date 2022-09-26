@@ -17,22 +17,18 @@ Overview of Sampler
 Sampler class calculates probabilities or quasi-probabilities of bitstrings from quantum circuits.
 
 A sampler is initialized with an empty parameter set. The sampler is used to
-create a :class:`~qiskit.primitives.PrimitiveJob`, via the :meth:`qiskit.primitives.Sampler.run()`
+create a :class:`~qiskit.providers.JobV1`, via the :meth:`qiskit.primitives.Sampler.run()`
 method. This method is called with the following parameters
 
 * quantum circuits (:math:`\psi_i(\theta)`): list of (parameterized) quantum circuits.
   (a list of :class:`~qiskit.circuit.QuantumCircuit` objects)
 
-The sampler is run with the following inputs.
-
-* circuits: a list of QuantumCircuit objects to evaluate.
-
 * parameter values (:math:`\theta_k`): list of sets of parameter values
   to be bound to the parameters of the quantum circuits.
   (list of list of float)
 
-The method returns a :class:`~qiskit.primitives.PrimitiveJob` object, calling
-:meth:`qiskit.primitives.PrimitiveJob.result()` yields a :class:`~qiskit.primitives.SamplerResult`
+The method returns a :class:`~qiskit.providers.JobV1` object, calling
+:meth:`qiskit.providers.JobV1.result()` yields a :class:`~qiskit.primitives.SamplerResult`
 object, which contains probabilities or quasi-probabilities of bitstrings,
 plus optional metadata like error bars in the samples.
 
@@ -64,22 +60,16 @@ Here is an example of how sampler is used.
 
     # Sampler runs a job on the Bell circuit
     job = sampler.run(circuits=[bell], parameter_values=[[]], parameters=[[]])
-    try:
-        job_result = job.result()
-        print([q.binary_probabilities() for q in job_result.quasi_dists])
-    except JobError as ex:
-        print("Something wrong happened!: {}".format(ex))
+    job_result = job.result()
+    print([q.binary_probabilities() for q in job_result.quasi_dists])
 
     # Sampler runs a job on the parameterized circuits
     job2 = sampler.run(
         circuits=[pqc, pqc2],
         parameter_values=[theta1, theta2],
         parameters=[pqc.parameters, pqc2.parameters])
-    try:
-        job_result = job2.result()
-        print([q.binary_probabilities() for q in job_result.quasi_dists])
-    except JobError as ex:
-        print("Something wrong happened!: {}".format(ex))
+    job_result = job2.result()
+    print([q.binary_probabilities() for q in job_result.quasi_dists])
 """
 from __future__ import annotations
 
