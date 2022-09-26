@@ -14,6 +14,7 @@
 
 from __future__ import annotations
 from collections.abc import Sequence
+from typing import Any
 
 import numpy as np
 
@@ -31,7 +32,7 @@ def estimate_observables(
     observables: ListOrDict[BaseOperator | PauliSumOp],
     parameter_values: Sequence[float] | None = None,
     threshold: float = 1e-12,
-) -> ListOrDict[tuple[complex, dict]]:
+) -> ListOrDict[tuple[complex, dict[str, Any]]]:
     """
     Accepts a sequence of operators and calculates their expectation values - means
     and metadata. They are calculated with respect to a quantum state provided. A user
@@ -94,7 +95,7 @@ def _handle_zero_ops(
 def _prepare_result(
     observables_results: list[tuple[complex, dict]],
     observables: ListOrDict[BaseOperator | PauliSumOp],
-) -> ListOrDict[tuple[complex, dict]]:
+) -> ListOrDict[tuple[complex, dict[str, Any]]]:
     """
     Prepares a list of tuples of eigenvalues and metadata tuples from
     ``observables_results`` and ``observables``.
