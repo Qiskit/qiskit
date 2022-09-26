@@ -129,7 +129,9 @@ def _sparsify(
     return (state, aux_ops, step_opeartor, step_operator_trace)
 
 
-def _evolve(evolution_problem: TimeEvolutionProblem, steps: int, real_time: bool) -> TimeEvolutionResult:
+def _evolve(
+    evolution_problem: TimeEvolutionProblem, steps: int, real_time: bool
+) -> TimeEvolutionResult:
     r"""Perform real time evolution :math:`\exp(-i t H)|\Psi\rangle`.
 
     Args:
@@ -171,9 +173,11 @@ def _evolve(evolution_problem: TimeEvolutionProblem, steps: int, real_time: bool
 
     ops_ev_mean[:, steps] = _evaluate_aux_ops(aux_ops, state)
 
-    aux_ops_history = _create_observable_output(ops_ev_mean, evolution_problem)
-
-    # aux_ops = _create_obs_final(ops_ev_mean[:, -1], evolution_problem)
+    observable_history = _create_observable_output(ops_ev_mean, evolution_problem)
+    aux_ops_evaluated = _create_obs_final(ops_ev_mean[:, -1], evolution_problem)
 
     return TimeEvolutionResult(
-        evolved_state=StateFn(state), aux_ops_evaluated=aux_ops)
+        evolved_state=StateFn(state),
+        aux_ops_evaluated=aux_ops_evaluated,
+        observables=observable_history,
+    )

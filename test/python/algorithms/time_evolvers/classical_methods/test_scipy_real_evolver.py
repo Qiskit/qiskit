@@ -18,7 +18,7 @@ import numpy as np
 from qiskit.opflow import StateFn, OperatorBase
 from qiskit import QuantumCircuit
 from qiskit.algorithms.time_evolvers.classical_methods import SciPyRealEvolver
-from qiskit.algorithms.time_evolvers.evolution_problem import EvolutionProblem
+from qiskit.algorithms.time_evolvers.time_evolution_problem import TimeEvolutionProblem
 from qiskit.opflow import Y, Z, One, X, Zero
 
 
@@ -46,7 +46,7 @@ class TestClassicalRealEvolver(QiskitAlgorithmsTestCase):
         expected_state: StateFn,
     ):
         """Initializes a classical real evolver and evolves a state."""
-        evolution_problem = EvolutionProblem(hamiltonian, time_ev, initial_state)
+        evolution_problem = TimeEvolutionProblem(hamiltonian, time_ev, initial_state)
         classic_evolver = SciPyRealEvolver(steps=1)
         result = classic_evolver.evolve(evolution_problem)
 
@@ -73,7 +73,7 @@ class TestClassicalRealEvolver(QiskitAlgorithmsTestCase):
         time_ev = 10.0
         hamiltonian = X
         observables = {"Energy": X, "Z": Z}
-        evolution_problem = EvolutionProblem(
+        evolution_problem = TimeEvolutionProblem(
             hamiltonian, time_ev, initial_state, aux_operators=observables
         )
         classic_evolver = SciPyRealEvolver(steps=10)
@@ -95,7 +95,7 @@ class TestClassicalRealEvolver(QiskitAlgorithmsTestCase):
         qc.h(0)
         qc.cx(0, range(1, 3))
 
-        evolution_problem = EvolutionProblem(
+        evolution_problem = TimeEvolutionProblem(
             hamiltonian=X ^ X ^ X, time=2 * np.pi, initial_state=qc
         )
         classic_evolver = SciPyRealEvolver(steps=500)
@@ -108,7 +108,7 @@ class TestClassicalRealEvolver(QiskitAlgorithmsTestCase):
 
     def test_error_time_dependency(self):
         """Tests if an error is raised for time dependent hamiltonian."""
-        evolution_problem = EvolutionProblem(
+        evolution_problem = TimeEvolutionProblem(
             hamiltonian=X ^ X ^ X, time=1.0, initial_state=Zero, t_param=0
         )
         classic_evolver = SciPyRealEvolver(steps=5)
@@ -117,7 +117,7 @@ class TestClassicalRealEvolver(QiskitAlgorithmsTestCase):
 
     def test_no_time_steps(self):
         """Tests if the evolver handles some edge cases related to the number of timesteps."""
-        evolution_problem = EvolutionProblem(
+        evolution_problem = TimeEvolutionProblem(
             hamiltonian=X, time=1.0, initial_state=Zero, aux_operators={"Energy": X}
         )
 

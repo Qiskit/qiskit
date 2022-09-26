@@ -24,7 +24,7 @@ from qiskit.opflow import (
     Plus,
     Minus,
     PauliSumOp,
-    StateFn,
+    DictStateFn,
     OperatorBase,
     VectorStateFn,
 )
@@ -56,16 +56,16 @@ class TestSciPyImaginaryEvolver(QiskitAlgorithmsTestCase):
     @unpack
     def test_evolve(
         self,
-        initial_state: StateFn,
+        initial_state: DictStateFn,
         tau: float,
         hamiltonian: OperatorBase,
-        expected_state: StateFn,
+        expected_state: DictStateFn,
     ):
         """Initializes a classical imaginary evolver and evolves a state to find the ground state.
         It compares the solution with the first eigenstate of the hamiltonian.
         """
-
-        expected_state_matrix = expected_state.to_matrix(massive=True)
+        print(type(expected_state))
+        expected_state_matrix = expected_state.to_matrix()
 
         evolution_problem = TimeEvolutionProblem(hamiltonian, tau, initial_state)
         classic_evolver = SciPyImaginaryEvolver(steps=300)
@@ -73,7 +73,7 @@ class TestSciPyImaginaryEvolver(QiskitAlgorithmsTestCase):
 
         with self.subTest("Amplitudes"):
             np.testing.assert_allclose(
-                np.absolute(result.evolved_state.to_matrix(massive=True)),
+                np.absolute(result.evolved_state.to_matrix()),
                 np.absolute(expected_state_matrix),
                 atol=1e-10,
                 rtol=0,
@@ -81,11 +81,12 @@ class TestSciPyImaginaryEvolver(QiskitAlgorithmsTestCase):
 
         with self.subTest("Phases"):
             np.testing.assert_allclose(
-                np.angle(result.evolved_state.to_matrix(massive=True)),
+                np.angle(result.evolved_state.to_matrix()),
                 np.angle(expected_state_matrix),
                 atol=1e-10,
                 rtol=0,
             )
+
 
     @data(
         (
@@ -100,7 +101,7 @@ class TestSciPyImaginaryEvolver(QiskitAlgorithmsTestCase):
         (Zero, X, 1),
     )
     @unpack
-    def test_observables(self, initial_state: StateFn, hamiltonian: OperatorBase, nqubits: int):
+    def test_observables(self, initial_state: DictStateFn, hamiltonian: OperatorBase, nqubits: int):
         """Tests if the observables are properly evaluated at each timestep."""
 
         time_ev = 5.0
@@ -112,10 +113,9 @@ class TestSciPyImaginaryEvolver(QiskitAlgorithmsTestCase):
         classic_evolver = SciPyImaginaryEvolver(steps=300)
         result = classic_evolver.evolve(evolution_problem)
 
-        z_mean, z_std = result.aux_ops_evaluated["Z"]
+        z_mean, z_std = result.observables["Z"]
 
-        timesteps = z_mean.shape[0]
-        time_vector = np.linspace(0, time_ev, timesteps)
+        time_vector = result.observables["time"]
         expected_z = 1 / (np.cosh(time_vector) ** 2 + np.sinh(time_vector) ** 2)
         expected_z_std = np.zeros_like(expected_z)
 
