@@ -27,10 +27,13 @@ from qiskit import QuantumCircuit  # , QuantumRegister
 from qiskit.algorithms.minimum_eigensolvers import QAOA
 from qiskit.algorithms.optimizers import COBYLA  # , NELDER_MEAD
 from qiskit.circuit import Parameter
-from qiskit.opflow import PauliSumOp, I, X  # , Z
+from qiskit.opflow import PauliSumOp
 from qiskit.quantum_info import Pauli
 from qiskit.primitives import Sampler
 from qiskit.utils import algorithm_globals
+
+I = PauliSumOp.from_list([("I", 1)])  # pylint: disable=invalid-name
+X = PauliSumOp.from_list([("X", 1)])  # pylint: disable=invalid-name
 
 W1 = np.array([[0, 1, 0, 1], [1, 0, 1, 0], [0, 1, 0, 1], [1, 0, 1, 0]])
 P1 = 1
@@ -210,64 +213,6 @@ class TestQAOA(QiskitAlgorithmsTestCase):
     #     with self.subTest("Solution"):
     #         self.assertIn(graph_solution, solutions)
 
-    # @idata([[W2, None], [W2, [1.0] + 15 * [0.0]], [W2, CUSTOM_SUPERPOSITION]])
-    # @unpack
-    # def test_qaoa_initial_state(self, w, init_state):
-    #     """QAOA initial state test"""
-    #     optimizer = COBYLA()
-    #     qubit_op, _ = self._get_operator(w)
-
-    #     init_pt = np.asarray([0.0, 0.0])  # Avoid generating random initial point
-
-    #     if init_state is None:
-    #         initial_state = None
-    #     else:
-    #         initial_state = QuantumCircuit(QuantumRegister(4, "q"))
-    #         initial_state.initialize(init_state, initial_state.qubits)
-
-    #     zero_init_state = QuantumCircuit(QuantumRegister(qubit_op.num_qubits, "q"))
-    #     qaoa_zero_init_state = QAOA(
-    #         self.sampler,
-    #         optimizer=optimizer,
-    #         initial_state=zero_init_state,
-    #         initial_point=init_pt,
-    #     )
-    #     qaoa = QAOA(
-    #         self.sampler,
-    #         optimizer=optimizer,
-    #         initial_state=initial_state,
-    #         initial_point=init_pt,
-    #     )
-
-    #     zero_circuits = qaoa_zero_init_state.construct_circuit(init_pt, qubit_op)
-    #     custom_circuits = qaoa.construct_circuit(init_pt, qubit_op)
-
-    #     self.assertEqual(len(zero_circuits), len(custom_circuits))
-
-    #     for zero_circ, custom_circ in zip(zero_circuits, custom_circuits):
-
-    #         z_length = len(zero_circ.data)
-    #         c_length = len(custom_circ.data)
-
-    #         self.assertGreaterEqual(c_length, z_length)
-    #         self.assertTrue(zero_circ.data == custom_circ.data[-z_length:])
-
-    #         custom_init_qc = QuantumCircuit(custom_circ.num_qubits)
-    #         custom_init_qc.data = custom_circ.data[0 : c_length - z_length]
-
-    #         if initial_state is None:
-    #             original_init_qc = QuantumCircuit(qubit_op.num_qubits)
-    #             original_init_qc.h(range(qubit_op.num_qubits))
-    #         else:
-    #             original_init_qc = initial_state
-
-    #         job_init_state = self.statevector_simulator.execute(original_init_qc)
-    #         job_qaoa_init_state = self.statevector_simulator.execute(custom_init_qc)
-
-    #         statevector_original = job_init_state.get_statevector(original_init_qc)
-    #         statevector_custom = job_qaoa_init_state.get_statevector(custom_init_qc)
-
-    #         self.assertListEqual(statevector_original.tolist(), statevector_custom.tolist())
 
     # def test_qaoa_random_initial_point(self):
     #     """QAOA random initial point"""
