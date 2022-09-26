@@ -225,6 +225,9 @@ class Operator(LinearOp):
             final_layout (Layout): If specified this kwarg can be used to
         Returns:
             Operator: An operator representing the input circuit
+
+        Raises:
+            KeyError: If a circuit has an empty embedded.
         """
         dimension = 2**circuit.num_qubits
         op = cls(np.eye(dimension))
@@ -240,7 +243,16 @@ class Operator(LinearOp):
         # based on that layout
         if layout is not None:
             virtual_to_physical = layout.get_virtual_bits()
-            qargs = [virtual_to_physical[bit] for bit in circuit.qubits]
+            try:
+                qargs = [virtual_to_physical[bit] for bit in circuit.qubits]
+            # If the layout contains different qubits this means transpile()
+            # is preserving different virtual input qubits than it returns
+            # in these cases return the physical bit order as it's the best
+            # we can do to reconstruct from the layout
+            except KeyError:
+                if not layout:
+                    raise
+                qargs = list(layout.get_physical_bits())
         # Convert circuit to an instruction
         instruction = circuit.to_instruction()
         op._append_instruction(instruction, qargs=qargs)
