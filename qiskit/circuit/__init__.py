@@ -63,8 +63,9 @@ Supplementary Information
    if a classical register has a specific value. This can be done with the
    :meth:`InstructionSet.c_if` method.
 
-   In the following example, we start with a single-qubit circuit formed by only a Hadamard gate,
-   in which we expect to get :math:`|0\\rangle` and :math:`|1\\rangle` with equal probability.
+   In the following example, we start with a single-qubit circuit formed by only a Hadamard gate
+   (:class:`~.HGate`), in which we expect to get :math:`|0\\rangle` and :math:`|1\\rangle`
+   with equal probability.
 
    .. jupyter-execute::
 
