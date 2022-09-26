@@ -49,7 +49,7 @@ class VQE(VariationalAlgorithm, MinimumEigensolver):
     An instance of ``VQE`` also requires an :attr:`ansatz`, a parameterized
     :class:`.QuantumCircuit`, to prepare the trial state :math:`|\psi(\vec\theta)\rangle`. It also
     needs a classical :attr:`optimizer` which varies the circuit parameters :math:`\vec\theta` such
-    that the expectation value of the operator on the corresponding state approaches a minimum.
+    that the expectation value of the operator on the corresponding state approaches a minimum,
 
     .. math::
 
@@ -209,11 +209,14 @@ class VQE(VariationalAlgorithm, MinimumEigensolver):
     ) -> Callable[[np.ndarray], np.ndarray | float]:
         """Returns a function handle to evaluate the energy at given parameters for the ansatz.
         This is the objective function to be passed to the optimizer that is used for evaluation.
+
         Args:
             ansatz: The ansatz preparing the quantum state.
             operator: The operator whose energy to evaluate.
+
         Returns:
             A callable that computes and returns the energy of the hamiltonian of each parameter.
+
         Raises:
             AlgorithmError: If the primitive job to evaluate the energy fails.
         """
