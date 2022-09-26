@@ -87,7 +87,6 @@ class TestSciPyImaginaryEvolver(QiskitAlgorithmsTestCase):
                 rtol=0,
             )
 
-
     @data(
         (
             Zero ^ 5,

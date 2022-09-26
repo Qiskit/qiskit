@@ -12,11 +12,12 @@
 
 """Class for holding time evolution result."""
 from __future__ import annotations
+
 import numpy as np
 from qiskit import QuantumCircuit
-from ..algorithm_result import AlgorithmResult
-from ..list_or_dict import ListOrDict
 
+from ..list_or_dict import ListOrDict
+from ..algorithm_result import AlgorithmResult
 
 
 class TimeEvolutionResult(AlgorithmResult):
@@ -28,7 +29,8 @@ class TimeEvolutionResult(AlgorithmResult):
         aux_ops_evaluated (ListOrDict[tuple[complex, complex]] | None): Optional list of
             observables for which expected values on an evolved state are calculated. These values
             are in fact tuples formatted as (mean, standard deviation).
-        observables: Optional list of observables for which expected values for each timestep.
+        observables (ListOrDict[tuple[np.ndarray, np.ndarray]] | None): Optional list of
+            observables for which expected on an evolved state are calculated at each timestep.
             These values are in fact lists of tuples formatted as (mean, standard deviation).
     """
 
