@@ -115,8 +115,7 @@ used to train Quantum Boltzmann Machine Neural Networks for example.
     TrotterQRTE
     EvolutionResult
     EvolutionProblem
-    SciPyRealEvolver
-    SciPyImaginaryEvolver
+
 
 
 Time Evolvers
@@ -136,6 +135,8 @@ Time Evolution might be used to train Quantum Boltzmann Machine Neural Networks 
     PVQDResult
     TimeEvolutionResult
     TimeEvolutionProblem
+    ScipyImaginaryEvolver
+    ScipyRealEvolver
 
 
 Trotterization-based Quantum Real Time Evolution
@@ -286,6 +287,8 @@ from .time_evolvers.imaginary_time_evolver import ImaginaryTimeEvolver
 from .time_evolvers.real_time_evolver import RealTimeEvolver
 from .time_evolvers.time_evolution_problem import TimeEvolutionProblem
 from .time_evolvers.time_evolution_result import TimeEvolutionResult
+from .time_evolvers.classical_methods.scipy_real_evolver import SciPyRealEvolver
+from .time_evolvers.classical_methods.scipy_imaginary_evolver import SciPyImaginaryEvolver
 from .variational_algorithm import VariationalAlgorithm, VariationalResult
 from .amplitude_amplifiers import Grover, GroverResult, AmplificationProblem, AmplitudeAmplifier
 from .amplitude_estimators import (
@@ -324,9 +327,6 @@ from .exceptions import AlgorithmError
 from .aux_ops_evaluator import eval_observables
 from .observables_evaluator import estimate_observables
 from .evolvers.trotterization import TrotterQRTE
-from .evolvers.classical_methods import SciPyRealEvolver, SciPyImaginaryEvolver
-from .evolvers.variational.var_qite import VarQITE
-from .evolvers.variational.var_qrte import VarQRTE
 from .time_evolvers.pvqd import PVQD, PVQDResult
 
 
@@ -355,9 +355,9 @@ __all__ = [
     "ImaginaryEvolver",
     "RealTimeEvolver",
     "ImaginaryTimeEvolver",
-    "TrotterQRTE",
     "SciPyRealEvolver",
     "SciPyImaginaryEvolver",
+    "TrotterQRTE",
     "EvolutionResult",
     "EvolutionProblem",
     "TimeEvolutionResult",

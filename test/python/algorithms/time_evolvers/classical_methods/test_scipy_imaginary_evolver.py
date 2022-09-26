@@ -15,7 +15,7 @@ import unittest
 from test.python.algorithms import QiskitAlgorithmsTestCase
 from ddt import data, ddt, unpack
 import numpy as np
-from qiskit.algorithms.evolvers.evolution_problem import EvolutionProblem
+from qiskit.algorithms.time_evolvers.time_evolution_problem import TimeEvolutionProblem
 from qiskit.opflow import (
     I,
     X,
@@ -31,7 +31,7 @@ from qiskit.opflow import (
 from qiskit.quantum_info.states.statevector import Statevector
 
 from qiskit import QuantumCircuit
-from qiskit.algorithms.evolvers.classical_methods import SciPyImaginaryEvolver
+from qiskit.algorithms.time_evolvers.classical_methods import SciPyImaginaryEvolver
 
 
 @ddt
@@ -67,7 +67,7 @@ class TestSciPyImaginaryEvolver(QiskitAlgorithmsTestCase):
 
         expected_state_matrix = expected_state.to_matrix(massive=True)
 
-        evolution_problem = EvolutionProblem(hamiltonian, tau, initial_state)
+        evolution_problem = TimeEvolutionProblem(hamiltonian, tau, initial_state)
         classic_evolver = SciPyImaginaryEvolver(steps=300)
         result = classic_evolver.evolve(evolution_problem)
 
@@ -105,14 +105,14 @@ class TestSciPyImaginaryEvolver(QiskitAlgorithmsTestCase):
 
         time_ev = 5.0
         observables = {"Energy": hamiltonian, "Z": Z ^ nqubits}
-        evolution_problem = EvolutionProblem(
+        evolution_problem = TimeEvolutionProblem(
             hamiltonian, time_ev, initial_state, aux_operators=observables
         )
 
         classic_evolver = SciPyImaginaryEvolver(steps=300)
         result = classic_evolver.evolve(evolution_problem)
 
-        z_mean, z_std = result.observables["Z"]
+        z_mean, z_std = result.aux_ops_evaluated["Z"]
 
         timesteps = z_mean.shape[0]
         time_vector = np.linspace(0, time_ev, timesteps)
@@ -129,14 +129,14 @@ class TestSciPyImaginaryEvolver(QiskitAlgorithmsTestCase):
         qc.h(0)
         qc.cx(0, range(1, 3))
 
-        evolution_problem = EvolutionProblem(hamiltonian=X ^ X ^ X, time=1.0, initial_state=qc)
+        evolution_problem = TimeEvolutionProblem(hamiltonian=X ^ X ^ X, time=1.0, initial_state=qc)
         classic_evolver = SciPyImaginaryEvolver(steps=5)
         result = classic_evolver.evolve(evolution_problem)
         self.assertEqual(result.evolved_state, VectorStateFn(Statevector(qc)))
 
     def test_error_time_dependency(self):
         """Tests if an error is raised for time dependent hamiltonian."""
-        evolution_problem = EvolutionProblem(
+        evolution_problem = TimeEvolutionProblem(
             hamiltonian=X ^ X ^ X, time=1.0, initial_state=Zero, t_param=0
         )
         classic_evolver = SciPyImaginaryEvolver(steps=5)
@@ -145,7 +145,7 @@ class TestSciPyImaginaryEvolver(QiskitAlgorithmsTestCase):
 
     def test_no_time_steps(self):
         """Tests if the evolver handles some edge cases related to the number of timesteps."""
-        evolution_problem = EvolutionProblem(hamiltonian=X, time=1.0, initial_state=Zero)
+        evolution_problem = TimeEvolutionProblem(hamiltonian=X, time=1.0, initial_state=Zero)
 
         with self.subTest("0 timesteps"):
             with self.assertRaises(ValueError):

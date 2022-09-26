@@ -19,24 +19,24 @@ from qiskit.quantum_info.states import Statevector
 from qiskit import QuantumCircuit
 from qiskit.opflow import StateFn
 
-from ..evolution_problem import EvolutionProblem
-from ..evolution_result import EvolutionResult
+from ..time_evolution_problem import TimeEvolutionProblem
+from ..time_evolution_result import TimeEvolutionResult
 
 from ...list_or_dict import ListOrDict
 
 
 def _create_observable_output(
     ops_ev_mean: np.ndarray,
-    evolution_problem: EvolutionProblem,
+    evolution_problem: TimeEvolutionProblem,
 ) -> ListOrDict[Union[Tuple[np.ndarray, np.ndarray], Tuple[complex, complex], np.ndarray]]:
     """Creates the right output format for the evaluated auxiliary operators.
     Args:
         ops_ev_mean: Array containing the expectation value of each observable at each timestep.
-        evolution_problem: Evolution Problem to create the output of.
+        evolution_problem: Time Evolution Problem to create the output of.
 
     Returns:
         An output with the observables mean value at the appropiate times depending on whether
-        the auxiliary operators in the evolution problem are a `list` or a `dict`.
+        the auxiliary operators in the time evolution problem are a `list` or a `dict`.
 
     """
 
@@ -60,7 +60,7 @@ def _create_observable_output(
 
 def _create_obs_final(
     ops_ev_mean: np.ndarray,
-    evolution_problem: EvolutionProblem,
+    evolution_problem: TimeEvolutionProblem,
 ) -> ListOrDict[Tuple[complex, complex]]:
     """Creates the right output format for the final value of the auxiliary operators.
 
@@ -95,7 +95,7 @@ def _evaluate_aux_ops(
 
 
 def _sparsify(
-    evolution_problem: EvolutionProblem, steps: int, real_time: bool
+    evolution_problem: TimeEvolutionProblem, steps: int, real_time: bool
 ) -> Tuple[np.ndarray, List[sp.csr_matrix], sp.csr_matrix, float]:
     """Returns the matrices and parameters needed for time evolution in the appropiate format.
 
@@ -129,7 +129,7 @@ def _sparsify(
     return (state, aux_ops, step_opeartor, step_operator_trace)
 
 
-def _evolve(evolution_problem: EvolutionProblem, steps: int, real_time: bool) -> EvolutionResult:
+def _evolve(evolution_problem: TimeEvolutionProblem, steps: int, real_time: bool) -> TimeEvolutionResult:
     r"""Perform real time evolution :math:`\exp(-i t H)|\Psi\rangle`.
 
     Args:
@@ -173,8 +173,7 @@ def _evolve(evolution_problem: EvolutionProblem, steps: int, real_time: bool) ->
 
     aux_ops_history = _create_observable_output(ops_ev_mean, evolution_problem)
 
-    aux_ops = _create_obs_final(ops_ev_mean[:, -1], evolution_problem)
+    # aux_ops = _create_obs_final(ops_ev_mean[:, -1], evolution_problem)
 
-    return EvolutionResult(
-        evolved_state=StateFn(state), aux_ops_evaluated=aux_ops, observables=aux_ops_history
-    )
+    return TimeEvolutionResult(
+        evolved_state=StateFn(state), aux_ops_evaluated=aux_ops)
