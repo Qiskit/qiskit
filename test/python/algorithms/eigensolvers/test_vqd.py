@@ -38,6 +38,7 @@ from qiskit.quantum_info.operators import Operator
 I = PauliSumOp.from_list([("I", 1)])  # pylint: disable=invalid-name
 X = PauliSumOp.from_list([("X", 1)])  # pylint: disable=invalid-name
 Z = PauliSumOp.from_list([("Z", 1)])  # pylint: disable=invalid-name
+
 H2_PAULI = (
     -1.052373245772859 * (I ^ I)
     + 0.39793742484318045 * (I ^ Z)
@@ -45,6 +46,7 @@ H2_PAULI = (
     - 0.01128010425623538 * (Z ^ Z)
     + 0.18093119978423156 * (X ^ X)
 )
+
 H2_OP = Operator(H2_PAULI.to_matrix())
 
 

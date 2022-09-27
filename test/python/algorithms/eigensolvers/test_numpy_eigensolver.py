@@ -22,7 +22,7 @@ from qiskit.algorithms.eigensolvers import NumPyEigensolver
 from qiskit.opflow import PauliSumOp
 from qiskit.quantum_info.operators import Operator
 
-PAULI_SUM_OP = PauliSumOp.from_list(
+H2_PAULI = PauliSumOp.from_list(
     [
         ("II", -1.052373245772859),
         ("ZI", 0.39793742484318045),
@@ -32,14 +32,14 @@ PAULI_SUM_OP = PauliSumOp.from_list(
     ]
 )
 
-OPERATOR = Operator(PAULI_SUM_OP.to_matrix())
+H2_OP = Operator(H2_PAULI.to_matrix())
 
 
 @ddt
 class TestNumPyEigensolver(QiskitAlgorithmsTestCase):
     """Test NumPy Eigen solver"""
 
-    @data(PAULI_SUM_OP, OPERATOR)
+    @data(H2_PAULI, H2_OP)
     def test_ce(self, op):
         """Test basics"""
         algo = NumPyEigensolver()
@@ -49,7 +49,7 @@ class TestNumPyEigensolver(QiskitAlgorithmsTestCase):
         self.assertEqual(result.eigenvalues.dtype, np.float64)
         self.assertAlmostEqual(result.eigenvalues[0], -1.85727503)
 
-    @data(PAULI_SUM_OP, OPERATOR)
+    @data(H2_PAULI, H2_OP)
     def test_ce_k4(self, op):
         """Test for k=4 eigenvalues"""
         algo = NumPyEigensolver(k=4)
@@ -61,7 +61,7 @@ class TestNumPyEigensolver(QiskitAlgorithmsTestCase):
             result.eigenvalues, [-1.85727503, -1.24458455, -0.88272215, -0.22491125]
         )
 
-    @data(PAULI_SUM_OP, OPERATOR)
+    @data(H2_PAULI, H2_OP)
     def test_ce_k4_filtered(self, op):
         """Test for k=4 eigenvalues with filter"""
 
@@ -77,7 +77,7 @@ class TestNumPyEigensolver(QiskitAlgorithmsTestCase):
         self.assertEqual(result.eigenvalues.dtype, np.float64)
         np.testing.assert_array_almost_equal(result.eigenvalues, [-0.88272215, -0.22491125])
 
-    @data(PAULI_SUM_OP, OPERATOR)
+    @data(H2_PAULI, H2_OP)
     def test_ce_k4_filtered_empty(self, op):
         """Test for k=4 eigenvalues with filter always returning False"""
 
@@ -113,7 +113,7 @@ class TestNumPyEigensolver(QiskitAlgorithmsTestCase):
         result = algo.compute_eigenvalues(operator=op)
         np.testing.assert_array_almost_equal(result.eigenvalues, [-1, 1])
 
-    @data(PAULI_SUM_OP, OPERATOR)
+    @data(H2_PAULI, H2_OP)
     def test_aux_operators_list(self, op):
         """Test list-based aux_operators."""
         aux_op1 = PauliSumOp.from_list([("II", 2.0)])
@@ -153,7 +153,7 @@ class TestNumPyEigensolver(QiskitAlgorithmsTestCase):
         self.assertAlmostEqual(result.aux_operator_eigenvalues[0][1][1], 0.0)
         self.assertEqual(result.aux_operator_eigenvalues[0][3][1], 0.0)
 
-    @data(PAULI_SUM_OP, OPERATOR)
+    @data(H2_PAULI, H2_OP)
     def test_aux_operators_dict(self, op):
         """Test dict-based aux_operators."""
         aux_op1 = PauliSumOp.from_list([("II", 2.0)])
