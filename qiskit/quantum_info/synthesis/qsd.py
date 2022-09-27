@@ -18,7 +18,6 @@ import scipy
 import numpy as np
 from qiskit.circuit import QuantumCircuit, QuantumRegister
 from qiskit.quantum_info.synthesis import two_qubit_decompose, one_qubit_decompose
-from qiskit.circuit.library.standard_gates import CXGate
 from qiskit.quantum_info.operators.predicates import is_hermitian_matrix
 from qiskit.extensions.quantum_initializer.uc_pauli_rot import UCPauliRotGate, _EPS
 
@@ -66,13 +65,12 @@ def qs_decomposition(
        decomposer_1q (None or Object): optional 1Q decomposer. If None, uses
           :class:`~qiskit.quantum_info.synthesis.one_qubit_decomposer.OneQubitEulerDecomser`
        decomposer_2q (None or Object): optional 2Q decomposer. If None, uses
-          :class:`~qiskit.quantum_info.synthesis.two_qubit_decomposer.TwoQubitBasisDecomposer`
-          with CXGate.
-       _depth (int): Internal use parameter to track recursion depth.
+          :class:`~qiskit.quantum_info.synthesis.two_qubit_decomposer.two_qubit_cnot_decompose
 
     Return:
        QuantumCircuit: Decomposed quantum circuit.
     """
+    #  _depth (int): Internal use parameter to track recursion depth.
     dim = mat.shape[0]
     nqubits = int(np.log2(dim))
     if np.allclose(np.identity(dim), mat):
