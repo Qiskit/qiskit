@@ -221,14 +221,16 @@ class VQD(VariationalAlgorithm, Eigensolver):
 
         if self.betas is None:
             if isinstance(operator, PauliSumOp):
-                upper_bound = (
-                    abs(operator.coeff) * sum(abs(operation.coeff) for operation in operator)
+                upper_bound = abs(operator.coeff) * sum(
+                    abs(operation.coeff) for operation in operator
                 )
                 self.betas = [upper_bound * 10] * (self.k)
                 logger.info("beta autoevaluated to %s", self.betas[0])
             else:
-                raise NotImplementedError(r"Beta autoevaluation is only supported for operators"
-                                          f"of type PauliSumOp, found {type(operator)}.")
+                raise NotImplementedError(
+                    r"Beta autoevaluation is only supported for operators"
+                    f"of type PauliSumOp, found {type(operator)}."
+                )
 
         result = self._build_vqd_result()
 
@@ -259,8 +261,9 @@ class VQD(VariationalAlgorithm, Eigensolver):
             self._update_vqd_result(result, opt_result, eval_time, self.ansatz)
 
             if aux_operators is not None:
-                aux_value = estimate_observables(self.estimator, self.ansatz,
-                                                 aux_operators, result.optimal_point[-1])
+                aux_value = estimate_observables(
+                    self.estimator, self.ansatz, aux_operators, result.optimal_point[-1]
+                )
                 aux_values.append(aux_value)
 
             if step == 1:

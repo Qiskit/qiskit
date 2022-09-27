@@ -32,6 +32,7 @@ logger = logging.getLogger(__name__)
 
 FilterType = Callable[[Union[List, np.ndarray], float, Optional[ListOrDict[float]]], bool]
 
+
 class NumPyEigensolver(Eigensolver):
     r"""
     The NumPy eigensolver algorithm.
@@ -90,10 +91,7 @@ class NumPyEigensolver(Eigensolver):
         return self._filter_criterion
 
     @filter_criterion.setter
-    def filter_criterion(
-        self,
-        filter_criterion: FilterType | None
-    ) -> None:
+    def filter_criterion(self, filter_criterion: FilterType | None) -> None:
         """Set the filter criterion."""
         self._filter_criterion = filter_criterion
 
