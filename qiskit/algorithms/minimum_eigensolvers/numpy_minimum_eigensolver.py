@@ -21,14 +21,15 @@ import numpy as np
 from qiskit.opflow import PauliSumOp
 from qiskit.quantum_info.operators.base_operator import BaseOperator
 
-# TODO this path will need updating
 from ..eigensolvers.numpy_eigen_solver import NumPyEigensolver
 from .minimum_eigensolver import MinimumEigensolver, MinimumEigensolverResult
 from ..list_or_dict import ListOrDict
 
 logger = logging.getLogger(__name__)
 
+# future type annotations not supported in type aliases in 3.8
 FilterType = Callable[[Union[List, np.ndarray], float, Optional[ListOrDict[float]]], bool]
+
 
 class NumPyMinimumEigensolver(MinimumEigensolver):
     """
