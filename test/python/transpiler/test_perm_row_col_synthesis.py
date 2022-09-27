@@ -14,6 +14,7 @@ class TestPermRowColSynthesis(QiskitTestCase):
     """Test PermRowColSynthesis"""
 
     def test_run_returns_a_dag(self):
+        """Test the output type of run"""
         coupling = CouplingMap()
         circuit = QuantumCircuit()
         dag = circuit_to_dag(circuit)
@@ -24,6 +25,7 @@ class TestPermRowColSynthesis(QiskitTestCase):
         self.assertIsInstance(instance, DAGCircuit)
 
     def test_perm_row_col_returns_circuit(self):
+        """Test the output type of perm_row_col"""
         coupling = CouplingMap()
         synthesis = PermRowColSynthesis(coupling)
         parity_mat = np.identity(3)

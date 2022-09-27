@@ -13,14 +13,28 @@ class PermRowColSynthesis(HighLevelSynthesis):
         self._coupling_map = coupling_map
 
     def run(self, dag: DAGCircuit) -> DAGCircuit:
+        """Perform the synthesization and return the synthesized
+        circuit as a dag
 
-        # this parity matrix is extracted from the coupling map
+        Args:
+            dag (DAGCircuit): dag circuit to re-synthesize
+
+        Returns:
+            DAGCircuit: re-synthesized dag circuit
+        """
         parity_mat = np.identity(3)
         res_circuit = self.perm_row_col(parity_mat, self._coupling_map)
-        #return circuit_to_dag(res_circuit)
-        return dag
+        return circuit_to_dag(res_circuit)
 
     def perm_row_col(self, parity_mat: np.ndarray, coupling_map: CouplingMap) -> QuantumCircuit:
-        # use the parity matrix to synthesize new circuit
+        """Run permrowcol algorithm on the given parity matrix
+
+        Args:
+            parity_mat (np.ndarray): parity matrix representing a circuit
+            coupling_map (CouplingMap): topology constraint
+
+        Returns:
+            QuantumCircuit: synthesized circuit
+        """
         circuit = QuantumCircuit(QuantumRegister(6, 'q'))
         return circuit
