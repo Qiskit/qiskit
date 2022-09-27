@@ -10,7 +10,7 @@ features:
 
       from qiskit.circuit import QuantumCircuit
       from qiskit.circuit.classicalfunction import BooleanExpression
-      
+
       expression = BooleanExpression('~x & (y | z)')
       circuit = QuantumCircuit(4)
       circuit.append(expression, [0, 1, 2, 3])
@@ -56,9 +56,9 @@ features:
     .. parsed-literal::
 
       q_0: ──o────o────────────
-             │    │            
+             │    │
       q_1: ──■────o────■───────
-             │    │    │       
+             │    │    │
       q_2: ──■────┼────o────■──
            ┌─┴─┐┌─┴─┐┌─┴─┐┌─┴─┐
       q_3: ┤ X ├┤ X ├┤ X ├┤ X ├
@@ -75,7 +75,7 @@ features:
 
       oracle = PhaseOracle('x1 & x2 & (not x3)')
       oracle.draw('mpl')
-    
+
     These phase oracles can be used as part of a larger algorithm, for example
     with :class:`qiskit.algorithms.AmplificationProblem`:
 
@@ -83,13 +83,15 @@ features:
 
       from qiskit.algorithms import AmplificationProblem, Grover
       from qiskit import BasicAer
-      
+
       backend = BasicAer.get_backend('qasm_simulator')
-      
+
       problem = AmplificationProblem(oracle, is_good_state=oracle.evaluate_bitstring)
       grover = Grover(quantum_instance=backend)
       result = grover.amplify(problem)
       result.top_measurement
+
+    would generate '011'.
 
     The :class:`~qiskit.circuit.library.PhaseOracle` class also includes a
     :meth:`~qiskit.circuit.library.PhaseOracle.from_dimacs_file` method which
@@ -105,9 +107,9 @@ features:
       oracle.draw('text')
 
     .. parsed-literal::
-      
+
        state_0: ─o───────o──────────────
-                 │ ┌───┐ │ ┌───┐        
+                 │ ┌───┐ │ ┌───┐
        state_1: ─■─┤ X ├─■─┤ X ├─■──────
                  │ └───┘   └───┘ │ ┌───┐
        state_2: ─■───────────────o─┤ Z ├

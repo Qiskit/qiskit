@@ -30,25 +30,26 @@ from .sampler_gradient_result import SamplerGradientResult
 class BaseSamplerGradient(ABC):
     """Base class for a ``SamplerGradient`` to compute the gradients of the sampling probability."""
 
-    def __init__(self, sampler: BaseSampler, run_options: dict | None = None):
+    def __init__(self, sampler: BaseSampler, options: Options | None = None):
         """
         Args:
             sampler: The sampler used to compute the gradients.
-            run_options: Backend runtime options used for circuit execution. The order of priority is:
-                run_options in `run` method > gradient's default run_options > primitive's default
-                setting. Higher priority setting overrides lower priority setting.
+            options: Primitive backend runtime options used for circuit execution.
+                The order of priority is: options in ``run`` method > gradient's
+                default options > primitive's default setting.
+                Higher priority setting overrides lower priority setting
         """
         self._sampler: BaseSampler = sampler
-        self._default_run_options = Options()
-        if run_options is not None:
-            self._default_run_options.update_options(**run_options)
+        self._default_options = Options()
+        if options is not None:
+            self._default_options.update_options(**options)
 
     def run(
         self,
         circuits: Sequence[QuantumCircuit],
         parameter_values: Sequence[Sequence[float]],
         parameters: Sequence[Sequence[Parameter] | None] | None = None,
-        **run_options,
+        **options,
     ) -> AlgorithmJob:
         """Run the job of the sampler gradient on the given circuits.
 
@@ -59,10 +60,10 @@ class BaseSamplerGradient(ABC):
                 the specified parameters. Each sequence of parameters corresponds to a circuit in
                 ``circuits``. Defaults to None, which means that the gradients of all parameters in
                 each circuit are calculated.
-            run_options: Backend runtime options used for circuit execution. The order of priority is:
-                run_options in ``run`` method > gradient's default run_options > primitive's default
-                setting. Higher priority setting overrides lower priority setting.
-
+            options: Primitive backend runtime options used for circuit execution.
+                The order of priority is: options in ``run`` method > gradient's
+                default options > primitive's default setting.
+                Higher priority setting overrides lower priority setting
         Returns:
             The job object of the gradients of the sampling probability. The i-th result
             corresponds to ``circuits[i]`` evaluated with parameters bound as ``parameter_values[i]``.
@@ -78,10 +79,10 @@ class BaseSamplerGradient(ABC):
         # Validate the arguments.
         self._validate_arguments(circuits, parameter_values, parameters)
         # The priority of run option is as follows:
-        # run_options in `run` method > gradient's default run_options > primitive's default run_options.
-        run_opts = copy(self._default_run_options)
-        run_opts.update_options(**run_options)
-        job = AlgorithmJob(self._run, circuits, parameter_values, parameters, **run_opts.__dict__)
+        # options in `run` method > gradient's default options > primitive's default options.
+        opts = copy(self._default_options)
+        opts.update_options(**options)
+        job = AlgorithmJob(self._run, circuits, parameter_values, parameters, **opts.__dict__)
         job.submit()
         return job
 
@@ -91,7 +92,7 @@ class BaseSamplerGradient(ABC):
         circuits: Sequence[QuantumCircuit],
         parameter_values: Sequence[Sequence[float]],
         parameters: Sequence[Sequence[Parameter] | None],
-        **run_options,
+        **options,
     ) -> SamplerGradientResult:
         """Compute the sampler gradients on the given circuits."""
         raise NotImplementedError()
@@ -138,15 +139,38 @@ class BaseSamplerGradient(ABC):
                     f"the number of parameters ({circuit.num_parameters}) for the {i}-th circuit."
                 )
 
-    def _get_local_run_options(self, run_options: dict) -> dict:
-        """Update the run options in the results.
-
-        Args:
-            run_options: The run options to update.
+    @property
+    def options(self) -> Options:
+        """Return the union of sampler options setting and gradient default options,
+        where, if the same field is set in both, the gradient's default options override
+        the primitive's default setting.
 
         Returns:
-            The updated run options.
+            The gradient default + sampler options.
         """
-        run_opts = copy(self._sampler.options)
-        run_opts.update_options(**run_options)
-        return run_opts
+        return self._get_local_options(self._default_options.__dict__)
+
+    def update_default_options(self, **options):
+        """Update the gradient's default options setting.
+
+        Args:
+            **options: The fields to update the default options.
+        """
+
+        self._default_options.update_options(**options)
+
+    def _get_local_options(self, options: Options) -> Options:
+        """Return the union of the primitive's default setting,
+        the gradient default options, and the options in the ``run`` method.
+        The order of priority is: options in ``run`` method > gradient's
+                default options > primitive's default setting.
+
+        Args:
+            options: The fields to update the options
+
+        Returns:
+            The gradient default + sampler + run options.
+        """
+        opts = copy(self._sampler.options)
+        opts.update_options(**options)
+        return opts

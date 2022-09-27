@@ -15,6 +15,7 @@ import unittest
 from math import pi
 
 from qiskit import ClassicalRegister, QuantumRegister, QuantumCircuit
+from qiskit.compiler import transpile
 from qiskit.transpiler import TranspilerError
 from qiskit.transpiler import CouplingMap
 from qiskit.transpiler.passes import GateDirection
@@ -244,6 +245,21 @@ class TestGateDirection(QiskitTestCase):
         after = pass_.run(dag)
 
         self.assertEqual(circuit_to_dag(expected), after)
+
+    def test_regression_gh_8387(self):
+        """Regression test for flipping of CZ gate"""
+        qc = QuantumCircuit(3)
+        qc.cz(1, 0)
+        qc.barrier()
+        qc.cz(2, 0)
+
+        coupling_map = CouplingMap([[0, 1], [1, 2]])
+        _ = transpile(
+            qc,
+            basis_gates=["cz", "cx", "u3", "u2", "u1"],
+            coupling_map=coupling_map,
+            optimization_level=2,
+        )
 
 
 if __name__ == "__main__":
