@@ -14,7 +14,7 @@
 
 """These examples should be handle by the classicalfunction compiler"""
 
-from qiskit.circuit import Int1
+from qiskit.circuit.classicalfunction.types import Int1
 
 
 def identity(a: Int1) -> Int1:
