@@ -54,7 +54,7 @@ class LinCombEstimatorGradient(BaseEstimatorGradient):
         self,
         estimator: BaseEstimator,
         derivative_type: DerivativeType = DerivativeType.REAL,
-        **run_options,
+        **options,
     ):
         r"""
         Args:
@@ -65,13 +65,14 @@ class LinCombEstimatorGradient(BaseEstimatorGradient):
                 * ``DerivativeType.REAL`` computes :math:`2 \mathrm{Re}[(dω⟨ψ(ω)|)O(θ)|ψ(ω)〉]`.
                 * ``DerivativeType.IMAG`` computes :math:`2 \mathrm{Im}[(dω⟨ψ(ω)|)O(θ)|ψ(ω)〉]`.
                 * ``DerivativeType.COMPLEX`` computes :math:`2 (dω⟨ψ(ω)|)O(θ)|ψ(ω)〉`.
-            run_options: Backend runtime options used for circuit execution. The order of priority is:
-                run_options in ``run`` method > gradient's default run_options > primitive's default
-                setting. Higher priority setting overrides lower priority setting.
+            options: Primitive backend runtime options used for circuit execution.
+                The order of priority is: options in ``run`` method > gradient's
+                default options > primitive's default setting.
+                Higher priority setting overrides lower priority setting.
         """
         self._gradient_circuits = {}
         self._derivative_type = derivative_type
-        super().__init__(estimator, **run_options)
+        super().__init__(estimator, **options)
 
     def _run(
         self,

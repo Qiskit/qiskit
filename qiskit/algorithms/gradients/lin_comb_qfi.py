@@ -49,7 +49,7 @@ class LinCombQFI(BaseQFI):
         estimator: BaseEstimator,
         phase_fix: bool = True,
         derivative_type: DerivativeType = DerivativeType.REAL,
-        **run_options,
+        **options,
     ):
         """
         Args:
@@ -63,15 +63,15 @@ class LinCombQFI(BaseQFI):
                 for ``DerivativeType.IMAG`` we compute 4Im[(dω⟨ψ(ω)|)O(θ)|ψ(ω)〉], and
                 for ``DerivativeType.COMPLEX`` we compute 4(dω⟨ψ(ω)|)O(θ)|ψ(ω)〉.
 
-            run_options: Backend runtime options used for circuit execution. The order of priority is:
-                run_options in ``run`` method > QFI's default run_options > primitive's default
+            options: Backend runtime options used for circuit execution. The order of priority is:
+                options in ``run`` method > QFI's default options > primitive's default
                 setting. Higher priority setting overrides lower priority setting.
         """
-        super().__init__(estimator, **run_options)
+        super().__init__(estimator, **options)
         self._phase_fix = phase_fix
         self._derivative_type = derivative_type
         self._gradient = LinCombEstimatorGradient(
-            estimator, derivative_type=DerivativeType.COMPLEX, **run_options
+            estimator, derivative_type=DerivativeType.COMPLEX, **options
         )
         self._qfi_circuits = {}
 
@@ -81,7 +81,7 @@ class LinCombQFI(BaseQFI):
         observables: Sequence[BaseOperator | PauliSumOp],
         parameter_values: Sequence[Sequence[complex]],
         parameters: Sequence[Sequence[Parameter] | None],
-        **run_options,
+        **options,
     ) -> QFIResult:
         """Compute the estimator QFIs on the given circuits."""
         jobs, result_indices_all, coeffs_all, metadata_, gradient_jobs, phase_fixes = (
@@ -112,7 +112,7 @@ class LinCombQFI(BaseQFI):
                     observables=[observable],
                     parameter_values=[parameter_values_],
                     parameters=[parameters_],
-                    **run_options,
+                    **options,
                 )
                 gradient_jobs.append(gradient_job)
 
@@ -161,7 +161,7 @@ class LinCombQFI(BaseQFI):
 
             n = len(qfi_circuits)
             job = self._estimator.run(
-                qfi_circuits, [observable_] * n, [parameter_values_] * n, **run_options
+                qfi_circuits, [observable_] * n, [parameter_values_] * n, **options
             )
             jobs.append(job)
             result_indices_all.append(result_indices)
@@ -198,8 +198,8 @@ class LinCombQFI(BaseQFI):
             qfi += np.triu(qfi_, k=1).T
             qfis.append(qfi)
 
-        run_opt = self._get_local_run_options(run_options)
-        return QFIResult(qfis=qfis, metadata=metadata_, run_options=run_opt)
+        run_opt = self._get_local_options(options)
+        return QFIResult(qfis=qfis, metadata=metadata_, options=run_opt)
 
     def _expand_observable(self, observable: BaseOperator | PauliSumOp) -> BaseOperator:
         """Expands the observable based on the derivative type."""

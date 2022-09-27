@@ -43,19 +43,20 @@ class BaseQFI(ABC):
     def __init__(
         self,
         estimator: BaseEstimator,
-        run_options: dict | None = None,
+        options: Options | None = None,
     ):
         """
         Args:
             estimator: The estimator used to compute the QFIs.
-            run_options: Backend runtime options used for circuit execution. The order of priority is:
-                run_options in ``run`` method > QFI's default run_options > primitive's default
-                setting. Higher priority setting overrides lower priority setting.
+            options: Primitive backend runtime options used for circuit execution.
+                The order of priority is: options in ``run`` method > QFI's
+                default options > primitive's default setting.
+                Higher priority setting overrides lower priority setting.
         """
         self._estimator: BaseEstimator = estimator
-        self._default_run_options = Options()
-        if run_options is not None:
-            self._default_run_options.update_options(**run_options)
+        self._default_options = Options()
+        if options is not None:
+            self._default_options.update_options(**options)
 
     def run(
         self,
@@ -63,7 +64,7 @@ class BaseQFI(ABC):
         observables: Sequence[BaseOperator | PauliSumOp],
         parameter_values: Sequence[Sequence[complex]],
         parameters: Sequence[Sequence[Parameter] | None] | None = None,
-        **run_options,
+        **options,
     ) -> AlgorithmJob:
         """Run the job of the QFIs on the given circuits.
 
@@ -75,9 +76,10 @@ class BaseQFI(ABC):
                 the specified parameters. Each sequence of parameters corresponds to a circuit in
                 ``circuits``. Defaults to None, which means that the QFIs of all parameters in
                 each circuit are calculated.
-            run_options: Backend runtime options used for circuit execution. The order of priority is:
-                run_options in ``run`` method > QFI's default run_options > primitive's default
-                setting. Higher priority setting overrides lower priority setting.
+            options: Primitive backend runtime options used for circuit execution.
+                The order of priority is: options in ``run`` method > QFI's
+                default options > primitive's default setting.
+                Higher priority setting overrides lower priority setting
 
         Returns:
             The job object of the QFIs of the expectation values. The i-th result corresponds to
@@ -94,11 +96,11 @@ class BaseQFI(ABC):
         # Validate the arguments.
         self._validate_arguments(circuits, observables, parameter_values, parameters)
         # The priority of run option is as follows:
-        # run_options in ``run`` method > QFI's default run_options > primitive's default setting.
-        run_opts = copy(self._default_run_options)
-        run_opts.update_options(**run_options)
+        # options in ``run`` method > QFI's default options > primitive's default setting.
+        opts = copy(self._default_options)
+        opts.update_options(**options)
         job = AlgorithmJob(
-            self._run, circuits, observables, parameter_values, parameters, **run_opts.__dict__
+            self._run, circuits, observables, parameter_values, parameters, **opts.__dict__
         )
         job.submit()
         return job
@@ -110,7 +112,7 @@ class BaseQFI(ABC):
         observables: Sequence[BaseOperator | PauliSumOp],
         parameter_values: Sequence[Sequence[complex]],
         parameters: Sequence[Sequence[Parameter] | None],
-        **run_options,
+        **options,
     ) -> QFIResult:
         """Compute the estimator QFIs on the given circuits."""
         raise NotImplementedError()
@@ -173,15 +175,38 @@ class BaseQFI(ABC):
                     f"({observable.num_qubits})."
                 )
 
-    def _get_local_run_options(self, run_options: dict) -> Options:
-        """Update the run options in the results.
-
-        Args:
-            run_options: The run options to update.
+    @property
+    def options(self) -> Options:
+        """Return the union of estimator options setting and QFI default options,
+        where, if the same field is set in both, the QFI's default options override
+        the primitive's default setting.
 
         Returns:
-            The updated run options.
+            The QFI default + estimator options.
         """
-        run_opts = copy(self._estimator.options)
-        run_opts.update_options(**run_options)
-        return run_opts
+        return self._get_local_options(self._default_options.__dict__)
+
+    def update_default_options(self, **options):
+        """Update the QFI's default options setting.
+
+        Args:
+            **options: The fields to update the default options.
+        """
+
+        self._default_options.update_options(**options)
+
+    def _get_local_options(self, options: Options) -> Options:
+        """Return the union of the primitive's default setting,
+        the QFI default options, and the options in the ``run`` method.
+        The order of priority is: options in ``run`` method > QFI's
+                default options > primitive's default setting.
+
+        Args:
+            options: The fields to update the options
+
+        Returns:
+            The QFI default + estimator + run options.
+        """
+        opts = copy(self._estimator.options)
+        opts.update_options(**options)
+        return opts

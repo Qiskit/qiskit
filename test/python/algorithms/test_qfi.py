@@ -11,7 +11,7 @@
 # that they have been altered from the originals.
 # =============================================================================
 
-""" Test Quantum Gradient Framework """
+""" Test QFI"""
 
 import unittest
 
@@ -220,8 +220,8 @@ class TestQFI(QiskitTestCase):
         for i, _ in enumerate(param_list):
             np.testing.assert_allclose(qfi_results[i], correct_values[i], atol=1e-3)
 
-    def test_gradient_validation(self):
-        """Test estimator gradient's validation"""
+    def test_qfi_validation(self):
+        """Test estimator QFI's validation"""
         a = Parameter("a")
         qc = QuantumCircuit(1)
         qc.rx(a, 0)
@@ -242,8 +242,8 @@ class TestQFI(QiskitTestCase):
             with self.assertRaises(ValueError):
                 qfi.run([qc], [op], parameter_values, parameters=[[a], [a]])
 
-    def test_run_options(self):
-        """Test estimator gradient's run options"""
+    def test_options(self):
+        """Test QFI's options"""
         a = Parameter("a")
         qc = QuantumCircuit(1)
         qc.rx(a, 0)
@@ -252,18 +252,32 @@ class TestQFI(QiskitTestCase):
 
         with self.subTest("estimator"):
             qfi = LinCombQFI(estimator)
-            result = qfi.run([qc], [op], [[0]]).result()
-            self.assertEqual(result.run_options.get("shots"), 100)
+            options = qfi.options
+            result = qfi.run([qc], [op], [[1]]).result()
+            self.assertEqual(result.options.get("shots"), 100)
+            self.assertEqual(options.get("shots"), 100)
 
-        with self.subTest("gradient init"):
-            qfi = LinCombQFI(estimator, run_options={"shots": 200})
-            result = qfi.run([qc], [op], [[0]]).result()
-            self.assertEqual(result.run_options.get("shots"), 200)
+        with self.subTest("QFI init"):
+            qfi = LinCombQFI(estimator, options={"shots": 200})
+            result = qfi.run([qc], [op], [[1]]).result()
+            options = qfi.options
+            self.assertEqual(result.options.get("shots"), 200)
+            self.assertEqual(options.get("shots"), 200)
 
-        with self.subTest("gradient run"):
-            qfi = LinCombQFI(estimator, run_options={"shots": 200})
+        with self.subTest("QFI update"):
+            qfi = LinCombQFI(estimator, options={"shots": 200})
+            qfi.update_default_options(shots=100)
+            options = qfi.options
+            result = qfi.run([qc], [op], [[1]]).result()
+            self.assertEqual(result.options.get("shots"), 100)
+            self.assertEqual(options.get("shots"), 100)
+
+        with self.subTest("QFI run"):
+            qfi = LinCombQFI(estimator, options={"shots": 200})
             result = qfi.run([qc], [op], [[0]], shots=300).result()
-            self.assertEqual(result.run_options.get("shots"), 300)
+            options = qfi.options
+            self.assertEqual(result.options.get("shots"), 300)
+            self.assertEqual(options.get("shots"), 200)
 
 
 if __name__ == "__main__":
