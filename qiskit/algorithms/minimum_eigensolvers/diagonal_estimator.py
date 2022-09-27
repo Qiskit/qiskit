@@ -34,7 +34,8 @@ from qiskit.quantum_info.operators.base_operator import BaseOperator
 class _DiagonalEstimatorResult(EstimatorResult):
     """A result from an expectation of a diagonal observable."""
 
-    best_measurements: Mapping[str, Any] | None = None
+    # TODO make each measurement a dataclass rather than a dict
+    best_measurements: Sequence[Mapping[str, Any]] | None = None
 
 
 class _DiagonalEstimator(BaseEstimator):

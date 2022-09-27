@@ -40,7 +40,7 @@ logger = logging.getLogger(__name__)
 
 
 class SamplingVQE(VariationalAlgorithm, SamplingMinimumEigensolver):
-    r"""The Variational Quantum Eigensolver algorithm.
+    r"""The Variational Quantum Eigensolver algorithm, optimized for diagonal Hamiltonians."
 
     Attributes:
         sampler: The sampler primitive to sample the circuits.
@@ -49,9 +49,6 @@ class SamplingVQE(VariationalAlgorithm, SamplingMinimumEigensolver):
         optimizer: A classical optimizer to find the minimum energy. This can either be a
             Qiskit :class:`.Optimizer` or a callable implementing the :class:`.Minimizer` protocol.
             Defaults to :class:`.SLSQP`.
-        initial_point: An optional initial point (i.e. initial parameter values) for the optimizer.
-            If not provided, a random initial point with values in the interval :math:`[0, 2\pi]`
-            is used.
         aggregation: A float or callable to specify how the objective function evaluated on the
             basis states should be aggregated. If a float, this specifies the :math:`\alpha \in [0,1]`
             parameter for a CVaR expectation value (see also [1]).
