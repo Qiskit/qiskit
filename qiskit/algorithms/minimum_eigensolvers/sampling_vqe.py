@@ -14,9 +14,10 @@
 
 from __future__ import annotations
 
+from collections.abc import Callable, Sequence
 import logging
 from time import time
-from collections.abc import Callable, Sequence
+from typing import Any
 
 import numpy as np
 
@@ -52,6 +53,10 @@ class SamplingVQE(VariationalAlgorithm, SamplingMinimumEigensolver):
         aggregation: A float or callable to specify how the objective function evaluated on the
             basis states should be aggregated. If a float, this specifies the :math:`\alpha \in [0,1]`
             parameter for a CVaR expectation value (see also [1]).
+        callback (Callable[[int, np.ndarray, float, dict[str, Any]], None] | None): A callback that
+            can access the intermediate data at each optimization step. These data are: the
+            evaluation count, the optimizer parameters for the ansatz, the evaluated value, and the
+            metadata dictionary.
 
     References:
 
@@ -68,6 +73,8 @@ class SamplingVQE(VariationalAlgorithm, SamplingMinimumEigensolver):
         *,
         initial_point: Sequence[float] | None = None,
         aggregation: float | Callable[[list[float]], float] | None = None,
+        callback: Callable[[int, np.ndarray, float, dict[str, Any], dict[str, Any]], None]
+        | None = None,
     ) -> None:
         r"""
         Args:
@@ -82,6 +89,10 @@ class SamplingVQE(VariationalAlgorithm, SamplingMinimumEigensolver):
                 specify bounds, bounds of :math:`-2\pi`, :math:`2\pi` will be used.
             aggregation: A float or callable to specify how the objective function evaluated on the
                 basis states should be aggregated.
+            callback (Callable[[int, np.ndarray, float, dict[str, Any]], None] | None): A callback
+                that can access the intermediate data at each optimization step. These data are: the
+                evaluation count, the optimizer parameters for the ansatz, the evaluated value, the
+                the metadata dictionary, and the best measurement.
         """
         super().__init__()
 
@@ -89,6 +100,7 @@ class SamplingVQE(VariationalAlgorithm, SamplingMinimumEigensolver):
         self.ansatz = ansatz
         self.optimizer = optimizer
         self.aggregation = aggregation
+        self.callback = callback
 
         # this has to go via getters and setters due to the VariationalAlgorithm interface
         self._initial_point = initial_point
@@ -229,14 +241,20 @@ class SamplingVQE(VariationalAlgorithm, SamplingMinimumEigensolver):
         def evaluate_energy(parameters):
             # handle broadcasting: ensure parameters is of shape [array, array, ...]
             parameters = np.reshape(parameters, (-1, num_parameters)).tolist()
-            batchsize = len(parameters)
+            batch_size = len(parameters)
 
-            result = estimator.run(
-                batchsize * [ansatz], batchsize * [operator], parameters
+            estimator_result = estimator.run(
+                batch_size * [ansatz], batch_size * [operator], parameters
             ).result()
-            value = result.values
+            values = estimator_result.values
 
-            result = value if len(value) > 1 else value[0]
+            if self.callback is not None:
+                metadata = estimator_result.metadata
+                for params, value, meta in zip(parameters, values, metadata):
+                    eval_count += 1
+                    self.callback(eval_count, params, value, meta, best_measurement)
+
+            result = values if len(values) > 1 else values[0]
             return np.real(result)
 
         if return_best_measurement:
