@@ -24,7 +24,7 @@ from qiskit.algorithms.algorithm_job import AlgorithmJob
 from qiskit.circuit import QuantumCircuit
 from qiskit.circuit.parametertable import ParameterView
 from qiskit.primitives import BaseSampler, BaseEstimator, EstimatorResult
-from qiskit.primitives.utils import init_observable
+from qiskit.primitives.utils import init_observable, _circuit_key
 from qiskit.opflow import PauliSumOp
 from qiskit.quantum_info import SparsePauliOp
 from qiskit.quantum_info.operators.base_operator import BaseOperator
@@ -72,33 +72,30 @@ class _DiagonalEstimator(BaseEstimator):
         circuits: Sequence[QuantumCircuit],
         observables: Sequence[BaseOperator | PauliSumOp],
         parameter_values: Sequence[Sequence[float]],
-        parameters: Sequence[ParameterView],
         **run_options,
     ) -> AlgorithmJob:
         circuit_indices = []
-        for i, circuit in enumerate(circuits):
-            index = self._circuit_ids.get(id(circuit))
+        for circuit in circuits:
+            key = _circuit_key(circuit)
+            index = self._circuit_ids.get(key)
             if index is not None:
                 circuit_indices.append(index)
             else:
                 circuit_indices.append(len(self._circuits))
-                self._circuit_ids[id(circuit)] = len(self._circuits)
+                self._circuit_ids[key] = len(self._circuits)
                 self._circuits.append(circuit)
-                self._parameters.append(parameters[i])
+                self._parameters.append(circuit.parameters)
         observable_indices = []
         for observable in observables:
             index = self._observable_ids.get(id(observable))
             if index is not None:
                 observable_indices.append(index)
             else:
-                observable = init_observable(observable)  # convert to SparsePauliOp
-                _check_observable_is_diagonal(observable)  # check it's diagonal
-
-                # add to cache
                 observable_indices.append(len(self._observables))
                 self._observable_ids[id(observable)] = len(self._observables)
-                self._observables.append(observable)
-
+                converted_observable = init_observable(observable)
+                _check_observable_is_diagonal(converted_observable)  # check it's diagonal
+                self._observables.append(converted_observable)
         job = AlgorithmJob(
             self._call, circuit_indices, observable_indices, parameter_values, **run_options
         )
