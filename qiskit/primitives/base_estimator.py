@@ -177,7 +177,7 @@ class BaseEstimator(ABC):
         parameters: Iterable[Iterable[Parameter]] | None = None,  # pylint: disable=unused-argument
         **kwargs,  # pylint: disable=unused-argument
     ):
-    
+
         self = super().__new__(cls)
         if circuits is None:
             self._circuit_ids = {}
