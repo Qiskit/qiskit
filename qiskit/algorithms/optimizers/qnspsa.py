@@ -12,7 +12,9 @@
 
 """The QN-SPSA optimizer."""
 
-from typing import Any, Iterator, Optional, Union, Callable, Dict
+from __future__ import annotations
+from collections.abc import Iterator, Callable
+from typing import Any
 import warnings
 
 import numpy as np
@@ -122,18 +124,17 @@ class QNSPSA(SPSA):
         fidelity: FIDELITY,
         maxiter: int = 100,
         blocking: bool = True,
-        allowed_increase: Optional[float] = None,
-        learning_rate: Optional[Union[float, Callable[[], Iterator]]] = None,
-        perturbation: Optional[Union[float, Callable[[], Iterator]]] = None,
-        last_avg: int = 1,
-        resamplings: Union[int, Dict[int, int]] = 1,
-        perturbation_dims: Optional[int] = None,
-        regularization: Optional[float] = None,
+        allowed_increase: float | None = None,
+        learning_rate: float | Callable[[], Iterator] | None = None,
+        perturbation: float | Callable[[], Iterator] | None = None,
+        resamplings: int | dict[int, int] = 1,
+        perturbation_dims: int | None = None,
+        regularization: float | None = None,
         hessian_delay: int = 0,
-        lse_solver: Optional[Callable[[np.ndarray, np.ndarray], np.ndarray]] = None,
-        initial_hessian: Optional[np.ndarray] = None,
-        callback: Optional[CALLBACK] = None,
-        termination_checker: Optional[TERMINATIONCHECKER] = None,
+        lse_solver: Callable[[np.ndarray, np.ndarray], np.ndarray] | None = None,
+        initial_hessian: np.ndarray | None = None,
+        callback: CALLBACK | None = None,
+        termination_checker: TERMINATIONCHECKER | None = None,
     ) -> None:
         r"""
         Args:
@@ -156,8 +157,6 @@ class QNSPSA(SPSA):
                 approximation of the gradients. Can be either a float or a generator yielding
                 the perturbation magnitudes per step.
                 If ``perturbation`` is set ``learning_rate`` must also be provided.
-            last_avg: Return the average of the ``last_avg`` parameters instead of just the
-                last parameter values.
             resamplings: The number of times the gradient (and Hessian) is sampled using a random
                 direction to construct a gradient estimate. Per default the gradient is estimated
                 using only one random direction. If an integer, all iterations use the same number
@@ -239,7 +238,7 @@ class QNSPSA(SPSA):
         return np.mean(loss_values), gradient_estimate, hessian_estimate
 
     @property
-    def settings(self) -> Dict[str, Any]:
+    def settings(self) -> dict[str, Any]:
         """The optimizer settings in a dictionary format."""
         # re-use serialization from SPSA
         settings = super().settings
@@ -254,10 +253,10 @@ class QNSPSA(SPSA):
     @staticmethod
     def get_fidelity(
         circuit: QuantumCircuit,
-        backend: Optional[Union[Backend, QuantumInstance]] = None,
-        expectation: Optional[ExpectationBase] = None,
+        backend: Backend | QuantumInstance | None = None,
+        expectation: ExpectationBase | None = None,
         *,
-        sampler: Optional[BaseSampler] = None,
+        sampler: BaseSampler | None = None,
     ) -> Callable[[np.ndarray, np.ndarray], float]:
         r"""Get a function to compute the fidelity of ``circuit`` with itself.
 
@@ -320,8 +319,8 @@ class QNSPSA(SPSA):
     @staticmethod
     def _legacy_get_fidelity(
         circuit: QuantumCircuit,
-        backend: Optional[Union[Backend, QuantumInstance]] = None,
-        expectation: Optional[ExpectationBase] = None,
+        backend: Backend | QuantumInstance | None = None,
+        expectation: ExpectationBase | None = None,
     ) -> Callable[[np.ndarray, np.ndarray], float]:
         r"""PENDING DEPRECATION. Get a function to compute the fidelity of ``circuit`` with itself.
 
