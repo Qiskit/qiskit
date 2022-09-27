@@ -1997,8 +1997,6 @@ class QuantumCircuit:
         filter_function: Optional[callable] = lambda x: not getattr(
             x.operation, "_directive", False
         ),
-        *,
-        recurse: bool = False,
     ) -> int:
         """Return circuit depth (i.e., length of critical path).
 
@@ -2006,93 +2004,65 @@ class QuantumCircuit:
             filter_function (callable): a function to filter out some instructions.
                 Should take as input a tuple of (Instruction, list(Qubit), list(Clbit)).
                 By default filters out "directives", such as barrier or snapshot.
-            recurse: if ``True``, then recurse into control-flow operations.  For loops
-                with known-length iterators are counted unrolled.  If-else blocks take the
-                longer case of the two branches.  While loops are counted as if the condition runs
-                once only.  Defaults to ``False`` and raises :class:`.QiskitError` if the circuit
-                contains control flow, to avoid returning nonsensical values.
 
         Returns:
             int: Depth of circuit.
 
-        Raises:
-            CircuitError: if ``recurse`` is ``False`` and the circuit contains control flow, because
-                the depth is unlikely to be meaningful.  You may set ``recurse`` to ``True`` to get
-                a hint towards the critical path length.
-
         Notes:
-            The circuit depth and the DAG depth need not be the same.
+            The circuit depth and the DAG depth need not be the
+            same.
         """
-        # pylint: disable=cyclic-import
-        from qiskit.circuit.controlflow import ControlFlowOp, ForLoopOp
+        # Assign each bit in the circuit a unique integer
+        # to index into op_stack.
+        bit_indices = {bit: idx for idx, bit in enumerate(self.qubits + self.clbits)}
 
-        def _depth_inner(circuit, wire_map=None):
-            """Recursive component of the depth calculation.
+        # If no bits, return 0
+        if not bit_indices:
+            return 0
 
-            Args:
-                circuit (QuantumCircuit): the body of instructions currently under consideration.
-                    This can be the outer circuit, or the body of an inner scope, like a loop.
-                wire_map (Mapping[Bit, Bit]): mapping where the keys are bits used to define the
-                    current body, and the values are the corresponding bits they are applied to in
-                    the outer circuit.
+        # A list that holds the height of each qubit
+        # and classical bit.
+        op_stack = [0] * len(bit_indices)
 
-            Raises:
-                CircuitError: if there is control-flow in a non-recursive call.
-
-            Returns:
-                int: The depth of this body.
-            """
-            if wire_map is None:
-                wire_map = {bit: bit for bits in (circuit.qubits, circuit.clbits) for bit in bits}
-            # The height of each bit.
-            op_stack = {bit: 0 for bit in wire_map.values()}
-            if not op_stack:
-                return 0
-
-            # Here we are playing a modified version of Tetris where we stack gates, but multi-qubit
-            # gates, or measurements have a block for each qubit or cbit that are connected by a
-            # virtual line so that they all stacked at the same depth.  Conditional gates act on all
-            # cbits they are conditioned on.  The max stack height is the depth.
-            for instruction in circuit.data:
-                condition = getattr(instruction.operation, "condition", None)
-                if condition is not None:
-                    if isinstance(condition[0], Clbit):
-                        condition_bits = [wire_map[condition[0]]]
-                    else:
-                        condition_bits = [wire_map[bit] for bit in condition[0]]
+        # Here we are playing a modified version of
+        # Tetris where we stack gates, but multi-qubit
+        # gates, or measurements have a block for each
+        # qubit or cbit that are connected by a virtual
+        # line so that they all stacked at the same depth.
+        # Conditional gates act on all cbits in the register
+        # they are conditioned on.
+        # The max stack height is the circuit depth.
+        for instruction in self._data:
+            levels = []
+            reg_ints = []
+            for ind, reg in enumerate(instruction.qubits + instruction.clbits):
+                # Add to the stacks of the qubits and
+                # cbits used in the gate.
+                reg_ints.append(bit_indices[reg])
+                if filter_function(instruction):
+                    levels.append(op_stack[reg_ints[ind]] + 1)
                 else:
-                    condition_bits = []
-                if recurse and isinstance(instruction.operation, ControlFlowOp):
-                    op = instruction.operation
-                    weight = len(op.params[0]) if isinstance(op, ForLoopOp) else 1
-                    if weight == 0:
-                        return 0
-                    all_bits = itertools.chain(
-                        zip(op.blocks[0].qubits, instruction.qubits),
-                        zip(op.blocks[0].clbits, instruction.clbits),
-                        ((bit, bit) for bit in condition_bits),
-                    )
-                    new_wire_map = {inner: wire_map[outer] for inner, outer in all_bits}
-                    # No multiplication by `weight` because the recursive call handles it.
-                    depth = weight * max(_depth_inner(block, new_wire_map) for block in op.blocks)
-                elif isinstance(instruction.operation, ControlFlowOp):
-                    raise CircuitError(
-                        "Cowardly refusing to give a depth for control flow without `recurse=True`."
-                    )
+                    levels.append(op_stack[reg_ints[ind]])
+            # Assuming here that there is no conditional
+            # snapshots or barriers ever.
+            if getattr(instruction.operation, "condition", None):
+                # Controls operate over all bits of a classical register
+                # or over a single bit
+                if isinstance(instruction.operation.condition[0], Clbit):
+                    condition_bits = [instruction.operation.condition[0]]
                 else:
-                    depth = int(filter_function(instruction))
-                all_bits = itertools.chain(
-                    instruction.qubits,
-                    instruction.clbits,
-                    set(condition_bits) - set(instruction.clbits),
-                )
-                levels = {wire_map[bit]: op_stack[wire_map[bit]] + depth for bit in all_bits}
-                max_level = max(levels.values())
-                for bit in levels:
-                    op_stack[bit] = max_level
-            return max(op_stack.values())
+                    condition_bits = instruction.operation.condition[0]
+                for cbit in condition_bits:
+                    idx = bit_indices[cbit]
+                    if idx not in reg_ints:
+                        reg_ints.append(idx)
+                        levels.append(op_stack[idx] + 1)
 
-        return _depth_inner(self)
+            max_level = max(levels)
+            for ind in reg_ints:
+                op_stack[ind] = max_level
+
+        return max(op_stack)
 
     def width(self) -> int:
         """Return number of qubits plus clbits in circuit.

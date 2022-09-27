@@ -707,28 +707,6 @@ class TestCircuitProperties(QiskitTestCase):
         circ.measure(1, 0)
         self.assertEqual(circ.depth(lambda x: circ.qubits[0] in x.qubits), 3)
 
-    def test_circuit_depth_control_flow(self):
-        """Depth makes an estimate when control flow is present."""
-        qc = QuantumCircuit(5, 1)
-        qc.h(0)
-        qc.measure(0, 0)
-        with qc.if_test((qc.clbits[0], True)) as else_:
-            qc.x(1)
-            qc.cx(2, 3)
-        with else_:
-            qc.x(1)
-            with qc.for_loop(range(3)):
-                qc.z(2)
-                with qc.for_loop((4, 0, 1)):
-                    qc.z(2)
-        with qc.while_loop((qc.clbits[0], True)):
-            qc.h(0)
-            qc.measure(0, 0)
-
-        self.assertEqual(qc.depth(recurse=True), 16)
-        with self.assertRaisesRegex(CircuitError, "Cowardly refusing to give a depth"):
-            qc.depth(recurse=False)
-
     def test_circuit_size_empty(self):
         """Circuit.size should return 0 for an empty circuit."""
         size = 4
