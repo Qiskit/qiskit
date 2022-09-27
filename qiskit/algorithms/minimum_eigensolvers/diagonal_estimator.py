@@ -48,7 +48,7 @@ class _DiagonalEstimator(BaseEstimator):
         callback: Callable[[Sequence[Mapping[str, Any]]], None] | None = None,
         **options,
     ) -> None:
-        r"""Evaluate a the expectation of quantum state with respect to a diagonal operator.
+        r"""Evaluate the expectation of quantum state with respect to a diagonal operator.
 
         Args:
             sampler: The sampler used to evaluate the circuits.
@@ -158,7 +158,7 @@ def _get_cvar_aggregation(alpha):
     if alpha is None:
         alpha = 1
     elif not 0 <= alpha <= 1:
-        raise ValueError("alpha must be in [0, 1]")
+        raise ValueError(f"alpha must be in [0, 1] but was {alpha}")
 
     # if alpha is close to 1 we can avoid the sorting
     if np.isclose(alpha, 1):
