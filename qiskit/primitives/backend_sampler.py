@@ -20,6 +20,10 @@ from typing import cast, Any
 from qiskit.exceptions import QiskitError
 from qiskit.providers.options import Options
 from qiskit.result import QuasiDistribution
+from qiskit.providers.backend import Backend
+from qiskit.circuit.quantumcircuit import QuantumCircuit
+from qiskit.circuit.parameter import Parameter
+from qiskit.transpiler.passmanager import PassManager
 from .base_sampler import BaseSampler
 from .sampler_result import SamplerResult
 from .primitive_job import PrimitiveJob
@@ -36,10 +40,10 @@ class BackendSampler(BaseSampler):
 
     def __init__(
         self,
-        backend: "Backend" = None,
-        circuits: "QuantumCircuit" | Iterable["QuantumCircuit"] = None,
-        parameters: Iterable[Iterable["Parameter"]] | None = None,
-        bound_pass_manager: "PassManager" | None = None,
+        backend: Backend = None,
+        circuits: QuantumCircuit | Iterable[QuantumCircuit] = None,
+        parameters: Iterable[Iterable[Parameter]] | None = None,
+        bound_pass_manager: PassManager | None = None,
         skip_transpilation: bool = False,
     ):
         """Initialize a new BackendSampler
@@ -66,12 +70,12 @@ class BackendSampler(BaseSampler):
         self._is_closed = False
         self._transpile_options = Options()
         self._bound_pass_manager = bound_pass_manager
-        self._preprocessed_circuits: list["QuantumCircuit"] | None = None
-        self._transpiled_circuits: list["QuantumCircuit"] | None = None
+        self._preprocessed_circuits: list[QuantumCircuit] | None = None
+        self._transpiled_circuits: list[QuantumCircuit] | None = None
         self._skip_transpilation = skip_transpilation
 
     @property
-    def preprocessed_circuits(self) -> list["QuantumCircuit"]:
+    def preprocessed_circuits(self) -> list[QuantumCircuit]:
         """
         Preprocessed quantum circuits produced by preprocessing
         Returns:
@@ -83,7 +87,7 @@ class BackendSampler(BaseSampler):
         return list(self._circuits)
 
     @property
-    def transpiled_circuits(self) -> list["QuantumCircuit"]:
+    def transpiled_circuits(self) -> list[QuantumCircuit]:
         """
         Transpiled quantum circuits.
         Returns:
@@ -100,7 +104,7 @@ class BackendSampler(BaseSampler):
         return self._transpiled_circuits
 
     @property
-    def backend(self) -> "Backend":
+    def backend(self) -> Backend:
         """
         Returns:
             The backend which this sampler object based on
@@ -173,7 +177,7 @@ class BackendSampler(BaseSampler):
     def close(self):
         self._is_closed = True
 
-    def _postprocessing(self, result: "Result", circuits: list["QuantumCircuit"]) -> SamplerResult:
+    def _postprocessing(self, result: "Result", circuits: list[QuantumCircuit]) -> SamplerResult:
 
         counts = result.get_counts()
         if not isinstance(counts, list):
@@ -214,7 +218,7 @@ class BackendSampler(BaseSampler):
 
     def _run(
         self,
-        circuits: Sequence["QuantumCircuit"],
+        circuits: Sequence[QuantumCircuit],
         parameter_values: Sequence[Sequence[float]],
         **run_options,
     ) -> PrimitiveJob:
