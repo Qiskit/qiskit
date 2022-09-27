@@ -130,8 +130,32 @@ def _circuit_key(circuit: QuantumCircuit, functional: bool = True) -> tuple:
         circuit.num_qubits,
         circuit.num_clbits,
         circuit.num_parameters,
-        tuple(
-            (d.qubits, d.clbits, d.operation.name, tuple(d.operation.params)) for d in circuit.data
+        tuple(  # circuit.data
+            (
+                tuple(  # qubits
+                    (
+                        circuit.find_bit(qubit).index,
+                        tuple(
+                            (reg[0].size, reg[0].name, reg[1])
+                            for reg in circuit.find_bit(qubit).registers
+                        ),
+                    )
+                    for qubit in data.qubits
+                ),
+                tuple(  # clbits
+                    (
+                        circuit.find_bit(clbit).index,
+                        tuple(
+                            (reg[0].size, reg[0].name, reg[1])
+                            for reg in circuit.find_bit(clbit).registers
+                        ),
+                    )
+                    for clbit in data.clbits
+                ),
+                data.operation.name,  # operation.name
+                tuple(data.operation.params),  # operation.params
+            )
+            for data in circuit.data
         ),
         None if circuit._op_start_times is None else tuple(circuit._op_start_times),
     )
