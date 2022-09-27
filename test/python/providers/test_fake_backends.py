@@ -184,7 +184,7 @@ class TestFakeBackends(QiskitTestCase):
 
     def test_converter_delay_circuit(self):
         backend = FakeMumbai()
-        backend_v2 = BackendV2Converter(backend)
+        backend_v2 = BackendV2Converter(backend, add_delay=True)
         self.assertIsInstance(backend_v2, BackendV2)
         qc = QuantumCircuit(2)
         qc.delay(502, 0, unit="ns")
