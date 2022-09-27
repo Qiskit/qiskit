@@ -87,6 +87,9 @@ class VQE(VariationalAlgorithm, MinimumEigensolver):
 
         optimizer = partial(minimize, method="L-BFGS-B")
 
+    The following attributes can be set via the initializer but can also be read and updated once
+    the VQE object has been constructed.
+
     Attributes:
         estimator (BaseEstimator): The estimator primitive to compute the expectation value of the
             Hamiltonian operator.

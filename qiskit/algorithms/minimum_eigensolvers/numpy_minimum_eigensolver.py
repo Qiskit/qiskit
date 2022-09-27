@@ -14,21 +14,22 @@
 
 from __future__ import annotations
 
-from typing import Callable
+from typing import Callable, List, Union, Optional
 import logging
 import numpy as np
 
 from qiskit.opflow import PauliSumOp
 from qiskit.quantum_info.operators.base_operator import BaseOperator
 
-# TODO this path will need updating
+# TODO this path will need updating when VQD is merged
 from ..eigen_solvers.numpy_eigen_solver import NumPyEigensolver
 from .minimum_eigensolver import MinimumEigensolver, MinimumEigensolverResult
 from ..list_or_dict import ListOrDict
 
 logger = logging.getLogger(__name__)
 
-FilterType = Callable[[list | np.ndarray, float, ListOrDict[float] | None], bool]
+# future type annotations not supported in type aliases in 3.8
+FilterType = Callable[[Union[List, np.ndarray], float, Optional[ListOrDict[float]]], bool]
 
 
 class NumPyMinimumEigensolver(MinimumEigensolver):
