@@ -1,0 +1,5 @@
+---
+features:
+  - |
+    The fake backend :class:`~FakeAuckland` was added with the information
+    from IBM Quantum `ibm_auckland` system.
