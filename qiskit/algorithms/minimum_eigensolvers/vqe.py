@@ -257,7 +257,7 @@ class VQE(VariationalAlgorithm, MinimumEigensolver):
         self,
         ansatz: QuantumCircuit,
         operator: BaseOperator | PauliSumOp,
-    ) -> tuple[Callable[[np.ndarray], np.ndarray]]:
+    ) -> Callable[[np.ndarray], np.ndarray]:
         """Get a function handle to evaluate the gradient at given parameters for the ansatz.
 
         Args:
