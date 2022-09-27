@@ -107,12 +107,15 @@ class SamplingMinimumEigensolverResult(AlgorithmResult):
 
     @property
     def best_measurement(self) -> Mapping[str, Any] | None:
-        """Return the best measurement (as bitstring) over the entire optimization."""
+        """Return the best measurement over the entire optimization.
+
+        Possesses fields: ``state``, ``bitstring``, ``value``, ``probability``.
+        """
         return self._best_measurement
 
     @best_measurement.setter
     def best_measurement(self, value: Mapping[str, Any]) -> None:
-        """Set the best measurement (as bitstring) over the entire optimization."""
+        """Set the best measurement over the entire optimization."""
         self._best_measurement = value
 
     def __str__(self) -> str:

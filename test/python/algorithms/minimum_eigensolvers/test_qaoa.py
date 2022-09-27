@@ -213,7 +213,6 @@ class TestQAOA(QiskitAlgorithmsTestCase):
     #     with self.subTest("Solution"):
     #         self.assertIn(graph_solution, solutions)
 
-
     # def test_qaoa_random_initial_point(self):
     #     """QAOA random initial point"""
     #     w = rx.adjacency_matrix(

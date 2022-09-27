@@ -29,12 +29,12 @@ from ..exceptions import AlgorithmError
 from ..list_or_dict import ListOrDict
 from ..optimizers import Minimizer, Optimizer
 from ..variational_algorithm import VariationalAlgorithm, VariationalResult
+from .diagonal_estimator import _DiagonalEstimator
 from .sampling_mes import (
     SamplingMinimumEigensolver,
     SamplingMinimumEigensolverResult,
 )
 
-from .diagonal_estimator import _DiagonalEstimator
 
 logger = logging.getLogger(__name__)
 
@@ -69,16 +69,17 @@ class SamplingVQE(VariationalAlgorithm, SamplingMinimumEigensolver):
         initial_point: Sequence[float] | None = None,
         aggregation: float | Callable[[list[float]], float] | None = None,
     ) -> None:
-        """
-
+        r"""
         Args:
             sampler: The sampler primitive to sample the circuits.
             ansatz: The parameterized circuit used as ansatz for the wave function.
             optimizer: The classical optimizer. Can either be a Qiskit optimizer or a callable
                 that takes an array as input and returns a Qiskit or SciPy optimization result.
-            initial_point: An optional initial point (i.e. initial parameter values)
-                for the optimizer. If ``None`` then VQE will look to the ansatz for a preferred
-                point and if not will simply compute a random one.
+           initial_point: An optional initial point (i.e. initial parameter values) for the
+                optimizer. The length of the initial point must match the number of :attr:`ansatz`
+                parameters. If ``None``, a random point will be generated within certain parameter
+                bounds. ``VQE`` will look to the ansatz for these bounds. If the ansatz does not
+                specify bounds, bounds of :math:`-2\pi`, :math:`2\pi` will be used.
             aggregation: A float or callable to specify how the objective function evaluated on the
                 basis states should be aggregated.
         """
@@ -135,6 +136,7 @@ class SamplingVQE(VariationalAlgorithm, SamplingMinimumEigensolver):
         ansatz = self._check_operator_ansatz(operator)
         ansatz.measure_all()
 
+        # TODO once VQE is merged, replace with validate_initial_point and validate_bounds.
         if self.initial_point is None:
             initial_point = np.random.uniform(0, 2 * np.pi, ansatz.num_parameters)
         elif len(self.initial_point) != ansatz.num_parameters:
