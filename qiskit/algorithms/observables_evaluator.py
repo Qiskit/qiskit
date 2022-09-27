@@ -9,8 +9,12 @@
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
+
 """Evaluator of observables for algorithms."""
+
 from __future__ import annotations
+from collections.abc import Sequence
+from typing import Any
 
 import numpy as np
 
@@ -26,38 +30,31 @@ def estimate_observables(
     estimator: BaseEstimator,
     quantum_state: QuantumCircuit,
     observables: ListOrDict[BaseOperator | PauliSumOp],
+    parameter_values: Sequence[float] | None = None,
     threshold: float = 1e-12,
-) -> ListOrDict[tuple[complex, tuple[complex, int]]]:
+) -> ListOrDict[tuple[complex, dict[str, Any]]]:
     """
     Accepts a sequence of operators and calculates their expectation values - means
-    and standard deviations. They are calculated with respect to a quantum state provided. A user
+    and metadata. They are calculated with respect to a quantum state provided. A user
     can optionally provide a threshold value which filters mean values falling below the threshold.
 
     Args:
         estimator: An estimator primitive used for calculations.
-        quantum_state: An unparametrized quantum circuit representing a quantum state that
-            expectation values are computed against.
+        quantum_state: A (parameterized) quantum circuit preparing a quantum state that expectation
+            values are computed against.
         observables: A list or a dictionary of operators whose expectation values are to be
             calculated.
+        parameter_values: Optional list of parameters values to evaluate the quantum circuit on.
         threshold: A threshold value that defines which mean values should be neglected (helpful for
             ignoring numerical instabilities close to 0).
 
     Returns:
-        A list or a dictionary of tuples (mean, (variance, shots)).
+        A list or a dictionary of tuples (mean, metadata).
 
     Raises:
-        ValueError: If a ``quantum_state`` with free parameters is provided.
         AlgorithmError: If a primitive job is not successful.
     """
 
-    if (
-        isinstance(quantum_state, QuantumCircuit)  # State cannot be parametrized
-        and len(quantum_state.parameters) > 0
-    ):
-        raise ValueError(
-            "A parametrized representation of a quantum_state was provided. It is not "
-            "allowed - it cannot have free parameters."
-        )
     if isinstance(observables, dict):
         observables_list = list(observables.values())
     else:
@@ -65,8 +62,10 @@ def estimate_observables(
 
     observables_list = _handle_zero_ops(observables_list)
     quantum_state = [quantum_state] * len(observables)
+    if parameter_values is not None:
+        parameter_values = [parameter_values] * len(observables)
     try:
-        estimator_job = estimator.run(quantum_state, observables_list)
+        estimator_job = estimator.run(quantum_state, observables_list, parameter_values)
         expectation_values = estimator_job.result().values
     except Exception as exc:
         raise AlgorithmError("The primitive job failed!") from exc
@@ -74,7 +73,7 @@ def estimate_observables(
     metadata = estimator_job.result().metadata
     # Discard values below threshold
     observables_means = expectation_values * (np.abs(expectation_values) > threshold)
-    # zip means and standard deviations into tuples
+    # zip means and metadata into tuples
     observables_results = list(zip(observables_means, metadata))
 
     return _prepare_result(observables_results, observables)
@@ -94,20 +93,20 @@ def _handle_zero_ops(
 
 
 def _prepare_result(
-    observables_results: list[tuple[complex, tuple[complex, int]]],
+    observables_results: list[tuple[complex, dict]],
     observables: ListOrDict[BaseOperator | PauliSumOp],
-) -> ListOrDict[tuple[complex, tuple[complex, int]]]:
+) -> ListOrDict[tuple[complex, dict[str, Any]]]:
     """
-    Prepares a list of tuples of eigenvalues and (variance, shots) tuples from
+    Prepares a list of tuples of eigenvalues and metadata tuples from
     ``observables_results`` and ``observables``.
 
     Args:
-        observables_results: A list of tuples (mean, (variance, shots)).
+        observables_results: A list of tuples (mean, metadata).
         observables: A list or a dictionary of operators whose expectation values are to be
             calculated.
 
     Returns:
-        A list or a dictionary of tuples (mean, (variance, shots)).
+        A list or a dictionary of tuples (mean, metadata).
     """
 
     if isinstance(observables, list):

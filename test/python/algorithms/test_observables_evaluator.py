@@ -9,7 +9,9 @@
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
+
 """Tests evaluator of auxiliary operators for algorithms."""
+
 from __future__ import annotations
 import unittest
 from typing import Tuple
@@ -70,7 +72,7 @@ class TestObservablesEvaluator(QiskitAlgorithmsTestCase):
         observables: ListOrDict[BaseOperator | PauliSumOp],
         estimator: Estimator,
     ):
-        result = estimate_observables(estimator, quantum_state, observables, self.threshold)
+        result = estimate_observables(estimator, quantum_state, observables, None, self.threshold)
 
         if isinstance(observables, dict):
             np.testing.assert_equal(list(result.keys()), list(expected_result.keys()))
@@ -142,7 +144,7 @@ class TestObservablesEvaluator(QiskitAlgorithmsTestCase):
         state = bound_ansatz
         estimator = Estimator()
         observables = [SparsePauliOp(["XX", "YY"]), 0]
-        result = estimate_observables(estimator, state, observables, self.threshold)
+        result = estimate_observables(estimator, state, observables, None, self.threshold)
         expected_result = [(0.015607318055509564, {}), (0.0, {})]
         means = [element[0] for element in result]
         expected_means = [element[0] for element in expected_result]
@@ -164,7 +166,7 @@ class TestObservablesEvaluator(QiskitAlgorithmsTestCase):
         state = bound_ansatz
         estimator = Estimator(options={"shots": 2048})
         observables = [PauliSumOp.from_list([("ZZ", 2.0)])]
-        result = estimate_observables(estimator, state, observables, self.threshold)
+        result = estimate_observables(estimator, state, observables, None, self.threshold)
         exact_result = self.get_exact_expectation(bound_ansatz, observables)
         expected_result = [(exact_result[0][0], {"variance": 1.0898, "shots": 2048})]
 

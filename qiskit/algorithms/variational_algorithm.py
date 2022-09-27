@@ -114,10 +114,10 @@ class VariationalResult(AlgorithmResult):
 
     @property
     def optimizer_result(self) -> Optional[OptimizerResult]:
-        """Returns the raw optimizer result"""
+        """Returns the optimizer result"""
         return self._optimizer_result
 
     @optimizer_result.setter
     def optimizer_result(self, value: OptimizerResult) -> None:
-        """Sets raw optimizer result"""
+        """Sets optimizer result"""
         self._optimizer_result = value
