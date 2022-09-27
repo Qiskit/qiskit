@@ -6,7 +6,8 @@ features:
     gradient classes (Finite Difference, Parameter Shift,
     Linear Combination of Unitary, and SPSA) for a sampler and estimator.
 
-    Example::
+    For example:
+
     .. code-block:: python
 
       estimator = Estimator(...)
