@@ -742,7 +742,7 @@ def _batch_evaluate(function, points, max_evals_grouped, unpack_points=False):
 
 def _as_list(obj):
     """Convert a list or numpy array into a list."""
-    return obj if isinstance(obj, list) else obj.tolist()
+    return obj.tolist() if isinstance(obj, np.ndarray) else obj
 
 
 def _repack_points(points):
