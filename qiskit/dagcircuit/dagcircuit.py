@@ -898,7 +898,7 @@ class DAGCircuit:
             elif isinstance(node.op, WhileLoopOp):
                 inner = circuit_to_dag(node.op.blocks[0]).size(recurse=True)
             elif isinstance(node.op, IfElseOp):
-                inner = max(circuit_to_dag(block).size(recurse=True) for block in node.op.blocks)
+                inner = sum(circuit_to_dag(block).size(recurse=True) for block in node.op.blocks)
             else:
                 raise DAGCircuitError(f"unknown control-flow type: '{node.op.name}'")
             # Replace the "1" for the node itself with the actual count.

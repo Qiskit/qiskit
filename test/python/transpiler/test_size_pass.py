@@ -84,7 +84,7 @@ class TestSizePass(QiskitTestCase):
             qc.measure(0, 0)
         pass_ = Size()
         pass_(qc)
-        self.assertEqual(pass_.property_set["size"], 17)
+        self.assertEqual(pass_.property_set["size"], 19)
 
 
 if __name__ == "__main__":

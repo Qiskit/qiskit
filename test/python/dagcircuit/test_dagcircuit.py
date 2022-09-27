@@ -1249,7 +1249,7 @@ class TestCircuitControlFlowProperties(QiskitTestCase):
 
     def test_circuit_size(self):
         """Test total number of operations in circuit."""
-        self.assertEqual(self.dag.size(recurse=True), 17)
+        self.assertEqual(self.dag.size(recurse=True), 19)
         with self.assertRaisesRegex(DAGCircuitError, "Cowardly refusing to give a size"):
             self.dag.size(recurse=False)
 
