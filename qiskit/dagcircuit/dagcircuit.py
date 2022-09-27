@@ -927,14 +927,17 @@ class DAGCircuit:
                 flow is present in a non-recursive call.
         """
         if recurse:
+            from qiskit.converters import circuit_to_dag  # pylint: disable=cyclic-import
+
             node_lookup = {}
             for node in self.op_nodes(ControlFlowOp):
                 weight = len(node.op.params[0]) if isinstance(node.op, ForLoopOp) else 1
-                node_lookup[node._node_id] = (
-                    0
-                    if weight == 0
-                    else weight * max(block.depth(recurse=True) for block in node.op.blocks)
-                )
+                if weight == 0:
+                    node_lookup[node._node_id] = 0
+                else:
+                    node_lookup[node._node_id] = weight * max(
+                        circuit_to_dag(block).depth(recurse=True) for block in node.op.blocks
+                    )
 
             def weight_fn(_source, target, _edge):
                 return node_lookup.get(target, 1)
