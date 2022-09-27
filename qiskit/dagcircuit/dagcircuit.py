@@ -1014,6 +1014,9 @@ class DAGCircuit:
             DAGCircuitError: if ``cycle_check`` is set to ``True`` and replacing
                 the specified block introduces a cycle or if ``node_block`` is
                 empty.
+
+        Returns:
+            DAGOpNode: The op node that replaces the block.
         """
         block_qargs = set()
         block_cargs = set()
