@@ -173,7 +173,7 @@ def qubit_props_list_from_props(
         try:
             frequency = properties.frequency(qubit)
         except BackendPropertyError:
-            t_2 = None
+            frequency = None
         qubit_props.append(
             QubitProperties(  # type: ignore[no-untyped-call]
                 t1=t_1,
