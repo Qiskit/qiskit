@@ -28,6 +28,24 @@ from qiskit.exceptions import MissingOptionalLibraryError
 from qiskit.circuit.commutation_checker import CommutationChecker
 
 
+# ToDo: DagDependency needs to be refactored:
+#  - Removing redundant and template-optimization-specific fields from DAGDepNode:
+#    As a minimum, we should remove direct predecessors and direct successors,
+#    as these can be queried directly from the underlying graph data structure.
+#    We should also remove fields that are specific to template-optimization pass.
+#    for instance lists of transitive predecessors and successors (moreover, we
+#    should investigate the possibility of using rx.descendants() instead of caching).
+#  - We should rethink the API of DAGDependency:
+#    Currently, most of the functions (such as "add_op_node", "_update_edges", etc.)
+#    are only used when creating a new DAGDependency from another representation of a circuit.
+#    A part of the reason is that doing local changes to DAGDependency is tricky:
+#    as an example, suppose that DAGDependency contains a gate A such that A = B * C;
+#    in general we cannot simply replace A by the pair B, C, as there may be
+#    other nodes that commute with A but do not commute with B or C, so we would need to
+#    change DAGDependency more globally to support that. In other words, we should rethink
+#    what DAGDependency can be good for and rethink that API accordingly.
+
+
 class DAGDependency:
     """Object to represent a quantum circuit as a directed acyclic graph
     via operation dependencies (i.e. lack of commutation).
@@ -454,6 +472,7 @@ class DAGDependency:
             the lists of direct successors are put into a single one
         """
         gather = self._multi_graph
+        gather.get_node_data(node_id).successors = []
         for d_succ in direct_succ:
             gather.get_node_data(node_id).successors.append([d_succ])
             succ = gather.get_node_data(d_succ).successors
@@ -476,32 +495,52 @@ class DAGDependency:
 
     def _update_edges(self):
         """
-        Function to verify the commutation relation and reachability
-        for predecessors, the nodes do not commute and
-        if the predecessor is reachable. Update the DAGDependency by
-        introducing edges and predecessors(attribute)
+        Updates DagDependency by adding edges to the newly added node (max_node)
+        from the previously added nodes.
+        For each previously added node (prev_node), an edge from prev_node to max_node
+        is added if max_node is "reachable" from prev_node (this means that the two
+        nodes can be made adjacent by commuting them with other nodes), but the two nodes
+        themselves do not commute.
+
+        Currently. this function is only used when creating a new DAGDependency from another
+        representation of a circuit, and hence there are no removed nodes (this is why
+        iterating over all nodes is fine).
         """
         max_node_id = len(self._multi_graph) - 1
-        max_node = self._multi_graph.get_node_data(max_node_id)
+        max_node = self.get_node(max_node_id)
 
-        for current_node_id in range(0, max_node_id):
-            self._multi_graph.get_node_data(current_node_id).reachable = True
-        # Check the commutation relation with reachable node, it adds edges if it does not commute
+        reachable = [True] * max_node_id
+
+        # Analyze nodes in the reverse topological order.
+        # An improvement to the original algorithm is to consider only direct predecessors
+        # and to avoid constructing the lists of forward and backward reachable predecessors
+        # for every node when not required.
         for prev_node_id in range(max_node_id - 1, -1, -1):
-            prev_node = self._multi_graph.get_node_data(prev_node_id)
-            if prev_node.reachable and not self.comm_checker.commute(
-                prev_node.op,
-                prev_node.qargs,
-                prev_node.cargs,
-                max_node.op,
-                max_node.qargs,
-                max_node.cargs,
-            ):
-                self._multi_graph.add_edge(prev_node_id, max_node_id, {"commute": False})
-                self._list_pred(max_node_id)
-                list_predecessors = self._multi_graph.get_node_data(max_node_id).predecessors
-                for pred_id in list_predecessors:
-                    self._multi_graph.get_node_data(pred_id).reachable = False
+            if reachable[prev_node_id]:
+                prev_node = self.get_node(prev_node_id)
+
+                if not self.comm_checker.commute(
+                    prev_node.op,
+                    prev_node.qargs,
+                    prev_node.cargs,
+                    max_node.op,
+                    max_node.qargs,
+                    max_node.cargs,
+                ):
+                    # If prev_node and max_node do not commute, then we add an edge
+                    # between the two, and mark all direct predecessors of prev_node
+                    # as not reaching max_node.
+                    self._multi_graph.add_edge(prev_node_id, max_node_id, {"commute": False})
+
+                    predecessor_ids = self._multi_graph.predecessor_indices(prev_node_id)
+                    for predecessor_id in predecessor_ids:
+                        reachable[predecessor_id] = False
+            else:
+                # If prev_node cannot reach max_node, then none of its predecessors can
+                # reach max_node either.
+                predecessor_ids = self._multi_graph.predecessor_indices(prev_node_id)
+                for predecessor_id in predecessor_ids:
+                    reachable[predecessor_id] = False
 
     def _add_successors(self):
         """
@@ -516,6 +555,21 @@ class DAGDependency:
 
             self._multi_graph.get_node_data(node_id).successors = list(
                 merge_no_duplicates(*self._multi_graph.get_node_data(node_id).successors)
+            )
+
+    def _add_predecessors(self):
+        """
+        Use _gather_pred and merge_no_duplicates to create the list of predecessors
+        for each node. Update DAGDependency 'predecessors' attribute. It has to
+        be used when the DAGDependency() object is complete (i.e. converters).
+        """
+        for node_id in range(0, len(self._multi_graph)):
+            direct_predecessors = self.direct_predecessors(node_id)
+
+            self._multi_graph = self._gather_pred(node_id, direct_predecessors)
+
+            self._multi_graph.get_node_data(node_id).predecessors = list(
+                merge_no_duplicates(*self._multi_graph.get_node_data(node_id).predecessors)
             )
 
     def copy(self):
