@@ -15,6 +15,7 @@
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
+from typing import Any
 
 from qiskit.opflow import PauliSumOp
 from qiskit.quantum_info.operators.base_operator import BaseOperator
@@ -74,7 +75,7 @@ class MinimumEigensolverResult(AlgorithmResult):
     def __init__(self) -> None:
         super().__init__()
         self._eigenvalue = None
-        self._aux_operator_eigenvalues = None
+        self._aux_operators_evaluated = None
 
     @property
     def eigenvalue(self) -> complex | None:
@@ -86,15 +87,13 @@ class MinimumEigensolverResult(AlgorithmResult):
         self._eigenvalue = value
 
     @property
-    def aux_operator_eigenvalues(self) -> ListOrDict[tuple[complex, tuple[complex, int]]] | None:
+    def aux_operators_evaluated(self) -> ListOrDict[tuple[complex, dict[str, Any]]] | None:
         """The aux operator expectation values.
 
         These values are in fact tuples formatted as (mean, (variance, shots)).
         """
-        return self._aux_operator_eigenvalues
+        return self._aux_operators_evaluated
 
-    @aux_operator_eigenvalues.setter
-    def aux_operator_eigenvalues(
-        self, value: ListOrDict[tuple[complex, tuple[complex, int]]]
-    ) -> None:
-        self._aux_operator_eigenvalues = value
+    @aux_operators_evaluated.setter
+    def aux_operators_evaluated(self, value: ListOrDict[tuple[complex, dict[str, Any]]]) -> None:
+        self._aux_operators_evaluated = value

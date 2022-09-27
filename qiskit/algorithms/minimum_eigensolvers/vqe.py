@@ -182,22 +182,22 @@ class VQE(VariationalAlgorithm, MinimumEigensolver):
                 fun=evaluate_energy, x0=initial_point, jac=evaluate_gradient, bounds=bounds
             )
 
-        eval_time = time() - start_time
+        optimizer_time = time() - start_time
 
         logger.info(
             "Optimization complete in %s seconds.\nFound optimal point %s",
-            eval_time,
+            optimizer_time,
             optimizer_result.x,
         )
 
         if aux_operators is not None:
-            aux_values = estimate_observables(
+            aux_operators_evaluated = estimate_observables(
                 self.estimator, self.ansatz, aux_operators, optimizer_result.x
             )
         else:
-            aux_values = None
+            aux_operators_evaluated = None
 
-        return self._build_vqe_result(optimizer_result, aux_values, eval_time)
+        return self._build_vqe_result(optimizer_result, aux_operators_evaluated, optimizer_time)
 
     @classmethod
     def supports_aux_operators(cls) -> bool:
@@ -306,8 +306,8 @@ class VQE(VariationalAlgorithm, MinimumEigensolver):
     def _build_vqe_result(
         self,
         optimizer_result: OptimizerResult,
-        aux_values: ListOrDict[tuple[complex, tuple[complex, int]]],
-        eval_time: float,
+        aux_operators_evaluated: ListOrDict[tuple[complex, tuple[complex, int]]],
+        optimizer_time: float,
     ) -> VQEResult:
         result = VQEResult()
         result.eigenvalue = optimizer_result.fun
@@ -315,8 +315,8 @@ class VQE(VariationalAlgorithm, MinimumEigensolver):
         result.optimal_point = optimizer_result.x
         result.optimal_parameters = dict(zip(self.ansatz.parameters, optimizer_result.x))
         result.optimal_value = optimizer_result.fun
-        result.optimizer_time = eval_time
-        result.aux_operator_eigenvalues = aux_values
+        result.optimizer_time = optimizer_time
+        result.aux_operators_evaluated = aux_operators_evaluated
         result.optimizer_result = optimizer_result
         return result
 

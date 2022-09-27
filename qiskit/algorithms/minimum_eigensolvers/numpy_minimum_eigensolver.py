@@ -28,6 +28,8 @@ from ..list_or_dict import ListOrDict
 
 logger = logging.getLogger(__name__)
 
+FilterType = Callable[[list | np.ndarray, float, ListOrDict[float] | None], bool]
+
 
 class NumPyMinimumEigensolver(MinimumEigensolver):
     """
@@ -36,9 +38,7 @@ class NumPyMinimumEigensolver(MinimumEigensolver):
 
     def __init__(
         self,
-        filter_criterion: Callable[
-            [list | np.ndarray, float, ListOrDict[float] | None], bool
-        ] = None,
+        filter_criterion: FilterType | None = None,
     ) -> None:
         """
         Args:
@@ -54,14 +54,14 @@ class NumPyMinimumEigensolver(MinimumEigensolver):
     @property
     def filter_criterion(
         self,
-    ) -> Callable[[list | np.ndarray, float, ListOrDict[float] | None], bool] | None:
+    ) -> FilterType | None:
         """Returns the criterion for filtering eigenstates/eigenvalues."""
         return self._eigensolver.filter_criterion
 
     @filter_criterion.setter
     def filter_criterion(
         self,
-        filter_criterion: Callable[[list | np.ndarray, float, ListOrDict[float] | None], bool],
+        filter_criterion: FilterType,
     ) -> None:
         self._eigensolver.filter_criterion = filter_criterion
 
@@ -81,7 +81,7 @@ class NumPyMinimumEigensolver(MinimumEigensolver):
             result.eigenvalue = eigensolver_result.eigenvalues[0]
             result.eigenstate = eigensolver_result.eigenstates[0]
             if eigensolver_result.aux_operator_eigenvalues:
-                result.aux_operator_eigenvalues = eigensolver_result.aux_operator_eigenvalues[0]
+                result.aux_operators_evaluated = eigensolver_result.aux_operator_eigenvalues[0]
 
         logger.debug("NumPy minimum eigensolver result: %s", result)
 
