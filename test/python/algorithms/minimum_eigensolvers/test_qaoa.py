@@ -109,7 +109,7 @@ class TestQAOA(QiskitAlgorithmsTestCase):
         theta = Parameter("θ")
         mixer.rx(theta, range(num_qubits))
 
-        qaoa = QAOA(self.sampler, optimizer, prob, mixer=mixer)
+        qaoa = QAOA(self.sampler, optimizer, reps=prob, mixer=mixer)
 
         result = qaoa.compute_minimum_eigenvalue(operator=qubit_op)
         x = self._sample_most_likely(result.eigenstate)
@@ -153,7 +153,7 @@ class TestQAOA(QiskitAlgorithmsTestCase):
         qubit_op, _ = self._get_operator(
             np.array([[0, 1, 0, 1], [1, 0, 1, 0], [0, 1, 0, 1], [1, 0, 1, 0]])
         )
-        qaoa = QAOA(self.sampler, COBYLA(), 1)
+        qaoa = QAOA(self.sampler, COBYLA(), reps=1)
         result = qaoa.compute_minimum_eigenvalue(operator=qubit_op)
         x = self._sample_most_likely(result.eigenstate)
         graph_solution = self._get_graph_solution(x)

@@ -14,7 +14,7 @@
 
 from __future__ import annotations
 
-from collections.abc import Callable, Sequence
+from collections.abc import Callable, Sequence, Mapping
 import logging
 from time import time
 from typing import Any
@@ -28,13 +28,15 @@ from qiskit.quantum_info.operators.base_operator import BaseOperator
 
 from ..exceptions import AlgorithmError
 from ..list_or_dict import ListOrDict
-from ..optimizers import Minimizer, Optimizer
+from ..optimizers import Minimizer, Optimizer, OptimizerResult
 from ..variational_algorithm import VariationalAlgorithm, VariationalResult
 from .diagonal_estimator import _DiagonalEstimator
 from .sampling_mes import (
     SamplingMinimumEigensolver,
     SamplingMinimumEigensolverResult,
 )
+from ..observables_evaluator import estimate_observables
+from ..utils import validate_initial_point, validate_bounds
 
 
 logger = logging.getLogger(__name__)
@@ -42,6 +44,9 @@ logger = logging.getLogger(__name__)
 
 class SamplingVQE(VariationalAlgorithm, SamplingMinimumEigensolver):
     r"""The Variational Quantum Eigensolver algorithm, optimized for diagonal Hamiltonians."
+
+    The following attributes can be set via the initializer but can also be read and updated once
+    the SamplingVQE object has been constructed.
 
     Attributes:
         sampler: The sampler primitive to sample the circuits.
@@ -59,7 +64,6 @@ class SamplingVQE(VariationalAlgorithm, SamplingMinimumEigensolver):
             metadata dictionary.
 
     References:
-
         [1] Barkoutsos, P. K., Nannicini, G., Robert, A., Tavernelli, I., and Woerner, S.,
             "Improving Variational Quantum Optimization using CVaR"
             `arXiv:1907.04769 <https://arxiv.org/abs/1907.04769>`_
@@ -115,25 +119,25 @@ class SamplingVQE(VariationalAlgorithm, SamplingMinimumEigensolver):
         """Set the initial point."""
         self._initial_point = value
 
-    def _check_operator_ansatz(self, operator: BaseOperator | PauliSumOp) -> QuantumCircuit:
-        """Check that the number of qubits of operator and ansatz match."""
-        ansatz = self.ansatz.copy()
-
-        if operator.num_qubits != ansatz.num_qubits:
-            # try to set the number of qubits on the ansatz, if possible
+    def _check_operator_ansatz(self, operator: BaseOperator | PauliSumOp):
+        """Check that the number of qubits of operator and ansatz match and that the ansatz is
+        parameterized.
+        """
+        if operator.num_qubits != self.ansatz.num_qubits:
             try:
                 logger.info(
-                    "Trying to resize ansatz to match operator on %s qubits.", {operator.num_qubits}
+                    "Trying to resize ansatz to match operator on %s qubits.", operator.num_qubits
                 )
-                ansatz.num_qubits = operator.num_qubits
-            except AttributeError as ex:
+                self.ansatz.num_qubits = operator.num_qubits
+            except AttributeError as error:
                 raise AlgorithmError(
                     "The number of qubits of the ansatz does not match the "
                     "operator, and the ansatz does not allow setting the "
                     "number of qubits using `num_qubits`."
-                ) from ex
+                ) from error
 
-        return ansatz
+        if self.ansatz.num_parameters == 0:
+            raise AlgorithmError("The ansatz must be parameterized, but has no free parameters.")
 
     @classmethod
     def supports_aux_operators(cls) -> bool:
@@ -145,59 +149,53 @@ class SamplingVQE(VariationalAlgorithm, SamplingMinimumEigensolver):
         aux_operators: ListOrDict[BaseOperator | PauliSumOp] | None = None,
     ) -> SamplingMinimumEigensolverResult:
         # check that the number of qubits of operator and ansatz match, and resize if possible
-        ansatz = self._check_operator_ansatz(operator)
-        ansatz.measure_all()
+        self._check_operator_ansatz(operator)
 
-        # TODO once VQE is merged, replace with validate_initial_point and validate_bounds.
-        if self.initial_point is None:
-            initial_point = np.random.uniform(0, 2 * np.pi, ansatz.num_parameters)
-        elif len(self.initial_point) != ansatz.num_parameters:
-            raise ValueError(
-                f"The dimension of the initial point ({len(self.initial_point)}) does not match the "
-                f"number of parameters in the circuit ({ansatz.num_parameters})."
-            )
-        else:
-            initial_point = self.initial_point
+        if len(self.ansatz.clbits) > 0:
+            self.ansatz.remove_final_measurements()
+        self.ansatz.measure_all()
 
-        # set an expectation for this algorithm run (will be reset to None at the end)
-        # initial_point = _validate_initial_point(self.initial_point, self.ansatz)
+        initial_point = validate_initial_point(self.initial_point, self.ansatz)
+
+        bounds = validate_bounds(self.ansatz)
 
         evaluate_energy, best_measurement = self._get_evaluate_energy(
-            operator, ansatz, return_best_measurement=True
+            operator, self.ansatz, return_best_measurement=True
         )
 
         start_time = time()
 
         if callable(self.optimizer):
             # pylint: disable=not-callable
-            opt_result = self.optimizer(fun=evaluate_energy, x0=initial_point)
+            optimizer_result = self.optimizer(fun=evaluate_energy, x0=initial_point, bounds=bounds)
         else:
-            opt_result = self.optimizer.minimize(fun=evaluate_energy, x0=initial_point)
+            optimizer_result = self.optimizer.minimize(
+                fun=evaluate_energy, x0=initial_point, bounds=bounds
+            )
 
-        eval_time = time() - start_time
-
-        final_state = self.sampler.run([ansatz], [opt_result.x]).result().quasi_dists
-
-        result = SamplingVQEResult()
-        result.optimal_point = opt_result.x
-        result.optimal_parameters = dict(zip(ansatz.parameters, opt_result.x))
-        result.optimal_value = opt_result.fun
-        result.cost_function_evals = opt_result.nfev
-        result.optimizer_time = eval_time
-        result.best_measurement = best_measurement["best"]
-        result.eigenvalue = opt_result.fun + 0j
-        result.eigenstate = final_state
+        optimizer_time = time() - start_time
 
         logger.info(
             "Optimization complete in %s seconds.\nFound opt_params %s.",
-            eval_time,
-            result.optimal_point,
+            optimizer_time,
+            optimizer_result.x,
         )
 
-        if aux_operators is not None:
-            result.aux_operator_values = self._eval_aux_ops(ansatz, opt_result.x, aux_operators)
+        final_state = self.sampler.run([self.ansatz], [optimizer_result.x]).result().quasi_dists
 
-        return result
+        if aux_operators is not None:
+            aux_operators_evaluated = estimate_observables(
+                _DiagonalEstimator(sampler=self.sampler),
+                self.ansatz,
+                aux_operators,
+                optimizer_result.x,
+            )
+        else:
+            aux_operators_evaluated = None
+
+        return self._build_sampling_vqe_result(
+            optimizer_result, aux_operators_evaluated, best_measurement, final_state, optimizer_time
+        )
 
     def _get_evaluate_energy(
         self,
@@ -262,26 +260,26 @@ class SamplingVQE(VariationalAlgorithm, SamplingMinimumEigensolver):
 
         return evaluate_energy
 
-    def _eval_aux_ops(self, ansatz, parameters, aux_operators):
-        # convert to list if necessary and store the keys
-        if isinstance(aux_operators, dict):
-            is_dict = True
-            keys = list(aux_operators.keys())
-            aux_operators = list(aux_operators.values())
-        else:
-            is_dict = False
-
-        # evaluate all aux operators
-        num = len(aux_operators)
-        estimator = _DiagonalEstimator(sampler=self.sampler)
-        results = estimator.run(num * [ansatz], aux_operators, num * [parameters]).result()
-        values = list(results.values)  # convert array to list
-
-        # bring back into the right shape and return
-        if is_dict:
-            return dict(zip(keys, values))
-
-        return values
+    def _build_sampling_vqe_result(
+        self,
+        optimizer_result: OptimizerResult,
+        aux_operators_evaluated: ListOrDict[tuple[complex, tuple[complex, int]]],
+        best_measurement: dict[str, Any],
+        final_state: Mapping[int, float],
+        optimizer_time: float,
+    ) -> SamplingVQEResult:
+        result = SamplingVQEResult()
+        result.eigenvalue = optimizer_result.fun
+        result.cost_function_evals = optimizer_result.nfev
+        result.optimal_point = optimizer_result.x
+        result.optimal_parameters = dict(zip(self.ansatz.parameters, optimizer_result.x))
+        result.optimal_value = optimizer_result.fun
+        result.optimizer_time = optimizer_time
+        result.aux_operators_evaluated = aux_operators_evaluated
+        result.optimizer_result = optimizer_result
+        result.best_measurement = best_measurement["best"]
+        result.eigenstate = final_state
+        return result
 
 
 class SamplingVQEResult(VariationalResult, SamplingMinimumEigensolverResult):

@@ -35,6 +35,9 @@ Minimum Eigensolvers
    MinimumEigensolverResult
    NumPyMinimumEigensolverResult
    VQEResult
+   SamplingMinimumEigensolverResult
+   SamplingVQE
+   SamplingVQEResult
 """
 
 from .minimum_eigensolver import MinimumEigensolver, MinimumEigensolverResult

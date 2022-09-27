@@ -123,7 +123,7 @@ class TestSamplerVQE(QiskitAlgorithmsTestCase):
         """Test specifying a variational form with no parameters raises an error."""
         circuit = QuantumCircuit(self.op.num_qubits)
         vqe = SamplingVQE(Sampler(), circuit, SLSQP())
-        with self.assertRaises(RuntimeError):
+        with self.assertRaises(AlgorithmError):
             vqe.compute_minimum_eigenvalue(operator=self.op)
 
     def test_batch_evaluate_slsqp(self):
@@ -192,17 +192,17 @@ class TestSamplerVQE(QiskitAlgorithmsTestCase):
         as_list = [Pauli("ZZ"), Pauli("II")]
         with self.subTest(auxops=as_list):
             result = vqe.compute_minimum_eigenvalue(self.op, aux_operators=as_list)
-            self.assertIsInstance(result.aux_operator_values, list)
-            self.assertEqual(len(result.aux_operator_values), 2)
-            self.assertAlmostEqual(result.aux_operator_values[0], -1 + 0j, places=5)
-            self.assertAlmostEqual(result.aux_operator_values[1], 1 + 0j, places=5)
+            self.assertIsInstance(result.aux_operators_evaluated, list)
+            self.assertEqual(len(result.aux_operators_evaluated), 2)
+            self.assertAlmostEqual(result.aux_operators_evaluated[0][0], -1 + 0j, places=5)
+            self.assertAlmostEqual(result.aux_operators_evaluated[1][0], 1 + 0j, places=5)
 
         as_dict = {"magnetization": SparsePauliOp(["ZI", "IZ"])}
         with self.subTest(auxops=as_dict):
             result = vqe.compute_minimum_eigenvalue(self.op, aux_operators=as_dict)
-            self.assertIsInstance(result.aux_operator_values, dict)
-            self.assertEqual(len(result.aux_operator_values.keys()), 1)
-            self.assertAlmostEqual(result.aux_operator_values["magnetization"], 0j, places=5)
+            self.assertIsInstance(result.aux_operators_evaluated, dict)
+            self.assertEqual(len(result.aux_operators_evaluated.keys()), 1)
+            self.assertAlmostEqual(result.aux_operators_evaluated["magnetization"][0], 0j, places=5)
 
     def test_nondiag_observable_raises(self):
         """Test passing a non-diagonal observable raises an error."""

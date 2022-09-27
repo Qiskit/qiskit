@@ -14,7 +14,7 @@
 
 from __future__ import annotations
 
-from typing import Callable
+from typing import Callable, Any
 import numpy as np
 
 from qiskit.algorithms.optimizers import Minimizer, Optimizer
@@ -52,6 +52,9 @@ class QAOA(SamplingVQE):
     <https://arxiv.org/abs/1709.03489>`__ for QAOA, to run constrained optimization problems where
     the mixer constrains the evolution to a feasible subspace of the full Hilbert space.
 
+    The following attributes can be set via the initializer but can also be read and updated once
+    the QAOA object has been constructed.
+
     Attributes:
         sampler: The sampler primitive to sample the circuits.
         optimizer: A classical optimizer to find the minimum energy. This can either be a
@@ -64,24 +67,27 @@ class QAOA(SamplingVQE):
             of optimizations in constrained subspaces as per https://arxiv.org/abs/1709.03489
             as well as warm-starting the optimization as introduced
             in http://arxiv.org/abs/2009.10095.
-        initial_point: An optional initial point (i.e. initial parameter values) for the optimizer.
-            If not provided, a random initial point with values in the interval :math:`[0, 2\pi]`
-            is used.
         aggregation: A float or callable to specify how the objective function evaluated on the
             basis states should be aggregated. If a float, this specifies the :math:`\alpha \in [0,1]`
             parameter for a CVaR expectation value (see also [1]).
+        callback (Callable[[int, np.ndarray, float, dict[str, Any]], None] | None): A callback
+            that can access the intermediate data at each optimization step. These data are: the
+            evaluation count, the optimizer parameters for the ansatz, the evaluated value, the
+            the metadata dictionary, and the best measurement.
     """
 
     def __init__(
         self,
         sampler: BaseSampler,
-        optimizer: Optimizer | Minimizer | None = None,
+        optimizer: Optimizer | Minimizer,
+        *,
         reps: int = 1,
         initial_state: QuantumCircuit | None = None,
         mixer: QuantumCircuit | BaseOperator | PauliSumOp = None,
         initial_point: np.ndarray | None = None,
         aggregation: float | Callable[[list[float]], float] | None = None,
-        # callback: Callable[[int, np.ndarray, float, float], None] | None = None,
+        callback: Callable[[int, np.ndarray, float, dict[str, Any], dict[str, Any]], None]
+        | None = None,
     ) -> None:
         """
         Args:
@@ -99,11 +105,9 @@ class QAOA(SamplingVQE):
                 for the optimizer. If ``None`` then it will simply compute a random one.
             aggregation: A float or callable to specify how the objective function evaluated on the
                 basis states should be aggregated.
-            callback: a callback that can access the intermediate data during the optimization.
-                Four parameter values are passed to the callback as follows during each evaluation
-                by the optimizer for its current set of parameters as it works towards the minimum.
-                These are: the evaluation count, the optimizer parameters for the
-                ansatz, the evaluated mean and the evaluated standard deviation.
+            callback: A callback that can access the intermediate data at each optimization step.
+                These data are: the evaluation count, the optimizer parameters for the ansatz, the
+                evaluated value, the the metadata dictionary, and the best measurement.
         """
         validate_min("reps", reps, 1)
 
@@ -118,14 +122,11 @@ class QAOA(SamplingVQE):
             optimizer=optimizer,
             initial_point=initial_point,
             aggregation=aggregation,
-            # callback=callback,
+            callback=callback,
         )
 
-    def _check_operator_ansatz(
-        self, operator: BaseOperator | PauliSumOp
-    ) -> BaseOperator | PauliSumOp:
+    def _check_operator_ansatz(self, operator: BaseOperator | PauliSumOp):
         # Recreates a circuit based on operator parameter.
-        ansatz = QAOAAnsatz(
+        self.ansatz = QAOAAnsatz(
             operator, self.reps, initial_state=self.initial_state, mixer_operator=self.mixer
         ).decompose()  # TODO remove decompose once #6674 is fixed
-        return ansatz

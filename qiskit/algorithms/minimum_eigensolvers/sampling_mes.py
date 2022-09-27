@@ -93,15 +93,15 @@ class SamplingMinimumEigensolverResult(AlgorithmResult):
         self._eigenstate = value
 
     @property
-    def aux_operator_values(self) -> ListOrDict[tuple[complex, complex]] | None:
+    def aux_operators_evaluated(self) -> ListOrDict[tuple[complex, complex]] | None:
         """Return aux operator expectation values.
 
         These values are in fact tuples formatted as (mean, standard deviation).
         """
         return self._aux_operator_values
 
-    @aux_operator_values.setter
-    def aux_operator_values(self, value: ListOrDict[tuple[complex, complex]] | None) -> None:
+    @aux_operators_evaluated.setter
+    def aux_operators_evaluated(self, value: ListOrDict[tuple[complex, complex]] | None) -> None:
         """set aux operator eigen values"""
         self._aux_operator_values = value
 
@@ -109,7 +109,7 @@ class SamplingMinimumEigensolverResult(AlgorithmResult):
     def best_measurement(self) -> Mapping[str, Any] | None:
         """Return the best measurement over the entire optimization.
 
-        Possesses fields: ``state``, ``bitstring``, ``value``, ``probability``.
+        Possesses keys: ``state``, ``bitstring``, ``value``, ``probability``.
         """
         return self._best_measurement
 
@@ -125,7 +125,7 @@ class SamplingMinimumEigensolverResult(AlgorithmResult):
             + f"\tEigenvalue: {self.eigenvalue}\n"
             + f"\tBest measurement\n: {self.best_measurement}\n"
         )
-        if self.aux_operator_values is not None:
-            disp += f"\n\tAuxiliary operator values: {self.aux_operator_values}\n"
+        if self.aux_operators_evaluated is not None:
+            disp += f"\n\tAuxiliary operator values: {self.aux_operators_evaluated}\n"
 
         return disp
