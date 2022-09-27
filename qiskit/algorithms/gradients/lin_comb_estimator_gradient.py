@@ -56,15 +56,15 @@ class LinCombEstimatorGradient(BaseEstimatorGradient):
         derivative_type: DerivativeType = DerivativeType.REAL,
         **run_options,
     ):
-        """
+        r"""
         Args:
             estimator: The estimator used to compute the gradients.
             derivative_type: The type of derivative. Can be either ``DerivativeType.REAL``
                 ``DerivativeType.IMAG``, or ``DerivativeType.COMPLEX``. Defaults to
                 ``DerivativeType.REAL``.
-                For ``DerivativeType.REAL`` we compute 2Re[(dω⟨ψ(ω)|)O(θ)|ψ(ω)〉],
-                for ``DerivativeType.IMAG`` we compute 2Im[(dω⟨ψ(ω)|)O(θ)|ψ(ω)〉], and
-                for ``DerivativeType.COMPLEX`` we compute 2(dω⟨ψ(ω)|)O(θ)|ψ(ω)〉.
+                * ``DerivativeType.REAL`` computes :math:`2 \mathrm{Re}[(dω⟨ψ(ω)|)O(θ)|ψ(ω)〉]`.
+                * ``DerivativeType.IMAG`` computes :math:`2 \mathrm{Im}[(dω⟨ψ(ω)|)O(θ)|ψ(ω)〉]`.
+                * ``DerivativeType.COMPLEX`` computes :math:`2 (dω⟨ψ(ω)|)O(θ)|ψ(ω)〉`.
             run_options: Backend runtime options used for circuit execution. The order of priority is:
                 run_options in ``run`` method > gradient's default run_options > primitive's default
                 setting. Higher priority setting overrides lower priority setting.
@@ -77,7 +77,7 @@ class LinCombEstimatorGradient(BaseEstimatorGradient):
         self,
         circuits: Sequence[QuantumCircuit],
         observables: Sequence[BaseOperator | PauliSumOp],
-        parameter_values: Sequence[Sequence[float | complex]],
+        parameter_values: Sequence[Sequence[complex]],
         parameters: Sequence[Sequence[Parameter] | None],
         **run_options,
     ) -> EstimatorGradientResult:

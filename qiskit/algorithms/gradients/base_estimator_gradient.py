@@ -54,7 +54,7 @@ class BaseEstimatorGradient(ABC):
         self,
         circuits: Sequence[QuantumCircuit],
         observables: Sequence[BaseOperator | PauliSumOp],
-        parameter_values: Sequence[Sequence[float]],
+        parameter_values: Sequence[Sequence[complex]],
         parameters: Sequence[Sequence[Parameter] | None] | None = None,
         **run_options,
     ) -> AlgorithmJob:
@@ -101,7 +101,7 @@ class BaseEstimatorGradient(ABC):
         self,
         circuits: Sequence[QuantumCircuit],
         observables: Sequence[BaseOperator | PauliSumOp],
-        parameter_values: Sequence[Sequence[float]],
+        parameter_values: Sequence[Sequence[complex]],
         parameters: Sequence[Sequence[Parameter] | None],
         **run_options,
     ) -> EstimatorGradientResult:
@@ -112,7 +112,7 @@ class BaseEstimatorGradient(ABC):
         self,
         circuits: Sequence[QuantumCircuit],
         observables: Sequence[BaseOperator | PauliSumOp],
-        parameter_values: Sequence[Sequence[float]],
+        parameter_values: Sequence[Sequence[complex]],
         parameters: Sequence[Sequence[Parameter] | None] | None = None,
     ) -> None:
         """Validate the arguments of the ``run`` method.

@@ -25,6 +25,7 @@ Estimator Gradients
    :toctree: ../stubs/
 
    BaseEstimatorGradient
+   DerivativeType
    FiniteDiffEstimatorGradient
    LinCombEstimatorGradient
    ParamShiftEstimatorGradient
@@ -67,7 +68,7 @@ from .base_sampler_gradient import BaseSamplerGradient
 from .estimator_gradient_result import EstimatorGradientResult
 from .finite_diff_estimator_gradient import FiniteDiffEstimatorGradient
 from .finite_diff_sampler_gradient import FiniteDiffSamplerGradient
-from .lin_comb_estimator_gradient import LinCombEstimatorGradient
+from .lin_comb_estimator_gradient import DerivativeType, LinCombEstimatorGradient
 from .lin_comb_qfi import LinCombQFI
 from .lin_comb_sampler_gradient import LinCombSamplerGradient
 from .param_shift_estimator_gradient import ParamShiftEstimatorGradient
@@ -81,6 +82,7 @@ __all__ = [
     "BaseEstimatorGradient",
     "BaseQFI",
     "BaseSamplerGradient",
+    "DerivativeType",
     "EstimatorGradientResult",
     "FiniteDiffEstimatorGradient",
     "FiniteDiffSamplerGradient",

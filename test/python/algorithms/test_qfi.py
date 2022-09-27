@@ -113,8 +113,8 @@ class TestQFI(QiskitTestCase):
         qfi_result = qfi.run([ansatz], [op], [param]).result().qfis
         np.testing.assert_array_almost_equal(qfi_result[0], reference, decimal=3)
 
-    def test_qfi_derivative(self):
-        """Test the derivative option of QFI"""
+    def test_qfi_derivative_type(self):
+        """Test QFI derivative_type"""
         a, b = Parameter("a"), Parameter("b")
         qc = QuantumCircuit(1)
         qc.h(0)
@@ -226,16 +226,21 @@ class TestQFI(QiskitTestCase):
         qc = QuantumCircuit(1)
         qc.rx(a, 0)
         qfi = LinCombQFI(self.estimator)
-        param_list = [[np.pi / 4], [np.pi / 2]]
+        # parameter_values = [[np.pi / 4], [np.pi / 2]]
+        parameter_values = [[np.pi / 4]]
         op = SparsePauliOp.from_list([("Z", 1)])
-        with self.assertRaises(ValueError):
-            qfi.run([qc], [op], param_list)
-        with self.assertRaises(ValueError):
-            qfi.run([qc, qc], [op, op], param_list, parameters=[[a]])
-        with self.assertRaises(ValueError):
-            qfi.run([qc, qc], [op], param_list, parameters=[[a]])
-        with self.assertRaises(ValueError):
-            qfi.run([qc], [op], [[np.pi / 4, np.pi / 4]])
+        with self.subTest("assert number of circuits does not match"):
+            with self.assertRaises(ValueError):
+                qfi.run([qc, qc], [op], parameter_values)
+        with self.subTest("assert number of observables does not match"):
+            with self.assertRaises(ValueError):
+                qfi.run([qc], [op, op], parameter_values)
+        with self.subTest("assert number of parameter values does not match"):
+            with self.assertRaises(ValueError):
+                qfi.run([qc], [op], [[np.pi / 4], [np.pi / 2]])
+        with self.subTest("assert number of parameters does not match"):
+            with self.assertRaises(ValueError):
+                qfi.run([qc], [op], parameter_values, parameters=[[a], [a]])
 
     def test_run_options(self):
         """Test estimator gradient's run options"""

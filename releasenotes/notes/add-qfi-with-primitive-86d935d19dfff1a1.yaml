@@ -1,7 +1,8 @@
 ---
 features:
   - |
-    New Quantum Fisher Information (QFI) Algorithm using the primitives has been added. It
+    New Quantum Fisher Information (QFI) Algorithm using the primitives,
+    :class:`qiskit.algorithms.gradients.LinCombQFI`, has been added. It
     internally uses the primitives to calculate the QFI.
 
     Example::

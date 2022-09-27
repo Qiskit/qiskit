@@ -28,7 +28,6 @@ from qiskit.quantum_info import SparsePauliOp
 from qiskit.quantum_info.operators.base_operator import BaseOperator
 
 from .base_qfi import BaseQFI
-from .estimator_gradient_result import EstimatorGradientResult
 from .lin_comb_estimator_gradient import DerivativeType, LinCombEstimatorGradient
 from .qfi_result import QFIResult
 from .utils import _make_lin_comb_qfi_circuit
@@ -54,7 +53,7 @@ class LinCombQFI(BaseQFI):
     ):
         """
         Args:
-            estimator: The estimator used to compute the gradients.
+            estimator: The estimator used to compute the QFI.
             phase_fix: Whether to calculate the second term (phase fix) of the QFI, which is
                 Re[(dω⟨<ψ(ω)|)|ψ(ω)><ψ(ω)|(dω|ψ(ω))>]. Default to ``True``.
             derivative_type: The type of derivative. Can be either ``DerivativeType.REAL``
@@ -65,7 +64,7 @@ class LinCombQFI(BaseQFI):
                 for ``DerivativeType.COMPLEX`` we compute 4(dω⟨ψ(ω)|)O(θ)|ψ(ω)〉.
 
             run_options: Backend runtime options used for circuit execution. The order of priority is:
-                run_options in ``run`` method > gradient's default run_options > primitive's default
+                run_options in ``run`` method > QFI's default run_options > primitive's default
                 setting. Higher priority setting overrides lower priority setting.
         """
         super().__init__(estimator, **run_options)
@@ -74,17 +73,17 @@ class LinCombQFI(BaseQFI):
         self._gradient = LinCombEstimatorGradient(
             estimator, derivative_type=DerivativeType.COMPLEX, **run_options
         )
-        self._gradient_circuits = {}
+        self._qfi_circuits = {}
 
     def _run(
         self,
         circuits: Sequence[QuantumCircuit],
         observables: Sequence[BaseOperator | PauliSumOp],
-        parameter_values: Sequence[Sequence[float | complex]],
+        parameter_values: Sequence[Sequence[complex]],
         parameters: Sequence[Sequence[Parameter] | None],
         **run_options,
-    ) -> EstimatorGradientResult:
-        """Compute the estimator gradients on the given circuits."""
+    ) -> QFIResult:
+        """Compute the estimator QFIs on the given circuits."""
         jobs, result_indices_all, coeffs_all, metadata_, gradient_jobs, phase_fixes = (
             [],
             [],
@@ -118,7 +117,11 @@ class LinCombQFI(BaseQFI):
                 gradient_jobs.append(gradient_job)
 
             # compute the first term in the QFI
-            qfi_circuits_ = _make_lin_comb_qfi_circuit(circuit)
+            qfi_circuits_ = self._qfi_circuits.get(id(circuit))
+            if qfi_circuits_ is None:
+                qfi_circuits_ = _make_lin_comb_qfi_circuit(circuit)
+                self._qfi_circuits[id(circuit)] = qfi_circuits_
+
             # only compute the gradients for parameters in the parameter set
             qfi_circuits, result_indices, coeffs = [], [], []
             result_map = {}

@@ -11,7 +11,7 @@
 # that they have been altered from the originals.
 
 """
-Abstract base class of gradient for ``Estimator``.
+Abstract base class of the Quantum Fisher Information (QFI) for ``Estimator``.
 """
 
 from __future__ import annotations
@@ -27,12 +27,12 @@ from qiskit.providers import Options
 from qiskit.algorithms import AlgorithmJob
 from qiskit.quantum_info.operators.base_operator import BaseOperator
 
-from .estimator_gradient_result import EstimatorGradientResult
+from .qfi_result import QFIResult
 
 
 class BaseQFI(ABC):
     r"""Base class to computes the Quantum Fisher Information (QFI) given a pure,
-    parameterized quantum state, where QFI is:
+    parameterized quantum state. QFI is defined as:
 
     .. math::
 
@@ -47,9 +47,9 @@ class BaseQFI(ABC):
     ):
         """
         Args:
-            estimator: The estimator used to compute the gradients.
+            estimator: The estimator used to compute the QFIs.
             run_options: Backend runtime options used for circuit execution. The order of priority is:
-                run_options in ``run`` method > gradient's default run_options > primitive's default
+                run_options in ``run`` method > QFI's default run_options > primitive's default
                 setting. Higher priority setting overrides lower priority setting.
         """
         self._estimator: BaseEstimator = estimator
@@ -61,28 +61,28 @@ class BaseQFI(ABC):
         self,
         circuits: Sequence[QuantumCircuit],
         observables: Sequence[BaseOperator | PauliSumOp],
-        parameter_values: Sequence[Sequence[float]],
+        parameter_values: Sequence[Sequence[complex]],
         parameters: Sequence[Sequence[Parameter] | None] | None = None,
         **run_options,
     ) -> AlgorithmJob:
-        """Run the job of the estimator gradient on the given circuits.
+        """Run the job of the QFIs on the given circuits.
 
         Args:
-            circuits: The list of quantum circuits to compute the gradients.
+            circuits: The list of quantum circuits to compute the QFIs.
             observables: The list of observables.
             parameter_values: The list of parameter values to be bound to the circuit.
-            parameters: The sequence of parameters to calculate only the gradients of
+            parameters: The sequence of parameters to calculate only the QFIs of
                 the specified parameters. Each sequence of parameters corresponds to a circuit in
-                ``circuits``. Defaults to None, which means that the gradients of all parameters in
+                ``circuits``. Defaults to None, which means that the QFIs of all parameters in
                 each circuit are calculated.
             run_options: Backend runtime options used for circuit execution. The order of priority is:
-                run_options in ``run`` method > gradient's default run_options > primitive's default
+                run_options in ``run`` method > QFI's default run_options > primitive's default
                 setting. Higher priority setting overrides lower priority setting.
 
         Returns:
-            The job object of the gradients of the expectation values. The i-th result corresponds to
+            The job object of the QFIs of the expectation values. The i-th result corresponds to
             ``circuits[i]`` evaluated with parameters bound as ``parameter_values[i]``. The j-th
-            element of the i-th result corresponds to the gradient of the i-th circuit with respect
+            element of the i-th result corresponds to the QFI of the i-th circuit with respect
             to the j-th parameter.
 
         Raises:
@@ -94,7 +94,7 @@ class BaseQFI(ABC):
         # Validate the arguments.
         self._validate_arguments(circuits, observables, parameter_values, parameters)
         # The priority of run option is as follows:
-        # run_options in ``run`` method > gradient's default run_options > primitive's default setting.
+        # run_options in ``run`` method > QFI's default run_options > primitive's default setting.
         run_opts = copy(self._default_run_options)
         run_opts.update_options(**run_options)
         job = AlgorithmJob(
@@ -108,29 +108,29 @@ class BaseQFI(ABC):
         self,
         circuits: Sequence[QuantumCircuit],
         observables: Sequence[BaseOperator | PauliSumOp],
-        parameter_values: Sequence[Sequence[float]],
+        parameter_values: Sequence[Sequence[complex]],
         parameters: Sequence[Sequence[Parameter] | None],
         **run_options,
-    ) -> EstimatorGradientResult:
-        """Compute the estimator gradients on the given circuits."""
+    ) -> QFIResult:
+        """Compute the estimator QFIs on the given circuits."""
         raise NotImplementedError()
 
     def _validate_arguments(
         self,
         circuits: Sequence[QuantumCircuit],
         observables: Sequence[BaseOperator | PauliSumOp],
-        parameter_values: Sequence[Sequence[float]],
+        parameter_values: Sequence[Sequence[complex]],
         parameters: Sequence[Sequence[Parameter] | None] | None = None,
     ) -> None:
         """Validate the arguments of the ``run`` method.
 
         Args:
-            circuits: The list of quantum circuits to compute the gradients.
+            circuits: The list of quantum circuits to compute the QFIs.
             observables: The list of observables.
             parameter_values: The list of parameter values to be bound to the circuit.
-            parameters: The Sequence of Sequence of Parameters to calculate only the gradients of
+            parameters: The Sequence of Sequence of Parameters to calculate only the QFIs of
                 the specified parameters. Each Sequence of Parameters corresponds to a circuit in
-                ``circuits``. Defaults to None, which means that the gradients of all parameters in
+                ``circuits``. Defaults to None, which means that the QFIs of all parameters in
                 each circuit are calculated.
 
         Raises:
