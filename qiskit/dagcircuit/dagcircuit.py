@@ -1049,6 +1049,8 @@ class DAGCircuit:
         for nd in node_block:
             self._decrement_op(nd.op)
 
+        return new_node
+
     def substitute_node_with_dag(self, node, input_dag, wires=None, propagate_condition=True):
         """Replace one node with dag.
 
