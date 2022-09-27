@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2018, 2021.
+# (C) Copyright IBM 2022
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -16,6 +16,7 @@ import unittest
 from test.python.algorithms import QiskitAlgorithmsTestCase
 
 import numpy as np
+from ddt import data, ddt
 
 from qiskit import QuantumCircuit
 from qiskit.algorithms.eigensolvers import VQD
@@ -30,32 +31,32 @@ from qiskit.circuit.library import TwoLocal, RealAmplitudes
 from qiskit.opflow import PauliSumOp
 from qiskit.primitives import Sampler, Estimator
 from qiskit.algorithms.state_fidelities import ComputeUncompute
-
 from qiskit.utils import algorithm_globals
+from qiskit.quantum_info.operators import Operator
 
 
+I = PauliSumOp.from_list([("I", 1)])  # pylint: disable=invalid-name
+X = PauliSumOp.from_list([("X", 1)])  # pylint: disable=invalid-name
+Z = PauliSumOp.from_list([("Z", 1)])  # pylint: disable=invalid-name
+H2_PAULI = (
+    -1.052373245772859 * (I ^ I)
+    + 0.39793742484318045 * (I ^ Z)
+    - 0.39793742484318045 * (Z ^ I)
+    - 0.01128010425623538 * (Z ^ Z)
+    + 0.18093119978423156 * (X ^ X)
+)
+H2_OP = Operator(H2_PAULI.to_matrix())
+
+
+@ddt
 class TestVQD(QiskitAlgorithmsTestCase):
     """Test VQD"""
-
-    def _get_stdev(self, metadata):
-        var = metadata.get("variance", 0)
-        shots = metadata.get("shots", 0)
-        return np.sqrt(var / shots) if shots > 0 else 0
 
     def setUp(self):
         super().setUp()
         self.seed = 50
         algorithm_globals.random_seed = self.seed
-        I = PauliSumOp.from_list([("I", 1)])  # pylint: disable=invalid-name
-        X = PauliSumOp.from_list([("X", 1)])  # pylint: disable=invalid-name
-        Z = PauliSumOp.from_list([("Z", 1)])  # pylint: disable=invalid-name
-        self.h2_op = (
-            -1.052373245772859 * (I ^ I)
-            + 0.39793742484318045 * (I ^ Z)
-            - 0.39793742484318045 * (Z ^ I)
-            - 0.01128010425623538 * (Z ^ Z)
-            + 0.18093119978423156 * (X ^ X)
-        )
+
         self.h2_energy = -1.85727503
         self.h2_energy_excited = [-1.85727503, -1.24458455]
 
@@ -67,8 +68,10 @@ class TestVQD(QiskitAlgorithmsTestCase):
         self.estimator = Estimator()
         self.estimator_shots = Estimator(options={"shots": 2048, "seed": self.seed})
         self.fidelity = ComputeUncompute(Sampler())
+        self.betas = [50, 50]
 
-    def test_basic_operator(self):
+    @data(H2_PAULI, H2_OP)
+    def test_basic_operator(self, op):
         """Test the VQD without aux_operators."""
         wavefunction = self.ryrz_wavefunction
         vqd = VQD(
@@ -76,9 +79,10 @@ class TestVQD(QiskitAlgorithmsTestCase):
             fidelity=self.fidelity,
             ansatz=wavefunction,
             optimizer=COBYLA(),
+            betas=self.betas,
         )
 
-        result = vqd.compute_eigenvalues(operator=self.h2_op)
+        result = vqd.compute_eigenvalues(operator=op)
 
         with self.subTest(msg="test eigenvalue"):
             np.testing.assert_array_almost_equal(
@@ -94,7 +98,8 @@ class TestVQD(QiskitAlgorithmsTestCase):
         with self.subTest(msg="assert optimizer_time is set"):
             self.assertIsNotNone(result.optimizer_time)
 
-    def test_mismatching_num_qubits(self):
+    @data(H2_PAULI, H2_OP)
+    def test_mismatching_num_qubits(self, op):
         """Ensuring circuit and operator mismatch is caught"""
         wavefunction = QuantumCircuit(1)
         optimizer = SLSQP(maxiter=50)
@@ -104,24 +109,28 @@ class TestVQD(QiskitAlgorithmsTestCase):
             k=1,
             ansatz=wavefunction,
             optimizer=optimizer,
+            betas=self.betas,
         )
         with self.assertRaises(AlgorithmError):
-            _ = vqd.compute_eigenvalues(operator=self.h2_op)
+            _ = vqd.compute_eigenvalues(operator=op)
 
-    def test_missing_varform_params(self):
+    @data(H2_PAULI, H2_OP)
+    def test_missing_varform_params(self, op):
         """Test specifying a variational form with no parameters raises an error."""
-        circuit = QuantumCircuit(self.h2_op.num_qubits)
+        circuit = QuantumCircuit(op.num_qubits)
         vqd = VQD(
             estimator=self.estimator,
             fidelity=self.fidelity,
             ansatz=circuit,
             optimizer=SLSQP(),
             k=1,
+            betas=self.betas,
         )
         with self.assertRaises(RuntimeError):
-            vqd.compute_eigenvalues(operator=self.h2_op)
+            vqd.compute_eigenvalues(operator=op)
 
-    def test_callback(self):
+    @data(H2_PAULI, H2_OP)
+    def test_callback(self, op):
         """Test the callback on VQD."""
         history = {"eval_count": [], "parameters": [], "mean": [], "metadata": [], "step": []}
 
@@ -141,9 +150,10 @@ class TestVQD(QiskitAlgorithmsTestCase):
             ansatz=wavefunction,
             optimizer=optimizer,
             callback=store_intermediate_result,
+            betas=self.betas,
         )
 
-        vqd.compute_eigenvalues(operator=self.h2_op)
+        vqd.compute_eigenvalues(operator=op)
 
         self.assertTrue(all(isinstance(count, int) for count in history["eval_count"]))
         self.assertTrue(all(isinstance(mean, float) for mean in history["mean"]))
@@ -163,7 +173,8 @@ class TestVQD(QiskitAlgorithmsTestCase):
         np.testing.assert_array_almost_equal(history["mean"], ref_mean, decimal=2)
         np.testing.assert_array_almost_equal(history["step"], ref_step, decimal=0)
 
-    def test_vqd_optimizer(self):
+    @data(H2_PAULI, H2_OP)
+    def test_vqd_optimizer(self, op):
         """Test running same VQD twice to re-use optimizer, then switch optimizer"""
         vqd = VQD(
             estimator=self.estimator,
@@ -171,10 +182,11 @@ class TestVQD(QiskitAlgorithmsTestCase):
             ansatz=RealAmplitudes(),
             optimizer=SLSQP(),
             k=2,
+            betas=self.betas,
         )
 
         def run_check():
-            result = vqd.compute_eigenvalues(operator=self.h2_op)
+            result = vqd.compute_eigenvalues(operator=op)
             np.testing.assert_array_almost_equal(
                 result.eigenvalues.real, self.h2_energy_excited, decimal=3
             )
@@ -188,7 +200,8 @@ class TestVQD(QiskitAlgorithmsTestCase):
             vqd.optimizer = L_BFGS_B()
             run_check()
 
-    def test_aux_operators_list(self):
+    @data(H2_PAULI, H2_OP)
+    def test_aux_operators_list(self, op):
         """Test list-based aux_operators."""
         wavefunction = self.ry_wavefunction
         vqd = VQD(
@@ -197,10 +210,11 @@ class TestVQD(QiskitAlgorithmsTestCase):
             ansatz=wavefunction,
             optimizer=SLSQP(),
             k=2,
+            betas=self.betas,
         )
 
         # Start with an empty list
-        result = vqd.compute_eigenvalues(self.h2_op, aux_operators=[])
+        result = vqd.compute_eigenvalues(op, aux_operators=[])
         np.testing.assert_array_almost_equal(
             result.eigenvalues.real, self.h2_energy_excited, decimal=2
         )
@@ -210,7 +224,7 @@ class TestVQD(QiskitAlgorithmsTestCase):
         aux_op1 = PauliSumOp.from_list([("II", 2.0)])
         aux_op2 = PauliSumOp.from_list([("II", 0.5), ("ZZ", 0.5), ("YY", 0.5), ("XX", -0.5)])
         aux_ops = [aux_op1, aux_op2]
-        result = vqd.compute_eigenvalues(self.h2_op, aux_operators=aux_ops)
+        result = vqd.compute_eigenvalues(op, aux_operators=aux_ops)
         np.testing.assert_array_almost_equal(
             result.eigenvalues.real, self.h2_energy_excited, decimal=2
         )
@@ -224,7 +238,7 @@ class TestVQD(QiskitAlgorithmsTestCase):
 
         # Go again with additional None and zero operators
         extra_ops = [*aux_ops, None, 0]
-        result = vqd.compute_eigenvalues(self.h2_op, aux_operators=extra_ops)
+        result = vqd.compute_eigenvalues(op, aux_operators=extra_ops)
         np.testing.assert_array_almost_equal(
             result.eigenvalues.real, self.h2_energy_excited, decimal=2
         )
@@ -239,7 +253,8 @@ class TestVQD(QiskitAlgorithmsTestCase):
         self.assertIsInstance(result.aux_operator_eigenvalues[0][1][1], dict)
         self.assertIsInstance(result.aux_operator_eigenvalues[0][3][1], dict)
 
-    def test_aux_operators_dict(self):
+    @data(H2_PAULI, H2_OP)
+    def test_aux_operators_dict(self, op):
         """Test dictionary compatibility of aux_operators"""
         wavefunction = self.ry_wavefunction
         vqd = VQD(
@@ -247,10 +262,11 @@ class TestVQD(QiskitAlgorithmsTestCase):
             fidelity=self.fidelity,
             ansatz=wavefunction,
             optimizer=SLSQP(),
+            betas=self.betas,
         )
 
         # Start with an empty dictionary
-        result = vqd.compute_eigenvalues(self.h2_op, aux_operators={})
+        result = vqd.compute_eigenvalues(op, aux_operators={})
         np.testing.assert_array_almost_equal(
             result.eigenvalues.real, self.h2_energy_excited, decimal=2
         )
@@ -260,7 +276,7 @@ class TestVQD(QiskitAlgorithmsTestCase):
         aux_op1 = PauliSumOp.from_list([("II", 2.0)])
         aux_op2 = PauliSumOp.from_list([("II", 0.5), ("ZZ", 0.5), ("YY", 0.5), ("XX", -0.5)])
         aux_ops = {"aux_op1": aux_op1, "aux_op2": aux_op2}
-        result = vqd.compute_eigenvalues(self.h2_op, aux_operators=aux_ops)
+        result = vqd.compute_eigenvalues(op, aux_operators=aux_ops)
         self.assertEqual(len(result.eigenvalues), 2)
         self.assertEqual(result.eigenvalues.dtype, np.complex128)
         self.assertAlmostEqual(result.eigenvalues[0], -1.85727503, 2)
@@ -275,7 +291,7 @@ class TestVQD(QiskitAlgorithmsTestCase):
 
         # Go again with additional None and zero operators
         extra_ops = {**aux_ops, "None_operator": None, "zero_operator": 0}
-        result = vqd.compute_eigenvalues(self.h2_op, aux_operators=extra_ops)
+        result = vqd.compute_eigenvalues(op, aux_operators=extra_ops)
         self.assertEqual(len(result.eigenvalues), 2)
         self.assertEqual(result.eigenvalues.dtype, np.complex128)
         self.assertAlmostEqual(result.eigenvalues[0], -1.85727503, places=5)
@@ -291,7 +307,8 @@ class TestVQD(QiskitAlgorithmsTestCase):
         self.assertIsInstance(result.aux_operator_eigenvalues[0]["aux_op2"][1], dict)
         self.assertIsInstance(result.aux_operator_eigenvalues[0]["zero_operator"][1], dict)
 
-    def test_aux_operator_std_dev(self):
+    @data(H2_PAULI, H2_OP)
+    def test_aux_operator_std_dev(self, op):
         """Test non-zero standard deviations of aux operators."""
         wavefunction = self.ry_wavefunction
         vqd = VQD(
@@ -309,13 +326,14 @@ class TestVQD(QiskitAlgorithmsTestCase):
                 -1.51638917,
             ],
             optimizer=COBYLA(maxiter=0),
+            betas=self.betas,
         )
 
         # Go again with two auxiliary operators
         aux_op1 = PauliSumOp.from_list([("II", 2.0)])
         aux_op2 = PauliSumOp.from_list([("II", 0.5), ("ZZ", 0.5), ("YY", 0.5), ("XX", -0.5)])
         aux_ops = [aux_op1, aux_op2]
-        result = vqd.compute_eigenvalues(self.h2_op, aux_operators=aux_ops)
+        result = vqd.compute_eigenvalues(op, aux_operators=aux_ops)
         self.assertEqual(len(result.aux_operator_eigenvalues), 2)
         # expectation values
         self.assertAlmostEqual(result.aux_operator_eigenvalues[0][0][0], 2.0, places=1)
@@ -328,7 +346,7 @@ class TestVQD(QiskitAlgorithmsTestCase):
 
         # Go again with additional None and zero operators
         aux_ops = [*aux_ops, None, 0]
-        result = vqd.compute_eigenvalues(self.h2_op, aux_operators=aux_ops)
+        result = vqd.compute_eigenvalues(op, aux_operators=aux_ops)
         self.assertEqual(len(result.aux_operator_eigenvalues[0]), 4)
         # expectation values
         self.assertAlmostEqual(result.aux_operator_eigenvalues[0][0][0], 2.0, places=1)
@@ -342,6 +360,7 @@ class TestVQD(QiskitAlgorithmsTestCase):
         self.assertIsInstance(result.aux_operator_eigenvalues[0][1][1], dict)
         self.assertIsInstance(result.aux_operator_eigenvalues[0][2][1], dict)
         self.assertIsInstance(result.aux_operator_eigenvalues[0][3][1], dict)
+
 
 if __name__ == "__main__":
     unittest.main()
