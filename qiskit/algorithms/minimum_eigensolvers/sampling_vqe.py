@@ -86,7 +86,7 @@ class SamplingVQE(VariationalAlgorithm, SamplingMinimumEigensolver):
             ansatz: The parameterized circuit used as ansatz for the wave function.
             optimizer: The classical optimizer. Can either be a Qiskit optimizer or a callable
                 that takes an array as input and returns a Qiskit or SciPy optimization result.
-           initial_point: An optional initial point (i.e. initial parameter values) for the
+            initial_point: An optional initial point (i.e. initial parameter values) for the
                 optimizer. The length of the initial point must match the number of :attr:`ansatz`
                 parameters. If ``None``, a random point will be generated within certain parameter
                 bounds. ``VQE`` will look to the ansatz for these bounds. If the ansatz does not
