@@ -22,7 +22,6 @@ from dataclasses import dataclass
 import numpy as np
 from qiskit.algorithms.algorithm_job import AlgorithmJob
 from qiskit.circuit import QuantumCircuit
-from qiskit.circuit.parametertable import ParameterView
 from qiskit.primitives import BaseSampler, BaseEstimator, EstimatorResult
 from qiskit.primitives.utils import init_observable, _circuit_key
 from qiskit.opflow import PauliSumOp
