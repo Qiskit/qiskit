@@ -121,12 +121,12 @@ class TestRZXCalibrationBuilderNoEcho(TestCalibrationBuilder):
         rzx_qc_instructions = cal_qc.calibrations["rzx"][((1, 0), (theta / 2,))].instructions
         self.assertEqual(rzx_qc_instructions[0][1].channel, DriveChannel(0))
         self.assertTrue(isinstance(rzx_qc_instructions[0][1], Play))
-        self.assertTrue(isinstance(rzx_qc_instructions[0][1].pulse, GaussianSquare))
+        self.assertEqual(rzx_qc_instructions[0][1].pulse.pulse_type, "GaussianSquare")
         self.assertEqual(rzx_qc_instructions[1][1].channel, DriveChannel(1))
         self.assertTrue(isinstance(rzx_qc_instructions[1][1], Delay))
         self.assertEqual(rzx_qc_instructions[2][1].channel, ControlChannel(1))
         self.assertTrue(isinstance(rzx_qc_instructions[2][1], Play))
-        self.assertTrue(isinstance(rzx_qc_instructions[2][1].pulse, GaussianSquare))
+        self.assertEqual(rzx_qc_instructions[2][1].pulse.pulse_type, "GaussianSquare")
 
         # Calculate the duration of one scaled Gaussian square pulse from the CX gate.
         cx_sched = self.inst_map.get("cx", qubits=(1, 0))
