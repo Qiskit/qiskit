@@ -542,6 +542,71 @@ class TestOptimize1qGatesDecomposition(QiskitTestCase):
         msg = f"expected:\n{expected}\nresult:\n{result}"
         self.assertEqual(expected, result, msg=msg)
 
+    def test_if_else(self):
+        """Test that the pass recurses in a simple if-else."""
+        basis = ["cx", "sx", "u", "rz", "if_else"]
+        num_qubits = 4
+
+        qr = QuantumRegister(num_qubits)
+        cr = ClassicalRegister(1)
+
+        test = QuantumCircuit(qr, cr)
+        test.h(0)
+        test.measure(0, 0)
+        test_true = QuantumCircuit(qr)
+        test_true.h(qr[0])
+        test_true.h(qr[0])
+        test_true.h(qr[0])
+        test.if_else((0, True), test_true.copy(), None, range(num_qubits), [0])
+
+        expected = QuantumCircuit(qr, cr)
+        expected.u(np.pi / 2, 0, np.pi, 0)
+        expected.measure(0, 0)
+        expected_true = QuantumCircuit(qr)
+        expected_true.u(np.pi / 2, 0, -np.pi, qr[0])
+        expected.if_else((0, True), expected_true, None, range(num_qubits), [0])
+
+        passmanager = PassManager()
+        passmanager.append(BasisTranslator(sel, basis))
+        passmanager.append(Optimize1qGatesDecomposition(basis))
+        result = passmanager.run(test)
+        self.assertEqual(result, expected)
+
+    def test_nested_control_flow(self):
+        """Test that collection recurses into nested control flow."""
+
+        basis = ["cx", "u", "if_else", "for_loop"]
+        num_qubits = 4
+
+        qr = QuantumRegister(num_qubits)
+        cr = ClassicalRegister(1)
+
+        test = QuantumCircuit(qr, cr)
+        test.h(0)
+        test.measure(0, 0)
+        test_true = QuantumCircuit(qr, cr)
+        test_for = QuantumCircuit(qr, cr)
+        test_for.h(qr[0])
+        test_for.h(qr[0])
+        test_for.h(qr[0])
+        test_true.for_loop(range(4), body=test_for, qubits=qr, clbits=cr)
+        test.if_else((0, True), test_true.copy(), None, range(num_qubits), [0])
+
+        expected = QuantumCircuit(qr, cr)
+        expected.u(np.pi / 2, 0, np.pi, 0)
+        expected.measure(0, 0)
+        expected_true = QuantumCircuit(qr, cr)
+        expected_for = QuantumCircuit(qr, cr)
+        expected_for.u(np.pi / 2, 0, -np.pi, qr[0])
+        expected_true.for_loop(range(4), body=expected_for, qubits=qr, clbits=cr)
+        expected.if_else((0, True), expected_true, None, range(num_qubits), [0])
+
+        passmanager = PassManager()
+        passmanager.append(BasisTranslator(sel, basis))
+        passmanager.append(Optimize1qGatesDecomposition(basis))
+        result = passmanager.run(test)
+        self.assertEqual(result, expected)
+
 
 if __name__ == "__main__":
     unittest.main()
