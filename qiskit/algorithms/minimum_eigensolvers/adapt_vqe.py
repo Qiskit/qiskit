@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2020, 2022.
+# (C) Copyright IBM 2022.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -25,6 +25,7 @@ import numpy as np
 
 from qiskit import QiskitError
 from qiskit.algorithms.list_or_dict import ListOrDict
+from qiskit.quantum_info.operators.base_operator import BaseOperator
 from qiskit.opflow import OperatorBase, PauliSumOp, commutator
 from qiskit.circuit.library import EvolvedOperatorAnsatz
 from qiskit.utils.validation import validate_min
@@ -55,41 +56,72 @@ class AdaptVQE(VariationalAlgorithm):
     which is uniquely adapted to the operator whose minimum eigenvalue is being determined.
     This class relies on a supplied instance of :class:`~.VQE` to find the minimum eigenvalue.
     The performance of AdaptVQE significantly depends on the minimization routine.
+
+    .. code-block:: python
+
+      from qiskit.algorithms.minimum_eigensolvers import AdaptVQE, VQE
+      from qiskit.algorithms.optimizers import SLSQP
+      from qiskit.primitives import Estimator
+      from qiskit.circuit.library import EvolvedOperatorAnsatz
+
+      # get your Hamiltonian
+      hamiltonian = ...
+
+      # construct your ansatz
+      ansatz = EvolvedOperatorAnsatz(...)
+
+      vqe = VQE(Estimator(), ansatz, SLSQP())
+
+      adapt_vqe = AdaptVQE(vqe)
+
+      eigenvalue, _ = adapt_vqe.compute_minimum_eigenvalue(hamiltonian)
+
+
+    Attributes:
+        solver: a :class:`~.VQE` instance used internally to compute the minimum eigenvalues.
+            It is a requirement that the :attr:`~.VQE.ansatz` of this solver is of type
+            :class:`qiskit.circuit.library.EvolvedOperatorAnsatz`.
+        threshold: the convergence threshold for the algorithm. Once all gradients have an absolute
+            value smaller than this threshold, the algorithm terminates.
+        max_iterations: the maximum number of iterations for the adaptive loop. If ``None``, the
+            algorithm is not bound in its number of iterations.
     """
 
     def __init__(
         self,
         solver: VQE,
-        excitation_pool: list[OperatorBase] = None,
+        *,
         threshold: float = 1e-5,
         max_iterations: int | None = None,
     ) -> None:
         """
         Args:
             solver: a :class:`~.VQE` instance used internally to compute the minimum eigenvalues.
-                It is a requirement that the `ansatz` of this solver is of type `EvolvedOperatorAnsatz`.
-            excitation_pool: A list of quantum circuits out of which to build the ansatz.
-            threshold: the eigenvalue convergence threshold. It has a minimum value of `1e-15`.
-            max_iterations: the maximum number of iterations.
+                It is a requirement that the :attr:`~.VQE.ansatz` of this solver is of type
+                :class:`qiskit.circuit.library.EvolvedOperatorAnsatz`.
+            threshold: the convergence threshold for the algorithm. Once all gradients have an
+                absolute value smaller than this threshold, the algorithm terminates.
+            max_iterations: the maximum number of iterations for the adaptive loop. If ``None``, the
+                algorithm is not bound in its number of iterations.
         """
         validate_min("threshold", threshold, 1e-15)
 
-        self._threshold = threshold
-        self._solver = solver
-        self._tmp_ansatz = self._solver.ansatz
-        self._max_iterations = max_iterations
-        self._excitation_pool = excitation_pool
+        self.solver = solver
+        self.threshold = threshold
+        self.max_iterations = max_iterations
+        self._tmp_ansatz = self.solver.ansatz
+        self._excitation_pool: list[OperatorBase] = []
         self._excitation_list: list[OperatorBase] = []
 
     @property
     def initial_point(self) -> Sequence[float] | None:
         """Return the initial point."""
-        return self._solver.initial_point
+        return self.solver.initial_point
 
     @initial_point.setter
     def initial_point(self, value: Sequence[float] | None) -> None:
         """Set the initial point."""
-        self._solver.initial_point = value
+        self.solver.initial_point = value
 
     def _compute_gradients(
         self,
@@ -108,8 +140,8 @@ class AdaptVQE(VariationalAlgorithm):
         # The excitations operators are applied later as exp(i*theta*excitation).
         # For this commutator, we need to explicitly pull in the imaginary phase.
         commutators = [1j * commutator(operator, exc) for exc in self._excitation_pool]
-        wave_function = self._solver.ansatz.assign_parameters(theta)
-        res = estimate_observables(self._solver.estimator, wave_function, commutators)
+        wave_function = self.solver.ansatz.assign_parameters(theta)
+        res = estimate_observables(self.solver.estimator, wave_function, commutators)
         return res
 
     @staticmethod
@@ -142,8 +174,8 @@ class AdaptVQE(VariationalAlgorithm):
 
     def compute_minimum_eigenvalue(
         self,
-        operator: OperatorBase,
-        aux_operators: ListOrDict[OperatorBase] | None = None,
+        operator: BaseOperator | PauliSumOp,
+        aux_operators: ListOrDict[BaseOperator | PauliSumOp] | None = None,
     ) -> AdaptVQEResult:
         """Computes the minimum eigenvalue.
 
@@ -167,15 +199,16 @@ class AdaptVQE(VariationalAlgorithm):
             raise QiskitError("The AdaptVQE ansatz must be of the EvolvedOperatorAnsatz type.")
 
         # Overwrite the solver's ansatz with the initial state
-        solver_ansatz = copy.deepcopy(self._solver.ansatz)
-        self._solver.ansatz = self._tmp_ansatz.initial_state
+        solver_ansatz = copy.deepcopy(self.solver.ansatz)
+        self._excitation_pool = copy.deepcopy(solver_ansatz.operators)
+        self.solver.ansatz = self._tmp_ansatz.initial_state
 
         prev_op_indices: list[int] = []
         theta: list[float] = []
         max_grad: tuple[float, Optional[PauliSumOp]] = (0.0, None)
         self._excitation_list = []
         iteration = 0
-        while self._max_iterations is None or iteration < self._max_iterations:
+        while self.max_iterations is None or iteration < self.max_iterations:
             iteration += 1
             logger.info("--- Iteration #%s ---", str(iteration))
             # compute gradients
@@ -187,7 +220,7 @@ class AdaptVQE(VariationalAlgorithm):
             # store maximum gradient's index for cycle detection
             prev_op_indices.append(max_grad_index)
             # log gradients
-            if np.abs(max_grad[0]) < self._threshold:
+            if np.abs(max_grad[0]) < self.threshold:
                 if iteration == 1:
                     raise QiskitError(
                         "Gradient choice is not suited as it leads to all zero gradients gradients. "
@@ -209,9 +242,9 @@ class AdaptVQE(VariationalAlgorithm):
             theta.append(0.0)
             # run VQE on current Ansatz
             self._tmp_ansatz.operators = self._excitation_list
-            self._solver.ansatz = self._tmp_ansatz
-            self._solver.initial_point = theta
-            raw_vqe_result = self._solver.compute_minimum_eigenvalue(operator)
+            self.solver.ansatz = self._tmp_ansatz
+            self.solver.initial_point = theta
+            raw_vqe_result = self.solver.compute_minimum_eigenvalue(operator)
             theta = raw_vqe_result.optimal_point.tolist()
         else:
             # reached maximum number of iterations
@@ -227,16 +260,15 @@ class AdaptVQE(VariationalAlgorithm):
 
         # once finished evaluate auxiliary operators if any
         if aux_operators is not None:
-            bound_ansatz = self._solver.ansatz.bind_parameters(result.optimal_point)
+            bound_ansatz = self.solver.ansatz.bind_parameters(result.optimal_point)
 
-            aux_values = estimate_observables(self._solver.estimator, bound_ansatz, aux_operators)
-            result.aux_operator_eigenvalues = aux_values
+            aux_values = estimate_observables(self.solver.estimator, bound_ansatz, aux_operators)
+            result.aux_operators_evaluated = aux_values
         else:
             aux_values = None
-        raw_vqe_result.aux_operator_eigenvalues = aux_values
 
         logger.info("The final energy is: %s", str(result.eigenvalue))
-        self._solver.ansatz = solver_ansatz
+        self.solver.ansatz = solver_ansatz
         return result
 
 
