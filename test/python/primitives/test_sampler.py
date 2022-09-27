@@ -21,6 +21,7 @@ from ddt import ddt
 from qiskit import QuantumCircuit, pulse, transpile
 from qiskit.circuit import Parameter
 from qiskit.circuit.library import RealAmplitudes
+from qiskit.exceptions import QiskitError
 from qiskit.primitives import Sampler, SamplerResult
 from qiskit.primitives.utils import _circuit_key
 from qiskit.providers import JobStatus, JobV1
@@ -598,7 +599,9 @@ class TestSampler(QiskitTestCase):
             with self.assertRaises(ValueError):
                 _ = sampler.run([qc3], [[]])
         with self.subTest("no measurement"):
-            with self.assertRaises(ValueError):
+            with self.assertRaises(QiskitError):
+                # The following raises QiskitError because this check is located in
+                # `Sampler._preprocess_circuit`
                 _ = sampler.run([qc4], [[]])
 
     def test_run_empty_parameter(self):
