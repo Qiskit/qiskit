@@ -869,10 +869,10 @@ class DAGCircuit:
 
         Args:
             recurse: if ``True``, then recurse into control-flow operations.  For loops with
-                known-length iterators are counted unrolled.  If-else blocks take the longer case of
-                the two branches.  While loops are counted as if the condition runs once only.
-                Defaults to ``False`` and raises :class:`.DAGCircuitError` if any control flow is
-                present, to avoid silently returning a nonsensical number.
+                known-length iterators are counted unrolled.  If-else blocks sum both of the two
+                branches.  While loops are counted as if the condition runs once only.  Defaults to
+                ``False`` and raises :class:`.DAGCircuitError` if any control flow is present, to
+                avoid silently returning a mostly meaningless number.
 
         Returns:
             int: the circuit size
@@ -911,10 +911,12 @@ class DAGCircuit:
 
         Args:
             recurse: if ``True``, then recurse into control-flow operations.  For loops
-                with known-length iterators are counted unrolled.  If-else blocks take the
-                longer case of the two branches.  While loops are counted as if the condition runs
-                once only.  Defaults to ``False`` and raises :class:`.DAGCircuitError` if any
-                control flow is present, to avoid silently returning a nonsensical number.
+                with known-length iterators are counted as if the loop had been manually unrolled
+                (*i.e.* with each iteration of the loop body written out explicitly).
+                If-else blocks take the longer case of the two branches.  While loops are counted as
+                if the condition runs once only.  Defaults to ``False`` and raises
+                :class:`.DAGCircuitError` if any control flow is present, to avoid silently
+                returning a nonsensical number.
 
         Returns:
             int: the circuit depth
@@ -1760,8 +1762,8 @@ class DAGCircuit:
         Args:
             recurse: if ``True`` (default), then recurse into control-flow operations.  In all
                 cases, this counts only the number of times the operation appears in any possible
-                block; both branchs of if-elses are counted, and for- and while-loop blocks are only
-                counted once.
+                block; both branches of if-elses are counted, and for- and while-loop blocks are
+                only counted once.
 
         Returns:
             Mapping[str, int]: a mapping of operation names to the number of times it appears.
