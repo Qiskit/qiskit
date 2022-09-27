@@ -296,8 +296,6 @@ def level_3_pass_manager(pass_manager_config: PassManagerConfig) -> StagedPassMa
             optimization.append(
                 _opt + _unroll_if_out_of_basis + _depth_check + _size_check, do_while=_opt_control
             )
-        opt_loop = _depth_check + _opt + _unroll_if_out_of_basis
-        optimization.append(opt_loop, do_while=_opt_control)
     else:
         optimization = plugin_manager.get_passmanager_stage(
             "optimization", optimization_method, pass_manager_config, optimization_level=3
