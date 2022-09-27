@@ -668,6 +668,9 @@ with :obj:`~BackendV2`:
        operation on a given qubit is used to model the readout length. However, a
        :obj:`~BackendV2` can implement multiple measurement types and list them
        separately in a :class:`~qiskit.transpiler.Target`.
+
+There is also a :class:`~.BackendV2Converter` class available that enables you
+to wrap a :class:`~.BackendV1` object with a :class:`~.BackendV2` interface.
 """
 
 import pkgutil
