@@ -712,12 +712,15 @@ def constant(eta=0.01):
 
 
 def _batch_evaluate(function, points, max_evals_grouped, unpack_points=False):
+<<<<<<< HEAD
     """Evaluate a function on all points with batches of max_evals_grouped.
 
     The points are a list of inputs, as ``[in1, in2, in3, ...]``. If the individual
     inputs are tuples (because the function takes multiple inputs), set ``unpack_points`` to ``True``.
     """
 
+=======
+>>>>>>> main
     # if the function cannot handle lists of points as input, cover this case immediately
     if max_evals_grouped == 1:
         # support functions with multiple arguments where the points are given in a tuple
@@ -748,11 +751,16 @@ def _batch_evaluate(function, points, max_evals_grouped, unpack_points=False):
 
 def _as_list(obj):
     """Convert a list or numpy array into a list."""
+<<<<<<< HEAD
     return obj if isinstance(obj, list) else obj.tolist()
+=======
+    return obj.tolist() if isinstance(obj, np.ndarray) else obj
+>>>>>>> main
 
 
 def _repack_points(points):
     """Turn a list of tuples of points into a tuple of lists of points.
+<<<<<<< HEAD
 
     E.g. turns
 
@@ -762,6 +770,12 @@ def _repack_points(points):
 
         ([a1, b1], [a2, b2], [a3, b3])
 
+=======
+    E.g. turns
+        [(a1, a2, a3), (b1, b2, b3)]
+    into
+        ([a1, b1], [a2, b2], [a3, b3])
+>>>>>>> main
     where all elements are np.ndarray.
     """
     num_sets = len(points[0])  # length of (a1, a2, a3)

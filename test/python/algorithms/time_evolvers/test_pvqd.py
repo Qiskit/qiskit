@@ -11,20 +11,23 @@
 # that they have been altered from the originals.
 
 """Tests for PVQD."""
-
+import unittest
 from functools import partial
+
 from ddt import ddt, data, unpack
 import numpy as np
 
+from qiskit.algorithms.state_fidelities import ComputeUncompute
+from qiskit.opflow import PauliSumOp
+from qiskit.primitives import Sampler, Estimator
+from qiskit.quantum_info import Pauli, SparsePauliOp
 from qiskit.test import QiskitTestCase
-
-from qiskit import BasicAer, QiskitError
+from qiskit import QiskitError
 from qiskit.circuit import QuantumCircuit, Parameter, Gate
 from qiskit.algorithms.evolvers import EvolutionProblem
-from qiskit.algorithms.evolvers.pvqd import PVQD
+from qiskit.algorithms.time_evolvers.pvqd import PVQD
 from qiskit.algorithms.optimizers import L_BFGS_B, GradientDescent, SPSA, OptimizerResult
 from qiskit.circuit.library import EfficientSU2
-from qiskit.opflow import X, Z, I, MatrixExpectation, PauliExpectation
 
 
 # pylint: disable=unused-argument, invalid-name
@@ -39,7 +42,7 @@ def gradient_supplied(fun, x0, jac, info):
 
 
 class WhatAmI(Gate):
-    """An custom opaque gate that can be inverted but not decomposed."""
+    """A custom opaque gate that can be inverted but not decomposed."""
 
     def __init__(self, angle):
         super().__init__(name="whatami", num_qubits=2, params=[angle])
@@ -54,31 +57,23 @@ class TestPVQD(QiskitTestCase):
 
     def setUp(self):
         super().setUp()
-        self.sv_backend = BasicAer.get_backend("statevector_simulator")
-        self.qasm_backend = BasicAer.get_backend("qasm_simulator")
-        self.expectation = MatrixExpectation()
-        self.hamiltonian = 0.1 * (Z ^ Z) + (I ^ X) + (X ^ I)
-        self.observable = Z ^ Z
+        self.hamiltonian = 0.1 * SparsePauliOp([Pauli("ZZ"), Pauli("IX"), Pauli("XI")])
+        self.observable = Pauli("ZZ")
         self.ansatz = EfficientSU2(2, reps=1)
         self.initial_parameters = np.zeros(self.ansatz.num_parameters)
 
-    @data(
-        ("ising", MatrixExpectation, True, "sv", 2),
-        ("ising_matrix", MatrixExpectation, True, "sv", None),
-        ("ising", PauliExpectation, True, "qasm", 2),
-        ("pauli", PauliExpectation, False, "qasm", None),
-    )
+    @data(("ising", True, 2), ("pauli", False, None), ("pauli_sum_op", True, 2))
     @unpack
-    def test_pvqd(self, hamiltonian_type, expectation_cls, gradient, backend_type, num_timesteps):
+    def test_pvqd(self, hamiltonian_type, gradient, num_timesteps):
         """Test a simple evolution."""
         time = 0.02
 
         if hamiltonian_type == "ising":
             hamiltonian = self.hamiltonian
-        elif hamiltonian_type == "ising_matrix":
-            hamiltonian = self.hamiltonian.to_matrix_op()
+        elif hamiltonian_type == "pauli_sum_op":
+            hamiltonian = PauliSumOp(self.hamiltonian)
         else:  # hamiltonian_type == "pauli":
-            hamiltonian = X ^ X
+            hamiltonian = Pauli("XX")
 
         # parse input arguments
         if gradient:
@@ -86,17 +81,18 @@ class TestPVQD(QiskitTestCase):
         else:
             optimizer = L_BFGS_B(maxiter=1)
 
-        backend = self.sv_backend if backend_type == "sv" else self.qasm_backend
-        expectation = expectation_cls()
+        sampler = Sampler()
+        estimator = Estimator()
+        fidelity_primitive = ComputeUncompute(sampler)
 
         # run pVQD keeping track of the energy and the magnetization
         pvqd = PVQD(
+            fidelity_primitive,
             self.ansatz,
             self.initial_parameters,
-            num_timesteps=num_timesteps,
+            estimator,
             optimizer=optimizer,
-            quantum_instance=backend,
-            expectation=expectation,
+            num_timesteps=num_timesteps,
         )
         problem = EvolutionProblem(hamiltonian, time, aux_operators=[hamiltonian, self.observable])
         result = pvqd.evolve(problem)
@@ -112,19 +108,21 @@ class TestPVQD(QiskitTestCase):
 
     def test_step(self):
         """Test calling the step method directly."""
-
+        sampler = Sampler()
+        estimator = Estimator()
+        fidelity_primitive = ComputeUncompute(sampler)
         pvqd = PVQD(
+            fidelity_primitive,
             self.ansatz,
             self.initial_parameters,
+            estimator,
             optimizer=L_BFGS_B(maxiter=100),
-            quantum_instance=self.sv_backend,
-            expectation=MatrixExpectation(),
         )
 
         # perform optimization for a timestep of 0, then the optimal parameters are the current
         # ones and the fidelity is 1
         theta_next, fidelity = pvqd.step(
-            self.hamiltonian.to_matrix_op(),
+            self.hamiltonian,
             self.ansatz,
             self.initial_parameters,
             dt=0.0,
@@ -137,11 +135,15 @@ class TestPVQD(QiskitTestCase):
     def test_get_loss(self):
         """Test getting the loss function directly."""
 
+        sampler = Sampler()
+        estimator = Estimator()
+        fidelity_primitive = ComputeUncompute(sampler)
+
         pvqd = PVQD(
+            fidelity_primitive,
             self.ansatz,
             self.initial_parameters,
-            quantum_instance=self.sv_backend,
-            expectation=MatrixExpectation(),
+            estimator,
             use_parameter_shift=False,
         )
 
@@ -161,13 +163,16 @@ class TestPVQD(QiskitTestCase):
 
     def test_invalid_num_timestep(self):
         """Test raises if the num_timestep is not positive."""
+        sampler = Sampler()
+        estimator = Estimator()
+        fidelity_primitive = ComputeUncompute(sampler)
         pvqd = PVQD(
+            fidelity_primitive,
             self.ansatz,
             self.initial_parameters,
-            num_timesteps=0,
+            estimator,
             optimizer=L_BFGS_B(),
-            quantum_instance=self.sv_backend,
-            expectation=self.expectation,
+            num_timesteps=0,
         )
         problem = EvolutionProblem(
             self.hamiltonian, time=0.01, aux_operators=[self.hamiltonian, self.observable]
@@ -179,15 +184,18 @@ class TestPVQD(QiskitTestCase):
     def test_initial_guess_and_observables(self):
         """Test doing no optimizations stays at initial guess."""
         initial_guess = np.zeros(self.ansatz.num_parameters)
+        sampler = Sampler()
+        estimator = Estimator()
+        fidelity_primitive = ComputeUncompute(sampler)
 
         pvqd = PVQD(
+            fidelity_primitive,
             self.ansatz,
             self.initial_parameters,
-            num_timesteps=10,
+            estimator,
             optimizer=SPSA(maxiter=0, learning_rate=0.1, perturbation=0.01),
+            num_timesteps=10,
             initial_guess=initial_guess,
-            quantum_instance=self.sv_backend,
-            expectation=self.expectation,
         )
         problem = EvolutionProblem(
             self.hamiltonian, time=0.1, aux_operators=[self.hamiltonian, self.observable]
@@ -199,46 +207,17 @@ class TestPVQD(QiskitTestCase):
         self.assertEqual(observables[0], 0.1)  # expected energy
         self.assertEqual(observables[1], 1)  # expected magnetization
 
-    def test_missing_attributesquantum_instance(self):
-        """Test appropriate error is raised if the quantum instance is missing."""
-        pvqd = PVQD(
-            self.ansatz,
-            self.initial_parameters,
-            optimizer=L_BFGS_B(maxiter=1),
-            expectation=self.expectation,
-        )
-        problem = EvolutionProblem(self.hamiltonian, time=0.01)
-
-        attrs_to_test = [
-            ("optimizer", L_BFGS_B(maxiter=1)),
-            ("quantum_instance", self.qasm_backend),
-        ]
-
-        for attr, value in attrs_to_test:
-            with self.subTest(msg=f"missing: {attr}"):
-                # set attribute to None to invalidate the setup
-                setattr(pvqd, attr, None)
-
-                with self.assertRaises(ValueError):
-                    _ = pvqd.evolve(problem)
-
-                # set the correct value again
-                setattr(pvqd, attr, value)
-
-        with self.subTest(msg="all set again"):
-            result = pvqd.evolve(problem)
-            self.assertIsNotNone(result.evolved_state)
-
     def test_zero_parameters(self):
         """Test passing an ansatz with zero parameters raises an error."""
         problem = EvolutionProblem(self.hamiltonian, time=0.02)
+        sampler = Sampler()
+        fidelity_primitive = ComputeUncompute(sampler)
 
         pvqd = PVQD(
+            fidelity_primitive,
             QuantumCircuit(2),
             np.array([]),
             optimizer=SPSA(maxiter=10, learning_rate=0.1, perturbation=0.01),
-            quantum_instance=self.sv_backend,
-            expectation=self.expectation,
         )
 
         with self.assertRaises(QiskitError):
@@ -255,15 +234,37 @@ class TestPVQD(QiskitTestCase):
             initial_state=initial_state,
         )
 
+        sampler = Sampler()
+        fidelity_primitive = ComputeUncompute(sampler)
+
         pvqd = PVQD(
+            fidelity_primitive,
             self.ansatz,
             self.initial_parameters,
             optimizer=SPSA(maxiter=0, learning_rate=0.1, perturbation=0.01),
-            quantum_instance=self.sv_backend,
-            expectation=self.expectation,
         )
 
         with self.assertRaises(NotImplementedError):
+            _ = pvqd.evolve(problem)
+
+    def test_aux_ops_raises(self):
+        """Test passing auxiliary operators with no estimator raises an error."""
+
+        problem = EvolutionProblem(
+            self.hamiltonian, time=0.02, aux_operators=[self.hamiltonian, self.observable]
+        )
+
+        sampler = Sampler()
+        fidelity_primitive = ComputeUncompute(sampler)
+
+        pvqd = PVQD(
+            fidelity_primitive,
+            self.ansatz,
+            self.initial_parameters,
+            optimizer=SPSA(maxiter=0, learning_rate=0.1, perturbation=0.01),
+        )
+
+        with self.assertRaises(ValueError):
             _ = pvqd.evolve(problem)
 
 
@@ -272,9 +273,7 @@ class TestPVQDUtils(QiskitTestCase):
 
     def setUp(self):
         super().setUp()
-        self.sv_backend = BasicAer.get_backend("statevector_simulator")
-        self.expectation = MatrixExpectation()
-        self.hamiltonian = 0.1 * (Z ^ Z) + (I ^ X) + (X ^ I)
+        self.hamiltonian = 0.1 * SparsePauliOp([Pauli("ZZ"), Pauli("IX"), Pauli("XI")])
         self.ansatz = EfficientSU2(2, reps=1)
 
     def test_gradient_supported(self):
@@ -309,12 +308,16 @@ class TestPVQDUtils(QiskitTestCase):
         info = {"has_gradient": None}
         optimizer = partial(gradient_supplied, info=info)
 
+        sampler = Sampler()
+        estimator = Estimator()
+        fidelity_primitive = ComputeUncompute(sampler)
+
         pvqd = PVQD(
+            fidelity=fidelity_primitive,
             ansatz=None,
             initial_parameters=np.array([]),
+            estimator=estimator,
             optimizer=optimizer,
-            quantum_instance=self.sv_backend,
-            expectation=self.expectation,
         )
         problem = EvolutionProblem(self.hamiltonian, time=0.01)
         for circuit, expected_support in tests:
@@ -323,3 +326,7 @@ class TestPVQDUtils(QiskitTestCase):
                 pvqd.initial_parameters = np.zeros(circuit.num_parameters)
                 _ = pvqd.evolve(problem)
                 self.assertEqual(info["has_gradient"], expected_support)
+
+
+if __name__ == "__main__":
+    unittest.main()
