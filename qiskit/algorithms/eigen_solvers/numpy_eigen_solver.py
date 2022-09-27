@@ -138,7 +138,6 @@ class NumPyEigensolver(Eigensolver):
             indices = np.argsort(eigval)[: self._k]
             eigval = eigval[indices]
             eigvec = eigvec[:, indices]
-
         self._ret.eigenvalues = eigval
         self._ret.eigenstates = eigvec.T
 
