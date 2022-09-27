@@ -46,15 +46,14 @@ class TestVQD(QiskitAlgorithmsTestCase):
         super().setUp()
         self.seed = 50
         algorithm_globals.random_seed = self.seed
-        I = PauliSumOp.from_list([("I", 1)])  # pylint: disable=invalid-name
-        X = PauliSumOp.from_list([("X", 1)])  # pylint: disable=invalid-name
-        Z = PauliSumOp.from_list([("Z", 1)])  # pylint: disable=invalid-name
-        self.h2_op = (
-            -1.052373245772859 * (I ^ I)
-            + 0.39793742484318045 * (I ^ Z)
-            - 0.39793742484318045 * (Z ^ I)
-            - 0.01128010425623538 * (Z ^ Z)
-            + 0.18093119978423156 * (X ^ X)
+        self.h2_op = PauliSumOp.from_list(
+            [
+                ("II", -1.052373245772859),
+                ("ZI", 0.39793742484318045),
+                ("IZ", -0.39793742484318045),
+                ("ZZ", -0.01128010425623538),
+                ("XX", 0.18093119978423156),
+            ]
         )
         self.h2_energy = -1.85727503
         self.h2_energy_excited = [-1.85727503, -1.24458455]
