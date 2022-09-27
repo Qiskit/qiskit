@@ -34,7 +34,7 @@ from ..list_or_dict import ListOrDict
 from ..optimizers import Optimizer, Minimizer
 from ..variational_algorithm import VariationalAlgorithm, VariationalResult
 from .eigensolver import Eigensolver, EigensolverResult
-from ..minimum_eigen_solvers.vqe import _validate_bounds, _validate_initial_point
+from ..utils import validate_bounds, validate_initial_point
 from ..exceptions import AlgorithmError
 from ..observables_evaluator import estimate_observables
 
@@ -193,9 +193,9 @@ class VQD(VariationalAlgorithm, Eigensolver):
         # validation
         self._check_operator_ansatz(operator)
 
-        initial_point = _validate_initial_point(self.initial_point, self.ansatz)
+        initial_point = validate_initial_point(self.initial_point, self.ansatz)
 
-        bounds = _validate_bounds(self.ansatz)
+        bounds = validate_bounds(self.ansatz)
 
         # We need to handle the array entries being zero or Optional i.e. having value None
         if aux_operators:
