@@ -88,7 +88,7 @@ class TestCheckMapCX(QiskitTestCase):
     def test_swap_mapped_cf_true(self):
         """Check control flow blocks are mapped."""
         num_qubits = 3
-        coupling = CouplingMap([(i, i + 1) for i in range(num_qubits - 1)])
+        coupling = CouplingMap.from_line(num_qubits)
         qr = QuantumRegister(3)
         cr = ClassicalRegister(3)
         circuit = QuantumCircuit(qr, cr)
@@ -104,7 +104,7 @@ class TestCheckMapCX(QiskitTestCase):
     def test_swap_mapped_cf_false(self):
         """Check control flow blocks are not mapped."""
         num_qubits = 3
-        coupling = CouplingMap([(i, i + 1) for i in range(num_qubits - 1)])
+        coupling = CouplingMap.from_line(num_qubits)
         qr = QuantumRegister(3)
         cr = ClassicalRegister(3)
         circuit = QuantumCircuit(qr, cr)
@@ -119,7 +119,7 @@ class TestCheckMapCX(QiskitTestCase):
     def test_swap_mapped_cf_layout_change_false(self):
         """Check control flow blocks with layout change are not mapped."""
         num_qubits = 3
-        coupling = CouplingMap([(i, i + 1) for i in range(num_qubits - 1)])
+        coupling = CouplingMap.from_line(num_qubits)
         qr = QuantumRegister(3)
         cr = ClassicalRegister(3)
         circuit = QuantumCircuit(qr, cr)
@@ -137,7 +137,7 @@ class TestCheckMapCX(QiskitTestCase):
     def test_swap_mapped_cf_layout_change_true(self):
         """Check control flow blocks with layout change are mapped."""
         num_qubits = 3
-        coupling = CouplingMap([(i, i + 1) for i in range(num_qubits - 1)])
+        coupling = CouplingMap.from_line(num_qubits)
         qr = QuantumRegister(3)
         cr = ClassicalRegister(3)
         circuit = QuantumCircuit(qr, cr)
@@ -148,6 +148,23 @@ class TestCheckMapCX(QiskitTestCase):
         pass_ = CheckMap(coupling)
         pass_.run(dag)
         self.assertTrue(pass_.property_set["is_swap_mapped"])
+
+    def test_disjoint_controlflow_bits(self):
+        num_qubits = 3
+        coupling = CouplingMap.from_line(num_qubits)
+        qr1 = QuantumRegister(3)
+        qr2 = QuantumRegister(3)
+        cr = ClassicalRegister(3)
+        circuit = QuantumCircuit(qr, cr)
+        true_body = QuantumCircuit(qr)
+        true_body.cx(0, 2)
+        circuit.if_else((cr[0], 0), true_body, None, qr[[1, 0, 2]], cr)
+        dag = circuit_to_dag(circuit)
+        pass_ = CheckMap(coupling)
+        pass_.run(dag)
+        self.assertTrue(pass_.property_set["is_swap_mapped"])
+        
+
 
 
 if __name__ == "__main__":
