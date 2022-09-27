@@ -863,24 +863,30 @@ class DAGCircuit:
                 else:
                     yield wire
 
-    def size(self, *, recurse: bool = True):
+    def size(self, *, recurse: bool = False):
         """Return the number of operations.  If there is control flow present, this count may only
         be an estimate, as the complete control-flow path cannot be staticly known.
 
         Args:
-            recurse: if ``True`` (default), then recurse into control-flow operations.  For loops
-                with known-length iterators are counted unrolled.  If-else blocks take the
-                longer case of the two branches.  While loops are counted as if the condition runs
-                once only.
+            recurse: if ``True``, then recurse into control-flow operations.  For loops with
+                known-length iterators are counted unrolled.  If-else blocks take the longer case of
+                the two branches.  While loops are counted as if the condition runs once only.
+                Defaults to ``False`` and raises :class:`.DAGCircuitError` if any control flow is
+                present, to avoid silently returning a nonsensical number.
 
         Returns:
             int: the circuit size
 
         Raises:
-            DAGCircuitError: if unknown control-flow is present in a recursive call.
+            DAGCircuitError: if unknown control flow is present in a recursive call, or any control
+                flow is present in a non-recursive call.
         """
         length = len(self._multi_graph) - 2 * len(self._wires)
         if not recurse:
+            if any(x in self._op_names for x in ("for_loop", "while_loop", "if_else")):
+                raise DAGCircuitError(
+                    "Cowardly refusing to give a size for control flow without `recurse=True`."
+                )
             return length
         # pylint: disable=cyclic-import
         from qiskit.converters import circuit_to_dag
@@ -899,35 +905,43 @@ class DAGCircuit:
             length += inner - 1
         return length
 
-    def depth(self, *, recurse: bool = True):
+    def depth(self, *, recurse: bool = False):
         """Return the circuit depth.  If there is control flow present, this count may only be an
         estimate, as the complete control-flow path cannot be staticly known.
 
         Args:
-            recurse: if ``True`` (default), then recurse into control-flow operations.  For loops
+            recurse: if ``True``, then recurse into control-flow operations.  For loops
                 with known-length iterators are counted unrolled.  If-else blocks take the
                 longer case of the two branches.  While loops are counted as if the condition runs
-                once only.
+                once only.  Defaults to ``False`` and raises :class:`.DAGCircuitError` if any
+                control flow is present, to avoid silently returning a nonsensical number.
 
         Returns:
             int: the circuit depth
 
         Raises:
             DAGCircuitError: if not a directed acyclic graph
-            DAGCircuitError: if unknown control-flow is present in a recursive call.
+            DAGCircuitError: if unknown control flow is present in a recursive call, or any control
+                flow is present in a non-recursive call.
         """
         if recurse:
             node_lookup = {}
             for node in self.op_nodes(ControlFlowOp):
                 weight = len(node.op.params[0]) if isinstance(node.op, ForLoopOp) else 1
                 node_lookup[node._node_id] = (
-                    0 if weight == 0 else weight * max(block.depth() for block in node.op.blocks)
+                    0
+                    if weight == 0
+                    else weight * max(block.depth(recurse=True) for block in node.op.blocks)
                 )
 
             def weight_fn(_source, target, _edge):
                 return node_lookup.get(target, 1)
 
         else:
+            if any(x in self._op_names for x in ("for_loop", "while_loop", "if_else")):
+                raise DAGCircuitError(
+                    "Cowardly refusing to give a depth for control flow without `recurse=True`."
+                )
             weight_fn = None
 
         try:

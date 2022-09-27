@@ -725,8 +725,9 @@ class TestCircuitProperties(QiskitTestCase):
             qc.h(0)
             qc.measure(0, 0)
 
-        self.assertEqual(qc.depth(recurse=False), 4)
         self.assertEqual(qc.depth(recurse=True), 16)
+        with self.assertRaisesRegex(CircuitError, "Cowardly refusing to give a depth"):
+            qc.depth(recurse=False)
 
     def test_circuit_size_empty(self):
         """Circuit.size should return 0 for an empty circuit."""

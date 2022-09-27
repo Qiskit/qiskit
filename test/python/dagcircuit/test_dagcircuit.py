@@ -1249,13 +1249,15 @@ class TestCircuitControlFlowProperties(QiskitTestCase):
 
     def test_circuit_size(self):
         """Test total number of operations in circuit."""
-        self.assertEqual(self.dag.size(recurse=False), 4)
         self.assertEqual(self.dag.size(recurse=True), 17)
+        with self.assertRaisesRegex(DAGCircuitError, "Cowardly refusing to give a size"):
+            self.dag.size(recurse=False)
 
     def test_circuit_depth(self):
         """Test circuit depth."""
-        self.assertEqual(self.dag.depth(recurse=False), 4)
         self.assertEqual(self.dag.depth(recurse=True), 16)
+        with self.assertRaisesRegex(DAGCircuitError, "Cowardly refusing to give a depth"):
+            self.dag.depth(recurse=False)
 
     def test_circuit_width(self):
         """Test number of qubits + clbits in circuit."""

@@ -1997,7 +1997,8 @@ class QuantumCircuit:
         filter_function: Optional[callable] = lambda x: not getattr(
             x.operation, "_directive", False
         ),
-        recurse: bool = True,
+        *,
+        recurse: bool = False,
     ) -> int:
         """Return circuit depth (i.e., length of critical path).
 
@@ -2005,13 +2006,19 @@ class QuantumCircuit:
             filter_function (callable): a function to filter out some instructions.
                 Should take as input a tuple of (Instruction, list(Qubit), list(Clbit)).
                 By default filters out "directives", such as barrier or snapshot.
-            recurse: if ``True`` (default), then recurse into control-flow operations.  For loops
+            recurse: if ``True``, then recurse into control-flow operations.  For loops
                 with known-length iterators are counted unrolled.  If-else blocks take the
                 longer case of the two branches.  While loops are counted as if the condition runs
-                once only.
+                once only.  Defaults to ``False`` and raises :class:`.QiskitError` if the circuit
+                contains control flow, to avoid returning nonsensical values.
 
         Returns:
             int: Depth of circuit.
+
+        Raises:
+            CircuitError: if ``recurse`` is ``False`` and the circuit contains control flow, because
+                the depth is unlikely to be meaningful.  You may set ``recurse`` to ``True`` to get
+                a hint towards the critical path length.
 
         Notes:
             The circuit depth and the DAG depth need not be the same.
@@ -2028,6 +2035,9 @@ class QuantumCircuit:
                 wire_map (Mapping[Bit, Bit]): mapping where the keys are bits used to define the
                     current body, and the values are the corresponding bits they are applied to in
                     the outer circuit.
+
+            Raises:
+                CircuitError: if there is control-flow in a non-recursive call.
 
             Returns:
                 int: The depth of this body.
@@ -2065,6 +2075,10 @@ class QuantumCircuit:
                     new_wire_map = {inner: wire_map[outer] for inner, outer in all_bits}
                     # No multiplication by `weight` because the recursive call handles it.
                     depth = weight * max(_depth_inner(block, new_wire_map) for block in op.blocks)
+                elif isinstance(instruction.operation, ControlFlowOp):
+                    raise CircuitError(
+                        "Cowardly refusing to give a depth for control flow without `recurse=True`."
+                    )
                 else:
                     depth = int(filter_function(instruction))
                 all_bits = itertools.chain(
