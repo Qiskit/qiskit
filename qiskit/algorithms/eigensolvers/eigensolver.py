@@ -15,6 +15,7 @@
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
+from typing import Any
 import numpy as np
 
 from qiskit.opflow import PauliSumOp
@@ -39,16 +40,16 @@ class Eigensolver(ABC):
         aux_operators: ListOrDict[BaseOperator | PauliSumOp] | None = None,
     ) -> "EigensolverResult":
         """
-        Computes eigenvalues. ``operator`` and ``aux_operators`` can be supplied here and,
+        Computes eigenvalues. The ``operator`` and ``aux_operators`` can be supplied here and,
         if not ``None``, will override any already set into algorithm so it can be reused with
         different operators. While an ``operator`` is required by algorithms, ``aux_operators``
         are optional. To 'remove' a previous ``aux_operators`` array use an empty list here.
 
         Args:
-            operator: Qubit operator of the observable
+            operator: Qubit operator of the observable.
             aux_operators: Optional list of auxiliary operators to be evaluated with the
                 eigenstate of the minimum eigenvalue main result and their expectation values
-                returned. For instance, in chemistry these can be dipole operators and total particle
+                returned. For instance, in chemistry, these can be dipole operators and total particle
                 count operators, so we can get values for these at the ground state.
 
         Returns:
@@ -61,10 +62,10 @@ class Eigensolver(ABC):
         """Whether computing the expectation value of auxiliary operators is supported.
 
         If the eigensolver computes the eigenvalues of the main operator, then it can compute
-        the expectation value of the aux_operators for that state. Otherwise they will be ignored.
+        the expectation value of the ``aux_operators`` for that state. Otherwise they will be ignored.
 
         Returns:
-            ``True`` if ``aux_operator`` expectations can be evaluated, ``False`` otherwise
+            ``True`` if ``aux_operator`` expectations can be evaluated, ``False`` otherwise.
         """
         return False
 
@@ -90,16 +91,16 @@ class EigensolverResult(AlgorithmResult):
     @property
     def aux_operator_eigenvalues(
         self,
-    ) -> list[ListOrDict[tuple[complex, tuple[complex, int]]]] | None:
+    ) -> list[ListOrDict[tuple[complex, dict[str, Any]]]] | None:
         """Return the aux operator expectation values.
 
-        These values are in fact tuples formatted as (mean, (variance, shots)).
+        These values are in fact tuples formatted as (mean, metadata).
         """
         return self._aux_operator_eigenvalues
 
     @aux_operator_eigenvalues.setter
     def aux_operator_eigenvalues(
-        self, value: list[ListOrDict[tuple[complex, tuple[complex, int]]]]
+        self, value: list[ListOrDict[tuple[complex, dict[str, Any]]]]
     ) -> None:
         """Set the aux operator eigenvalues."""
         self._aux_operator_eigenvalues = value

@@ -14,7 +14,7 @@
 
 from __future__ import annotations
 
-from typing import Callable
+from typing import Callable, List, Union, Optional
 import logging
 import numpy as np
 from scipy import sparse as scisparse
@@ -30,12 +30,13 @@ from ..list_or_dict import ListOrDict
 logger = logging.getLogger(__name__)
 # pylint: disable=invalid-name
 
+FilterType = Callable[[Union[List, np.ndarray], float, Optional[ListOrDict[float]]], bool]
 
 class NumPyEigensolver(Eigensolver):
     r"""
     The NumPy eigensolver algorithm.
 
-    NumPy Eigensolver computes up to the first :math:`k` eigenvalues of a complex-valued square
+    The NumPy Eigensolver computes up to the first :math:`k` eigenvalues of a complex-valued square
     matrix of dimension :math:`n \times n`, with :math:`k \leq n`.
 
     Note:
@@ -47,19 +48,17 @@ class NumPyEigensolver(Eigensolver):
     def __init__(
         self,
         k: int = 1,
-        filter_criterion: Callable[
-            [list | np.ndarray, float, ListOrDict[float] | None], bool
-        ] = None,
+        filter_criterion: FilterType | None = None,
     ) -> None:
         """
         Args:
-            k: How many eigenvalues are to be computed, has a min. value of 1.
-            filter_criterion: callable that allows to filter eigenvalues/eigenstates, only feasible
+            k: number of eigenvalues are to be computed, with a min. value of 1.
+            filter_criterion: callable that allows to filter eigenvalues/eigenstates. Only feasible
                 eigenstates are returned in the results. The callable has the signature
-                `filter(eigenstate, eigenvalue, aux_values)` and must return a boolean to indicate
+                ``filter(eigenstate, eigenvalue, aux_values)`` and must return a boolean to indicate
                 whether to keep this value in the final returned result or not. If the number of
-                elements that satisfies the criterion is smaller than `k` then the returned list has
-                fewer elements and can even be empty.
+                elements that satisfies the criterion is smaller than `k`, then the returned list will
+                have fewer elements and can even be empty.
         """
         validate_min("k", k, 1)
         super().__init__()
@@ -86,15 +85,14 @@ class NumPyEigensolver(Eigensolver):
     @property
     def filter_criterion(
         self,
-    ) -> Callable[[list | np.ndarray, float, ListOrDict[float] | None], bool] | None:
+    ) -> FilterType | None:
         """Return the filter criterion if set."""
         return self._filter_criterion
 
     @filter_criterion.setter
     def filter_criterion(
         self,
-        filter_criterion: Callable[[list | np.ndarray, float, ListOrDict[float] | None], bool]
-        | None,
+        filter_criterion: FilterType | None
     ) -> None:
         """Set the filter criterion."""
         self._filter_criterion = filter_criterion

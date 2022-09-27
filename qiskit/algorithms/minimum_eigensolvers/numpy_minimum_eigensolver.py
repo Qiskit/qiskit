@@ -14,7 +14,7 @@
 
 from __future__ import annotations
 
-from typing import Callable
+from typing import Callable, List, Union, Optional
 import logging
 import numpy as np
 
@@ -28,8 +28,7 @@ from ..list_or_dict import ListOrDict
 
 logger = logging.getLogger(__name__)
 
-FilterType = Callable[[list | np.ndarray, float, ListOrDict[float] | None], bool]
-
+FilterType = Callable[[Union[List, np.ndarray], float, Optional[ListOrDict[float]]], bool]
 
 class NumPyMinimumEigensolver(MinimumEigensolver):
     """
