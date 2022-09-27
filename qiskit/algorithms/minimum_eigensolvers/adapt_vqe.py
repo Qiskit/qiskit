@@ -140,8 +140,7 @@ class AdaptVQE(VariationalAlgorithm):
         # The excitations operators are applied later as exp(i*theta*excitation).
         # For this commutator, we need to explicitly pull in the imaginary phase.
         commutators = [1j * commutator(operator, exc) for exc in self._excitation_pool]
-        wave_function = self.solver.ansatz.assign_parameters(theta)
-        res = estimate_observables(self.solver.estimator, wave_function, commutators)
+        res = estimate_observables(self.solver.estimator, self.solver.ansatz, commutators, theta)
         return res
 
     @staticmethod
@@ -260,9 +259,9 @@ class AdaptVQE(VariationalAlgorithm):
 
         # once finished evaluate auxiliary operators if any
         if aux_operators is not None:
-            bound_ansatz = self.solver.ansatz.bind_parameters(result.optimal_point)
-
-            aux_values = estimate_observables(self.solver.estimator, bound_ansatz, aux_operators)
+            aux_values = estimate_observables(
+                self.solver.estimator, self.solver.ansatz, aux_operators, result.optimal_point
+            )
             result.aux_operators_evaluated = aux_values
         else:
             aux_values = None
