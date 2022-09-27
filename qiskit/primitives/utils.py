@@ -16,6 +16,7 @@ Utility functions for primitives
 from __future__ import annotations
 
 from qiskit.circuit import Instruction, ParameterExpression, QuantumCircuit
+from qiskit.circuit.bit import Bit
 from qiskit.extensions.quantum_initializer.initializer import Initialize
 from qiskit.opflow import PauliSumOp
 from qiskit.quantum_info import SparsePauliOp, Statevector
@@ -113,6 +114,13 @@ def final_measurement_mapping(circuit: QuantumCircuit) -> dict[int, int]:
     return mapping
 
 
+def _bit_key(bit: Bit, circuit: QuantumCircuit):
+    return (
+        circuit.find_bit(bit).index,
+        tuple((reg[0].size, reg[0].name, reg[1]) for reg in circuit.find_bit(bit).registers),
+    )
+
+
 def _circuit_key(circuit: QuantumCircuit, functional: bool = True) -> tuple:
     """Private key function for QuantumCircuit.
 
@@ -132,26 +140,8 @@ def _circuit_key(circuit: QuantumCircuit, functional: bool = True) -> tuple:
         circuit.num_parameters,
         tuple(  # circuit.data
             (
-                tuple(  # qubits
-                    (
-                        circuit.find_bit(qubit).index,
-                        tuple(
-                            (reg[0].size, reg[0].name, reg[1])
-                            for reg in circuit.find_bit(qubit).registers
-                        ),
-                    )
-                    for qubit in data.qubits
-                ),
-                tuple(  # clbits
-                    (
-                        circuit.find_bit(clbit).index,
-                        tuple(
-                            (reg[0].size, reg[0].name, reg[1])
-                            for reg in circuit.find_bit(clbit).registers
-                        ),
-                    )
-                    for clbit in data.clbits
-                ),
+                tuple(_bit_key(qubit, circuit) for qubit in data.qubits),
+                tuple(_bit_key(clbit, circuit) for clbit in data.clbits),
                 data.operation.name,  # operation.name
                 tuple(data.operation.params),  # operation.params
             )
