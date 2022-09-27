@@ -246,7 +246,7 @@ class BackendV2Converter(BackendV2):
                 self._properties,
                 self._defaults,
                 custom_name_mapping=self._name_mapping,
-                add_delay=self._add_delay
+                add_delay=self._add_delay,
             )
         return self._target
 
