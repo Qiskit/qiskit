@@ -17,15 +17,14 @@ See https://arxiv.org/abs/1805.08138.
 
 from __future__ import annotations
 
+from collections.abc import Callable, Sequence
 import logging
 from time import time
-from collections.abc import Callable, Sequence
 from typing import Any
 
 import numpy as np
 
 from qiskit.circuit import QuantumCircuit
-from qiskit.opflow.primitive_ops.pauli_op import PauliOp
 from qiskit.quantum_info.operators.base_operator import BaseOperator
 from qiskit.opflow import PauliSumOp
 from qiskit.primitives import BaseEstimator
@@ -50,29 +49,29 @@ class VQD(VariationalAlgorithm, Eigensolver):
     the k eigenvalues of the Hamiltonian :math:`H` of a given system.
 
     The algorithm computes excited state energies of generalised hamiltonians
-    by optimising over a modified cost function where each succesive eigen value
+    by optimising over a modified cost function where each succesive eigenvalue
     is calculated iteratively by introducing an overlap term with all
-    the previously computed eigenstaes that must be minimised, thus ensuring
-    higher energy eigen states are found.
+    the previously computed eigenstates that must be minimised, thus ensuring
+    higher energy eigenstates are found.
 
     An instance of VQD requires defining three algorithmic sub-components:
     an integer k denoting the number of eigenstates to calculate, a trial
     state (a.k.a. ansatz) which is a :class:`QuantumCircuit`,
     and one of the classical :mod:`~qiskit.algorithms.optimizers`.
-    The ansatz is varied, via its set of parameters, by the optimizer,
-    such that it works towards a state, as determined by the parameters
-    applied to the ansatz, that will result in the minimum expectation values
-    being measured of the input operator (Hamiltonian). The algorithm does
-    this by iteratively refining each excited state to be orthogonal to all
-    the previous excited states.
+    The optimizer varies the circuit parameters
+    The trial state :math:`|\psi(\vec\theta)\rangle` is varied by the optimizer,
+    which modifies the set of ansatz parameters :math:`\vec\theta`
+    such that the expectation value of the operator on the corresponding
+    state approaches a minimum. The algorithm does this by iteratively refining
+    each excited state to be orthogonal to all the previous excited states.
 
-    An optional array of parameter values, via the *initial_point*, may be provided as the
-    starting point for the search of the minimum eigenvalue. This feature is particularly useful
-    such as when there are reasons to believe that the solution point is close to a particular
-    point.
+    An optional array of parameter values, via the *initial_point*, may be provided
+    as the starting point for the search of the minimum eigenvalue. This feature is
+    particularly useful when there are reasons to believe that the solution point
+    is close to a particular point.
 
     The length of the *initial_point* list value must match the number of the parameters
-    expected by the ansatz being used. If the *initial_point* is left at the default
+    expected by the ansatz. If the *initial_point* is left at the default
     of ``None``, then VQD will look to the ansatz for a preferred value, based on its
     given initial state. If the ansatz returns ``None``,
     then a random point will be generated within the parameter bounds set, as per above.
@@ -97,7 +96,8 @@ class VQD(VariationalAlgorithm, Eigensolver):
                 These hyper-parameters balance the contribution of each overlap term to the cost
                 function and have a default value computed as the mean square sum of the
                 coefficients of the observable.
-            callback (Callable): a callback that can access the intermediate data
+            callback (Callable[[int, np.ndarray, float, dict[str, Any]], None] | None):
+                a callback that can access the intermediate data
                 during the optimization. Four parameter values are passed to the callback as
                 follows during each evaluation by the optimizer: the evaluation count,
                 the optimizer parameters for the ansatz, the evaluated mean, the evaluation
@@ -114,7 +114,7 @@ class VQD(VariationalAlgorithm, Eigensolver):
         k: int = 2,
         betas: list[float] | None = None,
         initial_point: Sequence[float] | None = None,
-        callback: Callable[[int, np.ndarray, float, float], None] | None = None,
+        callback: Callable[[int, np.ndarray, float, dict[str, Any]], None] | None = None,
     ) -> None:
         """
 
@@ -221,9 +221,7 @@ class VQD(VariationalAlgorithm, Eigensolver):
 
         if self.betas is None:
             upper_bound = (
-                abs(operator.coeff)
-                if isinstance(operator, PauliOp)
-                else abs(operator.coeff) * sum(abs(operation.coeff) for operation in operator)
+                abs(operator.coeff) * sum(abs(operation.coeff) for operation in operator)
             )
             self.betas = [upper_bound * 10] * (self.k)
             logger.info("beta autoevaluated to %s", self.betas[0])
@@ -257,8 +255,8 @@ class VQD(VariationalAlgorithm, Eigensolver):
             self._update_vqd_result(result, opt_result, eval_time, self.ansatz)
 
             if aux_operators is not None:
-                bound_ansatz = self.ansatz.bind_parameters(result.optimal_point[-1])
-                aux_value = estimate_observables(self.estimator, bound_ansatz, aux_operators)
+                aux_value = estimate_observables(self.estimator, self.ansatz,
+                                                 aux_operators, result.optimal_point[-1])
                 aux_values.append(aux_value)
 
             if step == 1:
@@ -282,7 +280,7 @@ class VQD(VariationalAlgorithm, Eigensolver):
                     self._eval_count,
                 )
 
-        # To match the signature of NumPyEigensolver Result
+        # To match the signature of EigensolverResult
         result.eigenvalues = np.array(result.eigenvalues)
         result.optimal_point = np.array(result.optimal_point)
         result.optimal_value = np.array(result.optimal_value)
@@ -300,8 +298,9 @@ class VQD(VariationalAlgorithm, Eigensolver):
         operator: BaseOperator | PauliSumOp,
         prev_states: list[np.ndarray] | None = None,
     ) -> Callable[[np.ndarray], float | list[float]]:
-        """Returns a function handle to evaluate the energy at given parameters for the ansatz.
-        This is the objective function to be passed to the optimizer that is used for evaluation.
+        """Returns a function handle to evaluate the ansatz's energy for any given parameters.
+            This is the objective function to be passed to the optimizer that is used for evaluation.
+
         Args:
             step: level of energy being calculated. 0 for ground, 1 for first excited state...
             operator: The operator whose energy to evaluate.
