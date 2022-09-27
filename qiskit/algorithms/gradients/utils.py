@@ -575,6 +575,52 @@ def _gate_generator_str(gate: Gate):
     raise TypeError(f"Unrecognized parameterized gate, {gate}")
 
 
+def _make_approximated_qfi_circuits_ops(
+    circuit: QuantumCircuit,
+    layers: dict[Parameter, list[LinearCombGradientCircuit]],
+    single_ops: list[dict[int, SparsePauliOp]],
+    double_ops: list[dict[tuple[int, int], SparsePauliOp]],
+) -> dict[Parameter, list[LinearCombGradientCircuit]]:
+    """Makes qfi circuits for the approximated method.
+
+    Args:
+        circuit: The original quantum circuit.
+        layers: The layers of the original quantum circuit.
+        single_ops: The single qubit operators.
+        double_ops: The double qubit operators.
+
+    Returns:
+        A dictionary mapping a parameter to the corresponding list of ``LinearCombGradientCircuit``
+    """
+
+    grad_dict = {}
+    for i, layer in enumerate(layers):
+        if i % 2 == 0:
+            continue
+        for j, (inst_j, qregs_j, _) in enumerate(layer):
+            param_j = inst_j.params[0]
+            if param_j not in grad_dict:
+                grad_dict[param_j] = []
+            grad_dict[param_j].append(
+                LinearCombGradientCircuit(
+                    QuantumCircuit(circuit.num_qubits, circuit.num_clbits),
+                    1 / 4,
+                )
+            )
+            grad_dict[param_j][-1].circuit.compose(single_ops[i][j], inplace=True)
+            for k, (inst_k, qregs_k, _) in enumerate(layer):
+                if j < k:
+                    param_k = inst_k.params[0]
+                    if param_k not in grad_dict:
+                        grad_dict[param_k] = []
+                    grad_dict[param_k].append(
+                        LinearCombGradientCircuit(
+                            QuantumCircuit(circuit.num_qubits, circuit.num_clbits),
+                            1 / 4,
+                        )
+                    )
+                    grad_dict[param_k][-1].circuit.compose(double_ops[i][j, k], inplace=True)
+    return grad_dict
 
 # def _gate_gradient(gate: Gate) -> Instruction:
 #     """Returns the derivative of the gate"""
