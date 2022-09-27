@@ -459,7 +459,7 @@ class TestEstimator(QiskitTestCase):
             qc = QuantumCircuit(1)
             qc.x(0)
             op = SparsePauliOp("Z")
-            param_vals = [None, [], [[]]]
+            param_vals = [None, [], [[]], np.array([]), np.array([[]]), [np.array([])]]
             target = [-1]
             for val in param_vals:
                 self.subTest(f"{val}")
@@ -472,7 +472,13 @@ class TestEstimator(QiskitTestCase):
             qc = QuantumCircuit(1)
             qc.ry(param, 0)
             op = SparsePauliOp("Z")
-            param_vals = [[np.pi], [[np.pi]], np.array([[np.pi]]), [np.array([np.pi])]]
+            param_vals = [
+                [np.pi],
+                [[np.pi]],
+                np.array([np.pi]),
+                np.array([[np.pi]]),
+                [np.array([np.pi])],
+            ]
             target = [-1]
             for val in param_vals:
                 self.subTest(f"{val}")
@@ -486,6 +492,7 @@ class TestEstimator(QiskitTestCase):
             param_vals = [
                 self.theta[0],
                 [self.theta[0]],
+                np.array(self.theta[0]),
                 np.array([self.theta[0]]),
                 [np.array(self.theta[0])],
             ]

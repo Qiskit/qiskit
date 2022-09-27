@@ -581,7 +581,7 @@ class TestSampler(QiskitTestCase):
         with self.subTest("No parameter"):
             circuit = self._circuit[1]
             target = self._target[1]
-            param_vals = [None, [], [[]], np.array([[]])]
+            param_vals = [None, [], [[]], np.array([]), np.array([[]])]
             for val in param_vals:
                 with self.subTest(f"{circuit.name} w/ {val}"):
                     result = sampler.run(circuit, val).result()
@@ -594,7 +594,13 @@ class TestSampler(QiskitTestCase):
             circuit.ry(param, 0)
             circuit.measure(0, 0)
             target = [{1: 1}]
-            param_vals = [[np.pi], [[np.pi]], np.array([[np.pi]]), [np.array([np.pi])]]
+            param_vals = [
+                [np.pi],
+                [[np.pi]],
+                np.array([np.pi]),
+                np.array([[np.pi]]),
+                [np.array([np.pi])],
+            ]
             for val in param_vals:
                 with self.subTest(f"{circuit.name} w/ {val}"):
                     result = sampler.run(circuit, val).result()
@@ -607,6 +613,7 @@ class TestSampler(QiskitTestCase):
             param_vals = [
                 self._pqc_params[0],
                 [self._pqc_params[0]],
+                np.array(self._pqc_params[0]),
                 np.array([self._pqc_params[0]]),
                 [np.array(self._pqc_params[0])],
             ]
