@@ -114,10 +114,13 @@ def final_measurement_mapping(circuit: QuantumCircuit) -> dict[int, int]:
     return mapping
 
 
-def _bit_key(bit: Bit, circuit: QuantumCircuit):
-    return (
-        circuit.find_bit(bit).index,
-        tuple((reg[0].size, reg[0].name, reg[1]) for reg in circuit.find_bit(bit).registers),
+def _bits_key(bits: tuple[Bit, ...], circuit: QuantumCircuit) -> tuple:
+    return tuple(
+        (
+            circuit.find_bit(bit).index,
+            tuple((reg[0].size, reg[0].name, reg[1]) for reg in circuit.find_bit(bit).registers),
+        )
+        for bit in bits
     )
 
 
@@ -140,8 +143,8 @@ def _circuit_key(circuit: QuantumCircuit, functional: bool = True) -> tuple:
         circuit.num_parameters,
         tuple(  # circuit.data
             (
-                tuple(_bit_key(qubit, circuit) for qubit in data.qubits),
-                tuple(_bit_key(clbit, circuit) for clbit in data.clbits),
+                _bits_key(data.qubits, circuit),  # qubits
+                _bits_key(data.clbits, circuit),  # clbits
                 data.operation.name,  # operation.name
                 tuple(data.operation.params),  # operation.params
             )
