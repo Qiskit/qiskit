@@ -29,17 +29,13 @@ from qiskit.providers.models.pulsedefaults import PulseDefaults
 from qiskit.providers.options import Options
 from qiskit.providers.exceptions import BackendPropertyError
 
-# Some BackendConfiguration objects contain pulse only instructions in their
-# supported_instructions field. Filter these out since they don't go in a
-# TARGET
-PULSE_INSTRUCTIONS = {"acquire", "shiftf", "setf", "play"}
-
 
 def convert_to_target(
     configuration: BackendConfiguration,
     properties: BackendProperties = None,
     defaults: PulseDefaults = None,
     custom_name_mapping: Optional[Dict[str, Any]] = None,
+    add_delay: bool = False,
 ):
     """Uses configuration, properties and pulse defaults
     to construct and return Target class.
@@ -137,9 +133,6 @@ def convert_to_target(
     combined_global_ops = set()
     if configuration.basis_gates:
         combined_global_ops.update(configuration.basis_gates)
-    if configuration.supported_instructions:
-        combined_global_ops.update(configuration.supported_instructions)
-    combined_global_ops -= PULSE_INSTRUCTIONS
     for op in combined_global_ops:
         if op not in target:
             if op in name_mapping:
@@ -151,6 +144,10 @@ def convert_to_target(
                     f"Operation name '{op}' does not have a known mapping. Use "
                     "custom_name_mapping to map this name to an Operation object"
                 )
+    if add_delay and "delay" not in target:
+        target.add_instruction(
+            name_mapping["delay"], {(bit,): None for bit in range(target.num_qubits)}
+        )
     return target
 
 
@@ -198,6 +195,7 @@ class BackendV2Converter(BackendV2):
         self,
         backend: BackendV1,
         name_mapping: Optional[Dict[str, Any]] = None,
+        add_delay: bool = False,
     ):
         """Initialize a BackendV2 converter instance based on a BackendV1 instance.
 
@@ -210,6 +208,9 @@ class BackendV2Converter(BackendV2):
                 standard gate object from :mod:`qiskit.circuit.library` this only needs
                 to be specified if the input ``backend`` defines gates in names outside
                 that set.
+            add_delay: If set to true a :class:`~qiskit.circuit.Delay` operation
+                will be added to the target as a supported operation for all
+                qubits
         """
         self._backend = backend
         self._config = self._backend.configuration()
@@ -227,6 +228,7 @@ class BackendV2Converter(BackendV2):
         self._defaults = None
         self._target = None
         self._name_mapping = name_mapping
+        self._add_delay = add_delay
 
     @property
     def target(self):
@@ -244,6 +246,7 @@ class BackendV2Converter(BackendV2):
                 self._properties,
                 self._defaults,
                 custom_name_mapping=self._name_mapping,
+                add_delay=self._add_delay
             )
         return self._target
 
