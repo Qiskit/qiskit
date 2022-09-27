@@ -46,14 +46,15 @@ class TestVQD(QiskitAlgorithmsTestCase):
         super().setUp()
         self.seed = 50
         algorithm_globals.random_seed = self.seed
-        self.h2_op = PauliSumOp.from_list(
-            [
-                ("II", -1.052373245772859),
-                ("ZI", 0.39793742484318045),
-                ("IZ", -0.39793742484318045),
-                ("ZZ", -0.01128010425623538),
-                ("XX", 0.18093119978423156),
-            ]
+        I = PauliSumOp.from_list([("I", 1)])  # pylint: disable=invalid-name
+        X = PauliSumOp.from_list([("X", 1)])  # pylint: disable=invalid-name
+        Z = PauliSumOp.from_list([("Z", 1)])  # pylint: disable=invalid-name
+        self.h2_op = (
+            -1.052373245772859 * (I ^ I)
+            + 0.39793742484318045 * (I ^ Z)
+            - 0.39793742484318045 * (Z ^ I)
+            - 0.01128010425623538 * (Z ^ Z)
+            + 0.18093119978423156 * (X ^ X)
         )
         self.h2_energy = -1.85727503
         self.h2_energy_excited = [-1.85727503, -1.24458455]
@@ -135,7 +136,7 @@ class TestVQD(QiskitAlgorithmsTestCase):
         wavefunction = self.ry_wavefunction
 
         vqd = VQD(
-            estimator=self.estimator_shots,
+            estimator=self.estimator,
             fidelity=self.fidelity,
             ansatz=wavefunction,
             optimizer=optimizer,
@@ -156,13 +157,10 @@ class TestVQD(QiskitAlgorithmsTestCase):
         # new ref_mean for statevector simulator. The old unit test was on qasm
         # and the ref_mean values were slightly different.
 
-        ref_std = [0.011, 0.010, 0.014, 0.011, 0.010, 0.015]
         ref_step = [1, 1, 1, 2, 2, 2]
 
         np.testing.assert_array_almost_equal(history["eval_count"], ref_eval_count, decimal=0)
         np.testing.assert_array_almost_equal(history["mean"], ref_mean, decimal=2)
-        std = [np.sqrt(m["variance"] / m["shots"]) for m in history["metadata"]]
-        np.testing.assert_array_almost_equal(std, ref_std, decimal=2)
         np.testing.assert_array_almost_equal(history["step"], ref_step, decimal=0)
 
     def test_vqd_optimizer(self):
@@ -194,7 +192,7 @@ class TestVQD(QiskitAlgorithmsTestCase):
         """Test list-based aux_operators."""
         wavefunction = self.ry_wavefunction
         vqd = VQD(
-            estimator=self.estimator_shots,
+            estimator=self.estimator,
             fidelity=self.fidelity,
             ansatz=wavefunction,
             optimizer=SLSQP(),
@@ -220,13 +218,9 @@ class TestVQD(QiskitAlgorithmsTestCase):
         # expectation values
         self.assertAlmostEqual(result.aux_operator_eigenvalues[0][0][0], 2, places=2)
         self.assertAlmostEqual(result.aux_operator_eigenvalues[0][1][0], 0, places=2)
-        # standard deviations
-        self.assertAlmostEqual(
-            self._get_stdev(result.aux_operator_eigenvalues[0][0][1]), 0.0, places=2
-        )
-        self.assertAlmostEqual(
-            self._get_stdev(result.aux_operator_eigenvalues[0][1][1]), 0.0, places=2
-        )
+        # metadata
+        self.assertIsInstance(result.aux_operator_eigenvalues[0][1][1], dict)
+        self.assertIsInstance(result.aux_operator_eigenvalues[0][1][1], dict)
 
         # Go again with additional None and zero operators
         extra_ops = [*aux_ops, None, 0]
@@ -240,16 +234,16 @@ class TestVQD(QiskitAlgorithmsTestCase):
         self.assertAlmostEqual(result.aux_operator_eigenvalues[0][1][0], 0, places=2)
         self.assertEqual(result.aux_operator_eigenvalues[0][2][0], 0.0)
         self.assertEqual(result.aux_operator_eigenvalues[0][3][0], 0.0)
-        # standard deviations
-        self.assertAlmostEqual(self._get_stdev(result.aux_operator_eigenvalues[0][0][1]), 0.0)
-        self.assertAlmostEqual(self._get_stdev(result.aux_operator_eigenvalues[0][1][1]), 0.0)
-        self.assertEqual(self._get_stdev(result.aux_operator_eigenvalues[0][3][1]), 0.0)
+        # metadata
+        self.assertIsInstance(result.aux_operator_eigenvalues[0][0][1], dict)
+        self.assertIsInstance(result.aux_operator_eigenvalues[0][1][1], dict)
+        self.assertIsInstance(result.aux_operator_eigenvalues[0][3][1], dict)
 
     def test_aux_operators_dict(self):
         """Test dictionary compatibility of aux_operators"""
         wavefunction = self.ry_wavefunction
         vqd = VQD(
-            estimator=self.estimator_shots,
+            estimator=self.estimator,
             fidelity=self.fidelity,
             ansatz=wavefunction,
             optimizer=SLSQP(),
@@ -275,13 +269,9 @@ class TestVQD(QiskitAlgorithmsTestCase):
         # expectation values
         self.assertAlmostEqual(result.aux_operator_eigenvalues[0]["aux_op1"][0], 2, places=6)
         self.assertAlmostEqual(result.aux_operator_eigenvalues[0]["aux_op2"][0], 0, places=1)
-        # standard deviations
-        self.assertAlmostEqual(
-            self._get_stdev(result.aux_operator_eigenvalues[0]["aux_op1"][1]), 0.0, places=2
-        )
-        self.assertAlmostEqual(
-            self._get_stdev(result.aux_operator_eigenvalues[0]["aux_op2"][1]), 0.0, places=2
-        )
+        # metadata
+        self.assertIsInstance(result.aux_operator_eigenvalues[0]["aux_op1"][1], dict)
+        self.assertIsInstance(result.aux_operator_eigenvalues[0]["aux_op2"][1], dict)
 
         # Go again with additional None and zero operators
         extra_ops = {**aux_ops, "None_operator": None, "zero_operator": 0}
@@ -296,22 +286,16 @@ class TestVQD(QiskitAlgorithmsTestCase):
         self.assertAlmostEqual(result.aux_operator_eigenvalues[0]["aux_op2"][0], 0.0, places=2)
         self.assertEqual(result.aux_operator_eigenvalues[0]["zero_operator"][0], 0.0)
         self.assertTrue("None_operator" not in result.aux_operator_eigenvalues[0].keys())
-        # standard deviations
-        self.assertAlmostEqual(
-            self._get_stdev(result.aux_operator_eigenvalues[0]["aux_op1"][1]), 0.0
-        )
-        self.assertAlmostEqual(
-            self._get_stdev(result.aux_operator_eigenvalues[0]["aux_op2"][1]), 0.0
-        )
-        self.assertAlmostEqual(
-            self._get_stdev(result.aux_operator_eigenvalues[0]["zero_operator"][1]), 0.0
-        )
+        # metadata
+        self.assertIsInstance(result.aux_operator_eigenvalues[0]["aux_op1"][1], dict)
+        self.assertIsInstance(result.aux_operator_eigenvalues[0]["aux_op2"][1], dict)
+        self.assertIsInstance(result.aux_operator_eigenvalues[0]["zero_operator"][1], dict)
 
     def test_aux_operator_std_dev(self):
         """Test non-zero standard deviations of aux operators."""
         wavefunction = self.ry_wavefunction
         vqd = VQD(
-            estimator=self.estimator_shots,
+            estimator=self.estimator,
             fidelity=self.fidelity,
             ansatz=wavefunction,
             initial_point=[
@@ -338,15 +322,9 @@ class TestVQD(QiskitAlgorithmsTestCase):
         self.assertAlmostEqual(
             result.aux_operator_eigenvalues[0][1][0], 0.0019531249999999445, places=1
         )
-        # standard deviations
-        self.assertAlmostEqual(
-            self._get_stdev(result.aux_operator_eigenvalues[0][0][1]), 0.0, places=2
-        )
-        self.assertAlmostEqual(
-            self._get_stdev(result.aux_operator_eigenvalues[0][1][1]),
-            0.015183867579396111,
-            places=1,
-        )
+        # metadata
+        self.assertIsInstance(result.aux_operator_eigenvalues[0][0][1], dict)
+        self.assertIsInstance(result.aux_operator_eigenvalues[0][1][1], dict)
 
         # Go again with additional None and zero operators
         aux_ops = [*aux_ops, None, 0]
@@ -359,14 +337,11 @@ class TestVQD(QiskitAlgorithmsTestCase):
         )
         self.assertEqual(result.aux_operator_eigenvalues[0][2][0], 0.0)
         self.assertEqual(result.aux_operator_eigenvalues[0][3][0], 0.0)
-        # # standard deviations
-        self.assertAlmostEqual(self._get_stdev(result.aux_operator_eigenvalues[0][0][1]), 0.0)
-        self.assertAlmostEqual(
-            self._get_stdev(result.aux_operator_eigenvalues[0][1][1]), 0.01548658094658011, places=1
-        )
-        self.assertAlmostEqual(self._get_stdev(result.aux_operator_eigenvalues[0][2][1]), 0.0)
-        self.assertAlmostEqual(self._get_stdev(result.aux_operator_eigenvalues[0][3][1]), 0.0)
-
+        # metadata
+        self.assertIsInstance(result.aux_operator_eigenvalues[0][0][1], dict)
+        self.assertIsInstance(result.aux_operator_eigenvalues[0][1][1], dict)
+        self.assertIsInstance(result.aux_operator_eigenvalues[0][2][1], dict)
+        self.assertIsInstance(result.aux_operator_eigenvalues[0][3][1], dict)
 
 if __name__ == "__main__":
     unittest.main()
