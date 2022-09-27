@@ -47,11 +47,11 @@ class SparsePauliOp(LinearOp):
     are stored as a complex Numpy array vector and can be accessed using
     the :attr:`~SparsePauliOp.coeffs` attribute.
 
-    **dtype of coefficients**
+    .. rubric:: Data type of coefficients
 
-    The default dtype of coeffs is complex.
-    User can configure dtype by passing ``np.ndarray`` with different dtype.
-    For example, parameterized SparsePauliOp can be made as follows:
+    The default ``dtype`` of the internal ``coeffs`` Numpy array is ``complex128``.  Users can
+    configure this by passing ``np.ndarray`` with a different dtype.  For example, a parameterized
+    :class:`SparsePauliOp` can be made as follows:
 
     .. code-block:: python
 
@@ -65,13 +65,12 @@ class SparsePauliOp(LinearOp):
 
     .. note::
 
-      Parameterized SparasePauliOp does not support the following methods:
+      Parameterized :class:`SparsePauliOp` does not support the following methods:
 
-      - ``to_matrix(sparse=True)`` since scipy.sparse cannot have objects as elements.
-      - ``to_operator()`` since Operator does not support objects.
-      - ``sort``, ``argsort`` since Parameter does not support comparison.
-      - ``equiv`` since Parameter cannot be converted into complex.
-
+      - ``to_matrix(sparse=True)`` since ``scipy.sparse`` cannot have objects as elements.
+      - ``to_operator()`` since :class:`~.quantum_info.Operator` does not support objects.
+      - ``sort``, ``argsort`` since :class:`.ParameterExpression` does not support comparison.
+      - ``equiv`` since :class:`.ParameterExpression`. cannot be converted into complex.
     """
 
     def __init__(self, data, coeffs=None, *, ignore_pauli_phase=False, copy=True):
