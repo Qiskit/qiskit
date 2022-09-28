@@ -16,19 +16,18 @@ Expectation value class
 from __future__ import annotations
 
 import copy
-from collections.abc import Iterable, Sequence
+from collections.abc import Sequence
 from itertools import accumulate
 
 import numpy as np
 
-from qiskit.circuit import Parameter, QuantumCircuit
+from qiskit.circuit import QuantumCircuit
 from qiskit.compiler import transpile
-from qiskit.exceptions import QiskitError
 from qiskit.opflow import PauliSumOp
 from qiskit.primitives.base_estimator import BaseEstimator
 from qiskit.primitives.estimator_result import EstimatorResult
 from qiskit.primitives.primitive_job import PrimitiveJob
-from qiskit.providers import Backend, Options
+from qiskit.providers import BackendV1, BackendV2, Options
 from qiskit.quantum_info import Pauli, PauliList
 from qiskit.quantum_info.operators.base_operator import BaseOperator
 from qiskit.result import Counts, Result
@@ -40,7 +39,7 @@ from .utils import _circuit_key, init_observable
 
 def _run_circuits(
     circuits: QuantumCircuit | list[QuantumCircuit],
-    backend: Backend,
+    backend: BackendV1 | BackendV2,
     monitor: bool = False,
     **run_options,
 ) -> tuple[Result, list[dict]]:
@@ -72,11 +71,8 @@ class BackendEstimator(BaseEstimator):
     # pylint: disable=missing-raises-doc
     def __init__(
         self,
-        backend: Backend = None,
-        circuits: QuantumCircuit | Iterable[QuantumCircuit] = None,
-        observables: BaseOperator | PauliSumOp | Iterable[BaseOperator | PauliSumOp] = None,
+        backend: BackendV1 | BackendV2,
         options: dict | None = None,
-        parameters: Iterable[Iterable[Parameter]] | None = None,
         abelian_grouping: bool = True,
         bound_pass_manager: PassManager | None = None,
         skip_transpilation: bool = False,
@@ -85,11 +81,7 @@ class BackendEstimator(BaseEstimator):
 
         Args:
             backend: Required: the backend to run the primitive on
-            circuits: circuits that represent quantum states.
-            observables: observables to be estimated.
             options: Default options.
-            parameters: Parameters of each of the quantum circuits.
-                Defaults to ``[circ.parameters for circ in circuits]``.
             abelian_grouping: Whether the observable should be grouped into
                 commuting
             bound_pass_manager: An optional pass manager to run after
@@ -98,27 +90,16 @@ class BackendEstimator(BaseEstimator):
                 of the input circuits is skipped and the circuit objects
                 will be directly executed when this object is called.
         """
-        if observables is not None:
-            if isinstance(observables, (PauliSumOp, BaseOperator)):
-                observables = (observables,)
-            observables = tuple(init_observable(observable) for observable in observables)
-
         super().__init__(
-            circuits=circuits,
-            observables=observables,
-            parameters=parameters,
+            circuits=None,
+            observables=None,
+            parameters=None,
             options=options,
         )
-        if backend is None:
-            raise ValueError("Backend must be provided")
-
-        self._is_closed = False
 
         self._abelian_grouping = abelian_grouping
 
         self._backend = backend
-
-        self._is_closed = False
 
         self._transpile_options = Options()
         self._bound_pass_manager = bound_pass_manager
@@ -128,6 +109,14 @@ class BackendEstimator(BaseEstimator):
 
         self._grouping = list(zip(range(len(self._circuits)), range(len(self._observables))))
         self._skip_transpilation = skip_transpilation
+
+    def __new__(  # pylint: disable=signature-differs
+        cls,
+        backend: BackendV1 | BackendV2,  # pylint: disable=unused-argument
+        **kwargs,  # pylint: disable=unused-argument
+    ):
+        self = super().__new__(cls)
+        return self
 
     @property
     def transpile_options(self) -> Options:
@@ -139,7 +128,6 @@ class BackendEstimator(BaseEstimator):
         Args:
             **fields: The fields to update the options
         """
-        self._check_is_closed()
         self._transpiled_circuits = None
         self._transpile_options.update_options(**fields)
 
@@ -152,7 +140,6 @@ class BackendEstimator(BaseEstimator):
         Returns:
             List of the transpiled quantum circuit
         """
-        self._check_is_closed()
         self._preprocessed_circuits = self._preprocessing()
         return self._preprocessed_circuits
 
@@ -165,12 +152,11 @@ class BackendEstimator(BaseEstimator):
         Raises:
             QiskitError: if the instance has been closed.
         """
-        self._check_is_closed()
         self._transpile()
         return self._transpiled_circuits
 
     @property
-    def backend(self) -> Backend:
+    def backend(self) -> BackendV1 | BackendV2:
         """
         Returns:
             The backend which this estimator object based on
@@ -215,7 +201,6 @@ class BackendEstimator(BaseEstimator):
         parameter_values: Sequence[Sequence[float]],
         **run_options,
     ) -> EstimatorResult:
-        self._check_is_closed()
 
         # Transpile
         self._grouping = list(zip(circuits, observables))
@@ -240,9 +225,6 @@ class BackendEstimator(BaseEstimator):
         result, metadata = _run_circuits(bound_circuits, self._backend, **run_options)
 
         return self._postprocessing(result, accum, metadata)
-
-    def close(self):
-        self._is_closed = True
 
     def _run(
         self,
@@ -320,7 +302,7 @@ class BackendEstimator(BaseEstimator):
                     }
                     diff_circuits.append(meas_circuit)
             else:
-                for basis, obs in zip(observable.paulis, observable):
+                for basis, obs in zip(observable.paulis, observable):  # type: ignore
                     meas_circuit, indices = self._measurement_circuit(circuit.num_qubits, basis)
                     paulis = PauliList.from_symplectic(
                         obs.paulis.z[:, indices],
@@ -375,10 +357,6 @@ class BackendEstimator(BaseEstimator):
         metadata = [{"variance": var, "shots": shots} for var, shots in zip(var_list, shots_list)]
 
         return EstimatorResult(np.real_if_close(expval_list), metadata)
-
-    def _check_is_closed(self):
-        if self._is_closed:
-            raise QiskitError("The primitive has been closed.")
 
     def _bound_pass_manager_run(self, circuits):
         if self._bound_pass_manager is None:
