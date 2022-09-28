@@ -26,7 +26,7 @@ import numpy as np
 from qiskit import QiskitError
 from qiskit.algorithms.list_or_dict import ListOrDict
 from qiskit.quantum_info.operators.base_operator import BaseOperator
-from qiskit.opflow import OperatorBase, PauliSumOp, commutator
+from qiskit.opflow import OperatorBase, PauliSumOp
 from qiskit.circuit.library import EvolvedOperatorAnsatz
 from qiskit.utils.validation import validate_min
 
@@ -52,10 +52,12 @@ class AdaptVQE(VariationalAlgorithm):
     `AdaptVQE <https://arxiv.org/abs/1812.11173>`__ is a quantum algorithm which creates a compact
     ansatz from a set of evolution operators. It iteratively extends the ansatz circuit, by
     selecting the building block that leads to the largest gradient from a set of candidates. In
-    chemistry, this is usually a list of orbital excitations. This results in a wavefunction ansatz
-    which is uniquely adapted to the operator whose minimum eigenvalue is being determined.
-    This class relies on a supplied instance of :class:`~.VQE` to find the minimum eigenvalue.
-    The performance of AdaptVQE significantly depends on the minimization routine.
+    chemistry, this is usually a list of orbital excitations. Thus, a common choice of ansatz to be
+    used with this algorithm is the Unitary Coupled Cluster ansatz implemented in Qiskit Nature.
+    This results in a wavefunction ansatz which is uniquely adapted to the operator whose minimum
+    eigenvalue is being determined. This class relies on a supplied instance of :class:`~.VQE` to
+    find the minimum eigenvalue. The performance of AdaptVQE significantly depends on the
+    minimization routine.
 
     .. code-block:: python
 
@@ -111,18 +113,18 @@ class AdaptVQE(VariationalAlgorithm):
         self.solver = solver
         self.threshold = threshold
         self.max_iterations = max_iterations
-        self._tmp_ansatz = self.solver.ansatz
+        self._tmp_ansatz: EvolvedOperatorAnsatz | None = None
         self._excitation_pool: list[OperatorBase] = []
         self._excitation_list: list[OperatorBase] = []
 
     @property
     def initial_point(self) -> Sequence[float] | None:
-        """Return the initial point."""
+        """Returns the initial point of the internal :class:`~.VQE` solver."""
         return self.solver.initial_point
 
     @initial_point.setter
     def initial_point(self, value: Sequence[float] | None) -> None:
-        """Set the initial point."""
+        """Sets the initial point of the internal :class:`~.VQE` solver."""
         self.solver.initial_point = value
 
     def _compute_gradients(
@@ -141,7 +143,7 @@ class AdaptVQE(VariationalAlgorithm):
         """
         # The excitations operators are applied later as exp(i*theta*excitation).
         # For this commutator, we need to explicitly pull in the imaginary phase.
-        commutators = [1j * commutator(operator, exc) for exc in self._excitation_pool]
+        commutators = [1j * (operator @ exc - exc @ operator) for exc in self._excitation_pool]
         res = estimate_observables(self.solver.estimator, self.solver.ansatz, commutators, theta)
         return res
 
@@ -185,23 +187,22 @@ class AdaptVQE(VariationalAlgorithm):
             aux_operators: Additional auxiliary operators to evaluate.
 
         Raises:
-            QiskitError: If a solver other than :class:`~VQE` or an ansatz other than
-                :class:`~.EvolvedOperatorAnsatz` is provided or if the algorithm finishes due
-                to an unforeseen reason.
-            AlgorithmError: If `quantum_instance` is not provided.
-            QiskitError: If the chosen gradient method appears to result in all-zero gradients.
+            TypeError: If an ansatz other than :class:`~.EvolvedOperatorAnsatz` is provided.
+            QiskitError: If all evaluated gradients lie below the convergence threshold in the first
+                iteration of the algorithm.
 
         Returns:
             An :class:`~.AdaptVQEResult` which is a :class:`~.VQEResult` but also but also
             includes runtime information about the AdaptVQE algorithm like the number of iterations,
             termination criterion, and the final maximum gradient.
         """
-        if not isinstance(self._tmp_ansatz, EvolvedOperatorAnsatz):
-            raise QiskitError("The AdaptVQE ansatz must be of the EvolvedOperatorAnsatz type.")
+        if not isinstance(self.solver.ansatz, EvolvedOperatorAnsatz):
+            raise TypeError("The AdaptVQE ansatz must be of the EvolvedOperatorAnsatz type.")
 
         # Overwrite the solver's ansatz with the initial state
         solver_ansatz = copy.deepcopy(self.solver.ansatz)
-        self._excitation_pool = copy.deepcopy(solver_ansatz.operators)
+        self._tmp_ansatz = self.solver.ansatz
+        self._excitation_pool = self._tmp_ansatz.operators
         self.solver.ansatz = self._tmp_ansatz.initial_state
 
         prev_op_indices: list[int] = []
@@ -224,8 +225,9 @@ class AdaptVQE(VariationalAlgorithm):
             if np.abs(max_grad[0]) < self.threshold:
                 if iteration == 1:
                     raise QiskitError(
-                        "Gradient choice is not suited as it leads to all zero gradients. "
-                        "Try a different gradient method."
+                        "All gradients have been evaluated to lie below the convergence threshold "
+                        "during the first iteration of the algorithm. Try to either tighten the "
+                        "convergence threshold or pick a different ansatz."
                     )
                 logger.info(
                     "AdaptVQE terminated successfully with a final maximum gradient: %s",
@@ -265,8 +267,6 @@ class AdaptVQE(VariationalAlgorithm):
                 self.solver.estimator, self.solver.ansatz, aux_operators, result.optimal_point
             )
             result.aux_operators_evaluated = aux_values
-        else:
-            aux_values = None
 
         logger.info("The final energy is: %s", str(result.eigenvalue))
         self.solver.ansatz = solver_ansatz

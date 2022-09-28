@@ -24,4 +24,4 @@ features:
 
       adapt_vqe = AdaptVQE(vqe)
 
-      eigenvalue, _ = adapt_vqe.compute_minimum_eigenvalue(hamiltonian)
+      result = adapt_vqe.compute_minimum_eigenvalue(hamiltonian)

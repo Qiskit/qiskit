@@ -21,7 +21,6 @@ from qiskit.algorithms.optimizers import SLSQP
 from qiskit.circuit import QuantumCircuit, QuantumRegister
 from qiskit.circuit.library import EvolvedOperatorAnsatz
 from qiskit.opflow import PauliSumOp
-from qiskit.opflow.operator_globals import X, Y
 from qiskit.primitives import Estimator
 from qiskit.quantum_info import SparsePauliOp
 
@@ -131,8 +130,8 @@ class TestAdaptVQE(QiskitAlgorithmsTestCase):
         """Test to check if the gradient calculation"""
         solver = VQE(Estimator(), QuantumCircuit(1), self.optimizer)
         calc = AdaptVQE(solver)
-        calc._excitation_pool = [X]
-        res = calc._compute_gradients(operator=Y, theta=[])
+        calc._excitation_pool = [SparsePauliOp("X")]
+        res = calc._compute_gradients(operator=SparsePauliOp("Y"), theta=[])
         # compare with manually computed reference value
         self.assertAlmostEqual(res[0][0], 2.0)
 
