@@ -10,7 +10,7 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
-use hashbrown::HashMap;
+use hashbrown::{HashMap, HashSet};
 use numpy::PyReadonlyArray1;
 use pyo3::prelude::*;
 use retworkx_core::petgraph::prelude::*;
@@ -23,7 +23,7 @@ use retworkx_core::petgraph::prelude::*;
 #[pyo3(text_signature = "(num_qubits, num_clbits, nodes, front_layer, /)")]
 #[derive(Clone, Debug)]
 pub struct SabreDAG {
-    pub dag: DiGraph<(usize, Vec<usize>, Vec<usize>), ()>,
+    pub dag: DiGraph<(usize, Vec<usize>), ()>,
     pub first_layer: Vec<NodeIndex>,
 }
 
@@ -33,18 +33,18 @@ impl SabreDAG {
     pub fn new(
         num_qubits: usize,
         num_clbits: usize,
-        nodes: Vec<(usize, Vec<usize>, Vec<usize>)>,
+        nodes: Vec<(usize, Vec<usize>, HashSet<usize>)>,
         front_layer: PyReadonlyArray1<usize>,
     ) -> PyResult<Self> {
         let mut qubit_pos: Vec<usize> = vec![usize::MAX; num_qubits];
         let mut clbit_pos: Vec<usize> = vec![usize::MAX; num_clbits];
         let mut reverse_index_map: HashMap<usize, NodeIndex> = HashMap::with_capacity(nodes.len());
-        let mut dag: DiGraph<(usize, Vec<usize>, Vec<usize>), ()> =
+        let mut dag: DiGraph<(usize, Vec<usize>), ()> =
             Graph::with_capacity(nodes.len(), 2 * nodes.len());
         for node in &nodes {
             let qargs = &node.1;
             let cargs = &node.2;
-            let gate_index = dag.add_node(node.clone());
+            let gate_index = dag.add_node((node.0, qargs.clone()));
             reverse_index_map.insert(node.0, gate_index);
             for x in qargs {
                 if qubit_pos[*x] != usize::MAX {

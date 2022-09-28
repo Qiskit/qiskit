@@ -94,17 +94,6 @@ knowledge to do this in that application domain.
    VQD
 
 
-Variational Quantum Time Evolution
-----------------------------------
-
-Classes used by variational quantum time evolution algorithms - VarQITE and VarQRTE.
-
-.. autosummary::
-   :toctree: ../stubs/
-
-   evolvers.variational
-
-
 Evolvers
 --------
 
@@ -124,10 +113,6 @@ used to train Quantum Boltzmann Machine Neural Networks for example.
     RealEvolver
     ImaginaryEvolver
     TrotterQRTE
-    VarQITE
-    VarQRTE
-    PVQD
-    PVQDResult
     EvolutionResult
     EvolutionProblem
 
@@ -145,8 +130,21 @@ Time Evolution might be used to train Quantum Boltzmann Machine Neural Networks 
 
     RealTimeEvolver
     ImaginaryTimeEvolver
+    PVQD
+    PVQDResult
     TimeEvolutionResult
     TimeEvolutionProblem
+
+
+Trotterization-based Quantum Real Time Evolution
+------------------------------------------------
+
+Package for primitives-enabled Trotterization-based quantum time evolution algorithm - TrotterQRTE.
+
+.. autosummary::
+   :toctree: ../stubs/
+
+   time_evolvers.trotterization
 
 
 Factorizers
@@ -185,10 +183,12 @@ Algorithms to solve linear systems of equations.
    linear_solvers
 
 
-Minimum Eigensolvers
---------------------
+Minimum Eigen Solvers
+---------------------
 
 Algorithms that can find the minimum eigenvalue of an operator.
+These algorithms are pending depreciation. One should instead make use of the
+Minimum Eigensolver classes in the section below, which leverage Runtime primitives.
 
 .. autosummary::
    :toctree: ../stubs/
@@ -204,6 +204,16 @@ Algorithms that can find the minimum eigenvalue of an operator.
    NumPyMinimumEigensolver
    QAOA
    VQE
+
+Minimum Eigensolvers
+--------------------
+
+Algorithms that can find the minimum eigenvalue of an operator and leverage primitives.
+
+.. autosummary::
+   :toctree: ../stubs/
+
+   minimum_eigensolvers
 
 
 Optimizers
@@ -244,6 +254,7 @@ Algorithms that compute the fidelity of pairs of quantum states.
 
    state_fidelities
 
+
 Exceptions
 ----------
 
@@ -262,6 +273,8 @@ Utility methods used by algorithms.
    :toctree: ../stubs/
 
    eval_observables
+   estimate_observables
+
 
 Utility classes
 ---------------
@@ -319,11 +332,10 @@ from .phase_estimators import (
 )
 from .exceptions import AlgorithmError
 from .aux_ops_evaluator import eval_observables
+from .observables_evaluator import estimate_observables
 from .evolvers.trotterization import TrotterQRTE
-from .evolvers.variational.var_qite import VarQITE
-from .evolvers.variational.var_qrte import VarQRTE
 
-from .evolvers.pvqd import PVQD, PVQDResult
+from .time_evolvers.pvqd import PVQD, PVQDResult
 
 __all__ = [
     "AlgorithmJob",
@@ -351,8 +363,6 @@ __all__ = [
     "RealTimeEvolver",
     "ImaginaryTimeEvolver",
     "TrotterQRTE",
-    "VarQITE",
-    "VarQRTE",
     "EvolutionResult",
     "EvolutionProblem",
     "TimeEvolutionResult",
@@ -382,4 +392,5 @@ __all__ = [
     "IterativePhaseEstimation",
     "AlgorithmError",
     "eval_observables",
+    "estimate_observables",
 ]

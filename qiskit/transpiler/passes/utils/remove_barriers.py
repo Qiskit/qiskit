@@ -14,6 +14,7 @@
 
 from qiskit.dagcircuit import DAGCircuit
 from qiskit.transpiler.basepasses import TransformationPass
+from qiskit.transpiler.passes.utils import control_flow
 
 
 class RemoveBarriers(TransformationPass):
@@ -38,6 +39,7 @@ class RemoveBarriers(TransformationPass):
 
     """
 
+    @control_flow.trivial_recurse
     def run(self, dag: DAGCircuit) -> DAGCircuit:
         """Run the RemoveBarriers pass on `dag`."""
 
