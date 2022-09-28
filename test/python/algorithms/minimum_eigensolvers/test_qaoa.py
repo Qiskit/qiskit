@@ -15,17 +15,17 @@
 import unittest
 from test.python.algorithms import QiskitAlgorithmsTestCase
 
-# from functools import partial
+from functools import partial
 import numpy as np
 
-# from scipy.optimize import minimize as scipy_minimize
+from scipy.optimize import minimize as scipy_minimize
 from ddt import ddt, idata, unpack
 
-# import retworkx as rx
+import retworkx as rx
 
 from qiskit import QuantumCircuit
 from qiskit.algorithms.minimum_eigensolvers import QAOA
-from qiskit.algorithms.optimizers import COBYLA#, NELDER_MEAD
+from qiskit.algorithms.optimizers import COBYLA  # , NELDER_MEAD
 from qiskit.circuit import Parameter
 from qiskit.opflow import PauliSumOp
 from qiskit.quantum_info import Pauli
@@ -224,18 +224,18 @@ class TestQAOA(QiskitAlgorithmsTestCase):
 
     #     self.assertLess(result.eigenvalue.real, -0.97)
 
-    # def test_optimizer_scipy_callable(self):
-    #     """Test passing a SciPy optimizer directly as callable."""
-    #     w = rx.adjacency_matrix(
-    #         rx.undirected_gnp_random_graph(5, 0.5, seed=algorithm_globals.random_seed)
-    #     )
-    #     qubit_op, _ = self._get_operator(w)
-    #     qaoa = QAOA(
-    #         self.sampler,
-    #         partial(scipy_minimize, method="Nelder-Mead", options={"maxiter": 2}),
-    #     )
-    #     result = qaoa.compute_minimum_eigenvalue(qubit_op)
-    #     self.assertEqual(result.cost_function_evals, 4)
+    def test_optimizer_scipy_callable(self):
+        """Test passing a SciPy optimizer directly as callable."""
+        w = rx.adjacency_matrix(
+            rx.undirected_gnp_random_graph(5, 0.5, seed=algorithm_globals.random_seed)
+        )
+        qubit_op, _ = self._get_operator(w)
+        qaoa = QAOA(
+            self.sampler,
+            partial(scipy_minimize, method="Nelder-Mead", options={"maxiter": 2}),
+        )
+        result = qaoa.compute_minimum_eigenvalue(qubit_op)
+        self.assertEqual(result.cost_function_evals, 5)
 
     def _get_operator(self, weight_matrix):
         """Generate Hamiltonian for the max-cut problem of a graph.
