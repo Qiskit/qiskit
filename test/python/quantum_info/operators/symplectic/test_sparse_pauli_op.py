@@ -350,6 +350,19 @@ class TestSparsePauliOpIteration(QiskitTestCase):
             np.testing.assert_array_equal(i.toarray(), coeffs[idx] * pauli_mat(labels[idx]))
 
 
+def bind_parameters_to_one(array):
+    """Bind parameters to one. The purpose of using this method is to bind some value and
+    use ``assert_allclose``, since it is impossible to verify equivalence in the case of
+    numerical errors with parameters existing.
+    """
+
+    def bind_one(a):
+        parameters = a.parameters
+        return complex(a.bind(dict(zip(parameters, [1] * len(parameters)))))
+
+    return np.vectorize(bind_one, otypes=[complex])(array)
+
+
 @ddt
 class TestSparsePauliOpMethods(QiskitTestCase):
     """Tests for SparsePauliOp operator methods."""
@@ -359,11 +372,6 @@ class TestSparsePauliOpMethods(QiskitTestCase):
     def setUp(self):
         super().setUp()
 
-        def bind_one(a):
-            parameters = a.parameters
-            return complex(a.bind(dict(zip(parameters, [1] * len(parameters)))))
-
-        self.vbind_one = np.vectorize(bind_one, otypes=[complex])
         self.parameter_names = (f"param_{x}" for x in it.count())
 
     def random_spp_op(self, num_qubits, num_terms, use_parameters=False):
@@ -420,15 +428,15 @@ class TestSparsePauliOpMethods(QiskitTestCase):
         op = spp_op1.compose(spp_op2)
         value = op.to_matrix()
         if use_parameters:
-            value = self.vbind_one(value)
-            target = self.vbind_one(target)
+            value = bind_parameters_to_one(value)
+            target = bind_parameters_to_one(target)
         np.testing.assert_allclose(value, target, atol=1e-8)
         np.testing.assert_array_equal(op.paulis.phase, np.zeros(op.size))
 
         op = spp_op1 & spp_op2
         value = op.to_matrix()
         if use_parameters:
-            value = self.vbind_one(value)
+            value = bind_parameters_to_one(value)
         np.testing.assert_allclose(value, target, atol=1e-8)
         np.testing.assert_array_equal(op.paulis.phase, np.zeros(op.size))
 
@@ -442,15 +450,15 @@ class TestSparsePauliOpMethods(QiskitTestCase):
         op = spp_op1.dot(spp_op2)
         value = op.to_matrix()
         if use_parameters:
-            value = self.vbind_one(value)
-            target = self.vbind_one(target)
+            value = bind_parameters_to_one(value)
+            target = bind_parameters_to_one(target)
         np.testing.assert_allclose(value, target, atol=1e-8)
         np.testing.assert_array_equal(op.paulis.phase, np.zeros(op.size))
 
         op = spp_op1 @ spp_op2
         value = op.to_matrix()
         if use_parameters:
-            value = self.vbind_one(value)
+            value = bind_parameters_to_one(value)
         np.testing.assert_allclose(value, target, atol=1e-8)
         np.testing.assert_array_equal(op.paulis.phase, np.zeros(op.size))
 
@@ -494,8 +502,8 @@ class TestSparsePauliOpMethods(QiskitTestCase):
         op = spp_op1.tensor(spp_op2)
         value = op.to_matrix()
         if use_parameters:
-            value = self.vbind_one(value)
-            target = self.vbind_one(target)
+            value = bind_parameters_to_one(value)
+            target = bind_parameters_to_one(target)
         np.testing.assert_allclose(value, target, atol=1e-8)
         np.testing.assert_array_equal(op.paulis.phase, np.zeros(op.size))
 
@@ -508,8 +516,8 @@ class TestSparsePauliOpMethods(QiskitTestCase):
         op = spp_op1.expand(spp_op2)
         value = op.to_matrix()
         if use_parameters:
-            value = self.vbind_one(value)
-            target = self.vbind_one(target)
+            value = bind_parameters_to_one(value)
+            target = bind_parameters_to_one(target)
         np.testing.assert_allclose(value, target, atol=1e-8)
         np.testing.assert_array_equal(op.paulis.phase, np.zeros(op.size))
 
@@ -522,8 +530,8 @@ class TestSparsePauliOpMethods(QiskitTestCase):
         op = spp_op1 + spp_op2
         value = op.to_matrix()
         if use_parameters:
-            value = self.vbind_one(value)
-            target = self.vbind_one(target)
+            value = bind_parameters_to_one(value)
+            target = bind_parameters_to_one(target)
         np.testing.assert_allclose(value, target, atol=1e-8)
         np.testing.assert_array_equal(op.paulis.phase, np.zeros(op.size))
 
@@ -536,8 +544,8 @@ class TestSparsePauliOpMethods(QiskitTestCase):
         op = spp_op1 - spp_op2
         value = op.to_matrix()
         if use_parameters:
-            value = self.vbind_one(value)
-            target = self.vbind_one(target)
+            value = bind_parameters_to_one(value)
+            target = bind_parameters_to_one(target)
         np.testing.assert_allclose(value, target, atol=1e-8)
         np.testing.assert_array_equal(op.paulis.phase, np.zeros(op.size))
 
@@ -573,8 +581,8 @@ class TestSparsePauliOpMethods(QiskitTestCase):
         op = value * spp_op
         value_mat = op.to_matrix()
         if value != 0 and param is not None:
-            value_mat = self.vbind_one(value_mat)
-            target = self.vbind_one(target)
+            value_mat = bind_parameters_to_one(value_mat)
+            target = bind_parameters_to_one(target)
         if value == 0:
             np.testing.assert_array_equal(value_mat, target.astype(complex))
         else:
@@ -584,8 +592,8 @@ class TestSparsePauliOpMethods(QiskitTestCase):
         op = spp_op * value
         value_mat = op.to_matrix()
         if value != 0 and param is not None:
-            value_mat = self.vbind_one(value_mat)
-            target = self.vbind_one(target)
+            value_mat = bind_parameters_to_one(value_mat)
+            target = bind_parameters_to_one(target)
         if value == 0:
             np.testing.assert_array_equal(value_mat, target.astype(complex))
         else:
@@ -600,8 +608,8 @@ class TestSparsePauliOpMethods(QiskitTestCase):
         op = spp_op / value
         value_mat = op.to_matrix()
         if param is not None:
-            value_mat = self.vbind_one(value_mat)
-            target = self.vbind_one(target)
+            value_mat = bind_parameters_to_one(value_mat)
+            target = bind_parameters_to_one(target)
         np.testing.assert_allclose(value_mat, target, atol=1e-8)
         np.testing.assert_array_equal(op.paulis.phase, np.zeros(op.size))
 
@@ -815,8 +823,8 @@ class TestSparsePauliOpMethods(QiskitTestCase):
         value = sum_op.to_matrix()
         target_operator = sum((op.to_matrix() for op in ops[1:]), ops[0].to_matrix())
         if param is not None:
-            value = self.vbind_one(value)
-            target_operator = self.vbind_one(target_operator)
+            value = bind_parameters_to_one(value)
+            target_operator = bind_parameters_to_one(target_operator)
         np.testing.assert_allclose(value, target_operator, atol=1e-8)
         target_spp_op = sum((op for op in ops[1:]), ops[0])
         self.assertEqual(sum_op, target_spp_op)
