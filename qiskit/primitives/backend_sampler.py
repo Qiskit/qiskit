@@ -14,19 +14,20 @@
 from __future__ import annotations
 
 from collections.abc import Iterable, Sequence
-import copy
-from typing import cast, Any
+from typing import Any, cast
 
-from qiskit.exceptions import QiskitError
-from qiskit.providers.options import Options
-from qiskit.result import QuasiDistribution
-from qiskit.providers.backend import Backend
-from qiskit.circuit.quantumcircuit import QuantumCircuit
 from qiskit.circuit.parameter import Parameter
+from qiskit.circuit.quantumcircuit import QuantumCircuit
+from qiskit.exceptions import QiskitError
+from qiskit.providers.backend import Backend
+from qiskit.providers.options import Options
+from qiskit.result import QuasiDistribution, Result
 from qiskit.transpiler.passmanager import PassManager
+
 from .base_sampler import BaseSampler
-from .sampler_result import SamplerResult
 from .primitive_job import PrimitiveJob
+from .sampler_result import SamplerResult
+from .utils import _circuit_key
 
 
 class BackendSampler(BaseSampler):
@@ -43,6 +44,7 @@ class BackendSampler(BaseSampler):
         backend: Backend = None,
         circuits: QuantumCircuit | Iterable[QuantumCircuit] = None,
         parameters: Iterable[Iterable[Parameter]] | None = None,
+        options: dict | None = None,
         bound_pass_manager: PassManager | None = None,
         skip_transpilation: bool = False,
     ):
@@ -53,6 +55,7 @@ class BackendSampler(BaseSampler):
             circuits: The Quantum circuits to be executed.
             parameters: Parameters of each of the quantum circuits.
                 Defaults to ``[circ.parameters for circ in circuits]``.
+            options: Default options.
             bound_pass_manager: An optional pass manager to run after
                 parameter binding.
             skip_transpilation: If this is set to True the internal compilation
@@ -62,11 +65,10 @@ class BackendSampler(BaseSampler):
             ValueError: If backend is not provided
         """
 
-        super().__init__(circuits, parameters)
+        super().__init__(circuits, parameters, options)
         if backend is None:
             raise ValueError("A backend is required to use BackendSampler")
         self._backend = backend
-        self._run_options = self._backend.options
         self._is_closed = False
         self._transpile_options = Options()
         self._bound_pass_manager = bound_pass_manager
@@ -111,15 +113,7 @@ class BackendSampler(BaseSampler):
         """
         return self._backend
 
-    @property
-    def run_options(self) -> Options:
-        """Return options values for the evaluator.
-        Returns:
-            run_options
-        """
-        return self._run_options
-
-    def set_run_options(self, **fields) -> BackendSampler:
+    def set_options(self, **fields):
         """Set options values for the evaluator.
         Args:
             **fields: The fields to update the options
@@ -127,8 +121,7 @@ class BackendSampler(BaseSampler):
             self
         """
         self._check_is_closed()
-        self._run_options.update_options(**fields)
-        return self
+        super().set_options(**fields)
 
     @property
     def transpile_options(self) -> Options:
@@ -168,16 +161,14 @@ class BackendSampler(BaseSampler):
         bound_circuits = self._bound_pass_manager_run(bound_circuits)
 
         # Run
-        run_opts = copy.copy(self.run_options)
-        run_opts.update_options(**run_options)
-        result = self._backend.run(bound_circuits, **run_opts.__dict__).result()
+        result = self._backend.run(bound_circuits, **run_options).result()
 
         return self._postprocessing(result, bound_circuits)
 
     def close(self):
         self._is_closed = True
 
-    def _postprocessing(self, result: "Result", circuits: list[QuantumCircuit]) -> SamplerResult:
+    def _postprocessing(self, result: Result, circuits: list[QuantumCircuit]) -> SamplerResult:
 
         counts = result.get_counts()
         if not isinstance(counts, list):
@@ -224,12 +215,12 @@ class BackendSampler(BaseSampler):
     ) -> PrimitiveJob:
         circuit_indices = []
         for circuit in circuits:
-            index = self._circuit_ids.get(id(circuit))
+            index = self._circuit_ids.get(_circuit_key(circuit))
             if index is not None:
                 circuit_indices.append(index)
             else:
                 circuit_indices.append(len(self._circuits))
-                self._circuit_ids[id(circuit)] = len(self._circuits)
+                self._circuit_ids[_circuit_key(circuit)] = len(self._circuits)
                 self._circuits.append(circuit)
                 self._parameters.append(circuit.parameters)
         job = PrimitiveJob(self._call, circuit_indices, parameter_values, **run_options)
