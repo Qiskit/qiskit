@@ -25,6 +25,7 @@ Minimum Eigensolvers
    MinimumEigensolver
    NumPyMinimumEigensolver
    VQE
+   AdaptVQE
    SamplingMinimumEigensolver
    SamplingVQE
    QAOA
@@ -35,11 +36,13 @@ Minimum Eigensolvers
    MinimumEigensolverResult
    NumPyMinimumEigensolverResult
    VQEResult
+   AdaptVQEResult
    SamplingMinimumEigensolverResult
    SamplingVQE
    SamplingVQEResult
 """
 
+from .adapt_vqe import AdaptVQE, AdaptVQEResult
 from .minimum_eigensolver import MinimumEigensolver, MinimumEigensolverResult
 from .numpy_minimum_eigensolver import NumPyMinimumEigensolver, NumPyMinimumEigensolverResult
 from .vqe import VQE, VQEResult
@@ -48,6 +51,8 @@ from .sampling_vqe import SamplingVQE, SamplingVQEResult
 from .qaoa import QAOA
 
 __all__ = [
+    "AdaptVQE",
+    "AdaptVQEResult",
     "MinimumEigensolver",
     "MinimumEigensolverResult",
     "NumPyMinimumEigensolver",
