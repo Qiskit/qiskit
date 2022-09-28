@@ -339,10 +339,8 @@ class BaseSampler(ABC):
 
         if not isinstance(circuits, Sequence):
             circuits = [circuits]
-        if (
-            parameter_values is not None
-            and len(parameter_values) > 1
-            and not isinstance(parameter_values[0], (Sequence, Iterable))
+        if parameter_values is not None and (
+            len(parameter_values) == 0 or not isinstance(parameter_values[0], (Sequence, Iterable))
         ):
             parameter_values = [parameter_values]  # type: ignore[assignment]
 
