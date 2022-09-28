@@ -12,17 +12,19 @@
 
 
 """Utilities for p-VQD."""
-
-from typing import Union, List, Callable
+from __future__ import annotations
 import logging
+from typing import Callable
 
 import numpy as np
 
 from qiskit.circuit import QuantumCircuit, Parameter, ParameterExpression
 from qiskit.compiler import transpile
 from qiskit.exceptions import QiskitError
-from qiskit.opflow import ListOp, CircuitSampler, ExpectationBase, StateFn, OperatorBase
 from qiskit.opflow.gradients.circuit_gradients import ParamShift
+from qiskit.primitives import BaseEstimator
+from qiskit.quantum_info.operators.base_operator import BaseOperator
+from ...exceptions import AlgorithmError
 
 logger = logging.getLogger(__name__)
 
@@ -70,21 +72,12 @@ def _is_gradient_supported(ansatz: QuantumCircuit) -> bool:
 
 def _get_observable_evaluator(
     ansatz: QuantumCircuit,
-    observables: Union[OperatorBase, List[OperatorBase]],
-    expectation: ExpectationBase,
-    sampler: CircuitSampler,
-) -> Callable[[np.ndarray], Union[float, List[float]]]:
+    observables: BaseOperator | list[BaseOperator],
+    estimator: BaseEstimator,
+) -> Callable[[np.ndarray], float | list[float]]:
     """Get a callable to evaluate a (list of) observable(s) for given circuit parameters."""
 
-    if isinstance(observables, list):
-        observables = ListOp(observables)
-
-    expectation_value = StateFn(observables, is_measurement=True) @ StateFn(ansatz)
-    converted = expectation.convert(expectation_value)
-
-    ansatz_parameters = ansatz.parameters
-
-    def evaluate_observables(theta: np.ndarray) -> Union[float, List[float]]:
+    def evaluate_observables(theta: np.ndarray) -> float | list[float]:
         """Evaluate the observables for the ansatz parameters ``theta``.
 
         Args:
@@ -92,9 +85,25 @@ def _get_observable_evaluator(
 
         Returns:
             The observables evaluated at the ansatz parameters.
+
+        Raises:
+            AlgorithmError: If a primitive job fails.
         """
-        value_dict = dict(zip(ansatz_parameters, theta))
-        sampled = sampler.convert(converted, params=value_dict)
-        return sampled.eval()
+        if isinstance(observables, list):
+            num_observables = len(observables)
+            obs = observables
+        else:
+            num_observables = 1
+            obs = [observables]
+        states = [ansatz] * num_observables
+        parameter_values = [theta] * num_observables
+
+        try:
+            estimator_job = estimator.run(states, obs, parameter_values=parameter_values)
+            results = estimator_job.result().values
+        except Exception as exc:
+            raise AlgorithmError("The primitive job failed!") from exc
+
+        return results
 
     return evaluate_observables

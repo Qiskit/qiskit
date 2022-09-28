@@ -21,7 +21,6 @@ from ddt import ddt
 from qiskit import QuantumCircuit, pulse, transpile
 from qiskit.circuit import Parameter
 from qiskit.circuit.library import RealAmplitudes
-from qiskit.exceptions import QiskitError
 from qiskit.primitives import Sampler, SamplerResult
 from qiskit.primitives.utils import _circuit_key
 from qiskit.providers import JobStatus, JobV1
@@ -352,11 +351,11 @@ class TestSampler(QiskitTestCase):
 
         with self.assertWarns(DeprecationWarning):
             sampler = Sampler([qc1, qc2], [qc1.parameters, qc2.parameters])
-        with self.assertRaises(QiskitError), self.assertWarns(DeprecationWarning):
+        with self.assertRaises(ValueError), self.assertWarns(DeprecationWarning):
             sampler([0], [[1e2]])
-        with self.assertRaises(QiskitError), self.assertWarns(DeprecationWarning):
+        with self.assertRaises(ValueError), self.assertWarns(DeprecationWarning):
             sampler([1], [[]])
-        with self.assertRaises(QiskitError), self.assertWarns(DeprecationWarning):
+        with self.assertRaises(ValueError), self.assertWarns(DeprecationWarning):
             sampler([1], [[1e2]])
 
     def test_empty_parameter(self):
@@ -425,7 +424,7 @@ class TestSampler(QiskitTestCase):
             circuit = QuantumCircuit(2)
             with self.assertWarns(DeprecationWarning):
                 sampler = Sampler(circuits=self._pqc)
-            with self.assertRaises(QiskitError), self.assertWarns(DeprecationWarning):
+            with self.assertRaises(ValueError), self.assertWarns(DeprecationWarning):
                 result = sampler(circuits=[circuit], parameter_values=params)
 
     @combine(indices=[[0], [1], [0, 1]])
@@ -584,22 +583,22 @@ class TestSampler(QiskitTestCase):
 
         sampler = Sampler()
         with self.subTest("set parameter values to a non-parameterized circuit"):
-            with self.assertRaises(QiskitError):
+            with self.assertRaises(ValueError):
                 _ = sampler.run([qc1], [[1e2]])
         with self.subTest("missing all parameter values for a parameterized circuit"):
-            with self.assertRaises(QiskitError):
+            with self.assertRaises(ValueError):
                 _ = sampler.run([qc2], [[]])
         with self.subTest("missing some parameter values for a parameterized circuit"):
-            with self.assertRaises(QiskitError):
+            with self.assertRaises(ValueError):
                 _ = sampler.run([qc2], [[1e2]])
         with self.subTest("too many parameter values for a parameterized circuit"):
-            with self.assertRaises(QiskitError):
+            with self.assertRaises(ValueError):
                 _ = sampler.run([qc2], [[1e2]] * 100)
         with self.subTest("no classical bits"):
-            with self.assertRaises(QiskitError):
+            with self.assertRaises(ValueError):
                 _ = sampler.run([qc3], [[]])
         with self.subTest("no measurement"):
-            with self.assertRaises(QiskitError):
+            with self.assertRaises(ValueError):
                 _ = sampler.run([qc4], [[]])
 
     def test_run_empty_parameter(self):
