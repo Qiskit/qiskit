@@ -364,61 +364,62 @@ class TestSparsePauliOpMethods(QiskitTestCase):
             return complex(a.bind(dict(zip(parameters, [1] * len(parameters)))))
 
         self.vbind_one = np.vectorize(bind_one, otypes=[complex])
+        self.parameter_names = (f"param_{x}" for x in it.count())
 
-    def random_spp_op(self, num_qubits, num_terms, params=None):
+    def random_spp_op(self, num_qubits, num_terms, use_parameters=False):
         """Generate a pseudo-random SparsePauliOp"""
-        if params is None:
+        if use_parameters:
+            coeffs = np.array(ParameterVector(next(self.parameter_names), num_terms))
+        else:
             coeffs = self.RNG.uniform(-1, 1, size=num_terms) + 1j * self.RNG.uniform(
                 -1, 1, size=num_terms
             )
-        else:
-            coeffs = np.array(ParameterVector(params, num_terms))
         labels = [
             "".join(self.RNG.choice(["I", "X", "Y", "Z"], size=num_qubits))
             for _ in range(num_terms)
         ]
         return SparsePauliOp(labels, coeffs)
 
-    @combine(num_qubits=[1, 2, 3, 4], param=[None, "a"])
-    def test_conjugate(self, num_qubits, param):
+    @combine(num_qubits=[1, 2, 3, 4], use_parameters=[True, False])
+    def test_conjugate(self, num_qubits, use_parameters):
         """Test conjugate method for {num_qubits}-qubits."""
-        spp_op = self.random_spp_op(num_qubits, 2**num_qubits, param)
+        spp_op = self.random_spp_op(num_qubits, 2**num_qubits, use_parameters)
         target = spp_op.to_matrix().conjugate()
         op = spp_op.conjugate()
         value = op.to_matrix()
         np.testing.assert_array_equal(value, target)
         np.testing.assert_array_equal(op.paulis.phase, np.zeros(op.size))
 
-    @combine(num_qubits=[1, 2, 3, 4], param=[None, "a"])
-    def test_transpose(self, num_qubits, param):
+    @combine(num_qubits=[1, 2, 3, 4], use_parameters=[True, False])
+    def test_transpose(self, num_qubits, use_parameters):
         """Test transpose method for {num_qubits}-qubits."""
-        spp_op = self.random_spp_op(num_qubits, 2**num_qubits, param)
+        spp_op = self.random_spp_op(num_qubits, 2**num_qubits, use_parameters)
         target = spp_op.to_matrix().transpose()
         op = spp_op.transpose()
         value = op.to_matrix()
         np.testing.assert_array_equal(value, target)
         np.testing.assert_array_equal(op.paulis.phase, np.zeros(op.size))
 
-    @combine(num_qubits=[1, 2, 3, 4], param=[None, "a"])
-    def test_adjoint(self, num_qubits, param):
+    @combine(num_qubits=[1, 2, 3, 4], use_parameters=[True, False])
+    def test_adjoint(self, num_qubits, use_parameters):
         """Test adjoint method for {num_qubits}-qubits."""
-        spp_op = self.random_spp_op(num_qubits, 2**num_qubits, param)
+        spp_op = self.random_spp_op(num_qubits, 2**num_qubits, use_parameters)
         target = spp_op.to_matrix().transpose().conjugate()
         op = spp_op.adjoint()
         value = op.to_matrix()
         np.testing.assert_array_equal(value, target)
         np.testing.assert_array_equal(op.paulis.phase, np.zeros(op.size))
 
-    @combine(num_qubits=[1, 2, 3, 4], params=[(None, None), ("a", "b")])
-    def test_compose(self, num_qubits, params):
+    @combine(num_qubits=[1, 2, 3, 4], use_parameters=[True, False])
+    def test_compose(self, num_qubits, use_parameters):
         """Test {num_qubits}-qubit compose methods."""
-        spp_op1 = self.random_spp_op(num_qubits, 2**num_qubits, params[0])
-        spp_op2 = self.random_spp_op(num_qubits, 2**num_qubits, params[1])
+        spp_op1 = self.random_spp_op(num_qubits, 2**num_qubits, use_parameters)
+        spp_op2 = self.random_spp_op(num_qubits, 2**num_qubits, use_parameters)
         target = spp_op2.to_matrix() @ spp_op1.to_matrix()
 
         op = spp_op1.compose(spp_op2)
         value = op.to_matrix()
-        if params[0] is not None:
+        if use_parameters:
             value = self.vbind_one(value)
             target = self.vbind_one(target)
         np.testing.assert_allclose(value, target, atol=1e-8)
@@ -426,21 +427,21 @@ class TestSparsePauliOpMethods(QiskitTestCase):
 
         op = spp_op1 & spp_op2
         value = op.to_matrix()
-        if params[0] is not None:
+        if use_parameters:
             value = self.vbind_one(value)
         np.testing.assert_allclose(value, target, atol=1e-8)
         np.testing.assert_array_equal(op.paulis.phase, np.zeros(op.size))
 
-    @combine(num_qubits=[1, 2, 3, 4], params=[(None, None), ("a", "b")])
-    def test_dot(self, num_qubits, params):
+    @combine(num_qubits=[1, 2, 3, 4], use_parameters=[True, False])
+    def test_dot(self, num_qubits, use_parameters):
         """Test {num_qubits}-qubit dot methods."""
-        spp_op1 = self.random_spp_op(num_qubits, 2**num_qubits, params[0])
-        spp_op2 = self.random_spp_op(num_qubits, 2**num_qubits, params[1])
+        spp_op1 = self.random_spp_op(num_qubits, 2**num_qubits, use_parameters)
+        spp_op2 = self.random_spp_op(num_qubits, 2**num_qubits, use_parameters)
         target = spp_op1.to_matrix() @ spp_op2.to_matrix()
 
         op = spp_op1.dot(spp_op2)
         value = op.to_matrix()
-        if params[0] is not None:
+        if use_parameters:
             value = self.vbind_one(value)
             target = self.vbind_one(target)
         np.testing.assert_allclose(value, target, atol=1e-8)
@@ -448,7 +449,7 @@ class TestSparsePauliOpMethods(QiskitTestCase):
 
         op = spp_op1 @ spp_op2
         value = op.to_matrix()
-        if params[0] is not None:
+        if use_parameters:
             value = self.vbind_one(value)
         np.testing.assert_allclose(value, target, atol=1e-8)
         np.testing.assert_array_equal(op.paulis.phase, np.zeros(op.size))
@@ -484,57 +485,57 @@ class TestSparsePauliOpMethods(QiskitTestCase):
         self.assertEqual(value, target)
         np.testing.assert_array_equal(op.paulis.phase, np.zeros(op.size))
 
-    @combine(num_qubits1=[1, 2, 3], num_qubits2=[1, 2, 3], params=[(None, None), ("a", "b")])
-    def test_tensor(self, num_qubits1, num_qubits2, params):
+    @combine(num_qubits1=[1, 2, 3], num_qubits2=[1, 2, 3], use_parameters=[True, False])
+    def test_tensor(self, num_qubits1, num_qubits2, use_parameters):
         """Test tensor method for {num_qubits1} and {num_qubits2} qubits."""
-        spp_op1 = self.random_spp_op(num_qubits1, 2**num_qubits1, params[0])
-        spp_op2 = self.random_spp_op(num_qubits2, 2**num_qubits2, params[1])
+        spp_op1 = self.random_spp_op(num_qubits1, 2**num_qubits1, use_parameters)
+        spp_op2 = self.random_spp_op(num_qubits2, 2**num_qubits2, use_parameters)
         target = np.kron(spp_op1.to_matrix(), spp_op2.to_matrix())
         op = spp_op1.tensor(spp_op2)
         value = op.to_matrix()
-        if params[0] is not None:
+        if use_parameters:
             value = self.vbind_one(value)
             target = self.vbind_one(target)
         np.testing.assert_allclose(value, target, atol=1e-8)
         np.testing.assert_array_equal(op.paulis.phase, np.zeros(op.size))
 
-    @combine(num_qubits1=[1, 2, 3], num_qubits2=[1, 2, 3], params=[(None, None), ("a", "b")])
-    def test_expand(self, num_qubits1, num_qubits2, params):
+    @combine(num_qubits1=[1, 2, 3], num_qubits2=[1, 2, 3], use_parameters=[True, False])
+    def test_expand(self, num_qubits1, num_qubits2, use_parameters):
         """Test expand method for {num_qubits1} and {num_qubits2} qubits."""
-        spp_op1 = self.random_spp_op(num_qubits1, 2**num_qubits1, params[0])
-        spp_op2 = self.random_spp_op(num_qubits2, 2**num_qubits2, params[1])
+        spp_op1 = self.random_spp_op(num_qubits1, 2**num_qubits1, use_parameters)
+        spp_op2 = self.random_spp_op(num_qubits2, 2**num_qubits2, use_parameters)
         target = np.kron(spp_op2.to_matrix(), spp_op1.to_matrix())
         op = spp_op1.expand(spp_op2)
         value = op.to_matrix()
-        if params[0] is not None:
+        if use_parameters:
             value = self.vbind_one(value)
             target = self.vbind_one(target)
         np.testing.assert_allclose(value, target, atol=1e-8)
         np.testing.assert_array_equal(op.paulis.phase, np.zeros(op.size))
 
-    @combine(num_qubits=[1, 2, 3, 4], params=[(None, None), ("a", "b")])
-    def test_add(self, num_qubits, params):
+    @combine(num_qubits=[1, 2, 3, 4], use_parameters=[True, False])
+    def test_add(self, num_qubits, use_parameters):
         """Test + method for {num_qubits} qubits."""
-        spp_op1 = self.random_spp_op(num_qubits, 2**num_qubits, params[0])
-        spp_op2 = self.random_spp_op(num_qubits, 2**num_qubits, params[1])
+        spp_op1 = self.random_spp_op(num_qubits, 2**num_qubits, use_parameters)
+        spp_op2 = self.random_spp_op(num_qubits, 2**num_qubits, use_parameters)
         target = spp_op1.to_matrix() + spp_op2.to_matrix()
         op = spp_op1 + spp_op2
         value = op.to_matrix()
-        if params[0] is not None:
+        if use_parameters:
             value = self.vbind_one(value)
             target = self.vbind_one(target)
         np.testing.assert_allclose(value, target, atol=1e-8)
         np.testing.assert_array_equal(op.paulis.phase, np.zeros(op.size))
 
-    @combine(num_qubits=[1, 2, 3, 4], params=[(None, None), ("a", "b")])
-    def test_sub(self, num_qubits, params):
+    @combine(num_qubits=[1, 2, 3, 4], use_parameters=[True, False])
+    def test_sub(self, num_qubits, use_parameters):
         """Test + method for {num_qubits} qubits."""
-        spp_op1 = self.random_spp_op(num_qubits, 2**num_qubits, params[0])
-        spp_op2 = self.random_spp_op(num_qubits, 2**num_qubits, params[1])
+        spp_op1 = self.random_spp_op(num_qubits, 2**num_qubits, use_parameters)
+        spp_op2 = self.random_spp_op(num_qubits, 2**num_qubits, use_parameters)
         target = spp_op1.to_matrix() - spp_op2.to_matrix()
         op = spp_op1 - spp_op2
         value = op.to_matrix()
-        if params[0] is not None:
+        if use_parameters:
             value = self.vbind_one(value)
             target = self.vbind_one(target)
         np.testing.assert_allclose(value, target, atol=1e-8)
@@ -831,12 +832,12 @@ class TestSparsePauliOpMethods(QiskitTestCase):
         with self.assertRaises(QiskitError):
             SparsePauliOp.sum([1, 2])
 
-    @combine(num_qubits=[1, 2, 3, 4], params=[(None, None, None), ("a", "b", "c")])
-    def test_eq(self, num_qubits, params):
+    @combine(num_qubits=[1, 2, 3, 4], use_parameters=[True, False])
+    def test_eq(self, num_qubits, use_parameters):
         """Test __eq__ method for {num_qubits} qubits."""
-        spp_op1 = self.random_spp_op(num_qubits, 2**num_qubits, params[0])
-        spp_op2 = self.random_spp_op(num_qubits, 2**num_qubits, params[1])
-        spp_op3 = self.random_spp_op(num_qubits, 2**num_qubits, params[2])
+        spp_op1 = self.random_spp_op(num_qubits, 2**num_qubits, use_parameters)
+        spp_op2 = self.random_spp_op(num_qubits, 2**num_qubits, use_parameters)
+        spp_op3 = self.random_spp_op(num_qubits, 2**num_qubits, use_parameters)
         zero = spp_op3 - spp_op3
         self.assertEqual(spp_op1, spp_op1)
         self.assertEqual(spp_op2, spp_op2)
