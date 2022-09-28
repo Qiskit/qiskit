@@ -40,10 +40,8 @@ class Eigensolver(ABC):
         aux_operators: ListOrDict[BaseOperator | PauliSumOp] | None = None,
     ) -> "EigensolverResult":
         """
-        Computes eigenvalues. The ``operator`` and ``aux_operators`` can be supplied here and,
-        if not ``None``, will override any already set into algorithm so it can be reused with
-        different operators. While an ``operator`` is required by algorithms, ``aux_operators``
-        are optional. To 'remove' a previous ``aux_operators`` array use an empty list here.
+        Computes the minimum eigenvalue. The ``operator`` and ``aux_operators`` are supplied here.
+        While an ``operator`` is required by algorithms, ``aux_operators`` are optional.
 
         Args:
             operator: Qubit operator of the observable.
