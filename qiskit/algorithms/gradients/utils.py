@@ -233,9 +233,7 @@ def _make_param_shift_parameter_values(
     """
     circuit = gradient_circuit_data.circuit
     gradient_circuit = gradient_circuit_data.gradient_circuit
-    gradient_parameter_values = np.zeros(
-        len(gradient_circuit_data.gradient_circuit.parameters)
-    )
+    gradient_parameter_values = np.zeros(len(gradient_circuit_data.gradient_circuit.parameters))
     plus_offsets, minus_offsets, result_indices, coeffs = [], [], [], []
     result_idx = 0
     for i, param in enumerate(circuit.parameters):
