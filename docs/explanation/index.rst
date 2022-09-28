@@ -9,4 +9,4 @@ Explanation
 .. toctree::
   :maxdepth: 1
 
-  Order of qubits in Qiskit <explanation/endianness>
+  Order of qubits in Qiskit <endianness>
