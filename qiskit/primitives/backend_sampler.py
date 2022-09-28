@@ -13,13 +13,12 @@
 """Sampler implementation for an artibtrary Backend object."""
 from __future__ import annotations
 
-from collections.abc import Iterable, Sequence
+from collections.abc import Sequence
 from typing import Any, cast
 
-from qiskit.circuit.parameter import Parameter
 from qiskit.circuit.quantumcircuit import QuantumCircuit
 from qiskit.exceptions import QiskitError
-from qiskit.providers.backend import Backend
+from qiskit.providers.backend import BackendV1, BackendV2
 from qiskit.providers.options import Options
 from qiskit.result import QuasiDistribution, Result
 from qiskit.transpiler.passmanager import PassManager
@@ -41,9 +40,7 @@ class BackendSampler(BaseSampler):
 
     def __init__(
         self,
-        backend: Backend = None,
-        circuits: QuantumCircuit | Iterable[QuantumCircuit] = None,
-        parameters: Iterable[Iterable[Parameter]] | None = None,
+        backend: BackendV1 | BackendV2,
         options: dict | None = None,
         bound_pass_manager: PassManager | None = None,
         skip_transpilation: bool = False,
@@ -52,9 +49,6 @@ class BackendSampler(BaseSampler):
 
         Args:
             backend: Required: the backend to run the sampler primitive on
-            circuits: The Quantum circuits to be executed.
-            parameters: Parameters of each of the quantum circuits.
-                Defaults to ``[circ.parameters for circ in circuits]``.
             options: Default options.
             bound_pass_manager: An optional pass manager to run after
                 parameter binding.
@@ -65,7 +59,7 @@ class BackendSampler(BaseSampler):
             ValueError: If backend is not provided
         """
 
-        super().__init__(circuits, parameters, options)
+        super().__init__(None, None, options)
         if backend is None:
             raise ValueError("A backend is required to use BackendSampler")
         self._backend = backend
@@ -75,6 +69,14 @@ class BackendSampler(BaseSampler):
         self._preprocessed_circuits: list[QuantumCircuit] | None = None
         self._transpiled_circuits: list[QuantumCircuit] | None = None
         self._skip_transpilation = skip_transpilation
+
+    def __new__(  # pylint: disable=signature-differs
+        cls,
+        backend: BackendV1 | BackendV2,  # pylint: disable=unused-argument
+        **kwargs,  # pylint: disable=unused-argument
+    ):
+        self = super().__new__(cls)
+        return self
 
     @property
     def preprocessed_circuits(self) -> list[QuantumCircuit]:
@@ -106,7 +108,7 @@ class BackendSampler(BaseSampler):
         return self._transpiled_circuits
 
     @property
-    def backend(self) -> Backend:
+    def backend(self) -> BackendV1 | BackendV2:
         """
         Returns:
             The backend which this sampler object based on
