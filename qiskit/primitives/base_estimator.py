@@ -445,8 +445,14 @@ class BaseEstimator(ABC):
             circuits = [circuits]
         if not isinstance(observables, Sequence):
             observables = [observables]
-        if parameter_values is not None and (
-            len(parameter_values) == 0 or not isinstance(parameter_values[0], (Sequence, Iterable))
+        if (
+            len(circuits) > 0
+            and len(observables) > 0
+            and parameter_values is not None
+            and (
+                len(parameter_values) == 0
+                or not isinstance(parameter_values[0], (Sequence, Iterable))
+            )
         ):
             parameter_values = [parameter_values]  # type: ignore[assignment]
 
