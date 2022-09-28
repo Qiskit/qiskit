@@ -60,9 +60,9 @@ class LinCombQFI(BaseQFI):
                 ``DerivativeType.IMAG``, or ``DerivativeType.COMPLEX``. Defaults to
                 ``DerivativeType.REAL``.
 
-                + ``DerivativeType.REAL`` computes :math:`4 \mathrm{Re}[(dω⟨ψ(ω)|)O(θ)|ψ(ω)〉]`.
-                + ``DerivativeType.IMAG`` computes :math:`4 \mathrm{Im}[(dω⟨ψ(ω)|)O(θ)|ψ(ω)〉]`.
-                + ``DerivativeType.COMPLEX`` computes :math:`4 (dω⟨ψ(ω)|)O(θ)|ψ(ω)〉`.
+                - ``DerivativeType.REAL`` computes :math:`4 \mathrm{Re}[(dω⟨ψ(ω)|)O(θ)|ψ(ω)〉]`.
+                - ``DerivativeType.IMAG`` computes :math:`4 \mathrm{Im}[(dω⟨ψ(ω)|)O(θ)|ψ(ω)〉]`.
+                - ``DerivativeType.COMPLEX`` computes :math:`4 (dω⟨ψ(ω)|)O(θ)|ψ(ω)〉`.
 
             options: Backend runtime options used for circuit execution. The order of priority is:
                 options in ``run`` method > QFI's default options > primitive's default
