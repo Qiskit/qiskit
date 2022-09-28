@@ -44,10 +44,50 @@ logger = logging.getLogger(__name__)
 
 
 class SamplingVQE(VariationalAlgorithm, SamplingMinimumEigensolver):
-    r"""The Variational Quantum Eigensolver algorithm, optimized for diagonal Hamiltonians."
+    r"""The Variational Quantum Eigensolver algorithm, optimized for diagonal Hamiltonians.
+
+    VQE is a hybrid quantum-classical algorithm that uses a variational technique to find the
+    minimum eigenvalue of a given diagonal Hamiltonian operator :math:`H_{\text{diag}}`.
+
+    In contrast to the :class:`~qiskit.algorithms.minimum_eigensolvers.VQE` class, the
+    ``SamplingVQE`` algorithm is executed using a :attr:`sampler` primitive.
+
+    An instance of ``SamplingVQE`` also requires an :attr:`ansatz`, a parameterized
+    :class:`.QuantumCircuit`, to prepare the trial state :math:`|\psi(\vec\theta)\rangle`. It also
+    needs a classical :attr:`optimizer` which varies the circuit parameters :math:`\vec\theta` to
+    minimize the objective function, which depends on the chosen :attr:`aggregation`.
+
+    The optimizer can either be one of Qiskit's optimizers, such as
+    :class:`~qiskit.algorithms.optimizers.SPSA` or a callable with the following signature:
+
+    .. code-block:: python
+
+        from qiskit.algorithms.optimizers import OptimizerResult
+
+        def my_minimizer(fun, x0, jac=None, bounds=None) -> OptimizerResult:
+            # Note that the callable *must* have these argument names!
+            # Args:
+            #     fun (callable): the function to minimize
+            #     x0 (np.ndarray): the initial point for the optimization
+            #     jac (callable, optional): the gradient of the objective function
+            #     bounds (list, optional): a list of tuples specifying the parameter bounds
+
+            result = OptimizerResult()
+            result.x = # optimal parameters
+            result.fun = # optimal function value
+            return result
+
+    The above signature also allows one to use any SciPy minimizer, for instance as
+
+    .. code-block:: python
+
+        from functools import partial
+        from scipy.optimize import minimize
+
+        optimizer = partial(minimize, method="L-BFGS-B")
 
     The following attributes can be set via the initializer but can also be read and updated once
-    the SamplingVQE object has been constructed.
+    the ``SamplingVQE`` object has been constructed.
 
     Attributes:
         sampler: The sampler primitive to sample the circuits.
@@ -58,14 +98,14 @@ class SamplingVQE(VariationalAlgorithm, SamplingMinimumEigensolver):
             Defaults to :class:`.SLSQP`.
         aggregation: A float or callable to specify how the objective function evaluated on the
             basis states should be aggregated. If a float, this specifies the :math:`\alpha \in [0,1]`
-            parameter for a CVaR expectation value (see also [1]).
+            parameter for a CVaR expectation value [1].
         callback (Callable[[int, np.ndarray, float, dict[str, Any]], None] | None): A callback that
             can access the intermediate data at each optimization step. These data are: the
             evaluation count, the optimizer parameters for the ansatz, the evaluated value, and the
             metadata dictionary.
 
     References:
-        [1] Barkoutsos, P. K., Nannicini, G., Robert, A., Tavernelli, I., and Woerner, S.,
+        [1]: Barkoutsos, P. K., Nannicini, G., Robert, A., Tavernelli, I., and Woerner, S.,
             "Improving Variational Quantum Optimization using CVaR"
             `arXiv:1907.04769 <https://arxiv.org/abs/1907.04769>`_
     """

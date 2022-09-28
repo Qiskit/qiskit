@@ -55,7 +55,7 @@ class _DiagonalEstimator(BaseEstimator):
                 this specified the CVaR :math:`\alpha` parameter.
             callback: A callback which is given the best measurements of all circuits in each
                 evaluation.
-            run_options: Run options for the sampler.
+            run_options: Options for the sampler.
 
         """
         super().__init__(options=options)

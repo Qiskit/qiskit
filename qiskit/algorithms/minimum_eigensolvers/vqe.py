@@ -105,7 +105,7 @@ class VQE(VariationalAlgorithm, MinimumEigensolver):
             metadata dictionary.
 
     References:
-        [1] Peruzzo et al, "A variational eigenvalue solver on a quantum processor"
+        [1]: Peruzzo, A., et al, "A variational eigenvalue solver on a quantum processor"
             `arXiv:1304.3061 <https://arxiv.org/abs/1304.3061>`__
     """
 

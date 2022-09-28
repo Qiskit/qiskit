@@ -30,27 +30,25 @@ from .sampling_vqe import SamplingVQE
 
 class QAOA(SamplingVQE):
     r"""
-    The Quantum Approximate Optimization Algorithm.
+    The Quantum Approximate Optimization Algorithm (QAOA).
 
-    `QAOA <https://arxiv.org/abs/1411.4028>`__ is a well-known algorithm for finding approximate
-    solutions to combinatorial-optimization problems.
+    QAOA is a well-known algorithm for finding approximate solutions to combinatorial-optimization
+    problems [1].
 
     The QAOA implementation directly extends :class:`.SamplingVQE` and inherits its optimization
     structure. However, unlike VQE, which can be configured with arbitrary ansatzes, QAOA uses its
     own fine-tuned ansatz, which comprises :math:`p` parameterized global :math:`x` rotations and
     :math:`p` different parameterizations of the problem hamiltonian. QAOA is thus principally
-    configured  by the single integer parameter, *p*, which dictates the depth of the ansatz, and
-    thus affects the approximation quality.
+    configured  by the single integer parameter, ``reps``, which dictates the depth of the ansatz,
+    and thus affects the approximation quality.
 
-    An optional array of :math:`2p` parameter values, as the *initial_point*, may be provided as the
-    starting **beta** and **gamma** parameters (as identically named in the original `QAOA paper
-    <https://arxiv.org/abs/1411.4028>`__) for the QAOA ansatz.
+    An optional array of :math:`2p` parameter values, as the :attr:`initial_point`, may be provided
+    as the starting :math:`\beta` and :math:`\gamma` parameters for the QAOA ansatz [1].
 
     An operator or a parameterized quantum circuit may optionally also be provided as a custom
-    `mixer` Hamiltonian. This allows, as discussed in `this paper
-    <https://doi.org/10.1103/PhysRevApplied.5.034007>`__ for quantum annealing, and in `this paper
-    <https://arxiv.org/abs/1709.03489>`__ for QAOA, to run constrained optimization problems where
-    the mixer constrains the evolution to a feasible subspace of the full Hilbert space.
+    :attr:`mixer` Hamiltonian. This allows in the case of quantum annealing [2] and QAOA [3], to run
+    constrained optimization problems where the mixer constrains the evolution to a feasible
+    subspace of the full Hilbert space.
 
     The following attributes can be set via the initializer but can also be read and updated once
     the QAOA object has been constructed.
@@ -60,20 +58,28 @@ class QAOA(SamplingVQE):
         optimizer: A classical optimizer to find the minimum energy. This can either be a
             Qiskit :class:`.Optimizer` or a callable implementing the :class:`.Minimizer` protocol.
             Defaults to :class:`.SLSQP`.
-        reps: the integer parameter :math:`p` as specified in https://arxiv.org/abs/1411.4028,
-            Has a minimum valid value of 1.
+        reps: The integer parameter :math:`p`. Has a minimum valid value of 1.
         initial_state: An optional initial state to prepend the QAOA circuit with.
-        mixer: the mixer Hamiltonian to evolve with or a custom quantum circuit. Allows support
-            of optimizations in constrained subspaces as per https://arxiv.org/abs/1709.03489
-            as well as warm-starting the optimization as introduced
-            in http://arxiv.org/abs/2009.10095.
+        mixer: The mixer Hamiltonian to evolve with or a custom quantum circuit. Allows support
+            of optimizations in constrained subspaces [2, 3] as well as warm-starting the
+            optimization [4].
         aggregation: A float or callable to specify how the objective function evaluated on the
             basis states should be aggregated. If a float, this specifies the :math:`\alpha \in [0,1]`
-            parameter for a CVaR expectation value (see also [1]).
+            parameter for a CVaR expectation value.
         callback (Callable[[int, np.ndarray, float, dict[str, Any]], None] | None): A callback
             that can access the intermediate data at each optimization step. These data are: the
             evaluation count, the optimizer parameters for the ansatz, the evaluated value, the
             the metadata dictionary, and the best measurement.
+
+    References:
+        [1]: Farhi, E., Goldstone, J., Gutmann, S., "A Quantum Approximate Optimization Algorithm"
+            `arXiv:1411.4028 <https://arxiv.org/abs/1411.4028>`__
+        [2]: Hen, I., Spedalieri, F. M.,  "Quantum Annealing for Constrained Optimization"
+            `PhysRevApplied.5.034007 <https://doi.org/10.1103/PhysRevApplied.5.034007>`__
+        [3]: Hadfield, S. et al, "From the Quantum Approximate Optimization Algorithm to a Quantum
+            Alternating Operator Ansatz" `arXiv:1709.03489 <https://arxiv.org/abs/1709.03489>`__
+        [4]: Egger, D. J., Marecek, J., Woerner, S., "Warm-starting quantum optimization"
+            `arXiv: 2009.10095 https://arxiv.org/abs/2009.10095>`__
     """
 
     def __init__(
