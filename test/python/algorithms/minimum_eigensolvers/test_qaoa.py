@@ -25,7 +25,7 @@ import retworkx as rx
 
 from qiskit import QuantumCircuit
 from qiskit.algorithms.minimum_eigensolvers import QAOA
-from qiskit.algorithms.optimizers import COBYLA  # , NELDER_MEAD
+from qiskit.algorithms.optimizers import COBYLA, NELDER_MEAD
 from qiskit.circuit import Parameter
 from qiskit.opflow import PauliSumOp
 from qiskit.quantum_info import Pauli
@@ -213,16 +213,16 @@ class TestQAOA(QiskitAlgorithmsTestCase):
         with self.subTest("Solution"):
             self.assertIn(graph_solution, solutions)
 
-    # def test_qaoa_random_initial_point(self):
-    #     """QAOA random initial point"""
-    #     w = rx.adjacency_matrix(
-    #         rx.undirected_gnp_random_graph(5, 0.5, seed=algorithm_globals.random_seed)
-    #     )
-    #     qubit_op, _ = self._get_operator(w)
-    #     qaoa = QAOA(self.sampler, NELDER_MEAD(disp=True), reps=1)
-    #     result = qaoa.compute_minimum_eigenvalue(operator=qubit_op)
+    def test_qaoa_random_initial_point(self):
+        """QAOA random initial point"""
+        w = rx.adjacency_matrix(
+            rx.undirected_gnp_random_graph(5, 0.5, seed=algorithm_globals.random_seed)
+        )
+        qubit_op, _ = self._get_operator(w)
+        qaoa = QAOA(self.sampler, NELDER_MEAD(disp=True), reps=2)
+        result = qaoa.compute_minimum_eigenvalue(operator=qubit_op)
 
-    #     self.assertLess(result.eigenvalue.real, -0.97)
+        self.assertLess(result.eigenvalue, -0.97)
 
     def test_optimizer_scipy_callable(self):
         """Test passing a SciPy optimizer directly as callable."""
