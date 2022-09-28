@@ -15,12 +15,13 @@ Expectation value class
 
 from __future__ import annotations
 
-from collections.abc import Iterable, Sequence
 import copy
+from collections.abc import Iterable, Sequence
 from itertools import accumulate
 
 import numpy as np
-from qiskit.circuit import Parameter, ParameterExpression, QuantumCircuit
+
+from qiskit.circuit import Parameter, QuantumCircuit
 from qiskit.compiler import transpile
 from qiskit.exceptions import QiskitError
 from qiskit.opflow import PauliSumOp
@@ -28,40 +29,13 @@ from qiskit.primitives.base_estimator import BaseEstimator
 from qiskit.primitives.estimator_result import EstimatorResult
 from qiskit.primitives.primitive_job import PrimitiveJob
 from qiskit.providers import Backend, Options
-from qiskit.quantum_info import Pauli, PauliList, SparsePauliOp
+from qiskit.quantum_info import Pauli, PauliList
 from qiskit.quantum_info.operators.base_operator import BaseOperator
-from qiskit.quantum_info.operators.symplectic.base_pauli import BasePauli
 from qiskit.result import Counts, Result
 from qiskit.tools.monitor import job_monitor
 from qiskit.transpiler import PassManager
 
-
-def _init_observable(observable: BaseOperator | PauliSumOp) -> SparsePauliOp:
-    """Initialize observable by converting the input to a :class:`~qiskit.quantum_info.SparsePauliOp`.
-    Args:
-        observable: The observable.
-    Returns:
-        The observable as :class:`~qiskit.quantum_info.SparsePauliOp`.
-    Raises:
-        TypeError: If the observable is a :class:`~qiskit.opflow.PauliSumOp` and has a parameterized
-            coefficient.
-    """
-    if isinstance(observable, SparsePauliOp):
-        ret = observable
-    elif isinstance(observable, PauliSumOp):
-        if isinstance(observable.coeff, ParameterExpression):
-            raise TypeError(
-                f"Observable must have numerical coefficient, not {type(observable.coeff)}."
-            )
-        ret = observable.coeff * observable.primitive
-    elif isinstance(observable, BasePauli):
-        ret = SparsePauliOp(observable)
-    elif isinstance(observable, BaseOperator):
-        ret = SparsePauliOp.from_operator(observable)
-    else:
-        ret = SparsePauliOp(observable)
-
-    return ret.simplify(atol=0)
+from .utils import _circuit_key, init_observable
 
 
 def _run_circuits(
@@ -101,11 +75,11 @@ class BackendEstimator(BaseEstimator):
         backend: Backend = None,
         circuits: QuantumCircuit | Iterable[QuantumCircuit] = None,
         observables: BaseOperator | PauliSumOp | Iterable[BaseOperator | PauliSumOp] = None,
+        options: dict | None = None,
         parameters: Iterable[Iterable[Parameter]] | None = None,
         abelian_grouping: bool = True,
         bound_pass_manager: PassManager | None = None,
         skip_transpilation: bool = False,
-        **run_options,
     ):
         """Initalize a new BackendEstimator isntance
 
@@ -113,6 +87,7 @@ class BackendEstimator(BaseEstimator):
             backend: Required: the backend to run the primitive on
             circuits: circuits that represent quantum states.
             observables: observables to be estimated.
+            options: Default options.
             parameters: Parameters of each of the quantum circuits.
                 Defaults to ``[circ.parameters for circ in circuits]``.
             abelian_grouping: Whether the observable should be grouped into
@@ -122,17 +97,17 @@ class BackendEstimator(BaseEstimator):
             skip_transpilation: If this is set to True the internal compilation
                 of the input circuits is skipped and the circuit objects
                 will be directly executed when this object is called.
-            run_options: Any backends specific options to set for running
         """
         if observables is not None:
             if isinstance(observables, (PauliSumOp, BaseOperator)):
                 observables = (observables,)
-            observables = tuple(_init_observable(observable) for observable in observables)
+            observables = tuple(init_observable(observable) for observable in observables)
 
         super().__init__(
             circuits=circuits,
             observables=observables,
             parameters=parameters,
+            options=options,
         )
         if backend is None:
             raise ValueError("Backend must be provided")
@@ -143,10 +118,6 @@ class BackendEstimator(BaseEstimator):
 
         self._backend = backend
 
-        # pylint: disable=consider-using-get
-        if "run_options" in run_options:
-            run_options = run_options["run_options"]
-        self.set_run_options(**run_options)
         self._is_closed = False
 
         self._transpile_options = Options()
@@ -159,40 +130,18 @@ class BackendEstimator(BaseEstimator):
         self._skip_transpilation = skip_transpilation
 
     @property
-    def run_options(self) -> Options:
-        """Return options values for the evaluator.
-        Returns:
-            run_options
-        """
-        return self._backend.options
-
-    def set_run_options(self, **fields) -> BackendEstimator:
-        """Set options values for the evaluator.
-        Args:
-            **fields: The fields to update the options
-        Returns:
-            self
-        """
-        self._check_is_closed()
-        self._backend.options.update_options(**fields)
-        return self
-
-    @property
     def transpile_options(self) -> Options:
         """Return the transpiler options for transpiling the circuits."""
         return self._transpile_options
 
-    def set_transpile_options(self, **fields) -> BaseEstimator:
+    def set_transpile_options(self, **fields):
         """Set the transpiler options for transpiler.
         Args:
             **fields: The fields to update the options
-        Returns:
-            self
         """
         self._check_is_closed()
         self._transpiled_circuits = None
         self._transpile_options.update_options(**fields)
-        return self
 
     @property
     def preprocessed_circuits(
@@ -288,9 +237,7 @@ class BackendEstimator(BaseEstimator):
         bound_circuits = self._bound_pass_manager_run(bound_circuits)
 
         # Run
-        run_opts = copy.copy(self.run_options)
-        run_opts.update_options(**run_options)
-        result, metadata = _run_circuits(bound_circuits, self._backend, **run_opts.__dict__)
+        result, metadata = _run_circuits(bound_circuits, self._backend, **run_options)
 
         return self._postprocessing(result, accum, metadata)
 
@@ -306,12 +253,12 @@ class BackendEstimator(BaseEstimator):
     ) -> PrimitiveJob:
         circuit_indices = []
         for circuit in circuits:
-            index = self._circuit_ids.get(id(circuit))
+            index = self._circuit_ids.get(_circuit_key(circuit))
             if index is not None:
                 circuit_indices.append(index)
             else:
                 circuit_indices.append(len(self._circuits))
-                self._circuit_ids[id(circuit)] = len(self._circuits)
+                self._circuit_ids[_circuit_key(circuit)] = len(self._circuits)
                 self._circuits.append(circuit)
                 self._parameters.append(circuit.parameters)
         observable_indices = []
@@ -322,7 +269,7 @@ class BackendEstimator(BaseEstimator):
             else:
                 observable_indices.append(len(self._observables))
                 self._observable_ids[id(observable)] = len(self._observables)
-                self._observables.append(_init_observable(observable))
+                self._observables.append(init_observable(observable))
         job = PrimitiveJob(
             self._call, circuit_indices, observable_indices, parameter_values, **run_options
         )
