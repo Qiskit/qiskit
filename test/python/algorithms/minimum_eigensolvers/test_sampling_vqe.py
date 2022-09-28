@@ -211,6 +211,35 @@ class TestSamplerVQE(QiskitAlgorithmsTestCase):
         with self.assertRaises(ValueError):
             _ = vqe.compute_minimum_eigenvalue(Pauli("X"))
 
+    def test_callback(self):
+        """Test the callback on VQE."""
+        history = {
+            "eval_count": [],
+            "parameters": [],
+            "mean": [],
+            "metadata": [],
+        }
+
+        def store_intermediate_result(eval_count, parameters, mean, metadata):
+            history["eval_count"].append(eval_count)
+            history["parameters"].append(parameters)
+            history["mean"].append(mean)
+            history["metadata"].append(metadata)
+
+        sampling_vqe = SamplingVQE(
+            Sampler(),
+            RealAmplitudes(2, reps=1),
+            SLSQP(),
+            callback=store_intermediate_result,
+        )
+        sampling_vqe.compute_minimum_eigenvalue(operator=self.op)
+
+        self.assertTrue(all(isinstance(count, int) for count in history["eval_count"]))
+        self.assertTrue(all(isinstance(mean, complex) for mean in history["mean"]))
+        self.assertTrue(all(isinstance(metadata, dict) for metadata in history["metadata"]))
+        for params in history["parameters"]:
+            self.assertTrue(all(isinstance(param, float) for param in params))
+
 
 if __name__ == "__main__":
     unittest.main()

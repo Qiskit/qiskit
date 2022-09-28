@@ -78,7 +78,7 @@ class SamplingVQE(VariationalAlgorithm, SamplingMinimumEigensolver):
         *,
         initial_point: Sequence[float] | None = None,
         aggregation: float | Callable[[list[float]], float] | None = None,
-        callback: Callable[[int, np.ndarray, float, dict[str, Any], dict[str, Any]], None]
+        callback: Callable[[int, np.ndarray, float, dict[str, Any]], None]
         | None = None,
     ) -> None:
         r"""
@@ -184,8 +184,6 @@ class SamplingVQE(VariationalAlgorithm, SamplingMinimumEigensolver):
 
         final_state = self.sampler.run([self.ansatz], [optimizer_result.x]).result().quasi_dists
 
-        print(final_state)
-
         if aux_operators is not None:
             aux_operators_evaluated = estimate_observables(
                 _DiagonalEstimator(sampler=self.sampler),
@@ -228,6 +226,9 @@ class SamplingVQE(VariationalAlgorithm, SamplingMinimumEigensolver):
         if num_parameters == 0:
             raise RuntimeError("The ansatz must be parameterized, but has 0 free parameters.")
 
+        # avoid creating an instance variable to remain stateless regarding results
+        eval_count = 0
+
         best_measurement = {"best": None}
 
         def store_best_measurement(best):
@@ -240,6 +241,7 @@ class SamplingVQE(VariationalAlgorithm, SamplingMinimumEigensolver):
         estimator = _DiagonalEstimator(sampler=self.sampler, callback=store_best_measurement)
 
         def evaluate_energy(parameters):
+            nonlocal eval_count
             # handle broadcasting: ensure parameters is of shape [array, array, ...]
             parameters = np.reshape(parameters, (-1, num_parameters)).tolist()
             batch_size = len(parameters)
@@ -253,7 +255,7 @@ class SamplingVQE(VariationalAlgorithm, SamplingMinimumEigensolver):
                 metadata = estimator_result.metadata
                 for params, value, meta in zip(parameters, values, metadata):
                     eval_count += 1
-                    self.callback(eval_count, params, value, meta, best_measurement)
+                    self.callback(eval_count, params, value, meta)
 
             result = values if len(values) > 1 else values[0]
             return np.real(result)

@@ -86,7 +86,7 @@ class QAOA(SamplingVQE):
         mixer: QuantumCircuit | BaseOperator | PauliSumOp = None,
         initial_point: np.ndarray | None = None,
         aggregation: float | Callable[[list[float]], float] | None = None,
-        callback: Callable[[int, np.ndarray, float, dict[str, Any], dict[str, Any]], None]
+        callback: Callable[[int, np.ndarray, float, dict[str, Any]], None]
         | None = None,
     ) -> None:
         """
@@ -107,7 +107,7 @@ class QAOA(SamplingVQE):
                 basis states should be aggregated.
             callback: A callback that can access the intermediate data at each optimization step.
                 These data are: the evaluation count, the optimizer parameters for the ansatz, the
-                evaluated value, the the metadata dictionary, and the best measurement.
+                evaluated value, the the metadata dictionary.
         """
         validate_min("reps", reps, 1)
 
