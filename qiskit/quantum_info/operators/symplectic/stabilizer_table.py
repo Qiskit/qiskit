@@ -24,7 +24,7 @@ from qiskit.quantum_info.operators.symplectic.pauli_table import PauliTable
 
 
 class StabilizerTable(PauliTable, AdjointMixin):
-    r"""DEPRECATED: Symplectic representation of a list Stabilizer matrices.
+    r"""Symplectic representation of a list Stabilizer matrices.
 
     **Symplectic Representation**
 
@@ -186,10 +186,9 @@ class StabilizerTable(PauliTable, AdjointMixin):
             can share the same underlying array.
         """
         warn(
-            "The StabilizerTable class is deprecated as of Qiskit Terra 0.22.0 "
-            "and will be removed no sooner than 3 months after the release date. "
-            "Use PauliList class instead.",
-            DeprecationWarning,
+            "The StabilizerTable class has been superseded by PauliList and is pending deprecation. "
+            "This class will be deprecated in the future release and subsequently removed after that.",
+            PendingDeprecationWarning,
             stacklevel=2,
         )
         if isinstance(data, str) and phase is None:
