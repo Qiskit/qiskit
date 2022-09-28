@@ -106,7 +106,7 @@ class ParamShiftEstimatorGradient(BaseEstimatorGradient):
         for i, result in enumerate(results):
             n = len(result.values) // 2  # is always a multiple of 2
             gradient_ = result.values[:n] - result.values[n:]
-            values = np.zeros(len(metadata_[i]["parameters"]), dtype="complex_")
+            values = np.zeros(len(metadata_[i]["parameters"]))
             for grad_, idx, coeff in zip(gradient_, result_indices_all[i], coeffs_all[i]):
                 values[idx] += coeff * grad_
             gradients.append(values)
