@@ -97,8 +97,8 @@ class TestVQD(QiskitAlgorithmsTestCase):
         with self.subTest(msg="assert cost_function_evals is set"):
             self.assertIsNotNone(result.cost_function_evals)
 
-        with self.subTest(msg="assert optimizer_time is set"):
-            self.assertIsNotNone(result.optimizer_time)
+        with self.subTest(msg="assert optimizer_times is set"):
+            self.assertIsNotNone(result.optimizer_times)
 
     @data(H2_PAULI, H2_OP)
     def test_mismatching_num_qubits(self, op):

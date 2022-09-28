@@ -292,7 +292,7 @@ class VQD(VariationalAlgorithm, Eigensolver):
         result.optimal_points = np.array(result.optimal_points)
         result.optimal_values = np.array(result.optimal_values)
         result.cost_function_evals = np.array(result.cost_function_evals)
-        result.optimizer_time = np.array(result.optimizer_time)
+        result.optimizer_times = np.array(result.optimizer_times)
 
         if aux_operators is not None:
             result.aux_operators_evaluated = aux_values
@@ -385,7 +385,7 @@ class VQD(VariationalAlgorithm, Eigensolver):
         result.optimal_parameters = []
         result.optimal_values = []
         result.cost_function_evals = []
-        result.optimizer_time = []
+        result.optimizer_times = []
         result.eigenvalues = []
         result.optimizer_results = []
         return result
@@ -397,7 +397,7 @@ class VQD(VariationalAlgorithm, Eigensolver):
         result.optimal_parameters.append(dict(zip(ansatz.parameters, opt_result.x)))
         result.optimal_values.append(opt_result.fun)
         result.cost_function_evals.append(opt_result.nfev)
-        result.optimizer_time.append(eval_time)
+        result.optimizer_times.append(eval_time)
         result.eigenvalues.append(opt_result.fun + 0j)
         result.optimizer_results.append(opt_result)
         return result
@@ -409,55 +409,55 @@ class VQDResult(EigensolverResult):
     def __init__(self) -> None:
         super().__init__()
         self._cost_function_evals = None
-        self._optimizer_time = None
+        self._optimizer_times = None
         self._optimal_values = None
         self._optimal_points = None
         self._optimal_parameters = None
         self._optimizer_results = None
 
     @property
-    def cost_function_evals(self) -> list[int] | None:
+    def cost_function_evals(self) -> Sequence[int] | None:
         """Returns number of cost optimizer evaluations"""
         return self._cost_function_evals
 
     @cost_function_evals.setter
-    def cost_function_evals(self, value: list[int]) -> None:
+    def cost_function_evals(self, value: Sequence[int]) -> None:
         """Sets number of cost function evaluations"""
         self._cost_function_evals = value
 
     @property
-    def optimizer_time(self) -> float | None:
-        """Returns time taken for optimization"""
-        return self._optimizer_time
+    def optimizer_times(self) -> Sequence[float] | None:
+        """Returns time taken for optimization for each step"""
+        return self._optimizer_times
 
-    @optimizer_time.setter
-    def optimizer_time(self, value: float) -> None:
-        """Sets time taken for optimization"""
-        self._optimizer_time = value
+    @optimizer_times.setter
+    def optimizer_times(self, value: Sequence[float]) -> None:
+        """Sets time taken for optimization for each step"""
+        self._optimizer_times = value
 
     @property
     def optimal_values(self) -> Sequence[float] | None:
-        """Returns optimal value"""
+        """Returns optimal value for each step"""
         return self._optimal_values
 
     @optimal_values.setter
     def optimal_values(self, value: Sequence[float]) -> None:
-        """Sets optimal value"""
+        """Sets optimal values"""
         self._optimal_values = value
 
     @property
     def optimal_points(self) -> Sequence[np.ndarray] | None:
-        """Returns optimal point"""
+        """Returns optimal point for each step"""
         return self._optimal_points
 
     @optimal_points.setter
     def optimal_points(self, value: Sequence[np.ndarray]) -> None:
-        """Sets optimal point"""
+        """Sets optimal points"""
         self._optimal_points = value
 
     @property
     def optimal_parameters(self) -> Sequence[dict] | None:
-        """Returns the optimal parameters in a dictionary"""
+        """Returns the optimal parameters for each step"""
         return self._optimal_parameters
 
     @optimal_parameters.setter
@@ -467,10 +467,10 @@ class VQDResult(EigensolverResult):
 
     @property
     def optimizer_results(self) -> Sequence[OptimizerResult] | None:
-        """Returns the optimizer result"""
+        """Returns the optimizer results for each step"""
         return self._optimizer_results
 
     @optimizer_results.setter
     def optimizer_results(self, value: Sequence[OptimizerResult]) -> None:
-        """Sets optimizer result"""
+        """Sets optimizer results"""
         self._optimizer_results = value
