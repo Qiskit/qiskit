@@ -19,6 +19,7 @@ from typing import Any
 
 from qiskit.quantum_info.operators.base_operator import BaseOperator
 from qiskit.opflow import PauliSumOp
+from qiskit.result import QuasiDistribution
 from ..algorithm_result import AlgorithmResult
 from ..list_or_dict import ListOrDict
 
@@ -83,26 +84,32 @@ class SamplingMinimumEigensolverResult(AlgorithmResult):
         self._eigenvalue = value
 
     @property
-    def eigenstate(self) -> Mapping[int, float] | None:
-        """Return samples of the final state."""
+    def eigenstate(self) -> list[QuasiDistribution] | None:
+        """Return the quasi-distribution sampled from the final state.
+
+        The ansatz is sampled when parameterized with the optimal parameters that where obtained
+        computing the minimum eigenvalue. The keys represent a measured classical value and the
+        value is a float for the quasi-probability of that result.
+        """
         return self._eigenstate
 
     @eigenstate.setter
-    def eigenstate(self, value: Mapping[int, float] | None) -> None:
-        """Set samples of the final state."""
+    def eigenstate(self, value: list[QuasiDistribution] | None) -> None:
+        """Set the quasi-distribution sampled from the final state."""
         self._eigenstate = value
 
     @property
-    def aux_operators_evaluated(self) -> ListOrDict[tuple[complex, complex]] | None:
-        """Return aux operator expectation values.
+    def aux_operators_evaluated(self) -> ListOrDict[tuple[complex, dict[str, Any]]] | None:
+        """Return aux operator expectation values and metadata.
 
-        These values are in fact tuples formatted as (mean, standard deviation).
+        These are formatted as (mean, metadata).
         """
         return self._aux_operator_values
 
     @aux_operators_evaluated.setter
-    def aux_operators_evaluated(self, value: ListOrDict[tuple[complex, complex]] | None) -> None:
-        """set aux operator eigen values"""
+    def aux_operators_evaluated(
+        self, value: ListOrDict[tuple[complex, dict[str, Any]]] | None
+    ) -> None:
         self._aux_operator_values = value
 
     @property

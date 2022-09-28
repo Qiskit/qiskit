@@ -14,7 +14,7 @@
 
 from __future__ import annotations
 
-from collections.abc import Callable, Sequence, Mapping
+from collections.abc import Callable, Sequence
 import logging
 from time import time
 from typing import Any
@@ -25,6 +25,7 @@ from qiskit.circuit import QuantumCircuit
 from qiskit.opflow import PauliSumOp
 from qiskit.primitives import BaseSampler
 from qiskit.quantum_info.operators.base_operator import BaseOperator
+from qiskit.result import QuasiDistribution
 
 from ..exceptions import AlgorithmError
 from ..list_or_dict import ListOrDict
@@ -183,6 +184,8 @@ class SamplingVQE(VariationalAlgorithm, SamplingMinimumEigensolver):
 
         final_state = self.sampler.run([self.ansatz], [optimizer_result.x]).result().quasi_dists
 
+        print(final_state)
+
         if aux_operators is not None:
             aux_operators_evaluated = estimate_observables(
                 _DiagonalEstimator(sampler=self.sampler),
@@ -265,7 +268,7 @@ class SamplingVQE(VariationalAlgorithm, SamplingMinimumEigensolver):
         optimizer_result: OptimizerResult,
         aux_operators_evaluated: ListOrDict[tuple[complex, tuple[complex, int]]],
         best_measurement: dict[str, Any],
-        final_state: Mapping[int, float],
+        final_state: list[QuasiDistribution],
         optimizer_time: float,
     ) -> SamplingVQEResult:
         result = SamplingVQEResult()
