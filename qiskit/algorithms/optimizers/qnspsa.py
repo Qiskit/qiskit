@@ -13,8 +13,7 @@
 """The QN-SPSA optimizer."""
 
 from __future__ import annotations
-from collections.abc import Iterator, Callable
-from typing import Any
+from typing import Any, Iterator, Callable
 import warnings
 
 import numpy as np
