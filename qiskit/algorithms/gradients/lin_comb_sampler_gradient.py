@@ -37,24 +37,25 @@ class LinCombSamplerGradient(BaseSamplerGradient):
     `arXiv:1811.11184 <https://arxiv.org/pdf/1811.11184.pdf>`_
     """
 
-    def __init__(self, sampler: BaseSampler, **run_options):
+    def __init__(self, sampler: BaseSampler, **options):
         """
         Args:
             sampler: The sampler used to compute the gradients.
-            run_options: Backend runtime options used for circuit execution. The order of priority is:
-                run_options in ``run`` method > gradient's default run_options > primitive's default
-                setting. Higher priority setting overrides lower priority setting.
+            options: Primitive backend runtime options used for circuit execution.
+                The order of priority is: options in ``run`` method > gradient's
+                default options > primitive's default setting.
+                Higher priority setting overrides lower priority setting
         """
 
         self._gradient_circuits = {}
-        super().__init__(sampler, **run_options)
+        super().__init__(sampler, **options)
 
     def _run(
         self,
         circuits: Sequence[QuantumCircuit],
         parameter_values: Sequence[Sequence[float]],
         parameters: Sequence[Sequence[Parameter] | None],
-        **run_options,
+        **options,
     ) -> SamplerGradientResult:
         """Compute the sampler gradients on the given circuits."""
         jobs, result_indices_all, coeffs_all, metadata_ = [], [], [], []
@@ -96,7 +97,7 @@ class LinCombSamplerGradient(BaseSamplerGradient):
                         coeffs.append(bound_coeff)
 
             n = len(gradient_circuits)
-            job = self._sampler.run(gradient_circuits, [parameter_values_] * n, **run_options)
+            job = self._sampler.run(gradient_circuits, [parameter_values_] * n, **options)
             jobs.append(job)
             result_indices_all.append(result_indices)
             coeffs_all.append(coeffs)
@@ -120,5 +121,5 @@ class LinCombSamplerGradient(BaseSamplerGradient):
                 gradient_.append(dict(enumerate(grad_dist)))
             gradients.append(gradient_)
 
-        run_opt = self._get_local_run_options(run_options)
-        return SamplerGradientResult(gradients=gradients, metadata=metadata_, run_options=run_opt)
+        opt = self._get_local_options(options)
+        return SamplerGradientResult(gradients=gradients, metadata=metadata_, options=opt)

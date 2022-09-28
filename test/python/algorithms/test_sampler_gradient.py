@@ -515,7 +515,7 @@ class TestSamplerGradient(QiskitTestCase):
             SPSASamplerGradient,
         ],
     )
-    def test_run_options(self, grad):
+    def test_options(self, grad):
         """Test sampler gradient's run options"""
         a = Parameter("a")
         qc = QuantumCircuit(1)
@@ -527,24 +527,42 @@ class TestSamplerGradient(QiskitTestCase):
                 gradient = grad(sampler, epsilon=1e-6)
             else:
                 gradient = grad(sampler)
+            options = gradient.options
             result = gradient.run([qc], [[1]]).result()
-            self.assertEqual(result.run_options.get("shots"), 100)
+            self.assertEqual(result.options.get("shots"), 100)
+            self.assertEqual(options.get("shots"), 100)
 
         with self.subTest("gradient init"):
             if grad is FiniteDiffSamplerGradient or grad is SPSASamplerGradient:
-                gradient = grad(sampler, epsilon=1e-6, run_options={"shots": 200})
+                gradient = grad(sampler, epsilon=1e-6, options={"shots": 200})
             else:
-                gradient = grad(sampler, run_options={"shots": 200})
+                gradient = grad(sampler, options={"shots": 200})
+            options = gradient.options
             result = gradient.run([qc], [[1]]).result()
-            self.assertEqual(result.run_options.get("shots"), 200)
+            self.assertEqual(result.options.get("shots"), 200)
+            self.assertEqual(options.get("shots"), 200)
+
+        with self.subTest("gradient update"):
+            if grad is FiniteDiffSamplerGradient or grad is SPSASamplerGradient:
+                gradient = grad(sampler, epsilon=1e-6, options={"shots": 200})
+            else:
+                gradient = grad(sampler, options={"shots": 200})
+            gradient.update_default_options(shots=100)
+            options = gradient.options
+            result = gradient.run([qc], [[1]]).result()
+            self.assertEqual(result.options.get("shots"), 100)
+            self.assertEqual(options.get("shots"), 100)
 
         with self.subTest("gradient run"):
             if grad is FiniteDiffSamplerGradient or grad is SPSASamplerGradient:
-                gradient = grad(sampler, epsilon=1e-6, run_options={"shots": 200})
+                gradient = grad(sampler, epsilon=1e-6, options={"shots": 200})
             else:
-                gradient = grad(sampler, run_options={"shots": 200})
+                gradient = grad(sampler, options={"shots": 200})
+            options = gradient.options
             result = gradient.run([qc], [[1]], shots=300).result()
-            self.assertEqual(result.run_options.get("shots"), 300)
+            self.assertEqual(result.options.get("shots"), 300)
+            # Only default + sampler options. Not run.
+            self.assertEqual(options.get("shots"), 200)
 
 
 def _quasi2array(quasis: List[QuasiDistribution], num_qubits: int) -> np.ndarray:

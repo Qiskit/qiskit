@@ -187,7 +187,9 @@ class QNSPSA(SPSA):
         self._nfev += 6
 
         loss_values = _batch_evaluate(loss, loss_points, self._max_evals_grouped)
-        fidelity_values = _batch_evaluate(self.fidelity, fidelity_points, self._max_evals_grouped)
+        fidelity_values = _batch_evaluate(
+            self.fidelity, fidelity_points, self._max_evals_grouped, unpack_points=True
+        )
 
         # compute the gradient approximation and additionally return the loss function evaluations
         gradient_estimate = (loss_values[0] - loss_values[1]) / (2 * eps) * delta1
@@ -268,17 +270,27 @@ class QNSPSA(SPSA):
             sampler = CircuitSampler(backend)
 
             def fidelity(values_x, values_y=None):
-                if values_y is not None:  # no batches
+                # no batches
+                if isinstance(values_x, np.ndarray) and isinstance(values_y, np.ndarray):
                     value_dict = dict(
                         zip(params_x[:] + params_y[:], values_x.tolist() + values_y.tolist())
                     )
-                else:
+                # legacy batching -- remove once QNSPSA.get_fidelity is only supported with sampler
+                elif values_y is None:
                     value_dict = {p: [] for p in params_x[:] + params_y[:]}
                     for values_xy in values_x:
                         for value_x, param_x in zip(values_xy[0, :], params_x):
                             value_dict[param_x].append(value_x)
 
                         for value_y, param_y in zip(values_xy[1, :], params_y):
+                            value_dict[param_y].append(value_y)
+                else:
+                    value_dict = {p: [] for p in params_x[:] + params_y[:]}
+                    for values_i_x, values_i_y in zip(values_x, values_y):
+                        for value_x, param_x in zip(values_i_x, params_x):
+                            value_dict[param_x].append(value_x)
+
+                        for value_y, param_y in zip(values_i_y, params_y):
                             value_dict[param_y].append(value_y)
 
                 return np.abs(sampler.convert(expression, params=value_dict).eval()) ** 2
