@@ -670,7 +670,10 @@ class TextDrawing:
         self.clbits = clbits
         self.nodes = nodes
         if with_layout:
-            self.layout = self._circuit._layout
+            if self._circuit._layout:
+                self.layout = self._circuit._layout[0]
+            else:
+                self.layout = None
         else:
             self.layout = None
 

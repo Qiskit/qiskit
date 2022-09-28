@@ -131,7 +131,10 @@ class BasePass(metaclass=MetaPass):
             result_circuit = circuit.copy()
 
         if self.property_set["layout"]:
-            result_circuit._layout = self.property_set["layout"]
+            result_circuit._layout = (
+                self.property_set["layout"],
+                self.property_set["original_qubit_indices"],
+            )
         if self.property_set["clbit_write_latency"] is not None:
             result_circuit._clbit_write_latency = self.property_set["clbit_write_latency"]
         if self.property_set["conditional_latency"] is not None:

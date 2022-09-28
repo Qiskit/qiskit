@@ -4748,8 +4748,11 @@ class TestTextWithLayout(QiskitTestCase):
         circuit = QuantumCircuit(pqr)
         circuit.h(0)
         circuit.h(3)
-        circuit._layout = Layout({0: qr[0], 1: None, 2: None, 3: qr[1]})
-        circuit._layout.add_register(qr)
+        circuit._layout = (
+            Layout({0: qr[0], 1: None, 2: None, 3: qr[1]}),
+            {qubit: index for index, qubit in enumerate(circuit.qubits)},
+        )
+        circuit._layout[0].add_register(qr)
 
         self.assertEqual(str(_text_circuit_drawer(circuit)), expected)
 
