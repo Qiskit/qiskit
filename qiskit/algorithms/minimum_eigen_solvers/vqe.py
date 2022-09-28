@@ -18,6 +18,7 @@ See https://arxiv.org/abs/1304.3061
 from __future__ import annotations
 
 import logging
+import warnings
 from time import time
 from typing import Callable, Dict, List, Optional, Tuple, Union
 
@@ -40,6 +41,7 @@ from qiskit.providers import Backend
 from qiskit.utils import QuantumInstance, algorithm_globals
 from qiskit.utils.backend_utils import is_aer_provider
 from qiskit.utils.validation import validate_min
+from qiskit.utils.deprecation import deprecate_function
 
 from ..aux_ops_evaluator import eval_observables
 from ..exceptions import AlgorithmError
@@ -52,7 +54,12 @@ logger = logging.getLogger(__name__)
 
 
 class VQE(VariationalAlgorithm, MinimumEigensolver):
-    r"""The Variational Quantum Eigensolver algorithm.
+    r"""Pending deprecation: Variational Quantum Eigensolver algorithm.
+
+    The VQE class has been superseded by the
+    :class:`qiskit.algorithms.minimum_eigensolvers.VQE` class.
+    This class will be deprecated in a future release and subsequently
+    removed after that.
 
     `VQE <https://arxiv.org/abs/1304.3061>`__ is a quantum algorithm that uses a
     variational technique to find
@@ -120,6 +127,13 @@ class VQE(VariationalAlgorithm, MinimumEigensolver):
 
     """
 
+    @deprecate_function(
+        "The VQE class has been superseded by the "
+        "qiskit.algorithms.minimum_eigensolvers.VQE class. "
+        "This class will be deprecated in a future release and subsequently "
+        "removed after that.",
+        category=PendingDeprecationWarning,
+    )
     def __init__(
         self,
         ansatz: Optional[QuantumCircuit] = None,
@@ -171,7 +185,9 @@ class VQE(VariationalAlgorithm, MinimumEigensolver):
         """
         validate_min("max_evals_grouped", max_evals_grouped, 1)
 
-        super().__init__()
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")
+            super().__init__()
 
         self._max_evals_grouped = max_evals_grouped
         self._circuit_sampler = None  # type: Optional[CircuitSampler]
@@ -641,10 +657,26 @@ class VQE(VariationalAlgorithm, MinimumEigensolver):
 
 
 class VQEResult(VariationalResult, MinimumEigensolverResult):
-    """VQE Result."""
+    """Pending deprecation: VQE Result.
 
+    The VQEResult class has been superseded by the
+    :class:`qiskit.algorithms.minimum_eigensolvers.VQEResult` class.
+    This class will be deprecated in a future release and subsequently
+    removed after that.
+
+    """
+
+    @deprecate_function(
+        "The VQEResult class has been superseded by the "
+        "qiskit.algorithms.minimum_eigensolvers.VQEResult class. "
+        "This class will be deprecated in a future release and subsequently "
+        "removed after that.",
+        category=PendingDeprecationWarning,
+    )
     def __init__(self) -> None:
-        super().__init__()
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")
+            super().__init__()
         self._cost_function_evals = None
 
     @property
