@@ -870,7 +870,7 @@ class DAGCircuit:
         Args:
             recurse: if ``True``, then recurse into control-flow operations.  For loops with
                 known-length iterators are counted unrolled.  If-else blocks sum both of the two
-                branches.  While loops are counted as if the condition runs once only.  Defaults to
+                branches.  While loops are counted as if the loop body runs once only.  Defaults to
                 ``False`` and raises :class:`.DAGCircuitError` if any control flow is present, to
                 avoid silently returning a mostly meaningless number.
 
@@ -878,8 +878,8 @@ class DAGCircuit:
             int: the circuit size
 
         Raises:
-            DAGCircuitError: if unknown control flow is present in a recursive call, or any control
-                flow is present in a non-recursive call.
+            DAGCircuitError: if an unknown :class:`.ControlFlowOp` is present in a call with
+                ``recurse=True``, or any control flow is present in a non-recursive call.
         """
         length = len(self._multi_graph) - 2 * len(self._wires)
         if not recurse:
@@ -914,7 +914,7 @@ class DAGCircuit:
                 with known-length iterators are counted as if the loop had been manually unrolled
                 (*i.e.* with each iteration of the loop body written out explicitly).
                 If-else blocks take the longer case of the two branches.  While loops are counted as
-                if the condition runs once only.  Defaults to ``False`` and raises
+                if the loop body runs once only.  Defaults to ``False`` and raises
                 :class:`.DAGCircuitError` if any control flow is present, to avoid silently
                 returning a nonsensical number.
 
