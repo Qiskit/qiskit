@@ -11,7 +11,7 @@
 # that they have been altered from the originals.
 
 """
-Abstract base class of the Quantum Fisher Information (QFI) for ``Estimator``.
+Abstract base class of the Quantum Fisher Information (QFI).
 """
 
 from __future__ import annotations
@@ -114,7 +114,7 @@ class BaseQFI(ABC):
         parameters: Sequence[Sequence[Parameter] | None],
         **options,
     ) -> QFIResult:
-        """Compute the estimator QFIs on the given circuits."""
+        """Compute the QFIs on the given circuits."""
         raise NotImplementedError()
 
     def _validate_arguments(

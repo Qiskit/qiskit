@@ -51,7 +51,7 @@ class LinCombQFI(BaseQFI):
         derivative_type: DerivativeType = DerivativeType.REAL,
         **options,
     ):
-        """
+        r"""
         Args:
             estimator: The estimator used to compute the QFI.
             phase_fix: Whether to calculate the second term (phase fix) of the QFI, which is
@@ -59,9 +59,10 @@ class LinCombQFI(BaseQFI):
             derivative_type: The type of derivative. Can be either ``DerivativeType.REAL``
                 ``DerivativeType.IMAG``, or ``DerivativeType.COMPLEX``. Defaults to
                 ``DerivativeType.REAL``.
-                For ``DerivativeType.REAL`` we compute 4Re[(dω⟨ψ(ω)|)O(θ)|ψ(ω)〉],
-                for ``DerivativeType.IMAG`` we compute 4Im[(dω⟨ψ(ω)|)O(θ)|ψ(ω)〉], and
-                for ``DerivativeType.COMPLEX`` we compute 4(dω⟨ψ(ω)|)O(θ)|ψ(ω)〉.
+
+                + ``DerivativeType.REAL`` computes :math:`4 \mathrm{Re}[(dω⟨ψ(ω)|)O(θ)|ψ(ω)〉]`.
+                + ``DerivativeType.IMAG`` computes :math:`4 \mathrm{Im}[(dω⟨ψ(ω)|)O(θ)|ψ(ω)〉]`.
+                + ``DerivativeType.COMPLEX`` computes :math:`4 (dω⟨ψ(ω)|)O(θ)|ψ(ω)〉`.
 
             options: Backend runtime options used for circuit execution. The order of priority is:
                 options in ``run`` method > QFI's default options > primitive's default
@@ -83,7 +84,7 @@ class LinCombQFI(BaseQFI):
         parameters: Sequence[Sequence[Parameter] | None],
         **options,
     ) -> QFIResult:
-        """Compute the estimator QFIs on the given circuits."""
+        """Compute the QFIs on the given circuits."""
         jobs, result_indices_all, coeffs_all, metadata_, gradient_jobs, phase_fixes = (
             [],
             [],
