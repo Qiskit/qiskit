@@ -628,7 +628,7 @@ def _calc_decoupling(pauli_x, pauli_z, qubit_list, min_qubit, num_qubits, cliff)
     decouple_cliff = cliff.copy()
     num_qubits = decouple_cliff.num_qubits
     decouple_cliff.phase = np.zeros(2 * num_qubits)
-    decouple_cliff.tableau[:, :-1] = np.eye(2 * num_qubits)
+    decouple_cliff.symplectic_matrix = np.eye(2 * num_qubits)
 
     qubit0 = min_qubit  # The qubit for the symplectic Gaussian elimination
 
