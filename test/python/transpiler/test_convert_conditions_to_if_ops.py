@@ -118,3 +118,22 @@ class TestConvertConditionsToIfOps(QiskitTestCase):
 
         output = PassManager([ConvertConditionsToIfOps()]).run(base)
         self.assertEqual(output, expected)
+
+    def test_no_op(self):
+        """Test that the pass works when recursing into control-flow structures, but there's nothing
+        that actually needs replacing."""
+        bits = [Clbit()]
+        registers = [QuantumRegister(3), ClassicalRegister(2)]
+
+        base = QuantumCircuit(*registers, bits)
+        base.x(0)
+        with base.if_test((base.cregs[0], 0)) as else_:
+            base.z(1)
+        with else_:
+            base.z(2)
+        with base.for_loop(range(2)):
+            with base.while_loop((base.cregs[0], 1)):
+                base.cx(1, 2)
+        base = canonicalize_control_flow(base)
+        output = PassManager([ConvertConditionsToIfOps()]).run(base)
+        self.assertEqual(output, base)
