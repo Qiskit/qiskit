@@ -93,7 +93,6 @@ Runtime primitives.
    :nosignatures:
 
    NumPyEigensolver
-   NumPyEigensolverResult
    VQD
    VQDResult
 
