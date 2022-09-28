@@ -15,17 +15,17 @@
 import unittest
 from test.python.algorithms import QiskitAlgorithmsTestCase
 
-from functools import partial
+# from functools import partial
 import numpy as np
 
-from scipy.optimize import minimize as scipy_minimize
+# from scipy.optimize import minimize as scipy_minimize
 from ddt import ddt, idata, unpack
 
-import retworkx as rx
+# import retworkx as rx
 
 from qiskit import QuantumCircuit
 from qiskit.algorithms.minimum_eigensolvers import QAOA
-from qiskit.algorithms.optimizers import COBYLA, NELDER_MEAD
+from qiskit.algorithms.optimizers import COBYLA#, NELDER_MEAD
 from qiskit.circuit import Parameter
 from qiskit.opflow import PauliSumOp
 from qiskit.quantum_info import Pauli

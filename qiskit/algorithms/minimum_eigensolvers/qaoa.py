@@ -86,8 +86,7 @@ class QAOA(SamplingVQE):
         mixer: QuantumCircuit | BaseOperator | PauliSumOp = None,
         initial_point: np.ndarray | None = None,
         aggregation: float | Callable[[list[float]], float] | None = None,
-        callback: Callable[[int, np.ndarray, float, dict[str, Any]], None]
-        | None = None,
+        callback: Callable[[int, np.ndarray, float, dict[str, Any]], None] | None = None,
     ) -> None:
         """
         Args:

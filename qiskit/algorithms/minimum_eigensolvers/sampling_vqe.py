@@ -78,8 +78,7 @@ class SamplingVQE(VariationalAlgorithm, SamplingMinimumEigensolver):
         *,
         initial_point: Sequence[float] | None = None,
         aggregation: float | Callable[[list[float]], float] | None = None,
-        callback: Callable[[int, np.ndarray, float, dict[str, Any]], None]
-        | None = None,
+        callback: Callable[[int, np.ndarray, float, dict[str, Any]], None] | None = None,
     ) -> None:
         r"""
         Args:
