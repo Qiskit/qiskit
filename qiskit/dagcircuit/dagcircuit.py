@@ -865,7 +865,7 @@ class DAGCircuit:
 
     def size(self, *, recurse: bool = False):
         """Return the number of operations.  If there is control flow present, this count may only
-        be an estimate, as the complete control-flow path cannot be staticly known.
+        be an estimate, as the complete control-flow path cannot be statically known.
 
         Args:
             recurse: if ``True``, then recurse into control-flow operations.  For loops with
