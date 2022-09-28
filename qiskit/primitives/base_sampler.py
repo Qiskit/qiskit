@@ -16,71 +16,60 @@ Overview of Sampler
 
 Sampler class calculates probabilities or quasi-probabilities of bitstrings from quantum circuits.
 
-A sampler is initialized with the following elements.
+A sampler is initialized with an empty parameter set. The sampler is used to
+create a :class:`~qiskit.providers.JobV1`, via the :meth:`qiskit.primitives.Sampler.run()`
+method. This method is called with the following parameters
 
 * quantum circuits (:math:`\psi_i(\theta)`): list of (parameterized) quantum circuits.
-  (a list of :class:`~qiskit.circuit.QuantumCircuit`))
-
-The sampler is run with the following inputs.
-
-* circuits: a list of QuantumCircuit objects to evaluate.
+  (a list of :class:`~qiskit.circuit.QuantumCircuit` objects)
 
 * parameter values (:math:`\theta_k`): list of sets of parameter values
   to be bound to the parameters of the quantum circuits.
   (list of list of float)
 
-The output is a :class:`~qiskit.primitives.SamplerResult` which contains probabilities
-or quasi-probabilities of bitstrings,
+The method returns a :class:`~qiskit.providers.JobV1` object, calling
+:meth:`qiskit.providers.JobV1.result()` yields a :class:`~qiskit.primitives.SamplerResult`
+object, which contains probabilities or quasi-probabilities of bitstrings,
 plus optional metadata like error bars in the samples.
-
-The sampler object is expected to be closed after use or
-accessed within "with" context
-and the objects are called with parameter values and run options
-(e.g., ``shots`` or number of shots).
 
 Here is an example of how sampler is used.
 
 .. code-block:: python
 
+    from qiskit.primitives import Sampler
     from qiskit import QuantumCircuit
     from qiskit.circuit.library import RealAmplitudes
 
+    # a Bell circuit
     bell = QuantumCircuit(2)
     bell.h(0)
     bell.cx(0, 1)
     bell.measure_all()
 
-    # executes a Bell circuit
-    sampler = Sampler()
-    result = sampler.run(circuits=[bell]).result()
-    print([q.binary_probabilities() for q in result.quasi_dists])
-
-    # executes three Bell circuits
-    sampler = Sampler()
-    result = sampler.run([bell, bell, bell]).result()
-    print([q.binary_probabilities() for q in result.quasi_dists])
-
-    # parameterized circuit
+    # two parameterized circuits
     pqc = RealAmplitudes(num_qubits=2, reps=2)
     pqc.measure_all()
     pqc2 = RealAmplitudes(num_qubits=2, reps=3)
     pqc2.measure_all()
 
     theta1 = [0, 1, 1, 2, 3, 5]
-    theta2 = [1, 2, 3, 4, 5, 6]
-    theta3 = [0, 1, 2, 3, 4, 5, 6, 7]
+    theta2 = [0, 1, 2, 3, 4, 5, 6, 7]
 
+    # initialization of the sampler
     sampler = Sampler()
-    result = sampler.run([pqc, pqc, pqc2], [theta1, theta2, theta3]).result()
 
-    # result of pqc(theta1)
-    print(result.quasi_dists[0].binary_probabilities())
+    # Sampler runs a job on the Bell circuit
+    job = sampler.run(circuits=[bell], parameter_values=[[]], parameters=[[]])
+    job_result = job.result()
+    print([q.binary_probabilities() for q in job_result.quasi_dists])
 
-    # result of pqc(theta2)
-    print(result.quasi_dists[1].binary_probabilities())
-
-    # result of pqc2(theta3)
-    print(result.quasi_dists[2].binary_probabilities())
+    # Sampler runs a job on the parameterized circuits
+    job2 = sampler.run(
+        circuits=[pqc, pqc2],
+        parameter_values=[theta1, theta2],
+        parameters=[pqc.parameters, pqc2.parameters])
+    job_result = job2.result()
+    print([q.binary_probabilities() for q in job_result.quasi_dists])
 """
 from __future__ import annotations
 
@@ -94,7 +83,6 @@ import numpy as np
 
 from qiskit.circuit import Parameter, QuantumCircuit
 from qiskit.circuit.parametertable import ParameterView
-from qiskit.exceptions import QiskitError
 from qiskit.providers import JobV1 as Job
 from qiskit.providers import Options
 from qiskit.utils.deprecation import deprecate_arguments, deprecate_function
@@ -125,7 +113,7 @@ class BaseSampler(ABC):
             options: Default options.
 
         Raises:
-            QiskitError: For mismatch of circuits and parameters list.
+            ValueError: For mismatch of circuits and parameters list.
         """
         if circuits is not None or parameters is not None:
             warn(
@@ -148,7 +136,7 @@ class BaseSampler(ABC):
         else:
             self._parameters = [ParameterView(par) for par in parameters]
             if len(self._parameters) != len(self._circuits):
-                raise QiskitError(
+                raise ValueError(
                     f"Different number of parameters ({len(self._parameters)}) "
                     f"and circuits ({len(self._circuits)})"
                 )
@@ -253,8 +241,8 @@ class BaseSampler(ABC):
             ``parameter_values[i]``.
 
         Raises:
-            QiskitError: For mismatch of object id.
-            QiskitError: For mismatch of length of Sequence.
+            ValueError: For mismatch of object id.
+            ValueError: For mismatch of length of Sequence.
         """
         # Support ndarray
         if isinstance(parameter_values, np.ndarray):
@@ -268,7 +256,7 @@ class BaseSampler(ABC):
             for circuit in circuits
         ]
         if any(circuit is None for circuit in circuits):
-            raise QiskitError(
+            raise ValueError(
                 "The circuits passed when calling sampler is not one of the circuits used to "
                 "initialize the session."
             )
@@ -279,7 +267,7 @@ class BaseSampler(ABC):
         if parameter_values is None:
             for i in circuits:
                 if len(self._circuits[i].parameters) != 0:
-                    raise QiskitError(
+                    raise ValueError(
                         f"The {i}-th circuit ({len(circuits)}) is parameterised,"
                         "but parameter values are not given."
                     )
@@ -287,20 +275,20 @@ class BaseSampler(ABC):
 
         # Validation
         if len(circuits) != len(parameter_values):
-            raise QiskitError(
+            raise ValueError(
                 f"The number of circuits ({len(circuits)}) does not match "
                 f"the number of parameter value sets ({len(parameter_values)})."
             )
 
         for i, value in zip(circuits, parameter_values):
             if len(value) != len(self._parameters[i]):
-                raise QiskitError(
+                raise ValueError(
                     f"The number of values ({len(value)}) does not match "
                     f"the number of parameters ({len(self._parameters[i])}) for the {i}-th circuit."
                 )
 
         if max(circuits) >= len(self.circuits):
-            raise QiskitError(
+            raise ValueError(
                 f"The number of circuits is {len(self.circuits)}, "
                 f"but the index {max(circuits)} is given."
             )
@@ -331,7 +319,7 @@ class BaseSampler(ABC):
             ``circuits[i]`` evaluated with parameters bound as ``parameter_values[i]``.
 
         Raises:
-            QiskitError: Invalid arguments are given.
+            ValueError: Invalid arguments are given.
         """
         # Support ndarray
         if isinstance(parameter_values, np.ndarray):
@@ -348,7 +336,7 @@ class BaseSampler(ABC):
         if parameter_values is None:
             for i, circuit in enumerate(circuits):
                 if circuit.num_parameters != 0:
-                    raise QiskitError(
+                    raise ValueError(
                         f"The {i}-th circuit ({len(circuits)}) is parameterised,"
                         "but parameter values are not given."
                     )
@@ -356,21 +344,21 @@ class BaseSampler(ABC):
 
         # Validation
         if len(circuits) != len(parameter_values):
-            raise QiskitError(
+            raise ValueError(
                 f"The number of circuits ({len(circuits)}) does not match "
                 f"the number of parameter value sets ({len(parameter_values)})."
             )
 
         for i, (circuit, parameter_value) in enumerate(zip(circuits, parameter_values)):
             if len(parameter_value) != circuit.num_parameters:
-                raise QiskitError(
+                raise ValueError(
                     f"The number of values ({len(parameter_value)}) does not match "
                     f"the number of parameters ({circuit.num_parameters}) for the {i}-th circuit."
                 )
 
         for i, circuit in enumerate(circuits):
             if circuit.num_clbits == 0:
-                raise QiskitError(
+                raise ValueError(
                     f"The {i}-th circuit does not have any classical bit. "
                     "Sampler requires classical bits, plus measurements "
                     "on the desired qubits."
@@ -378,7 +366,7 @@ class BaseSampler(ABC):
 
             mapping = final_measurement_mapping(circuit)
             if set(range(circuit.num_clbits)) != set(mapping.values()):
-                raise QiskitError(
+                raise ValueError(
                     f"Some classical bits of the {i}-th circuit are not used for measurements."
                     f" the number of classical bits ({circuit.num_clbits}),"
                     f" the used classical bits ({set(mapping.values())})."
