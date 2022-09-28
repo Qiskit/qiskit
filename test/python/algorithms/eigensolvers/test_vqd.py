@@ -128,7 +128,7 @@ class TestVQD(QiskitAlgorithmsTestCase):
             k=1,
             betas=self.betas,
         )
-        with self.assertRaises(RuntimeError):
+        with self.assertRaises(AlgorithmError):
             vqd.compute_eigenvalues(operator=op)
 
     @data(H2_PAULI, H2_OP)

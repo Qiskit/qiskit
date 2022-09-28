@@ -80,8 +80,8 @@ class NumPyMinimumEigensolver(MinimumEigensolver):
         if eigensolver_result.eigenvalues is not None and len(eigensolver_result.eigenvalues) > 0:
             result.eigenvalue = eigensolver_result.eigenvalues[0]
             result.eigenstate = eigensolver_result.eigenstates[0]
-            if eigensolver_result.aux_operator_eigenvalues:
-                result.aux_operators_evaluated = eigensolver_result.aux_operator_eigenvalues[0]
+            if eigensolver_result.aux_operators_evaluated:
+                result.aux_operators_evaluated = eigensolver_result.aux_operators_evaluated[0]
 
         logger.debug("NumPy minimum eigensolver result: %s", result)
 
