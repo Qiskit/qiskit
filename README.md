@@ -46,6 +46,8 @@ In this case, the output will be:
 {'00': 513, '11': 511}
 ```
 
+The basic and very limited Qiskit build-in `BasicAer` simulator is probably all you need initially. However you should consider [`qiskit-aer`](https://github.com/Qiskit/qiskit-aer/) for any real simulation work.
+
 ### Executing your code on a real quantum chip
 
 You can also use Qiskit to execute your code on a
