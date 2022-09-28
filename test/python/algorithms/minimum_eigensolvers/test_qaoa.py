@@ -15,17 +15,17 @@
 import unittest
 from test.python.algorithms import QiskitAlgorithmsTestCase
 
-# from functools import partial
+from functools import partial
 import numpy as np
 
-# from scipy.optimize import minimize as scipy_minimize
+from scipy.optimize import minimize as scipy_minimize
 from ddt import ddt, idata, unpack
 
-# import retworkx as rx
+import retworkx as rx
 
-from qiskit import QuantumCircuit  # , QuantumRegister
+from qiskit import QuantumCircuit
 from qiskit.algorithms.minimum_eigensolvers import QAOA
-from qiskit.algorithms.optimizers import COBYLA  # , NELDER_MEAD
+from qiskit.algorithms.optimizers import COBYLA, NELDER_MEAD
 from qiskit.circuit import Parameter
 from qiskit.opflow import PauliSumOp
 from qiskit.quantum_info import Pauli
@@ -179,39 +179,39 @@ class TestQAOA(QiskitAlgorithmsTestCase):
         with self.subTest(msg="QAOA 6x6"):
             self.assertIn(graph_solution, {"010101", "101010"})
 
-    # @idata([[W2, S2, None], [W2, S2, [0.0, 0.0]], [W2, S2, [1.0, 0.8]]])
-    # @unpack
-    # def test_qaoa_initial_point(self, w, solutions, init_pt):
-    #     """Check first parameter value used is initial point as expected"""
-    #     qubit_op, _ = self._get_operator(w)
+    @idata([[W2, S2, None], [W2, S2, [0.0, 0.0]], [W2, S2, [1.0, 0.8]]])
+    @unpack
+    def test_qaoa_initial_point(self, w, solutions, init_pt):
+        """Check first parameter value used is initial point as expected"""
+        qubit_op, _ = self._get_operator(w)
 
-    #     first_pt = []
+        first_pt = []
 
-    #     def cb_callback(eval_count, parameters, mean, std):
-    #         nonlocal first_pt
-    #         if eval_count == 1:
-    #             first_pt = list(parameters)
+        def cb_callback(eval_count, parameters, mean, metadata):
+            nonlocal first_pt
+            if eval_count == 1:
+                first_pt = list(parameters)
 
-    #     qaoa = QAOA(
-    #         self.sampler,
-    #         COBYLA(),
-    #         initial_point=init_pt,
-    #         callback=cb_callback,
-    #     )
+        qaoa = QAOA(
+            self.sampler,
+            COBYLA(),
+            initial_point=init_pt,
+            callback=cb_callback,
+        )
 
-    #     result = qaoa.compute_minimum_eigenvalue(operator=qubit_op)
-    #     x = self._sample_most_likely(result.eigenstate)
-    #     graph_solution = self._get_graph_solution(x)
+        result = qaoa.compute_minimum_eigenvalue(operator=qubit_op)
+        x = self._sample_most_likely(result.eigenstate)
+        graph_solution = self._get_graph_solution(x)
 
-    #     with self.subTest("Initial Point"):
-    #         # If None the preferred random initial point of QAOA variational form
-    #         if init_pt is None:
-    #             self.assertLess(result.eigenvalue, -0.97)
-    #         else:
-    #             self.assertListEqual(init_pt, first_pt)
+        with self.subTest("Initial Point"):
+            # If None the preferred random initial point of QAOA variational form
+            if init_pt is None:
+                self.assertLess(result.eigenvalue, -0.97)
+            else:
+                self.assertListEqual(init_pt, first_pt)
 
-    #     with self.subTest("Solution"):
-    #         self.assertIn(graph_solution, solutions)
+        with self.subTest("Solution"):
+            self.assertIn(graph_solution, solutions)
 
     # def test_qaoa_random_initial_point(self):
     #     """QAOA random initial point"""
@@ -219,7 +219,7 @@ class TestQAOA(QiskitAlgorithmsTestCase):
     #         rx.undirected_gnp_random_graph(5, 0.5, seed=algorithm_globals.random_seed)
     #     )
     #     qubit_op, _ = self._get_operator(w)
-    #     qaoa = QAOA(self.sampler, optimizer=NELDER_MEAD(disp=True), reps=1)
+    #     qaoa = QAOA(self.sampler, NELDER_MEAD(disp=True), reps=1)
     #     result = qaoa.compute_minimum_eigenvalue(operator=qubit_op)
 
     #     self.assertLess(result.eigenvalue.real, -0.97)
@@ -232,7 +232,7 @@ class TestQAOA(QiskitAlgorithmsTestCase):
     #     qubit_op, _ = self._get_operator(w)
     #     qaoa = QAOA(
     #         self.sampler,
-    #         optimizer=partial(scipy_minimize, method="Nelder-Mead", options={"maxiter": 2}),
+    #         partial(scipy_minimize, method="Nelder-Mead", options={"maxiter": 2}),
     #     )
     #     result = qaoa.compute_minimum_eigenvalue(qubit_op)
     #     self.assertEqual(result.cost_function_evals, 4)
