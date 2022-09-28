@@ -17,7 +17,6 @@ from __future__ import annotations
 from enum import Enum
 from typing import Optional, Sequence
 
-import copy
 import re
 import logging
 
@@ -200,7 +199,6 @@ class AdaptVQE(VariationalAlgorithm):
             raise TypeError("The AdaptVQE ansatz must be of the EvolvedOperatorAnsatz type.")
 
         # Overwrite the solver's ansatz with the initial state
-        solver_ansatz = copy.deepcopy(self.solver.ansatz)
         self._tmp_ansatz = self.solver.ansatz
         self._excitation_pool = self._tmp_ansatz.operators
         self.solver.ansatz = self._tmp_ansatz.initial_state
@@ -269,7 +267,7 @@ class AdaptVQE(VariationalAlgorithm):
             result.aux_operators_evaluated = aux_values
 
         logger.info("The final energy is: %s", str(result.eigenvalue))
-        self.solver.ansatz = solver_ansatz
+        self.solver.ansatz.operators = self._excitation_pool
         return result
 
 
