@@ -203,7 +203,7 @@ class Clifford(BaseOperator, AdjointMixin, Operation):
 
     def __setitem__(self, key, value):
         """Set a stabilizer Pauli row"""
-        self.tableau.__setitem__(key, value)
+        self.tableau.__setitem__(key, self._stack_table_phase(value.array, value.phase))
 
     @property
     def table(self):
