@@ -16,8 +16,6 @@ import functools
 import warnings
 from typing import Type
 
-from qiskit.exceptions import QiskitError
-
 
 def deprecate_arguments(
     kwarg_map, category: Type[Warning] = DeprecationWarning, modify_docstring=True, since=None
@@ -26,8 +24,9 @@ def deprecate_arguments(
 
     def decorator(func):
         if modify_docstring and since is None:
-            raise QiskitError(
-                "Modifying the docstring needs a version. Add parameter `since` with it."
+            warnings.warn(
+                "Modifying the docstring needs a version. Add parameter `since` with it.",
+                stacklevel=2,
             )
         if modify_docstring and since and kwarg_map:
             func.__doc__ = "\n".join(_extend_docstring(func, since, kwarg_map))
@@ -47,7 +46,7 @@ def deprecate_function(
     msg: str,
     stacklevel: int = 2,
     category: Type[Warning] = DeprecationWarning,
-    modify_docstring=True,
+    modify_docstring: bool = True,
     since: str = None,
 ):
     """Emit a warning prior to calling decorated function.
@@ -66,8 +65,9 @@ def deprecate_function(
 
     def decorator(func):
         if modify_docstring and since is None:
-            raise QiskitError(
-                "Modifying the docstring needs a version. Add parameter `since` with it."
+            warnings.warn(
+                "Modifying the docstring needs a version. Add parameter `since` with it.",
+                stacklevel=2,
             )
 
         if modify_docstring and since:
