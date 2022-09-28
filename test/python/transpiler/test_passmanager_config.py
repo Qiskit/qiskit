@@ -83,7 +83,6 @@ class TestPassManagerConfig(QiskitTestCase):
         # based on hash seed
         pm_config.inst_map = None
         str_out = str(pm_config)
-        self.maxDiff = None
         expected = """Pass Manager Config:
 	initial_layout: None
 	basis_gates: ['id', 'rz', 'sx', 'x']
