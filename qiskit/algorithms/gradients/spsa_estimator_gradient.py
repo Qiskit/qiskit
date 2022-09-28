@@ -40,7 +40,7 @@ class SPSAEstimatorGradient(BaseEstimatorGradient):
         epsilon: float,
         batch_size: int = 1,
         seed: int | None = None,
-        **run_options,
+        **options,
     ):
         """
         Args:
@@ -48,9 +48,10 @@ class SPSAEstimatorGradient(BaseEstimatorGradient):
             epsilon: The offset size for the SPSA gradients.
             batch_size: The number of gradients to average.
             seed: The seed for a random perturbation vector.
-            run_options: Backend runtime options used for circuit execution. The order of priority is:
-                run_options in ``run`` method > gradient's default run_options > primitive's default
-                setting. Higher priority setting overrides lower priority setting.
+            options: Primitive backend runtime options used for circuit execution.
+                The order of priority is: options in ``run`` method > gradient's
+                default options > primitive's default setting.
+                Higher priority setting overrides lower priority setting
 
         Raises:
             ValueError: If ``epsilon`` is not positive.
@@ -61,7 +62,7 @@ class SPSAEstimatorGradient(BaseEstimatorGradient):
         self._batch_size = batch_size
         self._seed = np.random.default_rng(seed)
 
-        super().__init__(estimator, **run_options)
+        super().__init__(estimator, **options)
 
     def _run(
         self,
@@ -69,7 +70,7 @@ class SPSAEstimatorGradient(BaseEstimatorGradient):
         observables: Sequence[BaseOperator | PauliSumOp],
         parameter_values: Sequence[Sequence[float]],
         parameters: Sequence[Sequence[Parameter] | None],
-        **run_options,
+        **options,
     ) -> EstimatorGradientResult:
         """Compute the estimator gradients on the given circuits."""
         jobs, offsets, metadata_ = [], [], []
@@ -96,7 +97,7 @@ class SPSAEstimatorGradient(BaseEstimatorGradient):
                 [circuit] * 2 * self._batch_size,
                 [observable] * 2 * self._batch_size,
                 plus + minus,
-                **run_options,
+                **options,
             )
             jobs.append(job)
 
@@ -119,5 +120,5 @@ class SPSAEstimatorGradient(BaseEstimatorGradient):
             indices = [circuits[i].parameters.data.index(p) for p in metadata_[i]["parameters"]]
             gradients.append(gradient[indices])
 
-        run_opt = self._get_local_run_options(run_options)
-        return EstimatorGradientResult(gradients=gradients, metadata=metadata_, run_options=run_opt)
+        opt = self._get_local_options(options)
+        return EstimatorGradientResult(gradients=gradients, metadata=metadata_, options=opt)
