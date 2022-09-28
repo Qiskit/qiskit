@@ -1,0 +1,16 @@
+---
+features:
+  - |
+    :meth:`.DAGCircuit.substitute_node_with_dag` now takes ``propagate_condition``
+    as a keyword argument.  This defaults to ``True``, which was the previous
+    behavior, and copies any condition on the node to be replaced onto every
+    operation node in the replacement.  If set to ``False``, the condition will
+    not be copied, which allows replacement of a conditional node with a sub-DAG
+    that already faithfully implements the condition.
+  - |
+    :meth:`.DAGCircuit.substitute_node_with_dag` can now take a mapping for its
+    ``wires`` parameter as well as a sequence.  The mapping should map bits in
+    the replacement DAG to the bits in the DAG it is being inserted into.  This
+    permits an easier style of construction for callers when the input node has
+    both classical bits and a condition, and the replacement DAG may use these
+    out-of-order.

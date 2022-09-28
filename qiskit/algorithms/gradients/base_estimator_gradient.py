@@ -23,6 +23,7 @@ from copy import copy
 from qiskit.circuit import Parameter, QuantumCircuit
 from qiskit.opflow import PauliSumOp
 from qiskit.primitives import BaseEstimator
+from qiskit.providers import Options
 from qiskit.algorithms import AlgorithmJob
 from qiskit.quantum_info.operators.base_operator import BaseOperator
 
@@ -35,17 +36,20 @@ class BaseEstimatorGradient(ABC):
     def __init__(
         self,
         estimator: BaseEstimator,
-        **run_options,
+        options: Options | None = None,
     ):
         """
         Args:
             estimator: The estimator used to compute the gradients.
-            run_options: Backend runtime options used for circuit execution. The order of priority is:
-                run_options in ``run`` method > gradient's default run_options > primitive's default
-                setting. Higher priority setting overrides lower priority setting.
+            options: Primitive backend runtime options used for circuit execution.
+                The order of priority is: options in ``run`` method > gradient's
+                default options > primitive's default setting.
+                Higher priority setting overrides lower priority setting
         """
         self._estimator: BaseEstimator = estimator
-        self._default_run_options = run_options
+        self._default_options = Options()
+        if options is not None:
+            self._default_options.update_options(**options)
 
     def run(
         self,
@@ -53,7 +57,7 @@ class BaseEstimatorGradient(ABC):
         observables: Sequence[BaseOperator | PauliSumOp],
         parameter_values: Sequence[Sequence[float]],
         parameters: Sequence[Sequence[Parameter] | None] | None = None,
-        **run_options,
+        **options,
     ) -> AlgorithmJob:
         """Run the job of the estimator gradient on the given circuits.
 
@@ -65,9 +69,10 @@ class BaseEstimatorGradient(ABC):
                 the specified parameters. Each sequence of parameters corresponds to a circuit in
                 ``circuits``. Defaults to None, which means that the gradients of all parameters in
                 each circuit are calculated.
-            run_options: Backend runtime options used for circuit execution. The order of priority is:
-                run_options in ``run`` method > gradient's default run_options > primitive's default
-                setting. Higher priority setting overrides lower priority setting.
+            options: Primitive backend runtime options used for circuit execution.
+                The order of priority is: options in ``run`` method > gradient's
+                default options > primitive's default setting.
+                Higher priority setting overrides lower priority setting
 
         Returns:
             The job object of the gradients of the expectation values. The i-th result corresponds to
@@ -84,12 +89,11 @@ class BaseEstimatorGradient(ABC):
         # Validate the arguments.
         self._validate_arguments(circuits, observables, parameter_values, parameters)
         # The priority of run option is as follows:
-        # run_options in ``run`` method > gradient's default run_options > primitive's default setting.
-        run_opts = copy(self._default_run_options)
-        run_opts.update(run_options)
-
+        # options in ``run`` method > gradient's default options > primitive's default setting.
+        opts = copy(self._default_options)
+        opts.update_options(**options)
         job = AlgorithmJob(
-            self._run, circuits, observables, parameter_values, parameters, **run_opts
+            self._run, circuits, observables, parameter_values, parameters, **opts.__dict__
         )
         job.submit()
         return job
@@ -101,7 +105,7 @@ class BaseEstimatorGradient(ABC):
         observables: Sequence[BaseOperator | PauliSumOp],
         parameter_values: Sequence[Sequence[float]],
         parameters: Sequence[Sequence[Parameter] | None],
-        **run_options,
+        **options,
     ) -> EstimatorGradientResult:
         """Compute the estimator gradients on the given circuits."""
         raise NotImplementedError()
@@ -163,3 +167,39 @@ class BaseEstimatorGradient(ABC):
                     f"not match the number of qubits of the {i}-th observable "
                     f"({observable.num_qubits})."
                 )
+
+    @property
+    def options(self) -> Options:
+        """Return the union of estimator options setting and gradient default options,
+        where, if the same field is set in both, the gradient's default options override
+        the primitive's default setting.
+
+        Returns:
+            The gradient default + estimator options.
+        """
+        return self._get_local_options(self._default_options.__dict__)
+
+    def update_default_options(self, **options):
+        """Update the gradient's default options setting.
+
+        Args:
+            **options: The fields to update the default options.
+        """
+
+        self._default_options.update_options(**options)
+
+    def _get_local_options(self, options: Options) -> Options:
+        """Return the union of the primitive's default setting,
+        the gradient default options, and the options in the ``run`` method.
+        The order of priority is: options in ``run`` method > gradient's
+                default options > primitive's default setting.
+
+        Args:
+            options: The fields to update the options
+
+        Returns:
+            The gradient default + estimator + run options.
+        """
+        opts = copy(self._estimator.options)
+        opts.update_options(**options)
+        return opts
