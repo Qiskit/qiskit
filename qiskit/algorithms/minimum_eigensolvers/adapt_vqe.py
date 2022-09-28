@@ -76,6 +76,8 @@ class AdaptVQE(VariationalAlgorithm):
 
       eigenvalue, _ = adapt_vqe.compute_minimum_eigenvalue(hamiltonian)
 
+    The following attributes can be set via the initializer but can also be read and updated once
+    the AdaptVQE object has been constructed.
 
     Attributes:
         solver: a :class:`~.VQE` instance used internally to compute the minimum eigenvalues.
@@ -222,7 +224,7 @@ class AdaptVQE(VariationalAlgorithm):
             if np.abs(max_grad[0]) < self.threshold:
                 if iteration == 1:
                     raise QiskitError(
-                        "Gradient choice is not suited as it leads to all zero gradients gradients. "
+                        "Gradient choice is not suited as it leads to all zero gradients. "
                         "Try a different gradient method."
                     )
                 logger.info(
