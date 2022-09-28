@@ -17,7 +17,6 @@ from collections.abc import Sequence
 from typing import Any, cast
 
 from qiskit.circuit.quantumcircuit import QuantumCircuit
-from qiskit.exceptions import QiskitError
 from qiskit.providers.backend import BackendV1, BackendV2
 from qiskit.providers.options import Options
 from qiskit.result import QuasiDistribution, Result
@@ -60,10 +59,7 @@ class BackendSampler(BaseSampler):
         """
 
         super().__init__(None, None, options)
-        if backend is None:
-            raise ValueError("A backend is required to use BackendSampler")
         self._backend = backend
-        self._is_closed = False
         self._transpile_options = Options()
         self._bound_pass_manager = bound_pass_manager
         self._preprocessed_circuits: list[QuantumCircuit] | None = None
@@ -87,7 +83,6 @@ class BackendSampler(BaseSampler):
         Raises:
             QiskitError: if the instance has been closed.
         """
-        self._check_is_closed()
         return list(self._circuits)
 
     @property
@@ -99,7 +94,6 @@ class BackendSampler(BaseSampler):
         Raises:
             QiskitError: if the instance has been closed.
         """
-        self._check_is_closed()
         if self._skip_transpilation:
             self._transpiled_circuits = list(self._circuits)
         elif self._transpiled_circuits is None:
@@ -115,22 +109,12 @@ class BackendSampler(BaseSampler):
         """
         return self._backend
 
-    def set_options(self, **fields):
-        """Set options values for the evaluator.
-        Args:
-            **fields: The fields to update the options
-        Returns:
-            self
-        """
-        self._check_is_closed()
-        super().set_options(**fields)
-
     @property
     def transpile_options(self) -> Options:
         """Return the transpiler options for transpiling the circuits."""
         return self._transpile_options
 
-    def set_transpile_options(self, **fields) -> BackendSampler:
+    def set_transpile_options(self, **fields):
         """Set the transpiler options for transpiler.
         Args:
             **fields: The fields to update the options.
@@ -139,10 +123,7 @@ class BackendSampler(BaseSampler):
         Raises:
             QiskitError: if the instance has been closed.
         """
-        self._check_is_closed()
-
         self._transpile_options.update_options(**fields)
-        return self
 
     def _call(
         self,
@@ -150,7 +131,6 @@ class BackendSampler(BaseSampler):
         parameter_values: Sequence[Sequence[float]],
         **run_options,
     ) -> SamplerResult:
-        self._check_is_closed()
 
         # This line does the actual transpilation
         transpiled_circuits = self.transpiled_circuits
@@ -166,9 +146,6 @@ class BackendSampler(BaseSampler):
         result = self._backend.run(bound_circuits, **run_options).result()
 
         return self._postprocessing(result, bound_circuits)
-
-    def close(self):
-        self._is_closed = True
 
     def _postprocessing(self, result: Result, circuits: list[QuantumCircuit]) -> SamplerResult:
 
@@ -198,10 +175,6 @@ class BackendSampler(BaseSampler):
                 **self.transpile_options.__dict__,
             ),
         )
-
-    def _check_is_closed(self):
-        if self._is_closed:
-            raise QiskitError("The primitive has been closed.")
 
     def _bound_pass_manager_run(self, circuits):
         if self._bound_pass_manager is None:
