@@ -92,7 +92,7 @@ class TestVQD(QiskitAlgorithmsTestCase):
             )
 
         with self.subTest(msg="test dimension of optimal point"):
-            self.assertEqual(len(result.optimal_point[-1]), 8)
+            self.assertEqual(len(result.optimal_points[-1]), 8)
 
         with self.subTest(msg="assert cost_function_evals is set"):
             self.assertIsNotNone(result.cost_function_evals)

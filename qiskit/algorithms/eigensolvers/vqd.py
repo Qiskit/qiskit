@@ -151,7 +151,6 @@ class VQD(VariationalAlgorithm, Eigensolver):
         self.initial_point = initial_point
         self.callback = callback
 
-        self._eval_time = None
         self._eval_count = 0
 
     @property
@@ -264,7 +263,7 @@ class VQD(VariationalAlgorithm, Eigensolver):
 
             if aux_operators is not None:
                 aux_value = estimate_observables(
-                    self.estimator, self.ansatz, aux_operators, result.optimal_point[-1]
+                    self.estimator, self.ansatz, aux_operators, result.optimal_points[-1]
                 )
                 aux_values.append(aux_value)
 
@@ -273,7 +272,7 @@ class VQD(VariationalAlgorithm, Eigensolver):
                     "Ground state optimization complete in %s seconds.\n"
                     "Found opt_params %s in %s evals",
                     eval_time,
-                    result.optimal_point,
+                    result.optimal_points,
                     self._eval_count,
                 )
             else:
@@ -284,14 +283,14 @@ class VQD(VariationalAlgorithm, Eigensolver):
                     ),
                     str(step - 1),
                     eval_time,
-                    result.optimal_point,
+                    result.optimal_points,
                     self._eval_count,
                 )
 
         # To match the signature of EigensolverResult
         result.eigenvalues = np.array(result.eigenvalues)
-        result.optimal_point = np.array(result.optimal_point)
-        result.optimal_value = np.array(result.optimal_value)
+        result.optimal_points = np.array(result.optimal_points)
+        result.optimal_values = np.array(result.optimal_values)
         result.cost_function_evals = np.array(result.cost_function_evals)
         result.optimizer_time = np.array(result.optimizer_time)
 
@@ -382,25 +381,25 @@ class VQD(VariationalAlgorithm, Eigensolver):
     def _build_vqd_result() -> VQDResult:
 
         result = VQDResult()
-        result.optimal_point = []
+        result.optimal_points = []
         result.optimal_parameters = []
-        result.optimal_value = []
+        result.optimal_values = []
         result.cost_function_evals = []
         result.optimizer_time = []
         result.eigenvalues = []
-        result.optimizer_result = []
+        result.optimizer_results = []
         return result
 
     @staticmethod
     def _update_vqd_result(result, opt_result, eval_time, ansatz) -> VQDResult:
 
-        result.optimal_point.append(opt_result.x)
+        result.optimal_points.append(opt_result.x)
         result.optimal_parameters.append(dict(zip(ansatz.parameters, opt_result.x)))
-        result.optimal_value.append(opt_result.fun)
+        result.optimal_values.append(opt_result.fun)
         result.cost_function_evals.append(opt_result.nfev)
         result.optimizer_time.append(eval_time)
         result.eigenvalues.append(opt_result.fun + 0j)
-        result.optimizer_result.append(opt_result)
+        result.optimizer_results.append(opt_result)
         return result
 
 
@@ -411,10 +410,10 @@ class VQDResult(EigensolverResult):
         super().__init__()
         self._cost_function_evals = None
         self._optimizer_time = None
-        self._optimal_value = None
-        self._optimal_point = None
+        self._optimal_values = None
+        self._optimal_points = None
         self._optimal_parameters = None
-        self._optimizer_result = None
+        self._optimizer_results = None
 
     @property
     def cost_function_evals(self) -> list[int] | None:
@@ -437,24 +436,24 @@ class VQDResult(EigensolverResult):
         self._optimizer_time = value
 
     @property
-    def optimal_value(self) -> Sequence[float] | None:
+    def optimal_values(self) -> Sequence[float] | None:
         """Returns optimal value"""
-        return self._optimal_value
+        return self._optimal_values
 
-    @optimal_value.setter
-    def optimal_value(self, value: Sequence[float]) -> None:
+    @optimal_values.setter
+    def optimal_values(self, value: Sequence[float]) -> None:
         """Sets optimal value"""
-        self._optimal_value = value
+        self._optimal_values = value
 
     @property
-    def optimal_point(self) -> Sequence[np.ndarray] | None:
+    def optimal_points(self) -> Sequence[np.ndarray] | None:
         """Returns optimal point"""
-        return self._optimal_point
+        return self._optimal_points
 
-    @optimal_point.setter
-    def optimal_point(self, value: Sequence[np.ndarray]) -> None:
+    @optimal_points.setter
+    def optimal_points(self, value: Sequence[np.ndarray]) -> None:
         """Sets optimal point"""
-        self._optimal_point = value
+        self._optimal_points = value
 
     @property
     def optimal_parameters(self) -> Sequence[dict] | None:
@@ -467,11 +466,11 @@ class VQDResult(EigensolverResult):
         self._optimal_parameters = value
 
     @property
-    def optimizer_result(self) -> Sequence[OptimizerResult] | None:
+    def optimizer_results(self) -> Sequence[OptimizerResult] | None:
         """Returns the optimizer result"""
-        return self._optimizer_result
+        return self._optimizer_results
 
-    @optimizer_result.setter
-    def optimizer_result(self, value: Sequence[OptimizerResult]) -> None:
+    @optimizer_results.setter
+    def optimizer_results(self, value: Sequence[OptimizerResult]) -> None:
         """Sets optimizer result"""
-        self._optimizer_result = value
+        self._optimizer_results = value

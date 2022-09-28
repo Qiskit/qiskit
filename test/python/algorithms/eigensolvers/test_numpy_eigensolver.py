@@ -116,7 +116,7 @@ class TestNumPyEigensolver(QiskitAlgorithmsTestCase):
     @data(H2_PAULI, H2_OP)
     def test_aux_operators_list(self, op):
         """Test list-based aux_operators."""
-        aux_op1 = PauliSumOp.from_list([("II", 2.0)])
+        aux_op1 = Operator(PauliSumOp.from_list([("II", 2.0)]).to_matrix())
         aux_op2 = PauliSumOp.from_list([("II", 0.5), ("ZZ", 0.5), ("YY", 0.5), ("XX", -0.5)])
         aux_ops = [aux_op1, aux_op2]
         algo = NumPyEigensolver()
@@ -156,7 +156,7 @@ class TestNumPyEigensolver(QiskitAlgorithmsTestCase):
     @data(H2_PAULI, H2_OP)
     def test_aux_operators_dict(self, op):
         """Test dict-based aux_operators."""
-        aux_op1 = PauliSumOp.from_list([("II", 2.0)])
+        aux_op1 = Operator(PauliSumOp.from_list([("II", 2.0)]).to_matrix())
         aux_op2 = PauliSumOp.from_list([("II", 0.5), ("ZZ", 0.5), ("YY", 0.5), ("XX", -0.5)])
         aux_ops = {"aux_op1": aux_op1, "aux_op2": aux_op2}
         algo = NumPyEigensolver()
