@@ -1223,19 +1223,13 @@ def state_to_latex(
     return prefix + latex_str + suffix
 
 
-def _round_if_close(data):
-    """Round real and imaginary parts of complex number of close to zero"""
-    data = np.real_if_close(data)
-    data = -1j * np.real_if_close(data * 1j)
-    return data
-
-
-def num_to_latex_ket(raw_value: complex, first_term: bool) -> Optional[str]:
+def num_to_latex_ket(raw_value: complex, first_term: bool, decimals: int = 10) -> Optional[str]:
     """Convert a complex number to latex code suitable for a ket expression
 
     Args:
         raw_value: Value to convert
         first_term: If True then generate latex code for the first term in an expression
+        decimals: Number of decimal places to round to (default: 10).
     Returns:
         String with latex code or None if no term is required
     """
@@ -1246,7 +1240,7 @@ def num_to_latex_ket(raw_value: complex, first_term: bool) -> Optional[str]:
         real_value = 0
         imag_value = 0
     else:
-        raw_value = _round_if_close(raw_value)
+        raw_value = np.around(raw_value, decimals=decimals)
         value = sympy.nsimplify(raw_value, constants=(sympy.pi,), rational=False)
         real_value = float(sympy.re(value))
         imag_value = float(sympy.im(value))
@@ -1291,20 +1285,21 @@ def num_to_latex_ket(raw_value: complex, first_term: bool) -> Optional[str]:
         return None
 
 
-def numbers_to_latex_terms(numbers: List[complex]) -> List[str]:
+def numbers_to_latex_terms(numbers: List[complex], decimals: int = 10) -> List[str]:
     """Convert a list of numbers to latex formatted terms
 
     The first non-zero term is treated differently. For this term a leading + is suppressed.
 
     Args:
         numbers: List of numbers to format
+        decimals: Number of decimal places to round to (default: 10).
     Returns:
         List of formatted terms
     """
     first_term = True
     terms = []
     for number in numbers:
-        term = num_to_latex_ket(number, first_term)
+        term = num_to_latex_ket(number, first_term, decimals)
         if term is not None:
             first_term = False
         terms.append(term)
@@ -1328,16 +1323,16 @@ def _state_to_latex_ket(data: List[complex], max_size: int = 12, prefix: str = "
     def ket_name(i):
         return bin(i)[2:].zfill(num)
 
-    data = _round_if_close(data)
+    data = np.around(data, max_size)
     nonzero_indices = np.where(data != 0)[0].tolist()
     if len(nonzero_indices) > max_size:
         nonzero_indices = (
             nonzero_indices[: max_size // 2] + [0] + nonzero_indices[-max_size // 2 + 1 :]
         )
-        latex_terms = numbers_to_latex_terms(data[nonzero_indices])
+        latex_terms = numbers_to_latex_terms(data[nonzero_indices], max_size)
         nonzero_indices[max_size // 2] = None
     else:
-        latex_terms = numbers_to_latex_terms(data[nonzero_indices])
+        latex_terms = numbers_to_latex_terms(data[nonzero_indices], max_size)
 
     latex_str = ""
     for idx, ket_idx in enumerate(nonzero_indices):
