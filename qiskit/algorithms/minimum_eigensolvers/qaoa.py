@@ -79,7 +79,7 @@ class QAOA(SamplingVQE):
         [3]: Hadfield, S. et al, "From the Quantum Approximate Optimization Algorithm to a Quantum
             Alternating Operator Ansatz" `arXiv:1709.03489 <https://arxiv.org/abs/1709.03489>`__
         [4]: Egger, D. J., Marecek, J., Woerner, S., "Warm-starting quantum optimization"
-            `arXiv: 2009.10095 https://arxiv.org/abs/2009.10095>`__
+            `arXiv: 2009.10095 <https://arxiv.org/abs/2009.10095>`__
     """
 
     def __init__(

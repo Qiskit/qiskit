@@ -1,7 +1,7 @@
 ---
 features:
   - |
-    A :class:`~qiskit.algorithms.minimum_eigensolvers.SamplingVQE` class in introduced, which is
+    A :class:`~qiskit.algorithms.minimum_eigensolvers.SamplingVQE` class is introduced, which is
     optimized for diagonal hamiltonians and leverages a ``sampler`` primitive. A
     :class:`~qiskit.algorithms.minimum_eigensolvers.QAOA` class is also added that subclasses 
     ``SamplingVQE``.
