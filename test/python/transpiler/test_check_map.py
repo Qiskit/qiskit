@@ -129,9 +129,6 @@ class TestCheckMapCX(QiskitTestCase):
         dag = circuit_to_dag(circuit)
         pass_ = CheckMap(coupling)
         pass_.run(dag)
-        print(circuit)
-        print(circuit.data[0].operation.params[0])
-        print(pass_.property_set["is_swap_mapped"])
         self.assertFalse(pass_.property_set["is_swap_mapped"])
 
     def test_swap_mapped_cf_layout_change_true(self):
@@ -149,22 +146,74 @@ class TestCheckMapCX(QiskitTestCase):
         pass_.run(dag)
         self.assertTrue(pass_.property_set["is_swap_mapped"])
 
-    def test_disjoint_controlflow_bits(self):
+    def test_swap_mapped_cf_layout_change_true(self):
+        """Check control flow blocks with layout change are mapped."""
         num_qubits = 3
         coupling = CouplingMap.from_line(num_qubits)
-        qr1 = QuantumRegister(3)
-        qr2 = QuantumRegister(3)
+        qr = QuantumRegister(3)
         cr = ClassicalRegister(3)
         circuit = QuantumCircuit(qr, cr)
-        true_body = QuantumCircuit(qr)
+        true_body = QuantumCircuit(3)
         true_body.cx(0, 2)
         circuit.if_else((cr[0], 0), true_body, None, qr[[1, 0, 2]], cr)
         dag = circuit_to_dag(circuit)
         pass_ = CheckMap(coupling)
         pass_.run(dag)
         self.assertTrue(pass_.property_set["is_swap_mapped"])
-        
 
+    def test_disjoint_controlflow_bits(self):
+        """test control flow on with different registers"""
+        num_qubits = 4
+        coupling = CouplingMap.from_line(num_qubits)
+        qr1 = QuantumRegister(4, "qr")
+        qr2 = QuantumRegister(3, "qrif")
+        cr = ClassicalRegister(3)
+        circuit = QuantumCircuit(qr1, cr)
+        true_body = QuantumCircuit(qr2)
+        true_body.cx(0, 2)
+        circuit.if_else((cr[0], 0), true_body, None, qr1[[1, 0, 2]], cr)
+        dag = circuit_to_dag(circuit)
+        pass_ = CheckMap(coupling)
+        pass_.run(dag)
+        self.assertTrue(pass_.property_set["is_swap_mapped"])
+
+    def test_nested_controlflow_true(self):
+        """Test nested controlflow with true evaluation."""
+        num_qubits = 4
+        coupling = CouplingMap.from_line(num_qubits)
+        qr1 = QuantumRegister(4, "qr")
+        qr2 = QuantumRegister(3, "qrif")
+        cr1 = ClassicalRegister(1)
+        cr2 = ClassicalRegister(1)
+        circuit = QuantumCircuit(qr1, cr1)
+        true_body = QuantumCircuit(qr2, cr2)
+        for_body = QuantumCircuit(3)
+        for_body.cx(0, 2)
+        true_body.for_loop(range(5), body=for_body, qubits=qr2, clbits=cr2)
+        circuit.if_else((cr1[0], 0), true_body, None, qr1[[1, 0, 2]], cr1)
+        dag = circuit_to_dag(circuit)
+        pass_ = CheckMap(coupling)
+        pass_.run(dag)
+        self.assertTrue(pass_.property_set["is_swap_mapped"])
+
+    def test_nested_controlflow_false(self):
+        """Test nested controlflow with true evaluation."""        
+        num_qubits = 4
+        coupling = CouplingMap.from_line(num_qubits)
+        qr1 = QuantumRegister(4, "qr")
+        qr2 = QuantumRegister(3, "qrif")
+        cr1 = ClassicalRegister(1)
+        cr2 = ClassicalRegister(1)
+        circuit = QuantumCircuit(qr1, cr1)
+        true_body = QuantumCircuit(qr2, cr2)
+        for_body = QuantumCircuit(3)
+        for_body.cx(0, 2)
+        true_body.for_loop(range(5), body=for_body, qubits=qr2, clbits=cr2)
+        circuit.if_else((cr1[0], 0), true_body, None, qr1[[0, 1, 2]], cr1)
+        dag = circuit_to_dag(circuit)
+        pass_ = CheckMap(coupling)
+        pass_.run(dag)
+        self.assertFalse(pass_.property_set["is_swap_mapped"])
 
 
 if __name__ == "__main__":
