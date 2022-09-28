@@ -31,8 +31,8 @@ from qiskit.primitives import BaseEstimator
 from qiskit.algorithms.state_fidelities import BaseStateFidelity
 
 from ..list_or_dict import ListOrDict
-from ..optimizers import Optimizer, Minimizer
-from ..variational_algorithm import VariationalAlgorithm, VariationalResult
+from ..optimizers import Optimizer, Minimizer, OptimizerResult
+from ..variational_algorithm import VariationalAlgorithm
 from .eigensolver import Eigensolver, EigensolverResult
 from ..utils import validate_bounds, validate_initial_point
 from ..exceptions import AlgorithmError
@@ -100,7 +100,7 @@ class VQD(VariationalAlgorithm, Eigensolver):
                 a callback that can access the intermediate data
                 during the optimization. Four parameter values are passed to the callback as
                 follows during each evaluation by the optimizer: the evaluation count,
-                the optimizer parameters for the ansatz, the evaluated mean, the evaluation
+                the optimizer parameters for the ansatz, the estimated value, the estimation
                 metadata, and the current step.
     """
 
@@ -112,7 +112,7 @@ class VQD(VariationalAlgorithm, Eigensolver):
         optimizer: Optimizer | Minimizer,
         *,
         k: int = 2,
-        betas: list[float] | None = None,
+        betas: Sequence[float] | None = None,
         initial_point: Sequence[float] | None = None,
         callback: Callable[[int, np.ndarray, float, dict[str, Any]], None] | None = None,
     ) -> None:
@@ -136,8 +136,8 @@ class VQD(VariationalAlgorithm, Eigensolver):
             callback: a callback that can access the intermediate data
                 during the optimization. Four parameter values are passed to the callback as
                 follows during each evaluation by the optimizer: the evaluation count,
-                the optimizer parameters for the ansatz, the evaluated mean, the evaluation
-                metadata, and the current step.
+                the optimizer parameters for the ansatz, the estimated value,
+                the estimation metadata, and the current step.
         """
         super().__init__()
 
@@ -224,13 +224,15 @@ class VQD(VariationalAlgorithm, Eigensolver):
                 upper_bound = abs(operator.coeff) * sum(
                     abs(operation.coeff) for operation in operator
                 )
-                self.betas = [upper_bound * 10] * (self.k)
-                logger.info("beta autoevaluated to %s", self.betas[0])
+                betas = [upper_bound * 10] * (self.k)
+                logger.info("beta autoevaluated to %s", betas[0])
             else:
                 raise NotImplementedError(
                     r"Beta autoevaluation is only supported for operators"
                     f"of type PauliSumOp, found {type(operator)}."
                 )
+        else:
+            betas = self.betas
 
         result = self._build_vqd_result()
 
@@ -241,7 +243,7 @@ class VQD(VariationalAlgorithm, Eigensolver):
 
             self._eval_count = 0
             energy_evaluation = self._get_evaluate_energy(
-                step, operator, prev_states=result.optimal_parameters
+                step, operator, betas, prev_states=result.optimal_parameters
             )
 
             start_time = time()
@@ -267,7 +269,6 @@ class VQD(VariationalAlgorithm, Eigensolver):
                 aux_values.append(aux_value)
 
             if step == 1:
-
                 logger.info(
                     "Ground state optimization complete in %s seconds.\n"
                     "Found opt_params %s in %s evals",
@@ -303,6 +304,7 @@ class VQD(VariationalAlgorithm, Eigensolver):
         self,
         step: int,
         operator: BaseOperator | PauliSumOp,
+        betas: Sequence[float],
         prev_states: list[np.ndarray] | None = None,
     ) -> Callable[[np.ndarray], float | list[float]]:
         """Returns a function handle to evaluate the ansatz's energy for any given parameters.
@@ -318,14 +320,14 @@ class VQD(VariationalAlgorithm, Eigensolver):
             of each parameter.
 
         Raises:
-            RuntimeError: If the circuit is not parameterized (i.e. has 0 free parameters).
+            AlgorithmError: If the circuit is not parameterized (i.e. has 0 free parameters).
             AlgorithmError: If operator was not provided.
-
+            RuntimeError: If the previous states array is of the wrong size.
         """
 
         num_parameters = self.ansatz.num_parameters
         if num_parameters == 0:
-            raise RuntimeError("The ansatz must be parameterized, but has 0 free parameters.")
+            raise AlgorithmError("The ansatz must be parameterized, but has no free parameters.")
 
         if step > 1 and (len(prev_states) + 1) != step:
             raise RuntimeError(
@@ -346,7 +348,7 @@ class VQD(VariationalAlgorithm, Eigensolver):
                     circuits=[self.ansatz], observables=[operator], parameter_values=[parameters]
                 )
                 estimator_result = estimator_job.result()
-                means = np.real(estimator_result.values)
+                values = estimator_result.values
 
             except Exception as exc:
                 raise AlgorithmError("The primitive job to evaluate the energy failed!") from exc
@@ -362,17 +364,17 @@ class VQD(VariationalAlgorithm, Eigensolver):
                 costs = fidelity_job.result().fidelities
 
                 for (state, cost) in zip(range(step - 1), costs):
-                    means += np.real(self.betas[state] * cost)
+                    values += np.real(betas[state] * cost)
 
             if self.callback is not None:
                 metadata = estimator_result.metadata
-                for params, mean, meta in zip([parameters], means, metadata):
+                for params, value, meta in zip([parameters], values, metadata):
                     self._eval_count += 1
-                    self.callback(self._eval_count, params, mean, meta, step)
+                    self.callback(self._eval_count, params, value, meta, step)
             else:
-                self._eval_count += len(means)
+                self._eval_count += len(values)
 
-            return means if len(means) > 1 else means[0]
+            return values if len(values) > 1 else values[0]
 
         return evaluate_energy
 
@@ -402,13 +404,17 @@ class VQD(VariationalAlgorithm, Eigensolver):
         return result
 
 
-class VQDResult(VariationalResult, EigensolverResult):
+class VQDResult(EigensolverResult):
     """VQD Result."""
 
     def __init__(self) -> None:
         super().__init__()
         self._cost_function_evals = None
-        self._metadata = {}
+        self._optimizer_time = None
+        self._optimal_value = None
+        self._optimal_point = None
+        self._optimal_parameters = None
+        self._optimizer_result = None
 
     @property
     def cost_function_evals(self) -> list[int] | None:
@@ -421,11 +427,51 @@ class VQDResult(VariationalResult, EigensolverResult):
         self._cost_function_evals = value
 
     @property
-    def metadata(self) -> dict | None:
-        """Returns metadata"""
-        return self._metadata
+    def optimizer_time(self) -> float | None:
+        """Returns time taken for optimization"""
+        return self._optimizer_time
 
-    @metadata.setter
-    def metadata(self, data: dict) -> None:
-        """Sets metadata"""
-        self._metadata = data
+    @optimizer_time.setter
+    def optimizer_time(self, value: float) -> None:
+        """Sets time taken for optimization"""
+        self._optimizer_time = value
+
+    @property
+    def optimal_value(self) -> Sequence[float] | None:
+        """Returns optimal value"""
+        return self._optimal_value
+
+    @optimal_value.setter
+    def optimal_value(self, value: Sequence[float]) -> None:
+        """Sets optimal value"""
+        self._optimal_value = value
+
+    @property
+    def optimal_point(self) -> Sequence[np.ndarray] | None:
+        """Returns optimal point"""
+        return self._optimal_point
+
+    @optimal_point.setter
+    def optimal_point(self, value: Sequence[np.ndarray]) -> None:
+        """Sets optimal point"""
+        self._optimal_point = value
+
+    @property
+    def optimal_parameters(self) -> Sequence[dict] | None:
+        """Returns the optimal parameters in a dictionary"""
+        return self._optimal_parameters
+
+    @optimal_parameters.setter
+    def optimal_parameters(self, value: Sequence[dict]) -> None:
+        """Sets optimal parameters"""
+        self._optimal_parameters = value
+
+    @property
+    def optimizer_result(self) -> Sequence[OptimizerResult] | None:
+        """Returns the optimizer result"""
+        return self._optimizer_result
+
+    @optimizer_result.setter
+    def optimizer_result(self, value: Sequence[OptimizerResult]) -> None:
+        """Sets optimizer result"""
+        self._optimizer_result = value

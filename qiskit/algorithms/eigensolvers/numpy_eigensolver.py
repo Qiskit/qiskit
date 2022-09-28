@@ -211,9 +211,10 @@ class NumPyEigensolver(Eigensolver):
                         value = Statevector(wavefn).expectation_value(operator)
                 value = value if np.abs(value) > threshold else 0.0
             # The value gets wrapped into a tuple: (mean, metadata).
-            # The metadata includes variance and number of shots
-            # Since this is an exact computation, the variance and shots are known to be zero.
-            values[key] = (value, {"variance": 0.0, "shots": 0.0})
+            # The metadata includes variance (and, for other eigensolvers, shots).
+            # Since this is an exact computation, there are no shots
+            # and the variance is known to be zero.
+            values[key] = (value, {"variance": 0.0})
         return values
 
     def compute_eigenvalues(
