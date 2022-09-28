@@ -125,14 +125,14 @@ class TestNumPyEigensolver(QiskitAlgorithmsTestCase):
         self.assertEqual(len(result.eigenstates), 1)
         self.assertEqual(result.eigenvalues.dtype, np.float64)
         self.assertAlmostEqual(result.eigenvalues[0], -1.85727503)
-        self.assertEqual(len(result.aux_operator_eigenvalues), 1)
-        self.assertEqual(len(result.aux_operator_eigenvalues[0]), 2)
+        self.assertEqual(len(result.aux_operators_evaluated), 1)
+        self.assertEqual(len(result.aux_operators_evaluated[0]), 2)
         # expectation values
-        self.assertAlmostEqual(result.aux_operator_eigenvalues[0][0][0], 2, places=6)
-        self.assertAlmostEqual(result.aux_operator_eigenvalues[0][1][0], 0, places=6)
-        # standard deviations
-        self.assertAlmostEqual(result.aux_operator_eigenvalues[0][0][1], 0.0)
-        self.assertAlmostEqual(result.aux_operator_eigenvalues[0][1][1], 0.0)
+        self.assertAlmostEqual(result.aux_operators_evaluated[0][0][0], 2, places=6)
+        self.assertAlmostEqual(result.aux_operators_evaluated[0][1][0], 0, places=6)
+        # metadata
+        self.assertAlmostEqual(result.aux_operators_evaluated[0][0][1].pop("variance"), 0.0)
+        self.assertAlmostEqual(result.aux_operators_evaluated[0][1][1].pop("variance"), 0.0)
 
         # Go again with additional None and zero operators
         extra_ops = [*aux_ops, None, 0]
@@ -141,17 +141,17 @@ class TestNumPyEigensolver(QiskitAlgorithmsTestCase):
         self.assertEqual(len(result.eigenstates), 1)
         self.assertEqual(result.eigenvalues.dtype, np.float64)
         self.assertAlmostEqual(result.eigenvalues[0], -1.85727503)
-        self.assertEqual(len(result.aux_operator_eigenvalues), 1)
-        self.assertEqual(len(result.aux_operator_eigenvalues[0]), 4)
+        self.assertEqual(len(result.aux_operators_evaluated), 1)
+        self.assertEqual(len(result.aux_operators_evaluated[0]), 4)
         # expectation values
-        self.assertAlmostEqual(result.aux_operator_eigenvalues[0][0][0], 2, places=6)
-        self.assertAlmostEqual(result.aux_operator_eigenvalues[0][1][0], 0, places=6)
-        self.assertIsNone(result.aux_operator_eigenvalues[0][2], None)
-        self.assertEqual(result.aux_operator_eigenvalues[0][3][0], 0.0)
-        # standard deviations
-        self.assertAlmostEqual(result.aux_operator_eigenvalues[0][0][1], 0.0)
-        self.assertAlmostEqual(result.aux_operator_eigenvalues[0][1][1], 0.0)
-        self.assertEqual(result.aux_operator_eigenvalues[0][3][1], 0.0)
+        self.assertAlmostEqual(result.aux_operators_evaluated[0][0][0], 2, places=6)
+        self.assertAlmostEqual(result.aux_operators_evaluated[0][1][0], 0, places=6)
+        self.assertIsNone(result.aux_operators_evaluated[0][2], None)
+        self.assertEqual(result.aux_operators_evaluated[0][3][0], 0.0)
+        # metadata
+        self.assertAlmostEqual(result.aux_operators_evaluated[0][0][1].pop("variance"), 0.0)
+        self.assertAlmostEqual(result.aux_operators_evaluated[0][1][1].pop("variance"), 0.0)
+        self.assertEqual(result.aux_operators_evaluated[0][3][1].pop("variance"), 0.0)
 
     @data(H2_PAULI, H2_OP)
     def test_aux_operators_dict(self, op):
@@ -165,14 +165,14 @@ class TestNumPyEigensolver(QiskitAlgorithmsTestCase):
         self.assertEqual(len(result.eigenstates), 1)
         self.assertEqual(result.eigenvalues.dtype, np.float64)
         self.assertAlmostEqual(result.eigenvalues[0], -1.85727503)
-        self.assertEqual(len(result.aux_operator_eigenvalues), 1)
-        self.assertEqual(len(result.aux_operator_eigenvalues[0]), 2)
+        self.assertEqual(len(result.aux_operators_evaluated), 1)
+        self.assertEqual(len(result.aux_operators_evaluated[0]), 2)
         # expectation values
-        self.assertAlmostEqual(result.aux_operator_eigenvalues[0]["aux_op1"][0], 2, places=6)
-        self.assertAlmostEqual(result.aux_operator_eigenvalues[0]["aux_op2"][0], 0, places=6)
-        # standard deviations
-        self.assertAlmostEqual(result.aux_operator_eigenvalues[0]["aux_op1"][1], 0.0)
-        self.assertAlmostEqual(result.aux_operator_eigenvalues[0]["aux_op2"][1], 0.0)
+        self.assertAlmostEqual(result.aux_operators_evaluated[0]["aux_op1"][0], 2, places=6)
+        self.assertAlmostEqual(result.aux_operators_evaluated[0]["aux_op2"][0], 0, places=6)
+        # metadata
+        self.assertAlmostEqual(result.aux_operators_evaluated[0]["aux_op1"][1].pop("variance"), 0.0)
+        self.assertAlmostEqual(result.aux_operators_evaluated[0]["aux_op2"][1].pop("variance"), 0.0)
 
         # Go again with additional None and zero operators
         extra_ops = {**aux_ops, "None_operator": None, "zero_operator": 0}
@@ -181,17 +181,19 @@ class TestNumPyEigensolver(QiskitAlgorithmsTestCase):
         self.assertEqual(len(result.eigenstates), 1)
         self.assertEqual(result.eigenvalues.dtype, np.float64)
         self.assertAlmostEqual(result.eigenvalues[0], -1.85727503)
-        self.assertEqual(len(result.aux_operator_eigenvalues), 1)
-        self.assertEqual(len(result.aux_operator_eigenvalues[0]), 3)
+        self.assertEqual(len(result.aux_operators_evaluated), 1)
+        self.assertEqual(len(result.aux_operators_evaluated[0]), 3)
         # expectation values
-        self.assertAlmostEqual(result.aux_operator_eigenvalues[0]["aux_op1"][0], 2, places=6)
-        self.assertAlmostEqual(result.aux_operator_eigenvalues[0]["aux_op2"][0], 0, places=6)
-        self.assertEqual(result.aux_operator_eigenvalues[0]["zero_operator"][0], 0.0)
-        self.assertTrue("None_operator" not in result.aux_operator_eigenvalues[0].keys())
-        # standard deviations
-        self.assertAlmostEqual(result.aux_operator_eigenvalues[0]["aux_op1"][1], 0.0)
-        self.assertAlmostEqual(result.aux_operator_eigenvalues[0]["aux_op2"][1], 0.0)
-        self.assertAlmostEqual(result.aux_operator_eigenvalues[0]["zero_operator"][1], 0.0)
+        self.assertAlmostEqual(result.aux_operators_evaluated[0]["aux_op1"][0], 2, places=6)
+        self.assertAlmostEqual(result.aux_operators_evaluated[0]["aux_op2"][0], 0, places=6)
+        self.assertEqual(result.aux_operators_evaluated[0]["zero_operator"][0], 0.0)
+        self.assertTrue("None_operator" not in result.aux_operators_evaluated[0].keys())
+        # metadata
+        self.assertAlmostEqual(result.aux_operators_evaluated[0]["aux_op1"][1].pop("variance"), 0.0)
+        self.assertAlmostEqual(result.aux_operators_evaluated[0]["aux_op2"][1].pop("variance"), 0.0)
+        self.assertAlmostEqual(
+            result.aux_operators_evaluated[0]["zero_operator"][1].pop("variance"), 0.0
+        )
 
 
 if __name__ == "__main__":

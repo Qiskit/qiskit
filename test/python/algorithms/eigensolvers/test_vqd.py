@@ -220,7 +220,7 @@ class TestVQD(QiskitAlgorithmsTestCase):
         np.testing.assert_array_almost_equal(
             result.eigenvalues.real, self.h2_energy_excited, decimal=2
         )
-        self.assertIsNone(result.aux_operator_eigenvalues)
+        self.assertIsNone(result.aux_operators_evaluated)
 
         # Go again with two auxiliary operators
         aux_op1 = PauliSumOp.from_list([("II", 2.0)])
@@ -230,13 +230,13 @@ class TestVQD(QiskitAlgorithmsTestCase):
         np.testing.assert_array_almost_equal(
             result.eigenvalues.real, self.h2_energy_excited, decimal=2
         )
-        self.assertEqual(len(result.aux_operator_eigenvalues), 2)
+        self.assertEqual(len(result.aux_operators_evaluated), 2)
         # expectation values
-        self.assertAlmostEqual(result.aux_operator_eigenvalues[0][0][0], 2, places=2)
-        self.assertAlmostEqual(result.aux_operator_eigenvalues[0][1][0], 0, places=2)
+        self.assertAlmostEqual(result.aux_operators_evaluated[0][0][0], 2, places=2)
+        self.assertAlmostEqual(result.aux_operators_evaluated[0][1][0], 0, places=2)
         # metadata
-        self.assertIsInstance(result.aux_operator_eigenvalues[0][1][1], dict)
-        self.assertIsInstance(result.aux_operator_eigenvalues[0][1][1], dict)
+        self.assertIsInstance(result.aux_operators_evaluated[0][1][1], dict)
+        self.assertIsInstance(result.aux_operators_evaluated[0][1][1], dict)
 
         # Go again with additional None and zero operators
         extra_ops = [*aux_ops, None, 0]
@@ -244,16 +244,16 @@ class TestVQD(QiskitAlgorithmsTestCase):
         np.testing.assert_array_almost_equal(
             result.eigenvalues.real, self.h2_energy_excited, decimal=2
         )
-        self.assertEqual(len(result.aux_operator_eigenvalues), 2)
+        self.assertEqual(len(result.aux_operators_evaluated), 2)
         # expectation values
-        self.assertAlmostEqual(result.aux_operator_eigenvalues[0][0][0], 2, places=2)
-        self.assertAlmostEqual(result.aux_operator_eigenvalues[0][1][0], 0, places=2)
-        self.assertEqual(result.aux_operator_eigenvalues[0][2][0], 0.0)
-        self.assertEqual(result.aux_operator_eigenvalues[0][3][0], 0.0)
+        self.assertAlmostEqual(result.aux_operators_evaluated[0][0][0], 2, places=2)
+        self.assertAlmostEqual(result.aux_operators_evaluated[0][1][0], 0, places=2)
+        self.assertEqual(result.aux_operators_evaluated[0][2][0], 0.0)
+        self.assertEqual(result.aux_operators_evaluated[0][3][0], 0.0)
         # metadata
-        self.assertIsInstance(result.aux_operator_eigenvalues[0][0][1], dict)
-        self.assertIsInstance(result.aux_operator_eigenvalues[0][1][1], dict)
-        self.assertIsInstance(result.aux_operator_eigenvalues[0][3][1], dict)
+        self.assertIsInstance(result.aux_operators_evaluated[0][0][1], dict)
+        self.assertIsInstance(result.aux_operators_evaluated[0][1][1], dict)
+        self.assertIsInstance(result.aux_operators_evaluated[0][3][1], dict)
 
     @data(H2_PAULI, H2_OP)
     def test_aux_operators_dict(self, op):
@@ -272,7 +272,7 @@ class TestVQD(QiskitAlgorithmsTestCase):
         np.testing.assert_array_almost_equal(
             result.eigenvalues.real, self.h2_energy_excited, decimal=2
         )
-        self.assertIsNone(result.aux_operator_eigenvalues)
+        self.assertIsNone(result.aux_operators_evaluated)
 
         # Go again with two auxiliary operators
         aux_op1 = PauliSumOp.from_list([("II", 2.0)])
@@ -282,14 +282,14 @@ class TestVQD(QiskitAlgorithmsTestCase):
         self.assertEqual(len(result.eigenvalues), 2)
         self.assertEqual(result.eigenvalues.dtype, np.complex128)
         self.assertAlmostEqual(result.eigenvalues[0], -1.85727503, 2)
-        self.assertEqual(len(result.aux_operator_eigenvalues), 2)
-        self.assertEqual(len(result.aux_operator_eigenvalues[0]), 2)
+        self.assertEqual(len(result.aux_operators_evaluated), 2)
+        self.assertEqual(len(result.aux_operators_evaluated[0]), 2)
         # expectation values
-        self.assertAlmostEqual(result.aux_operator_eigenvalues[0]["aux_op1"][0], 2, places=6)
-        self.assertAlmostEqual(result.aux_operator_eigenvalues[0]["aux_op2"][0], 0, places=1)
+        self.assertAlmostEqual(result.aux_operators_evaluated[0]["aux_op1"][0], 2, places=6)
+        self.assertAlmostEqual(result.aux_operators_evaluated[0]["aux_op2"][0], 0, places=1)
         # metadata
-        self.assertIsInstance(result.aux_operator_eigenvalues[0]["aux_op1"][1], dict)
-        self.assertIsInstance(result.aux_operator_eigenvalues[0]["aux_op2"][1], dict)
+        self.assertIsInstance(result.aux_operators_evaluated[0]["aux_op1"][1], dict)
+        self.assertIsInstance(result.aux_operators_evaluated[0]["aux_op2"][1], dict)
 
         # Go again with additional None and zero operators
         extra_ops = {**aux_ops, "None_operator": None, "zero_operator": 0}
@@ -297,17 +297,17 @@ class TestVQD(QiskitAlgorithmsTestCase):
         self.assertEqual(len(result.eigenvalues), 2)
         self.assertEqual(result.eigenvalues.dtype, np.complex128)
         self.assertAlmostEqual(result.eigenvalues[0], -1.85727503, places=5)
-        self.assertEqual(len(result.aux_operator_eigenvalues), 2)
-        self.assertEqual(len(result.aux_operator_eigenvalues[0]), 3)
+        self.assertEqual(len(result.aux_operators_evaluated), 2)
+        self.assertEqual(len(result.aux_operators_evaluated[0]), 3)
         # expectation values
-        self.assertAlmostEqual(result.aux_operator_eigenvalues[0]["aux_op1"][0], 2, places=6)
-        self.assertAlmostEqual(result.aux_operator_eigenvalues[0]["aux_op2"][0], 0.0, places=2)
-        self.assertEqual(result.aux_operator_eigenvalues[0]["zero_operator"][0], 0.0)
-        self.assertTrue("None_operator" not in result.aux_operator_eigenvalues[0].keys())
+        self.assertAlmostEqual(result.aux_operators_evaluated[0]["aux_op1"][0], 2, places=6)
+        self.assertAlmostEqual(result.aux_operators_evaluated[0]["aux_op2"][0], 0.0, places=2)
+        self.assertEqual(result.aux_operators_evaluated[0]["zero_operator"][0], 0.0)
+        self.assertTrue("None_operator" not in result.aux_operators_evaluated[0].keys())
         # metadata
-        self.assertIsInstance(result.aux_operator_eigenvalues[0]["aux_op1"][1], dict)
-        self.assertIsInstance(result.aux_operator_eigenvalues[0]["aux_op2"][1], dict)
-        self.assertIsInstance(result.aux_operator_eigenvalues[0]["zero_operator"][1], dict)
+        self.assertIsInstance(result.aux_operators_evaluated[0]["aux_op1"][1], dict)
+        self.assertIsInstance(result.aux_operators_evaluated[0]["aux_op2"][1], dict)
+        self.assertIsInstance(result.aux_operators_evaluated[0]["zero_operator"][1], dict)
 
     @data(H2_PAULI, H2_OP)
     def test_aux_operator_std_dev(self, op):
@@ -336,32 +336,32 @@ class TestVQD(QiskitAlgorithmsTestCase):
         aux_op2 = PauliSumOp.from_list([("II", 0.5), ("ZZ", 0.5), ("YY", 0.5), ("XX", -0.5)])
         aux_ops = [aux_op1, aux_op2]
         result = vqd.compute_eigenvalues(op, aux_operators=aux_ops)
-        self.assertEqual(len(result.aux_operator_eigenvalues), 2)
+        self.assertEqual(len(result.aux_operators_evaluated), 2)
         # expectation values
-        self.assertAlmostEqual(result.aux_operator_eigenvalues[0][0][0], 2.0, places=1)
+        self.assertAlmostEqual(result.aux_operators_evaluated[0][0][0], 2.0, places=1)
         self.assertAlmostEqual(
-            result.aux_operator_eigenvalues[0][1][0], 0.0019531249999999445, places=1
+            result.aux_operators_evaluated[0][1][0], 0.0019531249999999445, places=1
         )
         # metadata
-        self.assertIsInstance(result.aux_operator_eigenvalues[0][0][1], dict)
-        self.assertIsInstance(result.aux_operator_eigenvalues[0][1][1], dict)
+        self.assertIsInstance(result.aux_operators_evaluated[0][0][1], dict)
+        self.assertIsInstance(result.aux_operators_evaluated[0][1][1], dict)
 
         # Go again with additional None and zero operators
         aux_ops = [*aux_ops, None, 0]
         result = vqd.compute_eigenvalues(op, aux_operators=aux_ops)
-        self.assertEqual(len(result.aux_operator_eigenvalues[0]), 4)
+        self.assertEqual(len(result.aux_operators_evaluated[0]), 4)
         # expectation values
-        self.assertAlmostEqual(result.aux_operator_eigenvalues[0][0][0], 2.0, places=1)
+        self.assertAlmostEqual(result.aux_operators_evaluated[0][0][0], 2.0, places=1)
         self.assertAlmostEqual(
-            result.aux_operator_eigenvalues[0][1][0], 0.0019531249999999445, places=1
+            result.aux_operators_evaluated[0][1][0], 0.0019531249999999445, places=1
         )
-        self.assertEqual(result.aux_operator_eigenvalues[0][2][0], 0.0)
-        self.assertEqual(result.aux_operator_eigenvalues[0][3][0], 0.0)
+        self.assertEqual(result.aux_operators_evaluated[0][2][0], 0.0)
+        self.assertEqual(result.aux_operators_evaluated[0][3][0], 0.0)
         # metadata
-        self.assertIsInstance(result.aux_operator_eigenvalues[0][0][1], dict)
-        self.assertIsInstance(result.aux_operator_eigenvalues[0][1][1], dict)
-        self.assertIsInstance(result.aux_operator_eigenvalues[0][2][1], dict)
-        self.assertIsInstance(result.aux_operator_eigenvalues[0][3][1], dict)
+        self.assertIsInstance(result.aux_operators_evaluated[0][0][1], dict)
+        self.assertIsInstance(result.aux_operators_evaluated[0][1][1], dict)
+        self.assertIsInstance(result.aux_operators_evaluated[0][2][1], dict)
+        self.assertIsInstance(result.aux_operators_evaluated[0][3][1], dict)
 
 
 if __name__ == "__main__":

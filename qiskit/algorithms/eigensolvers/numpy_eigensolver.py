@@ -171,7 +171,7 @@ class NumPyEigensolver(Eigensolver):
                 aux_op_vals.append(
                     self._eval_aux_operators(aux_operators, self._ret.eigenstates[i])
                 )
-            self._ret.aux_operator_eigenvalues = aux_op_vals
+            self._ret.aux_operators_evaluated = aux_op_vals
 
     @staticmethod
     def _eval_aux_operators(
@@ -210,9 +210,10 @@ class NumPyEigensolver(Eigensolver):
                     else:
                         value = Statevector(wavefn).expectation_value(operator)
                 value = value if np.abs(value) > threshold else 0.0
-            # The value gets wrapped into a tuple: (mean, standard deviation).
-            # Since this is an exact computation, the standard deviation is known to be zero.
-            values[key] = (value, 0.0)
+            # The value gets wrapped into a tuple: (mean, metadata).
+            # The metadata includes variance and number of shots
+            # Since this is an exact computation, the variance and shots are known to be zero.
+            values[key] = (value, {"variance": 0.0, "shots": 0.0})
         return values
 
     def compute_eigenvalues(
@@ -258,15 +259,15 @@ class NumPyEigensolver(Eigensolver):
             for i in range(len(self._ret.eigenvalues)):
                 eigvec = self._ret.eigenstates[i]
                 eigval = self._ret.eigenvalues[i]
-                if self._ret.aux_operator_eigenvalues is not None:
-                    aux_op = self._ret.aux_operator_eigenvalues[i]
+                if self._ret.aux_operators_evaluated is not None:
+                    aux_op = self._ret.aux_operators_evaluated[i]
                 else:
                     aux_op = None
                 if self._filter_criterion(eigvec, eigval, aux_op):
                     cnt += 1
                     eigvecs += [eigvec]
                     eigvals += [eigval]
-                    if self._ret.aux_operator_eigenvalues is not None:
+                    if self._ret.aux_operators_evaluated is not None:
                         aux_ops += [aux_op]
                 if cnt == k_orig:
                     break
@@ -274,7 +275,7 @@ class NumPyEigensolver(Eigensolver):
             self._ret.eigenstates = np.array(eigvecs)
             self._ret.eigenvalues = np.array(eigvals)
             # conversion to np.array breaks in case of aux_ops
-            self._ret.aux_operator_eigenvalues = aux_ops
+            self._ret.aux_operators_evaluated = aux_ops
 
             self._k = k_orig
 

@@ -295,7 +295,7 @@ class VQD(VariationalAlgorithm, Eigensolver):
         result.optimizer_time = np.array(result.optimizer_time)
 
         if aux_operators is not None:
-            result.aux_operator_eigenvalues = aux_values
+            result.aux_operators_evaluated = aux_values
 
         return result
 

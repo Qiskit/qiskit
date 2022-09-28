@@ -77,7 +77,9 @@ Eigen Solvers
 
 Algorithms to find eigenvalues of an operator. For chemistry these can be used to find excited
 states of a molecule, and qiskit-nature has some algorithms that leverage chemistry specific
-knowledge to do this in that application domain.
+knowledge to do this in that application domain.These algorithms are pending depreciation.
+One should instead make use of the Eigensolver classes in the section below, which leverage
+Runtime primitives.
 
 .. autosummary::
    :toctree: ../stubs/
