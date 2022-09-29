@@ -76,6 +76,7 @@ Here is an example of how the estimator is used.
     job_result = job2.result()
     print(f"The primitive-job finished with result {job_result}")
 """
+
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
@@ -437,26 +438,35 @@ class BaseEstimator(ABC):
         Raises:
             ValueError: Invalid arguments are given.
         """
-        # Support ndarray
-        if isinstance(parameter_values, np.ndarray):
-            parameter_values = parameter_values.tolist()
-
-        if not isinstance(circuits, Sequence):
-            circuits = [circuits]
-        if not isinstance(observables, Sequence):
-            observables = [observables]
-        if (
-            len(circuits) > 0
-            and len(observables) > 0
-            and parameter_values is not None
-            and (
-                len(parameter_values) == 0
-                or not isinstance(parameter_values[0], (Sequence, Iterable))
-            )
+        # Circuits validation
+        if isinstance(circuits, QuantumCircuit):
+            circuits = (circuits,)
+        elif not isinstance(circuits, Sequence) or not all(
+            isinstance(cir, QuantumCircuit) for cir in circuits
         ):
-            parameter_values = [parameter_values]  # type: ignore[assignment]
+            raise TypeError("Invalid circuits, expected Sequence[QuantumCircuit].")
+        elif not isinstance(circuits, tuple):
+            circuits = tuple(circuits)
 
-        # Allow optional
+        # Observables validation
+        if isinstance(observables, (BaseOperator, PauliSumOp)):
+            observables = (observables,)
+        elif not isinstance(observables, Sequence) or not all(
+            isinstance(obs, (BaseOperator, PauliSumOp)) for obs in observables
+        ):
+            raise TypeError("Invalid observables, expected Sequence[BaseOperator|PauliSumOp].")
+        elif not isinstance(observables, tuple):
+            observables = tuple(observables)
+
+        # Parameter values validation
+        # TODO: contemplate ndarray and int in type annotations
+        # TODO: disallow non-numeric float values: float('nan'), float('inf'), float('-inf')
+        if (
+            (len(circuits) == 1 or len(observables) == 1)
+            and isinstance(parameter_values, (Sequence, np.ndarray))
+            and all(isinstance(val, (int, float)) for val in parameter_values)
+        ):
+            parameter_values = (parameter_values,)
         if parameter_values is None:
             for i, circuit in enumerate(circuits):
                 if circuit.num_parameters != 0:
@@ -464,9 +474,27 @@ class BaseEstimator(ABC):
                         f"The {i}-th circuit is parameterised,"
                         "but parameter values are not given."
                     )
-            parameter_values = [[]] * len(circuits)
+            parameter_values = tuple([()] * len(circuits))
+        elif (
+            not isinstance(parameter_values, (Sequence, np.ndarray))
+            or not all(isinstance(pv, (Sequence, np.ndarray)) for pv in parameter_values)
+            or not all(all(isinstance(v, (float, int)) for v in pv) for pv in parameter_values)
+        ):
+            raise TypeError("Invalid parameter values, expected Sequence[Sequence[int|float]].")
+        elif (
+            not isinstance(parameter_values, tuple)
+            or not all(isinstance(bind, tuple) for bind in parameter_values)
+            or not all(all(isinstance(val, float) for val in bind) for bind in parameter_values)
+        ):
+            _parameter_values = []
+            for binding in parameter_values:
+                _binding = []
+                for value in binding:
+                    _binding.append(value if isinstance(value, float) else float(value))
+                _parameter_values.append(_binding)
+            parameter_values = tuple(tuple(binding) for binding in _parameter_values)
 
-        # Validation
+        # Cross validation
         if len(circuits) != len(observables):
             raise ValueError(
                 f"The number of circuits ({len(circuits)}) does not match "
@@ -477,14 +505,12 @@ class BaseEstimator(ABC):
                 f"The number of circuits ({len(circuits)}) does not match "
                 f"the number of parameter value sets ({len(parameter_values)})."
             )
-
         for i, (circuit, parameter_value) in enumerate(zip(circuits, parameter_values)):
             if len(parameter_value) != circuit.num_parameters:
                 raise ValueError(
                     f"The number of values ({len(parameter_value)}) does not match "
                     f"the number of parameters ({circuit.num_parameters}) for the {i}-th circuit."
                 )
-
         for i, (circuit, observable) in enumerate(zip(circuits, observables)):
             if circuit.num_qubits != observable.num_qubits:
                 raise ValueError(
@@ -492,6 +518,8 @@ class BaseEstimator(ABC):
                     f"not match the number of qubits of the {i}-th observable "
                     f"({observable.num_qubits})."
                 )
+
+        # Options
         run_opts = copy(self.options)
         run_opts.update_options(**run_options)
 
@@ -516,9 +544,9 @@ class BaseEstimator(ABC):
     # @abstractmethod
     def _run(
         self,
-        circuits: Sequence[QuantumCircuit],
-        observables: Sequence[BaseOperator | PauliSumOp],
-        parameter_values: Sequence[Sequence[float]],
+        circuits: tuple[QuantumCircuit, ...],
+        observables: tuple[BaseOperator | PauliSumOp, ...],
+        parameter_values: tuple[tuple[float, ...], ...],
         **run_options,
     ) -> Job:
         raise NotImplementedError(
