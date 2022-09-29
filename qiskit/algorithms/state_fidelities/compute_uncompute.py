@@ -25,8 +25,6 @@ from ..exceptions import AlgorithmError
 from .base_state_fidelity import BaseStateFidelity
 from .state_fidelity_result import StateFidelityResult
 
-from ..exceptions import AlgorithmError
-
 
 class ComputeUncompute(BaseStateFidelity):
     r"""

@@ -23,7 +23,6 @@ from qiskit.circuit import ParameterVector
 
 from ..algorithm_job import AlgorithmJob
 from .state_fidelity_result import StateFidelityResult
-from ..algorithm_job import AlgorithmJob
 
 
 class BaseStateFidelity(ABC):
