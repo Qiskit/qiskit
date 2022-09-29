@@ -111,4 +111,5 @@ class LayoutTransformation(TransformationPass):
 
         qubits = [dag.qubits[i[0]] for i in sorted(perm_circ.inputmap.items(), key=lambda x: x[0])]
         dag.compose(perm_circ.circuit, qubits=qubits)
+
         return dag

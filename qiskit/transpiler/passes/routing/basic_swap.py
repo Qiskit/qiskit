@@ -14,9 +14,15 @@
 
 from qiskit.transpiler.basepasses import TransformationPass
 from qiskit.transpiler.exceptions import TranspilerError
+from qiskit.transpiler.passes.routing.utils import (
+    transpile_cf_multiblock,
+    transpile_cf_looping,
+    layout_transform,
+)
 from qiskit.dagcircuit import DAGCircuit
 from qiskit.transpiler.layout import Layout
 from qiskit.circuit.library.standard_gates import SwapGate
+from qiskit.circuit import ControlFlowOp, IfElseOp, WhileLoopOp, ForLoopOp
 
 
 class BasicSwap(TransformationPass):
@@ -27,17 +33,21 @@ class BasicSwap(TransformationPass):
     one or more swaps in front to make it compatible.
     """
 
-    def __init__(self, coupling_map, fake_run=False):
+    def __init__(self, coupling_map, fake_run=False, initial_layout=None):
         """BasicSwap initializer.
 
         Args:
             coupling_map (CouplingMap): Directed graph represented a coupling map.
             fake_run (bool): if true, it only pretend to do routing, i.e., no
                 swap is effectively added.
+            initial_layout (Layout, None): Initial layout of circuit.
         """
         super().__init__()
         self.coupling_map = coupling_map
         self.fake_run = fake_run
+        self.property_set["final_layout"] = None
+        self.initial_layout = initial_layout
+        self.qregs = None
 
     def run(self, dag):
         """Run the BasicSwap pass on `dag`.
@@ -64,45 +74,81 @@ class BasicSwap(TransformationPass):
             raise TranspilerError("The layout does not match the amount of qubits in the DAG")
 
         canonical_register = dag.qregs["q"]
-        trivial_layout = Layout.generate_trivial_layout(canonical_register)
+
+        if self.initial_layout:
+            trivial_layout = self.initial_layout
+        else:
+            trivial_layout = Layout.generate_trivial_layout(canonical_register)
         current_layout = trivial_layout.copy()
 
         for layer in dag.serial_layers():
             subdag = layer["graph"]
+            cf_layer = False
+            # handle control flow operations
+            cf_nodes = subdag.op_nodes(op=ControlFlowOp) + subdag.named_nodes("continue_loop")
+            if cf_nodes:
+                for node in cf_nodes:  # should be len()=1
+                    subdag_cf, cf_layout = self._transpile_controlflow_op(
+                        node, current_layout, subdag
+                    )
+                    subdag = subdag_cf
+                    cf_layer = True
+            else:
+                for gate in subdag.two_qubit_ops():
+                    physical_q0 = current_layout[gate.qargs[0]]
+                    physical_q1 = current_layout[gate.qargs[1]]
+                    if self.coupling_map.distance(physical_q0, physical_q1) != 1:
+                        # Insert a new layer with the SWAP(s).
+                        swap_layer = DAGCircuit()
+                        swap_layer.add_qreg(canonical_register)
 
-            for gate in subdag.two_qubit_ops():
-                physical_q0 = current_layout[gate.qargs[0]]
-                physical_q1 = current_layout[gate.qargs[1]]
-                if self.coupling_map.distance(physical_q0, physical_q1) != 1:
-                    # Insert a new layer with the SWAP(s).
-                    swap_layer = DAGCircuit()
-                    swap_layer.add_qreg(canonical_register)
+                        path = self.coupling_map.shortest_undirected_path(physical_q0, physical_q1)
+                        for swap in range(len(path) - 2):
+                            connected_wire_1 = path[swap]
+                            connected_wire_2 = path[swap + 1]
 
-                    path = self.coupling_map.shortest_undirected_path(physical_q0, physical_q1)
-                    for swap in range(len(path) - 2):
-                        connected_wire_1 = path[swap]
-                        connected_wire_2 = path[swap + 1]
+                            qubit_1 = current_layout[connected_wire_1]
+                            qubit_2 = current_layout[connected_wire_2]
 
-                        qubit_1 = current_layout[connected_wire_1]
-                        qubit_2 = current_layout[connected_wire_2]
+                            # create the swap operation
+                            swap_layer.apply_operation_back(
+                                SwapGate(), qargs=[qubit_1, qubit_2], cargs=[]
+                            )
 
-                        # create the swap operation
-                        swap_layer.apply_operation_back(
-                            SwapGate(), qargs=[qubit_1, qubit_2], cargs=[]
-                        )
+                        # layer insertion
+                        order = current_layout.reorder_bits(new_dag.qubits)
+                        new_dag.compose(swap_layer, qubits=order)
 
-                    # layer insertion
-                    order = current_layout.reorder_bits(new_dag.qubits)
-                    new_dag.compose(swap_layer, qubits=order)
-
-                    # update current_layout
-                    for swap in range(len(path) - 2):
-                        current_layout.swap(path[swap], path[swap + 1])
-
-            order = current_layout.reorder_bits(new_dag.qubits)
-            new_dag.compose(subdag, qubits=order)
-
+                        # update current_layout
+                        for swap in range(len(path) - 2):
+                            current_layout.swap(path[swap], path[swap + 1])
+            if cf_layer or (subdag.depth() == 1 and subdag.op_nodes()[0].name == "continue_loop"):
+                order = current_layout.reorder_bits(new_dag.qubits)
+                new_dag.compose(subdag, qubits=order)
+                current_layout = cf_layout
+            else:
+                order = current_layout.reorder_bits(new_dag.qubits)
+                new_dag.compose(subdag, qubits=order)
+        self.property_set["final_layout"] = current_layout
         return new_dag
+
+    def _transpile_controlflow_op(self, cf_node, current_layout, subdag):
+        """Initialize recursive pass and transpile based on type of control flow operation.
+        The coupling_map is converted to the virtual qubits of the current layout."""
+        new_coupling = layout_transform(self.coupling_map, current_layout)
+        _pass = self.__class__(new_coupling, initial_layout=None)
+        cf_op = cf_node.op
+        if isinstance(cf_op, IfElseOp):
+            op, layout = transpile_cf_multiblock(
+                _pass, cf_node, current_layout, new_coupling, subdag
+            )
+        elif isinstance(cf_op, (ForLoopOp, WhileLoopOp)):
+            op, layout = transpile_cf_looping(_pass, cf_node, current_layout, new_coupling, subdag)
+        else:
+            op, layout = cf_op, current_layout
+        subdag_cf = subdag.copy_empty_like()
+        subdag_cf.apply_operation_back(op, qargs=subdag_cf.qubits, cargs=subdag_cf.clbits)
+        return subdag_cf, layout
 
     def _fake_run(self, dag):
         """Do a fake run the BasicSwap pass on `dag`.

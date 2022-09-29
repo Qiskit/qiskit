@@ -753,6 +753,7 @@ class DAGCircuit:
         if clbits is None:
             clbit_map = identity_clbit_map
         elif len(clbits) != len(other.clbits):
+            breakpoint()
             raise DAGCircuitError(
                 "Number of items in clbits parameter does not"
                 " match number of clbits in the circuit."
