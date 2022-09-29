@@ -13,10 +13,10 @@
 Circuit simulation for the Clifford class.
 """
 
-from qiskit.exceptions import QiskitError
 from qiskit.circuit import QuantumCircuit
 from qiskit.circuit.barrier import Barrier
 from qiskit.circuit.delay import Delay
+from qiskit.exceptions import QiskitError
 
 
 def _append_circuit(clifford, circuit, qargs=None):
@@ -138,7 +138,7 @@ def _append_x(clifford, qubit):
     Returns:
         Clifford: the updated Clifford.
     """
-    clifford.table.phase ^= clifford.table.Z[:, qubit]
+    clifford.phase ^= clifford.z[:, qubit]
     return clifford
 
 
@@ -152,9 +152,9 @@ def _append_y(clifford, qubit):
     Returns:
         Clifford: the updated Clifford.
     """
-    x = clifford.table.X[:, qubit]
-    z = clifford.table.Z[:, qubit]
-    clifford.table.phase ^= x ^ z
+    x = clifford.x[:, qubit]
+    z = clifford.z[:, qubit]
+    clifford.phase ^= x ^ z
     return clifford
 
 
@@ -168,7 +168,7 @@ def _append_z(clifford, qubit):
     Returns:
         Clifford: the updated Clifford.
     """
-    clifford.table.phase ^= clifford.table.X[:, qubit]
+    clifford.phase ^= clifford.x[:, qubit]
     return clifford
 
 
@@ -182,9 +182,9 @@ def _append_h(clifford, qubit):
     Returns:
         Clifford: the updated Clifford.
     """
-    x = clifford.table.X[:, qubit]
-    z = clifford.table.Z[:, qubit]
-    clifford.table.phase ^= x & z
+    x = clifford.x[:, qubit]
+    z = clifford.z[:, qubit]
+    clifford.phase ^= x & z
     tmp = x.copy()
     x[:] = z
     z[:] = tmp
@@ -201,10 +201,10 @@ def _append_s(clifford, qubit):
     Returns:
         Clifford: the updated Clifford.
     """
-    x = clifford.table.X[:, qubit]
-    z = clifford.table.Z[:, qubit]
+    x = clifford.x[:, qubit]
+    z = clifford.z[:, qubit]
 
-    clifford.table.phase ^= x & z
+    clifford.phase ^= x & z
     z ^= x
     return clifford
 
@@ -219,9 +219,9 @@ def _append_sdg(clifford, qubit):
     Returns:
         Clifford: the updated Clifford.
     """
-    x = clifford.table.X[:, qubit]
-    z = clifford.table.Z[:, qubit]
-    clifford.table.phase ^= x & ~z
+    x = clifford.x[:, qubit]
+    z = clifford.z[:, qubit]
+    clifford.phase ^= x & ~z
     z ^= x
     return clifford
 
@@ -238,8 +238,8 @@ def _append_v(clifford, qubit):
     Returns:
         Clifford: the updated Clifford.
     """
-    x = clifford.table.X[:, qubit]
-    z = clifford.table.Z[:, qubit]
+    x = clifford.x[:, qubit]
+    z = clifford.z[:, qubit]
     tmp = x.copy()
     x ^= z
     z[:] = tmp
@@ -258,8 +258,8 @@ def _append_w(clifford, qubit):
     Returns:
         Clifford: the updated Clifford.
     """
-    x = clifford.table.X[:, qubit]
-    z = clifford.table.Z[:, qubit]
+    x = clifford.x[:, qubit]
+    z = clifford.z[:, qubit]
     tmp = z.copy()
     z ^= x
     x[:] = tmp
@@ -277,11 +277,11 @@ def _append_cx(clifford, control, target):
     Returns:
         Clifford: the updated Clifford.
     """
-    x0 = clifford.table.X[:, control]
-    z0 = clifford.table.Z[:, control]
-    x1 = clifford.table.X[:, target]
-    z1 = clifford.table.Z[:, target]
-    clifford.table.phase ^= (x1 ^ z0 ^ True) & z1 & x0
+    x0 = clifford.x[:, control]
+    z0 = clifford.z[:, control]
+    x1 = clifford.x[:, target]
+    z1 = clifford.z[:, target]
+    clifford.phase ^= (x1 ^ z0 ^ True) & z1 & x0
     x1 ^= x0
     z0 ^= z1
     return clifford
@@ -298,11 +298,11 @@ def _append_cz(clifford, control, target):
     Returns:
         Clifford: the updated Clifford.
     """
-    x0 = clifford.table.X[:, control]
-    z0 = clifford.table.Z[:, control]
-    x1 = clifford.table.X[:, target]
-    z1 = clifford.table.Z[:, target]
-    clifford.table.phase ^= x0 & x1 & (z0 ^ z1)
+    x0 = clifford.x[:, control]
+    z0 = clifford.z[:, control]
+    x1 = clifford.x[:, target]
+    z1 = clifford.z[:, target]
+    clifford.phase ^= x0 & x1 & (z0 ^ z1)
     z1 ^= x0
     z0 ^= x1
     return clifford
@@ -319,6 +319,6 @@ def _append_swap(clifford, qubit0, qubit1):
     Returns:
         Clifford: the updated Clifford.
     """
-    clifford.table.X[:, [qubit0, qubit1]] = clifford.table.X[:, [qubit1, qubit0]]
-    clifford.table.Z[:, [qubit0, qubit1]] = clifford.table.Z[:, [qubit1, qubit0]]
+    clifford.x[:, [qubit0, qubit1]] = clifford.x[:, [qubit1, qubit0]]
+    clifford.z[:, [qubit0, qubit1]] = clifford.z[:, [qubit1, qubit0]]
     return clifford
