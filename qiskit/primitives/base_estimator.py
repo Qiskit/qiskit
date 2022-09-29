@@ -251,7 +251,7 @@ class BaseEstimator(ABC):
         """
         return self._run_options
 
-    def set_options(self, **fields) -> BaseEstimator:
+    def set_options(self, **fields):
         """Set options values for the estimator.
 
         Args:
@@ -399,9 +399,9 @@ class BaseEstimator(ABC):
 
     def run(
         self,
-        circuits: Sequence[QuantumCircuit],
-        observables: Sequence[BaseOperator | PauliSumOp],
-        parameter_values: Sequence[Sequence[float]] | None = None,
+        circuits: QuantumCircuit | Sequence[QuantumCircuit],
+        observables: BaseOperator | PauliSumOp | Sequence[BaseOperator | PauliSumOp],
+        parameter_values: Sequence[float] | Sequence[Sequence[float]] | None = None,
         **run_options,
     ) -> Job:
         """Run the job of the estimation of expectation value(s).
@@ -426,8 +426,8 @@ class BaseEstimator(ABC):
             values = parameter_values[i].
 
         Args:
-            circuits: the list of circuit objects.
-            observables: the list of observable objects.
+            circuits: one or more circuit objects.
+            observables: one or more observable objects.
             parameter_values: concrete parameters to be bound.
             run_options: runtime options used for circuit execution.
 
@@ -440,6 +440,21 @@ class BaseEstimator(ABC):
         # Support ndarray
         if isinstance(parameter_values, np.ndarray):
             parameter_values = parameter_values.tolist()
+
+        if not isinstance(circuits, Sequence):
+            circuits = [circuits]
+        if not isinstance(observables, Sequence):
+            observables = [observables]
+        if (
+            len(circuits) > 0
+            and len(observables) > 0
+            and parameter_values is not None
+            and (
+                len(parameter_values) == 0
+                or not isinstance(parameter_values[0], (Sequence, Iterable))
+            )
+        ):
+            parameter_values = [parameter_values]  # type: ignore[assignment]
 
         # Allow optional
         if parameter_values is None:
