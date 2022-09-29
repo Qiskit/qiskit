@@ -158,19 +158,20 @@ abstract plugin class:
 which defines the interface and contract for high-level synthesis plugins.
 The primary method is
 :meth:`~qiskit.transpiler.passes.synthesis.plugin.HighLevelSynthesisPlugin.run`.
-It takes in a single positional argument, a ``higher-level object`` to be
+It takes in a single positional argument, a "higher-level-object" to be
 synthesized, which is any object of type :class:`~qiskit.circuit.Operation`
 (including, for example,
-:class:`~qiskit.circuit.library.generalized_gates.LinearFunction` or
-:class:`~qiskit.quantum_info.operators.Clifford`).
+:class:`~qiskit.circuit.library.generalized_gates.linear_function.LinearFunction` or
+:class:`~qiskit.quantum_info.operators.symplectic.clifford.Clifford`).
 The method
-:meth:`~qiskit.transpiler.passes.synthesis.plugin.HighLevelSynthesisPlugin.run`.
+:meth:`~qiskit.transpiler.passes.synthesis.plugin.HighLevelSynthesisPlugin.run`
 is expected to return a :class:`~qiskit.circuit.QuantumCircuit` object
 representing the synthesized circuit from that higher-level-object.
 It is also allowed to return ``None`` representing that the synthesis method is
 unable to synthesize the given higher-level-object.
-The actual synthesis of higher-level objects is performed by the
-:class:`~qiskit.transpiler.passes.synthesis.HighLevelSynthesis` transpiler pass.
+The actual synthesis of higher-level objects is performed by
+:class:`~qiskit.transpiler.passes.synthesis.high_level_synthesis.HighLevelSynthesis`
+transpiler pass.
 In the near future,
 :class:`~qiskit.transpiler.passes.synthesis.plugin.HighLevelSynthesisPlugin`
 will be extended with additional information necessary to run this transpiler
@@ -194,8 +195,8 @@ something like::
             return None
 
 The above example creates a plugin to synthesize objects of type
-:class:`~qiskit.quantum_info.operators.Clifford` that have at most 3 qubits,
-using the method ``decompose_clifford_bm``.
+:class:`~qiskit.quantum_info.operators.symplectic.clifford.Clifford that have
+at most 3 qubits, using the method ``decompose_clifford_bm``.
 
 The second step is to expose the
 :class:`~qiskit.transpiler.passes.synthesis.plugin.HighLevelSynthesisPlugin` as
@@ -211,7 +212,8 @@ for the plugin package with the necessary entry points under the
     },
 
 (note that the entry point ``name = path`` is a single string not a Python
-expression). The ``name`` consists of two parts separated by the dot, the name of the
+expression). The ``name`` consists of two parts separated by dot ".": the
+name of the
 type of :class:`~qiskit.circuit.Operation` to which the synthesis plugin applies
 (``clifford``), and the name of the plugin (``special``).
 There isn't a limit to the number of plugins a single package can
