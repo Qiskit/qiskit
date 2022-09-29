@@ -12,10 +12,12 @@
 
 """Test the Sampler VQE."""
 
+
 import unittest
 from test.python.algorithms import QiskitAlgorithmsTestCase
 
 from functools import partial
+from ddt import data, ddt
 import numpy as np
 from scipy.optimize import minimize as scipy_minimize
 
@@ -25,7 +27,7 @@ from qiskit.algorithms.minimum_eigensolvers import SamplingVQE
 from qiskit.algorithms.optimizers import L_BFGS_B, QNSPSA, OptimizerResult, SLSQP
 from qiskit.circuit.library import RealAmplitudes, TwoLocal
 from qiskit.opflow import PauliSumOp
-from qiskit.quantum_info import SparsePauliOp, Pauli
+from qiskit.quantum_info import SparsePauliOp, Pauli, Operator
 from qiskit.primitives import Sampler
 from qiskit.algorithms.state_fidelities import ComputeUncompute
 
@@ -46,16 +48,21 @@ def _mock_optimizer(fun, x0, jac=None, bounds=None, inputs=None):
     return result
 
 
+PAULI_OP = PauliSumOp(SparsePauliOp(["ZZ", "IZ", "II"], coeffs=[1, -0.5, 0.12]))
+OP = Operator(PAULI_OP.to_matrix())
+
+
+@ddt
 class TestSamplerVQE(QiskitAlgorithmsTestCase):
     """Test VQE"""
 
     def setUp(self):
         super().setUp()
-        self.op = PauliSumOp(SparsePauliOp(["ZZ", "IZ", "II"], coeffs=[1, -0.5, 0.12]))
         self.optimal_value = -1.38
         self.optimal_bitstring = "10"
 
-    def test_exact_sampler(self):
+    @data(PAULI_OP, OP)
+    def test_exact_sampler(self, op):
         """Test the VQE on BasicAer's statevector simulator."""
         thetas = ParameterVector("th", 4)
         ansatz = QuantumCircuit(2)
@@ -72,7 +79,7 @@ class TestSamplerVQE(QiskitAlgorithmsTestCase):
         initial_point[-ansatz.num_qubits :] = np.pi / 2
 
         vqe = SamplingVQE(Sampler(), ansatz, optimizer, initial_point=initial_point)
-        result = vqe.compute_minimum_eigenvalue(operator=self.op)
+        result = vqe.compute_minimum_eigenvalue(operator=op)
 
         with self.subTest(msg="test eigenvalue"):
             self.assertAlmostEqual(result.eigenvalue, self.optimal_value, places=5)
@@ -93,7 +100,8 @@ class TestSamplerVQE(QiskitAlgorithmsTestCase):
             self.assertEqual(result.best_measurement["bitstring"], self.optimal_bitstring)
             self.assertEqual(result.best_measurement["value"], self.optimal_value)
 
-    def test_invalid_initial_point(self):
+    @data(PAULI_OP, OP)
+    def test_invalid_initial_point(self, op):
         """Test the proper error is raised when the initial point has the wrong size."""
         ansatz = RealAmplitudes(2, reps=1)
         initial_point = np.array([1])
@@ -101,36 +109,40 @@ class TestSamplerVQE(QiskitAlgorithmsTestCase):
         vqe = SamplingVQE(Sampler(), ansatz, SLSQP(), initial_point=initial_point)
 
         with self.assertRaises(ValueError):
-            _ = vqe.compute_minimum_eigenvalue(operator=self.op)
+            _ = vqe.compute_minimum_eigenvalue(operator=op)
 
-    def test_ansatz_resize(self):
+    @data(PAULI_OP, OP)
+    def test_ansatz_resize(self, op):
         """Test the ansatz is properly resized if it's a blueprint circuit."""
         ansatz = RealAmplitudes(1, reps=1)
         vqe = SamplingVQE(Sampler(), ansatz, SLSQP())
-        result = vqe.compute_minimum_eigenvalue(operator=self.op)
+        result = vqe.compute_minimum_eigenvalue(operator=op)
         self.assertAlmostEqual(result.eigenvalue, self.optimal_value, places=5)
 
-    def test_invalid_ansatz_size(self):
+    @data(PAULI_OP, OP)
+    def test_invalid_ansatz_size(self, op):
         """Test an error is raised if the ansatz has the wrong number of qubits."""
         ansatz = QuantumCircuit(1)
         ansatz.compose(RealAmplitudes(1, reps=2))
         vqe = SamplingVQE(Sampler(), ansatz, SLSQP())
 
         with self.assertRaises(AlgorithmError):
-            _ = vqe.compute_minimum_eigenvalue(operator=self.op)
+            _ = vqe.compute_minimum_eigenvalue(operator=op)
 
-    def test_missing_varform_params(self):
+    @data(PAULI_OP, OP)
+    def test_missing_varform_params(self, op):
         """Test specifying a variational form with no parameters raises an error."""
-        circuit = QuantumCircuit(self.op.num_qubits)
+        circuit = QuantumCircuit(op.num_qubits)
         vqe = SamplingVQE(Sampler(), circuit, SLSQP())
         with self.assertRaises(AlgorithmError):
-            vqe.compute_minimum_eigenvalue(operator=self.op)
+            vqe.compute_minimum_eigenvalue(operator=op)
 
-    def test_batch_evaluate_slsqp(self):
+    @data(PAULI_OP, OP)
+    def test_batch_evaluate_slsqp(self, op):
         """Test batching with SLSQP (as representative of SciPyOptimizer)."""
         optimizer = SLSQP(max_evals_grouped=10)
         vqe = SamplingVQE(Sampler(), RealAmplitudes(), optimizer)
-        result = vqe.compute_minimum_eigenvalue(operator=self.op)
+        result = vqe.compute_minimum_eigenvalue(operator=op)
         self.assertAlmostEqual(result.eigenvalue, self.optimal_value, places=5)
 
     def test_batch_evaluate_with_qnspsa(self):
@@ -184,14 +196,15 @@ class TestSamplerVQE(QiskitAlgorithmsTestCase):
         result = vqe.compute_minimum_eigenvalue(Pauli("Z"))
         self.assertTrue(np.all(result.optimal_point == np.zeros(ansatz.num_parameters)))
 
-    def test_auxops(self):
+    @data(PAULI_OP, OP)
+    def test_auxops(self, op):
         """Test passing auxiliary operators."""
         ansatz = RealAmplitudes(2, reps=1)
         vqe = SamplingVQE(Sampler(), ansatz, SLSQP())
 
         as_list = [Pauli("ZZ"), Pauli("II")]
         with self.subTest(auxops=as_list):
-            result = vqe.compute_minimum_eigenvalue(self.op, aux_operators=as_list)
+            result = vqe.compute_minimum_eigenvalue(op, aux_operators=as_list)
             self.assertIsInstance(result.aux_operators_evaluated, list)
             self.assertEqual(len(result.aux_operators_evaluated), 2)
             self.assertAlmostEqual(result.aux_operators_evaluated[0][0], -1 + 0j, places=5)
@@ -199,7 +212,7 @@ class TestSamplerVQE(QiskitAlgorithmsTestCase):
 
         as_dict = {"magnetization": SparsePauliOp(["ZI", "IZ"])}
         with self.subTest(auxops=as_dict):
-            result = vqe.compute_minimum_eigenvalue(self.op, aux_operators=as_dict)
+            result = vqe.compute_minimum_eigenvalue(op, aux_operators=as_dict)
             self.assertIsInstance(result.aux_operators_evaluated, dict)
             self.assertEqual(len(result.aux_operators_evaluated.keys()), 1)
             self.assertAlmostEqual(result.aux_operators_evaluated["magnetization"][0], 0j, places=5)
@@ -211,7 +224,8 @@ class TestSamplerVQE(QiskitAlgorithmsTestCase):
         with self.assertRaises(ValueError):
             _ = vqe.compute_minimum_eigenvalue(Pauli("X"))
 
-    def test_callback(self):
+    @data(PAULI_OP, OP)
+    def test_callback(self, op):
         """Test the callback on VQE."""
         history = {
             "eval_count": [],
@@ -232,7 +246,7 @@ class TestSamplerVQE(QiskitAlgorithmsTestCase):
             SLSQP(),
             callback=store_intermediate_result,
         )
-        sampling_vqe.compute_minimum_eigenvalue(operator=self.op)
+        sampling_vqe.compute_minimum_eigenvalue(operator=op)
 
         self.assertTrue(all(isinstance(count, int) for count in history["eval_count"]))
         self.assertTrue(all(isinstance(mean, complex) for mean in history["mean"]))
