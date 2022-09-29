@@ -60,6 +60,7 @@ class VariationalResult(AlgorithmResult):
         self._optimal_value = None
         self._optimal_point = None
         self._optimal_parameters = None
+        self._optimizer_result = None
 
     @property
     def optimizer_evals(self) -> Optional[int]:
