@@ -146,7 +146,7 @@ class TestCheckMapCX(QiskitTestCase):
         pass_.run(dag)
         self.assertTrue(pass_.property_set["is_swap_mapped"])
 
-    def test_swap_mapped_cf_layout_change_true(self):
+    def test_swap_mapped_cf_different_bits(self):
         """Check control flow blocks with layout change are mapped."""
         num_qubits = 3
         coupling = CouplingMap.from_line(num_qubits)
