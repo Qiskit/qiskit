@@ -33,16 +33,17 @@ from .utils import _make_param_shift_parameter_values, _param_shift_preprocessin
 class ParamShiftEstimatorGradient(BaseEstimatorGradient):
     """Compute the gradients of the expectation values by the parameter shift rule"""
 
-    def __init__(self, estimator: BaseEstimator, **run_options):
+    def __init__(self, estimator: BaseEstimator, **options):
         """
         Args:
             estimator: The estimator used to compute the gradients.
-            run_options: Backend runtime options used for circuit execution. The order of priority is:
-                run_options in ``run`` method > gradient's default run_options > primitive's default
-                setting. Higher priority setting overrides lower priority setting.
+            options: Primitive backend runtime options used for circuit execution.
+                The order of priority is: options in ``run`` method > gradient's
+                default options > primitive's default setting.
+                Higher priority setting overrides lower priority setting
         """
         self._gradient_circuits = {}
-        super().__init__(estimator, **run_options)
+        super().__init__(estimator, **options)
 
     def _run(
         self,
@@ -50,7 +51,7 @@ class ParamShiftEstimatorGradient(BaseEstimatorGradient):
         observables: Sequence[BaseOperator | PauliSumOp],
         parameter_values: Sequence[Sequence[float]],
         parameters: Sequence[Sequence[Parameter] | None],
-        **run_options,
+        **options,
     ) -> EstimatorGradientResult:
         """Compute the estimator gradients on the given circuits."""
         jobs, result_indices_all, coeffs_all, metadata_ = [], [], [], []
@@ -89,7 +90,7 @@ class ParamShiftEstimatorGradient(BaseEstimatorGradient):
                 [gradient_circuit.gradient_circuit] * n,
                 [observable] * n,
                 gradient_parameter_values_plus + gradient_parameter_values_minus,
-                **run_options,
+                **options,
             )
             jobs.append(job)
             result_indices_all.append(result_indices)
@@ -110,5 +111,5 @@ class ParamShiftEstimatorGradient(BaseEstimatorGradient):
                 values[idx] += coeff * grad_
             gradients.append(values)
 
-        run_opt = self._get_local_run_options(run_options)
-        return EstimatorGradientResult(gradients=gradients, metadata=metadata_, run_options=run_opt)
+        opt = self._get_local_options(options)
+        return EstimatorGradientResult(gradients=gradients, metadata=metadata_, options=opt)

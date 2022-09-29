@@ -20,7 +20,7 @@ from qiskit.transpiler.exceptions import TranspilerError
 
 from qiskit.circuit import QuantumRegister
 from qiskit.dagcircuit import DAGCircuit
-from qiskit.circuit.library.standard_gates import RYGate, HGate, CXGate, ECRGate, RZXGate
+from qiskit.circuit.library.standard_gates import RYGate, HGate, CXGate, CZGate, ECRGate, RZXGate
 
 
 class GateDirection(TransformationPass):
@@ -77,6 +77,11 @@ class GateDirection(TransformationPass):
         self._ecr_dag.apply_operation_back(ECRGate(), [qr[1], qr[0]], [])
         self._ecr_dag.apply_operation_back(HGate(), [qr[0]], [])
         self._ecr_dag.apply_operation_back(HGate(), [qr[1]], [])
+
+        self._cz_dag = DAGCircuit()
+        qr = QuantumRegister(2)
+        self._cz_dag.add_qreg(qr)
+        self._cz_dag.apply_operation_back(CZGate(), [qr[1], qr[0]], [])
 
     @staticmethod
     def _rzx_dag(parameter):
@@ -138,6 +143,8 @@ class GateDirection(TransformationPass):
                 if (physical_q0, physical_q1) not in cmap_edges:
                     if node.name == "cx":
                         dag.substitute_node_with_dag(node, self._cx_dag)
+                    elif node.name == "cz":
+                        dag.substitute_node_with_dag(node, self._cz_dag)
                     elif node.name == "ecr":
                         dag.substitute_node_with_dag(node, self._ecr_dag)
                     elif node.name == "rzx":
@@ -168,6 +175,16 @@ class GateDirection(TransformationPass):
                         raise TranspilerError(
                             "The circuit requires a connection between physical "
                             "qubits %s and %s for cx" % (physical_q0, physical_q1)
+                        )
+                elif node.name == "cz":
+                    if (physical_q0, physical_q1) in self.target["cz"]:
+                        continue
+                    if (physical_q1, physical_q0) in self.target["cz"]:
+                        dag.substitute_node_with_dag(node, self._cz_dag)
+                    else:
+                        raise TranspilerError(
+                            "The circuit requires a connection between physical "
+                            "qubits %s and %s for cz" % (physical_q0, physical_q1)
                         )
                 elif node.name == "ecr":
                     if (physical_q0, physical_q1) in self.target["ecr"]:

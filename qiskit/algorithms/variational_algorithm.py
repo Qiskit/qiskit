@@ -31,6 +31,7 @@ from abc import ABC, abstractmethod
 import numpy as np
 
 from .algorithm_result import AlgorithmResult
+from .optimizers import OptimizerResult
 
 
 class VariationalAlgorithm(ABC):
@@ -59,6 +60,7 @@ class VariationalResult(AlgorithmResult):
         self._optimal_value = None
         self._optimal_point = None
         self._optimal_parameters = None
+        self._optimizer_result = None
 
     @property
     def optimizer_evals(self) -> Optional[int]:
@@ -109,3 +111,13 @@ class VariationalResult(AlgorithmResult):
     def optimal_parameters(self, value: Dict) -> None:
         """Sets optimal parameters"""
         self._optimal_parameters = value
+
+    @property
+    def optimizer_result(self) -> Optional[OptimizerResult]:
+        """Returns the optimizer result"""
+        return self._optimizer_result
+
+    @optimizer_result.setter
+    def optimizer_result(self, value: OptimizerResult) -> None:
+        """Sets optimizer result"""
+        self._optimizer_result = value
