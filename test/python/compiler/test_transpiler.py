@@ -716,7 +716,7 @@ class TestTranspile(QiskitTestCase):
         circ = QuantumCircuit.from_qasm_file(os.path.join(qasm_dir, "move_measurements.qasm"))
 
         lay = [0, 1, 15, 2, 14, 3, 13, 4, 12, 5, 11, 6]
-        out = transpile(circ, initial_layout=lay, coupling_map=cmap)
+        out = transpile(circ, initial_layout=lay, coupling_map=cmap, routing_method="stochastic")
         out_dag = circuit_to_dag(out)
         meas_nodes = out_dag.named_nodes("measure")
         for meas_node in meas_nodes:
