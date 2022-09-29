@@ -19,15 +19,16 @@ use pyo3::wrap_pyfunction;
 
 use crate::pauli_exp_val::fast_sum;
 
-const fn generate_oper_table() -> [[f64; 2]; 91] {
-    let mut table = [[0.; 2]; 91];
+const OPER_TABLE_SIZE: usize = (b'Z' as usize) + 1;
+const fn generate_oper_table() -> [[f64; 2]; OPER_TABLE_SIZE] {
+    let mut table = [[0.; 2]; OPER_TABLE_SIZE];
     table[b'Z' as usize] = [1., -1.];
     table[b'0' as usize] = [1., 0.];
     table[b'1' as usize] = [0., 1.];
     table
 }
 
-static OPERS: [[f64; 2]; 91] = generate_oper_table();
+static OPERS: [[f64; 2]; OPER_TABLE_SIZE] = generate_oper_table();
 
 fn bitstring_expval(dist: &HashMap<String, f64>, mut oper_str: String) -> f64 {
     let inds: Vec<usize> = oper_str
