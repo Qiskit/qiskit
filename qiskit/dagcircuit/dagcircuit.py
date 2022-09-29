@@ -885,7 +885,9 @@ class DAGCircuit:
         if not recurse:
             if any(x in self._op_names for x in ("for_loop", "while_loop", "if_else")):
                 raise DAGCircuitError(
-                    "Cowardly refusing to give a size for control flow without `recurse=True`."
+                    "Size with control flow is ambiguous."
+                    " You may use `recurse=True` to get a result,"
+                    " but see this method's documentation for the meaning of this."
                 )
             return length
         # pylint: disable=cyclic-import
@@ -945,7 +947,9 @@ class DAGCircuit:
         else:
             if any(x in self._op_names for x in ("for_loop", "while_loop", "if_else")):
                 raise DAGCircuitError(
-                    "Cowardly refusing to give a depth for control flow without `recurse=True`."
+                    "Depth with control flow is ambiguous."
+                    " You may use `recurse=True` to get a result,"
+                    " but see this method's documentation for the meaning of this."
                 )
             weight_fn = None
 

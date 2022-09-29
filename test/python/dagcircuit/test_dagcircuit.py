@@ -1261,7 +1261,7 @@ class TestCircuitControlFlowProperties(QiskitTestCase):
         # iterations (so the outer `for_loop` has a size 12 in total).  The whole `if_else` has size
         # 15, and the while-loop body counts once.
         self.assertEqual(self.dag.size(recurse=True), 19)
-        with self.assertRaisesRegex(DAGCircuitError, "Cowardly refusing to give a size"):
+        with self.assertRaisesRegex(DAGCircuitError, "Size with control flow is ambiguous"):
             self.dag.size(recurse=False)
 
     def test_circuit_depth(self):
@@ -1270,7 +1270,7 @@ class TestCircuitControlFlowProperties(QiskitTestCase):
         # Within the `else`, the `x(1)` happens concurrently with the `for` loop.  Because each for
         # loop has 3 values, the total weight of the else is 12.
         self.assertEqual(self.dag.depth(recurse=True), 16)
-        with self.assertRaisesRegex(DAGCircuitError, "Cowardly refusing to give a depth"):
+        with self.assertRaisesRegex(DAGCircuitError, "Depth with control flow is ambiguous"):
             self.dag.depth(recurse=False)
 
     def test_circuit_width(self):
