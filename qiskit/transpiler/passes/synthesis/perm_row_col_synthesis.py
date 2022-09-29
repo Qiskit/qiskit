@@ -1,8 +1,9 @@
 import numpy as np
 from qiskit.transpiler.passes.synthesis.high_level_synthesis import HighLevelSynthesis
+from qiskit.circuit.library.generalized_gates.linear_function import LinearFunction
 from qiskit.dagcircuit.dagcircuit import DAGCircuit
 from qiskit.transpiler import CouplingMap
-from qiskit.converters import circuit_to_dag
+from qiskit.converters import circuit_to_dag, dag_to_circuit
 from qiskit import QuantumRegister, QuantumCircuit
 
 
@@ -22,6 +23,13 @@ class PermRowColSynthesis(HighLevelSynthesis):
         Returns:
             DAGCircuit: re-synthesized dag circuit
         """
+        for node in dag.named_nodes("cx"):
+            # TODO: do something to the nodes
+            pass
+
+        # alt parity matrix of dag circuit, dtype=bool
+        # parity_mat = LinearFunction(dag_to_circuit(dag)).linear
+
         parity_mat = np.identity(3)
         res_circuit = self.perm_row_col(parity_mat, self._coupling_map)
         return circuit_to_dag(res_circuit)
@@ -36,5 +44,5 @@ class PermRowColSynthesis(HighLevelSynthesis):
         Returns:
             QuantumCircuit: synthesized circuit
         """
-        circuit = QuantumCircuit(QuantumRegister(6, 'q'))
+        circuit = QuantumCircuit(QuantumRegister(6, "q"))
         return circuit
