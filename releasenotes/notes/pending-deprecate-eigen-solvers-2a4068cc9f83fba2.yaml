@@ -1,0 +1,5 @@
+---
+deprecations:
+  - |
+    Module :mod:`qiskit.algorithms.eigen_solvers` is pending deprecation and
+    is superseded by :mod:`qiskit.algorithms.eigensolvers`

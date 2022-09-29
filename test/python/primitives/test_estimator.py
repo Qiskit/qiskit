@@ -16,7 +16,7 @@ import unittest
 
 import numpy as np
 
-from qiskit.circuit import QuantumCircuit
+from qiskit.circuit import Parameter, QuantumCircuit
 from qiskit.circuit.library import RealAmplitudes
 from qiskit.opflow import PauliSumOp
 from qiskit.primitives import Estimator, EstimatorResult
@@ -449,6 +449,58 @@ class TestEstimator(QiskitTestCase):
         result = est.run([circuit], [self.observable]).result()
         self.assertIsInstance(result, EstimatorResult)
         np.testing.assert_allclose(result.values, [-1.284366511861733])
+
+    def test_run_single_circuit_observable(self):
+        """Test for single circuit and single observable case."""
+        est = Estimator()
+
+        with self.subTest("No parameter"):
+            qc = QuantumCircuit(1)
+            qc.x(0)
+            op = SparsePauliOp("Z")
+            param_vals = [None, [], [[]], np.array([]), np.array([[]]), [np.array([])]]
+            target = [-1]
+            for val in param_vals:
+                self.subTest(f"{val}")
+                result = est.run(qc, op, val).result()
+                np.testing.assert_allclose(result.values, target)
+                self.assertEqual(len(result.metadata), 1)
+
+        with self.subTest("One parameter"):
+            param = Parameter("x")
+            qc = QuantumCircuit(1)
+            qc.ry(param, 0)
+            op = SparsePauliOp("Z")
+            param_vals = [
+                [np.pi],
+                [[np.pi]],
+                np.array([np.pi]),
+                np.array([[np.pi]]),
+                [np.array([np.pi])],
+            ]
+            target = [-1]
+            for val in param_vals:
+                self.subTest(f"{val}")
+                result = est.run(qc, op, val).result()
+                np.testing.assert_allclose(result.values, target)
+                self.assertEqual(len(result.metadata), 1)
+
+        with self.subTest("More than one parameter"):
+            qc = self.psi[0]
+            op = self.hamiltonian[0]
+            param_vals = [
+                self.theta[0],
+                [self.theta[0]],
+                np.array(self.theta[0]),
+                np.array([self.theta[0]]),
+                [np.array(self.theta[0])],
+            ]
+            target = [1.5555572817900956]
+            for val in param_vals:
+                self.subTest(f"{val}")
+                result = est.run(qc, op, val).result()
+                np.testing.assert_allclose(result.values, target)
+                self.assertEqual(len(result.metadata), 1)
 
     def test_run_1qubit(self):
         """Test for 1-qubit cases"""

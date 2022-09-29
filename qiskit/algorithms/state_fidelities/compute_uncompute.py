@@ -21,6 +21,7 @@ from qiskit import QuantumCircuit
 from qiskit.primitives import BaseSampler
 from qiskit.providers import Options
 
+from ..exceptions import AlgorithmError
 from .base_state_fidelity import BaseStateFidelity
 from .state_fidelity_result import StateFidelityResult
 

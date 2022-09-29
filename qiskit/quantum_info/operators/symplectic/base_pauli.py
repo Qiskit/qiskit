@@ -304,7 +304,7 @@ class BasePauli(BaseOperator, AdjointMixin, MultiplyMixin):
         idx = np.concatenate((self._x[:, qargs_], self._z[:, qargs_]), axis=1)
         for idx_, row in zip(
             idx.T,
-            PauliList.from_symplectic(z=adj.table.Z, x=adj.table.X, phase=2 * adj.table.phase),
+            PauliList.from_symplectic(z=adj.z, x=adj.x, phase=2 * adj.phase),
         ):
             # most of the logic below is to properly index if self is a PauliList (2D),
             # while not trying to index if the object is just a Pauli (1D).

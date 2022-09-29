@@ -20,6 +20,8 @@ import numpy as np
 
 from qiskit import QuantumCircuit
 from qiskit.circuit import ParameterVector
+
+from ..algorithm_job import AlgorithmJob
 from .state_fidelity_result import StateFidelityResult
 from ..algorithm_job import AlgorithmJob
 
