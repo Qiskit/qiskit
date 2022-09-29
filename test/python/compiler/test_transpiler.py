@@ -35,7 +35,12 @@ from qiskit.converters import circuit_to_dag
 from qiskit.circuit.library import CXGate, U3Gate, U2Gate, U1Gate, RXGate, RYGate, RZGate, UGate
 from qiskit.circuit.measure import Measure
 from qiskit.test import QiskitTestCase
-from qiskit.providers.fake_provider import FakeMelbourne, FakeRueschlikon, FakeAlmaden, FakeMumbaiV2
+from qiskit.providers.fake_provider import (
+    FakeMelbourne,
+    FakeRueschlikon,
+    FakeBoeblingen,
+    FakeMumbaiV2,
+)
 from qiskit.transpiler import Layout, CouplingMap
 from qiskit.transpiler import PassManager
 from qiskit.transpiler.target import Target
@@ -716,7 +721,7 @@ class TestTranspile(QiskitTestCase):
         circ = QuantumCircuit.from_qasm_file(os.path.join(qasm_dir, "move_measurements.qasm"))
 
         lay = [0, 1, 15, 2, 14, 3, 13, 4, 12, 5, 11, 6]
-        out = transpile(circ, initial_layout=lay, coupling_map=cmap)
+        out = transpile(circ, initial_layout=lay, coupling_map=cmap, routing_method="stochastic")
         out_dag = circuit_to_dag(out)
         meas_nodes = out_dag.named_nodes("measure")
         for meas_node in meas_nodes:
@@ -1047,7 +1052,7 @@ class TestTranspile(QiskitTestCase):
         circ.add_calibration(custom_180, [0], q0_x180)
         circ.add_calibration(custom_90, [1], q1_y90)
 
-        backend = FakeAlmaden()
+        backend = FakeBoeblingen()
         transpiled_circuit = transpile(
             circ,
             backend=backend,
@@ -1068,7 +1073,7 @@ class TestTranspile(QiskitTestCase):
         # Add calibration
         circ.add_calibration("h", [0], q0_x180)
 
-        backend = FakeAlmaden()
+        backend = FakeBoeblingen()
         transpiled_circuit = transpile(
             circ,
             backend=backend,
@@ -1088,7 +1093,7 @@ class TestTranspile(QiskitTestCase):
         # Add calibration
         circ.add_calibration(custom_180, [1], q0_x180)
 
-        backend = FakeAlmaden()
+        backend = FakeBoeblingen()
         with self.assertRaises(QiskitError):
             transpile(circ, backend=backend, layout_method="trivial")
 
@@ -1105,7 +1110,7 @@ class TestTranspile(QiskitTestCase):
         # Add calibration
         circ.add_calibration("h", [1], q0_x180)
 
-        backend = FakeAlmaden()
+        backend = FakeBoeblingen()
         transpiled_circuit = transpile(
             circ,
             backend=backend,
@@ -1129,7 +1134,7 @@ class TestTranspile(QiskitTestCase):
         circ.add_calibration(x_180, [0], q0_x180)
         circ.add_calibration("h", [1], q0_x180)  # 'h' is calibrated on qubit 1
 
-        transpiled_circ = transpile(circ, FakeAlmaden(), layout_method="trivial")
+        transpiled_circ = transpile(circ, FakeBoeblingen(), layout_method="trivial")
         self.assertEqual(set(transpiled_circ.count_ops().keys()), {"u2", "mycustom", "h"})
 
     def test_parameterized_calibrations_transpile(self):
@@ -1146,10 +1151,10 @@ class TestTranspile(QiskitTestCase):
 
         circ.add_calibration("rxt", [0], q0_rxt(tau), [2 * 3.14 * tau])
 
-        transpiled_circ = transpile(circ, FakeAlmaden(), layout_method="trivial")
+        transpiled_circ = transpile(circ, FakeBoeblingen(), layout_method="trivial")
         self.assertEqual(set(transpiled_circ.count_ops().keys()), {"rxt"})
         circ = circ.assign_parameters({tau: 1})
-        transpiled_circ = transpile(circ, FakeAlmaden(), layout_method="trivial")
+        transpiled_circ = transpile(circ, FakeBoeblingen(), layout_method="trivial")
         self.assertEqual(set(transpiled_circ.count_ops().keys()), {"rxt"})
 
     def test_inst_durations_from_calibrations(self):
@@ -1176,7 +1181,7 @@ class TestTranspile(QiskitTestCase):
         custom_gate = Gate("my_custom_gate", 5, [])
         circ.append(custom_gate, [0, 1, 2, 3, 4])
         circ.measure_all()
-        backend = FakeAlmaden()
+        backend = FakeBoeblingen()
         with pulse.build(backend, name="custom") as my_schedule:
             pulse.play(
                 pulse.library.Gaussian(duration=128, amp=0.1, sigma=16), pulse.drive_channel(0)
@@ -1331,9 +1336,9 @@ class TestTranspile(QiskitTestCase):
 
         qc.measure(qubits, clbits)
 
-        out = transpile(qc, FakeAlmaden(), optimization_level=optimization_level)
+        out = transpile(qc, FakeBoeblingen(), optimization_level=optimization_level)
 
-        self.assertEqual(len(out.qubits), FakeAlmaden().configuration().num_qubits)
+        self.assertEqual(len(out.qubits), FakeBoeblingen().configuration().num_qubits)
         self.assertEqual(out.clbits, clbits)
 
     @data(0, 1, 2, 3)
