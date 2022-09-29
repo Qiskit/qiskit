@@ -84,7 +84,7 @@ class SamplingMinimumEigensolverResult(AlgorithmResult):
         self._eigenvalue = value
 
     @property
-    def eigenstate(self) -> list[QuasiDistribution] | None:
+    def eigenstate(self) -> QuasiDistribution | None:
         """Return the quasi-distribution sampled from the final state.
 
         The ansatz is sampled when parameterized with the optimal parameters that where obtained
@@ -94,7 +94,7 @@ class SamplingMinimumEigensolverResult(AlgorithmResult):
         return self._eigenstate
 
     @eigenstate.setter
-    def eigenstate(self, value: list[QuasiDistribution] | None) -> None:
+    def eigenstate(self, value: QuasiDistribution | None) -> None:
         """Set the quasi-distribution sampled from the final state."""
         self._eigenstate = value
 

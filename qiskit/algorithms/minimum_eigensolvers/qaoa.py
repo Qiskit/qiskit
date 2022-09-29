@@ -20,9 +20,8 @@ import numpy as np
 from qiskit.algorithms.optimizers import Minimizer, Optimizer
 from qiskit.circuit import QuantumCircuit
 from qiskit.circuit.library.n_local.qaoa_ansatz import QAOAAnsatz
-from qiskit.opflow import PauliSumOp
+from qiskit.opflow import OperatorBase
 from qiskit.primitives import BaseSampler
-from qiskit.quantum_info.operators.base_operator import BaseOperator
 from qiskit.utils.validation import validate_min
 
 from .sampling_vqe import SamplingVQE
@@ -54,18 +53,19 @@ class QAOA(SamplingVQE):
     the QAOA object has been constructed.
 
     Attributes:
-        sampler: The sampler primitive to sample the circuits.
-        optimizer: A classical optimizer to find the minimum energy. This can either be a
-            Qiskit :class:`.Optimizer` or a callable implementing the :class:`.Minimizer` protocol.
-            Defaults to :class:`.SLSQP`.
-        reps: The integer parameter :math:`p`. Has a minimum valid value of 1.
+        sampler (BaseSampler): The sampler primitive to sample the circuits.
+        optimizer (Optimizer | Minimizer): A classical optimizer to find the minimum energy. This
+            can either be a Qiskit :class:`.Optimizer` or a callable implementing the
+            :class:`.Minimizer` protocol.
+        reps (int): The integer parameter :math:`p`. Has a minimum valid value of 1.
         initial_state: An optional initial state to prepend the QAOA circuit with.
-        mixer: The mixer Hamiltonian to evolve with or a custom quantum circuit. Allows support
-            of optimizations in constrained subspaces [2, 3] as well as warm-starting the
-            optimization [4].
-        aggregation: A float or callable to specify how the objective function evaluated on the
-            basis states should be aggregated. If a float, this specifies the :math:`\alpha \in [0,1]`
-            parameter for a CVaR expectation value.
+        mixer (QuantumCircuit | OperatorBase): The mixer Hamiltonian to evolve with or a custom
+            quantum circuit. Allows support of optimizations in constrained subspaces [2, 3] as well
+            as warm-starting the optimization [4].
+        aggregation (float | Callable[[list[float]], float] | None): A float or callable to specify
+            how the objective function evaluated on the basis states should be aggregated. If a
+            float, this specifies the :math:`\alpha \in [0,1]` parameter for a CVaR expectation
+            value.
         callback (Callable[[int, np.ndarray, float, dict[str, Any]], None] | None): A callback
             that can access the intermediate data at each optimization step. These data are: the
             evaluation count, the optimizer parameters for the ansatz, the evaluated value, the
@@ -89,27 +89,30 @@ class QAOA(SamplingVQE):
         *,
         reps: int = 1,
         initial_state: QuantumCircuit | None = None,
-        mixer: QuantumCircuit | BaseOperator | PauliSumOp = None,
+        mixer: QuantumCircuit | OperatorBase = None,
         initial_point: np.ndarray | None = None,
         aggregation: float | Callable[[list[float]], float] | None = None,
         callback: Callable[[int, np.ndarray, float, dict[str, Any]], None] | None = None,
     ) -> None:
-        """
+        r"""
         Args:
             sampler: The sampler primitive to sample the circuits.
-            optimizer: A classical optimizer, see also :class:`~qiskit.algorithms.VQE` for
-                more details on the possible types.
-            reps: the integer parameter :math:`p` as specified in https://arxiv.org/abs/1411.4028,
-                Has a minimum valid value of 1.
+            optimizer: A classical optimizer to find the minimum energy. This can either be a
+                Qiskit :class:`.Optimizer` or a callable implementing the :class:`.Minimizer`
+                protocol.
+            reps: The integer parameter :math:`p`. Has a minimum valid value of 1.
             initial_state: An optional initial state to prepend the QAOA circuit with.
-            mixer: the mixer Hamiltonian to evolve with or a custom quantum circuit. Allows support
-                of optimizations in constrained subspaces as per https://arxiv.org/abs/1709.03489
-                as well as warm-starting the optimization as introduced
-                in http://arxiv.org/abs/2009.10095.
-            initial_point: An optional initial point (i.e. initial parameter values)
-                for the optimizer. If ``None`` then it will simply compute a random one.
+            mixer: The mixer Hamiltonian to evolve with or a custom quantum circuit. Allows support
+                of optimizations in constrained subspaces [2, 3] as well as warm-starting the
+                optimization [4].
+            initial_point: An optional initial point (i.e. initial parameter values) for the
+                optimizer. The length of the initial point must match the number of :attr:`ansatz`
+                parameters. If ``None``, a random point will be generated within certain parameter
+                bounds. ``QAOA`` will look to the ansatz for these bounds. If the ansatz does not
+                specify bounds, bounds of :math:`-2\pi`, :math:`2\pi` will be used.
             aggregation: A float or callable to specify how the objective function evaluated on the
-                basis states should be aggregated.
+                basis states should be aggregated. If a float, this specifies the :math:`\alpha \in
+                [0,1]` parameter for a CVaR expectation value.
             callback: A callback that can access the intermediate data at each optimization step.
                 These data are: the evaluation count, the optimizer parameters for the ansatz, the
                 evaluated value, the the metadata dictionary.
@@ -130,7 +133,7 @@ class QAOA(SamplingVQE):
             callback=callback,
         )
 
-    def _check_operator_ansatz(self, operator: BaseOperator | PauliSumOp):
+    def _check_operator_ansatz(self, operator: OperatorBase):
         # Recreates a circuit based on operator parameter.
         self.ansatz = QAOAAnsatz(
             operator, self.reps, initial_state=self.initial_state, mixer_operator=self.mixer

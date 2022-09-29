@@ -38,7 +38,6 @@ Minimum Eigensolvers
    VQEResult
    AdaptVQEResult
    SamplingMinimumEigensolverResult
-   SamplingVQE
    SamplingVQEResult
 """
 

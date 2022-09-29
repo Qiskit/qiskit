@@ -90,15 +90,16 @@ class SamplingVQE(VariationalAlgorithm, SamplingMinimumEigensolver):
     the ``SamplingVQE`` object has been constructed.
 
     Attributes:
-        sampler: The sampler primitive to sample the circuits.
-        ansatz: A parameterized circuit, preparing the ansatz for the wave function. If not
-            provided, this defaults to a :class:`.RealAmplitudes` circuit.
-        optimizer: A classical optimizer to find the minimum energy. This can either be a
-            Qiskit :class:`.Optimizer` or a callable implementing the :class:`.Minimizer` protocol.
-            Defaults to :class:`.SLSQP`.
-        aggregation: A float or callable to specify how the objective function evaluated on the
-            basis states should be aggregated. If a float, this specifies the :math:`\alpha \in [0,1]`
-            parameter for a CVaR expectation value [1].
+        estimator (BaseEstimator): The estimator primitive to compute the expectation value of the
+            Hamiltonian operator.
+        ansatz (QuantumCircuit): A parameterized quantum circuit to prepare the trial state.
+        optimizer (Optimizer | Minimizer): A classical optimizer to find the minimum energy. This
+            can either be a Qiskit :class:`.Optimizer` or a callable implementing the
+            :class:`.Minimizer` protocol.
+        aggregation (float | Callable[[list[float]], float] | None): A float or callable to specify
+            how the objective function evaluated on the basis states should be aggregated. If a
+            float, this specifies the :math:`\alpha \in [0,1]` parameter for a CVaR expectation
+            value [1].
         callback (Callable[[int, np.ndarray, float, dict[str, Any]], None] | None): A callback that
             can access the intermediate data at each optimization step. These data are: the
             evaluation count, the optimizer parameters for the ansatz, the evaluated value, and the
@@ -123,20 +124,19 @@ class SamplingVQE(VariationalAlgorithm, SamplingMinimumEigensolver):
         r"""
         Args:
             sampler: The sampler primitive to sample the circuits.
-            ansatz: The parameterized circuit used as ansatz for the wave function.
-            optimizer: The classical optimizer. Can either be a Qiskit optimizer or a callable
-                that takes an array as input and returns a Qiskit or SciPy optimization result.
+            ansatz: A parameterized quantum circuit to prepare the trial state.
+            optimizer: A classical optimizer to find the minimum energy. This can either be a Qiskit
+                :class:`.Optimizer` or a callable implementing the :class:`.Minimizer` protocol.
             initial_point: An optional initial point (i.e. initial parameter values) for the
                 optimizer. The length of the initial point must match the number of :attr:`ansatz`
                 parameters. If ``None``, a random point will be generated within certain parameter
-                bounds. ``VQE`` will look to the ansatz for these bounds. If the ansatz does not
-                specify bounds, bounds of :math:`-2\pi`, :math:`2\pi` will be used.
+                bounds. ``SamplingVQE`` will look to the ansatz for these bounds. If the ansatz does
+                not specify bounds, bounds of :math:`-2\pi`, :math:`2\pi` will be used.
             aggregation: A float or callable to specify how the objective function evaluated on the
                 basis states should be aggregated.
-            callback (Callable[[int, np.ndarray, float, dict[str, Any]], None] | None): A callback
-                that can access the intermediate data at each optimization step. These data are: the
-                evaluation count, the optimizer parameters for the ansatz, the evaluated value, the
-                the metadata dictionary, and the best measurement.
+            callback: A callback that can access the intermediate data at each optimization step.
+                These data are: the evaluation count, the optimizer parameters for the ansatz, the
+                estimated value, and the metadata dictionary.
         """
         super().__init__()
 
@@ -221,7 +221,7 @@ class SamplingVQE(VariationalAlgorithm, SamplingMinimumEigensolver):
             optimizer_result.x,
         )
 
-        final_state = self.sampler.run([self.ansatz], [optimizer_result.x]).result().quasi_dists
+        final_state = self.sampler.run([self.ansatz], [optimizer_result.x]).result().quasi_dists[0]
 
         if aux_operators is not None:
             aux_operators_evaluated = estimate_observables(
@@ -258,12 +258,12 @@ class SamplingVQE(VariationalAlgorithm, SamplingMinimumEigensolver):
             best measurement of the energy evaluation.
 
         Raises:
-            RuntimeError: If the circuit is not parameterized (i.e. has 0 free parameters).
+            AlgorithmError: If the circuit is not parameterized (i.e. has 0 free parameters).
 
         """
         num_parameters = ansatz.num_parameters
         if num_parameters == 0:
-            raise RuntimeError("The ansatz must be parameterized, but has 0 free parameters.")
+            raise AlgorithmError("The ansatz must be parameterized, but has 0 free parameters.")
 
         # avoid creating an instance variable to remain stateless regarding results
         eval_count = 0

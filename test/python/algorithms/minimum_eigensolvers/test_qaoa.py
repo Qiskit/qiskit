@@ -283,7 +283,7 @@ class TestQAOA(QiskitAlgorithmsTestCase):
         Returns:
             numpy.ndarray: binary string as numpy.ndarray of ints.
         """
-        values = list(state_vector[0].values())
+        values = list(state_vector.values())
         n = int(np.log2(len(values)))
         k = np.argmax(np.abs(values))
         x = np.zeros(n)
