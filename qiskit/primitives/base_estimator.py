@@ -438,7 +438,7 @@ class BaseEstimator(ABC):
         Raises:
             ValueError: Invalid arguments are given.
         """
-        # Circuits validation
+        # CIRCUITS VALIDATION
         if isinstance(circuits, QuantumCircuit):
             circuits = (circuits,)
         elif not isinstance(circuits, Sequence) or not all(
@@ -448,7 +448,7 @@ class BaseEstimator(ABC):
         elif not isinstance(circuits, tuple):
             circuits = tuple(circuits)
 
-        # Observables validation
+        # OBSERVABLES VALIDATION
         if isinstance(observables, (BaseOperator, PauliSumOp)):
             observables = (observables,)
         elif not isinstance(observables, Sequence) or not all(
@@ -458,15 +458,11 @@ class BaseEstimator(ABC):
         elif not isinstance(observables, tuple):
             observables = tuple(observables)
 
-        # Parameter values validation
+        ## PARAMETER VALUES VALIDATION
         # TODO: contemplate ndarray and int in type annotations
         # TODO: disallow non-numeric float values: float('nan'), float('inf'), float('-inf')
-        if (
-            (len(circuits) == 1 or len(observables) == 1)
-            and isinstance(parameter_values, (Sequence, np.ndarray))
-            and all(isinstance(val, (int, float)) for val in parameter_values)
-        ):
-            parameter_values = (parameter_values,)
+
+        # Allow optional
         if parameter_values is None:
             for i, circuit in enumerate(circuits):
                 if circuit.num_parameters != 0:
@@ -475,9 +471,30 @@ class BaseEstimator(ABC):
                         "but parameter values are not given."
                     )
             parameter_values = tuple([()] * len(circuits))
-        elif (
-            not isinstance(parameter_values, (Sequence, np.ndarray))
-            or not all(isinstance(pv, (Sequence, np.ndarray)) for pv in parameter_values)
+
+        # Allow single value
+        if (
+            (len(circuits) == 1 or len(observables) == 1)
+            and isinstance(parameter_values, (Sequence, np.ndarray))
+            and not any(isinstance(val, (Sequence, np.ndarray)) for val in parameter_values)
+        ):
+            parameter_values = (tuple(parameter_values),)
+
+        # Support ndarray
+        if isinstance(parameter_values, np.ndarray):
+            parameter_values = tuple(tuple(binding) for binding in parameter_values.tolist())
+        elif isinstance(parameter_values, Sequence) and any(
+            isinstance(binding, np.ndarray) for binding in parameter_values
+        ):
+            parameter_values = tuple(
+                tuple(binding.tolist() if isinstance(binding, np.ndarray) else binding)
+                for binding in parameter_values
+            )
+
+        # Validation
+        if (
+            not isinstance(parameter_values, Sequence)
+            or not all(isinstance(pv, Sequence) for pv in parameter_values)
             or not all(all(isinstance(v, (float, int)) for v in pv) for pv in parameter_values)
         ):
             raise TypeError("Invalid parameter values, expected Sequence[Sequence[int|float]].")
@@ -494,7 +511,7 @@ class BaseEstimator(ABC):
                 _parameter_values.append(_binding)
             parameter_values = tuple(tuple(binding) for binding in _parameter_values)
 
-        # Cross validation
+        # CROSS VALIDATION
         if len(circuits) != len(observables):
             raise ValueError(
                 f"The number of circuits ({len(circuits)}) does not match "
@@ -519,7 +536,7 @@ class BaseEstimator(ABC):
                     f"({observable.num_qubits})."
                 )
 
-        # Options
+        # OPTIONS
         run_opts = copy(self.options)
         run_opts.update_options(**run_options)
 
