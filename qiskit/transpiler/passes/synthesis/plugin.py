@@ -245,7 +245,7 @@ Unitary Synthesis Plugins
    unitary_synthesis_plugin_names
 
 High-Level Synthesis Plugins
--------------------------
+----------------------------
 
 .. autosummary::
    :toctree: ../stubs/
