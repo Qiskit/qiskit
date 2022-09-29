@@ -102,8 +102,8 @@ setup(
             "aqc = qiskit.transpiler.synthesis.aqc.aqc_plugin:AQCSynthesisPlugin",
         ],
         "qiskit.synthesis": [
-            "clifford.default = qiskit.transpiler.passes.synthesis.high_level_synthesis_plugins:DefaultSynthesisClifford",
-            "linear_function.default = qiskit.transpiler.passes.synthesis.high_level_synthesis_plugins:DefaultSynthesisLinearFunction",
+            "clifford.default = qiskit.transpiler.passes.synthesis.high_level_synthesis:DefaultSynthesisClifford",
+            "linear_function.default = qiskit.transpiler.passes.synthesis.high_level_synthesis:DefaultSynthesisLinearFunction",
             "linear_function.depth_opt = test_stuff:LinearFunctionSynthesisPluginForDepth",
             "linear_function.count_opt = test_stuff:LinearFunctionSynthesisPluginForCount",
         ],

@@ -20,7 +20,7 @@ import unittest.mock
 from qiskit.circuit import QuantumCircuit, Operation
 from qiskit.test import QiskitTestCase
 from qiskit.transpiler import PassManager
-from qiskit.transpiler.passes.synthesis.high_level_synthesis_plugins import HighLevelSynthesisPlugin
+from qiskit.transpiler.passes.synthesis.plugin import HighLevelSynthesisPlugin
 from qiskit.transpiler.passes.synthesis.high_level_synthesis import HighLevelSynthesis, HLSConfig
 
 
