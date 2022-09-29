@@ -1,7 +1,7 @@
 ---
 features:
   - |
-    Adds ``plot_distribution``for plotting distributions over quasi-probabilities.
+    Added a new function :func:`~.plot_distribution` for plotting distributions over quasi-probabilities.
     This is suitable for ``Counts``, ``QuasiDistribution`` and ``ProbDistribution``.
     Raw `dict` can be passed as well.
 upgrade:
