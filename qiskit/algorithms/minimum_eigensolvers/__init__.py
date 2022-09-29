@@ -25,6 +25,7 @@ Minimum Eigensolvers
    MinimumEigensolver
    NumPyMinimumEigensolver
    VQE
+   AdaptVQE
 
 .. autosummary::
    :toctree: ../stubs/
@@ -32,13 +33,17 @@ Minimum Eigensolvers
    MinimumEigensolverResult
    NumPyMinimumEigensolverResult
    VQEResult
+   AdaptVQEResult
 """
 
+from .adapt_vqe import AdaptVQE, AdaptVQEResult
 from .minimum_eigensolver import MinimumEigensolver, MinimumEigensolverResult
 from .numpy_minimum_eigensolver import NumPyMinimumEigensolver, NumPyMinimumEigensolverResult
 from .vqe import VQE, VQEResult
 
 __all__ = [
+    "AdaptVQE",
+    "AdaptVQEResult",
     "MinimumEigensolver",
     "MinimumEigensolverResult",
     "NumPyMinimumEigensolver",
