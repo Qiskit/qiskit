@@ -1,0 +1,38 @@
+---
+features:
+  - |
+    Adds the Subspace Search Variational Quantum Eigensolver (:class:`SSVQE`)
+    algorithm. SSVQE is a generalization of the Variational Quantum Eigensolver
+    (VQE) which aims to find the low-lying eigenvalue/eigenvector pairs of a
+    Hermitian operator :math:`H`. It takes a set of mutually orthogonal input
+    states, applies a parameterized ansatz (:class:`QuantumCircuit`) to all of
+    them, then minimizes a weighted sum of the expectation values of :math:`H` 
+    with respect to these parameterized states using a classical optimizer
+    (:class:`qiskit.algorithms.optimizers.Optimizer`).
+    For example:
+
+    .. code-block:: python
+
+      from qiskit import QuantumCircuit
+      from qiskit.opflow import Z
+      from qiskit.primitives import Estimator
+      from qiskit.circuit.library import RealAmplitudes
+      from qiskit.algorithms.optimizers import SPSA
+      from qiskit.algorithms.eigensolvers import SSVQE
+
+      operator = Z^Z
+      input_states = [QuantumCircuit(2), QuantumCircuit(2)]
+      input_states[0].x(0)
+      input_states[1].x(1)
+
+      ssvqe_instance = SSVQE(k=2,
+                            estimator=Estimator(),
+                            optimizer=SPSA(),
+                            ansatz=RealAmplitudes(2),
+                            initial_states=input_states)
+
+      result = ssvqe_instance.compute_eigenvalues(operator)
+
+
+
+
