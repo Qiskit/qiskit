@@ -836,6 +836,7 @@ class Statevector(QuantumState, TolerancesMixin):
         """Update the current Statevector by applying an instruction."""
         from qiskit.circuit.reset import Reset
         from qiskit.circuit.barrier import Barrier
+        from qiskit.extensions.quantum_initializer import Initialize
 
         mat = Operator._instruction_to_matrix(obj)
         if mat is not None:
@@ -848,6 +849,10 @@ class Statevector(QuantumState, TolerancesMixin):
             statevec._data = statevec.reset(qargs)._data
             return statevec
         if isinstance(obj, Barrier):
+            return statevec
+        if isinstance(obj, Initialize):
+            # state is initialized to the statevector in the initialize object
+            statevec._data = np.array(obj.params, dtype=complex)
             return statevec
 
         # If the instruction doesn't have a matrix defined we use its
