@@ -51,8 +51,8 @@ class TestNumPyMinimumEigensolver(QiskitAlgorithmsTestCase):
         )
         self.assertAlmostEqual(result.eigenvalue, -1.85727503 + 0j)
         self.assertEqual(len(result.aux_operators_evaluated), 2)
-        np.testing.assert_array_almost_equal(result.aux_operators_evaluated[0], [2, 0])
-        np.testing.assert_array_almost_equal(result.aux_operators_evaluated[1], [0, 0])
+        self.assertAlmostEqual(result.aux_operators_evaluated[0][0], 2)
+        self.assertAlmostEqual(result.aux_operators_evaluated[1][0], 0)
 
     def test_cme_reuse(self):
         """Test reuse"""
@@ -70,8 +70,8 @@ class TestNumPyMinimumEigensolver(QiskitAlgorithmsTestCase):
             )
             self.assertAlmostEqual(result.eigenvalue, -1.85727503 + 0j)
             self.assertEqual(len(result.aux_operators_evaluated), 2)
-            np.testing.assert_array_almost_equal(result.aux_operators_evaluated[0], [2, 0])
-            np.testing.assert_array_almost_equal(result.aux_operators_evaluated[1], [0, 0])
+            self.assertAlmostEqual(result.aux_operators_evaluated[0][0], 2)
+            self.assertAlmostEqual(result.aux_operators_evaluated[1][0], 0)
 
         with self.subTest("Test with aux_operators removed"):
             result = algo.compute_minimum_eigenvalue(operator=self.qubit_op, aux_operators=[])
@@ -85,8 +85,8 @@ class TestNumPyMinimumEigensolver(QiskitAlgorithmsTestCase):
             )
             self.assertAlmostEqual(result.eigenvalue, -1.85727503 + 0j)
             self.assertEqual(len(result.aux_operators_evaluated), 2)
-            np.testing.assert_array_almost_equal(result.aux_operators_evaluated[0], [2, 0])
-            np.testing.assert_array_almost_equal(result.aux_operators_evaluated[1], [0, 0])
+            self.assertAlmostEqual(result.aux_operators_evaluated[0][0], 2)
+            self.assertAlmostEqual(result.aux_operators_evaluated[1][0], 0)
 
         with self.subTest("Test after setting first aux_operators as main operator"):
             result = algo.compute_minimum_eigenvalue(
@@ -109,8 +109,8 @@ class TestNumPyMinimumEigensolver(QiskitAlgorithmsTestCase):
         )
         self.assertAlmostEqual(result.eigenvalue, -0.22491125 + 0j)
         self.assertEqual(len(result.aux_operators_evaluated), 2)
-        np.testing.assert_array_almost_equal(result.aux_operators_evaluated[0], [2, 0])
-        np.testing.assert_array_almost_equal(result.aux_operators_evaluated[1], [0, 0])
+        self.assertAlmostEqual(result.aux_operators_evaluated[0][0], 2)
+        self.assertAlmostEqual(result.aux_operators_evaluated[1][0], 0)
 
     def test_cme_filter_empty(self):
         """Test with filter always returning False"""
@@ -152,8 +152,8 @@ class TestNumPyMinimumEigensolver(QiskitAlgorithmsTestCase):
             )
             self.assertAlmostEqual(result.eigenvalue, -1.85727503 + 0j)
             self.assertEqual(len(result.aux_operators_evaluated), 2)
-            np.testing.assert_array_almost_equal(result.aux_operators_evaluated["aux_op1"], [2, 0])
-            np.testing.assert_array_almost_equal(result.aux_operators_evaluated["aux_op2"], [0, 0])
+            self.assertAlmostEqual(result.aux_operators_evaluated["aux_op1"][0], 2)
+            self.assertAlmostEqual(result.aux_operators_evaluated["aux_op2"][0], 0)
 
         with self.subTest("Test with additional zero and None operators."):
             extra_ops = {"None_op": None, "zero_op": 0, **self.aux_ops_dict}
@@ -162,9 +162,9 @@ class TestNumPyMinimumEigensolver(QiskitAlgorithmsTestCase):
             )
             self.assertAlmostEqual(result.eigenvalue, -1.85727503 + 0j)
             self.assertEqual(len(result.aux_operators_evaluated), 3)
-            np.testing.assert_array_almost_equal(result.aux_operators_evaluated["aux_op1"], [2, 0])
-            np.testing.assert_array_almost_equal(result.aux_operators_evaluated["aux_op2"], [0, 0])
-            self.assertEqual(result.aux_operators_evaluated["zero_op"], (0.0, 0))
+            self.assertAlmostEqual(result.aux_operators_evaluated["aux_op1"][0], 2)
+            self.assertAlmostEqual(result.aux_operators_evaluated["aux_op2"][0], 0)
+            self.assertEqual(result.aux_operators_evaluated["zero_op"], (0.0, {"variance": 0}))
 
     def test_aux_operators_list(self):
         """Test list-based aux_operators."""
@@ -181,8 +181,8 @@ class TestNumPyMinimumEigensolver(QiskitAlgorithmsTestCase):
             self.assertAlmostEqual(result.aux_operators_evaluated[0][0], 2, places=6)
             self.assertAlmostEqual(result.aux_operators_evaluated[1][0], 0, places=6)
             # standard deviations
-            self.assertAlmostEqual(result.aux_operators_evaluated[0][1], 0.0)
-            self.assertAlmostEqual(result.aux_operators_evaluated[1][1], 0.0)
+            self.assertAlmostEqual(result.aux_operators_evaluated[0][1].pop("variance"), 0.0)
+            self.assertAlmostEqual(result.aux_operators_evaluated[1][1].pop("variance"), 0.0)
 
         with self.subTest("Test with additional zero and None operators."):
             extra_ops = [*aux_ops, None, 0]
@@ -197,9 +197,9 @@ class TestNumPyMinimumEigensolver(QiskitAlgorithmsTestCase):
             self.assertIsNone(result.aux_operators_evaluated[2], None)
             self.assertEqual(result.aux_operators_evaluated[3][0], 0.0)
             # standard deviations
-            self.assertAlmostEqual(result.aux_operators_evaluated[0][1], 0.0)
-            self.assertAlmostEqual(result.aux_operators_evaluated[1][1], 0.0)
-            self.assertEqual(result.aux_operators_evaluated[3][1], 0.0)
+            self.assertAlmostEqual(result.aux_operators_evaluated[0][1].pop("variance"), 0.0)
+            self.assertAlmostEqual(result.aux_operators_evaluated[1][1].pop("variance"), 0.0)
+            self.assertEqual(result.aux_operators_evaluated[3][1].pop("variance"), 0.0)
 
     def test_aux_operators_dict(self):
         """Test dict-based aux_operators."""
@@ -216,8 +216,12 @@ class TestNumPyMinimumEigensolver(QiskitAlgorithmsTestCase):
             self.assertAlmostEqual(result.aux_operators_evaluated["aux_op1"][0], 2, places=6)
             self.assertAlmostEqual(result.aux_operators_evaluated["aux_op2"][0], 0, places=6)
             # standard deviations
-            self.assertAlmostEqual(result.aux_operators_evaluated["aux_op1"][1], 0.0)
-            self.assertAlmostEqual(result.aux_operators_evaluated["aux_op2"][1], 0.0)
+            self.assertAlmostEqual(
+                result.aux_operators_evaluated["aux_op1"][1].pop("variance"), 0.0
+            )
+            self.assertAlmostEqual(
+                result.aux_operators_evaluated["aux_op2"][1].pop("variance"), 0.0
+            )
 
         with self.subTest("Test with additional zero and None operators."):
             extra_ops = {**aux_ops, "None_operator": None, "zero_operator": 0}
@@ -232,9 +236,15 @@ class TestNumPyMinimumEigensolver(QiskitAlgorithmsTestCase):
             self.assertEqual(result.aux_operators_evaluated["zero_operator"][0], 0.0)
             self.assertTrue("None_operator" not in result.aux_operators_evaluated.keys())
             # standard deviations
-            self.assertAlmostEqual(result.aux_operators_evaluated["aux_op1"][1], 0.0)
-            self.assertAlmostEqual(result.aux_operators_evaluated["aux_op2"][1], 0.0)
-            self.assertAlmostEqual(result.aux_operators_evaluated["zero_operator"][1], 0.0)
+            self.assertAlmostEqual(
+                result.aux_operators_evaluated["aux_op1"][1].pop("variance"), 0.0
+            )
+            self.assertAlmostEqual(
+                result.aux_operators_evaluated["aux_op2"][1].pop("variance"), 0.0
+            )
+            self.assertAlmostEqual(
+                result.aux_operators_evaluated["zero_operator"][1].pop("variance"), 0.0
+            )
 
 
 if __name__ == "__main__":
