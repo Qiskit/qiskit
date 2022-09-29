@@ -303,14 +303,14 @@ class BaseSampler(ABC):
 
     def run(
         self,
-        circuits: Sequence[QuantumCircuit],
-        parameter_values: Sequence[Sequence[float]] | None = None,
+        circuits: QuantumCircuit | Sequence[QuantumCircuit],
+        parameter_values: Sequence[float] | Sequence[Sequence[float]] | None = None,
         **run_options,
     ) -> Job:
         """Run the job of the sampling of bitstrings.
 
         Args:
-            circuits: the list of circuit objects.
+            circuits: One of more circuit objects.
             parameter_values: Parameters to be bound to the circuit.
             run_options: Backend runtime options used for circuit execution.
 
@@ -324,6 +324,13 @@ class BaseSampler(ABC):
         # Support ndarray
         if isinstance(parameter_values, np.ndarray):
             parameter_values = parameter_values.tolist()
+
+        if not isinstance(circuits, Sequence):
+            circuits = [circuits]
+        if parameter_values is not None and (
+            len(parameter_values) == 0 or not isinstance(parameter_values[0], (Sequence, Iterable))
+        ):
+            parameter_values = [parameter_values]  # type: ignore[assignment]
 
         # Allow optional
         if parameter_values is None:
