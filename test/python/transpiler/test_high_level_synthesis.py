@@ -233,6 +233,25 @@ class TestHighLeverSynthesis(QiskitTestCase):
             self.assertIn("op_a", ops.keys())
             self.assertIn("op_b", ops.keys())
 
+    def test_use_default_on_unspecified_is_true(self):
+        """Check that when use_default_on_unspecified is True (which should be the default
+        value), the default synthesis method gets applied.
+        OpA has such a method, and OpB does not."""
+        qc = self.create_circ()
+        mock_plugin_manager = MockPluginManager
+        with unittest.mock.patch(
+            "qiskit.transpiler.passes.synthesis.high_level_synthesis.HighLevelSynthesisPluginManager",
+            wraps=mock_plugin_manager,
+        ):
+            pm = PassManager([HighLevelSynthesis()])
+            tqc = pm.run(qc)
+            ops = tqc.count_ops()
+            # OpA's default method replaces by "id", OpB has no default method
+            self.assertNotIn("op_a", ops.keys())
+            self.assertEqual(ops["id"], 2)
+            self.assertIn("op_b", ops.keys())
+            self.assertEqual(ops["op_b"], 1)
+
     def test_skip_synthesis_with_empty_methods_list(self):
         """Check that when synthesis config is specified, but an operation
         is given an empty list of methods, it is not synthesized.
