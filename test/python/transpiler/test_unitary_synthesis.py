@@ -26,9 +26,9 @@ from qiskit import transpile
 from qiskit.test import QiskitTestCase
 from qiskit.providers.fake_provider import FakeVigo, FakeMumbaiFractionalCX
 from qiskit.providers.fake_provider.fake_backend_v2 import FakeBackendV2, FakeBackend5QV2
-from qiskit.circuit import QuantumCircuit, QuantumRegister
+from qiskit.circuit import QuantumCircuit, QuantumRegister, ClassicalRegister
 from qiskit.circuit.library import QuantumVolume
-from qiskit.converters import circuit_to_dag
+from qiskit.converters import circuit_to_dag, dag_to_circuit
 from qiskit.transpiler.passes import UnitarySynthesis
 from qiskit.quantum_info.operators import Operator
 from qiskit.quantum_info.random import random_unitary
@@ -723,6 +723,48 @@ class TestUnitarySynthesis(QiskitTestCase):
         self.assertGreaterEqual(len(tqc.get_instructions("ecr")), 1)
         for instr in tqc.get_instructions("ecr"):
             self.assertEqual((0, 1), (tqc_index[instr.qubits[0]], tqc_index[instr.qubits[1]]))
+
+    def test_if_simple(self):
+        """Test a simple if statement."""
+        basis_gates = {"u", "cx"}
+        qr = QuantumRegister(2)
+        cr = ClassicalRegister(2)
+
+        qc_uni = QuantumCircuit(2)
+        qc_uni.h(0)
+        qc_uni.cx(0, 1)
+        qc_uni_mat = Operator(qc_uni)
+
+        qc_true_body = QuantumCircuit(2)
+        qc_true_body.unitary(qc_uni_mat, [0, 1])
+
+        qc = QuantumCircuit(qr, cr)
+        qc.if_test((cr, 1), qc_true_body, [0, 1], [0, 1])
+        dag = circuit_to_dag(qc)
+        cdag = UnitarySynthesis(basis_gates=basis_gates).run(dag)
+        cqc = dag_to_circuit(cdag)
+        cbody = cqc.data[0].operation.params[0]
+        self.assertEqual(cbody.count_ops().keys(), basis_gates)
+        self.assertEqual(qc_uni_mat, Operator(cbody))
+
+    def test_nested_control_flow(self):
+        """Test unrolling nested control flow blocks."""
+        qr = QuantumRegister(2)
+        cr = ClassicalRegister(1)
+        qc_uni1 = QuantumCircuit(2)
+        qc_uni1.swap(0, 1)
+        qc_uni1_mat = Operator(qc_uni1)
+
+        qc = QuantumCircuit(qr, cr)
+        with qc.for_loop(range(3)):
+            with qc.while_loop((cr, 0)):
+                qc.unitary(qc_uni1_mat, [0, 1])
+        dag = circuit_to_dag(qc)
+        cdag = UnitarySynthesis(basis_gates=["u", "cx"]).run(dag)
+        cqc = dag_to_circuit(cdag)
+        cbody = cqc.data[0].operation.params[2].data[0].operation.params[0]
+        self.assertEqual(cbody.count_ops().keys(), {"u", "cx"})
+        self.assertEqual(qc_uni1_mat, Operator(cbody))
 
 
 if __name__ == "__main__":
