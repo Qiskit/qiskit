@@ -40,6 +40,7 @@ class TestShor(QiskitAlgorithmsTestCase):
             self.instance = Shor(quantum_instance=QuantumInstance(backend, shots=1000))
             self.assertTrue("Shor class is deprecated" in str(caught_warnings[0].message))
 
+    @slow_test
     @idata(
         [
             [15, "aer_simulator", [3, 5]],
@@ -71,6 +72,7 @@ class TestShor(QiskitAlgorithmsTestCase):
         self.assertListEqual(result.factors[0], factors)
         self.assertTrue(result.total_counts >= result.successful_counts)
 
+    @slow_test
     @data(5, 7)
     def test_shor_no_factors(self, n_v):
         """shor no factors test"""
@@ -104,6 +106,7 @@ class TestShor(QiskitAlgorithmsTestCase):
         with self.assertRaises(ValueError):
             _ = shor.factor(N=n_v, a=a_v)
 
+    @slow_test
     @idata(
         [
             [15, 4, 2],
@@ -140,6 +143,7 @@ class TestShor(QiskitAlgorithmsTestCase):
         for measurement in measurements:
             self.assertTrue(measurement in values)
 
+    @slow_test
     @idata(
         [
             [15, 4, [1, 4]],

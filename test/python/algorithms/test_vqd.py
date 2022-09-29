@@ -40,6 +40,7 @@ from qiskit.opflow import (
 )
 
 from qiskit.utils import QuantumInstance, algorithm_globals, has_aer
+from qiskit.test import slow_test
 
 
 if has_aer():
@@ -85,6 +86,7 @@ class TestVQD(QiskitAlgorithmsTestCase):
             seed_transpiler=self.seed,
         )
 
+    @slow_test
     def test_basic_aer_statevector(self):
         """Test the VQD on BasicAer's statevector simulator."""
         wavefunction = self.ryrz_wavefunction

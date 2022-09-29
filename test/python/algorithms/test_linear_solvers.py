@@ -29,6 +29,7 @@ from qiskit.quantum_info import Operator, partial_trace
 from qiskit.opflow import I, Z, StateFn
 from qiskit.utils import QuantumInstance
 from qiskit import quantum_info
+from qiskit.test import slow_test
 
 
 def _factory_tridiagonal_toeplitz(
@@ -263,6 +264,7 @@ class TestLinearSolver(QiskitAlgorithmsTestCase):
         * the constructed circuits
     """
 
+    @slow_test
     @idata(
         [
             [
