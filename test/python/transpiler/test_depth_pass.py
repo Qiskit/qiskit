@@ -88,7 +88,7 @@ class TestDepthPass(QiskitTestCase):
         with qc.while_loop((qc.clbits[0], True)):
             qc.h(0)
             qc.measure(0, 0)
-        pass_ = Depth()
+        pass_ = Depth(recurse=True)
         pass_(qc)
         self.assertEqual(pass_.property_set["depth"], 16)
 

@@ -194,8 +194,8 @@ def level_1_pass_manager(pass_manager_config: PassManagerConfig) -> StagedPassMa
 
     # Build optimization loop: merge 1q rotations and cancel CNOT gates iteratively
     # until no more change in depth
-    _depth_check = [Depth(), FixedPoint("depth")]
-    _size_check = [Size(), FixedPoint("size")]
+    _depth_check = [Depth(recurse=True), FixedPoint("depth")]
+    _size_check = [Size(recurse=True), FixedPoint("size")]
 
     def _opt_control(property_set):
         return (not property_set["depth_fixed_point"]) or (not property_set["size_fixed_point"])

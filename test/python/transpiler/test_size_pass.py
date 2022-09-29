@@ -82,7 +82,7 @@ class TestSizePass(QiskitTestCase):
         with qc.while_loop((qc.clbits[0], True)):
             qc.h(0)
             qc.measure(0, 0)
-        pass_ = Size()
+        pass_ = Size(recurse=True)
         pass_(qc)
         self.assertEqual(pass_.property_set["size"], 19)
 
