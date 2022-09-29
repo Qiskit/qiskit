@@ -121,11 +121,12 @@ class SSVQE(VariationalAlgorithm, Eigensolver):
         initial_point: Sequence[float] = None,
         initial_states: Sequence[
             QuantumCircuit
-        ] = None,  # Set of initial orthogonal states expressed as a list of QuantumCircuit objects.
+        ] = None,
         weight_vector: Sequence[float]
-        | Sequence[int] = None,  # set of weight factors to be used in the cost function
-        gradient: BaseEstimatorGradient | None = None,  # don't forget to change this later.
+        | Sequence[int] = None,
+        gradient: BaseEstimatorGradient | None = None,
         callback: Callable[[int, np.ndarray, float, float], None] | None = None,
+        check_input_states_orthogonality: bool = True
     ) -> None:
         """
         Args:
@@ -144,47 +145,31 @@ class SSVQE(VariationalAlgorithm, Eigensolver):
                 objective function. This fixes the ordering of the returned eigenstate/eigenvalue
                 pairs. If ``None``, then SSVQE will default to [n, n-1, ..., 1] for `k` = n.
             gradient: An optional gradient function or operator for optimizer.
-            expectation: The Expectation converter for taking the average value of the
-                Observable over the ansatz state function. When ``None`` (the default) an
-                :class:`~qiskit.opflow.expectations.ExpectationFactory` is used to select
-                an appropriate expectation based on the operator and backend. When using Aer
-                qasm_simulator backend, with paulis, it is however much faster to leverage custom
-                Aer function for the computation but, although VQE performs much faster
-                with it, the outcome is ideal, with no shot noise, like using a state vector
-                simulator. If you are just looking for the quickest performance when choosing Aer
-                qasm_simulator and the lack of shot noise is not an issue then set `include_custom`
-                parameter here to ``True`` (defaults to ``False``).
-            include_custom: When `expectation` parameter here is None setting this to ``True`` will
-                allow the factory to include the custom Aer pauli expectation.
-            max_evals_grouped: Max number of evaluations performed simultaneously. Signals the
-                given optimizer that more than one set of parameters can be supplied so that
-                potentially the expectation values can be computed in parallel. Typically this is
-                possible when a finite difference gradient is used by the optimizer such that
-                multiple points to compute the gradient can be passed and if computed in parallel
-                improve overall execution time. Deprecated if a gradient operator or function is
-                given.
             callback: a callback that can access the intermediate data during the optimization.
                 Four parameter values are passed to the callback as follows during each evaluation
                 by the optimizer for its current set of parameters as it works towards the minimum.
                 These are: the evaluation count, the optimizer parameters for the
                 ansatz, the evaluated mean and the evaluated standard deviation.`
-            quantum_instance: Quantum Instance or Backend
+            check_input_states_orthogonality: A boolean that sets whether or not to check
+                that the value of initial_states passed consists of a mutually orthogonal
+                set of states. If ``True``, then SSVQE will check that these states are mutually
+                orthogonal and return an error if they are not. This is set to ``True`` by default,
+                but setting this to ``False`` may be desirable for larger numbers of qubits to avoid
+                exponentially large computational overhead before the simulation even starts.
         """
 
         super().__init__()
 
         self.k = k
         self.initial_states = initial_states
-        if weight_vector is not None:
-            self.weight_vector = weight_vector
-        else:
-            self.weight_vector = [self.k - n for n in range(self.k)]
+        self.weight_vector = weight_vector
         self.ansatz = ansatz
         self.optimizer = optimizer
         self.initial_point = initial_point
         self.gradient = gradient
         self.callback = callback
         self.estimator = estimator
+        self.check_initial_states_orthogonal = check_input_states_orthogonality
 
     @property
     def initial_point(self) -> Sequence[float] | None:
@@ -225,6 +210,8 @@ class SSVQE(VariationalAlgorithm, Eigensolver):
         bounds = _validate_bounds(ansatz)
 
         initialized_ansatz_list = [initial_states[n].compose(ansatz) for n in range(self.k)]
+
+        self.weight_vector = self._check_weight_vector(self.weight_vector)
 
         start_time = time()
 
@@ -328,6 +315,7 @@ class SSVQE(VariationalAlgorithm, Eigensolver):
 
         def evaluate_weighted_energy_sum(parameters):
             nonlocal eval_count
+            #nonlocal weights
             parameters = np.reshape(parameters, (-1, num_parameters)).tolist()
             batchsize = len(parameters)
 
@@ -441,6 +429,12 @@ class SSVQE(VariationalAlgorithm, Eigensolver):
 
         else:
             initial_states = list_of_states
+            if self.check_initial_states_orthogonal is True:
+                stacked_states_array = np.hstack([np.asarray(Statevector(state)) for state in initial_states])
+                if not np.isclose(stacked_states_array.transpose() @ stacked_states_array, np.eye(self.k)):
+                    raise AlgorithmError(
+                        "The set of initial states provided is not mutually orthogonal."
+                    )
 
         for initial_state in initial_states:
             if operator.num_qubits != initial_state.num_qubits:
@@ -458,6 +452,15 @@ class SSVQE(VariationalAlgorithm, Eigensolver):
                     ) from error
 
         return initial_states
+
+    def _check_weight_vector(self, weight_vector: Sequence[float]) -> Sequence[float]:
+        if weight_vector is None:
+            weight_vector = [self.k - n for n in range(self.k)]
+        elif len(weight_vector) != self.k:
+            raise AlgorithmError(
+                "The number of weights provided does not match the number of states.")
+
+        return weight_vector
 
     def _eval_aux_ops(
         self,

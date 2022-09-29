@@ -127,6 +127,35 @@ class TestSSVQE(QiskitAlgorithmsTestCase):
             _ = ssvqe.compute_eigenvalues(operator=op)
 
     @data(H2_PAULI, H2_OP)
+    def test_initial_states_mismatching_num_qubits(self, op):
+        """Ensuring initial states and operator mismatch is caught"""
+        initial_state = [QuantumCircuit(1)]
+        wavefunction = QuantumCircuit(2)
+        optimizer = SLSQP(maxiter=50)
+        ssvqe = SSVQE(estimator=self.estimator, k=1, ansatz=wavefunction, optimizer=optimizer, initial_states=initial_state)
+        with self.assertRaises(AlgorithmError):
+            _ = ssvqe.compute_eigenvalues(operator=op)
+
+    @data(H2_PAULI, H2_OP)
+    def test_mismatching_weights(self, op):
+        """Ensuring incorrect number of weights is caught"""
+        optimizer = SLSQP(maxiter=50)
+        ssvqe = SSVQE(estimator=self.estimator, k=2, weight_vector=[3,2,1], optimizer=optimizer)
+        with self.assertRaises(AlgorithmError):
+            _ = ssvqe.compute_eigenvalues(operator=op)
+
+    @data(H2_PAULI, H2_OP)
+    def test_initial_states_nonorthogonal(self, op):
+        """Ensuring non-orthogonality of input initial states is caught"""
+        initial_states = [QuantumCircuit(2), QuantumCircuit(2)]
+        initial_states[0].x(0)
+        initial_states[1].x(0)
+        optimizer = SLSQP(maxiter=50)
+        ssvqe = SSVQE(estimator=self.estimator, k=1, optimizer=optimizer, initial_states=initial_states)
+        with self.assertRaises(AlgorithmError):
+            _ = ssvqe.compute_eigenvalues(operator=op)
+
+    @data(H2_PAULI, H2_OP)
     def test_missing_varform_params(self, op):
         """Test specifying a variational form with no parameters raises an error."""
         circuit = QuantumCircuit(op.num_qubits)
