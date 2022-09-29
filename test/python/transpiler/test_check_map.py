@@ -197,7 +197,7 @@ class TestCheckMapCX(QiskitTestCase):
         self.assertTrue(pass_.property_set["is_swap_mapped"])
 
     def test_nested_controlflow_false(self):
-        """Test nested controlflow with true evaluation."""        
+        """Test nested controlflow with true evaluation."""
         num_qubits = 4
         coupling = CouplingMap.from_line(num_qubits)
         qr1 = QuantumRegister(4, "qr")
