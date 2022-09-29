@@ -69,7 +69,7 @@ class CheckMap(AnalysisPass):
                 self.property_set["is_swap_mapped"] = False
                 return
         for cf_instr in dag.op_nodes(op=ControlFlowOp):
-            order = [dag.qubits.index(bit) for bit in cf_instr.qargs]
+            order = [qubit_indices[bit] for bit in cf_instr.qargs]
             for block in cf_instr.op.blocks:
                 dag_block = circuit_to_dag(block)
                 mapped_dag = dag.copy_empty_like()
