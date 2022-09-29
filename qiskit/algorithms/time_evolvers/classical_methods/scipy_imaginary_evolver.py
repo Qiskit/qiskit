@@ -23,9 +23,8 @@ class SciPyImaginaryEvolver(ImaginaryTimeEvolver):
 
     Evolves an initial state :math:`|\Psi\rangle` for an imaginary time :math:`\tau = it`
     under a Hamiltonian  :math:`H`, as provided in the ``evolution_problem``.
-
-    For each timestep we use a taylor expansion of :math:`\exp(- \Delta \tau H)` to evolve the system.
-
+    Note that the precision of the evolver does not depend on the number of
+    timesteps taken.
     """
 
     def __init__(self, steps: int):

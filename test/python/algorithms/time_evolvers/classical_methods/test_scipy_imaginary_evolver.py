@@ -31,7 +31,7 @@ from qiskit.opflow import (
 from qiskit.quantum_info.states.statevector import Statevector
 
 from qiskit import QuantumCircuit
-from qiskit.algorithms.time_evolvers.classical_methods import SciPyImaginaryEvolver
+from qiskit.algorithms import SciPyImaginaryEvolver
 
 
 @ddt

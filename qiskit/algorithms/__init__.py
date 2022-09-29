@@ -134,8 +134,8 @@ Time Evolution might be used to train Quantum Boltzmann Machine Neural Networks 
     PVQDResult
     TimeEvolutionResult
     TimeEvolutionProblem
-    ScipyImaginaryEvolver
-    ScipyRealEvolver
+    SciPyImaginaryEvolver
+    SciPyRealEvolver
 
 
 Trotterization-based Quantum Real Time Evolution
@@ -286,8 +286,6 @@ from .time_evolvers.imaginary_time_evolver import ImaginaryTimeEvolver
 from .time_evolvers.real_time_evolver import RealTimeEvolver
 from .time_evolvers.time_evolution_problem import TimeEvolutionProblem
 from .time_evolvers.time_evolution_result import TimeEvolutionResult
-from .time_evolvers.classical_methods import SciPyRealEvolver
-from .time_evolvers.classical_methods import SciPyImaginaryEvolver
 from .variational_algorithm import VariationalAlgorithm, VariationalResult
 from .amplitude_amplifiers import Grover, GroverResult, AmplificationProblem, AmplitudeAmplifier
 from .amplitude_estimators import (
@@ -328,6 +326,7 @@ from .observables_evaluator import estimate_observables
 from .evolvers.trotterization import TrotterQRTE
 
 from .time_evolvers.pvqd import PVQD, PVQDResult
+from .time_evolvers.classical_methods import SciPyRealEvolver, SciPyImaginaryEvolver
 
 __all__ = [
     "AlgorithmJob",
@@ -354,8 +353,6 @@ __all__ = [
     "ImaginaryEvolver",
     "RealTimeEvolver",
     "ImaginaryTimeEvolver",
-    "SciPyRealEvolver",
-    "SciPyImaginaryEvolver",
     "TrotterQRTE",
     "EvolutionResult",
     "EvolutionProblem",
@@ -383,6 +380,8 @@ __all__ = [
     "PhaseEstimationResult",
     "PVQD",
     "PVQDResult",
+    "SciPyRealEvolver",
+    "SciPyImaginaryEvolver",
     "IterativePhaseEstimation",
     "AlgorithmError",
     "eval_observables",

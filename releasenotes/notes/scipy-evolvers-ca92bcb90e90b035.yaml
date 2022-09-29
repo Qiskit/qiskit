@@ -1,8 +1,8 @@
 ---
 features:
   - |
-    Added two new classes :class:`~qiskit.algorithms.time_evolvers.classical_methods.ScipyRealEvolver` and
-    :class:`~qiskit.algorithms.time_evolvers.classical_methods.ScipyImaginaryEvolver` that implement integration methods
+    Added two new classes :class:`~qiskit.algorithms.time_evolvers.classical_methods.SciPyRealEvolver` and
+    :class:`~qiskit.algorithms.time_evolvers.classical_methods.SciPyImaginaryEvolver` that implement integration methods
     for time evolution of a quantum state.
     Added a new attribute to :class:`~qiskit.algorithms.time_evolvers.TimeEvolutionResult`,
     :attr:`~qiskit.algorithms.time_evolvers.TimeEvolutionResult.observables` that contains the mean and standard

@@ -27,7 +27,7 @@ class SciPyRealEvolver(RealTimeEvolver):
     """
 
     def __init__(self, steps: int):
-        r"""
+        """
         Args:
             steps: The number of timesteps in the simulation.
         Raises:

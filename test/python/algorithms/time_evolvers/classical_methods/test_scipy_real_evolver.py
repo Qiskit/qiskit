@@ -17,8 +17,8 @@ from ddt import data, ddt, unpack
 import numpy as np
 from qiskit.opflow import StateFn, OperatorBase
 from qiskit import QuantumCircuit
-from qiskit.algorithms.time_evolvers.classical_methods import SciPyRealEvolver
-from qiskit.algorithms.time_evolvers.time_evolution_problem import TimeEvolutionProblem
+from qiskit.algorithms import SciPyRealEvolver
+from qiskit.algorithms import TimeEvolutionProblem
 from qiskit.opflow import Y, Z, One, X, Zero
 
 

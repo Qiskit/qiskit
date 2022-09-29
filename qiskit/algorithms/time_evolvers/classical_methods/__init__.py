@@ -12,11 +12,7 @@
 
 """Classical Methods for Quantum Time Evolution package."""
 
-
 from .scipy_real_evolver import SciPyRealEvolver
 from .scipy_imaginary_evolver import SciPyImaginaryEvolver
 
-__all__ = [
-    "SciPyRealEvolver",
-    "SciPyImaginaryEvolver",
-]
+__all__ = ["SciPyRealEvolver", "SciPyImaginaryEvolver"]

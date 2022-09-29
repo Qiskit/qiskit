@@ -9,7 +9,7 @@
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
-"""Auxiliary functions for ScipyEvolvers"""
+"""Auxiliary functions for SciPyEvolvers"""
 from typing import List, Tuple, Union
 
 import scipy.sparse as sp
@@ -97,7 +97,7 @@ def _evaluate_aux_ops(
 
 def _sparsify(
     evolution_problem: TimeEvolutionProblem, steps: int, real_time: bool
-) -> Tuple[np.ndarray, List[sp.csr_matrix], sp.csr_matrix, float]:
+) -> Tuple[np.ndarray, List[sp.csr_matrix], sp.csr_matrix]:
     """Returns the matrices and parameters needed for time evolution in the appropiate format.
 
     Args:
@@ -107,8 +107,8 @@ def _sparsify(
             evolution, else they will correspond to imaginary time evolution.
 
     Returns:
-        A tuple with the initial state, the list of operators to evaluate, the operator to be
-        exponentiated to perfrom one timestep and its trace.
+        A tuple with the initial state, the list of operators to evaluate and the operator to be
+        exponentiated to perfrom one timestep.
     """
     # Convert the initial state and Hamiltonian into sparse matrices.
     if isinstance(evolution_problem.initial_state, QuantumCircuit):
@@ -126,8 +126,7 @@ def _sparsify(
         aux_ops = []
     timestep = evolution_problem.time / steps
     step_opeartor = -((1.0j) ** real_time) * timestep * hamiltonian
-    step_operator_trace = step_opeartor.trace()
-    return (state, aux_ops, step_opeartor, step_operator_trace)
+    return (state, aux_ops, step_opeartor)
 
 
 def _evolve(
@@ -152,7 +151,7 @@ def _evolve(
     if evolution_problem.t_param is not None:
         raise ValueError("Time dependent Hamiltonians are not supported.")
 
-    (state, aux_ops, step_opeartor, step_operator_trace) = _sparsify(
+    (state, aux_ops, step_opeartor) = _sparsify(
         evolution_problem=evolution_problem, steps=steps, real_time=real_time
     )
 
@@ -169,7 +168,7 @@ def _evolve(
     # Perform the time evolution and stores the value of the operators at each timestep.
     for ts in range(steps):
         ops_ev_mean[:, ts] = _evaluate_aux_ops(aux_ops, state)
-        state = expm_multiply(A=step_opeartor, B=state, traceA=step_operator_trace)
+        state = expm_multiply(A=step_opeartor, B=state)
         state = renormalize(state)
 
     ops_ev_mean[:, steps] = _evaluate_aux_ops(aux_ops, state)
