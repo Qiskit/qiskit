@@ -132,7 +132,13 @@ class TestSSVQE(QiskitAlgorithmsTestCase):
         initial_state = [QuantumCircuit(1)]
         wavefunction = QuantumCircuit(2)
         optimizer = SLSQP(maxiter=50)
-        ssvqe = SSVQE(estimator=self.estimator, k=1, ansatz=wavefunction, optimizer=optimizer, initial_states=initial_state)
+        ssvqe = SSVQE(
+            estimator=self.estimator,
+            k=1,
+            ansatz=wavefunction,
+            optimizer=optimizer,
+            initial_states=initial_state,
+        )
         with self.assertRaises(AlgorithmError):
             _ = ssvqe.compute_eigenvalues(operator=op)
 
@@ -140,7 +146,7 @@ class TestSSVQE(QiskitAlgorithmsTestCase):
     def test_mismatching_weights(self, op):
         """Ensuring incorrect number of weights is caught"""
         optimizer = SLSQP(maxiter=50)
-        ssvqe = SSVQE(estimator=self.estimator, k=2, weight_vector=[3,2,1], optimizer=optimizer)
+        ssvqe = SSVQE(estimator=self.estimator, k=2, weight_vector=[3, 2, 1], optimizer=optimizer)
         with self.assertRaises(AlgorithmError):
             _ = ssvqe.compute_eigenvalues(operator=op)
 
@@ -151,7 +157,9 @@ class TestSSVQE(QiskitAlgorithmsTestCase):
         initial_states[0].x(0)
         initial_states[1].x(0)
         optimizer = SLSQP(maxiter=50)
-        ssvqe = SSVQE(estimator=self.estimator, k=1, optimizer=optimizer, initial_states=initial_states)
+        ssvqe = SSVQE(
+            estimator=self.estimator, k=1, optimizer=optimizer, initial_states=initial_states
+        )
         with self.assertRaises(AlgorithmError):
             _ = ssvqe.compute_eigenvalues(operator=op)
 

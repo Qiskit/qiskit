@@ -119,14 +119,11 @@ class SSVQE(VariationalAlgorithm, Eigensolver):
         ansatz: QuantumCircuit | None = None,
         optimizer: Optimizer | Minimizer = None,
         initial_point: Sequence[float] = None,
-        initial_states: Sequence[
-            QuantumCircuit
-        ] = None,
-        weight_vector: Sequence[float]
-        | Sequence[int] = None,
+        initial_states: Sequence[QuantumCircuit] = None,
+        weight_vector: Sequence[float] | Sequence[int] = None,
         gradient: BaseEstimatorGradient | None = None,
         callback: Callable[[int, np.ndarray, float, float], None] | None = None,
-        check_input_states_orthogonality: bool = True
+        check_input_states_orthogonality: bool = True,
     ) -> None:
         """
         Args:
@@ -315,7 +312,7 @@ class SSVQE(VariationalAlgorithm, Eigensolver):
 
         def evaluate_weighted_energy_sum(parameters):
             nonlocal eval_count
-            #nonlocal weights
+            # nonlocal weights
             parameters = np.reshape(parameters, (-1, num_parameters)).tolist()
             batchsize = len(parameters)
 
@@ -430,8 +427,12 @@ class SSVQE(VariationalAlgorithm, Eigensolver):
         else:
             initial_states = list_of_states
             if self.check_initial_states_orthogonal is True:
-                stacked_states_array = np.hstack([np.asarray(Statevector(state)) for state in initial_states])
-                if not np.isclose(stacked_states_array.transpose() @ stacked_states_array, np.eye(self.k)):
+                stacked_states_array = np.hstack(
+                    [np.asarray(Statevector(state)) for state in initial_states]
+                )
+                if not np.isclose(
+                    stacked_states_array.transpose() @ stacked_states_array, np.eye(self.k)
+                ):
                     raise AlgorithmError(
                         "The set of initial states provided is not mutually orthogonal."
                     )
@@ -458,7 +459,8 @@ class SSVQE(VariationalAlgorithm, Eigensolver):
             weight_vector = [self.k - n for n in range(self.k)]
         elif len(weight_vector) != self.k:
             raise AlgorithmError(
-                "The number of weights provided does not match the number of states.")
+                "The number of weights provided does not match the number of states."
+            )
 
         return weight_vector
 
