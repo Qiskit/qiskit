@@ -58,9 +58,9 @@ def sampled_expectation_value(dist, oper):
         oper_strs = [oper.primitive.to_label()]
         coeffs = np.asarray([1.0])
     elif isinstance(oper, PauliSumOp):
-        _lst = oper.primitive.to_list()
-        oper_strs = [item[0] for item in _lst]
-        coeffs = np.asarray([item[1] for item in _lst])
+        spo = oper.primitive
+        oper_strs = spo.paulis.to_labels()
+        coeffs = np.asarray(spo.coeffs) * oper.coeff
     elif isinstance(oper, SparsePauliOp):
         oper_strs = oper.paulis.to_labels()
         coeffs = np.asarray(oper.coeffs)
