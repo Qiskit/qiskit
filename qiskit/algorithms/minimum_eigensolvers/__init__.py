@@ -26,6 +26,9 @@ Minimum Eigensolvers
    NumPyMinimumEigensolver
    VQE
    AdaptVQE
+   SamplingMinimumEigensolver
+   SamplingVQE
+   QAOA
 
 .. autosummary::
    :toctree: ../stubs/
@@ -34,12 +37,17 @@ Minimum Eigensolvers
    NumPyMinimumEigensolverResult
    VQEResult
    AdaptVQEResult
+   SamplingMinimumEigensolverResult
+   SamplingVQEResult
 """
 
 from .adapt_vqe import AdaptVQE, AdaptVQEResult
 from .minimum_eigensolver import MinimumEigensolver, MinimumEigensolverResult
 from .numpy_minimum_eigensolver import NumPyMinimumEigensolver, NumPyMinimumEigensolverResult
 from .vqe import VQE, VQEResult
+from .sampling_mes import SamplingMinimumEigensolver, SamplingMinimumEigensolverResult
+from .sampling_vqe import SamplingVQE, SamplingVQEResult
+from .qaoa import QAOA
 
 __all__ = [
     "AdaptVQE",
@@ -50,4 +58,9 @@ __all__ = [
     "NumPyMinimumEigensolverResult",
     "VQE",
     "VQEResult",
+    "SamplingMinimumEigensolver",
+    "SamplingMinimumEigensolverResult",
+    "SamplingVQE",
+    "SamplingVQEResult",
+    "QAOA",
 ]

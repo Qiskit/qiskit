@@ -25,6 +25,7 @@ from qiskit.dagcircuit.dagcircuit import DAGCircuit
 from qiskit.quantum_info.synthesis import one_qubit_decompose
 from qiskit.quantum_info.synthesis.xx_decompose import XXDecomposer
 from qiskit.quantum_info.synthesis.two_qubit_decompose import TwoQubitBasisDecomposer
+from qiskit.circuit import ControlFlowOp
 from qiskit.circuit.parameter import Parameter
 from qiskit.circuit.library.standard_gates import (
     iSwapGate,
@@ -35,6 +36,7 @@ from qiskit.circuit.library.standard_gates import (
     ECRGate,
 )
 from qiskit.transpiler.passes.synthesis import plugin
+from qiskit.transpiler.passes.utils import control_flow
 from qiskit.providers.models import BackendProperties
 
 
@@ -258,7 +260,6 @@ class UnitarySynthesis(TransformationPass):
             plugin_method = DefaultUnitarySynthesis()
         plugin_kwargs = {"config": self._plugin_config}
         _gate_lengths = _gate_errors = None
-        dag_bit_indices = {}
 
         if self.method == "default":
             # If the method is the default, we only need to evaluate one set of keyword arguments.
@@ -278,8 +279,6 @@ class UnitarySynthesis(TransformationPass):
         for method, kwargs in method_list:
             if method.supports_basis_gates:
                 kwargs["basis_gates"] = self._basis_gates
-            if method.supports_coupling_map:
-                dag_bit_indices = dag_bit_indices or {bit: i for i, bit in enumerate(dag.qubits)}
             if method.supports_natural_direction:
                 kwargs["natural_direction"] = self._natural_direction
             if method.supports_pulse_optimize:
@@ -306,6 +305,29 @@ class UnitarySynthesis(TransformationPass):
         if self.method == "default":
             # pylint: disable=attribute-defined-outside-init
             plugin_method._approximation_degree = self._approximation_degree
+        return self._run_main_loop(
+            dag, plugin_method, plugin_kwargs, default_method, default_kwargs
+        )
+
+    def _run_main_loop(self, dag, plugin_method, plugin_kwargs, default_method, default_kwargs):
+        """Inner loop for the optimizer, after all DAG-idependent set-up has been completed."""
+
+        def _recurse(dag):
+            # This isn't quite a trivially recursive call because we need to close over the
+            # arguments to the function.  The loop is sufficiently long that it's cleaner to do it
+            # in a separate method rather than define a helper closure within `self.run`.
+            return self._run_main_loop(
+                dag, plugin_method, plugin_kwargs, default_method, default_kwargs
+            )
+
+        for node in dag.op_nodes(ControlFlowOp):
+            node.op = control_flow.map_blocks(_recurse, node.op)
+
+        dag_bit_indices = (
+            {bit: i for i, bit in enumerate(dag.qubits)}
+            if plugin_method.supports_coupling_map or default_method.supports_coupling_map
+            else {}
+        )
 
         for node in dag.named_nodes(*self._synth_gates):
             if self._min_qubits is not None and len(node.qargs) < self._min_qubits:
