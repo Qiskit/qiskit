@@ -15,7 +15,7 @@
 from qiskit import QuantumRegister
 from qiskit.providers.backend import Backend
 from qiskit.test import QiskitTestCase
-from qiskit.providers.fake_provider import FakeMelbourne, FakeAlmaden, FakeAlmadenV2, FakeArmonk
+from qiskit.providers.fake_provider import FakeMelbourne, FakeArmonk, FakeHanoi, FakeHanoiV2
 from qiskit.transpiler.coupling import CouplingMap
 from qiskit.transpiler.passmanager_config import PassManagerConfig
 
@@ -26,10 +26,10 @@ class TestPassManagerConfig(QiskitTestCase):
     def test_config_from_backend(self):
         """Test from_backend() with a valid backend.
 
-        `FakeAlmaden` is used in this testcase. This backend has `defaults` attribute
+        `FakeHanoi` is used in this testcase. This backend has `defaults` attribute
         that contains an instruction schedule map.
         """
-        backend = FakeAlmaden()
+        backend = FakeHanoi()
         config = PassManagerConfig.from_backend(backend)
         self.assertEqual(config.basis_gates, backend.configuration().basis_gates)
         self.assertEqual(config.inst_map, backend.defaults().instruction_schedule_map)
@@ -39,7 +39,7 @@ class TestPassManagerConfig(QiskitTestCase):
 
     def test_config_from_backend_v2(self):
         """Test from_backend() with a BackendV2 instance."""
-        backend = FakeAlmadenV2()
+        backend = FakeHanoiV2()
         config = PassManagerConfig.from_backend(backend)
         self.assertEqual(config.basis_gates, backend.operation_names)
         self.assertEqual(config.inst_map, backend.instruction_schedule_map)
