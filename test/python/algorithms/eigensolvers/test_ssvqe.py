@@ -41,7 +41,7 @@ from qiskit.algorithms.state_fidelities import ComputeUncompute
 from qiskit.utils import algorithm_globals
 from qiskit.quantum_info.operators import Operator
 
-
+# pylint: disable=invalid-name
 def _mock_optimizer(fun, x0, jac=None, bounds=None, inputs=None) -> OptimizerResult:
     """A mock of a callable that can be used as minimizer in SSVQE."""
     result = OptimizerResult()
