@@ -251,7 +251,7 @@ class BaseEstimator(ABC):
         """
         return self._run_options
 
-    def set_options(self, **fields) -> BaseEstimator:
+    def set_options(self, **fields):
         """Set options values for the estimator.
 
         Args:
