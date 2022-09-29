@@ -95,8 +95,6 @@ Runtime primitives.
    NumPyEigensolver
    VQD
    VQDResult
-   SSVQE
-   SSVQEResult
 
 Eigensolvers
 ------------
@@ -401,8 +399,6 @@ __all__ = [
     "HamiltonianPhaseEstimationResult",
     "VQD",
     "VQDResult",
-    "SSVQE",
-    "SSVQEResult",
     "PhaseEstimationScale",
     "PhaseEstimation",
     "PhaseEstimationResult",
