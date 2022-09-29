@@ -105,7 +105,7 @@ class VQE(VariationalAlgorithm, MinimumEigensolver):
             metadata dictionary.
 
     References:
-        [1] Peruzzo et al, "A variational eigenvalue solver on a quantum processor"
+        [1]: Peruzzo, A., et al, "A variational eigenvalue solver on a quantum processor"
             `arXiv:1304.3061 <https://arxiv.org/abs/1304.3061>`__
     """
 
@@ -124,9 +124,9 @@ class VQE(VariationalAlgorithm, MinimumEigensolver):
             estimator: The estimator primitive to compute the expectation value of the
                 Hamiltonian operator.
             ansatz: A parameterized quantum circuit to prepare the trial state.
-            optimizer: A classical optimizer to find the minimum energy. This
-                can either be a Qiskit :class:`.Optimizer` or a callable implementing the
-                :class:`.Minimizer` protocol.
+            optimizer: A classical optimizer to find the minimum energy. This can either be a
+                Qiskit :class:`.Optimizer` or a callable implementing the :class:`.Minimizer`
+                protocol.
             gradient: An optional estimator gradient to be used with the optimizer.
             initial_point: An optional initial point (i.e. initial parameter values) for the
                 optimizer. The length of the initial point must match the number of :attr:`ansatz`
