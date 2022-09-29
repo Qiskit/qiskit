@@ -23,6 +23,7 @@ from qiskit.circuit.library import EvolvedOperatorAnsatz
 from qiskit.opflow import PauliSumOp
 from qiskit.primitives import Estimator
 from qiskit.quantum_info import SparsePauliOp
+from qiskit.utils import algorithm_globals
 
 
 class TestAdaptVQE(QiskitAlgorithmsTestCase):
@@ -30,6 +31,7 @@ class TestAdaptVQE(QiskitAlgorithmsTestCase):
 
     def setUp(self):
         super().setUp()
+        algorithm_globals.random_seed = 42
         self.h2_op = PauliSumOp.from_list(
             [
                 ("IIII", -0.8105479805373266),
@@ -113,6 +115,7 @@ class TestAdaptVQE(QiskitAlgorithmsTestCase):
         calc = AdaptVQE(
             VQE(Estimator(), self.ansatz, self.optimizer),
             max_iterations=100,
+            threshold=1e-15,
         )
         res = calc.compute_minimum_eigenvalue(operator=self.h2_op)
 
