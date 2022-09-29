@@ -14,7 +14,7 @@
 
 import retworkx
 
-from qiskit import QuantumRegister, QuantumCircuit, ClassicalRegister
+from qiskit import QuantumRegister, QuantumCircuit
 from qiskit.circuit import ControlFlowOp
 from qiskit.transpiler import CouplingMap, Layout, TranspilerError
 from qiskit.transpiler.passes.layout import vf2_utils
