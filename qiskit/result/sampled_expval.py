@@ -28,6 +28,8 @@ OPERS = ["Z", "I", "0", "1"]
 def sampled_expectation_value(dist, oper):
     """Computes expectation value from a sampled distribution
 
+    Note that passing a raw dict requires bit-string keys.
+
     Parameters:
         dist (Counts or QuasiDistribution or ProbDistribution or dict): Input sampled distribution
         oper (str or Pauli or PauliOp or PauliSumOp or SparsePauliOp): The operator for
