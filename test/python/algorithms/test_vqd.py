@@ -43,7 +43,7 @@ from qiskit.utils import QuantumInstance, algorithm_globals, has_aer
 
 
 if has_aer():
-    from qiskit import Aer
+    from qiskit_aer import Aer  # pylint: disable=import-error
 
 
 @ddt

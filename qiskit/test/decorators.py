@@ -20,6 +20,7 @@ import socket
 import sys
 from typing import Union, Callable, Type, Iterable
 import unittest
+import warnings
 from warnings import warn
 
 from qiskit.utils import wrap_method
@@ -60,7 +61,12 @@ def is_aer_provider_available():
     if sys.platform == "darwin":
         return False
     try:
-        import qiskit.providers.aer  # pylint: disable=unused-import
+        with warnings.catch_warnings():
+            warnings.filterwarnings(
+                "ignore", category=DeprecationWarning, module="qiskit.namespace"
+            )
+
+            import qiskit.providers.aer  # pylint: disable=unused-import
     except ImportError:
         return False
     return True

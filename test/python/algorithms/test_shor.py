@@ -18,10 +18,17 @@ import math
 from test.python.algorithms import QiskitAlgorithmsTestCase
 from ddt import ddt, data, idata, unpack
 
-from qiskit import Aer, ClassicalRegister
+from qiskit.circuit import ClassicalRegister
 from qiskit.utils import QuantumInstance
 from qiskit.algorithms import Shor
 from qiskit.test import slow_test
+from qiskit.utils import optionals
+
+if optionals.HAS_AER:
+    # pylint: disable=import-error,no-name-in-module
+    from qiskit_aer import Aer  # pylint: disable=import-error
+else:
+    Aer = None  # pylint: disable=invalid-name
 
 
 @unittest.skipUnless(Aer, "qiskit-aer is required for these tests")

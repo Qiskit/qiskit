@@ -118,7 +118,11 @@ class FakeBackendV2(BackendV2):
 
     def _setup_sim(self):
         if _optionals.HAS_AER:
-            from qiskit.providers import aer
+            with warnings.catch_warnings():
+                warnings.filterwarnings(
+                    "ignore", category=DeprecationWarning, module="qiskit.namespace"
+                )
+                from qiskit.providers import aer
 
             self.sim = aer.AerSimulator()
             if self._props_dict:
@@ -194,7 +198,11 @@ class FakeBackendV2(BackendV2):
                 default values set
         """
         if _optionals.HAS_AER:
-            from qiskit.providers import aer
+            with warnings.catch_warnings():
+                warnings.filterwarnings(
+                    "ignore", category=DeprecationWarning, module="qiskit.namespace"
+                )
+                from qiskit.providers import aer
 
             return aer.AerSimulator._default_options()
         else:
@@ -367,16 +375,20 @@ class FakeBackendV2(BackendV2):
         This is a temporary fix until qiskit-aer supports building noise model
         from a BackendV2 object.
         """
-
         from qiskit.circuit import Delay
         from qiskit.providers.exceptions import BackendPropertyError
-        from qiskit.providers.aer.noise import NoiseModel
-        from qiskit.providers.aer.noise.device.models import (
-            _excited_population,
-            basic_device_gate_errors,
-            basic_device_readout_errors,
-        )
-        from qiskit.providers.aer.noise.passes import RelaxationNoisePass
+
+        with warnings.catch_warnings():
+            warnings.filterwarnings(
+                "ignore", category=DeprecationWarning, module="qiskit.namespace"
+            )
+            from qiskit.providers.aer.noise import NoiseModel
+            from qiskit.providers.aer.noise.device.models import (
+                _excited_population,
+                basic_device_gate_errors,
+                basic_device_readout_errors,
+            )
+            from qiskit.providers.aer.noise.passes import RelaxationNoisePass
 
         if self._props_dict is None:
             self._set_props_dict_from_json()
@@ -398,6 +410,10 @@ class FakeBackendV2(BackendV2):
             warnings.filterwarnings(
                 "ignore",
                 module="qiskit.providers.aer.noise.device.models",
+            )
+            warnings.filterwarnings(
+                "ignore",
+                module="qiskit_aer.noise.device.models",
             )
             gate_errors = basic_device_gate_errors(
                 properties,
@@ -454,8 +470,12 @@ class FakeBackend(BackendV1):
 
     def _setup_sim(self):
         if _optionals.HAS_AER:
-            from qiskit.providers import aer
-            from qiskit.providers.aer.noise import NoiseModel
+            with warnings.catch_warnings():
+                warnings.filterwarnings(
+                    "ignore", category=DeprecationWarning, module="qiskit.namespace"
+                )
+                from qiskit.providers import aer
+                from qiskit.providers.aer.noise import NoiseModel
 
             self.sim = aer.AerSimulator()
             if self.properties():
@@ -520,7 +540,11 @@ class FakeBackend(BackendV1):
     @classmethod
     def _default_options(cls):
         if _optionals.HAS_AER:
-            from qiskit.providers import aer
+            with warnings.catch_warnings():
+                warnings.filterwarnings(
+                    "ignore", category=DeprecationWarning, module="qiskit.namespace"
+                )
+                from qiskit.providers import aer
 
             return aer.QasmSimulator._default_options()
         else:
@@ -547,8 +571,12 @@ class FakeBackend(BackendV1):
             )
         if pulse_job:
             if _optionals.HAS_AER:
-                from qiskit.providers import aer
-                from qiskit.providers.aer.pulse import PulseSystemModel
+                with warnings.catch_warnings():
+                    warnings.filterwarnings(
+                        "ignore", category=DeprecationWarning, module="qiskit.namespace"
+                    )
+                    from qiskit.providers import aer
+                    from qiskit.providers.aer.pulse import PulseSystemModel
 
                 system_model = PulseSystemModel.from_backend(self)
                 sim = aer.Aer.get_backend("pulse_simulator")

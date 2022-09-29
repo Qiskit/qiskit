@@ -20,7 +20,7 @@ from qiskit.utils import has_aer
 
 
 if has_aer():
-    from qiskit import Aer
+    from qiskit_aer import Aer  # pylint: disable=import-error
 
 
 class TestExpectationFactory(QiskitOpflowTestCase):

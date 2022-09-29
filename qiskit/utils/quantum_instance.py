@@ -509,7 +509,12 @@ class QuantumInstance:
 
         if self.is_statevector and "aer_simulator_statevector" in self.backend_name:
             try:
-                from qiskit.providers.aer.library import SaveStatevector
+                with warnings.catch_warnings():
+                    warnings.filterwarnings(
+                        "ignore", category=DeprecationWarning, module="qiskit.namespace"
+                    )
+
+                    from qiskit.providers.aer.library import SaveStatevector
 
                 def _find_save_state(data):
                     for instruction in reversed(data):

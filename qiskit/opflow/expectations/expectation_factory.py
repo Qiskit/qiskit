@@ -14,6 +14,7 @@
 
 import logging
 from typing import Optional, Union
+import warnings
 
 from qiskit import BasicAer
 from qiskit.opflow.expectations.aer_pauli_expectation import AerPauliExpectation
@@ -69,7 +70,12 @@ class ExpectationFactory:
             if backend_to_check is None:
                 # If user has Aer but didn't specify a backend, use the Aer fast expectation
                 if has_aer():
-                    from qiskit import Aer
+                    with warnings.catch_warnings():
+                        warnings.filterwarnings(
+                            "ignore", category=DeprecationWarning, module="qiskit.namespace"
+                        )
+                        # pylint: disable=no-name-in-module,import-error
+                        from qiskit.providers.aer import Aer
 
                     backend_to_check = Aer.get_backend("qasm_simulator")
                 # If user doesn't have Aer, use statevector_simulator

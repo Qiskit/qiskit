@@ -39,7 +39,9 @@ from qiskit import namespace
 # Add hook to redirect imports from qiskit.providers.aer* to qiskit_aer*
 # this is necessary for backwards compatibility for users when qiskit-aer
 # and qiskit-terra shared the qiskit namespace
-new_meta_path_finder = namespace.QiskitElementImport("qiskit.providers.aer", "qiskit_aer")
+new_meta_path_finder = namespace.QiskitElementImport(
+    "qiskit.providers.aer", "qiskit_aer", deprecate=True
+)
 sys.meta_path = [new_meta_path_finder] + sys.meta_path
 
 # qiskit errors operator
@@ -94,14 +96,18 @@ class AerWrapper:
     def __bool__(self):
         if self.aer is None:
             try:
-                from qiskit.providers import aer
+                with warnings.catch_warnings():
+                    warnings.filterwarnings(
+                        "ignore", category=DeprecationWarning, module="qiskit.namespace"
+                    )
+                    from qiskit.providers import aer
 
                 self.aer = aer.Aer
                 warnings.warn(
-                    "The qiskit.Aer entry point will be deprecated in a future release and "
-                    "subsequently removed. Instead you should use this "
-                    "directly from the root of the qiskit-aer package.",
-                    PendingDeprecationWarning,
+                    "The qiskit.Aer entry point is deprecated and will be removed in a future "
+                    "release. Instead you should use this directly from the root of the "
+                    "qiskit-aer package: 'qiskit_aer.Aer'",
+                    DeprecationWarning,
                     stacklevel=2,
                 )
             except ImportError:
@@ -111,14 +117,18 @@ class AerWrapper:
     def __getattr__(self, attr):
         if not self.aer:
             try:
-                from qiskit.providers import aer
+                with warnings.catch_warnings():
+                    warnings.filterwarnings(
+                        "ignore", category=DeprecationWarning, module="qiskit.namespace"
+                    )
+                    from qiskit.providers import aer
 
                 self.aer = aer.Aer
                 warnings.warn(
-                    "The qiskit.Aer entry point will be deprecated in a future release and "
-                    "subsequently removed. Instead you should use this "
-                    "directly from the root of the qiskit-aer package.",
-                    PendingDeprecationWarning,
+                    "The qiskit.Aer entry point is deprecated and will be removed in a future "
+                    "release. Instead you should use this directly from the root of the "
+                    "qiskit-aer package: 'qiskit_aer.Aer'",
+                    DeprecationWarning,
                     stacklevel=2,
                 )
             except ImportError as ex:
