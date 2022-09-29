@@ -22,7 +22,7 @@ from .distributions import QuasiDistribution, ProbDistribution
 
 
 # A list of valid diagonal operators
-OPERS = ["Z", "I", "0", "1"]
+OPERS = {"Z", "I", "0", "1"}
 
 
 def sampled_expectation_value(dist, oper):
@@ -48,7 +48,7 @@ def sampled_expectation_value(dist, oper):
     if isinstance(dist, (QuasiDistribution, ProbDistribution)):
         dist = dist.binary_probabilities()
 
-    if not isinstance(dist, (Counts, QuasiDistribution, ProbDistribution, dict)):
+    if not isinstance(dist, (Counts, dict)):
         raise QiskitError("Invalid input distribution type")
     if isinstance(oper, str):
         oper_strs = [oper.upper()]
@@ -76,7 +76,7 @@ def sampled_expectation_value(dist, oper):
             f"One or more operators not same length ({bitstring_len}) as input bitstrings"
         )
     for op in oper_strs:
-        if any(set(op).difference(OPERS)):
+        if set(op).difference(OPERS):
             raise QiskitError(f"Input operator {op} is not diagonal")
     # Dispatch to Rust routines
     if coeffs.dtype == np.dtype(complex).type:

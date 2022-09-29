@@ -62,8 +62,7 @@ from .utils import marginal_distribution
 from .utils import marginal_memory
 from .counts import Counts
 
-from .distributions.probability import ProbDistribution
-from .distributions.quasi import QuasiDistribution
+from .distributions import QuasiDistribution, ProbDistribution
 from .sampled_expval import sampled_expectation_value
 from .mitigation.base_readout_mitigator import BaseReadoutMitigator
 from .mitigation.correlated_readout_mitigator import CorrelatedReadoutMitigator
