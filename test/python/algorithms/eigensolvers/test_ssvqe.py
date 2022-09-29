@@ -42,15 +42,15 @@ from qiskit.utils import algorithm_globals
 from qiskit.quantum_info.operators import Operator
 
 
-def _mock_optimizer(fun, point, jac=None, bounds=None, inputs=None) -> OptimizerResult:
+def _mock_optimizer(fun, x0, jac=None, bounds=None, inputs=None) -> OptimizerResult:
     """A mock of a callable that can be used as minimizer in SSVQE."""
     result = OptimizerResult()
-    result.x = np.zeros_like(point)
+    result.x = np.zeros_like(x0)
     result.fun = fun(result.x)
     result.nit = 0
 
     if inputs is not None:
-        inputs.update({"fun": fun, "x0": point, "jac": jac, "bounds": bounds})
+        inputs.update({"fun": fun, "x0": x0, "jac": jac, "bounds": bounds})
     return result
 
 

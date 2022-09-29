@@ -54,5 +54,5 @@ __all__ = [
     "VQD",
     "VQDResult",
     "SSVQE",
-    "SSVQEResult"
+    "SSVQEResult",
 ]
