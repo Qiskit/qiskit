@@ -20,10 +20,12 @@ import numpy as np
 from qiskit.algorithms.optimizers import Minimizer, Optimizer
 from qiskit.circuit import QuantumCircuit
 from qiskit.circuit.library.n_local.qaoa_ansatz import QAOAAnsatz
-from qiskit.opflow import OperatorBase
+from qiskit.quantum_info.operators.base_operator import BaseOperator
+from qiskit.opflow import PauliSumOp, PrimitiveOp
 from qiskit.primitives import BaseSampler
 from qiskit.utils.validation import validate_min
 
+from ..exceptions import AlgorithmError
 from .sampling_vqe import SamplingVQE
 
 
@@ -59,9 +61,9 @@ class QAOA(SamplingVQE):
             :class:`.Minimizer` protocol.
         reps (int): The integer parameter :math:`p`. Has a minimum valid value of 1.
         initial_state: An optional initial state to prepend the QAOA circuit with.
-        mixer (QuantumCircuit | OperatorBase): The mixer Hamiltonian to evolve with or a custom
-            quantum circuit. Allows support of optimizations in constrained subspaces [2, 3] as well
-            as warm-starting the optimization [4].
+        mixer (QuantumCircuit | BaseOperator | PauliSumOp): The mixer Hamiltonian to evolve with or
+            a custom quantum circuit. Allows support of optimizations in constrained subspaces [2,
+            3] as well as warm-starting the optimization [4].
         aggregation (float | Callable[[list[float]], float] | None): A float or callable to specify
             how the objective function evaluated on the basis states should be aggregated. If a
             float, this specifies the :math:`\alpha \in [0,1]` parameter for a CVaR expectation
@@ -89,7 +91,7 @@ class QAOA(SamplingVQE):
         *,
         reps: int = 1,
         initial_state: QuantumCircuit | None = None,
-        mixer: QuantumCircuit | OperatorBase = None,
+        mixer: QuantumCircuit | BaseOperator | PauliSumOp = None,
         initial_point: np.ndarray | None = None,
         aggregation: float | Callable[[list[float]], float] | None = None,
         callback: Callable[[int, np.ndarray, float, dict[str, Any]], None] | None = None,
@@ -133,7 +135,14 @@ class QAOA(SamplingVQE):
             callback=callback,
         )
 
-    def _check_operator_ansatz(self, operator: OperatorBase):
+    def _check_operator_ansatz(self, operator: BaseOperator | PauliSumOp):
+        if isinstance(operator, BaseOperator):
+            try:
+                operator = PrimitiveOp(operator)
+            except TypeError as error:
+                raise AlgorithmError(
+                    f"Unsupported operator type {type(operator)} passed to QAOA."
+                ) from error
         # Recreates a circuit based on operator parameter.
         self.ansatz = QAOAAnsatz(
             operator, self.reps, initial_state=self.initial_state, mixer_operator=self.mixer

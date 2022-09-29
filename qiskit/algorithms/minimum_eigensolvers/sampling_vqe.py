@@ -24,8 +24,8 @@ import numpy as np
 from qiskit.circuit import QuantumCircuit
 from qiskit.opflow import PauliSumOp
 from qiskit.primitives import BaseSampler
-from qiskit.quantum_info.operators.base_operator import BaseOperator
 from qiskit.result import QuasiDistribution
+from qiskit.quantum_info.operators.base_operator import BaseOperator
 
 from ..exceptions import AlgorithmError
 from ..list_or_dict import ListOrDict
