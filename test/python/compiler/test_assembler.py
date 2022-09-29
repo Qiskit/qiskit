@@ -36,7 +36,7 @@ from qiskit.providers.fake_provider import (
     FakeOpenPulse2Q,
     FakeOpenPulse3Q,
     FakeYorktown,
-    FakeAlmaden,
+    FakeHanoi,
 )
 
 
@@ -1194,7 +1194,8 @@ class TestPulseAssembler(QiskitTestCase):
 
     def test_pulse_name_conflicts_in_other_schedule(self):
         """Test two pulses with the same name in different schedule can be resolved."""
-        backend = FakeAlmaden()
+        backend = FakeHanoi()
+        defaults = backend.defaults()
 
         schedules = []
         ch_d0 = pulse.DriveChannel(0)
@@ -1204,7 +1205,9 @@ class TestPulseAssembler(QiskitTestCase):
             sched += measure(qubits=[0], backend=backend) << 100
             schedules.append(sched)
 
-        qobj = assemble(schedules, backend)
+        qobj = assemble(
+            schedules, qubit_lo_freq=defaults.qubit_freq_est, meas_lo_freq=defaults.meas_freq_est
+        )
 
         # two user pulses and one measurement pulse should be contained
         self.assertEqual(len(qobj.config.pulse_library), 3)
@@ -1330,7 +1333,7 @@ class TestPulseAssembler(QiskitTestCase):
 
     def test_assemble_parametric_pulse_kwarg_with_backend_setting(self):
         """Test that parametric pulses respect the kwarg over backend"""
-        backend = FakeAlmaden()
+        backend = FakeHanoi()
 
         qc = QuantumCircuit(1, 1)
         qc.x(0)
@@ -1345,7 +1348,7 @@ class TestPulseAssembler(QiskitTestCase):
 
     def test_assemble_parametric_pulse_kwarg_empty_list_with_backend_setting(self):
         """Test that parametric pulses respect the kwarg as empty list over backend"""
-        backend = FakeAlmaden()
+        backend = FakeHanoi()
 
         qc = QuantumCircuit(1, 1)
         qc.x(0)
