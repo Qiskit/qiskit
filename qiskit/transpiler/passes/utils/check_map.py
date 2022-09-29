@@ -14,7 +14,6 @@
 
 from qiskit.transpiler.basepasses import AnalysisPass
 from qiskit.circuit.controlflow import ControlFlowOp
-from qiskit.transpiler.layout import Layout
 
 
 class CheckMap(AnalysisPass):
