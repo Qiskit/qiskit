@@ -12,11 +12,10 @@
 
 """Class for holding time evolution result."""
 from __future__ import annotations
-
 import numpy as np
-from qiskit import QuantumCircuit
 
-from ..list_or_dict import ListOrDict
+from qiskit import QuantumCircuit
+from qiskit.algorithms.list_or_dict import ListOrDict
 from ..algorithm_result import AlgorithmResult
 
 

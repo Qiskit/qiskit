@@ -13,6 +13,7 @@
 from typing import List, Tuple, Union
 
 import scipy.sparse as sp
+from scipy.sparse.linalg import expm_multiply
 import numpy as np
 
 from qiskit.quantum_info.states import Statevector
@@ -149,7 +150,7 @@ def _evolve(
     """
 
     if evolution_problem.t_param is not None:
-        raise ValueError("Time dependent Hamiltonians are not currently supported.")
+        raise ValueError("Time dependent Hamiltonians are not supported.")
 
     (state, aux_ops, step_opeartor, step_operator_trace) = _sparsify(
         evolution_problem=evolution_problem, steps=steps, real_time=real_time
@@ -168,7 +169,7 @@ def _evolve(
     # Perform the time evolution and stores the value of the operators at each timestep.
     for ts in range(steps):
         ops_ev_mean[:, ts] = _evaluate_aux_ops(aux_ops, state)
-        state = sp.linalg.expm_multiply(A=step_opeartor, B=state, traceA=step_operator_trace)
+        state = expm_multiply(A=step_opeartor, B=state, traceA=step_operator_trace)
         state = renormalize(state)
 
     ops_ev_mean[:, steps] = _evaluate_aux_ops(aux_ops, state)
