@@ -31,5 +31,5 @@ class EstimatorGradientResult:
     """The gradients of the expectation values."""
     metadata: list[dict[str, Any]]
     """Additional information about the job."""
-    run_options: Options
-    """run_options for the job."""
+    options: Options
+    """Primitive runtime options for the execution of the job."""
