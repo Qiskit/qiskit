@@ -147,11 +147,9 @@ class SSVQE(VariationalAlgorithm, Eigensolver):
                 objective function. This fixes the ordering of the returned eigenstate/eigenvalue
                 pairs. If ``None``, then SSVQE will default to [n, n-1, ..., 1] for `k` = n.
             gradient: An optional gradient function or operator for optimizer.
-            callback: a callback that can access the intermediate data during the optimization.
-                Four parameter values are passed to the callback as follows during each evaluation
-                by the optimizer for its current set of parameters as it works towards the minimum.
-                These are: the evaluation count, the optimizer parameters for the
-                ansatz, the evaluated mean and the evaluated standard deviation.`
+            callback: A callback that can access the intermediate data at each optimization step.
+                These data are: the evaluation count, the optimizer ansatz parameters,
+                the evaluated mean energies, and the metadata dictionary.
             check_input_states_orthogonality: A boolean that sets whether or not to check
                 that the value of initial_states passed consists of a mutually orthogonal
                 set of states. If ``True``, then SSVQE will check that these states are mutually
