@@ -295,7 +295,10 @@ class QasmSimulatorPy(BackendV1):
 
         # Check for custom initial statevector in backend_options first,
         # then config second
-        if "initial_statevector" in backend_options:
+        if (
+            "initial_statevector" in backend_options
+            and backend_options["initial_statevector"] is not None
+        ):
             self._initial_statevector = np.array(
                 backend_options["initial_statevector"], dtype=complex
             )
