@@ -306,6 +306,8 @@ class BaseEstimator(ABC):
             raise TypeError("Invalid circuits, expected Sequence[QuantumCircuit].")
         elif not isinstance(circuits, tuple):
             circuits = tuple(circuits)
+        if len(circuits) == 0:
+            raise ValueError("No circuits were provided.")
         return circuits
 
     @staticmethod
@@ -320,6 +322,8 @@ class BaseEstimator(ABC):
             raise TypeError("Invalid observables, expected Sequence[BaseOperator|PauliSumOp].")
         elif not isinstance(observables, tuple):
             observables = tuple(observables)
+        if len(observables) == 0:
+            raise ValueError("No observables were provided.")
         return observables
 
     # TODO: include ndarray in type annotations
@@ -371,7 +375,7 @@ class BaseEstimator(ABC):
         return parameter_values
 
     ################################################################################
-    ## DEPRECATION
+    ## DEPRECATED
     ################################################################################
     def __new__(
         cls,
