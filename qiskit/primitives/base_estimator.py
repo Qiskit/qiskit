@@ -198,7 +198,7 @@ class BaseEstimator(ABC):
         self,
         circuits: Sequence[QuantumCircuit] | QuantumCircuit,
         observables: Sequence[BaseOperator | PauliSumOp] | BaseOperator | PauliSumOp,
-        parameter_values: Sequence[Sequence[float | int]] | Sequence[float | int] | None = None,
+        parameter_values: Sequence[Sequence[float]] | Sequence[float] | None = None,
         **run_options,
     ) -> Job:
         """Run the job of the estimation of expectation value(s).
@@ -331,8 +331,8 @@ class BaseEstimator(ABC):
     # TODO: disallow non-numeric float values: float('nan'), float('inf'), float('-inf')
     @staticmethod
     def _validate_parameter_values(
-        parameter_values: Sequence[Sequence[float | int]] | Sequence[float | int] | None,
-        default: Sequence[Sequence[float | int]] | Sequence[float | int] | None = None,
+        parameter_values: Sequence[Sequence[float]] | Sequence[float] | None,
+        default: Sequence[Sequence[float]] | Sequence[float] | None = None,
     ) -> tuple[tuple[float, ...], ...]:
         # Allow optional (if default)
         if parameter_values is None:
@@ -364,21 +364,14 @@ class BaseEstimator(ABC):
                 for binding in parameter_values
             )
         ):
-            raise TypeError("Invalid parameter values, expected Sequence[Sequence[float | int]].")
-        if (
-            not isinstance(parameter_values, tuple)
-            or not all(isinstance(binding, tuple) for binding in parameter_values)
-            or not all(
-                all(isinstance(value, float) for value in binding) for binding in parameter_values
-            )
+            raise TypeError("Invalid parameter values, expected Sequence[Sequence[float]].")
+        if not isinstance(parameter_values, tuple) or not all(
+            isinstance(binding, tuple) for binding in parameter_values
         ):
-            _parameter_values = []
-            for binding in parameter_values:
-                _binding = []
-                for value in binding:
-                    _binding.append(value if isinstance(value, float) else float(value))
-                _parameter_values.append(_binding)
-            parameter_values = tuple(tuple(binding) for binding in _parameter_values)
+            parameter_values = tuple(
+                binding if isinstance(binding, tuple) else tuple(binding)
+                for binding in parameter_values
+            )
 
         return parameter_values
 
