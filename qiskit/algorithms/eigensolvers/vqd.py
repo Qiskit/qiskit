@@ -259,7 +259,7 @@ class VQD(VariationalAlgorithm, Eigensolver):
 
             eval_time = time() - start_time
 
-            self._update_vqd_result(result, opt_result, eval_time, self.ansatz)
+            self._update_vqd_result(result, opt_result, eval_time, self.ansatz.copy())
 
             if aux_operators is not None:
                 aux_value = estimate_observables(
@@ -294,7 +294,6 @@ class VQD(VariationalAlgorithm, Eigensolver):
         result.cost_function_evals = np.array(result.cost_function_evals)
         result.optimizer_times = np.array(result.optimizer_times)
 
-        result.ansatz = self.ansatz.copy()
         if aux_operators is not None:
             result.aux_operators_evaluated = aux_values
 
@@ -389,6 +388,7 @@ class VQD(VariationalAlgorithm, Eigensolver):
         result.optimizer_times = []
         result.eigenvalues = []
         result.optimizer_results = []
+        result.optimal_circuits = []
         return result
 
     @staticmethod
@@ -401,6 +401,7 @@ class VQD(VariationalAlgorithm, Eigensolver):
         result.optimizer_times.append(eval_time)
         result.eigenvalues.append(opt_result.fun + 0j)
         result.optimizer_results.append(opt_result)
+        result.optimal_circuits.append(ansatz)
         return result
 
 

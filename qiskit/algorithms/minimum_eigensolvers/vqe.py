@@ -316,7 +316,7 @@ class VQE(VariationalAlgorithm, MinimumEigensolver):
         optimizer_time: float,
     ) -> VQEResult:
         result = VQEResult()
-        result.ansatz = ansatz.copy()
+        result.optimal_circuit = ansatz.copy()
         result.eigenvalue = optimizer_result.fun
         result.cost_function_evals = optimizer_result.nfev
         result.optimal_point = optimizer_result.x

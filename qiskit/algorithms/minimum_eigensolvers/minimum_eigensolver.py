@@ -73,21 +73,20 @@ class MinimumEigensolverResult(AlgorithmResult):
 
     def __init__(self) -> None:
         super().__init__()
-        self._ansatz = None
+        self._optimal_circuit = None
         self._eigenvalue = None
         self._aux_operators_evaluated = None
 
     @property
-    def ansatz(self) -> QuantumCircuit:
-        """The circuit preparing the parameterized ansatz state.
-
-        Along with the optimal parameters, this can be used to retrieve the minimum eigenstate.
+    def optimal_circuit(self) -> QuantumCircuit:
+        """The optimal circuits. Along with the optimal parameters,
+        these can be used to retrieve the minimum eigenstate.
         """
-        return self._ansatz
+        return self._optimal_circuit
 
-    @ansatz.setter
-    def ansatz(self, ansatz: QuantumCircuit) -> None:
-        self._ansatz = ansatz
+    @optimal_circuit.setter
+    def optimal_circuit(self, optimal_circuit: QuantumCircuit) -> None:
+        self._optimal_circuit = optimal_circuit
 
     @property
     def eigenvalue(self) -> complex | None:

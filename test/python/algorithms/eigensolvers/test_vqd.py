@@ -102,7 +102,7 @@ class TestVQD(QiskitAlgorithmsTestCase):
 
         with self.subTest(msg="assert return ansatz is set"):
             job = self.estimator.run(
-                [result.ansatz] * len(result.optimal_points),
+                result.optimal_circuits,
                 [op] * len(result.optimal_points),
                 result.optimal_points,
             )

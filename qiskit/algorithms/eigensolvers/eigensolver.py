@@ -74,18 +74,19 @@ class EigensolverResult(AlgorithmResult):
 
     def __init__(self) -> None:
         super().__init__()
-        self._ansatz = None
+        self._optimal_circuits = None
         self._eigenvalues = None
         self._aux_operators_evaluated = None
 
     @property
-    def ansatz(self) -> QuantumCircuit:
-        """The ansatz to retrieve the minimum eigenstate."""
-        return self._ansatz
+    def optimal_circuits(self) -> list[QuantumCircuit]:
+        """The optimal circuits. Along with the optimal parameters,
+        these can be used to retrieve the different eigenstates."""
+        return self._optimal_circuits
 
-    @ansatz.setter
-    def ansatz(self, ansatz: QuantumCircuit) -> None:
-        self._ansatz = ansatz
+    @optimal_circuits.setter
+    def optimal_circuits(self, optimal_circuits: list[QuantumCircuit]) -> None:
+        self._optimal_circuits = optimal_circuits
 
     @property
     def eigenvalues(self) -> np.ndarray | None:
