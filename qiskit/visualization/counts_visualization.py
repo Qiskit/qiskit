@@ -137,12 +137,6 @@ def plot_histogram(
             next(iter(dat.values())), float
         ):
             kind = "distribution"
-        if isinstance(dat, QuasiDistribution):
-            if min(dat.values()) < 0:
-                raise VisualizationError(
-                    "Input QuasiDistribution must be non-negative, "
-                    "consider using 'plot_distribution'"
-                )
     return _plotting_core(
         data,
         figsize,
