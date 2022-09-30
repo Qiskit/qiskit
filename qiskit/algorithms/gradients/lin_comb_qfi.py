@@ -100,7 +100,6 @@ class LinCombQFI(BaseQFI):
         )
 
         for circuit, parameter_values_, parameters_ in zip(circuits, parameter_values, parameters):
-            observable = SparsePauliOp.from_list([("I" * circuit.num_qubits, 1)])
             # a set of parameters to be differentiated
             if parameters_ is None:
                 param_set = set(circuit.parameters)
@@ -159,6 +158,7 @@ class LinCombQFI(BaseQFI):
                             bound_coeff = coeff
                         coeffs.append(bound_coeff)
 
+            observable = SparsePauliOp.from_list([("I" * circuit.num_qubits, 1)])
             observable_ = self._expand_observable(observable)
 
             n = len(qfi_circuits)
