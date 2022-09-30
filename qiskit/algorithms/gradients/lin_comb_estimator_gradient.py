@@ -25,6 +25,7 @@ from qiskit.circuit import Parameter, ParameterExpression, QuantumCircuit
 from qiskit.opflow import PauliSumOp
 from qiskit.primitives import BaseEstimator
 from qiskit.primitives.utils import init_observable
+from qiskit.providers import Options
 from qiskit.quantum_info import SparsePauliOp
 from qiskit.quantum_info.operators.base_operator import BaseOperator
 
@@ -54,7 +55,7 @@ class LinCombEstimatorGradient(BaseEstimatorGradient):
         self,
         estimator: BaseEstimator,
         derivative_type: DerivativeType = DerivativeType.REAL,
-        **options,
+        options: Options | None = None,
     ):
         r"""
         Args:
@@ -74,7 +75,7 @@ class LinCombEstimatorGradient(BaseEstimatorGradient):
         """
         self._gradient_circuits = {}
         self._derivative_type = derivative_type
-        super().__init__(estimator, **options)
+        super().__init__(estimator, options)
 
     def _run(
         self,

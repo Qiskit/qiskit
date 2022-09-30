@@ -46,14 +46,13 @@ class TestQFI(QiskitTestCase):
         qc.h(0)
         qc.rz(a, 0)
         qc.rx(b, 0)
-        op = SparsePauliOp.from_list([("I", 1)])
 
         param_list = [[np.pi / 4, 0.1], [np.pi, 0.1], [np.pi / 2, 0.1]]
         correct_values = [[[1, 0], [0, 0.5]], [[1, 0], [0, 0]], [[1, 0], [0, 1]]]
 
         qfi = LinCombQFI(self.estimator)
         for i, param in enumerate(param_list):
-            qfis = qfi.run([qc], [op], [param]).result().qfis
+            qfis = qfi.run([qc], [param]).result().qfis
             np.testing.assert_allclose(qfis[0], correct_values[i], atol=1e-3)
 
     def test_qfi_phase_fix(self):
@@ -71,9 +70,8 @@ class TestQFI(QiskitTestCase):
         param = [np.pi / 4, 0.1]
         # test for different values
         correct_values = [[1, 0], [0, 1]]
-        op = SparsePauliOp.from_list([("I", 1)])
         qfi = LinCombQFI(self.estimator, phase_fix=False)
-        qfi_result = qfi.run([qc], [op], [param]).result().qfis
+        qfi_result = qfi.run([qc], [param]).result().qfis
         np.testing.assert_allclose(qfi_result[0], correct_values, atol=1e-3)
 
     def test_qfi_maxcut(self):
@@ -108,9 +106,8 @@ class TestQFI(QiskitTestCase):
         reference = np.array([[16.0, -5.551], [-5.551, 18.497]])
         param = [0.4, 0.69]
 
-        op = SparsePauliOp.from_list([("IIII", 1)])
         qfi = LinCombQFI(self.estimator)
-        qfi_result = qfi.run([ansatz], [op], [param]).result().qfis
+        qfi_result = qfi.run([ansatz], [param]).result().qfis
         np.testing.assert_array_almost_equal(qfi_result[0], reference, decimal=3)
 
     def test_qfi_derivative_type(self):
@@ -121,20 +118,19 @@ class TestQFI(QiskitTestCase):
         qc.rz(a, 0)
         qc.rx(b, 0)
 
-        op = SparsePauliOp.from_list([("I", 1)])
         qfi = LinCombQFI(self.estimator, derivative_type=DerivativeType.IMAG)
         # test imaginary derivative
         param_list = [[np.pi / 4, 0], [np.pi / 2, np.pi / 4]]
         correct_values = [[[0, 0.707106781], [0.707106781, -0.5]], [[0, 1], [1, 0]]]
         for i, param in enumerate(param_list):
-            qfi_result = qfi.run([qc], [op], [param]).result().qfis
+            qfi_result = qfi.run([qc], [param]).result().qfis
             np.testing.assert_allclose(qfi_result[0], correct_values[i], atol=1e-3)
 
         # test real + imaginary derivative
         qfi = LinCombQFI(self.estimator, derivative_type=DerivativeType.COMPLEX)
         correct_values = [[[1, 0.707106781j], [0.707106781j, 0.5]], [[1, 1j], [1j, 1]]]
         for i, param in enumerate(param_list):
-            qfi_result = qfi.run([qc], [op], [param]).result().qfis
+            qfi_result = qfi.run([qc], [param]).result().qfis
             np.testing.assert_allclose(qfi_result[0], correct_values[i], atol=1e-3)
 
     def test_qfi_coefficients(self):
@@ -142,8 +138,6 @@ class TestQFI(QiskitTestCase):
         qc = RealAmplitudes(num_qubits=2, reps=1)
         qc.rz(qc.parameters[0].exp() + 2 * qc.parameters[1], 0)
         qc.rx(3.0 * qc.parameters[2] + qc.parameters[3].sin(), 1)
-
-        op = SparsePauliOp.from_list([("II", 1)])
 
         qfi = LinCombQFI(self.estimator)
         # test imaginary derivative
@@ -166,23 +160,8 @@ class TestQFI(QiskitTestCase):
             ],
         ]
         for i, param in enumerate(param_list):
-            qfi_result = qfi.run([qc], [op], [param]).result().qfis
+            qfi_result = qfi.run([qc], [param]).result().qfis
             np.testing.assert_allclose(qfi_result[0], correct_values[i], atol=1e-3)
-
-    def test_qfi_operators(self):
-        """Test the QFI with different operators"""
-        a = Parameter("a")
-        qc = QuantumCircuit(1)
-        qc.rx(a, 0)
-        op = SparsePauliOp.from_list([("Z", 1)])
-        param_list = [[np.pi / 4]]
-        qfi = LinCombQFI(self.estimator)
-        qfi_result = qfi.run([qc], [op], param_list).result().qfis
-        correct_values = [[-1.20710678]]
-        np.testing.assert_allclose(qfi_result[0], correct_values, atol=1e-3)
-        op = Operator.from_label("Z")
-        qfi_result = qfi.run([qc], [op], param_list).result().qfis
-        np.testing.assert_allclose(qfi_result[0], correct_values, atol=1e-3)
 
     def test_qfi_specify_parameters(self):
         """Test the QFI with specified parameters"""
@@ -191,11 +170,10 @@ class TestQFI(QiskitTestCase):
         qc = QuantumCircuit(1)
         qc.rx(a, 0)
         qc.ry(b, 0)
-        op = SparsePauliOp.from_list([("Z", 1)])
         qfi = LinCombQFI(self.estimator)
         param_list = [np.pi / 4, np.pi / 4]
-        qfi_result = qfi.run([qc], [op], [param_list], [[a]]).result().qfis
-        np.testing.assert_allclose(qfi_result[0], [[-1.25]], atol=1e-3)
+        qfi_result = qfi.run([qc], [param_list], [[a]]).result().qfis
+        np.testing.assert_allclose(qfi_result[0], [[1]], atol=1e-3)
 
     def test_qfi_multi_arguments(self):
         """Test the QFI for multiple arguments"""
@@ -207,16 +185,15 @@ class TestQFI(QiskitTestCase):
         qc2 = QuantumCircuit(1)
         qc2.rx(a, 0)
         qc2.ry(b, 0)
-        op = SparsePauliOp.from_list([("Z", 1)])
         qfi = LinCombQFI(self.estimator)
 
         param_list = [[np.pi / 4], [np.pi / 2]]
         correct_values = [
-            [[-1.25]],
-            [[-1, 1], [1, 0]],
+            [[1]],
+            [[1, 0], [0, 0]],
         ]
         param_list = [[np.pi / 4, np.pi / 4], [np.pi / 2, np.pi / 2]]
-        qfi_results = qfi.run([qc, qc2], [op] * 2, param_list, [[a], None]).result().qfis
+        qfi_results = qfi.run([qc, qc2], param_list, [[a], None]).result().qfis
         for i, _ in enumerate(param_list):
             np.testing.assert_allclose(qfi_results[i], correct_values[i], atol=1e-3)
 
@@ -226,40 +203,34 @@ class TestQFI(QiskitTestCase):
         qc = QuantumCircuit(1)
         qc.rx(a, 0)
         qfi = LinCombQFI(self.estimator)
-        # parameter_values = [[np.pi / 4], [np.pi / 2]]
         parameter_values = [[np.pi / 4]]
-        op = SparsePauliOp.from_list([("Z", 1)])
         with self.subTest("assert number of circuits does not match"):
             with self.assertRaises(ValueError):
-                qfi.run([qc, qc], [op], parameter_values)
-        with self.subTest("assert number of observables does not match"):
-            with self.assertRaises(ValueError):
-                qfi.run([qc], [op, op], parameter_values)
+                qfi.run([qc, qc], parameter_values)
         with self.subTest("assert number of parameter values does not match"):
             with self.assertRaises(ValueError):
-                qfi.run([qc], [op], [[np.pi / 4], [np.pi / 2]])
+                qfi.run([qc], [[np.pi / 4], [np.pi / 2]])
         with self.subTest("assert number of parameters does not match"):
             with self.assertRaises(ValueError):
-                qfi.run([qc], [op], parameter_values, parameters=[[a], [a]])
+                qfi.run([qc], parameter_values, parameters=[[a], [a]])
 
     def test_options(self):
         """Test QFI's options"""
         a = Parameter("a")
         qc = QuantumCircuit(1)
         qc.rx(a, 0)
-        op = SparsePauliOp.from_list([("I", 1)])
         estimator = Estimator(options={"shots": 100})
 
         with self.subTest("estimator"):
             qfi = LinCombQFI(estimator)
             options = qfi.options
-            result = qfi.run([qc], [op], [[1]]).result()
+            result = qfi.run([qc], [[1]]).result()
             self.assertEqual(result.options.get("shots"), 100)
             self.assertEqual(options.get("shots"), 100)
 
         with self.subTest("QFI init"):
             qfi = LinCombQFI(estimator, options={"shots": 200})
-            result = qfi.run([qc], [op], [[1]]).result()
+            result = qfi.run([qc], [[1]]).result()
             options = qfi.options
             self.assertEqual(result.options.get("shots"), 200)
             self.assertEqual(options.get("shots"), 200)
@@ -268,13 +239,13 @@ class TestQFI(QiskitTestCase):
             qfi = LinCombQFI(estimator, options={"shots": 200})
             qfi.update_default_options(shots=100)
             options = qfi.options
-            result = qfi.run([qc], [op], [[1]]).result()
+            result = qfi.run([qc], [[1]]).result()
             self.assertEqual(result.options.get("shots"), 100)
             self.assertEqual(options.get("shots"), 100)
 
         with self.subTest("QFI run"):
             qfi = LinCombQFI(estimator, options={"shots": 200})
-            result = qfi.run([qc], [op], [[0]], shots=300).result()
+            result = qfi.run([qc], [[0]], shots=300).result()
             options = qfi.options
             self.assertEqual(result.options.get("shots"), 300)
             self.assertEqual(options.get("shots"), 200)

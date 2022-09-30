@@ -18,14 +18,9 @@ from __future__ import annotations
 
 from abc import ABC, abstractmethod
 from collections.abc import Sequence
-from copy import copy
 
 from qiskit.circuit import Parameter, QuantumCircuit
-from qiskit.opflow import PauliSumOp
-from qiskit.primitives import BaseEstimator
-from qiskit.providers import Options
 from qiskit.algorithms import AlgorithmJob
-from qiskit.quantum_info.operators.base_operator import BaseOperator
 
 from .qfi_result import QFIResult
 
@@ -42,26 +37,13 @@ class BaseQFI(ABC):
 
     def __init__(
         self,
-        estimator: BaseEstimator,
-        options: Options | None = None,
     ):
-        """
-        Args:
-            estimator: The estimator used to compute the QFIs.
-            options: Primitive backend runtime options used for circuit execution.
-                The order of priority is: options in ``run`` method > QFI's
-                default options > primitive's default setting.
-                Higher priority setting overrides lower priority setting.
-        """
-        self._estimator: BaseEstimator = estimator
-        self._default_options = Options()
-        if options is not None:
-            self._default_options.update_options(**options)
+        """Initialize the BaseQFI."""
+        pass
 
     def run(
         self,
         circuits: Sequence[QuantumCircuit],
-        observables: Sequence[BaseOperator | PauliSumOp],
         parameter_values: Sequence[Sequence[complex]],
         parameters: Sequence[Sequence[Parameter] | None] | None = None,
         **options,
@@ -70,7 +52,6 @@ class BaseQFI(ABC):
 
         Args:
             circuits: The list of quantum circuits to compute the QFIs.
-            observables: The list of observables.
             parameter_values: The list of parameter values to be bound to the circuit.
             parameters: The sequence of parameters to calculate only the QFIs of
                 the specified parameters. Each sequence of parameters corresponds to a circuit in
@@ -94,14 +75,11 @@ class BaseQFI(ABC):
         if parameters is None:
             parameters = [None] * len(circuits)
         # Validate the arguments.
-        self._validate_arguments(circuits, observables, parameter_values, parameters)
+        self._validate_arguments(circuits, parameter_values, parameters)
         # The priority of run option is as follows:
         # options in ``run`` method > QFI's default options > primitive's default setting.
-        opts = copy(self._default_options)
-        opts.update_options(**options)
-        job = AlgorithmJob(
-            self._run, circuits, observables, parameter_values, parameters, **opts.__dict__
-        )
+        opts = self._make_options(options)
+        job = AlgorithmJob(self._run, circuits, parameter_values, parameters, **opts.__dict__)
         job.submit()
         return job
 
@@ -109,7 +87,6 @@ class BaseQFI(ABC):
     def _run(
         self,
         circuits: Sequence[QuantumCircuit],
-        observables: Sequence[BaseOperator | PauliSumOp],
         parameter_values: Sequence[Sequence[complex]],
         parameters: Sequence[Sequence[Parameter] | None],
         **options,
@@ -120,7 +97,6 @@ class BaseQFI(ABC):
     def _validate_arguments(
         self,
         circuits: Sequence[QuantumCircuit],
-        observables: Sequence[BaseOperator | PauliSumOp],
         parameter_values: Sequence[Sequence[complex]],
         parameters: Sequence[Sequence[Parameter] | None] | None = None,
     ) -> None:
@@ -128,7 +104,6 @@ class BaseQFI(ABC):
 
         Args:
             circuits: The list of quantum circuits to compute the QFIs.
-            observables: The list of observables.
             parameter_values: The list of parameter values to be bound to the circuit.
             parameters: The Sequence of Sequence of Parameters to calculate only the QFIs of
                 the specified parameters. Each Sequence of Parameters corresponds to a circuit in
@@ -143,12 +118,6 @@ class BaseQFI(ABC):
             raise ValueError(
                 f"The number of circuits ({len(circuits)}) does not match "
                 f"the number of parameter value sets ({len(parameter_values)})."
-            )
-
-        if len(circuits) != len(observables):
-            raise ValueError(
-                f"The number of circuits ({len(circuits)}) does not match "
-                f"the number of observables ({len(observables)})."
             )
 
         if parameters is not None:
@@ -167,46 +136,7 @@ class BaseQFI(ABC):
                     f"the number of parameters ({circuit.num_parameters}) for the {i}-th circuit."
                 )
 
-        for i, (circuit, observable) in enumerate(zip(circuits, observables)):
-            if circuit.num_qubits != observable.num_qubits:
-                raise ValueError(
-                    f"The number of qubits of the {i}-th circuit ({circuit.num_qubits}) does "
-                    f"not match the number of qubits of the {i}-th observable "
-                    f"({observable.num_qubits})."
-                )
-
-    @property
-    def options(self) -> Options:
-        """Return the union of estimator options setting and QFI default options,
-        where, if the same field is set in both, the QFI's default options override
-        the primitive's default setting.
-
-        Returns:
-            The QFI default + estimator options.
-        """
-        return self._get_local_options(self._default_options.__dict__)
-
-    def update_default_options(self, **options):
-        """Update the QFI's default options setting.
-
-        Args:
-            **options: The fields to update the default options.
-        """
-
-        self._default_options.update_options(**options)
-
-    def _get_local_options(self, options: Options) -> Options:
-        """Return the union of the primitive's default setting,
-        the QFI default options, and the options in the ``run`` method.
-        The order of priority is: options in ``run`` method > QFI's
-                default options > primitive's default setting.
-
-        Args:
-            options: The fields to update the options
-
-        Returns:
-            The QFI default + estimator + run options.
-        """
-        opts = copy(self._estimator.options)
-        opts.update_options(**options)
-        return opts
+    @abstractmethod
+    def _make_options(self, options):
+        """Make options for ``run`` method."""
+        pass

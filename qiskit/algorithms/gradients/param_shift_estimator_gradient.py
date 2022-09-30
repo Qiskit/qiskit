@@ -23,6 +23,7 @@ from qiskit.algorithms import AlgorithmError
 from qiskit.circuit import Parameter, QuantumCircuit
 from qiskit.opflow import PauliSumOp
 from qiskit.primitives import BaseEstimator
+from qiskit.providers import Options
 from qiskit.quantum_info.operators.base_operator import BaseOperator
 
 from .base_estimator_gradient import BaseEstimatorGradient
@@ -33,7 +34,7 @@ from .utils import _make_param_shift_parameter_values, _param_shift_preprocessin
 class ParamShiftEstimatorGradient(BaseEstimatorGradient):
     """Compute the gradients of the expectation values by the parameter shift rule"""
 
-    def __init__(self, estimator: BaseEstimator, **options):
+    def __init__(self, estimator: BaseEstimator, options: Options | None = None):
         """
         Args:
             estimator: The estimator used to compute the gradients.
@@ -43,7 +44,7 @@ class ParamShiftEstimatorGradient(BaseEstimatorGradient):
                 Higher priority setting overrides lower priority setting
         """
         self._gradient_circuits = {}
-        super().__init__(estimator, **options)
+        super().__init__(estimator, options)
 
     def _run(
         self,

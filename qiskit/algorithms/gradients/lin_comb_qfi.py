@@ -16,6 +16,7 @@ A class for the Quantum Fisher Information.
 from __future__ import annotations
 
 from typing import Sequence
+from copy import copy
 
 import numpy as np
 
@@ -23,7 +24,7 @@ from qiskit.algorithms import AlgorithmError
 from qiskit.circuit import Parameter, ParameterExpression, QuantumCircuit
 from qiskit.opflow import PauliSumOp
 from qiskit.primitives import BaseEstimator
-from qiskit.primitives.utils import init_observable
+from qiskit.providers import Options
 from qiskit.quantum_info import SparsePauliOp
 from qiskit.quantum_info.operators.base_operator import BaseOperator
 
@@ -49,7 +50,7 @@ class LinCombQFI(BaseQFI):
         estimator: BaseEstimator,
         phase_fix: bool = True,
         derivative_type: DerivativeType = DerivativeType.REAL,
-        **options,
+        options: Options | None = None,
     ):
         r"""
         Args:
@@ -68,18 +69,22 @@ class LinCombQFI(BaseQFI):
                 options in ``run`` method > QFI's default options > primitive's default
                 setting. Higher priority setting overrides lower priority setting.
         """
-        super().__init__(estimator, **options)
+        super().__init__()
+        self._estimator: BaseEstimator = estimator
+        self._default_options = Options()
+        if options is not None:
+            self._default_options.update_options(**options)
+
         self._phase_fix = phase_fix
         self._derivative_type = derivative_type
         self._gradient = LinCombEstimatorGradient(
-            estimator, derivative_type=DerivativeType.COMPLEX, **options
+            estimator, derivative_type=DerivativeType.COMPLEX, options=options
         )
         self._qfi_circuits = {}
 
     def _run(
         self,
         circuits: Sequence[QuantumCircuit],
-        observables: Sequence[BaseOperator | PauliSumOp],
         parameter_values: Sequence[Sequence[complex]],
         parameters: Sequence[Sequence[Parameter] | None],
         **options,
@@ -94,18 +99,14 @@ class LinCombQFI(BaseQFI):
             [],
         )
 
-        for circuit, observable, parameter_values_, parameters_ in zip(
-            circuits, observables, parameter_values, parameters
-        ):
-            # Make the observable as observable as :class:`~qiskit.quantum_info.SparsePauliOp`.
-            observable = init_observable(observable)
+        for circuit, parameter_values_, parameters_ in zip(circuits, parameter_values, parameters):
+            observable = SparsePauliOp.from_list([("I" * circuit.num_qubits, 1)])
             # a set of parameters to be differentiated
             if parameters_ is None:
                 param_set = set(circuit.parameters)
             else:
                 param_set = set(parameters_)
             metadata_.append({"parameters": [p for p in circuit.parameters if p in param_set]})
-
             # compute the second term (the phase fix) in the QFI
             if self._phase_fix:
                 gradient_job = self._gradient.run(
@@ -197,6 +198,8 @@ class LinCombQFI(BaseQFI):
                 qfi_[idx] += coeff * grad_
             qfi = qfi_ - phase_fixes[i]
             qfi += np.triu(qfi_, k=1).T
+            if self._derivative_type != DerivativeType.COMPLEX:
+                qfi = np.real(qfi)
             qfis.append(qfi)
 
         run_opt = self._get_local_options(options)
@@ -213,3 +216,45 @@ class LinCombQFI(BaseQFI):
         else:
             raise ValueError(f"Derivative type {self._derivative_type} is not supported.")
         return observable.expand(op2)
+
+    @property
+    def options(self) -> Options:
+        """Return the union of estimator options setting and QFI default options,
+        where, if the same field is set in both, the QFI's default options override
+        the primitive's default setting.
+
+        Returns:
+            The QFI default + estimator options.
+        """
+        return self._get_local_options(self._default_options.__dict__)
+
+    def update_default_options(self, **options):
+        """Update the QFI's default options setting.
+
+        Args:
+            **options: The fields to update the default options.
+        """
+
+        self._default_options.update_options(**options)
+
+    def _get_local_options(self, options: Options) -> Options:
+        """Return the union of the primitive's default setting,
+        the QFI default options, and the options in the ``run`` method.
+        The order of priority is: options in ``run`` method > QFI's
+                default options > primitive's default setting.
+
+        Args:
+            options: The fields to update the options
+
+        Returns:
+            The QFI default + estimator + run options.
+        """
+        opts = copy(self._estimator.options)
+        opts.update_options(**options)
+        return opts
+
+    def _make_options(self, options):
+        """Make options for ``run`` method."""
+        opts = copy(self._default_options)
+        opts.update_options(**options)
+        return opts
