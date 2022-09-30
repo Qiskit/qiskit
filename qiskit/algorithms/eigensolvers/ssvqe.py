@@ -89,6 +89,32 @@ class SSVQE(VariationalAlgorithm, Eigensolver):
     number subspace will be returned if the *initial_states* are not in the correct
     particle number subspace. A similar statement can often be made for the
     spin-magnetization quantum number.
+
+    The following attributes can be set via the initializer but can also be read and
+    updated once the SSVQE object has been constructed.
+
+    Attributes:
+            estimator (BaseEstimator): The primitive instance used to perform the expectation
+                estimation of observables.
+            k (int): The number of eigenstates that SSVQE will attempt to find.
+            ansatz (QuantumCircuit): A parameterized circuit used as an ansatz for the
+                wave function.
+            optimizer (Optimizer): A classical optimizer, which can be either a Qiskit optimizer
+                or a callable that takes an array as input and returns a Qiskit or SciPy optimization
+                result.
+            gradient (BaseEstimatorGradient | None): An optional estimator gradient to be used with the
+                optimizer.
+            callback (Callable[[int, np.ndarray, np.ndarray, dict[str, Any]], None] | None): A callback that
+                can access the intermediate data at each optimization step. These data are: the
+                evaluation count, the optimizer parameters for the ansatz, the evaluated mean energies, and the
+                metadata dictionary.
+            weight_vector (Sequence[float]): A 1D array of real positive-valued numbers to assign
+                as weights to each of the expectation values. If ``None``, then SSVQE will default
+                to [k, k-1, ..., 1].
+            initial_states (Sequence[QuantumCircuit]): An optional list of mutually orthogonal initial states.
+                If ``None``, then SSVQE will set these to be a list of mutually orthogonal
+                computational basis states.
+
     """
 
     def __init__(
@@ -357,6 +383,25 @@ class SSVQE(VariationalAlgorithm, Eigensolver):
 
         return evaluate_gradient
 
+    def _check_circuit_num_qubits(
+        self, operator: BaseOperator | PauliSumOp, circuit: QuantumCircuit, circuit_type: str
+    ) -> QuantumCircuit:
+        """Check that the number of qubits for the circuit passed matches the number of qubits  of the operator."""
+        if operator.num_qubits != circuit.num_qubits:
+            try:
+                logger.info(
+                    f"Trying to resize {circuit_type} to match operator on %s qubits.",
+                    operator.num_qubits,
+                )
+                circuit.num_qubits = operator.num_qubits
+            except AttributeError as error:
+                raise AlgorithmError(
+                    f"The number of qubits of the {circuit_type} does not match the "
+                    f"operator, and the {circuit_type} does not allow setting the "
+                    "number of qubits using `num_qubits`."
+                ) from error
+        return circuit
+
     def _check_operator_ansatz(self, operator: BaseOperator | PauliSumOp) -> QuantumCircuit:
         """Check that the number of qubits of operator and ansatz match and that the ansatz is
         parameterized.
@@ -367,18 +412,9 @@ class SSVQE(VariationalAlgorithm, Eigensolver):
         else:
             ansatz = self.ansatz
 
-        if operator.num_qubits != ansatz.num_qubits:
-            try:
-                logger.info(
-                    "Trying to resize ansatz to match operator on %s qubits.", operator.num_qubits
-                )
-                ansatz.num_qubits = operator.num_qubits
-            except AttributeError as error:
-                raise AlgorithmError(
-                    "The number of qubits of the ansatz does not match the "
-                    "operator, and the ansatz does not allow setting the "
-                    "number of qubits using `num_qubits`."
-                ) from error
+        ansatz = self._check_circuit_num_qubits(
+            operator=operator, circuit=ansatz, circuit_type="ansatz"
+        )
 
         if ansatz.num_parameters == 0:
             raise AlgorithmError("The ansatz must be parameterized, but has no free parameters.")
@@ -398,8 +434,8 @@ class SSVQE(VariationalAlgorithm, Eigensolver):
 
             warnings.warn(
                 "No initial states have been provided to SSVQE, so they have been set to "
-                "a subset of the computational basis states.This may result in unphysical "
-                "results for some problems."
+                "a subset of the computational basis states. This may result in unphysical "
+                "results for some chemistry and physics problems."
             )
 
         else:
@@ -416,19 +452,9 @@ class SSVQE(VariationalAlgorithm, Eigensolver):
                     )
 
         for initial_state in initial_states:
-            if operator.num_qubits != initial_state.num_qubits:
-                try:
-                    logger.info(
-                        "Trying to resize initial state to match operator on %s qubits.",
-                        operator.num_qubits,
-                    )
-                    initial_state.num_qubits = operator.num_qubits
-                except AttributeError as error:
-                    raise AlgorithmError(
-                        "The number of qubits of the initial state does not match the "
-                        "operator, and the initial state does not allow setting the "
-                        "number of qubits using `num_qubits`."
-                    ) from error
+            initial_state = self._check_circuit_num_qubits(
+                operator=operator, circuit=initial_state, circuit_type="initial state"
+            )
 
         return initial_states
 
