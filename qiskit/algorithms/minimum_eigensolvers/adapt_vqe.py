@@ -258,6 +258,7 @@ class AdaptVQE(VariationalAlgorithm):
         result.num_iterations = iteration
         result.final_max_gradient = max_grad[0]
         result.termination_criterion = termination_criterion
+
         # once finished evaluate auxiliary operators if any
         if aux_operators is not None:
             aux_values = estimate_observables(
