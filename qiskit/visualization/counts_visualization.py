@@ -16,6 +16,8 @@ Visualization functions for measurement counts.
 
 from collections import OrderedDict
 import functools
+import warnings
+
 import numpy as np
 
 from qiskit.utils import optionals as _optionals
@@ -136,6 +138,13 @@ def plot_histogram(
         if isinstance(dat, (QuasiDistribution, ProbDistribution)) or isinstance(
             next(iter(dat.values())), float
         ):
+            warnings.warn(
+                "Using plot histogram with QuasiDistribution, ProbDistribution, or a "
+                "distribution dictionary will be deprecated in 0.23.0 and subsequently "
+                "removed in a future release. You should use plot_distribution() instead.",
+                PendingDeprecationWarning,
+                stacklevel=2,
+            )
             kind = "distribution"
     return _plotting_core(
         data,
