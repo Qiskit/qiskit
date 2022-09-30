@@ -130,11 +130,19 @@ def plot_histogram(
     """
     if not isinstance(data, list):
         data = [data]
+
+    kind = "counts"
     for dat in data:
-        if isinstance(dat, (QuasiDistribution, ProbDistribution)):
-            raise VisualizationError(
-                "Input must be Counts or a dict, " "consider using 'plot_distribution'"
-            )
+        if isinstance(dat, (QuasiDistribution, ProbDistribution)) or isinstance(
+            next(iter(dat.values())), float
+        ):
+            kind = "distribution"
+        if isinstance(dat, QuasiDistribution):
+            if min(dat.values()) < 0:
+                raise VisualizationError(
+                    "Input QuasiDistribution must be non-negative, "
+                    "consider using 'plot_distribution'"
+                )
     return _plotting_core(
         data,
         figsize,
@@ -147,7 +155,7 @@ def plot_histogram(
         title,
         ax,
         filename,
-        kind="counts",
+        kind=kind,
     )
 
 
