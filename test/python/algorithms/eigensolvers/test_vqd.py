@@ -100,6 +100,13 @@ class TestVQD(QiskitAlgorithmsTestCase):
         with self.subTest(msg="assert optimizer_times is set"):
             self.assertIsNotNone(result.optimizer_times)
 
+        with self.subTest(msg="assert eigenstates can be retrieved"):
+            sampler = Sampler()
+            ansatz = result.ansatz
+            ansatz.measure_all()
+            eigenstate_job = sampler.run(ansatz, result.optimal_points[-1])
+            self.assertIsNotNone(eigenstate_job.result().quasi_dists)
+
     @data(H2_PAULI, H2_OP)
     def test_mismatching_num_qubits(self, op):
         """Ensuring circuit and operator mismatch is caught"""
