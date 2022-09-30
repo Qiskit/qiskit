@@ -45,6 +45,7 @@ class TestUMDA(QiskitAlgorithmsTestCase):
             "maxiter": 100,
             "alpha": 0.6,
             "size_gen": 30,
+            "callback": None,
         }
 
         assert umda.settings == set_
