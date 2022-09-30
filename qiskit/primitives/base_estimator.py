@@ -240,7 +240,7 @@ class BaseEstimator(ABC):
         observables = self._validate_observables(observables)
         parameter_values = self._validate_parameter_values(
             parameter_values,
-            default=tuple([()] * len(circuits)),
+            default=[()] * len(circuits),
         )
 
         # Cross-validation
