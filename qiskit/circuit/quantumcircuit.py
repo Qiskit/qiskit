@@ -1916,7 +1916,7 @@ class QuantumCircuit:
             initial_state (bool): Optional. Adds ``|0>`` in the beginning of the wire.
                 Default is False.
             cregbundle (bool): Optional. If set True, bundle classical registers.
-                Default is True, except for `text`.
+                Default is True, except for when ``output`` is set to  ``"text"``.
             wire_order (list): Optional. A list of integers used to reorder the display
                 of the bits. The list must have an entry for every bit with the bits
                 in the range 0 to (num_qubits + num_clbits).
