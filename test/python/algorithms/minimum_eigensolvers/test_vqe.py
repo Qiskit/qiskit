@@ -234,7 +234,6 @@ class TestVQE(QiskitAlgorithmsTestCase):
     def test_callback(self):
         """Test the callback on VQE."""
         history = {"eval_count": [], "parameters": [], "mean": [], "metadata": []}
-        # expected_shots = options["shots"] if "shots" in options else 0
 
         def store_intermediate_result(eval_count, parameters, mean, metadata):
             history["eval_count"].append(eval_count)
