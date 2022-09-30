@@ -11,7 +11,8 @@
 # that they have been altered from the originals.
 
 """The Subspace Search Variational Quantum Eigensolver algorithm.
-See https://arxiv.org/abs/1810.09434
+
+See https://arxiv.org/abs/1810.09434.
 """
 
 from __future__ import annotations
@@ -45,71 +46,49 @@ logger = logging.getLogger(__name__)
 
 class SSVQE(VariationalAlgorithm, Eigensolver):
     r"""The Subspace Search Variational Quantum Eigensolver algorithm.
-    `SSVQE <https://arxiv.org/abs/1810.09434>`__ is a quantum algorithm that uses a
-    variational technique to find
-    the low-lying eigenvalues of the Hamiltonian :math:`H` of a given system.
-    SSVQE can be seen as a natural generalization of VQE. Whereas VQE
-    minimizes the expectation value of :math:`H` with respect to one ansatz state,
-    SSVQE takes a set of mutually orthogonal input states, applies the same parameterized
-    ansatz to all of them, then minimizes a weighted sum
-    of the expectation values of :math:`H` with respect to these states.
-    An instance of SSVQE requires defining three algorithmic sub-components:
+    `SSVQE <https://arxiv.org/abs/1810.09434>`__ is a quantum algorithm
+    that uses a variational technique to find the low-lying eigenvalues
+    of the Hamiltonian :math:`H` of a given system. SSVQE can be seen as
+    a natural generalization of VQE. Whereas VQE minimizes the expectation
+    value of :math:`H` with respect to one ansatz state, SSVQE takes a set
+    of mutually orthogonal input states, applies the same parameterized ansatz
+    to all of them, then minimizes a weighted sum of the expectation values of
+    :math:`H` with respect to these states. An instance of SSVQE requires defining
+    three algorithmic sub-components:
 
-    An integer k denoting the number of eigenstates that the algorithm will attempt to find,
-    A trial state (a.k.a. ansatz) which is a :class:`QuantumCircuit`, and one of the classical
-    :mod:`~qiskit.algorithms.optimizers`. The ansatz is varied, via its set of parameters, by the
-    optimizer, such that it works towards a set of mutually orthogonal states, as determined by the
-    parameters applied to the ansatz, that will result in the minimum weighted sum of expectation values
-    being measured of the input operator (Hamiltonian) with respect to these states. The weights
-    given to this list of expectation values is given by *weight_vector*.
-    An optional array of parameter values, via the *initial_point*, may be provided as the
-    starting point for the search of the low-lying eigenvalues. This feature is particularly useful
-    such as when there are reasons to believe that the solution point is close to a particular
-    point. The length of the *initial_point* list value must match the number of the parameters
-    expected by the ansatz being used. If the *initial_point* is left at the default
-    of ``None``, then SSVQE will look to the ansatz for a preferred value, based on its
-    given initial state. If the ansatz returns ``None``,
-    then a random point will be generated within the parameter bounds set, as per above.
-    If the ansatz provides ``None`` as the lower bound, then SSVQE
-    will default it to :math:`-2\pi`; similarly, if the ansatz returns ``None``
-    as the upper bound, the default value will be :math:`2\pi`.
+    An integer k denoting the number of eigenstates that the algorithm will attempt
+    to find, a trial state (a.k.a. ansatz) which is a :class:`QuantumCircuit`, and
+    one of the classical :mod:`~qiskit.algorithms.optimizers`. The ansatz is varied,
+    via its set of parameters, by the optimizer, such that it works towards a set of
+    mutually orthogonal states, as determined by the parameters applied to the ansatz,
+    that will result in the minimum weighted sum of expectation values being measured
+    of the input operator (Hamiltonian) with respect to these states. The weights given
+    to this list of expectation values is given by *weight_vector*. An optional array of
+    parameter values, via the *initial_point*, may be provided as the starting point for
+    the search of the low-lying eigenvalues. This feature is particularly useful such as
+    when there are reasons to believe that the solution point is close to a particular
+    point. The length of the *initial_point* list value must match the number of the
+    parameters expected by the ansatz being used. If the *initial_point* is left at the
+    default of ``None``, then SSVQE will look to the ansatz for a preferred value, based
+    on its given initial state. If the ansatz returns ``None``, then a random point will
+    be generated within the parameter bounds set, as per above. If the ansatz provides
+    ``None`` as the lower bound, then SSVQE will default it to :math:`-2\pi`; similarly,
+    if the ansatz returns ``None`` as the upper bound, the default value will be :math:`2\pi`.
 
-    An optional list of initial states, via the *initial_states*, may also be provided. Choosing
-    these states appropriately is a critical part of the algorithm. They must be mutually orthogonal
-    because this is how the algorithm enforces the mutual orthogonality of the solution states. If
-    the *initial_states* is left as ``None``, then SSVQE will automatically generate a list of
-    computational basis states and use these as the initial states. For many physically-motivated
-    problems, it is advised to not rely on these default values as doing so can easily result in
-    an unphysical solution being returned. For example, if one wishes to find the low-lying
-    excited states of a molecular Hamiltonian, then we expect the output states to belong to
-    a particular particle-number subspace. If an ansatz that preserves particle number such as
-    :class:`UCCSD` is used, then states belonging to the incorrect particle number subspace
-    will be returned if the *initial_states* are not in the correct particle number subspace.
-    A similar statement can often be made for the spin-magnetization quantum number.
-
-    The optimizer can either be one of Qiskit's optimizers, such as
-    :class:`~qiskit.algorithms.optimizers.SPSA` or a callable with the following signature:
-    .. note::
-        The callable _must_ have the argument names ``fun, x0, jac, bounds`` as indicated
-        in the following code block.
-    .. code-block::python
-        from qiskit.algorithms.optimizers import OptimizerResult
-        def my_minimizer(fun, x0, jac=None, bounds=None) -> OptimizerResult:
-            # Note that the callable *must* have these argument names!
-            # Args:
-            #     fun (callable): the function to minimize
-            #     x0 (np.ndarray): the initial point for the optimization
-            #     jac (callable, optional): the gradient of the objective function
-            #     bounds (list, optional): a list of tuples specifying the parameter bounds
-            result = OptimizerResult()
-            result.x = # optimal parameters
-            result.fun = # optimal function value
-            return result
-    The above signature also allows to directly pass any SciPy minimizer, for instance as
-    .. code-block::python
-        from functools import partial
-        from scipy.optimize import minimize
-        optimizer = partial(minimize, method="L-BFGS-B")
+    An optional list of initial states, via the *initial_states*, may also be provided.
+    Choosing these states appropriately is a critical part of the algorithm. They must
+    be mutually orthogonal because this is how the algorithm enforces the mutual
+    orthogonality of the solution states. If the *initial_states* is left as ``None``,
+    then SSVQE will automatically generate a list of computational basis states and use
+    these as the initial states. For many physically-motivated problems, it is advised
+    to not rely on these default values as doing so can easily result in an unphysical
+    solution being returned. For example, if one wishes to find the low-lying excited
+    states of a molecular Hamiltonian, then we expect the output states to belong to a
+    particular particle-number subspace. If an ansatz that preserves particle number
+    such as :class:`UCCSD` is used, then states belonging to the incorrect particle
+    number subspace will be returned if the *initial_states* are not in the correct
+    particle number subspace. A similar statement can often be made for the
+    spin-magnetization quantum number.
     """
 
     def __init__(
