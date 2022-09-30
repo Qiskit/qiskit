@@ -18,7 +18,6 @@ from abc import ABC, abstractmethod
 from typing import Any
 import numpy as np
 
-from qiskit.circuit import QuantumCircuit
 from qiskit.opflow import PauliSumOp
 from qiskit.quantum_info.operators.base_operator import BaseOperator
 
