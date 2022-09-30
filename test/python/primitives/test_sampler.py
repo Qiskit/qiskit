@@ -21,6 +21,7 @@ from ddt import ddt
 from qiskit import QuantumCircuit, pulse, transpile
 from qiskit.circuit import Parameter
 from qiskit.circuit.library import RealAmplitudes
+from qiskit.exceptions import QiskitError
 from qiskit.primitives import Sampler, SamplerResult
 from qiskit.primitives.utils import _circuit_key
 from qiskit.providers import JobStatus, JobV1
@@ -34,10 +35,10 @@ class TestSampler(QiskitTestCase):
 
     def setUp(self):
         super().setUp()
-        hadamard = QuantumCircuit(1, 1)
+        hadamard = QuantumCircuit(1, 1, name="Hadamard")
         hadamard.h(0)
         hadamard.measure(0, 0)
-        bell = QuantumCircuit(2)
+        bell = QuantumCircuit(2, name="Bell")
         bell.h(0)
         bell.cx(0, 1)
         bell.measure_all()
@@ -572,6 +573,56 @@ class TestSampler(QiskitTestCase):
         self.assertTupleEqual(keys, tuple(range(4)))
         np.testing.assert_allclose(values, [0, 0, 0, 1])
 
+    def test_run_single_circuit(self):
+        """Test for single circuit case."""
+
+        sampler = Sampler()
+
+        with self.subTest("No parameter"):
+            circuit = self._circuit[1]
+            target = self._target[1]
+            param_vals = [None, [], [[]], np.array([]), np.array([[]])]
+            for val in param_vals:
+                with self.subTest(f"{circuit.name} w/ {val}"):
+                    result = sampler.run(circuit, val).result()
+                    self._compare_probs(result.quasi_dists, target)
+                    self.assertEqual(len(result.metadata), 1)
+
+        with self.subTest("One parameter"):
+            circuit = QuantumCircuit(1, 1, name="X gate")
+            param = Parameter("x")
+            circuit.ry(param, 0)
+            circuit.measure(0, 0)
+            target = [{1: 1}]
+            param_vals = [
+                [np.pi],
+                [[np.pi]],
+                np.array([np.pi]),
+                np.array([[np.pi]]),
+                [np.array([np.pi])],
+            ]
+            for val in param_vals:
+                with self.subTest(f"{circuit.name} w/ {val}"):
+                    result = sampler.run(circuit, val).result()
+                    self._compare_probs(result.quasi_dists, target)
+                    self.assertEqual(len(result.metadata), 1)
+
+        with self.subTest("More than one parameter"):
+            circuit = self._pqc
+            target = [self._pqc_target[0]]
+            param_vals = [
+                self._pqc_params[0],
+                [self._pqc_params[0]],
+                np.array(self._pqc_params[0]),
+                np.array([self._pqc_params[0]]),
+                [np.array(self._pqc_params[0])],
+            ]
+            for val in param_vals:
+                with self.subTest(f"{circuit.name} w/ {val}"):
+                    result = sampler.run(circuit, val).result()
+                    self._compare_probs(result.quasi_dists, target)
+                    self.assertEqual(len(result.metadata), 1)
+
     def test_run_errors(self):
         """Test for errors with run method"""
         qc1 = QuantumCircuit(1)
@@ -598,7 +649,9 @@ class TestSampler(QiskitTestCase):
             with self.assertRaises(ValueError):
                 _ = sampler.run([qc3], [[]])
         with self.subTest("no measurement"):
-            with self.assertRaises(ValueError):
+            with self.assertRaises(QiskitError):
+                # The following raises QiskitError because this check is located in
+                # `Sampler._preprocess_circuit`
                 _ = sampler.run([qc4], [[]])
 
     def test_run_empty_parameter(self):
