@@ -100,12 +100,13 @@ class TestVQD(QiskitAlgorithmsTestCase):
         with self.subTest(msg="assert optimizer_times is set"):
             self.assertIsNotNone(result.optimizer_times)
 
-        with self.subTest(msg="assert eigenstates can be retrieved"):
-            sampler = Sampler()
-            ansatz = result.ansatz
-            ansatz.measure_all()
-            eigenstate_job = sampler.run(ansatz, result.optimal_points[-1])
-            self.assertIsNotNone(eigenstate_job.result().quasi_dists)
+        with self.subTest(msg="assert return ansatz is set"):
+            job = self.estimator.run(
+                [result.ansatz] * len(result.optimal_points),
+                [op] * len(result.optimal_points),
+                result.optimal_points,
+            )
+            np.testing.assert_array_almost_equal(job.result().values, result.eigenvalues, 6)
 
     @data(H2_PAULI, H2_OP)
     def test_mismatching_num_qubits(self, op):

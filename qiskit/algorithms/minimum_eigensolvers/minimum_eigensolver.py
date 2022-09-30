@@ -80,9 +80,9 @@ class MinimumEigensolverResult(AlgorithmResult):
     @property
     def ansatz(self) -> QuantumCircuit:
         """The circuit preparing the parameterized ansatz state.
-        
-         Along with the optimal parameters, this can be used to retrieve the minimum eigenstate.
-         """
+
+        Along with the optimal parameters, this can be used to retrieve the minimum eigenstate.
+        """
         return self._ansatz
 
     @ansatz.setter
