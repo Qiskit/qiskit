@@ -45,7 +45,7 @@ logger = logging.getLogger(__name__)
 
 class SSVQE(VariationalAlgorithm, Eigensolver):
     r"""The Subspace Search Variational Quantum Eigensolver algorithm.
-    `SSVQE <https://arxiv.org/abs/1810.09434>` is a quantum algorithm that uses a
+    `SSVQE <https://arxiv.org/abs/1810.09434>`__ is a quantum algorithm that uses a
     variational technique to find
     the low-lying eigenvalues of the Hamiltonian :math:`H` of a given system.
     SSVQE can be seen as a natural generalization of VQE. Whereas VQE

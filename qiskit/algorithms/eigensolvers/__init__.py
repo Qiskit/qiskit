@@ -26,6 +26,7 @@ Eigensolvers
    Eigensolver
    NumPyEigensolver
    VQD
+   SSVQE
 
 Results
 =======
@@ -36,6 +37,7 @@ Results
     EigensolverResult
     NumPyEigensolverResult
     VQDResult
+    SSVQEResult
 
 """
 
