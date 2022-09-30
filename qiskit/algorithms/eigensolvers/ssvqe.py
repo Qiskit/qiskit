@@ -104,16 +104,16 @@ class SSVQE(VariationalAlgorithm, Eigensolver):
                 result.
             gradient (BaseEstimatorGradient | None): An optional estimator gradient to be used with the
                 optimizer.
-            callback (Callable[[int, np.ndarray, Sequence[float], dict[str, Any]], None] | None): A function that
-                can access the intermediate data at each optimization step. These data are: the
-                evaluation count, the optimizer parameters for the ansatz, the evaluated mean energies, and the
-                metadata dictionary.
+            callback (Callable[[int, np.ndarray, Sequence[float], dict[str, Any]], None] | None): A
+                function that can access the intermediate data at each optimization step. These data are
+                the evaluation count, the optimizer parameters for the ansatz, the evaluated mean
+                energies, and the metadata dictionary.
             weight_vector (Sequence[float]): A 1D array of real positive-valued numbers to assign
                 as weights to each of the expectation values. If ``None``, then SSVQE will default
                 to [k, k-1, ..., 1].
-            initial_states (Sequence[QuantumCircuit]): An optional list of mutually orthogonal initial states.
-                If ``None``, then SSVQE will set these to be a list of mutually orthogonal
-                computational basis states.
+            initial_states (Sequence[QuantumCircuit]): An optional list of mutually orthogonal
+                initial states. If ``None``, then SSVQE will set these to be a list of mutually
+                orthogonal computational basis states.
 
     """
 
@@ -374,19 +374,22 @@ class SSVQE(VariationalAlgorithm, Eigensolver):
     def _check_circuit_num_qubits(
         self, operator: BaseOperator | PauliSumOp, circuit: QuantumCircuit, circuit_type: str
     ) -> QuantumCircuit:
-        """Check that the number of qubits for the circuit passed matches the number of qubits  of the operator."""
+        """Check that the number of qubits for the circuit passed matches
+        the number of qubits  of the operator.
+        """
         if operator.num_qubits != circuit.num_qubits:
             try:
                 logger.info(
-                    f"Trying to resize {circuit_type} to match operator on %s qubits.",
+                    "Trying to resize %s to match operator on %s qubits.",
+                    circuit_type,
                     operator.num_qubits,
                 )
                 circuit.num_qubits = operator.num_qubits
             except AttributeError as error:
                 raise AlgorithmError(
-                    f"The number of qubits of the {circuit_type} does not match the "
+                    f"The number of qubits of the {circuit_type} does not match the ",
                     f"operator, and the {circuit_type} does not allow setting the "
-                    "number of qubits using `num_qubits`."
+                    "number of qubits using `num_qubits`.",
                 ) from error
         return circuit
 
