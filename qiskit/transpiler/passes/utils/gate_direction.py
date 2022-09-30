@@ -102,8 +102,24 @@ class GateDirection(TransformationPass):
             edges = set(self.coupling_map.get_edges())
         if not edges:
             return dag
-        for node in dag.two_qubit_ops():
+        # Don't include directives to avoid things like barrier, which are assumed always supported.
+        for node in dag.op_nodes(include_directives=False):
             if isinstance(node.op, ControlFlowOp):
+                node.op = node.op.replace_blocks(
+                    dag_to_circuit(
+                        self._run_coupling_map(
+                            circuit_to_dag(block),
+                            {
+                                inner: wire_map[outer]
+                                for outer, inner in zip(node.qargs, block.qubits)
+                            },
+                            edges,
+                        )
+                    )
+                    for block in node.op.blocks
+                )
+                continue
+            if len(node.qargs) != 2:
                 continue
             qargs = (wire_map[node.qargs[0]], wire_map[node.qargs[1]])
             if qargs not in edges and (qargs[1], qargs[0]) not in edges:
@@ -121,22 +137,26 @@ class GateDirection(TransformationPass):
                         f"Flipping of gate direction is only supported "
                         f"for {list(self._static_replacements)} at this time, not '{node.name}'."
                     )
-        for node in dag.op_nodes(ControlFlowOp):
-            node.op = node.op.replace_blocks(
-                dag_to_circuit(
-                    self._run_coupling_map(
-                        circuit_to_dag(block),
-                        {inner: wire_map[outer] for outer, inner in zip(node.qargs, block.qubits)},
-                        edges,
-                    )
-                )
-                for block in node.op.blocks
-            )
         return dag
 
     def _run_target(self, dag, wire_map):
-        for node in dag.two_qubit_ops():
+        # Don't include directives to avoid things like barrier, which are assumed always supported.
+        for node in dag.op_nodes(include_directives=False):
             if isinstance(node.op, ControlFlowOp):
+                node.op = node.op.replace_blocks(
+                    dag_to_circuit(
+                        self._run_target(
+                            circuit_to_dag(block),
+                            {
+                                inner: wire_map[outer]
+                                for outer, inner in zip(node.qargs, block.qubits)
+                            },
+                        )
+                    )
+                    for block in node.op.blocks
+                )
+                continue
+            if len(node.qargs) != 2:
                 continue
             qargs = (wire_map[node.qargs[0]], wire_map[node.qargs[1]])
             swapped = (qargs[1], qargs[0])
@@ -169,16 +189,6 @@ class GateDirection(TransformationPass):
                     f"Flipping of gate direction is only supported "
                     f"for {list(self._static_replacements)} at this time, not '{node.name}'."
                 )
-        for node in dag.op_nodes(ControlFlowOp):
-            node.op = node.op.replace_blocks(
-                dag_to_circuit(
-                    self._run_target(
-                        circuit_to_dag(block),
-                        {inner: wire_map[outer] for outer, inner in zip(node.qargs, block.qubits)},
-                    )
-                )
-                for block in node.op.blocks
-            )
         return dag
 
     def run(self, dag):

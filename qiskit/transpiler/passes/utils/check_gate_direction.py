@@ -37,35 +37,36 @@ class CheckGateDirection(AnalysisPass):
     def _coupling_map_visit(self, dag, wire_map, edges=None):
         if edges is None:
             edges = self.coupling_map.get_edges()
-        for node in dag.two_qubit_ops():
+        # Don't include directives to avoid things like barrier, which are assumed always supported.
+        for node in dag.op_nodes(include_directives=False):
             if isinstance(node.op, ControlFlowOp):
-                continue
-            if (wire_map[node.qargs[0]], wire_map[node.qargs[1]]) not in edges:
+                for block in node.op.blocks:
+                    inner_wire_map = {
+                        inner: wire_map[outer] for outer, inner in zip(node.qargs, block.qubits)
+                    }
+                    if not self._coupling_map_visit(circuit_to_dag(block), inner_wire_map, edges):
+                        return False
+            elif (
+                len(node.qargs) == 2
+                and (wire_map[node.qargs[0]], wire_map[node.qargs[1]]) not in edges
+            ):
                 return False
-        for node in dag.op_nodes(ControlFlowOp):
-            for block in node.op.blocks:
-                inner_wire_map = {
-                    inner: wire_map[outer] for outer, inner in zip(node.qargs, block.qubits)
-                }
-                if not self._coupling_map_visit(circuit_to_dag(block), inner_wire_map, edges):
-                    return False
         return True
 
     def _target_visit(self, dag, wire_map):
-        for node in dag.two_qubit_ops():
+        # Don't include directives to avoid things like barrier, which are assumed always supported.
+        for node in dag.op_nodes(include_directives=False):
             if isinstance(node.op, ControlFlowOp):
-                continue
-            if not self.target.instruction_supported(
+                for block in node.op.blocks:
+                    inner_wire_map = {
+                        inner: wire_map[outer] for outer, inner in zip(node.qargs, block.qubits)
+                    }
+                    if not self._target_visit(circuit_to_dag(block), inner_wire_map):
+                        return False
+            elif len(node.qargs) == 2 and not self.target.instruction_supported(
                 node.op.name, (wire_map[node.qargs[0]], wire_map[node.qargs[1]])
             ):
                 return False
-        for node in dag.op_nodes(ControlFlowOp):
-            for block in node.op.blocks:
-                inner_wire_map = {
-                    inner: wire_map[outer] for outer, inner in zip(node.qargs, block.qubits)
-                }
-                if not self._target_visit(circuit_to_dag(block), inner_wire_map):
-                    return False
         return True
 
     def run(self, dag):
