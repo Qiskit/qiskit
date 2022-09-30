@@ -365,15 +365,11 @@ class BaseEstimator(ABC):
             )
         ):
             raise TypeError("Invalid parameter values, expected Sequence[Sequence[float]].")
-        if not isinstance(parameter_values, tuple) or not all(
-            isinstance(binding, tuple) for binding in parameter_values
-        ):
-            parameter_values = tuple(
-                binding if isinstance(binding, tuple) else tuple(binding)
-                for binding in parameter_values
-            )
 
-        return parameter_values
+        return tuple(
+            binding if isinstance(binding, tuple) else tuple(binding)
+            for binding in parameter_values
+        )
 
     ################################################################################
     ## DEPRECATED
