@@ -239,7 +239,8 @@ class BaseEstimator(ABC):
         circuits = self._validate_circuits(circuits)
         observables = self._validate_observables(observables)
         parameter_values = self._validate_parameter_values(
-            parameter_values if parameter_values is not None else tuple([()] * len(circuits))
+            parameter_values,
+            default=tuple([()] * len(circuits)),
         )
 
         # Cross-validation
@@ -330,8 +331,15 @@ class BaseEstimator(ABC):
     # TODO: disallow non-numeric float values: float('nan'), float('inf'), float('-inf')
     @staticmethod
     def _validate_parameter_values(
-        parameter_values: Sequence[Sequence[float | int]] | Sequence[float | int],
+        parameter_values: Sequence[Sequence[float | int]] | Sequence[float | int] | None,
+        default: Sequence[Sequence[float | int]] | Sequence[float | int] | None = None,
     ) -> tuple[tuple[float, ...], ...]:
+        # Allow optional (if default)
+        if parameter_values is None:
+            if default is None:
+                raise ValueError("No default `parameter_values`, optional input disallowed.")
+            parameter_values = default
+
         # Support ndarray
         if isinstance(parameter_values, np.ndarray):
             parameter_values = parameter_values.tolist()
