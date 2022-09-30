@@ -88,7 +88,10 @@ class TestTrotterQRTE(QiskitAlgorithmsTestCase):
         )
 
         aux_ops_result = evolution_result.aux_ops_evaluated
-        expected_aux_ops_result = [(0.078073, (0.0, 0.0)), (0.268286, (0.0, 0.0))]
+        expected_aux_ops_result = [
+            (0.078073, {"variance": 0, "shots": 0}),
+            (0.268286, {"variance": 0, "shots": 0}),
+        ]
 
         means = [element[0] for element in aux_ops_result]
         expected_means = [element[0] for element in expected_aux_ops_result]
@@ -96,7 +99,10 @@ class TestTrotterQRTE(QiskitAlgorithmsTestCase):
 
         vars_and_shots = [element[1] for element in aux_ops_result]
         expected_vars_and_shots = [element[1] for element in expected_aux_ops_result]
-        np.testing.assert_array_equal(vars_and_shots, expected_vars_and_shots)
+
+        for computed, expected in zip(vars_and_shots, expected_vars_and_shots):
+            self.assertAlmostEqual(computed.pop("variance", 0), expected["variance"], 2)
+            self.assertEqual(computed.pop("shots", 0), expected["shots"])
 
     @data(
         (

@@ -28,6 +28,7 @@ import math
 import numpy as np
 import retworkx as rx
 
+from qiskit.circuit import ControlFlowOp, ForLoopOp, IfElseOp, WhileLoopOp
 from qiskit.circuit.exceptions import CircuitError
 from qiskit.circuit.quantumregister import QuantumRegister, Qubit
 from qiskit.circuit.classicalregister import ClassicalRegister, Clbit
@@ -447,7 +448,8 @@ class DAGCircuit:
             if wire not in amap:
                 raise DAGCircuitError(f"(qu)bit {wire} not found in {amap}")
 
-    def _bits_in_condition(self, cond):
+    @staticmethod
+    def _bits_in_condition(cond):
         """Return a list of bits in the given condition.
 
         Args:
@@ -861,19 +863,98 @@ class DAGCircuit:
                 else:
                     yield wire
 
-    def size(self):
-        """Return the number of operations."""
-        return len(self._multi_graph) - 2 * len(self._wires)
+    def size(self, *, recurse: bool = False):
+        """Return the number of operations.  If there is control flow present, this count may only
+        be an estimate, as the complete control-flow path cannot be statically known.
 
-    def depth(self):
-        """Return the circuit depth.
+        Args:
+            recurse: if ``True``, then recurse into control-flow operations.  For loops with
+                known-length iterators are counted unrolled.  If-else blocks sum both of the two
+                branches.  While loops are counted as if the loop body runs once only.  Defaults to
+                ``False`` and raises :class:`.DAGCircuitError` if any control flow is present, to
+                avoid silently returning a mostly meaningless number.
+
+        Returns:
+            int: the circuit size
+
+        Raises:
+            DAGCircuitError: if an unknown :class:`.ControlFlowOp` is present in a call with
+                ``recurse=True``, or any control flow is present in a non-recursive call.
+        """
+        length = len(self._multi_graph) - 2 * len(self._wires)
+        if not recurse:
+            if any(x in self._op_names for x in ("for_loop", "while_loop", "if_else")):
+                raise DAGCircuitError(
+                    "Size with control flow is ambiguous."
+                    " You may use `recurse=True` to get a result,"
+                    " but see this method's documentation for the meaning of this."
+                )
+            return length
+        # pylint: disable=cyclic-import
+        from qiskit.converters import circuit_to_dag
+
+        for node in self.op_nodes(ControlFlowOp):
+            if isinstance(node.op, ForLoopOp):
+                indexset = node.op.params[0]
+                inner = len(indexset) * circuit_to_dag(node.op.blocks[0]).size(recurse=True)
+            elif isinstance(node.op, WhileLoopOp):
+                inner = circuit_to_dag(node.op.blocks[0]).size(recurse=True)
+            elif isinstance(node.op, IfElseOp):
+                inner = sum(circuit_to_dag(block).size(recurse=True) for block in node.op.blocks)
+            else:
+                raise DAGCircuitError(f"unknown control-flow type: '{node.op.name}'")
+            # Replace the "1" for the node itself with the actual count.
+            length += inner - 1
+        return length
+
+    def depth(self, *, recurse: bool = False):
+        """Return the circuit depth.  If there is control flow present, this count may only be an
+        estimate, as the complete control-flow path cannot be staticly known.
+
+        Args:
+            recurse: if ``True``, then recurse into control-flow operations.  For loops
+                with known-length iterators are counted as if the loop had been manually unrolled
+                (*i.e.* with each iteration of the loop body written out explicitly).
+                If-else blocks take the longer case of the two branches.  While loops are counted as
+                if the loop body runs once only.  Defaults to ``False`` and raises
+                :class:`.DAGCircuitError` if any control flow is present, to avoid silently
+                returning a nonsensical number.
+
         Returns:
             int: the circuit depth
+
         Raises:
             DAGCircuitError: if not a directed acyclic graph
+            DAGCircuitError: if unknown control flow is present in a recursive call, or any control
+                flow is present in a non-recursive call.
         """
+        if recurse:
+            from qiskit.converters import circuit_to_dag  # pylint: disable=cyclic-import
+
+            node_lookup = {}
+            for node in self.op_nodes(ControlFlowOp):
+                weight = len(node.op.params[0]) if isinstance(node.op, ForLoopOp) else 1
+                if weight == 0:
+                    node_lookup[node._node_id] = 0
+                else:
+                    node_lookup[node._node_id] = weight * max(
+                        circuit_to_dag(block).depth(recurse=True) for block in node.op.blocks
+                    )
+
+            def weight_fn(_source, target, _edge):
+                return node_lookup.get(target, 1)
+
+        else:
+            if any(x in self._op_names for x in ("for_loop", "while_loop", "if_else")):
+                raise DAGCircuitError(
+                    "Depth with control flow is ambiguous."
+                    " You may use `recurse=True` to get a result,"
+                    " but see this method's documentation for the meaning of this."
+                )
+            weight_fn = None
+
         try:
-            depth = rx.dag_longest_path_length(self._multi_graph) - 1
+            depth = rx.dag_longest_path_length(self._multi_graph, weight_fn) - 1
         except rx.DAGHasCycle as ex:
             raise DAGCircuitError("not a DAG") from ex
         return depth if depth >= 0 else 0
@@ -1682,12 +1763,33 @@ class DAGCircuit:
             except rx.NoSuitableNeighbors:
                 pass
 
-    def count_ops(self):
+    def count_ops(self, *, recurse: bool = True):
         """Count the occurrences of operation names.
 
-        Returns a dictionary of counts keyed on the operation name.
+        Args:
+            recurse: if ``True`` (default), then recurse into control-flow operations.  In all
+                cases, this counts only the number of times the operation appears in any possible
+                block; both branches of if-elses are counted, and for- and while-loop blocks are
+                only counted once.
+
+        Returns:
+            Mapping[str, int]: a mapping of operation names to the number of times it appears.
         """
-        return self._op_names.copy()
+        if not recurse:
+            return self._op_names.copy()
+
+        # pylint: disable=cyclic-import
+        from qiskit.converters import circuit_to_dag
+
+        def inner(dag, counts):
+            for name, count in dag._op_names.items():
+                counts[name] += count
+            for node in dag.op_nodes(ControlFlowOp):
+                for block in node.op.blocks:
+                    counts = inner(circuit_to_dag(block), counts)
+            return counts
+
+        return dict(inner(self, defaultdict(int)))
 
     def count_ops_longest_path(self):
         """Count the occurrences of operation names on the longest path.
