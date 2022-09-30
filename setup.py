@@ -104,8 +104,6 @@ setup(
         "qiskit.synthesis": [
             "clifford.default = qiskit.transpiler.passes.synthesis.high_level_synthesis:DefaultSynthesisClifford",
             "linear_function.default = qiskit.transpiler.passes.synthesis.high_level_synthesis:DefaultSynthesisLinearFunction",
-            "linear_function.depth_opt = test_stuff:LinearFunctionSynthesisPluginForDepth",
-            "linear_function.count_opt = test_stuff:LinearFunctionSynthesisPluginForCount",
         ],
         "qiskit.transpiler.routing": [
             "basic = qiskit.transpiler.preset_passmanagers.builtin_plugins:BasicSwapPassManager",
