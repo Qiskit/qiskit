@@ -17,6 +17,7 @@ from __future__ import annotations
 from abc import ABC, abstractmethod
 from typing import Any
 
+from qiskit.circuit import QuantumCircuit
 from qiskit.opflow import PauliSumOp
 from qiskit.quantum_info.operators.base_operator import BaseOperator
 
@@ -72,8 +73,18 @@ class MinimumEigensolverResult(AlgorithmResult):
 
     def __init__(self) -> None:
         super().__init__()
+        self._ansatz = None
         self._eigenvalue = None
         self._aux_operators_evaluated = None
+
+    @property
+    def ansatz(self) -> QuantumCircuit:
+        """The ansatz to retrieve the minimum eigenstate."""
+        return self._ansatz
+
+    @ansatz.setter
+    def ansatz(self, ansatz: QuantumCircuit) -> None:
+        self._ansatz = ansatz
 
     @property
     def eigenvalue(self) -> complex | None:
