@@ -20,6 +20,8 @@ from qiskit.utils import algorithm_globals
 from .optimizer import OptimizerResult, POINT
 from .scipy_optimizer import Optimizer, OptimizerSupportLevel
 
+CALLBACK = Callable[[int, np.array, float], None]
+
 
 class UMDA(Optimizer):
     """Continuous Univariate Marginal Distribution Algorithm (UMDA).
@@ -120,12 +122,21 @@ class UMDA(Optimizer):
     ELITE_FACTOR = 0.4
     STD_BOUND = 0.3
 
-    def __init__(self, maxiter: int = 100, size_gen: int = 20, alpha: float = 0.5) -> None:
+    def __init__(
+        self,
+        maxiter: int = 100,
+        size_gen: int = 20,
+        alpha: float = 0.5,
+        callback: Optional[CALLBACK] = None,
+    ) -> None:
         r"""
         Args:
             maxiter: Maximum number of iterations.
             size_gen: Population size of each generation.
             alpha: Percentage (0, 1] of the population to be selected as elite selection.
+            callback: A callback function passed information in each iteration step. The
+                information is, in this order: the number of function evaluations, the parameters,
+                the best function value in this iteration.
         """
 
         self.size_gen = size_gen
@@ -145,7 +156,8 @@ class UMDA(Optimizer):
         self._evaluations = None
 
         self._n_variables = None
-        self._history = []
+
+        self.callback = callback
 
     def _initialization(self):
         vector = np.zeros((4, self._n_variables))
@@ -207,7 +219,7 @@ class UMDA(Optimizer):
         self._n_variables = len(x0)
         self._best_cost_global = 999999999999
         self._best_ind_global = 9999999
-        self._history = []
+        history = []
         self._evaluations = np.array(0)
 
         self._vector = self._initialization()
@@ -224,7 +236,7 @@ class UMDA(Optimizer):
 
             best_mae_local = min(self._evaluations)
 
-            self._history.append(best_mae_local)
+            history.append(best_mae_local)
             best_ind_local = np.where(self._evaluations == best_mae_local)[0][0]
             best_ind_local = self._generation[best_ind_local]
 
@@ -239,11 +251,16 @@ class UMDA(Optimizer):
                 if not_better_count >= self._dead_iter:
                     break
 
+            if self.callback is not None:
+                self.callback(
+                    len(history) * self._size_gen, self._best_ind_global, self._best_cost_global
+                )
+
             self._new_generation()
 
         result.x = self._best_ind_global
         result.fun = self._best_cost_global
-        result.nfev = len(self._history) * self._size_gen
+        result.nfev = len(history) * self._size_gen
 
         return result
 
@@ -289,11 +306,6 @@ class UMDA(Optimizer):
         self._maxiter = value
 
     @property
-    def history(self) -> list:
-        """Returns the history of best individuals fround during the execution"""
-        return self._history
-
-    @property
     def alpha(self) -> float:
         """Returns the alpha parameter value (percentage of population selected to update
         probabilistic model)"""
@@ -322,6 +334,7 @@ class UMDA(Optimizer):
             "maxiter": self.maxiter,
             "alpha": self.alpha,
             "size_gen": self.size_gen,
+            "callback": self.callback,
         }
 
     def get_support_level(self):
