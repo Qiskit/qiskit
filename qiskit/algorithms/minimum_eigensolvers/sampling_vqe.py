@@ -234,7 +234,12 @@ class SamplingVQE(VariationalAlgorithm, SamplingMinimumEigensolver):
             aux_operators_evaluated = None
 
         return self._build_sampling_vqe_result(
-            optimizer_result, aux_operators_evaluated, best_measurement, final_state, optimizer_time
+            self.ansatz.copy(),
+            optimizer_result,
+            aux_operators_evaluated,
+            best_measurement,
+            final_state,
+            optimizer_time,
         )
 
     def _get_evaluate_energy(
@@ -306,6 +311,7 @@ class SamplingVQE(VariationalAlgorithm, SamplingMinimumEigensolver):
 
     def _build_sampling_vqe_result(
         self,
+        ansatz: QuantumCircuit,
         optimizer_result: OptimizerResult,
         aux_operators_evaluated: ListOrDict[tuple[complex, tuple[complex, int]]],
         best_measurement: dict[str, Any],
@@ -323,6 +329,7 @@ class SamplingVQE(VariationalAlgorithm, SamplingMinimumEigensolver):
         result.optimizer_result = optimizer_result
         result.best_measurement = best_measurement["best"]
         result.eigenstate = final_state
+        result.optimal_circuit = ansatz
         return result
 
 
