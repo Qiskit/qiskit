@@ -6,8 +6,11 @@ features:
     :func:`~.transpile` and :func:`~.generate_preset_pass_manager`. If a
     :class:`~.BackendV2` implementation includes the methods
     ``get_scheduling_stage_method()`` or ``get_translation_stage_method()`` the
-    transpiler will use the returned :class:`~.PassManager` object to run
-    additional custom transpiler passes when targetting that backend.
+    transpiler will use the returned string as the default value for
+    the ``scheduling_method`` and ``translation_method`` arguments. This enables
+    backends to run additional custom transpiler passes when targetting that
+    backend by leveraging the transpiler stage
+    :mod:`~qiskit.transpiler.preset_passmanagers.plugin` interface.
     For more details on how to use this see :ref:`custom_transpiler_backend`.
   - |
     Added a new keyword argument, ``ignore_backend_default_methods``, to the
