@@ -132,6 +132,7 @@ class SSVQE(VariationalAlgorithm, Eigensolver):
     ) -> None:
         """
         Args:
+            estimator: The estimator primitive.
             k: The number of eigenstates that the algorithm will attempt to find.
             ansatz: A parameterized circuit used as Ansatz for the wave function.
             optimizer: A classical optimizer. Can either be a Qiskit optimizer or a callable
