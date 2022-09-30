@@ -416,11 +416,12 @@ circuit transformations. Currently there are two stages supported,
 ``get_translation_stage_method()`` and ``get_scheduling_stage_method()``
 which allow a backend to specify string plugin names to be used as the default
 translation and scheduling stages, respectively. These
-hook points in a :class:`~.BackendV2` class should only be used if your
-backend has special requirements for compilation that are not met by the
-default backend/:class:`~.Target` interface. Ideally we can expand these
-interfaces to cover more details and information to inform the transpiler on
-how/when to perform certain steps/optimizations.
+hook points in a :class:`~.BackendV2` class can be used if your
+backend has requirements for compilation that are not met by the
+current backend/:class:`~.Target` interface.  Please also consider
+submitting a Github issue describing your use case as there is interest
+in improving these interfaces to be able to describe more hardware
+architectures in greater depth.
 
 To leverage these hook points you just need to add the methods to your
 :class:`~.BackendV2` implementation and have them return a string plugin name.
