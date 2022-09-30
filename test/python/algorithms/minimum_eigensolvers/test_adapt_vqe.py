@@ -15,6 +15,8 @@
 import unittest
 from test.python.algorithms import QiskitAlgorithmsTestCase
 
+from ddt import ddt, data, unpack
+
 from qiskit.algorithms.minimum_eigensolvers import VQE
 from qiskit.algorithms.minimum_eigensolvers.adapt_vqe import AdaptVQE, TerminationCriterion
 from qiskit.algorithms.optimizers import SLSQP
@@ -26,6 +28,7 @@ from qiskit.quantum_info import SparsePauliOp
 from qiskit.utils import algorithm_globals
 
 
+@ddt
 class TestAdaptVQE(QiskitAlgorithmsTestCase):
     """Test of the AdaptVQE minimum eigensolver"""
 
@@ -110,16 +113,37 @@ class TestAdaptVQE(QiskitAlgorithmsTestCase):
 
         self.assertEqual(res.termination_criterion, TerminationCriterion.MAXIMUM)
 
-    def test_cyclicity(self):
-        """Test to check termination criteria"""
-        calc = AdaptVQE(
-            VQE(Estimator(), self.ansatz, self.optimizer),
-            max_iterations=100,
-            threshold=1e-15,
-        )
-        res = calc.compute_minimum_eigenvalue(operator=self.h2_op)
-
-        self.assertEqual(res.termination_criterion, TerminationCriterion.CYCLICITY)
+    @data(
+        ([1, 1], True),
+        ([1, 11], False),
+        ([11, 1], False),
+        ([1, 12], False),
+        ([12, 2], False),
+        ([1, 1, 1], True),
+        ([1, 2, 1], False),
+        ([1, 2, 2], True),
+        ([1, 2, 21], False),
+        ([1, 12, 2], False),
+        ([11, 1, 2], False),
+        ([1, 2, 1, 1], True),
+        ([1, 2, 1, 2], True),
+        ([1, 2, 1, 21], False),
+        ([11, 2, 1, 2], False),
+        ([1, 11, 1, 111], False),
+        ([11, 1, 111, 1], False),
+        ([1, 2, 3, 1, 2, 3], True),
+        ([1, 2, 3, 4, 1, 2, 3], False),
+        ([11, 2, 3, 1, 2, 3], False),
+        ([1, 2, 3, 1, 2, 31], False),
+        ([1, 2, 3, 4, 1, 2, 3, 4], True),
+        ([11, 2, 3, 4, 1, 2, 3, 4], False),
+        ([1, 2, 3, 4, 1, 2, 3, 41], False),
+        ([1, 2, 3, 4, 5, 1, 2, 3, 4], False),
+    )
+    @unpack
+    def test_cyclicity(self, seq, is_cycle):
+        """Test AdaptVQE index cycle detection"""
+        self.assertEqual(is_cycle, AdaptVQE._check_cyclicity(seq))
 
     def test_vqe_solver(self):
         """Test to check if the VQE solver remains the same or not"""
