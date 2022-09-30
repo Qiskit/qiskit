@@ -225,10 +225,10 @@ class TestBackendEstimator(QiskitTestCase):
             [self.observable],
             parameter_values=[[0, 1, 1, 2, 3, 5]],
             shots=1024,
-            seed=15,
+            seed_simulator=15,
         ).result()
         self.assertIsInstance(result, EstimatorResult)
-        np.testing.assert_allclose(result.values, [-1.307397243478641], rtol=0.05)
+        np.testing.assert_allclose(result.values, [-1.307397243478641], rtol=0.1)
 
     @combine(backend=BACKENDS)
     def test_options(self, backend):
@@ -237,9 +237,9 @@ class TestBackendEstimator(QiskitTestCase):
             estimator = BackendEstimator(backend=backend, options={"shots": 3000})
             self.assertEqual(estimator.options.get("shots"), 3000)
         with self.subTest("set_options"):
-            estimator.set_options(shots=1024, seed=15)
+            estimator.set_options(shots=1024, seed_simulator=15)
             self.assertEqual(estimator.options.get("shots"), 1024)
-            self.assertEqual(estimator.options.get("seed"), 15)
+            self.assertEqual(estimator.options.get("seed_simulator"), 15)
         with self.subTest("run"):
             result = estimator.run(
                 [self.ansatz],
