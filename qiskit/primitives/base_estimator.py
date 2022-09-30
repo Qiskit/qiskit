@@ -436,7 +436,8 @@ class BaseEstimator(ABC):
             The job object of EstimatorResult.
 
         Raises:
-            ValueError: Invalid arguments are given.
+            TypeError: Invalid argument type given.
+            ValueError: Invalid argument values given.
         """
         # CIRCUITS VALIDATION
         if isinstance(circuits, QuantumCircuit):
@@ -472,36 +473,37 @@ class BaseEstimator(ABC):
                     )
             parameter_values = tuple([()] * len(circuits))
 
-        # Allow single value
-        if (
-            (len(circuits) == 1 or len(observables) == 1)
-            and isinstance(parameter_values, (Sequence, np.ndarray))
-            and not any(isinstance(val, (Sequence, np.ndarray)) for val in parameter_values)
-        ):
-            parameter_values = (tuple(parameter_values),)
-
         # Support ndarray
         if isinstance(parameter_values, np.ndarray):
-            parameter_values = tuple(tuple(binding) for binding in parameter_values.tolist())
-        elif isinstance(parameter_values, Sequence) and any(
-            isinstance(binding, np.ndarray) for binding in parameter_values
-        ):
+            parameter_values = parameter_values.tolist()
+        elif isinstance(parameter_values, Sequence):
             parameter_values = tuple(
-                tuple(binding.tolist() if isinstance(binding, np.ndarray) else binding)
+                binding.tolist() if isinstance(binding, np.ndarray) else binding
                 for binding in parameter_values
             )
+
+        # Allow single value
+        if isinstance(parameter_values, Sequence) and not any(
+            isinstance(binding, Sequence) for binding in parameter_values
+        ):
+            parameter_values = (parameter_values,)
 
         # Validation
         if (
             not isinstance(parameter_values, Sequence)
-            or not all(isinstance(pv, Sequence) for pv in parameter_values)
-            or not all(all(isinstance(v, (float, int)) for v in pv) for pv in parameter_values)
+            or not all(isinstance(binding, Sequence) for binding in parameter_values)
+            or not all(
+                all(isinstance(value, (float, int)) for value in binding)
+                for binding in parameter_values
+            )
         ):
-            raise TypeError("Invalid parameter values, expected Sequence[Sequence[int|float]].")
-        elif (
+            raise TypeError("Invalid parameter values, expected Sequence[Sequence[float]].")
+        if (
             not isinstance(parameter_values, tuple)
-            or not all(isinstance(bind, tuple) for bind in parameter_values)
-            or not all(all(isinstance(val, float) for val in bind) for bind in parameter_values)
+            or not all(isinstance(binding, tuple) for binding in parameter_values)
+            or not all(
+                all(isinstance(value, float) for value in binding) for binding in parameter_values
+            )
         ):
             _parameter_values = []
             for binding in parameter_values:
@@ -511,7 +513,7 @@ class BaseEstimator(ABC):
                 _parameter_values.append(_binding)
             parameter_values = tuple(tuple(binding) for binding in _parameter_values)
 
-        # CROSS VALIDATION
+        # CROSS-VALIDATION
         if len(circuits) != len(observables):
             raise ValueError(
                 f"The number of circuits ({len(circuits)}) does not match "
@@ -522,10 +524,10 @@ class BaseEstimator(ABC):
                 f"The number of circuits ({len(circuits)}) does not match "
                 f"the number of parameter value sets ({len(parameter_values)})."
             )
-        for i, (circuit, parameter_value) in enumerate(zip(circuits, parameter_values)):
-            if len(parameter_value) != circuit.num_parameters:
+        for i, (circuit, binding) in enumerate(zip(circuits, parameter_values)):
+            if len(binding) != circuit.num_parameters:
                 raise ValueError(
-                    f"The number of values ({len(parameter_value)}) does not match "
+                    f"The number of values ({len(binding)}) does not match "
                     f"the number of parameters ({circuit.num_parameters}) for the {i}-th circuit."
                 )
         for i, (circuit, observable) in enumerate(zip(circuits, observables)):
