@@ -17,7 +17,6 @@ from __future__ import annotations
 from abc import ABC, abstractmethod
 from typing import Any
 
-from qiskit.circuit import QuantumCircuit
 from qiskit.opflow import PauliSumOp
 from qiskit.quantum_info.operators.base_operator import BaseOperator
 
@@ -73,20 +72,8 @@ class MinimumEigensolverResult(AlgorithmResult):
 
     def __init__(self) -> None:
         super().__init__()
-        self._optimal_circuit = None
         self._eigenvalue = None
         self._aux_operators_evaluated = None
-
-    @property
-    def optimal_circuit(self) -> QuantumCircuit:
-        """The optimal circuits. Along with the optimal parameters,
-        these can be used to retrieve the minimum eigenstate.
-        """
-        return self._optimal_circuit
-
-    @optimal_circuit.setter
-    def optimal_circuit(self, optimal_circuit: QuantumCircuit) -> None:
-        self._optimal_circuit = optimal_circuit
 
     @property
     def eigenvalue(self) -> complex | None:

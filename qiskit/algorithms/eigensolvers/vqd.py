@@ -416,6 +416,7 @@ class VQDResult(EigensolverResult):
         self._optimal_points = None
         self._optimal_parameters = None
         self._optimizer_results = None
+        self._optimal_circuits = None
 
     @property
     def cost_function_evals(self) -> Sequence[int] | None:
@@ -476,3 +477,13 @@ class VQDResult(EigensolverResult):
     def optimizer_results(self, value: Sequence[OptimizerResult]) -> None:
         """Sets optimizer results"""
         self._optimizer_results = value
+
+    @property
+    def optimal_circuits(self) -> list[QuantumCircuit]:
+        """The optimal circuits. Along with the optimal parameters,
+        these can be used to retrieve the different eigenstates."""
+        return self._optimal_circuits
+
+    @optimal_circuits.setter
+    def optimal_circuits(self, optimal_circuits: list[QuantumCircuit]) -> None:
+        self._optimal_circuits = optimal_circuits
