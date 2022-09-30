@@ -171,6 +171,208 @@ class BaseEstimator(ABC):
         if options is not None:
             self._run_options.update_options(**options)
 
+    ################################################################################
+    ## PROPERTIES
+    ################################################################################
+    @property
+    def options(self) -> Options:
+        """Return options values for the estimator.
+
+        Returns:
+            options
+        """
+        return self._run_options
+
+    def set_options(self, **fields):
+        """Set options values for the estimator.
+
+        Args:
+            **fields: The fields to update the options
+        """
+        self._run_options.update_options(**fields)
+
+    ################################################################################
+    ## METHODS
+    ################################################################################
+    def run(
+        self,
+        circuits: Sequence[QuantumCircuit] | QuantumCircuit,
+        observables: Sequence[BaseOperator | PauliSumOp] | BaseOperator | PauliSumOp,
+        parameter_values: Sequence[Sequence[float | int]] | Sequence[float | int] | None = None,
+        **run_options,
+    ) -> Job:
+        """Run the job of the estimation of expectation value(s).
+
+        ``circuits``, ``observables``, and ``parameter_values`` should have the same
+        length. The i-th element of the result is the expectation of observable
+
+        .. code-block:: python
+
+            obs = observables[i]
+
+        for the state prepared by
+
+        .. code-block:: python
+
+            circ = circuits[i]
+
+        with bound parameters
+
+        .. code-block:: python
+
+            values = parameter_values[i].
+
+        Args:
+            circuits: one or more circuit objects.
+            observables: one or more observable objects.
+            parameter_values: concrete parameters to be bound.
+            run_options: runtime options used for circuit execution.
+
+        Returns:
+            The job object of EstimatorResult.
+
+        Raises:
+            TypeError: Invalid argument type given.
+            ValueError: Invalid argument values given.
+        """
+        # Singular validation
+        circuits = self._validate_circuits(circuits)
+        observables = self._validate_observables(observables)
+        parameter_values = self._validate_parameter_values(
+            parameter_values if parameter_values is not None else tuple([()] * len(circuits))
+        )
+
+        # Cross-validation
+        if len(circuits) != len(observables):
+            raise ValueError(
+                f"The number of circuits ({len(circuits)}) does not match "
+                f"the number of observables ({len(observables)})."
+            )
+        if len(circuits) != len(parameter_values):
+            raise ValueError(
+                f"The number of circuits ({len(circuits)}) does not match "
+                f"the number of parameter value sets ({len(parameter_values)})."
+            )
+        for i, (circuit, binding) in enumerate(zip(circuits, parameter_values)):
+            if len(binding) != circuit.num_parameters:
+                raise ValueError(
+                    f"The number of values ({len(binding)}) does not match "
+                    f"the number of parameters ({circuit.num_parameters}) for the {i}-th circuit."
+                )
+        for i, (circuit, observable) in enumerate(zip(circuits, observables)):
+            if circuit.num_qubits != observable.num_qubits:
+                raise ValueError(
+                    f"The number of qubits of the {i}-th circuit ({circuit.num_qubits}) does "
+                    f"not match the number of qubits of the {i}-th observable "
+                    f"({observable.num_qubits})."
+                )
+
+        # Options
+        run_opts = copy(self.options)
+        run_opts.update_options(**run_options)
+
+        return self._run(
+            circuits,
+            observables,
+            parameter_values,
+            **run_opts.__dict__,
+        )
+
+    # This will be comment out after 0.22. (This is necessary for the compatibility.)
+    # @abstractmethod
+    def _run(
+        self,
+        circuits: tuple[QuantumCircuit, ...],
+        observables: tuple[BaseOperator | PauliSumOp, ...],
+        parameter_values: tuple[tuple[float, ...], ...],
+        **run_options,
+    ) -> Job:
+        raise NotImplementedError(
+            "_run method is not implemented. This method will be @abstractmethod after 0.22."
+        )
+
+    ################################################################################
+    ## VALIDATION
+    ################################################################################
+    @staticmethod
+    def _validate_circuits(
+        circuits: Sequence[QuantumCircuit] | QuantumCircuit,
+    ) -> tuple[QuantumCircuit, ...]:
+        if isinstance(circuits, QuantumCircuit):
+            circuits = (circuits,)
+        elif not isinstance(circuits, Sequence) or not all(
+            isinstance(cir, QuantumCircuit) for cir in circuits
+        ):
+            raise TypeError("Invalid circuits, expected Sequence[QuantumCircuit].")
+        elif not isinstance(circuits, tuple):
+            circuits = tuple(circuits)
+        return circuits
+
+    @staticmethod
+    def _validate_observables(
+        observables: Sequence[BaseOperator | PauliSumOp] | BaseOperator | PauliSumOp,
+    ) -> tuple[BaseOperator | PauliSumOp, ...]:
+        if isinstance(observables, (BaseOperator, PauliSumOp)):
+            observables = (observables,)
+        elif not isinstance(observables, Sequence) or not all(
+            isinstance(obs, (BaseOperator, PauliSumOp)) for obs in observables
+        ):
+            raise TypeError("Invalid observables, expected Sequence[BaseOperator|PauliSumOp].")
+        elif not isinstance(observables, tuple):
+            observables = tuple(observables)
+        return observables
+
+    # TODO: include ndarray in type annotations
+    # TODO: disallow non-numeric float values: float('nan'), float('inf'), float('-inf')
+    @staticmethod
+    def _validate_parameter_values(
+        parameter_values: Sequence[Sequence[float | int]] | Sequence[float | int],
+    ) -> tuple[tuple[float, ...], ...]:
+        # Support ndarray
+        if isinstance(parameter_values, np.ndarray):
+            parameter_values = parameter_values.tolist()
+        elif isinstance(parameter_values, Sequence):
+            parameter_values = tuple(
+                binding.tolist() if isinstance(binding, np.ndarray) else binding
+                for binding in parameter_values
+            )
+
+        # Allow single value
+        if isinstance(parameter_values, Sequence) and not any(
+            isinstance(binding, Sequence) for binding in parameter_values
+        ):
+            parameter_values = (parameter_values,)
+
+        # Validation
+        if (
+            not isinstance(parameter_values, Sequence)
+            or not all(isinstance(binding, Sequence) for binding in parameter_values)
+            or not all(
+                all(isinstance(value, (float, int)) for value in binding)
+                for binding in parameter_values
+            )
+        ):
+            raise TypeError("Invalid parameter values, expected Sequence[Sequence[float | int]].")
+        if (
+            not isinstance(parameter_values, tuple)
+            or not all(isinstance(binding, tuple) for binding in parameter_values)
+            or not all(
+                all(isinstance(value, float) for value in binding) for binding in parameter_values
+            )
+        ):
+            _parameter_values = []
+            for binding in parameter_values:
+                _binding = []
+                for value in binding:
+                    _binding.append(value if isinstance(value, float) else float(value))
+                _parameter_values.append(_binding)
+            parameter_values = tuple(tuple(binding) for binding in _parameter_values)
+
+        return parameter_values
+
+    ################################################################################
+    ## DEPRECATION
+    ################################################################################
     def __new__(
         cls,
         circuits: Iterable[QuantumCircuit] | QuantumCircuit | None = None,
@@ -195,26 +397,6 @@ class BaseEstimator(ABC):
         else:
             self._observable_ids = {id(observables): 0}
         return self
-
-    @deprecate_function(
-        "The BaseEstimator.__enter__ method is deprecated as of Qiskit Terra 0.22.0 "
-        "and will be removed no sooner than 3 months after the releasedate. "
-        "BaseEstimator should be initialized directly.",
-    )
-    def __enter__(self):
-        return self
-
-    @deprecate_function(
-        "The BaseEstimator.__exit__ method is deprecated as of Qiskit Terra 0.22.0 "
-        "and will be removed no sooner than 3 months after the releasedate. "
-        "BaseEstimator should be initialized directly.",
-    )
-    def __exit__(self, *exc_info):
-        self.close()
-
-    def close(self):
-        """Close the session and free resources"""
-        ...
 
     @property
     def circuits(self) -> tuple[QuantumCircuit, ...]:
@@ -243,22 +425,25 @@ class BaseEstimator(ABC):
         """
         return tuple(self._parameters)
 
-    @property
-    def options(self) -> Options:
-        """Return options values for the estimator.
+    @deprecate_function(
+        "The BaseEstimator.__enter__ method is deprecated as of Qiskit Terra 0.22.0 "
+        "and will be removed no sooner than 3 months after the releasedate. "
+        "BaseEstimator should be initialized directly.",
+    )
+    def __enter__(self):
+        return self
 
-        Returns:
-            options
-        """
-        return self._run_options
+    @deprecate_function(
+        "The BaseEstimator.__exit__ method is deprecated as of Qiskit Terra 0.22.0 "
+        "and will be removed no sooner than 3 months after the releasedate. "
+        "BaseEstimator should be initialized directly.",
+    )
+    def __exit__(self, *exc_info):
+        self.close()
 
-    def set_options(self, **fields):
-        """Set options values for the estimator.
-
-        Args:
-            **fields: The fields to update the options
-        """
-        self._run_options.update_options(**fields)
+    def close(self):
+        """Close the session and free resources"""
+        ...
 
     @deprecate_function(
         "The BaseSampler.__call__ method is deprecated as of Qiskit Terra 0.22.0 "
@@ -398,157 +583,6 @@ class BaseEstimator(ABC):
             **run_opts.__dict__,
         )
 
-    def run(
-        self,
-        circuits: QuantumCircuit | Sequence[QuantumCircuit],
-        observables: BaseOperator | PauliSumOp | Sequence[BaseOperator | PauliSumOp],
-        parameter_values: Sequence[float] | Sequence[Sequence[float]] | None = None,
-        **run_options,
-    ) -> Job:
-        """Run the job of the estimation of expectation value(s).
-
-        ``circuits``, ``observables``, and ``parameter_values`` should have the same
-        length. The i-th element of the result is the expectation of observable
-
-        .. code-block:: python
-
-            obs = observables[i]
-
-        for the state prepared by
-
-        .. code-block:: python
-
-            circ = circuits[i]
-
-        with bound parameters
-
-        .. code-block:: python
-
-            values = parameter_values[i].
-
-        Args:
-            circuits: one or more circuit objects.
-            observables: one or more observable objects.
-            parameter_values: concrete parameters to be bound.
-            run_options: runtime options used for circuit execution.
-
-        Returns:
-            The job object of EstimatorResult.
-
-        Raises:
-            TypeError: Invalid argument type given.
-            ValueError: Invalid argument values given.
-        """
-        # CIRCUITS VALIDATION
-        if isinstance(circuits, QuantumCircuit):
-            circuits = (circuits,)
-        elif not isinstance(circuits, Sequence) or not all(
-            isinstance(cir, QuantumCircuit) for cir in circuits
-        ):
-            raise TypeError("Invalid circuits, expected Sequence[QuantumCircuit].")
-        elif not isinstance(circuits, tuple):
-            circuits = tuple(circuits)
-
-        # OBSERVABLES VALIDATION
-        if isinstance(observables, (BaseOperator, PauliSumOp)):
-            observables = (observables,)
-        elif not isinstance(observables, Sequence) or not all(
-            isinstance(obs, (BaseOperator, PauliSumOp)) for obs in observables
-        ):
-            raise TypeError("Invalid observables, expected Sequence[BaseOperator|PauliSumOp].")
-        elif not isinstance(observables, tuple):
-            observables = tuple(observables)
-
-        ## PARAMETER VALUES VALIDATION
-        # TODO: contemplate ndarray and int in type annotations
-        # TODO: disallow non-numeric float values: float('nan'), float('inf'), float('-inf')
-
-        # Allow optional
-        if parameter_values is None:
-            for i, circuit in enumerate(circuits):
-                if circuit.num_parameters != 0:
-                    raise ValueError(
-                        f"The {i}-th circuit is parameterised,"
-                        "but parameter values are not given."
-                    )
-            parameter_values = tuple([()] * len(circuits))
-
-        # Support ndarray
-        if isinstance(parameter_values, np.ndarray):
-            parameter_values = parameter_values.tolist()
-        elif isinstance(parameter_values, Sequence):
-            parameter_values = tuple(
-                binding.tolist() if isinstance(binding, np.ndarray) else binding
-                for binding in parameter_values
-            )
-
-        # Allow single value
-        if isinstance(parameter_values, Sequence) and not any(
-            isinstance(binding, Sequence) for binding in parameter_values
-        ):
-            parameter_values = (parameter_values,)
-
-        # Validation
-        if (
-            not isinstance(parameter_values, Sequence)
-            or not all(isinstance(binding, Sequence) for binding in parameter_values)
-            or not all(
-                all(isinstance(value, (float, int)) for value in binding)
-                for binding in parameter_values
-            )
-        ):
-            raise TypeError("Invalid parameter values, expected Sequence[Sequence[float]].")
-        if (
-            not isinstance(parameter_values, tuple)
-            or not all(isinstance(binding, tuple) for binding in parameter_values)
-            or not all(
-                all(isinstance(value, float) for value in binding) for binding in parameter_values
-            )
-        ):
-            _parameter_values = []
-            for binding in parameter_values:
-                _binding = []
-                for value in binding:
-                    _binding.append(value if isinstance(value, float) else float(value))
-                _parameter_values.append(_binding)
-            parameter_values = tuple(tuple(binding) for binding in _parameter_values)
-
-        # CROSS-VALIDATION
-        if len(circuits) != len(observables):
-            raise ValueError(
-                f"The number of circuits ({len(circuits)}) does not match "
-                f"the number of observables ({len(observables)})."
-            )
-        if len(circuits) != len(parameter_values):
-            raise ValueError(
-                f"The number of circuits ({len(circuits)}) does not match "
-                f"the number of parameter value sets ({len(parameter_values)})."
-            )
-        for i, (circuit, binding) in enumerate(zip(circuits, parameter_values)):
-            if len(binding) != circuit.num_parameters:
-                raise ValueError(
-                    f"The number of values ({len(binding)}) does not match "
-                    f"the number of parameters ({circuit.num_parameters}) for the {i}-th circuit."
-                )
-        for i, (circuit, observable) in enumerate(zip(circuits, observables)):
-            if circuit.num_qubits != observable.num_qubits:
-                raise ValueError(
-                    f"The number of qubits of the {i}-th circuit ({circuit.num_qubits}) does "
-                    f"not match the number of qubits of the {i}-th observable "
-                    f"({observable.num_qubits})."
-                )
-
-        # OPTIONS
-        run_opts = copy(self.options)
-        run_opts.update_options(**run_options)
-
-        return self._run(
-            circuits,
-            observables,
-            parameter_values,
-            **run_opts.__dict__,
-        )
-
     @abstractmethod
     def _call(
         self,
@@ -558,16 +592,3 @@ class BaseEstimator(ABC):
         **run_options,
     ) -> EstimatorResult:
         ...
-
-    # This will be comment out after 0.22. (This is necessary for the compatibility.)
-    # @abstractmethod
-    def _run(
-        self,
-        circuits: tuple[QuantumCircuit, ...],
-        observables: tuple[BaseOperator | PauliSumOp, ...],
-        parameter_values: tuple[tuple[float, ...], ...],
-        **run_options,
-    ) -> Job:
-        raise NotImplementedError(
-            "_run method is not implemented. This method will be @abstractmethod after 0.22."
-        )
