@@ -410,14 +410,12 @@ Custom Basis Gates
 
 Custom Transpiler Passes
 ^^^^^^^^^^^^^^^^^^^^^^^^
-As part of the transpiler there is a provision for backends to provide custom
-stage implementation to facilitate hardware specific optimizations and
-circuit transformations. Currently there are two hook points supported,
-``get_translation_stage_method()`` which is used for a backend to specify a
-string of the translation stage plugin to use in the compiler and
-``get_scheduling_stage_method()`` which is used for a backend to
-specify a string scheduling method pluging to use for the scheduling stage
-by default (which is the last defined stage in a default compilation). These
+The transpiler supports the ability for backends to provide custom transpiler
+stage implementations to facilitate hardware specific optimizations and
+circuit transformations. Currently there are two stages supported,
+``get_translation_stage_method()`` and ``get_scheduling_stage_method()``
+which allow a backend to specify string plugin names to be used as the default
+translation and scheduling stages, respectively. These
 hook points in a :class:`~.BackendV2` class should only be used if your
 backend has special requirements for compilation that are not met by the
 default backend/:class:`~.Target` interface. Ideally we can expand these
@@ -425,7 +423,7 @@ interfaces to cover more details and information to inform the transpiler on
 how/when to perform certain steps/optimizations.
 
 To leverage these hook points you just need to add the methods to your
-:class:`~.BackendV2` implementation and have them return a string method
+:class:`~.BackendV2` implementation and have them return a string plugin name.
 For example::
 
 
@@ -440,8 +438,8 @@ For example::
 This snippet of a backend implementation will now have the :func:`~.transpile`
 function use the ``SpecialDD`` plugin for the scheduling stage and
 the ``BasisTranslatorWithCustom1qOptimization`` plugin for the translation
-stage by default when the target is set to ``Mybackend`` (unless the user manually
-explicitly selects a different method). For this interface to work though transpiler
+stage by default when the target is set to ``Mybackend``. Note that users may override these choices
+by explicitly selecting a different plugin name. For this interface to work though transpiler
 stage plugins must be implemented for the returned plugin name. You can refer
 to :mod:`qiskit.transpiler.preset_passmanagers.plugin` module documentation for
 details on how to implement plugins. The typical expectation is that if your backend
