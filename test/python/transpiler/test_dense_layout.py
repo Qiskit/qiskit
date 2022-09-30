@@ -16,7 +16,7 @@ import unittest
 
 import numpy as np
 
-from qiskit import QuantumRegister, QuantumCircuit
+from qiskit import QuantumRegister, QuantumCircuit, ClassicalRegister
 from qiskit.circuit import Parameter
 from qiskit.circuit.library import CXGate, UGate, ECRGate, RZGate
 from qiskit.transpiler import CouplingMap, Target, InstructionProperties, TranspilerError
@@ -75,6 +75,7 @@ class TestDenseLayout(QiskitTestCase):
         pass_.run(dag)
 
         layout = pass_.property_set["layout"]
+
         self.assertEqual(layout[qr0[0]], 11)
         self.assertEqual(layout[qr0[1]], 10)
         self.assertEqual(layout[qr0[2]], 6)
@@ -192,6 +193,30 @@ class TestDenseLayout(QiskitTestCase):
             ]
         )
         np.testing.assert_array_equal(expected_error_matrix, DenseLayout(target=target).error_mat)
+
+    def test_5q_circuit_20q_with_if_else(self):
+        """Test layout works finds a dense 5q subgraph in a 19q heavy hex target."""
+        qr = QuantumRegister(5, "q")
+        cr = ClassicalRegister(5)
+        circuit = QuantumCircuit(qr, cr)
+        true_body = QuantumCircuit(qr, cr)
+        false_body = QuantumCircuit(qr, cr)
+        true_body.cx(qr[0], qr[3])
+        true_body.cx(qr[3], qr[4])
+        false_body.cx(qr[3], qr[1])
+        false_body.cx(qr[0], qr[2])
+        circuit.if_else((cr, 0), true_body, false_body, qr, cr)
+        circuit.cx(0, 4)
+
+        dag = circuit_to_dag(circuit)
+        pass_ = DenseLayout(CouplingMap(self.cmap20))
+        pass_.run(dag)
+        layout = pass_.property_set["layout"]
+        self.assertEqual(layout[qr[0]], 11)
+        self.assertEqual(layout[qr[1]], 10)
+        self.assertEqual(layout[qr[2]], 6)
+        self.assertEqual(layout[qr[3]], 5)
+        self.assertEqual(layout[qr[4]], 0)
 
 
 if __name__ == "__main__":
