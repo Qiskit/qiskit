@@ -294,7 +294,7 @@ class VQD(VariationalAlgorithm, Eigensolver):
         result.cost_function_evals = np.array(result.cost_function_evals)
         result.optimizer_times = np.array(result.optimizer_times)
 
-        result.ansatz = self.ansatz
+        result.ansatz = self.ansatz.copy()
         if aux_operators is not None:
             result.aux_operators_evaluated = aux_values
 
