@@ -104,7 +104,7 @@ class SSVQE(VariationalAlgorithm, Eigensolver):
                 result.
             gradient (BaseEstimatorGradient | None): An optional estimator gradient to be used with the
                 optimizer.
-            callback (Callable[[int, np.ndarray, np.ndarray, dict[str, Any]], None] | None): A callback that
+            callback (Callable[[int, np.ndarray, Sequence[float], dict[str, Any]], None] | None): A function that
                 can access the intermediate data at each optimization step. These data are: the
                 evaluation count, the optimizer parameters for the ansatz, the evaluated mean energies, and the
                 metadata dictionary.
@@ -127,7 +127,7 @@ class SSVQE(VariationalAlgorithm, Eigensolver):
         initial_states: Sequence[QuantumCircuit] = None,
         weight_vector: Sequence[float] | Sequence[int] = None,
         gradient: BaseEstimatorGradient | None = None,
-        callback: Callable[[int, np.ndarray, float, float], None] | None = None,
+        callback: Callable[[int, np.ndarray, Sequence[float], float], None] | None = None,
         check_input_states_orthogonality: bool = True,
     ) -> None:
         """
@@ -180,16 +180,6 @@ class SSVQE(VariationalAlgorithm, Eigensolver):
     def initial_point(self, initial_point: Sequence[float] | None):
         """Sets initial point"""
         self._initial_point = initial_point
-
-    @property
-    def callback(self) -> Callable[[int, np.ndarray, float, float], None] | None:
-        """Returns callback"""
-        return self._callback
-
-    @callback.setter
-    def callback(self, callback: Callable[[int, np.ndarray, float, float], None] | None):
-        """Sets callback"""
-        self._callback = callback
 
     @classmethod
     def supports_aux_operators(cls) -> bool:
