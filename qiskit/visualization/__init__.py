@@ -244,7 +244,6 @@ from .array import array_to_latex
 
 from .circuit import circuit_drawer
 from .counts_visualization import plot_histogram
-from .bloch import Bloch, Arrow3D
 from .state_visualization import (
     plot_state_hinton,
     plot_bloch_vector,

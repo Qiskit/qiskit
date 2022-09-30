@@ -38,6 +38,7 @@ from qiskit.transpiler.basepasses import BasePass
 from qiskit.transpiler.exceptions import TranspilerError
 from qiskit.transpiler.instruction_durations import InstructionDurations, InstructionDurationsType
 from qiskit.transpiler.passes import ApplyLayout
+from qiskit.transpiler.passes.synthesis.high_level_synthesis import HLSConfig
 from qiskit.transpiler.passmanager_config import PassManagerConfig
 from qiskit.transpiler.preset_passmanagers import (
     level_0_pass_manager,
@@ -71,7 +72,7 @@ def transpile(
     scheduling_method: Optional[str] = None,
     instruction_durations: Optional[InstructionDurationsType] = None,
     dt: Optional[float] = None,
-    approximation_degree: Optional[float] = None,
+    approximation_degree: Optional[float] = 1.0,
     timing_constraints: Optional[Dict[str, int]] = None,
     seed_transpiler: Optional[int] = None,
     optimization_level: Optional[int] = None,
@@ -80,6 +81,7 @@ def transpile(
     unitary_synthesis_method: str = "default",
     unitary_synthesis_plugin_config: dict = None,
     target: Target = None,
+    hls_config: Optional[HLSConfig] = None,
     init_method: str = None,
     optimization_method: str = None,
     ignore_backend_default_methods: bool = False,
@@ -261,6 +263,11 @@ def transpile(
             the ``backend`` argument, but if you have manually constructed a
             :class:`~qiskit.transpiler.Target` object you can specify it manually here.
             This will override the target from ``backend``.
+        hls_config: An optional configuration class
+            :class:`~qiskit.transpiler.passes.synthesis.HLSConfig` that will be passed directly
+            to :class:`~qiskit.transpiler.passes.synthesis.HighLevelSynthesis` transformation pass.
+            This configuration class allows to specify for various high-level objects the lists of
+            synthesis algorithms and their parameters.
         init_method: The plugin name to use for the ``init`` stage. By default an external
             plugin is not used. You can see a list of installed plugins by
             using :func:`~.list_stage_plugins` with ``"init"`` for the stage
@@ -340,6 +347,7 @@ def transpile(
         unitary_synthesis_method,
         unitary_synthesis_plugin_config,
         target,
+        hls_config,
         init_method,
         optimization_method,
         ignore_backend_default_methods,
@@ -593,6 +601,7 @@ def _parse_transpile_args(
     unitary_synthesis_method,
     unitary_synthesis_plugin_config,
     target,
+    hls_config,
     init_method,
     optimization_method,
     ignore_backend_default_methods,
@@ -690,6 +699,7 @@ def _parse_transpile_args(
         "unitary_synthesis_method": unitary_synthesis_method,
         "unitary_synthesis_plugin_config": unitary_synthesis_plugin_config,
         "target": target,
+        "hls_config": hls_config,
     }.items():
         if isinstance(value, list):
             unique_dict[key] = value
