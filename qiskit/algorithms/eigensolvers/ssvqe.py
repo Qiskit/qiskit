@@ -312,7 +312,6 @@ class SSVQE(VariationalAlgorithm, Eigensolver):
 
         def evaluate_weighted_energy_sum(parameters):
             nonlocal eval_count
-            # nonlocal weights
             parameters = np.reshape(parameters, (-1, num_parameters)).tolist()
             batchsize = len(parameters)
 
@@ -455,6 +454,7 @@ class SSVQE(VariationalAlgorithm, Eigensolver):
         return initial_states
 
     def _check_weight_vector(self, weight_vector: Sequence[float]) -> Sequence[float]:
+        """Check that the number of weights matches the number of states."""
         if weight_vector is None:
             weight_vector = [self.k - n for n in range(self.k)]
         elif len(weight_vector) != self.k:
