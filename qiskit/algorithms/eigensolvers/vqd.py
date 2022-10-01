@@ -259,7 +259,7 @@ class VQD(VariationalAlgorithm, Eigensolver):
 
             eval_time = time() - start_time
 
-            self._update_vqd_result(result, opt_result, eval_time, self.ansatz)
+            self._update_vqd_result(result, opt_result, eval_time, self.ansatz.copy())
 
             if aux_operators is not None:
                 aux_value = estimate_observables(
@@ -388,6 +388,7 @@ class VQD(VariationalAlgorithm, Eigensolver):
         result.optimizer_times = []
         result.eigenvalues = []
         result.optimizer_results = []
+        result.optimal_circuits = []
         return result
 
     @staticmethod
@@ -400,6 +401,7 @@ class VQD(VariationalAlgorithm, Eigensolver):
         result.optimizer_times.append(eval_time)
         result.eigenvalues.append(opt_result.fun + 0j)
         result.optimizer_results.append(opt_result)
+        result.optimal_circuits.append(ansatz)
         return result
 
 
@@ -414,6 +416,7 @@ class VQDResult(EigensolverResult):
         self._optimal_points = None
         self._optimal_parameters = None
         self._optimizer_results = None
+        self._optimal_circuits = None
 
     @property
     def cost_function_evals(self) -> Sequence[int] | None:
@@ -474,3 +477,13 @@ class VQDResult(EigensolverResult):
     def optimizer_results(self, value: Sequence[OptimizerResult]) -> None:
         """Sets optimizer results"""
         self._optimizer_results = value
+
+    @property
+    def optimal_circuits(self) -> list[QuantumCircuit]:
+        """The optimal circuits. Along with the optimal parameters,
+        these can be used to retrieve the different eigenstates."""
+        return self._optimal_circuits
+
+    @optimal_circuits.setter
+    def optimal_circuits(self, optimal_circuits: list[QuantumCircuit]) -> None:
+        self._optimal_circuits = optimal_circuits
