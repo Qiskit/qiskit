@@ -12,4 +12,7 @@ shared-memory38;python_version<'3.8'
 typing-extensions; python_version < '3.8'
 
 # To be removed as a requirement in Terra 0.23.
-tweedledum>=1.1,<2.0
+tweedledum>=1.1,<2.0; platform_machine != 'arm64' or sys_platform != 'darwin'
+# 1.1.1 has no wheel on M1 mac, which frequently causes problems for people.
+# Better just to forbid that in those cases.
+tweedledum>=1.1,<2.0,!=1.1.1; platform_machine == 'arm64' and sys_platform == 'darwin'
