@@ -287,7 +287,12 @@ class QuantumCircuit:
 
     @classmethod
     def from_instructions(
-        cls, instructions: Iterable[CircuitInstruction], *, name=None, metadata=None, global_phase=0
+        cls,
+        instructions: Iterable[CircuitInstruction],
+        *,
+        name=None,
+        metadata=None,
+        global_phase=0,
     ):
         """Return a circuit from instructions
 
@@ -297,13 +302,25 @@ class QuantumCircuit:
         out = cls(name=name, metadata=metadata, global_phase=global_phase)
         qc = QuantumCircuit()
         qc._data = out._data
-        nr_qb = 0
+        qbit_list = set()
+        cbit_list = set()
         for instruction in instructions:
-            cir_instruction = instruction[1][0]
-            if isinstance(cir_instruction, Qubit):
-                nr_qb = nr_qb + 1
-        qc = QuantumCircuit(nr_qb)
-        for instruction in instructions:
+            qargs = instruction.qubits
+            cargs = instruction.clbits
+            if qargs:
+                qr = qargs[0].register
+                qb = qargs[0].index
+                qbit = Qubit(qr, qb)
+                if qbit not in qbit_list:
+                    qc.add_bits([Qubit(qr, qb)])
+                    qbit_list.add(qbit)
+            if cargs:
+                cr = cargs[0].register
+                cb = cargs[0].index
+                cbit = Clbit(cr, cb)
+                if cbit not in cbit_list:
+                    qc.add_bits([Clbit(cr, cb)])
+                    cbit_list.add(cbit)
             qc._append(instruction)
         return qc
 

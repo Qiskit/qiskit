@@ -12,8 +12,16 @@
 
 """Test operations on circuit.data."""
 
-from qiskit.circuit import QuantumCircuit, QuantumRegister, Parameter, CircuitInstruction
-from qiskit.circuit.library import HGate, XGate, CXGate, RXGate
+from qiskit.circuit import (
+    QuantumCircuit,
+    QuantumRegister,
+    ClassicalRegister,
+    Parameter,
+    CircuitInstruction,
+    Qubit,
+    Clbit,
+)
+from qiskit.circuit.library import HGate, XGate, CXGate, RXGate, Measure
 
 from qiskit.test import QiskitTestCase
 from qiskit.circuit.exceptions import CircuitError
@@ -415,3 +423,34 @@ class TestQuantumCircuitInstructionData(QiskitTestCase):
         qc0_instance = next(iter(qc0._parameter_table[b]))[0]
         qc1_instance = next(iter(qc1._parameter_table[a]))[0]
         self.assertNotEqual(qc0_instance, qc1_instance)
+
+    def test_circuit_instructions(self):
+        """Verify circuit instructions are added to the circuit."""
+        qr = QuantumRegister(2, "q")
+        cr = ClassicalRegister(1, "c")
+        qc = QuantumCircuit(qr, cr)
+        instructions = []
+        instruction = CircuitInstruction(HGate(), [qr[0]], [])
+        instructions.append(instruction)
+        instruction = CircuitInstruction(CXGate(), [qr[0], qr[1]], [])
+        instructions.append(instruction)
+        instruction = CircuitInstruction(HGate(), [qr[1]], [])
+        instructions.append(instruction)
+        instruction = CircuitInstruction(Measure(), [qr[0]], [cr[0]])
+        instructions.append(instruction)
+        # qc = QuantumCircuit()
+        qc = qc.from_instructions(instructions)
+
+        expected_qc = QuantumCircuit()
+        cb = 0
+        qb_1 = 0
+        qb_2 = 1
+        expected_qc.add_bits([Qubit(qr, qb_1)])
+        expected_qc.add_bits([Qubit(qr, qb_2)])
+        expected_qc.add_bits([Clbit(cr, cb)])
+        expected_qc.h(0)
+        expected_qc.cx(0, 1)
+        expected_qc.h(1)
+        expected_qc.measure(0, 0)
+
+        self.assertEqual(qc, expected_qc)
