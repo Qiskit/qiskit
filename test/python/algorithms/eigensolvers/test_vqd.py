@@ -100,6 +100,14 @@ class TestVQD(QiskitAlgorithmsTestCase):
         with self.subTest(msg="assert optimizer_times is set"):
             self.assertIsNotNone(result.optimizer_times)
 
+        with self.subTest(msg="assert return ansatz is set"):
+            job = self.estimator.run(
+                result.optimal_circuits,
+                [op] * len(result.optimal_points),
+                result.optimal_points,
+            )
+            np.testing.assert_array_almost_equal(job.result().values, result.eigenvalues, 6)
+
     @data(H2_PAULI, H2_OP)
     def test_mismatching_num_qubits(self, op):
         """Ensuring circuit and operator mismatch is caught"""
