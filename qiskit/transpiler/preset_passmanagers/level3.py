@@ -93,6 +93,7 @@ def level_3_pass_manager(pass_manager_config: PassManagerConfig) -> StagedPassMa
     timing_constraints = pass_manager_config.timing_constraints or TimingConstraints()
     unitary_synthesis_plugin_config = pass_manager_config.unitary_synthesis_plugin_config
     target = pass_manager_config.target
+    hls_config = pass_manager_config.hls_config
     # Override an unset optimization_level for stage plugin use.
     # it will be restored to None before this is returned
     optimization_level = pass_manager_config.optimization_level
@@ -183,8 +184,8 @@ def level_3_pass_manager(pass_manager_config: PassManagerConfig) -> StagedPassMa
 
     # 8. Optimize iteratively until no more change in depth. Removes useless gates
     # after reset and before measure, commutes gates and optimizes contiguous blocks.
-    _depth_check = [Depth(), FixedPoint("depth")]
-    _size_check = [Size(), FixedPoint("size")]
+    _depth_check = [Depth(recurse=True), FixedPoint("depth")]
+    _size_check = [Size(recurse=True), FixedPoint("size")]
 
     def _opt_control(property_set):
         return (not property_set["depth_fixed_point"]) or (not property_set["size_fixed_point"])
@@ -217,6 +218,7 @@ def level_3_pass_manager(pass_manager_config: PassManagerConfig) -> StagedPassMa
             approximation_degree,
             unitary_synthesis_method,
             unitary_synthesis_plugin_config,
+            hls_config,
         )
     init.append(RemoveResetInZeroState())
     init.append(OptimizeSwapBeforeMeasure())
@@ -250,6 +252,7 @@ def level_3_pass_manager(pass_manager_config: PassManagerConfig) -> StagedPassMa
             backend_properties,
             unitary_synthesis_method,
             unitary_synthesis_plugin_config,
+            hls_config,
         )
     pre_routing = None
     if toqm_pass:
@@ -296,8 +299,6 @@ def level_3_pass_manager(pass_manager_config: PassManagerConfig) -> StagedPassMa
             optimization.append(
                 _opt + _unroll_if_out_of_basis + _depth_check + _size_check, do_while=_opt_control
             )
-        opt_loop = _depth_check + _opt + _unroll_if_out_of_basis
-        optimization.append(opt_loop, do_while=_opt_control)
     else:
         optimization = plugin_manager.get_passmanager_stage(
             "optimization", optimization_method, pass_manager_config, optimization_level=3

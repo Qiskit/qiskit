@@ -72,12 +72,14 @@ Amplitude Estimators
    MaximumLikelihoodAmplitudeEstimationResult
 
 
-Eigensolvers
-------------
+Eigen Solvers
+-------------
 
 Algorithms to find eigenvalues of an operator. For chemistry these can be used to find excited
 states of a molecule, and qiskit-nature has some algorithms that leverage chemistry specific
-knowledge to do this in that application domain.
+knowledge to do this in that application domain. These algorithms are pending deprecation.
+One should instead make use of the Eigensolver classes in the section below, which leverage
+Runtime primitives.
 
 .. autosummary::
    :toctree: ../stubs/
@@ -92,21 +94,27 @@ knowledge to do this in that application domain.
 
    NumPyEigensolver
    VQD
+   VQDResult
 
+Eigensolvers
+------------
 
-Variational Quantum Time Evolution
-----------------------------------
-
-Classes used by variational quantum time evolution algorithms - VarQITE and VarQRTE.
+Algorithms to find eigenvalues of an operator. For chemistry these can be used to find excited
+states of a molecule, and qiskit-nature has some algorithms that leverage chemistry specific
+knowledge to do this in that application domain.
 
 .. autosummary::
    :toctree: ../stubs/
 
-   evolvers.variational
-
+   eigensolvers
 
 Evolvers
 --------
+
+Pending deprecation: This package has been superseded by the package below. It will be
+deprecated in a future release and subsequently removed after that:
+
+`Time Evolvers`_
 
 Algorithms to evolve quantum states in time. Both real and imaginary time evolution is possible
 with algorithms that support them. For machine learning, Quantum Imaginary Time Evolution might be
@@ -119,12 +127,38 @@ used to train Quantum Boltzmann Machine Neural Networks for example.
     RealEvolver
     ImaginaryEvolver
     TrotterQRTE
-    VarQITE
-    VarQRTE
-    PVQD
-    PVQDResult
     EvolutionResult
     EvolutionProblem
+
+
+Time Evolvers
+-------------
+
+Primitives-enabled algorithms to evolve quantum states in time. Both real and imaginary time
+evolution is possible with algorithms that support them. For machine learning, Quantum Imaginary
+Time Evolution might be used to train Quantum Boltzmann Machine Neural Networks for example.
+
+.. autosummary::
+   :toctree: ../stubs/
+   :nosignatures:
+
+    RealTimeEvolver
+    ImaginaryTimeEvolver
+    PVQD
+    PVQDResult
+    TimeEvolutionResult
+    TimeEvolutionProblem
+
+
+Trotterization-based Quantum Real Time Evolution
+------------------------------------------------
+
+Package for primitives-enabled Trotterization-based quantum time evolution algorithm - TrotterQRTE.
+
+.. autosummary::
+   :toctree: ../stubs/
+
+   time_evolvers.trotterization
 
 
 Factorizers
@@ -163,10 +197,12 @@ Algorithms to solve linear systems of equations.
    linear_solvers
 
 
-Minimum Eigensolvers
---------------------
+Minimum Eigen Solvers
+---------------------
 
 Algorithms that can find the minimum eigenvalue of an operator.
+These algorithms are pending deprecation. One should instead make use of the
+Minimum Eigensolver classes in the section below, which leverage Runtime primitives.
 
 .. autosummary::
    :toctree: ../stubs/
@@ -182,6 +218,16 @@ Algorithms that can find the minimum eigenvalue of an operator.
    NumPyMinimumEigensolver
    QAOA
    VQE
+
+Minimum Eigensolvers
+--------------------
+
+Algorithms that can find the minimum eigenvalue of an operator and leverage primitives.
+
+.. autosummary::
+   :toctree: ../stubs/
+
+   minimum_eigensolvers
 
 
 Optimizers
@@ -222,6 +268,7 @@ Algorithms that compute the fidelity of pairs of quantum states.
 
    state_fidelities
 
+
 Exceptions
 ----------
 
@@ -240,6 +287,8 @@ Utility methods used by algorithms.
    :toctree: ../stubs/
 
    eval_observables
+   estimate_observables
+
 
 Utility classes
 ---------------
@@ -257,6 +306,10 @@ from .algorithm_result import AlgorithmResult
 from .evolvers import EvolutionResult, EvolutionProblem
 from .evolvers.real_evolver import RealEvolver
 from .evolvers.imaginary_evolver import ImaginaryEvolver
+from .time_evolvers.imaginary_time_evolver import ImaginaryTimeEvolver
+from .time_evolvers.real_time_evolver import RealTimeEvolver
+from .time_evolvers.time_evolution_problem import TimeEvolutionProblem
+from .time_evolvers.time_evolution_result import TimeEvolutionResult
 from .variational_algorithm import VariationalAlgorithm, VariationalResult
 from .amplitude_amplifiers import Grover, GroverResult, AmplificationProblem, AmplitudeAmplifier
 from .amplitude_estimators import (
@@ -293,11 +346,10 @@ from .phase_estimators import (
 )
 from .exceptions import AlgorithmError
 from .aux_ops_evaluator import eval_observables
+from .observables_evaluator import estimate_observables
 from .evolvers.trotterization import TrotterQRTE
-from .evolvers.variational.var_qite import VarQITE
-from .evolvers.variational.var_qrte import VarQRTE
 
-from .evolvers.pvqd import PVQD, PVQDResult
+from .time_evolvers.pvqd import PVQD, PVQDResult
 
 __all__ = [
     "AlgorithmJob",
@@ -322,11 +374,13 @@ __all__ = [
     "NumPyEigensolver",
     "RealEvolver",
     "ImaginaryEvolver",
+    "RealTimeEvolver",
+    "ImaginaryTimeEvolver",
     "TrotterQRTE",
-    "VarQITE",
-    "VarQRTE",
     "EvolutionResult",
     "EvolutionProblem",
+    "TimeEvolutionResult",
+    "TimeEvolutionProblem",
     "LinearSolverResult",
     "Eigensolver",
     "EigensolverResult",
@@ -344,6 +398,7 @@ __all__ = [
     "HamiltonianPhaseEstimation",
     "HamiltonianPhaseEstimationResult",
     "VQD",
+    "VQDResult",
     "PhaseEstimationScale",
     "PhaseEstimation",
     "PhaseEstimationResult",
@@ -352,4 +407,5 @@ __all__ = [
     "IterativePhaseEstimation",
     "AlgorithmError",
     "eval_observables",
+    "estimate_observables",
 ]

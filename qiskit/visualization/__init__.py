@@ -70,7 +70,7 @@ You can save the figure to file either by passing the file name to ``filename`` 
 `matplotlib.figure.Figure.savefig
 <https://matplotlib.org/stable/api/figure_api.html#matplotlib.figure.Figure.savefig>`_ method.
 
-.. jupyter-execute::
+.. code-block:: python
 
    plot_histogram(data, filename='new_hist.png')
 
@@ -101,6 +101,16 @@ Here is an example of using :func:`plot_histogram` to visualize measurement outc
 
 The data can be a dictionary with bit string as key and counts as value, or more commonly a
 :class:`~qiskit.result.Counts` object obtained from :meth:`~qiskit.result.Result.get_counts`.
+
+Distribution Visualizations
+===========================
+
+This section contains functions that visualize sampled distributions.
+
+.. autosummary::
+   :toctree: ../stubs/
+
+   plot_distribution
 
 State Visualizations
 ====================
@@ -243,8 +253,7 @@ import warnings
 from .array import array_to_latex
 
 from .circuit import circuit_drawer
-from .counts_visualization import plot_histogram
-from .bloch import Bloch, Arrow3D
+from .counts_visualization import plot_histogram, plot_distribution
 from .state_visualization import (
     plot_state_hinton,
     plot_bloch_vector,

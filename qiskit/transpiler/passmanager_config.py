@@ -39,6 +39,7 @@ class PassManagerConfig:
         unitary_synthesis_method="default",
         unitary_synthesis_plugin_config=None,
         target=None,
+        hls_config=None,
         init_method=None,
         optimization_method=None,
         optimization_level=None,
@@ -77,6 +78,9 @@ class PassManagerConfig:
                 :class:`~qiskit.transpiler.passes.UnitarySynthesis` pass. Will
                 search installed plugins for a valid method.
             target (Target): The backend target
+            hls_config (HLSConfig): An optional configuration class to use for
+                :class:`~qiskit.transpiler.passes.HighLevelSynthesis` pass.
+                Specifies how to synthesize various high-level objects.
             init_method (str): The plugin name for the init stage plugin to use
             optimization_method (str): The plugin name for the optimization stage plugin
                 to use.
@@ -100,6 +104,7 @@ class PassManagerConfig:
         self.unitary_synthesis_method = unitary_synthesis_method
         self.unitary_synthesis_plugin_config = unitary_synthesis_plugin_config
         self.target = target
+        self.hls_config = hls_config
         self.optimization_level = optimization_level
 
     @classmethod

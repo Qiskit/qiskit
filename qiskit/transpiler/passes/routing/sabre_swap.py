@@ -150,14 +150,7 @@ class SabreSwap(TransformationPass):
         if coupling_map is not None:
             self._neighbor_table = NeighborTable(retworkx.adjacency_matrix(self.coupling_map.graph))
 
-        if heuristic == "basic":
-            self.heuristic = Heuristic.Basic
-        elif heuristic == "lookahead":
-            self.heuristic = Heuristic.Lookahead
-        elif heuristic == "decay":
-            self.heuristic = Heuristic.Decay
-        else:
-            raise TranspilerError("Heuristic %s not recognized." % heuristic)
+        self.heuristic = heuristic
 
         if seed is None:
             ii32 = np.iinfo(np.int32)
@@ -191,6 +184,15 @@ class SabreSwap(TransformationPass):
         if len(dag.qubits) > self.coupling_map.size():
             raise TranspilerError("More virtual qubits exist than physical.")
 
+        if self.heuristic == "basic":
+            heuristic = Heuristic.Basic
+        elif self.heuristic == "lookahead":
+            heuristic = Heuristic.Lookahead
+        elif self.heuristic == "decay":
+            heuristic = Heuristic.Decay
+        else:
+            raise TranspilerError("Heuristic %s not recognized." % self.heuristic)
+
         self.dist_matrix = self.coupling_map.distance_matrix
 
         # Preserve input DAG's name, regs, wire_map, etc. but replace the graph.
@@ -210,11 +212,16 @@ class SabreSwap(TransformationPass):
 
         dag_list = []
         for node in dag.topological_op_nodes():
+            cargs = {self._clbit_indices[x] for x in node.cargs}
+            if node.op.condition is not None:
+                for clbit in dag._bits_in_condition(node.op.condition):
+                    cargs.add(self._clbit_indices[clbit])
+
             dag_list.append(
                 (
                     node._node_id,
                     [self._qubit_indices[x] for x in node.qargs],
-                    [self._clbit_indices[x] for x in node.cargs],
+                    cargs,
                 )
             )
         front_layer = np.asarray([x._node_id for x in dag.front_layer()], dtype=np.uintp)
@@ -224,7 +231,7 @@ class SabreSwap(TransformationPass):
             sabre_dag,
             self._neighbor_table,
             self.dist_matrix,
-            self.heuristic,
+            heuristic,
             self.seed,
             layout,
             self.trials,

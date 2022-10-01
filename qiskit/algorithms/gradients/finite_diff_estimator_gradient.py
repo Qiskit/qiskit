@@ -33,14 +33,15 @@ class FiniteDiffEstimatorGradient(BaseEstimatorGradient):
     Compute the gradients of the expectation values by finite difference method.
     """
 
-    def __init__(self, estimator: BaseEstimator, epsilon: float, **run_options):
+    def __init__(self, estimator: BaseEstimator, epsilon: float, **options):
         """
         Args:
             estimator: The estimator used to compute the gradients.
             epsilon: The offset size for the finite difference gradients.
-            run_options: Backend runtime options used for circuit execution. The order of priority is:
-                run_options in ``run`` method > gradient's default run_options > primitive's default
-                setting. Higher priority setting overrides lower priority setting.
+            options: Primitive backend runtime options used for circuit execution.
+                The order of priority is: options in ``run`` method > gradient's
+                default options > primitive's default setting.
+                Higher priority setting overrides lower priority setting
 
         Raises:
             ValueError: If ``epsilon`` is not positive.
@@ -49,7 +50,7 @@ class FiniteDiffEstimatorGradient(BaseEstimatorGradient):
             raise ValueError(f"epsilon ({epsilon}) should be positive.")
         self._epsilon = epsilon
         self._base_parameter_values_dict = {}
-        super().__init__(estimator, **run_options)
+        super().__init__(estimator, **options)
 
     def _run(
         self,
@@ -57,7 +58,7 @@ class FiniteDiffEstimatorGradient(BaseEstimatorGradient):
         observables: Sequence[BaseOperator | PauliSumOp],
         parameter_values: Sequence[Sequence[float]],
         parameters: Sequence[Sequence[Parameter] | None],
-        **run_options,
+        **options,
     ) -> EstimatorGradientResult:
         """Compute the estimator gradients on the given circuits."""
         jobs, metadata_ = [], []
@@ -76,7 +77,7 @@ class FiniteDiffEstimatorGradient(BaseEstimatorGradient):
             minus = parameter_values_ - self._epsilon * offset
             n = 2 * len(indices)
             job = self._estimator.run(
-                [circuit] * n, [observable] * n, plus.tolist() + minus.tolist(), **run_options
+                [circuit] * n, [observable] * n, plus.tolist() + minus.tolist(), **options
             )
             jobs.append(job)
 
@@ -91,5 +92,5 @@ class FiniteDiffEstimatorGradient(BaseEstimatorGradient):
             n = len(result.values) // 2  # is always a multiple of 2
             gradient_ = (result.values[:n] - result.values[n:]) / (2 * self._epsilon)
             gradients.append(gradient_)
-        run_opt = self._get_local_run_options(run_options)
-        return EstimatorGradientResult(gradients=gradients, metadata=metadata_, run_options=run_opt)
+        opt = self._get_local_options(options)
+        return EstimatorGradientResult(gradients=gradients, metadata=metadata_, options=opt)
