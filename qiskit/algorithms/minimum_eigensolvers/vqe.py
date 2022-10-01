@@ -200,7 +200,9 @@ class VQE(VariationalAlgorithm, MinimumEigensolver):
         else:
             aux_operators_evaluated = None
 
-        return self._build_vqe_result(optimizer_result, aux_operators_evaluated, optimizer_time)
+        return self._build_vqe_result(
+            self.ansatz, optimizer_result, aux_operators_evaluated, optimizer_time
+        )
 
     @classmethod
     def supports_aux_operators(cls) -> bool:
@@ -308,11 +310,13 @@ class VQE(VariationalAlgorithm, MinimumEigensolver):
 
     def _build_vqe_result(
         self,
+        ansatz: QuantumCircuit,
         optimizer_result: OptimizerResult,
         aux_operators_evaluated: ListOrDict[tuple[complex, tuple[complex, int]]],
         optimizer_time: float,
     ) -> VQEResult:
         result = VQEResult()
+        result.optimal_circuit = ansatz.copy()
         result.eigenvalue = optimizer_result.fun
         result.cost_function_evals = optimizer_result.nfev
         result.optimal_point = optimizer_result.x
