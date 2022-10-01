@@ -17,7 +17,11 @@ from .instruction import Instruction
 
 
 class Barrier(Instruction):
-    """Barrier instruction."""
+    """Barrier instruction.
+        The barrier acts as a directive for circuit compilation to separate pieces of a circuit
+        so that any optimizations or re-writes are constrained to only act between barriers
+        (and if there are no barriers they act on the whole circuit). This only comes into play
+        when using the transpile or execute functions in Qiskit (execute includes a transpile step)"""
 
     _directive = True
 
