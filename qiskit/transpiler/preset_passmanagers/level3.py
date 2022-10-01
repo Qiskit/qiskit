@@ -93,6 +93,7 @@ def level_3_pass_manager(pass_manager_config: PassManagerConfig) -> StagedPassMa
     timing_constraints = pass_manager_config.timing_constraints or TimingConstraints()
     unitary_synthesis_plugin_config = pass_manager_config.unitary_synthesis_plugin_config
     target = pass_manager_config.target
+    hls_config = pass_manager_config.hls_config
     # Override an unset optimization_level for stage plugin use.
     # it will be restored to None before this is returned
     optimization_level = pass_manager_config.optimization_level
@@ -217,6 +218,7 @@ def level_3_pass_manager(pass_manager_config: PassManagerConfig) -> StagedPassMa
             approximation_degree,
             unitary_synthesis_method,
             unitary_synthesis_plugin_config,
+            hls_config,
         )
     init.append(RemoveResetInZeroState())
     init.append(OptimizeSwapBeforeMeasure())
@@ -250,6 +252,7 @@ def level_3_pass_manager(pass_manager_config: PassManagerConfig) -> StagedPassMa
             backend_properties,
             unitary_synthesis_method,
             unitary_synthesis_plugin_config,
+            hls_config,
         )
     pre_routing = None
     if toqm_pass:

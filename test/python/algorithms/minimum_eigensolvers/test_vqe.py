@@ -107,6 +107,11 @@ class TestVQE(QiskitAlgorithmsTestCase):
         with self.subTest(msg="assert optimizer_result."):
             self.assertAlmostEqual(result.optimizer_result.fun, self.h2_energy, places=5)
 
+        with self.subTest(msg="assert return ansatz is set"):
+            estimator = Estimator()
+            job = estimator.run(result.optimal_circuit, self.h2_op, result.optimal_point)
+            np.testing.assert_array_almost_equal(job.result().values, result.eigenvalue, 6)
+
     def test_invalid_initial_point(self):
         """Test the proper error is raised when the initial point has the wrong size."""
         ansatz = self.ryrz_wavefunction
