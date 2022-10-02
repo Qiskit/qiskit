@@ -260,6 +260,17 @@ class Target(Mapping):
                     )
         self.qubit_properties = qubit_properties
 
+    def __repr__(self):
+        """Return representation of the circuit transpiler target."""
+        return (
+            f"{type(self).__name__}("
+            f" num_qubits={self.num_qubits!r}"
+            f", dt={self.dt!r}"
+            f", gate_map={self._gate_map!r}"
+ 
+            ")"
+        )
+        
     def add_instruction(self, instruction, properties=None, name=None):
         """Add a new instruction to the :class:`~qiskit.transpiler.Target`
 

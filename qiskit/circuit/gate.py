@@ -39,7 +39,11 @@ class Gate(Instruction):
 
     # Set higher priority than Numpy array and matrix classes
     __array_priority__ = 20
-
+    
+    def __repr__(self):
+        """Return representation."""
+        return f"{self.name}({', '.join(map(str, self.params))})"
+        
     def to_matrix(self) -> np.ndarray:
         """Return a Numpy.array for the gate unitary matrix.
 

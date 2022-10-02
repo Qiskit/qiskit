@@ -46,6 +46,15 @@ class PassManager:
         self.max_iteration = max_iteration
         self.property_set = None
 
+    def __repr__(self):
+        """Return a string representation of the PassManager."""
+        return (
+            f"{type(self).__name__}("
+            f"pass_sets{self._pass_sets}, "
+            f"max_iteration={self.max_iteration}, "
+            f"property_set={self.property_set})"
+        )
+        
     def append(
         self,
         passes: Union[BasePass, List[BasePass]],

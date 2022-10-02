@@ -42,7 +42,9 @@ class Qubit(Bit):
             raise CircuitError(
                 "Qubit needs a QuantumRegister and %s was provided" % type(register).__name__
             )
-
+    def __repr__(self):
+        """Return representation Qubit."""
+        return f"{self.__class__.__name__}({self._register}, {self._index})"
 
 class QuantumRegister(Register):
     """Implement a quantum register."""
@@ -57,6 +59,9 @@ class QuantumRegister(Register):
         """Return OPENQASM string for this register."""
         return "qreg %s[%d];" % (self.name, self.size)
 
+    def __repr__(self):
+        """Return representation quantum register."""
+        return "<QuantumRegister %s with %d qbits>" % (self.name, self.size)
 
 class AncillaQubit(Qubit):
     """A qubit used as ancillary qubit."""

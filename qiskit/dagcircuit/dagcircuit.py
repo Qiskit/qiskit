@@ -96,6 +96,10 @@ class DAGCircuit:
         self.duration = None
         self.unit = "dt"
 
+    def __repr__(self):
+        """Return representation DAG circuit."""
+        return "<DAGcircuit %s with %s qbits>" % (self.name, self.qubits)
+        
     @_optionals.HAS_NETWORKX.require_in_call
     @deprecate_function(
         "The to_networkx() method is deprecated and will be removed in a future release."

@@ -285,6 +285,15 @@ class QuantumCircuit:
             raise TypeError("Only a dictionary or None is accepted for circuit metadata")
         self._metadata = metadata
 
+    def __repr__(self):
+        """Return the representation."""
+        return "QuantumCircuit '%s' with %d qubits, %d clbits and %d instructions" % (
+            self.name,
+            len(self._qubits),
+            len(self._clbits),
+            len(self._data),
+        )
+
     @property
     def data(self) -> QuantumCircuitData:
         """Return the circuit data (instructions and context).

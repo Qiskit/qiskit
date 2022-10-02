@@ -84,6 +84,16 @@ class Estimator(BaseEstimator):
         )
         self._is_closed = False
 
+    def __repr__(self):
+        """Return a string representation of the PassManager."""
+        return (
+            f"{type(self).__name__}("
+            f"QuantumCircuits{self._circuits}, "
+            f"observables={self.observables}, "
+            f"parameters={self.parameters},"
+            f"options={self.options})"
+        )
+    
     def _call(
         self,
         circuits: Sequence[int],
