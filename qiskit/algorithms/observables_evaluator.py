@@ -60,21 +60,24 @@ def estimate_observables(
     else:
         observables_list = observables
 
-    observables_list = _handle_zero_ops(observables_list)
-    quantum_state = [quantum_state] * len(observables)
-    if parameter_values is not None:
-        parameter_values = [parameter_values] * len(observables)
-    try:
-        estimator_job = estimator.run(quantum_state, observables_list, parameter_values)
-        expectation_values = estimator_job.result().values
-    except Exception as exc:
-        raise AlgorithmError("The primitive job failed!") from exc
+    if len(observables_list) > 0:
+        observables_list = _handle_zero_ops(observables_list)
+        quantum_state = [quantum_state] * len(observables)
+        if parameter_values is not None:
+            parameter_values = [parameter_values] * len(observables)
+        try:
+            estimator_job = estimator.run(quantum_state, observables_list, parameter_values)
+            expectation_values = estimator_job.result().values
+        except Exception as exc:
+            raise AlgorithmError("The primitive job failed!") from exc
 
-    metadata = estimator_job.result().metadata
-    # Discard values below threshold
-    observables_means = expectation_values * (np.abs(expectation_values) > threshold)
-    # zip means and metadata into tuples
-    observables_results = list(zip(observables_means, metadata))
+        metadata = estimator_job.result().metadata
+        # Discard values below threshold
+        observables_means = expectation_values * (np.abs(expectation_values) > threshold)
+        # zip means and metadata into tuples
+        observables_results = list(zip(observables_means, metadata))
+    else:
+        observables_results = []
 
     return _prepare_result(observables_results, observables)
 

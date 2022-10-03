@@ -85,6 +85,7 @@ def level_1_pass_manager(pass_manager_config: PassManagerConfig) -> StagedPassMa
     unitary_synthesis_plugin_config = pass_manager_config.unitary_synthesis_plugin_config
     timing_constraints = pass_manager_config.timing_constraints or TimingConstraints()
     target = pass_manager_config.target
+    hls_config = pass_manager_config.hls_config
 
     # Use trivial layout if no layout given
     _given_layout = SetLayout(initial_layout)
@@ -211,6 +212,7 @@ def level_1_pass_manager(pass_manager_config: PassManagerConfig) -> StagedPassMa
             approximation_degree,
             unitary_synthesis_method,
             unitary_synthesis_plugin_config,
+            hls_config,
         )
         if layout_method not in {"trivial", "dense", "noise_adaptive", "sabre"}:
             layout = plugin_manager.get_passmanager_stage(
@@ -229,6 +231,7 @@ def level_1_pass_manager(pass_manager_config: PassManagerConfig) -> StagedPassMa
     else:
         layout = None
         routing = None
+
     if translation_method not in {"translator", "synthesis", "unroller"}:
         translation = plugin_manager.get_passmanager_stage(
             "translation", translation_method, pass_manager_config, optimization_level=1
@@ -243,7 +246,9 @@ def level_1_pass_manager(pass_manager_config: PassManagerConfig) -> StagedPassMa
             backend_properties,
             unitary_synthesis_method,
             unitary_synthesis_plugin_config,
+            hls_config,
         )
+
     pre_routing = None
     if toqm_pass:
         pre_routing = translation
