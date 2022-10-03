@@ -169,8 +169,12 @@ class PassManager:
             passes = [passes]
         for pass_ in passes:
             if isinstance(pass_, FlowController):
-                # Normalize passes in nested FlowController
-                PassManager._normalize_passes(pass_.passes)
+                # Normalize passes in nested FlowController.
+                # TODO: Internal renormalisation should be the responsibility of the
+                # `FlowController`, but the separation between `FlowController`,
+                # `RunningPassManager` and `PassManager` is so muddled right now, it would be better
+                # to do this as part of more top-down refactoring.  ---Jake, 2022-10-03.
+                pass_.passes = PassManager._normalize_passes(pass_.passes)
             elif not isinstance(pass_, BasePass):
                 raise TranspilerError(
                     "%s is not a BasePass or FlowController instance " % pass_.__class__
