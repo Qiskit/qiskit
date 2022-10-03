@@ -279,9 +279,9 @@ def transpile(
             ``stage_name`` argument.
         ignore_backend_supplied_default_methods: If set to ``True`` any default methods specified by
             a backend will be ignored. Some backends specify alternative default methods
-            to support custom compilation target specific passes/plugins which support backend
-            specific compilation techniques. If you'd prefer that these defaults were not used
-            this option is used to disable those backend specific defaults.
+            to support custom compilation target-specific passes/plugins which support
+            backend-specific compilation techniques. If you'd prefer that these defaults were
+            not used this option is used to disable those backend-specific defaults.
 
     Returns:
         The transpiled circuit(s).
