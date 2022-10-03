@@ -99,9 +99,10 @@ class LinCombEstimatorGradient(BaseEstimatorGradient):
                 param_set = set(parameters_)
 
             meta = {"parameters": [p for p in circuit.parameters if p in param_set]}
-            meta['derivative_type'] = self._derivative_type
+            meta["derivative_type"] = self._derivative_type
             metadata_.append(meta)
 
+            # if derivative_type is DerivativeType.COMPLEX, sum the real and imaginary parts later
             if self._derivative_type == DerivativeType.REAL:
                 op1 = SparsePauliOp.from_list([("Z", 1)])
             elif self._derivative_type == DerivativeType.IMAG:
@@ -112,7 +113,7 @@ class LinCombEstimatorGradient(BaseEstimatorGradient):
             else:
                 raise ValueError(f"Derivative type {self._derivative_type} is not supported.")
 
-            observable_ = observable.expand(op1)
+            observable_1 = observable.expand(op1)
 
             gradient_circuits_ = self._gradient_circuits.get(id(circuit))
             if gradient_circuits_ is None:
@@ -147,12 +148,15 @@ class LinCombEstimatorGradient(BaseEstimatorGradient):
             if self._derivative_type == DerivativeType.COMPLEX:
                 observable_2 = observable.expand(op2)
                 job = self._estimator.run(
-                    gradient_circuits * 2, [observable_] * n + [observable_2] * n, [parameter_values_] * 2* n, **options
+                    gradient_circuits * 2,
+                    [observable_1] * n + [observable_2] * n,
+                    [parameter_values_] * 2 * n,
+                    **options,
                 )
                 jobs.append(job)
             else:
                 job = self._estimator.run(
-                    gradient_circuits, [observable_] * n, [parameter_values_] * n, **options
+                    gradient_circuits, [observable_1] * n, [parameter_values_] * n, **options
                 )
                 jobs.append(job)
 
@@ -167,17 +171,17 @@ class LinCombEstimatorGradient(BaseEstimatorGradient):
 
         gradients = []
         for i, result in enumerate(results):
-            # print(f'i: {i}')
-            # print(f'result: {result}')
             gradient_ = np.zeros(len(metadata_[i]["parameters"]), dtype="complex_")
 
-            if DerivativeType.COMPLEX == metadata_[i]['derivative_type']:
-                # print(f'len(result.values)//2: {len(result.values)//2}')
-                for grad_, idx, coeff in zip(result.values[:len(result.values)//2], result_indices_all[i], coeffs_all[i]):
-                    # print(f'idx: {idx}')
+            if metadata_[i]["derivative_type"] == DerivativeType.COMPLEX:
+                n = len(result.values) // 2  # is always a multiple of 2
+                for grad_, idx, coeff in zip(
+                    result.values[:n], result_indices_all[i], coeffs_all[i]
+                ):
                     gradient_[idx] += coeff * grad_
-                for grad_, idx, coeff in zip(result.values[len(result.values)//2:], result_indices_all[i], coeffs_all[i]):
-                    # gradient_[idx] += coeff * grad_
+                for grad_, idx, coeff in zip(
+                    result.values[n:], result_indices_all[i], coeffs_all[i]
+                ):
                     gradient_[idx] += complex(0, coeff * grad_)
             else:
                 for grad_, idx, coeff in zip(result.values, result_indices_all[i], coeffs_all[i]):

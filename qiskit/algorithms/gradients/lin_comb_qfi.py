@@ -22,11 +22,9 @@ import numpy as np
 
 from qiskit.algorithms import AlgorithmError
 from qiskit.circuit import Parameter, ParameterExpression, QuantumCircuit
-from qiskit.opflow import PauliSumOp
 from qiskit.primitives import BaseEstimator
 from qiskit.providers import Options
 from qiskit.quantum_info import SparsePauliOp
-from qiskit.quantum_info.operators.base_operator import BaseOperator
 
 from .base_qfi import BaseQFI
 from .lin_comb_estimator_gradient import DerivativeType, LinCombEstimatorGradient
@@ -101,7 +99,10 @@ class LinCombQFI(BaseQFI):
                 param_set = set(circuit.parameters)
             else:
                 param_set = set(parameters_)
-            metadata_.append({"parameters": [p for p in circuit.parameters if p in param_set]})
+
+            meta = {"parameters": [p for p in circuit.parameters if p in param_set]}
+            meta["derivative_type"] = self._derivative_type
+            metadata_.append(meta)
 
             observable = SparsePauliOp.from_list([("I" * circuit.num_qubits, 1)])
             # compute the second term (the phase fix) in the QFI
@@ -155,13 +156,33 @@ class LinCombQFI(BaseQFI):
                             bound_coeff = coeff
                         coeffs.append(bound_coeff)
 
-            observable_ = self._expand_observable(observable)
+            # if derivative_type is DerivativeType.COMPLEX, sum the real and imaginary parts later
+            if self._derivative_type == DerivativeType.REAL:
+                op1 = SparsePauliOp.from_list([("Z", 1)])
+            elif self._derivative_type == DerivativeType.IMAG:
+                op1 = SparsePauliOp.from_list([("Y", -1)])
+            elif self._derivative_type == DerivativeType.COMPLEX:
+                op1 = SparsePauliOp.from_list([("Z", 1)])
+                op2 = SparsePauliOp.from_list([("Y", -1)])
+            else:
+                raise ValueError(f"Derivative type {self._derivative_type} is not supported.")
+            observable_1 = observable.expand(op1)
 
             n = len(qfi_circuits)
-            job = self._estimator.run(
-                qfi_circuits, [observable_] * n, [parameter_values_] * n, **options
-            )
-            jobs.append(job)
+            if self._derivative_type == DerivativeType.COMPLEX:
+                observable_2 = observable.expand(op2)
+                job = self._estimator.run(
+                    qfi_circuits * 2,
+                    [observable_1] * n + [observable_2] * n,
+                    [parameter_values_] * 2 * n,
+                    **options,
+                )
+                jobs.append(job)
+            else:
+                job = self._estimator.run(
+                    qfi_circuits, [observable_1] * n, [parameter_values_] * n, **options
+                )
+                jobs.append(job)
             result_indices_all.append(result_indices)
             coeffs_all.append(coeffs)
 
@@ -190,26 +211,28 @@ class LinCombQFI(BaseQFI):
             qfi_ = np.zeros(
                 (len(metadata_[i]["parameters"]), len(metadata_[i]["parameters"])), dtype="complex_"
             )
-            for grad_, idx, coeff in zip(result.values, result_indices_all[i], coeffs_all[i]):
-                qfi_[idx] += coeff * grad_
+
+            if metadata_[i]["derivative_type"] == DerivativeType.COMPLEX:
+                n = len(result.values) // 2  # is always a multiple of 2
+                for grad_, idx, coeff in zip(
+                    result.values[:n], result_indices_all[i], coeffs_all[i]
+                ):
+                    qfi_[idx] += coeff * grad_
+                for grad_, idx, coeff in zip(
+                    result.values[n:], result_indices_all[i], coeffs_all[i]
+                ):
+                    qfi_[idx] += complex(0, coeff * grad_)
+            else:
+                for grad_, idx, coeff in zip(result.values, result_indices_all[i], coeffs_all[i]):
+                    qfi_[idx] += coeff * grad_
             qfi = qfi_ - phase_fixes[i]
             qfi += np.triu(qfi_, k=1).T
+            if metadata_[i]["derivative_type"] != DerivativeType.COMPLEX:
+                qfi = np.real(qfi)
             qfis.append(qfi)
 
         run_opt = self._get_local_options(options)
         return QFIResult(qfis=qfis, metadata=metadata_, options=run_opt)
-
-    def _expand_observable(self, observable: BaseOperator | PauliSumOp) -> BaseOperator:
-        """Expands the observable based on the derivative type."""
-        if self._derivative_type == DerivativeType.REAL:
-            op2 = SparsePauliOp.from_list([("Z", 1)])
-        elif self._derivative_type == DerivativeType.IMAG:
-            op2 = SparsePauliOp.from_list([("Y", -1)])
-        elif self._derivative_type == DerivativeType.COMPLEX:
-            op2 = SparsePauliOp.from_list([("Z", 1), ("Y", complex(0, -1))])
-        else:
-            raise ValueError(f"Derivative type {self._derivative_type} is not supported.")
-        return observable.expand(op2)
 
     def _get_local_options(self, options: Options) -> Options:
         """Return the union of the primitive's default setting,
