@@ -95,9 +95,9 @@ def level_1_pass_manager(pass_manager_config: PassManagerConfig) -> StagedPassMa
     def _choose_layout_condition(property_set):
         return not property_set["layout"]
 
-    def _trivial_not_perfect(property_set):
-        # Verify that a trivial layout is perfect.  If perfect, then the circuit should already
-        # appear to be swap mapped.
+    def _layout_not_perfect(property_set):
+        """Return ``True`` if the first attempt at layout has been checked and found to be
+        imperfect.  In this case, perfection means "does not require any swap routing"."""
         return property_set["is_swap_mapped"] is not None and not property_set["is_swap_mapped"]
 
     # Use a better layout on densely connected qubits, if circuit needs swaps
@@ -234,7 +234,7 @@ def level_1_pass_manager(pass_manager_config: PassManagerConfig) -> StagedPassMa
             layout = PassManager()
             layout.append(_given_layout)
             layout.append(_choose_layout_0, condition=_choose_layout_condition)
-            layout.append(_choose_layout_1, condition=_trivial_not_perfect)
+            layout.append(_choose_layout_1, condition=_layout_not_perfect)
             layout.append(_improve_layout, condition=_vf2_match_not_found)
             layout += common.generate_embed_passmanager(coupling_map)
 

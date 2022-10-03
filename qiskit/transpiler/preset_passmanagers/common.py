@@ -202,10 +202,9 @@ def generate_embed_passmanager(coupling_map):
     return PassManager([FullAncillaAllocation(coupling_map), EnlargeWithAncilla(), ApplyLayout()])
 
 
-def _trivial_not_perfect(property_set):
-    # Verify that a trivial layout is perfect. If trivial_layout_score > 0
-    # the layout is not perfect. The layout is unconditionally set by trivial
-    # layout so we need to clear it before contuing.
+def _layout_not_perfect(property_set):
+    """Return ``True`` if the first attempt at layout has been checked and found to be imperfect.
+    In this case, perfection means "does not require any swap routing"."""
     return property_set["is_swap_mapped"] is not None and not property_set["is_swap_mapped"]
 
 
@@ -258,7 +257,7 @@ def generate_routing_passmanager(
     def _run_post_layout_condition(property_set):
         # If we check trivial layout and the found trivial layout was not perfect also
         # ensure VF2 initial layout was not used before running vf2 post layout
-        if not check_trivial or _trivial_not_perfect(property_set):
+        if not check_trivial or _layout_not_perfect(property_set):
             vf2_stop_reason = property_set["VF2Layout_stop_reason"]
             if vf2_stop_reason is None or vf2_stop_reason != VF2LayoutStopReason.SOLUTION_FOUND:
                 return True
