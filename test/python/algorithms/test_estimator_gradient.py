@@ -30,7 +30,7 @@ from qiskit.circuit import Parameter
 from qiskit.circuit.library import EfficientSU2, RealAmplitudes
 from qiskit.circuit.library.standard_gates import RXXGate, RYYGate, RZXGate, RZZGate
 from qiskit.primitives import Estimator
-from qiskit.quantum_info import SparsePauliOp, Operator
+from qiskit.quantum_info import Operator, SparsePauliOp
 from qiskit.quantum_info.random import random_pauli_list
 from qiskit.test import QiskitTestCase
 
@@ -373,6 +373,63 @@ class TestEstimatorGradient(QiskitTestCase):
             gradient.run([qc] * num_tries, [op] * num_tries, param_values).result().gradients,
             rtol=1e-4,
         )
+
+    @combine(
+        grad=[
+            FiniteDiffEstimatorGradient,
+            ParamShiftEstimatorGradient,
+            LinCombEstimatorGradient,
+            SPSAEstimatorGradient,
+        ],
+    )
+    def test_options(self, grad):
+        """Test estimator gradient's run options"""
+        a = Parameter("a")
+        qc = QuantumCircuit(1)
+        qc.rx(a, 0)
+        op = SparsePauliOp.from_list([("Z", 1)])
+        estimator = Estimator(options={"shots": 100})
+        with self.subTest("estimator"):
+            if grad is FiniteDiffEstimatorGradient or grad is SPSAEstimatorGradient:
+                gradient = grad(estimator, epsilon=1e-6)
+            else:
+                gradient = grad(estimator)
+            options = gradient.options
+            result = gradient.run([qc], [op], [[1]]).result()
+            self.assertEqual(result.options.get("shots"), 100)
+            self.assertEqual(options.get("shots"), 100)
+
+        with self.subTest("gradient init"):
+            if grad is FiniteDiffEstimatorGradient or grad is SPSAEstimatorGradient:
+                gradient = grad(estimator, epsilon=1e-6, options={"shots": 200})
+            else:
+                gradient = grad(estimator, options={"shots": 200})
+            options = gradient.options
+            result = gradient.run([qc], [op], [[1]]).result()
+            self.assertEqual(result.options.get("shots"), 200)
+            self.assertEqual(options.get("shots"), 200)
+
+        with self.subTest("gradient update"):
+            if grad is FiniteDiffEstimatorGradient or grad is SPSAEstimatorGradient:
+                gradient = grad(estimator, epsilon=1e-6, options={"shots": 200})
+            else:
+                gradient = grad(estimator, options={"shots": 200})
+            gradient.update_default_options(shots=100)
+            options = gradient.options
+            result = gradient.run([qc], [op], [[1]]).result()
+            self.assertEqual(result.options.get("shots"), 100)
+            self.assertEqual(options.get("shots"), 100)
+
+        with self.subTest("gradient run"):
+            if grad is FiniteDiffEstimatorGradient or grad is SPSAEstimatorGradient:
+                gradient = grad(estimator, epsilon=1e-6, options={"shots": 200})
+            else:
+                gradient = grad(estimator, options={"shots": 200})
+            options = gradient.options
+            result = gradient.run([qc], [op], [[1]], shots=300).result()
+            self.assertEqual(result.options.get("shots"), 300)
+            # Only default + estimator options. Not run.
+            self.assertEqual(options.get("shots"), 200)
 
 
 if __name__ == "__main__":

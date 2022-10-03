@@ -228,6 +228,68 @@ class TestCliffordPasses(QiskitTestCase):
             self.assertTrue(Operator(qc1).equiv(Operator(qc2)))
             self.assertTrue(Operator(qc1).equiv(Operator(qc3)))
 
+    def test_if_else(self):
+        """Test pass recurses into simple if-else."""
+        cliff1 = self.create_cliff1()
+        cliff2 = self.create_cliff2()
+        combined = cliff1.compose(cliff2)
+
+        inner_test = QuantumCircuit(cliff1.num_qubits)
+        inner_test.append(cliff1, inner_test.qubits)
+        inner_test.append(cliff2, inner_test.qubits)
+
+        inner_expected = QuantumCircuit(combined.num_qubits)
+        inner_expected.append(combined, inner_expected.qubits)
+
+        test = QuantumCircuit(cliff1.num_qubits, 1)
+        test.measure(0, 0)
+        test.if_else(
+            (test.clbits[0], True), inner_test.copy(), inner_test.copy(), test.qubits, test.clbits
+        )
+
+        expected = QuantumCircuit(combined.num_qubits, 1)
+        expected.measure(0, 0)
+        expected.if_else(
+            (expected.clbits[0], True),
+            inner_expected,
+            inner_expected,
+            expected.qubits,
+            expected.clbits,
+        )
+
+        self.assertEqual(OptimizeCliffords()(test), expected)
+
+    def test_nested_control_flow(self):
+        """Test pass recurses into nested control flow."""
+        cliff1 = self.create_cliff1()
+        cliff2 = self.create_cliff2()
+        combined = cliff1.compose(cliff2)
+
+        inner_test = QuantumCircuit(cliff1.num_qubits)
+        inner_test.append(cliff1, inner_test.qubits)
+        inner_test.append(cliff2, inner_test.qubits)
+
+        while_test = QuantumCircuit(cliff1.num_qubits, 1)
+        while_test.for_loop((0,), None, inner_test.copy(), while_test.qubits, [])
+
+        inner_expected = QuantumCircuit(combined.num_qubits)
+        inner_expected.append(combined, inner_expected.qubits)
+
+        while_expected = QuantumCircuit(combined.num_qubits, 1)
+        while_expected.for_loop((0,), None, inner_expected, while_expected.qubits, [])
+
+        test = QuantumCircuit(cliff1.num_qubits, 1)
+        test.measure(0, 0)
+        test.while_loop((test.clbits[0], True), while_test, test.qubits, test.clbits)
+
+        expected = QuantumCircuit(combined.num_qubits, 1)
+        expected.measure(0, 0)
+        expected.while_loop(
+            (expected.clbits[0], True), while_expected, expected.qubits, expected.clbits
+        )
+
+        self.assertEqual(OptimizeCliffords()(test), expected)
+
     def test_topological_ordering(self):
         """Test that Clifford optimization pass optimizes Cliffords across a gate
         on a different qubit."""

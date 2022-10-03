@@ -13,7 +13,9 @@
 """Recursively expands 3q+ gates until the circuit only contains 2q or 1q gates."""
 
 from qiskit.transpiler.basepasses import TransformationPass
+from qiskit.transpiler.passes.utils import control_flow
 from qiskit.exceptions import QiskitError
+from qiskit.circuit import ControlFlowOp
 from qiskit.converters.circuit_to_dag import circuit_to_dag
 
 
@@ -61,6 +63,10 @@ class Unroll3qOrMore(TransformationPass):
                 if node.name in self.target:
                     continue
             elif self.basis_gates is not None and node.name in self.basis_gates:
+                continue
+
+            if isinstance(node.op, ControlFlowOp):
+                node.op = control_flow.map_blocks(self.run, node.op)
                 continue
 
             # TODO: allow choosing other possible decompositions

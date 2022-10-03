@@ -25,8 +25,8 @@ from qiskit.quantum_info.operators import SuperOp
 from qiskit.quantum_info.random import random_unitary
 from qiskit.test import QiskitTestCase
 from qiskit.transpiler import Layout
-from qiskit.visualization import text as elements
-from qiskit.visualization.circuit_visualization import _text_circuit_drawer
+from qiskit.visualization.circuit import text as elements
+from qiskit.visualization.circuit.circuit_visualization import _text_circuit_drawer
 from qiskit.extensions import UnitaryGate, HamiltonianGate
 from qiskit.extensions.quantum_initializer import UCGate
 from qiskit.circuit.library import (
@@ -3447,6 +3447,13 @@ class TestTextIdleWires(QiskitTestCase):
         circuit.delay(100, qr[2])
         self.assertEqual(str(_text_circuit_drawer(circuit, idle_wires=False)), expected)
 
+    def test_does_not_mutate_circuit(self):
+        """Using 'idle_wires=False' should not mutate the circuit.  Regression test of gh-8739."""
+        circuit = QuantumCircuit(1)
+        before_qubits = circuit.num_qubits
+        circuit.draw(idle_wires=False)
+        self.assertEqual(circuit.num_qubits, before_qubits)
+
 
 class TestTextNonRational(QiskitTestCase):
     """non-rational numbers are correctly represented"""
@@ -5069,7 +5076,7 @@ class TestTextPhase(QiskitTestCase):
         crx = ClassicalRegister(2, "crx")
         circuit = QuantumCircuit(qrx, [Qubit(), Qubit()], qry, [Clbit(), Clbit()], crx)
 
-        self.assertEqual(circuit.draw(output="text").single_string(), expected)
+        self.assertEqual(circuit.draw(output="text", cregbundle=True).single_string(), expected)
 
 
 class TestCircuitVisualizationImplementation(QiskitVisualizationTestCase):
