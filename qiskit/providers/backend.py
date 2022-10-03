@@ -301,7 +301,7 @@ class BackendV2(Backend, ABC):
     if they are **required** to ensure a circuit is executable on the backend or
     have the expected level of performance. These methods are passed no input
     arguments and are expected to return a ``str`` representing the method name
-    which is should be a stage plugin (see: :mod:`qiskit.transpiler.preset_passmanagers.plugin`
+    which should be a stage plugin (see: :mod:`qiskit.transpiler.preset_passmanagers.plugin`
     for more details on plugins). The typical expected use case is for a backend
     provider to implement a stage plugin for ``translation`` or ``scheduling``
     that contains the custom compilation passes and then for the hook methods on
