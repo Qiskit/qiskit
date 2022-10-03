@@ -19,6 +19,8 @@ from typing import Optional
 from qiskit.circuit.equivalence_library import SessionEquivalenceLibrary as sel
 
 from qiskit.transpiler.passmanager import PassManager
+from qiskit.transpiler.runningpassmanager import ConditionalController
+from qiskit.transpiler.passes import Error
 from qiskit.transpiler.passes import Unroller
 from qiskit.transpiler.passes import BasisTranslator
 from qiskit.transpiler.passes import UnrollCustomDefinitions
@@ -50,6 +52,96 @@ from qiskit.transpiler.passes.layout.vf2_layout import VF2LayoutStopReason
 from qiskit.transpiler.passes.layout.vf2_post_layout import VF2PostLayoutStopReason
 from qiskit.transpiler.exceptions import TranspilerError
 from qiskit.transpiler.layout import Layout
+
+_CONTROL_FLOW_OP_NAMES = {"for_loop", "if_else", "while_loop"}
+
+# Structing is {type: (known good, known bad)}.  Anything neither known good nor known bad (i.e.
+# not a Terra-internal pass) is permitted to pass through without error, since it is being supplied
+# by a plugin and we don't have any knowledge of these.
+_CONTROL_FLOW_STATES = {
+    "layout_method": ({"trivial", "dense"}, {"sabre", "noise_adaptive"}),
+    "routing_method": ({"none", "stochastic"}, {"sabre", "lookahead", "basic", "toqm"}),
+    # 'synthesis' is not a supported translation method because of the block-collection passes
+    # involved; we currently don't have a neat way to pass the information about nested blocks - the
+    # `UnitarySynthesis` pass itself is control-flow aware.
+    "translation_method": ({"translator", "unroller"}, {"synthesis"}),
+    "optimization_method": (set(), set()),
+    "scheduling_method": (set(), {"alap", "asap"}),
+}
+
+
+def _has_control_flow(property_set):
+    return any(property_set[f"contains_{x}"] for x in _CONTROL_FLOW_OP_NAMES)
+
+
+def _without_control_flow(property_set):
+    return not any(property_set[f"contains_{x}"] for x in _CONTROL_FLOW_OP_NAMES)
+
+
+def generate_control_flow_options_check(
+    layout_method=None,
+    routing_method=None,
+    translation_method=None,
+    optimization_method=None,
+    scheduling_method=None,
+):
+    """Generate a pass manager that, when run on a DAG that contains control flow, fails with an
+    error message explaining the invalid options, and what could be used instead.
+
+    Returns:
+        PassManager: a pass manager that populates the ``contains_x`` properties for each of the
+        control-flow operations, and raises an error if any of the given options do not support
+        control flow, but a circuit with control flow is given.
+    """
+
+    bad_options = []
+    message = "Some options cannot be used with control flow."
+    for stage, given in [
+        ("layout", layout_method),
+        ("routing", routing_method),
+        ("translation", translation_method),
+        ("optimization", optimization_method),
+        ("scheduling", scheduling_method),
+    ]:
+        option = stage + "_method"
+        known_good, known_bad = _CONTROL_FLOW_STATES[option]
+        if given is not None and given in known_bad:
+            if known_good:
+                message += f" Got {option}='{given}', but valid values are {list(known_good)}."
+            else:
+                message += (
+                    f" Got {option}='{given}', but the entire {stage} stage is not supported."
+                )
+            bad_options.append(option)
+    out = PassManager()
+    out.append(ContainsInstruction(_CONTROL_FLOW_OP_NAMES, recurse=False))
+    if not bad_options:
+        return out
+    out.append(Error(message), condition=_has_control_flow)
+    return out
+
+
+def generate_error_on_control_flow(message):
+    """Get a pass manager that always raises an error if control flow is present in a given
+    circuit."""
+    out = PassManager()
+    out.append(ContainsInstruction(_CONTROL_FLOW_OP_NAMES, recurse=False))
+    out.append(Error(message), condition=_has_control_flow)
+    return out
+
+
+def if_has_control_flow_else(if_present, if_absent):
+    """Generate a pass manager that will run the passes in ``if_present`` if the given circuit
+    has control-flow operations in it, and those in ``if_absent`` if it doesn't."""
+    if isinstance(if_present, PassManager):
+        if_present = if_present.to_flow_controller()
+    if isinstance(if_absent, PassManager):
+        if_absent = if_absent.to_flow_controller()
+    out = PassManager()
+    out.append(ContainsInstruction(_CONTROL_FLOW_OP_NAMES, recurse=False))
+    out.append(if_present, condition=_has_control_flow)
+    out.append(if_absent, condition=_without_control_flow)
+    return out
 
 
 def generate_unroll_3q(

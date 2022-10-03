@@ -322,6 +322,19 @@ class PassManager:
             ret.append(item)
         return ret
 
+    def to_flow_controller(self) -> FlowController:
+        """Linearize this manager into a single :class:`.FlowController`, so that it can be nested
+        inside another :class:`.PassManager`."""
+        return FlowController.controller_factory(
+            [
+                FlowController.controller_factory(
+                    pass_set["passes"], None, **pass_set["flow_controllers"]
+                )
+                for pass_set in self._pass_sets
+            ],
+            None,
+        )
+
 
 class StagedPassManager(PassManager):
     """A Pass manager pipeline built up of individual stages
