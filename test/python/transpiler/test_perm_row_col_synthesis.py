@@ -34,6 +34,50 @@ class TestPermRowColSynthesis(QiskitTestCase):
 
         self.assertIsInstance(instance, QuantumCircuit)
 
+    def test_choose_row_returns_int(self):
+        """Test the output type of choose_row"""
+        coupling = CouplingMap()
+        synthesis = PermRowColSynthesis(coupling)
+        parity_mat = np.ndarray(0)
+        vertices = np.ndarray(0)
+
+        instance = synthesis.choose_row(vertices, parity_mat)
+
+        self.assertIsInstance(instance, int)
+
+    def test_choose_column_returns_int(self):
+        """Test the output type of choose_column"""
+        coupling = CouplingMap()
+        synthesis = PermRowColSynthesis(coupling)
+        parity_mat = np.ndarray(0)
+        cols = np.ndarray(0)
+
+        instance = synthesis.choose_column(parity_mat, cols, 0)
+
+        self.assertIsInstance(instance, int)
+
+    def test_eliminate_column_returns_int(self):
+        """Test the output type of eliminate_column"""
+        coupling = CouplingMap()
+        synthesis = PermRowColSynthesis(coupling)
+        parity_mat = np.ndarray(0)
+        terminals = np.ndarray(0)
+
+        instance = synthesis.eliminate_column(parity_mat, coupling, 0, terminals)
+
+        self.assertIsInstance(instance, np.ndarray)
+
+    def test_eliminate_row_returns_int(self):
+        """Test the output type of eliminate_row"""
+        coupling = CouplingMap()
+        synthesis = PermRowColSynthesis(coupling)
+        parity_mat = np.ndarray(0)
+        terminals = np.ndarray(0)
+
+        instance = synthesis.eliminate_row(parity_mat, coupling, 0, terminals)
+
+        self.assertIsInstance(instance, np.ndarray)
+
 
 if __name__ == "__main__":
     unittest.main()

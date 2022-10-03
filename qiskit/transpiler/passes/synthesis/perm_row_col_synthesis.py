@@ -56,5 +56,21 @@ class PermRowColSynthesis(HighLevelSynthesis):
         Returns:
             QuantumCircuit: synthesized circuit
         """
-        circuit = QuantumCircuit(QuantumRegister(6, "q"))
+        circuit = QuantumCircuit(QuantumRegister(0))
         return circuit
+
+    def choose_row(self, vertices: np.ndarray, parity_mat: np.ndarray) -> int:
+        return 0
+
+    def choose_column(self, parity_mat: np.ndarray, cols: np.ndarray, chosen_row: int) -> int:
+        return 0
+
+    def eliminate_column(
+        self, parity_mat: np.ndarray, coupling: CouplingMap, root: int, terminals: np.ndarray
+    ) -> np.ndarray:
+        return np.ndarray(0)
+
+    def eliminate_row(
+        self, parity_mat: np.ndarray, coupling: CouplingMap, root: int, terminals: np.ndarray
+    ) -> np.ndarray:
+        return np.ndarray(0)
