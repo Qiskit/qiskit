@@ -19,7 +19,6 @@ from typing import Optional
 from qiskit.circuit.equivalence_library import SessionEquivalenceLibrary as sel
 
 from qiskit.transpiler.passmanager import PassManager
-from qiskit.transpiler.runningpassmanager import ConditionalController
 from qiskit.transpiler.passes import Error
 from qiskit.transpiler.passes import Unroller
 from qiskit.transpiler.passes import BasisTranslator
