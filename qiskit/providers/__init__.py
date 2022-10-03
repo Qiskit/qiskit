@@ -413,7 +413,7 @@ Custom Transpiler Passes
 The transpiler supports the ability for backends to provide custom transpiler
 stage implementations to facilitate hardware specific optimizations and
 circuit transformations. Currently there are two stages supported,
-``get_translation_stage_method()`` and ``get_scheduling_stage_method()``
+``get_translation_stage_plugin()`` and ``get_scheduling_stage_plugin()``
 which allow a backend to specify string plugin names to be used as the default
 translation and scheduling stages, respectively. These
 hook points in a :class:`~.BackendV2` class can be used if your
@@ -430,10 +430,10 @@ For example::
 
     class Mybackend(BackendV2):
 
-        def get_scheduling_stage_method(self):
+        def get_scheduling_stage_plugin(self):
             return "SpecialDD"
 
-        def get_translation_stage_method(self):
+        def get_translation_stage_plugin(self):
             return "BasisTranslatorWithCustom1qOptimization"
 
 This snippet of a backend implementation will now have the :func:`~.transpile`

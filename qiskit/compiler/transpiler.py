@@ -678,10 +678,10 @@ def _parse_transpile_args(
 
     list_transpile_args = []
     if not ignore_backend_supplied_default_methods:
-        if scheduling_method is None and hasattr(backend, "get_scheduling_stage_method"):
-            scheduling_method = backend.get_scheduling_stage_method()
-        if translation_method is None and hasattr(backend, "get_translation_stage_method"):
-            translation_method = backend.get_translation_stage_method()
+        if scheduling_method is None and hasattr(backend, "get_scheduling_stage_plugin"):
+            scheduling_method = backend.get_scheduling_stage_plugin()
+        if translation_method is None and hasattr(backend, "get_translation_stage_plugin"):
+            translation_method = backend.get_translation_stage_plugin()
 
     for key, value in {
         "inst_map": inst_map,

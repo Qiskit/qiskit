@@ -475,11 +475,11 @@ class TestPassesInspection(QiskitTestCase):
         class TargetBackend(FakeLagosV2):
             """Fake lagos subclass with custom transpiler stages."""
 
-            def get_scheduling_stage_method(self):
+            def get_scheduling_stage_plugin(self):
                 """Custom scheduling stage."""
                 return "custom_stage_for_test"
 
-            def get_translation_stage_method(self):
+            def get_translation_stage_plugin(self):
                 """Custom post translation stage."""
                 return "custom_stage_for_test"
 
@@ -1104,11 +1104,11 @@ class TestGeenratePresetPassManagers(QiskitTestCase):
         class TargetBackend(FakeLagosV2):
             """Fake lagos subclass with custom transpiler stages."""
 
-            def get_scheduling_stage_method(self):
+            def get_scheduling_stage_plugin(self):
                 """Custom scheduling stage."""
                 return "custom_stage_for_test"
 
-            def get_translation_stage_method(self):
+            def get_translation_stage_plugin(self):
                 """Custom post translation stage."""
                 return "custom_stage_for_test"
 
@@ -1138,11 +1138,11 @@ class TestGeenratePresetPassManagers(QiskitTestCase):
         class TargetBackend(FakeLagosV2):
             """Fake lagos subclass with custom transpiler stages."""
 
-            def get_scheduling_stage_method(self):
+            def get_scheduling_stage_plugin(self):
                 """Custom scheduling stage."""
                 return "custom_stage_for_test"
 
-            def get_translation_stage_method(self):
+            def get_translation_stage_plugin(self):
                 """Custom post translation stage."""
                 return "custom_stage_for_test"
 
@@ -1172,11 +1172,11 @@ class TestGeenratePresetPassManagers(QiskitTestCase):
         class TargetBackend(FakeLagosV2):
             """Fake lagos subclass with custom transpiler stages."""
 
-            def get_scheduling_stage_method(self):
+            def get_scheduling_stage_plugin(self):
                 """Custom scheduling stage."""
                 return "custom_stage_for_test"
 
-            def get_translation_stage_method(self):
+            def get_translation_stage_plugin(self):
                 """Custom post translation stage."""
                 return "custom_stage_for_test"
 
@@ -1206,11 +1206,11 @@ class TestGeenratePresetPassManagers(QiskitTestCase):
         class TargetBackend(FakeLagosV2):
             """Fake lagos subclass with custom transpiler stages."""
 
-            def get_scheduling_stage_method(self):
+            def get_scheduling_stage_plugin(self):
                 """Custom scheduling stage."""
                 return "custom_stage_for_test"
 
-            def get_translation_stage_method(self):
+            def get_translation_stage_plugin(self):
                 """Custom post translation stage."""
                 return "custom_stage_for_test"
 

@@ -289,7 +289,7 @@ class BackendV2(Backend, ABC):
     defined in this class for backwards compatibility.
 
     A backend object can optionally contain methods named
-    ``get_translation_stage_method`` and ``get_scheduling_stage_method``. If these
+    ``get_translation_stage_plugin`` and ``get_scheduling_stage_plugin``. If these
     methods are present on a backend object and this object is used for
     :func:`~.transpile` or :func:`~.generate_preset_pass_manager` the
     transpilation process will default to using the output from those methods
