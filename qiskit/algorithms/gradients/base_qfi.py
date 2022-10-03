@@ -18,9 +18,11 @@ from __future__ import annotations
 
 from abc import ABC, abstractmethod
 from collections.abc import Sequence
+from copy import copy
 
 from qiskit.circuit import Parameter, QuantumCircuit
 from qiskit.algorithms import AlgorithmJob
+from qiskit.providers import Options
 
 from .qfi_result import QFIResult
 
@@ -37,9 +39,17 @@ class BaseQFI(ABC):
 
     def __init__(
         self,
+        options: Options | None = None,
     ):
-        """Initialize the BaseQFI."""
-        pass
+        """
+        Args:
+            options: Backend runtime options used for circuit execution. The order of priority is:
+                options in ``run`` method > QFI's default options > primitive's default
+                setting. Higher priority setting overrides lower priority setting.
+        """
+        self._default_options = Options()
+        if options is not None:
+            self._default_options.update_options(**options)
 
     def run(
         self,
@@ -78,7 +88,8 @@ class BaseQFI(ABC):
         self._validate_arguments(circuits, parameter_values, parameters)
         # The priority of run option is as follows:
         # options in ``run`` method > QFI's default options > primitive's default setting.
-        opts = self._make_options(options)
+        opts = copy(self._default_options)
+        opts.update_options(**options)
         job = AlgorithmJob(self._run, circuits, parameter_values, parameters, **opts.__dict__)
         job.submit()
         return job
@@ -136,7 +147,36 @@ class BaseQFI(ABC):
                     f"the number of parameters ({circuit.num_parameters}) for the {i}-th circuit."
                 )
 
+    @property
+    def options(self) -> Options:
+        """Return the union of estimator options setting and QFI default options,
+        where, if the same field is set in both, the QFI's default options override
+        the primitive's default setting.
+
+        Returns:
+            The QFI default + estimator options.
+        """
+        return self._get_local_options(self._default_options.__dict__)
+
+    def update_default_options(self, **options):
+        """Update the QFI's default options setting.
+
+        Args:
+            **options: The fields to update the default options.
+        """
+        self._default_options.update_options(**options)
+
     @abstractmethod
-    def _make_options(self, options):
-        """Make options for ``run`` method."""
+    def _get_local_options(self, options: Options) -> Options:
+        """Return the union of the primitive's default setting,
+        the QFI default options, and the options in the ``run`` method.
+        The order of priority is: options in ``run`` method > QFI's default options > primitive's
+        default setting.
+
+        Args:
+            options: The fields to update the options
+
+        Returns:
+            The QFI default + estimator + run options.
+        """
         pass

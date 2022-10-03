@@ -24,7 +24,8 @@ from qiskit.circuit import Parameter
 from qiskit.circuit.library import RealAmplitudes
 from qiskit.circuit.parametervector import ParameterVector
 from qiskit.primitives import Estimator
-from qiskit.quantum_info import Operator, SparsePauliOp
+
+# from qiskit.quantum_info import Operator, SparsePauliOp
 from qiskit.test import QiskitTestCase
 
 

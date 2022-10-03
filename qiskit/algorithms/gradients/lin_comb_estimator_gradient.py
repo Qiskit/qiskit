@@ -97,18 +97,22 @@ class LinCombEstimatorGradient(BaseEstimatorGradient):
                 param_set = set(circuit.parameters)
             else:
                 param_set = set(parameters_)
-            metadata_.append({"parameters": [p for p in circuit.parameters if p in param_set]})
+
+            meta = {"parameters": [p for p in circuit.parameters if p in param_set]}
+            meta['derivative_type'] = self._derivative_type
+            metadata_.append(meta)
 
             if self._derivative_type == DerivativeType.REAL:
-                op2 = SparsePauliOp.from_list([("Z", 1)])
+                op1 = SparsePauliOp.from_list([("Z", 1)])
             elif self._derivative_type == DerivativeType.IMAG:
-                op2 = SparsePauliOp.from_list([("Y", -1)])
+                op1 = SparsePauliOp.from_list([("Y", -1)])
             elif self._derivative_type == DerivativeType.COMPLEX:
-                op2 = SparsePauliOp.from_list([("Z", 1), ("Y", complex(0, -1))])
+                op1 = SparsePauliOp.from_list([("Z", 1)])
+                op2 = SparsePauliOp.from_list([("Y", -1)])
             else:
                 raise ValueError(f"Derivative type {self._derivative_type} is not supported.")
 
-            observable_ = observable.expand(op2)
+            observable_ = observable.expand(op1)
 
             gradient_circuits_ = self._gradient_circuits.get(id(circuit))
             if gradient_circuits_ is None:
@@ -140,24 +144,45 @@ class LinCombEstimatorGradient(BaseEstimatorGradient):
                         coeffs.append(bound_coeff)
 
             n = len(gradient_circuits)
-            job = self._estimator.run(
-                gradient_circuits, [observable_] * n, [parameter_values_] * n, **options
-            )
-            jobs.append(job)
+            if self._derivative_type == DerivativeType.COMPLEX:
+                observable_2 = observable.expand(op2)
+                job = self._estimator.run(
+                    gradient_circuits * 2, [observable_] * n + [observable_2] * n, [parameter_values_] * 2* n, **options
+                )
+                jobs.append(job)
+            else:
+                job = self._estimator.run(
+                    gradient_circuits, [observable_] * n, [parameter_values_] * n, **options
+                )
+                jobs.append(job)
+
             result_indices_all.append(result_indices)
             coeffs_all.append(coeffs)
 
         # combine the results
         try:
             results = [job.result() for job in jobs]
-        except Exception as exc:
+        except AlgorithmError as exc:
             raise AlgorithmError("Estimator job failed.") from exc
 
         gradients = []
         for i, result in enumerate(results):
+            # print(f'i: {i}')
+            # print(f'result: {result}')
             gradient_ = np.zeros(len(metadata_[i]["parameters"]), dtype="complex_")
-            for grad_, idx, coeff in zip(result.values, result_indices_all[i], coeffs_all[i]):
-                gradient_[idx] += coeff * grad_
+
+            if DerivativeType.COMPLEX == metadata_[i]['derivative_type']:
+                # print(f'len(result.values)//2: {len(result.values)//2}')
+                for grad_, idx, coeff in zip(result.values[:len(result.values)//2], result_indices_all[i], coeffs_all[i]):
+                    # print(f'idx: {idx}')
+                    gradient_[idx] += coeff * grad_
+                for grad_, idx, coeff in zip(result.values[len(result.values)//2:], result_indices_all[i], coeffs_all[i]):
+                    # gradient_[idx] += coeff * grad_
+                    gradient_[idx] += complex(0, coeff * grad_)
+            else:
+                for grad_, idx, coeff in zip(result.values, result_indices_all[i], coeffs_all[i]):
+                    gradient_[idx] += coeff * grad_
+                gradient_ = np.real(gradient_)
             gradients.append(gradient_)
 
         opt = self._get_local_options(options)

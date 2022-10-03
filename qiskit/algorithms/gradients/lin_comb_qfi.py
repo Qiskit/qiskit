@@ -69,12 +69,8 @@ class LinCombQFI(BaseQFI):
                 options in ``run`` method > QFI's default options > primitive's default
                 setting. Higher priority setting overrides lower priority setting.
         """
-        super().__init__()
+        super().__init__(options)
         self._estimator: BaseEstimator = estimator
-        self._default_options = Options()
-        if options is not None:
-            self._default_options.update_options(**options)
-
         self._phase_fix = phase_fix
         self._derivative_type = derivative_type
         self._gradient = LinCombEstimatorGradient(
@@ -106,6 +102,8 @@ class LinCombQFI(BaseQFI):
             else:
                 param_set = set(parameters_)
             metadata_.append({"parameters": [p for p in circuit.parameters if p in param_set]})
+
+            observable = SparsePauliOp.from_list([("I" * circuit.num_qubits, 1)])
             # compute the second term (the phase fix) in the QFI
             if self._phase_fix:
                 gradient_job = self._gradient.run(
@@ -116,7 +114,6 @@ class LinCombQFI(BaseQFI):
                     **options,
                 )
                 gradient_jobs.append(gradient_job)
-
             # compute the first term in the QFI
             qfi_circuits_ = self._qfi_circuits.get(id(circuit))
             if qfi_circuits_ is None:
@@ -158,7 +155,6 @@ class LinCombQFI(BaseQFI):
                             bound_coeff = coeff
                         coeffs.append(bound_coeff)
 
-            observable = SparsePauliOp.from_list([("I" * circuit.num_qubits, 1)])
             observable_ = self._expand_observable(observable)
 
             n = len(qfi_circuits)
@@ -173,7 +169,7 @@ class LinCombQFI(BaseQFI):
         try:
             gradient_results = [g_job.result() for g_job in gradient_jobs]
             results = [job.result() for job in jobs]
-        except Exception as exc:
+        except AlgorithmError as exc:
             raise AlgorithmError("Estimator job failed.") from exc
 
         # compute the phase fix
@@ -198,8 +194,6 @@ class LinCombQFI(BaseQFI):
                 qfi_[idx] += coeff * grad_
             qfi = qfi_ - phase_fixes[i]
             qfi += np.triu(qfi_, k=1).T
-            if self._derivative_type != DerivativeType.COMPLEX:
-                qfi = np.real(qfi)
             qfis.append(qfi)
 
         run_opt = self._get_local_options(options)
@@ -217,31 +211,11 @@ class LinCombQFI(BaseQFI):
             raise ValueError(f"Derivative type {self._derivative_type} is not supported.")
         return observable.expand(op2)
 
-    @property
-    def options(self) -> Options:
-        """Return the union of estimator options setting and QFI default options,
-        where, if the same field is set in both, the QFI's default options override
-        the primitive's default setting.
-
-        Returns:
-            The QFI default + estimator options.
-        """
-        return self._get_local_options(self._default_options.__dict__)
-
-    def update_default_options(self, **options):
-        """Update the QFI's default options setting.
-
-        Args:
-            **options: The fields to update the default options.
-        """
-
-        self._default_options.update_options(**options)
-
     def _get_local_options(self, options: Options) -> Options:
         """Return the union of the primitive's default setting,
         the QFI default options, and the options in the ``run`` method.
-        The order of priority is: options in ``run`` method > QFI's
-                default options > primitive's default setting.
+        The order of priority is: options in ``run`` method > QFI's default options > primitive's
+        default setting.
 
         Args:
             options: The fields to update the options
@@ -250,11 +224,5 @@ class LinCombQFI(BaseQFI):
             The QFI default + estimator + run options.
         """
         opts = copy(self._estimator.options)
-        opts.update_options(**options)
-        return opts
-
-    def _make_options(self, options):
-        """Make options for ``run`` method."""
-        opts = copy(self._default_options)
         opts.update_options(**options)
         return opts
