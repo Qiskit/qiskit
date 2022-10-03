@@ -14,6 +14,7 @@
 
 """Common preset passmanager generators."""
 
+import collections
 from typing import Optional
 
 from qiskit.circuit.equivalence_library import SessionEquivalenceLibrary as sel
@@ -54,18 +55,25 @@ from qiskit.transpiler.layout import Layout
 
 _CONTROL_FLOW_OP_NAMES = {"for_loop", "if_else", "while_loop"}
 
-# Structing is {type: (known good, known bad)}.  Anything neither known good nor known bad (i.e.
-# not a Terra-internal pass) is permitted to pass through without error, since it is being supplied
-# by a plugin and we don't have any knowledge of these.
+_ControlFlowState = collections.namedtuple("_ControlFlowState", ("working", "not_working"))
+
+# Any method neither known good nor known bad (i.e. not a Terra-internal pass) is passed through
+# without error, since it is being supplied by a plugin and we don't have any knowledge of these.
 _CONTROL_FLOW_STATES = {
-    "layout_method": ({"trivial", "dense"}, {"sabre", "noise_adaptive"}),
-    "routing_method": ({"none", "stochastic"}, {"sabre", "lookahead", "basic", "toqm"}),
+    "layout_method": _ControlFlowState(
+        working={"trivial", "dense"}, not_working={"sabre", "noise_adaptive"}
+    ),
+    "routing_method": _ControlFlowState(
+        working={"none", "stochastic"}, not_working={"sabre", "lookahead", "basic", "toqm"}
+    ),
     # 'synthesis' is not a supported translation method because of the block-collection passes
     # involved; we currently don't have a neat way to pass the information about nested blocks - the
     # `UnitarySynthesis` pass itself is control-flow aware.
-    "translation_method": ({"translator", "unroller"}, {"synthesis"}),
-    "optimization_method": (set(), set()),
-    "scheduling_method": (set(), {"alap", "asap"}),
+    "translation_method": _ControlFlowState(
+        working={"translator", "unroller"}, not_working={"synthesis"}
+    ),
+    "optimization_method": _ControlFlowState(working=set(), not_working=set()),
+    "scheduling_method": _ControlFlowState(working=set(), not_working={"alap", "asap"}),
 }
 
 
@@ -103,10 +111,12 @@ def generate_control_flow_options_check(
         ("scheduling", scheduling_method),
     ]:
         option = stage + "_method"
-        known_good, known_bad = _CONTROL_FLOW_STATES[option]
-        if given is not None and given in known_bad:
-            if known_good:
-                message += f" Got {option}='{given}', but valid values are {list(known_good)}."
+        method_states = _CONTROL_FLOW_STATES[option]
+        if given is not None and given in method_states.not_working:
+            if method_states.working:
+                message += (
+                    f" Got {option}='{given}', but valid values are {list(method_states.working)}."
+                )
             else:
                 message += (
                     f" Got {option}='{given}', but the entire {stage} stage is not supported."
