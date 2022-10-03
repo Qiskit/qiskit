@@ -13,6 +13,6 @@ features:
     :mod:`~qiskit.transpiler.preset_passmanagers.plugin` interface.
     For more details on how to use this see :ref:`custom_transpiler_backend`.
   - |
-    Added a new keyword argument, ``ignore_backend_default_methods``, to the
+    Added a new keyword argument, ``ignore_backend_supplied_default_methods``, to the
     :func:`~.transpile` function can be used to disable a backend's custom
     default method if the target backend has one set.
