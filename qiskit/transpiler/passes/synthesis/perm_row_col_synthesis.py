@@ -10,6 +10,8 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
+"""Perm_row_col function implementation"""
+
 import numpy as np
 from qiskit.transpiler.passes.synthesis.high_level_synthesis import HighLevelSynthesis
 from qiskit.circuit.library.generalized_gates.linear_function import LinearFunction
@@ -60,17 +62,58 @@ class PermRowColSynthesis(HighLevelSynthesis):
         return circuit
 
     def choose_row(self, vertices: np.ndarray, parity_mat: np.ndarray) -> int:
+        """Choose row to eliminate and return the index.
+
+        Args:
+            vertices (np.ndarray): vertices (corresponding to rows) to choose from
+            parity_mat (np.ndarray): parity matrix
+
+        Returns:
+            int: vertex/row index
+        """
         return 0
 
     def choose_column(self, parity_mat: np.ndarray, cols: np.ndarray, chosen_row: int) -> int:
+        """Choose column to eliminate and return the index.
+
+        Args:
+            parity_mat (np.ndarray): parity matrix
+            cols (np.ndarray): column indices to choose from
+            chosen_row (int): row index that has been eliminated
+
+        Returns:
+            int: column index
+        """
         return 0
 
     def eliminate_column(
         self, parity_mat: np.ndarray, coupling: CouplingMap, root: int, terminals: np.ndarray
     ) -> np.ndarray:
+        """Eliminates the selected column from the parity matrix and returns the operations.
+
+        Args:
+            parity_mat (np.ndarray): parity matrix
+            coupling (CouplingMap): topology
+            root (int): root of the steiner tree
+            terminals (np.ndarray): terminals of the steiner tree
+
+        Returns:
+            np.ndarray: list of operations
+        """
         return np.ndarray(0)
 
     def eliminate_row(
         self, parity_mat: np.ndarray, coupling: CouplingMap, root: int, terminals: np.ndarray
     ) -> np.ndarray:
+        """Eliminates the selected row from the parity matrix and returns the operations.
+
+        Args:
+            parity_mat (np.ndarray): parity matrix
+            coupling (CouplingMap): topology
+            root (int): root of the steiner tree
+            terminals (np.ndarray): terminals of the steiner tree
+
+        Returns:
+            np.ndarray: list of operations
+        """
         return np.ndarray(0)
