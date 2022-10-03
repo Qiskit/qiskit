@@ -494,13 +494,15 @@ def _parse_circuit_args(
     parameter_binds = parameter_binds or []
     # create run configuration and populate
     run_config_dict = dict(parameter_binds=parameter_binds, **run_config)
-    if backend:
-        run_config_dict["parametric_pulses"] = getattr(
-            backend.configuration(), "parametric_pulses", []
-        )
-    if parametric_pulses:
+    if parametric_pulses is None:
+        if backend:
+            run_config_dict["parametric_pulses"] = getattr(
+                backend.configuration(), "parametric_pulses", []
+            )
+        else:
+            run_config_dict["parametric_pulses"] = []
+    else:
         run_config_dict["parametric_pulses"] = parametric_pulses
-
     if meas_level:
         run_config_dict["meas_level"] = meas_level
         # only enable `meas_return` if `meas_level` isn't classified
