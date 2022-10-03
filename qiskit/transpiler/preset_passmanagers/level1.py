@@ -98,7 +98,7 @@ def level_1_pass_manager(pass_manager_config: PassManagerConfig) -> StagedPassMa
     def _trivial_not_perfect(property_set):
         # Verify that a trivial layout is perfect.  If perfect, then the circuit should already
         # appear to be swap mapped.
-        return not property_set["is_swap_mapped"]
+        return property_set["is_swap_mapped"] is not None and not property_set["is_swap_mapped"]
 
     # Use a better layout on densely connected qubits, if circuit needs swaps
     def _vf2_match_not_found(property_set):
@@ -183,7 +183,7 @@ def level_1_pass_manager(pass_manager_config: PassManagerConfig) -> StagedPassMa
             check_trivial=True,
             use_barrier_before_measurement=not toqm_pass,
         )
-    elif pass_manager_config.routing_method is None:
+    elif routing_method is None:
         _stochastic_routing = plugin_manager.get_passmanager_stage(
             "routing",
             "stochastic",

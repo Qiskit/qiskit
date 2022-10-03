@@ -206,10 +206,7 @@ def _trivial_not_perfect(property_set):
     # Verify that a trivial layout is perfect. If trivial_layout_score > 0
     # the layout is not perfect. The layout is unconditionally set by trivial
     # layout so we need to clear it before contuing.
-    return (
-        property_set["trivial_layout_score"] is not None
-        and property_set["trivial_layout_score"] != 0
-    )
+    return property_set["is_swap_mapped"] is not None and not property_set["is_swap_mapped"]
 
 
 def _apply_post_layout_condition(property_set):
