@@ -54,7 +54,7 @@ class BaseQFI(ABC):
     def run(
         self,
         circuits: Sequence[QuantumCircuit],
-        parameter_values: Sequence[Sequence[complex]],
+        parameter_values: Sequence[Sequence[float]],
         parameters: Sequence[Sequence[Parameter] | None] | None = None,
         **options,
     ) -> AlgorithmJob:
@@ -98,7 +98,7 @@ class BaseQFI(ABC):
     def _run(
         self,
         circuits: Sequence[QuantumCircuit],
-        parameter_values: Sequence[Sequence[complex]],
+        parameter_values: Sequence[Sequence[float]],
         parameters: Sequence[Sequence[Parameter] | None],
         **options,
     ) -> QFIResult:
@@ -108,7 +108,7 @@ class BaseQFI(ABC):
     def _validate_arguments(
         self,
         circuits: Sequence[QuantumCircuit],
-        parameter_values: Sequence[Sequence[complex]],
+        parameter_values: Sequence[Sequence[float]],
         parameters: Sequence[Sequence[Parameter] | None] | None = None,
     ) -> None:
         """Validate the arguments of the ``run`` method.
