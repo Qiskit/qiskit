@@ -25,7 +25,7 @@ from qiskit import QiskitError
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
 from qiskit.circuit.library import HGate, CHGate, CXGate, QFT
 from qiskit.test import QiskitTestCase
-from qiskit.transpiler.layout import Layout
+from qiskit.transpiler.layout import Layout, TranspileLayout
 from qiskit.quantum_info.operators.operator import Operator
 from qiskit.quantum_info.operators.predicates import matrix_equal
 from qiskit.compiler.transpiler import transpile
@@ -708,7 +708,7 @@ class TestOperator(OperatorTestCase):
         circuit.h(2)
         circuit.x(1)
         circuit.ry(np.pi / 2, 0)
-        circuit._layout = (
+        circuit._layout = TranspileLayout(
             Layout({circuit.qubits[2]: 0, circuit.qubits[1]: 1, circuit.qubits[0]: 2}),
             {qubit: index for index, qubit in enumerate(circuit.qubits)},
         )
@@ -722,7 +722,7 @@ class TestOperator(OperatorTestCase):
         lam = np.pi / 4
         circuit = QuantumCircuit(2)
         circuit.cp(lam, 1, 0)
-        circuit._layout = (
+        circuit._layout = TranspileLayout(
             Layout({circuit.qubits[1]: 0, circuit.qubits[0]: 1}),
             {qubit: index for index, qubit in enumerate(circuit.qubits)},
         )
@@ -734,7 +734,7 @@ class TestOperator(OperatorTestCase):
         # Test decomposition of controlled-H gate
         circuit = QuantumCircuit(2)
         circuit.ch(1, 0)
-        circuit._layout = (
+        circuit._layout = TranspileLayout(
             Layout({circuit.qubits[1]: 0, circuit.qubits[0]: 1}),
             {qubit: index for index, qubit in enumerate(circuit.qubits)},
         )
@@ -750,7 +750,7 @@ class TestOperator(OperatorTestCase):
         circuit.h(2)
         circuit.x(1)
         circuit.ry(np.pi / 2, 0)
-        circuit._layout = (
+        circuit._layout = TranspileLayout(
             Layout({circuit.qubits[2]: 0, circuit.qubits[1]: 1, circuit.qubits[0]: 2}),
             {qubit: index for index, qubit in enumerate(circuit.qubits)},
         )
@@ -764,7 +764,7 @@ class TestOperator(OperatorTestCase):
         lam = np.pi / 4
         circuit = QuantumCircuit(2)
         circuit.cp(lam, 1, 0)
-        circuit._layout = (
+        circuit._layout = TranspileLayout(
             Layout({circuit.qubits[1]: 0, circuit.qubits[0]: 1}),
             {qubit: index for index, qubit in enumerate(circuit.qubits)},
         )
@@ -776,7 +776,7 @@ class TestOperator(OperatorTestCase):
         # Test decomposition of controlled-H gate
         circuit = QuantumCircuit(2)
         circuit.ch(1, 0)
-        circuit._layout = (
+        circuit._layout = TranspileLayout(
             Layout({circuit.qubits[1]: 0, circuit.qubits[0]: 1}),
             {qubit: index for index, qubit in enumerate(circuit.qubits)},
         )
@@ -826,7 +826,7 @@ class TestOperator(OperatorTestCase):
         circuit.cx(3, 2)
         circuit.cx(3, 0)
         circuit.cx(3, 1)
-        circuit._layout = (
+        circuit._layout = TranspileLayout(
             Layout(
                 {
                     circuit.qubits[3]: 0,
@@ -851,7 +851,7 @@ class TestOperator(OperatorTestCase):
     def test_from_circuit_empty_circuit_empty_layout(self):
         """Test an out of order ghz state with a layout set."""
         circuit = QuantumCircuit()
-        circuit._layout = (Layout(), {})
+        circuit._layout = TranspileLayout(Layout(), {})
         op = Operator.from_circuit(circuit)
         self.assertEqual(Operator([1]), op)
 
@@ -872,7 +872,6 @@ class TestOperator(OperatorTestCase):
         circuit.cx(3, 2)
         circuit.cx(3, 0)
         circuit.cx(3, 1)
-        print(circuit)
         init_layout = Layout(
             {
                 circuit.qubits[0]: 3,

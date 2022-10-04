@@ -233,15 +233,20 @@ class Operator(LinearOp):
             if not ignore_set_layout:
                 layout = getattr(circuit, "_layout", None)
         else:
-            layout = (layout, {qubit: index for index, qubit in enumerate(circuit.qubits)})
+            from qiskit.transpiler.layout import TranspileLayout
+
+            layout = TranspileLayout(
+                initial_layout=layout,
+                input_qubit_mapping={qubit: index for index, qubit in enumerate(circuit.qubits)},
+            )
         qargs = None
         # If there was a layout specified (either from the circuit
         # or via user input) use that to set qargs to permute qubits
         # based on that layout
         if layout is not None:
-            physical_to_virtual = layout[0].get_physical_bits()
+            physical_to_virtual = layout.initial_layout.get_physical_bits()
             qargs = [
-                layout[1][physical_to_virtual[physical_bit]]
+                layout.input_qubit_mapping[physical_to_virtual[physical_bit]]
                 for physical_bit in range(len(physical_to_virtual))
             ]
         # Convert circuit to an instruction

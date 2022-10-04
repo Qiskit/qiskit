@@ -176,7 +176,7 @@ class QCircuitImage:
         self._reverse_bits = reverse_bits
         if with_layout:
             if self._circuit._layout:
-                self._layout = self._circuit._layout[0]
+                self._layout = self._circuit._layout.initial_layout
             else:
                 self._layout = None
         else:

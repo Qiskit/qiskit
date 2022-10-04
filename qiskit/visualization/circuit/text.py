@@ -671,7 +671,7 @@ class TextDrawing:
         self.nodes = nodes
         if with_layout:
             if self._circuit._layout:
-                self.layout = self._circuit._layout[0]
+                self.layout = self._circuit._layout.initial_layout
             else:
                 self.layout = None
         else:
