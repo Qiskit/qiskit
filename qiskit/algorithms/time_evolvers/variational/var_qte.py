@@ -109,11 +109,10 @@ class VarQTE(ABC):
             evolution_problem: Instance defining an evolution problem.
         Returns:
             Result of the evolution which includes a quantum circuit with bound parameters as an
-            evolved state and, if provided, observables evaluated on the evolved state using
-            a ``quantum_instance`` and ``expectation`` provided.
+            evolved state and, if provided, observables evaluated on the evolved state.
 
         Raises:
-            ValueError: If no ``initial_state`` is included in the ``evolution_problem``.
+            ValueError: If ``initial_state`` is included in the ``evolution_problem``.
         """
         self._validate_aux_ops(evolution_problem)
 

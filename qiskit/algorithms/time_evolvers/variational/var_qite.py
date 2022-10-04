@@ -36,7 +36,6 @@ class VarQITE(VarQTE, ImaginaryTimeEvolver):
 
         from qiskit.algorithms import TimeEvolutionProblem
         from qiskit.algorithms import VarQITE
-        from qiskit import BasicAer
         from qiskit.circuit.library import EfficientSU2
         from qiskit.opflow import SummedOp, I, Z, Y, X
         from qiskit.algorithms.time_evolvers.variational import ImaginaryMcLachlanPrinciple
@@ -61,10 +60,9 @@ class VarQITE(VarQTE, ImaginaryTimeEvolver):
             init_param_values[i] = np.pi / 2
         param_dict = dict(zip(parameters, init_param_values))
         var_principle = ImaginaryMcLachlanPrinciple()
-        backend = BasicAer.get_backend("statevector_simulator")
         time = 1
         evolution_problem = TimeEvolutionProblem(observable, time)
-        var_qite = VarQITE(ansatz, var_principle, param_dict, quantum_instance=backend)
+        var_qite = VarQITE(ansatz, var_principle, param_dict)
         evolution_result = var_qite.evolve(evolution_problem)
     """
 
@@ -88,13 +86,13 @@ class VarQITE(VarQTE, ImaginaryTimeEvolver):
             initial_parameters: Initial parameter values for an ansatz. If ``None`` provided,
                 they are initialized uniformly at random.
             estimator: An estimator primitive used for calculating expectation values of
-                TimeEvolutionProblem.aux_operators.
+                ``TimeEvolutionProblem.aux_operators``.
             ode_solver: ODE solver callable that implements a SciPy ``OdeSolver`` interface or a
                 string indicating a valid method offered by SciPy.
             lse_solver: Linear system of equations solver callable. It accepts ``A`` and ``b`` to
                 solve ``Ax=b`` and returns ``x``. If ``None``, the default ``np.linalg.lstsq``
                 solver is used.
-            num_timesteps: The number of timesteps to take. If None, it is
+            num_timesteps: The number of timesteps to take. If ``None``, it is
                 automatically selected to achieve a timestep of approximately 0.01. Only
                 relevant in case of the ``ForwardEulerSolver``.
             imag_part_tol: Allowed value of an imaginary part that can be neglected if no
@@ -103,7 +101,6 @@ class VarQITE(VarQTE, ImaginaryTimeEvolver):
                 rounded up to 0 for quantities that are expected to be non-negative.
         """
         if variational_principle is None:
-            # TODO add default QFI and gradient to var principles
             variational_principle = ImaginaryMcLachlanPrinciple()
         super().__init__(
             ansatz,

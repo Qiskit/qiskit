@@ -42,7 +42,7 @@ class VarQTELinearSolver:
         """
         Args:
             var_principle: Variational Principle to be used.
-            hamiltonian:
+            hamiltonian: TODO update types
                 Operator used for Variational Quantum Time Evolution.
                 The operator may be given either as a composed op consisting of a Hermitian
                 observable and a ``CircuitStateFn`` or a ``ListOp`` of a ``CircuitStateFn`` with a
@@ -64,8 +64,6 @@ class VarQTELinearSolver:
         self._bind_params = gradient_params
         self._time_param = t_param
         self.lse_solver = lse_solver
-        self._quantum_instance = None
-        self._circuit_sampler = None
         self._imag_part_tol = imag_part_tol
 
     @property

@@ -15,6 +15,7 @@
 import numpy as np
 
 from qiskit import QuantumCircuit
+from qiskit.algorithms import AlgorithmError
 from qiskit.algorithms.gradients import (
     BaseQFI,
     BaseEstimatorGradient,
@@ -41,16 +42,13 @@ class ImaginaryMcLachlanPrinciple(ImaginaryVariationalPrinciple):
         self,
         qfi: BaseQFI | None = None,
         gradient: BaseEstimatorGradient | None = None,
-        # qfi_method: str | CircuitQFI = "lin_comb_full",
-        # grad_method: str | CircuitGradient = "lin_comb",
     ) -> None:
         """
         Args:
-            grad_method: The method used to compute the state gradient. Can be either
-                ``'param_shift'`` or ``'lin_comb'`` or ``'fin_diff'`` or ``CircuitGradient``.
-            qfi_method: The method used to compute the QFI. Can be either
-                ``'lin_comb_full'`` or ``'overlap_block_diag'`` or ``'overlap_diag'`` or
-                ``CircuitQFI``.
+            qfi: Instance of a class used to compute the QFI. If ``None`` provided, ``LinCombQFI``
+                is used.
+            gradient: Instance of a class used to compute the state gradient. If ``None`` provided,
+                ``ParamShiftEstimatorGradient`` is used.
         """
 
         if gradient is not None and gradient._estimator is not None and qfi is None:
@@ -88,6 +86,9 @@ class ImaginaryMcLachlanPrinciple(ImaginaryVariationalPrinciple):
 
         Returns:
             An evolution gradient.
+
+        Raises:
+            AlgorithmError: If a gradient job fails.
         """
         # if self._evolution_gradient_callable is None:
         #     operator = StateFn(hamiltonian, is_measurement=True) @ StateFn(ansatz)
@@ -95,10 +96,19 @@ class ImaginaryMcLachlanPrinciple(ImaginaryVariationalPrinciple):
         #         operator, bind_params, gradient_params
         #     )
         # evolution_grad_lse_rhs = -0.5 * self._evolution_gradient_callable(param_values)
-        evolution_grad_lse_rhs = (
-            self.gradient.run([ansatz], [hamiltonian], [param_values], [gradient_params])
-            .result()
-            .gradients[0]
-        )
+        print("We are here")
+        try:
+            evolution_grad_lse_rhs = (
+                self.gradient.run([ansatz], [hamiltonian], [param_values], [gradient_params])
+                .result()
+                .gradients[0]
+            )
+
+            print("done")
+        except Exception as exc:
+
+            raise AlgorithmError("The primitive job failed!") from exc
+
+        print(f"Evo grad: {evolution_grad_lse_rhs}")
 
         return -0.5 * evolution_grad_lse_rhs

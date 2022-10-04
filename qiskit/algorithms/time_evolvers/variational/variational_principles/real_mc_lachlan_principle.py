@@ -27,9 +27,6 @@ from qiskit.algorithms.gradients import (
 from qiskit.algorithms.gradients.lin_comb_estimator_gradient import DerivativeType
 from qiskit.circuit import Parameter
 from qiskit.opflow import (
-    StateFn,
-    SummedOp,
-    I,
     PauliSumOp,
 )
 from qiskit.primitives import Estimator
@@ -51,13 +48,13 @@ class RealMcLachlanPrinciple(RealVariationalPrinciple):
         self,
         qfi: BaseQFI | None = None,
         gradient: BaseEstimatorGradient | None = None,
-        # qfi_method: str | CircuitQFI = "lin_comb_full",
     ) -> None:
         """
         Args:
-            qfi_method: The method used to compute the QFI. Can be either
-                ``'lin_comb_full'`` or ``'overlap_block_diag'`` or ``'overlap_diag'`` or
-                ``CircuitQFI``.
+            qfi: Instance of a class used to compute the QFI. If ``None`` provided, ``LinCombQFI``
+                is used.
+            gradient: Instance of a class used to compute the state gradient. If ``None`` provided,
+                ``ParamShiftEstimatorGradient`` is used.
         """
         # TODO make sure to add aux meas op in primitive run method
         # self._grad_method = LinComb(aux_meas_op=-Y)
@@ -98,6 +95,9 @@ class RealMcLachlanPrinciple(RealVariationalPrinciple):
 
         Returns:
             An evolution gradient.
+
+        Raises:
+            AlgorithmError: If a gradient job fails.
         """
         try:
             estimator_job = self.gradient._estimator.run([ansatz], [hamiltonian], [param_values])
@@ -106,7 +106,6 @@ class RealMcLachlanPrinciple(RealVariationalPrinciple):
             raise AlgorithmError("The primitive job failed!") from exc
 
         modified_hamiltonian = self._construct_modified_hamiltonian(hamiltonian, real(energy))
-        pass
 
         evolution_grad = (
             0.5
@@ -136,6 +135,7 @@ class RealMcLachlanPrinciple(RealVariationalPrinciple):
                 given either as a composed op consisting of a Hermitian observable and a
                 ``CircuitStateFn`` or a ``ListOp`` of a ``CircuitStateFn`` with a ``ComboFn``. The
                 latter case enables the evaluation of a Quantum Natural Gradient.
+            energy: The energy correction value.
 
         Returns:
             A modified Hamiltonian.

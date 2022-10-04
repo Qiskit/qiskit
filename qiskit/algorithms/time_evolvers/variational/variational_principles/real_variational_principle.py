@@ -15,7 +15,6 @@ from __future__ import annotations
 
 from abc import ABC
 
-from qiskit.algorithms.gradients import BaseEstimatorGradient, BaseQFI
 from .variational_principle import (
     VariationalPrinciple,
 )
@@ -24,22 +23,3 @@ from .variational_principle import (
 class RealVariationalPrinciple(VariationalPrinciple, ABC):
     """Class for a Real Variational Principle. The real variant means that we consider real time
     dynamics."""
-
-    def __init__(
-        self,
-        qfi: BaseQFI | None = None,
-        gradient: BaseEstimatorGradient | None = None,
-        # qfi_method: str | CircuitQFI = "lin_comb_full",
-    ) -> None:
-        """
-        Args:
-            qfi_method: The method used to compute the QFI. Can be either ``'lin_comb_full'`` or
-                ``'overlap_block_diag'`` or ``'overlap_diag'`` or ``CircuitQFI``.
-        """
-        # TODO check if other than lin_comb_full can be supported
-        super().__init__(
-            qfi,
-            gradient,
-            # qfi_method,
-            # self._grad_method,
-        )

@@ -18,16 +18,15 @@ from abc import ABC, abstractmethod
 import numpy as np
 
 from qiskit import QuantumCircuit
+from qiskit.algorithms import AlgorithmError
 from qiskit.algorithms.gradients import (
     BaseEstimatorGradient,
     ParamShiftEstimatorGradient,
     BaseQFI,
-    LinCombQFI,
 )
 from qiskit.circuit import Parameter
 from qiskit.opflow import PauliSumOp
 from qiskit.primitives import Estimator
-from qiskit.quantum_info import Pauli
 from qiskit.quantum_info.operators.base_operator import BaseOperator
 
 
@@ -39,19 +38,14 @@ class VariationalPrinciple(ABC):
         self,
         qfi: BaseQFI | None = None,
         gradient: BaseEstimatorGradient | None = None,
-        # qfi_method: str | CircuitQFI = "lin_comb_full",
-        # grad_method: str | CircuitGradient = "lin_comb",
     ) -> None:
         """
         Args:
-            grad_method: The method used to compute the state gradient. Can be either
-                ``'param_shift'`` or ``'lin_comb'`` or ``'fin_diff'`` or ``CircuitGradient``.
-            qfi_method: The method used to compute the QFI. Can be either
-                ``'lin_comb_full'`` or ``'overlap_block_diag'`` or ``'overlap_diag'`` or
-                ``CircuitQFI``.
+            qfi: Instance of a class used to compute the QFI. If ``None`` provided, ``LinCombQFI``
+                is used.
+            gradient: Instance of a class used to compute the state gradient. If ``None`` provided,
+                ``ParamShiftEstimatorGradient`` is used.
         """
-        # self._qfi_method = qfi_method
-        # self.qfi = QFI(qfi_method)
         if qfi is not None and qfi._estimator is not None and gradient is None:
             estimator = qfi._estimator
             gradient = ParamShiftEstimatorGradient(estimator)
@@ -61,10 +55,6 @@ class VariationalPrinciple(ABC):
 
         self.qfi = qfi
         self.gradient = gradient
-        # self._grad_method = grad_method
-        # self._evolution_gradient = Gradient(self._grad_method)
-        # self._qfi_gradient_callable = None
-        # self._evolution_gradient_callable = None
 
     def metric_tensor(
         self, ansatz: QuantumCircuit, gradient_params: list[Parameter], param_values: list[complex]
@@ -79,21 +69,24 @@ class VariationalPrinciple(ABC):
 
         Returns:
             Metric tensor.
+
+        Raises:
+            AlgorithmError: If a QFI job fails.
         """
         # if self._qfi_gradient_callable is None:
         #     self._qfi_gradient_callable = self.qfi.gradient_wrapper(
         #         CircuitStateFn(ansatz), bind_params, gradient_params
         #     )
         # metric_tensor = 0.25 * self._qfi_gradient_callable(param_values)
-        # TODO which observables to provide?
-        pass
-        metric_tensor = (
-            0.25
-            * self.qfi._run(
-                [ansatz], [Pauli("I" * ansatz.num_qubits)], [param_values], [gradient_params]
-            ).qfis[0]
-        )
 
+        try:
+            metric_tensor = (
+                0.25 * self.qfi._run([ansatz], [param_values], [gradient_params]).qfis[0]
+            )
+        except Exception as exc:
+            print(exc)
+            raise AlgorithmError("The primitive job failed!") from exc
+        print(f"QFI {metric_tensor}")
         return metric_tensor
 
     @abstractmethod
