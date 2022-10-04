@@ -244,19 +244,19 @@ def visualize_transition(circuit, trace=False, saveas=None, fpg=100, spg=2):
         elif gate.name == "rx":
             theta = gate.params[0]
             quaternion = _Quaternion.from_axisangle(theta / frames_per_gate, [1, 0, 0])
-            list_of_circuit_gates.append((f"{gate.name}: {theta}", quaternion, "#16a085"))
+            list_of_circuit_gates.append((f"{gate.name}: {theta:.2f}", quaternion, "#16a085"))
         elif gate.name == "ry":
             theta = gate.params[0]
             quaternion = _Quaternion.from_axisangle(theta / frames_per_gate, [0, 1, 0])
-            list_of_circuit_gates.append((f"{gate.name}: {theta}", quaternion, "#27ae60"))
+            list_of_circuit_gates.append((f"{gate.name}: {theta:.2f}", quaternion, "#27ae60"))
         elif gate.name == "rz":
             theta = gate.params[0]
             quaternion = _Quaternion.from_axisangle(theta / frames_per_gate, [0, 0, 1])
-            list_of_circuit_gates.append((f"{gate.name}: {theta}", quaternion, "#2980b9"))
+            list_of_circuit_gates.append((f"{gate.name}: {theta:.2f}", quaternion, "#2980b9"))
         elif gate.name == "u1":
             theta = gate.params[0]
             quaternion = _Quaternion.from_axisangle(theta / frames_per_gate, [0, 0, 1])
-            list_of_circuit_gates.append((f"{gate.name}: {theta}", quaternion, "#f1c40f"))
+            list_of_circuit_gates.append((f"{gate.name}: {theta:.2f}", quaternion, "#f1c40f"))
         else:
             raise VisualizationError(f"Gate {gate.name} is not supported")
 
