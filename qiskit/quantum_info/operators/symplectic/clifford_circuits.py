@@ -74,8 +74,10 @@ def _append_operation(clifford, operation, qargs=None):
             raise QiskitError(f"Invalid Clifford gate name string {gate}")
         name = gate
     else:
-        # Assume gate is an Instruction
+        # assert isinstance(gate, Instruction)
         name = gate.name
+        if getattr(gate, "condition", None) is not None:
+            raise QiskitError("Conditional gate is not a valid Clifford operation.")
 
     # Apply gate if it is a Clifford basis gate
     if name in _NON_CLIFFORD:
