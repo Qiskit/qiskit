@@ -17,6 +17,7 @@ from __future__ import annotations
 
 from collections.abc import Iterable, Sequence
 from typing import Any
+from warnings import warn
 
 import numpy as np
 
@@ -135,6 +136,12 @@ class Estimator(BaseEstimator):
                 sq_obs = (obs @ obs).simplify()
                 sq_exp_val = np.real_if_close(final_state.expectation_value(sq_obs))
                 variance = sq_exp_val - expectation_value**2
+                if variance < 0:
+                    warn(
+                        f"Negative variance encountered: {variance}. Variance is automatically treated as zero.",
+                        category=RuntimeWarning,
+                    )
+                    variance = 0.0
                 standard_deviation = np.sqrt(variance / shots)
                 expectation_value_with_error = rng.normal(expectation_value, standard_deviation)
                 expectation_values.append(expectation_value_with_error)
