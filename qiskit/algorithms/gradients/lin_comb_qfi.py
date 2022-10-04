@@ -191,7 +191,7 @@ class LinCombQFI(BaseQFI):
             gradient_results = [g_job.result() for g_job in gradient_jobs]
             results = [job.result() for job in jobs]
         except AlgorithmError as exc:
-            raise AlgorithmError("Estimator job failed.") from exc
+            raise AlgorithmError("Estimator job or gradient job failed.") from exc
 
         # compute the phase fix
         if self._phase_fix:
@@ -233,6 +233,19 @@ class LinCombQFI(BaseQFI):
 
         run_opt = self._get_local_options(options)
         return QFIResult(qfis=qfis, metadata=metadata_, options=run_opt)
+
+    @property
+    def options(self) -> Options:
+        """Return the union of estimator options setting and QFI default options,
+        where, if the same field is set in both, the QFI's default options override
+        the primitive's default setting.
+
+        Returns:
+            The QFI default + estimator options.
+        """
+        opts = copy(self._estimator.options)
+        opts.update_options(self._default_options.__dict__)
+        return opts
 
     def _get_local_options(self, options: Options) -> Options:
         """Return the union of the primitive's default setting,

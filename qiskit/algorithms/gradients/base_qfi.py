@@ -124,7 +124,6 @@ class BaseQFI(ABC):
         Raises:
             ValueError: Invalid arguments are given.
         """
-        # Validation
         if len(circuits) != len(parameter_values):
             raise ValueError(
                 f"The number of circuits ({len(circuits)}) does not match "
@@ -148,6 +147,7 @@ class BaseQFI(ABC):
                 )
 
     @property
+    @abstractmethod
     def options(self) -> Options:
         """Return the union of estimator options setting and QFI default options,
         where, if the same field is set in both, the QFI's default options override
@@ -156,7 +156,7 @@ class BaseQFI(ABC):
         Returns:
             The QFI default + estimator options.
         """
-        return self._get_local_options(self._default_options.__dict__)
+        pass
 
     def update_default_options(self, **options):
         """Update the QFI's default options setting.
@@ -165,18 +165,3 @@ class BaseQFI(ABC):
             **options: The fields to update the default options.
         """
         self._default_options.update_options(**options)
-
-    @abstractmethod
-    def _get_local_options(self, options: Options) -> Options:
-        """Return the union of the primitive's default setting,
-        the QFI default options, and the options in the ``run`` method.
-        The order of priority is: options in ``run`` method > QFI's default options > primitive's
-        default setting.
-
-        Args:
-            options: The fields to update the options
-
-        Returns:
-            The QFI default + estimator + run options.
-        """
-        pass
