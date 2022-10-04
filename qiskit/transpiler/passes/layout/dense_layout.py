@@ -90,7 +90,7 @@ class DenseLayout(AnalysisPass):
             num_meas = 1
         else:
             # Get avg number of cx and meas per qubit
-            ops = dag.count_ops()
+            ops = dag.count_ops(recurse=True)
             if "cx" in ops.keys():
                 num_cx = ops["cx"]
             if "measure" in ops.keys():
