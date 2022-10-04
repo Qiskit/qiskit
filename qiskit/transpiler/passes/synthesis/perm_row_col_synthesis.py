@@ -84,7 +84,11 @@ class PermRowColSynthesis(HighLevelSynthesis):
         Returns:
             int: column index
         """
-        return 0
+        col_sum = [
+            sum(parity_mat[:, i]) if parity_mat[chosen_row][i] == 1 else len(parity_mat)
+            for i in cols
+        ]
+        return int(cols[np.argmin(col_sum)])
 
     def eliminate_column(
         self, parity_mat: np.ndarray, coupling: CouplingMap, root: int, terminals: np.ndarray
