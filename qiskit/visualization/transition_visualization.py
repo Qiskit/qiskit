@@ -192,59 +192,73 @@ def visualize_transition(circuit, trace=False, saveas=None, fpg=100, spg=2):
     time_between_frames = (spg * 1000) / fpg
 
     # quaternions of gates which don't take parameters
-    gates = {}
-    gates["x"] = ("x", _Quaternion.from_axisangle(np.pi / frames_per_gate, [1, 0, 0]), "#1abc9c")
-    gates["y"] = ("y", _Quaternion.from_axisangle(np.pi / frames_per_gate, [0, 1, 0]), "#2ecc71")
-    gates["z"] = ("z", _Quaternion.from_axisangle(np.pi / frames_per_gate, [0, 0, 1]), "#3498db")
-    gates["s"] = (
+    simple_gates = {}
+    simple_gates["x"] = (
+        "x",
+        _Quaternion.from_axisangle(np.pi / frames_per_gate, [1, 0, 0]),
+        "#1abc9c",
+    )
+    simple_gates["y"] = (
+        "y",
+        _Quaternion.from_axisangle(np.pi / frames_per_gate, [0, 1, 0]),
+        "#2ecc71",
+    )
+    simple_gates["z"] = (
+        "z",
+        _Quaternion.from_axisangle(np.pi / frames_per_gate, [0, 0, 1]),
+        "#3498db",
+    )
+    simple_gates["s"] = (
         "s",
         _Quaternion.from_axisangle(np.pi / 2 / frames_per_gate, [0, 0, 1]),
         "#9b59b6",
     )
-    gates["sdg"] = (
+    simple_gates["sdg"] = (
         "sdg",
         _Quaternion.from_axisangle(-np.pi / 2 / frames_per_gate, [0, 0, 1]),
         "#8e44ad",
     )
-    gates["h"] = (
+    simple_gates["h"] = (
         "h",
         _Quaternion.from_axisangle(np.pi / frames_per_gate, _normalize([1, 0, 1])),
         "#34495e",
     )
-    gates["t"] = (
+    simple_gates["t"] = (
         "t",
         _Quaternion.from_axisangle(np.pi / 4 / frames_per_gate, [0, 0, 1]),
         "#e74c3c",
     )
-    gates["tdg"] = (
+    simple_gates["tdg"] = (
         "tdg",
         _Quaternion.from_axisangle(-np.pi / 4 / frames_per_gate, [0, 0, 1]),
         "#c0392b",
     )
 
-    implemented_gates = ["h", "x", "y", "z", "rx", "ry", "rz", "s", "sdg", "t", "tdg", "u1"]
-    simple_gates = ["h", "x", "y", "z", "s", "sdg", "t", "tdg"]
     list_of_circuit_gates = []
 
-    for gate in circuit._data:
-        if gate[0].name not in implemented_gates:
-            raise VisualizationError(f"Gate {gate[0].name} is not supported")
-        if gate[0].name in simple_gates:
-            list_of_circuit_gates.append(gates[gate[0].name])
+    for gate, _, _ in circuit._data:
+        if gate.name == "barrier":
+            continue
+        elif gate.name in simple_gates:
+            list_of_circuit_gates.append(simple_gates[gate.name])
+        elif gate.name == "rx":
+            theta = gate.params[0]
+            quaternion = _Quaternion.from_axisangle(theta / frames_per_gate, [1, 0, 0])
+            list_of_circuit_gates.append((f"{gate.name}: {theta}", quaternion, "#16a085"))
+        elif gate.name == "ry":
+            theta = gate.params[0]
+            quaternion = _Quaternion.from_axisangle(theta / frames_per_gate, [0, 1, 0])
+            list_of_circuit_gates.append((f"{gate.name}: {theta}", quaternion, "#27ae60"))
+        elif gate.name == "rz":
+            theta = gate.params[0]
+            quaternion = _Quaternion.from_axisangle(theta / frames_per_gate, [0, 0, 1])
+            list_of_circuit_gates.append((f"{gate.name}: {theta}", quaternion, "#2980b9"))
+        elif gate.name == "u1":
+            theta = gate.params[0]
+            quaternion = _Quaternion.from_axisangle(theta / frames_per_gate, [0, 0, 1])
+            list_of_circuit_gates.append((f"{gate.name}: {theta}", quaternion, "#f1c40f"))
         else:
-            theta = gate[0].params[0]
-            if gate[0].name == "rx":
-                quaternion = _Quaternion.from_axisangle(theta / frames_per_gate, [1, 0, 0])
-                list_of_circuit_gates.append(("rx:" + str(theta), quaternion, "#16a085"))
-            elif gate[0].name == "ry":
-                quaternion = _Quaternion.from_axisangle(theta / frames_per_gate, [0, 1, 0])
-                list_of_circuit_gates.append(("ry:" + str(theta), quaternion, "#27ae60"))
-            elif gate[0].name == "rz":
-                quaternion = _Quaternion.from_axisangle(theta / frames_per_gate, [0, 0, 1])
-                list_of_circuit_gates.append(("rz:" + str(theta), quaternion, "#2980b9"))
-            elif gate[0].name == "u1":
-                quaternion = _Quaternion.from_axisangle(theta / frames_per_gate, [0, 0, 1])
-                list_of_circuit_gates.append(("u1:" + str(theta), quaternion, "#f1c40f"))
+            raise VisualizationError(f"Gate {gate.name} is not supported")
 
     if len(list_of_circuit_gates) == 0:
         raise VisualizationError("Nothing to visualize.")
