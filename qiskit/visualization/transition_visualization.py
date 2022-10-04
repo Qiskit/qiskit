@@ -357,6 +357,7 @@ def visualize_transition(circuit, trace=False, saveas=None, fpg=100, spg=2):
     if jupyter:
         # This is necessary to overcome matplotlib memory limit
         matplotlib.rcParams["animation.embed_limit"] = 50
+        plt.close(fig)
         return HTML(ani.to_jshtml())
     plt.show()
     plt.close(fig)
