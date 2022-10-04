@@ -244,7 +244,7 @@ class LinCombQFI(BaseQFI):
             The QFI default + estimator options.
         """
         opts = copy(self._estimator.options)
-        opts.update_options(self._default_options.__dict__)
+        opts.update_options(**self._default_options.__dict__)
         return opts
 
     def _get_local_options(self, options: Options) -> Options:
