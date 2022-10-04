@@ -4511,6 +4511,8 @@ class QuantumCircuit:
         # pylint: disable=cyclic-import
         from qiskit.circuit.controlflow.while_loop import WhileLoopOp, WhileLoopContext
 
+        condition = (self._resolve_classical_resource(condition[0]), condition[1])
+
         if body is None:
             if qubits is not None or clbits is not None:
                 raise CircuitError(
