@@ -1,0 +1,22 @@
+name: Transpiler testing
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v2
+      - name: Set up Python 3.8
+        uses: actions/setup-python@v2
+        with:
+          python-version: 3.8
+      - name: Install everything
+        run: pip install -e .
+      - name: Install tox
+        run: pip install -U tox
+      - name: Run tests
+        run: tox -epy38 -- test.python.transpiler.test*
