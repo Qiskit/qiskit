@@ -324,7 +324,7 @@ def visualize_transition(circuit, trace=False, saveas=None, fpg=100, spg=2):
         sphere.point_marker = "o"
 
         annotation_text = list_of_circuit_gates[gate_counter][0]
-        annotationvector = [1.4, -0.45, 1.7]
+        annotationvector = [1.40, -0.45, 1.65]
         sphere.add_annotation(
             annotationvector,
             annotation_text,
