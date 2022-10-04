@@ -239,7 +239,7 @@ def visualize_transition(circuit, trace=False, saveas=None, fpg=100, spg=2):
     for gate, _, _ in circuit._data:
         if gate.name == "barrier":
             continue
-        elif gate.name in simple_gates:
+        if gate.name in simple_gates:
             list_of_circuit_gates.append(simple_gates[gate.name])
         elif gate.name == "rx":
             theta = gate.params[0]
