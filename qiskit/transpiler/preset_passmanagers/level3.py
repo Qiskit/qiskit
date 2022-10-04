@@ -94,11 +94,6 @@ def level_3_pass_manager(pass_manager_config: PassManagerConfig) -> StagedPassMa
     unitary_synthesis_plugin_config = pass_manager_config.unitary_synthesis_plugin_config
     target = pass_manager_config.target
     hls_config = pass_manager_config.hls_config
-    # Override an unset optimization_level for stage plugin use.
-    # it will be restored to None before this is returned
-    optimization_level = pass_manager_config.optimization_level
-    if optimization_level is None:
-        pass_manager_config.optimization_level = 3
 
     # Layout on good qubits if calibration info available, otherwise on dense links
     _given_layout = SetLayout(initial_layout)
@@ -314,13 +309,12 @@ def level_3_pass_manager(pass_manager_config: PassManagerConfig) -> StagedPassMa
         sched = common.generate_scheduling(
             instruction_durations, scheduling_method, timing_constraints, inst_map
         )
+    elif isinstance(scheduling_method, PassManager):
+        sched = scheduling_method
     else:
         sched = plugin_manager.get_passmanager_stage(
             "scheduling", scheduling_method, pass_manager_config, optimization_level=3
         )
-
-    # Restore PassManagerConfig optimization_level override
-    pass_manager_config.optimization_level = optimization_level
 
     return StagedPassManager(
         init=init,
