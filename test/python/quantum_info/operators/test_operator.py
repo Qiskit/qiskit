@@ -883,10 +883,7 @@ class TestOperator(OperatorTestCase):
             }
         )
         tqc = transpile(circuit, initial_layout=init_layout)
-        print(tqc)
         result = Operator.from_circuit(tqc)
-        print(result)
-        print(Operator(circuit))
         self.assertTrue(Operator.from_circuit(circuit).equiv(result))
 
     def test_from_circuit_loose_bits_transpiled(self):
