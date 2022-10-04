@@ -13,6 +13,7 @@
 """Perm_row_col function implementation"""
 
 import numpy as np
+
 from qiskit.transpiler.passes.synthesis.high_level_synthesis import HighLevelSynthesis
 from qiskit.circuit.library.generalized_gates.linear_function import LinearFunction
 from qiskit.dagcircuit.dagcircuit import DAGCircuit
