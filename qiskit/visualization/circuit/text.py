@@ -607,7 +607,7 @@ class TextDrawing:
         vertical_compression="high",
         layout=None,
         initial_state=True,
-        cregbundle=False,
+        cregbundle=None,
         global_phase=None,
         encoding=None,
         qregs=None,
@@ -675,7 +675,8 @@ class TextDrawing:
             self.layout = None
 
         self.initial_state = initial_state
-        self.cregbundle = cregbundle
+        self._cregbundle = cregbundle
+        self._default_cregbundle = False
         self.global_phase = circuit.global_phase
         self.plotbarriers = plotbarriers
         self.reverse_bits = reverse_bits
@@ -692,6 +693,13 @@ class TextDrawing:
                 self.encoding = sys.stdout.encoding
             else:
                 self.encoding = "utf8"
+
+    @property
+    def cregbundle(self):
+        """cregbundle, depending if it was explicitly set or not"""
+        if self._cregbundle is not None:
+            return self._cregbundle
+        return self._default_cregbundle
 
     def __str__(self):
         return self.single_string()
@@ -761,13 +769,14 @@ class TextDrawing:
         try:
             layers = self.build_layers()
         except TextDrawerCregBundle:
-            self.cregbundle = False
-            warn(
-                'The parameter "cregbundle" was disabled, since an instruction needs to refer to '
-                "individual classical wires",
-                RuntimeWarning,
-                2,
-            )
+            if self._cregbundle is not None:
+                self._cregbundle = False
+                warn(
+                    'The parameter "cregbundle" was disabled, since an instruction needs to refer to '
+                    "individual classical wires",
+                    RuntimeWarning,
+                    2,
+                )
             layers = self.build_layers()
 
         layer_groups = [[]]
@@ -1210,7 +1219,7 @@ class TextDrawing:
 class Layer:
     """A layer is the "column" of the circuit."""
 
-    def __init__(self, qubits, clbits, cregbundle=False, circuit=None):
+    def __init__(self, qubits, clbits, cregbundle, circuit=None):
         self.qubits = qubits
         self.clbits_raw = clbits  # list of clbits ignoring cregbundle change below
         self._circuit = circuit

@@ -55,7 +55,7 @@ class BaseEstimatorGradient(ABC):
         self,
         circuits: Sequence[QuantumCircuit],
         observables: Sequence[BaseOperator | PauliSumOp],
-        parameter_values: Sequence[Sequence[float]],
+        parameter_values: Sequence[Sequence[complex]],
         parameters: Sequence[Sequence[Parameter] | None] | None = None,
         **options,
     ) -> AlgorithmJob:
@@ -103,7 +103,7 @@ class BaseEstimatorGradient(ABC):
         self,
         circuits: Sequence[QuantumCircuit],
         observables: Sequence[BaseOperator | PauliSumOp],
-        parameter_values: Sequence[Sequence[float]],
+        parameter_values: Sequence[Sequence[complex]],
         parameters: Sequence[Sequence[Parameter] | None],
         **options,
     ) -> EstimatorGradientResult:
@@ -114,7 +114,7 @@ class BaseEstimatorGradient(ABC):
         self,
         circuits: Sequence[QuantumCircuit],
         observables: Sequence[BaseOperator | PauliSumOp],
-        parameter_values: Sequence[Sequence[float]],
+        parameter_values: Sequence[Sequence[complex]],
         parameters: Sequence[Sequence[Parameter] | None] | None = None,
     ) -> None:
         """Validate the arguments of the ``run`` method.
@@ -131,7 +131,6 @@ class BaseEstimatorGradient(ABC):
         Raises:
             ValueError: Invalid arguments are given.
         """
-        # Validation
         if len(circuits) != len(parameter_values):
             raise ValueError(
                 f"The number of circuits ({len(circuits)}) does not match "

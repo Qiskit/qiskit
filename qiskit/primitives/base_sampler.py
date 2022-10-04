@@ -16,71 +16,60 @@ Overview of Sampler
 
 Sampler class calculates probabilities or quasi-probabilities of bitstrings from quantum circuits.
 
-A sampler is initialized with the following elements.
+A sampler is initialized with an empty parameter set. The sampler is used to
+create a :class:`~qiskit.providers.JobV1`, via the :meth:`qiskit.primitives.Sampler.run()`
+method. This method is called with the following parameters
 
 * quantum circuits (:math:`\psi_i(\theta)`): list of (parameterized) quantum circuits.
-  (a list of :class:`~qiskit.circuit.QuantumCircuit`))
-
-The sampler is run with the following inputs.
-
-* circuits: a list of QuantumCircuit objects to evaluate.
+  (a list of :class:`~qiskit.circuit.QuantumCircuit` objects)
 
 * parameter values (:math:`\theta_k`): list of sets of parameter values
   to be bound to the parameters of the quantum circuits.
   (list of list of float)
 
-The output is a :class:`~qiskit.primitives.SamplerResult` which contains probabilities
-or quasi-probabilities of bitstrings,
+The method returns a :class:`~qiskit.providers.JobV1` object, calling
+:meth:`qiskit.providers.JobV1.result()` yields a :class:`~qiskit.primitives.SamplerResult`
+object, which contains probabilities or quasi-probabilities of bitstrings,
 plus optional metadata like error bars in the samples.
-
-The sampler object is expected to be closed after use or
-accessed within "with" context
-and the objects are called with parameter values and run options
-(e.g., ``shots`` or number of shots).
 
 Here is an example of how sampler is used.
 
 .. code-block:: python
 
+    from qiskit.primitives import Sampler
     from qiskit import QuantumCircuit
     from qiskit.circuit.library import RealAmplitudes
 
+    # a Bell circuit
     bell = QuantumCircuit(2)
     bell.h(0)
     bell.cx(0, 1)
     bell.measure_all()
 
-    # executes a Bell circuit
-    sampler = Sampler()
-    result = sampler.run(circuits=[bell]).result()
-    print([q.binary_probabilities() for q in result.quasi_dists])
-
-    # executes three Bell circuits
-    sampler = Sampler()
-    result = sampler.run([bell, bell, bell]).result()
-    print([q.binary_probabilities() for q in result.quasi_dists])
-
-    # parameterized circuit
+    # two parameterized circuits
     pqc = RealAmplitudes(num_qubits=2, reps=2)
     pqc.measure_all()
     pqc2 = RealAmplitudes(num_qubits=2, reps=3)
     pqc2.measure_all()
 
     theta1 = [0, 1, 1, 2, 3, 5]
-    theta2 = [1, 2, 3, 4, 5, 6]
-    theta3 = [0, 1, 2, 3, 4, 5, 6, 7]
+    theta2 = [0, 1, 2, 3, 4, 5, 6, 7]
 
+    # initialization of the sampler
     sampler = Sampler()
-    result = sampler.run([pqc, pqc, pqc2], [theta1, theta2, theta3]).result()
 
-    # result of pqc(theta1)
-    print(result.quasi_dists[0].binary_probabilities())
+    # Sampler runs a job on the Bell circuit
+    job = sampler.run(circuits=[bell], parameter_values=[[]], parameters=[[]])
+    job_result = job.result()
+    print([q.binary_probabilities() for q in job_result.quasi_dists])
 
-    # result of pqc(theta2)
-    print(result.quasi_dists[1].binary_probabilities())
-
-    # result of pqc2(theta3)
-    print(result.quasi_dists[2].binary_probabilities())
+    # Sampler runs a job on the parameterized circuits
+    job2 = sampler.run(
+        circuits=[pqc, pqc2],
+        parameter_values=[theta1, theta2],
+        parameters=[pqc.parameters, pqc2.parameters])
+    job_result = job2.result()
+    print([q.binary_probabilities() for q in job_result.quasi_dists])
 """
 from __future__ import annotations
 
@@ -99,7 +88,7 @@ from qiskit.providers import Options
 from qiskit.utils.deprecation import deprecate_arguments, deprecate_function
 
 from .sampler_result import SamplerResult
-from .utils import _circuit_key, final_measurement_mapping
+from .utils import _circuit_key
 
 
 class BaseSampler(ABC):
@@ -314,14 +303,14 @@ class BaseSampler(ABC):
 
     def run(
         self,
-        circuits: Sequence[QuantumCircuit],
-        parameter_values: Sequence[Sequence[float]] | None = None,
+        circuits: QuantumCircuit | Sequence[QuantumCircuit],
+        parameter_values: Sequence[float] | Sequence[Sequence[float]] | None = None,
         **run_options,
     ) -> Job:
         """Run the job of the sampling of bitstrings.
 
         Args:
-            circuits: the list of circuit objects.
+            circuits: One of more circuit objects.
             parameter_values: Parameters to be bound to the circuit.
             run_options: Backend runtime options used for circuit execution.
 
@@ -335,6 +324,13 @@ class BaseSampler(ABC):
         # Support ndarray
         if isinstance(parameter_values, np.ndarray):
             parameter_values = parameter_values.tolist()
+
+        if not isinstance(circuits, Sequence):
+            circuits = [circuits]
+        if parameter_values is not None and (
+            len(parameter_values) == 0 or not isinstance(parameter_values[0], (Sequence, Iterable))
+        ):
+            parameter_values = [parameter_values]  # type: ignore[assignment]
 
         # Allow optional
         if parameter_values is None:
@@ -366,14 +362,6 @@ class BaseSampler(ABC):
                     f"The {i}-th circuit does not have any classical bit. "
                     "Sampler requires classical bits, plus measurements "
                     "on the desired qubits."
-                )
-
-            mapping = final_measurement_mapping(circuit)
-            if set(range(circuit.num_clbits)) != set(mapping.values()):
-                raise ValueError(
-                    f"Some classical bits of the {i}-th circuit are not used for measurements."
-                    f" the number of classical bits ({circuit.num_clbits}),"
-                    f" the used classical bits ({set(mapping.values())})."
                 )
 
         run_opts = copy(self.options)

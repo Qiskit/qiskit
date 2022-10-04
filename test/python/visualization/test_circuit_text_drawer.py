@@ -5076,7 +5076,7 @@ class TestTextPhase(QiskitTestCase):
         crx = ClassicalRegister(2, "crx")
         circuit = QuantumCircuit(qrx, [Qubit(), Qubit()], qry, [Clbit(), Clbit()], crx)
 
-        self.assertEqual(circuit.draw(output="text").single_string(), expected)
+        self.assertEqual(circuit.draw(output="text", cregbundle=True).single_string(), expected)
 
 
 class TestCircuitVisualizationImplementation(QiskitVisualizationTestCase):

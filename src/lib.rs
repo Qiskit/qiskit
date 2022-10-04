@@ -23,6 +23,7 @@ mod optimize_1q_gates;
 mod pauli_exp_val;
 mod results;
 mod sabre_swap;
+mod sampled_exp_val;
 mod sparse_pauli_op;
 mod stochastic_swap;
 
@@ -48,5 +49,6 @@ fn _accelerate(_py: Python<'_>, m: &PyModule) -> PyResult<()> {
     m.add_wrapped(wrap_pymodule!(sparse_pauli_op::sparse_pauli_op))?;
     m.add_wrapped(wrap_pymodule!(results::results))?;
     m.add_wrapped(wrap_pymodule!(optimize_1q_gates::optimize_1q_gates))?;
+    m.add_wrapped(wrap_pymodule!(sampled_exp_val::sampled_exp_val))?;
     Ok(())
 }

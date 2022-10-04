@@ -19,44 +19,35 @@ Overview of Estimator
 
 Estimator class estimates expectation values of quantum circuits and observables.
 
-An estimator object is initialized with multiple quantum circuits and observables
-and users can specify pairs of quantum circuits and observables
-to estimate the expectation values.
-
-An estimator is initialized with the following elements.
+An estimator is initialized with an empty parameter set. The estimator is used to
+create a :class:`~qiskit.providers.JobV1`, via the
+:meth:`qiskit.primitives.Estimator.run()` method. This method is called
+with the following parameters
 
 * quantum circuits (:math:`\psi_i(\theta)`): list of (parameterized) quantum circuits
-  (a list of :class:`~qiskit.circuit.QuantumCircuit`))
+  (a list of :class:`~qiskit.circuit.QuantumCircuit` objects).
 
-* observables (:math:`H_j`): a list of :class:`~qiskit.quantum_info.SparsePauliOp`.
-
-The estimator is called with the following inputs.
-
-* circuits: a list of the quantum circuits.
-
-* observables: a list of the observables.
+* observables (:math:`H_j`): a list of :class:`~qiskit.quantum_info.SparsePauliOp`
+  objects.
 
 * parameter values (:math:`\theta_k`): list of sets of values
-  to be bound to the parameters of the quantum circuits.
-  (list of list of float)
+  to be bound to the parameters of the quantum circuits
+  (list of list of float).
 
-The output is an :class:`~qiskit.primitives.EstimatorResult` which contains a list of
-expectation values plus optional metadata like confidence intervals for the estimation.
+The method returns a :class:`~qiskit.providers.JobV1` object, calling
+:meth:`qiskit.providers.JobV1.result()` yields the
+a list of expectation values plus optional metadata like confidence intervals for
+the estimation.
 
 .. math::
 
     \langle\psi_i(\theta_k)|H_j|\psi_i(\theta_k)\rangle
 
-
-The estimator object is expected to be ``close()`` d after use or
-accessed inside "with" context
-and the objects are called with parameter values and run options
-(e.g., ``shots`` or number of shots).
-
-Here is an example of how estimator is used.
+Here is an example of how the estimator is used.
 
 .. code-block:: python
 
+    from qiskit.primitives import Estimator
     from qiskit.circuit.library import RealAmplitudes
     from qiskit.quantum_info import SparsePauliOp
 
@@ -74,22 +65,16 @@ Here is an example of how estimator is used.
     estimator = Estimator()
 
     # calculate [ <psi1(theta1)|H1|psi1(theta1)> ]
-    result = estimator.run([psi1], [H1], [theta1]).result()
-    print(result)
-
-    # calculate [ <psi2(theta2)|H2|psi2(theta2)> ]
-    result2 = estimator.run([psi2], [H1], [theta2]).result()
-    print(result2)
-
-    # calculate [ <psi1(theta1)|H2|psi1(theta1)>, <psi1(theta1)|H3|psi1(theta1)> ]
-    result3 = estimator.run([psi1, psi1], [H2, H3], [theta1]*2).result()
-    print(result3)
+    job = estimator.run([psi1], [H1], [theta1])
+    job_result = job.result() # It will block until the job finishes.
+    print(f"The primitive-job finished with result {job_result}"))
 
     # calculate [ <psi1(theta1)|H1|psi1(theta1)>,
     #             <psi2(theta2)|H2|psi2(theta2)>,
     #             <psi1(theta3)|H3|psi1(theta3)> ]
-    result4 = estimator.run([psi1, psi2, psi1], [H1, H2, H3], [theta1, theta2, theta3]).result()
-    print(result4)
+    job2 = estimator.run([psi1, psi2, psi1], [H1, H2, H3], [theta1, theta2, theta3])
+    job_result = job2.result()
+    print(f"The primitive-job finished with result {job_result}")
 """
 from __future__ import annotations
 
@@ -266,7 +251,7 @@ class BaseEstimator(ABC):
         """
         return self._run_options
 
-    def set_options(self, **fields) -> BaseEstimator:
+    def set_options(self, **fields):
         """Set options values for the estimator.
 
         Args:
@@ -414,9 +399,9 @@ class BaseEstimator(ABC):
 
     def run(
         self,
-        circuits: Sequence[QuantumCircuit],
-        observables: Sequence[BaseOperator | PauliSumOp],
-        parameter_values: Sequence[Sequence[float]] | None = None,
+        circuits: QuantumCircuit | Sequence[QuantumCircuit],
+        observables: BaseOperator | PauliSumOp | Sequence[BaseOperator | PauliSumOp],
+        parameter_values: Sequence[float] | Sequence[Sequence[float]] | None = None,
         **run_options,
     ) -> Job:
         """Run the job of the estimation of expectation value(s).
@@ -441,8 +426,8 @@ class BaseEstimator(ABC):
             values = parameter_values[i].
 
         Args:
-            circuits: the list of circuit objects.
-            observables: the list of observable objects.
+            circuits: one or more circuit objects.
+            observables: one or more observable objects.
             parameter_values: concrete parameters to be bound.
             run_options: runtime options used for circuit execution.
 
@@ -455,6 +440,21 @@ class BaseEstimator(ABC):
         # Support ndarray
         if isinstance(parameter_values, np.ndarray):
             parameter_values = parameter_values.tolist()
+
+        if not isinstance(circuits, Sequence):
+            circuits = [circuits]
+        if not isinstance(observables, Sequence):
+            observables = [observables]
+        if (
+            len(circuits) > 0
+            and len(observables) > 0
+            and parameter_values is not None
+            and (
+                len(parameter_values) == 0
+                or not isinstance(parameter_values[0], (Sequence, Iterable))
+            )
+        ):
+            parameter_values = [parameter_values]  # type: ignore[assignment]
 
         # Allow optional
         if parameter_values is None:
