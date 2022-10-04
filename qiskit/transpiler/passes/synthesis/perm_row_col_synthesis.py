@@ -13,6 +13,7 @@
 """Perm_row_col function implementation"""
 
 import numpy as np
+import retworkx as rx
 
 from qiskit.transpiler.passes.synthesis.high_level_synthesis import HighLevelSynthesis
 from qiskit.circuit.library.generalized_gates.linear_function import LinearFunction
@@ -118,3 +119,6 @@ class PermRowColSynthesis(HighLevelSynthesis):
             np.ndarray: list of operations
         """
         return np.ndarray(0)
+
+    def _pydigraph_to_pygraph(pydigraph: rx.PyDiGraph) -> rx.PyGraph:
+        return pydigraph.to_undirected()
