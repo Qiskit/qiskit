@@ -205,7 +205,6 @@ def generate_preset_pass_manager(
         hls_config=hls_config,
         init_method=init_method,
         optimization_method=optimization_method,
-        optimization_level=optimization_level,
     )
 
     if backend is not None:
