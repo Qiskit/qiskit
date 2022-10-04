@@ -233,7 +233,7 @@ class Operator(LinearOp):
             if not ignore_set_layout:
                 layout = getattr(circuit, "_layout", None)
         else:
-            from qiskit.transpiler.layout import TranspileLayout
+            from qiskit.transpiler.layout import TranspileLayout  # pylint: disable=cyclic-import
 
             layout = TranspileLayout(
                 initial_layout=layout,
