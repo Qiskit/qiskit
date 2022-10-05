@@ -72,12 +72,14 @@ Amplitude Estimators
    MaximumLikelihoodAmplitudeEstimationResult
 
 
-Eigensolvers
-------------
+Eigen Solvers
+-------------
 
 Algorithms to find eigenvalues of an operator. For chemistry these can be used to find excited
 states of a molecule, and qiskit-nature has some algorithms that leverage chemistry specific
-knowledge to do this in that application domain.
+knowledge to do this in that application domain. These algorithms are pending deprecation.
+One should instead make use of the Eigensolver classes in the section below, which leverage
+Runtime primitives.
 
 .. autosummary::
    :toctree: ../stubs/
@@ -92,7 +94,19 @@ knowledge to do this in that application domain.
 
    NumPyEigensolver
    VQD
+   VQDResult
 
+Eigensolvers
+------------
+
+Algorithms to find eigenvalues of an operator. For chemistry these can be used to find excited
+states of a molecule, and qiskit-nature has some algorithms that leverage chemistry specific
+knowledge to do this in that application domain.
+
+.. autosummary::
+   :toctree: ../stubs/
+
+   eigensolvers
 
 Evolvers
 --------
@@ -136,6 +150,17 @@ Time Evolution might be used to train Quantum Boltzmann Machine Neural Networks 
     TimeEvolutionProblem
 
 
+Trotterization-based Quantum Real Time Evolution
+------------------------------------------------
+
+Package for primitives-enabled Trotterization-based quantum time evolution algorithm - TrotterQRTE.
+
+.. autosummary::
+   :toctree: ../stubs/
+
+   time_evolvers.trotterization
+
+
 Factorizers
 -----------
 
@@ -172,10 +197,12 @@ Algorithms to solve linear systems of equations.
    linear_solvers
 
 
-Minimum Eigensolvers
---------------------
+Minimum Eigen Solvers
+---------------------
 
 Algorithms that can find the minimum eigenvalue of an operator.
+These algorithms are pending deprecation. One should instead make use of the
+Minimum Eigensolver classes in the section below, which leverage Runtime primitives.
 
 .. autosummary::
    :toctree: ../stubs/
@@ -191,6 +218,16 @@ Algorithms that can find the minimum eigenvalue of an operator.
    NumPyMinimumEigensolver
    QAOA
    VQE
+
+Minimum Eigensolvers
+--------------------
+
+Algorithms that can find the minimum eigenvalue of an operator and leverage primitives.
+
+.. autosummary::
+   :toctree: ../stubs/
+
+   minimum_eigensolvers
 
 
 Optimizers
@@ -231,6 +268,7 @@ Algorithms that compute the fidelity of pairs of quantum states.
 
    state_fidelities
 
+
 Exceptions
 ----------
 
@@ -250,6 +288,7 @@ Utility methods used by algorithms.
 
    eval_observables
    estimate_observables
+
 
 Utility classes
 ---------------
@@ -359,6 +398,7 @@ __all__ = [
     "HamiltonianPhaseEstimation",
     "HamiltonianPhaseEstimationResult",
     "VQD",
+    "VQDResult",
     "PhaseEstimationScale",
     "PhaseEstimation",
     "PhaseEstimationResult",
