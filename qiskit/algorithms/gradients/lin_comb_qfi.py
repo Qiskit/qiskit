@@ -79,7 +79,7 @@ class LinCombQFI(BaseQFI):
     def _run(
         self,
         circuits: Sequence[QuantumCircuit],
-        parameter_values: Sequence[Sequence[complex]],
+        parameter_values: Sequence[Sequence[float]],
         parameters: Sequence[Sequence[Parameter] | None],
         **options,
     ) -> QFIResult:

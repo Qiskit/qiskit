@@ -57,7 +57,7 @@ class FiniteDiffEstimatorGradient(BaseEstimatorGradient):
         self,
         circuits: Sequence[QuantumCircuit],
         observables: Sequence[BaseOperator | PauliSumOp],
-        parameter_values: Sequence[Sequence[complex]],
+        parameter_values: Sequence[Sequence[float]],
         parameters: Sequence[Sequence[Parameter] | None],
         **options,
     ) -> EstimatorGradientResult:
