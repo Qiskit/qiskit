@@ -4,6 +4,12 @@ notifications:
         - "@Qiskit/terra-core"
     "visualization/pulse_v2":
         - "@nkanazawa1989"
+    "visualization/timeline":
+        - "@nkanazawa1989"
+    "pulse":
+        - "@nkanazawa1989"
+    "scheduler":
+        - "@nkanazawa1989"
     "qpy":
         - "@mtreinish"
         - "@nkanazawa1989"
