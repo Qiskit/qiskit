@@ -35,6 +35,7 @@ class LayoutTransformation(TransformationPass):
         to_layout: Union[Layout, str],
         seed: Union[int, np.random.default_rng] = None,
         trials=4,
+        inplace=True,
     ):
         """LayoutTransformation initializer.
 
@@ -55,6 +56,10 @@ class LayoutTransformation(TransformationPass):
 
             trials (int):
                 How many randomized trials to perform, taking the best circuit as output.
+
+            inplace (bool): Whether to apply transform to dag in-place. If False, the
+                orginal dag is returned. The swap network on the physical qubits, however,
+                can be retrieved from the ``perm_circ`` attribute.
         """
         super().__init__()
         self.from_layout = from_layout
@@ -67,6 +72,9 @@ class LayoutTransformation(TransformationPass):
             graph = self.coupling_map.graph.to_undirected()
         self.token_swapper = ApproximateTokenSwapper(graph, seed)
         self.trials = trials
+        self.perm_circ = None
+        self.perm_qubits = None
+        self.inplace = inplace
 
     def run(self, dag):
         """Apply the specified partial permutation to the circuit.
@@ -106,9 +114,8 @@ class LayoutTransformation(TransformationPass):
             pqubit: to_layout.get_virtual_bits()[vqubit]
             for vqubit, pqubit in from_layout.get_virtual_bits().items()
         }
-
         perm_circ = self.token_swapper.permutation_circuit(permutation, self.trials)
 
         qubits = [dag.qubits[i[0]] for i in sorted(perm_circ.inputmap.items(), key=lambda x: x[0])]
-        dag.compose(perm_circ.circuit, qubits=qubits)
+        dag.compose(perm_circ.circuit, qubits=qubits, inplace=self.inplace)
         return dag

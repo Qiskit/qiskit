@@ -74,7 +74,7 @@ class DAGNode:
             node2_cargs = [bit_indices2[carg] for carg in node2.cargs]
 
             # For barriers, qarg order is not significant so compare as sets
-            if "barrier" == node1.op.name == node2.op.name:
+            if node1.op.name == node2.op.name and node1.name in {"barrier", "swap"}:
                 return set(node1_qargs) == set(node2_qargs)
 
             if node1_qargs == node2_qargs:
@@ -87,7 +87,6 @@ class DAGNode:
         ):
             if bit_indices1.get(node1.wire, None) == bit_indices2.get(node2.wire, None):
                 return True
-
         return False
 
 
