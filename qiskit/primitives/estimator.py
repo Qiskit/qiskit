@@ -138,7 +138,8 @@ class Estimator(BaseEstimator):
                 variance = sq_exp_val - expectation_value**2
                 if variance < 0:
                     warn(
-                        f"Negative variance encountered: {variance}. Variance is automatically treated as zero.",
+                        f"Negative variance encountered: {variance}. Variance is automatically "
+                        "treated as zero.",
                         category=RuntimeWarning,
                     )
                     variance = 0.0
