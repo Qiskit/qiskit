@@ -143,6 +143,17 @@ def _circuit_key(circuit: QuantumCircuit, functional: bool = True) -> tuple:
     )
 
 
+def _observable_key(observable: SparsePauliOp) -> tuple:
+    """Private key function for SparsePauliOp.
+    Args:
+        observable: Input operator.
+
+    Returns:
+        Key for observables.
+    """
+    return tuple(observable.to_list())
+
+
 def bound_circuit_to_instruction(circuit: QuantumCircuit) -> Instruction:
     """Build an :class:`~qiskit.circuit.Instruction` object from
     a :class:`~qiskit.circuit.QuantumCircuit`
