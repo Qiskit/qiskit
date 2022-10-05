@@ -58,7 +58,8 @@ class Counts(dict):
             memory_slots (int): The number of total ``memory_slots`` in the
                 experiment.
         Raises:
-            TypeError: If the input key type is not an int or string
+            TypeError: If the input key type is not int or string or if the
+                input keys are not all of the same type.
             QiskitError: If a dit string key is input with creg_sizes and/or
                 memory_slots
         """
@@ -88,7 +89,7 @@ class Counts(dict):
                         if all(isinstance(k, str) for k in data):
                             bin_data = data
                         else:
-                            raise ValueError("All keys must be of the same type")
+                            raise TypeError("All keys must be of the same type")
                     else:
                         hex_dict = {}
                         int_dict = {}
