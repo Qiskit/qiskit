@@ -20,7 +20,6 @@ from ddt import ddt
 
 from qiskit.circuit import QuantumCircuit
 from qiskit.circuit.library import RealAmplitudes
-from qiskit.opflow import PauliSumOp
 from qiskit.primitives import BackendEstimator, EstimatorResult
 from qiskit.providers import JobV1
 from qiskit.providers.fake_provider import FakeNairobi, FakeNairobiV2
@@ -37,7 +36,7 @@ class TestBackendEstimator(QiskitTestCase):
     def setUp(self):
         super().setUp()
         self.ansatz = RealAmplitudes(num_qubits=2, reps=2)
-        self.observable = PauliSumOp.from_list(
+        self.observable = SparsePauliOp.from_list(
             [
                 ("II", -1.052373245772859),
                 ("IZ", 0.39793742484318045),
