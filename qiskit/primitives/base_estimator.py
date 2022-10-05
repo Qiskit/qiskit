@@ -99,7 +99,7 @@ from qiskit.utils.deprecation import deprecate_arguments, deprecate_function
 from .estimator_result import EstimatorResult
 from .utils import _circuit_key
 
-Sequence.register(Sequence.register(np.ndarray))
+Sequence.register(np.ndarray)
 
 
 class BaseEstimator(ABC):
