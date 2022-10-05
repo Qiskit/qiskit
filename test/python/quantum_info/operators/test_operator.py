@@ -23,7 +23,6 @@ import scipy.linalg as la
 
 from qiskit import QiskitError
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
-from qiskit.compiler import transpile
 from qiskit.circuit.library import HGate, CHGate, CXGate, QFT
 from qiskit.test import QiskitTestCase
 from qiskit.transpiler.layout import Layout, TranspileLayout
@@ -782,9 +781,10 @@ class TestOperator(OperatorTestCase):
         circuit.h(2)
         circuit.x(1)
         circuit.ry(np.pi / 2, 0)
-        circuit._layout = Layout({circuit.qubits[2]: 0, circuit.qubits[1]: 1, circuit.qubits[0]: 2})
-        circuit._final_layout = Layout(
-            {circuit.qubits[0]: 1, circuit.qubits[1]: 2, circuit.qubits[2]: 0}
+        circuit._layout = TranspileLayout(
+            Layout({circuit.qubits[2]: 0, circuit.qubits[1]: 1, circuit.qubits[0]: 2}),
+            {qubit: index for index, qubit in enumerate(circuit.qubits)},
+            Layout({circuit.qubits[0]: 1, circuit.qubits[1]: 2, circuit.qubits[2]: 0}),
         )
         circuit.swap(0, 1)
         circuit.swap(1, 2)
@@ -802,7 +802,10 @@ class TestOperator(OperatorTestCase):
         circuit.h(2)
         circuit.x(1)
         circuit.ry(np.pi / 2, 0)
-        circuit._layout = Layout({circuit.qubits[2]: 0, circuit.qubits[1]: 1, circuit.qubits[0]: 2})
+        circuit._layout = TranspileLayout(
+            Layout({circuit.qubits[2]: 0, circuit.qubits[1]: 1, circuit.qubits[0]: 2}),
+            {qubit: index for index, qubit in enumerate(circuit.qubits)},
+        )
         final_layout = Layout({circuit.qubits[0]: 1, circuit.qubits[1]: 2, circuit.qubits[2]: 0})
         circuit.swap(0, 1)
         circuit.swap(1, 2)
