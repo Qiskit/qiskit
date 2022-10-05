@@ -639,13 +639,11 @@ class TestEstimator(QiskitTestCase):
 
     def test_negative_variance(self):
         """Test for negative variance caused by numerical error."""
-        bell = QuantumCircuit(2)
-        bell.h(0)
-        bell.cx(0, 1)
+        qc = QuantumCircuit(1)
 
         estimator = Estimator()
-        with self.assertWarns(RuntimeWarning):
-            result = estimator.run(bell, 1e-4 * SparsePauliOp("XX"), shots=1024).result()
+        result = estimator.run(qc, 1e-4 * SparsePauliOp("I"), shots=1024).result()
+        self.assertEqual(result.values[0], 1e-4)
         self.assertEqual(result.metadata[0]["variance"], 0.0)
 
 
