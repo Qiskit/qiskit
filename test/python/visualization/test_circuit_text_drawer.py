@@ -24,7 +24,7 @@ from qiskit.circuit import Gate, Parameter, Qubit, Clbit
 from qiskit.quantum_info.operators import SuperOp
 from qiskit.quantum_info.random import random_unitary
 from qiskit.test import QiskitTestCase
-from qiskit.transpiler import Layout
+from qiskit.transpiler.layout import Layout, TranspileLayout
 from qiskit.visualization.circuit import text as elements
 from qiskit.visualization.circuit.circuit_visualization import _text_circuit_drawer
 from qiskit.extensions import UnitaryGate, HamiltonianGate
@@ -3447,6 +3447,13 @@ class TestTextIdleWires(QiskitTestCase):
         circuit.delay(100, qr[2])
         self.assertEqual(str(_text_circuit_drawer(circuit, idle_wires=False)), expected)
 
+    def test_does_not_mutate_circuit(self):
+        """Using 'idle_wires=False' should not mutate the circuit.  Regression test of gh-8739."""
+        circuit = QuantumCircuit(1)
+        before_qubits = circuit.num_qubits
+        circuit.draw(idle_wires=False)
+        self.assertEqual(circuit.num_qubits, before_qubits)
+
 
 class TestTextNonRational(QiskitTestCase):
     """non-rational numbers are correctly represented"""
@@ -4741,8 +4748,11 @@ class TestTextWithLayout(QiskitTestCase):
         circuit = QuantumCircuit(pqr)
         circuit.h(0)
         circuit.h(3)
-        circuit._layout = Layout({0: qr[0], 1: None, 2: None, 3: qr[1]})
-        circuit._layout.add_register(qr)
+        circuit._layout = TranspileLayout(
+            Layout({0: qr[0], 1: None, 2: None, 3: qr[1]}),
+            {qubit: index for index, qubit in enumerate(circuit.qubits)},
+        )
+        circuit._layout.initial_layout.add_register(qr)
 
         self.assertEqual(str(_text_circuit_drawer(circuit)), expected)
 
@@ -5069,7 +5079,7 @@ class TestTextPhase(QiskitTestCase):
         crx = ClassicalRegister(2, "crx")
         circuit = QuantumCircuit(qrx, [Qubit(), Qubit()], qry, [Clbit(), Clbit()], crx)
 
-        self.assertEqual(circuit.draw(output="text").single_string(), expected)
+        self.assertEqual(circuit.draw(output="text", cregbundle=True).single_string(), expected)
 
 
 class TestCircuitVisualizationImplementation(QiskitVisualizationTestCase):
