@@ -99,6 +99,8 @@ from qiskit.utils.deprecation import deprecate_arguments, deprecate_function
 from .estimator_result import EstimatorResult
 from .utils import _circuit_key
 
+Sequence.register(Sequence.register(np.ndarray))
+
 
 class BaseEstimator(ABC):
     """Estimator base class.
@@ -327,7 +329,6 @@ class BaseEstimator(ABC):
             raise ValueError("No observables were provided.")
         return observables
 
-    # TODO: include ndarray in type annotations
     # TODO: disallow non-numeric float values: float('nan'), float('inf'), float('-inf')
     @staticmethod
     def _validate_parameter_values(
