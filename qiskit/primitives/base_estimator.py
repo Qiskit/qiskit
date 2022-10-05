@@ -149,7 +149,7 @@ class BaseEstimator(ABC):
         # To guarantee that they exist as instance variable.
         # With only dynamic set, the python will not know if the attribute exists or not.
         self._circuit_ids: dict[tuple, int] = self._circuit_ids
-        self._observable_ids: dict[int, int] = self._observable_ids
+        self._observable_ids: dict[tuple, int] = self._observable_ids
 
         if parameters is None:
             self._parameters = [circ.parameters for circ in self._circuits]

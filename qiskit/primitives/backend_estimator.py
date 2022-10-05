@@ -245,13 +245,14 @@ class BackendEstimator(BaseEstimator):
                 self._parameters.append(circuit.parameters)
         observable_indices = []
         for observable in observables:
+            observable = init_observable(observable)
             index = self._observable_ids.get(_observable_key(observable))
             if index is not None:
                 observable_indices.append(index)
             else:
                 observable_indices.append(len(self._observables))
                 self._observable_ids[_observable_key(observable)] = len(self._observables)
-                self._observables.append(init_observable(observable))
+                self._observables.append(observable)
         job = PrimitiveJob(
             self._call, circuit_indices, observable_indices, parameter_values, **run_options
         )
