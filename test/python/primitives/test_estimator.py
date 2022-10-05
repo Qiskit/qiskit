@@ -20,6 +20,7 @@ from qiskit.circuit import Parameter, QuantumCircuit
 from qiskit.circuit.library import RealAmplitudes
 from qiskit.opflow import PauliSumOp
 from qiskit.primitives import Estimator, EstimatorResult
+from qiskit.primitives.utils import _observable_key
 from qiskit.providers import JobV1
 from qiskit.quantum_info import Operator, SparsePauliOp
 from qiskit.test import QiskitTestCase
@@ -31,7 +32,7 @@ class TestEstimator(QiskitTestCase):
     def setUp(self):
         super().setUp()
         self.ansatz = RealAmplitudes(num_qubits=2, reps=2)
-        self.observable = PauliSumOp.from_list(
+        self.observable = SparsePauliOp.from_list(
             [
                 ("II", -1.052373245772859),
                 ("IZ", 0.39793742484318045),
@@ -636,6 +637,16 @@ class TestEstimator(QiskitTestCase):
             ).result()
             self.assertIsInstance(result, EstimatorResult)
             np.testing.assert_allclose(result.values, [-1.307397243478641])
+
+    def test_different_circuits(self):
+        """Test collision of quantum observables."""
+
+        def get_op(i):
+            op = SparsePauliOp.from_list([("IXIX", i)])
+            return op
+
+        keys = [_observable_key(get_op(i)) for i in range(5)]
+        self.assertEqual(len(keys), len(set(keys)))
 
 
 if __name__ == "__main__":

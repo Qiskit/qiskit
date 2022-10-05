@@ -96,7 +96,7 @@ from qiskit.quantum_info.operators.base_operator import BaseOperator
 from qiskit.utils.deprecation import deprecate_arguments, deprecate_function
 
 from .estimator_result import EstimatorResult
-from .utils import _circuit_key
+from .utils import _circuit_key, _observable_key, init_observable
 
 
 class BaseEstimator(ABC):
@@ -149,7 +149,7 @@ class BaseEstimator(ABC):
         # To guarantee that they exist as instance variable.
         # With only dynamic set, the python will not know if the attribute exists or not.
         self._circuit_ids: dict[tuple, int] = self._circuit_ids
-        self._observable_ids: dict[int, int] = self._observable_ids
+        self._observable_ids: dict[tuple, int] = self._observable_ids
 
         if parameters is None:
             self._parameters = [circ.parameters for circ in self._circuits]
@@ -190,9 +190,12 @@ class BaseEstimator(ABC):
             self._observable_ids = {}
         elif isinstance(observables, Iterable):
             observables = copy(observables)
-            self._observable_ids = {id(observable): i for i, observable in enumerate(observables)}
+            self._observable_ids = {
+                _observable_key(init_observable(observable)): i
+                for i, observable in enumerate(observables)
+            }
         else:
-            self._observable_ids = {id(observables): 0}
+            self._observable_ids = {_observable_key(init_observable(observables)): 0}
         return self
 
     @deprecate_function(
@@ -324,7 +327,7 @@ class BaseEstimator(ABC):
                 "initialize the session."
             )
         observables = [
-            self._observable_ids.get(id(observable))
+            self._observable_ids.get(_observable_key(observable))
             if not isinstance(observable, (int, np.integer))
             else observable
             for observable in observables

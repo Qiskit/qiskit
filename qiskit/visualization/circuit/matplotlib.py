@@ -169,7 +169,10 @@ class MatplotlibDrawer:
         self._plot_barriers = plot_barriers
         self._reverse_bits = reverse_bits
         if with_layout:
-            self._layout = self._circuit._layout
+            if self._circuit._layout:
+                self._layout = self._circuit._layout.initial_layout
+            else:
+                self._layout = None
         else:
             self._layout = None
 
