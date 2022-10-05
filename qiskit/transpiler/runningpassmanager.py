@@ -24,6 +24,7 @@ from qiskit.transpiler.basepasses import BasePass
 from .propertyset import PropertySet
 from .fencedobjs import FencedPropertySet, FencedDAGCircuit
 from .exceptions import TranspilerError
+from .layout import TranspileLayout
 
 logger = logging.getLogger(__name__)
 
@@ -128,8 +129,12 @@ class RunningPassManager:
             circuit.name = output_name
         else:
             circuit.name = name
-        circuit._layout = self.property_set["layout"]
-        circuit._final_layout = self.property_set["final_layout"]
+        if self.property_set["layout"] is not None:
+            circuit._layout = TranspileLayout(
+                initial_layout=self.property_set["layout"],
+                input_qubit_mapping=self.property_set["original_qubit_indices"],
+                final_layout=self.property_set["final_layout"],
+            )
         circuit._clbit_write_latency = self.property_set["clbit_write_latency"]
         circuit._conditional_latency = self.property_set["conditional_latency"]
 

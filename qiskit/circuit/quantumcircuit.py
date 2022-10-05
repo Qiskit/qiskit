@@ -276,7 +276,6 @@ class QuantumCircuit:
         self._parameters = None
 
         self._layout = None
-        self._final_layout = None
         self._global_phase: ParameterValueType = 0
         self.global_phase = global_phase
 
@@ -1835,7 +1834,7 @@ class QuantumCircuit:
         # safely forward-referenced.
         ax: Optional[typing.Any] = None,
         initial_state: bool = False,
-        cregbundle: bool = True,
+        cregbundle: bool = None,
         wire_order: list = None,
     ):
         """Draw the quantum circuit. Use the output parameter to choose the drawing format:
@@ -1917,7 +1916,7 @@ class QuantumCircuit:
             initial_state (bool): Optional. Adds ``|0>`` in the beginning of the wire.
                 Default is False.
             cregbundle (bool): Optional. If set True, bundle classical registers.
-                Default is True.
+                Default is True, except for when ``output`` is set to  ``"text"``.
             wire_order (list): Optional. A list of integers used to reorder the display
                 of the bits. The list must have an entry for every bit with the bits
                 in the range 0 to (num_qubits + num_clbits).
@@ -4511,6 +4510,8 @@ class QuantumCircuit:
         """
         # pylint: disable=cyclic-import
         from qiskit.circuit.controlflow.while_loop import WhileLoopOp, WhileLoopContext
+
+        condition = (self._resolve_classical_resource(condition[0]), condition[1])
 
         if body is None:
             if qubits is not None or clbits is not None:

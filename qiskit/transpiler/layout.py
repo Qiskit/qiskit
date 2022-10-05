@@ -18,6 +18,9 @@ Virtual (qu)bits are tuples, e.g. `(QuantumRegister(3, 'qr'), 2)` or simply `qr[
 Physical (qu)bits are integers.
 """
 
+from dataclasses import dataclass
+from typing import Dict, Optional
+
 from qiskit.circuit.quantumregister import Qubit, QuantumRegister
 from qiskit.transpiler.exceptions import LayoutError
 from qiskit.converters import isinstanceint
@@ -363,3 +366,12 @@ class Layout:
         for qreg in qregs:
             out.add_register(qreg)
         return out
+
+
+@dataclass
+class TranspileLayout:
+    """Layout attributes from output circuit from transpiler."""
+
+    initial_layout: Layout
+    input_qubit_mapping: Dict[Qubit, int]
+    final_layout: Optional[Layout] = None

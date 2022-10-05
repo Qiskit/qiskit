@@ -21,12 +21,9 @@ features:
     ``optimization_method`` which are used to specify alternative plugins to
     use for the ``init`` stage and ``optimization`` stages respectively.
   - |
-    The :class:`~.PassManagerConfig` class has 3 new attributes,
-    :attr:`~.PassManagerConfig.init_method`,
-    :attr:`~.PassManagerConfig.optimization_method`, and
-    :attr:`~.PassManagerConfig.optimization_level` along with matching keyword
-    arguments on the constructor methods. The first two attributes represent
+    The :class:`~.PassManagerConfig` class has 2 new attributes,
+    :attr:`~.PassManagerConfig.init_method` and
+    :attr:`~.PassManagerConfig.optimization_method`
+    along with matching keyword arguments on the constructor methods. These represent
     the user specified ``init`` and ``optimization`` plugins to use for
-    compilation. The :attr:`~.PassManagerConfig.optimization_level` attribute
-    represents the compilations optimization level if specified which can
-    be used to inform stage plugin behavior.
+    compilation.
