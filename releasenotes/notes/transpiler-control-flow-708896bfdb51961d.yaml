@@ -2,7 +2,9 @@
 features:
   - |
     Control-flow operations are now supported through the transpiler at
-    optimization levels 0 and 1.  One can now construct a circuit such as
+    optimization levels 0 and 1 (e.g. calling :func:`.transpile` or
+    :func:`.generate_preset_pass_manager` with keyword argument
+    ``optimization_level=1``).  One can now construct a circuit such as
     
     .. code-block:: python
 
@@ -24,12 +26,14 @@ features:
       backend = AerSimulator(method="statevector")
       transpiled = transpile(qc, backend)
 
-    The available layout methods are "trivial" and "dense".  For routing,
-    "stochastic" and "none" are available.  Translation can be done using
+    The available values for the keyword argument ``layout_method`` are
+    "trivial" and "dense".  For ``routing_method``, "stochastic" and "none" are
+    available.  Translation (``translation_method``) can be done using
     "translator" or "unroller".  Optimization levels 2 and 3 are not yet
-    supported with control flow, nor is circuit scheduling, though we intend to
-    expand support for these, and the other layout, routing and translation
-    methods in subsequent releases of Qiskit Terra.
+    supported with control flow, nor is circuit scheduling (i.e. providing a
+    value to ``scheduling_method``), though we intend to expand support for
+    these, and the other layout, routing and translation methods in subsequent
+    releases of Qiskit Terra.
 
     In order for transpilation with control-flow operations to succeed with a
     backend, the backend must have the requisite control-flow operations in its
@@ -37,7 +41,9 @@ features:
     out such transpilations, consider overriding the ``basis_gates`` argument
     to :func:`.transpile`.
   - |
-    The following transpiler passes have all been made control-flow aware:
+    The following transpiler passes have all been taught to understand
+    control-flow constructs in the form of :class:`.ControlFlowOp` instructions
+    in a circuit:
 
     .. rubric:: Layout-related
 
@@ -76,3 +82,9 @@ features:
     - :class:`.Optimize1qGatesDecomposition`
     - :class:`.CXCancellation`
     - :class:`.RemoveResetInZeroState`
+
+    These passes are most commonly used via the preset pass managers (those used
+    internally by :func:`.transpile` and :func:`.generate_preset_pass_manager`),
+    but are also available for other uses.  These passes will now recurse into
+    control-flow operations where appropriate, updating or analysing the
+    internal blocks.
