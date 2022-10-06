@@ -87,7 +87,7 @@ class PermRowColSynthesis(HighLevelSynthesis):
             int: column index
         """
         col_sum = [
-            sum(parity_mat[:, i]) if parity_mat[chosen_row][i] == 1 else len(parity_mat)
+            sum(parity_mat[:, i]) if parity_mat[chosen_row][i] == 1 else len(parity_mat)+1
             for i in cols
         ]
         return int(cols[np.argmin(col_sum)])

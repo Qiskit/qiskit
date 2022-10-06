@@ -80,6 +80,25 @@ class TestPermRowColSynthesis(QiskitTestCase):
 
         self.assertEqual(index, 3)
 
+    def test_choose_column_returns_correct_index_with_similar_col_sums(self):
+        """Test choose_column method for correctness in case of col_sums having same integers"""
+        coupling = CouplingMap()
+        synthesis = PermRowColSynthesis(coupling)
+
+        parity_mat = np.array(
+            [
+                [1, 0, 1],
+                [0, 1, 1],
+                [0, 0, 1]
+            ]
+        )
+
+        vertices = np.array([0, 1, 2])
+
+        index = synthesis.choose_column(parity_mat, vertices, 2)
+
+        self.assertEqual(index, 2)
+
     def test_eliminate_column_returns_int(self):
         """Test the output type of eliminate_column"""
         coupling = CouplingMap()
