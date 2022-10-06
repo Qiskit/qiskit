@@ -200,7 +200,7 @@ class BaseEstimator(ABC):
         self,
         circuits: Sequence[QuantumCircuit] | QuantumCircuit,
         observables: Sequence[BaseOperator | PauliSumOp] | BaseOperator | PauliSumOp,
-        parameter_values: Sequence[Sequence[float]] | Sequence[float] | None = None,
+        parameter_values: Sequence[Sequence[float]] | Sequence[float] | float | None = None,
         **run_options,
     ) -> Job:
         """Run the job of the estimation of expectation value(s).
@@ -332,7 +332,7 @@ class BaseEstimator(ABC):
     # TODO: disallow non-numeric float values: float('nan'), float('inf'), float('-inf')
     @staticmethod
     def _validate_parameter_values(
-        parameter_values: Sequence[Sequence[float]] | Sequence[float] | None,
+        parameter_values: Sequence[Sequence[float]] | Sequence[float] | float | None,
         default: Sequence[Sequence[float]] | Sequence[float] | None = None,
     ) -> tuple[tuple[float, ...], ...]:
         # Allow optional (if default)
@@ -351,7 +351,9 @@ class BaseEstimator(ABC):
             )
 
         # Allow single value
-        if isinstance(parameter_values, Sequence) and not any(
+        if isinstance(parameter_values, (int, float)):
+            parameter_values = ((parameter_values,),)
+        elif isinstance(parameter_values, Sequence) and not any(
             isinstance(binding, Sequence) for binding in parameter_values
         ):
             parameter_values = (parameter_values,)
