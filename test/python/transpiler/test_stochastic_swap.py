@@ -1162,15 +1162,16 @@ class TestStochasticSwap(QiskitTestCase):
 
     def test_controlflow_multiple_ops_per_layer(self):
         """Test circuits with multiple operations per layer"""
-        num_qubits = 5
+        num_qubits = 6
         coupling = CouplingMap.from_line(num_qubits)
         check_map_pass = CheckMap(coupling)
         qr = QuantumRegister(num_qubits, "q")
         qc = QuantumCircuit(qr)
+        # This cx and the for_loop are in the same layer.
         qc.cx(0, 2)
         with qc.for_loop((0,)):
-            qc.cx(2, 4)
-        cqc = StochasticSwap(coupling, seed=68745)(qc)
+            qc.cx(3, 5)
+        cqc = StochasticSwap(coupling, seed=0)(qc)
 
         expected = QuantumCircuit(qr)
         expected.swap(0, 1)
@@ -1179,7 +1180,7 @@ class TestStochasticSwap(QiskitTestCase):
         efor_body.swap(1, 2)
         efor_body.cx(0, 1)
         efor_body.swap(2, 1)
-        expected.for_loop((0,), None, efor_body, [2, 3, 4], [])
+        expected.for_loop((0,), None, efor_body, [3, 4, 5], [])
 
         check_map_pass.run(circuit_to_dag(expected))
         self.assertTrue(check_map_pass.property_set["is_swap_mapped"])
