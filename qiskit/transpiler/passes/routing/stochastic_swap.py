@@ -438,8 +438,7 @@ class StochasticSwap(TransformationPass):
         # these blocks down to remove any qubits that are idle.
         block_dags = []
         block_layouts = []
-        indices = {bit: i for i, bit in enumerate(root_dag.qubits)}
-        order = [indices[bit] for bit in node.qargs]
+        order = [self._qubit_indices[bit] for bit in node.qargs]
         for block in node.op.blocks:
             inner_pass = self._recursive_pass(current_layout)
             full_dag_block = root_dag.copy_empty_like()
@@ -507,8 +506,7 @@ class StochasticSwap(TransformationPass):
         """
         # Temporarily expand to full width, and route within that.
         inner_pass = self._recursive_pass(current_layout)
-        indices = {bit: i for i, bit in enumerate(root_dag.qubits)}
-        order = [indices[bit] for bit in node.qargs]
+        order = [self._qubit_indices[bit] for bit in node.qargs]
         full_dag_block = root_dag.copy_empty_like()
         full_dag_block.compose(circuit_to_dag(node.op.blocks[0]), qubits=order)
         updated_dag_block = inner_pass.run(full_dag_block)
