@@ -17,7 +17,7 @@ import unittest
 import numpy as np
 
 from qiskit import QuantumRegister, QuantumCircuit, ClassicalRegister
-from qiskit.circuit import Parameter
+from qiskit.circuit import Parameter, Qubit
 from qiskit.circuit.library import CXGate, UGate, ECRGate, RZGate
 from qiskit.transpiler import CouplingMap, Target, InstructionProperties, TranspilerError
 from qiskit.transpiler.passes import DenseLayout
@@ -217,6 +217,26 @@ class TestDenseLayout(QiskitTestCase):
         self.assertEqual(layout[qr[2]], 6)
         self.assertEqual(layout[qr[3]], 5)
         self.assertEqual(layout[qr[4]], 0)
+
+    def test_loose_bit_circuit(self):
+        """Test dense layout works with loose bits outside a register."""
+        bits = [Qubit() for _ in range(5)]
+        circuit = QuantumCircuit()
+        circuit.add_bits(bits)
+        circuit.h(3)
+        circuit.cx(3, 4)
+        circuit.cx(3, 2)
+        circuit.cx(3, 0)
+        circuit.cx(3, 1)
+        dag = circuit_to_dag(circuit)
+        pass_ = DenseLayout(CouplingMap(self.cmap20))
+        pass_.run(dag)
+        layout = pass_.property_set["layout"]
+        self.assertEqual(layout[bits[0]], 11)
+        self.assertEqual(layout[bits[1]], 10)
+        self.assertEqual(layout[bits[2]], 6)
+        self.assertEqual(layout[bits[3]], 5)
+        self.assertEqual(layout[bits[4]], 0)
 
 
 if __name__ == "__main__":
