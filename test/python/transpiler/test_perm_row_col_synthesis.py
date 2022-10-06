@@ -85,13 +85,7 @@ class TestPermRowColSynthesis(QiskitTestCase):
         coupling = CouplingMap()
         synthesis = PermRowColSynthesis(coupling)
 
-        parity_mat = np.array(
-            [
-                [1, 0, 1],
-                [0, 1, 1],
-                [0, 0, 1]
-            ]
-        )
+        parity_mat = np.array([[1, 0, 1], [0, 1, 1], [0, 0, 1]])
 
         vertices = np.array([0, 1, 2])
 
