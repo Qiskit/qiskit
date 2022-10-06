@@ -784,8 +784,7 @@ class TestStochasticSwap(QiskitTestCase):
         check_map_pass.run(circuit_to_dag(expected))
         self.assertTrue(check_map_pass.property_set["is_swap_mapped"])
 
-    @data(1, 2)
-    def test_controlflow_pre_intra_if_else(self, seed):
+    def test_controlflow_pre_intra_if_else(self):
         """test swap with if else controlflow construct; cx in if statement"""
         num_qubits = 5
         qreg = QuantumRegister(num_qubits, "q")
@@ -804,52 +803,28 @@ class TestStochasticSwap(QiskitTestCase):
         qc.measure(qreg, creg)
 
         dag = circuit_to_dag(qc)
-        cdag = StochasticSwap(coupling, seed=seed, trials=20).run(dag)
+        cdag = StochasticSwap(coupling, seed=2, trials=20).run(dag)
         cqc = dag_to_circuit(cdag)
 
         expected = QuantumCircuit(qreg, creg)
-        if seed == 1:
-            eqreg = QuantumRegister(5, "q")
-            etrue_body = QuantumCircuit(eqreg, creg)
-            efalse_body = QuantumCircuit(eqreg, creg)
-            expected.h(0)
-            expected.x(1)
-            expected.swap(2, 1)
-            expected.cx(0, 1)
-            expected.measure(0, 0)
+        eqreg = QuantumRegister(4, "q")
+        etrue_body = QuantumCircuit(eqreg, creg)
+        efalse_body = QuantumCircuit(eqreg, creg)
+        expected.h(0)
+        expected.x(1)
+        expected.swap(0, 1)
+        expected.cx(1, 2)
+        expected.measure(1, 0)
 
-            etrue_body.cx(0, 2)
-            etrue_body.swap(0, 2)
-            etrue_body.swap(2, 1)
-            etrue_body.swap(4, 3)
+        etrue_body.cx(0, 1)
+        etrue_body.swap(2, 3)
+        etrue_body.swap(0, 1)
 
-            efalse_body.swap(0, 2)
-            efalse_body.swap(2, 1)
-            efalse_body.swap(3, 4)
-            efalse_body.cx(1, 3)
-            expected.if_else((creg[0], 0), etrue_body, efalse_body, qreg[[0, 2, 1, 3, 4]], creg)
-            expected.measure(qreg, creg[[2, 1, 0, 4, 3]])
-        elif seed == 2:
-            eqreg = QuantumRegister(4, "q")
-            etrue_body = QuantumCircuit(eqreg, creg)
-            efalse_body = QuantumCircuit(eqreg, creg)
-            expected.h(0)
-            expected.x(1)
-            expected.swap(0, 1)
-            expected.cx(1, 2)
-            expected.measure(1, 0)
-
-            etrue_body.cx(0, 1)
-            etrue_body.swap(2, 3)
-            etrue_body.swap(0, 1)
-
-            efalse_body.swap(0, 1)
-            efalse_body.swap(2, 3)
-            efalse_body.cx(1, 2)
-            expected.if_else((creg[0], 0), etrue_body, efalse_body, qreg[[1, 2, 3, 4]], creg)
-            expected.measure(qreg, creg[[1, 2, 0, 4, 3]])
-        else:
-            raise ValueError(f"unsupported test seed={seed}")
+        efalse_body.swap(0, 1)
+        efalse_body.swap(2, 3)
+        efalse_body.cx(1, 2)
+        expected.if_else((creg[0], 0), etrue_body, efalse_body, qreg[[1, 2, 3, 4]], creg)
+        expected.measure(qreg, creg[[1, 2, 0, 4, 3]])
 
         self.assertEqual(cqc, expected)
         check_map_pass = CheckMap(coupling)
@@ -879,7 +854,7 @@ class TestStochasticSwap(QiskitTestCase):
         qc.measure(qreg, creg)
 
         dag = circuit_to_dag(qc)
-        cdag = StochasticSwap(coupling, seed=58).run(dag)
+        cdag = StochasticSwap(coupling, seed=1).run(dag)
         cqc = dag_to_circuit(cdag)
 
         expected = QuantumCircuit(qreg, creg)
