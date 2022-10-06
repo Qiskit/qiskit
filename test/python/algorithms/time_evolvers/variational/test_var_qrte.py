@@ -129,16 +129,16 @@ class TestVarQRTE(QiskitAlgorithmsTestCase):
 
     # @slow_test
     @data(
-        # SparsePauliOp.from_list(
-        #     [
-        #         ("II", 0.2252),
-        #         ("ZZ", 0.5716),
-        #         ("IZ", 0.3435),
-        #         ("ZI", -0.4347),
-        #         ("YY", 0.091),
-        #         ("XX", 0.091),
-        #     ]
-        # ),
+        SparsePauliOp.from_list(
+            [
+                ("II", 0.2252),
+                ("ZZ", 0.5716),
+                ("IZ", 0.3435),
+                ("ZI", -0.4347),
+                ("YY", 0.091),
+                ("XX", 0.091),
+            ]
+        ),
         PauliSumOp(
             SparsePauliOp.from_list(
                 [

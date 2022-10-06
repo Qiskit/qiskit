@@ -23,8 +23,10 @@ from qiskit.algorithms.gradients import (
     BaseQFI,
     LinCombQFI,
 )
-from qiskit.algorithms.gradients.lin_comb_estimator_gradient import DerivativeType, \
-    LinCombEstimatorGradient
+from qiskit.algorithms.gradients.lin_comb_estimator_gradient import (
+    DerivativeType,
+    LinCombEstimatorGradient,
+)
 from qiskit.circuit import Parameter
 from qiskit.opflow import (
     PauliSumOp,
@@ -138,6 +140,11 @@ class RealMcLachlanPrinciple(RealVariationalPrinciple):
         Returns:
             A modified Hamiltonian.
         """
+        if isinstance(hamiltonian, PauliSumOp):
+            energy_term = PauliSumOp(SparsePauliOp(Pauli("I" * hamiltonian.num_qubits)), -energy)
+            return hamiltonian + energy_term
 
-        energy_term = PauliSumOp(SparsePauliOp(Pauli("I" * hamiltonian.num_qubits)), -energy)
-        return hamiltonian + energy_term
+        energy_term = SparsePauliOp.from_list(
+            hamiltonian.to_list() + [("I" * hamiltonian.num_qubits, -energy)]
+        )
+        return energy_term
