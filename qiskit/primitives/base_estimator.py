@@ -256,10 +256,10 @@ class BaseEstimator(ABC):
                 f"The number of circuits ({len(circuits)}) does not match "
                 f"the number of parameter value sets ({len(parameter_values)})."
             )
-        for i, (circuit, binding) in enumerate(zip(circuits, parameter_values)):
-            if len(binding) != circuit.num_parameters:
+        for i, (circuit, vector) in enumerate(zip(circuits, parameter_values)):
+            if len(vector) != circuit.num_parameters:
                 raise ValueError(
-                    f"The number of values ({len(binding)}) does not match "
+                    f"The number of values ({len(vector)}) does not match "
                     f"the number of parameters ({circuit.num_parameters}) for the {i}-th circuit."
                 )
         for i, (circuit, observable) in enumerate(zip(circuits, observables)):
@@ -346,32 +346,32 @@ class BaseEstimator(ABC):
             parameter_values = parameter_values.tolist()
         elif isinstance(parameter_values, Sequence):
             parameter_values = tuple(
-                binding.tolist() if isinstance(binding, np.ndarray) else binding
-                for binding in parameter_values
+                vector.tolist() if isinstance(vector, np.ndarray) else vector
+                for vector in parameter_values
             )
 
         # Allow single value
         if isinstance(parameter_values, (int, float)):
             parameter_values = ((parameter_values,),)
         elif isinstance(parameter_values, Sequence) and not any(
-            isinstance(binding, Sequence) for binding in parameter_values
+            isinstance(vector, Sequence) for vector in parameter_values
         ):
             parameter_values = (parameter_values,)
 
         # Validation
         if (
             not isinstance(parameter_values, Sequence)
-            or not all(isinstance(binding, Sequence) for binding in parameter_values)
+            or not all(isinstance(vector, Sequence) for vector in parameter_values)
             or not all(
-                all(isinstance(value, (float, int)) for value in binding)
-                for binding in parameter_values
+                all(isinstance(value, (float, int)) for value in vector)
+                for vector in parameter_values
             )
         ):
             raise TypeError("Invalid parameter values, expected Sequence[Sequence[float]].")
 
         return tuple(
-            binding if isinstance(binding, tuple) else tuple(binding)
-            for binding in parameter_values
+            vector if isinstance(vector, tuple) else tuple(vector)
+            for vector in parameter_values
         )
 
     ################################################################################
