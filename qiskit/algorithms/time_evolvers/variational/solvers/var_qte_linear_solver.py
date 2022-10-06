@@ -97,9 +97,7 @@ class VarQTELinearSolver:
             Solution to the LSE, A from Ax=b, b from Ax=b.
         """
         param_values = list(param_dict.values())
-        metric_tensor_lse_lhs = self._var_principle.metric_tensor(
-            self._ansatz, self._bind_params, param_values
-        )
+        metric_tensor_lse_lhs = self._var_principle.metric_tensor(self._ansatz, param_values)
         if self._time_param is not None:
             # TODO this turns into OperatorBase
             self._hamiltonian = self._hamiltonian.assign_parameters({self._time_param: time_value})

@@ -58,6 +58,7 @@ class RealMcLachlanPrinciple(RealVariationalPrinciple):
             gradient: Instance of a class used to compute the state gradient. If ``None`` provided,
                 ``LinCombEstimatorGradient`` is used.
         """
+        # TODO validate that gradient passed has IMAG
         if gradient is not None and gradient._estimator is not None and qfi is None:
             estimator = gradient._estimator
             qfi = LinCombQFI(estimator)

@@ -50,9 +50,7 @@ class TestRealMcLachlanPrinciple(QiskitAlgorithmsTestCase):
         param_dict = {param: np.pi / 4 for param in parameters}
         var_principle = RealMcLachlanPrinciple()
 
-        bound_metric_tensor = var_principle.metric_tensor(
-            ansatz, parameters, list(param_dict.values())
-        )
+        bound_metric_tensor = var_principle.metric_tensor(ansatz, list(param_dict.values()))
 
         np.testing.assert_almost_equal(
             bound_metric_tensor, expected_bound_metric_tensor_2, decimal=5

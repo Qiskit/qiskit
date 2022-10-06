@@ -13,12 +13,11 @@
 """Test Variational Quantum Imaginary Time Evolution algorithm."""
 
 import unittest
-
+from test.python.algorithms import QiskitAlgorithmsTestCase
 from ddt import ddt, data
 import numpy as np
 
 from qiskit.opflow import PauliSumOp
-from test.python.algorithms import QiskitAlgorithmsTestCase
 from qiskit.algorithms.gradients import LinCombQFI, LinCombEstimatorGradient
 from qiskit.primitives import Estimator
 from qiskit.algorithms.time_evolvers.variational.var_qite import VarQITE
@@ -40,7 +39,6 @@ class TestVarQITE(QiskitAlgorithmsTestCase):
         self.seed = 11
         np.random.seed(self.seed)
 
-    # @slow_test
     def test_run_d_1_with_aux_ops(self):
         """Test VarQITE for d = 1 and t = 1 with evaluating auxiliary operator and the Forward
         Euler solver.."""
@@ -64,9 +62,6 @@ class TestVarQITE(QiskitAlgorithmsTestCase):
         for i in range(len(parameters)):
             init_param_values[i] = np.pi / 2
         init_param_values[0] = 1
-
-        param_dict = dict(zip(parameters, init_param_values))
-
         time = 1
 
         evolution_problem = TimeEvolutionProblem(observable, time, aux_operators=aux_ops)
@@ -93,7 +88,7 @@ class TestVarQITE(QiskitAlgorithmsTestCase):
             1.9074429050726,
         ]
 
-        with self.subTest(msg=f"Test exact backend."):
+        with self.subTest(msg="Test exact backend."):
             algorithm_globals.random_seed = self.seed
             estimator = Estimator()
             qfi = LinCombQFI(estimator)
@@ -103,7 +98,7 @@ class TestVarQITE(QiskitAlgorithmsTestCase):
             var_qite = VarQITE(
                 ansatz,
                 var_principle,
-                param_dict,
+                init_param_values,
                 estimator,
                 num_timesteps=25,
             )
@@ -125,7 +120,7 @@ class TestVarQITE(QiskitAlgorithmsTestCase):
                 [result[0] for result in aux_ops], expected_aux_ops
             )
 
-        with self.subTest(msg=f"Test shot-based backend."):
+        with self.subTest(msg="Test shot-based backend."):
             algorithm_globals.random_seed = self.seed
 
             estimator = Estimator(options={"shots": 4096, "seed": self.seed})
@@ -136,7 +131,7 @@ class TestVarQITE(QiskitAlgorithmsTestCase):
             var_qite = VarQITE(
                 ansatz,
                 var_principle,
-                param_dict,
+                init_param_values,
                 estimator,
                 num_timesteps=25,
             )
@@ -158,7 +153,6 @@ class TestVarQITE(QiskitAlgorithmsTestCase):
                 [result[0] for result in aux_ops], expected_aux_ops
             )
 
-    # @slow_test
     def test_run_d_1_t_7(self):
         """Test VarQITE for d = 1 and t = 7 with RK45 ODE solver."""
 
@@ -205,7 +199,6 @@ class TestVarQITE(QiskitAlgorithmsTestCase):
 
         self._test_helper(observable, thetas_expected, time, var_qite, 2)
 
-    # @slow_test
     @data(
         SparsePauliOp.from_list(
             [
@@ -242,13 +235,11 @@ class TestVarQITE(QiskitAlgorithmsTestCase):
 
         var_principle = ImaginaryMcLachlanPrinciple()
 
-        param_dict = dict(zip(parameters, init_param_values))
-
         time = 1
         var_qite = VarQITE(
             ansatz,
             var_principle,
-            param_dict,
+            init_param_values,
             ode_solver="RK45",
             num_timesteps=25,
         )

@@ -47,15 +47,12 @@ class VariationalPrinciple(ABC):
         self.qfi = qfi
         self.gradient = gradient
 
-    def metric_tensor(
-        self, ansatz: QuantumCircuit, gradient_params: list[Parameter], param_values: list[complex]
-    ) -> np.ndarray:
+    def metric_tensor(self, ansatz: QuantumCircuit, param_values: list[complex]) -> np.ndarray:
         """
         Calculates a metric tensor according to the rules of this variational principle.
 
         Args:
             ansatz: Quantum state in the form of a parametrized quantum circuit.
-            gradient_params: List of parameters with respect to which gradients should be computed.
             param_values: Values of parameters to be bound.
 
         Returns:

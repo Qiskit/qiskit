@@ -13,15 +13,15 @@
 """Test Variational Quantum Real Time Evolution algorithm."""
 
 import unittest
-
+from test.python.algorithms import QiskitAlgorithmsTestCase
 from ddt import data, ddt
 import numpy as np
 
 from qiskit.algorithms.gradients import LinCombQFI, DerivativeType, LinCombEstimatorGradient
 from qiskit.primitives import Estimator
-from test.python.algorithms import QiskitAlgorithmsTestCase
+from qiskit.utils import algorithm_globals
 from qiskit.algorithms.time_evolvers.variational.var_qrte import VarQRTE
-from qiskit.quantum_info import SparsePauliOp, state_fidelity, Statevector
+from qiskit.quantum_info import SparsePauliOp, Pauli
 from qiskit.algorithms import TimeEvolutionProblem
 from qiskit.algorithms.time_evolvers.variational import (
     RealMcLachlanPrinciple,
@@ -39,95 +39,123 @@ class TestVarQRTE(QiskitAlgorithmsTestCase):
         self.seed = 11
         np.random.seed(self.seed)
 
-    # TODO test shot-based primitive setting
-    # @slow_test
-    # def test_run_d_1_with_aux_ops(self):
-    #     """Test VarQRTE for d = 1 and t = 0.1 with evaluating auxiliary operators and the Forward
-    #     Euler solver."""
-    #     observable = SparsePauliOp.from_list(
-    #         [
-    #             ("II", 0.2252),
-    #             ("ZZ", 0.5716),
-    #             ("IZ", 0.3435),
-    #             ("ZI", -0.4347),
-    #             ("YY", 0.091),
-    #             ("XX", 0.091),
-    #         ]
-    #     )
-    #     aux_ops = [Pauli("XX"), Pauli("YZ")]
-    #     d = 1
-    #     ansatz = EfficientSU2(observable.num_qubits, reps=d)
-    #
-    #     parameters = list(ansatz.parameters)
-    #     init_param_values = np.zeros(len(parameters))
-    #     for i in range(len(parameters)):
-    #         init_param_values[i] = np.pi / 2
-    #     init_param_values[0] = 1
-    #     var_principle = RealMcLachlanPrinciple()
-    #
-    #     time = 0.1
-    #
-    #     evolution_problem = TimeEvolutionProblem(observable, time, aux_operators=aux_ops)
-    #
-    #     thetas_expected_sv = [
-    #         0.88967020378258,
-    #         1.53740751016451,
-    #         1.57076759018861,
-    #         1.58893301221363,
-    #         1.60100970594142,
-    #         1.57008242207638,
-    #         1.63791241090936,
-    #         1.53741371076912,
-    #     ]
-    #
-    #     thetas_expected_qasm = [
-    #         0.88967811203145,
-    #         1.53745130248168,
-    #         1.57206794045495,
-    #         1.58901347342829,
-    #         1.60101431615503,
-    #         1.57138020823337,
-    #         1.63796000651177,
-    #         1.53742227084076,
-    #     ]
-    #
-    #     expected_aux_ops_evaluated_sv = [(0.06675, 0.0), (0.772636, 0.0)]
-    #
-    #     expected_aux_ops_evaluated_qasm = [
-    #         (0.06450000000000006, 0.01577846435810532),
-    #         (0.7895000000000001, 0.009704248425303218),
-    #     ]
-    #
-    #     for backend_name in self.backends_names:
-    #         with self.subTest(msg=f"Test {backend_name} backend."):
-    #             algorithm_globals.random_seed = self.seed
-    #
-    #             var_qrte = VarQRTE(
-    #                 ansatz,
-    #                 var_principle,
-    #                 init_param_values,
-    #                 num_timesteps=25,
-    #             )
-    #             evolution_result = var_qrte.evolve(evolution_problem)
-    #
-    #             evolved_state = evolution_result.evolved_state
-    #             aux_ops = evolution_result.aux_ops_evaluated
-    #
-    #             parameter_values = evolved_state.data[0][0].params
-    #             if backend_name == "qi_qasm":
-    #                 thetas_expected = thetas_expected_qasm
-    #                 expected_aux_ops = expected_aux_ops_evaluated_qasm
-    #             else:
-    #                 thetas_expected = thetas_expected_sv
-    #                 expected_aux_ops = expected_aux_ops_evaluated_sv
-    #
-    #             for i, parameter_value in enumerate(parameter_values):
-    #                 np.testing.assert_almost_equal(
-    #                     float(parameter_value), thetas_expected[i], decimal=3
-    #                 )
-    #             np.testing.assert_array_almost_equal(aux_ops, expected_aux_ops)
+    def test_run_d_1_with_aux_ops(self):
+        """Test VarQRTE for d = 1 and t = 0.1 with evaluating auxiliary operators and the Forward
+        Euler solver."""
+        observable = SparsePauliOp.from_list(
+            [
+                ("II", 0.2252),
+                ("ZZ", 0.5716),
+                ("IZ", 0.3435),
+                ("ZI", -0.4347),
+                ("YY", 0.091),
+                ("XX", 0.091),
+            ]
+        )
+        aux_ops = [Pauli("XX"), Pauli("YZ")]
+        d = 1
+        ansatz = EfficientSU2(observable.num_qubits, reps=d)
 
-    # @slow_test
+        parameters = list(ansatz.parameters)
+        init_param_values = np.zeros(len(parameters))
+        for i in range(len(parameters)):
+            init_param_values[i] = np.pi / 2
+        init_param_values[0] = 1
+
+        time = 0.1
+
+        evolution_problem = TimeEvolutionProblem(observable, time, aux_operators=aux_ops)
+
+        thetas_expected = [
+            0.886841151529636,
+            1.53852629218265,
+            1.57099556659882,
+            1.5889216657174,
+            1.5996487153364,
+            1.57018939515742,
+            1.63950719260698,
+            1.53853696496673,
+        ]
+
+        thetas_expected_shots = [
+            0.886975892820015,
+            1.53822607733397,
+            1.57058096749141,
+            1.59023223608564,
+            1.60105707043745,
+            1.57018042397236,
+            1.64010900210835,
+            1.53959523034133,
+        ]
+
+        with self.subTest(msg="Test exact backend."):
+            algorithm_globals.random_seed = self.seed
+            estimator = Estimator()
+            qfi = LinCombQFI(estimator)
+            gradient = LinCombEstimatorGradient(estimator, derivative_type=DerivativeType.IMAG)
+            var_principle = RealMcLachlanPrinciple(qfi, gradient)
+
+            var_qite = VarQRTE(
+                ansatz,
+                var_principle,
+                init_param_values,
+                estimator,
+                num_timesteps=25,
+            )
+            evolution_result = var_qite.evolve(evolution_problem)
+
+            evolved_state = evolution_result.evolved_state
+            aux_ops = evolution_result.aux_ops_evaluated
+
+            parameter_values = evolved_state.data[0][0].params
+
+            expected_aux_ops = [0.06836996703935797, 0.7711574493422457]
+
+            for i, parameter_value in enumerate(parameter_values):
+                np.testing.assert_almost_equal(
+                    float(parameter_value), thetas_expected[i], decimal=2
+                )
+
+            np.testing.assert_array_almost_equal(
+                [result[0] for result in aux_ops], expected_aux_ops
+            )
+
+        with self.subTest(msg="Test shot-based backend."):
+            algorithm_globals.random_seed = self.seed
+
+            estimator = Estimator(options={"shots": 4 * 4096, "seed": self.seed})
+            qfi = LinCombQFI(estimator)
+            gradient = LinCombEstimatorGradient(estimator, derivative_type=DerivativeType.IMAG)
+            var_principle = RealMcLachlanPrinciple(qfi, gradient)
+
+            var_qite = VarQRTE(
+                ansatz,
+                var_principle,
+                init_param_values,
+                estimator,
+                num_timesteps=25,
+            )
+            evolution_result = var_qite.evolve(evolution_problem)
+
+            evolved_state = evolution_result.evolved_state
+            aux_ops = evolution_result.aux_ops_evaluated
+
+            parameter_values = evolved_state.data[0][0].params
+
+            expected_aux_ops = [
+                0.06920924180526315,
+                0.7779237744682032,
+            ]
+
+            for i, parameter_value in enumerate(parameter_values):
+                np.testing.assert_almost_equal(
+                    float(parameter_value), thetas_expected_shots[i], decimal=2
+                )
+
+            np.testing.assert_array_almost_equal(
+                [result[0] for result in aux_ops], expected_aux_ops
+            )
+
     @data(
         SparsePauliOp.from_list(
             [
@@ -193,25 +221,14 @@ class TestVarQRTE(QiskitAlgorithmsTestCase):
             0.610788576398685,
         ]
 
-        self._test_helper(ansatz, observable, thetas_expected, time, var_qrte)
+        self._test_helper(observable, thetas_expected, time, var_qrte)
 
-    def _test_helper(self, ansatz, observable, thetas_expected, time, var_qrte):
+    def _test_helper(self, observable, thetas_expected, time, var_qrte):
         evolution_problem = TimeEvolutionProblem(observable, time)
         evolution_result = var_qrte.evolve(evolution_problem)
         evolved_state = evolution_result.evolved_state
 
         parameter_values = evolved_state.data[0][0].params
-
-        print(parameter_values)
-        print(thetas_expected)
-        print(
-            state_fidelity(
-                Statevector(evolved_state),
-                Statevector(
-                    ansatz.assign_parameters(dict(zip(list(ansatz.parameters), thetas_expected)))
-                ),
-            )
-        )
 
         for i, parameter_value in enumerate(parameter_values):
             np.testing.assert_almost_equal(float(parameter_value), thetas_expected[i], decimal=4)
