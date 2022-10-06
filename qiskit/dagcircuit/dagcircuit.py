@@ -376,6 +376,63 @@ class DAGCircuit:
         for creg in cregs:
             del self.cregs[creg.name]
 
+    def remove_qubits(self, *qubits):
+        """
+        Remove quantum bits from the circuit. All bits MUST be idle.
+        Any registers with references to at least one of the specified bits will
+        also be removed.
+
+        Args:
+            qubits (List[Qubit]): The bits to remove.
+
+        Raises:
+            DAGCircuitError: a qubit is not a :obj:`.Qubit`, is not in the circuit,
+                or is not idle.
+        """
+        if any(not isinstance(qubit, Qubit) for qubit in qubits):
+            raise DAGCircuitError(
+                "qubits not of type Qubit: %s" % [b for b in qubits if not isinstance(b, Qubit)]
+            )
+
+        qubits = set(qubits)
+        unknown_qubits = qubits.difference(self.qubits)
+        if unknown_qubits:
+            raise DAGCircuitError("qubits not in circuit: %s" % unknown_qubits)
+
+        busy_qubits = {bit for bit in qubits if not self._is_wire_idle(bit)}
+        if busy_qubits:
+            raise DAGCircuitError("qubits not idle: %s" % busy_qubits)
+
+        # remove any references to bits
+        qregs_to_remove = {qreg for qreg in self.qregs.values() if not qubits.isdisjoint(qreg)}
+        self.remove_qregs(*qregs_to_remove)
+
+        for qubit in qubits:
+            self._remove_idle_wire(qubit)
+            self.qubits.remove(qubit)
+
+    def remove_qregs(self, *qregs):
+        """
+        Remove classical registers from the circuit, leaving underlying bits
+        in place.
+
+        Raises:
+            DAGCircuitError: a qreg is not a QuantumRegister, or is not in
+            the circuit.
+        """
+        if any(not isinstance(qreg, QuantumRegister) for qreg in qregs):
+            raise DAGCircuitError(
+                "qregs not of type QuantumRegister: %s"
+                % [r for r in qregs if not isinstance(r, QuantumRegister)]
+            )
+
+        unknown_qregs = set(qregs).difference(self.qregs.values())
+        if unknown_qregs:
+            raise DAGCircuitError("qregs not in circuit: %s" % unknown_qregs)
+
+        for qreg in qregs:
+            del self.qregs[qreg.name]
+
     def _is_wire_idle(self, wire):
         """Check if a wire is idle.
 
