@@ -143,7 +143,7 @@ class TestCounts(unittest.TestCase):
         self.assertRaises(TypeError, counts.Counts, {2.4: 1024})
 
     def test_mixed_input_types(self):
-        self.assertRaises(ValueError, counts.Counts, {"0101": 1, 3: 1})
+        self.assertRaises(TypeError, counts.Counts, {"0101": 1, 3: 1})
 
     def test_just_bitstring_counts(self):
         raw_counts = {"0": 21, "10": 12}
