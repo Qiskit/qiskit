@@ -43,7 +43,7 @@ class TestPermRowColSynthesis(QiskitTestCase):
 
         instance = synthesis.choose_row(vertices, parity_mat)
 
-        self.assertIsInstance(instance, int)
+        self.assertIsInstance(instance, np.int64)
 
     def test_choose_row_returns_correct_index(self):
         """
