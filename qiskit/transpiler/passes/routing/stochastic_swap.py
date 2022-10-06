@@ -385,6 +385,8 @@ class StochasticSwap(TransformationPass):
             )
         else:
             raise TranspilerError(f"unsupported control flow operation: {cf_opnode}")
+        if self.fake_run:
+            return cf_layout
 
         cf_layer_dag = DAGCircuit()
         cf_qubits = [qubit for qubit in root_dag.qubits if qubit not in idle_qubits]
@@ -452,6 +454,8 @@ class StochasticSwap(TransformationPass):
         # to swap across unused qubits), so we track that at this point too.
         deepest_index = np.argmax([block.depth(recurse=True) for block in block_dags])
         final_layout = block_layouts[deepest_index]
+        if self.fake_run:
+            return None, final_layout, None
         p2v = current_layout.get_physical_bits()
         idle_qubits = set(root_dag.qubits)
         for i, updated_dag_block in enumerate(block_dags):
@@ -504,6 +508,8 @@ class StochasticSwap(TransformationPass):
             Layout: layout after instruction (this will be the same as the input layout).
             list(Qubit): list of idle qubits in controlflow layer.
         """
+        if self.fake_run:
+            return None, current_layout, None
         # Temporarily expand to full width, and route within that.
         inner_pass = self._recursive_pass(current_layout)
         order = [self._qubit_indices[bit] for bit in node.qargs]
@@ -540,5 +546,4 @@ class StochasticSwap(TransformationPass):
             new_qargs = [qreg[updated_dag_block.qubits.index(bit)] for bit in inner_node.qargs]
             new_dag_block.apply_operation_back(inner_node.op, new_qargs, inner_node.cargs)
         updated_circ_block = dag_to_circuit(new_dag_block)
-        node.op.num_qubits = updated_circ_block.num_qubits
         return node.op.replace_blocks([updated_circ_block]), current_layout, idle_qubits
