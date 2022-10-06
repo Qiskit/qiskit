@@ -293,75 +293,62 @@ class StochasticSwap(TransformationPass):
 
         # Iterate over layers
         for i, layer in enumerate(layerlist):
-            layer_dag = layer["graph"]
-            cf_nodes = layer_dag.op_nodes(op=ControlFlowOp)
-            if cf_nodes:
-                # handle layers with control flow serially
-                success_flag = False
-            else:
-                # Attempt to find a permutation for this layer
+            # First try and compute a route for the entire layer in one go.
+            if not layer["graph"].op_nodes(op=ControlFlowOp):
                 success_flag, best_circuit, best_depth, best_layout = self._layer_permutation(
                     layer["partition"], layout, qubit_subset, coupling_graph, trials
                 )
 
                 logger.debug("mapper: layer %d", i)
                 logger.debug("mapper: success_flag=%s,best_depth=%s", success_flag, str(best_depth))
+                if success_flag:
+                    layout = best_layout
 
-            # If this fails, try one gate at a time in this layer
-            if not success_flag:
-                logger.debug("mapper: failed, layer %d, retrying sequentially", i)
-                serial_layerlist = list(layer["graph"].serial_layers())
-
-                # Go through each gate in the layer
-                for j, serial_layer in enumerate(serial_layerlist):
-                    layer_dag = serial_layer["graph"]
-                    # layer_dag has only one operation
-                    op_node = layer_dag.op_nodes()[0]
-                    if not isinstance(op_node.op, ControlFlowOp):
-                        (
-                            success_flag,
-                            best_circuit,
-                            best_depth,
-                            best_layout,
-                        ) = self._layer_permutation(
-                            serial_layer["partition"], layout, qubit_subset, coupling_graph, trials
+                    # Update the DAG
+                    if not self.fake_run:
+                        self._layer_update(
+                            dagcircuit_output, layerlist[i], best_layout, best_depth, best_circuit
                         )
-                        logger.debug("mapper: layer %d, sublayer %d", i, j)
-                        logger.debug(
-                            "mapper: success_flag=%s,best_depth=%s,", success_flag, str(best_depth)
-                        )
+                    continue
 
-                        # Give up if we fail again
-                        if not success_flag:
-                            raise TranspilerError(
-                                "swap mapper failed: " + "layer %d, sublayer %d" % (i, j)
-                            )
-
-                        # Update the record of qubit positions
-                        # for each inner iteration
-                        layout = best_layout
-                        # Update the DAG
-                        if not self.fake_run:
-                            self._layer_update(
-                                dagcircuit_output,
-                                serial_layerlist[j],
-                                best_layout,
-                                best_depth,
-                                best_circuit,
-                            )
-                    else:
-                        layout = self._controlflow_layer_update(
-                            dagcircuit_output, layer_dag, layout, circuit_graph
-                        )
-            else:
-                # Update the record of qubit positions for each iteration
-                layout = best_layout
-
-                # Update the DAG
-                if not self.fake_run:
-                    self._layer_update(
-                        dagcircuit_output, layerlist[i], best_layout, best_depth, best_circuit
+            # If we're here, we need to go through every gate in the layer serially.
+            logger.debug("mapper: failed, layer %d, retrying sequentially", i)
+            # Go through each gate in the layer
+            for j, serial_layer in enumerate(layer["graph"].serial_layers()):
+                layer_dag = serial_layer["graph"]
+                # layer_dag has only one operation
+                op_node = layer_dag.op_nodes()[0]
+                if isinstance(op_node.op, ControlFlowOp):
+                    layout = self._controlflow_layer_update(
+                        dagcircuit_output, layer_dag, layout, circuit_graph
                     )
+                else:
+                    (success_flag, best_circuit, best_depth, best_layout) = self._layer_permutation(
+                        serial_layer["partition"], layout, qubit_subset, coupling_graph, trials
+                    )
+                    logger.debug("mapper: layer %d, sublayer %d", i, j)
+                    logger.debug(
+                        "mapper: success_flag=%s,best_depth=%s,", success_flag, str(best_depth)
+                    )
+
+                    # Give up if we fail again
+                    if not success_flag:
+                        raise TranspilerError(
+                            "swap mapper failed: " + "layer %d, sublayer %d" % (i, j)
+                        )
+
+                    # Update the record of qubit positions
+                    # for each inner iteration
+                    layout = best_layout
+                    # Update the DAG
+                    if not self.fake_run:
+                        self._layer_update(
+                            dagcircuit_output,
+                            serial_layer,
+                            best_layout,
+                            best_depth,
+                            best_circuit,
+                        )
 
         # This is the final edgemap. We might use it to correctly replace
         # any measurements that needed to be removed earlier.

@@ -13,14 +13,13 @@
 """Utility functions for routing"""
 
 import numpy as np
-from qiskit.transpiler.layout import Layout
 from qiskit.dagcircuit import DAGCircuit
 from qiskit.circuit import QuantumRegister
 from qiskit.transpiler import CouplingMap
 from qiskit.transpiler.exceptions import TranspilerError
 
 
-def route_cf_multiblock(tpass, cf_opnode, current_layout, qregs, root_dag, seed=None):
+def route_cf_multiblock(tpass, cf_opnode, current_layout, root_dag, seed=None):
     """Transpile control flow instructions which may contain multiple
     blocks (e.g. IfElseOp). Since each control flow block may yield a
     different layout, this function applies swaps to the shorter depth
@@ -30,7 +29,6 @@ def route_cf_multiblock(tpass, cf_opnode, current_layout, qregs, root_dag, seed=
         tpass (BasePass): Transpiler pass object to use recursively.
         cf_opnode (DAGOpNode): multiblock instruction node e.g. IfElseOp.
         current_layout (Layout): The current layout at the start of the instruction.
-        qregs (list(QuantumRegister)): quantum registers for circuit
         root_dag (DAGCircuit): root dag of compilation
         seed (int): seed for RNG of internal layout transformation.
 
@@ -42,9 +40,6 @@ def route_cf_multiblock(tpass, cf_opnode, current_layout, qregs, root_dag, seed=
     # pylint: disable=cyclic-import
     from qiskit.converters import dag_to_circuit, circuit_to_dag
 
-    if current_layout is None:
-        canonical_register = qregs["q"]
-        current_layout = Layout.generate_trivial_layout(canonical_register)
     coupling = tpass.coupling_map
     block_dags = []  # control flow dag blocks
     block_layouts = []  # control flow layouts
