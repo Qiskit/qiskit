@@ -638,6 +638,15 @@ class TestEstimator(QiskitTestCase):
             self.assertIsInstance(result, EstimatorResult)
             np.testing.assert_allclose(result.values, [-1.307397243478641])
 
+    def test_negative_variance(self):
+        """Test for negative variance caused by numerical error."""
+        qc = QuantumCircuit(1)
+
+        estimator = Estimator()
+        result = estimator.run(qc, 1e-4 * SparsePauliOp("I"), shots=1024).result()
+        self.assertEqual(result.values[0], 1e-4)
+        self.assertEqual(result.metadata[0]["variance"], 0.0)
+
     def test_different_circuits(self):
         """Test collision of quantum observables."""
 
