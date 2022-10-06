@@ -20,7 +20,7 @@ from qiskit.algorithms.gradients import (
     BaseQFI,
     BaseEstimatorGradient,
     LinCombQFI,
-    ParamShiftEstimatorGradient,
+    LinCombEstimatorGradient,
 )
 from qiskit.circuit import Parameter
 from qiskit.opflow import PauliSumOp
@@ -48,7 +48,7 @@ class ImaginaryMcLachlanPrinciple(ImaginaryVariationalPrinciple):
             qfi: Instance of a class used to compute the QFI. If ``None`` provided, ``LinCombQFI``
                 is used.
             gradient: Instance of a class used to compute the state gradient. If ``None`` provided,
-                ``ParamShiftEstimatorGradient`` is used.
+                ``LinCombEstimatorGradient`` is used.
         """
 
         if gradient is not None and gradient._estimator is not None and qfi is None:
@@ -57,7 +57,7 @@ class ImaginaryMcLachlanPrinciple(ImaginaryVariationalPrinciple):
         elif qfi is None and gradient is None:
             estimator = Estimator()
             qfi = LinCombQFI(estimator)
-            gradient = ParamShiftEstimatorGradient(estimator)
+            gradient = LinCombEstimatorGradient(estimator)
 
         super().__init__(qfi, gradient)
 
@@ -90,13 +90,7 @@ class ImaginaryMcLachlanPrinciple(ImaginaryVariationalPrinciple):
         Raises:
             AlgorithmError: If a gradient job fails.
         """
-        # if self._evolution_gradient_callable is None:
-        #     operator = StateFn(hamiltonian, is_measurement=True) @ StateFn(ansatz)
-        #     self._evolution_gradient_callable = self._evolution_gradient.gradient_wrapper(
-        #         operator, bind_params, gradient_params
-        #     )
-        # evolution_grad_lse_rhs = -0.5 * self._evolution_gradient_callable(param_values)
-        print("We are here")
+
         try:
             evolution_grad_lse_rhs = (
                 self.gradient.run([ansatz], [hamiltonian], [param_values], [gradient_params])
@@ -104,11 +98,8 @@ class ImaginaryMcLachlanPrinciple(ImaginaryVariationalPrinciple):
                 .gradients[0]
             )
 
-            print("done")
         except Exception as exc:
 
             raise AlgorithmError("The primitive job failed!") from exc
-
-        print(f"Evo grad: {evolution_grad_lse_rhs}")
 
         return -0.5 * evolution_grad_lse_rhs

@@ -14,22 +14,20 @@
 
 import unittest
 
-from qiskit.algorithms.gradients import LinCombQFI, ParamShiftEstimatorGradient
-from qiskit.primitives import Estimator
-from test.python.algorithms import QiskitAlgorithmsTestCase
-from ddt import data, ddt
+from ddt import ddt
 import numpy as np
 
+from test.python.algorithms import QiskitAlgorithmsTestCase
+from qiskit.algorithms.gradients import LinCombQFI, LinCombEstimatorGradient
+from qiskit.primitives import Estimator
 from qiskit.algorithms.time_evolvers.variational.var_qite import VarQITE
 from qiskit.quantum_info import SparsePauliOp, state_fidelity, Statevector, Pauli
-from qiskit.test import slow_test
 from qiskit.utils import algorithm_globals
 from qiskit.algorithms import TimeEvolutionProblem
 from qiskit.algorithms.time_evolvers.variational import (
     ImaginaryMcLachlanPrinciple,
 )
 from qiskit.circuit.library import EfficientSU2
-from qiskit.opflow import PauliSumOp
 
 
 @ddt
@@ -102,55 +100,58 @@ class TestVarQITE(QiskitAlgorithmsTestCase):
             (0.2555, 0.015287),
         ]
 
-        with self.subTest(msg=f"Test exact backend."):
-            algorithm_globals.random_seed = self.seed
-            estimator = Estimator()
-            qfi = LinCombQFI(estimator)
-            gradient = ParamShiftEstimatorGradient(estimator)
-            var_principle = ImaginaryMcLachlanPrinciple(qfi, gradient)
+        # with self.subTest(msg=f"Test exact backend."):
+        #     algorithm_globals.random_seed = self.seed
+        #     estimator = Estimator()
+        #     qfi = LinCombQFI(estimator)
+        #     gradient = ParamShiftEstimatorGradient(estimator)
+        #     var_principle = ImaginaryMcLachlanPrinciple(qfi, gradient)
+        #
+        #     var_qite = VarQITE(
+        #         ansatz,
+        #         var_principle,
+        #         param_dict,
+        #         estimator,
+        #         num_timesteps=25,
+        #     )
+        #     evolution_result = var_qite.evolve(evolution_problem)
+        #
+        #     evolved_state = evolution_result.evolved_state
+        #     aux_ops = evolution_result.aux_ops_evaluated
+        #
+        #     parameter_values = evolved_state.data[0][0].params
+        #
+        #     thetas_expected = thetas_expected_sv
+        #     expected_aux_ops = expected_aux_ops_evaluated_sv
+        #
+        #     print(parameter_values)
+        #     print(thetas_expected)
+        #     print(
+        #         state_fidelity(
+        #             Statevector(evolved_state),
+        #             Statevector(
+        #                 ansatz.assign_parameters(
+        #                     dict(zip(list(ansatz.parameters), thetas_expected))
+        #                 )
+        #             ),
+        #         )
+        #     )
 
-            var_qite = VarQITE(
-                ansatz,
-                var_principle,
-                param_dict,
-                estimator,
-                num_timesteps=25,
-            )
-            evolution_result = var_qite.evolve(evolution_problem)
+        # for i, parameter_value in enumerate(parameter_values):
+        #     np.testing.assert_almost_equal(
+        #         float(parameter_value), thetas_expected[i], decimal=3
+        #     )
+        #
+        # np.testing.assert_array_almost_equal(aux_ops, expected_aux_ops)
 
-            evolved_state = evolution_result.evolved_state
-            aux_ops = evolution_result.aux_ops_evaluated
-
-            parameter_values = evolved_state.data[0][0].params
-
-            thetas_expected = thetas_expected_sv
-            expected_aux_ops = expected_aux_ops_evaluated_sv
-
-            print(parameter_values)
-            print(thetas_expected)
-            print(
-                state_fidelity(
-                    Statevector(evolved_state),
-                    Statevector(
-                        ansatz.assign_parameters(
-                            dict(zip(list(ansatz.parameters), thetas_expected))
-                        )
-                    ),
-                )
-            )
-
-            # for i, parameter_value in enumerate(parameter_values):
-            #     np.testing.assert_almost_equal(
-            #         float(parameter_value), thetas_expected[i], decimal=3
-            #     )
-            #
-            # np.testing.assert_array_almost_equal(aux_ops, expected_aux_ops)
-
+        print("********************************")
+        print("********************************")
         with self.subTest(msg=f"Test shot-based backend."):
             algorithm_globals.random_seed = self.seed
-            estimator = Estimator(options={"shots": 4096})
+
+            estimator = Estimator(options={"shots": 8 * 4096})
             qfi = LinCombQFI(estimator)
-            gradient = ParamShiftEstimatorGradient(estimator)
+            gradient = LinCombEstimatorGradient(estimator)
             var_principle = ImaginaryMcLachlanPrinciple(qfi, gradient)
 
             var_qite = VarQITE(

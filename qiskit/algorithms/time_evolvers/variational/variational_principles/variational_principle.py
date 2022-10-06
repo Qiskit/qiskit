@@ -21,12 +21,10 @@ from qiskit import QuantumCircuit
 from qiskit.algorithms import AlgorithmError
 from qiskit.algorithms.gradients import (
     BaseEstimatorGradient,
-    ParamShiftEstimatorGradient,
     BaseQFI,
 )
 from qiskit.circuit import Parameter
 from qiskit.opflow import PauliSumOp
-from qiskit.primitives import Estimator
 from qiskit.quantum_info.operators.base_operator import BaseOperator
 
 
@@ -44,15 +42,8 @@ class VariationalPrinciple(ABC):
             qfi: Instance of a class used to compute the QFI. If ``None`` provided, ``LinCombQFI``
                 is used.
             gradient: Instance of a class used to compute the state gradient. If ``None`` provided,
-                ``ParamShiftEstimatorGradient`` is used.
+                ``LinCombEstimatorGradient`` is used.
         """
-        if qfi is not None and qfi._estimator is not None and gradient is None:
-            estimator = qfi._estimator
-            gradient = ParamShiftEstimatorGradient(estimator)
-        elif gradient is None:
-            estimator = Estimator()
-            gradient = ParamShiftEstimatorGradient(estimator)
-
         self.qfi = qfi
         self.gradient = gradient
 
@@ -73,20 +64,14 @@ class VariationalPrinciple(ABC):
         Raises:
             AlgorithmError: If a QFI job fails.
         """
-        # if self._qfi_gradient_callable is None:
-        #     self._qfi_gradient_callable = self.qfi.gradient_wrapper(
-        #         CircuitStateFn(ansatz), bind_params, gradient_params
-        #     )
-        # metric_tensor = 0.25 * self._qfi_gradient_callable(param_values)
 
         try:
             metric_tensor = (
-                0.25 * self.qfi._run([ansatz], [param_values], [gradient_params]).qfis[0]
+                0.25 * self.qfi.run([ansatz], [param_values], [None]).result().qfis[0]
             )
         except Exception as exc:
-            print(exc)
+
             raise AlgorithmError("The primitive job failed!") from exc
-        print(f"QFI {metric_tensor}")
         return metric_tensor
 
     @abstractmethod

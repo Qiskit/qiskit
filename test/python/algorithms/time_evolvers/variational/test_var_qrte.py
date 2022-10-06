@@ -13,14 +13,15 @@
 """Test Variational Quantum Real Time Evolution algorithm."""
 
 import unittest
-from test.python.algorithms import QiskitAlgorithmsTestCase
+
 from ddt import data, ddt
 import numpy as np
 
+from qiskit.algorithms.gradients import LinCombQFI, DerivativeType, LinCombEstimatorGradient
+from qiskit.primitives import Estimator
+from test.python.algorithms import QiskitAlgorithmsTestCase
 from qiskit.algorithms.time_evolvers.variational.var_qrte import VarQRTE
-from qiskit.quantum_info import SparsePauliOp, Pauli, state_fidelity, Statevector
-from qiskit.test import slow_test
-from qiskit.utils import algorithm_globals
+from qiskit.quantum_info import SparsePauliOp, state_fidelity, Statevector
 from qiskit.algorithms import TimeEvolutionProblem
 from qiskit.algorithms.time_evolvers.variational import (
     RealMcLachlanPrinciple,
@@ -128,16 +129,16 @@ class TestVarQRTE(QiskitAlgorithmsTestCase):
 
     # @slow_test
     @data(
-        SparsePauliOp.from_list(
-            [
-                ("II", 0.2252),
-                ("ZZ", 0.5716),
-                ("IZ", 0.3435),
-                ("ZI", -0.4347),
-                ("YY", 0.091),
-                ("XX", 0.091),
-            ]
-        ),
+        # SparsePauliOp.from_list(
+        #     [
+        #         ("II", 0.2252),
+        #         ("ZZ", 0.5716),
+        #         ("IZ", 0.3435),
+        #         ("ZI", -0.4347),
+        #         ("YY", 0.091),
+        #         ("XX", 0.091),
+        #     ]
+        # ),
         PauliSumOp(
             SparsePauliOp.from_list(
                 [
@@ -160,8 +161,11 @@ class TestVarQRTE(QiskitAlgorithmsTestCase):
         init_param_values = np.zeros(len(parameters))
         for i in range(len(parameters)):
             init_param_values[i] = np.pi / 4
+        estimator = Estimator()
+        qfi = LinCombQFI(estimator)
+        gradient = LinCombEstimatorGradient(estimator, derivative_type=DerivativeType.IMAG)
 
-        var_principle = RealMcLachlanPrinciple()
+        var_principle = RealMcLachlanPrinciple(qfi, gradient)
 
         param_dict = dict(zip(parameters, init_param_values))
 

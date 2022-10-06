@@ -22,9 +22,9 @@ from qiskit.algorithms.gradients import (
     BaseEstimatorGradient,
     BaseQFI,
     LinCombQFI,
-    ParamShiftEstimatorGradient,
 )
-from qiskit.algorithms.gradients.lin_comb_estimator_gradient import DerivativeType
+from qiskit.algorithms.gradients.lin_comb_estimator_gradient import DerivativeType, \
+    LinCombEstimatorGradient
 from qiskit.circuit import Parameter
 from qiskit.opflow import (
     PauliSumOp,
@@ -54,17 +54,15 @@ class RealMcLachlanPrinciple(RealVariationalPrinciple):
             qfi: Instance of a class used to compute the QFI. If ``None`` provided, ``LinCombQFI``
                 is used.
             gradient: Instance of a class used to compute the state gradient. If ``None`` provided,
-                ``ParamShiftEstimatorGradient`` is used.
+                ``LinCombEstimatorGradient`` is used.
         """
-        # TODO make sure to add aux meas op in primitive run method
-        # self._grad_method = LinComb(aux_meas_op=-Y)
         if gradient is not None and gradient._estimator is not None and qfi is None:
             estimator = gradient._estimator
-            qfi = LinCombQFI(estimator, derivative_type=DerivativeType.IMAG)
+            qfi = LinCombQFI(estimator)
         elif qfi is None and gradient is None:
             estimator = Estimator()
-            qfi = LinCombQFI(estimator, derivative_type=DerivativeType.IMAG)
-            gradient = ParamShiftEstimatorGradient(estimator)
+            qfi = LinCombQFI(estimator)
+            gradient = LinCombEstimatorGradient(estimator, derivative_type=DerivativeType.IMAG)
         self._energy_param = None
         self._energy = None
 
