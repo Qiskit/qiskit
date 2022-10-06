@@ -118,7 +118,7 @@ and will fallback to use :class:`~.TrivialLayout` if
                     VF2Layout(
                         coupling_map=pass_manager_config.coupling_map,
                         properties=pass_manager_config.backend_properties,
-                        max_trials=optimization_level * 10
+                        max_trials=optimization_level * 10 + 1
                         target=pass_manager_config.target
                     )
                 ]
