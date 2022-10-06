@@ -73,7 +73,6 @@ class StochasticSwap(TransformationPass):
         self.seed = seed
         self.fake_run = fake_run
         self.qregs = None
-        self.trivial_layout = None
         self.initial_layout = initial_layout
         self._qubit_indices = None
         self._instance_num += 1
@@ -366,7 +365,7 @@ class StochasticSwap(TransformationPass):
 
         # This is the final edgemap. We might use it to correctly replace
         # any measurements that needed to be removed earlier.
-        logger.debug("mapper: self.trivial_layout = %s", self.trivial_layout)
+        logger.debug("mapper: self.initial_layout = %s", self.initial_layout)
         logger.debug("mapper: layout = %s", layout)
 
         self.property_set["final_layout"] = layout
