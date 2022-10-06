@@ -122,6 +122,7 @@ class Instruction(Operation):
             or self.definition != other.definition
         ):
             return False
+
         for self_param, other_param in zip_longest(self.params, other.params):
             try:
                 if self_param == other_param:

@@ -87,6 +87,7 @@ class DAGNode:
         ):
             if bit_indices1.get(node1.wire, None) == bit_indices2.get(node2.wire, None):
                 return True
+
         return False
 
 
