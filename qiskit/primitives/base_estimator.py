@@ -135,9 +135,9 @@ class BaseEstimator(ABC):
         """
         if circuits is not None or observables is not None or parameters is not None:
             warn(
-                "The BaseEstimator 'circuits', `observables`, `parameters` kwarg are deprecated "
-                "as of 0.22.0 and will be removed no earlier than 3 months after the "
-                "release date. You can use 'run' method to append objects.",
+                "The BaseEstimator `circuits`, `observables`, `parameters` kwarg are deprecated "
+                "as of Qiskit Terra 0.22.0 and will be removed no earlier than 3 months after "
+                "the release date. You can use the 'run' method to append objects.",
                 DeprecationWarning,
                 2,
             )
@@ -453,9 +453,9 @@ class BaseEstimator(ABC):
         ...
 
     @deprecate_function(
-        "The BaseSampler.__call__ method is deprecated as of Qiskit Terra 0.22.0 "
+        "The BaseEstimator.__call__ method is deprecated as of Qiskit Terra 0.22.0 "
         "and will be removed no sooner than 3 months after the releasedate. "
-        "Use run method instead.",
+        "Use the 'run' method instead.",
     )
     @deprecate_arguments({"circuit_indices": "circuits", "observable_indices": "observables"})
     def __call__(
