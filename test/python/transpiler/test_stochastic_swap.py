@@ -758,7 +758,7 @@ class TestStochasticSwap(QiskitTestCase):
         qc.measure(qreg, creg)
 
         dag = circuit_to_dag(qc)
-        cdag = StochasticSwap(coupling, seed=21).run(dag)
+        cdag = StochasticSwap(coupling, seed=8).run(dag)
         cqc = dag_to_circuit(cdag)
 
         expected = QuantumCircuit(qreg, creg)
@@ -1031,7 +1031,7 @@ class TestStochasticSwap(QiskitTestCase):
 
     def test_controlflow_nested_inner_cnot(self):
         """test swap in nested if else controlflow construct; swap in inner"""
-        seed = 392
+        seed = 1
         num_qubits = 3
         qreg = QuantumRegister(num_qubits, "q")
         creg = ClassicalRegister(num_qubits)
@@ -1151,7 +1151,7 @@ class TestStochasticSwap(QiskitTestCase):
         loop_body = QuantumCircuit(2)
         loop_body.cx(0, 1)
         qc.for_loop((0,), None, loop_body, [0, 2], [])
-        cqc = StochasticSwap(cm, seed=653)(qc)
+        cqc = StochasticSwap(cm, seed=0)(qc)
 
         expected = QuantumCircuit(qr)
         efor_body = QuantumCircuit(3)

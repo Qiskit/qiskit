@@ -49,8 +49,6 @@ class StochasticSwap(TransformationPass):
            the circuit.
     """
 
-    _instance_num = 0  # track number of instances of this class
-
     def __init__(self, coupling_map, trials=20, seed=None, fake_run=False, initial_layout=None):
         """StochasticSwap initializer.
 
@@ -71,11 +69,11 @@ class StochasticSwap(TransformationPass):
         self.coupling_map = coupling_map
         self.trials = trials
         self.seed = seed
+        self.rng = None
         self.fake_run = fake_run
         self.qregs = None
         self.initial_layout = initial_layout
         self._qubit_indices = None
-        self._instance_num += 1
 
     def run(self, dag):
         """Run the StochasticSwap pass on `dag`.
@@ -96,6 +94,8 @@ class StochasticSwap(TransformationPass):
 
         if len(dag.qubits) > len(self.coupling_map.physical_qubits):
             raise TranspilerError("The layout does not match the amount of qubits in the DAG")
+
+        self.rng = np.random.default_rng(self.seed)
 
         canonical_register = dag.qregs["q"]
         if self.initial_layout is None:
@@ -351,7 +351,7 @@ class StochasticSwap(TransformationPass):
                             )
                     else:
                         layout = self._controlflow_layer_update(
-                            dagcircuit_output, layer_dag, layout, circuit_graph, _seed=self.seed
+                            dagcircuit_output, layer_dag, layout, circuit_graph
                         )
             else:
                 # Update the record of qubit positions for each iteration
@@ -373,9 +373,7 @@ class StochasticSwap(TransformationPass):
             return circuit_graph
         return dagcircuit_output
 
-    def _controlflow_layer_update(
-        self, dagcircuit_output, layer_dag, current_layout, root_dag, _seed=None
-    ):
+    def _controlflow_layer_update(self, dagcircuit_output, layer_dag, current_layout, root_dag):
         """
         Updates the new dagcircuit with a routed control flow operation.
 
@@ -384,10 +382,6 @@ class StochasticSwap(TransformationPass):
            layer_dag (DAGCircuit): layer to route containing a single controlflow operation.
            current_layout (Layout): current layout coming into this layer.
            root_dag (DAGCircuit): root dag of pass
-           _seed (int or None): seed used to derive seeds for child instances of this pass where
-              it is used by stochastic_swap_rs.swap_trials as well as LayoutTransformation. If
-              the seed is not None the instance_num class variable gets added to this seed to
-              seed other instances.
 
         Returns:
            Layout: updated layout after this layer has been routed.
@@ -397,15 +391,15 @@ class StochasticSwap(TransformationPass):
 
         """
         cf_opnode = layer_dag.op_nodes()[0]
-        seed = _seed if _seed is None else _seed + self._instance_num
-        _pass = self.__class__(self.coupling_map, initial_layout=current_layout, seed=seed)
+        pass_seed, token_seed = self.rng.integers(np.iinfo(np.int64).max, size=2)
+        _pass = self.__class__(self.coupling_map, initial_layout=current_layout, seed=pass_seed)
         if isinstance(cf_opnode.op, IfElseOp):
             updated_ctrl_op, cf_layout, idle_qubits = route_cf_multiblock(
-                _pass, cf_opnode, current_layout, self.qregs, root_dag, seed=self.seed
+                _pass, cf_opnode, current_layout, root_dag, seed=token_seed
             )
         elif isinstance(cf_opnode.op, (ForLoopOp, WhileLoopOp)):
             updated_ctrl_op, cf_layout, idle_qubits = route_cf_looping(
-                _pass, cf_opnode, current_layout, root_dag, seed=self.seed
+                _pass, cf_opnode, current_layout, root_dag, seed=token_seed
             )
         else:
             raise TranspilerError(f"unsupported control flow operation: {cf_opnode}")
