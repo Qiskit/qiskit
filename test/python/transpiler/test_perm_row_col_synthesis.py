@@ -54,7 +54,7 @@ class TestPermRowColSynthesis(QiskitTestCase):
 
         instance = synthesis.choose_column(parity_mat, cols, 0)
 
-        self.assertIsInstance(instance, int)
+        self.assertIsInstance(instance, np.int64)
 
     def test_choose_column_returns_correct_index(self):
         """Test choose_colum method for correctness"""
