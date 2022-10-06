@@ -1,0 +1,6 @@
+---
+fixes:
+  - |
+    Fixed an issue with the :func:`~.visualization.state_visualization.state_to_latex`
+    function: passing a latex string to the optional ``prefix`` argument of the function
+    would raise an error. Fixed `#8460 <https://github.com/Qiskit/qiskit-terra/issues/8460>`__

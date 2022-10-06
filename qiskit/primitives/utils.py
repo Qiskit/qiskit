@@ -113,7 +113,7 @@ def final_measurement_mapping(circuit: QuantumCircuit) -> dict[int, int]:
     return mapping
 
 
-def _circuit_key(circuit: QuantumCircuit) -> tuple:
+def _circuit_key(circuit: QuantumCircuit, functional: bool = True) -> tuple:
     """Private key function for QuantumCircuit.
 
     This is the workaround until :meth:`QuantumCircuit.__hash__` will be introduced.
@@ -121,12 +121,12 @@ def _circuit_key(circuit: QuantumCircuit) -> tuple:
 
     Args:
         circuit: Input quantum circuit.
+        functional: If True, the returned key only includes functional data (i.e. execution related).
 
     Returns:
-        Key for directory.
+        Composite key for circuit.
     """
-    return (
-        id(circuit),
+    functional_key: tuple = (
         circuit.num_qubits,
         circuit.num_clbits,
         circuit.num_parameters,
@@ -135,6 +135,23 @@ def _circuit_key(circuit: QuantumCircuit) -> tuple:
         ),
         None if circuit._op_start_times is None else tuple(circuit._op_start_times),
     )
+    if functional:
+        return functional_key
+    return (
+        circuit.name,
+        *functional_key,
+    )
+
+
+def _observable_key(observable: SparsePauliOp) -> tuple:
+    """Private key function for SparsePauliOp.
+    Args:
+        observable: Input operator.
+
+    Returns:
+        Key for observables.
+    """
+    return tuple(observable.to_list())
 
 
 def bound_circuit_to_instruction(circuit: QuantumCircuit) -> Instruction:

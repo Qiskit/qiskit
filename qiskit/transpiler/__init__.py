@@ -189,7 +189,7 @@ Supplementary Information
    The choice of `initial_layout` can mean the difference between getting a result,
    and getting nothing but noise.
 
-   Lets see what layouts are automatically picked at various optimization levels.  The modified
+   Let's see what layouts are automatically picked at various optimization levels.  The modified
    circuits returned by :func:`qiskit.compiler.transpile` have this initial layout information
    in them, and we can view this layout selection graphically using
    :func:`qiskit.visualization.plot_circuit_layout`:
@@ -404,12 +404,12 @@ Supplementary Information
    additional passes can be run to account for any timing constraints on the target backend, such
    as alignment constraints. This is typically done with the
    :class:`~.ConstrainedReschedule` pass which will adjust the scheduling
-   set in the property set to the contraints of the target backend. Once all
+   set in the property set to the constraints of the target backend. Once all
    the scheduling and adjustments/rescheduling are finished a padding pass,
    such as :class:`~.PadDelay` or :class:`~.PadDynamicalDecoupling` is run
    to insert the instructions into the circuit, which completes the scheduling.
 
-   Scheduling Anaylsis with control flow instructions:
+   Scheduling Analysis with control flow instructions:
 
    When scheduling analysis passes run there are additional constraints on classical conditions
    and control flow instructions in a circuit. This section covers the details of these additional
@@ -448,7 +448,7 @@ Supplementary Information
    However, such optimization should be done by another pass,
    otherwise scheduling may break topological ordering of the original circuit.
 
-   Realistic control flow scheduling respecting for microarcitecture:
+   Realistic control flow scheduling respecting for microarchitecture:
 
    In the dispersive QND readout scheme, qubit is measured with microwave stimulus to qubit (Q)
    followed by resonator ring-down (depopulation). This microwave signal is recorded
@@ -599,21 +599,21 @@ Supplementary Information
    :animate: fade-in-slide-down
 
    By default Qiskit includes functions to build preset :class:`~.PassManager` objects.
-   These preset passmangers are what get used by the :func:`~.transpile` function
+   These preset passmanagers are what get used by the :func:`~.transpile` function
    for each optimization level. If you'd like to work directly with a
    preset pass manager you can use the :func:`~.generate_preset_pass_manager`
    function to easily generate one. For example:
 
    .. code-block:: python
 
-       from qiskit.transpiler.preset_passmanager import generate_preset_pass_manager
+       from qiskit.transpiler.preset_passmanagers import generate_preset_pass_manager
        from qiskit.providers.fake_provider import FakeLagosV2
 
        backend = FakeLagosV2()
        pass_manager = generate_preset_pass_manager(3, backend)
 
    which will generate a :class:`~.StagedPassManager` object for optimization level 3
-   targetting the :class:`~.FakeLagosV2` backend (equivalent to what is used internally
+   targeting the :class:`~.FakeLagosV2` backend (equivalent to what is used internally
    by :func:`~.transpile` with ``backend=FakeLagosV2()`` and ``optimization_level=3``).
    You can use this just like working with any other :class:`~.PassManager`. However,
    because it is a :class:`~.StagedPassManager` it also makes it easy to compose and/or
