@@ -370,8 +370,7 @@ class BaseEstimator(ABC):
             raise TypeError("Invalid parameter values, expected Sequence[Sequence[float]].")
 
         return tuple(
-            vector if isinstance(vector, tuple) else tuple(vector)
-            for vector in parameter_values
+            vector if isinstance(vector, tuple) else tuple(vector) for vector in parameter_values
         )
 
     ################################################################################
