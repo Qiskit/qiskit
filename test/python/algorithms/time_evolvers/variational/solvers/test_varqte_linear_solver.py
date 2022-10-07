@@ -14,10 +14,11 @@
 
 import unittest
 from test.python.algorithms import QiskitAlgorithmsTestCase
-import numpy as np
-from expected_results.test_varqte_linear_solver_expected_1 import (
+from test.python.algorithms.time_evolvers.variational.solvers.expected_results.\
+    test_varqte_linear_solver_expected_1 import (
     expected_metric_res_1,
 )
+import numpy as np
 
 from qiskit.quantum_info import SparsePauliOp
 from qiskit.algorithms.time_evolvers.variational import (

@@ -11,6 +11,7 @@
 # that they have been altered from the originals.
 
 """Class for an Imaginary McLachlan's Variational Principle."""
+from __future__ import annotations
 
 import numpy as np
 

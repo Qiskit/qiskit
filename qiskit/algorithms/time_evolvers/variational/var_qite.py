@@ -34,35 +34,31 @@ class VarQITE(VarQTE, ImaginaryTimeEvolver):
 
     .. code-block::python
 
-        from qiskit.algorithms import TimeEvolutionProblem
-        from qiskit.algorithms import VarQITE
-        from qiskit.circuit.library import EfficientSU2
-        from qiskit.opflow import SummedOp, I, Z, Y, X
+        from qiskit.algorithms import TimeEvolutionProblem, VarQITE
         from qiskit.algorithms.time_evolvers.variational import ImaginaryMcLachlanPrinciple
-        from qiskit.algorithms import TimeEvolutionProblem
+        from qiskit.circuit.library import EfficientSU2
+        from qiskit.quantum_info import SparsePauliOp
         import numpy as np
 
-        observable = SummedOp(
+        observable = SparsePauliOp.from_list(
             [
-                0.2252 * (I ^ I),
-                0.5716 * (Z ^ Z),
-                0.3435 * (I ^ Z),
-                -0.4347 * (Z ^ I),
-                0.091 * (Y ^ Y),
-                0.091 * (X ^ X),
+                ("II", 0.2252),
+                ("ZZ", 0.5716),
+                ("IZ", 0.3435),
+                ("ZI", -0.4347),
+                ("YY", 0.091),
+                ("XX", 0.091),
             ]
-        ).reduce()
+        )
 
         ansatz = EfficientSU2(observable.num_qubits, reps=1)
-        parameters = ansatz.parameters
         init_param_values = np.zeros(len(ansatz.parameters))
-        for i in range(len(ansatz.ordered_parameters)):
+        for i in range(len(ansatz.parameters)):
             init_param_values[i] = np.pi / 2
-        param_dict = dict(zip(parameters, init_param_values))
         var_principle = ImaginaryMcLachlanPrinciple()
         time = 1
         evolution_problem = TimeEvolutionProblem(observable, time)
-        var_qite = VarQITE(ansatz, var_principle, param_dict)
+        var_qite = VarQITE(ansatz, var_principle, init_param_values)
         evolution_result = var_qite.evolve(evolution_problem)
     """
 
