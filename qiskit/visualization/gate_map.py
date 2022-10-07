@@ -16,7 +16,7 @@ import math
 from typing import List
 
 import numpy as np
-import retworkx as rx
+import rustworkx as rx
 
 from qiskit.exceptions import QiskitError
 from qiskit.utils import optionals as _optionals
@@ -498,7 +498,7 @@ def plot_gate_map(
         qubit_coordinates = qubit_coordinates_map.get(num_qubits, None)
 
     if qubit_coordinates is None:
-        # Replace with planar_layout() when retworkx offers it
+        # Replace with planar_layout() when rustworkx offers it
         qubit_coordinates_rx = rx.spring_layout(coupling_map.graph, seed=1234)
         scaling_factor = 10 ** int(math.log10(num_qubits) + 1)
         qubit_coordinates = [

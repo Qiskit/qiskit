@@ -6,12 +6,12 @@ deprecations:
     :meth:`~.DAGCircuit.from_networkx`, along with the
     :meth:`.DAGDependency.to_networkx` method have been deprecated and will be
     removed in a future release. Qiskit has been using
-    `retworkx <https://qiskit.org/documentation/retworkx/>`__ as its graph
+    `rustworkx <https://qiskit.org/documentation/rustworkx/>`__ as its graph
     library since the qiskit-terra 0.12.0 release, and since then the networkx
     converter functions have been lossy. They were originally added so
     that users could leverage functionality in NetworkX's algorithms library
-    not present in retworkx.  Since that time, retworkx has matured
+    not present in rustworkx.  Since that time, rustworkx has matured
     and offers more functionality, and the :class:`~.DAGCircuit` is tightly
-    coupled to retworkx for its operation. Having these converter methods
+    coupled to rustworkx for its operation. Having these converter methods
     provides limited value moving forward and are therefore going to be
     removed in a future release.

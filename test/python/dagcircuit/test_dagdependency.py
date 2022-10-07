@@ -24,7 +24,7 @@ from qiskit.converters import circuit_to_dagdependency
 from qiskit.test import QiskitTestCase
 
 try:
-    import retworkx as rx
+    import rustworkx as rx
 except ImportError:
     pass
 

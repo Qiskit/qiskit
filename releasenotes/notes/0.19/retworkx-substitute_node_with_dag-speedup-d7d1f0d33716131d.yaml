@@ -1,8 +1,8 @@
 ---
 features:
   - |
-    Various transpilation internals now use new features in `retworkx
-    <https://github.com/Qiskit/retworkx>`__ 0.10 when operating on the internal
+    Various transpilation internals now use new features in `rustworkx
+    <https://github.com/Qiskit/rustworkx>`__ 0.10 when operating on the internal
     circuit representation.  This can often result in speedups in calls to
     :obj:`~.compiler.transpile` of around 10-40%, with greater effects at higher
     optimization levels.  See `#6302

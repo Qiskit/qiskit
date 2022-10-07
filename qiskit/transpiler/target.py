@@ -23,7 +23,7 @@ import datetime
 import io
 import logging
 
-import retworkx as rx
+import rustworkx as rx
 
 from qiskit.circuit.parameter import Parameter
 from qiskit.pulse.instruction_schedule_map import InstructionScheduleMap

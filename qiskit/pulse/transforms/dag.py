@@ -11,7 +11,7 @@
 # that they have been altered from the originals.
 """A collection of functions to convert ScheduleBlock to DAG representation."""
 
-import retworkx as rx
+import rustworkx as rx
 
 from qiskit.pulse.exceptions import UnassignedReferenceError
 
