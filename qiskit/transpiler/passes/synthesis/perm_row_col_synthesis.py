@@ -124,5 +124,5 @@ class PermRowColSynthesis(HighLevelSynthesis):
         """
         return np.ndarray(0)
 
-    def _pydigraph_to_pygraph(pydigraph: rx.PyDiGraph) -> rx.PyGraph:
+    def _pydigraph_to_pygraph(self, pydigraph: rx.PyDiGraph) -> rx.PyGraph:
         return pydigraph.to_undirected()

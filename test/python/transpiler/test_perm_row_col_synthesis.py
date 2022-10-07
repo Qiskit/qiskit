@@ -2,6 +2,7 @@
 
 import unittest
 import numpy as np
+import retworkx as rx
 from qiskit.test import QiskitTestCase
 from qiskit.transpiler.passes.synthesis.perm_row_col_synthesis import PermRowColSynthesis
 from qiskit import QuantumCircuit
@@ -139,6 +140,15 @@ class TestPermRowColSynthesis(QiskitTestCase):
         instance = synthesis.eliminate_row(parity_mat, coupling, 0, terminals)
 
         self.assertIsInstance(instance, np.ndarray)
+
+    def test_pydigraph_to_pygraph_returns_pygraph(self):
+        """Test the output type of _pydigraph_to_pygraph"""
+        coupling = CouplingMap()
+        synthesis = PermRowColSynthesis(coupling)
+
+        instance = synthesis._pydigraph_to_pygraph(coupling.graph)
+
+        self.assertIsInstance(instance, rx.PyGraph)
 
 
 if __name__ == "__main__":
