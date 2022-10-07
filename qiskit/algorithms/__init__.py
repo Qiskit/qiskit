@@ -131,6 +131,15 @@ used to train Quantum Boltzmann Machine Neural Networks for example.
     EvolutionProblem
 
 
+Variational Quantum Time Evolution
+----------------------------------
+
+Classes used by variational quantum time evolution algorithms - VarQITE and VarQRTE.
+.. autosummary::
+   :toctree: ../stubs/
+   time_evolvers.variational
+
+
 Time Evolvers
 -------------
 
@@ -144,6 +153,8 @@ Time Evolution might be used to train Quantum Boltzmann Machine Neural Networks 
 
     RealTimeEvolver
     ImaginaryTimeEvolver
+    VarQITE
+    VarQRTE
     PVQD
     PVQDResult
     TimeEvolutionResult
@@ -310,6 +321,8 @@ from .time_evolvers.imaginary_time_evolver import ImaginaryTimeEvolver
 from .time_evolvers.real_time_evolver import RealTimeEvolver
 from .time_evolvers.time_evolution_problem import TimeEvolutionProblem
 from .time_evolvers.time_evolution_result import TimeEvolutionResult
+from .time_evolvers.variational.var_qite import VarQITE
+from .time_evolvers.variational.var_qrte import VarQRTE
 from .variational_algorithm import VariationalAlgorithm, VariationalResult
 from .amplitude_amplifiers import Grover, GroverResult, AmplificationProblem, AmplitudeAmplifier
 from .amplitude_estimators import (
@@ -377,6 +390,8 @@ __all__ = [
     "RealTimeEvolver",
     "ImaginaryTimeEvolver",
     "TrotterQRTE",
+    "VarQITE",
+    "VarQRTE",
     "EvolutionResult",
     "EvolutionProblem",
     "TimeEvolutionResult",
