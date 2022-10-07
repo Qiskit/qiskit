@@ -24,7 +24,7 @@ from qiskit.circuit import Gate, Parameter, Qubit, Clbit
 from qiskit.quantum_info.operators import SuperOp
 from qiskit.quantum_info.random import random_unitary
 from qiskit.test import QiskitTestCase
-from qiskit.transpiler import Layout
+from qiskit.transpiler.layout import Layout, TranspileLayout
 from qiskit.visualization.circuit import text as elements
 from qiskit.visualization.circuit.circuit_visualization import _text_circuit_drawer
 from qiskit.extensions import UnitaryGate, HamiltonianGate
@@ -4748,8 +4748,11 @@ class TestTextWithLayout(QiskitTestCase):
         circuit = QuantumCircuit(pqr)
         circuit.h(0)
         circuit.h(3)
-        circuit._layout = Layout({0: qr[0], 1: None, 2: None, 3: qr[1]})
-        circuit._layout.add_register(qr)
+        circuit._layout = TranspileLayout(
+            Layout({0: qr[0], 1: None, 2: None, 3: qr[1]}),
+            {qubit: index for index, qubit in enumerate(circuit.qubits)},
+        )
+        circuit._layout.initial_layout.add_register(qr)
 
         self.assertEqual(str(_text_circuit_drawer(circuit)), expected)
 
