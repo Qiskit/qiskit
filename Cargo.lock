@@ -320,6 +320,16 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "eb9f9e6e233e5c4a35559a617bf40a4ec447db2e84c20b55a6f83167b7e57872"
 
 [[package]]
+name = "priority-queue"
+version = "1.2.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "815082d99af3acc75a3e67efd2a07f72e67b4e81b4344eb8ca34c6ebf3dfa9c5"
+dependencies = [
+ "autocfg",
+ "indexmap",
+]
+
+[[package]]
 name = "proc-macro2"
 version = "1.0.44"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -508,14 +518,17 @@ dependencies = [
 
 [[package]]
 name = "rustworkx-core"
-version = "0.11.0"
+version = "0.12.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "353bcdcdab6c754ea32bce39ee7a763c8a3c16c91a8dd648befd14fbcb0d5b68"
+checksum = "23f8a8866a33f4f8b06ed2a4120d3c08a0be63a9c18a53b4238e53922edfc953"
 dependencies = [
  "ahash 0.7.6",
+ "fixedbitset",
  "hashbrown 0.11.2",
  "indexmap",
+ "num-traits",
  "petgraph",
+ "priority-queue",
  "rayon",
 ]
 
