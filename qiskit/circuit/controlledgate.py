@@ -99,6 +99,19 @@ class ControlledGate(Gate):
         self._ctrl_state = None
         self.ctrl_state = ctrl_state
         self._name = name
+        self._repr_attrs.append("_num_ctrl_qubits")
+        self._repr_attrs.append("_ctrl_state")
+
+    def __repr__(self):
+        from qiskit.utils.reprbuild import build_repr
+
+        return build_repr(self, attr_list=self._repr_attrs)
+
+    def __str__(self):
+        from qiskit.utils.reprbuild import build_repr
+        from qiskit.utils.reprparse import format_repr
+
+        return format_repr(build_repr(self, attr_list=self._repr_attrs))
 
     @property
     def definition(self) -> List:

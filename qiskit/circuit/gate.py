@@ -40,6 +40,17 @@ class Gate(Instruction):
     # Set higher priority than Numpy array and matrix classes
     __array_priority__ = 20
 
+    def __repr__(self):
+        from qiskit.utils.reprbuild import build_repr
+
+        return build_repr(self, attr_list=self._repr_attrs)
+
+    def __str__(self):
+        from qiskit.utils.reprbuild import build_repr
+        from qiskit.utils.reprparse import format_repr
+
+        return format_repr(build_repr(self, attr_list=self._repr_attrs))
+
     def to_matrix(self) -> np.ndarray:
         """Return a Numpy.array for the gate unitary matrix.
 

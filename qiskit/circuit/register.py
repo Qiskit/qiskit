@@ -25,7 +25,7 @@ from qiskit.circuit.exceptions import CircuitError
 class Register:
     """Implement a generic register."""
 
-    __slots__ = ["_name", "_size", "_bits", "_bit_indices", "_hash", "_repr"]
+    __slots__ = ["_name", "_size", "_bits", "_bit_indices", "_hash", "_repr", "_repr_attrs"]
 
     # Register name should conform to OpenQASM 2.0 specification
     # See appendix A of https://arxiv.org/pdf/1707.03429v2.pdf
@@ -128,6 +128,7 @@ class Register:
             # first on deepcopying or on pickling, so defer populating _bit_indices
             # until first access.
             self._bit_indices = None
+        self._repr_attrs = ["_name", "_size", "prefix"]
 
     @property
     def name(self):

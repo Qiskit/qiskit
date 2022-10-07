@@ -284,6 +284,43 @@ class QuantumCircuit:
         if not isinstance(metadata, dict) and metadata is not None:
             raise TypeError("Only a dictionary or None is accepted for circuit metadata")
         self._metadata = metadata
+        self._repr_attrs = [
+            "_base_name",
+            "num_qubits",
+            "num_clbits",
+            "_global_phase",
+            "_metadata",
+            "_data",
+            "_calibrations",
+            "qregs",
+            "cregs",
+        ]
+
+    def __repr__(self):
+        from qiskit.utils.reprbuild import build_repr
+
+        return build_repr(
+            self,
+            attr_list=self._repr_attrs,
+            summary=f" {self.num_qubits} qubits, "
+            f"{self.num_clbits} clbits, "
+            f"{len(self._data)} instructions",
+        )
+
+    @property
+    def repr_attrs(self) -> dict:
+        """Return the list of properties necessary to build the representation."""
+        return dict(self._repr_attrs)
+
+    @repr_attrs.setter
+    def repr_attrs(self, repr_attrs):
+        """Set the list of properties necessary to build the representation.
+
+        Args:
+            repr_attrs Union[list,dict]: A list, or dictionary with recursion depths, of
+                properties to build the representation.
+        """
+        self._repr_attrs = repr_attrs
 
     @property
     def data(self) -> QuantumCircuitData:

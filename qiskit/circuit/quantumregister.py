@@ -23,6 +23,8 @@ from .bit import Bit
 class Qubit(Bit):
     """Implement a quantum bit."""
 
+    _repr_attrs = ["_index"]
+
     __slots__ = ()
 
     def __init__(self, register=None, index=None):
@@ -52,6 +54,7 @@ class QuantumRegister(Register):
     # Prefix to use for auto naming.
     prefix = "q"
     bit_type = Qubit
+    _repr_attrs = ["_name", "_size", "prefix"]
 
     def qasm(self):
         """Return OPENQASM string for this register."""

@@ -35,7 +35,7 @@ class CircuitInstruction:
         of distinct items, with no duplicates.
     """
 
-    __slots__ = ("operation", "qubits", "clbits", "_legacy_format_cache")
+    __slots__ = ("operation", "qubits", "clbits", "_legacy_format_cache", "_repr_attrs")
 
     operation: Instruction
     """The logical operation that this instruction represents an execution of."""
@@ -54,6 +54,7 @@ class CircuitInstruction:
         self.qubits = tuple(qubits)
         self.clbits = tuple(clbits)
         self._legacy_format_cache = None
+        self._repr_attrs = ["operation", "qubits", "clbits"]
 
     def copy(self) -> "CircuitInstruction":
         """Return a shallow copy of the :class:`CircuitInstruction`."""
@@ -84,6 +85,12 @@ class CircuitInstruction:
             f", clbits={self.clbits!r}"
             ")"
         )
+
+    def __str__(self):
+        from qiskit.utils.reprbuild import build_repr
+        from qiskit.utils.reprparse import format_repr
+
+        return format_repr(build_repr(self, attr_list=self._repr_attrs))
 
     def __eq__(self, other):
         if isinstance(other, type(self)):

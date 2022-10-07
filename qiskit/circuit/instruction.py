@@ -103,6 +103,23 @@ class Instruction(Operation):
         self._unit = unit
 
         self.params = params  # must be at last (other properties may be required for validation)
+        self._repr_attrs = [
+            "_name",
+            "_num_qubits",
+            "_num_clbits",
+            "_condition",
+            "_duration",
+            "unit",
+            "_label",
+            "_definition",
+            "_params",
+        ]
+
+    def __str__(self):
+        from qiskit.utils.reprbuild import build_repr
+        from qiskit.utils.reprparse import format_repr
+
+        return format_repr(build_repr(self, attr_list=self._repr_attrs))
 
     def __eq__(self, other):
         """Two instructions are the same if they have the same name,

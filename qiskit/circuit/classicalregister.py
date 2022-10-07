@@ -23,7 +23,7 @@ from .bit import Bit
 class Clbit(Bit):
     """Implement a classical bit."""
 
-    __slots__ = ()
+    __slots__ = ("_repr_attrs",)
 
     def __init__(self, register=None, index=None):
         """Creates a classical bit.
@@ -42,6 +42,18 @@ class Clbit(Bit):
             raise CircuitError(
                 "Clbit needs a ClassicalRegister and %s was provided" % type(register).__name__
             )
+        self._repr_attrs = ["_index"]
+
+    def __repr__(self):
+        from qiskit.utils.reprbuild import build_repr
+
+        return build_repr(self, attr_list=self._repr_attrs)
+
+    def __str__(self):
+        from qiskit.utils.reprbuild import build_repr
+        from qiskit.utils.reprparse import format_repr
+
+        return format_repr(build_repr(self, attr_list=self._repr_attrs))
 
 
 class ClassicalRegister(Register):
@@ -52,7 +64,19 @@ class ClassicalRegister(Register):
     # Prefix to use for auto naming.
     prefix = "c"
     bit_type = Clbit
+    _repr_attrs = ["_name", "_size", "prefix"]
 
     def qasm(self):
         """Return OPENQASM string for this register."""
         return "creg %s[%d];" % (self.name, self.size)
+
+    def __repr__(self):
+        from qiskit.utils.reprbuild import build_repr
+
+        return build_repr(self, attr_list=self._repr_attrs)
+
+    def __str__(self):
+        from qiskit.utils.reprbuild import build_repr
+        from qiskit.utils.reprparse import format_repr
+
+        return format_repr(build_repr(self, attr_list=self._repr_attrs))
