@@ -16,14 +16,17 @@ import logging
 from math import inf
 import numpy as np
 
+from qiskit.converters import dag_to_circuit, circuit_to_dag
 from qiskit.circuit.quantumregister import QuantumRegister
 from qiskit.transpiler.basepasses import TransformationPass
 from qiskit.transpiler.exceptions import TranspilerError
 from qiskit.dagcircuit import DAGCircuit
 from qiskit.circuit.library.standard_gates import SwapGate
 from qiskit.transpiler.layout import Layout
-
+from qiskit.circuit import IfElseOp, WhileLoopOp, ForLoopOp, ControlFlowOp
 from qiskit._accelerate import stochastic_swap as stochastic_swap_rs
+
+from .utils import combine_permutations, get_swap_map_dag
 
 logger = logging.getLogger(__name__)
 
@@ -43,7 +46,7 @@ class StochasticSwap(TransformationPass):
            the circuit.
     """
 
-    def __init__(self, coupling_map, trials=20, seed=None, fake_run=False):
+    def __init__(self, coupling_map, trials=20, seed=None, fake_run=False, initial_layout=None):
         """StochasticSwap initializer.
 
         The coupling map is a connected graph
@@ -57,15 +60,16 @@ class StochasticSwap(TransformationPass):
             seed (int): seed for random number generator
             fake_run (bool): if true, it only pretend to do routing, i.e., no
                 swap is effectively added.
+            initial_layout (Layout): starting layout at beginning of pass.
         """
         super().__init__()
         self.coupling_map = coupling_map
         self.trials = trials
         self.seed = seed
+        self.rng = None
         self.fake_run = fake_run
         self.qregs = None
-        self.rng = None
-        self.trivial_layout = None
+        self.initial_layout = initial_layout
         self._qubit_indices = None
 
     def run(self, dag):
@@ -88,8 +92,11 @@ class StochasticSwap(TransformationPass):
         if len(dag.qubits) > len(self.coupling_map.physical_qubits):
             raise TranspilerError("The layout does not match the amount of qubits in the DAG")
 
+        self.rng = np.random.default_rng(self.seed)
+
         canonical_register = dag.qregs["q"]
-        self.trivial_layout = Layout.generate_trivial_layout(canonical_register)
+        if self.initial_layout is None:
+            self.initial_layout = Layout.generate_trivial_layout(canonical_register)
         self._qubit_indices = {bit: idx for idx, bit in enumerate(dag.qubits)}
 
         self.qregs = dag.qregs
@@ -205,8 +212,8 @@ class StochasticSwap(TransformationPass):
 
         edges = best_edges.edges()
         for idx in range(len(edges) // 2):
-            swap_src = self.trivial_layout._p2v[edges[2 * idx]]
-            swap_tgt = self.trivial_layout._p2v[edges[2 * idx + 1]]
+            swap_src = self.initial_layout._p2v[edges[2 * idx]]
+            swap_tgt = self.initial_layout._p2v[edges[2 * idx + 1]]
             trial_circuit.apply_operation_back(SwapGate(), [swap_src, swap_tgt], [])
         best_circuit = trial_circuit
 
@@ -229,7 +236,7 @@ class StochasticSwap(TransformationPass):
         """
         layout = best_layout
         logger.debug("layer_update: layout = %s", layout)
-        logger.debug("layer_update: self.trivial_layout = %s", self.trivial_layout)
+        logger.debug("layer_update: self.initial_layout = %s", self.initial_layout)
 
         # Output any swaps
         if best_depth > 0:
@@ -239,13 +246,15 @@ class StochasticSwap(TransformationPass):
             logger.debug("layer_update: there are no swaps in this layer")
         # Output this layer
         layer_circuit = layer["graph"]
-        order = layout.reorder_bits(dag.qubits)
+        initial_v2p = self.initial_layout.get_virtual_bits()
+        new_v2p = layout.get_virtual_bits()
+        initial_order = [initial_v2p[qubit] for qubit in dag.qubits]
+        new_order = [new_v2p[qubit] for qubit in dag.qubits]
+        order = combine_permutations(initial_order, new_order)
         dag.compose(layer_circuit, qubits=order)
 
     def _mapper(self, circuit_graph, coupling_graph, trials=20):
         """Map a DAGCircuit onto a CouplingMap using swap gates.
-
-        Use self.trivial_layout for the initial layout.
 
         Args:
             circuit_graph (DAGCircuit): input DAG circuit
@@ -266,10 +275,10 @@ class StochasticSwap(TransformationPass):
         for i, v in enumerate(layerlist):
             logger.debug("    %d: %s", i, v["partition"])
 
-        qubit_subset = self.trivial_layout.get_virtual_bits().keys()
+        qubit_subset = self.initial_layout.get_virtual_bits().keys()
 
         # Find swap circuit to precede each layer of input circuit
-        layout = self.trivial_layout.copy()
+        layout = self.initial_layout.copy()
 
         # Construct an empty DAGCircuit with the same set of
         # qregs and cregs as the input circuit
@@ -277,27 +286,41 @@ class StochasticSwap(TransformationPass):
         if not self.fake_run:
             dagcircuit_output = circuit_graph.copy_empty_like()
 
-        logger.debug("trivial_layout = %s", layout)
+        logger.debug("layout = %s", layout)
 
         # Iterate over layers
         for i, layer in enumerate(layerlist):
+            # First try and compute a route for the entire layer in one go.
+            if not layer["graph"].op_nodes(op=ControlFlowOp):
+                success_flag, best_circuit, best_depth, best_layout = self._layer_permutation(
+                    layer["partition"], layout, qubit_subset, coupling_graph, trials
+                )
 
-            # Attempt to find a permutation for this layer
-            success_flag, best_circuit, best_depth, best_layout = self._layer_permutation(
-                layer["partition"], layout, qubit_subset, coupling_graph, trials
-            )
-            logger.debug("mapper: layer %d", i)
-            logger.debug("mapper: success_flag=%s,best_depth=%s", success_flag, str(best_depth))
+                logger.debug("mapper: layer %d", i)
+                logger.debug("mapper: success_flag=%s,best_depth=%s", success_flag, str(best_depth))
+                if success_flag:
+                    layout = best_layout
 
-            # If this fails, try one gate at a time in this layer
-            if not success_flag:
-                logger.debug("mapper: failed, layer %d, retrying sequentially", i)
-                serial_layerlist = list(layer["graph"].serial_layers())
+                    # Update the DAG
+                    if not self.fake_run:
+                        self._layer_update(
+                            dagcircuit_output, layerlist[i], best_layout, best_depth, best_circuit
+                        )
+                    continue
 
-                # Go through each gate in the layer
-                for j, serial_layer in enumerate(serial_layerlist):
-
-                    success_flag, best_circuit, best_depth, best_layout = self._layer_permutation(
+            # If we're here, we need to go through every gate in the layer serially.
+            logger.debug("mapper: failed, layer %d, retrying sequentially", i)
+            # Go through each gate in the layer
+            for j, serial_layer in enumerate(layer["graph"].serial_layers()):
+                layer_dag = serial_layer["graph"]
+                # layer_dag has only one operation
+                op_node = layer_dag.op_nodes()[0]
+                if isinstance(op_node.op, ControlFlowOp):
+                    layout = self._controlflow_layer_update(
+                        dagcircuit_output, layer_dag, layout, circuit_graph
+                    )
+                else:
+                    (success_flag, best_circuit, best_depth, best_layout) = self._layer_permutation(
                         serial_layer["partition"], layout, qubit_subset, coupling_graph, trials
                     )
                     logger.debug("mapper: layer %d, sublayer %d", i, j)
@@ -318,28 +341,209 @@ class StochasticSwap(TransformationPass):
                     if not self.fake_run:
                         self._layer_update(
                             dagcircuit_output,
-                            serial_layerlist[j],
+                            serial_layer,
                             best_layout,
                             best_depth,
                             best_circuit,
                         )
 
-            else:
-                # Update the record of qubit positions for each iteration
-                layout = best_layout
-
-                # Update the DAG
-                if not self.fake_run:
-                    self._layer_update(
-                        dagcircuit_output, layerlist[i], best_layout, best_depth, best_circuit
-                    )
-
         # This is the final edgemap. We might use it to correctly replace
         # any measurements that needed to be removed earlier.
-        logger.debug("mapper: self.trivial_layout = %s", self.trivial_layout)
+        logger.debug("mapper: self.initial_layout = %s", self.initial_layout)
         logger.debug("mapper: layout = %s", layout)
 
+        self.property_set["final_layout"] = layout
         if self.fake_run:
-            self.property_set["final_layout"] = layout
             return circuit_graph
         return dagcircuit_output
+
+    def _controlflow_layer_update(self, dagcircuit_output, layer_dag, current_layout, root_dag):
+        """
+        Updates the new dagcircuit with a routed control flow operation.
+
+        Args:
+           dagcircuit_output (DAGCircuit): dagcircuit that is being built with routed operations.
+           layer_dag (DAGCircuit): layer to route containing a single controlflow operation.
+           current_layout (Layout): current layout coming into this layer.
+           root_dag (DAGCircuit): root dag of pass
+
+        Returns:
+           Layout: updated layout after this layer has been routed.
+
+        Raises:
+            TranspilerError: if layer_dag does not contain a recognized ControlFlowOp.
+
+        """
+        cf_opnode = layer_dag.op_nodes()[0]
+        if isinstance(cf_opnode.op, IfElseOp):
+            updated_ctrl_op, cf_layout, idle_qubits = self._route_control_flow_multiblock(
+                cf_opnode, current_layout, root_dag
+            )
+        elif isinstance(cf_opnode.op, (ForLoopOp, WhileLoopOp)):
+            updated_ctrl_op, cf_layout, idle_qubits = self._route_control_flow_looping(
+                cf_opnode, current_layout, root_dag
+            )
+        else:
+            raise TranspilerError(f"unsupported control flow operation: {cf_opnode}")
+        if self.fake_run:
+            return cf_layout
+
+        cf_layer_dag = DAGCircuit()
+        cf_qubits = [qubit for qubit in root_dag.qubits if qubit not in idle_qubits]
+        qreg = QuantumRegister(len(cf_qubits), "q")
+        cf_layer_dag.add_qreg(qreg)
+        for creg in layer_dag.cregs.values():
+            cf_layer_dag.add_creg(creg)
+        cf_layer_dag.apply_operation_back(updated_ctrl_op, cf_layer_dag.qubits, cf_opnode.cargs)
+        target_qubits = [qubit for qubit in dagcircuit_output.qubits if qubit not in idle_qubits]
+        order = current_layout.reorder_bits(target_qubits)
+        dagcircuit_output.compose(cf_layer_dag, qubits=order)
+        return cf_layout
+
+    def _new_seed(self):
+        """Get a seed for a new RNG instance."""
+        return self.rng.integers(0x7FFF_FFFF_FFFF_FFFF)
+
+    def _recursive_pass(self, initial_layout):
+        """Get a new instance of this class to handle a recursive call for a control-flow block.
+
+        Each pass starts with its own new seed, determined deterministically from our own."""
+        return self.__class__(
+            self.coupling_map,
+            # This doesn't cause an exponential explosion of the trials because we only generate a
+            # recursive pass instance for control-flow operations, while the trial multiplicity is
+            # only for non-control-flow layers.
+            trials=self.trials,
+            seed=self._new_seed(),
+            fake_run=self.fake_run,
+            initial_layout=initial_layout,
+        )
+
+    def _route_control_flow_multiblock(self, node, current_layout, root_dag):
+        """Route control flow instructions which contain multiple blocks (e.g. :class:`.IfElseOp`).
+        Since each control flow block may yield a different layout, this function applies swaps to
+        the shorter depth blocks to make all final layouts match.
+
+        Args:
+            node (DAGOpNode): A DAG node whose operation is a :class:`.ControlFlowOp` that contains
+                more than one block, such as :class:`.IfElseOp`.
+            current_layout (Layout): The current layout at the start of the instruction.
+            root_dag (DAGCircuit): root dag of compilation
+
+        Returns:
+            ControlFlowOp: routed control flow operation.
+            final_layout (Layout): layout after instruction.
+            list(Qubit): list of idle qubits in controlflow layer.
+        """
+        # For each block, expand it up be the full width of the containing DAG so we can be certain
+        # that it is routable, then route it within that.  When we recombine later, we'll reduce all
+        # these blocks down to remove any qubits that are idle.
+        block_dags = []
+        block_layouts = []
+        order = [self._qubit_indices[bit] for bit in node.qargs]
+        for block in node.op.blocks:
+            inner_pass = self._recursive_pass(current_layout)
+            full_dag_block = root_dag.copy_empty_like()
+            full_dag_block.compose(circuit_to_dag(block), qubits=order)
+            block_dags.append(inner_pass.run(full_dag_block))
+            block_layouts.append(inner_pass.property_set["final_layout"].copy())
+
+        # Add swaps to the end of each block to make sure they all have the same layout at the end.
+        # As a heuristic we choose the final layout of the deepest block to be the target for
+        # everyone.  Adding these swaps can cause fewer wires to be idle than we expect (if we have
+        # to swap across unused qubits), so we track that at this point too.
+        deepest_index = np.argmax([block.depth(recurse=True) for block in block_dags])
+        final_layout = block_layouts[deepest_index]
+        if self.fake_run:
+            return None, final_layout, None
+        p2v = current_layout.get_physical_bits()
+        idle_qubits = set(root_dag.qubits)
+        for i, updated_dag_block in enumerate(block_dags):
+            if i != deepest_index:
+                swap_circuit, swap_qubits = get_swap_map_dag(
+                    root_dag,
+                    self.coupling_map,
+                    block_layouts[i],
+                    final_layout,
+                    seed=self._new_seed(),
+                )
+                if swap_circuit.depth():
+                    virtual_swap_dag = updated_dag_block.copy_empty_like()
+                    order = [p2v[virtual_swap_dag.qubits.index(qubit)] for qubit in swap_qubits]
+                    virtual_swap_dag.compose(swap_circuit, qubits=order)
+                    updated_dag_block.compose(virtual_swap_dag)
+            idle_qubits &= set(updated_dag_block.idle_wires())
+
+        # Now for each block, expand it to be full width over all active wires (all blocks of a
+        # control-flow operation need to have equal input wires), and convert it to circuit form.
+        block_circuits = []
+        for i, updated_dag_block in enumerate(block_dags):
+            updated_dag_block.remove_qubits(*idle_qubits)
+            new_dag_block = DAGCircuit()
+            new_num_qubits = updated_dag_block.num_qubits()
+            qreg = QuantumRegister(new_num_qubits, "q")
+            new_dag_block.add_qreg(qreg)
+            for creg in updated_dag_block.cregs.values():
+                new_dag_block.add_creg(creg)
+            for inner_node in updated_dag_block.op_nodes():
+                new_qargs = [qreg[updated_dag_block.qubits.index(bit)] for bit in inner_node.qargs]
+                new_dag_block.apply_operation_back(inner_node.op, new_qargs, inner_node.cargs)
+            block_circuits.append(dag_to_circuit(new_dag_block))
+
+        return node.op.replace_blocks(block_circuits), final_layout, idle_qubits
+
+    def _route_control_flow_looping(self, node, current_layout, root_dag):
+        """Route a control-flow operation that represents a loop, such as :class:`.ForOpLoop` or
+        :class:`.WhileOpLoop`.  Importantly, these operations have a single block inside, and the
+        final layout of the block needs to match the initial layout so the loop can continue.
+
+        Args:
+            node (DAGOpNode): A DAG node whose operation is a :class:`.ControlFlowOp` that
+                represents a loop with a single block, such as :class:`.ForLoopOp`.
+            current_layout (Layout): The current layout at the start of the instruction.
+            root_dag (DAGCircuit): root dag of compilation
+
+        Returns:
+            ControlFlowOp: routed control flow operation.
+            Layout: layout after instruction (this will be the same as the input layout).
+            list(Qubit): list of idle qubits in controlflow layer.
+        """
+        if self.fake_run:
+            return None, current_layout, None
+        # Temporarily expand to full width, and route within that.
+        inner_pass = self._recursive_pass(current_layout)
+        order = [self._qubit_indices[bit] for bit in node.qargs]
+        full_dag_block = root_dag.copy_empty_like()
+        full_dag_block.compose(circuit_to_dag(node.op.blocks[0]), qubits=order)
+        updated_dag_block = inner_pass.run(full_dag_block)
+
+        # Ensure that the layout at the end of the block is returned to being the layout at the
+        # start of the block again, so the loop works.
+        swap_circuit, swap_qubits = get_swap_map_dag(
+            root_dag,
+            self.coupling_map,
+            inner_pass.property_set["final_layout"],
+            current_layout,
+            seed=self._new_seed(),
+        )
+        if swap_circuit.depth():
+            p2v = current_layout.get_physical_bits()
+            virtual_swap_dag = updated_dag_block.copy_empty_like()
+            order = [p2v[virtual_swap_dag.qubits.index(qubit)] for qubit in swap_qubits]
+            virtual_swap_dag.compose(swap_circuit, qubits=order)
+            updated_dag_block.compose(virtual_swap_dag)
+
+        # Contract the routed block back down to only operate on the qubits that it actually needs.
+        idle_qubits = set(root_dag.qubits) & set(updated_dag_block.idle_wires())
+        updated_dag_block.remove_qubits(*idle_qubits)
+        new_dag_block = DAGCircuit()
+        new_num_qubits = updated_dag_block.num_qubits()
+        qreg = QuantumRegister(new_num_qubits, "q")
+        new_dag_block.add_qreg(qreg)
+        for creg in updated_dag_block.cregs.values():
+            new_dag_block.add_creg(creg)
+        for inner_node in updated_dag_block.op_nodes():
+            new_qargs = [qreg[updated_dag_block.qubits.index(bit)] for bit in inner_node.qargs]
+            new_dag_block.apply_operation_back(inner_node.op, new_qargs, inner_node.cargs)
+        updated_circ_block = dag_to_circuit(new_dag_block)
+        return node.op.replace_blocks([updated_circ_block]), current_layout, idle_qubits
