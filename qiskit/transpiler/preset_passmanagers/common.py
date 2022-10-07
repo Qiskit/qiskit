@@ -14,6 +14,8 @@
 
 """Common preset passmanager generators."""
 
+from typing import Optional
+
 from qiskit.circuit.equivalence_library import SessionEquivalenceLibrary as sel
 
 from qiskit.transpiler.passmanager import PassManager
@@ -25,6 +27,7 @@ from qiskit.transpiler.passes import Collect2qBlocks
 from qiskit.transpiler.passes import Collect1qRuns
 from qiskit.transpiler.passes import ConsolidateBlocks
 from qiskit.transpiler.passes import UnitarySynthesis
+from qiskit.transpiler.passes import HighLevelSynthesis
 from qiskit.transpiler.passes import CheckMap
 from qiskit.transpiler.passes import GateDirection
 from qiskit.transpiler.passes import BarrierBeforeFinalMeasurements
@@ -46,6 +49,7 @@ from qiskit.transpiler.passes import VF2PostLayout
 from qiskit.transpiler.passes.layout.vf2_layout import VF2LayoutStopReason
 from qiskit.transpiler.passes.layout.vf2_post_layout import VF2PostLayoutStopReason
 from qiskit.transpiler.exceptions import TranspilerError
+from qiskit.transpiler.layout import Layout
 
 
 def generate_unroll_3q(
@@ -54,6 +58,7 @@ def generate_unroll_3q(
     approximation_degree=None,
     unitary_synthesis_method="default",
     unitary_synthesis_plugin_config=None,
+    hls_config=None,
 ):
     """Generate an unroll >3q :class:`~qiskit.transpiler.PassManager`
 
@@ -66,7 +71,10 @@ def generate_unroll_3q(
         unitary_synthesis_method (str): The unitary synthesis method to use
         unitary_synthesis_plugin_config (dict): The optional dictionary plugin
             configuration, this is plugin specific refer to the specified plugin's
-            documenation for how to use.
+            documentation for how to use.
+        hls_config (HLSConfig): An optional configuration class to use for
+                :class:`~qiskit.transpiler.passes.HighLevelSynthesis` pass.
+                Specifies how to synthesize various high-level objects.
 
     Returns:
         PassManager: The unroll 3q or more pass manager
@@ -82,6 +90,7 @@ def generate_unroll_3q(
             target=target,
         )
     )
+    unroll_3q.append(HighLevelSynthesis(hls_config=hls_config))
     unroll_3q.append(Unroll3qOrMore(target=target, basis_gates=basis_gates))
     return unroll_3q
 
@@ -232,6 +241,7 @@ def generate_translation_passmanager(
     backend_props=None,
     unitary_synthesis_method="default",
     unitary_synthesis_plugin_config=None,
+    hls_config=None,
 ):
     """Generate a basis translation :class:`~qiskit.transpiler.PassManager`
 
@@ -249,10 +259,13 @@ def generate_translation_passmanager(
             is True/None.
         unitary_synthesis_plugin_config (dict): The optional dictionary plugin
             configuration, this is plugin specific refer to the specified plugin's
-            documenation for how to use.
+            documentation for how to use.
         backend_props (BackendProperties): Properties of a backend to
             synthesize for (e.g. gate fidelities).
         unitary_synthesis_method (str): The unitary synthesis method to use
+        hls_config (HLSConfig): An optional configuration class to use for
+            :class:`~qiskit.transpiler.passes.HighLevelSynthesis` pass.
+            Specifies how to synthesize various high-level objects.
 
     Returns:
         PassManager: The basis translation pass manager
@@ -275,6 +288,7 @@ def generate_translation_passmanager(
                 method=unitary_synthesis_method,
                 target=target,
             ),
+            HighLevelSynthesis(hls_config=hls_config),
             UnrollCustomDefinitions(sel, basis_gates),
             BasisTranslator(sel, basis_gates, target),
         ]
@@ -292,6 +306,7 @@ def generate_translation_passmanager(
                 min_qubits=3,
                 target=target,
             ),
+            HighLevelSynthesis(hls_config=hls_config),
             Unroll3qOrMore(target=target, basis_gates=basis_gates),
             Collect2qBlocks(),
             Collect1qRuns(),
@@ -305,6 +320,7 @@ def generate_translation_passmanager(
                 method=unitary_synthesis_method,
                 target=target,
             ),
+            HighLevelSynthesis(hls_config=hls_config),
         ]
     else:
         raise TranspilerError("Invalid translation method %s." % method)
@@ -386,3 +402,20 @@ def generate_scheduling(instruction_durations, scheduling_method, timing_constra
         scheduling.append(PadDelay())
 
     return scheduling
+
+
+def get_vf2_call_limit(
+    optimization_level: int,
+    layout_method: Optional[str] = None,
+    initial_layout: Optional[Layout] = None,
+) -> Optional[int]:
+    """Get the vf2 call limit for vf2 based layout passes."""
+    vf2_call_limit = None
+    if layout_method is None and initial_layout is None:
+        if optimization_level == 1:
+            vf2_call_limit = int(5e4)  # Set call limit to ~100ms with retworkx 0.10.2
+        elif optimization_level == 2:
+            vf2_call_limit = int(5e6)  # Set call limit to ~10 sec with retworkx 0.10.2
+        elif optimization_level == 3:
+            vf2_call_limit = int(3e7)  # Set call limit to ~60 sec with retworkx 0.10.2
+    return vf2_call_limit

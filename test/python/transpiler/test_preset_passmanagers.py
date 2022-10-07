@@ -23,9 +23,15 @@ from qiskit import QuantumCircuit, ClassicalRegister, QuantumRegister
 from qiskit.circuit import Qubit
 from qiskit.compiler import transpile, assemble
 from qiskit.transpiler import CouplingMap, Layout, PassManager, TranspilerError
-from qiskit.circuit.library import U2Gate, U3Gate
+from qiskit.transpiler.passes import (
+    ALAPScheduleAnalysis,
+    PadDynamicalDecoupling,
+    RemoveResetInZeroState,
+)
+from qiskit.circuit.library import U2Gate, U3Gate, XGate, QuantumVolume
 from qiskit.test import QiskitTestCase
 from qiskit.providers.fake_provider import (
+    FakeBelem,
     FakeTenerife,
     FakeMelbourne,
     FakeJohannesburg,
@@ -40,7 +46,35 @@ from qiskit.converters import circuit_to_dag
 from qiskit.circuit.library import GraphState
 from qiskit.quantum_info import random_unitary
 from qiskit.transpiler.preset_passmanagers import generate_preset_pass_manager
+from qiskit.transpiler.preset_passmanagers import level0, level1, level2, level3
 from qiskit.utils.optionals import HAS_TOQM
+from qiskit.transpiler.passes import Collect2qBlocks, GatesInBasis
+
+
+def mock_get_passmanager_stage(
+    stage_name,
+    plugin_name,
+    pm_config,
+    optimization_level=None,  # pylint: disable=unused-argument
+) -> PassManager:
+    """Mock function for get_passmanager_stage."""
+    if stage_name == "translation" and plugin_name == "custom_stage_for_test":
+        pm = PassManager([RemoveResetInZeroState()])
+        return pm
+
+    elif stage_name == "scheduling" and plugin_name == "custom_stage_for_test":
+        dd_sequence = [XGate(), XGate()]
+        pm = PassManager(
+            [
+                ALAPScheduleAnalysis(pm_config.instruction_durations),
+                PadDynamicalDecoupling(pm_config.instruction_durations, dd_sequence),
+            ]
+        )
+        return pm
+    elif stage_name == "routing":
+        return PassManager([])
+    else:
+        raise Exception("Failure, unexpected stage plugin combo for test")
 
 
 def emptycircuit():
@@ -206,6 +240,31 @@ class TestPresetPassManager(QiskitTestCase):
         ) as mock:
             transpile(circuit, backend=FakeJohannesburg(), optimization_level=level)
         mock.assert_called_once()
+
+    def test_unroll_only_if_not_gates_in_basis(self):
+        """Test that the list of passes _unroll only runs if a gate is not in the basis."""
+        qcomp = FakeBelem()
+        qv_circuit = QuantumVolume(3)
+        gates_in_basis_true_count = 0
+        collect_2q_blocks_count = 0
+
+        # pylint: disable=unused-argument
+        def counting_callback_func(pass_, dag, time, property_set, count):
+            nonlocal gates_in_basis_true_count
+            nonlocal collect_2q_blocks_count
+            if isinstance(pass_, GatesInBasis) and property_set["all_gates_in_basis"]:
+                gates_in_basis_true_count += 1
+            if isinstance(pass_, Collect2qBlocks):
+                collect_2q_blocks_count += 1
+
+        transpile(
+            qv_circuit,
+            backend=qcomp,
+            optimization_level=3,
+            callback=counting_callback_func,
+            translation_method="synthesis",
+        )
+        self.assertEqual(gates_in_basis_true_count + 1, collect_2q_blocks_count)
 
 
 @ddt
@@ -403,6 +462,36 @@ class TestPassesInspection(QiskitTestCase):
             transpiled._layout,
             Layout.from_qubit_list([ancilla[0], ancilla[1], qr[1], ancilla[2], qr[0]]),
         )
+
+    @unittest.mock.patch.object(
+        level0.PassManagerStagePluginManager,
+        "get_passmanager_stage",
+        wraps=mock_get_passmanager_stage,
+    )
+    def test_backend_with_custom_stages(self, _plugin_manager_mock):
+        """Test transpile() executes backend specific custom stage."""
+        optimization_level = 1
+
+        class TargetBackend(FakeLagosV2):
+            """Fake lagos subclass with custom transpiler stages."""
+
+            def get_scheduling_stage_plugin(self):
+                """Custom scheduling stage."""
+                return "custom_stage_for_test"
+
+            def get_translation_stage_plugin(self):
+                """Custom post translation stage."""
+                return "custom_stage_for_test"
+
+        target = TargetBackend()
+        qr = QuantumRegister(2, "q")
+        qc = QuantumCircuit(qr)
+        qc.h(qr[0])
+        qc.cx(qr[0], qr[1])
+        _ = transpile(qc, target, optimization_level=optimization_level, callback=self.callback)
+        self.assertIn("ALAPScheduleAnalysis", self.passes)
+        self.assertIn("PadDynamicalDecoupling", self.passes)
+        self.assertIn("RemoveResetInZeroState", self.passes)
 
 
 @ddt
@@ -674,55 +763,32 @@ class TestFinalLayouts(QiskitTestCase):
             19: ancilla[14],
         }
 
-        dense_layout = {
-            11: qr[0],
-            6: qr[1],
-            5: qr[2],
-            10: qr[3],
-            15: qr[4],
-            0: ancilla[0],
-            1: ancilla[1],
-            2: ancilla[2],
-            3: ancilla[3],
-            4: ancilla[4],
-            7: ancilla[5],
-            8: ancilla[6],
-            9: ancilla[7],
-            12: ancilla[8],
-            13: ancilla[9],
-            14: ancilla[10],
-            16: ancilla[11],
-            17: ancilla[12],
-            18: ancilla[13],
-            19: ancilla[14],
-        }
-
         sabre_layout = {
-            6: qr[0],
-            11: qr[1],
-            10: qr[2],
-            5: qr[3],
-            16: qr[4],
+            11: qr[0],
+            17: qr[1],
+            16: qr[2],
+            6: qr[3],
+            18: qr[4],
             0: ancilla[0],
             1: ancilla[1],
             2: ancilla[2],
             3: ancilla[3],
             4: ancilla[4],
-            7: ancilla[5],
-            8: ancilla[6],
-            9: ancilla[7],
-            12: ancilla[8],
-            13: ancilla[9],
-            14: ancilla[10],
-            15: ancilla[11],
-            17: ancilla[12],
-            18: ancilla[13],
+            5: ancilla[5],
+            7: ancilla[6],
+            8: ancilla[7],
+            9: ancilla[8],
+            10: ancilla[9],
+            12: ancilla[10],
+            13: ancilla[11],
+            14: ancilla[12],
+            15: ancilla[13],
             19: ancilla[14],
         }
 
         expected_layout_level0 = trivial_layout
-        expected_layout_level1 = dense_layout
-        expected_layout_level2 = dense_layout
+        expected_layout_level1 = sabre_layout
+        expected_layout_level2 = sabre_layout
         expected_layout_level3 = sabre_layout
 
         expected_layouts = [
@@ -913,7 +979,7 @@ class TestTranspileLevelsSwap(QiskitTestCase):
             optimization_level=level,
             basis_gates=basis,
             coupling_map=coupling_map,
-            seed_transpiler=42,
+            seed_transpiler=42123,
         )
         self.assertIsInstance(result, QuantumCircuit)
         resulting_basis = {node.name for node in circuit_to_dag(result).op_nodes()}
@@ -1025,3 +1091,139 @@ class TestGeenratePresetPassManagers(QiskitTestCase):
         """Assert we fail with an invalid optimization_level."""
         with self.assertRaises(ValueError):
             generate_preset_pass_manager(42)
+
+    @unittest.mock.patch.object(
+        level2.PassManagerStagePluginManager,
+        "get_passmanager_stage",
+        wraps=mock_get_passmanager_stage,
+    )
+    def test_backend_with_custom_stages_level2(self, _plugin_manager_mock):
+        """Test generated preset pass manager includes backend specific custom stages."""
+        optimization_level = 2
+
+        class TargetBackend(FakeLagosV2):
+            """Fake lagos subclass with custom transpiler stages."""
+
+            def get_scheduling_stage_plugin(self):
+                """Custom scheduling stage."""
+                return "custom_stage_for_test"
+
+            def get_translation_stage_plugin(self):
+                """Custom post translation stage."""
+                return "custom_stage_for_test"
+
+        target = TargetBackend()
+        pm = generate_preset_pass_manager(optimization_level, backend=target)
+        self.assertIsInstance(pm, PassManager)
+
+        pass_list = [y.__class__.__name__ for x in pm.passes() for y in x["passes"]]
+        self.assertIn("PadDynamicalDecoupling", pass_list)
+        self.assertIn("ALAPScheduleAnalysis", pass_list)
+        post_translation_pass_list = [
+            y.__class__.__name__
+            for x in pm.translation.passes()  # pylint: disable=no-member
+            for y in x["passes"]
+        ]
+        self.assertIn("RemoveResetInZeroState", post_translation_pass_list)
+
+    @unittest.mock.patch.object(
+        level1.PassManagerStagePluginManager,
+        "get_passmanager_stage",
+        wraps=mock_get_passmanager_stage,
+    )
+    def test_backend_with_custom_stages_level1(self, _plugin_manager_mock):
+        """Test generated preset pass manager includes backend specific custom stages."""
+        optimization_level = 1
+
+        class TargetBackend(FakeLagosV2):
+            """Fake lagos subclass with custom transpiler stages."""
+
+            def get_scheduling_stage_plugin(self):
+                """Custom scheduling stage."""
+                return "custom_stage_for_test"
+
+            def get_translation_stage_plugin(self):
+                """Custom post translation stage."""
+                return "custom_stage_for_test"
+
+        target = TargetBackend()
+        pm = generate_preset_pass_manager(optimization_level, backend=target)
+        self.assertIsInstance(pm, PassManager)
+
+        pass_list = [y.__class__.__name__ for x in pm.passes() for y in x["passes"]]
+        self.assertIn("PadDynamicalDecoupling", pass_list)
+        self.assertIn("ALAPScheduleAnalysis", pass_list)
+        post_translation_pass_list = [
+            y.__class__.__name__
+            for x in pm.translation.passes()  # pylint: disable=no-member
+            for y in x["passes"]
+        ]
+        self.assertIn("RemoveResetInZeroState", post_translation_pass_list)
+
+    @unittest.mock.patch.object(
+        level3.PassManagerStagePluginManager,
+        "get_passmanager_stage",
+        wraps=mock_get_passmanager_stage,
+    )
+    def test_backend_with_custom_stages_level3(self, _plugin_manager_mock):
+        """Test generated preset pass manager includes backend specific custom stages."""
+        optimization_level = 3
+
+        class TargetBackend(FakeLagosV2):
+            """Fake lagos subclass with custom transpiler stages."""
+
+            def get_scheduling_stage_plugin(self):
+                """Custom scheduling stage."""
+                return "custom_stage_for_test"
+
+            def get_translation_stage_plugin(self):
+                """Custom post translation stage."""
+                return "custom_stage_for_test"
+
+        target = TargetBackend()
+        pm = generate_preset_pass_manager(optimization_level, backend=target)
+        self.assertIsInstance(pm, PassManager)
+
+        pass_list = [y.__class__.__name__ for x in pm.passes() for y in x["passes"]]
+        self.assertIn("PadDynamicalDecoupling", pass_list)
+        self.assertIn("ALAPScheduleAnalysis", pass_list)
+        post_translation_pass_list = [
+            y.__class__.__name__
+            for x in pm.translation.passes()  # pylint: disable=no-member
+            for y in x["passes"]
+        ]
+        self.assertIn("RemoveResetInZeroState", post_translation_pass_list)
+
+    @unittest.mock.patch.object(
+        level0.PassManagerStagePluginManager,
+        "get_passmanager_stage",
+        wraps=mock_get_passmanager_stage,
+    )
+    def test_backend_with_custom_stages_level0(self, _plugin_manager_mock):
+        """Test generated preset pass manager includes backend specific custom stages."""
+        optimization_level = 0
+
+        class TargetBackend(FakeLagosV2):
+            """Fake lagos subclass with custom transpiler stages."""
+
+            def get_scheduling_stage_plugin(self):
+                """Custom scheduling stage."""
+                return "custom_stage_for_test"
+
+            def get_translation_stage_plugin(self):
+                """Custom post translation stage."""
+                return "custom_stage_for_test"
+
+        target = TargetBackend()
+        pm = generate_preset_pass_manager(optimization_level, backend=target)
+        self.assertIsInstance(pm, PassManager)
+
+        pass_list = [y.__class__.__name__ for x in pm.passes() for y in x["passes"]]
+        self.assertIn("PadDynamicalDecoupling", pass_list)
+        self.assertIn("ALAPScheduleAnalysis", pass_list)
+        post_translation_pass_list = [
+            y.__class__.__name__
+            for x in pm.translation.passes()  # pylint: disable=no-member
+            for y in x["passes"]
+        ]
+        self.assertIn("RemoveResetInZeroState", post_translation_pass_list)

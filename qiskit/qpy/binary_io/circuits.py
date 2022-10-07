@@ -320,6 +320,9 @@ def _parse_custom_operation(custom_operations, gate_name, params, version, vecto
             base_gate = _read_instruction(
                 base_gate_obj, None, registers, custom_operations, version, vectors
             )
+        if ctrl_state < 2**num_ctrl_qubits - 1:
+            # If open controls, we need to discard the control suffix when setting the name.
+            gate_name = gate_name.rsplit("_", 1)[0]
         inst_obj = ControlledGate(
             gate_name,
             num_qubits,
@@ -513,7 +516,7 @@ def _write_instruction(file_obj, instruction, custom_operations, index_map):
     has_condition = False
     condition_register = b""
     condition_value = 0
-    if instruction.operation.condition:
+    if getattr(instruction.operation, "condition", None):
         has_condition = True
         if isinstance(instruction.operation.condition[0], Clbit):
             bit_index = index_map["c"][instruction.operation.condition[0]]
@@ -623,14 +626,21 @@ def _write_custom_operation(file_obj, name, operation, custom_operations):
         has_definition = True
         data = common.data_to_binary(operation, _write_pauli_evolution_gate)
         size = len(data)
+    elif type_key == type_keys.CircuitInstruction.CONTROLLED_GATE:
+        # For ControlledGate, we have to access and store the private `_definition` rather than the
+        # public one, because the public one is mutated to include additional logic if the control
+        # state is open, and the definition setter (during a subsequent read) uses the "fully
+        # excited" control definition only.
+        has_definition = True
+        data = common.data_to_binary(operation._definition, write_circuit)
+        size = len(data)
+        num_ctrl_qubits = operation.num_ctrl_qubits
+        ctrl_state = operation.ctrl_state
+        base_gate = operation.base_gate
     elif operation.definition is not None:
         has_definition = True
         data = common.data_to_binary(operation.definition, write_circuit)
         size = len(data)
-    if type_key == type_keys.CircuitInstruction.CONTROLLED_GATE:
-        num_ctrl_qubits = operation.num_ctrl_qubits
-        ctrl_state = operation.ctrl_state
-        base_gate = operation.base_gate
     if base_gate is None:
         base_gate_raw = b""
     else:
