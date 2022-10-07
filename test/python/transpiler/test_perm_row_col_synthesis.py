@@ -2,6 +2,7 @@
 
 import unittest
 import numpy as np
+import retworkx as rx
 from qiskit.test import QiskitTestCase
 from qiskit.transpiler.passes.synthesis.perm_row_col_synthesis import PermRowColSynthesis
 from qiskit import QuantumCircuit
@@ -140,6 +141,7 @@ class TestPermRowColSynthesis(QiskitTestCase):
 
         self.assertIsInstance(instance, np.ndarray)
 
+
     def test_noncutting_vertices_returns_np_ndarray(self):
         """Test the output type of _noncutting_vertices"""
         coupling = CouplingMap()
@@ -159,6 +161,16 @@ class TestPermRowColSynthesis(QiskitTestCase):
         expected = np.array([0, 1, 3, 5, 6])
 
         self.assertCountEqual(instance, expected)
+
+    def test_pydigraph_to_pygraph_returns_pygraph(self):
+        """Test the output type of _pydigraph_to_pygraph"""
+        coupling = CouplingMap()
+        synthesis = PermRowColSynthesis(coupling)
+
+        instance = synthesis._pydigraph_to_pygraph(coupling.graph)
+
+        self.assertIsInstance(instance, rx.PyGraph)
+
 
 
 if __name__ == "__main__":
