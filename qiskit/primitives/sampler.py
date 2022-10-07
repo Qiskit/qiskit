@@ -162,6 +162,12 @@ class Sampler(BaseSampler):
     def _preprocess_circuit(circuit: QuantumCircuit):
         circuit = init_circuit(circuit)
         q_c_mapping = final_measurement_mapping(circuit)
+        if set(range(circuit.num_clbits)) != set(q_c_mapping.values()):
+            raise QiskitError(
+                "Some classical bits are not used for measurements."
+                f" the number of classical bits ({circuit.num_clbits}),"
+                f" the used classical bits ({set(q_c_mapping.values())})."
+            )
         c_q_mapping = sorted((c, q) for q, c in q_c_mapping.items())
         qargs = [q for _, q in c_q_mapping]
         circuit = circuit.remove_final_measurements(inplace=False)
