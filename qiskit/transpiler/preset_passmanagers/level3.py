@@ -202,12 +202,15 @@ def level_3_pass_manager(pass_manager_config: PassManagerConfig) -> StagedPassMa
     ]
 
     # Build pass manager
+    init = common.generate_error_on_control_flow(
+        "The optimizations in optimization_level=3 do not yet support control flow."
+    )
     if init_method is not None:
-        init = plugin_manager.get_passmanager_stage(
-            "init", init_method, pass_manager_config, optimization_level=3
+        init += plugin_manager.get_passmanager_stage(
+            "init", init_method, pass_manager_config, optimization_level=2
         )
     else:
-        init = common.generate_unroll_3q(
+        init += common.generate_unroll_3q(
             target,
             basis_gates,
             approximation_degree,
