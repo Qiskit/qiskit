@@ -39,12 +39,37 @@ class TestPermRowColSynthesis(QiskitTestCase):
         """Test the output type of choose_row"""
         coupling = CouplingMap()
         synthesis = PermRowColSynthesis(coupling)
-        parity_mat = np.ndarray(0)
-        vertices = np.ndarray(0)
+        parity_mat = np.array([[1, 0], [0, 1]])
+        vertices = np.array([0, 1])
 
         instance = synthesis.choose_row(vertices, parity_mat)
 
-        self.assertIsInstance(instance, int)
+        self.assertIsInstance(instance, np.int64)
+
+    def test_choose_row_returns_correct_index(self):
+        """
+        Test method to test the correctness of the choose_row method
+        """
+        coupling = CouplingMap()
+        synthesis = PermRowColSynthesis(coupling)
+        parity_mat = np.array(
+            [
+                [0, 1, 0, 0, 0, 1, 0, 0, 0],
+                [1, 0, 1, 0, 1, 0, 0, 0, 0],
+                [0, 1, 0, 0, 0, 0, 0, 0, 0],
+                [1, 0, 1, 0, 1, 0, 1, 0, 1],
+                [0, 1, 0, 1, 0, 1, 0, 1, 0],
+                [1, 0, 0, 0, 1, 0, 1, 0, 0],
+                [0, 0, 0, 0, 0, 1, 0, 1, 0],
+                [0, 0, 1, 0, 0, 0, 1, 0, 1],
+                [0, 1, 0, 1, 0, 1, 0, 1, 0],
+            ]
+        )
+        vertices = np.array([1, 3, 4, 5, 6, 8])
+
+        index = synthesis.choose_row(vertices, parity_mat)
+
+        self.assertEqual(index, 6)
 
     def test_choose_column_returns_int(self):
         """Test the output type of choose_column"""

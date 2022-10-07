@@ -73,7 +73,7 @@ class PermRowColSynthesis(HighLevelSynthesis):
         Returns:
             int: vertex/row index
         """
-        return 0
+        return vertices[np.argmin([sum(parity_mat[i]) for i in vertices])]
 
     def choose_column(self, parity_mat: np.ndarray, cols: np.ndarray, chosen_row: int) -> int:
         """Choose column to eliminate and return the index.
