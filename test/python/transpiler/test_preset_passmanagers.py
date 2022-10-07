@@ -23,7 +23,7 @@ from qiskit import QuantumCircuit, ClassicalRegister, QuantumRegister
 from qiskit.circuit import Qubit, Gate, ControlFlowOp
 from qiskit.compiler import transpile, assemble
 from qiskit.transpiler import CouplingMap, Layout, PassManager, TranspilerError
-from qiskit.circuit.library import U2Gate, U3Gate, QuantumVolume, SwapGate, CZGate, XGate
+from qiskit.circuit.library import U2Gate, U3Gate, QuantumVolume, CXGate, CZGate, XGate
 from qiskit.transpiler.passes import (
     ALAPScheduleAnalysis,
     PadDynamicalDecoupling,
@@ -1263,6 +1263,9 @@ class TestIntegrationControlFlow(QiskitTestCase):
             circuit.cz(0, 2)
             circuit.append(CustomCX(), [1, 2], [])
         with else_:
+            circuit.cx(3, 4)
+            circuit.cz(3, 5)
+            circuit.append(CustomCX(), [4, 5], [])
             with circuit.while_loop((circuit.clbits[0], True)):
                 circuit.cx(3, 4)
                 circuit.cz(3, 5)
@@ -1281,25 +1284,27 @@ class TestIntegrationControlFlow(QiskitTestCase):
         # here we're just checking that various passes do appear to have run.
         self.assertIsInstance(transpiled, QuantumCircuit)
         # Assert layout ran.
-        self.assertIsInstance(getattr(transpiled, "_layout", None), Layout)
+        self.assertIsNot(getattr(transpiled, "_layout", None), None)
 
         def _visit_block(circuit, stack=None):
             """Assert that every block contains at least one swap to imply that routing has run."""
             if stack is None:
                 # List of (instruction_index, block_index).
                 stack = ()
-            seen_swap = False
+            seen_cx = 0
             for i, instruction in enumerate(circuit):
                 if isinstance(instruction.operation, ControlFlowOp):
                     for j, block in enumerate(instruction.operation.blocks):
                         _visit_block(block, stack + ((i, j),))
-                elif isinstance(instruction.operation, SwapGate):
-                    seen_swap = True
+                elif isinstance(instruction.operation, CXGate):
+                    seen_cx += 1
                 # Assert unrolling ran.
                 self.assertNotIsInstance(instruction.operation, CustomCX)
                 # Assert translation ran.
                 self.assertNotIsInstance(instruction.operation, CZGate)
-            self.assertTrue(seen_swap, msg=f"no swaps in block at indices: {stack}")
+            # There are three "natural" swaps in each block (one for each 2q operation), so if
+            # routing ran, we should see more than that.
+            self.assertGreater(seen_cx, 3, msg=f"no swaps in block at indices: {stack}")
 
         # Assert routing ran.
         _visit_block(transpiled)
@@ -1311,6 +1316,7 @@ class TestIntegrationControlFlow(QiskitTestCase):
         circuit.h(0)
         circuit.measure(0, 0)
         with circuit.for_loop((1,)):
+            circuit.h(0)
             circuit.cx(0, 1)
             circuit.cz(0, 2)
             circuit.cx(1, 2)
@@ -1324,7 +1330,7 @@ class TestIntegrationControlFlow(QiskitTestCase):
 
         transpiled = transpile(
             circuit,
-            basis_gates=["sx", "rz", "cx", "if_else", "for_loop", "while_loop"],
+            basis_gates=["u3", "cx", "if_else", "for_loop", "while_loop"],
             layout_method="trivial",
             translation_method="unroller",
             coupling_map=coupling_map,
@@ -1333,7 +1339,7 @@ class TestIntegrationControlFlow(QiskitTestCase):
             callback=callback,
         )
         self.assertIsInstance(transpiled, QuantumCircuit)
-        self.assertIsInstance(getattr(transpiled, "_layout", None), Layout)
+        self.assertIsNot(getattr(transpiled, "_layout", None), None)
 
         self.assertIn("TrivialLayout", calls)
         self.assertIn("Unroller", calls)
