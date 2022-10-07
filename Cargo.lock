@@ -406,7 +406,7 @@ dependencies = [
  "rand_distr",
  "rand_pcg",
  "rayon",
- "retworkx-core",
+ "rustworkx-core",
 ]
 
 [[package]]
@@ -507,7 +507,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "retworkx-core"
+name = "rustworkx-core"
 version = "0.11.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "353bcdcdab6c754ea32bce39ee7a763c8a3c16c91a8dd648befd14fbcb0d5b68"

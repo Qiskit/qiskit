@@ -13,7 +13,7 @@
 use hashbrown::{HashMap, HashSet};
 use numpy::PyReadonlyArray1;
 use pyo3::prelude::*;
-use retworkx_core::petgraph::prelude::*;
+use rustworkx_core::petgraph::prelude::*;
 
 /// A DAG object used to represent the data interactions from a DAGCircuit
 /// to run the the sabre algorithm. This is structurally identical to the input
