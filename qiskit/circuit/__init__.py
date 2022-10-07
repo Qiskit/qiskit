@@ -56,6 +56,56 @@ defined as:
 Supplementary Information
 =========================
 
+.. dropdown:: Quantum Circuit with conditionals
+   :animate: fade-in-slide-down
+
+   When building a quantum circuit, there can be interest in applying a certain gate only
+   if a classical register has a specific value. This can be done with the
+   :meth:`InstructionSet.c_if` method.
+
+   In the following example, we start with a single-qubit circuit formed by only a Hadamard gate
+   (:class:`~.HGate`), in which we expect to get :math:`|0\\rangle` and :math:`|1\\rangle`
+   with equal probability.
+
+   .. jupyter-execute::
+
+      from qiskit import BasicAer, transpile, QuantumRegister, ClassicalRegister
+
+      qr = QuantumRegister(1)
+      cr = ClassicalRegister(1)
+      qc = QuantumCircuit(qr, cr)
+      qc.h(0)
+      qc.measure(0, 0)
+      qc.draw('mpl')
+
+   .. jupyter-execute::
+
+      backend = BasicAer.get_backend('qasm_simulator')
+      tqc = transpile(qc, backend)
+      counts = backend.run(tqc).result().get_counts()
+
+      print(counts)
+
+   Now, we add an :class:`~.XGate` only if the value of the :class:`~.ClassicalRegister` is 0.
+   That way, if the state is :math:`|0\\rangle`, it will be changed to :math:`|1\\rangle` and
+   if the state is :math:`|1\\rangle`, it will not be changed at all, so the final state will
+   always be :math:`|1\\rangle`.
+
+   .. jupyter-execute::
+
+      qc.x(0).c_if(cr, 0)
+      qc.measure(0, 0)
+
+      qc.draw('mpl')
+
+   .. jupyter-execute::
+
+      tqc = transpile(qc, backend)
+      counts = backend.run(tqc).result().get_counts()
+
+      print(counts)
+
+
 .. dropdown:: Quantum Circuit Properties
    :animate: fade-in-slide-down
 
