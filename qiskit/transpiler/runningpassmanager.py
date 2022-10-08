@@ -186,7 +186,7 @@ class RunningPassManager:
                 pass_.do_while = partial(pass_.do_while, self.fenced_property_set)
 
             for _pass in pass_:
-                self._do_pass(_pass, dag, pass_.options)
+                dag = self._do_pass(_pass, dag, pass_.options)
         else:
             raise TranspilerError(
                 "Expecting type BasePass or FlowController, got %s." % type(pass_)
