@@ -48,9 +48,6 @@ class TestCircuitValidation(QiskitTestCase):
 @ddt
 class TestParameterValuesValidation(QiskitTestCase):
     @data(
-        # (float("nan"), ((float("nan"),),)),  # TODO: should be disallowed
-        (float("inf"), ((float("inf"),),)),  # TODO: should be disallowed
-        (float("-inf"), ((float("-inf"),),)),  # TODO: should be disallowed
         ((), ((),)),
         ([], ((),)),
         (0, ((0,),)),

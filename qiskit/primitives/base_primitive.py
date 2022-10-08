@@ -16,6 +16,7 @@ from __future__ import annotations
 
 from abc import ABC
 from collections.abc import Sequence
+from typing import Any
 
 import numpy as np
 
@@ -73,7 +74,6 @@ class BasePrimitive(ABC):
             raise ValueError("No circuits were provided.")
         return circuits
 
-    # TODO: disallow non-numeric float values: float('nan'), float('inf'), float('-inf')
     @staticmethod
     def _validate_parameter_values(
         parameter_values: Sequence[Sequence[float]] | Sequence[float] | float | None,
@@ -106,10 +106,7 @@ class BasePrimitive(ABC):
         if (
             not isinstance(parameter_values, Sequence)
             or not all(isinstance(vector, Sequence) for vector in parameter_values)
-            or not all(
-                all(isinstance(value, (float, int)) for value in vector)
-                for vector in parameter_values
-            )
+            or not all(all(_isreal(value) for value in vector) for vector in parameter_values)
         ):
             raise TypeError("Invalid parameter values, expected Sequence[Sequence[float]].")
 
@@ -132,3 +129,13 @@ class BasePrimitive(ABC):
                     f"The number of values ({len(vector)}) does not match "
                     f"the number of parameters ({circuit.num_parameters}) for the {i}-th circuit."
                 )
+
+
+def _isint(obj: Any) -> bool:
+    """Check if object is int."""
+    return isinstance(obj, int) and not isinstance(obj, bool)
+
+
+def _isreal(obj: Any) -> bool:
+    """Check if object is a real number: int or float except ``±Inf`` and ``NaN``."""
+    return _isint(obj) or isinstance(obj, float) and float("-Inf") < obj < float("Inf")
