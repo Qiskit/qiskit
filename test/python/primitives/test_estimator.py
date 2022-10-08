@@ -661,6 +661,8 @@ class TestEstimator(QiskitTestCase):
 
 @ddt
 class TestObservableValidation(QiskitTestCase):
+    """Test observables validation logic."""
+
     @data(
         (SparsePauliOp("IXYZ"), (SparsePauliOp("IXYZ"),)),
         (
@@ -670,15 +672,18 @@ class TestObservableValidation(QiskitTestCase):
     )
     @unpack
     def test_validate_observables(self, obsevables, expected):
+        """Test obsevables standardization."""
         assert BaseEstimator._validate_observables(obsevables) == expected
 
     @data(None, "ERROR")
     def test_type_error(self, observables):
+        """Test type error if invalid input."""
         with self.assertRaises(TypeError):
             BaseEstimator._validate_observables(observables)
 
     @data((), [], "")
     def test_value_error(self, observables):
+        """Test value error if no obsevables are provided."""
         with self.assertRaises(ValueError):
             BaseEstimator._validate_observables(observables)
 

@@ -23,6 +23,8 @@ from qiskit.test import QiskitTestCase
 
 @ddt
 class TestCircuitValidation(QiskitTestCase):
+    """Test circuits validation logic."""
+
     @data(
         (random_circuit(2, 2, seed=0), (random_circuit(2, 2, seed=0),)),
         (
@@ -32,21 +34,26 @@ class TestCircuitValidation(QiskitTestCase):
     )
     @unpack
     def test_validate_circuits(self, circuits, expected):
+        """Test circuits standardization."""
         assert BasePrimitive._validate_circuits(circuits) == expected
 
-    @data(None, "ERROR")
+    @data(None, "ERROR", True, 0, 1.0, 1j, [0.0])
     def test_type_error(self, circuits):
+        """Test type error if invalid input."""
         with self.assertRaises(TypeError):
             BasePrimitive._validate_circuits(circuits)
 
     @data((), [], "")
     def test_value_error(self, circuits):
+        """Test value error if no circuits are provided."""
         with self.assertRaises(ValueError):
             BasePrimitive._validate_circuits(circuits)
 
 
 @ddt
 class TestParameterValuesValidation(QiskitTestCase):
+    """Test parameter_values validation logic."""
+
     @data(
         ((), ((),)),
         ([], ((),)),
@@ -67,18 +74,33 @@ class TestParameterValuesValidation(QiskitTestCase):
         ([[0.3, 1.2]], ((0.3, 1.2),)),
     )
     @unpack
-    def test_validate_parameter_values(self, parameter_values, expected):
-        for parameter_values in [parameter_values, array(parameter_values)]:
+    def test_validate_parameter_values(self, _parameter_values, expected):
+        """Test parameter_values standardization."""
+        for parameter_values in [_parameter_values, array(_parameter_values)]:  # Numpy
             assert BasePrimitive._validate_parameter_values(parameter_values) == expected
             assert (
                 BasePrimitive._validate_parameter_values(None, default=parameter_values) == expected
             )
 
-    @data("ERROR", ("E", "R", "R", "O", "R"), (["E", "R", "R"], ["O", "R"]), 1j, (1j,), ((1j,),))
+    @data(
+        "ERROR",
+        ("E", "R", "R", "O", "R"),
+        (["E", "R", "R"], ["O", "R"]),
+        1j,
+        (1j,),
+        ((1j,),),
+        True,
+        False,
+        float("inf"),
+        float("-inf"),
+        float("nan"),
+    )
     def test_type_error(self, parameter_values):
+        """Test type error if invalid input."""
         with self.assertRaises(TypeError):
             BasePrimitive._validate_parameter_values(parameter_values)
 
     def test_value_error(self):
+        """Test value error if no parameter_values or default are provided."""
         with self.assertRaises(ValueError):
             BasePrimitive._validate_parameter_values(None)
