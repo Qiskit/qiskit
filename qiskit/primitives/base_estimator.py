@@ -79,7 +79,7 @@ Here is an example of how the estimator is used.
 
 from __future__ import annotations
 
-from abc import ABC, abstractmethod
+from abc import abstractmethod
 from collections.abc import Iterable, Sequence
 from copy import copy
 from typing import cast
@@ -90,8 +90,8 @@ import numpy as np
 from qiskit.circuit import Parameter, QuantumCircuit
 from qiskit.circuit.parametertable import ParameterView
 from qiskit.opflow import PauliSumOp
+from qiskit.primitives.base_primitive import BasePrimitive
 from qiskit.providers import JobV1 as Job
-from qiskit.providers import Options
 from qiskit.quantum_info.operators import SparsePauliOp
 from qiskit.quantum_info.operators.base_operator import BaseOperator
 from qiskit.utils.deprecation import deprecate_arguments, deprecate_function
@@ -102,7 +102,7 @@ from .utils import _circuit_key, _observable_key, init_observable
 Sequence.register(np.ndarray)
 
 
-class BaseEstimator(ABC):
+class BaseEstimator(BasePrimitive):
     """Estimator base class.
 
     Base class for Estimator that estimates expectation values of quantum circuits and observables.
@@ -169,29 +169,7 @@ class BaseEstimator(ABC):
                         f"Different numbers of parameters of {i}-th circuit: "
                         f"expected {circ.num_parameters}, actual {len(params)}."
                     )
-        self._run_options = Options()
-        if options is not None:
-            self._run_options.update_options(**options)
-
-    ################################################################################
-    ## PROPERTIES
-    ################################################################################
-    @property
-    def options(self) -> Options:
-        """Return options values for the estimator.
-
-        Returns:
-            options
-        """
-        return self._run_options
-
-    def set_options(self, **fields):
-        """Set options values for the estimator.
-
-        Args:
-            **fields: The fields to update the options
-        """
-        self._run_options.update_options(**fields)
+        super().__init__(options)
 
     ################################################################################
     ## METHODS
@@ -246,29 +224,8 @@ class BaseEstimator(ABC):
         )
 
         # Cross-validation
-        if len(circuits) != len(observables):
-            raise ValueError(
-                f"The number of circuits ({len(circuits)}) does not match "
-                f"the number of observables ({len(observables)})."
-            )
-        if len(circuits) != len(parameter_values):
-            raise ValueError(
-                f"The number of circuits ({len(circuits)}) does not match "
-                f"the number of parameter value sets ({len(parameter_values)})."
-            )
-        for i, (circuit, vector) in enumerate(zip(circuits, parameter_values)):
-            if len(vector) != circuit.num_parameters:
-                raise ValueError(
-                    f"The number of values ({len(vector)}) does not match "
-                    f"the number of parameters ({circuit.num_parameters}) for the {i}-th circuit."
-                )
-        for i, (circuit, observable) in enumerate(zip(circuits, observables)):
-            if circuit.num_qubits != observable.num_qubits:
-                raise ValueError(
-                    f"The number of qubits of the {i}-th circuit ({circuit.num_qubits}) does "
-                    f"not match the number of qubits of the {i}-th observable "
-                    f"({observable.num_qubits})."
-                )
+        self._cross_validate_circuits_parameter_values(circuits, parameter_values)
+        self._cross_validate_circuits_observables(circuits, observables)
 
         # Options
         run_opts = copy(self.options)
@@ -298,22 +255,6 @@ class BaseEstimator(ABC):
     ## VALIDATION
     ################################################################################
     @staticmethod
-    def _validate_circuits(
-        circuits: Sequence[QuantumCircuit] | QuantumCircuit,
-    ) -> tuple[QuantumCircuit, ...]:
-        if isinstance(circuits, QuantumCircuit):
-            circuits = (circuits,)
-        elif not isinstance(circuits, Sequence) or not all(
-            isinstance(cir, QuantumCircuit) for cir in circuits
-        ):
-            raise TypeError("Invalid circuits, expected Sequence[QuantumCircuit].")
-        elif not isinstance(circuits, tuple):
-            circuits = tuple(circuits)
-        if len(circuits) == 0:
-            raise ValueError("No circuits were provided.")
-        return circuits
-
-    @staticmethod
     def _validate_observables(
         observables: Sequence[BaseOperator | PauliSumOp] | BaseOperator | PauliSumOp,
     ) -> tuple[BaseOperator | PauliSumOp, ...]:
@@ -329,49 +270,22 @@ class BaseEstimator(ABC):
             raise ValueError("No observables were provided.")
         return observables
 
-    # TODO: disallow non-numeric float values: float('nan'), float('inf'), float('-inf')
     @staticmethod
-    def _validate_parameter_values(
-        parameter_values: Sequence[Sequence[float]] | Sequence[float] | float | None,
-        default: Sequence[Sequence[float]] | Sequence[float] | None = None,
-    ) -> tuple[tuple[float, ...], ...]:
-        # Allow optional (if default)
-        if parameter_values is None:
-            if default is None:
-                raise ValueError("No default `parameter_values`, optional input disallowed.")
-            parameter_values = default
-
-        # Support ndarray
-        if isinstance(parameter_values, np.ndarray):
-            parameter_values = parameter_values.tolist()
-        elif isinstance(parameter_values, Sequence):
-            parameter_values = tuple(
-                vector.tolist() if isinstance(vector, np.ndarray) else vector
-                for vector in parameter_values
+    def _cross_validate_circuits_observables(
+        circuits: tuple[QuantumCircuit, ...], observables: tuple[BaseOperator | PauliSumOp, ...]
+    ) -> None:
+        if len(circuits) != len(observables):
+            raise ValueError(
+                f"The number of circuits ({len(circuits)}) does not match "
+                f"the number of observables ({len(observables)})."
             )
-
-        # Allow single value
-        if isinstance(parameter_values, (int, float)):
-            parameter_values = ((parameter_values,),)
-        elif isinstance(parameter_values, Sequence) and not any(
-            isinstance(vector, Sequence) for vector in parameter_values
-        ):
-            parameter_values = (parameter_values,)
-
-        # Validation
-        if (
-            not isinstance(parameter_values, Sequence)
-            or not all(isinstance(vector, Sequence) for vector in parameter_values)
-            or not all(
-                all(isinstance(value, (float, int)) for value in vector)
-                for vector in parameter_values
-            )
-        ):
-            raise TypeError("Invalid parameter values, expected Sequence[Sequence[float]].")
-
-        return tuple(
-            vector if isinstance(vector, tuple) else tuple(vector) for vector in parameter_values
-        )
+        for i, (circuit, observable) in enumerate(zip(circuits, observables)):
+            if circuit.num_qubits != observable.num_qubits:
+                raise ValueError(
+                    f"The number of qubits of the {i}-th circuit ({circuit.num_qubits}) does "
+                    f"not match the number of qubits of the {i}-th observable "
+                    f"({observable.num_qubits})."
+                )
 
     ################################################################################
     ## DEPRECATED
@@ -383,7 +297,6 @@ class BaseEstimator(ABC):
         parameters: Iterable[Iterable[Parameter]] | None = None,  # pylint: disable=unused-argument
         **kwargs,  # pylint: disable=unused-argument
     ):
-
         self = super().__new__(cls)
         if circuits is None:
             self._circuit_ids = {}
