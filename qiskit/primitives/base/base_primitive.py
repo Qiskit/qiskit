@@ -24,9 +24,6 @@ from qiskit.circuit import QuantumCircuit
 from qiskit.providers import Options
 
 
-Sequence.register(np.ndarray)
-
-
 class BasePrimitive(ABC):
     """Primitive abstract base class."""
 

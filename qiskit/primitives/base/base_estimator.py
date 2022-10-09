@@ -100,8 +100,6 @@ from .base_primitive import BasePrimitive
 from .estimator_result import EstimatorResult
 from ..utils import _circuit_key, _observable_key, init_observable
 
-Sequence.register(np.ndarray)
-
 
 class BaseEstimator(BasePrimitive):
     """Estimator base class.

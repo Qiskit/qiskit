@@ -92,8 +92,6 @@ from .base_primitive import BasePrimitive
 from .sampler_result import SamplerResult
 from ..utils import _circuit_key
 
-Sequence.register(np.ndarray)
-
 
 class BaseSampler(BasePrimitive):
     """Sampler base class
