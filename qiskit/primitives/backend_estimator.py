@@ -31,8 +31,7 @@ from qiskit.result import Counts, Result
 from qiskit.tools.monitor import job_monitor
 from qiskit.transpiler import PassManager
 
-from .base import BaseEstimator
-from .base.estimator_result import EstimatorResult
+from .base import BaseEstimator, EstimatorResult
 from .primitive_job import PrimitiveJob
 from .utils import _circuit_key, _observable_key, init_observable
 

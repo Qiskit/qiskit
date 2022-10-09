@@ -23,9 +23,8 @@ from qiskit.providers.options import Options
 from qiskit.result import QuasiDistribution, Result
 from qiskit.transpiler.passmanager import PassManager
 
-from .base import BaseSampler
+from .base import BaseSampler, SamplerResult
 from .primitive_job import PrimitiveJob
-from .base.sampler_result import SamplerResult
 from .utils import _circuit_key
 
 

@@ -25,9 +25,8 @@ from qiskit.exceptions import QiskitError
 from qiskit.quantum_info import Statevector
 from qiskit.result import QuasiDistribution
 
-from .base import BaseSampler
+from .base import BaseSampler, SamplerResult
 from .primitive_job import PrimitiveJob
-from .base.sampler_result import SamplerResult
 from .utils import (
     _circuit_key,
     bound_circuit_to_instruction,

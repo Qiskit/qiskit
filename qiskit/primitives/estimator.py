@@ -26,8 +26,7 @@ from qiskit.opflow import PauliSumOp
 from qiskit.quantum_info import Statevector
 from qiskit.quantum_info.operators.base_operator import BaseOperator
 
-from .base import BaseEstimator
-from .base.estimator_result import EstimatorResult
+from .base import BaseEstimator, EstimatorResult
 from .primitive_job import PrimitiveJob
 from .utils import (
     _circuit_key,
