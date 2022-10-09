@@ -91,14 +91,14 @@ import numpy as np
 from qiskit.circuit import Parameter, QuantumCircuit
 from qiskit.circuit.parametertable import ParameterView
 from qiskit.opflow import PauliSumOp
-from qiskit.primitives.base_primitive import BasePrimitive
 from qiskit.providers import JobV1 as Job
 from qiskit.quantum_info.operators import SparsePauliOp
 from qiskit.quantum_info.operators.base_operator import BaseOperator
 from qiskit.utils.deprecation import deprecate_arguments, deprecate_function
 
+from .base_primitive import BasePrimitive
 from .estimator_result import EstimatorResult
-from .utils import _circuit_key, _observable_key, init_observable
+from ..utils import _circuit_key, _observable_key, init_observable
 
 Sequence.register(np.ndarray)
 

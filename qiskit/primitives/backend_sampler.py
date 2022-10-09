@@ -11,6 +11,7 @@
 # that they have been altered from the originals.
 
 """Sampler implementation for an artibtrary Backend object."""
+
 from __future__ import annotations
 
 from collections.abc import Sequence
@@ -22,9 +23,9 @@ from qiskit.providers.options import Options
 from qiskit.result import QuasiDistribution, Result
 from qiskit.transpiler.passmanager import PassManager
 
-from .base_sampler import BaseSampler
+from .base import BaseSampler
 from .primitive_job import PrimitiveJob
-from .sampler_result import SamplerResult
+from .base.sampler_result import SamplerResult
 from .utils import _circuit_key
 
 

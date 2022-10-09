@@ -85,12 +85,12 @@ import numpy as np
 
 from qiskit.circuit import Parameter, QuantumCircuit
 from qiskit.circuit.parametertable import ParameterView
-from qiskit.primitives.base_primitive import BasePrimitive
 from qiskit.providers import JobV1 as Job
 from qiskit.utils.deprecation import deprecate_arguments, deprecate_function
 
+from .base_primitive import BasePrimitive
 from .sampler_result import SamplerResult
-from .utils import _circuit_key
+from ..utils import _circuit_key
 
 Sequence.register(np.ndarray)
 

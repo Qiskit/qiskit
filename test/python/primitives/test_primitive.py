@@ -17,7 +17,7 @@ from ddt import ddt, data, unpack
 from numpy import array, int32, int64, float32, float64
 
 from qiskit.circuit.random import random_circuit
-from qiskit.primitives.base_primitive import BasePrimitive
+from qiskit.primitives.base.base_primitive import BasePrimitive
 from qiskit.test import QiskitTestCase
 
 
