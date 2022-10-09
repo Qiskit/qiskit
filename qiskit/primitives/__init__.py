@@ -17,8 +17,8 @@ Primitives (:mod:`qiskit.primitives`)
 
 .. currentmodule:: qiskit.primitives
 
-.. automodule:: qiskit.primitives.base_estimator
-.. automodule:: qiskit.primitives.base_sampler
+.. automodule:: qiskit.primitives.base.base_estimator
+.. automodule:: qiskit.primitives.base.base_sampler
 
 .. currentmodule:: qiskit.primitives
 
