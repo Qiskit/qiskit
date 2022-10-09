@@ -673,7 +673,7 @@ class TestObservableValidation(QiskitTestCase):
     @unpack
     def test_validate_observables(self, obsevables, expected):
         """Test obsevables standardization."""
-        assert BaseEstimator._validate_observables(obsevables) == expected
+        self.assertEqual(BaseEstimator._validate_observables(obsevables), expected)
 
     @data(None, "ERROR")
     def test_type_error(self, observables):

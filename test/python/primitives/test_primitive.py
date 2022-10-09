@@ -14,7 +14,7 @@
 
 from ddt import ddt, data, unpack
 
-from numpy import array
+from numpy import array, int32, int64, float32, float64
 
 from qiskit.circuit.random import random_circuit
 from qiskit.primitives.base_primitive import BasePrimitive
@@ -35,7 +35,7 @@ class TestCircuitValidation(QiskitTestCase):
     @unpack
     def test_validate_circuits(self, circuits, expected):
         """Test circuits standardization."""
-        assert BasePrimitive._validate_circuits(circuits) == expected
+        self.assertEqual(BasePrimitive._validate_circuits(circuits), expected)
 
     @data(None, "ERROR", True, 0, 1.0, 1j, [0.0])
     def test_type_error(self, circuits):
@@ -72,14 +72,20 @@ class TestParameterValuesValidation(QiskitTestCase):
         ([[0, 1]], ((0, 1),)),
         ([[0, 1.2]], ((0, 1.2),)),
         ([[0.3, 1.2]], ((0.3, 1.2),)),
+        # Test for numpy dtypes
+        (int32(5), ((float(int32(5)),),)),
+        (int64(6), ((float(int64(6)),),)),
+        (float32(3.2), ((float(float32(3.2)),),)),
+        (float64(6.4), ((float(float64(6.4)),),)),
+        ([int32(5), float32(3.2)], ((float(int32(5)), float(float32(3.2))),)),
     )
     @unpack
     def test_validate_parameter_values(self, _parameter_values, expected):
         """Test parameter_values standardization."""
         for parameter_values in [_parameter_values, array(_parameter_values)]:  # Numpy
-            assert BasePrimitive._validate_parameter_values(parameter_values) == expected
-            assert (
-                BasePrimitive._validate_parameter_values(None, default=parameter_values) == expected
+            self.assertEqual(BasePrimitive._validate_parameter_values(parameter_values), expected)
+            self.assertEqual(
+                BasePrimitive._validate_parameter_values(None, default=parameter_values), expected
             )
 
     @data(

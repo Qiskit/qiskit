@@ -85,7 +85,7 @@ class BasePrimitive(ABC):
                 raise ValueError("No default `parameter_values`, optional input disallowed.")
             parameter_values = default
 
-        # Support ndarray
+        # Support numpy ndarray
         if isinstance(parameter_values, np.ndarray):
             parameter_values = parameter_values.tolist()
         elif isinstance(parameter_values, Sequence):
@@ -95,7 +95,7 @@ class BasePrimitive(ABC):
             )
 
         # Allow single value
-        if isinstance(parameter_values, (int, float)):
+        if _isreal(parameter_values):
             parameter_values = ((parameter_values,),)
         elif isinstance(parameter_values, Sequence) and not any(
             isinstance(vector, Sequence) for vector in parameter_values
@@ -110,9 +110,7 @@ class BasePrimitive(ABC):
         ):
             raise TypeError("Invalid parameter values, expected Sequence[Sequence[float]].")
 
-        return tuple(
-            vector if isinstance(vector, tuple) else tuple(vector) for vector in parameter_values
-        )
+        return tuple(tuple(float(value) for value in vector) for vector in parameter_values)
 
     @staticmethod
     def _cross_validate_circuits_parameter_values(
@@ -133,9 +131,11 @@ class BasePrimitive(ABC):
 
 def _isint(obj: Any) -> bool:
     """Check if object is int."""
-    return isinstance(obj, int) and not isinstance(obj, bool)
+    int_types = (int, np.integer)
+    return isinstance(obj, int_types) and not isinstance(obj, bool)
 
 
 def _isreal(obj: Any) -> bool:
     """Check if object is a real number: int or float except ``±Inf`` and ``NaN``."""
-    return _isint(obj) or isinstance(obj, float) and float("-Inf") < obj < float("Inf")
+    float_types = (float, np.floating)
+    return _isint(obj) or isinstance(obj, float_types) and float("-Inf") < obj < float("Inf")
