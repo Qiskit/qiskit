@@ -10,7 +10,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""Perm_row_col function implementation"""
+"""Helper functions for hadling graphs"""
 
 import numpy as np
 import retworkx as rx
@@ -19,6 +19,7 @@ from qiskit.transpiler import CouplingMap
 
 
 def pydigraph_to_pygraph(pydigraph: rx.PyDiGraph) -> rx.PyGraph:
+    """Changes directed Pydigraph into an undirected Pygraph"""
     return pydigraph.to_undirected()
 
 
