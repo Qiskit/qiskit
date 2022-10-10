@@ -92,4 +92,4 @@ class FakeBackendsTest(QiskitTestCase):
         qc.measure_all()
         res = backend.run(qc, shots=1000).result().get_counts()
         # Assert noise was present and result wasn't ideal
-        self.assertNotEqual(res, {'1': 1000})
+        self.assertNotEqual(res, {"1": 1000})
