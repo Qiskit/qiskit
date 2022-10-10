@@ -1518,11 +1518,6 @@ class TestTranspile(QiskitTestCase):
             circuit.cx(3, 4)
             circuit.cz(3, 5)
             circuit.append(CustomCX(), [4, 5], [])
-            with circuit.while_loop((circuit.clbits[0], True)):
-                circuit.cx(3, 4)
-                circuit.cz(3, 5)
-                circuit.append(CustomCX(), [4, 5], [])
-
         transpiled = transpile(
             circuit, optimization_level=opt_level, target=target, seed_transpiler=12434
         )
@@ -1531,11 +1526,8 @@ class TestTranspile(QiskitTestCase):
         self.assertIsInstance(transpiled, QuantumCircuit)
         # Assert layout ran.
         self.assertIsNot(getattr(transpiled, "_layout", None), None)
-        print(target)
-        print(transpiled)
 
         def _visit_block(circuit, qubit_mapping=None):
-            """Assert that every block contains at least one swap to imply that routing has run."""
             for instruction in circuit:
                 qargs = tuple(qubit_mapping[x] for x in instruction.qubits)
                 self.assertTrue(target.instruction_supported(instruction.operation.name, qargs))
