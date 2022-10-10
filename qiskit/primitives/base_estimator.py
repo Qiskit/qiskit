@@ -263,7 +263,7 @@ class BaseEstimator(ABC):
         self._run_options.update_options(**fields)
 
     @deprecate_function(
-        "The BaseSampler.__call__ method is deprecated as of Qiskit Terra 0.22.0 "
+        "The BaseEstimator.__call__ method is deprecated as of Qiskit Terra 0.22.0 "
         "and will be removed no sooner than 3 months after the releasedate. "
         "Use run method instead.",
     )
