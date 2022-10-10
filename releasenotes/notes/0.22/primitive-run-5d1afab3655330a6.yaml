@@ -21,8 +21,6 @@ deprecations:
     :meth:`~qiskit.primitives.BaseEstimator.__call__` method was deprecated.
     For example::
 
-    .. code-block:: python
-
       estimator = Estimator(...)
       result = estimator(circuits, observables, parameters)
 
