@@ -14,9 +14,8 @@
 from __future__ import annotations
 
 import numpy as np
-
+from ....exceptions import AlgorithmError
 from qiskit import QuantumCircuit
-from qiskit.algorithms import AlgorithmError
 from qiskit.algorithms.gradients import (
     BaseQFI,
     BaseEstimatorGradient,

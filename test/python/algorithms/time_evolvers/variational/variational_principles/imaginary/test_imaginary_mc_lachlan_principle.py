@@ -13,10 +13,6 @@
 """Test imaginary McLachlan's variational principle."""
 
 import unittest
-from test.python.algorithms.time_evolvers.variational.variational_principles.\
-    expected_results.test_imaginary_mc_lachlan_variational_principle_expected1 import (
-    expected_bound_metric_tensor_1,
-)
 from test.python.algorithms import QiskitAlgorithmsTestCase
 import numpy as np
 
@@ -25,7 +21,9 @@ from qiskit.algorithms.time_evolvers.variational import (
     ImaginaryMcLachlanPrinciple,
 )
 from qiskit.circuit.library import EfficientSU2
-
+from ..expected_results.test_imaginary_mc_lachlan_variational_principle_expected1 import (
+    expected_bound_metric_tensor_1,
+)
 
 class TestImaginaryMcLachlanPrinciple(QiskitAlgorithmsTestCase):
     """Test imaginary McLachlan's variational principle."""
