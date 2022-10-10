@@ -1,9 +1,19 @@
 ---
 features:
   - |
-    Add methods `~qiskit.primitives.BaseSampler.run` and `~qiskit.primitives.BaseEstimator.run`.
-    These methods execute asynchronously and return `~qiskit.providers.JobV1`.
-    Circuits and observables can be appended that are not registered in the constructor.
+    Added new methods for executing primitives: :meth:`.BaseSampler.run` and :meth:`.BaseEstimator.run`.
+    These methods execute asynchronously and return `~qiskit.providers.JobV1` objects which
+    provide a handle to the exections. These new run methods can be passed :class:`~.QuantumCircuit`
+    objects (and observables for :class:`~.BaseEstimator`) that are not registered in the constructor.
+    For example::
+
+        estimator = Estimator()
+        result = estimator.run(circuits, observables, parameter_values).result()
+
+    This provides an alternative to the previous execution model (which is now deprecated) for the
+    :class:`~.BaseSampler` and :class:`~.BaseEstimator` primitives which would take all the inputs via
+    the constructor and calling the primitive object with the combination of those input parameters
+    to use in the execution.
 deprecations:
   - |
     The method of executing primitives has been changed.

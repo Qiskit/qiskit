@@ -48,6 +48,11 @@ learn more.
 All channels are children of the same abstract base class:
 
 .. autoclass:: Channel
+
+And classical IO channels are children of:
+
+.. autoclass:: ClassicalIOChannel
+
 """
 from abc import ABCMeta
 from typing import Any, Set, Union
