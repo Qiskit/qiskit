@@ -1481,6 +1481,26 @@ class TestGlobalVariableWidthOperations(QiskitTestCase):
         )
         self.assertFalse(self.ibm_target.instruction_supported("for_loop", qargs=(0, 425)))
 
+    def test_coupling_map(self):
+        self.assertIsNone(self.target_global_gates_only.build_coupling_map())
+        self.assertEqual(
+            set(CouplingMap.from_full(5).get_edges()),
+            set(self.aqt_target.build_coupling_map().get_edges()),
+        )
+        self.assertEqual(
+            {
+                (3, 4),
+                (4, 3),
+                (3, 1),
+                (1, 3),
+                (1, 2),
+                (2, 1),
+                (0, 1),
+                (1, 0),
+            },
+            set(self.ibm_target.build_coupling_map().get_edges()),
+        )
+
 
 class TestInstructionProperties(QiskitTestCase):
     def test_empty_repr(self):
