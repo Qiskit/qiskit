@@ -14,6 +14,10 @@
 
 import unittest
 from test.python.algorithms import QiskitAlgorithmsTestCase
+from test.python.algorithms.time_evolvers.variational.solvers.expected_results.\
+    test_varqte_linear_solver_expected_1 import (
+    expected_metric_res_1,
+)
 import numpy as np
 
 from qiskit.quantum_info import SparsePauliOp
@@ -24,9 +28,7 @@ from qiskit.algorithms.time_evolvers.variational.solvers.var_qte_linear_solver i
     VarQTELinearSolver,
 )
 from qiskit.circuit.library import EfficientSU2
-from .expected_results.test_varqte_linear_solver_expected_1 import (
-    expected_metric_res_1,
-)
+
 
 class TestVarQTELinearSolver(QiskitAlgorithmsTestCase):
     """Test solver of linear equations."""

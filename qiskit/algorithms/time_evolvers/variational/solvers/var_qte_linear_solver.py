@@ -18,7 +18,7 @@ from typing import Callable
 import numpy as np
 
 from qiskit import QuantumCircuit
-from ..variational_principles.variational_principle import (
+from qiskit.algorithms.time_evolvers.variational.variational_principles.variational_principle import (
     VariationalPrinciple,
 )
 from qiskit.circuit import Parameter
