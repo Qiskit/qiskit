@@ -10,17 +10,15 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""Perm_row_col function implementation"""
+"""Perm_row_col synthesis implementation"""
 
 import numpy as np
-import retworkx as rx
 
 from qiskit.transpiler.passes.synthesis.high_level_synthesis import HighLevelSynthesis
-from qiskit.circuit.library.generalized_gates.linear_function import LinearFunction
 from qiskit.dagcircuit.dagcircuit import DAGCircuit
+from qiskit.transpiler.synthesis.permrowcol import PermRowCol
 from qiskit.transpiler import CouplingMap
-from qiskit.converters import circuit_to_dag, dag_to_circuit
-from qiskit import QuantumRegister, QuantumCircuit
+from qiskit.converters import circuit_to_dag
 
 
 class PermRowColSynthesis(HighLevelSynthesis):
@@ -47,98 +45,6 @@ class PermRowColSynthesis(HighLevelSynthesis):
         # parity_mat = LinearFunction(dag_to_circuit(dag)).linear
 
         parity_mat = np.identity(3)
-        res_circuit = self.perm_row_col(parity_mat, self._coupling_map)
+        permrowcol = PermRowCol(self._coupling_map)
+        res_circuit = permrowcol.perm_row_col(parity_mat, self._coupling_map)
         return circuit_to_dag(res_circuit)
-
-    def perm_row_col(self, parity_mat: np.ndarray, coupling_map: CouplingMap) -> QuantumCircuit:
-        """Run permrowcol algorithm on the given parity matrix
-
-        Args:
-            parity_mat (np.ndarray): parity matrix representing a circuit
-            coupling_map (CouplingMap): topology constraint
-
-        Returns:
-            QuantumCircuit: synthesized circuit
-        """
-        circuit = QuantumCircuit(QuantumRegister(0))
-        return circuit
-
-    def choose_row(self, vertices: np.ndarray, parity_mat: np.ndarray) -> int:
-        """Choose row to eliminate and return the index.
-
-        Args:
-            vertices (np.ndarray): vertices (corresponding to rows) to choose from
-            parity_mat (np.ndarray): parity matrix
-
-        Returns:
-            int: vertex/row index
-        """
-        return vertices[np.argmin([sum(parity_mat[i]) for i in vertices])]
-
-    def choose_column(self, parity_mat: np.ndarray, cols: np.ndarray, chosen_row: int) -> int:
-        """Choose column to eliminate and return the index.
-
-        Args:
-            parity_mat (np.ndarray): parity matrix
-            cols (np.ndarray): column indices to choose from
-            chosen_row (int): row index that has been eliminated
-
-        Returns:
-            int: column index
-        """
-        col_sum = [
-            sum(parity_mat[:, i]) if parity_mat[chosen_row][i] == 1 else len(parity_mat) + 1
-            for i in cols
-        ]
-        return cols[np.argmin(col_sum)]
-
-    def eliminate_column(
-        self, parity_mat: np.ndarray, coupling: CouplingMap, root: int, terminals: np.ndarray
-    ) -> np.ndarray:
-        """Eliminates the selected column from the parity matrix and returns the operations.
-
-        Args:
-            parity_mat (np.ndarray): parity matrix
-            coupling (CouplingMap): topology
-            root (int): root of the steiner tree
-            terminals (np.ndarray): terminals of the steiner tree
-
-        Returns:
-            np.ndarray: list of operations
-        """
-        return np.ndarray(0)
-
-    def eliminate_row(
-        self, parity_mat: np.ndarray, coupling: CouplingMap, root: int, terminals: np.ndarray
-    ) -> np.ndarray:
-        """Eliminates the selected row from the parity matrix and returns the operations.
-
-        Args:
-            parity_mat (np.ndarray): parity matrix
-            coupling (CouplingMap): topology
-            root (int): root of the steiner tree
-            terminals (np.ndarray): terminals of the steiner tree
-
-        Returns:
-            np.ndarray: list of operations
-        """
-        return np.ndarray(0)
-
-    def _pydigraph_to_pygraph(self, pydigraph: rx.PyDiGraph) -> rx.PyGraph:
-        return pydigraph.to_undirected()
-
-    def _noncutting_vertices(self, coupling_map: CouplingMap) -> np.ndarray:
-        """Extracts noncutting vertices from a given coupling map. Direction is not taken into account.
-
-        Args:
-            coupling_map (CouplingMap): topology
-
-        Returns:
-            np.ndarray: array of non-cutting node indices
-        """
-        pygraph = self._pydigraph_to_pygraph(coupling_map.graph)
-        cutting_vertices = rx.articulation_points(pygraph)
-        vertices = set(pygraph.node_indices())
-        noncutting_vertices = np.array(list(vertices - cutting_vertices))
-
-        return noncutting_vertices
