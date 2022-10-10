@@ -1,8 +1,7 @@
 ---
 prelude: |
   The Qiskit Terra 0.22.0 release is a major feature release that includes
-
-  The highlights for this release are:
+  a myriad of new feature and bugfixes. The highlights for this release are:
 
     * Adding initial support to the transpiler for transpiling
       :class:`~.QuantumCircuit` objects that contain control flow instructions
