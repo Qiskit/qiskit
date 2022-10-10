@@ -50,6 +50,21 @@ KAK_GATE_NAMES = {
 }
 
 
+# TODO: discover these automatically from the gates' algebraic definition
+XX_EMBODIMENTS = {
+    RXXGate(): rxx_circuit,
+    RYYGate(): ryy_circuit,
+    RZZGate(): rzz_circuit,
+    RZXGate(): rzx_circuit,
+    CRXGate(): crx_circuit,
+    CRYGate(): cry_circuit,
+    CRZGate(): crz_circuit,
+    CPhaseGate(): cp_circuit,
+    CXGate(): cx_circuit,
+    CYGate(): cy_circuit,
+    CZGate(): cz_circuit
+}
+
 def _choose_kak_gate(basis_gates):
     """Choose the first available 2q gate to use in the KAK decomposition."""
     kak_gate = None
@@ -58,25 +73,6 @@ def _choose_kak_gate(basis_gates):
         kak_gate = KAK_GATE_NAMES[kak_gates.pop()]
 
     return kak_gate
-
-
-def _find_matching_kak_gates(target):
-    """Return list of available 2q gates to use in the KAK decomposition."""
-    kak_gates = []
-    for name in target:
-        if name in KAK_GATE_NAMES:
-            kak_gates.append(KAK_GATE_NAMES[name])
-            continue
-        op = target.operation_from_name(name)
-        if isinstance(op, RXXGate) and (
-            isinstance(op.params[0], Parameter) or op.params[0] == pi / 2
-        ):
-            kak_gates.append((KAK_GATE_NAMES["rxx"], name))
-        elif isinstance(op, RZXGate) and (
-            isinstance(op.params[0], Parameter) or op.params[0] == pi / 4
-        ):
-            kak_gates.append((KAK_GATE_NAMES["rzx"], name))
-    return kak_gates
 
 
 def _choose_euler_basis(basis_gates):
@@ -92,7 +88,7 @@ def _choose_euler_basis(basis_gates):
 
 
 def _find_matching_euler_bases(target):
-    """Find matching availablee 1q basis to use in the Euler decomposition."""
+    """Find matching available 1q basis to use in the Euler decomposition."""
     euler_basis_gates = []
     basis_set = target.keys()
     for basis, gates in one_qubit_decompose.ONE_QUBIT_EULER_BASIS_GATES.items():
@@ -450,15 +446,15 @@ class DefaultUnitarySynthesis(plugin.UnitarySynthesisPlugin):
 
         matching = {}
         reverse = {}
-        kak_gates = _find_matching_kak_gates(target)
+        kak_gates = target.operations_for_qargs(tuple(qubits))
         euler_basis_gates = _find_matching_euler_bases(target)
+        print(kak_gates)
+        print(euler_basis_gates)
         decomposers_2q = []
         # find all decomposers
+        # AJ: if locally equivalent to XX, use XXDecomposer
+        # AJ: else if supercontrolled, use TwoQubitBasisDecomposer
         for kak_gate, euler_basis in product(kak_gates, euler_basis_gates):
-            gate_name = None
-            if isinstance(kak_gate, tuple):
-                gate_name = kak_gate[1]
-                kak_gate = kak_gate[0]
             if isinstance(kak_gate, RZXGate):
                 backup_optimizer = TwoQubitBasisDecomposer(
                     CXGate(), euler_basis=euler_basis, pulse_optimize=pulse_optimize
@@ -466,15 +462,13 @@ class DefaultUnitarySynthesis(plugin.UnitarySynthesisPlugin):
                 decomposer = XXDecomposer(
                     euler_basis=euler_basis, backup_optimizer=backup_optimizer
                 )
-                if gate_name is not None:
-                    decomposer.gate_name = gate_name
+                decomposer.gate_name = kak_gate.name
                 decomposers_2q.append(decomposer)
             elif kak_gate is not None:
                 decomposer = TwoQubitBasisDecomposer(
                     kak_gate, euler_basis=euler_basis, pulse_optimize=pulse_optimize
                 )
-                if gate_name is not None:
-                    decomposer.gate_name = gate_name
+                decomposer.gate_name = kak_gate.name
                 decomposers_2q.append(decomposer)
 
         # Find lowest error matching or reverse decomposer and use that
@@ -512,6 +506,7 @@ class DefaultUnitarySynthesis(plugin.UnitarySynthesisPlugin):
         else:
             decomposer2q = decomposers_2q[0]
         self._decomposer_cache[qubits_tuple] = (decomposer2q, preferred_direction)
+        print(decomposer2q)
         return (decomposer2q, preferred_direction)
 
     def run(self, unitary, **options):
@@ -533,7 +528,7 @@ class DefaultUnitarySynthesis(plugin.UnitarySynthesisPlugin):
         wires = None
         if unitary.shape == (2, 2):
             if target is not None:
-                euler_basis = _choose_euler_basis(target.operation_names_for_qargs(tuple(qubits)))
+                euler_basis = _find_matching_euler_bases(target)
             else:
                 euler_basis = _choose_euler_basis(basis_gates)
             if euler_basis is not None:
