@@ -14,7 +14,7 @@
 
 from collections import namedtuple
 
-from retworkx.visualization import graphviz_draw
+from retworkx.visualization import graphviz_draw  # pylint: disable=no-name-in-module,import-error
 import retworkx as rx
 
 from qiskit.exceptions import InvalidFileError
