@@ -126,3 +126,19 @@ class PermRowColSynthesis(HighLevelSynthesis):
 
     def _pydigraph_to_pygraph(self, pydigraph: rx.PyDiGraph) -> rx.PyGraph:
         return pydigraph.to_undirected()
+
+    def _noncutting_vertices(self, coupling_map: CouplingMap) -> np.ndarray:
+        """Extracts noncutting vertices from a given coupling map. Direction is not taken into account.
+
+        Args:
+            coupling_map (CouplingMap): topology
+
+        Returns:
+            np.ndarray: array of non-cutting node indices
+        """
+        pygraph = self._pydigraph_to_pygraph(coupling_map.graph)
+        cutting_vertices = rx.articulation_points(pygraph)
+        vertices = set(pygraph.node_indices())
+        noncutting_vertices = np.array(list(vertices - cutting_vertices))
+
+        return noncutting_vertices
