@@ -352,7 +352,7 @@ class BaseEstimator(BasePrimitive):
         return self
 
     @deprecate_function(
-        "The BaseEstimator.__exit__ method is deprecated as of Qiskit Terra 0.22.0 "
+        "The BaseEstimator.__call__ method is deprecated as of Qiskit Terra 0.22.0 "
         "and will be removed no sooner than 3 months after the releasedate. "
         "BaseEstimator should be initialized directly.",
     )
