@@ -10,6 +10,8 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
+# pylint: disable=missing-function-docstring
+
 """Translates gates to a target basis using a given equivalence library."""
 
 import time
@@ -204,17 +206,23 @@ class BasisTranslator(TransformationPass):
 
         replace_start_time = time.time()
 
-        def apply_translation(dag):
+        def apply_translation(dag, wire_map):
             dag_updated = False
             for node in dag.op_nodes():
-                node_qargs = tuple(qarg_indices[bit] for bit in node.qargs)
+                node_qargs = tuple(wire_map[bit] for bit in node.qargs)
                 qubit_set = frozenset(node_qargs)
                 if node.name in target_basis:
                     if isinstance(node.op, ControlFlowOp):
                         flow_blocks = []
                         for block in node.op.blocks:
                             dag_block = circuit_to_dag(block)
-                            dag_updated = apply_translation(dag_block)
+                            dag_updated = apply_translation(
+                                dag_block,
+                                {
+                                    inner: wire_map[outer]
+                                    for inner, outer in zip(block.qubits, node.qargs)
+                                },
+                            )
                             if dag_updated:
                                 flow_circ_block = dag_to_circuit(dag_block)
                             else:
@@ -239,7 +247,7 @@ class BasisTranslator(TransformationPass):
                 dag_updated = True
             return dag_updated
 
-        apply_translation(dag)
+        apply_translation(dag, qarg_indices)
         replace_end_time = time.time()
         logger.info(
             "Basis translation instructions replaced in %.3fs.",
@@ -318,7 +326,10 @@ class BasisTranslator(TransformationPass):
                     block_dag = circuit_to_dag(block)
                     source_basis, qargs_local_source_basis = self._extract_basis_target(
                         block_dag,
-                        qarg_indices,
+                        {
+                            inner: qarg_indices[outer]
+                            for inner, outer in zip(block.qubits, node.qargs)
+                        },
                         source_basis=source_basis,
                         qargs_local_source_basis=qargs_local_source_basis,
                     )
@@ -357,7 +368,7 @@ class StopIfBasisRewritable(Exception):
     """Custom exception that signals `retworkx.dijkstra_search` to stop."""
 
 
-class BasisSearchVisitor(retworkx.visit.DijkstraVisitor):
+class BasisSearchVisitor(retworkx.visit.DijkstraVisitor):  # pylint: disable=no-member
     """Handles events emitted during `retworkx.dijkstra_search`."""
 
     def __init__(self, graph, source_basis, target_basis, num_gates_for_rule):
@@ -403,7 +414,7 @@ class BasisSearchVisitor(retworkx.visit.DijkstraVisitor):
         # if there are gates in this `rule` that we have not yet generated, we can't apply
         # this `rule`. if `target` is already in basis, it's not beneficial to use this rule.
         if self._num_gates_remain_for_rule[index] > 0 or target in self.target_basis:
-            raise retworkx.visit.PruneSearch
+            raise retworkx.visit.PruneSearch  # pylint: disable=no-member
 
     def edge_relaxed(self, edge):
         _, target, edata = edge

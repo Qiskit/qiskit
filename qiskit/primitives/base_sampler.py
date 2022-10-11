@@ -88,7 +88,7 @@ from qiskit.providers import Options
 from qiskit.utils.deprecation import deprecate_arguments, deprecate_function
 
 from .sampler_result import SamplerResult
-from .utils import _circuit_key, final_measurement_mapping
+from .utils import _circuit_key
 
 
 class BaseSampler(ABC):
@@ -303,14 +303,14 @@ class BaseSampler(ABC):
 
     def run(
         self,
-        circuits: Sequence[QuantumCircuit],
-        parameter_values: Sequence[Sequence[float]] | None = None,
+        circuits: QuantumCircuit | Sequence[QuantumCircuit],
+        parameter_values: Sequence[float] | Sequence[Sequence[float]] | None = None,
         **run_options,
     ) -> Job:
         """Run the job of the sampling of bitstrings.
 
         Args:
-            circuits: the list of circuit objects.
+            circuits: One of more circuit objects.
             parameter_values: Parameters to be bound to the circuit.
             run_options: Backend runtime options used for circuit execution.
 
@@ -324,6 +324,13 @@ class BaseSampler(ABC):
         # Support ndarray
         if isinstance(parameter_values, np.ndarray):
             parameter_values = parameter_values.tolist()
+
+        if not isinstance(circuits, Sequence):
+            circuits = [circuits]
+        if parameter_values is not None and (
+            len(parameter_values) == 0 or not isinstance(parameter_values[0], (Sequence, Iterable))
+        ):
+            parameter_values = [parameter_values]  # type: ignore[assignment]
 
         # Allow optional
         if parameter_values is None:
@@ -355,14 +362,6 @@ class BaseSampler(ABC):
                     f"The {i}-th circuit does not have any classical bit. "
                     "Sampler requires classical bits, plus measurements "
                     "on the desired qubits."
-                )
-
-            mapping = final_measurement_mapping(circuit)
-            if set(range(circuit.num_clbits)) != set(mapping.values()):
-                raise ValueError(
-                    f"Some classical bits of the {i}-th circuit are not used for measurements."
-                    f" the number of classical bits ({circuit.num_clbits}),"
-                    f" the used classical bits ({set(mapping.values())})."
                 )
 
         run_opts = copy(self.options)

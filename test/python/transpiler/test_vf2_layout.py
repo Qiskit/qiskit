@@ -15,10 +15,12 @@
 import unittest
 from math import pi
 
+import ddt
 import numpy
 import retworkx
 
 from qiskit import QuantumRegister, QuantumCircuit, ClassicalRegister
+from qiskit.circuit import ControlFlowOp
 from qiskit.transpiler import CouplingMap, Target, TranspilerError
 from qiskit.transpiler.passes.layout.vf2_layout import VF2Layout, VF2LayoutStopReason
 from qiskit.converters import circuit_to_dag
@@ -47,19 +49,33 @@ class LayoutTestCase(QiskitTestCase):
 
         layout = property_set["layout"]
         edges = coupling_map.graph.edge_list()
-        for gate in dag.two_qubit_ops():
-            if dag.has_calibration_for(gate):
-                continue
-            physical_q0 = layout[gate.qargs[0]]
-            physical_q1 = layout[gate.qargs[1]]
 
-            if strict_direction:
-                result = (physical_q0, physical_q1) in edges
-            else:
-                result = (physical_q0, physical_q1) in edges or (physical_q1, physical_q0) in edges
-            self.assertTrue(result)
+        def run(dag, wire_map):
+            for gate in dag.two_qubit_ops():
+                if dag.has_calibration_for(gate) or isinstance(gate.op, ControlFlowOp):
+                    continue
+                physical_q0 = wire_map[gate.qargs[0]]
+                physical_q1 = wire_map[gate.qargs[1]]
+
+                if strict_direction:
+                    result = (physical_q0, physical_q1) in edges
+                else:
+                    result = (physical_q0, physical_q1) in edges or (
+                        physical_q1,
+                        physical_q0,
+                    ) in edges
+                self.assertTrue(result)
+            for node in dag.op_nodes(ControlFlowOp):
+                for block in node.op.blocks:
+                    inner_wire_map = {
+                        inner: wire_map[outer] for outer, inner in zip(node.qargs, block.qubits)
+                    }
+                    run(circuit_to_dag(block), inner_wire_map)
+
+        run(dag, {bit: layout[bit] for bit in dag.qubits})
 
 
+@ddt.ddt
 class TestVF2LayoutSimple(LayoutTestCase):
     """Tests the VF2Layout pass"""
 
@@ -95,6 +111,33 @@ class TestVF2LayoutSimple(LayoutTestCase):
         pass_.run(dag)
         self.assertLayout(dag, cmap, pass_.property_set, strict_direction=True)
 
+    @ddt.data(True, False)
+    def test_2q_circuit_simple_control_flow(self, strict_direction):
+        """Test that simple control-flow can be routed on a 2q coupling map."""
+        cmap = CouplingMap([(0, 1)])
+        circuit = QuantumCircuit(2)
+        with circuit.for_loop((1,)):
+            circuit.cx(1, 0)
+        dag = circuit_to_dag(circuit)
+        pass_ = VF2Layout(cmap, strict_direction=strict_direction, seed=self.seed, max_trials=1)
+        pass_.run(dag)
+        self.assertLayout(dag, cmap, pass_.property_set, strict_direction=strict_direction)
+
+    @ddt.data(True, False)
+    def test_2q_circuit_nested_control_flow(self, strict_direction):
+        """Test that simple control-flow can be routed on a 2q coupling map."""
+        cmap = CouplingMap([(0, 1)])
+        circuit = QuantumCircuit(2, 1)
+        with circuit.while_loop((circuit.clbits[0], True)):
+            with circuit.if_test((circuit.clbits[0], True)) as else_:
+                circuit.cx(1, 0)
+            with else_:
+                circuit.cx(1, 0)
+        dag = circuit_to_dag(circuit)
+        pass_ = VF2Layout(cmap, strict_direction=strict_direction, seed=self.seed, max_trials=1)
+        pass_.run(dag)
+        self.assertLayout(dag, cmap, pass_.property_set, strict_direction=strict_direction)
+
     def test_3q_circuit_3q_coupling_non_induced(self):
         """A simple example, check for non-induced subgraph
             1         qr0 -> qr1 -> qr2
@@ -107,6 +150,28 @@ class TestVF2LayoutSimple(LayoutTestCase):
         circuit = QuantumCircuit(qr)
         circuit.cx(qr[0], qr[1])  # qr0-> qr1
         circuit.cx(qr[1], qr[2])  # qr1-> qr2
+
+        dag = circuit_to_dag(circuit)
+        pass_ = VF2Layout(cmap, seed=-1, max_trials=1)
+        pass_.run(dag)
+        self.assertLayout(dag, cmap, pass_.property_set)
+
+    def test_3q_circuit_3q_coupling_non_induced_control_flow(self):
+        r"""A simple example, check for non-induced subgraph
+            1         qr0 -> qr1 -> qr2
+           / \
+          0 - 2
+        """
+        cmap = CouplingMap([[0, 1], [1, 2], [2, 0]])
+
+        circuit = QuantumCircuit(3, 1)
+        with circuit.for_loop((1,)):
+            circuit.cx(0, 1)  # qr0-> qr1
+        with circuit.if_test((circuit.clbits[0], True)) as else_:
+            pass
+        with else_:
+            with circuit.while_loop((circuit.clbits[0], True)):
+                circuit.cx(1, 2)  # qr1-> qr2
 
         dag = circuit_to_dag(circuit)
         pass_ = VF2Layout(cmap, seed=-1, max_trials=1)

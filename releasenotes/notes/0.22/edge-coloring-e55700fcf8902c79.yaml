@@ -1,0 +1,6 @@
+---
+features:
+  - |
+    The :class:`.Commuting2qGateRouter` can now take as argument an edge
+    coloring of the coupling map to determine the order in which the
+    commuting gates are applied.

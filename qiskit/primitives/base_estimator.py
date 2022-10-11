@@ -96,7 +96,7 @@ from qiskit.quantum_info.operators.base_operator import BaseOperator
 from qiskit.utils.deprecation import deprecate_arguments, deprecate_function
 
 from .estimator_result import EstimatorResult
-from .utils import _circuit_key
+from .utils import _circuit_key, _observable_key, init_observable
 
 
 class BaseEstimator(ABC):
@@ -149,7 +149,7 @@ class BaseEstimator(ABC):
         # To guarantee that they exist as instance variable.
         # With only dynamic set, the python will not know if the attribute exists or not.
         self._circuit_ids: dict[tuple, int] = self._circuit_ids
-        self._observable_ids: dict[int, int] = self._observable_ids
+        self._observable_ids: dict[tuple, int] = self._observable_ids
 
         if parameters is None:
             self._parameters = [circ.parameters for circ in self._circuits]
@@ -190,9 +190,12 @@ class BaseEstimator(ABC):
             self._observable_ids = {}
         elif isinstance(observables, Iterable):
             observables = copy(observables)
-            self._observable_ids = {id(observable): i for i, observable in enumerate(observables)}
+            self._observable_ids = {
+                _observable_key(init_observable(observable)): i
+                for i, observable in enumerate(observables)
+            }
         else:
-            self._observable_ids = {id(observables): 0}
+            self._observable_ids = {_observable_key(init_observable(observables)): 0}
         return self
 
     @deprecate_function(
@@ -251,7 +254,7 @@ class BaseEstimator(ABC):
         """
         return self._run_options
 
-    def set_options(self, **fields) -> BaseEstimator:
+    def set_options(self, **fields):
         """Set options values for the estimator.
 
         Args:
@@ -260,7 +263,7 @@ class BaseEstimator(ABC):
         self._run_options.update_options(**fields)
 
     @deprecate_function(
-        "The BaseSampler.__call__ method is deprecated as of Qiskit Terra 0.22.0 "
+        "The BaseEstimator.__call__ method is deprecated as of Qiskit Terra 0.22.0 "
         "and will be removed no sooner than 3 months after the releasedate. "
         "Use run method instead.",
     )
@@ -324,7 +327,7 @@ class BaseEstimator(ABC):
                 "initialize the session."
             )
         observables = [
-            self._observable_ids.get(id(observable))
+            self._observable_ids.get(_observable_key(observable))
             if not isinstance(observable, (int, np.integer))
             else observable
             for observable in observables
@@ -399,9 +402,9 @@ class BaseEstimator(ABC):
 
     def run(
         self,
-        circuits: Sequence[QuantumCircuit],
-        observables: Sequence[BaseOperator | PauliSumOp],
-        parameter_values: Sequence[Sequence[float]] | None = None,
+        circuits: QuantumCircuit | Sequence[QuantumCircuit],
+        observables: BaseOperator | PauliSumOp | Sequence[BaseOperator | PauliSumOp],
+        parameter_values: Sequence[float] | Sequence[Sequence[float]] | None = None,
         **run_options,
     ) -> Job:
         """Run the job of the estimation of expectation value(s).
@@ -426,8 +429,8 @@ class BaseEstimator(ABC):
             values = parameter_values[i].
 
         Args:
-            circuits: the list of circuit objects.
-            observables: the list of observable objects.
+            circuits: one or more circuit objects.
+            observables: one or more observable objects.
             parameter_values: concrete parameters to be bound.
             run_options: runtime options used for circuit execution.
 
@@ -440,6 +443,21 @@ class BaseEstimator(ABC):
         # Support ndarray
         if isinstance(parameter_values, np.ndarray):
             parameter_values = parameter_values.tolist()
+
+        if not isinstance(circuits, Sequence):
+            circuits = [circuits]
+        if not isinstance(observables, Sequence):
+            observables = [observables]
+        if (
+            len(circuits) > 0
+            and len(observables) > 0
+            and parameter_values is not None
+            and (
+                len(parameter_values) == 0
+                or not isinstance(parameter_values[0], (Sequence, Iterable))
+            )
+        ):
+            parameter_values = [parameter_values]  # type: ignore[assignment]
 
         # Allow optional
         if parameter_values is None:
