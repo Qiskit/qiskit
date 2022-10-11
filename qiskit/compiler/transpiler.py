@@ -38,6 +38,7 @@ from qiskit.transpiler.basepasses import BasePass
 from qiskit.transpiler.exceptions import TranspilerError
 from qiskit.transpiler.instruction_durations import InstructionDurations, InstructionDurationsType
 from qiskit.transpiler.passes import ApplyLayout
+from qiskit.transpiler.passes.synthesis.high_level_synthesis import HLSConfig
 from qiskit.transpiler.passmanager_config import PassManagerConfig
 from qiskit.transpiler.preset_passmanagers import (
     level_0_pass_manager,
@@ -71,7 +72,7 @@ def transpile(
     scheduling_method: Optional[str] = None,
     instruction_durations: Optional[InstructionDurationsType] = None,
     dt: Optional[float] = None,
-    approximation_degree: Optional[float] = None,
+    approximation_degree: Optional[float] = 1.0,
     timing_constraints: Optional[Dict[str, int]] = None,
     seed_transpiler: Optional[int] = None,
     optimization_level: Optional[int] = None,
@@ -80,6 +81,10 @@ def transpile(
     unitary_synthesis_method: str = "default",
     unitary_synthesis_plugin_config: dict = None,
     target: Target = None,
+    hls_config: Optional[HLSConfig] = None,
+    init_method: str = None,
+    optimization_method: str = None,
+    ignore_backend_supplied_default_methods: bool = False,
 ) -> Union[QuantumCircuit, List[QuantumCircuit]]:
     """Transpile one or more circuits, according to some desired transpilation targets.
 
@@ -150,17 +155,29 @@ def transpile(
 
                     [qr[0], None, None, qr[1], None, qr[2]]
 
-        layout_method: Name of layout selection pass ('trivial', 'dense', 'noise_adaptive', 'sabre')
+        layout_method: Name of layout selection pass ('trivial', 'dense', 'noise_adaptive', 'sabre').
+            This can also be the external plugin name to use for the ``layout`` stage.
+            You can see a list of installed plugins by using :func:`~.list_stage_plugins` with
+            ``"layout"`` for the ``stage_name`` argument.
         routing_method: Name of routing pass
             ('basic', 'lookahead', 'stochastic', 'sabre', 'toqm', 'none'). Note
             that to use method 'toqm', package 'qiskit-toqm' must be installed.
+            This can also be the external plugin name to use for the ``routing`` stage.
+            You can see a list of installed plugins by using :func:`~.list_stage_plugins` with
+            ``"routing"`` for the ``stage_name`` argument.
         translation_method: Name of translation pass ('unroller', 'translator', 'synthesis')
+            This can also be the external plugin name to use for the ``translation`` stage.
+            You can see a list of installed plugins by using :func:`~.list_stage_plugins` with
+            ``"translation"`` for the ``stage_name`` argument.
         scheduling_method: Name of scheduling pass.
             * ``'as_soon_as_possible'``: Schedule instructions greedily, as early as possible
             on a qubit resource. (alias: ``'asap'``)
             * ``'as_late_as_possible'``: Schedule instructions late, i.e. keeping qubits
             in the ground state when possible. (alias: ``'alap'``)
-            If ``None``, no scheduling will be done.
+            If ``None``, no scheduling will be done. This can also be the external plugin name
+            to use for the ``scheduling`` stage. You can see a list of installed plugins by
+            using :func:`~.list_stage_plugins` with ``"scheduling"`` for the ``stage_name``
+            argument.
         instruction_durations: Durations of instructions.
             Applicable only if scheduling_method is specified.
             The gate lengths defined in ``backend.properties`` are used as default.
@@ -246,6 +263,26 @@ def transpile(
             the ``backend`` argument, but if you have manually constructed a
             :class:`~qiskit.transpiler.Target` object you can specify it manually here.
             This will override the target from ``backend``.
+        hls_config: An optional configuration class
+            :class:`~qiskit.transpiler.passes.synthesis.HLSConfig` that will be passed directly
+            to :class:`~qiskit.transpiler.passes.synthesis.HighLevelSynthesis` transformation pass.
+            This configuration class allows to specify for various high-level objects the lists of
+            synthesis algorithms and their parameters.
+        init_method: The plugin name to use for the ``init`` stage. By default an external
+            plugin is not used. You can see a list of installed plugins by
+            using :func:`~.list_stage_plugins` with ``"init"`` for the stage
+            name argument.
+        optimization_method: The plugin name to use for the
+            ``optimization`` stage. By default an external
+            plugin is not used. You can see a list of installed plugins by
+            using :func:`~.list_stage_plugins` with ``"optimization"`` for the
+            ``stage_name`` argument.
+        ignore_backend_supplied_default_methods: If set to ``True`` any default methods specified by
+            a backend will be ignored. Some backends specify alternative default methods
+            to support custom compilation target-specific passes/plugins which support
+            backend-specific compilation techniques. If you'd prefer that these defaults were
+            not used this option is used to disable those backend-specific defaults.
+
     Returns:
         The transpiled circuit(s).
 
@@ -310,6 +347,10 @@ def transpile(
         unitary_synthesis_method,
         unitary_synthesis_plugin_config,
         target,
+        hls_config,
+        init_method,
+        optimization_method,
+        ignore_backend_supplied_default_methods,
     )
     # Get transpile_args to configure the circuit transpilation job(s)
     if coupling_map in unique_transpile_args:
@@ -503,7 +544,7 @@ def _remap_circuit_faulty_backend(circuit, num_qubits, backend_prop, faulty_qubi
 
     for real_qubit in range(num_qubits):
         if faulty_qubits_map[real_qubit] is not None:
-            new_layout[real_qubit] = circuit._layout[faulty_qubits_map[real_qubit]]
+            new_layout[real_qubit] = circuit._layout.initial_layout[faulty_qubits_map[real_qubit]]
         else:
             if real_qubit in faulty_qubits:
                 new_layout[real_qubit] = faulty_qreg[faulty_qubit]
@@ -560,6 +601,10 @@ def _parse_transpile_args(
     unitary_synthesis_method,
     unitary_synthesis_plugin_config,
     target,
+    hls_config,
+    init_method,
+    optimization_method,
+    ignore_backend_supplied_default_methods,
 ) -> Tuple[List[Dict], Dict]:
     """Resolve the various types of args allowed to the transpile() function through
     duck typing, overriding args, etc. Refer to the transpile() docstring for details on
@@ -627,9 +672,17 @@ def _parse_transpile_args(
     shared_dict = {
         "optimization_level": optimization_level,
         "basis_gates": basis_gates,
+        "init_method": init_method,
+        "optimization_method": optimization_method,
     }
 
     list_transpile_args = []
+    if not ignore_backend_supplied_default_methods:
+        if scheduling_method is None and hasattr(backend, "get_scheduling_stage_plugin"):
+            scheduling_method = backend.get_scheduling_stage_plugin()
+        if translation_method is None and hasattr(backend, "get_translation_stage_plugin"):
+            translation_method = backend.get_translation_stage_plugin()
+
     for key, value in {
         "inst_map": inst_map,
         "coupling_map": coupling_map,
@@ -646,6 +699,7 @@ def _parse_transpile_args(
         "unitary_synthesis_method": unitary_synthesis_method,
         "unitary_synthesis_plugin_config": unitary_synthesis_plugin_config,
         "target": target,
+        "hls_config": hls_config,
     }.items():
         if isinstance(value, list):
             unique_dict[key] = value

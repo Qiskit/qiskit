@@ -1,0 +1,21 @@
+---
+upgrade:
+  - |
+    The fake backend objects :class:`~.FakeJohannesburg`,
+    :class:`~.FakeJohannesburgV2`, :class:`~.FakeAlmaden`,
+    :class:`~.FakeAlmadenV2`, :class:`~.FakeSingapore`, and
+    :class:`~.FakeSingaporeV2` no longer contain the pulse defaults payloads.
+    This means for the :class:`~.BackendV1` based classes the
+    :meth:`.BackendV1.defaults` method and pulse simulation via
+    :meth:`.BackendV1.run` is no longer available. For :class:`~.BackendV2`
+    based classes the :attr:`~InstructionProperties.calibration` property for
+    instructions in the :class:`~.Target` is no longer populated. This
+    change was done because these systems had exceedingly large pulse defaults
+    payloads (in total ~50MB) due to using sampled waveforms instead of
+    parameteric pulse definitions. These three payload files took > 50% of the
+    disk space required to install qiskit-terra. When weighed against the
+    potential value of being able to compile with pulse awareness or pulse
+    simulate these retired devices the file size is not worth the cost. If
+    you require to leverage these properties you can leverage an older version
+    of Qiskit and leverage :mod:`~qiskit.qpy` to transfer circuits from
+    older versions of qiskit into the current release.

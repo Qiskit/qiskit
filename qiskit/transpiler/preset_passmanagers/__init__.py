@@ -55,6 +55,9 @@ def generate_preset_pass_manager(
     seed_transpiler=None,
     unitary_synthesis_method="default",
     unitary_synthesis_plugin_config=None,
+    hls_config=None,
+    init_method=None,
+    optimization_method=None,
 ):
     """Generate a preset :class:`~.PassManager`
 
@@ -102,19 +105,31 @@ def generate_preset_pass_manager(
             physical qubits.
         layout_method (str): The :class:`~.Pass` to use for choosing initial qubit
             placement. Valid choices are ``'trivial'``, ``'dense'``, ``'noise_adaptive'``,
-            and, ``'sabre'`` repsenting :class:`~.TrivialLayout`, :class:`~DenseLayout`,
-            :class:`~.NoiseAdaptiveLayout`, :class:`~.SabreLayout` respectively.
+            and, ``'sabre'`` representing :class:`~.TrivialLayout`, :class:`~DenseLayout`,
+            :class:`~.NoiseAdaptiveLayout`, :class:`~.SabreLayout` respectively. This can also
+            be the external plugin name to use for the ``layout`` stage of the output
+            :class:`~.StagedPassManager`. You can see a list of installed plugins by using
+            :func:`~.list_stage_plugins` with ``"layout"`` for the ``stage_name`` argument.
         routing_method (str): The pass to use for routing qubits on the
             architecture. Valid choices are ``'basic'``, ``'lookahead'``, ``'stochastic'``,
             ``'sabre'``, and ``'none'`` representing :class:`~.BasicSwap`,
             :class:`~.LookaheadSwap`, :class:`~.StochasticSwap`, :class:`~.SabreSwap`, and
-            erroring if routing is required respectively.
+            erroring if routing is required respectively. This can also be the external plugin
+            name to use for the ``routing`` stage of the output :class:`~.StagedPassManager`.
+            You can see a list of installed plugins by using :func:`~.list_stage_plugins` with
+            ``"routing"`` for the ``stage_name`` argument.
         translation_method (str): The method to use for translating gates to
             basis gates. Valid choices ``'unroller'``, ``'translator'``, ``'synthesis'``
             representing :class:`~.Unroller`, :class:`~.BasisTranslator`, and
-            :class:`~.UnitarySynthesis` respectively.
+            :class:`~.UnitarySynthesis` respectively. This can also be the external plugin
+            name to use for the ``translation`` stage of the output :class:`~.StagedPassManager`.
+            You can see a list of installed plugins by using :func:`~.list_stage_plugins` with
+            ``"translation"`` for the ``stage_name`` argument.
         scheduling_method (str): The pass to use for scheduling instructions. Valid choices
-            are ``'alap'`` and ``'asap'``.
+            are ``'alap'`` and ``'asap'``. This can also be the external plugin name to use
+            for the ``scheduling`` stage of the output :class:`~.StagedPassManager`. You can
+            see a list of installed plugins by using :func:`~.list_stage_plugins` with
+            ``"scheduling"`` for the ``stage_name`` argument.
         backend_properties (BackendProperties): Properties returned by a
             backend, including information on gate errors, readout errors,
             qubit coherence times, etc.
@@ -134,6 +149,21 @@ def generate_preset_pass_manager(
             the ``unitary_synthesis`` argument. As this is custom for each
             unitary synthesis plugin refer to the plugin documentation for how
             to use this option.
+        hls_config (HLSConfig): An optional configuration class :class:`~.HLSConfig`
+            that will be passed directly to :class:`~.HighLevelSynthesis` transformation pass.
+            This configuration class allows to specify for various high-level objects
+            the lists of synthesis algorithms and their parameters.
+        init_method (str): The plugin name to use for the ``init`` stage of
+            the output :class:`~.StagedPassManager`. By default an external
+            plugin is not used. You can see a list of installed plugins by
+            using :func:`~.list_stage_plugins` with ``"init"`` for the stage
+            name argument.
+        optimization_method (str): The plugin name to use for the
+            ``optimization`` stage of the output
+            :class:`~.StagedPassManager`. By default an external
+            plugin is not used. You can see a list of installed plugins by
+            using :func:`~.list_stage_plugins` with ``"optimization"`` for the
+            ``stage_name`` argument.
 
     Returns:
         StagedPassManager: The preset pass manager for the given options
@@ -172,6 +202,9 @@ def generate_preset_pass_manager(
         unitary_synthesis_method=unitary_synthesis_method,
         unitary_synthesis_plugin_config=unitary_synthesis_plugin_config,
         initial_layout=initial_layout,
+        hls_config=hls_config,
+        init_method=init_method,
+        optimization_method=optimization_method,
     )
 
     if backend is not None:

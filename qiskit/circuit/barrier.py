@@ -25,9 +25,18 @@ class Barrier(Instruction):
 
     _directive = True
 
-    def __init__(self, num_qubits):
-        """Create new barrier instruction."""
-        super().__init__("barrier", num_qubits, 0, [])
+    def __init__(self, num_qubits, label=None):
+        """Create new barrier instruction.
+
+        Args:
+            num_qubits (int): the number of qubits for the barrier type [Default: 0].
+            label (str): the barrier label
+
+        Raises:
+            TypeError: if barrier label is invalid.
+        """
+        self._label = label
+        super().__init__("barrier", num_qubits, 0, [], label=label)
 
     def inverse(self):
         """Special case. Return self."""

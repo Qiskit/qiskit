@@ -17,46 +17,61 @@ from typing import Union, Optional, Dict
 from qiskit import QuantumCircuit
 from qiskit.circuit import Parameter
 from qiskit.opflow import OperatorBase, StateFn
+from qiskit.utils.deprecation import deprecate_function
 from ..list_or_dict import ListOrDict
 
 
 class EvolutionProblem:
-    """Evolution problem class.
+    """Pending deprecation: Evolution problem class.
+
+    The EvolutionProblem class has been superseded by the
+    :class:`qiskit.algorithms.time_evolvers.TimeEvolutionProblem` class.
+    This class will be deprecated in a future release and subsequently
+    removed after that.
 
     This class is the input to time evolution algorithms and must contain information on the total
     evolution time, a quantum state to be evolved and under which Hamiltonian the state is evolved.
     """
 
+    @deprecate_function(
+        "The EvolutionProblem class has been superseded by the "
+        "qiskit.algorithms.time_evolvers.TimeEvolutionProblem class. "
+        "This class will be deprecated in a future release and subsequently "
+        "removed after that.",
+        category=PendingDeprecationWarning,
+    )
     def __init__(
         self,
         hamiltonian: OperatorBase,
         time: float,
-        initial_state: Union[StateFn, QuantumCircuit],
+        initial_state: Optional[Union[StateFn, QuantumCircuit]] = None,
         aux_operators: Optional[ListOrDict[OperatorBase]] = None,
         truncation_threshold: float = 1e-12,
         t_param: Optional[Parameter] = None,
-        hamiltonian_value_dict: Optional[Dict[Parameter, complex]] = None,
+        param_value_dict: Optional[Dict[Parameter, complex]] = None,
     ):
         """
         Args:
             hamiltonian: The Hamiltonian under which to evolve the system.
             time: Total time of evolution.
-            initial_state: Quantum state to be evolved.
+            initial_state: The quantum state to be evolved for methods like Trotterization.
+                For variational time evolutions, where the evolution happens in an ansatz,
+                this argument is not required.
             aux_operators: Optional list of auxiliary operators to be evaluated with the
                 evolved ``initial_state`` and their expectation values returned.
             truncation_threshold: Defines a threshold under which values can be assumed to be 0.
                 Used when ``aux_operators`` is provided.
             t_param: Time parameter in case of a time-dependent Hamiltonian. This
                 free parameter must be within the ``hamiltonian``.
-            hamiltonian_value_dict: If the Hamiltonian contains free parameters, this
-                dictionary maps all these parameters to values.
+            param_value_dict: Maps free parameters in the problem to values. Depending on the
+                algorithm, it might refer to e.g. a Hamiltonian or an initial state.
 
         Raises:
             ValueError: If non-positive time of evolution is provided.
         """
 
         self.t_param = t_param
-        self.hamiltonian_value_dict = hamiltonian_value_dict
+        self.param_value_dict = param_value_dict
         self.hamiltonian = hamiltonian
         self.time = time
         self.initial_state = initial_state
@@ -93,9 +108,9 @@ class EvolutionProblem:
             if self.t_param is not None:
                 t_param_set.add(self.t_param)
             hamiltonian_dict_param_set = set()
-            if self.hamiltonian_value_dict is not None:
+            if self.param_value_dict is not None:
                 hamiltonian_dict_param_set = hamiltonian_dict_param_set.union(
-                    set(self.hamiltonian_value_dict.keys())
+                    set(self.param_value_dict.keys())
                 )
             params_set = t_param_set.union(hamiltonian_dict_param_set)
             hamiltonian_param_set = set(self.hamiltonian.parameters)

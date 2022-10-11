@@ -1,0 +1,6 @@
+---
+upgrade:
+  - |
+    Added a validation check to :meth:`~qiskit.primitives.BaseSampler.run`.
+    It raises an error if there is no classical bit.
+

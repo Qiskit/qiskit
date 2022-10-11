@@ -16,6 +16,7 @@
 from collections import deque
 from qiskit.circuit.library.generalized_gates import LinearFunction
 from qiskit.transpiler.basepasses import TransformationPass
+from qiskit.transpiler.passes.utils import control_flow
 from qiskit.circuit import QuantumCircuit
 from qiskit.dagcircuit import DAGOpNode
 
@@ -30,7 +31,7 @@ def collect_linear_blocks(dag):
     pending_non_linear_ops = deque()
 
     def is_linear(op):
-        return op.name in ("cx", "swap") and op.condition is None
+        return op.name in ("cx", "swap") and getattr(op, "condition", None) is None
 
     def process_node(node):
         for suc in dag.successors(node):
@@ -131,6 +132,7 @@ class CollectLinearFunctions(TransformationPass):
     """Collect blocks of linear gates (:class:`.CXGate` and :class:`.SwapGate` gates)
     and replaces them by linear functions (:class:`.LinearFunction`)."""
 
+    @control_flow.trivial_recurse
     def run(self, dag):
         """Run the CollectLinearFunctions pass on `dag`.
 
