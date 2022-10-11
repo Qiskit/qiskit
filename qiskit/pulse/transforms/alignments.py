@@ -13,6 +13,7 @@
 
 import abc
 from typing import Callable, Dict, Any, Union, Tuple
+import warnings
 
 import numpy as np
 
@@ -20,7 +21,6 @@ from qiskit.circuit.parameterexpression import ParameterExpression, ParameterVal
 from qiskit.pulse.exceptions import PulseError
 from qiskit.pulse.schedule import Schedule, ScheduleComponent
 from qiskit.pulse.utils import instruction_duration_validation
-from qiskit.utils import deprecate_function
 
 
 class AlignmentKind(abc.ABC):
@@ -45,9 +45,14 @@ class AlignmentKind(abc.ABC):
         """
         pass
 
-    @deprecate_function
     def to_dict(self) -> Dict[str, Any]:
         """Returns dictionary to represent this alignment."""
+        warnings.warn(
+            "The AlignmentKind.to_dict method is deprecated as of Qiskit Terra "
+            "0.21 and will be removed no sooner than 3 months after the release date.",
+            category=DeprecationWarning,
+            stacklevel=2,
+        )
         return {"alignment": self.__class__.__name__}
 
     @property
@@ -330,9 +335,14 @@ class AlignEquispaced(AlignmentKind):
 
         return aligned
 
-    @deprecate_function
     def to_dict(self) -> Dict[str, Any]:
         """Returns dictionary to represent this alignment."""
+        warnings.warn(
+            "The AlignEquispaced.to_dict method is deprecated as of Qiskit Terra "
+            "0.21 and will be removed no sooner than 3 months after the release date.",
+            category=DeprecationWarning,
+            stacklevel=2,
+        )
         return {"alignment": self.__class__.__name__, "duration": self.duration}
 
 
@@ -414,12 +424,17 @@ class AlignFunc(AlignmentKind):
 
         return aligned
 
-    @deprecate_function
     def to_dict(self) -> Dict[str, Any]:
         """Returns dictionary to represent this alignment.
 
         .. note:: ``func`` is not presented in this dictionary. Just name.
         """
+        warnings.warn(
+            "The AlignFunc.to_dict method is deprecated as of Qiskit Terra "
+            "0.21 and will be removed no sooner than 3 months after the release date.",
+            category=DeprecationWarning,
+            stacklevel=2,
+        )
         return {
             "alignment": self.__class__.__name__,
             "duration": self.duration,
