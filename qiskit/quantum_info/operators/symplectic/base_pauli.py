@@ -602,7 +602,7 @@ def _evolve_h(base_pauli, qubit):
     z = base_pauli._z[:, qubit].copy()
     base_pauli._x[:, qubit] = z
     base_pauli._z[:, qubit] = x
-    base_pauli._phase += 2 * np.logical_and(x, z).astype(base_pauli._phase.dtype).T
+    base_pauli._phase += 2 * np.logical_and(x, z).T.astype(base_pauli._phase.dtype)
     return base_pauli
 
 
@@ -610,7 +610,7 @@ def _evolve_s(base_pauli, qubit):
     """Update P -> S.P.Sdg"""
     x = base_pauli._x[:, qubit]
     base_pauli._z[:, qubit] ^= x
-    base_pauli._phase += x.T
+    base_pauli._phase += x.T.astype(base_pauli._phase.dtype)
     return base_pauli
 
 
@@ -618,7 +618,7 @@ def _evolve_sdg(base_pauli, qubit):
     """Update P -> Sdg.P.S"""
     x = base_pauli._x[:, qubit]
     base_pauli._z[:, qubit] ^= x
-    base_pauli._phase -= x.T
+    base_pauli._phase -= x.T.astype(base_pauli._phase.dtype)
     return base_pauli
 
 
@@ -630,19 +630,21 @@ def _evolve_i(base_pauli, qubit):
 
 def _evolve_x(base_pauli, qubit):
     """Update P -> X.P.X"""
-    base_pauli._phase += 2 * base_pauli._z[:, qubit].T
+    base_pauli._phase += 2 * base_pauli._z[:, qubit].T.astype(base_pauli._phase.dtype)
     return base_pauli
 
 
 def _evolve_y(base_pauli, qubit):
     """Update P -> Y.P.Y"""
-    base_pauli._phase += 2 * base_pauli._x[:, qubit].T + 2 * base_pauli._z[:, qubit].T
+    xp = base_pauli._x[:, qubit].T.astype(base_pauli._phase.dtype)
+    zp = base_pauli._z[:, qubit].T.astype(base_pauli._phase.dtype)
+    base_pauli._phase += 2 * (xp + zp)
     return base_pauli
 
 
 def _evolve_z(base_pauli, qubit):
     """Update P -> Z.P.Z"""
-    base_pauli._phase += 2 * base_pauli._x[:, qubit].T
+    base_pauli._phase += 2 * base_pauli._x[:, qubit].T.astype(base_pauli._phase.dtype)
     return base_pauli
 
 
@@ -659,7 +661,7 @@ def _evolve_cz(base_pauli, q1, q2):
     x2 = base_pauli._x[:, q2].copy()
     base_pauli._z[:, q1] ^= x2
     base_pauli._z[:, q2] ^= x1
-    base_pauli._phase += 2 * np.logical_and(x1, x2).astype(base_pauli._phase.dtype).T
+    base_pauli._phase += 2 * np.logical_and(x1, x2).T.astype(base_pauli._phase.dtype)
     return base_pauli
 
 
@@ -671,7 +673,7 @@ def _evolve_cy(base_pauli, qctrl, qtrgt):
     base_pauli._x[:, qtrgt] ^= x1
     base_pauli._z[:, qtrgt] ^= x1
     base_pauli._z[:, qctrl] ^= np.logical_xor(x2, z2)
-    base_pauli._phase += x1 + 2 * np.logical_and(x1, x2).astype(base_pauli._phase.dtype).T
+    base_pauli._phase += x1 + 2 * np.logical_and(x1, x2).T.astype(base_pauli._phase.dtype)
     return base_pauli
 
 

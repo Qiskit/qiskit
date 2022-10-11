@@ -2049,8 +2049,17 @@ class TestPauliListMethods(QiskitTestCase):
             CZGate(),
             SwapGate(),
         )
-        dtypes = [int, np.int8, np.int16, np.int32, np.int64]
-        evolved_dtypes = []
+        dtypes = [
+            int,
+            np.int8,
+            np.uint8,
+            np.int16,
+            np.uint16,
+            np.int32,
+            np.uint32,
+            np.int64,
+            np.uint64,
+        ]
         for gate, dtype in itertools.product(gates, dtypes):
             z = np.ones(gate.num_qubits, dtype=bool)
             x = np.ones(gate.num_qubits, dtype=bool)
