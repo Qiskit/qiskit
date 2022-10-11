@@ -22,7 +22,7 @@ class TestPermRowCol(QiskitTestCase):
 
         self.assertIsInstance(instance, QuantumCircuit)
 
-    def test_choose_row_returns_int(self):
+    def test_choose_row_returns_np_int64(self):
         """Test the output type of choose_row"""
         coupling = CouplingMap()
         permrowcol = PermRowCol(coupling)
@@ -58,7 +58,7 @@ class TestPermRowCol(QiskitTestCase):
 
         self.assertEqual(index, 6)
 
-    def test_choose_column_returns_int(self):
+    def test_choose_column_returns_np_int64(self):
         """Test the output type of choose_column"""
         coupling = CouplingMap()
         permrowcol = PermRowCol(coupling)
@@ -106,7 +106,7 @@ class TestPermRowCol(QiskitTestCase):
 
         self.assertEqual(index, 2)
 
-    def test_eliminate_column_returns_int(self):
+    def test_eliminate_column_returns_np_ndarray(self):
         """Test the output type of eliminate_column"""
         coupling = CouplingMap()
         permrowcol = PermRowCol(coupling)
@@ -117,7 +117,7 @@ class TestPermRowCol(QiskitTestCase):
 
         self.assertIsInstance(instance, np.ndarray)
 
-    def test_eliminate_row_returns_int(self):
+    def test_eliminate_row_returns_np_ndarray(self):
         """Test the output type of eliminate_row"""
         coupling = CouplingMap()
         permrowcol = PermRowCol(coupling)

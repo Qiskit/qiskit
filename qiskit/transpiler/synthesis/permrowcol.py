@@ -10,7 +10,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""Perm_row_col function implementation"""
+"""Permrowcol-algorithm functionality implementation"""
 
 import numpy as np
 
@@ -38,7 +38,7 @@ class PermRowCol:
         circuit = QuantumCircuit(QuantumRegister(0))
         return circuit
 
-    def choose_row(self, vertices: np.ndarray, parity_mat: np.ndarray) -> int:
+    def choose_row(self, vertices: np.ndarray, parity_mat: np.ndarray) -> np.int64:
         """Choose row to eliminate and return the index.
 
         Args:
@@ -50,7 +50,7 @@ class PermRowCol:
         """
         return vertices[np.argmin([sum(parity_mat[i]) for i in vertices])]
 
-    def choose_column(self, parity_mat: np.ndarray, cols: np.ndarray, chosen_row: int) -> int:
+    def choose_column(self, parity_mat: np.ndarray, cols: np.ndarray, chosen_row: int) -> np.int64:
         """Choose column to eliminate and return the index.
 
         Args:
