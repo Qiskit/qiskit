@@ -20,7 +20,7 @@ from typing import Any
 
 from ddt import data, ddt, unpack
 
-from qiskit.primitives.base_result import BasePrimitiveResult
+from qiskit.primitives.base.base_result import BasePrimitiveResult
 from qiskit.test import QiskitTestCase
 
 
