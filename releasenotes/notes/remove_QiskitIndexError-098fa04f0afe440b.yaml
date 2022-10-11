@@ -1,6 +1,0 @@
----
-upgrade:
-  - |
-    The exception ``qiskit.exceptions.QiskitIndexError`` has been
-    removed and no longer exists as per the deprecation notice from qiskit-terra
-    0.18.0 (released on Jul 12, 2021).
