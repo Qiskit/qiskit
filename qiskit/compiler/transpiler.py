@@ -704,14 +704,14 @@ def _parse_transpile_args(
         "hls_config": hls_config,
     }.items():
         if isinstance(value, list):
-            # This giant if statement is to resolve different argument
-            # handling special cases. For scheduling timing related parameters
-            # (timing_constraints and instruction_durations) are always
-            # expanded to a list. The intial_layout parameter can be a list
-            # object so it needs special handling to determin it's unique.
-            # This path is super buggy in general (outside of the warning) and
-            # since we're deprecating this it's better to just remove it than
-            # try to clean it up.
+            # This giant if-statement detects deprecated use of argument
+            # broadcasting. For arguments that previously supported broadcast
+            # but were not themselves of type list (the majority), we simply warn
+            # when the user provides a list. For the others, special handling is
+            # required to disambiguate an expected value of type list from
+            # an attempt to provide multiple values for broadcast. This path is
+            # super buggy in general (outside of the warning) and since we're
+            # deprecating this it's better to just remove it than try to clean it up.
             # pylint: disable=too-many-boolean-expressions
             if (
                 key not in {"instruction_durations", "timing_constraints", "initial_layout"}
