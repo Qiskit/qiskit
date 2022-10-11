@@ -20,8 +20,8 @@ Visualization functions for quantum states.
 from typing import Optional, List, Union
 from functools import reduce
 import colorsys
-import numpy as np
 import warnings
+import numpy as np
 from qiskit import user_config
 from qiskit.quantum_info.states.statevector import Statevector
 from qiskit.quantum_info.operators.symplectic import PauliList, SparsePauliOp
