@@ -143,7 +143,7 @@ def _matrix_to_latex(matrix, decimals=10, prefix="", max_size=(8, 8)):
     return out_string
 
 
-def array_to_latex(array, precision=5, prefix="", source=False, max_size=8):
+def array_to_latex(array, precision=10, prefix="", source=False, max_size=8):
     """Latex representation of a complex numpy array (with dimension 1 or 2)
 
     Args:

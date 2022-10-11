@@ -10,4 +10,4 @@ other:
     ```Statevector.draw('latex')```) now uses the same sympy function as the
     ket-convention drawer. This means it may render some numbers differently
     (e.g. may identify new factors, or rationalize denominators where it did
-    not previously).
+    not previously). The default ```precision``` has been changed from 5 to 10.
