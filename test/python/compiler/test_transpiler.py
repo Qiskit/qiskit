@@ -1518,6 +1518,10 @@ class TestTranspile(QiskitTestCase):
             circuit.cx(3, 4)
             circuit.cz(3, 5)
             circuit.append(CustomCX(), [4, 5], [])
+            with circuit.while_loop((circuit.clbits[0], True)):
+                circuit.cx(3, 4)
+                circuit.cz(3, 5)
+                circuit.append(CustomCX(), [4, 5], [])
         transpiled = transpile(
             circuit, optimization_level=opt_level, target=target, seed_transpiler=12434
         )
