@@ -80,3 +80,26 @@ features:
         ibm_target.instruction_supported('if_else', qargs=(0, 1))
 
     both return ``True``.
+upgrade:
+  - |
+    For :class:`~.Target` objects that only contain globally defined 2 qubit
+    operations without any connectivity constaints the return from the
+    :meth:`.Target.build_coupling_map` method will now return ``None`` instead
+    of a :class:`~.CouplingMap` object that contains ``num_qubits`` nodes
+    and no edges. This change was made to better reflect the actual
+    connectivity constraints of the :class:`~.Target` because in this case
+    there are no connectivity constraints on the backend being modeled by
+    the :class:`~.Target`, not a lack of connecitvity. If you desire the
+    previous behavior for any reason you can reproduce it by checking for a
+    ``None`` and manually building a coupling map, for example::
+
+        from qiskit.transpiler import Target
+        from qiskit.circuit.library import CXGate
+
+        target = Target(num_qubits=3)
+        target.add_instruction(CXGate())
+        cmap = target.build_coupling_map()
+        if cmap is None:
+            cmap = CouplingMap()
+            for i in range(target.num_qubits):
+                cmap.add_physical_qubit(i)
