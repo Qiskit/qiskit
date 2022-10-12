@@ -50,21 +50,6 @@ KAK_GATE_NAMES = {
 }
 
 
-# TODO: discover these automatically from the gates' algebraic definition
-XX_EMBODIMENTS = {
-    RXXGate(): rxx_circuit,
-    RYYGate(): ryy_circuit,
-    RZZGate(): rzz_circuit,
-    RZXGate(): rzx_circuit,
-    CRXGate(): crx_circuit,
-    CRYGate(): cry_circuit,
-    CRZGate(): crz_circuit,
-    CPhaseGate(): cp_circuit,
-    CXGate(): cx_circuit,
-    CYGate(): cy_circuit,
-    CZGate(): cz_circuit
-}
-
 def _choose_kak_gate(basis_gates):
     """Choose the first available 2q gate to use in the KAK decomposition."""
     kak_gate = None

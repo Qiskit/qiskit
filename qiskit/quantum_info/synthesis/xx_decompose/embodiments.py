@@ -1,0 +1,98 @@
+# This code is part of Qiskit.
+#
+# (C) Copyright IBM 2022
+#
+# This code is licensed under the Apache License, Version 2.0. You may
+# obtain a copy of this license in the LICENSE.txt file in the root directory
+# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+#
+# Any modifications or derivative works of this code must retain this
+# copyright notice, and modified files need to carry a notice indicating
+# that they have been altered from the originals.
+
+"""
+A library of known embodiments of RXXGate in terms of other gates,
+for some generic or specific angles.
+
+TODO: discover these automatically from the gates' algebraic definition
+"""
+
+import numpy as np
+
+from qiskit.circuit import QuantumCircuit
+
+rzz_circuit = QuantumCircuit(2)
+theta = Parameter('θ')
+rzz_circuit.h(0)
+rzz_circuit.h(1)
+rzz_circuit.rzz(theta, 0, 1)
+rzz_circuit.h(0)
+rzz_circuit.h(1)
+
+rzx_circuit = QuantumCircuit(2)
+rzx_circuit.h(0)
+rzx_circuit.rzx(theta, 0, 1)
+rzx_circuit.h(0)
+
+ryy_circuit = QuantumCircuit(2)
+ryy_circuit.s(0)
+ryy_circuit.s(1)
+ryy_circuit.ryy(theta, 0, 1)
+ryy_circuit.sdg(0)
+ryy_circuit.sdg(1)
+
+cz_circuit = QuantumCircuit(2)
+cz_circuit.h(0)
+cz_circuit.h(1)
+cz_circuit.cz(0, 1)
+cz_circuit.s(0)
+cz_circuit.s(1)
+cz_circuit.h(0)
+cz_circuit.h(1)
+cz_circuit.global_phase -= np.pi / 4
+
+cphase_circuit = QuantumCircuit(2)
+cphase_circuit.h(0)
+cphase_circuit.h(1)
+cphase_circuit.cp(-2*theta, 0, 1)
+cphase_circuit.rz(theta, 0)
+cphase_circuit.rz(theta, 1)
+cphase_circuit.h(0)
+cphase_circuit.h(1)
+cphase_circuit.global_phase += theta / 2
+
+crz_circuit = QuantumCircuit(2)
+crz_circuit.h(0)
+crz_circuit.h(1)
+crz_circuit.crz(-2*theta, 0, 1)
+crz_circuit.rz(theta, 1)
+crz_circuit.h(0)
+crz_circuit.h(1)
+
+crx_circuit = QuantumCircuit(2)
+crx_circuit.h(0)
+crx_circuit.crx(-2*theta, 0, 1)
+crx_circuit.rx(theta, 1)
+crx_circuit.h(0)
+
+cry_circuit = QuantumCircuit(2)
+cry_circuit.h(0)
+cry_circuit.s(1)
+cry_circuit.cry(-2*theta, 0, 1)
+cry_circuit.ry(theta, 1)
+cry_circuit.h(0)
+cry_circuit.sdg(1)
+
+
+xx_embodiments = {
+    RYYGate: (ryy_circuit, None),
+    RZZGate: (rzz_circuit, None),
+    RZXGate: (rzx_circuit, None),
+    CRXGate: (crx_circuit, None),
+    CRYGate: (cry_circuit, None),
+    CRZGate: (crz_circuit, None),
+    CPhaseGate: (cp_circuit, None),
+    CXGate: (cx_circuit, np.pi / 2),
+    CYGate: (cy_circuit, np.pi / 2),
+    CZGate: (cz_circuit, np.pi / 2)
+}
