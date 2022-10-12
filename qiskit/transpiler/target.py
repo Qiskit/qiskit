@@ -543,7 +543,8 @@ class Target(Mapping):
         if qargs not in self._qarg_gate_map:
             raise KeyError(f"{qargs} not in target.")
         res = [self._gate_name_map[x] for x in self._qarg_gate_map[qargs]]
-        res += [self._gate_name_map[x] for x in self._qarg_gate_map[None]]
+        if None in self._qarg_gate_map:
+            res += [self._gate_name_map[x] for x in self._qarg_gate_map[None]]
         return res
 
     def operation_names_for_qargs(self, qargs):
