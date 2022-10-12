@@ -741,14 +741,9 @@ class Target(Mapping):
         ``(class, None)`` where class is the actual operation class that
         is globally defined.
         """
-        res = []
-        for op in self._gate_map:
-            for qarg in self._gate_map[op]:
-                if not inspect.isclass(self._gate_name_map[op]):
-                    res.append((self._gate_name_map[op], qarg))
-                else:
-                    res.append((self._gate_name_map[op], None))
-        return res
+        return [
+            (self._gate_name_map[op], qarg) for op in self._gate_map for qarg in self._gate_map[op]
+        ]
 
     def instruction_properties(self, index):
         """Get the instruction properties for a specific instruction tuple
