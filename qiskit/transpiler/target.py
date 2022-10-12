@@ -23,7 +23,6 @@ import datetime
 import io
 import logging
 import inspect
-import warnings
 
 import retworkx as rx
 
@@ -329,8 +328,6 @@ class Target(Mapping):
             TranspilerError: If an operation class is passed in for ``instruction`` and no name
                 is specified or ``properties`` is set.
         """
-        if properties is None:
-            properties = {None: None}
         is_class = inspect.isclass(instruction)
         if not is_class:
             instruction_name = name or instruction.name
@@ -345,6 +342,8 @@ class Target(Mapping):
                     "An instruction added globally by class can't have properties set."
                 )
             instruction_name = name
+        if properties is None:
+            properties = {None: None}
         if instruction_name in self._gate_map:
             raise AttributeError("Instruction %s is already in the target" % instruction_name)
         self._gate_name_map[instruction_name] = instruction
