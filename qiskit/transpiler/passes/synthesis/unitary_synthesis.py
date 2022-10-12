@@ -72,16 +72,6 @@ def _choose_euler_basis(basis_gates):
     return None
 
 
-def _find_matching_euler_bases(target):
-    """Find matching available 1q basis to use in the Euler decomposition."""
-    euler_basis_gates = []
-    basis_set = target.keys()
-    for basis, gates in one_qubit_decompose.ONE_QUBIT_EULER_BASIS_GATES.items():
-        if set(gates).issubset(basis_set):
-            euler_basis_gates.append(basis)
-    return euler_basis_gates
-
-
 def _choose_bases(basis_gates, basis_dict=None):
     """Find the matching basis string keys from the list of basis gates from the backend."""
     if basis_gates is None:
@@ -423,6 +413,15 @@ class DefaultUnitarySynthesis(plugin.UnitarySynthesisPlugin):
         super().__init__()
         self._decomposer_cache = {}
 
+    def _find_matching_euler_bases(target, qubit):
+        """Find matching available 1q basis to use in the Euler decomposition."""
+        euler_basis_gates = []
+        basis_set = target.keys()
+        for basis, gates in one_qubit_decompose.ONE_QUBIT_EULER_BASIS_GATES.items():
+            if set(gates).issubset(basis_set):
+                euler_basis_gates.append(basis)
+        return euler_basis_gates
+
     def _find_decomposer_2q_from_target(self, target, qubits, pulse_optimize):
         qubits_tuple = tuple(qubits)
         reverse_tuple = (qubits[1], qubits[0])
@@ -431,15 +430,35 @@ class DefaultUnitarySynthesis(plugin.UnitarySynthesisPlugin):
 
         matching = {}
         reverse = {}
-        kak_gates = target.operations_for_qargs(tuple(qubits))
-        euler_basis_gates = _find_matching_euler_bases(target)
-        print(kak_gates)
-        print(euler_basis_gates)
+        try:
+            kak_basis = target.operations_for_qargs(qubits_tuple)
+        except KeyError:
+            kak_basis = target.operations_for_qargs(reverse_tuple)
+        euler_basis_gates = self._find_matching_euler_bases(target)
+        from qiskit.quantum_info.synthesis.two_qubit_decompose import TwoQubitWeylDecomposition
+        from qiskit.quantum_info import Operator
+        import numpy as np
+
         decomposers_2q = []
         # find all decomposers
-        # AJ: if locally equivalent to XX, use XXDecomposer
-        # AJ: else if supercontrolled, use TwoQubitBasisDecomposer
-        for kak_gate, euler_basis in product(kak_gates, euler_basis_gates):
+        def is_supercontrolled(gate):
+            coords = TwoQubitWeylDecomposition(Operator(gate).data)
+            return np.isclose(coords.a, np.pi / 4) and np.isclose(coords.c, 0.0)
+        def is_controlled(gate):
+            coords = TwoQubitWeylDecomposition(Operator(gate).data)
+            return np.isclose(coords.b, 0.0) and np.isclose(coords.c, 0.0)
+
+        supercontrolled_kak_basis = [b for b in kak_basis if is_supercontrolled(b)]
+        controlled_kak_basis = [b for b in kak_basis if is_controlled(b)]
+
+        print([g.name for g in kak_basis])
+        print(euler_basis_gates)
+        print(f'supercontrolled basis: {supercontrolled_kak_basis}')
+        print(f'controlled basis: {controlled_kak_basis}')
+        
+        if controlled_kak_basis:
+            
+        for kak_gate, euler_basis in product(kak_basis, euler_basis_gates):
             if isinstance(kak_gate, RZXGate):
                 backup_optimizer = TwoQubitBasisDecomposer(
                     CXGate(), euler_basis=euler_basis, pulse_optimize=pulse_optimize
@@ -513,7 +532,7 @@ class DefaultUnitarySynthesis(plugin.UnitarySynthesisPlugin):
         wires = None
         if unitary.shape == (2, 2):
             if target is not None:
-                euler_basis = _find_matching_euler_bases(target)
+                euler_basis = self._find_matching_euler_bases(target)
             else:
                 euler_basis = _choose_euler_basis(basis_gates)
             if euler_basis is not None:
