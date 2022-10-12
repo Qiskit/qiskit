@@ -327,7 +327,7 @@ class Target(Mapping):
         Raises:
             AttributeError: If gate is already in map
             TranspilerError: If an operation class is passed in for ``instruction`` and no name
-                is specified.
+                is specified or ``properties`` is set.
         """
         if properties is None:
             properties = {None: None}
@@ -339,6 +339,10 @@ class Target(Mapping):
             if not name:
                 raise TranspilerError(
                     "A name must be specified when defining a supported global operation by class"
+                )
+            if properties is not None:
+                raise TranspilerError(
+                    "An instruction added globally by class can't have properties set."
                 )
             instruction_name = name
         if instruction_name in self._gate_map:
