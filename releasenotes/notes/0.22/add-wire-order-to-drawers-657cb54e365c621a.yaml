@@ -2,7 +2,7 @@
 features:
   - |
     Added a new keyword argument, ``wire_order``, to the :func:`~.circuit_drawer`
-    function and :meth:`.QuantumCircuit.draw` method which allows aribtrarily
+    function and :meth:`.QuantumCircuit.draw` method which allows arbitrarily
     reordering both the quantum and classical bits in the output visualization.
     For example:
 

@@ -20,6 +20,10 @@ features:
       * :class:`~.FiniteDiffSamplerGradient`
       * :class:`~.SPSASamplerGradient`
 
+    The estimator-based gradients compute the gradient of expectation 
+    values, while the sampler-based gradients return gradients of the
+    measurement outcomes (also referred to as "probability gradients").
+
     For example:
 
     .. code-block:: python

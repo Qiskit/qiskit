@@ -15,3 +15,5 @@ features:
     qiskit-ibm-runtime and qiskit-aer. This provides an alternative to using
     the ``quantum_instance`` argument to set the target :class:`~.Backend`
     or :class:`~.QuantumInstance` to run the algorithm on.
+    Using a :class:`~.QuantumInstance` is pending deprecation and will
+    be deprecated in a future release.

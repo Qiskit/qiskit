@@ -15,5 +15,5 @@ features:
     :class:`~.EvolutionProblem`, :class:`~.EvolutionResult`,
     :class:`~.RealEvolver`, and :class:`~.ImaginaryEvolver` which worked
     with a :class:`~.QuantumInstance` object instead of primitives. This
-    new interface superscedes the previous interface which will eventually
+    new interface supersedes the previous interface which will eventually
     be deprecated and subsequently removed in future releases.

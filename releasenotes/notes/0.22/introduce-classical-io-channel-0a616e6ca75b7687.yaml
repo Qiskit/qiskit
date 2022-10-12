@@ -14,8 +14,8 @@ features:
 upgrade:
   - |
     The constructors for the :class:`~.SetPhase`, :class:`~.ShiftPhase`,
-    :class:`~.SetFrequency`, and :class:`~ShiftFrequency` classes will now
-    raise a :class:`~PulseError` if the value passed in via the ``channel``
+    :class:`~.SetFrequency`, and :class:`~.ShiftFrequency` classes will now
+    raise a :class:`~.PulseError` if the value passed in via the ``channel``
     argument is not an instance of :class:`~.PulseChannel`. This change was
     made to validate the input to the constructors are valid as the
     instructions are only valid for pulse channels and not other types of

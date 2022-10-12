@@ -5,7 +5,7 @@ prelude: |
 
     * Adding initial support to the transpiler for transpiling
       :class:`~.QuantumCircuit` objects that contain control flow instructions
-      such as :class:`~ForLoopOp` and :class:`~WhileLoopOp`.
+      such as :class:`~.ForLoopOp` and :class:`~.WhileLoopOp`.
 
     * Greatly improved scaling and performance for the :func:`~.transpile` function
       with large numbers of qubits, especially when ``optimization_level=3`` is used.
@@ -25,9 +25,9 @@ features:
     Added new primitive implementations, :class:`~.BackendSampler` and :class:`~.BackendEstimator`,
     to :mod:`qiskit.primitives`. Thes new primitive class implementation wrap a :class:`~.BackendV1`
     or :class:`~.BackendV2` instance as a :class:`~.BaseSampler` or :class:`~.BaseEstimator`
-    respectively. The intended use case for these primtive implementations is to bridge the gap
+    respectively. The intended use case for these primitive implementations is to bridge the gap
     between providers that do not have native primitive implementations and use that provider's
-    backend with APIs that work with primtiives. For example, the :class:`~.SamplingVQE` class
+    backend with APIs that work with primitives. For example, the :class:`~.SamplingVQE` class
     takes a :class:`~.BaseSampler` instance to function. If you'd like to run that class with
     a backend from a provider without a native primitive implementation you can construct a
     :class:`~.BackendSampler` to do this::

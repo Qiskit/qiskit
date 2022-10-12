@@ -8,7 +8,7 @@ features:
     :class:`~qiskit.algorithms.eigensolvers.VQD` which instead of taking
     a backend or :class:`~.QuantumInstance` instead takes an instance of
     :class:`~.BaseEstimator`, including :class:`~.Estimator`,
-    :class:`~BackendEstimator`, or any provider implementations such as
+    :class:`~.BackendEstimator`, or any provider implementations such as
     those as those present in ``qiskit-ibm-runtime`` and ``qiskit-aer``.
 
     For example, to use the new implementation with an instance of
