@@ -70,7 +70,8 @@ class SparsePauliOp(LinearOp):
       - ``to_matrix(sparse=True)`` since ``scipy.sparse`` cannot have objects as elements.
       - ``to_operator()`` since :class:`~.quantum_info.Operator` does not support objects.
       - ``sort``, ``argsort`` since :class:`.ParameterExpression` does not support comparison.
-      - ``equiv`` since :class:`.ParameterExpression`. cannot be converted into complex.
+      - ``equiv`` since :class:`.ParameterExpression` cannot be converted into complex.
+      - ``chop`` since :class:`.ParameterExpression` does not support absolute value.
     """
 
     def __init__(self, data, coeffs=None, *, ignore_pauli_phase=False, copy=True):
