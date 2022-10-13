@@ -91,7 +91,7 @@ upgrade:
     there are no connectivity constraints on the backend being modeled by
     the :class:`~.Target`, not a lack of connecitvity. If you desire the
     previous behavior for any reason you can reproduce it by checking for a
-    ``None`` and manually building a coupling map, for example::
+    ``None`` return and manually building a coupling map, for example::
 
         from qiskit.transpiler import Target
         from qiskit.circuit.library import CXGate
