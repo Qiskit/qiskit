@@ -287,7 +287,8 @@ class TestRandomStabilizerTable(QiskitTestCase):
     @combine(num_qubits=[1, 2, 3, 4, 5, 10, 50, 100, 200, 250], size=[1, 10, 100])
     def test_valid(self, num_qubits, size):
         """Test random_stabilizer_table {num_qubits}-qubits, size {size}."""
-        value = random_stabilizer_table(num_qubits, size=size)
+        with self.assertWarns(DeprecationWarning):
+            value = random_stabilizer_table(num_qubits, size=size)
         with self.subTest(msg="Test type"):
             self.assertIsInstance(value, StabilizerTable)
         with self.subTest(msg="Test num_qubits"):
@@ -298,17 +299,20 @@ class TestRandomStabilizerTable(QiskitTestCase):
     def test_fixed_seed(self):
         """Test fixing seed fixes output"""
         seed = 1532
-        value1 = random_stabilizer_table(10, size=10, seed=seed)
-        value2 = random_stabilizer_table(10, size=10, seed=seed)
+        with self.assertWarns(DeprecationWarning):
+            value1 = random_stabilizer_table(10, size=10, seed=seed)
+            value2 = random_stabilizer_table(10, size=10, seed=seed)
         self.assertEqual(value1, value2)
 
     def test_not_global_seed(self):
         """Test fixing random_hermitian seed is locally scoped."""
         seed = 314159
         test_cases = 100
-        random_stabilizer_table(10, size=10, seed=seed)
+        with self.assertWarns(DeprecationWarning):
+            random_stabilizer_table(10, size=10, seed=seed)
         rng_before = np.random.randint(1000, size=test_cases)
-        random_stabilizer_table(10, seed=seed)
+        with self.assertWarns(DeprecationWarning):
+            random_stabilizer_table(10, seed=seed)
         rng_after = np.random.randint(1000, size=test_cases)
         self.assertFalse(np.all(rng_before == rng_after))
 

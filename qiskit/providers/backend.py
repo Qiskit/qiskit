@@ -287,6 +287,26 @@ class BackendV2(Backend, ABC):
     will build a :class:`~qiskit.providers.models.BackendConfiguration` object
     and :class:`~qiskit.providers.models.BackendProperties` from the attributes
     defined in this class for backwards compatibility.
+
+    A backend object can optionally contain methods named
+    ``get_translation_stage_plugin`` and ``get_scheduling_stage_plugin``. If these
+    methods are present on a backend object and this object is used for
+    :func:`~.transpile` or :func:`~.generate_preset_pass_manager` the
+    transpilation process will default to using the output from those methods
+    as the scheduling stage and the translation compilation stage. This
+    enables a backend which has custom requirements for compilation to specify a
+    stage plugin for these stages to enable custom transformation of
+    the circuit to ensure it is runnable on the backend. These hooks are enabled
+    by default and should only be used to enable extra compilation steps
+    if they are **required** to ensure a circuit is executable on the backend or
+    have the expected level of performance. These methods are passed no input
+    arguments and are expected to return a ``str`` representing the method name
+    which should be a stage plugin (see: :mod:`qiskit.transpiler.preset_passmanagers.plugin`
+    for more details on plugins). The typical expected use case is for a backend
+    provider to implement a stage plugin for ``translation`` or ``scheduling``
+    that contains the custom compilation passes and then for the hook methods on
+    the backend object to return the plugin name so that :func:`~.transpile` will
+    use it by default when targetting the backend.
     """
 
     version = 2

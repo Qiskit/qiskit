@@ -29,7 +29,13 @@ from qiskit.quantum_info.operators.base_operator import BaseOperator
 from .base_estimator import BaseEstimator
 from .estimator_result import EstimatorResult
 from .primitive_job import PrimitiveJob
-from .utils import _circuit_key, bound_circuit_to_instruction, init_circuit, init_observable
+from .utils import (
+    _circuit_key,
+    _observable_key,
+    bound_circuit_to_instruction,
+    init_circuit,
+    init_observable,
+)
 
 
 class Estimator(BaseEstimator):
@@ -166,13 +172,14 @@ class Estimator(BaseEstimator):
                 self._parameters.append(circuit.parameters)
         observable_indices = []
         for observable in observables:
-            index = self._observable_ids.get(id(observable))
+            observable = init_observable(observable)
+            index = self._observable_ids.get(_observable_key(observable))
             if index is not None:
                 observable_indices.append(index)
             else:
                 observable_indices.append(len(self._observables))
-                self._observable_ids[id(observable)] = len(self._observables)
-                self._observables.append(init_observable(observable))
+                self._observable_ids[_observable_key(observable)] = len(self._observables)
+                self._observables.append(observable)
         job = PrimitiveJob(
             self._call, circuit_indices, observable_indices, parameter_values, **run_options
         )
