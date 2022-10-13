@@ -41,6 +41,7 @@ from qiskit.circuit.library import (
 from qiskit import BasicAer
 from qiskit.quantum_info import Pauli
 from qiskit.quantum_info.operators.predicates import matrix_equal, is_unitary_matrix
+from qiskit.utils.optionals import HAS_TWEEDLEDUM
 
 
 class TestStandard1Q(QiskitTestCase):
@@ -1399,6 +1400,7 @@ class TestStandard3Q(QiskitTestCase):
 class TestStandardMethods(QiskitTestCase):
     """Standard Extension Test."""
 
+    @unittest.skipUnless(HAS_TWEEDLEDUM, "tweedledum required for this test")
     def test_to_matrix(self):
         """test gates implementing to_matrix generate matrix which matches definition."""
         from qiskit.circuit.library.pauli_evolution import PauliEvolutionGate
@@ -1444,6 +1446,7 @@ class TestStandardMethods(QiskitTestCase):
                 self.assertTrue(matrix_equal(definition_unitary, gate_matrix, ignore_phase=True))
                 self.assertTrue(is_unitary_matrix(gate_matrix))
 
+    @unittest.skipUnless(HAS_TWEEDLEDUM, "tweedledum required for this test")
     def test_to_matrix_op(self):
         """test gates implementing to_matrix generate matrix which matches
         definition using Operator."""
