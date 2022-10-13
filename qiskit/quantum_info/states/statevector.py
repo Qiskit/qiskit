@@ -388,7 +388,8 @@ class Statevector(QuantumState, TolerancesMixin):
 
         # Evolution by an Operator
         if not isinstance(other, Operator):
-            other = Operator(other)
+            dims = self.dims(qargs=qargs)
+            other = Operator(other, input_dims=dims, output_dims=dims)
 
         # check dimension
         if self.dims(qargs) != other.input_dims():
@@ -818,14 +819,21 @@ class Statevector(QuantumState, TolerancesMixin):
         contract_dim = oper._op_shape.shape[1]
         contract_shape = (contract_dim, statevec._op_shape.shape[0] // contract_dim)
 
-        # Reshape input for contraction
-        statevec._data = np.reshape(
-            np.transpose(np.reshape(statevec.data, statevec._op_shape.tensor_shape), axes),
-            contract_shape,
+        # Reshape and transpose input array for contraction
+        tensor = np.transpose(
+            np.reshape(statevec.data, statevec._op_shape.tensor_shape),
+            axes,
         )
-        # Contract and reshape output
-        statevec._data = np.reshape(np.dot(oper.data, statevec._data), new_shape.tensor_shape)
-        statevec._data = np.reshape(np.transpose(statevec._data, axes_inv), new_shape.shape[0])
+        tensor_shape = tensor.shape
+
+        # Perform contraction
+        tensor = np.reshape(
+            np.dot(oper.data, np.reshape(tensor, contract_shape)),
+            tensor_shape,
+        )
+
+        # Transpose back to  original subsystem spec and flatten
+        statevec._data = np.reshape(np.transpose(tensor, axes_inv), new_shape.shape[0])
 
         # Update dimension
         statevec._op_shape = new_shape
