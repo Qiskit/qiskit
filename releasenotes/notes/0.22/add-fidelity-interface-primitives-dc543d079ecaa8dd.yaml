@@ -14,7 +14,7 @@ features:
       import numpy as np
       from qiskit.primitives import Sampler
       from qiskit.algorithms.state_fidelities import ComputeUncompute
-      from qiskit. import RealAmplitudes
+      from qiskit.circuit.library import RealAmplitudes
 
       sampler = Sampler(...)
       fidelity = ComputeUncompute(sampler)

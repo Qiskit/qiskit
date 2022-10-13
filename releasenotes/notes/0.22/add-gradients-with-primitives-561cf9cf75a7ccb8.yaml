@@ -1,7 +1,7 @@
 ---
 features:
   - |
-    Added a new module :mod:`qiskit.algorithms.gradient` that contains
+    Added a new module :mod:`qiskit.algorithms.gradients` that contains
     classes which are used to compute gradients using the primitive
     interfaces defined in :mod:`qiskit.primitives`. There are 4 types of
     gradient classes: Finite Difference, Parameter Shift, Linear

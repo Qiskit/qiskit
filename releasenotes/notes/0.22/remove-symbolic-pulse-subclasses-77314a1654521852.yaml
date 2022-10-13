@@ -11,9 +11,10 @@ features:
 upgrade:
   - |
     ``isinstance`` check with pulse classes :class:`.Gaussian`, :class:`.GaussianSquare`,
-    :class:`.Drag` and :class:`.Constant` has been invalidated because
-    these pulse subclasses are no longer instantiated.
-    Instead of using type information, :attr:`SymbolicPulse.pulse_type` must be used.
+    :class:`.Drag` and :class:`.Constant` will be invalidated because
+    these pulse subclasses are no longer instantiated.  They will still work in Terra 0.22,
+    but you should begin transitioning immediately.
+    Instead of using type information, :attr:`SymbolicPulse.pulse_type` should be used.
     This is assumed to be a unique string identifer for pulse envelopes,
     and we can use string equality to investigate the pulse types. For example,
 
@@ -23,7 +24,7 @@ upgrade:
 
       pulse = Gaussian(160, 0.1, 40)
 
-      if isinstance(pulse, Gaussian)
+      if isinstance(pulse, Gaussian):
         print("This is Gaussian pulse.")
 
     This code should be upgraded to

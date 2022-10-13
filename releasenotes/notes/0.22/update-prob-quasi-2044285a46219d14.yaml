@@ -3,8 +3,8 @@ upgrade:
   - |
     Updated :class:`~qiskit.result.ProbDistribution` and :class:`~qiskit.result.QuasiDistribution`
     to store the information of the number of bits if bitstrings without prefix "0b" are given.
-    :meth:`~qiskit.result.ProbDistribution.binary_probabilities` and
-    :meth:`~qiskit.result.QuasiDistribution.binary_probabilities` use the stored number of bits
+    :meth:`.ProbDistribution.binary_probabilities` and
+    :meth:`.QuasiDistribution.binary_probabilities` use the stored number of bits
     as the default value of the number of bits.
 
     .. code-block: python

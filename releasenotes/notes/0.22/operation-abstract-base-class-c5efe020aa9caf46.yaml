@@ -85,7 +85,7 @@ features:
     :func:`~qiskit.quantum_info.decompose_clifford` function.
 
     This new transpiler pass :class:`.HighLevelSynthesis` is integrated into the preset pass managers,
-    running right after :class:`.UnitarySynthesis` pass. Thus, ``qiskit.compiler.transpile()`` will
+    running right after :class:`.UnitarySynthesis` pass. Thus, :func:`.transpile` will
     synthesize all higher-level Cliffords present in the circuit.
 
     It is important to note that the work done to store :class:`.Clifford` objects as "higher-level"

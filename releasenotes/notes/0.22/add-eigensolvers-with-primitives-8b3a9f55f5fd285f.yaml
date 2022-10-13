@@ -16,13 +16,15 @@ features:
 
     .. code-block:: python
 
-        from qiskit.algorithms.eigensolvers import VQQ
+        from qiskit.algorithms.eigensolvers import VQD
         from qiskit.algorithms.optimizers import SLSQP
         from qiskit.circuit.library import TwoLocal
         from qiskit.primitives import Sampler, Estimator
         from qiskit.algorithms.state_fidelities import ComputeUncompute
+        from qiskit.opflow import PauliSumOp
+        from qiskit.quantum_info import SparsePauliOp
 
-        h2_op = SparsePauliOp(
+        h2_op = PauliSumOp(SparsePauliOp(
             ["II", "IZ", "ZI", "ZZ", "XX"],
             coeffs=[
                 -1.052373245772859,
@@ -31,7 +33,7 @@ features:
                 -0.01128010425623538,
                 0.18093119978423156,
             ],
-        )
+        ))
 
         estimator = Estimator()
         ansatz = TwoLocal(rotation_blocks=["ry", "rz"], entanglement_blocks="cz")

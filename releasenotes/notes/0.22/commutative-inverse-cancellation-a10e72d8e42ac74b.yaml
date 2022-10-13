@@ -16,7 +16,7 @@ features:
         res = comm_checker.commute(CXGate(), [qr[1], qr[0]], [], CXGate(), [qr[1], qr[2]], [])
 
     As the two CX gates commute (the first CX gate is over qubits ``qr[1]`` and ``qr[0]``, and the
-    second CX gate is over qubits ``qr[1]`` and `qr[2]``), we will have that ``res`` is ``True``.
+    second CX gate is over qubits ``qr[1]`` and ``qr[2]``), we will have that ``res`` is ``True``.
 
     This commutativity checking is over-conservative for conditional and parameterized gates,
     and may return ``False`` even when such gates commute.

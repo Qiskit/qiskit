@@ -2,7 +2,7 @@
 features:
   - |
     Added new methods for executing primitives: :meth:`.BaseSampler.run` and :meth:`.BaseEstimator.run`.
-    These methods execute asynchronously and return `~qiskit.providers.JobV1` objects which
+    These methods execute asynchronously and return :class:`.JobV1` objects which
     provide a handle to the exections. These new run methods can be passed :class:`~.QuantumCircuit`
     objects (and observables for :class:`~.BaseEstimator`) that are not registered in the constructor.
     For example::
@@ -17,8 +17,8 @@ features:
 deprecations:
   - |
     The method of executing primitives has been changed.
-    :meth:`~qiskit.primitives.BaseSampler.__call__` method was deprecated and
-    :meth:`~qiskit.primitives.BaseEstimator.__call__` method was deprecated.
+    The :meth:`.BaseSampler.__call__` and
+    :meth:`.BaseEstimator.__call__` methods were deprecated.
     For example::
 
       estimator = Estimator(...)
@@ -27,7 +27,7 @@ deprecations:
       sampler = Sampler(...)
       result = sampler(circuits, observables, parameters)
 
-    are equivalent by rewriting
+    should be rewritten as
 
     .. code-block:: python
 
@@ -37,8 +37,8 @@ deprecations:
       sampler = Sampler()
       result = sampler.run(circuits, parameter_values).result()
 
-    Context manager for primitives was deprecated.
-    Not all Primitives have a context manager available. When available (e.g. qiskit-ibm-runtime),
+    Using primitives as context managers is deprecated.
+    Not all primitives have a context manager available. When available (e.g. in ``qiskit-ibm-runtime``),
     the session's context manager provides equivalent functionality.
 
     ``circuits``, ``observables``, and ``parameters`` in the constructor was deprecated.

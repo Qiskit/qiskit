@@ -13,8 +13,9 @@ features:
         import numpy as np
 
         from qiskit.algorithms.state_fidelities import ComputeUncompute
+        from qiskit.algorithms.evolvers import EvolutionProblem
         from qiskit.algorithms.time_evolvers.pvqd import PVQD
-        from qiskit.primitives import Estimator
+        from qiskit.primitives import Estimator, Sampler
         from qiskit import BasicAer
         from qiskit.circuit.library import EfficientSU2
         from qiskit.quantum_info import Pauli, SparsePauliOp
@@ -35,8 +36,8 @@ features:
         pvqd = PVQD(
             fidelity,
             ansatz,
-            estimator,
             initial_parameters,
+            estimator,
             num_timesteps=100,
             optimizer=optimizer,
         )

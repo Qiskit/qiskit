@@ -1,7 +1,7 @@
 ---
 upgrade:
   - |
-    The deprecated arguments ``epsilon` and ``factr`` for the constructor of
+    The deprecated arguments ``epsilon`` and ``factr`` for the constructor of
     the  :class:`~.L_BFGS_B` optimizer class have been removed. These arguments
     were originally deprecated as part of the 0.18.0 release (released on
     July 12, 2021). Instead the ``ftol`` argument should be used, you
