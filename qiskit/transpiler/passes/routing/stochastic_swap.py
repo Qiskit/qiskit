@@ -370,20 +370,60 @@ class StochasticSwap(TransformationPass):
             TranspilerError: if layer_dag does not contain a recognized ControlFlowOp.
 
         """
-        cf_opnode = layer_dag.op_nodes()[0]
-        if isinstance(cf_opnode.op, IfElseOp):
-            new_op, new_qargs, new_layout = self._route_control_flow_multiblock(
-                cf_opnode, current_layout, root_dag
-            )
-        elif isinstance(cf_opnode.op, (ForLoopOp, WhileLoopOp)):
-            new_op, new_qargs, new_layout = self._route_control_flow_looping(
-                cf_opnode, current_layout, root_dag
-            )
+        node = layer_dag.op_nodes()[0]
+        if not isinstance(node.op, (IfElseOp, ForLoopOp, WhileLoopOp)):
+            raise TranspilerError(f"unsupported control flow operation: {node}")
+        # For each block, expand it up be the full width of the containing DAG so we can be certain
+        # that it is routable, then route it within that.  When we recombine later, we'll reduce all
+        # these blocks down to remove any qubits that are idle.
+        block_dags = []
+        block_layouts = []
+        for block in node.op.blocks:
+            inner_pass = self._recursive_pass(current_layout)
+            full_dag_block = root_dag.copy_empty_like()
+            full_dag_block.compose(circuit_to_dag(block), qubits=node.qargs)
+            block_dags.append(inner_pass.run(full_dag_block))
+            block_layouts.append(inner_pass.property_set["final_layout"].copy())
+
+        # Determine what layout we need to go towards.  For some blocks (such as `for`), we must
+        # guarantee that the final layout is the same as the initial or the loop won't work.  For an
+        # `if` with an `else`, we don't need that as long as the two branches are the same.  We have
+        # to be careful with `if` _without_ an else, though - the `if` needs to restore the layout
+        # in case it isn't taken; we can't have two different virtual layouts.
+        if not (isinstance(node.op, IfElseOp) and len(node.op.blocks) == 2):
+            final_layout = current_layout
         else:
-            raise TranspilerError(f"unsupported control flow operation: {cf_opnode}")
-        if not self.fake_run:
-            dagcircuit_output.apply_operation_back(new_op, new_qargs, cf_opnode.cargs)
-        return new_layout
+            # We heuristically just choose to use the layout of whatever the deepest block is, to
+            # avoid extending the total depth by too much.
+            final_layout = max(
+                zip(block_layouts, block_dags), key=lambda x: x[1].depth(recurse=True)
+            )[0]
+        if self.fake_run:
+            return final_layout
+
+        # Add swaps to the end of each block to make sure they all have the same layout at the end.
+        # Adding these swaps can cause fewer wires to be idle than we expect (if we have to swap
+        # across unused qubits), so we track that at this point too.
+        idle_qubits = set(root_dag.qubits)
+        for layout, updated_dag_block in zip(block_layouts, block_dags):
+            swap_dag, swap_qubits = get_swap_map_dag(
+                root_dag, self.coupling_map, layout, final_layout, seed=self._new_seed()
+            )
+            if swap_dag.size(recurse=False):
+                updated_dag_block.compose(swap_dag, qubits=swap_qubits)
+            idle_qubits &= set(updated_dag_block.idle_wires())
+
+        # Now for each block, expand it to be full width over all active wires (all blocks of a
+        # control-flow operation need to have equal input wires), and convert it to circuit form.
+        block_circuits = []
+        for updated_dag_block in block_dags:
+            updated_dag_block.remove_qubits(*idle_qubits)
+            block_circuits.append(dag_to_circuit(updated_dag_block))
+
+        new_op = node.op.replace_blocks(block_circuits)
+        new_qargs = block_circuits[0].qubits
+        dagcircuit_output.apply_operation_back(new_op, new_qargs, node.cargs)
+        return final_layout
 
     def _new_seed(self):
         """Get a seed for a new RNG instance."""
@@ -402,110 +442,4 @@ class StochasticSwap(TransformationPass):
             seed=self._new_seed(),
             fake_run=self.fake_run,
             initial_layout=initial_layout,
-        )
-
-    def _route_control_flow_multiblock(self, node, current_layout, root_dag):
-        """Route control flow instructions which contain multiple blocks (e.g. :class:`.IfElseOp`).
-        Since each control flow block may yield a different layout, this function applies swaps to
-        the shorter depth blocks to make all final layouts match.
-
-        Args:
-            node (DAGOpNode): A DAG node whose operation is a :class:`.ControlFlowOp` that contains
-                more than one block, such as :class:`.IfElseOp`.
-            current_layout (Layout): The current layout at the start of the instruction.
-            root_dag (DAGCircuit): root dag of compilation
-
-        Returns:
-            ControlFlowOp: routed control flow operation.
-            List[Qubit]: the new physical-qubit arguments that the output `ControlFlowOp` should be
-                applied to. This might be wider than the input node if internal routing was needed.
-            Layout: the new layout after the control-flow operation is applied.
-        """
-        # For each block, expand it up be the full width of the containing DAG so we can be certain
-        # that it is routable, then route it within that.  When we recombine later, we'll reduce all
-        # these blocks down to remove any qubits that are idle.
-        block_dags = []
-        block_layouts = []
-        for block in node.op.blocks:
-            inner_pass = self._recursive_pass(current_layout)
-            full_dag_block = root_dag.copy_empty_like()
-            full_dag_block.compose(circuit_to_dag(block), qubits=node.qargs)
-            block_dags.append(inner_pass.run(full_dag_block))
-            block_layouts.append(inner_pass.property_set["final_layout"].copy())
-
-        # Add swaps to the end of each block to make sure they all have the same layout at the end.
-        # As a heuristic we choose the final layout of the deepest block to be the target for
-        # everyone.  Adding these swaps can cause fewer wires to be idle than we expect (if we have
-        # to swap across unused qubits), so we track that at this point too.
-        deepest_index = np.argmax([block.depth(recurse=True) for block in block_dags])
-        final_layout = block_layouts[deepest_index]
-        if self.fake_run:
-            return None, None, final_layout
-        idle_qubits = set(root_dag.qubits)
-        for i, updated_dag_block in enumerate(block_dags):
-            if i != deepest_index:
-                swap_dag, swap_qubits = get_swap_map_dag(
-                    root_dag,
-                    self.coupling_map,
-                    block_layouts[i],
-                    final_layout,
-                    seed=self._new_seed(),
-                )
-                if swap_dag.depth():
-                    updated_dag_block.compose(swap_dag, qubits=swap_qubits)
-            idle_qubits &= set(updated_dag_block.idle_wires())
-
-        # Now for each block, expand it to be full width over all active wires (all blocks of a
-        # control-flow operation need to have equal input wires), and convert it to circuit form.
-        block_circuits = []
-        for i, updated_dag_block in enumerate(block_dags):
-            updated_dag_block.remove_qubits(*idle_qubits)
-            block_circuits.append(dag_to_circuit(updated_dag_block))
-        return node.op.replace_blocks(block_circuits), block_circuits[0].qubits, final_layout
-
-    def _route_control_flow_looping(self, node, current_layout, root_dag):
-        """Route a control-flow operation that represents a loop, such as :class:`.ForOpLoop` or
-        :class:`.WhileOpLoop`.  Importantly, these operations have a single block inside, and the
-        final layout of the block needs to match the initial layout so the loop can continue.
-
-        Args:
-            node (DAGOpNode): A DAG node whose operation is a :class:`.ControlFlowOp` that
-                represents a loop with a single block, such as :class:`.ForLoopOp`.
-            current_layout (Layout): The current layout at the start of the instruction.
-            root_dag (DAGCircuit): root dag of compilation
-
-        Returns:
-            ControlFlowOp: routed control flow operation.
-            List[Qubit]: the new physical-qubit arguments that the output `ControlFlowOp` should be
-                applied to. This might be wider than the input node if internal routing was needed.
-            Layout: the new layout after the control-flow operation is applied.
-        """
-        if self.fake_run:
-            return None, None, current_layout
-        # Temporarily expand to full width, and route within that.
-        inner_pass = self._recursive_pass(current_layout)
-        full_dag_block = root_dag.copy_empty_like()
-        full_dag_block.compose(circuit_to_dag(node.op.blocks[0]), qubits=node.qargs)
-        updated_dag_block = inner_pass.run(full_dag_block)
-
-        # Ensure that the layout at the end of the block is returned to being the layout at the
-        # start of the block again, so the loop works.
-        swap_dag, swap_qubits = get_swap_map_dag(
-            root_dag,
-            self.coupling_map,
-            inner_pass.property_set["final_layout"],
-            current_layout,
-            seed=self._new_seed(),
-        )
-        if swap_dag.depth():
-            updated_dag_block.compose(swap_dag, qubits=swap_qubits)
-
-        # Contract the routed block back down to only operate on the qubits that it actually needs.
-        idle_qubits = set(root_dag.qubits) & set(updated_dag_block.idle_wires())
-        updated_dag_block.remove_qubits(*idle_qubits)
-        updated_circ_block = dag_to_circuit(updated_dag_block)
-        return (
-            node.op.replace_blocks([updated_circ_block]),
-            updated_dag_block.qubits,
-            current_layout,
         )

@@ -18,7 +18,7 @@ import numpy.random
 
 from ddt import ddt, data
 from qiskit.transpiler.passes import StochasticSwap
-from qiskit.transpiler import CouplingMap, PassManager
+from qiskit.transpiler import CouplingMap, PassManager, Layout
 from qiskit.transpiler.exceptions import TranspilerError
 from qiskit.converters import circuit_to_dag, dag_to_circuit
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
@@ -1172,6 +1172,41 @@ class TestStochasticSwapControlFlow(QiskitTestCase):
         efor_body.swap(2, 1)
         expected.for_loop((0,), None, efor_body, [3, 4, 5], [])
         self.assertEqual(cqc, expected)
+
+    def test_if_no_else_restores_layout(self):
+        """Test that an if block with no else branch restores the initial layout.  If there is an
+        else branch, we don't need to guarantee this."""
+        qc = QuantumCircuit(8, 1)
+        with qc.if_test((qc.clbits[0], False)):
+            # Just some arbitrary gates with no perfect layout.
+            qc.cx(3, 5)
+            qc.cx(4, 6)
+            qc.cx(1, 4)
+            qc.cx(7, 4)
+            qc.cx(0, 5)
+            qc.cx(7, 3)
+            qc.cx(1, 3)
+            qc.cx(5, 2)
+            qc.cx(6, 7)
+            qc.cx(3, 2)
+            qc.cx(6, 2)
+            qc.cx(2, 0)
+            qc.cx(7, 6)
+        coupling = CouplingMap.from_line(8)
+        pass_ = StochasticSwap(coupling, seed=2022_10_13)
+        transpiled = pass_(qc)
+
+        # Check the pass claims to have done things right.
+        initial_layout = Layout.generate_trivial_layout(*qc.qubits)
+        self.assertEqual(initial_layout, pass_.property_set["final_layout"])
+
+        # Check that pass really did do it right.
+        inner_block = transpiled.data[0].operation.blocks[0]
+        running_layout = initial_layout.copy()
+        for instruction in inner_block:
+            if instruction.operation.name == "swap":
+                running_layout.swap(*instruction.qubits)
+        self.assertEqual(initial_layout, running_layout)
 
 
 @ddt
