@@ -204,13 +204,13 @@ class PulseDefaults:
         self.converter = QobjToInstructionConverter(pulse_library)
 
         for inst in cmd_def:
-            entry = PulseQobjDef(
-                name=inst.name,
-                qubits=inst.qubits,
-                converter=self.converter,
-            )
+            entry = PulseQobjDef(converter=self.converter, name=inst.name)
             entry.define(inst.sequence)
-            self.instruction_schedule_map._add(entry)
+            self.instruction_schedule_map._add(
+                instruction_name=inst.name,
+                qubits=tuple(inst.qubits),
+                entry=entry,
+            )
 
         if meas_kernel is not None:
             self.meas_kernel = meas_kernel

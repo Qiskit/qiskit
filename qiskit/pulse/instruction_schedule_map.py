@@ -68,24 +68,6 @@ class CalibrationEntry(metaclass=ABCMeta):
         pass
 
     @abstractmethod
-    def get_name(self) -> str:
-        """Return instruction name of this entry.
-
-        Returns:
-            Instruction name.
-        """
-        pass
-
-    @abstractmethod
-    def get_qubits(self) -> Tuple[int, ...]:
-        """Return qubit index tuple of this entry.
-
-        Returns:
-            Qubit index tuple.
-        """
-        pass
-
-    @abstractmethod
     def get_signature(self) -> inspect.Signature:
         """Return signature object associated with entry definition.
 
@@ -107,34 +89,16 @@ class CalibrationEntry(metaclass=ABCMeta):
         """
         pass
 
-    def __str__(self):
-        qubits_str = ", ".join(map(str, self.get_qubits()))
-        params_str = ", ".join(self.get_signature().parameters.keys())
-
-        out = f"{self.get_name()} gate of qubit {qubits_str}"
-        if params_str:
-            out += f" (parameters = {params_str})"
-        return out
-
 
 class ScheduleDef(CalibrationEntry):
     """A calibration entry provided by in-memory Pulse representation."""
 
-    def __init__(
-        self,
-        name: str,
-        qubits: Sequence[int],
-        arguments: Optional[Sequence[str]] = None,
-    ):
+    def __init__(self, arguments: Optional[Sequence[str]] = None):
         """Define an empty entry.
 
         Args:
-            name: Instruction name.
-            qubits: Physical qubit index.
             arguments: User provided argument names for this entry, if parameterized.
         """
-        self._name = name
-        self._qubits = tuple(qubits)
         self._user_arguments = arguments
 
         self._definition = None
@@ -173,12 +137,6 @@ class ScheduleDef(CalibrationEntry):
         self._definition = definition
         self._parse_argument()
 
-    def get_name(self) -> str:
-        return self._name
-
-    def get_qubits(self) -> Tuple[int, ...]:
-        return self._qubits
-
     def get_signature(self) -> inspect.Signature:
         return self._signature
 
@@ -199,42 +157,28 @@ class ScheduleDef(CalibrationEntry):
         return self._definition.assign_parameters(value_dict, inplace=False)
 
     def __eq__(self, other):
-        if self._name != other._name:
-            return False
-        if self._qubits != other._qubits:
-            return False
         # This delegates equality check to Schedule or ScheduleBlock.
         return self._definition == other._definition
+
+    def __str__(self):
+        out = f"Schedule {self._definition.name}"
+        params_str = ", ".join(self.get_signature().parameters.keys())
+        if params_str:
+            out += f"({params_str})"
+        return out
 
 
 class CallableDef(CalibrationEntry):
     """A calibration entry provided by python callback function."""
 
-    def __init__(
-        self,
-        name: str,
-        qubits: Sequence[int],
-    ):
-        """Define an empty entry.
-
-        Args:
-            name: Instruction name.
-            qubits: Physical qubit index.
-        """
-        self._name = name
-        self._qubits = tuple(qubits)
+    def __init__(self):
+        """Define an empty entry."""
         self._definition = None
         self._signature = None
 
     def define(self, definition: Callable):
         self._definition = definition
         self._signature = inspect.signature(definition)
-
-    def get_name(self) -> str:
-        return self._name
-
-    def get_qubits(self) -> Tuple[int, ...]:
-        return self._qubits
 
     def get_signature(self) -> inspect.Signature:
         return self._signature
@@ -250,13 +194,13 @@ class CallableDef(CalibrationEntry):
         return self._definition(**to_bind.arguments)
 
     def __eq__(self, other):
-        if self._name != other._name:
-            return False
-        if self._qubits != other._qubits:
-            return False
         # We cannot evaluate function equality without parsing python AST.
         # This simply compares wether they are the same object.
         return self._definition is other._definition
+
+    def __str__(self):
+        params_str = ", ".join(self.get_signature().parameters.keys())
+        return f"Callable {self._definition.__name__}({params_str})"
 
 
 class PulseQobjDef(ScheduleDef):
@@ -264,27 +208,26 @@ class PulseQobjDef(ScheduleDef):
 
     def __init__(
         self,
-        name: str,
-        qubits: Sequence[int],
         arguments: Optional[Sequence[str]] = None,
         converter: Optional[QobjToInstructionConverter] = None,
+        name: Optional[str] = None,
     ):
         """Define an empty entry.
 
         Args:
-            name: Instruction name.
-            qubits: Physical qubit index.
             arguments: User provided argument names for this entry, if parameterized.
             converter: Optional. Qobj to Qiskit converter.
+            name: Name of schedule.
         """
-        super().__init__(name=name, qubits=qubits, arguments=arguments)
+        super().__init__(arguments=arguments)
 
         self._converter = converter or QobjToInstructionConverter()
+        self._name = name
         self._source = None
 
     def _build_schedule(self):
         """Build pulse schedule from cmd-def sequence."""
-        schedule = Schedule(name=self.get_name())
+        schedule = Schedule(name=self._name)
         for qobj_inst in self._source:
             for qiskit_inst in self._converter._get_sequences(qobj_inst):
                 schedule.insert(qobj_inst.t0, qiskit_inst, inplace=True)
@@ -297,12 +240,6 @@ class PulseQobjDef(ScheduleDef):
         # This doesn't generate signature immediately, because of lazy schedule build.
         self._source = definition
 
-    def get_name(self) -> str:
-        return self._name
-
-    def get_qubits(self) -> Tuple[int, ...]:
-        return self._qubits
-
     def get_signature(self) -> inspect.Signature:
         if self._definition is None:
             self._build_schedule()
@@ -314,10 +251,6 @@ class PulseQobjDef(ScheduleDef):
         return super().get_schedule(*args, **kwargs)
 
     def __eq__(self, other):
-        if self._name != other._name:
-            return False
-        if self._qubits != other._qubits:
-            return False
         if isinstance(other, PulseQobjDef):
             # If both objects are Qobj just check Qobj equality.
             return self._source == other._source
@@ -325,6 +258,12 @@ class PulseQobjDef(ScheduleDef):
             # To compare with other scheudle def, this also generates schedule object from qobj.
             self._build_schedule()
         return self._definition == other._definition
+
+    def __str__(self):
+        if self._definition is None:
+            # Avoid parsing schedule for pretty print.
+            return "PulseQobj"
+        return super().__str__()
 
 
 class InstructionScheduleMap:
@@ -510,11 +449,10 @@ class InstructionScheduleMap:
 
         # generate signature
         if isinstance(schedule, (Schedule, ScheduleBlock)):
-            entry = ScheduleDef(instruction, qubits, arguments)
+            entry = ScheduleDef(arguments)
             # add metadata
             if "publisher" not in schedule.metadata:
                 schedule.metadata["publisher"] = CalibrationPublisher.QISKIT
-            entry.define(schedule)
         elif callable(schedule):
             if arguments:
                 warnings.warn(
@@ -522,16 +460,21 @@ class InstructionScheduleMap:
                     "Input `arguments` are ignored.",
                     UserWarning,
                 )
-            entry = CallableDef(instruction, qubits)
-            entry.define(schedule)
+            entry = CallableDef()
         else:
             raise PulseError(
                 "Supplied schedule must be one of the Schedule, ScheduleBlock or a "
                 "callable that outputs a schedule."
             )
-        self._add(entry)
+        entry.define(schedule)
+        self._add(instruction, qubits, entry)
 
-    def _add(self, entry: CalibrationEntry):
+    def _add(
+        self,
+        instruction_name: str,
+        qubits: Tuple[int, ...],
+        entry: CalibrationEntry,
+    ):
         """A method to resister calibration entry.
 
         .. note::
@@ -541,15 +484,14 @@ class InstructionScheduleMap:
             that load backend calibrations to create Qiskit representation of it.
 
         Args:
+            instruction_name: Name of instruction.
+            qubits: List of qubits that this calibration is applied.
             entry: Calibration entry to register.
 
         :meta public:
         """
-        instruction = entry.get_name()
-        qubits = entry.get_qubits()
-
-        self._map[instruction][qubits] = entry
-        self._qubit_instructions[qubits].add(instruction)
+        self._map[instruction_name][qubits] = entry
+        self._qubit_instructions[qubits].add(instruction_name)
 
     def remove(
         self, instruction: Union[str, Instruction], qubits: Union[int, Iterable[int]]
