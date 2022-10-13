@@ -28,7 +28,7 @@ Qiskit 0.39.0
 This release also officially deprecates the Qiskit Aer project as part of the Qiskit metapackage.
 This means that in a future release ``pip install qiskit`` will no longer include ``qiskit-aer``.
 If you're currently installing or listing ``qiskit`` as a dependency to get Aer you should upgrade
-this to explicitly list ``qiskit-aer`` instead.
+this to explicitly list ``qiskit-aer`` as well.
 
 The ``qiskit-aer`` project is still active and maintained moving forward but for the Qiskit
 metapackage (i.e. what gets installed via ``pip install qiskit``) the project is moving towards
