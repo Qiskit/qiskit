@@ -242,6 +242,7 @@ Gates and Instructions
    InstructionSet
    Operation
    EquivalenceLibrary
+   CommutationChecker
 
 Control Flow Operations
 -----------------------

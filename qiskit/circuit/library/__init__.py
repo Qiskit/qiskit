@@ -78,6 +78,7 @@ For example:
    CXGate
    CYGate
    CZGate
+   CCZGate
    HGate
    IGate
    MSGate
@@ -97,6 +98,8 @@ For example:
    ECRGate
    SGate
    SdgGate
+   CSGate
+   CSdgGate
    SwapGate
    iSwapGate
    SXGate

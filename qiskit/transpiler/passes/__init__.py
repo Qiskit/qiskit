@@ -171,6 +171,14 @@ Additional Passes
    ContainsInstruction
    GatesInBasis
    ConvertConditionsToIfOps
+
+High Level Synthesis Configuration
+==================================
+
+.. autosummary::
+   :toctree: ../stubs/
+
+   HLSConfig
 """
 
 # layout selection (placement)
@@ -243,6 +251,7 @@ from .synthesis import unitary_synthesis_plugin_names
 from .synthesis import LinearFunctionsSynthesis
 from .synthesis import LinearFunctionsToPermutations
 from .synthesis import HighLevelSynthesis
+from .synthesis import HLSConfig
 
 # calibration
 from .calibration import PulseGates
