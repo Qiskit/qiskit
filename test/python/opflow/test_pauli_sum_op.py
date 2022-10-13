@@ -305,6 +305,13 @@ class TestPauliSumOp(QiskitOpflowTestCase):
         )
         self.assertEqual(target, expected)
 
+        a = Parameter("a")
+        target = PauliSumOp.from_list([("X", 0.5 * a), ("Y", -0.5j * a)], dtype=object)
+        expected = PauliSumOp(
+            SparsePauliOp.from_list([("X", 0.5 * a), ("Y", -0.5j * a)], dtype=object)
+        )
+        self.assertEqual(target.primitive, expected.primitive)
+
     def test_matrix_iter(self):
         """Test PauliSumOp dense matrix_iter method."""
         labels = ["III", "IXI", "IYY", "YIZ", "XYZ", "III"]
