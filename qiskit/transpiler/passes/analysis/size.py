@@ -21,6 +21,16 @@ class Size(AnalysisPass):
     The result is saved in ``property_set['size']`` as an integer.
     """
 
+    def __init__(self, *, recurse=False):
+        """
+        Args:
+            recurse: whether to allow recursion into control flow.  If this is ``False`` (default),
+                the pass will throw an error when control flow is present, to avoid returning a
+                number with little meaning.
+        """
+        super().__init__()
+        self.recurse = recurse
+
     def run(self, dag):
         """Run the Size pass on `dag`."""
-        self.property_set["size"] = dag.size()
+        self.property_set["size"] = dag.size(recurse=self.recurse)
