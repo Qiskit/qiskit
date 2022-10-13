@@ -14,8 +14,7 @@
 
 import unittest
 from test.python.algorithms import QiskitAlgorithmsTestCase
-from test.python.algorithms.time_evolvers.variational.variational_principles.\
-    expected_results.test_imaginary_mc_lachlan_variational_principle_expected2 import (
+from test.python.algorithms.time_evolvers.variational.variational_principles.expected_results.test_imaginary_mc_lachlan_variational_principle_expected2 import (
     expected_bound_metric_tensor_2,
 )
 import numpy as np
