@@ -1,9 +1,8 @@
-features:
+fixes:
   - |
-    Add calls of the callback function during the :meth:`energy_evaluation` to track the progress of
-    the algorithm. Also adds a ``step`` argument to the callback to track which eigenstates of the 
-    Hamiltonian is currently being optimized.
-issues:
-  - |
-    The callback function in the :class:`VQD` was defined but never used. 
-
+    Fixed an issue in the output callable from the
+    :meth:`~qiskit.algorithms.VQD.get_energy_evaluation` method of
+    the :class:`~qiskit.algorithms.VQD` class will now correctly call
+    the specified ``callback`` when run. Previously the callback would
+    incorrectly not be used in this case.
+    Fixed `#8575 <https://github.com/Qiskit/qiskit-terra/issues/8575>`__
