@@ -5,7 +5,11 @@ import numpy as np
 import retworkx as rx
 
 from qiskit.test import QiskitTestCase
-from qiskit.transpiler.synthesis.graph_utils import noncutting_vertices, pydigraph_to_pygraph, postorder_traversal
+from qiskit.transpiler.synthesis.graph_utils import (
+    noncutting_vertices,
+    pydigraph_to_pygraph,
+    postorder_traversal,
+)
 from qiskit.transpiler import CouplingMap
 
 
