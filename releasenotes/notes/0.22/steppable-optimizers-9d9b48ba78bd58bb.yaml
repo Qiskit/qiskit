@@ -17,16 +17,10 @@ features:
             from qiskit.algorithms.optimizers import GradientDescent
 
             def objective(x):
-                if random.choice([True, False]):
-                    return None
-                else:
-                    return (np.linalg.norm(x) - 1) ** 2
+                  return (np.linalg.norm(x) - 1) ** 2
 
             def grad(x):
-                if random.choice([True, False]):
-                    return None
-                else:
-                    return 2 * (np.linalg.norm(x) - 1) * x / np.linalg.norm(x)
+                  return 2 * (np.linalg.norm(x) - 1) * x / np.linalg.norm(x)
 
 
             initial_point = np.random.normal(0, 1, size=(100,))
@@ -35,13 +29,13 @@ features:
             optimizer.start(x0=initial_point, fun=objective, jac=grad)
 
             for _ in range(maxiter):
-            state = optimizer.state
-            # Here you can manually read out anything from the optimizer state.
-            optimizer.step()
+                state = optimizer.state
+                # Here you can manually read out anything from the optimizer state.
+                optimizer.step()
 
             result = optimizer.create_result()
 
-    A more complex case would be error handling. Imagine that the funciton you are evaluating has
+    A more complex case would be error handling. Imagine that the function you are evaluating has
     a random chance of failing. In this case you can catch the error and run the function again
     until it yields the desired result before continuing the optimization process. In this case
     one would use the ask and tell interface.
@@ -80,17 +74,15 @@ features:
 
                 optmizer.state.nit += 1
 
-                 cf  = TellData(eval_jac=evaluated_gradient)
+                cf  = TellData(eval_jac=evaluated_gradient)
                 optimizer.tell(ask_data=ask_data, tell_data=tell_data)
 
             result = optimizer.create_result()
 
-    Transitioned GradientDescent to be a subclass of SteppableOptimizer.
+    Transitioned :class:`GradientDescent` to be a subclass of :class:`.SteppableOptimizer`.
 
 fixes:
   - |
     :class:`.GradientDescent` will now correctly count the number of iterations, function evaluations and
     gradient evaluations. Also the documentation now correctly states that the gradient is approximated
     by a forward finite difference method.
-
-

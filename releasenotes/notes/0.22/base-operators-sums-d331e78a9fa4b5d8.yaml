@@ -1,5 +1,6 @@
 ---
 features:
   - |
-    ``qiskit.quantum_info.BaseOperator`` subclasses (like :class:`.ScalarOp`,
-    :class:`.SparsePauliOp` and :class:`.PauliList`) can now be used with ``sum``.
+    ``qiskit.quantum_info.BaseOperator`` subclasses (such as :class:`.ScalarOp`,
+    :class:`.SparsePauliOp` and :class:`.PauliList`) can now be used with
+    the built-in Python ``sum()`` function.

@@ -1,5 +1,10 @@
 ---
 features:
   - |
-    Splits the internal procedure in :meth:`taper()` into two methods :meth:`convert_clifford()` and :meth:`taper_clifford()`. The logic remains the same but the methods are now exposed in the public API. Also improves the documentation of the method `taper()`.
-
+    The :class:`~.Z2Symmetries` class has two new methods,
+    :meth:`~.Z2Symmetries.convert_clifford` and
+    :meth:`~.Z2Symmetries.taper_clifford`. These two methods are the two
+    operations necessary for taperng an operator based on the Z2 symmetries
+    in the object and were previously performed internally via the
+    :meth:`~.Z2Symmetries.taper` method. However, these methods are now
+    public methods of the class which can be called individually if needed.

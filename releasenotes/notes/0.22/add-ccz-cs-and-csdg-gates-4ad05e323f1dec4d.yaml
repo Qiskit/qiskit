@@ -1,5 +1,6 @@
 ---
 features:
   - |
-    Add new gates :class:`.CZZGate`, :class:`.CSGate`, and :class:`.CSdgGate`.
-    Added their equivalences into the standard :class:`EquivalenceLibrary`. 
+    Add new gates :class:`.CCZGate`, :class:`.CSGate`, and :class:`.CSdgGate`
+    to the standard gates in the Circuit Library
+    (:mod:`qiskit.circuit.library`).

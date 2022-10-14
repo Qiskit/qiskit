@@ -1,18 +1,19 @@
 ---
 features:
   - |
-    Added :class:`~qiskit.primitives.BaseSampler` as ``init`` parameter
-    for the following amplitude estimation algorithms:
-    :class:`~qiskit.algorithms.amplitude_estimators.AmplitudeEstimation`,
-    :class:`~qiskit.algorithms.amplitude_estimators.FasterAmplitudeEstimation`,
-    :class:`~qiskit.algorithms.amplitude_estimators.IterativeAmplitudeEstimation`,
-    :class:`~qiskit.algorithms.amplitude_estimators.MaximumLikelihoodAmplitudeEstimation`
-deprecations:
-  - |
-    Using :class:`~qiskit.utils.QuantumInstance` or :class:`~qiskit.providers.Backend` as
-    ``init`` parameters will now issue a ``PendingDeprecationWarning``
-    for the following amplitude estimation algorithms:
-    :class:`~qiskit.algorithms.amplitude_estimators.AmplitudeEstimation`,
-    :class:`~qiskit.algorithms.amplitude_estimators.FasterAmplitudeEstimation`,
-    :class:`~qiskit.algorithms.amplitude_estimators.IterativeAmplitudeEstimation`,
-    :class:`~qiskit.algorithms.amplitude_estimators.MaximumLikelihoodAmplitudeEstimation`
+    The amplitude estimation algorithm classes:
+
+     * :class:`~qiskit.algorithms.AmplitudeEstimation`,
+     * :class:`~qiskit.algorithms.FasterAmplitudeEstimation`,
+     * :class:`~qiskit.algorithms.IterativeAmplitudeEstimation`,
+     * :class:`~qiskit.algorithms.MaximumLikelihoodAmplitudeEstimation`
+
+    Now have a new keyword argument, ``sampler`` on their constructor that
+    takes an instance of an object that implements the :class:`~.BaseSampler`
+    interface including :class:`~.BackendSampler`, :class:`Sampler`, or any
+    provider implementations such as those as those present in
+    qiskit-ibm-runtime and qiskit-aer. This provides an alternative to using
+    the ``quantum_instance`` argument to set the target :class:`~.Backend`
+    or :class:`~.QuantumInstance` to run the algorithm on.
+    Using a :class:`~.QuantumInstance` is pending deprecation and will
+    be deprecated in a future release.
