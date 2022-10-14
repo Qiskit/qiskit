@@ -56,7 +56,7 @@ def collect_linear_blocks(dag):
     return blocks
 
 
-def split_block_into_components(dag, block):
+def split_block_into_components(dag, block):  # pylint:disable=unused-argument
     """Given a block of gates, splits it into connected components."""
     return BlockSplitter().run(block)
 
