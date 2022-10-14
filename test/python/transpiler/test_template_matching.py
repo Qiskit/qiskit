@@ -187,10 +187,12 @@ class TestTemplateMatching(QiskitTestCase):
         pass_ = TemplateOptimization(template_list)
         dag_opt = pass_.run(dag_in)
 
+        # note: cx(2, 1) commutes both with ccx(3, 4, 0) and with cx(2, 4),
+        # so there is no real difference with the circuit drawn on the picture above.
         circuit_expected = QuantumCircuit(qr)
+        circuit_expected.cx(qr[2], qr[1])
         circuit_expected.ccx(qr[3], qr[4], qr[0])
         circuit_expected.cx(qr[2], qr[4])
-        circuit_expected.cx(qr[2], qr[1])
         circuit_expected.z(qr[1])
         circuit_expected.h(qr[3])
         circuit_expected.cx(qr[2], qr[3])
