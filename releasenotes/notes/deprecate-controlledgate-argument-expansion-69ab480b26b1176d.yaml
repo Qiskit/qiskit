@@ -1,24 +1,31 @@
 ---
 deprecations:
   - |
-    Deprecate the argument expansion on single controlled qubit gates, such as for example 
+    In future passing multiple qubit arguments to controlled gate methods created multi-controlled
+    (and optionall multi-target) gates. The current behavior, where multiple arguments are
+    broadcasted to create multiple single-control single-target gates, is pending deprecation.
 
-    .. code-block::python
+    For example::
 
-        from qiskit.circuit import QuantumCircuit
+      from qiskit.circuit import QuantumCircuit
 
-        circuit = QuantumCircuit(4)
-        circuit.cx([0, 1], [2, 3])
+      circuit = QuantumCircuit(3)
+      circuit.cx([0, 1], 2)
 
-    which would previously create two CX gates, one controlled on qubit 0 and acting on qubit 2
-    and a second one contolled on qubit 1 and acting on qubit 3. Instead, the circuit methods 
-    must now be called once for each gate as 
+    currently creates two CX gates, one controlled on qubit 0 and acting on qubit 2
+    and a second one contolled on qubit 1 and acting on qubit 2. In future, this will create a
+    CCX gate, controlled on qubits 0 and 1 and acting on 2.
 
-    .. code-block::python
+    To construct two gates in future, the methods have to be called twice explicitly::
 
-        from qiskit.circuit import QuantumCircuit
+      from qiskit.circuit import QuantumCircuit
 
-        circuit = QuantumCircuit(4)
-        circuit.cx(0, 2)
-        circuit.cx(1, 3)
-    
+      circuit = QuantumCircuit(3)
+      circuit.cx(0, 2)
+      circuit.cx(1, 2)
+
+    The future behavior for multicontrolled gates can already be enabled as::
+
+      from qiskit.future import multicontrolled_gates
+
+    which also silences pending deprecation warnings.

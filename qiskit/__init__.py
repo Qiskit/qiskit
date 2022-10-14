@@ -18,7 +18,6 @@ import pkgutil
 import sys
 import warnings
 
-# from qiskit.future import __FUTURE_MCGATES__
 import qiskit._accelerate
 
 # Globally define compiled modules. The normal import mechanism will not
