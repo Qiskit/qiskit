@@ -56,6 +56,6 @@ class CollectCliffords(CollapseChains):
             and getattr(node.op, "condition", None) is None
         )
 
-    def collapse_function(self, qc: QuantumCircuit):
+    def collapse_function(self, circuit: QuantumCircuit):
         """Specifies how to construct an Operation from a collected block."""
-        return Clifford(qc)
+        return Clifford(circuit)
