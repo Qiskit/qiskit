@@ -38,3 +38,24 @@ def noncutting_vertices(coupling_map: CouplingMap) -> np.ndarray:
     noncutting = np.array(list(vertices - cutting_vertices))
 
     return noncutting
+
+
+def postorder_traversal(tree: rx.PyGraph, node: int, edges: list, parent: int = None):
+    """Traverse the given tree in postorder. Traversed edges are saved as tuples.
+    The first element is the parent and second the child.
+    Children are visited in increasing order.
+
+    Args:
+        tree (rx.PyGraph): tree to traverse
+        node (int): root node
+        edges (list): edge list
+        parent (int, optional): parent node. Defaults to None.
+    """
+    if node == None:
+        return
+    for n in sorted(tree.neighbors(node)):
+        if n == parent:
+            continue
+        postorder_traversal(tree, n, edges, node)
+    if parent != None:
+        edges.append((parent, node))
