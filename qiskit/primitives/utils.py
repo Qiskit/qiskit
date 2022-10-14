@@ -15,7 +15,7 @@ Utility functions for primitives
 
 from __future__ import annotations
 
-from qiskit.circuit import ParameterExpression, QuantumCircuit
+from qiskit.circuit import Instruction, ParameterExpression, QuantumCircuit
 from qiskit.extensions.quantum_initializer.initializer import Initialize
 from qiskit.opflow import PauliSumOp
 from qiskit.quantum_info import SparsePauliOp, Statevector
@@ -92,15 +92,15 @@ def final_measurement_mapping(circuit: QuantumCircuit) -> dict[int, int]:
     # Find final measurements starting in back
     mapping = {}
     for item in circuit._data[::-1]:
-        if item[0].name == "measure":
-            cbit = circuit.find_bit(item[2][0]).index
-            qbit = circuit.find_bit(item[1][0]).index
+        if item.operation.name == "measure":
+            cbit = circuit.find_bit(item.clbits[0]).index
+            qbit = circuit.find_bit(item.qubits[0]).index
             if cbit in active_cbits and qbit in active_qubits:
                 mapping[qbit] = cbit
                 active_cbits.remove(cbit)
                 active_qubits.remove(qbit)
-        elif item[0].name != "barrier":
-            for qq in item[1]:
+        elif item.operation.name != "barrier":
+            for qq in item.qubits:
                 _temp_qubit = circuit.find_bit(qq).index
                 if _temp_qubit in active_qubits:
                     active_qubits.remove(_temp_qubit)
@@ -111,3 +111,76 @@ def final_measurement_mapping(circuit: QuantumCircuit) -> dict[int, int]:
     # Sort so that classical bits are in numeric order low->high.
     mapping = dict(sorted(mapping.items(), key=lambda item: item[1]))
     return mapping
+
+
+def _circuit_key(circuit: QuantumCircuit, functional: bool = True) -> tuple:
+    """Private key function for QuantumCircuit.
+
+    This is the workaround until :meth:`QuantumCircuit.__hash__` will be introduced.
+    If key collision is found, please add elements to avoid it.
+
+    Args:
+        circuit: Input quantum circuit.
+        functional: If True, the returned key only includes functional data (i.e. execution related).
+
+    Returns:
+        Composite key for circuit.
+    """
+    functional_key: tuple = (
+        circuit.num_qubits,
+        circuit.num_clbits,
+        circuit.num_parameters,
+        tuple(
+            (d.qubits, d.clbits, d.operation.name, tuple(d.operation.params)) for d in circuit.data
+        ),
+        None if circuit._op_start_times is None else tuple(circuit._op_start_times),
+    )
+    if functional:
+        return functional_key
+    return (
+        circuit.name,
+        *functional_key,
+    )
+
+
+def _observable_key(observable: SparsePauliOp) -> tuple:
+    """Private key function for SparsePauliOp.
+    Args:
+        observable: Input operator.
+
+    Returns:
+        Key for observables.
+    """
+    return tuple(observable.to_list())
+
+
+def bound_circuit_to_instruction(circuit: QuantumCircuit) -> Instruction:
+    """Build an :class:`~qiskit.circuit.Instruction` object from
+    a :class:`~qiskit.circuit.QuantumCircuit`
+
+    This is a specialized version of :func:`~qiskit.converters.circuit_to_instruction`
+    to avoid deep copy. This requires a quantum circuit whose parameters are all bound.
+    Because this does not take a copy of the input circuit, this assumes that the input
+    circuit won't be modified.
+
+    If https://github.com/Qiskit/qiskit-terra/issues/7983 is resolved,
+    we can remove this function.
+
+    Args:
+        circuit(QuantumCircuit): Input quantum circuit
+
+    Returns:
+        An :class:`~qiskit.circuit.Instruction` object
+    """
+    if len(circuit.qregs) > 1:
+        return circuit.to_instruction()
+
+    # len(circuit.qregs) == 1 -> No need to flatten qregs
+    inst = Instruction(
+        name=circuit.name,
+        num_qubits=circuit.num_qubits,
+        num_clbits=circuit.num_clbits,
+        params=[],
+    )
+    inst.definition = circuit
+    return inst

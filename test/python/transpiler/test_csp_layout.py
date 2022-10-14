@@ -20,7 +20,7 @@ from qiskit.transpiler import CouplingMap
 from qiskit.transpiler.passes import CSPLayout
 from qiskit.converters import circuit_to_dag
 from qiskit.test import QiskitTestCase
-from qiskit.test.mock import FakeTenerife, FakeRueschlikon, FakeTokyo
+from qiskit.providers.fake_provider import FakeTenerife, FakeRueschlikon, FakeTokyo
 
 
 class TestCSPLayout(QiskitTestCase):

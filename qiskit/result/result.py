@@ -62,12 +62,9 @@ class Result:
         self.job_id = job_id
         self.success = success
         self.results = results
-        if date is not None:
-            self.date = date
-        if status is not None:
-            self.status = status
-        if header is not None:
-            self.header = header
+        self.date = date
+        self.status = status
+        self.header = header
         self._metadata.update(kwargs)
 
     def __repr__(self):
@@ -83,12 +80,7 @@ class Result:
                 self.results,
             )
         )
-        if hasattr(self, "date"):
-            out += ", date=%s" % self.date
-        if hasattr(self, "status"):
-            out += ", status=%s" % self.status
-        if hasattr(self, "header"):
-            out += ", status=%s" % self.header
+        out += f", date={self.date}, status={self.status}, header={self.header}"
         for key in self._metadata:
             if isinstance(self._metadata[key], str):
                 value_str = "'%s'" % self._metadata[key]
@@ -107,17 +99,14 @@ class Result:
         out_dict = {
             "backend_name": self.backend_name,
             "backend_version": self.backend_version,
+            "date": self.date,
+            "header": None if self.header is None else self.header.to_dict(),
             "qobj_id": self.qobj_id,
             "job_id": self.job_id,
+            "status": self.status,
             "success": self.success,
             "results": [x.to_dict() for x in self.results],
         }
-        if hasattr(self, "date"):
-            out_dict["date"] = self.date
-        if hasattr(self, "status"):
-            out_dict["status"] = self.status
-        if hasattr(self, "header"):
-            out_dict["header"] = self.header.to_dict()
         out_dict.update(self._metadata)
         return out_dict
 
@@ -142,7 +131,7 @@ class Result:
 
         in_data = copy.copy(data)
         in_data["results"] = [ExperimentResult.from_dict(x) for x in in_data.pop("results")]
-        if "header" in in_data:
+        if in_data.get("header") is not None:
             in_data["header"] = QobjHeader.from_dict(in_data.pop("header"))
         return cls(**in_data)
 

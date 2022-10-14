@@ -12,8 +12,8 @@
 
 """Test GatesInBasis pass."""
 
-from qiskit.circuit import QuantumCircuit
-from qiskit.circuit.library import HGate, CXGate, UGate
+from qiskit.circuit import QuantumCircuit, ForLoopOp, IfElseOp, Clbit
+from qiskit.circuit.library import HGate, CXGate, UGate, XGate, ZGate
 from qiskit.circuit.measure import Measure
 from qiskit.circuit.equivalence_library import SessionEquivalenceLibrary
 from qiskit.transpiler import PassManager
@@ -21,7 +21,7 @@ from qiskit.transpiler.passes import BasisTranslator
 from qiskit.transpiler.passes import GatesInBasis
 from qiskit.transpiler.target import Target
 from qiskit.test import QiskitTestCase
-from qiskit.test.mock.fake_backend_v2 import FakeBackend5QV2
+from qiskit.providers.fake_provider.fake_backend_v2 import FakeBackend5QV2
 
 
 class TestGatesInBasisPass(QiskitTestCase):
@@ -206,3 +206,60 @@ class TestGatesInBasisPass(QiskitTestCase):
         pm.append(analysis_pass)
         pm.run(circuit)
         self.assertTrue(pm.property_set["all_gates_in_basis"])
+
+    def test_basis_gates_control_flow(self):
+        """Test that the pass recurses into control flow."""
+        circuit = QuantumCircuit(4, 1)
+        circuit.h(0)
+        circuit.measure(0, 0)
+        with circuit.for_loop((1, 2)):
+            circuit.cx(0, 1)
+            with circuit.if_test((circuit.clbits[0], True)) as else_:
+                circuit.x(2)
+            with else_:
+                circuit.z(3)
+
+        one_missing = {"h", "measure", "for_loop", "cx", "if_else", "x"}
+        pass_ = GatesInBasis(one_missing)
+        pass_(circuit)
+        self.assertFalse(pass_.property_set["all_gates_in_basis"])
+
+        complete = one_missing | {"z"}
+        pass_ = GatesInBasis(complete)
+        pass_(circuit)
+        self.assertTrue(pass_.property_set["all_gates_in_basis"])
+
+    def test_basis_gates_target(self):
+        """Test that the pass recurses into control flow."""
+        circuit = QuantumCircuit(4, 1)
+        circuit.h(0)
+        circuit.measure(0, 0)
+        with circuit.for_loop((1, 2)):
+            circuit.cx(0, 1)
+            with circuit.if_test((circuit.clbits[0], True)) as else_:
+                circuit.x(2)
+            with else_:
+                circuit.z(3)
+
+        instructions = [
+            HGate(),
+            Measure(),
+            ForLoopOp((), None, QuantumCircuit(4)),
+            CXGate(),
+            IfElseOp((Clbit(), True), QuantumCircuit(2), QuantumCircuit(2)),
+            XGate(),
+            ZGate(),
+        ]
+        one_missing = Target(num_qubits=4)
+        for instruction in instructions[:-1]:
+            one_missing.add_instruction(instruction, {None: None})
+        pass_ = GatesInBasis(target=one_missing)
+        pass_(circuit)
+        self.assertFalse(pass_.property_set["all_gates_in_basis"])
+
+        complete = Target(num_qubits=4)
+        for instruction in instructions:
+            complete.add_instruction(instruction, {None: None})
+        pass_ = GatesInBasis(target=complete)
+        pass_(circuit)
+        self.assertTrue(pass_.property_set["all_gates_in_basis"])

@@ -178,17 +178,17 @@ class TestSabreSwap(QiskitTestCase):
         passmanager = PassManager(SabreSwap(coupling))
         transpiled = passmanager.run(qc)
 
-        last_h, h_qubits, _ = transpiled.data[-4]
-        self.assertIsInstance(last_h, HGate)
-        first_measure, first_measure_qubits, _ = transpiled.data[-2]
-        second_measure, second_measure_qubits, _ = transpiled.data[-1]
-        self.assertIsInstance(first_measure, Measure)
-        self.assertIsInstance(second_measure, Measure)
+        last_h = transpiled.data[-4]
+        self.assertIsInstance(last_h.operation, HGate)
+        first_measure = transpiled.data[-2]
+        second_measure = transpiled.data[-1]
+        self.assertIsInstance(first_measure.operation, Measure)
+        self.assertIsInstance(second_measure.operation, Measure)
         # Assert that the first measure is on the same qubit that the HGate was applied to, and the
         # second measurement is on a different qubit (though we don't care which exactly - that
         # depends a little on the randomisation of the pass).
-        self.assertEqual(h_qubits, first_measure_qubits)
-        self.assertNotEqual(h_qubits, second_measure_qubits)
+        self.assertEqual(last_h.qubits, first_measure.qubits)
+        self.assertNotEqual(last_h.qubits, second_measure.qubits)
 
     # The 'basic' method can't get stuck in the same way.
     @ddt.data("lookahead", "decay")
@@ -217,9 +217,9 @@ class TestSabreSwap(QiskitTestCase):
         del routed_ops["swap"]
         self.assertEqual(routed_ops, qc.count_ops())
         couplings = {
-            tuple(routed.find_bit(bit).index for bit in qargs)
-            for _, qargs, _ in routed.data
-            if len(qargs) == 2
+            tuple(routed.find_bit(bit).index for bit in instruction.qubits)
+            for instruction in routed.data
+            if len(instruction.qubits) == 2
         }
         # Asserting equality to the empty set gives better errors on failure than asserting that
         # `couplings <= coupling_map`.
@@ -261,6 +261,51 @@ class TestSabreSwap(QiskitTestCase):
             expected = PassManager([TrivialLayout(cm)]).run(qc)
             actual = PassManager([TrivialLayout(cm), SabreSwap(cm)]).run(qc)
             self.assertEqual(expected, actual)
+
+    def test_classical_condition_cargs(self):
+        """Test that classical conditions are preserved even if missing from cargs DAGNode field.
+
+        Created from reproduction in https://github.com/Qiskit/qiskit-terra/issues/8675
+        """
+        with self.subTest("missing measurement"):
+            qc = QuantumCircuit(3, 1)
+            qc.cx(0, 2).c_if(0, 0)
+            qc.measure(1, 0)
+            qc.h(2).c_if(0, 0)
+            expected = QuantumCircuit(3, 1)
+            expected.swap(1, 2)
+            expected.cx(0, 1).c_if(0, 0)
+            expected.measure(2, 0)
+            expected.h(1).c_if(0, 0)
+            result = SabreSwap(CouplingMap.from_line(3), seed=12345)(qc)
+            self.assertEqual(result, expected)
+        with self.subTest("reordered measurement"):
+            qc = QuantumCircuit(3, 1)
+            qc.cx(0, 1).c_if(0, 0)
+            qc.measure(1, 0)
+            qc.h(0).c_if(0, 0)
+            expected = QuantumCircuit(3, 1)
+            expected.cx(0, 1).c_if(0, 0)
+            expected.measure(1, 0)
+            expected.h(0).c_if(0, 0)
+            result = SabreSwap(CouplingMap.from_line(3), seed=12345)(qc)
+            self.assertEqual(result, expected)
+
+    def test_conditional_measurement(self):
+        """Test that instructions with cargs and conditions are handled correctly."""
+        qc = QuantumCircuit(3, 2)
+        qc.cx(0, 2).c_if(0, 0)
+        qc.measure(2, 0).c_if(1, 0)
+        qc.h(2).c_if(0, 0)
+        qc.measure(1, 1)
+        expected = QuantumCircuit(3, 2)
+        expected.swap(1, 2)
+        expected.cx(0, 1).c_if(0, 0)
+        expected.measure(1, 0).c_if(1, 0)
+        expected.h(1).c_if(0, 0)
+        expected.measure(2, 1)
+        result = SabreSwap(CouplingMap.from_line(3), seed=12345)(qc)
+        self.assertEqual(result, expected)
 
 
 if __name__ == "__main__":

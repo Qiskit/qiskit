@@ -1,0 +1,6 @@
+---
+fixes:
+  - |
+    Parameter validation for :class:`~.pulse.library.GaussianSquare` is now
+    consistent before and after construction.
+    Refer to `#7882 <https://github.com/Qiskit/qiskit-terra/issues/7882>`__ for more details.
