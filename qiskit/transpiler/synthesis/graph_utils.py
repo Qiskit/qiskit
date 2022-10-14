@@ -48,8 +48,8 @@ def postorder_traversal(tree: rx.PyGraph, node: int, edges: list, parent: int = 
     Args:
         tree (rx.PyGraph): tree to traverse
         node (int): root node
-        parent (int): parent node
         edges (list): edge list
+        parent (int, optional): parent node. Defaults to None.
     """
     if node == None:
         return
