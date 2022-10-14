@@ -88,7 +88,6 @@ Optimizations
    EchoRZXWeylDecomposition
    ResetAfterMeasureSimplification
    OptimizeCliffords
-   CollapseChains
 
 Calibration
 =============
@@ -229,7 +228,6 @@ from .optimization import CollectLinearFunctions
 from .optimization import CollectCliffords
 from .optimization import ResetAfterMeasureSimplification
 from .optimization import OptimizeCliffords
-from .optimization import CollapseChains
 
 # circuit analysis
 from .analysis import ResourceEstimation

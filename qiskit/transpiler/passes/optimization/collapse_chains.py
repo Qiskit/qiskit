@@ -19,9 +19,8 @@ from typing import Union
 
 from abc import abstractmethod
 
-from qiskit import QuantumCircuit
-from qiskit.circuit import Operation, CircuitInstruction
-from qiskit.transpiler import TransformationPass
+from qiskit.circuit import QuantumCircuit, CircuitInstruction, Operation
+from qiskit.transpiler.basepasses import TransformationPass
 from qiskit.converters import dag_to_dagdependency, dagdependency_to_dag
 from qiskit.dagcircuit import DAGOpNode, DAGDepNode
 from qiskit.dagcircuit.collect_blocks import BlockCollector, BlockSplitter
