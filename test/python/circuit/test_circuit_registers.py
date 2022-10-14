@@ -463,7 +463,7 @@ class TestCircuitRegisters(QiskitTestCase):
 
         # single controlled gates on slices is deprecated
         # TODO remove once support is dropped
-        with self.assertWarns(FutureWarning):
+        with self.assertWarns(PendingDeprecationWarning):
             qc.cx(qr[ind], qr[2:6])
 
         for instruction, ind1, ind2 in zip(qc.data, ind, range(2, 6)):
