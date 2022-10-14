@@ -12,7 +12,7 @@
 
 """Synthesize UnitaryGates."""
 
-from math import pi, inf
+from math import pi, inf, isclose
 from typing import List, Union
 from copy import deepcopy
 from itertools import product
@@ -23,8 +23,10 @@ from qiskit.transpiler.basepasses import TransformationPass
 from qiskit.transpiler.exceptions import TranspilerError
 from qiskit.dagcircuit.dagcircuit import DAGCircuit
 from qiskit.quantum_info.synthesis import one_qubit_decompose
-from qiskit.quantum_info.synthesis.xx_decompose import XXDecomposer
-from qiskit.quantum_info.synthesis.two_qubit_decompose import TwoQubitBasisDecomposer
+from qiskit.quantum_info.synthesis.xx_decompose import XXDecomposer, XXEmbodiments
+from qiskit.quantum_info.synthesis.two_qubit_decompose import (TwoQubitBasisDecomposer,
+                                                               TwoQubitWeylDecomposition)
+from qiskit.quantum_info import Operator
 from qiskit.circuit import ControlFlowOp
 from qiskit.circuit.parameter import Parameter
 from qiskit.circuit.library.standard_gates import (
@@ -413,7 +415,7 @@ class DefaultUnitarySynthesis(plugin.UnitarySynthesisPlugin):
         super().__init__()
         self._decomposer_cache = {}
 
-    def _find_matching_euler_bases(target, qubit):
+    def _find_matching_euler_bases(self, target):
         """Find matching available 1q basis to use in the Euler decomposition."""
         euler_basis_gates = []
         basis_set = target.keys()
@@ -430,85 +432,80 @@ class DefaultUnitarySynthesis(plugin.UnitarySynthesisPlugin):
 
         matching = {}
         reverse = {}
-        try:
-            kak_basis = target.operations_for_qargs(qubits_tuple)
-        except KeyError:
-            kak_basis = target.operations_for_qargs(reverse_tuple)
-        euler_basis_gates = self._find_matching_euler_bases(target)
-        from qiskit.quantum_info.synthesis.two_qubit_decompose import TwoQubitWeylDecomposition
-        from qiskit.quantum_info import Operator
-        import numpy as np
 
-        decomposers_2q = []
+        # available instructions on this qubit pair, mapped to their associated property.
+        # prefer same direction if exists, otherwise consider reverse direction too.
+        available_2q_basis = {}
+        available_2q_props = {}
+        try:
+            keys = target.operation_names_for_qargs(qubits_tuple)
+            for key in keys:
+                available_2q_basis[key] = target.operation_from_name(key)
+                available_2q_props[key] = target[key][qubits_tuple]
+        except KeyError:
+            pass
+        try:
+            keys = target.operation_names_for_qargs(reverse_tuple)
+            for key in keys:
+                if key not in available_2q_basis:
+                    available_2q_basis[key] = target.operation_from_name(key)
+                    available_2q_props[key] = target[key][reverse_tuple]
+        except KeyError:
+            pass
+
         # find all decomposers
         def is_supercontrolled(gate):
             coords = TwoQubitWeylDecomposition(Operator(gate).data)
-            return np.isclose(coords.a, np.pi / 4) and np.isclose(coords.c, 0.0)
+            return isclose(coords.a, pi / 4) and isclose(coords.c, 0.0)
         def is_controlled(gate):
             coords = TwoQubitWeylDecomposition(Operator(gate).data)
-            return np.isclose(coords.b, 0.0) and np.isclose(coords.c, 0.0)
+            return isclose(coords.b, 0.0) and isclose(coords.c, 0.0)
 
-        supercontrolled_kak_basis = [b for b in kak_basis if is_supercontrolled(b)]
-        controlled_kak_basis = [b for b in kak_basis if is_controlled(b)]
+        supercontrolled_basis = {k: v for k, v in available_2q_basis.items() if is_supercontrolled(v)}
+        controlled_basis = {k: v for k, v in available_2q_basis.items() if is_controlled(v)}
 
-        print([g.name for g in kak_basis])
-        print(euler_basis_gates)
-        print(f'supercontrolled basis: {supercontrolled_kak_basis}')
-        print(f'controlled basis: {controlled_kak_basis}')
-        
-        if controlled_kak_basis:
-            
-        for kak_gate, euler_basis in product(kak_basis, euler_basis_gates):
-            if isinstance(kak_gate, RZXGate):
-                backup_optimizer = TwoQubitBasisDecomposer(
-                    CXGate(), euler_basis=euler_basis, pulse_optimize=pulse_optimize
-                )
-                decomposer = XXDecomposer(
-                    euler_basis=euler_basis, backup_optimizer=backup_optimizer
-                )
-                decomposer.gate_name = kak_gate.name
-                decomposers_2q.append(decomposer)
-            elif kak_gate is not None:
-                decomposer = TwoQubitBasisDecomposer(
-                    kak_gate, euler_basis=euler_basis, pulse_optimize=pulse_optimize
-                )
-                decomposer.gate_name = kak_gate.name
-                decomposers_2q.append(decomposer)
+        print(f'controlled basis: {controlled_basis}')
+        print(f'supercontrolled basis: {supercontrolled_basis}')
 
-        # Find lowest error matching or reverse decomposer and use that
-        for index, decomposer in enumerate(decomposers_2q):
-            gate_name = getattr(decomposer, "gate_name", decomposer.gate.name)
-            props_dict = target[gate_name]
-            if target.instruction_supported(gate_name, qubits_tuple):
-                if props_dict is None or None in props_dict:
-                    error = 0.0
-                else:
-                    error = getattr(props_dict[qubits_tuple], "error", 0.0)
-                    if error is None:
-                        error = 0.0
-                matching[index] = error
-            # Skip reverse check if we already have matching
-            elif not matching and target.instruction_supported(gate_name, reverse_tuple):
-                if props_dict is None or None in props_dict:
-                    error = 0.0
-                else:
-                    error = getattr(props_dict[reverse_tuple], "error", 0.0)
-                    if error is None:
-                        error = 0.0
-                reverse[index] = error
-        preferred_direction = None
-        if matching:
-            preferred_direction = [0, 1]
-            min_error_index = min(matching, key=matching.get)
-            decomposer2q = decomposers_2q[min_error_index]
-        elif reverse:
-            preferred_direction = [1, 0]
-            min_error_index = min(reverse, key=reverse.get)
-            decomposer2q = decomposers_2q[min_error_index]
-        # If no matching or reverse direction is found just pick one, if natural direction is
-        # enforced it will fail later
+        # lowest-error Euler basis
+        available_1q_basis = self._find_matching_euler_bases(target)
+        euler_basis = available_1q_basis[0]
+
+        # best supercontrolled basis (if available)
+        best_supercontrolled = None
+        lowest_error = inf
+        shortest_duration = inf
+        for name in supercontrolled_basis.keys():
+            error = getattr(available_2q_props[name], "error", 0.0)
+            if error > lowest_error:
+                continue
+            duration = getattr(available_2q_props[name], "duration", 0.0)
+            if duration > shortest_duration:
+                continue
+            lowest_error = error
+            shortest_duration = duration
+            preferred_direction = [0, 1] if qubits_tuple in target[name].keys() else [1, 0]
+            best_supercontrolled = supercontrolled_basis[name]
+
+        print('going with ', euler_basis, best_supercontrolled)
+        supercontrolled_decomposer = TwoQubitBasisDecomposer(
+            best_supercontrolled, euler_basis=euler_basis, pulse_optimize=pulse_optimize
+            )
+
+        # collection of controlled basis 
+        embodiments = {}
+
+        # basis equivalent to CX are well optimized so use for the pi/2 angle if available
+        if is_controlled(supercontrolled_decomposer.gate):
+            pi2_decomposer = supercontrolled_decomposer
+            embodiments.update({pi/2: XXEmbodiments[type(pi2_decomposer.gate)]})
         else:
-            decomposer2q = decomposers_2q[0]
+            pi2_decomposer = None
+
+        controlled_decomposer = XXDecomposer(
+            euler_basis=euler_basis, embodiments=embodiments, backup_optimizer=pi2_decomposer
+            )
+
         self._decomposer_cache[qubits_tuple] = (decomposer2q, preferred_direction)
         print(decomposer2q)
         return (decomposer2q, preferred_direction)

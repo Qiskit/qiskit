@@ -67,6 +67,9 @@ class XXDecomposer:
             has no efficient decomposition of its own. Useful for special cases involving 2 or 3
             applications of XX(pi/2), in which case standard synthesis methods provide lower
             1Q gate count.
+        basis_fidelity: Fidelity of basis gates. Can be either (1) a dictionary
+            mapping XX angle values to fidelity at that angle; or (2) a single float f,
+            interpreted as {pi: f, pi/2: f/2, pi/3: f/3}.
 
     .. note::
         If ``embodiments`` is not passed, or if an entry is missing, it will be populated as needed
@@ -78,6 +81,7 @@ class XXDecomposer:
         euler_basis: str = "U",
         embodiments: Optional[dict] = None,
         backup_optimizer: Optional[Callable] = None,
+        basis_fidelity: Optional[dict | float] = 1.0
     ):
         from qiskit.transpiler.passes.optimization.optimize_1q_decomposition import (
             Optimize1qGatesDecomposition,  # pylint: disable=cyclic-import
@@ -87,6 +91,7 @@ class XXDecomposer:
         self.gate = RZXGate(np.pi / 2)
         self.embodiments = embodiments if embodiments is not None else {}
         self.backup_optimizer = backup_optimizer
+        self.basis_fidelity = basis_fidelity
 
         self._check_embodiments()
 
@@ -220,6 +225,7 @@ class XXDecomposer:
         Returns:
             QuantumCircuit: Synthesized circuit.
         """
+        basis_fidelity = basis_fidelity or self.basis_fidelity
         strength_to_infidelity = self._strength_to_infidelity(
             basis_fidelity, approximate=approximate
         )

@@ -19,7 +19,11 @@ TODO: discover these automatically from the gates' algebraic definition
 
 import numpy as np
 
-from qiskit.circuit import QuantumCircuit
+from qiskit.circuit import QuantumCircuit, Parameter
+from qiskit.circuit.library import (RZZGate, RZXGate, RYYGate, 
+                                    CRZGate, CRXGate, CRYGate, CPhaseGate, 
+                                    CZGate, CXGate, CYGate)
+
 
 rzz_circuit = QuantumCircuit(2)
 theta = Parameter('θ')
@@ -40,16 +44,6 @@ ryy_circuit.s(1)
 ryy_circuit.ryy(theta, 0, 1)
 ryy_circuit.sdg(0)
 ryy_circuit.sdg(1)
-
-cz_circuit = QuantumCircuit(2)
-cz_circuit.h(0)
-cz_circuit.h(1)
-cz_circuit.cz(0, 1)
-cz_circuit.s(0)
-cz_circuit.s(1)
-cz_circuit.h(0)
-cz_circuit.h(1)
-cz_circuit.global_phase -= np.pi / 4
 
 cphase_circuit = QuantumCircuit(2)
 cphase_circuit.h(0)
@@ -83,16 +77,59 @@ cry_circuit.ry(theta, 1)
 cry_circuit.h(0)
 cry_circuit.sdg(1)
 
+cz_circuit = QuantumCircuit(2)
+cz_circuit.h(0)
+cz_circuit.h(1)
+cz_circuit.cz(0, 1)
+cz_circuit.s(0)
+cz_circuit.s(1)
+cz_circuit.h(0)
+cz_circuit.h(1)
+cz_circuit.global_phase -= np.pi / 4
 
-xx_embodiments = {
-    RYYGate: (ryy_circuit, None),
-    RZZGate: (rzz_circuit, None),
-    RZXGate: (rzx_circuit, None),
-    CRXGate: (crx_circuit, None),
-    CRYGate: (cry_circuit, None),
-    CRZGate: (crz_circuit, None),
-    CPhaseGate: (cp_circuit, None),
-    CXGate: (cx_circuit, np.pi / 2),
-    CYGate: (cy_circuit, np.pi / 2),
-    CZGate: (cz_circuit, np.pi / 2)
+cx_circuit = QuantumCircuit(2)
+cx_circuit.h(0)
+cx_circuit.cx(0, 1)
+cx_circuit.s(0)
+cx_circuit.sx(1)
+cx_circuit.h(0)
+cx_circuit.global_phase -= np.pi / 4
+
+cy_circuit = QuantumCircuit(2)
+cy_circuit.h(0)
+cy_circuit.s(1)
+cy_circuit.cy(0, 1)
+cy_circuit.s(0)
+cy_circuit.sdg(1)
+cy_circuit.sx(1)
+cy_circuit.h(0)
+cy_circuit.global_phase -= np.pi / 4
+
+ch_circuit = QuantumCircuit(2)
+ch_circuit.h(0)
+ch_circuit.tdg(1)
+ch_circuit.h(1)
+ch_circuit.sdg(1)
+ch_circuit.ch(0, 1)
+ch_circuit.s(0)
+ch_circuit.s(1)
+ch_circuit.h(1)
+ch_circuit.t(1)
+ch_circuit.sx(1)
+ch_circuit.h(0)
+ch_circuit.global_phase -= np.pi / 4
+
+
+XXEmbodiments = {
+    RYYGate: ryy_circuit,
+    RZZGate: rzz_circuit,
+    RZXGate: rzx_circuit,
+    CRXGate: crx_circuit,
+    CRYGate: cry_circuit,
+    CRZGate: crz_circuit,
+    CPhaseGate: cphase_circuit,
+    CXGate: cx_circuit,
+    CYGate: cy_circuit,
+    CZGate: cz_circuit,
+    CHGate: ch_circuit
 }
