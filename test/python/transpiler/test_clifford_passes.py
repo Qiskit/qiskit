@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2017, 2021.
+# (C) Copyright IBM 2022.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -19,7 +19,7 @@ from qiskit.circuit import QuantumCircuit, Gate
 from qiskit.converters import dag_to_circuit, circuit_to_dag
 from qiskit.dagcircuit import DAGOpNode
 from qiskit.transpiler.passes import HighLevelSynthesis
-from qiskit.transpiler.passes import OptimizeCliffords
+from qiskit.transpiler.passes import OptimizeCliffords, CollectCliffords
 from qiskit.test import QiskitTestCase
 from qiskit.quantum_info.operators import Clifford
 from qiskit.transpiler import PassManager
@@ -337,7 +337,7 @@ class TestCliffordPasses(QiskitTestCase):
         self.assertNotIn("clifford", qc2.count_ops())
 
     def test_transpile_level_3(self):
-        """Make sure that transpile with optimization_level=2 transpiles
+        """Make sure that transpile with optimization_level=3 transpiles
         the Clifford."""
         cliff1 = self.create_cliff1()
         qc = QuantumCircuit(3)
@@ -345,6 +345,77 @@ class TestCliffordPasses(QiskitTestCase):
         self.assertIn("clifford", qc.count_ops())
         qc2 = transpile(qc, optimization_level=3)
         self.assertNotIn("clifford", qc2.count_ops())
+
+    def test_collect_cliffords_default(self):
+        """Make sure that collecting Clifford gates and replacing them by Clifford
+        works correctly."""
+
+        # original circuit (consisting of Clifford gates only)
+        qc = QuantumCircuit(3)
+        qc.h(0)
+        qc.s(1)
+        qc.x(2)
+        qc.cx(0, 1)
+        qc.sdg(2)
+        qc.swap(2, 1)
+        qc.z(0)
+        qc.cz(0, 1)
+        qc.y(2)
+        qc.cy(1, 2)
+
+        # We should end up with a single Clifford object
+        qct = PassManager(CollectCliffords()).run(qc)
+        self.assertEqual(qct.size(), 1)
+        self.assertIn("clifford", qct.count_ops().keys())
+
+    def test_collect_cliffords_options(self):
+        """Test the option split_blocks and min_block_size for collecting Clifford gates."""
+
+        # original circuit (consisting of Clifford gates only)
+        qc = QuantumCircuit(3)
+        qc.h(0)
+        qc.s(1)
+        qc.sdg(2)
+        qc.x(0)
+        qc.z(0)
+        qc.y(2)
+
+        # When split_blocks is false and min_block_size=2 (default),
+        # we should end up with a single Clifford object.
+        qct = PassManager(CollectCliffords(split_blocks=False)).run(qc)
+        self.assertEqual(qct.size(), 1)
+        self.assertEqual(qct.count_ops()["clifford"], 1)
+
+        # The above code should also work when commutativity analysis is enabled.
+        qct = PassManager(CollectCliffords(split_blocks=False, do_commutative_analysis=True)).run(
+            qc
+        )
+        self.assertEqual(qct.size(), 1)
+        self.assertEqual(qct.count_ops()["clifford"], 1)
+
+        # When split_blocks is true (default) and min_block_size is 1,
+        # we should end up with 3 Cliffords (each over a single qubit).
+        qct = PassManager(CollectCliffords(min_block_size=1)).run(qc)
+        self.assertEqual(qct.size(), 3)
+        self.assertEqual(qct.count_ops()["clifford"], 3)
+
+        # When split_blocks is true (default) and min_block_size is 2,
+        # we should end up with 2 Cliffords (the s(1)-gate should not be combined).
+        qct = PassManager(CollectCliffords(min_block_size=2)).run(qc)
+        self.assertEqual(qct.size(), 3)
+        self.assertEqual(qct.count_ops()["clifford"], 2)
+
+        # When split_blocks is true (default) and min_block_size is 3,
+        # we should end up with a single Clifford.
+        qct = PassManager(CollectCliffords(min_block_size=3)).run(qc)
+        self.assertEqual(qct.size(), 4)
+        self.assertEqual(qct.count_ops()["clifford"], 1)
+
+        # When split_blocks is true (default) and min_block_size is 4,
+        # no Cliffords should be collected.
+        qct = PassManager(CollectCliffords(min_block_size=4)).run(qc)
+        self.assertEqual(qct.size(), 6)
+        self.assertNotIn("clifford", qct.count_ops())
 
 
 if __name__ == "__main__":
