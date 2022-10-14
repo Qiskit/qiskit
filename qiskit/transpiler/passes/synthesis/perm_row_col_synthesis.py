@@ -14,14 +14,14 @@
 
 import numpy as np
 
-from qiskit.transpiler.passes.synthesis.high_level_synthesis import HighLevelSynthesis
+from qiskit.transpiler.passes.synthesis.linear_functions_synthesis import LinearFunctionsSynthesis
 from qiskit.dagcircuit.dagcircuit import DAGCircuit
 from qiskit.transpiler.synthesis.permrowcol import PermRowCol
 from qiskit.transpiler import CouplingMap
 from qiskit.converters import circuit_to_dag
 
 
-class PermRowColSynthesis(HighLevelSynthesis):
+class PermRowColSynthesis(LinearFunctionsSynthesis):
     """Synthesize high-level objects by using permrowcol algorithm"""
 
     def __init__(self, coupling_map: CouplingMap):
