@@ -32,7 +32,7 @@ from qiskit.transpiler.passes import FixedPoint
 from qiskit.transpiler.passes import Depth
 from qiskit.transpiler.passes import Size
 from qiskit.transpiler.passes import Optimize1qGatesDecomposition
-from qiskit.transpiler.passes import Layout2qDistance
+from qiskit.transpiler.passes import CheckMap
 from qiskit.transpiler.passes import GatesInBasis
 from qiskit.transpiler.preset_passmanagers import common
 from qiskit.transpiler.passes.layout.vf2_layout import VF2LayoutStopReason
@@ -72,8 +72,10 @@ def level_1_pass_manager(pass_manager_config: PassManagerConfig) -> StagedPassMa
     coupling_map = pass_manager_config.coupling_map
     initial_layout = pass_manager_config.initial_layout
     init_method = pass_manager_config.init_method
-    layout_method = pass_manager_config.layout_method or "sabre"
-    routing_method = pass_manager_config.routing_method or "sabre"
+    # Unlike other presets, the layout and routing defaults aren't set here because they change
+    # based on whether the input circuit has control flow.
+    layout_method = pass_manager_config.layout_method
+    routing_method = pass_manager_config.routing_method
     translation_method = pass_manager_config.translation_method or "translator"
     optimization_method = pass_manager_config.optimization_method
     scheduling_method = pass_manager_config.scheduling_method
@@ -93,16 +95,10 @@ def level_1_pass_manager(pass_manager_config: PassManagerConfig) -> StagedPassMa
     def _choose_layout_condition(property_set):
         return not property_set["layout"]
 
-    def _trivial_not_perfect(property_set):
-        # Verify that a trivial layout is perfect. If trivial_layout_score > 0
-        # the layout is not perfect. The layout is unconditionally set by trivial
-        # layout so we need to clear it before contuing.
-        if (
-            property_set["trivial_layout_score"] is not None
-            and property_set["trivial_layout_score"] != 0
-        ):
-            return True
-        return False
+    def _layout_not_perfect(property_set):
+        """Return ``True`` if the first attempt at layout has been checked and found to be
+        imperfect.  In this case, perfection means "does not require any swap routing"."""
+        return property_set["is_swap_mapped"] is not None and not property_set["is_swap_mapped"]
 
     # Use a better layout on densely connected qubits, if circuit needs swaps
     def _vf2_match_not_found(property_set):
@@ -122,10 +118,7 @@ def level_1_pass_manager(pass_manager_config: PassManagerConfig) -> StagedPassMa
     _choose_layout_0 = (
         []
         if pass_manager_config.layout_method
-        else [
-            TrivialLayout(coupling_map),
-            Layout2qDistance(coupling_map, property_name="trivial_layout_score"),
-        ]
+        else [TrivialLayout(coupling_map), CheckMap(coupling_map)]
     )
 
     _choose_layout_1 = (
@@ -150,6 +143,11 @@ def level_1_pass_manager(pass_manager_config: PassManagerConfig) -> StagedPassMa
         _improve_layout = SabreLayout(
             coupling_map, max_iterations=2, seed=seed_transpiler, swap_trials=5
         )
+    elif layout_method is None:
+        _improve_layout = common.if_has_control_flow_else(
+            DenseLayout(coupling_map, backend_properties, target=target),
+            SabreLayout(coupling_map, max_iterations=2, seed=seed_transpiler, swap_trials=5),
+        ).to_flow_controller()
 
     toqm_pass = False
     routing_pm = None
@@ -185,6 +183,20 @@ def level_1_pass_manager(pass_manager_config: PassManagerConfig) -> StagedPassMa
             check_trivial=True,
             use_barrier_before_measurement=not toqm_pass,
         )
+    elif routing_method is None:
+        _stochastic_routing = plugin_manager.get_passmanager_stage(
+            "routing",
+            "stochastic",
+            pass_manager_config,
+            optimization_level=1,
+        )
+        _sabre_routing = plugin_manager.get_passmanager_stage(
+            "routing",
+            "sabre",
+            pass_manager_config,
+            optimization_level=1,
+        )
+        routing_pm = common.if_has_control_flow_else(_stochastic_routing, _sabre_routing)
     else:
         routing_pm = plugin_manager.get_passmanager_stage(
             "routing",
@@ -214,7 +226,7 @@ def level_1_pass_manager(pass_manager_config: PassManagerConfig) -> StagedPassMa
             unitary_synthesis_plugin_config,
             hls_config,
         )
-        if layout_method not in {"trivial", "dense", "noise_adaptive", "sabre"}:
+        if layout_method not in {"trivial", "dense", "noise_adaptive", "sabre", None}:
             layout = plugin_manager.get_passmanager_stage(
                 "layout", layout_method, pass_manager_config, optimization_level=1
             )
@@ -222,7 +234,7 @@ def level_1_pass_manager(pass_manager_config: PassManagerConfig) -> StagedPassMa
             layout = PassManager()
             layout.append(_given_layout)
             layout.append(_choose_layout_0, condition=_choose_layout_condition)
-            layout.append(_choose_layout_1, condition=_trivial_not_perfect)
+            layout.append(_choose_layout_1, condition=_layout_not_perfect)
             layout.append(_improve_layout, condition=_vf2_match_not_found)
             layout += common.generate_embed_passmanager(coupling_map)
 
@@ -289,12 +301,19 @@ def level_1_pass_manager(pass_manager_config: PassManagerConfig) -> StagedPassMa
         sched = plugin_manager.get_passmanager_stage(
             "scheduling", scheduling_method, pass_manager_config, optimization_level=1
         )
+    init = common.generate_control_flow_options_check(
+        layout_method=layout_method,
+        routing_method=routing_method,
+        translation_method=translation_method,
+        optimization_method=optimization_method,
+        scheduling_method=scheduling_method,
+    )
     if init_method is not None:
-        init = plugin_manager.get_passmanager_stage(
+        init += plugin_manager.get_passmanager_stage(
             "init", init_method, pass_manager_config, optimization_level=1
         )
-    else:
-        init = unroll_3q
+    elif unroll_3q is not None:
+        init += unroll_3q
 
     return StagedPassManager(
         init=init,

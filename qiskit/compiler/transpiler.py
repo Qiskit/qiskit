@@ -544,7 +544,7 @@ def _remap_circuit_faulty_backend(circuit, num_qubits, backend_prop, faulty_qubi
 
     for real_qubit in range(num_qubits):
         if faulty_qubits_map[real_qubit] is not None:
-            new_layout[real_qubit] = circuit._layout[faulty_qubits_map[real_qubit]]
+            new_layout[real_qubit] = circuit._layout.initial_layout[faulty_qubits_map[real_qubit]]
         else:
             if real_qubit in faulty_qubits:
                 new_layout[real_qubit] = faulty_qreg[faulty_qubit]
