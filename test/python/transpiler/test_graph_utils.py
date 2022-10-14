@@ -48,9 +48,11 @@ class TestGraphUtils(QiskitTestCase):
         tree.add_nodes_from([0, 1, 2, 3, 4])
         tree.add_edges_from([(0, 1, 1), (1, 2, 1), (1, 3, 1), (1, 4, 1)])
         result = []
-        postorder_traversal(tree, 0, result)
 
-        self.assertEqual(result, [(1, 2), (1, 3), (1, 4), (0, 1)])
+        postorder_traversal(tree, 0, result)
+        expected = [(1, 2), (1, 3), (1, 4), (0, 1)]
+
+        self.assertEqual(result, expected)
 
     def test_postorder_traversal_returns_empty_list_if_root_node_not_in_tree(self):
         """Test that postorder_traversal returns empty edge list if the given
