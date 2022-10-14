@@ -90,8 +90,7 @@ class SamplingVQE(VariationalAlgorithm, SamplingMinimumEigensolver):
     the ``SamplingVQE`` object has been constructed.
 
     Attributes:
-        estimator (BaseEstimator): The estimator primitive to compute the expectation value of the
-            Hamiltonian operator.
+        sampler (BaseSampler): The sampler primitive to sample the circuits.
         ansatz (QuantumCircuit): A parameterized quantum circuit to prepare the trial state.
         optimizer (Optimizer | Minimizer): A classical optimizer to find the minimum energy. This
             can either be a Qiskit :class:`.Optimizer` or a callable implementing the

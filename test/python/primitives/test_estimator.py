@@ -13,13 +13,14 @@
 """Tests for Estimator."""
 
 import unittest
+from ddt import ddt, data, unpack
 
 import numpy as np
 
 from qiskit.circuit import Parameter, QuantumCircuit
 from qiskit.circuit.library import RealAmplitudes
 from qiskit.opflow import PauliSumOp
-from qiskit.primitives import Estimator, EstimatorResult
+from qiskit.primitives import BaseEstimator, Estimator, EstimatorResult
 from qiskit.primitives.utils import _observable_key
 from qiskit.providers import JobV1
 from qiskit.quantum_info import Operator, SparsePauliOp
@@ -656,6 +657,35 @@ class TestEstimator(QiskitTestCase):
 
         keys = [_observable_key(get_op(i)) for i in range(5)]
         self.assertEqual(len(keys), len(set(keys)))
+
+
+@ddt
+class TestObservableValidation(QiskitTestCase):
+    """Test observables validation logic."""
+
+    @data(
+        (SparsePauliOp("IXYZ"), (SparsePauliOp("IXYZ"),)),
+        (
+            [SparsePauliOp("IXYZ"), SparsePauliOp("ZYXI")],
+            (SparsePauliOp("IXYZ"), SparsePauliOp("ZYXI")),
+        ),
+    )
+    @unpack
+    def test_validate_observables(self, obsevables, expected):
+        """Test obsevables standardization."""
+        self.assertEqual(BaseEstimator._validate_observables(obsevables), expected)
+
+    @data(None, "ERROR")
+    def test_type_error(self, observables):
+        """Test type error if invalid input."""
+        with self.assertRaises(TypeError):
+            BaseEstimator._validate_observables(observables)
+
+    @data((), [], "")
+    def test_value_error(self, observables):
+        """Test value error if no obsevables are provided."""
+        with self.assertRaises(ValueError):
+            BaseEstimator._validate_observables(observables)
 
 
 if __name__ == "__main__":

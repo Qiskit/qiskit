@@ -20,15 +20,15 @@ from ddt import ddt, data
 import numpy as np
 
 from qiskit import QuantumCircuit, ClassicalRegister, QuantumRegister
-from qiskit.circuit import Qubit
+from qiskit.circuit import Qubit, Gate, ControlFlowOp
 from qiskit.compiler import transpile, assemble
 from qiskit.transpiler import CouplingMap, Layout, PassManager, TranspilerError
+from qiskit.circuit.library import U2Gate, U3Gate, QuantumVolume, CXGate, CZGate, XGate
 from qiskit.transpiler.passes import (
     ALAPScheduleAnalysis,
     PadDynamicalDecoupling,
     RemoveResetInZeroState,
 )
-from qiskit.circuit.library import U2Gate, U3Gate, XGate, QuantumVolume
 from qiskit.test import QiskitTestCase
 from qiskit.providers.fake_provider import (
     FakeBelem,
@@ -1227,3 +1227,148 @@ class TestGeenratePresetPassManagers(QiskitTestCase):
             for y in x["passes"]
         ]
         self.assertIn("RemoveResetInZeroState", post_translation_pass_list)
+
+
+@ddt
+class TestIntegrationControlFlow(QiskitTestCase):
+    """Integration tests for control-flow circuits through the preset pass managers."""
+
+    @data(0, 1)
+    def test_default_compilation(self, optimization_level):
+        """Test that a simple circuit with each type of control-flow passes a full transpilation
+        pipeline with the defaults."""
+
+        class CustomCX(Gate):
+            """Custom CX"""
+
+            def __init__(self):
+                super().__init__("custom_cx", 2, [])
+
+            def _define(self):
+                self._definition = QuantumCircuit(2)
+                self._definition.cx(0, 1)
+
+        circuit = QuantumCircuit(6, 1)
+        circuit.h(0)
+        circuit.measure(0, 0)
+        circuit.cx(0, 1)
+        circuit.cz(0, 2)
+        circuit.append(CustomCX(), [1, 2], [])
+        with circuit.for_loop((1,)):
+            circuit.cx(0, 1)
+            circuit.cz(0, 2)
+            circuit.append(CustomCX(), [1, 2], [])
+        with circuit.if_test((circuit.clbits[0], True)) as else_:
+            circuit.cx(0, 1)
+            circuit.cz(0, 2)
+            circuit.append(CustomCX(), [1, 2], [])
+        with else_:
+            circuit.cx(3, 4)
+            circuit.cz(3, 5)
+            circuit.append(CustomCX(), [4, 5], [])
+            with circuit.while_loop((circuit.clbits[0], True)):
+                circuit.cx(3, 4)
+                circuit.cz(3, 5)
+                circuit.append(CustomCX(), [4, 5], [])
+
+        coupling_map = CouplingMap.from_line(6)
+
+        transpiled = transpile(
+            circuit,
+            basis_gates=["sx", "rz", "cx", "if_else", "for_loop", "while_loop"],
+            coupling_map=coupling_map,
+            optimization_level=optimization_level,
+            seed_transpiler=2022_10_04,
+        )
+        # Tests of the complete validity of a circuit are mostly done at the indiviual pass level;
+        # here we're just checking that various passes do appear to have run.
+        self.assertIsInstance(transpiled, QuantumCircuit)
+        # Assert layout ran.
+        self.assertIsNot(getattr(transpiled, "_layout", None), None)
+
+        def _visit_block(circuit, stack=None):
+            """Assert that every block contains at least one swap to imply that routing has run."""
+            if stack is None:
+                # List of (instruction_index, block_index).
+                stack = ()
+            seen_cx = 0
+            for i, instruction in enumerate(circuit):
+                if isinstance(instruction.operation, ControlFlowOp):
+                    for j, block in enumerate(instruction.operation.blocks):
+                        _visit_block(block, stack + ((i, j),))
+                elif isinstance(instruction.operation, CXGate):
+                    seen_cx += 1
+                # Assert unrolling ran.
+                self.assertNotIsInstance(instruction.operation, CustomCX)
+                # Assert translation ran.
+                self.assertNotIsInstance(instruction.operation, CZGate)
+            # There are three "natural" swaps in each block (one for each 2q operation), so if
+            # routing ran, we should see more than that.
+            self.assertGreater(seen_cx, 3, msg=f"no swaps in block at indices: {stack}")
+
+        # Assert routing ran.
+        _visit_block(transpiled)
+
+    @data(0, 1)
+    def test_allow_overriding_defaults(self, optimization_level):
+        """Test that the method options can be overridden."""
+        circuit = QuantumCircuit(3, 1)
+        circuit.h(0)
+        circuit.measure(0, 0)
+        with circuit.for_loop((1,)):
+            circuit.h(0)
+            circuit.cx(0, 1)
+            circuit.cz(0, 2)
+            circuit.cx(1, 2)
+
+        coupling_map = CouplingMap.from_line(3)
+
+        calls = set()
+
+        def callback(pass_, **_):
+            calls.add(pass_.name())
+
+        transpiled = transpile(
+            circuit,
+            basis_gates=["u3", "cx", "if_else", "for_loop", "while_loop"],
+            layout_method="trivial",
+            translation_method="unroller",
+            coupling_map=coupling_map,
+            optimization_level=optimization_level,
+            seed_transpiler=2022_10_04,
+            callback=callback,
+        )
+        self.assertIsInstance(transpiled, QuantumCircuit)
+        self.assertIsNot(getattr(transpiled, "_layout", None), None)
+
+        self.assertIn("TrivialLayout", calls)
+        self.assertIn("Unroller", calls)
+        self.assertNotIn("DenseLayout", calls)
+        self.assertNotIn("SabreLayout", calls)
+        self.assertNotIn("BasisTranslator", calls)
+
+    @data(0, 1)
+    def test_invalid_methods_raise_on_control_flow(self, optimization_level):
+        """Test that trying to use an invalid method with control flow fails."""
+        qc = QuantumCircuit(1)
+        with qc.for_loop((1,)):
+            qc.x(0)
+
+        with self.assertRaisesRegex(TranspilerError, "Got layout_method="):
+            transpile(qc, layout_method="sabre", optimization_level=optimization_level)
+        with self.assertRaisesRegex(TranspilerError, "Got routing_method="):
+            transpile(qc, routing_method="lookahead", optimization_level=optimization_level)
+        with self.assertRaisesRegex(TranspilerError, "Got translation_method="):
+            transpile(qc, translation_method="synthesis", optimization_level=optimization_level)
+        with self.assertRaisesRegex(TranspilerError, "Got scheduling_method="):
+            transpile(qc, scheduling_method="alap", optimization_level=optimization_level)
+
+    @data(2, 3)
+    def test_unsupported_levels_raise(self, optimization_level):
+        """Test that trying to use an invalid method with control flow fails."""
+        qc = QuantumCircuit(1)
+        with qc.for_loop((1,)):
+            qc.x(0)
+
+        with self.assertRaisesRegex(TranspilerError, "The optimizations in optimization_level="):
+            transpile(qc, optimization_level=optimization_level)

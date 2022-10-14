@@ -19,7 +19,7 @@ from qiskit.pulse import Schedule
 from qiskit.qobj import PulseQobj
 from qiskit.test import QiskitTestCase
 from qiskit.providers.fake_provider.utils.configurable_backend import ConfigurableFakeBackend
-from qiskit.providers.fake_provider import FakeAthens
+from qiskit.providers.fake_provider import FakeAthens, FakePerth
 from qiskit.utils import optionals
 
 
@@ -82,3 +82,14 @@ class FakeBackendsTest(QiskitTestCase):
         raw_counts = backend.run(trans_qc, shots=1000).result().get_counts()
 
         self.assertEqual(sum(raw_counts.values()), 1000)
+
+    @unittest.skipUnless(optionals.HAS_AER, "qiskit-aer is required to run this test")
+    def test_fake_backend_v2_noise_model_always_present(self):
+        """Test that FakeBackendV2 instances always run with noise."""
+        backend = FakePerth()
+        qc = QuantumCircuit(1)
+        qc.x(0)
+        qc.measure_all()
+        res = backend.run(qc, shots=1000).result().get_counts()
+        # Assert noise was present and result wasn't ideal
+        self.assertNotEqual(res, {"1": 1000})

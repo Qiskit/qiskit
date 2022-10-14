@@ -10,6 +10,8 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
+# pylint: disable=missing-function-docstring
+
 """Translates gates to a target basis using a given equivalence library."""
 
 import time
@@ -366,7 +368,7 @@ class StopIfBasisRewritable(Exception):
     """Custom exception that signals `retworkx.dijkstra_search` to stop."""
 
 
-class BasisSearchVisitor(retworkx.visit.DijkstraVisitor):
+class BasisSearchVisitor(retworkx.visit.DijkstraVisitor):  # pylint: disable=no-member
     """Handles events emitted during `retworkx.dijkstra_search`."""
 
     def __init__(self, graph, source_basis, target_basis, num_gates_for_rule):
@@ -412,7 +414,7 @@ class BasisSearchVisitor(retworkx.visit.DijkstraVisitor):
         # if there are gates in this `rule` that we have not yet generated, we can't apply
         # this `rule`. if `target` is already in basis, it's not beneficial to use this rule.
         if self._num_gates_remain_for_rule[index] > 0 or target in self.target_basis:
-            raise retworkx.visit.PruneSearch
+            raise retworkx.visit.PruneSearch  # pylint: disable=no-member
 
     def edge_relaxed(self, edge):
         _, target, edata = edge
