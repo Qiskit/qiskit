@@ -14,7 +14,6 @@
 """Piecewise-linearly-controlled rotation."""
 
 from typing import List, Optional
-import warnings
 import numpy as np
 
 from qiskit.circuit import QuantumRegister, AncillaRegister, QuantumCircuit
@@ -73,18 +72,6 @@ class PiecewiseLinearPauliRotations(FunctionalPauliRotations):
         self._offsets = offsets if offsets is not None else [0]
 
         super().__init__(num_state_qubits=num_state_qubits, basis=basis, name=name)
-
-    @property
-    def num_ancilla_qubits(self):
-        """Deprecated. Use num_ancillas instead."""
-        warnings.warn(
-            "The PiecewiseLinearPauliRotations.num_ancilla_qubits property is deprecated "
-            "as of 0.16.0. It will be removed no earlier than 3 months after the release "
-            "date. You should use the num_ancillas property instead.",
-            DeprecationWarning,
-            stacklevel=2,
-        )
-        return self.num_ancillas
 
     @property
     def breakpoints(self) -> List[int]:
@@ -202,6 +189,7 @@ class PiecewiseLinearPauliRotations(FunctionalPauliRotations):
         return y
 
     def _check_configuration(self, raise_on_failure: bool = True) -> bool:
+        """Check if the current configuration is valid."""
         valid = True
 
         if self.num_state_qubits is None:
@@ -225,6 +213,7 @@ class PiecewiseLinearPauliRotations(FunctionalPauliRotations):
         return valid
 
     def _reset_registers(self, num_state_qubits: Optional[int]) -> None:
+        """Reset the registers."""
         self.qregs = []
 
         if num_state_qubits is not None:
@@ -239,6 +228,10 @@ class PiecewiseLinearPauliRotations(FunctionalPauliRotations):
                 self.add_register(qr_ancilla)
 
     def _build(self):
+        """If not already built, build the circuit."""
+        if self._is_built:
+            return
+
         super()._build()
 
         circuit = QuantumCircuit(*self.qregs, name=self.name)

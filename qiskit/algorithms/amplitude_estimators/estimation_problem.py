@@ -12,8 +12,9 @@
 
 """The Estimation problem class."""
 
+from __future__ import annotations
 import warnings
-from typing import Optional, List, Callable, Union
+from typing import Callable
 import numpy
 
 from qiskit.circuit import QuantumCircuit, QuantumRegister
@@ -32,10 +33,10 @@ class EstimationProblem:
     def __init__(
         self,
         state_preparation: QuantumCircuit,
-        objective_qubits: Union[int, List[int]],
-        grover_operator: Optional[QuantumCircuit] = None,
-        post_processing: Optional[Callable[[float], float]] = None,
-        is_good_state: Optional[Callable[[str], bool]] = None,
+        objective_qubits: int | list[int],
+        grover_operator: QuantumCircuit | None = None,
+        post_processing: Callable[[float], float] | None = None,
+        is_good_state: Callable[[str], bool] | None = None,
     ) -> None:
         r"""
         Args:
@@ -59,7 +60,7 @@ class EstimationProblem:
         self._is_good_state = is_good_state
 
     @property
-    def state_preparation(self) -> Optional[QuantumCircuit]:
+    def state_preparation(self) -> QuantumCircuit | None:
         r"""Get the :math:`\mathcal{A}` operator encoding the amplitude :math:`a`.
 
         Returns:
@@ -77,7 +78,7 @@ class EstimationProblem:
         self._state_preparation = state_preparation
 
     @property
-    def objective_qubits(self) -> List[int]:
+    def objective_qubits(self) -> list[int]:
         """Get the criterion for a measurement outcome to be in a 'good' state.
 
         Returns:
@@ -89,7 +90,7 @@ class EstimationProblem:
         return self._objective_qubits
 
     @objective_qubits.setter
-    def objective_qubits(self, objective_qubits: Union[int, List[int]]) -> None:
+    def objective_qubits(self, objective_qubits: int | list[int]) -> None:
         """Set the criterion for a measurement outcome to be in a 'good' state.
 
         Args:
@@ -110,7 +111,7 @@ class EstimationProblem:
         return self._post_processing
 
     @post_processing.setter
-    def post_processing(self, post_processing: Optional[Callable[[float], float]]) -> None:
+    def post_processing(self, post_processing: Callable[[float], float] | None) -> None:
         """Set the post processing function.
 
         Args:
@@ -132,7 +133,7 @@ class EstimationProblem:
         return self._is_good_state
 
     @is_good_state.setter
-    def is_good_state(self, is_good_state: Optional[Callable[[str], bool]]) -> None:
+    def is_good_state(self, is_good_state: Callable[[str], bool] | None) -> None:
         """Set the ``is_good_state`` function.
 
         Args:
@@ -142,7 +143,7 @@ class EstimationProblem:
         self._is_good_state = is_good_state
 
     @property
-    def grover_operator(self) -> Optional[QuantumCircuit]:
+    def grover_operator(self) -> QuantumCircuit | None:
         r"""Get the :math:`\mathcal{Q}` operator, or Grover operator.
 
         If the Grover operator is not set, we try to build it from the :math:`\mathcal{A}` operator
@@ -172,7 +173,7 @@ class EstimationProblem:
         return GroverOperator(oracle, self.state_preparation)
 
     @grover_operator.setter
-    def grover_operator(self, grover_operator: Optional[QuantumCircuit]) -> None:
+    def grover_operator(self, grover_operator: QuantumCircuit | None) -> None:
         r"""Set the :math:`\mathcal{Q}` operator.
 
         Args:
@@ -221,7 +222,7 @@ def _rescale_amplitudes(circuit: QuantumCircuit, scaling_factor: float) -> Quant
 
     For example, for a scaling factor of 0.25 this turns this circuit
 
-    .. code-block::
+    .. parsed-literal::
 
                       ┌───┐
         state_0: ─────┤ H ├─────────■────
@@ -231,7 +232,7 @@ def _rescale_amplitudes(circuit: QuantumCircuit, scaling_factor: float) -> Quant
 
     into
 
-    .. code-block::
+    .. parsed-literal::
 
                       ┌───┐
         state_0: ─────┤ H ├─────────■────

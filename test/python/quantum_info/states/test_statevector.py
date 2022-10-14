@@ -220,8 +220,8 @@ class TestStatevector(QiskitTestCase):
     def test_getitem_except(self):
         """Test __getitem__ method raises exceptions."""
         for i in range(1, 4):
-            state = Statevector(self.rand_vec(2 ** i))
-            self.assertRaises(QiskitError, state.__getitem__, 2 ** i)
+            state = Statevector(self.rand_vec(2**i))
+            self.assertRaises(QiskitError, state.__getitem__, 2**i)
             self.assertRaises(QiskitError, state.__getitem__, -1)
 
     def test_copy(self):
@@ -1043,7 +1043,7 @@ class TestStatevector(QiskitTestCase):
         """Test expectation_value method for Pauli op"""
         seed = 1020
         op = Pauli(pauli)
-        state = random_statevector(2 ** op.num_qubits, seed=seed)
+        state = random_statevector(2**op.num_qubits, seed=seed)
         target = state.expectation_value(op.to_matrix())
         expval = state.expectation_value(op)
         self.assertAlmostEqual(expval, target)
@@ -1053,7 +1053,7 @@ class TestStatevector(QiskitTestCase):
         """Test expectation_value method for Pauli op"""
         seed = 1020
         op = random_pauli(2, seed=seed)
-        state = random_statevector(2 ** 3, seed=seed)
+        state = random_statevector(2**3, seed=seed)
         target = state.expectation_value(op.to_matrix(), qubits)
         expval = state.expectation_value(op, qubits)
         self.assertAlmostEqual(expval, target)
@@ -1079,7 +1079,7 @@ class TestStatevector(QiskitTestCase):
         circ = transpile(state_circ, sim)
         circ.measure(qargs, range(nc))
         result = sim.run(circ, shots=shots, seed_simulator=seed).result()
-        target = np.zeros(2 ** nc, dtype=float)
+        target = np.zeros(2**nc, dtype=float)
         for i, p in result.get_counts(0).int_outcomes().items():
             target[i] = p / shots
         # Compare
@@ -1118,9 +1118,33 @@ class TestStatevector(QiskitTestCase):
         with self.subTest(msg=" draw('latex', convention='vector')"):
             sv.draw("latex", convention="vector")
 
+    def test_state_to_latex_for_none(self):
+        """
+        Test for `\rangleNone` output in latex representation
+        See https://github.com/Qiskit/qiskit-terra/issues/8169
+        """
+        sv = Statevector(
+            [
+                7.07106781e-01 - 8.65956056e-17j,
+                -5.55111512e-17 - 8.65956056e-17j,
+                7.85046229e-17 + 8.65956056e-17j,
+                -7.07106781e-01 + 8.65956056e-17j,
+                0.00000000e00 + 0.00000000e00j,
+                -0.00000000e00 + 0.00000000e00j,
+                -0.00000000e00 + 0.00000000e00j,
+                0.00000000e00 - 0.00000000e00j,
+            ],
+            dims=(2, 2, 2),
+        )
+        latex_representation = state_to_latex(sv)
+        self.assertEqual(
+            latex_representation,
+            "\\frac{\\sqrt{2}}{2} |000\\rangle- \\frac{\\sqrt{2}}{2} |011\\rangle",
+        )
+
     def test_state_to_latex_for_large_statevector(self):
         """Test conversion of large dense state vector"""
-        sv = Statevector(np.ones((2 ** 15, 1)))
+        sv = Statevector(np.ones((2**15, 1)))
         latex_representation = state_to_latex(sv)
         self.assertEqual(
             latex_representation,
@@ -1130,9 +1154,18 @@ class TestStatevector(QiskitTestCase):
             " |111111111111101\\rangle+ |111111111111110\\rangle+ |111111111111111\\rangle",
         )
 
+    def test_state_to_latex_with_prefix(self):
+        """Test adding prefix to state vector latex output"""
+        psi = Statevector(np.array([np.sqrt(1 / 2), 0, 0, np.sqrt(1 / 2)]))
+        prefix = "|\\psi_{AB}\\rangle = "
+        latex_sv = state_to_latex(psi)
+        latex_expected = prefix + latex_sv
+        latex_representation = state_to_latex(psi, prefix=prefix)
+        self.assertEqual(latex_representation, latex_expected)
+
     def test_state_to_latex_for_large_sparse_statevector(self):
         """Test conversion of large sparse state vector"""
-        sv = Statevector(np.eye(2 ** 15, 1))
+        sv = Statevector(np.eye(2**15, 1))
         latex_representation = state_to_latex(sv)
         self.assertEqual(latex_representation, " |000000000000000\\rangle")
 
@@ -1154,7 +1187,7 @@ class TestStatevector(QiskitTestCase):
             ([1 + np.sqrt(2)], ["(1 + \\sqrt{2})"]),
         ]
         for numbers, latex_terms in cases:
-            terms = numbers_to_latex_terms(numbers)
+            terms = numbers_to_latex_terms(numbers, 15)
             self.assertListEqual(terms, latex_terms)
 
     def test_statevector_draw_latex_regression(self):
@@ -1163,6 +1196,29 @@ class TestStatevector(QiskitTestCase):
         latex_string = sv.draw(output="latex_source")
         self.assertTrue(latex_string.startswith(" |0\\rangle"))
         self.assertNotIn("|1\\rangle", latex_string)
+
+    def test_statevctor_iter(self):
+        """Test iteration over a state vector"""
+        empty_vector = []
+        dummy_vector = [1, 2, 3]
+        empty_sv = Statevector([])
+        sv = Statevector(dummy_vector)
+
+        # Assert that successive iterations behave as expected, i.e., the
+        # iterator is reset upon each exhaustion of the corresponding
+        # collection of elements.
+        for _ in range(2):
+            self.assertEqual(empty_vector, list(empty_sv))
+            self.assertEqual(dummy_vector, list(sv))
+
+    def test_statevector_len(self):
+        """Test state vector length"""
+        empty_vector = []
+        dummy_vector = [1, 2, 3]
+        empty_sv = Statevector([])
+        sv = Statevector(dummy_vector)
+        self.assertEqual(len(empty_vector), len(empty_sv))
+        self.assertEqual(len(dummy_vector), len(sv))
 
 
 if __name__ == "__main__":

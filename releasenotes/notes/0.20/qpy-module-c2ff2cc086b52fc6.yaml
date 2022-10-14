@@ -1,0 +1,14 @@
+---
+features:
+  - |
+    Added a new module, :mod:`qiskit.qpy`, which contains the functionality
+    previously exposed in :mod:`qiskit.circuit.qpy_serialization`. The public
+    functions previously exposed at :mod:`qiskit.circuit.qpy_serialization`,
+    :func:`~qiskit.qpy.dump` and :func:`~qiskit.qpy.load` are now available
+    from this new module (although they are still accessible from
+    :mod:`qiskit.circuit.qpy_serialization` but this will be deprecated in
+    a future release). This new module was added in the interest of the future
+    direction of the QPY file format, which in future versions will support
+    representing :mod:`~qiskit.pulse` :class:`~.Schedule` and
+    :class:`~.ScheduleBlock` objects in addition to the
+    :class:`~.QuantumCircuit` objects it supports today.

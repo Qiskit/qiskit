@@ -22,20 +22,59 @@ import numpy as np
 from qiskit import QuantumCircuit, ClassicalRegister, QuantumRegister
 from qiskit.circuit import Qubit
 from qiskit.compiler import transpile, assemble
-from qiskit.transpiler import CouplingMap, Layout
-from qiskit.circuit.library import U2Gate, U3Gate
+from qiskit.transpiler import CouplingMap, Layout, PassManager, TranspilerError
+from qiskit.transpiler.passes import (
+    ALAPScheduleAnalysis,
+    PadDynamicalDecoupling,
+    RemoveResetInZeroState,
+)
+from qiskit.circuit.library import U2Gate, U3Gate, XGate, QuantumVolume
 from qiskit.test import QiskitTestCase
-from qiskit.test.mock import (
+from qiskit.providers.fake_provider import (
+    FakeBelem,
     FakeTenerife,
     FakeMelbourne,
     FakeJohannesburg,
     FakeRueschlikon,
     FakeTokyo,
     FakePoughkeepsie,
+    FakeLagosV2,
+    FakeLima,
+    FakeWashington,
 )
 from qiskit.converters import circuit_to_dag
 from qiskit.circuit.library import GraphState
 from qiskit.quantum_info import random_unitary
+from qiskit.transpiler.preset_passmanagers import generate_preset_pass_manager
+from qiskit.transpiler.preset_passmanagers import level0, level1, level2, level3
+from qiskit.utils.optionals import HAS_TOQM
+from qiskit.transpiler.passes import Collect2qBlocks, GatesInBasis
+
+
+def mock_get_passmanager_stage(
+    stage_name,
+    plugin_name,
+    pm_config,
+    optimization_level=None,  # pylint: disable=unused-argument
+) -> PassManager:
+    """Mock function for get_passmanager_stage."""
+    if stage_name == "translation" and plugin_name == "custom_stage_for_test":
+        pm = PassManager([RemoveResetInZeroState()])
+        return pm
+
+    elif stage_name == "scheduling" and plugin_name == "custom_stage_for_test":
+        dd_sequence = [XGate(), XGate()]
+        pm = PassManager(
+            [
+                ALAPScheduleAnalysis(pm_config.instruction_durations),
+                PadDynamicalDecoupling(pm_config.instruction_durations, dd_sequence),
+            ]
+        )
+        return pm
+    elif stage_name == "routing":
+        return PassManager([])
+    else:
+        raise Exception("Failure, unexpected stage plugin combo for test")
 
 
 def emptycircuit():
@@ -202,6 +241,76 @@ class TestPresetPassManager(QiskitTestCase):
             transpile(circuit, backend=FakeJohannesburg(), optimization_level=level)
         mock.assert_called_once()
 
+    def test_unroll_only_if_not_gates_in_basis(self):
+        """Test that the list of passes _unroll only runs if a gate is not in the basis."""
+        qcomp = FakeBelem()
+        qv_circuit = QuantumVolume(3)
+        gates_in_basis_true_count = 0
+        collect_2q_blocks_count = 0
+
+        # pylint: disable=unused-argument
+        def counting_callback_func(pass_, dag, time, property_set, count):
+            nonlocal gates_in_basis_true_count
+            nonlocal collect_2q_blocks_count
+            if isinstance(pass_, GatesInBasis) and property_set["all_gates_in_basis"]:
+                gates_in_basis_true_count += 1
+            if isinstance(pass_, Collect2qBlocks):
+                collect_2q_blocks_count += 1
+
+        transpile(
+            qv_circuit,
+            backend=qcomp,
+            optimization_level=3,
+            callback=counting_callback_func,
+            translation_method="synthesis",
+        )
+        self.assertEqual(gates_in_basis_true_count + 1, collect_2q_blocks_count)
+
+
+@ddt
+@unittest.skipUnless(HAS_TOQM, "qiskit-toqm needs to be installed")
+class TestToqmIntegration(QiskitTestCase):
+    """Test transpiler with TOQM-based routing"""
+
+    @combine(
+        level=[0, 1, 2, 3],
+        layout_method=[None, "trivial", "dense", "noise_adaptive", "sabre"],
+        backend_vbits_pair=[(FakeWashington(), 10), (FakeLima(), 5)],
+        dsc="TOQM-based routing with '{layout_method}' layout"
+        + "method on '{backend_vbits_pair[0]}' backend at level '{level}'",
+        name="TOQM_{layout_method}_{backend_vbits_pair[0]}_level{level}",
+    )
+    def test_basic_circuit(self, level, layout_method, backend_vbits_pair):
+        """
+        Basic circuits transpile across all opt levels and layout
+        methods when using TOQM-based routing.
+        """
+        backend, circuit_size = backend_vbits_pair
+        qr = QuantumRegister(circuit_size, "q")
+        qc = QuantumCircuit(qr)
+
+        # Generate a circuit that should need swaps.
+        for i in range(1, qr.size):
+            qc.cx(0, i)
+
+        result = transpile(
+            qc,
+            layout_method=layout_method,
+            routing_method="toqm",
+            backend=backend,
+            optimization_level=level,
+            seed_transpiler=4222022,
+        )
+
+        self.assertIsInstance(result, QuantumCircuit)
+
+    def test_initial_layout_is_rejected(self):
+        """Initial layout is rejected when using TOQM-based routing"""
+        with self.assertRaisesRegex(
+            TranspilerError, "Initial layouts are not supported with TOQM-based routing."
+        ):
+            transpile(QuantumCircuit(2), initial_layout=[1, 0], routing_method="toqm")
+
 
 @ddt
 class TestTranspileLevels(QiskitTestCase):
@@ -354,6 +463,36 @@ class TestPassesInspection(QiskitTestCase):
             Layout.from_qubit_list([ancilla[0], ancilla[1], qr[1], ancilla[2], qr[0]]),
         )
 
+    @unittest.mock.patch.object(
+        level0.PassManagerStagePluginManager,
+        "get_passmanager_stage",
+        wraps=mock_get_passmanager_stage,
+    )
+    def test_backend_with_custom_stages(self, _plugin_manager_mock):
+        """Test transpile() executes backend specific custom stage."""
+        optimization_level = 1
+
+        class TargetBackend(FakeLagosV2):
+            """Fake lagos subclass with custom transpiler stages."""
+
+            def get_scheduling_stage_plugin(self):
+                """Custom scheduling stage."""
+                return "custom_stage_for_test"
+
+            def get_translation_stage_plugin(self):
+                """Custom post translation stage."""
+                return "custom_stage_for_test"
+
+        target = TargetBackend()
+        qr = QuantumRegister(2, "q")
+        qc = QuantumCircuit(qr)
+        qc.h(qr[0])
+        qc.cx(qr[0], qr[1])
+        _ = transpile(qc, target, optimization_level=optimization_level, callback=self.callback)
+        self.assertIn("ALAPScheduleAnalysis", self.passes)
+        self.assertIn("PadDynamicalDecoupling", self.passes)
+        self.assertIn("RemoveResetInZeroState", self.passes)
+
 
 @ddt
 class TestInitialLayouts(QiskitTestCase):
@@ -449,9 +588,9 @@ class TestInitialLayouts(QiskitTestCase):
         self.assertEqual(qc_b._layout._p2v, final_layout)
 
         output_qr = qc_b.qregs[0]
-        for gate, qubits, _ in qc_b:
-            if gate.name == "cx":
-                for qubit in qubits:
+        for instruction in qc_b:
+            if instruction.operation.name == "cx":
+                for qubit in instruction.qubits:
                     self.assertIn(qubit, [output_qr[11], output_qr[3]])
 
     @data(0, 1, 2, 3)
@@ -502,14 +641,11 @@ class TestInitialLayouts(QiskitTestCase):
 
         self.assertEqual(qc_b._layout._p2v, final_layout)
 
-        gate_0, qubits_0, _ = qc_b[0]
-        gate_1, qubits_1, _ = qc_b[1]
-
         output_qr = qc_b.qregs[0]
-        self.assertIsInstance(gate_0, U3Gate)
-        self.assertEqual(qubits_0[0], output_qr[6])
-        self.assertIsInstance(gate_1, U2Gate)
-        self.assertEqual(qubits_1[0], output_qr[12])
+        self.assertIsInstance(qc_b[0].operation, U3Gate)
+        self.assertEqual(qc_b[0].qubits[0], output_qr[6])
+        self.assertIsInstance(qc_b[1].operation, U2Gate)
+        self.assertEqual(qc_b[1].qubits[0], output_qr[12])
 
 
 @ddt
@@ -552,59 +688,35 @@ class TestFinalLayouts(QiskitTestCase):
             19: Qubit(QuantumRegister(15, "ancilla"), 14),
         }
 
-        dense_layout = {
-            2: Qubit(QuantumRegister(3, "qr1"), 0),
-            6: Qubit(QuantumRegister(3, "qr1"), 1),
-            1: Qubit(QuantumRegister(3, "qr1"), 2),
-            5: Qubit(QuantumRegister(2, "qr2"), 0),
-            0: Qubit(QuantumRegister(2, "qr2"), 1),
-            3: Qubit(QuantumRegister(15, "ancilla"), 0),
-            4: Qubit(QuantumRegister(15, "ancilla"), 1),
-            7: Qubit(QuantumRegister(15, "ancilla"), 2),
-            8: Qubit(QuantumRegister(15, "ancilla"), 3),
-            9: Qubit(QuantumRegister(15, "ancilla"), 4),
-            10: Qubit(QuantumRegister(15, "ancilla"), 5),
-            11: Qubit(QuantumRegister(15, "ancilla"), 6),
-            12: Qubit(QuantumRegister(15, "ancilla"), 7),
-            13: Qubit(QuantumRegister(15, "ancilla"), 8),
-            14: Qubit(QuantumRegister(15, "ancilla"), 9),
-            15: Qubit(QuantumRegister(15, "ancilla"), 10),
-            16: Qubit(QuantumRegister(15, "ancilla"), 11),
-            17: Qubit(QuantumRegister(15, "ancilla"), 12),
-            18: Qubit(QuantumRegister(15, "ancilla"), 13),
-            19: Qubit(QuantumRegister(15, "ancilla"), 14),
-        }
-
-        csp_layout = {
-            13: Qubit(QuantumRegister(3, "qr1"), 0),
-            19: Qubit(QuantumRegister(3, "qr1"), 1),
-            14: Qubit(QuantumRegister(3, "qr1"), 2),
-            18: Qubit(QuantumRegister(2, "qr2"), 0),
-            17: Qubit(QuantumRegister(2, "qr2"), 1),
+        vf2_layout = {
             0: Qubit(QuantumRegister(15, "ancilla"), 0),
             1: Qubit(QuantumRegister(15, "ancilla"), 1),
             2: Qubit(QuantumRegister(15, "ancilla"), 2),
             3: Qubit(QuantumRegister(15, "ancilla"), 3),
             4: Qubit(QuantumRegister(15, "ancilla"), 4),
             5: Qubit(QuantumRegister(15, "ancilla"), 5),
-            6: Qubit(QuantumRegister(15, "ancilla"), 6),
-            7: Qubit(QuantumRegister(15, "ancilla"), 7),
-            8: Qubit(QuantumRegister(15, "ancilla"), 8),
-            9: Qubit(QuantumRegister(15, "ancilla"), 9),
-            10: Qubit(QuantumRegister(15, "ancilla"), 10),
-            11: Qubit(QuantumRegister(15, "ancilla"), 11),
-            12: Qubit(QuantumRegister(15, "ancilla"), 12),
-            15: Qubit(QuantumRegister(15, "ancilla"), 13),
-            16: Qubit(QuantumRegister(15, "ancilla"), 14),
+            6: Qubit(QuantumRegister(3, "qr1"), 1),
+            7: Qubit(QuantumRegister(15, "ancilla"), 6),
+            8: Qubit(QuantumRegister(15, "ancilla"), 7),
+            9: Qubit(QuantumRegister(15, "ancilla"), 8),
+            10: Qubit(QuantumRegister(3, "qr1"), 0),
+            11: Qubit(QuantumRegister(3, "qr1"), 2),
+            12: Qubit(QuantumRegister(15, "ancilla"), 9),
+            13: Qubit(QuantumRegister(15, "ancilla"), 10),
+            14: Qubit(QuantumRegister(15, "ancilla"), 11),
+            15: Qubit(QuantumRegister(15, "ancilla"), 12),
+            16: Qubit(QuantumRegister(2, "qr2"), 0),
+            17: Qubit(QuantumRegister(2, "qr2"), 1),
+            18: Qubit(QuantumRegister(15, "ancilla"), 13),
+            19: Qubit(QuantumRegister(15, "ancilla"), 14),
         }
-
         # Trivial layout
         expected_layout_level0 = trivial_layout
         # Dense layout
-        expected_layout_level1 = dense_layout
+        expected_layout_level1 = vf2_layout
         # CSP layout
-        expected_layout_level2 = csp_layout
-        expected_layout_level3 = csp_layout
+        expected_layout_level2 = vf2_layout
+        expected_layout_level3 = vf2_layout
 
         expected_layouts = [
             expected_layout_level0,
@@ -651,55 +763,32 @@ class TestFinalLayouts(QiskitTestCase):
             19: ancilla[14],
         }
 
-        dense_layout = {
-            2: qr[0],
-            6: qr[1],
-            1: qr[2],
-            5: qr[3],
-            0: qr[4],
-            3: ancilla[0],
-            4: ancilla[1],
-            7: ancilla[2],
-            8: ancilla[3],
-            9: ancilla[4],
-            10: ancilla[5],
-            11: ancilla[6],
-            12: ancilla[7],
-            13: ancilla[8],
-            14: ancilla[9],
-            15: ancilla[10],
-            16: ancilla[11],
-            17: ancilla[12],
-            18: ancilla[13],
-            19: ancilla[14],
-        }
-
         sabre_layout = {
+            11: qr[0],
+            17: qr[1],
+            16: qr[2],
+            6: qr[3],
+            18: qr[4],
             0: ancilla[0],
             1: ancilla[1],
             2: ancilla[2],
             3: ancilla[3],
             4: ancilla[4],
             5: ancilla[5],
-            6: ancilla[6],
-            7: qr[4],
-            8: qr[1],
-            9: ancilla[7],
-            10: ancilla[8],
-            11: ancilla[9],
-            12: qr[2],
-            13: qr[0],
-            14: ancilla[10],
-            15: ancilla[11],
-            16: ancilla[12],
-            17: ancilla[13],
-            18: ancilla[14],
-            19: qr[3],
+            7: ancilla[6],
+            8: ancilla[7],
+            9: ancilla[8],
+            10: ancilla[9],
+            12: ancilla[10],
+            13: ancilla[11],
+            14: ancilla[12],
+            15: ancilla[13],
+            19: ancilla[14],
         }
 
         expected_layout_level0 = trivial_layout
-        expected_layout_level1 = dense_layout
-        expected_layout_level2 = dense_layout
+        expected_layout_level1 = sabre_layout
+        expected_layout_level2 = sabre_layout
         expected_layout_level3 = sabre_layout
 
         expected_layouts = [
@@ -751,12 +840,12 @@ class TestFinalLayouts(QiskitTestCase):
             18: Qubit(QuantumRegister(20, "q"), 18),
             19: Qubit(QuantumRegister(20, "q"), 19),
         }
-        trans_qc = transpile(qc, backend, optimization_level=level)
+        trans_qc = transpile(qc, backend, optimization_level=level, seed_transpiler=42)
         self.assertEqual(trans_qc._layout._p2v, expected)
 
-    @data(0, 1)
+    @data(0)
     def test_trivial_layout(self, level):
-        """Test that trivial layout is preferred in level 0 and 1
+        """Test that trivial layout is preferred in level 0
         See: https://github.com/Qiskit/qiskit-terra/pull/3657#pullrequestreview-342012465
         """
         qr = QuantumRegister(10, "qr")
@@ -890,7 +979,7 @@ class TestTranspileLevelsSwap(QiskitTestCase):
             optimization_level=level,
             basis_gates=basis,
             coupling_map=coupling_map,
-            seed_transpiler=42,
+            seed_transpiler=42123,
         )
         self.assertIsInstance(result, QuantumCircuit)
         resulting_basis = {node.name for node in circuit_to_dag(result).op_nodes()}
@@ -919,3 +1008,222 @@ class TestOptimizationWithCondition(QiskitTestCase):
         qc.cx(1, 0)
         circ = transpile(qc, basis_gates=["u3", "cz"])
         self.assertIsInstance(circ, QuantumCircuit)
+
+
+@ddt
+class TestOptimizationOnSize(QiskitTestCase):
+    """Test the optimization levels for optimization based on
+    both size and depth of the circuit.
+    See https://github.com/Qiskit/qiskit-terra/pull/7542
+    """
+
+    @data(2, 3)
+    def test_size_optimization(self, level):
+        """Test the levels for optimization based on size of circuit"""
+        qc = QuantumCircuit(8)
+        qc.cx(1, 2)
+        qc.cx(2, 3)
+        qc.cx(5, 4)
+        qc.cx(6, 5)
+        qc.cx(4, 5)
+        qc.cx(3, 4)
+        qc.cx(5, 6)
+        qc.cx(5, 4)
+        qc.cx(3, 4)
+        qc.cx(2, 3)
+        qc.cx(1, 2)
+        qc.cx(6, 7)
+        qc.cx(6, 5)
+        qc.cx(5, 4)
+        qc.cx(7, 6)
+        qc.cx(6, 7)
+
+        circ = transpile(qc, optimization_level=level).decompose()
+
+        circ_data = circ.data
+        free_qubits = set([0, 1, 2, 3])
+
+        # ensure no gates are using qubits - [0,1,2,3]
+        for gate in circ_data:
+            indices = {circ.find_bit(qubit).index for qubit in gate.qubits}
+            common = indices.intersection(free_qubits)
+            for common_qubit in common:
+                self.assertTrue(common_qubit not in free_qubits)
+
+        self.assertLess(circ.size(), qc.size())
+        self.assertLessEqual(circ.depth(), qc.depth())
+
+
+@ddt
+class TestGeenratePresetPassManagers(QiskitTestCase):
+    """Test generate_preset_pass_manager function."""
+
+    @data(0, 1, 2, 3)
+    def test_with_backend(self, optimization_level):
+        """Test a passmanager is constructed when only a backend and optimization level."""
+        target = FakeTokyo()
+        pm = generate_preset_pass_manager(optimization_level, target)
+        self.assertIsInstance(pm, PassManager)
+
+    @data(0, 1, 2, 3)
+    def test_with_no_backend(self, optimization_level):
+        """Test a passmanager is constructed with no backend and optimization level."""
+        target = FakeLagosV2()
+        pm = generate_preset_pass_manager(
+            optimization_level,
+            coupling_map=target.coupling_map,
+            basis_gates=target.operation_names,
+            inst_map=target.instruction_schedule_map,
+            instruction_durations=target.instruction_durations,
+            timing_constraints=target.target.timing_constraints(),
+            target=target.target,
+        )
+        self.assertIsInstance(pm, PassManager)
+
+    @data(0, 1, 2, 3)
+    def test_with_no_backend_only_target(self, optimization_level):
+        """Test a passmanager is constructed with a manual target and optimization level."""
+        target = FakeLagosV2()
+        pm = generate_preset_pass_manager(optimization_level, target=target.target)
+        self.assertIsInstance(pm, PassManager)
+
+    def test_invalid_optimization_level(self):
+        """Assert we fail with an invalid optimization_level."""
+        with self.assertRaises(ValueError):
+            generate_preset_pass_manager(42)
+
+    @unittest.mock.patch.object(
+        level2.PassManagerStagePluginManager,
+        "get_passmanager_stage",
+        wraps=mock_get_passmanager_stage,
+    )
+    def test_backend_with_custom_stages_level2(self, _plugin_manager_mock):
+        """Test generated preset pass manager includes backend specific custom stages."""
+        optimization_level = 2
+
+        class TargetBackend(FakeLagosV2):
+            """Fake lagos subclass with custom transpiler stages."""
+
+            def get_scheduling_stage_plugin(self):
+                """Custom scheduling stage."""
+                return "custom_stage_for_test"
+
+            def get_translation_stage_plugin(self):
+                """Custom post translation stage."""
+                return "custom_stage_for_test"
+
+        target = TargetBackend()
+        pm = generate_preset_pass_manager(optimization_level, backend=target)
+        self.assertIsInstance(pm, PassManager)
+
+        pass_list = [y.__class__.__name__ for x in pm.passes() for y in x["passes"]]
+        self.assertIn("PadDynamicalDecoupling", pass_list)
+        self.assertIn("ALAPScheduleAnalysis", pass_list)
+        post_translation_pass_list = [
+            y.__class__.__name__
+            for x in pm.translation.passes()  # pylint: disable=no-member
+            for y in x["passes"]
+        ]
+        self.assertIn("RemoveResetInZeroState", post_translation_pass_list)
+
+    @unittest.mock.patch.object(
+        level1.PassManagerStagePluginManager,
+        "get_passmanager_stage",
+        wraps=mock_get_passmanager_stage,
+    )
+    def test_backend_with_custom_stages_level1(self, _plugin_manager_mock):
+        """Test generated preset pass manager includes backend specific custom stages."""
+        optimization_level = 1
+
+        class TargetBackend(FakeLagosV2):
+            """Fake lagos subclass with custom transpiler stages."""
+
+            def get_scheduling_stage_plugin(self):
+                """Custom scheduling stage."""
+                return "custom_stage_for_test"
+
+            def get_translation_stage_plugin(self):
+                """Custom post translation stage."""
+                return "custom_stage_for_test"
+
+        target = TargetBackend()
+        pm = generate_preset_pass_manager(optimization_level, backend=target)
+        self.assertIsInstance(pm, PassManager)
+
+        pass_list = [y.__class__.__name__ for x in pm.passes() for y in x["passes"]]
+        self.assertIn("PadDynamicalDecoupling", pass_list)
+        self.assertIn("ALAPScheduleAnalysis", pass_list)
+        post_translation_pass_list = [
+            y.__class__.__name__
+            for x in pm.translation.passes()  # pylint: disable=no-member
+            for y in x["passes"]
+        ]
+        self.assertIn("RemoveResetInZeroState", post_translation_pass_list)
+
+    @unittest.mock.patch.object(
+        level3.PassManagerStagePluginManager,
+        "get_passmanager_stage",
+        wraps=mock_get_passmanager_stage,
+    )
+    def test_backend_with_custom_stages_level3(self, _plugin_manager_mock):
+        """Test generated preset pass manager includes backend specific custom stages."""
+        optimization_level = 3
+
+        class TargetBackend(FakeLagosV2):
+            """Fake lagos subclass with custom transpiler stages."""
+
+            def get_scheduling_stage_plugin(self):
+                """Custom scheduling stage."""
+                return "custom_stage_for_test"
+
+            def get_translation_stage_plugin(self):
+                """Custom post translation stage."""
+                return "custom_stage_for_test"
+
+        target = TargetBackend()
+        pm = generate_preset_pass_manager(optimization_level, backend=target)
+        self.assertIsInstance(pm, PassManager)
+
+        pass_list = [y.__class__.__name__ for x in pm.passes() for y in x["passes"]]
+        self.assertIn("PadDynamicalDecoupling", pass_list)
+        self.assertIn("ALAPScheduleAnalysis", pass_list)
+        post_translation_pass_list = [
+            y.__class__.__name__
+            for x in pm.translation.passes()  # pylint: disable=no-member
+            for y in x["passes"]
+        ]
+        self.assertIn("RemoveResetInZeroState", post_translation_pass_list)
+
+    @unittest.mock.patch.object(
+        level0.PassManagerStagePluginManager,
+        "get_passmanager_stage",
+        wraps=mock_get_passmanager_stage,
+    )
+    def test_backend_with_custom_stages_level0(self, _plugin_manager_mock):
+        """Test generated preset pass manager includes backend specific custom stages."""
+        optimization_level = 0
+
+        class TargetBackend(FakeLagosV2):
+            """Fake lagos subclass with custom transpiler stages."""
+
+            def get_scheduling_stage_plugin(self):
+                """Custom scheduling stage."""
+                return "custom_stage_for_test"
+
+            def get_translation_stage_plugin(self):
+                """Custom post translation stage."""
+                return "custom_stage_for_test"
+
+        target = TargetBackend()
+        pm = generate_preset_pass_manager(optimization_level, backend=target)
+        self.assertIsInstance(pm, PassManager)
+
+        pass_list = [y.__class__.__name__ for x in pm.passes() for y in x["passes"]]
+        self.assertIn("PadDynamicalDecoupling", pass_list)
+        self.assertIn("ALAPScheduleAnalysis", pass_list)
+        post_translation_pass_list = [
+            y.__class__.__name__
+            for x in pm.translation.passes()  # pylint: disable=no-member
+            for y in x["passes"]
+        ]
+        self.assertIn("RemoveResetInZeroState", post_translation_pass_list)

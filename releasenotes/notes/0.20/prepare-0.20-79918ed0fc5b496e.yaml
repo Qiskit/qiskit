@@ -1,0 +1,45 @@
+---
+prelude: |
+  The Qiskit Terra 0.20.0 release highlights are:
+
+  * The introduction of multithreaded modules written in Rust to accelerate
+    the performance of certain portions of Qiskit Terra and improve scaling
+    with larger numbers of qubits. However, when building Qiskit from source a
+    `Rust <https://www.rust-lang.org/>`__ compiler is now required.
+
+  * More native support for working with a :class:`~.Target` in the transpiler.
+    Several passes now support working directly with a :class:`~.Target` object
+    which makes the transpiler robust in the types of backends it can target.
+
+  * The introduction of the :mod:`qiskit.primitives` module. These APIs
+    provide different abstraction levels for computing outputs of interest from
+    :class:`~.QuantumCircuit` and using backends. For
+    example, the :class:`~qiskit.primitives.BaseEstimator` defines an abstract
+    interface for estimating an expectation value of an observable.
+    This can then be used to construct higher level algorithms and applications
+    that are built using the estimation of expectation values without having
+    to worry about the implementation of computing the expectation value.
+    This decoupling allows the implementation to improve in speed and quality
+    while adhering to the defined abstract interface.
+    Likewise, the :class:`~qiskit.primitives.BaseSampler` computes
+    quasi-probability distributions from circuit measurements. Other primitives will
+    be introduced in the future.
+
+  This release no longer has support for Python 3.6. With this release,
+  Python 3.7 through Python 3.10 are required.
+fixes:
+  - |
+    Fixed an issue with the :class:`~.ALAPSchedule` and :class:`~.ASAPSchedule`
+    transpiler passes when working with instructions that had custom pulse
+    calibrations (i.e. pulse gates) set. Previously, the scheduling passes
+    would not use the duration from the custom pulse calibration for thse
+    instructions which would result in the an incorrect scheduling being
+    generated for the circuit. This has been fixed so that now the scheduling
+    passes will use the duration of the custom pulse calibration for any
+    instruction in the circuit which has a custom calibration.
+  - |
+    Fixed support for using :class:`~.ParameterExpression` instruction
+    paramaters in the :class:`~.RZXCalibrationBuilder` transpiler pass.
+    Previously, if an instruction parameter included a
+    bound :class:`~.ParameterExpression` the pass would not be able to
+    handle this correctly.
