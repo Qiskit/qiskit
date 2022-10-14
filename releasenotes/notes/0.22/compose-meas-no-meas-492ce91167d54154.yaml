@@ -2,9 +2,9 @@
 features:
   - |
     :meth:`.QuantumCircuit.compose` will now accept an operand with classical
-    bits if the base circuit has none itself, as a convenience.  The pattern
-    of composing a circuit with measurements onto a quantum-only circuit is
-    now valid::
+    bits if the base circuit has none itself. The pattern of composing a
+    circuit with measurements onto a quantum-only circuit is
+    now valid. For example::
 
       from qiskit import QuantumCircuit
 
