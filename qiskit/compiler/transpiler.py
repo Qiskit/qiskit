@@ -90,12 +90,12 @@ def transpile(
 
     .. deprecated:: 0.23.0
 
-        All arguments (except for ``circuits``) may be given as either a singleton or list. In
-        case of a list, the length must be equal to the number of circuits being transpiled. The
-        support for using a list for an argument is deprecated and will be removed in the 0.25.0
-        release. If you need to use multiple values for an argument you can
-        use multiple :func:`~.transpile` calls (and potentially use :func:`~.parallel_map`
-        to leverage multiprocessing if needed).
+        Previously, all arguments accepted lists of the same length as ``circuits``,
+        which was used to specialize arguments for circuits at the corresponding
+        indices. Support for using such argument lists is now deprecated and will
+        be removed in the 0.25.0 release. If you need to use multiple values for an
+        argument, you can use multiple :func:`~.transpile` calls (and potentially
+        :func:`~.parallel_map` to leverage multiprocessing if needed).
 
     Transpilation is done in parallel using multiprocessing.
 
