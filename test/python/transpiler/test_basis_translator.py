@@ -453,6 +453,29 @@ class TestBasisTranslator(QiskitTestCase):
         dag_expected = circuit_to_dag(expected)
         self.assertEqual(dag_translated, dag_expected)
 
+    def test_different_bits(self):
+        """Test that the basis translator correctly works when the inner blocks of control-flow
+        operations are not over the same bits as the outer blocks."""
+        base = QuantumCircuit([Qubit() for _ in [None] * 4], [Clbit()])
+        for_body = QuantumCircuit([Qubit(), Qubit()])
+        for_body.h(0)
+        for_body.cz(0, 1)
+        base.for_loop((1,), None, for_body, [1, 2], [])
+
+        while_body = QuantumCircuit([Qubit(), Qubit(), Clbit()])
+        while_body.cz(0, 1)
+
+        true_body = QuantumCircuit([Qubit(), Qubit(), Clbit()])
+        true_body.measure(0, 0)
+        true_body.while_loop((0, True), while_body, [0, 1], [0])
+        false_body = QuantumCircuit([Qubit(), Qubit(), Clbit()])
+        false_body.cz(0, 1)
+        base.if_else((0, True), true_body, false_body, [0, 3], [0])
+
+        basis = {"rz", "sx", "cx", "for_loop", "if_else", "while_loop", "measure"}
+        out = BasisTranslator(std_eqlib, basis).run(circuit_to_dag(base))
+        self.assertEqual(set(out.count_ops(recurse=True)), basis)
+
 
 class TestUnrollerCompatability(QiskitTestCase):
     """Tests backward compatability with the Unroller pass.

@@ -24,7 +24,7 @@ from ddt import ddt, data
 
 from qiskit import transpile
 from qiskit.test import QiskitTestCase
-from qiskit.providers.fake_provider import FakeVigo, FakeMumbaiFractionalCX
+from qiskit.providers.fake_provider import FakeVigo, FakeMumbaiFractionalCX, FakeBelemV2
 from qiskit.providers.fake_provider.fake_backend_v2 import FakeBackendV2, FakeBackend5QV2
 from qiskit.circuit import QuantumCircuit, QuantumRegister, ClassicalRegister
 from qiskit.circuit.library import QuantumVolume
@@ -51,7 +51,7 @@ from qiskit.transpiler.passes import (
     SabreSwap,
     TrivialLayout,
 )
-from qiskit.circuit.library import CXGate, ECRGate, UGate
+from qiskit.circuit.library import CXGate, ECRGate, UGate, ZGate
 from qiskit.circuit import Parameter
 
 
@@ -765,6 +765,26 @@ class TestUnitarySynthesis(QiskitTestCase):
         cbody = cqc.data[0].operation.params[2].data[0].operation.params[0]
         self.assertEqual(cbody.count_ops().keys(), {"u", "cx"})
         self.assertEqual(qc_uni1_mat, Operator(cbody))
+
+    def test_single_qubit_with_target(self):
+        """Test input circuit with only 1q works with target."""
+        qc = QuantumCircuit(1)
+        qc.append(ZGate(), [qc.qubits[0]])
+        dag = circuit_to_dag(qc)
+        unitary_synth_pass = UnitarySynthesis(target=FakeBelemV2().target)
+        result_dag = unitary_synth_pass.run(dag)
+        result_qc = dag_to_circuit(result_dag)
+        self.assertEqual(qc, result_qc)
+
+    def test_single_qubit_identity_with_target(self):
+        """Test input single qubit identity works with target."""
+        qc = QuantumCircuit(1)
+        qc.unitary([[1.0, 0.0], [0.0, 1.0]], 0)
+        dag = circuit_to_dag(qc)
+        unitary_synth_pass = UnitarySynthesis(target=FakeBelemV2().target)
+        result_dag = unitary_synth_pass.run(dag)
+        result_qc = dag_to_circuit(result_dag)
+        self.assertEqual(result_qc, QuantumCircuit(1))
 
 
 if __name__ == "__main__":
