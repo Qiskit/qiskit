@@ -248,7 +248,8 @@ class XXDecomposer:
         }
         circuit = canonical_xx_circuit(best_point, best_sequence, embodiments)
 
-        if best_sequence == [np.pi / 2, np.pi / 2, np.pi / 2] and self.backup_optimizer is not None:
+        if (best_sequence == [np.pi / 2, np.pi / 2, np.pi / 2] or 
+            best_sequence == [np.pi / 2, np.pi / 2]) and self.backup_optimizer is not None:
             pi2_fidelity = 1-strength_to_infidelity[np.pi/2]
             return self.backup_optimizer(unitary, basis_fidelity=pi2_fidelity)
 
