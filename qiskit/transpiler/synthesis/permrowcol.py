@@ -70,7 +70,12 @@ class PermRowCol:
         return cols[np.argmin(col_sum)]
 
     def eliminate_column(
-        self, parity_mat: np.ndarray, coupling: CouplingMap, root: int, col: int, terminals: np.ndarray
+        self,
+        parity_mat: np.ndarray,
+        coupling: CouplingMap,
+        root: int,
+        col: int,
+        terminals: np.ndarray,
     ) -> np.ndarray:
         """Eliminates the selected column from the parity matrix and returns the operations.
 
@@ -85,18 +90,20 @@ class PermRowCol:
             np.ndarray: list of operations
         """
         C = []
-        tree = rx.steiner_tree(pydigraph_to_pygraph(coupling.graph),terminals, weight_fn = lambda x: 1 )
+        tree = rx.steiner_tree(
+            pydigraph_to_pygraph(coupling.graph), terminals, weight_fn=lambda x: 1
+        )
         post_edges = []
         postorder_traversal(tree, root, post_edges)
 
         for edge in post_edges:
-            if parity_mat[edge[0],col]==0:
+            if parity_mat[edge[0], col] == 0:
                 C.append((edge[0], edge[1]))
-                parity_mat[edge[0],:] = (parity_mat[edge[0],:] + parity_mat[edge[1],:]) % 2
+                parity_mat[edge[0], :] = (parity_mat[edge[0], :] + parity_mat[edge[1], :]) % 2
 
         for edge in post_edges:
             C.append((edge[1], edge[0]))
-            parity_mat[edge[1],:] = (parity_mat[edge[0],:] + parity_mat[edge[1],:]) % 2
+            parity_mat[edge[1], :] = (parity_mat[edge[0], :] + parity_mat[edge[1], :]) % 2
 
         return np.array(C, dtype=object)
 
