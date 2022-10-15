@@ -7,6 +7,7 @@ from qiskit.test import QiskitTestCase
 from qiskit.transpiler.synthesis.permrowcol import PermRowCol
 from qiskit import QuantumCircuit
 from qiskit.transpiler import CouplingMap
+import retworkx as rx
 
 
 class TestPermRowCol(QiskitTestCase):
@@ -113,9 +114,54 @@ class TestPermRowCol(QiskitTestCase):
         parity_mat = np.ndarray(0)
         terminals = np.ndarray(0)
 
-        instance = permrowcol.eliminate_column(parity_mat, coupling, 0, terminals)
+        instance = permrowcol.eliminate_column(parity_mat, coupling, 0, 0, terminals)
 
         self.assertIsInstance(instance, np.ndarray)
+
+    def test_eliminate_column_returns_correct_list_of_tuples_with_given_input(self):
+        """Test eliminate_column method for correctness in case of example parity_matrix and coupling map"""
+        coupling_list = [(0, 1), (0, 3), (1, 2), (1, 4), (2, 5), (3, 4), (4, 5)]
+        coupling = CouplingMap(coupling_list)
+        permrowcol = PermRowCol(coupling)
+        parity_mat = np.array(
+            [
+                [0, 1, 0, 1, 1, 0],
+                [1, 1, 1, 1, 1, 0],
+                [1, 0, 0, 0, 1, 1],
+                [1, 1, 1, 0, 1, 0],
+                [1, 0, 1, 0, 1, 0],
+                [1, 0, 1, 0, 1, 1],
+            ]
+        )
+        root = 0
+        column = 3
+        terminals = np.array([1, 0])
+        ret = permrowcol.eliminate_column(parity_mat, coupling, root, column, terminals)
+
+        self.assertEqual(ret.all(), np.array([1, 0]).all())
+
+    def test_eliminate_column_eliminates_selected_column(self):
+        """Test eliminate_column for eliminating selected column in case of example parity_matrix and coupling map"""
+        coupling_list = [(0, 1), (0, 3), (1, 2), (1, 4), (2, 5), (3, 4), (4, 5)]
+        coupling = CouplingMap(coupling_list)
+        permrowcol = PermRowCol(coupling)
+        parity_mat = np.array(
+            [
+                [0, 1, 0, 1, 1, 0],
+                [1, 1, 1, 1, 1, 0],
+                [1, 0, 0, 0, 1, 1],
+                [1, 1, 1, 0, 1, 0],
+                [1, 0, 1, 0, 1, 0],
+                [1, 0, 1, 0, 1, 1],
+            ]
+        )
+
+        root = 0
+        column = 3
+        terminals = np.array([1, 0])
+        ret = permrowcol.eliminate_column(parity_mat, coupling, root, column, terminals)
+
+        self.assertEqual(1, sum(parity_mat[:, column]))
 
     def test_eliminate_row_returns_np_ndarray(self):
         """Test the output type of eliminate_row"""

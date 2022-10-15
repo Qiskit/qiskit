@@ -13,9 +13,11 @@
 """Permrowcol-algorithm functionality implementation"""
 
 import numpy as np
+import retworkx as rx
 
 from qiskit.transpiler import CouplingMap
 from qiskit import QuantumRegister, QuantumCircuit
+from qiskit.transpiler.synthesis.graph_utils import postorder_traversal, pydigraph_to_pygraph
 
 
 class PermRowCol:
@@ -68,7 +70,12 @@ class PermRowCol:
         return cols[np.argmin(col_sum)]
 
     def eliminate_column(
-        self, parity_mat: np.ndarray, coupling: CouplingMap, root: int, terminals: np.ndarray
+        self,
+        parity_mat: np.ndarray,
+        coupling: CouplingMap,
+        root: int,
+        col: int,
+        terminals: np.ndarray,
     ) -> np.ndarray:
         """Eliminates the selected column from the parity matrix and returns the operations.
 
@@ -76,12 +83,29 @@ class PermRowCol:
             parity_mat (np.ndarray): parity matrix
             coupling (CouplingMap): topology
             root (int): root of the steiner tree
+            col (int): selected column to eliminate
             terminals (np.ndarray): terminals of the steiner tree
 
         Returns:
             np.ndarray: list of operations
         """
-        return np.ndarray(0)
+        C = []
+        tree = rx.steiner_tree(
+            pydigraph_to_pygraph(coupling.graph), terminals, weight_fn=lambda x: 1
+        )
+        post_edges = []
+        postorder_traversal(tree, root, post_edges)
+
+        for edge in post_edges:
+            if parity_mat[edge[0], col] == 0:
+                C.append((edge[0], edge[1]))
+                parity_mat[edge[0], :] = (parity_mat[edge[0], :] + parity_mat[edge[1], :]) % 2
+
+        for edge in post_edges:
+            C.append((edge[1], edge[0]))
+            parity_mat[edge[1], :] = (parity_mat[edge[0], :] + parity_mat[edge[1], :]) % 2
+
+        return np.array(C, dtype=object)
 
     def eliminate_row(
         self, parity_mat: np.ndarray, coupling: CouplingMap, root: int, terminals: np.ndarray
