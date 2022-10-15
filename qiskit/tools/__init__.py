@@ -24,6 +24,17 @@ Parallel Routines
    :toctree: ../stubs/
 
    parallel_map
+   ===============
+   .. code-block::
+      
+      import time
+      from qiskit.tools.parallel import parallel_map
+
+      def func(_):
+         time.sleep(0.1)
+         return 0
+
+      parallel_map(func, list(range(10)));
 
 Monitoring
 ==========

@@ -11,6 +11,28 @@
 # that they have been altered from the originals.
 
 """A module for monitoring jobs, backends, etc.
+
+
+job_monitor
+===============
+
+.. code-block::
+
+    from qiskit import BasicAer, execute
+    from qiskit.circuit import QuantumRegister, ClassicalRegister, QuantumCircuit
+    from qiskit.tools.monitor import job_monitor
+    sim_backend = BasicAer.get_backend("qasm_simulator")
+
+    q = QuantumRegister(2)
+    c = ClassicalRegister(2)
+    qc = QuantumCircuit(q, c)
+
+    qc.h(q[0])
+    qc.cx(q[0], q[1])
+    qc.measure(q, c)
+    job_sim = execute(qc, backend=sim_backend)
+    job_monitor(job_sim)
+ 
 """
 
 from .job_monitor import job_monitor

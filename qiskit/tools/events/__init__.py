@@ -11,6 +11,17 @@
 # that they have been altered from the originals.
 
 """Events
+
+TextProgressBar
+===============
+
+.. jupyter-execute::
+
+   from qiskit.tools.events import TextProgressBar
+   TextProgressBar()
+   %qiskit_progress_bar -t text
+
+    
 """
 
 from .progressbar import TextProgressBar
