@@ -115,7 +115,7 @@ class UnitarySynthesis(TransformationPass):
     def __init__(
         self,
         basis_gates: List[str] = None,
-        approximation_degree: float = 1,
+        approximation_degree: float = 1.0,
         coupling_map: CouplingMap = None,
         backend_props: BackendProperties = None,
         pulse_optimize: Union[bool, None] = None,
@@ -464,9 +464,6 @@ class DefaultUnitarySynthesis(plugin.UnitarySynthesisPlugin):
         supercontrolled_basis = {k: v for k, v in available_2q_basis.items() if is_supercontrolled(v)}
         controlled_basis = {k: v for k, v in available_2q_basis.items() if is_controlled(v)}
 
-        print(f'controlled basis: {controlled_basis}')
-        print(f'supercontrolled basis: {supercontrolled_basis}')
-
         # lowest-error Euler basis
         available_1q_basis = self._find_matching_euler_bases(target)
         euler_basis = available_1q_basis[0]
@@ -487,13 +484,22 @@ class DefaultUnitarySynthesis(plugin.UnitarySynthesisPlugin):
             preferred_direction = [0, 1] if qubits_tuple in target[name].keys() else [1, 0]
             best_supercontrolled = supercontrolled_basis[name]
 
-        print('going with ', euler_basis, best_supercontrolled)
         supercontrolled_decomposer = TwoQubitBasisDecomposer(
-            best_supercontrolled, euler_basis=euler_basis, pulse_optimize=pulse_optimize
+            best_supercontrolled, euler_basis=euler_basis, basis_fidelity=1-lowest_error,
+            pulse_optimize=pulse_optimize
             )
 
         # collection of controlled basis 
         embodiments = {}
+        basis_fidelity = {}
+        for k, v in controlled_basis.items():
+            strength = 2 * TwoQubitWeylDecomposition(v).a  # pi/2 for fully entangling
+            basis_fidelity[strength] = 1-available_2q_props[k].error
+            embodiment = XXEmbodiments[type(v)]
+            if len(embodiment.parameters) == 1:
+                embodiments[strength] = embodiment.bind_parameters([strength])
+            else:
+                embodiments[strength] = embodiment
 
         # basis equivalent to CX are well optimized so use for the pi/2 angle if available
         if is_controlled(supercontrolled_decomposer.gate):
@@ -501,13 +507,15 @@ class DefaultUnitarySynthesis(plugin.UnitarySynthesisPlugin):
             embodiments.update({pi/2: XXEmbodiments[type(pi2_decomposer.gate)]})
         else:
             pi2_decomposer = None
-
+        
         controlled_decomposer = XXDecomposer(
-            euler_basis=euler_basis, embodiments=embodiments, backup_optimizer=pi2_decomposer
+            euler_basis=euler_basis, embodiments=embodiments,
+            backup_optimizer=pi2_decomposer, basis_fidelity=basis_fidelity
             )
 
+        decomposer2q = controlled_decomposer if controlled_decomposer is not None else supercontrolled_decomposer
         self._decomposer_cache[qubits_tuple] = (decomposer2q, preferred_direction)
-        print(decomposer2q)
+        
         return (decomposer2q, preferred_direction)
 
     def run(self, unitary, **options):
@@ -515,7 +523,7 @@ class DefaultUnitarySynthesis(plugin.UnitarySynthesisPlugin):
         # instance by the UnitarySynthesis pass here as it's not part of
         # plugin interface. However if for some reason it's not set assume
         # it's 1.
-        approximation_degree = getattr(self, "_approximation_degree", 1)
+        approximation_degree = getattr(self, "_approximation_degree", 1.0)
         basis_gates = options["basis_gates"]
         coupling_map = options["coupling_map"][0]
         natural_direction = options["natural_direction"]
@@ -642,7 +650,7 @@ class DefaultUnitarySynthesis(plugin.UnitarySynthesisPlugin):
         else:
             basis_fidelity = physical_gate_fidelity
         if not isinstance(decomposer2q, XXDecomposer):
-            synth_circ = decomposer2q(su4_mat, basis_fidelity=basis_fidelity)
+            synth_circ = decomposer2q(su4_mat)
         else:
             synth_circ = decomposer2q(su4_mat)
         synth_dag = circuit_to_dag(synth_circ)
@@ -663,6 +671,6 @@ class DefaultUnitarySynthesis(plugin.UnitarySynthesisPlugin):
             su4_mat_mm = deepcopy(su4_mat)
             su4_mat_mm[[1, 2]] = su4_mat_mm[[2, 1]]
             su4_mat_mm[:, [1, 2]] = su4_mat_mm[:, [2, 1]]
-            synth_dag = circuit_to_dag(decomposer2q(su4_mat_mm, basis_fidelity=basis_fidelity))
+            synth_dag = circuit_to_dag(decomposer2q(su4_mat_mm))
             wires = synth_dag.wires[::-1]
         return synth_dag, wires

@@ -22,7 +22,7 @@ import numpy as np
 from qiskit.circuit import QuantumCircuit, Parameter
 from qiskit.circuit.library import (RZZGate, RZXGate, RYYGate, 
                                     CRZGate, CRXGate, CRYGate, CPhaseGate, 
-                                    CZGate, CXGate, CYGate)
+                                    CZGate, CXGate, CYGate, CHGate)
 
 
 rzz_circuit = QuantumCircuit(2)

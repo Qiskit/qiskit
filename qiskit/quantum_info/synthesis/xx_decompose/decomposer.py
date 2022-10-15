@@ -17,7 +17,7 @@ Driver for a synthesis routine which emits optimal XX-based circuits.
 import heapq
 import math
 from operator import itemgetter
-from typing import Callable, Optional
+from typing import Callable, Optional, Union
 
 import numpy as np
 
@@ -81,14 +81,13 @@ class XXDecomposer:
         euler_basis: str = "U",
         embodiments: Optional[dict] = None,
         backup_optimizer: Optional[Callable] = None,
-        basis_fidelity: Optional[dict | float] = 1.0
+        basis_fidelity: Union[dict, float, None] = 1.0
     ):
         from qiskit.transpiler.passes.optimization.optimize_1q_decomposition import (
             Optimize1qGatesDecomposition,  # pylint: disable=cyclic-import
         )
 
         self._decomposer1q = Optimize1qGatesDecomposition(ONE_QUBIT_EULER_BASIS_GATES[euler_basis])
-        self.gate = RZXGate(np.pi / 2)
         self.embodiments = embodiments if embodiments is not None else {}
         self.backup_optimizer = backup_optimizer
         self.basis_fidelity = basis_fidelity
@@ -207,7 +206,7 @@ class XXDecomposer:
 
         raise TypeError("Unknown basis_fidelity payload.")
 
-    def __call__(self, unitary, basis_fidelity=1.0, approximate=True):
+    def __call__(self, unitary, basis_fidelity=None, approximate=True):
         """
         Fashions a circuit which (perhaps `approximate`ly) models the special unitary operation
         `unitary`, using the circuit templates supplied at initialization as `embodiments`.  The
@@ -229,6 +228,7 @@ class XXDecomposer:
         strength_to_infidelity = self._strength_to_infidelity(
             basis_fidelity, approximate=approximate
         )
+
         from qiskit.extensions import UnitaryGate  # pylint: disable=cyclic-import
 
         # get the associated _positive_ canonical coordinate
@@ -249,7 +249,8 @@ class XXDecomposer:
         circuit = canonical_xx_circuit(best_point, best_sequence, embodiments)
 
         if best_sequence == [np.pi / 2, np.pi / 2, np.pi / 2] and self.backup_optimizer is not None:
-            return self.backup_optimizer(unitary, basis_fidelity=basis_fidelity)
+            pi2_fidelity = 1-strength_to_infidelity[np.pi/2]
+            return self.backup_optimizer(unitary, basis_fidelity=pi2_fidelity)
 
         # change to positive canonical coordinates
         if weyl_decomposition.c >= -EPSILON:
