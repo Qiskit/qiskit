@@ -166,7 +166,7 @@ class SolovayKitaev:
         return best
 
 
-class SolovayKitaevDecomposition(TransformationPass):
+class SolovayKitaevSynthesis(TransformationPass):
     r"""Approximately decompose 1q gates to a discrete basis using the Solovay-Kitaev algorithm.
 
     See :mod:`qiskit.transpiler.synthesis.solovay_kitaev` for more information.
@@ -194,7 +194,7 @@ class SolovayKitaevDecomposition(TransformationPass):
         self._sk = SolovayKitaev(basic_approximations)
 
     def run(self, dag: DAGCircuit) -> DAGCircuit:
-        """Run the SolovayKitaevDecomposition pass on `dag`.
+        """Run the SolovayKitaevSynthesis pass on `dag`.
 
         Args:
             dag: The input dag.
@@ -211,7 +211,7 @@ class SolovayKitaevDecomposition(TransformationPass):
 
             if not hasattr(node.op, "to_matrix"):
                 raise TranspilerError(
-                    "SolovayKitaevDecomposition does not support gate without "
+                    "SolovayKitaevSynthesis does not support gate without "
                     f"to_matrix method: {node.op.name}"
                 )
 

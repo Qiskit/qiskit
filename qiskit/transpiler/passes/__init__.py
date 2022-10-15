@@ -133,7 +133,7 @@ Circuit Analysis
    DAGLongestPath
 
 Synthesis
-=============
+=========
 
 .. autosummary::
    :toctree: ../stubs/

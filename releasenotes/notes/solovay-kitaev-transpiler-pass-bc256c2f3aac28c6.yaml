@@ -6,3 +6,19 @@ features:
     to convert any unitary circuit to a universal discrete gate set, which could be implemented
     fault-tolerantly.
 
+    This pass can e.g. be used after compiling to U and CX gates::
+
+      from qiskit import transpile
+      from qiskit.circuit.library import QFT
+      from qiskit.transpiler.synthesis.solovay_kitaev import SolovayKitaevSynthesis
+
+      qft = QFT(3)
+
+      # optimize to general 1-qubit unitaries and CX
+      transpiled = transpile(qft, basis_gates=["u", "cx"], optimization_level=1)
+
+      skd = SolovayKitaevSynthesis()
+      discretized = skd(transpiled)
+
+      print(discretized.count_ops())
+
