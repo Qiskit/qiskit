@@ -90,7 +90,6 @@ class PermRowCol:
         postorder_traversal(tree, root, post_edges)
 
         for edge in post_edges:
-            print(edge)
             if parity_mat[edge[0],col]==0:
                 C.append((edge[0], edge[1]))
                 parity_mat[edge[0],:] = (parity_mat[edge[0],:] + parity_mat[edge[1],:]) % 2
