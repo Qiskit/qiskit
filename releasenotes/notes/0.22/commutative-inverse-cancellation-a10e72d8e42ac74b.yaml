@@ -2,7 +2,7 @@
 features:
   - |
     Refactored gate commutativity analysis into a class :class:`~qiskit.circuit.CommutationChecker`.
-    It allows to check (based on matrix multiplication) whether two gates commute or do not commute,
+    This class allows you to check (based on matrix multiplication) whether two gates commute or do not commute,
     and to cache the results (so that a similar check in the future will no longer require matrix
     multiplication).
 
@@ -15,19 +15,18 @@ features:
 
         res = comm_checker.commute(CXGate(), [qr[1], qr[0]], [], CXGate(), [qr[1], qr[2]], [])
 
-    As the two CX gates commute (the first CX gate is over qubits `qr[1]` and `qr[0]`, and the
-    second CX gate is over qubits `qr[1]` and `qr[2]`), we will have that `res` is `True`.
+    As the two CX gates commute (the first CX gate is over qubits ``qr[1]`` and ``qr[0]``, and the
+    second CX gate is over qubits ``qr[1]`` and ``qr[2]``), we will have that ``res`` is ``True``.
 
     This commutativity checking is over-conservative for conditional and parameterized gates,
-    and may return `False` even when such gates commute.
+    and may return ``False`` even when such gates commute.
 
   - |
     Added a new transpiler pass :class:`.CommutativeInverseCancellation` that cancels pairs of
     inverse gates exploiting commutation relations between gates. This pass is a generalization
     of the transpiler pass :class:`.InverseCancellation` as it detects a larger set of inverse
     gates, and as it takes commutativity into account. The pass also avoids some problems
-    associated with the transpiler pass :class:`.CommutativeCancellation`, see
-    `issue #8020 <https://github.com/Qiskit/qiskit-terra/issues/8020>`_
+    associated with the transpiler pass :class:`.CommutativeCancellation`.
 
     For example::
 
@@ -50,7 +49,3 @@ features:
 
     The inverse checking is over-conservative for conditional and parameterized gates,
     and may not cancel some of such gates.
-
-
-
-

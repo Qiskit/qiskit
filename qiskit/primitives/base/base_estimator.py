@@ -9,6 +9,7 @@
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
+
 r"""
 
 .. estimator-desc:
@@ -76,9 +77,10 @@ Here is an example of how the estimator is used.
     job_result = job2.result()
     print(f"The primitive-job finished with result {job_result}")
 """
+
 from __future__ import annotations
 
-from abc import ABC, abstractmethod
+from abc import abstractmethod
 from collections.abc import Iterable, Sequence
 from copy import copy
 from typing import cast
@@ -90,16 +92,16 @@ from qiskit.circuit import Parameter, QuantumCircuit
 from qiskit.circuit.parametertable import ParameterView
 from qiskit.opflow import PauliSumOp
 from qiskit.providers import JobV1 as Job
-from qiskit.providers import Options
 from qiskit.quantum_info.operators import SparsePauliOp
 from qiskit.quantum_info.operators.base_operator import BaseOperator
 from qiskit.utils.deprecation import deprecate_arguments, deprecate_function
 
+from .base_primitive import BasePrimitive
 from .estimator_result import EstimatorResult
-from .utils import _circuit_key, _observable_key, init_observable
+from ..utils import _circuit_key, _observable_key, init_observable
 
 
-class BaseEstimator(ABC):
+class BaseEstimator(BasePrimitive):
     """Estimator base class.
 
     Base class for Estimator that estimates expectation values of quantum circuits and observables.
@@ -132,9 +134,9 @@ class BaseEstimator(ABC):
         """
         if circuits is not None or observables is not None or parameters is not None:
             warn(
-                "The BaseEstimator 'circuits', `observables`, `parameters` kwarg are deprecated "
-                "as of 0.22.0 and will be removed no earlier than 3 months after the "
-                "release date. You can use 'run' method to append objects.",
+                "The BaseEstimator `circuits`, `observables`, `parameters` kwarg are deprecated "
+                "as of Qiskit Terra 0.22.0 and will be removed no earlier than 3 months after "
+                "the release date. You can use the 'run' method to append objects.",
                 DeprecationWarning,
                 2,
             )
@@ -166,10 +168,127 @@ class BaseEstimator(ABC):
                         f"Different numbers of parameters of {i}-th circuit: "
                         f"expected {circ.num_parameters}, actual {len(params)}."
                     )
-        self._run_options = Options()
-        if options is not None:
-            self._run_options.update_options(**options)
+        super().__init__(options)
 
+    ################################################################################
+    ## METHODS
+    ################################################################################
+    def run(
+        self,
+        circuits: Sequence[QuantumCircuit] | QuantumCircuit,
+        observables: Sequence[BaseOperator | PauliSumOp] | BaseOperator | PauliSumOp,
+        parameter_values: Sequence[Sequence[float]] | Sequence[float] | float | None = None,
+        **run_options,
+    ) -> Job:
+        """Run the job of the estimation of expectation value(s).
+
+        ``circuits``, ``observables``, and ``parameter_values`` should have the same
+        length. The i-th element of the result is the expectation of observable
+
+        .. code-block:: python
+
+            obs = observables[i]
+
+        for the state prepared by
+
+        .. code-block:: python
+
+            circ = circuits[i]
+
+        with bound parameters
+
+        .. code-block:: python
+
+            values = parameter_values[i].
+
+        Args:
+            circuits: one or more circuit objects.
+            observables: one or more observable objects.
+            parameter_values: concrete parameters to be bound.
+            run_options: runtime options used for circuit execution.
+
+        Returns:
+            The job object of EstimatorResult.
+
+        Raises:
+            TypeError: Invalid argument type given.
+            ValueError: Invalid argument values given.
+        """
+        # Singular validation
+        circuits = self._validate_circuits(circuits)
+        observables = self._validate_observables(observables)
+        parameter_values = self._validate_parameter_values(
+            parameter_values,
+            default=[()] * len(circuits),
+        )
+
+        # Cross-validation
+        self._cross_validate_circuits_parameter_values(circuits, parameter_values)
+        self._cross_validate_circuits_observables(circuits, observables)
+
+        # Options
+        run_opts = copy(self.options)
+        run_opts.update_options(**run_options)
+
+        return self._run(
+            circuits,
+            observables,
+            parameter_values,
+            **run_opts.__dict__,
+        )
+
+    # This will be comment out after 0.22. (This is necessary for the compatibility.)
+    # @abstractmethod
+    def _run(
+        self,
+        circuits: tuple[QuantumCircuit, ...],
+        observables: tuple[BaseOperator | PauliSumOp, ...],
+        parameter_values: tuple[tuple[float, ...], ...],
+        **run_options,
+    ) -> Job:
+        raise NotImplementedError(
+            "_run method is not implemented. This method will be @abstractmethod after 0.22."
+        )
+
+    ################################################################################
+    ## VALIDATION
+    ################################################################################
+    @staticmethod
+    def _validate_observables(
+        observables: Sequence[BaseOperator | PauliSumOp] | BaseOperator | PauliSumOp,
+    ) -> tuple[BaseOperator | PauliSumOp, ...]:
+        if isinstance(observables, (BaseOperator, PauliSumOp)):
+            observables = (observables,)
+        elif not isinstance(observables, Sequence) or not all(
+            isinstance(obs, (BaseOperator, PauliSumOp)) for obs in observables
+        ):
+            raise TypeError("Invalid observables, expected Sequence[BaseOperator|PauliSumOp].")
+        elif not isinstance(observables, tuple):
+            observables = tuple(observables)
+        if len(observables) == 0:
+            raise ValueError("No observables were provided.")
+        return observables
+
+    @staticmethod
+    def _cross_validate_circuits_observables(
+        circuits: tuple[QuantumCircuit, ...], observables: tuple[BaseOperator | PauliSumOp, ...]
+    ) -> None:
+        if len(circuits) != len(observables):
+            raise ValueError(
+                f"The number of circuits ({len(circuits)}) does not match "
+                f"the number of observables ({len(observables)})."
+            )
+        for i, (circuit, observable) in enumerate(zip(circuits, observables)):
+            if circuit.num_qubits != observable.num_qubits:
+                raise ValueError(
+                    f"The number of qubits of the {i}-th circuit ({circuit.num_qubits}) does "
+                    f"not match the number of qubits of the {i}-th observable "
+                    f"({observable.num_qubits})."
+                )
+
+    ################################################################################
+    ## DEPRECATED
+    ################################################################################
     def __new__(
         cls,
         circuits: Iterable[QuantumCircuit] | QuantumCircuit | None = None,
@@ -177,7 +296,6 @@ class BaseEstimator(ABC):
         parameters: Iterable[Iterable[Parameter]] | None = None,  # pylint: disable=unused-argument
         **kwargs,  # pylint: disable=unused-argument
     ):
-
         self = super().__new__(cls)
         if circuits is None:
             self._circuit_ids = {}
@@ -197,26 +315,6 @@ class BaseEstimator(ABC):
         else:
             self._observable_ids = {_observable_key(init_observable(observables)): 0}
         return self
-
-    @deprecate_function(
-        "The BaseEstimator.__enter__ method is deprecated as of Qiskit Terra 0.22.0 "
-        "and will be removed no sooner than 3 months after the releasedate. "
-        "BaseEstimator should be initialized directly.",
-    )
-    def __enter__(self):
-        return self
-
-    @deprecate_function(
-        "The BaseEstimator.__exit__ method is deprecated as of Qiskit Terra 0.22.0 "
-        "and will be removed no sooner than 3 months after the releasedate. "
-        "BaseEstimator should be initialized directly.",
-    )
-    def __exit__(self, *exc_info):
-        self.close()
-
-    def close(self):
-        """Close the session and free resources"""
-        ...
 
     @property
     def circuits(self) -> tuple[QuantumCircuit, ...]:
@@ -245,27 +343,30 @@ class BaseEstimator(ABC):
         """
         return tuple(self._parameters)
 
-    @property
-    def options(self) -> Options:
-        """Return options values for the estimator.
-
-        Returns:
-            options
-        """
-        return self._run_options
-
-    def set_options(self, **fields):
-        """Set options values for the estimator.
-
-        Args:
-            **fields: The fields to update the options
-        """
-        self._run_options.update_options(**fields)
+    @deprecate_function(
+        "The BaseEstimator.__enter__ method is deprecated as of Qiskit Terra 0.22.0 "
+        "and will be removed no sooner than 3 months after the releasedate. "
+        "BaseEstimator should be initialized directly.",
+    )
+    def __enter__(self):
+        return self
 
     @deprecate_function(
-        "The BaseSampler.__call__ method is deprecated as of Qiskit Terra 0.22.0 "
+        "The BaseEstimator.__call__ method is deprecated as of Qiskit Terra 0.22.0 "
         "and will be removed no sooner than 3 months after the releasedate. "
-        "Use run method instead.",
+        "BaseEstimator should be initialized directly.",
+    )
+    def __exit__(self, *exc_info):
+        self.close()
+
+    def close(self):
+        """Close the session and free resources"""
+        ...
+
+    @deprecate_function(
+        "The BaseEstimator.__call__ method is deprecated as of Qiskit Terra 0.22.0 "
+        "and will be removed no sooner than 3 months after the releasedate. "
+        "Use the 'run' method instead.",
     )
     @deprecate_arguments({"circuit_indices": "circuits", "observable_indices": "observables"})
     def __call__(
@@ -400,111 +501,6 @@ class BaseEstimator(ABC):
             **run_opts.__dict__,
         )
 
-    def run(
-        self,
-        circuits: QuantumCircuit | Sequence[QuantumCircuit],
-        observables: BaseOperator | PauliSumOp | Sequence[BaseOperator | PauliSumOp],
-        parameter_values: Sequence[float] | Sequence[Sequence[float]] | None = None,
-        **run_options,
-    ) -> Job:
-        """Run the job of the estimation of expectation value(s).
-
-        ``circuits``, ``observables``, and ``parameter_values`` should have the same
-        length. The i-th element of the result is the expectation of observable
-
-        .. code-block:: python
-
-            obs = observables[i]
-
-        for the state prepared by
-
-        .. code-block:: python
-
-            circ = circuits[i]
-
-        with bound parameters
-
-        .. code-block:: python
-
-            values = parameter_values[i].
-
-        Args:
-            circuits: one or more circuit objects.
-            observables: one or more observable objects.
-            parameter_values: concrete parameters to be bound.
-            run_options: runtime options used for circuit execution.
-
-        Returns:
-            The job object of EstimatorResult.
-
-        Raises:
-            ValueError: Invalid arguments are given.
-        """
-        # Support ndarray
-        if isinstance(parameter_values, np.ndarray):
-            parameter_values = parameter_values.tolist()
-
-        if not isinstance(circuits, Sequence):
-            circuits = [circuits]
-        if not isinstance(observables, Sequence):
-            observables = [observables]
-        if (
-            len(circuits) > 0
-            and len(observables) > 0
-            and parameter_values is not None
-            and (
-                len(parameter_values) == 0
-                or not isinstance(parameter_values[0], (Sequence, Iterable))
-            )
-        ):
-            parameter_values = [parameter_values]  # type: ignore[assignment]
-
-        # Allow optional
-        if parameter_values is None:
-            for i, circuit in enumerate(circuits):
-                if circuit.num_parameters != 0:
-                    raise ValueError(
-                        f"The {i}-th circuit is parameterised,"
-                        "but parameter values are not given."
-                    )
-            parameter_values = [[]] * len(circuits)
-
-        # Validation
-        if len(circuits) != len(observables):
-            raise ValueError(
-                f"The number of circuits ({len(circuits)}) does not match "
-                f"the number of observables ({len(observables)})."
-            )
-        if len(circuits) != len(parameter_values):
-            raise ValueError(
-                f"The number of circuits ({len(circuits)}) does not match "
-                f"the number of parameter value sets ({len(parameter_values)})."
-            )
-
-        for i, (circuit, parameter_value) in enumerate(zip(circuits, parameter_values)):
-            if len(parameter_value) != circuit.num_parameters:
-                raise ValueError(
-                    f"The number of values ({len(parameter_value)}) does not match "
-                    f"the number of parameters ({circuit.num_parameters}) for the {i}-th circuit."
-                )
-
-        for i, (circuit, observable) in enumerate(zip(circuits, observables)):
-            if circuit.num_qubits != observable.num_qubits:
-                raise ValueError(
-                    f"The number of qubits of the {i}-th circuit ({circuit.num_qubits}) does "
-                    f"not match the number of qubits of the {i}-th observable "
-                    f"({observable.num_qubits})."
-                )
-        run_opts = copy(self.options)
-        run_opts.update_options(**run_options)
-
-        return self._run(
-            circuits,
-            observables,
-            parameter_values,
-            **run_opts.__dict__,
-        )
-
     @abstractmethod
     def _call(
         self,
@@ -514,16 +510,3 @@ class BaseEstimator(ABC):
         **run_options,
     ) -> EstimatorResult:
         ...
-
-    # This will be comment out after 0.22. (This is necessary for the compatibility.)
-    # @abstractmethod
-    def _run(
-        self,
-        circuits: Sequence[QuantumCircuit],
-        observables: Sequence[BaseOperator | PauliSumOp],
-        parameter_values: Sequence[Sequence[float]],
-        **run_options,
-    ) -> Job:
-        raise NotImplementedError(
-            "_run method is not implemented. This method will be @abstractmethod after 0.22."
-        )

@@ -9,6 +9,7 @@
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
+
 r"""
 ===================
 Overview of Sampler
@@ -71,9 +72,10 @@ Here is an example of how sampler is used.
     job_result = job2.result()
     print([q.binary_probabilities() for q in job_result.quasi_dists])
 """
+
 from __future__ import annotations
 
-from abc import ABC, abstractmethod
+from abc import abstractmethod
 from collections.abc import Iterable, Sequence
 from copy import copy
 from typing import cast
@@ -84,14 +86,14 @@ import numpy as np
 from qiskit.circuit import Parameter, QuantumCircuit
 from qiskit.circuit.parametertable import ParameterView
 from qiskit.providers import JobV1 as Job
-from qiskit.providers import Options
 from qiskit.utils.deprecation import deprecate_arguments, deprecate_function
 
+from .base_primitive import BasePrimitive
 from .sampler_result import SamplerResult
-from .utils import _circuit_key
+from ..utils import _circuit_key
 
 
-class BaseSampler(ABC):
+class BaseSampler(BasePrimitive):
     """Sampler base class
 
     Base class of Sampler that calculates quasi-probabilities of bitstrings from quantum circuits.
@@ -140,10 +142,85 @@ class BaseSampler(ABC):
                     f"Different number of parameters ({len(self._parameters)}) "
                     f"and circuits ({len(self._circuits)})"
                 )
-        self._run_options = Options()
-        if options is not None:
-            self._run_options.update_options(**options)
+        super().__init__(options)
 
+    ################################################################################
+    ## METHODS
+    ################################################################################
+    def run(
+        self,
+        circuits: QuantumCircuit | Sequence[QuantumCircuit],
+        parameter_values: Sequence[float] | Sequence[Sequence[float]] | None = None,
+        **run_options,
+    ) -> Job:
+        """Run the job of the sampling of bitstrings.
+
+        Args:
+            circuits: One of more circuit objects.
+            parameter_values: Parameters to be bound to the circuit.
+            run_options: Backend runtime options used for circuit execution.
+
+        Returns:
+            The job object of the result of the sampler. The i-th result corresponds to
+            ``circuits[i]`` evaluated with parameters bound as ``parameter_values[i]``.
+
+        Raises:
+            ValueError: Invalid arguments are given.
+        """
+        # Singular validation
+        circuits = self._validate_circuits(circuits)
+        parameter_values = self._validate_parameter_values(
+            parameter_values,
+            default=[()] * len(circuits),
+        )
+
+        # Cross-validation
+        self._cross_validate_circuits_parameter_values(circuits, parameter_values)
+
+        # Options
+        run_opts = copy(self.options)
+        run_opts.update_options(**run_options)
+
+        return self._run(
+            circuits,
+            parameter_values,
+            **run_opts.__dict__,
+        )
+
+    # This will be comment out after 0.22. (This is necessary for the compatibility.)
+    # @abstractmethod
+    def _run(
+        self,
+        circuits: tuple[QuantumCircuit, ...],
+        parameter_values: tuple[tuple[float, ...], ...],
+        **run_options,
+    ) -> Job:
+        raise NotImplementedError(
+            "_run method is not implemented. This method will be @abstractmethod after 0.22."
+        )
+
+    ################################################################################
+    ## VALIDATION
+    ################################################################################
+    # TODO: validate measurement gates are present
+    @classmethod
+    def _validate_circuits(
+        cls,
+        circuits: Sequence[QuantumCircuit] | QuantumCircuit,
+    ) -> tuple[QuantumCircuit, ...]:
+        circuits = super()._validate_circuits(circuits)
+        for i, circuit in enumerate(circuits):
+            if circuit.num_clbits == 0:
+                raise ValueError(
+                    f"The {i}-th circuit does not have any classical bit. "
+                    "Sampler requires classical bits, plus measurements "
+                    "on the desired qubits."
+                )
+        return circuits
+
+    ################################################################################
+    ## DEPRECATED
+    ################################################################################
     def __new__(
         cls,
         circuits: Iterable[QuantumCircuit] | QuantumCircuit | None = None,
@@ -160,6 +237,24 @@ class BaseSampler(ABC):
         else:
             self._circuit_ids = {_circuit_key(circuits): 0}
         return self
+
+    @property
+    def circuits(self) -> tuple[QuantumCircuit, ...]:
+        """Quantum circuits to be sampled.
+
+        Returns:
+            The quantum circuits to be sampled.
+        """
+        return tuple(self._circuits)
+
+    @property
+    def parameters(self) -> tuple[ParameterView, ...]:
+        """Parameters of quantum circuits.
+
+        Returns:
+            List of the parameters in each quantum circuit.
+        """
+        return tuple(self._parameters)
 
     @deprecate_function(
         "The BaseSampler.__enter__ method is deprecated as of Qiskit Terra 0.22.0 "
@@ -180,41 +275,6 @@ class BaseSampler(ABC):
     def close(self):
         """Close the session and free resources"""
         ...
-
-    @property
-    def circuits(self) -> tuple[QuantumCircuit, ...]:
-        """Quantum circuits to be sampled.
-
-        Returns:
-            The quantum circuits to be sampled.
-        """
-        return tuple(self._circuits)
-
-    @property
-    def parameters(self) -> tuple[ParameterView, ...]:
-        """Parameters of quantum circuits.
-
-        Returns:
-            List of the parameters in each quantum circuit.
-        """
-        return tuple(self._parameters)
-
-    @property
-    def options(self) -> Options:
-        """Return options values for the estimator.
-
-        Returns:
-            options
-        """
-        return self._run_options
-
-    def set_options(self, **fields):
-        """Set options values for the estimator.
-
-        Args:
-            **fields: The fields to update the options
-        """
-        self._run_options.update_options(**fields)
 
     @deprecate_function(
         "The BaseSampler.__call__ method is deprecated as of Qiskit Terra 0.22.0 "
@@ -301,78 +361,6 @@ class BaseSampler(ABC):
             **run_opts.__dict__,
         )
 
-    def run(
-        self,
-        circuits: QuantumCircuit | Sequence[QuantumCircuit],
-        parameter_values: Sequence[float] | Sequence[Sequence[float]] | None = None,
-        **run_options,
-    ) -> Job:
-        """Run the job of the sampling of bitstrings.
-
-        Args:
-            circuits: One of more circuit objects.
-            parameter_values: Parameters to be bound to the circuit.
-            run_options: Backend runtime options used for circuit execution.
-
-        Returns:
-            The job object of the result of the sampler. The i-th result corresponds to
-            ``circuits[i]`` evaluated with parameters bound as ``parameter_values[i]``.
-
-        Raises:
-            ValueError: Invalid arguments are given.
-        """
-        # Support ndarray
-        if isinstance(parameter_values, np.ndarray):
-            parameter_values = parameter_values.tolist()
-
-        if not isinstance(circuits, Sequence):
-            circuits = [circuits]
-        if parameter_values is not None and (
-            len(parameter_values) == 0 or not isinstance(parameter_values[0], (Sequence, Iterable))
-        ):
-            parameter_values = [parameter_values]  # type: ignore[assignment]
-
-        # Allow optional
-        if parameter_values is None:
-            for i, circuit in enumerate(circuits):
-                if circuit.num_parameters != 0:
-                    raise ValueError(
-                        f"The {i}-th circuit ({len(circuits)}) is parameterised,"
-                        "but parameter values are not given."
-                    )
-            parameter_values = [[]] * len(circuits)
-
-        # Validation
-        if len(circuits) != len(parameter_values):
-            raise ValueError(
-                f"The number of circuits ({len(circuits)}) does not match "
-                f"the number of parameter value sets ({len(parameter_values)})."
-            )
-
-        for i, (circuit, parameter_value) in enumerate(zip(circuits, parameter_values)):
-            if len(parameter_value) != circuit.num_parameters:
-                raise ValueError(
-                    f"The number of values ({len(parameter_value)}) does not match "
-                    f"the number of parameters ({circuit.num_parameters}) for the {i}-th circuit."
-                )
-
-        for i, circuit in enumerate(circuits):
-            if circuit.num_clbits == 0:
-                raise ValueError(
-                    f"The {i}-th circuit does not have any classical bit. "
-                    "Sampler requires classical bits, plus measurements "
-                    "on the desired qubits."
-                )
-
-        run_opts = copy(self.options)
-        run_opts.update_options(**run_options)
-
-        return self._run(
-            circuits,
-            parameter_values,
-            **run_opts.__dict__,
-        )
-
     @abstractmethod
     def _call(
         self,
@@ -381,15 +369,3 @@ class BaseSampler(ABC):
         **run_options,
     ) -> SamplerResult:
         ...
-
-    # This will be comment out after 0.22. (This is necessary for the compatibility.)
-    # @abstractmethod
-    def _run(
-        self,
-        circuits: Sequence[QuantumCircuit],
-        parameter_values: Sequence[Sequence[float]],
-        **run_options,
-    ) -> Job:
-        raise NotImplementedError(
-            "_run method is not implemented. This method will be @abstractmethod after 0.22."
-        )

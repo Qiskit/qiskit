@@ -24,9 +24,6 @@ import numpy as np
 from qiskit.circuit import QuantumCircuit
 from qiskit.compiler import transpile
 from qiskit.opflow import PauliSumOp
-from qiskit.primitives.base_estimator import BaseEstimator
-from qiskit.primitives.estimator_result import EstimatorResult
-from qiskit.primitives.primitive_job import PrimitiveJob
 from qiskit.providers import BackendV1, BackendV2, Options
 from qiskit.quantum_info import Pauli, PauliList
 from qiskit.quantum_info.operators.base_operator import BaseOperator
@@ -34,6 +31,8 @@ from qiskit.result import Counts, Result
 from qiskit.tools.monitor import job_monitor
 from qiskit.transpiler import PassManager
 
+from .base import BaseEstimator, EstimatorResult
+from .primitive_job import PrimitiveJob
 from .utils import _circuit_key, _observable_key, init_observable
 
 
@@ -228,9 +227,9 @@ class BackendEstimator(BaseEstimator):
 
     def _run(
         self,
-        circuits: Sequence[QuantumCircuit],
-        observables: Sequence[BaseOperator | PauliSumOp],
-        parameter_values: Sequence[Sequence[float]],
+        circuits: tuple[QuantumCircuit, ...],
+        observables: tuple[BaseOperator | PauliSumOp, ...],
+        parameter_values: tuple[tuple[float, ...], ...],
         **run_options,
     ) -> PrimitiveJob:
         circuit_indices = []
