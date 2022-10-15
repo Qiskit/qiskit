@@ -141,7 +141,7 @@ class TestPermRowCol(QiskitTestCase):
         self.assertEqual(ret.all(), np.array([1,0]).all())
 
     def test_eliminate_column_eliminates_selected_column(self):
-        """Test eliminate_column eliminates selected column in case of example parity_matrix and coupling map"""
+        """Test eliminate_column for eliminating selected column in case of example parity_matrix and coupling map"""
         coupling_list = [(0, 1),(0, 3),(1, 2),(1, 4),(2, 5),(3, 4),(4, 5)]
         coupling = CouplingMap(coupling_list)
         permrowcol = PermRowCol(coupling)
