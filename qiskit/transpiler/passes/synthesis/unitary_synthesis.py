@@ -16,6 +16,7 @@ from math import pi, inf, isclose
 from typing import List, Union
 from copy import deepcopy
 from itertools import product
+import numpy as np
 
 from qiskit.converters import circuit_to_dag
 from qiskit.transpiler import CouplingMap, Target
@@ -415,23 +416,34 @@ class DefaultUnitarySynthesis(plugin.UnitarySynthesisPlugin):
         super().__init__()
         self._decomposer_cache = {}
 
-    def _find_matching_euler_bases(self, target):
-        """Find matching available 1q basis to use in the Euler decomposition."""
-        euler_basis_gates = []
-        basis_set = target.keys()
-        for basis, gates in one_qubit_decompose.ONE_QUBIT_EULER_BASIS_GATES.items():
-            if set(gates).issubset(basis_set):
-                euler_basis_gates.append(basis)
-        return euler_basis_gates
+    def _find_euler_basis_from_target(self, target, qubit):
+        qubits_tuple = (qubit,)
+        keys = target.operation_names_for_qargs(qubits_tuple)
+        available_1q_basis_props = {}
+        # caveat: this assumes 1q errors is just determined by gate type, not its param
+        for key in keys:
+            basis_type = type(target.operation_from_name(key))
+            prop = target[key][qubits_tuple]
+            available_1q_basis_props[basis_type] = prop
+
+        euler_basis = None
+        lowest_error = inf
+        for euler_string, basis_types in one_qubit_decompose.ONE_QUBIT_EULER_BASIS_GATES.items():
+            if set(basis_types).issubset(available_1q_basis_props.keys()):
+                euler_error = 1 - np.product(
+                    [1 - getattr(available_1q_basis_props[basis_type], "error", 0.0)
+                     for basis_type in basis_types]
+                )
+                if euler_error < lowest_error:
+                    euler_basis = euler_string
+                    lowest_error = euler_error
+        return euler_basis
 
     def _find_decomposer_2q_from_target(self, target, qubits, pulse_optimize):
         qubits_tuple = tuple(qubits)
         reverse_tuple = (qubits[1], qubits[0])
         if qubits_tuple in self._decomposer_cache:
             return self._decomposer_cache[qubits_tuple]
-
-        matching = {}
-        reverse = {}
 
         # available instructions on this qubit pair, mapped to their associated property.
         # prefer same direction if exists, otherwise consider reverse direction too.
@@ -465,8 +477,8 @@ class DefaultUnitarySynthesis(plugin.UnitarySynthesisPlugin):
         controlled_basis = {k: v for k, v in available_2q_basis.items() if is_controlled(v)}
 
         # lowest-error Euler basis
-        available_1q_basis = self._find_matching_euler_bases(target)
-        euler_basis = available_1q_basis[0]
+        euler_basis = self._find_euler_basis_from_target(target, qubits_tuple[0])
+        print(euler_basis)
 
         # best supercontrolled basis (if available)
         best_supercontrolled = None
@@ -537,7 +549,7 @@ class DefaultUnitarySynthesis(plugin.UnitarySynthesisPlugin):
         wires = None
         if unitary.shape == (2, 2):
             if target is not None:
-                euler_basis = self._find_matching_euler_bases(target)
+                euler_basis = self._find_euler_basis_from_target(target, qubit)
             else:
                 euler_basis = _choose_euler_basis(basis_gates)
             if euler_basis is not None:
