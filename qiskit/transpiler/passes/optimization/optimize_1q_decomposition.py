@@ -29,17 +29,20 @@ logger = logging.getLogger(__name__)
 class Optimize1qGatesDecomposition(TransformationPass):
     """Optimize chains of single-qubit gates by combining them into a single gate."""
 
-    def __init__(self, basis=None):
+    def __init__(self, basis=None, target=None):
         """Optimize1qGatesDecomposition initializer.
 
         Args:
             basis (list[str]): Basis gates to consider, e.g. `['u3', 'cx']`. For the effects
                 of this pass, the basis is the set intersection between the `basis` parameter
-                and the Euler basis.
+                and the Euler basis. Ignored if ``target`` is also specified.
+            target (Optional[Target]): The :class:`~.Target` object corresponding to the compilation
+                target. When specified, any argument specified for ``basis_gates`` is ignored.
         """
         super().__init__()
 
-        self._target_basis = basis
+        self._basis_gates = basis
+        self._target = target
         self._decomposers = None
 
         if basis:
@@ -63,6 +66,7 @@ class Optimize1qGatesDecomposition(TransformationPass):
                         self._decomposers[
                             tuple(gates)
                         ] = one_qubit_decompose.OneQubitEulerDecomposer(euler_basis_name)
+        print(self._decomposers)
 
     def _resynthesize_run(self, run):
         """
@@ -103,7 +107,7 @@ class Optimize1qGatesDecomposition(TransformationPass):
         uncalibrated_p = not has_cals_p or any(not dag.has_calibration_for(g) for g in old_run)
         # does this run have gates not in the image of ._decomposers _and_ uncalibrated?
         uncalibrated_and_not_basis_p = any(
-            g.name not in self._target_basis and (not has_cals_p or not dag.has_calibration_for(g))
+            g.name not in self._basis_gates and (not has_cals_p or not dag.has_calibration_for(g))
             for g in old_run
         )
 
@@ -115,7 +119,7 @@ class Optimize1qGatesDecomposition(TransformationPass):
                 + "\n".join([str(node.op) for node in old_run])
                 + "\n\nand got\n\n"
                 + "\n".join([str(node[0]) for node in new_circ])
-                + f"\n\nbut the original was native (for {self._target_basis}) and the new value "
+                + f"\n\nbut the original was native (for {self._basis_gates}) and the new value "
                 "is longer.  This indicates an efficiency bug in synthesis.  Please report it by "
                 "opening an issue here: "
                 "https://github.com/Qiskit/qiskit-terra/issues/new/choose",
@@ -151,21 +155,20 @@ class Optimize1qGatesDecomposition(TransformationPass):
             DAGCircuit: the optimized DAG.
         """
         if self._decomposers is None:
-            logger.info("Skipping pass because no basis is set")
+            logger.info("Skipping pass because no basis or target is set")
             return dag
 
         runs = dag.collect_1q_runs()
         for run in runs:
             # SPECIAL CASE: Don't bother to optimize single U3 gates which are in the basis set.
             #     The U3 decomposer is only going to emit a sequence of length 1 anyhow.
-            if "u3" in self._target_basis and len(run) == 1 and isinstance(run[0].op, U3Gate):
-                # Toss U3 gates equivalent to the identity; there we get off easy.
-                if np.allclose(run[0].op.to_matrix(), np.eye(2), 1e-15, 0):
-                    dag.remove_op_node(run[0])
-                    continue
+            if "u3" in self._basis_gates and len(run) == 1 and isinstance(run[0].op, U3Gate):
                 # We might rewrite into lower `u`s if they're available.
-                if "u2" not in self._target_basis and "u1" not in self._target_basis:
+                if "u2" not in self._basis_gates and "u1" not in self._basis_gates:
                     continue
+            # Same deal for U gates
+            if "u" in self._basis_gates and len(run) == 1 and isinstance(run[0].op, UGate):
+                continue
 
             new_basis, new_circ = self._resynthesize_run(run)
 

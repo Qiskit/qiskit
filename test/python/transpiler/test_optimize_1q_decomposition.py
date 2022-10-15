@@ -43,7 +43,7 @@ class TestOptimize1qGatesDecomposition(QiskitTestCase):
         ["cz", "rx", "rz"],
         ["rxx", "rx", "ry"],
         ["iswap", "rx", "rz"],
-        ["u1", "rx"],
+        ["rz", "rx"],
         ["rz", "sx"],
         ["p", "sx"],
         ["r"],
@@ -74,7 +74,7 @@ class TestOptimize1qGatesDecomposition(QiskitTestCase):
         ["cz", "rx", "rz"],
         ["rxx", "rx", "ry"],
         ["iswap", "rx", "rz"],
-        ["u1", "rx"],
+        ["rz", "rx"],
         ["rz", "sx"],
         ["p", "sx"],
         ["r"],
@@ -104,7 +104,7 @@ class TestOptimize1qGatesDecomposition(QiskitTestCase):
         ["cz", "rx", "rz"],
         ["rxx", "rx", "ry"],
         ["iswap", "rx", "rz"],
-        ["u1", "rx"],
+        ["rz", "rx"],
         ["rz", "sx"],
         ["p", "sx"],
         ["r"],
@@ -141,7 +141,7 @@ class TestOptimize1qGatesDecomposition(QiskitTestCase):
         ["rxx", "rx", "ry"],
         ["iswap", "rx", "rz"],
         ["rz", "sx"],
-        ["u1", "rx"],
+        ["rz", "rx"],
         ["p", "sx"],
     )
     def test_single_parameterized_circuit(self, basis):
@@ -175,7 +175,7 @@ class TestOptimize1qGatesDecomposition(QiskitTestCase):
         ["cz", "rx", "rz"],
         ["rxx", "rx", "ry"],
         ["iswap", "rx", "rz"],
-        ["u1", "rx"],
+        ["rz", "rx"],
         ["rz", "sx"],
         ["p", "sx"],
     )
@@ -213,7 +213,7 @@ class TestOptimize1qGatesDecomposition(QiskitTestCase):
         ["cz", "rx", "rz"],
         ["rxx", "rx", "ry"],
         ["iswap", "rx", "rz"],
-        ["u1", "rx"],
+        ["rz", "rx"],
         ["rz", "sx"],
         ["p", "sx"],
     )
@@ -314,12 +314,12 @@ class TestOptimize1qGatesDecomposition(QiskitTestCase):
         result = passmanager.run(circuit)
         self.assertEqual([], result.data)
 
-    def test_identity_u1x(self):
-        """Test lone identity gates in u1 rx basis are removed."""
+    def test_identity_rzx(self):
+        """Test lone identity gates in rz rx basis are removed."""
         circuit = QuantumCircuit(2)
-        circuit.append(U1Gate(0), [0])
+        circuit.rz(0, 0)
         circuit.rx(0, 1)
-        basis = ["cx", "u1", "rx"]
+        basis = ["cx", "rz", "rx"]
         passmanager = PassManager()
         passmanager.append(BasisTranslator(sel, basis))
         passmanager.append(Optimize1qGatesDecomposition(basis))
