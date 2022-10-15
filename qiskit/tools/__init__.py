@@ -23,18 +23,18 @@ Parallel Routines
 .. autosummary::
    :toctree: ../stubs/
 
-   parallel_map
-   ===============
-   .. code-block::
-      
-      import time
-      from qiskit.tools.parallel import parallel_map
+parallel_map
+===============
+.. code-block::
 
-      def func(_):
-         time.sleep(0.1)
-         return 0
+   import time
+   from qiskit.tools.parallel import parallel_map
 
-      parallel_map(func, list(range(10)));
+   def func(_):
+      time.sleep(0.1)
+      return 0
+
+   parallel_map(func, list(range(10)));
 
 Monitoring
 ==========

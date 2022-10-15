@@ -20,8 +20,6 @@ TextProgressBar
    from qiskit.tools.events import TextProgressBar
    TextProgressBar()
    %qiskit_progress_bar -t text
-
-    
 """
 
 from .progressbar import TextProgressBar

@@ -32,7 +32,7 @@ job_monitor
     qc.measure(q, c)
     job_sim = execute(qc, backend=sim_backend)
     job_monitor(job_sim)
- 
+
 """
 
 from .job_monitor import job_monitor
