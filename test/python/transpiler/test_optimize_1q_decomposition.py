@@ -60,7 +60,6 @@ class TestOptimize1qGatesDecomposition(QiskitTestCase):
         expected.u(np.pi / 2, 0, np.pi, qr)  # U2(0, pi)
 
         passmanager = PassManager()
-        passmanager.append(BasisTranslator(sel, basis))
         passmanager.append(Optimize1qGatesDecomposition(basis))
         result = passmanager.run(circuit)
 
@@ -90,7 +89,6 @@ class TestOptimize1qGatesDecomposition(QiskitTestCase):
         circuit.p(0.4, qr)
 
         passmanager = PassManager()
-        passmanager.append(BasisTranslator(sel, basis))
         passmanager.append(Optimize1qGatesDecomposition(basis))
         result = passmanager.run(circuit)
 
@@ -126,7 +124,6 @@ class TestOptimize1qGatesDecomposition(QiskitTestCase):
         expected.h(qr)
 
         passmanager = PassManager()
-        passmanager.append(BasisTranslator(sel, basis))
         passmanager.append(Optimize1qGatesDecomposition(basis))
         result = passmanager.run(circuit)
 
@@ -157,7 +154,6 @@ class TestOptimize1qGatesDecomposition(QiskitTestCase):
         qc.p(0.2, qr)
 
         passmanager = PassManager()
-        passmanager.append(BasisTranslator(sel, basis))
         passmanager.append(Optimize1qGatesDecomposition(basis))
         result = passmanager.run(qc)
 
@@ -195,7 +191,6 @@ class TestOptimize1qGatesDecomposition(QiskitTestCase):
         qc.p(0.2, qr)
 
         passmanager = PassManager()
-        passmanager.append(BasisTranslator(sel, basis))
         passmanager.append(Optimize1qGatesDecomposition(basis))
         result = passmanager.run(qc)
 
@@ -236,7 +231,6 @@ class TestOptimize1qGatesDecomposition(QiskitTestCase):
         qc.p(0.2, qr)
 
         passmanager = PassManager()
-        passmanager.append(BasisTranslator(sel, basis))
         passmanager.append(Optimize1qGatesDecomposition(basis))
         result = passmanager.run(qc)
 
@@ -253,7 +247,6 @@ class TestOptimize1qGatesDecomposition(QiskitTestCase):
         circuit.ry(0, 0)
         basis = ["rxx", "rx", "ry"]
         passmanager = PassManager()
-        passmanager.append(BasisTranslator(sel, basis))
         passmanager.append(Optimize1qGatesDecomposition(basis))
         result = passmanager.run(circuit)
         self.assertEqual([], result.data)
@@ -265,7 +258,6 @@ class TestOptimize1qGatesDecomposition(QiskitTestCase):
         circuit.rz(0, 0)
         basis = ["cz", "rx", "rz"]
         passmanager = PassManager()
-        passmanager.append(BasisTranslator(sel, basis))
         passmanager.append(Optimize1qGatesDecomposition(basis))
         result = passmanager.run(circuit)
         self.assertEqual([], result.data)
@@ -276,7 +268,6 @@ class TestOptimize1qGatesDecomposition(QiskitTestCase):
         circuit.p(0, 0)
         basis = ["cx", "p", "sx"]
         passmanager = PassManager()
-        passmanager.append(BasisTranslator(sel, basis))
         passmanager.append(Optimize1qGatesDecomposition(basis))
         result = passmanager.run(circuit)
         self.assertEqual([], result.data)
@@ -287,7 +278,6 @@ class TestOptimize1qGatesDecomposition(QiskitTestCase):
         circuit.u(0, 0, 0, 0)
         basis = ["cx", "u"]
         passmanager = PassManager()
-        passmanager.append(BasisTranslator(sel, basis))
         passmanager.append(Optimize1qGatesDecomposition(basis))
         result = passmanager.run(circuit)
         self.assertEqual([], result.data)
@@ -298,7 +288,6 @@ class TestOptimize1qGatesDecomposition(QiskitTestCase):
         circuit.append(U3Gate(0, 0, 0), [0])
         basis = ["cx", "u3"]
         passmanager = PassManager()
-        passmanager.append(BasisTranslator(sel, basis))
         passmanager.append(Optimize1qGatesDecomposition(basis))
         result = passmanager.run(circuit)
         self.assertEqual([], result.data)
@@ -309,7 +298,6 @@ class TestOptimize1qGatesDecomposition(QiskitTestCase):
         circuit.r(0, 0, 0)
         basis = ["r"]
         passmanager = PassManager()
-        passmanager.append(BasisTranslator(sel, basis))
         passmanager.append(Optimize1qGatesDecomposition(basis))
         result = passmanager.run(circuit)
         self.assertEqual([], result.data)
@@ -321,7 +309,6 @@ class TestOptimize1qGatesDecomposition(QiskitTestCase):
         circuit.rx(0, 1)
         basis = ["cx", "rz", "rx"]
         passmanager = PassManager()
-        passmanager.append(BasisTranslator(sel, basis))
         passmanager.append(Optimize1qGatesDecomposition(basis))
         result = passmanager.run(circuit)
         self.assertEqual([], result.data)
@@ -346,7 +333,6 @@ class TestOptimize1qGatesDecomposition(QiskitTestCase):
         circuit.rz(-np.pi / 2, 0)
         basis = ["rx", "rz"]
         passmanager = PassManager()
-        passmanager.append(BasisTranslator(sel, basis))
         passmanager.append(Optimize1qGatesDecomposition(basis))
         result = passmanager.run(circuit)
         # decomposition of circuit will result in 3 gates instead of 2
@@ -360,7 +346,6 @@ class TestOptimize1qGatesDecomposition(QiskitTestCase):
         circuit.ry(-0.14, 0)
         basis = ["ry", "rz"]
         passmanager = PassManager()
-        passmanager.append(BasisTranslator(sel, basis))
         passmanager.append(Optimize1qGatesDecomposition(basis))
         result = passmanager.run(circuit)
         self.assertEqual(circuit, result, f"Circuit:\n{circuit}\nResult:\n{result}")
@@ -375,7 +360,6 @@ class TestOptimize1qGatesDecomposition(QiskitTestCase):
 
         basis = ["sx", "rz"]
         passmanager = PassManager()
-        passmanager.append(BasisTranslator(sel, basis))
         passmanager.append(Optimize1qGatesDecomposition(basis))
         result = passmanager.run(circuit)
         self.assertEqual(circuit, result, f"Circuit:\n{circuit}\nResult:\n{result}")
@@ -390,7 +374,6 @@ class TestOptimize1qGatesDecomposition(QiskitTestCase):
 
         basis = ["sx", "rz"]
         passmanager = PassManager()
-        passmanager.append(BasisTranslator(sel, basis))
         passmanager.append(Optimize1qGatesDecomposition(basis))
         result = passmanager.run(circuit)
         self.assertEqual(circuit, result, f"Circuit:\n{circuit}\nResult:\n{result}")
@@ -406,7 +389,6 @@ class TestOptimize1qGatesDecomposition(QiskitTestCase):
 
         basis = ["p", "sx"]
         passmanager = PassManager()
-        passmanager.append(BasisTranslator(sel, basis))
         passmanager.append(Optimize1qGatesDecomposition(basis))
         result = passmanager.run(circuit)
 
@@ -426,7 +408,6 @@ class TestOptimize1qGatesDecomposition(QiskitTestCase):
 
         basis = ["p", "sx"]
         passmanager = PassManager()
-        passmanager.append(BasisTranslator(sel, basis))
         passmanager.append(Optimize1qGatesDecomposition(basis))
         result = passmanager.run(circuit)
 
@@ -492,7 +473,6 @@ class TestOptimize1qGatesDecomposition(QiskitTestCase):
         qc.y(0)
         basis = ["id", "rz", "sx", "x", "cx"]
         passmanager = PassManager()
-        passmanager.append(BasisTranslator(sel, basis))
         passmanager.append(Optimize1qGatesDecomposition(basis))
         result = passmanager.run(qc)
         expected = QuantumCircuit(1)
@@ -577,14 +557,13 @@ class TestOptimize1qGatesDecomposition(QiskitTestCase):
         test.if_else((0, True), test_true.copy(), None, range(num_qubits), [0])
 
         expected = QuantumCircuit(qr, cr)
-        expected.u(np.pi / 2, 0, np.pi, 0)
+        expected.u(np.pi / 2, 0, -np.pi, 0)
         expected.measure(0, 0)
         expected_true = QuantumCircuit(qr)
         expected_true.u(np.pi / 2, 0, -np.pi, qr[0])
         expected.if_else((0, True), expected_true, None, range(num_qubits), [0])
 
         passmanager = PassManager()
-        passmanager.append(BasisTranslator(sel, basis))
         passmanager.append(Optimize1qGatesDecomposition(basis))
         result = passmanager.run(test)
         self.assertEqual(result, expected)
@@ -610,7 +589,7 @@ class TestOptimize1qGatesDecomposition(QiskitTestCase):
         test.if_else((0, True), test_true.copy(), None, range(num_qubits), [0])
 
         expected = QuantumCircuit(qr, cr)
-        expected.u(np.pi / 2, 0, np.pi, 0)
+        expected.u(np.pi / 2, 0, -np.pi, 0)
         expected.measure(0, 0)
         expected_true = QuantumCircuit(qr, cr)
         expected_for = QuantumCircuit(qr, cr)
@@ -619,7 +598,6 @@ class TestOptimize1qGatesDecomposition(QiskitTestCase):
         expected.if_else((0, True), expected_true, None, range(num_qubits), [0])
 
         passmanager = PassManager()
-        passmanager.append(BasisTranslator(sel, basis))
         passmanager.append(Optimize1qGatesDecomposition(basis))
         result = passmanager.run(test)
         self.assertEqual(result, expected)
