@@ -48,7 +48,7 @@ class Optimize1qGatesDecomposition(TransformationPass):
         if basis:
             self._global_decomposers = _possible_decomposers(set(basis))
 
-    def _resynthesize_run(self, run, qubit):
+    def _resynthesize_run(self, run, qubit=None):
         """
         Resynthesizes one `run`, typically extracted via `dag.collect_1q_runs`.
 
@@ -102,6 +102,7 @@ class Optimize1qGatesDecomposition(TransformationPass):
             (uncalibrated_p and 
              _error(new_circ, self._target, qubit) < _error(old_run, self._target, qubit)
              )
+            or np.isclose(_error(new_circ, self._target, qubit), 0)
         )
 
     @control_flow.trivial_recurse
