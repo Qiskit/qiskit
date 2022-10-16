@@ -58,17 +58,13 @@ class Optimize1qGatesDecomposition(TransformationPass):
             self._global_decomposers = _possible_decomposers(None)
             self._basis_gates = None
 
-    def _resynthesize_run(self, run, qubit=None):
+    def _resynthesize_run(self, matrix, qubit=None):
         """
-        Resynthesizes one `run`, typically extracted via `dag.collect_1q_runs`.
+        Resynthesizes one 2x2 `matrix`, typically extracted via `dag.collect_1q_runs`.
 
         Returns the newly synthesized circuit in the indicated basis, or None
         if no synthesis routine applied.
         """
-        operator = run[0].op.to_matrix()
-        for gate in run[1:]:
-            operator = gate.op.to_matrix().dot(operator)
-
         if self._target:
             if qubit is not None:
                 qubits_tuple = (qubit,)
@@ -83,7 +79,7 @@ class Optimize1qGatesDecomposition(TransformationPass):
         else:
             decomposers = self._global_decomposers
 
-        new_circs = [decomposer._decompose(operator) for decomposer in decomposers]
+        new_circs = [decomposer._decompose(matrix) for decomposer in decomposers]
 
         if len(new_circs) == 0:
             return None
@@ -133,7 +129,10 @@ class Optimize1qGatesDecomposition(TransformationPass):
         qubit_indices = {bit: index for index, bit in enumerate(dag.qubits)}
         for run in runs:
             qubit = qubit_indices[run[0].qargs[0]]
-            new_dag = self._resynthesize_run(run, qubit)
+            operator = run[0].op.to_matrix()
+            for gate in run[1:]:
+                operator = gate.op.to_matrix().dot(operator)
+            new_circ = self._resynthesize_run(operator, qubit)
 
             if self._target is None:
                 basis = self._basis_gates

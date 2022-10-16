@@ -40,6 +40,9 @@ from qiskit.circuit.library.standard_gates import (
 )
 from qiskit.transpiler.passes.synthesis import plugin
 from qiskit.transpiler.passes.utils import control_flow
+from qiskit.transpiler.passes.optimization.optimize_1q_decomposition import (
+    Optimize1qGatesDecomposition,
+)
 from qiskit.providers.models import BackendProperties
 
 
@@ -485,10 +488,10 @@ class DefaultUnitarySynthesis(plugin.UnitarySynthesisPlugin):
         shortest_duration = inf
         for name in supercontrolled_basis.keys():
             error = getattr(available_2q_props[name], "error", 0.0)
-            if error > lowest_error:
+            if error is not None and error > lowest_error:
                 continue
             duration = getattr(available_2q_props[name], "duration", 0.0)
-            if duration > shortest_duration:
+            if duration is not None and duration > shortest_duration:
                 continue
             lowest_error = error
             shortest_duration = duration
@@ -500,7 +503,7 @@ class DefaultUnitarySynthesis(plugin.UnitarySynthesisPlugin):
             pulse_optimize=pulse_optimize
             )
 
-        # collection of controlled basis 
+        # collection of controlled basis
         embodiments = {}
         basis_fidelity = {}
         for k, v in controlled_basis.items():
@@ -518,7 +521,7 @@ class DefaultUnitarySynthesis(plugin.UnitarySynthesisPlugin):
             embodiments.update({pi/2: XXEmbodiments[type(pi2_decomposer.gate)]})
         else:
             pi2_decomposer = None
-        
+
         controlled_decomposer = XXDecomposer(
             euler_basis=euler_basis, embodiments=embodiments,
             backup_optimizer=pi2_decomposer, basis_fidelity=basis_fidelity
@@ -526,7 +529,7 @@ class DefaultUnitarySynthesis(plugin.UnitarySynthesisPlugin):
 
         decomposer2q = controlled_decomposer if controlled_decomposer is not None else supercontrolled_decomposer
         self._decomposer_cache[qubits_tuple] = (decomposer2q, preferred_direction)
-        
+
         return (decomposer2q, preferred_direction)
 
     def run(self, unitary, **options):
@@ -544,20 +547,12 @@ class DefaultUnitarySynthesis(plugin.UnitarySynthesisPlugin):
         qubits = options["coupling_map"][1]
         target = options["target"]
 
+        _decomposer1q = Optimize1qGatesDecomposition(basis_gates, target)
+
         synth_dag = None
         wires = None
         if unitary.shape == (2, 2):
-            if target is not None:
-                euler_basis = self._find_euler_basis_from_target(target, qubit)
-            else:
-                euler_basis = _choose_euler_basis(basis_gates)
-            if euler_basis is not None:
-                decomposer1q = one_qubit_decompose.OneQubitEulerDecomposer(euler_basis)
-            else:
-                decomposer1q = None
-            if decomposer1q is None:
-                return None
-            synth_dag = circuit_to_dag(decomposer1q._decompose(unitary))
+            synth_dag = circuit_to_dag(_decomposer1q._resynthesize_run(unitary, qubits[0]))
         elif unitary.shape == (4, 4):
             preferred_direction = None
             if target is not None:
