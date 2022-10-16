@@ -106,6 +106,7 @@ class Optimize1qGatesDecomposition(TransformationPass):
             g.name not in basis and (not has_cals_p or not dag.has_calibration_for(g))
             for g in old_run
         )
+
         # if we're outside of the basis set, we're obligated to logically decompose.
         # if we're outside of the set of gates for which we have physical definitions,
         #    then we _try_ to decompose, using the results if we see improvement.
