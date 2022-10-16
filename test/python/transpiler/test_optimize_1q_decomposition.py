@@ -17,12 +17,12 @@ import unittest
 import ddt
 import numpy as np
 
-from qiskit.circuit import QuantumRegister, QuantumCircuit, ClassicalRegister
+from qiskit.circuit import QuantumRegister, QuantumCircuit, ClassicalRegister, Parameter
 from qiskit.circuit.library.standard_gates import UGate, SXGate, PhaseGate
 from qiskit.circuit.library.standard_gates import U3Gate, U2Gate, U1Gate
 from qiskit.circuit.random import random_circuit
 from qiskit.compiler import transpile
-from qiskit.transpiler import PassManager
+from qiskit.transpiler import PassManager, Target, InstructionProperties
 from qiskit.transpiler.passes import Optimize1qGatesDecomposition
 from qiskit.transpiler.passes import BasisTranslator
 from qiskit.circuit.equivalence_library import SessionEquivalenceLibrary as sel
@@ -442,10 +442,18 @@ class TestOptimize1qGatesDecomposition(QiskitTestCase):
         expected = QuantumCircuit(qr)
         expected.append(U1Gate(np.pi / 4), [qr[0]])
 
-        basis = ["u1", "u2", "u3"]
+        θ = Parameter('θ')
+        ϕ = Parameter('ϕ')
+        λ = Parameter('λ')
+        u1_props = {(0,) : InstructionProperties(error=0)}
+        u2_props = {(0,): InstructionProperties(error=1e-4)}
+        u3_props = {(0,): InstructionProperties(error=2e-4)}
+        target = Target()
+        target.add_instruction(U1Gate(θ), u1_props, name='u1')
+        target.add_instruction(U2Gate(θ, ϕ), u2_props, name='u2')
+        target.add_instruction(U3Gate(θ, ϕ, λ), u3_props, name='u3')
         passmanager = PassManager()
-        passmanager.append(BasisTranslator(sel, basis))
-        passmanager.append(Optimize1qGatesDecomposition(basis))
+        passmanager.append(Optimize1qGatesDecomposition(target=target))
         result = passmanager.run(circuit)
 
         msg = f"expected:\n{expected}\nresult:\n{result}"
@@ -460,10 +468,19 @@ class TestOptimize1qGatesDecomposition(QiskitTestCase):
         expected = QuantumCircuit(qr)
         expected.append(U2Gate(0, np.pi / 4), [qr[0]])
 
-        basis = ["u1", "u2", "u3"]
+        θ = Parameter('θ')
+        ϕ = Parameter('ϕ')
+        λ = Parameter('λ')
+        u1_props = {(0,) : InstructionProperties(error=0)}
+        u2_props = {(0,): InstructionProperties(error=1e-4)}
+        u3_props = {(0,): InstructionProperties(error=2e-4)}
+        target = Target()
+        target.add_instruction(U1Gate(θ), u1_props, name='u1')
+        target.add_instruction(U2Gate(θ, ϕ), u2_props, name='u2')
+        target.add_instruction(U3Gate(θ, ϕ, λ), u3_props, name='u3')
+
         passmanager = PassManager()
-        passmanager.append(BasisTranslator(sel, basis))
-        passmanager.append(Optimize1qGatesDecomposition(basis))
+        passmanager.append(Optimize1qGatesDecomposition(target=target))
         result = passmanager.run(circuit)
         self.assertEqual(expected, result)
         msg = f"expected:\n{expected}\nresult:\n{result}"
