@@ -156,6 +156,91 @@ class TestSetFrequency(QiskitTestCase):
         )
         self.assertEqual(repr(set_freq), "SetFrequency(4500000000.0, DriveChannel(1), name='test')")
 
+    def test_freq_non_pulse_channel(self):
+        """Test set frequency constructor with illegal channel"""
+        with self.assertRaises(exceptions.PulseError):
+            instructions.SetFrequency(4.5e9, channels.RegisterSlot(1), name="test")
+
+    def test_parameter_expression(self):
+        """Test getting all parameters assigned by expression."""
+        p1 = circuit.Parameter("P1")
+        p2 = circuit.Parameter("P2")
+        expr = p1 + p2
+
+        instr = instructions.SetFrequency(expr, channel=channels.DriveChannel(0))
+        self.assertSetEqual(instr.parameters, {p1, p2})
+
+
+class TestShiftFrequency(QiskitTestCase):
+    """Shift frequency tests."""
+
+    def test_shift_freq(self):
+        """Test shift frequency basic functionality."""
+        shift_freq = instructions.ShiftFrequency(4.5e9, channels.DriveChannel(1), name="test")
+
+        self.assertIsInstance(shift_freq.id, int)
+        self.assertEqual(shift_freq.duration, 0)
+        self.assertEqual(shift_freq.frequency, 4.5e9)
+        self.assertEqual(shift_freq.operands, (4.5e9, channels.DriveChannel(1)))
+        self.assertEqual(
+            shift_freq, instructions.ShiftFrequency(4.5e9, channels.DriveChannel(1), name="test")
+        )
+        self.assertNotEqual(
+            shift_freq, instructions.ShiftFrequency(4.5e8, channels.DriveChannel(1), name="test")
+        )
+        self.assertEqual(
+            repr(shift_freq), "ShiftFrequency(4500000000.0, DriveChannel(1), name='test')"
+        )
+
+    def test_freq_non_pulse_channel(self):
+        """Test shift frequency constructor with illegal channel"""
+        with self.assertRaises(exceptions.PulseError):
+            instructions.ShiftFrequency(4.5e9, channels.RegisterSlot(1), name="test")
+
+    def test_parameter_expression(self):
+        """Test getting all parameters assigned by expression."""
+        p1 = circuit.Parameter("P1")
+        p2 = circuit.Parameter("P2")
+        expr = p1 + p2
+
+        instr = instructions.ShiftFrequency(expr, channel=channels.DriveChannel(0))
+        self.assertSetEqual(instr.parameters, {p1, p2})
+
+
+class TestSetPhase(QiskitTestCase):
+    """Test the instruction construction."""
+
+    def test_default(self):
+        """Test basic SetPhase."""
+        set_phase = instructions.SetPhase(1.57, channels.DriveChannel(0))
+
+        self.assertIsInstance(set_phase.id, int)
+        self.assertEqual(set_phase.name, None)
+        self.assertEqual(set_phase.duration, 0)
+        self.assertEqual(set_phase.phase, 1.57)
+        self.assertEqual(set_phase.operands, (1.57, channels.DriveChannel(0)))
+        self.assertEqual(
+            set_phase, instructions.SetPhase(1.57, channels.DriveChannel(0), name="test")
+        )
+        self.assertNotEqual(
+            set_phase, instructions.SetPhase(1.57j, channels.DriveChannel(0), name="test")
+        )
+        self.assertEqual(repr(set_phase), "SetPhase(1.57, DriveChannel(0))")
+
+    def test_set_phase_non_pulse_channel(self):
+        """Test shift phase constructor with illegal channel"""
+        with self.assertRaises(exceptions.PulseError):
+            instructions.SetPhase(1.57, channels.RegisterSlot(1), name="test")
+
+    def test_parameter_expression(self):
+        """Test getting all parameters assigned by expression."""
+        p1 = circuit.Parameter("P1")
+        p2 = circuit.Parameter("P2")
+        expr = p1 + p2
+
+        instr = instructions.SetPhase(expr, channel=channels.DriveChannel(0))
+        self.assertSetEqual(instr.parameters, {p1, p2})
+
 
 class TestShiftPhase(QiskitTestCase):
     """Test the instruction construction."""
@@ -176,6 +261,20 @@ class TestShiftPhase(QiskitTestCase):
             shift_phase, instructions.ShiftPhase(1.57j, channels.DriveChannel(0), name="test")
         )
         self.assertEqual(repr(shift_phase), "ShiftPhase(1.57, DriveChannel(0))")
+
+    def test_shift_phase_non_pulse_channel(self):
+        """Test shift phase constructor with illegal channel"""
+        with self.assertRaises(exceptions.PulseError):
+            instructions.ShiftPhase(1.57, channels.RegisterSlot(1), name="test")
+
+    def test_parameter_expression(self):
+        """Test getting all parameters assigned by expression."""
+        p1 = circuit.Parameter("P1")
+        p2 = circuit.Parameter("P2")
+        expr = p1 + p2
+
+        instr = instructions.ShiftPhase(expr, channel=channels.DriveChannel(0))
+        self.assertSetEqual(instr.parameters, {p1, p2})
 
 
 class TestSnapshot(QiskitTestCase):

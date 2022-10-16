@@ -32,7 +32,10 @@ class PauliGate(Gate):
     a single pass on the statevector.
 
     The functionality is equivalent to applying
-    the pauli gates sequentially using standard Qiskit gates
+    the pauli gates sequentially using standard Qiskit gates.
+
+    Can be applied to a :class:`~qiskit.circuit.QuantumCircuit`
+    with the :meth:`~qiskit.circuit.QuantumCircuit.pauli` method.
     """
 
     def __init__(self, label):
