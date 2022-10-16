@@ -478,7 +478,6 @@ class DefaultUnitarySynthesis(plugin.UnitarySynthesisPlugin):
 
         # lowest-error Euler basis
         euler_basis = self._find_euler_basis_from_target(target, qubits_tuple[0])
-        print(euler_basis)
 
         # best supercontrolled basis (if available)
         best_supercontrolled = None

@@ -41,18 +41,18 @@ from qiskit.quantum_info.operators.predicates import is_unitary_matrix
 DEFAULT_ATOL = 1e-12
 
 ONE_QUBIT_EULER_BASIS_GATES = {
-    "U3": [U3Gate],
-    "U321": [U3Gate, U2Gate, U1Gate],
-    "U": [UGate],
-    "PSX": [PhaseGate, SXGate, PhaseGate, SXGate, PhaseGate],
-    "U1X": [U1Gate, RXGate, U1Gate],
-    "RR": [RGate, RGate],
-    "ZYZ": [RZGate, RYGate, RZGate],
-    "ZXZ": [RZGate, RXGate, RZGate],
-    "XZX": [RXGate, RZGate, RXGate],
-    "XYX": [RXGate, RYGate, RXGate],
-    "ZSXX": [RZGate, SXGate, XGate],
-    "ZSX": [RZGate, SXGate],
+    "U3": ["u3"],
+    "U321": ["u3", "u2", "u1"],
+    "U": ["u"],
+    "PSX": ["p", "sx"],
+    "U1X": ["u1", "rx"],
+    "RR": ["r"],
+    "ZYZ": ["rz", "ry"],
+    "ZXZ": ["rz", "rx"],
+    "XZX": ["rz", "rx"],
+    "XYX": ["rx", "ry"],
+    "ZSXX": ["rz", "sx", "x"],
+    "ZSX": ["rz", "sx"],
 }
 
 
