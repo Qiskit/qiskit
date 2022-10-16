@@ -13,35 +13,15 @@
 
 """Replace each sequence of Clifford gates by a single Clifford gate."""
 
-from qiskit.circuit.library.standard_gates import (
-    XGate,
-    YGate,
-    ZGate,
-    HGate,
-    SGate,
-    SdgGate,
-    CXGate,
-    CYGate,
-    CZGate,
-    SwapGate,
+from functools import partial
+
+from qiskit.transpiler.passes.optimization.collapse_chains import (
+    CollapseChains,
+    collect_using_filter_function,
+    collapse_to_operation,
 )
+
 from qiskit.quantum_info.operators import Clifford
-from qiskit.circuit import QuantumCircuit
-from qiskit.transpiler.passes.optimization.collapse_chains import CollapseChains
-
-
-clifford_gate_name_to_gate_class = {
-    "x": XGate,
-    "y": YGate,
-    "z": ZGate,
-    "h": HGate,
-    "s": SGate,
-    "sdg": SdgGate,
-    "cx": CXGate,
-    "cy": CYGate,
-    "cz": CZGate,
-    "swap": SwapGate,
-}
 
 
 class CollectCliffords(CollapseChains):
@@ -49,13 +29,28 @@ class CollectCliffords(CollapseChains):
     object.
     """
 
-    def filter_function(self, node):
-        """Specifies which nodes to collect into blocks."""
-        return (
-            node.op.name in clifford_gate_name_to_gate_class.keys()
-            and getattr(node.op, "condition", None) is None
+    def __init__(self, do_commutative_analysis=False, split_blocks=True, min_block_size=2):
+        collect_function = partial(collect_using_filter_function, filter_function=_is_clifford_gate)
+        collapse_function = partial(collapse_to_operation, collapse_function=_collapse_to_clifford)
+
+        super().__init__(
+            collect_function=collect_function,
+            collapse_function=collapse_function,
+            do_commutative_analysis=do_commutative_analysis,
+            split_blocks=split_blocks,
+            min_block_size=min_block_size,
         )
 
-    def collapse_function(self, circuit: QuantumCircuit):
-        """Specifies how to construct an Operation from a collected block."""
-        return Clifford(circuit)
+
+clifford_gate_names = ["x", "y", "z", "h", "s", "sdg", "cx", "cy", "cz", "swap"]
+
+
+def _is_clifford_gate(node):
+    """Specifies whether a node holds a clifford gate."""
+    return node.op.name in clifford_gate_names and getattr(node.op, "condition", None) is None
+
+
+def _collapse_to_clifford(circuit):
+    """Specifies how to construct a ``Clifford`` from a quantum circuit (that must
+    consist of Clifford gates only)."""
+    return Clifford(circuit)

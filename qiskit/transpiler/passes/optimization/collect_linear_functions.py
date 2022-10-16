@@ -13,58 +13,41 @@
 
 """Replace each sequence of CX and SWAP gates by a single LinearFunction gate."""
 
+from functools import partial
+
 from qiskit.circuit.library.generalized_gates import LinearFunction
-from qiskit.dagcircuit.collect_blocks import BlockCollector, BlockSplitter
-from qiskit.transpiler.passes.optimization.collapse_chains import CollapseChains
-from qiskit.circuit import QuantumCircuit, Operation
+from qiskit.transpiler.passes.optimization.collapse_chains import (
+    CollapseChains,
+    collect_using_filter_function,
+    collapse_to_operation,
+)
 
 
 class CollectLinearFunctions(CollapseChains):
     """Collect blocks of linear gates (:class:`.CXGate` and :class:`.SwapGate` gates)
     and replaces them by linear functions (:class:`.LinearFunction`)."""
 
-    def filter_function(self, node):
-        """Specifies which nodes to collect into blocks."""
-        return node.op.name in ("cx", "swap") and getattr(node.op, "condition", None) is None
+    def __init__(self, do_commutative_analysis=False, split_blocks=True, min_block_size=2):
+        collect_function = partial(collect_using_filter_function, filter_function=_is_linear_gate)
+        collapse_function = partial(
+            collapse_to_operation, collapse_function=_collapse_to_linear_function
+        )
 
-    def collapse_function(
-        self,
-        circuit: QuantumCircuit,
-    ) -> Operation:
-        """Specifies what to do with the collected blocks.
-
-        Args:
-            circuit (QuantumCircuit): quantum circuit containing the block of nodes
-                to be collapsed (combined).
-
-        Returns:
-            Operation: the result of combining nodes in ``circuit``.
-        """
-        return LinearFunction(circuit)
+        super().__init__(
+            collect_function=collect_function,
+            collapse_function=collapse_function,
+            do_commutative_analysis=do_commutative_analysis,
+            split_blocks=split_blocks,
+            min_block_size=min_block_size,
+        )
 
 
-# The functions below are no longer needed and should possibly be removed/deprecated.
+def _is_linear_gate(node):
+    """Specifies whether a node holds a linear gate."""
+    return node.op.name in ("cx", "swap") and getattr(node.op, "condition", None) is None
 
 
-def collect_linear_blocks(dag):
-    """Collect blocks of linear gates."""
-
-    def is_linear(node):
-        return node.op.name in ["cx", "swap"] and getattr(node.op, "condition", None) is None
-
-    blocks = BlockCollector(dag).collect_all_matching_blocks(filter_fn=is_linear)
-    return blocks
-
-
-def split_block_into_components(dag, block):  # pylint:disable=unused-argument
-    """Given a block of gates, splits it into connected components."""
-    return BlockSplitter().run(block)
-
-
-def split_blocks_into_components(dag, blocks):
-    """Given blocks of gates, splits each block into connected components,
-    and returns a list of all blocks."""
-    split_blocks = []
-    for block in blocks:
-        split_blocks.extend(split_block_into_components(dag, block))
-    return split_blocks
+def _collapse_to_linear_function(circuit):
+    """Specifies how to construct a ``LinearFunction`` from a quantum circuit (that must
+    consist of linear gates only)."""
+    return LinearFunction(circuit)

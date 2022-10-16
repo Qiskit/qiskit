@@ -11,9 +11,10 @@
 # that they have been altered from the originals.
 
 
-"""Various ways to divide a DAG into blocks of nodes and to split blocks of nodes
-into smaller sub-blocks."""
+"""Various ways to divide a DAG into blocks of nodes, to split blocks of nodes
+into smaller sub-blocks, and to consolidate blocks."""
 
+from qiskit.circuit import QuantumCircuit, CircuitInstruction
 from . import DAGOpNode, DAGCircuit, DAGDependency
 from .exceptions import DAGCircuitError
 
@@ -206,3 +207,49 @@ class BlockSplitter:
                 blocks.append(self.group[index])
 
         return blocks
+
+
+class BlockCollapser:
+    """This class implements various strategies of consolidating blocks of nodes
+     in a DAG (direct acyclic graph). It works both with the
+    :class:`~qiskit.dagcircuit.DAGCircuit` and
+    :class:`~qiskit.dagcircuit.DAGDependency` DAG representations.
+    """
+
+    def __init__(self, dag):
+        """
+        Args:
+            dag (Union[DAGCircuit, DAGDependency]): The input DAG.
+        """
+
+        self.dag = dag
+
+    def collapse_to_operation(self, blocks, collapse_fn):
+        """For each block, constructs a quantum circuit containing instructions in the block,
+        then uses collapse_fn to collapse this circuit into a single operation.
+        """
+        global_index_map = {wire: idx for idx, wire in enumerate(self.dag.qubits)}
+        for block in blocks:
+            # Find the set of qubits used in this block (which might be much smaller than
+            # the set of all qubits).
+            cur_qubits = set()
+            for node in block:
+                cur_qubits.update(node.qargs)
+
+            # For reproducibility, order these qubits compatibly with the global order.
+            sorted_qubits = sorted(cur_qubits, key=lambda x: global_index_map[x])
+
+            # Construct a quantum circuit from the nodes in the block, remapping the qubits.
+            wire_pos_map = dict((qb, ix) for ix, qb in enumerate(sorted_qubits))
+            qc = QuantumCircuit(len(cur_qubits))
+            for node in block:
+                remapped_qubits = [wire_pos_map[qarg] for qarg in node.qargs]
+                qc.append(CircuitInstruction(node.op, remapped_qubits, node.cargs))
+
+            # Collapse this quantum circuit into an operation.
+            op = collapse_fn(qc)
+
+            # Replace the block of nodes in the DAG by the constructed operation
+            # (the function replace_block_with_op is implemented both in DAGCircuit and DAGDependency).
+            self.dag.replace_block_with_op(block, op, wire_pos_map, cycle_check=False)
+        return self.dag

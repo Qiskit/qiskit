@@ -10,7 +10,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""Test functionality to collect and split blocks from DAGCircuits."""
+"""Test functionality to collect, split and consolidate blocks from DAGCircuits."""
 
 
 import unittest
@@ -18,12 +18,13 @@ import unittest
 from qiskit.converters import circuit_to_dag, circuit_to_dagdependency
 from qiskit.test import QiskitTestCase
 from qiskit.circuit import QuantumCircuit
-from qiskit.dagcircuit.collect_blocks import BlockCollector, BlockSplitter
+from qiskit.dagcircuit.collect_blocks import BlockCollector, BlockSplitter, BlockCollapser
 
 
 class TestCollectBlocks(QiskitTestCase):
-    """Tests to verify correctness of collecting blocks from DAGCircuit
-    and DAGDependency.
+    """Tests to verify correctness of collecting, splitting, and consolidating blocks
+    from DAGCircuit and DAGDependency. Additional tests appear as a part of
+    CollectLinearFunctions and CollectCliffords passes.
     """
 
     def test_collect_gates_from_dagcircuit_1(self):
