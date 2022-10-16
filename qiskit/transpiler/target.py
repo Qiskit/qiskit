@@ -1025,7 +1025,7 @@ def target_to_backend_properties(target: Target):
             for qargs, props in qargs_list.items():
                 property_list = []
                 if props is not None:
-                    if props.duration is not None:
+                    if getattr(props, "duration", None) is not None:
                         property_list.append(
                             {
                                 "date": datetime.datetime.utcnow(),
@@ -1034,7 +1034,7 @@ def target_to_backend_properties(target: Target):
                                 "value": props.duration,
                             }
                         )
-                    if props.error is not None:
+                    if getattr(props, "error", None) is not None:
                         property_list.append(
                             {
                                 "date": datetime.datetime.utcnow(),
@@ -1059,25 +1059,24 @@ def target_to_backend_properties(target: Target):
                     continue
                 qubit = qargs[0]
                 props_list = []
-                if props is not None:
-                    if props.error is not None:
-                        props_list.append(
-                            {
-                                "date": datetime.datetime.utcnow(),
-                                "name": "readout_error",
-                                "unit": "",
-                                "value": props.error,
-                            }
-                        )
-                    if props.duration is not None:
-                        props_list.append(
-                            {
-                                "date": datetime.datetime.utcnow(),
-                                "name": "readout_length",
-                                "unit": "s",
-                                "value": props.duration,
-                            }
-                        )
+                if getattr(props, "error", None) is not None:
+                    props_list.append(
+                        {
+                            "date": datetime.datetime.utcnow(),
+                            "name": "readout_error",
+                            "unit": "",
+                            "value": props.error,
+                        }
+                    )
+                if getattr(props, "duration", None) is not None:
+                    props_list.append(
+                        {
+                            "date": datetime.datetime.utcnow(),
+                            "name": "readout_length",
+                            "unit": "s",
+                            "value": props.duration,
+                        }
+                    )
                 if not props_list:
                     qubit_props = {}
                     break
