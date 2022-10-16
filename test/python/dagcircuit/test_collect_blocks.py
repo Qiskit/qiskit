@@ -18,7 +18,7 @@ import unittest
 from qiskit.converters import circuit_to_dag, circuit_to_dagdependency
 from qiskit.test import QiskitTestCase
 from qiskit.circuit import QuantumCircuit
-from qiskit.dagcircuit.collect_blocks import BlockCollector, BlockSplitter, BlockCollapser
+from qiskit.dagcircuit.collect_blocks import BlockCollector, BlockSplitter
 
 
 class TestCollectBlocks(QiskitTestCase):
