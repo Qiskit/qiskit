@@ -131,9 +131,9 @@ class BasePauli(BaseOperator, AdjointMixin, MultiplyMixin):
         # Get phase shift
         phase = self._phase + other._phase
         if front:
-            phase += 2 * _count_y(x1, z2)
+            phase += 2 * _count_y(x1, z2, dtype=phase.dtype)
         else:
-            phase += 2 * _count_y(x2, z1)
+            phase += 2 * _count_y(x2, z1, dtype=phase.dtype)
 
         # Update Pauli
         x = np.logical_xor(x1, x2)
@@ -185,7 +185,7 @@ class BasePauli(BaseOperator, AdjointMixin, MultiplyMixin):
     def transpose(self):
         """Return the transpose of each Pauli in the list."""
         # Transpose sets Y -> -Y. This has effect on changing the phase
-        parity_y = self._count_y() % 2
+        parity_y = self._count_y(dtype=self._phase.dtype) % 2
         if np.all(parity_y == 0):
             return self
         return BasePauli(self._z, self._x, np.mod(self._phase + 2 * parity_y, 4))
@@ -388,7 +388,8 @@ class BasePauli(BaseOperator, AdjointMixin, MultiplyMixin):
             raise QiskitError("z and x vectors are different size.")
 
         # Convert group phase convention to internal ZX-phase conversion.
-        base_phase = np.mod(_count_y(base_x, base_z) + phase, 4)
+        dtype = getattr(phase, "dtype", None)
+        base_phase = np.mod(_count_y(base_x, base_z, dtype=dtype) + phase, 4)
         return base_z, base_x, base_phase
 
     @staticmethod
@@ -601,7 +602,7 @@ def _evolve_h(base_pauli, qubit):
     z = base_pauli._z[:, qubit].copy()
     base_pauli._x[:, qubit] = z
     base_pauli._z[:, qubit] = x
-    base_pauli._phase += 2 * np.logical_and(x, z).T
+    base_pauli._phase += 2 * np.logical_and(x, z).T.astype(base_pauli._phase.dtype)
     return base_pauli
 
 
@@ -609,7 +610,7 @@ def _evolve_s(base_pauli, qubit):
     """Update P -> S.P.Sdg"""
     x = base_pauli._x[:, qubit]
     base_pauli._z[:, qubit] ^= x
-    base_pauli._phase += x.T
+    base_pauli._phase += x.T.astype(base_pauli._phase.dtype)
     return base_pauli
 
 
@@ -617,7 +618,7 @@ def _evolve_sdg(base_pauli, qubit):
     """Update P -> Sdg.P.S"""
     x = base_pauli._x[:, qubit]
     base_pauli._z[:, qubit] ^= x
-    base_pauli._phase -= x.T
+    base_pauli._phase -= x.T.astype(base_pauli._phase.dtype)
     return base_pauli
 
 
@@ -629,19 +630,21 @@ def _evolve_i(base_pauli, qubit):
 
 def _evolve_x(base_pauli, qubit):
     """Update P -> X.P.X"""
-    base_pauli._phase += 2 * base_pauli._z[:, qubit].T
+    base_pauli._phase += 2 * base_pauli._z[:, qubit].T.astype(base_pauli._phase.dtype)
     return base_pauli
 
 
 def _evolve_y(base_pauli, qubit):
     """Update P -> Y.P.Y"""
-    base_pauli._phase += 2 * base_pauli._x[:, qubit].T + 2 * base_pauli._z[:, qubit].T
+    xp = base_pauli._x[:, qubit].T.astype(base_pauli._phase.dtype)
+    zp = base_pauli._z[:, qubit].T.astype(base_pauli._phase.dtype)
+    base_pauli._phase += 2 * (xp + zp)
     return base_pauli
 
 
 def _evolve_z(base_pauli, qubit):
     """Update P -> Z.P.Z"""
-    base_pauli._phase += 2 * base_pauli._x[:, qubit].T
+    base_pauli._phase += 2 * base_pauli._x[:, qubit].T.astype(base_pauli._phase.dtype)
     return base_pauli
 
 
@@ -658,7 +661,7 @@ def _evolve_cz(base_pauli, q1, q2):
     x2 = base_pauli._x[:, q2].copy()
     base_pauli._z[:, q1] ^= x2
     base_pauli._z[:, q2] ^= x1
-    base_pauli._phase += 2 * np.logical_and(x1, x2).T
+    base_pauli._phase += 2 * np.logical_and(x1, x2).T.astype(base_pauli._phase.dtype)
     return base_pauli
 
 
@@ -670,7 +673,7 @@ def _evolve_cy(base_pauli, qctrl, qtrgt):
     base_pauli._x[:, qtrgt] ^= x1
     base_pauli._z[:, qtrgt] ^= x1
     base_pauli._z[:, qctrl] ^= np.logical_xor(x2, z2)
-    base_pauli._phase += x1 + 2 * np.logical_and(x1, x2).T
+    base_pauli._phase += x1 + 2 * np.logical_and(x1, x2).T.astype(base_pauli._phase.dtype)
     return base_pauli
 
 
@@ -687,7 +690,4 @@ def _evolve_swap(base_pauli, q1, q2):
 
 def _count_y(x, z, dtype=None):
     """Count the number of I Pauli's"""
-    axis = 1
-    if dtype is None:
-        dtype = np.min_scalar_type(x.shape[axis])
-    return (x & z).sum(axis=axis, dtype=dtype)
+    return (x & z).sum(axis=1, dtype=dtype)

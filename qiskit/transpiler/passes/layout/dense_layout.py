@@ -98,11 +98,9 @@ class DenseLayout(AnalysisPass):
 
         best_sub = self._best_subset(num_dag_qubits, num_meas, num_cx)
         layout = Layout()
-        map_iter = 0
+        for i, qubit in enumerate(dag.qubits):
+            layout.add(qubit, int(best_sub[i]))
         for qreg in dag.qregs.values():
-            for i in range(qreg.size):
-                layout[qreg[i]] = int(best_sub[map_iter])
-                map_iter += 1
             layout.add_register(qreg)
         self.property_set["layout"] = layout
 
