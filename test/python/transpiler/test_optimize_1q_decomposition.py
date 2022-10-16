@@ -18,22 +18,139 @@ import ddt
 import numpy as np
 
 from qiskit.circuit import QuantumRegister, QuantumCircuit, ClassicalRegister, Parameter
-from qiskit.circuit.library.standard_gates import UGate, SXGate, PhaseGate
-from qiskit.circuit.library.standard_gates import U3Gate, U2Gate, U1Gate
+from qiskit.circuit.library.standard_gates import (
+    UGate,
+    SXGate,
+    PhaseGate,
+    U3Gate,
+    U2Gate,
+    U1Gate,
+    RZGate,
+    RXGate,
+    RYGate,
+    HGate,
+)
 from qiskit.circuit.random import random_circuit
 from qiskit.compiler import transpile
 from qiskit.transpiler import PassManager, Target, InstructionProperties
 from qiskit.transpiler.passes import Optimize1qGatesDecomposition
 from qiskit.transpiler.passes import BasisTranslator
+from qiskit.transpiler.passes.optimization.optimize_1q_decomposition import _error
 from qiskit.circuit.equivalence_library import SessionEquivalenceLibrary as sel
 from qiskit.quantum_info import Operator
 from qiskit.test import QiskitTestCase
 from qiskit.circuit import Parameter
 
 
+θ = Parameter("θ")
+ϕ = Parameter("ϕ")
+λ = Parameter("λ")
+
+# a typical target where u1 is cheaper than u2 is cheaper than u3
+u1_props = {(0,): InstructionProperties(error=0)}
+u2_props = {(0,): InstructionProperties(error=1e-4)}
+u3_props = {(0,): InstructionProperties(error=2e-4)}
+target_u1_u2_u3 = Target()
+target_u1_u2_u3.add_instruction(U1Gate(θ), u1_props, name="u1")
+target_u1_u2_u3.add_instruction(U2Gate(θ, ϕ), u2_props, name="u2")
+target_u1_u2_u3.add_instruction(U3Gate(θ, ϕ, λ), u3_props, name="u3")
+
+# a typical target where continuous rz and rx are available; rz is cheaper
+rz_props = {(0,): InstructionProperties(duration=0, error=0)}
+rx_props = {(0,): InstructionProperties(duration=0.5e-8, error=0.00025)}
+target_rz_rx = Target()
+target_rz_rx.add_instruction(RZGate(θ), rz_props, name="rz")
+target_rz_rx.add_instruction(RXGate(θ), rx_props, name="rx")
+
+# a typical target where continuous rz, and discrete sx are available; rz is cheaper
+rz_props = {(0,): InstructionProperties(duration=0, error=0)}
+sx_props = {(0,): InstructionProperties(duration=0.5e-8, error=0.00025)}
+target_rz_sx = Target()
+target_rz_sx.add_instruction(RZGate(θ), rz_props, name="rz")
+target_rz_sx.add_instruction(SXGate(), sx_props, name="sx")
+
+# a target with overcomplete basis, rz is cheaper than ry is cheaper than u
+rz_props = {(0,): InstructionProperties(duration=0.1e-8, error=0.0001)}
+ry_props = {(0,): InstructionProperties(duration=0.5e-8, error=0.0002)}
+u_props = {(0,): InstructionProperties(duration=0.9e-8, error=0.0005)}
+target_rz_ry_u = Target()
+target_rz_ry_u.add_instruction(RZGate(θ), rz_props, name="rz")
+target_rz_ry_u.add_instruction(RYGate(θ), ry_props, name="ry")
+target_rz_ry_u.add_instruction(UGate(θ, ϕ, λ), u_props, name="u")
+
+# a target with hadamard and phase, we don't yet have an explicit decomposer
+# but we can at least recognize circuits that are native for it
+h_props = {(0,): InstructionProperties(duration=0.3e-8, error=0.0003)}
+p_props = {(0,): InstructionProperties(duration=0, error=0)}
+target_h_p = Target()
+target_h_p.add_instruction(HGate(), h_props, name="h")
+target_h_p.add_instruction(PhaseGate(θ), p_props, name="p")
+
+
 @ddt.ddt
 class TestOptimize1qGatesDecomposition(QiskitTestCase):
     """Test for 1q gate optimizations."""
+
+    @ddt.data(target_u1_u2_u3, target_rz_rx, target_rz_sx, target_rz_ry_u, target_h_p)
+    def test_optimize_h_gates_target(self, target):
+        """Transpile: qr:--[H]-[H]-[H]--"""
+        qr = QuantumRegister(1, "qr")
+        circuit = QuantumCircuit(qr)
+        circuit.h(qr[0])
+        circuit.h(qr[0])
+        circuit.h(qr[0])
+
+        passmanager = PassManager()
+        passmanager.append(Optimize1qGatesDecomposition(target=target))
+        result = passmanager.run(circuit)
+
+        self.assertTrue(Operator(circuit).equiv(Operator(result)))
+
+    @ddt.data(
+        target_u1_u2_u3,
+        target_rz_rx,
+        target_rz_sx,
+        target_rz_ry_u,
+    )
+    def test_optimize_identity_target(self, target):
+        """Transpile: qr:--[RY(θ), RY(-θ)]-- to null."""
+        qr = QuantumRegister(1, "qr")
+        circuit = QuantumCircuit(qr)
+        circuit.ry(np.pi / 7, qr[0])
+        circuit.ry(-np.pi / 7, qr[0])
+
+        expected = QuantumCircuit(qr)
+
+        passmanager = PassManager()
+        passmanager.append(Optimize1qGatesDecomposition(target=target))
+        result = passmanager.run(circuit)
+        self.assertEqual(expected, result)
+
+    def test_optimize_error_over_target_1(self):
+        """XZX is re-written as ZXZ, which is cheaper according to target."""
+        qr = QuantumRegister(1, "qr")
+        circuit = QuantumCircuit(qr)
+        circuit.rx(np.pi / 7, qr[0])
+        circuit.rz(np.pi / 4, qr[0])
+        circuit.rx(np.pi / 3, qr[0])
+
+        target = target_rz_rx
+        passmanager = PassManager()
+        passmanager.append(Optimize1qGatesDecomposition(target=target))
+        result = passmanager.run(circuit)
+        self.assertLess(_error(result, target, 0), _error(circuit, target, 0))
+
+    def test_optimize_error_over_target_2(self):
+        """U is re-written as ZYZ, which is cheaper according to target."""
+        qr = QuantumRegister(1, "qr")
+        circuit = QuantumCircuit(qr)
+        circuit.u(np.pi / 7, np.pi / 4, np.pi / 3, qr[0])
+
+        target = target_rz_ry_u
+        passmanager = PassManager()
+        passmanager.append(Optimize1qGatesDecomposition(target=target))
+        result = passmanager.run(circuit)
+        self.assertLess(_error(result, target, 0), _error(circuit, target, 0))
 
     @ddt.data(
         ["cx", "u3"],
@@ -56,14 +173,12 @@ class TestOptimize1qGatesDecomposition(QiskitTestCase):
         circuit.h(qr[0])
         circuit.h(qr[0])
 
-        expected = QuantumCircuit(qr)
-        expected.u(np.pi / 2, 0, np.pi, qr)  # U2(0, pi)
-
         passmanager = PassManager()
         passmanager.append(Optimize1qGatesDecomposition(basis))
         result = passmanager.run(circuit)
 
         self.assertTrue(Operator(circuit).equiv(Operator(result)))
+        self.assertLessEqual(result.depth(), circuit.depth())
 
     @ddt.data(
         ["cx", "u3"],
@@ -423,18 +538,8 @@ class TestOptimize1qGatesDecomposition(QiskitTestCase):
         expected = QuantumCircuit(qr)
         expected.append(U1Gate(np.pi / 4), [qr[0]])
 
-        θ = Parameter("θ")
-        ϕ = Parameter("ϕ")
-        λ = Parameter("λ")
-        u1_props = {(0,): InstructionProperties(error=0)}
-        u2_props = {(0,): InstructionProperties(error=1e-4)}
-        u3_props = {(0,): InstructionProperties(error=2e-4)}
-        target = Target()
-        target.add_instruction(U1Gate(θ), u1_props, name="u1")
-        target.add_instruction(U2Gate(θ, ϕ), u2_props, name="u2")
-        target.add_instruction(U3Gate(θ, ϕ, λ), u3_props, name="u3")
         passmanager = PassManager()
-        passmanager.append(Optimize1qGatesDecomposition(target=target))
+        passmanager.append(Optimize1qGatesDecomposition(target=target_u1_u2_u3))
         result = passmanager.run(circuit)
 
         msg = f"expected:\n{expected}\nresult:\n{result}"
