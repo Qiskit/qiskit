@@ -1467,7 +1467,7 @@ class TestTranspile(QiskitTestCase):
         lam = Parameter("λ")
         target = Target(2)
         target.add_instruction(UGate(theta, phi, lam), {(0,): None, (1,): None})
-        target.add_instruction(CXGate(), {(0,1): None})
+        target.add_instruction(CXGate(), {(0, 1): None})
         target.add_instruction(Measure(), {(0,): None, (1,): None})
         qubit_reg = QuantumRegister(2, name="q")
         clbit_reg = ClassicalRegister(2, name="c")

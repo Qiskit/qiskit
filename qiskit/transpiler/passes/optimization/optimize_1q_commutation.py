@@ -210,12 +210,8 @@ class Optimize1qGatesSimpleCommutation(TransformationPass):
                 )
 
             # re-synthesize
-            new_preceding_run = self._resynthesize(
-                preceding_run + commuted_preceding
-            )
-            new_succeeding_run = self._resynthesize(
-                commuted_succeeding + succeeding_run
-            )
+            new_preceding_run = self._resynthesize(preceding_run + commuted_preceding)
+            new_succeeding_run = self._resynthesize(commuted_succeeding + succeeding_run)
             new_run = self._resynthesize(run_clone)
 
             # perform the replacement if it was indeed a good idea
@@ -228,7 +224,7 @@ class Optimize1qGatesSimpleCommutation(TransformationPass):
                     + (new_succeeding_run or QuantumCircuit(1)).data
                 ),
                 self._optimize1q._basis_gates,
-                dag.qubits.index(run[0].qargs[0])
+                dag.qubits.index(run[0].qargs[0]),
             ):
                 if preceding_run and new_preceding_run is not None:
                     self._replace_subdag(dag, preceding_run, new_preceding_run)
