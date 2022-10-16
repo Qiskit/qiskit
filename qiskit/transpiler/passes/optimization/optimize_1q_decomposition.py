@@ -71,7 +71,7 @@ class Optimize1qGatesDecomposition(TransformationPass):
             decomposers = self._global_decomposers
 
         new_circs = [decomposer._decompose(operator) for decomposer in decomposers]
-        
+
         if len(new_circs) == 0:
             return None
         else:
@@ -98,10 +98,11 @@ class Optimize1qGatesDecomposition(TransformationPass):
         # if we're outside of the set of gates for which we have physical definitions,
         #    then we _try_ to decompose, using the results if we see improvement.
         return (
-            uncalibrated_and_not_basis_p or 
-            (uncalibrated_p and 
-             _error(new_circ, self._target, qubit) < _error(old_run, self._target, qubit)
-             )
+            uncalibrated_and_not_basis_p
+            or (
+                uncalibrated_p
+                and _error(new_circ, self._target, qubit) < _error(old_run, self._target, qubit)
+            )
             or np.isclose(_error(new_circ, self._target, qubit), 0)
         )
 
@@ -151,7 +152,7 @@ def _possible_decomposers(basis_set):
 
 def _error(circuit, target, qubit):
     """
-    Calculate a rough error for a `circuit` that runs on a specific 
+    Calculate a rough error for a `circuit` that runs on a specific
     `qubit` of `target` (circuit could also be a list of DAGNodes)
 
     Use basis errors from target if available, otherwise use length
@@ -161,9 +162,11 @@ def _error(circuit, target, qubit):
         return len(circuit)
     else:
         if isinstance(circuit, list):
-            gate_errors = [1 - getattr(target[node.name][(qubit,)], 'error', 0.0) 
-                           for node in circuit]
+            gate_errors = [
+                1 - getattr(target[node.name][(qubit,)], "error", 0.0) for node in circuit
+            ]
         else:
-            gate_errors = [1 - getattr(target[inst.operation.name][(qubit,)], 'error', 0.0) 
-                           for inst in circuit]
+            gate_errors = [
+                1 - getattr(target[inst.operation.name][(qubit,)], "error", 0.0) for inst in circuit
+            ]
         return 1 - np.product(gate_errors)
