@@ -26,7 +26,16 @@ logger = logging.getLogger(__name__)
 
 
 class Optimize1qGatesDecomposition(TransformationPass):
-    """Optimize chains of single-qubit gates by combining them into a single gate."""
+    """Optimize chains of single-qubit gates by combining them into a single gate.
+
+    The decision to replace the original chain with a new resynthesis depends on:
+     - whether the original chain was out of basis: replace
+     - whether the original chain was in basis but resynthesis is lower error: replace
+     - whether the original chain contains a pulse gate: do not replace
+     - whether the original chain amounts to identity: replace with null
+
+     Error is computed as a multiplication of the errors of individual gates on that qubit.
+    """
 
     def __init__(self, basis=None, target=None):
         """Optimize1qGatesDecomposition initializer.
