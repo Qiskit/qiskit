@@ -17,6 +17,11 @@ features:
     To allow code reuse between the collection and collapsing functions of inherited classes,
     added a new class :class:`~BlockCollector` that implements various collection strategies,
     and a new class :class:`~BlockCollapser` that implements various collapsing strategies.
+    Currently :class:`~BlockCollector`  includes the strategy to greedily collect all gates
+    adhering to a given filter function (for example, collecting all Clifford gates), and
+    :class:`~BlockCollapser` includes the strategy to consolidate all gates in a block to a
+    single object (or example, a block of Clifford gates can be consolidated to a single
+    ``Clifford``).
 
     The interface also supports the following options. The option ``do_commutative_analysis``
     allows to exploit commutativity between gates in order to collect larger blocks of nodes.
