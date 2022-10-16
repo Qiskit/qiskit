@@ -12,7 +12,6 @@
 
 """Optimize chains of single-qubit gates using Euler 1q decomposer"""
 
-import copy
 import logging
 from functools import partial
 import numpy as np

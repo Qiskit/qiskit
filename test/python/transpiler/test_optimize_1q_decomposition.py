@@ -39,7 +39,6 @@ from qiskit.transpiler.passes.optimization.optimize_1q_decomposition import _err
 from qiskit.circuit.equivalence_library import SessionEquivalenceLibrary as sel
 from qiskit.quantum_info import Operator
 from qiskit.test import QiskitTestCase
-from qiskit.circuit import Parameter
 
 
 θ = Parameter("θ")
@@ -554,19 +553,8 @@ class TestOptimize1qGatesDecomposition(QiskitTestCase):
         expected = QuantumCircuit(qr)
         expected.append(U2Gate(0, np.pi / 4), [qr[0]])
 
-        θ = Parameter("θ")
-        ϕ = Parameter("ϕ")
-        λ = Parameter("λ")
-        u1_props = {(0,): InstructionProperties(error=0)}
-        u2_props = {(0,): InstructionProperties(error=1e-4)}
-        u3_props = {(0,): InstructionProperties(error=2e-4)}
-        target = Target()
-        target.add_instruction(U1Gate(θ), u1_props, name="u1")
-        target.add_instruction(U2Gate(θ, ϕ), u2_props, name="u2")
-        target.add_instruction(U3Gate(θ, ϕ, λ), u3_props, name="u3")
-
         passmanager = PassManager()
-        passmanager.append(Optimize1qGatesDecomposition(target=target))
+        passmanager.append(Optimize1qGatesDecomposition(target=target_u1_u2_u3))
         result = passmanager.run(circuit)
         self.assertEqual(expected, result)
         msg = f"expected:\n{expected}\nresult:\n{result}"
