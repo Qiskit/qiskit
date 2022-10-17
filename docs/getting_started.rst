@@ -18,33 +18,32 @@ going to run and install the packages.  There are three main ways to do this:
         evolving ecosystems, and sometimes when new releases occur in one or the other,
         there can be problems with compatibility.
 
-        We recommend installing `Anaconda <https://www.anaconda.com/download/>`__, a
-        cross-platform Python distribution for scientific computing. Jupyter,
-        included in Anaconda, is recommended for interacting with Qiskit.
+        You will need to `download Python <https://wiki.python.org/moin/BeginnersGuide/Download>`__
+        on your local system to get started. `Jupyter <https://jupyter.org/install>`__ is recommended for
+        interacting with Qiskit.
 
-        We recommend using Python virtual environments to cleanly separate Qiskit from
-        other applications and improve your experience.
-
-        The simplest way to use environments is by using the ``conda`` command,
-        included with Anaconda. A Conda environment allows you to specify a specific
-        version of Python and set of libraries. Open a terminal window in the directory
-        where you want to work.
-
-        It is preferred that you use the Anaconda prompt installed with Anaconda.
-        All you have to do is create a virtual environment inside Anaconda and activate the environment.
-        These commands can be run in the Anaconda prompt irrespective of Windows or Linux machine.
+        We recommend using `Python virtual environments <https://docs.python.org/3.10/tutorial/venv.html>`__
+        to cleanly separate Qiskit from other applications and improve your experience.
 
         Create a minimal environment with only Python installed in it.
 
         .. code:: sh
 
-            conda create -n ENV_NAME python=3
+            python3 -m venv /path/to/virtual/environment
 
         Activate your new environment.
 
         .. code:: sh
 
-            conda activate ENV_NAME
+            source /path/to/virtual/environment/bin/activate
+
+
+        Note: if you are using Windows, use the following commands in PowerShell.
+
+        .. code:: sh
+
+           python3 -m venv c:\path\to\virtual\environment
+           c:\path\to\virtual\environment\Scripts\Activate.ps1
 
 
         Next, install the Qiskit package.
@@ -53,7 +52,7 @@ going to run and install the packages.  There are three main ways to do this:
 
             pip install qiskit
 
-        If the packages were installed correctly, you can run ``conda list`` to see the active
+        If the packages were installed correctly, you can run ``pip list`` to see the active
         packages in your virtual environment.
 
         If you intend to use visualization functionality or Jupyter notebooks it is
@@ -151,8 +150,8 @@ going to run and install the packages.  There are three main ways to do this:
 
        .. code-block:: sh
 
-          conda create -y -n QiskitDevenv python=3
-          conda activate QiskitDevenv
+          python3 -m venv QiskitDevenv
+          source QiskitDevenv/bin/activate
 
        .. _install-qiskit-terra:
 
@@ -189,8 +188,8 @@ going to run and install the packages.  There are three main ways to do this:
           .. tab-item:: Compiler for Windows
 
              On Windows, it is easiest to install the Visual C++ compiler from the
-             `Build Tools for Visual Studio 2019 <https://visualstudio.microsoft.com/downloads/#build-tools-for-visual-studio-2019>`__.
-             You can instead install Visual Studio version 2015 or 2017, making sure to select the
+             `Build Tools for Visual Studio 2022 <https://visualstudio.microsoft.com/downloads/#build-tools-for-visual-studio-2022>`__.
+             You can instead install Visual Studio version 2015, 2017, or 2019 making sure to select the
              options for installing the C++ compiler.
 
 
@@ -345,23 +344,13 @@ going to run and install the packages.  There are three main ways to do this:
 
        .. dropdown:: Windows
 
-          On Windows you need to use `Anaconda3 <https://www.anaconda.com/distribution/#windows>`__
-          or `Miniconda3 <https://docs.conda.io/en/latest/miniconda.html>`__ to install all the
-          dependencies.
+          3. All dependencies are added as part of the Visual C++ compiler installed above,
+             so no additional setup is needed.
 
-          3. Install compiler requirements.
-
-             .. code:: sh
-
-                   conda install --update-deps vs2017_win-64 vs2017_win-32 msvc_runtime
 
        Qiskit Aer is a high performance simulator framework for quantum circuits. It
        provides `several backends <apidoc/aer_provider.html#simulator-backends>`__
        to achieve different simulation goals.
-
-             .. code:: sh
-
-                   conda install --update-deps -c conda-forge -y openblas cmake
 
 
        5. Build and install qiskit-aer directly
