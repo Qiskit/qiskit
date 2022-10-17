@@ -76,7 +76,7 @@ class PermRowCol:
         root: int,
         col: int,
         terminals: np.ndarray,
-    ) -> np.ndarray:
+    ) -> list:
         """Eliminates the selected column from the parity matrix and returns the operations.
 
         Args:
@@ -87,7 +87,7 @@ class PermRowCol:
             terminals (np.ndarray): terminals of the steiner tree
 
         Returns:
-            np.ndarray: list of operations
+            list: list of tuples represents control and target qubits with a cnot gate between them.
         """
         C = []
         tree = rx.steiner_tree(
@@ -105,7 +105,7 @@ class PermRowCol:
             C.append((edge[1], edge[0]))
             parity_mat[edge[1], :] = (parity_mat[edge[0], :] + parity_mat[edge[1], :]) % 2
 
-        return np.array(C, dtype=object)
+        return C
 
     def eliminate_row(
         self, parity_mat: np.ndarray, coupling: CouplingMap, root: int, terminals: np.ndarray

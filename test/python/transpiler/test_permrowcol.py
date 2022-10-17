@@ -107,7 +107,7 @@ class TestPermRowCol(QiskitTestCase):
 
         self.assertEqual(index, 2)
 
-    def test_eliminate_column_returns_np_ndarray(self):
+    def test_eliminate_column_returns_list(self):
         """Test the output type of eliminate_column"""
         coupling = CouplingMap()
         permrowcol = PermRowCol(coupling)
@@ -116,7 +116,7 @@ class TestPermRowCol(QiskitTestCase):
 
         instance = permrowcol.eliminate_column(parity_mat, coupling, 0, 0, terminals)
 
-        self.assertIsInstance(instance, np.ndarray)
+        self.assertIsInstance(instance, list)
 
     def test_eliminate_column_returns_correct_list_of_tuples_with_given_input(self):
         """Test eliminate_column method for correctness in case of example parity_matrix and coupling map"""
@@ -138,7 +138,7 @@ class TestPermRowCol(QiskitTestCase):
         terminals = np.array([1, 0])
         ret = permrowcol.eliminate_column(parity_mat, coupling, root, column, terminals)
 
-        self.assertEqual(ret.all(), np.array([1, 0]).all())
+        self.assertEqual(ret, [(1, 0)])
 
     def test_eliminate_column_eliminates_selected_column(self):
         """Test eliminate_column for eliminating selected column in case of example parity_matrix and coupling map"""
@@ -162,6 +162,7 @@ class TestPermRowCol(QiskitTestCase):
         ret = permrowcol.eliminate_column(parity_mat, coupling, root, column, terminals)
 
         self.assertEqual(1, sum(parity_mat[:, column]))
+        self.assertEqual(1, parity_mat[0, column])
 
     def test_eliminate_row_returns_np_ndarray(self):
         """Test the output type of eliminate_row"""
