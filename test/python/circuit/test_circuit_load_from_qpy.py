@@ -1083,3 +1083,23 @@ class TestLoadFromQPY(QiskitTestCase):
         new_circ = load(qpy_file)[0]
         self.assertEqual(qc, new_circ)
         self.assertEqual(qc.decompose(), new_circ.decompose())
+
+    def test_load_with_loose_bits(self):
+        """Test that loading from a circuit with loose bits works."""
+        qc = QuantumCircuit([Qubit(), Qubit(), Clbit()])
+        qpy_file = io.BytesIO()
+        dump(qc, qpy_file)
+        qpy_file.seek(0)
+        new_circuit = load(qpy_file)[0]
+        self.assertEqual(tuple(new_circuit.qregs), ())
+        self.assertEqual(tuple(new_circuit.cregs), ())
+        self.assertEqual(qc, new_circuit)
+
+    def test_load_with_loose_bits_and_registers(self):
+        """Test that loading from a circuit with loose bits and registers works."""
+        qc = QuantumCircuit(QuantumRegister(3), ClassicalRegister(1), [Clbit()])
+        qpy_file = io.BytesIO()
+        dump(qc, qpy_file)
+        qpy_file.seek(0)
+        new_circuit = load(qpy_file)[0]
+        self.assertEqual(qc, new_circuit)
