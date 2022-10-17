@@ -181,6 +181,7 @@ class Target(Mapping):
         "_non_global_basis",
         "_non_global_strict_basis",
         "qubit_properties",
+        "_global_operations",
     )
 
     def __init__(
@@ -238,6 +239,8 @@ class Target(Mapping):
         self._gate_name_map = {}
         # A nested mapping of gate name -> qargs -> properties
         self._gate_map = {}
+        # A mapping of number of qubits to set of op names which are global
+        self._global_operations = defaultdict(set)
         # A mapping of qarg -> set(gate name)
         self._qarg_gate_map = defaultdict(set)
         self.dt = dt
@@ -350,8 +353,15 @@ class Target(Mapping):
         if is_class:
             qargs_val = {None: None}
         else:
+            if None in properties:
+                self._global_operations[instruction.num_qubits].add(instruction_name)
             qargs_val = {}
             for qarg in properties:
+                if qarg is not None and len(qarg) != instruction.num_qubits:
+                    raise TranspilerError(
+                        f"The number of qubits for {instruction} does not match the number "
+                        f"of qubits in the properties dictionary: {qarg}"
+                    )
                 if qarg is not None:
                     self.num_qubits = max(self.num_qubits, max(qarg) + 1)
                 qargs_val[qarg] = properties[qarg]
@@ -530,7 +540,8 @@ class Target(Mapping):
         Args:
             qargs (tuple): A qargs tuple of the qubits to get the gates that apply
                 to it. For example, ``(0,)`` will return the set of all
-                instructions that apply to qubit 0.
+                instructions that apply to qubit 0. If set to ``None`` this will
+                return any globally defined operations in the target.
         Returns:
             list: The list of :class:`~qiskit.circuit.Instruction` instances
             that apply to the specified qarg. This may also be a class if
@@ -539,12 +550,17 @@ class Target(Mapping):
         Raises:
             KeyError: If qargs is not in target
         """
-        if qargs not in self._qarg_gate_map:
+        if qargs is not None and any(x not in range(0, self.num_qubits) for x in qargs):
             raise KeyError(f"{qargs} not in target.")
         res = [self._gate_name_map[x] for x in self._qarg_gate_map[qargs]]
-        if None in self._qarg_gate_map:
-            res += [self._gate_name_map[x] for x in self._qarg_gate_map[None]]
-        return res
+        if qargs is not None:
+            res += self._global_operations.get(len(qargs), list())
+        for op in self._gate_name_map.values():
+            if inspect.isclass(op):
+                res.append(op)
+        if not res:
+            raise KeyError(f"{qargs} not in target.")
+        return list(res)
 
     def operation_names_for_qargs(self, qargs):
         """Get the operation names for a specified qargs tuple
@@ -552,7 +568,8 @@ class Target(Mapping):
         Args:
             qargs (tuple): A qargs tuple of the qubits to get the gates that apply
                 to it. For example, ``(0,)`` will return the set of all
-                instructions that apply to qubit 0.
+                instructions that apply to qubit 0. If set to ``None`` this will
+                return the names for any globally defined operations in the target.
         Returns:
             set: The set of operation names that apply to the specified
             `qargs``.
@@ -560,9 +577,17 @@ class Target(Mapping):
         Raises:
             KeyError: If qargs is not in target
         """
-        if qargs not in self._qarg_gate_map:
+        if qargs is not None and any(x not in range(0, self.num_qubits) for x in qargs):
             raise KeyError(f"{qargs} not in target.")
-        return self._qarg_gate_map[qargs]
+        res = self._qarg_gate_map.get(qargs, set())
+        if qargs is not None:
+            res.update(self._global_operations.get(len(qargs), set()))
+        for name, op in self._gate_name_map.items():
+            if inspect.isclass(op):
+                res.add(name)
+        if not res:
+            raise KeyError(f"{qargs} not in target.")
+        return res
 
     def instruction_supported(
         self, operation_name=None, qargs=None, operation_class=None, parameters=None
