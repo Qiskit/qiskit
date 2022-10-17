@@ -50,10 +50,12 @@ class BarrierBeforeFinalMeasurements(TransformationPass):
         if not final_ops:
             return dag
 
-        # Create a layer with the barrier and add registers from the original dag.
+        # Create a layer with the barrier and add both bits and registers from the original dag.
         barrier_layer = DAGCircuit()
+        barrier_layer.add_qubits(dag.qubits)
         for qreg in dag.qregs.values():
             barrier_layer.add_qreg(qreg)
+        barrier_layer.add_clbits(dag.clbits)
         for creg in dag.cregs.values():
             barrier_layer.add_creg(creg)
 
