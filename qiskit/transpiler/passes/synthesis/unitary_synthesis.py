@@ -78,6 +78,16 @@ def _choose_euler_basis(basis_gates):
     return None
 
 
+def _find_matching_euler_bases(target, qubit):
+    """Find matching available 1q basis to use in the Euler decomposition."""
+    euler_basis_gates = []
+    basis_set = target.operation_names_for_qargs((qubit,))
+    for basis, gates in one_qubit_decompose.ONE_QUBIT_EULER_BASIS_GATES.items():
+        if set(gates).issubset(basis_set):
+            euler_basis_gates.append(basis)
+    return euler_basis_gates
+
+
 def _choose_bases(basis_gates, basis_dict=None):
     """Find the matching basis string keys from the list of basis gates from the backend."""
     if basis_gates is None:
@@ -419,36 +429,13 @@ class DefaultUnitarySynthesis(plugin.UnitarySynthesisPlugin):
         super().__init__()
         self._decomposer_cache = {}
 
-    def _find_euler_basis_from_target(self, target, qubit):
-        qubits_tuple = (qubit,)
-        keys = target.operation_names_for_qargs(qubits_tuple)
-        available_1q_basis_props = {}
-        # caveat: this assumes 1q errors is just determined by gate type, not its param
-        for key in keys:
-            basis_type = type(target.operation_from_name(key))
-            prop = target[key][qubits_tuple]
-            available_1q_basis_props[basis_type] = prop
-
-        euler_basis = None
-        lowest_error = inf
-        for euler_string, basis_types in one_qubit_decompose.ONE_QUBIT_EULER_BASIS_GATES.items():
-            if set(basis_types).issubset(available_1q_basis_props.keys()):
-                euler_error = 1 - np.product(
-                    [1 - getattr(available_1q_basis_props[basis_type], "error", 0.0)
-                     for basis_type in basis_types]
-                )
-                if euler_error < lowest_error:
-                    euler_basis = euler_string
-                    lowest_error = euler_error
-        return euler_basis
-
-    def _find_decomposer_2q_from_target(self, target, qubits, pulse_optimize):
+    def _find_decomposer_2q_from_target(self, target, qubits):
         qubits_tuple = tuple(qubits)
         reverse_tuple = (qubits[1], qubits[0])
         if qubits_tuple in self._decomposer_cache:
             return self._decomposer_cache[qubits_tuple]
 
-        # available instructions on this qubit pair, mapped to their associated property.
+        # available instructions on this qubit pair, and their associated property.
         # prefer same direction if exists, otherwise consider reverse direction too.
         available_2q_basis = {}
         available_2q_props = {}
@@ -468,7 +455,16 @@ class DefaultUnitarySynthesis(plugin.UnitarySynthesisPlugin):
         except KeyError:
             pass
 
+        # available decomposition basis on each of the qubits of the pair
+        # NOTE: assumes both qubits have the same single-qubit gates
+        available_1q_basis = _find_matching_euler_bases(target, qubits_tuple[0])
+
+        print(available_1q_basis)
+        print(available_2q_basis)
+
         # find all decomposers
+        decomposers = []
+
         def is_supercontrolled(gate):
             coords = TwoQubitWeylDecomposition(Operator(gate).data)
             return isclose(coords.a, pi / 4) and isclose(coords.c, 0.0)
@@ -476,61 +472,58 @@ class DefaultUnitarySynthesis(plugin.UnitarySynthesisPlugin):
             coords = TwoQubitWeylDecomposition(Operator(gate).data)
             return isclose(coords.b, 0.0) and isclose(coords.c, 0.0)
 
+        print('----- supercontrolled ------')
         supercontrolled_basis = {k: v for k, v in available_2q_basis.items() if is_supercontrolled(v)}
-        controlled_basis = {k: v for k, v in available_2q_basis.items() if is_controlled(v)}
-
-        # lowest-error Euler basis
-        euler_basis = self._find_euler_basis_from_target(target, qubits_tuple[0])
-
-        # best supercontrolled basis (if available)
-        best_supercontrolled = None
-        lowest_error = inf
-        shortest_duration = inf
-        for name in supercontrolled_basis.keys():
-            error = getattr(available_2q_props[name], "error", 0.0)
-            if error is not None and error > lowest_error:
-                continue
-            duration = getattr(available_2q_props[name], "duration", 0.0)
-            if duration is not None and duration > shortest_duration:
-                continue
-            lowest_error = error
-            shortest_duration = duration
-            preferred_direction = [0, 1] if qubits_tuple in target[name].keys() else [1, 0]
-            best_supercontrolled = supercontrolled_basis[name]
-
-        supercontrolled_decomposer = TwoQubitBasisDecomposer(
-            best_supercontrolled, euler_basis=euler_basis, basis_fidelity=1-lowest_error,
-            pulse_optimize=pulse_optimize
+        for basis_1q, basis_2q in product(available_1q_basis, supercontrolled_basis.keys()):
+            print(basis_1q, basis_2q)
+            basis_2q_fidelity = 1 - getattr(available_2q_props[basis_2q], "error", 0.0)
+            decomposer = TwoQubitBasisDecomposer(
+                    supercontrolled_basis[basis_2q], euler_basis=basis_1q,
+                    basis_fidelity=basis_2q_fidelity
             )
+            preferred_direction = [0, 1] if qubits_tuple in target[basis_2q] else [1, 0]
+            decomposers.append(decomposer)
 
-        # collection of controlled basis
+        print('----- controlled ------')
+        controlled_basis = {k: v for k, v in available_2q_basis.items() if is_controlled(v)}
+        basis_2q_fidelity = {}
         embodiments = {}
-        basis_fidelity = {}
+        pi2_basis = None
         for k, v in controlled_basis.items():
             strength = 2 * TwoQubitWeylDecomposition(v).a  # pi/2 for fully entangling
-            basis_fidelity[strength] = 1-available_2q_props[k].error
+            # each strength has its own fidelity
+            basis_2q_fidelity[strength] = 1 - getattr(available_2q_props[k], "error", 0.0)
+            # rewrite XX of the same strength in terms of it
             embodiment = XXEmbodiments[type(v)]
             if len(embodiment.parameters) == 1:
                 embodiments[strength] = embodiment.bind_parameters([strength])
             else:
                 embodiments[strength] = embodiment
+            # basis equivalent to CX are well optimized so use for the pi/2 angle if available
+            if isclose(strength, pi/2) and k in supercontrolled_basis:
+                pi2_basis = v
 
-        # basis equivalent to CX are well optimized so use for the pi/2 angle if available
-        if is_controlled(supercontrolled_decomposer.gate):
-            pi2_decomposer = supercontrolled_decomposer
-            embodiments.update({pi/2: XXEmbodiments[type(pi2_decomposer.gate)]})
-        else:
-            pi2_decomposer = None
-
-        controlled_decomposer = XXDecomposer(
-            euler_basis=euler_basis, embodiments=embodiments,
-            backup_optimizer=pi2_decomposer, basis_fidelity=basis_fidelity
+        for basis_1q in available_1q_basis:
+            print(basis_1q, controlled_basis.keys())
+            if pi2_basis:
+                pi2_decomposer = TwoQubitBasisDecomposer(
+                    pi2_basis, euler_basis=basis_1q,
+                    basis_fidelity=basis_2q_fidelity
+                )
+                embodiments.update({pi/2: XXEmbodiments[type(pi2_decomposer.gate)]})
+            else:
+                pi2_decomposer = None
+            decomposer = XXDecomposer(
+                euler_basis=basis_1q, embodiments=embodiments,
+                backup_optimizer=pi2_decomposer, basis_fidelity=basis_2q_fidelity
             )
+            decomposers.append(decomposer)
 
-        decomposer2q = controlled_decomposer if controlled_decomposer is not None else supercontrolled_decomposer
-        self._decomposer_cache[qubits_tuple] = (decomposer2q, preferred_direction)
+        print(len(decomposers))
 
-        return (decomposer2q, preferred_direction)
+        self._decomposer_cache[qubits_tuple] = (decomposers, preferred_direction)
+
+        return (decomposers, preferred_direction)
 
     def run(self, unitary, **options):
         # Approximation degree is set directly as an attribute on the
@@ -556,15 +549,17 @@ class DefaultUnitarySynthesis(plugin.UnitarySynthesisPlugin):
         elif unitary.shape == (4, 4):
             preferred_direction = None
             if target is not None:
-                decomposer2q, preferred_direction = self._find_decomposer_2q_from_target(
-                    target, qubits, pulse_optimize
+                decomposers2q, preferred_direction = self._find_decomposer_2q_from_target(
+                    target, qubits
                 )
             else:
-                decomposer2q = _basis_gates_to_decomposer_2q(
+                decomposers2q = _basis_gates_to_decomposer_2q(
                     basis_gates, pulse_optimize=pulse_optimize
                 )
-            if not decomposer2q:
+            if not decomposers2q:
                 return None
+            else:
+                ... apply... pick lowest error if target, or shortest ..
             synth_dag, wires = self._synth_natural_direction(
                 unitary,
                 coupling_map,
