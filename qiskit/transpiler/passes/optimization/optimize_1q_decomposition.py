@@ -166,7 +166,7 @@ def _possible_decomposers(basis_set):
     return decomposers
 
 
-def _error(circuit, target, qubit):
+def _error(circuit, target=None, qubit=None):
     """
     Calculate a rough error for a `circuit` that runs on a specific
     `qubit` of `target` (circuit could also be a list of DAGNodes)

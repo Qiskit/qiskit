@@ -16,9 +16,10 @@ from math import pi, inf, isclose
 from typing import List, Union
 from copy import deepcopy
 from itertools import product
+from functools import partial
 import numpy as np
 
-from qiskit.converters import circuit_to_dag
+from qiskit.converters import circuit_to_dag, dag_to_circuit
 from qiskit.transpiler import CouplingMap, Target
 from qiskit.transpiler.basepasses import TransformationPass
 from qiskit.transpiler.exceptions import TranspilerError
@@ -121,6 +122,45 @@ def _basis_gates_to_decomposer_2q(basis_gates, pulse_optimize=None):
         )
     else:
         return None
+
+
+def _error(circuit, target=None, qubits=None):
+    """
+    Calculate a rough error for a `circuit` that runs on specific
+    `qubits` of `target` ("circuit" could also be a list of DAGNodes)
+
+    Use basis errors from target if available, otherwise use length
+    of circuit as a weak proxy for error.
+    """
+    circuit = dag_to_circuit(circuit)
+    qubits = tuple(qubits)
+    print('----- computing error -----')
+    """
+    if target is None:
+        return len(circuit)
+    else:
+        if isinstance(circuit, list):
+            gate_errors = [
+                1 - getattr(target[node.name][node.qubits], "error", 0.0) for node in circuit
+            ]
+        else:
+            gate_errors = [
+                1 - getattr(target[inst.operation.name][qubits], "error", 0.0) for inst in circuit
+            ]
+        return 1 - np.product(gate_errors)
+    """
+    if target is None:
+        return len(circuit)
+    else:
+        gate_errors = []
+        for inst in circuit:
+            inst_qubits = tuple(circuit.find_bit(q).index for q in inst.qubits)
+            if inst_qubits not in target[inst.operation.name]:
+                inst_qubits = tuple(reversed(inst_qubits))
+            print(inst.operation.name, inst_qubits)
+            gate_error = getattr(target[inst.operation.name][inst_qubits], "error", 0.0)
+            gate_errors.append(gate_error)
+        return 1 - np.product(gate_errors)
 
 
 class UnitarySynthesis(TransformationPass):
@@ -335,10 +375,7 @@ class UnitarySynthesis(TransformationPass):
                 )
             synth_dag = method.run(unitary, **kwargs)
             if synth_dag is not None:
-                if isinstance(synth_dag, tuple):
-                    dag.substitute_node_with_dag(node, synth_dag[0], wires=synth_dag[1])
-                else:
-                    dag.substitute_node_with_dag(node, synth_dag)
+                dag.substitute_node_with_dag(node, synth_dag)
         return dag
 
 
@@ -519,8 +556,6 @@ class DefaultUnitarySynthesis(plugin.UnitarySynthesisPlugin):
             )
             decomposers.append(decomposer)
 
-        print(len(decomposers))
-
         self._decomposer_cache[qubits_tuple] = (decomposers, preferred_direction)
 
         return (decomposers, preferred_direction)
@@ -542,8 +577,6 @@ class DefaultUnitarySynthesis(plugin.UnitarySynthesisPlugin):
 
         _decomposer1q = Optimize1qGatesDecomposition(basis_gates, target)
 
-        synth_dag = None
-        wires = None
         if unitary.shape == (2, 2):
             synth_dag = circuit_to_dag(_decomposer1q._resynthesize_run(unitary, qubits[0]))
         elif unitary.shape == (4, 4):
@@ -553,25 +586,29 @@ class DefaultUnitarySynthesis(plugin.UnitarySynthesisPlugin):
                     target, qubits
                 )
             else:
-                decomposers2q = _basis_gates_to_decomposer_2q(
+                decomposer2q = _basis_gates_to_decomposer_2q(
                     basis_gates, pulse_optimize=pulse_optimize
                 )
-            if not decomposers2q:
-                return None
-            else:
-                ... apply... pick lowest error if target, or shortest ..
-            synth_dag, wires = self._synth_natural_direction(
-                unitary,
-                coupling_map,
-                qubits,
-                decomposer2q,
-                gate_lengths,
-                gate_errors,
-                natural_direction,
-                approximation_degree,
-                pulse_optimize,
-                target,
-                preferred_direction,
+                decomposers2q = [decomposer2q] if decomposer2q is not None else []
+            synth_dags = []
+            for decomposer2q in decomposers2q:
+                synth_dag = self._synth_natural_direction(
+                    unitary,
+                    coupling_map,
+                    qubits,
+                    decomposer2q,
+                    gate_lengths,
+                    gate_errors,
+                    natural_direction,
+                    approximation_degree,
+                    pulse_optimize,
+                    target,
+                    preferred_direction)
+                synth_dags.append(synth_dag)
+            synth_dag = min(
+                    synth_dags,
+                    key=partial(_error, target=target, qubits=qubits),
+                    default=None
             )
         else:
             from qiskit.quantum_info.synthesis.qsd import (  # pylint: disable=cyclic-import
@@ -580,7 +617,7 @@ class DefaultUnitarySynthesis(plugin.UnitarySynthesisPlugin):
 
             synth_dag = circuit_to_dag(qs_decomposition(unitary))
 
-        return synth_dag, wires
+        return synth_dag
 
     def _synth_natural_direction(
         self,
@@ -598,7 +635,6 @@ class DefaultUnitarySynthesis(plugin.UnitarySynthesisPlugin):
     ):
         synth_direction = None
         physical_gate_fidelity = None
-        wires = None
         if natural_direction in {None, True} and (
             coupling_map or (target is not None and decomposer2q and not preferred_direction)
         ):
@@ -673,5 +709,5 @@ class DefaultUnitarySynthesis(plugin.UnitarySynthesisPlugin):
             su4_mat_mm[[1, 2]] = su4_mat_mm[[2, 1]]
             su4_mat_mm[:, [1, 2]] = su4_mat_mm[:, [2, 1]]
             synth_dag = circuit_to_dag(decomposer2q(su4_mat_mm))
-            wires = synth_dag.wires[::-1]
-        return synth_dag, wires
+            # TODO: flip it
+        return synth_dag
