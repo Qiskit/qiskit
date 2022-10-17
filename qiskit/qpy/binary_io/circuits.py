@@ -950,12 +950,12 @@ def read_circuit(file_obj, version, metadata_deserializer=None):
             qubits = [Qubit() for _ in range(num_qubits - len(circ.qubits))]
             circ.add_bits(qubits)
         if len(circ.clbits) < num_clbits:
-            clbits = [Clbit() for _ in range(num_qubits - len(circ.clbits))]
+            clbits = [Clbit() for _ in range(num_clbits - len(circ.clbits))]
             circ.add_bits(clbits)
     else:
         circ = QuantumCircuit(
-            num_qubits,
-            num_clbits,
+            [Qubit() for _ in [None] * num_qubits],
+            [Clbit() for _ in [None] * num_clbits],
             name=name,
             global_phase=global_phase,
             metadata=metadata,
