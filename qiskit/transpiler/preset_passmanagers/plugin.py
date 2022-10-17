@@ -93,7 +93,8 @@ To write a pass manager stage plugin there are 2 main steps. The first step is
 to create a subclass of the abstract plugin class
 :class:`~.PassManagerStagePluginManager` which is used to define how the :class:`~.PassManager`
 for the stage will be constructed. For example, to create a ``layout`` stage plugin that just
-runs :class:`~.VF2Layout` and will fallback to use :class:`~.TrivialLayout` if
+runs :class:`~.VF2Layout` (with increasing amount of trials, depending on the optimization level)
+and will fallback to use :class:`~.TrivialLayout` if
 :class:`~VF2Layout` is unable to find a perfect layout::
 
     from qiskit.transpiler.preset_passmanagers.plugin import PassManagerStagePlugin
@@ -111,12 +112,13 @@ runs :class:`~.VF2Layout` and will fallback to use :class:`~.TrivialLayout` if
 
     class VF2LayoutPlugin(PassManagerStagePlugin):
 
-        def pass_manager(self, pass_manager_config):
+        def pass_manager(self, pass_manager_config, optimization_level):
             layout_pm = PassManager(
                 [
                     VF2Layout(
                         coupling_map=pass_manager_config.coupling_map,
                         properties=pass_manager_config.backend_properties,
+                        max_trials=optimization_level * 10 + 1
                         target=pass_manager_config.target
                     )
                 ]

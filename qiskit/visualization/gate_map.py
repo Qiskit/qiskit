@@ -812,22 +812,22 @@ def plot_circuit_layout(circuit, backend, view="virtual", qubit_coordinates=None
 
     bit_locations = {
         bit: {"register": register, "index": index}
-        for register in circuit._layout.get_registers()
+        for register in circuit._layout.initial_layout.get_registers()
         for index, bit in enumerate(register)
     }
-    for index, qubit in enumerate(circuit._layout.get_virtual_bits()):
+    for index, qubit in enumerate(circuit._layout.initial_layout.get_virtual_bits()):
         if qubit not in bit_locations:
             bit_locations[qubit] = {"register": None, "index": index}
 
     if view == "virtual":
-        for key, val in circuit._layout.get_virtual_bits().items():
+        for key, val in circuit._layout.initial_layout.get_virtual_bits().items():
             bit_register = bit_locations[key]["register"]
             if bit_register is None or bit_register.name != "ancilla":
                 qubits.append(val)
                 qubit_labels[val] = bit_locations[key]["index"]
 
     elif view == "physical":
-        for key, val in circuit._layout.get_physical_bits().items():
+        for key, val in circuit._layout.initial_layout.get_physical_bits().items():
             bit_register = bit_locations[val]["register"]
             if bit_register is None or bit_register.name != "ancilla":
                 qubits.append(key)

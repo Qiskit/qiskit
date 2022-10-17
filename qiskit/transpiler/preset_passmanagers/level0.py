@@ -72,6 +72,7 @@ def level_0_pass_manager(pass_manager_config: PassManagerConfig) -> StagedPassMa
     unitary_synthesis_method = pass_manager_config.unitary_synthesis_method
     unitary_synthesis_plugin_config = pass_manager_config.unitary_synthesis_plugin_config
     target = pass_manager_config.target
+    hls_config = pass_manager_config.hls_config
 
     # Choose an initial layout if not set by user (default: trivial layout)
     _given_layout = SetLayout(initial_layout)
@@ -132,6 +133,7 @@ def level_0_pass_manager(pass_manager_config: PassManagerConfig) -> StagedPassMa
             approximation_degree,
             unitary_synthesis_method,
             unitary_synthesis_plugin_config,
+            hls_config,
         )
         if layout_method not in {"trivial", "dense", "noise_adaptive", "sabre"}:
             layout = plugin_manager.get_passmanager_stage(
@@ -160,6 +162,7 @@ def level_0_pass_manager(pass_manager_config: PassManagerConfig) -> StagedPassMa
             backend_properties,
             unitary_synthesis_method,
             unitary_synthesis_plugin_config,
+            hls_config,
         )
     pre_routing = None
     if toqm_pass:
@@ -180,12 +183,19 @@ def level_0_pass_manager(pass_manager_config: PassManagerConfig) -> StagedPassMa
         sched = plugin_manager.get_passmanager_stage(
             "scheduling", scheduling_method, pass_manager_config, optimization_level=0
         )
+    init = common.generate_control_flow_options_check(
+        layout_method=layout_method,
+        routing_method=routing_method,
+        translation_method=translation_method,
+        optimization_method=optimization_method,
+        scheduling_method=scheduling_method,
+    )
     if init_method is not None:
-        init = plugin_manager.get_passmanager_stage(
+        init += plugin_manager.get_passmanager_stage(
             "init", init_method, pass_manager_config, optimization_level=0
         )
-    else:
-        init = unroll_3q
+    elif unroll_3q is not None:
+        init += unroll_3q
     optimization = None
     if optimization_method is not None:
         optimization = plugin_manager.get_passmanager_stage(
