@@ -55,3 +55,80 @@ class RelativeBarrier(Directive):
     def __eq__(self, other):
         """Verify two barriers are equivalent."""
         return isinstance(other, type(self)) and set(self.channels) == set(other.channels)
+
+
+class AreaBarrier(Directive):
+    """Pulse ``AreaBarrier`` directive.
+
+    This instruction is intended to be used internally within the pulse builder,
+    to naively convert :class:`.Schedule` into :class:`.ScheduleBlock`.
+    Becasue :class:`.ScheduleBlock` cannot take absolute instruction interval,
+    this instruction helps the block represetation with finding instruction starting time.
+
+    Example:
+
+        This schedule plays constant pulse at t0 = 120.
+
+        .. code-block:: python
+
+            schedule = Schedule()
+            schedule.insert(120, Play(Constant(10, 0.1), DriveChannel(0)))
+
+        This schedule block is expected to be identical to above at a time of execution.
+
+        .. code-block:: python
+
+            block = ScheduleBlock()
+            block.append(AreaBarrier(120, DriveChannel(0)))
+            block.append(Play(Constant(10, 0.1), DriveChannel(0)))
+
+        Such conversion may be done by
+
+        .. code-block:: python
+
+            from qiskit.pulse.transforms import block_to_schedule, remove_directives
+
+            schedule = remove_directives(block_to_schedule(block))
+
+
+    .. note::
+
+        The AreaBarrier instruction behaves almost identically
+        to :class:`~qiskit.pulse.instructions.Delay` instruction.
+        However, the AreaBarrier is just a compiler directive and must be removed before execution.
+        This may be done by :func:`~qiskit.pulse.transforms.remove_directives` transform.
+        Once these directives are removed, occupied timeslots are released and
+        user can insert another instruction without timing overlap.
+    """
+
+    def __init__(
+        self,
+        duration: int,
+        channel: chans.Channel,
+        name: Optional[str] = None,
+    ):
+        """Create an area barrier directive.
+
+        Args:
+            duration: Length of time of the occupation in terms of dt.
+            channel: The channel that will be the occupied.
+            name: Name of the area barrier for display purposes.
+        """
+        super().__init__(operands=(duration, channel), name=name)
+
+    @property
+    def channel(self) -> chans.Channel:
+        """Return the :py:class:`~qiskit.pulse.channels.Channel` that this instruction is
+        scheduled on.
+        """
+        return self.operands[1]
+
+    @property
+    def channels(self) -> Tuple[chans.Channel]:
+        """Returns the channels that this schedule uses."""
+        return (self.channel,)
+
+    @property
+    def duration(self) -> int:
+        """Duration of this instruction."""
+        return self.operands[0]

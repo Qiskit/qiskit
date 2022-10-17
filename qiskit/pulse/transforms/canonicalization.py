@@ -13,7 +13,7 @@
 
 import warnings
 from collections import defaultdict
-from typing import List, Optional, Iterable, Union
+from typing import List, Optional, Iterable, Union, Type
 
 import numpy as np
 
@@ -457,6 +457,7 @@ def pad(
     channels: Optional[Iterable[chans.Channel]] = None,
     until: Optional[int] = None,
     inplace: bool = False,
+    pad_with: Optional[Type[instructions.Instruction]] = None,
 ) -> Schedule:
     """Pad the input Schedule with ``Delay``s on all unoccupied timeslots until
     ``schedule.duration`` or ``until`` if not ``None``.
@@ -468,37 +469,49 @@ def pad(
             of ``schedule`` it will be added.
         until: Time to pad until. Defaults to ``schedule.duration`` if not provided.
         inplace: Pad this schedule by mutating rather than returning a new schedule.
+        pad_with: Pulse ``Instruction`` subclass to be used for padding.
+            Default to :class:`~qiskit.pulse.instructions.Delay` instruction.
 
     Returns:
         The padded schedule.
+
+    Raises:
+        PulseError: When non pulse instruction is set to `pad_with`.
     """
     until = until or schedule.duration
     channels = channels or schedule.channels
 
+    if pad_with:
+        if issubclass(pad_with, instructions.Instruction):
+            pad_cls = pad_with
+        else:
+            raise PulseError(
+                f"'{pad_with.__class__.__name__}' is not valid pulse instruction to pad with."
+            )
+    else:
+        pad_cls = instructions.Delay
+
     for channel in channels:
         if isinstance(channel, ClassicalIOChannel):
             continue
+
         if channel not in schedule.channels:
-            schedule |= instructions.Delay(until, channel)
+            schedule = schedule.insert(0, instructions.Delay(until, channel), inplace=inplace)
             continue
 
-        curr_time = 0
-        # Use the copy of timeslots. When a delay is inserted before the current interval,
-        # current timeslot is pointed twice and the program crashes with the wrong pointer index.
-        timeslots = schedule.timeslots[channel].copy()
-        # TODO: Replace with method of getting instructions on a channel
-        for interval in timeslots:
-            if curr_time >= until:
+        prev_time = 0
+        timeslots = iter(schedule.timeslots[channel])
+        to_pad = []
+        while prev_time < until:
+            try:
+                t0, t1 = next(timeslots)
+            except StopIteration:
+                to_pad.append((prev_time, until - prev_time))
                 break
-            if interval[0] != curr_time:
-                end_time = min(interval[0], until)
-                schedule = schedule.insert(
-                    curr_time, instructions.Delay(end_time - curr_time, channel), inplace=inplace
-                )
-            curr_time = interval[1]
-        if curr_time < until:
-            schedule = schedule.insert(
-                curr_time, instructions.Delay(until - curr_time, channel), inplace=inplace
-            )
+            if prev_time < t0:
+                to_pad.append((prev_time, min(t0, until) - prev_time))
+            prev_time = t1
+        for t0, duration in to_pad:
+            schedule = schedule.insert(t0, pad_cls(duration, channel), inplace=inplace)
 
     return schedule
