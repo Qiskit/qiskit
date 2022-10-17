@@ -34,6 +34,7 @@ from qiskit.opflow import I, X, Y, Z
 from qiskit.test import QiskitTestCase
 from qiskit.circuit.qpy_serialization import dump, load
 from qiskit.quantum_info.random import random_unitary
+from qiskit.circuit.controlledgate import ControlledGate
 
 
 class TestLoadFromQPY(QiskitTestCase):
@@ -1054,3 +1055,31 @@ class TestLoadFromQPY(QiskitTestCase):
         qpy_file.seek(0)
         new_circuit = load(qpy_file)[0]
         self.assertEqual(qc, new_circuit)
+
+    def test_controlled_gate_subclass_custom_definition(self):
+        """Test controlled gate with overloaded definition.
+
+        Reproduce from: https://github.com/Qiskit/qiskit-terra/issues/8794
+        """
+
+        class CustomCXGate(ControlledGate):
+            """Custom CX with overloaded _define."""
+
+            def __init__(self, label=None, ctrl_state=None):
+                super().__init__(
+                    "cx", 2, [], label, num_ctrl_qubits=1, ctrl_state=ctrl_state, base_gate=XGate()
+                )
+
+            def _define(self) -> None:
+                qc = QuantumCircuit(2, name=self.name)
+                qc.cx(0, 1)
+                self.definition = qc
+
+        qc = QuantumCircuit(2)
+        qc.append(CustomCXGate(), [0, 1])
+        qpy_file = io.BytesIO()
+        dump(qc, qpy_file)
+        qpy_file.seek(0)
+        new_circ = load(qpy_file)[0]
+        self.assertEqual(qc, new_circ)
+        self.assertEqual(qc.decompose(), new_circ.decompose())
