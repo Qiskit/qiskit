@@ -19,7 +19,7 @@ deprecations:
         cmaps = [CouplingMap.from_heavy_hex(d) for d in range(3, 15, 2)]
         results = transpile([qc] * 6, coupling_map=cmaps)
 
-    instead you should run something like:
+    instead you should run something like::
 
         from itertools import cycle
         from qiskit.transpiler import CouplingMap
