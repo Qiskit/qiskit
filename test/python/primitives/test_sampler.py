@@ -35,10 +35,10 @@ class TestSampler(QiskitTestCase):
 
     def setUp(self):
         super().setUp()
-        hadamard = QuantumCircuit(1, 1)
+        hadamard = QuantumCircuit(1, 1, name="Hadamard")
         hadamard.h(0)
         hadamard.measure(0, 0)
-        bell = QuantumCircuit(2)
+        bell = QuantumCircuit(2, name="Bell")
         bell.h(0)
         bell.cx(0, 1)
         bell.measure_all()
@@ -352,11 +352,11 @@ class TestSampler(QiskitTestCase):
 
         with self.assertWarns(DeprecationWarning):
             sampler = Sampler([qc1, qc2], [qc1.parameters, qc2.parameters])
-        with self.assertRaises(QiskitError), self.assertWarns(DeprecationWarning):
+        with self.assertRaises(ValueError), self.assertWarns(DeprecationWarning):
             sampler([0], [[1e2]])
-        with self.assertRaises(QiskitError), self.assertWarns(DeprecationWarning):
+        with self.assertRaises(ValueError), self.assertWarns(DeprecationWarning):
             sampler([1], [[]])
-        with self.assertRaises(QiskitError), self.assertWarns(DeprecationWarning):
+        with self.assertRaises(ValueError), self.assertWarns(DeprecationWarning):
             sampler([1], [[1e2]])
 
     def test_empty_parameter(self):
@@ -425,7 +425,7 @@ class TestSampler(QiskitTestCase):
             circuit = QuantumCircuit(2)
             with self.assertWarns(DeprecationWarning):
                 sampler = Sampler(circuits=self._pqc)
-            with self.assertRaises(QiskitError), self.assertWarns(DeprecationWarning):
+            with self.assertRaises(ValueError), self.assertWarns(DeprecationWarning):
                 result = sampler(circuits=[circuit], parameter_values=params)
 
     @combine(indices=[[0], [1], [0, 1]])
@@ -447,6 +447,7 @@ class TestSampler(QiskitTestCase):
             sampler = Sampler(circuits=self._pqc)
             result = sampler(circuits=[0], parameter_values=params, shots=1024, seed=15)
         self._compare_probs(result.quasi_dists, target)
+        self.assertEqual(result.quasi_dists[0].shots, 1024)
 
     def test_with_shots_option_none(self):
         """test with shots=None option. Seed is ignored then."""
@@ -573,6 +574,56 @@ class TestSampler(QiskitTestCase):
         self.assertTupleEqual(keys, tuple(range(4)))
         np.testing.assert_allclose(values, [0, 0, 0, 1])
 
+    def test_run_single_circuit(self):
+        """Test for single circuit case."""
+
+        sampler = Sampler()
+
+        with self.subTest("No parameter"):
+            circuit = self._circuit[1]
+            target = self._target[1]
+            param_vals = [None, [], [[]], np.array([]), np.array([[]])]
+            for val in param_vals:
+                with self.subTest(f"{circuit.name} w/ {val}"):
+                    result = sampler.run(circuit, val).result()
+                    self._compare_probs(result.quasi_dists, target)
+                    self.assertEqual(len(result.metadata), 1)
+
+        with self.subTest("One parameter"):
+            circuit = QuantumCircuit(1, 1, name="X gate")
+            param = Parameter("x")
+            circuit.ry(param, 0)
+            circuit.measure(0, 0)
+            target = [{1: 1}]
+            param_vals = [
+                [np.pi],
+                [[np.pi]],
+                np.array([np.pi]),
+                np.array([[np.pi]]),
+                [np.array([np.pi])],
+            ]
+            for val in param_vals:
+                with self.subTest(f"{circuit.name} w/ {val}"):
+                    result = sampler.run(circuit, val).result()
+                    self._compare_probs(result.quasi_dists, target)
+                    self.assertEqual(len(result.metadata), 1)
+
+        with self.subTest("More than one parameter"):
+            circuit = self._pqc
+            target = [self._pqc_target[0]]
+            param_vals = [
+                self._pqc_params[0],
+                [self._pqc_params[0]],
+                np.array(self._pqc_params[0]),
+                np.array([self._pqc_params[0]]),
+                [np.array(self._pqc_params[0])],
+            ]
+            for val in param_vals:
+                with self.subTest(f"{circuit.name} w/ {val}"):
+                    result = sampler.run(circuit, val).result()
+                    self._compare_probs(result.quasi_dists, target)
+                    self.assertEqual(len(result.metadata), 1)
+
     def test_run_errors(self):
         """Test for errors with run method"""
         qc1 = QuantumCircuit(1)
@@ -584,22 +635,24 @@ class TestSampler(QiskitTestCase):
 
         sampler = Sampler()
         with self.subTest("set parameter values to a non-parameterized circuit"):
-            with self.assertRaises(QiskitError):
+            with self.assertRaises(ValueError):
                 _ = sampler.run([qc1], [[1e2]])
         with self.subTest("missing all parameter values for a parameterized circuit"):
-            with self.assertRaises(QiskitError):
+            with self.assertRaises(ValueError):
                 _ = sampler.run([qc2], [[]])
         with self.subTest("missing some parameter values for a parameterized circuit"):
-            with self.assertRaises(QiskitError):
+            with self.assertRaises(ValueError):
                 _ = sampler.run([qc2], [[1e2]])
         with self.subTest("too many parameter values for a parameterized circuit"):
-            with self.assertRaises(QiskitError):
+            with self.assertRaises(ValueError):
                 _ = sampler.run([qc2], [[1e2]] * 100)
         with self.subTest("no classical bits"):
-            with self.assertRaises(QiskitError):
+            with self.assertRaises(ValueError):
                 _ = sampler.run([qc3], [[]])
         with self.subTest("no measurement"):
             with self.assertRaises(QiskitError):
+                # The following raises QiskitError because this check is located in
+                # `Sampler._preprocess_circuit`
                 _ = sampler.run([qc4], [[]])
 
     def test_run_empty_parameter(self):
@@ -687,6 +740,7 @@ class TestSampler(QiskitTestCase):
             params, target = self._generate_params_target([1])
             result = sampler.run([self._pqc], parameter_values=params).result()
             self._compare_probs(result.quasi_dists, target)
+            self.assertEqual(result.quasi_dists[0].shots, 1024)
 
     def test_different_circuits(self):
         """Test collision of quantum circuits."""

@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2017, 2020.
+# (C) Copyright IBM 2017, 2022.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -12,16 +12,20 @@
 
 """Faster Amplitude Estimation."""
 
-from typing import Optional, Union, List, Tuple
+from __future__ import annotations
+import warnings
 import numpy as np
 
 from qiskit.circuit import QuantumCircuit, ClassicalRegister
 from qiskit.providers import Backend
+from qiskit.primitives import BaseSampler
 from qiskit.utils import QuantumInstance
+from qiskit.utils.deprecation import deprecate_function
 from qiskit.algorithms.exceptions import AlgorithmError
 
 from .amplitude_estimator import AmplitudeEstimator, AmplitudeEstimatorResult
 from .estimation_problem import EstimationProblem
+from .ae_utils import _probabilities_from_sampler_result
 
 
 class FasterAmplitudeEstimation(AmplitudeEstimator):
@@ -50,14 +54,17 @@ class FasterAmplitudeEstimation(AmplitudeEstimator):
         delta: float,
         maxiter: int,
         rescale: bool = True,
-        quantum_instance: Optional[Union[QuantumInstance, Backend]] = None,
+        quantum_instance: QuantumInstance | Backend | None = None,
+        sampler: BaseSampler | None = None,
     ) -> None:
         r"""
         Args:
             delta: The probability that the true value is outside of the final confidence interval.
             maxiter: The number of iterations, the maximal power of Q is `2 ** (maxiter - 1)`.
             rescale: Whether to rescale the problem passed to `estimate`.
-            quantum_instance: The quantum instance or backend to run the circuits.
+            quantum_instance: Pending deprecation\: The quantum instance or backend
+                to run the circuits.
+            sampler: A sampler primitive to evaluate the circuits.
 
         .. note::
 
@@ -66,16 +73,51 @@ class FasterAmplitudeEstimation(AmplitudeEstimator):
 
         """
         super().__init__()
-        self.quantum_instance = quantum_instance
+        # set quantum instance
+        if quantum_instance is not None:
+            warnings.warn(
+                "The quantum_instance argument has been superseded by the sampler argument. "
+                "This argument will be deprecated in a future release and subsequently "
+                "removed after that.",
+                category=PendingDeprecationWarning,
+            )
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")
+            self.quantum_instance = quantum_instance
         self._shots = (int(1944 * np.log(2 / delta)), int(972 * np.log(2 / delta)))
         self._rescale = rescale
         self._delta = delta
         self._maxiter = maxiter
         self._num_oracle_calls = 0
+        self._sampler = sampler
 
     @property
-    def quantum_instance(self) -> Optional[QuantumInstance]:
-        """Get the quantum instance.
+    def sampler(self) -> BaseSampler | None:
+        """Get the sampler primitive.
+
+        Returns:
+            The sampler primitive to evaluate the circuits.
+        """
+        return self._sampler
+
+    @sampler.setter
+    def sampler(self, sampler: BaseSampler) -> None:
+        """Set sampler primitive.
+
+        Args:
+            sampler: A sampler primitive to evaluate the circuits.
+        """
+        self._sampler = sampler
+
+    @property
+    @deprecate_function(
+        "The FasterAmplitudeEstimation.quantum_instance getter is pending deprecation. "
+        "This property will be deprecated in a future release and subsequently "
+        "removed after that.",
+        category=PendingDeprecationWarning,
+    )
+    def quantum_instance(self) -> QuantumInstance | None:
+        """Pending deprecation; Get the quantum instance.
 
         Returns:
             The quantum instance used to run this algorithm.
@@ -83,8 +125,14 @@ class FasterAmplitudeEstimation(AmplitudeEstimator):
         return self._quantum_instance
 
     @quantum_instance.setter
-    def quantum_instance(self, quantum_instance: Union[QuantumInstance, Backend]) -> None:
-        """Set quantum instance.
+    @deprecate_function(
+        "The FasterAmplitudeEstimation.quantum_instance setter is pending deprecation. "
+        "This property will be deprecated in a future release and subsequently "
+        "removed after that.",
+        category=PendingDeprecationWarning,
+    )
+    def quantum_instance(self, quantum_instance: QuantumInstance | Backend) -> None:
+        """Pending deprecation; Set quantum instance.
 
         Args:
             quantum_instance: The quantum instance used to run this algorithm.
@@ -94,10 +142,26 @@ class FasterAmplitudeEstimation(AmplitudeEstimator):
         self._quantum_instance = quantum_instance
 
     def _cos_estimate(self, estimation_problem, k, shots):
-        if self._quantum_instance is None:
-            raise AlgorithmError("Quantum instance must be set.")
+        if self._quantum_instance is None and self._sampler is None:
+            raise ValueError("A quantum instance or sampler must be provided.")
 
-        if self._quantum_instance.is_statevector:
+        if self._sampler is not None:
+            circuit = self.construct_circuit(estimation_problem, k, measurement=True)
+            try:
+                job = self._sampler.run([circuit], shots=shots)
+                result = job.result()
+            except Exception as exc:
+                raise AlgorithmError("The job was not completed successfully. ") from exc
+
+            if shots is None:
+                shots = 1
+            self._num_oracle_calls += (2 * k + 1) * shots
+            # sum over all probabilities where the objective qubits are 1
+            prob = _probabilities_from_sampler_result(
+                circuit.num_qubits, result, estimation_problem
+            )
+            cos_estimate = 1 - 2 * prob
+        elif self._quantum_instance.is_statevector:
             circuit = self.construct_circuit(estimation_problem, k, measurement=False)
             statevector = self._quantum_instance.execute(circuit).get_statevector()
 
@@ -136,7 +200,7 @@ class FasterAmplitudeEstimation(AmplitudeEstimator):
 
     def construct_circuit(
         self, estimation_problem: EstimationProblem, k: int, measurement: bool = False
-    ) -> Union[QuantumCircuit, Tuple[QuantumCircuit, List[int]]]:
+    ) -> QuantumCircuit | tuple[QuantumCircuit, list[int]]:
         r"""Construct the circuit :math:`Q^k X |0\rangle>`.
 
         The A operator is the unitary specifying the QAE problem and Q the associated Grover
@@ -179,21 +243,37 @@ class FasterAmplitudeEstimation(AmplitudeEstimator):
         return circuit
 
     def estimate(self, estimation_problem: EstimationProblem) -> "FasterAmplitudeEstimationResult":
+        """Run the amplitude estimation algorithm on provided estimation problem.
+
+        Args:
+            estimation_problem: The estimation problem.
+
+        Returns:
+            An amplitude estimation results object.
+
+        Raises:
+            ValueError: A quantum instance or Sampler must be provided.
+            AlgorithmError: Sampler run error.
+        """
+        if self._quantum_instance is None and self._sampler is None:
+            raise ValueError("A quantum instance or sampler must be provided.")
+
         self._num_oracle_calls = 0
-        user_defined_shots = self.quantum_instance._run_config.shots
+        user_defined_shots = (
+            self._quantum_instance._run_config.shots if self._quantum_instance is not None else None
+        )
 
         if self._rescale:
             problem = estimation_problem.rescale(0.25)
         else:
             problem = estimation_problem
 
-        if self._quantum_instance.is_statevector:
+        if self._quantum_instance is not None and self._quantum_instance.is_statevector:
             cos = self._cos_estimate(problem, k=0, shots=1)
             theta = np.arccos(cos) / 2
             theta_ci = [theta, theta]
             theta_cis = [theta_ci]
             num_steps = num_first_stage_steps = 1
-
         else:
             theta_ci = [0, np.arcsin(0.25)]
             first_stage = True
@@ -240,7 +320,7 @@ class FasterAmplitudeEstimation(AmplitudeEstimator):
         result.num_oracle_queries = self._num_oracle_calls
         result.num_steps = num_steps
         result.num_first_state_steps = num_first_stage_steps
-        if self._quantum_instance.is_statevector:
+        if self._quantum_instance is not None and self._quantum_instance.is_statevector:
             result.success_probability = 1
         else:
             result.success_probability = 1 - (2 * self._maxiter - j_0) * self._delta
@@ -252,7 +332,9 @@ class FasterAmplitudeEstimation(AmplitudeEstimator):
         result.theta_intervals = theta_cis
 
         # reset shots to what the user had defined
-        self.quantum_instance._run_config.shots = user_defined_shots
+        if self._quantum_instance is not None:
+            self._quantum_instance._run_config.shots = user_defined_shots
+
         return result
 
 
@@ -297,11 +379,11 @@ class FasterAmplitudeEstimationResult(AmplitudeEstimatorResult):
         self._num_first_state_steps = num_steps
 
     @property
-    def theta_intervals(self) -> List[List[float]]:
+    def theta_intervals(self) -> list[list[float]]:
         """Return the confidence intervals for the angles in each iteration."""
         return self._theta_intervals
 
     @theta_intervals.setter
-    def theta_intervals(self, value: List[List[float]]) -> None:
+    def theta_intervals(self, value: list[list[float]]) -> None:
         """Set the confidence intervals for the angles in each iteration."""
         self._theta_intervals = value
