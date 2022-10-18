@@ -19,6 +19,7 @@ from qiskit.circuit.gate import Gate
 from qiskit.circuit.parameterexpression import ParameterExpression
 from qiskit.synthesis import EvolutionSynthesis, LieTrotter
 from qiskit.quantum_info import Pauli, SparsePauliOp
+from qiskit.circuit import Qubit, QuantumRegister, QuantumCircuit
 
 
 class PauliEvolutionGate(Gate):
@@ -76,11 +77,11 @@ class PauliEvolutionGate(Gate):
     """
 
     def __init__(
-        self,
-        operator,
-        time: Union[int, float, ParameterExpression] = 1.0,
-        label: Optional[str] = None,
-        synthesis: Optional[EvolutionSynthesis] = None,
+            self,
+            operator,
+            time: Union[int, float, ParameterExpression] = 1.0,
+            label: Optional[str] = None,
+            synthesis: Optional[EvolutionSynthesis] = None,
     ) -> None:
         """
         Args:
@@ -111,6 +112,7 @@ class PauliEvolutionGate(Gate):
         super().__init__(name="PauliEvolution", num_qubits=num_qubits, params=[time], label=label)
 
         self.operator = operator
+        self.num_qubits = num_qubits
         self.synthesis = synthesis
 
     @property
@@ -136,7 +138,7 @@ class PauliEvolutionGate(Gate):
         self.definition = self.synthesis.synthesize(self)
 
     def validate_parameter(
-        self, parameter: Union[int, float, ParameterExpression]
+            self, parameter: Union[int, float, ParameterExpression]
     ) -> Union[float, ParameterExpression]:
         """Gate parameters should be int, float, or ParameterExpression"""
         if isinstance(parameter, int):
@@ -185,3 +187,67 @@ def _get_default_label(operator):
             label = f"exp(-it ({' + '.join(operator.paulis.to_labels())}))"
 
     return label
+
+
+class PauliEvolutionKernel(Gate):
+    def __init__(self, input: list):
+        self.kernel = input
+        '''
+        if isinstance(operator, list):
+            operator = [_to_sparse_pauli_op(op) for op in operator]
+        else:
+            operator = _to_sparse_pauli_op(operator)
+
+        if synthesis is None:
+            synthesis = LieTrotter()
+
+        if label is None:
+            label = _get_default_label(operator)
+
+        num_qubits = operator[0].num_qubits if isinstance(operator, list) else operator.num_qubits
+        super().__init__(name="PauliEvolution", num_qubits=num_qubits, params=[time], label=label)
+        '''
+        if str(type(input))=='list':
+            if len(input) > 0:
+                operator = input[0].operator
+                label = _get_default_label(operator)
+                num_qubits = operator[0].num_qubits if isinstance(operator, list) else operator.num_qubits
+                time = input[0].params[0]
+                super().__init__(name="PauliEvolutionKernel", num_qubits=num_qubits, params=[time], label=label)
+                q = QuantumRegister(self.num_qubits, "q")
+                qc = QuantumCircuit(q, name=self.name)
+                '''
+                rules = [
+                    (U3Gate(pi / 2, self.params[0], self.params[1]), [q[0]], [])
+                            ]
+                for instr, qargs, cargs in rules:
+                    qc._append(instr, qargs, cargs)'''
+                # qc.append(self, range(self.num_qubits))
+
+                self.definition = qc
+        else:
+            super().__init__(name="PauliEvolutionKernel", num_qubits=0, params=[0.0], label='with error')
+            q = QuantumRegister(0, "q")
+            qc = QuantumCircuit(q, name="PauliEvolutionKernel")
+
+'''
+    def _define(self):
+        # pylint: disable=cyclic-import
+
+        q = QuantumRegister(self.num_qubits, "q")
+        qc = QuantumCircuit(q, name=self.name)
+
+        rules = [
+            (U3Gate(pi / 2, self.params[0], self.params[1]), [q[0]], [])
+                 ]
+        for instr, qargs, cargs in rules:
+            qc._append(instr, qargs, cargs)
+        qc.append(self,range(self.num_qubits))
+
+        self.definition = qc
+'''
+
+
+class PauliEvolutionKernels:
+    def __init__(self, input):
+        self.kernels = input
