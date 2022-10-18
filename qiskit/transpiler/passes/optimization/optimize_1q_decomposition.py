@@ -171,10 +171,11 @@ def _error(circuit, target, qubit):
     else:
         if isinstance(circuit, list):
             gate_errors = [
-                1 - getattr(target[node.name][(qubit,)], "error", 0.0) for node in circuit
+                1 - getattr(target[node.name].get((qubit,)), "error", 0.0) for node in circuit
             ]
         else:
             gate_errors = [
-                1 - getattr(target[inst.operation.name][(qubit,)], "error", 0.0) for inst in circuit
+                1 - getattr(target[inst.operation.name].get((qubit,)), "error", 0.0)
+                for inst in circuit
             ]
         return 1 - np.product(gate_errors)
