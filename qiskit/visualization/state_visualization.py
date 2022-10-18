@@ -115,8 +115,9 @@ def plot_state_hinton(
             fig = ax_imag.get_figure()
         ax1 = ax_real
         ax2 = ax_imag
+    # Reversal is to account for Qiskit's endianness.
     column_names = [bin(i)[2:].zfill(num) for i in range(2**num)]
-    row_names = [bin(i)[2:].zfill(num) for i in range(2**num)]
+    row_names = [bin(i)[2:].zfill(num) for i in range(2**num)][::-1]
     ly, lx = datareal.shape
     # Real
     if ax1:
@@ -126,10 +127,12 @@ def plot_state_hinton(
         ax1.yaxis.set_major_locator(plt.NullLocator())
 
         for (x, y), w in np.ndenumerate(datareal):
+            # Convert from matrix co-ordinates to plot co-ordinates.
+            plot_x, plot_y = y, lx - x - 1
             color = "white" if w > 0 else "black"
             size = np.sqrt(np.abs(w) / max_weight)
             rect = plt.Rectangle(
-                [0.5 + x - size / 2, 0.5 + y - size / 2],
+                [0.5 + plot_x - size / 2, 0.5 + plot_y - size / 2],
                 size,
                 size,
                 facecolor=color,
@@ -143,7 +146,6 @@ def plot_state_hinton(
         ax1.set_ylim([0, ly])
         ax1.set_yticklabels(row_names, fontsize=14)
         ax1.set_xticklabels(column_names, fontsize=14, rotation=90)
-        ax1.invert_yaxis()
         ax1.set_title("Re[$\\rho$]", fontsize=14)
     # Imaginary
     if ax2:
@@ -153,10 +155,12 @@ def plot_state_hinton(
         ax2.yaxis.set_major_locator(plt.NullLocator())
 
         for (x, y), w in np.ndenumerate(dataimag):
+            # Convert from matrix co-ordinates to plot co-ordinates.
+            plot_x, plot_y = y, lx - x - 1
             color = "white" if w > 0 else "black"
             size = np.sqrt(np.abs(w) / max_weight)
             rect = plt.Rectangle(
-                [0.5 + x - size / 2, 0.5 + y - size / 2],
+                [0.5 + plot_x - size / 2, 0.5 + plot_y - size / 2],
                 size,
                 size,
                 facecolor=color,
@@ -170,7 +174,6 @@ def plot_state_hinton(
         ax2.set_ylim([0, ly])
         ax2.set_yticklabels(row_names, fontsize=14)
         ax2.set_xticklabels(column_names, fontsize=14, rotation=90)
-        ax2.invert_yaxis()
         ax2.set_title("Im[$\\rho$]", fontsize=14)
     fig.tight_layout()
     if title:
