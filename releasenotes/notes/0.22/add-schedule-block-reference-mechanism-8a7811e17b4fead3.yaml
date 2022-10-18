@@ -30,9 +30,8 @@ features:
     the :attr:`~qiskit.pulse.schedule.ScheduleBlock.references` property.
 
     In addition, every reference is managed with a scope to ease parameter management.
-    :meth:`~qiskit.pulse.schedule.ScheduleBlock.scoped_parameters` and
-    :meth:`~qiskit.pulse.schedule.ScheduleBlock.search_parameters` have been added to
-    the schedule block. See API documentation for more details.
+    :meth:`~.scoped_parameters` and :meth:`~.search_parameters` have been added to
+    :class:`~.ScheduleBlock`. See API documentation for more details.
 upgrade:
   - |
     Behavior of the :func:`~qiskit.pulse.builder.call` pulse builder function has been upgraded.
