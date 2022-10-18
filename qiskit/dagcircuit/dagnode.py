@@ -23,9 +23,9 @@ def _condition_as_indices(operation, bit_indices):
     cond = getattr(operation, "condition", None)
     if cond is None:
         return None
-    lhs, rhs = cond
-    indices = [bit_indices[lhs]] if isinstance(lhs, Clbit) else [bit_indices[x] for x in lhs]
-    return indices, rhs
+    bits, value = cond
+    indices = [bit_indices[bits]] if isinstance(bits, Clbit) else [bit_indices[x] for x in bits]
+    return indices, value
 
 
 class DAGNode:
