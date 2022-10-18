@@ -1162,6 +1162,36 @@ class TestCircuitOperations(QiskitTestCase):
 
         self.assertFalse(qc1 == qc2)
 
+    def test_compare_circuits_with_single_bit_conditions(self):
+        """Test that circuits with single-bit conditions can be compared correctly."""
+        qreg = QuantumRegister(1, name="q")
+        creg = ClassicalRegister(1, name="c")
+        qc1 = QuantumCircuit(qreg, creg, [Clbit()])
+        qc1.x(0).c_if(qc1.cregs[0], 1)
+        qc1.x(0).c_if(qc1.clbits[-1], True)
+        qc2 = QuantumCircuit(qreg, creg, [Clbit()])
+        qc2.x(0).c_if(qc2.cregs[0], 1)
+        qc2.x(0).c_if(qc2.clbits[-1], True)
+        self.assertEqual(qc1, qc2)
+
+        # Order of operations transposed.
+        qc1 = QuantumCircuit(qreg, creg, [Clbit()])
+        qc1.x(0).c_if(qc1.cregs[0], 1)
+        qc1.x(0).c_if(qc1.clbits[-1], True)
+        qc2 = QuantumCircuit(qreg, creg, [Clbit()])
+        qc2.x(0).c_if(qc2.clbits[-1], True)
+        qc2.x(0).c_if(qc2.cregs[0], 1)
+        self.assertNotEqual(qc1, qc2)
+
+        # Single-bit condition values not the same.
+        qc1 = QuantumCircuit(qreg, creg, [Clbit()])
+        qc1.x(0).c_if(qc1.cregs[0], 1)
+        qc1.x(0).c_if(qc1.clbits[-1], True)
+        qc2 = QuantumCircuit(qreg, creg, [Clbit()])
+        qc2.x(0).c_if(qc2.cregs[0], 1)
+        qc2.x(0).c_if(qc2.clbits[-1], False)
+        self.assertNotEqual(qc1, qc2)
+
     def test_compare_a_circuit_with_none(self):
         """Test to compare that a circuit is different to None."""
         qc1 = QuantumCircuit(2, 2)
