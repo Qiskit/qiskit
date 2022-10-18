@@ -23,6 +23,7 @@ from qiskit.transpiler.basepasses import TransformationPass
 from qiskit.transpiler.exceptions import TranspilerError
 from qiskit.transpiler.layout import Layout
 from qiskit.dagcircuit import DAGOpNode
+from qiskit.tools.parallel import CPU_COUNT
 
 # pylint: disable=import-error
 from qiskit._accelerate.sabre_swap import (
@@ -61,6 +62,11 @@ class SabreSwap(TransformationPass):
     scored according to some heuristic cost function. The best SWAP is
     implemented and ``current_layout`` updated.
 
+    This transpiler pass adds onto the SABRE algorithm in that it will run
+    multiple trials of the algorithm with different seeds. The best output,
+    deteremined by the trial with the least amount of SWAPed inserted, will
+    be selected from the random trials.
+
     **References:**
 
     [1] Li, Gushu, Yufei Ding, and Yuan Xie. "Tackling the qubit mapping problem
@@ -68,13 +74,7 @@ class SabreSwap(TransformationPass):
     `arXiv:1809.02573 <https://arxiv.org/pdf/1809.02573.pdf>`_
     """
 
-    def __init__(
-        self,
-        coupling_map,
-        heuristic="basic",
-        seed=None,
-        fake_run=False,
-    ):
+    def __init__(self, coupling_map, heuristic="basic", seed=None, fake_run=False, trials=None):
         r"""SabreSwap initializer.
 
         Args:
@@ -84,6 +84,12 @@ class SabreSwap(TransformationPass):
             seed (int): random seed used to tie-break among candidate swaps.
             fake_run (bool): if true, it only pretend to do routing, i.e., no
                 swap is effectively added.
+            trials (int): The number of seed trials to run sabre with. These will
+                be run in parallel (unless the PassManager is already running in
+                parallel). If not specified this defaults to the number of physical
+                CPUs on the local system. For reproducible results it is recommended
+                that you set this explicitly, as the output will be deterministic for
+                a fixed number of trials.
 
         Raises:
             TranspilerError: If the specified heuristic is not valid.
@@ -144,20 +150,18 @@ class SabreSwap(TransformationPass):
         if coupling_map is not None:
             self._neighbor_table = NeighborTable(retworkx.adjacency_matrix(self.coupling_map.graph))
 
-        if heuristic == "basic":
-            self.heuristic = Heuristic.Basic
-        elif heuristic == "lookahead":
-            self.heuristic = Heuristic.Lookahead
-        elif heuristic == "decay":
-            self.heuristic = Heuristic.Decay
-        else:
-            raise TranspilerError("Heuristic %s not recognized." % heuristic)
+        self.heuristic = heuristic
 
         if seed is None:
             ii32 = np.iinfo(np.int32)
             self.seed = np.random.default_rng(None).integers(0, ii32.max, dtype=int)
         else:
             self.seed = seed
+        if trials is None:
+            self.trials = CPU_COUNT
+        else:
+            self.trials = trials
+
         self.fake_run = fake_run
         self._qubit_indices = None
         self._clbit_indices = None
@@ -180,6 +184,15 @@ class SabreSwap(TransformationPass):
         if len(dag.qubits) > self.coupling_map.size():
             raise TranspilerError("More virtual qubits exist than physical.")
 
+        if self.heuristic == "basic":
+            heuristic = Heuristic.Basic
+        elif self.heuristic == "lookahead":
+            heuristic = Heuristic.Lookahead
+        elif self.heuristic == "decay":
+            heuristic = Heuristic.Decay
+        else:
+            raise TranspilerError("Heuristic %s not recognized." % self.heuristic)
+
         self.dist_matrix = self.coupling_map.distance_matrix
 
         # Preserve input DAG's name, regs, wire_map, etc. but replace the graph.
@@ -199,11 +212,16 @@ class SabreSwap(TransformationPass):
 
         dag_list = []
         for node in dag.topological_op_nodes():
+            cargs = {self._clbit_indices[x] for x in node.cargs}
+            if node.op.condition is not None:
+                for clbit in dag._bits_in_condition(node.op.condition):
+                    cargs.add(self._clbit_indices[clbit])
+
             dag_list.append(
                 (
                     node._node_id,
                     [self._qubit_indices[x] for x in node.qargs],
-                    [self._clbit_indices[x] for x in node.cargs],
+                    cargs,
                 )
             )
         front_layer = np.asarray([x._node_id for x in dag.front_layer()], dtype=np.uintp)
@@ -213,9 +231,10 @@ class SabreSwap(TransformationPass):
             sabre_dag,
             self._neighbor_table,
             self.dist_matrix,
-            self.heuristic,
+            heuristic,
             self.seed,
             layout,
+            self.trials,
         )
 
         layout_mapping = layout.layout_mapping()

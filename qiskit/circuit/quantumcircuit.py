@@ -1698,6 +1698,7 @@ class QuantumCircuit:
             "sx",
             "sxdg",
             "cz",
+            "ccz",
             "cy",
             "swap",
             "ch",
@@ -1710,6 +1711,8 @@ class QuantumCircuit:
             "cp",
             "cu3",
             "csx",
+            "cs",
+            "csdg",
             "cu",
             "rxx",
             "rzz",
@@ -1831,7 +1834,7 @@ class QuantumCircuit:
         # safely forward-referenced.
         ax: Optional[typing.Any] = None,
         initial_state: bool = False,
-        cregbundle: bool = True,
+        cregbundle: bool = None,
         wire_order: list = None,
     ):
         """Draw the quantum circuit. Use the output parameter to choose the drawing format:
@@ -1913,7 +1916,7 @@ class QuantumCircuit:
             initial_state (bool): Optional. Adds ``|0>`` in the beginning of the wire.
                 Default is False.
             cregbundle (bool): Optional. If set True, bundle classical registers.
-                Default is True.
+                Default is True, except for when ``output`` is set to  ``"text"``.
             wire_order (list): Optional. A list of integers used to reorder the display
                 of the bits. The list must have an entry for every bit with the bits
                 in the range 0 to (num_qubits + num_clbits).
@@ -3460,6 +3463,66 @@ class QuantumCircuit:
 
         return self.append(SdgGate(), [qubit], [])
 
+    def cs(
+        self,
+        control_qubit: QubitSpecifier,
+        target_qubit: QubitSpecifier,
+        label: Optional[str] = None,
+        ctrl_state: Optional[Union[str, int]] = None,
+    ) -> InstructionSet:
+        """Apply :class:`~qiskit.circuit.library.CSGate`.
+
+        For the full matrix form of this gate, see the underlying gate documentation.
+
+        Args:
+            control_qubit: The qubit(s) used as the control.
+            target_qubit: The qubit(s) targeted by the gate.
+            label: The string label of the gate in the circuit.
+            ctrl_state:
+                The control state in decimal, or as a bitstring (e.g. '1').  Defaults to controlling
+                on the '1' state.
+
+        Returns:
+            A handle to the instructions created.
+        """
+        from .library.standard_gates.s import CSGate
+
+        return self.append(
+            CSGate(label=label, ctrl_state=ctrl_state),
+            [control_qubit, target_qubit],
+            [],
+        )
+
+    def csdg(
+        self,
+        control_qubit: QubitSpecifier,
+        target_qubit: QubitSpecifier,
+        label: Optional[str] = None,
+        ctrl_state: Optional[Union[str, int]] = None,
+    ) -> InstructionSet:
+        """Apply :class:`~qiskit.circuit.library.CSdgGate`.
+
+        For the full matrix form of this gate, see the underlying gate documentation.
+
+        Args:
+            control_qubit: The qubit(s) used as the control.
+            target_qubit: The qubit(s) targeted by the gate.
+            label: The string label of the gate in the circuit.
+            ctrl_state:
+                The control state in decimal, or as a bitstring (e.g. '1').  Defaults to controlling
+                on the '1' state.
+
+        Returns:
+            A handle to the instructions created.
+        """
+        from .library.standard_gates.s import CSdgGate
+
+        return self.append(
+            CSdgGate(label=label, ctrl_state=ctrl_state),
+            [control_qubit, target_qubit],
+            [],
+        )
+
     def swap(self, qubit1: QubitSpecifier, qubit2: QubitSpecifier) -> InstructionSet:
         """Apply :class:`~qiskit.circuit.library.SwapGate`.
 
@@ -4230,6 +4293,38 @@ class QuantumCircuit:
             CZGate(label=label, ctrl_state=ctrl_state), [control_qubit, target_qubit], []
         )
 
+    def ccz(
+        self,
+        control_qubit1: QubitSpecifier,
+        control_qubit2: QubitSpecifier,
+        target_qubit: QubitSpecifier,
+        label: Optional[str] = None,
+        ctrl_state: Optional[Union[str, int]] = None,
+    ) -> InstructionSet:
+        r"""Apply :class:`~qiskit.circuit.library.CCZGate`.
+
+        For the full matrix form of this gate, see the underlying gate documentation.
+
+        Args:
+            control_qubit1: The qubit(s) used as the first control.
+            control_qubit2: The qubit(s) used as the second control.
+            target_qubit: The qubit(s) targeted by the gate.
+            label: The string label of the gate in the circuit.
+            ctrl_state:
+                The control state in decimal, or as a bitstring (e.g. '10').  Defaults to controlling
+                on the '11' state.
+
+        Returns:
+            A handle to the instructions created.
+        """
+        from .library.standard_gates.z import CCZGate
+
+        return self.append(
+            CCZGate(label=label, ctrl_state=ctrl_state),
+            [control_qubit1, control_qubit2, target_qubit],
+            [],
+        )
+
     def pauli(
         self,
         pauli_string: str,
@@ -4415,6 +4510,8 @@ class QuantumCircuit:
         """
         # pylint: disable=cyclic-import
         from qiskit.circuit.controlflow.while_loop import WhileLoopOp, WhileLoopContext
+
+        condition = (self._resolve_classical_resource(condition[0]), condition[1])
 
         if body is None:
             if qubits is not None or clbits is not None:

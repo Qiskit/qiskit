@@ -8,6 +8,15 @@ dill>=0.3
 python-dateutil>=2.8.0
 stevedore>=3.0.0
 symengine>=0.9 ; platform_machine == 'x86_64' or platform_machine == 'aarch64' or platform_machine == 'ppc64le' or platform_machine == 'amd64' or platform_machine == 'arm64'
-tweedledum>=1.1,<2.0
 shared-memory38;python_version<'3.8'
 typing-extensions; python_version < '3.8'
+
+# To be removed as a requirement in Terra 0.23.  Tweedledum's wheels are
+# hopelessly broken on M1 mac, so we skip the waiting period for that.
+tweedledum>=1.1,<2.0; platform_machine != 'arm64' or sys_platform != 'darwin'
+
+# Hack around stevedore being broken by importlib_metadata 5.0; we need to pin
+# the requirements rather than the constraints if we need to cut a release
+# before stevedore is fixed.  `importlib_metadata` is not (currently) a direct
+# requirement of Terra.
+importlib_metadata<5.0; python_version<'3.8'

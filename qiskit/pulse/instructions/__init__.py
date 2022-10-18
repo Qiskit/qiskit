@@ -42,6 +42,7 @@ sequence of scheduled Pulse ``Instruction`` s over many channels. ``Instruction`
 
    Acquire
    Call
+   Reference
    Delay
    Play
    SetFrequency
@@ -63,3 +64,4 @@ from .frequency import SetFrequency, ShiftFrequency
 from .phase import ShiftPhase, SetPhase
 from .play import Play
 from .snapshot import Snapshot
+from .reference import Reference

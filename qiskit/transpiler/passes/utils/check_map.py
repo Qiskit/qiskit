@@ -13,6 +13,7 @@
 """Check if a DAG circuit is already mapped to a coupling map."""
 
 from qiskit.transpiler.basepasses import AnalysisPass
+from qiskit.circuit.controlflow import ControlFlowOp
 
 
 class CheckMap(AnalysisPass):
@@ -41,6 +42,8 @@ class CheckMap(AnalysisPass):
         Args:
             dag (DAGCircuit): DAG to map.
         """
+        from qiskit.converters import circuit_to_dag
+
         self.property_set["is_swap_mapped"] = True
 
         if self.coupling_map is None or len(self.coupling_map.graph) == 0:
@@ -49,18 +52,27 @@ class CheckMap(AnalysisPass):
         qubit_indices = {bit: index for index, bit in enumerate(dag.qubits)}
         # Use dist matrix directly to avoid validation overhead
         dist_matrix = self.coupling_map.distance_matrix
-
-        for gate in dag.two_qubit_ops():
-            if dag.has_calibration_for(gate):
-                continue
-            physical_q0 = qubit_indices[gate.qargs[0]]
-            physical_q1 = qubit_indices[gate.qargs[1]]
-
-            if dist_matrix[physical_q0, physical_q1] != 1:
-                self.property_set["check_map_msg"] = "{}({}, {}) failed".format(
-                    gate.name,
-                    physical_q0,
-                    physical_q1,
-                )
-                self.property_set["is_swap_mapped"] = False
-                return
+        for node in dag.op_nodes(include_directives=False):
+            is_controlflow_op = isinstance(node.op, ControlFlowOp)
+            if len(node.qargs) == 2 and not is_controlflow_op:
+                if dag.has_calibration_for(node):
+                    continue
+                physical_q0 = qubit_indices[node.qargs[0]]
+                physical_q1 = qubit_indices[node.qargs[1]]
+                if dist_matrix[physical_q0, physical_q1] != 1:
+                    self.property_set["check_map_msg"] = "{}({}, {}) failed".format(
+                        node.name,
+                        physical_q0,
+                        physical_q1,
+                    )
+                    self.property_set["is_swap_mapped"] = False
+                    return
+            elif is_controlflow_op:
+                order = [qubit_indices[bit] for bit in node.qargs]
+                for block in node.op.blocks:
+                    dag_block = circuit_to_dag(block)
+                    mapped_dag = dag.copy_empty_like()
+                    mapped_dag.compose(dag_block, qubits=order)
+                    self.run(mapped_dag)
+                    if not self.property_set["is_swap_mapped"]:
+                        return

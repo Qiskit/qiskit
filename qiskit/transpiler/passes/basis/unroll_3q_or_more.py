@@ -13,7 +13,9 @@
 """Recursively expands 3q+ gates until the circuit only contains 2q or 1q gates."""
 
 from qiskit.transpiler.basepasses import TransformationPass
+from qiskit.transpiler.passes.utils import control_flow
 from qiskit.exceptions import QiskitError
+from qiskit.circuit import ControlFlowOp
 from qiskit.converters.circuit_to_dag import circuit_to_dag
 
 
@@ -54,6 +56,11 @@ class Unroll3qOrMore(TransformationPass):
         for node in dag.multi_qubit_ops():
             if dag.has_calibration_for(node):
                 continue
+
+            if isinstance(node.op, ControlFlowOp):
+                node.op = control_flow.map_blocks(self.run, node.op)
+                continue
+
             if self.target is not None:
                 # Treat target instructions as global since this pass can be run
                 # prior to layout and routing we don't have phsyical qubits from

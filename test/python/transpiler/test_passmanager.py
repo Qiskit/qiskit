@@ -10,6 +10,8 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
+# pylint: disable=missing-class-docstring,missing-function-docstring
+
 """Test the passmanager logic"""
 
 import copy
@@ -19,7 +21,7 @@ import numpy as np
 from qiskit import QuantumRegister, QuantumCircuit
 from qiskit.circuit.library import U2Gate
 from qiskit.converters import circuit_to_dag
-from qiskit.transpiler import PassManager, PropertySet
+from qiskit.transpiler import PassManager, PropertySet, TransformationPass, FlowController
 from qiskit.transpiler.passes import CommutativeCancellation
 from qiskit.transpiler.passes import Optimize1qGates, Unroller
 from qiskit.test import QiskitTestCase
@@ -114,3 +116,66 @@ class TestPassManager(QiskitTestCase):
         self.assertIsInstance(calls[0]["time"], float)
         self.assertIsInstance(calls[0]["property_set"], PropertySet)
         self.assertEqual("MyCircuit", calls[1]["dag"].name)
+
+    def test_to_flow_controller(self):
+        """Test that conversion to a `FlowController` works, and the result can be added to a
+        circuit and conditioned, with the condition only being called once."""
+
+        class DummyPass(TransformationPass):
+            def __init__(self, x):
+                super().__init__()
+                self.x = x
+
+            def run(self, dag):
+                return dag
+
+        def repeat(count):  # pylint: disable=unused-argument
+            def condition(_):
+                nonlocal count
+                if not count:
+                    return False
+                count -= 1
+                return True
+
+            return condition
+
+        def make_inner(prefix):
+            inner = PassManager()
+            inner.append(DummyPass(f"{prefix} 1"))
+            inner.append(DummyPass(f"{prefix} 2"), condition=lambda _: False)
+            inner.append(DummyPass(f"{prefix} 3"), condition=lambda _: True)
+            inner.append(DummyPass(f"{prefix} 4"), do_while=repeat(1))
+            return inner.to_flow_controller()
+
+        self.assertIsInstance(make_inner("test"), FlowController)
+
+        outer = PassManager()
+        outer.append(make_inner("first"))
+        outer.append(make_inner("second"), condition=lambda _: False)
+        # The intent of this `condition=repeat(1)` is to ensure that the outer condition is only
+        # checked once and not flattened into the inner controllers; an inner pass invalidating the
+        # condition should not affect subsequent passes once the initial condition was met.
+        outer.append(make_inner("third"), condition=repeat(1))
+
+        calls = []
+
+        def callback(pass_, **_):
+            self.assertIsInstance(pass_, DummyPass)
+            calls.append(pass_.x)
+
+        outer.run(QuantumCircuit(), callback=callback)
+
+        expected = [
+            "first 1",
+            "first 3",
+            # it's a do-while loop, not a while, which is why the `repeat(1)` gives two calls
+            "first 4",
+            "first 4",
+            # If the outer pass-manager condition is called more than once, then only the first of
+            # the `third` passes will appear.
+            "third 1",
+            "third 3",
+            "third 4",
+            "third 4",
+        ]
+        self.assertEqual(calls, expected)

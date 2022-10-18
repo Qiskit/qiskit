@@ -24,9 +24,9 @@ from qiskit.circuit import Gate, Parameter, Qubit, Clbit
 from qiskit.quantum_info.operators import SuperOp
 from qiskit.quantum_info.random import random_unitary
 from qiskit.test import QiskitTestCase
-from qiskit.transpiler import Layout
-from qiskit.visualization import text as elements
-from qiskit.visualization.circuit_visualization import _text_circuit_drawer
+from qiskit.transpiler.layout import Layout, TranspileLayout
+from qiskit.visualization.circuit import text as elements
+from qiskit.visualization.circuit.circuit_visualization import _text_circuit_drawer
 from qiskit.extensions import UnitaryGate, HamiltonianGate
 from qiskit.extensions.quantum_initializer import UCGate
 from qiskit.circuit.library import (
@@ -1683,7 +1683,7 @@ class TestTextDrawerMultiQGates(QiskitTestCase):
             str(_text_circuit_drawer(circ, vertical_compression="high", cregbundle=True)), expected
         )
 
-    def test_control_gate_label_with_cond_2_med(self):
+    def test_control_gate_label_with_cond_2_med_space(self):
         """Control gate has a label and a conditional (on label, compression=med)
         See https://github.com/Qiskit/qiskit-terra/issues/4361"""
         expected = "\n".join(
@@ -1692,8 +1692,7 @@ class TestTextDrawerMultiQGates(QiskitTestCase):
                 "q_0: |0>┤ my h ├",
                 "        └──┬───┘",
                 "q_1: |0>───■────",
-                "         my ch  ",
-                "           ║    ",
+                "         my║ch  ",
                 "   c: 0 ═══■════",
                 "          0x1   ",
             ]
@@ -1704,6 +1703,31 @@ class TestTextDrawerMultiQGates(QiskitTestCase):
         circ = QuantumCircuit(qr, cr)
         hgate = HGate(label="my h")
         controlh = hgate.control(label="my ch").c_if(cr, 1)
+        circ.append(controlh, [1, 0])
+
+        self.assertEqual(str(_text_circuit_drawer(circ, vertical_compression="medium")), expected)
+
+    def test_control_gate_label_with_cond_2_med(self):
+        """Control gate has a label and a conditional (on label, compression=med)
+        See https://github.com/Qiskit/qiskit-terra/issues/4361"""
+        expected = "\n".join(
+            [
+                "          ┌──────┐ ",
+                "q_0: |0>──┤ my h ├─",
+                "          └──┬───┘ ",
+                "q_1: |0>─────■─────",
+                "         my ctrl-h ",
+                "             ║     ",
+                "   c: 0 ═════■═════",
+                "            0x1    ",
+            ]
+        )
+
+        qr = QuantumRegister(2, "q")
+        cr = ClassicalRegister(1, "c")
+        circ = QuantumCircuit(qr, cr)
+        hgate = HGate(label="my h")
+        controlh = hgate.control(label="my ctrl-h").c_if(cr, 1)
         circ.append(controlh, [1, 0])
 
         self.assertEqual(str(_text_circuit_drawer(circ, vertical_compression="medium")), expected)
@@ -2046,7 +2070,6 @@ class TestTextDrawerVerticalCompressionMedium(QiskitTestCase):
                 "      └─╥─┘└─╥─┘",
                 "c0: 0 ══■════╬══",
                 "       0x1   ║  ",
-                "             ║  ",
                 "c1: 0 ═══════■══",
                 "            0x1 ",
             ]
@@ -2145,6 +2168,98 @@ class TestTextDrawerVerticalCompressionMedium(QiskitTestCase):
         circuit = QuantumCircuit.from_qasm_str(qasm_string)
         self.assertEqual(
             str(_text_circuit_drawer(circuit, vertical_compression="medium", cregbundle=True)),
+            expected,
+        )
+
+    def test_text_barrier_med_compress_1(self):
+        """Medium vertical compression avoids connection break."""
+        circuit = QuantumCircuit(4)
+        circuit.cx(1, 3)
+        circuit.x(1)
+        circuit.barrier((2, 3), label="Bar 1")
+
+        expected = "\n".join(
+            [
+                "                    ",
+                "q_0: |0>────────────",
+                "              ┌───┐ ",
+                "q_1: |0>──■───┤ X ├─",
+                "          │   └───┘ ",
+                "          │   Bar 1 ",
+                "q_2: |0>──┼─────░───",
+                "        ┌─┴─┐   ░   ",
+                "q_3: |0>┤ X ├───░───",
+                "        └───┘   ░   ",
+            ]
+        )
+
+        self.assertEqual(
+            str(_text_circuit_drawer(circuit, vertical_compression="medium", cregbundle=False)),
+            expected,
+        )
+
+    def test_text_barrier_med_compress_2(self):
+        """Medium vertical compression avoids overprint."""
+        circuit = QuantumCircuit(4)
+        circuit.barrier((0, 1, 2), label="a")
+        circuit.cx(1, 3)
+        circuit.x(1)
+        circuit.barrier((2, 3), label="Bar 1")
+
+        expected = "\n".join(
+            [
+                "         a             ",
+                "q_0: |0>─░─────────────",
+                "         ░       ┌───┐ ",
+                "q_1: |0>─░───■───┤ X ├─",
+                "         ░   │   └───┘ ",
+                "         ░   │   Bar 1 ",
+                "q_2: |0>─░───┼─────░───",
+                "         ░ ┌─┴─┐   ░   ",
+                "q_3: |0>───┤ X ├───░───",
+                "           └───┘   ░   ",
+            ]
+        )
+
+        self.assertEqual(
+            str(_text_circuit_drawer(circuit, vertical_compression="medium", cregbundle=False)),
+            expected,
+        )
+
+    def test_text_barrier_med_compress_3(self):
+        """Medium vertical compression avoids conditional connection break."""
+        qr = QuantumRegister(1, "qr")
+        qc1 = ClassicalRegister(3, "cr")
+        qc2 = ClassicalRegister(1, "cr2")
+        circuit = QuantumCircuit(qr, qc1, qc2)
+        circuit.x(0).c_if(qc1, 3)
+        circuit.x(0).c_if(qc2[0], 1)
+
+        expected = "\n".join(
+            [
+                "        ┌───┐┌───┐",
+                " qr: |0>┤ X ├┤ X ├",
+                "        └─╥─┘└─╥─┘",
+                "cr_0: 0 ══■════╬══",
+                "          ║    ║  ",
+                "cr_2: 0 ══o════╬══",
+                "          ║    ║  ",
+                " cr2: 0 ══╬════■══",
+                "          ║       ",
+                "cr_1: 0 ══■═══════",
+                "         0x3      ",
+            ]
+        )
+
+        self.assertEqual(
+            str(
+                _text_circuit_drawer(
+                    circuit,
+                    vertical_compression="medium",
+                    wire_order=[0, 1, 3, 4, 2],
+                    cregbundle=False,
+                )
+            ),
             expected,
         )
 
@@ -3331,6 +3446,13 @@ class TestTextIdleWires(QiskitTestCase):
         circuit.barrier()
         circuit.delay(100, qr[2])
         self.assertEqual(str(_text_circuit_drawer(circuit, idle_wires=False)), expected)
+
+    def test_does_not_mutate_circuit(self):
+        """Using 'idle_wires=False' should not mutate the circuit.  Regression test of gh-8739."""
+        circuit = QuantumCircuit(1)
+        before_qubits = circuit.num_qubits
+        circuit.draw(idle_wires=False)
+        self.assertEqual(circuit.num_qubits, before_qubits)
 
 
 class TestTextNonRational(QiskitTestCase):
@@ -4626,8 +4748,11 @@ class TestTextWithLayout(QiskitTestCase):
         circuit = QuantumCircuit(pqr)
         circuit.h(0)
         circuit.h(3)
-        circuit._layout = Layout({0: qr[0], 1: None, 2: None, 3: qr[1]})
-        circuit._layout.add_register(qr)
+        circuit._layout = TranspileLayout(
+            Layout({0: qr[0], 1: None, 2: None, 3: qr[1]}),
+            {qubit: index for index, qubit in enumerate(circuit.qubits)},
+        )
+        circuit._layout.initial_layout.add_register(qr)
 
         self.assertEqual(str(_text_circuit_drawer(circuit)), expected)
 
@@ -4954,7 +5079,7 @@ class TestTextPhase(QiskitTestCase):
         crx = ClassicalRegister(2, "crx")
         circuit = QuantumCircuit(qrx, [Qubit(), Qubit()], qry, [Clbit(), Clbit()], crx)
 
-        self.assertEqual(circuit.draw(output="text").single_string(), expected)
+        self.assertEqual(circuit.draw(output="text", cregbundle=True).single_string(), expected)
 
 
 class TestCircuitVisualizationImplementation(QiskitVisualizationTestCase):

@@ -16,8 +16,8 @@ import unittest
 
 import numpy as np
 
-from qiskit import QuantumRegister, QuantumCircuit
-from qiskit.circuit import Parameter
+from qiskit import QuantumRegister, QuantumCircuit, ClassicalRegister
+from qiskit.circuit import Parameter, Qubit
 from qiskit.circuit.library import CXGate, UGate, ECRGate, RZGate
 from qiskit.transpiler import CouplingMap, Target, InstructionProperties, TranspilerError
 from qiskit.transpiler.passes import DenseLayout
@@ -75,6 +75,7 @@ class TestDenseLayout(QiskitTestCase):
         pass_.run(dag)
 
         layout = pass_.property_set["layout"]
+
         self.assertEqual(layout[qr0[0]], 11)
         self.assertEqual(layout[qr0[1]], 10)
         self.assertEqual(layout[qr0[2]], 6)
@@ -111,7 +112,7 @@ class TestDenseLayout(QiskitTestCase):
         dag = circuit_to_dag(circuit)
         instruction_props = {edge: None for edge in CouplingMap.from_heavy_hex(3).get_edges()}
         noiseless_target = Target()
-        noiseless_target.add_instruction(CXGate, instruction_props)
+        noiseless_target.add_instruction(CXGate(), instruction_props)
         pass_ = DenseLayout(target=noiseless_target)
         pass_.run(dag)
         layout = pass_.property_set["layout"]
@@ -192,6 +193,50 @@ class TestDenseLayout(QiskitTestCase):
             ]
         )
         np.testing.assert_array_equal(expected_error_matrix, DenseLayout(target=target).error_mat)
+
+    def test_5q_circuit_20q_with_if_else(self):
+        """Test layout works finds a dense 5q subgraph in a 19q heavy hex target."""
+        qr = QuantumRegister(5, "q")
+        cr = ClassicalRegister(5)
+        circuit = QuantumCircuit(qr, cr)
+        true_body = QuantumCircuit(qr, cr)
+        false_body = QuantumCircuit(qr, cr)
+        true_body.cx(qr[0], qr[3])
+        true_body.cx(qr[3], qr[4])
+        false_body.cx(qr[3], qr[1])
+        false_body.cx(qr[0], qr[2])
+        circuit.if_else((cr, 0), true_body, false_body, qr, cr)
+        circuit.cx(0, 4)
+
+        dag = circuit_to_dag(circuit)
+        pass_ = DenseLayout(CouplingMap(self.cmap20))
+        pass_.run(dag)
+        layout = pass_.property_set["layout"]
+        self.assertEqual(layout[qr[0]], 11)
+        self.assertEqual(layout[qr[1]], 10)
+        self.assertEqual(layout[qr[2]], 6)
+        self.assertEqual(layout[qr[3]], 5)
+        self.assertEqual(layout[qr[4]], 0)
+
+    def test_loose_bit_circuit(self):
+        """Test dense layout works with loose bits outside a register."""
+        bits = [Qubit() for _ in range(5)]
+        circuit = QuantumCircuit()
+        circuit.add_bits(bits)
+        circuit.h(3)
+        circuit.cx(3, 4)
+        circuit.cx(3, 2)
+        circuit.cx(3, 0)
+        circuit.cx(3, 1)
+        dag = circuit_to_dag(circuit)
+        pass_ = DenseLayout(CouplingMap(self.cmap20))
+        pass_.run(dag)
+        layout = pass_.property_set["layout"]
+        self.assertEqual(layout[bits[0]], 11)
+        self.assertEqual(layout[bits[1]], 10)
+        self.assertEqual(layout[bits[2]], 6)
+        self.assertEqual(layout[bits[3]], 5)
+        self.assertEqual(layout[bits[4]], 0)
 
 
 if __name__ == "__main__":
