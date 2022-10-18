@@ -1,7 +1,7 @@
 ---
 fixes:
   - |
-    Fix known bug in plot_state_hinton where the axes in the imaginary plots are 
-    misplaced. Additionally spacing between the real and imaginary plots are 
-    corrected. Refer to `#8446 <https://github.com/Qiskit/qiskit-terra/issues/8446>` 
-    for more details.
+    Fixed poor spacing and offset plotting in :func:`.plot_state_hinton`.
+  - |
+    The displayed image in :func:`.plot_state_hinton` now has the state labels
+    ordered correctly, and the image matches up with the natural "matrix" ordering.
