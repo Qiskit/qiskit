@@ -117,7 +117,7 @@ def get_standard_gate_name_mapping():
     from qiskit.circuit.measure import Measure
     from qiskit.circuit.delay import Delay
     from qiskit.circuit.reset import Reset
-    from qiskit.circuit.controlflow import IfElseOp, WhileLoop, ForLoop
+    from qiskit.circuit.controlflow import IfElseOp, WhileLoopOp, ForLoopOp
 
     # Standard gates library mapping, multicontrolled gates not included since they're
     # variable width.
@@ -179,9 +179,9 @@ def get_standard_gate_name_mapping():
     name_mapping = {gate.name: gate for gate in gates}
     # Add variable width gates as a mapping between names and classes
     # since an instance requires knowing how many qubits are being operated on
-    name_mapping["if_else"] = IFElseOp
-    name_mapping["for_loop"] = ForLoop
-    name_mapping["while_loop"] = WhileLoop
+    name_mapping["if_else"] = IfElseOp
+    name_mapping["for_loop"] = ForLoopOp
+    name_mapping["while_loop"] = WhileLoopOP
     name_mapping["mcx"] = MCXGate
     name_mapping["mcx_gray"] = MCXGrayCode
     name_mapping["mcx_recursive"] = MCXRecursive
