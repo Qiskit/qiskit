@@ -27,20 +27,20 @@ going to run and install the packages.  There are three main ways to do this:
 
         Create a minimal environment with only Python installed in it.
 
-        .. code:: sh
+        .. code:: text
 
             python3 -m venv /path/to/virtual/environment
 
         Activate your new environment.
 
-        .. code:: sh
+        .. code:: text
 
             source /path/to/virtual/environment/bin/activate
 
 
         Note: if you are using Windows, use the following commands in PowerShell.
 
-        .. code:: sh
+        .. code:: text
 
            python3 -m venv c:\path\to\virtual\environment
            c:\path\to\virtual\environment\Scripts\Activate.ps1
@@ -48,7 +48,7 @@ going to run and install the packages.  There are three main ways to do this:
 
         Next, install the Qiskit package.
 
-        .. code:: sh
+        .. code:: text
 
             pip install qiskit
 
@@ -58,14 +58,14 @@ going to run and install the packages.  There are three main ways to do this:
         If you intend to use visualization functionality or Jupyter notebooks it is
         recommended to install Qiskit with the extra ``visualization`` support:
 
-        .. code:: sh
+        .. code:: text
 
             pip install qiskit[visualization]
 
         It is worth pointing out that if you're a zsh user (which is the default shell on newer
         versions of macOS), you'll need to put ``qiskit[visualization]`` in quotes:
 
-        .. code:: sh
+        .. code:: text
 
             pip install 'qiskit[visualization]'
 
@@ -148,7 +148,7 @@ going to run and install the packages.  There are three main ways to do this:
 
           <h3>Set up the Virtual Development Environment</h3>
 
-       .. code-block:: sh
+       .. code-block:: text
 
           python3 -m venv QiskitDevenv
           source QiskitDevenv/bin/activate
@@ -175,13 +175,13 @@ going to run and install the packages.  There are three main ways to do this:
              Check if you have XCode and Clang installed by opening a terminal window and entering the
              following.
 
-             .. code:: sh
+             .. code:: text
 
                 clang --version
 
              Install XCode and Clang by using the following command.
 
-             .. code:: sh
+             .. code:: text
 
                 xcode-select --install
 
@@ -197,45 +197,45 @@ going to run and install the packages.  There are three main ways to do this:
 
        1. Clone the Terra repository.
 
-          .. code:: sh
+          .. code:: text
 
              git clone https://github.com/Qiskit/qiskit-terra.git
 
        2. Cloning the repository creates a local folder called ``qiskit-terra``.
 
-          .. code:: sh
+          .. code:: text
 
              cd qiskit-terra
 
        3. Install the Python requirements libraries from your ``qiskit-terra`` directory.
 
-          .. code:: sh
+          .. code:: text
 
              pip install cython
 
        4. If you want to run tests or linting checks, install the developer requirements.
 
-          .. code:: sh
+          .. code:: text
 
              pip install -r requirements-dev.txt
 
        5. Install ``qiskit-terra``.
 
-          .. code:: sh
+          .. code:: text
 
              pip install .
 
        If you want to install it in editable mode, meaning that code changes to the
        project don't require a reinstall to be applied, you can do this with:
 
-       .. code:: sh
+       .. code:: text
 
           pip install -e .
 
        You can then run the code examples after installing Terra. You can
        run the example with the following command.
 
-       .. code:: sh
+       .. code:: text
 
           python examples/python/using_qiskit_terra_level_0.py
 
@@ -266,13 +266,13 @@ going to run and install the packages.  There are three main ways to do this:
 
        1. Clone the Aer repository.
 
-          .. code:: sh
+          .. code:: text
 
              git clone https://github.com/Qiskit/qiskit-aer
 
        2. Install build requirements.
 
-          .. code:: sh
+          .. code:: text
 
              pip install cmake scikit-build cython
 
@@ -291,13 +291,13 @@ going to run and install the packages.  There are three main ways to do this:
              If you're using Fedora or an equivalent Linux distribution,
              install using:
 
-             .. code:: sh
+             .. code:: text
 
                    dnf install @development-tools
 
              For Ubuntu/Debian install it using:
 
-             .. code:: sh
+             .. code:: text
 
                    apt-get install build-essential
 
@@ -306,13 +306,13 @@ going to run and install the packages.  There are three main ways to do this:
              If you're using Fedora or an equivalent Linux distribution,
              install using:
 
-             .. code:: sh
+             .. code:: text
 
                    dnf install openblas-devel
 
              For Ubuntu/Debian install it using:
 
-             .. code:: sh
+             .. code:: text
 
                    apt-get install libopenblas-dev
 
@@ -325,20 +325,20 @@ going to run and install the packages.  There are three main ways to do this:
              an extra library for supporting `OpenMP <https://www.openmp.org/>`__.  You can use `brew <https://brew.sh/>`__
              to install this and other dependencies.
 
-             .. code:: sh
+             .. code:: text
 
                    brew install libomp
 
           4. Then install a BLAS implementation; `OpenBLAS <https://www.openblas.net/>`__
              is the default choice.
 
-             .. code:: sh
+             .. code:: text
 
                    brew install openblas
 
              Next, install ``Xcode Command Line Tools``.
 
-             .. code:: sh
+             .. code:: text
 
                    xcode-select --install
 
@@ -358,7 +358,7 @@ going to run and install the packages.  There are three main ways to do this:
           If you have pip <19.0.0 installed and your environment doesn't require a
           custom build, run:
 
-          .. code:: sh
+          .. code:: text
 
              cd qiskit-aer
              pip install .
@@ -368,7 +368,7 @@ going to run and install the packages.  There are three main ways to do this:
           Alternatively, if you have a newer pip installed, or have some custom requirement,
           you can build a Python wheel manually.
 
-          .. code:: sh
+          .. code:: text
 
              cd qiskit-aer
              python ./setup.py bdist_wheel
@@ -379,7 +379,7 @@ going to run and install the packages.  There are three main ways to do this:
           After you build the Python wheel, it will be stored in the ``dist/`` dir in the
           Aer repository. The exact version will depend
 
-          .. code:: sh
+          .. code:: text
 
              cd dist
              pip install qiskit_aer-*.whl
@@ -401,7 +401,7 @@ going to run and install the packages.  There are three main ways to do this:
        Due to the complexity of compiling the binaries, you may need to pass options
        to a certain part of the build process. The way to pass variables is:
 
-       .. code:: sh
+       .. code:: text
 
           python setup.py bdist_wheel [skbuild_opts] [-- [cmake_opts] [-- build_tool_opts]]
 
@@ -411,7 +411,7 @@ going to run and install the packages.  There are three main ways to do this:
        https://cmake.org/cmake/help/v3.6/manual/cmake.1.html#options. For
        example, you could run something like:
 
-       .. code:: sh
+       .. code:: text
 
           python setup.py bdist_wheel -- -- -j8
 
@@ -423,7 +423,7 @@ going to run and install the packages.  There are three main ways to do this:
        specific version of the C++ compiler to use (normally if the default is too
        old):
 
-       .. code:: sh
+       .. code:: text
 
           python setup.py bdist_wheel -- -DCMAKE_CXX_COMPILER=g++-7
 
@@ -433,7 +433,7 @@ going to run and install the packages.  There are three main ways to do this:
        Another common use case for this, depending on your environment, is that you may
        need to specify your platform name and turn off static linking.
 
-       .. code:: sh
+       .. code:: text
 
           python setup.py bdist_wheel --plat-name macosx-10.9-x86_64 \
           -- -DSTATIC_LINKING=False -- -j8
@@ -475,13 +475,13 @@ going to run and install the packages.  There are three main ways to do this:
 
        1. Clone the qiskit-ibmq-provider repository.
 
-          .. code:: sh
+          .. code:: text
 
              git clone https://github.com/Qiskit/qiskit-ibmq-provider.git
 
        2. Cloning the repository creates a local directory called ``qiskit-ibmq-provider``.
 
-          .. code:: sh
+          .. code:: text
 
              cd qiskit-ibmq-provider
 
@@ -489,20 +489,20 @@ going to run and install the packages.  There are three main ways to do this:
           This is not required to install or use the qiskit-ibmq-provider package when
           installing from source.
 
-          .. code:: sh
+          .. code:: text
 
              pip install -r requirements-dev.txt
 
        4. Install qiskit-ibmq-provider.
 
-          .. code:: sh
+          .. code:: text
 
              pip install .
 
        If you want to install it in editable mode, meaning that code changes to the
        project don't require a reinstall to be applied:
 
-       .. code:: sh
+       .. code:: text
 
           pip install -e .
 
