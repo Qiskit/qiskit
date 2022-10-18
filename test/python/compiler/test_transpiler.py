@@ -32,7 +32,18 @@ from qiskit.circuit import Parameter, Gate, Qubit, Clbit
 from qiskit.compiler import transpile
 from qiskit.dagcircuit import DAGOutNode
 from qiskit.converters import circuit_to_dag
-from qiskit.circuit.library import CXGate, U3Gate, U2Gate, U1Gate, RXGate, RYGate, RZGate, UGate
+from qiskit.circuit.library import (
+    CXGate,
+    U3Gate,
+    U2Gate,
+    U1Gate,
+    RXGate,
+    RYGate,
+    RZGate,
+    UGate,
+    CZGate,
+)
+from qiskit.circuit import IfElseOp, WhileLoopOp, ForLoopOp, ControlFlowOp
 from qiskit.circuit.measure import Measure
 from qiskit.test import QiskitTestCase
 from qiskit.providers.fake_provider import (
@@ -1468,6 +1479,79 @@ class TestTranspile(QiskitTestCase):
             expected.cx(qubit_reg[0], qubit_reg[1])
             expected.measure(qubit_reg, clbit_reg)
             self.assertEqual(result, expected)
+
+    # TODO: Add optimization level 2 and 3 after they support control flow
+    # compilation
+    @data(0, 1)
+    def test_transpile_with_custom_control_flow_target(self, opt_level):
+        """Test transpile() with a target and constrol flow ops."""
+        target = FakeMumbaiV2().target
+        target.add_instruction(ForLoopOp, name="for_loop")
+        target.add_instruction(WhileLoopOp, name="while_loop")
+        target.add_instruction(IfElseOp, name="if_else")
+
+        class CustomCX(Gate):
+            """Custom CX"""
+
+            def __init__(self):
+                super().__init__("custom_cx", 2, [])
+
+            def _define(self):
+                self._definition = QuantumCircuit(2)
+                self._definition.cx(0, 1)
+
+        circuit = QuantumCircuit(6, 1)
+        circuit.h(0)
+        circuit.measure(0, 0)
+        circuit.cx(0, 1)
+        circuit.cz(0, 2)
+        circuit.append(CustomCX(), [1, 2], [])
+        with circuit.for_loop((1,)):
+            circuit.cx(0, 1)
+            circuit.cz(0, 2)
+            circuit.append(CustomCX(), [1, 2], [])
+        with circuit.if_test((circuit.clbits[0], True)) as else_:
+            circuit.cx(0, 1)
+            circuit.cz(0, 2)
+            circuit.append(CustomCX(), [1, 2], [])
+        with else_:
+            circuit.cx(3, 4)
+            circuit.cz(3, 5)
+            circuit.append(CustomCX(), [4, 5], [])
+            with circuit.while_loop((circuit.clbits[0], True)):
+                circuit.cx(3, 4)
+                circuit.cz(3, 5)
+                circuit.append(CustomCX(), [4, 5], [])
+        transpiled = transpile(
+            circuit, optimization_level=opt_level, target=target, seed_transpiler=12434
+        )
+        # Tests of the complete validity of a circuit are mostly done at the indiviual pass level;
+        # here we're just checking that various passes do appear to have run.
+        self.assertIsInstance(transpiled, QuantumCircuit)
+        # Assert layout ran.
+        self.assertIsNot(getattr(transpiled, "_layout", None), None)
+
+        def _visit_block(circuit, qubit_mapping=None):
+            for instruction in circuit:
+                qargs = tuple(qubit_mapping[x] for x in instruction.qubits)
+                self.assertTrue(target.instruction_supported(instruction.operation.name, qargs))
+                if isinstance(instruction.operation, ControlFlowOp):
+                    for block in instruction.operation.blocks:
+                        new_mapping = {
+                            inner: qubit_mapping[outer]
+                            for outer, inner in zip(instruction.qubits, block.qubits)
+                        }
+                        _visit_block(block, new_mapping)
+                # Assert unrolling ran.
+                self.assertNotIsInstance(instruction.operation, CustomCX)
+                # Assert translation ran.
+                self.assertNotIsInstance(instruction.operation, CZGate)
+
+        # Assert routing ran.
+        _visit_block(
+            transpiled,
+            qubit_mapping={qubit: index for index, qubit in enumerate(transpiled.qubits)},
+        )
 
 
 class StreamHandlerRaiseException(StreamHandler):
