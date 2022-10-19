@@ -269,26 +269,16 @@ class TestBackendEstimator(QiskitTestCase):
         qc = QuantumCircuit(1)
         qc2 = QuantumCircuit(1)
         qc2.x(0)
-
-        op = SparsePauliOp.from_list([("I", 1)])
-        op2 = SparsePauliOp.from_list([("Z", 1)])
-
-        est = BackendEstimator(backend=backend)
-        result = est.run([qc], [op], [[]]).result()
-        self.assertIsInstance(result, EstimatorResult)
-        np.testing.assert_allclose(result.values, [1], rtol=0.1)
-
-        result = est.run([qc], [op2], [[]]).result()
-        self.assertIsInstance(result, EstimatorResult)
-        np.testing.assert_allclose(result.values, [1], rtol=0.1)
-
-        result = est.run([qc2], [op], [[]]).result()
-        self.assertIsInstance(result, EstimatorResult)
-        np.testing.assert_allclose(result.values, [1], rtol=0.1)
-
-        result = est.run([qc2], [op2], [[]]).result()
-        self.assertIsInstance(result, EstimatorResult)
-        np.testing.assert_allclose(result.values, [-1], rtol=0.1)
+        backend.set_options(seed_simulator=123)
+        qc = RealAmplitudes(num_qubits=2, reps=2)
+        op = SparsePauliOp.from_list([("IZ", 1), ("XI", 2), ("ZY", -1)])
+        k = 5
+        params_array = np.random.rand(k, qc.num_parameters)
+        params_list = params_array.tolist()
+        estimator = BackendEstimator(backend=backend)
+        with unittest.mock.patch.object(backend, "run") as run_mock:
+            estimator.run([qc] * k, [op] * k, params_list).result()
+        self.assertEqual(run_mock.call_count, 10)
 
     def test_job_size_limit_v1(self):
         """Test BackendEstimator respects job size limit"""
@@ -297,29 +287,15 @@ class TestBackendEstimator(QiskitTestCase):
         config.max_experiments = 1
         backend._configuration = config
         backend.set_options(seed_simulator=123)
-        qc = QuantumCircuit(1)
-        qc2 = QuantumCircuit(1)
-        qc2.x(0)
-
-        op = SparsePauliOp.from_list([("I", 1)])
-        op2 = SparsePauliOp.from_list([("Z", 1)])
-
-        est = BackendEstimator(backend=backend)
-        result = est.run([qc], [op], [[]]).result()
-        self.assertIsInstance(result, EstimatorResult)
-        np.testing.assert_allclose(result.values, [1], rtol=0.1)
-
-        result = est.run([qc], [op2], [[]]).result()
-        self.assertIsInstance(result, EstimatorResult)
-        np.testing.assert_allclose(result.values, [1], rtol=0.1)
-
-        result = est.run([qc2], [op], [[]]).result()
-        self.assertIsInstance(result, EstimatorResult)
-        np.testing.assert_allclose(result.values, [1], rtol=0.1)
-
-        result = est.run([qc2], [op2], [[]]).result()
-        self.assertIsInstance(result, EstimatorResult)
-        np.testing.assert_allclose(result.values, [-1], rtol=0.1)
+        qc = RealAmplitudes(num_qubits=2, reps=2)
+        op = SparsePauliOp.from_list([("IZ", 1), ("XI", 2), ("ZY", -1)])
+        k = 5
+        params_array = np.random.rand(k, qc.num_parameters)
+        params_list = params_array.tolist()
+        estimator = BackendEstimator(backend=backend)
+        with unittest.mock.patch.object(backend, "run") as run_mock:
+            estimator.run([qc] * k, [op] * k, params_list).result()
+        self.assertEqual(run_mock.call_count, 10)
 
 
 if __name__ == "__main__":
