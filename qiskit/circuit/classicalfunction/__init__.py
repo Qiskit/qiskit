@@ -96,6 +96,13 @@ Exceptions
    ClassicalFunctionCompilerTypeError
 
 """
+
+from qiskit.utils import optionals as _optionals
+
+_optionals.HAS_TWEEDLEDUM.require_now("classical oracle creation")
+
+# pylint: disable=wrong-import-position
+
 from .classicalfunction import ClassicalFunction
 from .exceptions import (
     ClassicalFunctionParseError,
