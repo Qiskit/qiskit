@@ -197,22 +197,21 @@ class RZXCalibrationBuilder(CalibrationBuilder):
                 "Native CR direction cannot be determined."
             )
 
-        xgate = self._inst_map.get("x", qubits[0])
-        with builder.build(
-            default_alignment="sequential", name="rzx(%.3f)" % theta
-        ) as rzx_theta_native:
-            for cr_tone, comp_tone in zip(cr_tones, comp_tones):
-                with builder.align_left():
-                    self.rescale_cr_inst(cr_tone, theta)
-                    self.rescale_cr_inst(comp_tone, theta)
-                builder.call(xgate)
-
         # Determine native direction, assuming only single drive channel per qubit.
         # This guarantees channel and qubit index equality.
         if comp_tones[0].channel.index == qubits[1]:
+            xgate = self._inst_map.get("x", qubits[0])
+            with builder.build(
+                default_alignment="sequential", name="rzx(%.3f)" % theta
+            ) as rzx_theta_native:
+                for cr_tone, comp_tone in zip(cr_tones, comp_tones):
+                    with builder.align_left():
+                        self.rescale_cr_inst(cr_tone, theta)
+                        self.rescale_cr_inst(comp_tone, theta)
+                    builder.call(xgate)
             return rzx_theta_native
 
-        # Add hadamard gate to flip
+        # The direction is not native. Add Hadamard gates to flip the direction.
         xgate = self._inst_map.get("x", qubits[1])
         szc = self._inst_map.get("rz", qubits[1], np.pi / 2)
         sxc = self._inst_map.get("sx", qubits[1])
@@ -232,7 +231,11 @@ class RZXCalibrationBuilder(CalibrationBuilder):
             default_alignment="sequential", name="rzx(%.3f)" % theta
         ) as rzx_theta_flip:
             builder.call(hadamard, name="hadamard")
-            builder.call(rzx_theta_native, name="rzx_theta_native")
+            for cr_tone, comp_tone in zip(cr_tones, comp_tones):
+                with builder.align_left():
+                    self.rescale_cr_inst(cr_tone, theta)
+                    self.rescale_cr_inst(comp_tone, theta)
+                builder.call(xgate)
             builder.call(hadamard, name="hadamard")
         return rzx_theta_flip
 

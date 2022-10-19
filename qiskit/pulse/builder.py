@@ -444,6 +444,7 @@ import collections
 import contextvars
 import functools
 import itertools
+import sys
 import uuid
 import warnings
 from contextlib import contextmanager
@@ -766,15 +767,12 @@ class _PulseBuilder:
         if len(context_block) > 0:
             self._context_stack[-1].append(context_block)
 
-    @singledispatchmethod
-    def inject_subroutine(
-        self,
-        subroutine: Union[Schedule, ScheduleBlock],
-    ):
+    @_compile_lazy_circuit_before
+    def append_subroutine(self, subroutine: Union[Schedule, ScheduleBlock]):
         """Append a :class:`ScheduleBlock` to the builder's context schedule.
 
-        This operationd doesn't create reference. Subrotuine is directly
-        injected into current context schedule.
+        This operation doesn't create a reference. Subroutine is directly
+        appended to current context schedule.
 
         Args:
             subroutine: ScheduleBlock to append to the current context block.
@@ -782,26 +780,11 @@ class _PulseBuilder:
         Raises:
             PulseError: When subroutine is not Schedule nor ScheduleBlock.
         """
-        raise exceptions.PulseError(
-            f"Subroutine type {subroutine.__class__.__name__} is "
-            "not valid data format. Inject Schedule or ScheduleBlock."
-        )
-
-    @inject_subroutine.register
-    def _(self, block: ScheduleBlock):
-        self._compile_lazy_circuit()
-
-        if len(block) == 0:
+        if len(subroutine) == 0:
             return
-        self._context_stack[-1].append(block)
-
-    @inject_subroutine.register
-    def _(self, schedule: Schedule):
-        self._compile_lazy_circuit()
-
-        if len(schedule) == 0:
-            return
-        self._context_stack[-1].append(self._naive_typecast_schedule(schedule))
+        if isinstance(subroutine, Schedule):
+            subroutine = self._naive_typecast_schedule(subroutine)
+        self._context_stack[-1].append(subroutine)
 
     @singledispatchmethod
     def call_subroutine(
@@ -1077,7 +1060,7 @@ def append_schedule(schedule: Union[Schedule, ScheduleBlock]):
     Args:
         schedule: Schedule or ScheduleBlock to append.
     """
-    _active_builder().inject_subroutine(schedule)
+    _active_builder().append_subroutine(schedule)
 
 
 def append_instruction(instruction: instructions.Instruction):

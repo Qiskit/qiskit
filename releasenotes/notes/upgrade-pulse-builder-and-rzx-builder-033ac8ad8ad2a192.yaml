@@ -5,7 +5,7 @@ features:
     This instruction is QPY compatible. This directive behaves almost identically to
     delay instruction, but will be removed before execution.
     This directive is intended to be used internally within the pulse builder
-    and helps :class:`.ScheduleBlock` with representing instructions with
+    and helps :class:`.ScheduleBlock` represent instructions with
     absolute time intervals. This allows the pulse builder to convert
     :class:`Schedule` into :class:`ScheduleBlock`, rather than wrapping with call instruction.
   - |
