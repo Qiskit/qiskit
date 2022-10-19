@@ -34,10 +34,9 @@ impl SabreDAG {
         num_qubits: usize,
         num_clbits: usize,
         nodes: Vec<(usize, Vec<usize>, HashSet<usize>)>,
+        edges: Vec<(usize, usize)>,
         front_layer: PyReadonlyArray1<usize>,
     ) -> PyResult<Self> {
-        let mut qubit_pos: Vec<usize> = vec![usize::MAX; num_qubits];
-        let mut clbit_pos: Vec<usize> = vec![usize::MAX; num_clbits];
         let mut reverse_index_map: HashMap<usize, NodeIndex> = HashMap::with_capacity(nodes.len());
         let mut dag: DiGraph<(usize, Vec<usize>), ()> =
             Graph::with_capacity(nodes.len(), 2 * nodes.len());
@@ -46,18 +45,11 @@ impl SabreDAG {
             let cargs = &node.2;
             let gate_index = dag.add_node((node.0, qargs.clone()));
             reverse_index_map.insert(node.0, gate_index);
-            for x in qargs {
-                if qubit_pos[*x] != usize::MAX {
-                    dag.add_edge(NodeIndex::new(qubit_pos[*x]), gate_index, ());
-                }
-                qubit_pos[*x] = gate_index.index();
-            }
-            for x in cargs {
-                if clbit_pos[*x] != usize::MAX {
-                    dag.add_edge(NodeIndex::new(clbit_pos[*x]), gate_index, ());
-                }
-                clbit_pos[*x] = gate_index.index();
-            }
+        }
+        for edge in &edges {
+            let source_node_index = reverse_index_map[&edge.0];
+            let target_node_index = reverse_index_map[&edge.1];
+            dag.add_edge(source_node_index, target_node_index, ());
         }
         let first_layer = front_layer
             .as_slice()?

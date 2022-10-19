@@ -64,7 +64,7 @@ class SabreSwap(TransformationPass):
 
     This transpiler pass adds onto the SABRE algorithm in that it will run
     multiple trials of the algorithm with different seeds. The best output,
-    deteremined by the trial with the least amount of SWAPed inserted, will
+    determined by the trial with the least amount of SWAPed inserted, will
     be selected from the random trials.
 
     **References:**
@@ -74,7 +74,7 @@ class SabreSwap(TransformationPass):
     `arXiv:1809.02573 <https://arxiv.org/pdf/1809.02573.pdf>`_
     """
 
-    def __init__(self, coupling_map, heuristic="basic", seed=None, fake_run=False, trials=None):
+    def __init__(self, coupling_map, heuristic="basic", seed=None, fake_run=False, trials=None, do_commutative_analysis=False):
         r"""SabreSwap initializer.
 
         Args:
@@ -166,6 +166,7 @@ class SabreSwap(TransformationPass):
         self._qubit_indices = None
         self._clbit_indices = None
         self.dist_matrix = None
+        self.do_commutative_analysis = do_commutative_analysis
 
     def run(self, dag):
         """Run the SabreSwap pass on `dag`.
@@ -193,6 +194,8 @@ class SabreSwap(TransformationPass):
         else:
             raise TranspilerError("Heuristic %s not recognized." % self.heuristic)
 
+        print(f"Running SABRE with {self.heuristic = } and {self.do_commutative_analysis = }")
+
         self.dist_matrix = self.coupling_map.distance_matrix
 
         # Preserve input DAG's name, regs, wire_map, etc. but replace the graph.
@@ -211,21 +214,61 @@ class SabreSwap(TransformationPass):
         original_layout = layout.copy()
 
         dag_list = []
-        for node in dag.topological_op_nodes():
-            cargs = {self._clbit_indices[x] for x in node.cargs}
-            if node.op.condition is not None:
-                for clbit in dag._bits_in_condition(node.op.condition):
-                    cargs.add(self._clbit_indices[clbit])
+        dag_edges = []
 
-            dag_list.append(
-                (
-                    node._node_id,
-                    [self._qubit_indices[x] for x in node.qargs],
-                    cargs,
+        if not self.do_commutative_analysis:
+            # This is the DAGCircuit flow
+            for node in dag.topological_op_nodes():
+                cargs = {self._clbit_indices[x] for x in node.cargs}
+                if node.op.condition is not None:
+                    for clbit in dag._bits_in_condition(node.op.condition):
+                        cargs.add(self._clbit_indices[clbit])
+
+                dag_list.append(
+                    (
+                        node._node_id,
+                        [self._qubit_indices[x] for x in node.qargs],
+                        cargs,
+                    )
                 )
-            )
-        front_layer = np.asarray([x._node_id for x in dag.front_layer()], dtype=np.uintp)
-        sabre_dag = SabreDAG(len(dag.qubits), len(dag.clbits), dag_list, front_layer)
+
+                successors = [succ for succ in dag.successors(node) if isinstance(succ, DAGOpNode)]
+                for succ in successors:
+                    dag_edges.append((node._node_id, succ._node_id))
+
+            front_layer = np.asarray([x._node_id for x in dag.front_layer()], dtype=np.uintp)
+
+        else:
+            # This is the DAGDependency flow
+            from qiskit.converters import dag_to_dagdependency
+            dag_dep = dag_to_dagdependency(dag)
+            front_layer = []
+
+            for node in dag_dep.topological_nodes():
+                cargs = {self._clbit_indices[x] for x in node.cargs}
+                # We will need to fix DAGDependency to properly handle control-flow
+                # if node.op.condition is not None:
+                #     for clbit in dag._bits_in_condition(node.op.condition):
+                #         cargs.add(self._clbit_indices[clbit])
+
+                dag_list.append(
+                    (
+                        node.node_id,
+                        [self._qubit_indices[x] for x in node.qargs],
+                        cargs,
+                    )
+                )
+
+                predecessor_ids = dag_dep.direct_predecessors(node.node_id)
+                successor_ids = dag_dep.direct_successors(node.node_id)
+                for succ_id in successor_ids:
+                    dag_edges.append((node.node_id, succ_id))
+                if not predecessor_ids:
+                    front_layer.append(node.node_id)
+
+            front_layer = np.asarray(front_layer, dtype=np.uintp)
+
+        sabre_dag = SabreDAG(len(dag.qubits), len(dag.clbits), dag_list, dag_edges, front_layer)
         swap_map, gate_order = build_swap_map(
             len(dag.qubits),
             sabre_dag,
@@ -241,16 +284,27 @@ class SabreSwap(TransformationPass):
         output_layout = Layout({dag.qubits[k]: v for (k, v) in layout_mapping})
         self.property_set["final_layout"] = output_layout
         if not self.fake_run:
-            for node_id in gate_order:
-                node = dag._multi_graph[node_id]
-                self._process_swaps(swap_map, node, mapped_dag, original_layout, canonical_register)
-                self._apply_gate(mapped_dag, node, original_layout, canonical_register)
+            if not self.do_commutative_analysis:
+                # This is the DAGCircuit flow
+                for node_id in gate_order:
+                    node = dag._multi_graph[node_id]
+                    self._process_swaps(swap_map, node._node_id, mapped_dag, original_layout, canonical_register)
+                    self._apply_gate(mapped_dag, node, original_layout, canonical_register)
+
+            else:
+                # This is the DAGDependency flow
+                for node_id in gate_order:
+                    node = dag_dep._multi_graph[node_id]
+                    self._process_swaps(swap_map, node.node_id, mapped_dag, original_layout, canonical_register)
+                    self._apply_gate(mapped_dag, node, original_layout, canonical_register)
+
             return mapped_dag
+
         return dag
 
-    def _process_swaps(self, swap_map, node, mapped_dag, current_layout, canonical_register):
-        if node._node_id in swap_map:
-            for swap in swap_map[node._node_id]:
+    def _process_swaps(self, swap_map, node_id, mapped_dag, current_layout, canonical_register):
+        if node_id in swap_map:
+            for swap in swap_map[node_id]:
                 swap_qargs = [canonical_register[swap[0]], canonical_register[swap[1]]]
                 self._apply_gate(
                     mapped_dag,
