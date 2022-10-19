@@ -114,6 +114,12 @@ class SSVQE(VariationalAlgorithm, Eigensolver):
                 function that can access the intermediate data at each optimization step. These data are
                 the evaluation count, the optimizer parameters for the ansatz, the evaluated mean
                 energies, and the metadata dictionary.
+            check_input_states_orthogonality: A boolean that sets whether or not to check
+                that the value of initial_states passed consists of a mutually orthogonal
+                set of states. If ``True``, then SSVQE will check that these states are mutually
+                orthogonal and return an error if they are not. This is set to ``True`` by default,
+                but setting this to ``False`` may be desirable for larger numbers of qubits to avoid
+                exponentially large computational overhead before the simulation even starts.
     """
 
     def __init__(
