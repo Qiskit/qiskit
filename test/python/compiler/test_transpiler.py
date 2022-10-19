@@ -1623,16 +1623,6 @@ class TestTranspileCustomPM(QiskitTestCase):
 class TestTranspileParallel(QiskitTestCase):
     """Test transpile() in parallel."""
 
-    def setUp(self):
-        super().setUp()
-        original_value = os.getenv("QISKIT_PARALLEL", None)
-
-        def restore_parallel():
-            os.environ["QISKIT_PARALLEL"] = original_value
-
-        self.addCleanup(restore_parallel)
-        del os.environ["QISKIT_PARALLEL"]
-
     @data(0, 1, 2, 3)
     def test_parallel_with_target(self, opt_level):
         """Test that parallel dispatch works with a manual target."""
@@ -1641,7 +1631,8 @@ class TestTranspileParallel(QiskitTestCase):
         qc.cx(0, 1)
         qc.measure_all()
         target = FakeMumbaiV2().target
-        res = transpile([qc] * 3, target=target, optimization_level=opt_level)
+        with patch.dict("os.environ", {"QISKIT_PARALLEL": "FALSE"}):
+            res = transpile([qc] * 3, target=target, optimization_level=opt_level)
         self.assertIsInstance(res, list)
         for circ in res:
             self.assertIsInstance(circ, QuantumCircuit)
