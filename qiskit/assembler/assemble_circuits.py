@@ -313,23 +313,24 @@ def assemble_circuits(
     Returns:
         The qobj to be run on the backends
 
-    Example:
-        from qiskit import BasicAer
-        from qiskit.circuit import QuantumRegister, ClassicalRegister, QuantumCircuit
-        from qiskit.assembler import assemble_circuits
-        from qiskit.assembler.run_config import RunConfig
-        sim_backend = BasicAer.get_backend("qasm_simulator")
-        q = QuantumRegister(2)
-        c = ClassicalRegister(2)
-        qc = QuantumCircuit(q, c)
-        qc.h(q[0])
-        qc.cx(q[0], q[1])
-        qc.measure(q, c)
-        qobj = assemble_circuits(circuits=[qc],
+    .. code-block:: python
+    
+       from qiskit import BasicAer
+       from qiskit.circuit import QuantumRegister, ClassicalRegister, QuantumCircuit
+       from qiskit.assembler import assemble_circuits
+       from qiskit.assembler.run_config import RunConfig
+       sim_backend = BasicAer.get_backend("qasm_simulator")
+       q = QuantumRegister(2)
+       c = ClassicalRegister(2)
+       qc = QuantumCircuit(q, c)
+       qc.h(q[0])
+       qc.cx(q[0], q[1])
+       qc.measure(q, c)
+       qobj = assemble_circuits(circuits=[qc],
                                 qobj_id="custom-id",
                                 qobj_header=[],
                                 run_config=RunConfig(shots=2000, memory=True, init_qubits=True))
-        print(qobj) # output QASM Qobj
+       print(qobj) # output QASM Qobj
     """
     # assemble the circuit experiments
     experiments_and_pulse_libs = parallel_map(_assemble_circuit, circuits, [run_config])
