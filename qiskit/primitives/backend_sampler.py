@@ -29,12 +29,20 @@ from .utils import _circuit_key
 
 
 class BackendSampler(BaseSampler):
-    """A :class:`~.BaseSampler` implementation that provides an interface for leveraging
-    the sampler interface from any backend.
+    """A :class:`~.BaseSampler` implementation that provides an interface for
+    leveraging the sampler interface from any backend.
 
     This class provides a sampler interface from any backend and doesn't do
     any measurement mitigation, it just computes the probability distribution
-    from the counts.
+    from the counts. It facilitates using backends that do not provide a
+    native :class:`~.BaseSampler` implementation in places that work with
+    :class:`~.BaseSampler`, such as algorithms in :mod:`qiskit.algorithms`
+    including :class:`~.qiskit.algorithms.minimum_eigensolvers.SamplingVQE`.
+    However, if you're using a provider that has a native implementation of
+    :class:`~.BaseSampler`, it is a better choice to leverage that native
+    implementation as it will likely include additional optimizations and be
+    a more efficient implementation. The generic nature of this class
+    precludes doing any provider- or backend-specific optimizations.
     """
 
     def __init__(

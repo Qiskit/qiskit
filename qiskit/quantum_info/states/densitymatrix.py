@@ -329,7 +329,8 @@ class DensityMatrix(QuantumState, TolerancesMixin):
 
         # Unitary evolution by an Operator
         if not isinstance(other, Operator):
-            other = Operator(other)
+            dims = self.dims(qargs=qargs)
+            other = Operator(other, input_dims=dims, output_dims=dims)
         return self._evolve_operator(other, qargs=qargs)
 
     def reverse_qargs(self):
