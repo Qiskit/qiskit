@@ -481,6 +481,12 @@ from qiskit.pulse.instructions import directives
 from qiskit.pulse.schedule import Schedule, ScheduleBlock
 from qiskit.pulse.transforms.alignments import AlignmentKind
 
+if sys.version_info >= (3, 8):
+    from functools import singledispatchmethod  # pylint: disable=no-name-in-module
+else:
+    from singledispatchmethod import singledispatchmethod
+
+
 #: contextvars.ContextVar[BuilderContext]: active builder
 BUILDER_CONTEXTVAR = contextvars.ContextVar("backend")
 
@@ -760,7 +766,7 @@ class _PulseBuilder:
         if len(context_block) > 0:
             self._context_stack[-1].append(context_block)
 
-    @functools.singledispatchmethod
+    @singledispatchmethod
     def inject_subroutine(
         self,
         subroutine: Union[Schedule, ScheduleBlock],
@@ -797,7 +803,7 @@ class _PulseBuilder:
             return
         self._context_stack[-1].append(self._naive_typecast_schedule(schedule))
 
-    @functools.singledispatchmethod
+    @singledispatchmethod
     def call_subroutine(
         self,
         subroutine: Union[circuit.QuantumCircuit, Schedule, ScheduleBlock],
