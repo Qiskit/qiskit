@@ -143,15 +143,29 @@ class BackendSampler(BaseSampler):
         bound_circuits = self._bound_pass_manager_run(bound_circuits)
 
         # Run
-        result = self._backend.run(bound_circuits, **run_options).result()
+        if isinstance(self._backend, BackendV1):
+            max_circuits = self._backend.configuration().max_experiments
+        elif isinstance(self._backend, BackendV2):
+            max_circuits = self._backend.max_circuits
+        if max_circuits:
+            jobs = [
+                self._backend.run(bound_circuits[pos : pos + max_circuits], **run_options)
+                for pos in range(0, len(bound_circuits), max_circuits)
+            ]
+            result = [x.result() for x in jobs]
+        else:
+            result = [self._backend.run(bound_circuits, **run_options).result()]
 
         return self._postprocessing(result, bound_circuits)
 
     def _postprocessing(self, result: Result, circuits: list[QuantumCircuit]) -> SamplerResult:
 
-        counts = result.get_counts()
-        if not isinstance(counts, list):
-            counts = [counts]
+        counts = []
+        for res in result:
+            count = res.get_counts()
+            if not isinstance(count, list):
+                count = [count]
+            counts.extend(count)
 
         shots = sum(counts[0].values())
 
