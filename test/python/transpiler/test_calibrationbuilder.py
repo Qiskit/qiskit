@@ -18,6 +18,7 @@ import numpy as np
 from ddt import data, ddt
 
 from qiskit import circuit, schedule
+from qiskit.pulse import builder
 from qiskit.pulse import (
     ControlChannel,
     Delay,
@@ -62,13 +63,17 @@ class TestRZXCalibrationBuilder(TestCalibrationBuilder):
         amp = 1.0
         pulse = GaussianSquare(duration=duration, amp=amp, sigma=sigma, width=width)
         instruction = Play(pulse, ControlChannel(1))
-        scaled = RZXCalibrationBuilder.rescale_cr_inst(instruction, theta, sample_mult=sample_mult)
+        with builder.build():
+            # this is builder macro to play stretched pulse. need builder context.
+            test_duration = RZXCalibrationBuilder.rescale_cr_inst(
+                instruction=instruction, theta=theta, sample_mult=sample_mult
+            )
         gaussian_area = abs(amp) * sigma * np.sqrt(2 * np.pi) * erf(n_sigmas)
         area = gaussian_area + abs(amp) * width
         target_area = abs(theta) / (np.pi / 2.0) * area
         width = (target_area - gaussian_area) / abs(amp)
         expected_duration = round((width + n_sigmas * sigma) / sample_mult) * sample_mult
-        self.assertEqual(scaled.duration, expected_duration)
+        self.assertEqual(test_duration, expected_duration)
 
     def test_pass_alive_with_dcx_ish(self):
         """Test if the pass is not terminated by error with direct CX input."""
@@ -165,10 +170,9 @@ class TestRZXCalibrationBuilderNoEcho(TestCalibrationBuilder):
         fake_theta = circuit.Parameter("theta")
         assigned_theta = fake_theta.assign(fake_theta, 0.01)
 
-        scaled = RZXCalibrationBuilderNoEcho.rescale_cr_inst(
-            instruction=fake_play, theta=assigned_theta
-        )
-        scaled_pulse = scaled.pulse
+        with builder.build() as test_sched:
+            RZXCalibrationBuilderNoEcho.rescale_cr_inst(instruction=fake_play, theta=assigned_theta)
+        scaled_pulse = test_sched.blocks[0].blocks[0].pulse
 
         self.assertIsInstance(scaled_pulse.amp, complex)
 
