@@ -16,20 +16,23 @@ Sampler class
 from __future__ import annotations
 
 from collections.abc import Iterable, Sequence
-from typing import Any, cast
+from typing import Any
 
 import numpy as np
 
 from qiskit.circuit import Parameter, QuantumCircuit
-from qiskit.circuit.parametertable import ParameterView
 from qiskit.exceptions import QiskitError
 from qiskit.quantum_info import Statevector
 from qiskit.result import QuasiDistribution
 
-from .base_sampler import BaseSampler
+from .base import BaseSampler, SamplerResult
 from .primitive_job import PrimitiveJob
-from .sampler_result import SamplerResult
-from .utils import bound_circuit_to_instruction, final_measurement_mapping, init_circuit
+from .utils import (
+    _circuit_key,
+    bound_circuit_to_instruction,
+    final_measurement_mapping,
+    init_circuit,
+)
 
 
 class Sampler(BaseSampler):
@@ -53,12 +56,14 @@ class Sampler(BaseSampler):
         self,
         circuits: QuantumCircuit | Iterable[QuantumCircuit] | None = None,
         parameters: Iterable[Iterable[Parameter]] | None = None,
+        options: dict | None = None,
     ):
         """
         Args:
             circuits: circuits to be executed
             parameters: Parameters of each of the quantum circuits.
                 Defaults to ``[circ.parameters for circ in circuits]``.
+            options: Default options.
 
         Raises:
             QiskitError: if some classical bits are not used for measurements.
@@ -74,7 +79,7 @@ class Sampler(BaseSampler):
                 preprocessed_circuits.append(circuit)
         else:
             preprocessed_circuits = None
-        super().__init__(preprocessed_circuits, parameters)
+        super().__init__(preprocessed_circuits, parameters, options)
         self._is_closed = False
 
     def _call(
@@ -122,7 +127,7 @@ class Sampler(BaseSampler):
             ]
             for metadatum in metadata:
                 metadatum["shots"] = shots
-        quasis = [QuasiDistribution(dict(enumerate(p))) for p in probabilities]
+        quasis = [QuasiDistribution(dict(enumerate(p)), shots=shots) for p in probabilities]
 
         return SamplerResult(quasis, metadata)
 
@@ -131,23 +136,23 @@ class Sampler(BaseSampler):
 
     def _run(
         self,
-        circuits: Sequence[QuantumCircuit],
-        parameter_values: Sequence[Sequence[float]],
-        parameters: Sequence[ParameterView],
+        circuits: tuple[QuantumCircuit, ...],
+        parameter_values: tuple[tuple[float, ...], ...],
         **run_options,
     ) -> PrimitiveJob:
         circuit_indices = []
-        for i, circuit in enumerate(circuits):
-            index = self._circuit_ids.get(id(circuit))
+        for circuit in circuits:
+            key = _circuit_key(circuit)
+            index = self._circuit_ids.get(key)
             if index is not None:
                 circuit_indices.append(index)
             else:
                 circuit_indices.append(len(self._circuits))
-                self._circuit_ids[id(circuit)] = len(self._circuits)
+                self._circuit_ids[key] = len(self._circuits)
                 circuit, qargs = self._preprocess_circuit(circuit)
                 self._circuits.append(circuit)
                 self._qargs_list.append(qargs)
-                self._parameters.append(parameters[i])
+                self._parameters.append(circuit.parameters)
         job = PrimitiveJob(self._call, circuit_indices, parameter_values, **run_options)
         job.submit()
         return job
@@ -158,11 +163,11 @@ class Sampler(BaseSampler):
         q_c_mapping = final_measurement_mapping(circuit)
         if set(range(circuit.num_clbits)) != set(q_c_mapping.values()):
             raise QiskitError(
-                "some classical bits are not used for measurements."
-                f" the number of classical bits {circuit.num_clbits},"
-                f" the used classical bits {set(q_c_mapping.values())}."
+                "Some classical bits are not used for measurements."
+                f" the number of classical bits ({circuit.num_clbits}),"
+                f" the used classical bits ({set(q_c_mapping.values())})."
             )
         c_q_mapping = sorted((c, q) for q, c in q_c_mapping.items())
         qargs = [q for _, q in c_q_mapping]
-        circuit = cast(QuantumCircuit, circuit.remove_final_measurements(inplace=False))
+        circuit = circuit.remove_final_measurements(inplace=False)
         return circuit, qargs

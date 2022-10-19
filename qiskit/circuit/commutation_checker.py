@@ -82,7 +82,10 @@ class CommutationChecker:
         """
         # We don't support commutation of conditional gates for now due to bugs in
         # CommutativeCancellation.  See gh-8553.
-        if getattr(op1, "condition") is not None or getattr(op2, "condition") is not None:
+        if (
+            getattr(op1, "condition", None) is not None
+            or getattr(op2, "condition", None) is not None
+        ):
             return False
 
         # These lines are adapted from dag_dependency and say that two gates over
@@ -103,7 +106,7 @@ class CommutationChecker:
             if (
                 getattr(op, "_directive", False)
                 or op.name in {"measure", "reset", "delay"}
-                or op.is_parameterized()
+                or (getattr(op, "is_parameterized", False) and op.is_parameterized())
             ):
                 return False
 
