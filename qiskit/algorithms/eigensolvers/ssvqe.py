@@ -487,7 +487,7 @@ class SSVQE(VariationalAlgorithm, Eigensolver):
                 aux_values = dict(zip(aux_operators.keys(), aux_values))
 
         except Exception as exc:
-                raise AlgorithmError("The primitive job to evaluate the gradient failed!") from exc
+                raise AlgorithmError("The primitive job to evaluate the aux operator values failed!") from exc
 
         return aux_values
 
