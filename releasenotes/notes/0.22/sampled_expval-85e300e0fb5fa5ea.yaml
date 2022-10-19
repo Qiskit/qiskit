@@ -1,6 +1,9 @@
 ---
 features:
   - |
-    Adds the ``sampled_expectation_value`` function that allows for computing expectation values
-    for diagonal operators from distributions such as ``Counts`` and ``QuasiDistribution``.
-    Valid operators are: ``str``, ``Pauli``, ``PauliOp``, ``PauliSumOp``, and ``SparsePauliOp``.
+    Added a new function, :func:`~.sampled_expectation_value`, that allows
+    for computing expectation values for diagonal operators from
+    distributions such as :class:`~.Counts` and :class:`~.QuasiDistribution`.
+    Valid operators for use with this function are: ``str``, :class:`~.Pauli`,
+    :class:`~.PauliOp`, :class:`~.PauliSumOp`, and
+    :class:`~.SparsePauliOp`.

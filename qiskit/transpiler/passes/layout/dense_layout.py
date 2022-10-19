@@ -147,7 +147,7 @@ def _build_error_matrix(num_qubits, target=None, coupling_map=None, backend_prop
             error = 0.0
             ops = target.operation_names_for_qargs(qargs)
             for op in ops:
-                props = target[op][qargs]
+                props = target[op].get(qargs, None)
                 if props is not None and props.error is not None:
                     # Use max error rate to represent operation error
                     # on a qubit(s). If there is more than 1 operation available

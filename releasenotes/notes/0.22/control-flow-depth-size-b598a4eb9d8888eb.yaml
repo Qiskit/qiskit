@@ -2,13 +2,14 @@
 features:
   - |
     The :class:`.DAGCircuit` methods :meth:`~.DAGCircuit.depth` and
-    :meth:`~.DAGCircuit.size` gained a ``recurse`` keyword argument for use with
-    control flow.  By default this is ``False`` and will raise an error if
-    control-flow is present, to avoid poorly defined results.  If set to ``True``,
-    a proxy value that attempts to fairly weigh each control-flow block relative
-    to its condition is returned, even though the depth or size of a concrete run
-    is generally unknowable.  See each method's documentation for how each
-    control-flow operation affects the output.
+    :meth:`~.DAGCircuit.size` have a new ``recurse`` keyword argument for use with
+    circuits that contain control-flow operations (such as :class:`~.IfElseOp`,
+    :class:`~.WhileLoopOp`, and :class:`~.ForLoopOp`). By default this is ``False``
+    and will raise an error if control-flow operations are present, to avoid poorly
+    defined results.  If set to ``True``, a proxy value that attempts to fairly weigh
+    each control-flow block relative to its condition is returned, even though the
+    depth or size of a concrete run is generally unknowable. See each method's
+    documentation for how each control-flow operation affects the output.
   - |
     :meth:`.DAGCircuit.count_ops` gained a ``recurse`` keyword argument for
     recursing into control-flow blocks.  By default this is ``True``, and all

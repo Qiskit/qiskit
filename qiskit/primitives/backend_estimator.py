@@ -65,7 +65,21 @@ def _run_circuits(
 
 
 class BackendEstimator(BaseEstimator):
-    """Evaluates expectation value using pauli rotation gates."""
+    """Evaluates expectation value using Pauli rotation gates.
+
+    The :class:`~.BackendEstimator` class is a generic implementation of the
+    :class:`~.BaseEstimator` interface that is used to wrap a :class:`~.BackendV2`
+    (or :class:`~.BackendV1`) object in the :class:`~.BaseEstimator` API. It
+    facilitates using backends that do not provide a native
+    :class:`~.BaseEstimator` implementation in places that work with
+    :class:`~.BaseEstimator`, such as algorithms in :mod:`qiskit.algorithms`
+    including :class:`~.qiskit.algorithms.minimum_eigensolvers.VQE`. However,
+    if you're using a provider that has a native implementation of
+    :class:`~.BaseEstimator`, it is a better choice to leverage that native
+    implementation as it will likely include additional optimizations and be
+    a more efficient implementation. The generic nature of this class
+    precludes doing any provider- or backend-specific optimizations.
+    """
 
     # pylint: disable=missing-raises-doc
     def __init__(
@@ -76,7 +90,7 @@ class BackendEstimator(BaseEstimator):
         bound_pass_manager: PassManager | None = None,
         skip_transpilation: bool = False,
     ):
-        """Initalize a new BackendEstimator isntance
+        """Initalize a new BackendEstimator instance
 
         Args:
             backend: Required: the backend to run the primitive on

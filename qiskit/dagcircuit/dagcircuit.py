@@ -1152,6 +1152,9 @@ class DAGCircuit:
             DAGCircuitError: if ``cycle_check`` is set to ``True`` and replacing
                 the specified block introduces a cycle or if ``node_block`` is
                 empty.
+
+        Returns:
+            DAGOpNode: The op node that replaces the block.
         """
         block_qargs = set()
         block_cargs = set()
@@ -1186,6 +1189,8 @@ class DAGCircuit:
 
         for nd in node_block:
             self._decrement_op(nd.op)
+
+        return new_node
 
     def substitute_node_with_dag(self, node, input_dag, wires=None, propagate_condition=True):
         """Replace one node with dag.
