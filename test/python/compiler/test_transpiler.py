@@ -1631,7 +1631,7 @@ class TestTranspileParallel(QiskitTestCase):
         qc.cx(0, 1)
         qc.measure_all()
         target = FakeMumbaiV2().target
-        with patch.dict("os.environ", {"QISKIT_PARALLEL": "FALSE"}):
+        with patch.dict("os.environ", {"QISKIT_PARALLEL": "TRUE"}):
             res = transpile([qc] * 3, target=target, optimization_level=opt_level)
         self.assertIsInstance(res, list)
         for circ in res:
