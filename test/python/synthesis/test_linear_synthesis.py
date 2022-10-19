@@ -14,9 +14,10 @@
 
 import unittest
 
+from qiskit import QuantumCircuit
 from qiskit.circuit.library import LinearFunction
 from qiskit.synthesis.linear import cnot_synth, random_invertible_binary_matrix
-from qiskit.synthesis.linear.linear_circuits_utils import *
+from qiskit.synthesis.linear.linear_circuits_utils import transpose_cx_circ, optimize_cx_4_options
 from qiskit.test import QiskitTestCase
 
 
@@ -55,7 +56,7 @@ class TestLinearSynth(QiskitTestCase):
     def test_transpose_circ(self):
         """Test the transpose_cx_circ() function."""
         n = 5
-        mat = random_invertible_binary_matrix(5, seed=1234)
+        mat = random_invertible_binary_matrix(n, seed=1234)
         qc = cnot_synth(mat)
         transposed_qc = transpose_cx_circ(qc)
         transposed_mat = LinearFunction(transposed_qc).linear.astype(int)
