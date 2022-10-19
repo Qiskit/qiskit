@@ -218,13 +218,13 @@ class RZXCalibrationBuilder(CalibrationBuilder):
         sxc = self._inst_map.get("sx", qubits[1])
         szt = self._inst_map.get("rz", qubits[0], np.pi / 2)
         sxt = self._inst_map.get("sx", qubits[0])
-        with builder.build(default_alignment="sequential", name="hadamard") as hadamard:
+        with builder.build(name="hadamard") as hadamard:
             # Control qubit
-            builder.call(szc, name="rzc")
+            builder.call(szc, name="szc")
             builder.call(sxc, name="sxc")
             builder.call(szc, name="szc")
             # Target qubit
-            builder.call(szt, name="rzt")
+            builder.call(szt, name="szt")
             builder.call(sxt, name="sxt")
             builder.call(szt, name="szt")
 
