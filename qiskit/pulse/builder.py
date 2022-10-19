@@ -656,7 +656,7 @@ class _PulseBuilder:
         """Get current context.
 
         Notes:
-            New instruction can be added by `.append_block` or `.append_instruction` method.
+            New instruction can be added by `.append_subroutine` or `.append_instruction` method.
             Use above methods rather than directly accessing to the current context.
         """
         return self._context_stack[-1]
@@ -698,7 +698,7 @@ class _PulseBuilder:
 
         while len(self._context_stack) > 1:
             current = self.pop_context()
-            self.append_block(current)
+            self.append_subroutine(current)
 
         return self._context_stack[0]
 
@@ -748,26 +748,6 @@ class _PulseBuilder:
         self.append_instruction(inst)
 
     @_compile_lazy_circuit_before
-    def append_block(self, context_block: ScheduleBlock):
-        """Add a :class:`ScheduleBlock` to the builder's context schedule.
-
-        Args:
-            context_block: ScheduleBlock to append to the current context block.
-
-        Raises:
-            PulseError: When non ScheduleBlock object is appended.
-        """
-        if not isinstance(context_block, ScheduleBlock):
-            raise exceptions.PulseError(
-                f"'{context_block.__class__.__name__}' is not valid data format in the builder. "
-                "Only 'ScheduleBlock' can be appended to the builder context."
-            )
-
-        # ignore empty context
-        if len(context_block) > 0:
-            self._context_stack[-1].append(context_block)
-
-    @_compile_lazy_circuit_before
     def append_subroutine(self, subroutine: Union[Schedule, ScheduleBlock]):
         """Append a :class:`ScheduleBlock` to the builder's context schedule.
 
@@ -780,6 +760,12 @@ class _PulseBuilder:
         Raises:
             PulseError: When subroutine is not Schedule nor ScheduleBlock.
         """
+        if not isinstance(subroutine, (ScheduleBlock, Schedule)):
+            raise exceptions.PulseError(
+                f"'{subroutine.__class__.__name__}' is not valid data format in the builder. "
+                "'Schedule' and 'ScheduleBlock' can be appended to the builder context."
+            )
+
         if len(subroutine) == 0:
             return
         if isinstance(subroutine, Schedule):
@@ -1254,7 +1240,7 @@ def align_left() -> ContextManager[None]:
         yield
     finally:
         current = builder.pop_context()
-        builder.append_block(current)
+        builder.append_subroutine(current)
 
 
 @contextmanager
@@ -1292,7 +1278,7 @@ def align_right() -> AlignmentKind:
         yield
     finally:
         current = builder.pop_context()
-        builder.append_block(current)
+        builder.append_subroutine(current)
 
 
 @contextmanager
@@ -1330,7 +1316,7 @@ def align_sequential() -> AlignmentKind:
         yield
     finally:
         current = builder.pop_context()
-        builder.append_block(current)
+        builder.append_subroutine(current)
 
 
 @contextmanager
@@ -1381,7 +1367,7 @@ def align_equispaced(duration: Union[int, ParameterExpression]) -> AlignmentKind
         yield
     finally:
         current = builder.pop_context()
-        builder.append_block(current)
+        builder.append_subroutine(current)
 
 
 @contextmanager
@@ -1442,7 +1428,7 @@ def align_func(
         yield
     finally:
         current = builder.pop_context()
-        builder.append_block(current)
+        builder.append_subroutine(current)
 
 
 @contextmanager
@@ -1468,7 +1454,7 @@ def general_transforms(alignment_context: AlignmentKind) -> ContextManager[None]
         yield
     finally:
         current = builder.pop_context()
-        builder.append_block(current)
+        builder.append_subroutine(current)
 
 
 @contextmanager
