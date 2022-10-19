@@ -1,0 +1,26 @@
+---
+features:
+  - |
+    New pulse directive :class:`~qiskit.pulse.instructions.AreaBarrier` has been added.
+    This instruction is QPY compatible. This directive behaves almost identically to
+    delay instruction, but will be removed before execution.
+    This directive is intended to be used internally within the pulse builder
+    and helps :class:`.ScheduleBlock` with representing instructions with
+    absolute time intervals. This allows the pulse builder to convert
+    :class:`Schedule` into :class:`ScheduleBlock`, rather than wrapping with call instruction.
+  - |
+    QPY dump and load now support :class:`~qiskit.pulse.instructions.AreaBarrier` instruction.
+upgrade:
+  - |
+    The behavior of the pulse builder when a :class:`.Schedule` is called
+    has been upgraded. Called schedules are internally converted into
+    :class:`.ScheduleBlock` representation and now reference mechanism is
+    always applied rather than appending the schedules wrapped by
+    the :class:`~qiskit.pulse.instructions.Call` instruction.
+    This is an upgrade of internal representation and thus no API changes.
+    This change guarantees the generated schedule blocks are always QPY compatible.
+  - |
+    :class:`~qiskit.transpiler.passes.RZXCalibrationBuilder`
+    and :class:`~qiskit.transpiler.passes.RZXCalibrationBuilderNoEcho` transpiler pass
+    have been upgraded to generate :class:`.ScheduleBlock`.
+    This change guarantees the transpiled circuits are always QPY compatible.
