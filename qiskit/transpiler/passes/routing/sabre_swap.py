@@ -194,8 +194,6 @@ class SabreSwap(TransformationPass):
         else:
             raise TranspilerError("Heuristic %s not recognized." % self.heuristic)
 
-        print(f"Running SABRE with {self.heuristic = } and {self.do_commutative_analysis = }")
-
         self.dist_matrix = self.coupling_map.distance_matrix
 
         # Preserve input DAG's name, regs, wire_map, etc. but replace the graph.

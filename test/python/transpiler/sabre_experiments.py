@@ -189,7 +189,7 @@ def bench():
         res_depth5.append(tqc5.depth())
         res_depth6.append(tqc6.depth())
 
-    print("NAME                      NQ    1Q      2Q       |     B -C    B +C    L -C    L +C    D -C    D+ C")
+    print("NAME                      NQ    1Q      2Q       |     B -C    B +C    L -C    L +C    D -C    D +C")
     for i in range(len(res_names)):
         print(f"{res_names[i]:26}{res_nq[i]:6}{res_ng1[i]:8}{res_ng2[i]:8} | "
               f"{res_swaps1[i]:8}{res_swaps2[i]:8}{res_swaps3[i]:8}{res_swaps4[i]:8}{res_swaps5[i]:8}{res_swaps6[i]:8}")
