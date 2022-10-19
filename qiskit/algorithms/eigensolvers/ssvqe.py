@@ -487,7 +487,9 @@ class SSVQE(VariationalAlgorithm, Eigensolver):
                 aux_values = dict(zip(aux_operators.keys(), aux_values))
 
         except Exception as exc:
-                raise AlgorithmError("The primitive job to evaluate the aux operator values failed!") from exc
+            raise AlgorithmError(
+                "The primitive job to evaluate the aux operator values failed!"
+            ) from exc
 
         return aux_values
 
@@ -511,7 +513,7 @@ class SSVQE(VariationalAlgorithm, Eigensolver):
             )
 
         except Exception as exc:
-                raise AlgorithmError("The primitive job to evaluate the eigenvalues failed!") from exc
+            raise AlgorithmError("The primitive job to evaluate the eigenvalues failed!") from exc
 
         result.cost_function_evals = optimizer_result.nfev
         result.optimal_point = optimizer_result.x
