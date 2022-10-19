@@ -44,6 +44,7 @@ from qiskit.pulse.instructions import (
     SetPhase,
     ShiftPhase,
     RelativeBarrier,
+    AreaBarrier,
 )
 from qiskit.pulse.library import Waveform, SymbolicPulse
 from qiskit.pulse.schedule import ScheduleBlock
@@ -231,10 +232,11 @@ class ScheduleInstruction(TypeKeyBase):
     SET_PHASE = b"q"
     SHIFT_PHASE = b"r"
     BARRIER = b"b"
+    AREA_BARRIER = b"c"
 
     # 's' is reserved by ScheduleBlock, i.e. block can be nested as an element.
     # Call instructon is not supported by QPY.
-    # This instruction is excluded from ScheduleBlock instructions with
+    # This instruction has been excluded from ScheduleBlock instructions with
     # qiskit-terra/#8005 and new instruction Reference will be added instead.
     # Call is only applied to Schedule which is not supported by QPY.
     # Also snapshot is not suppored because of its limited usecase.
@@ -257,6 +259,8 @@ class ScheduleInstruction(TypeKeyBase):
             return cls.SHIFT_PHASE
         if isinstance(obj, RelativeBarrier):
             return cls.BARRIER
+        if isinstance(obj, AreaBarrier):
+            return cls.AREA_BARRIER
 
         raise exceptions.QpyError(
             f"Object type '{type(obj)}' is not supported in {cls.__name__} namespace."
@@ -280,6 +284,8 @@ class ScheduleInstruction(TypeKeyBase):
             return ShiftPhase
         if type_key == cls.BARRIER:
             return RelativeBarrier
+        if type_key == cls.AREA_BARRIER:
+            return AreaBarrier
 
         raise exceptions.QpyError(
             f"A class corresponding to type key '{type_key}' is not found in {cls.__name__} namespace."
