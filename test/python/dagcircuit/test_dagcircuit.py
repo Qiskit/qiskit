@@ -1462,6 +1462,36 @@ class TestDagEquivalence(QiskitTestCase):
         self.assertEqual(dag1, dag2)
         self.assertNotEqual(dag2, dag3)
 
+    def test_semantic_conditions(self):
+        """Test that the semantic equality is applied to the bits in conditions as well."""
+        qreg = QuantumRegister(1, name="q")
+        creg = ClassicalRegister(1, name="c")
+        qc1 = QuantumCircuit(qreg, creg, [Clbit()])
+        qc1.x(0).c_if(qc1.cregs[0], 1)
+        qc1.x(0).c_if(qc1.clbits[-1], True)
+        qc2 = QuantumCircuit(qreg, creg, [Clbit()])
+        qc2.x(0).c_if(qc2.cregs[0], 1)
+        qc2.x(0).c_if(qc2.clbits[-1], True)
+        self.assertEqual(circuit_to_dag(qc1), circuit_to_dag(qc2))
+
+        # Order of operations transposed.
+        qc1 = QuantumCircuit(qreg, creg, [Clbit()])
+        qc1.x(0).c_if(qc1.cregs[0], 1)
+        qc1.x(0).c_if(qc1.clbits[-1], True)
+        qc2 = QuantumCircuit(qreg, creg, [Clbit()])
+        qc2.x(0).c_if(qc2.clbits[-1], True)
+        qc2.x(0).c_if(qc2.cregs[0], 1)
+        self.assertNotEqual(circuit_to_dag(qc1), circuit_to_dag(qc2))
+
+        # Single-bit condition values not the same.
+        qc1 = QuantumCircuit(qreg, creg, [Clbit()])
+        qc1.x(0).c_if(qc1.cregs[0], 1)
+        qc1.x(0).c_if(qc1.clbits[-1], True)
+        qc2 = QuantumCircuit(qreg, creg, [Clbit()])
+        qc2.x(0).c_if(qc2.cregs[0], 1)
+        qc2.x(0).c_if(qc2.clbits[-1], False)
+        self.assertNotEqual(circuit_to_dag(qc1), circuit_to_dag(qc2))
+
 
 class TestDagSubstitute(QiskitTestCase):
     """Test substituting a dag node with a sub-dag"""
@@ -1868,7 +1898,7 @@ class TestReplaceBlock(QiskitTestCase):
         dag = DAGCircuit()
         dag.add_qreg(qr)
         node = dag.apply_operation_back(HGate(), [qr[0]])
-        dag.replace_block_with_op(
+        new_node = dag.replace_block_with_op(
             [node], XGate(), {bit: idx for (idx, bit) in enumerate(dag.qubits)}
         )
 
@@ -1878,6 +1908,7 @@ class TestReplaceBlock(QiskitTestCase):
 
         self.assertEqual(expected_dag, dag)
         self.assertEqual(expected_dag.count_ops(), dag.count_ops())
+        self.assertIsInstance(new_node.op, XGate)
 
 
 class TestDagProperties(QiskitTestCase):
