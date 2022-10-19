@@ -314,7 +314,7 @@ def assemble_circuits(
         The qobj to be run on the backends
 
     .. code-block:: python
-    
+
        from qiskit import BasicAer
        from qiskit.circuit import QuantumRegister, ClassicalRegister, QuantumCircuit
        from qiskit.assembler import assemble_circuits
