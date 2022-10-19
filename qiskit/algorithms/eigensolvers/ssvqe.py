@@ -511,8 +511,8 @@ class SSVQE(VariationalAlgorithm, Eigensolver):
             )
 
         except Exception as exc:
-                raise AlgorithmError("The primitive job to evaluate the gradient failed!") from exc
-                
+                raise AlgorithmError("The primitive job to evaluate the eigenvalues failed!") from exc
+
         result.cost_function_evals = optimizer_result.nfev
         result.optimal_point = optimizer_result.x
         result.optimal_parameters = dict(zip(self.ansatz.parameters, optimizer_result.x))
