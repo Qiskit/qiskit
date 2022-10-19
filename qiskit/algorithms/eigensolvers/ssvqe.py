@@ -289,7 +289,7 @@ class SSVQE(VariationalAlgorithm, Eigensolver):
         initialized_ansatz_list: list[QuantumCircuit],
         operator: BaseOperator | PauliSumOp,
     ) -> tuple[Callable[[np.ndarray], float | list[float]], dict]:
-        """Returns a function handle to evaluates the weighted energy sum at given parameters
+        """Returns a function handle to evaluate the weighted energy sum at given parameters
         for the ansatz. This is the objective function to be passed to the optimizer
         that is used for evaluation.
         Args:
@@ -340,7 +340,7 @@ class SSVQE(VariationalAlgorithm, Eigensolver):
 
         return evaluate_weighted_energy_sum
 
-    def _get_evalute_gradient(  # check this implementation
+    def _get_evalute_gradient(
         self,
         initialized_ansatz_list: list[QuantumCircuit],
         operator: BaseOperator | PauliSumOp,
