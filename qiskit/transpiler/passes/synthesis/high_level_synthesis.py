@@ -19,7 +19,7 @@ from qiskit.transpiler.basepasses import TransformationPass
 from qiskit.dagcircuit.dagcircuit import DAGCircuit
 from qiskit.transpiler.exceptions import TranspilerError
 from qiskit.quantum_info import decompose_clifford
-from qiskit.transpiler.synthesis import cnot_synth
+from qiskit.synthesis.linear import cnot_synth
 from .plugin import HighLevelSynthesisPluginManager, HighLevelSynthesisPlugin
 
 
