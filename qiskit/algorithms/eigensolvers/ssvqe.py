@@ -129,7 +129,7 @@ class SSVQE(VariationalAlgorithm, Eigensolver):
         ansatz: QuantumCircuit | None = None,
         optimizer: Optimizer | Minimizer = None,
         initial_point: Sequence[float] = None,
-        initial_states: Sequence[QuantumCircuit] = None,
+        initial_states: list[QuantumCircuit] = None,
         weight_vector: Sequence[float] | Sequence[int] = None,
         gradient: BaseEstimatorGradient | None = None,
         callback: Callable[[int, np.ndarray, Sequence[float], float], None] | None = None,
@@ -417,7 +417,7 @@ class SSVQE(VariationalAlgorithm, Eigensolver):
         return ansatz
 
     def _check_operator_initial_states(
-        self, list_of_states: Sequence[QuantumCircuit] | None, operator: BaseOperator | PauliSumOp
+        self, list_of_states: list[QuantumCircuit] | None, operator: BaseOperator | PauliSumOp
     ) -> QuantumCircuit:
 
         """Check that the number of qubits of operator and all the initial states match."""
@@ -492,7 +492,7 @@ class SSVQE(VariationalAlgorithm, Eigensolver):
         aux_operators_evaluated: ListOrDict[tuple[complex, tuple[complex, int]]],
         optimizer_time: float,
         operator: BaseOperator | PauliSumOp,
-        initialized_ansatz_list: Sequence[QuantumCircuit],
+        initialized_ansatz_list: list[QuantumCircuit],
     ) -> SSVQEResult:
         result = SSVQEResult()
         result.eigenvalues = (
