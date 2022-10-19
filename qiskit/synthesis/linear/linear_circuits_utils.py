@@ -14,13 +14,14 @@
 
 import copy
 import numpy as np
+from typing import Callable
 from qiskit import QuantumCircuit
 from qiskit.exceptions import QiskitError
 from qiskit.circuit.exceptions import CircuitError
 from . import calc_inverse_matrix, check_invertible_binary_matrix
 
 
-def transpose_cx_circ(qc):
+def transpose_cx_circ(qc: QuantumCircuit):
     """Takes a circuit having only CX gates, and calculates its transpose.
     This is done by recursively replacing CX(i, j) with CX(j, i) in all instructions.
 
@@ -31,7 +32,8 @@ def transpose_cx_circ(qc):
         QuantumCircuit: the transposed circuit.
 
     Raises:
-        CircuitErrors: if qc has a non-CX gate.
+        CircuitError: if qc has a non-CX gate.
+        CircuitError: if a CX gate is not on two qubits.
     """
     tranposed_circ = QuantumCircuit(qc.qubits, qc.clbits, name=qc.name + "_transpose")
     for instruction in qc.data:
@@ -43,7 +45,7 @@ def transpose_cx_circ(qc):
     return tranposed_circ
 
 
-def optimize_cx_4_options(function, mat, optimize_count=True):
+def optimize_cx_4_options(function: Callable, mat: np.ndarray, optimize_count: bool = True):
     """Get the best implementation of a circuit implementing a binary invertible matrix M,
     by considering all four options: M,M^(-1),M^T,M^(-1)^T.
     Optimizing either the CX count or the depth.
@@ -54,7 +56,10 @@ def optimize_cx_4_options(function, mat, optimize_count=True):
         optimize_count: True if the number of CX gates in optimize, False if the depth is optimized.
 
     Returns:
-        QuantumCircuit: an optimized QuantumCircuit, having the best depth or CX count of the four options.
+        QuantumCircuit: an optimized QuantumCircuit, has the best depth or CX count of the four options.
+
+    Raises:
+        QiskitError: if mat is not an invertible matrix.
     """
     if not check_invertible_binary_matrix(mat):
         raise QiskitError("The matrix is not invertible.")
