@@ -209,8 +209,6 @@ class SSVQE(VariationalAlgorithm, Eigensolver):
 
         self.weight_vector = self._check_weight_vector(self.weight_vector)
 
-        start_time = time()
-
         evaluate_weighted_energy_sum = self._get_evaluate_weighted_energy_sum(
             initialized_ansatz_list, operator
         )
