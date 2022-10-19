@@ -500,13 +500,19 @@ class SSVQE(VariationalAlgorithm, Eigensolver):
         initialized_ansatz_list: list[QuantumCircuit],
     ) -> SSVQEResult:
         result = SSVQEResult()
-        result.eigenvalues = (
-            self.estimator.run(
-                initialized_ansatz_list, [operator] * self.k, [optimizer_result.x] * self.k
+
+        try:
+            result.eigenvalues = (
+                self.estimator.run(
+                    initialized_ansatz_list, [operator] * self.k, [optimizer_result.x] * self.k
+                )
+                .result()
+                .values
             )
-            .result()
-            .values
-        )
+
+        except Exception as exc:
+                raise AlgorithmError("The primitive job to evaluate the gradient failed!") from exc
+                
         result.cost_function_evals = optimizer_result.nfev
         result.optimal_point = optimizer_result.x
         result.optimal_parameters = dict(zip(self.ansatz.parameters, optimizer_result.x))
