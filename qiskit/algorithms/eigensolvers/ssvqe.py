@@ -104,17 +104,16 @@ class SSVQE(VariationalAlgorithm, Eigensolver):
                 result.
             gradient (BaseEstimatorGradient | None): An optional estimator gradient to be used with the
                 optimizer.
+            initial_states (Sequence[QuantumCircuit]): An optional list of mutually orthogonal
+                initial states. If ``None``, then SSVQE will set these to be a list of mutually
+                orthogonal computational basis states.
+            weight_vector (Sequence[float]): A 1D array of real positive-valued numbers to assign
+                as weights to each of the expectation values. If ``None``, then SSVQE will default
+                to [k, k-1, ..., 1].
             callback (Callable[[int, np.ndarray, Sequence[float], dict[str, Any]], None] | None): A
                 function that can access the intermediate data at each optimization step. These data are
                 the evaluation count, the optimizer parameters for the ansatz, the evaluated mean
                 energies, and the metadata dictionary.
-            weight_vector (Sequence[float]): A 1D array of real positive-valued numbers to assign
-                as weights to each of the expectation values. If ``None``, then SSVQE will default
-                to [k, k-1, ..., 1].
-            initial_states (Sequence[QuantumCircuit]): An optional list of mutually orthogonal
-                initial states. If ``None``, then SSVQE will set these to be a list of mutually
-                orthogonal computational basis states.
-
     """
 
     def __init__(
