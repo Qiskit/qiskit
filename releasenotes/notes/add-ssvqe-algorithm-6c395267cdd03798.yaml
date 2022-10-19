@@ -14,13 +14,13 @@ features:
     .. code-block:: python
 
       from qiskit import QuantumCircuit
-      from qiskit.opflow import Z
+      from qiskit.quantum_info import Pauli
       from qiskit.primitives import Estimator
       from qiskit.circuit.library import RealAmplitudes
       from qiskit.algorithms.optimizers import SPSA
       from qiskit.algorithms.eigensolvers import SSVQE
 
-      operator = Z^Z
+      operator = Pauli("ZZ")
       input_states = [QuantumCircuit(2), QuantumCircuit(2)]
       input_states[0].x(0)
       input_states[1].x(1)
