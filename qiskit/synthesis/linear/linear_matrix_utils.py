@@ -97,7 +97,7 @@ def calc_inverse_matrix(mat, verify=False):
     n = mat.shape[0]
     # concatenate the matrix and identity
     mat1 = np.concatenate((mat, np.eye(n, dtype=int)), axis=1)
-    mat1, _ = _gauss_elimination(mat1, None, full_elim=True)
+    mat1 = _gauss_elimination(mat1, None, full_elim=True)
 
     r = _compute_rank_after_gauss_elim(mat1[:, 0:n])
 
