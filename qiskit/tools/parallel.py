@@ -139,12 +139,12 @@ def parallel_map(  # pylint: disable=dangerous-default-value
         terra.parallel.finish: All the parallel tasks have finished.
 
     Example:
-           import time
-           from qiskit.tools.parallel import parallel_map
-           def func(_):
-                time.sleep(0.1)
-                return 0
-           parallel_map(func, list(range(10)));
+        import time
+        from qiskit.tools.parallel import parallel_map
+        def func(_):
+            time.sleep(0.1)
+            return 0
+        parallel_map(func, list(range(10)));
     """
     if len(values) == 0:
         return []
