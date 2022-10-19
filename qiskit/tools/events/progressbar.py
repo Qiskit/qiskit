@@ -118,6 +118,11 @@ class TextProgressBar(BaseProgressBar):
 
     output_handler : the handler the progress bar should be written to, default
                      is sys.stdout, another option is sys.stderr
+                     
+    Example: 
+          from qiskit.tools.events import TextProgressBar
+          TextProgressBar()
+          %qiskit_progress_bar -t text
     """
 
     def __init__(self, output_handler=None):

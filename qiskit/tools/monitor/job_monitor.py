@@ -79,6 +79,20 @@ def job_monitor(job, interval=None, quiet=False, output=sys.stdout, line_discipl
         By default this is sys.stdout.
         line_discipline (string): character emitted at start of a line of job monitor output,
         This defaults to \\r.
+        
+    Example:
+        from qiskit import BasicAer, execute
+        from qiskit.circuit import QuantumRegister, ClassicalRegister, QuantumCircuit
+        from qiskit.tools.monitor import job_monitor
+        sim_backend = BasicAer.get_backend("qasm_simulator")
+        q = QuantumRegister(2)
+        c = ClassicalRegister(2)
+        qc = QuantumCircuit(q, c)
+        qc.h(q[0])
+        qc.cx(q[0], q[1])
+        qc.measure(q, c)
+        job_sim = execute(qc, backend=sim_backend)
+        job_monitor(job_sim)
     """
     if interval is None:
         _interval_set = False

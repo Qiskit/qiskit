@@ -10,16 +10,6 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""Events
-
-TextProgressBar
-===============
-
-.. jupyter-execute::
-
-   from qiskit.tools.events import TextProgressBar
-   TextProgressBar()
-   %qiskit_progress_bar -t text
-"""
+"""Events"""
 
 from .progressbar import TextProgressBar
