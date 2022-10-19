@@ -477,12 +477,17 @@ class SSVQE(VariationalAlgorithm, Eigensolver):
             aux_ops = aux_operators
 
         num_aux_ops = len(aux_ops)
-        aux_job = self.estimator.run([ansatz] * num_aux_ops, aux_ops)
-        aux_values = aux_job.result().values
-        aux_values = list(zip(aux_values, [0] * len(aux_values)))
 
-        if isinstance(aux_operators, dict):
-            aux_values = dict(zip(aux_operators.keys(), aux_values))
+        try:
+            aux_job = self.estimator.run([ansatz] * num_aux_ops, aux_ops)
+            aux_values = aux_job.result().values
+            aux_values = list(zip(aux_values, [0] * len(aux_values)))
+
+            if isinstance(aux_operators, dict):
+                aux_values = dict(zip(aux_operators.keys(), aux_values))
+
+        except Exception as exc:
+                raise AlgorithmError("The primitive job to evaluate the gradient failed!") from exc
 
         return aux_values
 
