@@ -15,7 +15,7 @@ Fake Almaden device (20 qubit).
 """
 
 import os
-from qiskit.providers.fake_provider import fake_pulse_backend, fake_backend
+from qiskit.providers.fake_provider import fake_qasm_backend, fake_backend
 
 
 class FakeAlmadenV2(fake_backend.FakeBackendV2):
@@ -35,11 +35,10 @@ class FakeAlmadenV2(fake_backend.FakeBackendV2):
     dirname = os.path.dirname(__file__)
     conf_filename = "conf_almaden.json"
     props_filename = "props_almaden.json"
-    defs_filename = "defs_almaden.json"
     backend_name = "fake_almaden_v2"
 
 
-class FakeAlmaden(fake_pulse_backend.FakePulseBackend):
+class FakeAlmaden(fake_qasm_backend.FakeQasmBackend):
     """A fake Almaden backend.
 
     .. code-block:: text
@@ -56,5 +55,4 @@ class FakeAlmaden(fake_pulse_backend.FakePulseBackend):
     dirname = os.path.dirname(__file__)
     conf_filename = "conf_almaden.json"
     props_filename = "props_almaden.json"
-    defs_filename = "defs_almaden.json"
     backend_name = "fake_almaden"

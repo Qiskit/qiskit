@@ -19,7 +19,9 @@ import numpy as np
 
 from qiskit.algorithms.optimizers import SPSA, QNSPSA
 from qiskit.circuit.library import PauliTwoDesign
-from qiskit.opflow import I, Z, StateFn
+from qiskit.primitives import Sampler
+from qiskit.providers.basicaer import StatevectorSimulatorPy
+from qiskit.opflow import I, Z, StateFn, MatrixExpectation
 from qiskit.utils import algorithm_globals
 
 
@@ -181,3 +183,42 @@ class TestSPSA(QiskitAlgorithmsTestCase):
         for i, (key, values) in enumerate(history.items()):
             self.assertTrue(all(isinstance(value, expected_types[i]) for value in values))
             self.assertEqual(len(history[key]), maxiter)
+
+    @data(1, 2, 3, 4)
+    def test_estimate_stddev(self, max_evals_grouped):
+        """Test the estimate_stddev
+        See https://github.com/Qiskit/qiskit-nature/issues/797"""
+
+        def objective(x):
+            if len(x.shape) == 2:
+                return np.array([sum(x_i) for x_i in x])
+            return sum(x)
+
+        point = np.ones(5)
+        result = SPSA.estimate_stddev(objective, point, avg=10, max_evals_grouped=max_evals_grouped)
+        self.assertAlmostEqual(result, 0)
+
+    def test_qnspsa_fidelity_deprecation(self):
+        """Test using a backend and expectation converter in get_fidelity warns."""
+        ansatz = PauliTwoDesign(2, reps=1, seed=2)
+
+        with self.assertWarns(PendingDeprecationWarning):
+            _ = QNSPSA.get_fidelity(ansatz, StatevectorSimulatorPy(), MatrixExpectation())
+
+    def test_qnspsa_fidelity_primitives(self):
+        """Test the primitives can be used in get_fidelity."""
+        ansatz = PauliTwoDesign(2, reps=1, seed=2)
+        initial_point = np.random.random(ansatz.num_parameters)
+
+        with self.subTest(msg="pass as kwarg"):
+            fidelity = QNSPSA.get_fidelity(ansatz, sampler=Sampler())
+            result = fidelity(initial_point, initial_point)
+
+            self.assertAlmostEqual(result[0], 1)
+
+        # this test can be removed once backend and expectation are removed
+        with self.subTest(msg="pass positionally"):
+            fidelity = QNSPSA.get_fidelity(ansatz, Sampler())
+            result = fidelity(initial_point, initial_point)
+
+            self.assertAlmostEqual(result[0], 1)
