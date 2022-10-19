@@ -73,23 +73,18 @@ class UnrollCustomDefinitions(TransformationPass):
             if dag.has_calibration_for(node):
                 continue
 
-            if self._target is not None:
-                inst_supported = self._target.instruction_supported(
-                    operation_name=node.op.name, qargs=tuple(qubit_mapping[x] for x in node.qargs)
+            controlled_gate_open_ctrl = isinstance(node.op, ControlledGate) and node.op._open_ctrl
+            if not controlled_gate_open_ctrl:
+                inst_supported = (
+                    self._target.instruction_supported(
+                        operation_name=node.op.name,
+                        qargs=tuple(qubit_mapping[x] for x in node.qargs),
+                    )
+                    if self._target is not None
+                    else node.name in device_insts
                 )
                 if inst_supported or self._equiv_lib.has_entry(node.op):
-                    if isinstance(node.op, ControlledGate) and node.op._open_ctrl:
-                        pass
-                    else:
-                        continue
-
-            else:
-                if node.name in device_insts or self._equiv_lib.has_entry(node.op):
-                    if isinstance(node.op, ControlledGate) and node.op._open_ctrl:
-                        pass
-                    else:
-                        continue
-
+                    continue
             try:
                 rule = node.op.definition.data
             except TypeError as err:
