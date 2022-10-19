@@ -210,7 +210,7 @@ class TestSSVQE(QiskitAlgorithmsTestCase):
         ref_eval_count = [1, 2, 3]
         ref_mean = [[-1.07, -1.44], [-1.45, -1.06], [-1.37, -0.94]]
 
-        np.testing.assert_array_almost_equal(history["eval_count"], ref_eval_count, decimal=0)
+        np.testing.assert_array_equal(history["eval_count"], ref_eval_count)
         np.testing.assert_array_almost_equal(history["mean_energies"], ref_mean, decimal=2)
 
     @data(H2_PAULI, H2_OP)
