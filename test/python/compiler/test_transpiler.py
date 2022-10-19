@@ -60,6 +60,7 @@ from qiskit.transpiler.passes import BarrierBeforeFinalMeasurements, GateDirecti
 from qiskit.quantum_info import Operator, random_unitary
 from qiskit.transpiler.passmanager_config import PassManagerConfig
 from qiskit.transpiler.preset_passmanagers import level_0_pass_manager
+from qiskit.tools import parallel
 
 
 class CustomCX(Gate):
@@ -1795,6 +1796,18 @@ class TestTranspileCustomPM(QiskitTestCase):
 class TestTranspileParallel(QiskitTestCase):
     """Test transpile() in parallel."""
 
+    def setUp(self):
+        super().setUp()
+
+        # Force parallel execution to True to test multiprocessing for this class
+        original_val = parallel.PARALLEL_DEFAULT
+
+        def restore_default():
+            parallel.PARALLEL_DEFAULT = original_val
+
+        self.addCleanup(restore_default)
+        parallel.PARALLEL_DEFAULT = True
+
     @data(0, 1, 2, 3)
     def test_parallel_with_target(self, opt_level):
         """Test that parallel dispatch works with a manual target."""
@@ -1803,8 +1816,7 @@ class TestTranspileParallel(QiskitTestCase):
         qc.cx(0, 1)
         qc.measure_all()
         target = FakeMumbaiV2().target
-        with patch.dict("os.environ", {"QISKIT_PARALLEL": "TRUE"}):
-            res = transpile([qc] * 3, target=target, optimization_level=opt_level)
+        res = transpile([qc] * 3, target=target, optimization_level=opt_level)
         self.assertIsInstance(res, list)
         for circ in res:
             self.assertIsInstance(circ, QuantumCircuit)
