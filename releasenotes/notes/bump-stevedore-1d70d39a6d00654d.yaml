@@ -1,0 +1,5 @@
+---
+upgrade:
+  - |
+    The required version of ``stevedore`` has been bumped to ``> 4.0.0``.  This
+    is due to incompatible changes in ``importlib_metadata>=5.0``.
