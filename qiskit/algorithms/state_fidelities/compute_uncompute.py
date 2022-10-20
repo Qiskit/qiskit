@@ -57,14 +57,7 @@ class ComputeUncompute(BaseStateFidelity):
                 The order of priority is: options in ``run`` method > fidelity's
                 default options > primitive's default setting.
                 Higher priority setting overrides lower priority setting.
-
-        Raises:
-            ValueError: If the sampler is not an instance of ``BaseSampler``.
         """
-        if not isinstance(sampler, BaseSampler):
-            raise ValueError(
-                f"The sampler should be an instance of BaseSampler, " f"but got {type(sampler)}"
-            )
         self._sampler: BaseSampler = sampler
         self._default_options = Options()
         if options is not None:
@@ -136,7 +129,13 @@ class ComputeUncompute(BaseStateFidelity):
         # options in `evaluate` method > fidelity's default options >
         # primitive's default options.
         opts = copy(self._default_options)
-        opts.update_options(**options)
+
+        # opts.update_options(**options)
+        # Fix to support discrepancy in terra and runtime Options
+        if hasattr(opts, "update_options"):
+            opts.update_options(**options)
+        elif hasattr(opts.__class__, "_merge_options"):
+            opts = opts.__class__._merge_options(opts, options)
 
         job = self._sampler.run(circuits=circuits, parameter_values=values, **opts.__dict__)
 
