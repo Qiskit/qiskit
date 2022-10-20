@@ -91,7 +91,6 @@ def cancellation_potential(pauli_layers: PauliEvolutionKernels) -> list:
     for i in range(1, layer_num):
         positions = matching_operator_positions(pauli_layers[i][0][0], pauli_layers[i - 1][0][0])
         cancellation_potential_array[i - 1] = len(positions)
-    # print("090cancellation_potential_array\n",cancellation_potential_array)
     return cancellation_potential_array
 
 
@@ -118,7 +117,6 @@ def finding_max_matching_layer_pairs(cancellation_potential_array):
             )
 
     pairs = sorted(pairs, key=lambda pairs: pairs[0])
-    # print("114finding_max_matching_layer_pairs\n",pairs)
     return pairs
 
 
@@ -187,36 +185,6 @@ def syn_pauli_string(qc, qubit_num: int, string: str, right_cnotset: list, root:
 
 def break_layer(pauli_layers: PauliEvolutionKernels) -> PauliEvolutionKernels:
     pauli_layers = PauliEvolutionKernels_to_list(pauli_layers)
-    """
-    broken_pauli_layers = PauliEvolutionKernels([])
-    for pauli_layer in pauli_layers.kernels:#Kernel
-        max_pauli_block_size = 2
-        for pauli_block in pauli_layer.kernel:#Gate
-            if len(str(pauli_block.operator.paulis)) > max_pauli_block_size:
-                max_pauli_block_size = len(str(pauli_block.operator.paulis))
-
-        if max_pauli_block_size == 2:
-            broken_pauli_layers.kernels.append(pauli_layer)
-        else:
-            temp_layer=PauliEvolutionKernels([0] * (max_pauli_block_size - 1))
-            #temp_layer = [0] * (max_pauli_block_size - 1)
-            #print("254",max_pauli_block_size)
-            for i in range(max_pauli_block_size - 1):
-                temp_layer.kernels[i] = PauliEvolutionKernel([])
-
-            for pauli_block in pauli_layer.kernel:#gate
-                #print("258",len(PauliEvolutionGate_to_list(pauli_block)))
-                #print("259",len(pauli_block.operator.paulis))
-                for i, pauli_str in enumerate(pauli_block.operator.paulis):
-                    pauli_str=str(pauli_str)
-                    kernel1=[
-                        [pauli_str , pauli_block.operator.coeffs[i].real]
-                        , pauli_block.params[0]]
-                    print("268",kernel1)
-                    kernel1=list_to_PauliEvolustionGate(kernel1)
-                    temp_layer.kernels[i].kernel.append(kernel1)
-            broken_pauli_layers.kernels+=temp_layer.kernels
-    """
     broken_pauli_layers = []
     for pauli_layer in pauli_layers:
         max_pauli_block_size = 2
@@ -249,15 +217,11 @@ def opt_ft_backend(
     qc = QuantumCircuit(qubit_num)
 
     cancellation_potential_array = cancellation_potential(pauli_layers)
-    # print("199",cancellation_potential_array)
     pairs = finding_max_matching_layer_pairs(cancellation_potential_array)
-    # print("201",pairs)
+
     for pair in pairs:
         if pair[0] == pair[1]:
             pauli_block = pauli_layers.kernels[pair[0]].kernel[0]  # gate
-            # pauli_block = pauli_layers[pair[0]][0]#[['IIZYZIII', 1.0], 0.3]
-
-            # pauli_str = pauli_block[0]#['IIZYZIII', 1.0]
             pauli_str = [str(pauli_block.operator.paulis[0]), pauli_block.operator.coeffs[0].real]
             non_id_positions = non_identity_positions(pauli_str)  # list
             right_cnotset, root = cnot_tree(non_id_positions, [])  # list,int
@@ -294,7 +258,6 @@ def opt_ft_backend(
             )  # ['XYIIIIIX', 1.0]['XYIIIIIX', 1.0]
             non_id_positions = non_identity_positions(list1)
             right_cnotset, root = cnot_tree(non_id_positions, matching_positions)
-            # print("393",qubit_num,list1[0])
             syn_pauli_string(
                 qc,
                 qubit_num,
@@ -303,7 +266,6 @@ def opt_ft_backend(
                 root,
                 list1[1] * pauli_layers.kernels[pair[0]].kernel[0].params[0],
             )
-            # syn_pauli_string(qc, qubit_num, pauli_layers[pair[0]][0][0][0], right_cnotset, root, pauli_layers[pair[0]][0][0][1]*pauli_layers[pair[0]][0][-1])
             for pauli_block in pauli_layers.kernels[pair[0]].kernel[
                 1:
             ]:  # [['IIIIIIYZ', 1.0], 0.3] or gate
@@ -336,7 +298,6 @@ def opt_ft_backend(
                 root,
                 list2[1] * pauli_layers.kernels[pair[1]].kernel[0].params[0],
             )
-            #  syn_pauli_string(qc, qubit_num, pauli_layers[pair[1]][0][0][0], right_cnotset, root, pauli_layers[pair[1]][0][0][1]*pauli_layers[pair[1]][0][-1])
 
             for pauli_block in pauli_layers.kernels[pair[1]].kernel[
                 1:
