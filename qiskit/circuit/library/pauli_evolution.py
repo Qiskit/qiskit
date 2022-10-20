@@ -207,7 +207,7 @@ class PauliEvolutionKernel(Gate):
         num_qubits = operator[0].num_qubits if isinstance(operator, list) else operator.num_qubits
         super().__init__(name="PauliEvolution", num_qubits=num_qubits, params=[time], label=label)
         """
-        if str(type(input)) == "list":
+        if isinstance(input, list):
             if len(input) > 0:
                 operator = input[0].operator
                 label = _get_default_label(operator)
@@ -235,6 +235,7 @@ class PauliEvolutionKernel(Gate):
             )
             q = QuantumRegister(0, "q")
             qc = QuantumCircuit(q, name="PauliEvolutionKernel")
+            self.definition = qc
 
 
 """
