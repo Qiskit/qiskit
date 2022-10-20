@@ -36,6 +36,9 @@ from qiskit.circuit.library import (
     SGate,
     U1Gate,
     CPhaseGate,
+    CYGate,
+    CHGate,
+    CUGate,
 )
 from qiskit.circuit.library import MCXVChain
 from qiskit.extensions import HamiltonianGate
@@ -464,9 +467,10 @@ class TestMatplotlibDrawer(QiskitTestCase):
         """Test control labels"""
         qr = QuantumRegister(4, "q")
         circuit = QuantumCircuit(qr)
-        circuit.cy(1, 0, label="Bottom Y label")
-        circuit.cu(pi / 2, pi / 2, pi / 2, 0, 2, 3, label="Top U label")
-        circuit.ch(0, 1, label="Top H label")
+        circuit.append(CYGate(label="Bottom Y label"), [1, 0])
+        circuit.append(CYGate(label="Top Y label"), [2, 3])
+        circuit.append(CUGate(pi / 2, pi / 2, pi / 2, 0, label="Top U label"), [2, 3])
+        circuit.append(CHGate(label="Top H label"), [0, 1])
         circuit.append(
             HGate(label="H gate label").control(3, label="H control label", ctrl_state="010"),
             [qr[1], qr[2], qr[3], qr[0]],

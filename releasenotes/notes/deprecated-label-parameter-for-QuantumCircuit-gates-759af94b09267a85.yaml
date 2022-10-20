@@ -1,0 +1,10 @@
+---
+deprecations:
+  - |
+    The ``QuantumCircuit.label`` parameter has been deprecated and will be removed in a future release.
+    It's functionality is achieved by ``QuantumCircuit.append``, and therefore ``label`` is being removed for consistency.
+    The gates affected are as follows: ``control, ch, cp, rx, crx, ry, cry, crz, cswap, csx, cu, cu1, cu3, x, cx, cnot, cy, cz``
+fixes:
+  - |
+    Modified the tests ``test_circuit_text_drawer`` and ``test_circuit_matplotlib_drawer``  to use ``.append`` instead of
+    creating gates with ``label`` parameters.

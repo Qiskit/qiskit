@@ -46,6 +46,7 @@ from qiskit.qasm.qasm import Qasm
 from qiskit.qasm.exceptions import QasmError
 from qiskit.circuit.exceptions import CircuitError
 from qiskit.utils.deprecation import deprecate_function
+from qiskit.utils.deprecation import deprecate_arguments
 from .parameterexpression import ParameterExpression, ParameterValueType
 from .quantumregister import QuantumRegister, Qubit, AncillaRegister, AncillaQubit
 from .classicalregister import ClassicalRegister, Clbit
@@ -675,6 +676,7 @@ class QuantumCircuit:
         power_circuit.append(gate.power(power), list(range(gate.num_qubits)))
         return power_circuit
 
+    @deprecate_arguments({"label"})
     def control(
         self,
         num_ctrl_qubits: int = 1,
@@ -2957,6 +2959,7 @@ class QuantumCircuit:
 
         return self.append(HGate(), [qubit], [])
 
+    @deprecate_arguments({"label"})
     def ch(
         self,
         control_qubit: QubitSpecifier,
@@ -3049,6 +3052,7 @@ class QuantumCircuit:
 
         return self.append(PhaseGate(theta), [qubit], [])
 
+    @deprecate_arguments({"label"})
     def cp(
         self,
         theta: ParameterValueType,
@@ -3198,6 +3202,7 @@ class QuantumCircuit:
             RC3XGate(), [control_qubit1, control_qubit2, control_qubit3, target_qubit], []
         )
 
+    @deprecate_arguments({"label"})
     def rx(
         self, theta: ParameterValueType, qubit: QubitSpecifier, label: Optional[str] = None
     ) -> InstructionSet:
@@ -3217,6 +3222,7 @@ class QuantumCircuit:
 
         return self.append(RXGate(theta, label=label), [qubit], [])
 
+    @deprecate_arguments({"label"})
     def crx(
         self,
         theta: ParameterValueType,
@@ -3266,6 +3272,7 @@ class QuantumCircuit:
 
         return self.append(RXXGate(theta), [qubit1, qubit2], [])
 
+    @deprecate_arguments({"label"})
     def ry(
         self, theta: ParameterValueType, qubit: QubitSpecifier, label: Optional[str] = None
     ) -> InstructionSet:
@@ -3285,6 +3292,7 @@ class QuantumCircuit:
 
         return self.append(RYGate(theta, label=label), [qubit], [])
 
+    @deprecate_arguments({"label"})
     def cry(
         self,
         theta: ParameterValueType,
@@ -3350,6 +3358,7 @@ class QuantumCircuit:
 
         return self.append(RZGate(phi), [qubit], [])
 
+    @deprecate_arguments({"label"})
     def crz(
         self,
         theta: ParameterValueType,
@@ -3553,6 +3562,7 @@ class QuantumCircuit:
 
         return self.append(iSwapGate(), [qubit1, qubit2], [])
 
+    @deprecate_arguments({"label"})
     def cswap(
         self,
         control_qubit: QubitSpecifier,
@@ -3638,6 +3648,7 @@ class QuantumCircuit:
 
         return self.append(SXdgGate(), [qubit], [])
 
+    @deprecate_arguments({"label"})
     def csx(
         self,
         control_qubit: QubitSpecifier,
@@ -3722,6 +3733,7 @@ class QuantumCircuit:
 
         return self.append(UGate(theta, phi, lam), [qubit], [])
 
+    @deprecate_arguments({"label"})
     def cu(
         self,
         theta: ParameterValueType,
@@ -3790,6 +3802,7 @@ class QuantumCircuit:
         "QuantumCircuit.cp method instead, which acts "
         "identically."
     )
+    @deprecate_arguments({"label"})
     def cu1(
         self,
         theta: ParameterValueType,
@@ -3915,6 +3928,7 @@ class QuantumCircuit:
         "use the QuantumCircuit.cu method instead, where "
         "cu3(ϴ,φ,λ) = cu(ϴ,φ,λ,0)."
     )
+    @deprecate_arguments({"label"})
     def cu3(
         self,
         theta: ParameterValueType,
@@ -3951,6 +3965,7 @@ class QuantumCircuit:
             [],
         )
 
+    @deprecate_arguments({"label"})
     def x(self, qubit: QubitSpecifier, label: Optional[str] = None) -> InstructionSet:
         r"""Apply :class:`~qiskit.circuit.library.XGate`.
 
@@ -3967,6 +3982,7 @@ class QuantumCircuit:
 
         return self.append(XGate(label=label), [qubit], [])
 
+    @deprecate_arguments({"label"})
     def cx(
         self,
         control_qubit: QubitSpecifier,
@@ -3996,6 +4012,7 @@ class QuantumCircuit:
             CXGate(label=label, ctrl_state=ctrl_state), [control_qubit, target_qubit], []
         )
 
+    @deprecate_arguments({"label"})
     def cnot(
         self,
         control_qubit: QubitSpecifier,
@@ -4222,6 +4239,7 @@ class QuantumCircuit:
 
         return self.append(YGate(), [qubit], [])
 
+    @deprecate_arguments({"label"})
     def cy(
         self,
         control_qubit: QubitSpecifier,
@@ -4265,6 +4283,7 @@ class QuantumCircuit:
 
         return self.append(ZGate(), [qubit], [])
 
+    @deprecate_arguments({"label"})
     def cz(
         self,
         control_qubit: QubitSpecifier,
