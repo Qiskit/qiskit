@@ -12,25 +12,11 @@ class Paulihedral:
     def __init__(
         self,
         inputprogram=None,
-        # input_format="pauliIR",
-        # evolution_time_step=1,
-        # var_form_parameters=None,
         ordering_method=None,
         backend_method=None,
         coupling_map=None,
         props=None,
     ):
-        '''
-        if input_format == "qubit-op":
-            self.pauliIRprogram = self.load_from_qubit_op(inputprogram, evolution_time_step)
-        elif input_format == "UCCSD":
-            self.pauliIRprogram = self.load_from_UCCSD(inputprogram, var_form_parameters)
-        else:
-            if inputprogram == None:
-                """need to raise some error"""
-                print("raise some error")
-            self.pauliIRprogram = inputprogram
-        '''
         self.pauliIRprogram = inputprogram
 
         if ordering_method in ("gco", "gate-count-oriented"):
@@ -50,9 +36,6 @@ class Paulihedral:
                     "raise error: there is no information about backend "
                     "properties which is required in superconducting backend."
                 )
-            # if coupling_map == None:
-            #    '''need to raise some error'''
-            #    print('coupling_map missing')
             else:
                 self.coupling_map = coupling_map
         else:
@@ -61,6 +44,12 @@ class Paulihedral:
         self.output_circuit = None
         self.adj_mat = None
         self.dist_mat = None
+        """
+        get the adj_mat and dist_mat
+        If adj_mat[i][j] is 0, then i=j or we can't apply a CNOT or SWAP gate between qubit i and j.
+        If adj_mat[i][j] is 1, can apply a CNOT or SWAP gate between qubit i and j.
+        dist_mat[i][j] equals 1 - error_rate(to SWAP i and j)
+        """
         if props != None:
             noise_res = NoiseAdaptiveLayout(props)
             noise_res._initialize_backend_prop()
@@ -77,7 +66,6 @@ class Paulihedral:
                 self.dist_mat.append([])
                 for j in range(qubit_num):
                     self.dist_mat[i].append(0)
-            # print(self.adj_mat)
             for cx in gate_reliability.keys():
                 i = int(cx[0])
                 j = int(cx[1])
@@ -86,7 +74,6 @@ class Paulihedral:
             for key1, value1 in swap_reliabs.items():
                 for key2, value2 in value1.items():
                     self.dist_mat[key1][key2] = 1.0 - value2
-            # print("80adj_mat\n",self.adj_mat)
 
     def load_from_qubit_op(self, qubit_op_list, evolution_time_step):
         pauliIRprogram = []
@@ -103,7 +90,6 @@ class Paulihedral:
                 pauli_block.append([j["label"], j["coeff"]["imag"]])
             pauli_block.append(parameters[i])
             pauliIRprogram.append(pauli_block)
-        # print(pauliIRprogram)
         return pauliIRprogram
 
     def opt(self, do_max_iteration=30):
@@ -140,35 +126,33 @@ def get_layout(
     qubit_num: int,
 ) -> Layout:
     """
-
-    :param backend: The backend of the hardware
+    This function is used to find a good layout between used_phy_qubits and used_virtual_qubits
+    in a heuristic algorithm. The purpose is to reduce the sum of operations of the transformation
+    from the layout_pre to the output layout and from the output layout to the layout_next.
+    The part of the circuit which will use the output layout is a PauliEvolutionKernel on some qubits
+    and identity operations on other qubits.
+    :param backend:
+        The backend of the hardware
     :param layout_pre:
+        The layout just before the circuit which will use the output layout.
     :param layout_next:
+        The layout just after the circuit which will use the output layout.
     :param used_phy_qubits:
+        The list contains all indexs of physical qubits which are used in the PauliEvolutionKernel.
     :param used_virtual_qubits:
+        The list contains all indexs of virtual qubits which are used in the PauliEvolutionKernel.
     :param qubit_num:
+        The qubit num of the input circuit(logical circuit) in the function Paulihedral_on_mixed_circuit().
+
     :return:
-
-    A figure to show the variables
+        The output layout with only registers named 'q' and without registers named 'ancilla'.
     """
-
     noise_res = NoiseAdaptiveLayout(backend.properties())
     noise_res._initialize_backend_prop()
     swap_reliabs = noise_res.swap_reliabs
     total_qubit_num = len(swap_reliabs)
     del swap_reliabs
-    """
-    dist_mat = []
-    for i in range(total_qubit_num):
-        dist_mat.append([])
-        for j in range(total_qubit_num):
-            dist_mat[i].append(0.0)
-    for key1, value1 in swap_reliabs.items():
-        for key2, value2 in value1.items():
-            dist_mat[key1][key2] = 1.0 - value2
-    """
     dist_mat = Backend_Processor(backend=backend).get_local_swap_reliab(range(total_qubit_num))
-    # print('595\n',dist_mat)
     for i in range(len(dist_mat)):
         for j in range(len(dist_mat)):
             dist_mat[i][j] = 1.0 - dist_mat[i][j]
@@ -185,7 +169,25 @@ def get_layout(
         unused_virtual_qubits.remove(qubit_idx)
 
     layout = Layout()
-    # case 0
+
+    """
+       «─used_virtual_qubits─»   «───unused_virtual_qubits───»
+       «───used_phy_qubits───»   «─unused_phy_qubits─»
+        q   q   q   q   q   q    q   q   q   q   q   q   a   a   (a: short for ancilla)
+        │   │   │   │   │   │    │   │   │   │   │   │   │   │   'q' or 'ancilla' is the name of the
+      ┌─┴───┴───┴───┴───┴───┴─┐  │   │   │   │   │   │   │   │   register
+      │ PauliEvolutionKernel  │  │   │   │   │   │   │   │   │   
+      └─┬───┬───┬───┬───┬───┬─┘  │   │   │   │   │   │   │   │   
+        │   │   │   │   │   │    │   │   │   │   │   │   │   │  
+       «──────────────────qubit_num──────────────────» 
+       «───────────────────total_qubit_num───────────────────» 
+    
+        A figure to show the definition of used_virtual_qubits, unused_virtual_qubits, 
+        used_phy_qubits, unused_phy_qubits, qubit_num, total_qubit_num.
+    """
+
+    # Case 0
+    # We didn't have more detail about the layout_pre and the layout_next.
     if layout_pre == None and layout_next == None:
         qreg = QuantumCircuit(qubit_num).qregs[0]
         for i in range(len(used_phy_qubits)):
@@ -193,10 +195,10 @@ def get_layout(
         for i in range(qubit_num - len(used_phy_qubits)):
             layout[qreg[unused_virtual_qubits[i]]] = int(unused_phy_qubits[i])
         layout.add_register(qreg)
-        # print("177\n",layout)
         return layout
 
-    # case 1
+    # Case 1
+    # We didn't have more detail about the layout_pre.
     elif layout_pre == None and layout_next != None:
         input_dict = copy.deepcopy(layout_next._p2v)
         idx_to_delete = []
@@ -205,7 +207,6 @@ def get_layout(
                 idx_to_delete.append(idx)
         for idx in idx_to_delete:
             del input_dict[idx]
-        """maybe need to add a function to check whether the input_dict is possible"""
         """
         input_dict(e.g.)
         {16: Qubit(QuantumRegister(7, 'q'), 1),
@@ -231,8 +232,6 @@ def get_layout(
             parallel_virtual_qubits.append(qubit.index)
         for idx in used_virtual_qubits:
             parallel_virtual_qubits.remove(idx)  ###
-        # print("215\n",used_phy_qubits,"\n",parallel_virtual_qubits,"\n",parallel_phy_qubits)
-        """ERROR above"""
         for virtual_qubit in parallel_virtual_qubits:
             phy_qubit_in_layout = None
             for idx, qubit in input_dict.items():
@@ -251,7 +250,8 @@ def get_layout(
         layout.add_register(qreg)
         return layout
 
-    # case 2
+    # Case 2
+    # We didn't have more detail about the layout_next.
     elif layout_pre != None and layout_next == None:
         input_dict = copy.deepcopy(layout_pre._p2v)
         idx_to_delete = []
@@ -275,7 +275,6 @@ def get_layout(
             parallel_virtual_qubits.append(qubit.index)
         for idx in used_virtual_qubits:
             parallel_virtual_qubits.remove(idx)
-        # print("215\n",parallel_virtual_qubits,"\n",unused_virtual_qubits)
 
         for virtual_qubit in parallel_virtual_qubits:
             phy_qubit_in_layout = None
@@ -294,7 +293,7 @@ def get_layout(
             parallel_phy_qubits.remove(phy_qubit_for_min_dist)
         layout.add_register(qreg)
 
-    # case 3
+    # Case 3
     elif layout_pre != None and layout_next != None:
         input_dict_pre = copy.deepcopy(layout_pre._p2v)
         input_dict_next = copy.deepcopy(layout_next._p2v)
@@ -304,12 +303,13 @@ def get_layout(
                 idx_to_delete.append(idx)
         for idx in idx_to_delete:
             del input_dict_pre[idx]
+
         idx_to_delete = []
         for idx, qubit in input_dict_next.items():
             if qubit.register.name != "q":
                 del input_dict_next[idx]
         for idx in idx_to_delete:
-            del input_dict_pre[idx]
+            del input_dict_next[idx]
 
         qreg = QuantumCircuit(qubit_num).qregs[0]
         for idx in range(len(used_phy_qubits)):
@@ -326,7 +326,6 @@ def get_layout(
             parallel_virtual_qubits.append(qubit.index)
         for idx in used_virtual_qubits:
             parallel_virtual_qubits.remove(idx)
-        # print("215\n",parallel_virtual_qubits,"\n",unused_virtual_qubits)
 
         for virtual_qubit in parallel_virtual_qubits:
             phy_qubit_in_layout_pre = None
@@ -356,10 +355,10 @@ def get_layout(
             parallel_phy_qubits.remove(phy_qubit_for_min_dist)
         layout.add_register(qreg)
         return layout
-    # print("354\n",layout)
     return layout
 
 
+"""
 def fill_layout_with_ancilla(
     backend: Backend, layout_without_ancilla: Layout, used_phy_qubits: list, qubit_num: int
 ) -> Layout:
@@ -378,7 +377,7 @@ def fill_layout_with_ancilla(
         layout[qreg[i]] = int(unused_phy_qubits[i])
 
     pass
-
+"""
 
 from qiskit.transpiler.passes.layout.apply_layout import ApplyLayout
 from qiskit.transpiler.passes.layout.full_ancilla_allocation import FullAncillaAllocation
@@ -415,11 +414,11 @@ def new_block_list_printing(new_block_list: List):
             print("used_phy_qubits_list\n", used_phy_qubits_list)
             print("used_virtual_qubits_list\n", used_virtual_qubits_list)
         elif layer[1] == False:
-            print("The layer with number", idx)
             initial_QuantumCircuit = layer[0]
             is_Kernel = layer[1]
             layout_without_ancilla = layer[2]
             physical_QuantumCircuit = layer[3]
+            print("The layer with number", idx)
             print("initial_QuantumCircuit\n", initial_QuantumCircuit)
             print("is_Kernel\n", is_Kernel)
             print("layout_without_ancilla\n", layout_without_ancilla)
@@ -437,6 +436,8 @@ class Backend_Processor:
     def __init__(self, backend: Backend):
         """
         :param backend:
+            The backend of the hardware.
+        This class is used to process the backend and get some conclusion of it.
         """
         self.backend = backend
         self.prop_dict = backend.properties().to_dict()
@@ -456,11 +457,9 @@ class Backend_Processor:
             qubit_list can be used.
         """
         properties_gates_list = self.prop_dict["gates"]
-        # for idx,val in enumerate(properties_gates_list):
-        # print(idx,"\n",val)
 
         properties_cx_gates_list = []
-        """ {'qubits': [7, 6],'gate_error': 0.03754135340392492}"""
+        """ it element e.g. {'qubits': [7, 6],'gate_error': 0.03754135340392492}"""
         for gates in properties_gates_list:
             if gates["gate"] == "cx":
                 if (
@@ -487,29 +486,24 @@ class Backend_Processor:
             for j in range(len(input_qubits_list)):
                 df.append(0.0)
             result.append(df)
-        # print(result)
+
         for i in range(len(input_qubits_list)):
             for j in range(len(input_qubits_list)):
                 if i == j:
                     result[i][j] = {"length": 0.0, "pre": i}
                 elif i != j:
                     result[i][j] = {"length": 99999999.9, "pre": -1}
-        # print(result)#######
-        # print('224',properties_cx_gates_list)#######
         for v in range(len(input_qubits_list)):
             for cx_gate in properties_cx_gates_list:
+                """e.g. for cx_gate  {'qubits': [0, 2], 'gate_error': 0.037493190769214924, 'weight': 0.11464241495919317}"""
                 if cx_gate["qubits"][0] == v:
-                    """{'qubits': [7, 6],'gate_error': 0.03754135340392492, 'weight': 0.5}"""
                     result[v][cx_gate["qubits"][1]]["length"] = cx_gate["weight"]
                     result[v][cx_gate["qubits"][1]]["pre"] = v
-                # print('230',result)
 
         reliability_mat = copy.deepcopy(result)
         for i in range(len(input_qubits_list)):
             for j in range(len(input_qubits_list)):
                 reliability_mat[i][j] = math.exp(-result[i][j]["length"])
-        # print(result)
-        # print('231\n',len(input_qubits_list),reliability_mat)
 
         for v in range(len(input_qubits_list)):
             for i in range(len(input_qubits_list)):
@@ -522,7 +516,6 @@ class Backend_Processor:
         for i in range(len(input_qubits_list)):
             for j in range(len(input_qubits_list)):
                 reliability_mat[i][j] = math.exp(-result[i][j]["length"])
-        # print(reliability_mat)
         return reliability_mat
 
     def get_local_adjacent_mat(self, input_qubits_list: List):
@@ -563,8 +556,7 @@ class Backend_Processor:
             for j in range(len(input_qubits_list)):
                 line.append(0)
             adj_mat.append(line)
-        # print('533\n',input_qubits_list)
-        # print(cx_gates_list)
+
         for i in range(len(input_qubits_list)):
             for j in range(len(input_qubits_list)):
                 is_in = False
@@ -573,17 +565,16 @@ class Backend_Processor:
                         is_in = True
                 if is_in == True:
                     adj_mat[i][j] = 1
-        # print('538\n',adj_mat)
+
         return adj_mat
 
     def get_coupling_map(self) -> CouplingMap:
         properties_gates_list = self.prop_dict["gates"]
         cx_gates_list = []
-        """ {'qubits': [7, 6],'gate_error': 0.03754135340392492}"""
+        """e.g. for elements in cx_gates_list: {'qubits': [7, 6],'gate_error': 0.03754135340392492}"""
         for gates in properties_gates_list:
             if gates["gate"] == "cx":
                 cx_gates_list.append([gates["qubits"][0], gates["qubits"][1]])
-        # print(cx_gates_list)
         return CouplingMap(cx_gates_list)
 
 
@@ -597,21 +588,50 @@ def Paulihedral_on_different_qubits_num(
     used_phy_qubits_list=[],
 ) -> QuantumCircuit:
     """
-
     :param input_circuit:
+        An logical circuit represents the relationship between each logical qubits.
     :param global_backend:
+        The backend of the quantum computer we will working on.
     :param global_coupling_map:
+        The coupling map of the quantum computer we will working on.
     :param ordering_method:
+        The ordering_method of Paulihedral for the PauliEvolutionKernels in the Circuit.
+        You can choose 'gate-count-oriented' or 'depth-oriented'.
     :param backend_method:
+        The backend_method of Paulihedral for the PauliEvolutionKernels in the Circuit.
+        You can choose 'fault-tolerant' or 'superconducting'.
     :param do_max_iteration:
+        The do_max_iteration of Paulihedral for the PauliEvolutionKernels in the Circuit.
+    :param used_phy_qubits_list:
+        The list stores indexes of the qubits which are used but not ancilla.
+        !!!The list not only records the indexes of qubits which is used in the PauliEvolutionKernel,
+        but also records the qubits which will be used in the in
+
     :return:
+        The physical quantum circuit which has equivalent operation to the input_circuit.
+        It is able to be achieved in the backend hardware and it is after optimization.
+
+    The process of this function is on the following steps.
+    1, Divide the input logical circuit into layers.
+        Each layer is of QuantumCircuit class which has the same qubits number compare to the input circuit.
+        It has either a pauli evolutional kernel or several normal gates (gates except pauli evolutional kernel).
+        If we linked all the layers together in order, we will obtain a logical circuit which is equal to the
+        input logical circuit.
+    2, Handle each layer and get its layout accroding to its detail
+        If it has a pauli evolutional kernel, we will use the class Paulihedral to optimizatize it. And if it
+        is made of basic gates, it will use the function qiskit.compiler.transpile to optimizatize it.
+    3, Connect all the layer together and transform the layout between two adjacent layers
+        In the previous step, we also get the layout between the logical qubits of the input circuit to the
+        physical qubits of the backend of each layer. In this step, we will connect these layers together. In
+        the connected point, we will use the class qiskit.transpiler.pass.routing.LayoutTransformation to connect
+        2 circuits which have different layout.
     """
     phy_dag = circuit_to_dag(input_circuit)
     layout = Layout()
     kernel_qc = None
     for node in phy_dag.op_nodes():
         if node.name == "PauliEvolutionKernel":
-            """type(node.op)) #<class 'qiskit.circuit.library.pauli_evolution.PauliEvolutionKernel'>"""
+            """type(node.op)): <class 'qiskit.circuit.library.pauli_evolution.PauliEvolutionKernel'>"""
             kernel_qc = node.op
             qubit_num_on_Kernel = len(node.qargs)
             qreg = QuantumCircuit(qubit_num_on_Kernel).qregs[0]
@@ -635,11 +655,9 @@ def Paulihedral_on_different_qubits_num(
         dist_mat = Backend_Processor(backend=global_backend).get_local_swap_reliab(
             used_phy_qubits_list
         )
-        # print('595\n',dist_mat)
         for i in range(len(dist_mat)):
             for j in range(len(dist_mat)):
                 dist_mat[i][j] = 1.0 - dist_mat[i][j]
-        # print('605',dist_mat)
 
         output_circuit = opt_sc_backend(pauli_layers, adj_mat=adj_mat, dist_mat=dist_mat)
 
@@ -736,7 +754,6 @@ def Paulihedral_on_mixed_circuit(
             dag1 = copy.deepcopy(a["graph"])
             dag2 = copy.deepcopy(a["graph"])
             dag2_list = []
-            # dag2_used_logical_qubits_list=[]
             for node in dag1.op_nodes():
                 if str(node.op.name) == "PauliEvolutionKernel":
                     dag1.remove_op_node(node)
@@ -755,9 +772,7 @@ def Paulihedral_on_mixed_circuit(
             if len(dag1.op_nodes()) > 0:
                 block_list.append([dag_to_circuit(dag1), False])
             for idx, kernel in enumerate(dag2_list):
-                block_list.append(
-                    [dag_to_circuit(kernel), True]
-                )  # ,dag2_used_logical_qubits_list[idx]])
+                block_list.append([dag_to_circuit(kernel), True])
     """
     In the stage, the information is stored in block_list:List.
     Every element of the block_list represents onr layer of the logical dag.
@@ -787,7 +802,7 @@ def Paulihedral_on_mixed_circuit(
     del block_list
 
     """
-    In the stage, the information is stored in new_block_list:List.
+    Now the information is stored in new_block_list:List.
     For a single element in new_block_list,
         layer=[ initial QuantumCircuit(only logical), True or False]
     Next, we will get the used_phy_qubits_list, used_virtual_qubits_list for layers.
@@ -865,8 +880,6 @@ def Paulihedral_on_mixed_circuit(
             """get physical QuantumCircuit (without layout) but Kernels folded"""
             full_ancilla_pass = FullAncillaAllocation(coupling_map=coupling_map)
             full_ancilla_pass.property_set["layout"] = copy.deepcopy(layout_without_ancilla)
-            # print('675layout_without_ancilla\n',layout_without_ancilla)
-            # print('676layer[0]\n\n',layer[0])
             qc_temp = copy.deepcopy(layer[0])
             qc_temp._layout = None
             phy_dag = full_ancilla_pass.run(circuit_to_dag(qc_temp))
@@ -878,41 +891,8 @@ def Paulihedral_on_mixed_circuit(
             unPaulihedraled_phy_circ = dag_to_circuit(phy_dag)
             unPaulihedraled_phy_circ._layout = layout_with_ancilla
             unPaulihedraled_phy_circ._layout = None
-            # layer[3]=unPaulihedraled_phy_circ#VI
-            """get the unfolded physical Quantum Circuit"""
-            init_layout = Layout()
-            """
-            layout = Layout()
-            #case 0
-            if layout_pre==None and layout_next==None:
-                qreg=QuantumCircuit(qubit_num).qregs[0]
-                for i in range(len(used_phy_qubits)):
-                    layout[qreg[used_virtual_qubits[i]]]=int(used_phy_qubits[i])
-                for i in range(qubit_num-len(used_phy_qubits)):
-                    layout[qreg[unused_virtual_qubits[i]]]=int(unused_phy_qubits[i])
-                layout.add_register(qreg)
-                #print("177\n",layout)
-                return layout
-            """
-            # print("PRESENT")
-            # print('704\n\n',unPaulihedraled_phy_circ)
-            """
-            noise_res = NoiseAdaptiveLayout(backend.properties())
-            noise_res._initialize_backend_prop()
-            swap_reliabs = noise_res.swap_reliabs
-            total_qubit_num = len(swap_reliabs)
-            """
-            """
-            qreg = QuantumCircuit(total_qubit_num).qregs[0]
-            for node in phy_dag.op_nodes():
-                if node.name=='PauliEvolutionKernel':
-                    print(node.name)
-                    print(node)
-                    print(node.qargs)
-            print("586\n", layout_without_ancilla, "\n", layer[0], "\n", phy_circ)
-            """
 
-            # print('845\n',layer[4])
+            """get the unfolded physical Quantum Circuit"""
             Paulihedraled_phy_circ = Paulihedral_on_different_qubits_num(
                 input_circuit=unPaulihedraled_phy_circ,
                 global_backend=backend,
@@ -922,8 +902,7 @@ def Paulihedral_on_mixed_circuit(
                 do_max_iteration=do_max_iteration,
                 used_phy_qubits_list=layer[4],
             )
-            layer[3] = Paulihedraled_phy_circ  # VI
-    # new_block_list_printing(new_block_list)
+            layer[3] = Paulihedraled_phy_circ
     """
     Now in new_block_list:
     if Kernel:
@@ -962,26 +941,23 @@ def Paulihedral_on_mixed_circuit(
         phy_qc._layout = None
         block[3] = phy_qc
     final_result.extend(new_block_list[0][3])
-    for idx, block in enumerate(new_block_list[1:]):
+
+    for idx in range(1, len(new_block_list)):
         layout_transform = LayoutTransformation(
             coupling_map=coupling_map,
             from_layout=new_block_list[idx - 1][2],
             to_layout=new_block_list[idx][2],
         )
         final_dag = layout_transform.run(circuit_to_dag(final_result))
-        final_result = dag_to_circuit(final_dag).extend(block[3])
-
+        final_result = dag_to_circuit(final_dag).extend(new_block_list[idx][3])
     """let the layout of the last layer match the layout of the first one"""
     layout_transform = LayoutTransformation(
         coupling_map=coupling_map,
-        from_layout=new_block_list[idx][2],
+        from_layout=new_block_list[len(new_block_list) - 1][2],
         to_layout=new_block_list[0][2],
     )
     final_dag = layout_transform.run(circuit_to_dag(final_result))
     final_result = dag_to_circuit(final_dag)
 
-    # print(final_layout,"\n",final_result)
     final_result._layout = final_layout
-    # print(final_layout)
-    # print(final_result)
     return final_result
