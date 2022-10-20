@@ -1,0 +1,10 @@
+---
+features:
+  - |
+    Add new internal utility functions to handle linear functions and circuits:
+    A function that generates a random invertible binary matrix,
+    a function that checks that a binary matrix is invertible, and a function that calculates its inverse.
+    A function that calculates the transpose of a linear reversible circuit,
+    and a function that takes a binary invertible matrix A,
+    tries to synthesize A, A^{-1}, A^t and A^{-t} and chooses the best CX cost and/or depth.
+    The internal file graysynth.py is moved from qiskit.transpiler to qiskit.synthesis.linear.
