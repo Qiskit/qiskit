@@ -11,8 +11,8 @@ cplex
 cvxpy
 docplex
 fixtures
-ipython<7.22.0
-ipykernel<5.5.2
+ipython
+ipykernel
 ipywidgets>=7.3.0
 jax; platform_system != 'Windows'
 jaxlib; platform_system != 'Windows'
