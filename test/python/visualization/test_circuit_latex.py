@@ -27,6 +27,7 @@ from qiskit.extensions import HamiltonianGate
 from qiskit.circuit import Parameter, Qubit, Clbit
 from qiskit.circuit.library import IQP
 from qiskit.quantum_info.random import random_unitary
+from qiskit.utils import optionals
 from .visualization import QiskitVisualizationTestCase
 
 pi = np.pi
@@ -39,6 +40,7 @@ class TestLatexSourceGenerator(QiskitVisualizationTestCase):
         reference_dir = os.path.dirname(os.path.abspath(__file__))
         return os.path.join(reference_dir, filename)
 
+    @unittest.skipUnless(optionals.HAS_PYLATEX, "needs pylatexenc")
     def test_empty_circuit(self):
         """Test draw an empty circuit"""
         filename = self._get_resource_path("test_latex_empty.tex")
@@ -47,6 +49,7 @@ class TestLatexSourceGenerator(QiskitVisualizationTestCase):
 
         self.assertEqualToReference(filename)
 
+    @unittest.skipUnless(optionals.HAS_PYLATEX, "needs pylatexenc")
     def test_tiny_circuit(self):
         """Test draw tiny circuit."""
         filename = self._get_resource_path("test_latex_tiny.tex")
@@ -57,6 +60,7 @@ class TestLatexSourceGenerator(QiskitVisualizationTestCase):
 
         self.assertEqualToReference(filename)
 
+    @unittest.skipUnless(optionals.HAS_PYLATEX, "needs pylatexenc")
     def test_multi_underscore_reg_names(self):
         """Test multi-underscores in register names display properly"""
         filename1 = self._get_resource_path("test_latex_multi_underscore_true.tex")
@@ -71,6 +75,7 @@ class TestLatexSourceGenerator(QiskitVisualizationTestCase):
         self.assertEqualToReference(filename1)
         self.assertEqualToReference(filename2)
 
+    @unittest.skipUnless(optionals.HAS_PYLATEX, "needs pylatexenc")
     def test_normal_circuit(self):
         """Test draw normal size circuit."""
         filename = self._get_resource_path("test_latex_normal.tex")
@@ -82,6 +87,7 @@ class TestLatexSourceGenerator(QiskitVisualizationTestCase):
 
         self.assertEqualToReference(filename)
 
+    @unittest.skipUnless(optionals.HAS_PYLATEX, "needs pylatexenc")
     def test_4597(self):
         """Test cregbundle and conditional gates.
         See: https://github.com/Qiskit/qiskit-terra/pull/4597"""
@@ -96,6 +102,7 @@ class TestLatexSourceGenerator(QiskitVisualizationTestCase):
 
         self.assertEqualToReference(filename)
 
+    @unittest.skipUnless(optionals.HAS_PYLATEX, "needs pylatexenc")
     def test_deep_circuit(self):
         """Test draw deep circuit."""
         filename = self._get_resource_path("test_latex_deep.tex")
@@ -107,6 +114,7 @@ class TestLatexSourceGenerator(QiskitVisualizationTestCase):
 
         self.assertEqualToReference(filename)
 
+    @unittest.skipUnless(optionals.HAS_PYLATEX, "needs pylatexenc")
     def test_huge_circuit(self):
         """Test draw huge circuit."""
         filename = self._get_resource_path("test_latex_huge.tex")
@@ -119,6 +127,7 @@ class TestLatexSourceGenerator(QiskitVisualizationTestCase):
 
         self.assertEqualToReference(filename)
 
+    @unittest.skipUnless(optionals.HAS_PYLATEX, "needs pylatexenc")
     def test_teleport(self):
         """Test draw teleport circuit."""
         filename = self._get_resource_path("test_latex_teleport.tex")
@@ -146,6 +155,7 @@ class TestLatexSourceGenerator(QiskitVisualizationTestCase):
 
         self.assertEqualToReference(filename)
 
+    @unittest.skipUnless(optionals.HAS_PYLATEX, "needs pylatexenc")
     def test_global_phase(self):
         """Test circuit with global phase"""
         filename = self._get_resource_path("test_latex_global_phase.tex")
@@ -156,6 +166,7 @@ class TestLatexSourceGenerator(QiskitVisualizationTestCase):
 
         self.assertEqualToReference(filename)
 
+    @unittest.skipUnless(optionals.HAS_PYLATEX, "needs pylatexenc")
     def test_no_ops(self):
         """Test circuit with no ops.
         See https://github.com/Qiskit/qiskit-terra/issues/5393"""
@@ -165,6 +176,7 @@ class TestLatexSourceGenerator(QiskitVisualizationTestCase):
 
         self.assertEqualToReference(filename)
 
+    @unittest.skipUnless(optionals.HAS_PYLATEX, "needs pylatexenc")
     def test_long_name(self):
         """Test to see that long register names can be seen completely
         As reported in #2605
@@ -186,6 +198,7 @@ class TestLatexSourceGenerator(QiskitVisualizationTestCase):
 
         self.assertEqualToReference(filename)
 
+    @unittest.skipUnless(optionals.HAS_PYLATEX, "needs pylatexenc")
     def test_conditional(self):
         """Test that circuits with conditionals draw correctly"""
         filename = self._get_resource_path("test_latex_conditional.tex")
@@ -202,6 +215,7 @@ class TestLatexSourceGenerator(QiskitVisualizationTestCase):
 
         self.assertEqualToReference(filename)
 
+    @unittest.skipUnless(optionals.HAS_PYLATEX, "needs pylatexenc")
     def test_plot_partial_barrier(self):
         """Test plotting of partial barriers."""
 
@@ -220,6 +234,7 @@ class TestLatexSourceGenerator(QiskitVisualizationTestCase):
 
         self.assertEqualToReference(filename)
 
+    @unittest.skipUnless(optionals.HAS_PYLATEX, "needs pylatexenc")
     def test_plot_barriers(self):
         """Test to see that plotting barriers works.
         If it is set to False, no blank columns are introduced"""
@@ -251,6 +266,7 @@ class TestLatexSourceGenerator(QiskitVisualizationTestCase):
 
         self.assertEqualToReference(filename2)
 
+    @unittest.skipUnless(optionals.HAS_PYLATEX, "needs pylatexenc")
     def test_no_barriers_false(self):
         """Generate the same circuit as test_plot_barriers but without the barrier commands
         as this is what the circuit should look like when displayed with plot barriers false"""
@@ -265,6 +281,7 @@ class TestLatexSourceGenerator(QiskitVisualizationTestCase):
 
         self.assertEqualToReference(filename)
 
+    @unittest.skipUnless(optionals.HAS_PYLATEX, "needs pylatexenc")
     def test_barrier_label(self):
         """Test the barrier label"""
         filename = self._get_resource_path("test_latex_barrier_label.tex")
@@ -281,6 +298,7 @@ class TestLatexSourceGenerator(QiskitVisualizationTestCase):
 
         self.assertEqualToReference(filename)
 
+    @unittest.skipUnless(optionals.HAS_PYLATEX, "needs pylatexenc")
     def test_big_gates(self):
         """Test large gates with params"""
         filename = self._get_resource_path("test_latex_big_gates.tex")
@@ -311,6 +329,7 @@ class TestLatexSourceGenerator(QiskitVisualizationTestCase):
 
         self.assertEqualToReference(filename)
 
+    @unittest.skipUnless(optionals.HAS_PYLATEX, "needs pylatexenc")
     def test_cnot(self):
         """Test different cnot gates (ccnot, mcx, etc)"""
         filename = self._get_resource_path("test_latex_cnot.tex")
@@ -326,6 +345,7 @@ class TestLatexSourceGenerator(QiskitVisualizationTestCase):
 
         self.assertEqualToReference(filename)
 
+    @unittest.skipUnless(optionals.HAS_PYLATEX, "needs pylatexenc")
     def test_pauli_clifford(self):
         """Test Pauli(green) and Clifford(blue) gates"""
         filename = self._get_resource_path("test_latex_pauli_clifford.tex")
@@ -349,6 +369,7 @@ class TestLatexSourceGenerator(QiskitVisualizationTestCase):
 
         self.assertEqualToReference(filename)
 
+    @unittest.skipUnless(optionals.HAS_PYLATEX, "needs pylatexenc")
     def test_u_gates(self):
         """Test U 1, 2, & 3 gates"""
         filename = self._get_resource_path("test_latex_u_gates.tex")
@@ -367,6 +388,7 @@ class TestLatexSourceGenerator(QiskitVisualizationTestCase):
 
         self.assertEqualToReference(filename)
 
+    @unittest.skipUnless(optionals.HAS_PYLATEX, "needs pylatexenc")
     def test_creg_initial(self):
         """Test cregbundle and initial state options"""
         filename1 = self._get_resource_path("test_latex_creg_initial_true.tex")
@@ -393,6 +415,7 @@ class TestLatexSourceGenerator(QiskitVisualizationTestCase):
 
         self.assertEqualToReference(filename2)
 
+    @unittest.skipUnless(optionals.HAS_PYLATEX, "needs pylatexenc")
     def test_r_gates(self):
         """Test all R gates"""
         filename = self._get_resource_path("test_latex_r_gates.tex")
@@ -411,6 +434,7 @@ class TestLatexSourceGenerator(QiskitVisualizationTestCase):
 
         self.assertEqualToReference(filename)
 
+    @unittest.skipUnless(optionals.HAS_PYLATEX, "needs pylatexenc")
     def test_cswap_rzz(self):
         """Test controlled swap and rzz gates"""
         filename = self._get_resource_path("test_latex_cswap_rzz.tex")
@@ -425,6 +449,7 @@ class TestLatexSourceGenerator(QiskitVisualizationTestCase):
 
         self.assertEqualToReference(filename)
 
+    @unittest.skipUnless(optionals.HAS_PYLATEX, "needs pylatexenc")
     def test_ghz_to_gate(self):
         """Test controlled GHZ to_gate circuit"""
         filename = self._get_resource_path("test_latex_ghz_to_gate.tex")
@@ -442,6 +467,7 @@ class TestLatexSourceGenerator(QiskitVisualizationTestCase):
 
         self.assertEqualToReference(filename)
 
+    @unittest.skipUnless(optionals.HAS_PYLATEX, "needs pylatexenc")
     def test_scale(self):
         """Tests scale
         See: https://github.com/Qiskit/qiskit-terra/issues/4179"""
@@ -461,6 +487,7 @@ class TestLatexSourceGenerator(QiskitVisualizationTestCase):
 
         self.assertEqualToReference(filename3)
 
+    @unittest.skipUnless(optionals.HAS_PYLATEX, "needs pylatexenc")
     def test_pi_param_expr(self):
         """Text pi in circuit with parameter expression."""
         filename = self._get_resource_path("test_latex_pi_param_expr.tex")
@@ -472,6 +499,7 @@ class TestLatexSourceGenerator(QiskitVisualizationTestCase):
 
         self.assertEqualToReference(filename)
 
+    @unittest.skipUnless(optionals.HAS_PYLATEX, "needs pylatexenc")
     def test_partial_layout(self):
         """Tests partial_layout
         See: https://github.com/Qiskit/qiskit-terra/issues/4757"""
@@ -490,6 +518,7 @@ class TestLatexSourceGenerator(QiskitVisualizationTestCase):
 
         self.assertEqualToReference(filename)
 
+    @unittest.skipUnless(optionals.HAS_PYLATEX, "needs pylatexenc")
     def test_init_reset(self):
         """Test reset and initialize with 1 and 2 qubits"""
         filename = self._get_resource_path("test_latex_init_reset.tex")
@@ -502,6 +531,7 @@ class TestLatexSourceGenerator(QiskitVisualizationTestCase):
 
         self.assertEqualToReference(filename)
 
+    @unittest.skipUnless(optionals.HAS_PYLATEX, "needs pylatexenc")
     def test_iqx_colors(self):
         """Tests with iqx color scheme"""
         filename = self._get_resource_path("test_latex_iqx.tex")
@@ -536,6 +566,7 @@ class TestLatexSourceGenerator(QiskitVisualizationTestCase):
 
         self.assertEqualToReference(filename)
 
+    @unittest.skipUnless(optionals.HAS_PYLATEX, "needs pylatexenc")
     def test_reverse_bits(self):
         """Tests reverse_bits parameter"""
         filename = self._get_resource_path("test_latex_reverse_bits.tex")
@@ -548,6 +579,7 @@ class TestLatexSourceGenerator(QiskitVisualizationTestCase):
 
         self.assertEqualToReference(filename)
 
+    @unittest.skipUnless(optionals.HAS_PYLATEX, "needs pylatexenc")
     def test_meas_condition(self):
         """Tests measure with a condition"""
 
@@ -562,6 +594,7 @@ class TestLatexSourceGenerator(QiskitVisualizationTestCase):
 
         self.assertEqualToReference(filename)
 
+    @unittest.skipUnless(optionals.HAS_PYLATEX, "needs pylatexenc")
     def test_inst_with_cbits(self):
         """Test custom instructions with classical bits"""
 
@@ -578,6 +611,7 @@ class TestLatexSourceGenerator(QiskitVisualizationTestCase):
 
         self.assertEqualToReference(filename)
 
+    @unittest.skipUnless(optionals.HAS_PYLATEX, "needs pylatexenc")
     def test_cif_single_bit(self):
         """Tests conditioning gates on single classical bit"""
 
@@ -591,6 +625,7 @@ class TestLatexSourceGenerator(QiskitVisualizationTestCase):
 
         self.assertEqualToReference(filename)
 
+    @unittest.skipUnless(optionals.HAS_PYLATEX, "needs pylatexenc")
     def test_cif_single_bit_cregbundle(self):
         """Tests conditioning gates on single classical bit with cregbundle"""
 
@@ -604,6 +639,7 @@ class TestLatexSourceGenerator(QiskitVisualizationTestCase):
 
         self.assertEqualToReference(filename)
 
+    @unittest.skipUnless(optionals.HAS_PYLATEX, "needs pylatexenc")
     def test_registerless_one_bit(self):
         """Text circuit with one-bit registers and registerless bits."""
         filename = self._get_resource_path("test_latex_registerless_one_bit.tex")
@@ -615,6 +651,7 @@ class TestLatexSourceGenerator(QiskitVisualizationTestCase):
 
         self.assertEqualToReference(filename)
 
+    @unittest.skipUnless(optionals.HAS_PYLATEX, "needs pylatexenc")
     def test_measures_with_conditions(self):
         """Test that a measure containing a condition displays"""
         filename1 = self._get_resource_path("test_latex_meas_cond_false.tex")
@@ -633,6 +670,7 @@ class TestLatexSourceGenerator(QiskitVisualizationTestCase):
         self.assertEqualToReference(filename1)
         self.assertEqualToReference(filename2)
 
+    @unittest.skipUnless(optionals.HAS_PYLATEX, "needs pylatexenc")
     def test_measures_with_conditions_with_bits(self):
         """Condition and measure on single bits cregbundle true"""
         filename1 = self._get_resource_path("test_latex_meas_cond_bits_false.tex")
@@ -648,6 +686,7 @@ class TestLatexSourceGenerator(QiskitVisualizationTestCase):
         self.assertEqualToReference(filename1)
         self.assertEqualToReference(filename2)
 
+    @unittest.skipUnless(optionals.HAS_PYLATEX, "needs pylatexenc")
     def test_conditions_with_bits_reverse(self):
         """Test that gates with conditions and measures work with bits reversed"""
         filename = self._get_resource_path("test_latex_cond_reverse.tex")
@@ -661,6 +700,7 @@ class TestLatexSourceGenerator(QiskitVisualizationTestCase):
         )
         self.assertEqualToReference(filename)
 
+    @unittest.skipUnless(optionals.HAS_PYLATEX, "needs pylatexenc")
     def test_sidetext_with_condition(self):
         """Test that sidetext gates align properly with a condition"""
         filename = self._get_resource_path("test_latex_sidetext_condition.tex")
@@ -671,6 +711,7 @@ class TestLatexSourceGenerator(QiskitVisualizationTestCase):
         circuit_drawer(circuit, cregbundle=False, filename=filename, output="latex_source")
         self.assertEqualToReference(filename)
 
+    @unittest.skipUnless(optionals.HAS_PYLATEX, "needs pylatexenc")
     def test_idle_wires_barrier(self):
         """Test that idle_wires False works with barrier"""
         filename = self._get_resource_path("test_latex_idle_wires_barrier.tex")
@@ -680,6 +721,7 @@ class TestLatexSourceGenerator(QiskitVisualizationTestCase):
         circuit_drawer(circuit, idle_wires=False, filename=filename, output="latex_source")
         self.assertEqualToReference(filename)
 
+    @unittest.skipUnless(optionals.HAS_PYLATEX, "needs pylatexenc")
     def test_wire_order(self):
         """Test the wire_order option to latex drawer"""
         filename = self._get_resource_path("test_latex_wire_order.tex")

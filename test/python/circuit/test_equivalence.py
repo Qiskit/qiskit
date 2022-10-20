@@ -470,6 +470,7 @@ class TestEquivalenceLibraryVisualization(QiskitVisualizationTestCase):
     """Test cases for EquivalenceLibrary visualization."""
 
     @unittest.skipUnless(optionals.HAS_GRAPHVIZ, "Graphviz not installed")
+    @unittest.skipUnless(optionals.HAS_PIL, "PIL not installed")
     def test_equivalence_draw(self):
         """Verify EquivalenceLibrary drawing with reference image."""
         sel = EquivalenceLibrary()

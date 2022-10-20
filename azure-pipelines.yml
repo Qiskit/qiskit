@@ -106,14 +106,17 @@ stages:
               pythonVersion: ${{ version }}
               testQPY: false
               testImages: false
+              installOptionals: true
 
           - template: ".azure/test-macos.yml"
             parameters:
               pythonVersion: ${{ version }}
+              installOptionals: true
 
           - template: ".azure/test-windows.yml"
             parameters:
               pythonVersion: ${{ version }}
+              installOptionals: true
 
     - stage: "Nightly_Failure"
       displayName: "Comment on nightly failure"
@@ -151,6 +154,9 @@ stages:
         - template: ".azure/test-linux.yml"
           parameters:
             pythonVersion: ${{ parameters.minimumPythonVersion }}
+            # Failures due to missing optionals should be very rare, so we
+            # optimise for faster turnaround in testing optional features.
+            installOptionals: true
             testQPY: false
             testImages: false
             rustVersion: ${{ parameters.minimumRustVersion }}
@@ -174,22 +180,27 @@ stages:
             testQPY: true
             testImages: true
             installFromSdist: true
+            installOptionals: false
 
         - template: ".azure/test-macos.yml"
           parameters:
             pythonVersion: ${{ parameters.minimumPythonVersion }}
+            installOptionals: false
 
         - template: ".azure/test-macos.yml"
           parameters:
             pythonVersion: ${{ parameters.maximumPythonVersion }}
+            installOptionals: true
 
         - template: ".azure/test-windows.yml"
           parameters:
             pythonVersion: ${{ parameters.minimumPythonVersion }}
+            installOptionals: false
 
         - template: ".azure/test-windows.yml"
           parameters:
             pythonVersion: ${{ parameters.maximumPythonVersion }}
+            installOptionals: true
 
   # Push to main or the stable branches.  The triggering branches are set in the
   # triggers at the top of this file.
@@ -201,6 +212,7 @@ stages:
             pythonVersion: ${{ parameters.branchPushPythonVersion }}
             testQPY: true
             testImages: true
+            installOptionals: false
 
   # Push to a tag.  The triggering tags are set in the triggers at the top of
   # this file.

@@ -195,6 +195,8 @@ from :mod:`.utils` directly if required, such as::
 .. autoclass:: qiskit.utils.LazySubprocessTester
 """
 
+# NOTE: If you're changing this file, sync it with `requirements-optionals.txt` as well.
+
 import logging as _logging
 
 from .lazy_tester import (

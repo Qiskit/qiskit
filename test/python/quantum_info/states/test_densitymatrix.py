@@ -22,6 +22,7 @@ from qiskit.test import QiskitTestCase
 from qiskit import QiskitError
 from qiskit import QuantumRegister, QuantumCircuit
 from qiskit.circuit.library import HGate, QFT
+from qiskit.utils import optionals
 
 from qiskit.quantum_info.random import random_unitary, random_density_matrix, random_pauli
 from qiskit.quantum_info.states import DensityMatrix, Statevector
@@ -1131,6 +1132,9 @@ class TestDensityMatrix(QiskitTestCase):
         state2 = DensityMatrix.from_instruction(circ2)
         self.assertEqual(state1.reverse_qargs(), state2)
 
+    @unittest.skipUnless(optionals.HAS_MATPLOTLIB, "requires matplotlib")
+    @unittest.skipUnless(optionals.HAS_PYLATEX, "requires pylatexenc")
+    @unittest.skipUnless(optionals.HAS_PDFLATEX, "requires pdflatex")
     def test_drawings(self):
         """Test draw method"""
         qc1 = QFT(5)

@@ -40,6 +40,7 @@ from qiskit.circuit.barrier import Barrier
 from qiskit.dagcircuit.exceptions import DAGCircuitError
 from qiskit.converters import circuit_to_dag
 from qiskit.test import QiskitTestCase
+from qiskit.utils import optionals
 
 
 def raise_if_dagcircuit_invalid(dag):
@@ -1428,6 +1429,7 @@ class TestDagEquivalence(QiskitTestCase):
 
         self.assertNotEqual(self.dag1, dag2)
 
+    @unittest.skipUnless(optionals.HAS_NETWORKX, "networkx required")
     def test_dag_from_networkx(self):
         """Test DAG from networkx creates an expected DAGCircuit object."""
         from copy import deepcopy

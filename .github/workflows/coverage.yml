@@ -39,7 +39,7 @@ jobs:
       - name: Generate unittest coverage report
         run: |
           set -e
-          pip install -r requirements-dev.txt qiskit-aer
+          pip install -r requirements-dev.txt -r requirements-optionals.txt -c constraints.txt
           stestr run
           ./grcov . --binary-path ./target/debug/ -s . --llvm --parallel -t lcov --branch --ignore-not-existing --ignore "/*" -o ./rust_unittest.info
           mkdir rust_lcov

@@ -14,8 +14,7 @@
 
 import os
 import re
-import sys
-from setuptools import setup, find_packages, Extension
+from setuptools import setup, find_packages
 from setuptools_rust import Binding, RustExtension
 
 
@@ -33,6 +32,8 @@ with open(README_PATH) as readme_file:
     )
 
 
+# If modifying these optional extras, make sure to sync with `requirements-optionals.txt` and
+# `qiskit.utils.optionals` as well.
 visualization_extras = [
     "matplotlib>=3.3",
     "ipywidgets>=7.3.0",

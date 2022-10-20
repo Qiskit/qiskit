@@ -16,12 +16,14 @@ import unittest
 from io import BytesIO
 from collections import Counter
 
-import matplotlib as mpl
-from PIL import Image
-
 from qiskit.visualization import plot_histogram
 from qiskit.utils import optionals
 from .visualization import QiskitVisualizationTestCase
+
+if optionals.HAS_MATPLOTLIB:
+    import matplotlib as mpl
+if optionals.HAS_PIL:
+    from PIL import Image
 
 
 class TestPlotHistogram(QiskitVisualizationTestCase):
@@ -128,6 +130,7 @@ class TestPlotHistogram(QiskitVisualizationTestCase):
         self.assertIsInstance(fig, mpl.figure.Figure)
 
     @unittest.skipUnless(optionals.HAS_MATPLOTLIB, "matplotlib not available.")
+    @unittest.skipUnless(optionals.HAS_PIL, "matplotlib not available.")
     def test_with_number_to_keep_multiple_executions_correct_image(self):
         """Test plotting using number_to_keep with multiple executions"""
         data_noisy = {
