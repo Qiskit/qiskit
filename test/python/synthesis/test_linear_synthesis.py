@@ -14,9 +14,11 @@
 
 import unittest
 
+import numpy as np
 from qiskit import QuantumCircuit
 from qiskit.circuit.library import LinearFunction
-from qiskit.synthesis.linear import cnot_synth, random_invertible_binary_matrix
+from qiskit.synthesis.linear import cnot_synth, random_invertible_binary_matrix, \
+    check_invertible_binary_matrix, calc_inverse_matrix
 from qiskit.synthesis.linear.linear_circuits_utils import transpose_cx_circ, optimize_cx_4_options
 from qiskit.test import QiskitTestCase
 
@@ -60,7 +62,18 @@ class TestLinearSynth(QiskitTestCase):
         qc = cnot_synth(mat)
         transposed_qc = transpose_cx_circ(qc)
         transposed_mat = LinearFunction(transposed_qc).linear.astype(int)
-        assert (mat.transpose() == transposed_mat).all()
+        self.assertTrue ((mat.transpose() == transposed_mat).all())
+
+
+    def test_invertible_matrix(self):
+        """Test the functions for generating a random invertible matrix and inverting it."""
+        n = 5
+        mat = random_invertible_binary_matrix(n, seed=1234)
+        out = check_invertible_binary_matrix(mat)
+        mat_inv = calc_inverse_matrix(mat, verify = True)
+        mat_out = np.dot(mat, mat_inv) % 2
+        self.assertTrue (np.array_equal(mat_out, np.eye(n)))
+        self.assertTrue (out)
 
 
 if __name__ == "__main__":
