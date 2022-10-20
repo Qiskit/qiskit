@@ -386,7 +386,7 @@ def generate_translation_passmanager(
                 target=target,
             ),
             HighLevelSynthesis(hls_config=hls_config),
-            UnrollCustomDefinitions(sel, basis_gates),
+            UnrollCustomDefinitions(sel, basis_gates=basis_gates, target=target),
             BasisTranslator(sel, basis_gates, target),
         ]
     elif method == "synthesis":
