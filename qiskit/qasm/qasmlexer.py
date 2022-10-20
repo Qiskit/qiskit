@@ -160,7 +160,7 @@ class QasmLexer:
         return self.lexer.token()
 
     def t_FORMAT(self, t):
-        r"OPENQASM\s+(\d+)\.(\d+)"
+        r"OPENQASM\s+[0-9]+(\.[0-9]+)?"
         return t
 
     def t_COMMENT(self, _):

@@ -26,12 +26,12 @@ def filter_backends(backends, filters=None, **kwargs):
     backends must fulfill all specified conditions.
 
     Args:
-        backends (list[BaseBackend]): list of backends.
+        backends (list[Backend]): list of backends.
         filters (callable): filtering conditions as a callable.
         **kwargs: dict of criteria.
 
     Returns:
-        list[BaseBackend]: a list of backend instances matching the
+        list[Backend]: a list of backend instances matching the
             conditions.
     """
 
@@ -73,7 +73,7 @@ def resolve_backend_name(name, backends, deprecated, aliased):
 
     Args:
         name (str): name of backend to resolve
-        backends (list[BaseBackend]): list of available backends.
+        backends (list[Backend]): list of available backends.
         deprecated (dict[str: str]): dict of deprecated names.
         aliased (dict[str: list[str]]): dict of aliased names.
 

@@ -1,0 +1,12 @@
+---
+features:
+  - |
+    Added a new function :func:`~.generate_preset_pass_manager` which can
+    be used to quickly generate a preset :class:`~.PassManager` object that mirrors the
+    :class:`~.PassManager` used internally by the :func:`~.transpile` function. For example::
+
+      from qiskit.transpiler.preset_passmanagers import generate_preset_pass_manager
+      from qiskit.providers.fake_provider import FakeWashingtonV2
+
+      # Generate an optimization level 3 pass manager targeting FakeWashingtonV2
+      pass_manager = generate_preset_pass_manager(3, FakeWashingtonV2())

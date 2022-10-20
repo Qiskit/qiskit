@@ -20,6 +20,22 @@ logger = logging.getLogger(__name__)
 # pylint: disable=invalid-name
 
 
+def _probabilities_from_sampler_result(num_qubits, result, estimation_problem):
+    """calculate probabilities from sampler result"""
+    prob = 0
+    for bit, probabilities in result.quasi_dists[0].items():
+        i = int(bit)
+        # get bitstring of objective qubits
+        full_state = bin(i)[2:].zfill(num_qubits)[::-1]
+        state = "".join([full_state[i] for i in estimation_problem.objective_qubits])
+
+        # check if it is a good state
+        if estimation_problem.is_good_state(state[::-1]):
+            prob += probabilities
+
+    return prob
+
+
 def bisect_max(f, a, b, steps=50, minwidth=1e-12, retval=False):
     """Find the maximum of the real-valued function f in the interval [a, b] using bisection.
 
@@ -171,7 +187,7 @@ def _derivative_beta(x, p):
 
 def _pdf_a_single_angle(x, p, m, pi_delta):
     """Helper function for `pdf_a`."""
-    M = 2 ** m
+    M = 2**m
 
     d = pi_delta(x, p)
     res = np.sin(M * d) ** 2 / (M * np.sin(d)) ** 2 if d != 0 else 1
@@ -226,7 +242,7 @@ def derivative_log_pdf_a(x, p, m):
     Returns:
         float: d/dp log(PDF(x|p))
     """
-    M = 2 ** m
+    M = 2**m
 
     if x not in [0, 1]:
         num_p1 = 0

@@ -18,6 +18,7 @@ import numpy as np
 from ddt import ddt, data
 
 from qiskit import QuantumCircuit
+from qiskit.utils import algorithm_globals
 from qiskit.opflow import (
     CVaRMeasurement,
     StateFn,
@@ -26,6 +27,7 @@ from qiskit.opflow import (
     X,
     Y,
     Plus,
+    PauliSumOp,
     PauliExpectation,
     MatrixExpectation,
     CVaRExpectation,
@@ -69,6 +71,10 @@ class TestCVaRMeasurement(QiskitOpflowTestCase):
                 break
 
         return result / alpha
+
+    def cleanup_algorithm_globals(self, massive):
+        """Method used to reset the values of algorithm_globals."""
+        algorithm_globals.massive = massive
 
     def test_cvar_simple(self):
         """Test a simple case with a single Pauli."""
@@ -160,6 +166,26 @@ class TestCVaRMeasurement(QiskitOpflowTestCase):
         with self.subTest("adjoint"):
             with self.assertRaises(OpflowError):
                 cvar.adjoint()
+
+    def test_cvar_on_paulisumop(self):
+        """Test a large PauliSumOp is checked for diagonality efficiently.
+
+        Regression test for Qiskit/qiskit-terra#7573.
+        """
+        op = PauliSumOp.from_list([("Z" * 30, 1)])
+        # assert global algorithm settings do not have massive calculations turned on
+        # -- which is the default, but better to be sure in the test!
+        # also add a cleanup so we're sure to reset to the original value after the test, even if
+        # the test would fail
+        self.addCleanup(self.cleanup_algorithm_globals, algorithm_globals.massive)
+        algorithm_globals.massive = False
+
+        cvar = CVaRMeasurement(op, alpha=0.1)
+        fake_probabilities = [0.2, 0.8]
+        fake_energies = [1, 2]
+
+        expectation = cvar.compute_cvar(fake_energies, fake_probabilities)
+        self.assertEqual(expectation, 1)
 
 
 @ddt

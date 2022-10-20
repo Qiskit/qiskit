@@ -165,6 +165,12 @@ class PulseChannel(Channel, metaclass=ABCMeta):
     pass
 
 
+class ClassicalIOChannel(Channel, metaclass=ABCMeta):
+    """Base class of classical IO channels. These cannot have instructions scheduled on them."""
+
+    pass
+
+
 class DriveChannel(PulseChannel):
     """Drive channels transmit signals to qubits which enact gate operations."""
 
@@ -192,7 +198,7 @@ class AcquireChannel(Channel):
     prefix = "a"
 
 
-class SnapshotChannel(Channel):
+class SnapshotChannel(ClassicalIOChannel):
     """Snapshot channels are used to specify instructions for simulators."""
 
     prefix = "s"
@@ -202,13 +208,13 @@ class SnapshotChannel(Channel):
         super().__init__(0)
 
 
-class MemorySlot(Channel):
+class MemorySlot(ClassicalIOChannel):
     """Memory slot channels represent classical memory storage."""
 
     prefix = "m"
 
 
-class RegisterSlot(Channel):
+class RegisterSlot(ClassicalIOChannel):
     """Classical resister slot channels represent classical registers (low-latency classical
     memory).
     """

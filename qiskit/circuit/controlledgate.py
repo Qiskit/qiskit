@@ -236,7 +236,7 @@ class ControlledGate(Gate):
     @property
     def _open_ctrl(self) -> bool:
         """Return whether gate has any open controls"""
-        return self.ctrl_state < 2 ** self.num_ctrl_qubits - 1
+        return self.ctrl_state < 2**self.num_ctrl_qubits - 1
 
     def __eq__(self, other) -> bool:
         return (

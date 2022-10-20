@@ -67,7 +67,7 @@ class QDrift(TrotterizationBase):
         weights = np.abs(coeffs)
         lambd = np.sum(weights)
 
-        N = 2 * (lambd ** 2) * (coeff ** 2)
+        N = 2 * (lambd**2) * (coeff**2)
         factor = lambd * coeff / (N * self.reps)
         # The protocol calls for the removal of the individual coefficients,
         # and multiplication by a constant factor.

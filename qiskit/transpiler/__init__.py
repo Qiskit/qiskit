@@ -43,6 +43,8 @@ quantum circuit optimization methods and their usage, it is best to use one of
 these ready-made routines.
 
 
+.. _transpiler_supplemental:
+
 Supplementary Information
 =========================
 
@@ -62,7 +64,7 @@ Supplementary Information
       :hide-code:
       :hide-output:
 
-      from qiskit.test.mock import FakeVigo
+      from qiskit.providers.fake_provider import FakeVigo
       backend = FakeVigo()
 
    .. jupyter-execute::
@@ -94,7 +96,9 @@ Supplementary Information
 
    .. jupyter-execute::
 
-      qc_basis = qc.decompose()
+      from qiskit import transpile
+
+      qc_basis = transpile(qc, backend)
       qc_basis.draw(output='mpl')
 
 
@@ -185,7 +189,7 @@ Supplementary Information
    The choice of `initial_layout` can mean the difference between getting a result,
    and getting nothing but noise.
 
-   Lets see what layouts are automatically picked at various optimization levels.  The modified
+   Let's see what layouts are automatically picked at various optimization levels.  The modified
    circuits returned by :func:`qiskit.compiler.transpile` have this initial layout information
    in them, and we can view this layout selection graphically using
    :func:`qiskit.visualization.plot_circuit_layout`:
@@ -194,7 +198,7 @@ Supplementary Information
 
       from qiskit import QuantumCircuit, transpile
       from qiskit.visualization import plot_circuit_layout
-      from qiskit.test.mock import FakeVigo
+      from qiskit.providers.fake_provider import FakeVigo
       backend = FakeVigo()
 
       ghz = QuantumCircuit(3, 3)
@@ -270,7 +274,7 @@ Supplementary Information
 
       import matplotlib.pyplot as plt
       from qiskit import QuantumCircuit, transpile
-      from qiskit.test.mock import FakeBoeblingen
+      from qiskit.providers.fake_provider import FakeBoeblingen
       backend = FakeBoeblingen()
 
       ghz = QuantumCircuit(5)
@@ -331,7 +335,7 @@ Supplementary Information
 
       import matplotlib.pyplot as plt
       from qiskit import QuantumCircuit, transpile
-      from qiskit.test.mock import FakeBoeblingen
+      from qiskit.providers.fake_provider import FakeBoeblingen
       backend = FakeBoeblingen()
 
       ghz = QuantumCircuit(5)
@@ -349,6 +353,311 @@ Supplementary Information
          print('Gate counts:', circ.count_ops())
          print()
 
+
+   .. raw:: html
+
+      <br>
+
+.. dropdown:: Scheduling
+   :animate: fade-in-slide-down
+
+   After the circuit has been translated to the target basis, mapped to the device, and optimized,
+   a scheduling phase can be applied to optionally account for all the idle time in the circuit.
+   At a high level the scheduling can be thought of as inserting delays into the circuit to account
+   for idle time on the qubits between the execution of instructions. For example, if we start with a
+   circuit such as:
+
+   .. jupyter-execute::
+
+      from qiskit import QuantumCircuit, transpile
+      from qiskit.providers.fake_provider import FakeBoeblingen
+      backend = FakeBoeblingen()
+
+      ghz = QuantumCircuit(5)
+      ghz.h(0)
+      ghz.cx(0,range(1,5))
+      ghz.draw(output='mpl')
+
+   we can then call :func:`~.transpile` on it with ``scheduling_method`` set:
+
+   .. jupyter-execute::
+
+      circ = transpile(ghz, backend, scheduling_method="asap")
+      circ.draw(output='mpl')
+
+   You can see here that the transpiler inserted :class:`~qiskit.circuit.Delay` instructions to
+   account for idle time on each qubit. To get a better idea of the timing of the circuit we can
+   also look at it with the :func:`.timeline.draw` function:
+
+   .. jupyter-execute::
+
+      from qiskit.visualization.timeline import draw as timeline_draw
+
+      timeline_draw(circ)
+
+   The scheduling of a circuit involves two parts, analysis and constraint mapping followed by a
+   padding pass. The first part requires running a scheduling analysis pass such as
+   :class:`~.ALAPSchedulingAnalysis` or :class:`~.ASAPSchedulingAnalysis` which analyzes the circuit
+   and records the start time of each instruction in the circuit using a scheduling algorithm ("as late
+   as possible" for  :class:`~.ALAPSchedulingAnalysis` and "as soon as possible" for
+   :class:`~.ASAPSchedulingAnalysis`) in the property set. Once the circuit has an initial scheduling
+   additional passes can be run to account for any timing constraints on the target backend, such
+   as alignment constraints. This is typically done with the
+   :class:`~.ConstrainedReschedule` pass which will adjust the scheduling
+   set in the property set to the constraints of the target backend. Once all
+   the scheduling and adjustments/rescheduling are finished a padding pass,
+   such as :class:`~.PadDelay` or :class:`~.PadDynamicalDecoupling` is run
+   to insert the instructions into the circuit, which completes the scheduling.
+
+   Scheduling Analysis with control flow instructions:
+
+   When scheduling analysis passes run there are additional constraints on classical conditions
+   and control flow instructions in a circuit. This section covers the details of these additional
+   constraints that any scheduling pass will need to account for.
+
+   Policy of topological node ordering in scheduling:
+
+   The DAG representation of ``QuantumCircuit`` respects the node ordering also in the
+   classical register wires, though theoretically two conditional instructions
+   conditioned on the same register are commute, i.e. read-access to the
+   classical register doesn't change its state.
+
+   .. parsed-literal::
+
+       qc = QuantumCircuit(2, 1)
+       qc.delay(100, 0)
+       qc.x(0).c_if(0, True)
+       qc.x(1).c_if(0, True)
+
+   The scheduler SHOULD comply with above topological ordering policy of the DAG circuit.
+   Accordingly, the `asap`-scheduled circuit will become
+
+   .. parsed-literal::
+
+            ┌────────────────┐   ┌───┐
+       q_0: ┤ Delay(100[dt]) ├───┤ X ├──────────────
+            ├────────────────┤   └─╥─┘      ┌───┐
+       q_1: ┤ Delay(100[dt]) ├─────╫────────┤ X ├───
+            └────────────────┘     ║        └─╥─┘
+                              ┌────╨────┐┌────╨────┐
+       c: 1/══════════════════╡ c_0=0x1 ╞╡ c_0=0x1 ╞
+                              └─────────┘└─────────┘
+
+   Note that this scheduling might be inefficient in some cases,
+   because the second conditional operation can start without waiting the delay of 100 dt.
+   However, such optimization should be done by another pass,
+   otherwise scheduling may break topological ordering of the original circuit.
+
+   Realistic control flow scheduling respecting for microarchitecture:
+
+   In the dispersive QND readout scheme, qubit is measured with microwave stimulus to qubit (Q)
+   followed by resonator ring-down (depopulation). This microwave signal is recorded
+   in the buffer memory (B) with hardware kernel, then a discriminated (D) binary value
+   is moved to the classical register (C).
+   The sequence from t0 to t1 of the measure instruction interval might be modeled as follows:
+
+   .. parsed-literal::
+
+       Q ░▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒░
+       B ░░▒▒▒▒▒▒▒▒░░░░░░░░░
+       D ░░░░░░░░░░▒▒▒▒▒▒░░░
+       C ░░░░░░░░░░░░░░░░▒▒░
+
+   However, ``QuantumCircuit`` representation is not enough accurate to represent
+   this model. In the circuit representation, thus ``Qubit`` is occupied by the
+   stimulus microwave signal during the first half of the interval,
+   and ``Clbit`` is only occupied at the very end of the interval.
+
+   This precise model may induce weird edge case.
+
+   .. parsed-literal::
+
+               ┌───┐
+       q_0: ───┤ X ├──────
+               └─╥─┘   ┌─┐
+       q_1: ─────╫─────┤M├
+            ┌────╨────┐└╥┘
+       c: 1/╡ c_0=0x1 ╞═╩═
+            └─────────┘ 0
+
+   In this example, user may intend to measure the state of ``q_1``, after ``XGate`` is
+   applied to the ``q_0``. This is correct interpretation from viewpoint of
+   the topological node ordering, i.e. x gate node come in front of the measure node.
+   However, according to the measurement model above, the data in the register
+   is unchanged during the stimulus, thus two nodes are simultaneously operated.
+   If one `alap`-schedule this circuit, it may return following circuit.
+
+   .. parsed-literal::
+
+            ┌────────────────┐   ┌───┐
+       q_0: ┤ Delay(500[dt]) ├───┤ X ├──────
+            └────────────────┘   └─╥─┘   ┌─┐
+       q_1: ───────────────────────╫─────┤M├
+                              ┌────╨────┐└╥┘
+       c: 1/══════════════════╡ c_0=0x1 ╞═╩═
+                              └─────────┘ 0
+
+   Note that there is no delay on ``q_1`` wire, and the measure instruction immediately
+   start after t=0, while the conditional gate starts after the delay.
+   It looks like the topological ordering between the nodes are flipped in the scheduled view.
+   This behavior can be understood by considering the control flow model described above,
+
+   .. parsed-literal::
+
+       : Quantum Circuit, first-measure
+       0 ░░░░░░░░░░░░▒▒▒▒▒▒░
+       1 ░▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒░
+
+       : In wire q0
+       Q ░░░░░░░░░░░░░░░▒▒▒░
+       C ░░░░░░░░░░░░▒▒░░░░░
+
+       : In wire q1
+       Q ░▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒░
+       B ░░▒▒▒▒▒▒▒▒░░░░░░░░░
+       D ░░░░░░░░░░▒▒▒▒▒▒░░░
+       C ░░░░░░░░░░░░░░░░▒▒░
+
+   Since there is no qubit register (Q0, Q1) overlap, the node ordering is determined by the
+   shared classical register C. As you can see, the execution order is still
+   preserved on C, i.e. read C then apply ``XGate``, finally store the measured outcome in C.
+   Because ``DAGOpNode`` cannot define different durations for associated registers,
+   the time ordering of two nodes is inverted anyways.
+
+   This behavior can be controlled by ``clbit_write_latency`` and ``conditional_latency``.
+   The former parameter determines the delay of the register write-access from
+   the beginning of the measure instruction t0, and another parameter determines
+   the delay of conditional gate operation from t0 which comes from the register read-access.
+   These information might be found in the backend configuration and then should
+   be copied to the pass manager property set before the pass is called.
+
+   By default latencies, the `alap`-scheduled circuit of above example may become
+
+   .. parsed-literal::
+
+               ┌───┐
+       q_0: ───┤ X ├──────
+               └─╥─┘   ┌─┐
+       q_1: ─────╫─────┤M├
+            ┌────╨────┐└╥┘
+       c: 1/╡ c_0=0x1 ╞═╩═
+            └─────────┘ 0
+
+   If the backend microarchitecture supports smart scheduling of the control flow, i.e.
+   it may separately schedule qubit and classical register,
+   insertion of the delay yields unnecessary longer total execution time.
+
+   .. parsed-literal::
+       : Quantum Circuit, first-xgate
+       0 ░▒▒▒░░░░░░░░░░░░░░░
+       1 ░▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒░
+
+       : In wire q0
+       Q ░▒▒▒░░░░░░░░░░░░░░░
+       C ░░░░░░░░░░░░░░░░░░░ (zero latency)
+
+       : In wire q1
+       Q ░▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒░
+       C ░▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒░ (zero latency, scheduled after C0 read-access)
+
+   However this result is much more intuitive in the topological ordering view.
+   If finite conditional latency is provided, for example, 30 dt, the circuit
+   is scheduled as follows.
+
+   .. parsed-literal::
+
+            ┌───────────────┐   ┌───┐
+       q_0: ┤ Delay(30[dt]) ├───┤ X ├──────
+            ├───────────────┤   └─╥─┘   ┌─┐
+       q_1: ┤ Delay(30[dt]) ├─────╫─────┤M├
+            └───────────────┘┌────╨────┐└╥┘
+       c: 1/═════════════════╡ c_0=0x1 ╞═╩═
+                             └─────────┘ 0
+
+   with the timing model:
+
+   .. parsed-literal::
+       : Quantum Circuit, first-xgate
+       0 ░░▒▒▒░░░░░░░░░░░░░░░
+       1 ░░▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒░
+
+       : In wire q0
+       Q ░░▒▒▒░░░░░░░░░░░░░░░
+       C ░▒░░░░░░░░░░░░░░░░░░ (30dt latency)
+
+       : In wire q1
+       Q ░░▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒░
+       C ░░▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒░
+
+   See https://arxiv.org/abs/2102.01682 for more details.
+
+   .. raw:: html
+
+      <br>
+
+.. dropdown:: Working with preset :class:`~.PassManager`
+   :animate: fade-in-slide-down
+
+   By default Qiskit includes functions to build preset :class:`~.PassManager` objects.
+   These preset passmanagers are what get used by the :func:`~.transpile` function
+   for each optimization level. If you'd like to work directly with a
+   preset pass manager you can use the :func:`~.generate_preset_pass_manager`
+   function to easily generate one. For example:
+
+   .. code-block:: python
+
+       from qiskit.transpiler.preset_passmanagers import generate_preset_pass_manager
+       from qiskit.providers.fake_provider import FakeLagosV2
+
+       backend = FakeLagosV2()
+       pass_manager = generate_preset_pass_manager(3, backend)
+
+   which will generate a :class:`~.StagedPassManager` object for optimization level 3
+   targeting the :class:`~.FakeLagosV2` backend (equivalent to what is used internally
+   by :func:`~.transpile` with ``backend=FakeLagosV2()`` and ``optimization_level=3``).
+   You can use this just like working with any other :class:`~.PassManager`. However,
+   because it is a :class:`~.StagedPassManager` it also makes it easy to compose and/or
+   replace stages of the pipeline. For example, if you wanted to run a custom scheduling
+   stage using dynamical decoupling (via the :class:`~.PadDynamicalDecoupling` pass) and
+   also add initial logical optimization prior to routing you would do something like
+   (building off the previous example):
+
+   .. code-block:: python
+
+       from qiskit.circuit.library import XGate, HGate, RXGate, PhaseGate, TGate, TdgGate
+       from qiskit.transpiler import PassManager
+       from qiskit.transpiler.passes import ALAPScheduleAnalysis, PadDynamicalDecoupling
+       from qiskit.transpiler.passes import CXCancellation, InverseCancellation
+
+       backend_durations = backend.target.durations()
+       dd_sequence = [XGate(), XGate()]
+       scheduling_pm = PassManager([
+           ALAPScheduleAnalysis(backend_durations),
+           PadDynamicalDecoupling(backend_durations, dd_sequence),
+       ])
+       inverse_gate_list = [
+           HGate(),
+           (RXGate(np.pi / 4), RXGate(-np.pi / 4)),
+           (PhaseGate(np.pi / 4), PhaseGate(-np.pi / 4)),
+           (TGate(), TdgGate()),
+
+       ])
+       logical_opt = PassManager([
+           CXCancellation(),
+           InverseCancellation([HGate(), (RXGate(np.pi / 4), RXGate(-np.pi / 4))
+       ])
+
+
+       # Add pre-layout stage to run extra logical optimization
+       pass_manager.pre_layout = logical_opt
+       # Set scheduling stage to custom pass manager
+       pass_manager.scheduling = scheduling_pm
+
+
+   Then when :meth:`~.StagedPassManager.run` is called on ``pass_manager`` the
+   ``logical_opt`` :class:`~.PassManager` will be called prior to the ``layout`` stage
+   and for the ``scheduling`` stage our custom :class:`~.PassManager`
+   ``scheduling_pm`` will be used.
 
    .. raw:: html
 
@@ -373,10 +682,13 @@ Pass Manager Construction
 .. autosummary::
    :toctree: ../stubs/
 
+   StagedPassManager
    PassManager
    PassManagerConfig
    PropertySet
    FlowController
+   ConditionalController
+   DoWhileController
 
 Layout and Topology
 -------------------
@@ -423,9 +735,10 @@ Exceptions
    TranspilerAccessError
 """
 
-from .runningpassmanager import FlowController
+from .runningpassmanager import FlowController, ConditionalController, DoWhileController
 from .passmanager import PassManager
 from .passmanager_config import PassManagerConfig
+from .passmanager import StagedPassManager
 from .propertyset import PropertySet
 from .exceptions import TranspilerError, TranspilerAccessError
 from .fencedobjs import FencedDAGCircuit, FencedPropertySet
@@ -435,3 +748,4 @@ from .layout import Layout
 from .instruction_durations import InstructionDurations
 from .target import Target
 from .target import InstructionProperties
+from .target import QubitProperties

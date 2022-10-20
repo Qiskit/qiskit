@@ -86,7 +86,7 @@ class GMS(QuantumCircuit):
         """
         super().__init__(num_qubits, name="gms")
         if not isinstance(theta, list):
-            theta = [theta] * int((num_qubits ** 2 - 1) / 2)
+            theta = [theta] * int((num_qubits**2 - 1) / 2)
         gms = QuantumCircuit(num_qubits, name="gms")
         for i in range(self.num_qubits):
             for j in range(i + 1, self.num_qubits):

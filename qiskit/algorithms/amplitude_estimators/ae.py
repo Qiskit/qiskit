@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2018, 2020.
+# (C) Copyright IBM 2018, 2022.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -12,18 +12,22 @@
 
 """The Quantum Phase Estimation-based Amplitude Estimation algorithm."""
 
-from typing import Optional, Union, List, Tuple, Dict
+from __future__ import annotations
 from collections import OrderedDict
+import warnings
 import numpy as np
 from scipy.stats import chi2, norm
 from scipy.optimize import bisect
 
 from qiskit import QuantumCircuit, ClassicalRegister
-from qiskit.providers import BaseBackend, Backend
+from qiskit.providers import Backend
+from qiskit.primitives import BaseSampler
 from qiskit.utils import QuantumInstance
+from qiskit.utils.deprecation import deprecate_function
 from .amplitude_estimator import AmplitudeEstimator, AmplitudeEstimatorResult
 from .ae_utils import pdf_a, derivative_log_pdf_a, bisect_max
 from .estimation_problem import EstimationProblem
+from ..exceptions import AlgorithmError
 
 
 class AmplitudeEstimation(AmplitudeEstimator):
@@ -56,9 +60,10 @@ class AmplitudeEstimation(AmplitudeEstimator):
     def __init__(
         self,
         num_eval_qubits: int,
-        phase_estimation_circuit: Optional[QuantumCircuit] = None,
-        iqft: Optional[QuantumCircuit] = None,
-        quantum_instance: Optional[Union[QuantumInstance, BaseBackend, Backend]] = None,
+        phase_estimation_circuit: QuantumCircuit | None = None,
+        iqft: QuantumCircuit | None = None,
+        quantum_instance: QuantumInstance | Backend | None = None,
+        sampler: BaseSampler | None = None,
     ) -> None:
         r"""
         Args:
@@ -68,7 +73,9 @@ class AmplitudeEstimation(AmplitudeEstimator):
                 `qiskit.circuit.library.PhaseEstimation` when None.
             iqft: The inverse quantum Fourier transform component, defaults to using a standard
                 implementation from `qiskit.circuit.library.QFT` when None.
-            quantum_instance: The backend (or `QuantumInstance`) to execute the circuits on.
+            quantum_instance: Pending deprecation\: The backend (or `QuantumInstance`) to execute
+                the circuits on.
+            sampler: A sampler primitive to evaluate the circuits.
 
         Raises:
             ValueError: If the number of evaluation qubits is smaller than 1.
@@ -79,18 +86,52 @@ class AmplitudeEstimation(AmplitudeEstimator):
         super().__init__()
 
         # set quantum instance
-        self.quantum_instance = quantum_instance
+        if quantum_instance is not None:
+            warnings.warn(
+                "The quantum_instance argument has been superseded by the sampler argument. "
+                "This argument will be deprecated in a future release and subsequently "
+                "removed after that.",
+                category=PendingDeprecationWarning,
+            )
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")
+            self.quantum_instance = quantum_instance
 
         # get parameters
         self._m = num_eval_qubits  # pylint: disable=invalid-name
-        self._M = 2 ** num_eval_qubits  # pylint: disable=invalid-name
+        self._M = 2**num_eval_qubits  # pylint: disable=invalid-name
 
         self._iqft = iqft
         self._pec = phase_estimation_circuit
+        self._sampler = sampler
 
     @property
-    def quantum_instance(self) -> Optional[QuantumInstance]:
-        """Get the quantum instance.
+    def sampler(self) -> BaseSampler | None:
+        """Get the sampler primitive.
+
+        Returns:
+            The sampler primitive to evaluate the circuits.
+        """
+        return self._sampler
+
+    @sampler.setter
+    def sampler(self, sampler: BaseSampler) -> None:
+        """Set sampler primitive.
+
+        Args:
+            sampler: A sampler primitive to evaluate the circuits.
+        """
+        self._sampler = sampler
+
+    @property
+    @deprecate_function(
+        "The AmplitudeEstimation.quantum_instance getter is pending deprecation. "
+        "This property will be deprecated in a future release and subsequently "
+        "removed after that.",
+        category=PendingDeprecationWarning,
+    )
+    def quantum_instance(self) -> QuantumInstance | None:
+        """Pending deprecation; Get the quantum instance.
 
         Returns:
             The quantum instance used to run this algorithm.
@@ -98,15 +139,19 @@ class AmplitudeEstimation(AmplitudeEstimator):
         return self._quantum_instance
 
     @quantum_instance.setter
-    def quantum_instance(
-        self, quantum_instance: Union[QuantumInstance, BaseBackend, Backend]
-    ) -> None:
-        """Set quantum instance.
+    @deprecate_function(
+        "The AmplitudeEstimation.quantum_instance setter is pending deprecation. "
+        "This property will be deprecated in a future release and subsequently "
+        "removed after that.",
+        category=PendingDeprecationWarning,
+    )
+    def quantum_instance(self, quantum_instance: QuantumInstance | Backend) -> None:
+        """Pending deprecation; Set quantum instance.
 
         Args:
             quantum_instance: The quantum instance used to run this algorithm.
         """
-        if isinstance(quantum_instance, (BaseBackend, Backend)):
+        if isinstance(quantum_instance, Backend):
             quantum_instance = QuantumInstance(quantum_instance)
         self._quantum_instance = quantum_instance
 
@@ -151,9 +196,9 @@ class AmplitudeEstimation(AmplitudeEstimator):
 
     def evaluate_measurements(
         self,
-        circuit_results: Union[Dict[str, int], np.ndarray],
+        circuit_results: dict[str, int] | np.ndarray,
         threshold: float = 1e-6,
-    ) -> Tuple[Dict[int, float], Dict[float, float]]:
+    ) -> tuple[dict[int, float], dict[float, float]]:
         """Evaluate the results from the circuit simulation.
 
         Given the probabilities from statevector simulation of the QAE circuit, compute the
@@ -161,7 +206,7 @@ class AmplitudeEstimation(AmplitudeEstimator):
 
         Args:
             circuit_results: The circuit result from the QAE circuit. Can be either a counts dict
-                or a statevector.
+                or a statevector or a quasi-probabilities dict.
             threshold: Measurements with probabilities below the threshold are discarded.
 
         Returns:
@@ -170,7 +215,10 @@ class AmplitudeEstimation(AmplitudeEstimator):
         """
         # compute grid sample and measurement dicts
         if isinstance(circuit_results, dict):
-            samples, measurements = self._evaluate_count_results(circuit_results)
+            if set(map(type, circuit_results.values())) == {int}:
+                samples, measurements = self._evaluate_count_results(circuit_results)
+            else:
+                samples, measurements = self._evaluate_quasi_probabilities_results(circuit_results)
         else:
             samples, measurements = self._evaluate_statevector_results(circuit_results)
 
@@ -194,8 +242,21 @@ class AmplitudeEstimation(AmplitudeEstimator):
             if y >= int(self._M / 2):
                 y = self._M - y
             # due to the finite accuracy of the sine, we round the result to 7 decimals
-            a = np.round(np.power(np.sin(y * np.pi / 2 ** self._m), 2), decimals=7)
+            a = np.round(np.power(np.sin(y * np.pi / 2**self._m), 2), decimals=7)
             samples[a] = samples.get(a, 0) + probability
+
+        return samples, measurements
+
+    def _evaluate_quasi_probabilities_results(self, circuit_results):
+        # construct probabilities
+        measurements = OrderedDict()
+        samples = OrderedDict()
+        for state, probability in circuit_results.items():
+            # reverts the last _m items
+            y = int(state[: -self._m - 1 : -1], 2)
+            measurements[y] = probability
+            a = np.round(np.power(np.sin(y * np.pi / 2**self._m), 2), decimals=7)
+            samples[a] = samples.get(a, 0.0) + probability
 
         return samples, measurements
 
@@ -203,13 +264,12 @@ class AmplitudeEstimation(AmplitudeEstimator):
         # construct probabilities
         measurements = OrderedDict()
         samples = OrderedDict()
-        shots = self._quantum_instance._run_config.shots
-
+        shots = sum(counts.values())
         for state, count in counts.items():
             y = int(state.replace(" ", "")[: self._m][::-1], 2)
             probability = count / shots
             measurements[y] = probability
-            a = np.round(np.power(np.sin(y * np.pi / 2 ** self._m), 2), decimals=7)
+            a = np.round(np.power(np.sin(y * np.pi / 2**self._m), 2), decimals=7)
             samples[a] = samples.get(a, 0.0) + probability
 
         return samples, measurements
@@ -229,7 +289,7 @@ class AmplitudeEstimation(AmplitudeEstimator):
             The MLE for the provided result object.
         """
         m = result.num_evaluation_qubits
-        M = 2 ** m  # pylint: disable=invalid-name
+        M = 2**m  # pylint: disable=invalid-name
         qae = result.estimation
 
         # likelihood function
@@ -285,12 +345,16 @@ class AmplitudeEstimation(AmplitudeEstimator):
         Raises:
             ValueError: If `state_preparation` or `objective_qubits` are not set in the
                 `estimation_problem`.
+            ValueError: A quantum instance or sampler must be provided.
+            AlgorithmError: Sampler job run error.
         """
         # check if A factory or state_preparation has been set
         if estimation_problem.state_preparation is None:
             raise ValueError(
                 "The state_preparation property of the estimation problem must be set."
             )
+        if self._quantum_instance is None and self._sampler is None:
+            raise ValueError("A quantum instance or sampler must be provided.")
 
         if estimation_problem.objective_qubits is None:
             raise ValueError("The objective_qubits property of the estimation problem must be set.")
@@ -299,24 +363,43 @@ class AmplitudeEstimation(AmplitudeEstimator):
         result.num_evaluation_qubits = self._m
         result.post_processing = estimation_problem.post_processing
 
-        if self._quantum_instance.is_statevector:
+        shots = 0
+        if self._quantum_instance is not None and self._quantum_instance.is_statevector:
             circuit = self.construct_circuit(estimation_problem, measurement=False)
             # run circuit on statevector simulator
             statevector = self._quantum_instance.execute(circuit).get_statevector()
             result.circuit_results = statevector
-
             # store number of shots: convention is 1 shot for statevector,
             # needed so that MLE works!
-            result.shots = 1
+            shots = 1
         else:
-            # run circuit on QASM simulator
             circuit = self.construct_circuit(estimation_problem, measurement=True)
-            counts = self._quantum_instance.execute(circuit).get_counts()
-            result.circuit_results = counts
+            if self._quantum_instance is not None:
+                # run circuit on QASM simulator
+                result.circuit_results = self._quantum_instance.execute(circuit).get_counts()
+                shots = sum(result.circuit_results.values())
+            else:
+                try:
+                    job = self._sampler.run([circuit])
+                    ret = job.result()
+                except Exception as exc:
+                    raise AlgorithmError("The job was not completed successfully. ") from exc
 
-            # store shots
-            result.shots = sum(counts.values())
+                shots = ret.metadata[0].get("shots")
+                if shots is None:
+                    result.circuit_results = {
+                        np.binary_repr(k, circuit.num_qubits): v
+                        for k, v in ret.quasi_dists[0].items()
+                    }
+                    shots = 1
+                else:
+                    result.circuit_results = {
+                        np.binary_repr(k, circuit.num_qubits): round(v * shots)
+                        for k, v in ret.quasi_dists[0].items()
+                    }
 
+        # store shots
+        result.shots = shots
         samples, measurements = self.evaluate_measurements(result.circuit_results)
 
         result.samples = samples
@@ -351,7 +434,7 @@ class AmplitudeEstimation(AmplitudeEstimator):
     @staticmethod
     def compute_confidence_interval(
         result: "AmplitudeEstimationResult", alpha: float = 0.05, kind: str = "likelihood_ratio"
-    ) -> Tuple[float, float]:
+    ) -> tuple[float, float]:
         """Compute the (1 - alpha) confidence interval.
 
         Args:
@@ -417,12 +500,12 @@ class AmplitudeEstimationResult(AmplitudeEstimatorResult):
         self._mle_processed = value
 
     @property
-    def samples_processed(self) -> Dict[float, float]:
+    def samples_processed(self) -> dict[float, float]:
         """Return the post-processed measurement samples with their measurement probability."""
         return self._samples_processed
 
     @samples_processed.setter
-    def samples_processed(self, value: Dict[float, float]) -> None:
+    def samples_processed(self, value: dict[float, float]) -> None:
         """Set the post-processed measurement samples."""
         self._samples_processed = value
 
@@ -437,22 +520,22 @@ class AmplitudeEstimationResult(AmplitudeEstimatorResult):
         self._mle = value
 
     @property
-    def samples(self) -> Dict[float, float]:
+    def samples(self) -> dict[float, float]:
         """Return the measurement samples with their measurement probability."""
         return self._samples
 
     @samples.setter
-    def samples(self, value: Dict[float, float]) -> None:
+    def samples(self, value: dict[float, float]) -> None:
         """Set the measurement samples with their measurement probability."""
         self._samples = value
 
     @property
-    def measurements(self) -> Dict[int, float]:
+    def measurements(self) -> dict[int, float]:
         """Return the measurements as integers with their measurement probability."""
         return self._y_measurements
 
     @measurements.setter
-    def measurements(self, value: Dict[int, float]) -> None:
+    def measurements(self, value: dict[int, float]) -> None:
         """Set the measurements as integers with their measurement probability."""
         self._y_measurements = value
 
@@ -481,7 +564,7 @@ def _compute_fisher_information(result: AmplitudeEstimationResult, observed: boo
     fisher_information = None
     mlv = result.mle  # MLE in [0,1]
     m = result.num_evaluation_qubits
-    M = 2 ** m  # pylint: disable=invalid-name
+    M = 2**m  # pylint: disable=invalid-name
 
     if observed:
         a_i = np.asarray(list(result.samples.keys()))
@@ -502,7 +585,7 @@ def _compute_fisher_information(result: AmplitudeEstimationResult, observed: boo
 
 def _fisher_confint(
     result: AmplitudeEstimationResult, alpha: float, observed: bool = False
-) -> List[float]:
+) -> list[float]:
     """Compute the Fisher information confidence interval for the MLE of the previous run.
 
     Args:
@@ -522,7 +605,7 @@ def _fisher_confint(
     return tuple(result.post_processing(bound) for bound in confint)
 
 
-def _likelihood_ratio_confint(result: AmplitudeEstimationResult, alpha: float) -> List[float]:
+def _likelihood_ratio_confint(result: AmplitudeEstimationResult, alpha: float) -> list[float]:
     """Compute the likelihood ratio confidence interval for the MLE of the previous run.
 
     Args:
@@ -535,7 +618,7 @@ def _likelihood_ratio_confint(result: AmplitudeEstimationResult, alpha: float) -
     # Compute the two intervals in which we the look for values above
     # the likelihood ratio: the two bubbles next to the QAE estimate
     m = result.num_evaluation_qubits
-    M = 2 ** m  # pylint: disable=invalid-name
+    M = 2**m  # pylint: disable=invalid-name
     qae = result.estimation
 
     y = int(np.round(M * np.arcsin(np.sqrt(qae)) / np.pi))

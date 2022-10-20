@@ -15,15 +15,16 @@ Symplectic Pauli Table Class
 # pylint: disable=invalid-name
 
 from typing import Dict
+from warnings import warn
 
 import numpy as np
 
 from qiskit.exceptions import QiskitError
 from qiskit.quantum_info.operators.base_operator import BaseOperator
+from qiskit.quantum_info.operators.custom_iterator import CustomIterator
+from qiskit.quantum_info.operators.mixins import AdjointMixin, generate_apidocs
 from qiskit.quantum_info.operators.scalar_op import ScalarOp
 from qiskit.quantum_info.operators.symplectic.pauli import Pauli
-from qiskit.quantum_info.operators.custom_iterator import CustomIterator
-from qiskit.quantum_info.operators.mixins import generate_apidocs, AdjointMixin
 
 
 class PauliTable(BaseOperator, AdjointMixin):
@@ -139,6 +140,12 @@ class PauliTable(BaseOperator, AdjointMixin):
             The input array is not copied so multiple Pauli tables
             can share the same underlying array.
         """
+        warn(
+            "The PauliTable class has been superseded by PauliList and is pending deprecation. "
+            "This class will be deprecated in the future release and subsequently removed after that.",
+            PendingDeprecationWarning,
+            stacklevel=2,
+        )
         if isinstance(data, (np.ndarray, list)):
             self._array = np.asarray(data, dtype=bool)
         elif isinstance(data, str):
@@ -935,7 +942,7 @@ class PauliTable(BaseOperator, AdjointMixin):
         # For efficiency we also allow returning a single rank-3
         # array where first index is the Pauli row, and second two
         # indices are the matrix indices
-        dim = 2 ** self.num_qubits
+        dim = 2**self.num_qubits
         ret = np.zeros((self.size, dim, dim), dtype=complex)
         for i in range(self.size):
             ret[i] = self._to_matrix(self._array[i])
@@ -1013,7 +1020,7 @@ class PauliTable(BaseOperator, AdjointMixin):
         x = symp[0:num_qubits]
         z = symp[num_qubits : 2 * num_qubits]
 
-        dim = 2 ** num_qubits
+        dim = 2**num_qubits
         twos_array = 1 << np.arange(num_qubits)
         x_indices = np.array(x).dot(twos_array)
         z_indices = np.array(z).dot(twos_array)

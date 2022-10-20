@@ -20,7 +20,6 @@ import numpy
 from qiskit.circuit.quantumcircuit import QuantumCircuit
 from qiskit.circuit.quantumregister import QuantumRegister
 from qiskit.circuit import Instruction, Parameter, ParameterVector, ParameterExpression
-from qiskit.circuit.parametertable import ParameterTable
 from qiskit.exceptions import QiskitError
 
 from ..blueprintcircuit import BlueprintCircuit
@@ -133,7 +132,6 @@ class NLocal(BlueprintCircuit):
         self._skip_final_rotation_layer = skip_final_rotation_layer
         self._skip_unentangled_qubits = skip_unentangled_qubits
         self._initial_state, self._initial_state_circuit = None, None
-        self._data = None
         self._bounds = None
 
         if int(reps) != reps:
@@ -707,7 +705,8 @@ class NLocal(BlueprintCircuit):
             parameter in the corresponding direction. If None is returned, problem is fully
             unbounded.
         """
-        self._build()
+        if not self._is_built:
+            self._build()
         return self._bounds
 
     @parameter_bounds.setter
@@ -718,11 +717,6 @@ class NLocal(BlueprintCircuit):
             bounds: The new parameter bounds.
         """
         self._bounds = bounds
-
-    def _invalidate(self):
-        """Invalidate the current circuit build."""
-        self._data = None
-        self._parameter_table = ParameterTable()
 
     def add_layer(
         self,
@@ -766,8 +760,8 @@ class NLocal(BlueprintCircuit):
                 self.num_qubits = num_qubits
 
         # modify the circuit accordingly
-        if self._data and front is False:
-            if self._insert_barriers and len(self._data) > 0:
+        if front is False and self._is_built:
+            if self._insert_barriers and len(self.data) > 0:
                 self.barrier()
 
             if isinstance(entanglement, str):
@@ -807,7 +801,10 @@ class NLocal(BlueprintCircuit):
             AttributeError: If the parameters are given as list and do not match the number
                 of parameters.
         """
-        if self._data is None:
+        if parameters is None or len(parameters) == 0:
+            return self
+
+        if not self._is_built:
             self._build()
 
         return super().assign_parameters(parameters, inplace=inplace)
@@ -900,13 +897,11 @@ class NLocal(BlueprintCircuit):
             circuit.compose(layer, inplace=True)
 
     def _build(self) -> None:
-        """Build the circuit."""
-        if self._data:
+        """If not already built, build the circuit."""
+        if self._is_built:
             return
 
-        _ = self._check_configuration()
-
-        self._data = []
+        super()._build()
 
         if self.num_qubits == 0:
             return
@@ -1011,12 +1006,17 @@ def get_entangler_map(
             "qubits in the circuit."
         )
 
-    if entanglement == "pairwise" and num_block_qubits != 2:
-        raise ValueError("Pairwise entanglement is only defined for blocks of 2 qubits.")
+    if entanglement == "pairwise" and num_block_qubits > 2:
+        raise ValueError("Pairwise entanglement is not defined for blocks with more than 2 qubits.")
 
     if entanglement == "full":
         return list(combinations(list(range(n)), m))
-    if entanglement in ["linear", "circular", "sca", "pairwise"]:
+    elif entanglement == "reverse_linear":
+        # reverse linear connectivity. In the case of m=2 and the entanglement_block='cx'
+        # then it's equivalent to 'full' entanglement
+        reverse = [tuple(range(n - i - m, n - i)) for i in range(n - m + 1)]
+        return reverse
+    elif entanglement in ["linear", "circular", "sca", "pairwise"]:
         linear = [tuple(range(i, i + m)) for i in range(n - m + 1)]
         # if the number of block qubits is 1, we don't have to add the 'circular' part
         if entanglement == "linear" or m == 1:

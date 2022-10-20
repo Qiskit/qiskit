@@ -25,7 +25,7 @@ class AmplitudeAmplifier(ABC):
     """The interface for amplification algorithms."""
 
     @abstractmethod
-    def amplify(self, amplification_problem: AmplificationProblem) -> "AmplificationResult":
+    def amplify(self, amplification_problem: AmplificationProblem) -> "AmplitudeAmplifierResult":
         """Run the amplification algorithm.
 
         Args:
@@ -46,6 +46,8 @@ class AmplitudeAmplifierResult(AlgorithmResult):
         self._top_measurement = None
         self._assignment = None
         self._oracle_evaluation = None
+        self._circuit_results = None
+        self._max_probability = None
 
     @property
     def top_measurement(self) -> Optional[str]:

@@ -15,7 +15,6 @@
 """
 
 import numpy as np
-import scipy.linalg as la
 
 # "Magic" basis used for the Weyl decomposition. The basis and its adjoint are stored individually
 # unnormalized, but such that their matrix multiplication is still the identity.  This is because
@@ -55,6 +54,8 @@ def weyl_coordinates(U):
     Returns:
         np.ndarray: Array of the 3 Weyl coordinates.
     """
+    import scipy.linalg as la
+
     pi2 = np.pi / 2
     pi4 = np.pi / 4
 

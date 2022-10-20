@@ -14,47 +14,40 @@
 
 """These examples should be handle by the classicalfunction compiler"""
 
-from qiskit.circuit import Int1
+from qiskit.utils.optionals import HAS_TWEEDLEDUM
 
+if HAS_TWEEDLEDUM:
+    from qiskit.circuit.classicalfunction.types import Int1
 
-def identity(a: Int1) -> Int1:
-    return a
+    def identity(a: Int1) -> Int1:
+        return a
 
+    def bit_and(a: Int1, b: Int1) -> Int1:
+        return a & b
 
-def bit_and(a: Int1, b: Int1) -> Int1:
-    return a & b
+    def bit_or(a: Int1, b: Int1) -> Int1:
+        return a | b
 
+    def bool_or(a: Int1, b: Int1) -> Int1:
+        return a or b
 
-def bit_or(a: Int1, b: Int1) -> Int1:
-    return a | b
+    def bool_not(a: Int1) -> Int1:
+        return not a
 
+    def and_and(a: Int1, b: Int1, c: Int1) -> Int1:
+        return a and b and c
 
-def bool_or(a: Int1, b: Int1) -> Int1:
-    return a or b
+    def multiple_binop(a: Int1, b: Int1) -> Int1:
+        return (a or b) | (b & a) and (a & b)
 
+    def id_assing(a: Int1) -> Int1:
+        b = a
+        return b
 
-def bool_not(a: Int1) -> Int1:
-    return not a
+    def example1(a: Int1, b: Int1) -> Int1:
+        c = a & b
+        d = b | a
+        return c ^ a | d
 
-
-def and_and(a: Int1, b: Int1, c: Int1) -> Int1:
-    return a and b and c
-
-
-def multiple_binop(a: Int1, b: Int1) -> Int1:
-    return (a or b) | (b & a) and (a & b)
-
-
-def id_assing(a: Int1) -> Int1:
-    b = a
-    return b
-
-
-def example1(a: Int1, b: Int1) -> Int1:
-    c = a & b
-    d = b | a
-    return c ^ a | d
-
-
-def grover_oracle(a: Int1, b: Int1, c: Int1, d: Int1) -> Int1:
-    return not a and b and not c and d
+    def grover_oracle(a: Int1, b: Int1, c: Int1, d: Int1) -> Int1:
+        return not a and b and not c and d

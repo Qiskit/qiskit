@@ -33,7 +33,7 @@ def local_hardware_info():
         "python_build": ", ".join(platform.python_build()),
         "python_version": platform.python_version(),
         "os": platform.system(),
-        "memory": psutil.virtual_memory().total / (1024 ** 3),
+        "memory": psutil.virtual_memory().total / (1024**3),
         "cpus": psutil.cpu_count(logical=False) or 1,
     }
     return results

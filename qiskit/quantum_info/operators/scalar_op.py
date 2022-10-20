@@ -139,7 +139,7 @@ class ScalarOp(LinearOp):
             ScalarOp: the ``coeff ** n`` ScalarOp.
         """
         ret = self.copy()
-        ret._coeff = self.coeff ** n
+        ret._coeff = self.coeff**n
         return ret
 
     def tensor(self, other):
