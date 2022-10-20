@@ -23,7 +23,7 @@ def check_invertible_binary_matrix(mat: np.ndarray):
         mat: a binary matrix.
 
     Returns:
-        True if mat in invertible and False otherwise.
+        bool: True if mat in invertible and False otherwise.
     """
     if len(mat.shape) != 2 or mat.shape[0] != mat.shape[1]:
         return False
@@ -41,7 +41,7 @@ def random_invertible_binary_matrix(num_qubits: int, seed: np.random.Generator =
         seed: a random seed.
 
     Returns:
-        A random invertible binary matrix of size num_qubits.
+        np.ndarray: A random invertible binary matrix of size num_qubits.
     """
     if isinstance(seed, np.random.Generator):
         rng = seed
@@ -104,17 +104,17 @@ def _gauss_elimination(mat, ncols=None, full_elim=False):
 
 def calc_inverse_matrix(mat: np.ndarray, verify: bool = False):
     """Given a square numpy(dtype=int) matrix mat, tries to compute its inverse.
-    Returns None if the matrix is not invertible, and the inverse otherwise.
 
     Args:
         mat: a boolean square matrix.
         verify: if True asserts that the multiplication of mat and its inverse is the identity matrix.
 
     Returns:
-        None if the matrix is not invertible, and the inverse matrix otherwise.
+        np.ndarray: the inverse matrix.
 
     Raises:
          QiskitError: if the matrix is not square.
+         QiskitError: if the matrix is not invertible.
     """
 
     if mat.shape[0] != mat.shape[1]:
@@ -128,7 +128,7 @@ def calc_inverse_matrix(mat: np.ndarray, verify: bool = False):
     r = _compute_rank_after_gauss_elim(mat1[:, 0:n])
 
     if r < n:
-        raise QiskitError("The matrix is not invertible")
+        raise QiskitError("The matrix is not invertible.")
 
     matinv = mat1[:, n : 2 * n]
 
