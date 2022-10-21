@@ -210,17 +210,10 @@ class QiskitTestCase(BaseQiskitTestCase):
         for mod in allow_DeprecationWarning_modules:
             warnings.filterwarnings("default", category=DeprecationWarning, module=mod)
         allow_DeprecationWarning_message = [
-            r".*QuantumCircuit\.combine.*",
-            r".*QuantumCircuit\.__add__.*",
-            r".*QuantumCircuit\.__iadd__.*",
-            r".*QuantumCircuit\.extend.*",
-            r".*qiskit\.circuit\.library\.standard_gates\.ms import.*",
             r"elementwise comparison failed.*",
             r"The jsonschema validation included in qiskit-terra.*",
             r"The DerivativeBase.parameter_expression_grad method.*",
             r"Back-references to from Bit instances.*",
-            r"The QuantumCircuit.u. method.*",
-            r"The QuantumCircuit.cu.",
             r"The CXDirection pass has been deprecated",
             r"The pauli_basis function with PauliTable.*",
             # TODO: remove the following ignore after seaborn 0.12.0 releases
