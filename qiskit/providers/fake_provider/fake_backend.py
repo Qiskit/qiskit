@@ -119,10 +119,11 @@ class FakeBackendV2(BackendV2):
     def _setup_sim(self):
         if _optionals.HAS_AER:
             from qiskit.providers import aer
+            from qiskit.providers.aer.noise import NoiseModel
 
             self.sim = aer.AerSimulator()
             if self.target and self._props_dict:
-                noise_model = self._get_noise_model_from_backend_v2()
+                noise_model = NoiseModel.from_backend(self, warnings=False)
                 self.sim.set_options(noise_model=noise_model)
                 # Update fake backend default too to avoid overwriting
                 # it when run() is called
@@ -341,8 +342,6 @@ class FakeBackendV2(BackendV2):
                 "Invalid input object %s, must be either a "
                 "QuantumCircuit, Schedule, or a list of either" % circuits
             )
-        if pulse_job:  # pulse job
-            raise QiskitError("Pulse simulation is currently not supported for V2 fake backends.")
         # circuit job
         if not _optionals.HAS_AER:
             warnings.warn("Aer not found using BasicAer and no noise", RuntimeWarning)
@@ -351,88 +350,6 @@ class FakeBackendV2(BackendV2):
         self.sim._options = self._options
         job = self.sim.run(circuits, **options)
         return job
-
-    def _get_noise_model_from_backend_v2(
-        self,
-        gate_error=True,
-        readout_error=True,
-        thermal_relaxation=True,
-        temperature=0,
-        gate_lengths=None,
-        gate_length_units="ns",
-    ):
-        """Build noise model from BackendV2.
-
-        This is a temporary fix until qiskit-aer supports building noise model
-        from a BackendV2 object.
-        """
-
-        from qiskit.circuit import Delay
-        from qiskit.providers.exceptions import BackendPropertyError
-        from qiskit.providers.aer.noise import NoiseModel
-        from qiskit.providers.aer.noise.device.models import (
-            _excited_population,
-            basic_device_gate_errors,
-            basic_device_readout_errors,
-        )
-        from qiskit.providers.aer.noise.passes import RelaxationNoisePass
-
-        if self._props_dict is None:
-            self._set_props_dict_from_json()
-
-        properties = BackendProperties.from_dict(self._props_dict)
-        basis_gates = self.operation_names
-        num_qubits = self.num_qubits
-        dt = self.dt
-
-        noise_model = NoiseModel(basis_gates=basis_gates)
-
-        # Add single-qubit readout errors
-        if readout_error:
-            for qubits, error in basic_device_readout_errors(properties):
-                noise_model.add_readout_error(error, qubits)
-
-        # Add gate errors
-        with warnings.catch_warnings():
-            warnings.filterwarnings(
-                "ignore",
-                module="qiskit.providers.aer.noise.device.models",
-            )
-            gate_errors = basic_device_gate_errors(
-                properties,
-                gate_error=gate_error,
-                thermal_relaxation=thermal_relaxation,
-                gate_lengths=gate_lengths,
-                gate_length_units=gate_length_units,
-                temperature=temperature,
-            )
-        for name, qubits, error in gate_errors:
-            noise_model.add_quantum_error(error, name, qubits)
-
-        if thermal_relaxation:
-            # Add delay errors via RelaxationNiose pass
-            try:
-                excited_state_populations = [
-                    _excited_population(freq=properties.frequency(q), temperature=temperature)
-                    for q in range(num_qubits)
-                ]
-            except BackendPropertyError:
-                excited_state_populations = None
-            try:
-                delay_pass = RelaxationNoisePass(
-                    t1s=[properties.t1(q) for q in range(num_qubits)],
-                    t2s=[properties.t2(q) for q in range(num_qubits)],
-                    dt=dt,
-                    op_types=Delay,
-                    excited_state_populations=excited_state_populations,
-                )
-                noise_model._custom_noise_passes.append(delay_pass)
-            except BackendPropertyError:
-                # Device does not have the required T1 or T2 information
-                # in its properties
-                pass
-
-        return noise_model
 
 
 class FakeBackend(BackendV1):
