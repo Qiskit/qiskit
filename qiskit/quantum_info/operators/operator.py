@@ -22,6 +22,7 @@ import numpy as np
 
 from qiskit.circuit.quantumcircuit import QuantumCircuit
 from qiskit.circuit.instruction import Instruction
+from qiskit.circuit.operation import Operation
 from qiskit.circuit.library.standard_gates import IGate, XGate, YGate, ZGate, HGate, SGate, TGate
 from qiskit.exceptions import QiskitError
 from qiskit.quantum_info.operators.predicates import is_unitary_matrix, matrix_equal
@@ -52,10 +53,8 @@ class Operator(LinearOp):
         """Initialize an operator object.
 
         Args:
-            data (QuantumCircuit or
-                  Instruction or
-                  BaseOperator or
-                  matrix): data to initialize operator.
+            data (QuantumCircuit or Operation or BaseOperator or matrix):
+                                data to initialize operator.
             input_dims (tuple): the input subsystem dimensions.
                                 [Default: None]
             output_dims (tuple): the output subsystem dimensions.
@@ -75,8 +74,8 @@ class Operator(LinearOp):
         if isinstance(data, (list, np.ndarray)):
             # Default initialization from list or numpy array matrix
             self._data = np.asarray(data, dtype=complex)
-        elif isinstance(data, (QuantumCircuit, Instruction)):
-            # If the input is a Terra QuantumCircuit or Instruction we
+        elif isinstance(data, (QuantumCircuit, Operation)):
+            # If the input is a Terra QuantumCircuit or Operation we
             # perform a simulation to construct the unitary operator.
             # This will only work if the circuit or instruction can be
             # defined in terms of unitary gate instructions which have a
@@ -201,9 +200,9 @@ class Operator(LinearOp):
 
     @classmethod
     def from_circuit(cls, circuit, ignore_set_layout=False, layout=None):
-        """Create a new Operator object from a :class`.QuantumCircuit`
+        """Create a new Operator object from a :class:`.QuantumCircuit`
 
-        While a :class:`.QuantumCircuit` object can passed directly as ``data``
+        While a :class:`~.QuantumCircuit` object can passed directly as ``data``
         to the class constructor this provides no options on how the circuit
         is used to create an :class:`.Operator`. This constructor method lets
         you control how the :class:`.Operator` is created so it can be adjusted
@@ -222,7 +221,9 @@ class Operator(LinearOp):
             layout (Layout): If specified this kwarg can be used to specify a
                 particular layout to use to permute the qubits in the created
                 :class:`.Operator`. If this is specified it will be used instead
-                of a layout contained in the ``circuit`` input.
+                of a layout contained in the ``circuit`` input. If specified
+                the virtual bits in the :class:`~.Layout` must be present in the
+                ``circuit`` input.
         Returns:
             Operator: An operator representing the input circuit
         """
@@ -231,15 +232,23 @@ class Operator(LinearOp):
         if layout is None:
             if not ignore_set_layout:
                 layout = getattr(circuit, "_layout", None)
+        else:
+            from qiskit.transpiler.layout import TranspileLayout  # pylint: disable=cyclic-import
+
+            layout = TranspileLayout(
+                initial_layout=layout,
+                input_qubit_mapping={qubit: index for index, qubit in enumerate(circuit.qubits)},
+            )
         qargs = None
         # If there was a layout specified (either from the circuit
         # or via user input) use that to set qargs to permute qubits
         # based on that layout
         if layout is not None:
-            qargs = {
-                phys: circuit.find_bit(bit).index
-                for phys, bit in layout.get_physical_bits().items()
-            }
+            physical_to_virtual = layout.initial_layout.get_physical_bits()
+            qargs = [
+                layout.input_qubit_mapping[physical_to_virtual[physical_bit]]
+                for physical_bit in range(len(physical_to_virtual))
+            ]
         # Convert circuit to an instruction
         instruction = circuit.to_instruction()
         op._append_instruction(instruction, qargs=qargs)
@@ -498,7 +507,7 @@ class Operator(LinearOp):
 
     @classmethod
     def _init_instruction(cls, instruction):
-        """Convert a QuantumCircuit or Instruction to an Operator."""
+        """Convert a QuantumCircuit or Operation to an Operator."""
         # Initialize an identity operator of the correct size of the circuit
         if hasattr(instruction, "__array__"):
             return Operator(np.array(instruction, dtype=complex))
@@ -514,8 +523,16 @@ class Operator(LinearOp):
     @classmethod
     def _instruction_to_matrix(cls, obj):
         """Return Operator for instruction if defined or None otherwise."""
-        if not isinstance(obj, Instruction):
-            raise QiskitError("Input is not an instruction.")
+        # Note: to_matrix() is not a required method for Operations, so for now
+        # we do not allow constructing matrices for general Operations.
+        # However, for backward compatibility we need to support constructing matrices
+        # for Cliffords, which happen to have a to_matrix() method.
+
+        # pylint: disable=cyclic-import
+        from qiskit.quantum_info import Clifford
+
+        if not isinstance(obj, (Instruction, Clifford)):
+            raise QiskitError("Input is neither an Instruction nor Clifford.")
         mat = None
         if hasattr(obj, "to_matrix"):
             # If instruction is a gate first we see if it has a
@@ -544,10 +561,10 @@ class Operator(LinearOp):
             # circuit decomposition definition if it exists, otherwise we
             # cannot compose this gate and raise an error.
             if obj.definition is None:
-                raise QiskitError(f"Cannot apply Instruction: {obj.name}")
+                raise QiskitError(f"Cannot apply Operation: {obj.name}")
             if not isinstance(obj.definition, QuantumCircuit):
                 raise QiskitError(
-                    'Instruction "{}" '
+                    'Operation "{}" '
                     "definition is {} but expected QuantumCircuit.".format(
                         obj.name, type(obj.definition)
                     )
@@ -569,7 +586,7 @@ class Operator(LinearOp):
             for instruction in flat_instr:
                 if instruction.clbits:
                     raise QiskitError(
-                        "Cannot apply instruction with classical bits:"
+                        "Cannot apply operation with classical bits:"
                         f" {instruction.operation.name}"
                     )
                 # Get the integer position of the flat register

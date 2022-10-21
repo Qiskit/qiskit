@@ -19,6 +19,7 @@ parameter constraints.
 """
 
 import functools
+import warnings
 from typing import Any, Dict, List, Optional, Union, Callable
 
 import numpy as np
@@ -374,11 +375,6 @@ class SymbolicPulse(Pulse):
     even within the environment not having original class definition loaded.
     This mechanism also allows us to easily share a pulse program including
     custom pulse instructions with collaborators.
-
-    .. note::
-
-        Currently QPY serialization of :class:`SymbolicPulse` is not available.
-        This feature will be implemented shortly.
     """
 
     __slots__ = (
@@ -519,7 +515,7 @@ class SymbolicPulse(Pulse):
                     f"Assigned parameters {param_repr} violate following constraint: {const_repr}."
                 )
 
-        if self.limit_amplitude:
+        if self._limit_amplitude:
             if self._valid_amp_conditions is not None:
                 fargs = _get_expression_args(self._valid_amp_conditions, self.parameters)
                 check_full_waveform = not bool(self._valid_amp_conditions_lam(*fargs))
@@ -579,7 +575,39 @@ class SymbolicPulse(Pulse):
         )
 
 
-class Gaussian(SymbolicPulse):
+class _PulseType(type):
+    """Metaclass to warn at isinstance check."""
+
+    def __instancecheck__(cls, instance):
+        cls_alias = getattr(cls, "alias", None)
+
+        # TODO promote this to Deprecation warning in future.
+        #  Once type information usage is removed from user code,
+        #  we will convert pulse classes into functions.
+        warnings.warn(
+            "Typechecking with the symbolic pulse subclass will be deprecated. "
+            f"'{cls_alias}' subclass instance is turned into SymbolicPulse instance. "
+            f"Use self.pulse_type == '{cls_alias}' instead.",
+            PendingDeprecationWarning,
+        )
+
+        if not isinstance(instance, SymbolicPulse):
+            return False
+        return instance.pulse_type == cls_alias
+
+    def __getattr__(cls, item):
+        # For pylint. A SymbolicPulse subclass must implement several methods
+        # such as .get_waveform and .validate_parameters.
+        # In addition, they conventionally offer attribute-like access to the pulse parameters,
+        # for example, instance.amp returns instance._params["amp"].
+        # If pulse classes are directly instantiated, pylint yells no-member
+        # since the pulse class itself implements nothing. These classes just
+        # behave like a factory by internally instantiating the SymbolicPulse and return it.
+        # It is not realistic to write disable=no-member across qiskit packages.
+        return NotImplemented
+
+
+class Gaussian(metaclass=_PulseType):
     r"""A lifted and truncated pulse envelope shaped according to the Gaussian function whose
     mean is centered at the center of the pulse (duration / 2):
 
@@ -591,14 +619,16 @@ class Gaussian(SymbolicPulse):
     where :math:`f'(x)` is the gaussian waveform without lifting or amplitude scaling.
     """
 
-    def __init__(
-        self,
+    alias = "Gaussian"
+
+    def __new__(
+        cls,
         duration: Union[int, ParameterExpression],
         amp: Union[complex, ParameterExpression],
         sigma: Union[float, ParameterExpression],
         name: Optional[str] = None,
         limit_amplitude: Optional[bool] = None,
-    ):
+    ) -> SymbolicPulse:
         """Create new pulse instance.
 
         Args:
@@ -610,6 +640,8 @@ class Gaussian(SymbolicPulse):
             limit_amplitude: If ``True``, then limit the amplitude of the
                 waveform to 1. The default is ``True`` and the amplitude is constrained to 1.
 
+        Returns:
+            SymbolicPulse instance.
         """
         parameters = {"amp": amp, "sigma": sigma}
 
@@ -621,8 +653,8 @@ class Gaussian(SymbolicPulse):
         consts_expr = _sigma > 0
         valid_amp_conditions_expr = sym.Abs(_amp) <= 1.0
 
-        super().__init__(
-            pulse_type=self.__class__.__name__,
+        instance = SymbolicPulse(
+            pulse_type=cls.alias,
             duration=duration,
             parameters=parameters,
             name=name,
@@ -631,10 +663,12 @@ class Gaussian(SymbolicPulse):
             constraints=consts_expr,
             valid_amp_conditions=valid_amp_conditions_expr,
         )
-        self.validate_parameters()
+        instance.validate_parameters()
+
+        return instance
 
 
-class GaussianSquare(SymbolicPulse):
+class GaussianSquare(metaclass=_PulseType):
     """A square pulse with a Gaussian shaped risefall on both sides lifted such that
     its first sample is zero.
 
@@ -672,8 +706,10 @@ class GaussianSquare(SymbolicPulse):
     where :math:`f'(x)` is the gaussian square waveform without lifting or amplitude scaling.
     """
 
-    def __init__(
-        self,
+    alias = "GaussianSquare"
+
+    def __new__(
+        cls,
         duration: Union[int, ParameterExpression],
         amp: Union[complex, ParameterExpression],
         sigma: Union[float, ParameterExpression],
@@ -681,7 +717,7 @@ class GaussianSquare(SymbolicPulse):
         risefall_sigma_ratio: Optional[Union[float, ParameterExpression]] = None,
         name: Optional[str] = None,
         limit_amplitude: Optional[bool] = None,
-    ):
+    ) -> SymbolicPulse:
         """Create new pulse instance.
 
         Args:
@@ -694,6 +730,9 @@ class GaussianSquare(SymbolicPulse):
             name: Display name for this pulse envelope.
             limit_amplitude: If ``True``, then limit the amplitude of the
                 waveform to 1. The default is ``True`` and the amplitude is constrained to 1.
+
+        Returns:
+            SymbolicPulse instance.
 
         Raises:
             PulseError: When width and risefall_sigma_ratio are both empty or both non-empty.
@@ -729,8 +768,8 @@ class GaussianSquare(SymbolicPulse):
         consts_expr = sym.And(_sigma > 0, _width >= 0, _duration >= _width)
         valid_amp_conditions_expr = sym.Abs(_amp) <= 1.0
 
-        super().__init__(
-            pulse_type=self.__class__.__name__,
+        instance = SymbolicPulse(
+            pulse_type=cls.alias,
             duration=duration,
             parameters=parameters,
             name=name,
@@ -739,15 +778,12 @@ class GaussianSquare(SymbolicPulse):
             constraints=consts_expr,
             valid_amp_conditions=valid_amp_conditions_expr,
         )
-        self.validate_parameters()
+        instance.validate_parameters()
 
-    @property
-    def risefall_sigma_ratio(self):
-        """Return risefall_sigma_ratio. This is auxiliary parameter to define width."""
-        return (self.duration - self.width) / (2.0 * self.sigma)
+        return instance
 
 
-class Drag(SymbolicPulse):
+class Drag(metaclass=_PulseType):
     """The Derivative Removal by Adiabatic Gate (DRAG) pulse is a standard Gaussian pulse
     with an additional Gaussian derivative component and lifting applied.
 
@@ -784,15 +820,17 @@ class Drag(SymbolicPulse):
            Phys. Rev. Lett. 103, 110501 – Published 8 September 2009.*
     """
 
-    def __init__(
-        self,
+    alias = "Drag"
+
+    def __new__(
+        cls,
         duration: Union[int, ParameterExpression],
         amp: Union[complex, ParameterExpression],
         sigma: Union[float, ParameterExpression],
         beta: Union[float, ParameterExpression],
         name: Optional[str] = None,
         limit_amplitude: Optional[bool] = None,
-    ):
+    ) -> SymbolicPulse:
         """Create new pulse instance.
 
         Args:
@@ -804,6 +842,9 @@ class Drag(SymbolicPulse):
             name: Display name for this pulse envelope.
             limit_amplitude: If ``True``, then limit the amplitude of the
                 waveform to 1. The default is ``True`` and the amplitude is constrained to 1.
+
+        Returns:
+            SymbolicPulse instance.
         """
         parameters = {"amp": amp, "sigma": sigma, "beta": beta}
 
@@ -819,8 +860,8 @@ class Drag(SymbolicPulse):
         consts_expr = _sigma > 0
         valid_amp_conditions_expr = sym.And(sym.Abs(_amp) <= 1.0, sym.Abs(_beta) < _sigma)
 
-        super().__init__(
-            pulse_type=self.__class__.__name__,
+        instance = SymbolicPulse(
+            pulse_type="Drag",
             duration=duration,
             parameters=parameters,
             name=name,
@@ -829,10 +870,12 @@ class Drag(SymbolicPulse):
             constraints=consts_expr,
             valid_amp_conditions=valid_amp_conditions_expr,
         )
-        self.validate_parameters()
+        instance.validate_parameters()
+
+        return instance
 
 
-class Constant(SymbolicPulse):
+class Constant(metaclass=_PulseType):
     """A simple constant pulse, with an amplitude value and a duration:
 
     .. math::
@@ -841,13 +884,15 @@ class Constant(SymbolicPulse):
         f(x) = 0      ,  elsewhere
     """
 
-    def __init__(
-        self,
+    alias = "Constant"
+
+    def __new__(
+        cls,
         duration: Union[int, ParameterExpression],
         amp: Union[complex, ParameterExpression],
         name: Optional[str] = None,
         limit_amplitude: Optional[bool] = None,
-    ):
+    ) -> SymbolicPulse:
         """Create new pulse instance.
 
         Args:
@@ -856,6 +901,9 @@ class Constant(SymbolicPulse):
             name: Display name for this pulse envelope.
             limit_amplitude: If ``True``, then limit the amplitude of the
                 waveform to 1. The default is ``True`` and the amplitude is constrained to 1.
+
+        Returns:
+            SymbolicPulse instance.
         """
         parameters = {"amp": amp}
 
@@ -872,8 +920,8 @@ class Constant(SymbolicPulse):
         envelope_expr = _amp * sym.Piecewise((1, sym.And(_t >= 0, _t <= _duration)), (0, True))
         valid_amp_conditions_expr = sym.Abs(_amp) <= 1.0
 
-        super().__init__(
-            pulse_type=self.__class__.__name__,
+        instance = SymbolicPulse(
+            pulse_type="Constant",
             duration=duration,
             parameters=parameters,
             name=name,
@@ -881,4 +929,6 @@ class Constant(SymbolicPulse):
             envelope=envelope_expr,
             valid_amp_conditions=valid_amp_conditions_expr,
         )
-        self.validate_parameters()
+        instance.validate_parameters()
+
+        return instance

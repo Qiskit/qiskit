@@ -13,17 +13,22 @@
 # pylint: disable=missing-function-docstring,missing-class-docstring
 
 """Test the staged passmanager logic"""
+from unittest.mock import patch
+
+from ddt import data, ddt
 
 from qiskit.transpiler import PassManager, StagedPassManager
-from qiskit.transpiler.passes import Optimize1qGates, Unroller, Depth
+from qiskit.transpiler.exceptions import TranspilerError
+from qiskit.transpiler.passes import Optimize1qGates, Unroller, Depth, BasicSwap
 from qiskit.test import QiskitTestCase
 
 
+@ddt
 class TestStagedPassManager(QiskitTestCase):
     def test_default_stages(self):
         spm = StagedPassManager()
         self.assertEqual(
-            spm.stages, ["init", "layout", "routing", "translation", "optimization", "scheduling"]
+            spm.stages, ("init", "layout", "routing", "translation", "optimization", "scheduling")
         )
         spm = StagedPassManager(
             init=PassManager([Optimize1qGates()]),
@@ -92,3 +97,58 @@ class TestStagedPassManager(QiskitTestCase):
         message = str(err.exception)
         for stage in invalid_stages:
             self.assertIn(stage, message)
+
+    def test_repeated_stages(self):
+        stages = ["alpha", "omega", "alpha"]
+        pre_alpha = PassManager(Unroller(["u", "cx"]))
+        alpha = PassManager(Depth())
+        post_alpha = PassManager(BasicSwap([[0, 1], [1, 2]]))
+        omega = PassManager(Optimize1qGates())
+        spm = StagedPassManager(
+            stages, pre_alpha=pre_alpha, alpha=alpha, post_alpha=post_alpha, omega=omega
+        )
+        passes = [
+            *pre_alpha.passes(),
+            *alpha.passes(),
+            *post_alpha.passes(),
+            *omega.passes(),
+            *pre_alpha.passes(),
+            *alpha.passes(),
+            *post_alpha.passes(),
+        ]
+        self.assertEqual(spm.passes(), passes)
+
+    def test_edit_stages(self):
+        spm = StagedPassManager()
+        with self.assertRaises(AttributeError):
+            spm.stages = ["init"]
+        with self.assertRaises(AttributeError):
+            spm.expanded_stages = ["init"]
+
+    @data(None, ["init"], ["init", "schedule"])
+    def test_expanded_stages(self, stages):
+        spm = StagedPassManager(stages=stages)
+        expanded_stages = (stage for stage in spm.expanded_stages)
+        for stage in spm.stages:
+            self.assertEqual(next(expanded_stages), "pre_" + stage)
+            self.assertEqual(next(expanded_stages), stage)
+            self.assertEqual(next(expanded_stages), "post_" + stage)
+
+    def test_setattr(self):
+        spm = StagedPassManager()
+        with self.assertRaises(TranspilerError):
+            spm.init = spm
+        mock_target = "qiskit.transpiler.passmanager.StagedPassManager._update_passmanager"
+        with patch(mock_target, spec=True) as mock:
+            spm.max_iteration = spm.max_iteration
+            mock.assert_not_called()
+            spm.init = None
+            mock.assert_called_once()
+
+    def test_getitem(self):
+        pm = PassManager(Depth())
+        spm = StagedPassManager(init=pm)
+        mock_target = "qiskit.transpiler.passmanager.StagedPassManager._update_passmanager"
+        with patch(mock_target, spec=True) as mock:
+            _ = spm[0]
+            mock.assert_called_once()

@@ -26,6 +26,9 @@ class PhaseGate(Gate):
     This is a diagonal gate. It can be implemented virtually in hardware
     via framechanges (i.e. at zero error and duration).
 
+    Can be applied to a :class:`~qiskit.circuit.QuantumCircuit`
+    with the :meth:`~qiskit.circuit.QuantumCircuit.p` method.
+
     **Circuit symbol:**
 
     .. parsed-literal::
@@ -129,6 +132,9 @@ class CPhaseGate(ControlledGate):
     This is a diagonal and symmetric gate that induces a
     phase on the state of the target qubit, depending on the control state.
 
+    Can be applied to a :class:`~qiskit.circuit.QuantumCircuit`
+    with the :meth:`~qiskit.circuit.QuantumCircuit.cp` method.
+
     **Circuit symbol:**
 
     .. parsed-literal::
@@ -144,7 +150,7 @@ class CPhaseGate(ControlledGate):
     .. math::
 
         CPhase =
-            |0\rangle\langle 0| \otimes I + |1\rangle\langle 1| \otimes P =
+            I \otimes |0\rangle\langle 0| + P \otimes |1\rangle\langle 1| =
             \begin{pmatrix}
                 1 & 0 & 0 & 0 \\
                 0 & 1 & 0 & 0 \\
@@ -244,6 +250,9 @@ class MCPhaseGate(ControlledGate):
 
     This is a diagonal and symmetric gate that induces a
     phase on the state of the target qubit, depending on the state of the control qubits.
+
+    Can be applied to a :class:`~qiskit.circuit.QuantumCircuit`
+    with the :meth:`~qiskit.circuit.QuantumCircuit.mcp` method.
 
     **Circuit symbol:**
 

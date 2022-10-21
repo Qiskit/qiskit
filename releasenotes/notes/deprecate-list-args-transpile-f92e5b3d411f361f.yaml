@@ -1,0 +1,40 @@
+---
+deprecations:
+  - |
+    Support for passing in lists of argument values to the :func:`~.transpile`
+    function is deprecated and will be removed in the 0.25.0 release. This
+    is being done to facilitate greatly reducing the overhead for parallel
+    execution for transpiling multiple circuits at once. If you're using
+    this functionality currently you can call :func:`~.transpile` multiple
+    times instead. For example if you were previously doing something like::
+
+        from qiskit.transpiler import CouplingMap
+        from qiskit import QuantumCircuit
+        from qiskit import transpile
+
+        qc = QuantumCircuit(2)
+        qc.h(0)
+        qc.cx(0, 1)
+        qc.measure_all()
+        cmaps = [CouplingMap.from_heavy_hex(d) for d in range(3, 15, 2)]
+        results = transpile([qc] * 6, coupling_map=cmaps)
+
+    instead you should run something like::
+
+        from itertools import cycle
+        from qiskit.transpiler import CouplingMap
+        from qiskit import QuantumCircuit
+        from qiskit import transpile
+
+        qc = QuantumCircuit(2)
+        qc.h(0)
+        qc.cx(0, 1)
+        qc.measure_all()
+        cmaps = [CouplingMap.from_heavy_hex(d) for d in range(3, 15, 2)]
+
+        results = []
+        for qc, cmap in zip(cycle([qc]), cmaps):
+            results.append(transpile(qc, coupling_map=cmap))
+
+    You can also leverage :func:`~.parallel_map` or ``multiprocessing`` from
+    the Python standard library if you want to run this in parallel.

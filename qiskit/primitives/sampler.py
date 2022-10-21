@@ -16,6 +16,7 @@ Sampler class
 from __future__ import annotations
 
 from collections.abc import Iterable, Sequence
+from typing import Any
 
 import numpy as np
 
@@ -24,9 +25,14 @@ from qiskit.exceptions import QiskitError
 from qiskit.quantum_info import Statevector
 from qiskit.result import QuasiDistribution
 
-from .base_sampler import BaseSampler
-from .sampler_result import SamplerResult
-from .utils import final_measurement_mapping, init_circuit
+from .base import BaseSampler, SamplerResult
+from .primitive_job import PrimitiveJob
+from .utils import (
+    _circuit_key,
+    bound_circuit_to_instruction,
+    final_measurement_mapping,
+    init_circuit,
+)
 
 
 class Sampler(BaseSampler):
@@ -48,34 +54,32 @@ class Sampler(BaseSampler):
 
     def __init__(
         self,
-        circuits: QuantumCircuit | Iterable[QuantumCircuit],
+        circuits: QuantumCircuit | Iterable[QuantumCircuit] | None = None,
         parameters: Iterable[Iterable[Parameter]] | None = None,
+        options: dict | None = None,
     ):
         """
         Args:
             circuits: circuits to be executed
             parameters: Parameters of each of the quantum circuits.
                 Defaults to ``[circ.parameters for circ in circuits]``.
+            options: Default options.
 
         Raises:
             QiskitError: if some classical bits are not used for measurements.
         """
         if isinstance(circuits, QuantumCircuit):
             circuits = (circuits,)
-        circuits = tuple(init_circuit(circuit) for circuit in circuits)
-        q_c_mappings = [final_measurement_mapping(circuit) for circuit in circuits]
         self._qargs_list = []
-        for circuit, q_c_mapping in zip(circuits, q_c_mappings):
-            if set(range(circuit.num_clbits)) != set(q_c_mapping.values()):
-                raise QiskitError(
-                    "some classical bits are not used for measurements."
-                    f" the number of classical bits {circuit.num_clbits},"
-                    f" the used classical bits {set(q_c_mapping.values())}."
-                )
-            c_q_mapping = sorted((c, q) for q, c in q_c_mapping.items())
-            self._qargs_list.append([q for _, q in c_q_mapping])
-        circuits = tuple(circuit.remove_final_measurements(inplace=False) for circuit in circuits)
-        super().__init__(circuits, parameters)
+        if circuits is not None:
+            preprocessed_circuits = []
+            for circuit in circuits:
+                circuit, qargs = self._preprocess_circuit(circuit)
+                self._qargs_list.append(qargs)
+                preprocessed_circuits.append(circuit)
+        else:
+            preprocessed_circuits = None
+        super().__init__(preprocessed_circuits, parameters, options)
         self._is_closed = False
 
     def _call(
@@ -97,23 +101,25 @@ class Sampler(BaseSampler):
             rng = np.random.default_rng(seed)
 
         # Initialize metadata
-        metadata = [{}] * len(circuits)
+        metadata: list[dict[str, Any]] = [{}] * len(circuits)
 
-        bound_circuits_qargs = []
+        bound_circuits = []
+        qargs_list = []
         for i, value in zip(circuits, parameter_values):
             if len(value) != len(self._parameters[i]):
                 raise QiskitError(
                     f"The number of values ({len(value)}) does not match "
                     f"the number of parameters ({len(self._parameters[i])})."
                 )
-            bound_circuits_qargs.append(
-                (
-                    self._circuits[i].bind_parameters(dict(zip(self._parameters[i], value))),
-                    self._qargs_list[i],
-                )
+            bound_circuits.append(
+                self._circuits[i]
+                if len(value) == 0
+                else self._circuits[i].bind_parameters(dict(zip(self._parameters[i], value)))
             )
+            qargs_list.append(self._qargs_list[i])
         probabilities = [
-            Statevector(circ).probabilities(qargs=qargs) for circ, qargs in bound_circuits_qargs
+            Statevector(bound_circuit_to_instruction(circ)).probabilities(qargs=qargs)
+            for circ, qargs in zip(bound_circuits, qargs_list)
         ]
         if shots is not None:
             probabilities = [
@@ -121,9 +127,47 @@ class Sampler(BaseSampler):
             ]
             for metadatum in metadata:
                 metadatum["shots"] = shots
-        quasis = [QuasiDistribution(dict(enumerate(p))) for p in probabilities]
+        quasis = [QuasiDistribution(dict(enumerate(p)), shots=shots) for p in probabilities]
 
         return SamplerResult(quasis, metadata)
 
     def close(self):
         self._is_closed = True
+
+    def _run(
+        self,
+        circuits: tuple[QuantumCircuit, ...],
+        parameter_values: tuple[tuple[float, ...], ...],
+        **run_options,
+    ) -> PrimitiveJob:
+        circuit_indices = []
+        for circuit in circuits:
+            key = _circuit_key(circuit)
+            index = self._circuit_ids.get(key)
+            if index is not None:
+                circuit_indices.append(index)
+            else:
+                circuit_indices.append(len(self._circuits))
+                self._circuit_ids[key] = len(self._circuits)
+                circuit, qargs = self._preprocess_circuit(circuit)
+                self._circuits.append(circuit)
+                self._qargs_list.append(qargs)
+                self._parameters.append(circuit.parameters)
+        job = PrimitiveJob(self._call, circuit_indices, parameter_values, **run_options)
+        job.submit()
+        return job
+
+    @staticmethod
+    def _preprocess_circuit(circuit: QuantumCircuit):
+        circuit = init_circuit(circuit)
+        q_c_mapping = final_measurement_mapping(circuit)
+        if set(range(circuit.num_clbits)) != set(q_c_mapping.values()):
+            raise QiskitError(
+                "Some classical bits are not used for measurements."
+                f" the number of classical bits ({circuit.num_clbits}),"
+                f" the used classical bits ({set(q_c_mapping.values())})."
+            )
+        c_q_mapping = sorted((c, q) for q, c in q_c_mapping.items())
+        qargs = [q for _, q in c_q_mapping]
+        circuit = circuit.remove_final_measurements(inplace=False)
+        return circuit, qargs

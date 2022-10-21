@@ -24,7 +24,7 @@ from qiskit.providers.fake_provider import (
     FakeKolkataV2,
     FakeWashingtonV2,
 )
-from qiskit.visualization.gate_map import (
+from qiskit.visualization import (
     plot_gate_map,
     plot_coupling_map,
     plot_circuit_layout,
@@ -32,7 +32,7 @@ from qiskit.visualization.gate_map import (
 )
 from qiskit.utils import optionals
 from qiskit import QuantumRegister, QuantumCircuit
-from qiskit.transpiler import Layout
+from qiskit.transpiler.layout import Layout, TranspileLayout
 from .visualization import path_to_diagram_reference, QiskitVisualizationTestCase
 
 if optionals.HAS_MATPLOTLIB:
@@ -77,8 +77,11 @@ class TestGateMap(QiskitVisualizationTestCase):
         layout_length = int(backend._configuration.n_qubits / 2)
         qr = QuantumRegister(layout_length, "qr")
         circuit = QuantumCircuit(qr)
-        circuit._layout = Layout({qr[i]: i * 2 for i in range(layout_length)})
-        circuit._layout.add_register(qr)
+        circuit._layout = TranspileLayout(
+            Layout({qr[i]: i * 2 for i in range(layout_length)}),
+            {qubit: index for index, qubit in enumerate(circuit.qubits)},
+        )
+        circuit._layout.initial_layout.add_register(qr)
         n = backend.configuration().n_qubits
         img_ref = path_to_diagram_reference(str(n) + "_plot_circuit_layout.png")
         fig = plot_circuit_layout(circuit, backend)
