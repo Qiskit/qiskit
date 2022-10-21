@@ -12,8 +12,8 @@
 
 """Internal utils for Classical Function Compiler"""
 
-from tweedledum.ir import Qubit
-from tweedledum.passes import parity_decomp
+from tweedledum.ir import Qubit  # pylint: disable=import-error
+from tweedledum.passes import parity_decomp  # pylint: disable=import-error
 
 
 from qiskit.circuit import QuantumCircuit

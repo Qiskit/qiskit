@@ -9,6 +9,7 @@
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
+
 """
 ====================================================================
 ClassicalFunction compiler (:mod:`qiskit.circuit.classicalfunction`)
@@ -97,9 +98,9 @@ Exceptions
 
 """
 
-from qiskit.utils import optionals as _optionals
+from qiskit.utils.optionals import HAS_TWEEDLEDUM
 
-_optionals.HAS_TWEEDLEDUM.require_now("classical oracle creation")
+HAS_TWEEDLEDUM.require_now("classical function oracles")
 
 # pylint: disable=wrong-import-position
 
