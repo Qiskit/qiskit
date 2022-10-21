@@ -31,11 +31,11 @@ from qiskit.utils.measurement_error_mitigation import build_measurement_error_mi
 from qiskit.utils import optionals
 
 if optionals.HAS_AER:
-    # pylint: disable=import-error,no-name-in-module
+    # pylint: disable=no-name-in-module
     from qiskit import Aer
     from qiskit.providers.aer import noise
 if optionals.HAS_IGNIS:
-    # pylint: disable=import-error,no-name-in-module
+    # pylint: disable=no-name-in-module
     from qiskit.ignis.mitigation.measurement import (
         CompleteMeasFitter as CompleteMeasFitter_IG,
         TensoredMeasFitter as TensoredMeasFitter_IG,

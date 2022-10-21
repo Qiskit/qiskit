@@ -17,7 +17,7 @@ This module is used internally by ``qiskit.transpiler.classicalfunction.Classica
 import ast
 import _ast
 
-from tweedledum.classical import LogicNetwork
+from tweedledum.classical import LogicNetwork  # pylint: disable=import-error
 
 from .exceptions import ClassicalFunctionParseError, ClassicalFunctionCompilerTypeError
 
