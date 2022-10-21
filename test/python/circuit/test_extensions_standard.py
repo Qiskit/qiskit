@@ -14,7 +14,6 @@
 
 import unittest
 from inspect import signature
-import warnings
 
 import numpy as np
 from scipy.linalg import expm
