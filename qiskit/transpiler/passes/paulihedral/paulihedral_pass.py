@@ -503,12 +503,12 @@ class Backend_Processor:
 
 
 def get_layout(
-        backend: Backend,
-        layout_pre: Optional[Layout],
-        layout_next: Optional[Layout],
-        used_phy_qubits: list,
-        used_virtual_qubits: list,
-        qubit_num: int,
+    backend: Backend,
+    layout_pre: Optional[Layout],
+    layout_next: Optional[Layout],
+    used_phy_qubits: list,
+    used_virtual_qubits: list,
+    qubit_num: int,
 ) -> Layout:
     """
     This function is used to find a good layout between used_phy_qubits and used_virtual_qubits
@@ -555,7 +555,7 @@ def get_layout(
 
     layout = Layout()
 
-    '''
+    """
        «─used_virtual_qubits─»   «───unused_virtual_qubits───»
        «───used_phy_qubits───»   «─unused_phy_qubits─»
         q   q   q   q   q   q    q   q   q   q   q   q   a   a   (a: short for ancilla)
@@ -569,7 +569,7 @@ def get_layout(
 
         A figure to show the definition of used_virtual_qubits, unused_virtual_qubits, 
         used_phy_qubits, unused_phy_qubits, qubit_num, total_qubit_num.
-    '''
+    """
 
     # Case 0
     # We didn't have more detail about the layout_pre and the layout_next.
@@ -727,13 +727,13 @@ def get_layout(
             phy_qubit_for_min_dist = None
             for phy_qubit in parallel_phy_qubits:
                 if (
-                        1.0
-                        - (1.0 - dist_mat[phy_qubit][phy_qubit_in_layout_pre])
-                        * (1.0 - dist_mat[phy_qubit][phy_qubit_in_layout_next])
-                        < min_dist
+                    1.0
+                    - (1.0 - dist_mat[phy_qubit][phy_qubit_in_layout_pre])
+                    * (1.0 - dist_mat[phy_qubit][phy_qubit_in_layout_next])
+                    < min_dist
                 ):
                     min_dist = 1.0 - (1.0 - dist_mat[phy_qubit][phy_qubit_in_layout_pre]) * (
-                            1.0 - dist_mat[phy_qubit][phy_qubit_in_layout_next]
+                        1.0 - dist_mat[phy_qubit][phy_qubit_in_layout_next]
                     )
                     phy_qubit_for_min_dist = phy_qubit
             layout[qreg[virtual_qubit]] = int(phy_qubit_for_min_dist)
@@ -848,4 +848,3 @@ def Paulihedral_on_different_qubits_num(
     phy_circ = dag_to_circuit(phy_dag)
     phy_circ._layout = None
     return phy_circ
-

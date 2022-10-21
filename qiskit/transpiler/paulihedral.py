@@ -44,12 +44,12 @@ class Paulihedral:
         self.output_circuit = None
         self.adj_mat = None
         self.dist_mat = None
-        '''
+        """
         get the adj_mat and dist_mat
         If adj_mat[i][j] is 0, then i=j or we can't apply a CNOT or SWAP gate between qubit i and j.
         If adj_mat[i][j] is 1, can apply a CNOT or SWAP gate between qubit i and j.
         dist_mat[i][j] equals 1 - error_rate(to SWAP i and j)
-        '''
+        """
         if props != None:
             noise_res = NoiseAdaptiveLayout(props)
             noise_res._initialize_backend_prop()
@@ -170,7 +170,7 @@ def get_layout(
 
     layout = Layout()
 
-    '''
+    """
        «─used_virtual_qubits─»   «───unused_virtual_qubits───»
        «───used_phy_qubits───»   «─unused_phy_qubits─»
         q   q   q   q   q   q    q   q   q   q   q   q   a   a   (a: short for ancilla)
@@ -184,7 +184,7 @@ def get_layout(
     
         A figure to show the definition of used_virtual_qubits, unused_virtual_qubits, 
         used_phy_qubits, unused_phy_qubits, qubit_num, total_qubit_num.
-    '''
+    """
 
     # Case 0
     # We didn't have more detail about the layout_pre and the layout_next.
@@ -357,7 +357,8 @@ def get_layout(
         return layout
     return layout
 
-'''
+
+"""
 def fill_layout_with_ancilla(
     backend: Backend, layout_without_ancilla: Layout, used_phy_qubits: list, qubit_num: int
 ) -> Layout:
@@ -376,7 +377,7 @@ def fill_layout_with_ancilla(
         layout[qreg[i]] = int(unused_phy_qubits[i])
 
     pass
-'''
+"""
 
 from qiskit.transpiler.passes.layout.apply_layout import ApplyLayout
 from qiskit.transpiler.passes.layout.full_ancilla_allocation import FullAncillaAllocation
@@ -771,9 +772,7 @@ def Paulihedral_on_mixed_circuit(
             if len(dag1.op_nodes()) > 0:
                 block_list.append([dag_to_circuit(dag1), False])
             for idx, kernel in enumerate(dag2_list):
-                block_list.append(
-                    [dag_to_circuit(kernel), True]
-                )
+                block_list.append([dag_to_circuit(kernel), True])
     """
     In the stage, the information is stored in block_list:List.
     Every element of the block_list represents onr layer of the logical dag.
@@ -943,7 +942,7 @@ def Paulihedral_on_mixed_circuit(
         block[3] = phy_qc
     final_result.extend(new_block_list[0][3])
 
-    for idx in range(1,len(new_block_list)):
+    for idx in range(1, len(new_block_list)):
         layout_transform = LayoutTransformation(
             coupling_map=coupling_map,
             from_layout=new_block_list[idx - 1][2],
@@ -954,7 +953,7 @@ def Paulihedral_on_mixed_circuit(
     """let the layout of the last layer match the layout of the first one"""
     layout_transform = LayoutTransformation(
         coupling_map=coupling_map,
-        from_layout=new_block_list[len(new_block_list)-1][2],
+        from_layout=new_block_list[len(new_block_list) - 1][2],
         to_layout=new_block_list[0][2],
     )
     final_dag = layout_transform.run(circuit_to_dag(final_result))
