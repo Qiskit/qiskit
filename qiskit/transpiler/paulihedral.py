@@ -142,7 +142,8 @@ def get_layout(
     :param used_virtual_qubits:
         The list contains all indexs of virtual qubits which are used in the PauliEvolutionKernel.
     :param qubit_num:
-        The qubit num of the input circuit(logical circuit) in the function Paulihedral_on_mixed_circuit().
+        The qubit num of the input circuit(logical circuit) in the function 
+        Paulihedral_on_mixed_circuit().
 
     :return:
         The output layout with only registers named 'q' and without registers named 'ancilla'.
@@ -176,11 +177,11 @@ def get_layout(
         q   q   q   q   q   q    q   q   q   q   q   q   a   a   (a: short for ancilla)
         │   │   │   │   │   │    │   │   │   │   │   │   │   │   'q' or 'ancilla' is the name of the
       ┌─┴───┴───┴───┴───┴───┴─┐  │   │   │   │   │   │   │   │   register
-      │ PauliEvolutionKernel  │  │   │   │   │   │   │   │   │   
-      └─┬───┬───┬───┬───┬───┬─┘  │   │   │   │   │   │   │   │   
-        │   │   │   │   │   │    │   │   │   │   │   │   │   │  
-       «──────────────────qubit_num──────────────────» 
-       «───────────────────total_qubit_num───────────────────» 
+      │ PauliEvolutionKernel  │  │   │   │   │   │   │   │   │
+      └─┬───┬───┬───┬───┬───┬─┘  │   │   │   │   │   │   │   │
+        │   │   │   │   │   │    │   │   │   │   │   │   │   │
+       «──────────────────qubit_num──────────────────»
+       «───────────────────total_qubit_num───────────────────»
     
         A figure to show the definition of used_virtual_qubits, unused_virtual_qubits, 
         used_phy_qubits, unused_phy_qubits, qubit_num, total_qubit_num.
@@ -495,7 +496,10 @@ class Backend_Processor:
                     result[i][j] = {"length": 99999999.9, "pre": -1}
         for v in range(len(input_qubits_list)):
             for cx_gate in properties_cx_gates_list:
-                """e.g. for cx_gate  {'qubits': [0, 2], 'gate_error': 0.037493190769214924, 'weight': 0.11464241495919317}"""
+                """
+                e.g. for cx_gate  
+                {'qubits': [0, 2], 'gate_error': 0.037493190769214924, 'weight': 0.11464241495919317}
+                """
                 if cx_gate["qubits"][0] == v:
                     result[v][cx_gate["qubits"][1]]["length"] = cx_gate["weight"]
                     result[v][cx_gate["qubits"][1]]["pre"] = v
@@ -613,18 +617,20 @@ def Paulihedral_on_different_qubits_num(
 
     The process of this function is on the following steps.
     1, Divide the input logical circuit into layers.
-        Each layer is of QuantumCircuit class which has the same qubits number compare to the input circuit.
-        It has either a pauli evolutional kernel or several normal gates (gates except pauli evolutional kernel).
-        If we linked all the layers together in order, we will obtain a logical circuit which is equal to the
-        input logical circuit.
+        Each layer is of QuantumCircuit class which has the same qubits number compare to the 
+        input circuit. It has either a pauli evolutional kernel or several normal gates (gates
+        except pauli evolutional kernel). If we linked all the layers together in order, we will
+        obtain a logical circuit which is equal to the input logical circuit.
     2, Handle each layer and get its layout accroding to its detail
-        If it has a pauli evolutional kernel, we will use the class Paulihedral to optimizatize it. And if it
-        is made of basic gates, it will use the function qiskit.compiler.transpile to optimizatize it.
+        If it has a pauli evolutional kernel, we will use the class Paulihedral to optimizatize 
+        it. And if it is made of basic gates, it will use the function qiskit.compiler.transpile
+        to optimizatize it.
     3, Connect all the layer together and transform the layout between two adjacent layers
-        In the previous step, we also get the layout between the logical qubits of the input circuit to the
-        physical qubits of the backend of each layer. In this step, we will connect these layers together. In
-        the connected point, we will use the class qiskit.transpiler.pass.routing.LayoutTransformation to connect
-        2 circuits which have different layout.
+        In the previous step, we also get the layout between the logical qubits of the input
+        circuit to the physical qubits of the backend of each layer. In this step, we will
+        connect these layers together. In the connected point, we will use the class 
+        qiskit.transpiler.pass.routing.LayoutTransformation to connect 2 circuits which have 
+        different layout.
     """
     phy_dag = circuit_to_dag(input_circuit)
     layout = Layout()
