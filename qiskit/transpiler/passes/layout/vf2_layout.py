@@ -155,7 +155,7 @@ class VF2Layout(AnalysisPass):
                 chosen_layout = layout
                 break
             # If there is no error map avilable we can just skip the scoring stage as there
-            # is nothing to score with so any match is the best we can find.
+            # is nothing to score with, so any match is the best we can find.
             if not self.avg_error_map:
                 chosen_layout = layout
                 break
