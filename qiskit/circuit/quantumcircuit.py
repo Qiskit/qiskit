@@ -1490,19 +1490,6 @@ class QuantumCircuit:
             dag = pass_.run(dag)
         return dag_to_circuit(dag)
 
-    def _check_compatible_regs(self, rhs: "QuantumCircuit") -> None:
-        """Raise exception if the circuits are defined on incompatible registers"""
-        list1 = self.qregs + self.cregs
-        list2 = rhs.qregs + rhs.cregs
-        for element1 in list1:
-            for element2 in list2:
-                if element2.name == element1.name:
-                    if element1 != element2:
-                        raise CircuitError(
-                            "circuits are not compatible:"
-                            f" registers {element1} and {element2} not compatible"
-                        )
-
     def _unique_register_name(self, prefix: str = "") -> str:
         """Generate a register name with the given prefix, which is unique within this circuit."""
         used = {
