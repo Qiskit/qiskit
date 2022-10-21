@@ -70,6 +70,16 @@ def _run_circuits(
     return result, metadata
 
 
+def _prepare_counts(results):
+    counts = []
+    for res in results:
+        count = res.get_counts()
+        if not isinstance(count, list):
+            count = [count]
+        counts.extend(count)
+    return counts
+
+
 class BackendEstimator(BaseEstimator):
     """Evaluates expectation value using Pauli rotation gates.
 
@@ -344,12 +354,7 @@ class BackendEstimator(BaseEstimator):
         """
         Postprocessing for evaluation of expectation value using pauli rotation gates.
         """
-        counts = []
-        for res in result:
-            count = res.get_counts()
-            if not isinstance(count, list):
-                count = [count]
-            counts.extend(count)
+        counts = _prepare_counts(result)
         expval_list = []
         var_list = []
         shots_list = []
