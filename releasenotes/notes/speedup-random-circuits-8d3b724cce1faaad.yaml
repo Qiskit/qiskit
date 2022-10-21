@@ -1,0 +1,10 @@
+---
+features:
+  - |
+    Random-circuit generation with ``qiskit.circuit.random.random_circuit`` is
+    now significantly faster for large circuits.
+upgrade:
+  - |
+    The exact circuit returned by ``qiskit.circuit.random.random_circuit`` for a
+    given seed has changed.  This is due to efficiency improvements in the
+    internal random-number generation for the function.
