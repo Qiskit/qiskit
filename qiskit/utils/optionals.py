@@ -257,7 +257,7 @@ HAS_NETWORKX = _LazyImportTester("networkx", install="pip install networkx")
 def _nlopt_callback(available):
     if not available:
         return
-    import nlopt  # pylint: disable=import-error
+    import nlopt
 
     _logger.info(
         "NLopt version: %s.%s.%s",

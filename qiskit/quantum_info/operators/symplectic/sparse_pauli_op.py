@@ -20,7 +20,7 @@ from typing import Dict, Optional
 import numpy as np
 import retworkx as rx
 
-from qiskit._accelerate.sparse_pauli_op import unordered_unique  # pylint: disable=import-error
+from qiskit._accelerate.sparse_pauli_op import unordered_unique
 from qiskit.exceptions import QiskitError
 from qiskit.quantum_info.operators.custom_iterator import CustomIterator
 from qiskit.quantum_info.operators.linear_op import LinearOp
