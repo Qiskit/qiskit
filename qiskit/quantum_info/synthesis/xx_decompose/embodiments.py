@@ -20,10 +20,14 @@ TODO: discover these automatically from the gates' algebraic definition
 import numpy as np
 
 from qiskit.circuit import QuantumCircuit, Parameter
-from qiskit.circuit.library import (RZZGate, RZXGate, RYYGate, 
+from qiskit.circuit.library import (RXXGate, RZZGate, RZXGate, RYYGate, 
                                     CRZGate, CRXGate, CRYGate, CPhaseGate, 
                                     CZGate, CXGate, CYGate, CHGate)
 
+
+rxx_circuit = QuantumCircuit(2)
+theta = Parameter('θ')
+rxx_circuit.rxx(theta, 0, 1)
 
 rzz_circuit = QuantumCircuit(2)
 theta = Parameter('θ')
@@ -121,6 +125,7 @@ ch_circuit.global_phase -= np.pi / 4
 
 
 XXEmbodiments = {
+    RXXGate: rxx_circuit,
     RYYGate: ryy_circuit,
     RZZGate: rzz_circuit,
     RZXGate: rzx_circuit,
