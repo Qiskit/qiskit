@@ -17,7 +17,11 @@ import retworkx as rx
 
 from qiskit.transpiler import CouplingMap
 from qiskit import QuantumRegister, QuantumCircuit
-from qiskit.transpiler.synthesis.graph_utils import postorder_traversal, pydigraph_to_pygraph
+from qiskit.transpiler.synthesis.graph_utils import (
+    postorder_traversal,
+    preorder_traversal,
+    pydigraph_to_pygraph,
+)
 
 
 class PermRowCol:
@@ -108,8 +112,8 @@ class PermRowCol:
 
     def eliminate_row(
         self, parity_mat: np.ndarray, coupling: CouplingMap, root: int, terminals: np.ndarray
-    ) -> np.ndarray:
-        """Eliminates the selected row from the parity matrix and returns the operations.
+    ) -> list:
+        """Eliminates the selected row from the parity matrix and returns the operations as a list of tuples.
 
         Args:
             parity_mat (np.ndarray): parity matrix
@@ -118,6 +122,26 @@ class PermRowCol:
             terminals (np.ndarray): terminals of the steiner tree
 
         Returns:
-            np.ndarray: list of operations
+            list of tuples represents control and target qubits with a cnot gate between them.
         """
-        return np.ndarray(0)
+        C = []
+        tree = rx.steiner_tree(
+            pydigraph_to_pygraph(coupling.graph), terminals, weight_fn=lambda x: 1
+        )
+
+        pre_edges = []
+        preorder_traversal(tree, root, pre_edges)
+        post_edges = []
+        postorder_traversal(tree, root, post_edges)
+
+        for edge in pre_edges:
+
+            if edge[1] not in terminals:
+                C.append((edge[0], edge[1]))
+                parity_mat[edge[0], :] = (parity_mat[edge[0], :] + parity_mat[edge[1], :]) % 2
+
+        for edge in post_edges:
+            C.append((edge[0], edge[1]))
+            parity_mat[edge[0], :] = (parity_mat[edge[0], :] + parity_mat[edge[1], :]) % 2
+
+        return C
