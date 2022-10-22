@@ -10,6 +10,20 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""Events"""
+"""
+==================================
+Events (:mod:`qiskit.tools.events`)
+==================================
+
+.. currentmodule:: qiskit.tools.events
+
+TextProgressBar
+=================
+
+.. autosummary::
+   :toctree: ../stubs/
+
+   TextProgressBar - A simple text-based progress bar.
+"""
 
 from .progressbar import TextProgressBar

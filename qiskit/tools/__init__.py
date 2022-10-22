@@ -23,7 +23,7 @@ Parallel Routines
 .. autosummary::
    :toctree: ../stubs/
 
-   parallel_map
+   parallel_map - Parallel execution of a mapping of `values` to the function `task`.
 
 Monitoring
 ==========
@@ -31,9 +31,9 @@ Monitoring
 .. autosummary::
    :toctree: ../stubs/
 
-   job_monitor
-   backend_monitor
-   backend_overview
+   job_monitor - Monitor the status of a IBMQJob instance
+   backend_monitor - Monitor a single IBMQ backend
+   backend_overview - Gives overview information on all the IBMQ backends that are available
 
 """
 
