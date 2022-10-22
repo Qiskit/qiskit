@@ -59,3 +59,24 @@ def postorder_traversal(tree: rx.PyGraph, node: int, edges: list, parent: int = 
         postorder_traversal(tree, n, edges, node)
     if parent != None:
         edges.append((parent, node))
+
+
+def preorder_traversal(tree: rx.PyGraph, node: int, edges: list, parent: int = None):
+    """Preorder traversal of the edges of the given tree. Traversed edges are saved as tuples,
+    where the first element is the parent and second the child. Children are visited in
+    increasing order.
+
+    Args:
+        tree (rx.PyGraph): tree to traverse
+        node (int): root node
+        edges (list): list of edges
+        parent (int, optional): parent node. Defaults to None.
+    """
+    if node == None:
+        return
+    if parent != None:
+        edges.append((parent, node))
+    for n in sorted(tree.neighbors(node)):
+        if n == parent:
+            continue
+        preorder_traversal(tree, n, edges, node)

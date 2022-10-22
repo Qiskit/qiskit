@@ -2,12 +2,12 @@
 
 import unittest
 import numpy as np
+import retworkx as rx
 
 from qiskit.test import QiskitTestCase
 from qiskit.transpiler.synthesis.permrowcol import PermRowCol
 from qiskit import QuantumCircuit
 from qiskit.transpiler import CouplingMap
-import retworkx as rx
 
 
 class TestPermRowCol(QiskitTestCase):

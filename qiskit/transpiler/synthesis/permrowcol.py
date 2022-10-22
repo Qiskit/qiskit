@@ -83,7 +83,6 @@ class PermRowCol:
             parity_mat (np.ndarray): parity matrix
             coupling (CouplingMap): topology
             root (int): root of the steiner tree
-            col (int): selected column to eliminate
             terminals (np.ndarray): terminals of the steiner tree
 
         Returns:
