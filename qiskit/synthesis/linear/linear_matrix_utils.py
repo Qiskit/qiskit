@@ -51,8 +51,9 @@ def random_invertible_binary_matrix(num_qubits: int, seed: np.random.Generator =
     rank = 0
     while rank != num_qubits:
         mat = rng.integers(2, size=(num_qubits, num_qubits))
-        mat = _gauss_elimination(mat)
-        rank = _compute_rank_after_gauss_elim(mat)
+        mat_gauss = mat.copy()
+        mat_gauss = _gauss_elimination(mat_gauss)
+        rank = _compute_rank_after_gauss_elim(mat_gauss)
     return mat
 
 
