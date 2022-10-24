@@ -17,7 +17,11 @@ upgrade:
     :class:`.ScheduleBlock` representation and now reference mechanism is
     always applied rather than appending the schedules wrapped by
     the :class:`~qiskit.pulse.instructions.Call` instruction.
-    This is an upgrade of internal representation and thus no API changes.
+    Note that the converted block doesn't necessary recover the original alignment context.
+    This is simply an ASAP aligned sequence of pulse instructions with absolute time intervals.
+    This is an upgrade of internal representation of called pulse programs and thus no API changes.
+    However the :class:`~qiskit.pulse.instructions.Call` instruction and :class:`.Schedule`
+    no longer appear in the builder's pulse program.
     This change guarantees the generated schedule blocks are always QPY compatible.
   - |
     :class:`~qiskit.transpiler.passes.RZXCalibrationBuilder`

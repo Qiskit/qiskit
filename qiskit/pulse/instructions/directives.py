@@ -61,9 +61,9 @@ class TimeBlockade(Directive):
     """Pulse ``TimeBlockade`` directive.
 
     This instruction is intended to be used internally within the pulse builder,
-    to naively convert :class:`.Schedule` into :class:`.ScheduleBlock`.
-    Because :class:`.ScheduleBlock` cannot take absolute instruction time interval,
-    this instruction helps the block representation with finding instruction starting time.
+    to convert :class:`.Schedule` into :class:`.ScheduleBlock`.
+    Because :class:`.ScheduleBlock` cannot take an absolute instruction time interval,
+    this directive helps the block representation to find the starting time of an instruction.
 
     Example:
 
