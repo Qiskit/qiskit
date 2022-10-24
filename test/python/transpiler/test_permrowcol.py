@@ -164,7 +164,7 @@ class TestPermRowCol(QiskitTestCase):
         self.assertEqual(1, sum(parity_mat[:, column]))
         self.assertEqual(1, parity_mat[0, column])
 
-    def test_eliminate_row_returns_np_ndarray(self):
+    def test_eliminate_row_returns_list(self):
         """Test the output type of eliminate_row"""
         coupling = CouplingMap()
         permrowcol = PermRowCol(coupling)
@@ -173,7 +173,72 @@ class TestPermRowCol(QiskitTestCase):
 
         instance = permrowcol.eliminate_row(parity_mat, coupling, 0, terminals)
 
-        self.assertIsInstance(instance, np.ndarray)
+        self.assertIsInstance(instance, list)
+        self.assertEqual(instance, [])
+
+    def test_eliminate_row_returns_correct_list_of_tuples_with_given_input(self):
+        """Test eliminate_row method for correctness in case of example parity_matrix and coupling map"""
+        coupling_list = [(0, 1), (0, 3), (1, 2), (1, 4), (2, 5), (3, 4), (4, 5)]
+        coupling = CouplingMap(coupling_list)
+        permrowcol = PermRowCol(coupling)
+        parity_mat = np.array(
+            [
+                [0, 1, 0, 1, 1, 0],
+                [1, 0, 1, 0, 0, 0],
+                [1, 0, 0, 0, 1, 1],
+                [1, 1, 1, 0, 1, 0],
+                [1, 0, 1, 0, 1, 0],
+                [1, 0, 1, 0, 1, 1],
+            ]
+        )
+        root = 0
+        terminals = np.array([0, 1, 3])
+        ret = permrowcol.eliminate_row(parity_mat, coupling, root, terminals)
+
+        self.assertEqual(ret, [(0, 1), (0, 3)])
+
+    def test_eliminate_row__eliminates_selected_row(self):
+        """Test eliminate_row method for correctness in case of example parity_matrix and coupling map"""
+        coupling_list = [(0, 1), (0, 3), (1, 2), (1, 4), (2, 5), (3, 4), (4, 5)]
+        coupling = CouplingMap(coupling_list)
+        permrowcol = PermRowCol(coupling)
+        parity_mat = np.array(
+            [
+                [0, 1, 0, 1, 1, 0],
+                [1, 0, 1, 0, 0, 0],
+                [1, 0, 0, 0, 1, 1],
+                [1, 1, 1, 0, 1, 0],
+                [1, 0, 1, 0, 1, 0],
+                [1, 0, 1, 0, 1, 1],
+            ]
+        )
+        root = 0
+        terminals = np.array([0, 1, 3])
+        ret = permrowcol.eliminate_row(parity_mat, coupling, root, terminals)
+
+        self.assertEqual(1, sum(parity_mat[0]))
+        self.assertEqual(1, parity_mat[0, 3])
+
+    def test_eliminate_row__eliminates_selected_row_2(self):
+        """Test eliminate_row method for correctness in case of example parity_matrix and coupling map"""
+        coupling_list = [(1, 2), (1, 4), (2, 5), (3, 4), (4, 5)]
+        coupling = CouplingMap(coupling_list)
+        permrowcol = PermRowCol(coupling)
+        parity_mat = np.array(
+            [
+                [0, 0, 0, 1, 0, 0],
+                [1, 0, 1, 0, 0, 0],
+                [1, 0, 0, 0, 1, 1],
+                [0, 1, 0, 0, 0, 0],
+                [0, 0, 0, 0, 1, 0],
+                [0, 0, 0, 0, 0, 1],
+            ]
+        )
+        root = 1
+        terminals = np.array([1, 2, 4, 5])
+        ret = permrowcol.eliminate_row(parity_mat, coupling, root, terminals)
+        self.assertEqual(1, sum(parity_mat[1]))
+        self.assertEqual(1, parity_mat[1, 2])
 
 
 if __name__ == "__main__":
