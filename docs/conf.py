@@ -21,9 +21,9 @@ copyright = "2019, Qiskit Development Team"  # pylint: disable=redefined-builtin
 author = "Qiskit Development Team"
 
 # The short X.Y version
-version = "0.22"
+version = "0.23"
 # The full version, including alpha/beta/rc tags
-release = "0.22.0"
+release = "0.23.0"
 
 extensions = [
     "sphinx.ext.napoleon",
@@ -36,7 +36,7 @@ extensions = [
     "jupyter_sphinx",
     "sphinx_autodoc_typehints",
     "reno.sphinxext",
-    "sphinx_design"
+    "sphinx_design",
 ]
 templates_path = ["_templates"]
 
