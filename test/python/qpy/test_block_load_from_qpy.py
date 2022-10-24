@@ -152,8 +152,8 @@ class TestLoadFromQPY(QpyScheduleTestCase):
             builder.barrier(DriveChannel(0), DriveChannel(1), ControlChannel(2))
         self.assert_roundtrip_equal(test_sched)
 
-    def test_area_barrier(self):
-        """Test area barrier."""
+    def test_time_blockade(self):
+        """Test time blockade."""
         with builder.build() as test_sched:
             builder.append_instruction(TimeBlockade(10, DriveChannel(0)))
         self.assert_roundtrip_equal(test_sched)

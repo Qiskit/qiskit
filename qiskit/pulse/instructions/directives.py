@@ -107,12 +107,12 @@ class TimeBlockade(Directive):
         channel: chans.Channel,
         name: Optional[str] = None,
     ):
-        """Create an area barrier directive.
+        """Create a time blockade directive.
 
         Args:
             duration: Length of time of the occupation in terms of dt.
             channel: The channel that will be the occupied.
-            name: Name of the area barrier for display purposes.
+            name: Name of the time blockade for display purposes.
         """
         super().__init__(operands=(duration, channel), name=name)
 
