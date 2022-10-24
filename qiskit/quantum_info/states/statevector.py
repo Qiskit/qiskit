@@ -21,20 +21,19 @@ from typing import Dict
 
 import numpy as np
 
-from qiskit.circuit.quantumcircuit import QuantumCircuit
-from qiskit.circuit.instruction import Instruction
-from qiskit.exceptions import QiskitError
-from qiskit.quantum_info.states.quantum_state import QuantumState
-from qiskit.quantum_info.operators.mixins.tolerances import TolerancesMixin
-from qiskit.quantum_info.operators.operator import Operator
-from qiskit.quantum_info.operators.symplectic import Pauli, SparsePauliOp
-from qiskit.quantum_info.operators.op_shape import OpShape
-from qiskit.quantum_info.operators.predicates import matrix_equal
 
-from qiskit._accelerate.pauli_expval import (
-    expval_pauli_no_x,
-    expval_pauli_with_x,
-)
+from qiskit.circuit.instruction import Instruction
+from qiskit.circuit.quantumcircuit import QuantumCircuit
+from qiskit.exceptions import QiskitError
+from qiskit.quantum_info.operators.mixins.tolerances import TolerancesMixin
+from qiskit.quantum_info.operators.op_shape import OpShape
+from qiskit.quantum_info.operators.operator import Operator
+from qiskit.quantum_info.operators.predicates import matrix_equal
+from qiskit.quantum_info.operators.symplectic import Pauli, SparsePauliOp
+from qiskit.quantum_info.states.quantum_state import QuantumState
+from qiskit._accelerate.pauli_expval import (expval_pauli_no_x,
+                                             expval_pauli_with_x)
+from qiskit._accelerate.pauli_evolve import apply_pauli
 
 
 class Statevector(QuantumState, TolerancesMixin):
@@ -389,6 +388,12 @@ class Statevector(QuantumState, TolerancesMixin):
         if not isinstance(other, Operator):
             dims = self.dims(qargs=qargs)
             other = Operator(other, input_dims=dims, output_dims=dims)
+
+        # evolution by a Pauli Operator
+        if isinstance(other, Pauli): 
+            if self.num_qubits is None:
+                raise QiskitError("Cannot apply QuantumCircuit to non-qubit Statevector.")
+            return self._evolve_pauli(ret, other, qargs=qargs)
 
         # check dimension
         if self.dims(qargs) != other.input_dims():
@@ -841,8 +846,8 @@ class Statevector(QuantumState, TolerancesMixin):
     @staticmethod
     def _evolve_instruction(statevec, obj, qargs=None):
         """Update the current Statevector by applying an instruction."""
-        from qiskit.circuit.reset import Reset
         from qiskit.circuit.barrier import Barrier
+        from qiskit.circuit.reset import Reset
 
         mat = Operator._instruction_to_matrix(obj)
         if mat is not None:
@@ -883,4 +888,13 @@ class Statevector(QuantumState, TolerancesMixin):
             else:
                 new_qargs = [qargs[qubits[tup]] for tup in instruction.qubits]
             Statevector._evolve_instruction(statevec, instruction.operation, qargs=new_qargs)
+        return statevec
+
+    @staticmethod
+    def _evolve_pauli(statevec, pauli, qargs=None):
+        """Update the current Statevector by applying a Pauli Operator."""
+        print("--debug---: in rust evolve pauli called")
+        if qargs is None:
+            qargs = range(len(pauli))
+        apply_pauli(statevec.data, qargs, pauli.x,pauli.z,pauli._phase[0])
         return statevec

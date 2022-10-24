@@ -27,6 +27,7 @@ import qiskit._accelerate
 sys.modules["qiskit._accelerate.stochastic_swap"] = qiskit._accelerate.stochastic_swap
 sys.modules["qiskit._accelerate.sabre_swap"] = qiskit._accelerate.sabre_swap
 sys.modules["qiskit._accelerate.pauli_expval"] = qiskit._accelerate.pauli_expval
+sys.modules["qiskit._accelerate.pauli_evolve"] = qiskit._accelerate.pauli_evolve
 sys.modules["qiskit._accelerate.dense_layout"] = qiskit._accelerate.dense_layout
 sys.modules["qiskit._accelerate.sparse_pauli_op"] = qiskit._accelerate.sparse_pauli_op
 sys.modules["qiskit._accelerate.results"] = qiskit._accelerate.results
@@ -43,23 +44,18 @@ from qiskit import namespace
 new_meta_path_finder = namespace.QiskitElementImport("qiskit.providers.aer", "qiskit_aer")
 sys.meta_path = [new_meta_path_finder] + sys.meta_path
 
-# qiskit errors operator
-from qiskit.exceptions import QiskitError, MissingOptionalLibraryError
-
-# The main qiskit operators
-from qiskit.circuit import ClassicalRegister
-from qiskit.circuit import QuantumRegister
-from qiskit.circuit import AncillaRegister
-from qiskit.circuit import QuantumCircuit
-
-# user config
-from qiskit import user_config as _user_config
-
+import qiskit.circuit.measure
+import qiskit.circuit.reset
 # The qiskit.extensions.x imports needs to be placed here due to the
 # mechanism for adding gates dynamically.
 import qiskit.extensions
-import qiskit.circuit.measure
-import qiskit.circuit.reset
+# user config
+from qiskit import user_config as _user_config
+# The main qiskit operators
+from qiskit.circuit import (AncillaRegister, ClassicalRegister, QuantumCircuit,
+                            QuantumRegister)
+# qiskit errors operator
+from qiskit.exceptions import MissingOptionalLibraryError, QiskitError
 
 # Allow extending this namespace. Please note that currently this line needs
 # to be placed *before* the wrapper imports or any non-import code AND *before*
@@ -74,14 +70,12 @@ from qiskit.providers.basicaer import BasicAer
 
 _config = _user_config.get_config()
 
+from qiskit.compiler import assemble, schedule, sequence, transpile
 # Moved to after IBMQ and Aer imports due to import issues
 # with other modules that check for IBMQ (tools)
 from qiskit.execute_function import execute
-from qiskit.compiler import transpile, assemble, schedule, sequence
 
-from .version import __version__
-from .version import QiskitVersion
-
+from .version import QiskitVersion, __version__
 
 __qiskit_version__ = QiskitVersion()
 
