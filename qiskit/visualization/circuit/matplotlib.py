@@ -1220,7 +1220,7 @@ class MatplotlibDrawer:
         )
         self._line(qubit_b, qubit_t, lc=self._data[node]["lc"])
 
-        if isinstance(op, RZZGate) or isinstance(base_type, (U1Gate, PhaseGate, ZGate, RZZGate)):
+        if isinstance(op, RZZGate) or isinstance(base_type, (U1Gate, PhaseGate, RZZGate)):
             self._symmetric_gate(node, base_type)
 
         elif num_qargs == 1 and isinstance(base_type, XGate):
