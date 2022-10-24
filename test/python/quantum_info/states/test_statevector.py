@@ -15,6 +15,7 @@
 
 import unittest
 import logging
+import random
 from itertools import permutations
 from ddt import ddt, data
 import numpy as np
@@ -257,6 +258,27 @@ class TestStatevector(QiskitTestCase):
             target = Statevector(np.dot(op.data, vec))
             evolved = Statevector(vec).evolve(op)
             self.assertEqual(target, evolved)
+
+    def test_evolve_from_pauli(self):
+        """Test" _evolve method with useing pauli """
+        pauli_str = ["I", "X", "Y", "Z"]
+        coeff_str = ["+", "-", "i", "-i"]
+        for _ in range(10):
+            qargs = random.sample(range(3), 3)
+            # random pauli operators
+            coeff = random.choice(coeff_str)
+            pauli_label =  coeff + "".join(random.choices(pauli_str, k=3))
+            pauli = Pauli(pauli_label)
+
+            # Statevector from circuit
+            circ = QuantumCircuit(3)
+            circ.append(pauli, qargs)
+            psi = Statevector.from_instruction(circ)
+
+            # Statevetor evolved from pauli operator
+            target =  Statevector.from_label("000").evolve(pauli, qargs)
+
+            self.assertEqual(psi, target)
 
     def test_evolve_subsystem(self):
         """Test subsystem _evolve method."""
