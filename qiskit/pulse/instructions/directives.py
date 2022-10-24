@@ -11,7 +11,7 @@
 # that they have been altered from the originals.
 
 """Directives are hints to the pulse compiler for how to process its input programs."""
-
+import numpy as np
 from abc import ABC
 from typing import Optional, Tuple
 
@@ -57,13 +57,13 @@ class RelativeBarrier(Directive):
         return isinstance(other, type(self)) and set(self.channels) == set(other.channels)
 
 
-class AreaBarrier(Directive):
-    """Pulse ``AreaBarrier`` directive.
+class TimeBlockade(Directive):
+    """Pulse ``TimeBlockade`` directive.
 
     This instruction is intended to be used internally within the pulse builder,
     to naively convert :class:`.Schedule` into :class:`.ScheduleBlock`.
-    Becasue :class:`.ScheduleBlock` cannot take absolute instruction interval,
-    this instruction helps the block represetation with finding instruction starting time.
+    Because :class:`.ScheduleBlock` cannot take absolute instruction time interval,
+    this instruction helps the block representation with finding instruction starting time.
 
     Example:
 
@@ -79,7 +79,7 @@ class AreaBarrier(Directive):
         .. code-block:: python
 
             block = ScheduleBlock()
-            block.append(AreaBarrier(120, DriveChannel(0)))
+            block.append(TimeBlockade(120, DriveChannel(0)))
             block.append(Play(Constant(10, 0.1), DriveChannel(0)))
 
         Such conversion may be done by
@@ -93,9 +93,9 @@ class AreaBarrier(Directive):
 
     .. note::
 
-        The AreaBarrier instruction behaves almost identically
+        The TimeBlockade instruction behaves almost identically
         to :class:`~qiskit.pulse.instructions.Delay` instruction.
-        However, the AreaBarrier is just a compiler directive and must be removed before execution.
+        However, the TimeBlockade is just a compiler directive and must be removed before execution.
         This may be done by :func:`~qiskit.pulse.transforms.remove_directives` transform.
         Once these directives are removed, occupied timeslots are released and
         user can insert another instruction without timing overlap.
@@ -115,6 +115,17 @@ class AreaBarrier(Directive):
             name: Name of the area barrier for display purposes.
         """
         super().__init__(operands=(duration, channel), name=name)
+
+    def _validate(self):
+        """Called after initialization to validate instruction data.
+
+        Raises:
+            PulseError: If the input ``duration`` is not integer value.
+        """
+        if not isinstance(self.duration, int):
+            raise TypeError(
+                "TimeBlockade duration cannot be parameterized. Specify an integer duration value."
+            )
 
     @property
     def channel(self) -> chans.Channel:

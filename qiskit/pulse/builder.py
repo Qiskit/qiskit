@@ -932,7 +932,7 @@ class _PulseBuilder:
         from qiskit.pulse.transforms import inline_subroutines, flatten, pad
 
         preprocessed_schedule = inline_subroutines(flatten(schedule))
-        pad(preprocessed_schedule, inplace=True, pad_with=instructions.AreaBarrier)
+        pad(preprocessed_schedule, inplace=True, pad_with=instructions.TimeBlockade)
 
         # default to left alignment, namely ASAP scheduling
         target_block = ScheduleBlock(name=schedule.name)

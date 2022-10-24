@@ -34,7 +34,7 @@ from qiskit.pulse.channels import (
     MemorySlot,
     RegisterSlot,
 )
-from qiskit.pulse.instructions import Play, AreaBarrier
+from qiskit.pulse.instructions import Play, TimeBlockade
 from qiskit.circuit import Parameter, QuantumCircuit, Gate
 from qiskit.test import QiskitTestCase
 from qiskit.qpy import dump, load
@@ -155,7 +155,7 @@ class TestLoadFromQPY(QpyScheduleTestCase):
     def test_area_barrier(self):
         """Test area barrier."""
         with builder.build() as test_sched:
-            builder.append_instruction(AreaBarrier(10, DriveChannel(0)))
+            builder.append_instruction(TimeBlockade(10, DriveChannel(0)))
         self.assert_roundtrip_equal(test_sched)
 
     def test_measure(self):
@@ -197,8 +197,8 @@ class TestLoadFromQPY(QpyScheduleTestCase):
     def test_called_schedule(self):
         """Test referenced pulse Schedule object.
 
-        Referened object is naively converted into ScheduleBlock with AreaBarrier instructions.
-        Thus referenced Schedule is still QPY compatibile.
+        Referenced object is naively converted into ScheduleBlock with TimeBlockade instructions.
+        Thus referenced Schedule is still QPY compatible.
         """
         refsched = Schedule()
         refsched.insert(20, Play(Constant(100, 0.1), DriveChannel(0)))

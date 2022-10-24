@@ -1,7 +1,7 @@
 ---
 features:
   - |
-    New pulse directive :class:`~qiskit.pulse.instructions.AreaBarrier` has been added.
+    New pulse directive :class:`~qiskit.pulse.instructions.TimeBlockade` has been added.
     This instruction is QPY compatible. This directive behaves almost identically to
     delay instruction, but will be removed before execution.
     This directive is intended to be used internally within the pulse builder
@@ -9,7 +9,7 @@ features:
     absolute time intervals. This allows the pulse builder to convert
     :class:`Schedule` into :class:`ScheduleBlock`, rather than wrapping with call instruction.
   - |
-    QPY dump and load now support :class:`~qiskit.pulse.instructions.AreaBarrier` instruction.
+    QPY dump and load now support :class:`~qiskit.pulse.instructions.TimeBlockade` instruction.
 upgrade:
   - |
     The behavior of the pulse builder when a :class:`.Schedule` is called
