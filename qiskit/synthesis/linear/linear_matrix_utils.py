@@ -13,6 +13,7 @@
 """Utility functions for handling binary matrices."""
 
 import numpy as np
+from typing import Optional
 from qiskit.exceptions import QiskitError
 
 
@@ -33,7 +34,9 @@ def check_invertible_binary_matrix(mat: np.ndarray):
     return rank == mat.shape[0]
 
 
-def random_invertible_binary_matrix(num_qubits: int, seed: np.random.Generator = None):
+def random_invertible_binary_matrix(
+    num_qubits: int, seed: Optional[np.random.Generator, int] = None
+):
     """Generates a random invertible n x n binary matrix.
 
     Args:

@@ -33,16 +33,13 @@ def transpose_cx_circ(qc: QuantumCircuit):
 
     Raises:
         CircuitError: if qc has a non-CX gate.
-        CircuitError: if a CX gate is not on two qubits.
     """
-    tranposed_circ = QuantumCircuit(qc.qubits, qc.clbits, name=qc.name + "_transpose")
+    transposed_circ = QuantumCircuit(qc.qubits, qc.clbits, name=qc.name + "_transpose")
     for instruction in reversed(qc.data):
         if instruction.operation.name != "cx":
             raise CircuitError("The circuit contains non-CX gates.")
-        if instruction.operation.num_qubits != 2:
-            raise CircuitError("The circuit contains a CX gates which is not on two qubits.")
-        tranposed_circ._append(instruction.replace(qubits=reversed(instruction.qubits)))
-    return tranposed_circ
+        transposed_circ._append(instruction.replace(qubits=reversed(instruction.qubits)))
+    return transposed_circ
 
 
 def optimize_cx_4_options(function: Callable, mat: np.ndarray, optimize_count: bool = True):
@@ -79,11 +76,11 @@ def optimize_cx_4_options(function: Callable, mat: np.ndarray, optimize_count: b
         elif i == 2:
             mat_cpy = np.transpose(mat_cpy)
             qc = function(mat_cpy)
-            transpose_cx_circ(qc)
+            qc = transpose_cx_circ(qc)
         elif i == 3:
             mat_cpy = calc_inverse_matrix(np.transpose(mat_cpy))
             qc = function(mat_cpy)
-            transpose_cx_circ(qc)
+            qc = transpose_cx_circ(qc)
             qc = qc.inverse()
 
         new_depth = qc.depth()
