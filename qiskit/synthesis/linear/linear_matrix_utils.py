@@ -12,8 +12,8 @@
 
 """Utility functions for handling binary matrices."""
 
-import numpy as np
 from typing import Optional, Union
+import numpy as np
 from qiskit.exceptions import QiskitError
 
 
