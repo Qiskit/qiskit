@@ -21,15 +21,15 @@ from typing import Dict
 
 import numpy as np
 
-from qiskit.circuit.instruction import Instruction
 from qiskit.circuit.quantumcircuit import QuantumCircuit
+from qiskit.circuit.instruction import Instruction
 from qiskit.exceptions import QiskitError
-from qiskit.quantum_info.operators.mixins.tolerances import TolerancesMixin
-from qiskit.quantum_info.operators.op_shape import OpShape
-from qiskit.quantum_info.operators.operator import Operator
-from qiskit.quantum_info.operators.predicates import matrix_equal
-from qiskit.quantum_info.operators.symplectic import Pauli, SparsePauliOp
 from qiskit.quantum_info.states.quantum_state import QuantumState
+from qiskit.quantum_info.operators.mixins.tolerances import TolerancesMixin
+from qiskit.quantum_info.operators.operator import Operator
+from qiskit.quantum_info.operators.symplectic import Pauli, SparsePauliOp
+from qiskit.quantum_info.operators.op_shape import OpShape
+from qiskit.quantum_info.operators.predicates import matrix_equal
 
 from qiskit._accelerate.pauli_evolve import apply_pauli
 from qiskit._accelerate.pauli_expval import expval_pauli_no_x, expval_pauli_with_x
@@ -845,8 +845,8 @@ class Statevector(QuantumState, TolerancesMixin):
     @staticmethod
     def _evolve_instruction(statevec, obj, qargs=None):
         """Update the current Statevector by applying an instruction."""
-        from qiskit.circuit.barrier import Barrier
         from qiskit.circuit.reset import Reset
+        from qiskit.circuit.barrier import Barrier
 
         mat = Operator._instruction_to_matrix(obj)
         if mat is not None:
