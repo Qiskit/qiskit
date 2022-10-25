@@ -10,7 +10,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-# pylint: disable=import-error,invalid-sequence-index
+# pylint: disable=invalid-sequence-index
 
 """Circuit transpile function"""
 import io
@@ -635,7 +635,7 @@ def _parse_transpile_args(
         if coupling_map is None:
             coupling_map = target.build_coupling_map()
         if basis_gates is None:
-            basis_gates = target.operation_names
+            basis_gates = list(target.operation_names)
         if instruction_durations is None:
             instruction_durations = target.durations()
         if inst_map is None:

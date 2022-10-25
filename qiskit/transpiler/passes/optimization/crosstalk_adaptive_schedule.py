@@ -49,8 +49,6 @@ ONEQ_XTALK_THRESH = 2
 class CrosstalkAdaptiveSchedule(TransformationPass):
     """Crosstalk mitigation through adaptive instruction scheduling."""
 
-    # pylint: disable=import-error
-
     def __init__(self, backend_prop, crosstalk_prop, weight_factor=0.5, measured_qubits=None):
         """CrosstalkAdaptiveSchedule initializer.
 
