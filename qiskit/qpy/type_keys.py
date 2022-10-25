@@ -232,7 +232,7 @@ class ScheduleInstruction(TypeKeyBase):
     SET_PHASE = b"q"
     SHIFT_PHASE = b"r"
     BARRIER = b"b"
-    TimeBlockade = b"t"
+    TIME_BLOCKADE = b"t"
 
     # 's' is reserved by ScheduleBlock, i.e. block can be nested as an element.
     # Call instructon is not supported by QPY.
@@ -260,7 +260,7 @@ class ScheduleInstruction(TypeKeyBase):
         if isinstance(obj, RelativeBarrier):
             return cls.BARRIER
         if isinstance(obj, TimeBlockade):
-            return cls.TimeBlockade
+            return cls.TIME_BLOCKADE
 
         raise exceptions.QpyError(
             f"Object type '{type(obj)}' is not supported in {cls.__name__} namespace."
@@ -284,7 +284,7 @@ class ScheduleInstruction(TypeKeyBase):
             return ShiftPhase
         if type_key == cls.BARRIER:
             return RelativeBarrier
-        if type_key == cls.TimeBlockade:
+        if type_key == cls.TIME_BLOCKADE:
             return TimeBlockade
 
         raise exceptions.QpyError(

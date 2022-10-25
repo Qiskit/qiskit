@@ -11,12 +11,12 @@
 # that they have been altered from the originals.
 
 """Directives are hints to the pulse compiler for how to process its input programs."""
-import numpy as np
 from abc import ABC
 from typing import Optional, Tuple
 
 from qiskit.pulse import channels as chans
 from qiskit.pulse.instructions import instruction
+from qiskit.pulse.exceptions import PulseError
 
 
 class Directive(instruction.Instruction, ABC):
@@ -123,7 +123,7 @@ class TimeBlockade(Directive):
             PulseError: If the input ``duration`` is not integer value.
         """
         if not isinstance(self.duration, int):
-            raise TypeError(
+            raise PulseError(
                 "TimeBlockade duration cannot be parameterized. Specify an integer duration value."
             )
 
