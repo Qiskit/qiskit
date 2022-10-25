@@ -316,21 +316,9 @@ class BaseEstimator(BasePrimitive):
             self._observable_ids = {_observable_key(init_observable(observables)): 0}
         return self
 
-    @deprecate_function(
-        "The BaseEstimator.__enter__ method is deprecated as of Qiskit Terra 0.22.0 "
-        "and will be removed no sooner than 3 months after the release date. "
-        "BaseEstimator should be initialized directly.",
-        since="0.22.0",
-    )
     def __enter__(self):
         return self
 
-    @deprecate_function(
-        "The BaseEstimator.__exit__ method is deprecated as of Qiskit Terra 0.22.0 "
-        "and will be removed no sooner than 3 months after the release date. "
-        "BaseEstimator should be initialized directly.",
-        since="0.22.0",
-    )
     def __exit__(self, *exc_info):
         self.close()
 
