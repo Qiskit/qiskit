@@ -1,11 +1,11 @@
 ---
 features:
   - |
-    Add new algorithms to calculate state fidelities/overlaps
+    Added new algorithms to calculate state fidelities/overlaps
     for pairs of quantum circuits (that can be parametrized). Apart from
-    the base class (:class:`qiskit.algorithms.state_fidelities.BaseStateFidelity`),
-    there is now an implementation of the compute-uncompute method that leverages
-    the sampler primitive (:class:`qiskit.algorithms.state_fidelities.ComputeUncompute`).
+    the base class (:class:`~qiskit.algorithms.state_fidelities.BaseStateFidelity`) which defines the interface,
+    there is an implementation of the compute-uncompute method that leverages
+    instances of the :class:`~.BaseSampler` primitive: :class:`qiskit.algorithms.state_fidelities.ComputeUncompute`.
 
     For example:
 
@@ -14,7 +14,7 @@ features:
       import numpy as np
       from qiskit.primitives import Sampler
       from qiskit.algorithms.state_fidelities import ComputeUncompute
-      from qiskit. import RealAmplitudes
+      from qiskit.circuit.library import RealAmplitudes
 
       sampler = Sampler(...)
       fidelity = ComputeUncompute(sampler)
@@ -24,5 +24,3 @@ features:
 
       job = fidelity.run([circuit], [circuit], [values], [values+shift])
       fidelities = job.result().fidelities
-
-

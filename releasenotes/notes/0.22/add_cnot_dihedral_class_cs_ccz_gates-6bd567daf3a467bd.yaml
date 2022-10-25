@@ -1,6 +1,17 @@
 ---
 features:
   - |
-    Add the new gates :class:`~qiskit.circuit.library.CSGate`,
-    :class:`~qiskit.circuit.library.CSdgGate` and :class:`~qiskit.circuit.library.CCZGate`
-    to the operator class:`~qiskit.quantum_info.CNOTDihedral` class.
+    Added support for the :class:`~.CSGate`, :class:`~.CSdgGate` and
+    :class:`~.CCZGate` classes to the constructor for the operator
+    class :class:`~qiskit.quantum_info.CNOTDihedral`. The input
+    circuits when creating a :class:`~.CNOTDihedral` operator will now
+    support circuits using these gates. For example::
+
+        from qiskit import QuantumCircuit
+        from qiskit.quantum_info import CNOTDihedral
+
+        qc = QuantumCircuit(2)
+        qc.t(0)
+        qc.cs(0, 1)
+        qc.tdg(0)
+        operator = CNOTDihedral(qc)
