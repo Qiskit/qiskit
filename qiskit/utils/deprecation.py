@@ -16,6 +16,8 @@ import functools
 import warnings
 from typing import Type
 
+from qiskit.exceptions import QiskitError
+
 
 def deprecate_arguments(
     kwarg_map, category: Type[Warning] = DeprecationWarning, modify_docstring=True, since=None
@@ -24,9 +26,9 @@ def deprecate_arguments(
 
     def decorator(func):
         if modify_docstring and since is None:
-            warnings.warn(
-                "Modifying the docstring needs a version. Add parameter `since` with it.",
-                stacklevel=2,
+            raise QiskitError(
+                "Adding a 'deprecated' directive to the docstring needs a version. "
+                "Add parameter `since` to `deprecate_arguments`."
             )
         if modify_docstring and since and kwarg_map:
             func.__doc__ = "\n".join(_extend_docstring(func, since, kwarg_map))
@@ -53,7 +55,7 @@ def deprecate_function(
 
     Args:
         msg: Warning message to emit.
-        stacklevel: The warning stackevel to use, defaults to 2.
+        stacklevel: The warning stacklevel to use, defaults to 2.
         category: warning category, defaults to DeprecationWarning
         modify_docstring: docstring box will be added. Default: True
         since: If a version number, extends the docstring with a deprecation warning
@@ -65,9 +67,9 @@ def deprecate_function(
 
     def decorator(func):
         if modify_docstring and since is None:
-            warnings.warn(
-                "Modifying the docstring needs a version. Add parameter `since` with it.",
-                stacklevel=2,
+            raise QiskitError(
+                "Adding a 'deprecated' directive to the docstring needs a version. "
+                "Add parameter `since` to `deprecate_arguments`."
             )
 
         if modify_docstring and since:
@@ -111,7 +113,7 @@ def _rename_kwargs(func_name, kwargs, kwarg_map, category: Type[Warning] = Depre
 
 def _extend_docstring(func, version, kwarg_map):
     """kwarg_map[None] means message in no kwarg, and it will be
-    append to the long desscription"""
+    appended to the long description"""
     docstr = func.__doc__
     if docstr:
         docstr_lines = docstr.expandtabs().splitlines()
