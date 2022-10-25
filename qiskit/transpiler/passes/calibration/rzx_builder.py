@@ -178,7 +178,7 @@ class RZXCalibrationBuilder(CalibrationBuilder):
         rzx_theta = Schedule(name="rzx(%.3f)" % theta)
         rzx_theta.metadata["publisher"] = CalibrationPublisher.QISKIT
 
-        if np.isclose(float(theta), 0.0):
+        if np.isclose(theta, 0.0):
             return rzx_theta
 
         cx_sched = self._inst_map.get("cx", qubits=qubits)
