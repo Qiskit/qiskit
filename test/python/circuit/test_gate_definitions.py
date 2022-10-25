@@ -366,6 +366,7 @@ class TestStandardEquivalenceLibrary(QiskitTestCase):
         SXGate,
         SXdgGate,
         CSXGate,
+        GphaseGate,
     )
     def test_definition_parameters(self, gate_class):
         """Verify decompositions from standard equivalence library match definitions."""
