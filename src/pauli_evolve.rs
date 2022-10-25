@@ -17,8 +17,9 @@ use numpy::PyArray1;
 use numpy::PyReadonlyArray1;
 use pyo3::exceptions::PyOverflowError;
 use pyo3::prelude::*;
-// use rayon::prelude::*;
+use rayon::prelude::*;
 
+// constant values
 const BITS: [usize; 64] = [
     1,
     2,
@@ -151,10 +152,7 @@ const MASKS: [usize; 64] = [
     4611686018427387903,
     9223372036854775807,
 ];
-// できれば 以下のように行列処理に書き換えたい
-// qubits = np.array(qargs)
-// x_mask = np.dot(1 << qubits, pauli.x)
-// z_mask = np.dot(1 << qubits, pauli.z)
+
 #[inline]
 pub fn pauli_masks_and_phase(
     qubits: &[usize],
@@ -246,23 +244,11 @@ pub fn apply_pauli(
         let mut lambda = |i: usize| {
             data_arr[i] *= phase;
         };
-        // 本来はapply_lambdaで並列化する
+        // It would be preferable if it could be parallelized as follows
+        // (0..n).into_par_iter().map(lambda);
         for i in 0..n {
             lambda(i);
         }
-        // (0..n).par_bridge().map(lambda);
-
-        // 以下はコンパイルできる
-        // let map_fn = |i: usize| -> f64 {
-        //     let mut val: f64 = data_arr[i].re * data_arr[i].re + data_arr[i].im * data_arr[i].im;
-        //     if (i & z_mask).count_ones() & 1 != 0 {
-        //         val *= -1.;
-        //     }
-        //     val
-        // };
-        // (0..n).into_par_iter().map(map_fn);
-
-        // return Ok(data);
         return Ok(());
     }
 
@@ -275,11 +261,11 @@ pub fn apply_pauli(
             data_arr[i] *= phase;
         };
 
-        // 本来はapply_lambdaで並列化する
+        // It would be preferable if it could be parallelized as follows
+        // (0..n).into_par_iter().map(lambda);
         for i in 0..n {
             lambda(i);
         }
-        // return Ok(data);
         return Ok(());
     }
 
@@ -298,7 +284,8 @@ pub fn apply_pauli(
             data_arr[idxs[j]] *= phase;
         }
     };
-    // 本来はapply_lambdaで並列化する
+    // It would be preferable if it could be parallelized as follows
+    // (0..n).into_par_iter().map(lambda);
     for i in 0..(n >> 1) {
         lambda(i);
     }

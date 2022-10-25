@@ -260,14 +260,14 @@ class TestStatevector(QiskitTestCase):
             self.assertEqual(target, evolved)
 
     def test_evolve_from_pauli(self):
-        """Test" _evolve method with useing pauli """
+        """Test" _evolve method with useing pauli"""
         pauli_str = ["I", "X", "Y", "Z"]
         coeff_str = ["+", "-", "i", "-i"]
         for _ in range(10):
             qargs = random.sample(range(3), 3)
             # random pauli operators
             coeff = random.choice(coeff_str)
-            pauli_label =  coeff + "".join(random.choices(pauli_str, k=3))
+            pauli_label = coeff + "".join(random.choices(pauli_str, k=3))
             pauli = Pauli(pauli_label)
 
             # Statevector from circuit
@@ -276,7 +276,7 @@ class TestStatevector(QiskitTestCase):
             psi = Statevector.from_instruction(circ)
 
             # Statevetor evolved from pauli operator
-            target =  Statevector.from_label("000").evolve(pauli, qargs)
+            target = Statevector.from_label("000").evolve(pauli, qargs)
 
             self.assertEqual(psi, target)
 
