@@ -94,7 +94,7 @@ from qiskit.opflow import PauliSumOp
 from qiskit.providers import JobV1 as Job
 from qiskit.quantum_info.operators import SparsePauliOp
 from qiskit.quantum_info.operators.base_operator import BaseOperator
-from qiskit.utils.deprecation import deprecate_function
+from qiskit.utils.deprecation import deprecate_arguments, deprecate_function
 
 from .base_primitive import BasePrimitive
 from .estimator_result import EstimatorResult
@@ -316,16 +316,6 @@ class BaseEstimator(BasePrimitive):
             self._observable_ids = {_observable_key(init_observable(observables)): 0}
         return self
 
-    def __enter__(self):
-        return self
-
-    def __exit__(self, *exc_info):
-        self.close()
-
-    def close(self):
-        """Close the session and free resources"""
-        ...
-
     @property
     def circuits(self) -> tuple[QuantumCircuit, ...]:
         """Quantum circuits that represents quantum states.
@@ -354,9 +344,31 @@ class BaseEstimator(BasePrimitive):
         return tuple(self._parameters)
 
     @deprecate_function(
-        """The BaseEstimator.__call__ method is deprecated as of Qiskit Terra 0.22.0
-        and will be removed no sooner than 3 months after the release date.
-        Use the 'run' method instead."""
+        "The BaseEstimator.__enter__ method is deprecated. "
+        "BaseEstimator should be initialized directly.",
+        since="0.22.0",
+    )
+    def __enter__(self):
+        return self
+
+    @deprecate_function(
+        "The BaseEstimator.__call__ method is deprecated. "
+        "BaseEstimator should be initialized directly.",
+        since="0.22.0",
+    )
+    def __exit__(self, *exc_info):
+        self.close()
+
+    def close(self):
+        """Close the session and free resources"""
+        ...
+
+    @deprecate_function(
+        "The BaseEstimator.__call__ method is deprecated. " "Use the 'run' method instead.",
+        since="0.22.0",
+    )
+    @deprecate_arguments(
+        {"circuit_indices": "circuits", "observable_indices": "observables"}, since="0.21.0"
     )
     def __call__(
         self,
