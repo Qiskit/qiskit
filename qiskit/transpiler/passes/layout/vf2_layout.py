@@ -167,6 +167,12 @@ class VF2Layout(AnalysisPass):
                 im_graph,
                 self.strict_direction,
             )
+            # If the layout score is 0 we can't do any better and we'll just
+            # waste time finding additional mappings that will at best match
+            # the performance, so exit early in this case
+            if layout_score == 0.0:
+                chosen_layout = layout
+                break
             logger.debug("Trial %s has score %s", trials, layout_score)
             if chosen_layout is None:
                 chosen_layout = layout
