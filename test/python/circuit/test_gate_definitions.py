@@ -63,6 +63,7 @@ from qiskit.circuit.library import (
     CSXGate,
     RVGate,
     XXMinusYYGate,
+    GphaseGate,
 )
 
 from qiskit.circuit.library.standard_gates.equivalence_library import (
@@ -182,6 +183,15 @@ class TestGateDefinitions(QiskitTestCase):
         circuit.append(gate, [0, 1])
         decomposed_circuit = circuit.decompose()
         self.assertTrue(len(decomposed_circuit) > len(circuit))
+        self.assertTrue(Operator(circuit).equiv(Operator(decomposed_circuit), atol=1e-7))
+
+    def test_globalphaseGate(self):
+        """Test GlobalPhase Gate"""
+        phase = 0.5
+        gate = GphaseGate(phase)
+        circuit = QuantumCircuit(0)
+        circuit.append(gate, [0])
+        decomposed_circuit = circuit.decompose()
         self.assertTrue(Operator(circuit).equiv(Operator(decomposed_circuit), atol=1e-7))
 
 
