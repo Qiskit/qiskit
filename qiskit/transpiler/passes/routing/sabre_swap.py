@@ -25,14 +25,13 @@ from qiskit.transpiler.layout import Layout
 from qiskit.dagcircuit import DAGOpNode
 from qiskit.tools.parallel import CPU_COUNT
 
-# pylint: disable=import-error
 from qiskit._accelerate.sabre_swap import (
     build_swap_map,
     Heuristic,
     NeighborTable,
     SabreDAG,
 )
-from qiskit._accelerate.stochastic_swap import NLayout  # pylint: disable=import-error
+from qiskit._accelerate.stochastic_swap import NLayout
 
 logger = logging.getLogger(__name__)
 
