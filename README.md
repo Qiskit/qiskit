@@ -4,8 +4,8 @@
 **Qiskit** is an open-source framework for working with noisy quantum computers at the level of pulses, circuits, and algorithms.
 
 This library is the core component of Qiskit, **Terra**, which contains the building blocks for creating
-and working with quantum circuits, programs, and algorithms. It also contains a compiler for compiling
-for different quantum computers and a common interface for running programs on different quantum computers.
+and working with quantum circuits, programs, and algorithms. It also contains a compiler that supports
+for different quantum computers and a common interface for running programs on different quantum computer architectures.
 
 For more details on how to use Qiskit you can refer to the documentation located here:
 
@@ -39,11 +39,11 @@ qc.measure([0,1], [0,1])
 
 This simple example makes an entangled state, also called a [Bell state](https://qiskit.org/textbook/ch-gates/multiple-qubits-entangled-states.html#3.2-Entangled-States-).
 
-Once you've made your first quantum circuit, you can then simulate this circuit.
+Once you've made your first quantum circuit, you can then simulate it.
 To do this, first we need to compile your circuit for the target backend we're going to run
 on. In this case we are leveraging the built-in `BasicAer` simulator. However, this
 simulator is primarily for testing and is quite basic and very limited (as the name
-implies). You should consider using [`qiskit-aer`](https://github.com/Qiskit/qiskit-aer/)
+implies). You should consider more sophisticated simulators, such as [`qiskit-aer`](https://github.com/Qiskit/qiskit-aer/),
 for any real simulation work.
 
 ```
@@ -60,7 +60,7 @@ result = backend_sim.run(transpiled_qc).result()
 print(result.get_counts(qc))
 ```
 
-The output from this will be something like:
+The output from this execution will look similar to this:
 
 ```python
 {'00': 513, '11': 511}
