@@ -16,8 +16,6 @@ import functools
 import warnings
 from typing import Type
 
-from qiskit.exceptions import QiskitError
-
 
 def deprecate_arguments(
     kwarg_map, category: Type[Warning] = DeprecationWarning, modify_docstring=True, since=None
@@ -26,12 +24,17 @@ def deprecate_arguments(
 
     def decorator(func):
         if modify_docstring and since is None:
-            raise QiskitError(
-                "Adding a 'deprecated' directive to the docstring needs a version. "
-                "Add parameter `since` to `deprecate_arguments`."
+            # TODO: replace with: raise QiskitError(
+            warnings.warn(
+                "Adding a 'deprecated' directive to the docstring needs a version. Add parameter `since`"
+                " to `deprecate_arguments` or disable docstring annotation with `modify_docstring=False`"
+                ". This warning will be a QiskitError exception in qiskit-terra 0.23.",
+                stacklevel=2,
+                category=FutureWarning,
             )
-        if modify_docstring and since and kwarg_map:
-            func.__doc__ = "\n".join(_extend_docstring(func, since, kwarg_map))
+
+        if modify_docstring and kwarg_map:
+            func.__doc__ = "\n".join(_extend_docstring(func, since or "unknown_version", kwarg_map))
 
         @functools.wraps(func)
         def wrapper(*args, **kwargs):
@@ -67,14 +70,20 @@ def deprecate_function(
 
     def decorator(func):
         if modify_docstring and since is None:
-            raise QiskitError(
-                "Adding a 'deprecated' directive to the docstring needs a version. "
-                "Add parameter `since` to `deprecate_arguments`."
+            # TODO: replace with: raise QiskitError(
+            warnings.warn(
+                "Adding a 'deprecated' directive to the docstring needs a version. Add parameter `since`"
+                " to `deprecate_function` or disable docstring annotation with `modify_docstring=False`."
+                " This warning will be a QiskitError exception in qiskit-terra 0.23.",
+                stacklevel=2,
+                category=FutureWarning,
             )
 
-        if modify_docstring and since:
+        if modify_docstring:
             func.__doc__ = "\n".join(
-                _extend_docstring(func, since, {None: msg.expandtabs().splitlines()})
+                _extend_docstring(
+                    func, since or "unknown_version", {None: msg.expandtabs().splitlines()}
+                )
             )
 
         @functools.wraps(func)

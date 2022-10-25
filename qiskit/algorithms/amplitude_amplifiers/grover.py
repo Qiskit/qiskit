@@ -195,6 +195,7 @@ class Grover(AmplitudeAmplifier):
         "This property will be deprecated in a future release and subsequently "
         "removed after that.",
         category=PendingDeprecationWarning,
+        since="0.22.0",
     )
     def quantum_instance(self) -> Optional[QuantumInstance]:
         r"""Pending deprecation\; Get the quantum instance.
@@ -210,6 +211,7 @@ class Grover(AmplitudeAmplifier):
         "This property will be deprecated in a future release and subsequently "
         "removed after that.",
         category=PendingDeprecationWarning,
+        since="0.22.0",
     )
     def quantum_instance(self, quantum_instance: Union[QuantumInstance, Backend]) -> None:
         r"""Pending deprecation\; Set quantum instance.

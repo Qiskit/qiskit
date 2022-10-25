@@ -43,6 +43,7 @@ class NumPyMinimumEigensolver(MinimumEigensolver):
         "This class will be deprecated in a future release and subsequently "
         "removed after that.",
         category=PendingDeprecationWarning,
+        since="0.22.0",
     )
     def __init__(
         self,
