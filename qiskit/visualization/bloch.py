@@ -62,6 +62,8 @@ from .utils import matplotlib_close_if_inline
 class Arrow3D(Patch3D, FancyArrowPatch):
     """Makes a fancy arrow"""
 
+    # pylint: disable=missing-function-docstring,invalid-name
+
     # Nasty hack around a poorly implemented deprecation warning in Matplotlib 3.5 that issues two
     # deprecation warnings if an artist's module does not claim to be part of the below module.
     # This revolves around the method `Patch3D.do_3d_projection(self, renderer=None)`.  The
