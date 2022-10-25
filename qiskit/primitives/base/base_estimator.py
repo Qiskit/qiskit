@@ -94,7 +94,7 @@ from qiskit.opflow import PauliSumOp
 from qiskit.providers import JobV1 as Job
 from qiskit.quantum_info.operators import SparsePauliOp
 from qiskit.quantum_info.operators.base_operator import BaseOperator
-from qiskit.utils.deprecation import deprecate_arguments, deprecate_function
+from qiskit.utils.deprecation import deprecate_function
 
 from .base_primitive import BasePrimitive
 from .estimator_result import EstimatorResult
@@ -366,17 +366,9 @@ class BaseEstimator(BasePrimitive):
         return tuple(self._parameters)
 
     @deprecate_function(
-        "The BaseEstimator.__enter__ method is deprecated as of Qiskit Terra 0.22.0 "
-        "and will be removed no sooner than 3 months after the releasedate. "
-        "BaseEstimator should be initialized directly.",
-    )
-    def __enter__(self):
-        return self
-
-    @deprecate_function(
-        "The BaseEstimator.__call__ method is deprecated as of Qiskit Terra 0.22.0 "
-        "and will be removed no sooner than 3 months after the releasedate. "
-        "Use the 'run' method instead.",
+        """The BaseEstimator.__call__ method is deprecated as of Qiskit Terra 0.22.0
+        and will be removed no sooner than 3 months after the release date.
+        Use the 'run' method instead."""
     )
     def __call__(
         self,
