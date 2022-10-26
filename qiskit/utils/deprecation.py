@@ -29,8 +29,8 @@ def deprecate_arguments(
         if modify_docstring and since is None and "qobj" not in kwarg_map:
             raise QiskitError(
                 "Adding a 'deprecated' directive to the docstring needs a version. Add parameter `since`"
-                " to `deprecate_arguments` or disable docstring annotation with `modify_docstring=False`"
-                ". This warning will be a QiskitError exception in qiskit-terra 0.23."
+                " to `deprecate_arguments` or disable docstring annotation with"
+                "`modify_docstring=False`."
             )
 
         if modify_docstring and kwarg_map:
@@ -73,7 +73,6 @@ def deprecate_function(
             raise QiskitError(
                 "Adding a 'deprecated' directive to the docstring needs a version. Add parameter `since`"
                 " to `deprecate_function` or disable docstring annotation with `modify_docstring=False`."
-                " This warning will be a QiskitError exception in qiskit-terra 0.23."
             )
 
         if modify_docstring:
