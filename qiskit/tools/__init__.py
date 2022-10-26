@@ -18,22 +18,26 @@ Qiskit Tools (:mod:`qiskit.tools`)
 .. currentmodule:: qiskit.tools
 
 Parallel Routines
-=================
+-----------------
+
+A helper function for calling a custom function with python map
 
 .. autosummary::
    :toctree: ../stubs/
 
-   parallel_map - Parallel execution of a mapping of `values` to the function `task`.
+   parallel_map
 
 Monitoring
-==========
+----------
+
+A helper module to get IBM backend information and submitted job status
 
 .. autosummary::
    :toctree: ../stubs/
 
-   job_monitor - Monitor the status of a IBMQJob instance
-   backend_monitor - Monitor a single IBMQ backend
-   backend_overview - Gives overview information on all the IBMQ backends that are available
+   job_monitor
+   backend_monitor
+   backend_overview
 
 """
 

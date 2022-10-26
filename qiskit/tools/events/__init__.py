@@ -15,15 +15,19 @@
 Events (:mod:`qiskit.tools.events`)
 ==================================
 
+A helper component for publish/subscribe events
+
 .. currentmodule:: qiskit.tools.events
 
 TextProgressBar
-=================
+---------------
+
+Text based progress bar for Jupyter magics
 
 .. autosummary::
    :toctree: ../stubs/
 
-   TextProgressBar - A simple text-based progress bar.
+   TextProgressBar
 """
 
 from .progressbar import TextProgressBar
