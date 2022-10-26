@@ -16,8 +16,6 @@ import functools
 import warnings
 from typing import Type
 
-from qiskit.exceptions import QiskitError
-
 
 def deprecate_arguments(
     kwarg_map, category: Type[Warning] = DeprecationWarning, modify_docstring=True, since=None
@@ -27,10 +25,13 @@ def deprecate_arguments(
     def decorator(func):
         # TODO Remove the qobj guard once https://github.com/Qiskit/qiskit-aer/pull/1635 is released
         if modify_docstring and since is None and "qobj" not in kwarg_map:
-            raise QiskitError(
+            # TODO: replace with: raise QiskitError(
+            warnings.warn(
                 "Adding a 'deprecated' directive to the docstring needs a version. Add parameter `since`"
-                " to `deprecate_arguments` or disable docstring annotation with"
-                "`modify_docstring=False`."
+                " to `deprecate_arguments` or disable docstring annotation with `modify_docstring=False`"
+                ". This warning will be a QiskitError exception in qiskit-terra 0.23.",
+                stacklevel=4,
+                category=FutureWarning,
             )
 
         if modify_docstring and kwarg_map:
@@ -70,9 +71,13 @@ def deprecate_function(
 
     def decorator(func):
         if modify_docstring and since is None:
-            raise QiskitError(
+            # TODO: replace with: raise QiskitError(
+            warnings.warn(
                 "Adding a 'deprecated' directive to the docstring needs a version. Add parameter `since`"
                 " to `deprecate_function` or disable docstring annotation with `modify_docstring=False`."
+                " This warning will be a QiskitError exception in qiskit-terra 0.23.",
+                stacklevel=4,
+                category=FutureWarning,
             )
 
         if modify_docstring:
