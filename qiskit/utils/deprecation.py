@@ -29,7 +29,7 @@ def deprecate_arguments(
                 "Adding a 'deprecated' directive to the docstring needs a version. Add parameter `since`"
                 " to `deprecate_arguments` or disable docstring annotation with `modify_docstring=False`"
                 ". This warning will be a QiskitError exception in qiskit-terra 0.23.",
-                stacklevel=2,
+                stacklevel=4,
                 category=FutureWarning,
             )
 
@@ -75,7 +75,7 @@ def deprecate_function(
                 "Adding a 'deprecated' directive to the docstring needs a version. Add parameter `since`"
                 " to `deprecate_function` or disable docstring annotation with `modify_docstring=False`."
                 " This warning will be a QiskitError exception in qiskit-terra 0.23.",
-                stacklevel=2,
+                stacklevel=4,
                 category=FutureWarning,
             )
 
