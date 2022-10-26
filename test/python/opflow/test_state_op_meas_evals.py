@@ -10,7 +10,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-# pylint: disable=no-name-in-module,import-error
+# pylint: disable=no-name-in-module
 
 
 """ Test Operator construction, including OpPrimitives and singletons. """
@@ -24,6 +24,7 @@ from qiskit.circuit import QuantumCircuit, Parameter
 from qiskit.utils import QuantumInstance
 from qiskit.opflow import StateFn, Zero, One, H, X, I, Z, Plus, Minus, CircuitSampler, ListOp
 from qiskit.opflow.exceptions import OpflowError
+from qiskit.quantum_info import Statevector
 
 
 @ddt
@@ -216,6 +217,18 @@ class TestStateOpMeasEvals(QiskitOpflowTestCase):
         sampler = CircuitSampler(backend)
         res = sampler.convert(~Plus @ Plus).eval()
         self.assertAlmostEqual(res, 1 + 0j, places=2)
+
+    def test_adjoint_vector_to_circuit_fn(self):
+        """Test it is possible to adjoint a VectorStateFn that was converted to a CircuitStateFn."""
+        left = StateFn([0, 1])
+        left_circuit = left.to_circuit_op().primitive
+
+        right_circuit = QuantumCircuit(1)
+        right_circuit.x(0)
+
+        circuit = left_circuit.inverse().compose(right_circuit)
+
+        self.assertTrue(Statevector(circuit).equiv([1, 0]))
 
 
 if __name__ == "__main__":

@@ -1,0 +1,31 @@
+---
+features:
+  - |
+    Added a new module to Qiskit: :mod:`qiskit.primitives`. The primitives
+    module is where APIs are defined which provide different
+    abstractions around computing certain common functions from
+    :class:`~.QuantumCircuit`s. The concept behind a primitive is to provide a higher
+    level object that can be used to perform common computations using a given
+    :class:`~.QuantumCircuit` which abstracts away the details of the underlying
+    execution on a :class:`~Backend`. This enables higher level algorithms and
+    applications to concentrate on performing the computation and not need to
+    worry about the execution and processing of results and have a standardized
+    interface for common computations. For example, estimating an expectation
+    value of a quantum circuit and observable can be performed by any class
+    implementing the :class:`~.BaseEstimator` class and consumed in a
+    standardized manner regardless of the underlying implementation.
+    Applications can then be written using the primitive interface directly.
+
+
+    To start the module contains two types of primitives,
+    the :class:`~.Sampler` (see :class:`~.BaseSampler` for the abstract
+    class definition) and :class:`~.Estimator` (see :class:`~.BaseEstimator`
+    for the abstract class definition). Reference implementations are included
+    in the :mod:`qiskit.primitives` module and are built using the
+    :mod:`qiskit.quantum_info` module which perform ideal simulation of
+    primitive operation. The expectation is that provider packages will offer
+    their own implementations of these interfaces for providers which can
+    efficiently implement the protocol natively (typically using a classical
+    runtime). Additionally, in the future for providers which do not offer a
+    native implementation of the primitives a method will be provided which
+    will enable constructing primitive objects from a :class:`~.Backend`.

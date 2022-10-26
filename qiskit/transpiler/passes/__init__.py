@@ -46,6 +46,7 @@ Routing
    StochasticSwap
    SabreSwap
    BIPMapping
+   Commuting2qGateRouter
 
 Basis Change
 ============
@@ -70,11 +71,13 @@ Optimizations
    Collect1qRuns
    Collect2qBlocks
    CollectMultiQBlocks
+   CollectLinearFunctions
    ConsolidateBlocks
    CXCancellation
    InverseCancellation
    CommutationAnalysis
    CommutativeCancellation
+   CommutativeInverseCancellation
    Optimize1qGatesSimpleCommutation
    RemoveDiagonalGatesBeforeMeasure
    RemoveResetInZeroState
@@ -82,6 +85,8 @@ Optimizations
    HoareOptimizer
    TemplateOptimization
    EchoRZXWeylDecomposition
+   ResetAfterMeasureSimplification
+   OptimizeCliffords
 
 Calibration
 =============
@@ -100,11 +105,18 @@ Scheduling
    :toctree: ../stubs/
 
    TimeUnitConversion
+   ALAPScheduleAnalysis
+   ASAPScheduleAnalysis
+   PadDynamicalDecoupling
+   PadDelay
+   ConstrainedReschedule
+   AlignMeasures
+   ValidatePulseGates
+   InstructionDurationCheck
+   SetIOLatency
    ALAPSchedule
    ASAPSchedule
    DynamicalDecoupling
-   AlignMeasures
-   ValidatePulseGates
 
 Circuit Analysis
 ================
@@ -127,6 +139,17 @@ Synthesis
    :toctree: ../stubs/
 
    UnitarySynthesis
+   LinearFunctionsSynthesis
+   LinearFunctionsToPermutations
+   HighLevelSynthesis
+
+Post Layout (Post transpile qubit selection)
+============================================
+
+.. autosummary::
+   :toctree: ../stubs/
+
+   VF2PostLayout
 
 Additional Passes
 =================
@@ -147,6 +170,7 @@ Additional Passes
    FixedPoint
    ContainsInstruction
    GatesInBasis
+   ConvertConditionsToIfOps
 """
 
 # layout selection (placement)
@@ -157,6 +181,7 @@ from .layout import NoiseAdaptiveLayout
 from .layout import SabreLayout
 from .layout import CSPLayout
 from .layout import VF2Layout
+from .layout import VF2PostLayout
 from .layout import ApplyLayout
 from .layout import Layout2qDistance
 from .layout import EnlargeWithAncilla
@@ -169,6 +194,7 @@ from .routing import LookaheadSwap
 from .routing import StochasticSwap
 from .routing import SabreSwap
 from .routing import BIPMapping
+from .routing import Commuting2qGateRouter
 
 # basis change
 from .basis import Decompose
@@ -186,6 +212,7 @@ from .optimization import CollectMultiQBlocks
 from .optimization import ConsolidateBlocks
 from .optimization import CommutationAnalysis
 from .optimization import CommutativeCancellation
+from .optimization import CommutativeInverseCancellation
 from .optimization import CXCancellation
 from .optimization import Optimize1qGatesSimpleCommutation
 from .optimization import OptimizeSwapBeforeMeasure
@@ -196,6 +223,9 @@ from .optimization import HoareOptimizer
 from .optimization import TemplateOptimization
 from .optimization import InverseCancellation
 from .optimization import EchoRZXWeylDecomposition
+from .optimization import CollectLinearFunctions
+from .optimization import ResetAfterMeasureSimplification
+from .optimization import OptimizeCliffords
 
 # circuit analysis
 from .analysis import ResourceEstimation
@@ -210,6 +240,9 @@ from .analysis import DAGLongestPath
 # synthesis
 from .synthesis import UnitarySynthesis
 from .synthesis import unitary_synthesis_plugin_names
+from .synthesis import LinearFunctionsSynthesis
+from .synthesis import LinearFunctionsToPermutations
+from .synthesis import HighLevelSynthesis
 
 # calibration
 from .calibration import PulseGates
@@ -218,11 +251,18 @@ from .calibration import RZXCalibrationBuilderNoEcho
 
 # circuit scheduling
 from .scheduling import TimeUnitConversion
+from .scheduling import ALAPScheduleAnalysis
+from .scheduling import ASAPScheduleAnalysis
 from .scheduling import ALAPSchedule
 from .scheduling import ASAPSchedule
+from .scheduling import PadDynamicalDecoupling
 from .scheduling import DynamicalDecoupling
-from .scheduling import AlignMeasures
+from .scheduling import AlignMeasures  # Deprecated
 from .scheduling import ValidatePulseGates
+from .scheduling import PadDelay
+from .scheduling import ConstrainedReschedule
+from .scheduling import InstructionDurationCheck
+from .scheduling import SetIOLatency
 
 # additional utility passes
 from .utils import CheckMap
@@ -239,3 +279,4 @@ from .utils import Error
 from .utils import RemoveBarriers
 from .utils import ContainsInstruction
 from .utils import GatesInBasis
+from .utils import ConvertConditionsToIfOps

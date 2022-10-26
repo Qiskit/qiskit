@@ -12,9 +12,8 @@
 
 """Result from running HamiltonianPhaseEstimation"""
 
-
-from typing import Dict, Union, cast
-from qiskit.utils.deprecation import deprecate_function
+from __future__ import annotations
+from typing import cast, Mapping
 from qiskit.algorithms.algorithm_result import AlgorithmResult
 from .phase_estimation_result import PhaseEstimationResult
 from .phase_estimation_scale import PhaseEstimationScale
@@ -54,7 +53,7 @@ class HamiltonianPhaseEstimationResult(AlgorithmResult):
 
     def filter_phases(
         self, cutoff: float = 0.0, scaled: bool = True, as_float: bool = True
-    ) -> Dict[Union[str, float], float]:
+    ) -> Mapping[str | float, float]:
         """Filter phases as does `PhaseEstimatorResult.filter_phases`, with
         the addition that `phi` is shifted and translated to return eigenvalues
         of the Hamiltonian.
@@ -79,24 +78,10 @@ class HamiltonianPhaseEstimationResult(AlgorithmResult):
         phases = self._phase_estimation_result.filter_phases(cutoff, as_float=as_float)
         if scaled:
             return cast(
-                Dict, self._phase_estimation_scale.scale_phases(phases, self._id_coefficient)
+                dict, self._phase_estimation_scale.scale_phases(phases, self._id_coefficient)
             )
         else:
-            return cast(Dict, phases)
-
-    @property
-    @deprecate_function(
-        """The 'HamiltonianPhaseEstimationResult.most_likely_phase' attribute
-                        is deprecated as of 0.18.0 and will be removed no earlier than 3 months
-                        after the release date. It has been renamed as the 'phase' attribute."""
-    )
-    def most_likely_phase(self) -> float:
-        """DEPRECATED - The most likely phase of the unitary corresponding to the Hamiltonian.
-
-        Returns:
-            The most likely phase.
-        """
-        return self.phase
+            return cast(dict, phases)
 
     @property
     def phase(self) -> float:

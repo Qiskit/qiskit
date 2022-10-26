@@ -48,7 +48,7 @@ class StatevectorSimulatorPy(QasmSimulatorPy):
         "conditional": True,
         "open_pulse": False,
         "memory": True,
-        "max_shots": 65536,
+        "max_shots": 0,
         "coupling_map": None,
         "description": "A Python statevector simulator for qobj files",
         "basis_gates": ["u1", "u2", "u3", "rz", "sx", "x", "cx", "id", "unitary"],

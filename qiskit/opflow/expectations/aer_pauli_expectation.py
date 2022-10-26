@@ -43,13 +43,36 @@ class AerPauliExpectation(ExpectationBase):
         AerSnapshot-based expectation circuits.
 
         Args:
-            operator: The operator to convert.
+            operator: The operator to convert. If it contains non-hermitian terms, the
+                operator is decomposed into hermitian and anti-hermitian parts.
 
         Returns:
             The converted operator.
         """
+
         if isinstance(operator, OperatorStateFn) and operator.is_measurement:
-            return self._replace_pauli_sums(operator.primitive) * operator.coeff
+            if isinstance(operator.primitive, ListOp):
+                is_herm = all((op.is_hermitian() for op in operator.primitive.oplist))
+            else:
+                is_herm = operator.primitive.is_hermitian()
+
+            if not is_herm:
+                pauli_sum_re = (
+                    self._replace_pauli_sums(
+                        1 / 2 * (operator.primitive + operator.primitive.adjoint()).reduce()
+                    )
+                    * operator.coeff
+                )
+                pauli_sum_im = (
+                    self._replace_pauli_sums(
+                        1 / 2j * (operator.primitive - operator.primitive.adjoint()).reduce()
+                    )
+                    * operator.coeff
+                )
+                pauli_sum = (pauli_sum_re + 1j * pauli_sum_im).reduce()
+            else:
+                pauli_sum = self._replace_pauli_sums(operator.primitive) * operator.coeff
+            return pauli_sum
         elif isinstance(operator, ListOp):
             return operator.traverse(self.convert)
         else:

@@ -11,16 +11,23 @@
 # that they have been altered from the originals.
 
 """Tests LogicNetwork.Tweedledum2Qiskit converter."""
-from tweedledum.ir import Circuit
-from tweedledum.operators import X
+import unittest
 
+from qiskit.utils.optionals import HAS_TWEEDLEDUM
 from qiskit.test import QiskitTestCase
 
-from qiskit.circuit.classicalfunction.utils import tweedledum2qiskit
 from qiskit import QuantumCircuit, QuantumRegister
 from qiskit.circuit.library.standard_gates import XGate
 
+if HAS_TWEEDLEDUM:
+    # pylint: disable=import-error
+    from qiskit.circuit.classicalfunction.utils import tweedledum2qiskit
 
+    from tweedledum.ir import Circuit
+    from tweedledum.operators import X
+
+
+@unittest.skipUnless(HAS_TWEEDLEDUM, "Tweedledum is required for these tests.")
 class TestTweedledum2Qiskit(QiskitTestCase):
     """Tests qiskit.transpiler.classicalfunction.utils.tweedledum2qiskit function."""
 

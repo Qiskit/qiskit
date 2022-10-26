@@ -22,7 +22,6 @@ import numpy
 from qiskit.circuit.exceptions import CircuitError
 from qiskit.utils import optionals as _optionals
 
-
 # This type is redefined at the bottom to insert the full reference to "ParameterExpression", so it
 # can safely be used by runtime type-checkers like Sphinx.  Mypy does not need this because it
 # handles the references by static analysis.
@@ -506,49 +505,42 @@ class ParameterExpression:
             return len(self.parameters) == 0 and complex(self._symbol_expr) == other
         return False
 
-    def __getstate__(self):
-        if _optionals.HAS_SYMENGINE:
-            from sympy import sympify
-
-            symbols = {k: sympify(v) for k, v in self._parameter_symbols.items()}
-            expr = sympify(self._symbol_expr)
-            return {"type": "symengine", "symbols": symbols, "expr": expr, "names": self._names}
-        else:
-            return {
-                "type": "sympy",
-                "symbols": self._parameter_symbols,
-                "expr": self._symbol_expr,
-                "names": self._names,
-            }
-
-    def __setstate__(self, state):
-        if state["type"] == "symengine":
-            import symengine
-
-            self._symbol_expr = symengine.sympify(state["expr"])
-            self._parameter_symbols = {k: symengine.sympify(v) for k, v in state["symbols"].items()}
-            self._parameters = set(self._parameter_symbols)
-        else:
-            self._symbol_expr = state["expr"]
-            self._parameter_symbols = state["symbols"]
-            self._parameters = set(self._parameter_symbols)
-        self._name_map = state["names"]
-
     def is_real(self):
         """Return whether the expression is real"""
 
-        if not self._symbol_expr.is_real and self._symbol_expr.is_real is not None:
+        # workaround for symengine behavior that const * (0 + 1 * I) is not real
+        # see https://github.com/symengine/symengine.py/issues/414
+        if _optionals.HAS_SYMENGINE and self._symbol_expr.is_real is None:
+            symbol_expr = self._symbol_expr.evalf()
+        else:
+            symbol_expr = self._symbol_expr
+
+        if not symbol_expr.is_real and symbol_expr.is_real is not None:
             # Symengine returns false for is_real on the expression if
             # there is a imaginary component (even if that component is 0),
             # but the parameter will evaluate as real. Check that if the
             # expression's is_real attribute returns false that we have a
             # non-zero imaginary
             if _optionals.HAS_SYMENGINE:
-                if self._symbol_expr.imag != 0.0:
+                if symbol_expr.imag != 0.0:
                     return False
             else:
                 return False
         return True
+
+    def sympify(self):
+        """Return symbolic expression as a raw Sympy or Symengine object.
+
+        Symengine is used preferentially; if both are available, the result will always be a
+        ``symengine`` object.  Symengine is a separate library but has integration with Sympy.
+
+        .. note::
+
+            This is for interoperability only.  Qiskit will not accept or work with raw Sympy or
+            Symegine expressions in its parameters, because they do not contain the tracking
+            information used in circuit-parameter binding and assignment.
+        """
+        return self._symbol_expr
 
 
 # Redefine the type so external imports get an evaluated reference; Sphinx needs this to understand

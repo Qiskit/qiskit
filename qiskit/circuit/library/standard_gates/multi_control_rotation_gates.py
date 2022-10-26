@@ -101,26 +101,12 @@ def mcrx(
     Raises:
         QiskitError: parameter errors
     """
-
-    # check controls
-    if isinstance(q_controls, QuantumRegister):
-        control_qubits = list(q_controls)
-    elif isinstance(q_controls, list):
-        control_qubits = q_controls
-    else:
-        raise QiskitError(
-            "The mcrx gate needs a list of qubits or a quantum register for controls."
-        )
-
-    # check target
-    if isinstance(q_target, Qubit):
-        target_qubit = q_target
-    else:
-        raise QiskitError("The mcrx gate needs a single qubit as target.")
-
-    all_qubits = control_qubits + [target_qubit]
-
-    self._check_qargs(all_qubits)
+    control_qubits = self.qbit_argument_conversion(q_controls)
+    target_qubit = self.qbit_argument_conversion(q_target)
+    if len(target_qubit) != 1:
+        raise QiskitError("The mcrz gate needs a single qubit as target.")
+    all_qubits = control_qubits + target_qubit
+    target_qubit = target_qubit[0]
     self._check_dups(all_qubits)
 
     n_c = len(control_qubits)
@@ -171,38 +157,13 @@ def mcry(
     Raises:
         QiskitError: parameter errors
     """
-
-    # check controls
-    if isinstance(q_controls, QuantumRegister):
-        control_qubits = list(q_controls)
-    elif isinstance(q_controls, list):
-        control_qubits = q_controls
-    else:
-        raise QiskitError(
-            "The mcry gate needs a list of qubits or a quantum register for controls."
-        )
-
-    # check target
-    if isinstance(q_target, Qubit):
-        target_qubit = q_target
-    else:
-        raise QiskitError("The mcry gate needs a single qubit as target.")
-
-    # check ancilla
-    if q_ancillae is None:
-        ancillary_qubits = []
-    elif isinstance(q_ancillae, QuantumRegister):
-        ancillary_qubits = list(q_ancillae)
-    elif isinstance(q_ancillae, list):
-        ancillary_qubits = q_ancillae
-    else:
-        raise QiskitError(
-            "The mcry gate needs None or a list of qubits or a quantum register for ancilla."
-        )
-
-    all_qubits = control_qubits + [target_qubit] + ancillary_qubits
-
-    self._check_qargs(all_qubits)
+    control_qubits = self.qbit_argument_conversion(q_controls)
+    target_qubit = self.qbit_argument_conversion(q_target)
+    if len(target_qubit) != 1:
+        raise QiskitError("The mcrz gate needs a single qubit as target.")
+    ancillary_qubits = [] if q_ancillae is None else self.qbit_argument_conversion(q_ancillae)
+    all_qubits = control_qubits + target_qubit + ancillary_qubits
+    target_qubit = target_qubit[0]
     self._check_dups(all_qubits)
 
     # auto-select the best mode
@@ -260,26 +221,12 @@ def mcrz(
     Raises:
         QiskitError: parameter errors
     """
-
-    # check controls
-    if isinstance(q_controls, QuantumRegister):
-        control_qubits = list(q_controls)
-    elif isinstance(q_controls, list):
-        control_qubits = q_controls
-    else:
-        raise QiskitError(
-            "The mcrz gate needs a list of qubits or a quantum register for controls."
-        )
-
-    # check target
-    if isinstance(q_target, Qubit):
-        target_qubit = q_target
-    else:
+    control_qubits = self.qbit_argument_conversion(q_controls)
+    target_qubit = self.qbit_argument_conversion(q_target)
+    if len(target_qubit) != 1:
         raise QiskitError("The mcrz gate needs a single qubit as target.")
-
-    all_qubits = control_qubits + [target_qubit]
-
-    self._check_qargs(all_qubits)
+    all_qubits = control_qubits + target_qubit
+    target_qubit = target_qubit[0]
     self._check_dups(all_qubits)
 
     n_c = len(control_qubits)

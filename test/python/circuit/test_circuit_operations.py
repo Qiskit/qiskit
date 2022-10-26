@@ -18,7 +18,8 @@ import numpy as np
 from qiskit import BasicAer
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
 from qiskit import execute
-from qiskit.circuit import Gate, Instruction, Parameter
+from qiskit.circuit import Gate, Instruction, Parameter, Measure
+from qiskit.circuit.bit import Bit
 from qiskit.circuit.classicalregister import Clbit
 from qiskit.circuit.exceptions import CircuitError
 from qiskit.circuit.quantumcircuit import BitLocations
@@ -26,11 +27,123 @@ from qiskit.circuit.quantumregister import AncillaQubit, AncillaRegister, Qubit
 from qiskit.test import QiskitTestCase
 from qiskit.circuit.library.standard_gates import SGate
 from qiskit.quantum_info import Operator
+from qiskit.pulse import Schedule, Play, Gaussian, DriveChannel
 
 
 @ddt
 class TestCircuitOperations(QiskitTestCase):
     """QuantumCircuit Operations tests."""
+
+    @data(0, 1, -1, -2)
+    def test_append_resolves_integers(self, index):
+        """Test that integer arguments to append are correctly resolved."""
+        # We need to assume that appending ``Bit`` instances will always work, so we have something
+        # to test against.
+        qubits = [Qubit(), Qubit()]
+        clbits = [Clbit(), Clbit()]
+        test = QuantumCircuit(qubits, clbits)
+        test.append(Measure(), [index], [index])
+        expected = QuantumCircuit(qubits, clbits)
+        expected.append(Measure(), [qubits[index]], [clbits[index]])
+        self.assertEqual(test, expected)
+
+    @data(np.int32(0), np.int8(-1), np.uint64(1))
+    def test_append_resolves_numpy_integers(self, index):
+        """Test that Numpy's integers can be used to reference qubits and clbits."""
+        qubits = [Qubit(), Qubit()]
+        clbits = [Clbit(), Clbit()]
+        test = QuantumCircuit(qubits, clbits)
+        test.append(Measure(), [index], [index])
+        expected = QuantumCircuit(qubits, clbits)
+        expected.append(Measure(), [qubits[int(index)]], [clbits[int(index)]])
+        self.assertEqual(test, expected)
+
+    @data(
+        slice(0, 2),
+        slice(None, 1),
+        slice(1, None),
+        slice(None, None),
+        slice(0, 2, 2),
+        slice(2, -1, -1),
+        slice(1000, 1003),
+    )
+    def test_append_resolves_slices(self, index):
+        """Test that slices can be used to reference qubits and clbits with the same semantics that
+        they have on lists."""
+        qregs = [QuantumRegister(2), QuantumRegister(1)]
+        cregs = [ClassicalRegister(1), ClassicalRegister(2)]
+        test = QuantumCircuit(*qregs, *cregs)
+        test.append(Measure(), [index], [index])
+        expected = QuantumCircuit(*qregs, *cregs)
+        for qubit, clbit in zip(expected.qubits[index], expected.clbits[index]):
+            expected.append(Measure(), [qubit], [clbit])
+        self.assertEqual(test, expected)
+
+    def test_append_resolves_scalar_numpy_array(self):
+        """Test that size-1 Numpy arrays can be used to index arguments.  These arrays can be passed
+        to ``int``, which means they sometimes might be involved in spurious casts."""
+        test = QuantumCircuit(1, 1)
+        test.append(Measure(), [np.array([0])], [np.array([0])])
+
+        expected = QuantumCircuit(1, 1)
+        expected.measure(0, 0)
+
+        self.assertEqual(test, expected)
+
+    @data([3], [-3], [0, 1, 3])
+    def test_append_rejects_out_of_range_input(self, specifier):
+        """Test that append rejects an integer that's out of range."""
+        test = QuantumCircuit(2, 2)
+        with self.subTest("qubit"), self.assertRaisesRegex(CircuitError, "out of range"):
+            opaque = Instruction("opaque", len(specifier), 1, [])
+            test.append(opaque, specifier, [0])
+        with self.subTest("clbit"), self.assertRaisesRegex(CircuitError, "out of range"):
+            opaque = Instruction("opaque", 1, len(specifier), [])
+            test.append(opaque, [0], specifier)
+
+    def test_append_rejects_bits_not_in_circuit(self):
+        """Test that append rejects bits that are not in the circuit."""
+        test = QuantumCircuit(2, 2)
+        with self.subTest("qubit"), self.assertRaisesRegex(CircuitError, "not in the circuit"):
+            test.append(Measure(), [Qubit()], [test.clbits[0]])
+        with self.subTest("clbit"), self.assertRaisesRegex(CircuitError, "not in the circuit"):
+            test.append(Measure(), [test.qubits[0]], [Clbit()])
+        with self.subTest("qubit list"), self.assertRaisesRegex(CircuitError, "not in the circuit"):
+            test.append(Measure(), [[test.qubits[0], Qubit()]], [test.clbits])
+        with self.subTest("clbit list"), self.assertRaisesRegex(CircuitError, "not in the circuit"):
+            test.append(Measure(), [test.qubits], [[test.clbits[0], Clbit()]])
+
+    def test_append_rejects_bit_of_wrong_type(self):
+        """Test that append rejects bits of the wrong type in an argument list."""
+        qubits = [Qubit(), Qubit()]
+        clbits = [Clbit(), Clbit()]
+        test = QuantumCircuit(qubits, clbits)
+        with self.subTest("c to q"), self.assertRaisesRegex(CircuitError, "Incorrect bit type"):
+            test.append(Measure(), [clbits[0]], [clbits[1]])
+        with self.subTest("q to c"), self.assertRaisesRegex(CircuitError, "Incorrect bit type"):
+            test.append(Measure(), [qubits[0]], [qubits[1]])
+
+        with self.subTest("none to q"), self.assertRaisesRegex(CircuitError, "Incorrect bit type"):
+            test.append(Measure(), [Bit()], [clbits[0]])
+        with self.subTest("none to c"), self.assertRaisesRegex(CircuitError, "Incorrect bit type"):
+            test.append(Measure(), [qubits[0]], [Bit()])
+        with self.subTest("none list"), self.assertRaisesRegex(CircuitError, "Incorrect bit type"):
+            test.append(Measure(), [[qubits[0], Bit()]], [[clbits[0], Bit()]])
+
+    @data(0.0, 1.0, 1.0 + 0.0j, "0")
+    def test_append_rejects_wrong_types(self, specifier):
+        """Test that various bad inputs are rejected, both given loose or in sublists."""
+        test = QuantumCircuit(2, 2)
+        # Use a default Instruction to be sure that there's not overridden broadcasting.
+        opaque = Instruction("opaque", 1, 1, [])
+        with self.subTest("q"), self.assertRaisesRegex(CircuitError, "Invalid bit index"):
+            test.append(opaque, [specifier], [0])
+        with self.subTest("c"), self.assertRaisesRegex(CircuitError, "Invalid bit index"):
+            test.append(opaque, [0], [specifier])
+        with self.subTest("q list"), self.assertRaisesRegex(CircuitError, "Invalid bit index"):
+            test.append(opaque, [[specifier]], [[0]])
+        with self.subTest("c list"), self.assertRaisesRegex(CircuitError, "Invalid bit index"):
+            test.append(opaque, [[0]], [[specifier]])
 
     def test_adding_self(self):
         """Test that qc += qc finishes, which can be prone to infinite while-loops.
@@ -46,7 +159,7 @@ class TestCircuitOperations(QiskitTestCase):
         qc += qc
 
         # finally, qc should contain two X gates
-        self.assertEqual(["x", "x"], [x[0].name for x in qc.data])
+        self.assertEqual(["x", "x"], [x.operation.name for x in qc.data])
 
     def test_combine_circuit_common(self):
         """Test combining two circuits with same registers (inplace=False)."""
@@ -365,6 +478,41 @@ class TestCircuitOperations(QiskitTestCase):
 
         self.assertEqual(len(qc.cregs), 1)
         self.assertEqual(len(copied.cregs), 2)
+
+    def test_copy_empty_like_circuit(self):
+        """Test copy_empty_like method makes a clear copy."""
+        qr = QuantumRegister(2)
+        cr = ClassicalRegister(2)
+        qc = QuantumCircuit(qr, cr, global_phase=1.0, name="qc", metadata={"key": "value"})
+        qc.h(qr[0])
+        qc.measure(qr[0], cr[0])
+        qc.measure(qr[1], cr[1])
+        sched = Schedule(Play(Gaussian(160, 0.1, 40), DriveChannel(0)))
+        qc.add_calibration("h", [0, 1], sched)
+        copied = qc.copy_empty_like()
+        qc.clear()
+
+        self.assertEqual(qc, copied)
+        self.assertEqual(qc.global_phase, copied.global_phase)
+        self.assertEqual(qc.name, copied.name)
+        self.assertEqual(qc.metadata, copied.metadata)
+        self.assertEqual(qc.calibrations, copied.calibrations)
+
+        copied = qc.copy_empty_like("copy")
+        self.assertEqual(copied.name, "copy")
+
+    def test_clear_circuit(self):
+        """Test clear method deletes instructions in circuit."""
+        qr = QuantumRegister(2)
+        cr = ClassicalRegister(2)
+        qc = QuantumCircuit(qr, cr)
+        qc.h(qr[0])
+        qc.measure(qr[0], cr[0])
+        qc.measure(qr[1], cr[1])
+        qc.clear()
+
+        self.assertEqual(len(qc.data), 0)
+        self.assertEqual(len(qc._parameter_table), 0)
 
     def test_measure_active(self):
         """Test measure_active
@@ -738,13 +886,13 @@ class TestCircuitOperations(QiskitTestCase):
             self.assertEqual(qc.power(4), qc.repeat(4))
 
         with self.subTest("explicit matrix power"):
-            self.assertEqual(qc.power(4, matrix_power=True).data[0][0], gate.power(4))
+            self.assertEqual(qc.power(4, matrix_power=True).data[0].operation, gate.power(4))
 
         with self.subTest("float power"):
-            self.assertEqual(qc.power(1.23).data[0][0], gate.power(1.23))
+            self.assertEqual(qc.power(1.23).data[0].operation, gate.power(1.23))
 
         with self.subTest("negative power"):
-            self.assertEqual(qc.power(-2).data[0][0], gate.power(-2))
+            self.assertEqual(qc.power(-2).data[0].operation, gate.power(-2))
 
     def test_power_parameterized_circuit(self):
         """Test taking a parameterized circuit to a power."""
@@ -820,9 +968,9 @@ class TestCircuitOperations(QiskitTestCase):
         rep = qc.repeat(3)
 
         if subtype == "gate":
-            self.assertTrue(all(isinstance(op[0], Gate) for op in rep.data))
+            self.assertTrue(all(isinstance(op.operation, Gate) for op in rep.data))
         else:
-            self.assertTrue(all(isinstance(op[0], Instruction) for op in rep.data))
+            self.assertTrue(all(isinstance(op.operation, Instruction) for op in rep.data))
 
     def test_reverse_bits(self):
         """Test reversing order of bits."""
@@ -896,6 +1044,80 @@ class TestCircuitOperations(QiskitTestCase):
 
         self.assertEqual(qc.reverse_bits(), expected)
 
+    def test_reverse_bits_with_overlapped_registers(self):
+        """Test reversing order of bits when registers are overlapped."""
+        qr1 = QuantumRegister(2, "a")
+        qr2 = QuantumRegister(bits=[qr1[0], qr1[1], Qubit()], name="b")
+        qc = QuantumCircuit(qr1, qr2)
+        qc.h(qr1[0])
+        qc.cx(qr1[0], qr1[1])
+        qc.cx(qr1[1], qr2[2])
+
+        qr2 = QuantumRegister(bits=[Qubit(), qr1[0], qr1[1]], name="b")
+        expected = QuantumCircuit(qr2, qr1)
+        expected.h(qr1[1])
+        expected.cx(qr1[1], qr1[0])
+        expected.cx(qr1[0], qr2[0])
+
+        self.assertEqual(qc.reverse_bits(), expected)
+
+    def test_reverse_bits_with_registerless_bits(self):
+        """Test reversing order of registerless bits."""
+        q0 = Qubit()
+        q1 = Qubit()
+        c0 = Clbit()
+        c1 = Clbit()
+        qc = QuantumCircuit([q0, q1], [c0, c1])
+        qc.h(0)
+        qc.cx(0, 1)
+        qc.x(0).c_if(1, True)
+        qc.measure(0, 0)
+
+        expected = QuantumCircuit([c1, c0], [q1, q0])
+        expected.h(1)
+        expected.cx(1, 0)
+        expected.x(1).c_if(0, True)
+        expected.measure(1, 1)
+
+        self.assertEqual(qc.reverse_bits(), expected)
+
+    def test_reverse_bits_with_registers_and_bits(self):
+        """Test reversing order of bits with registers and registerless bits."""
+        qr = QuantumRegister(2, "a")
+        q = Qubit()
+        qc = QuantumCircuit(qr, [q])
+        qc.h(qr[0])
+        qc.cx(qr[0], qr[1])
+        qc.cx(qr[1], q)
+
+        expected = QuantumCircuit([q], qr)
+        expected.h(qr[1])
+        expected.cx(qr[1], qr[0])
+        expected.cx(qr[0], q)
+
+        self.assertEqual(qc.reverse_bits(), expected)
+
+    def test_reverse_bits_with_mixed_overlapped_registers(self):
+        """Test reversing order of bits with overlapped registers and registerless bits."""
+        q = Qubit()
+        qr1 = QuantumRegister(bits=[q, Qubit()], name="qr1")
+        qr2 = QuantumRegister(bits=[qr1[1], Qubit()], name="qr2")
+        qc = QuantumCircuit(qr1, qr2, [Qubit()])
+        qc.h(q)
+        qc.cx(qr1[0], qr1[1])
+        qc.cx(qr1[1], qr2[1])
+        qc.cx(2, 3)
+
+        qr2 = QuantumRegister(2, "qr2")
+        qr1 = QuantumRegister(bits=[qr2[1], q], name="qr1")
+        expected = QuantumCircuit([Qubit()], qr2, qr1)
+        expected.h(qr1[1])
+        expected.cx(qr1[1], qr1[0])
+        expected.cx(qr1[0], qr2[0])
+        expected.cx(1, 0)
+
+        self.assertEqual(qc.reverse_bits(), expected)
+
     def test_cnot_alias(self):
         """Test that the cnot method alias adds a cx gate."""
         qc = QuantumCircuit(2)
@@ -939,6 +1161,36 @@ class TestCircuitOperations(QiskitTestCase):
         qc2.x(0)
 
         self.assertFalse(qc1 == qc2)
+
+    def test_compare_circuits_with_single_bit_conditions(self):
+        """Test that circuits with single-bit conditions can be compared correctly."""
+        qreg = QuantumRegister(1, name="q")
+        creg = ClassicalRegister(1, name="c")
+        qc1 = QuantumCircuit(qreg, creg, [Clbit()])
+        qc1.x(0).c_if(qc1.cregs[0], 1)
+        qc1.x(0).c_if(qc1.clbits[-1], True)
+        qc2 = QuantumCircuit(qreg, creg, [Clbit()])
+        qc2.x(0).c_if(qc2.cregs[0], 1)
+        qc2.x(0).c_if(qc2.clbits[-1], True)
+        self.assertEqual(qc1, qc2)
+
+        # Order of operations transposed.
+        qc1 = QuantumCircuit(qreg, creg, [Clbit()])
+        qc1.x(0).c_if(qc1.cregs[0], 1)
+        qc1.x(0).c_if(qc1.clbits[-1], True)
+        qc2 = QuantumCircuit(qreg, creg, [Clbit()])
+        qc2.x(0).c_if(qc2.clbits[-1], True)
+        qc2.x(0).c_if(qc2.cregs[0], 1)
+        self.assertNotEqual(qc1, qc2)
+
+        # Single-bit condition values not the same.
+        qc1 = QuantumCircuit(qreg, creg, [Clbit()])
+        qc1.x(0).c_if(qc1.cregs[0], 1)
+        qc1.x(0).c_if(qc1.clbits[-1], True)
+        qc2 = QuantumCircuit(qreg, creg, [Clbit()])
+        qc2.x(0).c_if(qc2.cregs[0], 1)
+        qc2.x(0).c_if(qc2.clbits[-1], False)
+        self.assertNotEqual(qc1, qc2)
 
     def test_compare_a_circuit_with_none(self):
         """Test to compare that a circuit is different to None."""
@@ -1040,6 +1292,13 @@ class TestCircuitPrivateOperations(QiskitTestCase):
         last_instructions = test.u(x, y, 0, 0)
         self.assertEqual({x, y}, set(test.parameters))
 
-        instruction, _, _ = test._pop_previous_instruction_in_scope()
+        instruction = test._pop_previous_instruction_in_scope()
         self.assertEqual(list(last_instructions), [instruction])
         self.assertEqual({y}, set(test.parameters))
+
+    def test_decompose_gate_type(self):
+        """Test decompose specifying gate type."""
+        circuit = QuantumCircuit(1)
+        circuit.append(SGate(label="s_gate"), [0])
+        decomposed = circuit.decompose(gates_to_decompose=SGate)
+        self.assertNotIn("s", decomposed.count_ops())
