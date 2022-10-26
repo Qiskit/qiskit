@@ -124,7 +124,6 @@ class UserConfig:
                             if path not in cpath_list:
                                 cpath_list.append(path)
                         self.settings["circuit_mpl_style_path"] = cpath_list
-                        self.settings["circuit_mpl_style_path"] = cpath_list
 
             # Parse transpile_optimization_level
             transpile_optimization_level = self.config_parser.getint(
