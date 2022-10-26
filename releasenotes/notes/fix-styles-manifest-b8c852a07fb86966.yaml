@@ -1,0 +1,7 @@
+---
+fixes:
+  - |
+    Fixed an issue where only the `default` style for the `mpl`
+    circuit drawer was working. Other built-in styles, such as
+    `iqx` did not work. This occurred in :func:`.circuit_drawer`
+    and in :func:`.QuantumCircuit.draw`.
