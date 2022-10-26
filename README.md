@@ -42,7 +42,7 @@ This simple example makes an entangled state, also called a [Bell state](https:/
 Once you've made your first quantum circuit, you can then simulate it.
 To do this, first we need to compile your circuit for the target backend we're going to run
 on. In this case we are leveraging the built-in `BasicAer` simulator. However, this
-simulator is primarily for testing and is quite basic and very limited (as the name
+simulator is primarily for testing and is limited in performance and functionality (as the name
 implies). You should consider more sophisticated simulators, such as [`qiskit-aer`](https://github.com/Qiskit/qiskit-aer/),
 for any real simulation work.
 
@@ -75,10 +75,10 @@ https://qiskit.org/documentation/tutorials.html
 
 ### Executing your code on a real quantum chip
 
-You can also use Qiskit to execute your code on a **real quantum processor** and not just a simulator.
-To do this it provides an abstraction layer that lets hardware vendors build packages that provde an
-interface to their hardware from Qiskit. Using these ``providers`` you can run any Qiskit code against
-a real quantum computer. Some examples of these provider packages for running on real hardware are:
+You can also use Qiskit to execute your code on a **real quantum processor**.
+Qiskit provides an abstraction layer that lets users run quantum circuits on hardware from any
+vendor that provides an interface to their systems through Qiskit. Using these ``providers`` you can run any Qiskit code against
+real quantum computers. Some examples of published provider packages for running on real hardware are:
 
 * https://github.com/Qiskit/qiskit-ibmq-provider
 * https://github.com/Qiskit-Partners/qiskit-ionq
@@ -89,7 +89,7 @@ a real quantum computer. Some examples of these provider packages for running on
 
 <!-- This is not an exhasutive list, and if you maintain a provider package please feel free to open a PR to add new providers -->
 
-You can refer to the documentation for these packages on further instructions
+You can refer to the documentation of these packages for further instructions
 on how to get access and use these systems.
 
 ## Contribution Guidelines
