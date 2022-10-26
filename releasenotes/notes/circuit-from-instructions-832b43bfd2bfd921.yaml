@@ -1,0 +1,6 @@
+---
+features:
+  - |
+    Added the methods `~.QuantumCircuit.from_instructions` and
+    `~.QuantumCircuit.from_instruction_tuples` for constructing quantum circuits
+    from iterables of circuit instructions.
