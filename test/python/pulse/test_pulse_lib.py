@@ -121,6 +121,24 @@ class TestParametricPulses(QiskitTestCase):
         Constant(duration=150, amp=0.1 + 0.4j)
         Drag(duration=25, amp=0.2 + 0.3j, sigma=7.8, beta=4)
 
+    # This test should be removed once deprecation of complex amp is completed.
+    def test_complex_amp_deprecation(self):
+        """Test that deprecation warnings and errors are raised for complex amp"""
+        with self.assertWarns(PendingDeprecationWarning):
+            Gaussian(duration=25, sigma=4, amp=0.5j)
+        with self.assertRaises(PulseError):
+            Gaussian(duration=25, sigma=4, amp=0.5j, angle=1)
+
+        gauss_pulse_complex_amp = Gaussian(duration=25, sigma=4, amp=0.5j)
+        with self.assertWarns(PendingDeprecationWarning):
+            complex_amp = gauss_pulse_complex_amp.amp
+        amp_magnitude , angle = gauss_pulse_complex_amp.amp_angle
+        np.testing.assert_almost_equal(complex_amp, amp_magnitude*np.exp(1j*angle))
+
+        gauss_pulse_amp_angle = Gaussian(duration=25, sigma=4, amp=0.5, angle=np.pi/2)
+        np.testing.assert_almost_equal(gauss_pulse_amp_angle.get_waveform().samples,
+                                       gauss_pulse_complex_amp.get_waveform().samples)
+
     def test_gaussian_pulse(self):
         """Test that Gaussian sample pulse matches the pulse library."""
         gauss = Gaussian(duration=25, sigma=4, amp=0.5j)

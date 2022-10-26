@@ -21,6 +21,7 @@ parameter constraints.
 import functools
 import warnings
 from typing import Any, Dict, List, Optional, Union, Callable
+from types import MethodType
 
 import numpy as np
 
@@ -470,6 +471,28 @@ class SymbolicPulse(Pulse):
         """Return symbolic expression for the pulse amplitude constraints."""
         return self._valid_amp_conditions
 
+    # This should be removed once the complex amp deprecation is completed.
+    @property
+    def amp(self) -> Union[ParameterExpression, complex]:
+        if "amp" in self._params:
+            if isinstance(self._params["amp"], complex):
+                warnings.warn(
+                    f"{self.__class__.__name__}.amp returns the complex amplitude which will be deprecated. "
+                    f"Use {self.__class__.__name__}.amp_angle to get the magnitude of the amplitude and the complex angle "
+                    "as a tuple",
+                    PendingDeprecationWarning
+                )
+            return self._params["amp"]
+        else:
+            raise AttributeError(f"'{self.__class__.__name__}' object has no attribute 'amp'")
+
+    @property
+    def amp_angle(self) -> tuple:
+        if "amp" in self._params:
+            return np.abs(self._params["amp"]), np.angle(self._params["amp"])
+        else:
+            raise AttributeError(f"'{self.__class__.__name__}' object has no attribute 'amp_angle'")
+
     def get_waveform(self) -> Waveform:
         r"""Return a Waveform with samples filled according to the formula that the pulse
         represents and the parameter values it contains.
@@ -614,7 +637,7 @@ class Gaussian(metaclass=_PulseType):
     .. math::
 
         f'(x) &= \exp\Bigl( -\frac12 \frac{{(x - \text{duration}/2)}^2}{\text{sigma}^2} \Bigr)\\
-        f(x) &= \text{amp} \times \frac{f'(x) - f'(-1)}{1-f'(-1)}, \quad 0 \le x < \text{duration}
+        f(x) &= \text{amp} \times \exp\left(i\text{angle}\right) \times \frac{f'(x) - f'(-1)}{1-f'(-1)}, \quad 0 \le x < \text{duration}
 
     where :math:`f'(x)` is the gaussian waveform without lifting or amplitude scaling.
     """
@@ -624,8 +647,9 @@ class Gaussian(metaclass=_PulseType):
     def __new__(
         cls,
         duration: Union[int, ParameterExpression],
-        amp: Union[complex, ParameterExpression],
+        amp: Union[complex, float, ParameterExpression],
         sigma: Union[float, ParameterExpression],
+        angle: Optional[Union[float, ParameterExpression]] = None,
         name: Optional[str] = None,
         limit_amplitude: Optional[bool] = None,
     ) -> SymbolicPulse:
@@ -633,9 +657,10 @@ class Gaussian(metaclass=_PulseType):
 
         Args:
             duration: Pulse length in terms of the sampling period `dt`.
-            amp: The amplitude of the Gaussian envelope.
+            amp: The magnitude of the amplitude of the Gaussian envelope. Complex amp support will be deprecated.
             sigma: A measure of how wide or narrow the Gaussian peak is; described mathematically
                    in the class docstring.
+            angle: The angle of the complex amplitude of the Gaussian envelope. Default value 0.
             name: Display name for this pulse envelope.
             limit_amplitude: If ``True``, then limit the amplitude of the
                 waveform to 1. The default is ``True`` and the amplitude is constrained to 1.
@@ -643,7 +668,24 @@ class Gaussian(metaclass=_PulseType):
         Returns:
             SymbolicPulse instance.
         """
-        parameters = {"amp": amp, "sigma": sigma}
+        # This should be removed once complex amp support is deprecated.
+        if isinstance(amp, complex):
+            if angle is None:
+                warnings.warn(
+                    "Complex amp will be deprecated. Use float amp (for the magnitude) and float angle instead.",
+                    PendingDeprecationWarning
+                )
+            else:
+                raise PulseError("amp can't be complex when providing angle")
+
+        if isinstance(amp, float):
+            if amp < 0:
+                raise PulseError("'amp' has to be positive (use 'angle' to set sign)")
+
+        if angle is None:
+            angle = 0
+
+        parameters = {"amp": amp*np.exp(1j*angle), "sigma": sigma}
 
         # Prepare symbolic expressions
         _t, _duration, _amp, _sigma = sym.symbols("t, duration, amp, sigma")
