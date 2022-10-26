@@ -14,11 +14,6 @@
 
 """Sphinx documentation builder."""
 
-# TODO: remove this line, once Aer adapts to https://github.com/Qiskit/qiskit-terra/pull/8600
-import warnings
-
-warnings.filterwarnings("ignore", category=FutureWarning)
-
 # -- General configuration ---------------------------------------------------
 
 project = "Qiskit"

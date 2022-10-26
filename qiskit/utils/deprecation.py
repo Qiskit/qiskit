@@ -23,7 +23,8 @@ def deprecate_arguments(
     """Decorator to automatically alias deprecated argument names and warn upon use."""
 
     def decorator(func):
-        if modify_docstring and since is None:
+        # TODO Remove this qobj guard once aer updates
+        if modify_docstring and since is None and "qobj" not in kwarg_map:
             # TODO: replace with: raise QiskitError(
             warnings.warn(
                 "Adding a 'deprecated' directive to the docstring needs a version. Add parameter `since`"
