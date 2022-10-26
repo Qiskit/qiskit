@@ -21,7 +21,6 @@ parameter constraints.
 import functools
 import warnings
 from typing import Any, Dict, List, Optional, Union, Callable
-from types import MethodType
 
 import numpy as np
 
