@@ -1,0 +1,10 @@
+---
+fixes:
+  - |
+    Fixed an issue in the :func:`~.circuit_drawer` function and
+    :func:`.QuantumCircuit.draw` method where the only built-in style
+    for the ``mpl`` output that was usable was ``default``. If another
+    built-in style, such as ``iqx``, were used then a warning about
+    the style not being found would be emitted and the drawer would
+    fall back to use the ``default`` style.
+    Fixed `#8991 <https://github.com/Qiskit/qiskit-terra/issues/8991>`__
