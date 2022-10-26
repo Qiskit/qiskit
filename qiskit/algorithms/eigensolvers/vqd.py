@@ -365,7 +365,6 @@ class VQD(VariationalAlgorithm, Eigensolver):
                     [self.ansatz] * (step - 1),
                     prev_states,
                     [parameters] * (step - 1),
-                    [] * (step - 1),
                 )
                 costs = fidelity_job.result().fidelities
 
