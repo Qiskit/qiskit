@@ -10,7 +10,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-# pylint: disable=no-name-in-module,import-error
+# pylint: disable=no-name-in-module
 
 """
 Base class for dummy backends.
@@ -121,7 +121,7 @@ class FakeBackendV2(BackendV2):
             from qiskit.providers import aer
 
             self.sim = aer.AerSimulator()
-            if self._props_dict:
+            if self.target and self._props_dict:
                 noise_model = self._get_noise_model_from_backend_v2()
                 self.sim.set_options(noise_model=noise_model)
                 # Update fake backend default too to avoid overwriting

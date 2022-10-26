@@ -24,9 +24,6 @@ import numpy as np
 from qiskit.circuit import QuantumCircuit
 from qiskit.compiler import transpile
 from qiskit.opflow import PauliSumOp
-from qiskit.primitives.base_estimator import BaseEstimator
-from qiskit.primitives.estimator_result import EstimatorResult
-from qiskit.primitives.primitive_job import PrimitiveJob
 from qiskit.providers import BackendV1, BackendV2, Options
 from qiskit.quantum_info import Pauli, PauliList
 from qiskit.quantum_info.operators.base_operator import BaseOperator
@@ -34,7 +31,9 @@ from qiskit.result import Counts, Result
 from qiskit.tools.monitor import job_monitor
 from qiskit.transpiler import PassManager
 
-from .utils import _circuit_key, init_observable
+from .base import BaseEstimator, EstimatorResult
+from .primitive_job import PrimitiveJob
+from .utils import _circuit_key, _observable_key, init_observable
 
 
 def _run_circuits(
@@ -66,7 +65,21 @@ def _run_circuits(
 
 
 class BackendEstimator(BaseEstimator):
-    """Evaluates expectation value using pauli rotation gates."""
+    """Evaluates expectation value using Pauli rotation gates.
+
+    The :class:`~.BackendEstimator` class is a generic implementation of the
+    :class:`~.BaseEstimator` interface that is used to wrap a :class:`~.BackendV2`
+    (or :class:`~.BackendV1`) object in the :class:`~.BaseEstimator` API. It
+    facilitates using backends that do not provide a native
+    :class:`~.BaseEstimator` implementation in places that work with
+    :class:`~.BaseEstimator`, such as algorithms in :mod:`qiskit.algorithms`
+    including :class:`~.qiskit.algorithms.minimum_eigensolvers.VQE`. However,
+    if you're using a provider that has a native implementation of
+    :class:`~.BaseEstimator`, it is a better choice to leverage that native
+    implementation as it will likely include additional optimizations and be
+    a more efficient implementation. The generic nature of this class
+    precludes doing any provider- or backend-specific optimizations.
+    """
 
     # pylint: disable=missing-raises-doc
     def __init__(
@@ -77,7 +90,7 @@ class BackendEstimator(BaseEstimator):
         bound_pass_manager: PassManager | None = None,
         skip_transpilation: bool = False,
     ):
-        """Initalize a new BackendEstimator isntance
+        """Initalize a new BackendEstimator instance
 
         Args:
             backend: Required: the backend to run the primitive on
@@ -228,9 +241,9 @@ class BackendEstimator(BaseEstimator):
 
     def _run(
         self,
-        circuits: Sequence[QuantumCircuit],
-        observables: Sequence[BaseOperator | PauliSumOp],
-        parameter_values: Sequence[Sequence[float]],
+        circuits: tuple[QuantumCircuit, ...],
+        observables: tuple[BaseOperator | PauliSumOp, ...],
+        parameter_values: tuple[tuple[float, ...], ...],
         **run_options,
     ) -> PrimitiveJob:
         circuit_indices = []
@@ -245,13 +258,14 @@ class BackendEstimator(BaseEstimator):
                 self._parameters.append(circuit.parameters)
         observable_indices = []
         for observable in observables:
-            index = self._observable_ids.get(id(observable))
+            observable = init_observable(observable)
+            index = self._observable_ids.get(_observable_key(observable))
             if index is not None:
                 observable_indices.append(index)
             else:
                 observable_indices.append(len(self._observables))
-                self._observable_ids[id(observable)] = len(self._observables)
-                self._observables.append(init_observable(observable))
+                self._observable_ids[_observable_key(observable)] = len(self._observables)
+                self._observables.append(observable)
         job = PrimitiveJob(
             self._call, circuit_indices, observable_indices, parameter_values, **run_options
         )

@@ -20,7 +20,6 @@ from ddt import ddt
 
 from qiskit.circuit import QuantumCircuit
 from qiskit.circuit.library import RealAmplitudes
-from qiskit.opflow import PauliSumOp
 from qiskit.primitives import BackendEstimator, EstimatorResult
 from qiskit.providers import JobV1
 from qiskit.providers.fake_provider import FakeNairobi, FakeNairobiV2
@@ -37,7 +36,7 @@ class TestBackendEstimator(QiskitTestCase):
     def setUp(self):
         super().setUp()
         self.ansatz = RealAmplitudes(num_qubits=2, reps=2)
-        self.observable = PauliSumOp.from_list(
+        self.observable = SparsePauliOp.from_list(
             [
                 ("II", -1.052373245772859),
                 ("IZ", 0.39793742484318045),
@@ -64,6 +63,7 @@ class TestBackendEstimator(QiskitTestCase):
     @combine(backend=BACKENDS)
     def test_estimator_run(self, backend):
         """Test Estimator.run()"""
+        backend.set_options(seed_simulator=123)
         psi1, psi2 = self.psi
         hamiltonian1, hamiltonian2, hamiltonian3 = self.hamiltonian
         theta1, theta2, theta3 = self.theta
@@ -102,6 +102,7 @@ class TestBackendEstimator(QiskitTestCase):
     @combine(backend=BACKENDS)
     def test_estimator_run_no_params(self, backend):
         """test for estimator without parameters"""
+        backend.set_options(seed_simulator=123)
         circuit = self.ansatz.bind_parameters([0, 1, 1, 2, 3, 5])
         est = BackendEstimator(backend=backend)
         result = est.run([circuit], [self.observable]).result()
@@ -111,6 +112,7 @@ class TestBackendEstimator(QiskitTestCase):
     @combine(backend=BACKENDS)
     def test_run_1qubit(self, backend):
         """Test for 1-qubit cases"""
+        backend.set_options(seed_simulator=123)
         qc = QuantumCircuit(1)
         qc2 = QuantumCircuit(1)
         qc2.x(0)
@@ -138,6 +140,7 @@ class TestBackendEstimator(QiskitTestCase):
     @combine(backend=BACKENDS)
     def test_run_2qubits(self, backend):
         """Test for 2-qubit cases (to check endian)"""
+        backend.set_options(seed_simulator=123)
         qc = QuantumCircuit(2)
         qc2 = QuantumCircuit(2)
         qc2.x(0)
@@ -174,6 +177,7 @@ class TestBackendEstimator(QiskitTestCase):
     @combine(backend=BACKENDS)
     def test_run_errors(self, backend):
         """Test for errors"""
+        backend.set_options(seed_simulator=123)
         qc = QuantumCircuit(1)
         qc2 = QuantumCircuit(2)
 
@@ -197,6 +201,7 @@ class TestBackendEstimator(QiskitTestCase):
     @combine(backend=BACKENDS)
     def test_run_numpy_params(self, backend):
         """Test for numpy array as parameter values"""
+        backend.set_options(seed_simulator=123)
         qc = RealAmplitudes(num_qubits=2, reps=2)
         op = SparsePauliOp.from_list([("IZ", 1), ("XI", 2), ("ZY", -1)])
         k = 5
