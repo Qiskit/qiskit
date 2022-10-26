@@ -112,7 +112,7 @@ class SparsePauliOp(LinearOp):
 
         pauli_list = PauliList(data.copy() if copy and hasattr(data, "copy") else data)
 
-        dtype = coeffs.dtype if isinstance(coeffs, np.ndarray) else complex
+        dtype = object if isinstance(coeffs, np.ndarray) and coeffs.dtype == object else complex
 
         if coeffs is None:
             coeffs = np.ones(pauli_list.size, dtype=dtype)
