@@ -22,9 +22,9 @@ from .utils import random_circuit
 
 
 class AssemblerBenchmarks:
-    params = ([1, 2, 5, 8],
-              [8, 128, 1024, 2048, 4096],
-              [1, 5, 10, 50, 100])
+    params = ([8],
+              [4096],
+              [1, 100])
     param_names = ['n_qubits', 'depth', 'number of circuits']
     timeout = 600
     version = 2
@@ -40,9 +40,9 @@ class AssemblerBenchmarks:
 
 
 class DisassemblerBenchmarks:
-    params = ([1, 2, 5, 8],
-              [8, 128, 1024, 2048, 4096],
-              [1, 5, 10, 50, 100])
+    params = ([8],
+              [4096],
+              [1, 100])
     param_names = ['n_qubits', 'depth', 'number of circuits']
     timeout = 600
 
