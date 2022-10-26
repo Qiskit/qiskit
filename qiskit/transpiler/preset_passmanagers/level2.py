@@ -87,6 +87,7 @@ def level_2_pass_manager(pass_manager_config: PassManagerConfig) -> StagedPassMa
     timing_constraints = pass_manager_config.timing_constraints or TimingConstraints()
     unitary_synthesis_plugin_config = pass_manager_config.unitary_synthesis_plugin_config
     target = pass_manager_config.target
+    hls_config = pass_manager_config.hls_config
 
     # Search for a perfect layout, or choose a dense layout, if no layout given
     _given_layout = SetLayout(initial_layout)
@@ -173,8 +174,8 @@ def level_2_pass_manager(pass_manager_config: PassManagerConfig) -> StagedPassMa
 
     # Build optimization loop: 1q rotation merge and commutative cancellation iteratively until
     # no more change in depth
-    _depth_check = [Depth(), FixedPoint("depth")]
-    _size_check = [Size(), FixedPoint("size")]
+    _depth_check = [Depth(recurse=True), FixedPoint("depth")]
+    _size_check = [Size(recurse=True), FixedPoint("size")]
 
     def _opt_control(property_set):
         return (not property_set["depth_fixed_point"]) or (not property_set["size_fixed_point"])
@@ -193,6 +194,7 @@ def level_2_pass_manager(pass_manager_config: PassManagerConfig) -> StagedPassMa
             approximation_degree,
             unitary_synthesis_method,
             unitary_synthesis_plugin_config,
+            hls_config,
         )
         if layout_method not in {"trivial", "dense", "noise_adaptive", "sabre"}:
             layout = plugin_manager.get_passmanager_stage(
@@ -222,6 +224,7 @@ def level_2_pass_manager(pass_manager_config: PassManagerConfig) -> StagedPassMa
             backend_properties,
             unitary_synthesis_method,
             unitary_synthesis_plugin_config,
+            hls_config,
         )
     pre_routing = None
     if toqm_pass:
@@ -259,12 +262,15 @@ def level_2_pass_manager(pass_manager_config: PassManagerConfig) -> StagedPassMa
         sched = plugin_manager.get_passmanager_stage(
             "scheduling", scheduling_method, pass_manager_config, optimization_level=2
         )
+    init = common.generate_error_on_control_flow(
+        "The optimizations in optimization_level=2 do not yet support control flow."
+    )
     if init_method is not None:
-        init = plugin_manager.get_passmanager_stage(
+        init += plugin_manager.get_passmanager_stage(
             "init", init_method, pass_manager_config, optimization_level=2
         )
-    else:
-        init = unroll_3q
+    elif unroll_3q is not None:
+        init += unroll_3q
 
     return StagedPassManager(
         init=init,

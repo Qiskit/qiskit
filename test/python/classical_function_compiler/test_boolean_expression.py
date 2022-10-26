@@ -18,9 +18,13 @@ from ddt import ddt, unpack, data
 
 from qiskit.test.base import QiskitTestCase
 from qiskit import execute, BasicAer
-from qiskit.circuit.classicalfunction.boolean_expression import BooleanExpression
+from qiskit.utils.optionals import HAS_TWEEDLEDUM
+
+if HAS_TWEEDLEDUM:
+    from qiskit.circuit.classicalfunction.boolean_expression import BooleanExpression
 
 
+@unittest.skipUnless(HAS_TWEEDLEDUM, "Tweedledum is required for these tests.")
 @ddt
 class TestBooleanExpression(QiskitTestCase):
     """Test boolean expression."""
@@ -68,6 +72,7 @@ class TestBooleanExpression(QiskitTestCase):
         self.assertEqual(bool(int(result)), expected)
 
 
+@unittest.skipUnless(HAS_TWEEDLEDUM, "Tweedledum is required for these tests.")
 class TestBooleanExpressionDIMACS(QiskitTestCase):
     """Loading from a cnf file"""
 
