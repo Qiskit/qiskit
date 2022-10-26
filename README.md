@@ -5,7 +5,7 @@
 
 This library is the core component of Qiskit, **Terra**, which contains the building blocks for creating
 and working with quantum circuits, programs, and algorithms. It also contains a compiler that supports
-for different quantum computers and a common interface for running programs on different quantum computer architectures.
+different quantum computers and a common interface for running programs on different quantum computer architectures.
 
 For more details on how to use Qiskit you can refer to the documentation located here:
 
