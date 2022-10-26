@@ -115,7 +115,16 @@ class UserConfig:
                             UserWarning,
                             2,
                         )
-                self.settings["circuit_mpl_style_path"] = cpath_list
+                        # Check/Insert default paths to circuit_mpl_style_path
+                        valid_default_paths = [
+                            "~",
+                            "~/.qiskit",
+                        ]
+                        for path in valid_default_paths:
+                            if path not in cpath_list:
+                                cpath_list.append(path)
+                        self.settings["circuit_mpl_style_path"] = cpath_list
+                        self.settings["circuit_mpl_style_path"] = cpath_list
 
             # Parse transpile_optimization_level
             transpile_optimization_level = self.config_parser.getint(
