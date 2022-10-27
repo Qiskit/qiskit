@@ -4,7 +4,11 @@ import unittest
 import numpy as np
 
 from qiskit.test import QiskitTestCase
-from qiskit.transpiler.synthesis.matrix_utils import build_random_parity_matrix, switch_random_rows
+from qiskit.transpiler.synthesis.matrix_utils import (
+    build_random_parity_matrix,
+    switch_random_rows,
+    add_random_rows,
+)
 
 
 class TestMatrixUtils(QiskitTestCase):
@@ -43,15 +47,36 @@ class TestMatrixUtils(QiskitTestCase):
     def test_switch_random_rows_returns_np_nd_array(self):
         """Test the output type of switch_random_rows"""
         n = np.random.randint(3, 21)
-        identity = np.identity(n)
-        instance = switch_random_rows(identity)
+        instance = switch_random_rows(np.identity(n))
 
         self.assertIsInstance(instance, np.ndarray)
 
-    def test_switch_random_rows_returns_np_nd_array(self):
+    def test_switch_random_rows_changes_array(self):
         """Test switch_random_rows for correctness"""
         n = np.random.randint(3, 21)
         instance = switch_random_rows(np.identity(n))
         identity = np.identity(n)
 
         self.assertEqual(np.array_equal(instance, identity), False)
+
+    def test_add_random_rows_returns_np_nd_array(self):
+        """Test the output type of add_random_rows"""
+        n = np.random.randint(3, 21)
+        instance = add_random_rows(np.identity(n))
+
+        self.assertIsInstance(instance, np.ndarray)
+
+    def test_add_random_rows_changes_array(self):
+        """Test add_random_rows for correctness"""
+        n = np.random.randint(3, 21)
+        instance = add_random_rows(np.identity(n))
+        identity = np.identity(n)
+
+        self.assertEqual(np.array_equal(instance, identity), False)
+
+    def test_add_random_rows_will_perform_only_binary_additions(self):
+        """Test add_random_rows for correctness"""
+        instance = add_random_rows(np.identity(2))
+        instance = add_random_rows(instance)
+
+        self.assertEqual(np.all(instance <= 1), True)
