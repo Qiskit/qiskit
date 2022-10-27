@@ -24,7 +24,7 @@ from qiskit.circuit.exceptions import CircuitError
 from qiskit.circuit.controlflow import IfElseOp
 from qiskit.circuit.library import CXGate, HGate
 from qiskit.circuit.library.standard_gates import SGate
-from qiskit.circuit.quantumcircuit import BitLocations
+from qiskit.circuit.quantumcircuit import BitLocations, _circuit_from_qasm
 from qiskit.circuit.quantumcircuitdata import CircuitInstruction
 from qiskit.circuit.quantumregister import AncillaQubit, AncillaRegister, Qubit
 from qiskit.pulse import DriveChannel, Gaussian, Play, Schedule
@@ -1285,42 +1285,22 @@ class TestCircuitOperations(QiskitTestCase):
             yield CircuitInstruction(Measure(), [b], [y])
             yield CircuitInstruction(IfElseOp((z, 1), circuit_1, circuit_2), [c, d], [z])
 
-        circuit = QuantumCircuit.from_instructions(instructions())
-
-        expected = QuantumCircuit([a, b, c, d], [x, y, z])
-        for instruction in instructions():
-            expected.append(*instruction)
-
-        self.assertEqual(circuit, expected)
-
-    def test_from_instruction_tuples(self):
-        """Test from_instruction_tuples method."""
-
-        qreg = QuantumRegister(4)
-        creg = ClassicalRegister(3)
-
-        a, b, c, d = qreg
-        x, y, z = creg
-
-        circuit_1 = QuantumCircuit(2)
-        circuit_1.x(0)
-        circuit_2 = QuantumCircuit(2)
-        circuit_2.y(0)
-
-        def instructions():
+        def instruction_tuples():
             yield HGate(), [a], []
             yield CXGate(), [a, b], []
             yield Measure(), [a], [x]
             yield Measure(), [b], [y]
             yield IfElseOp((z, 1), circuit_1, circuit_2), [c, d], [z]
 
-        circuit = QuantumCircuit.from_instruction_tuples(instructions())
+        circuit = QuantumCircuit.from_instructions(instructions())
+        circuit_tuples = QuantumCircuit.from_instructions(instruction_tuples())
 
         expected = QuantumCircuit([a, b, c, d], [x, y, z])
         for instruction in instructions():
             expected.append(*instruction)
 
         self.assertEqual(circuit, expected)
+        self.assertEqual(circuit_tuples, expected)
 
 
 class TestCircuitPrivateOperations(QiskitTestCase):

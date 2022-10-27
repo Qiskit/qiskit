@@ -288,7 +288,7 @@ class QuantumCircuit:
 
     @staticmethod
     def from_instructions(
-        instructions: Iterable[CircuitInstruction],
+        instructions: Iterable[tuple[Instruction, Iterable[Qubit], Iterable[Clbit]]],
         *,
         name: Optional[str] = None,
         global_phase: ParameterValueType = 0,
@@ -316,34 +316,12 @@ class QuantumCircuit:
             circuit.add_bits(clbits)
             added_qubits.update(qubits)
             added_clbits.update(clbits)
-            circuit._append(instruction)
+            circuit._append(
+                instruction
+                if isinstance(instruction, CircuitInstruction)
+                else CircuitInstruction(*instruction)
+            )
         return circuit
-
-    @staticmethod
-    def from_instruction_tuples(
-        instructions: Iterable[tuple[Instruction, Iterable[Qubit], Iterable[Clbit]]],
-        *,
-        name: Optional[str] = None,
-        global_phase: ParameterValueType = 0,
-        metadata: Optional[dict] = None,
-    ) -> "QuantumCircuit":
-        """Construct a circuit from an iterable of (instruction, qubits, clbits) tuples.
-
-        Args:
-            instructions: The instructions to add to the circuit.
-            name: The name of the circuit.
-            global_phase: The global phase of the circuit in radians.
-            metadata: Arbitrary key value metadata to associate with the circuit.
-
-        Returns:
-            The quantum circuit.
-        """
-        return QuantumCircuit.from_instructions(
-            (CircuitInstruction(*instruction) for instruction in instructions),
-            name=name,
-            global_phase=global_phase,
-            metadata=metadata,
-        )
 
     @property
     def data(self) -> QuantumCircuitData:
