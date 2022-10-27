@@ -16,36 +16,12 @@ import numpy as np
 
 from qiskit.circuit import ClassicalRegister, QuantumCircuit, CircuitInstruction
 from qiskit.circuit import Reset
-from qiskit.circuit.library.standard_gates import (
-    IGate,
-    XGate,
-    YGate,
-    ZGate,
-    HGate,
-    SGate,
-    SdgGate,
-    TGate,
-    TdgGate,
-    RXGate,
-    RYGate,
-    RZGate,
-    UGate,
-    CXGate,
-    CYGate,
-    CZGate,
-    CHGate,
-    CUGate,
-    CRZGate,
-    SwapGate,
-    RZZGate,
-    CCXGate,
-    CSwapGate,
-)
+from qiskit.circuit.library import standard_gates
 from qiskit.circuit.exceptions import CircuitError
 
 
 def random_circuit(
-    num_qubits, depth, max_operands=3, measure=False, conditional=False, reset=False, seed=None
+    num_qubits, depth, max_operands=4, measure=False, conditional=False, reset=False, seed=None
 ):
     """Generate random circuit of arbitrary size and form.
 
@@ -76,45 +52,79 @@ def random_circuit(
     """
     if num_qubits == 0:
         return QuantumCircuit()
-    if max_operands < 1 or max_operands > 3:
-        raise CircuitError("max_operands must be between 1 and 3")
+    if max_operands < 1 or max_operands > 4:
+        raise CircuitError("max_operands must be between 1 and 4")
     max_operands = max_operands if num_qubits > max_operands else num_qubits
 
     gates_1q = [
         # (Gate class, number of qubits, number of parameters)
-        (IGate, 1, 0),
-        (XGate, 1, 0),
-        (YGate, 1, 0),
-        (ZGate, 1, 0),
-        (HGate, 1, 0),
-        (SGate, 1, 0),
-        (SdgGate, 1, 0),
-        (TGate, 1, 0),
-        (TdgGate, 1, 0),
-        (RXGate, 1, 1),
-        (RYGate, 1, 1),
-        (RZGate, 1, 1),
-        (UGate, 1, 3),
+        (standard_gates.IGate, 1, 0),
+        (standard_gates.SXGate, 1, 0),
+        (standard_gates.XGate, 1, 0),
+        (standard_gates.RZGate, 1, 1),
+        (standard_gates.RGate, 1, 2),
+        (standard_gates.HGate, 1, 0),
+        (standard_gates.PhaseGate, 1, 1),
+        (standard_gates.RXGate, 1, 1),
+        (standard_gates.RYGate, 1, 1),
+        (standard_gates.SGate, 1, 0),
+        (standard_gates.SdgGate, 1, 0),
+        (standard_gates.SXdgGate, 1, 0),
+        (standard_gates.TGate, 1, 0),
+        (standard_gates.TdgGate, 1, 0),
+        (standard_gates.UGate, 1, 3),
+        (standard_gates.U1Gate, 1, 1),
+        (standard_gates.U2Gate, 1, 2),
+        (standard_gates.U3Gate, 1, 3),
+        (standard_gates.YGate, 1, 0),
+        (standard_gates.ZGate, 1, 0),
     ]
     if reset:
         gates_1q.append((Reset, 1, 0))
     gates_2q = [
-        (CXGate, 2, 0),
-        (CYGate, 2, 0),
-        (CZGate, 2, 0),
-        (CHGate, 2, 0),
-        (CRZGate, 2, 1),
-        (SwapGate, 2, 0),
-        (RZZGate, 2, 1),
-        (CUGate, 2, 4),
+        (standard_gates.CXGate, 2, 0),
+        (standard_gates.DCXGate, 2, 0),
+        (standard_gates.CHGate, 2, 0),
+        (standard_gates.CPhaseGate, 2, 1),
+        (standard_gates.CRXGate, 2, 1),
+        (standard_gates.CRYGate, 2, 1),
+        (standard_gates.CRZGate, 2, 1),
+        (standard_gates.CSXGate, 2, 0),
+        (standard_gates.CUGate, 2, 4),
+        (standard_gates.CU1Gate, 2, 1),
+        (standard_gates.CU3Gate, 2, 3),
+        (standard_gates.CYGate, 2, 0),
+        (standard_gates.CZGate, 2, 0),
+        (standard_gates.RXXGate, 2, 1),
+        (standard_gates.RYYGate, 2, 1),
+        (standard_gates.RZZGate, 2, 1),
+        (standard_gates.RZXGate, 2, 1),
+        (standard_gates.XXMinusYYGate, 2, 2),
+        (standard_gates.XXPlusYYGate, 2, 2),
+        (standard_gates.ECRGate, 2, 0),
+        (standard_gates.CSGate, 2, 0),
+        (standard_gates.CSdgGate, 2, 0),
+        (standard_gates.SwapGate, 2, 0),
+        (standard_gates.iSwapGate, 2, 0),
     ]
-    gates_3q = [(CCXGate, 3, 0), (CSwapGate, 3, 0)]
+    gates_3q = [
+        (standard_gates.CCXGate, 3, 0),
+        (standard_gates.CSwapGate, 3, 0),
+        (standard_gates.CCZGate, 3, 0),
+        (standard_gates.RCCXGate, 3, 0),
+    ]
+    gates_4q = [
+        (standard_gates.C3SXGate, 4, 0),
+        (standard_gates.RC3XGate, 4, 0),
+    ]
 
     gates = gates_1q.copy()
     if max_operands >= 2:
         gates.extend(gates_2q)
     if max_operands >= 3:
         gates.extend(gates_3q)
+    if max_operands >= 4:
+        gates.extend(gates_4q)
     gates = np.array(
         gates, dtype=[("class", object), ("num_qubits", np.int64), ("num_params", np.int64)]
     )
