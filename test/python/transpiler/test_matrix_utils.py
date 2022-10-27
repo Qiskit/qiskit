@@ -14,69 +14,60 @@ from qiskit.transpiler.synthesis.matrix_utils import (
 class TestMatrixUtils(QiskitTestCase):
     """Test matrix utils"""
 
+    def setUp(self):
+        super().setUp()
+        self.n = np.random.randint(3, 21)
+        self.m = self.n * 10
+        self.matrix = build_random_parity_matrix(self.n, self.m)
+        self.id_matrix = np.identity(self.n)
+
     def test_build_random_parity_matrix_returns_np_ndarray(self):
         """Test the output type of build_random_parity_matrix"""
-        n = np.random.randint(3, 21)
-        instance = build_random_parity_matrix(n)
 
-        self.assertIsInstance(instance, np.ndarray)
+        self.assertIsInstance(self.matrix, np.ndarray)
 
     def test_build_random_parity_matrix_returns_np_ndarray_of_given_dimensions(self):
         """Test the output type of build_random_parity_matrix"""
-        n = np.random.randint(3, 21)
-        instance = build_random_parity_matrix(n)
 
-        self.assertEqual(instance.shape, (n, n))
+        self.assertEqual(self.matrix.shape, (self.n, self.n))
 
     def test_build_random_parity_matrix_returns_an_invertible_matrix(self):
         """Test build_random_parity_matrix for correctness"""
-        n = np.random.randint(3, 21)
-        m = n * 10
-        matrix = build_random_parity_matrix(n, m)
-        instance = np.linalg.inv(matrix)
 
-        self.assertIsInstance(matrix, np.ndarray)
+        inv_matrix = np.linalg.inv(self.matrix)
+
+        self.assertIsInstance(inv_matrix, np.ndarray)
 
     def test_build_random_parity_matrix_does_not_return_an_identity_matrix_when_row_operations_are_executed(
         self,
     ):
         """Test build_random_parity_matrix for correctness"""
-        n = np.random.randint(3, 21)
-        m = n * 10
-        instance = build_random_parity_matrix(n, m)
-        identity = np.identity(n)
 
-        self.assertEqual(np.array_equal(instance, identity), False)
+        self.assertEqual(np.array_equal(self.matrix, self.id_matrix), False)
 
     def test_switch_random_rows_returns_np_nd_array(self):
         """Test the output type of switch_random_rows"""
-        n = np.random.randint(3, 21)
-        instance = switch_random_rows(np.identity(n))
+        instance = switch_random_rows(self.id_matrix)
 
         self.assertIsInstance(instance, np.ndarray)
 
     def test_switch_random_rows_changes_array(self):
         """Test switch_random_rows for correctness"""
-        n = np.random.randint(3, 21)
-        instance = switch_random_rows(np.identity(n))
-        identity = np.identity(n)
+        instance = switch_random_rows(self.id_matrix.copy())
 
-        self.assertEqual(np.array_equal(instance, identity), False)
+        self.assertEqual(np.array_equal(instance, self.id_matrix), False)
 
     def test_add_random_rows_returns_np_nd_array(self):
         """Test the output type of add_random_rows"""
-        n = np.random.randint(3, 21)
-        instance = add_random_rows(np.identity(n))
+        instance = add_random_rows(self.id_matrix)
 
         self.assertIsInstance(instance, np.ndarray)
 
     def test_add_random_rows_changes_array(self):
         """Test add_random_rows for correctness"""
-        n = np.random.randint(3, 21)
-        instance = add_random_rows(np.identity(n))
-        identity = np.identity(n)
+        instance = add_random_rows(self.id_matrix.copy())
 
-        self.assertEqual(np.array_equal(instance, identity), False)
+        self.assertEqual(np.array_equal(instance, self.id_matrix), False)
 
     def test_add_random_rows_will_perform_only_binary_additions(self):
         """Test add_random_rows for correctness"""
