@@ -310,14 +310,12 @@ class QuantumCircuit:
         added_clbits = set()
         for instruction in instructions:
             _, qubits, clbits = instruction
-            for qubit in qubits:
-                if qubit not in added_qubits:
-                    circuit.add_bits([qubit])
-                    added_qubits.add(qubit)
-            for clbit in clbits:
-                if clbit not in added_clbits:
-                    circuit.add_bits([clbit])
-                    added_clbits.add(clbit)
+            qubits = [qubit for qubit in qubits if qubit not in added_qubits]
+            clbits = [clbit for clbit in clbits if clbit not in added_clbits]
+            circuit.add_bits(qubits)
+            circuit.add_bits(clbits)
+            added_qubits.update(qubits)
+            added_clbits.update(clbits)
             circuit._append(instruction)
         return circuit
 
