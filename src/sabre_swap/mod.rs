@@ -71,7 +71,7 @@ fn obtain_swaps<'a>(
     front_layer: &'a FrontLayer,
     neighbors: &'a NeighborTable,
     layout: &'a NLayout,
-) -> impl Iterator<Item = [usize; 2]> + '_ {
+) -> impl Iterator<Item = [usize; 2]> + 'a {
     front_layer.iter_active().flat_map(move |&v| {
         neighbors.neighbors[layout.logic_to_phys[v]]
             .iter()
@@ -102,10 +102,7 @@ fn populate_extended_set(
     front_layer: &FrontLayer,
     required_predecessors: &mut [u32],
 ) {
-    let mut to_visit = front_layer
-        .iter_nodes()
-        .map(|&node| node)
-        .collect::<Vec<_>>();
+    let mut to_visit = front_layer.iter_nodes().copied().collect::<Vec<_>>();
     let mut decremented: HashMap<usize, u32> = HashMap::new();
     let mut i = 0;
     while i < to_visit.len() && extended_set.len() < EXTENDED_SET_SIZE {
@@ -266,7 +263,7 @@ fn swap_map_trial(
         let mut current_swaps: Vec<[usize; 2]> = Vec::new();
         // Swap-mapping loop.  This is the main part of the algorithm, which we repeat until we
         // either successfully route a node, or exceed the maximum number of attempts.
-        while routable_nodes.len() == 0 && current_swaps.len() <= max_iterations_without_progress {
+        while routable_nodes.is_empty() && current_swaps.len() <= max_iterations_without_progress {
             let best_swap = choose_best_swap(
                 &front_layer,
                 &extended_set,
@@ -296,9 +293,9 @@ fn swap_map_trial(
         // this path is only an escape mechansim for the algorithm getting stuck, so it should
         // ideally never be taken, and it doesn't matter if it's not the speediest---it's better to
         // keep the other path faster.
-        if routable_nodes.len() == 0 {
+        if routable_nodes.is_empty() {
             undo_swaps(&mut current_swaps, &mut layout);
-            let (node, qubits) = closest_operation(&front_layer, &layout, &dist);
+            let (node, qubits) = closest_operation(&front_layer, &layout, dist);
             swaps_to_route(&mut current_swaps, &qubits, &layout, coupling_graph);
             for &[a, b] in current_swaps.iter() {
                 layout.swap_logical(a, b);
@@ -341,7 +338,7 @@ fn update_route(
     out_map: &mut HashMap<usize, Vec<[usize; 2]>>,
     front_layer: &mut FrontLayer,
     extended_set: &mut ExtendedSet,
-    required_predecessors: &mut Vec<u32>,
+    required_predecessors: &mut [u32],
 ) {
     // First node gets the swaps attached.  We don't add to the `gate_order` here because
     // `route_reachable_nodes` is responsible for that part.
@@ -378,7 +375,7 @@ fn route_reachable_nodes(
     coupling: &DiGraph<(), ()>,
     gate_order: &mut Vec<usize>,
     front_layer: &mut FrontLayer,
-    required_predecessors: &mut Vec<u32>,
+    required_predecessors: &mut [u32],
 ) {
     let mut to_visit = to_visit.to_vec();
     let mut i = 0;

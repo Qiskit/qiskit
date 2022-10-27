@@ -188,7 +188,7 @@ impl FrontLayer {
     }
 
     /// Iterator over the nodes and the pair of qubits they act on.
-    pub fn iter<'a>(&'a self) -> impl Iterator<Item = (&'a NodeIndex, &'a [usize; 2])> {
+    pub fn iter(&self) -> impl Iterator<Item = (&NodeIndex, &[usize; 2])> {
         (&self.iteration_order)[self.iteration_start..self.iteration_end]
             .iter()
             .filter_map(move |node_opt| node_opt.as_ref().map(|node| (node, &self.nodes[node])))
@@ -230,7 +230,7 @@ impl ExtendedSet {
     /// Add a node and its active qubits to the extended set.
     pub fn insert(&mut self, index: NodeIndex, qubits: &[usize; 2]) -> bool {
         let [a, b] = *qubits;
-        if let None = self.nodes.insert(index, *qubits) {
+        if self.nodes.insert(index, *qubits).is_none() {
             self.qubits[a].push(b);
             self.qubits[b].push(a);
             true
