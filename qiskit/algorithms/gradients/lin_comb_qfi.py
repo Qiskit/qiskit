@@ -84,14 +84,8 @@ class LinCombQFI(BaseQFI):
         **options,
     ) -> QFIResult:
         """Compute the QFIs on the given circuits."""
-        jobs, result_indices_all, coeffs_all, metadata_, gradient_jobs, phase_fixes = (
-            [],
-            [],
-            [],
-            [],
-            [],
-            [],
-        )
+        jobs, result_indices_all, coeffs_all = [], [], []
+        metadata_, gradient_jobs, phase_fixes = [], [], []
 
         for circuit, parameter_values_, parameters_ in zip(circuits, parameter_values, parameters):
             # a set of parameters to be differentiated

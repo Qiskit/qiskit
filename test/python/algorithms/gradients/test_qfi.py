@@ -18,14 +18,13 @@ import unittest
 import numpy as np
 
 from qiskit import QuantumCircuit
-from qiskit.algorithms.gradients.lin_comb_estimator_gradient import DerivativeType
+from qiskit.algorithms.gradients.lin_comb_estimator_gradient import \
+    DerivativeType
 from qiskit.algorithms.gradients.lin_comb_qfi import LinCombQFI
 from qiskit.circuit import Parameter
 from qiskit.circuit.library import RealAmplitudes
 from qiskit.circuit.parametervector import ParameterVector
 from qiskit.primitives import Estimator
-
-# from qiskit.quantum_info import Operator, SparsePauliOp
 from qiskit.test import QiskitTestCase
 
 
