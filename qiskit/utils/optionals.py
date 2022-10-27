@@ -99,9 +99,9 @@ External Python Libraries
         format.  There are converter methods on :class:`.DAGCircuit` if NetworkX is present.
 
     * - .. py:data:: HAS_NLOPT
-      - `NLOpt <https://nlopt.readthedocs.io/en/latest/>`__ is a nonlinear optimisation library,
-        used by the global optimizers in :mod:`.algorithms.optimizers`.  See installation details in
-        :ref:`installing-nlopt`.
+      - `NLopt <https://nlopt.readthedocs.io/en/latest/>`__ is a nonlinear optimization library,
+        used by the global optimizers in the :mod:`.algorithms.optimizers` module. It must
+        be installed in order to use them.
 
     * - .. py:data:: HAS_PIL
       - PIL is a Python image-manipulation library.  Qiskit actually uses the `pillow
@@ -253,26 +253,7 @@ HAS_MATPLOTLIB = _LazyImportTester(
 )
 HAS_NETWORKX = _LazyImportTester("networkx", install="pip install networkx")
 
-
-def _nlopt_callback(available):
-    if not available:
-        return
-    import nlopt
-
-    _logger.info(
-        "NLopt version: %s.%s.%s",
-        nlopt.version_major(),
-        nlopt.version_minor(),
-        nlopt.version_bugfix(),
-    )
-
-
-HAS_NLOPT = _LazyImportTester(
-    "nlopt",
-    name="NLopt Optimizer",
-    callback=_nlopt_callback,
-    msg="See the documentation of 'qiskit.algorithms.optimizer.nlopts' for installation help",
-)
+HAS_NLOPT = _LazyImportTester("nlopt", name="NLopt Optimizer", install="pip install nlopt")
 HAS_PIL = _LazyImportTester("PIL.Image", name="pillow", install="pip install pillow")
 HAS_PYDOT = _LazyImportTester("pydot", install="pip install pydot")
 HAS_PYLATEX = _LazyImportTester(
