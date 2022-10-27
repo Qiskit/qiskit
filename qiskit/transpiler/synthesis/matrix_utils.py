@@ -14,6 +14,29 @@
 
 import numpy as np
 
+
+def switch_random_rows(array: np.ndarray) -> np.ndarray:
+    """Switches two random rows of a given array
+
+    Args:
+        array (np.ndarray): target array
+
+    Returns:
+        np.ndarray: given array with two of its rows switched
+    """
+    n = array.shape[1]
+    print(n)
+    print(array)
+    rows = np.random.randint(0, n, 2)
+    print(rows)
+    print(rows[0])
+    print(rows[1])
+    array[[rows[0], rows[1]]] = array[[rows[1], rows[0]]]
+    print(array)
+
+    return array
+
+
 def build_random_parity_matrix(n: int) -> np.ndarray:
     """Builds an n*n-sized random parity matrix
 
