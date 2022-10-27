@@ -38,7 +38,7 @@ def random_circuit(
     Args:
         num_qubits (int): number of quantum wires
         depth (int): layers of operations (i.e. critical path length)
-        max_operands (int): maximum operands of each gate (between 1 and 3)
+        max_operands (int): maximum qubit operands of each gate (between 1 and 4)
         measure (bool): if True, measure all qubits at the end
         conditional (bool): if True, insert middle measurements and conditionals
         reset (bool): if True, insert middle resets
