@@ -24,7 +24,7 @@ from qiskit.circuit.exceptions import CircuitError
 from qiskit.circuit.controlflow import IfElseOp
 from qiskit.circuit.library import CXGate, HGate
 from qiskit.circuit.library.standard_gates import SGate
-from qiskit.circuit.quantumcircuit import BitLocations, _circuit_from_qasm
+from qiskit.circuit.quantumcircuit import BitLocations
 from qiskit.circuit.quantumcircuitdata import CircuitInstruction
 from qiskit.circuit.quantumregister import AncillaQubit, AncillaRegister, Qubit
 from qiskit.pulse import DriveChannel, Gaussian, Play, Schedule
