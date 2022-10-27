@@ -151,11 +151,18 @@ def random_circuit(
         # calls to the rng. After, trim it down by finding the point when we've used all the qubits.
         gate_specs = rng.choice(gates, size=len(qubits))
         cumulative_qubits = np.cumsum(gate_specs["num_qubits"], dtype=np.int64)
+        # Efficiently find the point in the list where the total gates would use as many as
+        # possible of, but not more than, the number of qubits in the layer.  If there's slack, fill
+        # it with 1q gates.
         max_index = np.searchsorted(cumulative_qubits, num_qubits, side="right")
         gate_specs = gate_specs[:max_index]
         slack = num_qubits - cumulative_qubits[max_index - 1]
         if slack:
             gate_specs = np.hstack((gate_specs, rng.choice(gates_1q, size=slack)))
+
+        # For efficiency in the Python loop, this uses Numpy vectorisation to pre-calculate the
+        # indices into the lists of qubits and parameters for every gate, and then suitably
+        # randomises those lists.
         q_indices = np.empty(len(gate_specs) + 1, dtype=np.int64)
         p_indices = np.empty(len(gate_specs) + 1, dtype=np.int64)
         q_indices[0] = p_indices[0] = 0
@@ -164,7 +171,9 @@ def random_circuit(
         parameters = rng.uniform(0, 2 * np.pi, size=p_indices[-1])
         rng.shuffle(qubits)
 
-        # We've now generated everything we're going to need.  Now just to add everything.
+        # We've now generated everything we're going to need.  Now just to add everything.  The
+        # conditional check is outside the two loops to make the more common case of no conditionals
+        # faster, since in Python we don't have a compiler to do this for us.
         if conditional:
             is_conditional = rng.random(size=len(gate_specs)) < 0.1
             condition_values = rng.integers(
