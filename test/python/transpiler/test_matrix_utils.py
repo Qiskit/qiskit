@@ -31,15 +31,19 @@ class TestMatrixUtils(QiskitTestCase):
     def test_build_random_parity_matrix_returns_an_invertible_matrix(self):
         """Test build_random_parity_matrix for correctness"""
         n = np.random.randint(3, 21)
-        matrix = build_random_parity_matrix(n)
+        m = n * 10
+        matrix = build_random_parity_matrix(n, m)
         instance = np.linalg.inv(matrix)
 
         self.assertIsInstance(matrix, np.ndarray)
 
-    def test_build_random_parity_matrix_does_not_return_an_identity_matrix(self):
+    def test_build_random_parity_matrix_does_not_return_an_identity_matrix_when_row_operations_are_executed(
+        self,
+    ):
         """Test build_random_parity_matrix for correctness"""
         n = np.random.randint(3, 21)
-        instance = build_random_parity_matrix(n)
+        m = n * 10
+        instance = build_random_parity_matrix(n, m)
         identity = np.identity(n)
 
         self.assertEqual(np.array_equal(instance, identity), False)
