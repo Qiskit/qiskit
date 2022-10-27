@@ -282,15 +282,10 @@ class TestGateEquivalenceEqual(QiskitTestCase):
         "Commuting2qBlock",
         "PauliEvolutionGate",
     }
-    # Amazingly, Python's scoping rules for class bodies means that this list creation _cannot_ be
-    # done using comprehensions or `filter` with a lambda:
+    # Amazingly, Python's scoping rules for class bodies means that this is the closest we can get
+    # to a "natural" comprehension or functional iterable definition:
     #   https://docs.python.org/3/reference/executionmodel.html#resolution-of-names
-    gate_classes = []
-    for aclass in class_list:
-        if aclass.__name__ not in exclude:
-            gate_classes.append(aclass)
-
-    @idata(gate_classes)
+    @idata(filter(lambda x, exclude=exclude: x.__name__ not in exclude, class_list))
     def test_equivalence_phase(self, gate_class):
         """Test that the equivalent circuits from the equivalency_library
         have equal matrix representations"""
