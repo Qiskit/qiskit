@@ -13,6 +13,7 @@
 """VF2PostLayout pass to find a layout after transpile using subgraph isomorphism"""
 from enum import Enum
 import logging
+import inspect
 import time
 
 from retworkx import PyDiGraph, vf2_mapping, PyGraph
@@ -131,6 +132,7 @@ class VF2PostLayout(AnalysisPass):
             self.avg_error_map = vf2_utils.build_average_error_map(
                 self.target, self.properties, self.coupling_map
             )
+
         result = vf2_utils.build_interaction_graph(dag, self.strict_direction)
         if result is None:
             self.property_set["VF2PostLayout_stop_reason"] = VF2PostLayoutStopReason.MORE_THAN_2Q
@@ -138,21 +140,53 @@ class VF2PostLayout(AnalysisPass):
         im_graph, im_graph_node_map, reverse_im_graph_node_map = result
 
         if self.target is not None:
+            # If qargs is None then target is global and ideal so no
+            # scoring is needed
+            if self.target.qargs is None:
+                return
             if self.strict_direction:
                 cm_graph = PyDiGraph(multigraph=False)
             else:
                 cm_graph = PyGraph(multigraph=False)
-            cm_graph.add_nodes_from(
-                [self.target.operation_names_for_qargs((i,)) for i in range(self.target.num_qubits)]
-            )
+            # If None is present in qargs there are globally defined ideal operations
+            # we should add these to all entries based on the number of qubits so we
+            # treat that as a valid operation even if there is no scoring for the
+            # strict direction case
+            global_ops = None
+            if None in self.target.qargs:
+                global_ops = {1: [], 2: []}
+                for op in self.target.operation_names_for_qargs(None):
+                    operation = self.target.operation_for_name(op)
+                    # If operation is a class this is a variable width ideal instruction
+                    # so we treat it as available on both 1 and 2 qubits
+                    if inspect.isclass(operation):
+                        global_ops[1].append(op)
+                        global_ops[2].append(op)
+                    else:
+                        num_qubits = operation.num_qubits
+                        if num_qubits in global_ops:
+                            global_ops[num_qubits].append(op)
+            op_names = []
+            for i in range(self.target.num_qubits):
+                entry = set()
+                try:
+                    entry = set(self.target.operation_names_for_qargs((i,)))
+                except KeyError:
+                    pass
+                if global_ops is not None:
+                    entry.update(global_ops[1])
+                op_names.append(entry)
+
+                cm_graph.add_nodes_from(op_names)
             for qargs in self.target.qargs:
                 len_args = len(qargs)
                 # If qargs == 1 we already populated it and if qargs > 2 there are no instructions
                 # using those in the circuit because we'd have already returned by this point
                 if len_args == 2:
-                    cm_graph.add_edge(
-                        qargs[0], qargs[1], self.target.operation_names_for_qargs(qargs)
-                    )
+                    ops = set(self.target.operation_names_for_qargs(qargs))
+                    if global_ops is not None:
+                        ops.update(global_ops[2])
+                    cm_graph.add_edge(qargs[0], qargs[1], ops)
             cm_nodes = list(cm_graph.node_indexes())
         else:
             cm_graph, cm_nodes = vf2_utils.shuffle_coupling_graph(
