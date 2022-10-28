@@ -21,7 +21,7 @@ from ddt import ddt, data, unpack
 
 from qiskit import QuantumRegister, QuantumCircuit, execute, BasicAer, QiskitError
 from qiskit.test import QiskitTestCase
-from qiskit.circuit import ControlledGate, Parameter
+from qiskit.circuit import ControlledGate, Parameter, Gate
 from qiskit.circuit.exceptions import CircuitError
 from qiskit.quantum_info.operators.predicates import matrix_equal, is_unitary_matrix
 from qiskit.quantum_info.random import random_unitary
@@ -1134,6 +1134,29 @@ class TestControlledGate(QiskitTestCase):
             ControlledGate(
                 name="cgate", num_qubits=num_qubits, params=[], num_ctrl_qubits=num_ctrl_qubits
             )
+
+    def test_improper_num_ctrl_qubits_base_gate(self):
+        """Test that the allowed number of control qubits takes the base gate into account."""
+        with self.assertRaises(CircuitError):
+            ControlledGate(
+                name="cx?", num_qubits=2, params=[], num_ctrl_qubits=2, base_gate=XGate()
+            )
+        self.assertIsInstance(
+            ControlledGate(
+                name="cx?", num_qubits=2, params=[], num_ctrl_qubits=1, base_gate=XGate()
+            ),
+            ControlledGate,
+        )
+        self.assertIsInstance(
+            ControlledGate(
+                name="p",
+                num_qubits=1,
+                params=[np.pi],
+                num_ctrl_qubits=1,
+                base_gate=Gate("gphase", 0, [np.pi]),
+            ),
+            ControlledGate,
+        )
 
     def test_open_controlled_equality(self):
         """
