@@ -288,7 +288,9 @@ class QuantumCircuit:
 
     @staticmethod
     def from_instructions(
-        instructions: Iterable[tuple[Instruction, Iterable[Qubit], Iterable[Clbit]]],
+        instructions: Iterable[
+            CircuitInstruction | tuple[Instruction, Iterable[Qubit], Iterable[Clbit]]
+        ],
         *,
         name: Optional[str] = None,
         global_phase: ParameterValueType = 0,
