@@ -612,6 +612,35 @@ and for a sync job::
         def status(self):
             return JobStatus.DONE
 
+Primitives
+==========
+
+While not directly part of the provider interface, the :mod:`qiskit.primitives`
+module is tightly coupled with providers. Specifically the primitive
+interfaces, such as :class:`~.BaseSampler` and :class:`~.BaseEstimator`,
+are designed to enable provider implementations to provide custom
+implementations which are optimized for the provider's backends. This can
+include customizations like circuit transformations, additional pre- and
+post-processing, batching, caching, error mitigation, etc. The concept of
+the :mod:`qiskit.primitives` module is to explicitly enable this as the
+primitive objects are higher level abstractions to produce processed higher
+level outputs (such as probability distributions and expectation values)
+that abstract away the mechanics of getting the best result efficienctly, to
+concentrate on higher level applications using these outputs.
+
+For example, if your backends were well suited to leverage
+`mthree <https://github.com/Qiskit-Partners/mthree/>`__ measurement
+mitigation to improve the quality of the results, you could implement a
+provider-specific :class:`~.Sampler` implementation that leverages the
+``M3Mitigation`` class internally to run the circuits and return
+quasi-probabilities directly from mthree in the result. Doing this would
+enable algorithms from :mod:`qiskit.algorithms` to get the best results with
+mitigation applied directly from your backends. You can refer to the
+documentation in :mod:`qiskit.primitives` on how to write custom
+implementations. Also the built-in implementations: :class:`~.Sampler`,
+:class:`~.Estimator`, :class:`~.BackendSampler`, and :class:`~.BackendEstimator`
+can serve as references/models on how to implement these as well.
+
 ======================================
 Migrating between Backend API Versions
 ======================================
