@@ -1288,12 +1288,20 @@ class TestCircuitOperations(QiskitTestCase):
         def instruction_tuples():
             yield HGate(), [a], []
             yield CXGate(), [a, b], []
-            yield Measure(), [a], [x]
+            yield CircuitInstruction(Measure(), [a], [x])
+            yield Measure(), [b], [y]
+            yield IfElseOp((z, 1), circuit_1, circuit_2), [c, d], [z]
+
+        def instruction_tuples_partial():
+            yield HGate(), [a]
+            yield CXGate(), [a, b], []
+            yield CircuitInstruction(Measure(), [a], [x])
             yield Measure(), [b], [y]
             yield IfElseOp((z, 1), circuit_1, circuit_2), [c, d], [z]
 
         circuit = QuantumCircuit.from_instructions(instructions())
         circuit_tuples = QuantumCircuit.from_instructions(instruction_tuples())
+        circuit_tuples_partial = QuantumCircuit.from_instructions(instruction_tuples_partial())
 
         expected = QuantumCircuit([a, b, c, d], [x, y, z])
         for instruction in instructions():
@@ -1301,6 +1309,25 @@ class TestCircuitOperations(QiskitTestCase):
 
         self.assertEqual(circuit, expected)
         self.assertEqual(circuit_tuples, expected)
+        self.assertEqual(circuit_tuples_partial, expected)
+
+    def test_from_instructions_metadata(self):
+        """Test from_instructions method passes metadata."""
+        qreg = QuantumRegister(2)
+        a, b = qreg
+
+        def instructions():
+            yield CircuitInstruction(HGate(), [a], [])
+            yield CircuitInstruction(CXGate(), [a, b], [])
+
+        circuit = QuantumCircuit.from_instructions(instructions(), name="test", global_phase=0.1)
+
+        expected = QuantumCircuit([a, b], global_phase=0.1)
+        for instruction in instructions():
+            expected.append(*instruction)
+
+        self.assertEqual(circuit, expected)
+        self.assertEqual(circuit.name, "test")
 
 
 class TestCircuitPrivateOperations(QiskitTestCase):

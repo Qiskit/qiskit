@@ -289,7 +289,10 @@ class QuantumCircuit:
     @staticmethod
     def from_instructions(
         instructions: Iterable[
-            CircuitInstruction | tuple[Instruction, Iterable[Qubit], Iterable[Clbit]]
+            CircuitInstruction
+            | tuple[qiskit.circuit.Instruction]
+            | tuple[qiskit.circuit.Instruction, Iterable[Qubit]]
+            | tuple[qiskit.circuit.Instruction, Iterable[Qubit], Iterable[Clbit]]
         ],
         *,
         name: Optional[str] = None,
@@ -311,18 +314,15 @@ class QuantumCircuit:
         added_qubits = set()
         added_clbits = set()
         for instruction in instructions:
-            _, qubits, clbits = instruction
-            qubits = [qubit for qubit in qubits if qubit not in added_qubits]
-            clbits = [clbit for clbit in clbits if clbit not in added_clbits]
+            if not isinstance(instruction, CircuitInstruction):
+                instruction = CircuitInstruction(*instruction)
+            qubits = [qubit for qubit in instruction.qubits if qubit not in added_qubits]
+            clbits = [clbit for clbit in instruction.clbits if clbit not in added_clbits]
             circuit.add_bits(qubits)
             circuit.add_bits(clbits)
             added_qubits.update(qubits)
             added_clbits.update(clbits)
-            circuit._append(
-                instruction
-                if isinstance(instruction, CircuitInstruction)
-                else CircuitInstruction(*instruction)
-            )
+            circuit._append(instruction)
         return circuit
 
     @property
