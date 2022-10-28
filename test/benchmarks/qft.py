@@ -15,9 +15,13 @@
 # pylint: disable=missing-docstring,invalid-name,no-member
 # pylint: disable=attribute-defined-outside-init
 
+import itertools
 import math
 
 from qiskit import QuantumRegister, QuantumCircuit
+from qiskit.converters import circuit_to_dag
+from qiskit.transpiler import CouplingMap
+from qiskit.transpiler.passes import SabreSwap
 try:
     from qiskit.compiler import transpile
 except ImportError:
@@ -33,7 +37,9 @@ def build_model_circuit(qreg, circuit=None):
 
     for i in range(n):
         for j in range(i):
-            circuit.cu1(math.pi/float(2**(i-j)), qreg[i], qreg[j])
+            # Using negative exponents so we safely underflow to 0 rather than
+            # raise `OverflowError`.
+            circuit.cp(math.pi * (2.0 ** (j-i)), qreg[i], qreg[j])
         circuit.h(qreg[i])
 
     return circuit
@@ -56,3 +62,58 @@ class QftTranspileBench:
                   basis_gates=['u1', 'u2', 'u3', 'cx', 'id'],
                   coupling_map=coupling_map,
                   seed_transpiler=20220125)
+
+
+class LargeQFTMappingTimeBench:
+    timeout = 600.0  # seconds
+
+    heavy_hex_size = {115: 7, 409: 13, 1081: 21}
+    params = ([115, 409, 1081], ["lookahead", "decay"])
+    param_names = ["n_qubits", "heuristic"]
+
+    def setup(self, n_qubits, _heuristic):
+        qr = QuantumRegister(n_qubits, name="q")
+        self.dag = circuit_to_dag(build_model_circuit(qr))
+        self.coupling = CouplingMap.from_heavy_hex(
+            self.heavy_hex_size[n_qubits]
+        )
+
+    def time_sabre_swap(self, _n_qubits, heuristic):
+        pass_ = SabreSwap(self.coupling, heuristic, seed=2022_10_27, trials=1)
+        pass_.run(self.dag)
+
+
+class LargeQFTMappingTrackBench:
+    timeout = 600.0  # seconds, needs to account for the _entire_ setup.
+
+    heavy_hex_size = {115: 7, 409: 13, 1081: 21}
+    params = ([115, 409, 1081], ["lookahead", "decay"])
+    param_names = ["n_qubits", "heuristic"]
+
+    # The benchmarks take a significant amount of time to run, and we don't
+    # want to unnecessarily run things twice to get the two pieces of tracking
+    # information we're interested in.  We cheat by using the setup cache to do
+    # all the calculation work only once, and then each tracker just quickly
+    # pulls the result from the cache to return, saving the duplication.
+
+    def setup_cache(self):
+        def setup(n_qubits, heuristic):
+            qr = QuantumRegister(n_qubits, name="q")
+            dag = circuit_to_dag(build_model_circuit(qr))
+            coupling = CouplingMap.from_heavy_hex(
+                self.heavy_hex_size[n_qubits]
+            )
+            pass_ = SabreSwap(coupling, heuristic, seed=2022_10_27, trials=1)
+            return pass_.run(dag)
+
+        state = {}
+        for params in itertools.product(*self.params):
+            dag = setup(*params)
+            state[params] = {"depth": dag.depth(), "size": dag.size()}
+        return state
+
+    def track_depth_sabre_swap(self, state, *params):
+        return state[params]["depth"]
+
+    def track_size_sabre_swap(self, state, *params):
+        return state[params]["size"]
