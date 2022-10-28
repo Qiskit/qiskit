@@ -1726,6 +1726,19 @@ class TestPostTranspileIntegration(QiskitTestCase):
         # itself doesn't throw an error, though.
         self.assertIsInstance(qasm3.dumps(transpiled).strip(), str)
 
+    @data(0, 1, 2, 3)
+    def test_transpile_target_no_measurement_error(self, opt_level):
+        """Test that transpile with a target which contains ideal measurement works
+
+        Reproduce from https://github.com/Qiskit/qiskit-terra/issues/8969
+        """
+        target = Target()
+        target.add_instruction(Measure(), {(0,): None})
+        qc = QuantumCircuit(1, 1)
+        qc.measure(0, 0)
+        res = transpile(qc, target=target, optimization_level=opt_level)
+        self.assertEqual(qc, res)
+
 
 class StreamHandlerRaiseException(StreamHandler):
     """Handler class that will raise an exception on formatting errors."""
