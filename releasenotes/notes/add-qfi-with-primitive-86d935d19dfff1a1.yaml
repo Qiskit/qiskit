@@ -9,7 +9,20 @@ features:
 
     .. code-block:: python
 
-      estimator = Estimator(...)
+      from qiskit.circuit import QuantumCircuit, Parameter
+      from qiskit.algorithms.gradients import LinCombQFI
+
+      estimator = Estimator()
+      a, b = Parameter("a"), Parameter("b")
+      qc = QuantumCircuit(1)
+      qc.h(0)
+      qc.rz(a, 0)
+      qc.rx(b, 0)
       qfi = LinCombQFI(estimator)
-      job = qfi.run(circuits, observables, parameters)
-      qfis = job.result().qfis
+      parameter_value = [[np.pi / 4, 0]]
+      qfi_result = qfi.run([qc], parameter_value).result()
+
+  - |
+    We can now specify the derivative type of
+    :class:`qiskit.algorithms.gradients.LinCombEstimatorGradient` and can compute the imaginary parts
+    of the gradients additional to the real part.

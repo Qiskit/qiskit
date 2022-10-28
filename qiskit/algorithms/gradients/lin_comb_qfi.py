@@ -108,10 +108,19 @@ class LinCombQFI(BaseQFI):
 
         for circuit, parameter_values_, parameters_ in zip(circuits, parameter_values, parameters):
             # a set of parameters to be differentiated
+            result_map = {}
+            idx = 0
             if parameters_ is None:
                 param_set = set(circuit.parameters)
+                result_map = {idx: idx for idx, _ in enumerate(circuit.parameters)}
             else:
                 param_set = set(parameters_)
+                for i, param in enumerate(circuit.parameters):
+                    if param in param_set:
+                        result_map[i] = idx
+                        idx += 1
+                    else:
+                        result_map[i] = -1
 
             meta = {"parameters": [p for p in circuit.parameters if p in param_set]}
             meta["derivative_type"] = self._derivative_type
@@ -131,19 +140,14 @@ class LinCombQFI(BaseQFI):
             # compute the first term in the QFI
             qfi_circuits_ = self._qfi_circuit_cache.get(_circuit_key(circuit))
             if qfi_circuits_ is None:
+                # generate the all of the circuits for the first term in the QFI and cache them.
+                # only the circuit related to specified parameters will be executed.
+                # In the future, we can generate the specified circuits on demand.
                 qfi_circuits_ = _make_lin_comb_qfi_circuit(circuit)
                 self._qfi_circuit_cache[_circuit_key(circuit)] = qfi_circuits_
 
             # only compute the gradients for parameters in the parameter set
             qfi_circuits, result_indices, coeffs = [], [], []
-            result_map = {}
-            idx = 0
-            for i, param in enumerate(circuit.parameters):
-                if param in param_set:
-                    result_map[i] = idx
-                    idx += 1
-                else:
-                    result_map[i] = -1
 
             result_indices = []
             for i, param_i in enumerate(circuit.parameters):
