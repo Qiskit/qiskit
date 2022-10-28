@@ -28,3 +28,7 @@ upgrade:
     and :class:`~qiskit.transpiler.passes.RZXCalibrationBuilderNoEcho` transpiler pass
     have been upgraded to generate :class:`.ScheduleBlock`.
     This change guarantees the transpiled circuits are always QPY compatible.
+fixes:
+  - |
+    The ECR pulse sequence misalignment of :class:`~qiskit.transpiler.passes.RZXCalibrationBuilder`
+    pass has been fixed. See Qiskit/qiskit-terra/#9013 for details.
