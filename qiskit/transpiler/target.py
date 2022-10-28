@@ -1043,24 +1043,25 @@ def target_to_backend_properties(target: Target):
                     continue
                 qubit = qargs[0]
                 props_list = []
-                if props.error is not None:
-                    props_list.append(
-                        {
-                            "date": datetime.datetime.utcnow(),
-                            "name": "readout_error",
-                            "unit": "",
-                            "value": props.error,
-                        }
-                    )
-                if props.duration is not None:
-                    props_list.append(
-                        {
-                            "date": datetime.datetime.utcnow(),
-                            "name": "readout_length",
-                            "unit": "s",
-                            "value": props.duration,
-                        }
-                    )
+                if props is not None:
+                    if props.error is not None:
+                        props_list.append(
+                            {
+                                "date": datetime.datetime.utcnow(),
+                                "name": "readout_error",
+                                "unit": "",
+                                "value": props.error,
+                            }
+                        )
+                    if props.duration is not None:
+                        props_list.append(
+                            {
+                                "date": datetime.datetime.utcnow(),
+                                "name": "readout_length",
+                                "unit": "s",
+                                "value": props.duration,
+                            }
+                        )
                 if not props_list:
                     qubit_props = {}
                     break

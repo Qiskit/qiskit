@@ -20,4 +20,4 @@ before-test = "pip install --only-binary=numpy,scipy numpy scipy"
 
 [tool.cibuildwheel.linux]
 before-all = "yum install -y wget && {package}/tools/install_rust.sh"
-environment = 'PATH="$PATH:$HOME/.cargo/bin"'
+environment = 'PATH="$PATH:$HOME/.cargo/bin" CARGO_NET_GIT_FETCH_WITH_CLI="true"'
