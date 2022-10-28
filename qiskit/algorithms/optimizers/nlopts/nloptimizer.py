@@ -40,8 +40,6 @@ class NLoptOptimizer(Optimizer):
     NLopt global optimizer base class
     """
 
-    # pylint: disable=import-error
-
     _OPTIONS = ["max_evals"]
 
     def __init__(self, max_evals: int = 1000) -> None:  # pylint: disable=unused-argument
