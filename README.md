@@ -46,7 +46,7 @@ simulator is primarily for testing and is limited in performance and functionali
 implies). You should consider more sophisticated simulators, such as [`qiskit-aer`](https://github.com/Qiskit/qiskit-aer/),
 for any real simulation work.
 
-```
+```python
 from qiskit import transpile
 from qiskit.providers.basicaer import QasmSimulatorPy
 backend_sim = QasmSimulatorPy()
@@ -55,7 +55,7 @@ transpiled_qc = transpile(qc, backend_sim)
 
 After compiling the circuit we can then run this on the ``backend`` object with:
 
-```
+```python
 result = backend_sim.run(transpiled_qc).result()
 print(result.get_counts(qc))
 ```
