@@ -100,8 +100,7 @@ External Python Libraries
 
     * - .. py:data:: HAS_NLOPT
       - `NLopt <https://nlopt.readthedocs.io/en/latest/>`__ is a nonlinear optimization library,
-        used by the global optimizers in the :mod:`.algorithms.optimizers` module. It must
-        be installed in order to use them.
+        used by the global optimizers in the :mod:`.algorithms.optimizers` module.
 
     * - .. py:data:: HAS_PIL
       - PIL is a Python image-manipulation library.  Qiskit actually uses the `pillow

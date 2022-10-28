@@ -10,20 +10,4 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""
-.. _installing-nlopt:
-
-Installing NLopt
-================
-
-In order to use any of the NLopt based global optimizers, NLopt must be installed.
-The following command installs it.
-
-.. code:: sh
-
-    pip install nlopt
-
-Further information can be found at
-`NLopt Documentation <https://nlopt.readthedocs.io/en/latest/>`__.
-
-"""
+""" NLopt based global optimizers """
