@@ -32,8 +32,9 @@ from qiskit.providers.fake_provider import (
     FakeYorktown,
     FakeGuadalupeV2,
 )
-from qiskit.circuit.library import GraphState, CXGate
+from qiskit.circuit.library import GraphState, CXGate, XGate
 from qiskit.transpiler import PassManager
+from qiskit.transpiler.target import InstructionProperties
 from qiskit.transpiler.preset_passmanagers.common import generate_embed_passmanager
 
 
@@ -216,6 +217,34 @@ class TestVF2LayoutSimple(LayoutTestCase):
         dag = circuit_to_dag(circuit)
         with self.assertRaises(TranspilerError):
             vf2_pass.run(dag)
+
+    def test_target_no_error(self):
+        """Test that running vf2layout on a pass against a target with no error rates works."""
+        n_qubits = 15
+        target = Target()
+        target.add_instruction(CXGate(), {(i, i + 1): None for i in range(n_qubits - 1)})
+        vf2_pass = VF2Layout(target=target)
+        circuit = QuantumCircuit(2)
+        circuit.cx(0, 1)
+        dag = circuit_to_dag(circuit)
+        vf2_pass.run(dag)
+        self.assertLayout(dag, target.build_coupling_map(), vf2_pass.property_set)
+
+    def test_target_some_error(self):
+        """Test that running vf2layout on a pass against a target with some error rates works."""
+        n_qubits = 15
+        target = Target()
+        target.add_instruction(
+            XGate(), {(i,): InstructionProperties(error=0.00123) for i in range(n_qubits)}
+        )
+        target.add_instruction(CXGate(), {(i, i + 1): None for i in range(n_qubits - 1)})
+        vf2_pass = VF2Layout(target=target)
+        circuit = QuantumCircuit(2)
+        circuit.h(0)
+        circuit.cx(0, 1)
+        dag = circuit_to_dag(circuit)
+        vf2_pass.run(dag)
+        self.assertLayout(dag, target.build_coupling_map(), vf2_pass.property_set)
 
 
 class TestVF2LayoutLattice(LayoutTestCase):

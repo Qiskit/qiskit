@@ -20,7 +20,7 @@ from qiskit.transpiler.layout import Layout
 from qiskit.transpiler.basepasses import AnalysisPass
 from qiskit.transpiler.exceptions import TranspilerError
 
-from qiskit._accelerate.dense_layout import best_subset  # pylint: disable=import-error
+from qiskit._accelerate.dense_layout import best_subset
 
 
 class DenseLayout(AnalysisPass):
