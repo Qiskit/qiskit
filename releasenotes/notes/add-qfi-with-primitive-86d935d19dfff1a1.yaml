@@ -6,6 +6,7 @@ features:
     internally uses the primitives to calculate the QFI.
 
     Example::
+
     .. code-block:: python
 
       estimator = Estimator(...)
