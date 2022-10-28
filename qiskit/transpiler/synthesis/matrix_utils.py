@@ -55,12 +55,13 @@ def add_random_rows(array: np.ndarray) -> np.ndarray:
     return array
 
 
-def build_random_parity_matrix(n: int, m: int = 0) -> np.ndarray:
+def build_random_parity_matrix(n: int, m: int = 0, identity_allowed: bool = False) -> np.ndarray:
     """Builds an n*n-sized random parity matrix
 
     Args:
-        n (int): size of parity matrix
+        n (int): Size of parity matrix.
         m (int, optional): Number of row operations done on the matrix. Defaults to 0.
+        identity_allowed (bool, optional): Whether or not an identity matrix is an acceptable output. Defaults to False.
 
     Returns:
         np.ndarray: a random parity matrix the size n
@@ -68,6 +69,13 @@ def build_random_parity_matrix(n: int, m: int = 0) -> np.ndarray:
     matrix = np.identity(n)
 
     for i in range(m):
+        operation = np.random.randint(0, 2)
+        if operation == 0:
+            matrix = switch_random_rows(matrix)
+        else:
+            matrix = add_random_rows(matrix)
+
+    if identity_allowed == False and np.array_equal(matrix, np.identity(n)):
         operation = np.random.randint(0, 2)
         if operation == 0:
             matrix = switch_random_rows(matrix)
