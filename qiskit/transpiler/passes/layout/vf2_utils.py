@@ -16,10 +16,13 @@ from collections import defaultdict
 import statistics
 import random
 
+import numpy as np
 from retworkx import PyDiGraph, PyGraph
 
 from qiskit.circuit import ControlFlowOp, ForLoopOp
 from qiskit.converters import circuit_to_dag
+from qiskit._accelerate import vf2_layout
+from qiskit._accelerate.stochastic_swap import NLayout
 
 
 def build_interaction_graph(dag, strict_direction=True):
@@ -78,33 +81,39 @@ def build_interaction_graph(dag, strict_direction=True):
     return im_graph, im_graph_node_map, reverse_im_graph_node_map
 
 
-def score_layout(avg_error_map, layout, bit_map, reverse_bit_map, im_graph, strict_direction=False):
+def score_layout(
+    avg_error_map, layout, bit_map, _reverse_bit_map, im_graph, strict_direction=False
+):
     """Score a layout given an average error map."""
-    bits = layout.get_virtual_bits()
-    fidelity = 1
-    for bit, node_index in bit_map.items():
-        gate_count = sum(im_graph[node_index].values())
-        error_rate = avg_error_map.get((bits[bit],))
-        if error_rate is not None:
-            fidelity *= (1 - avg_error_map[(bits[bit],)]) ** gate_count
-    for edge in im_graph.edge_index_map().values():
-        gate_count = sum(edge[2].values())
-        qargs = (bits[reverse_bit_map[edge[0]]], bits[reverse_bit_map[edge[1]]])
-        if not strict_direction and qargs not in avg_error_map:
-            qargs = (qargs[1], qargs[0])
-        if qargs in avg_error_map:
-            fidelity *= (1 - avg_error_map[qargs]) ** gate_count
-    return 1 - fidelity
+    layout_mapping = {bit_map[k]: v for k, v in layout.get_virtual_bits().items()}
+    if layout_mapping:
+        size = max(max(layout_mapping), max(layout_mapping.values()))
+    else:
+        size = 0
+    nlayout = NLayout(layout_mapping, size + 1, size + 1)
+    bit_list = np.zeros(len(im_graph), dtype=np.int32)
+    for node_index in bit_map.values():
+        bit_list[node_index] = sum(im_graph[node_index].values())
+    edge_list = {
+        (edge[0], edge[1]): sum(edge[2].values()) for edge in im_graph.edge_index_map().values()
+    }
+    return vf2_layout.score_layout(bit_list, edge_list, avg_error_map, nlayout, strict_direction)
 
 
 def build_average_error_map(target, properties, coupling_map):
     """Build an average error map used for scoring layouts pre-basis translation."""
-    avg_map = {}
     num_qubits = 0
-    if coupling_map is not None:
+    if target is not None:
+        num_qubits = target.num_qubits
+    elif coupling_map is not None:
         num_qubits = coupling_map.size()
+    avg_map = np.empty((num_qubits, num_qubits), dtype=np.float64)
+    avg_map.fill(np.nan)
+    built = False
     if target is not None:
         for qargs in target.qargs:
+            if qargs is None:
+                continue
             qarg_error = 0.0
             count = 0
             for op in target.operation_names_for_qargs(qargs):
@@ -113,7 +122,10 @@ def build_average_error_map(target, properties, coupling_map):
                     count += 1
                     qarg_error += inst_props.error
             if count > 0:
-                avg_map[qargs] = qarg_error / count
+                if len(qargs) == 1:
+                    qargs = (qargs[0], qargs[0])
+                avg_map[qargs[0], qargs[1]] = qarg_error / count
+                built = True
     elif properties is not None:
         errors = defaultdict(list)
         for qubit in range(len(properties.qubits)):
@@ -123,15 +135,25 @@ def build_average_error_map(target, properties, coupling_map):
             for param in gate.parameters:
                 if param.name == "gate_error":
                     errors[qubits].append(param.value)
-        avg_map = {k: statistics.mean(v) for k, v in errors.items()}
+        for k, v in errors.items():
+            if len(k) == 1:
+                qargs = (k[0], k[0])
+            else:
+                qargs = k
+            avg_map[qargs[0], qargs[1]] = statistics.mean(v)
+            built = True
     elif coupling_map is not None:
         for qubit in range(num_qubits):
-            avg_map[(qubit,)] = (
+            avg_map[qubit, qubit] = (
                 coupling_map.graph.out_degree(qubit) + coupling_map.graph.in_degree(qubit)
             ) / num_qubits
         for edge in coupling_map.graph.edge_list():
-            avg_map[edge] = (avg_map[(edge[0],)] + avg_map[(edge[1],)]) / 2
-    return avg_map
+            avg_map[edge[0], edge[1]] = (avg_map[edge[0], edge[0]] + avg_map[edge[1], edge[1]]) / 2
+            built = True
+    if built:
+        return avg_map
+    else:
+        return None
 
 
 def shuffle_coupling_graph(coupling_map, seed, strict_direction=True):

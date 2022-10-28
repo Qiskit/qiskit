@@ -26,6 +26,7 @@ mod sabre_swap;
 mod sampled_exp_val;
 mod sparse_pauli_op;
 mod stochastic_swap;
+mod vf2_layout;
 
 #[inline]
 pub fn getenv_use_multiple_threads() -> bool {
@@ -50,5 +51,6 @@ fn _accelerate(_py: Python<'_>, m: &PyModule) -> PyResult<()> {
     m.add_wrapped(wrap_pymodule!(results::results))?;
     m.add_wrapped(wrap_pymodule!(optimize_1q_gates::optimize_1q_gates))?;
     m.add_wrapped(wrap_pymodule!(sampled_exp_val::sampled_exp_val))?;
+    m.add_wrapped(wrap_pymodule!(vf2_layout::vf2_layout))?;
     Ok(())
 }
