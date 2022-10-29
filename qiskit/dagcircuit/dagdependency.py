@@ -156,33 +156,6 @@ class DAGDependency:
         """
         self._calibrations = defaultdict(dict, calibrations)
 
-    def to_networkx(self):
-        """Returns a copy of the DAGDependency in networkx format."""
-        # For backwards compatibility, return networkx structure from terra 0.12
-        # where DAGNodes instances are used as indexes on the networkx graph.
-        warnings.warn(
-            "The to_networkx() method is deprecated and will be removed in a future release.",
-            DeprecationWarning,
-            stacklevel=2,
-        )
-
-        try:
-            import networkx as nx
-        except ImportError as ex:
-            raise MissingOptionalLibraryError(
-                libname="Networkx",
-                name="DAG dependency",
-                pip_install="pip install networkx",
-            ) from ex
-        dag_networkx = nx.MultiDiGraph()
-
-        for node in self.get_nodes():
-            dag_networkx.add_node(node)
-        for node in self.topological_nodes():
-            for source_id, dest_id, edge in self.get_in_edges(node.node_id):
-                dag_networkx.add_edge(self.get_node(source_id), self.get_node(dest_id), **edge)
-        return dag_networkx
-
     def to_retworkx(self):
         """Returns the DAGDependency in retworkx format."""
         return self._multi_graph
