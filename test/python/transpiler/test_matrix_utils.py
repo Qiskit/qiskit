@@ -16,9 +16,11 @@ class TestMatrixUtils(QiskitTestCase):
 
     def setUp(self):
         super().setUp()
+        self.seed = 1234
+        self.rng = np.random.default_rng(self.seed)
         self.n = np.random.randint(3, 21)
         self.m = self.n * 10
-        self.matrix = build_random_parity_matrix(self.n, self.m)
+        self.matrix = build_random_parity_matrix(self.seed, self.n, self.m)
         self.id_matrix = np.identity(self.n)
 
     def test_build_random_parity_matrix_returns_np_ndarray(self):
@@ -47,31 +49,31 @@ class TestMatrixUtils(QiskitTestCase):
 
     def test_switch_random_rows_returns_np_nd_array(self):
         """Test the output type of switch_random_rows"""
-        instance = switch_random_rows(self.id_matrix)
+        instance = switch_random_rows(self.id_matrix, self.rng)
 
         self.assertIsInstance(instance, np.ndarray)
 
     def test_switch_random_rows_changes_array(self):
         """Test switch_random_rows for correctness"""
-        instance = switch_random_rows(self.id_matrix.copy())
+        instance = switch_random_rows(self.id_matrix.copy(), self.rng)
 
         self.assertEqual(np.array_equal(instance, self.id_matrix), False)
 
     def test_add_random_rows_returns_np_nd_array(self):
         """Test the output type of add_random_rows"""
-        instance = add_random_rows(self.id_matrix)
+        instance = add_random_rows(self.id_matrix, self.rng)
 
         self.assertIsInstance(instance, np.ndarray)
 
     def test_add_random_rows_changes_array(self):
         """Test add_random_rows for correctness"""
-        instance = add_random_rows(self.id_matrix.copy())
+        instance = add_random_rows(self.id_matrix.copy(), self.rng)
 
         self.assertEqual(np.array_equal(instance, self.id_matrix), False)
 
     def test_add_random_rows_will_perform_only_binary_additions(self):
         """Test add_random_rows for correctness"""
-        instance = add_random_rows(np.identity(2))
-        instance = add_random_rows(instance)
+        instance = add_random_rows(np.identity(2), self.rng)
+        instance = add_random_rows(instance, self.rng)
 
         self.assertEqual(np.all(instance <= 1), True)
