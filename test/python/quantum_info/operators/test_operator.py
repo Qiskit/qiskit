@@ -766,7 +766,6 @@ class TestOperator(OperatorTestCase):
         circuit.x(1)
         circuit.ry(np.pi / 2, 2)
         output = transpile(circuit, initial_layout=[2, 1, 0])
-        print(output)
         op = Operator.from_circuit(output)
         y90 = (1 / np.sqrt(2)) * np.array([[1, -1], [1, 1]])
         target = np.kron(y90, np.kron(self.UX, self.UH))
