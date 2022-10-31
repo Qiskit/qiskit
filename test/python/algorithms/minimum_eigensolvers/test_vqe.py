@@ -327,7 +327,7 @@ class TestVQE(QiskitAlgorithmsTestCase):
             self.assertEqual(callcount["estimator"], expected_estimator_runs)
 
         with self.subTest(msg="check reset to original max evals grouped"):
-            self.assertIsNone(spsa.get_max_evals_grouped())
+            self.assertIsNone(spsa._max_evals_grouped)
 
     def test_batch_evaluate_with_qnspsa(self):
         """Test batch evaluating with QNSPSA works."""
