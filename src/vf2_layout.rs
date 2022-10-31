@@ -23,7 +23,9 @@ const PARALLEL_THRESHOLD: usize = 50;
 
 /// Score a given circuit with a layout applied
 #[pyfunction]
-#[pyo3(text_signature = "(bit_list, edge_list, error_matrix, layout, strict_direction, run_in_parallel, /)")]
+#[pyo3(
+    text_signature = "(bit_list, edge_list, error_matrix, layout, strict_direction, run_in_parallel, /)"
+)]
 pub fn score_layout(
     bit_list: PyReadonlyArray1<i32>,
     edge_list: IndexMap<[usize; 2], i32>,
