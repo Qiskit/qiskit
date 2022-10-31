@@ -16,7 +16,7 @@
 import inspect
 
 import numpy as np
-from ddt import ddt, data, unpack
+from ddt import ddt, data, idata, unpack
 
 from qiskit import QuantumCircuit, QuantumRegister
 from qiskit.quantum_info import Operator
@@ -256,63 +256,57 @@ class TestStandardGates(QiskitTestCase):
             self.assertTrue(is_identity_matrix(Operator(gate).dot(gate.inverse().definition).data))
 
 
+@ddt
 class TestGateEquivalenceEqual(QiskitTestCase):
     """Test the decomposition of a gate in terms of other gates
     yields the same matrix as the hardcoded matrix definition."""
 
-    @classmethod
-    def setUpClass(cls):
-        super().setUpClass()
-        class_list = Gate.__subclasses__() + ControlledGate.__subclasses__()
-        exclude = {
-            "ControlledGate",
-            "DiagonalGate",
-            "UCGate",
-            "MCGupDiag",
-            "MCU1Gate",
-            "UnitaryGate",
-            "HamiltonianGate",
-            "MCPhaseGate",
-            "UCPauliRotGate",
-            "SingleQubitUnitary",
-            "MCXGate",
-            "VariadicZeroParamGate",
-            "ClassicalFunction",
-            "ClassicalElement",
-            "StatePreparation",
-            "LinearFunction",
-            "Commuting2qBlock",
-        }
-        cls._gate_classes = []
-        for aclass in class_list:
-            if aclass.__name__ not in exclude:
-                cls._gate_classes.append(aclass)
-
-    def test_equivalence_phase(self):
+    class_list = Gate.__subclasses__() + ControlledGate.__subclasses__()
+    exclude = {
+        "ControlledGate",
+        "DiagonalGate",
+        "UCGate",
+        "MCGupDiag",
+        "MCU1Gate",
+        "UnitaryGate",
+        "HamiltonianGate",
+        "MCPhaseGate",
+        "UCPauliRotGate",
+        "SingleQubitUnitary",
+        "MCXGate",
+        "VariadicZeroParamGate",
+        "ClassicalFunction",
+        "ClassicalElement",
+        "StatePreparation",
+        "LinearFunction",
+        "Commuting2qBlock",
+        "PauliEvolutionGate",
+    }
+    # Amazingly, Python's scoping rules for class bodies means that this is the closest we can get
+    # to a "natural" comprehension or functional iterable definition:
+    #   https://docs.python.org/3/reference/executionmodel.html#resolution-of-names
+    @idata(filter(lambda x, exclude=exclude: x.__name__ not in exclude, class_list))
+    def test_equivalence_phase(self, gate_class):
         """Test that the equivalent circuits from the equivalency_library
         have equal matrix representations"""
-        for gate_class in self._gate_classes:
-            with self.subTest(i=gate_class):
-                n_params = len(_get_free_params(gate_class))
-                params = [0.1 * i for i in range(1, n_params + 1)]
-                if gate_class.__name__ == "RXXGate":
-                    params = [np.pi / 2]
-                if gate_class.__name__ in ["MSGate"]:
-                    params[0] = 2
-                if gate_class.__name__ in ["PauliGate"]:
-                    params = ["IXYZ"]
-                if gate_class.__name__ in ["BooleanExpression"]:
-                    params = ["x | y"]
-                if gate_class.__name__ in ["PauliEvolutionGate", "PauliEvolutionGate"]:
-                    continue
+        n_params = len(_get_free_params(gate_class))
+        params = [0.1 * i for i in range(1, n_params + 1)]
+        if gate_class.__name__ == "RXXGate":
+            params = [np.pi / 2]
+        if gate_class.__name__ in ["MSGate"]:
+            params[0] = 2
+        if gate_class.__name__ in ["PauliGate"]:
+            params = ["IXYZ"]
+        if gate_class.__name__ in ["BooleanExpression"]:
+            params = ["x | y"]
 
-                gate = gate_class(*params)
-                equiv_lib_list = std_eqlib.get_entry(gate)
-                for ieq, equivalency in enumerate(equiv_lib_list):
-                    with self.subTest(msg=gate.name + "_" + str(ieq)):
-                        op1 = Operator(gate)
-                        op2 = Operator(equivalency)
-                        self.assertEqual(op1, op2)
+        gate = gate_class(*params)
+        equiv_lib_list = std_eqlib.get_entry(gate)
+        for ieq, equivalency in enumerate(equiv_lib_list):
+            with self.subTest(msg=gate.name + "_" + str(ieq)):
+                op1 = Operator(gate)
+                op2 = Operator(equivalency)
+                self.assertEqual(op1, op2)
 
 
 @ddt
