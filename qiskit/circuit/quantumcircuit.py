@@ -14,6 +14,7 @@
 
 """Quantum circuit object."""
 
+from __future__ import annotations
 import copy
 import itertools
 import functools
@@ -284,6 +285,45 @@ class QuantumCircuit:
         if not isinstance(metadata, dict) and metadata is not None:
             raise TypeError("Only a dictionary or None is accepted for circuit metadata")
         self._metadata = metadata
+
+    @staticmethod
+    def from_instructions(
+        instructions: Iterable[
+            CircuitInstruction
+            | tuple[qiskit.circuit.Instruction]
+            | tuple[qiskit.circuit.Instruction, Iterable[Qubit]]
+            | tuple[qiskit.circuit.Instruction, Iterable[Qubit], Iterable[Clbit]]
+        ],
+        *,
+        name: Optional[str] = None,
+        global_phase: ParameterValueType = 0,
+        metadata: Optional[dict] = None,
+    ) -> "QuantumCircuit":
+        """Construct a circuit from an iterable of CircuitInstructions.
+
+        Args:
+            instructions: The instructions to add to the circuit.
+            name: The name of the circuit.
+            global_phase: The global phase of the circuit in radians.
+            metadata: Arbitrary key value metadata to associate with the circuit.
+
+        Returns:
+            The quantum circuit.
+        """
+        circuit = QuantumCircuit(name=name, global_phase=global_phase, metadata=metadata)
+        added_qubits = set()
+        added_clbits = set()
+        for instruction in instructions:
+            if not isinstance(instruction, CircuitInstruction):
+                instruction = CircuitInstruction(*instruction)
+            qubits = [qubit for qubit in instruction.qubits if qubit not in added_qubits]
+            clbits = [clbit for clbit in instruction.clbits if clbit not in added_clbits]
+            circuit.add_bits(qubits)
+            circuit.add_bits(clbits)
+            added_qubits.update(qubits)
+            added_clbits.update(clbits)
+            circuit._append(instruction)
+        return circuit
 
     @property
     def data(self) -> QuantumCircuitData:
