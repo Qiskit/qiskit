@@ -26,6 +26,7 @@ from qiskit.transpiler.passmanager import PassManager
 from .base import BaseSampler, SamplerResult
 from .primitive_job import PrimitiveJob
 from .utils import _circuit_key
+from .backend_estimator import _run_circuits, _prepare_counts
 
 
 class BackendSampler(BaseSampler):
@@ -151,16 +152,11 @@ class BackendSampler(BaseSampler):
         bound_circuits = self._bound_pass_manager_run(bound_circuits)
 
         # Run
-        result = self._backend.run(bound_circuits, **run_options).result()
-
+        result, _metadata = _run_circuits(bound_circuits, self._backend, **run_options)
         return self._postprocessing(result, bound_circuits)
 
     def _postprocessing(self, result: Result, circuits: list[QuantumCircuit]) -> SamplerResult:
-
-        counts = result.get_counts()
-        if not isinstance(counts, list):
-            counts = [counts]
-
+        counts = _prepare_counts(result)
         shots = sum(counts[0].values())
 
         probabilies = []

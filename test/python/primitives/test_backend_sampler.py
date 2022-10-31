@@ -277,6 +277,48 @@ class TestBackendSampler(QiskitTestCase):
         job = sampler.run(circuits=[bell])
         self.assertEqual(job.status(), JobStatus.DONE)
 
+    def test_primitive_job_size_limit_backend_v2(self):
+        """Test primitive respects backend's job size limit."""
+
+        class FakeNairobiLimitedCircuits(FakeNairobiV2):
+            """FakeNairobiV2 with job size limit."""
+
+            @property
+            def max_circuits(self):
+                return 1
+
+        qc = QuantumCircuit(1)
+        qc.measure_all()
+        qc2 = QuantumCircuit(1)
+        qc2.x(0)
+        qc2.measure_all()
+        sampler = BackendSampler(backend=FakeNairobiLimitedCircuits())
+        result = sampler.run([qc, qc2]).result()
+        self.assertIsInstance(result, SamplerResult)
+        self.assertEqual(len(result.quasi_dists), 2)
+
+        self.assertDictAlmostEqual(result.quasi_dists[0], {0: 1}, 0.1)
+        self.assertDictAlmostEqual(result.quasi_dists[1], {1: 1}, 0.1)
+
+    def test_primitive_job_size_limit_backend_v1(self):
+        """Test primitive respects backend's job size limit."""
+        backend = FakeNairobi()
+        config = backend.configuration()
+        config.max_experiments = 1
+        backend._configuration = config
+        qc = QuantumCircuit(1)
+        qc.measure_all()
+        qc2 = QuantumCircuit(1)
+        qc2.x(0)
+        qc2.measure_all()
+        sampler = BackendSampler(backend=backend)
+        result = sampler.run([qc, qc2]).result()
+        self.assertIsInstance(result, SamplerResult)
+        self.assertEqual(len(result.quasi_dists), 2)
+
+        self.assertDictAlmostEqual(result.quasi_dists[0], {0: 1}, 0.1)
+        self.assertDictAlmostEqual(result.quasi_dists[1], {1: 1}, 0.1)
+
 
 if __name__ == "__main__":
     unittest.main()
