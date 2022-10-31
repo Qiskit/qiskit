@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2021.
+# (C) Copyright IBM 2022.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -37,6 +37,7 @@ The individual classes are:
     CNOTUnitCircuit
     CNOTUnitObjective
     DefaultCNOTUnitObjective
+    FastCNOTUnitObjective
 
 
 Mathematical Detail
@@ -124,7 +125,7 @@ A basic usage of the AQC algorithm should consist of the following steps::
         num_qubits=num_qubits,
         network_layout=layout,
         connectivity_type=connectivity,
-        depth=depth,
+        depth=depth
     )
 
     # Create an optimizer to be used by AQC
@@ -143,7 +144,7 @@ A basic usage of the AQC algorithm should consist of the following steps::
     aqc.compile_unitary(
         target_matrix=unitary,
         approximate_circuit=approximate_circuit,
-        approximating_objective=approximating_objective,
+        approximating_objective=approximating_objective
     )
 
 Now ``approximate_circuit`` is a circuit that approximates the target unitary to a certain
@@ -152,6 +153,15 @@ degree and can be used instead of the original matrix.
 This uses a helper function, :obj:`make_cnot_network`.
 
 .. autofunction:: make_cnot_network
+
+One can take advantage of accelerated version of objective function. It implements the same
+mathematical algorithm as the default one ``DefaultCNOTUnitObjective`` but runs several times
+faster. Instantiation of accelerated objective function class is similar to the default case:
+
+    # Create an objective that defines our optimization problem
+    approximating_objective = FastCNOTUnitObjective(num_qubits=num_qubits, cnots=cnots)
+
+The rest of the code in the above example does not change.
 
 References:
 
@@ -165,3 +175,4 @@ from .aqc_plugin import AQCSynthesisPlugin
 from .cnot_structures import make_cnot_network
 from .cnot_unit_circuit import CNOTUnitCircuit
 from .cnot_unit_objective import CNOTUnitObjective, DefaultCNOTUnitObjective
+from .fast_gradient.fast_gradient import FastCNOTUnitObjective
