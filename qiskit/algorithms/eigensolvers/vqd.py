@@ -264,9 +264,21 @@ class VQD(VariationalAlgorithm, Eigensolver):
                     fun=energy_evaluation, x0=initial_point, bounds=bounds
                 )
             else:
+                # We always want to submit as many estimations per job as possible for minimal
+                # overhead on the hardware. The minimum is set to 50 to cover the commonly used SPSA
+                # calibration or 2 * num_parameters to cover finite difference gradients,
+                # and we cap at 1000 parameter evaluations at once.
+                max_batchsize = getattr(self.optimizer, "_max_evals_grouped", None)
+                if max_batchsize is None:
+                    default_batchsize = min(1000, max(50, 2 * self.ansatz.num_parameters))
+                    self.optimizer.set_max_evals_grouped(default_batchsize)
+
                 opt_result = self.optimizer.minimize(
                     fun=energy_evaluation, x0=initial_point, bounds=bounds
                 )
+
+                # reset to original value
+                self.optimizer.set_max_evals_grouped(max_batchsize)
 
             eval_time = time() - start_time
 
