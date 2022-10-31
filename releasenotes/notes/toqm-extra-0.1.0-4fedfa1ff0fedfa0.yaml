@@ -1,0 +1,9 @@
+---
+upgrade:
+  - |
+    Optional feature package ``toqm`` installable via
+    ``pip install qiskit-terra[toqm]`` has been upgraded from version
+    ``0.0.4`` to ``0.1.0``. To use the ``toqm`` routing method
+    with :meth:`~.transpile` you must now use qiskit-toqm version
+    ``0.1.0`` or newer. Older versions are no longer discoverable by
+    the transpiler.
