@@ -82,7 +82,13 @@ def build_interaction_graph(dag, strict_direction=True):
 
 
 def score_layout(
-    avg_error_map, layout_mapping, bit_map, _reverse_bit_map, im_graph, strict_direction=False
+    avg_error_map,
+    layout_mapping,
+    bit_map,
+    _reverse_bit_map,
+    im_graph,
+    strict_direction=False,
+    run_in_parallel=True,
 ):
     """Score a layout given an average error map."""
     if layout_mapping:
@@ -96,7 +102,9 @@ def score_layout(
     edge_list = {
         (edge[0], edge[1]): sum(edge[2].values()) for edge in im_graph.edge_index_map().values()
     }
-    return vf2_layout.score_layout(bit_list, edge_list, avg_error_map, nlayout, strict_direction)
+    return vf2_layout.score_layout(
+        bit_list, edge_list, avg_error_map, nlayout, strict_direction, run_in_parallel
+    )
 
 
 def build_average_error_map(target, properties, coupling_map):

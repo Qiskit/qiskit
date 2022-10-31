@@ -17,26 +17,23 @@ use pyo3::prelude::*;
 use pyo3::wrap_pyfunction;
 use rayon::prelude::*;
 
-use crate::getenv_use_multiple_threads;
 use crate::nlayout::NLayout;
 
 const PARALLEL_THRESHOLD: usize = 50;
 
 /// Score a given circuit with a layout applied
 #[pyfunction]
-#[pyo3(text_signature = "(data, num_qubits, z_mask, /)")]
+#[pyo3(text_signature = "(bit_list, edge_list, error_matrix, layout, strict_direction, run_in_parallel, /)")]
 pub fn score_layout(
     bit_list: PyReadonlyArray1<i32>,
     edge_list: IndexMap<[usize; 2], i32>,
     error_matrix: PyReadonlyArray2<f64>,
     layout: &NLayout,
     strict_direction: bool,
+    run_in_parallel: bool,
 ) -> PyResult<f64> {
     let bit_counts = bit_list.as_slice()?;
     let err_mat = error_matrix.as_array();
-    // Run in parallel only if we're not already in a multiprocessing context
-    // unless force threads is set.
-    let run_in_parallel = getenv_use_multiple_threads();
     let mut fidelity = if edge_list.len() < PARALLEL_THRESHOLD || !run_in_parallel {
         edge_list
             .iter()

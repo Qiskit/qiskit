@@ -10,7 +10,10 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
+# pylint: disable=too-many-function-args
+
 """VF2PostLayout pass to find a layout after transpile using subgraph isomorphism"""
+import os
 from enum import Enum
 import logging
 import inspect
@@ -234,6 +237,10 @@ class VF2PostLayout(AnalysisPass):
                 call_limit=self.call_limit,
             )
         chosen_layout = None
+        run_in_parallel = (
+            os.getenv("QISKIT_IN_PARALLEL", "FALSE").upper() != "TRUE"
+            or os.getenv("QISKIT_FORCE_THREADS", "FALSE").upper() == "TRUE"
+        )
         try:
             if self.strict_direction:
                 initial_layout = Layout({bit: index for index, bit in enumerate(dag.qubits)})
@@ -241,7 +248,11 @@ class VF2PostLayout(AnalysisPass):
                     initial_layout, im_graph_node_map, reverse_im_graph_node_map, im_graph
                 )
             else:
-                initial_layout = {im_graph_node_map[bit]: index for index, bit in enumerate(dag.qubits) if bit in im_graph_node_map}
+                initial_layout = {
+                    im_graph_node_map[bit]: index
+                    for index, bit in enumerate(dag.qubits)
+                    if bit in im_graph_node_map
+                }
                 chosen_layout_score = vf2_utils.score_layout(
                     self.avg_error_map,
                     initial_layout,
@@ -249,6 +260,7 @@ class VF2PostLayout(AnalysisPass):
                     reverse_im_graph_node_map,
                     im_graph,
                     self.strict_direction,
+                    run_in_parallel,
                 )
         # Circuit not in basis so we have nothing to compare against return here
         except KeyError:
@@ -267,7 +279,9 @@ class VF2PostLayout(AnalysisPass):
             stop_reason = VF2PostLayoutStopReason.SOLUTION_FOUND
             layout_mapping = {im_i: cm_nodes[cm_i] for cm_i, im_i in mapping.items()}
             if self.strict_direction:
-                layout = Layout({reverse_im_graph_node_map[k]: v for k, v in layout_mapping.items()})
+                layout = Layout(
+                    {reverse_im_graph_node_map[k]: v for k, v in layout_mapping.items()}
+                )
                 layout_score = self._score_layout(
                     layout, im_graph_node_map, reverse_im_graph_node_map, im_graph
                 )
@@ -279,10 +293,13 @@ class VF2PostLayout(AnalysisPass):
                     reverse_im_graph_node_map,
                     im_graph,
                     self.strict_direction,
+                    run_in_parallel,
                 )
             logger.debug("Trial %s has score %s", trials, layout_score)
             if layout_score < chosen_layout_score:
-                layout = Layout({reverse_im_graph_node_map[k]: v for k, v in layout_mapping.items()})
+                layout = Layout(
+                    {reverse_im_graph_node_map[k]: v for k, v in layout_mapping.items()}
+                )
                 logger.debug(
                     "Found layout %s has a lower score (%s) than previous best %s (%s)",
                     layout,
