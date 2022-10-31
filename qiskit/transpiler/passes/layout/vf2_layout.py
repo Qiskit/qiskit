@@ -162,23 +162,21 @@ class VF2Layout(AnalysisPass):
             trials += 1
             logger.debug("Running trial: %s", trials)
             stop_reason = VF2LayoutStopReason.SOLUTION_FOUND
-            layout = Layout(
-                {reverse_im_graph_node_map[im_i]: cm_nodes[cm_i] for cm_i, im_i in mapping.items()}
-            )
+            layout_mapping = {im_i: cm_nodes[cm_i] for cm_i, im_i in mapping.items()}
             # If the graphs have the same number of nodes we don't need to score or do multiple
             # trials as the score heuristic currently doesn't weigh nodes based on gates on a
             # qubit so the scores will always all be the same
             if len(cm_graph) == len(im_graph):
-                chosen_layout = layout
+                chosen_layout = Layout({reverse_im_graph_node_map[k]: v for k, v in layout_mapping.items()})
                 break
             # If there is no error map avilable we can just skip the scoring stage as there
             # is nothing to score with, so any match is the best we can find.
             if self.avg_error_map is None:
-                chosen_layout = layout
+                chosen_layout = Layout({reverse_im_graph_node_map[k]: v for k, v in layout_mapping.items()})
                 break
             layout_score = vf2_utils.score_layout(
                 self.avg_error_map,
-                layout,
+                layout_mapping,
                 im_graph_node_map,
                 reverse_im_graph_node_map,
                 im_graph,
@@ -188,13 +186,14 @@ class VF2Layout(AnalysisPass):
             # waste time finding additional mappings that will at best match
             # the performance, so exit early in this case
             if layout_score == 0.0:
-                chosen_layout = layout
+                chosen_layout = Layout({reverse_im_graph_node_map[k]: v for k, v in layout_mapping.items()})
                 break
             logger.debug("Trial %s has score %s", trials, layout_score)
             if chosen_layout is None:
-                chosen_layout = layout
+                chosen_layout = Layout({reverse_im_graph_node_map[k]: v for k, v in layout_mapping.items()})
                 chosen_layout_score = layout_score
             elif layout_score < chosen_layout_score:
+                layout = Layout({reverse_im_graph_node_map[k]: v for k, v in layout_mapping.items()})
                 logger.debug(
                     "Found layout %s has a lower score (%s) than previous best %s (%s)",
                     layout,

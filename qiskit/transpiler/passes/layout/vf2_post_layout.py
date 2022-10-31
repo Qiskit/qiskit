@@ -234,15 +234,14 @@ class VF2PostLayout(AnalysisPass):
                 call_limit=self.call_limit,
             )
         chosen_layout = None
-        initial_layout = Layout(
-            dict((k, v) for k, v in enumerate(dag.qubits) if v in im_graph_node_map)
-        )
         try:
             if self.strict_direction:
+                initial_layout = Layout({bit: index for index, bit in enumerate(dag.qubits)})
                 chosen_layout_score = self._score_layout(
                     initial_layout, im_graph_node_map, reverse_im_graph_node_map, im_graph
                 )
             else:
+                initial_layout = {im_graph_node_map[bit]: index for index, bit in enumerate(dag.qubits) if bit in im_graph_node_map}
                 chosen_layout_score = vf2_utils.score_layout(
                     self.avg_error_map,
                     initial_layout,
@@ -266,17 +265,16 @@ class VF2PostLayout(AnalysisPass):
             trials += 1
             logger.debug("Running trial: %s", trials)
             stop_reason = VF2PostLayoutStopReason.SOLUTION_FOUND
-            layout = Layout(
-                {reverse_im_graph_node_map[im_i]: cm_nodes[cm_i] for cm_i, im_i in mapping.items()}
-            )
+            layout_mapping = {im_i: cm_nodes[cm_i] for cm_i, im_i in mapping.items()}
             if self.strict_direction:
+                layout = Layout({reverse_im_graph_node_map[k]: v for k, v in layout_mapping.items()})
                 layout_score = self._score_layout(
                     layout, im_graph_node_map, reverse_im_graph_node_map, im_graph
                 )
             else:
                 layout_score = vf2_utils.score_layout(
                     self.avg_error_map,
-                    layout,
+                    layout_mapping,
                     im_graph_node_map,
                     reverse_im_graph_node_map,
                     im_graph,
@@ -284,6 +282,7 @@ class VF2PostLayout(AnalysisPass):
                 )
             logger.debug("Trial %s has score %s", trials, layout_score)
             if layout_score < chosen_layout_score:
+                layout = Layout({reverse_im_graph_node_map[k]: v for k, v in layout_mapping.items()})
                 logger.debug(
                     "Found layout %s has a lower score (%s) than previous best %s (%s)",
                     layout,

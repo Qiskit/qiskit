@@ -82,10 +82,9 @@ def build_interaction_graph(dag, strict_direction=True):
 
 
 def score_layout(
-    avg_error_map, layout, bit_map, _reverse_bit_map, im_graph, strict_direction=False
+    avg_error_map, layout_mapping, bit_map, _reverse_bit_map, im_graph, strict_direction=False
 ):
     """Score a layout given an average error map."""
-    layout_mapping = {bit_map[k]: v for k, v in layout.get_virtual_bits().items()}
     if layout_mapping:
         size = max(max(layout_mapping), max(layout_mapping.values()))
     else:
