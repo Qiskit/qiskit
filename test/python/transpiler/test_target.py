@@ -1412,6 +1412,16 @@ class TestGlobalVariableWidthOperations(QiskitTestCase):
         self.assertEqual(expected_aqt, self.aqt_target.qargs)
         self.assertEqual(None, self.target_global_gates_only.qargs)
 
+    def test_qargs_single_qarg(self):
+        target = Target()
+        target.add_instruction(XGate(), {(0,): None})
+        self.assertEqual(
+            {
+                (0,),
+            },
+            target.qargs,
+        )
+
     def test_qargs_for_operation_name(self):
         self.assertEqual(
             self.ibm_target.qargs_for_operation_name("rz"), {(0,), (1,), (2,), (3,), (4,)}
