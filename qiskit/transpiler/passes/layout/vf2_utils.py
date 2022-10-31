@@ -140,6 +140,13 @@ def build_average_error_map(target, properties, coupling_map):
                 qargs = (k[0], k[0])
             else:
                 qargs = k
+            # If the properties payload contains an index outside the number of qubits
+            # the properties is invalid for the given input. This normally happens either
+            # with a malconstructed properties payload or if the faulty qubits feature of
+            # BackendV1/BackendPropeties is being used. In such cases we map noise characteristics
+            # so we should jsut treat the mapping as an ideal case.
+            if qargs[0] >= num_qubits or qargs[1] >= num_qubits:
+                continue
             avg_map[qargs[0], qargs[1]] = statistics.mean(v)
             built = True
     elif coupling_map is not None:
