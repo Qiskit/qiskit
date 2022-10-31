@@ -37,10 +37,8 @@ from qiskit.transpiler.passes import GatesInBasis
 from qiskit.transpiler.preset_passmanagers import common
 from qiskit.transpiler.passes.layout.vf2_layout import VF2LayoutStopReason
 
-from qiskit.transpiler import TranspilerError
 from qiskit.transpiler.preset_passmanagers.plugin import (
     PassManagerStagePluginManager,
-    list_stage_plugins,
 )
 
 

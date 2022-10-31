@@ -28,9 +28,7 @@ from qiskit.transpiler.passes import SabreLayout
 from qiskit.transpiler.preset_passmanagers import common
 from qiskit.transpiler.preset_passmanagers.plugin import (
     PassManagerStagePluginManager,
-    list_stage_plugins,
 )
-from qiskit.transpiler import TranspilerError
 
 
 def level_0_pass_manager(pass_manager_config: PassManagerConfig) -> StagedPassManager:

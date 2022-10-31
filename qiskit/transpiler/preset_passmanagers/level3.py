@@ -45,9 +45,7 @@ from qiskit.transpiler.preset_passmanagers import common
 from qiskit.transpiler.passes.layout.vf2_layout import VF2LayoutStopReason
 from qiskit.transpiler.preset_passmanagers.plugin import (
     PassManagerStagePluginManager,
-    list_stage_plugins,
 )
-from qiskit.transpiler import TranspilerError
 
 
 def level_3_pass_manager(pass_manager_config: PassManagerConfig) -> StagedPassManager:
