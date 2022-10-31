@@ -60,7 +60,7 @@ class TestVQD(QiskitAlgorithmsTestCase):
         algorithm_globals.random_seed = self.seed
 
         self.h2_energy = -1.85727503
-        self.h2_energy_excited = [-1.85727503, -1.24458455]
+        self.h2_energy_excited = [-1.85727503, -1.24458455, -0.88272215, -0.22491125]
 
         self.ryrz_wavefunction = TwoLocal(
             rotation_blocks=["ry", "rz"], entanglement_blocks="cz", reps=1
@@ -88,7 +88,7 @@ class TestVQD(QiskitAlgorithmsTestCase):
 
         with self.subTest(msg="test eigenvalue"):
             np.testing.assert_array_almost_equal(
-                result.eigenvalues.real, self.h2_energy_excited, decimal=1
+                result.eigenvalues.real, self.h2_energy_excited[:2], decimal=1
             )
 
         with self.subTest(msg="test dimension of optimal point"):
@@ -107,6 +107,14 @@ class TestVQD(QiskitAlgorithmsTestCase):
                 result.optimal_points,
             )
             np.testing.assert_array_almost_equal(job.result().values, result.eigenvalues, 6)
+
+    def test_full_spectrum(self):
+        """Test obtaining all eigenvalues."""
+        vqd = VQD(self.estimator, self.fidelity, self.ryrz_wavefunction, optimizer=L_BFGS_B(), k=4)
+        result = vqd.compute_eigenvalues(H2_PAULI)
+        np.testing.assert_array_almost_equal(
+            result.eigenvalues.real, self.h2_energy_excited, decimal=2
+        )
 
     @data(H2_PAULI, H2_OP)
     def test_mismatching_num_qubits(self, op):
@@ -198,7 +206,7 @@ class TestVQD(QiskitAlgorithmsTestCase):
         def run_check():
             result = vqd.compute_eigenvalues(operator=op)
             np.testing.assert_array_almost_equal(
-                result.eigenvalues.real, self.h2_energy_excited, decimal=3
+                result.eigenvalues.real, self.h2_energy_excited[:2], decimal=3
             )
 
         run_check()
@@ -226,7 +234,7 @@ class TestVQD(QiskitAlgorithmsTestCase):
         # Start with an empty list
         result = vqd.compute_eigenvalues(op, aux_operators=[])
         np.testing.assert_array_almost_equal(
-            result.eigenvalues.real, self.h2_energy_excited, decimal=2
+            result.eigenvalues.real, self.h2_energy_excited[:2], decimal=2
         )
         self.assertIsNone(result.aux_operators_evaluated)
 
@@ -236,7 +244,7 @@ class TestVQD(QiskitAlgorithmsTestCase):
         aux_ops = [aux_op1, aux_op2]
         result = vqd.compute_eigenvalues(op, aux_operators=aux_ops)
         np.testing.assert_array_almost_equal(
-            result.eigenvalues.real, self.h2_energy_excited, decimal=2
+            result.eigenvalues.real, self.h2_energy_excited[:2], decimal=2
         )
         self.assertEqual(len(result.aux_operators_evaluated), 2)
         # expectation values
@@ -250,7 +258,7 @@ class TestVQD(QiskitAlgorithmsTestCase):
         extra_ops = [*aux_ops, None, 0]
         result = vqd.compute_eigenvalues(op, aux_operators=extra_ops)
         np.testing.assert_array_almost_equal(
-            result.eigenvalues.real, self.h2_energy_excited, decimal=2
+            result.eigenvalues.real, self.h2_energy_excited[:2], decimal=2
         )
         self.assertEqual(len(result.aux_operators_evaluated), 2)
         # expectation values
@@ -278,7 +286,7 @@ class TestVQD(QiskitAlgorithmsTestCase):
         # Start with an empty dictionary
         result = vqd.compute_eigenvalues(op, aux_operators={})
         np.testing.assert_array_almost_equal(
-            result.eigenvalues.real, self.h2_energy_excited, decimal=2
+            result.eigenvalues.real, self.h2_energy_excited[:2], decimal=2
         )
         self.assertIsNone(result.aux_operators_evaluated)
 
