@@ -29,6 +29,7 @@ class PermRowCol:
 
     def __init__(self, coupling_map: CouplingMap):
         self._coupling_map = coupling_map
+        self._graph = coupling_map.graph
 
     def perm_row_col(self, parity_mat: np.ndarray, coupling_map: CouplingMap) -> QuantumCircuit:
         """Run permrowcol algorithm on the given parity matrix
@@ -76,7 +77,6 @@ class PermRowCol:
     def eliminate_column(
         self,
         parity_mat: np.ndarray,
-        coupling: CouplingMap,
         root: int,
         col: int,
         terminals: np.ndarray,
@@ -93,9 +93,7 @@ class PermRowCol:
             list: list of tuples represents control and target qubits with a cnot gate between them.
         """
         C = []
-        tree = rx.steiner_tree(
-            pydigraph_to_pygraph(coupling.graph), terminals, weight_fn=lambda x: 1
-        )
+        tree = rx.steiner_tree(pydigraph_to_pygraph(self._graph), terminals, weight_fn=lambda x: 1)
         post_edges = []
         postorder_traversal(tree, root, post_edges)
 
@@ -110,9 +108,7 @@ class PermRowCol:
 
         return C
 
-    def eliminate_row(
-        self, parity_mat: np.ndarray, coupling: CouplingMap, root: int, terminals: np.ndarray
-    ) -> list:
+    def eliminate_row(self, parity_mat: np.ndarray, root: int, terminals: np.ndarray) -> list:
         """Eliminates the selected row from the parity matrix and returns the operations as a list of tuples.
 
         Args:
@@ -125,9 +121,7 @@ class PermRowCol:
             list of tuples represents control and target qubits with a cnot gate between them.
         """
         C = []
-        tree = rx.steiner_tree(
-            pydigraph_to_pygraph(coupling.graph), terminals, weight_fn=lambda x: 1
-        )
+        tree = rx.steiner_tree(pydigraph_to_pygraph(self._graph), terminals, weight_fn=lambda x: 1)
 
         pre_edges = []
         preorder_traversal(tree, root, pre_edges)
