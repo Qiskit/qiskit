@@ -11,18 +11,18 @@
 # that they have been altered from the originals.
 
 """
-==================================
+===================================
 Events (:mod:`qiskit.tools.events`)
-==================================
+===================================
 
-A helper component for publish/subscribe events
+A helper component for publish and subscribe events
 
 .. currentmodule:: qiskit.tools.events
 
 TextProgressBar
 ---------------
 
-Text based progress bar for Jupyter magics
+A text based progress bar for Jupyter magics
 
 .. autosummary::
    :toctree: ../stubs/
