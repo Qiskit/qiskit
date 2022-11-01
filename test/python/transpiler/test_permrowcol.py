@@ -239,7 +239,6 @@ class TestPermRowCol(QiskitTestCase):
         ret = permrowcol.eliminate_row(parity_mat, root, terminals)
         self.assertEqual(1, sum(parity_mat[1]))
         self.assertEqual(1, parity_mat[1, 2])
-        self.assertIsInstance(instance, np.ndarray)
     
     def test_return_columns_return_list(self):
         """Test the output type of return_columns"""

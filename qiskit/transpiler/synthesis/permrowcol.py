@@ -55,13 +55,14 @@ class PermRowCol:
             cols = self.return_columns(qubit_alloc)
             column = self.choose_column(parity_mat, cols, row)
             nodes = self.get_nodes(parity_mat, column)
-            for edge in self.eliminate_column(parity_mat, CouplingMap(), row, nodes):
+            for edge in self.eliminate_column(parity_mat, row, column, nodes):
                 circuit.cx(edge[0], edge[1])
 
             if sum(parity_mat[row]) > 1:
                 A = np.delete(np.delete(parity_mat, row, 0), column, 1)
                 B = np.delete(parity_mat, column, 1)[row]
                 # X = inv(A) * B
+                # Eliminate row will go here
 
             qubit_alloc[column] = row
 
