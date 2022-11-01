@@ -159,41 +159,17 @@ going to run and install the packages.  There are three main ways to do this:
 
           <h2>Installing Terra from Source</h2>
 
-       Installing from source requires that you have a C++ compiler on your system that supports
-       C++11.
+       Installing from source requires that you have the Rust compiler on your system.
+       To install the Rust compiler the recommended path is to use rustup, which is
+       a cross-platform Rust installer. To use rustup you can go to:
 
+       https://rustup.rs/
 
-       .. tab-set::
+       which will provide instructions for how to install rust on your platform.
+       Besides rustup there are
+       `other installation methods <https://forge.rust-lang.org/infra/other-installation-methods.html>`__ available too.
 
-          .. tab-item:: Compiler for Linux
-
-             On most Linux platforms, the necessary GCC compiler is already installed.
-
-          .. tab-item:: Compiler for macOS
-
-             If you use macOS, you can install the Clang compiler by installing XCode.
-             Check if you have XCode and Clang installed by opening a terminal window and entering the
-             following.
-
-             .. code:: text
-
-                clang --version
-
-             Install XCode and Clang by using the following command.
-
-             .. code:: text
-
-                xcode-select --install
-
-          .. tab-item:: Compiler for Windows
-
-             On Windows, it is easiest to install the Visual C++ compiler from the
-             `Build Tools for Visual Studio 2022 <https://visualstudio.microsoft.com/downloads/#build-tools-for-visual-studio-2022>`__.
-             You can instead install Visual Studio version 2015, 2017, or 2019 making sure to select the
-             options for installing the C++ compiler.
-
-
-       Once the compilers are installed, you are ready to install Qiskit Terra.
+       Once the Rust compiler is installed, you are ready to install Qiskit Terra.
 
        1. Clone the Terra repository.
 
@@ -207,19 +183,13 @@ going to run and install the packages.  There are three main ways to do this:
 
              cd qiskit-terra
 
-       3. Install the Python requirements libraries from your ``qiskit-terra`` directory.
-
-          .. code:: text
-
-             pip install cython
-
-       4. If you want to run tests or linting checks, install the developer requirements.
+       3. If you want to run tests or linting checks, install the developer requirements.
 
           .. code:: text
 
              pip install -r requirements-dev.txt
 
-       5. Install ``qiskit-terra``.
+       4. Install ``qiskit-terra``.
 
           .. code:: text
 
@@ -231,6 +201,24 @@ going to run and install the packages.  There are three main ways to do this:
        .. code:: text
 
           pip install -e .
+
+       Installing in editable mode will build the compiled extensions in debug mode
+       without optimizations. This will affect the runtime performance of the compiled
+       code. If you'd like to use editable mode and build the compiled code in release
+       with optimizations enabled you can run:
+
+       .. code:: text
+
+           python setup.py build_rust --release --inplace
+
+       after you run pip and that will rebuild the binary in release mode.
+       If you are working on Rust code in Qiskit you will need to rebuild the extension
+       code every time you make a local change. ``pip install -e .`` will only build
+       the Rust extension when it's called, so any local changes you make to the Rust
+       code after running pip will not be reflected in the installed package unless
+       you rebuild the extension. You can leverage the above ``build_rust`` command to
+       do this (with or without ``--release`` based on whether you want to build in
+       debug mode or release mode).
 
        You can then run the code examples after installing Terra. You can
        run the example with the following command.
@@ -270,21 +258,14 @@ going to run and install the packages.  There are three main ways to do this:
 
              git clone https://github.com/Qiskit/qiskit-aer
 
-       2. Install build requirements.
-
-          .. code:: text
-
-             pip install cmake scikit-build cython
-
-       After this, the steps to install Aer depend on which operating system you are
-       using. Since Aer is a compiled C++ program with a Python interface, there are
-       non-Python dependencies for building the Aer binary which can't be installed
-       universally depending on operating system.
-
+       To install Aer depend on which operating system you are using. Since Aer is
+       a compiled C++ program with a Python interface, there are non-Python
+       dependencies for building the Aer binary which can't be installed universally
+       depending on operating system.
 
        .. dropdown:: Linux
 
-          3. Install compiler requirements.
+          2. Install compiler requirements.
 
              Building Aer requires a C++ compiler and development headers.
 
@@ -301,7 +282,7 @@ going to run and install the packages.  There are three main ways to do this:
 
                    apt-get install build-essential
 
-          4. Install OpenBLAS development headers.
+          3. Install OpenBLAS development headers.
 
              If you're using Fedora or an equivalent Linux distribution,
              install using:
@@ -319,7 +300,7 @@ going to run and install the packages.  There are three main ways to do this:
 
        .. dropdown:: macOS
 
-          3. Install dependencies.
+          2. Install dependencies.
 
              To use the `Clang <https://clang.llvm.org/>`__ compiler on macOS, you need to install
              an extra library for supporting `OpenMP <https://www.openmp.org/>`__.  You can use `brew <https://brew.sh/>`__
@@ -329,7 +310,7 @@ going to run and install the packages.  There are three main ways to do this:
 
                    brew install libomp
 
-          4. Then install a BLAS implementation; `OpenBLAS <https://www.openblas.net/>`__
+          3. Then install a BLAS implementation; `OpenBLAS <https://www.openblas.net/>`__
              is the default choice.
 
              .. code:: text
@@ -344,7 +325,7 @@ going to run and install the packages.  There are three main ways to do this:
 
        .. dropdown:: Windows
 
-          3. All dependencies are added as part of the Visual C++ compiler installed above,
+          2. All dependencies are added as part of the Visual C++ compiler installed above,
              so no additional setup is needed.
 
 
@@ -353,7 +334,7 @@ going to run and install the packages.  There are three main ways to do this:
        to achieve different simulation goals.
 
 
-       5. Build and install qiskit-aer directly
+       4. Build and install qiskit-aer directly
 
           If you have pip <19.0.0 installed and your environment doesn't require a
           custom build, run:
