@@ -84,7 +84,7 @@ class VF2PostLayout(AnalysisPass):
     for the 2q gate. The diagonal represents 1q error rates on that qubit.
     If a value is ``NaN`` that is treated as an ideal edge (or a lack of
     support for that qubit/2q operation) and that will be excluded from the
-    culmaltive error calculation. For example::
+    cumulative error calculation. For example::
 
         [[0.0024, 0.01],
          [NaN, 0.0032]]

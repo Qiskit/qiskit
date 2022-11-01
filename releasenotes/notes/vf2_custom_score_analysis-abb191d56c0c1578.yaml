@@ -7,7 +7,7 @@ features:
     property set that will be used for the error weights instead of using
     the error rates in the backend's :class:`~.Target` (or
     :class:`~.BackendProperties` for :class:`~.BackendV1`). The value should be
-    an 2d Numpy array where each value represents the avg error rate for that
+    an 2d Numpy array where each value represents the avg error rate for all
     1 or 2 qubit operation on those qubits. ``NaN`` can be used to represent
     the lackof error or support for running gates on that qubit. For example::
 
