@@ -19,6 +19,7 @@ import numpy as np
 
 from qiskit.circuit.library.standard_gates import U3Gate
 from qiskit.transpiler.basepasses import TransformationPass
+from qiskit.transpiler.passes.utils import control_flow
 from qiskit.quantum_info.synthesis import one_qubit_decompose
 from qiskit.converters import circuit_to_dag
 
@@ -139,6 +140,7 @@ class Optimize1qGatesDecomposition(TransformationPass):
             or isinstance(old_run[0].op, U3Gate)
         )
 
+    @control_flow.trivial_recurse
     def run(self, dag):
         """Run the Optimize1qGatesDecomposition pass on `dag`.
 

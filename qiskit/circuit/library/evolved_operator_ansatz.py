@@ -73,6 +73,7 @@ class EvolvedOperatorAnsatz(NLocal):
         self._ops_are_parameterized = None
 
     def _check_configuration(self, raise_on_failure: bool = True) -> bool:
+        """Check if the current configuration is valid."""
         if not super()._check_configuration(raise_on_failure):
             return False
 
@@ -152,7 +153,7 @@ class EvolvedOperatorAnsatz(NLocal):
             return np.zeros(self.reps * len(self.operators), dtype=float)
 
     def _build(self):
-        if self._data is not None:
+        if self._is_built:
             return
 
         # need to check configuration here to ensure the operators are not None

@@ -57,3 +57,20 @@ def condition_bits(condition: Tuple[Union[ClassicalRegister, Clbit], int]) -> Tu
         a tuple of all classical bits used in the condition.
     """
     return (condition[0],) if isinstance(condition[0], Clbit) else tuple(condition[0])
+
+
+def condition_registers(
+    condition: Tuple[Union[ClassicalRegister, Clbit], int]
+) -> Tuple[ClassicalRegister, ...]:
+    """Return any classical registers used by ``condition`` as a tuple of :obj:`.ClassicalRegister`.
+
+    This is useful as a quick method for extracting the registers from a condition, if any exist.
+    The output might be empty if the condition is on a single bit.
+
+    Args:
+        condition: the valid condition to extract any registers from.
+
+    Returns:
+        a tuple of all classical registers used in the condition.
+    """
+    return (condition[0],) if isinstance(condition[0], ClassicalRegister) else ()

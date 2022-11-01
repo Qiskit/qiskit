@@ -12,15 +12,24 @@
 
 """Optimizer interface"""
 
-from typing import Dict, Any, Union, Callable, Optional, Tuple, List
+from __future__ import annotations
 
-import warnings
+from abc import ABC, abstractmethod
 from enum import IntEnum
 import logging
-from abc import ABC, abstractmethod
+import sys
+from typing import Any, Callable, Dict, List, Optional, Tuple, Union
+
 import numpy as np
+import scipy
 
 from qiskit.algorithms.algorithm_result import AlgorithmResult
+
+if sys.version_info >= (3, 8):
+    # pylint: disable=no-name-in-module, ungrouped-imports
+    from typing import Protocol
+else:
+    from typing_extensions import Protocol
 
 logger = logging.getLogger(__name__)
 
@@ -92,12 +101,59 @@ class OptimizerResult(AlgorithmResult):
     @property
     def nit(self) -> Optional[int]:
         """The total number of iterations."""
-        return self._njev
+        return self._nit
 
     @nit.setter
     def nit(self, nit: Optional[int]) -> None:
         """Set the total number of iterations."""
         self._nit = nit
+
+
+class Minimizer(Protocol):
+    """Callable Protocol for minimizer.
+
+    This interface is based on `SciPy's optimize module
+    <https://docs.scipy.org/doc/scipy/reference/generated/scipy.optimize.minimize.html>`__.
+
+     This protocol defines a callable taking the following parameters:
+
+         fun
+             The objective function to minimize (for example the energy in the case of the VQE).
+         x0
+             The initial point for the optimization.
+         jac
+             The gradient of the objective function.
+         bounds
+             Parameters bounds for the optimization. Note that these might not be supported
+             by all optimizers.
+
+     and which returns a minimization result object (either SciPy's or Qiskit's).
+    """
+
+    # pylint: disable=invalid-name
+    def __call__(
+        self,
+        fun: Callable[[np.ndarray], float],
+        x0: np.ndarray,
+        jac: Callable[[np.ndarray], np.ndarray] | None,
+        bounds: list[tuple[float, float]] | None,
+    ) -> scipy.optimize.OptimizeResult | OptimizerResult:
+        """Minimize the objective function.
+
+        This interface is based on `SciPy's optimize module <https://docs.scipy.org/doc
+        /scipy/reference/generated/scipy.optimize.minimize.html>`__.
+
+        Args:
+            fun: The objective function to minimize (for example the energy in the case of the VQE).
+            x0: The initial point for the optimization.
+            jac: The gradient of the objective function.
+            bounds: Parameters bounds for the optimization. Note that these might not be supported
+                by all optimizers.
+
+        Returns:
+             The minimization result object (either SciPy's or Qiskit's).
+        """
+        ...
 
 
 class OptimizerSupportLevel(IntEnum):
@@ -124,7 +180,7 @@ class Optimizer(ABC):
         self._bounds_support_level = self.get_support_level()["bounds"]
         self._initial_point_support_level = self.get_support_level()["initial_point"]
         self._options = {}
-        self._max_evals_grouped = 1
+        self._max_evals_grouped = None
 
     @abstractmethod
     def get_support_level(self):
@@ -149,7 +205,7 @@ class Optimizer(ABC):
 
     # pylint: disable=invalid-name
     @staticmethod
-    def gradient_num_diff(x_center, f, epsilon, max_evals_grouped=1):
+    def gradient_num_diff(x_center, f, epsilon, max_evals_grouped=None):
         """
         We compute the gradient with the numeric differentiation in the parallel way,
         around the point x_center.
@@ -158,11 +214,14 @@ class Optimizer(ABC):
             x_center (ndarray): point around which we compute the gradient
             f (func): the function of which the gradient is to be computed.
             epsilon (float): the epsilon used in the numeric differentiation.
-            max_evals_grouped (int): max evals grouped
+            max_evals_grouped (int): max evals grouped, defaults to 1 (i.e. no batching).
         Returns:
             grad: the gradient computed
 
         """
+        if max_evals_grouped is None:  # no batching by default
+            max_evals_grouped = 1
+
         forig = f(*((x_center,)))
         grad = []
         ei = np.zeros((len(x_center),), float)
@@ -244,8 +303,7 @@ class Optimizer(ABC):
         """
         raise NotImplementedError("The settings method is not implemented per default.")
 
-    # TODO make abstract after the deprecation period
-    # @abstractmethod
+    @abstractmethod
     def minimize(
         self,
         fun: Callable[[POINT], float],
@@ -266,78 +324,6 @@ class Optimizer(ABC):
             The result of the optimization, containing e.g. the result as attribute ``x``.
         """
         raise NotImplementedError()
-
-    def optimize(
-        self,
-        num_vars,
-        objective_function,  # pylint: disable=unused-argument
-        gradient_function=None,
-        variable_bounds=None,
-        initial_point=None,
-    ):
-        """
-        Perform optimization.
-
-        Args:
-            num_vars (int) : Number of parameters to be optimized.
-            objective_function (callable) : A function that
-                computes the objective function.
-            gradient_function (callable) : A function that
-                computes the gradient of the objective function, or
-                None if not available.
-            variable_bounds (list[(float, float)]) : List of variable
-                bounds, given as pairs (lower, upper). None means
-                unbounded.
-            initial_point (numpy.ndarray[float]) : Initial point.
-
-        Returns:
-            point, value, nfev
-               point: is a 1D numpy.ndarray[float] containing the solution
-               value: is a float with the objective function value
-               nfev: number of objective function calls made if available or None
-        Raises:
-            ValueError: invalid input
-        """
-        warnings.warn(
-            f"The {self.__class__.__name__}.optimize method is deprecated as of Qiskit Terra "
-            "0.19.0 and will be removed no sooner than 3 months after the release date. "
-            f"Instead, use the {self.__class__.__name__}.minimize method, which mimics the "
-            "signature of scipy.optimize.minimize.",
-            DeprecationWarning,
-            stacklevel=2,
-        )
-
-        if initial_point is not None and len(initial_point) != num_vars:
-            raise ValueError("Initial point does not match dimension")
-        if variable_bounds is not None and len(variable_bounds) != num_vars:
-            raise ValueError("Variable bounds not match dimension")
-
-        has_bounds = False
-        if variable_bounds is not None:
-            # If *any* value is *equal* in bounds array to None then the does *not* have bounds
-            has_bounds = not np.any(np.equal(variable_bounds, None))
-
-        if gradient_function is None and self.is_gradient_required:
-            raise ValueError("Gradient is required but None given")
-        if not has_bounds and self.is_bounds_required:
-            raise ValueError("Variable bounds is required but None given")
-        if initial_point is None and self.is_initial_point_required:
-            raise ValueError("Initial point is required but None given")
-
-        if gradient_function is not None and self.is_gradient_ignored:
-            logger.debug(
-                "WARNING: %s does not support gradient function. It will be ignored.",
-                self.__class__.__name__,
-            )
-        if has_bounds and self.is_bounds_ignored:
-            logger.debug(
-                "WARNING: %s does not support bounds. It will be ignored.", self.__class__.__name__
-            )
-        if initial_point is not None and self.is_initial_point_ignored:
-            logger.debug(
-                "WARNING: %s does not support initial point. It will be ignored.",
-                self.__class__.__name__,
-            )
 
     @property
     def gradient_support_level(self):

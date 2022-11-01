@@ -47,7 +47,7 @@ class TestScalarOpInit(ScalarOpTestCase):
     @combine(j=range(1, 5))
     def test_init(self, j):
         """Test {j}-qubit automatic dims."""
-        dim = 2 ** j
+        dim = 2**j
         op = ScalarOp(dim)
         self.assertEqual(op.dim, (dim, dim))
         self.assertEqual(op.input_dims(), j * (2,))
@@ -128,7 +128,7 @@ class TestScalarOpMethods(ScalarOpTestCase):
     def test_base_operator_power_exp(self, coeff, exp):
         """Test basic class power method (** {exp}, coeff={coeff})"""
         op = ScalarOp(4, coeff=coeff).power(exp)
-        target = coeff ** exp
+        target = coeff**exp
         self.assertTrue(isinstance(op, ScalarOp))
         self.assertAlmostEqual(op.coeff, target)
 
@@ -152,6 +152,9 @@ class TestScalarOpLinearMethods(ScalarOpTestCase):
         val = coeff2 * ScalarOp(dims, coeff=coeff1)
         target = coeff1 * coeff2
         self.assertScalarOp(val, dims, target)
+        val = ScalarOp(dims, coeff=coeff1) * coeff2
+        target = coeff2 * coeff1
+        self.assertScalarOp(val, dims, target)
 
     @combine(coeff1=[0, 1, -3.1, 1 + 3j], coeff2=[-1, -5.1 - 2j])
     def test_add(self, coeff1, coeff2):
@@ -165,6 +168,27 @@ class TestScalarOpLinearMethods(ScalarOpTestCase):
         target = coeff1 + coeff2
         self.assertScalarOp(val, dims, target)
 
+    @combine(coeff1=[0, 1, -3.1, 1 + 3j])
+    def test_radd(self, coeff1):
+        """Test right-side addition with ScalarOp."""
+        dims = (3, 2)
+        op1 = ScalarOp(dims, coeff=coeff1)
+
+        val = op1 + 0
+        self.assertScalarOp(val, dims, coeff1)
+
+    @combine(coeff1=[0, 1, -3.1, 1 + 3j], coeff2=[-1, -5.1 - 2j])
+    def test_sum(self, coeff1, coeff2):
+        """Test add operation with ScalarOp. ({coeff1} + {coeff2})"""
+        # Add two ScalarOps
+        dims = (3, 2)
+        op1 = ScalarOp(dims, coeff=coeff1)
+        op2 = ScalarOp(6, coeff=coeff2)
+
+        val = sum([op1, op2])
+        target = coeff1 + coeff2
+        self.assertScalarOp(val, dims, target)
+
     @combine(coeff1=[0, 1, -3.1, 1 + 3j], coeff2=[-1, -5.1 - 2j])
     def test_subtract(self, coeff1, coeff2):
         """Test add operation with ScalarOp. ({coeff1} - {coeff2})"""
@@ -173,6 +197,17 @@ class TestScalarOpLinearMethods(ScalarOpTestCase):
         op2 = ScalarOp(6, coeff=coeff2)
 
         val = op1 - op2
+        target = coeff1 - coeff2
+        self.assertScalarOp(val, dims, target)
+
+    @combine(coeff1=[0, 1, -3.1, 1 + 3j], coeff2=[-1, -5.1 - 2j])
+    def test_rsub(self, coeff1, coeff2):
+        """Test right-side subtraction with ScalarOp."""
+        dims = (3, 2)
+        op1 = ScalarOp(dims, coeff=coeff1)
+        op2 = ScalarOp(dims, coeff=coeff2)
+
+        val = op2.__rsub__(op1)
         target = coeff1 - coeff2
         self.assertScalarOp(val, dims, target)
 
@@ -360,6 +395,10 @@ class TestScalarOpCompose(ScalarOpTestCase):
         op2 = ScalarOp(dims, coeff=coeff2)
 
         val = op1.dot(op2)
+        target = coeff1 * coeff2
+        self.assertScalarOp(val, dims, target)
+
+        val = op1 @ op2
         target = coeff1 * coeff2
         self.assertScalarOp(val, dims, target)
 

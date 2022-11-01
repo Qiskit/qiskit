@@ -1,0 +1,9 @@
+---
+upgrade:
+  - |
+    :class:`.Result` was modified so that it always contains ``date``, ``status``,
+    and ``header`` attributes (set to ``None`` if not specified). 
+fixes:
+  - |
+    Fixed a bug in the string representation of :class:`.Result` objects that
+    caused the attributes to be specified incorrectly.

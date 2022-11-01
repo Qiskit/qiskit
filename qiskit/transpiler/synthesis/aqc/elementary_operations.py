@@ -31,7 +31,7 @@ def place_unitary(unitary: np.ndarray, n: int, j: int) -> np.ndarray:
     Returns:
         a unitary of n qubits with u in position j.
     """
-    return np.kron(np.kron(np.eye(2 ** j), unitary), np.eye(2 ** (n - 1 - j)))
+    return np.kron(np.kron(np.eye(2**j), unitary), np.eye(2 ** (n - 1 - j)))
 
 
 def place_cnot(n: int, j: int, k: int) -> np.ndarray:
@@ -48,20 +48,20 @@ def place_cnot(n: int, j: int, k: int) -> np.ndarray:
     """
     if j < k:
         unitary = np.kron(
-            np.kron(np.eye(2 ** j), [[1, 0], [0, 0]]), np.eye(2 ** (n - 1 - j))
+            np.kron(np.eye(2**j), [[1, 0], [0, 0]]), np.eye(2 ** (n - 1 - j))
         ) + np.kron(
             np.kron(
-                np.kron(np.kron(np.eye(2 ** j), [[0, 0], [0, 1]]), np.eye(2 ** (k - j - 1))),
+                np.kron(np.kron(np.eye(2**j), [[0, 0], [0, 1]]), np.eye(2 ** (k - j - 1))),
                 [[0, 1], [1, 0]],
             ),
             np.eye(2 ** (n - 1 - k)),
         )
     else:
         unitary = np.kron(
-            np.kron(np.eye(2 ** j), [[1, 0], [0, 0]]), np.eye(2 ** (n - 1 - j))
+            np.kron(np.eye(2**j), [[1, 0], [0, 0]]), np.eye(2 ** (n - 1 - j))
         ) + np.kron(
             np.kron(
-                np.kron(np.kron(np.eye(2 ** k), [[0, 1], [1, 0]]), np.eye(2 ** (j - k - 1))),
+                np.kron(np.kron(np.eye(2**k), [[0, 1], [1, 0]]), np.eye(2 ** (j - k - 1))),
                 [[0, 0], [0, 1]],
             ),
             np.eye(2 ** (n - 1 - j)),

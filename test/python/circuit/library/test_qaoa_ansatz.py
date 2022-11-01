@@ -34,8 +34,8 @@ class TestQAOAAnsatz(QiskitTestCase):
 
         circuit = circuit.decompose()
         self.assertEqual(1, len(parameters))
-        self.assertIsInstance(circuit.data[0][0], HGate)
-        self.assertIsInstance(circuit.data[1][0], RXGate)
+        self.assertIsInstance(circuit.data[0].operation, HGate)
+        self.assertIsInstance(circuit.decompose().data[1].operation, RXGate)
 
     def test_custom_initial_state(self):
         """Test circuit with a custom initial state."""
@@ -46,8 +46,8 @@ class TestQAOAAnsatz(QiskitTestCase):
         parameters = circuit.parameters
         circuit = circuit.decompose()
         self.assertEqual(1, len(parameters))
-        self.assertIsInstance(circuit.data[0][0], YGate)
-        self.assertIsInstance(circuit.data[1][0], RXGate)
+        self.assertIsInstance(circuit.data[0].operation, YGate)
+        self.assertIsInstance(circuit.decompose().data[1].operation, RXGate)
 
     def test_invalid_reps(self):
         """Test negative reps."""
@@ -71,8 +71,8 @@ class TestQAOAAnsatz(QiskitTestCase):
         parameters = circuit.parameters
         circuit = circuit.decompose()
         self.assertEqual(0, len(parameters))
-        self.assertIsInstance(circuit.data[0][0], HGate)
-        self.assertIsInstance(circuit.data[1][0], RYGate)
+        self.assertIsInstance(circuit.data[0].operation, HGate)
+        self.assertIsInstance(circuit.data[1].operation, RYGate)
 
     def test_custom_operator_mixer(self):
         """Test circuit with a custom mixer as an operator."""
@@ -82,8 +82,8 @@ class TestQAOAAnsatz(QiskitTestCase):
         parameters = circuit.parameters
         circuit = circuit.decompose()
         self.assertEqual(1, len(parameters))
-        self.assertIsInstance(circuit.data[0][0], HGate)
-        self.assertIsInstance(circuit.data[1][0], RYGate)
+        self.assertIsInstance(circuit.data[0].operation, HGate)
+        self.assertIsInstance(circuit.data[1].operation, RYGate)
 
     def test_parameter_bounds(self):
         """Test the parameter bounds."""
@@ -111,9 +111,9 @@ class TestQAOAAnsatz(QiskitTestCase):
         parameters = circuit.parameters
         circuit = circuit.decompose()
         self.assertEqual(2, len(parameters))
-        self.assertIsInstance(circuit.data[0][0], YGate)
-        self.assertIsInstance(circuit.data[1][0], RZGate)
-        self.assertIsInstance(circuit.data[2][0], RZGate)
+        self.assertIsInstance(circuit.data[0].operation, YGate)
+        self.assertIsInstance(circuit.data[1].operation, RZGate)
+        self.assertIsInstance(circuit.data[2].operation, RZGate)
 
     def test_configuration(self):
         """Test configuration checks."""

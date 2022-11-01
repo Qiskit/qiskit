@@ -12,6 +12,7 @@
 
 """Test operations on the builder interfaces for control flow in dynamic QuantumCircuits."""
 
+import copy
 import math
 
 import ddt
@@ -25,11 +26,12 @@ from qiskit.circuit import (
     QuantumRegister,
     Qubit,
 )
-from qiskit.circuit.controlflow import ForLoopOp, IfElseOp, WhileLoopOp, BreakLoopOp, ContinueLoopOp
+from qiskit.circuit.controlflow import ForLoopOp, IfElseOp, WhileLoopOp
 from qiskit.circuit.controlflow.builder import ControlFlowBuilderBlock
 from qiskit.circuit.controlflow.if_else import IfElsePlaceholder
 from qiskit.circuit.exceptions import CircuitError
 from qiskit.test import QiskitTestCase
+from qiskit.test._canonical import canonicalize_control_flow
 
 
 class SentinelException(Exception):
@@ -39,71 +41,6 @@ class SentinelException(Exception):
 @ddt.ddt
 class TestControlFlowBuilders(QiskitTestCase):
     """Test that the control-flow builder interfaces work, and manage resources correctly."""
-
-    def assertCircuitsEquivalent(self, a, b):
-        """Assert that two circuits (``a`` and ``b``) contain all the same qubits and clbits, and
-        then have the same instructions in order, recursing into nested control-flow constructs.
-
-        Relying on ``QuantumCircuit.__eq__`` doesn't work reliably in all cases here, because we
-        don't care about the order that the builder interface chooses for resources in the inner
-        blocks.  This order is non-deterministic, because internally it uses sets for efficiency,
-        and the order of iteration through a set is dependent on the hash seed.  Instead, we just
-        need to be a bit more explicit about what we care about.  This isn't a full method for
-        comparing if two circuits are equivalent, but for the restricted cases used in these tests,
-        where we deliberately construct the expected result to be equal in the good case, it should
-        test all that is needed.
-        """
-
-        self.assertIsInstance(a, QuantumCircuit)
-        self.assertIsInstance(b, QuantumCircuit)
-
-        # For our purposes here, we don't care about the order bits were added.
-        self.assertEqual(set(a.qubits), set(b.qubits))
-        self.assertEqual(set(a.clbits), set(b.clbits))
-        self.assertEqual(len(a.data), len(b.data))
-
-        for (a_op, a_qubits, a_clbits), (b_op, b_qubits, b_clbits) in zip(a.data, b.data):
-            # Make sure that the operations are the same.
-            self.assertEqual(type(a_op), type(b_op))
-            self.assertEqual(hasattr(a_op, "condition"), hasattr(b_op, "condition"))
-            if hasattr(a_op, "condition") and not isinstance(a_op, (IfElseOp, WhileLoopOp)):
-                self.assertEqual(a_op.condition, b_op.condition)
-            self.assertEqual(hasattr(a_op, "label"), hasattr(b_op, "label"))
-            if hasattr(a_op, "condition"):
-                self.assertEqual(a_op.label, b_op.label)
-            # If it's a block op, we don't care what order the resources are specified in.
-            if isinstance(a_op, WhileLoopOp):
-                self.assertEqual(set(a_qubits), set(b_qubits))
-                self.assertEqual(set(a_clbits), set(b_clbits))
-                self.assertEqual(a_op.condition, b_op.condition)
-                self.assertCircuitsEquivalent(a_op.blocks[0], b_op.blocks[0])
-            elif isinstance(a_op, ForLoopOp):
-                self.assertEqual(set(a_qubits), set(b_qubits))
-                self.assertEqual(set(a_clbits), set(b_clbits))
-                a_indexset, a_loop_parameter, a_body = a_op.params
-                b_indexset, b_loop_parameter, b_body = b_op.params
-                self.assertEqual(a_loop_parameter is None, b_loop_parameter is None)
-                self.assertEqual(a_indexset, b_indexset)
-                if a_loop_parameter is not None:
-                    a_body = a_body.assign_parameters({a_loop_parameter: b_loop_parameter})
-                self.assertCircuitsEquivalent(a_body, b_body)
-            elif isinstance(a_op, IfElseOp):
-                self.assertEqual(set(a_qubits), set(b_qubits))
-                self.assertEqual(set(a_clbits), set(b_clbits))
-                self.assertEqual(a_op.condition, b_op.condition)
-                self.assertEqual(len(a_op.blocks), len(b_op.blocks))
-                self.assertCircuitsEquivalent(a_op.blocks[0], b_op.blocks[0])
-                if len(a_op.blocks) > 1:
-                    self.assertCircuitsEquivalent(a_op.blocks[1], b_op.blocks[1])
-            elif isinstance(a_op, (BreakLoopOp, ContinueLoopOp)):
-                self.assertEqual(set(a_qubits), set(b_qubits))
-                self.assertEqual(set(a_clbits), set(b_clbits))
-            else:
-                # For any other op, we care that the resources are the same, and in the same order,
-                # but we don't mind what sort of iterable they're contained in.
-                self.assertEqual(tuple(a_qubits), tuple(b_qubits))
-                self.assertEqual(tuple(a_clbits), tuple(b_clbits))
-                self.assertEqual(a_op, b_op)
 
     def test_if_simple(self):
         """Test a simple if statement builds correctly, in the midst of other instructions."""
@@ -136,7 +73,7 @@ class TestControlFlowBuilders(QiskitTestCase):
         expected.measure(qubits[0], clbits[1])
         expected.if_test((clbits[1], 0), if_true1, [qubits[0], qubits[1]], [clbits[1]])
 
-        self.assertCircuitsEquivalent(test, expected)
+        self.assertEqual(canonicalize_control_flow(test), canonicalize_control_flow(expected))
 
     def test_if_register(self):
         """Test a simple if statement builds correctly, when using a register as the condition.
@@ -156,7 +93,109 @@ class TestControlFlowBuilders(QiskitTestCase):
         expected.measure(qr, cr)
         expected.if_test((cr, 0), if_true0, [qr[0]], [cr[:]])
 
-        self.assertCircuitsEquivalent(test, expected)
+        self.assertEqual(canonicalize_control_flow(test), canonicalize_control_flow(expected))
+
+    def test_register_condition_in_nested_block(self):
+        """Test that nested blocks can use registers of the outermost circuits as conditions, and
+        they get propagated through all the blocks."""
+
+        qr = QuantumRegister(2)
+        clbits = [Clbit(), Clbit(), Clbit()]
+        cr1 = ClassicalRegister(3)
+        # Try aliased classical registers as well, to catch potential overlap bugs.
+        cr2 = ClassicalRegister(bits=clbits[:2])
+        cr3 = ClassicalRegister(bits=clbits[1:])
+        cr4 = ClassicalRegister(bits=clbits)
+
+        with self.subTest("for/if"):
+            test = QuantumCircuit(qr, clbits, cr1, cr2, cr3, cr4)
+            with test.for_loop(range(3)):
+                with test.if_test((cr1, 0)):
+                    test.x(0)
+                with test.if_test((cr2, 0)):
+                    test.y(0)
+                with test.if_test((cr3, 0)):
+                    test.z(0)
+
+            true_body1 = QuantumCircuit([qr[0]], cr1)
+            true_body1.x(0)
+            true_body2 = QuantumCircuit([qr[0]], cr2)
+            true_body2.y(0)
+            true_body3 = QuantumCircuit([qr[0]], cr3)
+            true_body3.z(0)
+
+            for_body = QuantumCircuit([qr[0]], clbits, cr1, cr2, cr3)  # but not cr4.
+            for_body.if_test((cr1, 0), true_body1, [qr[0]], cr1)
+            for_body.if_test((cr2, 0), true_body2, [qr[0]], cr2)
+            for_body.if_test((cr3, 0), true_body3, [qr[0]], cr3)
+
+            expected = QuantumCircuit(qr, clbits, cr1, cr2, cr3, cr4)
+            expected.for_loop(range(3), None, for_body, [qr[0]], clbits + list(cr1))
+
+            self.assertEqual(canonicalize_control_flow(test), canonicalize_control_flow(expected))
+
+        with self.subTest("for/while"):
+            test = QuantumCircuit(qr, clbits, cr1, cr2, cr3, cr4)
+            with test.for_loop(range(3)):
+                with test.while_loop((cr1, 0)):
+                    test.x(0)
+                with test.while_loop((cr2, 0)):
+                    test.y(0)
+                with test.while_loop((cr3, 0)):
+                    test.z(0)
+
+            while_body1 = QuantumCircuit([qr[0]], cr1)
+            while_body1.x(0)
+            while_body2 = QuantumCircuit([qr[0]], cr2)
+            while_body2.y(0)
+            while_body3 = QuantumCircuit([qr[0]], cr3)
+            while_body3.z(0)
+
+            for_body = QuantumCircuit([qr[0]], clbits, cr1, cr2, cr3)
+            for_body.while_loop((cr1, 0), while_body1, [qr[0]], cr1)
+            for_body.while_loop((cr2, 0), while_body2, [qr[0]], cr2)
+            for_body.while_loop((cr3, 0), while_body3, [qr[0]], cr3)
+
+            expected = QuantumCircuit(qr, clbits, cr1, cr2, cr3, cr4)
+            expected.for_loop(range(3), None, for_body, [qr[0]], clbits + list(cr1))
+
+            self.assertEqual(canonicalize_control_flow(test), canonicalize_control_flow(expected))
+
+        with self.subTest("if/c_if"):
+            test = QuantumCircuit(qr, clbits, cr1, cr2, cr3, cr4)
+            with test.if_test((cr1, 0)):
+                test.x(0).c_if(cr2, 0)
+                test.z(0).c_if(cr3, 0)
+
+            true_body = QuantumCircuit([qr[0]], clbits, cr1, cr2, cr3)
+            true_body.x(0).c_if(cr2, 0)
+            true_body.z(0).c_if(cr3, 0)
+
+            expected = QuantumCircuit(qr, clbits, cr1, cr2, cr3, cr4)
+            expected.if_test((cr1, 0), true_body, [qr[0]], clbits + list(cr1))
+
+            self.assertEqual(canonicalize_control_flow(test), canonicalize_control_flow(expected))
+
+        with self.subTest("while/else/c_if"):
+            test = QuantumCircuit(qr, clbits, cr1, cr2, cr3, cr4)
+            with test.while_loop((cr1, 0)):
+                with test.if_test((cr2, 0)) as else_:
+                    test.x(0).c_if(cr3, 0)
+                with else_:
+                    test.z(0).c_if(cr4, 0)
+
+            true_body = QuantumCircuit([qr[0]], cr2, cr3, cr4)
+            true_body.x(0).c_if(cr3, 0)
+            false_body = QuantumCircuit([qr[0]], cr2, cr3, cr4)
+            false_body.z(0).c_if(cr4, 0)
+
+            while_body = QuantumCircuit([qr[0]], clbits, cr1, cr2, cr3, cr4)
+            while_body.if_else((cr2, 0), true_body, false_body, [qr[0]], clbits)
+
+            expected = QuantumCircuit(qr, clbits, cr1, cr2, cr3, cr4)
+            expected.while_loop((cr1, 0), while_body, [qr[0]], clbits + list(cr1))
+
+            self.assertEqual(canonicalize_control_flow(test), canonicalize_control_flow(expected))
 
     def test_if_else_simple(self):
         """Test a simple if/else statement builds correctly, in the midst of other instructions.
@@ -201,7 +240,7 @@ class TestControlFlowBuilders(QiskitTestCase):
         expected.measure(qubits[0], clbits[1])
         expected.if_else((clbits[1], 0), if_true1, if_false1, [qubits[0], qubits[1]], [clbits[1]])
 
-        self.assertCircuitsEquivalent(test, expected)
+        self.assertEqual(canonicalize_control_flow(test), canonicalize_control_flow(expected))
 
     def test_if_else_resources_expand_true_superset_false(self):
         """Test that the resources of the if and else bodies come out correctly if the true body
@@ -231,7 +270,7 @@ class TestControlFlowBuilders(QiskitTestCase):
         expected.measure(qubits[0], clbits[0])
         expected.if_else((clbits[0], 0), if_true0, if_false0, qubits, clbits)
 
-        self.assertCircuitsEquivalent(test, expected)
+        self.assertEqual(canonicalize_control_flow(test), canonicalize_control_flow(expected))
 
     def test_if_else_resources_expand_false_superset_true(self):
         """Test that the resources of the if and else bodies come out correctly if the false body
@@ -262,7 +301,7 @@ class TestControlFlowBuilders(QiskitTestCase):
         expected.measure(qubits[0], clbits[0])
         expected.if_else((clbits[0], 0), if_true0, if_false0, qubits, clbits)
 
-        self.assertCircuitsEquivalent(test, expected)
+        self.assertEqual(canonicalize_control_flow(test), canonicalize_control_flow(expected))
 
     def test_if_else_resources_expand_true_false_symmetric_difference(self):
         """Test that the resources of the if and else bodies come out correctly if the sets of
@@ -291,7 +330,7 @@ class TestControlFlowBuilders(QiskitTestCase):
         expected.measure(qubits[0], clbits[0])
         expected.if_else((clbits[0], 0), if_true0, if_false0, qubits, [clbits[0]])
 
-        self.assertCircuitsEquivalent(test, expected)
+        self.assertEqual(canonicalize_control_flow(test), canonicalize_control_flow(expected))
 
     def test_if_else_empty_branches(self):
         """Test that the context managers can cope with a body being empty."""
@@ -330,7 +369,34 @@ class TestControlFlowBuilders(QiskitTestCase):
         expected.if_else(cond, empty_with_qubit, only_x, [qubits[0]], [clbits[0]])
         expected.if_else(cond, empty, empty, [], [clbits[0]])
 
-        self.assertCircuitsEquivalent(test, expected)
+        self.assertEqual(canonicalize_control_flow(test), canonicalize_control_flow(expected))
+
+    def test_if_else_tracks_registers(self):
+        """Test that classical registers used in both branches of if statements are tracked
+        correctly."""
+        qr = QuantumRegister(2)
+        cr = [ClassicalRegister(2) for _ in [None] * 4]
+
+        test = QuantumCircuit(qr, *cr)
+        with test.if_test((cr[0], 0)) as else_:
+            test.h(0).c_if(cr[1], 0)
+            # Test repetition.
+            test.h(0).c_if(cr[1], 0)
+        with else_:
+            test.h(0).c_if(cr[2], 0)
+
+        true_body = QuantumCircuit([qr[0]], cr[0], cr[1], cr[2])
+        true_body.h(qr[0]).c_if(cr[1], 0)
+        true_body.h(qr[0]).c_if(cr[1], 0)
+        false_body = QuantumCircuit([qr[0]], cr[0], cr[1], cr[2])
+        false_body.h(qr[0]).c_if(cr[2], 0)
+
+        expected = QuantumCircuit(qr, *cr)
+        expected.if_else(
+            (cr[0], 0), true_body, false_body, [qr[0]], list(cr[0]) + list(cr[1]) + list(cr[2])
+        )
+
+        self.assertEqual(canonicalize_control_flow(test), canonicalize_control_flow(expected))
 
     def test_if_else_nested(self):
         """Test that the if and else context managers can be nested, and don't interfere with each
@@ -361,7 +427,7 @@ class TestControlFlowBuilders(QiskitTestCase):
             expected.if_else(
                 outer_cond, outer_true, outer_false, [qubits[0], qubits[1]], [clbits[0], clbits[2]]
             )
-            self.assertCircuitsEquivalent(test, expected)
+            self.assertEqual(canonicalize_control_flow(test), canonicalize_control_flow(expected))
 
         with self.subTest("if (if else) else"):
             test = QuantumCircuit(qubits, clbits)
@@ -387,7 +453,7 @@ class TestControlFlowBuilders(QiskitTestCase):
 
             expected = QuantumCircuit(qubits, clbits)
             expected.if_else(outer_cond, outer_true, outer_false, qubits, [clbits[0], clbits[2]])
-            self.assertCircuitsEquivalent(test, expected)
+            self.assertEqual(canonicalize_control_flow(test), canonicalize_control_flow(expected))
 
     def test_break_continue_expand_to_match_arguments_simple(self):
         """Test that ``break`` and ``continue`` statements expand to include all resources in the
@@ -412,7 +478,7 @@ class TestControlFlowBuilders(QiskitTestCase):
             expected = QuantumCircuit(qubits, clbits)
             expected.for_loop(range(2), None, body, qubits, [clbits[0]])
 
-            self.assertCircuitsEquivalent(test, expected)
+            self.assertEqual(canonicalize_control_flow(test), canonicalize_control_flow(expected))
 
         with self.subTest("while"):
             cond = (clbits[0], 0)
@@ -432,7 +498,7 @@ class TestControlFlowBuilders(QiskitTestCase):
             expected = QuantumCircuit(qubits, clbits)
             expected.while_loop(cond, body, qubits, [clbits[0]])
 
-            self.assertCircuitsEquivalent(test, expected)
+            self.assertEqual(canonicalize_control_flow(test), canonicalize_control_flow(expected))
 
     @ddt.data(QuantumCircuit.break_loop, QuantumCircuit.continue_loop)
     def test_break_continue_accept_c_if(self, loop_operation):
@@ -454,7 +520,7 @@ class TestControlFlowBuilders(QiskitTestCase):
             expected = QuantumCircuit(qubits, clbits)
             expected.for_loop(range(2), None, body, [qubits[0]], [clbits[1]])
 
-            self.assertCircuitsEquivalent(test, expected)
+            self.assertEqual(canonicalize_control_flow(test), canonicalize_control_flow(expected))
 
         with self.subTest("while"):
             cond = (clbits[0], 0)
@@ -470,7 +536,7 @@ class TestControlFlowBuilders(QiskitTestCase):
             expected = QuantumCircuit(qubits, clbits)
             expected.while_loop(cond, body, [qubits[0]], clbits)
 
-            self.assertCircuitsEquivalent(test, expected)
+            self.assertEqual(canonicalize_control_flow(test), canonicalize_control_flow(expected))
 
     @ddt.data(QuantumCircuit.break_loop, QuantumCircuit.continue_loop)
     def test_break_continue_only_expand_to_nearest_loop(self, loop_operation):
@@ -502,7 +568,7 @@ class TestControlFlowBuilders(QiskitTestCase):
             expected = QuantumCircuit(qubits, clbits)
             expected.for_loop(range(2), None, outer_body, [qubits[0], qubits[1]], [clbits[1]])
 
-            self.assertCircuitsEquivalent(test, expected)
+            self.assertEqual(canonicalize_control_flow(test), canonicalize_control_flow(expected))
 
         with self.subTest("for while"):
             test = QuantumCircuit(qubits, clbits)
@@ -527,7 +593,7 @@ class TestControlFlowBuilders(QiskitTestCase):
                 range(2), None, outer_body, [qubits[0], qubits[1]], [clbits[0], clbits[1]]
             )
 
-            self.assertCircuitsEquivalent(test, expected)
+            self.assertEqual(canonicalize_control_flow(test), canonicalize_control_flow(expected))
 
         with self.subTest("while for"):
             test = QuantumCircuit(qubits, clbits)
@@ -550,7 +616,7 @@ class TestControlFlowBuilders(QiskitTestCase):
             expected = QuantumCircuit(qubits, clbits)
             expected.while_loop(cond_outer, outer_body, [qubits[0], qubits[1]], [clbits[1]])
 
-            self.assertCircuitsEquivalent(test, expected)
+            self.assertEqual(canonicalize_control_flow(test), canonicalize_control_flow(expected))
 
         with self.subTest("while while"):
             test = QuantumCircuit(qubits, clbits)
@@ -575,7 +641,7 @@ class TestControlFlowBuilders(QiskitTestCase):
                 cond_outer, outer_body, [qubits[0], qubits[1]], [clbits[0], clbits[1]]
             )
 
-            self.assertCircuitsEquivalent(test, expected)
+            self.assertEqual(canonicalize_control_flow(test), canonicalize_control_flow(expected))
 
         with self.subTest("for (for, for)"):
             # This test is specifically to check that multiple inner loops with different numbers of
@@ -608,7 +674,7 @@ class TestControlFlowBuilders(QiskitTestCase):
             expected = QuantumCircuit(qubits, clbits)
             expected.for_loop(range(2), None, outer_body, qubits, [clbits[1]])
 
-            self.assertCircuitsEquivalent(test, expected)
+            self.assertEqual(canonicalize_control_flow(test), canonicalize_control_flow(expected))
 
     @ddt.data(QuantumCircuit.break_loop, QuantumCircuit.continue_loop)
     def test_break_continue_nested_in_if(self, loop_operation):
@@ -654,7 +720,7 @@ class TestControlFlowBuilders(QiskitTestCase):
             expected = QuantumCircuit(qubits, clbits)
             expected.for_loop(range(2), None, loop_body, [qubits[0]], [clbits[0], clbits[2]])
 
-            self.assertCircuitsEquivalent(test, expected)
+            self.assertEqual(canonicalize_control_flow(test), canonicalize_control_flow(expected))
 
         with self.subTest("for/else"):
             test = QuantumCircuit(qubits, clbits)
@@ -689,7 +755,7 @@ class TestControlFlowBuilders(QiskitTestCase):
                 range(2), None, loop_body, [qubits[0], qubits[1]], [clbits[0], clbits[2]]
             )
 
-            self.assertCircuitsEquivalent(test, expected)
+            self.assertEqual(canonicalize_control_flow(test), canonicalize_control_flow(expected))
 
         with self.subTest("while/if"):
             test = QuantumCircuit(qubits, clbits)
@@ -717,7 +783,7 @@ class TestControlFlowBuilders(QiskitTestCase):
                 cond_outer, loop_body, [qubits[0]], [clbits[0], clbits[1], clbits[2]]
             )
 
-            self.assertCircuitsEquivalent(test, expected)
+            self.assertEqual(canonicalize_control_flow(test), canonicalize_control_flow(expected))
 
         with self.subTest("while/else"):
             test = QuantumCircuit(qubits, clbits)
@@ -756,7 +822,7 @@ class TestControlFlowBuilders(QiskitTestCase):
                 cond_outer, loop_body, [qubits[0], qubits[1]], [clbits[0], clbits[1], clbits[2]]
             )
 
-            self.assertCircuitsEquivalent(test, expected)
+            self.assertEqual(canonicalize_control_flow(test), canonicalize_control_flow(expected))
 
     @ddt.data(QuantumCircuit.break_loop, QuantumCircuit.continue_loop)
     def test_break_continue_deeply_nested_in_if(self, loop_operation):
@@ -825,7 +891,7 @@ class TestControlFlowBuilders(QiskitTestCase):
             expected = QuantumCircuit(qubits, clbits)
             expected.for_loop(range(2), None, loop_body, qubits[:4], clbits[:2] + clbits[3:7])
 
-            self.assertCircuitsEquivalent(test, expected)
+            self.assertEqual(canonicalize_control_flow(test), canonicalize_control_flow(expected))
 
         with self.subTest("for/if/else"):
             test = QuantumCircuit(qubits, clbits)
@@ -892,7 +958,7 @@ class TestControlFlowBuilders(QiskitTestCase):
             expected = QuantumCircuit(qubits, clbits)
             expected.for_loop(range(2), None, loop_body, qubits[:7], clbits[:2] + clbits[3:11])
 
-            self.assertCircuitsEquivalent(test, expected)
+            self.assertEqual(canonicalize_control_flow(test), canonicalize_control_flow(expected))
 
         with self.subTest("for/else/else"):
             # Look on my works, ye Mighty, and despair!
@@ -1047,7 +1113,7 @@ class TestControlFlowBuilders(QiskitTestCase):
             expected = QuantumCircuit(qubits, clbits)
             expected.for_loop(range(2), None, loop_body, loop_qubits, loop_clbits)
 
-            self.assertCircuitsEquivalent(test, expected)
+            self.assertEqual(canonicalize_control_flow(test), canonicalize_control_flow(expected))
 
         # And now we repeat everything for "while" loops...  Trying to parameterize the test over
         # 'for/while' mostly just ends up in it being a bit illegible, because so many parameters
@@ -1096,7 +1162,7 @@ class TestControlFlowBuilders(QiskitTestCase):
             expected = QuantumCircuit(qubits, clbits)
             expected.while_loop(cond_loop, loop_body, qubits[:4], clbits[:7])
 
-            self.assertCircuitsEquivalent(test, expected)
+            self.assertEqual(canonicalize_control_flow(test), canonicalize_control_flow(expected))
 
         with self.subTest("while/if/else"):
             test = QuantumCircuit(qubits, clbits)
@@ -1161,7 +1227,7 @@ class TestControlFlowBuilders(QiskitTestCase):
             expected = QuantumCircuit(qubits, clbits)
             expected.while_loop(cond_loop, loop_body, qubits[:7], clbits[:11])
 
-            self.assertCircuitsEquivalent(test, expected)
+            self.assertEqual(canonicalize_control_flow(test), canonicalize_control_flow(expected))
 
         with self.subTest("while/else/else"):
             test = QuantumCircuit(qubits, clbits)
@@ -1312,7 +1378,7 @@ class TestControlFlowBuilders(QiskitTestCase):
             expected = QuantumCircuit(qubits, clbits)
             expected.while_loop(cond_loop, loop_body, loop_qubits, loop_clbits)
 
-            self.assertCircuitsEquivalent(test, expected)
+            self.assertEqual(canonicalize_control_flow(test), canonicalize_control_flow(expected))
 
     def test_for_handles_iterables_correctly(self):
         """Test that the ``indexset`` in ``for`` loops is handled the way we expect.  In general,
@@ -1325,7 +1391,7 @@ class TestControlFlowBuilders(QiskitTestCase):
             test = QuantumCircuit(bits)
             with test.for_loop(list(expected_indices)):
                 pass
-            instruction, _, _ = test.data[-1]
+            instruction = test.data[-1].operation
             self.assertIsInstance(instruction, ForLoopOp)
             indices, _, _ = instruction.params
             self.assertEqual(indices, expected_indices)
@@ -1334,7 +1400,7 @@ class TestControlFlowBuilders(QiskitTestCase):
             test = QuantumCircuit(bits)
             with test.for_loop(tuple(expected_indices)):
                 pass
-            instruction, _, _ = test.data[-1]
+            instruction = test.data[-1].operation
             self.assertIsInstance(instruction, ForLoopOp)
             indices, _, _ = instruction.params
             self.assertEqual(indices, expected_indices)
@@ -1347,7 +1413,7 @@ class TestControlFlowBuilders(QiskitTestCase):
             test = QuantumCircuit(bits)
             with test.for_loop(consumable()):
                 pass
-            instruction, _, _ = test.data[-1]
+            instruction = test.data[-1].operation
             self.assertIsInstance(instruction, ForLoopOp)
             indices, _, _ = instruction.params
             self.assertEqual(indices, expected_indices)
@@ -1358,7 +1424,7 @@ class TestControlFlowBuilders(QiskitTestCase):
             test = QuantumCircuit(bits)
             with test.for_loop(range_indices):
                 pass
-            instruction, _, _ = test.data[-1]
+            instruction = test.data[-1].operation
             self.assertIsInstance(instruction, ForLoopOp)
             indices, _, _ = instruction.params
             self.assertEqual(indices, range_indices)
@@ -1382,7 +1448,7 @@ class TestControlFlowBuilders(QiskitTestCase):
             with circuit.for_loop((0, 0.5 * math.pi), parameter) as received_parameter:
                 circuit.rx(received_parameter, 0)
             self.assertIs(parameter, received_parameter)
-            instruction = circuit.data[-1][0]
+            instruction = circuit.data[-1].operation
             self.assertIsInstance(instruction, ForLoopOp)
             _, bound_parameter, _ = instruction.params
             self.assertIs(bound_parameter, parameter)
@@ -1392,7 +1458,7 @@ class TestControlFlowBuilders(QiskitTestCase):
             with circuit.for_loop((0, 0.5 * math.pi), parameter) as received_parameter:
                 circuit.x(0)
             self.assertIs(parameter, received_parameter)
-            instruction = circuit.data[-1][0]
+            instruction = circuit.data[-1].operation
             self.assertIsInstance(instruction, ForLoopOp)
             _, bound_parameter, _ = instruction.params
             self.assertIs(parameter, received_parameter)
@@ -1402,7 +1468,7 @@ class TestControlFlowBuilders(QiskitTestCase):
             with circuit.for_loop((0, 0.5 * math.pi)) as received_parameter:
                 circuit.rx(received_parameter, 0)
             self.assertIsInstance(received_parameter, Parameter)
-            instruction = circuit.data[-1][0]
+            instruction = circuit.data[-1].operation
             self.assertIsInstance(instruction, ForLoopOp)
             _, bound_parameter, _ = instruction.params
             self.assertIs(bound_parameter, received_parameter)
@@ -1414,7 +1480,7 @@ class TestControlFlowBuilders(QiskitTestCase):
                     circuit.rx(received_parameter, 0)
                     circuit.break_loop()
             self.assertIsInstance(received_parameter, Parameter)
-            instruction = circuit.data[-1][0]
+            instruction = circuit.data[-1].operation
             self.assertIsInstance(instruction, ForLoopOp)
             _, bound_parameter, _ = instruction.params
             self.assertIs(bound_parameter, received_parameter)
@@ -1428,7 +1494,7 @@ class TestControlFlowBuilders(QiskitTestCase):
                     circuit.rx(received_parameter, 0)
                     circuit.break_loop()
             self.assertIsInstance(received_parameter, Parameter)
-            instruction = circuit.data[-1][0]
+            instruction = circuit.data[-1].operation
             self.assertIsInstance(instruction, ForLoopOp)
             _, bound_parameter, _ = instruction.params
             self.assertIs(bound_parameter, received_parameter)
@@ -1439,7 +1505,7 @@ class TestControlFlowBuilders(QiskitTestCase):
         test = QuantumCircuit(1, 1)
         with test.for_loop(range(2)) as generated_parameter:
             pass
-        instruction = test.data[-1][0]
+        instruction = test.data[-1].operation
         self.assertIsInstance(instruction, ForLoopOp)
         _, bound_parameter, _ = instruction.params
         self.assertIsNot(generated_parameter, None)
@@ -1478,7 +1544,7 @@ class TestControlFlowBuilders(QiskitTestCase):
             expected = QuantumCircuit(qubits, clbits)
             expected.if_test(cond, true_body, [qubits[1]], clbits)
 
-            self.assertCircuitsEquivalent(test, expected)
+            self.assertEqual(canonicalize_control_flow(test), canonicalize_control_flow(expected))
 
         with self.subTest("else"):
             test = QuantumCircuit(qubits, clbits)
@@ -1493,7 +1559,7 @@ class TestControlFlowBuilders(QiskitTestCase):
             expected = QuantumCircuit(qubits, clbits)
             expected.if_else(cond, true_body, false_body, [qubits[1]], clbits)
 
-            self.assertCircuitsEquivalent(test, expected)
+            self.assertEqual(canonicalize_control_flow(test), canonicalize_control_flow(expected))
 
         with self.subTest("for"):
             test = QuantumCircuit(qubits, clbits)
@@ -1505,7 +1571,7 @@ class TestControlFlowBuilders(QiskitTestCase):
             expected = QuantumCircuit(qubits, clbits)
             expected.for_loop(range(2), None, body, [qubits[1]], [clbits[1]])
 
-            self.assertCircuitsEquivalent(test, expected)
+            self.assertEqual(canonicalize_control_flow(test), canonicalize_control_flow(expected))
 
         with self.subTest("while"):
             test = QuantumCircuit(qubits, clbits)
@@ -1517,7 +1583,7 @@ class TestControlFlowBuilders(QiskitTestCase):
             expected = QuantumCircuit(qubits, clbits)
             expected.while_loop(cond, body, [qubits[1]], clbits)
 
-            self.assertCircuitsEquivalent(test, expected)
+            self.assertEqual(canonicalize_control_flow(test), canonicalize_control_flow(expected))
 
     def test_access_of_clbit_from_c_if(self):
         """Test that resources added from a call to :meth:`.InstructionSet.c_if` propagate through
@@ -1667,7 +1733,7 @@ class TestControlFlowBuilders(QiskitTestCase):
             expected = QuantumCircuit(qubits, clbits)
             expected.if_test(cond, body, [qubits[0], qubits[1]], [clbits[0], clbits[1]])
 
-            self.assertCircuitsEquivalent(test, expected)
+            self.assertEqual(canonicalize_control_flow(test), canonicalize_control_flow(expected))
 
         with self.subTest("else"):
             test = QuantumCircuit(qubits, clbits)
@@ -1686,7 +1752,7 @@ class TestControlFlowBuilders(QiskitTestCase):
                 cond, true_body, false_body, [qubits[0], qubits[1]], [clbits[0], clbits[1]]
             )
 
-            self.assertCircuitsEquivalent(test, expected)
+            self.assertEqual(canonicalize_control_flow(test), canonicalize_control_flow(expected))
 
         with self.subTest("for"):
             test = QuantumCircuit(qubits, clbits)
@@ -1700,7 +1766,7 @@ class TestControlFlowBuilders(QiskitTestCase):
             expected = QuantumCircuit(qubits, clbits)
             expected.for_loop(range(2), None, body, [qubits[0], qubits[1]], [clbits[0], clbits[1]])
 
-            self.assertCircuitsEquivalent(test, expected)
+            self.assertEqual(canonicalize_control_flow(test), canonicalize_control_flow(expected))
 
         with self.subTest("while"):
             test = QuantumCircuit(qubits, clbits)
@@ -1714,7 +1780,7 @@ class TestControlFlowBuilders(QiskitTestCase):
             expected = QuantumCircuit(qubits, clbits)
             expected.while_loop(cond, body, [qubits[0], qubits[1]], [clbits[0], clbits[1]])
 
-            self.assertCircuitsEquivalent(test, expected)
+            self.assertEqual(canonicalize_control_flow(test), canonicalize_control_flow(expected))
 
         with self.subTest("if inside for"):
             test = QuantumCircuit(qubits, clbits)
@@ -1734,7 +1800,7 @@ class TestControlFlowBuilders(QiskitTestCase):
                 range(2), None, for_body, [qubits[0], qubits[1]], [clbits[0], clbits[1]]
             )
 
-            self.assertCircuitsEquivalent(test, expected)
+            self.assertEqual(canonicalize_control_flow(test), canonicalize_control_flow(expected))
 
     def test_labels_propagated_to_instruction(self):
         """Test that labels given to the circuit-builder interface are passed through."""
@@ -1746,7 +1812,7 @@ class TestControlFlowBuilders(QiskitTestCase):
             test = QuantumCircuit(bits)
             with test.if_test(cond, label=label):
                 pass
-            instruction = test.data[-1][0]
+            instruction = test.data[-1].operation
             self.assertIsInstance(instruction, IfElseOp)
             self.assertEqual(instruction.label, label)
 
@@ -1756,7 +1822,7 @@ class TestControlFlowBuilders(QiskitTestCase):
                 pass
             with else_:
                 pass
-            instruction = test.data[-1][0]
+            instruction = test.data[-1].operation
             self.assertIsInstance(instruction, IfElseOp)
             self.assertEqual(instruction.label, label)
 
@@ -1764,7 +1830,7 @@ class TestControlFlowBuilders(QiskitTestCase):
             test = QuantumCircuit(bits)
             with test.for_loop(range(2), label=label):
                 pass
-            instruction = test.data[-1][0]
+            instruction = test.data[-1].operation
             self.assertIsInstance(instruction, ForLoopOp)
             self.assertEqual(instruction.label, label)
 
@@ -1772,7 +1838,7 @@ class TestControlFlowBuilders(QiskitTestCase):
             test = QuantumCircuit(bits)
             with test.while_loop(cond, label=label):
                 pass
-            instruction = test.data[-1][0]
+            instruction = test.data[-1].operation
             self.assertIsInstance(instruction, WhileLoopOp)
             self.assertEqual(instruction.label, label)
 
@@ -1785,7 +1851,7 @@ class TestControlFlowBuilders(QiskitTestCase):
                     # Use break to ensure that we're triggering the lazy building of 'if'.
                     test.break_loop()
 
-            instruction = test.data[-1][0].blocks[0].data[-1][0]
+            instruction = test.data[-1].operation.blocks[0].data[-1].operation
             self.assertIsInstance(instruction, IfElseOp)
             self.assertEqual(instruction.label, label)
 
@@ -1798,9 +1864,191 @@ class TestControlFlowBuilders(QiskitTestCase):
                 with else_:
                     test.break_loop()
 
-            instruction = test.data[-1][0].blocks[0].data[-1][0]
+            instruction = test.data[-1].operation.blocks[0].data[-1].operation
             self.assertIsInstance(instruction, IfElseOp)
             self.assertEqual(instruction.label, label)
+
+    def test_copy_of_circuits(self):
+        """Test that various methods of copying a circuit made with the builder interface works."""
+        test = QuantumCircuit(5, 5)
+        cond = (test.clbits[2], False)
+        with test.if_test(cond) as else_:
+            test.cx(0, 1)
+        with else_:
+            test.h(2)
+        with test.for_loop(range(5)):
+            with test.if_test(cond):
+                test.x(3)
+        with test.while_loop(cond):
+            test.measure(0, 4)
+        self.assertEqual(test, test.copy())
+        self.assertEqual(test, copy.copy(test))
+        self.assertEqual(test, copy.deepcopy(test))
+
+    def test_copy_of_instructions(self):
+        """Test that various methods of copying the actual instructions created by the builder
+        interface work."""
+        qubits = [Qubit() for _ in [None] * 3]
+        clbits = [Clbit() for _ in [None] * 3]
+        cond = (clbits[1], False)
+
+        with self.subTest("if"):
+            test = QuantumCircuit(qubits, clbits)
+            with test.if_test(cond):
+                test.cx(0, 1)
+                test.measure(2, 2)
+            if_instruction = test.data[0].operation
+            self.assertEqual(if_instruction, if_instruction.copy())
+            self.assertEqual(if_instruction, copy.copy(if_instruction))
+            self.assertEqual(if_instruction, copy.deepcopy(if_instruction))
+
+        with self.subTest("if/else"):
+            test = QuantumCircuit(qubits, clbits)
+            with test.if_test(cond) as else_:
+                test.cx(0, 1)
+                test.measure(2, 2)
+            with else_:
+                test.cx(1, 0)
+                test.measure(2, 2)
+            if_instruction = test.data[0].operation
+            self.assertEqual(if_instruction, if_instruction.copy())
+            self.assertEqual(if_instruction, copy.copy(if_instruction))
+            self.assertEqual(if_instruction, copy.deepcopy(if_instruction))
+
+        with self.subTest("for"):
+            test = QuantumCircuit(qubits, clbits)
+            with test.for_loop(range(4)):
+                test.cx(0, 1)
+                test.measure(2, 2)
+            for_instruction = test.data[0].operation
+            self.assertEqual(for_instruction, for_instruction.copy())
+            self.assertEqual(for_instruction, copy.copy(for_instruction))
+            self.assertEqual(for_instruction, copy.deepcopy(for_instruction))
+
+        with self.subTest("while"):
+            test = QuantumCircuit(qubits, clbits)
+            with test.while_loop(cond):
+                test.cx(0, 1)
+                test.measure(2, 2)
+            while_instruction = test.data[0].operation
+            self.assertEqual(while_instruction, while_instruction.copy())
+            self.assertEqual(while_instruction, copy.copy(while_instruction))
+            self.assertEqual(while_instruction, copy.deepcopy(while_instruction))
+
+    def test_copy_of_instruction_parameters(self):
+        """Test that various methods of copying the parameters inside instructions created by the
+        builder interface work.  Regression test of gh-7367."""
+        qubits = [Qubit() for _ in [None] * 3]
+        clbits = [Clbit() for _ in [None] * 3]
+        cond = (clbits[1], False)
+
+        with self.subTest("if"):
+            test = QuantumCircuit(qubits, clbits)
+            with test.if_test(cond):
+                test.cx(0, 1)
+                test.measure(2, 2)
+            if_instruction = test.data[0].operation
+            (true_body,) = if_instruction.blocks
+            self.assertEqual(true_body, true_body.copy())
+            self.assertEqual(true_body, copy.copy(true_body))
+            self.assertEqual(true_body, copy.deepcopy(true_body))
+
+        with self.subTest("if/else"):
+            test = QuantumCircuit(qubits, clbits)
+            with test.if_test(cond) as else_:
+                test.cx(0, 1)
+                test.measure(2, 2)
+            with else_:
+                test.cx(1, 0)
+                test.measure(2, 2)
+            if_instruction = test.data[0].operation
+            true_body, false_body = if_instruction.blocks
+            self.assertEqual(true_body, true_body.copy())
+            self.assertEqual(true_body, copy.copy(true_body))
+            self.assertEqual(true_body, copy.deepcopy(true_body))
+            self.assertEqual(false_body, false_body.copy())
+            self.assertEqual(false_body, copy.copy(false_body))
+            self.assertEqual(false_body, copy.deepcopy(false_body))
+
+        with self.subTest("for"):
+            test = QuantumCircuit(qubits, clbits)
+            with test.for_loop(range(4)):
+                test.cx(0, 1)
+                test.measure(2, 2)
+            for_instruction = test.data[0].operation
+            (for_body,) = for_instruction.blocks
+            self.assertEqual(for_body, for_body.copy())
+            self.assertEqual(for_body, copy.copy(for_body))
+            self.assertEqual(for_body, copy.deepcopy(for_body))
+
+        with self.subTest("while"):
+            test = QuantumCircuit(qubits, clbits)
+            with test.while_loop(cond):
+                test.cx(0, 1)
+                test.measure(2, 2)
+            while_instruction = test.data[0].operation
+            (while_body,) = while_instruction.blocks
+            self.assertEqual(while_body, while_body.copy())
+            self.assertEqual(while_body, copy.copy(while_body))
+            self.assertEqual(while_body, copy.deepcopy(while_body))
+
+    def test_inplace_compose_within_builder(self):
+        """Test that QuantumCircuit.compose used in-place works as expected within control-flow
+        scopes."""
+        inner = QuantumCircuit(1)
+        inner.x(0)
+
+        base = QuantumCircuit(1, 1)
+        base.h(0)
+        base.measure(0, 0)
+
+        with self.subTest("if"):
+            outer = base.copy()
+            with outer.if_test((outer.clbits[0], 1)):
+                outer.compose(inner, inplace=True)
+
+            expected = base.copy()
+            with expected.if_test((expected.clbits[0], 1)):
+                expected.x(0)
+
+            self.assertEqual(canonicalize_control_flow(outer), canonicalize_control_flow(expected))
+
+        with self.subTest("else"):
+            outer = base.copy()
+            with outer.if_test((outer.clbits[0], 1)) as else_:
+                outer.compose(inner, inplace=True)
+            with else_:
+                outer.compose(inner, inplace=True)
+
+            expected = base.copy()
+            with expected.if_test((expected.clbits[0], 1)) as else_:
+                expected.x(0)
+            with else_:
+                expected.x(0)
+
+            self.assertEqual(canonicalize_control_flow(outer), canonicalize_control_flow(expected))
+
+        with self.subTest("for"):
+            outer = base.copy()
+            with outer.for_loop(range(3)):
+                outer.compose(inner, inplace=True)
+
+            expected = base.copy()
+            with expected.for_loop(range(3)):
+                expected.x(0)
+
+            self.assertEqual(canonicalize_control_flow(outer), canonicalize_control_flow(expected))
+
+        with self.subTest("while"):
+            outer = base.copy()
+            with outer.while_loop((outer.clbits[0], 0)):
+                outer.compose(inner, inplace=True)
+
+            expected = base.copy()
+            with expected.while_loop((outer.clbits[0], 0)):
+                expected.x(0)
+
+            self.assertEqual(canonicalize_control_flow(outer), canonicalize_control_flow(expected))
 
 
 @ddt.ddt
@@ -1933,7 +2181,7 @@ class TestControlFlowBuildersFailurePaths(QiskitTestCase):
                     test.break_loop()
                 # These tests need to be done before the 'for' context exits so we don't trigger the
                 # "can't add conditions from out-of-scope" handling.
-                placeholder, _, _ = test._peek_previous_instruction_in_scope()
+                placeholder = test._peek_previous_instruction_in_scope().operation
                 self.assertIsInstance(placeholder, IfElsePlaceholder)
                 with self.assertRaisesRegex(
                     NotImplementedError,
@@ -1950,7 +2198,7 @@ class TestControlFlowBuildersFailurePaths(QiskitTestCase):
                     test.break_loop()
                 # These tests need to be done before the 'for' context exits so we don't trigger the
                 # "can't add conditions from out-of-scope" handling.
-                placeholder, _, _ = test._peek_previous_instruction_in_scope()
+                placeholder = test._peek_previous_instruction_in_scope().operation
                 self.assertIsInstance(placeholder, IfElsePlaceholder)
                 with self.assertRaisesRegex(
                     NotImplementedError,
@@ -2198,3 +2446,28 @@ class TestControlFlowBuildersFailurePaths(QiskitTestCase):
         )
         with self.assertRaisesRegex(TypeError, r"Can only add qubits or classical bits.*"):
             builder_block.add_bits([bit])
+
+    def test_compose_front_inplace_invalid_within_builder(self):
+        """Test that `QuantumCircuit.compose` raises a sensible error when called within a
+        control-flow builder block."""
+        inner = QuantumCircuit(1)
+        inner.x(0)
+
+        outer = QuantumCircuit(1, 1)
+        outer.measure(0, 0)
+        outer.compose(inner, front=True, inplace=True)
+        with outer.if_test((outer.clbits[0], 1)):
+            with self.assertRaisesRegex(CircuitError, r"Cannot compose to the front.*"):
+                outer.compose(inner, front=True, inplace=True)
+
+    def test_compose_new_invalid_within_builder(self):
+        """Test that `QuantumCircuit.compose` raises a sensible error when called within a
+        control-flow builder block if trying to emit a new circuit."""
+        inner = QuantumCircuit(1)
+        inner.x(0)
+
+        outer = QuantumCircuit(1, 1)
+        outer.measure(0, 0)
+        with outer.if_test((outer.clbits[0], 1)):
+            with self.assertRaisesRegex(CircuitError, r"Cannot emit a new composed circuit.*"):
+                outer.compose(inner, inplace=False)

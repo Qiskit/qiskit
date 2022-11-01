@@ -37,7 +37,7 @@ class PauliTwoDesign(TwoLocal):
     For instance, the circuit could look like this (but note that choosing a different seed
     yields different Pauli rotations).
 
-    .. code-block::
+    .. parsed-literal::
 
              ┌─────────┐┌──────────┐       ░ ┌──────────┐       ░  ┌──────────┐
         q_0: ┤ RY(π/4) ├┤ RZ(θ[0]) ├─■─────░─┤ RY(θ[4]) ├─■─────░──┤ RZ(θ[8]) ├
@@ -97,6 +97,7 @@ class PauliTwoDesign(TwoLocal):
         self._prepended_entanglement = ["linear"]
 
     def _invalidate(self):
+        """Invalidate the circuit and reset the random number."""
         self._rng = np.random.default_rng(self._seed)  # reset number generator
         super()._invalidate()
 

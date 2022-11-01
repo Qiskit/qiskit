@@ -13,8 +13,8 @@
 
 """Decorator for using with Qiskit unit tests."""
 
+import collections.abc
 import functools
-import inspect
 import os
 import socket
 import sys
@@ -22,6 +22,7 @@ from typing import Union, Callable, Type, Iterable
 import unittest
 from warnings import warn
 
+from qiskit.utils import wrap_method
 from .testing_options import get_test_options
 
 HAS_NET_CONNECTION = None
@@ -204,81 +205,6 @@ def online_test(func):
     return _wrapper
 
 
-class _WrappedMethodCall:
-    """Method call with extra functionality before and after.  This is returned by
-    :obj:`~_WrappedMethod` when accessed as an atrribute."""
-
-    def __init__(self, descriptor, obj, objtype):
-        self.descriptor = descriptor
-        self.obj = obj
-        self.objtype = objtype
-
-    def __call__(self, *args, **kwargs):
-        if self.descriptor.isclassmethod:
-            ref = self.objtype
-        else:
-            # obj if we're being accessed as an instance method, or objtype if as a class method.
-            ref = self.obj if self.obj is not None else self.objtype
-        for before in self.descriptor.before:
-            before(ref, *args, **kwargs)
-        out = self.descriptor.method(ref, *args, **kwargs)
-        for after in self.descriptor.after:
-            after(ref, *args, **kwargs)
-        return out
-
-
-class _WrappedMethod:
-    """Descriptor which calls its two arguments in succession, correctly handling instance- and
-    class-method calls.
-
-    It is intended that this class will replace the attribute that ``inner`` previously was on a
-    class or instance.  When accessed as that attribute, this descriptor will behave it is the same
-    function call, but with the ``function`` called after.
-    """
-
-    def __init__(self, cls, name, before=None, after=None):
-        # Find the actual definition of the method, not just the descriptor output from getattr.
-        for cls_ in inspect.getmro(cls):
-            try:
-                self.method = cls_.__dict__[name]
-                break
-            except KeyError:
-                pass
-        else:
-            raise ValueError(f"Method '{name}' is not defined for class '{cls.__class__.__name__}'")
-        before = (before,) if before is not None else ()
-        after = (after,) if after is not None else ()
-        if isinstance(self.method, type(self)):
-            self.isclassmethod = self.method.isclassmethod
-            self.before = before + self.method.before
-            self.after = self.method.after + after
-            self.method = self.method.method
-        else:
-            self.isclassmethod = False
-            self.before = before
-            self.after = after
-        if isinstance(self.method, classmethod):
-            self.method = self.method.__func__
-            self.isclassmethod = True
-
-    def __get__(self, obj, objtype=None):
-        # No functools.wraps because we're probably about to be bound to a different context.
-        return _WrappedMethodCall(self, obj, objtype)
-
-
-def _wrap_method(cls, name, before=None, after=None):
-    """Wrap the functionality the instance- or class-method ``{cls}.{name}`` with ``before`` and
-    ``after``.
-
-    This mutates ``cls``, replacing the attribute ``name`` with the new functionality.
-
-    If either ``before`` or ``after`` are given, they should be callables with a compatible
-    signature to the method referred to.  They will be called immediately before or after the method
-    as appropriate, and any return value will be ignored.
-    """
-    setattr(cls, name, _WrappedMethod(cls, name, before, after))
-
-
 def enforce_subclasses_call(
     methods: Union[str, Iterable[str]], attr: str = "_enforce_subclasses_call_cache"
 ) -> Callable[[Type], Type]:
@@ -352,7 +278,7 @@ def enforce_subclasses_call(
         # Only wrap methods who are directly defined in this class; if we're resolving to a method
         # higher up the food chain, then it will already have been wrapped.
         for name in set(cls.__dict__) & methods:
-            _wrap_method(
+            wrap_method(
                 cls,
                 name,
                 before=clear_call_status(name),
@@ -366,13 +292,38 @@ def enforce_subclasses_call(
         # Do the extra bits after the main body of __init__ so we can check we're not overwriting
         # anything, and after __init_subclass__ in case the decorated class wants to influence the
         # creation of the subclass's methods before we get to them.
-        _wrap_method(cls, "__init__", after=initialize_call_memory)
+        wrap_method(cls, "__init__", after=initialize_call_memory)
         for name in methods:
-            _wrap_method(cls, name, before=save_call_status(name))
-        _wrap_method(cls, "__init_subclass__", after=wrap_subclass_methods)
+            wrap_method(cls, name, before=save_call_status(name))
+        wrap_method(cls, "__init_subclass__", after=wrap_subclass_methods)
         return cls
 
     return decorator
 
 
-TEST_OPTIONS = get_test_options()
+class _TestOptions(collections.abc.Mapping):
+    """Lazy-loading view onto the test options retrieved from the environment."""
+
+    __slots__ = ("_options",)
+
+    def __init__(self):
+        self._options = None
+
+    def _load(self):
+        if self._options is None:
+            self._options = get_test_options()
+
+    def __getitem__(self, key):
+        self._load()
+        return self._options[key]
+
+    def __iter__(self):
+        self._load()
+        return iter(self._options)
+
+    def __len__(self):
+        self._load()
+        return len(self._options)
+
+
+TEST_OPTIONS = _TestOptions()

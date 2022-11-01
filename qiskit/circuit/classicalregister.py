@@ -23,6 +23,8 @@ from .bit import Bit
 class Clbit(Bit):
     """Implement a classical bit."""
 
+    __slots__ = ()
+
     def __init__(self, register=None, index=None):
         """Creates a classical bit.
 

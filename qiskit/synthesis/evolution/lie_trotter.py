@@ -12,7 +12,7 @@
 
 """The Lie-Trotter product formula."""
 
-from typing import Callable, Optional, Union
+from typing import Callable, Optional, Union, Dict, Any
 import numpy as np
 from qiskit.circuit.quantumcircuit import QuantumCircuit
 from qiskit.quantum_info.operators import SparsePauliOp, Pauli
@@ -24,7 +24,7 @@ class LieTrotter(ProductFormula):
     r"""The Lie-Trotter product formula.
 
     The Lie-Trotter formula approximates the exponential of two non-commuting operators
-    with products of their exponentials up to a first order error:
+    with products of their exponentials up to a second order error:
 
     .. math::
 
@@ -35,13 +35,16 @@ class LieTrotter(ProductFormula):
 
     .. math::
 
-        e^{-it(XX + ZZ)} = e^{-it XX}e^{-it ZZ} + \mathcal{O}(t).
+        e^{-it(XX + ZZ)} = e^{-it XX}e^{-it ZZ} + \mathcal{O}(t^2).
 
     References:
 
         [1]: D. Berry, G. Ahokas, R. Cleve and B. Sanders,
         "Efficient quantum algorithms for simulating sparse Hamiltonians" (2006).
         `arXiv:quant-ph/0508139 <https://arxiv.org/abs/quant-ph/0508139>`_
+        [2]: N. Hatano and M. Suzuki,
+        "Finding Exponential Product Formulas of Higher Orders" (2005).
+        `arXiv:math-ph/0506007 <https://arxiv.org/pdf/math-ph/0506007.pdf>`_
     """
 
     def __init__(
@@ -97,3 +100,24 @@ class LieTrotter(ProductFormula):
                 )
 
         return evolution_circuit
+
+    @property
+    def settings(self) -> Dict[str, Any]:
+        """Return the settings in a dictionary, which can be used to reconstruct the object.
+
+        Returns:
+            A dictionary containing the settings of this product formula.
+
+        Raises:
+            NotImplementedError: If a custom atomic evolution is set, which cannot be serialized.
+        """
+        if self._atomic_evolution is not None:
+            raise NotImplementedError(
+                "Cannot serialize a product formula with a custom atomic evolution."
+            )
+
+        return {
+            "reps": self.reps,
+            "insert_barriers": self.insert_barriers,
+            "cx_structure": self._cx_structure,
+        }

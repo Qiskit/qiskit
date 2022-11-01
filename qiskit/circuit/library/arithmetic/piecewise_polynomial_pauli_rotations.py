@@ -81,9 +81,9 @@ class PiecewisePolynomialPauliRotations(FunctionalPauliRotations):
              Optimizing Quantum Circuits for Arithmetic.
              `arXiv:1805.12445 <http://arxiv.org/abs/1805.12445>`_
 
-        [2]: Carrera Vazquez, A., Hiptmair, R., & Woerner, S. (2020).
+        [2]: Carrera Vazquez, A., Hiptmair, R., & Woerner, S. (2022).
              Enhancing the Quantum Linear Systems Algorithm using Richardson Extrapolation.
-             `arXiv:2009.04484 <http://arxiv.org/abs/2009.04484>`_
+             `ACM Transactions on Quantum Computing 3, 1, Article 2 <https://doi.org/10.1145/3490631>`_
     """
 
     def __init__(
@@ -131,9 +131,9 @@ class PiecewisePolynomialPauliRotations(FunctionalPauliRotations):
         if (
             self.num_state_qubits is not None
             and len(self._breakpoints) == len(self.coeffs)
-            and self._breakpoints[-1] < 2 ** self.num_state_qubits
+            and self._breakpoints[-1] < 2**self.num_state_qubits
         ):
-            return self._breakpoints + [2 ** self.num_state_qubits]
+            return self._breakpoints + [2**self.num_state_qubits]
 
         return self._breakpoints
 
@@ -223,6 +223,7 @@ class PiecewisePolynomialPauliRotations(FunctionalPauliRotations):
         return y
 
     def _check_configuration(self, raise_on_failure: bool = True) -> bool:
+        """Check if the current configuration is valid."""
         valid = True
 
         if self.num_state_qubits is None:
@@ -246,6 +247,7 @@ class PiecewisePolynomialPauliRotations(FunctionalPauliRotations):
         return valid
 
     def _reset_registers(self, num_state_qubits: Optional[int]) -> None:
+        """Reset the registers."""
         self.qregs = []
 
         if num_state_qubits:
@@ -262,14 +264,11 @@ class PiecewisePolynomialPauliRotations(FunctionalPauliRotations):
                 self.add_register(qr_ancilla)
 
     def _build(self):
-        # do not build the circuit if _data is already populated
-        if self._data is not None:
+        """If not already built, build the circuit."""
+        if self._is_built:
             return
 
-        self._data = []
-
-        # check whether the configuration is valid
-        self._check_configuration()
+        super()._build()
 
         circuit = QuantumCircuit(*self.qregs, name=self.name)
         qr_state = circuit.qubits[: self.num_state_qubits]

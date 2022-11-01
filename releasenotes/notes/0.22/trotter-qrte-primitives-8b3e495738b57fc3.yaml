@@ -1,0 +1,9 @@
+---
+features:
+  - |
+    Added a new :class:`~qiskit.algorithms.time_evolvers.trotterization.TrotterQRTE` class
+    that implements the :class:`~.RealTimeEvolver` interface that uses an
+    :class:`qiskit.primitives.BaseEstimator` to perform the calculation. This
+    new class supersedes the previously available :class:`qiskit.algorithms.TrotterQRTE`
+    class (which will be deprecated and subsequenty removed in future releases) that used
+    a :class:`~.Backend` or :class:`~QuantumInstance` to perform the calculation.

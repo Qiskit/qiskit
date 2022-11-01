@@ -9,6 +9,7 @@
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
+
 """
 ====================================================================
 ClassicalFunction compiler (:mod:`qiskit.circuit.classicalfunction`)
@@ -26,7 +27,8 @@ QuantumCircuit:
 
    .. jupyter-execute::
 
-      from qiskit.circuit import classical_function,  Int1
+      from qiskit.circuit.classicalfunction import classical_function
+      from qiskit.circuit.classicalfunction.types import Int1
 
       @classical_function
       def grover_oracle(a: Int1, b: Int1, c: Int1, d: Int1) -> Int1:
@@ -95,6 +97,13 @@ Exceptions
    ClassicalFunctionCompilerTypeError
 
 """
+
+from qiskit.utils.optionals import HAS_TWEEDLEDUM
+
+HAS_TWEEDLEDUM.require_now("classical function oracles")
+
+# pylint: disable=wrong-import-position
+
 from .classicalfunction import ClassicalFunction
 from .exceptions import (
     ClassicalFunctionParseError,

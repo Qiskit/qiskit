@@ -41,6 +41,12 @@ class TestRegisterClass(QiskitTestCase):
             _ = reg_type(1, "foo", bits)
 
     @data(QuantumRegister, ClassicalRegister, AncillaRegister)
+    def test_raise_on_init_with_duplicated_bits(self, reg_type):
+        bits = [reg_type.bit_type()] * 2
+        with self.assertRaisesRegex(CircuitError, "bits must not be duplicated"):
+            _ = reg_type(bits=bits)
+
+    @data(QuantumRegister, ClassicalRegister, AncillaRegister)
     def test_init_raise_if_bits_of_incorrect_type(self, reg_type):
         bits = [bit.Bit()]
         with self.assertRaisesRegex(CircuitError, "did not all match register type"):

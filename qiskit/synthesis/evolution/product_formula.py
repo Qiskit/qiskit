@@ -12,7 +12,7 @@
 
 """A product formula base for decomposing non-commuting operator exponentials."""
 
-from typing import Callable, Optional, Union
+from typing import Callable, Optional, Union, Any, Dict
 from functools import partial
 import numpy as np
 from qiskit.circuit.parameterexpression import ParameterExpression
@@ -55,10 +55,37 @@ class ProductFormula(EvolutionSynthesis):
         self.reps = reps
         self.insert_barriers = insert_barriers
 
+        # user-provided atomic evolution, stored for serialization
+        self._atomic_evolution = atomic_evolution
+        self._cx_structure = cx_structure
+
+        # if atomic evolution is not provided, set a default
         if atomic_evolution is None:
             atomic_evolution = partial(_default_atomic_evolution, cx_structure=cx_structure)
 
         self.atomic_evolution = atomic_evolution
+
+    @property
+    def settings(self) -> Dict[str, Any]:
+        """Return the settings in a dictionary, which can be used to reconstruct the object.
+
+        Returns:
+            A dictionary containing the settings of this product formula.
+
+        Raises:
+            NotImplementedError: If a custom atomic evolution is set, which cannot be serialized.
+        """
+        if self._atomic_evolution is not None:
+            raise NotImplementedError(
+                "Cannot serialize a product formula with a custom atomic evolution."
+            )
+
+        return {
+            "order": self.order,
+            "reps": self.reps,
+            "insert_barriers": self.insert_barriers,
+            "cx_structure": self._cx_structure,
+        }
 
 
 def evolve_pauli(
@@ -111,6 +138,8 @@ def evolve_pauli(
 
 def _single_qubit_evolution(pauli, time):
     definition = QuantumCircuit(pauli.num_qubits)
+    # Note that all phases are removed from the pauli label and are only in the coefficients.
+    # That's because the operators we evolved have all been translated to a SparsePauliOp.
     for i, pauli_i in enumerate(reversed(pauli.to_label())):
         if pauli_i == "X":
             definition.rx(2 * time, i)
@@ -123,8 +152,10 @@ def _single_qubit_evolution(pauli, time):
 
 
 def _two_qubit_evolution(pauli, time, cx_structure):
-    # get the Paulis and the qubits they act on
-    labels_as_array = np.array(list(pauli.to_label()))
+    # Get the Paulis and the qubits they act on.
+    # Note that all phases are removed from the pauli label and are only in the coefficients.
+    # That's because the operators we evolved have all been translated to a SparsePauliOp.
+    labels_as_array = np.array(list(reversed(pauli.to_label())))
     qubits = np.where(labels_as_array != "I")[0]
     labels = np.array([labels_as_array[idx] for idx in qubits])
 
@@ -138,9 +169,9 @@ def _two_qubit_evolution(pauli, time, cx_structure):
     elif all(labels == "Z"):  # RZZ
         definition.rzz(2 * time, qubits[0], qubits[1])
     elif labels[0] == "Z" and labels[1] == "X":  # RZX
-        definition.rzx(2 * time, qubits[1], qubits[0])
-    elif labels[0] == "X" and labels[1] == "Z":  # RXZ
         definition.rzx(2 * time, qubits[0], qubits[1])
+    elif labels[0] == "X" and labels[1] == "Z":  # RXZ
+        definition.rzx(2 * time, qubits[1], qubits[0])
     else:  # all the others are not native in Qiskit, so use default the decomposition
         definition = _multi_qubit_evolution(pauli, time, cx_structure)
 
@@ -159,6 +190,8 @@ def _multi_qubit_evolution(pauli, time, cx_structure):
 
     # determine qubit to do the rotation on
     target = None
+    # Note that all phases are removed from the pauli label and are only in the coefficients.
+    # That's because the operators we evolved have all been translated to a SparsePauliOp.
     for i, pauli_i in enumerate(reversed(pauli.to_label())):
         if pauli_i != "I":
             target = i
@@ -199,7 +232,7 @@ def cnot_chain(pauli: Pauli) -> QuantumCircuit:
 
     For example, for the Pauli with the label 'XYZIX'.
 
-    .. code-block::
+    .. parsed-literal::
 
                        ┌───┐
         q_0: ──────────┤ X ├
@@ -244,7 +277,7 @@ def cnot_fountain(pauli: Pauli) -> QuantumCircuit:
 
     For example, for the Pauli with the label 'XYZIX'.
 
-    .. code-block::
+    .. parsed-literal::
 
              ┌───┐┌───┐┌───┐
         q_0: ┤ X ├┤ X ├┤ X ├

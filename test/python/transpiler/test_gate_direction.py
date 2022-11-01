@@ -11,17 +11,23 @@
 # that they have been altered from the originals.
 
 """Test the CX Direction  pass"""
+
 import unittest
 from math import pi
 
+import ddt
+
 from qiskit import ClassicalRegister, QuantumRegister, QuantumCircuit
-from qiskit.transpiler import TranspilerError
-from qiskit.transpiler import CouplingMap
+from qiskit.circuit import Parameter
+from qiskit.circuit.library import CXGate, CZGate, ECRGate, RZXGate
+from qiskit.compiler import transpile
+from qiskit.transpiler import TranspilerError, CouplingMap, Target
 from qiskit.transpiler.passes import GateDirection
 from qiskit.converters import circuit_to_dag
 from qiskit.test import QiskitTestCase
 
 
+@ddt.ddt
 class TestGateDirection(QiskitTestCase):
     """Tests the GateDirection pass."""
 
@@ -132,6 +138,11 @@ class TestGateDirection(QiskitTestCase):
         coupling = CouplingMap([[0, 1]])
         dag = circuit_to_dag(circuit)
 
+        #       ┌─────────┐ ┌──────┐┌───┐
+        # qr_0: ┤ Ry(π/2) ├─┤0     ├┤ H ├
+        #       ├─────────┴┐│  Ecr │├───┤
+        # qr_1: ┤ Ry(-π/2) ├┤1     ├┤ H ├
+        #       └──────────┘└──────┘└───┘
         expected = QuantumCircuit(qr)
         expected.ry(pi / 2, qr[0])
         expected.ry(-pi / 2, qr[1])
@@ -208,6 +219,14 @@ class TestGateDirection(QiskitTestCase):
         coupling = CouplingMap([[0, 1]])
         dag = circuit_to_dag(circuit)
 
+        #                     ┌───┐                ┌───┐      ┌───┐     ┌───┐
+        # q_0: ───■───────────┤ H ├────■───────────┤ H ├───■──┤ H ├──■──┤ H ├
+        #       ┌─┴─┐  ┌───┐  └─╥─┘  ┌─┴─┐  ┌───┐  └─╥─┘ ┌─┴─┐├───┤┌─┴─┐├───┤
+        # q_1: ─┤ X ├──┤ H ├────╫────┤ X ├──┤ H ├────╫───┤ X ├┤ H ├┤ X ├┤ H ├
+        #       └─╥─┘  └─╥─┘    ║    └─╥─┘  └─╥─┘    ║   └───┘└───┘└───┘└───┘
+        #      ┌──╨──┐┌──╨──┐┌──╨──┐┌──╨──┐┌──╨──┐┌──╨──┐
+        # c: 1/╡ 0x0 ╞╡ 0x0 ╞╡ 0x0 ╞╡ 0x0 ╞╡ 0x0 ╞╡ 0x0 ╞════════════════════
+        #      └─────┘└─────┘└─────┘└─────┘└─────┘└─────┘
         expected = QuantumCircuit(qr, cr)
         expected.cx(qr[0], qr[1]).c_if(cr, 0)
 
@@ -231,6 +250,157 @@ class TestGateDirection(QiskitTestCase):
         after = pass_.run(dag)
 
         self.assertEqual(circuit_to_dag(expected), after)
+
+    def test_regression_gh_8387(self):
+        """Regression test for flipping of CZ gate"""
+        qc = QuantumCircuit(3)
+        qc.cz(1, 0)
+        qc.barrier()
+        qc.cz(2, 0)
+
+        coupling_map = CouplingMap([[0, 1], [1, 2]])
+        _ = transpile(
+            qc,
+            basis_gates=["cz", "cx", "u3", "u2", "u1"],
+            coupling_map=coupling_map,
+            optimization_level=2,
+        )
+
+    @ddt.data(CXGate(), CZGate(), ECRGate())
+    def test_target_static(self, gate):
+        """Test that static 2q gates are swapped correctly both if available and not available."""
+        circuit = QuantumCircuit(2)
+        circuit.append(gate, [0, 1], [])
+
+        matching = Target(num_qubits=2)
+        matching.add_instruction(gate, {(0, 1): None})
+        self.assertEqual(GateDirection(None, target=matching)(circuit), circuit)
+
+        swapped = Target(num_qubits=2)
+        swapped.add_instruction(gate, {(1, 0): None})
+        self.assertNotEqual(GateDirection(None, target=swapped)(circuit), circuit)
+
+    def test_target_parameter_any(self):
+        """Test that a parametrised 2q gate is replaced correctly both if available and not
+        available."""
+        circuit = QuantumCircuit(2)
+        circuit.rzx(1.5, 0, 1)
+
+        matching = Target(num_qubits=2)
+        matching.add_instruction(RZXGate(Parameter("a")), {(0, 1): None})
+        self.assertEqual(GateDirection(None, target=matching)(circuit), circuit)
+
+        swapped = Target(num_qubits=2)
+        swapped.add_instruction(RZXGate(Parameter("a")), {(1, 0): None})
+        self.assertNotEqual(GateDirection(None, target=swapped)(circuit), circuit)
+
+    def test_target_parameter_exact(self):
+        """Test that a parametrised 2q gate is detected correctly both if available and not
+        available."""
+        circuit = QuantumCircuit(2)
+        circuit.rzx(1.5, 0, 1)
+
+        matching = Target(num_qubits=2)
+        matching.add_instruction(RZXGate(1.5), {(0, 1): None})
+        self.assertEqual(GateDirection(None, target=matching)(circuit), circuit)
+
+        swapped = Target(num_qubits=2)
+        swapped.add_instruction(RZXGate(1.5), {(1, 0): None})
+        self.assertNotEqual(GateDirection(None, target=swapped)(circuit), circuit)
+
+    def test_target_parameter_mismatch(self):
+        """Test that the pass raises if a gate is not supported due to a parameter mismatch."""
+        circuit = QuantumCircuit(2)
+        circuit.rzx(1.5, 0, 1)
+
+        matching = Target(num_qubits=2)
+        matching.add_instruction(RZXGate(2.5), {(0, 1): None})
+        pass_ = GateDirection(None, target=matching)
+        with self.assertRaises(TranspilerError):
+            pass_(circuit)
+
+        swapped = Target(num_qubits=2)
+        swapped.add_instruction(RZXGate(2.5), {(1, 0): None})
+        pass_ = GateDirection(None, target=swapped)
+        with self.assertRaises(TranspilerError):
+            pass_(circuit)
+
+    def test_coupling_map_control_flow(self):
+        """Test that gates are replaced within nested control-flow blocks."""
+        circuit = QuantumCircuit(4, 1)
+        circuit.h(0)
+        circuit.measure(0, 0)
+        with circuit.for_loop((1, 2)):
+            circuit.cx(1, 0)
+            circuit.cx(0, 1)
+            with circuit.if_test((circuit.clbits[0], True)) as else_:
+                circuit.ecr(3, 2)
+            with else_:
+                with circuit.while_loop((circuit.clbits[0], True)):
+                    circuit.rzx(2.3, 2, 1)
+
+        expected = QuantumCircuit(4, 1)
+        expected.h(0)
+        expected.measure(0, 0)
+        with expected.for_loop((1, 2)):
+            expected.h([0, 1])
+            expected.cx(0, 1)
+            expected.h([0, 1])
+            expected.cx(0, 1)
+            with expected.if_test((circuit.clbits[0], True)) as else_:
+                expected.ry(pi / 2, 2)
+                expected.ry(-pi / 2, 3)
+                expected.ecr(2, 3)
+                expected.h([2, 3])
+            with else_:
+                with expected.while_loop((circuit.clbits[0], True)):
+                    expected.h([1, 2])
+                    expected.rzx(2.3, 1, 2)
+                    expected.h([1, 2])
+
+        coupling = CouplingMap.from_line(4, bidirectional=False)
+        pass_ = GateDirection(coupling)
+        self.assertEqual(pass_(circuit), expected)
+
+    def test_target_control_flow(self):
+        """Test that gates are replaced within nested control-flow blocks."""
+        circuit = QuantumCircuit(4, 1)
+        circuit.h(0)
+        circuit.measure(0, 0)
+        with circuit.for_loop((1, 2)):
+            circuit.cx(1, 0)
+            circuit.cx(0, 1)
+            with circuit.if_test((circuit.clbits[0], True)) as else_:
+                circuit.ecr(3, 2)
+            with else_:
+                with circuit.while_loop((circuit.clbits[0], True)):
+                    circuit.rzx(2.3, 2, 1)
+
+        expected = QuantumCircuit(4, 1)
+        expected.h(0)
+        expected.measure(0, 0)
+        with expected.for_loop((1, 2)):
+            expected.h([0, 1])
+            expected.cx(0, 1)
+            expected.h([0, 1])
+            expected.cx(0, 1)
+            with expected.if_test((circuit.clbits[0], True)) as else_:
+                expected.ry(pi / 2, 2)
+                expected.ry(-pi / 2, 3)
+                expected.ecr(2, 3)
+                expected.h([2, 3])
+            with else_:
+                with expected.while_loop((circuit.clbits[0], True)):
+                    expected.h([1, 2])
+                    expected.rzx(2.3, 1, 2)
+                    expected.h([1, 2])
+
+        target = Target(num_qubits=4)
+        target.add_instruction(CXGate(), {(0, 1): None})
+        target.add_instruction(ECRGate(), {(2, 3): None})
+        target.add_instruction(RZXGate(Parameter("a")), {(1, 2): None})
+        pass_ = GateDirection(None, target)
+        self.assertEqual(pass_(circuit), expected)
 
 
 if __name__ == "__main__":

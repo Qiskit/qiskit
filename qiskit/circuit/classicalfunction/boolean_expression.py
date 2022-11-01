@@ -15,8 +15,8 @@
 from os.path import basename, isfile
 from typing import Callable, Optional
 
-from tweedledum import BitVec, BoolFunction
-from tweedledum.synthesis import pkrm_synth
+from tweedledum import BitVec, BoolFunction  # pylint: disable=import-error
+from tweedledum.synthesis import pkrm_synth  # pylint: disable=import-error
 
 from qiskit.circuit import QuantumCircuit
 from .classical_element import ClassicalElement
