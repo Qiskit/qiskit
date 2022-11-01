@@ -16,7 +16,6 @@
 import math
 import heapq
 from collections import OrderedDict, defaultdict
-import warnings
 
 import retworkx as rx
 
@@ -24,7 +23,6 @@ from qiskit.circuit.quantumregister import QuantumRegister, Qubit
 from qiskit.circuit.classicalregister import ClassicalRegister, Clbit
 from qiskit.dagcircuit.exceptions import DAGDependencyError
 from qiskit.dagcircuit.dagdepnode import DAGDepNode
-from qiskit.exceptions import MissingOptionalLibraryError
 from qiskit.circuit.commutation_checker import CommutationChecker
 
 
