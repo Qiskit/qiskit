@@ -19,7 +19,7 @@ class TestPermRowCol(QiskitTestCase):
         permrowcol = PermRowCol(coupling)
         parity_mat = np.identity(3)
 
-        instance = permrowcol.perm_row_col(parity_mat, coupling)
+        instance = permrowcol.perm_row_col(parity_mat)
 
         self.assertIsInstance(instance, QuantumCircuit)
 
@@ -239,6 +239,121 @@ class TestPermRowCol(QiskitTestCase):
         ret = permrowcol.eliminate_row(parity_mat, root, terminals)
         self.assertEqual(1, sum(parity_mat[1]))
         self.assertEqual(1, parity_mat[1, 2])
+        self.assertIsInstance(instance, np.ndarray)
+    
+    def test_return_columns_return_list(self):
+        """Test the output type of return_columns"""
+        coupling = CouplingMap()
+        permrowcol = PermRowCol(coupling)
+
+        instance = permrowcol.return_columns([-1, -1, -1])
+
+        self.assertIsInstance(instance, list)
+    
+    def test_return_columns_return_list_of_indices(self):
+        """Test the correctness of return_columns output"""
+        coupling = CouplingMap()
+        permrowcol = PermRowCol(coupling)
+        
+        instance = permrowcol.return_columns([-1, -1, -1])
+
+        self.assertCountEqual(instance, [0, 1, 2])
+
+        instance = permrowcol.return_columns([-2, -1, 0, 1, 2, -1])
+        self.assertCountEqual(instance, [1, 5])
+
+        instance = permrowcol.return_columns([])
+        self.assertCountEqual(instance, [])
+
+        instance = permrowcol.return_columns([1, 2, 3, 4, 5, 6])
+        self.assertCountEqual(instance, [])
+    
+    def test_get_nodes_returns_list(self):
+        """Test the output type of get_nodes"""
+        coupling = CouplingMap()
+        coupling.add_physical_qubit(0)
+        coupling.add_physical_qubit(1)
+        coupling.add_physical_qubit(2)
+        permrowcol = PermRowCol(coupling)
+
+        instance = permrowcol.get_nodes(np.array([[1, 0, 1], [0, 1, 1], [0, 0, 1]]), 0)
+        self.assertIsInstance(instance, list)
+
+    def test_get_nodes_returns_correct_list(self):
+        """Test the correctness of the get_nodes"""
+        coupling = CouplingMap()
+        coupling.add_physical_qubit(0)
+        coupling.add_physical_qubit(1)
+        coupling.add_physical_qubit(2)
+        permrowcol = PermRowCol(coupling)
+
+        instance = permrowcol.get_nodes(np.array([[1, 0, 1], [0, 1, 1], [0, 0, 1]]), 2)
+        self.assertCountEqual(instance, [0, 1, 2])
+
+        instance = permrowcol.get_nodes(np.array([[1, 0, 1], [0, 1, 1], [0, 0, 1]]), 1)
+        self.assertCountEqual(instance, [1])
+
+        instance = permrowcol.get_nodes(np.array([[1, 0, 1], [0, 1, 1], [0, 0, 1]]), 0)
+        self.assertCountEqual(instance, [0])
+
+        coupling.graph.remove_node(1)
+
+        instance = permrowcol.get_nodes(np.array([[1, 0, 1], [0, 1, 1], [0, 0, 1]]), 2)
+        self.assertCountEqual(instance, [0, 2])
+        
+        coupling.graph.remove_node(0)
+
+        instance = permrowcol.get_nodes(np.array([[1, 0, 1], [0, 1, 1], [0, 0, 1]]), 0)
+        self.assertCountEqual(instance, [])
+
+    def test_reduce_graph_reduces_graph(self):
+        """Test that reduce_graph reduces the graph"""
+        coupling = CouplingMap([[0, 1], [0, 2], [1, 2], [0, 3]])
+        permrowcol = PermRowCol(coupling)
+
+        permrowcol.reduce_graph(0)
+
+        self.assertEqual(len(permrowcol._graph.node_indexes()), 3)
+
+    def test_reduce_graph_removes_correct_node(self):
+        """Test reduce_graph removes correct node"""
+        coupling = CouplingMap([[0, 1], [0, 2], [1, 2], [0, 3]])
+        permrowcol = PermRowCol(coupling)
+
+        permrowcol.reduce_graph(0)
+        self.assertCountEqual(permrowcol._graph.node_indexes(), [1, 2, 3])
+        
+        permrowcol.reduce_graph(2)
+        self.assertCountEqual(permrowcol._graph.node_indexes(), [1, 3])
+
+        permrowcol.reduce_graph(1)
+        self.assertCountEqual(permrowcol._graph.node_indexes(), [3])
+
+        permrowcol.reduce_graph(3)
+        self.assertCountEqual(permrowcol._graph.node_indexes(), [])
+
+    def test_reduce_graph_does_not_change_graph_with_wrong_index(self):
+        """Test that graph does not change when reduce_graph uses an 
+        index that does not exist"""
+        coupling = CouplingMap([[0, 1], [0, 2], [1, 2], [0, 3]])
+        permrowcol = PermRowCol(coupling)
+
+        permrowcol.reduce_graph(4)        
+        self.assertCountEqual(permrowcol._graph.node_indexes(), [0, 1, 2, 3])
+    
+    def test_reduce_graph_removes_edges_from_graph(self):
+        """Test that reduce graph removes edges from the graph"""
+        coupling = CouplingMap([[0, 1], [0, 2], [1, 2], [0, 3]])
+        permrowcol = PermRowCol(coupling)
+
+        permrowcol.reduce_graph(3)
+        self.assertCountEqual(permrowcol._graph.edge_list(), [(0, 1), (0, 2), (1, 2)])
+
+        permrowcol.reduce_graph(0)
+        self.assertCountEqual(permrowcol._graph.edge_list(), [(1, 2)])
+
+        permrowcol.reduce_graph(2)
+        self.assertCountEqual(permrowcol._graph.edge_list(), [])       
 
 
 if __name__ == "__main__":
