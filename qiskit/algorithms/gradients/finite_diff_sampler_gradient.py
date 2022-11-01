@@ -21,6 +21,7 @@ import numpy as np
 from qiskit.algorithms import AlgorithmError
 from qiskit.circuit import Parameter, QuantumCircuit
 from qiskit.primitives import BaseSampler
+from qiskit.providers import Options
 
 from .base_sampler_gradient import BaseSamplerGradient
 from .sampler_gradient_result import SamplerGradientResult
@@ -33,7 +34,7 @@ class FiniteDiffSamplerGradient(BaseSamplerGradient):
         self,
         sampler: BaseSampler,
         epsilon: float,
-        **options,
+        options: Options | None = None,
     ):
         """
         Args:
@@ -50,7 +51,7 @@ class FiniteDiffSamplerGradient(BaseSamplerGradient):
         if epsilon <= 0:
             raise ValueError(f"epsilon ({epsilon}) should be positive.")
         self._epsilon = epsilon
-        super().__init__(sampler, **options)
+        super().__init__(sampler, options)
 
     def _run(
         self,
