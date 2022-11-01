@@ -404,6 +404,34 @@ class TestPauli(QiskitTestCase):
         self.assertEqual(value, value_h)
         self.assertEqual(value_inv, value_s)
 
+    @data(
+        *it.product(
+            (
+                IGate(),
+                XGate(),
+                YGate(),
+                ZGate(),
+                HGate(),
+                SGate(),
+                SdgGate(),
+                CXGate(),
+                CYGate(),
+                CZGate(),
+                SwapGate(),
+            ),
+            [int, np.int8, np.uint8, np.int16, np.uint16, np.int32, np.uint32, np.int64, np.uint64],
+        )
+    )
+    @unpack
+    def test_phase_dtype_evolve_clifford(self, gate, dtype):
+        """Test phase dtype for evolve method for Clifford gates."""
+        z = np.ones(gate.num_qubits, dtype=bool)
+        x = np.ones(gate.num_qubits, dtype=bool)
+        phase = (np.sum(z & x) % 4).astype(dtype)
+        paulis = Pauli((z, x, phase))
+        evo = paulis.evolve(gate)
+        self.assertEqual(evo.phase.dtype, dtype)
+
     def test_evolve_clifford_qargs(self):
         """Test evolve method for random Clifford"""
         cliff = random_clifford(3, seed=10)
