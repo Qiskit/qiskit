@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2021.
+# (C) Copyright IBM 2022.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -14,10 +14,8 @@ Tests analytical gradient vs the one computed via finite differences.
 """
 
 import unittest
-from test.python.transpiler.aqc.sample_data import ORIGINAL_CIRCUIT
-
+from test.python.transpiler.aqc.sample_data import ORIGINAL_CIRCUIT, INITIAL_THETAS
 import numpy as np
-
 from qiskit.test import QiskitTestCase
 from qiskit.transpiler.synthesis.aqc.cnot_structures import make_cnot_network
 from qiskit.transpiler.synthesis.aqc.cnot_unit_objective import DefaultCNOTUnitObjective
@@ -30,6 +28,10 @@ class TestGradientAgainstFiniteDiff(QiskitTestCase):
     analytical and numerical gradients is up to quadratic term in Taylor
     expansion for small deltas.
     """
+
+    def setUp(self):
+        super().setUp()
+        np.random.seed(0x0696969)
 
     def test_gradient(self):
         """
@@ -47,7 +49,8 @@ class TestGradientAgainstFiniteDiff(QiskitTestCase):
         objective = DefaultCNOTUnitObjective(num_qubits, cnots)
         objective.target_matrix = target_matrix
 
-        thetas = np.random.rand(objective.num_thetas) * (2.0 * np.pi)
+        # thetas = np.random.rand(objective.num_thetas) * (2.0 * np.pi)
+        thetas = INITIAL_THETAS
         fobj0 = objective.objective(thetas)
         grad0 = objective.gradient(thetas)
 
@@ -62,17 +65,15 @@ class TestGradientAgainstFiniteDiff(QiskitTestCase):
         diff_prev = 0.0
         orders = []
         errors = []
-        steps = 8
+        steps = 9
         for step in range(steps):
             # Estimate gradient approximation error.
             for i in range(thetas.size):
                 np.copyto(thetas_delta, thetas)
                 thetas_delta[i] -= tau
-                # circuit.set_thetas(thetas_delta)
                 fobj1 = objective.objective(thetas_delta)
                 np.copyto(thetas_delta, thetas)
                 thetas_delta[i] += tau
-                # circuit.set_thetas(thetas_delta)
                 fobj2 = objective.objective(thetas_delta)
                 numerical_grad[i] = (fobj2 - fobj1) / (2.0 * tau)
             errors.append(np.linalg.norm(grad0 - numerical_grad) / np.linalg.norm(grad0))
@@ -95,14 +96,12 @@ class TestGradientAgainstFiniteDiff(QiskitTestCase):
         # check errors
         prev_error = errors[0]
         for error in errors[1:]:
-            self.assertLess(error, prev_error)
+            self.assertLess(error, prev_error * 0.75)
             prev_error = error
 
         # check orders, skipping first zero
-        orders = np.asarray(orders[1:0])
-        # pylint:disable=misplaced-comparison-constant
-        self.assertTrue(np.all(2 <= orders))
-        self.assertTrue(np.all(orders < 3))
+        self.assertTrue(np.count_nonzero(np.asarray(orders[1:]) > 1.8) >= 3)
+        self.assertTrue(np.count_nonzero(np.asarray(orders[1:]) < 3.0) >= 3)
 
 
 if __name__ == "__main__":

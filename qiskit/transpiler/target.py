@@ -460,9 +460,10 @@ class Target(Mapping):
     @property
     def qargs(self):
         """The set of qargs in the target."""
-        if None in self._qarg_gate_map:
+        qargs = set(self._qarg_gate_map)
+        if len(qargs) == 1 and next(iter(qargs)) is None:
             return None
-        return self._qarg_gate_map.keys()
+        return qargs
 
     def qargs_for_operation_name(self, operation):
         """Get the qargs for a given operation name
@@ -813,8 +814,16 @@ class Target(Mapping):
         self._coupling_graph = rx.PyDiGraph(multigraph=False)
         self._coupling_graph.add_nodes_from([{} for _ in range(self.num_qubits)])
         for gate, qarg_map in self._gate_map.items():
+            if qarg_map is None:
+                if self._gate_name_map[gate].num_qubits == 2:
+                    self._coupling_graph = None
+                    return
+                continue
             for qarg, properties in qarg_map.items():
                 if qarg is None:
+                    if self._gate_name_map[gate].num_qubits == 2:
+                        self._coupling_graph = None
+                        return
                     continue
                 if len(qarg) == 1:
                     self._coupling_graph[qarg[0]] = properties
@@ -830,6 +839,13 @@ class Target(Mapping):
     def build_coupling_map(self, two_q_gate=None):
         """Get a :class:`~qiskit.transpiler.CouplingMap` from this target.
 
+        If there is a mix of two qubit operations that have a connectivity
+        constraint and those that are globally defined this will also return
+        ``None`` because the globally connectivity means there is no contstraint
+        on the target. If you wish to see the constraints of the two qubit
+        operations that have constraints you should use the ``two_q_gate``
+        argument to limit the output to the gates which have a constraint.
+
         Args:
             two_q_gate (str): An optional gate name for a two qubit gate in
                 the Target to generate the coupling map for. If specified the
@@ -837,16 +853,17 @@ class Target(Mapping):
                 this gate is present.
         Returns:
             CouplingMap: The :class:`~qiskit.transpiler.CouplingMap` object
-                for this target.
+                for this target. If there are no connectivity constraints in
+                the target this will return ``None``.
 
         Raises:
             ValueError: If a non-two qubit gate is passed in for ``two_q_gate``.
             IndexError: If an Instruction not in the Target is passed in for
                 ``two_q_gate``.
         """
-        if None in self._qarg_gate_map:
+        if self.qargs is None:
             return None
-        if any(len(x) > 2 for x in self.qargs):
+        if None not in self.qargs and any(len(x) > 2 for x in self.qargs):
             logger.warning(
                 "This Target object contains multiqubit gates that "
                 "operate on > 2 qubits. This will not be reflected in "
@@ -865,7 +882,6 @@ class Target(Mapping):
             cmap = CouplingMap()
             cmap.graph = coupling_graph
             return cmap
-
         if self._coupling_graph is None:
             self._build_coupling_graph()
         # if there is no connectivity constraints in the coupling graph treat it as not
@@ -1043,24 +1059,25 @@ def target_to_backend_properties(target: Target):
                     continue
                 qubit = qargs[0]
                 props_list = []
-                if props.error is not None:
-                    props_list.append(
-                        {
-                            "date": datetime.datetime.utcnow(),
-                            "name": "readout_error",
-                            "unit": "",
-                            "value": props.error,
-                        }
-                    )
-                if props.duration is not None:
-                    props_list.append(
-                        {
-                            "date": datetime.datetime.utcnow(),
-                            "name": "readout_length",
-                            "unit": "s",
-                            "value": props.duration,
-                        }
-                    )
+                if props is not None:
+                    if props.error is not None:
+                        props_list.append(
+                            {
+                                "date": datetime.datetime.utcnow(),
+                                "name": "readout_error",
+                                "unit": "",
+                                "value": props.error,
+                            }
+                        )
+                    if props.duration is not None:
+                        props_list.append(
+                            {
+                                "date": datetime.datetime.utcnow(),
+                                "name": "readout_length",
+                                "unit": "s",
+                                "value": props.duration,
+                            }
+                        )
                 if not props_list:
                     qubit_props = {}
                     break
