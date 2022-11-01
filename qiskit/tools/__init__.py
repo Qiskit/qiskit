@@ -42,7 +42,6 @@ A helper module to get IBM backend information and submitted job status
    backend_overview
 
 .. automodule:: qiskit.tools.events
-.. automodule:: qiskit.tools.jupyter
 
 """
 
