@@ -10,6 +10,6 @@ fixes:
     Fixed `#8970 <https://github.com/Qiskit/qiskit-terra/issues/8970>`__
   - |
     Fixed an issue with the :class:`~.VF2PostLayout` pass where it would
-    error when running with a :class:~.Target` that had instructions that
+    error when running with a :class:`~.Target` that had instructions that
     were missing. In such cases the lack of an error rate will be treated as
     an ideal implementation of the operation.
