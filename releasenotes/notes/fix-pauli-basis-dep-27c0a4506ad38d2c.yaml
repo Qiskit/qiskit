@@ -2,10 +2,16 @@
 deprecations:
   - |
     The ``pauli_list`` kwarg of :func:`.pauli_basis` has been deprecated as
-    :func:`.pauli_basis` now always returns a :class:`.PauliList`.
+    :func:`.pauli_basis` now always returns a :class:`.PauliList`. This argument
+    was removed prematurely from Qiskit Terra 0.22.0 which broke compatibility
+    for users that were leveraging the ``pauli_list``argument. Now, the argument
+    has been restored but will emit a ``DeprecationWarning`` when used. If used
+    it has no effect because since Qiskit Terra 0.22.0 a :class:`~.PauliList` is
+    always returned.
 fixes:
   - |
-    Fixes the removal of ``pauli_list`` kwarg of :func:`.pauli_basis` which
-    broke existing code using the ``pauli_list=True`` future compatibility on
-    upgrade to Qiskit Terra 0.22. This kwarg has been added back to the the
-    function with a deprecation warning instead.
+    Fixed the premature removal of the ``pauli_list`` keyword argument of
+    the :func:`.pauli_basis` function which broke existing code using the
+    ``pauli_list=True`` future compatibility path on upgrade to Qiskit Terra
+    0.22.0. This keyword argument has been added back to the function and is
+    now deprecated and will be removed in a future release.

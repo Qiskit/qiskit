@@ -29,3 +29,4 @@ fixes:
 
     This will now correctly raise a ``TranspilerError`` instead of causing
     runtime issues when interacting with the target.
+    Fixed `#8914 <https://github.com/Qiskit/qiskit-terra/issues/8914>`__
