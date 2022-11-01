@@ -43,7 +43,7 @@ __unittest = True  # Allows shorter stack trace for .assertDictAlmostEqual
 # unittest's TestCase. This will enable the fixtures used for capturing stdout
 # stderr, and pylogging to attach the output to stestr's result stream.
 if _optionals.HAS_TESTTOOLS:
-    import testtools  # pylint: disable=import-error
+    import testtools
 
     class BaseTestCase(testtools.TestCase):
         """Base test class."""

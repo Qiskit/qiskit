@@ -26,7 +26,7 @@ from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
 from qiskit.circuit.library import HGate, CHGate, CXGate, QFT
 from qiskit.test import QiskitTestCase
 from qiskit.transpiler.layout import Layout, TranspileLayout
-from qiskit.quantum_info.operators.operator import Operator
+from qiskit.quantum_info.operators import Operator, ScalarOp
 from qiskit.quantum_info.operators.predicates import matrix_equal
 from qiskit.compiler.transpiler import transpile
 from qiskit.circuit import Qubit
@@ -863,6 +863,20 @@ class TestOperator(OperatorTestCase):
         layout = Layout()
         with self.assertRaises(IndexError):
             Operator.from_circuit(circuit, layout=layout)
+
+    def test_compose_scalar(self):
+        """Test that composition works with a scalar-valued operator over no qubits."""
+        base = Operator(np.eye(2, dtype=np.complex128))
+        scalar = Operator(np.array([[-1.0 + 0.0j]]))
+        composed = base.compose(scalar, qargs=[])
+        self.assertEqual(composed, Operator(-np.eye(2, dtype=np.complex128)))
+
+    def test_compose_scalar_op(self):
+        """Test that composition works with an explicit scalar operator over no qubits."""
+        base = Operator(np.eye(2, dtype=np.complex128))
+        scalar = ScalarOp(coeff=-1.0 + 0.0j)
+        composed = base.compose(scalar, qargs=[])
+        self.assertEqual(composed, Operator(-np.eye(2, dtype=np.complex128)))
 
     def test_from_circuit_single_flat_default_register_transpiled(self):
         """Test a transpiled circuit with layout set from default register."""

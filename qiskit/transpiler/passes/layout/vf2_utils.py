@@ -84,13 +84,16 @@ def score_layout(avg_error_map, layout, bit_map, reverse_bit_map, im_graph, stri
     fidelity = 1
     for bit, node_index in bit_map.items():
         gate_count = sum(im_graph[node_index].values())
-        fidelity *= (1 - avg_error_map[(bits[bit],)]) ** gate_count
+        error_rate = avg_error_map.get((bits[bit],))
+        if error_rate is not None:
+            fidelity *= (1 - avg_error_map[(bits[bit],)]) ** gate_count
     for edge in im_graph.edge_index_map().values():
         gate_count = sum(edge[2].values())
         qargs = (bits[reverse_bit_map[edge[0]]], bits[reverse_bit_map[edge[1]]])
         if not strict_direction and qargs not in avg_error_map:
             qargs = (qargs[1], qargs[0])
-        fidelity *= (1 - avg_error_map[qargs]) ** gate_count
+        if qargs in avg_error_map:
+            fidelity *= (1 - avg_error_map[qargs]) ** gate_count
     return 1 - fidelity
 
 
