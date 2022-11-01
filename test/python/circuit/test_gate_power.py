@@ -30,7 +30,7 @@ class TestPowerSgate(QiskitTestCase):
     @data(2, 1, 0, -1, -2)
     def test_sgate_int(self, n):
         """Test Sgate.power(n) method with n as integer."""
-        result = SGate() ** n
+        result = SGate().power(n)
 
         self.assertEqual(result.label, "s^%s" % n)
         self.assertIsInstance(result, UnitaryGate)
@@ -46,7 +46,7 @@ class TestPowerSgate(QiskitTestCase):
     @data(1.5, 0.1, -1.5, -0.1)
     def test_sgate_float(self, n):
         """Test Sgate.power(<float>) method."""
-        result = SGate() ** n
+        result = SGate().power(n)
 
         expected = self.results[n]
         self.assertEqual(result.label, "s^%s" % n)
@@ -69,7 +69,7 @@ class TestPowerIntCX(QiskitTestCase):
     @data(2, 1, 0, -2)
     def test_cx_int(self, n):
         """Test CX.power(<int>) method."""
-        result = CXGate() ** n
+        result = CXGate().power(n)
 
         self.assertEqual(result.label, "cx^" + str(n))
         self.assertIsInstance(result, UnitaryGate)
@@ -83,7 +83,7 @@ class TestGateSqrt(QiskitTestCase):
         """Test UnitaryGate.power(1/2) method."""
         expected = array([[0.5 + 0.5j, 0.5 + 0.5j], [-0.5 - 0.5j, 0.5 + 0.5j]], dtype=complex)
 
-        result = UnitaryGate([[0, 1j], [-1j, 0]]) ** (1 / 2)
+        result = UnitaryGate([[0, 1j], [-1j, 0]]).power(1 / 2)
 
         self.assertEqual(result.label, "unitary^0.5")
         self.assertEqual(len(result.definition), 1)
@@ -94,7 +94,7 @@ class TestGateSqrt(QiskitTestCase):
         """Test standard Gate.power(1/2) method."""
         expected = array([[1, 0], [0, 0.70710678118 + 0.70710678118j]], dtype=complex)
 
-        result = SGate() ** (1 / 2)
+        result = SGate().power(1 / 2)
 
         self.assertEqual(result.label, "s^0.5")
         self.assertEqual(len(result.definition), 1)
@@ -112,7 +112,7 @@ class TestGateSqrt(QiskitTestCase):
         circ.rx(thetax, 0)
         gate = circ.to_gate()
 
-        result = gate ** (1 / 2)
+        result = gate.power(1 / 2)
 
         iden = Operator.from_label("I")
         xgen = Operator.from_label("X")
@@ -139,7 +139,7 @@ class TestGateFloat(QiskitTestCase):
     @data(2, 3, 4, 5, 6, 7, 8, 9)
     def test_direct_root(self, degree):
         """Test nth root"""
-        result = SGate() ** (1 / degree)
+        result = SGate().power(1 / degree)
 
         self.assertEqual(result.label, "s^" + str(1 / degree))
         self.assertEqual(len(result.definition), 1)
@@ -149,7 +149,7 @@ class TestGateFloat(QiskitTestCase):
     @data(2.1, 3.2, 4.3, 5.4, 6.5, 7.6, 8.7, 9.8, 0.2)
     def test_float_gt_one(self, exponent):
         """Test greater-than-one exponents"""
-        result = SGate() ** exponent
+        result = SGate().power(exponent)
 
         self.assertEqual(result.label, "s^" + str(exponent))
         self.assertEqual(len(result.definition), 1)
@@ -159,7 +159,7 @@ class TestGateFloat(QiskitTestCase):
 
     def test_minus_zero_two(self, exponent=-0.2):
         """Test Sgate^(-0.2)"""
-        result = SGate() ** exponent
+        result = SGate().power(exponent)
 
         self.assertEqual(result.label, "s^" + str(exponent))
         self.assertEqual(len(result.definition), 1)
@@ -177,7 +177,7 @@ class TestPowerInvariant(QiskitTestCase):
     @data(-3, -2, -1, 1, 2, 3)
     def test_invariant1_int(self, n):
         """Test (op^(1/n))^(n) == op, integer n"""
-        result = SGate().power(1 / n) ** n
+        result = SGate().power(1 / n).power(n)
         self.assertEqual(result.label, "unitary^" + str(n))
         self.assertEqual(len(result.definition), 1)
         self.assertIsInstance(result, Gate)
@@ -186,11 +186,22 @@ class TestPowerInvariant(QiskitTestCase):
     @data(-3, -2, -1, 1, 2, 3)
     def test_invariant2(self, n):
         """Test op^(n) * op^(-n) == I"""
-        result = Operator(SGate()) ** n & Operator(SGate()) ** -n
+        result = Operator(SGate()).power(n) & Operator(SGate()).power(-n)
         expected = Operator(eye(2))
 
         self.assertEqual(len(result.data), len(expected.data))
         self.assertEqual(result, expected)
+
+
+@ddt
+class TestGatePow(QiskitTestCase):
+    """Test gate __pow__ method."""
+
+    @data(2, 3, 4, 5)
+    def test_gate_pow(self, degree):
+        """Test gate __pow__ method."""
+        self.assertEqual(SGate() ** (1 / degree), SGate().power(1 / degree))
+        self.assertEqual(CXGate() ** (1 / degree), CXGate().power(1 / degree))
 
 
 if __name__ == "__main__":
