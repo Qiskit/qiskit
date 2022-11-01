@@ -2,6 +2,6 @@
 fixes:
   - |
     Fixed an issue with the :class:`~.eigensolvers.VQD` class if more than
-    ``k=2`` eigenvalues are computed. Previously this would fail due to an
+    ``k=2`` eigenvalues were computed. Previously this would fail due to an
     internal type mismatch, but now runs as expected.
     Fixed `#8982 <https://github.com/Qiskit/qiskit-terra/issues/8982>`__
