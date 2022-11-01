@@ -112,10 +112,10 @@ class StatusMagic(Magics):
 
                 if iter_var:
                     for item in self.shell.user_ns[var]:
-                        if isinstance(item, qiskit.providers.basejob.BaseJob):
+                        if isinstance(item, qiskit.providers.job.Job):
                             jobs.append(item)
                 else:
-                    if isinstance(self.shell.user_ns[var], qiskit.providers.basejob.BaseJob):
+                    if isinstance(self.shell.user_ns[var], qiskit.providers.job.Job):
                         jobs.append(self.shell.user_ns[var])
 
         # Must have one job class

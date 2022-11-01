@@ -18,10 +18,9 @@ import numpy as np
 from qiskit.circuit.parameterexpression import ParameterExpression
 from qiskit.circuit.exceptions import CircuitError
 from .instruction import Instruction
-from .operation import Operation
 
 
-class Gate(Instruction, Operation):
+class Gate(Instruction):
     """Unitary gate."""
 
     def __init__(
@@ -205,6 +204,10 @@ class Gate(Instruction, Operation):
         if any(not qarg for qarg in qargs):
             raise CircuitError("One or more of the arguments are empty")
 
+        if len(qargs) == 0:
+            return [
+                ([], []),
+            ]
         if len(qargs) == 1:
             return Gate._broadcast_single_argument(qargs[0])
         elif len(qargs) == 2:

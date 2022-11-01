@@ -1,7 +1,0 @@
----
-
-features:
-  - |
-    Added new gate, :class:`~qiskit.circuit.library.standard_gates.XXPlusYYGate` to
-    the standard library.
-    Refer to the discussion in `#7164 <https://github.com/Qiskit/qiskit-terra/issues/7164>`__.

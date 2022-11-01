@@ -10,7 +10,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""Z and CZ gates."""
+"""Z, CZ and CCZ gates."""
 
 from typing import Optional, Union
 import numpy
@@ -18,10 +18,14 @@ from qiskit.qasm import pi
 from qiskit.circuit.controlledgate import ControlledGate
 from qiskit.circuit.gate import Gate
 from qiskit.circuit.quantumregister import QuantumRegister
+from qiskit.circuit._utils import _compute_control_matrix
 
 
 class ZGate(Gate):
     r"""The single-qubit Pauli-Z gate (:math:`\sigma_z`).
+
+    Can be applied to a :class:`~qiskit.circuit.QuantumCircuit`
+    with the :meth:`~qiskit.circuit.QuantumCircuit.z` method.
 
     **Matrix Representation:**
 
@@ -119,6 +123,9 @@ class CZGate(ControlledGate):
 
     This is a Clifford and symmetric gate.
 
+    Can be applied to a :class:`~qiskit.circuit.QuantumCircuit`
+    with the :meth:`~qiskit.circuit.QuantumCircuit.cz` method.
+
     **Circuit symbol:**
 
     .. parsed-literal::
@@ -131,8 +138,8 @@ class CZGate(ControlledGate):
 
     .. math::
 
-        CZ\ q_1, q_0 =
-            |0\rangle\langle 0| \otimes I + |1\rangle\langle 1| \otimes Z =
+        CZ\ q_0, q_1 =
+            I \otimes |0\rangle\langle 0| + Z \otimes |1\rangle\langle 1| =
             \begin{pmatrix}
                 1 & 0 & 0 & 0 \\
                 0 & 1 & 0 & 0 \\
@@ -181,3 +188,79 @@ class CZGate(ControlledGate):
             return numpy.array(
                 [[1, 0, 0, 0], [0, 1, 0, 0], [0, 0, -1, 0], [0, 0, 0, 1]], dtype=dtype
             )
+
+
+class CCZGate(ControlledGate):
+    r"""CCZ gate.
+
+    This is a symmetric gate.
+
+    Can be applied to a :class:`~qiskit.circuit.QuantumCircuit`
+    with the :meth:`~qiskit.circuit.QuantumCircuit.ccz` method.
+
+    **Circuit symbol:**
+
+    .. parsed-literal::
+
+        q_0: ─■─
+              │
+        q_1: ─■─
+              │
+        q_2: ─■─
+
+    **Matrix representation:**
+
+    .. math::
+
+        CCZ\ q_0, q_1, q_2 =
+            I \otimes I \otimes |0\rangle\langle 0| + CZ \otimes |1\rangle\langle 1| =
+            \begin{pmatrix}
+                1 & 0 & 0 & 0 & 0 & 0 & 0 & 0 \\
+                0 & 1 & 0 & 0 & 0 & 0 & 0 & 0 \\
+                0 & 0 & 1 & 0 & 0 & 0 & 0 & 0 \\
+                0 & 0 & 0 & 1 & 0 & 0 & 0 & 0 \\
+                0 & 0 & 0 & 0 & 1 & 0 & 0 & 0 \\
+                0 & 0 & 0 & 0 & 0 & 1 & 0 & 0 \\
+                0 & 0 & 0 & 0 & 0 & 0 & 1 & 0 \\
+                0 & 0 & 0 & 0 & 0 & 0 & 0 & -1
+            \end{pmatrix}
+
+    In the computational basis, this gate flips the phase of
+    the target qubit if the control qubits are in the :math:`|11\rangle` state.
+    """
+
+    def __init__(self, label: Optional[str] = None, ctrl_state: Optional[Union[str, int]] = None):
+        """Create new CCZ gate."""
+        super().__init__(
+            "ccz", 3, [], label=label, num_ctrl_qubits=2, ctrl_state=ctrl_state, base_gate=ZGate()
+        )
+
+    def _define(self):
+        """
+        gate ccz a,b,c { h c; ccx a,b,c; h c; }
+        """
+        # pylint: disable=cyclic-import
+        from qiskit.circuit.quantumcircuit import QuantumCircuit
+        from .h import HGate
+        from .x import CCXGate
+
+        q = QuantumRegister(3, "q")
+        qc = QuantumCircuit(q, name=self.name)
+        rules = [(HGate(), [q[2]], []), (CCXGate(), [q[0], q[1], q[2]], []), (HGate(), [q[2]], [])]
+        for instr, qargs, cargs in rules:
+            qc._append(instr, qargs, cargs)
+
+        self.definition = qc
+
+    def inverse(self):
+        """Return inverted CCZ gate (itself)."""
+        return CCZGate(ctrl_state=self.ctrl_state)  # self-inverse
+
+    def __array__(self, dtype=None):
+        """Return a numpy.array for the CCZ gate."""
+        mat = _compute_control_matrix(
+            self.base_gate.to_matrix(), self.num_ctrl_qubits, ctrl_state=self.ctrl_state
+        )
+        if dtype is not None:
+            return numpy.asarray(mat, dtype=dtype)
+        return mat

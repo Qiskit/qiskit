@@ -24,6 +24,7 @@ from qiskit.transpiler.basepasses import BasePass
 from .propertyset import PropertySet
 from .fencedobjs import FencedPropertySet, FencedDAGCircuit
 from .exceptions import TranspilerError
+from .layout import TranspileLayout
 
 logger = logging.getLogger(__name__)
 
@@ -128,9 +129,23 @@ class RunningPassManager:
             circuit.name = output_name
         else:
             circuit.name = name
-        circuit._layout = self.property_set["layout"]
+        if self.property_set["layout"] is not None:
+            circuit._layout = TranspileLayout(
+                initial_layout=self.property_set["layout"],
+                input_qubit_mapping=self.property_set["original_qubit_indices"],
+            )
         circuit._clbit_write_latency = self.property_set["clbit_write_latency"]
         circuit._conditional_latency = self.property_set["conditional_latency"]
+
+        if self.property_set["node_start_time"]:
+            # This is dictionary keyed on the DAGOpNode, which is invalidated once
+            # dag is converted into circuit. So this schedule information is
+            # also converted into list with the same ordering with circuit.data.
+            topological_start_times = []
+            start_times = self.property_set["node_start_time"]
+            for dag_node in dag.topological_op_nodes():
+                topological_start_times.append(start_times[dag_node])
+            circuit._op_start_times = topological_start_times
 
         return circuit
 
@@ -171,7 +186,7 @@ class RunningPassManager:
                 pass_.do_while = partial(pass_.do_while, self.fenced_property_set)
 
             for _pass in pass_:
-                self._do_pass(_pass, dag, pass_.options)
+                dag = self._do_pass(_pass, dag, pass_.options)
         else:
             raise TranspilerError(
                 "Expecting type BasePass or FlowController, got %s." % type(pass_)

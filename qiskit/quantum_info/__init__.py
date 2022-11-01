@@ -32,7 +32,6 @@ Operators
    PauliTable
    StabilizerTable
    pauli_basis
-   pauli_group
 
 States
 ======
@@ -124,7 +123,7 @@ Synthesis
 """
 
 from .operators import Operator, ScalarOp, Pauli, Clifford, SparsePauliOp
-from .operators import PauliList, PauliTable, StabilizerTable, pauli_basis, pauli_group
+from .operators import PauliList, PauliTable, StabilizerTable, pauli_basis
 from .operators.channel import Choi, SuperOp, Kraus, Stinespring, Chi, PTM
 from .operators.measures import process_fidelity, average_gate_fidelity, gate_error, diamond_norm
 from .operators.dihedral import CNOTDihedral
@@ -164,4 +163,7 @@ from .synthesis import (
     XXDecomposer,
 )
 
-from .analysis import hellinger_distance, hellinger_fidelity
+from .analysis import (
+    hellinger_distance,
+    hellinger_fidelity,
+)

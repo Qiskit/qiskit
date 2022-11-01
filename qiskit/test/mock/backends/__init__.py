@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2019.
+# (C) Copyright IBM 2022.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -10,89 +10,23 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
+"""Deprecation warnings for moved functionality."""
 
-"""
-Mocked versions of real quantum backends.
-"""
+import warnings
 
-# BackendV1 Backends
-from .almaden import FakeAlmaden
-from .armonk import FakeArmonk
-from .athens import FakeAthens
-from .belem import FakeBelem
-from .boeblingen import FakeBoeblingen
-from .bogota import FakeBogota
-from .brooklyn import FakeBrooklyn
-from .burlington import FakeBurlington
-from .cairo import FakeCairo
-from .cambridge import FakeCambridge
-from .cambridge import FakeCambridgeAlternativeBasis
-from .casablanca import FakeCasablanca
-from .essex import FakeEssex
-from .guadalupe import FakeGuadalupe
-from .hanoi import FakeHanoi
-from .jakarta import FakeJakarta
-from .johannesburg import FakeJohannesburg
-from .kolkata import FakeKolkata
-from .lagos import FakeLagos
-from .lima import FakeLima
-from .london import FakeLondon
-from .manhattan import FakeManhattan
-from .manila import FakeManila
-from .melbourne import FakeMelbourne
-from .montreal import FakeMontreal
-from .mumbai import FakeMumbai
-from .nairobi import FakeNairobi
-from .ourense import FakeOurense
-from .paris import FakeParis
-from .poughkeepsie import FakePoughkeepsie
-from .quito import FakeQuito
-from .rochester import FakeRochester
-from .rome import FakeRome
-from .rueschlikon import FakeRueschlikon
-from .santiago import FakeSantiago
-from .singapore import FakeSingapore
-from .sydney import FakeSydney
-from .tenerife import FakeTenerife
-from .tokyo import FakeTokyo
-from .toronto import FakeToronto
-from .valencia import FakeValencia
-from .vigo import FakeVigo
-from .washington import FakeWashington
-from .yorktown import FakeYorktown
+import qiskit.providers.fake_provider
 
-# Legacy Backends
-from .almaden import FakeLegacyAlmaden
-from .armonk import FakeLegacyArmonk
-from .athens import FakeLegacyAthens
-from .belem import FakeLegacyBelem
-from .boeblingen import FakeLegacyBoeblingen
-from .bogota import FakeLegacyBogota
-from .burlington import FakeLegacyBurlington
-from .cambridge import FakeLegacyCambridge
-from .cambridge import FakeLegacyCambridgeAlternativeBasis
-from .casablanca import FakeLegacyCasablanca
-from .essex import FakeLegacyEssex
-from .johannesburg import FakeLegacyJohannesburg
-from .lima import FakeLegacyLima
-from .london import FakeLegacyLondon
-from .manhattan import FakeLegacyManhattan
-from .melbourne import FakeLegacyMelbourne
-from .montreal import FakeLegacyMontreal
-from .mumbai import FakeLegacyMumbai
-from .ourense import FakeLegacyOurense
-from .paris import FakeLegacyParis
-from .poughkeepsie import FakeLegacyPoughkeepsie
-from .quito import FakeLegacyQuito
-from .rochester import FakeLegacyRochester
-from .rome import FakeLegacyRome
-from .rueschlikon import FakeLegacyRueschlikon
-from .santiago import FakeLegacySantiago
-from .singapore import FakeLegacySingapore
-from .sydney import FakeLegacySydney
-from .tenerife import FakeLegacyTenerife
-from .tokyo import FakeLegacyTokyo
-from .toronto import FakeLegacyToronto
-from .valencia import FakeLegacyValencia
-from .vigo import FakeLegacyVigo
-from .yorktown import FakeLegacyYorktown
+
+def __getattr__(name):
+    if name.startswith("_"):
+        # Some Python components (including tests) do funny things with dunders.
+        raise AttributeError(f"module '{__name__}' has no attribute '{name}'")
+
+    warnings.warn(
+        f"The module '{__name__}' is deprecated since "
+        "Qiskit Terra 0.21.0, and will be removed 3 months or more later. "
+        "Instead, you should import from `qiskit.providers.fake_provider` directly.",
+        category=DeprecationWarning,
+        stacklevel=2,
+    )
+    return getattr(qiskit.providers.fake_provider, name)

@@ -46,11 +46,12 @@ z3_requirements = [
     "z3-solver>=4.7",
 ]
 bip_requirements = ["cplex", "docplex"]
-
+csp_requirements = ["python-constraint>=1.4"]
+toqm_requirements = ["qiskit-toqm>=0.0.4"]
 
 setup(
     name="qiskit-terra",
-    version="0.20.0",
+    version="0.23.0",
     description="Software for developing quantum computing programs",
     long_description=README,
     long_description_content_type="text/markdown",
@@ -82,10 +83,11 @@ setup(
         "visualization": visualization_extras,
         "bip-mapper": bip_requirements,
         "crosstalk-pass": z3_requirements,
-        # Note: 'all' does not include 'bip-mapper' because cplex is too fiddly and too little
-        # supported on various Python versions and OSes compared to Terra.  You have to ask for it
-        # explicitly.
-        "all": visualization_extras + z3_requirements,
+        "csp-layout-pass": csp_requirements,
+        "toqm": toqm_requirements,
+        # Note: 'all' only includes extras that are stable and work on the majority of Python
+        # versions and OSes supported by Terra. You have to ask for anything else explicitly.
+        "all": visualization_extras + z3_requirements + csp_requirements,
     },
     project_urls={
         "Bug Tracker": "https://github.com/Qiskit/qiskit-terra/issues",
@@ -98,6 +100,17 @@ setup(
         "qiskit.unitary_synthesis": [
             "default = qiskit.transpiler.passes.synthesis.unitary_synthesis:DefaultUnitarySynthesis",
             "aqc = qiskit.transpiler.synthesis.aqc.aqc_plugin:AQCSynthesisPlugin",
-        ]
+        ],
+        "qiskit.synthesis": [
+            "clifford.default = qiskit.transpiler.passes.synthesis.high_level_synthesis:DefaultSynthesisClifford",
+            "linear_function.default = qiskit.transpiler.passes.synthesis.high_level_synthesis:DefaultSynthesisLinearFunction",
+        ],
+        "qiskit.transpiler.routing": [
+            "basic = qiskit.transpiler.preset_passmanagers.builtin_plugins:BasicSwapPassManager",
+            "stochastic = qiskit.transpiler.preset_passmanagers.builtin_plugins:StochasticSwapPassManager",
+            "lookahead = qiskit.transpiler.preset_passmanagers.builtin_plugins:LookaheadSwapPassManager",
+            "sabre = qiskit.transpiler.preset_passmanagers.builtin_plugins:SabreSwapPassManager",
+            "none = qiskit.transpiler.preset_passmanagers.builtin_plugins:NoneRoutingPassManager",
+        ],
     },
 )

@@ -68,7 +68,7 @@ class QasmSimulatorPy(BackendV1):
         "conditional": True,
         "open_pulse": False,
         "memory": True,
-        "max_shots": 65536,
+        "max_shots": 0,
         "coupling_map": None,
         "description": "A python simulator for qasm experiments",
         "basis_gates": ["u1", "u2", "u3", "rz", "sx", "x", "cx", "id", "unitary"],
@@ -295,7 +295,10 @@ class QasmSimulatorPy(BackendV1):
 
         # Check for custom initial statevector in backend_options first,
         # then config second
-        if "initial_statevector" in backend_options:
+        if (
+            "initial_statevector" in backend_options
+            and backend_options["initial_statevector"] is not None
+        ):
             self._initial_statevector = np.array(
                 backend_options["initial_statevector"], dtype=complex
             )

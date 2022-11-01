@@ -11,6 +11,7 @@
 # that they have been altered from the originals.
 
 """Helper function for converting a circuit to a dag"""
+import copy
 
 from qiskit.dagcircuit.dagcircuit import DAGCircuit
 
@@ -58,8 +59,10 @@ def circuit_to_dag(circuit):
     for register in circuit.cregs:
         dagcircuit.add_creg(register)
 
-    for instruction, qargs, cargs in circuit.data:
-        dagcircuit.apply_operation_back(instruction.copy(), qargs, cargs)
+    for instruction in circuit.data:
+        dagcircuit.apply_operation_back(
+            copy.deepcopy(instruction.operation), instruction.qubits, instruction.clbits
+        )
 
     dagcircuit.duration = circuit.duration
     dagcircuit.unit = circuit.unit

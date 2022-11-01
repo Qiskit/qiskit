@@ -1,0 +1,10 @@
+---
+features:
+  - |
+    The constructor for the :class:`~.Unroll3qOrMore` transpiler pass has
+    two new optional keyword arguments, ``target`` and ``basis_gates``. These
+    options enable you to specify the :class:`~.Target` or supported basis
+    gates respectively to describe the target backend. If any of the operations
+    in the circuit are in the ``target`` or ``basis_gates`` those will not
+    be unrolled by the pass as the target device has native support for the
+    operation.

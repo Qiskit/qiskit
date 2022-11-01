@@ -12,6 +12,6 @@
 
 """Scheduling pass to assign instruction start time."""
 
-from .asap import ASAPSchedule
-from .alap import ALAPSchedule
+from .asap import ASAPScheduleAnalysis
+from .alap import ALAPScheduleAnalysis
 from .set_io_latency import SetIOLatency

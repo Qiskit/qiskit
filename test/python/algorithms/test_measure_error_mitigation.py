@@ -15,10 +15,10 @@
 import unittest
 
 from test.python.algorithms import QiskitAlgorithmsTestCase
-from ddt import ddt, data
+from ddt import ddt, data, unpack
 import numpy as np
 import retworkx as rx
-from qiskit import QuantumCircuit
+from qiskit import QuantumCircuit, execute
 from qiskit.quantum_info import Pauli
 from qiskit.exceptions import QiskitError
 from qiskit.utils import QuantumInstance, algorithm_globals
@@ -27,14 +27,15 @@ from qiskit.opflow import I, X, Z, PauliSumOp
 from qiskit.algorithms.optimizers import SPSA, COBYLA
 from qiskit.circuit.library import EfficientSU2
 from qiskit.utils.mitigation import CompleteMeasFitter, TensoredMeasFitter
+from qiskit.utils.measurement_error_mitigation import build_measurement_error_mitigation_circuits
 from qiskit.utils import optionals
 
 if optionals.HAS_AER:
-    # pylint: disable=import-error,no-name-in-module
+    # pylint: disable=no-name-in-module
     from qiskit import Aer
     from qiskit.providers.aer import noise
 if optionals.HAS_IGNIS:
-    # pylint: disable=import-error,no-name-in-module
+    # pylint: disable=no-name-in-module
     from qiskit.ignis.mitigation.measurement import (
         CompleteMeasFitter as CompleteMeasFitter_IG,
         TensoredMeasFitter as TensoredMeasFitter_IG,
@@ -46,8 +47,19 @@ class TestMeasurementErrorMitigation(QiskitAlgorithmsTestCase):
     """Test measurement error mitigation."""
 
     @unittest.skipUnless(optionals.HAS_AER, "qiskit-aer is required for this test")
-    @data("CompleteMeasFitter", "TensoredMeasFitter")
-    def test_measurement_error_mitigation_with_diff_qubit_order(self, fitter_str):
+    @data(
+        ("CompleteMeasFitter", None, False),
+        ("TensoredMeasFitter", None, False),
+        ("TensoredMeasFitter", [[0, 1]], True),
+        ("TensoredMeasFitter", [[1], [0]], False),
+    )
+    @unpack
+    def test_measurement_error_mitigation_with_diff_qubit_order(
+        self,
+        fitter_str,
+        mit_pattern,
+        fails,
+    ):
         """measurement error mitigation with different qubit order"""
         algorithm_globals.random_seed = 0
 
@@ -68,6 +80,7 @@ class TestMeasurementErrorMitigation(QiskitAlgorithmsTestCase):
             noise_model=noise_model,
             measurement_error_mitigation_cls=fitter_cls,
             cals_matrix_refresh_period=0,
+            mit_pattern=mit_pattern,
         )
         # circuit
         qc1 = QuantumCircuit(2, 2)
@@ -81,15 +94,14 @@ class TestMeasurementErrorMitigation(QiskitAlgorithmsTestCase):
         qc2.measure(1, 0)
         qc2.measure(0, 1)
 
-        if fitter_cls == TensoredMeasFitter:
+        if fails:
             self.assertRaisesRegex(
                 QiskitError,
-                "TensoredMeasFitter doesn't support subset_fitter.",
+                "Each element in the mit pattern should have length 1.",
                 quantum_instance.execute,
                 [qc1, qc2],
             )
         else:
-            # this should run smoothly
             quantum_instance.execute([qc1, qc2])
 
         self.assertGreater(quantum_instance.time_taken, 0.0)
@@ -386,6 +398,67 @@ class TestMeasurementErrorMitigation(QiskitAlgorithmsTestCase):
         circuits_input = circuits_ref.copy()
         _ = qi.execute(circuits_input, had_transpiled=True)
         self.assertEqual(circuits_ref, circuits_input, msg="Transpiled circuit array modified.")
+
+    @unittest.skipUnless(optionals.HAS_AER, "qiskit-aer is required for this test")
+    def test_tensor_subset_fitter(self):
+        """Test the subset fitter method of the tensor fitter."""
+
+        # Construct a noise model where readout has errors of different strengths.
+        noise_model = noise.NoiseModel()
+        # big error
+        read_err0 = noise.errors.readout_error.ReadoutError([[0.90, 0.10], [0.25, 0.75]])
+        # ideal
+        read_err1 = noise.errors.readout_error.ReadoutError([[1.00, 0.00], [0.00, 1.00]])
+        # small error
+        read_err2 = noise.errors.readout_error.ReadoutError([[0.98, 0.02], [0.03, 0.97]])
+        noise_model.add_readout_error(read_err0, (0,))
+        noise_model.add_readout_error(read_err1, (1,))
+        noise_model.add_readout_error(read_err2, (2,))
+
+        mit_pattern = [[idx] for idx in range(3)]
+        backend = Aer.get_backend("aer_simulator")
+        backend.set_options(seed_simulator=123)
+        mit_circuits = build_measurement_error_mitigation_circuits(
+            [0, 1, 2],
+            TensoredMeasFitter,
+            backend,
+            backend_config={},
+            compile_config={},
+            mit_pattern=mit_pattern,
+        )
+        result = execute(mit_circuits[0], backend, noise_model=noise_model).result()
+        fitter = TensoredMeasFitter(result, mit_pattern=mit_pattern)
+        cal_matrices = fitter.cal_matrices
+
+        # Check that permutations and permuted subsets match.
+        for subset in [[1, 0], [1, 2], [0, 2], [2, 0, 1]]:
+            with self.subTest(subset=subset):
+                new_fitter = fitter.subset_fitter(subset)
+                for idx, qubit in enumerate(subset):
+                    self.assertTrue(np.allclose(new_fitter.cal_matrices[idx], cal_matrices[qubit]))
+
+        self.assertRaisesRegex(
+            QiskitError,
+            "Qubit 3 is not in the mit pattern",
+            fitter.subset_fitter,
+            [0, 2, 3],
+        )
+
+        # Test that we properly correct a circuit with permuted measurements.
+        circuit = QuantumCircuit(3, 3)
+        circuit.x(range(3))
+        circuit.measure(1, 0)
+        circuit.measure(2, 1)
+        circuit.measure(0, 2)
+
+        result = execute(
+            circuit, backend, noise_model=noise_model, shots=1000, seed_simulator=0
+        ).result()
+        new_result = fitter.subset_fitter([1, 2, 0]).filter.apply(result)
+
+        # The noisy result should have a poor 111 state, the mit. result should be good.
+        self.assertTrue(result.get_counts()["111"] < 800)
+        self.assertTrue(new_result.get_counts()["111"] > 990)
 
 
 if __name__ == "__main__":
