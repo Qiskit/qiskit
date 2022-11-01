@@ -32,7 +32,7 @@ class GphaseGate(Gate):
 
 
     .. math::
-        \text{GlobalPhaseGate}\ =
+        \text{GPhaseGate}\ =
             \begin{pmatrix}
                 e^{i\theta}   
             \end{pmatrix}

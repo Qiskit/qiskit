@@ -1,0 +1,6 @@
+---
+features:
+  - |
+    Added global phase gate (gphase) which can be applied to a :class:`~qiskit.circuit.QuantumCircuit`
+    with the :meth:`~qiskit.circuit.QuantumCircuit.globalphase` method.
+
