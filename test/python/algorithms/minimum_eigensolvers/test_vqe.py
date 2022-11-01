@@ -300,7 +300,7 @@ class TestVQE(QiskitAlgorithmsTestCase):
             vqe.optimizer = L_BFGS_B()
             run_check()
 
-    def test_default_batch_evaluation(self):
+    def test_default_batch_evaluation_on_spsa(self):
         """Test the default batching works."""
         ansatz = TwoLocal(2, rotation_blocks=["ry", "rz"], entanglement_blocks="cz")
 

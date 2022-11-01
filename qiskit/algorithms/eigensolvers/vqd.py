@@ -38,6 +38,9 @@ from ..utils import validate_bounds, validate_initial_point
 from ..exceptions import AlgorithmError
 from ..observables_evaluator import estimate_observables
 
+# private function as we expect this to be updated in the next released
+from ..utils.set_batching import _set_default_batchsize
+
 logger = logging.getLogger(__name__)
 
 
@@ -264,21 +267,17 @@ class VQD(VariationalAlgorithm, Eigensolver):
                     fun=energy_evaluation, x0=initial_point, bounds=bounds
                 )
             else:
-                # We always want to submit as many estimations per job as possible for minimal
-                # overhead on the hardware. The minimum is set to 50 to cover the commonly used SPSA
-                # calibration or 2 * num_parameters to cover finite difference gradients,
-                # and we cap at 1000 parameter evaluations at once.
-                max_batchsize = getattr(self.optimizer, "_max_evals_grouped", None)
-                if max_batchsize is None:
-                    default_batchsize = min(1000, max(50, 2 * self.ansatz.num_parameters))
-                    self.optimizer.set_max_evals_grouped(default_batchsize)
+                # we always want to submit as many estimations per job as possible for minimal
+                # overhead on the hardware
+                was_updated = _set_default_batchsize(self.optimizer)
 
                 opt_result = self.optimizer.minimize(
                     fun=energy_evaluation, x0=initial_point, bounds=bounds
                 )
 
                 # reset to original value
-                self.optimizer.set_max_evals_grouped(max_batchsize)
+                if was_updated:
+                    self.optimizer.set_max_evals_grouped(None)
 
             eval_time = time() - start_time
 
