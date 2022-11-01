@@ -23,6 +23,7 @@ import numpy as np
 from qiskit.algorithms import AlgorithmError
 from qiskit.circuit import Parameter, ParameterExpression, QuantumCircuit
 from qiskit.primitives import BaseEstimator
+from qiskit.primitives.utils import _circuit_key
 from qiskit.providers import Options
 from qiskit.quantum_info import SparsePauliOp
 
@@ -54,14 +55,32 @@ class LinCombQFI(BaseQFI):
         Args:
             estimator: The estimator used to compute the QFI.
             phase_fix: Whether to calculate the second term (phase fix) of the QFI, which is
-                Re[(dω⟨<ψ(ω)|)|ψ(ω)><ψ(ω)|(dω|ψ(ω))>]. Default to ``True``.
+                :math:`\langle\partial_k \psi | \psi \rangle \langle\psi | \partial_l \psi \rangle`.
+                Default to ``True``.
             derivative_type: The type of derivative. Can be either ``DerivativeType.REAL``
                 ``DerivativeType.IMAG``, or ``DerivativeType.COMPLEX``. Defaults to
                 ``DerivativeType.REAL``.
 
-                - ``DerivativeType.REAL`` computes :math:`4 \mathrm{Re}[(dω⟨ψ(ω)|)O(θ)|ψ(ω)〉]`.
-                - ``DerivativeType.IMAG`` computes :math:`4 \mathrm{Im}[(dω⟨ψ(ω)|)O(θ)|ψ(ω)〉]`.
-                - ``DerivativeType.COMPLEX`` computes :math:`4 (dω⟨ψ(ω)|)O(θ)|ψ(ω)〉`.
+                - ``DerivativeType.REAL`` computes
+
+                .. math::
+
+                    \mathrm{QFI}_{kl}= 4 \mathrm{Re}[\langle \partial_k \psi | \partial_l \psi \rangle
+                        - \langle\partial_k \psi | \psi \rangle \langle\psi | \partial_l \psi \rangle].
+
+                - ``DerivativeType.IMAG`` computes
+
+                .. math::
+
+                    \mathrm{QFI}_{kl}= 4 \mathrm{Im}[\langle \partial_k \psi | \partial_l \psi \rangle
+                        - \langle\partial_k \psi | \psi \rangle \langle\psi | \partial_l \psi \rangle].
+
+                - ``DerivativeType.COMPLEX`` computes
+
+                .. math::
+
+                    \mathrm{QFI}_{kl}= 4 [\langle \partial_k \psi | \partial_l \psi \rangle
+                        - \langle\partial_k \psi | \psi \rangle \langle\psi | \partial_l \psi \rangle].
 
             options: Backend runtime options used for circuit execution. The order of priority is:
                 options in ``run`` method > QFI's default options > primitive's default
@@ -74,7 +93,7 @@ class LinCombQFI(BaseQFI):
         self._gradient = LinCombEstimatorGradient(
             estimator, derivative_type=DerivativeType.COMPLEX, options=options
         )
-        self._qfi_circuits = {}
+        self._qfi_circuit_cache = {}
 
     def _run(
         self,
@@ -84,21 +103,24 @@ class LinCombQFI(BaseQFI):
         **options,
     ) -> QFIResult:
         """Compute the QFIs on the given circuits."""
-        jobs, result_indices_all, coeffs_all, metadata_, gradient_jobs, phase_fixes = (
-            [],
-            [],
-            [],
-            [],
-            [],
-            [],
-        )
+        jobs, result_indices_all, coeffs_all = [], [], []
+        metadata_, gradient_jobs, phase_fixes = [], [], []
 
         for circuit, parameter_values_, parameters_ in zip(circuits, parameter_values, parameters):
             # a set of parameters to be differentiated
+            result_map = {}
+            idx = 0
             if parameters_ is None:
                 param_set = set(circuit.parameters)
+                result_map = {idx: idx for idx, _ in enumerate(circuit.parameters)}
             else:
                 param_set = set(parameters_)
+                for i, param in enumerate(circuit.parameters):
+                    if param in param_set:
+                        result_map[i] = idx
+                        idx += 1
+                    else:
+                        result_map[i] = -1
 
             meta = {"parameters": [p for p in circuit.parameters if p in param_set]}
             meta["derivative_type"] = self._derivative_type
@@ -116,21 +138,16 @@ class LinCombQFI(BaseQFI):
                 )
                 gradient_jobs.append(gradient_job)
             # compute the first term in the QFI
-            qfi_circuits_ = self._qfi_circuits.get(id(circuit))
+            qfi_circuits_ = self._qfi_circuit_cache.get(_circuit_key(circuit))
             if qfi_circuits_ is None:
+                # generate the all of the circuits for the first term in the QFI and cache them.
+                # only the circuit related to specified parameters will be executed.
+                # In the future, we can generate the specified circuits on demand.
                 qfi_circuits_ = _make_lin_comb_qfi_circuit(circuit)
-                self._qfi_circuits[id(circuit)] = qfi_circuits_
+                self._qfi_circuit_cache[_circuit_key(circuit)] = qfi_circuits_
 
             # only compute the gradients for parameters in the parameter set
             qfi_circuits, result_indices, coeffs = [], [], []
-            result_map = {}
-            idx = 0
-            for i, param in enumerate(circuit.parameters):
-                if param in param_set:
-                    result_map[i] = idx
-                    idx += 1
-                else:
-                    result_map[i] = -1
 
             result_indices = []
             for i, param_i in enumerate(circuit.parameters):
@@ -209,7 +226,7 @@ class LinCombQFI(BaseQFI):
         qfis = []
         for i, result in enumerate(results):
             qfi_ = np.zeros(
-                (len(metadata_[i]["parameters"]), len(metadata_[i]["parameters"])), dtype="complex_"
+                (len(metadata_[i]["parameters"]), len(metadata_[i]["parameters"])), dtype="complex"
             )
 
             if metadata_[i]["derivative_type"] == DerivativeType.COMPLEX:
@@ -225,10 +242,14 @@ class LinCombQFI(BaseQFI):
             else:
                 for grad_, idx, coeff in zip(result.values, result_indices_all[i], coeffs_all[i]):
                     qfi_[idx] += coeff * grad_
+                qfi_ = qfi_.real
+
+            if metadata_[i]["derivative_type"] == DerivativeType.REAL:
+                phase_fixes[i] = phase_fixes[i].real
+            elif metadata_[i]["derivative_type"] == DerivativeType.IMAG:
+                phase_fixes[i] = phase_fixes[i].imag
             qfi = qfi_ - phase_fixes[i]
             qfi += np.triu(qfi_, k=1).T
-            if metadata_[i]["derivative_type"] != DerivativeType.COMPLEX:
-                qfi = np.real(qfi)
             qfis.append(qfi)
 
         run_opt = self._get_local_options(options)

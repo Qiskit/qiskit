@@ -171,7 +171,7 @@ class LinCombEstimatorGradient(BaseEstimatorGradient):
 
         gradients = []
         for i, result in enumerate(results):
-            gradient_ = np.zeros(len(metadata_[i]["parameters"]), dtype="complex_")
+            gradient_ = np.zeros(len(metadata_[i]["parameters"]), dtype="complex")
 
             if metadata_[i]["derivative_type"] == DerivativeType.COMPLEX:
                 n = len(result.values) // 2  # is always a multiple of 2
