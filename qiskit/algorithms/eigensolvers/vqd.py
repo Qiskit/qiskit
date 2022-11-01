@@ -38,7 +38,7 @@ from ..utils import validate_bounds, validate_initial_point
 from ..exceptions import AlgorithmError
 from ..observables_evaluator import estimate_observables
 
-# private function as we expect this to be updated in the next released
+# private function as we expect this to be updated in the next release
 from ..utils.set_batching import _set_default_batchsize
 
 logger = logging.getLogger(__name__)
