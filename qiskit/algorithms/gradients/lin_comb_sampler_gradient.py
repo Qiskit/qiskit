@@ -22,6 +22,7 @@ import numpy as np
 from qiskit.algorithms import AlgorithmError
 from qiskit.circuit import Parameter, ParameterExpression, QuantumCircuit
 from qiskit.primitives import BaseSampler
+from qiskit.providers import Options
 
 from .base_sampler_gradient import BaseSamplerGradient
 from .sampler_gradient_result import SamplerGradientResult
@@ -37,7 +38,7 @@ class LinCombSamplerGradient(BaseSamplerGradient):
     `arXiv:1811.11184 <https://arxiv.org/pdf/1811.11184.pdf>`_
     """
 
-    def __init__(self, sampler: BaseSampler, **options):
+    def __init__(self, sampler: BaseSampler, options: Options | None = None):
         """
         Args:
             sampler: The sampler used to compute the gradients.
@@ -48,7 +49,7 @@ class LinCombSamplerGradient(BaseSamplerGradient):
         """
 
         self._gradient_circuits = {}
-        super().__init__(sampler, **options)
+        super().__init__(sampler, options)
 
     def _run(
         self,
