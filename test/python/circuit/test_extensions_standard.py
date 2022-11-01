@@ -37,6 +37,7 @@ from qiskit.circuit.library import (
     RZGate,
     XGate,
     YGate,
+    GphaseGate,
 )
 from qiskit import BasicAer
 from qiskit.quantum_info import Pauli
@@ -926,6 +927,27 @@ class TestStandard1Q(QiskitTestCase):
         self.assertEqual(instruction_set[1].qubits, (self.qr[1],))
         self.assertEqual(instruction_set[2].operation.params, [])
 
+    def test_gphase(self):
+        self.circuit.gphase(self.qr[0])
+        self.assertEqual(self.circuit[0].operation.name, "gphase")
+        self.assertEqual(self.circuit[0].operation.params, [])
+
+    def test_gphase_wires(self):
+        self.circuit.gphase(0)
+        self.assertEqual(self.circuit[0].operation.name, "gphase")
+        self.assertEqual(self.circuit[0].operation.params, [])
+
+
+    def test_gphase_inv(self):
+        instruction_set = self.circuit.gphase(self.qr).inverse()
+        self.assertEqual(len(instruction_set), 3)
+        self.assertEqual(instruction_set[0].operation.name, "gphase")
+        self.assertEqual(instruction_set[1].qubits, (self.qr[0],))
+
+    def test_gphase_matrix(self, theta: float, expected: np.ndarray):
+        """Test gphase matrix."""
+        gate = GphaseGate(theta)
+        np.testing.assert_allclose(np.array(gate), expected, atol=1e-7)        
 
 @ddt
 class TestStandard2Q(QiskitTestCase):
