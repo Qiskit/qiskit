@@ -36,80 +36,51 @@ pub fn score_layout(
 ) -> PyResult<f64> {
     let bit_counts = bit_list.as_slice()?;
     let err_mat = error_matrix.as_array();
-    let mut fidelity = if edge_list.len() < PARALLEL_THRESHOLD || !run_in_parallel {
-        edge_list
-            .iter()
-            .filter_map(|(index_arr, gate_count)| {
-                let mut error = err_mat[[
-                    layout.logic_to_phys[index_arr[0]],
-                    layout.logic_to_phys[index_arr[1]],
-                ]];
-                if !strict_direction && error.is_nan() {
-                    error = err_mat[[
-                        layout.logic_to_phys[index_arr[1]],
-                        layout.logic_to_phys[index_arr[0]],
-                    ]];
-                }
-                if !error.is_nan() {
-                    Some((1. - error).powi(*gate_count))
-                } else {
-                    None
-                }
-            })
-            .reduce(|a, b| a * b)
-            .unwrap_or(1.)
+    let edge_filter_map = |(index_arr, gate_count): (&[usize; 2], &i32)| -> Option<f64> {
+        let mut error = err_mat[[
+            layout.logic_to_phys[index_arr[0]],
+            layout.logic_to_phys[index_arr[1]],
+        ]];
+        if !strict_direction && error.is_nan() {
+            error = err_mat[[
+                layout.logic_to_phys[index_arr[1]],
+                layout.logic_to_phys[index_arr[0]],
+            ]];
+        }
+        if !error.is_nan() {
+            Some((1. - error).powi(*gate_count))
+        } else {
+            None
+        }
+    };
+    let bit_filter_map = |(index, gate_counts): (usize, &i32)| -> Option<f64> {
+        let bit_index = layout.logic_to_phys[index];
+        let error = err_mat[[bit_index, bit_index]];
+
+        if !error.is_nan() {
+            Some((1. - error).powi(*gate_counts))
+        } else {
+            None
+        }
+    };
+
+    let mut fidelity: f64 = if edge_list.len() < PARALLEL_THRESHOLD || !run_in_parallel {
+        edge_list.iter().filter_map(edge_filter_map).product()
     } else {
-        edge_list
-            .par_iter()
-            .filter_map(|(index_arr, gate_count)| {
-                let mut error = err_mat[[
-                    layout.logic_to_phys[index_arr[0]],
-                    layout.logic_to_phys[index_arr[1]],
-                ]];
-                if !strict_direction && error.is_nan() {
-                    error = err_mat[[
-                        layout.logic_to_phys[index_arr[1]],
-                        layout.logic_to_phys[index_arr[0]],
-                    ]];
-                }
-                if !error.is_nan() {
-                    Some((1. - error).powi(*gate_count))
-                } else {
-                    None
-                }
-            })
-            .reduce(|| 1., |a, b| a * b)
+        edge_list.par_iter().filter_map(edge_filter_map).product()
     };
     fidelity *= if bit_list.len() < PARALLEL_THRESHOLD || !run_in_parallel {
         bit_counts
             .iter()
             .enumerate()
-            .filter_map(|(index, gate_counts)| {
-                let bit_index = layout.logic_to_phys[index];
-                let error = err_mat[[bit_index, bit_index]];
-
-                if !error.is_nan() {
-                    Some((1. - error).powi(*gate_counts))
-                } else {
-                    None
-                }
-            })
-            .reduce(|a, b| a * b)
-            .unwrap_or(1.)
+            .filter_map(bit_filter_map)
+            .product::<f64>()
     } else {
         bit_counts
             .par_iter()
             .enumerate()
-            .filter_map(|(index, gate_counts)| {
-                let bit_index = layout.logic_to_phys[index];
-                let error = err_mat[[bit_index, bit_index]];
-                if error > 0. {
-                    Some((1. - error).powi(*gate_counts))
-                } else {
-                    None
-                }
-            })
-            .reduce(|| 1., |a, b| a * b)
+            .filter_map(bit_filter_map)
+            .product()
     };
     Ok(1. - fidelity)
 }
