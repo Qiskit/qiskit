@@ -445,7 +445,7 @@ class CouplingTest(QiskitTestCase):
     def test_implements_iter(self):
         """Test that the object is implicitly iterable."""
         coupling = CouplingMap.from_line(3)
-        expected = [(0, 1), (1, 2), (1, 0), (2, 1)]
+        expected = [(0, 1), (1, 0), (1, 2), (2, 1)]
         self.assertEqual(sorted(coupling), expected)
 
 
