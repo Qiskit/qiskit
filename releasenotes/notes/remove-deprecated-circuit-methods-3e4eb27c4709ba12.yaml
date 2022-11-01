@@ -2,7 +2,7 @@
 upgrade:
   - |
     The :class:`.QuantumCircuit` methods ``u1``, ``u2``, ``u3``, and their
-    controlled variants ``cu1``, ``cu2`` and ``cu3`` have been removed following
+    controlled variants ``cu1``, ``cu3`` and ``mcu1`` have been removed following
     their deprecation in Qiskit Terra 0.16.0.  This was to remove gate names
     that were usually IBM-specific, in favour of the more general methods :meth:`~.QuantumCircuit.p`,
     :meth:`~.QuantumCircuit.u`, :meth:`~.QuantumCircuit.cp` and :meth:`~.QuantumCircuit.cu`.
