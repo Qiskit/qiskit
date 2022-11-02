@@ -85,9 +85,11 @@ def optimize_cx_4_options(function: Callable, mat: np.ndarray, optimize_count: b
 
         new_depth = qc.depth()
         new_count = qc.count_ops()["cx"]
+        # Prioritize count, and if it has the same count, then also consider depth
         better_count = (optimize_count and best_count > new_count) or (
             not optimize_count and best_depth == new_depth and best_count > new_count
         )
+        # Prioritize depth, and if it has the same depth, then also consider count
         better_depth = (not optimize_count and best_depth > new_depth) or (
             optimize_count and best_count == new_count and best_depth > new_depth
         )

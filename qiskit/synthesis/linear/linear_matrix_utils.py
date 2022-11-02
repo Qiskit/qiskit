@@ -63,7 +63,7 @@ def random_invertible_binary_matrix(
 def _gauss_elimination(mat, ncols=None, full_elim=False):
     """Gauss elimination of a matrix mat with m rows and n columns.
     If full_elim = True, it allows full elimination of mat[:, 0 : ncols]
-    Returns the matrix mat."""
+    Mutates and returns the matrix mat."""
 
     # Treat the matrix A as containing integer values
     mat = np.array(mat, dtype=int, copy=False)
