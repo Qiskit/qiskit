@@ -17,7 +17,7 @@ import unittest
 from qiskit.circuit import QuantumCircuit, QuantumRegister
 from qiskit.quantum_info.operators import Operator
 from qiskit.extensions.unitary import UnitaryGate
-from qiskit.synthesis.linear import graysynth, cnot_synth
+from qiskit.synthesis.linear import graysynth, PMH_cnot_synth
 from qiskit.test import QiskitTestCase
 
 
@@ -239,7 +239,7 @@ class TestPatelMarkovHayes(QiskitTestCase):
             [1, 1, 0, 1, 1, 1],
             [0, 0, 1, 1, 1, 0],
         ]
-        c_patel = cnot_synth(state)
+        c_patel = PMH_cnot_synth(state)
         unitary_patel = UnitaryGate(Operator(c_patel))
 
         # Create the circuit displayed above:
