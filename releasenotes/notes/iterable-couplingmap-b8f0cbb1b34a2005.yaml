@@ -1,0 +1,15 @@
+---
+features:
+  - |
+    :class:`.CouplingMap` is now implicitly iterable, with the iteration being
+    identical to iterating through the output of :meth:`.CouplingMap.get_edges()`.
+    In other words,
+
+    .. code-block:: python
+
+      from qiskit.transpiler import CouplingMap
+      coupling = CouplingMap.from_line(3)
+      list(coupling) == list(coupling.get_edges())
+
+    will now function as expected, as will other iterations.  This is purely a
+    syntactic convenience.
