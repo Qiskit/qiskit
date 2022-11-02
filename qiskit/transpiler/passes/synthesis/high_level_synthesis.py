@@ -19,7 +19,7 @@ from qiskit.transpiler.basepasses import TransformationPass
 from qiskit.dagcircuit.dagcircuit import DAGCircuit
 from qiskit.transpiler.exceptions import TranspilerError
 from qiskit.quantum_info import decompose_clifford
-from qiskit.synthesis.linear import cnot_synth
+from qiskit.synthesis.linear import PMH_cnot_synth
 from .plugin import HighLevelSynthesisPluginManager, HighLevelSynthesisPlugin
 
 
@@ -168,5 +168,5 @@ class DefaultSynthesisLinearFunction(HighLevelSynthesisPlugin):
 
     def run(self, high_level_object, **options):
         """Run synthesis for the given LinearFunction."""
-        decomposition = cnot_synth(high_level_object.linear)
+        decomposition = PMH_cnot_synth(high_level_object.linear)
         return decomposition

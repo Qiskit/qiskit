@@ -180,7 +180,7 @@ def graysynth(cnots, angles, section_size=2):
     return qcir
 
 
-def cnot_synth(state, section_size=2):
+def PMH_cnot_synth(state, section_size=2):
     """
     This function is an implementation of the Patel–Markov–Hayes algorithm
     for optimal synthesis of linear reversible circuits, as specified by an
