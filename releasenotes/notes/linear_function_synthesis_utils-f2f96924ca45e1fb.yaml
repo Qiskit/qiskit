@@ -1,20 +1,20 @@
 ---
 features:
   - |
-    Add new internal utility functions to handle linear functions and circuits:
-    A utility function that checks whether a NxN binary matrix is invertible and a utility function
-    that computes an inverse of a NxN invertible binary matrix.
-    A utility function that calculates the transpose of a linear reversible circuit.
-    Implement the following "meta" idea for synthesizing linear functions:
+    Add new utility functions to handle linear functions and circuits:
+    * A utility function that checks whether a NxN binary matrix is invertible.
+    * A utility function that computes an inverse of a NxN invertible binary matrix.
+    * A utility function that calculates the transpose of a linear reversible circuit.
+    * Implement the following "meta" idea for synthesizing linear functions:
     given an invertible binary matrix A and a synthesis algorithm f: A -> QuantumCircuit,
     in addition to applying f to A, we can also apply f to A^{-1} and invert the computed circuit,
-    apply f to A^{t} and transpose the computed circuit, and to apply f to A^t^{-1} and to invert
+    apply f to A^{T} and transpose the computed circuit, and to apply f to A^{T}^{-1} and to invert
     and transpose the computed circuit, thus leading to 4 generally different synthesized circuits for A,
     allowing to pick the best one in terms of depth or the number of gates.
 upgrade:
   - |
     Improve code structure by moving the internal code graysynth.py from qiskit/transpiler/synthesis
-    to qiskit/synthesis/linear.
+    to qiskit/synthesis/linear, and renaming cnot_synth to PMH_cnot_synth.
 fixes:
   - |
     Provide an internal utility function to generate a random NxN invertible binary matrix.
