@@ -114,8 +114,7 @@ def build_average_error_map(target, properties, coupling_map):
         num_qubits = target.num_qubits
     elif coupling_map is not None:
         num_qubits = coupling_map.size()
-    avg_map = np.empty((num_qubits, num_qubits), dtype=np.float64)
-    avg_map.fill(np.nan)
+    avg_map = np.full((num_qubits, num_qubits), np.nan, dtype=np.float64)
     built = False
     if target is not None:
         for qargs in target.qargs:
