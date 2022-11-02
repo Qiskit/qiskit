@@ -25,7 +25,7 @@ from qiskit.circuit.library.standard_gates import SwapGate, CSwapGate, CRZGate, 
 from qiskit.utils import optionals as _optionals
 
 if _optionals.HAS_Z3:
-    import z3  # pylint: disable=import-error
+    import z3
 
     # FLIP GATES #
     # XGate
