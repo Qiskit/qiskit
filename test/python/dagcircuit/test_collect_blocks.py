@@ -62,6 +62,24 @@ class TestCollectBlocks(QiskitTestCase):
         self.assertEqual(len(blocks), 1)
         self.assertEqual(len(blocks[0]), 5)
 
+    def test_collect_gates_from_dagcircuit_3(self):
+        """Test collecting CX gates from DAGCircuits."""
+        qc = QuantumCircuit(5)
+        qc.cx(0, 1)
+        qc.cx(0, 2)
+        qc.z(0)
+        qc.cx(1, 3)
+        qc.cx(0, 3)
+        qc.cx(0, 4)
+
+        block_collector = BlockCollector(circuit_to_dag(qc))
+        blocks = block_collector.collect_all_matching_blocks(lambda node: node.op.name in ["cx"])
+
+        # We should end up with two CX blocks: even though there is "a path
+        # around z(0)", without commutativity analysis z(0) prevents from
+        # including all CX-gates into the same block
+        self.assertEqual(len(blocks), 2)
+
     def test_collect_gates_from_dagdependency_1(self):
         """Test collecting CX gates from DAGDependency."""
         qc = QuantumCircuit(5)
@@ -137,6 +155,116 @@ class TestCollectBlocks(QiskitTestCase):
         # We should get 3 sub-blocks
         split_blocks = BlockSplitter().run(blocks[0])
         self.assertEqual(len(split_blocks), 3)
+
+    def test_circuit_has_measure(self):
+        """Test that block collection works properly when there is a measure in the
+        middle of the circuit."""
+
+        qc = QuantumCircuit(2, 1)
+        qc.cx(1, 0)
+        qc.x(0)
+        qc.x(1)
+        qc.measure(0, 0)
+        qc.x(0)
+        qc.cx(1, 0)
+
+        block_collector = BlockCollector(circuit_to_dag(qc))
+        blocks = block_collector.collect_all_matching_blocks(
+            lambda node: node.op.name in ["x", "cx"]
+        )
+
+        # measure prevents combining the two blocks
+        self.assertEqual(len(blocks), 2)
+        self.assertEqual(len(blocks[0]), 3)
+        self.assertEqual(len(blocks[1]), 2)
+
+    def test_circuit_has_measure_dagdependency(self):
+        """Test that block collection works properly when there is a measure in the
+        middle of the circuit."""
+
+        qc = QuantumCircuit(2, 1)
+        qc.cx(1, 0)
+        qc.x(0)
+        qc.x(1)
+        qc.measure(0, 0)
+        qc.x(0)
+        qc.cx(1, 0)
+
+        block_collector = BlockCollector(circuit_to_dagdependency(qc))
+        blocks = block_collector.collect_all_matching_blocks(
+            lambda node: node.op.name in ["x", "cx"]
+        )
+
+        # measure prevents combining the two blocks
+        self.assertEqual(len(blocks), 2)
+        self.assertEqual(len(blocks[0]), 3)
+        self.assertEqual(len(blocks[1]), 2)
+
+    def test_circuit_has_conditional_gates(self):
+        """Test that block collection works properly when there the circuit
+        contains conditional gates."""
+
+        qc = QuantumCircuit(2, 1)
+        qc.x(0)
+        qc.x(1)
+        qc.cx(1, 0)
+        qc.x(1).c_if(0, 1)
+        qc.x(0)
+        qc.x(1)
+        qc.cx(0, 1)
+
+        # If the filter_function does not look at conditions, we should collect all
+        # gates into the block.
+        block_collector = BlockCollector(circuit_to_dag(qc))
+        blocks = block_collector.collect_all_matching_blocks(
+            lambda node: node.op.name in ["x", "cx"]
+        )
+        self.assertEqual(len(blocks), 1)
+        self.assertEqual(len(blocks[0]), 7)
+
+        # If the filter_function does look at conditions, we should not collect the middle
+        # conditional gate (note that x(1) following the measure is collected into the first
+        # block).
+        block_collector = BlockCollector(circuit_to_dag(qc))
+        blocks = block_collector.collect_all_matching_blocks(
+            lambda node: node.op.name in ["x", "cx"] and not getattr(node.op, "condition", None)
+        )
+        self.assertEqual(len(blocks), 2)
+        self.assertEqual(len(blocks[0]), 4)
+        self.assertEqual(len(blocks[1]), 2)
+
+    def test_circuit_has_conditional_gates_dagdependency(self):
+        """Test that block collection works properly when there the circuit
+        contains conditional gates."""
+
+        qc = QuantumCircuit(2, 1)
+        qc.x(0)
+        qc.x(1)
+        qc.cx(1, 0)
+        qc.x(1).c_if(0, 1)
+        qc.x(0)
+        qc.x(1)
+        qc.cx(0, 1)
+
+        # If the filter_function does not look at conditions, we should collect all
+        # gates into the block.
+        block_collector = BlockCollector(circuit_to_dagdependency(qc))
+        blocks = block_collector.collect_all_matching_blocks(
+            lambda node: node.op.name in ["x", "cx"]
+        )
+        self.assertEqual(len(blocks), 1)
+        self.assertEqual(len(blocks[0]), 7)
+
+        # If the filter_function does look at conditions, we should not collect the middle
+        # conditional gate (note that x(1) following the measure is collected into the first
+        # block).
+        block_collector = BlockCollector(circuit_to_dag(qc))
+        blocks = block_collector.collect_all_matching_blocks(
+            lambda node: node.op.name in ["x", "cx"] and not getattr(node.op, "condition", None)
+        )
+        self.assertEqual(len(blocks), 2)
+        self.assertEqual(len(blocks[0]), 4)
+        self.assertEqual(len(blocks[1]), 2)
 
 
 if __name__ == "__main__":

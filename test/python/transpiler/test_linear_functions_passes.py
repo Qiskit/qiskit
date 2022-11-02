@@ -536,6 +536,25 @@ class TestLinearFunctionsPasses(QiskitTestCase):
         self.assertNotIn("linear_function", circuit4.count_ops().keys())
         self.assertEqual(circuit4.count_ops()["cx"], 6)
 
+    def test_do_not_merge_conditional_gates(self):
+        """Test that collecting Cliffords works properly when there the circuit
+        contains conditional gates."""
+
+        qc = QuantumCircuit(2, 1)
+        qc.cx(1, 0)
+        qc.swap(1, 0)
+        qc.cx(0, 1).c_if(0, 1)
+        qc.cx(0, 1)
+        qc.cx(1, 0)
+
+        qct = PassManager(CollectLinearFunctions()).run(qc)
+
+        # The conditional gate prevents from combining all gates into a single clifford
+        self.assertEqual(qct.count_ops()["linear_function"], 2)
+
+        # Make sure that the condition on the middle gate is not lost
+        self.assertIsNotNone(qct.data[1].operation.condition)
+
 
 if __name__ == "__main__":
     unittest.main()
