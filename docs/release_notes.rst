@@ -22,6 +22,320 @@ Notable Changes
 ###############
 
 *************
+Qiskit 0.39.1
+*************
+
+.. _Release Notes_0.22.1:
+
+Terra 0.22.1
+============
+
+.. _Release Notes_0.22.1_Prelude:
+
+Prelude
+-------
+
+.. releasenotes/notes/prepare-0.22.1-dec5623f902c4e7d.yaml @ b'6ef8691ab7ede702c48f57087b27f88ad08427fc'
+
+Qiskit Terra 0.22.1 is a bugfix release, addressing some minor issues identified since the 0.22.0 release.
+
+
+.. _Release Notes_0.22.1_Deprecation Notes:
+
+Deprecation Notes
+-----------------
+
+.. releasenotes/notes/fix-pauli-basis-dep-27c0a4506ad38d2c.yaml @ b'6ef8691ab7ede702c48f57087b27f88ad08427fc'
+
+- The ``pauli_list`` kwarg of :func:`.pauli_basis` has been deprecated as
+  :func:`.pauli_basis` now always returns a :class:`.PauliList`. This argument
+  was removed prematurely from Qiskit Terra 0.22.0 which broke compatibility
+  for users that were leveraging the ``pauli_list``argument. Now, the argument
+  has been restored but will emit a ``DeprecationWarning`` when used. If used
+  it has no effect because since Qiskit Terra 0.22.0 a :class:`~.PauliList` is
+  always returned.
+
+
+.. _Release Notes_0.22.1_Bug Fixes:
+
+Bug Fixes
+---------
+
+.. releasenotes/notes/fix-barrier-before-final-measurements-loose-1849282c11fc5eb0.yaml @ b'6ef8691ab7ede702c48f57087b27f88ad08427fc'
+
+- Fixed the :class:`.BarrierBeforeFinalMeasurements` transpiler pass when there
+  are conditions on loose :class:`.Clbit`\ s immediately before the final measurement
+  layer.  Previously, this would fail claiming that the bit was not present
+  in an internal temporary circuit.
+  Fixed `#8923 <https://github.com/Qiskit/qiskit-terra/issues/8923>`__
+
+.. releasenotes/notes/fix-circuit-condition-compare-d8d85e5ca47c1416.yaml @ b'e3849ad1fa02e6515b4fc37b5b8b462a5cb47c5d'
+
+- The equality checkers for :class:`.QuantumCircuit` and :class:`.DAGCircuit`
+  (with objects of the same type) will now correctly handle conditions on single
+  bits.  Previously, these would produce false negatives for equality, as the
+  bits would use "exact" equality checks instead of the "semantic" checks the rest
+  of the properties of circuit instructions get.
+
+.. releasenotes/notes/fix-clbit-handling-stochasticswap-controlflow-fbb9d8fab5040643.yaml @ b'6ef8691ab7ede702c48f57087b27f88ad08427fc'
+
+- Fixed handling of classical bits in :class:`.StochasticSwap` with control flow.
+  Previously, control-flow operations would be expanded to contain all the
+  classical bits in the outer circuit and not contracted again, leading to a
+  mismatch between the numbers of clbits the instruction reported needing and
+  the actual number supplied to it.
+  Fixed `#8903 <https://github.com/Qiskit/qiskit-terra/issues/8903>`__
+
+.. releasenotes/notes/fix-global-inst-qarg-method-target-a9188e172ea7f325.yaml @ b'6ef8691ab7ede702c48f57087b27f88ad08427fc'
+
+- Fixed handling of globally defined instructions for the :class:`~.Target`
+  class. Previously, two methods, :meth:`~.Target.operations_for_qargs` and
+  :meth:`~.Target.operation_names_for_qargs` would ignore/incorrectly handle
+  any globally defined ideal operations present in the target. For example::
+
+      from qiskit.transpiler import Target
+      from qiskit.circuit.library import CXGate
+
+      target = Target(num_qubits=5)
+      target.add_instruction(CXGate())
+      names = target.operation_names_for_qargs((1, 2))
+      ops = target.operations_for_qargs((1, 2))
+
+  will now return ``{"cx"}`` for ``names`` and ``[CXGate()]`` for ``ops``
+  instead of raising a ``KeyError`` or an empty return.
+
+.. releasenotes/notes/fix-global-inst-qarg-method-target-a9188e172ea7f325.yaml @ b'6ef8691ab7ede702c48f57087b27f88ad08427fc'
+
+- Fixed an issue in the :meth:`.Target.add_instruction` method where it
+  would previously have accepted an argument with an invalid number of
+  qubits as part of the ``properties`` argument. For example::
+
+      from qiskit.transpiler import Target
+      from qiskit.circuit.library import CXGate
+
+      target = Target()
+      target.add_instruction(CXGate(), {(0, 1, 2): None})
+
+  This will now correctly raise a ``TranspilerError`` instead of causing
+  runtime issues when interacting with the target.
+  Fixed `#8914 <https://github.com/Qiskit/qiskit-terra/issues/8914>`__
+
+.. releasenotes/notes/fix-hinton-bug-1141a297050f55bb.yaml @ b'6ef8691ab7ede702c48f57087b27f88ad08427fc'
+
+- Fixed an issue with the :func:`.plot_state_hinton` visualization function
+  which would result in a misplaced axis that was offset from the actual
+  plot.
+  Fixed `#8446 <https://github.com/Qiskit/qiskit-terra/issues/8446>`
+
+.. releasenotes/notes/fix-hinton-bug-1141a297050f55bb.yaml @ b'6ef8691ab7ede702c48f57087b27f88ad08427fc'
+
+- Fixed the output of the :func:`.plot_state_hinton` function so that the state labels
+  are ordered ordered correctly, and the image matches up with the natural matrix
+  ordering.
+  Fixed `#8324 <https://github.com/Qiskit/qiskit-terra/issues/8324>`__
+
+.. releasenotes/notes/fix-max_circuits-backend-primitives-c70590bca557001f.yaml @ b'45de12a4bdc0a09e1557750e97c56a0e60e8a3cb'
+
+- Fixed an issue with the primitive classes, :class:`~.BackendSampler` and
+  :class:`~.BackendEstimator` when running on backends that have a limited
+  number of circuits in each job. Not all backends support an unlimited
+  batch size (most hardware backends do not) and previously the backend
+  primitive classes would have potentially incorrectly sent more circuits
+  than the backend supported. This has been corrected so that
+  :class:`~.BackendSampler` and :class:`~.BackendEstimator` will chunk the
+  circuits into multiple jobs if the backend has a limited number of
+  circuits per job.
+
+.. releasenotes/notes/fix-max_circuits-backend-primitives-c70590bca557001f.yaml @ b'45de12a4bdc0a09e1557750e97c56a0e60e8a3cb'
+
+- Fixed an issue with the :class:`~.BackendEstimator` class where previously
+  setting a run option named ``monitor`` to a value that evaluated as
+  ``True`` would have incorrectly triggered a job monitor that only
+  worked on backends from the ``qiskit-ibmq-provider`` package. This
+  has been removed so that you can use a ``monitor`` run option if needed
+  without causing any issues.
+
+.. releasenotes/notes/fix-mixed-ideal-target-coupling-map-7fca04f9c5139a49.yaml @ b'147b7575f7b5925add5ec09557aa7afa8c08ee7f'
+
+- Fixed an issue with the :meth:`.Target.build_coupling_map` method where
+  it would incorrectly return ``None`` for a :class:`~.Target` object
+  with a mix of ideal globally available instructions and instructions
+  that have qubit constraints. Now in such cases the
+  :meth:`.Target.build_coupling_map` will return a coupling map for the
+  constrained instruction (unless it's a 2 qubit operation which will
+  return ``None`` because globally there is no connectivity constraint).
+  Fixed `#8971 <https://github.com/Qiskit/qiskit-terra/issues/8971>`__
+
+.. releasenotes/notes/fix-mixed-ideal-target-coupling-map-7fca04f9c5139a49.yaml @ b'147b7575f7b5925add5ec09557aa7afa8c08ee7f'
+
+- Fixed an issue with the :attr:`.Target.qargs` attribute where it would
+  incorrectly return ``None`` for a :class:`~.Target` object that contained
+  any globally available ideal instruction.
+
+.. releasenotes/notes/fix-pauli-basis-dep-27c0a4506ad38d2c.yaml @ b'6ef8691ab7ede702c48f57087b27f88ad08427fc'
+
+- Fixed the premature removal of the ``pauli_list`` keyword argument of
+  the :func:`.pauli_basis` function which broke existing code using the
+  ``pauli_list=True`` future compatibility path on upgrade to Qiskit Terra
+  0.22.0. This keyword argument has been added back to the function and is
+  now deprecated and will be removed in a future release.
+
+.. releasenotes/notes/fix-qpy-custom-controlled-gate-a9355df1a88a83a5.yaml @ b'6c4a3b62f71b622b25caef63c2a196aa01215480'
+
+- Fixed an issue in QPY serialization (:func:`~.qpy.dump`) when a custom
+  :class:`~.ControlledGate` subclass that overloaded the ``_define()``
+  method to provide a custom definition for the operation. Previously,
+  this case of operation was not serialized correctly because it wasn't
+  accounting for using the potentially ``_define()`` method to provide
+  a definition.
+  Fixes `#8794 <https://github.com/Qiskit/qiskit-terra/issues/8794>`__
+
+.. releasenotes/notes/fix-qpy-loose-bits-5283dc4ad3823ce3.yaml @ b'e0befd769fc54e9f50cdc4b355983b9d1eda6f31'
+
+- QPY deserialisation will no longer add extra :class:`.Clbit` instances to the
+  circuit if there are both loose :class:`.Clbit`\ s in the circuit and more
+  :class:`.Qubit`\ s than :class:`.Clbit`\ s.
+
+.. releasenotes/notes/fix-qpy-loose-bits-5283dc4ad3823ce3.yaml @ b'e0befd769fc54e9f50cdc4b355983b9d1eda6f31'
+
+- QPY deserialisation will no longer add registers named `q` and `c` if the
+  input circuit contained only loose bits.
+
+.. releasenotes/notes/fix-sparse-pauli-real-63c31d87801671b1.yaml @ b'6ef8691ab7ede702c48f57087b27f88ad08427fc'
+
+- Fixed the :meth:`.SparsePauliOp.dot` method when run on two operators with
+  real coefficients. To fix this, the dtype that :class:`SparsePauliOp` can
+  take is restricted to ``np.complex128`` and ``object``.
+  Fixed `#8992 <https://github.com/Qiskit/qiskit-terra/issues/8992>`__
+
+.. releasenotes/notes/fix-styles-manifest-b8c852a07fb86966.yaml @ b'c336cf583285ad4803c3ef02a15eac3651655434'
+
+- Fixed an issue in the :func:`~.circuit_drawer` function and
+  :func:`.QuantumCircuit.draw` method where the only built-in style
+  for the ``mpl`` output that was usable was ``default``. If another
+  built-in style, such as ``iqx``, were used then a warning about
+  the style not being found would be emitted and the drawer would
+  fall back to use the ``default`` style.
+  Fixed `#8991 <https://github.com/Qiskit/qiskit-terra/issues/8991>`__
+
+.. releasenotes/notes/fix-target-transpile-parallel-772f943a08d0570b.yaml @ b'3af82426f9cbb25d47bf50b9c218ce9d30f79fdd'
+
+- Fixed an issue with the :func:`~.transpile` where it would previously
+  fail with a ``TypeError`` if a custom :class:`~.Target` object was
+  passed in via the ``target`` argument and a list of multiple circuits
+  were specified for the ``circuits`` argument.
+
+.. releasenotes/notes/fix-transpile-ideal-measurement-c37e04533e196ded.yaml @ b'bcec3b9e3ec792387a72fe3400b491e666d02eb6'
+
+- Fixed an issue with :func:`~.transpile` when targeting a :class:`~.Target`
+  (either directly via the ``target`` argument or via a
+  :class:`~.BackendV2` instance from the ``backend`` argument) that
+  contained an ideal :class:`~.Measure` instruction (one that does not have
+  any properties defined). Previously this would raise an exception
+  trying to parse the target.
+  Fixed `#8969 <https://github.com/Qiskit/qiskit-terra/issues/8969>`__
+
+.. releasenotes/notes/fix-vf2-layout-no-noise-22261601684710c3.yaml @ b'6ef8691ab7ede702c48f57087b27f88ad08427fc'
+
+- Fixed an issue with the :class:`~.VF2Layout` pass where it would error
+  when running with a :class:`~.Target` that had instructions that were
+  missing error rates. This has been corrected so in such cases the
+  lack of an error rate will be treated as an ideal implementation and
+  if no error rates are present it will just select the first matching
+  layout.
+  Fixed `#8970 <https://github.com/Qiskit/qiskit-terra/issues/8970>`__
+
+.. releasenotes/notes/fix-vf2-layout-no-noise-22261601684710c3.yaml @ b'6ef8691ab7ede702c48f57087b27f88ad08427fc'
+
+- Fixed an issue with the :class:`~.VF2PostLayout` pass where it would
+  error when running with a :class:`~.Target` that had instructions that
+  were missing. In such cases the lack of an error rate will be treated as
+  an ideal implementation of the operation.
+
+.. releasenotes/notes/fix-vqd-kgt2-1ed95de3e32102c1.yaml @ b'6ef8691ab7ede702c48f57087b27f88ad08427fc'
+
+- Fixed an issue with the :class:`~.eigensolvers.VQD` class if more than
+  ``k=2`` eigenvalues were computed. Previously this would fail due to an
+  internal type mismatch, but now runs as expected.
+  Fixed `#8982 <https://github.com/Qiskit/qiskit-terra/issues/8982>`__
+
+.. releasenotes/notes/fix-vqe-default-batching-eb08e6ce17907da3.yaml @ b'695bfb9ecfaf3c9127a63055d874e0a72a8ed122'
+
+- Fixed a performance bug where the new primitive-based variational algorithms
+  :class:`.minimum_eigensolvers.VQE`, :class:`.eigensolvers.VQD` and :class:`.SamplingVQE`
+  did not batch energy evaluations per default, which resulted in a significant slowdown
+  if a hardware backend was used.
+
+.. releasenotes/notes/fix-zero-operand-gates-323510ec8f392f27.yaml @ b'ad6f295ea2eaa0e6142db87a3abbf3d7fac5dec8'
+
+- Zero-operand gates and instructions will now work with
+  :func:`.circuit_to_gate`, :meth:`.QuantumCircuit.to_gate`,
+  :meth:`.Gate.control`, and the construction of an
+  :class:`~.quantum_info.Operator` from a :class:`.QuantumCircuit` containing
+  zero-operand instructions.  This edge case is occasionally useful in creating
+  global-phase gates as part of larger compound instructions, though for many
+  uses, :attr:`.QuantumCircuit.global_phase` may be more appropriate.
+
+.. releasenotes/notes/fix_8897-2a90c4b0857c19c2.yaml @ b'8a5dbc96f66a0c3355a30b384e83488c918628e6'
+
+- Fixes issue where :meth:`.Statevector.evolve` and :meth:`.DensityMatrix.evolve`
+  would raise an exeception for nested subsystem evolution for non-qubit
+  subsystems.
+  Fixes `issue #8897 <https://github.com/Qiskit/qiskit-terra/issues/8897>`_
+
+.. releasenotes/notes/fix_8897-2a90c4b0857c19c2.yaml @ b'8a5dbc96f66a0c3355a30b384e83488c918628e6'
+
+- Fixes bug in :meth:`.Statevector.evolve` where subsystem evolution
+  will return the incorrect value in certain cases where there are 2 or more
+  than non-evolved subsystems with different subsystem dimensions.
+  Fixes `issue #8899 <https://github.com/Qiskit/qiskit-terra/issues/8899>`_
+
+
+.. _Release Notes_Aer_0.11.1:
+
+Aer 0.11.1
+==========
+
+.. _Release Notes_Aer_0.11.1_Bug Fixes:
+
+Bug Fixes
+---------
+
+.. releasenotes/notes/cmake_cuda_arch-817eb0b7232bd291.yaml @ b'8c4b6c145d55a1ec16d42ea061b02b8c82262db6'
+
+- Fixed a potential build error when trying to use CMake 3.18 or newer and
+  building qiskit-aer with GPU support enabled. Since CMake 3.18 or later
+  when building with CUDA the ``CMAKE_CUDA_ARCHITECTURES`` was required to
+  be set with the architecture value for the target GPU. This has been
+  corrected so that setting ``AER_CUDA_ARCH`` will be used if this was
+  not set.
+
+.. releasenotes/notes/fix-local-noise-pass-83815d5a80f9a0e9.yaml @ b'040de7a8018a4ae46279d340bde475825c66111f'
+
+- Fixes a bug in the handling of instructions with clbits in :class:`.LocalNoisePass`.
+  Previously, it was accidentally erasing clbits of instructions (e.g. measures)
+  to which the noise is applied in the case of ``method="append"``.
+
+.. releasenotes/notes/sampler-cache-78f916cedb0c5421.yaml @ b'b8f4db645c38caceafc69d51a9ad74f73a6666eb'
+
+- Fixed the performance overhead of the Sampler class when running with identical circuits on multiple executions.
+  This was accomplished by skipping/caching the transpilation of these identical circuits on subsequent executions.
+
+.. releasenotes/notes/support_terra_primitive_022-8852b784608bcdcb.yaml @ b'de3abb55bfe118905f66dd79a8d4537bd646e849'
+
+- Fixed compatibility of the  :class:`~.qiskit_aer.primitives.Sampler` and :class:`~.qiskit_aer.primtives.Estimator`
+  primitive classes with qiskit-terra 0.22.0 release. In qiskit-terra 0.22.0 breaking API changes were made to the
+  abstract interface which broke compatibility with these classes, this has been addressed so that
+  :class:`~.qiskit_aer.primitives.Sampler` and :class:`~.qiskit_aer.primtives.Estimator` can now be used with
+  qiskit-terra >= 0.22.0.
+
+IBM Q Provider 0.19.2
+=====================
+
+No change
+
+
+*************
 Qiskit 0.39.0
 *************
 
