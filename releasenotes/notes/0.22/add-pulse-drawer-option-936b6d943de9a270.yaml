@@ -1,0 +1,20 @@
+---
+features:
+  - |
+    A new option, ``"formatter.control.fill_waveform"`` has been added to
+    the pulse drawer (:func:`.pulse_v2.draw` and :meth:`.Schedule.draw`)
+    style sheets. This option can be used to remove the face color of pulses
+    in the output visualization which allows for drawing pulses only with
+    lines.
+
+    For example:
+
+    .. code-block:: python
+
+        from qiskit.visualization.pulse_v2 import IQXStandard
+
+        my_style = IQXStandard(
+            **{"formatter.control.fill_waveform": False, "formatter.line_width.fill_waveform": 2}
+        )
+
+        my_sched.draw(style=my_style)

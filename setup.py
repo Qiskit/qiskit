@@ -47,11 +47,11 @@ z3_requirements = [
 ]
 bip_requirements = ["cplex", "docplex"]
 csp_requirements = ["python-constraint>=1.4"]
-toqm_requirements = ["qiskit-toqm>=0.0.4"]
+toqm_requirements = ["qiskit-toqm>=0.1.0"]
 
 setup(
     name="qiskit-terra",
-    version="0.22.0",
+    version="0.23.0",
     description="Software for developing quantum computing programs",
     long_description=README,
     long_description_content_type="text/markdown",

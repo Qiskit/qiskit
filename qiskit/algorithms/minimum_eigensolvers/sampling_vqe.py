@@ -39,6 +39,9 @@ from .sampling_mes import (
 from ..observables_evaluator import estimate_observables
 from ..utils import validate_initial_point, validate_bounds
 
+# private function as we expect this to be updated in the next released
+from ..utils.set_batching import _set_default_batchsize
+
 
 logger = logging.getLogger(__name__)
 
@@ -90,8 +93,7 @@ class SamplingVQE(VariationalAlgorithm, SamplingMinimumEigensolver):
     the ``SamplingVQE`` object has been constructed.
 
     Attributes:
-        estimator (BaseEstimator): The estimator primitive to compute the expectation value of the
-            Hamiltonian operator.
+        sampler (BaseSampler): The sampler primitive to sample the circuits.
         ansatz (QuantumCircuit): A parameterized quantum circuit to prepare the trial state.
         optimizer (Optimizer | Minimizer): A classical optimizer to find the minimum energy. This
             can either be a Qiskit :class:`.Optimizer` or a callable implementing the
@@ -209,9 +211,17 @@ class SamplingVQE(VariationalAlgorithm, SamplingMinimumEigensolver):
             # pylint: disable=not-callable
             optimizer_result = self.optimizer(fun=evaluate_energy, x0=initial_point, bounds=bounds)
         else:
+            # we always want to submit as many estimations per job as possible for minimal
+            # overhead on the hardware
+            was_updated = _set_default_batchsize(self.optimizer)
+
             optimizer_result = self.optimizer.minimize(
                 fun=evaluate_energy, x0=initial_point, bounds=bounds
             )
+
+            # reset to original value
+            if was_updated:
+                self.optimizer.set_max_evals_grouped(None)
 
         optimizer_time = time() - start_time
 
