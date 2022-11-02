@@ -400,7 +400,7 @@ class DAGDependency:
 
         return iter(rx.lexicographical_topological_sort(self._multi_graph, key=_key))
 
-    def create_op_node(self, operation, qargs, cargs):
+    def _create_op_node(self, operation, qargs, cargs):
         """Creates a DAGDepNode to the graph and update the edges.
 
         Args:
@@ -455,7 +455,7 @@ class DAGDependency:
             qargs (list[Qubit]): list of qubits on which the operation acts
             cargs (list[Clbit]): list of classical wires to attach to
         """
-        new_node = self.create_op_node(operation, qargs, cargs)
+        new_node = self._create_op_node(operation, qargs, cargs)
         self._add_multi_graph_node(new_node)
         self._update_edges()
 
@@ -688,7 +688,7 @@ class DAGDependency:
                 block_cargs |= set(nd.cargs)
 
         # Create replacement node
-        new_node = self.create_op_node(
+        new_node = self._create_op_node(
             op,
             qargs=sorted(block_qargs, key=lambda x: wire_pos_map[x]),
             cargs=sorted(block_cargs, key=lambda x: wire_pos_map[x]),
