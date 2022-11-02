@@ -368,6 +368,56 @@ class TestCliffordPasses(QiskitTestCase):
         self.assertEqual(qct.size(), 1)
         self.assertIn("clifford", qct.count_ops().keys())
 
+    def test_collect_cliffords_multiple_blocks(self):
+        """Make sure that when collecting Clifford gates, non-Clifford gates
+         are not collected, and the pass correctly splits disconnected Clifford
+         blocks."""
+
+        # original circuit (with one non-Clifford gate in the middle that uniquely
+        # separates the circuit )
+        qc = QuantumCircuit(3)
+        qc.h(0)
+        qc.s(1)
+        qc.x(2)
+        qc.cx(0, 1)
+        qc.sdg(2)
+        qc.swap(2, 1)
+        qc.rx(np.pi / 2, 1)
+        qc.cz(0, 1)
+        qc.z(0)
+        qc.y(1)
+
+        # We should end up with two Cliffords and one "rx" gate
+        qct = PassManager(CollectCliffords()).run(qc)
+        self.assertEqual(qct.size(), 3)
+        self.assertIn("rx", qct.count_ops().keys())
+        self.assertEqual(qct.count_ops()["clifford"], 2)
+
+        self.assertIsInstance(qct.data[0].operation, Clifford)
+        self.assertIsInstance(qct.data[2].operation, Clifford)
+
+        collected_clifford1 = qct.data[0].operation
+        collected_clifford2 = qct.data[2].operation
+
+        expected_clifford_circuit1 = QuantumCircuit(3)
+        expected_clifford_circuit1.h(0)
+        expected_clifford_circuit1.s(1)
+        expected_clifford_circuit1.x(2)
+        expected_clifford_circuit1.cx(0, 1)
+        expected_clifford_circuit1.sdg(2)
+        expected_clifford_circuit1.swap(2, 1)
+        expected_clifford1 = Clifford(expected_clifford_circuit1)
+
+        expected_clifford_circuit2 = QuantumCircuit(2)
+        expected_clifford_circuit2.cz(0, 1)
+        expected_clifford_circuit2.z(0)
+        expected_clifford_circuit2.y(1)
+        expected_clifford2 = Clifford(expected_clifford_circuit2)
+
+        # Check that collected and expected cliffords are equal
+        self.assertEqual(collected_clifford1, expected_clifford1)
+        self.assertEqual(collected_clifford2, expected_clifford2)
+
     def test_collect_cliffords_options(self):
         """Test the option split_blocks and min_block_size for collecting Clifford gates."""
 
