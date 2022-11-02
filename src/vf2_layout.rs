@@ -12,11 +12,12 @@
 
 use indexmap::IndexMap;
 
-use numpy::{PyReadonlyArray1, PyReadonlyArray2};
+use numpy::PyReadonlyArray1;
 use pyo3::prelude::*;
 use pyo3::wrap_pyfunction;
 use rayon::prelude::*;
 
+use crate::error_map::ErrorMap;
 use crate::nlayout::NLayout;
 
 const PARALLEL_THRESHOLD: usize = 50;
@@ -29,39 +30,42 @@ const PARALLEL_THRESHOLD: usize = 50;
 pub fn score_layout(
     bit_list: PyReadonlyArray1<i32>,
     edge_list: IndexMap<[usize; 2], i32>,
-    error_matrix: PyReadonlyArray2<f64>,
+    error_map: &ErrorMap,
     layout: &NLayout,
     strict_direction: bool,
     run_in_parallel: bool,
 ) -> PyResult<f64> {
     let bit_counts = bit_list.as_slice()?;
-    let err_mat = error_matrix.as_array();
     let edge_filter_map = |(index_arr, gate_count): (&[usize; 2], &i32)| -> Option<f64> {
-        let mut error = err_mat[[
+        let mut error = error_map.error_map.get(&[
             layout.logic_to_phys[index_arr[0]],
             layout.logic_to_phys[index_arr[1]],
-        ]];
-        if !strict_direction && error.is_nan() {
-            error = err_mat[[
+        ]);
+        if !strict_direction && error.is_none() {
+            error = error_map.error_map.get(&[
                 layout.logic_to_phys[index_arr[1]],
                 layout.logic_to_phys[index_arr[0]],
-            ]];
+            ]);
         }
-        if !error.is_nan() {
-            Some((1. - error).powi(*gate_count))
-        } else {
-            None
-        }
+        error.map(|error| {
+            if !error.is_nan() {
+                (1. - error).powi(*gate_count)
+            } else {
+                1.
+            }
+        })
     };
     let bit_filter_map = |(index, gate_counts): (usize, &i32)| -> Option<f64> {
         let bit_index = layout.logic_to_phys[index];
-        let error = err_mat[[bit_index, bit_index]];
+        let error = error_map.error_map.get(&[bit_index, bit_index]);
 
-        if !error.is_nan() {
-            Some((1. - error).powi(*gate_counts))
-        } else {
-            None
-        }
+        error.map(|error| {
+            if !error.is_nan() {
+                (1. - error).powi(*gate_counts)
+            } else {
+                1.
+            }
+        })
     };
 
     let mut fidelity: f64 = if edge_list.len() < PARALLEL_THRESHOLD || !run_in_parallel {

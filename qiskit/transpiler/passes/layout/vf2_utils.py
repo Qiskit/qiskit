@@ -23,6 +23,7 @@ from qiskit.circuit import ControlFlowOp, ForLoopOp
 from qiskit.converters import circuit_to_dag
 from qiskit._accelerate import vf2_layout
 from qiskit._accelerate.stochastic_swap import NLayout
+from qiskit._accelerate.error_map import ErrorMap
 
 
 def build_interaction_graph(dag, strict_direction=True):
@@ -112,9 +113,10 @@ def build_average_error_map(target, properties, coupling_map):
     num_qubits = 0
     if target is not None:
         num_qubits = target.num_qubits
+        avg_map = ErrorMap(len(target.qargs))
     elif coupling_map is not None:
         num_qubits = coupling_map.size()
-    avg_map = np.full((num_qubits, num_qubits), np.nan, dtype=np.float64)
+        avg_map = ErrorMap(num_qubits + coupling_map.graph.num_edges())
     built = False
     if target is not None:
         for qargs in target.qargs:
@@ -130,7 +132,7 @@ def build_average_error_map(target, properties, coupling_map):
             if count > 0:
                 if len(qargs) == 1:
                     qargs = (qargs[0], qargs[0])
-                avg_map[qargs[0], qargs[1]] = qarg_error / count
+                avg_map.add_error(qargs, qarg_error / count)
                 built = True
     elif properties is not None:
         errors = defaultdict(list)
@@ -153,15 +155,15 @@ def build_average_error_map(target, properties, coupling_map):
             # so we should jsut treat the mapping as an ideal case.
             if qargs[0] >= num_qubits or qargs[1] >= num_qubits:
                 continue
-            avg_map[qargs[0], qargs[1]] = statistics.mean(v)
+            avg_map.add_error(qargs, statistics.mean(v))
             built = True
     elif coupling_map is not None:
         for qubit in range(num_qubits):
-            avg_map[qubit, qubit] = (
+            avg_map.add_error((qubit, qubit), (
                 coupling_map.graph.out_degree(qubit) + coupling_map.graph.in_degree(qubit)
-            ) / num_qubits
+            ) / num_qubits)
         for edge in coupling_map.graph.edge_list():
-            avg_map[edge[0], edge[1]] = (avg_map[edge[0], edge[0]] + avg_map[edge[1], edge[1]]) / 2
+            avg_map.add_error(edge, (avg_map[edge[0], edge[0]] + avg_map[edge[1], edge[1]]) / 2)
             built = True
     if built:
         return avg_map

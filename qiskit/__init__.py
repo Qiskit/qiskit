@@ -43,6 +43,7 @@ sys.modules["qiskit._accelerate.results"] = qiskit._accelerate.results
 sys.modules["qiskit._accelerate.optimize_1q_gates"] = qiskit._accelerate.optimize_1q_gates
 sys.modules["qiskit._accelerate.sampled_exp_val"] = qiskit._accelerate.sampled_exp_val
 sys.modules["qiskit._accelerate.vf2_layout"] = qiskit._accelerate.vf2_layout
+sys.modules["qiskit._accelerate.error_map"] = qiskit._accelerate.error_map
 
 
 # Extend namespace for backwards compat

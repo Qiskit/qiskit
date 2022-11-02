@@ -56,19 +56,22 @@ class VF2Layout(AnalysisPass):
     By default this pass will construct a heuristic scoring map based on the
     the error rates in the provided ``target`` (or ``properties`` if ``target``
     is not provided). However, analysis passes can be run prior to this pass
-    and set ``vf2_avg_error_map`` in the property set with a 2d numpy array
-    where the values are floats where each value represents the error rate
-    for the 2q gate. The diagonal represents 1q error rates on that qubit.
-    If a value is ``NaN`` that is treated as an ideal edge (or a lack of
-    support for that qubit/2q operation) and that will be excluded from the
-    cumulative error calculation. For example::
+    and set ``vf2_avg_error_map`` in the property set with a :class:`~.ErrorMap`
+    instance. If a value is ``NaN`` that is treated as an ideal edge
+    For example if an error map is created as::
 
-        [[0.0024, 0.01],
-         [NaN, 0.0032]]
+        from qiskit.transpiler.passes.layout.vf2_utils import ErrorMap
 
-    represents the error map for a 2 qubit target, where the avg 1q error rate
-    is ``0.0024`` on qubit 0 and ``0.0032`` on qubit 1. Then the avg 2q error
-    rate for gates that operate on (0, 1) is 0.01 and (1, 0) is not supported.
+        error_map = ErrorMap(3)
+        error_map.add_error((0, 0), 0.0024)
+        error_map.add_error((0, 1), 0.01)
+        error_map.add_error((1, 1), 0.0032)
+
+    that represents the error map for a 2 qubit target, where the avg 1q error
+    rate is ``0.0024`` on qubit 0 and ``0.0032`` on qubit 1. Then the avg 2q
+    error rate for gates that operate on (0, 1) is 0.01 and (1, 0) is not
+    supported by the target. This will be used for scoring if it's set as the
+    ``vf2_avg_error_map`` key in the property set when :class:`~.VF2Layout` is run.
     """
 
     def __init__(
