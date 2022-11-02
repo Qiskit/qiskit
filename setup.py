@@ -47,7 +47,7 @@ z3_requirements = [
 ]
 bip_requirements = ["cplex", "docplex"]
 csp_requirements = ["python-constraint>=1.4"]
-toqm_requirements = ["qiskit-toqm>=0.0.4"]
+toqm_requirements = ["qiskit-toqm>=0.1.0"]
 
 setup(
     name="qiskit-terra",

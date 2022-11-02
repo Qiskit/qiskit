@@ -38,6 +38,9 @@ from ..utils import validate_bounds, validate_initial_point
 from ..exceptions import AlgorithmError
 from ..observables_evaluator import estimate_observables
 
+# private function as we expect this to be updated in the next release
+from ..utils.set_batching import _set_default_batchsize
+
 logger = logging.getLogger(__name__)
 
 
@@ -264,9 +267,17 @@ class VQD(VariationalAlgorithm, Eigensolver):
                     fun=energy_evaluation, x0=initial_point, bounds=bounds
                 )
             else:
+                # we always want to submit as many estimations per job as possible for minimal
+                # overhead on the hardware
+                was_updated = _set_default_batchsize(self.optimizer)
+
                 opt_result = self.optimizer.minimize(
                     fun=energy_evaluation, x0=initial_point, bounds=bounds
                 )
+
+                # reset to original value
+                if was_updated:
+                    self.optimizer.set_max_evals_grouped(None)
 
             eval_time = time() - start_time
 
