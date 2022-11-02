@@ -40,7 +40,9 @@ class TestLinearSynth(QiskitTestCase):
         mat = LinearFunction(qc).linear
 
         for optimized in [True, False]:
-            optimized_qc = optimize_cx_4_options(synth_cnot_count_full_pmh, mat, optimize_count=optimized)
+            optimized_qc = optimize_cx_4_options(
+                synth_cnot_count_full_pmh, mat, optimize_count=optimized
+            )
             self.assertEqual(optimized_qc.depth(), 4)
             self.assertEqual(optimized_qc.count_ops()["cx"], 4)
 
@@ -55,7 +57,9 @@ class TestLinearSynth(QiskitTestCase):
         mat = LinearFunction(qc).linear
 
         for optimized in [True, False]:
-            optimized_qc = optimize_cx_4_options(synth_cnot_count_full_pmh, mat, optimize_count=optimized)
+            optimized_qc = optimize_cx_4_options(
+                synth_cnot_count_full_pmh, mat, optimize_count=optimized
+            )
             self.assertEqual(optimized_qc.depth(), 4)
             self.assertEqual(optimized_qc.count_ops()["cx"], 4)
 
