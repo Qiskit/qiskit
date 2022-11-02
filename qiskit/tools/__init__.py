@@ -48,4 +48,3 @@ A helper module to get IBM backend information and submitted job status.
 from .parallel import parallel_map
 from .monitor import job_monitor, backend_monitor, backend_overview
 from .events import progressbar
-
