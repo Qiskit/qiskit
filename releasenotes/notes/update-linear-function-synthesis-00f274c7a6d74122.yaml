@@ -1,7 +1,0 @@
----
-upgrade:
-  - |
-    The transpiler pass :class:`.LinearFunctionsSynthesis` is reimplemented as a special case
-    of :class:`.HighLevelSynthesis`. The default algorithm to synthesize objects of type
-    :class:`.LinearFunction` is specified in the ``entry_points`` in ``setup.py``,
-    under ``linear_function.default`` in ``qiskit.synthesis``.
