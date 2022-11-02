@@ -31,9 +31,6 @@ class PermRowCol:
     def __init__(self, coupling_map: CouplingMap):
         self._coupling_map = coupling_map
         self._graph = coupling_map.graph
-        
-        self._mapping_from = [i for i in range(coupling_map.size())]
-        self._mapping_to = [i for i in range(coupling_map.size())]
 
     def perm_row_col(self, parity_mat: np.ndarray) -> QuantumCircuit:
         """Run permrowcol algorithm on the given parity matrix
@@ -49,7 +46,9 @@ class PermRowCol:
         circuit = QuantumCircuit(len(self._graph.node_indexes()))
 
         while len(self._graph.node_indexes()) > 1:
-            n_vertices = graph_utils.noncutting_vertices(CouplingMap()) # Have to change noncutting_vertices for pydigraph
+            n_vertices = graph_utils.noncutting_vertices(
+                CouplingMap()
+            )  # Have to change noncutting_vertices for pydigraph
             row = self.choose_row(n_vertices, parity_mat)
 
             cols = self.return_columns(qubit_alloc)
@@ -70,24 +69,12 @@ class PermRowCol:
 
         if len(qubit_alloc) != 0:
             qubit_alloc[qubit_alloc.index(-1)] = self._graph.node_indexes[0]
-        
-        return circuit # Supposed to also return qubit_alloc?
 
-    def new_mapping(self, eliminate: int):
-        """function for mapping in case remove_node doesn't work"""
-        
-        for i in range(self._mapping_to[eliminate], len(self._mapping) - 1):
-            self._mapping_from[i] = self._mapping_from[i + 1]
-        self._mapping_from[len(self._mapping_from) - 1] = None
-
-        for i in range(eliminate + 1, len(self._mapping_to)):
-            if self._mapping_to[i]:
-                self._mapping_to[i] = self._mapping_to[i] - 1
-        self._mapping_to[eliminate] = None
+        return circuit  # Supposed to also return qubit_alloc?
 
     def reduce_graph(self, node: int):
         """Removes a node from pydigraph
-        
+
         Args:
             node (int): index of node to remove
         """
@@ -102,7 +89,7 @@ class PermRowCol:
 
         Returns:
             list: list of nodes
-        
+
         """
         return [node for node in self._graph.node_indexes() if parity_mat[node, column] == 1]
 
@@ -111,10 +98,10 @@ class PermRowCol:
 
         Args:
             qubit_alloc (list): qubit allocation list
-        
+
         Returns:
             list: list of indices of yet to be processed columns in the parity matrix
-        
+
         """
         return [i for i in range(len(qubit_alloc)) if qubit_alloc[i] == -1]
 

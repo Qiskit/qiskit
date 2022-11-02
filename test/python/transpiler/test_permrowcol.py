@@ -239,7 +239,7 @@ class TestPermRowCol(QiskitTestCase):
         ret = permrowcol.eliminate_row(parity_mat, root, terminals)
         self.assertEqual(1, sum(parity_mat[1]))
         self.assertEqual(1, parity_mat[1, 2])
-    
+
     def test_return_columns_return_list(self):
         """Test the output type of return_columns"""
         coupling = CouplingMap()
@@ -248,12 +248,12 @@ class TestPermRowCol(QiskitTestCase):
         instance = permrowcol.return_columns([-1, -1, -1])
 
         self.assertIsInstance(instance, list)
-    
+
     def test_return_columns_return_list_of_indices(self):
         """Test the correctness of return_columns output"""
         coupling = CouplingMap()
         permrowcol = PermRowCol(coupling)
-        
+
         instance = permrowcol.return_columns([-1, -1, -1])
 
         self.assertCountEqual(instance, [0, 1, 2])
@@ -266,7 +266,7 @@ class TestPermRowCol(QiskitTestCase):
 
         instance = permrowcol.return_columns([1, 2, 3, 4, 5, 6])
         self.assertCountEqual(instance, [])
-    
+
     def test_get_nodes_returns_list(self):
         """Test the output type of get_nodes"""
         coupling = CouplingMap()
@@ -299,7 +299,7 @@ class TestPermRowCol(QiskitTestCase):
 
         instance = permrowcol.get_nodes(np.array([[1, 0, 1], [0, 1, 1], [0, 0, 1]]), 2)
         self.assertCountEqual(instance, [0, 2])
-        
+
         coupling.graph.remove_node(0)
 
         instance = permrowcol.get_nodes(np.array([[1, 0, 1], [0, 1, 1], [0, 0, 1]]), 0)
@@ -321,7 +321,7 @@ class TestPermRowCol(QiskitTestCase):
 
         permrowcol.reduce_graph(0)
         self.assertCountEqual(permrowcol._graph.node_indexes(), [1, 2, 3])
-        
+
         permrowcol.reduce_graph(2)
         self.assertCountEqual(permrowcol._graph.node_indexes(), [1, 3])
 
@@ -332,14 +332,14 @@ class TestPermRowCol(QiskitTestCase):
         self.assertCountEqual(permrowcol._graph.node_indexes(), [])
 
     def test_reduce_graph_does_not_change_graph_with_wrong_index(self):
-        """Test that graph does not change when reduce_graph uses an 
+        """Test that graph does not change when reduce_graph uses an
         index that does not exist"""
         coupling = CouplingMap([[0, 1], [0, 2], [1, 2], [0, 3]])
         permrowcol = PermRowCol(coupling)
 
-        permrowcol.reduce_graph(4)        
+        permrowcol.reduce_graph(4)
         self.assertCountEqual(permrowcol._graph.node_indexes(), [0, 1, 2, 3])
-    
+
     def test_reduce_graph_removes_edges_from_graph(self):
         """Test that reduce graph removes edges from the graph"""
         coupling = CouplingMap([[0, 1], [0, 2], [1, 2], [0, 3]])
@@ -352,7 +352,7 @@ class TestPermRowCol(QiskitTestCase):
         self.assertCountEqual(permrowcol._graph.edge_list(), [(1, 2)])
 
         permrowcol.reduce_graph(2)
-        self.assertCountEqual(permrowcol._graph.edge_list(), [])       
+        self.assertCountEqual(permrowcol._graph.edge_list(), [])
 
 
 if __name__ == "__main__":
