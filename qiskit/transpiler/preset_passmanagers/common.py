@@ -64,7 +64,7 @@ _CONTROL_FLOW_STATES = {
         working={"trivial", "dense"}, not_working={"sabre", "noise_adaptive"}
     ),
     "routing_method": _ControlFlowState(
-        working={"none", "stochastic"}, not_working={"sabre", "lookahead", "basic", "toqm"}
+        working={"none", "stochastic"}, not_working={"sabre", "lookahead", "basic"}
     ),
     # 'synthesis' is not a supported translation method because of the block-collection passes
     # involved; we currently don't have a neat way to pass the information about nested blocks - the
@@ -386,7 +386,7 @@ def generate_translation_passmanager(
                 target=target,
             ),
             HighLevelSynthesis(hls_config=hls_config),
-            UnrollCustomDefinitions(sel, basis_gates),
+            UnrollCustomDefinitions(sel, basis_gates=basis_gates, target=target),
             BasisTranslator(sel, basis_gates, target),
         ]
     elif method == "synthesis":
