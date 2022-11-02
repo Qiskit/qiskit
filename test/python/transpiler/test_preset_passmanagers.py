@@ -39,8 +39,6 @@ from qiskit.providers.fake_provider import (
     FakeTokyo,
     FakePoughkeepsie,
     FakeLagosV2,
-    FakeLima,
-    FakeWashington,
 )
 from qiskit.converters import circuit_to_dag
 from qiskit.circuit.library import GraphState
