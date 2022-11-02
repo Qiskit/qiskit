@@ -132,7 +132,7 @@ class TwoQubitWeylDecomposition:
         )
 
     @staticmethod
-    def __new__(cls, unitary_matrix, *, fidelity=(1.0 - 1.0e-9)):
+    def __new__(cls, unitary_matrix, *, fidelity=(1.0 - 1.0e-9), _unpickling=False):
         """Perform the Weyl chamber decomposition, and optionally choose a specialized subclass.
 
         The flip into the Weyl Chamber is described in B. Kraus and J. I. Cirac, Phys. Rev. A 63,
@@ -145,6 +145,9 @@ class TwoQubitWeylDecomposition:
         The overall decomposition scheme is taken from Drury and Love, arXiv:0806.4015 [quant-ph].
         """
         from scipy import linalg as la
+
+        if _unpickling:
+            return super().__new__(cls)
 
         pi = np.pi
         pi2 = np.pi / 2
@@ -403,6 +406,9 @@ class TwoQubitWeylDecomposition:
         circ = self.circuit(**kwargs)
         trace = np.trace(Operator(circ).data.T.conj() @ self.unitary_matrix)
         return trace_to_fid(trace)
+
+    def __getnewargs_ex__(self):
+        return (self.unitary_matrix,), {"_unpickling": True}
 
     def __repr__(self):
         """Represent with enough precision to allow copy-paste debugging of all corner cases"""
