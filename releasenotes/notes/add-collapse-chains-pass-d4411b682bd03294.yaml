@@ -58,7 +58,7 @@ features:
   - |
     Added a new :class:`~CollectCliffords` transpiler pass that collects blocks of clifford gates
     and consolidates these blocks into :class:`qiskit.quantum_info.Clifford` objects. This pass
-    inherit from :class:`~CollapseChains`, and in particular supports the options
+    inherits from :class:`~CollapseChains`, and in particular supports the options
     ``do_commutative_analysis``, ``split_blocks`` and ``min_block_size``. See the release
     notes for :class:`~CollapseChains` for additional details.
 
