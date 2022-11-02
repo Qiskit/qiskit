@@ -18,7 +18,7 @@ import numpy as np
 from qiskit import QuantumCircuit
 from qiskit.circuit.library import LinearFunction
 from qiskit.synthesis.linear import (
-    cnot_synth,
+    PMH_cnot_synth,
     random_invertible_binary_matrix,
     check_invertible_binary_matrix,
     calc_inverse_matrix,
@@ -40,7 +40,7 @@ class TestLinearSynth(QiskitTestCase):
         mat = LinearFunction(qc).linear
 
         for optimized in [True, False]:
-            optimized_qc = optimize_cx_4_options(cnot_synth, mat, optimize_count=optimized)
+            optimized_qc = optimize_cx_4_options(PMH_cnot_synth, mat, optimize_count=optimized)
             self.assertEqual(optimized_qc.depth(), 4)
             self.assertEqual(optimized_qc.count_ops()["cx"], 4)
 
@@ -55,7 +55,7 @@ class TestLinearSynth(QiskitTestCase):
         mat = LinearFunction(qc).linear
 
         for optimized in [True, False]:
-            optimized_qc = optimize_cx_4_options(cnot_synth, mat, optimize_count=optimized)
+            optimized_qc = optimize_cx_4_options(PMH_cnot_synth, mat, optimize_count=optimized)
             self.assertEqual(optimized_qc.depth(), 4)
             self.assertEqual(optimized_qc.count_ops()["cx"], 4)
 
@@ -63,10 +63,37 @@ class TestLinearSynth(QiskitTestCase):
         """Test the transpose_cx_circ() function."""
         n = 5
         mat = random_invertible_binary_matrix(n, seed=1234)
-        qc = cnot_synth(mat)
+        qc = PMH_cnot_synth(mat)
         transposed_qc = transpose_cx_circ(qc)
         transposed_mat = LinearFunction(transposed_qc).linear.astype(int)
         self.assertTrue((mat.transpose() == transposed_mat).all())
+
+    def test_example_circuit(self):
+        """Test the synthesis of an example CX circuit which provides different CX count
+        and depth for different optimization methods."""
+
+        qc = QuantumCircuit(9)
+        qc.swap(8, 7)
+        qc.swap(7, 6)
+        qc.cx(5, 6)
+        qc.cx(6, 5)
+        qc.swap(4, 5)
+        qc.cx(3, 4)
+        qc.cx(4, 3)
+        qc.swap(2, 3)
+        qc.cx(1, 2)
+        qc.cx(2, 1)
+        qc.cx(0, 1)
+        qc.cx(1, 0)
+        mat = LinearFunction(qc).linear
+
+        optimized_qc = optimize_cx_4_options(PMH_cnot_synth, mat, optimize_count=True)
+        self.assertEqual(optimized_qc.depth(), 17)
+        self.assertEqual(optimized_qc.count_ops()["cx"], 20)
+
+        optimized_qc = optimize_cx_4_options(PMH_cnot_synth, mat, optimize_count=False)
+        self.assertEqual(optimized_qc.depth(), 15)
+        self.assertEqual(optimized_qc.count_ops()["cx"], 23)
 
     def test_invertible_matrix(self):
         """Test the functions for generating a random invertible matrix and inverting it."""
