@@ -32,7 +32,7 @@ It has a built-in event publisher to show the progress of the parallel tasks.
 Monitoring
 ----------
 
-A helper module to get IBM backend information and submitted job status
+A helper module to get IBM backend information and submitted job status.
 
 .. autosummary::
    :toctree: ../stubs/
