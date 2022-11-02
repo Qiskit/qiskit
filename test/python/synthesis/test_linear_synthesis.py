@@ -18,7 +18,7 @@ import numpy as np
 from qiskit import QuantumCircuit
 from qiskit.circuit.library import LinearFunction
 from qiskit.synthesis.linear import (
-    PMH_cnot_synth,
+    synth_cnot_count_full_pmh,
     random_invertible_binary_matrix,
     check_invertible_binary_matrix,
     calc_inverse_matrix,
@@ -40,7 +40,7 @@ class TestLinearSynth(QiskitTestCase):
         mat = LinearFunction(qc).linear
 
         for optimized in [True, False]:
-            optimized_qc = optimize_cx_4_options(PMH_cnot_synth, mat, optimize_count=optimized)
+            optimized_qc = optimize_cx_4_options(synth_cnot_count_full_pmh, mat, optimize_count=optimized)
             self.assertEqual(optimized_qc.depth(), 4)
             self.assertEqual(optimized_qc.count_ops()["cx"], 4)
 
@@ -55,7 +55,7 @@ class TestLinearSynth(QiskitTestCase):
         mat = LinearFunction(qc).linear
 
         for optimized in [True, False]:
-            optimized_qc = optimize_cx_4_options(PMH_cnot_synth, mat, optimize_count=optimized)
+            optimized_qc = optimize_cx_4_options(synth_cnot_count_full_pmh, mat, optimize_count=optimized)
             self.assertEqual(optimized_qc.depth(), 4)
             self.assertEqual(optimized_qc.count_ops()["cx"], 4)
 
@@ -63,7 +63,7 @@ class TestLinearSynth(QiskitTestCase):
         """Test the transpose_cx_circ() function."""
         n = 5
         mat = random_invertible_binary_matrix(n, seed=1234)
-        qc = PMH_cnot_synth(mat)
+        qc = synth_cnot_count_full_pmh(mat)
         transposed_qc = transpose_cx_circ(qc)
         transposed_mat = LinearFunction(transposed_qc).linear.astype(int)
         self.assertTrue((mat.transpose() == transposed_mat).all())
@@ -87,11 +87,11 @@ class TestLinearSynth(QiskitTestCase):
         qc.cx(1, 0)
         mat = LinearFunction(qc).linear
 
-        optimized_qc = optimize_cx_4_options(PMH_cnot_synth, mat, optimize_count=True)
+        optimized_qc = optimize_cx_4_options(synth_cnot_count_full_pmh, mat, optimize_count=True)
         self.assertEqual(optimized_qc.depth(), 17)
         self.assertEqual(optimized_qc.count_ops()["cx"], 20)
 
-        optimized_qc = optimize_cx_4_options(PMH_cnot_synth, mat, optimize_count=False)
+        optimized_qc = optimize_cx_4_options(synth_cnot_count_full_pmh, mat, optimize_count=False)
         self.assertEqual(optimized_qc.depth(), 15)
         self.assertEqual(optimized_qc.count_ops()["cx"], 23)
 

@@ -134,9 +134,9 @@ class LinearFunction(Gate):
         Returns:
             QuantumCircuit: A circuit implementing the evolution.
         """
-        from qiskit.synthesis.linear import cnot_synth
+        from qiskit.synthesis.linear import synth_cnot_count_full_pmh
 
-        return cnot_synth(self.linear)
+        return synth_cnot_count_full_pmh(self.linear)
 
     @property
     def linear(self):

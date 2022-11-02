@@ -13,7 +13,7 @@
 """Module containing cnot circuits and cnot-phase circuit synthesize."""
 
 
-from .graysynth import graysynth, PMH_cnot_synth
+from .graysynth import graysynth, synth_cnot_count_full_pmh
 from .linear_matrix_utils import (
     random_invertible_binary_matrix,
     calc_inverse_matrix,
