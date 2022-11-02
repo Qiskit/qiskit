@@ -59,7 +59,8 @@ class CollapseChains(TransformationPass):
                 between nodes.
             split_blocks (bool): if True, splits collected blocks into sub-blocks over
                 disjoint qubit subsets.
-            min_block_size (int): specifies the minimum size of collapsable blocks.
+            min_block_size (int): specifies the minimum number of gates in the block
+                for the block to be collapsed.
         """
         self.collect_function = collect_function
         self.collapse_function = collapse_function
