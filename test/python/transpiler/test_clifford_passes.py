@@ -370,11 +370,11 @@ class TestCliffordPasses(QiskitTestCase):
 
     def test_collect_cliffords_multiple_blocks(self):
         """Make sure that when collecting Clifford gates, non-Clifford gates
-         are not collected, and the pass correctly splits disconnected Clifford
-         blocks."""
+        are not collected, and the pass correctly splits disconnected Clifford
+        blocks."""
 
         # original circuit (with one non-Clifford gate in the middle that uniquely
-        # separates the circuit )
+        # separates the circuit)
         qc = QuantumCircuit(3)
         qc.h(0)
         qc.s(1)
@@ -465,6 +465,54 @@ class TestCliffordPasses(QiskitTestCase):
         # no Cliffords should be collected.
         qct = PassManager(CollectCliffords(min_block_size=4)).run(qc)
         self.assertEqual(qct.size(), 6)
+        self.assertNotIn("clifford", qct.count_ops())
+
+    def test_collect_cliffords_options_multiple_blocks(self):
+        """Test the option split_blocks and min_block_size for collecting Clifford
+        gates when there are multiple disconnected Clifford blocks."""
+
+        # original circuit (with several non-Clifford gate in the middle that uniquely
+        # separates the circuit)
+        qc = QuantumCircuit(4)
+        qc.z(3)
+        qc.cx(0, 2)
+        qc.cy(1, 3)
+        qc.x(2)
+        qc.cx(2, 0)
+
+        qc.rx(np.pi / 2, 0)
+        qc.rx(np.pi / 2, 1)
+        qc.rx(np.pi / 2, 2)
+
+        qc.cz(0, 1)
+        qc.z(0)
+
+        # When split_blocks is false and min_block_size=2 (default),
+        # we should end up with two Clifford object.
+        qct = PassManager(CollectCliffords(split_blocks=False)).run(qc)
+        self.assertEqual(qct.count_ops()["clifford"], 2)
+
+        # The above code should also work when commutativity analysis is enabled.
+        qct = PassManager(CollectCliffords(split_blocks=False, do_commutative_analysis=True)).run(
+            qc
+        )
+        self.assertEqual(qct.count_ops()["clifford"], 2)
+
+        # When split_blocks is true (default)
+        # we should end up with 3 Cliffords, as the first Clifford
+        # block further splits into two.
+        qct = PassManager(CollectCliffords()).run(qc)
+        self.assertEqual(qct.count_ops()["clifford"], 3)
+
+        # When split_blocks is true (default) and min_block_size is 3,
+        # two of the Cliffords above do not get collected, so we should
+        # end up with only one Clifford.
+        qct = PassManager(CollectCliffords(min_block_size=3)).run(qc)
+        self.assertEqual(qct.count_ops()["clifford"], 1)
+
+        # When split_blocks is true (default) and min_block_size is 4,
+        # no Cliffords should be collected.
+        qct = PassManager(CollectCliffords(min_block_size=4)).run(qc)
         self.assertNotIn("clifford", qct.count_ops())
 
 
