@@ -703,18 +703,6 @@ class DAGDependency:
                 "Replacing the specified node block would introduce a cycle"
             ) from ex
 
-    def print(self):
-        """Debugging function (remove me)"""
-        nodes = list(self._multi_graph.nodes())
-        print(f"#nodes = {len(nodes)}")
-        for node in nodes:
-            print(
-                f"--node id: {node.node_id}, {node.op.__repr__()}, {node.qargs}, "
-                f"preds: {list(self.direct_predecessors(node.node_id))},"
-                f"succs: {list(self.direct_successors(node.node_id))},"
-                f"node: {node}"
-            )
-
 
 def merge_no_duplicates(*iterables):
     """Merge K list without duplicate using python heapq ordered merging
