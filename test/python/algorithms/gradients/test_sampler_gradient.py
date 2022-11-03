@@ -18,7 +18,7 @@ from test import combine
 from typing import List
 
 import numpy as np
-from ddt import ddt
+from ddt import ddt, data
 
 from qiskit import QuantumCircuit
 from qiskit.algorithms.gradients import (
@@ -33,6 +33,8 @@ from qiskit.circuit.library.standard_gates import RXXGate, RYYGate, RZXGate, RZZ
 from qiskit.primitives import Sampler
 from qiskit.result import QuasiDistribution
 from qiskit.test import QiskitTestCase
+
+from .logging_primitives import LoggingSampler
 
 
 @ddt
@@ -563,6 +565,46 @@ class TestSamplerGradient(QiskitTestCase):
             self.assertEqual(result.options.get("shots"), 300)
             # Only default + sampler options. Not run.
             self.assertEqual(options.get("shots"), 200)
+
+    @data(
+        FiniteDiffSamplerGradient,
+        ParamShiftSamplerGradient,
+        LinCombSamplerGradient,
+        SPSASamplerGradient,
+    )
+    def test_operations_preserved(self, gradient_cls):
+        """Test non-parameterized instructions are preserved and not unrolled."""
+        x = Parameter("x")
+        circuit = QuantumCircuit(2)
+        circuit.initialize(np.array([1, 1, 0, 0]) / np.sqrt(2))  # this should remain as initialize
+        circuit.crx(x, 0, 1)  # this should get unrolled
+        circuit.measure_all()
+
+        values = [np.pi / 2]
+        expect = [{0: 0, 1: -0.25, 2: 0, 3: 0.25}]
+
+        ops = []
+
+        def operations_callback(op):
+            ops.append(op)
+
+        sampler = LoggingSampler(operations_callback=operations_callback)
+
+        if gradient_cls in [SPSASamplerGradient, FiniteDiffSamplerGradient]:
+            gradient = gradient_cls(sampler, epsilon=0.01)
+        else:
+            gradient = gradient_cls(sampler)
+
+        job = gradient.run([circuit], [values])
+        result = job.result()
+
+        with self.subTest(msg="assert initialize is preserved"):
+            self.assertTrue(all("initialize" in ops_i[0].keys() for ops_i in ops))
+
+        with self.subTest(msg="assert result is correct"):
+            array1 = _quasi2array(result.gradients[0], num_qubits=2)
+            array2 = _quasi2array(expect, num_qubits=2)
+            np.testing.assert_allclose(array1, array2, atol=1e-5)
 
 
 def _quasi2array(quasis: List[QuasiDistribution], num_qubits: int) -> np.ndarray:

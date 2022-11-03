@@ -24,7 +24,6 @@ from dataclasses import dataclass
 
 import numpy as np
 
-from qiskit import transpile
 from qiskit.circuit import (
     ClassicalRegister,
     Gate,
@@ -47,6 +46,8 @@ from qiskit.circuit.library.standard_gates import (
     RZZGate,
     XGate,
 )
+
+from .translate_parameterized import TranslateParameterizedGates
 
 
 @dataclass
@@ -96,8 +97,9 @@ def _make_param_shift_gradient_circuit_data(
         "rzz",
         "rzx",
     ]
+    unroller = TranslateParameterizedGates(supported_gates)
+    circuit2 = unroller(circuit)
 
-    circuit2 = transpile(circuit, basis_gates=supported_gates, optimization_level=0)
     g_circuit = circuit2.copy_empty_like(f"g_{circuit2.name}")
     param_inst_dict = defaultdict(list)
     g_parameter_map = defaultdict(list)
@@ -316,8 +318,9 @@ def _make_lin_comb_gradient_circuit(
         "y",
         "z",
     ]
+    unroller = TranslateParameterizedGates(supported_gates)
+    circuit2 = unroller(circuit)
 
-    circuit2 = transpile(circuit, basis_gates=supported_gates, optimization_level=0)
     qr_aux = QuantumRegister(1, "aux")
     cr_aux = ClassicalRegister(1, "aux")
     circuit2.add_register(qr_aux)
@@ -416,8 +419,8 @@ def _make_lin_comb_qfi_circuit(
         "y",
         "z",
     ]
-
-    circuit2 = transpile(circuit, basis_gates=supported_gates, optimization_level=0)
+    unroller = TranslateParameterizedGates(supported_gates)
+    circuit2 = unroller(circuit)
 
     qr_aux = QuantumRegister(1, "aux")
     cr_aux = ClassicalRegister(1, "aux")

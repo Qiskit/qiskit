@@ -17,7 +17,7 @@ import unittest
 from test import combine
 
 import numpy as np
-from ddt import ddt
+from ddt import ddt, data
 
 from qiskit import QuantumCircuit
 from qiskit.algorithms.gradients import (
@@ -33,6 +33,8 @@ from qiskit.primitives import Estimator
 from qiskit.quantum_info import Operator, SparsePauliOp
 from qiskit.quantum_info.random import random_pauli_list
 from qiskit.test import QiskitTestCase
+
+from .logging_primitives import LoggingEstimator
 
 
 @ddt
@@ -430,6 +432,45 @@ class TestEstimatorGradient(QiskitTestCase):
             self.assertEqual(result.options.get("shots"), 300)
             # Only default + estimator options. Not run.
             self.assertEqual(options.get("shots"), 200)
+
+    @data(
+        FiniteDiffEstimatorGradient,
+        ParamShiftEstimatorGradient,
+        LinCombEstimatorGradient,
+        SPSAEstimatorGradient,
+    )
+    def test_operations_preserved(self, gradient_cls):
+        """Test non-parameterized instructions are preserved and not unrolled."""
+        x = Parameter("x")
+        circuit = QuantumCircuit(2)
+        circuit.initialize([0.5, 0.5, 0.5, 0.5])  # this should remain as initialize
+        circuit.crx(x, 0, 1)  # this should get unrolled
+
+        values = [np.pi / 2]
+        expect = -1 / (2 * np.sqrt(2))
+
+        observable = SparsePauliOp(["XX"])
+
+        ops = []
+
+        def operations_callback(op):
+            ops.append(op)
+
+        estimator = LoggingEstimator(operations_callback=operations_callback)
+
+        if gradient_cls in [SPSAEstimatorGradient, FiniteDiffEstimatorGradient]:
+            gradient = gradient_cls(estimator, epsilon=0.01)
+        else:
+            gradient = gradient_cls(estimator)
+
+        job = gradient.run([circuit], [observable], [values])
+        result = job.result()
+
+        with self.subTest(msg="assert initialize is preserved"):
+            self.assertTrue(all("initialize" in ops_i[0].keys() for ops_i in ops))
+
+        with self.subTest(msg="assert result is correct"):
+            self.assertAlmostEqual(result.gradients[0].item(), expect, places=5)
 
 
 if __name__ == "__main__":
