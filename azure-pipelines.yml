@@ -151,7 +151,7 @@ stages:
         - template: ".azure/test-linux.yml"
           parameters:
             pythonVersion: ${{ parameters.minimumPythonVersion }}
-            testQPY: false
+            testQPY: true
             testImages: false
             rustVersion: ${{ parameters.minimumRustVersion }}
 
@@ -171,7 +171,7 @@ stages:
         - template: ".azure/test-linux.yml"
           parameters:
             pythonVersion: ${{ parameters.maximumPythonVersion }}
-            testQPY: true
+            testQPY: false
             testImages: true
             installFromSdist: true
 
