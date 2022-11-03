@@ -24,8 +24,13 @@ qiskit_venv/bin/pip install ../..
 
 for version in $(git tag --sort=-creatordate) ; do
     parts=( ${version//./ } )
+    # Stop when we've reached old versions that were pre-QPY
     if [[ ${parts[1]} -lt 18 ]] ; then
         break
+    fi
+    # Skip pre-release tags
+    if [[ "$version" =~ rc[0-9]$ ]] ; then
+        continue
     fi
     echo "Building venv for qiskit-terra $version"
     python -m venv $version
