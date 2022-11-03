@@ -16,12 +16,12 @@ import numpy as np
 import retworkx as rx
 
 from qiskit.transpiler import CouplingMap
-from qiskit.transpiler.synthesis import graph_utils
 from qiskit import QuantumRegister, QuantumCircuit
 from qiskit.transpiler.synthesis.graph_utils import (
     postorder_traversal,
     preorder_traversal,
     pydigraph_to_pygraph,
+    noncutting_vertices,
 )
 
 
@@ -46,9 +46,7 @@ class PermRowCol:
         circuit = QuantumCircuit(len(self._graph.node_indexes()))
 
         while len(self._graph.node_indexes()) > 1:
-            n_vertices = graph_utils.noncutting_vertices(
-                CouplingMap()
-            )  # Have to change noncutting_vertices for pydigraph
+            n_vertices = noncutting_vertices(CouplingMap())  # Have to change noncutting_vertices for pydigraph
             row = self.choose_row(n_vertices, parity_mat)
 
             cols = self.return_columns(qubit_alloc)
