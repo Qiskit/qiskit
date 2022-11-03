@@ -94,8 +94,6 @@ from qiskit.opflow import PauliSumOp
 from qiskit.providers import JobV1 as Job
 from qiskit.quantum_info.operators import SparsePauliOp
 from qiskit.quantum_info.operators.base_operator import BaseOperator
-from qiskit.quantum_info.operators.symplectic.pauli import Pauli
-from qiskit.quantum_info.operators.symplectic.pauli_list import PauliList
 from qiskit.utils.deprecation import deprecate_arguments, deprecate_function
 
 from .base_primitive import BasePrimitive
@@ -178,12 +176,7 @@ class BaseEstimator(BasePrimitive):
     def run(
         self,
         circuits: Sequence[QuantumCircuit] | QuantumCircuit,
-        observables: Sequence[BaseOperator | PauliSumOp | PauliList | Pauli | str]
-        | BaseOperator
-        | PauliSumOp
-        | PauliList
-        | Pauli
-        | str,
+        observables: Sequence[BaseOperator | PauliSumOp | str] | BaseOperator | PauliSumOp | str,
         parameter_values: Sequence[Sequence[float]] | Sequence[float] | float | None = None,
         **run_options,
     ) -> Job:
@@ -262,12 +255,7 @@ class BaseEstimator(BasePrimitive):
     ################################################################################
     @staticmethod
     def _validate_observables(
-        observables: Sequence[BaseOperator | PauliSumOp | PauliList | Pauli | str]
-        | BaseOperator
-        | PauliSumOp
-        | PauliList
-        | Pauli
-        | str,
+        observables: Sequence[BaseOperator | PauliSumOp | str] | BaseOperator | PauliSumOp | str,
     ) -> tuple[SparsePauliOp, ...]:
         if not isinstance(observables, Sequence):
             observables = (observables,)
