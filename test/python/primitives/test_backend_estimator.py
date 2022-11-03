@@ -25,7 +25,6 @@ from qiskit.providers import JobV1
 from qiskit.providers.fake_provider import FakeNairobi, FakeNairobiV2
 from qiskit.quantum_info import SparsePauliOp
 from qiskit.test import QiskitTestCase
-from qiskit.utils.optionals import HAS_AER
 
 BACKENDS = [FakeNairobi(), FakeNairobiV2()]
 
