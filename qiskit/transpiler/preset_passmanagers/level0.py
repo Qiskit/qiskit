@@ -96,7 +96,12 @@ def level_0_pass_manager(pass_manager_config: PassManagerConfig) -> StagedPassMa
     # TODO: Remove when qiskit-toqm has it's own plugin and we can rely on just the plugin interface
     if routing_method == "toqm" and "toqm" not in list_stage_plugins("routing"):
         HAS_TOQM.require_now("TOQM-based routing")
-        from qiskit_toqm import ToqmSwap, ToqmStrategyO0, latencies_from_target
+        # pylint: disable=import-error
+        from qiskit_toqm import (
+            ToqmSwap,
+            ToqmStrategyO0,
+            latencies_from_target,
+        )
 
         if initial_layout:
             raise TranspilerError("Initial layouts are not supported with TOQM-based routing.")
