@@ -37,7 +37,7 @@ from qiskit.circuit.library import (
     RZGate,
     XGate,
     YGate,
-    Global_Phase_Gate,
+    GlobalPhaseGate,
 )
 from qiskit import BasicAer
 from qiskit.quantum_info import Pauli
@@ -946,7 +946,7 @@ class TestStandard1Q(QiskitTestCase):
 
     def test_gphase_matrix(self, theta: float, expected: np.ndarray):
         """Test gphase matrix."""
-        gate = Global_Phase_Gate(theta)
+        gate = GlobalPhaseGate(theta)
         np.testing.assert_allclose(np.array(gate), expected, atol=1e-7)
 
 
