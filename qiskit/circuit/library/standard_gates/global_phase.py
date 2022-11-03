@@ -23,17 +23,17 @@ from qiskit.circuit.quantumcircuit import QuantumCircuit
 from qiskit.circuit.exceptions import CircuitError
 
 
-class GlobalPhaseGate(Gate):
+class Global_Phase_Gate(Gate):
     r"""The global phase gate (:math:`e^{i\theta}`).
 
     Can be applied to a :class:`~qiskit.circuit.QuantumCircuit`
-    with the :meth:`~qiskit.circuit.QuantumCircuit.globalphase` method.
+    with the :meth:`~qiskit.circuit.QuantumCircuit.gphase` method.
 
     **Mathamatical Representation:**
 
 
     .. math::
-        \text{GlobalPhaseGate}\ =
+        \text{Global_Phase_Gate}\ =
             \begin{pmatrix}
                 e^{i\theta}
             \end{pmatrix}
