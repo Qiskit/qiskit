@@ -1726,6 +1726,19 @@ class TestPostTranspileIntegration(QiskitTestCase):
         # itself doesn't throw an error, though.
         self.assertIsInstance(qasm3.dumps(transpiled).strip(), str)
 
+    @data(0, 1, 2, 3)
+    def test_transpile_target_no_measurement_error(self, opt_level):
+        """Test that transpile with a target which contains ideal measurement works
+
+        Reproduce from https://github.com/Qiskit/qiskit-terra/issues/8969
+        """
+        target = Target()
+        target.add_instruction(Measure(), {(0,): None})
+        qc = QuantumCircuit(1, 1)
+        qc.measure(0, 0)
+        res = transpile(qc, target=target, optimization_level=opt_level)
+        self.assertEqual(qc, res)
+
 
 class StreamHandlerRaiseException(StreamHandler):
     """Handler class that will raise an exception on formatting errors."""
@@ -1820,3 +1833,24 @@ class TestTranspileParallel(QiskitTestCase):
         self.assertIsInstance(res, list)
         for circ in res:
             self.assertIsInstance(circ, QuantumCircuit)
+
+    @data(0, 1, 2, 3)
+    def test_parallel_dispatch(self, opt_level):
+        """Test that transpile in parallel works for all optimization levels."""
+        backend = FakeRueschlikon()
+        qr = QuantumRegister(16)
+        cr = ClassicalRegister(16)
+        qc = QuantumCircuit(qr, cr)
+        qc.h(qr[0])
+        for k in range(1, 15):
+            qc.cx(qr[0], qr[k])
+        qc.measure(qr, cr)
+        qlist = [qc for k in range(15)]
+        tqc = transpile(
+            qlist, backend=backend, optimization_level=opt_level, seed_transpiler=424242
+        )
+        result = backend.run(tqc, seed_simulator=4242424242, shots=1000).result()
+        counts = result.get_counts()
+        for count in counts:
+            self.assertTrue(math.isclose(count["0000000000000000"], 500, rel_tol=0.1))
+            self.assertTrue(math.isclose(count["0111111111111111"], 500, rel_tol=0.1))
