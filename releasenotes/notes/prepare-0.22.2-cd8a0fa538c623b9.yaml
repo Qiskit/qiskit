@@ -1,0 +1,4 @@
+---
+prelude: >
+  Qiskit Terra 0.22.2 is a minor bugfix release, and marks the first official
+  support for Python 3.11.
