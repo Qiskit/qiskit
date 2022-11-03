@@ -1,0 +1,8 @@
+---
+upgrade:
+  - |
+    Improve normalization in the ``BaseEstimator`` primitive observable validation 
+    functionality, parsing to the more specific type ``tuple[SparsePauliOp, ...]``.
+  - |
+    Let the ``BaseEstimator.run()`` method accept ``PauliList``, ``Pauli`` and ``str`` 
+    types, both directly or as elements in a ``Sequence`` object.
