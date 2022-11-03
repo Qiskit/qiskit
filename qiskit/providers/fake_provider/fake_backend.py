@@ -123,7 +123,11 @@ class FakeBackendV2(BackendV2):
 
             self.sim = aer.AerSimulator()
             if self.target and self._props_dict:
-                noise_model = NoiseModel.from_backend(self, warnings=False)
+                with warnings.catch_warnings():
+                    warnings.filterwarnings(
+                        "ignore", category=UserWarning, module="qiskit_aer.noise.device"
+                    )
+                    noise_model = NoiseModel.from_backend(self)
                 self.sim.set_options(noise_model=noise_model)
                 # Update fake backend default too to avoid overwriting
                 # it when run() is called
@@ -342,6 +346,8 @@ class FakeBackendV2(BackendV2):
                 "Invalid input object %s, must be either a "
                 "QuantumCircuit, Schedule, or a list of either" % circuits
             )
+        if pulse_job:  # pulse job
+            raise QiskitError("Pulse simulation is currently not supported for V2 fake backends.")
         # circuit job
         if not _optionals.HAS_AER:
             warnings.warn("Aer not found using BasicAer and no noise", RuntimeWarning)
