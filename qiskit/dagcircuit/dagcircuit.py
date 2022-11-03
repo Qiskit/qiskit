@@ -37,7 +37,6 @@ from qiskit.circuit.instruction import Instruction
 from qiskit.circuit.parameterexpression import ParameterExpression
 from qiskit.dagcircuit.exceptions import DAGCircuitError
 from qiskit.dagcircuit.dagnode import DAGNode, DAGOpNode, DAGInNode, DAGOutNode
-from qiskit.utils import optionals as _optionals
 from qiskit.utils.deprecation import deprecate_function
 
 
@@ -95,59 +94,6 @@ class DAGCircuit:
 
         self.duration = None
         self.unit = "dt"
-
-    @_optionals.HAS_NETWORKX.require_in_call
-    @deprecate_function(
-        "The to_networkx() method is deprecated and will be removed in a future release."
-    )
-    def to_networkx(self):
-        """Returns a copy of the DAGCircuit in networkx format."""
-        import networkx as nx
-
-        G = nx.MultiDiGraph()
-        for node in self._multi_graph.nodes():
-            G.add_node(node)
-        for node_id in rx.topological_sort(self._multi_graph):
-            for source_id, dest_id, edge in self._multi_graph.in_edges(node_id):
-                G.add_edge(self._multi_graph[source_id], self._multi_graph[dest_id], wire=edge)
-        return G
-
-    @classmethod
-    @_optionals.HAS_NETWORKX.require_in_call
-    @deprecate_function(
-        "The from_networkx() method is deprecated and will be removed in a future release."
-    )
-    def from_networkx(cls, graph):
-        """Take a networkx MultiDigraph and create a new DAGCircuit.
-
-        Args:
-            graph (networkx.MultiDiGraph): The graph to create a DAGCircuit
-                object from. The format of this MultiDiGraph format must be
-                in the same format as returned by to_networkx.
-
-        Returns:
-            DAGCircuit: The dagcircuit object created from the networkx
-                MultiDiGraph.
-        Raises:
-            MissingOptionalLibraryError: If networkx is not installed
-            DAGCircuitError: If input networkx graph is malformed
-        """
-        import networkx as nx
-
-        dag = DAGCircuit()
-        for node in nx.topological_sort(graph):
-            if isinstance(node, DAGOutNode):
-                continue
-            if isinstance(node, DAGInNode):
-                if isinstance(node.wire, Qubit):
-                    dag.add_qubits([node.wire])
-                elif isinstance(node.wire, Clbit):
-                    dag.add_clbits([node.wire])
-                else:
-                    raise DAGCircuitError(f"unknown node wire type: {node.wire}")
-            elif isinstance(node, DAGOpNode):
-                dag.apply_operation_back(node.op.copy(), node.qargs, node.cargs)
-        return dag
 
     @property
     def wires(self):
