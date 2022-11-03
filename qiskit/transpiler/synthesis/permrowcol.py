@@ -46,7 +46,9 @@ class PermRowCol:
         circuit = QuantumCircuit(len(self._graph.node_indexes()))
 
         while len(self._graph.node_indexes()) > 1:
-            n_vertices = noncutting_vertices(CouplingMap())  # Have to change noncutting_vertices for pydigraph
+            n_vertices = noncutting_vertices(
+                CouplingMap()
+            )  # Have to change noncutting_vertices for pydigraph
             row = self.choose_row(n_vertices, parity_mat)
 
             cols = self.return_columns(qubit_alloc)
