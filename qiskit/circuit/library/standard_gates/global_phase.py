@@ -22,6 +22,7 @@ from qiskit.circuit._utils import _compute_control_matrix
 from qiskit.circuit.quantumcircuit import QuantumCircuit
 from qiskit.circuit.exceptions import CircuitError
 
+
 class GlobalPhaseGate(Gate):
     r"""The global phase gate (:math:`e^{i\theta}`).
 
@@ -34,7 +35,7 @@ class GlobalPhaseGate(Gate):
     .. math::
         \text{GlobalPhaseGate}\ =
             \begin{pmatrix}
-                e^{i\theta}   
+                e^{i\theta}
             \end{pmatrix}
 
     **Circuit symbol:**
@@ -42,7 +43,7 @@ class GlobalPhaseGate(Gate):
     .. parsed-literal::
     """
 
-    def __init__(self,phase: float, label: Optional[str] = None):
+    def __init__(self, phase: float, label: Optional[str] = None):
         """Create new globalphase gate.
         Args:
             num_qubits: The number of qubits the gate acts on.
@@ -56,6 +57,5 @@ class GlobalPhaseGate(Gate):
 
         q = QuantumRegister(0, "q")
         qc = QuantumCircuit(q, name=self.name, global_phase=self.phase)
-        
+
         self.definition = qc
- 
