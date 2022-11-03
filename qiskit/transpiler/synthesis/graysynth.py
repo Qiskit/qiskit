@@ -176,7 +176,7 @@ def graysynth(cnots, angles, section_size=2):
         else:
             sta.append([cnots1, list(set(ilist).difference([j])), qubit])
         sta.append([cnots0, list(set(ilist).difference([j])), qubit])
-    qcir += cnot_synth(state, section_size).inverse()
+    qcir &= cnot_synth(state, section_size).inverse()
     return qcir
 
 
