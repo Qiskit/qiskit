@@ -22,6 +22,63 @@ Notable Changes
 ###############
 
 *************
+Qiskit 0.39.2
+*************
+
+.. _Release Notes_Terra_0.22.2:
+
+Terra 0.22.2
+============
+
+.. _Release Notes_Terra_0.22.2_Prelude:
+
+Prelude
+-------
+
+.. releasenotes/notes/prepare-0.22.2-cd8a0fa538c623b9.yaml @ b'dac39d0b10638a2d35819d3caee5895e05cab254'
+
+Qiskit Terra 0.22.2 is a minor bugfix release, and marks the first official support for Python 3.11.
+
+
+.. _Release Notes_Terra_0.22.2_Bug Fixes:
+
+Bug Fixes
+---------
+
+.. releasenotes/notes/fix-backend-primitive-no-max-experiments-e2ca41ec61de353e.yaml @ b'bece288c0f677cb1f783ea1c355839efbccf3523'
+
+- Fixed an issue with the backend primitive classes :class:`~.BackendSampler`
+  and :class:`~.BackendEstimator` which prevented running with a
+  :class:`~.BackendV1` instance that does not have a ``max_experiments``
+  field set in its :class:`~.BackendConfiguration`.
+
+.. releasenotes/notes/fix-vf2post-regression-d4b057ea02ce00d3.yaml @ b'1e3cad33efecaccbd83c28cdaf5b1f8df4fcba39'
+
+- Fixed a bug in the :class:`.VF2PostLayout` pass when transpiling for backends
+  with a defined :class:`.Target`, where the interaction graph would be built
+  incorrectly.  This could result in excessive runtimes due to the graph being
+  far more complex than necessary.
+
+.. releasenotes/notes/remove-pulse-deepcopy-9a19aa7f6452248b.yaml @ b'e61b93f5513355a820a953a3b1ac53f9fcc3f2ba'
+
+- The Pulse expression parser should no longer periodically hang when called
+  from Jupyter notebooks.  This is achieved by avoiding an internal ``deepycopy``
+  of a recursive object that seemed to be particularly difficult for the
+  memoization to evaluate.
+
+Aer 0.11.1
+==========
+
+No change
+
+
+IBM Q Provider 0.19.2
+=====================
+
+No change
+
+
+*************
 Qiskit 0.39.1
 *************
 
