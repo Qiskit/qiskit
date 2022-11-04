@@ -34,67 +34,72 @@ from qiskit.transpiler.passes import ApplyLayout, SetLayout
 ################################################################################
 ## AUXILIARY
 ################################################################################
-def generate_measurement_circuit_examples():
-    I = QuantumCircuit(1, 1)
+def measurement_circuit_examples():
+    """Generator of commuting Paulis and corresponding measurement circuits."""
+    I = QuantumCircuit(1, 1)  # pylint: disable=invalid-name
     I.measure(0, 0)
     yield ["I", "Z"], I
 
-    X = QuantumCircuit(1, 1)
+    X = QuantumCircuit(1, 1)  # pylint: disable=invalid-name
     X.h(0)
     X.measure(0, 0)
     yield ["X", "I"], X
 
-    Y = QuantumCircuit(1, 1)
+    Y = QuantumCircuit(1, 1)  # pylint: disable=invalid-name
     Y.sdg(0)
     Y.h(0)
     Y.measure(0, 0)
     yield ["Y", "I"], Y
 
-    Z = QuantumCircuit(1, 1)
+    Z = QuantumCircuit(1, 1)  # pylint: disable=invalid-name
     Z.measure(0, 0)
     yield ["Z", "I"], Z
 
-    II = QuantumCircuit(2, 1)
+    II = QuantumCircuit(2, 1)  # pylint: disable=invalid-name
     II.measure(0, 0)
     yield ["II"], II
 
-    IX = QuantumCircuit(2, 1)
-    IX.h(0)
-    IX.measure(0, 0)
-    yield ["IX", "II"], IX
+    IY = QuantumCircuit(2, 1)  # pylint: disable=invalid-name
+    IY.sdg(0)
+    IY.h(0)
+    IY.measure(0, 0)
+    yield ["IY", "II"], IY
 
-    XY = QuantumCircuit(2, 2)
+    XY = QuantumCircuit(2, 2)  # pylint: disable=invalid-name
     XY.h(1)
     XY.sdg(0)
     XY.h(0)
     XY.measure([0, 1], [0, 1])
     yield ["XY", "II", "XI", "IY"], XY
 
-    ZI = QuantumCircuit(2, 1)
-    ZI.measure(1, 0)
-    XX = QuantumCircuit(2, 2)
+    XX = QuantumCircuit(2, 2)  # pylint: disable=invalid-name
     XX.h(1)
     XX.h(0)
     XX.measure([0, 1], [0, 1])
     yield ["XX", "IX", "XI", "II"], XX
 
-    ZZ = QuantumCircuit(2, 2)
+    ZZ = QuantumCircuit(2, 2)  # pylint: disable=invalid-name
     ZZ.measure([0, 1], [0, 1])
     yield ["ZZ", "IZ", "ZI", "II"], ZZ
 
-    XYZ = QuantumCircuit(3, 3)
+    XYZ = QuantumCircuit(3, 3)  # pylint: disable=invalid-name
     XYZ.h(2)
     XYZ.sdg(1)
     XYZ.h(1)
     XYZ.measure([0, 1, 2], [0, 1, 2])
     yield ["XYZ", "XII", "IYI", "IIZ", "XIZ", "III"], XYZ
 
-    YIX = QuantumCircuit(3, 2)
+    YIX = QuantumCircuit(3, 2)  # pylint: disable=invalid-name
     YIX.sdg(2)
     YIX.h(2)
     YIX.h(0)
     YIX.measure([0, 2], [0, 1])
     yield ["YIX", "IIX", "YII", "III"], YIX
+
+    IXII = QuantumCircuit(4, 1)  # pylint: disable=invalid-name
+    IXII.h(2)
+    IXII.measure(2, 0)
+    yield ["IXII", "IIII"], IXII
 
 
 ################################################################################
@@ -204,7 +209,7 @@ class TestMeasurement(TestCase):
         self.assertIsInstance(estimator._observable_decomposer, NaiveDecomposer)
         self.assertIsNot(estimator._observable_decomposer, estimator._observable_decomposer)
 
-    @data(*generate_measurement_circuit_examples())
+    @data(*measurement_circuit_examples())
     @unpack
     def test_build_single_measurement_circuit(self, paulis, measurement):
         """Test measurement circuits for a given observable."""
@@ -230,7 +235,7 @@ class TestMeasurement(TestCase):
             )
         )
 
-    @data(*generate_measurement_circuit_examples())
+    @data(*measurement_circuit_examples())
     @unpack
     def test_build_pauli_measurement(self, paulis, measurement):
         """Test Pauli measurement circuit from Pauli."""

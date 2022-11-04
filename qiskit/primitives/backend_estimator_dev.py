@@ -21,9 +21,6 @@ from typing import Any
 import numpy as np
 
 from qiskit.circuit import QuantumCircuit
-from qiskit.circuit.gate import Gate
-from qiskit.circuit.library.standard_gates import HGate, SdgGate
-from qiskit.circuit.quantumcircuitdata import CircuitInstruction
 from qiskit.compiler import transpile
 from qiskit.opflow import PauliSumOp
 from qiskit.providers import Backend, Options
@@ -34,7 +31,7 @@ from qiskit.transpiler import PassManager, Layout
 
 from .base import BaseEstimator, EstimatorResult
 from .primitive_job import PrimitiveJob
-from .utils import _circuit_key, _observable_key, init_observable
+# from .utils import _circuit_key, _observable_key  # TODO: caching
 
 
 ################################################################################
@@ -513,7 +510,7 @@ class ObservableDecomposer(ABC):
         could be grouped together in different ways (i.e. partinioning the set).
 
         Args:
-            obsevable: the observable to decompose into its core components.
+            observable: the observable to decompose into its core components.
 
         Returns:
             A list of observables each of which measurable with a single quantum circuit
@@ -563,8 +560,8 @@ class NaiveDecomposer(ObservableDecomposer):
         return list(observable)
 
     @staticmethod
-    def _get_measurement_basis(component: BaseOperator | PauliSumOp) -> Pauli:
-        return component.paulis[0]
+    def _get_measurement_basis(observable: BaseOperator | PauliSumOp) -> Pauli:
+        return observable.paulis[0]
 
 
 class AbelianDecomposer(ObservableDecomposer):
@@ -577,7 +574,7 @@ class AbelianDecomposer(ObservableDecomposer):
         return observable.group_commuting(qubit_wise=True)
 
     @staticmethod
-    def _get_measurement_basis(component: BaseOperator | PauliSumOp) -> Pauli:
+    def _get_measurement_basis(observable: BaseOperator | PauliSumOp) -> Pauli:
         return Pauli(
-            (np.logical_or.reduce(component.paulis.z), np.logical_or.reduce(component.paulis.x))
+            (np.logical_or.reduce(observable.paulis.z), np.logical_or.reduce(observable.paulis.x))
         )
