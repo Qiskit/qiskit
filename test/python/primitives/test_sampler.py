@@ -12,6 +12,7 @@
 
 """Tests for Sampler."""
 
+import pickle
 import unittest
 from test import combine
 
@@ -769,6 +770,12 @@ class TestSampler(QiskitTestCase):
 
             keys = [_circuit_key(test_with_scheduling(i)) for i in range(1, 5)]
             self.assertEqual(len(keys), len(set(keys)))
+
+    def test_serialization(self):
+        """Test of serialize and deserialize"""
+        sampler = Sampler()
+        serialization = pickle.dumps(sampler)
+        _ = pickle.loads(serialization)
 
 
 if __name__ == "__main__":

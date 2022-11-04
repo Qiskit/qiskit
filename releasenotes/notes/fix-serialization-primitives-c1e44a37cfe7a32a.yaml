@@ -1,0 +1,4 @@
+---
+fixes:
+  - |
+    Fixed a problem where primitives could not be serialized.

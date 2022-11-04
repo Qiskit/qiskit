@@ -12,6 +12,7 @@
 
 """Tests for Estimator."""
 
+import pickle
 import unittest
 from test import combine
 
@@ -296,6 +297,13 @@ class TestBackendEstimator(QiskitTestCase):
         with unittest.mock.patch.object(backend, "run") as run_mock:
             estimator.run([qc] * k, [op] * k, params_list).result()
         self.assertEqual(run_mock.call_count, 10)
+
+    @combine(backend=BACKENDS)
+    def test_serialization(self, backend):
+        """Test of serialize and deserialize"""
+        estimator = BackendEstimator(backend=backend)
+        serialization = pickle.dumps(estimator)
+        _ = pickle.loads(serialization)
 
 
 if __name__ == "__main__":

@@ -147,6 +147,9 @@ class BackendEstimator(BaseEstimator):
         self = super().__new__(cls)
         return self
 
+    def __getnewargs__(self):
+        return (self._backend,)
+
     @property
     def transpile_options(self) -> Options:
         """Return the transpiler options for transpiling the circuits."""
