@@ -22,7 +22,7 @@ from retworkx import PyDiGraph, PyGraph
 from qiskit.circuit import ControlFlowOp, ForLoopOp
 from qiskit.converters import circuit_to_dag
 from qiskit._accelerate import vf2_layout
-from qiskit._accelerate.stochastic_swap import NLayout
+from qiskit._accelerate.nlayout import NLayout
 from qiskit._accelerate.error_map import ErrorMap
 
 
