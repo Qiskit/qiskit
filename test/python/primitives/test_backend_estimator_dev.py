@@ -118,7 +118,13 @@ class TestTranspilation(TestCase):
     )
     @unpack
     def test_transpile(self, target_qubits, layout_intlist):
-        """Test transpile functionality."""
+        """Test transpile functionality.
+
+        Assumptions for final layout inferrence:
+            - Circuits passed to Qiskit-Terra's `transpile` are all measured
+            - Measurements are in order (i.e. coming from `measure_all()`)
+            - Classical bits remain in order in measurements through transpilation
+        """
         # Input and measured circuits
         num_qubits = len(layout_intlist)
         input_circuit = QuantumCircuit(num_qubits)
@@ -139,45 +145,13 @@ class TestTranspilation(TestCase):
             mock.return_value = transpiled_circuit
             output_circuit = estimator._transpile(input_circuit)
         mock.assert_called_once()
-        call_circuit, call_backend = mock.call_args[0]
-        call_kwargs = mock.call_args[1]
+        (call_circuit, call_backend), call_kwargs = mock.call_args
         self.assertEqual(call_circuit, measured_circuit)
         self.assertIs(call_backend, backend)
         self.assertEqual(call_kwargs, estimator._transpile_options.__dict__)
         self.assertEqual(output_circuit, transpiled_circuit)
         self.assertIsInstance(output_circuit, QuantumCircuit)
         inferred_layout = output_circuit.metadata.get("final_layout")
-        self.assertEqual(inferred_layout, applied_layout)
-        self.assertIsInstance(inferred_layout, Layout)
-
-    @data(
-        [3, (0, 1, 2)],
-        [4, (0, 1, 2, 3)],
-        [4, (1, 3, 2, 0)],
-        [4, (0, 1, 3)],
-        [4, (3, 1)],
-    )
-    @unpack
-    def test_infer_final_layout(self, target_qubits, layout_intlist):
-        """Test final layouts inferred from measurements.
-
-        Assumptions:
-            - Original measurements are in order (i.e. coming from `measure_all()`)
-            - Classical bits remain in order in measurements after transpilation
-        """
-        # Original circuit
-        num_qubits = len(layout_intlist)
-        original_circuit = QuantumCircuit(num_qubits)
-        original_circuit.measure_all()
-        # Transpiled circuit (only changes layout and num of qubits)
-        layout_dict = dict.fromkeys(range(target_qubits))
-        layout_dict.update(dict(zip(layout_intlist, original_circuit.qubits)))
-        applied_layout = Layout(layout_dict)
-        passes = [SetLayout(layout=applied_layout), ApplyLayout()]
-        pass_manager = PassManager(passes=passes)
-        transpiled_circuit = pass_manager.run(original_circuit)
-        # Test
-        inferred_layout = BackendEstimator._infer_final_layout(original_circuit, transpiled_circuit)
         self.assertEqual(inferred_layout, applied_layout)
         self.assertIsInstance(inferred_layout, Layout)
 
@@ -205,10 +179,11 @@ class TestMeasurement(TestCase):
     def test_observable_decomposer(self):
         """Test observable decomposer property."""
         estimator = BackendEstimator(Mock(Backend))
-        self.assertIs(estimator.abelian_grouping, True)
+        self.assertTrue(estimator.abelian_grouping)
         self.assertIsInstance(estimator._observable_decomposer, AbelianDecomposer)
         self.assertIsNot(estimator._observable_decomposer, estimator._observable_decomposer)
         estimator.abelian_grouping = False
+        self.assertFalse(estimator.abelian_grouping)
         self.assertIsInstance(estimator._observable_decomposer, NaiveDecomposer)
         self.assertIsNot(estimator._observable_decomposer, estimator._observable_decomposer)
 
@@ -216,38 +191,28 @@ class TestMeasurement(TestCase):
     @unpack
     def test_build_single_measurement_circuit(self, paulis, measurement):
         """Test measurement circuits for a given observable."""
-        observable = SparsePauliOp(paulis)
-        circuit = BackendEstimator(Mock(Backend))._build_single_measurement_circuit(observable)
-        self.assertEqual(circuit, measurement)
-        # TODO: circuit.metadata
-        meas_indices = circuit.metadata.get("measured_qubit_indices")
+        # Preparation
+        observable = SparsePauliOp(paulis)  # TODO: custom coeffs
+        coeffs = tuple(np.real_if_close(observable.coeffs).tolist())
+        qubit_index_map = {qubit: i for i, qubit in enumerate(measurement.qubits)}
+        meas_indices = tuple(
+            qubit_index_map[qargs[0]] for inst, qargs, _ in measurement if inst.name == "measure"
+        )
         paulis = PauliList.from_symplectic(
             observable.paulis.z[:, meas_indices],
             observable.paulis.x[:, meas_indices],
             observable.paulis.phase,
         )
+        # Tests
+        circuit = BackendEstimator(Mock(Backend))._build_single_measurement_circuit(observable)
+        self.assertIsInstance(circuit, QuantumCircuit)
+        self.assertEqual(circuit, measurement)
+        self.assertIsInstance(circuit.metadata.get("measured_qubit_indices"), tuple)
+        self.assertEqual(circuit.metadata.get("measured_qubit_indices"), meas_indices)
         self.assertIsInstance(circuit.metadata.get("paulis"), PauliList)
         self.assertEqual(circuit.metadata.get("paulis"), paulis)
         self.assertIsInstance(circuit.metadata.get("coeffs"), tuple)
-        self.assertTrue(
-            all(
-                md == c
-                for md, c in zip(
-                    circuit.metadata.get("coeffs"), np.real_if_close(observable.coeffs)
-                )
-            )
-        )
-
-    @data(*measurement_circuit_examples())
-    @unpack
-    def test_build_pauli_measurement(self, paulis, measurement):
-        """Test Pauli measurement circuit from Pauli."""
-        # TODO: test too similar to implementation
-        pauli = Pauli(paulis[0])
-        meas_indices = tuple(i for i, p in enumerate(pauli) if p != Pauli("I")) or (0,)
-        circuit = BackendEstimator(Mock(Backend))._build_pauli_measurement(pauli)
-        self.assertEqual(circuit, measurement)
-        self.assertEqual(circuit.metadata, {"measured_qubit_indices": meas_indices})
+        self.assertEqual(circuit.metadata.get("coeffs"), coeffs)
 
 
 # TODO
