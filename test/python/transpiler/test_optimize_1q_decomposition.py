@@ -317,7 +317,7 @@ class TestOptimize1qGatesDecomposition(QiskitTestCase):
     def test_identity_u1x(self):
         """Test lone identity gates in u1 rx basis are removed."""
         circuit = QuantumCircuit(2)
-        circuit.u1(0, 0)
+        circuit.append(U1Gate(0), [0])
         circuit.rx(0, 1)
         basis = ["cx", "u1", "rx"]
         passmanager = PassManager()
