@@ -90,7 +90,7 @@ unmajority(adder_subcircuit, cin[0], b[0], a[0])
 qc.x(a[0])  # Set input a = 0...0001
 qc.x(b)  # Set input b = 1...1111
 # Apply the adder
-qc += adder_subcircuit
+qc &= adder_subcircuit
 # Measure the output register in the computational basis
 for j in range(n):
     qc.measure(b[j], ans[j])

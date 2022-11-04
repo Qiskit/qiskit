@@ -1,0 +1,7 @@
+---
+fixes:
+  - |
+    The class :class:`.TwoQubitWeylDecomposition` is now compatible with the
+    ``pickle`` protocol.  Previously, it would fail to deserialize and would
+    raise a ``TypeError``.
+    See `#7312 <https://github.com/Qiskit/qiskit-terra/issues/7312>`__.

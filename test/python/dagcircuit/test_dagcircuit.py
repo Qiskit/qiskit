@@ -1428,26 +1428,6 @@ class TestDagEquivalence(QiskitTestCase):
 
         self.assertNotEqual(self.dag1, dag2)
 
-    def test_dag_from_networkx(self):
-        """Test DAG from networkx creates an expected DAGCircuit object."""
-        from copy import deepcopy
-        from collections import OrderedDict
-
-        with self.assertWarns(DeprecationWarning):
-            nx_graph = self.dag1.to_networkx()
-        with self.assertWarns(DeprecationWarning):
-            from_nx_dag = DAGCircuit.from_networkx(nx_graph)
-
-        # to_/from_networkx does not preserve Registers or bit indexing,
-        # so remove them from reference DAG.
-        dag = deepcopy(self.dag1)
-        dag.qregs = OrderedDict()
-        dag.cregs = OrderedDict()
-        dag.qubits = from_nx_dag.qubits
-        dag.clbits = from_nx_dag.clbits
-
-        self.assertEqual(dag, from_nx_dag)
-
     def test_node_params_equal_unequal(self):
         """Test node params are equal or unequal."""
         qc1 = QuantumCircuit(1)
