@@ -349,7 +349,16 @@ class FakeBackendV2(BackendV2):
         if pulse_job:  # pulse job
             raise QiskitError("Pulse simulation is currently not supported for V2 fake backends.")
         # circuit job
-        if not _optionals.HAS_AER:
+
+        if _optionals.HAS_AER:
+            from pkg_resources import parse_version
+            from qiskit_aer import version as aer_version
+
+            if parse_version(aer_version.get_version_info()) < parse_version("0.11.0"):
+                warnings.warn(
+                    "Aer is < 0.11.0 fallback to using BasicAer and no noise", RuntimeWarning
+                )
+        elif not _optionals.HAS_AER:
             warnings.warn("Aer not found using BasicAer and no noise", RuntimeWarning)
         if self.sim is None:
             self._setup_sim()
