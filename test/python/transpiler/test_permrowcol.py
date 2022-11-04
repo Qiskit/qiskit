@@ -245,7 +245,7 @@ class TestPermRowCol(QiskitTestCase):
         coupling = CouplingMap()
         permrowcol = PermRowCol(coupling)
 
-        instance = permrowcol.return_columns([-1, -1, -1])
+        instance = permrowcol._return_columns([-1, -1, -1])
 
         self.assertIsInstance(instance, list)
 
@@ -254,17 +254,17 @@ class TestPermRowCol(QiskitTestCase):
         coupling = CouplingMap()
         permrowcol = PermRowCol(coupling)
 
-        instance = permrowcol.return_columns([-1, -1, -1])
+        instance = permrowcol._return_columns([-1, -1, -1])
 
         self.assertCountEqual(instance, [0, 1, 2])
 
-        instance = permrowcol.return_columns([-2, -1, 0, 1, 2, -1])
+        instance = permrowcol._return_columns([-2, -1, 0, 1, 2, -1])
         self.assertCountEqual(instance, [1, 5])
 
-        instance = permrowcol.return_columns([])
+        instance = permrowcol._return_columns([])
         self.assertCountEqual(instance, [])
 
-        instance = permrowcol.return_columns([1, 2, 3, 4, 5, 6])
+        instance = permrowcol._return_columns([1, 2, 3, 4, 5, 6])
         self.assertCountEqual(instance, [])
 
     def test_get_nodes_returns_list(self):
@@ -275,7 +275,7 @@ class TestPermRowCol(QiskitTestCase):
         coupling.add_physical_qubit(2)
         permrowcol = PermRowCol(coupling)
 
-        instance = permrowcol.get_nodes(np.array([[1, 0, 1], [0, 1, 1], [0, 0, 1]]), 0)
+        instance = permrowcol._get_nodes(np.array([[1, 0, 1], [0, 1, 1], [0, 0, 1]]), 0)
         self.assertIsInstance(instance, list)
 
     def test_get_nodes_returns_correct_list(self):
@@ -286,23 +286,23 @@ class TestPermRowCol(QiskitTestCase):
         coupling.add_physical_qubit(2)
         permrowcol = PermRowCol(coupling)
 
-        instance = permrowcol.get_nodes(np.array([[1, 0, 1], [0, 1, 1], [0, 0, 1]]), 2)
+        instance = permrowcol._get_nodes(np.array([[1, 0, 1], [0, 1, 1], [0, 0, 1]]), 2)
         self.assertCountEqual(instance, [0, 1, 2])
 
-        instance = permrowcol.get_nodes(np.array([[1, 0, 1], [0, 1, 1], [0, 0, 1]]), 1)
+        instance = permrowcol._get_nodes(np.array([[1, 0, 1], [0, 1, 1], [0, 0, 1]]), 1)
         self.assertCountEqual(instance, [1])
 
-        instance = permrowcol.get_nodes(np.array([[1, 0, 1], [0, 1, 1], [0, 0, 1]]), 0)
+        instance = permrowcol._get_nodes(np.array([[1, 0, 1], [0, 1, 1], [0, 0, 1]]), 0)
         self.assertCountEqual(instance, [0])
 
         coupling.graph.remove_node(1)
 
-        instance = permrowcol.get_nodes(np.array([[1, 0, 1], [0, 1, 1], [0, 0, 1]]), 2)
+        instance = permrowcol._get_nodes(np.array([[1, 0, 1], [0, 1, 1], [0, 0, 1]]), 2)
         self.assertCountEqual(instance, [0, 2])
 
         coupling.graph.remove_node(0)
 
-        instance = permrowcol.get_nodes(np.array([[1, 0, 1], [0, 1, 1], [0, 0, 1]]), 0)
+        instance = permrowcol._get_nodes(np.array([[1, 0, 1], [0, 1, 1], [0, 0, 1]]), 0)
         self.assertCountEqual(instance, [])
 
     def test_reduce_graph_reduces_graph(self):
@@ -310,7 +310,7 @@ class TestPermRowCol(QiskitTestCase):
         coupling = CouplingMap([[0, 1], [0, 2], [1, 2], [0, 3]])
         permrowcol = PermRowCol(coupling)
 
-        permrowcol.reduce_graph(0)
+        permrowcol._reduce_graph(0)
 
         self.assertEqual(len(permrowcol._graph.node_indexes()), 3)
 
@@ -319,16 +319,16 @@ class TestPermRowCol(QiskitTestCase):
         coupling = CouplingMap([[0, 1], [0, 2], [1, 2], [0, 3]])
         permrowcol = PermRowCol(coupling)
 
-        permrowcol.reduce_graph(0)
+        permrowcol._reduce_graph(0)
         self.assertCountEqual(permrowcol._graph.node_indexes(), [1, 2, 3])
 
-        permrowcol.reduce_graph(2)
+        permrowcol._reduce_graph(2)
         self.assertCountEqual(permrowcol._graph.node_indexes(), [1, 3])
 
-        permrowcol.reduce_graph(1)
+        permrowcol._reduce_graph(1)
         self.assertCountEqual(permrowcol._graph.node_indexes(), [3])
 
-        permrowcol.reduce_graph(3)
+        permrowcol._reduce_graph(3)
         self.assertCountEqual(permrowcol._graph.node_indexes(), [])
 
     def test_reduce_graph_does_not_change_graph_with_wrong_index(self):
@@ -337,7 +337,7 @@ class TestPermRowCol(QiskitTestCase):
         coupling = CouplingMap([[0, 1], [0, 2], [1, 2], [0, 3]])
         permrowcol = PermRowCol(coupling)
 
-        permrowcol.reduce_graph(4)
+        permrowcol._reduce_graph(4)
         self.assertCountEqual(permrowcol._graph.node_indexes(), [0, 1, 2, 3])
 
     def test_reduce_graph_removes_edges_from_graph(self):
@@ -345,13 +345,13 @@ class TestPermRowCol(QiskitTestCase):
         coupling = CouplingMap([[0, 1], [0, 2], [1, 2], [0, 3]])
         permrowcol = PermRowCol(coupling)
 
-        permrowcol.reduce_graph(3)
+        permrowcol._reduce_graph(3)
         self.assertCountEqual(permrowcol._graph.edge_list(), [(0, 1), (0, 2), (1, 2)])
 
-        permrowcol.reduce_graph(0)
+        permrowcol._reduce_graph(0)
         self.assertCountEqual(permrowcol._graph.edge_list(), [(1, 2)])
 
-        permrowcol.reduce_graph(2)
+        permrowcol._reduce_graph(2)
         self.assertCountEqual(permrowcol._graph.edge_list(), [])
 
 
