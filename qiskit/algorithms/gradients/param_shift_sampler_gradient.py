@@ -51,8 +51,16 @@ class ParamShiftSamplerGradient(BaseSamplerGradient):
         parameters: Sequence[Sequence[Parameter] | None],
         **options,
     ) -> SamplerGradientResult:
-        """Compute the sampler gradients on the given circuits."""
-        jobs, result_indices_all, coeffs_all, metadata_ = [], [], [], []
+        """Compute the estimator gradients on the given circuits."""
+        (
+            circuits_all,
+            param_values_all,
+            n_all,
+            result_indices_all,
+            coeffs_all,
+            metadata_,
+        ) = ([], [], [], [], [], [])
+
         for circuit, parameter_values_, parameters_ in zip(circuits, parameter_values, parameters):
             # a set of parameters to be differentiated
             if parameters_ is None:
@@ -83,27 +91,35 @@ class ParamShiftSamplerGradient(BaseSamplerGradient):
             )
             n = 2 * len(gradient_parameter_values_plus)
 
-            job = self._sampler.run(
-                [gradient_circuit.gradient_circuit] * n,
-                gradient_parameter_values_plus + gradient_parameter_values_minus,
-                **options,
+            n_all.append(n)
+            circuits_all.extend([gradient_circuit.gradient_circuit] * n)
+            param_values_all.extend(
+                gradient_parameter_values_plus + gradient_parameter_values_minus
             )
-            jobs.append(job)
             result_indices_all.append(result_indices)
             coeffs_all.append(coeffs)
 
+        job = self._sampler.run(
+            circuits_all,
+            param_values_all,
+            **options,
+        )
         # combine the results
         try:
-            results = [job.result() for job in jobs]
+            result = job.result()
         except Exception as exc:
             raise AlgorithmError("Sampler job failed.") from exc
 
         gradients = []
-        for i, result in enumerate(results):
-            n = len(result.quasi_dists) // 2
+        partial_sum_n = 0
+        for i, n in enumerate(n_all):
+            res = result.quasi_dists[partial_sum_n : partial_sum_n + n]
             grad_dists = np.zeros((len(metadata_[i]["parameters"]), 2 ** circuits[i].num_qubits))
             for idx, coeff, dist_plus, dist_minus in zip(
-                result_indices_all[i], coeffs_all[i], result.quasi_dists[:n], result.quasi_dists[n:]
+                result_indices_all[i],
+                coeffs_all[i],
+                res[: n // 2],
+                res[n // 2 :],
             ):
                 grad_dists[idx][list(dist_plus.keys())] += (
                     np.array(list(dist_plus.values())) * coeff
@@ -116,6 +132,7 @@ class ParamShiftSamplerGradient(BaseSamplerGradient):
             for grad_dist in grad_dists:
                 gradient_.append(dict(enumerate(grad_dist)))
             gradients.append(gradient_)
+            partial_sum_n += n
 
         opt = self._get_local_options(options)
         return SamplerGradientResult(gradients=gradients, metadata=metadata_, options=opt)

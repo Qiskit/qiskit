@@ -55,7 +55,16 @@ class ParamShiftEstimatorGradient(BaseEstimatorGradient):
         **options,
     ) -> EstimatorGradientResult:
         """Compute the estimator gradients on the given circuits."""
-        jobs, result_indices_all, coeffs_all, metadata_ = [], [], [], []
+        (
+            circuits_all,
+            observables_all,
+            param_values_all,
+            n_all,
+            result_indices_all,
+            coeffs_all,
+            metadata_,
+        ) = ([], [], [], [], [], [], [])
+
         for circuit, observable, parameter_values_, parameters_ in zip(
             circuits, observables, parameter_values, parameters
         ):
@@ -87,30 +96,39 @@ class ParamShiftEstimatorGradient(BaseEstimatorGradient):
                 param_set=param_set,
             )
             n = 2 * len(gradient_parameter_values_plus)
-            job = self._estimator.run(
-                [gradient_circuit.gradient_circuit] * n,
-                [observable] * n,
-                gradient_parameter_values_plus + gradient_parameter_values_minus,
-                **options,
+
+            n_all.append(n)
+            circuits_all.extend([gradient_circuit.gradient_circuit] * n)
+            observables_all.extend([observable] * n)
+            param_values_all.extend(
+                gradient_parameter_values_plus + gradient_parameter_values_minus
             )
-            jobs.append(job)
             result_indices_all.append(result_indices)
             coeffs_all.append(coeffs)
 
+        job = self._estimator.run(
+            circuits_all,
+            observables_all,
+            param_values_all,
+            **options,
+        )
         # combine the results
         try:
-            results = [job.result() for job in jobs]
+            result = job.result()
         except Exception as exc:
             raise AlgorithmError("Estimator job failed.") from exc
 
         gradients = []
-        for i, result in enumerate(results):
-            n = len(result.values) // 2  # is always a multiple of 2
-            gradient_ = result.values[:n] - result.values[n:]
+        # for i, result in enumerate(results):
+        partial_sum_n = 0
+        for i, n in enumerate(n_all):
+            res = result.values[partial_sum_n : partial_sum_n + n]
+            gradient_ = res[: n // 2] - res[n // 2 :]
             values = np.zeros(len(metadata_[i]["parameters"]))
             for grad_, idx, coeff in zip(gradient_, result_indices_all[i], coeffs_all[i]):
                 values[idx] += coeff * grad_
             gradients.append(values)
+            partial_sum_n += n
 
         opt = self._get_local_options(options)
         return EstimatorGradientResult(gradients=gradients, metadata=metadata_, options=opt)
