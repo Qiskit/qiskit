@@ -188,6 +188,63 @@ class TestBarrierBeforeFinalMeasurements(QiskitTestCase):
 
         self.assertEqual(result, circuit_to_dag(expected))
 
+    def test_simple_if_else(self):
+        """Test that the pass is not confused by if-else."""
+        pass_ = BarrierBeforeFinalMeasurements()
+
+        base_test = QuantumCircuit(1, 1)
+        base_test.z(0)
+        base_test.measure(0, 0)
+
+        test = QuantumCircuit(1, 1)
+        test.if_else(
+            (test.clbits[0], True), base_test.copy(), base_test.copy(), test.qubits, test.clbits
+        )
+        test.measure(0, 0)
+
+        expected = QuantumCircuit(1, 1)
+        expected.if_else(
+            (expected.clbits[0], True),
+            base_test.copy(),
+            base_test.copy(),
+            expected.qubits,
+            expected.clbits,
+        )
+        expected.barrier(0)
+        expected.measure(0, 0)
+
+        self.assertEqual(pass_(test), expected)
+
+    def test_nested_control_flow(self):
+        """Test that the pass does not add barrier into nested control flow."""
+        pass_ = BarrierBeforeFinalMeasurements()
+
+        base_test = QuantumCircuit(2, 1)
+        base_test.cz(0, 1)
+        base_test.measure(0, 0)
+
+        body_test = QuantumCircuit(2, 1)
+        body_test.for_loop((0,), None, base_test.copy(), body_test.qubits, [])
+        body_test.measure(0, 0)
+
+        body_expected = QuantumCircuit(2, 1)
+        body_expected.for_loop((0,), None, base_test.copy(), body_expected.qubits, [])
+        body_expected.measure(0, 0)
+
+        test = QuantumCircuit(2, 1)
+        test.while_loop((test.clbits[0], True), body_test, test.qubits, test.clbits)
+        test.measure(0, 0)
+
+        expected = QuantumCircuit(2, 1)
+        expected.while_loop(
+            (expected.clbits[0], True), body_expected, expected.qubits, expected.clbits
+        )
+        expected.barrier([0, 1])
+        expected.measure(0, 0)
+
+        self.assertEqual(pass_(test), expected)
+
+
 
 class TestBarrierBeforeMeasurementsWhenABarrierIsAlreadyThere(QiskitTestCase):
     """Tests the BarrierBeforeFinalMeasurements pass when there is a barrier already"""
