@@ -31,6 +31,7 @@ from qiskit.transpiler import PassManager, Layout
 
 from .base import BaseEstimator, EstimatorResult
 from .primitive_job import PrimitiveJob
+
 # from .utils import _circuit_key, _observable_key  # TODO: caching
 
 

@@ -13,7 +13,7 @@
 """Unit tests for Estimator."""
 
 from unittest import TestCase
-from unittest.mock import Mock, patch
+from unittest.mock import MagicMock, Mock, patch
 
 from ddt import ddt, data, unpack
 import numpy as np
@@ -24,7 +24,7 @@ from qiskit.primitives.backend_estimator_dev import (
     BackendEstimator,
     NaiveDecomposer,
 )
-from qiskit.providers import Backend
+from qiskit.providers import Backend, Options
 from qiskit.quantum_info.operators import Pauli, SparsePauliOp
 from qiskit.quantum_info.operators.symplectic.pauli_list import PauliList
 from qiskit.transpiler import Layout, PassManager
@@ -134,13 +134,16 @@ class TestTranspilation(TestCase):
         # Test patching terra's transpile call
         backend = Mock(Backend)
         estimator = BackendEstimator(backend)
+        estimator._transpile_options = MagicMock(Options)
         with patch("qiskit.primitives.backend_estimator_dev.transpile", spec=True) as mock:
             mock.return_value = transpiled_circuit
             output_circuit = estimator._transpile(input_circuit)
         mock.assert_called_once()
-        call_circuit, call_backend = mock.call_args.args  # TODO: transpile options
+        call_circuit, call_backend = mock.call_args[0]
+        call_kwargs = mock.call_args[1]
         self.assertEqual(call_circuit, measured_circuit)
         self.assertIs(call_backend, backend)
+        self.assertEqual(call_kwargs, estimator._transpile_options.__dict__)
         self.assertEqual(output_circuit, transpiled_circuit)
         self.assertIsInstance(output_circuit, QuantumCircuit)
         inferred_layout = output_circuit.metadata.get("final_layout")
