@@ -23,16 +23,16 @@ def pydigraph_to_pygraph(pydigraph: rx.PyDiGraph) -> rx.PyGraph:
     return pydigraph.to_undirected()
 
 
-def noncutting_vertices(coupling_map: CouplingMap) -> np.ndarray:
-    """Extracts noncutting vertices from a given coupling map. Direction is not taken into account.
+def noncutting_vertices(coupling_map_graph: rx.PyDiGraph) -> np.ndarray:
+    """Extracts noncutting vertices from a given coupling map graph. Direction is not taken into account.
 
     Args:
-        coupling_map (CouplingMap): topology
+        coupling_map (rx.PyDiGraph): graph of topology
 
     Returns:
         np.ndarray: array of non-cutting node indices
     """
-    pygraph = pydigraph_to_pygraph(coupling_map.graph)
+    pygraph = pydigraph_to_pygraph(coupling_map_graph)
     cutting_vertices = rx.articulation_points(pygraph)
     vertices = set(pygraph.node_indices())
     noncutting = np.array(list(vertices - cutting_vertices))
