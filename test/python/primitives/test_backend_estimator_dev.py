@@ -12,6 +12,8 @@
 
 """Unit tests for Estimator."""
 
+from __future__ import annotations
+
 from collections.abc import Iterator, Sequence
 from unittest import TestCase
 from unittest.mock import MagicMock, Mock, patch
