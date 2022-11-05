@@ -184,7 +184,7 @@ def circuit_composition_examples() -> Iterator[
 def build_composition_data(
     target_qubits: int, layout_intlist: Sequence[int], measured_qubits: Sequence[int]
 ) -> tuple[QuantumCircuit, QuantumCircuit, QuantumCircuit]:
-    """Generator of base and measurement circuits, and respective composition.
+    """Build base and measurement circuits, and respective composition.
 
     Args:
         - target_qubits: the number of qubits to target during transpilation
