@@ -38,6 +38,12 @@ class QiskitLoader(Loader):
     def module_repr(self, module):
         return repr(module)
 
+    def create_module(self, spec):
+        return self.load_module(spec.name)
+
+    def exec_module(self, module):
+        pass
+
     def load_module(self, fullname):
         old_name = fullname
         fullname = _new_namespace(fullname, self.old_namespace, self.new_package)
