@@ -178,7 +178,7 @@ class TwoLocal(NLocal):
         Args:
             num_qubits: The number of qubits of the two-local circuit.
             rotation_blocks: The gates used in the rotation layer. Can be specified via the name of
-                a gate (e.g. ``'ry'``) or the gate type itself (e.g. :class:`~RYGate`).
+                a gate (e.g. ``'ry'``) or the gate type itself (e.g. :class:`.RYGate`).
                 If only one gate is provided, the gate same gate is applied to each qubit.
                 If a list of gates is provided, all gates are applied to each qubit in the provided
                 order.
@@ -206,7 +206,7 @@ class TwoLocal(NLocal):
                 be this specified prefix plus its index.
             insert_barriers: If ``True``, barriers are inserted in between each layer. If ``False``,
                 no barriers are inserted. Defaults to ``False``.
-            initial_state: A :class:~`QuantumCircuit` object to prepend to the circuit.
+            initial_state: A :class:`.QuantumCircuit` object to prepend to the circuit.
 
         """
         super().__init__(
@@ -224,7 +224,7 @@ class TwoLocal(NLocal):
         )
 
     def _convert_to_block(self, layer: Union[str, type, Gate, QuantumCircuit]) -> QuantumCircuit:
-        """For a layer provided as str (e.g. ``'ry'``) or type (e.g. :class:`~RYGate`) this function
+        """For a layer provided as str (e.g. ``'ry'``) or type (e.g. :class:`.RYGate`) this function
          returns the
          according layer type along with the number of parameters (e.g. ``(RYGate, 1)``).
 
