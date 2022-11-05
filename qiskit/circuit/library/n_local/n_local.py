@@ -102,7 +102,7 @@ class NLocal(BlueprintCircuit):
             skip_final_rotation_layer: Whether a final rotation layer is added to the circuit.
             skip_unentangled_qubits: If ``True``, the rotation gates act only on qubits that
                 are entangled. If ``False``, the rotation gates act on all qubits.
-            initial_state: A :class:``.QuantumCircuit`` object which can be used to describe an initial
+            initial_state: A :class:`.QuantumCircuit` object which can be used to describe an initial
                 state prepended to the NLocal circuit.
             name: The name of the circuit.
 
