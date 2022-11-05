@@ -14,7 +14,6 @@
 
 from typing import Union, Optional, List, Any, Tuple, Sequence, Set, Callable
 from itertools import combinations
-import warnings
 
 import numpy
 from qiskit.circuit.quantumcircuit import QuantumCircuit
@@ -671,29 +670,6 @@ class NLocal(BlueprintCircuit):
                 does not match the number of qubits.
         """
         self._initial_state = initial_state
-
-        # If there is an initial state object, check that the number of qubits is compatible
-        # construct the circuit immediately. If the InitialState could modify the number of qubits
-        # we could also do this later at circuit construction.
-        if not isinstance(self._initial_state, QuantumCircuit):
-            warnings.warn(
-                "The initial_state argument of the NLocal class "
-                "should be a QuantumCircuit. Passing any other type is "
-                "deprecated as of Qiskit Terra 0.18.0, and "
-                "will be removed no earlier than 3 months after that "
-                "release date.",
-                DeprecationWarning,
-                stacklevel=2,
-            )
-            initial_state_circuit = initial_state.construct_circuit(mode="circuit")
-
-            # the initial state dictates the number of qubits since we do not have information
-            # about on which qubits the initial state acts
-            if self._num_qubits is not None and initial_state_circuit.num_qubits != self.num_qubits:
-                raise ValueError(
-                    "Mismatching number of qubits in initial state and n-local circuit."
-                )
-
         self._invalidate()
 
     @property
