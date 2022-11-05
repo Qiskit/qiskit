@@ -386,7 +386,7 @@ class QuantumCircuit:
         """Return calibration dictionary.
 
         The custom pulse definition of a given gate is of the form
-            {'gate_name': {(qubits, params): schedule}}
+        ``{'gate_name': {(qubits, params): schedule}}``
         """
         return dict(self._calibrations)
 
@@ -396,7 +396,7 @@ class QuantumCircuit:
 
         Args:
             calibrations (dict): A dictionary of input in the format
-                {'gate_name': {(qubits, gate_params): schedule}}
+               ``{'gate_name': {(qubits, gate_params): schedule}}``
         """
         self._calibrations = defaultdict(dict, calibrations)
 
