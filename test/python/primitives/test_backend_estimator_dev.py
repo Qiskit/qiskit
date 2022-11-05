@@ -12,6 +12,7 @@
 
 """Unit tests for Estimator."""
 
+from collections.abc import Iterator, Sequence
 from unittest import TestCase
 from unittest.mock import MagicMock, Mock, patch
 
@@ -25,7 +26,7 @@ from qiskit.primitives.backend_estimator_dev import (
     NaiveDecomposer,
 )
 from qiskit.providers import Backend, Options
-from qiskit.quantum_info.operators import Pauli, SparsePauliOp
+from qiskit.quantum_info.operators import SparsePauliOp
 from qiskit.quantum_info.operators.symplectic.pauli_list import PauliList
 from qiskit.transpiler import Layout, PassManager
 from qiskit.transpiler.passes import ApplyLayout, SetLayout
@@ -34,8 +35,13 @@ from qiskit.transpiler.passes import ApplyLayout, SetLayout
 ################################################################################
 ## AUXILIARY
 ################################################################################
-def measurement_circuit_examples():
-    """Generator of commuting Paulis and corresponding measurement circuits."""
+def measurement_circuit_examples() -> Iterator[tuple[list[str], QuantumCircuit]]:
+    """Generator of commuting Paulis and corresponding measurement circuits.
+
+    Yields:
+        - List of commuting Pauli strings
+        - Quantum circuit to measure said Paulis
+    """
     I = QuantumCircuit(1, 1)  # pylint: disable=invalid-name
     I.measure(0, 0)
     yield ["I", "Z"], I
@@ -100,6 +106,140 @@ def measurement_circuit_examples():
     IXII.h(2)
     IXII.measure(2, 0)
     yield ["IXII", "IIII"], IXII
+
+
+def circuit_composition_examples() -> Iterator[
+    tuple[QuantumCircuit, QuantumCircuit, QuantumCircuit]
+]:
+    """Generator of base and measurement circuits, and respective composition.
+
+    Yields:
+        - Transpiled base circuit: with a `final_layout` entry in its metadata
+        - Measurement circuit: before transpilation (i.e. no layout applied)
+        - Transpiled measurement circuit: with `final_layout` applied
+    """
+    target_qubits = 2
+    layout_intlist = (0,)
+    measured_qubits = (0,)
+    yield build_composition_data(target_qubits, layout_intlist, measured_qubits)
+
+    target_qubits = 2
+    layout_intlist = (1,)
+    measured_qubits = (0,)
+    yield build_composition_data(target_qubits, layout_intlist, measured_qubits)
+
+    target_qubits = 2
+    layout_intlist = (1, 0)
+    measured_qubits = (1,)
+    yield build_composition_data(target_qubits, layout_intlist, measured_qubits)
+
+    target_qubits = 2
+    layout_intlist = (1, 0)
+    measured_qubits = (0, 1)
+    yield build_composition_data(target_qubits, layout_intlist, measured_qubits)
+
+    target_qubits = 3
+    layout_intlist = (2,)
+    measured_qubits = (0,)
+    yield build_composition_data(target_qubits, layout_intlist, measured_qubits)
+
+    target_qubits = 3
+    layout_intlist = (2, 0)
+    measured_qubits = (0, 1)
+    yield build_composition_data(target_qubits, layout_intlist, measured_qubits)
+
+    target_qubits = 3
+    layout_intlist = (1, 2)
+    measured_qubits = (1,)
+    yield build_composition_data(target_qubits, layout_intlist, measured_qubits)
+
+    target_qubits = 3
+    layout_intlist = (1, 0, 2)
+    measured_qubits = (1, 2)
+    yield build_composition_data(target_qubits, layout_intlist, measured_qubits)
+
+    target_qubits = 4
+    layout_intlist = (0, 1, 2)
+    measured_qubits = (0, 1)
+    yield build_composition_data(target_qubits, layout_intlist, measured_qubits)
+
+    target_qubits = 4
+    layout_intlist = (1, 0, 3)
+    measured_qubits = (1, 2)
+    yield build_composition_data(target_qubits, layout_intlist, measured_qubits)
+
+    target_qubits = 4
+    layout_intlist = (2, 1, 3, 0)
+    measured_qubits = (0, 1, 2)
+    yield build_composition_data(target_qubits, layout_intlist, measured_qubits)
+
+    target_qubits = 4
+    layout_intlist = (0, 2, 1, 3)
+    measured_qubits = (0, 1, 2, 3)
+    yield build_composition_data(target_qubits, layout_intlist, measured_qubits)
+
+
+def build_composition_data(
+    target_qubits: int, layout_intlist: Sequence[int], measured_qubits: Sequence[int]
+) -> tuple[QuantumCircuit, QuantumCircuit, QuantumCircuit]:
+    """Generator of base and measurement circuits, and respective composition.
+
+    Args:
+        - target_qubits: the number of qubits to target during transpilation
+        - layout_intlist: indices to map virtual qubits to during transpilaiton
+        - measured_qubits: virtual qubits to measure
+
+    Returns:
+        - Transpiled base circuit: with a `final_layout` entry in its metadata
+        - Measurement circuit: before transpilation (i.e. no layout applied)
+        - Transpiled measurement circuit: with `final_layout` applied
+    """
+    _, transpiled_base = build_base_circuit(target_qubits, layout_intlist)
+    transpiled_base.metadata.update({"extra_base": Mock()})
+    measurement, transpiled_measurement = build_measurement_circuit(
+        target_qubits, layout_intlist, measured_qubits
+    )
+    measurement.metadata.update({"extra_meas": Mock()})
+    return transpiled_base, measurement, transpiled_measurement
+
+
+def build_base_circuit(target_qubits, layout_intlist):
+    """Build example base and transpiled base circuits."""
+    num_qubits = len(layout_intlist)
+    base = QuantumCircuit(num_qubits)
+    base.h(range(num_qubits))  # Dummy single-qubit gates
+    if num_qubits > 1:
+        base.cx(range(-1, num_qubits - 1), range(num_qubits))  # Dummy two-qubit gates
+    transpiled_base = transpile_to_layout(base, target_qubits, layout_intlist)
+    return base, transpiled_base
+
+
+def build_measurement_circuit(target_qubits, layout_intlist, measured_qubits):
+    """Build example measurement and transpiled measurement circuits."""
+    num_qubits = len(layout_intlist)
+    num_measurements = len(measured_qubits)
+    measurement = QuantumCircuit(num_qubits, num_measurements)
+    measurement.h(measured_qubits)  # Dummy gates (i.e. X measurements)
+    measurement.measure(measured_qubits, range(num_measurements))
+    measurement.metadata = {"measured_qubit_indices": measured_qubits}
+    transpiled_measurement = transpile_to_layout(measurement, target_qubits, layout_intlist)
+    return measurement, transpiled_measurement
+
+
+def transpile_to_layout(circuit, target_qubits, layout_intlist):
+    """Transpile circuit to match a given layout intlist."""
+    if circuit.num_qubits != len(layout_intlist):
+        raise ValueError("Circuit incompatible with requested layout.")
+    if circuit.num_qubits > target_qubits:
+        raise ValueError("Circuit incompatible with requested target.")
+    layout_dict = dict.fromkeys(range(target_qubits))
+    layout_dict.update(dict(zip(layout_intlist, circuit.qubits)))
+    applied_layout = Layout(layout_dict)
+    passes = [SetLayout(layout=applied_layout), ApplyLayout()]
+    pass_manager = PassManager(passes=passes)
+    transpiled = pass_manager.run(circuit)
+    transpiled.metadata = {"final_layout": applied_layout}
+    return transpiled
 
 
 ################################################################################
@@ -215,13 +355,34 @@ class TestMeasurement(TestCase):
         self.assertEqual(circuit.metadata.get("coeffs"), coeffs)
 
 
-# TODO
 @ddt
 class TestComposition(TestCase):
     """Test composition logic."""
 
-    def test_compose_single_measurement(self):
+    @data(*circuit_composition_examples())
+    @unpack
+    def test_compose_single_measurement(self, transpiled_base, measurement, transpiled_measurement):
         """Test coposition of single base circuit and measurement pair."""
+        # Preapration
+        expected_composition = transpiled_base.compose(transpiled_measurement)
+        expected_metadata = {**transpiled_base.metadata, **measurement.metadata}
+        expected_metadata.pop("measured_qubit_indices")
+        # Test
+        backend = Mock(Backend)
+        estimator = BackendEstimator(backend)
+        with patch("qiskit.primitives.backend_estimator_dev.transpile", spec=True) as mock:
+            mock.return_value = transpiled_measurement
+            composition = estimator._compose_single_measurement(transpiled_base, measurement)
+        mock.assert_called_once()
+        (call_circuit, call_backend), call_kwargs = mock.call_args
+        self.assertEqual(call_circuit, measurement)
+        self.assertIs(call_backend, backend)
+        transpile_options = {**estimator.transpile_options.__dict__}
+        transpile_options.update({"initial_layout": expected_metadata.get("final_layout")})
+        self.assertEqual(call_kwargs, transpile_options)
+        self.assertIsInstance(composition, QuantumCircuit)
+        self.assertEqual(composition, expected_composition)
+        self.assertEqual(composition.metadata, expected_metadata)
 
 
 # TODO

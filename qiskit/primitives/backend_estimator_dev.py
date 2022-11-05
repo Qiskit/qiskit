@@ -24,6 +24,7 @@ from qiskit.circuit import QuantumCircuit
 from qiskit.compiler import transpile
 from qiskit.opflow import PauliSumOp
 from qiskit.providers import Backend, Options
+from qiskit.providers.job import JobV1 as Job
 from qiskit.quantum_info import Pauli, PauliList
 from qiskit.quantum_info.operators.base_operator import BaseOperator
 from qiskit.result import Counts, Result
@@ -42,17 +43,16 @@ class BackendEstimator(BaseEstimator):
     """Evaluates expectation value using Pauli rotation gates.
 
     The :class:`~.BackendEstimator` class is a generic implementation of the
-    :class:`~.BaseEstimator` interface that is used to wrap a :class:`~.BackendV2`
-    (or :class:`~.BackendV1`) object in the :class:`~.BaseEstimator` API. It
-    facilitates using backends that do not provide a native
-    :class:`~.BaseEstimator` implementation in places that work with
-    :class:`~.BaseEstimator`, such as algorithms in :mod:`qiskit.algorithms`
-    including :class:`~.qiskit.algorithms.minimum_eigensolvers.VQE`. However,
-    if you're using a provider that has a native implementation of
+    :class:`~.BaseEstimator` interface that is used to wrap a :class:`~.Backend`
+    object in the :class:`~.BaseEstimator` API. It facilitates using backends
+    that do not provide a native :class:`~.BaseEstimator` implementation in
+    places that work with :class:`~.BaseEstimator`, such as algorithms in
+    :mod:`qiskit.algorithms` including :class:`~.qiskit.algorithms.minimum_eigensolvers.VQE`.
+    However, if you're using a provider that has a native implementation of
     :class:`~.BaseEstimator`, it is a better choice to leverage that native
-    implementation as it will likely include additional optimizations and be
-    a more efficient implementation. The generic nature of this class
-    precludes doing any provider- or backend-specific optimizations.
+    implementation as it will likely include additional optimizations and be a
+    more efficient implementation. The generic nature of this class precludes
+    doing any provider- or backend-specific optimizations.
     """
 
     # pylint: disable=missing-raises-doc
@@ -181,7 +181,7 @@ class BackendEstimator(BaseEstimator):
         #     circ.metadata = {}
 
         # Raw results: counts
-        job = self.backend.run(job_circuits, **run_options)
+        job: Job = self.backend.run(job_circuits, **run_options)
         raw_results: Result = job.result()
         counts: list[Counts] | Counts = raw_results.get_counts()
 
@@ -454,25 +454,33 @@ class BackendEstimator(BaseEstimator):
     ################################################################################
     def _compose_measurements(
         self,
-        base_circuit: QuantumCircuit,
-        measurement_circuits: Sequence[QuantumCircuit] | QuantumCircuit,
+        base: QuantumCircuit,
+        measurements: Sequence[QuantumCircuit] | QuantumCircuit,
     ) -> tuple[QuantumCircuit, ...]:
         """Compose measurement circuits with base circuit considering final layout."""
-        if isinstance(measurement_circuits, QuantumCircuit):
-            measurement_circuits = (measurement_circuits,)
-        return tuple(
-            self._compose_single_measurement(base_circuit, meas) for meas in measurement_circuits
-        )
+        if isinstance(measurements, QuantumCircuit):
+            measurements = (measurements,)
+        return tuple(self._compose_single_measurement(base, meas) for meas in measurements)
 
     def _compose_single_measurement(
-        self, base_circuit: QuantumCircuit, measurement_circuit: QuantumCircuit
+        self, base: QuantumCircuit, measurement: QuantumCircuit
     ) -> QuantumCircuit:
-        """Compose single measurement circuit with base circuit considering final layout."""
+        """Compose single measurement circuit with base circuit considering final layout.
+
+        Args:
+            base: a quantum circuit with final_layout entry in its metadata
+            measurement: a quantum circuit with
+
+        Returns:
+            A compsite quantum circuit
+        """
+        layout = base.metadata.get("final_layout")
         transpile_options = {**self.transpile_options.__dict__}  # TODO: avoid multiple copies
-        transpile_options.update({"initial_layout": base_circuit.metadata.get("final_layout")})
-        measurement_circuit = transpile(measurement_circuit, self.backend, **transpile_options)
-        circuit = base_circuit.compose(measurement_circuit)
-        circuit.metadata = {**base_circuit.metadata, **measurement_circuit.metadata}
+        transpile_options.update({"initial_layout": layout})
+        transpiled_measurement = transpile(measurement, self.backend, **transpile_options)
+        circuit = base.compose(transpiled_measurement)
+        circuit.metadata = {**base.metadata, **measurement.metadata}
+        circuit.metadata.pop("measured_qubit_indices")  # TODO: `measured_qubits`
         return circuit
 
     ################################################################################
@@ -508,7 +516,7 @@ class ObservableDecomposer(ABC):
         """Decomposes a given observable into singly measurable components.
 
         Note that component decomposition is not unique, for instance, commuting components
-        could be grouped together in different ways (i.e. partinioning the set).
+        could be grouped together in different ways (i.e. partitioning the set).
 
         Args:
             observable: the observable to decompose into its core components.
