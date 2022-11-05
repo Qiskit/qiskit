@@ -10,7 +10,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""Estimator class for expectation value calculations."""
+"""Estimator class for expectation value calculations bassed on Backend."""
 
 from __future__ import annotations
 
