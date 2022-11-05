@@ -886,11 +886,7 @@ class NLocal(BlueprintCircuit):
 
         # use the initial state as starting circuit, if it is set
         if self.initial_state:
-            if isinstance(self.initial_state, QuantumCircuit):
-                initial = self.initial_state.copy()
-            else:
-                initial = self.initial_state.construct_circuit("circuit", register=self.qregs[0])
-            circuit.compose(initial, inplace=True)
+            circuit.compose(self.initial_state.copy(), inplace=True)
 
         param_iter = iter(self.ordered_parameters)
 
