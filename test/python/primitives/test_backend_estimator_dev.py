@@ -10,7 +10,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""Unit tests for Estimator."""
+"""Tests for BackendEstimator."""
 
 from __future__ import annotations
 
@@ -245,7 +245,7 @@ def transpile_to_layout(circuit, target_qubits, layout_intlist):
 
 
 ################################################################################
-## TESTS
+## UNIT TESTS
 ################################################################################
 @ddt
 class TestTranspilation(TestCase):
@@ -397,3 +397,8 @@ class TestCalculations(TestCase):
 @ddt
 class TestObservableDecomposer(TestCase):
     """Test ObservableDecomposer strategies."""
+
+
+################################################################################
+## INTEGRATION TESTS
+################################################################################
