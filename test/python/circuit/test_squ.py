@@ -33,7 +33,7 @@ squs = [
     np.array([[0.0, 1.0], [1.0, 0.0]]),
     1 / np.sqrt(2) * np.array([[1.0, 1.0], [-1.0, 1.0]]),
     np.array([[np.exp(1j * 5.0 / 2), 0], [0, np.exp(-1j * 5.0 / 2)]]),
-    random_unitary(2).data,
+    random_unitary(2, seed=42).data,
 ]
 
 up_to_diagonal_list = [True, False]
