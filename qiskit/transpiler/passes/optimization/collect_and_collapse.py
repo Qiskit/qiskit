@@ -20,7 +20,7 @@ from qiskit.dagcircuit.collect_blocks import BlockCollector, BlockSplitter, Bloc
 from qiskit.transpiler.passes.utils import control_flow
 
 
-class CollapseChains(TransformationPass):
+class CollectAndCollapse(TransformationPass):
     """A general transpiler pass to collect and to consolidate blocks of nodes
     in a circuit.
 

@@ -15,8 +15,8 @@
 
 from functools import partial
 
-from qiskit.transpiler.passes.optimization.collapse_chains import (
-    CollapseChains,
+from qiskit.transpiler.passes.optimization.collect_and_collapse import (
+    CollectAndCollapse,
     collect_using_filter_function,
     collapse_to_operation,
 )
@@ -24,7 +24,7 @@ from qiskit.transpiler.passes.optimization.collapse_chains import (
 from qiskit.quantum_info.operators import Clifford
 
 
-class CollectCliffords(CollapseChains):
+class CollectCliffords(CollectAndCollapse):
     """Collects blocks of Clifford gates and replaces them by a :class:`~qiskit.quantum_info.Clifford`
     object.
     """

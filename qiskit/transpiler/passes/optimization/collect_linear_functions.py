@@ -16,14 +16,14 @@
 from functools import partial
 
 from qiskit.circuit.library.generalized_gates import LinearFunction
-from qiskit.transpiler.passes.optimization.collapse_chains import (
-    CollapseChains,
+from qiskit.transpiler.passes.optimization.collect_and_collapse import (
+    CollectAndCollapse,
     collect_using_filter_function,
     collapse_to_operation,
 )
 
 
-class CollectLinearFunctions(CollapseChains):
+class CollectLinearFunctions(CollectAndCollapse):
     """Collect blocks of linear gates (:class:`.CXGate` and :class:`.SwapGate` gates)
     and replaces them by linear functions (:class:`.LinearFunction`)."""
 

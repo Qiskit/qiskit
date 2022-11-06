@@ -1,7 +1,7 @@
 ---
 features:
   - |
-    Added a new base transpiler pass, :class:`~CollapseChains`, to collect and to consolidate
+    Added a new base transpiler pass, :class:`~CollectAndCollapse`, to collect and to consolidate
     blocks of nodes in a circuit. To be completely general, this pass depends on two functions:
     the collection function and the collapsing function. The collection function ``collect_function``
     takes a DAG and returns a list of blocks. The collapsing function ``collapse_function``
@@ -58,13 +58,13 @@ features:
   - |
     Added a new :class:`~CollectCliffords` transpiler pass that collects blocks of clifford gates
     and consolidates these blocks into :class:`qiskit.quantum_info.Clifford` objects. This pass
-    inherits from :class:`~CollapseChains`, and in particular supports the options
+    inherits from :class:`~CollectAndCollapse`, and in particular supports the options
     ``do_commutative_analysis``, ``split_blocks`` and ``min_block_size``. See the release
-    notes for :class:`~CollapseChains` for additional details.
+    notes for :class:`~CollectAndCollapse` for additional details.
 
 upgrade:
   - |
     Modified the :class:`~CollectLinearFunctions` transpiler pass to inherit from
-    :class:`~CollapseChains`. In particular, :class:`~CollectLinearFunctions` supports the new
+    :class:`~CollectAndCollapse`. In particular, :class:`~CollectLinearFunctions` supports the new
     options ``do_commutative_analysis``, ``split_blocks`` and ``min_block_size``. See the release
-    notes for :class:`~CollapseChains` for additional details.
+    notes for :class:`~CollectAndCollapse` for additional details.
