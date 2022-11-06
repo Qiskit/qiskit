@@ -37,7 +37,11 @@ class TestCollectBlocks(QiskitTestCase):
         qc.cx(0, 4)
 
         block_collector = BlockCollector(circuit_to_dag(qc))
-        blocks = block_collector.collect_all_matching_blocks(lambda node: node.op.name == "cx")
+        blocks = block_collector.collect_all_matching_blocks(
+            lambda node: node.op.name == "cx",
+            split_blocks=False,
+            min_block_size=2,
+        )
 
         # The middle z-gate leads to two blocks of size 2 each
         self.assertEqual(len(blocks), 2)
@@ -55,7 +59,9 @@ class TestCollectBlocks(QiskitTestCase):
 
         block_collector = BlockCollector(circuit_to_dag(qc))
         blocks = block_collector.collect_all_matching_blocks(
-            lambda node: node.op.name in ["cx", "z"]
+            lambda node: node.op.name in ["cx", "z"],
+            split_blocks=False,
+            min_block_size=1,
         )
 
         # All of the gates are part of a single block
@@ -73,7 +79,11 @@ class TestCollectBlocks(QiskitTestCase):
         qc.cx(0, 4)
 
         block_collector = BlockCollector(circuit_to_dag(qc))
-        blocks = block_collector.collect_all_matching_blocks(lambda node: node.op.name in ["cx"])
+        blocks = block_collector.collect_all_matching_blocks(
+            lambda node: node.op.name in ["cx"],
+            split_blocks=False,
+            min_block_size=1,
+        )
 
         # We should end up with two CX blocks: even though there is "a path
         # around z(0)", without commutativity analysis z(0) prevents from
@@ -90,7 +100,11 @@ class TestCollectBlocks(QiskitTestCase):
         qc.cx(0, 4)
 
         block_collector = BlockCollector(circuit_to_dagdependency(qc))
-        blocks = block_collector.collect_all_matching_blocks(lambda node: node.op.name == "cx")
+        blocks = block_collector.collect_all_matching_blocks(
+            lambda node: node.op.name == "cx",
+            split_blocks=False,
+            min_block_size=1,
+        )
 
         # The middle z-gate commutes with CX-gates, which leads to a single block of length 4
         self.assertEqual(len(blocks), 1)
@@ -107,7 +121,9 @@ class TestCollectBlocks(QiskitTestCase):
 
         block_collector = BlockCollector(circuit_to_dagdependency(qc))
         blocks = block_collector.collect_all_matching_blocks(
-            lambda node: node.op.name in ["cx", "z"]
+            lambda node: node.op.name in ["cx", "z"],
+            split_blocks=False,
+            min_block_size=1,
         )
 
         # All the gates are part of a single block
@@ -124,7 +140,11 @@ class TestCollectBlocks(QiskitTestCase):
         qc.cz(5, 3)
 
         block_collector = BlockCollector(circuit_to_dag(qc))
-        blocks = block_collector.collect_all_matching_blocks(lambda node: True)
+        blocks = block_collector.collect_all_matching_blocks(
+            lambda node: True,
+            split_blocks=False,
+            min_block_size=1,
+        )
 
         # All the gates are part of a single block
         self.assertEqual(len(blocks), 1)
@@ -145,7 +165,11 @@ class TestCollectBlocks(QiskitTestCase):
         qc.cz(5, 3)
 
         block_collector = BlockCollector(circuit_to_dagdependency(qc))
-        blocks = block_collector.collect_all_matching_blocks(lambda node: True)
+        blocks = block_collector.collect_all_matching_blocks(
+            lambda node: True,
+            split_blocks=False,
+            min_block_size=1,
+        )
 
         # All the gates are part of a single block
         self.assertEqual(len(blocks), 1)
@@ -170,7 +194,9 @@ class TestCollectBlocks(QiskitTestCase):
 
         block_collector = BlockCollector(circuit_to_dag(qc))
         blocks = block_collector.collect_all_matching_blocks(
-            lambda node: node.op.name in ["x", "cx"]
+            lambda node: node.op.name in ["x", "cx"],
+            split_blocks=False,
+            min_block_size=1,
         )
 
         # measure prevents combining the two blocks
@@ -192,7 +218,9 @@ class TestCollectBlocks(QiskitTestCase):
 
         block_collector = BlockCollector(circuit_to_dagdependency(qc))
         blocks = block_collector.collect_all_matching_blocks(
-            lambda node: node.op.name in ["x", "cx"]
+            lambda node: node.op.name in ["x", "cx"],
+            split_blocks=False,
+            min_block_size=1,
         )
 
         # measure prevents combining the two blocks
@@ -217,7 +245,9 @@ class TestCollectBlocks(QiskitTestCase):
         # gates into the block.
         block_collector = BlockCollector(circuit_to_dag(qc))
         blocks = block_collector.collect_all_matching_blocks(
-            lambda node: node.op.name in ["x", "cx"]
+            lambda node: node.op.name in ["x", "cx"],
+            split_blocks=False,
+            min_block_size=1,
         )
         self.assertEqual(len(blocks), 1)
         self.assertEqual(len(blocks[0]), 7)
@@ -227,7 +257,9 @@ class TestCollectBlocks(QiskitTestCase):
         # block).
         block_collector = BlockCollector(circuit_to_dag(qc))
         blocks = block_collector.collect_all_matching_blocks(
-            lambda node: node.op.name in ["x", "cx"] and not getattr(node.op, "condition", None)
+            lambda node: node.op.name in ["x", "cx"] and not getattr(node.op, "condition", None),
+            split_blocks=False,
+            min_block_size=1,
         )
         self.assertEqual(len(blocks), 2)
         self.assertEqual(len(blocks[0]), 4)
@@ -250,7 +282,9 @@ class TestCollectBlocks(QiskitTestCase):
         # gates into the block.
         block_collector = BlockCollector(circuit_to_dagdependency(qc))
         blocks = block_collector.collect_all_matching_blocks(
-            lambda node: node.op.name in ["x", "cx"]
+            lambda node: node.op.name in ["x", "cx"],
+            split_blocks=False,
+            min_block_size=1,
         )
         self.assertEqual(len(blocks), 1)
         self.assertEqual(len(blocks[0]), 7)
@@ -260,11 +294,160 @@ class TestCollectBlocks(QiskitTestCase):
         # block).
         block_collector = BlockCollector(circuit_to_dag(qc))
         blocks = block_collector.collect_all_matching_blocks(
-            lambda node: node.op.name in ["x", "cx"] and not getattr(node.op, "condition", None)
+            lambda node: node.op.name in ["x", "cx"] and not getattr(node.op, "condition", None),
+            split_blocks=False,
+            min_block_size=1,
         )
         self.assertEqual(len(blocks), 2)
         self.assertEqual(len(blocks[0]), 4)
         self.assertEqual(len(blocks[1]), 2)
+
+    def test_multiple_collection_methods(self):
+        """Test that block collection allows to collect blocks using several different
+        filter functions."""
+        qc = QuantumCircuit(5)
+        qc.cx(0, 1)
+        qc.cx(0, 2)
+        qc.swap(1, 4)
+        qc.swap(4, 3)
+        qc.z(0)
+        qc.z(1)
+        qc.z(2)
+        qc.z(3)
+        qc.z(4)
+        qc.swap(3, 4)
+        qc.cx(0, 3)
+        qc.cx(0, 4)
+
+        block_collector = BlockCollector(circuit_to_dag(qc))
+        linear_blocks = block_collector.collect_all_matching_blocks(
+            lambda node: node.op.name in ["cx", "swap"],
+            split_blocks=False,
+            min_block_size=1,
+        )
+        cx_blocks = block_collector.collect_all_matching_blocks(
+            lambda node: node.op.name in ["cx"],
+            split_blocks=False,
+            min_block_size=1,
+        )
+        swapz_blocks = block_collector.collect_all_matching_blocks(
+            lambda node: node.op.name in ["swap", "z"],
+            split_blocks=False,
+            min_block_size=1,
+        )
+
+        # We should end up with two linear blocks
+        self.assertEqual(len(linear_blocks), 2)
+        self.assertEqual(len(linear_blocks[0]), 4)
+        self.assertEqual(len(linear_blocks[1]), 3)
+
+        # We should end up with two cx blocks
+        self.assertEqual(len(cx_blocks), 2)
+        self.assertEqual(len(cx_blocks[0]), 2)
+        self.assertEqual(len(cx_blocks[1]), 2)
+
+        # We should end up with one swap,z blocks
+        self.assertEqual(len(swapz_blocks), 1)
+        self.assertEqual(len(swapz_blocks[0]), 8)
+
+    def test_min_block_size(self):
+        """Test that the option min_block_size for collecting blocks works correctly."""
+
+        # original circuit
+        circuit = QuantumCircuit(2)
+        circuit.cx(0, 1)
+        circuit.h(0)
+        circuit.cx(0, 1)
+        circuit.cx(1, 0)
+        circuit.h(0)
+        circuit.cx(0, 1)
+        circuit.cx(1, 0)
+        circuit.cx(0, 1)
+
+        block_collector = BlockCollector(circuit_to_dag(circuit))
+
+        # When min_block_size = 1, we should obtain 3 linear blocks
+        blocks = block_collector.collect_all_matching_blocks(
+            lambda node: node.op.name in ["cx", "swap"],
+            split_blocks=False,
+            min_block_size=1,
+        )
+        self.assertEqual(len(blocks), 3)
+
+        # When min_block_size = 2, we should obtain 2 linear blocks
+        blocks = block_collector.collect_all_matching_blocks(
+            lambda node: node.op.name in ["cx", "swap"],
+            split_blocks=False,
+            min_block_size=2,
+        )
+        self.assertEqual(len(blocks), 2)
+
+        # When min_block_size = 3, we should obtain 1 linear block
+        blocks = block_collector.collect_all_matching_blocks(
+            lambda node: node.op.name in ["cx", "swap"],
+            split_blocks=False,
+            min_block_size=3,
+        )
+        self.assertEqual(len(blocks), 1)
+
+        # When min_block_size = 4, we should obtain no linear blocks
+        blocks = block_collector.collect_all_matching_blocks(
+            lambda node: node.op.name in ["cx", "swap"],
+            split_blocks=False,
+            min_block_size=4,
+        )
+        self.assertEqual(len(blocks), 0)
+
+    def test_split_blocks(self):
+        """Test that splitting blocks of nodes into sub-blocks works correctly."""
+
+        # original circuit is linear
+        circuit = QuantumCircuit(5)
+        circuit.cx(0, 2)
+        circuit.cx(1, 4)
+        circuit.cx(2, 0)
+        circuit.cx(0, 3)
+        circuit.swap(3, 2)
+        circuit.swap(4, 1)
+
+        block_collector = BlockCollector(circuit_to_dag(circuit))
+
+        # If we do not split block into sub-blocks, we expect a single linear block.
+        blocks = block_collector.collect_all_matching_blocks(
+            lambda node: node.op.name in ["cx", "swap"],
+            split_blocks=False,
+            min_block_size=2,
+        )
+        self.assertEqual(len(blocks), 1)
+
+        # If we do split block into sub-blocks, we expect two linear blocks:
+        # one over qubits {0, 2, 3}, and another over qubits {1, 4}.
+        blocks = block_collector.collect_all_matching_blocks(
+            lambda node: node.op.name in ["cx", "swap"],
+            split_blocks=True,
+            min_block_size=2,
+        )
+        self.assertEqual(len(blocks), 2)
+
+    def test_do_not_split_blocks(self):
+        """Test that splitting blocks of nodes into sub-blocks works correctly."""
+
+        # original circuit is linear
+        circuit = QuantumCircuit(5)
+        circuit.cx(0, 3)
+        circuit.cx(0, 2)
+        circuit.cx(1, 4)
+        circuit.swap(4, 2)
+
+        block_collector = BlockCollector(circuit_to_dagdependency(circuit))
+
+        # Check that we have a single linear block
+        blocks = block_collector.collect_all_matching_blocks(
+            lambda node: node.op.name in ["cx", "swap"],
+            split_blocks=True,
+            min_block_size=1,
+        )
+        self.assertEqual(len(blocks), 1)
 
 
 if __name__ == "__main__":

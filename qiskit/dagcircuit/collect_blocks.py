@@ -47,6 +47,8 @@ class BlockCollector:
         """
 
         self.dag = dag
+        self.pending_nodes = None
+        self.in_degree = None
 
         if isinstance(dag, DAGCircuit):
             self.is_dag_dependency = False
@@ -57,12 +59,14 @@ class BlockCollector:
         else:
             raise DAGCircuitError("not a DAG.")
 
-        # For an efficient implementation, we compute and keep updating the in_degree
-        # for every node, that is the number of node's immediate predecessors.
-        # A node is a leaf (aka input) node iff its in_degree is 0.
-        # When a node is (marked as) collected, the in_degrees of its immediate
-        # successors are updated by subtracting 1.
-        # Additionally, pending_nodes explicitly keeps the list of nodes with in_degree 0.
+    def setup_in_degrees(self):
+        """For an efficient implementation, we compute and keep updating the in_degree
+        for every node, that is the number of node's immediate predecessors.
+        A node is a leaf (aka input) node iff its in_degree is 0.
+        When a node is (marked as) collected, the in_degrees of its immediate
+        successors are updated by subtracting 1.
+        Additionally, pending_nodes explicitly keeps the list of nodes with in_degree 0.
+        """
         self.pending_nodes = []
         self.in_degree = dict()
         for node in self._op_nodes():
@@ -151,6 +155,8 @@ class BlockCollector:
         def not_filter_fn(node):
             """Returns the opposite of filter_fn."""
             return not filter_fn(node)
+
+        self.setup_in_degrees()
 
         # Iteratively collect non-matching and matching blocks.
         matching_blocks = []
