@@ -281,7 +281,7 @@ class InstructionScheduleMap:
             parameters = []
             for argname in ordered_names:
                 param_signature = inspect.Parameter(
-                    name=argname,
+                    argname,
                     kind=inspect.Parameter.POSITIONAL_OR_KEYWORD,
                 )
                 parameters.append(param_signature)
