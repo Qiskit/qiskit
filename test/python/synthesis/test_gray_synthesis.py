@@ -10,12 +10,14 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""Test synthesis algorithms"""
+"""Test cnot circuit and cnot-phase circuit synthesis algorithms"""
+
+import unittest
 
 from qiskit.circuit import QuantumCircuit, QuantumRegister
 from qiskit.quantum_info.operators import Operator
 from qiskit.extensions.unitary import UnitaryGate
-from qiskit.transpiler.synthesis import graysynth, cnot_synth
+from qiskit.synthesis.linear import graysynth, synth_cnot_count_full_pmh
 from qiskit.test import QiskitTestCase
 
 
@@ -237,7 +239,7 @@ class TestPatelMarkovHayes(QiskitTestCase):
             [1, 1, 0, 1, 1, 1],
             [0, 0, 1, 1, 1, 0],
         ]
-        c_patel = cnot_synth(state)
+        c_patel = synth_cnot_count_full_pmh(state)
         unitary_patel = UnitaryGate(Operator(c_patel))
 
         # Create the circuit displayed above:
@@ -262,3 +264,7 @@ class TestPatelMarkovHayes(QiskitTestCase):
 
         # Check if the two circuits are equivalent
         self.assertEqual(unitary_patel, unitary_compare)
+
+
+if __name__ == "__main__":
+    unittest.main()

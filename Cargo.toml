@@ -21,7 +21,7 @@ num-bigint = "0.4"
 retworkx-core = "0.11"
 
 [dependencies.pyo3]
-version = "0.17.2"
+version = "0.17.3"
 features = ["extension-module", "hashbrown", "num-complex", "num-bigint"]
 
 [dependencies.ndarray]
