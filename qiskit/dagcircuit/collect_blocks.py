@@ -140,6 +140,11 @@ class BlockCollector:
         then the largest block that matches filter_fn, and so on, until no more uncollected
         nodes remain. Intuitively, finding larger blocks of non-matching nodes helps to
         find larger blocks of matching nodes later on.
+
+        The option ``split_blocks`` allows to collected blocks into sub-blocks over
+        disjoint qubit subsets. The option ``min_block_size``specifies the minimum number
+        of gates in the block for the block to be collected.
+
         Returns the list of matching blocks only.
         """
 

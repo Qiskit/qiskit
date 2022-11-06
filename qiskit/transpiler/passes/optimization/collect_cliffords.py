@@ -30,6 +30,16 @@ class CollectCliffords(CollectAndCollapse):
     """
 
     def __init__(self, do_commutative_analysis=False, split_blocks=True, min_block_size=2):
+        """
+        Args:
+            do_commutative_analysis (bool): if True, exploits commutativity relations
+                between nodes.
+           split_blocks (bool): if True, splits collected blocks into sub-blocks over
+                disjoint qubit subsets.
+            min_block_size (int): specifies the minimum number of gates in the block
+                for the block to be collected.
+        """
+
         collect_function = partial(
             collect_using_filter_function,
             filter_function=_is_clifford_gate,
