@@ -30,7 +30,7 @@ class PermRowCol:
 
     def __init__(self, coupling_map: CouplingMap):
         self._coupling_map = coupling_map
-        self._graph = coupling_map.graph
+        self._graph = pydigraph_to_pygraph(self._coupling_map.graph)
 
     def perm_row_col(self, parity_mat: np.ndarray) -> QuantumCircuit:
         """Run permrowcol algorithm on the given parity matrix
@@ -46,9 +46,7 @@ class PermRowCol:
         circuit = QuantumCircuit(len(self._graph.node_indexes()))
 
         while len(self._graph.node_indexes()) > 1:
-            n_vertices = noncutting_vertices(
-                CouplingMap()
-            )  # Have to change noncutting_vertices for pydigraph
+            n_vertices = noncutting_vertices(self._graph)
             row = self.choose_row(n_vertices, parity_mat)
 
             cols = self.return_columns(qubit_alloc)
@@ -153,7 +151,7 @@ class PermRowCol:
             list: list of tuples represents control and target qubits with a cnot gate between them.
         """
         C = []
-        tree = rx.steiner_tree(pydigraph_to_pygraph(self._graph), terminals, weight_fn=lambda x: 1)
+        tree = rx.steiner_tree(self._graph, terminals, weight_fn=lambda x: 1)
         post_edges = []
         postorder_traversal(tree, root, post_edges)
 
@@ -181,7 +179,7 @@ class PermRowCol:
             list of tuples represents control and target qubits with a cnot gate between them.
         """
         C = []
-        tree = rx.steiner_tree(pydigraph_to_pygraph(self._graph), terminals, weight_fn=lambda x: 1)
+        tree = rx.steiner_tree(self._graph, terminals, weight_fn=lambda x: 1)
 
         pre_edges = []
         preorder_traversal(tree, root, pre_edges)
