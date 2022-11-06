@@ -28,7 +28,12 @@ class CollectLinearFunctions(CollectAndCollapse):
     and replaces them by linear functions (:class:`.LinearFunction`)."""
 
     def __init__(self, do_commutative_analysis=False, split_blocks=True, min_block_size=2):
-        collect_function = partial(collect_using_filter_function, filter_function=_is_linear_gate)
+        collect_function = partial(
+            collect_using_filter_function,
+            filter_function=_is_linear_gate,
+            split_blocks=split_blocks,
+            min_block_size=min_block_size,
+        )
         collapse_function = partial(
             collapse_to_operation, collapse_function=_collapse_to_linear_function
         )
@@ -37,8 +42,6 @@ class CollectLinearFunctions(CollectAndCollapse):
             collect_function=collect_function,
             collapse_function=collapse_function,
             do_commutative_analysis=do_commutative_analysis,
-            split_blocks=split_blocks,
-            min_block_size=min_block_size,
         )
 
 

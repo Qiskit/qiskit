@@ -46,8 +46,6 @@ class CollectAndCollapse(TransformationPass):
         collect_function,
         collapse_function,
         do_commutative_analysis=False,
-        split_blocks=True,
-        min_block_size=2,
     ):
         """
         Args:
@@ -57,16 +55,10 @@ class CollectAndCollapse(TransformationPass):
                 "collected" blocks, and consolidates each block.
             do_commutative_analysis (bool): if True, exploits commutativity relations
                 between nodes.
-            split_blocks (bool): if True, splits collected blocks into sub-blocks over
-                disjoint qubit subsets.
-            min_block_size (int): specifies the minimum number of gates in the block
-                for the block to be collapsed.
         """
         self.collect_function = collect_function
         self.collapse_function = collapse_function
         self.do_commutative_analysis = do_commutative_analysis
-        self.split_blocks = split_blocks
-        self.min_block_size = min_block_size
 
         super().__init__()
 
@@ -86,17 +78,6 @@ class CollectAndCollapse(TransformationPass):
         # call collect_function to collect blocks from DAG
         blocks = self.collect_function(dag)
 
-        # If the option split_blocks is set, refine blocks by splitting them into sub-blocks over
-        # disconnected qubit subsets.
-        if self.split_blocks:
-            split_blocks = []
-            for block in blocks:
-                split_blocks.extend(BlockSplitter().run(block))
-            blocks = split_blocks
-
-        # Keep only blocks with at least min_block_sizes.
-        blocks = [block for block in blocks if len(block) >= self.min_block_size]
-
         # call collapse_function to collapse each block in the DAG
         self.collapse_function(dag, blocks)
 
@@ -107,11 +88,13 @@ class CollectAndCollapse(TransformationPass):
         return dag
 
 
-def collect_using_filter_function(dag, filter_function):
+def collect_using_filter_function(dag, filter_function, split_blocks, min_block_size):
     """Corresponds to an important block collection strategy that greedily collects
     maximal blocks of nodes matching a given ``filter_function``.
     """
-    return BlockCollector(dag).collect_all_matching_blocks(filter_fn=filter_function)
+    return BlockCollector(dag).collect_all_matching_blocks(
+        filter_fn=filter_function, split_blocks=split_blocks, min_block_size=min_block_size
+    )
 
 
 def collapse_to_operation(dag, blocks, collapse_function):

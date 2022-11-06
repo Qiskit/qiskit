@@ -23,8 +23,8 @@ features:
     single object (or example, a block of Clifford gates can be consolidated to a single
     ``Clifford``).
 
-    The interface also supports the following options. The option ``do_commutative_analysis``
-    allows to exploit commutativity between gates in order to collect larger blocks of nodes.
+    The interface also supports the option ``do_commutative_analysis``, which allows
+    to exploit commutativity between gates in order to collect larger blocks of nodes.
     As an example, collecting blocks of CX gates in the following circuit::
 
         qc = QuantumCircuit(2)
@@ -33,6 +33,27 @@ features:
         qc.cx(1, 0)
 
     allows to consolidate the two CX gates, as the first CX gate and the Z-gate commute.
+
+  - |
+    Added a new :class:`~CollectCliffords` transpiler pass that collects blocks of clifford
+    gates and consolidates these blocks into :class:`qiskit.quantum_info.Clifford` objects.
+    This pass inherits from :class:`~CollectAndCollapse` and in particular supports the option
+    ``do_commutative_analysis``.
+    It also supports two additional options ``split_blocks`` and ``min_block_size``.
+    See the release notes for :class:`~CollectAndCollapse` and  :class:`~CollectLinearFunctions`
+    for additional details.
+
+upgrade:
+  - |
+    Modified the :class:`~CollectLinearFunctions` transpiler pass to inherit from
+    :class:`~CollectAndCollapse`. In particular it supports the option
+    ``do_commutative_analysis`` that allows to exploit commutativity between gates
+    in order to collect larger blocks of nodes. See the release notes
+    for :class:`~CollectAndCollapse` for an explicit example.
+
+    In addition, :class:`~CollectLinearFunctions` supports new
+    options ``split_blocks`` and ``min_block_size``.
+
     The option ``split_blocks`` allows to split collected blocks into sub-blocks over
     disjoint subsets of qubits. As an example, in the following circuit::
 
@@ -45,6 +66,7 @@ features:
 
     the single block of CX gates over qubits ``{0, 1, 2, 3}`` can be split into two disjoint
     sub-blocks, one over qubits ``{0, 2}`` and the other over qubits ``{1, 3}``.
+
     The option ``min_block_size`` allows to specify the minimum size of the block to be consolidated,
     blocks with fewer gates will not be modified. As an example, in the following circuit::
 
@@ -54,17 +76,3 @@ features:
 
     the two CX gates will be consolidated when ``min_block_size`` is 1 or 2, and will remain unchanged
     when ``min_block_size`` is 3 or larger.
-
-  - |
-    Added a new :class:`~CollectCliffords` transpiler pass that collects blocks of clifford gates
-    and consolidates these blocks into :class:`qiskit.quantum_info.Clifford` objects. This pass
-    inherits from :class:`~CollectAndCollapse`, and in particular supports the options
-    ``do_commutative_analysis``, ``split_blocks`` and ``min_block_size``. See the release
-    notes for :class:`~CollectAndCollapse` for additional details.
-
-upgrade:
-  - |
-    Modified the :class:`~CollectLinearFunctions` transpiler pass to inherit from
-    :class:`~CollectAndCollapse`. In particular, :class:`~CollectLinearFunctions` supports the new
-    options ``do_commutative_analysis``, ``split_blocks`` and ``min_block_size``. See the release
-    notes for :class:`~CollectAndCollapse` for additional details.

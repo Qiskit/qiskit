@@ -134,7 +134,7 @@ class BlockCollector:
 
         return current_block
 
-    def collect_all_matching_blocks(self, filter_fn):
+    def collect_all_matching_blocks(self, filter_fn, split_blocks=True, min_block_size=2):
         """Collects all blocks that match a given filtering function filter_fn.
         This iteratively finds the largest block that does not match filter_fn,
         then the largest block that matches filter_fn, and so on, until no more uncollected
@@ -154,6 +154,17 @@ class BlockCollector:
             matching_block = self.collect_matching_block(filter_fn)
             if matching_block:
                 matching_blocks.append(matching_block)
+
+        # If the option split_blocks is set, refine blocks by splitting them into sub-blocks over
+        # disconnected qubit subsets.
+        if split_blocks:
+            split_blocks = []
+            for block in matching_blocks:
+                split_blocks.extend(BlockSplitter().run(block))
+            matching_blocks = split_blocks
+
+        # Keep only blocks with at least min_block_sizes.
+        matching_blocks = [block for block in matching_blocks if len(block) >= min_block_size]
 
         return matching_blocks
 
