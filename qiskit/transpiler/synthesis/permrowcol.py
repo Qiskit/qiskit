@@ -66,7 +66,7 @@ class PermRowCol:
             self.reduce_graph(column)
 
         if len(qubit_alloc) != 0:
-            qubit_alloc[qubit_alloc.index(-1)] = self._graph.node_indexes[0]
+            qubit_alloc[qubit_alloc.index(-1)] = self._graph.node_indexes()[0]
 
         return circuit  # Supposed to also return qubit_alloc?
 
