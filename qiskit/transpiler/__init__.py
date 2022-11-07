@@ -652,13 +652,15 @@ the scheduling and adjustments/rescheduling are finished a padding pass,
 such as :class:`~.PadDelay` or :class:`~.PadDynamicalDecoupling` is run
 to insert the instructions into the circuit, which completes the scheduling.
 
-Scheduling Analysis with control flow instructions:
+Scheduling Analysis with control flow instructions
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 When scheduling analysis passes run there are additional constraints on classical conditions
 and control flow instructions in a circuit. This section covers the details of these additional
 constraints that any scheduling pass will need to account for.
 
-Policy of topological node ordering in scheduling:
+Policy of topological node ordering in scheduling
+"""""""""""""""""""""""""""""""""""""""""""""""""
 
 The DAG representation of ``QuantumCircuit`` respects the node ordering also in the
 classical register wires, though theoretically two conditional instructions
@@ -691,7 +693,8 @@ because the second conditional operation can start without waiting the delay of 
 However, such optimization should be done by another pass,
 otherwise scheduling may break topological ordering of the original circuit.
 
-Realistic control flow scheduling respecting for microarchitecture:
+Realistic control flow scheduling respecting for microarchitecture
+""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
 
 In the dispersive QND readout scheme, qubit is measured with microwave stimulus to qubit (Q)
 followed by resonator ring-down (depopulation). This microwave signal is recorded
