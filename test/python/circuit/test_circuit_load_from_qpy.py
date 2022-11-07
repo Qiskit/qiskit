@@ -1103,3 +1103,16 @@ class TestLoadFromQPY(QiskitTestCase):
         qpy_file.seek(0)
         new_circuit = load(qpy_file)[0]
         self.assertEqual(qc, new_circuit)
+
+    def test_registers_after_loose_bits(self):
+        """Test that a circuit whose registers appear after some loose bits roundtrips. Regression
+        test of gh-9094."""
+        qc = QuantumCircuit()
+        qc.add_bits([Qubit(), Clbit()])
+        qc.add_register(QuantumRegister(2, name="q1"))
+        qc.add_register(ClassicalRegister(2, name="c1"))
+        with io.BytesIO() as fptr:
+            dump(qc, fptr)
+            fptr.seek(0)
+            new_circuit = load(fptr)[0]
+        self.assertEqual(qc, new_circuit)
