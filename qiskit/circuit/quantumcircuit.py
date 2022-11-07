@@ -294,8 +294,8 @@ class QuantumCircuit:
             | tuple[qiskit.circuit.Instruction, Iterable[Qubit], Iterable[Clbit]]
         ],
         *,
-        qubits: Optional[Iterable[Qubit]] = None,
-        clbits: Optional[Iterable[Qubit]] = None,
+        qubits: Iterable[Qubit] = (),
+        clbits: Iterable[Clbit] = (),
         name: Optional[str] = None,
         global_phase: ParameterValueType = 0,
         metadata: Optional[dict] = None,
@@ -319,9 +319,11 @@ class QuantumCircuit:
         added_qubits = set()
         added_clbits = set()
         if qubits:
+            qubits = list(qubits)
             circuit.add_bits(qubits)
             added_qubits.update(qubits)
         if clbits:
+            clbits = list(clbits)
             circuit.add_bits(clbits)
             added_clbits.update(clbits)
         for instruction in instructions:

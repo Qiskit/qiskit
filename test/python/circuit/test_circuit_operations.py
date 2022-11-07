@@ -1212,7 +1212,9 @@ class TestCircuitOperations(QiskitTestCase):
         self.assertEqual(circuit.qubits, [b, a])
         self.assertEqual(circuit.clbits, [c, d])
 
-        circuit = QuantumCircuit.from_instructions(instructions(), qubits=[a, b], clbits=[c, d])
+        circuit = QuantumCircuit.from_instructions(
+            instructions(), qubits=iter([a, b]), clbits=[c, d]
+        )
         self.assertEqual(circuit.qubits, [a, b])
         self.assertEqual(circuit.clbits, [c, d])
 
