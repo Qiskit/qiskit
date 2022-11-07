@@ -1187,6 +1187,21 @@ class TestCircuitOperations(QiskitTestCase):
         self.assertEqual(circuit_tuples, expected)
         self.assertEqual(circuit_tuples_partial, expected)
 
+    def test_from_instructions_qubit_order(self):
+        """Test from_instructions method qubit order."""
+        qreg = QuantumRegister(2)
+        a, b = qreg
+
+        def instructions():
+            yield CircuitInstruction(HGate(), [b], [])
+            yield CircuitInstruction(CXGate(), [a, b], [])
+
+        circuit = QuantumCircuit.from_instructions(instructions())
+        self.assertEqual(circuit.qubits, [b, a])
+
+        circuit = QuantumCircuit.from_instructions(instructions(), qubits=[a, b])
+        self.assertEqual(circuit.qubits, [a, b])
+
     def test_from_instructions_metadata(self):
         """Test from_instructions method passes metadata."""
         qreg = QuantumRegister(2)
