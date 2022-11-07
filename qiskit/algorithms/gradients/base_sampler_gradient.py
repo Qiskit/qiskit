@@ -97,6 +97,10 @@ class BaseSamplerGradient(ABC):
         """Compute the sampler gradients on the given circuits."""
         raise NotImplementedError()
 
+    def _preprocess(self):
+        """Preprocess the gradient."""
+        pass
+
     def _validate_arguments(
         self,
         circuits: Sequence[QuantumCircuit],
@@ -137,6 +141,18 @@ class BaseSamplerGradient(ABC):
                     f"The number of values ({len(parameter_value)}) does not match "
                     f"the number of parameters ({circuit.num_parameters}) for the {i}-th circuit."
                 )
+
+    def _assign_unique_parameters(self):
+        """Assign unique parameters to each circuit."""
+        pass
+
+    def _postprocess(self):
+        """Postprocess the gradient."""
+        pass
+
+    def recombine_results(self):
+        """Recombine the results."""
+        pass
 
     @property
     def options(self) -> Options:

@@ -110,6 +110,10 @@ class BaseEstimatorGradient(ABC):
         """Compute the estimator gradients on the given circuits."""
         raise NotImplementedError()
 
+    def _preprocess(self):
+        """Preprocess the gradient."""
+        pass
+
     def _validate_arguments(
         self,
         circuits: Sequence[QuantumCircuit],
@@ -167,6 +171,18 @@ class BaseEstimatorGradient(ABC):
                     f"({observable.num_qubits})."
                 )
 
+    def _assign_unique_parameters(self):
+        """Assign unique parameters to each circuit."""
+        pass
+
+    def _postprocess(self):
+        """Postprocess the gradient."""
+        pass
+
+    def recombine_results(self):
+        """Recombine the results."""
+        pass
+
     @property
     def options(self) -> Options:
         """Return the union of estimator options setting and gradient default options,
@@ -202,3 +218,4 @@ class BaseEstimatorGradient(ABC):
         opts = copy(self._estimator.options)
         opts.update_options(**options)
         return opts
+
