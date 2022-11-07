@@ -64,7 +64,7 @@ class VarQRTE(VarQTE, RealTimeEvolver):
 
     def __init__(
         self,
-        ansatz: BaseOperator | QuantumCircuit,
+        ansatz: QuantumCircuit,
         variational_principle: RealVariationalPrinciple | None = None,
         initial_parameters: dict[Parameter, complex] | list[complex] | np.ndarray | None = None,
         estimator: BaseEstimator | None = None,

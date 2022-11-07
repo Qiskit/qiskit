@@ -64,7 +64,7 @@ class VarQITE(VarQTE, ImaginaryTimeEvolver):
 
     def __init__(
         self,
-        ansatz: BaseOperator | QuantumCircuit,
+        ansatz: QuantumCircuit,
         variational_principle: ImaginaryVariationalPrinciple | None = None,
         initial_parameters: dict[Parameter, complex] | list[complex] | np.ndarray | None = None,
         estimator: BaseEstimator | None = None,

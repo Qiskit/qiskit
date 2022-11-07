@@ -54,7 +54,7 @@ class VarQTE(ABC):
 
     def __init__(
         self,
-        ansatz: BaseOperator | QuantumCircuit,
+        ansatz: QuantumCircuit,
         variational_principle: VariationalPrinciple,
         estimator: BaseEstimator | None = None,
         initial_parameters: dict[Parameter, complex] | list[complex] | np.ndarray | None = None,
@@ -146,7 +146,7 @@ class VarQTE(ABC):
         hamiltonian: BaseOperator | PauliSumOp,
         time: float,
         t_param: Parameter | None = None,
-    ) -> BaseOperator | QuantumCircuit:
+    ) -> QuantumCircuit:
         r"""
         Helper method for performing time evolution. Works both for imaginary and real case.
 
