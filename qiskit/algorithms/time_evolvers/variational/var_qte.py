@@ -14,7 +14,7 @@
 from __future__ import annotations
 
 from abc import ABC
-from typing import Any, Type, Callable
+from typing import Type, Callable
 
 import numpy as np
 from scipy.integrate import OdeSolver
@@ -23,7 +23,6 @@ from qiskit import QuantumCircuit
 from qiskit.algorithms.time_evolvers.time_evolution_problem import TimeEvolutionProblem
 from qiskit.algorithms.time_evolvers.time_evolution_result import TimeEvolutionResult
 from qiskit.circuit import Parameter
-from qiskit.primitives import BaseEstimator
 from qiskit.opflow import PauliSumOp
 from qiskit.quantum_info.operators.base_operator import BaseOperator
 from .solvers.ode.forward_euler_solver import ForwardEulerSolver
@@ -56,7 +55,6 @@ class VarQTE(ABC):
         self,
         ansatz: QuantumCircuit,
         variational_principle: VariationalPrinciple,
-        estimator: BaseEstimator | None = None,
         initial_parameters: dict[Parameter, complex] | list[complex] | np.ndarray | None = None,
         ode_solver: Type[OdeSolver] | str = ForwardEulerSolver,
         lse_solver: Callable[[np.ndarray, np.ndarray], np.ndarray] | None = None,
@@ -70,8 +68,6 @@ class VarQTE(ABC):
             variational_principle: Variational Principle to be used.
             initial_parameters: Initial parameter values for an ansatz. If ``None`` provided,
                 they are initialized uniformly at random.
-            estimator: An estimator primitive used for calculating expectation values of
-                TimeEvolutionProblem.aux_operators.
             ode_solver: ODE solver callable that implements a SciPy ``OdeSolver`` interface or a
                 string indicating a valid method offered by SciPy.
             lse_solver: Linear system of equations solver callable. It accepts ``A`` and ``b`` to
@@ -90,7 +86,6 @@ class VarQTE(ABC):
         self.ansatz = ansatz
         self.variational_principle = variational_principle
         self.initial_parameters = initial_parameters
-        self.estimator = estimator
         self.num_timesteps = num_timesteps
         self.lse_solver = lse_solver
         # OdeFunction abstraction kept for potential extensions - unclear at the moment;
@@ -114,7 +109,6 @@ class VarQTE(ABC):
         Raises:
             ValueError: If ``initial_state`` is included in the ``evolution_problem``.
         """
-        self._validate_aux_ops(evolution_problem)
 
         if evolution_problem.initial_state is not None:
             raise ValueError("initial_state provided but not applicable to VarQTE.")
@@ -133,7 +127,7 @@ class VarQTE(ABC):
         evaluated_aux_ops = None
         if evolution_problem.aux_operators is not None:
             evaluated_aux_ops = estimate_observables(
-                self.estimator,
+                self.variational_principle.gradient._estimator,
                 evolved_state,
                 evolution_problem.aux_operators,
             )
@@ -154,12 +148,7 @@ class VarQTE(ABC):
             init_state_param_dict: Parameter dictionary with initial values for a given
                 parametrized state/ansatz. If no initial parameter values are provided, they are
                 initialized uniformly at random.
-            hamiltonian:
-                Operator used for Variational Quantum Imaginary Time Evolution (VarQTE).
-                The operator may be given either as a composed op consisting of a Hermitian
-                observable and a ``CircuitStateFn`` or a ``ListOp`` of a ``CircuitStateFn`` with a
-                ``ComboFn``.
-                The latter case enables the evaluation of a Quantum Natural Gradient.
+            hamiltonian: Operator used for Variational Quantum Imaginary Time Evolution (VarQTE).
             time: Total time of evolution.
             t_param: Time parameter in case of a time-dependent Hamiltonian.
 
@@ -177,7 +166,7 @@ class VarQTE(ABC):
             self.ansatz,
             init_state_parameters,
             t_param,
-            self._ode_function_factory.lse_solver,
+            self.lse_solver,
             self.imag_part_tol,
         )
 
@@ -249,11 +238,3 @@ class VarQTE(ABC):
 
         init_state_param_dict = dict(zip(init_state_parameters, init_state_parameter_values))
         return init_state_param_dict
-
-    def _validate_aux_ops(self, evolution_problem: TimeEvolutionProblem) -> None:
-        if evolution_problem.aux_operators is not None:
-            if self.estimator is None:
-                raise ValueError(
-                    "aux_operators where provided for evaluations but no ``quantum_instance`` "
-                    "was provided."
-                )

@@ -42,12 +42,7 @@ class VarQTELinearSolver:
         """
         Args:
             var_principle: Variational Principle to be used.
-            hamiltonian: TODO update types
-                Operator used for Variational Quantum Time Evolution.
-                The operator may be given either as a composed op consisting of a Hermitian
-                observable and a ``CircuitStateFn`` or a ``ListOp`` of a ``CircuitStateFn`` with a
-                ``ComboFn``.
-                The latter case enables the evaluation of a Quantum Natural Gradient.
+            hamiltonian: Operator used for Variational Quantum Time Evolution.
             ansatz: Quantum state in the form of a parametrized quantum circuit.
             gradient_params: List of parameters with respect to which gradients should be computed.
             t_param: Time parameter in case of a time-dependent Hamiltonian.
@@ -98,12 +93,14 @@ class VarQTELinearSolver:
         """
         param_values = list(param_dict.values())
         metric_tensor_lse_lhs = self._var_principle.metric_tensor(self._ansatz, param_values)
+        hamiltonian = self._hamiltonian
+
         if self._time_param is not None:
             # TODO this turns into OperatorBase
-            self._hamiltonian = self._hamiltonian.assign_parameters({self._time_param: time_value})
+            hamiltonian = self._hamiltonian.assign_parameters({self._time_param: time_value})
 
-        evolution_grad_lse_rhs = self._var_principle.evolution_grad(
-            self._hamiltonian,
+        evolution_grad_lse_rhs = self._var_principle.evolution_gradient(
+            hamiltonian,
             self._ansatz,
             param_dict,
             self._bind_params,

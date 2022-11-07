@@ -109,7 +109,7 @@ class TestVarQTEOdeSolver(QiskitAlgorithmsTestCase):
             t_param,
             linear_solver,
         )
-        ode_function_generator = OdeFunction(linear_solver, None, param_dict, t_param)
+        ode_function_generator = OdeFunction(linear_solver, param_dict, t_param)
 
         var_qte_ode_solver = VarQTEOdeSolver(
             list(param_dict.values()),

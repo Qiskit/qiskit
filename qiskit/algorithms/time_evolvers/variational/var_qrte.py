@@ -21,8 +21,6 @@ from scipy.integrate import OdeSolver
 from qiskit import QuantumCircuit
 from qiskit.algorithms.time_evolvers.real_time_evolver import RealTimeEvolver
 from qiskit.circuit import Parameter
-from qiskit.primitives import BaseEstimator
-from qiskit.quantum_info.operators.base_operator import BaseOperator
 from . import RealMcLachlanPrinciple
 from .solvers.ode.forward_euler_solver import ForwardEulerSolver
 from .variational_principles import RealVariationalPrinciple
@@ -67,7 +65,6 @@ class VarQRTE(VarQTE, RealTimeEvolver):
         ansatz: QuantumCircuit,
         variational_principle: RealVariationalPrinciple | None = None,
         initial_parameters: dict[Parameter, complex] | list[complex] | np.ndarray | None = None,
-        estimator: BaseEstimator | None = None,
         ode_solver: Type[OdeSolver] | str = ForwardEulerSolver,
         lse_solver: Callable[[np.ndarray, np.ndarray], np.ndarray] | None = None,
         num_timesteps: int | None = None,
@@ -81,8 +78,6 @@ class VarQRTE(VarQTE, RealTimeEvolver):
                 ``RealMcLachlanPrinciple``.
             initial_parameters: Initial parameter values for an ansatz. If ``None`` provided,
                 they are initialized uniformly at random.
-            estimator: An estimator primitive used for calculating expectation values of
-                TimeEvolutionProblem.aux_operators.
             ode_solver: ODE solver callable that implements a SciPy ``OdeSolver`` interface or a
                 string indicating a valid method offered by SciPy.
             lse_solver: Linear system of equations solver callable. It accepts ``A`` and ``b`` to
@@ -102,7 +97,6 @@ class VarQRTE(VarQTE, RealTimeEvolver):
         super().__init__(
             ansatz,
             variational_principle,
-            estimator,
             initial_parameters,
             ode_solver,
             lse_solver=lse_solver,

@@ -54,7 +54,7 @@ class TestImaginaryMcLachlanPrinciple(QiskitAlgorithmsTestCase):
 
         np.testing.assert_almost_equal(bound_metric_tensor, expected_bound_metric_tensor_1)
 
-    def test_calc_calc_evolution_grad(self):
+    def test_calc_calc_evolution_gradient(self):
         """Test calculating evolution gradient."""
         observable = SparsePauliOp.from_list(
             [
@@ -75,7 +75,7 @@ class TestImaginaryMcLachlanPrinciple(QiskitAlgorithmsTestCase):
         param_dict = {param: np.pi / 4 for param in parameters}
         var_principle = ImaginaryMcLachlanPrinciple()
 
-        bound_evolution_grad = var_principle.evolution_grad(
+        bound_evolution_gradient = var_principle.evolution_gradient(
             observable,
             ansatz,
             param_dict,
@@ -84,7 +84,7 @@ class TestImaginaryMcLachlanPrinciple(QiskitAlgorithmsTestCase):
             list(param_dict.values()),
         )
 
-        expected_bound_evolution_grad = [
+        expected_evolution_gradient = [
             (0.19308934095957098 - 1.4e-17j),
             (0.007027674650099142 - 0j),
             (0.03192524520091862 - 0j),
@@ -99,7 +99,7 @@ class TestImaginaryMcLachlanPrinciple(QiskitAlgorithmsTestCase):
             (-0.022892905637005294 + 3.5e-18j),
         ]
 
-        np.testing.assert_almost_equal(bound_evolution_grad, expected_bound_evolution_grad)
+        np.testing.assert_almost_equal(bound_evolution_gradient, expected_evolution_gradient)
 
 
 if __name__ == "__main__":

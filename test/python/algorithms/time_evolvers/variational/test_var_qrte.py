@@ -99,7 +99,6 @@ class TestVarQRTE(QiskitAlgorithmsTestCase):
                 ansatz,
                 var_principle,
                 init_param_values,
-                estimator,
                 num_timesteps=25,
             )
             evolution_result = var_qite.evolve(evolution_problem)
@@ -132,7 +131,6 @@ class TestVarQRTE(QiskitAlgorithmsTestCase):
                 ansatz,
                 var_principle,
                 init_param_values,
-                estimator,
                 num_timesteps=25,
             )
             evolution_result = var_qite.evolve(evolution_problem)
