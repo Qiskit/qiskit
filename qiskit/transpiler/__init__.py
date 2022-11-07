@@ -285,7 +285,7 @@ see the individual connectivity uou can pass the operation name to
 
     target.build_coupling_map('cz').draw()
 
-.. _transpiler_supplemental:
+.. _transpiler_stage_descriptions:
 
 Transpiler Stage Details
 ========================
