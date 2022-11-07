@@ -27,7 +27,7 @@ from qiskit.test import QiskitTestCase
 class TestPermutationSynthesis(QiskitTestCase):
     """Test the permutation synthesis functions."""
 
-    @data(4, 5, 10, 20)
+    @data(4, 5, 10, 15, 20)
     def test_get_ordered_swap(self, width):
         """Test get_ordered_swap function produces correct swap list."""
         np.random.seed(1)
@@ -40,7 +40,7 @@ class TestPermutationSynthesis(QiskitTestCase):
             self.assertTrue(np.array_equal(permutation, output))
             self.assertLess(len(swap_list), width)
 
-    @data(4, 5, 10, 20)
+    @data(4, 5, 10, 15, 20)
     def test_synth_permutation_depth_lnn_kms(self, width):
         """Test synth_permutation_depth_lnn_kms function produces the correct
         circuit."""
