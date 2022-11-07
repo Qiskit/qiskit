@@ -49,6 +49,19 @@ class TestPermutationSynthesis(QiskitTestCase):
             pattern = np.random.permutation(width)
             qc = synth_permutation_depth_lnn_kms(pattern)
 
+            # Check that the synthesized circuit consists of SWAP gates only,
+            # and that these SWAPs adhere to the LNN connectivity.
+            for instruction in qc.data:
+                self.assertEqual(instruction.operation.name, "swap")
+                q0 = qc.find_bit(instruction.qubits[0]).index
+                q1 = qc.find_bit(instruction.qubits[1]).index
+                dist = abs(q0 - q1)
+                self.assertTrue(dist, 1)
+
+            # Check that the depth of the circuit (measured in #SWAPs)
+            # does not exceed the number of qubits.
+            self.assertLessEqual(qc.depth(), width)
+
             # Construct a linear function from the synthesized circuit, and
             # check that its permutation pattern matches the original pattern.
             synthesized_pattern = LinearFunction(qc).permutation_pattern()
