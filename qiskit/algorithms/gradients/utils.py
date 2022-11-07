@@ -46,8 +46,7 @@ from qiskit.circuit.library.standard_gates import (
     RZZGate,
     XGate,
 )
-
-from .translate_parameterized import TranslateParameterizedGates
+from qiskit.transpiler.passes.basis import TranslateParameterizedGates
 
 
 @dataclass

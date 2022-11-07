@@ -1,0 +1,141 @@
+# This code is part of Qiskit.
+#
+# (C) Copyright IBM 2022.
+#
+# This code is licensed under the Apache License, Version 2.0. You may
+# obtain a copy of this license in the LICENSE.txt file in the root directory
+# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+#
+# Any modifications or derivative works of this code must retain this
+# copyright notice, and modified files need to carry a notice indicating
+# that they have been altered from the originals.
+
+"""Translate parameterized gates only, and leave others as they are."""
+
+from __future__ import annotations
+
+from qiskit.circuit import Instruction, ParameterExpression, QuantumCircuit
+from qiskit.converters import circuit_to_dag
+from qiskit.dagcircuit import DAGCircuit
+from qiskit.circuit.equivalence_library import EquivalenceLibrary
+from qiskit.exceptions import QiskitError
+
+from qiskit.transpiler.basepasses import TransformationPass
+
+from .basis_translator import BasisTranslator
+
+
+class TranslateParameterizedGates(TransformationPass):
+    """Translate parameterized gates to a supported basis set.
+
+    Once a parameterized instruction is found that is not in the ``supported_gates`` list,
+    the instruction is decomposed one level and the parameterized sub-blocks are recursively
+    decomposed. The recursion is stopped once all parameterized gates are in ``supported_gates``,
+    or if a gate has no definition and a translation to the basis is attempted (this might happen
+    e.g. for the ``UGate`` if it's not in the specified gate list).
+
+    Example:
+
+        The following, multiply nested circuit::
+
+            from qiskit.circuit import QuantumCircuit, ParameterVector
+            from qiskit.transpiler.passes import TranslateParameterizedGates
+
+            x = ParameterVector("x", 4)
+            block1 = QuantumCircuit(1)
+            block1.rx(x[0], 0)
+
+            sub_block = QuantumCircuit(2)
+            sub_block.cx(0, 1)
+            sub_block.rz(x[2], 0)
+
+            block2 = QuantumCircuit(2)
+            block2.ry(x[1], 0)
+            block2.append(sub_block.to_gate(), [0, 1])
+
+            block3 = QuantumCircuit(3)
+            block3.ccx(0, 1, 2)
+
+            circuit = QuantumCircuit(3)
+            circuit.append(block1.to_gate(), [1])
+            circuit.append(block2.to_gate(), [0, 1])
+            circuit.append(block3.to_gate(), [0, 1, 2])
+            circuit.cry(x[3], 0, 2)
+
+            supported_gates = ["rx", "ry", "rz", "cp", "crx", "cry", "crz"]
+            unrolled = TranslateParameterizedGates(supported_gates)(circuit)
+
+        is decomposed to::
+
+                 ┌──────────┐     ┌──────────┐┌─────────────┐
+            q_0: ┤ Ry(x[1]) ├──■──┤ Rz(x[2]) ├┤0            ├─────■──────
+                 ├──────────┤┌─┴─┐└──────────┘│             │     │
+            q_1: ┤ Rx(x[0]) ├┤ X ├────────────┤1 circuit-92 ├─────┼──────
+                 └──────────┘└───┘            │             │┌────┴─────┐
+            q_2: ─────────────────────────────┤2            ├┤ Ry(x[3]) ├
+                                              └─────────────┘└──────────┘
+
+    """
+
+    def __init__(
+        self, supported_gates: list[str], equivalence_library: EquivalenceLibrary | None = None
+    ) -> None:
+        """
+        Args:
+            supported_gates: A list of suppported basis gates specified as string.
+            equivalence_library: The equivalence library to translate the gates. Defaults
+                to the equivalence library of all Qiskit standard gates.
+        """
+        super().__init__()
+
+        if equivalence_library is None:
+            from qiskit.circuit.library.standard_gates.equivalence_library import _sel
+
+            equivalence_library = _sel
+
+        self._supported_gates = supported_gates
+        self._translator = BasisTranslator(equivalence_library, supported_gates)
+
+    def run(self, dag: DAGCircuit) -> DAGCircuit:
+        """Run the transpiler pass.
+
+        Args:
+            dag: The DAG circuit in which the parameterized gates should be unrolled.
+
+        Returns:
+            A DAG where the parameterized gates have been unrolled.
+
+        Raises:
+            QiskitError: If the circuit cannot be unrolled.
+        """
+        for node in dag.op_nodes():
+            # check whether it is parameterized and we need to decompose it
+            if _is_parameterized(node.op) and (node.op.name not in self._supported_gates):
+                definition = node.op.definition
+
+                if definition is not None:
+                    # recurse to unroll further parameterized blocks
+                    unrolled = self.run(circuit_to_dag(definition))
+                else:
+                    # if we hit a base case, try to translate to the specified basis
+                    try:
+                        unrolled = self._translator.run(_instruction_to_dag(node.op))
+                    except Exception as exc:
+                        raise QiskitError("Failed to translate final block.") from exc
+
+                # replace with unrolled (or translated) dag
+                dag.substitute_node_with_dag(node, unrolled)
+
+        return dag
+
+
+def _is_parameterized(op: Instruction) -> bool:
+    return any(
+        isinstance(param, ParameterExpression) and len(param.parameters) > 0 for param in op.params
+    )
+
+
+def _instruction_to_dag(op: Instruction) -> DAGCircuit:
+    circuit = QuantumCircuit(op.num_qubits, op.num_clbits)
+    circuit._append(op, circuit.qubits, circuit.clbits)
+    return circuit_to_dag(circuit)
