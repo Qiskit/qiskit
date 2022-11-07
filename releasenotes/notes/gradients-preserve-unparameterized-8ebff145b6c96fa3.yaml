@@ -6,3 +6,7 @@ features:
     custom, opaque gates that individual primitives can handle and keeps a higher
     level of abstraction for optimized synthesis and compilation after the gradient circuits
     have been constructed.
+  - |
+    Added a :class:`.TranslateParameterizedGates` pass to map only parameterized gates in a 
+    circuit to a specified basis, but leave unparameterized gates untouched. The pass first
+    attempts unrolling and finally translates if a parameterized gate cannot be further unrolled.
