@@ -30,7 +30,7 @@ resulting outcomes.  Rewriting quantum circuits to match hardware constraints an
 optimizing for performance can be far from trivial.  The flow of logic in the rewriting
 tool chain need not be linear, and can often have iterative sub-loops, conditional
 branches, and other complex behaviors. That being said, the standard
-compilation operates in fixedfollow the structure given below:
+compilation flow follows the structure given below:
 
 .. image:: /source_images/transpiling_core_steps.png
 
@@ -41,22 +41,24 @@ compilation operates in fixedfollow the structure given below:
 Qiskit has four pre-built transpilation pipelines available here:
 :mod:`qiskit.transpiler.preset_passmanagers`.  Unless the reader is familiar with
 quantum circuit optimization methods and their usage, it is best to use one of
-these ready-made routines. By default the preset pass managers into 6 stages:
+these ready-made routines. By default the preset pass managers are composed
+of 6 stages:
 
-#. ``init`` - any initial passes that are run before we start embedding the circuit to the backend
+#. ``init`` - This stage runs any initial passes that are run before we start embedding the
+   circuit to the backend
 #. ``layout`` - This stage runs layout and maps the virtual qubits in the circuit to the
    physical qubits on a backend. See :ref:`layout_stage` for more details.
 #. ``routing`` - This stage runs after a layout has been run and will insert any
    necessary gates to move the qubit states around until it can be run on
    backend's compuling map. See :ref:`routing_stage` for more details.
-#. ``translation`` - Perform the basis gate translation, in other words translate the gates
-   in the circuit to the target backend's basis set. For more details on this stage you can refer to
-   :ref:`translation_stage`.
-#. ``optimization`` - The main optimization loop, this will typically run in a loop trying to
-   optimize the circuit until a condtion (such as fixed depth) is reached. See
+#. ``translation`` - This stage performs the basis gate translation, in other words translate the
+   gates in the circuit to the target backend's basis set. For more details on this stage you can
+   refer to :ref:`translation_stage`.
+#. ``optimization`` - This stage runs the main optimization loop, this will typically run in a loop
+   trying to optimize the circuit until a condtion (such as fixed depth) is reached. See
    :ref:`optimization_stage` for more details.
-#. ``scheduling`` - Any hardware aware scheduling passes. See :ref:`scheduling_stage` for more
-   details.
+#. ``scheduling`` - This stage is for any hardware aware scheduling passes. See
+   :ref:`scheduling_stage` for more details.
 
 When using :func:`~.transpile` the specifics of each stage can modified with the ``*_method``
 arguments (e.g. ``layout_method``) and also refer to external plugins. You can refer to
@@ -146,7 +148,12 @@ circuits. You can leverage the :class:`~.StagedPassManager` class directly to do
 this. You can define arbitrary stage names and populate them a :class:`~.PassManager`
 instance. For example::
 
-    from qiskit.transpiler.passes import *
+    from qiskit.transpiler.passes import (
+        UnitarySynthesis,
+        Collect2qBlocks,
+        ConsolidateBlocks,
+        UnitarySynthesis,
+    )
     from qiskit.transpiler import PassManager, StagedPassManager
 
     basis_gates = ["rx", "ry", "rxx"]
@@ -353,7 +360,7 @@ quantum circuit and the number of gates.
 
 It is important to highlight two special cases:
 
-1. If A SWAP gate is not a native gate and must be decomposed this requires three CNOT gates:
+1. If A swap gate is not a native gate and must be decomposed this requires three CNOT gates:
 
    .. jupyter-execute::
 
@@ -361,10 +368,10 @@ It is important to highlight two special cases:
       swap_circ.swap(0, 1)
       swap_circ.decompose().draw(output='mpl')
 
-   As a product of three CNOT gates, SWAP gates are expensive operations to perform on a
+   As a product of three CNOT gates, swap gates are expensive operations to perform on a
    noisy quantum devices.  However, such operations are usually necessary for embedding a
    circuit into the limited entangling gate connectivities of actual devices. Thus,
-   minimizing the number of SWAP gates in a circuit is a primary goal in the
+   minimizing the number of swap gates in a circuit is a primary goal in the
    transpilation process.
 
 
@@ -400,7 +407,7 @@ By default, qiskit will do this mapping for you.  The choice of mapping depends 
 properties of the circuit, the particular device you are targeting, and the optimization
 level that is chosen The choice of initial layout is extremely important when:
 
-1. Computing the number of SWAP operations needed to map the input circuit onto the device
+1. Computing the number of swap operations needed to map the input circuit onto the device
    topology.
 
 2. Taking into account the noise properties of the device.
@@ -408,13 +415,13 @@ level that is chosen The choice of initial layout is extremely important when:
 The choice of `initial_layout` can mean the difference between getting a result,
 and getting nothing but noise. Due to the importance of this stage the preset pass managers
 try a few different methods to find the best layout. Typically this involves 2 stages, first
-trying to find a "perfect" layout (a layout which does not require any SWAP operations) and
+trying to find a "perfect" layout (a layout which does not require any swap operations) and
 a heuristic pass that tries to find the best layout to use if a perfect layout can not be found.
 For the first stage there are 2 passes typically used for this:
 
 - :class:`~.VF2Layout`: Models layout selection as a subgraph isomorphism problem and tries
   to find a subgraph of the connectivity graph that is isomporphic to the
-  graph of 2 qubit interactions in the circuit. If more than isomorphic mapping is found a
+  graph of 2 qubit interactions in the circuit. If more than one isomorphic mapping is found a
   scoring heuristic is run to select the mapping which would result in the lowest average error
   when executing the circuit.
 
@@ -427,6 +434,10 @@ Then for the heuristic pass 2 passes are used by default:
 - :class:`~.SabreLayout`: Used to select a layout if a perfect layout isn't found for optimization
   levels 1, 2, and 3.
 - :class:`~.TrivialLayout`: Always used for the layout at optimization level 0
+- :class:`~.DenseLayout`: Find the sub-graph of the device with same number
+  of qubits as the circuit with the greatest connectivity. Used for
+  optimization level 1 if there are control flow operations (such as
+  :class:`~.IfElseOp`) present in the circuit.
 
 Let's see what layouts are automatically picked at various optimization levels.  The modified
 circuits returned by :func:`qiskit.compiler.transpile` have this initial layout information
@@ -484,18 +495,18 @@ corresponding value is the label for the physical qubit to map onto:
 Routing Stage
 -------------
 
-In order to implement a CNOT gate between qubits in a quantum circuit that are not directly
-connected on a quantum device one or more SWAP gates must be inserted into the circuit to
-move the qubit states around until they are adjacent on the device gate map.  Each SWAP
+In order to implement a 2-qubit gate between qubits in a quantum circuit that are not directly
+connected on a quantum device one or more swap gates must be inserted into the circuit to
+move the qubit states around until they are adjacent on the device gate map. Each swap
 gate typically represents an expensive and noisy operation to perform. Thus, finding the
-minimum number of SWAP gates needed to map a circuit onto a given device, is an important
+minimum number of swap gates needed to map a circuit onto a given device, is an important
 step (if not the most important) in the whole execution process.
 
-However, as with many important things in life, finding the optimal SWAP mapping is hard.
-In fact it is in a class of problems called NP-Hard, and is thus prohibitively expensive
+However, as with many important things in life, finding the optimal swap mapping is hard.
+In fact it is in a class of problems called NP-hard, and is thus prohibitively expensive
 to compute for all but the smallest quantum devices and input circuits.  To get around this,
 by default Qiskit uses a stochastic heuristic algorithm called :class:`~.SabreSwap` to compute
-a good, but not necessarily minimal SWAP count.  The use of a stochastic method means the
+a good, but not necessarily minimal swap count.  The use of a stochastic method means the
 circuits generated by :func:`~.transpile` (or :func:`.execute` that calls :func:`~.transpile`
 internally) are not guaranteed to be the same over repeated runs.  Indeed, running the same
 circuit repeatedly will in general result in a distribution of circuit depths and gate counts
@@ -532,15 +543,15 @@ In order to highlight this, we run a GHZ circuit 100 times, using a "bad" (disco
    plt.ylabel('Counts', fontsize=14);
 
 
-This distribution is quite wide, signaling the difficulty the SWAP mapper is having
+This distribution is quite wide, signaling the difficulty the swap mapper is having
 in computing the best mapping.  Most circuits will have a distribution of depths,
-perhaps not as wide as this one, due to the stochastic nature of the default SWAP
+perhaps not as wide as this one, due to the stochastic nature of the default swap
 mapper. Of course, we want the best circuit we can get, especially in cases where
 the depth is critical to success or failure. In cases like this, it is best to
 :func:`.transpile` a circuit several times, e.g. 10, and take the one with the
 lowest depth. The :class:`~.SabreSwap` pass will do this by default by running its
 algorithm in parallel with multiple seed values and selecting the output which
-used the least number of SWAPs. If you would like to increase the number of trials
+used the least number of swaps. If you would like to increase the number of trials
 :class:`~.SabreSwap` runs you can refer to :ref:`working_with_preset_pass_managers`
 and modifying the ``routing`` stage with a custom instance of :class:`~.SabreSwap`
 with a larger value for the ``trials`` argument.
@@ -551,7 +562,7 @@ Optimization Stage
 ------------------
 
 Decomposing quantum circuits into the basis gate set of the target device,
-and the addition of SWAP gates needed to match hardware topology, conspire to
+and the addition of swap gates needed to match hardware topology, conspire to
 increase the depth and gate count of quantum circuits.  Fortunately many routines
 for optimizing circuits by combining or eliminating gates exist.  In some cases
 these methods are so effective the output circuits have lower depth than the inputs.
@@ -581,9 +592,9 @@ setting the optimization level higher:
 
 .. jupyter-execute::
 
-   for kk in range(4):
-      circ = transpile(ghz, backend, optimization_level=kk)
-      print('Optimization Level {}'.format(kk))
+   for level in range(4):
+      circ = transpile(ghz, backend, optimization_level=level)
+      print('Optimization Level {}'.format(level))
       print('Depth:', circ.depth())
       print('Gate counts:', circ.count_ops())
       print()
