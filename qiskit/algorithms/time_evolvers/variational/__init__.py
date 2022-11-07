@@ -78,8 +78,8 @@ Examples:
 Variational Principles
 ----------------------
 
-Variational principles can be used to simulate quantum time evolution by propagating the parameters
-of a parameterized quantum circuit.
+With variational principles we can project time evolution of a quantum state
+onto the parameters of a model, in our case a variational quantum circuit.
 
 They can be divided into two categories:
 
