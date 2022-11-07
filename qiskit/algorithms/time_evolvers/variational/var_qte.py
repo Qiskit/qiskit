@@ -123,14 +123,11 @@ class VarQTE(ABC):
             self.initial_parameters, self.ansatz.parameters
         )
 
-        error_calculator = None  # TODO will be supported in another PR
-
         evolved_state = self._evolve(
             init_state_param_dict,
             evolution_problem.hamiltonian,
             evolution_problem.time,
             evolution_problem.t_param,
-            error_calculator,
         )
 
         evaluated_aux_ops = None
@@ -149,7 +146,6 @@ class VarQTE(ABC):
         hamiltonian: BaseOperator | PauliSumOp,
         time: float,
         t_param: Parameter | None = None,
-        error_calculator: Any = None,
     ) -> BaseOperator | QuantumCircuit:
         r"""
         Helper method for performing time evolution. Works both for imaginary and real case.
@@ -166,7 +162,6 @@ class VarQTE(ABC):
                 The latter case enables the evaluation of a Quantum Natural Gradient.
             time: Total time of evolution.
             t_param: Time parameter in case of a time-dependent Hamiltonian.
-            error_calculator: Not yet supported. Calculator of errors for error-based ODE functions.
 
         Returns:
             Result of the evolution which is a quantum circuit with bound parameters as an
@@ -188,7 +183,7 @@ class VarQTE(ABC):
 
         # Convert the operator that holds the Hamiltonian and ansatz into a NaturalGradient operator
         ode_function = self._ode_function_factory._build(
-            linear_solver, error_calculator, init_state_param_dict, t_param
+            linear_solver, init_state_param_dict, t_param
         )
 
         ode_solver = VarQTEOdeSolver(

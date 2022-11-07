@@ -23,54 +23,33 @@ principle chosen by a user.
 
 Examples:
 
-.. code-block::
+.. code-block::python
 
-    from qiskit import BasicAer
-    from qiskit.circuit.library import EfficientSU2
-    from qiskit.opflow import SummedOp, I, Z, Y, X
+    from qiskit.algorithms import TimeEvolutionProblem, VarQITE
     from qiskit.algorithms.time_evolvers.variational import ImaginaryMcLachlanPrinciple
-    from qiskit.algorithms import TimeEvolutionProblem
-    from qiskit.algorithms import VarQITE
+    from qiskit.circuit.library import EfficientSU2
+    from qiskit.quantum_info import SparsePauliOp
+    import numpy as np
 
-    # define a Hamiltonian
-    observable = SummedOp(
+    observable = SparsePauliOp.from_list(
         [
-            0.2252 * (I ^ I),
-            0.5716 * (Z ^ Z),
-            0.3435 * (I ^ Z),
-            -0.4347 * (Z ^ I),
-            0.091 * (Y ^ Y),
-            0.091 * (X ^ X),
+            ("II", 0.2252),
+            ("ZZ", 0.5716),
+            ("IZ", 0.3435),
+            ("ZI", -0.4347),
+            ("YY", 0.091),
+            ("XX", 0.091),
         ]
-    ).reduce()
-
-    # define a parametrized initial state to be evolved
+    )
 
     ansatz = EfficientSU2(observable.num_qubits, reps=1)
-    parameters = ansatz.parameters
-
-    # define values of initial parameters
     init_param_values = np.zeros(len(ansatz.parameters))
     for i in range(len(ansatz.parameters)):
         init_param_values[i] = np.pi / 2
-    param_dict = dict(zip(parameters, init_param_values))
-
-    # define a variational principle
     var_principle = ImaginaryMcLachlanPrinciple()
-
-    # optionally define a backend
-    backend = BasicAer.get_backend("statevector_simulator")
-
-    # define evolution time
     time = 1
-
-    # define evolution problem
     evolution_problem = TimeEvolutionProblem(observable, time)
-
-    # instantiate the algorithm
-    var_qite = VarQITE(ansatz, var_principle, param_dict, quantum_instance=backend)
-
-    # run the algorithm/evolve the state
+    var_qite = VarQITE(ansatz, var_principle, init_param_values)
     evolution_result = var_qite.evolve(evolution_problem)
 
 .. currentmodule:: qiskit.algorithms.time_evolvers.variational

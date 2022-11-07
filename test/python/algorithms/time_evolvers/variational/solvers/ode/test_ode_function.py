@@ -67,9 +67,7 @@ class TestOdeFunctionGenerator(QiskitAlgorithmsTestCase):
         )
 
         time = 2
-        ode_function_generator = OdeFunction(
-            linear_solver, error_calculator=None, t_param=None, param_dict=param_dict
-        )
+        ode_function_generator = OdeFunction(linear_solver, t_param=None, param_dict=param_dict)
 
         qte_ode_function = ode_function_generator.var_qte_ode_function(time, param_dict.values())
 
@@ -126,7 +124,7 @@ class TestOdeFunctionGenerator(QiskitAlgorithmsTestCase):
     #         linear_solver,
     #     )
     #     ode_function_generator = OdeFunction(
-    #         linear_solver, error_calculator=None, t_param=t_param, param_dict=param_dict
+    #         linear_solver, t_param=t_param, param_dict=param_dict
     #     )
     #
     #     qte_ode_function = ode_function_generator.var_qte_ode_function(time, param_dict.values())

@@ -54,7 +54,6 @@ class OdeFunctionFactory(ABC):
     def _build(
         self,
         varqte_linear_solver: VarQTELinearSolver,
-        error_calculator: Any,
         param_dict: dict[Parameter, complex],
         t_param: Parameter | None = None,
     ) -> AbstractOdeFunction:
@@ -63,7 +62,6 @@ class OdeFunctionFactory(ABC):
 
         Args:
             varqte_linear_solver: Solver of LSE for the VarQTE algorithm.
-            error_calculator: Calculator of errors for error-based ODE functions.
             param_dict: Dictionary which relates parameter values to the parameters in the ansatz.
             t_param: Time parameter in case of a time-dependent Hamiltonian.
 
@@ -75,7 +73,7 @@ class OdeFunctionFactory(ABC):
 
         """
         if self.ode_function_type == OdeFunctionType.STANDARD_ODE:
-            return OdeFunction(varqte_linear_solver, error_calculator, param_dict, t_param)
+            return OdeFunction(varqte_linear_solver, param_dict, t_param)
         raise ValueError(
             f"Unsupported ODE function provided: {self.ode_function_type}."
             f" Only {[tp.value for tp in OdeFunctionType]} are supported."
