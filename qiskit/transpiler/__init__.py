@@ -69,9 +69,9 @@ Working With Preset Pass Managers
 
 By default Qiskit includes functions to build preset :class:`~.PassManager` objects.
 These preset passmanagers are what get used by the :func:`~.transpile` function
-for each optimization level. There are 4 optimizaiton levels from 0 to 3 where an increasing
+for each optimization level. There are 4 optimization levels from 0 to 3 where an increasing
 optimization level trades off execution time and computational effort vs potential optimization.
-Where level 0 performs no optimization and just maps the input circuit to the constraints of the
+Level 0 performs no optimization and just maps the input circuit to the constraints of the
 target backend and optimization level 3 spends the most effort to optimize the circuit. However,
 as most of the optimization techniques in the transpiler are heuristic based spending more
 computation effort does not always correlate to an improvement in the quality of the output
@@ -176,16 +176,16 @@ layout pass that is working with a :class:`~.Layout` this will be needed to appl
 Representing Quantum Computers
 ==============================
 
-To be able to compile a :class:`~.QuantumCircuit` for a target backendd the compiler needs to
+To be able to compile a :class:`~.QuantumCircuit` for a target backend the compiler needs to
 be able to represent that backend for the compiler. There are a few data structures for doing
 this. WHile the :class:`~.BackendV2` class defines the abstract user facing interface for
 querying and interacting with quantum hardware the transpiler has more targeted data structures
 which are used to represent a backend in the transpiler.
 
-The primarily data structure for this is the :class:`~.Target` class which is used to represent
+The primary data structure for this is the :class:`~.Target` class, which is used to represent
 the constraints and characteristics of a backend. It contains information on the properties of
 the various instructions and qubits on the device and any other information about the backend
-which can be used to influence the compilation of :class:`~.QuantumCircuit.
+which can be used to influence the compilation of the :class:`~.QuantumCircuit`.
 
 For example, to construct a simple :class:`~.Target` object:
 
@@ -481,8 +481,8 @@ corresponding value is the label for the physical qubit to map onto:
 
 .. _routing_stage:
 
-Routing Statge
---------------
+Routing Stage
+-------------
 
 In order to implement a CNOT gate between qubits in a quantum circuit that are not directly
 connected on a quantum device one or more SWAP gates must be inserted into the circuit to
@@ -532,12 +532,12 @@ In order to highlight this, we run a GHZ circuit 100 times, using a "bad" (disco
    plt.ylabel('Counts', fontsize=14);
 
 
-This distribution is quite wide, signaling the difficultly the SWAP mapper is having
+This distribution is quite wide, signaling the difficulty the SWAP mapper is having
 in computing the best mapping.  Most circuits will have a distribution of depths,
 perhaps not as wide as this one, due to the stochastic nature of the default SWAP
 mapper. Of course, we want the best circuit we can get, especially in cases where
 the depth is critical to success or failure. In cases like this, it is best to
-:func:`transpile` a circuit several times, e.g. 10, and take the one with the
+:func:`.transpile` a circuit several times, e.g. 10, and take the one with the
 lowest depth. The :class:`~.SabreSwap` pass will do this by default by running its
 algorithm in parallel with multiple seed values and selecting the output which
 used the least number of SWAPs. If you would like to increase the number of trials
@@ -562,7 +562,7 @@ setting the optimization level higher:
 
 .. important::
 
-   The output from :func:`transpile` varies due to the stochastic swap mapper.
+   The output from :func:`.transpile` varies due to the stochastic swap mapper.
    So the numbers below will likely change each time you run the code.
 
 
@@ -651,7 +651,7 @@ Policy of topological node ordering in scheduling:
 
 The DAG representation of ``QuantumCircuit`` respects the node ordering also in the
 classical register wires, though theoretically two conditional instructions
-conditioned on the same register are commute, i.e. read-access to the
+conditioned on the same register could commute, i.e. read-access to the
 classical register doesn't change its state.
 
 .. parsed-literal::
