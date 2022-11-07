@@ -20,7 +20,7 @@ Qiskit Tools (:mod:`qiskit.tools`)
 Parallel Routines
 -----------------
 
-A helper function for calling a custom function with python ProcessPoolExecutor.
+A helper function for calling a custom function with python ``ProcessPoolExecutor``.
 Tasks can be executed in parallel using this function.
 It has a built-in event publisher to show the progress of the parallel tasks.
 
