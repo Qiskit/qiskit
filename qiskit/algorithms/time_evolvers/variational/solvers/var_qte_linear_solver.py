@@ -34,7 +34,7 @@ class VarQTELinearSolver:
         var_principle: VariationalPrinciple,
         hamiltonian: BaseOperator | PauliSumOp,
         ansatz: QuantumCircuit,
-        gradient_params: list[Parameter],
+        gradient_params: list[Parameter] | None = None,
         t_param: Parameter | None = None,
         lse_solver: Callable[[np.ndarray, np.ndarray], np.ndarray] | None = None,
         imag_part_tol: float = 1e-7,
@@ -45,6 +45,7 @@ class VarQTELinearSolver:
             hamiltonian: Operator used for Variational Quantum Time Evolution.
             ansatz: Quantum state in the form of a parametrized quantum circuit.
             gradient_params: List of parameters with respect to which gradients should be computed.
+                If ``None`` given, gradients w.r.t. all parameters will be computed.
             t_param: Time parameter in case of a time-dependent Hamiltonian.
             lse_solver: Linear system of equations solver callable. It accepts ``A`` and ``b`` to
                 solve ``Ax=b`` and returns ``x``. If ``None``, the default ``np.linalg.lstsq``
@@ -100,12 +101,7 @@ class VarQTELinearSolver:
             hamiltonian = self._hamiltonian.assign_parameters({self._time_param: time_value})
 
         evolution_grad_lse_rhs = self._var_principle.evolution_gradient(
-            hamiltonian,
-            self._ansatz,
-            param_dict,
-            self._bind_params,
-            self._gradient_params,
-            param_values,
+            hamiltonian, self._ansatz, param_values, self._gradient_params
         )
 
         x = self._lse_solver(metric_tensor_lse_lhs, evolution_grad_lse_rhs)

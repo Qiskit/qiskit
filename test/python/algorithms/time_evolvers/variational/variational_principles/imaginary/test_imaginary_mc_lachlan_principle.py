@@ -13,6 +13,7 @@
 """Test imaginary McLachlan's variational principle."""
 
 import unittest
+
 from test.python.algorithms.time_evolvers.variational.variational_principles.expected_results.test_imaginary_mc_lachlan_variational_principle_expected1 import (
     expected_bound_metric_tensor_1,
 )
@@ -24,7 +25,8 @@ from qiskit.algorithms.time_evolvers.variational import (
     ImaginaryMcLachlanPrinciple,
 )
 from qiskit.circuit.library import EfficientSU2
-
+from qiskit.algorithms.gradients import LinCombEstimatorGradient, DerivativeType
+from qiskit.primitives import Estimator
 
 class TestImaginaryMcLachlanPrinciple(QiskitAlgorithmsTestCase):
     """Test imaginary McLachlan's variational principle."""
@@ -76,12 +78,7 @@ class TestImaginaryMcLachlanPrinciple(QiskitAlgorithmsTestCase):
         var_principle = ImaginaryMcLachlanPrinciple()
 
         bound_evolution_gradient = var_principle.evolution_gradient(
-            observable,
-            ansatz,
-            param_dict,
-            parameters,
-            parameters,
-            list(param_dict.values()),
+            observable, ansatz, list(param_dict.values()), parameters
         )
 
         expected_evolution_gradient = [
@@ -100,6 +97,16 @@ class TestImaginaryMcLachlanPrinciple(QiskitAlgorithmsTestCase):
         ]
 
         np.testing.assert_almost_equal(bound_evolution_gradient, expected_evolution_gradient)
+
+    def test_gradient_setting(self):
+        """Test reactions to wrong gradient settings.."""
+        estimator = Estimator()
+        gradient = LinCombEstimatorGradient(estimator, derivative_type=DerivativeType.IMAG)
+
+        with self.assertWarns(Warning):
+            var_principle = ImaginaryMcLachlanPrinciple(gradient=gradient)
+
+        np.testing.assert_equal(var_principle.gradient._derivative_type, DerivativeType.REAL)
 
 
 if __name__ == "__main__":

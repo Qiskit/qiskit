@@ -74,10 +74,8 @@ class VariationalPrinciple(ABC):
         self,
         hamiltonian: BaseOperator | PauliSumOp,
         ansatz: QuantumCircuit,
-        param_dict: dict[Parameter, complex],
-        bind_params: list[Parameter],
-        gradient_params: list[Parameter],
         param_values: list[complex],
+        gradient_params: list[Parameter] | None = None,
     ) -> np.ndarray:
         """
         Calculates an evolution gradient according to the rules of this variational principle.
@@ -85,10 +83,9 @@ class VariationalPrinciple(ABC):
         Args:
             hamiltonian: Operator used for Variational Quantum Time Evolution.
             ansatz: Quantum state in the form of a parametrized quantum circuit.
-            param_dict: Dictionary which relates parameter values to the parameters in the ansatz.
-            bind_params: List of parameters that are supposed to be bound.
-            gradient_params: List of parameters with respect to which gradients should be computed.
             param_values: Values of parameters to be bound.
+            gradient_params: List of parameters with respect to which gradients should be computed.
+                If ``None`` given, gradients w.r.t. all parameters will be computed.
 
         Returns:
             An evolution gradient.

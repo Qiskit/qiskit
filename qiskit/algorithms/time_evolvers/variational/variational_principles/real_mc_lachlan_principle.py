@@ -13,6 +13,8 @@
 """Class for a Real McLachlan's Variational Principle."""
 from __future__ import annotations
 
+import warnings
+
 import numpy as np
 from numpy import real
 
@@ -56,7 +58,8 @@ class RealMcLachlanPrinciple(RealVariationalPrinciple):
             gradient: Instance of a class used to compute the state gradient. If ``None`` provided,
                 ``LinCombEstimatorGradient`` is used.
         """
-        # TODO validate that gradient passed has IMAG
+        self._validate_grad_settings(gradient)
+
         if gradient is not None and gradient._estimator is not None and qfi is None:
             estimator = gradient._estimator
             qfi = LinCombQFI(estimator)
@@ -71,10 +74,8 @@ class RealMcLachlanPrinciple(RealVariationalPrinciple):
         self,
         hamiltonian: BaseOperator | PauliSumOp,
         ansatz: QuantumCircuit,
-        param_dict: dict[Parameter, complex],
-        bind_params: list[Parameter],
-        gradient_params: list[Parameter],
         param_values: list[complex],
+        gradient_params: list[Parameter] | None = None,
     ) -> np.ndarray:
         """
         Calculates an evolution gradient according to the rules of this variational principle.
@@ -82,10 +83,9 @@ class RealMcLachlanPrinciple(RealVariationalPrinciple):
         Args:
             hamiltonian: Operator used for Variational Quantum Time Evolution.
             ansatz: Quantum state in the form of a parametrized quantum circuit.
-            param_dict: Dictionary which relates parameter values to the parameters in the ansatz.
-            bind_params: List of parameters that are supposed to be bound.
-            gradient_params: List of parameters with respect to which gradients should be computed.
             param_values: Values of parameters to be bound.
+            gradient_params: List of parameters with respect to which gradients should be computed.
+                If ``None`` given, gradients w.r.t. all parameters will be computed.
 
         Returns:
             An evolution gradient.
@@ -139,3 +139,19 @@ class RealMcLachlanPrinciple(RealVariationalPrinciple):
             hamiltonian.to_list() + [("I" * hamiltonian.num_qubits, -energy)]
         )
         return energy_term
+
+    @staticmethod
+    def _validate_grad_settings(gradient):
+        if gradient is not None:
+            if not hasattr(gradient, "_derivative_type"):
+                raise ValueError(
+                    "The gradient instance provided does not support calculating imaginary part. "
+                    "Please choose a different gradient class."
+                )
+            if gradient._derivative_type != DerivativeType.IMAG:
+                warnings.warn(
+                    "A gradient instance with a setting for calculating real part of the"
+                    "gradient was provided. This variational principle requires the"
+                    "imaginary part. The setting to imaginary was changed automatically."
+                )
+                gradient._derivative_type = DerivativeType.IMAG
