@@ -196,8 +196,8 @@ class TestBackendSampler(QiskitTestCase):
 
         self.assertDictAlmostEqual(result.quasi_dists[0], {0: 1}, 0.1)
         self.assertDictAlmostEqual(result.quasi_dists[1], {1: 1}, 0.1)
-        self.assertDictAlmostEqual(result.quasi_dists[2], {2: 1}, 0.2)
-        self.assertDictAlmostEqual(result.quasi_dists[3], {3: 1}, 0.2)
+        self.assertDictAlmostEqual(result.quasi_dists[2], {2: 1}, 0.1)
+        self.assertDictAlmostEqual(result.quasi_dists[3], {3: 1}, 0.1)
 
     @combine(backend=BACKENDS)
     def test_run_errors(self, backend):
@@ -227,7 +227,7 @@ class TestBackendSampler(QiskitTestCase):
             self.assertEqual(len(result.quasi_dists), 1)
             for q_d in result.quasi_dists:
                 quasi_dist = {k: v for k, v in q_d.items() if v != 0.0}
-                self.assertDictAlmostEqual(quasi_dist, {0: 1.0}, delta=0.2)
+                self.assertDictAlmostEqual(quasi_dist, {0: 1.0}, delta=0.1)
             self.assertEqual(len(result.metadata), 1)
 
         with self.subTest("two circuits"):
@@ -235,7 +235,7 @@ class TestBackendSampler(QiskitTestCase):
             self.assertEqual(len(result.quasi_dists), 2)
             for q_d in result.quasi_dists:
                 quasi_dist = {k: v for k, v in q_d.items() if v != 0.0}
-                self.assertDictAlmostEqual(quasi_dist, {0: 1.0}, delta=0.2)
+                self.assertDictAlmostEqual(quasi_dist, {0: 1.0}, delta=0.1)
             self.assertEqual(len(result.metadata), 2)
 
     @combine(backend=BACKENDS)

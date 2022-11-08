@@ -123,11 +123,7 @@ class FakeBackendV2(BackendV2):
 
             self.sim = aer.AerSimulator()
             if self.target and self._props_dict:
-                with warnings.catch_warnings():
-                    warnings.filterwarnings(
-                        "ignore", category=UserWarning, module="qiskit_aer.noise.device"
-                    )
-                    noise_model = NoiseModel.from_backend(self)
+                noise_model = NoiseModel.from_backend(self)
                 self.sim.set_options(noise_model=noise_model)
                 # Update fake backend default too to avoid overwriting
                 # it when run() is called
