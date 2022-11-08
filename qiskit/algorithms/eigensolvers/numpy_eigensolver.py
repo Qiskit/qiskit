@@ -21,7 +21,7 @@ from scipy import sparse as scisparse
 
 from qiskit.opflow import PauliSumOp
 from qiskit.quantum_info.operators.base_operator import BaseOperator
-from qiskit.quantum_info import Statevector
+from qiskit.quantum_info import Operator, SparsePauliOp, Statevector
 from qiskit.utils.validation import validate_min
 
 from .eigensolver import Eigensolver, EigensolverResult
@@ -53,12 +53,12 @@ class NumPyEigensolver(Eigensolver):
     ) -> None:
         """
         Args:
-            k: number of eigenvalues are to be computed, with a min. value of 1.
-            filter_criterion: callable that allows to filter eigenvalues/eigenstates. Only feasible
+            k: Number of eigenvalues are to be computed, with a minimum value of 1.
+            filter_criterion: Callable that allows to filter eigenvalues/eigenstates. Only feasible
                 eigenstates are returned in the results. The callable has the signature
                 ``filter(eigenstate, eigenvalue, aux_values)`` and must return a boolean to indicate
                 whether to keep this value in the final returned result or not. If the number of
-                elements that satisfies the criterion is smaller than `k`, then the returned list will
+                elements that satisfies the criterion is smaller than ``k``, then the returned list will
                 have fewer elements and can even be empty.
         """
         validate_min("k", k, 1)
@@ -68,8 +68,6 @@ class NumPyEigensolver(Eigensolver):
         self._k = k
 
         self._filter_criterion = filter_criterion
-
-        self._ret = NumPyEigensolverResult()
 
     @property
     def k(self) -> int:
@@ -141,37 +139,24 @@ class NumPyEigensolver(Eigensolver):
         else:
             logger.debug("SciPy not supported, using NumPy instead.")
 
-            if operator.data.all() == operator.data.conj().T.all():
-                eigval, eigvec = np.linalg.eigh(operator.data)
+            if isinstance(operator, Operator):
+                op_matrix = operator.data
             else:
-                eigval, eigvec = np.linalg.eig(operator.data)
+                op_matrix = operator.to_matrix()
+
+            if op_matrix.all() == op_matrix.conj().T.all():
+                eigval, eigvec = np.linalg.eigh(op_matrix)
+            else:
+                eigval, eigvec = np.linalg.eig(op_matrix)
 
             indices = np.argsort(eigval)[: self._k]
             eigval = eigval[indices]
             eigvec = eigvec[:, indices]
 
-        self._ret.eigenvalues = eigval
-        self._ret.eigenstates = eigvec.T
-
-    def _get_ground_state_energy(self, operator: BaseOperator | PauliSumOp) -> None:
-        if self._ret.eigenvalues is None or self._ret.eigenstates is None:
-            self._solve(operator)
-
-    def _get_energies(
-        self,
-        operator: BaseOperator | PauliSumOp,
-        aux_operators: ListOrDict[BaseOperator | PauliSumOp] | None,
-    ) -> None:
-        if self._ret.eigenvalues is None or self._ret.eigenstates is None:
-            self._solve(operator)
-
-        if aux_operators is not None:
-            aux_op_vals = []
-            for i in range(self._k):
-                aux_op_vals.append(
-                    self._eval_aux_operators(aux_operators, self._ret.eigenstates[i])
-                )
-            self._ret.aux_operators_evaluated = aux_op_vals
+        result = NumPyEigensolverResult()
+        result.eigenvalues = eigval
+        result.eigenstates = eigvec.T
+        return result
 
     @staticmethod
     def _eval_aux_operators(
@@ -226,7 +211,8 @@ class NumPyEigensolver(Eigensolver):
         super().compute_eigenvalues(operator, aux_operators)
 
         self._check_set_k(operator)
-        zero_op = PauliSumOp.from_list([("I", 1)]).tensorpower(operator.num_qubits) * 0.0
+
+        zero_op = SparsePauliOp(["I" * operator.num_qubits], coeffs=[0.0])
         if isinstance(aux_operators, list) and len(aux_operators) > 0:
             # For some reason Chemistry passes aux_ops with 0 qubits and paulis sometimes.
             aux_operators = [zero_op if op == 0 else op for op in aux_operators]
@@ -244,11 +230,14 @@ class NumPyEigensolver(Eigensolver):
             # need to consider all elements if a filter is set
             self._k = 2**operator.num_qubits
 
-        self._ret = NumPyEigensolverResult()
-        self._solve(operator)
+        result = self._solve(operator)
 
         # compute energies before filtering, as this also evaluates the aux operators
-        self._get_energies(operator, aux_operators)
+        if aux_operators is not None:
+            aux_op_vals = []
+            for i in range(self._k):
+                aux_op_vals.append(self._eval_aux_operators(aux_operators, result.eigenstates[i]))
+            result.aux_operators_evaluated = aux_op_vals
 
         # if a filter is set, loop over the given values and only keep
         if self._filter_criterion:
@@ -257,36 +246,35 @@ class NumPyEigensolver(Eigensolver):
             eigvals = []
             aux_ops = []
             cnt = 0
-            for i in range(len(self._ret.eigenvalues)):
-                eigvec = self._ret.eigenstates[i]
-                eigval = self._ret.eigenvalues[i]
-                if self._ret.aux_operators_evaluated is not None:
-                    aux_op = self._ret.aux_operators_evaluated[i]
+            for i in range(len(result.eigenvalues)):
+                eigvec = result.eigenstates[i]
+                eigval = result.eigenvalues[i]
+                if result.aux_operators_evaluated is not None:
+                    aux_op = result.aux_operators_evaluated[i]
                 else:
                     aux_op = None
                 if self._filter_criterion(eigvec, eigval, aux_op):
                     cnt += 1
                     eigvecs += [eigvec]
                     eigvals += [eigval]
-                    if self._ret.aux_operators_evaluated is not None:
+                    if result.aux_operators_evaluated is not None:
                         aux_ops += [aux_op]
                 if cnt == k_orig:
                     break
 
-            self._ret.eigenstates = np.array(eigvecs)
-            self._ret.eigenvalues = np.array(eigvals)
+            result.eigenstates = np.array(eigvecs)
+            result.eigenvalues = np.array(eigvals)
             # conversion to np.array breaks in case of aux_ops
-            self._ret.aux_operators_evaluated = aux_ops
+            result.aux_operators_evaluated = aux_ops
 
             self._k = k_orig
 
-        # evaluate ground state after filtering (in case a filter is set)
-        self._get_ground_state_energy(operator)
-        if self._ret.eigenstates is not None:
-            self._ret.eigenstates = [Statevector(vec) for vec in self._ret.eigenstates]
+        if result.eigenstates is not None:
+            # convert eigenstates from arrays to Statevectors
+            result.eigenstates = [Statevector(vec) for vec in result.eigenstates]
 
-        logger.debug("NumpyEigensolverResult:\n%s", self._ret)
-        return self._ret
+        logger.debug("NumpyEigensolverResult:\n%s", result)
+        return result
 
 
 class NumPyEigensolverResult(EigensolverResult):
