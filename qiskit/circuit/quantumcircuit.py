@@ -437,6 +437,14 @@ class QuantumCircuit:
             raise TypeError("Only a dictionary or None is accepted for circuit metadata")
         self._metadata = metadata
 
+    def __repr__(self):
+        return (
+            f"<QuantumCircuit '{self.name}' with"
+            f" {self.num_qubits} qubits, {self.num_clbits} clbits"
+            f", {len(self._data)} instructions, {len(self._calibrations)} calibrations"
+            f", and global_phase={self._global_phase}>"
+        )
+
     def __str__(self) -> str:
         return str(self.draw(output="text"))
 
