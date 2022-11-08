@@ -1,4 +1,0 @@
----
-fixes:
-  - |
-    Catch error of missing bounds for SNOBFIT optimizer (raising error with clear error message). Arises e.g. when ansatz `UCC` is used in combination with SNOBFIT. Refer to `#8580 <https://github.com/Qiskit/qiskit-terra/issues/8580>` for more details.

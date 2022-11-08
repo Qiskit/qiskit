@@ -1,0 +1,5 @@
+---
+fixes:
+  - |
+    Fixed an issue where in some cases pulse visualization would omit some of
+    the channels in a schedule. Fixed #8981.
