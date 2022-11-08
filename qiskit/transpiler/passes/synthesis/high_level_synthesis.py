@@ -178,5 +178,5 @@ class DefaultSynthesisPermutation(HighLevelSynthesisPlugin):
 
     def run(self, high_level_object, **options):
         """Run synthesis for the given LinearFunction."""
-        decomposition = synth_permutation_depth_lnn_kms(high_level_object.params[0])
+        decomposition = synth_permutation_depth_lnn_kms(high_level_object.pattern)
         return decomposition

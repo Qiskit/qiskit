@@ -97,3 +97,8 @@ class Permutation(Gate):
     def validate_parameter(self, parameter):
         """Parameter validation"""
         return parameter
+
+    @property
+    def pattern(self):
+        """Returns the permutation pattern defining this permutation."""
+        return self.params[0]
