@@ -16,11 +16,11 @@ from typing import List, Optional
 
 import numpy as np
 
-from qiskit.circuit.quantumcircuit import QuantumCircuit
+from qiskit.circuit.quantumcircuit import QuantumCircuit, Gate
 from qiskit.circuit.exceptions import CircuitError
 
 
-class Permutation(QuantumCircuit):
+class Permutation(Gate):
     """An n_qubit circuit that permutes qubits."""
 
     def __init__(
@@ -77,11 +77,14 @@ class Permutation(QuantumCircuit):
             pattern = np.arange(num_qubits)
             rng.shuffle(pattern)
 
+        super().__init__(name="permutation", num_qubits=num_qubits, params=[pattern])
+
+    def _define(self):
+        """Populates self.definition with a decomposition of this gate."""
+
+        pattern = self.params[0]
         name = "permutation_" + np.array_str(pattern).replace(" ", ",")
-
-        circuit = QuantumCircuit(num_qubits, name=name)
-
-        super().__init__(num_qubits, name=name)
+        circuit = QuantumCircuit(self.num_qubits, name=name)
 
         # pylint: disable=cyclic-import
         from qiskit.synthesis.permutation.permutation_utils import _get_ordered_swap
@@ -89,5 +92,8 @@ class Permutation(QuantumCircuit):
         for i, j in _get_ordered_swap(pattern):
             circuit.swap(i, j)
 
-        all_qubits = self.qubits
-        self.append(circuit.to_gate(), all_qubits)
+        self.definition = circuit
+
+    def validate_parameter(self, parameter):
+        """Parameter validation"""
+        return parameter

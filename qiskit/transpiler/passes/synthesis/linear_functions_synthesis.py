@@ -57,5 +57,5 @@ class LinearFunctionsToPermutations(TransformationPass):
                 continue
 
             permutation = Permutation(len(pattern), pattern)
-            dag.substitute_node(node, permutation.to_instruction())
+            dag.substitute_node(node, permutation)
         return dag

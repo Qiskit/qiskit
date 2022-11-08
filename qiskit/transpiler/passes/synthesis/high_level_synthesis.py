@@ -20,6 +20,7 @@ from qiskit.dagcircuit.dagcircuit import DAGCircuit
 from qiskit.transpiler.exceptions import TranspilerError
 from qiskit.quantum_info import decompose_clifford
 from qiskit.synthesis.linear import synth_cnot_count_full_pmh
+from qiskit.synthesis.permutation import synth_permutation_depth_lnn_kms
 from .plugin import HighLevelSynthesisPluginManager, HighLevelSynthesisPlugin
 
 
@@ -169,4 +170,13 @@ class DefaultSynthesisLinearFunction(HighLevelSynthesisPlugin):
     def run(self, high_level_object, **options):
         """Run synthesis for the given LinearFunction."""
         decomposition = synth_cnot_count_full_pmh(high_level_object.linear)
+        return decomposition
+
+
+class DefaultSynthesisPermutation(HighLevelSynthesisPlugin):
+    """The default permutation synthesis plugin."""
+
+    def run(self, high_level_object, **options):
+        """Run synthesis for the given LinearFunction."""
+        decomposition = synth_permutation_depth_lnn_kms(high_level_object.params[0])
         return decomposition
