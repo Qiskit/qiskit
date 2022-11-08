@@ -1,0 +1,9 @@
+---
+fixes:
+  - |
+    Fixed an issue with
+    :class:`~qiskit.algorithms.eigensolvers.NumPyEigensolver` and by extension
+    :class:`~qiskit.algorithms.minimum_eigensolvers.NumPyMinimumEigensolver`
+    where solving for :class:`~qiskit.operators.base_operator.BaseOperator`
+    subclasses other than :class:`~qiskit.operators.Operator` would cause an
+    error. 
