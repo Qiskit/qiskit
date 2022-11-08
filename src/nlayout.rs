@@ -117,3 +117,9 @@ impl NLayout {
         self.clone()
     }
 }
+
+#[pymodule]
+pub fn nlayout(_py: Python, m: &PyModule) -> PyResult<()> {
+    m.add_class::<NLayout>()?;
+    Ok(())
+}
