@@ -28,6 +28,7 @@ from qiskit.circuit.library import EfficientSU2
 from qiskit.algorithms.gradients import LinCombEstimatorGradient, DerivativeType
 from qiskit.primitives import Estimator
 
+
 class TestRealMcLachlanPrinciple(QiskitAlgorithmsTestCase):
     """Test real McLachlan's variational principle."""
 

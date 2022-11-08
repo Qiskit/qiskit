@@ -18,11 +18,13 @@ from typing import Callable
 import numpy as np
 
 from qiskit import QuantumCircuit
+from qiskit.algorithms.time_evolvers.variational.solvers.ode.assign_params import assign_parameters
 from qiskit.algorithms.time_evolvers.variational.variational_principles.variational_principle import (
     VariationalPrinciple,
 )
 from qiskit.circuit import Parameter
 from qiskit.opflow import PauliSumOp
+from qiskit.quantum_info import SparsePauliOp
 from qiskit.quantum_info.operators.base_operator import BaseOperator
 
 
@@ -91,14 +93,25 @@ class VarQTELinearSolver:
 
         Returns:
             Solution to the LSE, A from Ax=b, b from Ax=b.
+
+        Raises:
+            ValueError: If time dependence expected from a non ``SparsePauliOp`` operator.
+
         """
         param_values = list(param_dict.values())
         metric_tensor_lse_lhs = self._var_principle.metric_tensor(self._ansatz, param_values)
         hamiltonian = self._hamiltonian
 
         if self._time_param is not None:
-            # TODO this turns into OperatorBase
-            hamiltonian = self._hamiltonian.assign_parameters({self._time_param: time_value})
+            if isinstance(self._hamiltonian, SparsePauliOp):
+                bound_params_array = assign_parameters(self._hamiltonian.coeffs, [time_value])
+                hamiltonian = SparsePauliOp(self._hamiltonian.paulis, bound_params_array)
+            else:
+                raise ValueError(
+                    f"``time_param`` was provided as not ``None`` but the  Hamiltonian provided is "
+                    f"of the type {type(self._hamiltonian)} that does not support parametrization."
+                    f"Provide the Hamiltonian as a parametrized SparsePauliOp instead."
+                )
 
         evolution_grad_lse_rhs = self._var_principle.evolution_gradient(
             hamiltonian, self._ansatz, param_values, self._gradient_params
