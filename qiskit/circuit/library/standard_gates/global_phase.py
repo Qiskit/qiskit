@@ -12,14 +12,17 @@
 
 """Global Phase Gate"""
 
-from typing import Optional, Union
+from typing import Optional #, Union
+
 # import numpy
 # from qiskit.qasm import pi
 # from qiskit.circuit.controlledgate import ControlledGate
 from qiskit.circuit.gate import Gate
 from qiskit.circuit.quantumregister import QuantumRegister
+
 # from qiskit.circuit._utils import _compute_control_matrix
 from qiskit.circuit.quantumcircuit import QuantumCircuit
+
 # from qiskit.circuit.exceptions import CircuitError
 
 
@@ -53,7 +56,6 @@ class GlobalPhaseGate(Gate):
 
     def _define(self):
         # pylint: disable=cyclic-import
-        from qiskit.circuit.quantumcircuit import QuantumCircuit
 
         q = QuantumRegister(0, "q")
         qc = QuantumCircuit(q, name=self.name, global_phase=self.phase)  # pylint: disable=no-member
