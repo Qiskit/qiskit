@@ -53,11 +53,6 @@ class TestRegisterClass(QiskitTestCase):
             _ = reg_type(bits=bits)
 
     @data(QuantumRegister, ClassicalRegister, AncillaRegister)
-    def test_init_raise_if_passed_invalid_name(self, reg_type):
-        with self.assertRaisesRegex(CircuitError, "invalid OPENQASM register name"):
-            _ = reg_type(size=1, name="_q")
-
-    @data(QuantumRegister, ClassicalRegister, AncillaRegister)
     def test_init_with_zero_size(self, reg_type):
         register = reg_type(0)
         self.assertEqual(register.size, 0)
