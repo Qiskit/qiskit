@@ -12,7 +12,7 @@
 
 """Global Phase Gate"""
 
-from typing import Optional #, Union
+from typing import Optional  # , Union
 
 # import numpy
 # from qiskit.qasm import pi
@@ -52,7 +52,7 @@ class GlobalPhaseGate(Gate):
             num_qubits: The number of qubits the gate acts on.
             label: An optional label for the gate.
         """
-        super().__init__("gphase", 0, [], label=label)
+        super().__init__("gphase", 0, [phase], label=label)
 
     def _define(self):
         # pylint: disable=cyclic-import
