@@ -47,7 +47,7 @@ z3_requirements = [
 ]
 bip_requirements = ["cplex", "docplex"]
 csp_requirements = ["python-constraint>=1.4"]
-toqm_requirements = ["qiskit-toqm>=0.0.4"]
+toqm_requirements = ["qiskit-toqm>=0.1.0"]
 
 setup(
     name="qiskit-terra",
@@ -72,6 +72,7 @@ setup(
         "Programming Language :: Python :: 3.8",
         "Programming Language :: Python :: 3.9",
         "Programming Language :: Python :: 3.10",
+        "Programming Language :: Python :: 3.11",
         "Topic :: Scientific/Engineering",
     ],
     keywords="qiskit sdk quantum",

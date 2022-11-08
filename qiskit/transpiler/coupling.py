@@ -79,6 +79,9 @@ class CouplingMap:
         """
         return self.graph.edge_list()
 
+    def __iter__(self):
+        return iter(self.graph.edge_list())
+
     def add_physical_qubit(self, physical_qubit):
         """Add a physical qubit to the coupling graph as a node.
 
