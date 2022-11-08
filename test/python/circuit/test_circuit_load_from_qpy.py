@@ -1116,3 +1116,52 @@ class TestLoadFromQPY(QiskitTestCase):
             fptr.seek(0)
             new_circuit = load(fptr)[0]
         self.assertEqual(qc, new_circuit)
+
+    def test_roundtrip_empty_register(self):
+        """Test that empty registers round-trip correctly."""
+        qc = QuantumCircuit(QuantumRegister(0), ClassicalRegister(0))
+        with io.BytesIO() as fptr:
+            dump(qc, fptr)
+            fptr.seek(0)
+            new_circuit = load(fptr)[0]
+        self.assertEqual(qc, new_circuit)
+        self.assertEqual(qc.qregs, new_circuit.qregs)
+        self.assertEqual(qc.cregs, new_circuit.cregs)
+
+    def test_roundtrip_several_empty_registers(self):
+        """Test that several empty registers round-trip correctly."""
+        qc = QuantumCircuit(
+            QuantumRegister(0, "a"),
+            QuantumRegister(0, "b"),
+            ClassicalRegister(0, "c"),
+            ClassicalRegister(0, "d"),
+        )
+        with io.BytesIO() as fptr:
+            dump(qc, fptr)
+            fptr.seek(0)
+            new_circuit = load(fptr)[0]
+        self.assertEqual(qc, new_circuit)
+        self.assertEqual(qc.qregs, new_circuit.qregs)
+        self.assertEqual(qc.cregs, new_circuit.cregs)
+
+    def test_roundtrip_empty_registers_with_loose_bits(self):
+        """Test that empty registers still round-trip correctly in the presence of loose bits."""
+        loose = [Qubit(), Clbit()]
+
+        qc = QuantumCircuit(loose, QuantumRegister(0), ClassicalRegister(0))
+        with io.BytesIO() as fptr:
+            dump(qc, fptr)
+            fptr.seek(0)
+            new_circuit = load(fptr)[0]
+        self.assertEqual(qc, new_circuit)
+        self.assertEqual(qc.qregs, new_circuit.qregs)
+        self.assertEqual(qc.cregs, new_circuit.cregs)
+
+        qc = QuantumCircuit(QuantumRegister(0), ClassicalRegister(0), loose)
+        with io.BytesIO() as fptr:
+            dump(qc, fptr)
+            fptr.seek(0)
+            new_circuit = load(fptr)[0]
+        self.assertEqual(qc, new_circuit)
+        self.assertEqual(qc.qregs, new_circuit.qregs)
+        self.assertEqual(qc.cregs, new_circuit.cregs)
