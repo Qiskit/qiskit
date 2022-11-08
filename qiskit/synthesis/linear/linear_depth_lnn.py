@@ -19,8 +19,8 @@ References:
     [1] S. A. Kutin, D. P. Moulton, and L. M. Smithline, “Computation at a distance,” 2007.
 """
 
-import numpy as np
 from copy import deepcopy
+import numpy as np
 from qiskit import QiskitError
 from qiskit.circuit import QuantumCircuit
 from qiskit.synthesis.linear.linear_matrix_utils import (
@@ -29,7 +29,7 @@ from qiskit.synthesis.linear.linear_matrix_utils import (
 )
 
 
-def _el_op(mat, ctrl, trgt, row_op=True, method=None):
+def _el_op(mat, ctrl, trgt, row_op=True):
     # Perform a ROW or COL operation on a matrix mat
     if row_op:
         mat[trgt] = mat[trgt] ^ mat[ctrl]
@@ -37,10 +37,10 @@ def _el_op(mat, ctrl, trgt, row_op=True, method=None):
         mat[:, ctrl] = mat[:, trgt] ^ mat[:, ctrl]
 
 
-def _el_op_all(mat, mat_inv, ctrl, trgt, row_op=True, method=None):
+def _el_op_all(mat, mat_inv, ctrl, trgt, row_op=True):
     # Perform a ROW or COL operation on a matrix mat, and update the inverted mat
-    _el_op(mat, ctrl, trgt, row_op=row_op, method=method)
-    _el_op(mat_inv, ctrl, trgt, row_op=not row_op, method=method)
+    _el_op(mat, ctrl, trgt, row_op=row_op)
+    _el_op(mat_inv, ctrl, trgt, row_op=not row_op)
 
 
 def _append_gate_lite(cx_instructions, mat, a, b):
@@ -49,7 +49,7 @@ def _append_gate_lite(cx_instructions, mat, a, b):
     _el_op(mat, a, b)
 
 
-def _get_LU_transformation(n, mat, mat_inv):
+def _get_lu_transformation(n, mat, mat_inv):
     # Get the instructions for LU decomposition of a matrix mat
     mat = deepcopy(mat)
     mat_t = deepcopy(mat)
@@ -97,15 +97,15 @@ def _get_label_arr(n, mat_t):
 def _in_linear_combination(label_arr_t, mat_inv_t, row, k):
     # Check if "row" is a linear combination of all rows in mat_inv_t not including the row labeled by k
     indx_k = label_arr_t[k]
-    W_needed = np.zeros(len(row), dtype=bool)
+    w_needed = np.zeros(len(row), dtype=bool)
     # Find the linear combination of mat_t rows which produces "row"
-    for l in range(len(row)):
-        if row[l]:
+    for row_l, _ in enumerate(row):
+        if row[row_l]:
             # mat_inv_t can be thought of as a set of instructions. Row l in mat_inv_t
             # indicates which rows from mat_t are necessary to produce the elementary vector e_l
-            W_needed = W_needed ^ mat_inv_t[l]
+            w_needed = w_needed ^ mat_inv_t[row_l]
     # If the linear combination requires the row labeled by k
-    if W_needed[indx_k]:
+    if w_needed[indx_k]:
         return False
     return True
 
@@ -118,12 +118,12 @@ def _get_label_arr_t(n, label_arr):
     return label_arr_t
 
 
-def _matrix_to_north_west(n, cx_instructions_rows, mat, mat_inv, is_rows=True):
+def _matrix_to_north_west(n, cx_instructions_rows, mat, mat_inv):
     # Transform an arbitrary boolean invertible matrix to a north-west triangular matrix
     # by Proposition 7.3 in [1]
 
     # The rows of mat_t hold all w_j vectors [1]. mat_inv_t is the inverted matrix of mat_t
-    mat_t, mat_inv_t = _get_LU_transformation(n, mat, mat_inv)
+    mat_t, mat_inv_t = _get_lu_transformation(n, mat, mat_inv)
 
     # Get all pi(i) labels
     label_arr = _get_label_arr(n, mat_t)
@@ -144,7 +144,8 @@ def _matrix_to_north_west(n, cx_instructions_rows, mat, mat_inv, is_rows=True):
             if label_arr[i] > label_arr[i + 1]:
                 at_least_one_needed = True
                 # "Let W be the span of all w_l for l!=k" (see [1])
-                # " We can perform a box on <i> and <i + 1> that writes a vector in W to wire <i + 1>." (see [1])
+                # " We can perform a box on <i> and <i + 1> that writes a vector in W to wire <i + 1>."
+                # (see [1])
                 if _in_linear_combination(label_arr_t, mat_inv_t, mat[i + 1], label_arr[i + 1]):
                     pass
 
@@ -249,7 +250,7 @@ def synth_cnot_depth_line_kms(mat):
         QuantumCircuit: the synthesized quantum circuit.
 
     Raises:
-        QiskieError: if mat is not invertible.
+        QiskitError: if mat is not invertible.
 
     References:
         [1]: Kutin, S., Moulton, D. P., Smithline, L. (2007).
@@ -262,10 +263,10 @@ def synth_cnot_depth_line_kms(mat):
     # Returns the quantum circuit constructed from the instructions
     # that we got in _optimize_cx_circ_depth_5n_line
     num_qubits = len(mat)
-    qc = _optimize_cx_circ_depth_5n_line(mat)
-    qc1 = QuantumCircuit(num_qubits)
-    for pair in qc[0]:
-        qc1.cx(pair[0], pair[1])
-    for pair in qc[1]:
-        qc1.cx(pair[0], pair[1])
-    return qc1
+    cx_inst = _optimize_cx_circ_depth_5n_line(mat)
+    qc = QuantumCircuit(num_qubits)
+    for pair in cx_inst[0]:
+        qc.cx(pair[0], pair[1])
+    for pair in cx_inst[1]:
+        qc.cx(pair[0], pair[1])
+    return qc
