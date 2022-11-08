@@ -21,7 +21,7 @@ References:
 
 from copy import deepcopy
 import numpy as np
-from qiskit import QiskitError
+from qiskit.exceptions import QiskitError
 from qiskit.circuit import QuantumCircuit
 from qiskit.synthesis.linear.linear_matrix_utils import (
     calc_inverse_matrix,
