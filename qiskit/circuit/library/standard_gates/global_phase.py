@@ -56,6 +56,6 @@ class GlobalPhaseGate(Gate):
         from qiskit.circuit.quantumcircuit import QuantumCircuit
 
         q = QuantumRegister(0, "q")
-        qc = QuantumCircuit(q, name=self.name, global_phase=self.phase)
+        qc = QuantumCircuit(q, name=self.name, global_phase=self.phase) # pylint: disable=E1101
 
         self.definition = qc
