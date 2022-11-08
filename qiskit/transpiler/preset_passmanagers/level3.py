@@ -192,11 +192,18 @@ def level_3_pass_manager(pass_manager_config: PassManagerConfig) -> StagedPassMa
                 "layout", layout_method, pass_manager_config, optimization_level=3
             )
         else:
+
+            def _swap_mapped(property_set):
+                return property_set["final_layout"] is None
+
             layout = PassManager()
             layout.append(_given_layout)
             layout.append(_choose_layout_0, condition=_choose_layout_condition)
             layout.append(_choose_layout_1, condition=_vf2_match_not_found)
-            layout += common.generate_embed_passmanager(coupling_map)
+            embed = common.generate_embed_passmanager(coupling_map)
+            layout.append(
+                [pass_ for x in embed.passes() for pass_ in x["passes"]], condition=_swap_mapped
+            )
         routing = routing_pm
     else:
         layout = None

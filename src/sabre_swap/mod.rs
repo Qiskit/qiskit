@@ -153,9 +153,38 @@ pub fn build_swap_map(
     seed: u64,
     layout: &mut NLayout,
     num_trials: usize,
+    run_in_parallel: Option<bool>,
 ) -> (SwapMap, PyObject) {
-    let run_in_parallel = getenv_use_multiple_threads() && num_trials > 1;
     let dist = distance_matrix.as_array();
+    let (swap_map, gate_order) = build_swap_map_inner(
+        num_qubits,
+        dag,
+        neighbor_table,
+        &dist,
+        heuristic,
+        seed,
+        layout,
+        num_trials,
+        run_in_parallel,
+    );
+    (swap_map, gate_order.into_pyarray(py).into())
+}
+
+pub fn build_swap_map_inner(
+    num_qubits: usize,
+    dag: &SabreDAG,
+    neighbor_table: &NeighborTable,
+    dist: &ArrayView2<f64>,
+    heuristic: &Heuristic,
+    seed: u64,
+    layout: &mut NLayout,
+    num_trials: usize,
+    run_in_parallel: Option<bool>,
+) -> (SwapMap, Vec<usize>) {
+    let run_in_parallel = match run_in_parallel {
+        Some(run_in_parallel) => run_in_parallel,
+        None => getenv_use_multiple_threads() && num_trials > 1,
+    };
     let coupling_graph: DiGraph<(), ()> = cmap_from_neighor_table(neighbor_table);
     let outer_rng = Pcg64Mcg::seed_from_u64(seed);
     let seed_vec: Vec<u64> = outer_rng
@@ -173,7 +202,7 @@ pub fn build_swap_map(
                         num_qubits,
                         dag,
                         neighbor_table,
-                        &dist,
+                        dist,
                         &coupling_graph,
                         heuristic,
                         seed_trial,
@@ -197,7 +226,7 @@ pub fn build_swap_map(
                     num_qubits,
                     dag,
                     neighbor_table,
-                    &dist,
+                    dist,
                     &coupling_graph,
                     heuristic,
                     seed_trial,
@@ -212,7 +241,7 @@ pub fn build_swap_map(
         SwapMap {
             map: result.out_map,
         },
-        result.gate_order.into_pyarray(py).into(),
+        result.gate_order,
     )
 }
 
