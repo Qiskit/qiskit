@@ -22,7 +22,7 @@ from qiskit.circuit.quantumregister import QuantumRegister
 
 # from qiskit.circuit._utils import _compute_control_matrix
 from qiskit.circuit.quantumcircuit import QuantumCircuit
-
+from qiskit.circuit.parameterexpression import ParameterValueType
 # from qiskit.circuit.exceptions import CircuitError
 
 
@@ -46,7 +46,7 @@ class GlobalPhaseGate(Gate):
     .. parsed-literal::
     """
 
-    def __init__(self, phase: float, label: Optional[str] = None):
+    def __init__(self, phase: ParameterValueType, label: Optional[str] = None):
         """Create new globalphase gate.
         Args:
             num_qubits: The number of qubits the gate acts on.
