@@ -59,9 +59,9 @@ class FiniteDiffEstimatorGradient(BaseEstimatorGradient):
                 Higher priority setting overrides lower priority setting
             method: The computation method of the gradients.
 
-                  - ``\"central\"`` computes :math:`\frac{f(x+e/2)-f(x-e/2)}{e}`,
-                  - ``\"forward\"`` computes math:`\frac{f(x+e) - f(x)}{e}`,
-                  - ``\"backward\"`` computes :math:`\frac{f(x)-f(x-e)}{e}`
+                  - ``central`` computes :math:`\frac{f(x+e/2)-f(x-e/2)}{e}`,
+                  - ``forward`` computes math:`\frac{f(x+e) - f(x)}{e}`,
+                  - ``backward`` computes :math:`\frac{f(x)-f(x-e)}{e}`
 
                 where :math:`e` is epsilon.
 
