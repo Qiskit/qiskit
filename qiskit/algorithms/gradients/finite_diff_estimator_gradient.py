@@ -52,9 +52,13 @@ class FiniteDiffEstimatorGradient(BaseEstimatorGradient):
         Args:
             estimator: The estimator used to compute the gradients.
             epsilon: The offset size for the finite difference gradients.
-            method: The calculation method of the gradient. "central" calculates
-                :math:`\frac{f(x+e/2)-f(x-e/2)}{e}`, "forward" :math:`\frac{f(x+e) - f(x)}{e}`,
-                and "backward" :math:`\frac{f(x)-f(x-e)}{e}` where :math:`e` is epsilon.
+            method: The computation method of the gradients.
+
+                  - ``\"central\"`` computes :math:`\frac{f(x+e/2)-f(x-e/2)}{e}`,
+                  - ``\"forward\"`` computes math:`\frac{f(x+e) - f(x)}{e}`,
+                  - ``\"backward\"`` computes :math:`\frac{f(x)-f(x-e)}{e}`
+
+                where :math:`e` is epsilon.
             options: Primitive backend runtime options used for circuit execution.
                 The order of priority is: options in ``run`` method > gradient's
                 default options > primitive's default setting.
