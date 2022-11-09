@@ -63,8 +63,8 @@ class VarQITE(VarQTE, ImaginaryTimeEvolver):
     def __init__(
         self,
         ansatz: QuantumCircuit,
+        initial_parameters: dict[Parameter, complex] | list[complex] | np.ndarray,
         variational_principle: ImaginaryVariationalPrinciple | None = None,
-        initial_parameters: dict[Parameter, complex] | list[complex] | np.ndarray | None = None,
         ode_solver: Type[OdeSolver] | str = ForwardEulerSolver,
         lse_solver: Callable[[np.ndarray, np.ndarray], np.ndarray] | None = None,
         num_timesteps: int | None = None,
@@ -76,8 +76,7 @@ class VarQITE(VarQTE, ImaginaryTimeEvolver):
             ansatz: Ansatz to be used for variational time evolution.
             variational_principle: Variational Principle to be used. Defaults to
                 ``ImaginaryMcLachlanPrinciple``.
-            initial_parameters: Initial parameter values for an ansatz. If ``None`` provided,
-                they are initialized uniformly at random.
+            initial_parameters: Initial parameter values for an ansatz.
             ode_solver: ODE solver callable that implements a SciPy ``OdeSolver`` interface or a
                 string indicating a valid method offered by SciPy.
             lse_solver: Linear system of equations solver callable. It accepts ``A`` and ``b`` to
@@ -95,8 +94,8 @@ class VarQITE(VarQTE, ImaginaryTimeEvolver):
             variational_principle = ImaginaryMcLachlanPrinciple()
         super().__init__(
             ansatz,
-            variational_principle,
             initial_parameters,
+            variational_principle,
             ode_solver,
             lse_solver=lse_solver,
             num_timesteps=num_timesteps,

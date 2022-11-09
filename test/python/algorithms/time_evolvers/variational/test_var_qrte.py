@@ -95,12 +95,7 @@ class TestVarQRTE(QiskitAlgorithmsTestCase):
             gradient = LinCombEstimatorGradient(estimator, derivative_type=DerivativeType.IMAG)
             var_principle = RealMcLachlanPrinciple(qfi, gradient)
 
-            var_qite = VarQRTE(
-                ansatz,
-                var_principle,
-                init_param_values,
-                num_timesteps=25,
-            )
+            var_qite = VarQRTE(ansatz, init_param_values, var_principle, num_timesteps=25)
             evolution_result = var_qite.evolve(evolution_problem)
 
             evolved_state = evolution_result.evolved_state
@@ -127,12 +122,7 @@ class TestVarQRTE(QiskitAlgorithmsTestCase):
             gradient = LinCombEstimatorGradient(estimator, derivative_type=DerivativeType.IMAG)
             var_principle = RealMcLachlanPrinciple(qfi, gradient)
 
-            var_qite = VarQRTE(
-                ansatz,
-                var_principle,
-                init_param_values,
-                num_timesteps=25,
-            )
+            var_qite = VarQRTE(ansatz, init_param_values, var_principle, num_timesteps=25)
             evolution_result = var_qite.evolve(evolution_problem)
 
             evolved_state = evolution_result.evolved_state
@@ -196,13 +186,7 @@ class TestVarQRTE(QiskitAlgorithmsTestCase):
         param_dict = dict(zip(parameters, init_param_values))
 
         time = 1
-        var_qrte = VarQRTE(
-            ansatz,
-            var_principle,
-            param_dict,
-            ode_solver="RK45",
-            num_timesteps=25,
-        )
+        var_qrte = VarQRTE(ansatz, param_dict, var_principle, ode_solver="RK45", num_timesteps=25)
 
         thetas_expected = [
             0.348407744196573,

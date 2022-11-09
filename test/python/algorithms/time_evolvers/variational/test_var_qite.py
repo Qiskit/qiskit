@@ -95,12 +95,7 @@ class TestVarQITE(QiskitAlgorithmsTestCase):
             gradient = LinCombEstimatorGradient(estimator)
             var_principle = ImaginaryMcLachlanPrinciple(qfi, gradient)
 
-            var_qite = VarQITE(
-                ansatz,
-                var_principle,
-                init_param_values,
-                num_timesteps=25,
-            )
+            var_qite = VarQITE(ansatz, init_param_values, var_principle, num_timesteps=25)
             evolution_result = var_qite.evolve(evolution_problem)
 
             evolved_state = evolution_result.evolved_state
@@ -127,12 +122,7 @@ class TestVarQITE(QiskitAlgorithmsTestCase):
             gradient = LinCombEstimatorGradient(estimator)
             var_principle = ImaginaryMcLachlanPrinciple(qfi, gradient)
 
-            var_qite = VarQITE(
-                ansatz,
-                var_principle,
-                init_param_values,
-                num_timesteps=25,
-            )
+            var_qite = VarQITE(ansatz, init_param_values, var_principle, num_timesteps=25)
             evolution_result = var_qite.evolve(evolution_problem)
 
             evolved_state = evolution_result.evolved_state
@@ -177,11 +167,7 @@ class TestVarQITE(QiskitAlgorithmsTestCase):
 
         time = 7
         var_qite = VarQITE(
-            ansatz,
-            var_principle,
-            init_param_values,
-            ode_solver="RK45",
-            num_timesteps=25,
+            ansatz, init_param_values, var_principle, ode_solver="RK45", num_timesteps=25
         )
 
         thetas_expected = [
@@ -235,11 +221,7 @@ class TestVarQITE(QiskitAlgorithmsTestCase):
 
         time = 1
         var_qite = VarQITE(
-            ansatz,
-            var_principle,
-            init_param_values,
-            ode_solver="RK45",
-            num_timesteps=25,
+            ansatz, init_param_values, var_principle, ode_solver="RK45", num_timesteps=25
         )
 
         thetas_expected = [

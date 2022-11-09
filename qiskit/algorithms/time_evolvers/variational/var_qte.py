@@ -54,8 +54,8 @@ class VarQTE(ABC):
     def __init__(
         self,
         ansatz: QuantumCircuit,
-        variational_principle: VariationalPrinciple,
-        initial_parameters: dict[Parameter, complex] | list[complex] | np.ndarray | None = None,
+        initial_parameters: dict[Parameter, complex] | list[complex] | np.ndarray,
+        variational_principle: VariationalPrinciple | None = None,
         ode_solver: Type[OdeSolver] | str = ForwardEulerSolver,
         lse_solver: Callable[[np.ndarray, np.ndarray], np.ndarray] | None = None,
         num_timesteps: int | None = None,
@@ -66,8 +66,7 @@ class VarQTE(ABC):
         Args:
             ansatz: Ansatz to be used for variational time evolution.
             variational_principle: Variational Principle to be used.
-            initial_parameters: Initial parameter values for an ansatz. If ``None`` provided,
-                they are initialized uniformly at random.
+            initial_parameters: Initial parameter values for an ansatz.
             ode_solver: ODE solver callable that implements a SciPy ``OdeSolver`` interface or a
                 string indicating a valid method offered by SciPy.
             lse_solver: Linear system of equations solver callable. It accepts ``A`` and ``b`` to
@@ -146,8 +145,7 @@ class VarQTE(ABC):
 
         Args:
             init_state_param_dict: Parameter dictionary with initial values for a given
-                parametrized state/ansatz. If no initial parameter values are provided, they are
-                initialized uniformly at random.
+                parametrized state/ansatz.
             hamiltonian: Operator used for Variational Quantum Imaginary Time Evolution (VarQTE).
             time: Total time of evolution.
             t_param: Time parameter in case of a time-dependent Hamiltonian.
@@ -194,7 +192,6 @@ class VarQTE(ABC):
         only parameters present in an initial state and their respective values.
         If ``param_values`` is a list of values, it creates a new dictionary containing
         parameters present in an initial state and their respective values.
-        If no ``param_values`` is provided, parameter values are chosen uniformly at random.
 
         Args:
             param_values: Dictionary which relates parameter values to the parameters or a list of
@@ -210,9 +207,7 @@ class VarQTE(ABC):
                 same length as the list of parameters.
             TypeError: If an unsupported type of ``param_values`` provided.
         """
-        if param_values is None:
-            init_state_parameter_values = np.random.random(len(init_state_parameters))
-        elif isinstance(param_values, dict):
+        if isinstance(param_values, dict):
             init_state_parameter_values = []
             for param in init_state_parameters:
                 if param in param_values.keys():
