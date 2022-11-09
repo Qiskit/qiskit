@@ -174,7 +174,7 @@ will create a new :class:`~.StagedPassManager` that has 2 stages ``init`` and ``
 There is no limit on the number of stages you can put in a custom :class:`~.StagedPassManager`
 instance.
 
-If you're building a custom pass manager the :ref:`stage_generator` functions may be useful
+If you're building a custom pass manager the :ref:`stage_generators` functions may be useful
 for the construction of these pass managers. They are functions that provide common functionality
 which are used in most pass managers. For example :func:`~.generate_embed_passmanager` is used
 to "embed" a selected initial layout from a layout pass to the specified target device. Any
@@ -522,20 +522,23 @@ In order to highlight this, we run a GHZ circuit 100 times, using a "bad" (disco
    from qiskit.providers.fake_provider import FakeBoeblingen
    backend = FakeBoeblingen()
 
-   ghz = QuantumCircuit(5)
+   ghz = QuantumCircuit(6)
    ghz.h(0)
-   ghz.cx(0,range(1,5))
+   ghz.cx(0, range(1, 6))
    ghz.draw(output='mpl')
 
 
 .. jupyter-execute::
 
-   depths = []
-   for _ in range(100):
-      depths.append(transpile(ghz,
-                              backend,
-                              initial_layout=[7, 0, 4, 15, 19],
-                             ).depth())
+    depths = []
+    for _ in range(100):
+        depths.append(
+            transpile(
+                ghz,
+                backend,
+                initial_layout=[7, 0, 4, 15, 19, 1],
+            ).depth()
+        )
 
    plt.figure(figsize=(8, 6))
    plt.hist(depths, bins=list(range(14,36)), align='left', color='#AC557C')
@@ -660,7 +663,7 @@ and control flow instructions in a circuit. This section covers the details of t
 constraints that any scheduling pass will need to account for.
 
 Policy of topological node ordering in scheduling
-"""""""""""""""""""""""""""""""""""""""""""""""""
+'''''''''''''''''''''''''''''''''''''''''''''''''
 
 The DAG representation of ``QuantumCircuit`` respects the node ordering also in the
 classical register wires, though theoretically two conditional instructions
@@ -694,7 +697,7 @@ However, such optimization should be done by another pass,
 otherwise scheduling may break topological ordering of the original circuit.
 
 Realistic control flow scheduling respecting for microarchitecture
-""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
+''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
 
 In the dispersive QND readout scheme, qubit is measured with microwave stimulus to qubit (Q)
 followed by resonator ring-down (depopulation). This microwave signal is recorded
