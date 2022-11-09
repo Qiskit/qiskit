@@ -116,7 +116,6 @@ class BaseSamplerGradient(ABC):
         Raises:
             ValueError: Invalid arguments are given.
         """
-        # Validate the arguments.
         if len(circuits) != len(parameter_values):
             raise ValueError(
                 f"The number of circuits ({len(circuits)}) does not match "

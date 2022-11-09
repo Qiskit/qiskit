@@ -1,7 +1,7 @@
 [package]
 name = "qiskit-terra"
 version = "0.23.0"
-edition = "2018"
+edition = "2021"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
@@ -21,7 +21,7 @@ num-bigint = "0.4"
 retworkx-core = "0.11"
 
 [dependencies.pyo3]
-version = "0.17.2"
+version = "0.17.3"
 features = ["extension-module", "hashbrown", "num-complex", "num-bigint"]
 
 [dependencies.ndarray]

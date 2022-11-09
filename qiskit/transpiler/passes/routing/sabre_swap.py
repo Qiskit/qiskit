@@ -31,7 +31,7 @@ from qiskit._accelerate.sabre_swap import (
     NeighborTable,
     SabreDAG,
 )
-from qiskit._accelerate.stochastic_swap import NLayout
+from qiskit._accelerate.nlayout import NLayout
 
 logger = logging.getLogger(__name__)
 

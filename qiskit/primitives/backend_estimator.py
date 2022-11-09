@@ -28,7 +28,6 @@ from qiskit.providers import BackendV1, BackendV2, Options
 from qiskit.quantum_info import Pauli, PauliList
 from qiskit.quantum_info.operators.base_operator import BaseOperator
 from qiskit.result import Counts, Result
-from qiskit.tools.monitor import job_monitor
 from qiskit.transpiler import PassManager
 
 from .base import BaseEstimator, EstimatorResult
@@ -39,7 +38,6 @@ from .utils import _circuit_key, _observable_key, init_observable
 def _run_circuits(
     circuits: QuantumCircuit | list[QuantumCircuit],
     backend: BackendV1 | BackendV2,
-    monitor: bool = False,
     **run_options,
 ) -> tuple[Result, list[dict]]:
     """Remove metadata of circuits and run the circuits on a backend.
@@ -57,11 +55,29 @@ def _run_circuits(
     for circ in circuits:
         metadata.append(circ.metadata)
         circ.metadata = {}
+    if isinstance(backend, BackendV1):
+        max_circuits = getattr(backend.configuration(), "max_experiments", None)
+    elif isinstance(backend, BackendV2):
+        max_circuits = backend.max_circuits
+    if max_circuits:
+        jobs = [
+            backend.run(circuits[pos : pos + max_circuits], **run_options)
+            for pos in range(0, len(circuits), max_circuits)
+        ]
+        result = [x.result() for x in jobs]
+    else:
+        result = [backend.run(circuits, **run_options).result()]
+    return result, metadata
 
-    job = backend.run(circuits, **run_options)
-    if monitor:
-        job_monitor(job)
-    return job.result(), metadata
+
+def _prepare_counts(results):
+    counts = []
+    for res in results:
+        count = res.get_counts()
+        if not isinstance(count, list):
+            count = [count]
+        counts.extend(count)
+    return counts
 
 
 class BackendEstimator(BaseEstimator):
@@ -338,10 +354,7 @@ class BackendEstimator(BaseEstimator):
         """
         Postprocessing for evaluation of expectation value using pauli rotation gates.
         """
-
-        counts = result.get_counts()
-        if not isinstance(counts, list):
-            counts = [counts]
+        counts = _prepare_counts(result)
         expval_list = []
         var_list = []
         shots_list = []
