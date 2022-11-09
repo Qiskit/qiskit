@@ -174,21 +174,17 @@ class NumPyEigensolver(Eigensolver):
             if operator is None:
                 continue
             value = 0.0
-            if isinstance(operator, PauliSumOp):
-                if operator.coeff != 0:
-                    mat = operator.to_spmatrix()
-                    # Terra doesn't support sparse yet, so do the matmul directly if so
-                    # This is necessary for the particle_hole and other chemistry tests because the
-                    # pauli conversions are 2^12th large and will OOM error if not sparse.
-                    if isinstance(mat, scisparse.spmatrix):
-                        value = mat.dot(wavefn).dot(np.conj(wavefn))
-                    else:
-                        value = (
-                            Statevector(wavefn).expectation_value(operator.primitive)
-                            * operator.coeff
-                        )
-            else:
+            if isinstance(operator, Operator):
                 value = Statevector(wavefn).expectation_value(operator)
+            else:
+                if isinstance(operator, PauliSumOp):
+                    if operator.coeff != 0:
+                        op_matrix = operator.to_spmatrix()
+                        value = op_matrix.dot(wavefn).dot(np.conj(wavefn))
+                else:
+                    op_matrix = operator.to_matrix(sparse=True)
+                    value = op_matrix.dot(wavefn).dot(np.conj(wavefn))
+
             value = value if np.abs(value) > threshold else 0.0
             # The value gets wrapped into a tuple: (mean, metadata).
             # The metadata includes variance (and, for other eigensolvers, shots).
