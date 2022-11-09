@@ -1,4 +1,5 @@
 ---
 fixes:
   - |
-    Fixed a problem where primitives could not be serialized.
+    Fixed an issue with the primitive classes, :class:`~.Sampler` and :class:`~.Estimator`,
+    where instances were not able to be serialized with ``pickle``.
