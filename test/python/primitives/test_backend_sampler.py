@@ -12,7 +12,6 @@
 
 """Tests for BackendSampler."""
 
-import pickle
 import unittest
 from test import combine
 
@@ -319,13 +318,6 @@ class TestBackendSampler(QiskitTestCase):
 
         self.assertDictAlmostEqual(result.quasi_dists[0], {0: 1}, 0.1)
         self.assertDictAlmostEqual(result.quasi_dists[1], {1: 1}, 0.1)
-
-    @combine(backend=BACKENDS)
-    def test_serialization(self, backend):
-        """Test of serialize and deserialize"""
-        sampler = BackendSampler(backend=backend)
-        serialization = pickle.dumps(sampler)
-        _ = pickle.loads(serialization)
 
 
 if __name__ == "__main__":

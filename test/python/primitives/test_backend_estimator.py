@@ -12,7 +12,6 @@
 
 """Tests for Estimator."""
 
-import pickle
 import unittest
 from test import combine
 
@@ -322,13 +321,6 @@ class TestBackendEstimator(QiskitTestCase):
             result = estimator.run([qc] * k, [op] * k, params_list_array).result()
             self.assertEqual(len(result.metadata), k)
             np.testing.assert_allclose(result.values, target.values, rtol=0.2, atol=0.2)
-
-    @combine(backend=BACKENDS)
-    def test_serialization(self, backend):
-        """Test of serialize and deserialize"""
-        estimator = BackendEstimator(backend=backend)
-        serialization = pickle.dumps(estimator)
-        _ = pickle.loads(serialization)
 
 
 if __name__ == "__main__":

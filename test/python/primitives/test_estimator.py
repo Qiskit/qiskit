@@ -12,7 +12,6 @@
 
 """Tests for Estimator."""
 
-import pickle
 import unittest
 
 import numpy as np
@@ -687,12 +686,6 @@ class TestObservableValidation(QiskitTestCase):
         """Test value error if no obsevables are provided."""
         with self.assertRaises(ValueError):
             BaseEstimator._validate_observables(observables)
-
-    def test_serialization(self):
-        """Test of serialize and deserialize"""
-        estimator = Estimator()
-        serialization = pickle.dumps(estimator)
-        _ = pickle.loads(serialization)
 
 
 if __name__ == "__main__":
