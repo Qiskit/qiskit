@@ -45,13 +45,18 @@ class FiniteDiffEstimatorGradient(BaseEstimatorGradient):
         self,
         estimator: BaseEstimator,
         epsilon: float,
-        method: Literal["central", "forward", "backward"] = "central",
         options: Options | None = None,
+        *,
+        method: Literal["central", "forward", "backward"] = "central",
     ):
         """
         Args:
             estimator: The estimator used to compute the gradients.
             epsilon: The offset size for the finite difference gradients.
+            options: Primitive backend runtime options used for circuit execution.
+                The order of priority is: options in ``run`` method > gradient's
+                default options > primitive's default setting.
+                Higher priority setting overrides lower priority setting
             method: The computation method of the gradients.
 
                   - ``\"central\"`` computes :math:`\frac{f(x+e/2)-f(x-e/2)}{e}`,
@@ -59,10 +64,6 @@ class FiniteDiffEstimatorGradient(BaseEstimatorGradient):
                   - ``\"backward\"`` computes :math:`\frac{f(x)-f(x-e)}{e}`
 
                 where :math:`e` is epsilon.
-            options: Primitive backend runtime options used for circuit execution.
-                The order of priority is: options in ``run`` method > gradient's
-                default options > primitive's default setting.
-                Higher priority setting overrides lower priority setting
 
         Raises:
             ValueError: If ``epsilon`` is not positive.
@@ -132,12 +133,10 @@ class FiniteDiffEstimatorGradient(BaseEstimatorGradient):
             if self._method == "central":
                 n = len(result.values) // 2  # is always a multiple of 2
                 gradient_ = (result.values[:n] - result.values[n:]) / self._epsilon
-                gradients.append(gradient_)
             elif self._method == "forward":
                 gradient_ = (result.values[1:] - result.values[0]) / self._epsilon
-                gradients.append(gradient_)
             elif self._method == "backward":
                 gradient_ = (result.values[0] - result.values[1:]) / self._epsilon
-                gradients.append(gradient_)
+            gradients.append(gradient_)
         opt = self._get_local_options(options)
         return EstimatorGradientResult(gradients=gradients, metadata=metadata_, options=opt)

@@ -41,13 +41,18 @@ class FiniteDiffSamplerGradient(BaseSamplerGradient):
         self,
         sampler: BaseSampler,
         epsilon: float,
-        method: Literal["central", "forward", "backward"] = "central",
         options: Options | None = None,
+        *,
+        method: Literal["central", "forward", "backward"] = "central",
     ):
         """
         Args:
             sampler: The sampler used to compute the gradients.
             epsilon: The offset size for the finite difference gradients.
+            options: Primitive backend runtime options used for circuit execution.
+                The order of priority is: options in ``run`` method > gradient's
+                default options > primitive's default setting.
+                Higher priority setting overrides lower priority setting
             method: The computation method of the gradients.
 
                   - ``\"central\"`` computes :math:`\frac{f(x+e/2)-f(x-e/2)}{e}`,
@@ -55,10 +60,6 @@ class FiniteDiffSamplerGradient(BaseSamplerGradient):
                   - ``\"backward\"`` computes :math:`\frac{f(x)-f(x-e)}{e}`
 
                 where :math:`e` is epsilon.
-            options: Primitive backend runtime options used for circuit execution.
-                The order of priority is: options in ``run`` method > gradient's
-                default options > primitive's default setting.
-                Higher priority setting overrides lower priority setting
 
         Raises:
             ValueError: If ``epsilon`` is not positive.
