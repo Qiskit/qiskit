@@ -22,7 +22,7 @@ class SciPyImaginaryEvolver(ImaginaryTimeEvolver):
     r"""Classical Evolver for imaginary time evolution.
 
     Evolves an initial state :math:`|\Psi\rangle` for an imaginary time :math:`\tau = it`
-    under a Hamiltonian  :math:`H`, as provided in the ``evolution_problem``.
+    under a Hamiltonian :math:`H`, as provided in the ``evolution_problem``.
     Note that the precision of the evolver does not depend on the number of
     timesteps taken.
     """
@@ -42,7 +42,7 @@ class SciPyImaginaryEvolver(ImaginaryTimeEvolver):
         r"""Perform imaginary time evolution :math:`\exp(-\tau H)|\Psi\rangle`.
 
         Evolves an initial state :math:`|\Psi\rangle` for an imaginary time :math:`\tau`
-        under a Hamiltonian  :math:`H`, as provided in the ``evolution_problem``.
+        under a Hamiltonian :math:`H`, as provided in the ``evolution_problem``.
 
         Args:
             evolution_problem: The definition of the evolution problem.

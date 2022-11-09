@@ -21,7 +21,7 @@ class SciPyRealEvolver(RealTimeEvolver):
     r"""Classical Evolver for real time evolution.
 
     Evolves an initial state :math:`|\Psi\rangle` for a time :math:`t`
-    under a Hamiltonian  :math:`H`, as provided in the ``evolution_problem``.
+    under a Hamiltonian :math:`H`, as provided in the ``evolution_problem``.
     Note that the precision of the evolver does not depend on the number of
     timesteps taken.
     """

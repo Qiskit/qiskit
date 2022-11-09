@@ -9,10 +9,8 @@
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
-"""Auxiliary functions for SciPyEvolvers"""
-from typing import List, Tuple, Union
-
-import scipy.sparse as sp
+"""Auxiliary functions for SciPy Time Evolvers"""
+from scipy.sparse import csr_matrix
 from scipy.sparse.linalg import expm_multiply
 import numpy as np
 
@@ -29,14 +27,14 @@ from ...list_or_dict import ListOrDict
 def _create_observable_output(
     ops_ev_mean: np.ndarray,
     evolution_problem: TimeEvolutionProblem,
-) -> ListOrDict[Union[Tuple[np.ndarray, np.ndarray], Tuple[complex, complex], np.ndarray]]:
+) -> ListOrDict[tuple[np.ndarray, np.ndarray]| tuple[complex, complex], np.ndarray]:
     """Creates the right output format for the evaluated auxiliary operators.
     Args:
         ops_ev_mean: Array containing the expectation value of each observable at each timestep.
         evolution_problem: Time Evolution Problem to create the output of.
 
     Returns:
-        An output with the observables mean value at the appropiate times depending on whether
+        An output with the observables mean value at the appropriate times depending on whether
         the auxiliary operators in the time evolution problem are a `list` or a `dict`.
 
     """
@@ -46,9 +44,9 @@ def _create_observable_output(
     time_array = np.linspace(0, evolution_problem.time, ops_ev_mean.shape[-1])
     zero_array = np.zeros(ops_ev_mean.shape[-1])  # std=0 since it is an exact method
 
-    operator_number = 0 if aux_ops is None else len(aux_ops)
+    operators_number = 0 if aux_ops is None else len(aux_ops)
 
-    observable_evolution = [(ops_ev_mean[i], zero_array) for i in range(operator_number)]
+    observable_evolution = [(ops_ev_mean[i], zero_array) for i in range(operators_number)]
 
     if isinstance(aux_ops, dict):
         observable_evolution = dict(zip(aux_ops.keys(), observable_evolution))
@@ -62,15 +60,15 @@ def _create_observable_output(
 def _create_obs_final(
     ops_ev_mean: np.ndarray,
     evolution_problem: TimeEvolutionProblem,
-) -> ListOrDict[Tuple[complex, complex]]:
+) -> ListOrDict[tuple[complex, complex]]:
     """Creates the right output format for the final value of the auxiliary operators.
 
     Args:
         ops_ev_mean: Array containing the expectation value of each observable at the final timestep.
-        evolution_problem: Evolution Problem to create the output of.
+        evolution_problem: Evolution problem to create the output of.
 
     Returns:
-        An output with the observables mean value at the appropiate times depending on whether
+        An output with the observables mean value at the appropriate times depending on whether
         the auxiliary operators in the evolution problem are a `list` or a `dict`.
 
     """
@@ -83,32 +81,32 @@ def _create_obs_final(
 
 
 def _evaluate_aux_ops(
-    aux_ops: List[sp.csr_matrix],
+    aux_ops: list[csr_matrix],
     state: np.ndarray,
-) -> Tuple[np.ndarray, np.ndarray]:
+) -> tuple[np.ndarray, np.ndarray]:
     """Evaluates the aux operators if they are provided and stores their value.
 
     Returns:
         Tuple of the mean and standard deviation of the aux operators for a given state.
     """
-    op_mean = np.array([np.real(state.conjugate().dot(op.dot(state))) for op in aux_ops])
-    return op_mean
+    op_means = np.array([np.real(state.conjugate().dot(op.dot(state))) for op in aux_ops])
+    return op_means
 
 
 def _sparsify(
     evolution_problem: TimeEvolutionProblem, steps: int, real_time: bool
-) -> Tuple[np.ndarray, List[sp.csr_matrix], sp.csr_matrix]:
-    """Returns the matrices and parameters needed for time evolution in the appropiate format.
+) -> tuple[np.ndarray, list[csr_matrix], csr_matrix]:
+    """Returns the matrices and parameters needed for time evolution in the appropriate format.
 
     Args:
         evolution_problem: The definition of the evolution problem.
-        steps: number of timesteps to be performed.
-        real_time: If `True` the operators returned will correspond to the ones for real time
-            evolution, else they will correspond to imaginary time evolution.
+        steps: Number of timesteps to be performed.
+        real_time: If `True`, returned operators will correspond to real time evolution,
+            Else, they will correspond to imaginary time evolution.
 
     Returns:
         A tuple with the initial state, the list of operators to evaluate and the operator to be
-        exponentiated to perfrom one timestep.
+        exponentiated to perform one timestep.
     """
     # Convert the initial state and Hamiltonian into sparse matrices.
     if isinstance(evolution_problem.initial_state, QuantumCircuit):
@@ -125,20 +123,20 @@ def _sparsify(
     else:
         aux_ops = []
     timestep = evolution_problem.time / steps
-    step_opeartor = -((1.0j) ** real_time) * timestep * hamiltonian
-    return (state, aux_ops, step_opeartor)
+    step_operator = -((1.0j) ** real_time) * timestep * hamiltonian
+    return state, aux_ops, step_operator
 
 
 def _evolve(
     evolution_problem: TimeEvolutionProblem, steps: int, real_time: bool
 ) -> TimeEvolutionResult:
-    r"""Perform real time evolution :math:`\exp(-i t H)|\Psi\rangle`.
+    r"""Performs either real  or imaginary time evolution :math:`\exp(-i t H)|\Psi\rangle`.
 
     Args:
         evolution_problem: The definition of the evolution problem.
-        steps: number of timesteps to be performed.
-        real_time: If `True` the operators returned will correspond to the ones for real time
-            evolution, else they will correspond to imaginary time evolution.
+        steps: Number of timesteps to be performed.
+        real_time: If `True`, returned operators will correspond to real time evolution,
+            Else, they will correspond to imaginary time evolution.
 
     Returns:
         Evolution result which includes an evolved quantum state.
@@ -151,7 +149,7 @@ def _evolve(
     if evolution_problem.t_param is not None:
         raise ValueError("Time dependent Hamiltonians are not supported.")
 
-    (state, aux_ops, step_opeartor) = _sparsify(
+    state, aux_ops, step_opeartor = _sparsify(
         evolution_problem=evolution_problem, steps=steps, real_time=real_time
     )
 

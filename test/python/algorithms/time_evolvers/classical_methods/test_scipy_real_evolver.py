@@ -27,15 +27,15 @@ class TestClassicalRealEvolver(QiskitAlgorithmsTestCase):
     """Test Classical Real Evolver."""
 
     @data(
-        [One, np.pi / 2, X, -1.0j * Zero],
-        [One ^ Zero, np.pi / 2, ((X ^ X) + (Y ^ Y)) / 2, -1.0j * Zero ^ One],
-        [
+        (One, np.pi / 2, X, -1.0j * Zero),
+        (One ^ Zero, np.pi / 2, ((X ^ X) + (Y ^ Y)) / 2, -1.0j * Zero ^ One),
+        (
             One ^ Zero,
             np.pi / 4,
             ((X ^ X) + (Y ^ Y)) / 2,
             ((One ^ Zero) - 1.0j * (Zero ^ One)) / np.sqrt(2),
-        ],
-        [Zero ^ 12, np.pi / 2, X ^ 12, -1.0j * (One ^ 12)],
+        ),
+        (Zero ^ 12, np.pi / 2, X ^ 12, -1.0j * (One ^ 12)),
     )
     @unpack
     def test_evolve(

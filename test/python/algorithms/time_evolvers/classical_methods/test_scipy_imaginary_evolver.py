@@ -39,7 +39,7 @@ class TestSciPyImaginaryEvolver(QiskitAlgorithmsTestCase):
     """Test SciPy Imaginary Evolver."""
 
     def create_hamiltonian_lattice(self, num_sites: int) -> PauliSumOp:
-        """Creates an ising hamiltonian on a lattice."""
+        """Creates an Ising Hamiltonian on a lattice."""
         j_const = 0.1
         g_const = -1.0
 
@@ -50,8 +50,8 @@ class TestSciPyImaginaryEvolver(QiskitAlgorithmsTestCase):
         )
 
     @data(
-        [Zero, 100, X, Minus],
-        [Zero, 100, -X, Plus],
+        (Zero, 100, X, Minus),
+        (Zero, 100, -X, Plus),
     )
     @unpack
     def test_evolve(
@@ -64,7 +64,6 @@ class TestSciPyImaginaryEvolver(QiskitAlgorithmsTestCase):
         """Initializes a classical imaginary evolver and evolves a state to find the ground state.
         It compares the solution with the first eigenstate of the hamiltonian.
         """
-        print(type(expected_state))
         expected_state_matrix = expected_state.to_matrix()
 
         evolution_problem = TimeEvolutionProblem(hamiltonian, tau, initial_state)
@@ -134,7 +133,7 @@ class TestSciPyImaginaryEvolver(QiskitAlgorithmsTestCase):
         self.assertEqual(result.evolved_state, VectorStateFn(Statevector(qc)))
 
     def test_error_time_dependency(self):
-        """Tests if an error is raised for time dependent hamiltonian."""
+        """Tests if an error is raised for a time dependent Hamiltonian."""
         evolution_problem = TimeEvolutionProblem(
             hamiltonian=X ^ X ^ X, time=1.0, initial_state=Zero, t_param=0
         )
