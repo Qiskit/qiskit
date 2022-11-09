@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2017, 2022
+# (C) Copyright IBM 2022
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -16,7 +16,9 @@ linear nearest neighbor (LNN) connectivity.
 The depth of the circuit is bounded by 5*n, while the gate count is approximately 2.5*n^2
 
 References:
-    [1] S. A. Kutin, D. P. Moulton, and L. M. Smithline, “Computation at a distance,” 2007.
+    [1]: Kutin, S., Moulton, D. P., Smithline, L. (2007).
+         Computation at a Distance.
+         `arXiv:quant-ph/0701194 <https://arxiv.org/abs/quant-ph/0701194>`_.
 """
 
 from copy import deepcopy
@@ -49,7 +51,7 @@ def _append_gate_lite(cx_instructions, mat, a, b):
     _el_op(mat, a, b)
 
 
-def _get_lu_transformation(n, mat, mat_inv):
+def _get_lu_decomposition(n, mat, mat_inv):
     # Get the instructions for LU decomposition of a matrix mat
     mat = deepcopy(mat)
     mat_t = deepcopy(mat)
@@ -123,7 +125,7 @@ def _matrix_to_north_west(n, cx_instructions_rows, mat, mat_inv):
     # by Proposition 7.3 in [1]
 
     # The rows of mat_t hold all w_j vectors [1]. mat_inv_t is the inverted matrix of mat_t
-    mat_t, mat_inv_t = _get_lu_transformation(n, mat, mat_inv)
+    mat_t, mat_inv_t = _get_lu_decomposition(n, mat, mat_inv)
 
     # Get all pi(i) labels
     label_arr = _get_label_arr(n, mat_t)
@@ -136,9 +138,9 @@ def _matrix_to_north_west(n, cx_instructions_rows, mat, mat_inv):
     done = False
     while not done:
         # At each iteration the values of i switch between even and odd
-        i = first_qubit
         at_least_one_needed = False
-        while i + 1 < n:
+
+        for i in range(first_qubit, n - 1, 2):
             # "If j < k, we do nothing" (see [1])
             # "If j > k, we swap the two labels, and we also perform a box" (see [1])
             if label_arr[i] > label_arr[i + 1]:
@@ -160,8 +162,6 @@ def _matrix_to_north_west(n, cx_instructions_rows, mat, mat_inv):
 
                 label_arr[i], label_arr[i + 1] = label_arr[i + 1], label_arr[i]
 
-            i = i + 2
-
         if not at_least_one_needed:
             empty_layers += 1
             if empty_layers > 1:  # if nothing happened twice in a row, then finished.
@@ -170,6 +170,8 @@ def _matrix_to_north_west(n, cx_instructions_rows, mat, mat_inv):
             empty_layers = 0
 
         first_qubit = int(not first_qubit)
+
+    return cx_instructions_rows
 
 
 def _north_west_to_identity(n, cx_instructions_rows, mat):
@@ -181,14 +183,14 @@ def _north_west_to_identity(n, cx_instructions_rows, mat):
     empty_layers = 0
     done = False
     while not done:
-        i = first_qubit
         at_least_one_needed = False
-        while i + 1 < n:
+
+        for i in range(first_qubit, n - 1, 2):
             # Exchange the labels if needed
             if label_arr[i] > label_arr[i + 1]:
                 at_least_one_needed = True
 
-                # If row i has "1" in colum i+1, swap and remove the "1" (in depth 2)
+                # If row i has "1" in column i+1, swap and remove the "1" (in depth 2)
                 # otherwise, only do a swap (in depth 3)
                 if not mat[i, label_arr[i + 1]]:
                     # Adding this turns the operation to a SWAP
@@ -199,8 +201,6 @@ def _north_west_to_identity(n, cx_instructions_rows, mat):
 
                 label_arr[i], label_arr[i + 1] = label_arr[i + 1], label_arr[i]
 
-            i = i + 2
-
         if not at_least_one_needed:
             empty_layers += 1
             if empty_layers > 1:  # if nothing happened twice in a row, then finished.
@@ -210,12 +210,21 @@ def _north_west_to_identity(n, cx_instructions_rows, mat):
 
         first_qubit = int(not first_qubit)
 
+    return cx_instructions_rows
+
 
 def _optimize_cx_circ_depth_5n_line(mat):
     # Optimize CX circuit in depth bounded by 5n for LNN connectivity.
     # The algorithm [1] has two steps:
-    # a) transform the originl matrix to a North-West matrix (m2nw),
+    # a) transform the originl matrix to a north-west matrix (m2nw),
     # b) transform the north-west matrix to identity (nw2id).
+    #
+    # A square n-by-n matrix A is called north-west if A[i][j]=0 for all i+j>=n
+    # For example, the following matrix is north-west:
+    # [[0, 1, 0, 1]
+    #  [1, 1, 1, 0]
+    #  [0, 1, 0, 0]
+    #  [1, 0, 0, 0]]
 
     # According to [1] the synthesis is done on the inverse matrix
     # so the matrix mat is inverted at this step
@@ -228,11 +237,13 @@ def _optimize_cx_circ_depth_5n_line(mat):
 
     # Transform an arbitrary invertible matrix to a north-west triangular matrix
     # by Proposition 7.3 of [1]
-    _matrix_to_north_west(n, cx_instructions_rows_m2nw, mat_cpy, mat_inv)
+    cx_instructions_rows_m2nw = _matrix_to_north_west(
+        n, cx_instructions_rows_m2nw, mat_cpy, mat_inv
+    )
 
     # Transform a north-west triangular matrix to identity in depth 3*n
     # by Proposition 7.4 of [1]
-    _north_west_to_identity(n, cx_instructions_rows_nw2id, mat_cpy)
+    cx_instructions_rows_nw2id = _north_west_to_identity(n, cx_instructions_rows_nw2id, mat_cpy)
 
     return cx_instructions_rows_m2nw, cx_instructions_rows_nw2id
 
