@@ -384,7 +384,6 @@ class TestEstimatorGradient(QiskitTestCase):
         c = QuantumCircuit(1)
         c.rz(Parameter("p"), 0)
         result = gradient.run([c], [Pauli("I")], [[0.0]]).result()
-        print(result.gradients[0][0])
         self.assertAlmostEqual(result.gradients[0][0], expected_gradient_value)
 
     @combine(
