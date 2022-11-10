@@ -160,8 +160,7 @@ def transpile(
             You can see a list of installed plugins by using :func:`~.list_stage_plugins` with
             ``"layout"`` for the ``stage_name`` argument.
         routing_method: Name of routing pass
-            ('basic', 'lookahead', 'stochastic', 'sabre', 'toqm', 'none'). Note
-            that to use method 'toqm', package 'qiskit-toqm' must be installed.
+            ('basic', 'lookahead', 'stochastic', 'sabre', 'none'). Note
             This can also be the external plugin name to use for the ``routing`` stage.
             You can see a list of installed plugins by using :func:`~.list_stage_plugins` with
             ``"routing"`` for the ``stage_name`` argument.

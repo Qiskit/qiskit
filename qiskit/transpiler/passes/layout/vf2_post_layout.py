@@ -51,25 +51,26 @@ class VF2PostLayout(AnalysisPass):
     """A pass for choosing a Layout after transpilation of a circuit onto a
     Coupling graph, as a subgraph isomorphism problem, solved by VF2++.
 
-    Unlike the :class:`~.VF2PostLayout` transpiler pass which is designed to find an
+    Unlike the :class:`~.VF2Layout` transpiler pass which is designed to find an
     initial layout for a circuit early in the transpilation pipeline this transpiler
     pass is designed to try and find a better layout after transpilation is complete.
     The initial layout phase of the transpiler doesn't have as much information available
     as we do after transpilation. This pass is designed to be paired in a similar pipeline
     as the layout passes. This pass will strip any idle wires from the circuit, use VF2
     to find a subgraph in the coupling graph for the circuit to run on with better fidelity
-    and then update the circuit layout to use the new qubits.
+    and then update the circuit layout to use the new qubits. The algorithm used in this
+    pass is described in `arXiv:2209.15512 <https://arxiv.org/abs/2209.15512>`__.
 
-    If a solution is found that means there is a "perfect layout" and that no
-    further swap mapping or routing is needed. If a solution is found the layout
-    will be set in the property set as ``property_set['layout']``. However, if no
-    solution is found, no ``property_set['layout']`` is set. The stopping reason is
+    If a solution is found that means there is a lower error layout available for the
+    circuit. If a solution is found the layout will be set in the property set as
+    will be set in the property set as ``property_set['post_layout']``. However, if no
+    solution is found, no ``property_set['post_layout']`` is set. The stopping reason is
     set in ``property_set['VF2PostLayout_stop_reason']`` in all the cases and will be
     one of the values enumerated in ``VF2PostLayoutStopReason`` which has the
     following values:
 
-        * ``"solution found"``: If a perfect layout was found.
-        * ``"nonexistent solution"``: If no perfect layout was found.
+        * ``"solution found"``: If a solution was found.
+        * ``"nonexistent solution"``: If no solution was found.
         * ``">2q gates in basis"``: If VF2PostLayout can't work with basis
 
     """
@@ -168,16 +169,14 @@ class VF2PostLayout(AnalysisPass):
                             global_ops[num_qubits].append(op)
             op_names = []
             for i in range(self.target.num_qubits):
-                entry = set()
                 try:
                     entry = set(self.target.operation_names_for_qargs((i,)))
                 except KeyError:
-                    pass
+                    entry = set()
                 if global_ops is not None:
                     entry.update(global_ops[1])
                 op_names.append(entry)
-
-                cm_graph.add_nodes_from(op_names)
+            cm_graph.add_nodes_from(op_names)
             for qargs in self.target.qargs:
                 len_args = len(qargs)
                 # If qargs == 1 we already populated it and if qargs > 2 there are no instructions

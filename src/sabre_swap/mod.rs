@@ -12,13 +12,14 @@
 
 #![allow(clippy::too_many_arguments)]
 
+pub mod layer;
 pub mod neighbor_table;
 pub mod sabre_dag;
 pub mod swap_map;
 
 use std::cmp::Ordering;
 
-use hashbrown::{HashMap, HashSet};
+use hashbrown::HashMap;
 use ndarray::prelude::*;
 use numpy::IntoPyArray;
 use numpy::PyReadonlyArray2;
@@ -37,6 +38,7 @@ use retworkx_core::shortest_path::dijkstra;
 use crate::getenv_use_multiple_threads;
 use crate::nlayout::NLayout;
 
+use layer::{ExtendedSet, FrontLayer};
 use neighbor_table::NeighborTable;
 use sabre_dag::SabreDAG;
 use swap_map::SwapMap;
@@ -65,72 +67,62 @@ struct TrialResult {
 /// on hardware and the physical qubits in that neighborhood. Every SWAP
 /// on virtual qubits that corresponds to one of those physical couplings
 /// is a candidate SWAP.
-///
-/// Candidate swaps are sorted so SWAP(i,j) and SWAP(j,i) are not duplicated.
-fn obtain_swaps(
-    front_layer: &[[usize; 2]],
-    neighbors: &NeighborTable,
-    layout: &NLayout,
-) -> HashSet<[usize; 2]> {
-    // This will likely under allocate as it's a function of the number of
-    // neighbors for the qubits in the layer too, but this is basically a
-    // minimum allocation assuming each qubit has only 1 unique neighbor
-    let mut candidate_swaps: HashSet<[usize; 2]> = HashSet::with_capacity(2 * front_layer.len());
-    for node in front_layer {
-        for v in node {
-            let physical = layout.logic_to_phys[*v];
-            for neighbor in &neighbors.neighbors[physical] {
-                let virtual_neighbor = layout.phys_to_logic[*neighbor];
-                let swap: [usize; 2] = if &virtual_neighbor > v {
-                    [*v, virtual_neighbor]
+fn obtain_swaps<'a>(
+    front_layer: &'a FrontLayer,
+    neighbors: &'a NeighborTable,
+    layout: &'a NLayout,
+) -> impl Iterator<Item = [usize; 2]> + 'a {
+    front_layer.iter_active().flat_map(move |&v| {
+        neighbors.neighbors[layout.logic_to_phys[v]]
+            .iter()
+            .filter_map(move |&neighbor| {
+                let virtual_neighbor = layout.phys_to_logic[neighbor];
+                if virtual_neighbor > v || !front_layer.is_active(virtual_neighbor) {
+                    // This normalisation line is only necessary to ensure equal output in the
+                    // swap-sorting stage later to the previous version of this algorithm; it can be
+                    // removed when we break that matching.  It isn't needed for determinism.
+                    if v < virtual_neighbor {
+                        Some([v, virtual_neighbor])
+                    } else {
+                        Some([virtual_neighbor, v])
+                    }
                 } else {
-                    [virtual_neighbor, *v]
-                };
-                candidate_swaps.insert(swap);
-            }
-        }
-    }
-    candidate_swaps
+                    None
+                }
+            })
+    })
 }
 
-fn obtain_extended_set(
+/// Fill the given `extended_set` with the next nodes that would be reachable after the front layer
+/// (and themselves).  This uses `required_predecessors` as scratch space for efficiency, but
+/// returns it to the same state as the input on return.
+fn populate_extended_set(
+    extended_set: &mut ExtendedSet,
     dag: &SabreDAG,
-    front_layer: &[NodeIndex],
+    front_layer: &FrontLayer,
     required_predecessors: &mut [u32],
-) -> Vec<[usize; 2]> {
-    let mut extended_set: Vec<[usize; 2]> = Vec::new();
-    let mut decremented: Vec<usize> = Vec::new();
-    let mut tmp_front_layer: Vec<NodeIndex> = front_layer.to_vec();
-    let mut done: bool = false;
-    while !tmp_front_layer.is_empty() && !done {
-        let mut new_tmp_front_layer = Vec::new();
-        for node in tmp_front_layer {
-            for edge in dag.dag.edges(node) {
-                let successor_index = edge.target();
-                let successor = successor_index.index();
-                decremented.push(successor);
-                required_predecessors[successor] -= 1;
-                if required_predecessors[successor] == 0 {
-                    new_tmp_front_layer.push(successor_index);
-                    let node_weight = dag.dag.node_weight(successor_index).unwrap();
-                    let qargs = &node_weight.1;
-                    if qargs.len() == 2 {
-                        let extended_set_edges: [usize; 2] = [qargs[0], qargs[1]];
-                        extended_set.push(extended_set_edges);
-                    }
+) {
+    let mut to_visit = front_layer.iter_nodes().copied().collect::<Vec<_>>();
+    let mut decremented: HashMap<usize, u32> = HashMap::new();
+    let mut i = 0;
+    while i < to_visit.len() && extended_set.len() < EXTENDED_SET_SIZE {
+        for edge in dag.dag.edges_directed(to_visit[i], Direction::Outgoing) {
+            let successor_node = edge.target();
+            let successor_index = successor_node.index();
+            *decremented.entry(successor_index).or_insert(0) += 1;
+            required_predecessors[successor_index] -= 1;
+            if required_predecessors[successor_index] == 0 {
+                if let [a, b] = dag.dag[successor_node].1[..] {
+                    extended_set.insert(successor_node, &[a, b]);
                 }
-            }
-            if extended_set.len() >= EXTENDED_SET_SIZE {
-                done = true;
-                break;
+                to_visit.push(successor_node);
             }
         }
-        tmp_front_layer = new_tmp_front_layer;
+        i += 1;
     }
-    for node in decremented {
-        required_predecessors[node] += 1;
+    for (node, amount) in decremented.iter() {
+        required_predecessors[*node] += *amount;
     }
-    extended_set
 }
 
 fn cmap_from_neighor_table(neighbor_table: &NeighborTable) -> DiGraph<(), ()> {
@@ -162,7 +154,7 @@ pub fn build_swap_map(
     layout: &mut NLayout,
     num_trials: usize,
 ) -> (SwapMap, PyObject) {
-    let run_in_parallel = getenv_use_multiple_threads();
+    let run_in_parallel = getenv_use_multiple_threads() && num_trials > 1;
     let dist = distance_matrix.as_array();
     let coupling_graph: DiGraph<(), ()> = cmap_from_neighor_table(neighbor_table);
     let outer_rng = Pcg64Mcg::seed_from_u64(seed);
@@ -235,12 +227,11 @@ fn swap_map_trial(
     mut layout: NLayout,
 ) -> TrialResult {
     let max_iterations_without_progress = 10 * neighbor_table.neighbors.len();
-    let mut gate_order: Vec<usize> = Vec::with_capacity(dag.dag.node_count());
-    let mut ops_since_progress: Vec<[usize; 2]> = Vec::new();
     let mut out_map: HashMap<usize, Vec<[usize; 2]>> = HashMap::new();
-    let mut front_layer: Vec<NodeIndex> = dag.first_layer.clone();
+    let mut gate_order = Vec::with_capacity(dag.dag.node_count());
+    let mut front_layer = FrontLayer::new(num_qubits);
+    let mut extended_set = ExtendedSet::new(num_qubits, EXTENDED_SET_SIZE);
     let mut required_predecessors: Vec<u32> = vec![0; dag.dag.node_count()];
-    let mut extended_set: Option<Vec<[usize; 2]>> = None;
     let mut num_search_steps: u8 = 0;
     let mut qubits_decay: Vec<f64> = vec![1.; num_qubits];
     let mut rng = Pcg64Mcg::seed_from_u64(seed);
@@ -250,158 +241,81 @@ fn swap_map_trial(
             required_predecessors[edge.target().index()] += 1;
         }
     }
+    route_reachable_nodes(
+        &dag.first_layer,
+        dag,
+        &layout,
+        coupling_graph,
+        &mut gate_order,
+        &mut front_layer,
+        &mut required_predecessors,
+    );
+    populate_extended_set(
+        &mut extended_set,
+        dag,
+        &front_layer,
+        &mut required_predecessors,
+    );
+    // Main logic loop; the front layer only becomes empty when all nodes have been routed.  At
+    // each iteration of this loop, we route either one or two gates.
+    let mut routable_nodes = Vec::<NodeIndex>::with_capacity(2);
     while !front_layer.is_empty() {
-        let mut execute_gate_list: Vec<NodeIndex> = Vec::new();
-        // Remove as many immediately applicable gates as possible
-        let mut new_front_layer: Vec<NodeIndex> = Vec::new();
-        for node in front_layer {
-            let node_weight = dag.dag.node_weight(node).unwrap();
-            let qargs = &node_weight.1;
-            if qargs.len() == 2 {
-                let physical_qargs: [usize; 2] = [
-                    layout.logic_to_phys[qargs[0]],
-                    layout.logic_to_phys[qargs[1]],
-                ];
-                if coupling_graph
-                    .find_edge(
-                        NodeIndex::new(physical_qargs[0]),
-                        NodeIndex::new(physical_qargs[1]),
-                    )
-                    .is_none()
-                {
-                    new_front_layer.push(node);
-                } else {
-                    execute_gate_list.push(node);
-                }
-            } else {
-                execute_gate_list.push(node);
-            }
-        }
-        front_layer = new_front_layer.clone();
-
-        // Backtrack to the last time we made progress, then greedily insert swaps to route
-        // the gate with the smallest distance between its arguments.  This is f block a release
-        // valve for the algorithm to avoid infinite loops only, and should generally not
-        // come into play for most circuits.
-        if execute_gate_list.is_empty()
-            && ops_since_progress.len() > max_iterations_without_progress
-        {
-            // If we're stuck in a loop without making progress first undo swaps:
-            ops_since_progress
-                .drain(..)
-                .rev()
-                .for_each(|swap| layout.swap_logical(swap[0], swap[1]));
-            // Then pick the  closest pair in the current layer
-            let target_qubits = front_layer
-                .iter()
-                .map(|n| {
-                    let node_weight = dag.dag.node_weight(*n).unwrap();
-                    let qargs = &node_weight.1;
-                    [qargs[0], qargs[1]]
-                })
-                .min_by(|qargs_a, qargs_b| {
-                    let dist_a = dist[[
-                        layout.logic_to_phys[qargs_a[0]],
-                        layout.logic_to_phys[qargs_a[1]],
-                    ]];
-                    let dist_b = dist[[
-                        layout.logic_to_phys[qargs_b[0]],
-                        layout.logic_to_phys[qargs_b[1]],
-                    ]];
-                    dist_a.partial_cmp(&dist_b).unwrap_or(Ordering::Equal)
-                })
-                .unwrap();
-            // find Shortest path between target qubits
-            let mut shortest_paths: DictMap<NodeIndex, Vec<NodeIndex>> = DictMap::new();
-            let u = layout.logic_to_phys[target_qubits[0]];
-            let v = layout.logic_to_phys[target_qubits[1]];
-            (dijkstra(
-                &coupling_graph,
-                NodeIndex::<u32>::new(u),
-                Some(NodeIndex::<u32>::new(v)),
-                |_| Ok(1.),
-                Some(&mut shortest_paths),
-            ) as PyResult<Vec<Option<f64>>>)
-                .unwrap();
-            let shortest_path: Vec<usize> = shortest_paths
-                .get(&NodeIndex::new(v))
-                .unwrap()
-                .iter()
-                .map(|n| n.index())
-                .collect();
-            // Insert greedy swaps along that shortest path
-            let split: usize = shortest_path.len() / 2;
-            let forwards = &shortest_path[1..split];
-            let backwards = &shortest_path[split..shortest_path.len() - 1];
-            let mut greedy_swaps: Vec<[usize; 2]> = Vec::with_capacity(split);
-            for swap in forwards {
-                let logical_swap_bit = layout.phys_to_logic[*swap];
-                greedy_swaps.push([target_qubits[0], logical_swap_bit]);
-                layout.swap_logical(target_qubits[0], logical_swap_bit);
-            }
-            backwards.iter().rev().for_each(|swap| {
-                let logical_swap_bit = layout.phys_to_logic[*swap];
-                greedy_swaps.push([target_qubits[1], logical_swap_bit]);
-                layout.swap_logical(target_qubits[1], logical_swap_bit);
-            });
-            ops_since_progress = greedy_swaps;
-            continue;
-        }
-        if !execute_gate_list.is_empty() {
-            for node in execute_gate_list {
-                let node_weight = dag.dag.node_weight(node).unwrap();
-                gate_order.push(node_weight.0);
-                let out_swaps: Vec<[usize; 2]> = ops_since_progress.drain(..).collect();
-                if !out_swaps.is_empty() {
-                    out_map.insert(dag.dag.node_weight(node).unwrap().0, out_swaps);
-                }
-                for edge in dag.dag.edges(node) {
-                    let successor = edge.target().index();
-                    required_predecessors[successor] -= 1;
-                    if required_predecessors[successor] == 0 {
-                        front_layer.push(edge.target());
-                    }
-                }
-            }
-            qubits_decay.fill_with(|| 1.);
-            extended_set = None;
-            continue;
-        }
-        let first_layer: Vec<[usize; 2]> = front_layer
-            .iter()
-            .map(|n| {
-                let node_weight = dag.dag.node_weight(*n).unwrap();
-                let qargs = &node_weight.1;
-                [qargs[0], qargs[1]]
-            })
-            .collect();
-        if extended_set.is_none() {
-            extended_set = Some(obtain_extended_set(
-                dag,
+        let mut current_swaps: Vec<[usize; 2]> = Vec::new();
+        // Swap-mapping loop.  This is the main part of the algorithm, which we repeat until we
+        // either successfully route a node, or exceed the maximum number of attempts.
+        while routable_nodes.is_empty() && current_swaps.len() <= max_iterations_without_progress {
+            let best_swap = choose_best_swap(
                 &front_layer,
-                &mut required_predecessors,
-            ));
+                &extended_set,
+                &layout,
+                neighbor_table,
+                dist,
+                &qubits_decay,
+                heuristic,
+                &mut rng,
+            );
+            front_layer.routable_after(&mut routable_nodes, &best_swap, &layout, coupling_graph);
+            current_swaps.push(best_swap);
+            layout.swap_logical(best_swap[0], best_swap[1]);
+            num_search_steps += 1;
+            if num_search_steps >= DECAY_RESET_INTERVAL {
+                qubits_decay.fill(1.);
+                num_search_steps = 0;
+            } else {
+                qubits_decay[best_swap[0]] += DECAY_RATE;
+                qubits_decay[best_swap[1]] += DECAY_RATE;
+            }
         }
-
-        let best_swap = sabre_score_heuristic(
-            &first_layer,
-            &mut layout,
-            neighbor_table,
-            extended_set.as_ref().unwrap(),
-            dist,
-            &qubits_decay,
-            heuristic,
-            &mut rng,
+        // If we exceeded the number of allowed attempts without successfully routing a node, we
+        // reset back to the state we were in last time we routed a node, then find the node in the
+        // front layer whose qubits are the closest in the coupling map, and greedily insert swaps
+        // to make the node routable.  We could clone the layout each time we route a gate, but
+        // this path is only an escape mechansim for the algorithm getting stuck, so it should
+        // ideally never be taken, and it doesn't matter if it's not the speediest---it's better to
+        // keep the other path faster.
+        if routable_nodes.is_empty() {
+            undo_swaps(&mut current_swaps, &mut layout);
+            let (node, qubits) = closest_operation(&front_layer, &layout, dist);
+            swaps_to_route(&mut current_swaps, &qubits, &layout, coupling_graph);
+            for &[a, b] in current_swaps.iter() {
+                layout.swap_logical(a, b);
+            }
+            routable_nodes.push(node);
+        }
+        update_route(
+            &routable_nodes,
+            current_swaps,
+            dag,
+            &layout,
+            coupling_graph,
+            &mut gate_order,
+            &mut out_map,
+            &mut front_layer,
+            &mut extended_set,
+            &mut required_predecessors,
         );
-        num_search_steps += 1;
-        if num_search_steps >= DECAY_RESET_INTERVAL {
-            qubits_decay.fill_with(|| 1.);
-            num_search_steps = 0;
-        } else {
-            qubits_decay[best_swap[0]] += DECAY_RATE;
-            qubits_decay[best_swap[1]] += DECAY_RATE;
-        }
-        ops_since_progress.push(best_swap);
+        qubits_decay.fill(1.);
+        routable_nodes.clear();
     }
     TrialResult {
         out_map,
@@ -410,99 +324,216 @@ fn swap_map_trial(
     }
 }
 
-fn sabre_score_heuristic(
-    layer: &[[usize; 2]],
-    layout: &mut NLayout,
+/// Update the system state as the given `nodes` are added to the routing order, preceded by the
+/// given `swaps`.  This involves updating the output values `gate_order` and `out_map`, but also
+/// the tracking objects `front_layer`, `extended_set` and `required_predecessors` by removing the
+/// routed nodes and adding any now-reachable ones.
+fn update_route(
+    nodes: &[NodeIndex],
+    swaps: Vec<[usize; 2]>,
+    dag: &SabreDAG,
+    layout: &NLayout,
+    coupling: &DiGraph<(), ()>,
+    gate_order: &mut Vec<usize>,
+    out_map: &mut HashMap<usize, Vec<[usize; 2]>>,
+    front_layer: &mut FrontLayer,
+    extended_set: &mut ExtendedSet,
+    required_predecessors: &mut [u32],
+) {
+    // First node gets the swaps attached.  We don't add to the `gate_order` here because
+    // `route_reachable_nodes` is responsible for that part.
+    let py_node = dag.dag[nodes[0]].0;
+    out_map.insert(py_node, swaps);
+    for node in nodes {
+        front_layer.remove(node);
+    }
+    route_reachable_nodes(
+        nodes,
+        dag,
+        layout,
+        coupling,
+        gate_order,
+        front_layer,
+        required_predecessors,
+    );
+    // Ideally we'd know how to mutate the extended set directly, but since its limited size ties
+    // its construction strongly to the iteration order through the front layer, it's not easy to
+    // do better than just emptying it and rebuilding.
+    extended_set.clear();
+    populate_extended_set(extended_set, dag, front_layer, required_predecessors);
+}
+
+/// Search forwards in the `dag` from all the nodes in `to_visit`, adding them to the `gate_order`
+/// or the current `front_layer` as appropriate, and continue inspecting gates until there is
+/// nothing further with no required predecessors.
+///
+/// The nodes in `to_visit` should all already have no further required predecessors.
+fn route_reachable_nodes(
+    to_visit: &[NodeIndex],
+    dag: &SabreDAG,
+    layout: &NLayout,
+    coupling: &DiGraph<(), ()>,
+    gate_order: &mut Vec<usize>,
+    front_layer: &mut FrontLayer,
+    required_predecessors: &mut [u32],
+) {
+    let mut to_visit = to_visit.to_vec();
+    let mut i = 0;
+    // Iterate through `to_visit`, except we often push new nodes onto the end of it.
+    while i < to_visit.len() {
+        let node = to_visit[i];
+        i += 1;
+        let (py_node, qubits) = &dag.dag[node];
+        match qubits[..] {
+            [a, b]
+                if !coupling.contains_edge(
+                    NodeIndex::new(layout.logic_to_phys[a]),
+                    NodeIndex::new(layout.logic_to_phys[b]),
+                ) =>
+            {
+                front_layer.insert(node, [a, b]);
+            }
+            _ => {
+                gate_order.push(*py_node);
+                for edge in dag.dag.edges_directed(node, Direction::Outgoing) {
+                    let successor_node = edge.target();
+                    let successor_index = successor_node.index();
+                    required_predecessors[successor_index] -= 1;
+                    if required_predecessors[successor_index] == 0 {
+                        to_visit.push(successor_node);
+                    }
+                }
+            }
+        }
+    }
+}
+
+/// Walk through the swaps in the given vector, undoing them on the layout and removing them.
+fn undo_swaps(swaps: &mut Vec<[usize; 2]>, layout: &mut NLayout) {
+    swaps
+        .drain(..)
+        .rev()
+        .for_each(|swap| layout.swap_logical(swap[0], swap[1]));
+}
+
+/// Find the node index and its associated virtual qubits that is currently the closest to being
+/// routable in terms of number of swaps.
+fn closest_operation(
+    front_layer: &FrontLayer,
+    layout: &NLayout,
+    dist: &ArrayView2<f64>,
+) -> (NodeIndex, [usize; 2]) {
+    let (&node, qubits) = front_layer
+        .iter()
+        .map(|(node, qubits)| {
+            (
+                node,
+                [
+                    layout.logic_to_phys[qubits[0]],
+                    layout.logic_to_phys[qubits[1]],
+                ],
+            )
+        })
+        .min_by(|(_, qubits_a), (_, qubits_b)| {
+            dist[*qubits_a]
+                .partial_cmp(&dist[*qubits_b])
+                .unwrap_or(Ordering::Equal)
+        })
+        .unwrap();
+    (
+        node,
+        [
+            layout.phys_to_logic[qubits[0]],
+            layout.phys_to_logic[qubits[1]],
+        ],
+    )
+}
+
+/// Add the minimal set of swaps to the `swaps` vector that bring the two `qubits` together so that
+/// a 2q gate on them could be routed.
+fn swaps_to_route(
+    swaps: &mut Vec<[usize; 2]>,
+    qubits: &[usize; 2],
+    layout: &NLayout,
+    coupling_graph: &DiGraph<(), ()>,
+) {
+    let mut shortest_paths: DictMap<NodeIndex, Vec<NodeIndex>> = DictMap::new();
+    let u = layout.logic_to_phys[qubits[0]];
+    let v = layout.logic_to_phys[qubits[1]];
+    (dijkstra(
+        coupling_graph,
+        NodeIndex::<u32>::new(u),
+        Some(NodeIndex::<u32>::new(v)),
+        |_| Ok(1.),
+        Some(&mut shortest_paths),
+    ) as PyResult<Vec<Option<f64>>>)
+        .unwrap();
+    let shortest_path: Vec<usize> = shortest_paths
+        .get(&NodeIndex::new(v))
+        .unwrap()
+        .iter()
+        .map(|n| n.index())
+        .collect();
+    // Insert greedy swaps along that shortest path
+    let split: usize = shortest_path.len() / 2;
+    let forwards = &shortest_path[1..split];
+    let backwards = &shortest_path[split..shortest_path.len() - 1];
+    swaps.reserve(shortest_path.len() - 2);
+    for swap in forwards {
+        swaps.push([qubits[0], layout.phys_to_logic[*swap]]);
+    }
+    for swap in backwards.iter().rev() {
+        swaps.push([qubits[1], layout.phys_to_logic[*swap]]);
+    }
+}
+
+/// Return the swap of two virtual qubits that produces the best score of all possible swaps.
+fn choose_best_swap(
+    layer: &FrontLayer,
+    extended_set: &ExtendedSet,
+    layout: &NLayout,
     neighbor_table: &NeighborTable,
-    extended_set: &[[usize; 2]],
     dist: &ArrayView2<f64>,
     qubits_decay: &[f64],
     heuristic: &Heuristic,
     rng: &mut Pcg64Mcg,
 ) -> [usize; 2] {
-    // Run in parallel only if we're not already in a multiprocessing context
-    // unless force threads is set.
-    let candidate_swaps = obtain_swaps(layer, neighbor_table, layout);
     let mut min_score = f64::MAX;
     let mut best_swaps: Vec<[usize; 2]> = Vec::new();
-    for swap_qubits in candidate_swaps {
-        layout.swap_logical(swap_qubits[0], swap_qubits[1]);
-        let score = score_heuristic(
-            heuristic,
-            layer,
-            extended_set,
-            layout,
-            &swap_qubits,
-            dist,
-            qubits_decay,
-        );
+    // The decay heuristic is the only one that actually needs the absolute score.
+    let absolute_score = match heuristic {
+        Heuristic::Decay => {
+            layer.total_score(layout, dist)
+                + EXTENDED_SET_WEIGHT * extended_set.total_score(layout, dist)
+        }
+        _ => 0.0,
+    };
+    for swap in obtain_swaps(layer, neighbor_table, layout) {
+        let score = match heuristic {
+            Heuristic::Basic => layer.score(swap, layout, dist),
+            Heuristic::Lookahead => {
+                layer.score(swap, layout, dist)
+                    + EXTENDED_SET_WEIGHT * extended_set.score(swap, layout, dist)
+            }
+            Heuristic::Decay => {
+                qubits_decay[swap[0]].max(qubits_decay[swap[1]])
+                    * (absolute_score
+                        + layer.score(swap, layout, dist)
+                        + EXTENDED_SET_WEIGHT * extended_set.score(swap, layout, dist))
+            }
+        };
         if score < min_score {
             min_score = score;
             best_swaps.clear();
-            best_swaps.push(swap_qubits);
+            best_swaps.push(swap);
         } else if score == min_score {
-            best_swaps.push(swap_qubits);
-        }
-        layout.swap_logical(swap_qubits[0], swap_qubits[1]);
-    }
-    best_swaps.sort_unstable();
-    let best_swap = *best_swaps.choose(rng).unwrap();
-    layout.swap_logical(best_swap[0], best_swap[1]);
-    best_swap
-}
-
-#[inline]
-fn compute_cost(layer: &[[usize; 2]], layout: &NLayout, dist: &ArrayView2<f64>) -> f64 {
-    layer
-        .iter()
-        .map(|gate| dist[[layout.logic_to_phys[gate[0]], layout.logic_to_phys[gate[1]]]])
-        .sum()
-}
-
-fn score_lookahead(
-    layer: &[[usize; 2]],
-    extended_set: &[[usize; 2]],
-    layout: &NLayout,
-    dist: &ArrayView2<f64>,
-) -> f64 {
-    let mut first_cost = compute_cost(layer, layout, dist);
-    first_cost /= layer.len() as f64;
-    let second_cost = if extended_set.is_empty() {
-        0.
-    } else {
-        compute_cost(extended_set, layout, dist) / extended_set.len() as f64
-    };
-    first_cost + EXTENDED_SET_WEIGHT * second_cost
-}
-
-fn score_decay(
-    layer: &[[usize; 2]],
-    extended_set: &[[usize; 2]],
-    layout: &NLayout,
-    dist: &ArrayView2<f64>,
-    swap_qubits: &[usize; 2],
-    qubits_decay: &[f64],
-) -> f64 {
-    let total_cost = score_lookahead(layer, extended_set, layout, dist);
-    qubits_decay[swap_qubits[0]].max(qubits_decay[swap_qubits[1]]) * total_cost
-}
-
-fn score_heuristic(
-    heuristic: &Heuristic,
-    layer: &[[usize; 2]],
-    extended_set: &[[usize; 2]],
-    layout: &NLayout,
-    swap_qubits: &[usize; 2],
-    dist: &ArrayView2<f64>,
-    qubits_decay: &[f64],
-) -> f64 {
-    match heuristic {
-        Heuristic::Basic => compute_cost(layer, layout, dist),
-        Heuristic::Lookahead => score_lookahead(layer, extended_set, layout, dist),
-        Heuristic::Decay => {
-            score_decay(layer, extended_set, layout, dist, swap_qubits, qubits_decay)
+            best_swaps.push(swap);
         }
     }
+    if best_swaps.len() > 1 {
+        best_swaps.sort_unstable();
+    }
+    *best_swaps.choose(rng).unwrap()
 }
 
 #[pymodule]
