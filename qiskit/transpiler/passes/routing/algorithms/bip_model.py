@@ -793,7 +793,7 @@ class BIPMappingModel:
                     if t < self.heur_last_layer[split] - 1:
                         for q in range(self.num_vqubits):
                             for i in range(self.num_pqubits):
-                                for j in (list(self._coupling.neighbors(i)) + [i]):
+                                for j in list(self._coupling.neighbors(i)) + [i]:
                                     val = (
                                         self.heur_problem[split]
                                         .get_var_by_name(f"x_{t}_{q}_{i}_{j}")
