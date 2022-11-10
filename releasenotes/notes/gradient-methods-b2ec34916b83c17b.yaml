@@ -5,12 +5,6 @@ features:
     have new argument method.
     There are three methods, "central", "forward", and "backward".
     This option changes the gradient calculation methods.
-    "central" calculates :math:`\frac{f(x+e/2)-f(x-e/2)}{e}`, "forward"
+    "central" calculates :math:`\frac{f(x+e)-f(x-e)}{2e}`, "forward"
     :math:`\frac{f(x+e) - f(x)}{e}`, and "backward" :math:`\frac{f(x)-f(x-e)}{e}` where
     :math:`e` is the offset epsilon.
-fixes:
-  - |
-    :class:`.FiniteDiffEstimatorGradient` and :class:`FiniteDiffSamplerGradient`
-    calculated gradients by :math:`\frac{f(x+e)-f(x-e)}{2e}`.
-    Fixed to correct formula as central difference. That is, it is calculated as
-    :math:`\frac{f(x+e/2)-f(x-e/2)}{e}`

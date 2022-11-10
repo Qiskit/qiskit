@@ -59,9 +59,9 @@ class FiniteDiffEstimatorGradient(BaseEstimatorGradient):
                 Higher priority setting overrides lower priority setting
             method: The computation method of the gradients.
 
-                  - ``central`` computes :math:`\frac{f(x+e/2)-f(x-e/2)}{e}`,
-                  - ``forward`` computes math:`\frac{f(x+e) - f(x)}{e}`,
-                  - ``backward`` computes :math:`\frac{f(x)-f(x-e)}{e}`
+                - ``central`` computes :math:`\frac{f(x+e)-f(x-e)}{2e}`,
+                - ``forward`` computes math:`\frac{f(x+e) - f(x)}{e}`,
+                - ``backward`` computes :math:`\frac{f(x)-f(x-e)}{e}`
 
                 where :math:`e` is epsilon.
 
@@ -102,8 +102,8 @@ class FiniteDiffEstimatorGradient(BaseEstimatorGradient):
 
             offset = np.identity(circuit.num_parameters)[indices, :]
             if self._method == "central":
-                plus = parameter_values_ + self._epsilon * offset / 2
-                minus = parameter_values_ - self._epsilon * offset / 2
+                plus = parameter_values_ + self._epsilon * offset
+                minus = parameter_values_ - self._epsilon * offset
                 n = 2 * len(indices)
                 job = self._estimator.run(
                     [circuit] * n, [observable] * n, plus.tolist() + minus.tolist(), **options
@@ -132,7 +132,7 @@ class FiniteDiffEstimatorGradient(BaseEstimatorGradient):
         for result in results:
             if self._method == "central":
                 n = len(result.values) // 2  # is always a multiple of 2
-                gradient_ = (result.values[:n] - result.values[n:]) / self._epsilon
+                gradient_ = (result.values[:n] - result.values[n:]) / (2 * self._epsilon)
             elif self._method == "forward":
                 gradient_ = (result.values[1:] - result.values[0]) / self._epsilon
             elif self._method == "backward":

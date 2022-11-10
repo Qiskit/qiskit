@@ -54,11 +54,9 @@ class FiniteDiffSamplerGradient(BaseSamplerGradient):
                 default options > primitive's default setting.
                 Higher priority setting overrides lower priority setting
             method: The computation method of the gradients.
-
-                  - ``central`` computes :math:`\frac{f(x+e/2)-f(x-e/2)}{e}`,
-                  - ``forward`` computes math:`\frac{f(x+e) - f(x)}{e}`,
-                  - ``backward`` computes :math:`\frac{f(x)-f(x-e)}{e}`
-
+                - ``central`` computes :math:`\frac{f(x+e)-f(x-e)}{2e}`,
+                - ``forward`` computes math:`\frac{f(x+e) - f(x)}{e}`,
+                - ``backward`` computes :math:`\frac{f(x)-f(x-e)}{e}`
                 where :math:`e` is epsilon.
 
         Raises:
@@ -93,8 +91,8 @@ class FiniteDiffSamplerGradient(BaseSamplerGradient):
             metadata_.append({"parameters": [circuit.parameters[idx] for idx in indices]})
             offset = np.identity(circuit.num_parameters)[indices, :]
             if self._method == "central":
-                plus = parameter_values_ + self._epsilon * offset / 2
-                minus = parameter_values_ - self._epsilon * offset / 2
+                plus = parameter_values_ + self._epsilon * offset
+                minus = parameter_values_ - self._epsilon * offset
                 n = 2 * len(indices)
                 job = self._sampler.run([circuit] * n, plus.tolist() + minus.tolist(), **options)
             elif self._method == "forward":
@@ -126,7 +124,7 @@ class FiniteDiffSamplerGradient(BaseSamplerGradient):
                     grad_dist = np.zeros(2 ** circuits[i].num_qubits)
                     grad_dist[list(dist_plus.keys())] += list(dist_plus.values())
                     grad_dist[list(dist_minus.keys())] -= list(dist_minus.values())
-                    grad_dist /= self._epsilon
+                    grad_dist /= 2 * self._epsilon
                     gradient_.append(dict(enumerate(grad_dist)))
             elif self._method == "forward":
                 gradient_ = []
