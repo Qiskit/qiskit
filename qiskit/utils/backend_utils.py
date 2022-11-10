@@ -18,7 +18,7 @@ logger = logging.getLogger(__name__)
 
 _UNSUPPORTED_BACKENDS = ["unitary_simulator", "clifford_simulator"]
 
-# pylint: disable=no-name-in-module, import-error, unused-import
+# pylint: disable=no-name-in-module,unused-import
 
 
 class ProviderCheck:

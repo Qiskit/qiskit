@@ -21,6 +21,7 @@ import numpy as np
 from qiskit.algorithms import AlgorithmError
 from qiskit.circuit import Parameter, QuantumCircuit
 from qiskit.primitives import BaseSampler
+from qiskit.providers import Options
 
 from .base_sampler_gradient import BaseSamplerGradient
 from .sampler_gradient_result import SamplerGradientResult
@@ -38,7 +39,7 @@ class SPSASamplerGradient(BaseSamplerGradient):
         epsilon: float,
         batch_size: int = 1,
         seed: int | None = None,
-        **options,
+        options: Options | None = None,
     ):
         """
         Args:
@@ -60,7 +61,7 @@ class SPSASamplerGradient(BaseSamplerGradient):
         self._epsilon = epsilon
         self._seed = np.random.default_rng(seed)
 
-        super().__init__(sampler, **options)
+        super().__init__(sampler, options)
 
     def _run(
         self,

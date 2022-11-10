@@ -23,7 +23,7 @@ import warnings
 
 import numpy as np
 import retworkx as rx
-from retworkx.visualization import graphviz_draw
+from retworkx.visualization import graphviz_draw  # pylint: disable=no-name-in-module
 
 from qiskit.transpiler.exceptions import CouplingError
 
@@ -78,6 +78,9 @@ class CouplingMap:
             Tuple(int,int): Each edge is a pair of physical qubits.
         """
         return self.graph.edge_list()
+
+    def __iter__(self):
+        return iter(self.graph.edge_list())
 
     def add_physical_qubit(self, physical_qubit):
         """Add a physical qubit to the coupling graph as a node.

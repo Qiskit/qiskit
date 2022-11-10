@@ -20,7 +20,7 @@ from qiskit.transpiler.layout import Layout
 from qiskit.transpiler.basepasses import AnalysisPass
 from qiskit.transpiler.exceptions import TranspilerError
 
-from qiskit._accelerate.dense_layout import best_subset  # pylint: disable=import-error
+from qiskit._accelerate.dense_layout import best_subset
 
 
 class DenseLayout(AnalysisPass):
@@ -90,7 +90,7 @@ class DenseLayout(AnalysisPass):
             num_meas = 1
         else:
             # Get avg number of cx and meas per qubit
-            ops = dag.count_ops()
+            ops = dag.count_ops(recurse=True)
             if "cx" in ops.keys():
                 num_cx = ops["cx"]
             if "measure" in ops.keys():
@@ -98,11 +98,9 @@ class DenseLayout(AnalysisPass):
 
         best_sub = self._best_subset(num_dag_qubits, num_meas, num_cx)
         layout = Layout()
-        map_iter = 0
+        for i, qubit in enumerate(dag.qubits):
+            layout.add(qubit, int(best_sub[i]))
         for qreg in dag.qregs.values():
-            for i in range(qreg.size):
-                layout[qreg[i]] = int(best_sub[map_iter])
-                map_iter += 1
             layout.add_register(qreg)
         self.property_set["layout"] = layout
 
@@ -149,7 +147,7 @@ def _build_error_matrix(num_qubits, target=None, coupling_map=None, backend_prop
             error = 0.0
             ops = target.operation_names_for_qargs(qargs)
             for op in ops:
-                props = target[op][qargs]
+                props = target[op].get(qargs, None)
                 if props is not None and props.error is not None:
                     # Use max error rate to represent operation error
                     # on a qubit(s). If there is more than 1 operation available
