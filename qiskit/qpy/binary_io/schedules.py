@@ -88,6 +88,10 @@ def _read_symbolic_pulse(file_obj, version):
         version=version,
         vectors={},
     )
+    if "amp" in parameters and isinstance(parameters["amp"], complex):
+        parameters["angle"] = np.angle(parameters["amp"])
+        parameters["amp"] = np.abs(parameters["amp"])
+
     duration = value.read_value(file_obj, version, {})
     name = value.read_value(file_obj, version, {})
 

@@ -92,14 +92,14 @@ class TestInstructionToQobjConverter(QiskitTestCase):
     def test_constant_pulse_instruction(self):
         """Test that parametric pulses are correctly converted to PulseQobjInstructions."""
         converter = InstructionToQobjConverter(PulseQobjInstruction, meas_level=2)
-        instruction = Play(Constant(duration=25, amp=1), ControlChannel(2))
+        instruction = Play(Constant(duration=25, amp=1, angle=np.pi), ControlChannel(2))
 
         valid_qobj = PulseQobjInstruction(
             name="parametric_pulse",
             pulse_shape="constant",
             ch="u2",
             t0=20,
-            parameters={"duration": 25, "amp": 1},
+            parameters={"duration": 25, "amp": 1 * np.exp(1j * np.pi)},
         )
         self.assertEqual(converter(20, instruction), valid_qobj)
 
