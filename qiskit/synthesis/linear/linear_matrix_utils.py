@@ -147,3 +147,13 @@ def _compute_rank_after_gauss_elim(mat):
     """Given a matrix A after Gaussian elimination, computes its rank
     (i.e. simply the number of nonzero rows)"""
     return np.sum(mat.any(axis=1))
+
+
+def _row_op(mat, ctrl, trgt):
+    # Perform ROW operation on a matrix mat
+    mat[trgt] = mat[trgt] ^ mat[ctrl]
+
+
+def _col_op(mat, ctrl, trgt):
+    # Perform COL operation on a matrix mat
+    mat[:, ctrl] = mat[:, trgt] ^ mat[:, ctrl]

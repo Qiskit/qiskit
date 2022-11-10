@@ -28,31 +28,20 @@ from qiskit.circuit import QuantumCircuit
 from qiskit.synthesis.linear.linear_matrix_utils import (
     calc_inverse_matrix,
     check_invertible_binary_matrix,
+    _col_op,
+    _row_op,
 )
 
 
-def _el_op(mat, ctrl, trgt, row_op=True):
-    # Perform a ROW or COL operation on a matrix mat
-    if row_op:
-        mat[trgt] = mat[trgt] ^ mat[ctrl]
-    else:
-        mat[:, ctrl] = mat[:, trgt] ^ mat[:, ctrl]
-
-
-def _el_op_all(mat, mat_inv, ctrl, trgt, row_op=True):
-    # Perform a ROW or COL operation on a matrix mat, and update the inverted mat
-    _el_op(mat, ctrl, trgt, row_op=row_op)
-    _el_op(mat_inv, ctrl, trgt, row_op=not row_op)
-
-
-def _append_gate_lite(cx_instructions, mat, a, b):
-    # Add a cx gate to the instructions and update the matrices
+def _row_op_update_instructions(cx_instructions, mat, a, b):
+    # Add a cx gate to the instructions and update the matrix mat
     cx_instructions.append((a, b))
-    _el_op(mat, a, b)
+    _row_op(mat, a, b)
 
 
-def _get_lu_decomposition(n, mat, mat_inv):
-    # Get the instructions for LU decomposition of a matrix mat
+def _get_lower_triangular(n, mat, mat_inv):
+    # Get the instructions for a lower triangular basis change of a matrix mat.
+    # See the proof of Proposition 7.3 in [1].
     mat = deepcopy(mat)
     mat_t = deepcopy(mat)
     mat_inv_t = deepcopy(mat_inv)
@@ -73,15 +62,16 @@ def _get_lu_decomposition(n, mat, mat_inv):
                     first_j = j
                 else:
                     # cx_instructions_cols (L instructions) are not needed
-                    _el_op(mat, j, first_j, row_op=False)
+                    _col_op(mat, j, first_j)
         # Use row operations directed upwards to zero out all "1"s above the remaining "1" in row i
         for k in reversed(range(0, i)):
             if mat[k, first_j]:
-                _append_gate_lite(cx_instructions_rows, mat, i, k)
+                _row_op_update_instructions(cx_instructions_rows, mat, i, k)
 
     # Apply only U instructions to get the permuted L
     for inst in cx_instructions_rows:
-        _el_op_all(mat_t, mat_inv_t, inst[0], inst[1])
+        _row_op(mat_t, inst[0], inst[1])
+        _col_op(mat_inv_t, inst[0], inst[1])
     return mat_t, mat_inv_t
 
 
@@ -120,12 +110,12 @@ def _get_label_arr_t(n, label_arr):
     return label_arr_t
 
 
-def _matrix_to_north_west(n, cx_instructions_rows, mat, mat_inv):
+def _matrix_to_north_west(n, mat, mat_inv):
     # Transform an arbitrary boolean invertible matrix to a north-west triangular matrix
     # by Proposition 7.3 in [1]
 
-    # The rows of mat_t hold all w_j vectors [1]. mat_inv_t is the inverted matrix of mat_t
-    mat_t, mat_inv_t = _get_lu_decomposition(n, mat, mat_inv)
+    # The rows of mat_t hold all w_j vectors (see [1]). mat_inv_t is the inverted matrix of mat_t
+    mat_t, mat_inv_t = _get_lower_triangular(n, mat, mat_inv)
 
     # Get all pi(i) labels
     label_arr = _get_label_arr(n, mat_t)
@@ -136,6 +126,8 @@ def _matrix_to_north_west(n, cx_instructions_rows, mat, mat_inv):
     first_qubit = 0
     empty_layers = 0
     done = False
+    cx_instructions_rows = []
+
     while not done:
         # At each iteration the values of i switch between even and odd
         at_least_one_needed = False
@@ -154,11 +146,11 @@ def _matrix_to_north_west(n, cx_instructions_rows, mat, mat_inv):
                 elif _in_linear_combination(
                     label_arr_t, mat_inv_t, mat[i + 1] ^ mat[i], label_arr[i + 1]
                 ):
-                    _append_gate_lite(cx_instructions_rows, mat, i, i + 1)
+                    _row_op_update_instructions(cx_instructions_rows, mat, i, i + 1)
 
                 elif _in_linear_combination(label_arr_t, mat_inv_t, mat[i], label_arr[i + 1]):
-                    _append_gate_lite(cx_instructions_rows, mat, i + 1, i)
-                    _append_gate_lite(cx_instructions_rows, mat, i, i + 1)
+                    _row_op_update_instructions(cx_instructions_rows, mat, i + 1, i)
+                    _row_op_update_instructions(cx_instructions_rows, mat, i, i + 1)
 
                 label_arr[i], label_arr[i + 1] = label_arr[i + 1], label_arr[i]
 
@@ -174,7 +166,7 @@ def _matrix_to_north_west(n, cx_instructions_rows, mat, mat_inv):
     return cx_instructions_rows
 
 
-def _north_west_to_identity(n, cx_instructions_rows, mat):
+def _north_west_to_identity(n, mat):
     # Transform a north-west triangular matrix to identity in depth 3*n by Proposition 7.4 of [1]
 
     # At start the labels are in reversed order
@@ -182,6 +174,8 @@ def _north_west_to_identity(n, cx_instructions_rows, mat):
     first_qubit = 0
     empty_layers = 0
     done = False
+    cx_instructions_rows = []
+
     while not done:
         at_least_one_needed = False
 
@@ -194,10 +188,10 @@ def _north_west_to_identity(n, cx_instructions_rows, mat):
                 # otherwise, only do a swap (in depth 3)
                 if not mat[i, label_arr[i + 1]]:
                     # Adding this turns the operation to a SWAP
-                    _append_gate_lite(cx_instructions_rows, mat, i + 1, i)
+                    _row_op_update_instructions(cx_instructions_rows, mat, i + 1, i)
 
-                _append_gate_lite(cx_instructions_rows, mat, i, i + 1)
-                _append_gate_lite(cx_instructions_rows, mat, i + 1, i)
+                _row_op_update_instructions(cx_instructions_rows, mat, i, i + 1)
+                _row_op_update_instructions(cx_instructions_rows, mat, i + 1, i)
 
                 label_arr[i], label_arr[i + 1] = label_arr[i + 1], label_arr[i]
 
@@ -232,18 +226,14 @@ def _optimize_cx_circ_depth_5n_line(mat):
     mat_cpy = calc_inverse_matrix(mat_inv)
 
     n = len(mat_cpy)
-    cx_instructions_rows_m2nw = []
-    cx_instructions_rows_nw2id = []
 
     # Transform an arbitrary invertible matrix to a north-west triangular matrix
     # by Proposition 7.3 of [1]
-    cx_instructions_rows_m2nw = _matrix_to_north_west(
-        n, cx_instructions_rows_m2nw, mat_cpy, mat_inv
-    )
+    cx_instructions_rows_m2nw = _matrix_to_north_west(n, mat_cpy, mat_inv)
 
     # Transform a north-west triangular matrix to identity in depth 3*n
     # by Proposition 7.4 of [1]
-    cx_instructions_rows_nw2id = _north_west_to_identity(n, cx_instructions_rows_nw2id, mat_cpy)
+    cx_instructions_rows_nw2id = _north_west_to_identity(n, mat_cpy)
 
     return cx_instructions_rows_m2nw, cx_instructions_rows_nw2id
 
