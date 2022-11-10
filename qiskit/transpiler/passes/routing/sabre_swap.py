@@ -13,7 +13,7 @@
 """Routing via SWAP insertion using the SABRE method from Li et al."""
 
 import logging
-from copy import copy
+from copy import copy, deepcopy
 
 import numpy as np
 import retworkx
@@ -143,7 +143,10 @@ class SabreSwap(TransformationPass):
         if coupling_map is None or coupling_map.is_symmetric:
             self.coupling_map = coupling_map
         else:
-            self.coupling_map = copy(coupling_map)
+            # A deepcopy is needed here to avoid modifications updating
+            # shared references in passes which require directional
+            # constraints
+            self.coupling_map = deepcopy(coupling_map)
             self.coupling_map.make_symmetric()
         self._neighbor_table = None
         if coupling_map is not None:
