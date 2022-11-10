@@ -106,10 +106,10 @@ class LinCombEstimatorGradient(BaseEstimatorGradient):
             if self._derivative_type == DerivativeType.REAL:
                 op1 = SparsePauliOp.from_list([("Z", 1)])
             elif self._derivative_type == DerivativeType.IMAG:
-                op1 = SparsePauliOp.from_list([("Y", -1)])
+                op1 = SparsePauliOp.from_list([("Y", 1)])
             elif self._derivative_type == DerivativeType.COMPLEX:
                 op1 = SparsePauliOp.from_list([("Z", 1)])
-                op2 = SparsePauliOp.from_list([("Y", -1)])
+                op2 = SparsePauliOp.from_list([("Y", 1)])
             else:
                 raise ValueError(f"Derivative type {self._derivative_type} is not supported.")
 
