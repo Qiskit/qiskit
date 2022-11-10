@@ -15,7 +15,7 @@
 import unittest
 from qiskit.transpiler.passes import BarrierBeforeFinalMeasurements
 from qiskit.converters import circuit_to_dag
-from qiskit import QuantumRegister, QuantumCircuit, ClassicalRegister
+from qiskit.circuit import QuantumRegister, QuantumCircuit, ClassicalRegister, Clbit
 from qiskit.test import QiskitTestCase
 
 
@@ -369,6 +369,28 @@ class TestBarrierBeforeMeasurementsWhenABarrierIsAlreadyThere(QiskitTestCase):
         result = pass_.run(circuit_to_dag(test_circuit))
 
         self.assertEqual(result, circuit_to_dag(expected))
+
+    def test_conditioned_on_single_bit(self):
+        """Test that the pass can handle cases where there is a loose-bit condition."""
+        circuit = QuantumCircuit(QuantumRegister(3), ClassicalRegister(2), [Clbit()])
+        circuit.h(range(3))
+        circuit.measure(range(3), range(3))
+        circuit.h(0).c_if(circuit.cregs[0], 3)
+        circuit.h(1).c_if(circuit.clbits[-1], True)
+        circuit.h(2).c_if(circuit.clbits[-1], False)
+        circuit.measure(range(3), range(3))
+
+        expected = circuit.copy_empty_like()
+        expected.h(range(3))
+        expected.measure(range(3), range(3))
+        expected.h(0).c_if(expected.cregs[0], 3)
+        expected.h(1).c_if(expected.clbits[-1], True)
+        expected.h(2).c_if(expected.clbits[-1], False)
+        expected.barrier(range(3))
+        expected.measure(range(3), range(3))
+
+        pass_ = BarrierBeforeFinalMeasurements()
+        self.assertEqual(expected, pass_(circuit))
 
 
 if __name__ == "__main__":

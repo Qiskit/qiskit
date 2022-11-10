@@ -18,42 +18,63 @@ import random
 
 from retworkx import PyDiGraph, PyGraph
 
+from qiskit.circuit import ControlFlowOp, ForLoopOp
+from qiskit.converters import circuit_to_dag
+
 
 def build_interaction_graph(dag, strict_direction=True):
     """Build an interaction graph from a dag."""
-    if strict_direction:
-        im_graph = PyDiGraph(multigraph=False)
-    else:
-        im_graph = PyGraph(multigraph=False)
+    im_graph = PyDiGraph(multigraph=False) if strict_direction else PyGraph(multigraph=False)
     im_graph_node_map = {}
     reverse_im_graph_node_map = {}
 
-    for node in dag.op_nodes(include_directives=False):
-        len_args = len(node.qargs)
-        if len_args == 1:
-            if node.qargs[0] not in im_graph_node_map:
-                weight = defaultdict(int)
-                weight[node.name] += 1
-                im_graph_node_map[node.qargs[0]] = im_graph.add_node(weight)
-                reverse_im_graph_node_map[im_graph_node_map[node.qargs[0]]] = node.qargs[0]
-            else:
-                im_graph[im_graph_node_map[node.qargs[0]]][node.op.name] += 1
-        if len_args == 2:
-            if node.qargs[0] not in im_graph_node_map:
-                im_graph_node_map[node.qargs[0]] = im_graph.add_node(defaultdict(int))
-                reverse_im_graph_node_map[im_graph_node_map[node.qargs[0]]] = node.qargs[0]
-            if node.qargs[1] not in im_graph_node_map:
-                im_graph_node_map[node.qargs[1]] = im_graph.add_node(defaultdict(int))
-                reverse_im_graph_node_map[im_graph_node_map[node.qargs[1]]] = node.qargs[1]
-            edge = (im_graph_node_map[node.qargs[0]], im_graph_node_map[node.qargs[1]])
-            if im_graph.has_edge(*edge):
-                im_graph.get_edge_data(*edge)[node.name] += 1
-            else:
-                weight = defaultdict(int)
-                weight[node.name] += 1
-                im_graph.add_edge(*edge, weight)
-        if len_args > 2:
-            return None
+    class MultiQEncountered(Exception):
+        """Used to singal an error-status return from the DAG visitor."""
+
+    def _visit(dag, weight, wire_map):
+        for node in dag.op_nodes(include_directives=False):
+            if isinstance(node.op, ControlFlowOp):
+                if isinstance(node.op, ForLoopOp):
+                    inner_weight = len(node.op.params[0]) * weight
+                else:
+                    inner_weight = weight
+                for block in node.op.blocks:
+                    inner_wire_map = {
+                        inner: wire_map[outer] for outer, inner in zip(node.qargs, block.qubits)
+                    }
+                    _visit(circuit_to_dag(block), inner_weight, inner_wire_map)
+                continue
+            len_args = len(node.qargs)
+            qargs = [wire_map[q] for q in node.qargs]
+            if len_args == 1:
+                if qargs[0] not in im_graph_node_map:
+                    weights = defaultdict(int)
+                    weights[node.name] += weight
+                    im_graph_node_map[qargs[0]] = im_graph.add_node(weights)
+                    reverse_im_graph_node_map[im_graph_node_map[qargs[0]]] = qargs[0]
+                else:
+                    im_graph[im_graph_node_map[qargs[0]]][node.op.name] += weight
+            if len_args == 2:
+                if qargs[0] not in im_graph_node_map:
+                    im_graph_node_map[qargs[0]] = im_graph.add_node(defaultdict(int))
+                    reverse_im_graph_node_map[im_graph_node_map[qargs[0]]] = qargs[0]
+                if qargs[1] not in im_graph_node_map:
+                    im_graph_node_map[qargs[1]] = im_graph.add_node(defaultdict(int))
+                    reverse_im_graph_node_map[im_graph_node_map[qargs[1]]] = qargs[1]
+                edge = (im_graph_node_map[qargs[0]], im_graph_node_map[qargs[1]])
+                if im_graph.has_edge(*edge):
+                    im_graph.get_edge_data(*edge)[node.name] += weight
+                else:
+                    weights = defaultdict(int)
+                    weights[node.name] += weight
+                    im_graph.add_edge(*edge, weights)
+            if len_args > 2:
+                raise MultiQEncountered()
+
+    try:
+        _visit(dag, 1, {bit: bit for bit in dag.qubits})
+    except MultiQEncountered:
+        return None
     return im_graph, im_graph_node_map, reverse_im_graph_node_map
 
 
@@ -63,13 +84,16 @@ def score_layout(avg_error_map, layout, bit_map, reverse_bit_map, im_graph, stri
     fidelity = 1
     for bit, node_index in bit_map.items():
         gate_count = sum(im_graph[node_index].values())
-        fidelity *= (1 - avg_error_map[(bits[bit],)]) ** gate_count
+        error_rate = avg_error_map.get((bits[bit],))
+        if error_rate is not None:
+            fidelity *= (1 - avg_error_map[(bits[bit],)]) ** gate_count
     for edge in im_graph.edge_index_map().values():
         gate_count = sum(edge[2].values())
         qargs = (bits[reverse_bit_map[edge[0]]], bits[reverse_bit_map[edge[1]]])
         if not strict_direction and qargs not in avg_error_map:
             qargs = (qargs[1], qargs[0])
-        fidelity *= (1 - avg_error_map[qargs]) ** gate_count
+        if qargs in avg_error_map:
+            fidelity *= (1 - avg_error_map[qargs]) ** gate_count
     return 1 - fidelity
 
 

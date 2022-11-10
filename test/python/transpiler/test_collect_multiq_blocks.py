@@ -14,6 +14,7 @@
 Tests for the Collect2qBlocks transpiler pass.
 """
 
+import math
 import unittest
 
 from qiskit.circuit import QuantumCircuit, QuantumRegister, ClassicalRegister
@@ -39,8 +40,8 @@ class TestCollect2qBlocks(QiskitTestCase):
         """
         qr = QuantumRegister(3, "qr")
         qc = QuantumCircuit(qr)
-        qc.u1(0.5, qr[0])
-        qc.u2(0.2, 0.6, qr[1])
+        qc.p(0.5, qr[0])
+        qc.u(math.pi / 2, 0.2, 0.6, qr[1])
         qc.cx(qr[2], qr[1])
         qc.cx(qr[0], qr[1])
         dag = circuit_to_dag(qc)
@@ -159,15 +160,13 @@ class TestCollect2qBlocks(QiskitTestCase):
         """
         # ref: https://github.com/Qiskit/qiskit-terra/issues/3215
 
-        print("BEGIN MERGE CONDITION ")
-
         qr = QuantumRegister(3, "qr")
         cr = ClassicalRegister(2, "cr")
 
         qc = QuantumCircuit(qr, cr)
-        qc.u1(0.1, 0)
-        qc.u1(0.2, 0).c_if(cr, 0)
-        qc.u1(0.3, 0).c_if(cr, 0)
+        qc.p(0.1, 0)
+        qc.p(0.2, 0).c_if(cr, 0)
+        qc.p(0.3, 0).c_if(cr, 0)
         qc.cx(0, 1)
         qc.cx(1, 0).c_if(cr, 0)
         qc.cx(0, 1).c_if(cr, 1)
