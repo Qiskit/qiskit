@@ -1,0 +1,12 @@
+---
+features:
+  - |
+    Added a heuristic inside the BIPMapping routing pass. The heuristic divides
+    the optimization model solved by BIPMapping into smaller pieces and 
+    recombines their solution, being much faster as a result. It is useful for
+    circuits where the BIPMapping struggles. It can be used by setting the
+    option num_splits to a value larger than 1.
+  - |
+    Added a way for the user to perform custom modification to the BIPMapping
+    optimization model. This allows the addition of constraints such as fixing
+    the position of some qubits.

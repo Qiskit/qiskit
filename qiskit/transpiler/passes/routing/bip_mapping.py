@@ -73,6 +73,7 @@ class BIPMapping(TransformationPass):
         max_swaps_inbetween_layers=None,
         depth_obj_weight=0.1,
         default_cx_error_rate=5e-3,
+        num_splits=1,
         user_model_modifier=None,
     ):
         """BIPMapping initializer.
@@ -108,10 +109,21 @@ class BIPMapping(TransformationPass):
             default_cx_error_rate (float):
                 Default CX error rate to be used if backend_prop is not available.
 
+            num_splits (int):
+                Maximum number of splits for time-window heuristic. If 1, no heuristic is used (default).
+                If num_splits > 1, the full BIP model is chopped up into num_splits smaller models,
+                each of which tries to carefully optimize only a fraction of the circuit layers, while
+                performing some approximations on the remaining ones. This is useful for larger circuits
+                where the full BIP model is too slow.
+
             user_model_modifier (function):
-                A function that takes as input a BIPMapperModel class, and perfoms any desired
-                model modifications directly. For example, it can add user constraints such as
-                symmetry breaking constraints.
+                A function that takes as input two arguments: a BIPMappingModel object, and a DOCplex
+                model class. The function should perfom any desired model modifications directly onto
+                the DOCplex model. For example, it can add user constraints such as symmetry breaking
+                constraints. The BIPMappingModel is useful to retrieve information about the model
+                (eg., number of qubits, arcs). This function could be called multiple times if the
+                heuristic is used, so it is important that the function acts on the DOCplex model, and
+                does not break anything inside the BIPMappingModel.
 
         Raises:
             MissingOptionalLibraryError: if cplex or docplex are not installed.
@@ -129,6 +141,7 @@ class BIPMapping(TransformationPass):
         self.max_swaps_inbetween_layers = max_swaps_inbetween_layers
         self.depth_obj_weight = depth_obj_weight
         self.default_cx_error_rate = default_cx_error_rate
+        self.num_splits = num_splits
         self.user_model_modifier = user_model_modifier
         self._cpx_status = None
         self._found_solution = False
@@ -171,6 +184,7 @@ class BIPMapping(TransformationPass):
             coupling_map=self.coupling_map,
             qubit_subset=self.qubit_subset,
             dummy_timesteps=dummy_steps,
+            num_splits=self.num_splits,
         )
 
         if len(model.su4layers) == 0:
