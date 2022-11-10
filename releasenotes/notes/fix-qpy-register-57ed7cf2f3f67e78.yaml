@@ -1,0 +1,6 @@
+---
+fixes:
+  - |
+    Fixed a bug in QPY (:mod:`qiskit.qpy`) where circuits containing registers
+    whose bits occurred in the circuit after loose bits would fail to deserialize.
+    See `#9094 <https://github.com/Qiskit/qiskit-terra/issues/9094>`__.
