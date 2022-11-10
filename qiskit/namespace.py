@@ -42,6 +42,7 @@ class QiskitLoader(Loader):
         return self.load_module(spec.name)
 
     def exec_module(self, module):
+        """Executes the module. Not needed in Qiskit."""
         pass
 
     def load_module(self, fullname):
