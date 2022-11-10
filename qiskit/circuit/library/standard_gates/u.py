@@ -17,7 +17,7 @@ from typing import Optional, Union
 import numpy
 from qiskit.circuit.controlledgate import ControlledGate
 from qiskit.circuit.gate import Gate
-from qiskit.circuit.parameterexpression import ParameterValueType
+from qiskit.circuit.parameterexpression import ParameterValueType, ParameterExpression
 from qiskit.circuit.quantumregister import QuantumRegister
 from qiskit.circuit.exceptions import CircuitError
 
@@ -273,33 +273,25 @@ class CUGate(ControlledGate):
 
     @property
     def params(self):
-        """Get parameters from base_gate.
-
-        Returns:
-            list: List of gate parameters.
-
-        Raises:
-            CircuitError: Controlled gate does not define a base gate
-        """
-        if self.base_gate:
-            # CU has one additional parameter to the U base gate
-            return self.base_gate.params + self._params
-        else:
-            raise CircuitError("Controlled gate does not define base gate for extracting params")
+        """return CU params."""
+        return self._params
 
     @params.setter
     def params(self, parameters):
-        """Set base gate parameters.
-
-        Args:
-            parameters (list): The list of parameters to set.
-
-        Raises:
-            CircuitError: If controlled gate does not define a base gate.
-        """
-        # CU has one additional parameter to the U base gate
-        self._params = [parameters[-1]]
+        """Set CUGate params [theta,phi,lam,gamma] and base_gate(UGate) params [theta,phi,lam]"""
+        self._params = []
+        for single_param in parameters:
+            if isinstance(single_param, ParameterExpression):
+                self._params.append(single_param)
+            else:
+                self._params.append(self.validate_parameter(single_param))
         if self.base_gate:
             self.base_gate.params = parameters[:-1]
         else:
             raise CircuitError("Controlled gate does not define base gate for extracting params")
+
+    def __deepcopy__(self, _memo=None):
+        """Include the parameters in the copy"""
+        cpy = super().__deepcopy__(_memo=_memo)
+        cpy.params = self.params.copy()
+        return cpy

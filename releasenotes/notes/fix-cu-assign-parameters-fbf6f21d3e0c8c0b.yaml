@@ -1,0 +1,9 @@
+---
+fixes:
+  - |
+    Changed the :meth:`~qiskit.CUGate.params` property and setter to handle the additional parameter
+    gamma for the CUGate global_phase and to maintain the base gate, UGate, parameters
+    Added the :meth:`~qiskit.CUGate.__deepcopy__` to copy the CUGate parameters
+    Fixes `#7410 <https://github.com/Qiskit/qiskit-terra/issues/7410>`_.
+    Added CU3 to CU equivalence to the equivalence library
+    Fixes `#7326 <https://github.com/Qiskit/qiskit-terra/issues/7326>`_.
