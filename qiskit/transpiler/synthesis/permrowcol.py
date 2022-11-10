@@ -134,7 +134,7 @@ class PermRowCol:
         ]
         return cols[np.argmin(col_sum)]
 
-    def eliminate_column(
+    def _eliminate_column(
         self,
         parity_mat: np.ndarray,
         root: int,
@@ -168,7 +168,7 @@ class PermRowCol:
 
         return C
 
-    def eliminate_row(self, parity_mat: np.ndarray, root: int, terminals: np.ndarray) -> list:
+    def _eliminate_row(self, parity_mat: np.ndarray, root: int, terminals: np.ndarray) -> list:
         """Eliminates the selected row from the parity matrix and returns the operations as a list of tuples.
 
         Args:
