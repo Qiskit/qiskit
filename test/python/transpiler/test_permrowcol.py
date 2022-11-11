@@ -8,6 +8,7 @@ from qiskit.test import QiskitTestCase
 from qiskit.transpiler.synthesis.permrowcol import PermRowCol
 from qiskit import QuantumCircuit
 from qiskit.transpiler import CouplingMap
+from qiskit.circuit.library.generalized_gates.permutation import Permutation
 
 
 class TestPermRowCol(QiskitTestCase):
@@ -23,6 +24,60 @@ class TestPermRowCol(QiskitTestCase):
 
         self.assertIsInstance(instance[0], QuantumCircuit)
         self.assertIsInstance(instance[1], QuantumCircuit)
+
+    def test_perm_row_col_returns_trivial_permutation_on_identity_matrix(self):
+        """Test that perm_row_col returns a trivial permutation circuit when
+        parity matrix is an identity matrix"""
+        coupling_list = [(0, 1), (0, 3), (1, 2), (1, 4), (2, 5), (3, 4), (4, 5)]
+        coupling = CouplingMap(coupling_list)
+        permrowcol = PermRowCol(coupling)
+        parity_mat = np.identity(6)
+        expected_perm = Permutation(6, [0, 1, 2, 3, 4, 5])
+
+        perm = permrowcol.perm_row_col(parity_mat)[1]
+
+        self.assertIsNotNone(perm)
+        self.assertEqual(perm, expected_perm)
+
+    def test_perm_row_col_returns_correct_permutation_on_random_permutation_matrix(self):
+        """Test that perm_row_col returns correct permutation circuit when parity matrix
+        is a permutation of identity matrix"""
+        coupling_list = [(0, 1), (0, 3), (1, 2), (1, 4), (2, 5), (3, 4), (4, 5)]
+        coupling = CouplingMap(coupling_list)
+        permrowcol = PermRowCol(coupling)
+        parity_mat = np.identity(6)
+        np.random.shuffle(parity_mat)
+        pattern = []
+        for elem in parity_mat.T.tolist():
+            pattern.extend([i for i, e in enumerate(elem) if e == 1])
+        expected_perm = Permutation(6, pattern)
+
+        perm = permrowcol.perm_row_col(parity_mat)[1]
+
+        self.assertIsNotNone(perm)
+        self.assertEqual(perm, expected_perm)
+
+    def test_perm_row_col_returns_correct_permutation(self):
+        """Test that perm_row_col returns correct permutation"""
+        coupling_list = [(0, 1), (0, 3), (1, 2), (1, 4), (2, 5), (3, 4), (4, 5)]
+        coupling = CouplingMap(coupling_list)
+        permrowcol = PermRowCol(coupling)
+        parity_mat = np.array(
+            [
+                [0, 1, 0, 1, 1, 0],
+                [1, 1, 1, 1, 1, 0],
+                [1, 0, 0, 0, 1, 1],
+                [1, 1, 1, 0, 1, 0],
+                [1, 0, 1, 0, 1, 0],
+                [1, 0, 1, 0, 1, 1],
+            ]
+        )
+        expected_perm = Permutation(6, [5, 3, 1, 0, 4, 2])
+
+        perm = permrowcol.perm_row_col(parity_mat)[1]
+
+        self.assertIsNotNone(perm)
+        self.assertEqual(perm, expected_perm)
 
     def test_choose_row_returns_np_int64(self):
         """Test the output type of choose_row"""
