@@ -48,6 +48,17 @@ class LinCombEstimatorGradient(BaseEstimatorGradient):
         """
         Args:
             estimator: The estimator used to compute the gradients.
+<<<<<<< HEAD
+=======
+            derivative_type: The type of derivative. Can be either ``DerivativeType.REAL``
+                ``DerivativeType.IMAG``, or ``DerivativeType.COMPLEX``. Defaults to
+                ``DerivativeType.REAL``.
+
+                    - ``DerivativeType.REAL`` computes :math:`2 \mathrm{Re}[⟨ψ(ω)|O(θ)|dω ψ(ω)〉]`.
+                    - ``DerivativeType.IMAG`` computes :math:`2 \mathrm{Im}[⟨ψ(ω)|O(θ)|dω ψ(ω)〉]`.
+                    - ``DerivativeType.COMPLEX`` computes :math:`2 ⟨ψ(ω)|O(θ)|dω ψ(ω)〉`.
+
+>>>>>>> 8bfb058b9 (Fixed sign bug in docs in LinCombEstimatorGradient. (#9113))
             options: Primitive backend runtime options used for circuit execution.
                 The order of priority is: options in ``run`` method > gradient's
                 default options > primitive's default setting.
