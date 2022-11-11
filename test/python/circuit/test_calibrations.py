@@ -30,7 +30,7 @@ class TestCalibrations(QiskitTestCase):
         qc_cal.add_calibration(RZXGate, (0, 1), params=[0.5], schedule=Schedule())
 
         qc = QuantumCircuit(2)
-        qc += qc_cal
+        qc &= qc_cal
 
         self.assertEqual(qc.calibrations[RZXGate], {((0, 1), (0.5,)): Schedule(name="test")})
         self.assertEqual(qc_cal.calibrations, qc.calibrations)
@@ -41,12 +41,12 @@ class TestCalibrations(QiskitTestCase):
         qc_cal.rzx(0.5, 0, 1)
         qc_cal.add_calibration(RZXGate, (0, 1), params=[0.5], schedule=Schedule())
 
-        qc = QuantumCircuit(2) + qc_cal
+        qc = QuantumCircuit(2) & qc_cal
 
         self.assertEqual(qc.calibrations[RZXGate], {((0, 1), (0.5,)): Schedule(name="test")})
         self.assertEqual(qc_cal.calibrations, qc.calibrations)
 
-        qc = qc_cal + QuantumCircuit(2)
+        qc = qc_cal & QuantumCircuit(2)
 
         self.assertEqual(qc.calibrations[RZXGate], {((0, 1), (0.5,)): Schedule(name="test")})
         self.assertEqual(qc_cal.calibrations, qc.calibrations)

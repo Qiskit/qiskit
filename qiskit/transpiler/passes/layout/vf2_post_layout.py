@@ -169,16 +169,14 @@ class VF2PostLayout(AnalysisPass):
                             global_ops[num_qubits].append(op)
             op_names = []
             for i in range(self.target.num_qubits):
-                entry = set()
                 try:
                     entry = set(self.target.operation_names_for_qargs((i,)))
                 except KeyError:
-                    pass
+                    entry = set()
                 if global_ops is not None:
                     entry.update(global_ops[1])
                 op_names.append(entry)
-
-                cm_graph.add_nodes_from(op_names)
+            cm_graph.add_nodes_from(op_names)
             for qargs in self.target.qargs:
                 len_args = len(qargs)
                 # If qargs == 1 we already populated it and if qargs > 2 there are no instructions
