@@ -51,6 +51,21 @@ class SabreLayout(TransformationPass):
     This method exploits the reversibility of quantum circuits, and tries to
     include global circuit information in the choice of initial_layout.
 
+    By default this pass will run both layout and routing and will transform the
+    circuit so that the layout is applied to the input dag (meaning that the output
+    circuit will have ancilla qubits allocated for unused qubits on the coupling map
+    and the qubits will be reordered to match the mapped physical qubits) and then
+    routing will be applied (inserting :class:`~.SwapGate`s to account for limited
+    connectivity). This is unlike most other layout passes which are :class:`~.AnalysisPass`
+    objects and just find an initial layout and set that on the property set. This is
+    done because by default the pass will run parallel seed trials with different random
+    seeds for selecting the random initial layout and then selecting the routed output
+    which results in the least number of swap gates needed.
+
+    You can use the ``routing_pass`` argument to have this pass operate as a typical
+    layout pass. When specified this will use the specified routing pass to select an
+    initial layout only and will not run multiple seed trials.
+
     **References:**
 
     [1] Li, Gushu, Yufei Ding, and Yuan Xie. "Tackling the qubit mapping problem
@@ -72,8 +87,12 @@ class SabreLayout(TransformationPass):
         Args:
             coupling_map (Coupling): directed graph representing a coupling map.
             routing_pass (BasePass): the routing pass to use while iterating.
-                This is mutually exclusive with the ``swap_trials`` argument and
-                if both are set an error will be raised.
+                If specified this pass operates as an :class:`~.AnalysisPass` and
+                will only populate the ``layout`` field in the property set and
+                the input dag is returned unmodified. This argument is mutually
+                exclusive with the ``swap_trials`` and the ``layout_trials``
+                arguments and if this is specified at the same time as either
+                argument an error will be raised.
             seed (int): seed for setting a random first trial layout.
             max_iterations (int): number of forward-backward iterations.
             swap_trials (int): The number of trials to run of
@@ -87,11 +106,16 @@ class SabreLayout(TransformationPass):
                 with the ``routing_pass`` argument and an error will be raised
                 if both are used.
             layout_trials (int): The number of random seed trials to run
-                layout with.
+                layout with. When > 1 the trial that resuls in the output with
+                the fewest swap gates will be selected. If this is not specified
+                (and ``routing_pass`` is not set) then the number of local
+                physical CPUs will be used as the default value. This option is
+                mutually exclusive with the ``routing_pass`` argument and an error
+                will be raised if both are used.
 
         Raises:
-            TranspilerError: If both ``routing_pass`` and ``swap_trials`` are
-                specified
+            TranspilerError: If both ``routing_pass`` and ``swap_trials`` or
+            both ``routing_pass`` and ``layout_trials`` are specified
         """
         super().__init__()
         self.coupling_map = coupling_map
