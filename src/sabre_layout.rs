@@ -21,7 +21,6 @@ use pyo3::Python;
 use rand::prelude::*;
 use rand_pcg::Pcg64Mcg;
 use rayon::prelude::*;
-use retworkx_core::petgraph::prelude::*;
 
 use crate::getenv_use_multiple_threads;
 use crate::nlayout::NLayout;
@@ -180,43 +179,7 @@ fn apply_layout(
             (*node_index, new_qargs, cargs.clone())
         })
         .collect();
-    build_sabre_dag(layout_dag_nodes, num_qubits, num_clbits)
-}
-
-fn build_sabre_dag(
-    layout_dag_nodes: Vec<(usize, Vec<usize>, HashSet<usize>)>,
-    num_qubits: usize,
-    num_clbits: usize,
-) -> SabreDAG {
-    let mut dag: DiGraph<(usize, Vec<usize>), ()> =
-        Graph::with_capacity(layout_dag_nodes.len(), 2 * layout_dag_nodes.len());
-    let mut first_layer = Vec::<NodeIndex>::new();
-    let mut qubit_pos: Vec<Option<NodeIndex>> = vec![None; num_qubits];
-    let mut clbit_pos: Vec<Option<NodeIndex>> = vec![None; num_clbits];
-    for node in &layout_dag_nodes {
-        let qargs = &node.1;
-        let cargs = &node.2;
-        let gate_index = dag.add_node((node.0, qargs.clone()));
-        let mut is_front = true;
-        for x in qargs {
-            if let Some(predecessor) = qubit_pos[*x] {
-                is_front = false;
-                dag.add_edge(predecessor, gate_index, ());
-            }
-            qubit_pos[*x] = Some(gate_index);
-        }
-        for x in cargs {
-            if let Some(predecessor) = clbit_pos[*x] {
-                is_front = false;
-                dag.add_edge(predecessor, gate_index, ());
-            }
-            clbit_pos[*x] = Some(gate_index);
-        }
-        if is_front {
-            first_layer.push(gate_index);
-        }
-    }
-    SabreDAG { dag, first_layer }
+    SabreDAG::new(num_qubits, num_clbits, layout_dag_nodes).unwrap()
 }
 
 fn compose_layout(initial_layout: &NLayout, final_layout: &NLayout) -> NLayout {
