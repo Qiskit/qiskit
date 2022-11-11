@@ -1,0 +1,8 @@
+---
+fixes:
+  - |
+    Fixed the sign of a gradient calculated in
+    :class:`~qiskit.algorithms.gradients.LinCombEstimatorGradient` for the cases of
+    ``IMAG`` and ``COMPLEX`` from :class:`~qiskit.algorithms.gradients.DerivativeType`. The gradient
+    had an undocumented minus sign which has been removed.
+
