@@ -13,3 +13,8 @@ pyparsing<3.0.0
 # to work with the new jinja version (the jinja maintainers aren't going to
 # fix things) pin to the previous working version.
 jinja2==3.0.3
+
+# jupyter-core 5.0.0 started emitting deprecation warnings with ipywidgets via
+# a seaborn import. This pin can be removed when compatibility with those
+# packages is fixed
+jupyter-core==4.11.2
