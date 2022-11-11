@@ -15,9 +15,9 @@ dependencies = [
 
 [[package]]
 name = "ahash"
-version = "0.8.0"
+version = "0.8.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "57e6e951cfbb2db8de1828d49073a113a29fd7117b1596caa781a258c7e38d72"
+checksum = "bf6ccdb167abbf410dcb915cabd428929d7f6a04980b54a11f26a39f1c7f7107"
 dependencies = [
  "cfg-if",
  "getrandom",
@@ -395,7 +395,7 @@ dependencies = [
 name = "qiskit-terra"
 version = "0.23.0"
 dependencies = [
- "ahash 0.8.0",
+ "ahash 0.8.2",
  "hashbrown 0.12.3",
  "indexmap",
  "ndarray",
