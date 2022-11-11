@@ -50,7 +50,7 @@ pub fn sabre_layout_and_routing(
         .take(num_layout_trials)
         .collect();
     let dist = distance_matrix.as_array();
-    let result = if run_in_parallel {
+    let result = if run_in_parallel && num_layout_trials > 1 {
         seed_vec
             .into_par_iter()
             .enumerate()
@@ -66,6 +66,7 @@ pub fn sabre_layout_and_routing(
                         seed_trial,
                         max_iterations,
                         num_swap_trials,
+                        false,
                     ),
                 )
             })
@@ -90,6 +91,7 @@ pub fn sabre_layout_and_routing(
                     seed_trial,
                     max_iterations,
                     num_swap_trials,
+                    run_in_parallel,
                 )
             })
             .min_by_key(|result| result.1.map.values().map(|x| x.len()).sum::<usize>())
@@ -107,6 +109,7 @@ fn layout_trial(
     seed: u64,
     max_iterations: usize,
     num_swap_trials: usize,
+    run_swap_in_parallel: bool,
 ) -> ([NLayout; 2], SwapMap, Vec<usize>) {
     // Pick a random initial layout and fully populate ancillas in that layout too
     let num_physical_qubits = distance_matrix.shape()[0];
@@ -141,7 +144,7 @@ fn layout_trial(
                 seed,
                 &mut pass_final_layout,
                 num_swap_trials,
-                Some(false),
+                Some(run_swap_in_parallel),
             );
             let final_layout = compose_layout(&initial_layout, &pass_final_layout);
             initial_layout = final_layout;
@@ -159,7 +162,7 @@ fn layout_trial(
         seed,
         &mut final_layout,
         num_swap_trials,
-        Some(false),
+        Some(run_swap_in_parallel),
     );
     ([initial_layout, final_layout], swap_map, gate_order)
 }
