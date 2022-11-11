@@ -1,8 +1,9 @@
 ---
 fixes:
   - |
-    Fixed the documentation to include the sign of a gradient calculated in
-    :class:`~qiskit.algorithms.gradients.LinCombEstimatorGradient` for the case of ``IMAG``
-    from :class:`~qiskit.algorithms.gradients.DerivativeType`. The gradient
-    had an undocumented minus sign.
+    Fixed the documentation in :class:`.LinCombEstimatorGradient` to correctly 
+    show the derivative applied on the ket-side of the expectation 
+    value. Previously, the derivative had been documented in the bra-side, which
+    led to a sign swap for gradients in the ``IMAG`` and ``COMPLEX`` 
+    cases of the :class:`.DerivativeType`.
 
