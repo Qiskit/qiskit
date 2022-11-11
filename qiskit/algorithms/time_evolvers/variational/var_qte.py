@@ -24,6 +24,7 @@ from qiskit.algorithms.time_evolvers.time_evolution_problem import TimeEvolution
 from qiskit.algorithms.time_evolvers.time_evolution_result import TimeEvolutionResult
 from qiskit.circuit import Parameter
 from qiskit.opflow import PauliSumOp
+from qiskit.primitives import BaseEstimator
 from qiskit.quantum_info.operators.base_operator import BaseOperator
 from .solvers.ode.forward_euler_solver import ForwardEulerSolver
 from .solvers.ode.ode_function_factory import OdeFunctionFactory
@@ -43,7 +44,8 @@ class VarQTE(ABC):
     """Variational Quantum Time Evolution.
 
     Algorithms that use variational principles to compute a time evolution for a given
-    Hermitian operator (Hamiltonian) and a quantum state prepared by a parameterized quantum circuit.
+    Hermitian operator (Hamiltonian) and a quantum state prepared by a parameterized quantum
+    circuit.
 
     References:
 
@@ -56,6 +58,7 @@ class VarQTE(ABC):
         ansatz: QuantumCircuit,
         initial_parameters: dict[Parameter, complex] | list[complex] | np.ndarray,
         variational_principle: VariationalPrinciple | None = None,
+        estimator: BaseEstimator | None = None,
         ode_solver: Type[OdeSolver] | str = ForwardEulerSolver,
         lse_solver: Callable[[np.ndarray, np.ndarray], np.ndarray] | None = None,
         num_timesteps: int | None = None,
@@ -65,8 +68,10 @@ class VarQTE(ABC):
         r"""
         Args:
             ansatz: Ansatz to be used for variational time evolution.
-            variational_principle: Variational Principle to be used.
             initial_parameters: Initial parameter values for an ansatz.
+            variational_principle: Variational Principle to be used.
+            estimator: An estimator primitive used for calculating expectation values of
+                TimeEvolutionProblem.aux_operators.
             ode_solver: ODE solver callable that implements a SciPy ``OdeSolver`` interface or a
                 string indicating a valid method offered by SciPy.
             lse_solver: Linear system of equations solver callable. It accepts ``A`` and ``b`` to
@@ -83,8 +88,9 @@ class VarQTE(ABC):
         """
         super().__init__()
         self.ansatz = ansatz
-        self.variational_principle = variational_principle
         self.initial_parameters = initial_parameters
+        self.variational_principle = variational_principle
+        self.estimator = estimator
         self.num_timesteps = num_timesteps
         self.lse_solver = lse_solver
         # OdeFunction abstraction kept for potential extensions - unclear at the moment;
@@ -108,6 +114,7 @@ class VarQTE(ABC):
         Raises:
             ValueError: If ``initial_state`` is included in the ``evolution_problem``.
         """
+        self._validate_aux_ops(evolution_problem)
 
         if evolution_problem.initial_state is not None:
             raise ValueError("initial_state provided but not applicable to VarQTE.")
@@ -126,7 +133,7 @@ class VarQTE(ABC):
         evaluated_aux_ops = None
         if evolution_problem.aux_operators is not None:
             evaluated_aux_ops = estimate_observables(
-                self.variational_principle.gradient._estimator,
+                self.estimator,
                 evolved_state,
                 evolution_problem.aux_operators,
             )
@@ -233,3 +240,9 @@ class VarQTE(ABC):
 
         init_state_param_dict = dict(zip(init_state_parameters, init_state_parameter_values))
         return init_state_param_dict
+
+    def _validate_aux_ops(self, evolution_problem: TimeEvolutionProblem) -> None:
+        if evolution_problem.aux_operators is not None and self.estimator is None:
+            raise ValueError(
+                "aux_operators where provided for evaluations but no ``estimator`` " "was provided."
+            )

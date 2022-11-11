@@ -95,7 +95,9 @@ class TestVarQITE(QiskitAlgorithmsTestCase):
             gradient = LinCombEstimatorGradient(estimator)
             var_principle = ImaginaryMcLachlanPrinciple(qfi, gradient)
 
-            var_qite = VarQITE(ansatz, init_param_values, var_principle, num_timesteps=25)
+            var_qite = VarQITE(
+                ansatz, init_param_values, var_principle, estimator, num_timesteps=25
+            )
             evolution_result = var_qite.evolve(evolution_problem)
 
             evolved_state = evolution_result.evolved_state
@@ -122,7 +124,9 @@ class TestVarQITE(QiskitAlgorithmsTestCase):
             gradient = LinCombEstimatorGradient(estimator)
             var_principle = ImaginaryMcLachlanPrinciple(qfi, gradient)
 
-            var_qite = VarQITE(ansatz, init_param_values, var_principle, num_timesteps=25)
+            var_qite = VarQITE(
+                ansatz, init_param_values, var_principle, estimator, num_timesteps=25
+            )
             evolution_result = var_qite.evolve(evolution_problem)
 
             evolved_state = evolution_result.evolved_state

@@ -21,6 +21,7 @@ from scipy.integrate import OdeSolver
 from qiskit import QuantumCircuit
 from qiskit.circuit import Parameter
 from qiskit.algorithms.time_evolvers.imaginary_time_evolver import ImaginaryTimeEvolver
+from qiskit.primitives import BaseEstimator
 from . import ImaginaryMcLachlanPrinciple
 from .solvers.ode.forward_euler_solver import ForwardEulerSolver
 from .variational_principles import ImaginaryVariationalPrinciple
@@ -65,6 +66,7 @@ class VarQITE(VarQTE, ImaginaryTimeEvolver):
         ansatz: QuantumCircuit,
         initial_parameters: dict[Parameter, complex] | list[complex] | np.ndarray,
         variational_principle: ImaginaryVariationalPrinciple | None = None,
+        estimator: BaseEstimator | None = None,
         ode_solver: Type[OdeSolver] | str = ForwardEulerSolver,
         lse_solver: Callable[[np.ndarray, np.ndarray], np.ndarray] | None = None,
         num_timesteps: int | None = None,
@@ -74,9 +76,11 @@ class VarQITE(VarQTE, ImaginaryTimeEvolver):
         r"""
         Args:
             ansatz: Ansatz to be used for variational time evolution.
+            initial_parameters: Initial parameter values for an ansatz.
             variational_principle: Variational Principle to be used. Defaults to
                 ``ImaginaryMcLachlanPrinciple``.
-            initial_parameters: Initial parameter values for an ansatz.
+            estimator: An estimator primitive used for calculating expectation values of
+                TimeEvolutionProblem.aux_operators.
             ode_solver: ODE solver callable that implements a SciPy ``OdeSolver`` interface or a
                 string indicating a valid method offered by SciPy.
             lse_solver: Linear system of equations solver callable. It accepts ``A`` and ``b`` to
@@ -96,6 +100,7 @@ class VarQITE(VarQTE, ImaginaryTimeEvolver):
             ansatz,
             initial_parameters,
             variational_principle,
+            estimator,
             ode_solver,
             lse_solver=lse_solver,
             num_timesteps=num_timesteps,
