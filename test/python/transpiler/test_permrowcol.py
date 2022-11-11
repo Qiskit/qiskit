@@ -13,7 +13,7 @@ from qiskit.transpiler import CouplingMap
 class TestPermRowCol(QiskitTestCase):
     """Test PermRowCol"""
 
-    def test_perm_row_col_returns_circuit(self):
+    def test_perm_row_col_returns_two_circuits(self):
         """Test the output type of perm_row_col"""
         coupling = CouplingMap()
         permrowcol = PermRowCol(coupling)
@@ -21,7 +21,8 @@ class TestPermRowCol(QiskitTestCase):
 
         instance = permrowcol.perm_row_col(parity_mat)
 
-        self.assertIsInstance(instance, QuantumCircuit)
+        self.assertIsInstance(instance[0], QuantumCircuit)
+        self.assertIsInstance(instance[1], QuantumCircuit)
 
     def test_choose_row_returns_np_int64(self):
         """Test the output type of choose_row"""

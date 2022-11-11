@@ -23,6 +23,7 @@ from qiskit.transpiler.synthesis.graph_utils import (
     pydigraph_to_pygraph,
     noncutting_vertices,
 )
+from qiskit.circuit.library.generalized_gates.permutation import Permutation
 
 
 class PermRowCol:
@@ -41,6 +42,7 @@ class PermRowCol:
         Returns:
             QuantumCircuit: synthesized circuit
         """
+        num_qubits = len(self._graph.node_indexes())
         qubit_alloc = [-1] * len(self._graph.node_indexes())
 
         circuit = QuantumCircuit(len(self._graph.node_indexes()))
@@ -68,7 +70,13 @@ class PermRowCol:
         if len(qubit_alloc) != 0:
             qubit_alloc[qubit_alloc.index(-1)] = self._graph.node_indexes()[0]
 
-        return circuit  # Supposed to also return qubit_alloc?
+        try:
+            perm = Permutation(num_qubits, qubit_alloc)
+        except:
+            print("Invalid qubit allocation vector:", qubit_alloc)
+            return (circuit, None)
+
+        return circuit, perm
 
     def reduce_graph(self, node: int):
         """Removes a node from pydigraph
