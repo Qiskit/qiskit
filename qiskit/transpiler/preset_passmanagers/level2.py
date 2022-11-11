@@ -34,6 +34,7 @@ from qiskit.transpiler.passes import Size
 from qiskit.transpiler.passes import Optimize1qGatesDecomposition
 from qiskit.transpiler.passes import CommutativeCancellation
 from qiskit.transpiler.passes import GatesInBasis
+from qiskit.transpiler.passes import BarrierBeforeFinalMeasurements
 from qiskit.transpiler.preset_passmanagers import common
 from qiskit.transpiler.passes.layout.vf2_layout import VF2LayoutStopReason
 
@@ -172,7 +173,9 @@ def level_2_pass_manager(pass_manager_config: PassManagerConfig) -> StagedPassMa
             layout = PassManager()
             layout.append(_given_layout)
             layout.append(_choose_layout_0, condition=_choose_layout_condition)
-            layout.append(_choose_layout_1, condition=_vf2_match_not_found)
+            layout.append(
+                [BarrierBeforeFinalMeasurements(), _choose_layout_1], condition=_vf2_match_not_found
+            )
             embed = common.generate_embed_passmanager(coupling_map)
             layout.append(
                 [pass_ for x in embed.passes() for pass_ in x["passes"]], condition=_swap_mapped
