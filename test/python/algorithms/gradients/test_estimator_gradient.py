@@ -375,7 +375,7 @@ class TestEstimatorGradient(QiskitTestCase):
             rtol=1e-4,
         )
 
-    @data((DerivativeType.IMAG, 1.0), (DerivativeType.COMPLEX, 1.0j))
+    @data((DerivativeType.IMAG, -1.0), (DerivativeType.COMPLEX, -1.0j))
     @unpack
     def test_lin_comb_imag_gradient(self, derivative_type, expected_gradient_value):
         """Tests if the ``LinCombEstimatorGradient`` has the correct value."""

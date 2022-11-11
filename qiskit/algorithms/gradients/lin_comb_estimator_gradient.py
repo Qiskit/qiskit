@@ -64,9 +64,9 @@ class LinCombEstimatorGradient(BaseEstimatorGradient):
                 ``DerivativeType.IMAG``, or ``DerivativeType.COMPLEX``. Defaults to
                 ``DerivativeType.REAL``.
 
-                    - ``DerivativeType.REAL`` computes :math:`2 \mathrm{Re}[(dω⟨ψ(ω)|)O(θ)|ψ(ω)〉]`.
-                    - ``DerivativeType.IMAG`` computes :math:`2 \mathrm{Im}[(dω⟨ψ(ω)|)O(θ)|ψ(ω)〉]`.
-                    - ``DerivativeType.COMPLEX`` computes :math:`2 (dω⟨ψ(ω)|)O(θ)|ψ(ω)〉`.
+                    - ``DerivativeType.REAL`` computes :math:`2 \mathrm{Re}[⟨ψ(ω)|O(θ)|dω ψ(ω)〉]`.
+                    - ``DerivativeType.IMAG`` computes :math:`2 \mathrm{Im}[⟨ψ(ω)|O(θ)|dω ψ(ω)〉]`.
+                    - ``DerivativeType.COMPLEX`` computes :math:`2 ⟨ψ(ω)|O(θ)|dω ψ(ω)〉`.
 
             options: Primitive backend runtime options used for circuit execution.
                 The order of priority is: options in ``run`` method > gradient's
@@ -106,10 +106,10 @@ class LinCombEstimatorGradient(BaseEstimatorGradient):
             if self._derivative_type == DerivativeType.REAL:
                 op1 = SparsePauliOp.from_list([("Z", 1)])
             elif self._derivative_type == DerivativeType.IMAG:
-                op1 = SparsePauliOp.from_list([("Y", 1)])
+                op1 = SparsePauliOp.from_list([("Y", -1)])
             elif self._derivative_type == DerivativeType.COMPLEX:
                 op1 = SparsePauliOp.from_list([("Z", 1)])
-                op2 = SparsePauliOp.from_list([("Y", 1)])
+                op2 = SparsePauliOp.from_list([("Y", -1)])
             else:
                 raise ValueError(f"Derivative type {self._derivative_type} is not supported.")
 
