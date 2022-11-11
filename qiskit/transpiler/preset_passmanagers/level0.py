@@ -85,7 +85,11 @@ def level_0_pass_manager(pass_manager_config: PassManagerConfig) -> StagedPassMa
         _choose_layout = NoiseAdaptiveLayout(backend_properties)
     elif layout_method == "sabre":
         _choose_layout = SabreLayout(
-            coupling_map, max_iterations=1, seed=seed_transpiler, swap_trials=5
+            coupling_map,
+            max_iterations=1,
+            seed=seed_transpiler,
+            swap_trials=5,
+            layout_trials=5,
         )
 
     # Choose routing pass

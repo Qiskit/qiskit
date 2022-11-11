@@ -139,12 +139,14 @@ def level_1_pass_manager(pass_manager_config: PassManagerConfig) -> StagedPassMa
         _improve_layout = NoiseAdaptiveLayout(backend_properties)
     elif layout_method == "sabre":
         _improve_layout = SabreLayout(
-            coupling_map, max_iterations=2, seed=seed_transpiler, swap_trials=5
+            coupling_map, max_iterations=2, seed=seed_transpiler, swap_trials=5, layout_trials=5
         )
     elif layout_method is None:
         _improve_layout = common.if_has_control_flow_else(
             DenseLayout(coupling_map, backend_properties, target=target),
-            SabreLayout(coupling_map, max_iterations=2, seed=seed_transpiler, swap_trials=5),
+            SabreLayout(
+                coupling_map, max_iterations=2, seed=seed_transpiler, swap_trials=5, layout_trials=5
+            ),
         ).to_flow_controller()
 
     # Choose routing pass
