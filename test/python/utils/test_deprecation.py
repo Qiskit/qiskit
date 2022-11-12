@@ -158,3 +158,40 @@ class TestDeprecationDocstring(QiskitTestCase):
             int or None: if `if_arg1 == self.arg1`, returns `arg2[index_arg2]`
         """
         self.assertEqual(deprecated_docstring, expected)
+
+    def test_deprecate_arguments_with_empty_lines(self):
+        """Test deprecate_arguments docstring with empty lines."""
+
+        def a_function(arg1, arg2, arg3):  # pylint: disable=unused-argument, missing-type-doc
+            """
+            This is a description.
+
+            Args:
+                arg1: text.
+                    text.
+
+                    more text
+                arg2: text
+                arg3: text
+            """
+            pass
+
+        deprecated_docstring = deprecate_arguments({"arg2": "arg3"}, since="1.2.3")(
+            a_function
+        ).__doc__
+        expected = """
+            This is a description.
+
+            Args:
+                arg1: text.
+                    text.
+
+                    more text
+                arg2:
+                    .. deprecated:: 1.2.3
+                        The keyword argument ``arg2`` is deprecated.
+                        Please, use ``arg3`` instead.
+
+                arg3: text
+            """
+        self.assertEqual(deprecated_docstring, expected)

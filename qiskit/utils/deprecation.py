@@ -192,7 +192,7 @@ def _extend_docstring(func, version, kwarg_map):
             new_doc_str_lines.append(docstr_line)
         if docstr_line.lstrip() == "Args:":
             args_section = True
-        if args_section and docstr_line.lstrip() == "":
+        if args_section and len(docstr_line.lstrip()) == arg_indent:
             args_section = False
 
     return new_doc_str_lines
