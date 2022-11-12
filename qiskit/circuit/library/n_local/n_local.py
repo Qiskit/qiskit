@@ -659,7 +659,7 @@ class NLocal(BlueprintCircuit):
         return self._initial_state
 
     @initial_state.setter
-    def initial_state(self, initial_state: Any) -> None:
+    def initial_state(self, initial_state: QuantumCircuit) -> None:
         """Set the initial state.
 
         Args:
