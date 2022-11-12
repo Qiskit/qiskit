@@ -176,7 +176,7 @@ def _extend_docstring(func, version, kwarg_map):
                         arg_indent = len(docstr_line) - len(stripped)
                         deprecated_arg = True
                         spaces = " " * arg_indent
-                        new_doc_str_lines.append(spaces + old_arg + ":")
+                        new_doc_str_lines.append(docstr_line.split(": ")[0] + ":")
                         spaces += " " * 4
                         new_doc_str_lines += [
                             spaces + f".. deprecated:: {version}",

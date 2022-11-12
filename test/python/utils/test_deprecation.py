@@ -72,7 +72,7 @@ class DummyClass:
         return None
 
 
-class TestDeprecationRaise(QiskitTestCase):
+class TestDeprecationDummyClassRaise(QiskitTestCase):
     """Test deprecation decorators raise warning."""
 
     def assertDeprecationWarning(self, warn, expected_msg):
@@ -107,7 +107,7 @@ class TestDeprecationRaise(QiskitTestCase):
         self.assertEqual(output, 1)
 
 
-class TestDeprecationDocstring(QiskitTestCase):
+class TestDeprecationDummyClassDocstring(QiskitTestCase):
     """Test deprecation decorators docstring modification for DummyClass."""
 
     def test_dummyclass_deprecate_function(self):
@@ -159,6 +159,10 @@ class TestDeprecationDocstring(QiskitTestCase):
         """
         self.assertEqual(deprecated_docstring, expected)
 
+
+class TestDeprecationDocstring(QiskitTestCase):
+    """Test for docstring modification with several corner cases"""
+
     def test_deprecate_arguments_with_empty_lines(self):
         """Test deprecate_arguments docstring with empty lines."""
 
@@ -193,5 +197,36 @@ class TestDeprecationDocstring(QiskitTestCase):
                         Please, use ``arg3`` instead.
 
                 arg3: text
+            """
+        self.assertEqual(deprecated_docstring, expected)
+
+    def test_deprecate_arguments_with_types(self):
+        """Test deprecate_arguments docstring with type docs."""
+
+        def a_function(arg1, arg2, arg3):  # pylint: disable=unused-argument
+            """
+            This is a description.
+
+            Args:
+                arg1 (int): text
+                arg2 (str): text
+                arg3 (str): text
+            """
+            pass
+
+        deprecated_docstring = deprecate_arguments({"arg2": "arg3"}, since="1.2.3")(
+            a_function
+        ).__doc__
+        expected = """
+            This is a description.
+
+            Args:
+                arg1 (int): text
+                arg2 (str):
+                    .. deprecated:: 1.2.3
+                        The keyword argument ``arg2`` is deprecated.
+                        Please, use ``arg3`` instead.
+
+                arg3 (str): text
             """
         self.assertEqual(deprecated_docstring, expected)
