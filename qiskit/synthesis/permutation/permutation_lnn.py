@@ -18,14 +18,22 @@ from .permutation_utils import _inverse_pattern
 
 def synth_permutation_depth_lnn_kms(pattern):
     """
-    Permutation synthesis algorithm from [1], Chapter 6.
+    Synthesize a permutation circuit for a linear nearest-neighbor
+    architecture using the Kutin, Moulton, Smithline method.
 
-    Synthesizes any permutation of n qubits over linear nearest-neighbor
+    This is the permutation synthesis algorithm from [1], Chapter 6.
+    It synthesizes any permutation of n qubits over linear nearest-neighbor
     architecture using SWAP gates with depth at most n and size at most
     n(n-1)/2 (where both depth and size are measured with respect to SWAPs).
 
     Args:
-        pattern (Union[list[int], np.ndarray]): permutation pattern.
+        pattern (Union[list[int], np.ndarray]): permutation pattern,
+            describing which qubits occupy the
+            positions 0, 1, 2, ... after applying the permutation, that
+            is ``pattern[k] = m`` when the permutation maps qubit ``m``
+            to position ``k``. As an example, the pattern ``[2, 4, 3, 0, 1]``
+            means that qubit ``2`` goes to the ``0``th position, qubit ``4``
+            goes to the ``1``st position, etc.
 
     Returns:
         QuantumCircuit: the synthesized quantum circuit.
@@ -51,7 +59,6 @@ def synth_permutation_depth_lnn_kms(pattern):
     for i in range(num_qubits):
         _create_swap_layer(qc, cur_pattern, i % 2)
 
-    assert cur_pattern == sorted(cur_pattern)
     return qc
 
 
