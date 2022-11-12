@@ -17,8 +17,7 @@ from .permutation_utils import _inverse_pattern
 
 
 def synth_permutation_depth_lnn_kms(pattern):
-    """
-    Synthesize a permutation circuit for a linear nearest-neighbor
+    """Synthesize a permutation circuit for a linear nearest-neighbor
     architecture using the Kutin, Moulton, Smithline method.
 
     This is the permutation synthesis algorithm from [1], Chapter 6.
