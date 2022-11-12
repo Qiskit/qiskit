@@ -34,11 +34,11 @@ class Permutation(QuantumCircuit):
         Args:
             num_qubits: circuit width.
             pattern: permutation pattern, describing which qubits occupy the
-                positions 0, 1, 2, ... after applying the permutation, that
+                positions 0, 1, 2, etc. after applying the permutation, that
                 is ``pattern[k] = m`` when the permutation maps qubit ``m``
                 to position ``k``. As an example, the pattern ``[2, 4, 3, 0, 1]``
-                means that qubit ``2`` goes to the ``0``th position, qubit ``4``
-                goes to the ``1``st position, etc. The pattern can also be None,
+                means that qubit ``2`` goes to position ``0``, qubit ``4``
+                goes to the position ``1``, etc. The pattern can also be ``None``,
                 in which case a random permutation over ``num_qubits`` is
                 created.
             seed: random seed in case a random permutation is requested.

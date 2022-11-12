@@ -28,7 +28,7 @@ def synth_permutation_depth_lnn_kms(pattern):
     Args:
         pattern (Union[list[int], np.ndarray]): permutation pattern,
             describing which qubits occupy the
-            positions 0, 1, 2, ... after applying the permutation, that
+            positions 0, 1, 2, etc. after applying the permutation, that
             is ``pattern[k] = m`` when the permutation maps qubit ``m``
             to position ``k``. As an example, the pattern ``[2, 4, 3, 0, 1]``
             means that qubit ``2`` goes to position ``0``, qubit ``4``
