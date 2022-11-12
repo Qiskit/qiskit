@@ -17,7 +17,7 @@ import unittest
 from test import combine
 
 import numpy as np
-from ddt import ddt
+from ddt import ddt, data, unpack
 
 from qiskit import QuantumCircuit
 from qiskit.algorithms.gradients import (
@@ -25,12 +25,13 @@ from qiskit.algorithms.gradients import (
     LinCombEstimatorGradient,
     ParamShiftEstimatorGradient,
     SPSAEstimatorGradient,
+    DerivativeType,
 )
 from qiskit.circuit import Parameter
 from qiskit.circuit.library import EfficientSU2, RealAmplitudes
 from qiskit.circuit.library.standard_gates import RXXGate, RYYGate, RZXGate, RZZGate
 from qiskit.primitives import Estimator
-from qiskit.quantum_info import Operator, SparsePauliOp
+from qiskit.quantum_info import Operator, SparsePauliOp, Pauli
 from qiskit.quantum_info.random import random_pauli_list
 from qiskit.test import QiskitTestCase
 
@@ -373,6 +374,17 @@ class TestEstimatorGradient(QiskitTestCase):
             gradient.run([qc] * num_tries, [op] * num_tries, param_values).result().gradients,
             rtol=1e-4,
         )
+
+    @data((DerivativeType.IMAG, -1.0), (DerivativeType.COMPLEX, -1.0j))
+    @unpack
+    def test_lin_comb_imag_gradient(self, derivative_type, expected_gradient_value):
+        """Tests if the ``LinCombEstimatorGradient`` has the correct value."""
+        estimator = Estimator()
+        gradient = LinCombEstimatorGradient(estimator, derivative_type=derivative_type)
+        c = QuantumCircuit(1)
+        c.rz(Parameter("p"), 0)
+        result = gradient.run([c], [Pauli("I")], [[0.0]]).result()
+        self.assertAlmostEqual(result.gradients[0][0], expected_gradient_value)
 
     @combine(
         grad=[
