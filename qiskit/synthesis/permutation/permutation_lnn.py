@@ -31,8 +31,8 @@ def synth_permutation_depth_lnn_kms(pattern):
             positions 0, 1, 2, ... after applying the permutation, that
             is ``pattern[k] = m`` when the permutation maps qubit ``m``
             to position ``k``. As an example, the pattern ``[2, 4, 3, 0, 1]``
-            means that qubit ``2`` goes to the ``0``th position, qubit ``4``
-            goes to the ``1``st position, etc.
+            means that qubit ``2`` goes to position ``0``, qubit ``4``
+            goes to the position ``1``, etc.
 
     Returns:
         QuantumCircuit: the synthesized quantum circuit.
