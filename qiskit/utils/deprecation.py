@@ -12,15 +12,18 @@
 
 """Deprecation utilities"""
 
+import re
 import functools
 import warnings
 from typing import Type
+
+identifier = re.compile("[a-zA-Z_][a-zA-Z0-9_]*")
 
 
 def deprecate_arguments(
     kwarg_map, category: Type[Warning] = DeprecationWarning, modify_docstring=True, since=None
 ):
-    """Decorator to automatically alias deprecated argument names and warn upon use."""
+    """Decorator to automatically alias deprecated argument  names and warn upon use."""
 
     def decorator(func):
         # TODO Remove the qobj guard once https://github.com/Qiskit/qiskit-aer/pull/1635 is released
@@ -164,26 +167,27 @@ def _extend_docstring(func, version, kwarg_map):
             if deprecated_arg and current_indent == arg_indent:
                 new_doc_str_lines.append(docstr_line)
                 deprecated_arg = False
-            else:
-                if not deprecated_arg:
-                    for k in kwarg_map.keys():
-                        if k is None:
-                            continue
-                        if stripped.startswith(k):
-                            arg_indent = len(docstr_line) - len(stripped)
-                            deprecated_arg = True
-                            spaces = " " * arg_indent
-                            new_doc_str_lines.append(spaces + k + ":")
-                            spaces += " " * 4
-                            new_doc_str_lines += [
-                                spaces + f".. deprecated:: {version}",
-                                spaces + f"    The keyword argument ``{k}`` is deprecated.",
-                                spaces + f"    Please, use ``{kwarg_map[k]}`` instead.",
-                                "",
-                            ]
-                            break
+            elif deprecated_arg:
+                old_arg_match = identifier.match(stripped)
+                if old_arg_match:
+                    old_arg = old_arg_match[0]
+                    new_arg = kwarg_map.get(old_arg)
+                    if new_arg:
+                        arg_indent = len(docstr_line) - len(stripped)
+                        deprecated_arg = True
+                        spaces = " " * arg_indent
+                        new_doc_str_lines.append(spaces + old_arg + ":")
+                        spaces += " " * 4
+                        new_doc_str_lines += [
+                            spaces + f".. deprecated:: {version}",
+                            spaces + f"    The keyword argument ``{old_arg}`` is deprecated.",
+                            spaces + f"    Please, use ``{new_arg}`` instead.",
+                            "",
+                        ]
                     else:
                         new_doc_str_lines.append(docstr_line)
+            else:
+                new_doc_str_lines.append(docstr_line)
         else:
             new_doc_str_lines.append(docstr_line)
         if docstr_line.lstrip() == "Args:":
