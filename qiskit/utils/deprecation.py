@@ -167,7 +167,7 @@ def _extend_docstring(func, version, kwarg_map):
             if deprecated_arg and current_indent == arg_indent:
                 new_doc_str_lines.append(docstr_line)
                 deprecated_arg = False
-            elif deprecated_arg:
+            else:
                 old_arg_match = identifier.match(stripped)
                 if old_arg_match:
                     old_arg = old_arg_match[0]
@@ -186,8 +186,8 @@ def _extend_docstring(func, version, kwarg_map):
                         ]
                     else:
                         new_doc_str_lines.append(docstr_line)
-            else:
-                new_doc_str_lines.append(docstr_line)
+                else:
+                    new_doc_str_lines.append(docstr_line)
         else:
             new_doc_str_lines.append(docstr_line)
         if docstr_line.lstrip() == "Args:":

@@ -60,8 +60,7 @@ class DummyClass:
         This is the long description
 
         Args:
-            if_arg1: `if_arg1` description with
-               multi-line
+            if_arg1: `if_arg1` description
             index_arg2: `index_arg2` description
             other_if_arg1: `other_if_arg1` description
 
