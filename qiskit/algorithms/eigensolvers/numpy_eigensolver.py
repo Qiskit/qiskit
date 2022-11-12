@@ -297,11 +297,11 @@ class NumPyEigensolverResult(EigensolverResult):
         self._eigenstates = None
 
     @property
-    def eigenstates(self) -> np.ndarray | None:
+    def eigenstates(self) -> list[Statevector] | None:
         """Return eigenstates."""
         return self._eigenstates
 
     @eigenstates.setter
-    def eigenstates(self, value: np.ndarray) -> None:
+    def eigenstates(self, value: list[Statevector]) -> None:
         """Set eigenstates."""
         self._eigenstates = value
