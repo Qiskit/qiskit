@@ -12,7 +12,7 @@
 
 """Depth-efficient synthesis algorithm for Permutation gates."""
 
-from qiskit import QuantumCircuit
+from qiskit.circuit.quantumcircuit import QuantumCircuit
 from .permutation_utils import _inverse_pattern
 
 
