@@ -24,7 +24,7 @@ from qiskit.circuit.library.standard_gates.u1 import U1Gate
 from qiskit.circuit.library.standard_gates.rx import RXGate
 from qiskit.circuit.library.standard_gates.p import PhaseGate
 from qiskit.circuit.library.standard_gates.rz import RZGate
-
+from qiskit.transpiler.utils import control_flow
 
 _CUTOFF_PRECISION = 1e-5
 
@@ -57,6 +57,7 @@ class CommutativeCancellation(TransformationPass):
         self._var_z_map = {"rz": RZGate, "p": PhaseGate, "u1": U1Gate}
         self.requires.append(CommutationAnalysis())
 
+    @control_flow.trivial_recurse
     def run(self, dag):
         """Run the CommutativeCancellation pass on `dag`.
 
