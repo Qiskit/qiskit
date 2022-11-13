@@ -730,7 +730,7 @@ class QobjToInstructionConverter:
             short_pulse_id = hashlib.md5(base_str.encode("utf-8")).hexdigest()[:4]
             pulse_name = f"{instruction.pulse_shape}_{short_pulse_id}"
         params = dict(instruction.parameters)
-        if "amp" in params and isinstance(["amp"], complex):
+        if "amp" in params and isinstance(params["amp"], complex):
             params["angle"] = np.angle(params["amp"])
             params["amp"] = np.abs(params["amp"])
 
