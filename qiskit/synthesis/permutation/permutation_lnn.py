@@ -26,13 +26,6 @@ def synth_permutation_depth_lnn_kms(pattern):
 
     Returns:
         QuantumCircuit: the synthesized quantum circuit.
-
-    References:
-
-        [1]: Kutin, S., Moulton, D. P., Smithline, L. (2007).
-             Computation at a Distance.
-            `arXiv:quant-ph/0701194 <https://arxiv.org/abs/quant-ph/0701194>`_.
-
     """
 
     # In Qiskit, the permutation pattern [2, 4, 3, 0, 1] means that
