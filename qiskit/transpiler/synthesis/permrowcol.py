@@ -23,6 +23,7 @@ from qiskit.transpiler.synthesis.graph_utils import (
     pydigraph_to_pygraph,
     noncutting_vertices,
 )
+from qiskit.circuit.library import LinearFunction
 
 
 class PermRowCol:
@@ -197,3 +198,55 @@ class PermRowCol:
             parity_mat[edge[0], :] = (parity_mat[edge[0], :] + parity_mat[edge[1], :]) % 2
 
         return C
+
+    def if_sum_row_is_bigger_than_one(self, parity_mat: np.ndarray, vertices: np.ndarray, cols: int):
+        """ Checks if the sum of the rows is bigger than one. 
+        
+        Args:
+            parity_mat: np.ndarray
+            vertices (np.ndarray): vertices (corresponding to rows) to choose from
+            cols: int
+        
+        Returns:
+            If sum is more than one, uses elimintaion to create a identity row. If not, does nothing.
+        
+        """
+
+        r_materials = self.choose_row(self, vertices, parity_mat)
+        c_materials = self.choose_column(self, parity_mat, cols, r_materials)
+
+        if sum(parity_mat[r_materials]) > 1:
+
+            C = self.parity_mat
+
+
+            A_first_step = (
+                # Creates a new matrix without the chosen row
+                np.delete(C, r_materials, 0)
+                )
+            
+            A = (
+                # Creates a new matrix without the chosen row and column
+                np.delete(A_first_step, c_materials, 1)
+                )
+
+            B = (
+                # Creates M[r] without chosen column
+                np.delete(C[r_materials], c_materials, 1)
+                )
+
+            inv_A = (
+                # Creates inverse of the matrix
+                LinearFunction(LinearFunction(C).synthesize().reverse_ops()).linear
+                )
+
+            X = (
+                # Creates A^-1B
+                np.matmul(inv_A, X)
+                )
+
+            return C
+
+
+        elif sum(parity_mat[r_materials]) <= 1:
+            pass
