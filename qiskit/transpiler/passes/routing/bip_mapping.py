@@ -114,7 +114,8 @@ class BIPMapping(TransformationPass):
                 If num_splits > 1, the full BIP model is chopped up into num_splits smaller models,
                 each of which tries to carefully optimize only a fraction of the circuit layers, while
                 performing some approximations on the remaining ones. This is useful for larger circuits
-                where the full BIP model is too slow.
+                where the full BIP model is too slow. If num_splits = -1, the heuristic is used with an
+                automatically chosen number of splits.
 
             user_model_modifier (function):
                 A function that takes as input two arguments: a BIPMappingModel object, and a DOCplex
@@ -128,6 +129,7 @@ class BIPMapping(TransformationPass):
         Raises:
             MissingOptionalLibraryError: if cplex or docplex are not installed.
             TranspilerError: if invalid options are specified.
+            ValueError: if input parameters are not valid.
         """
         super().__init__()
         self.coupling_map = coupling_map

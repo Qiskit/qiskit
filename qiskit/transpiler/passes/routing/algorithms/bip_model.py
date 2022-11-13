@@ -57,12 +57,14 @@ class BIPMappingModel:
                 If num_splits > 1, the full BIP model is chopped up into num_splits smaller models,
                 each of which tries to carefully optimize only a fraction of the circuit layers, while
                 performing some approximations on the remaining ones. This is useful for larger circuits
-                where the full BIP model is too slow.
+                where the full BIP model is too slow. If num_splits = -1, the heuristic is used with an
+                automatically chosen number of splits.
 
         Raises:
             MissingOptionalLibraryError: If docplex is not installed
             TranspilerError: If size of virtual qubits and physical qubits differ, or
                 if coupling_map is not symmetric (bidirectional).
+            ValueError: if input parameters are not valid.
         """
 
         self._dag = dag
@@ -75,6 +77,8 @@ class BIPMappingModel:
             ) from err
         self._coupling.make_symmetric()
         self.global_qubit = qubit_subset  # the map from reduced qubit index to global qubit index
+        if num_splits < -1:
+            raise ValueError(f"Invalid number of splits: {num_splits}")
         self._num_splits = num_splits
 
         self.problem = None
@@ -118,12 +122,19 @@ class BIPMappingModel:
                 break
             self.gates.extend([[]] * dummy_timesteps)
 
+        # Adjust value of num_splits parameter
+        if self._num_splits == 0:
+            self._num_splits = 1
+        elif self._num_splits == -1:
+            # User wants an automatic choice
+            self._num_splits = max(1, (len(self.su4layers) - 2)//2)
+
         # Do the same, preparing for rolling time window heuristic
-        if num_splits > 1:
+        if self._num_splits > 1:
             # We can have at most one split per SU4 layer, but the
             # first layer is always included and the last one only
             # goes to the exact problem
-            self._num_splits = min(num_splits, max(1, len(self.su4layers) - 2))
+            self._num_splits = min(self._num_splits, max(1, len(self.su4layers) - 2))
             self.heur_gates = [[] for t in range(self._num_splits - 1)]
             self.heur_last_layer = [0] * (self._num_splits - 1)
             split_size = max(1, max(1, len(self.su4layers) - 2) // self._num_splits)
@@ -137,7 +148,7 @@ class BIPMappingModel:
                 logger.info(
                     "BIP heuristic split %d: optimizes first %d layers, total circuit depth %d",
                     i,
-                    k,
+                    self.heur_last_layer[i],
                     len(self.heur_gates[i]),
                 )
             # Compute connectivity within dummy_timesteps steps, and costs
