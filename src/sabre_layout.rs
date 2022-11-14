@@ -150,7 +150,11 @@ fn layout_trial(
             std::mem::swap(&mut dag_nodes, &mut rev_dag_nodes);
         }
     }
-    let layout_dag = apply_layout(&dag_nodes, &initial_layout, num_physical_qubits, num_clbits);
+    // Reverse the circuit back to avoid replaying the circuit in reverse order.
+    // the output of the loop above will always have the reverse order nodes set
+    // to dag_nodes. So one more swap is needed to restore the original order
+    std::mem::swap(dag_nodes, &mut rev_dag_nodes);
+    let layout_dag = apply_layout(dag_nodes, &initial_layout, num_physical_qubits, num_clbits);
     let mut final_layout = initial_layout.clone();
     let (swap_map, gate_order) = build_swap_map_inner(
         num_physical_qubits,
