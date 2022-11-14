@@ -27,11 +27,13 @@ from qiskit.providers import Backend, Options
 from qiskit.providers.job import JobV1 as Job
 from qiskit.quantum_info import Pauli, PauliList
 from qiskit.quantum_info.operators.base_operator import BaseOperator
+from qiskit.quantum_info.operators.symplectic.sparse_pauli_op import SparsePauliOp
 from qiskit.result import Counts, Result
 from qiskit.transpiler import PassManager, Layout
 
 from .base import BaseEstimator, EstimatorResult
 from .primitive_job import PrimitiveJob
+from .utils import init_observable
 
 # from .utils import _circuit_key, _observable_key  # TODO: caching
 
@@ -411,8 +413,10 @@ class BackendEstimator(BaseEstimator):
         share a single common basis in the form of a Pauli operator in order to be measured
         simultaneously (e.g. `ZZ` and `ZI`, or `XI` and `IX`).
         """
-        basis: Pauli = self._observable_decomposer.get_measurement_basis(observable)
-        circuit: QuantumCircuit = self._build_pauli_measurement(basis)
+        basis: tuple[Pauli] = self._observable_decomposer.extract_pauli_basis(observable)
+        if len(basis) != 1:
+            raise ValueError("Unable to retrieve a singlet Pauli basis for the given observable.")
+        circuit: QuantumCircuit = self._build_pauli_measurement(basis[0])
         # Simplified Paulis (removing common identities)
         measured_qubit_indices = circuit.metadata.get("measured_qubit_indices")
         paulis = PauliList.from_symplectic(
@@ -511,8 +515,7 @@ class BackendEstimator(BaseEstimator):
 class ObservableDecomposer(ABC):
     """Strategy class for decomposing observables and getting associated measurement bases."""
 
-    @classmethod
-    def decompose(cls, observable: BaseOperator | PauliSumOp) -> list[BaseOperator | PauliSumOp]:
+    def decompose(self, observable: BaseOperator | PauliSumOp) -> tuple[SparsePauliOp]:
         """Decomposes a given observable into singly measurable components.
 
         Note that component decomposition is not unique, for instance, commuting components
@@ -523,67 +526,66 @@ class ObservableDecomposer(ABC):
 
         Returns:
             A list of observables each of which measurable with a single quantum circuit
-            (i.e. on a single Pauli basis).
+            (i.e. on a singlet Pauli basis).
         """
-        # TODO: validation
-        return cls._decompose(observable)
+        observable = init_observable(observable)
+        return self._decompose(observable)
 
-    @staticmethod
     @abstractmethod
     def _decompose(
-        observable: BaseOperator | PauliSumOp,
-    ) -> list[BaseOperator | PauliSumOp]:
+        self,
+        observable: SparsePauliOp,
+    ) -> tuple[SparsePauliOp]:
         ...
 
-    @classmethod
-    def get_measurement_basis(cls, observable: BaseOperator | PauliSumOp) -> Pauli:
-        """Get common Pauli basis for a given observable.
+    def extract_pauli_basis(self, observable: BaseOperator | PauliSumOp) -> tuple[Pauli]:
+        """Extract Pauli basis for a given observable.
+
+        Note that the resulting basis may be overcomplete depending on the implementation.
 
         Args:
-            observable: an operator for which to obtain a common Pauli basis for measurement.
+            observable: an operator for which to obtain a Pauli basis for measurement.
 
         Returns:
-            A Pauli operator serving as a common basis for all components of the input observable.
-
-        Raises:
-            ValueError: if input observable does not have a common Pauli basis.
+            A tuple of Pauli operators serving as a basis for the input observable. Each
+            entry conrresponds one-to-one to the components retrieved from `.decompose()`.
         """
-        # TODO: validation
-        if len(cls.decompose(observable)) != 1:
-            raise ValueError("Unable to retrieve a common Pauli basis for the given observable.")
-        return cls._get_measurement_basis(observable)
+        components = self.decompose(observable)
+        return tuple(self._extract_singlet_basis(component) for component in components)
 
-    @staticmethod
     @abstractmethod
-    def _get_measurement_basis(observable: BaseOperator | PauliSumOp) -> Pauli:
+    def _extract_singlet_basis(self, observable: SparsePauliOp) -> Pauli:
+        """Extract singlet Pauli basis for a given observable.
+
+        The input observable comes from `._decompose()`, and must be singly measurable.
+        """
         ...
 
 
 class NaiveDecomposer(ObservableDecomposer):
-    """Naive observable decomposition without grouping related components."""
+    """Naive observable decomposition without grouping components."""
 
-    @staticmethod
     def _decompose(
-        observable: BaseOperator | PauliSumOp,
-    ) -> list[BaseOperator | PauliSumOp]:
-        return list(observable)
+        self,
+        observable: SparsePauliOp,
+    ) -> tuple[SparsePauliOp]:
+        return tuple(observable)
 
-    @staticmethod
-    def _get_measurement_basis(observable: BaseOperator | PauliSumOp) -> Pauli:
+    def _extract_singlet_basis(self, observable: SparsePauliOp) -> Pauli:
         return observable.paulis[0]
 
 
 class AbelianDecomposer(ObservableDecomposer):
     """Abelian observable decomposition grouping commuting components."""
 
-    @staticmethod
     def _decompose(
-        observable: BaseOperator | PauliSumOp,
-    ) -> list[BaseOperator | PauliSumOp]:
-        return observable.group_commuting(qubit_wise=True)
+        self,
+        observable: SparsePauliOp,
+    ) -> tuple[SparsePauliOp]:
+        components = observable.group_commuting(qubit_wise=True)
+        return tuple(components)
 
-    @staticmethod
-    def _get_measurement_basis(observable: BaseOperator | PauliSumOp) -> Pauli:
-        return Pauli(
-            (np.logical_or.reduce(observable.paulis.z), np.logical_or.reduce(observable.paulis.x))
-        )
+    def _extract_singlet_basis(self, observable: SparsePauliOp) -> Pauli:
+        or_reduce = np.logical_or.reduce
+        zx_data_tuple = or_reduce(observable.paulis.z), or_reduce(observable.paulis.x)
+        return Pauli(zx_data_tuple)

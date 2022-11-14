@@ -29,6 +29,7 @@ from qiskit.primitives.backend_estimator_dev import (
 )
 from qiskit.providers import Backend, Options
 from qiskit.quantum_info.operators import SparsePauliOp
+from qiskit.quantum_info.operators.symplectic.pauli import Pauli
 from qiskit.quantum_info.operators.symplectic.pauli_list import PauliList
 from qiskit.transpiler import Layout, PassManager
 from qiskit.transpiler.passes import ApplyLayout, SetLayout
@@ -393,10 +394,99 @@ class TestCalculations(TestCase):
     """Test calculation logic."""
 
 
-# TODO
 @ddt
 class TestObservableDecomposer(TestCase):
     """Test ObservableDecomposer strategies."""
+
+    @data(
+        [NaiveDecomposer(), SparsePauliOp("IXYZ"), (SparsePauliOp("IXYZ"),)],
+        [
+            NaiveDecomposer(),
+            SparsePauliOp(["IXYZ", "ZYXI"]),
+            (SparsePauliOp("IXYZ"), SparsePauliOp("ZYXI")),
+        ],
+        [
+            NaiveDecomposer(),
+            SparsePauliOp(["IXYZ", "IXII"]),
+            (SparsePauliOp("IXYZ"), SparsePauliOp("IXII")),
+        ],
+        [
+            NaiveDecomposer(),
+            SparsePauliOp(["IXYZ", "ZYXI", "IXII", "ZYII"]),
+            (
+                SparsePauliOp("IXYZ"),
+                SparsePauliOp("ZYXI"),
+                SparsePauliOp("IXII"),
+                SparsePauliOp("ZYII"),
+            ),
+        ],
+        [AbelianDecomposer(), SparsePauliOp("IXYZ"), (SparsePauliOp("IXYZ"),)],
+        [
+            AbelianDecomposer(),
+            SparsePauliOp(["IXYZ", "ZYXI"]),
+            (SparsePauliOp("IXYZ"), SparsePauliOp("ZYXI")),
+        ],
+        [
+            AbelianDecomposer(),
+            SparsePauliOp(["IXYZ", "IXII"]),
+            (SparsePauliOp(["IXYZ", "IXII"]),),
+        ],
+        [
+            AbelianDecomposer(),
+            SparsePauliOp(["IXYZ", "ZYXI", "IXII", "ZYII"]),
+            (SparsePauliOp(["IXYZ", "IXII"]), SparsePauliOp(["ZYXI", "ZYII"])),
+        ],
+    )
+    @unpack
+    def test_decompose(self, decomposer, observable, expected):
+        """Test decompose in ObservableDecomposer strategies."""
+        components = decomposer.decompose(observable)
+        self.assertEqual(components, expected)
+
+    @data(
+        [NaiveDecomposer(), SparsePauliOp("IXYZ"), (Pauli("IXYZ"),)],
+        [
+            NaiveDecomposer(),
+            SparsePauliOp(["IXYZ", "ZYXI"]),
+            (Pauli("IXYZ"), Pauli("ZYXI")),
+        ],
+        [
+            NaiveDecomposer(),
+            SparsePauliOp(["IXYZ", "IXII"]),
+            (Pauli("IXYZ"), Pauli("IXII")),
+        ],
+        [
+            NaiveDecomposer(),
+            SparsePauliOp(["IXYZ", "ZYXI", "IXII", "ZYII"]),
+            (
+                Pauli("IXYZ"),
+                Pauli("ZYXI"),
+                Pauli("IXII"),
+                Pauli("ZYII"),
+            ),
+        ],
+        [AbelianDecomposer(), SparsePauliOp("IXYZ"), (Pauli("IXYZ"),)],
+        [
+            AbelianDecomposer(),
+            SparsePauliOp(["IXYZ", "ZYXI"]),
+            (Pauli("IXYZ"), Pauli("ZYXI")),
+        ],
+        [
+            AbelianDecomposer(),
+            SparsePauliOp(["IXYZ", "IXII"]),
+            (Pauli("IXYZ"),),
+        ],
+        [
+            AbelianDecomposer(),
+            SparsePauliOp(["IXYZ", "ZYXI", "IXII", "ZYII"]),
+            (Pauli("IXYZ"), Pauli("ZYXI")),
+        ],
+    )
+    @unpack
+    def test_pauli_basis(self, decomposer, observable, expected):
+        """Test Pauli basis in ObservableDecomposer strategies."""
+        basis = decomposer.extract_pauli_basis(observable)
+        self.assertEqual(basis, expected)
 
 
 ################################################################################
