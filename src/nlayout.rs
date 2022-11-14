@@ -116,6 +116,14 @@ impl NLayout {
     pub fn copy(&self) -> NLayout {
         self.clone()
     }
+
+    #[staticmethod]
+    pub fn generate_trivial_layout(num_qubits: usize) -> Self {
+        NLayout {
+            logic_to_phys: (0..num_qubits).collect(),
+            phys_to_logic: (0..num_qubits).collect(),
+        }
+    }
 }
 
 #[pymodule]

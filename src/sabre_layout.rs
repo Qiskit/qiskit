@@ -133,10 +133,7 @@ fn layout_trial(
         // forward and reverse
         for _direction in 0..2 {
             let dag = apply_layout(dag_nodes, &initial_layout, num_physical_qubits, num_clbits);
-            let mut pass_final_layout = NLayout {
-                logic_to_phys: (0..num_physical_qubits).collect(),
-                phys_to_logic: (0..num_physical_qubits).collect(),
-            };
+            let mut pass_final_layout = NLayout::generate_trivial_layout(num_physical_qubits);
             build_swap_map_inner(
                 num_physical_qubits,
                 &dag,
@@ -154,10 +151,7 @@ fn layout_trial(
         }
     }
     let layout_dag = apply_layout(dag_nodes, &initial_layout, num_physical_qubits, num_clbits);
-    let mut final_layout = NLayout {
-        logic_to_phys: (0..num_physical_qubits).collect(),
-        phys_to_logic: (0..num_physical_qubits).collect(),
-    };
+    let mut final_layout = NLayout::generate_trivial_layout(num_physical_qubits);
     let (swap_map, gate_order) = build_swap_map_inner(
         num_physical_qubits,
         &layout_dag,
