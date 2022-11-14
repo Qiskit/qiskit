@@ -15,7 +15,7 @@
 from __future__ import annotations
 
 from collections.abc import Iterator, Sequence
-from unittest import TestCase, main
+from unittest import TestCase
 from unittest.mock import MagicMock, Mock, patch
 from test import combine
 
@@ -427,6 +427,7 @@ class TestComputation(TestCase):
     )
     @unpack
     def test_compute_expval_variance_pair(self, counts, pauli, expected):
+        """Test expval-variance pairs."""
         counts = Counts(counts)
         pauli = Pauli(pauli)
         pair = BackendEstimator._compute_expval_variance_pair(counts, pauli)
@@ -461,6 +462,7 @@ class TestComputation(TestCase):
     )
     @unpack
     def test_measurement_coefficient(self, pauli, bitstring, expected):
+        """Test measurement coefficients."""
         pauli = Pauli(pauli)
         coeff = BackendEstimator._measurement_coefficient(bitstring, pauli)
         self.assertEqual(coeff, expected)
@@ -870,7 +872,7 @@ class TestBackendEstimator(QiskitTestCase):
             job.result = Mock(return_value=result)
             run_mock.return_value = job
             estimator.run([qc] * k, [op] * k, params_list).result()
-        self.assertEqual(run_mock.call_count, k*m)
+        self.assertEqual(run_mock.call_count, k * m)
 
     def test_job_size_limit_v1(self):
         """Test BackendEstimator respects job size limit"""
@@ -894,7 +896,7 @@ class TestBackendEstimator(QiskitTestCase):
             job.result = Mock(return_value=result)
             run_mock.return_value = job
             estimator.run([qc] * k, [op] * k, params_list).result()
-        self.assertEqual(run_mock.call_count, k*m)
+        self.assertEqual(run_mock.call_count, k * m)
 
     def test_no_max_circuits(self):
         """Test BackendEstimator works with BackendV1 and no max_experiments set."""
