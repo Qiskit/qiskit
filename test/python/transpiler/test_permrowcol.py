@@ -39,22 +39,26 @@ class TestPermRowCol(QiskitTestCase):
         self.assertIsNotNone(perm)
         self.assertEqual(perm, expected_perm)
 
-    def test_perm_row_col_returns_correct_permutation_on_random_permutation_matrix(self):
+    def test_perm_row_col_returns_correct_permutation_on_permutation_matrix(self):
         """Test that perm_row_col returns correct permutation circuit when parity matrix
         is a permutation of identity matrix"""
         coupling_list = [(0, 1), (0, 3), (1, 2), (1, 4), (2, 5), (3, 4), (4, 5)]
         coupling = CouplingMap(coupling_list)
         permrowcol = PermRowCol(coupling)
-        parity_mat = np.identity(6)
-        np.random.shuffle(parity_mat)
-        pattern = []
-        for elem in parity_mat.T.tolist():
-            pattern.extend([i for i, e in enumerate(elem) if e == 1])
-        expected_perm = Permutation(6, pattern)
+        parity_mat = np.array(
+            [
+                [1, 0, 0, 0, 0, 0],
+                [0, 0, 0, 1, 0, 0],
+                [0, 0, 0, 0, 0, 1],
+                [0, 0, 0, 0, 1, 0],
+                [0, 0, 1, 0, 0, 0],
+                [0, 1, 0, 0, 0, 0],
+            ]
+        )
+        expected_perm = Permutation(6, [0, 5, 4, 1, 3, 2])
 
         perm = permrowcol.perm_row_col(parity_mat)[1]
 
-        self.assertIsNotNone(perm)
         self.assertEqual(perm, expected_perm)
 
     def test_perm_row_col_returns_correct_permutation(self):
