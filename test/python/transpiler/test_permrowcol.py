@@ -295,12 +295,12 @@ class TestPermRowCol(QiskitTestCase):
         instance = permrowcol._get_nodes(np.array([[1, 0, 1], [0, 1, 1], [0, 0, 1]]), 0)
         self.assertCountEqual(instance, [0])
 
-        permrowcol.reduce_graph(1)
+        permrowcol._reduce_graph(1)
 
         instance = permrowcol._get_nodes(np.array([[1, 0, 1], [0, 1, 1], [0, 0, 1]]), 2)
         self.assertCountEqual(instance, [0, 2])
 
-        permrowcol.reduce_graph(0)
+        permrowcol._reduce_graph(0)
 
         instance = permrowcol._get_nodes(np.array([[1, 0, 1], [0, 1, 1], [0, 0, 1]]), 0)
         self.assertCountEqual(instance, [])
