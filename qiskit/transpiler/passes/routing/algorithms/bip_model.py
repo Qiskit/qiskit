@@ -127,7 +127,7 @@ class BIPMappingModel:
             self._num_splits = 1
         elif self._num_splits == -1:
             # User wants an automatic choice
-            self._num_splits = max(1, (len(self.su4layers) - 2)//2)
+            self._num_splits = max(1, (len(self.su4layers) - 2) // 2)
 
         # Do the same, preparing for rolling time window heuristic
         if self._num_splits > 1:
