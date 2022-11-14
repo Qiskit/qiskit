@@ -36,7 +36,6 @@ class TestPermRowCol(QiskitTestCase):
 
         perm = permrowcol.perm_row_col(parity_mat)[1]
 
-        self.assertIsNotNone(perm)
         self.assertEqual(perm, expected_perm)
 
     def test_perm_row_col_returns_correct_permutation_on_permutation_matrix(self):
