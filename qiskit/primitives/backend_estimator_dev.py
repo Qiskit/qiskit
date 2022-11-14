@@ -24,6 +24,7 @@ from qiskit.circuit import QuantumCircuit
 from qiskit.compiler import transpile
 from qiskit.opflow import PauliSumOp
 from qiskit.providers import Backend, Options
+from qiskit.providers.backend import BackendV1
 from qiskit.providers.job import JobV1 as Job
 from qiskit.quantum_info import Pauli, PauliList
 from qiskit.quantum_info.operators.base_operator import BaseOperator
@@ -104,6 +105,8 @@ class BackendEstimator(BaseEstimator):
                 "Expected `Backend` type for `backend`, " f"got `{type(backend)}` instead."
             )
         # TODO: clear all transpilation caching
+        if isinstance(backend, BackendV1):
+            backend.max_circuits = getattr(backend.configuration(), "max_experiments", None)
         self._backend = backend
 
     @property
@@ -178,19 +181,13 @@ class BackendEstimator(BaseEstimator):
         # Pre-processing
         circuit_bundles = self._preprocess(circuits, observables, parameter_values)
         metadata_bundles = tuple(tuple(c.metadata for c in bun) for bun in circuit_bundles)
-        job_circuits = tuple(c for bun in circuit_bundles for c in bun)
-        # for circ in job_circuits:
-        #     circ.metadata = {}
+        job_circuits = list(c for bun in circuit_bundles for c in bun)  # TODO: accept tuple
 
         # Raw results: counts
-        job: Job = self.backend.run(job_circuits, **run_options)
-        raw_results: Result = job.result()
-        counts: list[Counts] | Counts = raw_results.get_counts()
+        counts_list: list[Counts] = self._run_on_backend(job_circuits, **run_options)
 
         # Post-processing
-        if not isinstance(counts, list):
-            counts = [counts]
-        counts_iter = iter(counts)
+        counts_iter = iter(counts_list)
         counts_bundles = tuple(tuple(next(counts_iter) for _ in bun) for bun in circuit_bundles)
         expval_list, var_list, shots_list = self._postprocess(counts_bundles, metadata_bundles)
 
@@ -228,6 +225,26 @@ class BackendEstimator(BaseEstimator):
         circs_w_meas = self._compose_measurements(circuit, measurements)
         return circs_w_meas
 
+    def _run_on_backend(self, circuits: list[QuantumCircuit], **run_options) -> list[Counts]:
+        """Run circuits on backend bypassing max circuits allowed."""
+        # Max circuits
+        total_circuits: int = len(circuits)
+        max_circuits: int = self.backend.max_circuits or total_circuits
+
+        # Raw results
+        jobs: tuple[Job] = tuple(
+            self.backend.run(circuits[slice(split, max_circuits)], **run_options)
+            for split in range(0, total_circuits, max_circuits)
+        )
+        raw_results: tuple[Result] = tuple(job.result() for job in jobs)
+
+        # Counts
+        counts_list: list[Counts] = []
+        for raw_result in raw_results:
+            counts: list[Counts] | Counts = raw_result.get_counts()
+            counts_list.extend(counts if isinstance(counts, list) else [counts])
+        return counts_list
+
     def _postprocess(
         self,
         counts_bundles: Sequence[Sequence[Counts]],
@@ -253,12 +270,12 @@ class BackendEstimator(BaseEstimator):
             coeffs = metadata["coeffs"]
             expvals, variances = self._compute_expvals_and_variances(counts, paulis)
             expval += np.dot(expvals, coeffs)
-            var += np.dot(variances, coeffs**2)
+            var += np.dot(variances, np.array(coeffs) ** 2)
         shots = sum(counts_bundle[0].values())  # TODO: not correct -> counts.shots (?)
         return expval, var, shots
 
     ################################################################################
-    ## CALCULATIONS
+    ## COMPUTATION
     ################################################################################
     @classmethod
     def _compute_expvals_and_variances(
@@ -270,10 +287,8 @@ class BackendEstimator(BaseEstimator):
         that basis rotations have been applied to convert them to the
         diagonal basis.
         """
-        return tuple(
-            tuple(list)
-            for list in zip(cls._compute_expval_variance_pair(counts, pauli) for pauli in paulis)
-        )
+        pairs = tuple(cls._compute_expval_variance_pair(counts, pauli) for pauli in paulis)
+        return tuple(zip(*pairs))
 
     @classmethod
     def _compute_expval_variance_pair(cls, counts, pauli):
@@ -289,6 +304,8 @@ class BackendEstimator(BaseEstimator):
             coeff = cls._measurement_coefficient(bitstring, pauli)
             expval += coeff * freq
             shots += freq
+        if shots == 0:
+            print(counts)
         expval /= shots
         variance = 1 - expval**2
         return expval, variance
