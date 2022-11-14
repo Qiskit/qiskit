@@ -12,11 +12,11 @@
 
 """Algebra utilities and the ``GateSequence`` class."""
 
-from typing import Tuple, Iterable
+from __future__ import annotations
 
+from collections.abc import Sequence
 import math
 import numpy as np
-from scipy.optimize import fsolve
 
 from qiskit.circuit import Gate, QuantumCircuit
 
@@ -27,7 +27,7 @@ class GateSequence:
     This class stores the sequence of gates along with the unitary they implement.
     """
 
-    def __init__(self, gates: Iterable[Gate] = ()) -> None:
+    def __init__(self, gates: Sequence[Gate] = ()) -> None:
         """Create a new sequence of gates.
 
         Args:
@@ -55,7 +55,7 @@ class GateSequence:
         self.product = so3_matrix
         self.product_su2 = su2_matrix
 
-    def remove_cancelling_pair(self, indices: Iterable[int]) -> None:
+    def remove_cancelling_pair(self, indices: Sequence[int]) -> None:
         """Remove a pair of indices that cancel each other and *do not* change the matrices."""
         for index in list(indices[::-1]):
             self.gates.pop(index)
@@ -254,14 +254,13 @@ class GateSequence:
         composed.gates = other.gates + self.gates
         composed.labels = other.labels + self.labels
         composed.name = " ".join(composed.labels)
-        # composed.name = f"{other.name} {self.name}"
         composed.product = np.dot(self.product, other.product)
         composed.global_phase = self.global_phase + other.global_phase
 
         return composed
 
 
-def _convert_u2_to_su2(u2_matrix: np.ndarray) -> Tuple[np.ndarray, float]:
+def _convert_u2_to_su2(u2_matrix: np.ndarray) -> tuple[np.ndarray, float]:
     """Convert a U(2) matrix to SU(2) by adding a global phase."""
     z = 1 / np.sqrt(np.linalg.det(u2_matrix))
     su2_matrix = z * u2_matrix
@@ -270,7 +269,7 @@ def _convert_u2_to_su2(u2_matrix: np.ndarray) -> Tuple[np.ndarray, float]:
     return su2_matrix, phase
 
 
-def _compute_euler_angles_from_so3(matrix: np.ndarray) -> Tuple[float, float, float]:
+def _compute_euler_angles_from_so3(matrix: np.ndarray) -> tuple[float, float, float]:
     """Computes the Euler angles from the SO(3)-matrix u.
 
     Uses the algorithm from Gregory Slabaugh,
@@ -280,8 +279,7 @@ def _compute_euler_angles_from_so3(matrix: np.ndarray) -> Tuple[float, float, fl
         matrix: The SO(3)-matrix for which the Euler angles need to be computed.
 
     Returns:
-        Tuple phi, theta, psi\n
-        where phi is rotation about z-axis, theta rotation about y-axis\n
+        Tuple (phi, theta, psi), where phi is rotation about z-axis, theta rotation about y-axis
         and psi rotation about x-axis.
     """
     matrix = np.round(matrix, decimals=10)
@@ -301,7 +299,7 @@ def _compute_euler_angles_from_so3(matrix: np.ndarray) -> Tuple[float, float, fl
         return phi, theta, psi
 
 
-def _compute_su2_from_euler_angles(angles: Tuple[float, float, float]) -> np.ndarray:
+def _compute_su2_from_euler_angles(angles: tuple[float, float, float]) -> np.ndarray:
     """Computes SU(2)-matrix from Euler angles.
 
     Args:
@@ -354,167 +352,6 @@ def _convert_su2_to_so3(matrix: np.ndarray) -> np.ndarray:
     return rotation
 
 
-def _solve_decomposition_angle(matrix: np.ndarray) -> float:
-    """Computes angle for balanced commutator of SO(3)-matrix ``matrix``.
-
-    Computes angle a so that the SO(3)-matrix ``matrix`` can be decomposed
-    as commutator [v,w] where v and w are both rotations of a about some axis.
-    The computation is done by solving a trigonometric equation using scipy.optimize.fsolve.
-
-    Args:
-        matrix: The SO(3)-matrix for which the decomposition angle needs to be computed.
-
-    Returns:
-        Angle a so that matrix = [v,w] with v and w rotations of a about some axis.
-
-    Raises:
-        ValueError: if ``matrix`` is not an SO(3)-matrix.
-    """
-    _check_is_so3(matrix)
-
-    trace = _compute_trace_so3(matrix)
-    angle = math.acos((1 / 2) * (trace - 1))
-
-    def objective(phi):
-        rhs = 2 * math.sin(phi / 2) ** 2
-        rhs *= math.sqrt(1 - math.sin(phi / 2) ** 4)
-        lhs = math.sin(angle / 2)
-        return rhs - lhs
-
-    decomposition_angle = fsolve(objective, angle)[0]
-    return decomposition_angle
-
-
-def _compute_trace_so3(matrix: np.ndarray) -> float:
-    """Computes trace of an SO(3)-matrix.
-
-    Args:
-        matrix: an SO(3)-matrix
-
-    Returns:
-        Trace of ``matrix``.
-
-    Raises:
-        ValueError: if ``matrix`` is not an SO(3)-matrix.
-    """
-    _check_is_so3(matrix)
-
-    trace = np.matrix.trace(matrix)
-    trace_rounded = min(trace, 3)
-    return trace_rounded
-
-
-def _compute_rotation_between(from_vector: np.ndarray, to_vector: np.ndarray) -> np.ndarray:
-    """Computes the SO(3)-matrix for rotating ``from_vector`` to ``to_vector``.
-
-    Args:
-        from_vector: unit vector of size 3
-        to_vector: unit vector of size 3
-
-    Returns:
-        SO(3)-matrix that brings ``from_vector`` to ``to_vector``.
-
-    Raises:
-        ValueError: if at least one of ``from_vector`` of ``to_vector`` is not a 3-dim unit vector.
-    """
-    from_vector = from_vector / np.linalg.norm(from_vector)
-    to_vector = to_vector / np.linalg.norm(to_vector)
-
-    dot = np.dot(from_vector, to_vector)
-    cross = _cross_product_matrix(np.cross(from_vector, to_vector))
-    rotation_matrix = np.identity(3) + cross + np.dot(cross, cross) / (1 + dot)
-    return rotation_matrix
-
-
-def _cross_product_matrix(v: np.ndarray) -> np.ndarray:
-    """Computes cross product matrix from vector.
-
-    Args:
-        v: Vector for which cross product matrix needs to be computed.
-
-    Returns:
-        The cross product matrix corresponding to vector ``v``.
-    """
-    return np.array([[0, -v[2], v[1]], [v[2], 0, -v[0]], [-v[1], v[0], 0]])
-
-
-def _compute_commutator_so3(a: np.ndarray, b: np.ndarray) -> np.ndarray:
-    """Computes the commutator of the SO(3)-matrices ``a`` and ``b``.
-
-    The computation uses the fact that the inverse of an SO(3)-matrix is equal to its transpose.
-
-    Args:
-        a: SO(3)-matrix
-        b: SO(3)-matrix
-
-    Returns:
-        The commutator [a,b] of ``a`` and ``b`` w
-
-    Raises:
-        ValueError: if at least one of ``a`` or ``b`` is not an SO(3)-matrix.
-    """
-    _check_is_so3(a)
-    _check_is_so3(b)
-
-    a_dagger = np.conj(a).T
-    b_dagger = np.conj(b).T
-
-    return np.dot(np.dot(np.dot(a, b), a_dagger), b_dagger)
-
-
-def _compute_rotation_from_angle_and_axis(  # pylint: disable=invalid-name
-    angle: float, axis: np.ndarray
-) -> np.ndarray:
-    """Computes the SO(3)-matrix corresponding to the rotation of ``angle`` about ``axis``.
-
-    Args:
-        angle: The angle of the rotation.
-        axis: The axis of the rotation.
-
-    Returns:
-        SO(3)-matrix that represents a rotation of ``angle`` about ``axis``.
-
-    Raises:
-        ValueError: if ``axis`` is not a 3-dim unit vector.
-    """
-    if axis.shape != (3,):
-        raise ValueError(f"Axis must be a 1d array of length 3, but has shape {axis.shape}.")
-
-    if abs(np.linalg.norm(axis) - 1.0) > 1e-4:
-        raise ValueError(f"Axis must have a norm of 1, but has {np.linalg.norm(axis)}.")
-
-    res = math.cos(angle) * np.identity(3) + math.sin(angle) * _cross_product_matrix(axis)
-    res += (1 - math.cos(angle)) * np.outer(axis, axis)
-    return res
-
-
-def _compute_rotation_axis(matrix: np.ndarray) -> np.ndarray:
-    """Computes rotation axis of SO(3)-matrix.
-
-    Args:
-        matrix: The SO(3)-matrix for which rotation angle needs to be computed.
-
-    Returns:
-        The rotation axis of the SO(3)-matrix ``matrix``.
-
-    Raises:
-        ValueError: if ``matrix`` is not an SO(3)-matrix.
-    """
-    _check_is_so3(matrix)
-
-    trace = _compute_trace_so3(matrix)
-    theta = math.acos(0.5 * (trace - 1))
-    if math.sin(theta) > 1e-10:
-        x = 1 / (2 * math.sin(theta)) * (matrix[2][1] - matrix[1][2])
-        y = 1 / (2 * math.sin(theta)) * (matrix[0][2] - matrix[2][0])
-        z = 1 / (2 * math.sin(theta)) * (matrix[1][0] - matrix[0][1])
-    else:
-        x = 1.0
-        y = 0.0
-        z = 0.0
-    return np.array([x, y, z])
-
-
 def _convert_so3_to_su2(matrix: np.ndarray) -> np.ndarray:
     """Converts an SO(3)-matrix to a corresponding SU(2)-matrix.
 
@@ -547,72 +384,3 @@ def _check_is_so3(matrix: np.ndarray) -> None:
 
     if abs(np.linalg.det(matrix) - 1) > 1e-4:
         raise ValueError(f"Determinant of matrix must be 1, but is {np.linalg.det(matrix)}.")
-
-
-def commutator_decompose(
-    u_so3: np.ndarray, check_input: bool = True
-) -> Tuple[GateSequence, GateSequence]:
-    r"""Decompose an :math:`SO(3)`-matrix, :math:`U` as a balanced commutator.
-
-    This function finds two :math:`SO(3)` matrices :math:`V, W` such that the input matrix
-    equals
-
-    .. math::
-
-        U = V^\dagger W^\dagger V W.
-
-    For this decomposition, the following statement holds
-
-
-    .. math::
-
-        ||V - I||_F, ||W - I||_F \leq \frac{\sqrt{||U - I||_F}}{2},
-
-    where :math:`I` is the identity and :math:`||\cdot ||_F` is the Frobenius norm.
-
-    Args:
-        u_so3: SO(3)-matrix that needs to be decomposed as balanced commutator.
-        check_input: If True, checks whether the input matrix is actually SO(3).
-
-    Returns:
-        Tuple of GateSequences from SO(3)-matrices :math:`V, W`.
-
-    Raises:
-        ValueError: if ``u_so3`` is not an SO(3)-matrix.
-    """
-    if check_input:
-        # assert that the input matrix is really SO(3)
-        if u_so3.shape != (3, 3):
-            raise ValueError("Input matrix has wrong shape", u_so3.shape)
-
-        if abs(np.linalg.det(u_so3) - 1) > 1e-6:
-            raise ValueError(
-                "Determinant of input is not 1 (up to tolerance of 1e-6), but", np.linalg.det(u_so3)
-            )
-
-        identity = np.identity(3)
-        if not (
-            np.allclose(u_so3.dot(u_so3.T), identity) and np.allclose(u_so3.T.dot(u_so3), identity)
-        ):
-            raise ValueError("Input matrix is not orthogonal.")
-
-    angle = _solve_decomposition_angle(u_so3)
-
-    # Compute rotation about x-axis with angle 'angle'
-    vx = _compute_rotation_from_angle_and_axis(angle, np.array([1, 0, 0]))
-
-    # Compute rotation about y-axis with angle 'angle'
-    wy = _compute_rotation_from_angle_and_axis(angle, np.array([0, 1, 0]))
-
-    commutator = _compute_commutator_so3(vx, wy)
-
-    u_so3_axis = _compute_rotation_axis(u_so3)
-    commutator_axis = _compute_rotation_axis(commutator)
-
-    sim_matrix = _compute_rotation_between(commutator_axis, u_so3_axis)
-    sim_matrix_dagger = np.conj(sim_matrix).T
-
-    v = np.dot(np.dot(sim_matrix, vx), sim_matrix_dagger)
-    w = np.dot(np.dot(sim_matrix, wy), sim_matrix_dagger)
-
-    return GateSequence.from_matrix(v), GateSequence.from_matrix(w)

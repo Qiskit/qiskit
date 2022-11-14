@@ -12,7 +12,7 @@
 
 """Synthesize a single qubit gate to a discrete basis set."""
 
-from typing import Union, Optional, Dict, List
+from __future__ import annotations
 
 import numpy as np
 
@@ -22,21 +22,20 @@ from qiskit.transpiler.basepasses import TransformationPass
 from qiskit.dagcircuit.dagcircuit import DAGCircuit
 from qiskit.transpiler.exceptions import TranspilerError
 
-from .utils import GateSequence, commutator_decompose
+from .gate_sequence import GateSequence
+from .commutator_decompose import commutator_decompose
 from .generate_basis_approximations import generate_basic_approximations, _1q_gates, _1q_inverses
 
 
-class SolovayKitaev:
+class SolovayKitaevDecomposition:
     """The Solovay Kitaev discrete decomposition algorithm.
 
-    See :mod:`qiskit.transpiler.synthesis.solovay_kitaev` for more information.
+    This class is called recursively by the transpiler pass, which is why it is separeted.
+    See :mod:`qiskit.synthesis.discrete_basis` for more information.
     """
 
     def __init__(
-        self,
-        basic_approximations: Optional[
-            Union[str, Dict[str, np.ndarray], List[GateSequence]]
-        ] = None,
+        self, basic_approximations: str | dict[str, np.ndarray] | list[GateSequence] | None = None
     ) -> None:
         """
 
@@ -60,7 +59,7 @@ class SolovayKitaev:
 
         self.basic_approximations = self.load_basic_approximations(basic_approximations)
 
-    def load_basic_approximations(self, data: Union[dict, str]) -> List[GateSequence]:
+    def load_basic_approximations(self, data: dict | str) -> list[GateSequence]:
         """Load basic approximations.
 
         Args:
@@ -115,7 +114,6 @@ class SolovayKitaev:
         _remove_inverse_follows_gate(decomposition)
 
         # convert to a circuit and attach the right phases
-        # TODO insert simplify again, but it seems to break the accuracy test
         circuit = decomposition.to_circuit()
         circuit.global_phase = decomposition.global_phase - global_phase
 
@@ -166,7 +164,7 @@ class SolovayKitaev:
         return best
 
 
-class SolovayKitaevSynthesis(TransformationPass):
+class SolovayKitaev(TransformationPass):
     r"""Approximately decompose 1q gates to a discrete basis using the Solovay-Kitaev algorithm.
 
     See :mod:`qiskit.transpiler.synthesis.solovay_kitaev` for more information.
@@ -176,7 +174,7 @@ class SolovayKitaevSynthesis(TransformationPass):
     def __init__(
         self,
         recursion_degree: int = 3,
-        basic_approximations: Optional[Union[str, Dict[str, np.ndarray]]] = None,
+        basic_approximations: str | dict[str, np.ndarray] | None = None,
     ) -> None:
         """
         Args:
@@ -191,10 +189,10 @@ class SolovayKitaevSynthesis(TransformationPass):
         """
         super().__init__()
         self.recursion_degree = recursion_degree
-        self._sk = SolovayKitaev(basic_approximations)
+        self._sk = SolovayKitaevDecomposition(basic_approximations)
 
     def run(self, dag: DAGCircuit) -> DAGCircuit:
-        """Run the SolovayKitaevSynthesis pass on `dag`.
+        """Run the ``SolovayKitaev`` pass on `dag`.
 
         Args:
             dag: The input dag.
@@ -211,7 +209,7 @@ class SolovayKitaevSynthesis(TransformationPass):
 
             if not hasattr(node.op, "to_matrix"):
                 raise TranspilerError(
-                    "SolovayKitaevSynthesis does not support gate without "
+                    "SolovayKitaev does not support gate without "
                     f"to_matrix method: {node.op.name}"
                 )
 

@@ -12,7 +12,7 @@
 
 """Functions to generate the basic approximations of single qubit gates for Solovay-Kitaev."""
 
-from typing import List, Union, Optional
+from __future__ import annotations
 
 import collections
 import numpy as np
@@ -24,7 +24,7 @@ from qiskit.circuit import Gate
 from qiskit.quantum_info.operators.predicates import matrix_equal
 from qiskit.utils import optionals
 
-from .utils import GateSequence
+from .gate_sequence import GateSequence
 
 Node = collections.namedtuple("Node", ("labels", "sequence", "children"))
 
@@ -92,7 +92,7 @@ else:
     _check_candidate = _check_candidate_greedy
 
 
-def _process_node(node: Node, basis: List[str], sequences: List[GateSequence]):
+def _process_node(node: Node, basis: list[str], sequences: list[GateSequence]):
     inverse_last = _1q_inverses[node.labels[-1]] if node.labels else None
 
     for label in basis:
@@ -110,8 +110,8 @@ def _process_node(node: Node, basis: List[str], sequences: List[GateSequence]):
 
 
 def generate_basic_approximations(
-    basis_gates: List[Union[str, Gate]], depth: int, filename: Optional[str] = None
-) -> Optional[List[GateSequence]]:
+    basis_gates: list[str | Gate], depth: int, filename: str | None = None
+) -> list[GateSequence]:
     """Generates a list of ``GateSequence``s with the gates in ``basic_gates``.
 
     Args:
