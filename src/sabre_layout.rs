@@ -158,7 +158,10 @@ fn layout_trial(
     // to dag_nodes. So one more swap is needed to restore the original order
     std::mem::swap(dag_nodes, &mut rev_dag_nodes);
     let layout_dag = apply_layout(dag_nodes, &initial_layout, num_physical_qubits, num_clbits);
-    let mut final_layout = initial_layout.clone();
+    let mut final_layout = NLayout {
+        logic_to_phys: (0..num_physical_qubits).collect(),
+        phys_to_logic: (0..num_physical_qubits).collect(),
+    };
     let (swap_map, gate_order) = build_swap_map_inner(
         num_physical_qubits,
         &layout_dag,
