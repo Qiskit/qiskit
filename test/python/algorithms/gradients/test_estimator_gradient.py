@@ -14,7 +14,6 @@
 """Test Estimator Gradients"""
 
 import unittest
-from test import combine
 
 import numpy as np
 from ddt import ddt, data, unpack
