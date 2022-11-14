@@ -24,6 +24,7 @@ from qiskit.transpiler.synthesis.graph_utils import (
     noncutting_vertices,
 )
 from qiskit.circuit.library.generalized_gates.permutation import Permutation
+from qiskit.circuit.exceptions import CircuitError
 
 
 class PermRowCol:
@@ -72,9 +73,10 @@ class PermRowCol:
 
         try:
             perm = Permutation(num_qubits, qubit_alloc)
-        except:
-            print("Invalid qubit allocation vector:", qubit_alloc)
-            return (circuit, None)
+        except CircuitError:
+            raise RuntimeError(
+                f"Formed qubit allocation vector is not a valid permutation pattern: {qubit_alloc}"
+            )
 
         return circuit, perm
 
