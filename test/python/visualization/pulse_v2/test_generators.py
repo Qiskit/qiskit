@@ -376,6 +376,7 @@ class TestWaveformGenerators(QiskitTestCase):
             "t0 (sec)": 0.5,
             "waveform shape": "Gaussian",
             "amp": "amp",
+            "angle": 0,
             "sigma": 3,
             "phase": np.pi / 2,
             "frequency": 5e9,
