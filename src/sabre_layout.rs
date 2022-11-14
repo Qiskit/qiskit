@@ -33,7 +33,7 @@ use crate::sabre_swap::{build_swap_map_inner, Heuristic};
 pub fn sabre_layout_and_routing(
     py: Python,
     num_clbits: usize,
-    dag_nodes: Vec<(usize, Vec<usize>, HashSet<usize>)>,
+    mut dag_nodes: Vec<(usize, Vec<usize>, HashSet<usize>)>,
     neighbor_table: &NeighborTable,
     distance_matrix: PyReadonlyArray2<f64>,
     heuristic: &Heuristic,
@@ -58,7 +58,7 @@ pub fn sabre_layout_and_routing(
                     index,
                     layout_trial(
                         num_clbits,
-                        dag_nodes.clone(),
+                        &mut dag_nodes.clone(),
                         neighbor_table,
                         &dist,
                         heuristic,
@@ -83,7 +83,7 @@ pub fn sabre_layout_and_routing(
             .map(|seed_trial| {
                 layout_trial(
                     num_clbits,
-                    dag_nodes.clone(),
+                    &mut dag_nodes,
                     neighbor_table,
                     &dist,
                     heuristic,
@@ -101,7 +101,7 @@ pub fn sabre_layout_and_routing(
 
 fn layout_trial(
     num_clbits: usize,
-    mut dag_nodes: Vec<(usize, Vec<usize>, HashSet<usize>)>,
+    dag_nodes: &mut Vec<(usize, Vec<usize>, HashSet<usize>)>,
     neighbor_table: &NeighborTable,
     distance_matrix: &ArrayView2<f64>,
     heuristic: &Heuristic,
@@ -129,7 +129,7 @@ fn layout_trial(
     for _iter in 0..max_iterations {
         // forward and reverse
         for _direction in 0..2 {
-            let dag = apply_layout(&dag_nodes, &initial_layout, num_physical_qubits, num_clbits);
+            let dag = apply_layout(dag_nodes, &initial_layout, num_physical_qubits, num_clbits);
             let mut pass_final_layout = NLayout {
                 logic_to_phys: (0..num_physical_qubits).collect(),
                 phys_to_logic: (0..num_physical_qubits).collect(),
@@ -147,7 +147,7 @@ fn layout_trial(
             );
             let final_layout = compose_layout(&initial_layout, &pass_final_layout);
             initial_layout = final_layout;
-            std::mem::swap(&mut dag_nodes, &mut rev_dag_nodes);
+            std::mem::swap(dag_nodes, &mut rev_dag_nodes);
         }
     }
     // Reverse the circuit back to avoid replaying the circuit in reverse order.
