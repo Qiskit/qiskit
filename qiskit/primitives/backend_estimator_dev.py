@@ -310,9 +310,10 @@ class BackendEstimator(BaseEstimator):
         return inds
 
     @staticmethod
-    def _parity_bit(integer: int) -> int:
+    def _parity_bit(integer: int, even: bool = True) -> int:
         """Return the parity bit of an integer."""
-        return bin(integer).count("1") % 2
+        even_bit = bin(integer).count("1") % 2
+        return even_bit if even else int(not even_bit)
 
     ################################################################################
     ## TRANSPILATION

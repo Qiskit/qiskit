@@ -393,6 +393,29 @@ class TestComposition(TestCase):
 class TestCalculations(TestCase):
     """Test calculation logic."""
 
+    @data(
+        ["0", 0],
+        ["1", 1],
+        ["00", 0],
+        ["01", 1],
+        ["10", 1],
+        ["11", 0],
+        ["10101100", 0],
+        ["01001010", 1],
+    )
+    @unpack
+    def test_parity_bit(self, bitstring, expected):
+        """Test even parity bit."""
+        # Preparation
+        backend = Mock(Backend)
+        estimator = BackendEstimator(backend)
+        # Test
+        integer = int(bitstring, 2)
+        even_bit = estimator._parity_bit(integer)
+        odd_bit = estimator._parity_bit(integer, even=False)
+        self.assertEqual(even_bit, expected)
+        self.assertEqual(even_bit, int(not odd_bit))
+
 
 @ddt
 class TestObservableDecomposer(TestCase):
