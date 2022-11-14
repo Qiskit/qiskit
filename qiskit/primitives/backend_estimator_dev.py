@@ -272,36 +272,34 @@ class BackendEstimator(BaseEstimator):
         """
         # Diag indices
         size = len(paulis)
-        int_masks = cls._paulis_integer_masks(paulis)
+        shots = sum(counts.values())
 
         expvals = np.zeros(size, dtype=float)
-        denom = 0  # Total shots for counts dict
-        for bin_outcome, freq in counts.items():
-            outcome = int(bin_outcome, 2)
-            denom += freq
+        for bitstring, freq in counts.items():
             for k in range(size):
-                coeff = (-1) ** cls._parity_bit(int_masks[k] & outcome)
-                expvals[k] += freq * coeff
+                coeff = cls._measurement_coefficient(bitstring, paulis[k])
+                expvals[k] += coeff * freq / shots
 
-        # Divide by total shots
-        expvals /= denom
-
-        # Compute variance
         variances = 1 - expvals**2
         return tuple(expvals), tuple(variances)
 
     @classmethod
-    def _paulis_integer_masks(cls, paulis: PauliList | Pauli) -> tuple[int]:
-        """Build integer masks for Paulis.
+    def _measurement_coefficient(cls, bitstring: str, pauli: Pauli) -> int:
+        """Compute measurement coefficient from measured bitstring and target Pauli."""
+        measurement = int(bitstring, 2)
+        int_mask = cls._pauli_integer_mask(pauli)
+        return (-1) ** cls._parity_bit(measurement & int_mask, even=True)
 
-        These are integer representations of the binary string with a
+    @classmethod
+    def _pauli_integer_mask(cls, pauli: Pauli) -> tuple[int]:
+        """Build integer masks for Pauli.
+
+        This is an integer representation of the binary string with a
         1 where there are Paulis, and 0 where there are identities.
         """
-        paulis = PauliList(paulis)
-        return tuple(
-            int(cls._bitstring_from_mask(mask, little_endian=True), 2)
-            for mask in paulis.z | paulis.x
-        )
+        mask = pauli.z | pauli.x
+        bitstring = cls._bitstring_from_mask(mask, little_endian=True)
+        return int(bitstring, 2)
 
     @staticmethod
     def _bitstring_from_mask(mask: Sequence[bool], little_endian: bool = False) -> str:

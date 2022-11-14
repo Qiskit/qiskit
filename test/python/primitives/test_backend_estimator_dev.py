@@ -394,23 +394,54 @@ class TestCalculations(TestCase):
     """Test calculation logic."""
 
     @data(
-        [("II",), (0,)],
-        [("IZ",), (1,)],
-        [("ZI",), (2,)],
-        [("ZZ",), (3,)],
-        [("ZX",), (3,)],
-        [("XY",), (3,)],
-        [("IIII",), (0,)],
-        [("IXII",), (4,)],
-        [("IIX", "IYI"), (1, 2)],
-        [("IXYZ", "IIII", "IZZZ"), (7, 0, 7)],
+        ["II", "00", +1],
+        ["II", "01", +1],
+        ["II", "10", +1],
+        ["II", "11", +1],
+        ["IX", "00", +1],
+        ["IX", "01", -1],
+        ["IX", "10", +1],
+        ["IX", "11", -1],
+        ["XI", "00", +1],
+        ["XI", "01", +1],
+        ["XI", "10", -1],
+        ["XI", "11", -1],
+        ["XX", "00", +1],
+        ["XX", "01", -1],
+        ["XX", "10", -1],
+        ["XX", "11", +1],
+        ["YZ", "00", +1],
+        ["XY", "01", -1],
+        ["ZX", "10", -1],
+        ["ZZ", "11", +1],
+        ["IXYZ", "0010", -1],
+        ["IXYZ", "1000", +1],
+        ["IXYZ", "1100", -1],
+        ["IXYZ", "1101", +1],
+        ["IXYZ", "0101", +1],
     )
     @unpack
-    def test_paulis_integer_masks(self, paulis, expected):
+    def test_measurement_coefficient(self, pauli, bitstring, expected):
+        pauli = Pauli(pauli)
+        coeff = BackendEstimator._measurement_coefficient(bitstring, pauli)
+        self.assertEqual(coeff, expected)
+
+    @data(
+        ["II", 0],
+        ["IZ", 1],
+        ["ZI", 2],
+        ["ZZ", 3],
+        ["ZX", 3],
+        ["XY", 3],
+        ["IIII", 0],
+        ["IXII", 4],
+    )
+    @unpack
+    def test_pauli_integer_masks(self, pauli, expected):
         """Test Paulis integer masks."""
-        paulis = PauliList(paulis)
-        int_masks = BackendEstimator._paulis_integer_masks(paulis)
-        self.assertEqual(int_masks, expected)
+        pauli = Pauli(pauli)
+        int_mask = BackendEstimator._pauli_integer_mask(pauli)
+        self.assertEqual(int_mask, expected)
 
     @data(
         [(), ""],
@@ -430,7 +461,6 @@ class TestCalculations(TestCase):
         self.assertEqual(bitstring, "0b" + expected)
         bitstring = BackendEstimator._bitstring_from_mask(mask, little_endian=True)
         self.assertEqual(bitstring, "0b" + "".join(reversed(expected)))
-
 
     @data(
         ["0", 0],
