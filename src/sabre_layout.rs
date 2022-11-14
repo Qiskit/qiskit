@@ -68,7 +68,7 @@ pub fn sabre_layout_and_routing(
                         seed_trial,
                         max_iterations,
                         num_swap_trials,
-                        false,
+                        run_in_parallel,
                     ),
                 )
             })
