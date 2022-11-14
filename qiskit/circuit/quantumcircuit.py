@@ -294,6 +294,8 @@ class QuantumCircuit:
             | tuple[qiskit.circuit.Instruction, Iterable[Qubit], Iterable[Clbit]]
         ],
         *,
+        qubits: Iterable[Qubit] = (),
+        clbits: Iterable[Clbit] = (),
         name: Optional[str] = None,
         global_phase: ParameterValueType = 0,
         metadata: Optional[dict] = None,
@@ -302,6 +304,10 @@ class QuantumCircuit:
 
         Args:
             instructions: The instructions to add to the circuit.
+            qubits: Any qubits to add to the circuit. This argument can be used,
+                for example, to enforce a particular ordering of qubits.
+            clbits: Any classical bits to add to the circuit. This argument can be used,
+                for example, to enforce a particular ordering of classical bits.
             name: The name of the circuit.
             global_phase: The global phase of the circuit in radians.
             metadata: Arbitrary key value metadata to associate with the circuit.
@@ -312,6 +318,14 @@ class QuantumCircuit:
         circuit = QuantumCircuit(name=name, global_phase=global_phase, metadata=metadata)
         added_qubits = set()
         added_clbits = set()
+        if qubits:
+            qubits = list(qubits)
+            circuit.add_bits(qubits)
+            added_qubits.update(qubits)
+        if clbits:
+            clbits = list(clbits)
+            circuit.add_bits(clbits)
+            added_clbits.update(clbits)
         for instruction in instructions:
             if not isinstance(instruction, CircuitInstruction):
                 instruction = CircuitInstruction(*instruction)
@@ -937,16 +951,16 @@ class QuantumCircuit:
 
         Remember that in the little-endian convention the leftmost operation will be at the bottom
         of the circuit. See also
-        [the docs](qiskit.org/documentation/tutorials/circuits/3_summary_of_quantum_operations.html)
+        `the docs <qiskit.org/documentation/tutorials/circuits/3_summary_of_quantum_operations.html>`__
         for more information.
 
         .. parsed-literal::
 
-                 ┌────────┐         ┌─────┐          ┌─────┐
+                 ┌────────┐        ┌─────┐          ┌─────┐
             q_0: ┤ bottom ├ ⊗ q_0: ┤ top ├  = q_0: ─┤ top ├──
-                 └────────┘         └─────┘         ┌┴─────┴─┐
-                                               q_1: ┤ bottom ├
-                                                    └────────┘
+                 └────────┘        └─────┘         ┌┴─────┴─┐
+                                              q_1: ┤ bottom ├
+                                                   └────────┘
 
         Args:
             other (QuantumCircuit): The other circuit to tensor this circuit with.
