@@ -44,9 +44,9 @@ class PermRowCol:
             QuantumCircuit: synthesized circuit
         """
         num_qubits = len(self._graph.node_indexes())
-        qubit_alloc = [-1] * len(self._graph.node_indexes())
+        qubit_alloc = [-1] * num_qubits
 
-        circuit = QuantumCircuit(len(self._graph.node_indexes()))
+        circuit = QuantumCircuit(num_qubits)
 
         while len(self._graph.node_indexes()) > 1:
             n_vertices = noncutting_vertices(self._graph)
