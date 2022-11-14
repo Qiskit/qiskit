@@ -12,6 +12,8 @@
 
 """Functions to compute the decomposition of an SO(3) matrix as balanced commutator."""
 
+from __future__ import annotations
+
 import math
 from scipy.optimize import fsolve
 import numpy as np
