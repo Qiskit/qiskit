@@ -394,6 +394,30 @@ class TestCalculations(TestCase):
     """Test calculation logic."""
 
     @data(
+        [(), ""],
+        [(False,), "0"],
+        [(True,), "1"],
+        [(False, False), "00"],
+        [(False, True), "01"],
+        [(True, False), "10"],
+        [(True, True), "11"],
+        [(False, True, True, False, True, False, False, True), "01101001"],
+        [(False, False, True, True, False, False, True, True), "00110011"],
+    )
+    @unpack
+    def test_bitstring_from_mask(self, mask, expected):
+        """Test `_bitstring_from_mask()`."""
+        # Preparation
+        backend = Mock(Backend)
+        estimator = BackendEstimator(backend)
+        # Tests
+        bitstring = estimator._bitstring_from_mask(mask)
+        self.assertEqual(bitstring, "0b" + expected)
+        bitstring = estimator._bitstring_from_mask(mask, little_endian=True)
+        self.assertEqual(bitstring, "0b" + "".join(reversed(expected)))
+
+
+    @data(
         ["0", 0],
         ["1", 1],
         ["00", 0],
@@ -467,42 +491,37 @@ class TestObservableDecomposer(TestCase):
         self.assertEqual(components, expected)
 
     @data(
-        [NaiveDecomposer(), SparsePauliOp("IXYZ"), (Pauli("IXYZ"),)],
+        [NaiveDecomposer(), SparsePauliOp("IXYZ"), PauliList(Pauli("IXYZ"))],
         [
             NaiveDecomposer(),
             SparsePauliOp(["IXYZ", "ZYXI"]),
-            (Pauli("IXYZ"), Pauli("ZYXI")),
+            PauliList([Pauli("IXYZ"), Pauli("ZYXI")]),
         ],
         [
             NaiveDecomposer(),
             SparsePauliOp(["IXYZ", "IXII"]),
-            (Pauli("IXYZ"), Pauli("IXII")),
+            PauliList([Pauli("IXYZ"), Pauli("IXII")]),
         ],
         [
             NaiveDecomposer(),
             SparsePauliOp(["IXYZ", "ZYXI", "IXII", "ZYII"]),
-            (
-                Pauli("IXYZ"),
-                Pauli("ZYXI"),
-                Pauli("IXII"),
-                Pauli("ZYII"),
-            ),
+            PauliList([Pauli("IXYZ"), Pauli("ZYXI"), Pauli("IXII"), Pauli("ZYII")]),
         ],
-        [AbelianDecomposer(), SparsePauliOp("IXYZ"), (Pauli("IXYZ"),)],
+        [AbelianDecomposer(), SparsePauliOp("IXYZ"), PauliList(Pauli("IXYZ"))],
         [
             AbelianDecomposer(),
             SparsePauliOp(["IXYZ", "ZYXI"]),
-            (Pauli("IXYZ"), Pauli("ZYXI")),
+            PauliList([Pauli("IXYZ"), Pauli("ZYXI")]),
         ],
         [
             AbelianDecomposer(),
             SparsePauliOp(["IXYZ", "IXII"]),
-            (Pauli("IXYZ"),),
+            PauliList([Pauli("IXYZ")]),
         ],
         [
             AbelianDecomposer(),
             SparsePauliOp(["IXYZ", "ZYXI", "IXII", "ZYII"]),
-            (Pauli("IXYZ"), Pauli("ZYXI")),
+            PauliList([Pauli("IXYZ"), Pauli("ZYXI")]),
         ],
     )
     @unpack

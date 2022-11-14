@@ -272,7 +272,7 @@ class BackendEstimator(BaseEstimator):
         """
         # Diag indices
         size = len(paulis)
-        diag_inds = cls._paulis2inds(paulis)
+        int_masks = cls._paulis_integer_masks(paulis)
 
         expvals = np.zeros(size, dtype=float)
         denom = 0  # Total shots for counts dict
@@ -280,7 +280,7 @@ class BackendEstimator(BaseEstimator):
             outcome = int(bin_outcome, 2)
             denom += freq
             for k in range(size):
-                coeff = (-1) ** cls._parity_bit(diag_inds[k] & outcome)
+                coeff = (-1) ** cls._parity_bit(int_masks[k] & outcome)
                 expvals[k] += freq * coeff
 
         # Divide by total shots
@@ -290,28 +290,29 @@ class BackendEstimator(BaseEstimator):
         variances = 1 - expvals**2
         return tuple(expvals), tuple(variances)
 
-    @staticmethod
-    def _paulis2inds(paulis: PauliList) -> list[int]:
-        """Convert PauliList to diagonal integers.
+    @classmethod
+    def _paulis_integer_masks(cls, paulis: PauliList | Pauli) -> tuple[int]:
+        """Build integer masks for Paulis.
 
         These are integer representations of the binary string with a
         1 where there are Paulis, and 0 where there are identities.
         """
-        # Treat Z, X, Y the same
-        nonid = paulis.z | paulis.x
+        paulis = PauliList(paulis)
+        return tuple(
+            int(cls._bitstring_from_mask(mask, little_endian=True), 2)
+            for mask in paulis.z | paulis.x
+        )
 
-        inds = [0] * paulis.size
-        # bits are packed into uint8 in little endian
-        # e.g., i-th bit corresponds to coefficient 2^i
-        packed_vals = np.packbits(nonid, axis=1, bitorder="little")
-        for i, vals in enumerate(packed_vals):
-            for j, val in enumerate(vals):
-                inds[i] += val.item() * (1 << (8 * j))
-        return inds
+    @staticmethod
+    def _bitstring_from_mask(mask: Sequence[bool], little_endian: bool = False) -> str:
+        """Return bitstring representation of a one dimensional mask."""
+        if little_endian:
+            mask = reversed(mask)
+        return "0b" + "".join(str(int(b)) for b in mask)
 
     @staticmethod
     def _parity_bit(integer: int, even: bool = True) -> int:
-        """Return the parity bit of an integer."""
+        """Return the parity bit for a given integer."""
         even_bit = bin(integer).count("1") % 2
         return even_bit if even else int(not even_bit)
 
@@ -539,7 +540,7 @@ class ObservableDecomposer(ABC):
     ) -> tuple[SparsePauliOp]:
         ...
 
-    def extract_pauli_basis(self, observable: BaseOperator | PauliSumOp) -> tuple[Pauli]:
+    def extract_pauli_basis(self, observable: BaseOperator | PauliSumOp) -> PauliList:
         """Extract Pauli basis for a given observable.
 
         Note that the resulting basis may be overcomplete depending on the implementation.
@@ -548,11 +549,12 @@ class ObservableDecomposer(ABC):
             observable: an operator for which to obtain a Pauli basis for measurement.
 
         Returns:
-            A tuple of Pauli operators serving as a basis for the input observable. Each
+            A `PauliList` of operators serving as a basis for the input observable. Each
             entry conrresponds one-to-one to the components retrieved from `.decompose()`.
         """
         components = self.decompose(observable)
-        return tuple(self._extract_singlet_basis(component) for component in components)
+        paulis = tuple(self._extract_singlet_basis(component) for component in components)
+        return PauliList(paulis)  # TODO: Allow `PauliList` from generator
 
     @abstractmethod
     def _extract_singlet_basis(self, observable: SparsePauliOp) -> Pauli:
