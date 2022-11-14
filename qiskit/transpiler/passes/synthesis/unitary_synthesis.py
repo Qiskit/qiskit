@@ -529,27 +529,30 @@ class DefaultUnitarySynthesis(plugin.UnitarySynthesisPlugin):
         qubits = options["coupling_map"][1]
         target = options["target"]
 
-        euler_basis = _choose_euler_basis(basis_gates)
-        if euler_basis is not None:
-            decomposer1q = one_qubit_decompose.OneQubitEulerDecomposer(euler_basis)
-        else:
-            decomposer1q = None
-
-        preferred_direction = None
-        if target is not None:
-            decomposer2q, preferred_direction = self._find_decomposer_2q_from_target(
-                target, qubits, pulse_optimize
-            )
-        else:
-            decomposer2q = _basis_gates_to_decomposer_2q(basis_gates, pulse_optimize=pulse_optimize)
-
         synth_dag = None
         wires = None
         if unitary.shape == (2, 2):
+            if target is not None:
+                euler_basis = _choose_euler_basis(target.operation_names_for_qargs(tuple(qubits)))
+            else:
+                euler_basis = _choose_euler_basis(basis_gates)
+            if euler_basis is not None:
+                decomposer1q = one_qubit_decompose.OneQubitEulerDecomposer(euler_basis)
+            else:
+                decomposer1q = None
             if decomposer1q is None:
                 return None
             synth_dag = circuit_to_dag(decomposer1q._decompose(unitary))
         elif unitary.shape == (4, 4):
+            preferred_direction = None
+            if target is not None:
+                decomposer2q, preferred_direction = self._find_decomposer_2q_from_target(
+                    target, qubits, pulse_optimize
+                )
+            else:
+                decomposer2q = _basis_gates_to_decomposer_2q(
+                    basis_gates, pulse_optimize=pulse_optimize
+                )
             if not decomposer2q:
                 return None
             synth_dag, wires = self._synth_natural_direction(

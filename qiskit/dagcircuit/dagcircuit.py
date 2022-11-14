@@ -37,7 +37,6 @@ from qiskit.circuit.instruction import Instruction
 from qiskit.circuit.parameterexpression import ParameterExpression
 from qiskit.dagcircuit.exceptions import DAGCircuitError
 from qiskit.dagcircuit.dagnode import DAGNode, DAGOpNode, DAGInNode, DAGOutNode
-from qiskit.utils import optionals as _optionals
 from qiskit.utils.deprecation import deprecate_function
 
 
@@ -95,59 +94,6 @@ class DAGCircuit:
 
         self.duration = None
         self.unit = "dt"
-
-    @_optionals.HAS_NETWORKX.require_in_call
-    @deprecate_function(
-        "The to_networkx() method is deprecated and will be removed in a future release."
-    )
-    def to_networkx(self):
-        """Returns a copy of the DAGCircuit in networkx format."""
-        import networkx as nx
-
-        G = nx.MultiDiGraph()
-        for node in self._multi_graph.nodes():
-            G.add_node(node)
-        for node_id in rx.topological_sort(self._multi_graph):
-            for source_id, dest_id, edge in self._multi_graph.in_edges(node_id):
-                G.add_edge(self._multi_graph[source_id], self._multi_graph[dest_id], wire=edge)
-        return G
-
-    @classmethod
-    @_optionals.HAS_NETWORKX.require_in_call
-    @deprecate_function(
-        "The from_networkx() method is deprecated and will be removed in a future release."
-    )
-    def from_networkx(cls, graph):
-        """Take a networkx MultiDigraph and create a new DAGCircuit.
-
-        Args:
-            graph (networkx.MultiDiGraph): The graph to create a DAGCircuit
-                object from. The format of this MultiDiGraph format must be
-                in the same format as returned by to_networkx.
-
-        Returns:
-            DAGCircuit: The dagcircuit object created from the networkx
-                MultiDiGraph.
-        Raises:
-            MissingOptionalLibraryError: If networkx is not installed
-            DAGCircuitError: If input networkx graph is malformed
-        """
-        import networkx as nx
-
-        dag = DAGCircuit()
-        for node in nx.topological_sort(graph):
-            if isinstance(node, DAGOutNode):
-                continue
-            if isinstance(node, DAGInNode):
-                if isinstance(node.wire, Qubit):
-                    dag.add_qubits([node.wire])
-                elif isinstance(node.wire, Clbit):
-                    dag.add_clbits([node.wire])
-                else:
-                    raise DAGCircuitError(f"unknown node wire type: {node.wire}")
-            elif isinstance(node, DAGOpNode):
-                dag.apply_operation_back(node.op.copy(), node.qargs, node.cargs)
-        return dag
 
     @property
     def wires(self):
@@ -375,6 +321,63 @@ class DAGCircuit:
 
         for creg in cregs:
             del self.cregs[creg.name]
+
+    def remove_qubits(self, *qubits):
+        """
+        Remove quantum bits from the circuit. All bits MUST be idle.
+        Any registers with references to at least one of the specified bits will
+        also be removed.
+
+        Args:
+            qubits (List[Qubit]): The bits to remove.
+
+        Raises:
+            DAGCircuitError: a qubit is not a :obj:`.Qubit`, is not in the circuit,
+                or is not idle.
+        """
+        if any(not isinstance(qubit, Qubit) for qubit in qubits):
+            raise DAGCircuitError(
+                "qubits not of type Qubit: %s" % [b for b in qubits if not isinstance(b, Qubit)]
+            )
+
+        qubits = set(qubits)
+        unknown_qubits = qubits.difference(self.qubits)
+        if unknown_qubits:
+            raise DAGCircuitError("qubits not in circuit: %s" % unknown_qubits)
+
+        busy_qubits = {bit for bit in qubits if not self._is_wire_idle(bit)}
+        if busy_qubits:
+            raise DAGCircuitError("qubits not idle: %s" % busy_qubits)
+
+        # remove any references to bits
+        qregs_to_remove = {qreg for qreg in self.qregs.values() if not qubits.isdisjoint(qreg)}
+        self.remove_qregs(*qregs_to_remove)
+
+        for qubit in qubits:
+            self._remove_idle_wire(qubit)
+            self.qubits.remove(qubit)
+
+    def remove_qregs(self, *qregs):
+        """
+        Remove classical registers from the circuit, leaving underlying bits
+        in place.
+
+        Raises:
+            DAGCircuitError: a qreg is not a QuantumRegister, or is not in
+            the circuit.
+        """
+        if any(not isinstance(qreg, QuantumRegister) for qreg in qregs):
+            raise DAGCircuitError(
+                "qregs not of type QuantumRegister: %s"
+                % [r for r in qregs if not isinstance(r, QuantumRegister)]
+            )
+
+        unknown_qregs = set(qregs).difference(self.qregs.values())
+        if unknown_qregs:
+            raise DAGCircuitError("qregs not in circuit: %s" % unknown_qregs)
+
+        for qreg in qregs:
+            del self.qregs[qreg.name]
 
     def _is_wire_idle(self, wire):
         """Check if a wire is idle.
@@ -1095,6 +1098,9 @@ class DAGCircuit:
             DAGCircuitError: if ``cycle_check`` is set to ``True`` and replacing
                 the specified block introduces a cycle or if ``node_block`` is
                 empty.
+
+        Returns:
+            DAGOpNode: The op node that replaces the block.
         """
         block_qargs = set()
         block_cargs = set()
@@ -1129,6 +1135,8 @@ class DAGCircuit:
 
         for nd in node_block:
             self._decrement_op(nd.op)
+
+        return new_node
 
     def substitute_node_with_dag(self, node, input_dag, wires=None, propagate_condition=True):
         """Replace one node with dag.

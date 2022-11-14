@@ -1,5 +1,0 @@
----
-fixes:
-  - |
-    Fix a problem in the `GateDirection` transpiler pass for the CZ gate. The CZ is symmetric, so flipping the qubit arguments is allowed to match the directed coupling map.
-

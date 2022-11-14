@@ -204,6 +204,10 @@ class Gate(Instruction):
         if any(not qarg for qarg in qargs):
             raise CircuitError("One or more of the arguments are empty")
 
+        if len(qargs) == 0:
+            return [
+                ([], []),
+            ]
         if len(qargs) == 1:
             return Gate._broadcast_single_argument(qargs[0])
         elif len(qargs) == 2:

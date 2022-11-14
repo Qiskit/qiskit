@@ -48,10 +48,9 @@ def random_cnotdihedral(num_qubits, seed=None):
 
     # Random affine function
     # Random invertible binary matrix
-    det = 0
-    while np.allclose(det, 0) or np.allclose(det, 2):
-        linear = rng.integers(2, size=(num_qubits, num_qubits))
-        det = np.linalg.det(linear) % 2
+    from qiskit.synthesis.linear import random_invertible_binary_matrix
+
+    linear = random_invertible_binary_matrix(num_qubits, seed=rng)
     elem.linear = linear
 
     # Random shift

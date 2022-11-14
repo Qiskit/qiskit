@@ -25,14 +25,13 @@ from qiskit.transpiler.layout import Layout
 from qiskit.dagcircuit import DAGOpNode
 from qiskit.tools.parallel import CPU_COUNT
 
-# pylint: disable=import-error
 from qiskit._accelerate.sabre_swap import (
     build_swap_map,
     Heuristic,
     NeighborTable,
     SabreDAG,
 )
-from qiskit._accelerate.stochastic_swap import NLayout  # pylint: disable=import-error
+from qiskit._accelerate.nlayout import NLayout
 
 logger = logging.getLogger(__name__)
 
@@ -224,8 +223,7 @@ class SabreSwap(TransformationPass):
                     cargs,
                 )
             )
-        front_layer = np.asarray([x._node_id for x in dag.front_layer()], dtype=np.uintp)
-        sabre_dag = SabreDAG(len(dag.qubits), len(dag.clbits), dag_list, front_layer)
+        sabre_dag = SabreDAG(len(dag.qubits), len(dag.clbits), dag_list)
         swap_map, gate_order = build_swap_map(
             len(dag.qubits),
             sabre_dag,
