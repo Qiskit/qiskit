@@ -251,7 +251,7 @@ class BackendEstimator(BaseEstimator):
         for counts, metadata in zip(counts_bundle, metadata_bundle):
             paulis = metadata["paulis"]
             coeffs = metadata["coeffs"]
-            expvals, variances = self._pauli_expvals_with_variance(counts, paulis)
+            expvals, variances = self._compute_expvals_and_variances(counts, paulis)
             expval += np.dot(expvals, coeffs)
             var += np.dot(variances, coeffs**2)
         shots = sum(counts_bundle[0].values())  # TODO: not correct -> counts.shots (?)
@@ -261,27 +261,37 @@ class BackendEstimator(BaseEstimator):
     ## CALCULATIONS
     ################################################################################
     @classmethod
-    def _pauli_expvals_with_variance(
+    def _compute_expvals_and_variances(
         cls, counts: Counts, paulis: PauliList
     ) -> tuple[tuple[float, ...], tuple[float, ...]]:
-        """Return array of expval and variance pairs for input Paulis.
+        """Return tuples of expvals and variances for input Paulis.
 
         Note: All non-identity Pauli's are treated as Z-paulis, assuming
         that basis rotations have been applied to convert them to the
         diagonal basis.
         """
-        # Diag indices
-        size = len(paulis)
-        shots = sum(counts.values())
+        return tuple(
+            tuple(list)
+            for list in zip(cls._compute_expval_variance_pair(counts, pauli) for pauli in paulis)
+        )
 
-        expvals = np.zeros(size, dtype=float)
+    @classmethod
+    def _compute_expval_variance_pair(cls, counts, pauli):
+        """Return an expval-variance pair for the given counts and pauli.
+
+        Note: All non-identity Pauli's are treated as Z-paulis, assuming
+        that basis rotations have been applied to convert them to the
+        diagonal basis.
+        """
+        shots: int = 0
+        expval: float = 0.0
         for bitstring, freq in counts.items():
-            for k in range(size):
-                coeff = cls._measurement_coefficient(bitstring, paulis[k])
-                expvals[k] += coeff * freq / shots
-
-        variances = 1 - expvals**2
-        return tuple(expvals), tuple(variances)
+            coeff = cls._measurement_coefficient(bitstring, pauli)
+            expval += coeff * freq
+            shots += freq
+        expval /= shots
+        variance = 1 - expval**2
+        return expval, variance
 
     @classmethod
     def _measurement_coefficient(cls, bitstring: str, pauli: Pauli) -> int:

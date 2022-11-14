@@ -31,6 +31,7 @@ from qiskit.providers import Backend, Options
 from qiskit.quantum_info.operators import SparsePauliOp
 from qiskit.quantum_info.operators.symplectic.pauli import Pauli
 from qiskit.quantum_info.operators.symplectic.pauli_list import PauliList
+from qiskit.result.counts import Counts
 from qiskit.transpiler import Layout, PassManager
 from qiskit.transpiler.passes import ApplyLayout, SetLayout
 
@@ -388,10 +389,41 @@ class TestComposition(TestCase):
         self.assertEqual(composition.metadata, expected_metadata)
 
 
-# TODO
 @ddt
 class TestCalculations(TestCase):
     """Test calculation logic."""
+
+    @data(
+        [{"0": 100, "1": 0}, "I", (1, 0)],
+        [{"0": 0, "1": 100}, "I", (1, 0)],
+        [{"0": 50, "1": 50}, "I", (1, 0)],
+        [{"0": 50, "1": 50}, "X", (0, 1)],
+        [{"0": 50, "1": 50}, "Y", (0, 1)],
+        [{"0": 50, "1": 50}, "Z", (0, 1)],
+        [{"0": 100, "1": 0}, "Z", (1, 0)],
+        [{"0": 0, "1": 100}, "Z", (-1, 0)],
+        [{"0": 80, "1": 20}, "Z", (0.6, 0.64)],
+        [{"0": 60, "1": 40}, "Z", (0.2, 0.96)],
+        [{"0": 40, "1": 60}, "Z", (-0.2, 0.96)],
+        [{"0": 20, "1": 80}, "Z", (-0.6, 0.64)],
+        [{"00": 80, "11": 20}, "ZZ", (1, 0)],
+        [{"00": 80, "10": 20}, "ZZ", (0.6, 0.64)],
+        [{"00": 20, "10": 80}, "ZZ", (-0.6, 0.64)],
+        [{"11": 80, "01": 20}, "ZZ", (0.6, 0.64)],
+        [{"11": 20, "01": 80}, "ZZ", (-0.6, 0.64)],
+        [{"00": 80, "11": 20}, "ZI", (0.6, 0.64)],
+        [{"00": 80, "10": 20}, "ZI", (0.6, 0.64)],
+        [{"00": 20, "10": 80}, "ZI", (-0.6, 0.64)],
+        [{"11": 80, "01": 20}, "ZI", (-0.6, 0.64)],
+        [{"11": 20, "01": 80}, "ZI", (0.6, 0.64)],
+        [{"11": 20, "01": 80}, "II", (1, 0)],
+    )
+    @unpack
+    def test_compute_expval_variance_pair(self, counts, pauli, expected):
+        counts = Counts(counts)
+        pauli = Pauli(pauli)
+        pair = BackendEstimator._compute_expval_variance_pair(counts, pauli)
+        self.assertEqual(pair, expected)
 
     @data(
         ["II", "00", +1],
