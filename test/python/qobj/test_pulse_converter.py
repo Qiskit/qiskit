@@ -200,7 +200,8 @@ class TestQobjToInstructionConverter(QiskitTestCase):
     def test_parametric_pulses(self):
         """Test converted qobj from ParametricInstruction."""
         instruction = Play(
-            Gaussian(duration=25, sigma=15, amp=0.5, angle=np.pi/2, name="pulse1"), DriveChannel(0)
+            Gaussian(duration=25, sigma=15, amp=0.5, angle=np.pi / 2, name="pulse1"),
+            DriveChannel(0),
         )
         qobj = PulseQobjInstruction(
             name="parametric_pulse",
