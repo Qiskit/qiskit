@@ -37,13 +37,16 @@ pub fn sabre_layout_and_routing(
     neighbor_table: &NeighborTable,
     distance_matrix: PyReadonlyArray2<f64>,
     heuristic: &Heuristic,
-    seed: u64,
+    seed: Option<u64>,
     max_iterations: usize,
     num_swap_trials: usize,
     num_layout_trials: usize,
 ) -> ([NLayout; 2], SwapMap, PyObject) {
     let run_in_parallel = getenv_use_multiple_threads();
-    let outer_rng = Pcg64Mcg::seed_from_u64(seed);
+    let outer_rng = match seed {
+        Some(seed) => Pcg64Mcg::seed_from_u64(seed),
+        None => Pcg64Mcg::from_entropy(),
+    };
     let seed_vec: Vec<u64> = outer_rng
         .sample_iter(&rand::distributions::Standard)
         .take(num_layout_trials)

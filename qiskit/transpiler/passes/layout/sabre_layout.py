@@ -161,11 +161,12 @@ class SabreLayout(TransformationPass):
             raise TranspilerError("More virtual qubits exist than physical.")
 
         # Choose a random initial_layout.
-        if self.seed is None:
-            self.seed = np.random.randint(0, np.iinfo(np.int32).max)
-
         if self.routing_pass is not None:
-            rng = np.random.default_rng(self.seed)
+            if self.seed is None:
+                seed = np.random.randint(0, np.iinfo(np.int32).max)
+            else:
+                seed = self.seed
+            rng = np.random.default_rng(seed)
 
             physical_qubits = rng.choice(self.coupling_map.size(), len(dag.qubits), replace=False)
             physical_qubits = rng.permutation(physical_qubits)
