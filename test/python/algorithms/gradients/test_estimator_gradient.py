@@ -42,9 +42,7 @@ from .logging_primitives import LoggingEstimator
 class TestEstimatorGradient(QiskitTestCase):
     """Test Estimator Gradient"""
 
-    @combine(
-        grad=[FiniteDiffEstimatorGradient, ParamShiftEstimatorGradient, LinCombEstimatorGradient]
-    )
+    @data(FiniteDiffEstimatorGradient, ParamShiftEstimatorGradient, LinCombEstimatorGradient)
     def test_gradient_operators(self, grad):
         """Test the estimator gradient for different operators"""
         estimator = Estimator()
@@ -69,9 +67,7 @@ class TestEstimatorGradient(QiskitTestCase):
         value = gradient.run([qc], [op], [param]).result().gradients[0]
         self.assertAlmostEqual(value[0], correct_result, 3)
 
-    @combine(
-        grad=[FiniteDiffEstimatorGradient, ParamShiftEstimatorGradient, LinCombEstimatorGradient]
-    )
+    @data(FiniteDiffEstimatorGradient, ParamShiftEstimatorGradient, LinCombEstimatorGradient)
     def test_gradient_p(self, grad):
         """Test the estimator gradient for p"""
         estimator = Estimator()
@@ -92,9 +88,7 @@ class TestEstimatorGradient(QiskitTestCase):
             for j, value in enumerate(gradients):
                 self.assertAlmostEqual(value, correct_results[i][j], 3)
 
-    @combine(
-        grad=[FiniteDiffEstimatorGradient, ParamShiftEstimatorGradient, LinCombEstimatorGradient]
-    )
+    @data(FiniteDiffEstimatorGradient, ParamShiftEstimatorGradient, LinCombEstimatorGradient)
     def test_gradient_u(self, grad):
         """Test the estimator gradient for u"""
         estimator = Estimator()
@@ -118,9 +112,7 @@ class TestEstimatorGradient(QiskitTestCase):
             for j, value in enumerate(gradients):
                 self.assertAlmostEqual(value, correct_results[i][j], 3)
 
-    @combine(
-        grad=[FiniteDiffEstimatorGradient, ParamShiftEstimatorGradient, LinCombEstimatorGradient]
-    )
+    @data(FiniteDiffEstimatorGradient, ParamShiftEstimatorGradient, LinCombEstimatorGradient)
     def test_gradient_efficient_su2(self, grad):
         """Test the estimator gradient for EfficientSU2"""
         estimator = Estimator()
@@ -151,9 +143,7 @@ class TestEstimatorGradient(QiskitTestCase):
             gradients = gradient.run([qc], [op], [param]).result().gradients[0]
             np.testing.assert_allclose(gradients, correct_results[i], atol=1e-3)
 
-    @combine(
-        grad=[FiniteDiffEstimatorGradient, ParamShiftEstimatorGradient, LinCombEstimatorGradient],
-    )
+    @data(FiniteDiffEstimatorGradient, ParamShiftEstimatorGradient, LinCombEstimatorGradient)
     def test_gradient_2qubit_gate(self, grad):
         """Test the estimator gradient for 2 qubit gates"""
         estimator = Estimator()
@@ -181,9 +171,7 @@ class TestEstimatorGradient(QiskitTestCase):
                 gradients = gradient.run([qc], [op], [param]).result().gradients[0]
                 np.testing.assert_allclose(gradients, correct_results[i], atol=1e-3)
 
-    @combine(
-        grad=[FiniteDiffEstimatorGradient, ParamShiftEstimatorGradient, LinCombEstimatorGradient]
-    )
+    @data(FiniteDiffEstimatorGradient, ParamShiftEstimatorGradient, LinCombEstimatorGradient)
     def test_gradient_parameter_coefficient(self, grad):
         """Test the estimator gradient for parameter variables with coefficients"""
         estimator = Estimator()
@@ -207,9 +195,7 @@ class TestEstimatorGradient(QiskitTestCase):
             gradients = gradient.run([qc], [op], [param]).result().gradients[0]
             np.testing.assert_allclose(gradients, correct_results[i], atol=1e-3)
 
-    @combine(
-        grad=[FiniteDiffEstimatorGradient, ParamShiftEstimatorGradient, LinCombEstimatorGradient]
-    )
+    @data(FiniteDiffEstimatorGradient, ParamShiftEstimatorGradient, LinCombEstimatorGradient)
     def test_gradient_parameters(self, grad):
         """Test the estimator gradient for parameters"""
         estimator = Estimator()
@@ -231,9 +217,7 @@ class TestEstimatorGradient(QiskitTestCase):
             gradients = gradient.run([qc], [op], [param], parameters=[[a]]).result().gradients[0]
             np.testing.assert_allclose(gradients, correct_results[i], atol=1e-3)
 
-    @combine(
-        grad=[FiniteDiffEstimatorGradient, ParamShiftEstimatorGradient, LinCombEstimatorGradient]
-    )
+    @data(FiniteDiffEstimatorGradient, ParamShiftEstimatorGradient, LinCombEstimatorGradient)
     def test_gradient_multi_arguments(self, grad):
         """Test the estimator gradient for multiple arguments"""
         estimator = Estimator()
@@ -275,9 +259,7 @@ class TestEstimatorGradient(QiskitTestCase):
         np.testing.assert_allclose(gradients2[1], correct_results2[1], atol=1e-3)
         np.testing.assert_allclose(gradients2[2], correct_results2[2], atol=1e-3)
 
-    @combine(
-        grad=[FiniteDiffEstimatorGradient, ParamShiftEstimatorGradient, LinCombEstimatorGradient]
-    )
+    @data(FiniteDiffEstimatorGradient, ParamShiftEstimatorGradient, LinCombEstimatorGradient)
     def test_gradient_validation(self, grad):
         """Test estimator gradient's validation"""
         estimator = Estimator()
@@ -336,7 +318,7 @@ class TestEstimatorGradient(QiskitTestCase):
         gradients = gradient.run([qc], [op], param_list).result().gradients
         np.testing.assert_allclose(gradients, correct_results, atol=1e-3)
 
-    @combine(grad=[ParamShiftEstimatorGradient, LinCombEstimatorGradient])
+    @data(ParamShiftEstimatorGradient, LinCombEstimatorGradient)
     def test_gradient_random_parameters(self, grad):
         """Test param shift and lin comb w/ random parameters"""
         rng = np.random.default_rng(123)
@@ -388,13 +370,11 @@ class TestEstimatorGradient(QiskitTestCase):
         result = gradient.run([c], [Pauli("I")], [[0.0]]).result()
         self.assertAlmostEqual(result.gradients[0][0], expected_gradient_value)
 
-    @combine(
-        grad=[
-            FiniteDiffEstimatorGradient,
-            ParamShiftEstimatorGradient,
-            LinCombEstimatorGradient,
-            SPSAEstimatorGradient,
-        ],
+    @data(
+        FiniteDiffEstimatorGradient,
+        ParamShiftEstimatorGradient,
+        LinCombEstimatorGradient,
+        SPSAEstimatorGradient,
     )
     def test_options(self, grad):
         """Test estimator gradient's run options"""
