@@ -173,7 +173,7 @@ class TestPermRowCol(QiskitTestCase):
         parity_mat = np.ndarray(0)
         terminals = np.ndarray(0)
 
-        instance = permrowcol.eliminate_column(parity_mat, 0, 0, terminals)
+        instance = permrowcol._eliminate_column(parity_mat, 0, 0, terminals)
 
         self.assertIsInstance(instance, list)
 
@@ -195,7 +195,7 @@ class TestPermRowCol(QiskitTestCase):
         root = 0
         column = 3
         terminals = np.array([1, 0])
-        ret = permrowcol.eliminate_column(parity_mat, root, column, terminals)
+        ret = permrowcol._eliminate_column(parity_mat, root, column, terminals)
 
         self.assertEqual(ret, [(1, 0)])
 
@@ -218,7 +218,7 @@ class TestPermRowCol(QiskitTestCase):
         root = 0
         column = 3
         terminals = np.array([1, 0])
-        ret = permrowcol.eliminate_column(parity_mat, root, column, terminals)
+        ret = permrowcol._eliminate_column(parity_mat, root, column, terminals)
 
         self.assertEqual(1, sum(parity_mat[:, column]))
         self.assertEqual(1, parity_mat[0, column])
@@ -230,7 +230,7 @@ class TestPermRowCol(QiskitTestCase):
         parity_mat = np.ndarray(0)
         terminals = np.ndarray(0)
 
-        instance = permrowcol.eliminate_row(parity_mat, 0, terminals)
+        instance = permrowcol._eliminate_row(parity_mat, 0, terminals)
 
         self.assertIsInstance(instance, list)
         self.assertEqual(instance, [])
@@ -252,7 +252,7 @@ class TestPermRowCol(QiskitTestCase):
         )
         root = 0
         terminals = np.array([0, 1, 3])
-        ret = permrowcol.eliminate_row(parity_mat, root, terminals)
+        ret = permrowcol._eliminate_row(parity_mat, root, terminals)
 
         self.assertEqual(ret, [(0, 1), (0, 3)])
 
@@ -273,7 +273,7 @@ class TestPermRowCol(QiskitTestCase):
         )
         root = 0
         terminals = np.array([0, 1, 3])
-        ret = permrowcol.eliminate_row(parity_mat, root, terminals)
+        ret = permrowcol._eliminate_row(parity_mat, root, terminals)
 
         self.assertEqual(1, sum(parity_mat[0]))
         self.assertEqual(1, parity_mat[0, 3])
@@ -295,7 +295,7 @@ class TestPermRowCol(QiskitTestCase):
         )
         root = 1
         terminals = np.array([1, 2, 4, 5])
-        ret = permrowcol.eliminate_row(parity_mat, root, terminals)
+        ret = permrowcol._eliminate_row(parity_mat, root, terminals)
         self.assertEqual(1, sum(parity_mat[1]))
         self.assertEqual(1, parity_mat[1, 2])
 
@@ -304,7 +304,7 @@ class TestPermRowCol(QiskitTestCase):
         coupling = CouplingMap()
         permrowcol = PermRowCol(coupling)
 
-        instance = permrowcol.return_columns([-1, -1, -1])
+        instance = permrowcol._return_columns([-1, -1, -1])
 
         self.assertIsInstance(instance, list)
 
@@ -313,17 +313,17 @@ class TestPermRowCol(QiskitTestCase):
         coupling = CouplingMap()
         permrowcol = PermRowCol(coupling)
 
-        instance = permrowcol.return_columns([-1, -1, -1])
+        instance = permrowcol._return_columns([-1, -1, -1])
 
         self.assertCountEqual(instance, [0, 1, 2])
 
-        instance = permrowcol.return_columns([-2, -1, 0, 1, 2, -1])
+        instance = permrowcol._return_columns([-2, -1, 0, 1, 2, -1])
         self.assertCountEqual(instance, [1, 5])
 
-        instance = permrowcol.return_columns([])
+        instance = permrowcol._return_columns([])
         self.assertCountEqual(instance, [])
 
-        instance = permrowcol.return_columns([1, 2, 3, 4, 5, 6])
+        instance = permrowcol._return_columns([1, 2, 3, 4, 5, 6])
         self.assertCountEqual(instance, [])
 
     def test_get_nodes_returns_list(self):
@@ -334,7 +334,7 @@ class TestPermRowCol(QiskitTestCase):
         coupling.add_physical_qubit(2)
         permrowcol = PermRowCol(coupling)
 
-        instance = permrowcol.get_nodes(np.array([[1, 0, 1], [0, 1, 1], [0, 0, 1]]), 0)
+        instance = permrowcol._get_nodes(np.array([[1, 0, 1], [0, 1, 1], [0, 0, 1]]), 0)
         self.assertIsInstance(instance, list)
 
     def test_get_nodes_returns_correct_list(self):
@@ -345,23 +345,23 @@ class TestPermRowCol(QiskitTestCase):
         coupling.add_physical_qubit(2)
         permrowcol = PermRowCol(coupling)
 
-        instance = permrowcol.get_nodes(np.array([[1, 0, 1], [0, 1, 1], [0, 0, 1]]), 2)
+        instance = permrowcol._get_nodes(np.array([[1, 0, 1], [0, 1, 1], [0, 0, 1]]), 2)
         self.assertCountEqual(instance, [0, 1, 2])
 
-        instance = permrowcol.get_nodes(np.array([[1, 0, 1], [0, 1, 1], [0, 0, 1]]), 1)
+        instance = permrowcol._get_nodes(np.array([[1, 0, 1], [0, 1, 1], [0, 0, 1]]), 1)
         self.assertCountEqual(instance, [1])
 
-        instance = permrowcol.get_nodes(np.array([[1, 0, 1], [0, 1, 1], [0, 0, 1]]), 0)
+        instance = permrowcol._get_nodes(np.array([[1, 0, 1], [0, 1, 1], [0, 0, 1]]), 0)
         self.assertCountEqual(instance, [0])
 
-        permrowcol.reduce_graph(1)
+        permrowcol._reduce_graph(1)
 
-        instance = permrowcol.get_nodes(np.array([[1, 0, 1], [0, 1, 1], [0, 0, 1]]), 2)
+        instance = permrowcol._get_nodes(np.array([[1, 0, 1], [0, 1, 1], [0, 0, 1]]), 2)
         self.assertCountEqual(instance, [0, 2])
 
-        permrowcol.reduce_graph(0)
+        permrowcol._reduce_graph(0)
 
-        instance = permrowcol.get_nodes(np.array([[1, 0, 1], [0, 1, 1], [0, 0, 1]]), 0)
+        instance = permrowcol._get_nodes(np.array([[1, 0, 1], [0, 1, 1], [0, 0, 1]]), 0)
         self.assertCountEqual(instance, [])
 
     def test_reduce_graph_reduces_graph(self):
@@ -369,7 +369,7 @@ class TestPermRowCol(QiskitTestCase):
         coupling = CouplingMap([[0, 1], [0, 2], [1, 2], [0, 3]])
         permrowcol = PermRowCol(coupling)
 
-        permrowcol.reduce_graph(0)
+        permrowcol._reduce_graph(0)
 
         self.assertEqual(len(permrowcol._graph.node_indexes()), 3)
 
@@ -378,16 +378,16 @@ class TestPermRowCol(QiskitTestCase):
         coupling = CouplingMap([[0, 1], [0, 2], [1, 2], [0, 3]])
         permrowcol = PermRowCol(coupling)
 
-        permrowcol.reduce_graph(0)
+        permrowcol._reduce_graph(0)
         self.assertCountEqual(permrowcol._graph.node_indexes(), [1, 2, 3])
 
-        permrowcol.reduce_graph(2)
+        permrowcol._reduce_graph(2)
         self.assertCountEqual(permrowcol._graph.node_indexes(), [1, 3])
 
-        permrowcol.reduce_graph(1)
+        permrowcol._reduce_graph(1)
         self.assertCountEqual(permrowcol._graph.node_indexes(), [3])
 
-        permrowcol.reduce_graph(3)
+        permrowcol._reduce_graph(3)
         self.assertCountEqual(permrowcol._graph.node_indexes(), [])
 
     def test_reduce_graph_does_not_change_graph_with_wrong_index(self):
@@ -396,7 +396,7 @@ class TestPermRowCol(QiskitTestCase):
         coupling = CouplingMap([[0, 1], [0, 2], [1, 2], [0, 3]])
         permrowcol = PermRowCol(coupling)
 
-        permrowcol.reduce_graph(4)
+        permrowcol._reduce_graph(4)
         self.assertCountEqual(permrowcol._graph.node_indexes(), [0, 1, 2, 3])
 
     def test_reduce_graph_removes_edges_from_graph(self):
@@ -404,13 +404,13 @@ class TestPermRowCol(QiskitTestCase):
         coupling = CouplingMap([[0, 1], [0, 2], [1, 2], [0, 3]])
         permrowcol = PermRowCol(coupling)
 
-        permrowcol.reduce_graph(3)
+        permrowcol._reduce_graph(3)
         self.assertCountEqual(permrowcol._graph.edge_list(), [(0, 1), (0, 2), (1, 2)])
 
-        permrowcol.reduce_graph(0)
+        permrowcol._reduce_graph(0)
         self.assertCountEqual(permrowcol._graph.edge_list(), [(1, 2)])
 
-        permrowcol.reduce_graph(2)
+        permrowcol._reduce_graph(2)
         self.assertCountEqual(permrowcol._graph.edge_list(), [])
 
 

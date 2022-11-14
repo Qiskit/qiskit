@@ -52,9 +52,9 @@ class PermRowCol:
             n_vertices = noncutting_vertices(self._graph)
             row = self.choose_row(n_vertices, parity_mat)
 
-            cols = self.return_columns(qubit_alloc)
+            cols = self._return_columns(qubit_alloc)
             column = self.choose_column(parity_mat, cols, row)
-            nodes = self.get_nodes(parity_mat, column)
+            nodes = self._get_nodes(parity_mat, column)
             for edge in self.eliminate_column(parity_mat, row, column, nodes):
                 circuit.cx(edge[0], edge[1])
 
@@ -66,7 +66,7 @@ class PermRowCol:
 
             qubit_alloc[column] = row
 
-            self.reduce_graph(column)
+            self._reduce_graph(column)
 
         if len(qubit_alloc) != 0:
             qubit_alloc[qubit_alloc.index(-1)] = self._graph.node_indexes()[0]
@@ -80,7 +80,7 @@ class PermRowCol:
 
         return circuit, perm
 
-    def reduce_graph(self, node: int):
+    def _reduce_graph(self, node: int):
         """Removes a node from pydigraph
 
         Args:
@@ -88,7 +88,7 @@ class PermRowCol:
         """
         self._graph.remove_node(node)
 
-    def get_nodes(self, parity_mat: np.ndarray, column: int) -> list:
+    def _get_nodes(self, parity_mat: np.ndarray, column: int) -> list:
         """Returns a list of nodes that have 1s in the chosen column in the parity matrix
 
         Args:
@@ -101,7 +101,7 @@ class PermRowCol:
         """
         return [node for node in self._graph.node_indexes() if parity_mat[node, column] == 1]
 
-    def return_columns(self, qubit_alloc: list) -> list:
+    def _return_columns(self, qubit_alloc: list) -> list:
         """Returns list of indices of not yet processed columns in parity matrix
 
         Args:
@@ -142,7 +142,7 @@ class PermRowCol:
         ]
         return cols[np.argmin(col_sum)]
 
-    def eliminate_column(
+    def _eliminate_column(
         self,
         parity_mat: np.ndarray,
         root: int,
@@ -176,7 +176,7 @@ class PermRowCol:
 
         return C
 
-    def eliminate_row(self, parity_mat: np.ndarray, root: int, terminals: np.ndarray) -> list:
+    def _eliminate_row(self, parity_mat: np.ndarray, root: int, terminals: np.ndarray) -> list:
         """Eliminates the selected row from the parity matrix and returns the operations as a list of tuples.
 
         Args:
