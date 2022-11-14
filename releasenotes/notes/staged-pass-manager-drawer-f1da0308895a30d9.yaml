@@ -1,0 +1,4 @@
+---
+features:
+  - |
+    Modifies the drawer for the `StagedPassManager` to add an outer box around the passes for each stage.
