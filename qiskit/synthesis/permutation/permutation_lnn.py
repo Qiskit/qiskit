@@ -26,7 +26,6 @@ def synth_permutation_depth_lnn_kms(pattern):
     architecture using SWAP gates with depth at most n and size at most
     n(n-1)/2 (where both depth and size are measured with respect to SWAPs).
 
-
     Args:
         pattern (Union[list[int], np.ndarray]): permutation pattern, describing
             which qubits occupy the positions 0, 1, 2, etc. after applying the
