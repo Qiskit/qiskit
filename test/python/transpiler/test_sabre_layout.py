@@ -59,11 +59,11 @@ class TestSabreLayout(QiskitTestCase):
         pass_.run(dag)
 
         layout = pass_.property_set["layout"]
-        self.assertEqual(layout[qr[0]], 16)
-        self.assertEqual(layout[qr[1]], 17)
-        self.assertEqual(layout[qr[2]], 11)
-        self.assertEqual(layout[qr[3]], 18)
-        self.assertEqual(layout[qr[4]], 10)
+        self.assertEqual(layout[qr[0]], 18)
+        self.assertEqual(layout[qr[1]], 11)
+        self.assertEqual(layout[qr[2]], 13)
+        self.assertEqual(layout[qr[3]], 12)
+        self.assertEqual(layout[qr[4]], 14)
 
     def test_6q_circuit_20q_coupling(self):
         """Test finds layout for 6q circuit on 20q device."""
@@ -95,12 +95,12 @@ class TestSabreLayout(QiskitTestCase):
         pass_.run(dag)
 
         layout = pass_.property_set["layout"]
-        self.assertEqual(layout[qr0[0]], 11)
-        self.assertEqual(layout[qr0[1]], 10)
-        self.assertEqual(layout[qr0[2]], 12)
-        self.assertEqual(layout[qr1[0]], 16)
-        self.assertEqual(layout[qr1[1]], 17)
-        self.assertEqual(layout[qr1[2]], 5)
+        self.assertEqual(layout[qr0[0]], 12)
+        self.assertEqual(layout[qr0[1]], 7)
+        self.assertEqual(layout[qr0[2]], 14)
+        self.assertEqual(layout[qr1[0]], 11)
+        self.assertEqual(layout[qr1[1]], 18)
+        self.assertEqual(layout[qr1[2]], 13)
 
     def test_layout_with_classical_bits(self):
         """Test sabre layout with classical bits recreate from issue #8635."""
@@ -193,20 +193,20 @@ barrier q18585[5],q18585[2],q18585[8],q18585[3],q18585[6];
         )
         self.assertIsInstance(res, QuantumCircuit)
         layout = res._layout.initial_layout
-        self.assertEqual(layout[qc.qubits[0]], 11)
-        self.assertEqual(layout[qc.qubits[1]], 6)
-        self.assertEqual(layout[qc.qubits[2]], 14)
-        self.assertEqual(layout[qc.qubits[3]], 4)
-        self.assertEqual(layout[qc.qubits[4]], 16)
-        self.assertEqual(layout[qc.qubits[5]], 20)
-        self.assertEqual(layout[qc.qubits[6]], 12)
+        self.assertEqual(layout[qc.qubits[0]], 19)
+        self.assertEqual(layout[qc.qubits[1]], 10)
+        self.assertEqual(layout[qc.qubits[2]], 1)
+        self.assertEqual(layout[qc.qubits[3]], 14)
+        self.assertEqual(layout[qc.qubits[4]], 4)
+        self.assertEqual(layout[qc.qubits[5]], 11)
+        self.assertEqual(layout[qc.qubits[6]], 8)
         self.assertEqual(layout[qc.qubits[7]], 7)
-        self.assertEqual(layout[qc.qubits[8]], 15)
-        self.assertEqual(layout[qc.qubits[9]], 21)
-        self.assertEqual(layout[qc.qubits[10]], 10)
-        self.assertEqual(layout[qc.qubits[11]], 1)
+        self.assertEqual(layout[qc.qubits[8]], 9)
+        self.assertEqual(layout[qc.qubits[9]], 0)
+        self.assertEqual(layout[qc.qubits[10]], 5)
+        self.assertEqual(layout[qc.qubits[11]], 13)
         self.assertEqual(layout[qc.qubits[12]], 2)
-        self.assertEqual(layout[qc.qubits[13]], 0)
+        self.assertEqual(layout[qc.qubits[13]], 3)
 
 
 if __name__ == "__main__":
