@@ -394,6 +394,25 @@ class TestCalculations(TestCase):
     """Test calculation logic."""
 
     @data(
+        [("II",), (0,)],
+        [("IZ",), (1,)],
+        [("ZI",), (2,)],
+        [("ZZ",), (3,)],
+        [("ZX",), (3,)],
+        [("XY",), (3,)],
+        [("IIII",), (0,)],
+        [("IXII",), (4,)],
+        [("IIX", "IYI"), (1, 2)],
+        [("IXYZ", "IIII", "IZZZ"), (7, 0, 7)],
+    )
+    @unpack
+    def test_paulis_integer_masks(self, paulis, expected):
+        """Test Paulis integer masks."""
+        paulis = PauliList(paulis)
+        int_masks = BackendEstimator._paulis_integer_masks(paulis)
+        self.assertEqual(int_masks, expected)
+
+    @data(
         [(), ""],
         [(False,), "0"],
         [(True,), "1"],
@@ -407,13 +426,9 @@ class TestCalculations(TestCase):
     @unpack
     def test_bitstring_from_mask(self, mask, expected):
         """Test `_bitstring_from_mask()`."""
-        # Preparation
-        backend = Mock(Backend)
-        estimator = BackendEstimator(backend)
-        # Tests
-        bitstring = estimator._bitstring_from_mask(mask)
+        bitstring = BackendEstimator._bitstring_from_mask(mask)
         self.assertEqual(bitstring, "0b" + expected)
-        bitstring = estimator._bitstring_from_mask(mask, little_endian=True)
+        bitstring = BackendEstimator._bitstring_from_mask(mask, little_endian=True)
         self.assertEqual(bitstring, "0b" + "".join(reversed(expected)))
 
 
@@ -430,13 +445,9 @@ class TestCalculations(TestCase):
     @unpack
     def test_parity_bit(self, bitstring, expected):
         """Test even parity bit."""
-        # Preparation
-        backend = Mock(Backend)
-        estimator = BackendEstimator(backend)
-        # Test
         integer = int(bitstring, 2)
-        even_bit = estimator._parity_bit(integer)
-        odd_bit = estimator._parity_bit(integer, even=False)
+        even_bit = BackendEstimator._parity_bit(integer)
+        odd_bit = BackendEstimator._parity_bit(integer, even=False)
         self.assertEqual(even_bit, expected)
         self.assertEqual(even_bit, int(not odd_bit))
 
