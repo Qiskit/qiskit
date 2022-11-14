@@ -101,19 +101,24 @@ class RealMcLachlanPrinciple(RealVariationalPrinciple):
 
         modified_hamiltonian = self._construct_modified_hamiltonian(hamiltonian, real(energy))
 
-        evolution_grad = (
-            0.5
-            * self.gradient.run(
-                [ansatz],
-                [modified_hamiltonian],
-                parameters=[gradient_params],
-                parameter_values=[param_values],
+        try:
+            evolution_grad = (
+                0.5
+                * self.gradient.run(
+                    [ansatz],
+                    [modified_hamiltonian],
+                    parameters=[gradient_params],
+                    parameter_values=[param_values],
+                )
+                .result()
+                .gradients[0]
             )
-            .result()
-            .gradients[0]
-        )
+        except Exception as exc:
+            raise AlgorithmError("The gradient primitive job failed!") from exc
 
-        # quick fix due to an error on opflow; to be addressed in a separate PR
+        # The BaseEstimatorGradient class returns the gradient of the opposite sign than we expect
+        # here (i.e. with a minus sign), hence the correction that cancels it to recover the
+        # real McLachlan's principle equations that do not have a minus sign.
         evolution_grad = (-1) * evolution_grad
         return evolution_grad
 

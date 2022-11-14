@@ -99,7 +99,6 @@ class ImaginaryMcLachlanPrinciple(ImaginaryVariationalPrinciple):
             )
 
         except Exception as exc:
-
             raise AlgorithmError("The gradient primitive job failed!") from exc
 
         return -0.5 * evolution_grad_lse_rhs

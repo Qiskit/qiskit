@@ -66,7 +66,7 @@ class VariationalPrinciple(ABC):
             metric_tensor = 0.25 * self.qfi.run([ansatz], [param_values], [None]).result().qfis[0]
         except Exception as exc:
 
-            raise AlgorithmError("The primitive job failed!") from exc
+            raise AlgorithmError("The QFI primitive job failed!") from exc
         return metric_tensor
 
     @abstractmethod
