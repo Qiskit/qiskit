@@ -14,7 +14,6 @@
 
 import unittest
 from inspect import signature
-import warnings
 
 import numpy as np
 from scipy.linalg import expm
@@ -247,22 +246,6 @@ class TestStandard1Q(QiskitTestCase):
         self.assertEqual(self.circuit[0].operation.params, [1])
         self.assertEqual(self.circuit[0].qubits, (self.qr[1], self.qr[2]))
 
-    def test_cu1_invalid(self):
-        qc = self.circuit
-        warnings.filterwarnings("ignore", category=DeprecationWarning)
-        self.assertRaises(CircuitError, qc.cu1, self.cr[0], self.cr[1], self.cr[2])
-        self.assertRaises(CircuitError, qc.cu1, 1, self.qr[0], self.qr[0])
-        self.assertRaises(CircuitError, qc.cu1, self.qr[1], 0, self.qr[0])
-        self.assertRaises(CircuitError, qc.cu1, 0, self.cr[0], self.cr[1])
-        self.assertRaises(CircuitError, qc.cu1, 0, self.qr[0], self.qr[0])
-        self.assertRaises(CircuitError, qc.cu1, 0, 0.0, self.qr[0])
-        self.assertRaises(CircuitError, qc.cu1, self.qr[2], self.qr[1], self.qr[0])
-        self.assertRaises(CircuitError, qc.cu1, 0, self.qr[1], self.cr[2])
-        self.assertRaises(CircuitError, qc.cu1, 0, (self.qr, 3), self.qr[1])
-        self.assertRaises(CircuitError, qc.cu1, 0, self.cr, self.qr)
-        warnings.filterwarnings("always", category=DeprecationWarning)
-        # TODO self.assertRaises(CircuitError, qc.cu1, 'a', self.qr[1], self.qr[2])
-
     def test_cu3(self):
         self.circuit.append(CU3Gate(1, 2, 3), [self.qr[1], self.qr[2]])
         self.assertEqual(self.circuit[0].operation.name, "cu3")
@@ -274,19 +257,6 @@ class TestStandard1Q(QiskitTestCase):
         self.assertEqual(self.circuit[0].operation.name, "cu3")
         self.assertEqual(self.circuit[0].operation.params, [1, 2, 3])
         self.assertEqual(self.circuit[0].qubits, (self.qr[1], self.qr[2]))
-
-    def test_cu3_invalid(self):
-        qc = self.circuit
-        warnings.filterwarnings("ignore", category=DeprecationWarning)
-        self.assertRaises(CircuitError, qc.cu3, 0, 0, self.qr[0], self.qr[1], self.cr[2])
-        self.assertRaises(CircuitError, qc.cu3, 0, 0, 0, self.qr[0], self.qr[0])
-        self.assertRaises(CircuitError, qc.cu3, 0, 0, self.qr[1], 0, self.qr[0])
-        self.assertRaises(CircuitError, qc.cu3, 0, 0, 0, self.qr[0], self.qr[0])
-        self.assertRaises(CircuitError, qc.cu3, 0, 0, 0, 0.0, self.qr[0])
-        self.assertRaises(CircuitError, qc.cu3, 0, 0, 0, (self.qr, 3), self.qr[1])
-        self.assertRaises(CircuitError, qc.cu3, 0, 0, 0, self.cr, self.qr)
-        # TODO self.assertRaises(CircuitError, qc.cu3, 0, 0, 'a', self.qr[1], self.qr[2])
-        warnings.filterwarnings("always", category=DeprecationWarning)
 
     def test_cx(self):
         self.circuit.cx(self.qr[1], self.qr[2])
@@ -716,21 +686,6 @@ class TestStandard1Q(QiskitTestCase):
         self.assertEqual(self.circuit[0].operation.params, [1])
         self.assertEqual(self.circuit[0].qubits, (self.qr[1],))
 
-    def test_u1_invalid(self):
-        qc = self.circuit
-        warnings.filterwarnings("ignore", category=DeprecationWarning)
-        # CHECKME? self.assertRaises(CircuitError, qc.u1, self.cr[0], self.qr[0])
-        self.assertRaises(CircuitError, qc.u1, self.cr[0], self.cr[1])
-        self.assertRaises(CircuitError, qc.u1, self.qr[1], 0)
-        self.assertRaises(CircuitError, qc.u1, 0, self.cr[0])
-        self.assertRaises(CircuitError, qc.u1, 0, 0.0)
-        self.assertRaises(CircuitError, qc.u1, self.qr[2], self.qr[1])
-        self.assertRaises(CircuitError, qc.u1, 0, (self.qr, 3))
-        self.assertRaises(CircuitError, qc.u1, 0, self.cr)
-        # TODO self.assertRaises(CircuitError, qc.u1, 'a', self.qr[1])
-        self.assertRaises(CircuitError, qc.u1, 0, "a")
-        warnings.filterwarnings("always", category=DeprecationWarning)
-
     def test_u1_reg(self):
         instruction_set = self.circuit.append(U1Gate(1), [self.qr])
         self.assertEqual(instruction_set[0].operation.name, "u1")
@@ -762,21 +717,6 @@ class TestStandard1Q(QiskitTestCase):
         self.assertEqual(self.circuit[0].operation.params, [1, 2])
         self.assertEqual(self.circuit[0].qubits, (self.qr[1],))
 
-    def test_u2_invalid(self):
-        qc = self.circuit
-        warnings.filterwarnings("ignore", category=DeprecationWarning)
-        self.assertRaises(CircuitError, qc.u2, 0, self.cr[0], self.qr[0])
-        self.assertRaises(CircuitError, qc.u2, 0, self.cr[0], self.cr[1])
-        self.assertRaises(CircuitError, qc.u2, 0, self.qr[1], 0)
-        self.assertRaises(CircuitError, qc.u2, 0, 0, self.cr[0])
-        self.assertRaises(CircuitError, qc.u2, 0, 0, 0.0)
-        self.assertRaises(CircuitError, qc.u2, 0, self.qr[2], self.qr[1])
-        self.assertRaises(CircuitError, qc.u2, 0, 0, (self.qr, 3))
-        self.assertRaises(CircuitError, qc.u2, 0, 0, self.cr)
-        # TODO self.assertRaises(CircuitError, qc.u2, 0, 'a', self.qr[1])
-        self.assertRaises(CircuitError, qc.u2, 0, 0, "a")
-        warnings.filterwarnings("always", category=DeprecationWarning)
-
     def test_u2_reg(self):
         instruction_set = self.circuit.append(U2Gate(1, 2), [self.qr])
         self.assertEqual(instruction_set[0].operation.name, "u2")
@@ -806,21 +746,6 @@ class TestStandard1Q(QiskitTestCase):
         self.assertEqual(self.circuit[0].operation.name, "u3")
         self.assertEqual(self.circuit[0].operation.params, [1, 2, 3])
         self.assertEqual(self.circuit[0].qubits, (self.qr[1],))
-
-    def test_u3_invalid(self):
-        qc = self.circuit
-        warnings.filterwarnings("ignore", category=DeprecationWarning)
-        # TODO self.assertRaises(CircuitError, qc.u3, 0, self.cr[0], self.qr[0])
-        self.assertRaises(CircuitError, qc.u3, 0, 0, self.cr[0], self.cr[1])
-        self.assertRaises(CircuitError, qc.u3, 0, 0, self.qr[1], 0)
-        self.assertRaises(CircuitError, qc.u3, 0, 0, 0, self.cr[0])
-        self.assertRaises(CircuitError, qc.u3, 0, 0, 0, 0.0)
-        self.assertRaises(CircuitError, qc.u3, 0, 0, self.qr[2], self.qr[1])
-        self.assertRaises(CircuitError, qc.u3, 0, 0, 0, (self.qr, 3))
-        self.assertRaises(CircuitError, qc.u3, 0, 0, 0, self.cr)
-        # TODO self.assertRaises(CircuitError, qc.u3, 0, 0, 'a', self.qr[1])
-        self.assertRaises(CircuitError, qc.u3, 0, 0, 0, "a")
-        warnings.filterwarnings("always", category=DeprecationWarning)
 
     def test_u3_reg(self):
         instruction_set = self.circuit.append(U3Gate(1, 2, 3), [self.qr])
