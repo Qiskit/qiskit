@@ -207,6 +207,7 @@ The mapping of type char to the instruction subclass is defined as follows:
 - ``q``: :class:`~qiskit.pulse.instructions.SetPhase` instruction
 - ``r``: :class:`~qiskit.pulse.instructions.ShiftPhase` instruction
 - ``b``: :class:`~qiskit.pulse.instructions.RelativeBarrier` instruction
+- ``t``: :class:`~qiskit.pulse.instructions.TimeBlockade` instruction
 
 The operands of these instances can be serialized through the standard QPY value serialization
 mechanism, however there are special object types that only appear in the schedule operands.

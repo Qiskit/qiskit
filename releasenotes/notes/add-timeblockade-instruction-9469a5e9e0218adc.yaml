@@ -1,0 +1,10 @@
+---
+features:
+  - |
+    New pulse directive :class:`~qiskit.pulse.instructions.TimeBlockade` has been added.
+    This instruction is QPY compatible. This directive behaves almost identically to
+    the delay instruction, but will be removed before execution.
+    This directive is intended to be used internally within the pulse builder
+    and helps :class:`.ScheduleBlock` represent instructions with
+    absolute time intervals. This allows the pulse builder to convert
+    :class:`Schedule` into :class:`ScheduleBlock`, rather than wrapping with call instruction.

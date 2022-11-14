@@ -45,11 +45,13 @@ sequence of scheduled Pulse ``Instruction`` s over many channels. ``Instruction`
    Reference
    Delay
    Play
+   RelativeBarrier
    SetFrequency
    ShiftFrequency
    SetPhase
    ShiftPhase
    Snapshot
+   TimeBlockade
 
 These are all instances of the same base class:
 
