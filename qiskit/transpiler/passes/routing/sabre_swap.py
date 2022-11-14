@@ -31,7 +31,7 @@ from qiskit._accelerate.sabre_swap import (
     NeighborTable,
     SabreDAG,
 )
-from qiskit._accelerate.stochastic_swap import NLayout
+from qiskit._accelerate.nlayout import NLayout
 
 logger = logging.getLogger(__name__)
 
@@ -223,8 +223,7 @@ class SabreSwap(TransformationPass):
                     cargs,
                 )
             )
-        front_layer = np.asarray([x._node_id for x in dag.front_layer()], dtype=np.uintp)
-        sabre_dag = SabreDAG(len(dag.qubits), len(dag.clbits), dag_list, front_layer)
+        sabre_dag = SabreDAG(len(dag.qubits), len(dag.clbits), dag_list)
         swap_map, gate_order = build_swap_map(
             len(dag.qubits),
             sabre_dag,

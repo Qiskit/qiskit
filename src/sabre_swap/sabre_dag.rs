@@ -10,8 +10,7 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
-use hashbrown::{HashMap, HashSet};
-use numpy::PyReadonlyArray1;
+use hashbrown::HashSet;
 use pyo3::prelude::*;
 use retworkx_core::petgraph::prelude::*;
 
@@ -20,7 +19,7 @@ use retworkx_core::petgraph::prelude::*;
 /// DAGCircuit, but the contents of the node are a tuple of DAGCircuit node ids,
 /// a list of qargs and a list of cargs
 #[pyclass(module = "qiskit._accelerate.sabre_swap")]
-#[pyo3(text_signature = "(num_qubits, num_clbits, nodes, front_layer, /)")]
+#[pyo3(text_signature = "(num_qubits, num_clbits, nodes, /)")]
 #[derive(Clone, Debug)]
 pub struct SabreDAG {
     pub dag: DiGraph<(usize, Vec<usize>), ()>,
@@ -34,36 +33,35 @@ impl SabreDAG {
         num_qubits: usize,
         num_clbits: usize,
         nodes: Vec<(usize, Vec<usize>, HashSet<usize>)>,
-        front_layer: PyReadonlyArray1<usize>,
     ) -> PyResult<Self> {
-        let mut qubit_pos: Vec<usize> = vec![usize::MAX; num_qubits];
-        let mut clbit_pos: Vec<usize> = vec![usize::MAX; num_clbits];
-        let mut reverse_index_map: HashMap<usize, NodeIndex> = HashMap::with_capacity(nodes.len());
+        let mut qubit_pos: Vec<Option<NodeIndex>> = vec![None; num_qubits];
+        let mut clbit_pos: Vec<Option<NodeIndex>> = vec![None; num_clbits];
         let mut dag: DiGraph<(usize, Vec<usize>), ()> =
             Graph::with_capacity(nodes.len(), 2 * nodes.len());
+        let mut first_layer = Vec::<NodeIndex>::new();
         for node in &nodes {
             let qargs = &node.1;
             let cargs = &node.2;
             let gate_index = dag.add_node((node.0, qargs.clone()));
-            reverse_index_map.insert(node.0, gate_index);
+            let mut is_front = true;
             for x in qargs {
-                if qubit_pos[*x] != usize::MAX {
-                    dag.add_edge(NodeIndex::new(qubit_pos[*x]), gate_index, ());
+                if let Some(predecessor) = qubit_pos[*x] {
+                    is_front = false;
+                    dag.add_edge(predecessor, gate_index, ());
                 }
-                qubit_pos[*x] = gate_index.index();
+                qubit_pos[*x] = Some(gate_index);
             }
             for x in cargs {
-                if clbit_pos[*x] != usize::MAX {
-                    dag.add_edge(NodeIndex::new(clbit_pos[*x]), gate_index, ());
+                if let Some(predecessor) = clbit_pos[*x] {
+                    is_front = false;
+                    dag.add_edge(predecessor, gate_index, ());
                 }
-                clbit_pos[*x] = gate_index.index();
+                clbit_pos[*x] = Some(gate_index);
+            }
+            if is_front {
+                first_layer.push(gate_index);
             }
         }
-        let first_layer = front_layer
-            .as_slice()?
-            .iter()
-            .map(|x| reverse_index_map[x])
-            .collect();
         Ok(SabreDAG { dag, first_layer })
     }
 }

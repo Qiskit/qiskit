@@ -23,6 +23,7 @@ from qiskit.transpiler.synthesis.graph_utils import (
     pydigraph_to_pygraph,
     noncutting_vertices,
 )
+from qiskit.circuit.library import LinearFunction
 
 
 class PermRowCol:
@@ -30,7 +31,7 @@ class PermRowCol:
 
     def __init__(self, coupling_map: CouplingMap):
         self._coupling_map = coupling_map
-        self._graph = coupling_map.graph
+        self._graph = pydigraph_to_pygraph(self._coupling_map.graph)
 
     def perm_row_col(self, parity_mat: np.ndarray) -> QuantumCircuit:
         """Run permrowcol algorithm on the given parity matrix
@@ -46,9 +47,7 @@ class PermRowCol:
         circuit = QuantumCircuit(len(self._graph.node_indexes()))
 
         while len(self._graph.node_indexes()) > 1:
-            n_vertices = noncutting_vertices(
-                CouplingMap()
-            )  # Have to change noncutting_vertices for pydigraph
+            n_vertices = noncutting_vertices(self._graph)
             row = self.choose_row(n_vertices, parity_mat)
 
             cols = self._return_columns(qubit_alloc)
@@ -68,7 +67,7 @@ class PermRowCol:
             self._reduce_graph(column)
 
         if len(qubit_alloc) != 0:
-            qubit_alloc[qubit_alloc.index(-1)] = self._graph.node_indexes[0]
+            qubit_alloc[qubit_alloc.index(-1)] = self._graph.node_indexes()[0]
 
         return circuit  # Supposed to also return qubit_alloc?
 
@@ -153,7 +152,7 @@ class PermRowCol:
             list: list of tuples represents control and target qubits with a cnot gate between them.
         """
         C = []
-        tree = rx.steiner_tree(pydigraph_to_pygraph(self._graph), terminals, weight_fn=lambda x: 1)
+        tree = rx.steiner_tree(self._graph, terminals, weight_fn=lambda x: 1)
         post_edges = []
         postorder_traversal(tree, root, post_edges)
 
@@ -181,7 +180,7 @@ class PermRowCol:
             list of tuples represents control and target qubits with a cnot gate between them.
         """
         C = []
-        tree = rx.steiner_tree(pydigraph_to_pygraph(self._graph), terminals, weight_fn=lambda x: 1)
+        tree = rx.steiner_tree(self._graph, terminals, weight_fn=lambda x: 1)
 
         pre_edges = []
         preorder_traversal(tree, root, pre_edges)
@@ -199,3 +198,55 @@ class PermRowCol:
             parity_mat[edge[0], :] = (parity_mat[edge[0], :] + parity_mat[edge[1], :]) % 2
 
         return C
+
+    def if_sum_row_is_bigger_than_one(self, parity_mat: np.ndarray, vertices: np.ndarray, cols: int):
+        """ Checks if the sum of the rows is bigger than one. 
+        
+        Args:
+            parity_mat: np.ndarray
+            vertices (np.ndarray): vertices (corresponding to rows) to choose from
+            cols: int
+        
+        Returns:
+            If sum is more than one, uses elimintaion to create a identity row. If not, does nothing.
+        
+        """
+
+        r_materials = self.choose_row(self, vertices, parity_mat)
+        c_materials = self.choose_column(self, parity_mat, cols, r_materials)
+
+        if sum(parity_mat[r_materials]) > 1:
+
+            C = self.parity_mat
+
+
+            A_first_step = (
+                # Creates a new matrix without the chosen row
+                np.delete(C, r_materials, 0)
+                )
+            
+            A = (
+                # Creates a new matrix without the chosen row and column
+                np.delete(A_first_step, c_materials, 1)
+                )
+
+            B = (
+                # Creates M[r] without chosen column
+                np.delete(C[r_materials], c_materials, 1)
+                )
+
+            inv_A = (
+                # Creates inverse of the matrix
+                LinearFunction(LinearFunction(C).synthesize().reverse_ops()).linear
+                )
+
+            X = (
+                # Creates A^-1B
+                np.matmul(inv_A, X)
+                )
+
+            return C
+
+
+        elif sum(parity_mat[r_materials]) <= 1:
+            pass
