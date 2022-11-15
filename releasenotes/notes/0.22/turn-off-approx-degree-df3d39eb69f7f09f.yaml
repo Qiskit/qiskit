@@ -10,7 +10,7 @@ upgrade:
     transformations that break unitary equivalence should be explicitly activated by the user.
     If you desire the previous default behavior where synthesized :class:`~UnitaryGate` instructions
     are approximated up to the error rates of the target backend's native instructions you can explicitly
-    set ``approximation_degree=None` when calling :func:`~.transpile` with ``optimization_level=3``, for
+    set ``approximation_degree=None`` when calling :func:`~.transpile` with ``optimization_level=3``, for
     example::
     
         transpile(circuit, backend, approximation_degree=None, optimization_level=3)

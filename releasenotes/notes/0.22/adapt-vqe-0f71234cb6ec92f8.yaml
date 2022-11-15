@@ -1,11 +1,11 @@
 ---
 features:
   - |
-    Implements the :class:`qiskit.algorithms.minimum_eigensolvers.AdaptVQE`
-    algorithm. This algorithm uses a
-    :class:`qiskit.algorithms.minimum_eigensolvers.VQE` in combination with a
-    pool of operators from which to build out an
+    Added a new algorithm class, :class:`~.AdaptVQE` to :mod:`qiskit.algorithms`
+    This algorithm uses a :class:`qiskit.algorithms.minimum_eigensolvers.VQE`
+    in combination with a pool of operators from which to build out an
     :class:`qiskit.circuit.library.EvolvedOperatorAnsatz` adaptively.
+    For example:
 
     .. code-block:: python
 

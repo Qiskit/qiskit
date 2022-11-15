@@ -337,7 +337,7 @@ def _cvxpy_check(name):
     """Check that a supported CVXPY version is installed"""
     # Check if CVXPY package is installed
     _optionals.HAS_CVXPY.require_now(name)
-    import cvxpy  # pylint: disable=import-error
+    import cvxpy
 
     # Check CVXPY version
     version = cvxpy.__version__
