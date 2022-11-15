@@ -241,5 +241,12 @@ class TestPermRowCol(QiskitTestCase):
         self.assertEqual(1, parity_mat[1, 2])
 
 
+    def test_if_matrix_edit_returns_true_value(self):
+        coupling = CouplingMap()
+        permrowcol = PermRowCol(coupling)
+        Test = permrowcol.matrix_edit(self)
+
+        self.assertEqual(Test, True)
+
 if __name__ == "__main__":
     unittest.main()

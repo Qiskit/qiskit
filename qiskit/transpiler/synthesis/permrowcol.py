@@ -15,13 +15,12 @@
 import numpy as np
 import retworkx as rx
 
+from qiskit import QuantumCircuit, QuantumRegister
+from qiskit.circuit.library import LinearFunction
 from qiskit.transpiler import CouplingMap
-from qiskit import QuantumRegister, QuantumCircuit
-from qiskit.transpiler.synthesis.graph_utils import (
-    postorder_traversal,
-    preorder_traversal,
-    pydigraph_to_pygraph,
-)
+from qiskit.transpiler.synthesis.graph_utils import (postorder_traversal,
+                                                     preorder_traversal,
+                                                     pydigraph_to_pygraph)
 
 
 class PermRowCol:
@@ -139,3 +138,69 @@ class PermRowCol:
             parity_mat[edge[0], :] = (parity_mat[edge[0], :] + parity_mat[edge[1], :]) % 2
 
         return C
+
+    def matrix_edit(self, parity_mat: np.ndarray, vertices: np.ndarray, chosen_column: int, chosen_row: int, circuit: QuantumCircuit) -> QuantumCircuit:
+        """ Checks if the sum of the chosen row is bigger than one. If the sum is bigger than one, the function performs row elimination.
+        
+        Args:
+            parity_mat: np.ndarray
+            vertices (np.ndarray): vertices (corresponding to rows) to choose from
+            chosen_column: int
+            chosen_row: int
+            circuit: QuantumCircuit
+
+        
+        Returns:
+            quantumCircuit eliminated row.
+        
+        """
+
+        row = self.choose_row(self, vertices, parity_mat)
+        column = self.choose_column(self, parity_mat, chosen_column, row)
+
+        
+
+        if sum(parity_mat[row]) > 1:
+
+            C = self.parity_mat
+            C_copy = []
+
+            A_first_step = (
+                # Creates a new matrix without the chosen row
+                C_copy.append(C[rows nuber][halutun vaihdettavan tunnut, esim. jos halutaan ensimmäinen niin luku on 0 jne.] = Nollarivi)
+                )
+            
+            A = (
+                # Creates a new matrix without the chosen row and column
+                C_copy.append(C[][] = Nollakolumni (nollattu arvi kohdasta x))
+                )
+
+            B = (
+                # M[r] (chosen row) without chosen column
+
+                )
+
+            inv_A = (
+                # Creates inverse of the matrix
+                LinearFunction(LinearFunction(C).synthesize().reverse_ops()).linear
+                )
+
+            X = (
+                # Creates A^-1B
+                np.matmul(inv_A, X)
+                )
+
+            return C(pitää palauttaa circuit)
+
+
+        elif sum(parity_mat[r_materials]) <= 1:
+            pass
+
+        return True
+
+        for i in range(len(self.parity_mat)):
+            C_copy = []
+            for j in range(hauttu rivi):
+                x = 0
+                C_copy.append(x)
+            C_copy.append(C_copy)
