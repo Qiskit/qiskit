@@ -54,6 +54,20 @@ _1q_gates = {
 }
 
 
+def _check_candidate(candidate, existing_sequences, tol=1e-10):
+    if optionals.HAS_SKLEARN:
+        return _check_candidate_kdtree(candidate, existing_sequences, tol)
+
+    warnings.warn(
+        "The SolovayKitaev algorithm relies on scikit-learn's KDTree for a "
+        "fast search over the basis approximations. Without this, we fallback onto a "
+        "greedy search with is significantly slower. We highly suggest to install "
+        "scikit-learn to use this feature.",
+        category=RuntimeWarning,
+    )
+    return _check_candidate_greedy(candidate, existing_sequences, tol)
+
+
 def _check_candidate_greedy(candidate, existing_sequences, tol=1e-10):
     # do a quick, string-based check if the same sequence already exists
     if any(candidate.name == existing.name for existing in existing_sequences):
@@ -85,19 +99,6 @@ def _check_candidate_kdtree(candidate, existing_sequences, tol=1e-10):
     dist, _ = kdtree.query(candidate)
 
     return dist[0][0] > tol
-
-
-if optionals.HAS_SKLEARN:
-    _check_candidate = _check_candidate_kdtree
-else:
-    warnings.warn(
-        "The SolovayKitaev algorithm relies on scikit-learn's KDTree for a "
-        "fast search over the basis approximations. Without this, we fallback onto a "
-        "greedy search with is significantly slower. We highly suggest to install "
-        "scikit-learn to use this feature.",
-        category=RuntimeWarning,
-    )
-    _check_candidate = _check_candidate_greedy
 
 
 def _process_node(node: Node, basis: list[str], sequences: list[GateSequence]):
