@@ -15,6 +15,7 @@
 import logging
 from copy import copy, deepcopy
 
+import numpy as np
 import retworkx
 
 from qiskit.circuit.library.standard_gates import SwapGate
