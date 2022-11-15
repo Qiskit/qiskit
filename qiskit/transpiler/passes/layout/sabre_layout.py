@@ -81,6 +81,7 @@ class SabreLayout(TransformationPass):
         max_iterations=3,
         swap_trials=None,
         layout_trials=None,
+        skip_routing=False,
     ):
         """SabreLayout initializer.
 
@@ -112,6 +113,11 @@ class SabreLayout(TransformationPass):
                 physical CPUs will be used as the default value. This option is
                 mutually exclusive with the ``routing_pass`` argument and an error
                 will be raised if both are used.
+            skip_routing (bool): If this is set ``True`` and ``routing_pass` is not used
+                then routing will not be applied to the output circuit.  Only the layout
+                will be returned in the property set. This is a tradeoff to run custom
+                routing with multiple layout trials, as using this option will cause
+                SabreLayout to run the routing stage internally but not use that result.
 
         Raises:
             TranspilerError: If both ``routing_pass`` and ``swap_trials`` or
@@ -143,6 +149,7 @@ class SabreLayout(TransformationPass):
             self.layout_trials = CPU_COUNT
         else:
             self.layout_trials = layout_trials
+        self.skip_routing = skip_routing
 
     def run(self, dag):
         """Run the SabreLayout pass on `dag`.
@@ -240,6 +247,10 @@ class SabreLayout(TransformationPass):
                     layout_dict[dag.qubits[k]] = v
             initital_layout = Layout(layout_dict)
             self.property_set["layout"] = initital_layout
+            # If skip_routing is set then return the layout in the property set
+            # and throwaway the extra work we did to compute the swap map
+            if self.skip_routing:
+                return dag
             ancilla_pass = FullAncillaAllocation(self.coupling_map)
             ancilla_pass.property_set = self.property_set
             dag = ancilla_pass.run(dag)

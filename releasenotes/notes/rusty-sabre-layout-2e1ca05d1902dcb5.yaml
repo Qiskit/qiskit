@@ -7,7 +7,7 @@ features:
     layout and routing. This was done to not only improve the runtime performance
     but also improve the quality of the results. The previous functionality of the
     pass as an analysis pass can be retained by manually setting the ``routing_pass``
-    argument.
+    argument or using the new ``skip_routing`` argument.
   - |
     The :class:`~.SabreLayout` transpiler pass has a new constructor argument
     ``layout_trials``. This argument is used to control how many random number
@@ -18,7 +18,7 @@ features:
     to minimize the potential performance overhead of running layout multiple
     times. By default if this is not specified the :class:`~.SabreLayout`
     pass will default to using the number of physical CPUs are available on the
-    local system. This multiple seed
+    local system.
 upgrade:
   - |
     The default behavior of the :class:`~.SabreLayout` compiler pass has
@@ -33,7 +33,7 @@ upgrade:
     of improving the quality output, the layout and routing quality are highly
     coupled and :class:`~.SabreLayout` will now run multiple parallel seed
     trials and to calculate which seed provides the best results it needs to
-    perform both the layout and routing together. There are two ways you can
+    perform both the layout and routing together. There are three ways you can
     adjust the usage in your custom pass manager. The first is to avoid using
     embedding in your preset pass manager. If you were previously running something
     like::
@@ -69,7 +69,12 @@ upgrade:
         layout_pass = SabreLayout(coupling_map, routing_pass=routing_pass, seed=seed)
 
     which will have :class:`~.SabreLayout` run as an analysis pass and just set
-    the ``layout`` property set.
+    the ``layout`` property set. The final approach is to leverage the ``skip_routing``
+    argument on :class:`~SabreLayout`, when this argument is set to ``True`` it will
+    skip applying the found layout and inserting the swap gates from routing. However,
+    doing this has a runtime penalty as :class:`~SabreLayout` will still be computing
+    the routing and just does not use this data. The first two approaches outlined do
+    not have additional overhead associated with them.
   - |
     The layouts computed by the :class:`~.SabreLayout` pass (when run without
     the ``routing_pass`` argument) with a fixed seed value may change from

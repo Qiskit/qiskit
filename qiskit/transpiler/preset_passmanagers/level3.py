@@ -140,6 +140,8 @@ def level_3_pass_manager(pass_manager_config: PassManagerConfig) -> StagedPassMa
             seed=seed_transpiler,
             swap_trials=20,
             layout_trials=20,
+            skip_routing=pass_manager_config.routing_method is not None
+            and routing_method != "sabre",
         )
 
     # Choose routing pass
