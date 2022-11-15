@@ -229,9 +229,6 @@ class Operator(LinearOp):
                 of the transpiler.
         Returns:
             Operator: An operator representing the input circuit
-
-        Raises:
-            KeyError: If a circuit has an empty embedded.
         """
         dimension = 2**circuit.num_qubits
         op = cls(np.eye(dimension))
