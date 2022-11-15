@@ -19,27 +19,22 @@ import scipy
 
 from ddt import ddt, data
 
+from qiskit.test import QiskitTestCase
+
 from qiskit import transpile
 from qiskit.circuit import QuantumCircuit
 from qiskit.circuit.library import TGate, TdgGate, HGate, SGate, SdgGate, IGate, QFT
 from qiskit.converters import circuit_to_dag, dag_to_circuit
-from qiskit.test import QiskitTestCase
-from qiskit.synthesis.discrete_basis import SolovayKitaev
-from qiskit.transpiler.passes.synthesis import SolovayKitaevSynthesis
+from qiskit.quantum_info import Operator
 from qiskit.synthesis.discrete_basis.generate_basis_approximations import (
     generate_basic_approximations,
 )
 from qiskit.synthesis.discrete_basis.commutator_decompose import commutator_decompose
 from qiskit.synthesis.discrete_basis.gate_sequence import GateSequence
-from qiskit.quantum_info import Operator
-from qiskit.transpiler.exceptions import TranspilerError
-
 from qiskit.transpiler import PassManager
-from qiskit.transpiler.passes import (
-    UnitarySynthesis,
-    Collect1qRuns,
-    ConsolidateBlocks,
-)
+from qiskit.transpiler.exceptions import TranspilerError
+from qiskit.transpiler.passes import UnitarySynthesis, Collect1qRuns, ConsolidateBlocks
+from qiskit.transpiler.passes.synthesis import SolovayKitaev, SolovayKitaevSynthesis
 
 
 def _trace_distance(circuit1, circuit2):

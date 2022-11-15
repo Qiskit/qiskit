@@ -13,19 +13,84 @@
 A Solovay-Kitaev synthesis plugin to Qiskit's transpiler.
 """
 
-from qiskit.converters import circuit_to_dag
+from __future__ import annotations
 
+import numpy as np
+
+from qiskit.converters import circuit_to_dag
+from qiskit.dagcircuit import DAGCircuit
 from qiskit.synthesis.discrete_basis.solovay_kitaev import SolovayKitaevDecomposition
 from qiskit.synthesis.discrete_basis.generate_basis_approximations import (
     generate_basic_approximations,
 )
+from qiskit.transpiler.basepasses import TransformationPass
+from qiskit.transpiler.exceptions import TranspilerError
 
 from .plugin import UnitarySynthesisPlugin
 
 
-class SolovayKitaevSynthesis(UnitarySynthesisPlugin):
+class SolovayKitaev(TransformationPass):
+    r"""Approximately decompose 1q gates to a discrete basis using the Solovay-Kitaev algorithm.
+
+    See :mod:`qiskit.synthesis.discrete_basis` for more information.
     """
-    An Solovay-Kitaev-based Qiskit unitary synthesis plugin.
+
+    def __init__(
+        self,
+        recursion_degree: int = 3,
+        basic_approximations: str | dict[str, np.ndarray] | None = None,
+    ) -> None:
+        """
+        Args:
+            recursion_degree: The recursion depth for the Solovay-Kitaev algorithm.
+                A larger recursion depth increases the accuracy and length of the
+                decomposition.
+            basic_approximations: The basic approximations for the finding the best discrete
+                decomposition at the root of the recursion. If a string, it specifies the ``.npy``
+                file to load the approximations from. If a dictionary, it contains
+                ``{label: SO(3)-matrix}`` pairs. If None, a default based on the H, T and Tdg gates
+                up to combinations of depth 10 is generated.
+        """
+        super().__init__()
+        self.recursion_degree = recursion_degree
+        self._sk = SolovayKitaevDecomposition(basic_approximations)
+
+    def run(self, dag: DAGCircuit) -> DAGCircuit:
+        """Run the ``SolovayKitaev`` pass on `dag`.
+
+        Args:
+            dag: The input dag.
+
+        Returns:
+            Output dag with 1q gates synthesized in the discrete target basis.
+
+        Raises:
+            TranspilerError: if a gates does not have to_matrix
+        """
+        for node in dag.op_nodes():
+            if not node.op.num_qubits == 1:
+                continue  # ignore all non-single qubit gates
+
+            if not hasattr(node.op, "to_matrix"):
+                raise TranspilerError(
+                    "SolovayKitaev does not support gate without "
+                    f"to_matrix method: {node.op.name}"
+                )
+
+            matrix = node.op.to_matrix()
+
+            # call solovay kitaev
+            approximation = self._sk.run(matrix, self.recursion_degree)
+
+            # convert to a dag and replace the gate by the approximation
+            substitute = circuit_to_dag(approximation)
+            dag.substitute_node_with_dag(node, substitute)
+
+        return dag
+
+
+class SolovayKitaevSynthesis(UnitarySynthesisPlugin):
+    """A Solovay-Kitaev Qiskit unitary synthesis plugin.
 
     This plugin is invoked by :func:`~.compiler.transpile` when the ``unitary_synthesis_method``
     parameter is set to ``"sk"``.
@@ -36,31 +101,27 @@ class SolovayKitaevSynthesis(UnitarySynthesisPlugin):
 
     Supported parameters in the dictionary:
 
-    network_layout (str)
-        Type of network geometry, one of {``"sequ"``, ``"spin"``, ``"cart"``, ``"cyclic_spin"``,
-        ``"cyclic_line"``}. Default value is ``"spin"``.
+    basis_approximations (str | dict):
+        The basic approximations for the finding the best discrete decomposition at the root of the
+        recursion. If a string, it specifies the ``.npy`` file to load the approximations from.
+        If a dictionary, it contains ``{label: SO(3)-matrix}`` pairs. If None, a default based on
+        the specified ``basis_gates`` and ``depth`` is generated.
 
-    connectivity_type (str)
-        type of inter-qubit connectivity, {``"full"``, ``"line"``, ``"star"``}.  Default value
-        is ``"full"``.
+    basis_gates (list):
+        A list of strings specifying the discrete basis gates to decompose to. If None,
+        defaults to ``["h", "t", "tdg"]``.
 
-    depth (int)
-        depth of the CNOT-network, i.e. the number of layers, where each layer consists of a
-        single CNOT-block.
+    depth (int):
+        The gate-depth of the the basic approximations. All possible, unique combinations of the
+        basis gates up to length ``depth`` are considered. If None, defaults to 10.
 
-    optimizer (:class:`~qiskit.algorithms.optimizers.Optimizer`)
-        An instance of optimizer to be used in the optimization process.
-
-    seed (int)
-        A random seed.
-
-    initial_point (:class:`~numpy.ndarray`)
-        Initial values of angles/parameters to start the optimization process from.
+    recursion_degree (int):
+        The number of times the decomposition is recursively improved. If None, defaults to 3.
     """
 
     # we cache an instance of the Solovay-Kitaev class to generate the
     # computationally expensive basis approximation of single qubit gates only once
-    sk_decomposition = None
+    _sk = None
 
     @property
     def max_qubits(self):
@@ -119,7 +180,7 @@ class SolovayKitaevSynthesis(UnitarySynthesisPlugin):
 
         # if we didn't yet construct the Solovay-Kitaev instance, which contains
         # the basic approximations, do it now
-        if SolovayKitaevSynthesis.sk_decomposition is None:
+        if SolovayKitaevSynthesis._sk is None:
             basic_approximations = config.get("basic_approximations", None)
             basis_gates = options.get("basis_gates", ["h", "t", "tdg"])
 
@@ -129,10 +190,8 @@ class SolovayKitaevSynthesis(UnitarySynthesisPlugin):
                 depth = config.get("depth", 10)
                 basic_approximations = generate_basic_approximations(basis_gates, depth)
 
-            SolovayKitaevSynthesis.sk_decomposition = SolovayKitaevDecomposition(
-                basic_approximations
-            )
+            SolovayKitaevSynthesis._sk = SolovayKitaevDecomposition(basic_approximations)
 
-        approximate_circuit = SolovayKitaevSynthesis.sk_decomposition.run(unitary, recursion_degree)
+        approximate_circuit = SolovayKitaevSynthesis._sk.run(unitary, recursion_degree)
         dag_circuit = circuit_to_dag(approximate_circuit)
         return dag_circuit
