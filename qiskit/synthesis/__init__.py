@@ -34,6 +34,7 @@ Linear Function Synthesis
 .. autosummary::
    :toctree: ../stubs/
 
+    synth_cnot_count_full_pmh
     synth_cnot_depth_line_kms
 
 """
@@ -47,4 +48,4 @@ from .evolution import (
     QDrift,
 )
 
-from .linear import synth_cnot_depth_line_kms
+from .linear import synth_cnot_count_full_pmh, synth_cnot_depth_line_kms
