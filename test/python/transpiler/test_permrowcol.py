@@ -6,7 +6,7 @@ import retworkx as rx
 
 from qiskit.test import QiskitTestCase
 from qiskit.transpiler.synthesis.permrowcol import PermRowCol
-from qiskit import QuantumCircuit
+from qiskit import QuantumCircuit, QuantumRegister
 from qiskit.transpiler import CouplingMap
 
 
@@ -240,13 +240,42 @@ class TestPermRowCol(QiskitTestCase):
         self.assertEqual(1, sum(parity_mat[1]))
         self.assertEqual(1, parity_mat[1, 2])
 
+    def test_if_matrix_edit_returns_circuit(self):
+        """Tests if matrix-edit retirns circuit"""
 
-    def test_if_matrix_edit_returns_true_value(self):
         coupling = CouplingMap()
         permrowcol = PermRowCol(coupling)
-        Test = permrowcol.matrix_edit(self)
+        parity_mat = np.identity(3)
+        chosen_column = 1
+        chosen_row = 1
+        circuit = QuantumCircuit(QuantumRegister(0))
+        instance = permrowcol.matrix_edit(parity_mat, chosen_column, chosen_row, circuit)
 
-        self.assertEqual(Test, True)
+        self.assertIsInstance(instance, QuantumCircuit)
+
+
+#    def test_matrix_edit_returns_circuit_with_eliminated_row_if_the_row_is_not_already_eliminated(self):
+#        coupling_list = [(1, 2), (1, 4), (2, 5), (3, 4), (4, 5)]
+#        coupling = CouplingMap(coupling_list)
+#        permrowcol = PermRowCol(coupling)
+#        parity_mat = np.array(
+#            [
+#                [0, 0, 0, 1, 0, 0],
+#                [1, 0, 1, 0, 0, 0],
+#                [1, 0, 0, 0, 1, 1],
+#                [0, 1, 0, 0, 0, 0],
+#                [0, 0, 0, 0, 1, 0],
+#                [0, 0, 0, 0, 0, 1],
+#            ]
+#        )
+#        chosen_column = 2
+#        chosen_row = 1
+#        circuit = QuantumCircuit(len(coupling.graph))
+#        print(str(circuit.data))
+#        instance = permrowcol.matrix_edit(parity_mat, chosen_column, chosen_row, circuit)
+#
+#
+#        self.assertIsEqual(instance, )
 
 if __name__ == "__main__":
     unittest.main()
