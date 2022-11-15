@@ -72,6 +72,8 @@ def _check_candidate_kdtree(candidate, existing_sequences, tol=1e-10):
 
     This uses a k-d tree search and is much faster than the greedy, list-based search.
     """
+    from sklearn.neighbors import KDTree
+
     # do a quick, string-based check if the same sequence already exists
     if any(candidate.name == existing.name for existing in existing_sequences):
         return False
@@ -86,10 +88,6 @@ def _check_candidate_kdtree(candidate, existing_sequences, tol=1e-10):
 
 
 if optionals.HAS_SKLEARN:
-    # module level import as imports are not for free and we call _check_candidate_kdtree
-    # many times
-    from sklearn.neighbors import KDTree
-
     _check_candidate = _check_candidate_kdtree
 else:
     warnings.warn(
