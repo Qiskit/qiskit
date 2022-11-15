@@ -1206,7 +1206,7 @@ class QuantumCircuit:
         else:
             operation = instruction
 
-        # Convert input to instruction                
+        # Convert input to instruction
         if not isinstance(operation, Operation):
             if not hasattr(operation, "to_instruction"):
                 if issubclass(operation, Operation):
@@ -1214,7 +1214,7 @@ class QuantumCircuit:
                         "Object is a subclass of Operation, please add () to "
                         "pass an instance of this object."
                     )
-    
+
                 raise CircuitError(
                     "Object to append must be an Operation or have a to_instruction() method."
                 )
