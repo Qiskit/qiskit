@@ -152,7 +152,7 @@ pub fn build_swap_map(
     neighbor_table: &NeighborTable,
     distance_matrix: PyReadonlyArray2<f64>,
     heuristic: &Heuristic,
-    seed: u64,
+    seed: Option<u64>,
     layout: &mut NLayout,
     num_trials: usize,
     run_in_parallel: Option<bool>,
@@ -188,7 +188,10 @@ pub fn build_swap_map_inner(
         None => getenv_use_multiple_threads() && num_trials > 1,
     };
     let coupling_graph: DiGraph<(), ()> = cmap_from_neighor_table(neighbor_table);
-    let outer_rng = Pcg64Mcg::seed_from_u64(seed);
+    let outer_rng = match seed {
+        Some(seed) => Pcg64Mcg::seed_from_u64(seed),
+        None => Pcg64Mcg::from_entropy(),
+    };
     let seed_vec: Vec<u64> = outer_rng
         .sample_iter(&rand::distributions::Standard)
         .take(num_trials)
