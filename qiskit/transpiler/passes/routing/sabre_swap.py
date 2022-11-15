@@ -151,12 +151,7 @@ class SabreSwap(TransformationPass):
             self._neighbor_table = NeighborTable(retworkx.adjacency_matrix(self.coupling_map.graph))
 
         self.heuristic = heuristic
-
-        if seed is None:
-            ii32 = np.iinfo(np.int32)
-            self.seed = np.random.default_rng(None).integers(0, ii32.max, dtype=int)
-        else:
-            self.seed = seed
+        self.seed = seed
         if trials is None:
             self.trials = CPU_COUNT
         else:
