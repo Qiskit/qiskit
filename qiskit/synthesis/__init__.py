@@ -29,6 +29,13 @@ Evolution Synthesis
    SuzukiTrotter
    MatrixExponential
 
+Linear Function Synthesis
+=========================
+.. autosummary::
+   :toctree: ../stubs/
+
+    synth_cnot_depth_line_kms
+
 """
 
 from .evolution import (
