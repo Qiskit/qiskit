@@ -78,7 +78,7 @@ class NLocal(BlueprintCircuit):
         overwrite_block_parameters: Union[bool, List[List[Parameter]]] = True,
         skip_final_rotation_layer: bool = False,
         skip_unentangled_qubits: bool = False,
-        initial_state: Optional[Any] = None,
+        initial_state: Optional[QuantumCircuit] = None,
         name: Optional[str] = "nlocal",
     ) -> None:
         """Create a new n-local circuit.
@@ -109,7 +109,6 @@ class NLocal(BlueprintCircuit):
             TODO
 
         Raises:
-            ImportError: If an ``initial_state`` is specified but Qiskit Aqua is not installed.
             ValueError: If reps parameter is less than or equal to 0.
             TypeError: If reps parameter is not an int value.
         """
@@ -650,7 +649,7 @@ class NLocal(BlueprintCircuit):
         raise ValueError(f"Invalid value of entanglement: {entanglement}")
 
     @property
-    def initial_state(self) -> Any:
+    def initial_state(self) -> QuantumCircuit:
         """Return the initial state that is added in front of the n-local circuit.
 
         Returns:
