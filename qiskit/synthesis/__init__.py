@@ -46,3 +46,5 @@ from .evolution import (
     MatrixExponential,
     QDrift,
 )
+
+from .linear import synth_cnot_depth_line_kms
