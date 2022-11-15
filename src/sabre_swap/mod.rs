@@ -178,7 +178,7 @@ pub fn build_swap_map_inner(
     neighbor_table: &NeighborTable,
     dist: &ArrayView2<f64>,
     heuristic: &Heuristic,
-    seed: u64,
+    seed: Option<u64>,
     layout: &mut NLayout,
     num_trials: usize,
     run_in_parallel: Option<bool>,
