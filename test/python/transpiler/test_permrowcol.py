@@ -6,6 +6,7 @@ import retworkx as rx
 
 from qiskit.test import QiskitTestCase
 from qiskit.transpiler.synthesis.permrowcol import PermRowCol
+from qiskit.circuit.library import LinearFunction
 from qiskit import QuantumCircuit, QuantumRegister
 from qiskit.transpiler import CouplingMap
 
@@ -253,29 +254,78 @@ class TestPermRowCol(QiskitTestCase):
 
         self.assertIsInstance(instance, QuantumCircuit)
 
+    def test_matrix_edit_returns_circuit_with_eliminated_row_if_the_row_is_not_already_eliminated(
+        self,
+    ):
+        coupling_list = [(0, 1), (0, 3), (1, 2), (1, 4), (2, 5), (3, 4), (4, 5)]
+        coupling = CouplingMap(coupling_list)
+        permrowcol = PermRowCol(coupling)
+        parity_mat = np.array(
+            [
+                [0, 1, 0, 1, 1, 0],
+                [1, 0, 1, 0, 0, 0],
+                [1, 0, 0, 0, 1, 1],
+                [1, 1, 1, 0, 1, 0],
+                [1, 0, 1, 0, 1, 0],
+                [1, 0, 1, 0, 1, 1],
+            ]
+        )
+        chosen_column = 3
+        chosen_row = 0
+        circuit = QuantumCircuit(len(coupling.graph))
+        edge = (1, 0)
+        circuit.cx(edge[0], edge[1])
+        #        print(LinearFunction(circuit).linear)
+        #        print(parity_mat)
+        #        A = np.array(
+        #            [
+        #                [0, 0, 0, 0, 0, 0],
+        #                [1, 0, 1, 0, 0, 0],
+        #                [1, 0, 0, 0, 1, 1],
+        #                [1, 1, 1, 0, 1, 0],
+        #                [1, 0, 1, 0, 1, 0],
+        #                [1, 0, 1, 0, 1, 1],
+        #            ]
+        #        )
+        #        inv_A = LinearFunction(LinearFunction(A).synthesize().reverse_ops()).linear
+        #        print("inv_a:")
+        #        print(inv_A)
+        #        B = np.array([False, True, False, False, True, False])
+        #
+        #
+        #        X = np.matmul(inv_A, B)
+        #        print("X:")
+        #        print(X)
+        #
+        #        nodes = np.array([0, 1, 4, 5])
+        #
+        #        eliminated_row_results = permrowcol.eliminate_row(parity_mat, chosen_row, nodes)
+        #        print("cnots to be added to circuit:")
+        #        print(eliminated_row_results)
 
-#    def test_matrix_edit_returns_circuit_with_eliminated_row_if_the_row_is_not_already_eliminated(self):
-#        coupling_list = [(1, 2), (1, 4), (2, 5), (3, 4), (4, 5)]
-#        coupling = CouplingMap(coupling_list)
-#        permrowcol = PermRowCol(coupling)
-#        parity_mat = np.array(
-#            [
-#                [0, 0, 0, 1, 0, 0],
-#                [1, 0, 1, 0, 0, 0],
-#                [1, 0, 0, 0, 1, 1],
-#                [0, 1, 0, 0, 0, 0],
-#                [0, 0, 0, 0, 1, 0],
-#                [0, 0, 0, 0, 0, 1],
-#            ]
-#        )
-#        chosen_column = 2
-#        chosen_row = 1
-#        circuit = QuantumCircuit(len(coupling.graph))
-#        print(str(circuit.data))
-#        instance = permrowcol.matrix_edit(parity_mat, chosen_column, chosen_row, circuit)
-#
-#
-#        self.assertIsEqual(instance, )
+        instance = permrowcol.matrix_edit(parity_mat, chosen_column, chosen_row, circuit)
+
+        result_circuit = [
+            [True, True, False, False, False, False],
+            [True, True, False, False, False, False],
+            [False, False, True, False, False, False],
+            [False, False, False, True, False, False],
+            [False, True, False, False, True, False],
+            [False, False, False, False, True, True],
+        ]
+
+        result_parity_matrix = [
+            [0, 0, 0, 1, 0, 0],
+            [1, 0, 1, 0, 0, 0],
+            [1, 0, 0, 0, 1, 1],
+            [1, 1, 1, 0, 1, 0],
+            [1, 0, 1, 0, 1, 0],
+            [1, 0, 1, 0, 1, 1],
+        ]
+
+        self.assertEqual(LinearFunction(instance).linear, result_circuit)
+        self.assertEqual(parity_mat, result_parity_matrix)
+
 
 if __name__ == "__main__":
     unittest.main()
