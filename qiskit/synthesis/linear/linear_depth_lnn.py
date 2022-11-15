@@ -21,7 +21,6 @@ References:
          `arXiv:quant-ph/0701194 <https://arxiv.org/abs/quant-ph/0701194>`_.
 """
 
-from copy import deepcopy
 import numpy as np
 from qiskit.exceptions import QiskitError
 from qiskit.circuit import QuantumCircuit
@@ -42,9 +41,9 @@ def _row_op_update_instructions(cx_instructions, mat, a, b):
 def _get_lower_triangular(n, mat, mat_inv):
     # Get the instructions for a lower triangular basis change of a matrix mat.
     # See the proof of Proposition 7.3 in [1].
-    mat = deepcopy(mat)
-    mat_t = deepcopy(mat)
-    mat_inv_t = deepcopy(mat_inv)
+    mat = mat.copy()
+    mat_t = mat.copy()
+    mat_inv_t = mat_inv.copy()
 
     cx_instructions_rows = []
 
@@ -222,7 +221,7 @@ def _optimize_cx_circ_depth_5n_line(mat):
 
     # According to [1] the synthesis is done on the inverse matrix
     # so the matrix mat is inverted at this step
-    mat_inv = deepcopy(mat)
+    mat_inv = mat.copy()
     mat_cpy = calc_inverse_matrix(mat_inv)
 
     n = len(mat_cpy)
@@ -240,6 +239,9 @@ def _optimize_cx_circ_depth_5n_line(mat):
 
 def synth_cnot_depth_line_kms(mat):
     """
+    Synthesize linear reversible circuit for linear nearest-neighbor architectures using
+    Kutin, Moulton, Smithline method.
+
     Synthesis algorithm for linear reversible circuits from [1], Chapter 7.
     Synthesizes any linear reversible circuit of n qubits over linear nearest-neighbor
     architecture using CX gates with depth at most 5*n.
@@ -254,9 +256,9 @@ def synth_cnot_depth_line_kms(mat):
         QiskitError: if mat is not invertible.
 
     References:
-        [1]: Kutin, S., Moulton, D. P., Smithline, L. (2007).
-             Computation at a Distance.
-            `arXiv:quant-ph/0701194 <https://arxiv.org/abs/quant-ph/0701194>`_.
+        1. Kutin, S., Moulton, D. P., Smithline, L.,
+           *Computation at a distance*, Chicago J. Theor. Comput. Sci., vol. 2007, (2007),
+           `arXiv:quant-ph/0701194 <https://arxiv.org/abs/quant-ph/0701194>`_
     """
     if not check_invertible_binary_matrix(mat):
         raise QiskitError("The input matrix is not invertible.")
