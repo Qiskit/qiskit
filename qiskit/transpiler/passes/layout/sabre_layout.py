@@ -113,7 +113,7 @@ class SabreLayout(TransformationPass):
                 physical CPUs will be used as the default value. This option is
                 mutually exclusive with the ``routing_pass`` argument and an error
                 will be raised if both are used.
-            skip_routing (bool): If this is set ``True`` and ``routing_pass` is not used
+            skip_routing (bool): If this is set ``True`` and ``routing_pass`` is not used
                 then routing will not be applied to the output circuit.  Only the layout
                 will be returned in the property set. This is a tradeoff to run custom
                 routing with multiple layout trials, as using this option will cause
