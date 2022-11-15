@@ -159,5 +159,10 @@ class TestCircuitDrawer(QiskitTestCase):
                 "               ",
             ]
         )
-        result = visualization.circuit_drawer(circuit)
+        result = circuit.draw("text")
         self.assertEqual(result.__str__(), expected)
+        # Extra tests that no cregbundle (or any other) warning is raised with the default settings
+        # for the other drawers, if they're available to test.
+        circuit.draw("latex_source")
+        if optionals.HAS_MATPLOTLIB and optionals.HAS_PYLATEX:
+            circuit.draw("mpl")
