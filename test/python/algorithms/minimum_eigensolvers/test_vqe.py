@@ -300,6 +300,35 @@ class TestVQE(QiskitAlgorithmsTestCase):
             vqe.optimizer = L_BFGS_B()
             run_check()
 
+    def test_default_batch_evaluation_on_spsa(self):
+        """Test the default batching works."""
+        ansatz = TwoLocal(2, rotation_blocks=["ry", "rz"], entanglement_blocks="cz")
+
+        wrapped_estimator = Estimator()
+        inner_estimator = Estimator()
+
+        callcount = {"estimator": 0}
+
+        def wrapped_estimator_run(*args, **kwargs):
+            kwargs["callcount"]["estimator"] += 1
+            return inner_estimator.run(*args, **kwargs)
+
+        wrapped_estimator.run = partial(wrapped_estimator_run, callcount=callcount)
+
+        spsa = SPSA(maxiter=5)
+
+        vqe = VQE(wrapped_estimator, ansatz, spsa)
+        _ = vqe.compute_minimum_eigenvalue(Pauli("ZZ"))
+
+        # 1 calibration + 5 loss + 1 return loss
+        expected_estimator_runs = 1 + 5 + 1
+
+        with self.subTest(msg="check callcount"):
+            self.assertEqual(callcount["estimator"], expected_estimator_runs)
+
+        with self.subTest(msg="check reset to original max evals grouped"):
+            self.assertIsNone(spsa._max_evals_grouped)
+
     def test_batch_evaluate_with_qnspsa(self):
         """Test batch evaluating with QNSPSA works."""
         ansatz = TwoLocal(2, rotation_blocks=["ry", "rz"], entanglement_blocks="cz")
