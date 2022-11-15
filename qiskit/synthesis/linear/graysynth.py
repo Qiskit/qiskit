@@ -196,8 +196,7 @@ def synth_cnot_count_full_pmh(state, section_size=2):
             Patel–Markov–Hayes algorithm [1]. section_size must be a factor of num_qubits.
 
     Returns:
-        QuantumCircuit: a CX-only circuit implementing the
-            desired linear transformation
+        QuantumCircuit: a CX-only circuit implementing the linear transformation.
 
     Raises:
         QiskitError: when variable "state" isn't of type numpy.ndarray
