@@ -15,11 +15,9 @@
 """Objects to represent the information at a node in the DAGCircuit."""
 
 import warnings
-from typing import Optional, Tuple
+from typing import Iterable
 
 from qiskit.circuit import Qubit, Clbit
-
-from qiskit.circuit import Clbit
 
 
 def _condition_as_indices(operation, bit_indices):
@@ -113,12 +111,12 @@ class DAGOpNode(DAGNode):
 
     __slots__ = ["op", "qargs", "cargs", "sort_key"]
 
-    def __init__(self, op, qargs=(), cargs=()):
+    def __init__(self, op, qargs: Iterable[Qubit] = (), cargs: Iterable[Clbit] = ()):
         """Create an Instruction node"""
         super().__init__()
         self.op = op
-        self.qargs: Optional[Tuple[Qubit, ...]] = tuple(qargs)
-        self.cargs: Optional[Tuple[Clbit, ...]] = tuple(cargs)
+        self.qargs = tuple(qargs)
+        self.cargs = tuple(cargs)
         self.sort_key = str(self.qargs)
 
     @property
