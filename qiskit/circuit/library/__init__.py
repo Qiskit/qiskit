@@ -364,6 +364,18 @@ In this example, the identity constant in a template is checked:
 NCT (Not-CNOT-Toffoli) template circuits
 ----------------------------------------
 
+Template library
+--------------------------
+
+Existing Template circuits.
+
+.. autosummary::
+   :toctree: ../stubs/
+
+   TemplateLibrary
+
+----------------------------------------
+
 Template circuits for :class:`~qiskit.circuit.library.XGate`,
 :class:`~qiskit.circuit.library.CXGate`,
 and :class:`~qiskit.circuit.library.CCXGate` (Toffoli) gates.
