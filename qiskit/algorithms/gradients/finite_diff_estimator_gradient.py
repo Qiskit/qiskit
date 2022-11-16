@@ -49,7 +49,7 @@ class FiniteDiffEstimatorGradient(BaseEstimatorGradient):
         *,
         method: Literal["central", "forward", "backward"] = "central",
     ):
-        """
+        r"""
         Args:
             estimator: The estimator used to compute the gradients.
             epsilon: The offset size for the finite difference gradients.
@@ -60,7 +60,7 @@ class FiniteDiffEstimatorGradient(BaseEstimatorGradient):
             method: The computation method of the gradients.
 
                     - ``central`` computes :math:`\frac{f(x+e)-f(x-e)}{2e}`,
-                    - ``forward`` computes math:`\frac{f(x+e) - f(x)}{e}`,
+                    - ``forward`` computes :math:`\frac{f(x+e) - f(x)}{e}`,
                     - ``backward`` computes :math:`\frac{f(x)-f(x-e)}{e}`
 
                 where :math:`e` is epsilon.
