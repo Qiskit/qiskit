@@ -4,7 +4,7 @@ deprecations:
     Deprecated two functions
     (```~qiskit.visualization.state_visualization.num_to_latex_ket``` and
     ```~qiskit.visualization.state_visualization.num_to_latex_terms```).
-other:
+upgrade:
   - |
     The latex array drawer (e.g. ```array_to_latex```,
     ```Statevector.draw('latex')```) now uses the same sympy function as the
