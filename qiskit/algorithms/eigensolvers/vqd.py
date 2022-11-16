@@ -109,6 +109,7 @@ class VQD(VariationalAlgorithm, Eigensolver):
                 follows during each evaluation by the optimizer: the evaluation count,
                 the optimizer parameters for the ansatz, the estimated value, the estimation
                 metadata, and the current step.
+                
     """
 
     def __init__(
