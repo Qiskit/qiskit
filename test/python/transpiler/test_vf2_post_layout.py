@@ -385,24 +385,6 @@ class TestVF2PostLayoutScoring(QiskitTestCase):
         score = vf2_pass._score_layout(layout, bit_map, reverse_bit_map, im_graph)
         self.assertAlmostEqual(0.002925, score, places=5)
 
-    def test_all_1q_avg_score(self):
-        """Test average scoring for all 1q input."""
-        bit_map = {Qubit(): 0, Qubit(): 1}
-        reverse_bit_map = {v: k for k, v in bit_map.items()}
-        im_graph = retworkx.PyDiGraph()
-        im_graph.add_node({"sx": 1})
-        im_graph.add_node({"sx": 1})
-        backend = FakeYorktownV2()
-        vf2_pass = VF2PostLayout(target=backend.target)
-        vf2_pass.avg_error_map = vf2_utils.build_average_error_map(
-            vf2_pass.target, vf2_pass.properties, vf2_pass.coupling_map
-        )
-        layout = Layout(bit_map)
-        score = vf2_utils.score_layout(
-            vf2_pass.avg_error_map, layout, bit_map, reverse_bit_map, im_graph
-        )
-        self.assertAlmostEqual(0.02054, score, places=5)
-
 
 class TestVF2PostLayoutUndirected(QiskitTestCase):
     """Tests the VF2Layout pass"""

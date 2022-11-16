@@ -16,7 +16,7 @@ from collections import defaultdict
 import statistics
 import random
 
-from retworkx import PyDiGraph, PyGraph
+from retworkx import PyDiGraph, PyGraph, connected_components
 
 from qiskit.circuit import ControlFlowOp, ForLoopOp
 from qiskit.converters import circuit_to_dag
@@ -75,18 +75,32 @@ def build_interaction_graph(dag, strict_direction=True):
         _visit(dag, 1, {bit: bit for bit in dag.qubits})
     except MultiQEncountered:
         return None
-    return im_graph, im_graph_node_map, reverse_im_graph_node_map
+    # Remove components with no 2q interactions from interaction graph
+    # these will be evaluated separately independently of scoring isomorphic
+    # mappings. This is not done for strict direction because for post layout
+    # we need to factor in local operation constraints when evaluating a graph
+    free_nodes = {}
+    if not strict_direction:
+        conn_comp = connected_components(im_graph)
+        for comp in conn_comp:
+            if len(comp) == 1:
+                index = comp.pop()
+                free_nodes[index] = im_graph[index]
+                im_graph.remove_node(index)
+
+    return im_graph, im_graph_node_map, reverse_im_graph_node_map, free_nodes
 
 
 def score_layout(avg_error_map, layout, bit_map, reverse_bit_map, im_graph, strict_direction=False):
     """Score a layout given an average error map."""
     bits = layout.get_virtual_bits()
     fidelity = 1
-    for bit, node_index in bit_map.items():
-        gate_count = sum(im_graph[node_index].values())
-        error_rate = avg_error_map.get((bits[bit],))
-        if error_rate is not None:
-            fidelity *= (1 - avg_error_map[(bits[bit],)]) ** gate_count
+    if strict_direction:
+        for bit, node_index in bit_map.items():
+            gate_count = sum(im_graph[node_index].values())
+            error_rate = avg_error_map.get((bits[bit],))
+            if error_rate is not None:
+                fidelity *= (1 - avg_error_map[(bits[bit],)]) ** gate_count
     for edge in im_graph.edge_index_map().values():
         gate_count = sum(edge[2].values())
         qargs = (bits[reverse_bit_map[edge[0]]], bits[reverse_bit_map[edge[1]]])
@@ -150,3 +164,18 @@ def shuffle_coupling_graph(coupling_map, seed, strict_direction=True):
         cm_nodes = [k for k, v in sorted(enumerate(cm_nodes), key=lambda item: item[1])]
         cm_graph = shuffled_cm_graph
     return cm_graph, cm_nodes
+
+
+def map_free_qubits(
+    free_nodes, partial_layout, num_physical_qubits, reverse_bit_map, avg_error_map
+):
+    """Add any free nodes to a layout."""
+    if not free_nodes:
+        return partial_layout
+    qubits = set(range(num_physical_qubits))
+    used_bits = set(partial_layout.get_physical_bits())
+    for im_index in sorted(free_nodes, key=lambda x: sum(free_nodes[x].values())):
+        selected_qubit = min(qubits - used_bits, key=lambda bit: avg_error_map.get((bit,), 1.0))
+        used_bits.add(selected_qubit)
+        partial_layout.add(reverse_bit_map[im_index], selected_qubit)
+    return partial_layout
