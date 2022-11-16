@@ -18,80 +18,19 @@ from qiskit.circuit import Parameter, QuantumCircuit #, TemplateLibrary
 from qiskit.quantum_info.synthesis.ion_decompose import cnot_rxx_decompose
 
 
-from . import (
-    clifford_2_1,
-    clifford_2_2,
-    clifford_2_3,
-    clifford_2_4,
-    clifford_3_1,
-    clifford_4_1,
-    clifford_4_2,
-    clifford_4_3,
-    clifford_4_4,
-    clifford_5_1,
-    clifford_6_2,
-    clifford_6_3,
-    clifford_6_4,
-    clifford_6_5,
-    clifford_8_1,
-    clifford_8_2,
-    clifford_8_3,
-    template_nct_2a_1,
-    template_nct_2a_2,
-    template_nct_2a_3,
-    template_nct_4a_1,
-    template_nct_4a_2,
-    template_nct_4a_3,
-    template_nct_4b_1,
-    template_nct_4b_2,
-    template_nct_5a_1,
-    template_nct_5a_2,
-    template_nct_5a_3,
-    template_nct_5a_4,
-    template_nct_6a_1,
-    template_nct_6a_2,
-    template_nct_6a_3,
-    template_nct_6a_4,
-    template_nct_6b_1,
-    template_nct_6b_2,
-    template_nct_6c_1,
-    template_nct_7a_1,
-    template_nct_7b_1,
-    template_nct_7c_1,
-    template_nct_7d_1,
-    template_nct_7e_1,
-    template_nct_9a_1,
-    template_nct_9c_1,
-    template_nct_9c_2,
-    template_nct_9c_3,
-    template_nct_9c_4,
-    template_nct_9c_5,
-    template_nct_9c_6,
-    template_nct_9c_7,
-    template_nct_9c_8,
-    template_nct_9c_9,
-    template_nct_9c_10,
-    template_nct_9c_11,
-    template_nct_9c_12,
-    template_nct_9d_1,
-    template_nct_9d_2,
-    template_nct_9d_3,
-    template_nct_9d_4,
-    template_nct_9d_5,
-    template_nct_9d_6,
-    template_nct_9d_7,
-    template_nct_9d_8,
-    template_nct_9d_9,
-    template_nct_9d_10,
-    rzx_cy,
-    rzx_xz,
-    rzx_yz,
-    rzx_zz1,
-    rzx_zz2,
-    rzx_zz3,
-)
-
 class TemplateLibrary():
+
+    def __init__(self, *, base=None):
+        """Create a new equivalence library.
+
+        Args:
+            base (Optional[EquivalenceLibrary]):  Base equivalence library to
+                will be referenced if an entry is not found in this library.
+        """
+        self._base = base
+
+        self._map = {}
+
 
     # Clifford templates
 
@@ -117,8 +56,6 @@ class TemplateLibrary():
 
     def_Clifford2_1 = clifford_2_1()
 
-    _sel.add_template(clifford_2_1(), def_Clifford2_1)
-
 
     """
     Clifford template 2_2:
@@ -143,9 +80,6 @@ class TemplateLibrary():
 
     def_Clifford2_2 = clifford_2_2()
 
-    _sel.add_template(clifford_2_2(), def_Clifford2_2)
-
-
     """
     Clifford template 2_3:
     .. parsed-literal::
@@ -168,9 +102,6 @@ class TemplateLibrary():
 
     def_Clifford2_3 = clifford_2_3()
 
-    _sel.add_template(clifford_2_3(), def_Clifford2_3)
-
-
     """
     Clifford template 2_4:
     .. parsed-literal::
@@ -192,8 +123,6 @@ class TemplateLibrary():
 
 
     def_Clifford2_4 = clifford_2_4()
-
-    _sel.add_template(clifford_2_4(), def_Clifford2_4)
 
 
     """
@@ -218,8 +147,6 @@ class TemplateLibrary():
 
 
     def_Clifford3_1 = clifford_3_1()
-
-    _sel.add_template(clifford_3_1(), def_Clifford3_1)
 
 
     """
@@ -248,8 +175,6 @@ class TemplateLibrary():
 
     def_Clifford4_1 = clifford_4_1()
 
-    _sel.add_template(clifford_4_1(), def_Clifford4_1)
-
 
     """
     Clifford template 4_2:
@@ -275,8 +200,6 @@ class TemplateLibrary():
 
 
     def_Clifford4_2 = clifford_4_2()
-
-    _sel.add_template(clifford_4_2(), def_Clifford4_2)
 
 
     """
@@ -305,8 +228,6 @@ class TemplateLibrary():
 
     def_Clifford4_3 = clifford_4_3()
 
-    _sel.add_template(clifford_4_3(), def_Clifford4_3)
-
 
     """
     Clifford template 4_4:
@@ -332,8 +253,6 @@ class TemplateLibrary():
 
 
     def_Clifford4_4 = clifford_4_4()
-
-    _sel.add_template(clifford_4_4(), def_Clifford4_4)
 
 
     """
@@ -364,8 +283,6 @@ class TemplateLibrary():
 
     def_Clifford5_1 = clifford_5_1()
 
-    _sel.add_template(clifford_5_1(), def_Clifford5_1)
-
 
     """
     Clifford template 6_2:
@@ -394,8 +311,6 @@ class TemplateLibrary():
 
 
     def_Clifford6_2 = clifford_6_2()
-
-    _sel.add_template(clifford_6_2(), def_Clifford6_2)
 
 
     """
@@ -426,8 +341,6 @@ class TemplateLibrary():
 
     def_Clifford6_3 = clifford_6_3()
 
-    _sel.add_template(clifford_6_3(), def_Clifford6_3)
-
 
     """
     Clifford template 6_4:
@@ -454,8 +367,6 @@ class TemplateLibrary():
 
 
     def_Clifford6_4 = clifford_6_4()
-
-    _sel.add_template(clifford_6_4(), def_Clifford6_4)
 
 
     """
@@ -485,8 +396,6 @@ class TemplateLibrary():
 
 
     def_Clifford6_5 = clifford_6_5()
-
-    _sel.add_template(clifford_6_5(), def_Clifford6_5)
 
 
     """
@@ -519,8 +428,6 @@ class TemplateLibrary():
 
     def_Clifford8_1 = clifford_8_1()
 
-    _sel.add_template(clifford_8_1(), def_Clifford8_1)
-
 
     """
     Clifford template 8_2:
@@ -552,8 +459,6 @@ class TemplateLibrary():
 
     def_Clifford8_2 = clifford_8_2()
 
-    _sel.add_template(clifford_8_2(), def_Clifford8_2)
-
     """
     Clifford template 8_3:
     .. parsed-literal::
@@ -583,8 +488,6 @@ class TemplateLibrary():
 
     def_Clifford8_3 = clifford_8_3()
 
-    _sel.add_template(clifford_8_3(), def_Clifford8_3)
-
 
     """
     Template 2a_1:
@@ -607,8 +510,6 @@ class TemplateLibrary():
 
 
     def_Template_nct_2a_1 = template_nct_2a_1()
-
-    _sel.add_template(template_nct_2a_1(), def_Template_nct_2a_1)
 
 
     """
@@ -633,8 +534,6 @@ class TemplateLibrary():
 
 
     def_Template_nct_2a_2 = template_nct_2a_2()
-
-    _sel.add_template(template_nct_2a_2(), def_Template_nct_2a_2)
 
 
     """
@@ -661,8 +560,6 @@ class TemplateLibrary():
 
 
     def_Template_nct_2a_3 = template_nct_2a_3()
-
-    _sel.add_template(template_nct_2a_3(), def_Template_nct_2a_3)
 
 
     """
@@ -696,8 +593,6 @@ class TemplateLibrary():
 
     def_Template_nct_4a_1 = template_nct_4a_1()
 
-    _sel.add_template(template_nct_4a_1(), def_Template_nct_4a_1)
-
 
     """
     Template 4a_2:
@@ -728,8 +623,6 @@ class TemplateLibrary():
 
     def_Template_nct_4a_2 = template_nct_4a_2()
 
-    _sel.add_template(template_nct_4a_2(), def_Template_nct_4a_2)
-
 
     """
     Template 4a_3:
@@ -757,8 +650,6 @@ class TemplateLibrary():
 
 
     def_Template_nct_4a_3 = template_nct_4a_3()
-
-    _sel.add_template(template_nct_4a_3(), def_Template_nct_4a_3)
 
 
     """
@@ -790,8 +681,6 @@ class TemplateLibrary():
 
     def_Template_nct_4b_1 = template_nct_4b_1()
 
-    _sel.add_template(template_nct_4b_1(), def_Template_nct_4b_1)
-
 
     """
     Template 4b_2:
@@ -819,8 +708,6 @@ class TemplateLibrary():
 
 
     def_Template_nct_4b_2 = template_nct_4b_2()
-
-    _sel.add_template(template_nct_4b_2(), def_Template_nct_4b_2)
 
 
     """
@@ -851,8 +738,6 @@ class TemplateLibrary():
 
     def_Template_nct_5a_1 = template_nct_5a_1()
 
-    _sel.add_template(template_nct_5a_1(), def_Template_nct_5a_1)
-
 
     """
     Template 5a_2:
@@ -882,7 +767,6 @@ class TemplateLibrary():
 
     def_Template_nct_5a_2 = template_nct_5a_2()
 
-    _sel.add_template(template_nct_5a_2(), def_Template_nct_5a_2)
 
     """
     Template 5a_3:
@@ -912,7 +796,6 @@ class TemplateLibrary():
 
     def_Template_nct_5a_3 = template_nct_5a_3()
 
-    _sel.add_template(template_nct_5a_3(), def_Template_nct_5a_3)
 
 
     """
@@ -942,7 +825,6 @@ class TemplateLibrary():
 
     def_Template_nct_5a_4 = template_nct_5a_4()
 
-    _sel.add_template(template_nct_5a_4(), def_Template_nct_5a_4)
 
 
     """
@@ -973,7 +855,6 @@ class TemplateLibrary():
 
     def_Template_nct_6a_1 = template_nct_6a_1()
 
-    _sel.add_template(template_nct_6a_1(), def_Template_nct_6a_1)
 
 
     """
@@ -1005,7 +886,6 @@ class TemplateLibrary():
 
     def_Template_nct_6a_2 = template_nct_6a_2()
 
-    _sel.add_template(template_nct_6a_2(), def_Template_nct_6a_2)
 
 
     """
@@ -1039,7 +919,6 @@ class TemplateLibrary():
 
     def_Template_nct_6a_3 = template_nct_6a_3()
 
-    _sel.add_template(template_nct_6a_3(), def_Template_nct_6a_3)
 
     """
     Template 6a_4:
@@ -1070,7 +949,6 @@ class TemplateLibrary():
 
     def_Template_nct_6a_3 = template_nct_6a_4()
 
-    _sel.add_template(template_nct_6a_4(), def_Template_nct_6a_4)
 
 
     """
@@ -1102,8 +980,6 @@ class TemplateLibrary():
 
     def_Template_nct_6b_1 = template_nct_6b_1()
 
-    _sel.add_template(template_nct_6b_1(), def_Template_nct_6b_1)
-
 
     """
     Template 6b_2:
@@ -1134,7 +1010,6 @@ class TemplateLibrary():
 
     def_Template_nct_6b_2 = template_nct_6b_2()
 
-    _sel.add_template(template_nct_6b_2(), def_Template_nct_6b_2)
 
 
     """
@@ -1166,7 +1041,6 @@ class TemplateLibrary():
 
     def_Template_nct_6c_1 = template_nct_6c_1()
 
-    _sel.add_template(template_nct_6c_1(), def_Template_nct_6c_1)
 
 
     """
@@ -1200,7 +1074,6 @@ class TemplateLibrary():
 
     def_Template_nct_7a_1 = template_nct_7a_1()
 
-    _sel.add_template(template_nct_7a_1(), def_Template_nct_7a_1)
 
 
     """
@@ -1234,7 +1107,6 @@ class TemplateLibrary():
 
     def_Template_nct_7b_1 = template_nct_7b_1()
 
-    _sel.add_template(template_nct_7b_1(), def_Template_nct_7b_1)
 
 
     """
@@ -1268,7 +1140,6 @@ class TemplateLibrary():
 
     def_Template_nct_7c_1 = template_nct_7c_1()
 
-    _sel.add_template(template_nct_7c_1(), def_Template_nct_7c_1)
 
 
     """
@@ -1302,7 +1173,6 @@ class TemplateLibrary():
 
     def_Template_nct_7d_1 = template_nct_7d_1()
 
-    _sel.add_template(template_nct_7d_1(), def_Template_nct_7d_1)
 
 
     """
@@ -1336,7 +1206,6 @@ class TemplateLibrary():
 
     def_Template_nct_7e_1 = template_nct_7e_1()
 
-    _sel.add_template(template_nct_7e_1(), def_Template_nct_7e_1)
 
 
     """
@@ -1372,7 +1241,6 @@ class TemplateLibrary():
 
     def_Template_nct_9a_1 = template_nct_9a_1()
 
-    _sel.add_template(template_nct_9a_1(), def_Template_nct_9a_1)
 
 
     """
@@ -1406,7 +1274,6 @@ class TemplateLibrary():
 
     def_Template_nct_9c_1 = template_nct_9c_1()
 
-    _sel.add_template(template_nct_9c_1(), def_Template_nct_9c_1)
 
 
     """
@@ -1441,7 +1308,6 @@ class TemplateLibrary():
 
     def_Template_nct_9c_2 = template_nct_9c_2()
 
-    _sel.add_template(template_nct_9c_2(), def_Template_nct_9c_2)
 
 
     """
@@ -1476,7 +1342,6 @@ class TemplateLibrary():
 
     def_Template_nct_9c_3 = template_nct_9c_3()
 
-    _sel.add_template(template_nct_9c_3(), def_Template_nct_9c_3)
 
 
     """
@@ -1511,7 +1376,6 @@ class TemplateLibrary():
 
     def_Template_nct_9c_4 = template_nct_9c_4()
 
-    _sel.add_template(template_nct_9c_4(), def_Template_nct_9c_4)
 
 
     """
@@ -1546,7 +1410,6 @@ class TemplateLibrary():
 
     def_Template_nct_9c_5 = template_nct_9c_5()
 
-    _sel.add_template(template_nct_9c_5(), def_Template_nct_9c_5)
 
 
     """
@@ -1581,7 +1444,6 @@ class TemplateLibrary():
 
     def_Template_nct_9c_6 = template_nct_9c_6()
 
-    _sel.add_template(template_nct_9c_6(), def_Template_nct_9c_6)
 
 
     """
@@ -1616,7 +1478,6 @@ class TemplateLibrary():
 
     def_Template_nct_9c_7 = template_nct_9c_7()
 
-    _sel.add_template(template_nct_9c_7(), def_Template_nct_9c_7)
 
 
     """
@@ -1651,8 +1512,6 @@ class TemplateLibrary():
 
     def_Template_nct_9c_8 = template_nct_9c_8()
 
-    _sel.add_template(template_nct_9c_8(), def_Template_nct_9c_8)
-
 
     """
     Template 9c_9:
@@ -1686,7 +1545,6 @@ class TemplateLibrary():
 
     def_Template_nct_9c_9 = template_nct_9c_9()
 
-    _sel.add_template(template_nct_9c_9(), def_Template_nct_9c_9)
 
 
     """
@@ -1721,7 +1579,6 @@ class TemplateLibrary():
 
     def_Template_nct_9c_10 = template_nct_9c_10()
 
-    _sel.add_template(template_nct_9c_10(), def_Template_nct_9c_10)
 
 
     """
@@ -1758,7 +1615,6 @@ class TemplateLibrary():
 
     def_Template_nct_9c_11 = template_nct_9c_11()
 
-    _sel.add_template(template_nct_9c_11(), def_Template_nct_9c_11)
 
 
     """
@@ -1793,7 +1649,6 @@ class TemplateLibrary():
 
     def_Template_nct_9c_12 = template_nct_9c_12()
 
-    _sel.add_template(template_nct_9c_12(), def_Template_nct_9c_12)
 
 
     """
@@ -1827,7 +1682,6 @@ class TemplateLibrary():
 
     def_Template_nct_9d_1 = template_nct_9d_1()
 
-    _sel.add_template(template_nct_9d_1(), def_Template_nct_9d_1)
 
 
     """
@@ -1862,7 +1716,6 @@ class TemplateLibrary():
 
     def_Template_nct_9d_1 = template_nct_9d_1()
 
-    _sel.add_template(template_nct_9d_1(), def_Template_nct_9d_1)
 
 
     """
@@ -1897,7 +1750,6 @@ class TemplateLibrary():
 
     def_Template_nct_9d_2 = template_nct_9d_2()
 
-    _sel.add_template(template_nct_9d_2(), def_Template_nct_9d_2)
 
 
     """
@@ -1932,7 +1784,6 @@ class TemplateLibrary():
 
     def_Template_nct_9d_3 = template_nct_9d_3()
 
-    _sel.add_template(template_nct_9d_3(), def_Template_nct_9d_3)
 
 
     """
@@ -1967,7 +1818,6 @@ class TemplateLibrary():
 
     def_Template_nct_9d_4 = template_nct_9d_4()
 
-    _sel.add_template(template_nct_9d_4(), def_Template_nct_9d_4)
 
 
     """
@@ -2002,7 +1852,6 @@ class TemplateLibrary():
 
     def_Template_nct_9d_5 = template_nct_9d_5()
 
-    _sel.add_template(template_nct_9d_5(), def_Template_nct_9d_5)
 
 
     """
@@ -2037,7 +1886,6 @@ class TemplateLibrary():
 
     def_Template_nct_9d_6 = template_nct_9d_6()
 
-    _sel.add_template(template_nct_9d_6(), def_Template_nct_9d_6)
 
 
     """
@@ -2072,7 +1920,6 @@ class TemplateLibrary():
 
     def_Template_nct_9d_7 = template_nct_9d_7()
 
-    _sel.add_template(template_nct_9d_7(), def_Template_nct_9d_7)
 
 
     """
@@ -2107,7 +1954,6 @@ class TemplateLibrary():
 
     def_Template_nct_9d_8 = template_nct_9d_8()
 
-    _sel.add_template(template_nct_9d_8(), def_Template_nct_9d_8)
 
 
     """
@@ -2142,7 +1988,6 @@ class TemplateLibrary():
 
     def_Template_nct_9d_9 = template_nct_9d_9()
 
-    _sel.add_template(template_nct_9d_9(), def_Template_nct_9d_9)
 
 
     """
@@ -2177,7 +2022,6 @@ class TemplateLibrary():
 
     def_Template_nct_9d_10 = template_nct_9d_10()
 
-    _sel.add_template(template_nct_9d_10(), def_Template_nct_9d_10)
 
 
     """
@@ -2211,7 +2055,6 @@ class TemplateLibrary():
 
     def_rzx_cy = rzx_cy()
 
-    _sel.add_template(rzx_cy(), def_rzx_cy)
 
 
     """
@@ -2252,7 +2095,6 @@ class TemplateLibrary():
 
     def_rzx_xz = rzx_xz()
 
-    _sel.add_template(rzx_xz(), def_rzx_xz)
 
 
     """
@@ -2284,7 +2126,6 @@ class TemplateLibrary():
 
     def_rzx_yz = rzx_yz()
 
-    _sel.add_template(rzx_yz(), def_rzx_yz)
 
 
     """
@@ -2340,7 +2181,6 @@ class TemplateLibrary():
 
     def_rzx_zz1 = rzx_zz1()
 
-    _sel.add_template(rzx_zz1(), def_rzx_zz1)
 
 
     """
@@ -2386,7 +2226,6 @@ class TemplateLibrary():
 
     def_rzx_zz2 = rzx_zz2()
 
-    _sel.add_template(rzx_zz2(), def_rzx_zz2)
 
 
     """
@@ -2435,4 +2274,3 @@ class TemplateLibrary():
 
     def_rzx_zz3 = rzx_zz3()
 
-    _sel.add_template(rzx_zz3(), def_rzx_zz3)

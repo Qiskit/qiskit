@@ -99,6 +99,6 @@ from .x import XGate, CXGate, CCXGate, C3XGate, C3SXGate, C4XGate, RCCXGate, RC3
 from .x import MCXGate, MCXGrayCode, MCXRecursive, MCXVChain
 from .y import YGate, CYGate
 from .z import ZGate, CZGate
-from .template_library import TemplateLibrary
+from .templates import TemplateLibrary
 
 from .multi_control_rotation_gates import mcrx, mcry, mcrz

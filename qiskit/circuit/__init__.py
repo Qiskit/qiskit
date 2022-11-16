@@ -190,6 +190,7 @@ Gates and Instructions
    Instruction
    InstructionSet
    EquivalenceLibrary
+   TemplateLibrary
 
 Control Flow Operations
 -----------------------
@@ -239,6 +240,7 @@ from .parameter import Parameter
 from .parametervector import ParameterVector
 from .parameterexpression import ParameterExpression
 from .equivalence import EquivalenceLibrary
+from .standard_gates.templates import TemplateLibrary
 from .classicalfunction.types import Int1, Int2
 from .classicalfunction import classical_function, BooleanExpression
 
