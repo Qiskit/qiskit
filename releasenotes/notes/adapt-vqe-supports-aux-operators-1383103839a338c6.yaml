@@ -1,0 +1,5 @@
+---
+fixes:
+  - |
+    :class:`~qiskit.algorithms.minimum_eigensolver.AdaptVQE` now correctly
+    indicates that it supports auxiliary operators.

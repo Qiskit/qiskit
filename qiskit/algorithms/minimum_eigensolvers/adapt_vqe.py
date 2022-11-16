@@ -29,6 +29,7 @@ from qiskit.opflow import OperatorBase, PauliSumOp
 from qiskit.circuit.library import EvolvedOperatorAnsatz
 from qiskit.utils.validation import validate_min
 
+from .minimum_eigensolver import MinimumEigensolver
 from .vqe import VQE, VQEResult
 from ..observables_evaluator import estimate_observables
 from ..variational_algorithm import VariationalAlgorithm
@@ -45,7 +46,7 @@ class TerminationCriterion(Enum):
     MAXIMUM = "Maximum number of iterations reached"
 
 
-class AdaptVQE(VariationalAlgorithm):
+class AdaptVQE(VariationalAlgorithm, MinimumEigensolver):
     """The Adaptive Variational Quantum Eigensolver algorithm.
 
     `AdaptVQE <https://arxiv.org/abs/1812.11173>`__ is a quantum algorithm which creates a compact
@@ -125,6 +126,10 @@ class AdaptVQE(VariationalAlgorithm):
     def initial_point(self, value: Sequence[float] | None) -> None:
         """Sets the initial point of the internal :class:`~.VQE` solver."""
         self.solver.initial_point = value
+
+    @classmethod
+    def supports_aux_operators(cls) -> bool:
+        return True
 
     def _compute_gradients(
         self,
