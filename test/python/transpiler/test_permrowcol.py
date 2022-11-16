@@ -307,7 +307,7 @@ class TestPermRowCol(QiskitTestCase):
 
         result_circuit = [
             [True, True, False, False, False, False],
-            [True, True, False, False, False, False],
+            [True, False, False, False, False, False],
             [False, False, True, False, False, False],
             [False, False, False, True, False, False],
             [False, True, False, False, True, False],
@@ -323,8 +323,8 @@ class TestPermRowCol(QiskitTestCase):
             [1, 0, 1, 0, 1, 1],
         ]
 
-        self.assertEqual(LinearFunction(instance).linear, result_circuit)
-        self.assertEqual(parity_mat, result_parity_matrix)
+        self.assertEqual(np.array_equal(LinearFunction(instance).linear, result_circuit), True)
+        self.assertEqual(np.array_equal(parity_mat, result_parity_matrix), True)
 
 
 if __name__ == "__main__":

@@ -134,10 +134,14 @@ class PermRowCol:
             if edge[1] not in terminals:
                 C.append((edge[0], edge[1]))
                 parity_mat[edge[0], :] = (parity_mat[edge[0], :] + parity_mat[edge[1], :]) % 2
+                print(edge)
+                print(parity_mat)
 
         for edge in post_edges:
             C.append((edge[0], edge[1]))
             parity_mat[edge[0], :] = (parity_mat[edge[0], :] + parity_mat[edge[1], :]) % 2
+            print(edge)
+            print(parity_mat)
 
         return C
 
@@ -147,7 +151,7 @@ class PermRowCol:
         """Checks if the sum of the chosen row is bigger than one. If the sum is bigger than one, the function performs row elimination.
 
         Args:
-            parity_mat: np.ndarray
+            parity_mat (np.ndarray): parity matrix representing a circuit
             chosen_column: int
             chosen_row: int
             circuit: QuantumCircuit
@@ -158,11 +162,49 @@ class PermRowCol:
 
         """
 
-        #        if sum(parity_mat[chosen_row]) > 1:
-        #
-        #            circuit = self.parity_mat
-        #            c_copy = []
-        #
+#        A = [
+#            [0, 1, 0, 1],
+#            [0, 0, 1, 0],
+#            [1, 0, 1, 1],
+#            [0, 1, 1, 0],
+#        ]
+#        inv_A = LinearFunction(LinearFunction(A).synthesize().reverse_ops()).linear
+#        print("inv_A:", inv_A)
+#
+
+
+        if sum(parity_mat[chosen_row]) > 1:
+    
+            A = parity_mat.copy()
+            A[chosen_row] = [0]*len(A[chosen_row])
+            print("A:", A)
+            B = parity_mat[chosen_row].copy()
+            B[chosen_column] = 0
+            B = B.astype(bool)
+            print("B:", B)
+            inv_A = LinearFunction(LinearFunction(A).synthesize().reverse_ops()).linear
+            print("inv_A:", inv_A)
+            X = np.matmul(inv_A, B)
+            print("X:", X)
+            print([i for i in range(len(X))])
+            nodes = [i for i in range(len(X)) if i == chosen_row or X[i] == True]
+            print("nodes:", nodes)
+            #print("circuit before changes:")
+            #print(LinearFunction(circuit).linear)
+            print("parity mat before eliminate row:")
+            print(parity_mat)
+            for edge in self.eliminate_row(parity_mat, chosen_row, nodes):
+                print("edge:", edge)
+                circuit.cx(edge[0], edge[1])
+                #print("changed circuit:")
+                #print(LinearFunction(circuit).linear)
+
+
+        #print("circuit at the end:")
+        #print(LinearFunction(circuit).linear)
+        print("parity mat after eliminate row:")
+        print(parity_mat)
+
         #            A_first_step = (
         #                # Creates a new matrix without the chosen row
         #                # C_copy.append(C[rows nuber][halutun vaihdettavan tunnut, esim. jos halutaan ensimmäinen niin luku on 0 jne.] = Nollarivi)
@@ -190,8 +232,5 @@ class PermRowCol:
         #
         #            return circuit
         #
-
-        if sum(parity_mat[chosen_row]) <= 1:
-            pass
 
         return circuit
