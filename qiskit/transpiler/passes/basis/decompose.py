@@ -111,8 +111,6 @@ class Decompose(TransformationPass):
         if self.gates_to_decompose is None:  # check if no gates given
             return True
 
-        has_label = False
-
         if not isinstance(self.gates_to_decompose, list):
             gates = [self.gates_to_decompose]
         else:
@@ -121,14 +119,11 @@ class Decompose(TransformationPass):
         strings_list = [s for s in gates if isinstance(s, str)]
         gate_type_list = [g for g in gates if isinstance(g, type)]
 
-        if hasattr(node.op, "label") and node.op.label is not None:
-            has_label = True
-
-        if has_label and (  # check if label or label wildcard is given
+        if node.op.label and (  # check if label or label wildcard is given
             node.op.label in gates or any(fnmatch(node.op.label, p) for p in strings_list)
         ):
             return True
-        elif not has_label and (  # check if name or name wildcard is given
+        elif (  # check if name or name wildcard is given
             node.name in gates or any(fnmatch(node.name, p) for p in strings_list)
         ):
             return True

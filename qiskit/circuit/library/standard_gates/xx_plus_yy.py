@@ -86,7 +86,7 @@ class XXPlusYYGate(Gate):
         self,
         theta: ParameterValueType,
         beta: ParameterValueType = 0,
-        label: Optional[str] = "{XX+YY}",
+        label: Optional[str] = "(XX+YY)",
     ):
         """Create new XX+YY gate.
 
