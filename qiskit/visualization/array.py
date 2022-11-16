@@ -182,24 +182,24 @@ def array_to_latex(array, precision=10, prefix="", source=False, max_size=8):
         or types that can be converted to such arrays"""
         ) from err
 
-    if array.ndim <= 2:
-        if isinstance(max_size, int):
-            max_size = (max_size, max_size)
-        outstr = _matrix_to_latex(array, decimals=precision, prefix=prefix, max_size=max_size)
-    else:
+    if array.ndim > 2:
         raise ValueError("array_to_latex can only convert numpy ndarrays of dimension 1 or 2")
+
+    if isinstance(max_size, int):
+        max_size = (max_size, max_size)
 
     outstr = _matrix_to_latex(array, decimals=precision, prefix=prefix, max_size=max_size)
 
-    if source is False:
-        try:
-            from IPython.display import Latex
-        except ImportError as err:
-            raise MissingOptionalLibraryError(
-                libname="IPython",
-                name="array_to_latex",
-                pip_install="pip install ipython",
-            ) from err
-        return Latex(f"$${outstr}$$")
-    else:
+    if source is True:
         return outstr
+
+    try:
+        from IPython.display import Latex
+    except ImportError as err:
+        raise MissingOptionalLibraryError(
+            libname="IPython",
+            name="array_to_latex",
+            pip_install="pip install ipython",
+        ) from err
+    return Latex(f"$${outstr}$$")
+    
