@@ -1208,7 +1208,12 @@ class QuantumCircuit:
 
         # Convert input to instruction
         if not isinstance(operation, Operation):
-            if not hasattr(operation, "to_instruction"):
+            if hasattr(operation, "to_instruction"):
+                operation = operation.to_instruction()
+                # probably redundant, but check to be sure
+                if not isinstance(operation, Operation):
+                    raise CircuitError("operation.to_instruction() is not an Operation.")
+            else:
                 if issubclass(operation, Operation):
                     raise CircuitError(
                         "Object is a subclass of Operation, please add () to "
@@ -1218,11 +1223,6 @@ class QuantumCircuit:
                 raise CircuitError(
                     "Object to append must be an Operation or have a to_instruction() method."
                 )
-            else:
-                operation = operation.to_instruction()
-                # probably redundant, but check to be sure
-                if not isinstance(operation, Operation):
-                    raise CircuitError("object is not an Operation.")
 
         # Make copy of parameterized gate instances
         if hasattr(operation, "params"):
