@@ -56,7 +56,7 @@ class TestPermutationSynthesis(QiskitTestCase):
                 q0 = qc.find_bit(instruction.qubits[0]).index
                 q1 = qc.find_bit(instruction.qubits[1]).index
                 dist = abs(q0 - q1)
-                self.assertTrue(dist, 1)
+                self.assertEqual(dist, 1)
 
             # Check that the depth of the circuit (measured in #SWAPs)
             # does not exceed the number of qubits.

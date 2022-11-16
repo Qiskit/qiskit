@@ -29,6 +29,14 @@ Evolution Synthesis
    SuzukiTrotter
    MatrixExponential
 
+Permutation Synthesis
+=====================
+
+.. autosummary::
+   :toctree: ../stubs/
+
+   synth_permutation_depth_lnn_kms
+
 """
 
 from .evolution import (
@@ -39,3 +47,5 @@ from .evolution import (
     MatrixExponential,
     QDrift,
 )
+
+from .permutation import synth_permutation_depth_lnn_kms
