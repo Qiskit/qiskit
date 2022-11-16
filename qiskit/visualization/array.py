@@ -202,4 +202,3 @@ def array_to_latex(array, precision=10, prefix="", source=False, max_size=8):
             pip_install="pip install ipython",
         ) from err
     return Latex(f"$${outstr}$$")
-    
