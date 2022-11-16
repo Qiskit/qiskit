@@ -111,9 +111,9 @@ class Pulse(ABC):
             If matplotlib family is specified, this will be a ``matplotlib.pyplot.Figure`` data.
         """
         # pylint: disable=cyclic-import, missing-return-type-doc
-        from qiskit.visualization import pulse_drawer_v2
+        from qiskit.visualization import pulse_drawer
 
-        return pulse_drawer_v2(
+        return pulse_drawer(
             program=self,
             style=style,
             backend=backend,
