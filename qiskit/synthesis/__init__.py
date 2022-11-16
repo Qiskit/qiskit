@@ -36,6 +36,7 @@ Permutation Synthesis
    :toctree: ../stubs/
 
    synth_permutation_depth_lnn_kms
+   synth_permutation_basic
 
 """
 
@@ -48,4 +49,7 @@ from .evolution import (
     QDrift,
 )
 
-from .permutation import synth_permutation_depth_lnn_kms
+from .permutation import (
+    synth_permutation_depth_lnn_kms,
+    synth_permutation_basic,
+)

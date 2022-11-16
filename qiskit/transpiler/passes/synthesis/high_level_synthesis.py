@@ -15,6 +15,7 @@
 
 
 from qiskit.converters import circuit_to_dag
+from qiskit.synthesis import synth_permutation_basic
 from qiskit.transpiler.basepasses import TransformationPass
 from qiskit.dagcircuit.dagcircuit import DAGCircuit
 from qiskit.transpiler.exceptions import TranspilerError
@@ -173,10 +174,19 @@ class DefaultSynthesisLinearFunction(HighLevelSynthesisPlugin):
         return decomposition
 
 
-class DefaultSynthesisPermutation(HighLevelSynthesisPlugin):
+class KMSSynthesisPermutation(HighLevelSynthesisPlugin):
     """The default permutation synthesis plugin."""
 
     def run(self, high_level_object, **options):
-        """Run synthesis for the given LinearFunction."""
+        """Run synthesis for the given Permutation."""
         decomposition = synth_permutation_depth_lnn_kms(high_level_object.pattern)
+        return decomposition
+
+
+class BasicSynthesisPermutation(HighLevelSynthesisPlugin):
+    """The permutation synthesis plugin based on sorting."""
+
+    def run(self, high_level_object, **options):
+        """Run synthesis for the given Permutation."""
+        decomposition = synth_permutation_basic(high_level_object.pattern)
         return decomposition

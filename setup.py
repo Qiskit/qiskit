@@ -105,7 +105,9 @@ setup(
         "qiskit.synthesis": [
             "clifford.default = qiskit.transpiler.passes.synthesis.high_level_synthesis:DefaultSynthesisClifford",
             "linear_function.default = qiskit.transpiler.passes.synthesis.high_level_synthesis:DefaultSynthesisLinearFunction",
-            "permutation.default = qiskit.transpiler.passes.synthesis.high_level_synthesis:DefaultSynthesisPermutation",
+            "permutation.default = qiskit.transpiler.passes.synthesis.high_level_synthesis:KMSSynthesisPermutation",
+            "permutation.kms = qiskit.transpiler.passes.synthesis.high_level_synthesis:KMSSynthesisPermutation",
+            "permutation.basic = qiskit.transpiler.passes.synthesis.high_level_synthesis:BasicSynthesisPermutation",
         ],
         "qiskit.transpiler.routing": [
             "basic = qiskit.transpiler.preset_passmanagers.builtin_plugins:BasicSwapPassManager",
