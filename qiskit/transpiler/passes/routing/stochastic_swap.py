@@ -12,6 +12,7 @@
 
 """Map a DAGCircuit onto a `coupling_map` adding swap gates."""
 
+import itertools
 import logging
 from math import inf
 import numpy as np
@@ -23,8 +24,9 @@ from qiskit.transpiler.exceptions import TranspilerError
 from qiskit.dagcircuit import DAGCircuit
 from qiskit.circuit.library.standard_gates import SwapGate
 from qiskit.transpiler.layout import Layout
-from qiskit.circuit import IfElseOp, WhileLoopOp, ForLoopOp, ControlFlowOp
+from qiskit.circuit import IfElseOp, WhileLoopOp, ForLoopOp, ControlFlowOp, Instruction
 from qiskit._accelerate import stochastic_swap as stochastic_swap_rs
+from qiskit._accelerate import nlayout
 
 from .utils import get_swap_map_dag
 
@@ -190,7 +192,7 @@ class StochasticSwap(TransformationPass):
         )
 
         layout_mapping = {self._qubit_to_int[k]: v for k, v in layout.get_virtual_bits().items()}
-        int_layout = stochastic_swap_rs.NLayout(layout_mapping, num_qubits, coupling.size())
+        int_layout = nlayout.NLayout(layout_mapping, num_qubits, coupling.size())
 
         trial_circuit = DAGCircuit()  # SWAP circuit for slice of swaps in this trial
         trial_circuit.add_qubits(layout.get_virtual_bits())
@@ -380,9 +382,7 @@ class StochasticSwap(TransformationPass):
         block_layouts = []
         for block in node.op.blocks:
             inner_pass = self._recursive_pass(current_layout)
-            full_dag_block = root_dag.copy_empty_like()
-            full_dag_block.compose(circuit_to_dag(block), qubits=node.qargs)
-            block_dags.append(inner_pass.run(full_dag_block))
+            block_dags.append(inner_pass.run(_dag_from_block(block, node, root_dag)))
             block_layouts.append(inner_pass.property_set["final_layout"].copy())
 
         # Determine what layout we need to go towards.  For some blocks (such as `for`), we must
@@ -443,3 +443,23 @@ class StochasticSwap(TransformationPass):
             fake_run=self.fake_run,
             initial_layout=initial_layout,
         )
+
+
+def _dag_from_block(block, node, root_dag):
+    """Get a :class:`DAGCircuit` that represents the :class:`.QuantumCircuit` ``block`` embedded
+    within the ``root_dag`` for full-width routing purposes.  This means that all the qubits are in
+    the output DAG, but only the necessary clbits and classical registers are."""
+    out = DAGCircuit()
+    # The pass already ensured that `root_dag` has only a single quantum register with everything.
+    for qreg in root_dag.qregs.values():
+        out.add_qreg(qreg)
+    # For clbits, we need to take more care.  Nested control-flow might need registers to exist for
+    # conditions on inner blocks.  `DAGCircuit.substitute_node_with_dag` handles this register
+    # mapping when required, so we use that with a dummy block.
+    out.add_clbits(node.cargs)
+    dummy = out.apply_operation_back(
+        Instruction("dummy", len(node.qargs), len(node.cargs), []), node.qargs, node.cargs
+    )
+    wire_map = dict(itertools.chain(zip(block.qubits, node.qargs), zip(block.clbits, node.cargs)))
+    out.substitute_node_with_dag(dummy, circuit_to_dag(block), wires=wire_map)
+    return out

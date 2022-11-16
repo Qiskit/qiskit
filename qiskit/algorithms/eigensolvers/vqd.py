@@ -38,6 +38,9 @@ from ..utils import validate_bounds, validate_initial_point
 from ..exceptions import AlgorithmError
 from ..observables_evaluator import estimate_observables
 
+# private function as we expect this to be updated in the next release
+from ..utils.set_batching import _set_default_batchsize
+
 logger = logging.getLogger(__name__)
 
 
@@ -91,13 +94,16 @@ class VQD(VariationalAlgorithm, Eigensolver):
             optimizer(Optimizer): A classical optimizer. Can either be a Qiskit optimizer or a callable
                 that takes an array as input and returns a Qiskit or SciPy optimization result.
             k (int): the number of eigenvalues to return. Returns the lowest k eigenvalues.
-            betas (list[float]): beta parameters in the VQD paper.
+            betas (list[float]): Beta parameters in the VQD paper.
                 Should have length k - 1, with k the number of excited states.
                 These hyper-parameters balance the contribution of each overlap term to the cost
                 function and have a default value computed as the mean square sum of the
                 coefficients of the observable.
+            initial point (list[float]): An optional initial point (i.e. initial parameter values)
+                for the optimizer. If ``None`` then VQD will look to the ansatz for a preferred
+                point and if not will simply compute a random one.
             callback (Callable[[int, np.ndarray, float, dict[str, Any]], None] | None):
-                a callback that can access the intermediate data
+                A callback that can access the intermediate data
                 during the optimization. Four parameter values are passed to the callback as
                 follows during each evaluation by the optimizer: the evaluation count,
                 the optimizer parameters for the ansatz, the estimated value, the estimation
@@ -124,16 +130,16 @@ class VQD(VariationalAlgorithm, Eigensolver):
             ansatz: A parameterized circuit used as ansatz for the wave function.
             optimizer: A classical optimizer. Can either be a Qiskit optimizer or a callable
                 that takes an array as input and returns a Qiskit or SciPy optimization result.
-            k: the number of eigenvalues to return. Returns the lowest k eigenvalues.
-            betas: beta parameters in the VQD paper.
+            k: The number of eigenvalues to return. Returns the lowest k eigenvalues.
+            betas: Beta parameters in the VQD paper.
                 Should have length k - 1, with k the number of excited states.
                 These hyperparameters balance the contribution of each overlap term to the cost
                 function and have a default value computed as the mean square sum of the
                 coefficients of the observable.
-            initial_point: an optional initial point (i.e. initial parameter values)
+            initial_point: An optional initial point (i.e. initial parameter values)
                 for the optimizer. If ``None`` then VQD will look to the ansatz for a preferred
                 point and if not will simply compute a random one.
-            callback: a callback that can access the intermediate data
+            callback: A callback that can access the intermediate data
                 during the optimization. Four parameter values are passed to the callback as
                 follows during each evaluation by the optimizer: the evaluation count,
                 the optimizer parameters for the ansatz, the estimated value,
@@ -238,11 +244,19 @@ class VQD(VariationalAlgorithm, Eigensolver):
         if aux_operators is not None:
             aux_values = []
 
+        # We keep a list of the bound circuits with optimal parameters, to avoid re-binding
+        # the same parameters to the ansatz if we do multiple steps
+        prev_states = []
+
         for step in range(1, self.k + 1):
+
+            # update list of optimal circuits
+            if step > 1:
+                prev_states.append(self.ansatz.bind_parameters(result.optimal_points[-1]))
 
             self._eval_count = 0
             energy_evaluation = self._get_evaluate_energy(
-                step, operator, betas, prev_states=result.optimal_parameters
+                step, operator, betas, prev_states=prev_states
             )
 
             start_time = time()
@@ -253,9 +267,17 @@ class VQD(VariationalAlgorithm, Eigensolver):
                     fun=energy_evaluation, x0=initial_point, bounds=bounds
                 )
             else:
+                # we always want to submit as many estimations per job as possible for minimal
+                # overhead on the hardware
+                was_updated = _set_default_batchsize(self.optimizer)
+
                 opt_result = self.optimizer.minimize(
                     fun=energy_evaluation, x0=initial_point, bounds=bounds
                 )
+
+                # reset to original value
+                if was_updated:
+                    self.optimizer.set_max_evals_grouped(None)
 
             eval_time = time() - start_time
 
@@ -304,7 +326,7 @@ class VQD(VariationalAlgorithm, Eigensolver):
         step: int,
         operator: BaseOperator | PauliSumOp,
         betas: Sequence[float],
-        prev_states: list[np.ndarray] | None = None,
+        prev_states: list[QuantumCircuit] | None = None,
     ) -> Callable[[np.ndarray], float | list[float]]:
         """Returns a function handle to evaluate the ansatz's energy for any given parameters.
             This is the objective function to be passed to the optimizer that is used for evaluation.
@@ -312,7 +334,7 @@ class VQD(VariationalAlgorithm, Eigensolver):
         Args:
             step: level of energy being calculated. 0 for ground, 1 for first excited state...
             operator: The operator whose energy to evaluate.
-            prev_states: List of parameters from previous rounds of optimization.
+            prev_states: List of optimal circuits from previous rounds of optimization.
 
         Returns:
             A callable that computes and returns the energy of the hamiltonian
@@ -336,10 +358,6 @@ class VQD(VariationalAlgorithm, Eigensolver):
 
         self._check_operator_ansatz(operator)
 
-        prev_circs = []
-        for state in range(step - 1):
-            prev_circs.append(self.ansatz.bind_parameters(prev_states[state]))
-
         def evaluate_energy(parameters: np.ndarray) -> np.ndarray | float:
 
             try:
@@ -355,10 +373,9 @@ class VQD(VariationalAlgorithm, Eigensolver):
             if step > 1:
                 # Compute overlap cost
                 fidelity_job = self.fidelity.run(
-                    [self.ansatz] * len(prev_circs),
-                    prev_circs,
-                    [parameters] * len(prev_circs),
-                    [prev_states[:-1]],
+                    [self.ansatz] * (step - 1),
+                    prev_states,
+                    [parameters] * (step - 1),
                 )
                 costs = fidelity_job.result().fidelities
 

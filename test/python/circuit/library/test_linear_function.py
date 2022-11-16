@@ -22,6 +22,7 @@ from qiskit.circuit import QuantumCircuit
 from qiskit.circuit.library.standard_gates import CXGate, SwapGate
 from qiskit.circuit.library.generalized_gates import LinearFunction
 from qiskit.circuit.exceptions import CircuitError
+from qiskit.synthesis.linear import random_invertible_binary_matrix
 
 from qiskit.quantum_info.operators import Operator
 
@@ -49,23 +50,6 @@ def random_linear_circuit(num_qubits, num_gates, seed=None):
         circ.append(gate, qargs)
 
     return circ
-
-
-def random_invertible_binary_matrix(num_qubits, seed=None):
-    """Generates a random invertible n x n binary matrix."""
-
-    # This code is adapted from random_cnotdihedral
-    if isinstance(seed, np.random.Generator):
-        rng = seed
-    else:
-        rng = np.random.default_rng(seed)
-
-    det = 0
-    while np.allclose(det, 0) or np.allclose(det, 2):
-        binary_matrix = rng.integers(2, size=(num_qubits, num_qubits))
-        det = np.linalg.det(binary_matrix) % 2
-
-    return binary_matrix
 
 
 @ddt
@@ -132,7 +116,7 @@ class TestLinearFunctions(QiskitTestCase):
     def test_patel_markov_hayes(self):
         """Checks the explicit example from Patel-Markov-Hayes's paper."""
 
-        # This code is adapted from test_synthesis.py
+        # This code is adapted from test_gray_synthesis.py
         binary_matrix = [
             [1, 1, 0, 0, 0, 0],
             [1, 0, 0, 1, 1, 0],
