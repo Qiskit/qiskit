@@ -17,6 +17,7 @@ import unittest
 import ddt
 
 from qiskit.circuit.library import CCXGate, HGate, Measure, SwapGate
+from qiskit.converters import circuit_to_dag
 from qiskit.transpiler.passes import SabreSwap, TrivialLayout
 from qiskit.transpiler import CouplingMap, PassManager
 from qiskit import ClassicalRegister, QuantumRegister, QuantumCircuit
@@ -306,6 +307,37 @@ class TestSabreSwap(QiskitTestCase):
         expected.measure(2, 1)
         result = SabreSwap(CouplingMap.from_line(3), seed=12345)(qc)
         self.assertEqual(result, expected)
+
+    @ddt.data("basic", "lookahead", "decay")
+    def test_deterministic(self, heuristic):
+        """Test that the output of the SabreSwap pass is deterministic for a given random seed."""
+        width = 40
+
+        # The actual circuit is unimportant, we just need one with lots of scoring degeneracy.
+        qc = QuantumCircuit(width)
+        for i in range(width // 2):
+            qc.cx(i, i + (width // 2))
+        for i in range(0, width, 2):
+            qc.cx(i, i + 1)
+        dag = circuit_to_dag(qc)
+
+        coupling = CouplingMap.from_line(width)
+        pass_0 = SabreSwap(coupling, heuristic, seed=0, trials=1)
+        pass_1 = SabreSwap(coupling, heuristic, seed=1, trials=1)
+        dag_0 = pass_0.run(dag)
+        dag_1 = pass_1.run(dag)
+
+        # This deliberately avoids using a topological order, because that introduces an opportunity
+        # for the re-ordering to sort the swaps back into a canonical order.
+        def normalize_nodes(dag):
+            return [(node.op.name, node.qargs, node.cargs) for node in dag.op_nodes()]
+
+        # A sanity check for the test - if unequal seeds don't produce different outputs for this
+        # degenerate circuit, then the test probably needs fixing (or Sabre is ignoring the seed).
+        self.assertNotEqual(normalize_nodes(dag_0), normalize_nodes(dag_1))
+
+        # Check that a re-run with the same seed produces the same circuit in the exact same order.
+        self.assertEqual(normalize_nodes(dag_0), normalize_nodes(pass_0.run(dag)))
 
 
 if __name__ == "__main__":
