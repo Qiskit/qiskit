@@ -17,6 +17,7 @@ from typing import List
 import numpy as np
 
 from qiskit.circuit.operation import Operation
+from qiskit.circuit.controlflow import ControlFlowOp
 from qiskit.quantum_info.operators import Operator
 
 
@@ -86,6 +87,11 @@ class CommutationChecker:
             getattr(op1, "condition", None) is not None
             or getattr(op2, "condition", None) is not None
         ):
+            return False
+
+        # Commutation of ControlFlow gates also not supported yet. This may be
+        # pending a control flow graph.
+        if isinstance(op1, ControlFlowOp) or isinstance(op2, ControlFlowOp):
             return False
 
         # These lines are adapted from dag_dependency and say that two gates over

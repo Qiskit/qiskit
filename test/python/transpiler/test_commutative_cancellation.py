@@ -635,13 +635,13 @@ class TestCommutativeCancellation(QiskitTestCase):
     def test_simple_if_else(self):
         """Test that the pass is not confused by if-else."""
         base_test1 = QuantumCircuit(3, 3)
-
+        base_test1.x(1)
         base_test1.cx(0, 1)
         base_test1.x(1)
 
         base_test2 = QuantumCircuit(3, 3)
-        base_test2.cx(1, 2)
-        base_test2.rx(0.1, 2)
+        base_test2.rz(0.1, 1)
+        base_test2.rz(0.1, 1)
 
         test = QuantumCircuit(3, 3)
         test.h(0)
@@ -652,44 +652,66 @@ class TestCommutativeCancellation(QiskitTestCase):
         test.if_else(
             (test.clbits[0], True), base_test1.copy(), base_test2.copy(), test.qubits, test.clbits
         )
-        # dag = circuit_to_dag(test)
-        # dag_body1 = circuit_to_dag(base_test1)
-        # dag_body2 = circuit_to_dag(base_test2)
 
-        passmanager = PassManager()
-        passmanager.append(CommutativeCancellation())
+        expected = QuantumCircuit(3, 3)
+        expected.h(0)
+        expected.rx(np.pi + 0.2, 0)
+        expected.measure(0, 0)
+        expected.x(0)
+
+        expected_test1 = QuantumCircuit(3, 3)
+        expected_test1.cx(0, 1)
+
+        expected_test2 = QuantumCircuit(3, 3)
+        expected_test2.rz(0.2, 1)
+
+        expected.if_else(
+            (expected.clbits[0], True),
+            expected_test1.copy(),
+            expected_test2.copy(),
+            expected.qubits,
+            expected.clbits,
+        )
+
+        passmanager = PassManager([CommutationAnalysis(), CommutativeCancellation()])
         new_circuit = passmanager.run(test)
-
-        breakpoint()
+        self.assertEqual(new_circuit, expected)
 
     def test_nested_control_flow(self):
         """Test that the pass does not add barrier into nested control flow."""
-        pass_ = BarrierBeforeFinalMeasurements()
+        level2_test = QuantumCircuit(2, 1)
+        level2_test.cz(0, 1)
+        level2_test.cz(0, 1)
+        level2_test.cz(0, 1)
+        level2_test.measure(0, 0)
 
-        base_test = QuantumCircuit(2, 1)
-        base_test.cz(0, 1)
-        base_test.measure(0, 0)
-
-        body_test = QuantumCircuit(2, 1)
-        body_test.for_loop((0,), None, base_test.copy(), body_test.qubits, [])
-        body_test.measure(0, 0)
-
-        body_expected = QuantumCircuit(2, 1)
-        body_expected.for_loop((0,), None, base_test.copy(), body_expected.qubits, [])
-        body_expected.measure(0, 0)
+        level1_test = QuantumCircuit(2, 1)
+        level1_test.for_loop((0,), None, level2_test.copy(), level1_test.qubits, [])
+        level1_test.h(0)
+        level1_test.h(0)
+        level1_test.measure(0, 0)
 
         test = QuantumCircuit(2, 1)
-        test.while_loop((test.clbits[0], True), body_test, test.qubits, test.clbits)
+        test.while_loop((test.clbits[0], True), level1_test.copy(), test.qubits, test.clbits)
         test.measure(0, 0)
+
+        level2_expected = QuantumCircuit(2, 1)
+        level2_expected.cz(0, 1)
+        level2_expected.measure(0, 0)
+
+        level1_expected = QuantumCircuit(2, 1)
+        level1_expected.for_loop((0,), None, level2_expected.copy(), level1_expected.qubits, [])
+        level1_expected.measure(0, 0)
 
         expected = QuantumCircuit(2, 1)
         expected.while_loop(
-            (expected.clbits[0], True), body_expected, expected.qubits, expected.clbits
+            (expected.clbits[0], True), level1_expected.copy(), expected.qubits, expected.clbits
         )
-        expected.barrier([0, 1])
         expected.measure(0, 0)
 
-        self.assertEqual(pass_(test), expected)
+        passmanager = PassManager([CommutationAnalysis(), CommutativeCancellation()])
+        new_circuit = passmanager.run(test)
+        self.assertEqual(new_circuit, expected)
 
 
 if __name__ == "__main__":

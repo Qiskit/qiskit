@@ -24,7 +24,8 @@ from qiskit.circuit.library.standard_gates.u1 import U1Gate
 from qiskit.circuit.library.standard_gates.rx import RXGate
 from qiskit.circuit.library.standard_gates.p import PhaseGate
 from qiskit.circuit.library.standard_gates.rz import RZGate
-from qiskit.transpiler.utils import control_flow
+from qiskit.circuit import ControlFlowOp
+
 
 _CUTOFF_PRECISION = 1e-5
 
@@ -57,7 +58,6 @@ class CommutativeCancellation(TransformationPass):
         self._var_z_map = {"rz": RZGate, "p": PhaseGate, "u1": U1Gate}
         self.requires.append(CommutationAnalysis())
 
-    @control_flow.trivial_recurse
     def run(self, dag):
         """Run the CommutativeCancellation pass on `dag`.
 
@@ -93,7 +93,6 @@ class CommutativeCancellation(TransformationPass):
         #  - For 2qbit gates the key: (gate_type, first_qbit, sec_qbit, first commutation_set_id,
         #    sec_commutation_set_id), the value is the list gates that share the same gate type,
         #    qubits and commutation sets.
-
         for wire in dag.wires:
             wire_commutation_set = self.property_set["commutation_set"][wire]
 
@@ -169,7 +168,12 @@ class CommutativeCancellation(TransformationPass):
                     new_dag = DAGCircuit()
                     new_dag.add_qreg(new_qarg)
                     new_dag.apply_operation_back(new_op, [new_qarg[0]])
-                    dag.substitute_node_with_dag(run[0], new_dag)
+                    try:
+                        dag.substitute_node_with_dag(run[0], new_dag)
+                    except KeyError as err:
+                        print(repr(err))
+                        breakpoint()
+                        pass
                     if new_op.definition:
                         new_op_phase = new_op.definition.global_phase
 
@@ -182,4 +186,22 @@ class CommutativeCancellation(TransformationPass):
                 if np.mod(total_angle, (2 * np.pi)) < _CUTOFF_PRECISION:
                     dag.remove_op_node(run[0])
 
+        dag = self._handle_control_flow_ops(dag)
+
+        return dag
+
+    def _handle_control_flow_ops(self, dag):
+        """
+        This is similar to transpiler/passes/utils/control_flow.py except that the
+        commutation analysis is redone for the control flow blocks.
+        """
+        from qiskit.transpiler import PassManager
+
+        for node in dag.op_nodes(ControlFlowOp):
+            mapped_blocks = []
+            for block in node.op.blocks:
+                pass_manager = PassManager(self.__class__(self.basis))
+                new_circ = pass_manager.run(block)
+                mapped_blocks.append(new_circ)
+            node.op = node.op.replace_blocks(mapped_blocks)
         return dag
