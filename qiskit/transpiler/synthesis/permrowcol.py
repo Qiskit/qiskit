@@ -177,8 +177,14 @@ class PermRowCol:
     
             A = parity_mat.copy()
             A[chosen_row] = [0]*len(A[chosen_row])
+
+            # So first to delete the row F.ex. Np.delete(Arr, obj, axis, jossa Arr=A, obj= row, axis= deleted columns, so "np.delete(A, chosen_row , chosen_column)" )
+
             print("A:", A)
-            B = parity_mat[chosen_row].copy()
+            B = parity_mat[chosen_row].copy() 
+            
+            # Next just chosen_row without chosen_colum F.ex. parity_mat[chosen_row].remove(chosen_column)
+            
             B[chosen_column] = 0
             B = B.astype(bool)
             print("B:", B)
