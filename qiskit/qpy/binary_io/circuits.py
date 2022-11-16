@@ -32,7 +32,7 @@ from qiskit.circuit.instruction import Instruction
 from qiskit.circuit.quantumcircuit import QuantumCircuit
 from qiskit.circuit.quantumregister import QuantumRegister, Qubit
 from qiskit.extensions import quantum_initializer
-from qiskit.qpy import common, formats, exceptions, type_keys
+from qiskit.qpy import common, formats, type_keys
 from qiskit.qpy.binary_io import value, schedules
 from qiskit.quantum_info.operators import SparsePauliOp
 from qiskit.synthesis import evolution as evo_synth
@@ -845,124 +845,29 @@ def read_circuit(file_obj, version, metadata_deserializer=None):
     num_registers = header["num_registers"]
     num_instructions = header["num_instructions"]
     out_registers = {"q": {}, "c": {}}
+    circ = QuantumCircuit(
+        [Qubit() for _ in [None] * num_qubits],
+        [Clbit() for _ in [None] * num_clbits],
+        name=name,
+        global_phase=global_phase,
+        metadata=metadata,
+    )
     if num_registers > 0:
-        circ = QuantumCircuit(name=name, global_phase=global_phase, metadata=metadata)
         if version < 4:
             registers = _read_registers(file_obj, num_registers)
         else:
             registers = _read_registers_v4(file_obj, num_registers)
 
-        for bit_type_label, bit_type, reg_type in [
-            ("q", Qubit, QuantumRegister),
-            ("c", Clbit, ClassicalRegister),
-        ]:
-            register_bits = set()
+        for bit_type_label, reg_type in [("q", QuantumRegister), ("c", ClassicalRegister)]:
             # Add quantum registers and bits
-            for register_name in registers[bit_type_label]:
-                standalone, indices, in_circuit = registers[bit_type_label][register_name]
-                indices_defined = [x for x in indices if x >= 0]
-                # If a register has no bits in the circuit skip it
-                if not indices_defined:
-                    continue
-                if standalone:
-                    start = min(indices_defined)
-                    count = start
-                    out_of_order = False
-                    for index in indices:
-                        if index < 0:
-                            out_of_order = True
-                            continue
-                        if not out_of_order and index != count:
-                            out_of_order = True
-                        count += 1
-                        if index in register_bits:
-                            # If we have a bit in the position already it's been
-                            # added by an earlier register in the circuit
-                            # otherwise it's invalid qpy
-                            if not in_circuit:
-                                continue
-                            raise exceptions.QpyError("Duplicate register bits found")
-
-                        register_bits.add(index)
-
-                    num_reg_bits = len(indices)
-                    # Create a standlone register of the appropriate length (from
-                    # the number of indices in the qpy data) and add it to the circuit
-                    reg = reg_type(num_reg_bits, register_name)
-                    # If any bits from qreg are out of order in the circuit handle
-                    # is case
-                    if out_of_order or not in_circuit:
-                        for index, pos in sorted(
-                            enumerate(x for x in indices if x >= 0), key=lambda x: x[1]
-                        ):
-                            if bit_type_label == "q":
-                                bit_len = len(circ.qubits)
-                            else:
-                                bit_len = len(circ.clbits)
-                            if pos < bit_len:
-                                # If we have a bit in the position already it's been
-                                # added by an earlier register in the circuit
-                                # otherwise it's invalid qpy
-                                if not in_circuit:
-                                    continue
-                                raise exceptions.QpyError("Duplicate register bits found")
-                            # Fill any holes between the current register bit and the
-                            # next one
-                            if pos > bit_len:
-                                bits = [bit_type() for _ in range(pos - bit_len)]
-                                circ.add_bits(bits)
-                            circ.add_bits([reg[index]])
-                        if in_circuit:
-                            circ.add_register(reg)
-                    else:
-                        if bit_type_label == "q":
-                            bit_len = len(circ.qubits)
-                        else:
-                            bit_len = len(circ.clbits)
-                        # If there is a hole between the start of the register and the
-                        # current bits and standalone bits to fill the gap.
-                        if start > len(circ.qubits):
-                            bits = [bit_type() for _ in range(start - bit_len)]
-                            circ.add_bits(bit_len)
-                        if in_circuit:
-                            circ.add_register(reg)
-                        out_registers[bit_type_label][register_name] = reg
-                else:
-                    for index in indices:
-                        if bit_type_label == "q":
-                            bit_len = len(circ.qubits)
-                        else:
-                            bit_len = len(circ.clbits)
-                        # Add any missing bits
-                        bits = [bit_type() for _ in range(index + 1 - bit_len)]
-                        circ.add_bits(bits)
-                        if index in register_bits:
-                            raise exceptions.QpyError("Duplicate register bits found")
-                        register_bits.add(index)
-                    if bit_type_label == "q":
-                        bits = [circ.qubits[i] for i in indices]
-                    else:
-                        bits = [circ.clbits[i] for i in indices]
-                    reg = reg_type(name=register_name, bits=bits)
-                    if in_circuit:
-                        circ.add_register(reg)
-                    out_registers[bit_type_label][register_name] = reg
-        # If we don't have sufficient bits in the circuit after adding
-        # all the registers add more bits to fill the circuit
-        if len(circ.qubits) < num_qubits:
-            qubits = [Qubit() for _ in range(num_qubits - len(circ.qubits))]
-            circ.add_bits(qubits)
-        if len(circ.clbits) < num_clbits:
-            clbits = [Clbit() for _ in range(num_clbits - len(circ.clbits))]
-            circ.add_bits(clbits)
-    else:
-        circ = QuantumCircuit(
-            [Qubit() for _ in [None] * num_qubits],
-            [Clbit() for _ in [None] * num_clbits],
-            name=name,
-            global_phase=global_phase,
-            metadata=metadata,
-        )
+            circuit_bits = {"q": circ.qubits, "c": circ.clbits}[bit_type_label]
+            for register_name, (_, indices, in_circuit) in registers[bit_type_label].items():
+                register = reg_type(
+                    name=register_name, bits=[circuit_bits[x] for x in indices if x >= 0]
+                )
+                if in_circuit:
+                    circ.add_register(register)
+                out_registers[bit_type_label][register_name] = register
     custom_operations = _read_custom_operations(file_obj, version, vectors)
     for _instruction in range(num_instructions):
         _read_instruction(file_obj, circ, out_registers, custom_operations, version, vectors)

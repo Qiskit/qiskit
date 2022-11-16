@@ -168,7 +168,7 @@ def squ(
     """Decompose an arbitrary 2*2 unitary into three rotation gates.
 
     Note that the decomposition is up to a global phase shift.
-    (This is a well known decomposition, which can be found for example in Nielsen and Chuang's book
+    (This is a well known decomposition which can be found for example in Nielsen and Chuang's book
     "Quantum computation and quantum information".)
 
     Args:
