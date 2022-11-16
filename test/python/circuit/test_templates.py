@@ -13,7 +13,6 @@
 """Tests for circuit templates."""
 
 import unittest
-from test import combine
 from inspect import getmembers, isfunction
 from ddt import ddt
 
@@ -36,7 +35,7 @@ class TestTemplates(QiskitTestCase):
         if isinstance(circuit, QuantumCircuit):
             circuit.assign_parameters({param: 0.2 for param in circuit.parameters}, inplace=True)
 
-    @combine(template_circuit=circuits)
+    template_circuit=circuits
     def test_template(self, template_circuit):
         """test to verify that all templates are equivalent to the identity"""
 
