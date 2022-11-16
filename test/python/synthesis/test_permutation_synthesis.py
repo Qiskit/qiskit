@@ -17,7 +17,8 @@ import unittest
 import numpy as np
 from ddt import ddt, data
 
-from qiskit.circuit.library import LinearFunction
+from qiskit.quantum_info.operators import Operator
+from qiskit.circuit.library import LinearFunction, Permutation
 from qiskit.synthesis.permutation import synth_permutation_depth_lnn_kms
 from qiskit.synthesis.permutation.permutation_utils import _get_ordered_swap
 from qiskit.test import QiskitTestCase
@@ -66,6 +67,18 @@ class TestPermutationSynthesis(QiskitTestCase):
             # check that its permutation pattern matches the original pattern.
             synthesized_pattern = LinearFunction(qc).permutation_pattern()
             self.assertTrue(np.array_equal(synthesized_pattern, pattern))
+
+    @data(4, 5, 6, 7)
+    def test_permutation_matrix(self, width):
+        """Test that the unitary matrix constructed from permutation pattern
+        is correct."""
+        np.random.seed(1)
+        for _ in range(5):
+            pattern = np.random.permutation(width)
+            qc = synth_permutation_depth_lnn_kms(pattern)
+            expected = Operator(qc)
+            constructed = Operator(Permutation(width, pattern))
+            self.assertEqual(expected, constructed)
 
 
 if __name__ == "__main__":

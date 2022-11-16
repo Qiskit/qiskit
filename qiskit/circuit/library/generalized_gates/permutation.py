@@ -16,7 +16,7 @@ from typing import List, Optional
 
 import numpy as np
 
-from qiskit.circuit.quantumcircuit import QuantumCircuit, Gate
+from qiskit.circuit.quantumcircuit import Gate
 from qiskit.circuit.exceptions import CircuitError
 
 
@@ -79,23 +79,23 @@ class Permutation(Gate):
 
         super().__init__(name="permutation", num_qubits=num_qubits, params=[pattern])
 
-    def _define(self):
-        """Populates self.definition with a decomposition of this gate."""
+    def __array__(self, dtype=None):
+        """Return a numpy.array for the Permutation gate."""
+        nq = len(self.pattern)
+        mat = np.zeros((2**nq, 2**nq), dtype=dtype)
 
-        pattern = self.params[0]
-        name = "permutation_" + np.array_str(pattern).replace(" ", ",")
-        circuit = QuantumCircuit(self.num_qubits, name=name)
+        for r in range(2**nq):
+            # convert row to bitstring, reverse, apply permutation pattern, reverse again,
+            # and convert to row
+            bit = bin(r)[2:].zfill(nq)[::-1]
+            permuted_bit = "".join([bit[j] for j in self.pattern])
+            pr = int(permuted_bit[::-1], 2)
+            mat[pr, r] = 1
 
-        # pylint: disable=cyclic-import
-        from qiskit.synthesis.permutation.permutation_utils import _get_ordered_swap
-
-        for i, j in _get_ordered_swap(pattern):
-            circuit.swap(i, j)
-
-        self.definition = circuit
+        return mat
 
     def validate_parameter(self, parameter):
-        """Parameter validation"""
+        """Parameter validation."""
         return parameter
 
     @property
