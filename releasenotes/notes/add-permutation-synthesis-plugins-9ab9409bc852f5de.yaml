@@ -1,0 +1,28 @@
+---
+features:
+  - |
+    Added several high-level-synthesis plugins for synthesizing permutations.
+    The ``BasicSynthesisPermutation`` plugin applies to fully-connected
+    architectures and is based on sorting. This is the previously used
+    algorithm for constructing quantum circuits for permutations.
+    The ``ACGSynthesisPermutation`` plugin also applies to fully-connected
+    architectures but is based on the Alon, Chung, Graham method. It synthesizes
+    any permutation in depth 2 (measured in terms of SWAPs).
+    The ``KMSSynthesisPermutation`` plugin applies to linear nearest-neighbor
+    architectures and corresponds to the recently added Kutin, Moulton, Smithline
+    method.
+
+upgrade:
+  - |
+    The :class:`~qiskit.circuit.library.Permutation` is now of type
+    :class:`~qiskit.circuit.Gate` and not :class:`qiskit.circuit.QuantumCircuit`.
+    This change should be completely transparent to all users. However, it
+    avoids synthesizing a permutation circuit when the ``Permutation`` gate
+    is declared, delaying the actual synthesis to transpiler. It also allows
+    to easily choose between several different algorithms for synthesizing permutations,
+    which are available as high-level-synthesis permutation plugins.
+
+    The :class:`~qiskit.circuit.library.Permutation` has a new method
+    ``__array__`` that returns a unitary matrix for a permutation, in particular
+    allowing to create unitary matrices from circuits containing
+    :class:`~qiskit.circuit.library.Permutation` gates.
