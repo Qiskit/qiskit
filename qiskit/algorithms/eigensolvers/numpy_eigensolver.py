@@ -110,22 +110,22 @@ class NumPyEigensolver(Eigensolver):
 
     def _solve(self, operator: BaseOperator | PauliSumOp) -> tuple[np.ndarray, np.ndarray]:
         if isinstance(operator, PauliSumOp):
-            sparse = True
             op_matrix = operator.to_spmatrix()
         else:
             try:
                 op_matrix = operator.to_matrix(sparse=True)
-                sparse = True
             except TypeError:
-                # Try dense matrix
-                pass
+                logger.debug(
+                    "WARNING: operator of type `%s` does not support sparse matrices. "
+                    "Trying dense computation",
+                    type(operator),
+                )
             try:
                 op_matrix = operator.to_matrix()
-                sparse = False
             except AttributeError as ex:
                 raise AlgorithmError(f"Unsupported operator type `{type(operator)}`.") from ex
 
-        if sparse:
+        if isinstance(op_matrix, scisparse.csr_matrix):
             # If matrix is diagonal, the elements on the diagonal are the eigenvalues. Solve by sorting.
             if scisparse.csr_matrix(op_matrix.diagonal()).nnz == op_matrix.nnz:
                 diag = op_matrix.diagonal()
@@ -184,35 +184,35 @@ class NumPyEigensolver(Eigensolver):
         else:
             values = {}
             key_op_iterator = aux_operators.items()
+
         for key, operator in key_op_iterator:
-            value = 0.0
-            op_matrix = None
             if operator is None:
                 continue
 
+            op_matrix = None
             if isinstance(operator, PauliSumOp):
                 if operator.coeff != 0:
-                    sparse = True
                     op_matrix = operator.to_spmatrix()
             else:
                 try:
                     op_matrix = operator.to_matrix(sparse=True)
-                    sparse = True
                 except TypeError:
-                    # Try dense matrix
-                    pass
+                    logger.debug(
+                        "WARNING: operator of type `%s` does not support sparse matrices. "
+                        "Trying dense computation",
+                        type(operator),
+                    )
                 try:
                     op_matrix = operator.to_matrix()
-                    sparse = False
                 except AttributeError as ex:
                     raise AlgorithmError(f"Unsupported operator type {type(operator)}.") from ex
 
-            if sparse:
-                if op_matrix is not None:
-                    # op_matrix is only None when PauliSumOp.coeff == 0
-                    value = op_matrix.dot(wavefn).dot(np.conj(wavefn))
-            else:
+            if isinstance(op_matrix, scisparse.csr_matrix):
+                value = op_matrix.dot(wavefn).dot(np.conj(wavefn))
+            elif isinstance(op_matrix, np.ndarray):
                 value = Statevector(wavefn).expectation_value(operator)
+            else:
+                value = 0.0
 
             value = value if np.abs(value) > threshold else 0.0
             # The value gets wrapped into a tuple: (mean, metadata).
