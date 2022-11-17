@@ -1465,7 +1465,7 @@ class TestTranspile(QiskitTestCase):
         theta = Parameter("θ")
         phi = Parameter("ϕ")
         lam = Parameter("λ")
-        target = Target(2)
+        target = Target(num_qubits=2)
         target.add_instruction(UGate(theta, phi, lam), {(0,): None, (1,): None})
         target.add_instruction(CXGate(), {(0, 1): None})
         target.add_instruction(Measure(), {(0,): None, (1,): None})
