@@ -20,8 +20,8 @@ import numpy as np
 from scipy import sparse as scisparse
 
 from qiskit.opflow import PauliSumOp
+from qiskit.quantum_info import SparsePauliOp, Statevector
 from qiskit.quantum_info.operators.base_operator import BaseOperator
-from qiskit.quantum_info import Operator, SparsePauliOp, Statevector
 from qiskit.utils.validation import validate_min
 
 from .eigensolver import Eigensolver, EigensolverResult
@@ -123,7 +123,7 @@ class NumPyEigensolver(Eigensolver):
                 op_matrix = operator.to_matrix()
                 sparse = False
             except AttributeError as ex:
-                raise AlgorithmError(f"Unsupported operator type {type(operator)}.") from ex
+                raise AlgorithmError(f"Unsupported operator type `{type(operator)}`.") from ex
 
         if sparse:
             # If matrix is diagonal, the elements on the diagonal are the eigenvalues. Solve by sorting.
@@ -262,24 +262,23 @@ class NumPyEigensolver(Eigensolver):
 
         # if a filter is set, loop over the given values and only keep
         if self._filter_criterion:
-
             filt_eigvals = []
             filt_eigvecs = []
             filt_aux_op_vals = []
             count = 0
-            for i in range(len(eigvals)):
-                eigvec = eigvecs[i]
-                eigval = eigvals[i]
+            for i, (eigval, eigvec) in enumerate(zip(eigvals, eigvecs)):
                 if aux_op_vals is not None:
                     aux_op_val = aux_op_vals[i]
                 else:
                     aux_op_val = None
+
                 if self._filter_criterion(eigvec, eigval, aux_op_val):
                     count += 1
                     filt_eigvecs.append(eigvec)
                     filt_eigvals.append(eigval)
                     if aux_op_vals is not None:
                         filt_aux_op_vals.append(aux_op_val)
+
                 if count == k_orig:
                     break
 
