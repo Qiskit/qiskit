@@ -93,8 +93,8 @@ External Python Libraries
         be installed in order to use them.
 
     * - .. py:data:: HAS_NETWORKX
-      - Internally, Qiskit uses the high-performance `retworkx
-        <https://github.com/Qiskit/retworkx>`__ library as a core dependency, but sometimes it can
+      - Internally, Qiskit uses the high-performance `rustworkx
+        <https://github.com/Qiskit/rustworkx>`__ library as a core dependency, but sometimes it can
         be convenient to convert things into the Python-only `NetworkX <https://networkx.org/>`__
         format.  There are converter methods on :class:`.DAGCircuit` if NetworkX is present.
 
