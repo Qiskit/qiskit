@@ -241,7 +241,6 @@ class TestPermRowCol(QiskitTestCase):
         self.assertEqual(1, sum(parity_mat[1]))
         self.assertEqual(1, parity_mat[1, 2])
 
-<<<<<<< HEAD
     def test_if_matrix_edit_returns_circuit(self):
         """Tests if matrix_edit returns circuit"""
 
@@ -301,7 +300,7 @@ class TestPermRowCol(QiskitTestCase):
 
         self.assertEqual(np.array_equal(LinearFunction(instance).linear, result_circuit), True)
         self.assertEqual(np.array_equal(parity_mat, result_parity_matrix), True)
-=======
+
     def test_return_columns_return_list(self):
         """Test the output type of return_columns"""
         coupling = CouplingMap()
@@ -415,7 +414,6 @@ class TestPermRowCol(QiskitTestCase):
 
         permrowcol._reduce_graph(2)
         self.assertCountEqual(permrowcol._graph.edge_list(), [])
->>>>>>> perm-row-col
 
 
 if __name__ == "__main__":

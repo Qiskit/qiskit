@@ -57,11 +57,7 @@ class PermRowCol:
             for edge in self.eliminate_column(parity_mat, row, column, nodes):
                 circuit.cx(edge[0], edge[1])
 
-            if sum(parity_mat[row]) > 1:
-                A = np.delete(np.delete(parity_mat, row, 0), column, 1)
-                B = np.delete(parity_mat, column, 1)[row]
-                # X = inv(A) * B
-                # Eliminate row will go here
+            circuit = self._matrix_edit(parity_mat, column, row, circuit)
 
             qubit_alloc[column] = row
 
@@ -193,14 +189,10 @@ class PermRowCol:
             if edge[1] not in terminals:
                 C.append((edge[0], edge[1]))
                 parity_mat[edge[0], :] = (parity_mat[edge[0], :] + parity_mat[edge[1], :]) % 2
-                print(edge)
-                print(parity_mat)
 
         for edge in post_edges:
             C.append((edge[0], edge[1]))
             parity_mat[edge[0], :] = (parity_mat[edge[0], :] + parity_mat[edge[1], :]) % 2
-            print(edge)
-            print(parity_mat)
 
         return C
 
@@ -238,7 +230,7 @@ class PermRowCol:
                 i for i in self._graph.node_indices() if i == chosen_row or X[i] == 1
             ]  # Finds indexes of rows that are added to chosen_row
 
-            for edge in self.eliminate_row(parity_mat, chosen_row, nodes):
+            for edge in self._eliminate_row(parity_mat, chosen_row, nodes):
                 circuit.cx(edge[1], edge[0])  # Adds a CNOT to the circuit
 
         return circuit
