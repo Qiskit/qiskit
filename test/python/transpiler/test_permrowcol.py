@@ -242,7 +242,7 @@ class TestPermRowCol(QiskitTestCase):
         self.assertEqual(1, parity_mat[1, 2])
 
     def test_if_matrix_edit_returns_circuit(self):
-        """Tests if matrix-edit retirns circuit"""
+        """Tests if matrix_edit returns circuit"""
 
         coupling = CouplingMap()
         permrowcol = PermRowCol(coupling)
@@ -250,22 +250,24 @@ class TestPermRowCol(QiskitTestCase):
         chosen_column = 1
         chosen_row = 1
         circuit = QuantumCircuit(QuantumRegister(0))
-        instance = permrowcol.matrix_edit(parity_mat, chosen_column, chosen_row, circuit)
+        instance = permrowcol._matrix_edit(parity_mat, chosen_column, chosen_row, circuit)
 
         self.assertIsInstance(instance, QuantumCircuit)
 
     def test_matrix_edit_returns_circuit_with_eliminated_row_if_the_row_is_not_already_eliminated(
         self,
     ):
+        """Test matrix_edit for correctnes"""
+
         coupling_list = [(0, 1), (0, 3), (1, 2), (1, 4), (2, 5), (3, 4), (4, 5)]
         coupling = CouplingMap(coupling_list)
         permrowcol = PermRowCol(coupling)
         parity_mat = np.array(
             [
-                [0, 1, 0, 1, 1, 0], #
-                [1, 0, 1, 0, 0, 0], #
+                [0, 1, 0, 1, 1, 0],
+                [1, 0, 1, 0, 0, 0],
                 [1, 0, 0, 0, 1, 1],
-                [1, 1, 1, 0, 1, 0], #
+                [1, 1, 1, 0, 1, 0],
                 [1, 0, 1, 0, 1, 0],
                 [1, 0, 1, 0, 1, 1],
             ]
@@ -275,35 +277,8 @@ class TestPermRowCol(QiskitTestCase):
         circuit = QuantumCircuit(len(coupling.graph))
         edge = (1, 0)
         circuit.cx(edge[0], edge[1])
-        print(LinearFunction(circuit).linear)
-        #print(parity_mat)
-        #        A = np.array(
-        #            [
-        #                [0, 0, 0, 0, 0, 0],
-        #                [1, 0, 1, 0, 0, 0],
-        #                [1, 0, 0, 0, 1, 1],
-        #                [1, 1, 1, 0, 1, 0],
-        #                [1, 0, 1, 0, 1, 0],
-        #                [1, 0, 1, 0, 1, 1],
-        #            ]
-        #        )
-        #        inv_A = LinearFunction(LinearFunction(A).synthesize().reverse_ops()).linear
-        #        print("inv_a:")
-        #        print(inv_A)
-        #        B = np.array([False, True, False, False, True, False])
-        #
-        #
-        #        X = np.matmul(inv_A, B)
-        #        print("X:")
-        #        print(X)
-        #
-        #        nodes = np.array([0, 1, 4, 5])
-        #
-        #        eliminated_row_results = permrowcol.eliminate_row(parity_mat, chosen_row, nodes)
-        #        print("cnots to be added to circuit:")
-        #        print(eliminated_row_results)
 
-        instance = permrowcol.matrix_edit(parity_mat, chosen_column, chosen_row, circuit)
+        instance = permrowcol._matrix_edit(parity_mat, chosen_column, chosen_row, circuit)
 
         result_circuit = [
             [True, False, False, True, False, False],
@@ -323,7 +298,6 @@ class TestPermRowCol(QiskitTestCase):
             [1, 0, 1, 0, 1, 1],
         ]
 
-        
         self.assertEqual(np.array_equal(LinearFunction(instance).linear, result_circuit), True)
         self.assertEqual(np.array_equal(parity_mat, result_parity_matrix), True)
 

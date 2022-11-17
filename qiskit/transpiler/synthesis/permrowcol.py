@@ -145,114 +145,41 @@ class PermRowCol:
 
         return C
 
-    def matrix_edit(
+    def _matrix_edit(
         self, parity_mat: np.ndarray, chosen_column: int, chosen_row: int, circuit: QuantumCircuit
     ) -> QuantumCircuit:
         """Checks if the sum of the chosen row is bigger than one. If the sum is bigger than one, the function performs row elimination.
 
         Args:
             parity_mat (np.ndarray): parity matrix representing a circuit
-            chosen_column: int
-            chosen_row: int
-            circuit: QuantumCircuit
+            chosen_column (int): index of the column to be eliminated
+            chosen_row (int): index of the row to be eliminated
+            circuit (QuantumCircuit): quantum circuit to be synthesized
 
 
         Returns:
-            quantumCircuit eliminated row.
+            QuantumCircuit: quantum circuit with chosen row eliminated.
 
         """
 
-#        A = [
-#            [0, 1, 0, 1],
-#            [0, 0, 1, 0],
-#            [1, 0, 1, 1],
-#            [0, 1, 1, 0],
-#        ]
-#        inv_A = LinearFunction(LinearFunction(A).synthesize().reverse_ops()).linear
-#        print("inv_A:", inv_A)
-#
-
-
         if sum(parity_mat[chosen_row]) > 1:
-    
-            A = parity_mat.copy()
-            A = np.delete(A, chosen_row, 0)
-            A = np.delete(A, chosen_column, 1)
-            A = A.astype(int)
 
-            # So first to delete the row F.ex. Np.delete(Arr, obj, axis, jossa Arr=A, obj= row, axis= deleted columns, so "np.delete(A, chosen_row , chosen_column)" )
-            
-            B = parity_mat[chosen_row] 
-            B = np.delete(B, chosen_column)
-            
-            # Next just chosen_row without chosen_colum F.ex. parity_mat[chosen_row].remove(chosen_column)
-            
-            #B = B.astype(bool)
-            print("A:", A)
-            print("B:", B)
-            print("parity mat:", parity_mat)
-            inv_A = LinearFunction(LinearFunction(A).synthesize().reverse_ops()).linear
-            print("inv_A:", inv_A)
-            X = np.matmul( B, inv_A)%2
-            print("X:", X)
-            X = np.insert(X, chosen_row, 1)
-            print([i for i in range(len(X))])
-            nodes = [i for i in range(len(X)) if i == chosen_row or X[i] == 1]
-            print("nodes:", nodes)
-            print("circuit before changes:")
-            print(LinearFunction(circuit).linear)
-            print("parity mat before eliminate row:")
-            print(parity_mat)
+            A = np.delete(np.delete(parity_mat.copy(), chosen_row, 0), chosen_column, 1).astype(
+                int
+            )  # Parity_mat without chosen_column and chosen_row
+            B = np.delete(parity_mat[chosen_row], chosen_column)  # Chosen_row without chosen_column
+
+            inv_A = LinearFunction(
+                LinearFunction(A).synthesize().reverse_ops()
+            ).linear  # Creates inverse of parity_mat
+
+            X = np.insert((np.matmul(B, inv_A) % 2), chosen_row, 1)  # Calculates B*inv_A
+
+            nodes = [
+                i for i in self._graph.node_indices() if i == chosen_row or X[i] == 1
+            ]  # Finds indexes of rows that are added to chosen_row
+
             for edge in self.eliminate_row(parity_mat, chosen_row, nodes):
-                print("edge:", edge)
-                circuit.cx(edge[1], edge[0])
-                print("changed circuit:")
-                print(LinearFunction(circuit).linear)
-
-    #    X = np.matmul(B,inv_A)%2
-    #    X = X.astype(int)
-    #    print("X = ", X)
-#
-    #    X = np.insert(X, chosen_row,0)
-    #    print("chosen_row: ",chosen_row)
-    #    print("X after inserting column (chosen_row):")
-#
-    #    print(X.astype(int))
-    #    nodes = [i for i in graph.node_indices() if i == chosen_row or X[i] == 1]
-    #    print("nodes mat after eliminate_row:")
-    #    print(nodes)
-    
-        #print("circuit at the end:")
-        #print(LinearFunction(circuit).linear)
-        print("parity mat after eliminate row:")
-        print(parity_mat)
-
-        #            A_first_step = (
-        #                # Creates a new matrix without the chosen row
-        #                # C_copy.append(C[rows nuber][halutun vaihdettavan tunnut, esim. jos halutaan ensimmäinen niin luku on 0 jne.] = Nollarivi)
-        #                )
-        #
-        #            A = (
-        #                # Creates a new matrix without the chosen row and column
-        #                # C_copy.append(C[][] = Nollakolumni (nollattu arvi kohdasta x))
-        #                )
-        #
-        #            B = (
-        #                # M[r] (chosen row) without chosen column
-        #
-        #                )
-        #
-        #            inv_A = (
-        #                # Creates inverse of the matrix
-        #                # LinearFunction(LinearFunction(C).synthesize().reverse_ops()).linear
-        #                )
-        #
-        #            X = (
-        #                # Creates A^-1B
-        #                # np.matmul(inv_A, X)
-        #                )
-        #
-        #            return circuit
-        #
+                circuit.cx(edge[1], edge[0])  # Adds a CNOT to the circuit
 
         return circuit
