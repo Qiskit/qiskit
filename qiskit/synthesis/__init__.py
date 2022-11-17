@@ -37,6 +37,7 @@ Permutation Synthesis
 
    synth_permutation_depth_lnn_kms
    synth_permutation_basic
+   synth_permutation_acg
 
 """
 
@@ -52,4 +53,5 @@ from .evolution import (
 from .permutation import (
     synth_permutation_depth_lnn_kms,
     synth_permutation_basic,
+    synth_permutation_acg,
 )

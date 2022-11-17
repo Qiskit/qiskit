@@ -15,7 +15,7 @@
 
 
 from qiskit.converters import circuit_to_dag
-from qiskit.synthesis import synth_permutation_basic
+from qiskit.synthesis import synth_permutation_basic, synth_permutation_acg
 from qiskit.transpiler.basepasses import TransformationPass
 from qiskit.dagcircuit.dagcircuit import DAGCircuit
 from qiskit.transpiler.exceptions import TranspilerError
@@ -116,7 +116,6 @@ class HighLevelSynthesis(TransformationPass):
         hls_plugin_manager = HighLevelSynthesisPluginManager()
 
         for node in dag.op_nodes():
-
             if node.name in self.hls_config.methods.keys():
                 # the operation's name appears in the user-provided config,
                 # we use the list of methods provided by the user
@@ -175,7 +174,7 @@ class DefaultSynthesisLinearFunction(HighLevelSynthesisPlugin):
 
 
 class KMSSynthesisPermutation(HighLevelSynthesisPlugin):
-    """The default permutation synthesis plugin."""
+    """The permutation synthesis plugin based on the Kutin, Moulton, Smithline method."""
 
     def run(self, high_level_object, **options):
         """Run synthesis for the given Permutation."""
@@ -189,4 +188,13 @@ class BasicSynthesisPermutation(HighLevelSynthesisPlugin):
     def run(self, high_level_object, **options):
         """Run synthesis for the given Permutation."""
         decomposition = synth_permutation_basic(high_level_object.pattern)
+        return decomposition
+
+
+class ACGSynthesisPermutation(HighLevelSynthesisPlugin):
+    """The permutation synthesis plugin based on the Alon, Chung, Graham method."""
+
+    def run(self, high_level_object, **options):
+        """Run synthesis for the given Permutation."""
+        decomposition = synth_permutation_acg(high_level_object.pattern)
         return decomposition
