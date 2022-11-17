@@ -26,7 +26,7 @@ from qiskit.primitives import BaseSampler, Sampler
 from qiskit.algorithms.state_fidelities import ComputeUncompute
 
 from .optimizer import OptimizerCallback
-from .spsa import SPSA, CALLBACK, TERMINATIONCHECKER, _batch_evaluate
+from .spsa import SPSA, TERMINATIONCHECKER, _batch_evaluate
 
 # the function to compute the fidelity
 FIDELITY = Callable[[np.ndarray, np.ndarray], float]
@@ -133,7 +133,7 @@ class QNSPSA(SPSA):
         hessian_delay: int = 0,
         lse_solver: Callable[[np.ndarray, np.ndarray], np.ndarray] | None = None,
         initial_hessian: np.ndarray | None = None,
-        callback: CALLBACK | None = None,
+        callback: OptimizerCallback | None = None,
         termination_checker: TERMINATIONCHECKER | None = None,
         new_callback_signature: bool = False,
     ) -> None:
