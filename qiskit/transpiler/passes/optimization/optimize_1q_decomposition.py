@@ -129,8 +129,9 @@ class Optimize1qGatesDecomposition(TransformationPass):
             return dag
 
         runs = dag.collect_1q_runs()
+        qubit_indices = {bit: index for index, bit in enumerate(dag.qubits)}
         for run in runs:
-            qubit = dag.qubits.index(run[0].qargs[0])
+            qubit = qubit_indices[run[0].qargs[0]]
             new_circ = self._resynthesize_run(run, qubit)
 
             if self._target is None:
