@@ -248,7 +248,6 @@ Exceptions
 
 import os
 import sys
-import warnings
 
 from .array import array_to_latex
 
@@ -279,24 +278,3 @@ from .exceptions import VisualizationError
 # These modules aren't part of the public interface, and were moved in Terra 0.22.  They're
 # re-imported here to allow a backwards compatible path, and should be deprecated in Terra 0.23.
 from .circuit import text, matplotlib, latex
-
-_DEPRECATED_NAMES = {
-    "HAS_MATPLOTLIB",
-    "HAS_PYLATEX",
-    "HAS_PIL",
-    "HAS_PDFTOCAIRO",
-}
-
-
-def __getattr__(name):
-    if name in _DEPRECATED_NAMES:
-        from qiskit.utils import optionals
-
-        warnings.warn(
-            f"Accessing '{name}' from '{__name__}' is deprecated since Qiskit Terra 0.21 "
-            "and will be removed in a future release. Use 'qiskit.utils.optionals' instead.",
-            DeprecationWarning,
-            stacklevel=2,
-        )
-        return getattr(optionals, name)
-    raise AttributeError(f"module '{__name__}' has no attribute '{name}'")
