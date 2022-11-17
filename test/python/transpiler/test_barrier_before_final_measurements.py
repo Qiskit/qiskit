@@ -188,63 +188,6 @@ class TestBarrierBeforeFinalMeasurements(QiskitTestCase):
 
         self.assertEqual(result, circuit_to_dag(expected))
 
-    def test_simple_if_else(self):
-        """Test that the pass is not confused by if-else."""
-        pass_ = BarrierBeforeFinalMeasurements()
-
-        base_test = QuantumCircuit(1, 1)
-        base_test.z(0)
-        base_test.measure(0, 0)
-
-        test = QuantumCircuit(1, 1)
-        test.if_else(
-            (test.clbits[0], True), base_test.copy(), base_test.copy(), test.qubits, test.clbits
-        )
-        test.measure(0, 0)
-
-        expected = QuantumCircuit(1, 1)
-        expected.if_else(
-            (expected.clbits[0], True),
-            base_test.copy(),
-            base_test.copy(),
-            expected.qubits,
-            expected.clbits,
-        )
-        expected.barrier(0)
-        expected.measure(0, 0)
-
-        self.assertEqual(pass_(test), expected)
-
-    def test_nested_control_flow(self):
-        """Test that the pass does not add barrier into nested control flow."""
-        pass_ = BarrierBeforeFinalMeasurements()
-
-        base_test = QuantumCircuit(2, 1)
-        base_test.cz(0, 1)
-        base_test.measure(0, 0)
-
-        body_test = QuantumCircuit(2, 1)
-        body_test.for_loop((0,), None, base_test.copy(), body_test.qubits, [])
-        body_test.measure(0, 0)
-
-        body_expected = QuantumCircuit(2, 1)
-        body_expected.for_loop((0,), None, base_test.copy(), body_expected.qubits, [])
-        body_expected.measure(0, 0)
-
-        test = QuantumCircuit(2, 1)
-        test.while_loop((test.clbits[0], True), body_test, test.qubits, test.clbits)
-        test.measure(0, 0)
-
-        expected = QuantumCircuit(2, 1)
-        expected.while_loop(
-            (expected.clbits[0], True), body_expected, expected.qubits, expected.clbits
-        )
-        expected.barrier([0, 1])
-        expected.measure(0, 0)
-
-        self.assertEqual(pass_(test), expected)
-
-
 
 class TestBarrierBeforeMeasurementsWhenABarrierIsAlreadyThere(QiskitTestCase):
     """Tests the BarrierBeforeFinalMeasurements pass when there is a barrier already"""
@@ -448,6 +391,157 @@ class TestBarrierBeforeMeasurementsWhenABarrierIsAlreadyThere(QiskitTestCase):
 
         pass_ = BarrierBeforeFinalMeasurements()
         self.assertEqual(expected, pass_(circuit))
+
+class TestControlFlow(QiskitTestCase):
+    """Tests the BarrierBeforeFinalMeasurements pass."""
+
+    def test_simple_if_else(self):
+        """Test that the pass is not confused by if-else."""
+        pass_ = BarrierBeforeFinalMeasurements()
+
+        base_test = QuantumCircuit(1, 1)
+        base_test.z(0)
+        base_test.measure(0, 0)
+
+        test = QuantumCircuit(1, 1)
+        test.if_else(
+            (test.clbits[0], True), base_test.copy(), base_test.copy(), test.qubits, test.clbits
+        )
+        test.measure(0, 0)
+
+        expected = QuantumCircuit(1, 1)
+        expected.if_else(
+            (expected.clbits[0], True),
+            base_test.copy(),
+            base_test.copy(),
+            expected.qubits,
+            expected.clbits,
+        )
+        expected.barrier(0)
+        expected.measure(0, 0)
+        test_pass = pass_(test)
+        self.assertEqual(pass_(test), expected)
+
+    def test_final_measure_in_if_else(self):
+        """Test that the pass is not confused by if-else."""
+        pass_ = BarrierBeforeFinalMeasurements()
+
+        base_test = QuantumCircuit(2, 1)
+        base_test.z(0)
+        base_test.measure(0, 0)
+
+        qreg = QuantumRegister(2, "q")
+        creg = ClassicalRegister(1)
+        test = QuantumCircuit(qreg, creg)
+        test.if_else(
+            (test.clbits[0], True), base_test.copy(), base_test.copy(), qreg[[0, 1]], creg
+        )
+
+        base_expected = QuantumCircuit(2, 1)
+        base_expected.z(0)
+        base_expected.barrier(base_expected.qubits)
+        base_expected.measure(0, 0)
+        expected = QuantumCircuit(qreg, creg)
+        expected.barrier(expected.qubits)
+        expected.if_else(
+            (expected.clbits[0], True),
+            base_expected.copy(),
+            base_expected.copy(),
+            expected.qubits,
+            expected.clbits,
+        )
+        test_pass = pass_(test)
+        self.assertEqual(test_pass, expected)
+
+    def test_control_flow_not_final(self):
+        """Test non-final control flow that internally has 'final' measurements"""
+        pass_ = BarrierBeforeFinalMeasurements()
+
+        base_test = QuantumCircuit(2, 1)
+        base_test.z(0)
+        base_test.measure(0, 0)
+
+        qreg = QuantumRegister(2, "q")
+        creg = ClassicalRegister(1)
+        test = QuantumCircuit(qreg, creg)
+        test.if_else(
+            (test.clbits[0], True), base_test.copy(), base_test.copy(), qreg[[0, 1]], creg
+        )
+        test.x(0)
+
+        test_pass = pass_(test)
+        self.assertEqual(test_pass, test)
+
+
+    def test_nested_control_flow(self):
+        """Test that the pass does not add barrier into nested control flow."""
+        pass_ = BarrierBeforeFinalMeasurements()
+
+        test_level2 = QuantumCircuit(2, 1)
+        test_level2.cz(0, 1)
+        test_level2.measure(0, 0)
+
+        test_level1 = QuantumCircuit(2, 1)
+        test_level1.while_loop((test_level1.clbits[0], True),
+                               test_level2.copy(),
+                               test_level1.qubits,
+                               test_level1.clbits)
+        test = QuantumCircuit(2, 1)
+        test.for_loop((0,), None, test_level1.copy(), test.qubits, [])
+        
+        print('-'*20)
+        print(test)
+        print(test.data[0].operation.params[2])
+        print(test.data[0].operation.params[2].data[0].operation.params[0])
+
+        test_pass = pass_(test)
+        print('-'*20)
+        print(test_pass)
+        print(test_pass.data[1].operation.params[2])
+        print(test_pass.data[1].operation.params[2].data[1].operation.params[0])
+        
+        body_expected = QuantumCircuit(2, 1)
+        body_expected.for_loop((0,), None, test_level1.copy(), body_expected.qubits, [])
+        body_expected.measure(0, 0)
+
+
+        expected = QuantumCircuit(2, 1)
+        expected.while_loop(
+            (expected.clbits[0], True), body_expected, expected.qubits, expected.clbits
+        )
+        expected.barrier([0, 1])
+        expected.measure(0, 0)
+
+        #breakpoint()
+        #self.assertEqual(pass_(test), expected)
+
+    def test_control_flow_with_no_measure(self):
+        """Test no barrier inserted if control flow has no final measure"""
+        pass_ = BarrierBeforeFinalMeasurements()
+
+        base_test = QuantumCircuit(1, 1)
+        base_test.z(0)
+
+        test = QuantumCircuit(1, 1)
+        test.if_else(
+            (test.clbits[0], True), base_test.copy(), base_test.copy(), test.qubits, test.clbits
+        )
+        test_pass = pass_(test)        
+        print('-'*20)
+        print(test)
+        print(test.data[0].operation.params[0])
+        print(test.data[0].operation.params[1])
+        print('-'*20)        
+        print(test_pass)
+        print(test_pass.data[0].operation.params[0])
+        print(test_pass.data[0].operation.params[1])
+        print('-'*20)        
+        print(expected)
+        print(expected.data[0].operation.params[0])
+        print(expected.data[0].operation.params[1])                
+        breakpoint()
+
+        breakpoint()
 
 
 if __name__ == "__main__":
