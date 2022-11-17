@@ -172,7 +172,12 @@ def _observable_key(observable: SparsePauliOp) -> tuple:
     Returns:
         Key for observables.
     """
-    return tuple(observable.to_list())
+    return (
+        observable.paulis.z.tobytes(),
+        observable.paulis.x.tobytes(),
+        observable.paulis.phase.tobytes(),
+        observable.coeffs.tobytes(),
+    )
 
 
 def bound_circuit_to_instruction(circuit: QuantumCircuit) -> Instruction:
