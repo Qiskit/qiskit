@@ -12,6 +12,41 @@ features:
     architectures and corresponds to the recently added Kutin, Moulton, Smithline
     method.
 
+    For example::
+
+        from qiskit.circuit.library import Permutation
+        from qiskit.circuit import QuantumCircuit
+
+        # Create a permutation and add it to a quantum circuit
+        perm = Permutation(8, [4, 6, 3, 7, 1, 2, 0, 5])
+        qc = QuantumCircuit(8)
+        qc.append(perm, range(8))
+
+        # Print available plugin names for synthesizing permutations
+        # Returns ['acg', 'basic', 'default', 'kms']
+        print(HighLevelSynthesisPluginManager().method_names("permutation"))
+
+        # Default plugin for permutations
+        # Returns a quantum circuit with size 6 and depth 3
+        qct = PassManager(HighLevelSynthesis()).run(qc)
+        print(f"Default: {qct.size() = }, {qct.depth() = }")
+
+        # KMSSynthesisPermutation plugin for permutations
+        # Returns a quantum circuit with size 18 and depth 6
+        # but adhering to the linear nearest-neighbor architecture.
+        qct = PassManager(HighLevelSynthesis(HLSConfig(permutation=[("kms", {})]))).run(qc)
+        print(f"kms: {qct.size() = }, {qct.depth() = }")
+
+        # BasicSynthesisPermutation plugin for permutations
+        # Returns a quantum circuit with size 6 and depth 3
+        qct = PassManager(HighLevelSynthesis(HLSConfig(permutation=[("basic", {})]))).run(qc)
+        print(f"basic: {qct.size() = }, {qct.depth() = }")
+
+        # ACGSynthesisPermutation plugin for permutations
+        # Returns a quantum circuit with size 6 and depth 2
+        qct = PassManager(HighLevelSynthesis(HLSConfig(permutation=[("acg", {})]))).run(qc)
+        print(f"acg: {qct.size() = }, {qct.depth() = }")
+
 upgrade:
   - |
     The :class:`~qiskit.circuit.library.Permutation` is now of type
