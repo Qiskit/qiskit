@@ -85,6 +85,16 @@ target_h_p = Target()
 target_h_p.add_instruction(HGate(), h_props, name="h")
 target_h_p.add_instruction(PhaseGate(θ), p_props, name="p")
 
+# a target with rz, ry, and u. Error are not specified so we should prefer
+# shorter decompositions.
+rz_props = {(0,): None}
+ry_props = {(0,): None}
+u_props = {(0,): None}
+target_rz_ry_u_noerror = Target()
+target_rz_ry_u_noerror.add_instruction(RZGate(θ), rz_props, name="rz")
+target_rz_ry_u_noerror.add_instruction(RYGate(θ), ry_props, name="ry")
+target_rz_ry_u_noerror.add_instruction(UGate(θ, ϕ, λ), u_props, name="u")
+
 
 @ddt.ddt
 class TestOptimize1qGatesDecomposition(QiskitTestCase):
@@ -150,6 +160,19 @@ class TestOptimize1qGatesDecomposition(QiskitTestCase):
         passmanager.append(Optimize1qGatesDecomposition(target=target))
         result = passmanager.run(circuit)
         self.assertLess(_error(result, target, 0), _error(circuit, target, 0))
+
+    def test_optimize_error_over_target_3(self):
+        """U is shorter than RZ-RY-RZ or RY-RZ-RY so use it when no error given."""
+        qr = QuantumRegister(1, "qr")
+        circuit = QuantumCircuit(qr)
+        circuit.u(np.pi / 7, np.pi / 4, np.pi / 3, qr[0])
+
+        target = target_rz_ry_u_noerror
+        passmanager = PassManager()
+        passmanager.append(Optimize1qGatesDecomposition(target=target))
+        result = passmanager.run(circuit)
+        self.assertEqual(len(result), 1)
+        self.assertIsInstance(result[0].operation, UGate)
 
     @ddt.data(
         ["cx", "u3"],

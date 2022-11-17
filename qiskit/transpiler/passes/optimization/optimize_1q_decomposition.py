@@ -170,12 +170,16 @@ def _error(circuit, target, qubit):
         return len(circuit)
     else:
         if isinstance(circuit, list):
-            gate_errors = [
+            gate_fidelities = [
                 1 - getattr(target[node.name].get((qubit,)), "error", 0.0) for node in circuit
             ]
         else:
-            gate_errors = [
+            gate_fidelities = [
                 1 - getattr(target[inst.operation.name].get((qubit,)), "error", 0.0)
                 for inst in circuit
             ]
-        return 1 - np.product(gate_errors)
+        gate_error = 1 - np.product(gate_fidelities)
+        if gate_error == 0.0:
+            return -100 + len(circuit)   # prefer shorter circuits among those with zero error
+        else:
+            return gate_error
