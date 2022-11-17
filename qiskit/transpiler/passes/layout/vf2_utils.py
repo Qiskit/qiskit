@@ -172,10 +172,11 @@ def map_free_qubits(
     """Add any free nodes to a layout."""
     if not free_nodes:
         return partial_layout
-    qubits = set(range(num_physical_qubits))
-    used_bits = set(partial_layout.get_physical_bits())
+    free_qubits = sorted(
+        set(range(num_physical_qubits)) - partial_layout.get_physical_bits().keys(),
+        key=lambda bit: avg_error_map.get((bit,), 1.0),
+    )
     for im_index in sorted(free_nodes, key=lambda x: sum(free_nodes[x].values())):
-        selected_qubit = min(qubits - used_bits, key=lambda bit: avg_error_map.get((bit,), 1.0))
-        used_bits.add(selected_qubit)
+        selected_qubit = free_qubits.pop(0)
         partial_layout.add(reverse_bit_map[im_index], selected_qubit)
     return partial_layout
