@@ -177,7 +177,7 @@ class LocalReadoutMitigator(BaseReadoutMitigator):
             data: counts object
             qubits: qubits the count bitstrings correspond to.
             clbits: Optional, marginalize counts to just these bits.
-            shots: the number of shots.
+            shots: Argument is not used
 
         Returns:
             QuasiDistibution: A dictionary containing pairs of [output, mean] where "output"
@@ -214,7 +214,7 @@ class LocalReadoutMitigator(BaseReadoutMitigator):
             probs_dict[index] = probs_vec[index]
 
         quasi_dist = QuasiDistribution(
-            probs_dict, stddev_upper_bound=self.stddev_upper_bound(shots, qubits)
+            probs_dict, shots=shots, stddev_upper_bound=self.stddev_upper_bound(shots, qubits)
         )
         return quasi_dist
 
