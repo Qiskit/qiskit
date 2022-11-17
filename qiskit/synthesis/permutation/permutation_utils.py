@@ -26,11 +26,14 @@ def _get_ordered_swap(permutation_in):
     """
     permutation = list(permutation_in[:])
     swap_list = []
+    index_map = _inverse_pattern(permutation_in)
     for i, val in enumerate(permutation):
         if val != i:
-            j = permutation.index(i)
+            j = index_map[i]
             swap_list.append((i, j))
             permutation[i], permutation[j] = permutation[j], permutation[i]
+            index_map[val] = j
+            index_map[i] = i
     swap_list.reverse()
     return swap_list
 
