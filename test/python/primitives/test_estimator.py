@@ -13,9 +13,9 @@
 """Tests for Estimator."""
 
 import unittest
-from ddt import ddt, data, unpack
 
 import numpy as np
+from ddt import data, ddt, unpack
 
 from qiskit.circuit import Parameter, QuantumCircuit
 from qiskit.circuit.library import RealAmplitudes
