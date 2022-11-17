@@ -1,0 +1,8 @@
+---
+fixes:
+  - |
+    Fixed an issue with the :class:`~.SabreSwap` pass which would cause the
+    output of multiple runs of the pass without the ``seed`` argument specified
+    to reuse the same random number generator seed between runs instead of
+    using different seeds. This previously caused identical results to be
+    returned between runs even when no ``seed`` was specified.
