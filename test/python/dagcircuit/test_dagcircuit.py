@@ -18,6 +18,7 @@ import unittest
 from ddt import ddt, data
 
 import rustworkx as rx
+import numpy as np
 from numpy import pi
 
 from qiskit.dagcircuit import DAGCircuit, DAGOpNode, DAGInNode, DAGOutNode
@@ -2129,6 +2130,124 @@ class TestConditional(QiskitTestCase):
                 ]
             ),
         )
+
+
+class TestSwapNodes(QiskitTestCase):
+    """Test Swapping connected nodes."""
+
+    def test_1q_swap_fully_connected(self):
+        """Test swapping single qubit gates"""
+        from qiskit.converters import dag_to_circuit
+
+        qreg = QuantumRegister(1)
+        circuit = QuantumCircuit(qreg)
+        circuit.rx(pi, qreg[0])
+        circuit.rx(pi / 2, qreg[0])
+        dag = circuit_to_dag(circuit)
+        op_nodes = dag.op_nodes()
+        dag.swap_nodes(op_nodes[0], op_nodes[1])
+        swapped_circuit = dag_to_circuit(dag)
+
+        expected_circuit = QuantumCircuit(qreg)
+        expected_circuit.rx(pi / 2, qreg[0])
+        expected_circuit.rx(pi, qreg[0])
+        self.assertEqual(swapped_circuit, expected_circuit)
+
+    def test_2q_swap_fully_connected(self):
+        """test swaping full connected 2q gates"""
+        from qiskit.converters import dag_to_circuit
+
+        circuit = QuantumCircuit(2)
+        circuit.cx(0, 1)
+        circuit.cy(1, 0)
+        dag = circuit_to_dag(circuit)
+        op_nodes = dag.op_nodes()
+        dag.swap_nodes(op_nodes[0], op_nodes[1])
+        swapped_circuit = dag_to_circuit(dag)
+
+        expected_circuit = QuantumCircuit(2)
+        expected_circuit.cy(1, 0)
+        expected_circuit.cx(0, 1)
+        self.assertEqual(swapped_circuit, expected_circuit)
+
+    def test_2q_swap_partially_connected(self):
+        """test swapping 2q partially connected gates"""
+        from qiskit.converters import dag_to_circuit
+
+        circuit = QuantumCircuit(3)
+        circuit.cx(1, 0)
+        circuit.cz(1, 2)
+        dag = circuit_to_dag(circuit)
+        op_nodes = dag.op_nodes()
+        dag.swap_nodes(op_nodes[0], op_nodes[1])
+        swapped_circuit = dag_to_circuit(dag)
+
+        expected_circuit = QuantumCircuit(3)
+        expected_circuit.cz(1, 2)
+        expected_circuit.cx(1, 0)
+        self.assertEqual(swapped_circuit, expected_circuit)
+
+    def test_4q_swap_partially_connected(self):
+        """test swapping 4q partially connected gates"""
+        from qiskit.converters import dag_to_circuit
+        from qiskit.circuit.library.standard_gates import RXGate
+        from qiskit.quantum_info import Operator
+
+        np.set_printoptions(linewidth=200, precision=2, suppress=True)
+        qreg = QuantumRegister(5)
+        circuit = QuantumCircuit(qreg)
+        num_ctrls = 3
+        num_gates = 2**num_ctrls
+        delta = pi / (num_gates - 1)
+        gate_list = [np.array(RXGate(i * delta)) for i in range(num_gates)]
+
+        circuit.uc(gate_list, qreg[1:4], qreg[4])
+        circuit.uc(gate_list, qreg[1:4], qreg[0])
+        dag = circuit_to_dag(circuit)
+        op_nodes = dag.op_nodes()
+        dag.swap_nodes(op_nodes[0], op_nodes[1])
+        swapped_circuit = dag_to_circuit(dag)
+
+        expected_circuit = QuantumCircuit(qreg)
+        expected_circuit.uc(gate_list, qreg[1:4], qreg[0])
+        expected_circuit.uc(gate_list, qreg[1:4], qreg[4])
+        self.assertEqual(swapped_circuit, expected_circuit)
+
+    def test_4q_swap_partially_connected2(self):
+        """test swapping 4q partially connected gates"""
+        from qiskit.converters import dag_to_circuit
+        from qiskit.circuit.library.standard_gates import C3XGate
+
+        qreg = QuantumRegister(5)
+        circuit = QuantumCircuit(qreg)
+        circuit.append(C3XGate(), qreg[[0, 1, 2, 3]])
+        circuit.append(C3XGate(), qreg[[0, 1, 2, 4]])
+        dag = circuit_to_dag(circuit)
+        op_nodes = dag.op_nodes()
+        dag.swap_nodes(op_nodes[0], op_nodes[1])
+        swapped_circuit = dag_to_circuit(dag)
+
+        expected_circuit = QuantumCircuit(qreg)
+        expected_circuit.append(C3XGate(), qreg[[0, 1, 2, 4]])
+        expected_circuit.append(C3XGate(), qreg[[0, 1, 2, 3]])
+        self.assertEqual(swapped_circuit, expected_circuit)
+
+    def test_2q_swap_non_connected(self):
+        """test swapping 2q non-connected gates"""
+        from qiskit.converters import dag_to_circuit
+
+        circuit = QuantumCircuit(4)
+        circuit.cx(1, 0)
+        circuit.cz(2, 3)
+        dag = circuit_to_dag(circuit)
+        op_nodes = dag.op_nodes()
+        dag.swap_nodes(op_nodes[0], op_nodes[1])
+        swapped_circuit = dag_to_circuit(dag)
+
+        expected_circuit = QuantumCircuit(4)
+        expected_circuit.cx(1, 0)
+        expected_circuit.cz(2, 3)
+        self.assertEqual(swapped_circuit, expected_circuit)
 
 
 if __name__ == "__main__":
