@@ -12,8 +12,9 @@
 """
 Utility functions for primitives
 """
-
 from __future__ import annotations
+
+import numpy as np
 
 from qiskit.circuit import Instruction, ParameterExpression, QuantumCircuit
 from qiskit.extensions.quantum_initializer.initializer import Initialize
@@ -130,8 +131,22 @@ def _circuit_key(circuit: QuantumCircuit, functional: bool = True) -> tuple:
         circuit.num_qubits,
         circuit.num_clbits,
         circuit.num_parameters,
+<<<<<<< HEAD
         tuple(
             (d.qubits, d.clbits, d.operation.name, tuple(d.operation.params)) for d in circuit.data
+=======
+        tuple(  # circuit.data
+            (
+                _bits_key(data.qubits, circuit),  # qubits
+                _bits_key(data.clbits, circuit),  # clbits
+                data.operation.name,  # operation.name
+                tuple(
+                    param.data.tobytes() if isinstance(param, np.ndarray) else param
+                    for param in data.operation.params
+                ),  # operation.params
+            )
+            for data in circuit.data
+>>>>>>> 599b663e6 (fix #9102 (#9103))
         ),
         None if circuit._op_start_times is None else tuple(circuit._op_start_times),
     )
