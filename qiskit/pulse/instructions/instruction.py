@@ -27,6 +27,7 @@ from typing import Callable, Iterable, List, Optional, Set, Tuple
 from qiskit.circuit import Parameter
 from qiskit.pulse.channels import Channel
 from qiskit.pulse.exceptions import PulseError
+from qiskit.utils import optionals as _optionals
 
 
 # pylint: disable=missing-return-doc
@@ -220,6 +221,7 @@ class Instruction(ABC):
         """Return True iff the instruction is parameterized."""
         return any(self.parameters)
 
+    @_optionals.HAS_MATPLOTLIB.require_in_call
     def draw(
         self,
         dt: float = 1,
@@ -256,23 +258,29 @@ class Instruction(ABC):
             matplotlib.figure: A matplotlib figure object of the pulse schedule
         """
         # pylint: disable=cyclic-import
-        from qiskit import visualization
+        from qiskit.visualization.pulse.matplotlib import ScheduleDrawer
+        from qiskit.visualization.utils import matplotlib_close_if_inline
 
-        return visualization.pulse_drawer(
+        drawer = ScheduleDrawer(style=style)
+        image = drawer.draw(
             self,
             dt=dt,
-            style=style,
-            filename=filename,
             interp_method=interp_method,
             scale=scale,
-            plot_all=plot_all,
             plot_range=plot_range,
-            interactive=interactive,
+            plot_all=plot_all,
             table=table,
             label=label,
             framechange=framechange,
             channels=channels,
         )
+        if filename:
+            image.savefig(filename, dpi=drawer.style.dpi, bbox_inches="tight")
+
+        matplotlib_close_if_inline(image)
+        if image and interactive:
+            image.show()
+        return image
 
     def __eq__(self, other: "Instruction") -> bool:
         """Check if this Instruction is equal to the `other` instruction.
