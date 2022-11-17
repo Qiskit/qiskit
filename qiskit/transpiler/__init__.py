@@ -302,7 +302,7 @@ has this flexibility.  Due to limitations in, for example, the physical interact
 between qubits, difficulty in implementing multi-qubit gates, control electronics etc,
 a quantum computing device can only natively support a handful of quantum gates and non-gate
 operations. The allowed instructions for a given backend can be found by querying the
-:class:`~.Target for the devices:
+:class:`~.Target` for the devices:
 
 .. jupyter-execute::
    :hide-code:
