@@ -176,36 +176,52 @@ class PermRowCol:
         if sum(parity_mat[chosen_row]) > 1:
     
             A = parity_mat.copy()
-            A[chosen_row] = [0]*len(A[chosen_row])
+            A = np.delete(A, chosen_row, 0)
+            A = np.delete(A, chosen_column, 1)
+            A = A.astype(int)
 
             # So first to delete the row F.ex. Np.delete(Arr, obj, axis, jossa Arr=A, obj= row, axis= deleted columns, so "np.delete(A, chosen_row , chosen_column)" )
-
-            print("A:", A)
-            B = parity_mat[chosen_row].copy() 
+            
+            B = parity_mat[chosen_row] 
+            B = np.delete(B, chosen_column)
             
             # Next just chosen_row without chosen_colum F.ex. parity_mat[chosen_row].remove(chosen_column)
             
-            B[chosen_column] = 0
-            B = B.astype(bool)
+            #B = B.astype(bool)
+            print("A:", A)
             print("B:", B)
+            print("parity mat:", parity_mat)
             inv_A = LinearFunction(LinearFunction(A).synthesize().reverse_ops()).linear
             print("inv_A:", inv_A)
-            X = np.matmul(inv_A, B)
+            X = np.matmul( B, inv_A)%2
             print("X:", X)
+            X = np.insert(X, chosen_row, 1)
             print([i for i in range(len(X))])
-            nodes = [i for i in range(len(X)) if i == chosen_row or X[i] == True]
+            nodes = [i for i in range(len(X)) if i == chosen_row or X[i] == 1]
             print("nodes:", nodes)
-            #print("circuit before changes:")
-            #print(LinearFunction(circuit).linear)
+            print("circuit before changes:")
+            print(LinearFunction(circuit).linear)
             print("parity mat before eliminate row:")
             print(parity_mat)
             for edge in self.eliminate_row(parity_mat, chosen_row, nodes):
                 print("edge:", edge)
-                circuit.cx(edge[0], edge[1])
-                #print("changed circuit:")
-                #print(LinearFunction(circuit).linear)
+                circuit.cx(edge[1], edge[0])
+                print("changed circuit:")
+                print(LinearFunction(circuit).linear)
 
-
+    #    X = np.matmul(B,inv_A)%2
+    #    X = X.astype(int)
+    #    print("X = ", X)
+#
+    #    X = np.insert(X, chosen_row,0)
+    #    print("chosen_row: ",chosen_row)
+    #    print("X after inserting column (chosen_row):")
+#
+    #    print(X.astype(int))
+    #    nodes = [i for i in graph.node_indices() if i == chosen_row or X[i] == 1]
+    #    print("nodes mat after eliminate_row:")
+    #    print(nodes)
+    
         #print("circuit at the end:")
         #print(LinearFunction(circuit).linear)
         print("parity mat after eliminate row:")

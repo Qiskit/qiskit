@@ -262,10 +262,10 @@ class TestPermRowCol(QiskitTestCase):
         permrowcol = PermRowCol(coupling)
         parity_mat = np.array(
             [
-                [0, 1, 0, 1, 1, 0],
-                [1, 0, 1, 0, 0, 0],
+                [0, 1, 0, 1, 1, 0], #
+                [1, 0, 1, 0, 0, 0], #
                 [1, 0, 0, 0, 1, 1],
-                [1, 1, 1, 0, 1, 0],
+                [1, 1, 1, 0, 1, 0], #
                 [1, 0, 1, 0, 1, 0],
                 [1, 0, 1, 0, 1, 1],
             ]
@@ -275,8 +275,8 @@ class TestPermRowCol(QiskitTestCase):
         circuit = QuantumCircuit(len(coupling.graph))
         edge = (1, 0)
         circuit.cx(edge[0], edge[1])
-        #        print(LinearFunction(circuit).linear)
-        #        print(parity_mat)
+        print(LinearFunction(circuit).linear)
+        #print(parity_mat)
         #        A = np.array(
         #            [
         #                [0, 0, 0, 0, 0, 0],
@@ -306,12 +306,12 @@ class TestPermRowCol(QiskitTestCase):
         instance = permrowcol.matrix_edit(parity_mat, chosen_column, chosen_row, circuit)
 
         result_circuit = [
-            [True, True, False, False, False, False],
-            [True, False, False, False, False, False],
+            [True, False, False, True, False, False],
+            [False, True, False, False, False, False],
             [False, False, True, False, False, False],
             [False, False, False, True, False, False],
-            [False, True, False, False, True, False],
-            [False, False, False, False, True, True],
+            [False, False, False, False, True, False],
+            [False, False, False, False, False, True],
         ]
 
         result_parity_matrix = [
@@ -323,6 +323,7 @@ class TestPermRowCol(QiskitTestCase):
             [1, 0, 1, 0, 1, 1],
         ]
 
+        
         self.assertEqual(np.array_equal(LinearFunction(instance).linear, result_circuit), True)
         self.assertEqual(np.array_equal(parity_mat, result_parity_matrix), True)
 
