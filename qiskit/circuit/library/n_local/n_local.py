@@ -14,7 +14,6 @@
 
 from typing import Union, Optional, List, Any, Tuple, Sequence, Set, Callable
 from itertools import combinations
-import warnings
 
 import numpy
 from qiskit.circuit.quantumcircuit import QuantumCircuit
@@ -79,7 +78,7 @@ class NLocal(BlueprintCircuit):
         overwrite_block_parameters: Union[bool, List[List[Parameter]]] = True,
         skip_final_rotation_layer: bool = False,
         skip_unentangled_qubits: bool = False,
-        initial_state: Optional[Any] = None,
+        initial_state: Optional[QuantumCircuit] = None,
         name: Optional[str] = "nlocal",
     ) -> None:
         """Create a new n-local circuit.
@@ -110,7 +109,6 @@ class NLocal(BlueprintCircuit):
             TODO
 
         Raises:
-            ImportError: If an ``initial_state`` is specified but Qiskit Aqua is not installed.
             ValueError: If reps parameter is less than or equal to 0.
             TypeError: If reps parameter is not an int value.
         """
@@ -651,7 +649,7 @@ class NLocal(BlueprintCircuit):
         raise ValueError(f"Invalid value of entanglement: {entanglement}")
 
     @property
-    def initial_state(self) -> Any:
+    def initial_state(self) -> QuantumCircuit:
         """Return the initial state that is added in front of the n-local circuit.
 
         Returns:
@@ -660,7 +658,7 @@ class NLocal(BlueprintCircuit):
         return self._initial_state
 
     @initial_state.setter
-    def initial_state(self, initial_state: Any) -> None:
+    def initial_state(self, initial_state: QuantumCircuit) -> None:
         """Set the initial state.
 
         Args:
@@ -671,29 +669,6 @@ class NLocal(BlueprintCircuit):
                 does not match the number of qubits.
         """
         self._initial_state = initial_state
-
-        # If there is an initial state object, check that the number of qubits is compatible
-        # construct the circuit immediately. If the InitialState could modify the number of qubits
-        # we could also do this later at circuit construction.
-        if not isinstance(self._initial_state, QuantumCircuit):
-            warnings.warn(
-                "The initial_state argument of the NLocal class "
-                "should be a QuantumCircuit. Passing any other type is "
-                "deprecated as of Qiskit Terra 0.18.0, and "
-                "will be removed no earlier than 3 months after that "
-                "release date.",
-                DeprecationWarning,
-                stacklevel=2,
-            )
-            initial_state_circuit = initial_state.construct_circuit(mode="circuit")
-
-            # the initial state dictates the number of qubits since we do not have information
-            # about on which qubits the initial state acts
-            if self._num_qubits is not None and initial_state_circuit.num_qubits != self.num_qubits:
-                raise ValueError(
-                    "Mismatching number of qubits in initial state and n-local circuit."
-                )
-
         self._invalidate()
 
     @property
@@ -910,11 +885,7 @@ class NLocal(BlueprintCircuit):
 
         # use the initial state as starting circuit, if it is set
         if self.initial_state:
-            if isinstance(self.initial_state, QuantumCircuit):
-                initial = self.initial_state.copy()
-            else:
-                initial = self.initial_state.construct_circuit("circuit", register=self.qregs[0])
-            circuit.compose(initial, inplace=True)
+            circuit.compose(self.initial_state.copy(), inplace=True)
 
         param_iter = iter(self.ordered_parameters)
 

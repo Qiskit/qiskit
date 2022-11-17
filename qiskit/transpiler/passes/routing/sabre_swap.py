@@ -15,7 +15,6 @@
 import logging
 from copy import copy, deepcopy
 
-import numpy as np
 import retworkx
 
 from qiskit.circuit.library.standard_gates import SwapGate
@@ -150,12 +149,7 @@ class SabreSwap(TransformationPass):
             self._neighbor_table = NeighborTable(retworkx.adjacency_matrix(self.coupling_map.graph))
 
         self.heuristic = heuristic
-
-        if seed is None:
-            ii32 = np.iinfo(np.int32)
-            self.seed = np.random.default_rng(None).integers(0, ii32.max, dtype=int)
-        else:
-            self.seed = seed
+        self.seed = seed
         if trials is None:
             self.trials = CPU_COUNT
         else:
@@ -223,8 +217,7 @@ class SabreSwap(TransformationPass):
                     cargs,
                 )
             )
-        front_layer = np.asarray([x._node_id for x in dag.front_layer()], dtype=np.uintp)
-        sabre_dag = SabreDAG(len(dag.qubits), len(dag.clbits), dag_list, front_layer)
+        sabre_dag = SabreDAG(len(dag.qubits), len(dag.clbits), dag_list)
         swap_map, gate_order = build_swap_map(
             len(dag.qubits),
             sabre_dag,

@@ -22,6 +22,7 @@ from qiskit import QuantumCircuit, pulse, transpile
 from qiskit.circuit import Parameter
 from qiskit.circuit.library import RealAmplitudes
 from qiskit.exceptions import QiskitError
+from qiskit.extensions.unitary import UnitaryGate
 from qiskit.primitives import Sampler, SamplerResult
 from qiskit.primitives.utils import _circuit_key
 from qiskit.providers import JobStatus, JobV1
@@ -769,6 +770,18 @@ class TestSampler(QiskitTestCase):
 
             keys = [_circuit_key(test_with_scheduling(i)) for i in range(1, 5)]
             self.assertEqual(len(keys), len(set(keys)))
+
+    def test_circuit_with_unitary(self):
+        """Test for circuit with unitary gate."""
+        gate = UnitaryGate(np.eye(2))
+
+        circuit = QuantumCircuit(1)
+        circuit.append(gate, [0])
+        circuit.measure_all()
+
+        sampler = Sampler()
+        sampler_result = sampler.run([circuit]).result()
+        self.assertDictAlmostEqual(sampler_result.quasi_dists[0], {0: 1, 1: 0})
 
 
 if __name__ == "__main__":
