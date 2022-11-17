@@ -519,12 +519,12 @@ In order to highlight this, we run a GHZ circuit 100 times, using a "bad" (disco
 
    import matplotlib.pyplot as plt
    from qiskit import QuantumCircuit, transpile
-   from qiskit.providers.fake_provider import FakeBoeblingen
-   backend = FakeBoeblingen()
+   from qiskit.providers.fake_provider import FakeAuckland
+   backend = FakeAuckland()
 
-   ghz = QuantumCircuit(6)
+   ghz = QuantumCircuit(15)
    ghz.h(0)
-   ghz.cx(0, range(1, 6))
+   ghz.cx(0, range(1, 15))
    ghz.draw(output='mpl')
 
 
@@ -536,12 +536,12 @@ In order to highlight this, we run a GHZ circuit 100 times, using a "bad" (disco
             transpile(
                 ghz,
                 backend,
-                initial_layout=[7, 0, 4, 15, 19, 1],
+                layout_method='trivial'  # Fixed layout mapped in circuit order
             ).depth()
         )
 
    plt.figure(figsize=(8, 6))
-   plt.hist(depths, bins=list(range(14,36)), align='left', color='#AC557C')
+   plt.hist(depths, align='left', color='#AC557C')
    plt.xlabel('Depth', fontsize=14)
    plt.ylabel('Counts', fontsize=14);
 
@@ -584,12 +584,12 @@ setting the optimization level higher:
 
    import matplotlib.pyplot as plt
    from qiskit import QuantumCircuit, transpile
-   from qiskit.providers.fake_provider import FakeBoeblingen
-   backend = FakeBoeblingen()
+   from qiskit.providers.fake_provider import FakeAuckland
+   backend = FakeAuckland()
 
-   ghz = QuantumCircuit(5)
+   ghz = QuantumCircuit(15)
    ghz.h(0)
-   ghz.cx(0,range(1,5))
+   ghz.cx(0, range(1, 15))
    ghz.draw(output='mpl')
 
 
