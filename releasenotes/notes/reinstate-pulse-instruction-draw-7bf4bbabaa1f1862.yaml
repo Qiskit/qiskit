@@ -1,0 +1,6 @@
+---
+fixes:
+  - |
+    The :meth:`.pulse.Instruction.draw` will now succeed, as before.
+    This method is deprecated with no replacement planned, but it should
+    still work for the period of deprecation.
