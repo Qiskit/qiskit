@@ -19,18 +19,18 @@ class TestGraphUtils(QiskitTestCase):
 
     def test_noncutting_vertices_returns_np_ndarray(self):
         """Test the output type of noncutting_vertices"""
-        coupling = CouplingMap()
+        graph = pydigraph_to_pygraph(CouplingMap().graph)
 
-        instance = noncutting_vertices(coupling)
+        instance = noncutting_vertices(graph)
 
         self.assertIsInstance(instance, np.ndarray)
 
     def test_noncutting_vertices_returns_an_ndarray_with_noncutting_vertices(self):
         """Test noncutting_vertices method for correctness"""
         coupling_list = [[0, 2], [1, 2], [2, 3], [2, 4], [3, 6], [4, 5], [4, 6]]
-        coupling = CouplingMap(couplinglist=coupling_list)
+        graph = pydigraph_to_pygraph(CouplingMap(couplinglist=coupling_list).graph)
 
-        instance = noncutting_vertices(coupling)
+        instance = noncutting_vertices(graph)
         expected = np.array([0, 1, 3, 5, 6])
 
         self.assertCountEqual(instance, expected)

@@ -46,5 +46,5 @@ class PermRowColSynthesis(LinearFunctionsSynthesis):
 
         parity_mat = np.identity(3)
         permrowcol = PermRowCol(self._coupling_map)
-        res_circuit = permrowcol.perm_row_col(parity_mat, self._coupling_map)
+        res_circuit = permrowcol.perm_row_col(parity_mat)
         return circuit_to_dag(res_circuit)
