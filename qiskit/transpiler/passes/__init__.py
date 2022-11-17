@@ -85,6 +85,7 @@ Optimizations
    HoareOptimizer
    TemplateOptimization
    EchoRZXWeylDecomposition
+   ResetAfterMeasureSimplification
    OptimizeCliffords
 
 Calibration
@@ -169,6 +170,7 @@ Additional Passes
    FixedPoint
    ContainsInstruction
    GatesInBasis
+   ConvertConditionsToIfOps
 """
 
 # layout selection (placement)
@@ -222,6 +224,7 @@ from .optimization import TemplateOptimization
 from .optimization import InverseCancellation
 from .optimization import EchoRZXWeylDecomposition
 from .optimization import CollectLinearFunctions
+from .optimization import ResetAfterMeasureSimplification
 from .optimization import OptimizeCliffords
 
 # circuit analysis
@@ -276,3 +279,4 @@ from .utils import Error
 from .utils import RemoveBarriers
 from .utils import ContainsInstruction
 from .utils import GatesInBasis
+from .utils import ConvertConditionsToIfOps

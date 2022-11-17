@@ -12,10 +12,15 @@
 
 # pylint: disable=missing-docstring
 
+import unittest
+
 from qiskit.transpiler import CouplingMap
 from qiskit.transpiler.exceptions import CouplingError
 from qiskit.providers.fake_provider import FakeRueschlikon
 from qiskit.test import QiskitTestCase
+from qiskit.utils import optionals
+
+from ..visualization.visualization import QiskitVisualizationTestCase, path_to_diagram_reference
 
 
 class CouplingTest(QiskitTestCase):
@@ -436,3 +441,19 @@ class CouplingTest(QiskitTestCase):
         edge_list = subgraph.get_edges()
         expected = [(0, 1), (1, 2), (2, 3)]
         self.assertEqual(expected, edge_list, f"{edge_list} does not match {expected}")
+
+    def test_implements_iter(self):
+        """Test that the object is implicitly iterable."""
+        coupling = CouplingMap.from_line(3)
+        expected = [(0, 1), (1, 0), (1, 2), (2, 1)]
+        self.assertEqual(sorted(coupling), expected)
+
+
+class CouplingVisualizationTest(QiskitVisualizationTestCase):
+    @unittest.skipUnless(optionals.HAS_GRAPHVIZ, "Graphviz not installed")
+    def test_coupling_draw(self):
+        """Test that the coupling map drawing with respect to the reference file is correct."""
+        cmap = CouplingMap([[0, 1], [1, 2], [2, 3], [2, 4], [2, 5], [2, 6]])
+        image_ref = path_to_diagram_reference("coupling_map.png")
+        image = cmap.draw()
+        self.assertImagesAreEqual(image, image_ref, diff_tolerance=0.01)

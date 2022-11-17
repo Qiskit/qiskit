@@ -637,7 +637,7 @@ class TestParameters(QiskitTestCase):
         qc2.h(qr)
         qc2.measure(qr, cr)
 
-        qc3 = qc1 + qc2
+        qc3 = qc1.compose(qc2)
         self.assertEqual(qc3.parameters, {theta, phi})
 
     def test_composite_instruction(self):
@@ -855,7 +855,7 @@ class TestParameters(QiskitTestCase):
 
         qc.p(theta, qr[0])
 
-        double_qc = qc + qc
+        double_qc = qc.compose(qc)
         test_qc = dag_to_circuit(circuit_to_dag(double_qc))
 
         for assign_fun in ["bind_parameters", "assign_parameters"]:
