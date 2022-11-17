@@ -1235,9 +1235,10 @@ def num_to_latex_ket(raw_value: complex, first_term: bool, decimals: int = 10) -
         String with latex code or None if no term is required
     """
     warnings.warn(
-        "~qiskit.visualization.state_visualization.num_to_latex_ket "
-        "is deprecated as of 0.23.0 and will be removed no earlier than 3 months "
-        "after the release.",
+        "~qiskit.visualization.state_visualization.num_to_latex_ket is "
+        "deprecated as of 0.23.0 and will be removed no earlier than 3 months "
+        "after the release. For similar functionality, see sympy's `nsimplify` "
+        "and `latex` functions.",
         category=DeprecationWarning,
         stacklevel=2,
     )
@@ -1256,9 +1257,10 @@ def numbers_to_latex_terms(numbers: List[complex], decimals: int = 10) -> List[s
         List of formatted terms
     """
     warnings.warn(
-        "~qiskit.visualization.state_visualization.num_to_latex_terms "
-        "is deprecated as of 0.23.0 and will be removed no earlier than 3 months "
-        "after the release.",
+        "~qiskit.visualization.state_visualization.num_to_latex_terms is "
+        "deprecated as of 0.23.0 and will be removed no earlier than 3 months "
+        "after the release. For similar functionality, see sympy's `nsimplify` "
+        "and `latex` functions.",
         category=DeprecationWarning,
         stacklevel=2,
     )
