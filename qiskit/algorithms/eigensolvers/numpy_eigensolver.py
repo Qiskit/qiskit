@@ -25,6 +25,7 @@ from qiskit.quantum_info import Operator, SparsePauliOp, Statevector
 from qiskit.utils.validation import validate_min
 
 from .eigensolver import Eigensolver, EigensolverResult
+from ..exceptions import AlgorithmError
 from ..list_or_dict import ListOrDict
 
 logger = logging.getLogger(__name__)
@@ -108,19 +109,23 @@ class NumPyEigensolver(Eigensolver):
                 self._k = self._in_k
 
     def _solve(self, operator: BaseOperator | PauliSumOp) -> tuple[np.ndarray, np.ndarray]:
-        if isinstance(operator, Operator):
-            # Sparse SciPy matrix not supported, use dense NumPy computation.
-            op_matrix = operator.data
-            if op_matrix.all() == op_matrix.conj().T.all():
-                eigval, eigvec = np.linalg.eigh(op_matrix)
-            else:
-                eigval, eigvec = np.linalg.eig(op_matrix)
+        if isinstance(operator, PauliSumOp):
+            sparse = True
+            op_matrix = operator.to_spmatrix()
         else:
-            if isinstance(operator, PauliSumOp):
-                op_matrix = operator.to_spmatrix()
-            else:
+            try:
                 op_matrix = operator.to_matrix(sparse=True)
+                sparse = True
+            except TypeError:
+                # Try dense matrix
+                pass
+            try:
+                op_matrix = operator.to_matrix()
+                sparse = False
+            except AttributeError as ex:
+                raise AlgorithmError(f"Unsupported operator type {type(operator)}.") from ex
 
+        if sparse:
             # If matrix is diagonal, the elements on the diagonal are the eigenvalues. Solve by sorting.
             if scisparse.csr_matrix(op_matrix.diagonal()).nnz == op_matrix.nnz:
                 diag = op_matrix.diagonal()
@@ -134,20 +139,33 @@ class NumPyEigensolver(Eigensolver):
                     logger.debug(
                         "SciPy doesn't support to get all eigenvalues, using NumPy instead."
                     )
-                    if (op_matrix != op_matrix.H).nnz == 0:
-                        eigval, eigvec = np.linalg.eigh(operator.to_matrix())
-                    else:
-                        eigval, eigvec = np.linalg.eig(operator.to_matrix())
+                    eigval, eigvec = self._solve_dense(operator.to_matrix())
                 else:
-                    if (op_matrix != op_matrix.H).nnz == 0:
-                        eigval, eigvec = scisparse.linalg.eigsh(op_matrix, k=self._k, which="SA")
-                    else:
-                        eigval, eigvec = scisparse.linalg.eigs(op_matrix, k=self._k, which="SR")
+                    eigval, eigvec = self._solve_sparse(op_matrix, self._k)
+        else:
+            # Sparse SciPy matrix not supported, use dense NumPy computation.
+            eigval, eigvec = self._solve_dense(operator.to_matrix())
 
         indices = np.argsort(eigval)[: self._k]
         eigval = eigval[indices]
         eigvec = eigvec[:, indices]
         return eigval, eigvec.T
+
+    @staticmethod
+    def _solve_sparse(op_matrix: scisparse.csr_matrix, k: int) -> tuple[np.ndarray, np.ndarray]:
+        if (op_matrix != op_matrix.H).nnz == 0:
+            # Operator is Hermitian
+            return scisparse.linalg.eigsh(op_matrix, k=k, which="SA")
+        else:
+            return scisparse.linalg.eigs(op_matrix, k=k, which="SR")
+
+    @staticmethod
+    def _solve_dense(op_matrix: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
+        if op_matrix.all() == op_matrix.conj().T.all():
+            # Operator is Hermitian
+            return np.linalg.eigh(op_matrix)
+        else:
+            return np.linalg.eig(op_matrix)
 
     @staticmethod
     def _eval_aux_operators(
@@ -171,17 +189,30 @@ class NumPyEigensolver(Eigensolver):
             op_matrix = None
             if operator is None:
                 continue
-            elif isinstance(operator, Operator):
-                value = Statevector(wavefn).expectation_value(operator)
-            else:
-                if isinstance(operator, PauliSumOp):
-                    if operator.coeff != 0:
-                        op_matrix = operator.to_spmatrix()
-                else:
-                    op_matrix = operator.to_matrix(sparse=True)
 
+            if isinstance(operator, PauliSumOp):
+                if operator.coeff != 0:
+                    sparse = True
+                    op_matrix = operator.to_spmatrix()
+            else:
+                try:
+                    op_matrix = operator.to_matrix(sparse=True)
+                    sparse = True
+                except TypeError:
+                    # Try dense matrix
+                    pass
+                try:
+                    op_matrix = operator.to_matrix()
+                    sparse = False
+                except AttributeError as ex:
+                    raise AlgorithmError(f"Unsupported operator type {type(operator)}.") from ex
+
+            if sparse:
                 if op_matrix is not None:
+                    # op_matrix is only None when PauliSumOp.coeff == 0
                     value = op_matrix.dot(wavefn).dot(np.conj(wavefn))
+            else:
+                value = Statevector(wavefn).expectation_value(operator)
 
             value = value if np.abs(value) > threshold else 0.0
             # The value gets wrapped into a tuple: (mean, metadata).
