@@ -181,6 +181,6 @@ def _error(circuit, target, qubit):
             ]
         gate_error = 1 - np.product(gate_fidelities)
         if gate_error == 0.0:
-            return -100 + len(circuit)   # prefer shorter circuits among those with zero error
+            return -100 + len(circuit)  # prefer shorter circuits among those with zero error
         else:
             return gate_error

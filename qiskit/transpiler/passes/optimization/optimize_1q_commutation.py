@@ -225,7 +225,7 @@ class Optimize1qGatesSimpleCommutation(TransformationPass):
                     + (new_succeeding_run or QuantumCircuit(1)).data
                 ),
                 self._optimize1q._basis_gates,
-                qubit_indices[run[0].qargs[0]]
+                qubit_indices[run[0].qargs[0]],
             ):
                 if preceding_run and new_preceding_run is not None:
                     self._replace_subdag(dag, preceding_run, new_preceding_run)
