@@ -53,7 +53,7 @@ class PermRowCol:
             cols = self._return_columns(qubit_alloc)
             column = self.choose_column(parity_mat, cols, row)
             nodes = self._get_nodes(parity_mat, column)
-            for edge in self.eliminate_column(parity_mat, row, column, nodes):
+            for edge in self._eliminate_column(parity_mat, row, column, nodes):
                 circuit.cx(edge[0], edge[1])
 
             if sum(parity_mat[row]) > 1:
