@@ -33,7 +33,7 @@ version = "0.12.3"
 features = ["rayon"]
 
 [dependencies.indexmap]
-version = "1.9.1"
+version = "1.9.2"
 features = ["rayon"]
 
 [profile.release]
