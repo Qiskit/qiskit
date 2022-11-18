@@ -15,11 +15,24 @@ import unittest
 from test.python.algorithms import QiskitAlgorithmsTestCase
 from ddt import data, ddt, unpack
 import numpy as np
-from qiskit.opflow import StateFn, OperatorBase
-from qiskit import QuantumCircuit
-from qiskit.algorithms import SciPyRealEvolver
-from qiskit.algorithms import TimeEvolutionProblem
-from qiskit.opflow import Y, Z, One, X, Zero
+from qiskit import QuantumCircuit, QuantumRegister
+from qiskit.algorithms import SciPyRealEvolver, TimeEvolutionProblem
+from qiskit.quantum_info import Statevector, SparsePauliOp
+
+
+def zero(n):
+    """Auxiliary function to create an initial state on n qubits."""
+    qr = QuantumRegister(n)
+    qc = QuantumCircuit(qr)
+    return Statevector(qc)
+
+
+def one(n):
+    """Auxiliary function to create an initial state on n qubits."""
+    qr = QuantumRegister(n)
+    qc = QuantumCircuit(qr)
+    qc.x(qr)
+    return Statevector(qc)
 
 
 @ddt
@@ -27,52 +40,48 @@ class TestClassicalRealEvolver(QiskitAlgorithmsTestCase):
     """Test Classical Real Evolver."""
 
     @data(
-        (One, np.pi / 2, X, -1.0j * Zero),
-        (One ^ Zero, np.pi / 2, ((X ^ X) + (Y ^ Y)) / 2, -1.0j * Zero ^ One),
+        (one(1), np.pi / 2, SparsePauliOp("X"), -1.0j * zero(1)),
         (
-            One ^ Zero,
-            np.pi / 4,
-            ((X ^ X) + (Y ^ Y)) / 2,
-            ((One ^ Zero) - 1.0j * (Zero ^ One)) / np.sqrt(2),
+            one(1).expand(zero(1)),
+            np.pi / 2,
+            SparsePauliOp(["XX", "YY"], [0.5, 0.5]),
+            -1.0j * zero(1).expand(one(1)),
         ),
-        (Zero ^ 12, np.pi / 2, X ^ 12, -1.0j * (One ^ 12)),
+        (
+            one(1).expand(zero(1)),
+            np.pi / 4,
+            SparsePauliOp(["XX", "YY"], [0.5, 0.5]),
+            ((one(1).expand(zero(1)) - 1.0j * zero(1).expand(one(1)))) / np.sqrt(2),
+        ),
+        (zero(12), np.pi / 2, SparsePauliOp("X" * 12), -1.0j * (one(12))),
     )
     @unpack
     def test_evolve(
         self,
-        initial_state: StateFn,
+        initial_state: Statevector,
         time_ev: float,
-        hamiltonian: OperatorBase,
-        expected_state: StateFn,
+        hamiltonian: SparsePauliOp,
+        expected_state: Statevector,
     ):
         """Initializes a classical real evolver and evolves a state."""
         evolution_problem = TimeEvolutionProblem(hamiltonian, time_ev, initial_state)
         classic_evolver = SciPyRealEvolver(steps=1)
         result = classic_evolver.evolve(evolution_problem)
 
-        with self.subTest("Amplitudes"):
-            np.testing.assert_allclose(
-                np.absolute(result.evolved_state.to_matrix()),
-                np.absolute(expected_state.to_matrix()),
-                atol=1e-10,
-                rtol=0,
-            )
-
-        with self.subTest("Phases"):
-            np.testing.assert_allclose(
-                np.angle(result.evolved_state.to_matrix()),
-                np.angle(expected_state.to_matrix()),
-                atol=1e-10,
-                rtol=0,
-            )
+        np.testing.assert_allclose(
+            result.evolved_state.data,
+            expected_state.data,
+            atol=1e-10,
+            rtol=0,
+        )
 
     def test_observables(self):
         """Tests if the observables are properly evaluated at each timestep."""
 
-        initial_state = Zero
+        initial_state = zero(1)
         time_ev = 10.0
-        hamiltonian = X
-        observables = {"Energy": X, "Z": Z}
+        hamiltonian = SparsePauliOp("X")
+        observables = {"Energy": SparsePauliOp("X"), "Z": SparsePauliOp("Z")}
         evolution_problem = TimeEvolutionProblem(
             hamiltonian, time_ev, initial_state, aux_operators=observables
         )
@@ -88,6 +97,7 @@ class TestClassicalRealEvolver(QiskitAlgorithmsTestCase):
 
         np.testing.assert_allclose(z_mean, expected_z, atol=1e-10, rtol=0)
         np.testing.assert_allclose(z_std, expected_z_std, atol=1e-10, rtol=0)
+        np.testing.assert_equal(time_vector, result.times)
 
     def test_quantum_circuit_initial_state(self):
         """Tests if the system can be evolved with a quantum circuit as an initial state."""
@@ -96,12 +106,12 @@ class TestClassicalRealEvolver(QiskitAlgorithmsTestCase):
         qc.cx(0, range(1, 3))
 
         evolution_problem = TimeEvolutionProblem(
-            hamiltonian=X ^ X ^ X, time=2 * np.pi, initial_state=qc
+            hamiltonian=SparsePauliOp("X" * 3), time=2 * np.pi, initial_state=qc
         )
         classic_evolver = SciPyRealEvolver(steps=500)
         result = classic_evolver.evolve(evolution_problem)
         np.testing.assert_almost_equal(
-            result.evolved_state.to_matrix(),
+            result.evolved_state.data,
             np.array([1, 0, 0, 0, 0, 0, 0, 1]) / np.sqrt(2),
             decimal=10,
         )
@@ -109,7 +119,7 @@ class TestClassicalRealEvolver(QiskitAlgorithmsTestCase):
     def test_error_time_dependency(self):
         """Tests if an error is raised for time dependent hamiltonian."""
         evolution_problem = TimeEvolutionProblem(
-            hamiltonian=X ^ X ^ X, time=1.0, initial_state=Zero, t_param=0
+            hamiltonian=SparsePauliOp("X" * 3), time=1.0, initial_state=zero(3), t_param=0
         )
         classic_evolver = SciPyRealEvolver(steps=5)
         with self.assertRaises(ValueError):
@@ -118,7 +128,10 @@ class TestClassicalRealEvolver(QiskitAlgorithmsTestCase):
     def test_no_time_steps(self):
         """Tests if the evolver handles some edge cases related to the number of timesteps."""
         evolution_problem = TimeEvolutionProblem(
-            hamiltonian=X, time=1.0, initial_state=Zero, aux_operators={"Energy": X}
+            hamiltonian=SparsePauliOp("X"),
+            time=1.0,
+            initial_state=zero(1),
+            aux_operators={"Energy": SparsePauliOp("X")},
         )
 
         with self.subTest("0 timesteps"):
@@ -129,7 +142,7 @@ class TestClassicalRealEvolver(QiskitAlgorithmsTestCase):
         with self.subTest("1 timestep"):
             classic_evolver = SciPyRealEvolver(steps=1)
             result = classic_evolver.evolve(evolution_problem)
-            np.testing.assert_equal(result.observables["time"], np.array([0.0, 1.0]))
+            np.testing.assert_equal(result.times, np.array([0.0, 1.0]))
 
         with self.subTest("Negative timesteps"):
             with self.assertRaises(ValueError):

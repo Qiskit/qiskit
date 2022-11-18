@@ -15,6 +15,7 @@ from __future__ import annotations
 import numpy as np
 
 from qiskit import QuantumCircuit
+from qiskit.quantum_info import Statevector
 from qiskit.algorithms.list_or_dict import ListOrDict
 from ..algorithm_result import AlgorithmResult
 
@@ -24,7 +25,7 @@ class TimeEvolutionResult(AlgorithmResult):
     Class for holding time evolution result.
 
     Attributes:
-        evolved_state (QuantumCircuit): An evolved quantum state.
+        evolved_state (QuantumCircuit|Statevector): An evolved quantum state.
         aux_ops_evaluated (ListOrDict[tuple[complex, complex]] | None): Optional list of
             observables for which expected values on an evolved state are calculated. These values
             are in fact tuples formatted as (mean, standard deviation).
@@ -35,9 +36,10 @@ class TimeEvolutionResult(AlgorithmResult):
 
     def __init__(
         self,
-        evolved_state: QuantumCircuit,
+        evolved_state: QuantumCircuit | Statevector,
         aux_ops_evaluated: ListOrDict[tuple[complex, complex]] | None = None,
         observables: ListOrDict[tuple[np.ndarray, np.ndarray]] | None = None,
+        times: np.ndarray | None = None,
     ):
         """
         Args:
@@ -52,3 +54,4 @@ class TimeEvolutionResult(AlgorithmResult):
         self.evolved_state = evolved_state
         self.aux_ops_evaluated = aux_ops_evaluated
         self.observables = observables
+        self.times = times

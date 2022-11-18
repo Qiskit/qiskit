@@ -10,14 +10,16 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 """Auxiliary functions for SciPy Time Evolvers"""
+from __future__ import annotations
 from scipy.sparse import csr_matrix
 from scipy.sparse.linalg import expm_multiply
 import numpy as np
 
 from qiskit.quantum_info.states import Statevector
-from qiskit import QuantumCircuit
-from qiskit.opflow import StateFn
+from qiskit.quantum_info.operators.base_operator import BaseOperator
 
+from qiskit import QuantumCircuit
+from qiskit.opflow import PauliSumOp
 from ..time_evolution_problem import TimeEvolutionProblem
 from ..time_evolution_result import TimeEvolutionResult
 
@@ -27,7 +29,7 @@ from ...list_or_dict import ListOrDict
 def _create_observable_output(
     ops_ev_mean: np.ndarray,
     evolution_problem: TimeEvolutionProblem,
-) -> ListOrDict[tuple[np.ndarray, np.ndarray]| tuple[complex, complex], np.ndarray]:
+) -> tuple[ListOrDict[tuple[np.ndarray, np.ndarray]], np.ndarray]:
     """Creates the right output format for the evaluated auxiliary operators.
     Args:
         ops_ev_mean: Array containing the expectation value of each observable at each timestep.
@@ -50,11 +52,8 @@ def _create_observable_output(
 
     if isinstance(aux_ops, dict):
         observable_evolution = dict(zip(aux_ops.keys(), observable_evolution))
-        observable_evolution["time"] = time_array
-    else:
-        observable_evolution += [time_array]
 
-    return observable_evolution
+    return observable_evolution, time_array
 
 
 def _create_obs_final(
@@ -93,6 +92,23 @@ def _evaluate_aux_ops(
     return op_means
 
 
+def _operator_to_matrix(operator: BaseOperator | PauliSumOp):
+
+    if isinstance(operator, PauliSumOp):
+        operator_matrix = operator.primitive.to_matrix(sparse=True)
+
+    elif hasattr(type(operator), "to_matrix"):
+        if "sparse" in operator.to_matrix.__code__.co_varnames:
+            operator_matrix = operator.to_matrix(sparse=True)
+        else:
+            operator_matrix = operator.to_matrix()
+
+    else:
+        raise ValueError("The Operator can not be converted to a matrix.")
+
+    return operator_matrix
+
+
 def _sparsify(
     evolution_problem: TimeEvolutionProblem, steps: int, real_time: bool
 ) -> tuple[np.ndarray, list[csr_matrix], csr_matrix]:
@@ -107,19 +123,27 @@ def _sparsify(
     Returns:
         A tuple with the initial state, the list of operators to evaluate and the operator to be
         exponentiated to perform one timestep.
+
+    Raises:
+        ValueError: If the Hamiltonian can not be converted into a sparse matrix or dense matrix.
     """
     # Convert the initial state and Hamiltonian into sparse matrices.
     if isinstance(evolution_problem.initial_state, QuantumCircuit):
         state = Statevector(evolution_problem.initial_state).data.T
     else:
-        state = evolution_problem.initial_state.to_matrix(massive=True).transpose()
+        state = evolution_problem.initial_state.data.T
 
-    hamiltonian = evolution_problem.hamiltonian.to_spmatrix()
+    hamiltonian = _operator_to_matrix(operator=evolution_problem.hamiltonian)
 
     if isinstance(evolution_problem.aux_operators, list):
-        aux_ops = [aux_op.to_spmatrix() for aux_op in evolution_problem.aux_operators]
+        aux_ops = [
+            _operator_to_matrix(operator=aux_op) for aux_op in evolution_problem.aux_operators
+        ]
     elif isinstance(evolution_problem.aux_operators, dict):
-        aux_ops = [aux_op.to_spmatrix() for aux_op in evolution_problem.aux_operators.values()]
+        aux_ops = [
+            _operator_to_matrix(operator=aux_op)
+            for aux_op in evolution_problem.aux_operators.values()
+        ]
     else:
         aux_ops = []
     timestep = evolution_problem.time / steps
@@ -143,11 +167,15 @@ def _evolve(
 
     Raises:
         ValueError: If the Hamiltonian is time dependent.
+        ValueError: If the initial state is `None`.
 
     """
 
     if evolution_problem.t_param is not None:
         raise ValueError("Time dependent Hamiltonians are not supported.")
+
+    if evolution_problem.initial_state is None:
+        raise ValueError("Initial state is `None`")
 
     state, aux_ops, step_opeartor = _sparsify(
         evolution_problem=evolution_problem, steps=steps, real_time=real_time
@@ -171,11 +199,12 @@ def _evolve(
 
     ops_ev_mean[:, steps] = _evaluate_aux_ops(aux_ops, state)
 
-    observable_history = _create_observable_output(ops_ev_mean, evolution_problem)
+    observable_history, times = _create_observable_output(ops_ev_mean, evolution_problem)
     aux_ops_evaluated = _create_obs_final(ops_ev_mean[:, -1], evolution_problem)
 
     return TimeEvolutionResult(
-        evolved_state=StateFn(state),
+        evolved_state=Statevector(state),
         aux_ops_evaluated=aux_ops_evaluated,
         observables=observable_history,
+        times=times,
     )
