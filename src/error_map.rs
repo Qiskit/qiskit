@@ -20,16 +20,16 @@ use hashbrown::HashMap;
 ///
 /// This class is used to efficiently (with no iteration or copy/conversion)
 /// represent an error map for a target backend to internal rust code that
-/// works with error rates. For most purposes it is not meant to be write only
+/// works with error rates. For most purposes it is meant to be write only
 /// from Python, as the intent is to use this to pass data to a Rust module.
 /// However, this class does implement the mapping protocol so you can lookup
 /// error rates from Python if needed.
 ///
-/// Each key is a 2 element tuple where each element is a qubit number that
-/// represents the error rate for the two qubit gates on those qubits (order
-/// is significant). The value is a ``float`` representing the error rate for
-/// that edge. For 1 qubit error rate you should set both elements to the same
-/// qubit index. If an edge or qubit is ideal and has no error rate you can
+/// Each entry consists of a key which is a 2 element tuple of qubit numbers
+/// (order is significant) and a value which is a ``float`` representing the
+/// error rate for the edge connecting the corresponding qubits. For 1 qubit
+/// error rates, you should assign both elements of the key to the same
+/// qubit index. If an edge or qubit is ideal and has no error rate, you can
 /// either set it to ``0.0`` explicitly or as ``NaN``.
 #[pyclass(mapping, module = "qiskit._accelerate.error_map")]
 #[pyo3(text_signature = "(num_qubits, num_edges, /")]
