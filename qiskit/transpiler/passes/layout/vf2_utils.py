@@ -117,6 +117,11 @@ def build_average_error_map(target, properties, coupling_map):
     elif coupling_map is not None:
         num_qubits = coupling_map.size()
         avg_map = ErrorMap(num_qubits + coupling_map.graph.num_edges())
+    else:
+        # If coupling map is not defined almost certainly we don't have any
+        # data to build an error map, but just in case initialize an empty
+        # object
+        avg_map = ErrorMap(0)
     built = False
     if target is not None:
         for qargs in target.qargs:
