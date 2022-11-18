@@ -69,16 +69,19 @@ class UserConfig:
                 self.settings["circuit_drawer"] = circuit_drawer
 
             # Parse circuit_drawer_reverse_bits
-            circuit_reverse_bits = self.config_parser.get("default", "circuit_reverse_bits", fallback=None)
+            circuit_reverse_bits = self.config_parser.get(
+                "default", "circuit_reverse_bits", fallback=None
+            )
             if circuit_reverse_bits:
                 circuit_reverse_bits = circuit_reverse_bits.capitalize()
-                valid_circuit_reverse_bits = {
-                    "True": True,
-                    "False": False
-                }
+                valid_circuit_reverse_bits = {"True": True, "False": False}
                 if circuit_reverse_bits not in valid_circuit_reverse_bits:
-                    raise exceptions.QiskitUserConfigError("%s must be True or False." % circuit_reverse_bits)
-                self.settings["circuit_reverse_bits"] = valid_circuit_reverse_bits[circuit_reverse_bits]
+                    raise exceptions.QiskitUserConfigError(
+                        "%s must be True or False." % circuit_reverse_bits
+                    )
+                self.settings["circuit_reverse_bits"] = valid_circuit_reverse_bits[
+                    circuit_reverse_bits
+                ]
 
             # Parse state_drawer
             state_drawer = self.config_parser.get("default", "state_drawer", fallback=None)
