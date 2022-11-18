@@ -1743,7 +1743,7 @@ class QuantumCircuit:
         style: Optional[Union[dict, str]] = None,
         interactive: bool = False,
         plot_barriers: bool = True,
-        reverse_bits: bool = False,
+        reverse_bits: bool = None,
         justify: Optional[str] = None,
         vertical_compression: Optional[str] = "medium",
         idle_wires: bool = True,
