@@ -951,16 +951,16 @@ class QuantumCircuit:
 
         Remember that in the little-endian convention the leftmost operation will be at the bottom
         of the circuit. See also
-        [the docs](qiskit.org/documentation/tutorials/circuits/3_summary_of_quantum_operations.html)
+        `the docs <qiskit.org/documentation/tutorials/circuits/3_summary_of_quantum_operations.html>`__
         for more information.
 
         .. parsed-literal::
 
-                 ┌────────┐         ┌─────┐          ┌─────┐
+                 ┌────────┐        ┌─────┐          ┌─────┐
             q_0: ┤ bottom ├ ⊗ q_0: ┤ top ├  = q_0: ─┤ top ├──
-                 └────────┘         └─────┘         ┌┴─────┴─┐
-                                               q_1: ┤ bottom ├
-                                                    └────────┘
+                 └────────┘        └─────┘         ┌┴─────┴─┐
+                                              q_1: ┤ bottom ├
+                                                   └────────┘
 
         Args:
             other (QuantumCircuit): The other circuit to tensor this circuit with.
