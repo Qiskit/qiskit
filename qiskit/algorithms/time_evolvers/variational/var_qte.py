@@ -114,7 +114,7 @@ class VarQTE(ABC):
         Raises:
             ValueError: If ``initial_state`` is included in the ``evolution_problem``.
         """
-        self._validate_aux_ops(evolution_problem)
+        self._validate_observables(evolution_problem)
 
         if evolution_problem.initial_state is not None:
             raise ValueError("initial_state provided but not applicable to VarQTE.")
@@ -139,6 +139,16 @@ class VarQTE(ABC):
             )
 
         return TimeEvolutionResult(evolved_state, evaluated_aux_ops)
+
+    @classmethod
+    def supports_observables(cls) -> bool:
+        """
+        Whether computing the expectation value of auxiliary operators is supported.
+        Returns:
+            ``True`` if ``observables`` expectations in the ``TimeEvolutionProblem`` can be
+            evaluated, ``False`` otherwise.
+        """
+        return True
 
     def _evolve(
         self,
@@ -241,8 +251,8 @@ class VarQTE(ABC):
         init_state_param_dict = dict(zip(init_state_parameters, init_state_parameter_values))
         return init_state_param_dict
 
-    def _validate_aux_ops(self, evolution_problem: TimeEvolutionProblem) -> None:
+    def _validate_observables(self, evolution_problem: TimeEvolutionProblem) -> None:
         if evolution_problem.aux_operators is not None and self.estimator is None:
             raise ValueError(
-                "aux_operators where provided for evaluations but no ``estimator`` " "was provided."
+                "Observables where provided for evaluations but no ``estimator`` " "was provided."
             )
