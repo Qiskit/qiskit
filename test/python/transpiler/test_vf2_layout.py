@@ -23,17 +23,19 @@ from qiskit import QuantumRegister, QuantumCircuit, ClassicalRegister
 from qiskit.circuit import ControlFlowOp
 from qiskit.transpiler import CouplingMap, Target, TranspilerError
 from qiskit.transpiler.passes.layout.vf2_layout import VF2Layout, VF2LayoutStopReason
+from qiskit._accelerate.error_map import ErrorMap
 from qiskit.converters import circuit_to_dag
 from qiskit.test import QiskitTestCase
 from qiskit.providers.fake_provider import (
     FakeTenerife,
+    FakeVigoV2,
     FakeRueschlikon,
     FakeManhattan,
     FakeYorktown,
     FakeGuadalupeV2,
 )
 from qiskit.circuit.library import GraphState, CXGate, XGate
-from qiskit.transpiler import PassManager
+from qiskit.transpiler import PassManager, AnalysisPass
 from qiskit.transpiler.target import InstructionProperties
 from qiskit.transpiler.preset_passmanagers.common import generate_embed_passmanager
 
@@ -414,6 +416,41 @@ class TestVF2LayoutBackend(LayoutTestCase):
         pass_ = VF2Layout(cmap5, strict_direction=False, seed=self.seed, max_trials=1)
         pass_.run(dag)
         self.assertLayout(dag, cmap5, pass_.property_set)
+
+    def test_3q_circuit_vigo_with_custom_scores(self):
+        """Test custom ErrorMap from analysis pass are used for scoring."""
+        backend = FakeVigoV2()
+        target = backend.target
+
+        class FakeScore(AnalysisPass):
+            """Fake analysis pass with custom scoring."""
+
+            def run(self, dag):
+                error_map = ErrorMap(9)
+                error_map.add_error((0, 0), 0.1)
+                error_map.add_error((0, 1), 0.5)
+                error_map.add_error((1, 1), 0.2)
+                error_map.add_error((1, 2), 0.8)
+                error_map.add_error((1, 3), 0.75)
+                error_map.add_error((2, 2), 0.123)
+                error_map.add_error((3, 3), 0.333)
+                error_map.add_error((3, 4), 0.12345423)
+                error_map.add_error((4, 4), 0.2222)
+                self.property_set["vf2_avg_error_map"] = error_map
+
+        qr = QuantumRegister(3, "q")
+        circuit = QuantumCircuit(qr)
+        circuit.cx(qr[1], qr[0])  # qr1 -> qr0
+        circuit.cx(qr[0], qr[2])  # qr0 -> qr2
+
+        vf2_pass = VF2Layout(target=target, seed=1234568942)
+        property_set = {}
+        vf2_pass(circuit, property_set)
+        pm = PassManager([FakeScore(), VF2Layout(target=target, seed=1234568942)])
+        pm.run(circuit)
+        # Assert layout is different from backend properties
+        self.assertNotEqual(property_set["layout"], pm.property_set["layout"])
+        self.assertLayout(circuit_to_dag(circuit), backend.coupling_map, pm.property_set)
 
     def test_perfect_fit_Manhattan(self):
         """A circuit that fits perfectly in Manhattan (65 qubits)

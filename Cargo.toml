@@ -22,7 +22,7 @@ rustworkx-core = "0.12"
 
 [dependencies.pyo3]
 version = "0.17.3"
-features = ["extension-module", "hashbrown", "num-complex", "num-bigint"]
+features = ["extension-module", "hashbrown", "num-complex", "num-bigint", "indexmap"]
 
 [dependencies.ndarray]
 version = "^0.15.6"
@@ -33,7 +33,7 @@ version = "0.12.3"
 features = ["rayon"]
 
 [dependencies.indexmap]
-version = "1.9.2"
+version = "1.7"
 features = ["rayon"]
 
 [profile.release]

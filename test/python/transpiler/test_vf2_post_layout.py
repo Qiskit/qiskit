@@ -397,7 +397,7 @@ class TestVF2PostLayoutScoring(QiskitTestCase):
         vf2_pass.avg_error_map = vf2_utils.build_average_error_map(
             vf2_pass.target, vf2_pass.properties, vf2_pass.coupling_map
         )
-        layout = Layout(bit_map)
+        layout = {0: 0, 1: 1}
         score = vf2_utils.score_layout(
             vf2_pass.avg_error_map, layout, bit_map, reverse_bit_map, im_graph
         )
