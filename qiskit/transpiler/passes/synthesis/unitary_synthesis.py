@@ -661,6 +661,8 @@ class DefaultUnitarySynthesis(plugin.UnitarySynthesisPlugin):
         approximation_degree,
         target
     ):
+        print(decomposer2q)
+        print(preferred_direction)
         synth_direction = None
         # FIXME: no approximation right now. Need both decomposers to
         # expose a approximate=True/False or a basis_fidelity float or something.
