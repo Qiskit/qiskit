@@ -16,171 +16,22 @@ import io
 import re
 from typing import Union, List, Tuple, Callable, Dict, Any, Optional, Iterator, Iterable
 
-import dill
-
-from qiskit.tools.parallel import parallel_map
 from qiskit.circuit import QuantumCircuit
+from qiskit.passmanager.base_passmanager import BasePassManager
+
 from .basepasses import BasePass
 from .exceptions import TranspilerError
-from .runningpassmanager import RunningPassManager, FlowController
+from .runningpassmanager import RunningPassManager
 
 
-class PassManager:
+class PassManager(BasePassManager):
     """Manager for a set of Passes and their scheduling during transpilation."""
 
-    def __init__(self, passes: Union[BasePass, List[BasePass]] = None, max_iteration: int = 1000):
-        """Initialize an empty `PassManager` object (with no passes scheduled).
+    PASS_TYPE = BasePass
+    INPUT_TYPE = QuantumCircuit
+    TARGET_TYPE = QuantumCircuit
 
-        Args:
-            passes: A pass set (as defined in :py:func:`qiskit.transpiler.PassManager.append`)
-                to be added to the pass manager schedule.
-            max_iteration: The maximum number of iterations the schedule will be looped if the
-                condition is not met.
-        """
-        # the pass manager's schedule of passes, including any control-flow.
-        # Populated via PassManager.append().
-
-        self._pass_sets = []
-        if passes is not None:
-            self.append(passes)
-        self.max_iteration = max_iteration
-        self.property_set = None
-
-    def append(
-        self,
-        passes: Union[BasePass, List[BasePass]],
-        max_iteration: int = None,
-        **flow_controller_conditions: Any,
-    ) -> None:
-        """Append a Pass Set to the schedule of passes.
-
-        Args:
-            passes: A set of passes (a pass set) to be added to schedule. A pass set is a list of
-                    passes that are controlled by the same flow controller. If a single pass is
-                    provided, the pass set will only have that pass a single element.
-                    It is also possible to append a
-                    :class:`~qiskit.transpiler.runningpassmanager.FlowController` instance and the
-                    rest of the parameter will be ignored.
-            max_iteration: max number of iterations of passes.
-            flow_controller_conditions: control flow plugins.
-
-        Raises:
-            TranspilerError: if a pass in passes is not a proper pass.
-
-        See Also:
-            ``RunningPassManager.add_flow_controller()`` for more information about the control
-            flow plugins.
-        """
-        if max_iteration:
-            # TODO remove this argument from append
-            self.max_iteration = max_iteration
-
-        passes = PassManager._normalize_passes(passes)
-        self._pass_sets.append({"passes": passes, "flow_controllers": flow_controller_conditions})
-
-    def replace(
-        self,
-        index: int,
-        passes: Union[BasePass, List[BasePass]],
-        max_iteration: int = None,
-        **flow_controller_conditions: Any,
-    ) -> None:
-        """Replace a particular pass in the scheduler.
-
-        Args:
-            index: Pass index to replace, based on the position in passes().
-            passes: A pass set (as defined in :py:func:`qiskit.transpiler.PassManager.append`)
-                to be added to the pass manager schedule.
-            max_iteration: max number of iterations of passes.
-            flow_controller_conditions: control flow plugins.
-
-        Raises:
-            TranspilerError: if a pass in passes is not a proper pass or index not found.
-
-        See Also:
-            ``RunningPassManager.add_flow_controller()`` for more information about the control
-            flow plugins.
-        """
-        if max_iteration:
-            # TODO remove this argument from append
-            self.max_iteration = max_iteration
-
-        passes = PassManager._normalize_passes(passes)
-
-        try:
-            self._pass_sets[index] = {
-                "passes": passes,
-                "flow_controllers": flow_controller_conditions,
-            }
-        except IndexError as ex:
-            raise TranspilerError(f"Index to replace {index} does not exists") from ex
-
-    def remove(self, index: int) -> None:
-        """Removes a particular pass in the scheduler.
-
-        Args:
-            index: Pass index to replace, based on the position in passes().
-
-        Raises:
-            TranspilerError: if the index is not found.
-        """
-        try:
-            del self._pass_sets[index]
-        except IndexError as ex:
-            raise TranspilerError(f"Index to replace {index} does not exists") from ex
-
-    def __setitem__(self, index, item):
-        self.replace(index, item)
-
-    def __len__(self):
-        return len(self._pass_sets)
-
-    def __getitem__(self, index):
-        new_passmanager = PassManager(max_iteration=self.max_iteration)
-        _pass_sets = self._pass_sets[index]
-        if isinstance(_pass_sets, dict):
-            _pass_sets = [_pass_sets]
-        new_passmanager._pass_sets = _pass_sets
-        return new_passmanager
-
-    def __add__(self, other):
-        if isinstance(other, PassManager):
-            new_passmanager = PassManager(max_iteration=self.max_iteration)
-            new_passmanager._pass_sets = self._pass_sets + other._pass_sets
-            return new_passmanager
-        else:
-            try:
-                new_passmanager = PassManager(max_iteration=self.max_iteration)
-                new_passmanager._pass_sets += self._pass_sets
-                new_passmanager.append(other)
-                return new_passmanager
-            except TranspilerError as ex:
-                raise TypeError(
-                    f"unsupported operand type + for {self.__class__} and {other.__class__}"
-                ) from ex
-
-    @staticmethod
-    def _normalize_passes(
-        passes: Union[BasePass, List[BasePass], FlowController]
-    ) -> List[BasePass]:
-        if isinstance(passes, FlowController):
-            return passes
-        if isinstance(passes, BasePass):
-            passes = [passes]
-        for pass_ in passes:
-            if isinstance(pass_, FlowController):
-                # Normalize passes in nested FlowController.
-                # TODO: Internal renormalisation should be the responsibility of the
-                # `FlowController`, but the separation between `FlowController`,
-                # `RunningPassManager` and `PassManager` is so muddled right now, it would be better
-                # to do this as part of more top-down refactoring.  ---Jake, 2022-10-03.
-                pass_.passes = PassManager._normalize_passes(pass_.passes)
-            elif not isinstance(pass_, BasePass):
-                raise TranspilerError(
-                    "%s is not a BasePass or FlowController instance " % pass_.__class__
-                )
-        return passes
-
+    # pylint: disable=arguments-differ
     def run(
         self,
         circuits: Union[QuantumCircuit, List[QuantumCircuit]],
@@ -222,122 +73,17 @@ class PassManager:
         Returns:
             The transformed circuit(s).
         """
-        if not self._pass_sets and output_name is None and callback is None:
-            return circuits
-        if isinstance(circuits, QuantumCircuit):
-            return self._run_single_circuit(circuits, output_name, callback)
-        if len(circuits) == 1:
-            return self._run_single_circuit(circuits[0], output_name, callback)
-        return self._run_several_circuits(circuits, output_name, callback)
+        return super().run(
+            in_programs=circuits,
+            output_name=output_name,
+            callback=callback,
+        )
 
     def _create_running_passmanager(self) -> RunningPassManager:
         running_passmanager = RunningPassManager(self.max_iteration)
         for pass_set in self._pass_sets:
             running_passmanager.append(pass_set["passes"], **pass_set["flow_controllers"])
         return running_passmanager
-
-    @staticmethod
-    def _in_parallel(circuit, pm_dill=None) -> QuantumCircuit:
-        """Task used by the parallel map tools from ``_run_several_circuits``."""
-        running_passmanager = dill.loads(pm_dill)._create_running_passmanager()
-        result = running_passmanager.run(circuit)
-        return result
-
-    def _run_several_circuits(
-        self, circuits: List[QuantumCircuit], output_name: str = None, callback: Callable = None
-    ) -> List[QuantumCircuit]:
-        """Run all the passes on the specified ``circuits``.
-
-        Args:
-            circuits: Circuits to transform via all the registered passes.
-            output_name: The output circuit name. If ``None``, it will be set to the same as the
-                input circuit name.
-            callback: A callback function that will be called after each pass execution.
-
-        Returns:
-            The transformed circuits.
-        """
-        # TODO support for List(output_name) and List(callback)
-        del output_name
-        del callback
-
-        return parallel_map(
-            PassManager._in_parallel, circuits, task_kwargs={"pm_dill": dill.dumps(self)}
-        )
-
-    def _run_single_circuit(
-        self, circuit: QuantumCircuit, output_name: str = None, callback: Callable = None
-    ) -> QuantumCircuit:
-        """Run all the passes on a ``circuit``.
-
-        Args:
-            circuit: Circuit to transform via all the registered passes.
-            output_name: The output circuit name. If ``None``, it will be set to the same as the
-                input circuit name.
-            callback: A callback function that will be called after each pass execution.
-
-        Returns:
-            The transformed circuit.
-        """
-        running_passmanager = self._create_running_passmanager()
-        result = running_passmanager.run(circuit, output_name=output_name, callback=callback)
-        self.property_set = running_passmanager.property_set
-        return result
-
-    def draw(self, filename=None, style=None, raw=False):
-        """Draw the pass manager.
-
-        This function needs `pydot <https://github.com/erocarrera/pydot>`__, which in turn needs
-        `Graphviz <https://www.graphviz.org/>`__ to be installed.
-
-        Args:
-            filename (str): file path to save image to.
-            style (dict): keys are the pass classes and the values are the colors to make them. An
-                example can be seen in the DEFAULT_STYLE. An ordered dict can be used to ensure
-                a priority coloring when pass falls into multiple categories. Any values not
-                included in the provided dict will be filled in from the default dict.
-            raw (bool): If ``True``, save the raw Dot output instead of the image.
-
-        Returns:
-            Optional[PassManager]: an in-memory representation of the pass manager, or ``None``
-            if no image was generated or `Pillow <https://pypi.org/project/Pillow/>`__
-            is not installed.
-
-        Raises:
-            ImportError: when nxpd or pydot not installed.
-        """
-        from qiskit.visualization import pass_manager_drawer
-
-        return pass_manager_drawer(self, filename=filename, style=style, raw=raw)
-
-    def passes(self) -> List[Dict[str, BasePass]]:
-        """Return a list structure of the appended passes and its options.
-
-        Returns:
-            A list of pass sets, as defined in ``append()``.
-        """
-        ret = []
-        for pass_set in self._pass_sets:
-            item = {"passes": pass_set["passes"]}
-            if pass_set["flow_controllers"]:
-                item["flow_controllers"] = set(pass_set["flow_controllers"].keys())
-            else:
-                item["flow_controllers"] = {}
-            ret.append(item)
-        return ret
-
-    def to_flow_controller(self) -> FlowController:
-        """Linearize this manager into a single :class:`.FlowController`, so that it can be nested
-        inside another :class:`.PassManager`."""
-        return FlowController.controller_factory(
-            [
-                FlowController.controller_factory(
-                    pass_set["passes"], None, **pass_set["flow_controllers"]
-                )
-                for pass_set in self._pass_sets
-            ],
-            None,
-        )
 
 
 class StagedPassManager(PassManager):

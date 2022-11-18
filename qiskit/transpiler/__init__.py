@@ -1247,17 +1247,21 @@ Exceptions
    TranspilerAccessError
 """
 
-from .runningpassmanager import FlowController, ConditionalController, DoWhileController
-from .passmanager import PassManager
+# Old import paths for backward compatibility
+from qiskit.passmanager.fencedobjs import FencedPropertySet
+from qiskit.passmanager.propertyset import PropertySet
+from qiskit.passmanager.flow_controller import (
+    FlowController,
+    ConditionalController,
+    DoWhileController,
+)
+
+from .passmanager import PassManager, StagedPassManager
 from .passmanager_config import PassManagerConfig
-from .passmanager import StagedPassManager
-from .propertyset import PropertySet
 from .exceptions import TranspilerError, TranspilerAccessError
-from .fencedobjs import FencedDAGCircuit, FencedPropertySet
 from .basepasses import AnalysisPass, TransformationPass
 from .coupling import CouplingMap
 from .layout import Layout
 from .instruction_durations import InstructionDurations
 from .target import Target
 from .target import InstructionProperties
-from .target import QubitProperties
