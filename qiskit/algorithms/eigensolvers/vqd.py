@@ -79,7 +79,7 @@ class VQD(VariationalAlgorithm, Eigensolver):
     of ``None``, then VQD will look to the ansatz for a preferred value, based on its
     given initial state. If the ansatz returns ``None``,
     then a random point will be generated within the parameter bounds set, as per above.
-    It is also possible to give a list of *initial points*, one for every kth eigenvalue.
+    It is also possible to give a list of initial points, one for every kth eigenvalue.
     If the ansatz provides ``None`` as the lower bound, then VQD
     will default it to :math:`-2\pi`; similarly, if the ansatz returns ``None``
     as the upper bound, the default value will be :math:`2\pi`.
@@ -94,7 +94,7 @@ class VQD(VariationalAlgorithm, Eigensolver):
                 overlap estimation as indicated in the VQD paper.
             ansatz (QuantumCircuit): A parameterized circuit used as ansatz for the wave function.
             optimizer(Optimizer | list[Optimizer]): A classical optimizer or a list of optimizers,
-            one for every k-th eigenvalue.. Can either be a Qiskit optimizer or a callable
+            one for every k-th eigenvalue. Can either be a Qiskit optimizer or a callable
                 that takes an array as input and returns a Qiskit or SciPy optimization result.
             k (int): the number of eigenvalues to return. Returns the lowest k eigenvalues.
             betas (list[float]): Beta parameters in the VQD paper.
@@ -119,11 +119,11 @@ class VQD(VariationalAlgorithm, Eigensolver):
         estimator: BaseEstimator,
         fidelity: BaseStateFidelity,
         ansatz: QuantumCircuit,
-        optimizer: Union[Optimizer, List[Optimizer]] | Union[Minimizer, List[Minimizer]],
+        optimizer: Optimizer | Minimizer | Sequence[Optimizer | Minimizer],
         *,
         k: int = 2,
         betas: Sequence[float] | None = None,
-        initial_point: Optional[Union[np.ndarray, List[np.ndarray]]] = None,
+        initial_point: Sequence[float] | Sequence[Sequence[float]] | None,
         callback: Callable[[int, np.ndarray, float, dict[str, Any]], None] | None = None,
     ) -> None:
         """
@@ -174,18 +174,6 @@ class VQD(VariationalAlgorithm, Eigensolver):
     def initial_point(self, initial_point: Optional[Union[np.ndarray, List[np.ndarray]]]):
         """Sets initial point"""
         self._initial_point = initial_point
-
-    @property
-    def optimizer(self) -> Union[Optimizer, List[Optimizer]] | Union[Minimizer, List[Minimizer]]:
-        """Returns optimizer"""
-        return self._optimizer
-
-    @optimizer.setter
-    def optimizer(
-        self, optimizer: Union[Optimizer, List[Optimizer]] | Union[Minimizer, List[Minimizer]]
-    ):
-        """Sets optimizer"""
-        self._optimizer = optimizer
 
     def _check_operator_ansatz(self, operator: BaseOperator | PauliSumOp):
         """Check that the number of qubits of operator and ansatz match."""
@@ -269,18 +257,11 @@ class VQD(VariationalAlgorithm, Eigensolver):
         for step in range(1, self.k + 1):
             if isinstance(self.initial_point, list):
                 initial_point = validate_initial_point(self.initial_point[step - 1], self.ansatz)
-
             else:
                 initial_point = validate_initial_point(self.initial_point, self.ansatz)
 
             if step > 1:
-                if isinstance(self.initial_point, list):
-                    params = validate_initial_point(self.initial_point[step - 1], self.ansatz)
-
-                else:
-                    params = result.optimal_points[-1]  # update list of optimal circuits
-
-                prev_states.append(self.ansatz.bind_parameters(params))
+                prev_states.append(self.ansatz.bind_parameters(result.optimal_points[-1]))
 
             self._eval_count = 0
             energy_evaluation = self._get_evaluate_energy(
@@ -292,7 +273,6 @@ class VQD(VariationalAlgorithm, Eigensolver):
             # TODO: add gradient support after FidelityGradients are implemented
             if isinstance(self.optimizer, list):
                 optmzer = self.optimizer[step - 1]
-
             else:
                 optmzer = self.optimizer  # fall back to single optimizer if not list
 
@@ -421,7 +401,18 @@ class VQD(VariationalAlgorithm, Eigensolver):
             except Exception as exc:
                 raise AlgorithmError("The primitive job to evaluate the energy failed!") from exc
 
-            values = estimator_result.values + total_cost
+            if step > 1:
+                # Compute overlap cost
+                fidelity_job = self.fidelity.run(
+                    [self.ansatz] * (step - 1),
+                    prev_states,
+                    [parameters] * (step - 1),
+                )
+
+                costs = fidelity_job.result().fidelities
+
+                for (state, cost) in zip(range(step - 1), costs):
+                    values += np.real(betas[state] * cost)
 
             if self.callback is not None:
                 metadata = estimator_result.metadata
