@@ -19,7 +19,7 @@ from ddt import data, ddt
 
 from qiskit.transpiler import PassManager, StagedPassManager
 from qiskit.transpiler.exceptions import TranspilerError
-from qiskit.transpiler.passes import Optimize1qGates, Unroller, Depth
+from qiskit.transpiler.passes import Optimize1qGates, Unroller, Depth, BasicSwap
 from qiskit.test import QiskitTestCase
 
 
@@ -98,6 +98,26 @@ class TestStagedPassManager(QiskitTestCase):
         for stage in invalid_stages:
             self.assertIn(stage, message)
 
+    def test_repeated_stages(self):
+        stages = ["alpha", "omega", "alpha"]
+        pre_alpha = PassManager(Unroller(["u", "cx"]))
+        alpha = PassManager(Depth())
+        post_alpha = PassManager(BasicSwap([[0, 1], [1, 2]]))
+        omega = PassManager(Optimize1qGates())
+        spm = StagedPassManager(
+            stages, pre_alpha=pre_alpha, alpha=alpha, post_alpha=post_alpha, omega=omega
+        )
+        passes = [
+            *pre_alpha.passes(),
+            *alpha.passes(),
+            *post_alpha.passes(),
+            *omega.passes(),
+            *pre_alpha.passes(),
+            *alpha.passes(),
+            *post_alpha.passes(),
+        ]
+        self.assertEqual(spm.passes(), passes)
+
     def test_edit_stages(self):
         spm = StagedPassManager()
         with self.assertRaises(AttributeError):
@@ -120,6 +140,8 @@ class TestStagedPassManager(QiskitTestCase):
             spm.init = spm
         mock_target = "qiskit.transpiler.passmanager.StagedPassManager._update_passmanager"
         with patch(mock_target, spec=True) as mock:
+            spm.max_iteration = spm.max_iteration
+            mock.assert_not_called()
             spm.init = None
             mock.assert_called_once()
 

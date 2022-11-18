@@ -469,7 +469,7 @@ class TestAssignFromProgram(QiskitTestCase):
 
         ref_set = {amp, sigma}
 
-        self.assertSetEqual(block.parameters, ref_set)
+        self.assertSetEqual(set(block.parameters), ref_set)
 
     def test_parametric_pulses(self):
         """Test Parametric Pulses with parameters determined by ParameterExpressions

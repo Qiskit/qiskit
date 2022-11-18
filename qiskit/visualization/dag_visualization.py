@@ -15,7 +15,7 @@
 """
 Visualization function for DAG circuit representation.
 """
-from retworkx.visualization import graphviz_draw
+from retworkx.visualization import graphviz_draw  # pylint: disable=no-name-in-module
 
 from qiskit.dagcircuit.dagnode import DAGOpNode, DAGInNode, DAGOutNode
 from qiskit.circuit import Qubit
@@ -89,11 +89,11 @@ def dag_drawer(dag, scale=0.7, filename=None, style="color"):
                     n["color"] = "black"
                     n["style"] = "filled"
                     n["fillcolor"] = "green"
-                if node.op._directive:
+                if getattr(node.op, "_directive", False):
                     n["color"] = "black"
                     n["style"] = "filled"
                     n["fillcolor"] = "red"
-                if node.op.condition:
+                if getattr(node.op, "condition", None):
                     n["label"] = str(node.node_id) + ": " + str(node.name) + " (conditional)"
                     n["color"] = "black"
                     n["style"] = "filled"

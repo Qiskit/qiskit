@@ -86,4 +86,40 @@ impl NLayout {
             .map(|i| [i, self.logic_to_phys[i]])
             .collect()
     }
+
+    /// Get physical bit from logical bit
+    #[pyo3(text_signature = "(self, logical_bit, /)")]
+    fn logical_to_physical(&self, logical_bit: usize) -> usize {
+        self.logic_to_phys[logical_bit]
+    }
+
+    /// Get logical bit from physical bit
+    #[pyo3(text_signature = "(self, physical_bit, /)")]
+    pub fn physical_to_logical(&self, physical_bit: usize) -> usize {
+        self.phys_to_logic[physical_bit]
+    }
+
+    /// Swap the specified virtual qubits
+    #[pyo3(text_signature = "(self, bit_a, bit_b, /)")]
+    pub fn swap_logical(&mut self, bit_a: usize, bit_b: usize) {
+        self.logic_to_phys.swap(bit_a, bit_b);
+        self.phys_to_logic[self.logic_to_phys[bit_a]] = bit_a;
+        self.phys_to_logic[self.logic_to_phys[bit_b]] = bit_b;
+    }
+
+    /// Swap the specified physical qubits
+    #[pyo3(text_signature = "(self, bit_a, bit_b, /)")]
+    pub fn swap_physical(&mut self, bit_a: usize, bit_b: usize) {
+        self.swap(bit_a, bit_b)
+    }
+
+    pub fn copy(&self) -> NLayout {
+        self.clone()
+    }
+}
+
+#[pymodule]
+pub fn nlayout(_py: Python, m: &PyModule) -> PyResult<()> {
+    m.add_class::<NLayout>()?;
+    Ok(())
 }

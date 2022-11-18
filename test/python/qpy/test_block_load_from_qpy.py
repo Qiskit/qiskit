@@ -24,6 +24,7 @@ from qiskit.pulse.library import (
     GaussianSquare,
     Drag,
     Constant,
+    Waveform,
 )
 from qiskit.pulse.channels import (
     DriveChannel,
@@ -95,6 +96,24 @@ class TestLoadFromQPY(QpyScheduleTestCase):
         )
         with builder.build() as test_sched:
             builder.play(my_pulse, DriveChannel(0))
+        self.assert_roundtrip_equal(test_sched)
+
+    def test_symbolic_amplitude_limit(self):
+        """Test applying amplitude limit to symbolic pulse."""
+        with builder.build() as test_sched:
+            builder.play(
+                Gaussian(160, 20, 40, limit_amplitude=False),
+                DriveChannel(0),
+            )
+        self.assert_roundtrip_equal(test_sched)
+
+    def test_waveform_amplitude_limit(self):
+        """Test applying amplitude limit to waveform."""
+        with builder.build() as test_sched:
+            builder.play(
+                Waveform([1, 2, 3, 4, 5], limit_amplitude=False),
+                DriveChannel(0),
+            )
         self.assert_roundtrip_equal(test_sched)
 
     def test_playing_waveform(self):

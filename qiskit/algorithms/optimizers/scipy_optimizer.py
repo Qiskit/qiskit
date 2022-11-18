@@ -86,11 +86,23 @@ class SciPyOptimizer(Optimizer):
 
     @property
     def settings(self) -> Dict[str, Any]:
-        settings = {
-            "max_evals_grouped": self._max_evals_grouped,
-            "options": self._options,
-            **self._kwargs,
-        }
+        options = self._options.copy()
+        if hasattr(self, "_OPTIONS"):
+            # all _OPTIONS should be keys in self._options, but add a failsafe here
+            attributes = [
+                option
+                for option in self._OPTIONS  # pylint: disable=no-member
+                if option in options.keys()
+            ]
+
+            settings = {attr: options.pop(attr) for attr in attributes}
+        else:
+            settings = {}
+
+        settings["max_evals_grouped"] = self._max_evals_grouped
+        settings["options"] = options
+        settings.update(self._kwargs)
+
         # the subclasses don't need the "method" key as the class type specifies the method
         if self.__class__ == SciPyOptimizer:
             settings["method"] = self._method
@@ -126,6 +138,13 @@ class SciPyOptimizer(Optimizer):
         if jac is not None and self._method == "l-bfgs-b":
             jac = self._wrap_gradient(jac)
 
+        # Starting in scipy 1.9.0 maxiter is deprecated and maxfun (added in 1.5.0)
+        # should be used instead
+        swapped_deprecated_args = False
+        if self._method == "tnc" and "maxiter" in self._options:
+            swapped_deprecated_args = True
+            self._options["maxfun"] = self._options.pop("maxiter")
+
         raw_result = minimize(
             fun=fun,
             x0=x0,
@@ -135,6 +154,9 @@ class SciPyOptimizer(Optimizer):
             options=self._options,
             **self._kwargs,
         )
+        if swapped_deprecated_args:
+            self._options["maxiter"] = self._options.pop("maxfun")
+
         result = OptimizerResult()
         result.x = raw_result.x
         result.fun = raw_result.fun

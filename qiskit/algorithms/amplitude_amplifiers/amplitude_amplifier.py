@@ -46,6 +46,8 @@ class AmplitudeAmplifierResult(AlgorithmResult):
         self._top_measurement = None
         self._assignment = None
         self._oracle_evaluation = None
+        self._circuit_results = None
+        self._max_probability = None
 
     @property
     def top_measurement(self) -> Optional[str]:

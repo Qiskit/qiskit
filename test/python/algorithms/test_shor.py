@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2018, 2020.
+# (C) Copyright IBM 2018, 2022.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -13,6 +13,7 @@
 """ Test Shor """
 
 import unittest
+import warnings
 import math
 from test.python.algorithms import QiskitAlgorithmsTestCase
 from ddt import ddt, data, idata, unpack
@@ -30,12 +31,18 @@ class TestShor(QiskitAlgorithmsTestCase):
 
     def setUp(self):
         super().setUp()
-        backend = Aer.get_backend("qasm_simulator")
-        self.instance = Shor(quantum_instance=QuantumInstance(backend, shots=1000))
+        backend = Aer.get_backend("aer_simulator")
+        with warnings.catch_warnings(record=True) as caught_warnings:
+            warnings.filterwarnings(
+                "always",
+                category=DeprecationWarning,
+            )
+            self.instance = Shor(quantum_instance=QuantumInstance(backend, shots=1000))
+            self.assertTrue("Shor class is deprecated" in str(caught_warnings[0].message))
 
     @idata(
         [
-            [15, "qasm_simulator", [3, 5]],
+            [15, "aer_simulator", [3, 5]],
         ]
     )
     @unpack
@@ -46,7 +53,7 @@ class TestShor(QiskitAlgorithmsTestCase):
     @slow_test
     @idata(
         [
-            [21, "qasm_simulator", [3, 7]],
+            [21, "aer_simulator", [3, 7]],
         ]
     )
     @unpack
@@ -56,7 +63,10 @@ class TestShor(QiskitAlgorithmsTestCase):
 
     def _test_shor_factoring(self, backend, factors, n_v):
         """shor factoring test"""
-        shor = Shor(quantum_instance=QuantumInstance(Aer.get_backend(backend), shots=1000))
+        with warnings.catch_warnings(record=True) as caught_warnings:
+            warnings.simplefilter("always")
+            shor = Shor(quantum_instance=QuantumInstance(Aer.get_backend(backend), shots=1000))
+            self.assertTrue("Shor class is deprecated" in str(caught_warnings[0].message))
         result = shor.factor(N=n_v)
         self.assertListEqual(result.factors[0], factors)
         self.assertTrue(result.total_counts >= result.successful_counts)

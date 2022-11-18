@@ -23,6 +23,9 @@ class RZZGate(Gate):
 
     This gate is symmetric, and is maximally entangling at :math:`\theta = \pi/2`.
 
+    Can be applied to a :class:`~qiskit.circuit.QuantumCircuit`
+    with the :meth:`~qiskit.circuit.QuantumCircuit.rzz` method.
+
     **Circuit Symbol:**
 
     .. parsed-literal::

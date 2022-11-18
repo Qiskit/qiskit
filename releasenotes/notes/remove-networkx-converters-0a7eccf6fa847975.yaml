@@ -1,0 +1,17 @@
+---
+upgrade:
+  - |
+    The previously deprecated `NetworkX <https://networkx.org/>`_  converter
+    methods for the class:`~.DAGCircuit` and class:`~.DAGDependency`classes:
+    :meth:`.DAGCircuit.to_networkx`, :meth:`.DAGCircuit.from_networkx`,
+    and :meth:`.DAGDependency.to_networkx` have been removed. These methods
+    were originally deprecated as part of the 0.21.0 release. Qiskit has been using
+    `rustworkx <https://qiskit.org/documentation/rustworkx/>`__ as its graph
+    library since the qiskit-terra 0.12.0 release and since then the NetworkX
+    converter function have been a lossy process. They were originally added so
+    that users could leverage NetworkX's algorithms library to leverage
+    functionality not present in :class:`~.DAGCircuit` and/or rustworkx. However,
+    since that time both :class:`~.DAGCircuit` and rustworkx has matured and
+    offers more functionality and the :class:`~.DAGCircuit` is tightly
+    coupled to rustworkx for its operation and having these converter methods
+    provided limited functionality and therefore have been removed.

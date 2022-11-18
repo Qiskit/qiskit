@@ -446,14 +446,14 @@ def generate_calibrated_circuits():
 
     # custom gate
     mygate = Gate("mygate", 1, [])
-    qc = QuantumCircuit(1)
+    qc = QuantumCircuit(1, name="calibrated_circuit_1")
     qc.append(mygate, [0])
     with builder.build() as caldef:
         builder.play(Constant(100, 0.1), DriveChannel(0))
     qc.add_calibration(mygate, (0,), caldef)
     circuits.append(qc)
     # override instruction
-    qc = QuantumCircuit(1)
+    qc = QuantumCircuit(1, name="calibrated_circuit_2")
     qc.x(0)
     with builder.build() as caldef:
         builder.play(Constant(100, 0.1), DriveChannel(0))
@@ -466,7 +466,7 @@ def generate_calibrated_circuits():
 def generate_controlled_gates():
     """Test QPY serialization with custom ControlledGates."""
     circuits = []
-    qc = QuantumCircuit(3)
+    qc = QuantumCircuit(3, name="custom_controlled_gates")
     controlled_gate = DCXGate().control(1)
     qc.append(controlled_gate, [0, 1, 2])
     circuits.append(qc)
@@ -476,15 +476,39 @@ def generate_controlled_gates():
     custom_definition.rz(1.5, 0)
     custom_definition.sdg(0)
     custom_gate.definition = custom_definition
-    nested_qc = QuantumCircuit(3)
+    nested_qc = QuantumCircuit(3, name="nested_qc")
     qc.append(custom_gate, [0])
     controlled_gate = custom_gate.control(2)
     nested_qc.append(controlled_gate, [0, 1, 2])
     nested_qc.measure_all()
     circuits.append(nested_qc)
-    qc_open = QuantumCircuit(2)
+    qc_open = QuantumCircuit(2, name="open_cx")
     qc_open.cx(0, 1, ctrl_state=0)
     circuits.append(qc_open)
+    return circuits
+
+
+def generate_open_controlled_gates():
+    """Test QPY serialization with custom ControlledGates with open controls."""
+    circuits = []
+    qc = QuantumCircuit(3, name="open_controls_simple")
+    controlled_gate = DCXGate().control(1, ctrl_state=0)
+    qc.append(controlled_gate, [0, 1, 2])
+    circuits.append(qc)
+
+    custom_gate = Gate("black_box", 1, [])
+    custom_definition = QuantumCircuit(1)
+    custom_definition.h(0)
+    custom_definition.rz(1.5, 0)
+    custom_definition.sdg(0)
+    custom_gate.definition = custom_definition
+    nested_qc = QuantumCircuit(3, name="open_controls_nested")
+    nested_qc.append(custom_gate, [0])
+    controlled_gate = custom_gate.control(2, ctrl_state=1)
+    nested_qc.append(controlled_gate, [0, 1, 2])
+    nested_qc.measure_all()
+    circuits.append(nested_qc)
+
     return circuits
 
 
@@ -525,6 +549,8 @@ def generate_circuits(version_str=None):
         output_circuits["controlled_gates.qpy"] = generate_controlled_gates()
         output_circuits["schedule_blocks.qpy"] = generate_schedule_blocks()
         output_circuits["pulse_gates.qpy"] = generate_calibrated_circuits()
+    if version_parts >= (0, 21, 2):
+        output_circuits["open_controlled_gates.qpy"] = generate_open_controlled_gates()
 
     return output_circuits
 

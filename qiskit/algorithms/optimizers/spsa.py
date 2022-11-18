@@ -110,6 +110,38 @@ class SPSA(Optimizer):
             two_spsa = SPSA(maxiter=300, second_order=True)
             result = two_spsa.optimize(ansatz.num_parameters, loss, initial_point=initial_point)
 
+        The `termination_checker` can be used to implement a custom termination criterion.
+
+        .. code-block:: python
+
+            import numpy as np
+            from qiskit.algorithms.optimizers import SPSA
+
+            def objective(x):
+                return np.linalg.norm(x) + .04*np.random.rand(1)
+
+            class TerminationChecker:
+
+                def __init__(self, N : int):
+                    self.N = N
+                    self.values = []
+
+                def __call__(self, nfev, parameters, value, stepsize, accepted) -> bool:
+                    self.values.append(value)
+
+                    if len(self.values) > self.N:
+                        last_values = self.values[-self.N:]
+                        pp = np.polyfit(range(self.N), last_values, 1)
+                        slope = pp[0] / self.N
+
+                        if slope > 0:
+                            return True
+                    return False
+
+            spsa = SPSA(maxiter=200, termination_checker=TerminationChecker(10))
+            parameters, value, niter = spsa.optimize(2, objective, initial_point=[0.5, 0.5])
+            print(f'SPSA completed after {niter} iterations')
+
 
     References:
 
@@ -205,38 +237,6 @@ class SPSA(Optimizer):
         Raises:
             ValueError: If ``learning_rate`` or ``perturbation`` is an array with less elements
                 than the number of iterations.
-
-        Example:
-            .. code-block::python
-
-                import numpy as np
-                from qiskit.algorithms.optimizers import SPSA
-
-                def objective(x):
-                    return np.linalg.norm(x) + .04*np.random.rand(1)
-
-                class TerminationChecker:
-
-                    def __init__(self, N : int):
-                        self.N = N
-                        self.values = []
-
-                    def __call__(self, nfev, parameters, value, stepsize, accepted) -> bool:
-                        self.values.append(value)
-
-                        if len(self.values) > self.N:
-                            last_values = self.values[-self.N:]
-                            pp = np.polyfit(range(self.N), last_values, 1)
-                            slope = pp[0] / self.N
-
-                            if slope > 0:
-                                return True
-                        return False
-
-                spsa = SPSA(maxiter=200, termination_checker=TerminationChecker(10))
-                parameters, value, niter = spsa.optimize(2, objective, initial_point=[0.5, 0.5])
-                print(f'SPSA completed after {niter} iterations')
-
 
 
         """
@@ -711,9 +711,15 @@ def constant(eta=0.01):
         yield eta
 
 
-def _batch_evaluate(function, points, max_evals_grouped):
+def _batch_evaluate(function, points, max_evals_grouped, unpack_points=False):
+    """Evaluate a function on all points with batches of max_evals_grouped.
+
+    The points are a list of inputs, as ``[in1, in2, in3, ...]``. If the individual
+    inputs are tuples (because the function takes multiple inputs), set ``unpack_points`` to ``True``.
+    """
+
     # if the function cannot handle lists of points as input, cover this case immediately
-    if max_evals_grouped == 1:
+    if max_evals_grouped is None or max_evals_grouped == 1:
         # support functions with multiple arguments where the points are given in a tuple
         return [
             function(*point) if isinstance(point, tuple) else function(point) for point in points
@@ -727,13 +733,34 @@ def _batch_evaluate(function, points, max_evals_grouped):
         num_batches += 1
 
     # split the points
-    batched_points = np.split(np.asarray(points), num_batches)
+    batched_points = np.array_split(np.asarray(points), num_batches)
 
     results = []
     for batch in batched_points:
-        results += function(batch).tolist()
+        if unpack_points:
+            batch = _repack_points(batch)
+            results += _as_list(function(*batch))
+        else:
+            results += _as_list(function(batch))
 
     return results
+
+
+def _as_list(obj):
+    """Convert a list or numpy array into a list."""
+    return obj.tolist() if isinstance(obj, np.ndarray) else obj
+
+
+def _repack_points(points):
+    """Turn a list of tuples of points into a tuple of lists of points.
+    E.g. turns
+        [(a1, a2, a3), (b1, b2, b3)]
+    into
+        ([a1, b1], [a2, b2], [a3, b3])
+    where all elements are np.ndarray.
+    """
+    num_sets = len(points[0])  # length of (a1, a2, a3)
+    return ([x[i] for x in points] for i in range(num_sets))
 
 
 def _make_spd(matrix, bias=0.01):

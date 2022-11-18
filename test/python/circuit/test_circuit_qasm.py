@@ -480,3 +480,12 @@ qreg q[1];
 p(3.141592653599793) q[0];
 p(pi) q[0];\n"""
         self.assertEqual(qc.qasm(), expected_qasm)
+
+    def test_circuit_raises_on_single_bit_condition(self):
+        """OpenQASM 2 can't represent single-bit conditions, so test that a suitable error is
+        printed if this is attempted."""
+        qc = QuantumCircuit(1, 1)
+        qc.x(0).c_if(0, True)
+
+        with self.assertRaisesRegex(QasmError, "OpenQASM 2 can only condition on registers"):
+            qc.qasm()

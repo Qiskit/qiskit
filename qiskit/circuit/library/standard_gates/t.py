@@ -27,6 +27,9 @@ class TGate(Gate):
 
     This is a non-Clifford gate and a fourth-root of Pauli-Z.
 
+    Can be applied to a :class:`~qiskit.circuit.QuantumCircuit`
+    with the :meth:`~qiskit.circuit.QuantumCircuit.t` method.
+
     **Matrix Representation:**
 
     .. math::
@@ -83,6 +86,9 @@ class TdgGate(Gate):
 
     This is a non-Clifford gate and a fourth-root of Pauli-Z.
 
+    Can be applied to a :class:`~qiskit.circuit.QuantumCircuit`
+    with the :meth:`~qiskit.circuit.QuantumCircuit.tdg` method.
+
     **Matrix Representation:**
 
     .. math::
@@ -100,7 +106,7 @@ class TdgGate(Gate):
         q_0: ┤ Tdg ├
              └─────┘
 
-    Equivalent to a :math:`\pi/2` radian rotation about the Z axis.
+    Equivalent to a :math:`-\pi/4` radian rotation about the Z axis.
     """
 
     def __init__(self, label: Optional[str] = None):

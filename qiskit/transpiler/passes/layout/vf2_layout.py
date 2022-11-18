@@ -154,6 +154,11 @@ class VF2Layout(AnalysisPass):
             if len(cm_graph) == len(im_graph):
                 chosen_layout = layout
                 break
+            # If there is no error map avilable we can just skip the scoring stage as there
+            # is nothing to score with, so any match is the best we can find.
+            if not self.avg_error_map:
+                chosen_layout = layout
+                break
             layout_score = vf2_utils.score_layout(
                 self.avg_error_map,
                 layout,
@@ -162,6 +167,12 @@ class VF2Layout(AnalysisPass):
                 im_graph,
                 self.strict_direction,
             )
+            # If the layout score is 0 we can't do any better and we'll just
+            # waste time finding additional mappings that will at best match
+            # the performance, so exit early in this case
+            if layout_score == 0.0:
+                chosen_layout = layout
+                break
             logger.debug("Trial %s has score %s", trials, layout_score)
             if chosen_layout is None:
                 chosen_layout = layout

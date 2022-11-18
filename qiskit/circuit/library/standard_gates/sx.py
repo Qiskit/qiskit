@@ -23,6 +23,9 @@ from qiskit.circuit.quantumregister import QuantumRegister
 class SXGate(Gate):
     r"""The single-qubit Sqrt(X) gate (:math:`\sqrt{X}`).
 
+    Can be applied to a :class:`~qiskit.circuit.QuantumCircuit`
+    with the :meth:`~qiskit.circuit.QuantumCircuit.sx` method.
+
     **Matrix Representation:**
 
     .. math::
@@ -112,6 +115,9 @@ class SXGate(Gate):
 class SXdgGate(Gate):
     r"""The inverse single-qubit Sqrt(X) gate.
 
+    Can be applied to a :class:`~qiskit.circuit.QuantumCircuit`
+    with the :meth:`~qiskit.circuit.QuantumCircuit.sxdg` method.
+
     .. math::
 
         \sqrt{X}^{\dagger} = \frac{1}{2} \begin{pmatrix}
@@ -166,6 +172,9 @@ class SXdgGate(Gate):
 
 class CSXGate(ControlledGate):
     r"""Controlled-√X gate.
+
+    Can be applied to a :class:`~qiskit.circuit.QuantumCircuit`
+    with the :meth:`~qiskit.circuit.QuantumCircuit.csx` method.
 
     **Circuit symbol:**
 

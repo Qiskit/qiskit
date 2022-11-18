@@ -169,8 +169,12 @@ class PassManager:
             passes = [passes]
         for pass_ in passes:
             if isinstance(pass_, FlowController):
-                # Normalize passes in nested FlowController
-                PassManager._normalize_passes(pass_.passes)
+                # Normalize passes in nested FlowController.
+                # TODO: Internal renormalisation should be the responsibility of the
+                # `FlowController`, but the separation between `FlowController`,
+                # `RunningPassManager` and `PassManager` is so muddled right now, it would be better
+                # to do this as part of more top-down refactoring.  ---Jake, 2022-10-03.
+                pass_.passes = PassManager._normalize_passes(pass_.passes)
             elif not isinstance(pass_, BasePass):
                 raise TranspilerError(
                     "%s is not a BasePass or FlowController instance " % pass_.__class__
@@ -322,6 +326,19 @@ class PassManager:
             ret.append(item)
         return ret
 
+    def to_flow_controller(self) -> FlowController:
+        """Linearize this manager into a single :class:`.FlowController`, so that it can be nested
+        inside another :class:`.PassManager`."""
+        return FlowController.controller_factory(
+            [
+                FlowController.controller_factory(
+                    pass_set["passes"], None, **pass_set["flow_controllers"]
+                )
+                for pass_set in self._pass_sets
+            ],
+            None,
+        )
+
 
 class StagedPassManager(PassManager):
     """A Pass manager pipeline built up of individual stages
@@ -362,10 +379,12 @@ class StagedPassManager(PassManager):
         users as the relative positions of the stage are preserved so the behavior
         will not change between releases.
 
-    These stages will be executed in order and any stage set to ``None`` will be skipped. If
-    a :class:`~qiskit.transpiler.PassManager` input is being used for more than 1 stage here
-    (for example in the case of a :class:`~.Pass` that covers both Layout and Routing) you will want
-    to set that to the earliest stage in sequence that it covers.
+    These stages will be executed in order and any stage set to ``None`` will be skipped.
+    If a stage is provided multiple times (i.e. at diferent relative positions), the
+    associated passes, including pre and post, will run once per declaration.
+    If a :class:`~qiskit.transpiler.PassManager` input is being used for more than 1 stage here
+    (for example in the case of a :class:`~.Pass` that covers both Layout and Routing) you will
+    want to set that to the earliest stage in sequence that it covers.
     """
 
     invalid_stage_regex = re.compile(
@@ -380,6 +399,8 @@ class StagedPassManager(PassManager):
                 instance. If this is not specified the default stages list
                 ``['init', 'layout', 'routing', 'translation', 'optimization', 'scheduling']`` is
                 used. After instantiation, the final list will be immutable and stored as tuple.
+                If a stage is provided multiple times (i.e. at diferent relative positions), the
+                associated passes, including pre and post, will run once per declaration.
             kwargs: The initial :class:`~.PassManager` values for any stages
                 defined in ``stages``. If a argument is not defined the
                 stages will default to ``None`` indicating an empty/undefined
@@ -403,7 +424,7 @@ class StagedPassManager(PassManager):
         super().__setattr__("_expanded_stages", tuple(self._generate_expanded_stages()))
         super().__init__()
         self._validate_init_kwargs(kwargs)
-        for stage in self.expanded_stages:
+        for stage in set(self.expanded_stages):
             pm = kwargs.get(stage, None)
             setattr(self, stage, pm)
 

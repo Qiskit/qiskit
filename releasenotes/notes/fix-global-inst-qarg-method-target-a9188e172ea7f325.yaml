@@ -1,0 +1,31 @@
+---
+fixes:
+  - |
+    Fixed handling of globally defined instructions for the :class:`~.Target`
+    class. Previously, two methods, :meth:`~.Target.operations_for_qargs` and
+    :meth:`~.Target.operation_names_for_qargs` would ignore/incorrectly handle
+    any globally defined ideal operations present in the target. For example::
+
+        from qiskit.transpiler import Target
+        from qiskit.circuit.library import CXGate
+
+        target = Target(num_qubits=5)
+        target.add_instruction(CXGate())
+        names = target.operation_names_for_qargs((1, 2))
+        ops = target.operations_for_qargs((1, 2))
+
+    will now return ``{"cx"}`` for ``names`` and ``[CXGate()]`` for ``ops``
+    instead of raising a ``KeyError`` or an empty return.
+  - |
+    Fixed an issue in the :meth:`.Target.add_instruction` method where it
+    would previously have accepted an argument with an invalid number of
+    qubits as part of the ``properties`` argument. For example::
+
+        from qiskit.transpiler import Target
+        from qiskit.circuit.library import CXGate
+
+        target = Target()
+        target.add_instruction(CXGate(), {(0, 1, 2): None})
+
+    This will now correctly raise a ``TranspilerError`` instead of causing
+    runtime issues when interacting with the target.

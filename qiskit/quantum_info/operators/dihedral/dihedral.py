@@ -70,7 +70,8 @@ class CNOTDihedral(BaseOperator, AdjointMixin):
      :class:`~qiskit.circuit.library.TGate`, :class:`~qiskit.circuit.library.TdgGate`
      :class:`~qiskit.circuit.library.SGate`, :class:`~qiskit.circuit.library.SdgGate`,
      :class:`~qiskit.circuit.library.CXGate`, :class:`~qiskit.circuit.library.CZGate`,
-     :class:`~qiskit.circuit.library.SwapGate`.
+     :class:`~qiskit.circuit.library.CSGate`, :class:`~qiskit.circuit.library.CSdgGate`,
+     :class:`~qiskit.circuit.library.SwapGate`, :class:`~qiskit.circuit.library.CCZGate`.
      They can be converted back into a :class:`~qiskit.circuit.QuantumCircuit`,
      or :class:`~qiskit.circuit.Gate` object using the :meth:`~CNOTDihedral.to_circuit`
      or :meth:`~CNOTDihderal.to_instruction` methods respectively. Note that this

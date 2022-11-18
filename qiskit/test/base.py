@@ -43,7 +43,7 @@ __unittest = True  # Allows shorter stack trace for .assertDictAlmostEqual
 # unittest's TestCase. This will enable the fixtures used for capturing stdout
 # stderr, and pylogging to attach the output to stestr's result stream.
 if _optionals.HAS_TESTTOOLS:
-    import testtools  # pylint: disable=import-error
+    import testtools
 
     class BaseTestCase(testtools.TestCase):
         """Base test class."""
@@ -210,17 +210,10 @@ class QiskitTestCase(BaseQiskitTestCase):
         for mod in allow_DeprecationWarning_modules:
             warnings.filterwarnings("default", category=DeprecationWarning, module=mod)
         allow_DeprecationWarning_message = [
-            r".*QuantumCircuit\.combine.*",
-            r".*QuantumCircuit\.__add__.*",
-            r".*QuantumCircuit\.__iadd__.*",
-            r".*QuantumCircuit\.extend.*",
-            r".*qiskit\.circuit\.library\.standard_gates\.ms import.*",
             r"elementwise comparison failed.*",
             r"The jsonschema validation included in qiskit-terra.*",
             r"The DerivativeBase.parameter_expression_grad method.*",
             r"Back-references to from Bit instances.*",
-            r"The QuantumCircuit.u. method.*",
-            r"The QuantumCircuit.cu.",
             r"The CXDirection pass has been deprecated",
             r"The pauli_basis function with PauliTable.*",
             # TODO: remove the following ignore after seaborn 0.12.0 releases
@@ -228,6 +221,8 @@ class QiskitTestCase(BaseQiskitTestCase):
             # Internal deprecation warning emitted by jupyter client when
             # calling nbconvert in python 3.10
             r"There is no current event loop",
+            # Caused by internal scikit-learn scipy usage
+            r"The 'sym_pos' keyword is deprecated and should be replaced by using",
         ]
         for msg in allow_DeprecationWarning_message:
             warnings.filterwarnings("default", category=DeprecationWarning, message=msg)

@@ -11,6 +11,7 @@
 # that they have been altered from the originals.
 
 """Helper function for converting a dag to a circuit."""
+import copy
 
 from qiskit.circuit import QuantumCircuit, CircuitInstruction
 
@@ -59,7 +60,7 @@ def dag_to_circuit(dag):
     circuit.calibrations = dag.calibrations
 
     for node in dag.topological_op_nodes():
-        circuit._append(CircuitInstruction(node.op.copy(), node.qargs, node.cargs))
+        circuit._append(CircuitInstruction(copy.deepcopy(node.op), node.qargs, node.cargs))
 
     circuit.duration = dag.duration
     circuit.unit = dag.unit

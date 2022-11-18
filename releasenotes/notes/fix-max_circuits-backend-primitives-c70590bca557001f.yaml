@@ -1,0 +1,19 @@
+---
+fixes:
+  - |
+    Fixed an issue with the primitive classes, :class:`~.BackendSampler` and
+    :class:`~.BackendEstimator` when running on backends that have a limited
+    number of circuits in each job. Not all backends support an unlimited
+    batch size (most hardware backends do not) and previously the backend
+    primitive classes would have potentially incorrectly sent more circuits
+    than the backend supported. This has been corrected so that
+    :class:`~.BackendSampler` and :class:`~.BackendEstimator` will chunk the
+    circuits into multiple jobs if the backend has a limited number of
+    circuits per job.
+  - |
+    Fixed an issue with the :class:`~.BackendEstimator` class where previously
+    setting a run option named ``monitor`` to a value that evaluated as
+    ``True`` would have incorrectly triggered a job monitor that only
+    worked on backends from the ``qiskit-ibmq-provider`` package. This
+    has been removed so that you can use a ``monitor`` run option if needed
+    without causing any issues.

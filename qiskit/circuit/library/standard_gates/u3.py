@@ -24,6 +24,19 @@ from qiskit.circuit.quantumregister import QuantumRegister
 class U3Gate(Gate):
     r"""Generic single-qubit rotation gate with 3 Euler angles.
 
+    .. warning::
+
+       This gate is deprecated. Instead, the following replacements should be used
+
+       .. math::
+
+           U3(\theta, \phi, \lambda) =  U(\theta, \phi, \lambda)
+
+       .. code-block:: python
+
+          circuit = QuantumCircuit(1)
+          circuit.u(theta, phi, lambda)
+
     **Circuit symbol:**
 
     .. parsed-literal::
@@ -51,6 +64,11 @@ class U3Gate(Gate):
         :math:`e^{i(\phi+\lambda)/2}`.
 
     **Examples:**
+
+    .. math::
+
+        U3(\theta, \phi, \lambda) = e^{-i \frac{\pi + \theta}{2}} P(\phi + \pi) \sqrt{X}
+        P(\theta + \pi) \sqrt{X} P(\lambda)
 
     .. math::
 

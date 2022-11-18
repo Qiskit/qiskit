@@ -14,7 +14,6 @@
 Arbitrary unitary circuit instruction.
 """
 
-from collections import OrderedDict
 import numpy
 
 from qiskit.circuit import Gate, ControlledGate
@@ -28,7 +27,6 @@ from qiskit.extensions.quantum_initializer import isometry
 from qiskit.quantum_info.operators.predicates import matrix_equal
 from qiskit.quantum_info.operators.predicates import is_unitary_matrix
 from qiskit.quantum_info.synthesis.one_qubit_decompose import OneQubitEulerDecomposer
-from qiskit.quantum_info.synthesis.qsd import qs_decomposition
 from qiskit.quantum_info.synthesis.two_qubit_decompose import two_qubit_cnot_decompose
 from qiskit.extensions.exceptions import ExtensionError
 
@@ -44,7 +42,7 @@ class UnitaryGate(Gate):
         to a quantum circuit. The matrix can also be directly applied
         to the quantum circuit, see :meth:`~qiskit.QuantumCircuit.unitary`.
 
-        .. code-block::python
+        .. code-block:: python
 
             from qiskit import QuantumCircuit
             from qiskit.extensions import UnitaryGate
@@ -136,6 +134,10 @@ class UnitaryGate(Gate):
         elif self.num_qubits == 2:
             self.definition = two_qubit_cnot_decompose(self.to_matrix())
         else:
+            from qiskit.quantum_info.synthesis.qsd import (  # pylint: disable=cyclic-import
+                qs_decomposition,
+            )
+
             self.definition = qs_decomposition(self.to_matrix())
 
     def control(self, num_ctrl_qubits=1, label=None, ctrl_state=None):
@@ -157,7 +159,7 @@ class UnitaryGate(Gate):
         mat = self.to_matrix()
         cmat = _compute_control_matrix(mat, num_ctrl_qubits, ctrl_state=None)
         iso = isometry.Isometry(cmat, 0, 0)
-        cunitary = ControlledGate(
+        return ControlledGate(
             "c-unitary",
             num_qubits=self.num_qubits + num_ctrl_qubits,
             params=[mat],
@@ -167,18 +169,6 @@ class UnitaryGate(Gate):
             ctrl_state=ctrl_state,
             base_gate=self.copy(),
         )
-        from qiskit.quantum_info import Operator
-
-        # hack to correct global phase; should fix to prevent need for correction here
-        pmat = Operator(iso.inverse()).data @ cmat
-        diag = numpy.diag(pmat)
-        if not numpy.allclose(diag, diag[0]):
-            raise ExtensionError("controlled unitary generation failed")
-        phase = numpy.angle(diag[0])
-        if phase:
-            # need to apply to _definition since open controls creates temporary definition
-            cunitary._definition.global_phase = phase
-        return cunitary
 
     def qasm(self):
         """The qasm for a custom unitary gate
@@ -231,7 +221,7 @@ def unitary(self, obj, qubits, label=None):
 
         Apply a gate specified by a unitary matrix to a quantum circuit
 
-        .. code-block::python
+        .. code-block:: python
 
             from qiskit import QuantumCircuit
             matrix = [[0, 0, 0, 1],

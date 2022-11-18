@@ -16,17 +16,32 @@
 import math
 import heapq
 from collections import OrderedDict, defaultdict
-import warnings
 
-import numpy as np
 import retworkx as rx
 
 from qiskit.circuit.quantumregister import QuantumRegister, Qubit
 from qiskit.circuit.classicalregister import ClassicalRegister, Clbit
 from qiskit.dagcircuit.exceptions import DAGDependencyError
 from qiskit.dagcircuit.dagdepnode import DAGDepNode
-from qiskit.quantum_info.operators import Operator
-from qiskit.exceptions import MissingOptionalLibraryError
+from qiskit.circuit.commutation_checker import CommutationChecker
+
+
+# ToDo: DagDependency needs to be refactored:
+#  - Removing redundant and template-optimization-specific fields from DAGDepNode:
+#    As a minimum, we should remove direct predecessors and direct successors,
+#    as these can be queried directly from the underlying graph data structure.
+#    We should also remove fields that are specific to template-optimization pass.
+#    for instance lists of transitive predecessors and successors (moreover, we
+#    should investigate the possibility of using rx.descendants() instead of caching).
+#  - We should rethink the API of DAGDependency:
+#    Currently, most of the functions (such as "add_op_node", "_update_edges", etc.)
+#    are only used when creating a new DAGDependency from another representation of a circuit.
+#    A part of the reason is that doing local changes to DAGDependency is tricky:
+#    as an example, suppose that DAGDependency contains a gate A such that A = B * C;
+#    in general we cannot simply replace A by the pair B, C, as there may be
+#    other nodes that commute with A but do not commute with B or C, so we would need to
+#    change DAGDependency more globally to support that. In other words, we should rethink
+#    what DAGDependency can be good for and rethink that API accordingly.
 
 
 class DAGDependency:
@@ -94,6 +109,8 @@ class DAGDependency:
         self.duration = None
         self.unit = "dt"
 
+        self.comm_checker = CommutationChecker()
+
     @property
     def global_phase(self):
         """Return the global phase of the circuit."""
@@ -136,33 +153,6 @@ class DAGDependency:
                 {'gate_name': {(qubits, gate_params): schedule}}
         """
         self._calibrations = defaultdict(dict, calibrations)
-
-    def to_networkx(self):
-        """Returns a copy of the DAGDependency in networkx format."""
-        # For backwards compatibility, return networkx structure from terra 0.12
-        # where DAGNodes instances are used as indexes on the networkx graph.
-        warnings.warn(
-            "The to_networkx() method is deprecated and will be removed in a future release.",
-            DeprecationWarning,
-            stacklevel=2,
-        )
-
-        try:
-            import networkx as nx
-        except ImportError as ex:
-            raise MissingOptionalLibraryError(
-                libname="Networkx",
-                name="DAG dependency",
-                pip_install="pip install networkx",
-            ) from ex
-        dag_networkx = nx.MultiDiGraph()
-
-        for node in self.get_nodes():
-            dag_networkx.add_node(node)
-        for node in self.topological_nodes():
-            for source_id, dest_id, edge in self.get_in_edges(node.node_id):
-                dag_networkx.add_edge(self.get_node(source_id), self.get_node(dest_id), **edge)
-        return dag_networkx
 
     def to_retworkx(self):
         """Returns the DAGDependency in retworkx format."""
@@ -388,11 +378,11 @@ class DAGDependency:
             cargs (list[Clbit]): list of classical wires to attach to.
         """
         directives = ["measure"]
-        if not operation._directive and operation.name not in directives:
+        if not getattr(operation, "_directive", False) and operation.name not in directives:
             qindices_list = []
             for elem in qargs:
                 qindices_list.append(self.qubits.index(elem))
-            if operation.condition:
+            if getattr(operation, "condition", None):
                 for clbit in self.clbits:
                     if clbit in operation.condition[0]:
                         initial = self.clbits.index(clbit)
@@ -453,6 +443,7 @@ class DAGDependency:
             the lists of direct successors are put into a single one
         """
         gather = self._multi_graph
+        gather.get_node_data(node_id).successors = []
         for d_succ in direct_succ:
             gather.get_node_data(node_id).successors.append([d_succ])
             succ = gather.get_node_data(d_succ).successors
@@ -475,26 +466,52 @@ class DAGDependency:
 
     def _update_edges(self):
         """
-        Function to verify the commutation relation and reachability
-        for predecessors, the nodes do not commute and
-        if the predecessor is reachable. Update the DAGDependency by
-        introducing edges and predecessors(attribute)
+        Updates DagDependency by adding edges to the newly added node (max_node)
+        from the previously added nodes.
+        For each previously added node (prev_node), an edge from prev_node to max_node
+        is added if max_node is "reachable" from prev_node (this means that the two
+        nodes can be made adjacent by commuting them with other nodes), but the two nodes
+        themselves do not commute.
+
+        Currently. this function is only used when creating a new DAGDependency from another
+        representation of a circuit, and hence there are no removed nodes (this is why
+        iterating over all nodes is fine).
         """
         max_node_id = len(self._multi_graph) - 1
-        max_node = self._multi_graph.get_node_data(max_node_id)
+        max_node = self.get_node(max_node_id)
 
-        for current_node_id in range(0, max_node_id):
-            self._multi_graph.get_node_data(current_node_id).reachable = True
-        # Check the commutation relation with reachable node, it adds edges if it does not commute
+        reachable = [True] * max_node_id
+
+        # Analyze nodes in the reverse topological order.
+        # An improvement to the original algorithm is to consider only direct predecessors
+        # and to avoid constructing the lists of forward and backward reachable predecessors
+        # for every node when not required.
         for prev_node_id in range(max_node_id - 1, -1, -1):
-            if self._multi_graph.get_node_data(prev_node_id).reachable and not _does_commute(
-                self._multi_graph.get_node_data(prev_node_id), max_node
-            ):
-                self._multi_graph.add_edge(prev_node_id, max_node_id, {"commute": False})
-                self._list_pred(max_node_id)
-                list_predecessors = self._multi_graph.get_node_data(max_node_id).predecessors
-                for pred_id in list_predecessors:
-                    self._multi_graph.get_node_data(pred_id).reachable = False
+            if reachable[prev_node_id]:
+                prev_node = self.get_node(prev_node_id)
+
+                if not self.comm_checker.commute(
+                    prev_node.op,
+                    prev_node.qargs,
+                    prev_node.cargs,
+                    max_node.op,
+                    max_node.qargs,
+                    max_node.cargs,
+                ):
+                    # If prev_node and max_node do not commute, then we add an edge
+                    # between the two, and mark all direct predecessors of prev_node
+                    # as not reaching max_node.
+                    self._multi_graph.add_edge(prev_node_id, max_node_id, {"commute": False})
+
+                    predecessor_ids = self._multi_graph.predecessor_indices(prev_node_id)
+                    for predecessor_id in predecessor_ids:
+                        reachable[predecessor_id] = False
+            else:
+                # If prev_node cannot reach max_node, then none of its predecessors can
+                # reach max_node either.
+                predecessor_ids = self._multi_graph.predecessor_indices(prev_node_id)
+                for predecessor_id in predecessor_ids:
+                    reachable[predecessor_id] = False
 
     def _add_successors(self):
         """
@@ -509,6 +526,21 @@ class DAGDependency:
 
             self._multi_graph.get_node_data(node_id).successors = list(
                 merge_no_duplicates(*self._multi_graph.get_node_data(node_id).successors)
+            )
+
+    def _add_predecessors(self):
+        """
+        Use _gather_pred and merge_no_duplicates to create the list of predecessors
+        for each node. Update DAGDependency 'predecessors' attribute. It has to
+        be used when the DAGDependency() object is complete (i.e. converters).
+        """
+        for node_id in range(0, len(self._multi_graph)):
+            direct_predecessors = self.direct_predecessors(node_id)
+
+            self._multi_graph = self._gather_pred(node_id, direct_predecessors)
+
+            self._multi_graph.get_node_data(node_id).predecessors = list(
+                merge_no_duplicates(*self._multi_graph.get_node_data(node_id).predecessors)
             )
 
     def copy(self):
@@ -565,73 +597,3 @@ def merge_no_duplicates(*iterables):
         if val != last:
             last = val
             yield val
-
-
-def _does_commute(node1, node2):
-    """Function to verify commutation relation between two nodes in the DAG.
-
-    Args:
-        node1 (DAGnode): first node operation
-        node2 (DAGnode): second node operation
-
-    Return:
-        bool: True if the nodes commute and false if it is not the case.
-    """
-
-    # Create set of qubits on which the operation acts
-    qarg1 = [node1.qargs[i] for i in range(0, len(node1.qargs))]
-    qarg2 = [node2.qargs[i] for i in range(0, len(node2.qargs))]
-
-    # Create set of cbits on which the operation acts
-    carg1 = [node1.cargs[i] for i in range(0, len(node1.cargs))]
-    carg2 = [node2.cargs[i] for i in range(0, len(node2.cargs))]
-
-    # Commutation for classical conditional gates
-    # if and only if the qubits are different.
-    # TODO: qubits can be the same if conditions are identical and
-    # the non-conditional gates commute.
-    if node1.type == "op" and node2.type == "op":
-        if node1.op.condition or node2.op.condition:
-            intersection = set(qarg1).intersection(set(qarg2))
-            return not intersection
-
-    # Commutation for non-unitary or parameterized or opaque ops
-    # (e.g. measure, reset, directives or pulse gates)
-    # if and only if the qubits and clbits are different.
-    non_unitaries = ["measure", "reset", "initialize", "delay"]
-
-    def _unknown_commutator(n):
-        return n.op._directive or n.name in non_unitaries or n.op.is_parameterized()
-
-    if _unknown_commutator(node1) or _unknown_commutator(node2):
-        intersection_q = set(qarg1).intersection(set(qarg2))
-        intersection_c = set(carg1).intersection(set(carg2))
-        return not (intersection_q or intersection_c)
-
-    # Gates over disjoint sets of qubits commute
-    if not set(qarg1).intersection(set(qarg2)):
-        return True
-
-    # Known non-commuting gates (TODO: add more).
-    non_commute_gates = [{"x", "y"}, {"x", "z"}]
-    if qarg1 == qarg2 and ({node1.name, node2.name} in non_commute_gates):
-        return False
-
-    # Create matrices to check commutation relation if no other criteria are matched
-    qarg = list(set(node1.qargs + node2.qargs))
-    qbit_num = len(qarg)
-
-    qarg1 = [qarg.index(q) for q in node1.qargs]
-    qarg2 = [qarg.index(q) for q in node2.qargs]
-
-    dim = 2**qbit_num
-    id_op = np.reshape(np.eye(dim), (2, 2) * qbit_num)
-
-    op1 = np.reshape(node1.op.to_matrix(), (2, 2) * len(qarg1))
-    op2 = np.reshape(node2.op.to_matrix(), (2, 2) * len(qarg2))
-
-    op = Operator._einsum_matmul(id_op, op1, qarg1)
-    op12 = Operator._einsum_matmul(op, op2, qarg2, right_mul=False)
-    op21 = Operator._einsum_matmul(op, op2, qarg2, shift=qbit_num, right_mul=True)
-
-    return np.allclose(op12, op21)

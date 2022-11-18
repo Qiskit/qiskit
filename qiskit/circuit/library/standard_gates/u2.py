@@ -26,8 +26,20 @@ class U2Gate(Gate):
 
     Implemented using one X90 pulse on IBM Quantum systems:
 
-    .. math::
-        U2(\phi, \lambda) = RZ(\phi).RY(\frac{\pi}{2}).RZ(\lambda)
+    .. warning::
+
+       This gate is deprecated. Instead, the following replacements should be used
+
+       .. math::
+
+           U2(\phi, \lambda) = U\left(\frac{\pi}{2}, \phi, \lambda\right)
+
+       .. code-block:: python
+
+          circuit = QuantumCircuit(1)
+          circuit.u(pi/2, phi, lambda)
+
+
 
     **Circuit symbol:**
 
@@ -51,9 +63,23 @@ class U2Gate(Gate):
 
     .. math::
 
+        U2(\phi,\lambda) = e^{i \frac{\phi + \lambda}{2}}RZ(\phi)
+        RY\left(\frac{\pi}{2}\right) RZ(\lambda)
+        = e^{- i\frac{\pi}{4}} P\left(\frac{\pi}{2} + \phi\right)
+        \sqrt{X} P\left(\lambda- \frac{\pi}{2}\right)
+
+    .. math::
+
         U2(0, \pi) = H
+
+    .. math::
+
         U2(0, 0) = RY(\pi/2)
+
+    .. math::
+
         U2(-\pi/2, \pi/2) = RX(\pi/2)
+
     .. seealso::
 
         :class:`~qiskit.circuit.library.standard_gates.U3Gate`:

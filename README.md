@@ -3,11 +3,18 @@
 
 **Qiskit** is an open-source framework for working with noisy quantum computers at the level of pulses, circuits, and algorithms.
 
-Qiskit is made up of elements that work together to enable quantum computing. This element is **Terra** and is the foundation on which the rest of Qiskit is built.
+This library is the core component of Qiskit, **Terra**, which contains the building blocks for creating
+and working with quantum circuits, programs, and algorithms. It also contains a compiler that supports
+different quantum computers and a common interface for running programs on different quantum computer architectures.
+
+For more details on how to use Qiskit you can refer to the documentation located here:
+
+https://qiskit.org/documentation/
+
 
 ## Installation
 
-We encourage installing Qiskit via the pip tool (a python package manager). The following command installs the core Qiskit components, including Terra.
+We encourage installing Qiskit via ``pip``. The following command installs the core Qiskit components, including Terra.
 
 ```bash
 pip install qiskit
@@ -19,76 +26,71 @@ To install from source, follow the instructions in the [documentation](https://q
 
 ## Creating Your First Quantum Program in Qiskit Terra
 
-Now that Qiskit is installed, it's time to begin working with Terra.
-
-We are ready to try out a quantum circuit example, which is simulated locally using
-the Qiskit BasicAer element. This is a simple example that makes an entangled state.
-
-```
-$ python
-```
+Now that Qiskit is installed, it's time to begin working with Qiskit. To do this
+we create a `QuantumCircuit` object to define a basic quantum program.
 
 ```python
->>> from qiskit import QuantumCircuit, transpile
->>> from qiskit.providers.basicaer import QasmSimulatorPy
->>> qc = QuantumCircuit(2, 2)
->>> qc.h(0)
->>> qc.cx(0, 1)
->>> qc.measure([0,1], [0,1])
->>> backend_sim = QasmSimulatorPy()
->>> transpiled_qc = transpile(qc, backend_sim)
->>> result = backend_sim.run(transpiled_qc).result()
->>> print(result.get_counts(qc))
+from qiskit import QuantumCircuit
+qc = QuantumCircuit(2, 2)
+qc.h(0)
+qc.cx(0, 1)
+qc.measure([0,1], [0,1])
 ```
 
-In this case, the output will be:
+This simple example makes an entangled state, also called a [Bell state](https://qiskit.org/textbook/ch-gates/multiple-qubits-entangled-states.html#3.2-Entangled-States-).
+
+Once you've made your first quantum circuit, you can then simulate it.
+To do this, first we need to compile your circuit for the target backend we're going to run
+on. In this case we are leveraging the built-in `BasicAer` simulator. However, this
+simulator is primarily for testing and is limited in performance and functionality (as the name
+implies). You should consider more sophisticated simulators, such as [`qiskit-aer`](https://github.com/Qiskit/qiskit-aer/),
+for any real simulation work.
+
+```python
+from qiskit import transpile
+from qiskit.providers.basicaer import QasmSimulatorPy
+backend_sim = QasmSimulatorPy()
+transpiled_qc = transpile(qc, backend_sim)
+```
+
+After compiling the circuit we can then run this on the ``backend`` object with:
+
+```python
+result = backend_sim.run(transpiled_qc).result()
+print(result.get_counts(qc))
+```
+
+The output from this execution will look similar to this:
 
 ```python
 {'00': 513, '11': 511}
 ```
 
-A script is available [here](examples/python/ibmq/hello_quantum.py), where we also show how to
-run the same program on a real quantum computer via IBMQ.
+For further examples of using Qiskit you can look at the example scripts in **examples/python**. You can start with
+[using_qiskit_terra_level_0.py](examples/python/using_qiskit_terra_level_0.py) and working up in the levels. Also
+you can refer to the tutorials in the documentation here:
+
+https://qiskit.org/documentation/tutorials.html
+
 
 ### Executing your code on a real quantum chip
 
-You can also use Qiskit to execute your code on a
-**real quantum chip**.
-In order to do so, you need to configure Qiskit for using the credentials in
-your IBM Q account:
+You can also use Qiskit to execute your code on a **real quantum processor**.
+Qiskit provides an abstraction layer that lets users run quantum circuits on hardware from any
+vendor that provides an interface to their systems through Qiskit. Using these ``providers`` you can run any Qiskit code against
+real quantum computers. Some examples of published provider packages for running on real hardware are:
 
-#### Configure your IBMQ credentials
+* https://github.com/Qiskit/qiskit-ibmq-provider
+* https://github.com/Qiskit-Partners/qiskit-ionq
+* https://github.com/Qiskit-Partners/qiskit-aqt-provider
+* https://github.com/qiskit-community/qiskit-braket-provider
+* https://github.com/qiskit-community/qiskit-quantinuum-provider
+* https://github.com/rigetti/qiskit-rigetti
 
-1. Create an _[IBM Q](https://quantum-computing.ibm.com) > Account_ if you haven't already done so.
+<!-- This is not an exhasutive list, and if you maintain a provider package please feel free to open a PR to add new providers -->
 
-2. Get an API token from the IBM Q website under _My Account > API Token_.
-
-3. Take your token from step 2, here called `MY_API_TOKEN`, and run:
-
-   ```python
-   >>> from qiskit import IBMQ
-   >>> IBMQ.save_account('MY_API_TOKEN')
-    ```
-
-After calling `IBMQ.save_account()`, your credentials will be stored on disk.
-Once they are stored, at any point in the future you can load and use them
-in your program simply via:
-
-```python
->>> from qiskit import IBMQ
->>> IBMQ.load_account()
-```
-
-Those who do not want to save their credentials to disk should use instead:
-
-```python
->>> from qiskit import IBMQ
->>> IBMQ.enable_account('MY_API_TOKEN')
-```
-
-and the token will only be active for the session. For examples using Terra with real
-devices we have provided a set of examples in **examples/python** and we suggest starting with [using_qiskit_terra_level_0.py](examples/python/using_qiskit_terra_level_0.py) and working up in
-the levels.
+You can refer to the documentation of these packages for further instructions
+on how to get access and use these systems.
 
 ## Contribution Guidelines
 
@@ -98,7 +100,7 @@ If you'd like to contribute to Qiskit Terra, please take a look at our
 We use [GitHub issues](https://github.com/Qiskit/qiskit-terra/issues) for tracking requests and bugs. Please
 [join the Qiskit Slack community](https://ibm.co/joinqiskitslack)
 and use our [Qiskit Slack channel](https://qiskit.slack.com) for discussion and simple questions.
-For questions that are more suited for a forum we use the Qiskit tag in the [Stack Exchange](https://quantumcomputing.stackexchange.com/questions/tagged/qiskit).
+For questions that are more suited for a forum we use the `qiskit` tag in the [Stack Exchange](https://quantumcomputing.stackexchange.com/questions/tagged/qiskit).
 
 ## Next Steps
 
@@ -126,7 +128,7 @@ release.
 Additionally, as part of each release detailed release notes are written to
 document in detail what has changed as part of a release. This includes any
 documentation on potential breaking changes on upgrade and new features.
-For example, You can find the release notes for the `0.9.0` release in the
+For example, you can find the release notes for the `0.9.0` release in the
 Qiskit documentation here:
 
 https://qiskit.org/documentation/release_notes.html#terra-0-9

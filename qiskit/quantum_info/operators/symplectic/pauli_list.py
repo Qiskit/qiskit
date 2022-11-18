@@ -192,7 +192,7 @@ class PauliList(BasePauli, LinearMixin, GroupMixin):
 
     def _truncated_str(self, show_class):
         stop = self._num_paulis
-        if self.__truncate__:
+        if self.__truncate__ and self.num_qubits > 0:
             max_paulis = self.__truncate__ // self.num_qubits
             if self._num_paulis > max_paulis:
                 stop = max_paulis
@@ -237,12 +237,12 @@ class PauliList(BasePauli, LinearMixin, GroupMixin):
     def phase(self):
         """Return the phase exponent of the PauliList."""
         # Convert internal ZX-phase convention to group phase convention
-        return np.mod(self._phase - self._count_y(), 4)
+        return np.mod(self._phase - self._count_y(dtype=self._phase.dtype), 4)
 
     @phase.setter
     def phase(self, value):
         # Convert group phase convetion to internal ZX-phase convention
-        self._phase[:] = np.mod(value + self._count_y(), 4)
+        self._phase[:] = np.mod(value + self._count_y(dtype=self._phase.dtype), 4)
 
     @property
     def x(self):

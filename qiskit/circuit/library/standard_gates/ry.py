@@ -25,6 +25,9 @@ from qiskit.circuit.parameterexpression import ParameterValueType
 class RYGate(Gate):
     r"""Single-qubit rotation about the Y axis.
 
+    Can be applied to a :class:`~qiskit.circuit.QuantumCircuit`
+    with the :meth:`~qiskit.circuit.QuantumCircuit.ry` method.
+
     **Circuit symbol:**
 
     .. parsed-literal::
@@ -105,6 +108,9 @@ class RYGate(Gate):
 
 class CRYGate(ControlledGate):
     r"""Controlled-RY gate.
+
+    Can be applied to a :class:`~qiskit.circuit.QuantumCircuit`
+    with the :meth:`~qiskit.circuit.QuantumCircuit.cry` method.
 
     **Circuit symbol:**
 

@@ -13,10 +13,10 @@
 
 import retworkx as rx
 
-from qiskit.pulse.schedule import ScheduleBlock
+from qiskit.pulse.exceptions import UnassignedReferenceError
 
 
-def block_to_dag(block: ScheduleBlock) -> rx.PyDAG:
+def block_to_dag(block) -> rx.PyDAG:
     """Convert schedule block instruction into DAG.
 
     ``ScheduleBlock`` can be represented as a DAG as needed.
@@ -54,7 +54,7 @@ def block_to_dag(block: ScheduleBlock) -> rx.PyDAG:
     This can be easily found on the DAG representation.
 
     Args:
-        block: A schedule block to be converted.
+        block ("ScheduleBlock"): A schedule block to be converted.
 
     Returns:
         Instructions in DAG representation.
@@ -64,39 +64,44 @@ def block_to_dag(block: ScheduleBlock) -> rx.PyDAG:
     """
     if block.alignment_context.is_sequential:
         return _sequential_allocation(block)
-    else:
-        return _parallel_allocation(block)
+    return _parallel_allocation(block)
 
 
-def _sequential_allocation(block: ScheduleBlock) -> rx.PyDAG:
+def _sequential_allocation(block) -> rx.PyDAG:
     """A helper function to create a DAG of a sequential alignment context."""
-    dag_blocks = rx.PyDAG()
+    dag = rx.PyDAG()
 
-    prev_node = None
     edges = []
-    for inst in block.blocks:
-        current_node = dag_blocks.add_node(inst)
-        if prev_node is not None:
-            edges.append((prev_node, current_node))
-        prev_node = current_node
-    dag_blocks.add_edges_from_no_data(edges)
+    prev_id = None
+    for elm in block.blocks:
+        node_id = dag.add_node(elm)
+        if dag.num_nodes() > 1:
+            edges.append((prev_id, node_id))
+        prev_id = node_id
+    dag.add_edges_from_no_data(edges)
+    return dag
 
-    return dag_blocks
 
-
-def _parallel_allocation(block: ScheduleBlock) -> rx.PyDAG:
+def _parallel_allocation(block) -> rx.PyDAG:
     """A helper function to create a DAG of a parallel alignment context."""
-    dag_blocks = rx.PyDAG()
+    dag = rx.PyDAG()
 
     slots = {}
-    edges = []
-    for inst in block.blocks:
-        current_node = dag_blocks.add_node(inst)
-        for chan in inst.channels:
-            prev_node = slots.pop(chan, None)
-            if prev_node is not None:
-                edges.append((prev_node, current_node))
-            slots[chan] = current_node
-    dag_blocks.add_edges_from_no_data(edges)
-
-    return dag_blocks
+    edges = set()
+    prev_reference = None
+    for elm in block.blocks:
+        node_id = dag.add_node(elm)
+        try:
+            for chan in elm.channels:
+                prev_id = slots.pop(chan, prev_reference)
+                if prev_id is not None:
+                    edges.add((prev_id, node_id))
+                slots[chan] = node_id
+        except UnassignedReferenceError:
+            # Broadcasting channels because the reference's channels are unknown.
+            for chan, prev_id in slots.copy().items():
+                edges.add((prev_id, node_id))
+                slots[chan] = node_id
+            prev_reference = node_id
+    dag.add_edges_from_no_data(list(edges))
+    return dag

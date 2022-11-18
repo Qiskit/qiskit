@@ -27,6 +27,9 @@ class ECRGate(Gate):
     single-qubit pre-rotations. The echoing procedure mitigates some
     unwanted terms (terms other than ZX) to cancel in an experiment.
 
+    Can be applied to a :class:`~qiskit.circuit.QuantumCircuit`
+    with the :meth:`~qiskit.circuit.QuantumCircuit.ecr` method.
+
     **Circuit Symbol:**
 
     .. parsed-literal::

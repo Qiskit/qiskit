@@ -25,6 +25,9 @@ from qiskit.circuit.quantumregister import QuantumRegister
 class YGate(Gate):
     r"""The single-qubit Pauli-Y gate (:math:`\sigma_y`).
 
+    Can be applied to a :class:`~qiskit.circuit.QuantumCircuit`
+    with the :meth:`~qiskit.circuit.QuantumCircuit.y` method.
+
     **Matrix Representation:**
 
     .. math::
@@ -118,6 +121,9 @@ class YGate(Gate):
 
 class CYGate(ControlledGate):
     r"""Controlled-Y gate.
+
+    Can be applied to a :class:`~qiskit.circuit.QuantumCircuit`
+    with the :meth:`~qiskit.circuit.QuantumCircuit.cy` method.
 
     **Circuit symbol:**
 

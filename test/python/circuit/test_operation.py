@@ -17,7 +17,7 @@ import unittest
 import numpy as np
 
 from qiskit.test import QiskitTestCase
-from qiskit.circuit import QuantumCircuit, Barrier, Measure, Reset, Gate
+from qiskit.circuit import QuantumCircuit, Barrier, Measure, Reset, Gate, Operation
 from qiskit.circuit.library import XGate, CXGate
 from qiskit.quantum_info.operators import Clifford, CNOTDihedral, Pauli
 from qiskit.extensions.quantum_initializer import Initialize, Isometry
@@ -35,6 +35,7 @@ class TestOperationClass(QiskitTestCase):
         self.assertTrue(op.name == "measure")
         self.assertTrue(op.num_qubits == 1)
         self.assertTrue(op.num_clbits == 1)
+        self.assertIsInstance(op, Operation)
 
     def test_reset_as_operation(self):
         """Test that we can instantiate an object of class
@@ -45,6 +46,7 @@ class TestOperationClass(QiskitTestCase):
         self.assertTrue(op.name == "reset")
         self.assertTrue(op.num_qubits == 1)
         self.assertTrue(op.num_clbits == 0)
+        self.assertIsInstance(op, Operation)
 
     def test_barrier_as_operation(self):
         """Test that we can instantiate an object of class
@@ -56,6 +58,7 @@ class TestOperationClass(QiskitTestCase):
         self.assertTrue(op.name == "barrier")
         self.assertTrue(op.num_qubits == num_qubits)
         self.assertTrue(op.num_clbits == 0)
+        self.assertIsInstance(op, Operation)
 
     def test_clifford_as_operation(self):
         """Test that we can instantiate an object of class
@@ -70,6 +73,7 @@ class TestOperationClass(QiskitTestCase):
         self.assertTrue(op.name == "clifford")
         self.assertTrue(op.num_qubits == num_qubits)
         self.assertTrue(op.num_clbits == 0)
+        self.assertIsInstance(op, Operation)
 
     def test_cnotdihedral_as_operation(self):
         """Test that we can instantiate an object of class
@@ -106,6 +110,7 @@ class TestOperationClass(QiskitTestCase):
         self.assertTrue(op.name == "isometry")
         self.assertTrue(op.num_qubits == 7)
         self.assertTrue(op.num_clbits == 0)
+        self.assertIsInstance(op, Operation)
 
     def test_initialize_as_operation(self):
         """Test that we can instantiate an object of class
@@ -117,6 +122,7 @@ class TestOperationClass(QiskitTestCase):
         self.assertTrue(op.name == "initialize")
         self.assertTrue(op.num_qubits == 2)
         self.assertTrue(op.num_clbits == 0)
+        self.assertIsInstance(op, Operation)
 
     def test_gate_as_operation(self):
         """Test that we can instantiate an object of class
@@ -129,6 +135,7 @@ class TestOperationClass(QiskitTestCase):
         self.assertTrue(op.name == name)
         self.assertTrue(op.num_qubits == num_qubits)
         self.assertTrue(op.num_clbits == 0)
+        self.assertIsInstance(op, Operation)
 
     def test_xgate_as_operation(self):
         """Test that we can instantiate an object of class
@@ -139,6 +146,7 @@ class TestOperationClass(QiskitTestCase):
         self.assertTrue(op.name == "x")
         self.assertTrue(op.num_qubits == 1)
         self.assertTrue(op.num_clbits == 0)
+        self.assertIsInstance(op, Operation)
 
     def test_cxgate_as_operation(self):
         """Test that we can instantiate an object of class
@@ -149,6 +157,7 @@ class TestOperationClass(QiskitTestCase):
         self.assertTrue(op.name == "cx")
         self.assertTrue(op.num_qubits == 2)
         self.assertTrue(op.num_clbits == 0)
+        self.assertIsInstance(op, Operation)
 
     def test_can_append_to_quantum_circuit(self):
         """Test that we can add various objects with Operation interface to a Quantum Circuit."""

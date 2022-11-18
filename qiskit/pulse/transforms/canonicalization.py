@@ -18,6 +18,7 @@ from typing import List, Optional, Iterable, Union
 import numpy as np
 
 from qiskit.pulse import channels as chans, exceptions, instructions
+from qiskit.pulse.channels import ClassicalIOChannel
 from qiskit.pulse.exceptions import PulseError
 from qiskit.pulse.exceptions import UnassignedDurationError
 from qiskit.pulse.instruction_schedule_map import InstructionScheduleMap
@@ -475,6 +476,8 @@ def pad(
     channels = channels or schedule.channels
 
     for channel in channels:
+        if isinstance(channel, ClassicalIOChannel):
+            continue
         if channel not in schedule.channels:
             schedule |= instructions.Delay(until, channel)
             continue
