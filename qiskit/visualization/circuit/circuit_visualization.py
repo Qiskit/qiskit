@@ -51,7 +51,7 @@ def circuit_drawer(
     output=None,
     interactive=False,
     plot_barriers=True,
-    reverse_bits=False,
+    reverse_bits=None,
     justify=None,
     vertical_compression="medium",
     idle_wires=True,
@@ -180,8 +180,10 @@ def circuit_drawer(
     config = user_config.get_config()
     # Get default from config file else use text
     default_output = "text"
+    default_reverse_bits = False
     if config:
         default_output = config.get("circuit_drawer", "text")
+        default_reverse_bits = config.get("circuit_reverse_bits", False)
         if default_output == "auto":
             if _optionals.HAS_MATPLOTLIB:
                 default_output = "mpl"
@@ -189,6 +191,9 @@ def circuit_drawer(
                 default_output = "text"
     if output is None:
         output = default_output
+
+    if reverse_bits is None:
+        reverse_bits = default_reverse_bits
 
     if wire_order is not None and reverse_bits:
         raise VisualizationError(
