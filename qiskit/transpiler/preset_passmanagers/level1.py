@@ -178,7 +178,7 @@ def level_1_pass_manager(pass_manager_config: PassManagerConfig) -> StagedPassMa
     def _opt_control(property_set):
         return (not property_set["depth_fixed_point"]) or (not property_set["size_fixed_point"])
 
-    _opt = [Optimize1qGatesDecomposition(basis_gates), CXCancellation()]
+    _opt = [Optimize1qGatesDecomposition(basis=basis_gates, target=target), CXCancellation()]
 
     unroll_3q = None
     # Build full pass manager
