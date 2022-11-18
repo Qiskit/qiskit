@@ -1,0 +1,14 @@
+---
+features:
+  - |
+    The user_config file has a new configuration option, 
+    ``circuit_reverse_bits``. This allows users to set the local behavior of 
+    the `reverse_bits` option of the ``circuitdrawer`` to default to ``True``. 
+    For example, the format of the config file ``settings.conf`` should be:
+
+      .. code-block:: text
+
+      [default]
+      circuit_drawer = mpl
+      circuit_mpl_style = default
+      circuit_reverse_bits = True
