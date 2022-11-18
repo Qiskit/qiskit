@@ -618,6 +618,7 @@ class TestUnitarySynthesis(QiskitTestCase):
         dsc=(
             "Test direction with transpile using opt_level {opt_level} on"
             " target with multiple 2q gates with bidirectional={bidirectional}"
+            "direction [0, 1] is lower error and should be picked."
         ),
         name="opt_level_{opt_level}_bidirectional_{bidirectional}",
     )
@@ -631,17 +632,12 @@ class TestUnitarySynthesis(QiskitTestCase):
             backend=backend,
             optimization_level=opt_level,
             translation_method="synthesis",
-            layout_method="trivial",
+            layout_method="trivial"
         )
         tqc_index = {qubit: index for index, qubit in enumerate(tqc.qubits)}
         self.assertGreaterEqual(len(tqc.get_instructions("cx")), 1)
-        if bidirectional:
-            for instr in tqc.get_instructions("cx"):
-                self.assertEqual((1, 0), (tqc_index[instr.qubits[0]], tqc_index[instr.qubits[1]]))
-
-        else:
-            for instr in tqc.get_instructions("cx"):
-                self.assertEqual((0, 1), (tqc_index[instr.qubits[0]], tqc_index[instr.qubits[1]]))
+        for instr in tqc.get_instructions("cx"):
+            self.assertEqual((0, 1), (tqc_index[instr.qubits[0]], tqc_index[instr.qubits[1]]))
 
     @combine(
         opt_level=[0, 1, 2, 3],
@@ -706,6 +702,7 @@ class TestUnitarySynthesis(QiskitTestCase):
             translation_method="synthesis",
             layout_method="trivial",
         )
+        print(tqc)
         tqc_index = {qubit: index for index, qubit in enumerate(tqc.qubits)}
         self.assertGreaterEqual(len(tqc.get_instructions("ecr")), 1)
         for instr in tqc.get_instructions("ecr"):

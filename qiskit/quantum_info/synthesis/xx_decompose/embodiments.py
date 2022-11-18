@@ -22,7 +22,7 @@ import numpy as np
 from qiskit.circuit import QuantumCircuit, Parameter
 from qiskit.circuit.library import (RXXGate, RZZGate, RZXGate, RYYGate, 
                                     CRZGate, CRXGate, CRYGate, CPhaseGate, 
-                                    CZGate, CXGate, CYGate, CHGate)
+                                    CZGate, CXGate, CYGate, CHGate, ECRGate)
 
 
 rxx_circuit = QuantumCircuit(2)
@@ -123,6 +123,15 @@ ch_circuit.sx(1)
 ch_circuit.h(0)
 ch_circuit.global_phase -= np.pi / 4
 
+ecr_circuit = QuantumCircuit(2)
+ecr_circuit.h(0)
+ecr_circuit.s(0)
+ecr_circuit.x(0)
+ecr_circuit.x(1)
+ecr_circuit.ecr(0, 1)
+ecr_circuit.s(0)
+ecr_circuit.h(0)
+ecr_circuit.global_phase -= np.pi/2
 
 XXEmbodiments = {
     RXXGate: rxx_circuit,
@@ -136,5 +145,6 @@ XXEmbodiments = {
     CXGate: cx_circuit,
     CYGate: cy_circuit,
     CZGate: cz_circuit,
-    CHGate: ch_circuit
+    CHGate: ch_circuit,
+    ECRGate: ecr_circuit
 }
