@@ -17,7 +17,7 @@ import statistics
 import random
 
 import numpy as np
-from retworkx import PyDiGraph, PyGraph
+from rustworkx import PyDiGraph, PyGraph
 
 from qiskit.circuit import ControlFlowOp, ForLoopOp
 from qiskit.converters import circuit_to_dag

@@ -18,7 +18,7 @@ from enum import Enum
 import logging
 import time
 
-from retworkx import vf2_mapping
+from rustworkx import vf2_mapping
 
 from qiskit.transpiler.layout import Layout
 from qiskit.transpiler.basepasses import AnalysisPass

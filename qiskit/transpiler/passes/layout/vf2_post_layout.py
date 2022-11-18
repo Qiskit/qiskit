@@ -19,7 +19,7 @@ import logging
 import inspect
 import time
 
-from retworkx import PyDiGraph, vf2_mapping, PyGraph
+from rustworkx import PyDiGraph, vf2_mapping, PyGraph
 
 from qiskit.transpiler.layout import Layout
 from qiskit.transpiler.basepasses import AnalysisPass
