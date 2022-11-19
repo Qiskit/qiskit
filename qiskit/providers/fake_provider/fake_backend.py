@@ -56,7 +56,7 @@ class FakeBackendV2(BackendV2):
 
     The class inherits :class:`~qiskit.providers.BackendV2` class. This version
     differs from earlier :class:`~qiskit.providers.fake_provider.FakeBackend` (V1) class in a
-    few aspects. Firstly, configuration attribute no longer exsists. Instead,
+    few aspects. Firstly, configuration attribute no longer exists. Instead,
     attributes exposing equivalent required immutable properties of the backend
     device are added. For example ``fake_backend.configuration().n_qubits`` is
     accessible from ``fake_backend.num_qubits`` now. Secondly, this version
@@ -459,7 +459,7 @@ class FakeBackend(BackendV1):
 
             self.sim = aer.AerSimulator()
             if self.properties():
-                noise_model = NoiseModel.from_backend(self, warnings=False)
+                noise_model = NoiseModel.from_backend(self)
                 self.sim.set_options(noise_model=noise_model)
                 # Update fake backend default options too to avoid overwriting
                 # it when run() is called

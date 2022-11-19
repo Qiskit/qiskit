@@ -348,7 +348,7 @@ def _parse_common_args(
     qubit_lo_range = qubit_lo_range or getattr(backend_config, "qubit_lo_range", None)
     meas_lo_range = meas_lo_range or getattr(backend_config, "meas_lo_range", None)
 
-    # check that LO frequencies are in the perscribed range
+    # check that LO frequencies are in the prescribed range
     _check_lo_freqs(qubit_lo_freq, qubit_lo_range, "qubit")
     _check_lo_freqs(meas_lo_freq, meas_lo_range, "meas")
 
@@ -388,7 +388,7 @@ def _check_lo_freqs(
     lo_range: Union[List[float], None],
     lo_type: str,
 ):
-    """Check that LO frequencies are within the perscribed LO range.
+    """Check that LO frequencies are within the prescribed LO range.
 
     NOTE: Only checks if frequency/range lists have equal length. And does not check that the lists
     have length ``n_qubits``. This is because some backends, like simulator backends, do not

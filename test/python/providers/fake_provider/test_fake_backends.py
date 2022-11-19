@@ -14,9 +14,8 @@
 import math
 import unittest
 
-from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit, schedule, transpile, assemble
+from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit, schedule, transpile
 from qiskit.pulse import Schedule
-from qiskit.qobj import PulseQobj
 from qiskit.test import QiskitTestCase
 from qiskit.providers.fake_provider.utils.configurable_backend import ConfigurableFakeBackend
 from qiskit.providers.fake_provider import FakeAthens, FakePerth
@@ -39,14 +38,31 @@ class GeneratedFakeBackendsTest(QiskitTestCase):
     """Generated fake backends test."""
 
     def setUp(self) -> None:
-        self.backend = ConfigurableFakeBackend("Tashkent", n_qubits=4)
+        super().setUp()
+        self.backend = ConfigurableFakeBackend(
+            "Tashkent",
+            n_qubits=4,
+            single_qubit_gates=["id", "ry", "h"],
+            basis_gates=["id", "ry", "h", "cx"],
+        )
 
-    @unittest.skip("Skipped until qiskit-aer#741 is fixed and released")
     @unittest.skipUnless(optionals.HAS_AER, "qiskit-aer is required to run this test")
-    def test_transpile_schedule_and_assemble(self):
-        """Test transpile, schedule and assemble on generated backend."""
+    def test_transpile_and_run(self):
+        """Test transpile and run on generated backend."""
         qc = get_test_circuit()
+        circuit = transpile(qc, backend=self.backend)
+        self.assertTrue(isinstance(circuit, QuantumCircuit))
+        self.assertEqual(circuit.num_qubits, 4)
 
+        job = self.backend.run(qc)
+        result = job.result()
+        self.assertTrue(result.success)
+        self.assertEqual(len(result.results), 1)
+
+    @unittest.skipUnless(optionals.HAS_AER, "qiskit-aer is required to run this test")
+    def test_transpile_schedule(self):
+        """Test schedule on generated backend."""
+        qc = get_test_circuit()
         circuit = transpile(qc, backend=self.backend)
         self.assertTrue(isinstance(circuit, QuantumCircuit))
         self.assertEqual(circuit.num_qubits, 4)
@@ -54,16 +70,6 @@ class GeneratedFakeBackendsTest(QiskitTestCase):
         experiments = schedule(circuits=circuit, backend=self.backend)
         self.assertTrue(isinstance(experiments, Schedule))
         self.assertGreater(experiments.duration, 0)
-
-        qobj = assemble(experiments, backend=self.backend)
-        self.assertTrue(isinstance(qobj, PulseQobj))
-        self.assertEqual(qobj.header.backend_name, "Tashkent")
-        self.assertEqual(len(qobj.experiments), 1)
-
-        job = self.backend.run(qobj)
-        result = job.result()
-        self.assertTrue(result.success)
-        self.assertEqual(len(result.results), 1)
 
 
 class FakeBackendsTest(QiskitTestCase):

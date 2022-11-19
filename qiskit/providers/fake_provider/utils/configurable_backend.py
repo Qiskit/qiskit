@@ -101,7 +101,7 @@ class ConfigurableFakeBackend(FakeBackend):
             dt = 1.33
 
         self.backend_name = name
-        self.version = version
+        self.backend_version = version
         self.basis_gates = basis_gates
         self.qubit_t1 = qubit_t1
         self.qubit_t2 = qubit_t2
@@ -198,7 +198,7 @@ class ConfigurableFakeBackend(FakeBackend):
 
         return BackendProperties(
             backend_name=self.backend_name,
-            backend_version=self.version,
+            backend_version=self.backend_version,
             last_update_date=self.now,
             qubits=qubits,
             gates=gates,
@@ -232,12 +232,12 @@ class ConfigurableFakeBackend(FakeBackend):
 
         meas_map = [list(range(self.n_qubits))]
         qubit_lo_range = [[freq - 0.5, freq + 0.5] for freq in self.qubit_frequency]
-        meas_lo_range = [[6.5, 7.5] for _ in range(self.n_qubits)]
+        meas_lo_range = [[6.3, 7.5] for _ in range(self.n_qubits)]
         u_channel_lo = [[UchannelLO(q=i, scale=1.0 + 0.0j)] for i in range(len(self.coupling_map))]
 
         return PulseBackendConfiguration(
             backend_name=self.backend_name,
-            backend_version=self.version,
+            backend_version=self.backend_version,
             n_qubits=self.n_qubits,
             meas_levels=[0, 1, 2],
             basis_gates=self.basis_gates,
