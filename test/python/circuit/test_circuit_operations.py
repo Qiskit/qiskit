@@ -1187,6 +1187,37 @@ class TestCircuitOperations(QiskitTestCase):
         self.assertEqual(circuit_tuples, expected)
         self.assertEqual(circuit_tuples_partial, expected)
 
+    def test_from_instructions_bit_order(self):
+        """Test from_instructions method bit order."""
+        qreg = QuantumRegister(2)
+        creg = ClassicalRegister(2)
+        a, b = qreg
+        c, d = creg
+
+        def instructions():
+            yield CircuitInstruction(HGate(), [b], [])
+            yield CircuitInstruction(CXGate(), [a, b], [])
+            yield CircuitInstruction(Measure(), [b], [d])
+            yield CircuitInstruction(Measure(), [a], [c])
+
+        circuit = QuantumCircuit.from_instructions(instructions())
+        self.assertEqual(circuit.qubits, [b, a])
+        self.assertEqual(circuit.clbits, [d, c])
+
+        circuit = QuantumCircuit.from_instructions(instructions(), qubits=qreg)
+        self.assertEqual(circuit.qubits, [a, b])
+        self.assertEqual(circuit.clbits, [d, c])
+
+        circuit = QuantumCircuit.from_instructions(instructions(), clbits=creg)
+        self.assertEqual(circuit.qubits, [b, a])
+        self.assertEqual(circuit.clbits, [c, d])
+
+        circuit = QuantumCircuit.from_instructions(
+            instructions(), qubits=iter([a, b]), clbits=[c, d]
+        )
+        self.assertEqual(circuit.qubits, [a, b])
+        self.assertEqual(circuit.clbits, [c, d])
+
     def test_from_instructions_metadata(self):
         """Test from_instructions method passes metadata."""
         qreg = QuantumRegister(2)

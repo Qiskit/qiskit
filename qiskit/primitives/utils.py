@@ -12,8 +12,9 @@
 """
 Utility functions for primitives
 """
-
 from __future__ import annotations
+
+import numpy as np
 
 from qiskit.circuit import Instruction, ParameterExpression, QuantumCircuit
 from qiskit.circuit.bit import Bit
@@ -146,7 +147,10 @@ def _circuit_key(circuit: QuantumCircuit, functional: bool = True) -> tuple:
                 _bits_key(data.qubits, circuit),  # qubits
                 _bits_key(data.clbits, circuit),  # clbits
                 data.operation.name,  # operation.name
-                tuple(data.operation.params),  # operation.params
+                tuple(
+                    param.data.tobytes() if isinstance(param, np.ndarray) else param
+                    for param in data.operation.params
+                ),  # operation.params
             )
             for data in circuit.data
         ),
@@ -168,7 +172,12 @@ def _observable_key(observable: SparsePauliOp) -> tuple:
     Returns:
         Key for observables.
     """
-    return tuple(observable.to_list())
+    return (
+        observable.paulis.z.tobytes(),
+        observable.paulis.x.tobytes(),
+        observable.paulis.phase.tobytes(),
+        observable.coeffs.tobytes(),
+    )
 
 
 def bound_circuit_to_instruction(circuit: QuantumCircuit) -> Instruction:
