@@ -10,7 +10,7 @@ name = "qiskit_accelerate"
 crate-type = ["cdylib"]
 
 [dependencies]
-rayon = "1.5"
+rayon = "1.6"
 numpy = "0.17.2"
 rand = "0.8"
 rand_pcg = "0.3"
