@@ -24,6 +24,7 @@ from collections import OrderedDict, defaultdict
 import copy
 import itertools
 import math
+from typing import Generator, Any, List
 
 import numpy as np
 import rustworkx as rx
@@ -84,8 +85,8 @@ class DAGCircuit:
         self.cregs = OrderedDict()
 
         # List of Qubit/Clbit wires that the DAG acts on.
-        self.qubits = []
-        self.clbits = []
+        self.qubits: List[Qubit] = []
+        self.clbits: List[Clbit] = []
 
         self._global_phase = 0
         self._calibrations = defaultdict(dict)
@@ -1051,7 +1052,7 @@ class DAGCircuit:
 
         return iter(rx.lexicographical_topological_sort(self._multi_graph, key=key))
 
-    def topological_op_nodes(self, key=None):
+    def topological_op_nodes(self, key=None) -> Generator[DAGOpNode, Any, Any]:
         """
         Yield op nodes in topological order.
 
