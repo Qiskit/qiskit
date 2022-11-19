@@ -30,10 +30,10 @@ use rand::prelude::SliceRandom;
 use rand::prelude::*;
 use rand_pcg::Pcg64Mcg;
 use rayon::prelude::*;
-use retworkx_core::dictmap::*;
-use retworkx_core::petgraph::prelude::*;
-use retworkx_core::petgraph::visit::EdgeRef;
-use retworkx_core::shortest_path::dijkstra;
+use rustworkx_core::dictmap::*;
+use rustworkx_core::petgraph::prelude::*;
+use rustworkx_core::petgraph::visit::EdgeRef;
+use rustworkx_core::shortest_path::dijkstra;
 
 use crate::getenv_use_multiple_threads;
 use crate::nlayout::NLayout;
@@ -152,14 +152,17 @@ pub fn build_swap_map(
     neighbor_table: &NeighborTable,
     distance_matrix: PyReadonlyArray2<f64>,
     heuristic: &Heuristic,
-    seed: u64,
+    seed: Option<u64>,
     layout: &mut NLayout,
     num_trials: usize,
 ) -> (SwapMap, PyObject) {
     let run_in_parallel = getenv_use_multiple_threads() && num_trials > 1;
     let dist = distance_matrix.as_array();
     let coupling_graph: DiGraph<(), ()> = cmap_from_neighor_table(neighbor_table);
-    let outer_rng = Pcg64Mcg::seed_from_u64(seed);
+    let outer_rng = match seed {
+        Some(seed) => Pcg64Mcg::seed_from_u64(seed),
+        None => Pcg64Mcg::from_entropy(),
+    };
     let seed_vec: Vec<u64> = outer_rng
         .sample_iter(&rand::distributions::Standard)
         .take(num_trials)

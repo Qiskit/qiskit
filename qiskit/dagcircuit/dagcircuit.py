@@ -27,7 +27,7 @@ import math
 from typing import Generator, Any, List
 
 import numpy as np
-import retworkx as rx
+import rustworkx as rx
 
 from qiskit.circuit import ControlFlowOp, ForLoopOp, IfElseOp, WhileLoopOp
 from qiskit.circuit.exceptions import CircuitError
@@ -1241,7 +1241,7 @@ class DAGCircuit:
             self.global_phase += in_dag.global_phase
 
         # Add wire from pred to succ if no ops on mapped wire on ``in_dag``
-        # retworkx's substitute_node_with_subgraph lacks the DAGCircuit
+        # rustworkx's substitute_node_with_subgraph lacks the DAGCircuit
         # context to know what to do in this case (the method won't even see
         # these nodes because they're filtered) so we manually retain the
         # edges prior to calling substitute_node_with_subgraph and set the
@@ -1277,8 +1277,8 @@ class DAGCircuit:
                 wire_output_id = in_dag.output_map[wire]._node_id
                 out_index = in_dag._multi_graph.predecessor_indices(wire_output_id)[0]
                 # Edge directly from from input nodes to output nodes in in_dag are
-                # already handled prior to calling retworkx. Don't map these edges
-                # in retworkx.
+                # already handled prior to calling rustworkx. Don't map these edges
+                # in rustworkx.
                 if not isinstance(in_dag._multi_graph[out_index], DAGOpNode):
                     return None
             # predecessor edge
@@ -1286,8 +1286,8 @@ class DAGCircuit:
                 wire_input_id = in_dag.input_map[wire]._node_id
                 out_index = in_dag._multi_graph.successor_indices(wire_input_id)[0]
                 # Edge directly from from input nodes to output nodes in in_dag are
-                # already handled prior to calling retworkx. Don't map these edges
-                # in retworkx.
+                # already handled prior to calling rustworkx. Don't map these edges
+                # in rustworkx.
                 if not isinstance(in_dag._multi_graph[out_index], DAGOpNode):
                     return None
             return out_index
