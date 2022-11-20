@@ -86,11 +86,19 @@ class XXDecomposer:
         from qiskit.transpiler.passes.optimization.optimize_1q_decomposition import (
             Optimize1qGatesDecomposition,  # pylint: disable=cyclic-import
         )
-
         self._decomposer1q = Optimize1qGatesDecomposition(ONE_QUBIT_EULER_BASIS_GATES[euler_basis])
         self.embodiments = embodiments if embodiments is not None else {}
         self.backup_optimizer = backup_optimizer
         self.basis_fidelity = basis_fidelity
+
+        # expose one of the basis gates so others can know what this decomposer targets
+        embodiment_circuit = next(iter(self.embodiments.items()), ([], []))[1]
+        for instruction in embodiment_circuit:
+            if len(instruction.qubits) == 2:
+                self.gate = instruction.operation
+                break
+        else:
+            self.gate = RZXGate(np.pi/2)
 
         self._check_embodiments()
 

@@ -109,20 +109,20 @@ def _choose_bases(basis_gates, basis_dict=None):
     return out_basis
 
 
-def _basis_gates_to_decomposer_2q(basis_gates, pulse_optimize=None):
+def _decomposer_2q_from_basis_gates(basis_gates, pulse_optimize=None):
+    decomposer2q = None
     kak_gate = _choose_kak_gate(basis_gates)
     euler_basis = _choose_euler_basis(basis_gates)
     if isinstance(kak_gate, RZXGate):
         backup_optimizer = TwoQubitBasisDecomposer(
             CXGate(), euler_basis=euler_basis, pulse_optimize=pulse_optimize
         )
-        return XXDecomposer(euler_basis=euler_basis, backup_optimizer=backup_optimizer)
+        decomposer2q = XXDecomposer(euler_basis=euler_basis, backup_optimizer=backup_optimizer)
     elif kak_gate is not None:
-        return TwoQubitBasisDecomposer(
+        decomposer2q = TwoQubitBasisDecomposer(
             kak_gate, euler_basis=euler_basis, pulse_optimize=pulse_optimize
         )
-    else:
-        return None
+    return decomposer2q
 
 
 def _error(circuit, target=None, qubits=None):
@@ -169,14 +169,6 @@ def _preferred_direction(
     Returns [0, 1] if qubits are correct in the hardware-native direction.
     Returns [1, 0] if qubits must be flipped to match hardware-native direction.
     """
-    if isinstance(decomposer2q, TwoQubitBasisDecomposer):
-        gate_name = getattr(decomposer2q, "gate_name", decomposer2q.gate.name)
-    elif isinstance(decomposer2q, XXDecomposer):
-        embodiment_circuit = next(iter(decomposer2q.embodiments.items()))[1]
-        for instruction in embodiment_circuit:
-            if len(instruction.qubits) == 2:
-                gate_name = instruction.operation.name
-                break
     preferred_direction = None
     if natural_direction in {None, True}:
         # find native gate directions from a (non-bidirectional) coupling map
@@ -191,6 +183,7 @@ def _preferred_direction(
                 preferred_direction = [1, 0]
         # otherwise infer natural directions from gate durations or gate errors
         if preferred_direction is None and (gate_lengths or gate_errors):
+            gate_name = decomposer2q.gate.name
             cost_0_1 = inf
             cost_1_0 = inf
             if gate_lengths:
@@ -518,7 +511,7 @@ class DefaultUnitarySynthesis(plugin.UnitarySynthesisPlugin):
         super().__init__()
         self._decomposer_cache = {}
 
-    def _find_decomposer_2q_from_target(self, target, qubits):
+    def _decomposer_2q_from_target(self, target, qubits):
         # we just need 2-qubit decomposers, in any direction.
         # we'll fix the synthesis direction later.
         qubits_tuple = tuple(sorted(qubits))
@@ -637,9 +630,9 @@ class DefaultUnitarySynthesis(plugin.UnitarySynthesisPlugin):
             synth_circuit = _decomposer1q._resynthesize_run(unitary, qubits[0])
         elif unitary.shape == (4, 4):
             if target is not None:
-                decomposers2q = self._find_decomposer_2q_from_target(target, qubits)
+                decomposers2q = self._decomposer_2q_from_target(target, qubits)
             else:
-                decomposer2q = _basis_gates_to_decomposer_2q(
+                decomposer2q = _decomposer_2q_from_basis_gates(
                     basis_gates, pulse_optimize=pulse_optimize
                 )
                 decomposers2q = [decomposer2q] if decomposer2q is not None else []

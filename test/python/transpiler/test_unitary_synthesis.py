@@ -17,7 +17,7 @@ Tests for the default UnitarySynthesis transpiler pass.
 """
 
 import unittest
-
+import numpy as np
 from test import combine
 
 from ddt import ddt, data
@@ -46,7 +46,7 @@ from qiskit.transpiler.passes import (
     SabreSwap,
     TrivialLayout,
 )
-from qiskit.circuit.library import CXGate, ECRGate, UGate, ZGate, XGate
+from qiskit.circuit.library import CXGate, ECRGate, UGate, ZGate, XGate, RYYGate
 from qiskit.circuit import Parameter
 
 
@@ -711,6 +711,33 @@ class TestUnitarySynthesis(QiskitTestCase):
         self.assertGreaterEqual(len(tqc.get_instructions("ecr")), 1)
         for instr in tqc.get_instructions("ecr"):
             self.assertEqual((0, 1), (tqc_index[instr.qubits[0]], tqc_index[instr.qubits[1]]))
+
+    @combine(
+        opt_level=[0, 1, 2, 3],
+        dsc=(
+            "Test controlled but not supercontrolled basis"
+        ),
+        name="opt_level_{opt_level}",
+    )
+    def test_controlled_basis(self, opt_level):
+        target = Target(2)
+        target.add_instruction(RYYGate(np.pi/8), {(0, 1): InstructionProperties(error=1.2e-6)})
+        target.add_instruction(
+            UGate(Parameter("theta"), Parameter("phi"), Parameter("lam")), {(0,): None, (1,): None}
+        )
+        qr = QuantumRegister(2)
+        circ = QuantumCircuit(qr)
+        circ.append(random_unitary(4, seed=1), [1, 0])
+        tqc = transpile(
+            circ,
+            target=target,
+            optimization_level=opt_level,
+            translation_method="synthesis",
+            layout_method="trivial",
+        )
+        tqc_index = {qubit: index for index, qubit in enumerate(tqc.qubits)}
+        self.assertGreaterEqual(len(tqc.get_instructions("ryy")), 1)
+        self.assertEqual(Operator(tqc), Operator(circ))
 
     def test_if_simple(self):
         """Test a simple if statement."""

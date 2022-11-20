@@ -1414,6 +1414,8 @@ class TestTranspile(QiskitTestCase):
             translation_method="synthesis",
             approximation_degree=0.9,
         )
+        print(circ_10)
+        print(circ_90)
         self.assertLess(circ_10.depth(), circ_90.depth())
 
     @data(0, 1, 2, 3)

@@ -257,16 +257,7 @@ def level_3_pass_manager(pass_manager_config: PassManagerConfig) -> StagedPassMa
                 for x in common.generate_pre_op_passmanager(target, coupling_map).passes()
                 for pass_ in x["passes"]
             ]
-            # For transpiling to a target we need to run GateDirection in the
-            # optimization loop to correct for incorrect directions that might be
-            # inserted by UnitarySynthesis which is direction aware but only via
-            # the coupling map which with a target doesn't give a full picture
-            if target is not None and optimization is not None:
-                optimization.append(
-                    _opt + _unroll_if_out_of_basis + _depth_check + _size_check + _direction,
-                    do_while=_opt_control,
-                )
-            elif optimization is not None:
+            if optimization is not None:
                 optimization.append(
                     _opt + _unroll_if_out_of_basis + _depth_check + _size_check,
                     do_while=_opt_control,
