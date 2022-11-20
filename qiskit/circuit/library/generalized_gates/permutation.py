@@ -21,7 +21,7 @@ from qiskit.circuit.exceptions import CircuitError
 
 
 class Permutation(Gate):
-    """An n_qubit circuit that permutes qubits."""
+    """An gate that permutes qubits."""
 
     def __init__(
         self,
@@ -29,7 +29,7 @@ class Permutation(Gate):
         pattern: Optional[List[int]] = None,
         seed: Optional[int] = None,
     ) -> None:
-        """Return an n_qubit permutation circuit implemented using SWAPs.
+        """Return a permutation gate.
 
         Args:
             num_qubits: circuit width.
@@ -53,7 +53,9 @@ class Permutation(Gate):
                 from qiskit.circuit.library import Permutation
                 import qiskit.tools.jupyter
                 A = [2,4,3,0,1]
-                circuit = Permutation(5, A)
+                permutation = Permutation(5, A)
+                circuit = QuantumCircuit(5)
+                circuit.append(permutation, [0, 1, 2, 3, 4])
                 circuit.draw('mpl')
 
         Expanded Circuit:
@@ -63,7 +65,9 @@ class Permutation(Gate):
                 from qiskit.circuit.library import Permutation
                 import qiskit.tools.jupyter
                 A = [2,4,3,0,1]
-                circuit = Permutation(5, A)
+                permutation = Permutation(5, A)
+                circuit = QuantumCircuit(5)
+                circuit.append(permutation, [0, 1, 2, 3, 4])
                 %circuit_library_info circuit.decompose()
         """
         if pattern is not None:
@@ -102,4 +106,3 @@ class Permutation(Gate):
     def pattern(self):
         """Returns the permutation pattern defining this permutation."""
         return self.params[0]
-
