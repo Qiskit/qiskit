@@ -70,7 +70,7 @@ class Permutation(Gate):
                 permutation = Permutation(5, A)
                 circuit = QuantumCircuit(5)
                 circuit.append(permutation, [0, 1, 2, 3, 4])
-                %circuit_library_info circuit.decompose()
+                circuit.decompose.draw('mpl')
         """
         if pattern is not None:
             if sorted(pattern) != list(range(num_qubits)):
