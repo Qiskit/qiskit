@@ -432,6 +432,7 @@ class TestCliffordGates(QiskitTestCase):
             Clifford(qc)
 
 
+
 @ddt
 class TestCliffordSynthesis(QiskitTestCase):
     """Test Clifford synthesis methods."""
@@ -860,6 +861,13 @@ class TestCliffordOperators(QiskitTestCase):
         after converting to instruction"""
         clifford = random_clifford(num_qubits, seed=777)
         self.assertEqual(clifford.to_instruction().name, str(clifford))
+
+    def visualize_does_not_throw_error(self):
+        """Test to verify that drawing Clifford does not throw an error"""
+        # An error may be thrown if visualization code calls op.condition instead
+        # of getattr(op, "condition", None)
+        clifford = random_clifford(3, seed=0)
+        print(clifford)
 
 
 if __name__ == "__main__":
