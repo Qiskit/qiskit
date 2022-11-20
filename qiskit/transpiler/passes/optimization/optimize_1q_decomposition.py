@@ -49,7 +49,7 @@ class Optimize1qGatesDecomposition(TransformationPass):
 
         self._basis_gates = basis
         self._target = target
-        self._global_decomposers = None
+        self._global_decomposers = []
         self._local_decomposers_cache = {}
 
         if basis:

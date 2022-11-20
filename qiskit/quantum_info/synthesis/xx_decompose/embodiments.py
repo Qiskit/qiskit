@@ -20,17 +20,29 @@ TODO: discover these automatically from the gates' algebraic definition
 import numpy as np
 
 from qiskit.circuit import QuantumCircuit, Parameter
-from qiskit.circuit.library import (RXXGate, RZZGate, RZXGate, RYYGate, 
-                                    CRZGate, CRXGate, CRYGate, CPhaseGate, 
-                                    CZGate, CXGate, CYGate, CHGate, ECRGate)
+from qiskit.circuit.library import (
+    RXXGate,
+    RZZGate,
+    RZXGate,
+    RYYGate,
+    CRZGate,
+    CRXGate,
+    CRYGate,
+    CPhaseGate,
+    CZGate,
+    CXGate,
+    CYGate,
+    CHGate,
+    ECRGate,
+)
 
 
 rxx_circuit = QuantumCircuit(2)
-theta = Parameter('θ')
+theta = Parameter("θ")
 rxx_circuit.rxx(theta, 0, 1)
 
 rzz_circuit = QuantumCircuit(2)
-theta = Parameter('θ')
+theta = Parameter("θ")
 rzz_circuit.h(0)
 rzz_circuit.h(1)
 rzz_circuit.rzz(theta, 0, 1)
@@ -52,7 +64,7 @@ ryy_circuit.sdg(1)
 cphase_circuit = QuantumCircuit(2)
 cphase_circuit.h(0)
 cphase_circuit.h(1)
-cphase_circuit.cp(-2*theta, 0, 1)
+cphase_circuit.cp(-2 * theta, 0, 1)
 cphase_circuit.rz(theta, 0)
 cphase_circuit.rz(theta, 1)
 cphase_circuit.h(0)
@@ -62,21 +74,21 @@ cphase_circuit.global_phase += theta / 2
 crz_circuit = QuantumCircuit(2)
 crz_circuit.h(0)
 crz_circuit.h(1)
-crz_circuit.crz(-2*theta, 0, 1)
+crz_circuit.crz(-2 * theta, 0, 1)
 crz_circuit.rz(theta, 1)
 crz_circuit.h(0)
 crz_circuit.h(1)
 
 crx_circuit = QuantumCircuit(2)
 crx_circuit.h(0)
-crx_circuit.crx(-2*theta, 0, 1)
+crx_circuit.crx(-2 * theta, 0, 1)
 crx_circuit.rx(theta, 1)
 crx_circuit.h(0)
 
 cry_circuit = QuantumCircuit(2)
 cry_circuit.h(0)
 cry_circuit.s(1)
-cry_circuit.cry(-2*theta, 0, 1)
+cry_circuit.cry(-2 * theta, 0, 1)
 cry_circuit.ry(theta, 1)
 cry_circuit.h(0)
 cry_circuit.sdg(1)
@@ -131,7 +143,7 @@ ecr_circuit.x(1)
 ecr_circuit.ecr(0, 1)
 ecr_circuit.s(0)
 ecr_circuit.h(0)
-ecr_circuit.global_phase -= np.pi/2
+ecr_circuit.global_phase -= np.pi / 2
 
 XXEmbodiments = {
     RXXGate: rxx_circuit,
@@ -146,5 +158,5 @@ XXEmbodiments = {
     CYGate: cy_circuit,
     CZGate: cz_circuit,
     CHGate: ch_circuit,
-    ECRGate: ecr_circuit
+    ECRGate: ecr_circuit,
 }

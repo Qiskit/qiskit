@@ -46,7 +46,7 @@ from qiskit.transpiler.passes import (
     SabreSwap,
     TrivialLayout,
 )
-from qiskit.circuit.library import CXGate, ECRGate, UGate, ZGate
+from qiskit.circuit.library import CXGate, ECRGate, UGate, ZGate, XGate
 from qiskit.circuit import Parameter
 
 
@@ -56,14 +56,19 @@ class TestUnitarySynthesis(QiskitTestCase):
 
     def test_empty_basis_gates(self):
         """Verify when basis_gates is None, we do not synthesize unitaries."""
-        qc = QuantumCircuit(1)
-        qc.unitary([[0, 1], [1, 0]], [0])
+        qc = QuantumCircuit(3)
+        op_1q = Operator(XGate())
+        op_2q = Operator(XGate()) ^ Operator(ZGate())
+        op_3q = Operator(XGate()) ^ Operator(ZGate()) ^ Operator(XGate())
+        qc.unitary(op_1q.data, [0])
+        qc.unitary(op_2q.data, [0, 1])
+        qc.unitary(op_3q.data, [0, 1, 2])
 
         dag = circuit_to_dag(qc)
 
         out = UnitarySynthesis(None).run(dag)
 
-        self.assertEqual(out.count_ops(), {"unitary": 1})
+        self.assertEqual(out.count_ops(), {"unitary": 3})
 
     @data(
         ["u3", "cx"],
@@ -632,7 +637,7 @@ class TestUnitarySynthesis(QiskitTestCase):
             backend=backend,
             optimization_level=opt_level,
             translation_method="synthesis",
-            layout_method="trivial"
+            layout_method="trivial",
         )
         tqc_index = {qubit: index for index, qubit in enumerate(tqc.qubits)}
         self.assertGreaterEqual(len(tqc.get_instructions("cx")), 1)

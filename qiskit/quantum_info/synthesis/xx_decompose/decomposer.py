@@ -81,7 +81,7 @@ class XXDecomposer:
         euler_basis: str = "U",
         embodiments: Optional[dict] = None,
         backup_optimizer: Optional[Callable] = None,
-        basis_fidelity: Union[dict, float, None] = 1.0
+        basis_fidelity: Union[dict, float, None] = 1.0,
     ):
         from qiskit.transpiler.passes.optimization.optimize_1q_decomposition import (
             Optimize1qGatesDecomposition,  # pylint: disable=cyclic-import
@@ -248,9 +248,11 @@ class XXDecomposer:
         }
         circuit = canonical_xx_circuit(best_point, best_sequence, embodiments)
 
-        if (best_sequence == [np.pi / 2, np.pi / 2, np.pi / 2] or 
-            best_sequence == [np.pi / 2, np.pi / 2]) and self.backup_optimizer is not None:
-            pi2_fidelity = 1-strength_to_infidelity[np.pi/2]
+        if (
+            best_sequence == [np.pi / 2, np.pi / 2, np.pi / 2]
+            or best_sequence == [np.pi / 2, np.pi / 2]
+        ) and self.backup_optimizer is not None:
+            pi2_fidelity = 1 - strength_to_infidelity[np.pi / 2]
             return self.backup_optimizer(unitary, basis_fidelity=pi2_fidelity)
 
         # change to positive canonical coordinates
