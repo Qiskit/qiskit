@@ -125,6 +125,8 @@ class TestParametricPulses(QiskitTestCase):
     def test_complex_amp_deprecation(self):
         """Test that deprecation warnings and errors are raised for complex amp,
         and that pulses are equivalent."""
+
+        # Test deprecation warnings and errors:
         with self.assertWarns(PendingDeprecationWarning):
             Gaussian(duration=25, sigma=4, amp=0.5j)
         with self.assertWarns(PendingDeprecationWarning):
@@ -134,7 +136,7 @@ class TestParametricPulses(QiskitTestCase):
         with self.assertRaises(PulseError):
             GaussianSquare(duration=125, sigma=4, amp=0.5j, width=100, angle=0.1)
 
-        #
+        # Test that new and old API pulses are the same:
         gauss_pulse_complex_amp = Gaussian(duration=25, sigma=4, amp=0.5j)
         gauss_pulse_amp_angle = Gaussian(duration=25, sigma=4, amp=0.5, angle=np.pi / 2)
         np.testing.assert_almost_equal(

@@ -50,7 +50,6 @@ as the data amount scales.
 Note that we don't need to write any parameter management logic for each object,
 and thus this parameter framework gives greater scalability to the pulse module.
 """
-import warnings
 from copy import copy
 from typing import List, Dict, Set, Any, Union
 
@@ -232,12 +231,6 @@ class ParameterSetter(NodeVisitor):
                 pval = node._params[name]
                 if isinstance(pval, ParameterExpression):
                     new_val = self._assign_parameter_expression(pval)
-                    if name == "amp" and isinstance(new_val, complex):
-                        warnings.warn(
-                            "Complex amp will be deprecated. "
-                            "Use float amp (for the magnitude) and float angle instead.",
-                            PendingDeprecationWarning,
-                        )
                     node._params[name] = new_val
             node.validate_parameters()
 
