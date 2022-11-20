@@ -50,6 +50,7 @@ class Permutation(Gate):
             .. jupyter-execute::
                 :hide-code:
 
+                from qiskit.circuit.quantumcircuit import QuantumCircuit
                 from qiskit.circuit.library import Permutation
                 import qiskit.tools.jupyter
                 A = [2,4,3,0,1]
@@ -62,6 +63,7 @@ class Permutation(Gate):
             .. jupyter-execute::
                 :hide-code:
 
+                from qiskit.circuit.quantumcircuit import QuantumCircuit
                 from qiskit.circuit.library import Permutation
                 import qiskit.tools.jupyter
                 A = [2,4,3,0,1]
