@@ -431,6 +431,31 @@ class TestCliffordGates(QiskitTestCase):
         with self.assertRaises(QiskitError):
             Clifford(qc)
 
+    def test_from_circuit_with_other_clifford(self):
+        """Test initialization from circuit containing another clifford."""
+        cliff = random_clifford(1, seed=777)
+        qc = QuantumCircuit(1)
+        qc.append(cliff, [0])
+        cliff1 = Clifford(qc)
+        self.assertEqual(cliff, cliff1)
+
+    def test_from_circuit_with_multiple_cliffords(self):
+        """Test initialization from circuit containing multiple clifford."""
+        cliff1 = random_clifford(2, seed=777)
+        cliff2 = random_clifford(2, seed=999)
+
+        # Append the two cliffords to circuit and create the clifford from this circuit
+        qc1 = QuantumCircuit(3)
+        qc1.append(cliff1, [0, 1])
+        qc1.append(cliff2, [1, 2])
+        expected_cliff1 = Clifford(qc1)
+
+        # Compose the two cliffords directly
+        qc2 = QuantumCircuit(3)
+        expected_cliff2 = Clifford(qc2)
+        expected_cliff2 = Clifford.compose(expected_cliff2, cliff1, qargs=[0, 1], front=False)
+        expected_cliff2 = Clifford.compose(expected_cliff2, cliff2, qargs=[1, 2], front=False)
+        self.assertEqual(expected_cliff1, expected_cliff2)
 
 
 @ddt
