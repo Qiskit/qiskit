@@ -102,3 +102,4 @@ class Permutation(Gate):
     def pattern(self):
         """Returns the permutation pattern defining this permutation."""
         return self.params[0]
+
