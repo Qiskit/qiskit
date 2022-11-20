@@ -702,7 +702,6 @@ class TestUnitarySynthesis(QiskitTestCase):
             translation_method="synthesis",
             layout_method="trivial",
         )
-        print(tqc)
         tqc_index = {qubit: index for index, qubit in enumerate(tqc.qubits)}
         self.assertGreaterEqual(len(tqc.get_instructions("ecr")), 1)
         for instr in tqc.get_instructions("ecr"):

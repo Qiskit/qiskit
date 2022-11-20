@@ -157,18 +157,30 @@ def _error(circuit, target=None, qubits=None):
 
 
 def _preferred_direction(decomposer2q, qubits, natural_direction,
-                         coupling_map, gate_lengths, gate_errors):
+                         coupling_map=None, gate_lengths=None, gate_errors=None):
     """
-    A `decomposer2q` synthesizes an su4 over `qubits` in some direction.
-    A user sets `natural_direction` to indicate whether they prefer synthesis
-    in a hardware-native direction. If yes and synthesis is in the opposite
-    direction, we want the gates in the su4 synthesis to also be in the opposite
-    direction so that when substituted, the direction matches the hardware.
+    `decomposer2q` decomposes an SU(4) over `qubits`. A user sets `natural_direction`
+    to indicate whether they prefer synthesis in a hardware-native direction.
+    If yes, we return the `preferred_direction` here. If no hardware direction is
+    preferred, we raise an error (unless natural_direction is None).
+    We infer this from `coupling_map`, `gate_lengths`, `gate_errors`.
 
-    This is currently implemented for supercontrolled decomposers.
+    We infer the hardware-native direction from `coupling_map`,
+    `gate_lengths` and `gate_errors`.
+
+    Returns [0, 1] if qubits are correct in the hardware-native direction.
+    Returns [1, 0] if qubits must be flipped to match hardware-native direction.
     """
+    if isinstance(decomposer2q, TwoQubitBasisDecomposer):
+        gate_name = getattr(decomposer2q, "gate_name", decomposer2q.gate.name)
+    elif isinstance(decomposer2q, XXDecomposer):
+        embodiment_circuit = next(iter(decomposer2q.embodiments.items()))[1]
+        for instruction in embodiment_circuit:
+            if len(instruction.qubits) == 2:
+                gate_name = instruction.operation.name
+                break
     preferred_direction = None
-    if natural_direction in {None, True} and isinstance(decomposer2q, TwoQubitBasisDecomposer):
+    if natural_direction in {None, True}:
         # find native gate directions from a (non-bidirectional) coupling map
         if coupling_map is not None:
             neighbors0 = coupling_map.neighbors(qubits[0])
@@ -179,19 +191,23 @@ def _preferred_direction(decomposer2q, qubits, natural_direction,
                 preferred_direction = [0, 1]
             if one_zero and not zero_one:
                 preferred_direction = [1, 0]
-        # otherwise infer natural directions from gate durations
-        if preferred_direction is None and (gate_lengths and gate_errors):
-            len_0_1 = inf
-            len_1_0 = inf
-            gate_name = getattr(decomposer2q, "gate_name", decomposer2q.gate.name)
-            twoq_gate_lengths = gate_lengths.get(gate_name)
-            if twoq_gate_lengths:
-                len_0_1 = twoq_gate_lengths.get((qubits[0], qubits[1]), inf)
-                len_1_0 = twoq_gate_lengths.get((qubits[1], qubits[0]), inf)
-            if len_0_1 < len_1_0:
+        # otherwise infer natural directions from gate durations or gate errors
+        if preferred_direction is None and (gate_lengths or gate_errors):
+            cost_0_1 = inf
+            cost_1_0 = inf
+            if gate_lengths:
+                twoq_gate_lengths = gate_lengths.get(gate_name)
+                cost_0_1 = twoq_gate_lengths.get((qubits[0], qubits[1]), inf)
+                cost_1_0 = twoq_gate_lengths.get((qubits[1], qubits[0]), inf)
+            elif gate_errors:
+                twoq_gate_errors = gate_errors.get(gate_name)
+                cost_0_1 = twoq_gate_errors.get((qubits[0], qubits[1]), inf)
+                cost_1_0 = twoq_gate_errors.get((qubits[1], qubits[0]), inf)
+            if cost_0_1 < cost_1_0:
                 preferred_direction = [0, 1]
-            elif len_1_0 < len_0_1:
+            elif cost_1_0 < cost_0_1:
                 preferred_direction = [1, 0]
+
     if natural_direction is True and preferred_direction is None:
         raise TranspilerError(
         f"No preferred direction of gate on qubits {qubits} "
@@ -412,7 +428,6 @@ class UnitarySynthesis(TransformationPass):
                     [dag_bit_indices[x] for x in node.qargs],
                 )
             synth_dag = method.run(unitary, **kwargs)
-            wires = [dag.qubits.index(q) for q in node.qargs]
             if synth_dag is not None:
                 dag.substitute_node_with_dag(node, synth_dag)
         return dag
@@ -514,7 +529,6 @@ class DefaultUnitarySynthesis(plugin.UnitarySynthesisPlugin):
             return self._decomposer_cache[qubits_tuple]
 
         # available instructions on this qubit pair, and their associated property.
-        # prefer same direction if exists, otherwise consider reverse direction too.
         available_2q_basis = {}
         available_2q_props = {}
         try:
@@ -542,6 +556,7 @@ class DefaultUnitarySynthesis(plugin.UnitarySynthesisPlugin):
         available_1q_basis = _find_matching_euler_bases(target, qubits_tuple[0])
 
         # find all decomposers
+        # TODO: reduce number of decomposers here somehow
         decomposers = []
 
         def is_supercontrolled(gate):
@@ -551,6 +566,7 @@ class DefaultUnitarySynthesis(plugin.UnitarySynthesisPlugin):
             coords = TwoQubitWeylDecomposition(Operator(gate).data)
             return isclose(coords.b, 0.0) and isclose(coords.c, 0.0)
 
+        # possible supercontrolled decomposers (i.e. TwoQubitBasisDecomposer)
         supercontrolled_basis = {k: v for k, v in available_2q_basis.items() if is_supercontrolled(v)}
         for basis_1q, basis_2q in product(available_1q_basis, supercontrolled_basis.keys()):
             basis_2q_fidelity = 1 - getattr(available_2q_props[basis_2q], "error", 0.0)
@@ -560,11 +576,11 @@ class DefaultUnitarySynthesis(plugin.UnitarySynthesisPlugin):
             )
             decomposers.append(decomposer)
 
+        # possible controlled decomposers (i.e. XXDecomposer)
         controlled_basis = {k: v for k, v in available_2q_basis.items() if is_controlled(v)}
         basis_2q_fidelity = {}
         embodiments = {}
         pi2_basis = None
-        # TODO: reduce number of decomposers here somehow
         for k, v in controlled_basis.items():
             strength = 2 * TwoQubitWeylDecomposition(Operator(v).data).a  # pi/2: fully entangling
             # each strength has its own fidelity
@@ -578,7 +594,6 @@ class DefaultUnitarySynthesis(plugin.UnitarySynthesisPlugin):
             # basis equivalent to CX are well optimized so use for the pi/2 angle if available
             if isclose(strength, pi/2) and k in supercontrolled_basis:
                 pi2_basis = v
-
         for basis_1q in available_1q_basis:
             if isinstance(pi2_basis, CXGate) and basis_1q=='ZSX':
                 pi2_decomposer = TwoQubitBasisDecomposer(
@@ -661,8 +676,6 @@ class DefaultUnitarySynthesis(plugin.UnitarySynthesisPlugin):
         approximation_degree,
         target
     ):
-        print(decomposer2q)
-        print(preferred_direction)
         synth_direction = None
         # FIXME: no approximation right now. Need both decomposers to
         # expose a approximate=True/False or a basis_fidelity float or something.
