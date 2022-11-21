@@ -111,8 +111,9 @@ def score_layout(
         size = 0
     nlayout = NLayout(layout_mapping, size + 1, size + 1)
     bit_list = np.zeros(len(im_graph), dtype=np.int32)
-    for node_index in bit_map.values():
-        bit_list[node_index] = sum(im_graph[node_index].values())
+    if strict_direction:
+        for node_index in bit_map.values():
+            bit_list[node_index] = sum(im_graph[node_index].values())
     edge_list = {
         (edge[0], edge[1]): sum(edge[2].values()) for edge in im_graph.edge_index_map().values()
     }
@@ -175,7 +176,12 @@ def build_average_error_map(target, properties, coupling_map):
                 continue
             avg_map.add_error(qargs, statistics.mean(v))
             built = True
-    elif coupling_map is not None:
+    # if there are no error rates in the target we should fallback to using the degree heuristic
+    # used for a coupling map. To do this we can build the coupling map from the target before
+    # running the fallback heuristic
+    if not built and target is not None and coupling_map is None:
+        coupling_map = target.build_coupling_map()
+    if not built and coupling_map is not None:
         for qubit in range(num_qubits):
             avg_map.add_error(
                 (qubit, qubit),
@@ -215,10 +221,17 @@ def map_free_qubits(
     """Add any free nodes to a layout."""
     if not free_nodes:
         return partial_layout
-    free_qubits = sorted(
-        set(range(num_physical_qubits)) - partial_layout.get_physical_bits().keys(),
-        key=lambda bit: avg_error_map.get((bit,), 1.0),
-    )
+    if avg_error_map is not None:
+        free_qubits = sorted(
+            set(range(num_physical_qubits)) - partial_layout.get_physical_bits().keys(),
+            key=lambda bit: avg_error_map.get((bit, bit), 1.0),
+        )
+    # If no error map is available this means there is no scoring heuristic available for this
+    # backend and we can just randomly pick a free qubit
+    else:
+        free_qubits = list(
+            set(range(num_physical_qubits)) - partial_layout.get_physical_bits().keys()
+        )
     for im_index in sorted(free_nodes, key=lambda x: sum(free_nodes[x].values())):
         selected_qubit = free_qubits.pop(0)
         partial_layout.add(reverse_bit_map[im_index], selected_qubit)

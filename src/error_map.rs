@@ -90,6 +90,16 @@ impl ErrorMap {
     fn __contains__(&self, key: [usize; 2]) -> PyResult<bool> {
         Ok(self.error_map.contains_key(&key))
     }
+
+    fn get(&self, py: Python, key: [usize; 2], default: Option<PyObject>) -> PyObject {
+        match self.error_map.get(&key).copied() {
+            Some(val) => val.to_object(py),
+            None => match default {
+                Some(val) => val,
+                None => py.None(),
+            },
+        }
+    }
 }
 
 #[pymodule]
