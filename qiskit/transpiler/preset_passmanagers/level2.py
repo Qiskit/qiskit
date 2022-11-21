@@ -115,7 +115,7 @@ def level_2_pass_manager(pass_manager_config: PassManagerConfig) -> StagedPassMa
         else VF2Layout(
             coupling_map,
             seed=seed_transpiler,
-            call_limit=int(5e6),  # Set call limit to ~10 sec with retworkx 0.10.2
+            call_limit=int(5e6),  # Set call limit to ~10 sec with rustworkx 0.10.2
             properties=backend_properties,
             target=target,
         )
@@ -152,7 +152,7 @@ def level_2_pass_manager(pass_manager_config: PassManagerConfig) -> StagedPassMa
         return (not property_set["depth_fixed_point"]) or (not property_set["size_fixed_point"])
 
     _opt = [
-        Optimize1qGatesDecomposition(basis_gates),
+        Optimize1qGatesDecomposition(basis=basis_gates, target=target),
         CommutativeCancellation(basis_gates=basis_gates),
     ]
 
