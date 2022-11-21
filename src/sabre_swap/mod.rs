@@ -30,10 +30,10 @@ use rand::prelude::SliceRandom;
 use rand::prelude::*;
 use rand_pcg::Pcg64Mcg;
 use rayon::prelude::*;
-use retworkx_core::dictmap::*;
-use retworkx_core::petgraph::prelude::*;
-use retworkx_core::petgraph::visit::EdgeRef;
-use retworkx_core::shortest_path::dijkstra;
+use rustworkx_core::dictmap::*;
+use rustworkx_core::petgraph::prelude::*;
+use rustworkx_core::petgraph::visit::EdgeRef;
+use rustworkx_core::shortest_path::dijkstra;
 
 use crate::getenv_use_multiple_threads;
 use crate::nlayout::NLayout;
@@ -42,6 +42,8 @@ use layer::{ExtendedSet, FrontLayer};
 use neighbor_table::NeighborTable;
 use sabre_dag::SabreDAG;
 use swap_map::SwapMap;
+
+const BEST_EPSILON: f64 = 1e-10; // Epsilon used in minimum-score calculations.
 
 const EXTENDED_SET_SIZE: usize = 20; // Size of lookahead window.
 const DECAY_RATE: f64 = 0.001; // Decay coefficient for penalizing serial swaps.
@@ -150,14 +152,17 @@ pub fn build_swap_map(
     neighbor_table: &NeighborTable,
     distance_matrix: PyReadonlyArray2<f64>,
     heuristic: &Heuristic,
-    seed: u64,
+    seed: Option<u64>,
     layout: &mut NLayout,
     num_trials: usize,
 ) -> (SwapMap, PyObject) {
     let run_in_parallel = getenv_use_multiple_threads() && num_trials > 1;
     let dist = distance_matrix.as_array();
     let coupling_graph: DiGraph<(), ()> = cmap_from_neighor_table(neighbor_table);
-    let outer_rng = Pcg64Mcg::seed_from_u64(seed);
+    let outer_rng = match seed {
+        Some(seed) => Pcg64Mcg::seed_from_u64(seed),
+        None => Pcg64Mcg::from_entropy(),
+    };
     let seed_vec: Vec<u64> = outer_rng
         .sample_iter(&rand::distributions::Standard)
         .take(num_trials)
@@ -522,11 +527,11 @@ fn choose_best_swap(
                         + EXTENDED_SET_WEIGHT * extended_set.score(swap, layout, dist))
             }
         };
-        if score < min_score {
+        if score < min_score - BEST_EPSILON {
             min_score = score;
             best_swaps.clear();
             best_swaps.push(swap);
-        } else if score == min_score {
+        } else if (score - min_score).abs() < BEST_EPSILON {
             best_swaps.push(swap);
         }
     }
