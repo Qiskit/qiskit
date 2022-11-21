@@ -1,7 +1,12 @@
 ---
 features:
   - |
-    The pulses in the Symbolic Pulse Library were converted from a complex amplitude representation, to an (amp,angle)
+    The pulses in the Qiskit Pulse library
+      * :class:`~qiskit.pulse.library.Gaussian` 
+      * :class:`~qiskit.pulse.library.GaussianSquare`
+      * :class:`~qiskit.pulse.library.Drag`
+      * :class:`~qiskit.pulse.library.Constant` 
+    can be initialized with new parameter angle. 
     representation (both floats). For example, instead of calling `pulse.Gaussian(duration=100,sigma=20,amp=0.5j)` one
     should use `pulse.Gaussian(duration=100,sigma=20,amp=0.5,angle=np.pi/2)`. The pulse envelope which used to be
     defined as `amp * ...` is in turn defined as `amp * exp(1j * angle) * ...`. This change aims to better support
