@@ -100,6 +100,14 @@ There is a circuit payload for each circuit (where the total number is dictated
 by ``num_circuits`` in the file header). There is no padding between the
 circuits in the data.
 
+.. _qpy_version_6:
+
+Version 6
+=========
+In Version 6, the symbolic library pulses changed from complex `amp` representation to float (`amp`
+,`angle`) representation. To accommodate this change, when a QPY file of version 5 or lower is loaded,
+these library pulses are converted to the new format.
+
 .. _qpy_version_5:
 
 Version 5

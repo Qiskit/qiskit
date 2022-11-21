@@ -666,7 +666,7 @@ class Gaussian(metaclass=_PulseType):
         envelope_expr = _amp * _lifted_gaussian(_t, _center, _duration + 1, _sigma)
         # To conform with some old tests, the angle part is inserted only when needed.
         if angle != 0:
-            envelope_expr *= sym.exp(1j * _angle)
+            envelope_expr *= sym.exp(sym.I * _angle)
 
         consts_expr = _sigma > 0
         valid_amp_conditions_expr = sym.Abs(_amp) <= 1.0
@@ -806,7 +806,7 @@ class GaussianSquare(metaclass=_PulseType):
         )
         # To conform with some old tests, the angle part is inserted only when needed.
         if angle != 0:
-            envelope_expr *= sym.exp(1j * _angle)
+            envelope_expr *= sym.exp(sym.I * _angle)
         consts_expr = sym.And(_sigma > 0, _width >= 0, _duration >= _width)
         valid_amp_conditions_expr = sym.Abs(_amp) <= 1.0
 
@@ -923,7 +923,7 @@ class Drag(metaclass=_PulseType):
         envelope_expr = _amp * (_gauss + sym.I * _beta * _deriv)
         # To conform with some old tests, the angle part is inserted only when needed.
         if angle != 0:
-            envelope_expr *= sym.exp(1j * _angle)
+            envelope_expr *= sym.exp(sym.I * _angle)
 
         consts_expr = _sigma > 0
         valid_amp_conditions_expr = sym.And(sym.Abs(_amp) <= 1.0, sym.Abs(_beta) < _sigma)
@@ -1008,7 +1008,7 @@ class Constant(metaclass=_PulseType):
         envelope_expr = _amp * sym.Piecewise((1, sym.And(_t >= 0, _t <= _duration)), (0, True))
         # To conform with some old tests, the angle part is inserted only when needed.
         if angle != 0:
-            envelope_expr *= sym.exp(1j * _angle)
+            envelope_expr *= sym.exp(sym.I * _angle)
         valid_amp_conditions_expr = sym.Abs(_amp) <= 1.0
 
         instance = SymbolicPulse(

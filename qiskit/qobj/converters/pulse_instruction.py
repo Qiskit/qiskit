@@ -427,6 +427,7 @@ class InstructionToQobjConverter:
         """
         if isinstance(instruction.pulse, (library.ParametricPulse, library.SymbolicPulse)):
             params = dict(instruction.pulse.parameters)
+            # IBM backends expect "amp" to be the complex amplitude
             if "amp" in params and "angle" in params:
                 params["amp"] = complex(params["amp"] * np.exp(1j * params["angle"]))
                 del params["angle"]

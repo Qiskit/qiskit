@@ -76,7 +76,7 @@ def _loads_symbolic_expr(expr_bytes):
     return expr
 
 
-def _read_symbolic_pulse_v5(file_obj, version):
+def _format_legacy_qiskit_pulse_v5(pulse_type, envelope, parameters):
     # In the transition to Qiskit Terra > 0.22, the representation of library pulses was changed from
     # complex "amp" to float "amp" and "angle". To reflect this, QPY version was bumped to 6. The
     # existing library pulses in QPY<=5 are handled here separately to conform with the new
@@ -86,22 +86,6 @@ def _read_symbolic_pulse_v5(file_obj, version):
     # List of pulses in the library in QPY version 5 and below:
     v5_library_pulses = ["Gaussian", "GaussianSquare", "Drag", "Constant"]
 
-    header = formats.SYMBOLIC_PULSE._make(
-        struct.unpack(
-            formats.SYMBOLIC_PULSE_PACK,
-            file_obj.read(formats.SYMBOLIC_PULSE_SIZE),
-        )
-    )
-    pulse_type = file_obj.read(header.type_size).decode(common.ENCODE)
-    envelope = _loads_symbolic_expr(file_obj.read(header.envelope_size))
-    constraints = _loads_symbolic_expr(file_obj.read(header.constraints_size))
-    valid_amp_conditions = _loads_symbolic_expr(file_obj.read(header.valid_amp_conditions_size))
-    parameters = common.read_mapping(
-        file_obj,
-        deserializer=value.loads_value,
-        version=version,
-        vectors={},
-    )
     if pulse_type in v5_library_pulses:
         if isinstance(
             parameters["amp"], complex
@@ -109,25 +93,10 @@ def _read_symbolic_pulse_v5(file_obj, version):
             parameters["angle"] = np.angle(parameters["amp"])
             parameters["amp"] = np.abs(parameters["amp"])
             _amp, _angle = sym.symbols("amp, angle")
-            envelope = envelope.subs(_amp, _amp * sym.exp(1j * _angle))
-            constraints = constraints.subs(_amp, _amp * sym.exp(1j * _angle))
-            valid_amp_conditions = valid_amp_conditions.subs(_amp, _amp * sym.exp(1j * _angle))
+            envelope = envelope.subs(_amp, _amp * sym.exp(sym.I * _angle))
         else:
             parameters["angle"] = 0
-
-    duration = value.read_value(file_obj, version, {})
-    name = value.read_value(file_obj, version, {})
-
-    return library.SymbolicPulse(
-        pulse_type=pulse_type,
-        duration=duration,
-        parameters=parameters,
-        name=name,
-        limit_amplitude=header.amp_limited,
-        envelope=envelope,
-        constraints=constraints,
-        valid_amp_conditions=valid_amp_conditions,
-    )
+    return envelope
 
 
 def _read_symbolic_pulse(file_obj, version):
@@ -147,6 +116,8 @@ def _read_symbolic_pulse(file_obj, version):
         version=version,
         vectors={},
     )
+    if version <= 5:
+        envelope = _format_legacy_qiskit_pulse_v5(pulse_type, envelope, parameters)
 
     duration = value.read_value(file_obj, version, {})
     name = value.read_value(file_obj, version, {})
@@ -184,10 +155,7 @@ def _loads_operand(type_key, data_bytes, version):
     if type_key == type_keys.ScheduleOperand.WAVEFORM:
         return common.data_from_binary(data_bytes, _read_waveform, version=version)
     if type_key == type_keys.ScheduleOperand.SYMBOLIC_PULSE:
-        if version <= 5:
-            return common.data_from_binary(data_bytes, _read_symbolic_pulse_v5, version=version)
-        else:
-            return common.data_from_binary(data_bytes, _read_symbolic_pulse, version=version)
+        return common.data_from_binary(data_bytes, _read_symbolic_pulse, version=version)
     if type_key == type_keys.ScheduleOperand.CHANNEL:
         return common.data_from_binary(data_bytes, _read_channel, version=version)
 
