@@ -34,7 +34,7 @@ from qiskit.providers.fake_provider import FakeNairobi, FakeNairobiV2
 from qiskit.quantum_info.operators import SparsePauliOp
 from qiskit.quantum_info.operators.symplectic.pauli import Pauli
 from qiskit.quantum_info.operators.symplectic.pauli_list import PauliList
-from qiskit.result import Counts, Result
+from qiskit.result import Counts
 from qiskit.transpiler import Layout, PassManager
 from qiskit.transpiler.passes import ApplyLayout, SetLayout
 from qiskit.test import QiskitTestCase
@@ -116,77 +116,6 @@ def measurement_circuit_examples() -> Iterator[tuple[list[str], QuantumCircuit]]
     IXII.h(2)
     IXII.measure(2, 0)
     yield ["IXII", "IIII"], IXII
-
-
-def circuit_composition_examples() -> Iterator[
-    tuple[QuantumCircuit, QuantumCircuit, QuantumCircuit]
-]:
-    """Generator of base and measurement circuits, and respective composition.
-
-    Yields:
-        - Transpiled base circuit: with a `final_layout` entry in its metadata
-        - Measurement circuit: before transpilation (i.e. no layout applied)
-        - Transpiled measurement circuit: with `final_layout` applied
-    """
-    target_qubits = 2
-    layout_intlist = (0,)
-    measured_qubits = (0,)
-    yield build_composition_data(target_qubits, layout_intlist, measured_qubits)
-
-    target_qubits = 2
-    layout_intlist = (1,)
-    measured_qubits = (0,)
-    yield build_composition_data(target_qubits, layout_intlist, measured_qubits)
-
-    target_qubits = 2
-    layout_intlist = (1, 0)
-    measured_qubits = (1,)
-    yield build_composition_data(target_qubits, layout_intlist, measured_qubits)
-
-    target_qubits = 2
-    layout_intlist = (1, 0)
-    measured_qubits = (0, 1)
-    yield build_composition_data(target_qubits, layout_intlist, measured_qubits)
-
-    target_qubits = 3
-    layout_intlist = (2,)
-    measured_qubits = (0,)
-    yield build_composition_data(target_qubits, layout_intlist, measured_qubits)
-
-    target_qubits = 3
-    layout_intlist = (2, 0)
-    measured_qubits = (0, 1)
-    yield build_composition_data(target_qubits, layout_intlist, measured_qubits)
-
-    target_qubits = 3
-    layout_intlist = (1, 2)
-    measured_qubits = (1,)
-    yield build_composition_data(target_qubits, layout_intlist, measured_qubits)
-
-    target_qubits = 3
-    layout_intlist = (1, 0, 2)
-    measured_qubits = (1, 2)
-    yield build_composition_data(target_qubits, layout_intlist, measured_qubits)
-
-    target_qubits = 4
-    layout_intlist = (0, 1, 2)
-    measured_qubits = (0, 1)
-    yield build_composition_data(target_qubits, layout_intlist, measured_qubits)
-
-    target_qubits = 4
-    layout_intlist = (1, 0, 3)
-    measured_qubits = (1, 2)
-    yield build_composition_data(target_qubits, layout_intlist, measured_qubits)
-
-    target_qubits = 4
-    layout_intlist = (2, 1, 3, 0)
-    measured_qubits = (0, 1, 2)
-    yield build_composition_data(target_qubits, layout_intlist, measured_qubits)
-
-    target_qubits = 4
-    layout_intlist = (0, 2, 1, 3)
-    measured_qubits = (0, 1, 2, 3)
-    yield build_composition_data(target_qubits, layout_intlist, measured_qubits)
 
 
 def build_composition_data(
@@ -369,7 +298,20 @@ class TestMeasurement(QiskitTestCase):
 class TestComposition(QiskitTestCase):
     """Test composition logic."""
 
-    @data(*circuit_composition_examples())
+    @data(
+        build_composition_data(2, (0,), (0,)),
+        build_composition_data(2, (1,), (0,)),
+        build_composition_data(2, (1, 0), (1,)),
+        build_composition_data(2, (1, 0), (0, 1)),
+        build_composition_data(3, (2,), (0,)),
+        build_composition_data(3, (2, 0), (0, 1)),
+        build_composition_data(3, (1, 2), (1,)),
+        build_composition_data(3, (1, 0, 2), (1, 2)),
+        build_composition_data(4, (0, 1, 2), (0, 1)),
+        build_composition_data(4, (1, 0, 3), (1, 2)),
+        build_composition_data(4, (2, 1, 3, 0), (0, 1, 2)),
+        build_composition_data(4, (0, 2, 1, 3), (0, 1, 2, 3)),
+    )
     @unpack
     def test_compose_single_measurement(self, transpiled_base, measurement, transpiled_measurement):
         """Test coposition of single base circuit and measurement pair."""
