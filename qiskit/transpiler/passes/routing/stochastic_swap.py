@@ -26,6 +26,7 @@ from qiskit.circuit.library.standard_gates import SwapGate
 from qiskit.transpiler.layout import Layout
 from qiskit.circuit import IfElseOp, WhileLoopOp, ForLoopOp, ControlFlowOp, Instruction
 from qiskit._accelerate import stochastic_swap as stochastic_swap_rs
+from qiskit._accelerate import nlayout
 
 from .utils import get_swap_map_dag
 
@@ -191,7 +192,7 @@ class StochasticSwap(TransformationPass):
         )
 
         layout_mapping = {self._qubit_to_int[k]: v for k, v in layout.get_virtual_bits().items()}
-        int_layout = stochastic_swap_rs.NLayout(layout_mapping, num_qubits, coupling.size())
+        int_layout = nlayout.NLayout(layout_mapping, num_qubits, coupling.size())
 
         trial_circuit = DAGCircuit()  # SWAP circuit for slice of swaps in this trial
         trial_circuit.add_qubits(layout.get_virtual_bits())

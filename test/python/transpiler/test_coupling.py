@@ -442,6 +442,12 @@ class CouplingTest(QiskitTestCase):
         expected = [(0, 1), (1, 2), (2, 3)]
         self.assertEqual(expected, edge_list, f"{edge_list} does not match {expected}")
 
+    def test_implements_iter(self):
+        """Test that the object is implicitly iterable."""
+        coupling = CouplingMap.from_line(3)
+        expected = [(0, 1), (1, 0), (1, 2), (2, 1)]
+        self.assertEqual(sorted(coupling), expected)
+
 
 class CouplingVisualizationTest(QiskitVisualizationTestCase):
     @unittest.skipUnless(optionals.HAS_GRAPHVIZ, "Graphviz not installed")

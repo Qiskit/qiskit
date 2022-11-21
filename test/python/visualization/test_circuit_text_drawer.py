@@ -1874,13 +1874,13 @@ class TestTextDrawerParams(QiskitTestCase):
     def test_text_utf8(self):
         """Test that utf8 characters work in windows CI env."""
         # fmt: off
-        expected = "\n".join(["   ┌─────────┐",
-                              "q: ┤ U2(φ,λ) ├",
-                              "   └─────────┘"])
+        expected = "\n".join(["   ┌──────────┐",
+                              "q: ┤ U(0,φ,λ) ├",
+                              "   └──────────┘"])
         # fmt: on
         phi, lam = Parameter("φ"), Parameter("λ")
         circuit = QuantumCircuit(1)
-        circuit.u2(phi, lam, 0)
+        circuit.u(0, phi, lam, 0)
         self.assertEqual(circuit.draw(output="text").single_string(), expected)
 
 
