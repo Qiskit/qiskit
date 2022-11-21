@@ -156,6 +156,7 @@ def level_1_pass_manager(pass_manager_config: PassManagerConfig) -> StagedPassMa
             layout_trials=5,
             skip_routing=pass_manager_config.routing_method is not None
             and routing_method != "sabre",
+            vf2_call_limit=int(5e4),
         )
     elif layout_method is None:
         _improve_layout = common.if_has_control_flow_else(
@@ -168,6 +169,7 @@ def level_1_pass_manager(pass_manager_config: PassManagerConfig) -> StagedPassMa
                 layout_trials=5,
                 skip_routing=pass_manager_config.routing_method is not None
                 and routing_method != "sabre",
+                vf2_call_limit=int(5e4),
             ),
         ).to_flow_controller()
 
