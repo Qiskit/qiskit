@@ -123,7 +123,7 @@ class VQD(VariationalAlgorithm, Eigensolver):
         *,
         k: int = 2,
         betas: Sequence[float] | None = None,
-        initial_point: Sequence[float] | Sequence[Sequence[float]] | None,
+        initial_point: Sequence[float] | Sequence[Sequence[float]] | None = None,
         callback: Callable[[int, np.ndarray, float, dict[str, Any]], None] | None = None,
     ) -> None:
         """
