@@ -1522,8 +1522,11 @@ class QuantumCircuit:
         to decompose one level (shallow decompose).
 
         Args:
-            gates_to_decompose (str or list(str)): optional subset of gates to decompose.
-                Defaults to all gates in circuit.
+            gates_to_decompose (type or str or list(type, str)): Optional subset of gates
+                to decompose. Can be a gate type, such as ``HGate``, or a gate name, such
+                as 'h', or a gate label, such as 'My H Gate', or a list of any combination
+                of these. If a gate name is entered, it will decompose all gates with that
+                name, whether the gates have labels or not. Defaults to all gates in circuit.
             reps (int): Optional number of times the circuit should be decomposed.
                 For instance, ``reps=2`` equals calling ``circuit.decompose().decompose()``.
                 can decompose specific gates specific time
