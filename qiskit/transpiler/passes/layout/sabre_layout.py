@@ -16,7 +16,7 @@
 import copy
 import logging
 import numpy as np
-import retworkx
+import rustworkx as rx
 
 from qiskit.converters import dag_to_circuit
 from qiskit.transpiler.passes.layout.set_layout import SetLayout
@@ -133,7 +133,7 @@ class SabreLayout(TransformationPass):
                 # constraints
                 self.coupling_map = copy.deepcopy(self.coupling_map)
                 self.coupling_map.make_symmetric()
-            self._neighbor_table = NeighborTable(retworkx.adjacency_matrix(self.coupling_map.graph))
+            self._neighbor_table = NeighborTable(rx.adjacency_matrix(self.coupling_map.graph))
 
         if routing_pass is not None and (swap_trials is not None or layout_trials is not None):
             raise TranspilerError("Both routing_pass and swap_trials can't be set at the same time")
