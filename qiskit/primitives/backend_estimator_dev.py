@@ -90,6 +90,9 @@ class BackendEstimator(BaseEstimator):
         )
         self._transpile_options = Options()
 
+    def __getnewargs__(self):
+        return (self._backend,)
+
     ################################################################################
     ## PROPERTIES
     ################################################################################
