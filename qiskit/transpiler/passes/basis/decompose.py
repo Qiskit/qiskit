@@ -123,8 +123,8 @@ class Decompose(TransformationPass):
             node.op.label in gates or any(fnmatch(node.op.label, p) for p in strings_list)
         ):
             return True
-        elif (  # check if name or name wildcard is given
-            node.name in gates or any(fnmatch(node.name, p) for p in strings_list)
+        elif node.name in gates or any(  # check if name or name wildcard is given
+            fnmatch(node.name, p) for p in strings_list
         ):
             return True
         elif any(isinstance(node.op, op) for op in gate_type_list):  # check if Gate type given
