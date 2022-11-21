@@ -427,7 +427,7 @@ class InstructionToQobjConverter:
         """
         if isinstance(instruction.pulse, (library.ParametricPulse, library.SymbolicPulse)):
             params = dict(instruction.pulse.parameters)
-            if "amp" in instruction.pulse.parameters and "angle" in instruction.pulse.parameters:
+            if "amp" in params and "angle" in params:
                 params["amp"] = complex(params["amp"] * np.exp(1j * params["angle"]))
                 del params["angle"]
 
