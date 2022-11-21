@@ -196,9 +196,9 @@ def build_composition_data(
     """Build base and measurement circuits, and respective composition.
 
     Args:
-        - target_qubits: the number of qubits to target during transpilation
-        - layout_intlist: indices to map virtual qubits to during transpilaiton
-        - measured_qubits: virtual qubits to measure
+        target_qubits: the number of qubits to target during transpilation
+        layout_intlist: indices to map virtual qubits to during transpilaiton
+        measured_qubits: virtual qubits to measure
 
     Returns:
         - Transpiled base circuit: with a `final_layout` entry in its metadata
