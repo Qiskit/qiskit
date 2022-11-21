@@ -54,14 +54,18 @@ class PermRowCol:
             cols = self._return_columns(qubit_alloc)
             column = self.choose_column(parity_mat, cols, row)
             nodes = self._get_nodes(parity_mat, column)
-            for edge in self.eliminate_column(parity_mat, row, column, nodes):
+            for edge in self._eliminate_column(parity_mat, row, column, nodes):
                 circuit.cx(edge[0], edge[1])
 
-            circuit = self._matrix_edit(parity_mat, column, row, circuit)
+            if sum(parity_mat[row]) > 1:
+                nodes = self._get_nodes_for_eliminate_row(parity_mat, column, row)
+
+                for edge in self._eliminate_row(parity_mat, row, nodes):
+                    circuit.cx(edge[1], edge[0])  # Adds a CNOT to the circuit
 
             qubit_alloc[column] = row
 
-            self._reduce_graph(column)
+            self._reduce_graph(row)
 
         if len(qubit_alloc) != 0:
             qubit_alloc[qubit_alloc.index(-1)] = self._graph.node_indexes()[0]
@@ -196,41 +200,36 @@ class PermRowCol:
 
         return C
 
-    def _matrix_edit(
-        self, parity_mat: np.ndarray, chosen_column: int, chosen_row: int, circuit: QuantumCircuit
-    ) -> QuantumCircuit:
-        """Checks if the sum of the chosen row is bigger than one. If the sum is bigger than one, the function performs row elimination.
+    def _get_nodes_for_eliminate_row(
+        self, parity_mat: np.ndarray, chosen_column: int, chosen_row: int
+    ) -> list:
+
+        """Find terminals for steiner_tree in eliminate_row method as a list of rows making linear combination of row chosen_row
 
         Args:
             parity_mat (np.ndarray): parity matrix representing a circuit
             chosen_column (int): index of the column to be eliminated
             chosen_row (int): index of the row to be eliminated
-            circuit (QuantumCircuit): quantum circuit to be synthesized
 
 
         Returns:
-            QuantumCircuit: quantum circuit with chosen row eliminated.
+            List: list of terminals for steiner_tree in eliminate_row method.
 
         """
 
-        if sum(parity_mat[chosen_row]) > 1:
+        A = np.delete(np.delete(parity_mat.copy(), chosen_row, 0), chosen_column, 1).astype(
+            int
+        )  # Parity_mat without chosen_column and chosen_row
+        B = np.delete(parity_mat[chosen_row], chosen_column)  # Chosen_row without chosen_column
 
-            A = np.delete(np.delete(parity_mat.copy(), chosen_row, 0), chosen_column, 1).astype(
-                int
-            )  # Parity_mat without chosen_column and chosen_row
-            B = np.delete(parity_mat[chosen_row], chosen_column)  # Chosen_row without chosen_column
+        inv_A = LinearFunction(
+            LinearFunction(A).synthesize().reverse_ops()
+        ).linear  # Creates inverse of parity_mat
 
-            inv_A = LinearFunction(
-                LinearFunction(A).synthesize().reverse_ops()
-            ).linear  # Creates inverse of parity_mat
+        X = np.insert((np.matmul(B, inv_A) % 2), chosen_row, 1)  # Calculates B*inv_A
 
-            X = np.insert((np.matmul(B, inv_A) % 2), chosen_row, 1)  # Calculates B*inv_A
+        nodes = [
+            i for i in self._graph.node_indices() if i == chosen_row or X[i] == 1
+        ]  # Finds indexes of rows that are added to chosen_row
 
-            nodes = [
-                i for i in self._graph.node_indices() if i == chosen_row or X[i] == 1
-            ]  # Finds indexes of rows that are added to chosen_row
-
-            for edge in self._eliminate_row(parity_mat, chosen_row, nodes):
-                circuit.cx(edge[1], edge[0])  # Adds a CNOT to the circuit
-
-        return circuit
+        return nodes
