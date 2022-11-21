@@ -157,7 +157,7 @@ class Optimize1qGatesSimpleCommutation(TransformationPass):
         NOTE: Returns None when resynthesis is not possible.
         """
         if len(new_run) == 0:
-            return (), QuantumCircuit(1)
+            return QuantumCircuit(1)
 
         return self._optimize1q._resynthesize_run(new_run)
 
@@ -187,6 +187,7 @@ class Optimize1qGatesSimpleCommutation(TransformationPass):
         runs = dag.collect_1q_runs()
         did_work = False
 
+        qubit_indices = {bit: index for index, bit in enumerate(dag.qubits)}
         for run in runs:
             # identify the preceding blocking gates
             run_clone = copy(run)
@@ -210,13 +211,9 @@ class Optimize1qGatesSimpleCommutation(TransformationPass):
                 )
 
             # re-synthesize
-            new_preceding_basis, new_preceding_run = self._resynthesize(
-                preceding_run + commuted_preceding
-            )
-            new_succeeding_basis, new_succeeding_run = self._resynthesize(
-                commuted_succeeding + succeeding_run
-            )
-            new_basis, new_run = self._resynthesize(run_clone)
+            new_preceding_run = self._resynthesize(preceding_run + commuted_preceding)
+            new_succeeding_run = self._resynthesize(commuted_succeeding + succeeding_run)
+            new_run = self._resynthesize(run_clone)
 
             # perform the replacement if it was indeed a good idea
             if self._optimize1q._substitution_checks(
@@ -227,7 +224,8 @@ class Optimize1qGatesSimpleCommutation(TransformationPass):
                     + (new_run or QuantumCircuit(1)).data
                     + (new_succeeding_run or QuantumCircuit(1)).data
                 ),
-                new_basis + new_preceding_basis + new_succeeding_basis,
+                self._optimize1q._basis_gates,
+                qubit_indices[run[0].qargs[0]],
             ):
                 if preceding_run and new_preceding_run is not None:
                     self._replace_subdag(dag, preceding_run, new_preceding_run)
