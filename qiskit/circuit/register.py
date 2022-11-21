@@ -20,7 +20,9 @@ import itertools
 import numpy as np
 
 from qiskit.circuit.exceptions import CircuitError
-from qiskit.utils import deprecate_function
+
+# Over-specific import to avoid cyclic imports.
+from qiskit.utils.deprecation import deprecate_function
 
 
 class Register:
@@ -40,6 +42,7 @@ class Register:
         " attribute has no meaning any more."
     )
     def name_format(self):
+        # pylint: disable=missing-function-docstring
         return self._name_format
 
     # Counter for the number of instances in this class.

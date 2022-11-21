@@ -10,13 +10,17 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
+# pylint: disable=bad-docstring-quotes
+
 """
 Quantum register reference object.
 """
 import itertools
 
 from qiskit.circuit.exceptions import CircuitError
-from qiskit.utils import deprecate_function
+
+# Over-specific import to avoid cyclic imports.
+from qiskit.utils.deprecation import deprecate_function
 from .register import Register
 from .bit import Bit
 
