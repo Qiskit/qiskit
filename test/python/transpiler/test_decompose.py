@@ -79,8 +79,6 @@ class TestDecompose(QiskitTestCase):
         circuit.h(qr[0])
         dag = circuit_to_dag(circuit)
         pass_ = Decompose(HGate)
-        with self.assertWarns(DeprecationWarning):
-            pass_.gate = None
         after_dag = pass_.run(dag)
         op_nodes = after_dag.op_nodes()
         self.assertEqual(len(op_nodes), 1)
