@@ -61,7 +61,7 @@ class PermRowCol:
                 nodes = self._get_nodes_for_eliminate_row(parity_mat, column, row)
 
                 for edge in self._eliminate_row(parity_mat, row, nodes):
-                    circuit.cx(edge[1], edge[0])  # Adds a CNOT to the circuit
+                    circuit.cx(edge[0], edge[1])  # Adds a CNOT to the circuit
 
             qubit_alloc[column] = row
 
