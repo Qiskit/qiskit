@@ -92,6 +92,7 @@ def level_0_pass_manager(pass_manager_config: PassManagerConfig) -> StagedPassMa
             swap_trials=5,
             layout_trials=5,
             skip_routing=skip_routing,
+            target=target,
         )
 
     # Choose routing pass

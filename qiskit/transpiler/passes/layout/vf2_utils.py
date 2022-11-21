@@ -98,8 +98,9 @@ def score_layout(
         size = 0
     nlayout = NLayout(layout_mapping, size + 1, size + 1)
     bit_list = np.zeros(len(im_graph), dtype=np.int32)
-    for node_index in bit_map.values():
-        bit_list[node_index] = sum(im_graph[node_index].values())
+    for qubit, node_index in bit_map.items():
+        if qubit in layout_mapping:
+            bit_list[node_index] = sum(im_graph[node_index].values())
     edge_list = {
         (edge[0], edge[1]): sum(edge[2].values()) for edge in im_graph.edge_index_map().values()
     }

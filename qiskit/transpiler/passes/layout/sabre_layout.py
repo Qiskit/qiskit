@@ -13,8 +13,11 @@
 """Layout selection using the SABRE bidirectional search approach from Li et al.
 """
 
+from collections import defaultdict
 import copy
 import logging
+import time
+
 import numpy as np
 import rustworkx as rx
 
@@ -23,6 +26,7 @@ from qiskit.transpiler.passes.layout.set_layout import SetLayout
 from qiskit.transpiler.passes.layout.full_ancilla_allocation import FullAncillaAllocation
 from qiskit.transpiler.passes.layout.enlarge_with_ancilla import EnlargeWithAncilla
 from qiskit.transpiler.passes.layout.apply_layout import ApplyLayout
+from qiskit.transpiler.passes.layout import vf2_utils
 from qiskit.transpiler.passmanager import PassManager
 from qiskit.transpiler.layout import Layout
 from qiskit.transpiler.basepasses import TransformationPass
@@ -35,6 +39,8 @@ from qiskit._accelerate.sabre_swap import (
 )
 from qiskit.transpiler.passes.routing.sabre_swap import process_swaps, apply_gate
 from qiskit.tools.parallel import CPU_COUNT
+from qiskit.circuit.controlflow import ControlFlowOp, ForLoopOp
+from qiskit.converters import circuit_to_dag
 
 logger = logging.getLogger(__name__)
 
@@ -42,11 +48,16 @@ logger = logging.getLogger(__name__)
 class SabreLayout(TransformationPass):
     """Choose a Layout via iterative bidirectional routing of the input circuit.
 
-    Starting with a random initial `Layout`, the algorithm does a full routing
-    of the circuit (via the `routing_pass` method) to end up with a
-    `final_layout`. This final_layout is then used as the initial_layout for
-    routing the reverse circuit. The algorithm iterates a number of times until
-    it finds an initial_layout that reduces full routing cost.
+    The algorithm does a full routing of the circuit (via the `routing_pass`
+    method) to end up with a `final_layout`. This final_layout is then used as
+    the initial_layout for routing the reverse circuit. The algorithm iterates a
+    number of times until it finds an initial_layout that reduces full routing cost.
+
+    Prior to running the SABRE algorithm this transpiler pass will try to find the layout
+    for deepest layer that is has an isomorphic subgraph in the coupling graph. This is
+    done by progressively using the algorithm from :class:`~.VF2Layout` on the circuit
+    until a mapping is not found. This partial layout is then used to seed the SABRE algorithm
+    and then random physical bits are selected for the remaining elements in the mapping.
 
     This method exploits the reversibility of quantum circuits, and tries to
     include global circuit information in the choice of initial_layout.
@@ -82,6 +93,11 @@ class SabreLayout(TransformationPass):
         swap_trials=None,
         layout_trials=None,
         skip_routing=False,
+        target=None,
+        vf2_partial_layout=True,
+        vf2_call_limit=None,
+        vf2_time_limit=None,
+        vf2_max_trials=None,
     ):
         """SabreLayout initializer.
 
@@ -118,6 +134,18 @@ class SabreLayout(TransformationPass):
                 will be returned in the property set. This is a tradeoff to run custom
                 routing with multiple layout trials, as using this option will cause
                 SabreLayout to run the routing stage internally but not use that result.
+            target (Target): A target representing the backend device to run ``SabreLayout`` on.
+                If specified it will supersede a set value for ``coupling_map``.
+            vf2_partial_layout (bool): Run vf2 partial layout
+            vf2_call_limit (int): The number of state visits to attempt in each execution of
+                VF2 to attempt to find a partial layout.
+            vf2_time_limit (float): The total time limit in seconds to run VF2 to find a partial
+                layout
+            vf2_max_trials (int): The maximum number of trials to run VF2 to find
+                a partial layout. If this is not specified the number of trials will be limited
+                based on the number of edges in the interaction graph or the coupling graph
+                (whichever is larger) if no other limits are set. If set to a value <= 0 no
+                limit on the number of trials will be set.
 
         Raises:
             TranspilerError: If both ``routing_pass`` and ``swap_trials`` or
@@ -126,15 +154,6 @@ class SabreLayout(TransformationPass):
         super().__init__()
         self.coupling_map = coupling_map
         self._neighbor_table = None
-        if self.coupling_map is not None:
-            if not self.coupling_map.is_symmetric:
-                # deepcopy is needed here to avoid modifications updating
-                # shared references in passes which require directional
-                # constraints
-                self.coupling_map = copy.deepcopy(self.coupling_map)
-                self.coupling_map.make_symmetric()
-            self._neighbor_table = NeighborTable(rx.adjacency_matrix(self.coupling_map.graph))
-
         if routing_pass is not None and (swap_trials is not None or layout_trials is not None):
             raise TranspilerError("Both routing_pass and swap_trials can't be set at the same time")
         self.routing_pass = routing_pass
@@ -150,6 +169,22 @@ class SabreLayout(TransformationPass):
         else:
             self.layout_trials = layout_trials
         self.skip_routing = skip_routing
+        self.target = target
+        if target is not None:
+            self.coupling_map = target.build_coupling_map()
+        self.avg_error_map = None
+        self.vf2_partial_layout = vf2_partial_layout
+        self.call_limit = vf2_call_limit
+        self.time_limit = vf2_time_limit
+        self.max_trials = vf2_max_trials
+        if self.coupling_map is not None:
+            if not self.coupling_map.is_symmetric:
+                # deepcopy is needed here to avoid modifications updating
+                # shared references in passes which require directional
+                # constraints
+                self.coupling_map = copy.deepcopy(self.coupling_map)
+                self.coupling_map.make_symmetric()
+            self._neighbor_table = NeighborTable(rx.adjacency_matrix(self.coupling_map.graph))
 
     def run(self, dag):
         """Run the SabreLayout pass on `dag`.
@@ -210,6 +245,10 @@ class SabreLayout(TransformationPass):
             dist_matrix = self.coupling_map.distance_matrix
             original_qubit_indices = {bit: index for index, bit in enumerate(dag.qubits)}
             original_clbit_indices = {bit: index for index, bit in enumerate(dag.clbits)}
+            partial_layout = None
+            if self.vf2_partial_layout:
+                partial_layout_virtual_bits = self._vf2_partial_layout(dag).get_virtual_bits()
+                partial_layout = [partial_layout_virtual_bits.get(i, None) for i in dag.qubits]
 
             dag_list = []
             for node in dag.topological_op_nodes():
@@ -235,6 +274,7 @@ class SabreLayout(TransformationPass):
                 self.max_iterations,
                 self.swap_trials,
                 self.layout_trials,
+                partial_layout,
             )
             # Apply initial layout selected.
             # this is a pseudo-pass manager to avoid the repeated round trip between
@@ -313,3 +353,175 @@ class SabreLayout(TransformationPass):
         qubit_map = Layout.combine_into_edge_map(initial_layout, trivial_layout)
         final_layout = {v: pass_final_layout._v2p[qubit_map[v]] for v in initial_layout._v2p}
         return Layout(final_layout)
+
+    # TODO: Migrate this to rust as part of sabre_layout.rs after
+    # https://github.com/Qiskit/rustworkx/issues/741 is implemented and released
+    def _vf2_partial_layout(self, dag):
+        """Find a partial layout using vf2 on the deepest subgraph that is isomorphic to
+        the coupling graph."""
+        im_graph_node_map = {}
+        reverse_im_graph_node_map = {}
+        im_graph = rx.PyGraph(multigraph=False)
+        logger.debug("Buidling interaction graphs")
+        largest_im_graph = None
+        best_mapping = None
+        first_mapping = None
+        if self.avg_error_map is None:
+            self.avg_error_map = vf2_utils.build_average_error_map(
+                self.target, None, self.coupling_map
+            )
+
+        cm_graph, cm_nodes = vf2_utils.shuffle_coupling_graph(self.coupling_map, self.seed, False)
+        # To avoid trying to over optimize the result by default limit the number
+        # of trials based on the size of the graphs. For circuits with simple layouts
+        # like an all 1q circuit we don't want to sit forever trying every possible
+        # mapping in the search space if no other limits are set
+        if self.max_trials is None and self.call_limit is None and self.time_limit is None:
+            im_graph_edge_count = len(im_graph.edge_list())
+            cm_graph_edge_count = len(self.coupling_map.graph.edge_list())
+            self.max_trials = max(im_graph_edge_count, cm_graph_edge_count) + 15
+
+        start_time = time.time()
+
+        # A more efficient search pattern would be to do a binary search
+        # and find, but to conserve memory and avoid a large number of
+        # unecessary graphs this searchs from the beginning and continues
+        # until there is no vf2 match
+        def _visit(dag, weight, wire_map):
+            for node in dag.topological_op_nodes():
+                nonlocal largest_im_graph
+                largest_im_graph = im_graph.copy()
+                if getattr(node.op, "_directive", False):
+                    continue
+                if isinstance(node.op, ControlFlowOp):
+                    if isinstance(node.op, ForLoopOp):
+                        inner_weight = len(node.op.params[0]) * weight
+                    else:
+                        inner_weight = weight
+                    for block in node.op.blocks:
+                        inner_wire_map = {
+                            inner: wire_map[outer] for outer, inner in zip(node.qargs, block.qubits)
+                        }
+                        _visit(circuit_to_dag(block), inner_weight, inner_wire_map)
+                    continue
+                len_args = len(node.qargs)
+                qargs = [wire_map[q] for q in node.qargs]
+                if len_args == 1:
+                    if qargs[0] not in im_graph_node_map:
+                        weights = defaultdict(int)
+                        weights[node.name] += weight
+                        im_graph_node_map[qargs[0]] = im_graph.add_node(weights)
+                        reverse_im_graph_node_map[im_graph_node_map[qargs[0]]] = qargs[0]
+                    else:
+                        im_graph[im_graph_node_map[qargs[0]]][node.op.name] += weight
+                if len_args == 2:
+                    if qargs[0] not in im_graph_node_map:
+                        im_graph_node_map[qargs[0]] = im_graph.add_node(defaultdict(int))
+                        reverse_im_graph_node_map[im_graph_node_map[qargs[0]]] = qargs[0]
+                    if qargs[1] not in im_graph_node_map:
+                        im_graph_node_map[qargs[1]] = im_graph.add_node(defaultdict(int))
+                        reverse_im_graph_node_map[im_graph_node_map[qargs[1]]] = qargs[1]
+                    edge = (im_graph_node_map[qargs[0]], im_graph_node_map[qargs[1]])
+                    if im_graph.has_edge(*edge):
+                        im_graph.get_edge_data(*edge)[node.name] += weight
+                    else:
+                        weights = defaultdict(int)
+                        weights[node.name] += weight
+                        im_graph.add_edge(*edge, weights)
+                if len_args > 2:
+                    raise TranspilerError(
+                        "Encountered an instruction operating on more than 2 qubits, this pass "
+                        "only functions with 1 or 2 qubit operations."
+                    )
+                vf2_mapping = rx.vf2_mapping(
+                    cm_graph,
+                    im_graph,
+                    subgraph=True,
+                    id_order=False,
+                    induced=False,
+                    call_limit=self.call_limit,
+                )
+                try:
+                    nonlocal first_mapping
+                    first_mapping = next(vf2_mapping)
+                except StopIteration:
+                    break
+                nonlocal best_mapping
+                best_mapping = vf2_mapping
+                elapsed_time = time.time() - start_time
+                if (
+                    self.time_limit is not None
+                    and best_mapping is not None
+                    and elapsed_time >= self.time_limit
+                ):
+                    logger.debug(
+                        "SabreLayout VF2 heuristic has taken %s which exceeds configured max time: %s",
+                        elapsed_time,
+                        self.time_limit,
+                    )
+                    break
+
+        _visit(dag, 1, {bit: bit for bit in dag.qubits})
+        logger.debug("Finding best mappings of largest partial subgraph")
+        im_graph = largest_im_graph
+
+        def mapping_to_layout(layout_mapping):
+            return Layout({reverse_im_graph_node_map[k]: v for k, v in layout_mapping.items()})
+
+        layout_mapping = {im_i: cm_nodes[cm_i] for cm_i, im_i in first_mapping.items()}
+        chosen_layout = mapping_to_layout(layout_mapping)
+        chosen_layout_score = vf2_utils.score_layout(
+            self.avg_error_map,
+            layout_mapping,
+            im_graph_node_map,
+            reverse_im_graph_node_map,
+            im_graph,
+            False,
+        )
+        trials = 1
+        for mapping in best_mapping:  # pylint: disable=not-an-iterable
+            trials += 1
+            logger.debug("Running trial: %s", trials)
+            layout_mapping = {im_i: cm_nodes[cm_i] for cm_i, im_i in mapping.items()}
+            # If the graphs have the same number of nodes we don't need to score or do multiple
+            # trials as the score heuristic currently doesn't weigh nodes based on gates on a
+            # qubit so the scores will always all be the same
+            if len(cm_graph) == len(im_graph):
+                break
+            layout_score = vf2_utils.score_layout(
+                self.avg_error_map,
+                layout_mapping,
+                im_graph_node_map,
+                reverse_im_graph_node_map,
+                im_graph,
+                False,
+            )
+            logger.debug("Trial %s has score %s", trials, layout_score)
+            if chosen_layout is None:
+                chosen_layout = mapping_to_layout(layout_mapping)
+                chosen_layout_score = layout_score
+            elif layout_score < chosen_layout_score:
+                layout = mapping_to_layout(layout_mapping)
+                logger.debug(
+                    "Found layout %s has a lower score (%s) than previous best %s (%s)",
+                    layout,
+                    layout_score,
+                    chosen_layout,
+                    chosen_layout_score,
+                )
+                chosen_layout = layout
+                chosen_layout_score = layout_score
+            if self.max_trials and trials >= self.max_trials:
+                logger.debug("Trial %s is >= configured max trials %s", trials, self.max_trials)
+                break
+            elapsed_time = time.time() - start_time
+            if self.time_limit is not None and elapsed_time >= self.time_limit:
+                logger.debug(
+                    "VF2Layout has taken %s which exceeds configured max time: %s",
+                    elapsed_time,
+                    self.time_limit,
+                )
+                break
+        for reg in dag.qregs.values():
+            chosen_layout.add_register(reg)
+        return chosen_layout

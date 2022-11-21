@@ -41,6 +41,7 @@ pub fn sabre_layout_and_routing(
     max_iterations: usize,
     num_swap_trials: usize,
     num_layout_trials: usize,
+    partial_layout: Option<Vec<Option<usize>>>,
 ) -> ([NLayout; 2], SwapMap, PyObject) {
     let run_in_parallel = getenv_use_multiple_threads();
     let outer_rng = match seed {
@@ -69,6 +70,7 @@ pub fn sabre_layout_and_routing(
                         max_iterations,
                         num_swap_trials,
                         run_in_parallel,
+                        partial_layout.clone(),
                     ),
                 )
             })
@@ -94,6 +96,7 @@ pub fn sabre_layout_and_routing(
                     max_iterations,
                     num_swap_trials,
                     run_in_parallel,
+                    partial_layout.clone(),
                 )
             })
             .min_by_key(|result| result.1.map.values().map(|x| x.len()).sum::<usize>())
@@ -112,17 +115,42 @@ fn layout_trial(
     max_iterations: usize,
     num_swap_trials: usize,
     run_swap_in_parallel: bool,
+    partial_layout: Option<Vec<Option<usize>>>,
 ) -> ([NLayout; 2], SwapMap, Vec<usize>) {
     // Pick a random initial layout and fully populate ancillas in that layout too
     let num_physical_qubits = distance_matrix.shape()[0];
     let mut rng = Pcg64Mcg::seed_from_u64(seed);
-    let mut physical_qubits: Vec<usize> = (0..num_physical_qubits).collect();
-    physical_qubits.shuffle(&mut rng);
+    let mut physical_qubits: Vec<usize>;
+    match partial_layout {
+        Some(partial_layout_bits) => {
+            let used_bits: HashSet<usize> = partial_layout_bits
+                .iter()
+                .filter_map(|x| x.as_ref())
+                .copied()
+                .collect();
+            let mut free_bits: Vec<usize> = (0..num_physical_qubits)
+                .filter(|x| !used_bits.contains(x))
+                .collect();
+            free_bits.shuffle(&mut rng);
+            physical_qubits = partial_layout_bits
+                .iter()
+                .map(|x| match x {
+                    Some(phys) => *phys,
+                    None => free_bits.pop().unwrap(),
+                })
+                .collect();
+        }
+        None => {
+            physical_qubits = (0..num_physical_qubits).collect();
+            physical_qubits.shuffle(&mut rng);
+        }
+    };
     let mut phys_to_logic = vec![0; num_physical_qubits];
     physical_qubits
         .iter()
         .enumerate()
         .for_each(|(logic, phys)| phys_to_logic[*phys] = logic);
+
     let mut initial_layout = NLayout {
         logic_to_phys: physical_qubits,
         phys_to_logic,

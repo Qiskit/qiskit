@@ -136,6 +136,8 @@ def level_2_pass_manager(pass_manager_config: PassManagerConfig) -> StagedPassMa
             layout_trials=10,
             skip_routing=pass_manager_config.routing_method is not None
             and routing_method != "sabre",
+            target=target,
+            vf2_call_limit=int(5e6),
         )
 
     # Choose routing pass
