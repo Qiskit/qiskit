@@ -10,12 +10,15 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
+# pylint: disable=too-many-function-args
+
 """VF2Layout pass to find a layout using subgraph isomorphism"""
+import os
 from enum import Enum
 import logging
 import time
 
-from retworkx import vf2_mapping
+from rustworkx import vf2_mapping
 
 from qiskit.transpiler.layout import Layout
 from qiskit.transpiler.basepasses import AnalysisPass
@@ -50,6 +53,25 @@ class VF2Layout(AnalysisPass):
         * ``"nonexistent solution"``: If no perfect layout was found.
         * ``">2q gates in basis"``: If VF2Layout can't work with basis
 
+    By default this pass will construct a heuristic scoring map based on the
+    the error rates in the provided ``target`` (or ``properties`` if ``target``
+    is not provided). However, analysis passes can be run prior to this pass
+    and set ``vf2_avg_error_map`` in the property set with a :class:`~.ErrorMap`
+    instance. If a value is ``NaN`` that is treated as an ideal edge
+    For example if an error map is created as::
+
+        from qiskit.transpiler.passes.layout.vf2_utils import ErrorMap
+
+        error_map = ErrorMap(3)
+        error_map.add_error((0, 0), 0.0024)
+        error_map.add_error((0, 1), 0.01)
+        error_map.add_error((1, 1), 0.0032)
+
+    that represents the error map for a 2 qubit target, where the avg 1q error
+    rate is ``0.0024`` on qubit 0 and ``0.0032`` on qubit 1. Then the avg 2q
+    error rate for gates that operate on (0, 1) is 0.01 and (1, 0) is not
+    supported by the target. This will be used for scoring if it's set as the
+    ``vf2_avg_error_map`` key in the property set when :class:`~.VF2Layout` is run.
     """
 
     def __init__(
@@ -106,6 +128,7 @@ class VF2Layout(AnalysisPass):
         """run the layout method"""
         if self.coupling_map is None:
             raise TranspilerError("coupling_map or target must be specified.")
+        self.avg_error_map = self.property_set["vf2_avg_error_map"]
         if self.avg_error_map is None:
             self.avg_error_map = vf2_utils.build_average_error_map(
                 self.target, self.properties, self.coupling_map
@@ -141,43 +164,52 @@ class VF2Layout(AnalysisPass):
         chosen_layout_score = None
         start_time = time.time()
         trials = 0
+        run_in_parallel = (
+            os.getenv("QISKIT_IN_PARALLEL", "FALSE").upper() != "TRUE"
+            or os.getenv("QISKIT_FORCE_THREADS", "FALSE").upper() == "TRUE"
+        )
+
+        def mapping_to_layout(layout_mapping):
+            return Layout({reverse_im_graph_node_map[k]: v for k, v in layout_mapping.items()})
+
         for mapping in mappings:
             trials += 1
             logger.debug("Running trial: %s", trials)
             stop_reason = VF2LayoutStopReason.SOLUTION_FOUND
-            layout = Layout(
-                {reverse_im_graph_node_map[im_i]: cm_nodes[cm_i] for cm_i, im_i in mapping.items()}
-            )
+            layout_mapping = {im_i: cm_nodes[cm_i] for cm_i, im_i in mapping.items()}
+
             # If the graphs have the same number of nodes we don't need to score or do multiple
             # trials as the score heuristic currently doesn't weigh nodes based on gates on a
             # qubit so the scores will always all be the same
             if len(cm_graph) == len(im_graph):
-                chosen_layout = layout
+                chosen_layout = mapping_to_layout(layout_mapping)
                 break
             # If there is no error map avilable we can just skip the scoring stage as there
             # is nothing to score with, so any match is the best we can find.
-            if not self.avg_error_map:
-                chosen_layout = layout
+            if self.avg_error_map is None:
+                chosen_layout = mapping_to_layout(layout_mapping)
                 break
             layout_score = vf2_utils.score_layout(
                 self.avg_error_map,
-                layout,
+                layout_mapping,
                 im_graph_node_map,
                 reverse_im_graph_node_map,
                 im_graph,
                 self.strict_direction,
+                run_in_parallel,
             )
             # If the layout score is 0 we can't do any better and we'll just
             # waste time finding additional mappings that will at best match
             # the performance, so exit early in this case
             if layout_score == 0.0:
-                chosen_layout = layout
+                chosen_layout = mapping_to_layout(layout_mapping)
                 break
             logger.debug("Trial %s has score %s", trials, layout_score)
             if chosen_layout is None:
-                chosen_layout = layout
+                chosen_layout = mapping_to_layout(layout_mapping)
                 chosen_layout_score = layout_score
             elif layout_score < chosen_layout_score:
+                layout = mapping_to_layout(layout_mapping)
                 logger.debug(
                     "Found layout %s has a lower score (%s) than previous best %s (%s)",
                     layout,

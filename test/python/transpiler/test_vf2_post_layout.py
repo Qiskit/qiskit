@@ -12,7 +12,7 @@
 
 """Test the VF2Layout pass"""
 
-import retworkx
+import rustworkx
 
 from qiskit import QuantumRegister, QuantumCircuit
 from qiskit.circuit import ControlFlowOp
@@ -364,7 +364,7 @@ class TestVF2PostLayoutScoring(QiskitTestCase):
         """Test error rate is 0 for empty circuit."""
         bit_map = {}
         reverse_bit_map = {}
-        im_graph = retworkx.PyDiGraph()
+        im_graph = rustworkx.PyDiGraph()
         backend = FakeYorktownV2()
         vf2_pass = VF2PostLayout(target=backend.target)
         layout = Layout()
@@ -375,7 +375,7 @@ class TestVF2PostLayoutScoring(QiskitTestCase):
         """Test error rate for all 1q input."""
         bit_map = {Qubit(): 0, Qubit(): 1}
         reverse_bit_map = {v: k for k, v in bit_map.items()}
-        im_graph = retworkx.PyDiGraph()
+        im_graph = rustworkx.PyDiGraph()
         im_graph.add_node({"sx": 1})
         im_graph.add_node({"sx": 1})
         backend = FakeYorktownV2()
