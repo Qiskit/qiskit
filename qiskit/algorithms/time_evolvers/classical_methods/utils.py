@@ -11,6 +11,7 @@
 # that they have been altered from the originals.
 """Auxiliary functions for SciPy Time Evolvers"""
 from __future__ import annotations
+import logging
 from scipy.sparse import csr_matrix
 from scipy.sparse.linalg import expm_multiply
 import numpy as np
@@ -22,8 +23,11 @@ from qiskit import QuantumCircuit
 from qiskit.opflow import PauliSumOp
 from ..time_evolution_problem import TimeEvolutionProblem
 from ..time_evolution_result import TimeEvolutionResult
+from ...exceptions import AlgorithmError
 
 from ...list_or_dict import ListOrDict
+
+logger = logging.getLogger(__name__)
 
 
 def _create_observable_output(
@@ -95,18 +99,21 @@ def _evaluate_aux_ops(
 def _operator_to_matrix(operator: BaseOperator | PauliSumOp):
 
     if isinstance(operator, PauliSumOp):
-        operator_matrix = operator.primitive.to_matrix(sparse=True)
-
-    elif hasattr(type(operator), "to_matrix"):
-        if "sparse" in operator.to_matrix.__code__.co_varnames:
-            operator_matrix = operator.to_matrix(sparse=True)
-        else:
-            operator_matrix = operator.to_matrix()
-
+        op_matrix = operator.to_spmatrix()
     else:
-        raise ValueError("The Operator can not be converted to a matrix.")
-
-    return operator_matrix
+        try:
+            op_matrix = operator.to_matrix(sparse=True)
+        except TypeError:
+            logger.debug(
+                "WARNING: operator of type `%s` does not support sparse matrices. "
+                "Trying dense computation",
+                type(operator),
+            )
+        try:
+            op_matrix = operator.to_matrix()
+        except AttributeError as ex:
+            raise AlgorithmError(f"Unsupported operator type `{type(operator)}`.") from ex
+    return op_matrix
 
 
 def _sparsify(

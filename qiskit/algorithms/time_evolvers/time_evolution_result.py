@@ -32,6 +32,7 @@ class TimeEvolutionResult(AlgorithmResult):
         observables (ListOrDict[tuple[np.ndarray, np.ndarray]] | None): Optional list of
             observables for which expected on an evolved state are calculated at each timestep.
             These values are in fact lists of tuples formatted as (mean, standard deviation).
+            times (np.array | None): Optional list of times at wich each observable has been evaluated.
     """
 
     def __init__(
@@ -49,6 +50,7 @@ class TimeEvolutionResult(AlgorithmResult):
                 deviation).
             observables: Optional list of observables for which expected values for each timestep.
                 These values are in fact tuples formatted as (mean array, standard deviation array).
+            times (np.array | None): Optional list of times at wich each observable has been evaluated.
         """
 
         self.evolved_state = evolved_state
