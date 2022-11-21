@@ -322,8 +322,8 @@ class BackendEstimator(BaseEstimator):
         This is an integer representation of the binary string with a
         1 where there are Paulis, and 0 where there are identities.
         """
-        mask = pauli.z | pauli.x
-        bitstring = cls._bitstring_from_mask(mask, little_endian=True)
+        pauli_mask = pauli.z | pauli.x
+        bitstring = cls._bitstring_from_mask(pauli_mask, little_endian=True)
         return int(bitstring, 2)
 
     @staticmethod
@@ -331,7 +331,7 @@ class BackendEstimator(BaseEstimator):
         """Return bitstring representation of a one dimensional mask."""
         if little_endian:
             mask = reversed(mask)
-        return "0b" + "".join(str(int(b)) for b in mask)
+        return "0b" + "".join("1" if b else "0" for b in mask)
 
     @staticmethod
     def _parity_bit(integer: int, even: bool = True) -> int:
