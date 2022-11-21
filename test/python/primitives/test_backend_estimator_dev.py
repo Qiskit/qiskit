@@ -15,7 +15,6 @@
 from __future__ import annotations
 
 from collections.abc import Iterator, Sequence
-from unittest import TestCase
 from unittest.mock import MagicMock, Mock, patch
 from test import combine
 
@@ -257,7 +256,7 @@ def transpile_to_layout(circuit, target_qubits, layout_intlist):
 ## UNIT TESTS
 ################################################################################
 @ddt
-class TestTranspilation(TestCase):
+class TestTranspilation(QiskitTestCase):
     """Test transpilation logic."""
 
     @data(
@@ -324,7 +323,7 @@ class TestTranspilation(TestCase):
 
 
 @ddt
-class TestMeasurement(TestCase):
+class TestMeasurement(QiskitTestCase):
     """Test measurement logic."""
 
     def test_observable_decomposer(self):
@@ -367,7 +366,7 @@ class TestMeasurement(TestCase):
 
 
 @ddt
-class TestComposition(TestCase):
+class TestComposition(QiskitTestCase):
     """Test composition logic."""
 
     @data(*circuit_composition_examples())
@@ -397,7 +396,7 @@ class TestComposition(TestCase):
 
 
 @ddt
-class TestComputation(TestCase):
+class TestComputation(QiskitTestCase):
     """Test calculation logic."""
 
     @data(
@@ -524,7 +523,7 @@ class TestComputation(TestCase):
 
 
 @ddt
-class TestObservableDecomposer(TestCase):
+class TestObservableDecomposer(QiskitTestCase):
     """Test ObservableDecomposer strategies."""
 
     @data(
