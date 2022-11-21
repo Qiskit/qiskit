@@ -1,0 +1,20 @@
+---
+features:
+  - |
+    The pulses in the Symbolic Pulse Library were converted from a complex amplitude representation, to an (amp,angle)
+    representation (both floats). For example, instead of calling `pulse.Gaussian(duration=100,sigma=20,amp=0.5j)` one
+    should use `pulse.Gaussian(duration=100,sigma=20,amp=0.5,angle=np.pi/2)`. The pulse envelope which used to be
+    defined as `amp * ...` is in turn defined as `amp * exp(1j * angle) * ...`. This change aims to better support
+    Qiskit Experiments where the amplitude and angle of pulses are calibrated in separate experiments. Note that `amp`
+    can take negative values.
+  - |
+    QPY version bumped to 6, to accommodate the symbolic library pulses (amp,angle) representation.
+deprecations:
+  - |
+    Providing complex `amp` to pulses of the Symbolic Pulse Library is now pending deprecation. The complex `amp` is
+    replaced by two float parameters `amp` and `angle`. See features section for more details. Calling, for example,
+    `pulse.Gaussian(duration=100,sigma=20,amp=0.5j)` will still work until the final deprecation, but one should use
+    `pulse.Gaussian(duration=100,sigma=20,amp=0.5,angle=np.pi/2)` instead. It should be noted that during the
+    deprecation period, unusual behaviours may arise. Namely, if one creates a library pulse with the old API (complex
+    amp), and then goes through a round-trip conversion to `qpy` file and back - the resulting pulse will conform to
+    the new API (amp,angle duo). However, until the deprecation is completed, both pulses will perform identically.
