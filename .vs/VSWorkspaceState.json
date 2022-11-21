@@ -1,0 +1,11 @@
+{
+  "ExpandedNodes": [
+    "",
+    "\\qiskit",
+    "\\qiskit\\circuit",
+    "\\qiskit\\circuit\\library",
+    "\\qiskit\\circuit\\library\\standard_gates"
+  ],
+  "SelectedNode": "\\qiskit\\circuit\\library\\standard_gates\\global_phase.py",
+  "PreviewInSolutionExplorer": false
+}

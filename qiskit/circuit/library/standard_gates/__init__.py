@@ -139,6 +139,7 @@ def get_standard_gate_name_mapping():
         CYGate(),
         CZGate(),
         CCZGate(),
+        GlobalPhaseGate(Parameter("ϴ")),
         HGate(),
         PhaseGate(Parameter("ϴ")),
         RCCXGate(),

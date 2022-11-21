@@ -23,6 +23,7 @@ from qiskit.circuit.quantumregister import QuantumRegister
 # from qiskit.circuit._utils import _compute_control_matrix
 from qiskit.circuit.quantumcircuit import QuantumCircuit
 from qiskit.circuit.parameterexpression import ParameterValueType
+
 # from qiskit.circuit.exceptions import CircuitError
 
 
