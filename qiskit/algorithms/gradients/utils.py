@@ -65,6 +65,22 @@ class ParameterShiftGradientCircuit:
     """A dictionary maps the parameters of ``gradient_circuit`` to their coefficients"""
 
 
+@dataclass
+class GradientCircuit:
+    """Stores gradient circuit data for the parameter shift method"""
+
+    circuit: QuantumCircuit
+    """The original quantum circuit"""
+    gradient_circuit: QuantumCircuit
+    """An internal quantum circuit used to calculate the gradient"""
+    gradient_parameter_map: dict[Parameter, Parameter]
+    """A dictionary maps the parameters of ``circuit`` to the parameters of ``gradient_circuit``"""
+    gradient_virtual_parameter_map: dict[Parameter, Parameter]
+    """A dictionary maps the parameters of ``gradient_circuit`` to the virtual parameter variables"""
+    coeff_map: dict[Parameter, float | ParameterExpression]
+    """A dictionary maps the parameters of ``gradient_circuit`` to their coefficients"""
+
+
 def _make_param_shift_gradient_circuit_data(
     circuit: QuantumCircuit,
 ) -> ParameterShiftGradientCircuit:
@@ -168,7 +184,7 @@ def _make_param_shift_gradient_circuit_data(
     )
 
 
-def _make_param_shift_base_parameter_values(
+def _make_param_shift_base_parameter_values_old(
     gradient_circuit_data: ParameterShiftGradientCircuit,
 ) -> list[np.ndarray]:
     """Makes base parameter values for the parameter shift method. Each base parameter value will
@@ -198,6 +214,38 @@ def _make_param_shift_base_parameter_values(
     return plus_offsets + minus_offsets
 
 
+def _make_param_shift_parameter_value_offsets(
+    gradient_circuit: GradientCircuit,
+) -> list[np.ndarray]:
+    """Makes base parameter values for the parameter shift method. Each base parameter value will
+        be added to the given parameter values in later calculations.
+
+    Args:
+        gradient_circuit_data: gradient circuit data for the base parameter values.
+
+    Returns:
+        The base parameter values for the parameter shift method.
+    """
+    # Make internal parameter values for the parameter shift
+    parameters = gradient_circuit.circuit.parameters
+    g_parameters = gradient_circuit.gradient_circuit.parameters
+    plus_offsets = []
+    minus_offsets = []
+    # Make base decomposed parameter values for each original parameter
+    for param in parameters:
+        for g_param in gradient_circuit.gradient_parameter_map[param]:
+            if g_param in gradient_circuit.gradient_virtual_parameter_map:
+                g_param = gradient_circuit.gradient_virtual_parameter_map[g_param]
+            idx = g_parameters.data.index(g_param)
+            plus = np.zeros(len(g_parameters))
+            plus[idx] += np.pi / 2
+            minus = np.zeros(len(g_parameters))
+            minus[idx] -= np.pi / 2
+            plus_offsets.append(plus)
+            minus_offsets.append(minus)
+    return plus_offsets + minus_offsets
+
+
 def _param_shift_preprocessing(circuit: QuantumCircuit) -> ParameterShiftGradientCircuit:
     """Preprocessing for the parameter shift method.
 
@@ -208,12 +256,69 @@ def _param_shift_preprocessing(circuit: QuantumCircuit) -> ParameterShiftGradien
         necessary data to calculate gradients with the parameter shift method.
     """
     gradient_circuit_data = _make_param_shift_gradient_circuit_data(circuit)
-    base_parameter_values = _make_param_shift_base_parameter_values(gradient_circuit_data)
+    base_parameter_values = _make_param_shift_base_parameter_values_old(gradient_circuit_data)
 
     return gradient_circuit_data, base_parameter_values
 
 
 def _make_param_shift_parameter_values(
+    gradient_circuit: GradientCircuit,
+    parameter_value_offsets: list[np.ndarray],
+    parameter_values: np.ndarray,
+    param_set: set[Parameter],
+) -> list[np.ndarray]:
+    """Makes the final parameter values for the parameter shift method by adding each parameter value
+        to the base parameter values.
+
+    Args:
+        gradient_circuit: gradient circuit for the parameter shift method.
+        parameter_value_offsets: parameter value offsets for the parameter shift method.
+        parameter_values: parameter values to be added to the base parameter values.
+        param_set: set of parameters to be differentiated
+
+    Returns:
+        The final parameter values for the parameter shift method and the coefficients.
+    """
+    circuit = gradient_circuit.circuit
+    g_circuit = gradient_circuit.gradient_circuit
+    gradient_parameter_values = np.zeros(len(g_circuit.parameters))
+    plus_offsets, minus_offsets, coeffs = [], [], []
+    idx = 0
+    n = len(parameter_value_offsets) // 2  # is always a multiple of 2
+    for i, parameter in enumerate(circuit.parameters):
+        g_parameters = gradient_circuit.gradient_parameter_map[parameter]
+        indices = [g_circuit.parameters.data.index(g_parameter) for g_parameter in g_parameters]
+        gradient_parameter_values[indices] = parameter_values[i]
+        if parameter in param_set:
+            plus_offsets.extend(parameter_value_offsets[idx : idx + len(g_parameters)])
+            minus_offsets.extend(parameter_value_offsets[idx + n : idx + n + len(g_parameters)])
+            idx += len(g_parameters)
+
+            for g_param in g_parameters:
+                coeff = gradient_circuit.coeff_map[g_param]
+                # if coeff has parameters, we need to substitute
+                if isinstance(coeff, ParameterExpression):
+                    local_map = {
+                        p: parameter_values[circuit.parameters.data.index(p)]
+                        for p in coeff.parameters
+                    }
+                    bound_coeff = float(coeff.bind(local_map))
+                else:
+                    bound_coeff = coeff
+                coeffs.append(bound_coeff / 2)
+
+    # add the parameter values to the offsets. Return the final parameter values and the coefficients
+    return (
+        np.append(
+            np.array(plus_offsets) + gradient_parameter_values,
+            np.array(minus_offsets) + gradient_parameter_values,
+            axis=0,
+        ),
+        coeffs,
+    )
+
+
+def _make_param_shift_parameter_values_old(
     gradient_circuit_data: ParameterShiftGradientCircuit,
     base_parameter_values: list[np.ndarray],
     parameter_values: np.ndarray,
