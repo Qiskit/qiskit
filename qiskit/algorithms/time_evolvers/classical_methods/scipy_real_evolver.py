@@ -11,7 +11,7 @@
 # that they have been altered from the originals.
 
 """Classical Quantum Real Time Evolution."""
-from .utils import _evolve
+from .evolve import _evolve
 from ..time_evolution_problem import TimeEvolutionProblem
 from ..time_evolution_result import TimeEvolutionResult
 from ..real_time_evolver import RealTimeEvolver

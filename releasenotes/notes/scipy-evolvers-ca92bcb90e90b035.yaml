@@ -4,7 +4,22 @@ features:
     Added two new classes :class:`~qiskit.algorithms.time_evolvers.classical_methods.SciPyRealEvolver` and
     :class:`~qiskit.algorithms.time_evolvers.classical_methods.SciPyImaginaryEvolver` that implement integration methods
     for time evolution of a quantum state.
-    Added a new attribute to :class:`~qiskit.algorithms.time_evolvers.TimeEvolutionResult`,
+    Added two new attributes to :class:`~qiskit.algorithms.time_evolvers.TimeEvolutionResult`.
     :attr:`~qiskit.algorithms.time_evolvers.TimeEvolutionResult.observables` that contains the mean and standard
-    deviation of the obervables at each timestep of the integration.
+    deviation of the obervables at each timestep of the integration and
+    :attr:`~qiskit.algorithms.time_evolvers.TimeEvolutionResult.times` that is a vector with the time of each
+    measurement.
+    Here is simple example:
 
+    .. code-block:: python
+
+        from qiskit.algorithms.time_evolvers.time_evolution_problem import TimeEvolutionProblem
+        from qiskit.quantum_info import SparsePauliOp
+        from qiskit.quantum_info.states.statevector import Statevector
+        from qiskit.algorithms import SciPyImaginaryEvolver
+        initial_state = Statevector.from_label("+++++")
+        hamiltonian = SparsePauliOp("ZZZZZ")
+        evolution_problem = TimeEvolutionProblem(hamiltonian, 100, initial_state)
+        classic_evolver = SciPyImaginaryEvolver(steps=300)
+        result = classic_evolver.evolve(evolution_problem)
+        print(result.observables)

@@ -15,7 +15,7 @@
 from ..time_evolution_problem import TimeEvolutionProblem
 from ..time_evolution_result import TimeEvolutionResult
 from ..imaginary_time_evolver import ImaginaryTimeEvolver
-from .utils import _evolve
+from .evolve import _evolve
 
 
 class SciPyImaginaryEvolver(ImaginaryTimeEvolver):
