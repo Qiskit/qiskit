@@ -696,13 +696,13 @@ class TestObservableValidation(QiskitTestCase):
         """Test obsevables standardization."""
         self.assertEqual(BaseEstimator._validate_observables(obsevables), expected)
 
-    @data(None, "ERROR")
+    @data(None, "ERROR", "")
     def test_qiskit_error(self, observables):
         """Test qiskit error if invalid input."""
         with self.assertRaises(QiskitError):
             BaseEstimator._validate_observables(observables)
 
-    @data((), [], "")
+    @data((), [])
     def test_value_error(self, observables):
         """Test value error if no obsevables are provided."""
         with self.assertRaises(ValueError):
