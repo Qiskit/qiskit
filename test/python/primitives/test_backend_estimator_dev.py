@@ -859,20 +859,14 @@ class TestBackendEstimator(QiskitTestCase):
         backend.set_options(seed_simulator=123)
         qc = RealAmplitudes(num_qubits=2, reps=2)
         op = SparsePauliOp.from_list([("IZ", 1), ("XI", 2), ("ZY", -1)])
-        k = 5
-        params_array = np.random.rand(k, qc.num_parameters)
+        reps = 5
+        params_array = np.random.rand(reps, qc.num_parameters)
         params_list = params_array.tolist()
         estimator = BackendEstimator(backend=backend)
-        m = len(estimator._observable_decomposer.decompose(op))
+        obs = len(estimator._observable_decomposer.decompose(op))
         with patch.object(backend, "run") as run_mock:
-            job = Mock(JobV1)
-            counts = Counts({"0": 1})
-            result = Result(backend.name, backend.version, None, None, True, counts)
-            result.get_counts = Mock(return_value=counts)
-            job.result = Mock(return_value=result)
-            run_mock.return_value = job
-            estimator.run([qc] * k, [op] * k, params_list).result()
-        self.assertEqual(run_mock.call_count, k * m)
+            estimator.run([qc] * reps, [op] * reps, params_list).result()
+        self.assertEqual(run_mock.call_count, reps * obs)
 
     def test_job_size_limit_v1(self):
         """Test BackendEstimator respects job size limit"""
@@ -883,20 +877,14 @@ class TestBackendEstimator(QiskitTestCase):
         backend.set_options(seed_simulator=123)
         qc = RealAmplitudes(num_qubits=2, reps=2)
         op = SparsePauliOp.from_list([("IZ", 1), ("XI", 2), ("ZY", -1)])
-        k = 5
-        params_array = np.random.rand(k, qc.num_parameters)
+        reps = 5
+        params_array = np.random.rand(reps, qc.num_parameters)
         params_list = params_array.tolist()
         estimator = BackendEstimator(backend=backend)
-        m = len(estimator._observable_decomposer.decompose(op))
+        obs = len(estimator._observable_decomposer.decompose(op))
         with patch.object(backend, "run") as run_mock:
-            job = Mock(JobV1)
-            counts = Counts({"0": 1})
-            result = Result(backend.name(), backend.version, None, None, True, counts)
-            result.get_counts = Mock(return_value=counts)
-            job.result = Mock(return_value=result)
-            run_mock.return_value = job
-            estimator.run([qc] * k, [op] * k, params_list).result()
-        self.assertEqual(run_mock.call_count, k * m)
+            estimator.run([qc] * reps, [op] * reps, params_list).result()
+        self.assertEqual(run_mock.call_count, reps * obs)
 
     def test_no_max_circuits(self):
         """Test BackendEstimator works with BackendV1 and no max_experiments set."""

@@ -79,7 +79,7 @@ class BackendEstimator(BaseEstimator):
         """
         # TODO: validation
         self.backend = backend
-        self.abelian_grouping = abelian_grouping
+        self.abelian_grouping = abelian_grouping  # TODO: `group_commuting`
         self.skip_transpilation = skip_transpilation  # TODO: tranpilation level
         self._bound_pass_manager = bound_pass_manager  # TODO: standardize
         super().__init__(
@@ -291,7 +291,7 @@ class BackendEstimator(BaseEstimator):
         return tuple(zip(*pairs))
 
     @classmethod
-    def _compute_expval_variance_pair(cls, counts, pauli):
+    def _compute_expval_variance_pair(cls, counts: Counts, pauli: Pauli):
         """Return an expval-variance pair for the given counts and pauli.
 
         Note: All non-identity Pauli's are treated as Z-paulis, assuming
@@ -304,9 +304,7 @@ class BackendEstimator(BaseEstimator):
             coeff = cls._measurement_coefficient(bitstring, pauli)
             expval += coeff * freq
             shots += freq
-        if shots == 0:
-            print(counts)
-        expval /= shots
+        expval /= shots or 1  # Avoid division by zero errors if no counts
         variance = 1 - expval**2
         return expval, variance
 
