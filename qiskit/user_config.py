@@ -77,7 +77,8 @@ class UserConfig:
                 valid_circuit_reverse_bits = {"True": True, "False": False}
                 if circuit_reverse_bits not in valid_circuit_reverse_bits:
                     raise exceptions.QiskitUserConfigError(
-                        "%s must be True or False." % circuit_reverse_bits
+                        "%s is not a valid value for circuit_reverse_bits. Must be True or False."
+                        % circuit_reverse_bits
                     )
                 self.settings["circuit_reverse_bits"] = valid_circuit_reverse_bits[
                     circuit_reverse_bits
