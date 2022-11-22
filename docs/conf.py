@@ -76,6 +76,7 @@ html_theme_options = {
 }
 html_static_path = ["_static"]
 html_css_files = []
+html_context = {"analytics_enabled": True}
 
 
 # -- Options for Autosummary and Autodoc -------------------------------------
