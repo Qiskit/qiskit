@@ -29,7 +29,7 @@ from qiskit.pulse.channels import Channel
 from qiskit.pulse.exceptions import PulseError
 from qiskit.utils import optionals as _optionals
 
-from qiskit.utils import deprecate_function
+from qiskit.utils.deprecation import deprecate_function
 
 
 # pylint: disable=missing-return-doc,bad-docstring-quotes

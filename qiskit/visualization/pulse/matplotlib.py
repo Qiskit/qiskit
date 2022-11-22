@@ -44,7 +44,7 @@ from qiskit.pulse import (
     SetPhase,
 )
 from qiskit.pulse.schedule import ScheduleComponent
-from qiskit.utils import deprecate_function
+from qiskit.utils.deprecation import deprecate_function
 
 
 class EventsOutputChannels:

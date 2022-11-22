@@ -10,6 +10,8 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
+# pylint: disable=bad-docstring-quotes
+
 """
 Deprecated.
 
@@ -20,7 +22,7 @@ from typing import Tuple
 
 import numpy as np
 
-from qiskit.utils import deprecate_function
+from qiskit.utils.deprecation import deprecate_function
 
 
 @deprecate_function(
