@@ -16,7 +16,7 @@ Optimized list of Pauli operators
 from collections import defaultdict
 
 import numpy as np
-import retworkx as rx
+import rustworkx as rx
 
 from qiskit.exceptions import QiskitError
 from qiskit.quantum_info.operators.custom_iterator import CustomIterator
@@ -237,12 +237,12 @@ class PauliList(BasePauli, LinearMixin, GroupMixin):
     def phase(self):
         """Return the phase exponent of the PauliList."""
         # Convert internal ZX-phase convention to group phase convention
-        return np.mod(self._phase - self._count_y(), 4)
+        return np.mod(self._phase - self._count_y(dtype=self._phase.dtype), 4)
 
     @phase.setter
     def phase(self, value):
         # Convert group phase convetion to internal ZX-phase convention
-        self._phase[:] = np.mod(value + self._count_y(), 4)
+        self._phase[:] = np.mod(value + self._count_y(dtype=self._phase.dtype), 4)
 
     @property
     def x(self):
@@ -1109,7 +1109,7 @@ class PauliList(BasePauli, LinearMixin, GroupMixin):
                 or on a per-qubit basis.
 
         Returns:
-            retworkx.PyGraph: A class of undirected graphs
+            rustworkx.PyGraph: A class of undirected graphs
         """
 
         edges = self._noncommutation_graph(qubit_wise)

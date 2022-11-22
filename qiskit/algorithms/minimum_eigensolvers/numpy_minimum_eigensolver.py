@@ -19,6 +19,7 @@ import logging
 import numpy as np
 
 from qiskit.opflow import PauliSumOp
+from qiskit.quantum_info import Statevector
 from qiskit.quantum_info.operators.base_operator import BaseOperator
 
 from ..eigensolvers.numpy_eigensolver import NumPyEigensolver
@@ -96,10 +97,10 @@ class NumPyMinimumEigensolverResult(MinimumEigensolverResult):
         self._eigenstate = None
 
     @property
-    def eigenstate(self) -> np.ndarray | None:
+    def eigenstate(self) -> Statevector | None:
         """Returns the eigenstate corresponding to the computed minimum eigenvalue."""
         return self._eigenstate
 
     @eigenstate.setter
-    def eigenstate(self, value: np.ndarray) -> None:
+    def eigenstate(self, value: Statevector) -> None:
         self._eigenstate = value

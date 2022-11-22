@@ -59,7 +59,7 @@ def circuit_drawer(
     fold=None,
     ax=None,
     initial_state=False,
-    cregbundle=True,
+    cregbundle=None,
     wire_order=None,
 ):
     """Draw the quantum circuit. Use the output parameter to choose the drawing format:
@@ -142,7 +142,7 @@ def circuit_drawer(
         initial_state (bool): Optional. Adds ``|0>`` in the beginning of the wire.
             Default is False.
         cregbundle (bool): Optional. If set True, bundle classical registers.
-            Default is True.
+            Default is True, except for when ``output`` is set to  ``"text"``.
         wire_order (list): Optional. A list of integers used to reorder the display
             of the bits. The list must have an entry for every bit with the bits
             in the range 0 to (num_qubits + num_clbits).
@@ -207,7 +207,7 @@ def circuit_drawer(
             "wire_order list for the index of each qubit and each clbit in the circuit."
         )
 
-    if cregbundle and (reverse_bits or wire_order is not None):
+    if circuit.clbits and cregbundle and (reverse_bits or wire_order is not None):
         cregbundle = False
         warn(
             "Cregbundle set to False since either reverse_bits or wire_order has been set.",
@@ -241,7 +241,7 @@ def circuit_drawer(
             idle_wires=idle_wires,
             with_layout=with_layout,
             initial_state=initial_state,
-            cregbundle=cregbundle,
+            cregbundle=cregbundle if cregbundle is not None else True,
             wire_order=wire_order,
         )
     elif output == "latex_source":
@@ -256,7 +256,7 @@ def circuit_drawer(
             idle_wires=idle_wires,
             with_layout=with_layout,
             initial_state=initial_state,
-            cregbundle=cregbundle,
+            cregbundle=cregbundle if cregbundle is not None else True,
             wire_order=wire_order,
         )
     elif output == "mpl":
@@ -302,7 +302,7 @@ def _text_circuit_drawer(
     with_layout=True,
     fold=None,
     initial_state=True,
-    cregbundle=False,
+    cregbundle=None,
     encoding=None,
     wire_order=None,
 ):
@@ -652,7 +652,7 @@ def _matplotlib_circuit_drawer(
         fold=fold,
         ax=ax,
         initial_state=initial_state,
-        cregbundle=cregbundle,
+        cregbundle=cregbundle if cregbundle is not None else True,
         global_phase=None,
         calibrations=None,
         qregs=None,

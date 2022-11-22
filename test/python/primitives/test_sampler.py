@@ -22,6 +22,7 @@ from qiskit import QuantumCircuit, pulse, transpile
 from qiskit.circuit import Parameter
 from qiskit.circuit.library import RealAmplitudes
 from qiskit.exceptions import QiskitError
+from qiskit.extensions.unitary import UnitaryGate
 from qiskit.primitives import Sampler, SamplerResult
 from qiskit.primitives.utils import _circuit_key
 from qiskit.providers import JobStatus, JobV1
@@ -447,6 +448,7 @@ class TestSampler(QiskitTestCase):
             sampler = Sampler(circuits=self._pqc)
             result = sampler(circuits=[0], parameter_values=params, shots=1024, seed=15)
         self._compare_probs(result.quasi_dists, target)
+        self.assertEqual(result.quasi_dists[0].shots, 1024)
 
     def test_with_shots_option_none(self):
         """test with shots=None option. Seed is ignored then."""
@@ -739,6 +741,7 @@ class TestSampler(QiskitTestCase):
             params, target = self._generate_params_target([1])
             result = sampler.run([self._pqc], parameter_values=params).result()
             self._compare_probs(result.quasi_dists, target)
+            self.assertEqual(result.quasi_dists[0].shots, 1024)
 
     def test_different_circuits(self):
         """Test collision of quantum circuits."""
@@ -767,6 +770,18 @@ class TestSampler(QiskitTestCase):
 
             keys = [_circuit_key(test_with_scheduling(i)) for i in range(1, 5)]
             self.assertEqual(len(keys), len(set(keys)))
+
+    def test_circuit_with_unitary(self):
+        """Test for circuit with unitary gate."""
+        gate = UnitaryGate(np.eye(2))
+
+        circuit = QuantumCircuit(1)
+        circuit.append(gate, [0])
+        circuit.measure_all()
+
+        sampler = Sampler()
+        sampler_result = sampler.run([circuit]).result()
+        self.assertDictAlmostEqual(sampler_result.quasi_dists[0], {0: 1, 1: 0})
 
 
 if __name__ == "__main__":

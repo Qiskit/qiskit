@@ -164,10 +164,16 @@ class RZXCalibrationBuilder(CalibrationBuilder):
             schedule: The calibration schedule for the RZXGate(theta).
 
         Raises:
+            QiskitError: if rotation angle is not assigned.
             QiskitError: If the control and target qubits cannot be identified.
             CalibrationNotAvailable: RZX schedule cannot be built for input node.
         """
         theta = node_op.params[0]
+
+        try:
+            theta = float(theta)
+        except TypeError as ex:
+            raise QiskitError("Target rotation angle is not assigned.") from ex
 
         rzx_theta = Schedule(name="rzx(%.3f)" % theta)
         rzx_theta.metadata["publisher"] = CalibrationPublisher.QISKIT
@@ -275,11 +281,17 @@ class RZXCalibrationBuilderNoEcho(RZXCalibrationBuilder):
             schedule: The calibration schedule for the RZXGate(theta).
 
         Raises:
+            QiskitError: if rotation angle is not assigned.
             QiskitError: If the control and target qubits cannot be identified,
                 or the backend does not natively support the specified direction of the cx.
             CalibrationNotAvailable: RZX schedule cannot be built for input node.
         """
         theta = node_op.params[0]
+
+        try:
+            theta = float(theta)
+        except TypeError as ex:
+            raise QiskitError("Target rotation angle is not assigned.") from ex
 
         rzx_theta = Schedule(name="rzx(%.3f)" % theta)
         rzx_theta.metadata["publisher"] = CalibrationPublisher.QISKIT

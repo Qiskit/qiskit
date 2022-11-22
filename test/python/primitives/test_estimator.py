@@ -15,11 +15,13 @@
 import unittest
 
 import numpy as np
+from ddt import data, ddt, unpack
 
 from qiskit.circuit import Parameter, QuantumCircuit
 from qiskit.circuit.library import RealAmplitudes
 from qiskit.opflow import PauliSumOp
-from qiskit.primitives import Estimator, EstimatorResult
+from qiskit.primitives import BaseEstimator, Estimator, EstimatorResult
+from qiskit.primitives.utils import _observable_key
 from qiskit.providers import JobV1
 from qiskit.quantum_info import Operator, SparsePauliOp
 from qiskit.test import QiskitTestCase
@@ -31,7 +33,7 @@ class TestEstimator(QiskitTestCase):
     def setUp(self):
         super().setUp()
         self.ansatz = RealAmplitudes(num_qubits=2, reps=2)
-        self.observable = PauliSumOp.from_list(
+        self.observable = SparsePauliOp.from_list(
             [
                 ("II", -1.052373245772859),
                 ("IZ", 0.39793742484318045),
@@ -636,6 +638,54 @@ class TestEstimator(QiskitTestCase):
             ).result()
             self.assertIsInstance(result, EstimatorResult)
             np.testing.assert_allclose(result.values, [-1.307397243478641])
+
+    def test_negative_variance(self):
+        """Test for negative variance caused by numerical error."""
+        qc = QuantumCircuit(1)
+
+        estimator = Estimator()
+        result = estimator.run(qc, 1e-4 * SparsePauliOp("I"), shots=1024).result()
+        self.assertEqual(result.values[0], 1e-4)
+        self.assertEqual(result.metadata[0]["variance"], 0.0)
+
+    def test_different_circuits(self):
+        """Test collision of quantum observables."""
+
+        def get_op(i):
+            op = SparsePauliOp.from_list([("IXIX", i)])
+            return op
+
+        keys = [_observable_key(get_op(i)) for i in range(5)]
+        self.assertEqual(len(keys), len(set(keys)))
+
+
+@ddt
+class TestObservableValidation(QiskitTestCase):
+    """Test observables validation logic."""
+
+    @data(
+        (SparsePauliOp("IXYZ"), (SparsePauliOp("IXYZ"),)),
+        (
+            [SparsePauliOp("IXYZ"), SparsePauliOp("ZYXI")],
+            (SparsePauliOp("IXYZ"), SparsePauliOp("ZYXI")),
+        ),
+    )
+    @unpack
+    def test_validate_observables(self, obsevables, expected):
+        """Test obsevables standardization."""
+        self.assertEqual(BaseEstimator._validate_observables(obsevables), expected)
+
+    @data(None, "ERROR")
+    def test_type_error(self, observables):
+        """Test type error if invalid input."""
+        with self.assertRaises(TypeError):
+            BaseEstimator._validate_observables(observables)
+
+    @data((), [], "")
+    def test_value_error(self, observables):
+        """Test value error if no obsevables are provided."""
+        with self.assertRaises(ValueError):
+            BaseEstimator._validate_observables(observables)
 
 
 if __name__ == "__main__":

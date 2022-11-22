@@ -35,6 +35,9 @@ from .minimum_eigensolver import MinimumEigensolver, MinimumEigensolverResult
 from ..observables_evaluator import estimate_observables
 from ..utils import validate_initial_point, validate_bounds
 
+# private function as we expect this to be updated in the next released
+from ..utils.set_batching import _set_default_batchsize
+
 logger = logging.getLogger(__name__)
 
 
@@ -105,7 +108,7 @@ class VQE(VariationalAlgorithm, MinimumEigensolver):
             metadata dictionary.
 
     References:
-        [1] Peruzzo et al, "A variational eigenvalue solver on a quantum processor"
+        [1]: Peruzzo, A., et al, "A variational eigenvalue solver on a quantum processor"
             `arXiv:1304.3061 <https://arxiv.org/abs/1304.3061>`__
     """
 
@@ -124,9 +127,9 @@ class VQE(VariationalAlgorithm, MinimumEigensolver):
             estimator: The estimator primitive to compute the expectation value of the
                 Hamiltonian operator.
             ansatz: A parameterized quantum circuit to prepare the trial state.
-            optimizer: A classical optimizer to find the minimum energy. This
-                can either be a Qiskit :class:`.Optimizer` or a callable implementing the
-                :class:`.Minimizer` protocol.
+            optimizer: A classical optimizer to find the minimum energy. This can either be a
+                Qiskit :class:`.Optimizer` or a callable implementing the :class:`.Minimizer`
+                protocol.
             gradient: An optional estimator gradient to be used with the optimizer.
             initial_point: An optional initial point (i.e. initial parameter values) for the
                 optimizer. The length of the initial point must match the number of :attr:`ansatz`
@@ -181,9 +184,17 @@ class VQE(VariationalAlgorithm, MinimumEigensolver):
                 fun=evaluate_energy, x0=initial_point, jac=evaluate_gradient, bounds=bounds
             )
         else:
+            # we always want to submit as many estimations per job as possible for minimal
+            # overhead on the hardware
+            was_updated = _set_default_batchsize(self.optimizer)
+
             optimizer_result = self.optimizer.minimize(
                 fun=evaluate_energy, x0=initial_point, jac=evaluate_gradient, bounds=bounds
             )
+
+            # reset to original value
+            if was_updated:
+                self.optimizer.set_max_evals_grouped(None)
 
         optimizer_time = time() - start_time
 
@@ -200,7 +211,9 @@ class VQE(VariationalAlgorithm, MinimumEigensolver):
         else:
             aux_operators_evaluated = None
 
-        return self._build_vqe_result(optimizer_result, aux_operators_evaluated, optimizer_time)
+        return self._build_vqe_result(
+            self.ansatz, optimizer_result, aux_operators_evaluated, optimizer_time
+        )
 
     @classmethod
     def supports_aux_operators(cls) -> bool:
@@ -308,11 +321,13 @@ class VQE(VariationalAlgorithm, MinimumEigensolver):
 
     def _build_vqe_result(
         self,
+        ansatz: QuantumCircuit,
         optimizer_result: OptimizerResult,
         aux_operators_evaluated: ListOrDict[tuple[complex, tuple[complex, int]]],
         optimizer_time: float,
     ) -> VQEResult:
         result = VQEResult()
+        result.optimal_circuit = ansatz.copy()
         result.eigenvalue = optimizer_result.fun
         result.cost_function_evals = optimizer_result.nfev
         result.optimal_point = optimizer_result.x

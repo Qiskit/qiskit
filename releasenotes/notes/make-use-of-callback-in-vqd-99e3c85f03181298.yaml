@@ -1,9 +1,0 @@
-features:
-  - |
-    Add calls of the callback function during the :meth:`energy_evaluation` to track the progress of
-    the algorithm. Also adds a ``step`` argument to the callback to track which eigenstates of the 
-    Hamiltonian is currently being optimized.
-issues:
-  - |
-    The callback function in the :class:`VQD` was defined but never used. 
-

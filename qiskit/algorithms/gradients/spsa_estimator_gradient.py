@@ -22,6 +22,7 @@ from qiskit.algorithms import AlgorithmError
 from qiskit.circuit import Parameter, QuantumCircuit
 from qiskit.opflow import PauliSumOp
 from qiskit.primitives import BaseEstimator
+from qiskit.providers import Options
 from qiskit.quantum_info.operators.base_operator import BaseOperator
 
 from .base_estimator_gradient import BaseEstimatorGradient
@@ -40,7 +41,7 @@ class SPSAEstimatorGradient(BaseEstimatorGradient):
         epsilon: float,
         batch_size: int = 1,
         seed: int | None = None,
-        **options,
+        options: Options | None = None,
     ):
         """
         Args:
@@ -62,7 +63,7 @@ class SPSAEstimatorGradient(BaseEstimatorGradient):
         self._batch_size = batch_size
         self._seed = np.random.default_rng(seed)
 
-        super().__init__(estimator, **options)
+        super().__init__(estimator, options)
 
     def _run(
         self,

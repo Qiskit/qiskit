@@ -119,3 +119,45 @@ class TestCircuitDrawer(QiskitTestCase):
 
         with self.assertWarnsRegex(RuntimeWarning, "Cregbundle set"):
             visualization.circuit_drawer(circuit, cregbundle=True, wire_order=[0, 1, 2, 5, 4, 3])
+
+    def test_reverse_bits(self):
+        """Test reverse_bits should not raise warnings when no classical qubits:
+        See: https://github.com/Qiskit/qiskit-terra/pull/8689"""
+        circuit = QuantumCircuit(3)
+        circuit.x(1)
+        expected = "\n".join(
+            [
+                "          ",
+                "q_2: ─────",
+                "     ┌───┐",
+                "q_1: ┤ X ├",
+                "     └───┘",
+                "q_0: ─────",
+                "          ",
+            ]
+        )
+        result = visualization.circuit_drawer(circuit, reverse_bits=True)
+        self.assertEqual(result.__str__(), expected)
+
+    def test_no_explict_cregbundle(self):
+        """Test no explicit cregbundle should not raise warnings about being disabled
+        See: https://github.com/Qiskit/qiskit-terra/issues/8690"""
+        inner = QuantumCircuit(1, 1, name="inner")
+        inner.measure(0, 0)
+        circuit = QuantumCircuit(2, 2)
+        circuit.append(inner, [0], [0])
+        expected = "\n".join(
+            [
+                "     ┌────────┐",
+                "q_0: ┤0       ├",
+                "     │        │",
+                "q_1: ┤  inner ├",
+                "     │        │",
+                "c_0: ╡0       ╞",
+                "     └────────┘",
+                "c_1: ══════════",
+                "               ",
+            ]
+        )
+        result = visualization.circuit_drawer(circuit)
+        self.assertEqual(result.__str__(), expected)

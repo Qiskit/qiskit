@@ -163,7 +163,7 @@ class UnitarySimulatorPy(BackendV1):
 
         # Check for custom initial statevector in backend_options first,
         # then config second
-        if "initial_unitary" in backend_options:
+        if "initial_unitary" in backend_options and backend_options["initial_unitary"] is not None:
             self._initial_unitary = np.array(backend_options["initial_unitary"], dtype=complex)
         elif hasattr(qobj_config, "initial_unitary"):
             self._initial_unitary = np.array(qobj_config.initial_unitary, dtype=complex)

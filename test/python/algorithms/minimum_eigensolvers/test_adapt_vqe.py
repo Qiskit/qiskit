@@ -15,6 +15,8 @@
 import unittest
 from test.python.algorithms import QiskitAlgorithmsTestCase
 
+from ddt import ddt, data, unpack
+
 from qiskit.algorithms.minimum_eigensolvers import VQE
 from qiskit.algorithms.minimum_eigensolvers.adapt_vqe import AdaptVQE, TerminationCriterion
 from qiskit.algorithms.optimizers import SLSQP
@@ -23,13 +25,16 @@ from qiskit.circuit.library import EvolvedOperatorAnsatz
 from qiskit.opflow import PauliSumOp
 from qiskit.primitives import Estimator
 from qiskit.quantum_info import SparsePauliOp
+from qiskit.utils import algorithm_globals
 
 
+@ddt
 class TestAdaptVQE(QiskitAlgorithmsTestCase):
     """Test of the AdaptVQE minimum eigensolver"""
 
     def setUp(self):
         super().setUp()
+        algorithm_globals.random_seed = 42
         self.h2_op = PauliSumOp.from_list(
             [
                 ("IIII", -0.8105479805373266),
@@ -108,15 +113,37 @@ class TestAdaptVQE(QiskitAlgorithmsTestCase):
 
         self.assertEqual(res.termination_criterion, TerminationCriterion.MAXIMUM)
 
-    def test_cyclicity(self):
-        """Test to check termination criteria"""
-        calc = AdaptVQE(
-            VQE(Estimator(), self.ansatz, self.optimizer),
-            max_iterations=100,
-        )
-        res = calc.compute_minimum_eigenvalue(operator=self.h2_op)
-
-        self.assertEqual(res.termination_criterion, TerminationCriterion.CYCLICITY)
+    @data(
+        ([1, 1], True),
+        ([1, 11], False),
+        ([11, 1], False),
+        ([1, 12], False),
+        ([12, 2], False),
+        ([1, 1, 1], True),
+        ([1, 2, 1], False),
+        ([1, 2, 2], True),
+        ([1, 2, 21], False),
+        ([1, 12, 2], False),
+        ([11, 1, 2], False),
+        ([1, 2, 1, 1], True),
+        ([1, 2, 1, 2], True),
+        ([1, 2, 1, 21], False),
+        ([11, 2, 1, 2], False),
+        ([1, 11, 1, 111], False),
+        ([11, 1, 111, 1], False),
+        ([1, 2, 3, 1, 2, 3], True),
+        ([1, 2, 3, 4, 1, 2, 3], False),
+        ([11, 2, 3, 1, 2, 3], False),
+        ([1, 2, 3, 1, 2, 31], False),
+        ([1, 2, 3, 4, 1, 2, 3, 4], True),
+        ([11, 2, 3, 4, 1, 2, 3, 4], False),
+        ([1, 2, 3, 4, 1, 2, 3, 41], False),
+        ([1, 2, 3, 4, 5, 1, 2, 3, 4], False),
+    )
+    @unpack
+    def test_cyclicity(self, seq, is_cycle):
+        """Test AdaptVQE index cycle detection"""
+        self.assertEqual(is_cycle, AdaptVQE._check_cyclicity(seq))
 
     def test_vqe_solver(self):
         """Test to check if the VQE solver remains the same or not"""
@@ -134,6 +161,16 @@ class TestAdaptVQE(QiskitAlgorithmsTestCase):
         res = calc._compute_gradients(operator=SparsePauliOp("Y"), theta=[])
         # compare with manually computed reference value
         self.assertAlmostEqual(res[0][0], 2.0)
+
+    def test_supports_aux_operators(self):
+        """Test that auxiliary operators are supported"""
+        calc = AdaptVQE(VQE(Estimator(), self.ansatz, self.optimizer))
+        res = calc.compute_minimum_eigenvalue(operator=self.h2_op, aux_operators=[self.h2_op])
+
+        expected_eigenvalue = -1.85727503
+
+        self.assertAlmostEqual(res.eigenvalue, expected_eigenvalue, places=6)
+        self.assertAlmostEqual(res.aux_operators_evaluated[0][0], expected_eigenvalue, places=6)
 
 
 if __name__ == "__main__":

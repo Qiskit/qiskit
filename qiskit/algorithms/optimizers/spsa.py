@@ -712,8 +712,14 @@ def constant(eta=0.01):
 
 
 def _batch_evaluate(function, points, max_evals_grouped, unpack_points=False):
+    """Evaluate a function on all points with batches of max_evals_grouped.
+
+    The points are a list of inputs, as ``[in1, in2, in3, ...]``. If the individual
+    inputs are tuples (because the function takes multiple inputs), set ``unpack_points`` to ``True``.
+    """
+
     # if the function cannot handle lists of points as input, cover this case immediately
-    if max_evals_grouped == 1:
+    if max_evals_grouped is None or max_evals_grouped == 1:
         # support functions with multiple arguments where the points are given in a tuple
         return [
             function(*point) if isinstance(point, tuple) else function(point) for point in points

@@ -19,7 +19,9 @@ import numpy as np
 
 from qiskit.algorithms.optimizers import SPSA, QNSPSA
 from qiskit.circuit.library import PauliTwoDesign
-from qiskit.opflow import I, Z, StateFn
+from qiskit.primitives import Sampler
+from qiskit.providers.basicaer import StatevectorSimulatorPy
+from qiskit.opflow import I, Z, StateFn, MatrixExpectation
 from qiskit.utils import algorithm_globals
 
 
@@ -195,3 +197,28 @@ class TestSPSA(QiskitAlgorithmsTestCase):
         point = np.ones(5)
         result = SPSA.estimate_stddev(objective, point, avg=10, max_evals_grouped=max_evals_grouped)
         self.assertAlmostEqual(result, 0)
+
+    def test_qnspsa_fidelity_deprecation(self):
+        """Test using a backend and expectation converter in get_fidelity warns."""
+        ansatz = PauliTwoDesign(2, reps=1, seed=2)
+
+        with self.assertWarns(PendingDeprecationWarning):
+            _ = QNSPSA.get_fidelity(ansatz, StatevectorSimulatorPy(), MatrixExpectation())
+
+    def test_qnspsa_fidelity_primitives(self):
+        """Test the primitives can be used in get_fidelity."""
+        ansatz = PauliTwoDesign(2, reps=1, seed=2)
+        initial_point = np.random.random(ansatz.num_parameters)
+
+        with self.subTest(msg="pass as kwarg"):
+            fidelity = QNSPSA.get_fidelity(ansatz, sampler=Sampler())
+            result = fidelity(initial_point, initial_point)
+
+            self.assertAlmostEqual(result[0], 1)
+
+        # this test can be removed once backend and expectation are removed
+        with self.subTest(msg="pass positionally"):
+            fidelity = QNSPSA.get_fidelity(ansatz, Sampler())
+            result = fidelity(initial_point, initial_point)
+
+            self.assertAlmostEqual(result[0], 1)
