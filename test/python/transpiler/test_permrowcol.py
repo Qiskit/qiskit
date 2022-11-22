@@ -90,7 +90,7 @@ class TestPermRowCol(QiskitTestCase):
         permrowcol = PermRowCol(coupling)
         parity_mat = np.identity(6)
 
-        instance = permrowcol.perm_row_col(parity_mat)
+        instance = permrowcol.perm_row_col(parity_mat)[0]
         self.assertEqual(len(instance.data), 0)
 
     def test_perm_row_col_doesnt_return_cnots_with_identity_matrix_permutation(self):
@@ -101,7 +101,7 @@ class TestPermRowCol(QiskitTestCase):
         parity_mat = np.identity(6)
         np.random.shuffle(parity_mat)
 
-        instance = permrowcol.perm_row_col(parity_mat)
+        instance = permrowcol.perm_row_col(parity_mat)[0]
         self.assertEqual(len(instance.data), 0)
 
     def test_choose_row_returns_np_int64(self):
