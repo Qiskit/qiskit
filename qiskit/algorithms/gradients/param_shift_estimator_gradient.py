@@ -47,8 +47,8 @@ class ParamShiftEstimatorGradient(BaseEstimatorGradient):
                 default options > primitive's default setting.
                 Higher priority setting overrides lower priority setting
         """
-        self.parameter_value_offset_cache = {}
-        SUPPORTED_GATES = [
+        self._parameter_value_offset_cache = {}
+        self._SUPPORTED_GATES = [
             "x",
             "y",
             "z",
@@ -65,17 +65,36 @@ class ParamShiftEstimatorGradient(BaseEstimatorGradient):
             "rzz",
             "rzx",
         ]
-        super().__init__(estimator, options, supported_gates=SUPPORTED_GATES, add_virtual_var=True)
+        super().__init__(estimator, options)
 
-    def _preprocess(self, circuits: Sequence[QuantumCircuit]):
+    def _run(
+        self,
+        circuits: Sequence[QuantumCircuit],
+        observables: Sequence[BaseOperator | PauliSumOp],
+        parameter_values: Sequence[Sequence[float]],
+        parameters: Sequence[Sequence[Parameter] | None],
+        **options,
+    ) -> EstimatorGradientResult:
+        """Compute the estimator gradients on the given circuits."""
+        self._preprocess(circuits)
+        results = self._run_unique(circuits, observables, parameter_values, parameters, **options)
+        return self._recombine_results(circuits, results)
+
+    def _preprocess(
+        self,
+        circuits: Sequence[QuantumCircuit],
+    ) -> None:
         """Preprocess the gradient."""
         for circuit in circuits:
             if self._gradient_circuit_cache.get(_circuit_key(circuit)) is None:
-                gradient_circuit = self._assign_unique_parameters(circuit)
+                gradient_circuit = self._assign_unique_parameters(
+                    circuit, supported_gates=self._SUPPORTED_GATES, add_virtual_var=True
+                )
+                print(gradient_circuit.draw())
                 self._gradient_circuit_cache[_circuit_key(circuit)] = gradient_circuit
-                self.parameter_value_offset_cache[
+                self._parameter_value_offset_cache[
                     _circuit_key(circuit)
-                ] = _make_param_shift_parameter_value_offsets(gradient_circuit)
+                ] = _make_param_shift_parameter_value_offsets(gradient_circuit, circuit)
 
     def _run_unique(
         self,
@@ -96,9 +115,9 @@ class ParamShiftEstimatorGradient(BaseEstimatorGradient):
 
             # make parameter shift parameter values
             gradient_circuit = self._gradient_circuit_cache[_circuit_key(circuit)]
-            parameter_value_offsets = self.parameter_value_offset_cache[_circuit_key(circuit)]
-
+            parameter_value_offsets = self._parameter_value_offset_cache[_circuit_key(circuit)]
             gradient_parameter_values, coeffs = _make_param_shift_parameter_values(
+                circuit=circuit,
                 gradient_circuit=gradient_circuit,
                 parameter_value_offsets=parameter_value_offsets,
                 parameter_values=parameter_values_,

@@ -80,6 +80,19 @@ class GradientCircuit:
     coeff_map: dict[Parameter, float | ParameterExpression]
     """A dictionary maps the parameters of ``gradient_circuit`` to their coefficients"""
 
+@dataclass
+class GradientCircuit2:
+    """Stores gradient circuit data for the parameter shift method"""
+
+    gradient_circuit: QuantumCircuit
+    """An internal quantum circuit used to calculate the gradient"""
+    gradient_parameter_map: dict[Parameter, Parameter]
+    """A dictionary maps the parameters of ``circuit`` to the parameters of ``gradient_circuit``"""
+    gradient_virtual_parameter_map: dict[Parameter, Parameter]
+    """A dictionary maps the parameters of ``gradient_circuit`` to the virtual parameter variables"""
+    coeff_map: dict[Parameter, float | ParameterExpression]
+    """A dictionary maps the parameters of ``gradient_circuit`` to their coefficients"""
+
 
 def _make_param_shift_gradient_circuit_data(
     circuit: QuantumCircuit,
@@ -215,7 +228,7 @@ def _make_param_shift_base_parameter_values_old(
 
 
 def _make_param_shift_parameter_value_offsets(
-    gradient_circuit: GradientCircuit,
+    gradient_circuit: GradientCircuit, circuit: QuantumCircuit
 ) -> list[np.ndarray]:
     """Makes base parameter values for the parameter shift method. Each base parameter value will
         be added to the given parameter values in later calculations.
@@ -227,12 +240,13 @@ def _make_param_shift_parameter_value_offsets(
         The base parameter values for the parameter shift method.
     """
     # Make internal parameter values for the parameter shift
-    parameters = gradient_circuit.circuit.parameters
+    # parameters =# gradient_circuit.circuit.parameters
     g_parameters = gradient_circuit.gradient_circuit.parameters
     plus_offsets = []
     minus_offsets = []
-    # Make base decomposed parameter values for each original parameter
-    for param in parameters:
+    print(gradient_circuit.gradient_circuit.draw())
+    print(g_parameters)
+    for param in circuit.parameters:
         for g_param in gradient_circuit.gradient_parameter_map[param]:
             if g_param in gradient_circuit.gradient_virtual_parameter_map:
                 g_param = gradient_circuit.gradient_virtual_parameter_map[g_param]
@@ -244,7 +258,6 @@ def _make_param_shift_parameter_value_offsets(
             plus_offsets.append(plus)
             minus_offsets.append(minus)
     return plus_offsets + minus_offsets
-
 
 def _param_shift_preprocessing(circuit: QuantumCircuit) -> ParameterShiftGradientCircuit:
     """Preprocessing for the parameter shift method.
@@ -262,6 +275,7 @@ def _param_shift_preprocessing(circuit: QuantumCircuit) -> ParameterShiftGradien
 
 
 def _make_param_shift_parameter_values(
+    circuit: QuantumCircuit,
     gradient_circuit: GradientCircuit,
     parameter_value_offsets: list[np.ndarray],
     parameter_values: np.ndarray,
@@ -279,7 +293,7 @@ def _make_param_shift_parameter_values(
     Returns:
         The final parameter values for the parameter shift method and the coefficients.
     """
-    circuit = gradient_circuit.circuit
+    # circuit = gradient_circuit.circuit
     g_circuit = gradient_circuit.gradient_circuit
     gradient_parameter_values = np.zeros(len(g_circuit.parameters))
     plus_offsets, minus_offsets, coeffs = [], [], []
