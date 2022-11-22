@@ -236,7 +236,7 @@ class AstInterpreter:
             )
         maxidx = max([len(id0), len(id1)])
         for idx in range(maxidx):
-            cx_gate = CXGate()
+            cx_gate = lib.CXGate()
             cx_gate.condition = self.condition
             if len(id0) > 1 and len(id1) > 1:
                 self.dag.apply_operation_back(cx_gate, [id0[idx], id1[idx]], [])
