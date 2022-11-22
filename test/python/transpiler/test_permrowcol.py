@@ -6,7 +6,8 @@ import retworkx as rx
 
 from qiskit.test import QiskitTestCase
 from qiskit.transpiler.synthesis.permrowcol import PermRowCol
-from qiskit import QuantumCircuit
+from qiskit.circuit.library import LinearFunction
+from qiskit import QuantumCircuit, QuantumRegister
 from qiskit.transpiler import CouplingMap
 
 
@@ -261,6 +262,64 @@ class TestPermRowCol(QiskitTestCase):
         self.assertEqual(1, sum(parity_mat[1]))
         self.assertEqual(1, parity_mat[1, 2])
 
+    def test_get_nodes_for_eliminate_row_returns_list(self):
+        """Tests if _get_nodes_for_eliminate_row returns list"""
+
+        coupling = CouplingMap()
+        permrowcol = PermRowCol(coupling)
+        parity_mat = np.identity(3)
+        chosen_column = 1
+        chosen_row = 1
+        instance = permrowcol._get_nodes_for_eliminate_row(parity_mat, chosen_column, chosen_row)
+
+        self.assertIsInstance(instance, list)
+
+    def test_get_nodes_for_eliminate_row_returns_correct_nodes_case_one(self):
+        """Tests if _get_nodes_for_eliminate_row returns correct terminals test case one"""
+
+        coupling_list = [(0, 1), (0, 3), (1, 2), (1, 4), (2, 5), (3, 4), (4, 5)]
+        coupling = CouplingMap(coupling_list)
+        permrowcol = PermRowCol(coupling)
+        parity_mat = np.array(
+            [
+                [0, 1, 0, 1, 1, 0],
+                [1, 0, 1, 0, 0, 0],
+                [1, 0, 0, 0, 1, 1],
+                [1, 1, 1, 0, 1, 0],
+                [1, 0, 1, 0, 1, 0],
+                [1, 0, 1, 0, 1, 1],
+            ]
+        )
+        chosen_row = 0
+        chosen_column = 3
+        terminals = np.array([0, 1, 3])
+        instance = permrowcol._get_nodes_for_eliminate_row(parity_mat, chosen_column, chosen_row)
+
+        self.assertEqual(np.array_equal(instance, terminals), True)
+
+    def test_get_nodes_for_eliminate_row_returns_correct_nodes_case_two(self):
+        """Tests if _get_nodes_for_eliminate_row returns correct terminals test case two"""
+
+        coupling_list = [(1, 2), (1, 4), (2, 5), (3, 4), (4, 5)]
+        coupling = CouplingMap(coupling_list)
+        permrowcol = PermRowCol(coupling)
+        parity_mat = np.array(
+            [
+                [0, 0, 0, 1, 0, 0],
+                [1, 0, 1, 0, 0, 0],
+                [1, 0, 0, 0, 1, 1],
+                [0, 1, 0, 0, 0, 0],
+                [0, 0, 0, 0, 1, 0],
+                [0, 0, 0, 0, 0, 1],
+            ]
+        )
+        chosen_row = 1
+        chosen_column = 2
+        terminals = np.array([1, 2, 4, 5])
+        instance = permrowcol._get_nodes_for_eliminate_row(parity_mat, chosen_column, chosen_row)
+
+        self.assertEqual(np.array_equal(instance, terminals), True)
+
     def test_return_columns_return_list(self):
         """Test the output type of return_columns"""
         coupling = CouplingMap()
@@ -374,6 +433,36 @@ class TestPermRowCol(QiskitTestCase):
 
         permrowcol._reduce_graph(2)
         self.assertCountEqual(permrowcol._graph.edge_list(), [])
+
+    def test_perm_row_col_does_correct_permutation_matrix(self):
+        """Test Not to be included to the final commit"""
+        coupling_list = [(0, 1), (0, 3), (1, 2), (1, 4), (2, 5), (3, 4), (4, 5)]
+        coupling = CouplingMap(coupling_list)
+        permrowcol = PermRowCol(coupling)
+        parity_mat = np.array(
+            [
+                [0, 1, 0, 1, 1, 0],
+                [1, 1, 1, 1, 1, 0],
+                [1, 0, 0, 0, 1, 1],
+                [1, 1, 1, 0, 1, 0],
+                [1, 0, 1, 0, 1, 0],
+                [1, 0, 1, 0, 1, 1],
+            ]
+        )
+
+        correct_permutation_matrix = np.array(
+            [
+                [0, 0, 0, 1, 0, 0],
+                [0, 0, 1, 0, 0, 0],
+                [0, 0, 0, 0, 0, 1],
+                [0, 1, 0, 0, 0, 0],
+                [0, 0, 0, 0, 1, 0],
+                [1, 0, 0, 0, 0, 0],
+            ]
+        )
+
+        instance = permrowcol.perm_row_col(parity_mat)
+        self.assertEqual(np.array_equal(parity_mat, correct_permutation_matrix), True)
 
 
 if __name__ == "__main__":

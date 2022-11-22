@@ -15,8 +15,9 @@
 import numpy as np
 import retworkx as rx
 
+from qiskit import QuantumCircuit, QuantumRegister
+from qiskit.circuit.library import LinearFunction
 from qiskit.transpiler import CouplingMap
-from qiskit import QuantumRegister, QuantumCircuit
 from qiskit.transpiler.synthesis.graph_utils import (
     postorder_traversal,
     preorder_traversal,
@@ -57,14 +58,14 @@ class PermRowCol:
                 circuit.cx(edge[0], edge[1])
 
             if sum(parity_mat[row]) > 1:
-                A = np.delete(np.delete(parity_mat, row, 0), column, 1)
-                B = np.delete(parity_mat, column, 1)[row]
-                # X = inv(A) * B
-                # Eliminate row will go here
+                nodes = self._get_nodes_for_eliminate_row(parity_mat, column, row)
+
+                for edge in self._eliminate_row(parity_mat, row, nodes):
+                    circuit.cx(edge[0], edge[1])  # Adds a CNOT to the circuit
 
             qubit_alloc[column] = row
 
-            self._reduce_graph(column)
+            self._reduce_graph(row)
 
         if len(qubit_alloc) != 0:
             qubit_alloc[qubit_alloc.index(-1)] = self._graph.node_indexes()[0]
@@ -198,3 +199,37 @@ class PermRowCol:
             parity_mat[edge[0], :] = (parity_mat[edge[0], :] + parity_mat[edge[1], :]) % 2
 
         return C
+
+    def _get_nodes_for_eliminate_row(
+        self, parity_mat: np.ndarray, chosen_column: int, chosen_row: int
+    ) -> list:
+
+        """Find terminals for steiner_tree in eliminate_row method as a list of rows making linear combination of row chosen_row
+
+        Args:
+            parity_mat (np.ndarray): parity matrix representing a circuit
+            chosen_column (int): index of the column to be eliminated
+            chosen_row (int): index of the row to be eliminated
+
+
+        Returns:
+            List: list of terminals for steiner_tree in eliminate_row method.
+
+        """
+
+        A = np.delete(np.delete(parity_mat.copy(), chosen_row, 0), chosen_column, 1).astype(
+            int
+        )  # Parity_mat without chosen_column and chosen_row
+        B = np.delete(parity_mat[chosen_row], chosen_column)  # Chosen_row without chosen_column
+
+        inv_A = LinearFunction(
+            LinearFunction(A).synthesize().reverse_ops()
+        ).linear  # Creates inverse of parity_mat
+
+        X = np.insert((np.matmul(B, inv_A) % 2), chosen_row, 1)  # Calculates B*inv_A
+
+        nodes = [
+            i for i in self._graph.node_indices() if i == chosen_row or X[i] == 1
+        ]  # Finds indexes of rows that are added to chosen_row
+
+        return nodes
