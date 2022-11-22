@@ -97,51 +97,6 @@ target_rz_ry_u_noerror.add_instruction(RYGate(θ), ry_props, name="ry")
 target_rz_ry_u_noerror.add_instruction(UGate(θ, ϕ, λ), u_props, name="u")
 
 
-θ = Parameter("θ")
-ϕ = Parameter("ϕ")
-λ = Parameter("λ")
-
-# a typical target where u1 is cheaper than u2 is cheaper than u3
-u1_props = {(0,): InstructionProperties(error=0)}
-u2_props = {(0,): InstructionProperties(error=1e-4)}
-u3_props = {(0,): InstructionProperties(error=2e-4)}
-target_u1_u2_u3 = Target()
-target_u1_u2_u3.add_instruction(U1Gate(θ), u1_props, name="u1")
-target_u1_u2_u3.add_instruction(U2Gate(θ, ϕ), u2_props, name="u2")
-target_u1_u2_u3.add_instruction(U3Gate(θ, ϕ, λ), u3_props, name="u3")
-
-# a typical target where continuous rz and rx are available; rz is cheaper
-rz_props = {(0,): InstructionProperties(duration=0, error=0)}
-rx_props = {(0,): InstructionProperties(duration=0.5e-8, error=0.00025)}
-target_rz_rx = Target()
-target_rz_rx.add_instruction(RZGate(θ), rz_props, name="rz")
-target_rz_rx.add_instruction(RXGate(θ), rx_props, name="rx")
-
-# a typical target where continuous rz, and discrete sx are available; rz is cheaper
-rz_props = {(0,): InstructionProperties(duration=0, error=0)}
-sx_props = {(0,): InstructionProperties(duration=0.5e-8, error=0.00025)}
-target_rz_sx = Target()
-target_rz_sx.add_instruction(RZGate(θ), rz_props, name="rz")
-target_rz_sx.add_instruction(SXGate(), sx_props, name="sx")
-
-# a target with overcomplete basis, rz is cheaper than ry is cheaper than u
-rz_props = {(0,): InstructionProperties(duration=0.1e-8, error=0.0001)}
-ry_props = {(0,): InstructionProperties(duration=0.5e-8, error=0.0002)}
-u_props = {(0,): InstructionProperties(duration=0.9e-8, error=0.0005)}
-target_rz_ry_u = Target()
-target_rz_ry_u.add_instruction(RZGate(θ), rz_props, name="rz")
-target_rz_ry_u.add_instruction(RYGate(θ), ry_props, name="ry")
-target_rz_ry_u.add_instruction(UGate(θ, ϕ, λ), u_props, name="u")
-
-# a target with hadamard and phase, we don't yet have an explicit decomposer
-# but we can at least recognize circuits that are native for it
-h_props = {(0,): InstructionProperties(duration=0.3e-8, error=0.0003)}
-p_props = {(0,): InstructionProperties(duration=0, error=0)}
-target_h_p = Target()
-target_h_p.add_instruction(HGate(), h_props, name="h")
-target_h_p.add_instruction(PhaseGate(θ), p_props, name="p")
-
-
 @ddt.ddt
 class TestOptimize1qGatesDecomposition(QiskitTestCase):
     """Test for 1q gate optimizations."""
