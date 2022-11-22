@@ -247,7 +247,6 @@ Exceptions
 
 import os
 import sys
-import warnings
 
 from .array import array_to_latex
 
@@ -282,24 +281,3 @@ from .circuit import text, matplotlib, latex
 # Prepare for migration of old versioned name to unversioned name.  The `pulse_drawer_v2` name can
 # be deprecated in Terra 0.24, as `pulse_drawer` became available by that name in Terra 0.23.
 pulse_drawer_v2 = pulse_drawer
-
-_DEPRECATED_NAMES = {
-    "HAS_MATPLOTLIB",
-    "HAS_PYLATEX",
-    "HAS_PIL",
-    "HAS_PDFTOCAIRO",
-}
-
-
-def __getattr__(name):
-    if name in _DEPRECATED_NAMES:
-        from qiskit.utils import optionals
-
-        warnings.warn(
-            f"Accessing '{name}' from '{__name__}' is deprecated since Qiskit Terra 0.21 "
-            "and will be removed in a future release. Use 'qiskit.utils.optionals' instead.",
-            DeprecationWarning,
-            stacklevel=2,
-        )
-        return getattr(optionals, name)
-    raise AttributeError(f"module '{__name__}' has no attribute '{name}'")

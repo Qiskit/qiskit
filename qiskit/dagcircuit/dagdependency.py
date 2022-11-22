@@ -17,7 +17,7 @@ import math
 import heapq
 from collections import OrderedDict, defaultdict
 
-import retworkx as rx
+import rustworkx as rx
 
 from qiskit.circuit.quantumregister import QuantumRegister, Qubit
 from qiskit.circuit.classicalregister import ClassicalRegister, Clbit
