@@ -24,6 +24,27 @@ class TestPermRowCol(QiskitTestCase):
 
         self.assertIsInstance(instance, QuantumCircuit)
 
+    def test_perm_row_col_doesnt_return_cnots_with_identity_matrix(self):
+        """Test that permrowcol doesn't return any cnots when matrix as parity matrix is identity matrix"""
+        coupling_list = [(0, 1), (0, 3), (1, 2), (1, 4), (2, 5), (3, 4), (4, 5)]
+        coupling = CouplingMap(coupling_list)
+        permrowcol = PermRowCol(coupling)
+        parity_mat = np.identity(6)
+
+        instance = permrowcol.perm_row_col(parity_mat)
+        self.assertEqual(len(instance.data), 0)
+
+    def test_perm_row_col_doesnt_return_cnots_with_identity_matrix_permutation(self):
+        """Test that permrowcol doesn't return any cnots when matrix as parity matrix is permutation of identity matrix"""
+        coupling_list = [(0, 1), (0, 3), (1, 2), (1, 4), (2, 5), (3, 4), (4, 5)]
+        coupling = CouplingMap(coupling_list)
+        permrowcol = PermRowCol(coupling)
+        parity_mat = np.identity(6)
+        np.random.shuffle(parity_mat)
+
+        instance = permrowcol.perm_row_col(parity_mat)
+        self.assertEqual(len(instance.data), 0)
+
     def test_choose_row_returns_np_int64(self):
         """Test the output type of choose_row"""
         coupling = CouplingMap()
