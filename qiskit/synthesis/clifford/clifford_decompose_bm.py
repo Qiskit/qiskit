@@ -10,7 +10,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 """
-Circuit synthesis for the Clifford class.
+Circuit synthesis for 2-qubit and 3-qubit Cliffords.
 """
 # pylint: disable=invalid-name
 
@@ -31,9 +31,28 @@ from qiskit.quantum_info.operators.symplectic.clifford_circuits import (
 )
 
 
-def decompose_clifford_bm(clifford):
-    """Decompose a clifford"""
+def synth_clifford_bm(clifford):
+    """Optimal CX-cost decomposition of a Clifford operator on 2-qubits or 3-qubits
+    into a QuantumCircuit based on Bravyi-Maslov method.
+
+    Args:
+        clifford (Clifford): a clifford operator.
+
+    Return:
+        QuantumCircuit: a circuit implementation of the Clifford.
+
+    Raises:
+        QiskitError: if clifford is on more than 3 qubits.
+
+    Reference:
+        1. S. Bravyi, D. Maslov, *Hadamard-free circuits expose the
+           structure of the Clifford group*,
+           `arXiv:2003.09412 [quant-ph] <https://arxiv.org/abs/2003.09412>`_
+    """
     num_qubits = clifford.num_qubits
+
+    if num_qubits > 3:
+        raise QiskitError("Can only decompose up to 3-qubit Clifford circuits.")
 
     if num_qubits == 1:
         return _decompose_clifford_1q(clifford.tableau)

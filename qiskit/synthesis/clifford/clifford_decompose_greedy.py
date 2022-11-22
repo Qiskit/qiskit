@@ -31,8 +31,12 @@ from qiskit.quantum_info.operators.symplectic.clifford_circuits import (
 from qiskit.quantum_info.operators.symplectic.pauli import Pauli
 
 
-def decompose_clifford_greedy(clifford):
-    """Decompose a Clifford operator into a QuantumCircuit.
+def synth_clifford_greedy(clifford):
+    """Decompose a Clifford operator into a QuantumCircuit based on the
+    greedy Clifford compiler that is described in Appendix A of
+    Bravyi, Hu, Maslov and Shaydulin.
+
+    This method typically yields better CX cost compared to the Aaronson-Gottesma method.
 
     Args:
         clifford (Clifford): a clifford operator.
@@ -42,6 +46,11 @@ def decompose_clifford_greedy(clifford):
 
     Raises:
         QiskitError: if symplectic Gaussian elimination fails.
+
+    Reference:
+        1. Sergey Bravyi, Shaohan Hu, Dmitri Maslov, Ruslan Shaydulin,
+           *Clifford Circuit Optimization with Templates and Symbolic Pauli Gates*,
+           `arXiv:2105.02291 [quant-ph] <https://arxiv.org/abs/2105.02291>`_
     """
 
     num_qubits = clifford.num_qubits

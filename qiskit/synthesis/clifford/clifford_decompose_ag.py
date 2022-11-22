@@ -33,14 +33,19 @@ from qiskit.quantum_info.operators.symplectic.clifford_circuits import (
 from .clifford_decompose_bm import _decompose_clifford_1q
 
 
-def decompose_clifford_ag(clifford):
-    """Decompose a Clifford operator into a QuantumCircuit.
+def synth_clifford_ag(clifford):
+    """Decompose a Clifford operator into a QuantumCircuit based on Aaronson-Gottesman method.
 
     Args:
         clifford (Clifford): a clifford operator.
 
     Return:
         QuantumCircuit: a circuit implementation of the Clifford.
+
+    Reference:
+        1. S. Aaronson, D. Gottesman, *Improved Simulation of Stabilizer Circuits*,
+           Phys. Rev. A 70, 052328 (2004).
+           `arXiv:quant-ph/0406196 <https://arxiv.org/abs/quant-ph/0406196>`_
     """
     # Use 1-qubit decomposition method
     if clifford.num_qubits == 1:

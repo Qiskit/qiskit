@@ -14,9 +14,9 @@ Circuit synthesis for the Clifford class.
 """
 
 from qiskit.synthesis.clifford import (
-    decompose_clifford_ag,
-    decompose_clifford_bm,
-    decompose_clifford_greedy,
+    synth_clifford_ag,
+    synth_clifford_bm,
+    synth_clifford_greedy,
 )
 
 
@@ -52,12 +52,12 @@ def decompose_clifford(clifford, method=None):
     num_qubits = clifford.num_qubits
 
     if method == "AG":
-        return decompose_clifford_ag(clifford)
+        return synth_clifford_ag(clifford)
 
     if method == "greedy":
-        return decompose_clifford_greedy(clifford)
+        return synth_clifford_greedy(clifford)
 
     if num_qubits <= 3:
-        return decompose_clifford_bm(clifford)
+        return synth_clifford_bm(clifford)
 
-    return decompose_clifford_greedy(clifford)
+    return synth_clifford_greedy(clifford)
