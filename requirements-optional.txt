@@ -6,7 +6,6 @@
 # maybe `setup.py` too.
 
 qiskit-aer
-qiskit-toqm>=0.0.4; platform_machine != 'aarch64' or platform_system != 'Linux'
 python-constraint>=1.4
 cplex; python_version < '3.11'
 cvxpy
