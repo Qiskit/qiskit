@@ -32,7 +32,6 @@ from qiskit.quantum_info.synthesis.two_qubit_decompose import (
 )
 from qiskit.quantum_info import Operator
 from qiskit.circuit import ControlFlowOp
-from qiskit.circuit.parameter import Parameter
 from qiskit.circuit.library.standard_gates import (
     iSwapGate,
     CXGate,
@@ -472,7 +471,7 @@ def _build_gate_lengths(props=None, target=None):
     {(qubits): [Gate, duration]}
     """
     gate_lengths = {}
-    if target is not None:
+    if target is not None and target.qargs is not None:
         for qubits in target.qargs:
             names = target.operation_names_for_qargs(qubits)
             operation_and_durations = []
@@ -505,7 +504,7 @@ def _build_gate_errors(props=None, target=None):
     {(qubits): [Gate, error]}
     """
     gate_errors = {}
-    if target is not None:
+    if target is not None and target.qargs is not None:
         for qubits in target.qargs:
             names = target.operation_names_for_qargs(qubits)
             operation_and_errors = []
@@ -709,7 +708,7 @@ class DefaultUnitarySynthesis(plugin.UnitarySynthesisPlugin):
                     decomposer2q, qubits, natural_direction, coupling_map, gate_lengths, gate_errors
                 )
                 synth_circuit = self._synth_su4(
-                    unitary, decomposer2q, preferred_direction, approximation_degree, target
+                    unitary, decomposer2q, preferred_direction, approximation_degree
                 )
                 synth_circuits.append(synth_circuit)
             synth_circuit = min(
@@ -728,7 +727,7 @@ class DefaultUnitarySynthesis(plugin.UnitarySynthesisPlugin):
         synth_dag = circuit_to_dag(synth_circuit) if synth_circuit is not None else None
         return synth_dag
 
-    def _synth_su4(self, su4_mat, decomposer2q, preferred_direction, approximation_degree, target):
+    def _synth_su4(self, su4_mat, decomposer2q, preferred_direction, approximation_degree):
         # FIXME: no approximation right now. Need both decomposers to
         # expose a approximate=True/False or a basis_fidelity float or something.
         # if approximation_degree is not None:

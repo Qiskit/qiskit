@@ -16,9 +16,9 @@
 Tests for the default UnitarySynthesis transpiler pass.
 """
 
+from test import combine
 import unittest
 import numpy as np
-from test import combine
 
 from ddt import ddt, data
 
@@ -733,7 +733,6 @@ class TestUnitarySynthesis(QiskitTestCase):
             translation_method="synthesis",
             layout_method="trivial",
         )
-        tqc_index = {qubit: index for index, qubit in enumerate(tqc.qubits)}
         self.assertGreaterEqual(len(tqc.get_instructions("ryy")), 1)
         self.assertEqual(Operator(tqc), Operator(circ))
 
