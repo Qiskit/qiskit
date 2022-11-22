@@ -223,12 +223,12 @@ class Instruction(ABC):
         """Return True iff the instruction is parameterized."""
         return any(self.parameters)
 
-    @_optionals.HAS_MATPLOTLIB.require_in_call
     @deprecate_function(
         "Drawing individual pulses is deprecated since Terra 0.23, and will be removed in a future"
         " version of the library.  No direct alternative is being provided, but instructions can"
         " be visualized as part of a complete schedule using `qiskit.visualization.pulse_drawer`.",
     )
+    @_optionals.HAS_MATPLOTLIB.require_in_call
     def draw(
         self,
         dt: float = 1,
