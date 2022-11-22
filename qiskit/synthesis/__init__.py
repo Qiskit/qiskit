@@ -37,6 +37,16 @@ Permutation Synthesis
 
    synth_permutation_depth_lnn_kms
 
+Clifford Synthesis
+=====================
+
+.. autosummary::
+   :toctree: ../stubs/
+
+   synth_clifford_ag
+   synth_clifford_bm
+   synth_clifford_greedy
+
 """
 
 from .evolution import (
@@ -49,3 +59,4 @@ from .evolution import (
 )
 
 from .permutation import synth_permutation_depth_lnn_kms
+from .clifford import synth_clifford_ag, synth_clifford_bm, synth_clifford_greedy
