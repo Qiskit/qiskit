@@ -5,27 +5,32 @@
 # If updating this, you probably want to update `qiskit.utils.optionals` and
 # maybe `setup.py` too.
 
-qiskit-aer
-python-constraint>=1.4
-cplex; python_version < '3.11'
-cvxpy
-docplex
+# Test only.
 fixtures
-ipython
+testtools
+
+# Interactivity.
 ipykernel
+ipython
 ipywidgets>=7.3.0
-jax; platform_system != 'Windows'
-jaxlib; platform_system != 'Windows'
 matplotlib>=3.3
-networkx>=2.2
 pillow>=4.2.1
 pydot
 pygments>=2.4
 pylatexenc>=1.4
 seaborn>=0.9.0
+
+# Functionality and accelerators.
+qiskit-aer
+python-constraint>=1.4
+cplex; python_version < '3.11'
+cvxpy
+docplex
+jax; platform_system != 'Windows'
+jaxlib; platform_system != 'Windows'
+networkx>=2.2
 scikit-learn>=0.20.0
 scikit-quant<=0.7; platform_system != 'Windows'
 SQSnobFit
-testtools
 tweedledum
 z3-solver>=4.7
