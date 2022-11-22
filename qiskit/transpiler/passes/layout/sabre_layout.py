@@ -251,15 +251,7 @@ class SabreLayout(TransformationPass):
             # and throwaway the extra work we did to compute the swap map
             if self.skip_routing:
                 return dag
-            ancilla_pass = FullAncillaAllocation(self.coupling_map)
-            ancilla_pass.property_set = self.property_set
-            dag = ancilla_pass.run(dag)
-            enlarge_pass = EnlargeWithAncilla()
-            enlarge_pass.property_set = ancilla_pass.property_set
-            dag = enlarge_pass.run(dag)
-            apply_pass = ApplyLayout()
-            apply_pass.property_set = enlarge_pass.property_set
-            dag = apply_pass.run(dag)
+            dag = self._apply_layout_no_pass_manager(dag)
             # Apply sabre swap ontop of circuit with sabre layout
             final_layout_mapping = final_layout.layout_mapping()
             self.property_set["final_layout"] = Layout(
@@ -284,6 +276,21 @@ class SabreLayout(TransformationPass):
                     mapped_dag, node, original_layout, canonical_register, False, layout_dict
                 )
             return mapped_dag
+
+    def _apply_layout_no_pass_manager(self, dag):
+        """Apply and embed a layout into a dagcircuit without using a ``PassManager`` to
+        avoid circuit<->dag conversion.
+        """
+        ancilla_pass = FullAncillaAllocation(self.coupling_map)
+        ancilla_pass.property_set = self.property_set
+        dag = ancilla_pass.run(dag)
+        enlarge_pass = EnlargeWithAncilla()
+        enlarge_pass.property_set = ancilla_pass.property_set
+        dag = enlarge_pass.run(dag)
+        apply_pass = ApplyLayout()
+        apply_pass.property_set = enlarge_pass.property_set
+        dag = apply_pass.run(dag)
+        return dag
 
     def _layout_and_route_passmanager(self, initial_layout):
         """Return a passmanager for a full layout and routing.
