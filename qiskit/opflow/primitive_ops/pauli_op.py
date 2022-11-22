@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2020.
+# (C) Copyright IBM 2020, 2022.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -14,7 +14,7 @@
 
 from math import pi
 from typing import Dict, List, Optional, Set, Union, cast
-
+import warnings
 import numpy as np
 from scipy.sparse import spmatrix
 
@@ -28,13 +28,18 @@ from qiskit.opflow.list_ops.tensored_op import TensoredOp
 from qiskit.opflow.operator_base import OperatorBase
 from qiskit.opflow.primitive_ops.primitive_op import PrimitiveOp
 from qiskit.quantum_info import Pauli, SparsePauliOp, Statevector
+from qiskit.utils.deprecation import deprecate_function
 
 
 class PauliOp(PrimitiveOp):
-    """Class for Operators backed by Terra's ``Pauli`` module."""
+    """Deprecation: Class for Operators backed by Terra's ``Pauli`` module."""
 
     primitive: Pauli
 
+    @deprecate_function(
+        "The PauliOp opflow class is deprecated as of Qiskit Terra 0.23.0 "
+        "and will be removed no sooner than 3 months after the release date. "
+    )
     def __init__(self, primitive: Pauli, coeff: Union[complex, ParameterExpression] = 1.0) -> None:
         """
         Args:
@@ -46,7 +51,9 @@ class PauliOp(PrimitiveOp):
         """
         if not isinstance(primitive, Pauli):
             raise TypeError(f"PauliOp can only be instantiated with Paulis, not {type(primitive)}")
-        super().__init__(primitive, coeff=coeff)
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")
+            super().__init__(primitive, coeff=coeff)
 
     def primitive_strings(self) -> Set[str]:
         return {"Pauli"}

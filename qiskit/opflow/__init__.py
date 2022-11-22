@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2019, 2020.
+# (C) Copyright IBM 2019, 2022.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -17,7 +17,7 @@ Operators (:mod:`qiskit.opflow`)
 
 .. currentmodule:: qiskit.opflow
 
-Operators and State functions are the building blocks of Quantum Algorithms.
+Deprecation: Operators and State functions are the building blocks of Quantum Algorithms.
 
 A library for Quantum Algorithms & Applications is more than a collection of
 algorithms wrapped in Python functions. It needs to provide tools to make writing
@@ -77,8 +77,9 @@ which simplify Operator construction, and two groups of submodules: Operators an
 Operator Base Class
 ===================
 
-The OperatorBase serves as the base class for all Operators, State functions and measurements, and
-enforces the presence and consistency of methods to manipulate these objects conveniently.
+Deprecation: The OperatorBase serves as the base class for all Operators, State functions
+and measurements, and enforces the presence and consistency of methods to manipulate these
+objects conveniently.
 
 .. autosummary::
    :toctree: ../stubs/
@@ -90,8 +91,8 @@ enforces the presence and consistency of methods to manipulate these objects con
 Operator Globals
 ================
 
-The :mod:`operator_globals` is a set of immutable Operator instances that are convenient building
-blocks to reach for while working with the Operator flow.
+Deprecation: The :mod:`operator_globals` is a set of immutable Operator instances that are
+convenient building blocks to reach for while working with the Operator flow.
 
 One qubit Pauli operators:
    :attr:`X`, :attr:`Y`, :attr:`Z`, :attr:`I`
@@ -108,8 +109,8 @@ Submodules
 Operators
 ---------
 
-The Operators submodules include the PrimitiveOp, ListOp, and StateFn class groups which
-represent the primary Operator modules.
+Deprecation: The Operators submodules include the PrimitiveOp, ListOp, and StateFn class
+groups which represent the primary Operator modules.
 
 .. autosummary::
     :toctree: ../stubs/
@@ -122,12 +123,12 @@ represent the primary Operator modules.
 Converters
 ----------
 
-The Converter submodules include objects which manipulate Operators, usually recursing over an
-Operator structure and changing certain Operators' representation. For example, the
-:class:`~.expectations.PauliExpectation` traverses an Operator structure, and replaces all of the
-:class:`~.state_fns.OperatorStateFn` measurements containing non-diagonal Pauli terms into
-diagonalizing circuits following by :class:`~.state_fns.OperatorStateFn` measurement containing
-only diagonal Paulis.
+Deprecation: The Converter submodules include objects which manipulate Operators,
+usually recursing over an Operator structure and changing certain Operators' representation.
+For example, the :class:`~.expectations.PauliExpectation` traverses an Operator structure, and
+replaces all of the :class:`~.state_fns.OperatorStateFn` measurements containing non-diagonal
+Pauli terms into diagonalizing circuits following by :class:`~.state_fns.OperatorStateFn`
+measurement containing only diagonal Paulis.
 
 .. autosummary::
     :toctree: ../stubs/

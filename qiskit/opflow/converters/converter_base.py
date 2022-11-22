@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2020.
+# (C) Copyright IBM 2020, 2022.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -15,11 +15,12 @@
 from abc import ABC, abstractmethod
 
 from qiskit.opflow.operator_base import OperatorBase
+from qiskit.utils.deprecation import deprecate_function
 
 
 class ConverterBase(ABC):
     r"""
-    Converters take an Operator and return a new Operator, generally isomorphic
+    Deprecation: Converters take an Operator and return a new Operator, generally isomorphic
     in some way with the first, but with certain desired properties. For example,
     a converter may accept ``CircuitOp`` and return a ``SummedOp`` of
     ``PauliOps`` representing the circuit unitary. Converters may not
@@ -28,6 +29,13 @@ class ConverterBase(ABC):
     ``PauliOps`` to ``MatrixOps`` internally, will require time or space exponential
     in the number of qubits unless a clever trick is known (such as the use of sparse
     matrices)."""
+
+    @deprecate_function(
+        "The ConverterBase opflow class is deprecated as of Qiskit Terra 0.23.0 "
+        "and will be removed no sooner than 3 months after the release date. "
+    )
+    def __init__(self) -> None:
+        pass
 
     @abstractmethod
     def convert(self, operator: OperatorBase) -> OperatorBase:

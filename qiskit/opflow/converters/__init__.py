@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2020.
+# (C) Copyright IBM 2020, 2022.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -16,7 +16,7 @@ Converters (:mod:`qiskit.opflow.converters`)
 
 .. currentmodule:: qiskit.opflow.converters
 
-Converters are objects which manipulate Operators, usually traversing an Operator to
+Deprecation: Converters are objects which manipulate Operators, usually traversing an Operator to
 change certain sub-Operators into a desired representation. Often the converted Operator is
 isomorphic or approximate to the original Operator in some way, but not always. For example,
 a converter may accept :class:`~qiskit.opflow.primitive_ops.CircuitOp` and return a

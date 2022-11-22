@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2020.
+# (C) Copyright IBM 2020, 2022.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -12,6 +12,7 @@
 
 """ PauliTrotterEvolution Class """
 
+import warnings
 import logging
 from typing import Optional, Union, cast
 
@@ -32,6 +33,7 @@ from qiskit.opflow.primitive_ops.pauli_op import PauliOp
 from qiskit.opflow.primitive_ops.circuit_op import CircuitOp
 from qiskit.opflow.primitive_ops.pauli_sum_op import PauliSumOp
 from qiskit.opflow.primitive_ops.primitive_op import PrimitiveOp
+from qiskit.utils.deprecation import deprecate_function
 
 # TODO uncomment when we implement Abelian grouped evolution.
 # from qiskit.opflow.converters.abelian_grouper import AbelianGrouper
@@ -41,8 +43,8 @@ logger = logging.getLogger(__name__)
 
 class PauliTrotterEvolution(EvolutionBase):
     r"""
-    An Evolution algorithm replacing exponentiated sums of Paulis by changing them each to the
-    Z basis, rotating with an rZ, changing back, and Trotterizing.
+    Deprecation: An Evolution algorithm replacing exponentiated sums of Paulis by changing
+    them each to the Z basis, rotating with an rZ, changing back, and Trotterizing.
 
     More specifically, we compute basis change circuits for each Pauli into a single-qubit Z,
     evolve the Z by the desired evolution time with an rZ gate, and change the basis back using
@@ -50,6 +52,10 @@ class PauliTrotterEvolution(EvolutionBase):
     evolution circuits are composed together by Trotterization scheme.
     """
 
+    @deprecate_function(
+        "The PauliTrotterEvolution opflow class is deprecated as of Qiskit Terra 0.23.0 "
+        "and will be removed no sooner than 3 months after the release date. "
+    )
     def __init__(
         self,
         trotter_mode: Optional[Union[str, TrotterizationBase]] = "trotter",
@@ -69,7 +75,9 @@ class PauliTrotterEvolution(EvolutionBase):
             #     sub-groups, so a single diagonalization circuit can be used for each group
             #     rather than each Pauli.
         """
-
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")
+            super().__init__()
         if isinstance(trotter_mode, TrotterizationBase):
             self._trotter = trotter_mode
         else:

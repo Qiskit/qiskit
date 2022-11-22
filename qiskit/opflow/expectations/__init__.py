@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2020.
+# (C) Copyright IBM 2020, 2022.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -16,9 +16,9 @@ Expectations (:mod:`qiskit.opflow.expectations`)
 
 .. currentmodule:: qiskit.opflow.expectations
 
-Expectations are converters which enable the computation of the expectation value of an
-Observable with respect to some state function. They traverse an Operator tree, replacing
-:class:`~qiskit.opflow.state_fns.OperatorStateFn` measurements with equivalent
+Deprecation: Expectations are converters which enable the computation of the expectation
+value of an Observable with respect to some state function. They traverse an Operator tree,
+replacing :class:`~qiskit.opflow.state_fns.OperatorStateFn` measurements with equivalent
 measurements which are more amenable to computation on quantum or classical hardware.
 For example, if one would like to measure the
 expectation value of an Operator ``o`` expressed as a sum of Paulis with respect to some state

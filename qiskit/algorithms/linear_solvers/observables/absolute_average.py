@@ -52,7 +52,9 @@ class AbsoluteAverage(LinearSystemObservable):
 
             # Observable operator
             observable_op = observable.observable(num_qubits)
-            state_vec = (~StateFn(observable_op) @ StateFn(qc)).eval()
+            with warnings.catch_warnings():
+                warnings.simplefilter('ignore')
+                state_vec = (~StateFn(observable_op) @ StateFn(qc)).eval()
 
             # Obtain result
             result = observable.post_processing(state_vec, num_qubits)

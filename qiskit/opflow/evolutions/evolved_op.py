@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2020.
+# (C) Copyright IBM 2020, 2022.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -12,6 +12,7 @@
 
 """ EvolutionOp Class """
 
+import warnings
 from typing import List, Optional, Set, Union, cast
 
 import numpy as np
@@ -27,11 +28,12 @@ from qiskit.opflow.operator_base import OperatorBase
 from qiskit.opflow.primitive_ops.matrix_op import MatrixOp
 from qiskit.opflow.primitive_ops.primitive_op import PrimitiveOp
 from qiskit.quantum_info import Statevector
+from qiskit.utils.deprecation import deprecate_function
 
 
 class EvolvedOp(PrimitiveOp):
     r"""
-    Class for wrapping Operator Evolutions for compilation (``convert``) by an EvolutionBase
+    Deprecation: Class for wrapping Operator Evolutions for compilation (``convert``) by an EvolutionBase
     method later, essentially acting as a placeholder. Note that EvolvedOp is a weird case of
     PrimitiveOp. It happens to be that it fits into the PrimitiveOp interface nearly perfectly,
     and it essentially represents a placeholder for a PrimitiveOp later, even though it doesn't
@@ -39,6 +41,10 @@ class EvolvedOp(PrimitiveOp):
     but would have ended up copying and pasting a lot of code from PrimitiveOp."""
     primitive: PrimitiveOp
 
+    @deprecate_function(
+        "The EvolvedOp opflow class is deprecated as of Qiskit Terra 0.23.0 "
+        "and will be removed no sooner than 3 months after the release date. "
+    )
     def __init__(
         self, primitive: OperatorBase, coeff: Union[complex, ParameterExpression] = 1.0
     ) -> None:
@@ -47,7 +53,9 @@ class EvolvedOp(PrimitiveOp):
             primitive: The operator being wrapped to signify evolution later.
             coeff: A coefficient multiplying the operator
         """
-        super().__init__(primitive, coeff=coeff)
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")
+            super().__init__(primitive, coeff=coeff)
 
     def primitive_strings(self) -> Set[str]:
         return self.primitive.primitive_strings()

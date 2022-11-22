@@ -38,6 +38,7 @@ from qiskit.utils.mitigation import (
     CompleteMeasFitter,
     TensoredMeasFitter,
 )
+from qiskit.utils.deprecation import deprecate_function
 
 logger = logging.getLogger(__name__)
 
@@ -124,7 +125,7 @@ class _MeasFitterType(Enum):
 
 
 class QuantumInstance:
-    """Quantum Backend including execution setting."""
+    """Deprecation: Quantum Backend including execution setting."""
 
     _BACKEND_CONFIG = ["basis_gates", "coupling_map"]
     _COMPILE_CONFIG = ["initial_layout", "seed_transpiler", "optimization_level"]
@@ -143,6 +144,10 @@ class QuantumInstance:
         "statevector_hpc_gate_opt",
     ] + _BACKEND_OPTIONS_QASM_ONLY
 
+    @deprecate_function(
+        "The QuantumInstance class is deprecated as of Qiskit Terra 0.23.0 "
+        "and will be removed no sooner than 3 months after the release date. "
+    )
     def __init__(
         self,
         backend,

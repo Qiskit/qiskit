@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2020.
+# (C) Copyright IBM 2020, 2022.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -26,16 +26,21 @@ from qiskit.opflow.primitive_ops.pauli_sum_op import PauliSumOp
 from qiskit.opflow.state_fns.state_fn import StateFn
 from qiskit.opflow.state_fns.circuit_state_fn import CircuitStateFn
 from qiskit.quantum_info import Statevector
+from qiskit.utils.deprecation import deprecate_function
 
 
 class OperatorStateFn(StateFn):
     r"""
-    A class for state functions and measurements which are defined by a density Operator,
+    Deprecation: A class for state functions and measurements which are defined by a density Operator,
     stored using an ``OperatorBase``.
     """
     primitive: OperatorBase
 
     # TODO allow normalization somehow?
+    @deprecate_function(
+        "The OperatorStateFn opflow class is deprecated as of Qiskit Terra 0.23.0 "
+        "and will be removed no sooner than 3 months after the release date. "
+    )
     def __init__(
         self,
         primitive: OperatorBase,

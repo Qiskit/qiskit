@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2020.
+# (C) Copyright IBM 2020, 2022.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -12,22 +12,28 @@
 
 """DictToCircuitSum Class """
 
+import warnings
 from qiskit.opflow.converters.converter_base import ConverterBase
 from qiskit.opflow.list_ops.list_op import ListOp
 from qiskit.opflow.operator_base import OperatorBase
 from qiskit.opflow.state_fns.circuit_state_fn import CircuitStateFn
 from qiskit.opflow.state_fns.dict_state_fn import DictStateFn
 from qiskit.opflow.state_fns.vector_state_fn import VectorStateFn
+from qiskit.utils.deprecation import deprecate_function
 
 
 class DictToCircuitSum(ConverterBase):
     r"""
-    Converts ``DictStateFns`` or ``VectorStateFns`` to equivalent ``CircuitStateFns`` or sums
-    thereof. The behavior of this class can be mostly replicated by calling ``to_circuit_op`` on
-    an Operator, but with the added control of choosing whether to convert only ``DictStateFns``
+    Deprecation: Converts ``DictStateFns`` or ``VectorStateFns`` to equivalent ``CircuitStateFns``
+    or sums thereof. The behavior of this class can be mostly replicated by calling ``to_circuit_op``
+    on an Operator, but with the added control of choosing whether to convert only ``DictStateFns``
     or ``VectorStateFns``, rather than both.
     """
 
+    @deprecate_function(
+        "The DictToCircuitSum opflow class is deprecated as of Qiskit Terra 0.23.0 "
+        "and will be removed no sooner than 3 months after the release date. "
+    )
     def __init__(
         self, traverse: bool = True, convert_dicts: bool = True, convert_vectors: bool = True
     ) -> None:
@@ -38,6 +44,9 @@ class DictToCircuitSum(ConverterBase):
             convert_dicts: Whether to convert VectorStateFn.
             convert_vectors: Whether to convert DictStateFns.
         """
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")
+            super().__init__()
         self._traverse = traverse
         self._convert_dicts = convert_dicts
         self._convert_vectors = convert_vectors

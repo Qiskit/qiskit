@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2020.
+# (C) Copyright IBM 2020, 2022.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -13,6 +13,7 @@
 """ Z2 Symmetry Tapering Converter Class """
 
 import logging
+import warnings
 from typing import List, Tuple, Union, cast
 
 from qiskit.opflow.converters.converter_base import ConverterBase
@@ -20,14 +21,15 @@ from qiskit.opflow.operator_base import OperatorBase
 from qiskit.opflow.primitive_ops.pauli_sum_op import PauliSumOp
 from qiskit.opflow.primitive_ops.tapered_pauli_sum_op import Z2Symmetries
 from qiskit.quantum_info import Pauli
+from qiskit.utils.deprecation import deprecate_function
 
 logger = logging.getLogger(__name__)
 
 
 class TwoQubitReduction(ConverterBase):
     """
-    Two qubit reduction converter which eliminates the central and last qubit in a list of Pauli
-    that has diagonal operators (Z,I) at those positions.
+    Deprecation: Two qubit reduction converter which eliminates the central and last
+    qubit in a list of Pauli that has diagonal operators (Z,I) at those positions.
 
     Chemistry specific method:
     It can be used to taper two qubits in parity and binary-tree mapped
@@ -35,12 +37,19 @@ class TwoQubitReduction(ConverterBase):
     sectors, (block spin order) according to the number of particles in the system.
     """
 
+    @deprecate_function(
+        "The TwoQubitReduction opflow class is deprecated as of Qiskit Terra 0.23.0 "
+        "and will be removed no sooner than 3 months after the release date. "
+    )
     def __init__(self, num_particles: Union[int, List[int], Tuple[int, int]]):
         """
         Args:
             num_particles: number of particles, if it is a list,
                            the first number is alpha and the second number if beta.
         """
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")
+            super().__init__()
         if isinstance(num_particles, (tuple, list)):
             num_alpha = num_particles[0]
             num_beta = num_particles[1]

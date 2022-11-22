@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2020, 2021.
+# (C) Copyright IBM 2020, 2022.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -12,11 +12,13 @@
 
 """The module for Quantum the Fisher Information."""
 
+import warnings
 from typing import List, Union
 
 import numpy as np
 from qiskit.circuit import QuantumCircuit, QuantumRegister, ParameterVector, ParameterExpression
 from qiskit.utils.arithmetic import triu_to_dense
+from qiskit.utils.deprecation import deprecate_function
 
 from ...operator_base import OperatorBase
 from ...list_ops.list_op import ListOp
@@ -29,13 +31,17 @@ from .circuit_qfi import CircuitQFI
 
 
 class LinCombFull(CircuitQFI):
-    r"""Compute the full Quantum Fisher Information (QFI).
+    r"""Deprecation: Compute the full Quantum Fisher Information (QFI).
 
     Given a pure, parameterized quantum state this class uses the linear combination of unitaries
     See also :class:`~qiskit.opflow.QFI`.
     """
 
     # pylint: disable=signature-differs, arguments-differ
+    @deprecate_function(
+        "The LinCombFull opflow class is deprecated as of Qiskit Terra 0.23.0 "
+        "and will be removed no sooner than 3 months after the release date. "
+    )
     def __init__(
         self,
         aux_meas_op: OperatorBase = Z,
@@ -52,7 +58,9 @@ class LinCombFull(CircuitQFI):
         Raises:
             ValueError: If the provided auxiliary measurement operator is not supported.
         """
-        super().__init__()
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")
+            super().__init__()
         if aux_meas_op not in [Z, -Y, (Z - 1j * Y)]:
             raise ValueError(
                 "This auxiliary measurement operator is currently not supported. Please choose "

@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2020.
+# (C) Copyright IBM 2020, 2022.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -12,15 +12,17 @@
 
 """The module for Quantum the Fisher Information."""
 
+import warnings
 from typing import Union
 
+from qiskit.utils.deprecation import deprecate_function
 from .derivative_base import DerivativeBase
 from .circuit_qfis import CircuitQFI
 
 
 class QFIBase(DerivativeBase):
 
-    r"""Base class for Quantum Fisher Information (QFI).
+    r"""Deprecation: Base class for Quantum Fisher Information (QFI).
 
     Compute the Quantum Fisher Information (QFI) given a pure, parameterized quantum state.
 
@@ -29,6 +31,10 @@ class QFIBase(DerivativeBase):
         [QFI]kl= Re[〈∂kψ|∂lψ〉−〈∂kψ|ψ〉〈ψ|∂lψ〉] * 4.
     """
 
+    @deprecate_function(
+        "The QFIBase opflow class is deprecated as of Qiskit Terra 0.23.0 "
+        "and will be removed no sooner than 3 months after the release date. "
+    )
     def __init__(self, qfi_method: Union[str, CircuitQFI] = "lin_comb_full"):
         r"""
         Args:
@@ -39,7 +45,9 @@ class QFIBase(DerivativeBase):
             ValueError: if ``qfi_method`` is neither a ``CircuitQFI`` object nor one of the
                 predefined strings.
         """
-
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")
+            super().__init__()
         if isinstance(qfi_method, CircuitQFI):
             self._qfi_method = qfi_method
 

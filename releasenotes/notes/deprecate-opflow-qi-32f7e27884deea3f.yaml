@@ -1,0 +1,7 @@
+---
+deprecations:
+  - |
+    The module :mod:`qiskit.opflow`, class :class:`qiskit.utils.QuantumInstance` and methods
+    :meth:`~qiskit.utils.run_circuits.find_regs_by_name`,
+    :meth:`~qiskit.utils.run_circuits.run_circuits`
+    have been deprecated and will be removed in a future release.

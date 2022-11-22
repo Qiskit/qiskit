@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2020.
+# (C) Copyright IBM 2020, 2022.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -13,6 +13,7 @@
 """AbelianGrouper Class"""
 
 from collections import defaultdict
+import warnings
 from typing import List, Tuple, Union, cast
 
 import numpy as np
@@ -27,10 +28,11 @@ from qiskit.opflow.operator_base import OperatorBase
 from qiskit.opflow.primitive_ops.pauli_op import PauliOp
 from qiskit.opflow.primitive_ops.pauli_sum_op import PauliSumOp
 from qiskit.opflow.state_fns.operator_state_fn import OperatorStateFn
+from qiskit.utils.deprecation import deprecate_function
 
 
 class AbelianGrouper(ConverterBase):
-    """The AbelianGrouper converts SummedOps into a sum of Abelian sums.
+    """Deprecation: The AbelianGrouper converts SummedOps into a sum of Abelian sums.
 
     Meaning, it will traverse the Operator, and when it finds a SummedOp, it will evaluate which of
     the summed sub-Operators commute with one another. It will then convert each of the groups of
@@ -41,12 +43,19 @@ class AbelianGrouper(ConverterBase):
     diagonalized together.
     """
 
+    @deprecate_function(
+        "The AbelianGrouper opflow class is deprecated as of Qiskit Terra 0.23.0 "
+        "and will be removed no sooner than 3 months after the release date. "
+    )
     def __init__(self, traverse: bool = True) -> None:
         """
         Args:
             traverse: Whether to convert only the Operator passed to ``convert``, or traverse
                 down that Operator.
         """
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")
+            super().__init__()
         self._traverse = traverse
 
     def convert(self, operator: OperatorBase) -> OperatorBase:

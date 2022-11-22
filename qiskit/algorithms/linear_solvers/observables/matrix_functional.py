@@ -61,10 +61,12 @@ class MatrixFunctional(LinearSystemObservable):
             observable_ops = observable.observable(num_qubits)
             state_vecs = []
             # First is the norm
-            state_vecs.append((~StateFn(observable_ops[0]) @ StateFn(qcs[0])).eval())
-            for i in range(1, len(observable_ops), 2):
-                state_vecs += [(~StateFn(observable_ops[i]) @ StateFn(qcs[i])).eval(),
-                               (~StateFn(observable_ops[i + 1]) @ StateFn(qcs[i + 1])).eval()]
+            with warnings.catch_warnings():
+                warnings.simplefilter('ignore')
+                state_vecs.append((~StateFn(observable_ops[0]) @ StateFn(qcs[0])).eval())
+                for i in range(1, len(observable_ops), 2):
+                    state_vecs += [(~StateFn(observable_ops[i]) @ StateFn(qcs[i])).eval(),
+                                   (~StateFn(observable_ops[i + 1]) @ StateFn(qcs[i + 1])).eval()]
 
             # Obtain result
             result = observable.post_processing(state_vecs, num_qubits)

@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2020.
+# (C) Copyright IBM 2020, 2022.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -12,6 +12,7 @@
 
 """ StateFn Class """
 
+import warnings
 from typing import Callable, Dict, List, Optional, Set, Tuple, Union
 
 import numpy as np
@@ -21,11 +22,12 @@ from qiskit.circuit import Instruction, ParameterExpression
 from qiskit.opflow.operator_base import OperatorBase
 from qiskit.quantum_info import Statevector
 from qiskit.result import Result
+from qiskit.utils.deprecation import deprecate_function
 
 
 class StateFn(OperatorBase):
     r"""
-    A class for representing state functions and measurements.
+    Deprecation: A class for representing state functions and measurements.
 
     State functions are defined to be complex functions over a single binary string (as
     compared to an operator, which is defined as a function over two binary strings, or a
@@ -112,6 +114,10 @@ class StateFn(OperatorBase):
         )
 
     # TODO allow normalization somehow?
+    @deprecate_function(
+        "The StateFn opflow class is deprecated as of Qiskit Terra 0.23.0 "
+        "and will be removed no sooner than 3 months after the release date. "
+    )
     def __init__(
         self,
         primitive: Union[
@@ -134,7 +140,9 @@ class StateFn(OperatorBase):
             coeff: A coefficient by which the state function is multiplied.
             is_measurement: Whether the StateFn is a measurement operator
         """
-        super().__init__()
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")
+            super().__init__()
         self._primitive = primitive
         self._is_measurement = is_measurement
         self._coeff = coeff

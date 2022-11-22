@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2020.
+# (C) Copyright IBM 2020, 2022.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -12,6 +12,7 @@
 
 """The CVaR (Conditional Value at Risk) expectation class."""
 
+import warnings
 from typing import Optional, Union
 
 from qiskit.opflow.expectations.aer_pauli_expectation import AerPauliExpectation
@@ -20,10 +21,11 @@ from qiskit.opflow.expectations.pauli_expectation import PauliExpectation
 from qiskit.opflow.list_ops import ComposedOp, ListOp
 from qiskit.opflow.operator_base import OperatorBase
 from qiskit.opflow.state_fns import CVaRMeasurement, OperatorStateFn
+from qiskit.utils.deprecation import deprecate_function
 
 
 class CVaRExpectation(ExpectationBase):
-    r"""Compute the Conditional Value at Risk (CVaR) expectation value.
+    r"""Deprecation: Compute the Conditional Value at Risk (CVaR) expectation value.
 
     The standard approach to calculating the expectation value of a Hamiltonian w.r.t. a
     state is to take the sample mean of the measurement outcomes. This corresponds to an estimator
@@ -54,6 +56,10 @@ class CVaRExpectation(ExpectationBase):
 
     """
 
+    @deprecate_function(
+        "The CVaRExpectation opflow class is deprecated as of Qiskit Terra 0.23.0 "
+        "and will be removed no sooner than 3 months after the release date. "
+    )
     def __init__(self, alpha: float, expectation: Optional[ExpectationBase] = None) -> None:
         """
         Args:
@@ -64,6 +70,9 @@ class CVaRExpectation(ExpectationBase):
         Raises:
             NotImplementedError: If the ``expectation`` is an AerPauliExpecation.
         """
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")
+            super().__init__()
         self.alpha = alpha
         if isinstance(expectation, AerPauliExpectation):
             raise NotImplementedError("AerPauliExpecation currently not supported.")

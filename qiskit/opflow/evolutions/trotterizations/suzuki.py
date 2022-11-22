@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2020.
+# (C) Copyright IBM 2020, 2022.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -23,17 +23,22 @@ from qiskit.opflow.list_ops.summed_op import SummedOp
 from qiskit.opflow.operator_base import OperatorBase
 from qiskit.opflow.primitive_ops.pauli_sum_op import PauliSumOp
 from qiskit.opflow.primitive_ops.primitive_op import PrimitiveOp
+from qiskit.utils.deprecation import deprecate_function
 
 
 class Suzuki(TrotterizationBase):
     r"""
-    Suzuki Trotter expansion, composing the evolution circuits of each Operator in the sum
+    Deprecation: Suzuki Trotter expansion, composing the evolution circuits of each Operator in the sum
     together by a recursive "bookends" strategy, repeating the whole composed circuit
     ``reps`` times.
 
     Detailed in https://arxiv.org/pdf/quant-ph/0508139.pdf.
     """
 
+    @deprecate_function(
+        "The Suzuki opflow class is deprecated as of Qiskit Terra 0.23.0 "
+        "and will be removed no sooner than 3 months after the release date. "
+    )
     def __init__(self, reps: int = 1, order: int = 2) -> None:
         """
         Args:

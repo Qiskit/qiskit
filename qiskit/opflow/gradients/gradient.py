@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2020.
+# (C) Copyright IBM 2020, 2022.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -12,6 +12,7 @@
 
 """The base interface for Opflow's gradient."""
 
+import warnings
 from typing import Union, List, Optional
 import functools
 import numpy as np
@@ -19,6 +20,8 @@ import numpy as np
 from qiskit.circuit.quantumcircuit import _compare_parameters
 from qiskit.circuit import ParameterExpression, ParameterVector
 from qiskit.utils import optionals as _optionals
+from qiskit.utils.deprecation import deprecate_function
+from .circuit_gradients.circuit_gradient import CircuitGradient
 from ..expectations.pauli_expectation import PauliExpectation
 from .gradient_base import GradientBase
 from .derivative_base import _coeff_derivative
@@ -33,7 +36,16 @@ from ..exceptions import OpflowError
 
 
 class Gradient(GradientBase):
-    """Convert an operator expression to the first-order gradient."""
+    """Deprecation: Convert an operator expression to the first-order gradient."""
+
+    @deprecate_function(
+        "The Gradient opflow class is deprecated as of Qiskit Terra 0.23.0 "
+        "and will be removed no sooner than 3 months after the release date. "
+    )
+    def __init__(self, grad_method: Union[str, CircuitGradient] = "param_shift", **kwargs):
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")
+            super().__init__(grad_method=grad_method, **kwargs)
 
     def convert(
         self,

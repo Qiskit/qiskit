@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2020.
+# (C) Copyright IBM 2020, 2022.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -12,6 +12,7 @@
 
 """ PauliBasisChange Class """
 
+import warnings
 from functools import partial, reduce
 from typing import Callable, List, Optional, Tuple, Union, cast
 
@@ -30,11 +31,12 @@ from qiskit.opflow.primitive_ops.primitive_op import PrimitiveOp
 from qiskit.opflow.state_fns.operator_state_fn import OperatorStateFn
 from qiskit.opflow.state_fns.state_fn import StateFn
 from qiskit.quantum_info import Pauli
+from qiskit.utils.deprecation import deprecate_function
 
 
 class PauliBasisChange(ConverterBase):
     r"""
-    Converter for changing Paulis into other bases. By default, the diagonal basis
+    Deprecation: Converter for changing Paulis into other bases. By default, the diagonal basis
     composed only of Pauli {Z, I}^n is used as the destination basis to which to convert.
     Meaning, if a Pauli containing X or Y terms is passed in, which cannot be
     sampled or evolved natively on some Quantum hardware, the Pauli can be replaced by a
@@ -55,6 +57,10 @@ class PauliBasisChange(ConverterBase):
     this method, such as the placement of the CNOT chains.
     """
 
+    @deprecate_function(
+        "The PauliBasisChange opflow class is deprecated as of Qiskit Terra 0.23.0 "
+        "and will be removed no sooner than 3 months after the release date. "
+    )
     def __init__(
         self,
         destination_basis: Optional[Union[Pauli, PauliOp]] = None,
@@ -83,6 +89,9 @@ class PauliBasisChange(ConverterBase):
                        beginning and ending operators are equivalent.
 
         """
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")
+            super().__init__()
         if destination_basis is not None:
             self.destination = destination_basis  # type: ignore
         else:

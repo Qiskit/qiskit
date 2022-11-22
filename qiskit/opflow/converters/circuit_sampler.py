@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2020.
+# (C) Copyright IBM 2020, 2022.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -14,6 +14,7 @@
 
 
 import logging
+import warnings
 from functools import partial
 from time import time
 from typing import Any, Dict, List, Optional, Tuple, Union, cast
@@ -32,13 +33,14 @@ from qiskit.opflow.state_fns.state_fn import StateFn
 from qiskit.providers import Backend
 from qiskit.utils.backend_utils import is_aer_provider, is_statevector_backend
 from qiskit.utils.quantum_instance import QuantumInstance
+from qiskit.utils.deprecation import deprecate_function
 
 logger = logging.getLogger(__name__)
 
 
 class CircuitSampler(ConverterBase):
     """
-    The CircuitSampler traverses an Operator and converts any CircuitStateFns into
+    Deprecation: The CircuitSampler traverses an Operator and converts any CircuitStateFns into
     approximations of the state function by a DictStateFn or VectorStateFn using a quantum
     backend. Note that in order to approximate the value of the CircuitStateFn, it must 1) send
     state function through a depolarizing channel, which will destroy all phase information and
@@ -51,6 +53,10 @@ class CircuitSampler(ConverterBase):
     you are better off using a different CircuitSampler for each Operator to avoid cache thrashing.
     """
 
+    @deprecate_function(
+        "The CircuitSampler opflow class is deprecated as of Qiskit Terra 0.23.0 "
+        "and will be removed no sooner than 3 months after the release date. "
+    )
     def __init__(
         self,
         backend: Union[Backend, QuantumInstance],
@@ -76,6 +82,9 @@ class CircuitSampler(ConverterBase):
         Raises:
             ValueError: Set statevector or param_qobj True when not supported by backend.
         """
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")
+            super().__init__()
         self._quantum_instance = (
             backend if isinstance(backend, QuantumInstance) else QuantumInstance(backend=backend)
         )

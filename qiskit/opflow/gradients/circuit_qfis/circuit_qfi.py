@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2020.
+# (C) Copyright IBM 2020, 2022.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -12,16 +12,18 @@
 
 """ CircuitQFI Class """
 
+import warnings
 from abc import abstractmethod
 from typing import List, Union
 
 from qiskit.circuit import ParameterExpression, ParameterVector
+from qiskit.utils.deprecation import deprecate_function
 from ...converters.converter_base import ConverterBase
 from ...operator_base import OperatorBase
 
 
 class CircuitQFI(ConverterBase):
-    r"""Circuit to Quantum Fisher Information operator converter.
+    r"""Deprecation: Circuit to Quantum Fisher Information operator converter.
 
     Converter for changing parameterized circuits into operators
     whose evaluation yields Quantum Fisher Information metric tensor
@@ -34,6 +36,15 @@ class CircuitQFI(ConverterBase):
     CircuitQFI - uses quantum techniques to get the QFI of circuits
     DerivativeBase - uses classical techniques to differentiate opflow data structures
     """
+
+    @deprecate_function(
+        "The CircuitQFI opflow class is deprecated as of Qiskit Terra 0.23.0 "
+        "and will be removed no sooner than 3 months after the release date. "
+    )
+    def __init__(self) -> None:
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")
+            super().__init__()
 
     # pylint: disable=arguments-differ
     @abstractmethod

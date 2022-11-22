@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2020.
+# (C) Copyright IBM 2020, 2022.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -20,6 +20,7 @@ import numpy as np
 from qiskit.utils.quantum_instance import QuantumInstance
 from qiskit.circuit import ParameterExpression, ParameterVector
 from qiskit.providers import Backend
+from qiskit.utils.deprecation import deprecate_function
 
 from ..converters.converter_base import ConverterBase
 from ..expectations import ExpectationBase, PauliExpectation
@@ -34,7 +35,7 @@ OperatorType = Union[StateFn, PrimitiveOp, ListOp]
 
 
 class DerivativeBase(ConverterBase):
-    r"""Base class for differentiating opflow objects.
+    r"""Deprecation: Base class for differentiating opflow objects.
 
     Converter for differentiating opflow objects and handling
     things like properly differentiating combo_fn's and enforcing product rules
@@ -47,6 +48,15 @@ class DerivativeBase(ConverterBase):
     CircuitGradient - uses quantum techniques to get derivatives of circuits
     DerivativeBase - uses classical techniques to differentiate opflow data structures
     """
+
+    @deprecate_function(
+        "The DerivativeBase opflow class is deprecated as of Qiskit Terra 0.23.0 "
+        "and will be removed no sooner than 3 months after the release date. "
+    )
+    def __init__(self) -> None:
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")
+            super().__init__()
 
     # pylint: disable=arguments-differ
     @abstractmethod

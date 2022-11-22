@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2020.
+# (C) Copyright IBM 2020, 2022.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -13,11 +13,16 @@
 """ Utility functions for OperatorFlow """
 
 from qiskit.opflow.operator_base import OperatorBase
+from qiskit.utils.deprecation import deprecate_function
 
 
+@deprecate_function(
+    "The commutator opflow function is deprecated as of Qiskit Terra 0.23.0 "
+    "and will be removed no sooner than 3 months after the release date. "
+)
 def commutator(op_a: OperatorBase, op_b: OperatorBase) -> OperatorBase:
     r"""
-    Compute commutator of `op_a` and `op_b`.
+    Deprecation: Compute commutator of `op_a` and `op_b`.
 
     .. math::
 
@@ -32,9 +37,13 @@ def commutator(op_a: OperatorBase, op_b: OperatorBase) -> OperatorBase:
     return (op_a @ op_b - op_b @ op_a).reduce()
 
 
+@deprecate_function(
+    "The anti_commutator opflow function is deprecated as of Qiskit Terra 0.23.0 "
+    "and will be removed no sooner than 3 months after the release date. "
+)
 def anti_commutator(op_a: OperatorBase, op_b: OperatorBase) -> OperatorBase:
     r"""
-    Compute anti-commutator of `op_a` and `op_b`.
+    Deprecation: Compute anti-commutator of `op_a` and `op_b`.
 
     .. math::
 
@@ -49,6 +58,10 @@ def anti_commutator(op_a: OperatorBase, op_b: OperatorBase) -> OperatorBase:
     return (op_a @ op_b + op_b @ op_a).reduce()
 
 
+@deprecate_function(
+    "The double_commutator opflow function is deprecated as of Qiskit Terra 0.23.0 "
+    "and will be removed no sooner than 3 months after the release date. "
+)
 def double_commutator(
     op_a: OperatorBase,
     op_b: OperatorBase,
@@ -56,7 +69,7 @@ def double_commutator(
     sign: bool = False,
 ) -> OperatorBase:
     r"""
-    Compute symmetric double commutator of `op_a`, `op_b` and `op_c`.
+    Deprecation: Compute symmetric double commutator of `op_a`, `op_b` and `op_c`.
     See McWeeny chapter 13.6 Equation of motion methods (page 479)
 
     If `sign` is `False`, it returns

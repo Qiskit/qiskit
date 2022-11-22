@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2020.
+# (C) Copyright IBM 2020, 2022.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -16,7 +16,8 @@ List Operators (:mod:`qiskit.opflow.list_ops`)
 
 .. currentmodule:: qiskit.opflow.list_ops
 
-List Operators are classes for storing and manipulating lists of Operators, State functions,
+Deprecation: List Operators are classes for storing and manipulating lists of Operators,
+State functions,
 or Measurements, and include some rule or ``combo_fn`` defining how the Operator functions of the
 list constituents should be combined to form to cumulative Operator function of the
 :class:`ListOp`. For example, a :class:`SummedOp` has an addition-based ``combo_fn``, so once

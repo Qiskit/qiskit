@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2020.
+# (C) Copyright IBM 2020, 2022.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -12,12 +12,14 @@
 
 """The module for the Quantum Fisher Information."""
 
+import warnings
 from typing import List, Union
 
 import numpy as np
 from scipy.linalg import block_diag
 from qiskit.circuit import Parameter, ParameterVector, ParameterExpression
 from qiskit.utils.arithmetic import triu_to_dense
+from qiskit.utils.deprecation import deprecate_function
 from ...list_ops.list_op import ListOp
 from ...primitive_ops.circuit_op import CircuitOp
 from ...expectations.pauli_expectation import PauliExpectation
@@ -32,11 +34,20 @@ from .overlap_diag import _get_generators, _partition_circuit
 
 
 class OverlapBlockDiag(CircuitQFI):
-    r"""Compute the block-diagonal of the QFI given a pure, parameterized quantum state.
+    r"""Deprecation: Compute the block-diagonal of the QFI given a pure, parameterized quantum state.
 
     The blocks are given by all parameterized gates in quantum circuit layer.
     See also :class:`~qiskit.opflow.QFI`.
     """
+
+    @deprecate_function(
+        "The OverlapBlockDiag opflow class is deprecated as of Qiskit Terra 0.23.0 "
+        "and will be removed no sooner than 3 months after the release date. "
+    )
+    def __init__(self) -> None:
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")
+            super().__init__()
 
     def convert(
         self,

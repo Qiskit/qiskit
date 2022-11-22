@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2020, 2021.
+# (C) Copyright IBM 2020, 2022.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -12,6 +12,7 @@
 
 """The module to compute the state gradient with the linear combination method."""
 
+import warnings
 from collections.abc import Iterable
 from copy import deepcopy
 from functools import partial
@@ -50,6 +51,7 @@ from qiskit.circuit.library.standard_gates import (
     ZGate,
 )
 from qiskit.quantum_info import partial_trace
+from qiskit.utils.deprecation import deprecate_function
 from ...operator_base import OperatorBase
 from ...list_ops.list_op import ListOp
 from ...list_ops.composed_op import ComposedOp
@@ -67,7 +69,7 @@ from ...converters import PauliBasisChange
 
 
 class LinComb(CircuitGradient):
-    """Compute the state gradient d⟨ψ(ω)|O(θ)|ψ(ω)〉/ dω respectively the gradients of the
+    """Deprecation: Compute the state gradient d⟨ψ(ω)|O(θ)|ψ(ω)〉/ dω respectively the gradients of the
     sampling probabilities of the basis states of
     a state |ψ(ω)〉w.r.t. ω.
     This method employs a linear combination of unitaries,
@@ -100,6 +102,10 @@ class LinComb(CircuitGradient):
     }
 
     # pylint: disable=signature-differs, arguments-differ
+    @deprecate_function(
+        "The LinComb opflow class is deprecated as of Qiskit Terra 0.23.0 "
+        "and will be removed no sooner than 3 months after the release date. "
+    )
     def __init__(self, aux_meas_op: OperatorBase = Z):
         """
         Args:
@@ -110,7 +116,9 @@ class LinComb(CircuitGradient):
         Raises:
             ValueError: If the provided auxiliary measurement operator is not supported.
         """
-        super().__init__()
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")
+            super().__init__()
         if aux_meas_op not in [Z, -Y, (Z - 1j * Y)]:
             raise ValueError(
                 "This auxiliary measurement operator is currently not supported. Please choose "

@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2020.
+# (C) Copyright IBM 2020, 2022.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -12,6 +12,7 @@
 
 """ PrimitiveOp Class """
 
+import warnings
 from typing import Dict, List, Optional, Set, Union, cast
 
 import numpy as np
@@ -22,11 +23,12 @@ from qiskit import QuantumCircuit
 from qiskit.circuit import Instruction, ParameterExpression
 from qiskit.opflow.operator_base import OperatorBase
 from qiskit.quantum_info import Operator, Pauli, SparsePauliOp, Statevector
+from qiskit.utils.deprecation import deprecate_function
 
 
 class PrimitiveOp(OperatorBase):
     r"""
-    A class for representing basic Operators, backed by Operator primitives from
+    Deprecation: A class for representing basic Operators, backed by Operator primitives from
     Terra. This class (and inheritors) primarily serves to allow the underlying
     primitives to "flow" - i.e. interoperability and adherence to the Operator formalism
     - while the core computational logic mostly remains in the underlying primitives.
@@ -92,6 +94,10 @@ class PrimitiveOp(OperatorBase):
             "factory constructor".format(type(primitive))
         )
 
+    @deprecate_function(
+        "The PrimitiveOp opflow class is deprecated as of Qiskit Terra 0.23.0 "
+        "and will be removed no sooner than 3 months after the release date. "
+    )
     def __init__(
         self,
         primitive: Union[QuantumCircuit, Operator, Pauli, SparsePauliOp, OperatorBase],
@@ -102,7 +108,9 @@ class PrimitiveOp(OperatorBase):
             primitive: The operator primitive being wrapped.
             coeff: A coefficient multiplying the primitive.
         """
-        super().__init__()
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")
+            super().__init__()
         self._primitive = primitive
         self._coeff = coeff
 

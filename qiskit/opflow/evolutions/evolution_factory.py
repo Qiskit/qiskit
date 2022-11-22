@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2020.
+# (C) Copyright IBM 2020, 2022.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -16,14 +16,19 @@ from qiskit.opflow.operator_base import OperatorBase
 from qiskit.opflow.evolutions.evolution_base import EvolutionBase
 from qiskit.opflow.evolutions.pauli_trotter_evolution import PauliTrotterEvolution
 from qiskit.opflow.evolutions.matrix_evolution import MatrixEvolution
+from qiskit.utils.deprecation import deprecate_function
 
 
 class EvolutionFactory:
-    """A factory class for convenient automatic selection of an Evolution algorithm based on the
-    Operator to be converted.
+    """Deprecation: A factory class for convenient automatic selection of an
+    Evolution algorithm based on the Operator to be converted.
     """
 
     @staticmethod
+    @deprecate_function(
+        "The EvolutionFactory.build opflow method is deprecated as of Qiskit Terra 0.23.0 "
+        "and will be removed no sooner than 3 months after the release date. "
+    )
     def build(operator: OperatorBase = None) -> EvolutionBase:
         r"""
         A factory method for convenient automatic selection of an Evolution algorithm based on the

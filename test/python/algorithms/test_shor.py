@@ -40,7 +40,11 @@ class TestShor(QiskitAlgorithmsTestCase):
                 category=DeprecationWarning,
             )
             self.instance = Shor(quantum_instance=QuantumInstance(backend, shots=1000))
-            self.assertTrue("Shor class is deprecated" in str(caught_warnings[0].message))
+            for caught_warning in caught_warnings:
+                if "Shor class is deprecated" in str(caught_warning.message):
+                    return
+
+        self.fail("Shor class is not emitting deprecation message.")
 
     @slow_test
     @idata(
@@ -70,8 +74,19 @@ class TestShor(QiskitAlgorithmsTestCase):
 
         with warnings.catch_warnings(record=True) as caught_warnings:
             warnings.simplefilter("always")
+            from qiskit_aer import Aer
+
             shor = Shor(quantum_instance=QuantumInstance(Aer.get_backend(backend), shots=1000))
-            self.assertTrue("Shor class is deprecated" in str(caught_warnings[0].message))
+            found = False
+            for caught_warning in caught_warnings:
+                if "Shor class is deprecated" in str(caught_warning.message):
+                    found = True
+                    break
+
+        if not found:
+            self.fail("Shor class is not emitting deprecation message.")
+            return
+
         result = shor.factor(N=n_v)
         self.assertListEqual(result.factors[0], factors)
         self.assertTrue(result.total_counts >= result.successful_counts)

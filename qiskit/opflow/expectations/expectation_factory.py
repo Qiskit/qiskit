@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2020.
+# (C) Copyright IBM 2020, 2022.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -24,16 +24,21 @@ from qiskit.opflow.operator_base import OperatorBase
 from qiskit.providers import Backend
 from qiskit.utils.backend_utils import has_aer, is_aer_qasm, is_statevector_backend
 from qiskit.utils.quantum_instance import QuantumInstance
+from qiskit.utils.deprecation import deprecate_function
 
 logger = logging.getLogger(__name__)
 
 
 class ExpectationFactory:
-    """A factory class for convenient automatic selection of an Expectation based on the
+    """Deprecation:  factory class for convenient automatic selection of an Expectation based on the
     Operator to be converted and backend used to sample the expectation value.
     """
 
     @staticmethod
+    @deprecate_function(
+        "The ExpectationFactory.build opflow method is deprecated as of Qiskit Terra 0.23.0 "
+        "and will be removed no sooner than 3 months after the release date. "
+    )
     def build(
         operator: OperatorBase,
         backend: Optional[Union[Backend, QuantumInstance]] = None,

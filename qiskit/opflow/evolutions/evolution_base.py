@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2020.
+# (C) Copyright IBM 2020, 2022.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -12,15 +12,17 @@
 
 """ EvolutionBase Class """
 
+import warnings
 from abc import ABC, abstractmethod
 
 from qiskit.opflow.operator_base import OperatorBase
 from qiskit.opflow.converters.converter_base import ConverterBase
+from qiskit.utils.deprecation import deprecate_function
 
 
 class EvolutionBase(ConverterBase, ABC):
     r"""
-    A base for Evolution converters.
+    Deprecation: A base for Evolution converters.
     Evolutions are converters which traverse an Operator tree, replacing any ``EvolvedOp`` `e`
     with a Schrodinger equation-style evolution ``CircuitOp`` equalling or approximating the
     matrix exponential of -i * the Operator contained inside (`e.primitive`). The Evolutions are
@@ -28,6 +30,15 @@ class EvolutionBase(ConverterBase, ABC):
     for Trotterization.
 
     """
+
+    @deprecate_function(
+        "The EvolutionBase opflow class is deprecated as of Qiskit Terra 0.23.0 "
+        "and will be removed no sooner than 3 months after the release date. "
+    )
+    def __init__(self) -> None:
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")
+            super().__init__()
 
     @abstractmethod
     def convert(self, operator: OperatorBase) -> OperatorBase:

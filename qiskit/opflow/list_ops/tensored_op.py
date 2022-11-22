@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2020.
+# (C) Copyright IBM 2020, 2022.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -22,15 +22,20 @@ from qiskit.opflow.exceptions import OpflowError
 from qiskit.opflow.list_ops.list_op import ListOp
 from qiskit.opflow.operator_base import OperatorBase
 from qiskit.quantum_info import Statevector
+from qiskit.utils.deprecation import deprecate_function
 
 
 class TensoredOp(ListOp):
-    """A class for lazily representing tensor products of Operators. Often Operators cannot be
-    efficiently tensored to one another, but may be manipulated further so that they can be
+    """Deprecation: A class for lazily representing tensor products of Operators. Often Operators
+    cannot be efficiently tensored to one another, but may be manipulated further so that they can be
     later. This class holds logic to indicate that the Operators in ``oplist`` are meant to
     be tensored together, and therefore if they reach a point in which they can be, such as after
     conversion to QuantumCircuits, they can be reduced by tensor product."""
 
+    @deprecate_function(
+        "The TensoredOp opflow class is deprecated as of Qiskit Terra 0.23.0 "
+        "and will be removed no sooner than 3 months after the release date. "
+    )
     def __init__(
         self,
         oplist: List[OperatorBase],

@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2020.
+# (C) Copyright IBM 2020, 2022.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -12,6 +12,7 @@
 
 """ ListOp Operator Class """
 
+import warnings
 from functools import reduce
 from typing import Any, Callable, Dict, Iterator, List, Optional, Set, Sequence, Union, cast
 
@@ -23,12 +24,13 @@ from qiskit.opflow.exceptions import OpflowError
 from qiskit.opflow.operator_base import OperatorBase
 from qiskit.quantum_info import Statevector
 from qiskit.utils import arithmetic
+from qiskit.utils.deprecation import deprecate_function
 
 
 class ListOp(OperatorBase):
     """
-    A Class for manipulating List Operators, and parent class to ``SummedOp``, ``ComposedOp``,
-    and ``TensoredOp``.
+    Deprecation: A Class for manipulating List Operators, and parent class to ``SummedOp``,
+    ``ComposedOp`` and ``TensoredOp``.
 
     List Operators are classes for storing and manipulating lists of Operators, State functions,
     or Measurements, and include some rule or ``combo_fn`` defining how the Operator functions
@@ -52,6 +54,10 @@ class ListOp(OperatorBase):
     multiple dimensional lists.
     """
 
+    @deprecate_function(
+        "The ListOp opflow class is deprecated as of Qiskit Terra 0.23.0 "
+        "and will be removed no sooner than 3 months after the release date. "
+    )
     def __init__(
         self,
         oplist: Sequence[OperatorBase],
@@ -72,7 +78,9 @@ class ListOp(OperatorBase):
             Note that the default "recombination function" lambda above is essentially the
             identity - it accepts the list of values, and returns them in a list.
         """
-        super().__init__()
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")
+            super().__init__()
         self._oplist = self._check_input_types(oplist)
         self._combo_fn = combo_fn
         self._coeff = coeff

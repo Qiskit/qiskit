@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2020.
+# (C) Copyright IBM 2020, 2022.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -13,7 +13,7 @@
 """CircuitOp Class """
 
 from typing import Dict, List, Optional, Set, Union, cast
-
+import warnings
 import numpy as np
 
 import qiskit
@@ -24,13 +24,18 @@ from qiskit.opflow.list_ops.tensored_op import TensoredOp
 from qiskit.opflow.operator_base import OperatorBase
 from qiskit.opflow.primitive_ops.primitive_op import PrimitiveOp
 from qiskit.quantum_info import Statevector
+from qiskit.utils.deprecation import deprecate_function
 
 
 class CircuitOp(PrimitiveOp):
-    """Class for Operators backed by Terra's ``QuantumCircuit`` module."""
+    """Deprecation: Class for Operators backed by Terra's ``QuantumCircuit`` module."""
 
     primitive: QuantumCircuit
 
+    @deprecate_function(
+        "The CircuitOp opflow class is deprecated as of Qiskit Terra 0.23.0 "
+        "and will be removed no sooner than 3 months after the release date. "
+    )
     def __init__(
         self,
         primitive: Union[Instruction, QuantumCircuit],
@@ -59,7 +64,9 @@ class CircuitOp(PrimitiveOp):
         if len(primitive.clbits) != 0:
             raise TypeError("CircuitOp does not support QuantumCircuits with ClassicalRegisters.")
 
-        super().__init__(primitive, coeff)
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")
+            super().__init__(primitive, coeff)
         self._coeff = coeff
 
     def primitive_strings(self) -> Set[str]:

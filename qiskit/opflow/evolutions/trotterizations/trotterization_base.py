@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2020.
+# (C) Copyright IBM 2020, 2022.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -12,21 +12,29 @@
 
 """ Trotterization Algorithm Base """
 
+import warnings
 from abc import abstractmethod
 
 from qiskit.opflow.evolutions.evolution_base import EvolutionBase
 from qiskit.opflow.operator_base import OperatorBase
+from qiskit.utils.deprecation import deprecate_function
 
 # TODO centralize handling of commuting groups
 
 
 class TrotterizationBase(EvolutionBase):
-    """A base for Trotterization methods, algorithms for approximating exponentiations of
+    """Deprecation: A base for Trotterization methods, algorithms for approximating exponentiations of
     operator sums by compositions of exponentiations.
     """
 
+    @deprecate_function(
+        "The TrotterizationBase opflow class is deprecated as of Qiskit Terra 0.23.0 "
+        "and will be removed no sooner than 3 months after the release date. "
+    )
     def __init__(self, reps: int = 1) -> None:
-
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")
+            super().__init__()
         self._reps = reps
 
     @property

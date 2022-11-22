@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2020.
+# (C) Copyright IBM 2020, 2022.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -12,6 +12,7 @@
 
 """ MatrixEvolution Class """
 
+import warnings
 import logging
 
 from qiskit.opflow.evolutions.evolution_base import EvolutionBase
@@ -20,15 +21,25 @@ from qiskit.opflow.list_ops.list_op import ListOp
 from qiskit.opflow.operator_base import OperatorBase
 from qiskit.opflow.primitive_ops.matrix_op import MatrixOp
 from qiskit.opflow.primitive_ops.pauli_op import PauliOp
+from qiskit.utils.deprecation import deprecate_function
 
 logger = logging.getLogger(__name__)
 
 
 class MatrixEvolution(EvolutionBase):
     r"""
-    Performs Evolution by classical matrix exponentiation, constructing a circuit with
+    Deprecation: Performs Evolution by classical matrix exponentiation, constructing a circuit with
     ``UnitaryGates`` or ``HamiltonianGates`` containing the exponentiation of the Operator.
     """
+
+    @deprecate_function(
+        "The MatrixEvolution opflow class is deprecated as of Qiskit Terra 0.23.0 "
+        "and will be removed no sooner than 3 months after the release date. "
+    )
+    def __init__(self) -> None:
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")
+            super().__init__()
 
     def convert(self, operator: OperatorBase) -> OperatorBase:
         r"""

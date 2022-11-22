@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2020.
+# (C) Copyright IBM 2020, 2022.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -33,16 +33,21 @@ from qiskit.opflow.primitive_ops.pauli_op import PauliOp
 from qiskit.opflow.state_fns.state_fn import StateFn
 from qiskit.opflow.state_fns.vector_state_fn import VectorStateFn
 from qiskit.quantum_info import Statevector
+from qiskit.utils.deprecation import deprecate_function
 
 
 class CircuitStateFn(StateFn):
     r"""
-    A class for state functions and measurements which are defined by the action of a
+    Deprecation: A class for state functions and measurements which are defined by the action of a
     QuantumCircuit starting from \|0⟩, and stored using Terra's ``QuantumCircuit`` class.
     """
     primitive: QuantumCircuit
 
     # TODO allow normalization somehow?
+    @deprecate_function(
+        "The CircuitStateFn opflow class is deprecated as of Qiskit Terra 0.23.0 "
+        "and will be removed no sooner than 3 months after the release date. "
+    )
     def __init__(
         self,
         primitive: Union[QuantumCircuit, Instruction] = None,

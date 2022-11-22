@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2020.
+# (C) Copyright IBM 2020, 2022.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -12,6 +12,7 @@
 
 """ AerPauliExpectation Class """
 
+import warnings
 import logging
 from functools import reduce
 from operator import add
@@ -28,15 +29,25 @@ from qiskit.opflow.primitive_ops.pauli_sum_op import PauliSumOp
 from qiskit.opflow.state_fns.circuit_state_fn import CircuitStateFn
 from qiskit.opflow.state_fns.operator_state_fn import OperatorStateFn
 from qiskit.quantum_info import SparsePauliOp
+from qiskit.utils.deprecation import deprecate_function
 
 logger = logging.getLogger(__name__)
 
 
 class AerPauliExpectation(ExpectationBase):
-    r"""An Expectation converter for using Aer's operator snapshot to
+    r"""Deprecation: An Expectation converter for using Aer's operator snapshot to
     take expectations of quantum state circuits over Pauli observables.
 
     """
+
+    @deprecate_function(
+        "The AerPauliExpectation opflow class is deprecated as of Qiskit Terra 0.23.0 "
+        "and will be removed no sooner than 3 months after the release date. "
+    )
+    def __init__(self) -> None:
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")
+            super().__init__()
 
     def convert(self, operator: OperatorBase) -> OperatorBase:
         """Accept an Operator and return a new Operator with the Pauli measurements replaced by
