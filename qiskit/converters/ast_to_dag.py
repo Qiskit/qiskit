@@ -25,42 +25,7 @@ from qiskit.circuit.measure import Measure
 from qiskit.circuit.reset import Reset
 from qiskit.circuit.barrier import Barrier
 from qiskit.circuit.delay import Delay
-from qiskit.circuit.library.standard_gates.x import CCXGate
-from qiskit.circuit.library.standard_gates.swap import CSwapGate
-from qiskit.circuit.library.standard_gates.x import CXGate
-from qiskit.circuit.library.standard_gates.y import CYGate
-from qiskit.circuit.library.standard_gates.z import CZGate
-from qiskit.circuit.library.standard_gates.swap import SwapGate
-from qiskit.circuit.library.standard_gates.h import HGate
-from qiskit.circuit.library.standard_gates.i import IGate
-from qiskit.circuit.library.standard_gates.s import SGate
-from qiskit.circuit.library.standard_gates.s import SdgGate
-from qiskit.circuit.library.standard_gates.sx import SXGate
-from qiskit.circuit.library.standard_gates.sx import SXdgGate
-from qiskit.circuit.library.standard_gates.t import TGate
-from qiskit.circuit.library.standard_gates.t import TdgGate
-from qiskit.circuit.library.standard_gates.p import PhaseGate
-from qiskit.circuit.library.standard_gates.u1 import U1Gate
-from qiskit.circuit.library.standard_gates.u2 import U2Gate
-from qiskit.circuit.library.standard_gates.u3 import U3Gate
-from qiskit.circuit.library.standard_gates.u import UGate
-from qiskit.circuit.library.standard_gates.x import XGate
-from qiskit.circuit.library.standard_gates.y import YGate
-from qiskit.circuit.library.standard_gates.z import ZGate
-from qiskit.circuit.library.standard_gates.rx import RXGate
-from qiskit.circuit.library.standard_gates.ry import RYGate
-from qiskit.circuit.library.standard_gates.rz import RZGate
-from qiskit.circuit.library.standard_gates.rxx import RXXGate
-from qiskit.circuit.library.standard_gates.rzz import RZZGate
-from qiskit.circuit.library.standard_gates.p import CPhaseGate
-from qiskit.circuit.library.standard_gates.u import CUGate
-from qiskit.circuit.library.standard_gates.u1 import CU1Gate
-from qiskit.circuit.library.standard_gates.u3 import CU3Gate
-from qiskit.circuit.library.standard_gates.h import CHGate
-from qiskit.circuit.library.standard_gates.rx import CRXGate
-from qiskit.circuit.library.standard_gates.ry import CRYGate
-from qiskit.circuit.library.standard_gates.rz import CRZGate
-from qiskit.circuit.library.standard_gates.sx import CSXGate
+from qiskit.circuit import library as lib
 
 
 def ast_to_dag(ast):
@@ -105,43 +70,48 @@ class AstInterpreter:
     """Interprets an OpenQASM by expanding subroutines and unrolling loops."""
 
     standard_extension = {
-        "u1": U1Gate,
-        "u2": U2Gate,
-        "u3": U3Gate,
-        "u": UGate,
-        "p": PhaseGate,
-        "x": XGate,
-        "y": YGate,
-        "z": ZGate,
-        "t": TGate,
-        "tdg": TdgGate,
-        "s": SGate,
-        "sdg": SdgGate,
-        "sx": SXGate,
-        "sxdg": SXdgGate,
-        "swap": SwapGate,
-        "rx": RXGate,
-        "rxx": RXXGate,
-        "ry": RYGate,
-        "rz": RZGate,
-        "rzz": RZZGate,
-        "id": IGate,
-        "h": HGate,
-        "cx": CXGate,
-        "cy": CYGate,
-        "cz": CZGate,
-        "ch": CHGate,
-        "crx": CRXGate,
-        "cry": CRYGate,
-        "crz": CRZGate,
-        "csx": CSXGate,
-        "cu1": CU1Gate,
-        "cp": CPhaseGate,
-        "cu": CUGate,
-        "cu3": CU3Gate,
-        "ccx": CCXGate,
-        "cswap": CSwapGate,
+        "u1": lib.U1Gate,
+        "u2": lib.U2Gate,
+        "u3": lib.U3Gate,
+        "u": lib.UGate,
+        "p": lib.PhaseGate,
+        "x": lib.XGate,
+        "y": lib.YGate,
+        "z": lib.ZGate,
+        "t": lib.TGate,
+        "tdg": lib.TdgGate,
+        "s": lib.SGate,
+        "sdg": lib.SdgGate,
+        "sx": lib.SXGate,
+        "sxdg": lib.SXdgGate,
+        "swap": lib.SwapGate,
+        "rx": lib.RXGate,
+        "rxx": lib.RXXGate,
+        "ry": lib.RYGate,
+        "rz": lib.RZGate,
+        "rzz": lib.RZZGate,
+        "id": lib.IGate,
+        "h": lib.HGate,
+        "cx": lib.CXGate,
+        "cy": lib.CYGate,
+        "cz": lib.CZGate,
+        "ch": lib.CHGate,
+        "crx": lib.CRXGate,
+        "cry": lib.CRYGate,
+        "crz": lib.CRZGate,
+        "csx": lib.CSXGate,
+        "cu1": lib.CU1Gate,
+        "cp": lib.CPhaseGate,
+        "cu": lib.CUGate,
+        "cu3": lib.CU3Gate,
+        "ccx": lib.CCXGate,
+        "cswap": lib.CSwapGate,
         "delay": Delay,
+        "rccx": lib.RCCXGate,
+        "rc3x": lib.RC3XGate,
+        "c3x": lib.C3XGate,
+        "c3sqrtx": lib.C3SXGate,
+        "c4x": lib.C4XGate,
     }
 
     def __init__(self, dag):

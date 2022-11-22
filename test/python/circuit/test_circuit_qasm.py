@@ -18,6 +18,7 @@ import re
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
 from qiskit.test import QiskitTestCase
 from qiskit.circuit import Parameter, Qubit, Clbit
+from qiskit.circuit.library import C3SXGate
 from qiskit.qasm.exceptions import QasmError
 
 # Regex pattern to match valid OpenQASM identifiers
@@ -245,6 +246,22 @@ nG0(pi,pi/2) q[0],r[0];\n"""
         qc = QuantumCircuit.from_qasm_str(original_str)
 
         self.assertEqual(original_str, qc.qasm())
+
+    def test_c3sxgate_roundtrips(self):
+        """Test that C3SXGate correctly round trips.  Qiskit gives this gate a different name
+        ('c3sx') to the name in Qiskit's version of qelib1.inc ('c3sqrtx') gate, which can lead to
+        resolution issues."""
+        qc = QuantumCircuit(4)
+        qc.append(C3SXGate(), qc.qubits, [])
+        qasm = qc.qasm()
+        expected = """OPENQASM 2.0;
+include "qelib1.inc";
+qreg q[4];
+c3sqrtx q[0],q[1],q[2],q[3];
+"""
+        self.assertEqual(qasm, expected)
+        parsed = QuantumCircuit.from_qasm_str(qasm)
+        self.assertIsInstance(parsed.data[0].operation, C3SXGate)
 
     def test_unbound_circuit_raises(self):
         """Test circuits with unbound parameters raises."""
