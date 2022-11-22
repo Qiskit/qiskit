@@ -14,8 +14,6 @@
 Decompose a single-qubit unitary via Euler angles.
 """
 
-import math
-import cmath
 import numpy as np
 
 from qiskit.circuit.quantumcircuit import QuantumCircuit
@@ -35,6 +33,7 @@ from qiskit.circuit.library.standard_gates import (
 )
 from qiskit.exceptions import QiskitError
 from qiskit.quantum_info.operators.predicates import is_unitary_matrix
+from qiskit._accelerate import euler_one_qubit_decomposer
 
 DEFAULT_ATOL = 1e-12
 
@@ -220,59 +219,21 @@ class OneQubitEulerDecomposer:
     @staticmethod
     def _params_zyz(mat):
         """Return the Euler angles and phase for the ZYZ basis."""
-        # We rescale the input matrix to be special unitary (det(U) = 1)
-        # This ensures that the quaternion representation is real
-        coeff = np.linalg.det(mat) ** (-0.5)
-        phase = -cmath.phase(coeff)
-        su_mat = coeff * mat  # U in SU(2)
-        # OpenQASM SU(2) parameterization:
-        # U[0, 0] = exp(-i(phi+lambda)/2) * cos(theta/2)
-        # U[0, 1] = -exp(-i(phi-lambda)/2) * sin(theta/2)
-        # U[1, 0] = exp(i(phi-lambda)/2) * sin(theta/2)
-        # U[1, 1] = exp(i(phi+lambda)/2) * cos(theta/2)
-        theta = 2 * math.atan2(abs(su_mat[1, 0]), abs(su_mat[0, 0]))
-        phiplambda2 = cmath.phase(su_mat[1, 1])
-        phimlambda2 = cmath.phase(su_mat[1, 0])
-        phi = phiplambda2 + phimlambda2
-        lam = phiplambda2 - phimlambda2
-        return theta, phi, lam, phase
+        return euler_one_qubit_decomposer.params_zyz(mat)
 
     @staticmethod
     def _params_zxz(mat):
         """Return the Euler angles and phase for the ZXZ basis."""
-        theta, phi, lam, phase = OneQubitEulerDecomposer._params_zyz(mat)
-        return theta, phi + np.pi / 2, lam - np.pi / 2, phase
+        return euler_one_qubit_decomposer.params_zxz(mat)
 
     @staticmethod
     def _params_xyx(mat):
         """Return the Euler angles and phase for the XYX basis."""
-        # We use the fact that
-        # Rx(a).Ry(b).Rx(c) = H.Rz(a).Ry(-b).Rz(c).H
-        mat_zyz = 0.5 * np.array(
-            [
-                [
-                    mat[0, 0] + mat[0, 1] + mat[1, 0] + mat[1, 1],
-                    mat[0, 0] - mat[0, 1] + mat[1, 0] - mat[1, 1],
-                ],
-                [
-                    mat[0, 0] + mat[0, 1] - mat[1, 0] - mat[1, 1],
-                    mat[0, 0] - mat[0, 1] - mat[1, 0] + mat[1, 1],
-                ],
-            ],
-            dtype=complex,
-        )
-        theta, phi, lam, phase = OneQubitEulerDecomposer._params_zyz(mat_zyz)
-        newphi, newlam = _mod_2pi(phi + np.pi), _mod_2pi(lam + np.pi)
-        return theta, newphi, newlam, phase + (newphi + newlam - phi - lam) / 2
+        return euler_one_qubit_decomposer.params_xyx(mat)
 
     @staticmethod
     def _params_xzx(umat):
-        det = np.linalg.det(umat)
-        phase = (-1j * np.log(det)).real / 2
-        mat = umat / np.sqrt(det)
-        mat_zxz = _h_conjugate(mat)
-        theta, phi, lam, phase_zxz = OneQubitEulerDecomposer._params_zxz(mat_zxz)
-        return theta, phi, lam, phase + phase_zxz
+        return euler_one_qubit_decomposer.params_xzx(umat)
 
     @staticmethod
     def _params_u3(mat):
@@ -593,14 +554,3 @@ def _mod_2pi(angle: float, atol: float = 0):
     if abs(wrapped - np.pi) < atol:
         wrapped = -np.pi
     return wrapped
-
-
-def _h_conjugate(su2):
-    """Return su2 conjugated by Hadamard gate. No warning if input matrix is not in su2."""
-    return np.array(
-        [
-            [su2[0, 0].real + 1j * su2[1, 0].imag, 1j * su2[0, 0].imag + su2[1, 0].real],
-            [1j * su2[0, 0].imag - su2[1, 0].real, su2[0, 0].real - 1j * su2[1, 0].imag],
-        ],
-        dtype=complex,
-    )
