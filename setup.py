@@ -32,7 +32,7 @@ with open(README_PATH) as readme_file:
     )
 
 
-# If modifying these optional extras, make sure to sync with `requirements-optionals.txt` and
+# If modifying these optional extras, make sure to sync with `requirements-optional.txt` and
 # `qiskit.utils.optionals` as well.
 visualization_extras = [
     "matplotlib>=3.3",

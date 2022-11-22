@@ -2,7 +2,8 @@
 # `pip`.  This file is still called `requirements-optionals.txt` just to match
 # standard pip conventions, even though none of these are required.
 #
-# If updating this, you probably want to update `qiskit.utils.optionals` too.
+# If updating this, you probably want to update `qiskit.utils.optionals` and
+# maybe `setup.py` too.
 
 qiskit-aer
 qiskit-toqm>=0.0.4; platform_machine != 'aarch64' or platform_system != 'Linux'
