@@ -13,8 +13,8 @@
 """RZX calibration builders."""
 
 import enum
-import math
 import warnings
+from math import pi, erf  # pylint: disable=no-name-in-module
 from typing import List, Tuple, Union
 
 import numpy as np
@@ -126,37 +126,37 @@ class RZXCalibrationBuilder(CalibrationBuilder):
             raise QiskitError("Target rotation angle is not assigned.") from ex
 
         # This method is called for instructions which are guaranteed to play GaussianSquare pulse
-        amp = instruction.pulse.amp
-        width = instruction.pulse.width
-        sigma = instruction.pulse.sigma
-        n_sigmas = (instruction.pulse.duration - width) / sigma
+        params = instruction.pulse.parameters.copy()
+        risefall_sigma_ratio = (params["duration"] - params["width"]) / params["sigma"]
 
         # The error function is used because the Gaussian may have chopped tails.
-        gaussian_area = abs(amp) * sigma * np.sqrt(2 * np.pi) * math.erf(n_sigmas)
-        area = gaussian_area + abs(amp) * width
-        target_area = abs(theta) / (np.pi / 2.0) * area
+        # Area is normalized by amplitude.
+        # This makes widths robust to the rounding error.
+        risefall_area = params["sigma"] * np.sqrt(2 * pi) * erf(risefall_sigma_ratio)
+        full_area = params["width"] + risefall_area
 
-        if target_area > gaussian_area:
-            width = (target_area - gaussian_area) / abs(amp)
-            duration = round((width + n_sigmas * sigma) / sample_mult) * sample_mult
-            stretched_pulse = GaussianSquare(
-                duration=duration,
-                amp=np.sign(theta) * amp,
-                width=width,
-                sigma=sigma,
-            )
+        # Get estimate of target area. Assume this is pi/2 controlled rotation.
+        cal_angle = pi / 2
+        target_area = abs(theta) / cal_angle * full_area
+        new_width = target_area - risefall_area
+
+        if new_width >= 0:
+            width = new_width
+            params["amp"] *= np.sign(theta)
         else:
-            amp_scale = np.sign(theta) * target_area / gaussian_area
-            duration = round(n_sigmas * sigma / sample_mult) * sample_mult
-            stretched_pulse = GaussianSquare(
-                duration=duration,
-                amp=amp * amp_scale,
-                width=0,
-                sigma=sigma,
-            )
+            width = 0
+            params["amp"] *= np.sign(theta) * target_area / risefall_area
+
+        round_duration = (
+            round((width + risefall_sigma_ratio * params["sigma"]) / sample_mult) * sample_mult
+        )
+        params["duration"] = round_duration
+        params["width"] = width
+
+        stretched_pulse = GaussianSquare(**params)
         builder.play(stretched_pulse, instruction.channel)
 
-        return duration
+        return round_duration
 
     def get_calibration(self, node_op: CircuitInst, qubits: List) -> Union[Schedule, ScheduleBlock]:
         """Builds the calibration schedule for the RZXGate(theta) with echos.
@@ -219,9 +219,9 @@ class RZXCalibrationBuilder(CalibrationBuilder):
 
         # The direction is not native. Add Hadamard gates to flip the direction.
         xgate = self._inst_map.get("x", qubits[1])
-        szc = self._inst_map.get("rz", qubits[1], np.pi / 2)
+        szc = self._inst_map.get("rz", qubits[1], pi / 2)
         sxc = self._inst_map.get("sx", qubits[1])
-        szt = self._inst_map.get("rz", qubits[0], np.pi / 2)
+        szt = self._inst_map.get("rz", qubits[0], pi / 2)
         sxt = self._inst_map.get("sx", qubits[0])
         with builder.build(name="hadamard") as hadamard:
             # Control qubit
