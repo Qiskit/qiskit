@@ -118,15 +118,7 @@ fn layout_trial(
     let mut rng = Pcg64Mcg::seed_from_u64(seed);
     let mut physical_qubits: Vec<usize> = (0..num_physical_qubits).collect();
     physical_qubits.shuffle(&mut rng);
-    let mut phys_to_logic = vec![0; num_physical_qubits];
-    physical_qubits
-        .iter()
-        .enumerate()
-        .for_each(|(logic, phys)| phys_to_logic[*phys] = logic);
-    let mut initial_layout = NLayout {
-        logic_to_phys: physical_qubits,
-        phys_to_logic,
-    };
+    let mut initial_layout = NLayout::from_logical_to_physical(physical_qubits);
     let mut rev_dag_nodes: Vec<(usize, Vec<usize>, HashSet<usize>)> =
         dag_nodes.iter().rev().cloned().collect();
     for _iter in 0..max_iterations {

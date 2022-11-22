@@ -124,6 +124,18 @@ impl NLayout {
             phys_to_logic: (0..num_qubits).collect(),
         }
     }
+
+    #[staticmethod]
+    pub fn from_logical_to_physical(logic_to_phys: Vec<usize>) -> Self {
+        let mut phys_to_logic = vec![std::usize::MAX; logic_to_phys.len()];
+        for (logic, phys) in logic_to_phys.iter().enumerate() {
+            phys_to_logic[*phys] = logic;
+        }
+        NLayout {
+            logic_to_phys,
+            phys_to_logic,
+        }
+    }
 }
 
 #[pymodule]
