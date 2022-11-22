@@ -1622,7 +1622,6 @@ class TestTextDrawerMultiQGates(QiskitTestCase):
             str(_text_circuit_drawer(circ, cregbundle=False, vertical_compression="high")), expected
         )
 
-    @unittest.expectedFailure
     def test_control_gate_label_with_cond_1_high_cregbundle(self):
         """Control gate has a label and a conditional (compression=high) with cregbundle
         See https://github.com/Qiskit/qiskit-terra/issues/4361"""
@@ -1632,8 +1631,7 @@ class TestTextDrawerMultiQGates(QiskitTestCase):
                 "q_0: |0>───■────",
                 "        ┌──┴───┐",
                 "q_1: |0>┤ my h ├",
-                "        └──╥───┘",
-                "        ┌──╨──┐ ",
+                "        ├──╨──┬┘",
                 " c: 0 1/╡ 0x1 ╞═",
                 "        └─────┘ ",
             ]
@@ -2242,7 +2240,6 @@ class TestTextDrawerVerticalCompressionMedium(QiskitTestCase):
 class TestTextConditional(QiskitTestCase):
     """Gates with conditionals"""
 
-    @unittest.expectedFailure
     def test_text_conditional_1_cregbundle(self):
         """Conditional drawing with 1-bit-length regs and cregbundle."""
         qasm_string = """
@@ -2258,8 +2255,7 @@ class TestTextConditional(QiskitTestCase):
             [
                 "         ┌───┐  ┌───┐ ",
                 "  q: |0>─┤ X ├──┤ X ├─",
-                "         └─╥─┘  └─╥─┘ ",
-                "        ┌──╨──┐   ║   ",
+                "        ┌┴─╨─┴┐ └─╥─┘ ",
                 "c0: 0 1/╡ 0x1 ╞═══╬═══",
                 "        └─────┘┌──╨──┐",
                 "c1: 0 1/═══════╡ 0x1 ╞",
@@ -2296,7 +2292,6 @@ class TestTextConditional(QiskitTestCase):
         circuit = QuantumCircuit.from_qasm_str(qasm_string)
         self.assertEqual(str(_text_circuit_drawer(circuit, cregbundle=False)), expected)
 
-    @unittest.expectedFailure
     def test_text_conditional_2_cregbundle(self):
         """Conditional drawing with 2-bit-length regs with cregbundle"""
         qasm_string = """
@@ -2312,8 +2307,7 @@ class TestTextConditional(QiskitTestCase):
             [
                 "         ┌───┐  ┌───┐ ",
                 "  q: |0>─┤ X ├──┤ X ├─",
-                "         └─╥─┘  └─╥─┘ ",
-                "        ┌──╨──┐   ║   ",
+                "        ┌┴─╨─┴┐ └─╥─┘ ",
                 "c0: 0 2/╡ 0x2 ╞═══╬═══",
                 "        └─────┘┌──╨──┐",
                 "c1: 0 2/═══════╡ 0x2 ╞",
@@ -2352,7 +2346,6 @@ class TestTextConditional(QiskitTestCase):
         circuit = QuantumCircuit.from_qasm_str(qasm_string)
         self.assertEqual(str(_text_circuit_drawer(circuit, cregbundle=False)), expected)
 
-    @unittest.expectedFailure
     def test_text_conditional_3_cregbundle(self):
         """Conditional drawing with 3-bit-length regs with cregbundle."""
         qasm_string = """
@@ -2368,8 +2361,7 @@ class TestTextConditional(QiskitTestCase):
             [
                 "         ┌───┐  ┌───┐ ",
                 "  q: |0>─┤ X ├──┤ X ├─",
-                "         └─╥─┘  └─╥─┘ ",
-                "        ┌──╨──┐   ║   ",
+                "        ┌┴─╨─┴┐ └─╥─┘ ",
                 "c0: 0 3/╡ 0x3 ╞═══╬═══",
                 "        └─────┘┌──╨──┐",
                 "c1: 0 3/═══════╡ 0x3 ╞",
@@ -2412,7 +2404,6 @@ class TestTextConditional(QiskitTestCase):
         circuit = QuantumCircuit.from_qasm_str(qasm_string)
         self.assertEqual(str(_text_circuit_drawer(circuit, cregbundle=False)), expected)
 
-    @unittest.expectedFailure
     def test_text_conditional_4(self):
         """Conditional drawing with 4-bit-length regs."""
         qasm_string = """
@@ -2428,8 +2419,7 @@ class TestTextConditional(QiskitTestCase):
             [
                 "         ┌───┐  ┌───┐ ",
                 "  q: |0>─┤ X ├──┤ X ├─",
-                "         └─╥─┘  └─╥─┘ ",
-                "        ┌──╨──┐   ║   ",
+                "        ┌┴─╨─┴┐ └─╥─┘ ",
                 "c0: 0 4/╡ 0x4 ╞═══╬═══",
                 "        └─────┘┌──╨──┐",
                 "c1: 0 4/═══════╡ 0x4 ╞",
@@ -2802,7 +2792,6 @@ class TestTextConditional(QiskitTestCase):
 
         self.assertEqual(str(_text_circuit_drawer(circuit, cregbundle=False)), expected)
 
-    @unittest.expectedFailure
     def test_text_conditional_ccx_no_space_cregbundle(self):
         """Conditional CCX without space with cregbundle"""
         qr = QuantumRegister(3, "qr")
@@ -2818,8 +2807,7 @@ class TestTextConditional(QiskitTestCase):
                 "qr_1: |0>───■───",
                 "          ┌─┴─┐ ",
                 "qr_2: |0>─┤ X ├─",
-                "          └─╥─┘ ",
-                "         ┌──╨──┐",
+                "         ┌┴─╨─┴┐",
                 " cr: 0 1/╡ 0x1 ╞",
                 "         └─────┘",
             ]
@@ -3080,7 +3068,6 @@ class TestTextConditional(QiskitTestCase):
 
         self.assertEqual(str(_text_circuit_drawer(qc, cregbundle=False)), expected)
 
-    @unittest.expectedFailure
     def test_text_conditional_measure_cregbundle(self):
         """Conditional with measure on same clbit with cregbundle"""
         qr = QuantumRegister(2, "qr")
@@ -3096,8 +3083,7 @@ class TestTextConditional(QiskitTestCase):
                 "qr_0: |0>┤ H ├┤M├───────",
                 "         └───┘└╥┘ ┌───┐ ",
                 "qr_1: |0>──────╫──┤ H ├─",
-                "               ║  └─╥─┘ ",
-                "               ║ ┌──╨──┐",
+                "               ║ ┌┴─╨─┴┐",
                 " cr: 0 2/══════╩═╡ 0x1 ╞",
                 "               0 └─────┘",
             ]
