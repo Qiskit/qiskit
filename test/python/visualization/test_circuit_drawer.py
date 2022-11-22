@@ -117,7 +117,7 @@ class TestCircuitDrawer(QiskitTestCase):
         with self.assertRaisesRegex(VisualizationError, "cannot be set when the reverse_bits"):
             visualization.circuit_drawer(circuit, wire_order=[0, 1, 2, 5, 4, 3], reverse_bits=True)
 
-        with self.assertWarnsRegex(RuntimeWarning, "Cregbundle set"):
+        with self.assertWarnsRegex(RuntimeWarning, "cregbundle set"):
             visualization.circuit_drawer(circuit, cregbundle=True, wire_order=[0, 1, 2, 5, 4, 3])
 
     def test_reverse_bits(self):
