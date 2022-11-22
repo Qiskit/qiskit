@@ -68,7 +68,7 @@ class UserConfig:
                     )
                 self.settings["circuit_drawer"] = circuit_drawer
 
-            # Parse circuit_drawer_reverse_bits
+            # Parse circuit_reverse_bits
             circuit_reverse_bits = self.config_parser.get(
                 "default", "circuit_reverse_bits", fallback=None
             )
@@ -193,6 +193,7 @@ def set_config(key, value, section=None, file_path=None):
         "circuit_drawer",
         "circuit_mpl_style",
         "circuit_mpl_style_path",
+        "circuit_reverse_bits",
         "transpile_optimization_level",
         "parallel",
         "num_processes",
