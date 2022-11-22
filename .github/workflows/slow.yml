@@ -4,7 +4,7 @@ on:
     - cron:  '42 3 * * *'
   workflow_dispatch:
 jobs:
-  randomized_tests:
+  slow-tests:
     name: Full-test-run-with-slow
     runs-on: ubuntu-latest
     steps:
@@ -16,7 +16,7 @@ jobs:
       - name: Install dependencies
         run: |
           pip install -U -r requirements.txt -c constraints.txt
-          pip install -U -r requirements-dev.txt coveralls -c constraints.txt
+          pip install -U -r requirements-dev.txt -c constraints.txt
           pip install -c constraints.txt -e .
           pip install "qiskit-aer" "z3-solver" "cplex" -c constraints.txt
         env:
