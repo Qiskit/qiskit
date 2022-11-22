@@ -714,14 +714,12 @@ class TestUnitarySynthesis(QiskitTestCase):
 
     @combine(
         opt_level=[0, 1, 2, 3],
-        dsc=(
-            "Test controlled but not supercontrolled basis"
-        ),
+        dsc=("Test controlled but not supercontrolled basis"),
         name="opt_level_{opt_level}",
     )
     def test_controlled_basis(self, opt_level):
         target = Target(2)
-        target.add_instruction(RYYGate(np.pi/8), {(0, 1): InstructionProperties(error=1.2e-6)})
+        target.add_instruction(RYYGate(np.pi / 8), {(0, 1): InstructionProperties(error=1.2e-6)})
         target.add_instruction(
             UGate(Parameter("theta"), Parameter("phi"), Parameter("lam")), {(0,): None, (1,): None}
         )
