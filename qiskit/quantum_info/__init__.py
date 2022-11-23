@@ -119,6 +119,7 @@ Synthesis
    two_qubit_cnot_decompose
    Quaternion
    decompose_clifford
+   decompose_cnotdihedral
    XXDecomposer
 """
 
@@ -160,6 +161,7 @@ from .synthesis import (
     two_qubit_cnot_decompose,
     Quaternion,
     decompose_clifford,
+    decompose_cnotdihedral,
     XXDecomposer,
 )
 
