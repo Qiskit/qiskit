@@ -132,6 +132,8 @@ class GateDirection(TransformationPass):
                     dag.substitute_node_with_dag(node, replacement)
                 elif node.name == "rzx":
                     dag.substitute_node_with_dag(node, self._rzx_dag(*node.op.params))
+                elif node.name in ["rxx", "ryy", "rzz"]:
+                    continue
                 else:
                     raise TranspilerError(
                         f"Flipping of gate direction is only supported "
