@@ -190,7 +190,7 @@ class TestGateDefinitions(QiskitTestCase):
         phase = 0.5
         gate = GlobalPhaseGate(phase)
         circuit = QuantumCircuit(0)
-        circuit.append(gate, [0])
+        circuit.append(gate, [])
         decomposed_circuit = circuit.decompose()
         self.assertTrue(Operator(circuit).equiv(Operator(decomposed_circuit), atol=1e-7))
 
