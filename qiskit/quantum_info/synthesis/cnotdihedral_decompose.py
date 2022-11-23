@@ -14,8 +14,8 @@ Circuit synthesis for the CNOTDihedral class.
 """
 
 from qiskit.synthesis.cnotdihedral import (
-    decompose_cnotdihedral_2_qubits,
-    decompose_cnotdihedral_general,
+    synth_cnotdihedral_two_qubits,
+    synth_cnotdihedral_full,
 )
 
 
@@ -39,6 +39,6 @@ def decompose_cnotdihedral(elem):
     num_qubits = elem.num_qubits
 
     if num_qubits < 3:
-        return decompose_cnotdihedral_2_qubits(elem)
+        return synth_cnotdihedral_two_qubits(elem)
 
-    return decompose_cnotdihedral_general(elem)
+    return synth_cnotdihedral_full(elem)

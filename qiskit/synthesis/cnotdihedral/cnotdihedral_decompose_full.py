@@ -18,20 +18,24 @@ from qiskit.exceptions import QiskitError
 from qiskit.circuit import QuantumCircuit
 
 
-def decompose_cnotdihedral_general(elem):
+def synth_cnotdihedral_full(elem):
     """Decompose a CNOTDihedral element into a QuantumCircuit.
+
+    Decompose a general CNOTDihedral elements.
+    The number of CNOT gates is not necessarily optimal.
+    For a decomposition of a 1-qubit or 2-qubit element, call
+    synth_cnotdihedral_two_qubits.
 
     Args:
         elem (CNOTDihedral): a CNOTDihedral element.
+
     Return:
         QuantumCircuit: a circuit implementation of the CNOTDihedral element.
-    Remark:
-        Decompose general CNOTDihedral elements.
-        The number of CNOT gates is not necessarily optimal.
+
     Raises:
         QiskitError: if the element could not be decomposed into a circuit.
 
-    References:
+    Reference:
         1. Andrew W. Cross, Easwar Magesan, Lev S. Bishop, John A. Smolin and Jay M. Gambetta,
            *Scalable randomised benchmarking of non-Clifford gates*,
            npj Quantum Inf 2, 16012 (2016).

@@ -18,24 +18,22 @@ from qiskit.exceptions import QiskitError
 from qiskit.circuit import QuantumCircuit
 
 
-def decompose_cnotdihedral_2_qubits(elem):
-    """Decompose a CNOTDihedral element into a QuantumCircuit.
+def synth_cnotdihedral_two_qubits(elem):
+    """Decompose a CNOTDihedral element on a single qubit and two qubits into a QuantumCircuit.
+    This decomposition has an optimal number of CX gates.
 
     Args:
         elem (CNOTDihedral): a CNOTDihedral element.
+
     Return:
         QuantumCircuit: a circuit implementation of the CNOTDihedral element.
-    Remark:
-        Decompose 1 and 2-qubit CNOTDihedral elements.
-    Raises:
-        QiskitError: if the element in not 1 or 2-qubit CNOTDihedral.
 
-    References:
+    Raises:
+        QiskitError: if the element in not 1-qubit or 2-qubit CNOTDihedral.
+
+    Reference:
         1. Shelly Garion and Andrew W. Cross, *On the structure of the CNOT-Dihedral group*,
            `arXiv:2006.12042 [quant-ph] <https://arxiv.org/abs/2006.12042>`_
-        2. Andrew W. Cross, Easwar Magesan, Lev S. Bishop, John A. Smolin and Jay M. Gambetta,
-           *Scalable randomised benchmarking of non-Clifford gates*,
-           npj Quantum Inf 2, 16012 (2016).
     """
 
     circuit = QuantumCircuit(elem.num_qubits)
@@ -43,7 +41,7 @@ def decompose_cnotdihedral_2_qubits(elem):
     if elem.num_qubits > 2:
         raise QiskitError(
             "Cannot decompose a CNOT-Dihedral element with more than 2 qubits. "
-            "use decompose_cnotdihedral_general function instead."
+            "use synth_cnotdihedral_full function instead."
         )
 
     if elem.num_qubits == 1:

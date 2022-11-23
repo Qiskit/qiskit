@@ -12,5 +12,5 @@
 
 """Module containing cnot-dihedral circuit synthesis."""
 
-from .cnotdihedral_decompose_2_qubits import decompose_cnotdihedral_2_qubits
-from .cnotdihedral_decompose_general import decompose_cnotdihedral_general
+from .cnotdihedral_decompose_two_qubits import synth_cnotdihedral_two_qubits
+from .cnotdihedral_decompose_full import synth_cnotdihedral_full
