@@ -443,7 +443,7 @@ class TestReadoutMitigation(QiskitTestCase):
             self.assertAlmostEqual(expval, -1.0, places=0)
 
     def test_quasi_probabilities_shots_passing(self):
-        """ Test that the output of LocalReadoutMitigator.quasi_probabilities has the number of shots set"""
+        """Test that the output of LocalReadoutMitigator.quasi_probabilities has the number of shots set"""
         mitigator = LocalReadoutMitigator([np.array([[0.9, 0.1], [0.1, 0.9]])], qubits=[0])
         counts = Counts({"10": 3, "11": 24, "00": 74, "01": 923})
         quasi_dist = mitigator.quasi_probabilities(counts)
