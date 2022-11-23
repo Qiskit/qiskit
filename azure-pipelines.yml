@@ -18,13 +18,6 @@ pr:
     include:
       - '*'
 
-schedules:
-  - cron: "20 6 * * *"
-    displayName: "Complete matrix test"
-    branches:
-      include: [ "main", "stable/*" ]
-    always: false  # Only run if the code changed since the last cron sync.
-
 
 # Configuration.  In theory a manual trigger on the Azure website or embedding
 # this pipeline as a template can override these, but we're not interested in
