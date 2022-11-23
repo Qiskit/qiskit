@@ -29,6 +29,7 @@ from qiskit.algorithms.phase_estimators import (
 import qiskit
 from qiskit import QuantumCircuit
 from qiskit.opflow import H, X, Y, Z, I, StateFn, PauliTrotterEvolution, MatrixEvolution, PauliSumOp
+from qiskit.test import slow_test
 
 
 @ddt
@@ -104,6 +105,7 @@ class TestHamiltonianPhaseEstimation(QiskitAlgorithmsTestCase):
         with self.subTest("Second eigenvalue"):
             self.assertAlmostEqual(eigv, -0.98, delta=0.01)
 
+    @slow_test
     def test_H2_hamiltonian(self):
         """Test H2 hamiltonian"""
         hamiltonian = (
