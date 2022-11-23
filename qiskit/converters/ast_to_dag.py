@@ -25,7 +25,7 @@ from qiskit.circuit.measure import Measure
 from qiskit.circuit.reset import Reset
 from qiskit.circuit.barrier import Barrier
 from qiskit.circuit.delay import Delay
-from qiskit.circuit import library as lib
+from qiskit.circuit.library import standard_gates as std
 
 
 def ast_to_dag(ast):
@@ -70,48 +70,48 @@ class AstInterpreter:
     """Interprets an OpenQASM by expanding subroutines and unrolling loops."""
 
     standard_extension = {
-        "u1": lib.U1Gate,
-        "u2": lib.U2Gate,
-        "u3": lib.U3Gate,
-        "u": lib.UGate,
-        "p": lib.PhaseGate,
-        "x": lib.XGate,
-        "y": lib.YGate,
-        "z": lib.ZGate,
-        "t": lib.TGate,
-        "tdg": lib.TdgGate,
-        "s": lib.SGate,
-        "sdg": lib.SdgGate,
-        "sx": lib.SXGate,
-        "sxdg": lib.SXdgGate,
-        "swap": lib.SwapGate,
-        "rx": lib.RXGate,
-        "rxx": lib.RXXGate,
-        "ry": lib.RYGate,
-        "rz": lib.RZGate,
-        "rzz": lib.RZZGate,
-        "id": lib.IGate,
-        "h": lib.HGate,
-        "cx": lib.CXGate,
-        "cy": lib.CYGate,
-        "cz": lib.CZGate,
-        "ch": lib.CHGate,
-        "crx": lib.CRXGate,
-        "cry": lib.CRYGate,
-        "crz": lib.CRZGate,
-        "csx": lib.CSXGate,
-        "cu1": lib.CU1Gate,
-        "cp": lib.CPhaseGate,
-        "cu": lib.CUGate,
-        "cu3": lib.CU3Gate,
-        "ccx": lib.CCXGate,
-        "cswap": lib.CSwapGate,
+        "u1": std.U1Gate,
+        "u2": std.U2Gate,
+        "u3": std.U3Gate,
+        "u": std.UGate,
+        "p": std.PhaseGate,
+        "x": std.XGate,
+        "y": std.YGate,
+        "z": std.ZGate,
+        "t": std.TGate,
+        "tdg": std.TdgGate,
+        "s": std.SGate,
+        "sdg": std.SdgGate,
+        "sx": std.SXGate,
+        "sxdg": std.SXdgGate,
+        "swap": std.SwapGate,
+        "rx": std.RXGate,
+        "rxx": std.RXXGate,
+        "ry": std.RYGate,
+        "rz": std.RZGate,
+        "rzz": std.RZZGate,
+        "id": std.IGate,
+        "h": std.HGate,
+        "cx": std.CXGate,
+        "cy": std.CYGate,
+        "cz": std.CZGate,
+        "ch": std.CHGate,
+        "crx": std.CRXGate,
+        "cry": std.CRYGate,
+        "crz": std.CRZGate,
+        "csx": std.CSXGate,
+        "cu1": std.CU1Gate,
+        "cp": std.CPhaseGate,
+        "cu": std.CUGate,
+        "cu3": std.CU3Gate,
+        "ccx": std.CCXGate,
+        "cswap": std.CSwapGate,
         "delay": Delay,
-        "rccx": lib.RCCXGate,
-        "rc3x": lib.RC3XGate,
-        "c3x": lib.C3XGate,
-        "c3sqrtx": lib.C3SXGate,
-        "c4x": lib.C4XGate,
+        "rccx": std.RCCXGate,
+        "rc3x": std.RC3XGate,
+        "c3x": std.C3XGate,
+        "c3sqrtx": std.C3SXGate,
+        "c4x": std.C4XGate,
     }
 
     def __init__(self, dag):
@@ -236,7 +236,7 @@ class AstInterpreter:
             )
         maxidx = max([len(id0), len(id1)])
         for idx in range(maxidx):
-            cx_gate = lib.CXGate()
+            cx_gate = std.CXGate()
             cx_gate.condition = self.condition
             if len(id0) > 1 and len(id1) > 1:
                 self.dag.apply_operation_back(cx_gate, [id0[idx], id1[idx]], [])
