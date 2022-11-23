@@ -2190,32 +2190,6 @@ class TestSwapNodes(QiskitTestCase):
     def test_4q_swap_partially_connected(self):
         """test swapping 4q partially connected gates"""
         from qiskit.converters import dag_to_circuit
-        from qiskit.circuit.library.standard_gates import RXGate
-        from qiskit.quantum_info import Operator
-
-        np.set_printoptions(linewidth=200, precision=2, suppress=True)
-        qreg = QuantumRegister(5)
-        circuit = QuantumCircuit(qreg)
-        num_ctrls = 3
-        num_gates = 2**num_ctrls
-        delta = pi / (num_gates - 1)
-        gate_list = [np.array(RXGate(i * delta)) for i in range(num_gates)]
-
-        circuit.uc(gate_list, qreg[1:4], qreg[4])
-        circuit.uc(gate_list, qreg[1:4], qreg[0])
-        dag = circuit_to_dag(circuit)
-        op_nodes = dag.op_nodes()
-        dag.swap_nodes(op_nodes[0], op_nodes[1])
-        swapped_circuit = dag_to_circuit(dag)
-
-        expected_circuit = QuantumCircuit(qreg)
-        expected_circuit.uc(gate_list, qreg[1:4], qreg[0])
-        expected_circuit.uc(gate_list, qreg[1:4], qreg[4])
-        self.assertEqual(swapped_circuit, expected_circuit)
-
-    def test_4q_swap_partially_connected2(self):
-        """test swapping 4q partially connected gates"""
-        from qiskit.converters import dag_to_circuit
         from qiskit.circuit.library.standard_gates import C3XGate
 
         qreg = QuantumRegister(5)

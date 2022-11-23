@@ -1391,10 +1391,9 @@ class DAGCircuit:
             return
         node1_id = node1._node_id
         node2_id = node2._node_id
+        edge_find = lambda x: x == edge
         for edge in connected_edges[::-1]:
-            edge_parent = self._multi_graph.find_predecessors_by_edge(
-                node1_id, lambda x: x == edge
-            )[0]
+            edge_parent = self._multi_graph.find_predecessors_by_edge(node1_id, edge_find)[0]
             self._multi_graph.remove_edge(edge_parent._node_id, node1_id)
             self._multi_graph.add_edge(edge_parent._node_id, node2_id, edge)
             edge_child = self._multi_graph.find_successors_by_edge(node2_id, lambda x: x == edge)[0]
