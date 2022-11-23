@@ -23,6 +23,7 @@ from qiskit.opflow import X, Z, I
 from qiskit.algorithms.optimizers import SPSA
 from qiskit.circuit.library import TwoLocal, EfficientSU2
 from qiskit.utils.mitigation import CompleteMeasFitter
+from qiskit.test import slow_test
 
 
 class TestBackendV1(QiskitAlgorithmsTestCase):
@@ -34,6 +35,7 @@ class TestBackendV1(QiskitAlgorithmsTestCase):
         self._qasm = self._provider.get_backend("fake_qasm_simulator")
         self.seed = 50
 
+    @slow_test
     def test_shor_factoring(self):
         """shor factoring test"""
         n_v = 15
