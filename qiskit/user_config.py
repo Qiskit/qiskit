@@ -30,6 +30,7 @@ class UserConfig:
     circuit_drawer = mpl
     circuit_mpl_style = default
     circuit_mpl_style_path = ~/.qiskit:<default location>
+    circuit_reverse_bits = True
     transpile_optimization_level = 1
     parallel = False
     num_processes = 4
@@ -116,6 +117,18 @@ class UserConfig:
                             2,
                         )
                 self.settings["circuit_mpl_style_path"] = cpath_list
+
+            # Parse circuit_reverse_bits
+            try:
+                circuit_reverse_bits = self.config_parser.getboolean(
+                    "default", "circuit_reverse_bits", fallback=None
+                )
+            except ValueError as err:
+                raise exceptions.QiskitUserConfigError(
+                    f"Value assigned to circuit_reverse_bits is not valid. {str(err)}"
+                )
+            if circuit_reverse_bits is not None:
+                self.settings["circuit_reverse_bits"] = circuit_reverse_bits
 
             # Parse transpile_optimization_level
             transpile_optimization_level = self.config_parser.getint(
