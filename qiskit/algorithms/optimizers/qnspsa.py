@@ -311,8 +311,18 @@ class QNSPSA(SPSA):
 
         fid = ComputeUncompute(sampler)
 
+        num_parameters = circuit.num_parameters
+
         def fidelity(values_x, values_y):
-            result = fid.run(circuit, circuit, values_x, values_y).result()
+            values_x = np.reshape(values_x, (-1, num_parameters)).tolist()
+            batch_size_x = len(values_x)
+
+            values_y = np.reshape(values_y, (-1, num_parameters)).tolist()
+            batch_size_y = len(values_y)
+
+            result = fid.run(
+                batch_size_x * [circuit], batch_size_y * [circuit], values_x, values_y
+            ).result()
             return np.asarray(result.fidelities)
 
         return fidelity
