@@ -258,7 +258,7 @@ class VQD(VariationalAlgorithm, Eigensolver):
         num_initial_points = len(initial_points)
 
         for step in range(1, self.k + 1):
-            if num_initial_points>1:
+            if num_initial_points > 1:
                 initial_point = validate_initial_point(initial_points[step - 1], self.ansatz)
             else:
                 initial_point = validate_initial_point(self.initial_point, self.ansatz)
