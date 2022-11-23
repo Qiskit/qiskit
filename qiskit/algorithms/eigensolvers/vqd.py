@@ -254,8 +254,12 @@ class VQD(VariationalAlgorithm, Eigensolver):
         # the same parameters to the ansatz if we do multiple steps
         prev_states = []
 
-        initial_points = np.reshape(self.initial_point, (-1, self.ansatz.num_parameters))
-        num_initial_points = len(initial_points)
+        num_initial_points = 0
+        if self.initial_point is not  None:
+            initial_points = np.reshape(
+                self.initial_point, (-1, self.ansatz.num_parameters)
+            )
+            num_initial_points = len(initial_points)
 
         for step in range(1, self.k + 1):
             if num_initial_points > 1:
