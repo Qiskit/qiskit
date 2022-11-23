@@ -59,6 +59,6 @@ class GlobalPhaseGate(Gate):
         # pylint: disable=cyclic-import
 
         q = QuantumRegister(0, "q")
-        qc = QuantumCircuit(q, name=self.name, global_phase=self.phase)  # pylint: disable=no-member
+        qc = QuantumCircuit(q, name=self.name, global_phase=self.params[0])  # pylint: disable=no-member
 
         self.definition = qc
