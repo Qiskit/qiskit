@@ -15,7 +15,7 @@
 """
 Visualization function for DAG circuit representation.
 """
-from retworkx.visualization import graphviz_draw  # pylint: disable=no-name-in-module
+from rustworkx.visualization import graphviz_draw  # pylint: disable=no-name-in-module
 
 from qiskit.dagcircuit.dagnode import DAGOpNode, DAGInNode, DAGOutNode
 from qiskit.circuit import Qubit
@@ -29,8 +29,8 @@ def dag_drawer(dag, scale=0.7, filename=None, style="color"):
     """Plot the directed acyclic graph (dag) to represent operation dependencies
     in a quantum circuit.
 
-    This function calls the :func:`~retworkx.visualization.graphviz_draw` function from the ``retworkx``
-    package to draw the DAG.
+    This function calls the :func:`~rustworkx.visualization.graphviz_draw` function from the
+    ``rustworkx`` package to draw the DAG.
 
     Args:
         dag (DAGCircuit): The dag to draw.

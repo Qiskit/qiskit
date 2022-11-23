@@ -21,7 +21,7 @@ import numpy as np
 from scipy.optimize import minimize as scipy_minimize
 from ddt import ddt, idata, unpack
 
-import retworkx as rx
+import rustworkx as rx
 
 from qiskit import QuantumCircuit
 from qiskit.algorithms.minimum_eigensolvers import QAOA

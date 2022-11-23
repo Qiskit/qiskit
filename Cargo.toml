@@ -10,7 +10,7 @@ name = "qiskit_accelerate"
 crate-type = ["cdylib"]
 
 [dependencies]
-rayon = "1.5"
+rayon = "1.6"
 numpy = "0.17.2"
 rand = "0.8"
 rand_pcg = "0.3"
@@ -18,11 +18,11 @@ rand_distr = "0.4.3"
 ahash = "0.8.0"
 num-complex = "0.4"
 num-bigint = "0.4"
-retworkx-core = "0.11"
+rustworkx-core = "0.12"
 
 [dependencies.pyo3]
 version = "0.17.3"
-features = ["extension-module", "hashbrown", "num-complex", "num-bigint"]
+features = ["extension-module", "hashbrown", "num-complex", "num-bigint", "indexmap"]
 
 [dependencies.ndarray]
 version = "^0.15.6"
@@ -33,7 +33,7 @@ version = "0.12.3"
 features = ["rayon"]
 
 [dependencies.indexmap]
-version = "1.9.1"
+version = "1.7"
 features = ["rayon"]
 
 [profile.release]

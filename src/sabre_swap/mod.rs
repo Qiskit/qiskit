@@ -30,10 +30,10 @@ use rand::prelude::SliceRandom;
 use rand::prelude::*;
 use rand_pcg::Pcg64Mcg;
 use rayon::prelude::*;
-use retworkx_core::dictmap::*;
-use retworkx_core::petgraph::prelude::*;
-use retworkx_core::petgraph::visit::EdgeRef;
-use retworkx_core::shortest_path::dijkstra;
+use rustworkx_core::dictmap::*;
+use rustworkx_core::petgraph::prelude::*;
+use rustworkx_core::petgraph::visit::EdgeRef;
+use rustworkx_core::shortest_path::dijkstra;
 
 use crate::getenv_use_multiple_threads;
 use crate::nlayout::NLayout;
