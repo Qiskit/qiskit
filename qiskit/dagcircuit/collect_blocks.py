@@ -47,8 +47,8 @@ class BlockCollector:
         """
 
         self.dag = dag
-        self.pending_nodes = None
-        self.in_degree = None
+        self._pending_nodes = None
+        self._in_degree = None
 
         if isinstance(dag, DAGCircuit):
             self.is_dag_dependency = False
@@ -59,21 +59,23 @@ class BlockCollector:
         else:
             raise DAGCircuitError("not a DAG.")
 
-    def setup_in_degrees(self):
-        """For an efficient implementation, we compute and keep updating the in_degree
-        for every node, that is the number of node's immediate predecessors.
-        A node is a leaf (aka input) node iff its in_degree is 0.
-        When a node is (marked as) collected, the in_degrees of its immediate
-        successors are updated by subtracting 1.
-        Additionally, pending_nodes explicitly keeps the list of nodes with in_degree 0.
+    def _setup_in_degrees(self):
+        """For an efficient implementation, for every node we keep the number of its
+        unprocessed immediate predecessors (called ``_in_degree``). This ``_in_degree``
+        is set up at the start and updated throughout the algorithm.
+        A node is leaf (or input) node iff its ``_in_degree`` is 0.
+        When a node is (marked as) collected, the ``_in_degree`` of each of its immediate
+        successor is updated by subtracting 1.
+        Additionally, ``_pending_nodes`` explicitly keeps the list of nodes whose
+        ``_in_degree`` is 0.
         """
-        self.pending_nodes = []
-        self.in_degree = dict()
+        self._pending_nodes = []
+        self._in_degree = dict()
         for node in self._op_nodes():
             deg = len(self._direct_preds(node))
-            self.in_degree[node] = deg
+            self._in_degree[node] = deg
             if deg == 0:
-                self.pending_nodes.append(node)
+                self._pending_nodes.append(node)
 
     def _op_nodes(self):
         """Returns DAG nodes."""
@@ -100,22 +102,23 @@ class BlockCollector:
                 self.dag.get_node(succ_id) for succ_id in self.dag.direct_successors(node.node_id)
             ]
 
-    def have_uncollected_nodes(self):
+    def _have_uncollected_nodes(self):
         """Returns whether there are uncollected (pending) nodes"""
-        return len(self.pending_nodes) > 0
+        return len(self._pending_nodes) > 0
 
     def collect_matching_block(self, filter_fn):
-        """Iteratively collects the largest block of input (aka in_degree=0) nodes that match a
-        given filtering function. Examples of this include collecting blocks of swap gates,
+        """Iteratively collects the largest block of input nodes (that is, nodes with
+        ``_in_degree`` equal to 0) that match a given filtering function.
+        Examples of this include collecting blocks of swap gates,
         blocks of linear gates (CXs and SWAPs), blocks of Clifford gates, blocks of single-qubit gates,
         blocks of two-qubit gates, etc.  Here 'iteratively' means that once a node is collected,
-        the in_degrees of its immediate successors are decreased by 1, allowing more nodes to become
-        input and to be eligible for collecting into the current block.
+        the ``_in_degree`` of each of its immediate successor is decreased by 1, allowing more nodes
+        to become input and to be eligible for collecting into the current block.
         Returns the block of collected nodes.
         """
         current_block = []
-        unprocessed_pending_nodes = self.pending_nodes
-        self.pending_nodes = []
+        unprocessed_pending_nodes = self._pending_nodes
+        self._pending_nodes = []
 
         # Iteratively process unprocessed_pending_nodes:
         # - any node that does not match filter_fn is added to pending_nodes
@@ -127,13 +130,13 @@ class BlockCollector:
                 if filter_fn(node):
                     current_block.append(node)
 
-                    # update the in_degree of node's successors
+                    # update the _in_degree of node's successors
                     for suc in self._direct_succs(node):
-                        self.in_degree[suc] -= 1
-                        if self.in_degree[suc] == 0:
+                        self._in_degree[suc] -= 1
+                        if self._in_degree[suc] == 0:
                             new_pending_nodes.append(suc)
                 else:
-                    self.pending_nodes.append(node)
+                    self._pending_nodes.append(node)
             unprocessed_pending_nodes = new_pending_nodes
 
         return current_block
@@ -156,11 +159,11 @@ class BlockCollector:
             """Returns the opposite of filter_fn."""
             return not filter_fn(node)
 
-        self.setup_in_degrees()
+        self._setup_in_degrees()
 
         # Iteratively collect non-matching and matching blocks.
         matching_blocks = []
-        while self.have_uncollected_nodes():
+        while self._have_uncollected_nodes():
             self.collect_matching_block(not_filter_fn)
             matching_block = self.collect_matching_block(filter_fn)
             if matching_block:
