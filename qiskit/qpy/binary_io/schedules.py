@@ -16,6 +16,7 @@
 import json
 import struct
 import zlib
+import warnings
 
 import numpy as np
 
@@ -25,11 +26,6 @@ from qiskit.pulse.schedule import ScheduleBlock
 from qiskit.qpy import formats, common, type_keys
 from qiskit.qpy.binary_io import value
 from qiskit.utils import optionals as _optional
-
-if _optional.HAS_SYMENGINE:
-    import symengine as sym
-else:
-    import sympy as sym
 
 
 def _read_channel(file_obj, version):
@@ -76,27 +72,34 @@ def _loads_symbolic_expr(expr_bytes):
     return expr
 
 
-def _format_legacy_qiskit_pulse_v5(pulse_type, envelope, parameters):
+def _format_legacy_qiskit_pulse_v5(pulse_type, parameters):
     # In the transition to Qiskit Terra > 0.22, the representation of library pulses was changed from
     # complex "amp" to float "amp" and "angle". To reflect this, QPY version was bumped to 6. The
     # existing library pulses in QPY<=5 are handled here separately to conform with the new
     # representation. To avoid role assumption for "amp" for custom pulses, only the library pulses
     # are handled this way.
 
+    # Note that parameters is mutated during the function call
+
     # List of pulses in the library in QPY version 5 and below:
     v5_library_pulses = ["Gaussian", "GaussianSquare", "Drag", "Constant"]
 
     if pulse_type in v5_library_pulses:
-        if isinstance(
-            parameters["amp"], complex
-        ):  # We know that "amp" is in "parameters" for these pulses.
-            parameters["angle"] = np.angle(parameters["amp"])
-            parameters["amp"] = np.abs(parameters["amp"])
-            _amp, _angle = sym.symbols("amp, angle")
-            envelope = envelope.subs(_amp, _amp * sym.exp(sym.I * _angle))
-        else:
-            parameters["angle"] = 0
-    return envelope
+        # Once complex amp support will be deprecated we will need:
+        # parameters["angle"] = np.angle(parameters["amp"])
+        # parameters["amp"] = np.abs(parameters["amp"])
+        # _amp, _angle = sym.symbols("amp, angle")
+        # envelope = envelope.subs(_amp, _amp * sym.exp(sym.I * _angle))
+
+        # In the meanwhile we simply add:
+        parameters["angle"] = 0
+        # And warn that this will change in future releases:
+        warnings.warn(
+            "Complex amp support for symbolic library pulses will be deprecated. "
+            "Once deprecated, library pulses loaded from old QPY files (Terra version <=0.22, "
+            "QPY version <=5) will be converted automatically to float (amp,angle) representation.",
+            PendingDeprecationWarning,
+        )
 
 
 def _read_symbolic_pulse(file_obj, version):
@@ -116,8 +119,10 @@ def _read_symbolic_pulse(file_obj, version):
         version=version,
         vectors={},
     )
+    print(version)
     if version <= 5:
-        envelope = _format_legacy_qiskit_pulse_v5(pulse_type, envelope, parameters)
+        _format_legacy_qiskit_pulse_v5(pulse_type, parameters)
+        # Note that parameters is mutated during the function call
 
     duration = value.read_value(file_obj, version, {})
     name = value.read_value(file_obj, version, {})
