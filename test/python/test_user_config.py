@@ -69,6 +69,31 @@ class TestUserConfig(QiskitTestCase):
             config.read_config_file()
             self.assertEqual({"circuit_drawer": "latex"}, config.settings)
 
+    def test_invalid_circuit_reverse_bits(self):
+        test_config = """
+        [default]
+        circuit_reverse_bits = Neither
+        """
+        self.addCleanup(os.remove, self.file_path)
+        with open(self.file_path, "w") as file:
+            file.write(test_config)
+            file.flush()
+            config = user_config.UserConfig(self.file_path)
+            self.assertRaises(exceptions.QiskitUserConfigError, config.read_config_file)
+
+    def test_circuit_reverse_bits_valid(self):
+        test_config = """
+        [default]
+        circuit_reverse_bits = false
+        """
+        self.addCleanup(os.remove, self.file_path)
+        with open(self.file_path, "w") as file:
+            file.write(test_config)
+            file.flush()
+            config = user_config.UserConfig(self.file_path)
+            config.read_config_file()
+            self.assertEqual({"circuit_reverse_bits": False}, config.settings)
+
     def test_optimization_level_valid(self):
         test_config = """
         [default]
@@ -126,6 +151,7 @@ class TestUserConfig(QiskitTestCase):
         circuit_drawer = latex
         circuit_mpl_style = default
         circuit_mpl_style_path = ~:~/.qiskit
+        circuit_reverse_bits = false
         transpile_optimization_level = 3
         suppress_packaging_warnings = true
         parallel = false
@@ -143,6 +169,7 @@ class TestUserConfig(QiskitTestCase):
                 "circuit_drawer": "latex",
                 "circuit_mpl_style": "default",
                 "circuit_mpl_style_path": ["~", "~/.qiskit"],
+                "circuit_reverse_bits": False,
                 "transpile_optimization_level": 3,
                 "num_processes": 15,
                 "parallel_enabled": False,
@@ -156,6 +183,7 @@ class TestUserConfig(QiskitTestCase):
         user_config.set_config("circuit_drawer", "latex", file_path=self.file_path)
         user_config.set_config("circuit_mpl_style", "default", file_path=self.file_path)
         user_config.set_config("circuit_mpl_style_path", "~:~/.qiskit", file_path=self.file_path)
+        user_config.set_config("circuit_reverse_bits", "false", file_path=self.file_path)
         user_config.set_config("transpile_optimization_level", "3", file_path=self.file_path)
         user_config.set_config("parallel", "false", file_path=self.file_path)
         user_config.set_config("num_processes", "15", file_path=self.file_path)
@@ -169,6 +197,7 @@ class TestUserConfig(QiskitTestCase):
                 "circuit_drawer": "latex",
                 "circuit_mpl_style": "default",
                 "circuit_mpl_style_path": ["~", "~/.qiskit"],
+                "circuit_reverse_bits": False,
                 "transpile_optimization_level": 3,
                 "num_processes": 15,
                 "parallel_enabled": False,
