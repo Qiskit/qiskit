@@ -21,7 +21,7 @@ from qiskit.providers.fake_provider import (
     FakeBackendV2,
     FakeProvider,
     FakePulseBackend,
-    FakeQasmBackend
+    FakeQasmBackend,
 )
 
 
@@ -32,10 +32,10 @@ class TestFakeProviderForBackendV2(QiskitTestCase):
         self.provider = FakeProviderForBackendV2()
 
     def test_get_backend(self):
-        backend_name = 'fake_manila_v2'
+        backend_name = "fake_manila_v2"
         backend = self.provider.get_backend(backend_name)
         self.assertTrue(isinstance(backend, FakeBackendV2))
-    
+
     def test_backends(self):
         backends = self.provider.backends()
         self.assertTrue(isinstance(backends, list))
@@ -48,10 +48,10 @@ class TestFakeProvider(QiskitTestCase):
         self.provider = FakeProvider()
 
     def test_get_backend(self):
-        backend_name = 'fake_manila'
+        backend_name = "fake_manila"
         backend = self.provider.get_backend(backend_name)
         self.assertTrue(isinstance(backend, (FakePulseBackend, FakeQasmBackend)))
-    
+
     def test_backends(self):
         backends = self.provider.backends()
         self.assertTrue(isinstance(backends, list))
