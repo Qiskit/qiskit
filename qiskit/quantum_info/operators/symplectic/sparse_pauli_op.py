@@ -469,6 +469,14 @@ class SparsePauliOp(LinearOp):
             PauliList.from_symplectic(z, x), coeffs, ignore_pauli_phase=True, copy=False
         )
 
+    def is_zero(self) -> bool:
+        """
+        Return this operator is zero operator or not.
+        """
+        op = self.simplify()
+        return op.coeffs[0] == 0
+
+
     def argsort(self, weight=False):
         """Return indices for sorting the rows of the table.
 
