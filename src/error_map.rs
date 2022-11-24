@@ -73,7 +73,10 @@ impl ErrorMap {
     // float]`, where `list[int]` is unhashable in Python.
 
     fn __getstate__(&self) -> HashMap<(usize, usize), f64> {
-        self.error_map.iter().map(|([a, b], value)| ((*a, *b), *value)).collect()
+        self.error_map
+            .iter()
+            .map(|([a, b], value)| ((*a, *b), *value))
+            .collect()
     }
 
     fn __setstate__(&mut self, state: HashMap<[usize; 2], f64>) {
