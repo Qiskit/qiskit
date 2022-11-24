@@ -476,7 +476,6 @@ class SparsePauliOp(LinearOp):
         op = self.simplify()
         return op.coeffs[0] == 0
 
-
     def argsort(self, weight=False):
         """Return indices for sorting the rows of the table.
 
