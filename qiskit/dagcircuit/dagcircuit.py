@@ -24,6 +24,7 @@ from collections import OrderedDict, defaultdict
 import copy
 import itertools
 import math
+from typing import Generator, Any, List
 
 import numpy as np
 import rustworkx as rx
@@ -84,8 +85,8 @@ class DAGCircuit:
         self.cregs = OrderedDict()
 
         # List of Qubit/Clbit wires that the DAG acts on.
-        self.qubits = []
-        self.clbits = []
+        self.qubits: List[Qubit] = []
+        self.clbits: List[Clbit] = []
 
         self._global_phase = 0
         self._calibrations = defaultdict(dict)
@@ -491,7 +492,7 @@ class DAGCircuit:
         """Add a new operation node to the graph and assign properties.
 
         Args:
-            op (qiskit.circuit.Instruction): the operation associated with the DAG node
+            op (qiskit.circuit.Operation): the operation associated with the DAG node
             qargs (list[Qubit]): list of quantum wires to attach to.
             cargs (list[Clbit]): list of classical wires to attach to.
         Returns:
@@ -547,7 +548,7 @@ class DAGCircuit:
         """Apply an operation to the output of the circuit.
 
         Args:
-            op (qiskit.circuit.Instruction): the operation associated with the DAG node
+            op (qiskit.circuit.Operation): the operation associated with the DAG node
             qargs (tuple[Qubit]): qubits that op will be applied to
             cargs (tuple[Clbit]): cbits that op will be applied to
         Returns:
@@ -583,7 +584,7 @@ class DAGCircuit:
         """Apply an operation to the input of the circuit.
 
         Args:
-            op (qiskit.circuit.Instruction): the operation associated with the DAG node
+            op (qiskit.circuit.Operation): the operation associated with the DAG node
             qargs (tuple[Qubit]): qubits that op will be applied to
             cargs (tuple[Clbit]): cbits that op will be applied to
         Returns:
@@ -1051,7 +1052,7 @@ class DAGCircuit:
 
         return iter(rx.lexicographical_topological_sort(self._multi_graph, key=key))
 
-    def topological_op_nodes(self, key=None):
+    def topological_op_nodes(self, key=None) -> Generator[DAGOpNode, Any, Any]:
         """
         Yield op nodes in topological order.
 
@@ -1069,7 +1070,7 @@ class DAGCircuit:
         return (nd for nd in self.topological_nodes(key) if isinstance(nd, DAGOpNode))
 
     def replace_block_with_op(self, node_block, op, wire_pos_map, cycle_check=True):
-        """Replace a block of nodes with a single.
+        """Replace a block of nodes with a single node.
 
         This is used to consolidate a block of DAGOpNodes into a single
         operation. A typical example is a block of gates being consolidated
@@ -1079,14 +1080,14 @@ class DAGCircuit:
         Args:
             node_block (List[DAGNode]): A list of dag nodes that represents the
                 node block to be replaced
-            op (qiskit.circuit.Instruction): The instruction to replace the
+            op (qiskit.circuit.Operation): The operation to replace the
                 block with
             wire_pos_map (Dict[Qubit, int]): The dictionary mapping the qarg to
                 the position. This is necessary to reconstruct the qarg order
                 over multiple gates in the combined single op node.
             cycle_check (bool): When set to True this method will check that
                 replacing the provided ``node_block`` with a single node
-                would introduce a a cycle (which would invalidate the
+                would introduce a cycle (which would invalidate the
                 ``DAGCircuit``) and will raise a ``DAGCircuitError`` if a cycle
                 would be introduced. This checking comes with a run time
                 penalty. If you can guarantee that your input ``node_block`` is
@@ -1316,24 +1317,24 @@ class DAGCircuit:
         return {k: self._multi_graph[v] for k, v in node_map.items()}
 
     def substitute_node(self, node, op, inplace=False):
-        """Replace an DAGOpNode with a single instruction. qargs, cargs and
-        conditions for the new instruction will be inferred from the node to be
-        replaced. The new instruction will be checked to match the shape of the
-        replaced instruction.
+        """Replace an DAGOpNode with a single operation. qargs, cargs and
+        conditions for the new operation will be inferred from the node to be
+        replaced. The new operation will be checked to match the shape of the
+        replaced operation.
 
         Args:
             node (DAGOpNode): Node to be replaced
-            op (qiskit.circuit.Instruction): The :class:`qiskit.circuit.Instruction`
+            op (qiskit.circuit.Operation): The :class:`qiskit.circuit.Operation`
                 instance to be added to the DAG
             inplace (bool): Optional, default False. If True, existing DAG node
                 will be modified to include op. Otherwise, a new DAG node will
                 be used.
 
         Returns:
-            DAGOpNode: the new node containing the added instruction.
+            DAGOpNode: the new node containing the added operation.
 
         Raises:
-            DAGCircuitError: If replacement instruction was incompatible with
+            DAGCircuitError: If replacement operation was incompatible with
             location of target node.
         """
 
@@ -1343,7 +1344,7 @@ class DAGCircuit:
         if node.op.num_qubits != op.num_qubits or node.op.num_clbits != op.num_clbits:
             raise DAGCircuitError(
                 "Cannot replace node of width ({} qubits, {} clbits) with "
-                "instruction of mismatched width ({} qubits, {} clbits).".format(
+                "operation of mismatched width ({} qubits, {} clbits).".format(
                     node.op.num_qubits, node.op.num_clbits, op.num_qubits, op.num_clbits
                 )
             )
@@ -1419,7 +1420,7 @@ class DAGCircuit:
         """Get the list of "op" nodes in the dag.
 
         Args:
-            op (Type): :class:`qiskit.circuit.Instruction` subclass op nodes to
+            op (Type): :class:`qiskit.circuit.Operation` subclass op nodes to
                 return. If None, return all op nodes.
             include_directives (bool): include `barrier`, `snapshot` etc.
 
