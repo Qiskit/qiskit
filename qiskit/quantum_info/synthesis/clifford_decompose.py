@@ -13,6 +13,7 @@
 Circuit synthesis for the Clifford class.
 """
 
+import warnings
 from qiskit.synthesis.clifford import (
     synth_clifford_ag,
     synth_clifford_bm,
@@ -21,7 +22,7 @@ from qiskit.synthesis.clifford import (
 
 
 def decompose_clifford(clifford, method=None):
-    """Decompose a Clifford operator into a QuantumCircuit.
+    """DEPRECATED: Decompose a Clifford operator into a QuantumCircuit.
 
     For N <= 3 qubits this is based on optimal CX cost decomposition
     from reference [1]. For N > 3 qubits this is done using the general
@@ -50,6 +51,14 @@ def decompose_clifford(clifford, method=None):
            `arXiv:2105.02291 [quant-ph] <https://arxiv.org/abs/2105.02291>`_
     """
     num_qubits = clifford.num_qubits
+
+    warnings.warn(
+        "The decompose_clifford function is deprecated as of Qiskit Terra 0.23.0 "
+        "and will be removed no sooner than 3 months after the releasedate. "
+        "Use qiskit.synthesis.synth_clifford_full function instead.",
+        DeprecationWarning,
+        stacklevel=2,
+    )
 
     if method == "AG":
         return synth_clifford_ag(clifford)

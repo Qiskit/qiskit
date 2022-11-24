@@ -16,5 +16,4 @@ from .two_qubit_decompose import TwoQubitBasisDecomposer, two_qubit_cnot_decompo
 from .one_qubit_decompose import OneQubitEulerDecomposer
 from .quaternion import Quaternion
 from .clifford_decompose import decompose_clifford
-from .cnotdihedral_decompose import decompose_cnotdihedral
 from .xx_decompose import XXDecomposer

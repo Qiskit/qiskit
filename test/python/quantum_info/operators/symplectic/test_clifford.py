@@ -36,7 +36,8 @@ from qiskit.exceptions import QiskitError
 from qiskit.quantum_info import random_clifford
 from qiskit.quantum_info.operators import Clifford, Operator
 from qiskit.quantum_info.operators.symplectic.clifford_circuits import _append_operation
-from qiskit.quantum_info.synthesis.clifford_decompose import (
+from qiskit.synthesis.clifford import (
+    synth_clifford_full,
     synth_clifford_ag,
     synth_clifford_bm,
     synth_clifford_greedy,

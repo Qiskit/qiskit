@@ -43,6 +43,7 @@ Clifford Synthesis
 .. autosummary::
    :toctree: ../stubs/
 
+   synth_clifford_full
    synth_clifford_ag
    synth_clifford_bm
    synth_clifford_greedy
@@ -53,8 +54,9 @@ CNOTDihedral Synthesis
 .. autosummary::
    :toctree: ../stubs/
 
-   synth_cnotdihedral_two_qubits
    synth_cnotdihedral_full
+   synth_cnotdihedral_two_qubits
+   synth_cnotdihedral_general
 
 """
 
@@ -68,5 +70,5 @@ from .evolution import (
 )
 
 from .permutation import synth_permutation_depth_lnn_kms
-from .clifford import synth_clifford_ag, synth_clifford_bm, synth_clifford_greedy
-from .cnotdihedral import synth_cnotdihedral_two_qubits, synth_cnotdihedral_full
+from .clifford import synth_clifford_full, synth_clifford_ag, synth_clifford_bm, synth_clifford_greedy
+from .cnotdihedral import synth_cnotdihedral_full, synth_cnotdihedral_two_qubits, synth_cnotdihedral_general

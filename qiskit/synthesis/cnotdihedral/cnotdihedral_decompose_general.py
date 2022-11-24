@@ -18,7 +18,7 @@ from qiskit.exceptions import QiskitError
 from qiskit.circuit import QuantumCircuit
 
 
-def synth_cnotdihedral_full(elem):
+def synth_cnotdihedral_general(elem):
     """Decompose a CNOTDihedral element into a QuantumCircuit.
 
     Decompose a general CNOTDihedral elements.
