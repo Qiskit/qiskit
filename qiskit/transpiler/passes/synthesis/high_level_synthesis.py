@@ -18,7 +18,7 @@ from qiskit.converters import circuit_to_dag
 from qiskit.transpiler.basepasses import TransformationPass
 from qiskit.dagcircuit.dagcircuit import DAGCircuit
 from qiskit.transpiler.exceptions import TranspilerError
-from qiskit.quantum_info import decompose_clifford
+from qiskit.synthesis import synth_clifford_full
 from qiskit.synthesis.linear import synth_cnot_count_full_pmh
 from .plugin import HighLevelSynthesisPluginManager, HighLevelSynthesisPlugin
 
@@ -159,7 +159,7 @@ class DefaultSynthesisClifford(HighLevelSynthesisPlugin):
 
     def run(self, high_level_object, **options):
         """Run synthesis for the given Clifford."""
-        decomposition = decompose_clifford(high_level_object)
+        decomposition = synth_clifford_full(high_level_object)
         return decomposition
 
 
