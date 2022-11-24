@@ -1,0 +1,8 @@
+---
+fixes:
+  - |
+    Fixed an issue with the primitive classes, :class:`~.BackendSampler` and :class:`~.BackendEstimator`,
+    where instances were not able to be serialized with ``pickle``. In general these classes are not guaranteed
+    to be serializable as :class:`~.BackendV2` and :class:`~.BackendV1` instances are not required to be
+    serializable (and often are not), but the class definitions of :class:`~.BackendSampler` and
+    :class:`~.BackendEstimator` no longer prevent the use of ``pickle``.

@@ -263,6 +263,12 @@ class PadDynamicalDecoupling(BasePadding):
         #
         # As you can see, constraints on t0 are all satified without explicit scheduling.
         time_interval = t_end - t_start
+        if time_interval % self._alignment != 0:
+            raise TranspilerError(
+                f"Time interval {time_interval} is not divisible by alignment {self._alignment} "
+                f"between DAGNode {prev_node.name} on qargs {prev_node.qargs} and {next_node.name} "
+                f"on qargs {next_node.qargs}."
+            )
 
         if self._qubits and dag.qubits.index(qubit) not in self._qubits:
             # Target physical qubit is not the target of this DD sequence.

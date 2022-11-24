@@ -44,7 +44,7 @@ class GraphState(QuantumCircuit):
 
         from qiskit.circuit.library import GraphState
         import qiskit.tools.jupyter
-        import retworkx as rx
+        import rustworkx as rx
         G = rx.generators.cycle_graph(5)
         circuit = GraphState(rx.adjacency_matrix(G))
         %circuit_library_info circuit
