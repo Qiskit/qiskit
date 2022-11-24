@@ -474,7 +474,7 @@ class TestCliffordSynthesis(QiskitTestCase):
                 self.assertEqual(target, value)
 
     @combine(num_qubits=[2, 3])
-    def test_decompose_2q_bm(self, num_qubits):
+    def test_synth_bm(self, num_qubits):
         """Test B&M synthesis for set of {num_qubits}-qubit Cliffords"""
         rng = np.random.default_rng(1234)
         samples = 50
@@ -485,7 +485,7 @@ class TestCliffordSynthesis(QiskitTestCase):
             self.assertEqual(value, target)
 
     @combine(num_qubits=[2, 3, 4, 5])
-    def test_decompose_2q_ag(self, num_qubits):
+    def test_synth_ag(self, num_qubits):
         """Test A&G synthesis for set of {num_qubits}-qubit Cliffords"""
         rng = np.random.default_rng(1234)
         samples = 50
@@ -496,7 +496,7 @@ class TestCliffordSynthesis(QiskitTestCase):
             self.assertEqual(value, target)
 
     @combine(num_qubits=[1, 2, 3, 4, 5])
-    def test_decompose_2q_greedy(self, num_qubits):
+    def test_synth_greedy(self, num_qubits):
         """Test greedy synthesis for set of {num_qubits}-qubit Cliffords"""
         rng = np.random.default_rng(1234)
         samples = 50
@@ -504,6 +504,17 @@ class TestCliffordSynthesis(QiskitTestCase):
             circ = random_clifford_circuit(num_qubits, 5 * num_qubits, seed=rng)
             target = Clifford(circ)
             value = Clifford(synth_clifford_greedy(target))
+            self.assertEqual(value, target)
+
+    @combine(num_qubits=[1, 2, 3, 4, 5])
+    def test_synth_full(self, num_qubits):
+        """Test synthesis for set of {num_qubits}-qubit Cliffords"""
+        rng = np.random.default_rng(1234)
+        samples = 50
+        for _ in range(samples):
+            circ = random_clifford_circuit(num_qubits, 5 * num_qubits, seed=rng)
+            target = Clifford(circ)
+            value = Clifford(synth_clifford_full(target))
             self.assertEqual(value, target)
 
 
