@@ -220,11 +220,9 @@ class OneQubitEulerDecomposer:
     @staticmethod
     def _params_zyz(mat):
         """Return the Euler angles and phase for the ZYZ basis."""
-        import scipy.linalg as la
-
         # We rescale the input matrix to be special unitary (det(U) = 1)
         # This ensures that the quaternion representation is real
-        coeff = la.det(mat) ** (-0.5)
+        coeff = np.linalg.det(mat) ** (-0.5)
         phase = -cmath.phase(coeff)
         su_mat = coeff * mat  # U in SU(2)
         # OpenQASM SU(2) parameterization:
