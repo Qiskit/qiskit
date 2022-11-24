@@ -1210,7 +1210,6 @@ class QuantumCircuit:
         if not isinstance(operation, Operation):
             if hasattr(operation, "to_instruction"):
                 operation = operation.to_instruction()
-                # probably redundant, but check to be sure
                 if not isinstance(operation, Operation):
                     raise CircuitError("operation.to_instruction() is not an Operation.")
             else:
