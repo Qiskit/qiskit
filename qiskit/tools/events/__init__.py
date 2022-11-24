@@ -22,7 +22,7 @@ A helper component for publishing and subscribing to events
 TextProgressBar
 ---------------
 
-A text based progress bar for Jupyter magics
+A text based progress bar, which also enables Jupyter magics.
 
 .. autosummary::
    :toctree: ../stubs/
