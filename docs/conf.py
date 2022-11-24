@@ -29,6 +29,7 @@ from custom_directives import (IncludeDirective, GalleryItemDirective,
 
 from distutils import dir_util
 import re
+import datetime
 import shutil
 import subprocess
 import tempfile
@@ -37,7 +38,7 @@ import warnings
 # -- General configuration ---------------------------------------------------
 
 project = 'Qiskit'
-copyright = '2021, Qiskit Development Team'
+copyright = f"2017-{datetime.date.today().year}, Qiskit Development Team"
 author = 'Qiskit Development Team'
 
 # The short X.Y version
