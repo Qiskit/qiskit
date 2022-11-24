@@ -21,7 +21,7 @@ import logging
 from itertools import zip_longest
 from collections import defaultdict
 
-import retworkx
+import rustworkx
 
 from qiskit.circuit import Gate, ParameterVector, QuantumRegister, ControlFlowOp, QuantumCircuit
 from qiskit.dagcircuit import DAGCircuit
@@ -364,11 +364,11 @@ class BasisTranslator(TransformationPass):
 
 
 class StopIfBasisRewritable(Exception):
-    """Custom exception that signals `retworkx.dijkstra_search` to stop."""
+    """Custom exception that signals `rustworkx.dijkstra_search` to stop."""
 
 
-class BasisSearchVisitor(retworkx.visit.DijkstraVisitor):  # pylint: disable=no-member
-    """Handles events emitted during `retworkx.dijkstra_search`."""
+class BasisSearchVisitor(rustworkx.visit.DijkstraVisitor):  # pylint: disable=no-member
+    """Handles events emitted during `rustworkx.dijkstra_search`."""
 
     def __init__(self, graph, source_basis, target_basis, num_gates_for_rule):
         self.graph = graph
@@ -413,7 +413,7 @@ class BasisSearchVisitor(retworkx.visit.DijkstraVisitor):  # pylint: disable=no-
         # if there are gates in this `rule` that we have not yet generated, we can't apply
         # this `rule`. if `target` is already in basis, it's not beneficial to use this rule.
         if self._num_gates_remain_for_rule[index] > 0 or target in self.target_basis:
-            raise retworkx.visit.PruneSearch  # pylint: disable=no-member
+            raise rustworkx.visit.PruneSearch  # pylint: disable=no-member
 
     def edge_relaxed(self, edge):
         _, target, edata = edge
@@ -479,7 +479,7 @@ def _basis_search(equiv_lib, source_basis, target_basis):
 
     all_gates_in_lib = set()
 
-    graph = retworkx.PyDiGraph()
+    graph = rustworkx.PyDiGraph()
     nodes_to_indices = dict()
     num_gates_for_rule = dict()
 
@@ -526,7 +526,7 @@ def _basis_search(equiv_lib, source_basis, target_basis):
     graph.add_edges_from_no_data([(dummy, nodes_to_indices[key]) for key in target_basis_keys])
     rtn = None
     try:
-        retworkx.digraph_dijkstra_search(graph, [dummy], vis.edge_cost, vis)
+        rustworkx.digraph_dijkstra_search(graph, [dummy], vis.edge_cost, vis)
     except StopIfBasisRewritable:
         rtn = vis.basis_transforms
 

@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2019, 2021
+# (C) Copyright IBM 2019, 2022
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -14,9 +14,8 @@
 
 import unittest
 from test.python.algorithms import QiskitAlgorithmsTestCase
-from qiskit import Aer
 from qiskit.circuit.library import RealAmplitudes
-from qiskit.utils import QuantumInstance, algorithm_globals
+from qiskit.utils import QuantumInstance, algorithm_globals, optionals
 from qiskit.opflow import PauliSumOp
 from qiskit.algorithms.optimizers import AQGD
 from qiskit.algorithms import VQE, AlgorithmError
@@ -24,7 +23,6 @@ from qiskit.opflow.gradients import Gradient
 from qiskit.test import slow_test
 
 
-@unittest.skipUnless(Aer, "Aer is required to run these tests")
 class TestOptimizerAQGD(QiskitAlgorithmsTestCase):
     """Test AQGD optimizer using RY for analytic gradient with VQE"""
 
@@ -43,8 +41,11 @@ class TestOptimizerAQGD(QiskitAlgorithmsTestCase):
         )
 
     @slow_test
+    @unittest.skipUnless(optionals.HAS_AER, "qiskit-aer is required to run this test")
     def test_simple(self):
         """test AQGD optimizer with the parameters as single values."""
+        from qiskit_aer import Aer
+
         q_instance = QuantumInstance(
             Aer.get_backend("aer_simulator_statevector"),
             seed_simulator=algorithm_globals.random_seed,
@@ -55,14 +56,17 @@ class TestOptimizerAQGD(QiskitAlgorithmsTestCase):
         vqe = VQE(
             ansatz=RealAmplitudes(),
             optimizer=aqgd,
-            gradient=Gradient("fin_diff"),
+            gradient=Gradient("lin_comb"),
             quantum_instance=q_instance,
         )
         result = vqe.compute_minimum_eigenvalue(operator=self.qubit_op)
         self.assertAlmostEqual(result.eigenvalue.real, -1.857, places=3)
 
+    @unittest.skipUnless(optionals.HAS_AER, "qiskit-aer is required to run this test")
     def test_list(self):
         """test AQGD optimizer with the parameters as lists."""
+        from qiskit_aer import Aer
+
         q_instance = QuantumInstance(
             Aer.get_backend("aer_simulator_statevector"),
             seed_simulator=algorithm_globals.random_seed,
@@ -79,8 +83,11 @@ class TestOptimizerAQGD(QiskitAlgorithmsTestCase):
         self.assertRaises(AlgorithmError, AQGD, maxiter=[1000], eta=[1.0, 0.5], momentum=[0.0, 0.5])
 
     @slow_test
+    @unittest.skipUnless(optionals.HAS_AER, "qiskit-aer is required to run this test")
     def test_int_values(self):
         """test AQGD with int values passed as eta and momentum."""
+        from qiskit_aer import Aer
+
         q_instance = QuantumInstance(
             Aer.get_backend("aer_simulator_statevector"),
             seed_simulator=algorithm_globals.random_seed,
