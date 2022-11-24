@@ -516,10 +516,17 @@ dependencies = [
 ]
 
 [[package]]
+<<<<<<< HEAD
 name = "retworkx-core"
 version = "0.11.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "353bcdcdab6c754ea32bce39ee7a763c8a3c16c91a8dd648befd14fbcb0d5b68"
+=======
+name = "rustworkx-core"
+version = "0.12.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "1b3ba36e6bf3cc44ce42ad35e75db9e90c39c701d6590a296372e392c4872478"
+>>>>>>> f66099c10 (Bump rustworkx-core from 0.12.0 to 0.12.1 (#9196))
 dependencies = [
  "ahash 0.7.6",
  "hashbrown 0.11.2",
