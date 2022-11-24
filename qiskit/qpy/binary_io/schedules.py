@@ -119,7 +119,6 @@ def _read_symbolic_pulse(file_obj, version):
         version=version,
         vectors={},
     )
-    print(version)
     if version <= 5:
         _format_legacy_qiskit_pulse_v5(pulse_type, parameters)
         # Note that parameters is mutated during the function call
