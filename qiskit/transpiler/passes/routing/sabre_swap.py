@@ -15,7 +15,7 @@
 import logging
 from copy import copy, deepcopy
 
-import retworkx
+import rustworkx
 
 from qiskit.circuit.library.standard_gates import SwapGate
 from qiskit.transpiler.basepasses import TransformationPass
@@ -146,7 +146,9 @@ class SabreSwap(TransformationPass):
             self.coupling_map.make_symmetric()
         self._neighbor_table = None
         if coupling_map is not None:
-            self._neighbor_table = NeighborTable(retworkx.adjacency_matrix(self.coupling_map.graph))
+            self._neighbor_table = NeighborTable(
+                rustworkx.adjacency_matrix(self.coupling_map.graph)
+            )
 
         self.heuristic = heuristic
         self.seed = seed
