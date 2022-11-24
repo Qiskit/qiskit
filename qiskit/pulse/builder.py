@@ -444,6 +444,7 @@ import collections
 import contextvars
 import functools
 import itertools
+import sys
 import uuid
 import warnings
 from contextlib import contextmanager
@@ -480,6 +481,12 @@ from qiskit.pulse import (
 from qiskit.pulse.instructions import directives
 from qiskit.pulse.schedule import Schedule, ScheduleBlock
 from qiskit.pulse.transforms.alignments import AlignmentKind
+
+if sys.version_info >= (3, 8):
+    from functools import singledispatchmethod  # pylint: disable=no-name-in-module
+else:
+    from singledispatchmethod import singledispatchmethod
+
 
 #: contextvars.ContextVar[BuilderContext]: active builder
 BUILDER_CONTEXTVAR = contextvars.ContextVar("backend")
@@ -585,8 +592,7 @@ class _PulseBuilder:
             if isinstance(block, ScheduleBlock):
                 root_block = block
             elif isinstance(block, Schedule):
-                root_block = ScheduleBlock()
-                root_block.append(instructions.Call(subroutine=block))
+                root_block = self._naive_typecast_schedule(block)
             else:
                 raise exceptions.PulseError(
                     f"Input `block` type {block.__class__.__name__} is "
@@ -650,7 +656,7 @@ class _PulseBuilder:
         """Get current context.
 
         Notes:
-            New instruction can be added by `.append_block` or `.append_instruction` method.
+            New instruction can be added by `.append_subroutine` or `.append_instruction` method.
             Use above methods rather than directly accessing to the current context.
         """
         return self._context_stack[-1]
@@ -692,7 +698,7 @@ class _PulseBuilder:
 
         while len(self._context_stack) > 1:
             current = self.pop_context()
-            self.append_block(current)
+            self.append_subroutine(current)
 
         return self._context_stack[0]
 
@@ -706,7 +712,7 @@ class _PulseBuilder:
             lazy_circuit = self._lazy_circuit
             # reset lazy circuit
             self._lazy_circuit = self._new_circuit()
-            self.call_subroutine(subroutine=self._compile_circuit(lazy_circuit))
+            self.call_subroutine(self._compile_circuit(lazy_circuit))
 
     def _compile_circuit(self, circ) -> Schedule:
         """Take a QuantumCircuit and output the pulse schedule associated with the circuit."""
@@ -731,17 +737,6 @@ class _PulseBuilder:
         """
         self._context_stack[-1].append(instruction)
 
-    @_compile_lazy_circuit_before
-    def append_block(self, context_block: ScheduleBlock):
-        """Add a :class:`ScheduleBlock` to the builder's context schedule.
-
-        Args:
-            context_block: ScheduleBlock to append to the current context block.
-        """
-        # ignore empty context
-        if len(context_block) > 0:
-            self._context_stack[-1].append(context_block)
-
     def append_reference(self, name: str, *extra_keys: str):
         """Add external program as a :class:`~qiskit.pulse.instructions.Reference` instruction.
 
@@ -752,6 +747,32 @@ class _PulseBuilder:
         inst = instructions.Reference(name, *extra_keys)
         self.append_instruction(inst)
 
+    @_compile_lazy_circuit_before
+    def append_subroutine(self, subroutine: Union[Schedule, ScheduleBlock]):
+        """Append a :class:`ScheduleBlock` to the builder's context schedule.
+
+        This operation doesn't create a reference. Subroutine is directly
+        appended to current context schedule.
+
+        Args:
+            subroutine: ScheduleBlock to append to the current context block.
+
+        Raises:
+            PulseError: When subroutine is not Schedule nor ScheduleBlock.
+        """
+        if not isinstance(subroutine, (ScheduleBlock, Schedule)):
+            raise exceptions.PulseError(
+                f"'{subroutine.__class__.__name__}' is not valid data format in the builder. "
+                "'Schedule' and 'ScheduleBlock' can be appended to the builder context."
+            )
+
+        if len(subroutine) == 0:
+            return
+        if isinstance(subroutine, Schedule):
+            subroutine = self._naive_typecast_schedule(subroutine)
+        self._context_stack[-1].append(subroutine)
+
+    @singledispatchmethod
     def call_subroutine(
         self,
         subroutine: Union[circuit.QuantumCircuit, Schedule, ScheduleBlock],
@@ -778,34 +799,37 @@ class _PulseBuilder:
 
         Raises:
             PulseError:
-                - When specified parameter is not contained in the subroutine
                 - When input subroutine is not valid data format.
         """
-        if isinstance(subroutine, circuit.QuantumCircuit):
-            self._compile_lazy_circuit()
-            subroutine = self._compile_circuit(subroutine)
+        raise exceptions.PulseError(
+            f"Subroutine type {subroutine.__class__.__name__} is "
+            "not valid data format. Call QuantumCircuit, "
+            "Schedule, or ScheduleBlock."
+        )
 
-        if not isinstance(subroutine, (Schedule, ScheduleBlock)):
-            raise exceptions.PulseError(
-                f"Subroutine type {subroutine.__class__.__name__} is "
-                "not valid data format. Call QuantumCircuit, "
-                "Schedule, or ScheduleBlock."
-            )
-
-        if len(subroutine) == 0:
+    @call_subroutine.register
+    def _(
+        self,
+        target_block: ScheduleBlock,
+        name: Optional[str] = None,
+        value_dict: Optional[Dict[ParameterExpression, ParameterValueType]] = None,
+        **kw_params: ParameterValueType,
+    ):
+        if len(target_block) == 0:
             return
 
         # Create local parameter assignment
         local_assignment = dict()
         for param_name, value in kw_params.items():
-            params = subroutine.get_parameters(param_name)
+            params = target_block.get_parameters(param_name)
             if not params:
                 raise exceptions.PulseError(
                     f"Parameter {param_name} is not defined in the target subroutine. "
-                    f'{", ".join(map(str, subroutine.parameters))} can be specified.'
+                    f'{", ".join(map(str, target_block.parameters))} can be specified.'
                 )
             for param in params:
                 local_assignment[param] = value
+
         if value_dict:
             if local_assignment.keys() & value_dict.keys():
                 warnings.warn(
@@ -816,22 +840,54 @@ class _PulseBuilder:
                 )
             local_assignment.update(value_dict)
 
-        if isinstance(subroutine, ScheduleBlock):
-            # If subroutine is schedule block, use reference mechanism.
-            if local_assignment:
-                subroutine = subroutine.assign_parameters(local_assignment, inplace=False)
-            if name is None:
-                # Add unique string, not to accidentally override existing reference entry.
-                keys = (subroutine.name, uuid.uuid4().hex)
-            else:
-                keys = (name,)
-            self.append_reference(*keys)
-            self.get_context().assign_references({keys: subroutine}, inplace=True)
+        if local_assignment:
+            target_block = target_block.assign_parameters(local_assignment, inplace=False)
+
+        if name is None:
+            # Add unique string, not to accidentally override existing reference entry.
+            keys = (target_block.name, uuid.uuid4().hex)
         else:
-            # If subroutine is schedule, use Call instruction.
-            name = name or subroutine.name
-            call_instruction = instructions.Call(subroutine, local_assignment, name)
-            self.append_instruction(call_instruction)
+            keys = (name,)
+
+        self.append_reference(*keys)
+        self.get_context().assign_references({keys: target_block}, inplace=True)
+
+    @call_subroutine.register
+    def _(
+        self,
+        target_schedule: Schedule,
+        name: Optional[str] = None,
+        value_dict: Optional[Dict[ParameterExpression, ParameterValueType]] = None,
+        **kw_params: ParameterValueType,
+    ):
+        if len(target_schedule) == 0:
+            return
+
+        self.call_subroutine(
+            self._naive_typecast_schedule(target_schedule),
+            name=name,
+            value_dict=value_dict,
+            **kw_params,
+        )
+
+    @call_subroutine.register
+    def _(
+        self,
+        target_circuit: circuit.QuantumCircuit,
+        name: Optional[str] = None,
+        value_dict: Optional[Dict[ParameterExpression, ParameterValueType]] = None,
+        **kw_params: ParameterValueType,
+    ):
+        if len(target_circuit) == 0:
+            return
+
+        self._compile_lazy_circuit()
+        self.call_subroutine(
+            self._compile_circuit(target_circuit),
+            name=name,
+            value_dict=value_dict,
+            **kw_params,
+        )
 
     @_requires_backend
     def call_gate(self, gate: circuit.Gate, qubits: Tuple[int, ...], lazy: bool = True):
@@ -869,6 +925,21 @@ class _PulseBuilder:
             self._lazy_circuit = self._new_circuit()
 
         self._lazy_circuit.append(gate, qargs=qargs)
+
+    @staticmethod
+    def _naive_typecast_schedule(schedule: Schedule):
+        # Naively convert into ScheduleBlock
+        from qiskit.pulse.transforms import inline_subroutines, flatten, pad
+
+        preprocessed_schedule = inline_subroutines(flatten(schedule))
+        pad(preprocessed_schedule, inplace=True, pad_with=instructions.TimeBlockade)
+
+        # default to left alignment, namely ASAP scheduling
+        target_block = ScheduleBlock(name=schedule.name)
+        for _, inst in preprocessed_schedule.instructions:
+            target_block.append(inst, inplace=True)
+
+        return target_block
 
 
 def build(
@@ -973,21 +1044,9 @@ def append_schedule(schedule: Union[Schedule, ScheduleBlock]):
     """Call a schedule by appending to the active builder's context block.
 
     Args:
-        schedule: Schedule to append.
-
-    Raises:
-        PulseError: When input `schedule` is invalid data format.
+        schedule: Schedule or ScheduleBlock to append.
     """
-    if isinstance(schedule, Schedule):
-        _active_builder().append_instruction(instructions.Call(subroutine=schedule))
-    elif isinstance(schedule, ScheduleBlock):
-        _active_builder().append_block(schedule)
-    else:
-        raise exceptions.PulseError(
-            f"Input program {schedule.__class__.__name__} is not "
-            "acceptable program format. Input `Schedule` or "
-            "`ScheduleBlock`."
-        )
+    _active_builder().append_subroutine(schedule)
 
 
 def append_instruction(instruction: instructions.Instruction):
@@ -1181,7 +1240,7 @@ def align_left() -> ContextManager[None]:
         yield
     finally:
         current = builder.pop_context()
-        builder.append_block(current)
+        builder.append_subroutine(current)
 
 
 @contextmanager
@@ -1219,7 +1278,7 @@ def align_right() -> AlignmentKind:
         yield
     finally:
         current = builder.pop_context()
-        builder.append_block(current)
+        builder.append_subroutine(current)
 
 
 @contextmanager
@@ -1257,7 +1316,7 @@ def align_sequential() -> AlignmentKind:
         yield
     finally:
         current = builder.pop_context()
-        builder.append_block(current)
+        builder.append_subroutine(current)
 
 
 @contextmanager
@@ -1308,7 +1367,7 @@ def align_equispaced(duration: Union[int, ParameterExpression]) -> AlignmentKind
         yield
     finally:
         current = builder.pop_context()
-        builder.append_block(current)
+        builder.append_subroutine(current)
 
 
 @contextmanager
@@ -1369,7 +1428,7 @@ def align_func(
         yield
     finally:
         current = builder.pop_context()
-        builder.append_block(current)
+        builder.append_subroutine(current)
 
 
 @contextmanager
@@ -1395,7 +1454,7 @@ def general_transforms(alignment_context: AlignmentKind) -> ContextManager[None]
         yield
     finally:
         current = builder.pop_context()
-        builder.append_block(current)
+        builder.append_subroutine(current)
 
 
 @contextmanager
@@ -1986,16 +2045,8 @@ def call(
             the parameters having the same name are all updated together.
             If you want to avoid name collision, use ``value_dict`` with :class:`~.Parameter`
             objects instead.
-
-    Raises:
-        exceptions.PulseError: If the input ``target`` type is not supported.
     """
-    if not isinstance(target, (circuit.QuantumCircuit, Schedule, ScheduleBlock)):
-        raise exceptions.PulseError(f"'{target.__class__.__name__}' is not a valid target object.")
-
-    _active_builder().call_subroutine(
-        subroutine=target, name=name, value_dict=value_dict, **kw_params
-    )
+    _active_builder().call_subroutine(target, name, value_dict, **kw_params)
 
 
 def reference(name: str, *extra_keys: str):
@@ -2237,7 +2288,10 @@ def measure(
 
     # note this is not a subroutine.
     # just a macro to automate combination of stimulus and acquisition.
-    _active_builder().call_subroutine(measure_sched)
+    # prepare unique reference name based on qubit and memory slot index.
+    qubits_repr = "&".join(map(str, qubits))
+    mslots_repr = "&".join(map(lambda r: str(r.index), registers))
+    _active_builder().call_subroutine(measure_sched, name=f"measure_{qubits_repr}..{mslots_repr}")
 
     if len(qubits) == 1:
         return registers[0]
@@ -2283,7 +2337,7 @@ def measure_all() -> List[chans.MemorySlot]:
 
     # note this is not a subroutine.
     # just a macro to automate combination of stimulus and acquisition.
-    _active_builder().call_subroutine(measure_sched)
+    _active_builder().call_subroutine(measure_sched, name="measure_all")
 
     return registers
 
