@@ -179,6 +179,10 @@ class ParameterView(MappingView):
         """Copy the ParameterView."""
         return self.__class__(self.data.copy())
 
+    def isdisjoint(self, x):
+        """Check whether self and the input are disjoint."""
+        return not any(element in self for element in x)
+
     def remove(self, x):
         """Remove an existing element from the view."""
         self.data.remove(x)
