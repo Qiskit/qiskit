@@ -18,7 +18,7 @@
 import datetime
 
 project = "Qiskit"
-copyright = f"2016-{datetime.date.today().year}, Qiskit Development Team"  # pylint: disable=redefined-builtin
+copyright = f"2017-{datetime.date.today().year}, Qiskit Development Team"  # pylint: disable=redefined-builtin
 author = "Qiskit Development Team"
 
 # The short X.Y version
