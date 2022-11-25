@@ -166,19 +166,19 @@ class Options:
         """Update options with kwargs"""
         for field in fields:
             field_validator = self.validator.get(field, None)
-            if isinstance(field_validator, tuple):
+            if isinstance(field, tuple):
                 if fields[field] > field_validator[1] or fields[field] < field_validator[0]:
                     raise ValueError(
                         f"Specified value for '{field}' is not a valid value, "
                         f"must be >={field_validator[0]} or <={field_validator[1]}"
                     )
-            elif isinstance(field_validator, list):
+            elif isinstance(field, list):
                 if fields[field] not in field_validator:
                     raise ValueError(
                         f"Specified value for {field} is not a valid choice, "
                         f"must be one of {field_validator}"
                     )
-            elif isinstance(field_validator, type):
+            elif isinstance(field, type):
                 if not isinstance(fields[field], field_validator):
                     raise TypeError(
                         f"Specified value for {field} is not of required type {field_validator}"
