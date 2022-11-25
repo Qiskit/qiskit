@@ -22,6 +22,82 @@ Notable Changes
 ###############
 
 *************
+Qiskit 0.39.3
+*************
+
+.. _Release Notes_Terra_0.22.3:
+
+Terra 0.22.3
+============
+
+.. _Release Notes_Terra_0.22.3_Prelude:
+
+Prelude
+-------
+
+.. releasenotes/notes/prepare-0.22.3-cdc2d5c29ec5555e.yaml @ b'92fc7082b422241f2c5c4543aaea31e9eabef922'
+
+Qiskit Terra 0.22.3 is a minor bugfix release, fixing some further bugs in the 0.22 series.
+
+
+.. _Release Notes_Terra_0.22.3_Bug Fixes:
+
+Bug Fixes
+---------
+
+.. releasenotes/notes/adapt-vqe-supports-aux-operators-1383103839a338c6.yaml @ b'3caa782638389e66f8f2a70ea111b796a169aa13'
+
+- :class:`~qiskit.algorithms.minimum_eigensolver.AdaptVQE` now correctly
+  indicates that it supports auxiliary operators.
+
+.. releasenotes/notes/fix-cregbundle-warning-d3c991bb6276761d.yaml @ b'2f338866358b80e5bcc7e4520800813a3a8a3a23'
+
+- The circuit drawers (:meth:`.QuantumCircuit.draw` and :func:`.circuit_drawer`) will no
+  longer emit a warning about the ``cregbundle`` parameter when using the default arguments,
+  if the content of the circuit requires all bits to be drawn individually.  This was most
+  likely to appear when trying to draw circuits with new-style control-flow operations.
+
+.. releasenotes/notes/fix-qnspsa-max-evals-grouped-52eb462fa6c82079.yaml @ b'92fc7082b422241f2c5c4543aaea31e9eabef922'
+
+- Fixed a bug causing :class:`.QNSPSA` to fail when ``max_evals_grouped`` was set to a
+  value larger than 1.
+
+.. releasenotes/notes/fix-sabre-swap-random-seed-dcf3dace63042791.yaml @ b'b9f3b523b15f50871bf75b6c07f73d10a6d3eceb'
+
+- Fixed an issue with the :class:`~.SabreSwap` pass which would cause the
+  output of multiple runs of the pass without the ``seed`` argument specified
+  to reuse the same random number generator seed between runs instead of
+  using different seeds. This previously caused identical results to be
+  returned between runs even when no ``seed`` was specified.
+
+.. releasenotes/notes/fix-serialization-primitives-c1e44a37cfe7a32a.yaml @ b'775ac1e1d5d7e621d100f0c1a428e75be8e64be0'
+
+- Fixed an issue with the primitive classes, :class:`~.BackendSampler` and :class:`~.BackendEstimator`,
+  where instances were not able to be serialized with ``pickle``. In general these classes are not guaranteed
+  to be serializable as :class:`~.BackendV2` and :class:`~.BackendV1` instances are not required to be
+  serializable (and often are not), but the class definitions of :class:`~.BackendSampler` and
+  :class:`~.BackendEstimator` no longer prevent the use of ``pickle``.
+
+.. releasenotes/notes/reinstate-pulse-instruction-draw-7bf4bbabaa1f1862.yaml @ b'92fc7082b422241f2c5c4543aaea31e9eabef922'
+
+- The :meth:`.pulse.Instruction.draw` method will now succeed, as before.
+  This method is deprecated with no replacement planned, but it should
+  still work for the period of deprecation.
+
+
+Aer 0.11.1
+==========
+
+No change
+
+
+IBM Q Provider 0.19.2
+=====================
+
+No change
+
+
+*************
 Qiskit 0.39.2
 *************
 
