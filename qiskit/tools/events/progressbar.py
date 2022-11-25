@@ -121,8 +121,16 @@ class TextProgressBar(BaseProgressBar):
 
     .. jupyter-execute::
 
+       # example 1
        import numpy as np
+       import qiskit.tools.jupyter
+       from qiskit.tools.parallel import parallel_map
        from qiskit.tools.events import TextProgressBar
+       TextProgressBar()
+       %qiskit_progress_bar -t text
+       parallel_map(np.sin, np.linspace(0,10,100));
+
+       # example 2
        iterations = 100
        t = TextProgressBar()
        t.start(iterations=iterations)
