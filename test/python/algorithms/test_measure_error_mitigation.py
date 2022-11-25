@@ -221,6 +221,7 @@ class TestMeasurementErrorMitigation(QiskitAlgorithmsTestCase):
             seed_transpiler=algorithm_globals.random_seed,
             noise_model=noise_model,
             measurement_error_mitigation_cls=CompleteMeasFitter,
+            shots=10000,
         )
 
         qaoa = QAOA(

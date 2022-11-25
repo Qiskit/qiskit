@@ -621,7 +621,7 @@ class QuantumInstance:
                     prepended_calibration_circuits = len(cal_circuits)
                     cal_run_config = copy.deepcopy(self.run_config)
                     if hasattr(cal_run_config, "parameterizations"):
-                        del cal_run_config.parameterizations
+                        cal_run_config.parameterizations[0:0] = [[]] * len(cal_circuits)
                     result = run_circuits(
                         circuits,
                         self._backend,
