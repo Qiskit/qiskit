@@ -20,7 +20,7 @@ from typing import Sequence
 import numpy as np
 
 from qiskit.algorithms import AlgorithmError
-from qiskit.circuit import Parameter, QuantumCircuit
+from qiskit.circuit import Parameter, QuantumCircuit, ParameterExpression
 from qiskit.opflow import PauliSumOp
 from qiskit.primitives import BaseEstimator
 from qiskit.primitives.utils import _circuit_key
@@ -31,7 +31,8 @@ from .base_estimator_gradient import BaseEstimatorGradient
 from .estimator_gradient_result import EstimatorGradientResult
 from .utils import (
     _make_param_shift_parameter_values,
-    _make_param_shift_parameter_value_offsets,
+    _make_gradient_parameter_values,
+    _make_gradient_parameters,
 )
 
 
@@ -75,26 +76,83 @@ class ParamShiftEstimatorGradient(BaseEstimatorGradient):
         parameters: Sequence[Sequence[Parameter] | None],
         **options,
     ) -> EstimatorGradientResult:
-        """Compute the estimator gradients on the given circuits."""
-        self._preprocess(circuits)
-        results = self._run_unique(circuits, observables, parameter_values, parameters, **options)
-        return self._recombine_results(circuits, results)
+        """Compute the gradients of the expectation values by the parameter shift rule."""
+        g_circuits, g_parameter_values, g_parameters = self._preprocess(
+            circuits, parameter_values, parameters
+        )
+        results = self._run_unique(
+            g_circuits, observables, g_parameter_values, g_parameters, **options
+        )
+        return self._postprocess(results, circuits, parameter_values, parameters, g_parameters)
 
     def _preprocess(
         self,
         circuits: Sequence[QuantumCircuit],
-    ) -> None:
+        parameter_values: Sequence[Sequence[float]],
+        parameters: Sequence[Sequence[Parameter] | None],
+    ):
         """Preprocess the gradient."""
-        for circuit in circuits:
-            if self._gradient_circuit_cache.get(_circuit_key(circuit)) is None:
-                gradient_circuit = self._assign_unique_parameters(
-                    circuit, supported_gates=self._SUPPORTED_GATES, add_virtual_var=True
-                )
-                print(gradient_circuit.draw())
-                self._gradient_circuit_cache[_circuit_key(circuit)] = gradient_circuit
-                self._parameter_value_offset_cache[
+        g_circuits, g_parameter_values, g_parameters = [], [], []
+        for circuit, parameter_value_, parameters_ in zip(circuits, parameter_values, parameters):
+            if not _circuit_key(circuit) in self._gradient_circuit_cache:
+                self._gradient_circuit_cache[
                     _circuit_key(circuit)
-                ] = _make_param_shift_parameter_value_offsets(gradient_circuit, circuit)
+                ] = self._assign_unique_parameters(circuit, supported_gates=self._SUPPORTED_GATES)
+            gradient_circuit = self._gradient_circuit_cache[_circuit_key(circuit)]
+            g_circuits.append(gradient_circuit.gradient_circuit)
+            g_parameter_values.append(
+                _make_gradient_parameter_values(circuit, gradient_circuit, parameter_value_)
+            )
+            g_parameters.append(_make_gradient_parameters(circuit, gradient_circuit, parameters_))
+        return g_circuits, g_parameter_values, g_parameters
+
+    def _postprocess(
+        self,
+        results: Sequence[EstimatorGradientResult],
+        circuits: Sequence[QuantumCircuit],
+        parameter_values: Sequence[Sequence[float]],
+        parameters: Sequence[Sequence[Parameter] | None],
+        g_parameters: Sequence[Sequence[Parameter] | None],
+    ) -> EstimatorGradientResult:
+        """Postprocess the gradient."""
+        original_gradients, original_metadata = [], []
+        for circuit, parameter_values_, parameters_, g_parameters_, gradient in zip(
+            circuits, parameter_values, parameters, g_parameters, results.gradients
+        ):
+            parameter_set = self._make_parameter_set(circuit, parameters_)
+            original_gradient = np.zeros(len(parameter_set))
+            gradient_circuit = self._gradient_circuit_cache[_circuit_key(circuit)]
+            g_parameter_set = self._make_parameter_set(
+                gradient_circuit.gradient_circuit, g_parameters_
+            )
+            result_indices_ = [param for param in circuit.parameters if param in parameter_set]
+            g_result_indices_ = [
+                param
+                for param in gradient_circuit.gradient_circuit.parameters
+                if param in g_parameter_set
+            ]
+            g_result_indices = {param: i for i, param in enumerate(g_result_indices_)}
+
+            for i, parameter in enumerate(result_indices_):
+                for g_parameter, coeff in gradient_circuit.parameter_map[parameter]:
+                    if isinstance(coeff, ParameterExpression):
+                        local_map = {
+                            p: parameter_values_[circuit.parameters.data.index(p)]
+                            for p in coeff.parameters
+                        }
+                        bound_coeff = coeff.bind(local_map)
+                    else:
+                        bound_coeff = coeff
+                    original_gradient[i] += (
+                        bound_coeff * gradient[g_result_indices[g_parameter]]
+                    )
+            original_gradients.append(original_gradient)
+            original_metadata.append(
+                [{"parameters": [p for p in circuit.parameters if p in parameter_set]}]
+            )
+        return EstimatorGradientResult(
+            gradients=original_gradients, metadata=results.metadata, options=results.options
+        )
 
     def _run_unique(
         self,
@@ -105,44 +163,34 @@ class ParamShiftEstimatorGradient(BaseEstimatorGradient):
         **options,
     ) -> EstimatorGradientResult:
         """Compute the estimator gradients on the given circuits."""
-        jobs, coeffs_all, metadata_ = [], [], []
+        jobs, metadata_ = [], []
         for circuit, observable, parameter_values_, parameters_ in zip(
             circuits, observables, parameter_values, parameters
         ):
             # a set of parameters to be differentiated
             parameter_set = self._make_parameter_set(circuit, parameters_)
             metadata_.append({"parameters": [p for p in circuit.parameters if p in parameter_set]})
-
-            # make parameter shift parameter values
-            gradient_circuit = self._gradient_circuit_cache[_circuit_key(circuit)]
-            parameter_value_offsets = self._parameter_value_offset_cache[_circuit_key(circuit)]
-            gradient_parameter_values, coeffs = _make_param_shift_parameter_values(
-                circuit=circuit,
-                gradient_circuit=gradient_circuit,
-                parameter_value_offsets=parameter_value_offsets,
-                parameter_values=parameter_values_,
-                param_set=parameter_set,
+            param_shift_parameter_values = _make_param_shift_parameter_values(
+                circuit, parameter_values_, parameter_set
             )
-            n = len(gradient_parameter_values)
+            n = len(param_shift_parameter_values)
             job = self._estimator.run(
-                [gradient_circuit.gradient_circuit] * n,
+                [circuit] * n,
                 [observable] * n,
-                gradient_parameter_values,
+                param_shift_parameter_values,
                 **options,
             )
             jobs.append(job)
-            coeffs_all.append(coeffs)
 
-        # combine the results
         try:
             results = [job.result() for job in jobs]
         except Exception as exc:
             raise AlgorithmError("Estimator job failed.") from exc
-
+        # compute the gradients
         gradients = []
-        for i, result in enumerate(results):
+        for result in results:
             n = len(result.values) // 2  # is always a multiple of 2
-            gradient_ = (result.values[:n] - result.values[n:]) * np.array(coeffs_all[i])
+            gradient_ = (result.values[:n] - result.values[n:]) / 2
             gradients.append(gradient_)
 
         opt = self._get_local_options(options)

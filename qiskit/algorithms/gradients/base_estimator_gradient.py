@@ -33,7 +33,7 @@ from qiskit.algorithms import AlgorithmJob
 from qiskit.quantum_info.operators.base_operator import BaseOperator
 
 from .estimator_gradient_result import EstimatorGradientResult
-from .utils import GradientCircuit, GradientCircuit2
+from .utils import GradientCircuit
 
 
 class BaseEstimatorGradient(ABC):
@@ -43,7 +43,7 @@ class BaseEstimatorGradient(ABC):
         self,
         estimator: BaseEstimator,
         options: Options | None = None,
-        ):
+    ):
         """
         Args:
             estimator: The estimator used to compute the gradients.
@@ -185,91 +185,49 @@ class BaseEstimatorGradient(ABC):
         self,
         circuit: QuantumCircuit,
         supported_gates: Sequence[str] = None,
-        add_virtual_var: bool = False,
-    ) -> QuantumCircuit:
+    ) -> GradientCircuit:
         """Assign unique parameters to the circuit.
 
         Args:
             circuit: The circuit to assign unique parameters.
+            supported_gates: The list of gate names to be supported. If None, all gates are
+                supported.
 
         Returns:
             The circuit with unique parameters.
         """
         circuit2 = transpile(circuit, basis_gates=supported_gates, optimization_level=0)
-        gradient_circuit = circuit2.copy_empty_like(f"g_{circuit2.name}")
-        used_parameter_dict = defaultdict(int)
+        gradient_circuit = circuit2.copy_empty_like(f"{circuit.name}_gradient")
         parameter_map = defaultdict(list)
-        virtual_parameter_map = {}
-        coeff_map = {}
-        num_virtual_parameters = 0
+        gradient_parameter_map = {}
+        num_gradient_parameters = 0
         for instruction, qargs, cargs in circuit2.data:
-            # If the instruction is a parameterized gate, assign unique parameters to it.
             if instruction.is_parameterized():
                 new_inst_params = []
-                # For a gate with multiple angles, e.g. a U gate with 3 angles, (theta, phi, lambda).
                 for angle in instruction.params:
-                    subs_map = {}
-                    # For an angle with multiple parameters, e.g. theta = a + b.
-                    for param in angle.parameters:
-                        if param in used_parameter_dict:
-                            used_parameter_dict[param] += 1
-                        new_param = Parameter(f"g{param.name}_{used_parameter_dict[param]}")
-                        parameter_map[param].append(new_param)
-                        subs_map[param] = new_param
-                        # Coefficient used in the chain rule,
-                        # i.e. da/d(theta) in df/d(theta) = df/da * da/d(theta).
-                        coeff_map[new_param] = angle.gradient(param)
-                    # Substitute the new parameters with the existing parameters.
-                    new_angle = angle.subs(subs_map)
-                    if add_virtual_var:
-                        if not isinstance(new_angle, Parameter):
-                            virtual_parameter = Parameter(f"vθ_{num_virtual_parameters}")
-                            num_virtual_parameters += 1
-                            for param in new_angle.parameters:
-                                virtual_parameter_map[param] = virtual_parameter
-                            new_angle = new_angle + virtual_parameter
-                    new_inst_params.append(new_angle)
+                    new_parameter = Parameter(f"gθ{num_gradient_parameters}")
+                    new_inst_params.append(new_parameter)
+                    num_gradient_parameters += 1
+                    for parameter in angle.parameters:
+                        parameter_map[parameter].append((new_parameter, angle.gradient(parameter)))
+                    gradient_parameter_map[new_parameter] = angle
                 instruction.params = new_inst_params
             gradient_circuit.append(instruction, qargs, cargs)
-        # For the global phase.
+        # For the global phase
+        gradient_circuit.global_phase = circuit2.global_phase
         if isinstance(gradient_circuit.global_phase, ParameterExpression):
-            subs_map = {}
-            for param in gradient_circuit.global_phase.parameters:
-                if param in used_parameter_dict:
-                    new_param = parameter_map[param][0]
+            substitution_map = {}
+            for parameter in gradient_circuit.global_phase.parameters:
+                if parameter in parameter_map:
+                    substitution_map[parameter] = parameter_map[parameter][0][0]
                 else:
-                    new_param = Parameter(f"g{param.name}_{used_parameter_dict[param]}")
-                subs_map[param] = new_param
-            gradient_circuit.global_phase = gradient_circuit.global_phase.subs(subs_map)
-        print(gradient_circuit.draw())
-        print(gradient_circuit.parameters)
-        return GradientCircuit2(
-            gradient_circuit=gradient_circuit,
-            gradient_parameter_map=parameter_map,
-            gradient_virtual_parameter_map=virtual_parameter_map,
-            coeff_map=coeff_map,
-        )
+                    new_parameter = Parameter(f"gθ{num_gradient_parameters}")
+                    substitution_map[parameter] = new_parameter
+                    parameter_map[parameter].append(new_parameter, 1)
+                    num_gradient_parameters += 1
+            gradient_circuit.global_phase = gradient_circuit.global_phase.subs(substitution_map)
 
-    def _recombine_results(
-        self, circuits: Sequence[QuantumCircuit], result: EstimatorGradientResult
-    ):
-        """Recombine the results from the gradient circuits into the results of original circuits."""
-        original_gradients = []
-        for circuit, gradient, metadata in zip(circuits, result.gradients, result.metadata):
-            parameters = metadata["parameters"]
-            original_gradient = np.zeros(len(parameters))
-            gradient_circuit = self._gradient_circuit_cache[_circuit_key(circuit)]
-            idx = 0
-            for i, parameter in enumerate(parameters):
-                print(i, parameter)
-                num_results = len(gradient_circuit.gradient_parameter_map[parameter])
-                # print(f"num_results: {num_results}")
-                original_gradient[i] = np.sum(gradient[idx : idx + num_results])
-                idx += num_results
-            original_gradients.append(original_gradient)
-        return EstimatorGradientResult(
-            gradients=original_gradients, metadata=result.metadata, options=result.options
-        )
+        return GradientCircuit(gradient_circuit, parameter_map, gradient_parameter_map)
 
     def _make_parameter_set(self, circuit: QuantumCircuit, parameters: Sequence[Parameter]):
         """Make a set of parameters from ``parameters`` that are in ``circuit``.
