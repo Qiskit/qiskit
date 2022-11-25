@@ -143,7 +143,7 @@ def random_circuit(
     qubits = np.array(qc.qubits, dtype=object, copy=True)
 
     # Apply arbitrary random operations in layers across all qubits.
-    for _ in range(depth):
+    for layer_number in range(depth):
         # We generate all the randomness for the layer in one go, to avoid many separate calls to
         # the randomisation routines, which can be fairly slow.
 
@@ -174,7 +174,7 @@ def random_circuit(
         # We've now generated everything we're going to need.  Now just to add everything.  The
         # conditional check is outside the two loops to make the more common case of no conditionals
         # faster, since in Python we don't have a compiler to do this for us.
-        if conditional:
+        if conditional and layer_number != 0:
             is_conditional = rng.random(size=len(gate_specs)) < 0.1
             condition_values = rng.integers(
                 0, 1 << min(num_qubits, 63), size=np.count_nonzero(is_conditional)
@@ -190,6 +190,7 @@ def random_circuit(
             ):
                 operation = gate(*parameters[p_start:p_end])
                 if is_cond:
+                    qc.measure(qc.qubits, cr)
                     operation.condition = (cr, condition_values[c_ptr])
                     c_ptr += 1
                 qc._append(CircuitInstruction(operation=operation, qubits=qubits[q_start:q_end]))
