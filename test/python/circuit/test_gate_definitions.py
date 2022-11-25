@@ -185,14 +185,14 @@ class TestGateDefinitions(QiskitTestCase):
         self.assertTrue(len(decomposed_circuit) > len(circuit))
         self.assertTrue(Operator(circuit).equiv(Operator(decomposed_circuit), atol=1e-7))
 
-    def test_globalphaseGate(self):
-        """Test GlobalPhase Gate"""
-        phase = 0.5
-        gate = GlobalPhaseGate(phase)
-        circuit = QuantumCircuit(0)
-        circuit.append(gate, [])
-        decomposed_circuit = circuit.decompose()
-        self.assertTrue(Operator(circuit).equiv(Operator(decomposed_circuit), atol=1e-7))
+    # def test_globalphaseGate(self):
+    #     """Test GlobalPhaseGate"""
+    #     phase = 0.5
+    #     gate = GlobalPhaseGate(phase)
+    #     circuit = QuantumCircuit(0)
+    #     circuit.append(gate, [])
+    #     decomposed_circuit = circuit.decompose()
+    #     self.assertTrue(Operator(circuit).equiv(Operator(decomposed_circuit), atol=1e-7))
 
 
 @ddt
