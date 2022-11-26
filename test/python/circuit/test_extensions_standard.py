@@ -854,15 +854,11 @@ class TestStandard1Q(QiskitTestCase):
 
     def test_gphase(self):
         qc = self.circuit
-        qc.append(GlobalPhaseGate(0.1), [self.qr[0]])
+        qc.append(GlobalPhaseGate(0.1), [])
         self.assertEqual(self.circuit[0].operation.name, "gphase")
-        self.assertEqual(self.circuit[0].operation.params, [0.1])     
-        self.assertEqual(self.circuit[0].qubits, ())   
-    # def test_gphase_old(self):
-    #     self.circuit.gphase(0.1)
-    #     self.assertEqual(self.circuit[0].operation.name, "gphase")
-    #     self.assertEqual(self.circuit[0].operation.params, [0.1])
-    #     self.assertEqual(self.circuit[0].qubits, ())
+        self.assertEqual(self.circuit[0].operation.params, [0.1])
+        self.assertEqual(self.circuit[0].qubits, ())
+
 
     # def test_gphase_wires(self):
     #     self.circuit.gphase(0.1)
@@ -870,15 +866,18 @@ class TestStandard1Q(QiskitTestCase):
     #     self.assertEqual(self.circuit[0].operation.params, [0.1])
     #     self.assertEqual(self.circuit[0].qubits, ())
 
-    # def test_gphase_inv(self):
-    #     instruction_set = self.circuit.gphase(self.qr).inverse()
-    #     self.assertEqual(instruction_set[0].operation.name, "gphase")
-    #     self.assertEqual(instruction_set[2].operation.params, [-0.1])
+    def test_gphase_inv(self):
+        instruction_set = self.circuit.append(GlobalPhaseGate(0.1), []).inverse()
+        self.assertEqual(instruction_set[0].operation.name, "gphase_dg")
+        self.assertEqual(instruction_set[1].qubits, ([],))
+        self.assertEqual(instruction_set[2].operation.params, [-0.1])
 
-    # def test_gphase_matrix(self, theta: float, expected: np.ndarray):
-    #     """Test gphase matrix."""
-    #     gate = GlobalPhaseGate(theta)
-    #     np.testing.assert_allclose(np.array(gate), expected, atol=1e-7)
+    def test_gphase_matrix(self):
+        """Test gphase matrix."""
+        theta = 0.1
+        gate = GlobalPhaseGate(theta)
+        expected = np.array(np.exp(1j*theta))
+        np.testing.assert_allclose(np.array(gate), expected, atol=1e-7)
 
 
 @ddt
