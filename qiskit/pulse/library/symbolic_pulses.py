@@ -663,7 +663,9 @@ class Gaussian(metaclass=_PulseType):
         _t, _duration, _amp, _sigma, _angle = sym.symbols("t, duration, amp, sigma, angle")
         _center = _duration / 2
 
-        envelope_expr = _amp * sym.exp(sym.I * _angle) * _lifted_gaussian(_t, _center, _duration + 1, _sigma)
+        envelope_expr = (
+            _amp * sym.exp(sym.I * _angle) * _lifted_gaussian(_t, _center, _duration + 1, _sigma)
+        )
 
         consts_expr = _sigma > 0
         valid_amp_conditions_expr = sym.Abs(_amp) <= 1.0
@@ -798,8 +800,12 @@ class GaussianSquare(metaclass=_PulseType):
         _gaussian_ledge = _lifted_gaussian(_t, _sq_t0, -1, _sigma)
         _gaussian_redge = _lifted_gaussian(_t, _sq_t1, _duration + 1, _sigma)
 
-        envelope_expr = _amp * sym.exp(sym.I * _angle) * sym.Piecewise(
-            (_gaussian_ledge, _t <= _sq_t0), (_gaussian_redge, _t >= _sq_t1), (1, True)
+        envelope_expr = (
+            _amp
+            * sym.exp(sym.I * _angle)
+            * sym.Piecewise(
+                (_gaussian_ledge, _t <= _sq_t0), (_gaussian_redge, _t >= _sq_t1), (1, True)
+            )
         )
 
         consts_expr = sym.And(_sigma > 0, _width >= 0, _duration >= _width)
@@ -997,7 +1003,11 @@ class Constant(metaclass=_PulseType):
         # ParametricPulse.get_waveform().
         #
         # See: https://github.com/sympy/sympy/issues/5642
-        envelope_expr = _amp * sym.exp(sym.I * _angle) * sym.Piecewise((1, sym.And(_t >= 0, _t <= _duration)), (0, True))
+        envelope_expr = (
+            _amp
+            * sym.exp(sym.I * _angle)
+            * sym.Piecewise((1, sym.And(_t >= 0, _t <= _duration)), (0, True))
+        )
 
         valid_amp_conditions_expr = sym.Abs(_amp) <= 1.0
 
