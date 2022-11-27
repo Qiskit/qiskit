@@ -868,17 +868,21 @@ class TestStandard1Q(QiskitTestCase):
 
     def test_gphase_inv(self):
         instruction_set = self.circuit.append(GlobalPhaseGate(0.1), []).inverse()
+        self.assertEqual(len(instruction_set), 2)
         self.assertEqual(instruction_set[0].operation.name, "gphase_dg")
-        self.assertEqual(instruction_set[1].qubits, ([],))
-        self.assertEqual(instruction_set[2].operation.params, [-0.1])
+        # self.assertEqual(instruction_set[1].qubits, (self.qr[0],))
+        self.assertEqual(instruction_set[1].operation.params, [-0.1])
 
-    def test_gphase_matrix(self):
+    # def test_gphase_matrix(self):
+    #     """Test gphase matrix."""
+    #     theta = 0.1
+    #     gate = GlobalPhaseGate(theta)
+    #     expected = np.array(np.exp(1j*theta))
+    #     np.testing.assert_allclose(np.array(gate.to_matrix), expected, atol=1e-7)
+    def test_gphase_matrix(self, theta: float, expected: np.ndarray):
         """Test gphase matrix."""
-        theta = 0.1
         gate = GlobalPhaseGate(theta)
-        expected = np.array(np.exp(1j*theta))
         np.testing.assert_allclose(np.array(gate), expected, atol=1e-7)
-
 
 @ddt
 class TestStandard2Q(QiskitTestCase):
