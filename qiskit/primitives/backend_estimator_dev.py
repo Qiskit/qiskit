@@ -288,7 +288,7 @@ class BackendEstimator(BaseEstimator):
         that basis rotations have been applied to convert them to the
         diagonal basis.
         """
-        pairs = tuple(cls._compute_expval_variance_pair(counts, pauli) for pauli in paulis)
+        pairs = (cls._compute_expval_variance_pair(counts, pauli) for pauli in paulis)
         return tuple(zip(*pairs))
 
     @classmethod
