@@ -208,7 +208,8 @@ class BackendEstimator(BaseEstimator):
         observables: Sequence[BaseOperator | PauliSumOp],
         parameter_values: Sequence[Sequence[float]],
     ) -> tuple[tuple[QuantumCircuit, ...], ...]:
-        """Preprocess experiments to runnable lists of circuits: one list per experiment."""
+        """Preprocess circuit-observable experiments to runnable tuples of circuits, one per pair.
+        """
         return tuple(
             self._preprocess_single(circuit, observable, params)
             for circuit, observable, params in zip(circuits, observables, parameter_values)
@@ -220,7 +221,7 @@ class BackendEstimator(BaseEstimator):
         observable: BaseOperator,
         parameter_values: Sequence[float],
     ) -> tuple[QuantumCircuit, ...]:
-        """Preprocess single experiment to runnable list of circuits."""
+        """Preprocess single circuit-observable experiment to runnable tuple of circuits."""
         circuit = self._transpile(circuit)  # TODO: Cache (produces a copy)
         circuit.assign_parameters(parameter_values, inplace=True)
         circuit = self._run_bound_pass_manager(circuit)
