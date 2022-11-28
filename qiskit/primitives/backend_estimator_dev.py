@@ -65,7 +65,7 @@ class BackendEstimator(BaseEstimator):
         skip_transpilation: bool = False,
         bound_pass_manager: PassManager | None = None,
         options: dict | None = None,
-    ):
+    ) -> None:
         """Initalize a new BackendEstimator instance.
 
         Args:
@@ -88,7 +88,7 @@ class BackendEstimator(BaseEstimator):
         )
         self._transpile_options = Options()
 
-    def __getnewargs__(self):
+    def __getnewargs__(self) -> tuple:
         return (self._backend,)
 
     ################################################################################
@@ -149,7 +149,7 @@ class BackendEstimator(BaseEstimator):
         """Options for transpiling the input circuits."""
         return self._transpile_options
 
-    def set_transpile_options(self, **fields):
+    def set_transpile_options(self, **fields) -> None:
         """Set the transpiler options for transpiler.
         Args:
             **fields: The fields to update the options
@@ -163,7 +163,7 @@ class BackendEstimator(BaseEstimator):
     def _run(
         self,
         circuits: tuple[QuantumCircuit, ...],
-        observables: tuple[BaseOperator | PauliSumOp, ...],
+        observables: tuple[BaseOperator | PauliSumOp, ...],  # TODO: normalize to `SparsePauliOp`
         parameter_values: tuple[tuple[float, ...], ...],
         **run_options,
     ) -> PrimitiveJob:
@@ -292,7 +292,7 @@ class BackendEstimator(BaseEstimator):
         return tuple(zip(*pairs))
 
     @classmethod
-    def _compute_expval_variance_pair(cls, counts: Counts, pauli: Pauli):
+    def _compute_expval_variance_pair(cls, counts: Counts, pauli: Pauli) -> tuple[float, float]:
         """Return an expval-variance pair for the given counts and pauli.
 
         Note: All non-identity Pauli's are treated as Z-paulis, assuming
@@ -344,7 +344,7 @@ class BackendEstimator(BaseEstimator):
     ## TRANSPILATION
     ################################################################################
     # TODO: pass backend and run_options
-    def _transpile(self, circuit: QuantumCircuit):
+    def _transpile(self, circuit: QuantumCircuit) -> QuantumCircuit:
         """Traspile quantum circuit to match the estimator's backend.
 
         Includes the final layout as metadata.
