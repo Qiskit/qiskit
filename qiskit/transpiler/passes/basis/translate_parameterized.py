@@ -14,7 +14,7 @@
 
 from __future__ import annotations
 
-from qiskit.circuit import Instruction, ParameterExpression, QuantumCircuit
+from qiskit.circuit import Instruction, ParameterExpression, Qubit, Clbit
 from qiskit.converters import circuit_to_dag
 from qiskit.dagcircuit import DAGCircuit
 from qiskit.circuit.equivalence_library import EquivalenceLibrary
@@ -136,6 +136,9 @@ def _is_parameterized(op: Instruction) -> bool:
 
 
 def _instruction_to_dag(op: Instruction) -> DAGCircuit:
-    circuit = QuantumCircuit(op.num_qubits, op.num_clbits)
-    circuit._append(op, circuit.qubits, circuit.clbits)
-    return circuit_to_dag(circuit)
+    dag = DAGCircuit()
+    dag.add_qubits([Qubit() for _ in range(op.num_qubits)])
+    dag.add_qubits([Clbit() for _ in range(op.num_clbits)])
+    dag.apply_operation_back(op, dag.qubits, dag.clbits)
+
+    return dag
