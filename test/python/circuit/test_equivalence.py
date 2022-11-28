@@ -157,7 +157,7 @@ class TestEquivalenceLibraryWithoutBase(QiskitTestCase):
     def test_equivalence_graph(self):
         """Verify valid graph created by add_equivalence"""
 
-        import retworkx as rx
+        import rustworkx as rx
         from qiskit.circuit.equivalence import Key, Equivalence
 
         eq_lib = EquivalenceLibrary()
