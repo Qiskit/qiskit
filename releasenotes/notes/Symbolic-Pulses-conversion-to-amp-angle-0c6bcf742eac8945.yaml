@@ -15,4 +15,3 @@ features:
     Qiskit Experiments where the amplitude and angle of pulses are calibrated in separate experiments.
   - |
     QPY version bumped to 6, to accommodate the symbolic library pulses (amp,angle) representation.
-
