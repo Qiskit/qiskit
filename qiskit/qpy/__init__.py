@@ -104,9 +104,13 @@ circuits in the data.
 
 Version 6
 =========
-In Version 6, the symbolic library pulses changed from complex `amp` representation to float (`amp`
-,`angle`) representation. To accommodate this change, when a QPY file of version 5 or lower is loaded,
-these library pulses are converted to the new format.
+
+Version 6 has an internal update to :ref:`qpy_schedule_symbolic_pulse` loader of `previous` QPY 
+version to adapt in the latest Qiskit library pulse representation. In Qiskit Terra 0.23 and above, 
+complex `amp` value representation is replaced with float (`amp`, `angle`) pair.
+Because a QPY binary file dumped by the QPY version 5 and below implies the data
+is still represented by the conventional complex amp format, the loaded pulse parameters
+and envelope are immediately converted into new format to instantiate the pulse in new style.
 
 .. _qpy_version_5:
 
