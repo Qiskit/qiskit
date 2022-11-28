@@ -15,7 +15,7 @@ Fake Johannesburg device (20 qubit).
 """
 
 import os
-from qiskit.providers.fake_provider import fake_pulse_backend, fake_backend
+from qiskit.providers.fake_provider import fake_qasm_backend, fake_backend
 
 
 class FakeJohannesburgV2(fake_backend.FakeBackendV2):
@@ -35,11 +35,10 @@ class FakeJohannesburgV2(fake_backend.FakeBackendV2):
     dirname = os.path.dirname(__file__)
     conf_filename = "conf_johannesburg.json"
     props_filename = "props_johannesburg.json"
-    defs_filename = "defs_johannesburg.json"
     backend_name = "fake_johannesburg_v2"
 
 
-class FakeJohannesburg(fake_pulse_backend.FakePulseBackend):
+class FakeJohannesburg(fake_qasm_backend.FakeQasmBackend):
     """A fake Johannesburg backend.
 
     .. code-block:: text
@@ -56,5 +55,4 @@ class FakeJohannesburg(fake_pulse_backend.FakePulseBackend):
     dirname = os.path.dirname(__file__)
     conf_filename = "conf_johannesburg.json"
     props_filename = "props_johannesburg.json"
-    defs_filename = "defs_johannesburg.json"
     backend_name = "fake_johannesburg"

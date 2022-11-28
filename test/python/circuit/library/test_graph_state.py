@@ -14,10 +14,10 @@
 
 import unittest
 
-from qiskit.test.base import QiskitTestCase
 from qiskit.circuit.exceptions import CircuitError
 from qiskit.circuit.library import GraphState
 from qiskit.quantum_info import Clifford
+from qiskit.test.base import QiskitTestCase
 
 
 class TestGraphStateLibrary(QiskitTestCase):
@@ -28,7 +28,7 @@ class TestGraphStateLibrary(QiskitTestCase):
         Based on https://arxiv.org/pdf/quant-ph/0307130.pdf, Eq. (6).
         """
 
-        stabilizers = Clifford(graph_state).stabilizer.pauli.to_labels()
+        stabilizers = [stabilizer[1:] for stabilizer in Clifford(graph_state).to_labels(mode="S")]
 
         expected_stabilizers = []  # keep track of all expected stabilizers
         num_vertices = len(adjacency_matrix)

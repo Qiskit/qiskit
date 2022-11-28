@@ -15,8 +15,8 @@
 import ast
 from typing import Callable, Optional
 
-from tweedledum.classical import simulate
-from tweedledum.synthesis import pkrm_synth
+from tweedledum.classical import simulate  # pylint: disable=import-error
+from tweedledum.synthesis import pkrm_synth  # pylint: disable=import-error
 
 from qiskit.circuit import QuantumCircuit, QuantumRegister
 from qiskit.exceptions import QiskitError

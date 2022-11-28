@@ -12,10 +12,12 @@
 """
 Utility functions for primitives
 """
-
 from __future__ import annotations
 
+import numpy as np
+
 from qiskit.circuit import Instruction, ParameterExpression, QuantumCircuit
+from qiskit.circuit.bit import Bit
 from qiskit.extensions.quantum_initializer.initializer import Initialize
 from qiskit.opflow import PauliSumOp
 from qiskit.quantum_info import SparsePauliOp, Statevector
@@ -113,7 +115,17 @@ def final_measurement_mapping(circuit: QuantumCircuit) -> dict[int, int]:
     return mapping
 
 
-def _circuit_key(circuit: QuantumCircuit) -> tuple:
+def _bits_key(bits: tuple[Bit, ...], circuit: QuantumCircuit) -> tuple:
+    return tuple(
+        (
+            circuit.find_bit(bit).index,
+            tuple((reg[0].size, reg[0].name, reg[1]) for reg in circuit.find_bit(bit).registers),
+        )
+        for bit in bits
+    )
+
+
+def _circuit_key(circuit: QuantumCircuit, functional: bool = True) -> tuple:
     """Private key function for QuantumCircuit.
 
     This is the workaround until :meth:`QuantumCircuit.__hash__` will be introduced.
@@ -121,19 +133,50 @@ def _circuit_key(circuit: QuantumCircuit) -> tuple:
 
     Args:
         circuit: Input quantum circuit.
+        functional: If True, the returned key only includes functional data (i.e. execution related).
 
     Returns:
-        Key for directory.
+        Composite key for circuit.
     """
-    return (
-        id(circuit),
+    functional_key: tuple = (
         circuit.num_qubits,
         circuit.num_clbits,
         circuit.num_parameters,
-        tuple(
-            (d.qubits, d.clbits, d.operation.name, tuple(d.operation.params)) for d in circuit.data
+        tuple(  # circuit.data
+            (
+                _bits_key(data.qubits, circuit),  # qubits
+                _bits_key(data.clbits, circuit),  # clbits
+                data.operation.name,  # operation.name
+                tuple(
+                    param.data.tobytes() if isinstance(param, np.ndarray) else param
+                    for param in data.operation.params
+                ),  # operation.params
+            )
+            for data in circuit.data
         ),
         None if circuit._op_start_times is None else tuple(circuit._op_start_times),
+    )
+    if functional:
+        return functional_key
+    return (
+        circuit.name,
+        *functional_key,
+    )
+
+
+def _observable_key(observable: SparsePauliOp) -> tuple:
+    """Private key function for SparsePauliOp.
+    Args:
+        observable: Input operator.
+
+    Returns:
+        Key for observables.
+    """
+    return (
+        observable.paulis.z.tobytes(),
+        observable.paulis.x.tobytes(),
+        observable.paulis.phase.tobytes(),
+        observable.coeffs.tobytes(),
     )
 
 

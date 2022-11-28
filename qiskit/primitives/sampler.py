@@ -25,9 +25,8 @@ from qiskit.exceptions import QiskitError
 from qiskit.quantum_info import Statevector
 from qiskit.result import QuasiDistribution
 
-from .base_sampler import BaseSampler
+from .base import BaseSampler, SamplerResult
 from .primitive_job import PrimitiveJob
-from .sampler_result import SamplerResult
 from .utils import (
     _circuit_key,
     bound_circuit_to_instruction,
@@ -128,7 +127,7 @@ class Sampler(BaseSampler):
             ]
             for metadatum in metadata:
                 metadatum["shots"] = shots
-        quasis = [QuasiDistribution(dict(enumerate(p))) for p in probabilities]
+        quasis = [QuasiDistribution(dict(enumerate(p)), shots=shots) for p in probabilities]
 
         return SamplerResult(quasis, metadata)
 
@@ -137,8 +136,8 @@ class Sampler(BaseSampler):
 
     def _run(
         self,
-        circuits: Sequence[QuantumCircuit],
-        parameter_values: Sequence[Sequence[float]],
+        circuits: tuple[QuantumCircuit, ...],
+        parameter_values: tuple[tuple[float, ...], ...],
         **run_options,
     ) -> PrimitiveJob:
         circuit_indices = []
@@ -162,6 +161,12 @@ class Sampler(BaseSampler):
     def _preprocess_circuit(circuit: QuantumCircuit):
         circuit = init_circuit(circuit)
         q_c_mapping = final_measurement_mapping(circuit)
+        if set(range(circuit.num_clbits)) != set(q_c_mapping.values()):
+            raise QiskitError(
+                "Some classical bits are not used for measurements."
+                f" the number of classical bits ({circuit.num_clbits}),"
+                f" the used classical bits ({set(q_c_mapping.values())})."
+            )
         c_q_mapping = sorted((c, q) for q, c in q_c_mapping.items())
         qargs = [q for _, q in c_q_mapping]
         circuit = circuit.remove_final_measurements(inplace=False)

@@ -24,7 +24,15 @@ from qiskit.compiler import transpile
 from qiskit.exceptions import QiskitError
 from qiskit.execute_function import execute
 from qiskit.test.base import QiskitTestCase
-from qiskit.providers.fake_provider import FakeProviderForBackendV2, FakeProvider, FakeMumbaiV2
+from qiskit.providers.fake_provider import (
+    FakeProviderForBackendV2,
+    FakeProvider,
+    FakeMumbaiV2,
+    FakeYorktown,
+    FakeMumbai,
+)
+from qiskit.providers.backend_compat import BackendV2Converter
+from qiskit.providers.backend import BackendV2
 from qiskit.utils import optionals
 
 FAKE_PROVIDER_FOR_BACKEND_V2 = FakeProviderForBackendV2()
@@ -160,4 +168,28 @@ class TestFakeBackends(QiskitTestCase):
         qc.delay(250, 1, unit="ns")
         qc.measure_all()
         res = transpile(qc, backend)
+        self.assertIn("delay", res.count_ops())
+
+    @data(0, 1, 2, 3)
+    def test_converter(self, opt_level):
+        backend = FakeYorktown()
+        backend_v2 = BackendV2Converter(backend)
+        self.assertIsInstance(backend_v2, BackendV2)
+        res = transpile(self.circuit, backend_v2, optimization_level=opt_level)
+        job = backend_v2.run(res)
+        result = job.result()
+        counts = result.get_counts()
+        max_count = max(counts.items(), key=operator.itemgetter(1))[0]
+        self.assertEqual(max_count, "11")
+
+    def test_converter_delay_circuit(self):
+        backend = FakeMumbai()
+        backend_v2 = BackendV2Converter(backend, add_delay=True)
+        self.assertIsInstance(backend_v2, BackendV2)
+        qc = QuantumCircuit(2)
+        qc.delay(502, 0, unit="ns")
+        qc.x(1)
+        qc.delay(250, 1, unit="ns")
+        qc.measure_all()
+        res = transpile(qc, backend_v2)
         self.assertIn("delay", res.count_ops())

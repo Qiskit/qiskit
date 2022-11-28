@@ -72,6 +72,7 @@ Optimizations
    Collect2qBlocks
    CollectMultiQBlocks
    CollectLinearFunctions
+   CollectCliffords
    ConsolidateBlocks
    CXCancellation
    InverseCancellation
@@ -170,6 +171,7 @@ Additional Passes
    FixedPoint
    ContainsInstruction
    GatesInBasis
+   ConvertConditionsToIfOps
 """
 
 # layout selection (placement)
@@ -223,6 +225,7 @@ from .optimization import TemplateOptimization
 from .optimization import InverseCancellation
 from .optimization import EchoRZXWeylDecomposition
 from .optimization import CollectLinearFunctions
+from .optimization import CollectCliffords
 from .optimization import ResetAfterMeasureSimplification
 from .optimization import OptimizeCliffords
 
@@ -278,3 +281,4 @@ from .utils import Error
 from .utils import RemoveBarriers
 from .utils import ContainsInstruction
 from .utils import GatesInBasis
+from .utils import ConvertConditionsToIfOps

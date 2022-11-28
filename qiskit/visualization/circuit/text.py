@@ -16,6 +16,7 @@ A module for drawing circuits in ascii art or some other text representation
 
 from warnings import warn
 from shutil import get_terminal_size
+import itertools
 import sys
 
 from qiskit.circuit import Qubit, Clbit, ClassicalRegister, QuantumRegister, QuantumCircuit
@@ -35,13 +36,6 @@ from ._utils import (
     get_condition_label_val,
 )
 from ..exceptions import VisualizationError
-
-
-class TextDrawerCregBundle(VisualizationError):
-    """The parameter "cregbundle" was set to True in an impossible situation. For example,
-    a node needs to refer to individual classical wires'"""
-
-    pass
 
 
 class TextDrawerEncodingError(VisualizationError):
@@ -607,7 +601,7 @@ class TextDrawing:
         vertical_compression="high",
         layout=None,
         initial_state=True,
-        cregbundle=False,
+        cregbundle=None,
         global_phase=None,
         encoding=None,
         qregs=None,
@@ -670,12 +664,14 @@ class TextDrawing:
         self.clbits = clbits
         self.nodes = nodes
         if with_layout:
-            self.layout = self._circuit._layout
+            if self._circuit._layout:
+                self.layout = self._circuit._layout.initial_layout
+            else:
+                self.layout = None
         else:
             self.layout = None
 
         self.initial_state = initial_state
-        self.cregbundle = cregbundle
         self.global_phase = circuit.global_phase
         self.plotbarriers = plotbarriers
         self.reverse_bits = reverse_bits
@@ -684,6 +680,20 @@ class TextDrawing:
             raise ValueError("Vertical compression can only be 'high', 'medium', or 'low'")
         self.vertical_compression = vertical_compression
         self._wire_map = {}
+
+        for node in itertools.chain.from_iterable(self.nodes):
+            if node.cargs and node.op.name != "measure":
+                if cregbundle:
+                    warn(
+                        "Cregbundle set to False since an instruction needs to refer"
+                        " to individual classical wire",
+                        RuntimeWarning,
+                        2,
+                    )
+                self.cregbundle = False
+                break
+        else:
+            self.cregbundle = True if cregbundle is None else cregbundle
 
         if encoding:
             self.encoding = encoding
@@ -758,18 +768,7 @@ class TextDrawing:
 
         noqubits = len(self.qubits)
 
-        try:
-            layers = self.build_layers()
-        except TextDrawerCregBundle:
-            self.cregbundle = False
-            warn(
-                'The parameter "cregbundle" was disabled, since an instruction needs to refer to '
-                "individual classical wires",
-                RuntimeWarning,
-                2,
-            )
-            layers = self.build_layers()
-
+        layers = self.build_layers()
         layer_groups = [[]]
         rest_of_the_line = line_length
         for layerno, layer in enumerate(layers):
@@ -1155,8 +1154,6 @@ class TextDrawing:
             layer.set_qu_multibox(node.qargs, gate_text, conditional=conditional)
 
         elif node.qargs and node.cargs:
-            if self.cregbundle and node.cargs:
-                raise TextDrawerCregBundle("TODO")
             layer._set_multibox(
                 gate_text,
                 qubits=node.qargs,
@@ -1210,7 +1207,7 @@ class TextDrawing:
 class Layer:
     """A layer is the "column" of the circuit."""
 
-    def __init__(self, qubits, clbits, cregbundle=False, circuit=None):
+    def __init__(self, qubits, clbits, cregbundle, circuit=None):
         self.qubits = qubits
         self.clbits_raw = clbits  # list of clbits ignoring cregbundle change below
         self._circuit = circuit

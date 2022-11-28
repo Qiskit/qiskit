@@ -356,7 +356,7 @@ class TestPadDynamicalDecoupling(QiskitTestCase):
 
         midmeas_dd = pm.run(self.midmeas)
 
-        combined_u = UGate(0, pi / 2, -pi / 2)
+        combined_u = UGate(0, -pi / 2, pi / 2)
 
         expected = QuantumCircuit(3, 1)
         expected.cx(0, 1)
@@ -371,7 +371,7 @@ class TestPadDynamicalDecoupling(QiskitTestCase):
         expected.cx(1, 2)
         expected.cx(0, 1)
         expected.delay(700, 2)
-        expected.global_phase = 4.71238898038469
+        expected.global_phase = pi / 2
 
         self.assertEqual(midmeas_dd, expected)
         # check the absorption into U was done correctly
