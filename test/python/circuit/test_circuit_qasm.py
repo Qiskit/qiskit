@@ -404,7 +404,7 @@ custom_{id(gate2)} q[1],q[0];\n"""
                 "OPENQASM 2.0;",
                 'include "qelib1.inc";',
                 "gate gate__valid__ p0 {",
-                "	u3(pi,pi/2,-pi/2) p0;",
+                "	u3(pi,-pi/2,pi/2) p0;",
                 "}",
                 "gate gate_A___ q0 { x q0; u(0,0,pi) q0; }",
                 "gate invalid_name_ q0,q1 { x q0; gate_A___ q1; }",
@@ -450,6 +450,36 @@ custom_{id(gate2)} q[1],q[0];\n"""
         names = ["invalid??", "invalid[]"]
         for idx, instruction in enumerate(base._data):
             self.assertEqual(instruction.operation.name, names[idx])
+
+    def test_circuit_qasm_with_double_precision_rotation_angle(self):
+        """Test that qasm() emits high precision rotation angles per default."""
+        from qiskit.circuit.tools.pi_check import MAX_FRAC
+
+        qc = QuantumCircuit(1)
+        qc.p(0.123456789, 0)
+        qc.p(pi * pi, 0)
+        qc.p(MAX_FRAC * pi + 1, 0)
+
+        expected_qasm = """OPENQASM 2.0;
+include "qelib1.inc";
+qreg q[1];
+p(0.123456789) q[0];
+p(9.869604401089358) q[0];
+p(51.26548245743669) q[0];\n"""
+        self.assertEqual(qc.qasm(), expected_qasm)
+
+    def test_circuit_qasm_with_rotation_angles_close_to_pi(self):
+        """Test that qasm() properly rounds values closer than 1e-12 to pi."""
+
+        qc = QuantumCircuit(1)
+        qc.p(pi + 1e-11, 0)
+        qc.p(pi + 1e-12, 0)
+        expected_qasm = """OPENQASM 2.0;
+include "qelib1.inc";
+qreg q[1];
+p(3.141592653599793) q[0];
+p(pi) q[0];\n"""
+        self.assertEqual(qc.qasm(), expected_qasm)
 
     def test_circuit_raises_on_single_bit_condition(self):
         """OpenQASM 2 can't represent single-bit conditions, so test that a suitable error is

@@ -133,7 +133,7 @@ class CorrelatedReadoutMitigator(BaseReadoutMitigator):
         data: Counts,
         qubits: Optional[List[int]] = None,
         clbits: Optional[List[int]] = None,
-        shots: Optional[bool] = False,
+        shots: Optional[int] = None,
     ) -> QuasiDistribution:
         """Compute mitigated quasi probabilities value.
 
@@ -141,7 +141,8 @@ class CorrelatedReadoutMitigator(BaseReadoutMitigator):
             data: counts object
             qubits: qubits the count bitstrings correspond to.
             clbits: Optional, marginalize counts to just these bits.
-            shots: the number of shots.
+            shots: Optional, the total number of shots, if None shots will
+                be calculated as the sum of all counts.
 
         Returns:
             QuasiDistibution: A dictionary containing pairs of [output, mean] where "output"
@@ -151,9 +152,11 @@ class CorrelatedReadoutMitigator(BaseReadoutMitigator):
         """
         if qubits is None:
             qubits = self._qubits
-        probs_vec, shots = counts_probability_vector(
+        probs_vec, calculated_shots = counts_probability_vector(
             data, qubit_index=self._qubit_index, clbits=clbits, qubits=qubits
         )
+        if shots is None:
+            shots = calculated_shots
 
         # Get qubit mitigation matrix and mitigate probs
         mit_mat = self.mitigation_matrix(qubits)
