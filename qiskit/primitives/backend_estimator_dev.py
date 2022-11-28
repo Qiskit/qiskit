@@ -234,7 +234,7 @@ class BackendEstimator(BaseEstimator):
 
         # Raw results
         jobs: tuple[Job] = tuple(
-            self.backend.run(circuits[slice(split, max_circuits)], **run_options)
+            self.backend.run(circuits[split : split + max_circuits], **run_options)
             for split in range(0, total_circuits, max_circuits)
         )
         raw_results: tuple[Result] = tuple(job.result() for job in jobs)
