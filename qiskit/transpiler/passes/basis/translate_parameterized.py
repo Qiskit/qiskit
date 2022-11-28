@@ -19,6 +19,7 @@ from qiskit.converters import circuit_to_dag
 from qiskit.dagcircuit import DAGCircuit
 from qiskit.circuit.equivalence_library import EquivalenceLibrary
 from qiskit.exceptions import QiskitError
+from qiskit.transpiler import Target
 
 from qiskit.transpiler.basepasses import TransformationPass
 
@@ -78,23 +79,44 @@ class TranslateParameterizedGates(TransformationPass):
     """
 
     def __init__(
-        self, supported_gates: list[str], equivalence_library: EquivalenceLibrary | None = None
+        self,
+        supported_gates: list[str] | None = None,
+        equivalence_library: EquivalenceLibrary | None = None,
+        target: Target | None = None,
     ) -> None:
         """
         Args:
-            supported_gates: A list of suppported basis gates specified as string.
+            supported_gates: A list of suppported basis gates specified as string. If ``None``,
+                a ``target`` must be provided.
             equivalence_library: The equivalence library to translate the gates. Defaults
                 to the equivalence library of all Qiskit standard gates.
+            target: A :class:`.Target` containing the supported operations. If ``None``,
+                ``supported_gates`` must be set.
+
+        Raises:
+            ValueError: If neither of (or both of) ``supported_gates`` and ``target`` are passed.
         """
         super().__init__()
 
+        # get the default equivalence library, if none has been set
         if equivalence_library is None:
             from qiskit.circuit.library.standard_gates.equivalence_library import _sel
 
             equivalence_library = _sel
 
+        # obtain the supported gates from the target, if they haven't been specified
+        # and ensure only one of the arguments has been set
+        if supported_gates is None:
+            if target is None:
+                raise ValueError("One of ``supported_gates`` or ``target`` must be specified.")
+
+            supported_gates = target.operation_names
+        else:
+            if target is not None:
+                raise ValueError("``supported_gates`` and ``target`` cannot both be specified.")
+
         self._supported_gates = supported_gates
-        self._translator = BasisTranslator(equivalence_library, supported_gates)
+        self._translator = BasisTranslator(equivalence_library, supported_gates, target=target)
 
     def run(self, dag: DAGCircuit) -> DAGCircuit:
         """Run the transpiler pass.
