@@ -17,6 +17,12 @@ QPY serialization (:mod:`qiskit.qpy`)
 
 .. currentmodule:: qiskit.qpy
 
+QPY is a binary serialization format for :class:`~.QuantumCircuit` and
+:class:`~.ScheduleBlock` objects that is designed to be cross-platform,
+Python version agnostic, and backwards compatible moving forward. QPY should
+be used if you need a lossless mechanism to save or copy between systems a
+:class:`~.QuantumCircuit` or :class:`~.ScheduleBlock`.
+
 *********
 Using QPY
 *********
@@ -41,6 +47,17 @@ For example::
 
     with open('bell.qpy', 'rb') as fd:
         new_qc = qpy.load(fd)[0]
+
+the :func:`qiskit.circuit.qpy_serialization.dump` function also lets you
+include multiple circuits in a single QPY file::
+
+    with open('twenty_bells.qpy', 'wb') as fd:
+        qpy.dump([qc] * 20, fd)
+
+and then loading that file will return a list with all the circuits
+
+    with open('twenty_bells.qpy', 'rb') as fd:
+        twenty_new_bells = qpy.load(fd)
 
 API documentation
 =================
