@@ -23,9 +23,7 @@ import numpy as np
 from qiskit.circuit import QuantumCircuit
 from qiskit.compiler import transpile
 from qiskit.opflow import PauliSumOp
-from qiskit.providers import Backend, Options
-from qiskit.providers.backend import BackendV1
-from qiskit.providers.job import JobV1 as Job
+from qiskit.providers import Backend, BackendV2, BackendV2Converter, Options, JobV1 as Job
 from qiskit.quantum_info import Pauli, PauliList
 from qiskit.quantum_info.operators.base_operator import BaseOperator
 from qiskit.quantum_info.operators.symplectic.sparse_pauli_op import SparsePauliOp
@@ -97,7 +95,7 @@ class BackendEstimator(BaseEstimator):
     ## PROPERTIES
     ################################################################################
     @property
-    def backend(self) -> Backend:  # TODO: normalize to one type of Backend
+    def backend(self) -> BackendV2:
         """Backend to use for circuit measurements."""
         return self._backend
 
@@ -105,12 +103,12 @@ class BackendEstimator(BaseEstimator):
     def backend(self, backend: Backend) -> None:
         if not isinstance(backend, Backend):
             raise TypeError(
-                "Expected `Backend` type for `backend`, " f"got `{type(backend)}` instead."
+                f"Expected `Backend` type for `backend`, got `{type(backend)}` instead."
             )
         # TODO: clear all transpilation caching
-        if isinstance(backend, BackendV1):
-            backend.max_circuits = getattr(backend.configuration(), "max_experiments", None)
-        self._backend = backend
+        self._backend: BackendV2 = (
+            backend if isinstance(backend, BackendV2) else BackendV2Converter(backend)
+        )
 
     @property
     def abelian_grouping(self) -> bool:
@@ -208,8 +206,7 @@ class BackendEstimator(BaseEstimator):
         observables: Sequence[BaseOperator | PauliSumOp],
         parameter_values: Sequence[Sequence[float]],
     ) -> tuple[tuple[QuantumCircuit, ...], ...]:
-        """Preprocess circuit-observable experiments to runnable tuples of circuits, one per pair.
-        """
+        """Preprocess circuit-observable experiments to runnable tuples of circuits, one per pair."""
         return tuple(
             self._preprocess_single(circuit, observable, params)
             for circuit, observable, params in zip(circuits, observables, parameter_values)
@@ -233,7 +230,7 @@ class BackendEstimator(BaseEstimator):
         """Run circuits on backend bypassing max circuits allowed."""
         # Max circuits
         total_circuits: int = len(circuits)
-        max_circuits: int = self.backend.max_circuits or total_circuits
+        max_circuits: int = getattr(self.backend, "max_circuits", None) or total_circuits
 
         # Raw results
         jobs: tuple[Job] = tuple(

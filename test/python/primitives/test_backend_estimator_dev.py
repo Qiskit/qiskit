@@ -29,7 +29,7 @@ from qiskit.primitives.backend_estimator_dev import (
     BackendEstimator,
     NaiveDecomposer,
 )
-from qiskit.providers import Backend, Options, JobV1
+from qiskit.providers import BackendV2, Options, JobV1
 from qiskit.providers.fake_provider import FakeNairobi, FakeNairobiV2
 from qiskit.quantum_info.operators import SparsePauliOp
 from qiskit.quantum_info.operators.symplectic.pauli import Pauli
@@ -217,7 +217,7 @@ class TestTranspilation(QiskitTestCase):
         pass_manager = PassManager(passes=passes)
         transpiled_circuit = pass_manager.run(measured_circuit)  # TODO: skip_transpilation
         # Test patching terra's transpile call
-        backend = Mock(Backend)
+        backend = Mock(BackendV2)
         estimator = BackendEstimator(backend)
         estimator._transpile_options = MagicMock(Options)
         with patch("qiskit.primitives.backend_estimator_dev.transpile", spec=True) as mock:
@@ -236,7 +236,7 @@ class TestTranspilation(QiskitTestCase):
 
     def test_run_bound_pass_manager(self):
         """Test bound pass manager runs."""
-        backend = Mock(Backend)
+        backend = Mock(BackendV2)
         estimator = BackendEstimator(backend)
         # Invalid input
         self.assertRaises(TypeError, estimator._run_bound_pass_manager, "circuit")
@@ -257,7 +257,7 @@ class TestMeasurement(QiskitTestCase):
 
     def test_observable_decomposer(self):
         """Test observable decomposer property."""
-        estimator = BackendEstimator(Mock(Backend))
+        estimator = BackendEstimator(Mock(BackendV2))
         self.assertTrue(estimator.abelian_grouping)
         self.assertIsInstance(estimator._observable_decomposer, AbelianDecomposer)
         self.assertIsNot(estimator._observable_decomposer, estimator._observable_decomposer)
@@ -283,7 +283,7 @@ class TestMeasurement(QiskitTestCase):
             observable.paulis.phase,
         )
         # Tests
-        circuit = BackendEstimator(Mock(Backend))._build_single_measurement_circuit(observable)
+        circuit = BackendEstimator(Mock(BackendV2))._build_single_measurement_circuit(observable)
         self.assertIsInstance(circuit, QuantumCircuit)
         self.assertEqual(circuit, measurement)
         self.assertIsInstance(circuit.metadata.get("measured_qubit_indices"), tuple)
@@ -320,7 +320,7 @@ class TestComposition(QiskitTestCase):
         expected_metadata = {**transpiled_base.metadata, **measurement.metadata}
         expected_metadata.pop("measured_qubit_indices")
         # Test
-        backend = Mock(Backend)
+        backend = Mock(BackendV2)
         estimator = BackendEstimator(backend)
         with patch("qiskit.primitives.backend_estimator_dev.transpile", spec=True) as mock:
             mock.return_value = transpiled_measurement
