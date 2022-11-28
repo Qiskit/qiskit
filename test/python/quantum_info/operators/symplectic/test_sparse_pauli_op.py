@@ -940,6 +940,13 @@ class TestSparsePauliOpMethods(QiskitTestCase):
                 )
             )
 
+    def test_dot_real(self):
+        """Test dot for real coefficiets."""
+        x = SparsePauliOp("X", np.array([1]))
+        y = SparsePauliOp("Y", np.array([1]))
+        iz = SparsePauliOp("Z", 1j)
+        self.assertEqual(x.dot(y), iz)
+
 
 if __name__ == "__main__":
     unittest.main()

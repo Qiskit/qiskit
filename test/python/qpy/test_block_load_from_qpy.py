@@ -17,7 +17,7 @@ from ddt import ddt, data, unpack
 
 import numpy as np
 
-from qiskit.pulse import builder
+from qiskit.pulse import builder, Schedule
 from qiskit.pulse.library import (
     SymbolicPulse,
     Gaussian,
@@ -34,6 +34,7 @@ from qiskit.pulse.channels import (
     MemorySlot,
     RegisterSlot,
 )
+from qiskit.pulse.instructions import Play, TimeBlockade
 from qiskit.circuit import Parameter, QuantumCircuit, Gate
 from qiskit.test import QiskitTestCase
 from qiskit.qpy import dump, load
@@ -151,6 +152,12 @@ class TestLoadFromQPY(QpyScheduleTestCase):
             builder.barrier(DriveChannel(0), DriveChannel(1), ControlChannel(2))
         self.assert_roundtrip_equal(test_sched)
 
+    def test_time_blockade(self):
+        """Test time blockade."""
+        with builder.build() as test_sched:
+            builder.append_instruction(TimeBlockade(10, DriveChannel(0)))
+        self.assert_roundtrip_equal(test_sched)
+
     def test_measure(self):
         """Test measurement."""
         with builder.build() as test_sched:
@@ -185,6 +192,20 @@ class TestLoadFromQPY(QpyScheduleTestCase):
                 with builder.align_sequential():
                     builder.delay(100, DriveChannel(0))
                     builder.delay(200, DriveChannel(1))
+        self.assert_roundtrip_equal(test_sched)
+
+    def test_called_schedule(self):
+        """Test referenced pulse Schedule object.
+
+        Referenced object is naively converted into ScheduleBlock with TimeBlockade instructions.
+        Thus referenced Schedule is still QPY compatible.
+        """
+        refsched = Schedule()
+        refsched.insert(20, Play(Constant(100, 0.1), DriveChannel(0)))
+        refsched.insert(50, Play(Constant(100, 0.1), DriveChannel(1)))
+
+        with builder.build() as test_sched:
+            builder.call(refsched, name="test_ref")
         self.assert_roundtrip_equal(test_sched)
 
     def test_bell_schedule(self):
