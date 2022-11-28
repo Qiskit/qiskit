@@ -16,7 +16,6 @@ import unittest
 
 from qiskit.circuit import QuantumRegister, ClassicalRegister, QuantumCircuit
 from qiskit.converters import circuit_to_dag, dag_to_circuit
-from qiskit.dagcircuit.exceptions import DAGCircuitError
 from qiskit.test import QiskitTestCase
 from qiskit.pulse import Schedule
 from qiskit.circuit.gate import Gate
