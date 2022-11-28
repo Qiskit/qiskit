@@ -11,6 +11,7 @@
 # that they have been altered from the originals.
 
 """Helper function for converting a circuit to a dag"""
+import copy
 
 from qiskit.dagcircuit.dagcircuit import DAGCircuit
 
@@ -60,7 +61,7 @@ def circuit_to_dag(circuit):
 
     for instruction in circuit.data:
         dagcircuit.apply_operation_back(
-            instruction.operation.copy(), instruction.qubits, instruction.clbits
+            copy.deepcopy(instruction.operation), instruction.qubits, instruction.clbits
         )
 
     dagcircuit.duration = circuit.duration

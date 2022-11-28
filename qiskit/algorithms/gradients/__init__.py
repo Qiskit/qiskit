@@ -17,14 +17,6 @@ Gradients (:mod:`qiskit.algorithms.gradients`)
 
 .. currentmodule:: qiskit.algorithms.gradients
 
-Base Classes
-============
-
-.. autosummary::
-   :toctree: ../stubs/
-
-   BaseSamplerGradient
-   BaseEstimatorGradient
 
 Estimator Gradients
 ===================
@@ -32,6 +24,8 @@ Estimator Gradients
 .. autosummary::
    :toctree: ../stubs/
 
+   BaseEstimatorGradient
+   DerivativeType
    FiniteDiffEstimatorGradient
    LinCombEstimatorGradient
    ParamShiftEstimatorGradient
@@ -43,10 +37,19 @@ Sampler Gradients
 .. autosummary::
    :toctree: ../stubs/
 
+   BaseSamplerGradient
    FiniteDiffSamplerGradient
    LinCombSamplerGradient
    ParamShiftSamplerGradient
    SPSASamplerGradient
+
+QFI
+===
+.. autosummary::
+   :toctree: ../stubs/
+
+   BaseQFI
+   LinCombQFI
 
 Results
 =======
@@ -55,32 +58,40 @@ Results
    :toctree: ../stubs/
 
    EstimatorGradientResult
+   QFIResult
    SamplerGradientResult
 """
 
 from .base_estimator_gradient import BaseEstimatorGradient
+from .base_qfi import BaseQFI
 from .base_sampler_gradient import BaseSamplerGradient
 from .estimator_gradient_result import EstimatorGradientResult
 from .finite_diff_estimator_gradient import FiniteDiffEstimatorGradient
 from .finite_diff_sampler_gradient import FiniteDiffSamplerGradient
-from .lin_comb_estimator_gradient import LinCombEstimatorGradient
+from .lin_comb_estimator_gradient import DerivativeType, LinCombEstimatorGradient
+from .lin_comb_qfi import LinCombQFI
 from .lin_comb_sampler_gradient import LinCombSamplerGradient
 from .param_shift_estimator_gradient import ParamShiftEstimatorGradient
 from .param_shift_sampler_gradient import ParamShiftSamplerGradient
+from .qfi_result import QFIResult
 from .sampler_gradient_result import SamplerGradientResult
 from .spsa_estimator_gradient import SPSAEstimatorGradient
 from .spsa_sampler_gradient import SPSASamplerGradient
 
 __all__ = [
     "BaseEstimatorGradient",
+    "BaseQFI",
     "BaseSamplerGradient",
+    "DerivativeType",
     "EstimatorGradientResult",
     "FiniteDiffEstimatorGradient",
     "FiniteDiffSamplerGradient",
     "LinCombEstimatorGradient",
+    "LinCombQFI",
     "LinCombSamplerGradient",
     "ParamShiftEstimatorGradient",
     "ParamShiftSamplerGradient",
+    "QFIResult",
     "SamplerGradientResult",
     "SPSAEstimatorGradient",
     "SPSASamplerGradient",

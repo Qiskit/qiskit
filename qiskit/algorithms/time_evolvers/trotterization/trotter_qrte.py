@@ -168,6 +168,7 @@ class TrotterQRTE(RealTimeEvolver):
                 self.estimator,
                 evolved_state,
                 evolution_problem.aux_operators,
+                None,
                 evolution_problem.truncation_threshold,
             )
 

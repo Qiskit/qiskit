@@ -17,7 +17,7 @@ import unittest
 
 from ddt import ddt, data
 
-import retworkx as rx
+import rustworkx as rx
 from numpy import pi
 
 from qiskit.dagcircuit import DAGCircuit, DAGOpNode, DAGInNode, DAGOutNode
@@ -1224,6 +1224,84 @@ class TestCircuitProperties(QiskitTestCase):
         self.assertEqual(self.dag.num_tensor_factors(), 2)
 
 
+class TestCircuitControlFlowProperties(QiskitTestCase):
+    """Properties tests of DAGCircuit with control-flow instructions."""
+
+    def setUp(self):
+        super().setUp()
+        qc = QuantumCircuit(5, 1)
+        qc.h(0)
+        qc.measure(0, 0)
+        # The depth of an if-else is the path through the longest block (regardless of the
+        # condition).  The size is the sum of both blocks (mostly for optimisation-target purposes).
+        with qc.if_test((qc.clbits[0], True)) as else_:
+            qc.x(1)
+            qc.cx(2, 3)
+        # The longest depth goes through this else_ - the block contributes 13 in size and 12 in
+        # depth (because the x(1) happens concurrently with the for).
+        with else_:
+            qc.x(1)
+            # This for loop contributes 3x to size and depth.  Its total size (and weight in the
+            # depth) is 12 (as 3 * (1 + 3))
+            with qc.for_loop(range(3)):
+                qc.z(2)
+                # This for loop contributes 3x to size and depth.
+                with qc.for_loop((4, 0, 1)):
+                    qc.z(2)
+        # While loops contribute 1x to both size and depth, so thsi
+        with qc.while_loop((qc.clbits[0], True)):
+            qc.h(0)
+            qc.measure(0, 0)
+
+        self.dag = circuit_to_dag(qc)
+
+    def test_circuit_size(self):
+        """Test total number of operations in circuit."""
+        # The size sums all branches of control flow, with `for` loops weighted by their number of
+        # iterations (so the outer `for_loop` has a size 12 in total).  The whole `if_else` has size
+        # 15, and the while-loop body counts once.
+        self.assertEqual(self.dag.size(recurse=True), 19)
+        with self.assertRaisesRegex(DAGCircuitError, "Size with control flow is ambiguous"):
+            self.dag.size(recurse=False)
+
+    def test_circuit_depth(self):
+        """Test circuit depth."""
+        # The longest depth path goes through the `h, measure`, then the `else`, then the `while`.
+        # Within the `else`, the `x(1)` happens concurrently with the `for` loop.  Because each for
+        # loop has 3 values, the total weight of the else is 12.
+        self.assertEqual(self.dag.depth(recurse=True), 16)
+        with self.assertRaisesRegex(DAGCircuitError, "Depth with control flow is ambiguous"):
+            self.dag.depth(recurse=False)
+
+    def test_circuit_width(self):
+        """Test number of qubits + clbits in circuit."""
+        self.assertEqual(self.dag.width(), 6)
+
+    def test_circuit_num_qubits(self):
+        """Test number of qubits in circuit."""
+        self.assertEqual(self.dag.num_qubits(), 5)
+
+    def test_circuit_operations(self):
+        """Test circuit operations breakdown by kind of op."""
+
+        self.assertDictEqual(
+            self.dag.count_ops(recurse=False), {"h": 1, "measure": 1, "if_else": 1, "while_loop": 1}
+        )
+        self.assertDictEqual(
+            self.dag.count_ops(recurse=True),
+            {
+                "h": 2,
+                "measure": 2,
+                "if_else": 1,
+                "x": 2,
+                "cx": 1,
+                "for_loop": 2,
+                "z": 2,
+                "while_loop": 1,
+            },
+        )
+
+
 class TestCircuitSpecialCases(QiskitTestCase):
     """DAGCircuit test for special cases, usually for regression."""
 
@@ -1350,26 +1428,6 @@ class TestDagEquivalence(QiskitTestCase):
 
         self.assertNotEqual(self.dag1, dag2)
 
-    def test_dag_from_networkx(self):
-        """Test DAG from networkx creates an expected DAGCircuit object."""
-        from copy import deepcopy
-        from collections import OrderedDict
-
-        with self.assertWarns(DeprecationWarning):
-            nx_graph = self.dag1.to_networkx()
-        with self.assertWarns(DeprecationWarning):
-            from_nx_dag = DAGCircuit.from_networkx(nx_graph)
-
-        # to_/from_networkx does not preserve Registers or bit indexing,
-        # so remove them from reference DAG.
-        dag = deepcopy(self.dag1)
-        dag.qregs = OrderedDict()
-        dag.cregs = OrderedDict()
-        dag.qubits = from_nx_dag.qubits
-        dag.clbits = from_nx_dag.clbits
-
-        self.assertEqual(dag, from_nx_dag)
-
     def test_node_params_equal_unequal(self):
         """Test node params are equal or unequal."""
         qc1 = QuantumCircuit(1)
@@ -1383,6 +1441,36 @@ class TestDagEquivalence(QiskitTestCase):
         dag3 = circuit_to_dag(qc3)
         self.assertEqual(dag1, dag2)
         self.assertNotEqual(dag2, dag3)
+
+    def test_semantic_conditions(self):
+        """Test that the semantic equality is applied to the bits in conditions as well."""
+        qreg = QuantumRegister(1, name="q")
+        creg = ClassicalRegister(1, name="c")
+        qc1 = QuantumCircuit(qreg, creg, [Clbit()])
+        qc1.x(0).c_if(qc1.cregs[0], 1)
+        qc1.x(0).c_if(qc1.clbits[-1], True)
+        qc2 = QuantumCircuit(qreg, creg, [Clbit()])
+        qc2.x(0).c_if(qc2.cregs[0], 1)
+        qc2.x(0).c_if(qc2.clbits[-1], True)
+        self.assertEqual(circuit_to_dag(qc1), circuit_to_dag(qc2))
+
+        # Order of operations transposed.
+        qc1 = QuantumCircuit(qreg, creg, [Clbit()])
+        qc1.x(0).c_if(qc1.cregs[0], 1)
+        qc1.x(0).c_if(qc1.clbits[-1], True)
+        qc2 = QuantumCircuit(qreg, creg, [Clbit()])
+        qc2.x(0).c_if(qc2.clbits[-1], True)
+        qc2.x(0).c_if(qc2.cregs[0], 1)
+        self.assertNotEqual(circuit_to_dag(qc1), circuit_to_dag(qc2))
+
+        # Single-bit condition values not the same.
+        qc1 = QuantumCircuit(qreg, creg, [Clbit()])
+        qc1.x(0).c_if(qc1.cregs[0], 1)
+        qc1.x(0).c_if(qc1.clbits[-1], True)
+        qc2 = QuantumCircuit(qreg, creg, [Clbit()])
+        qc2.x(0).c_if(qc2.cregs[0], 1)
+        qc2.x(0).c_if(qc2.clbits[-1], False)
+        self.assertNotEqual(circuit_to_dag(qc1), circuit_to_dag(qc2))
 
 
 class TestDagSubstitute(QiskitTestCase):
@@ -1790,7 +1878,7 @@ class TestReplaceBlock(QiskitTestCase):
         dag = DAGCircuit()
         dag.add_qreg(qr)
         node = dag.apply_operation_back(HGate(), [qr[0]])
-        dag.replace_block_with_op(
+        new_node = dag.replace_block_with_op(
             [node], XGate(), {bit: idx for (idx, bit) in enumerate(dag.qubits)}
         )
 
@@ -1800,6 +1888,7 @@ class TestReplaceBlock(QiskitTestCase):
 
         self.assertEqual(expected_dag, dag)
         self.assertEqual(expected_dag.count_ops(), dag.count_ops())
+        self.assertIsInstance(new_node.op, XGate)
 
 
 class TestDagProperties(QiskitTestCase):

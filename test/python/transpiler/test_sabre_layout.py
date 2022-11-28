@@ -131,7 +131,7 @@ rz(0) q4835[1];
         )
         res = transpile(qc, FakeKolkata(), layout_method="sabre", seed_transpiler=1234)
         self.assertIsInstance(res, QuantumCircuit)
-        layout = res._layout
+        layout = res._layout.initial_layout
         self.assertEqual(layout[qc.qubits[0]], 14)
         self.assertEqual(layout[qc.qubits[1]], 19)
         self.assertEqual(layout[qc.qubits[2]], 7)
@@ -192,7 +192,7 @@ barrier q18585[5],q18585[2],q18585[8],q18585[3],q18585[6];
             seed_transpiler=12345,
         )
         self.assertIsInstance(res, QuantumCircuit)
-        layout = res._layout
+        layout = res._layout.initial_layout
         self.assertEqual(layout[qc.qubits[0]], 19)
         self.assertEqual(layout[qc.qubits[1]], 22)
         self.assertEqual(layout[qc.qubits[2]], 17)

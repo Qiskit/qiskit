@@ -284,6 +284,20 @@ class TestDensityMatrix(QiskitTestCase):
             target = DensityMatrix(np.dot(op_full.data, rho).dot(op_full.adjoint().data))
             self.assertEqual(state.evolve(op, qargs=[2, 1, 0]), target)
 
+    def test_evolve_qudit_subsystems(self):
+        """Test nested evolve calls on qudit subsystems."""
+        dims = (3, 4, 5)
+        init = self.rand_rho(np.prod(dims))
+        ops = [random_unitary((dim,)) for dim in dims]
+        state = DensityMatrix(init, dims)
+        for i, op in enumerate(ops):
+            state = state.evolve(op, [i])
+        target_op = np.eye(1)
+        for op in ops:
+            target_op = np.kron(op.data, target_op)
+        target = DensityMatrix(np.dot(target_op, init).dot(target_op.conj().T), dims)
+        self.assertEqual(state, target)
+
     def test_conjugate(self):
         """Test conjugate method."""
         for _ in range(10):

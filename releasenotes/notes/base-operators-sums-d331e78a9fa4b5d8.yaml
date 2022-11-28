@@ -1,5 +1,0 @@
----
-features:
-  - |
-    ``qiskit.quantum_info.BaseOperator`` subclasses (like :class:`.ScalarOp`,
-    :class:`.SparsePauliOp` and :class:`.PauliList`) can now be used with ``sum``.

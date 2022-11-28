@@ -10,16 +10,18 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
+# pylint: disable=missing-function-docstring
+
 """Translates gates to a target basis using a given equivalence library."""
 
+import sys
 import time
 import logging
 
 from itertools import zip_longest
 from collections import defaultdict
-from functools import singledispatch
 
-import retworkx
+import rustworkx
 
 from qiskit.circuit import Gate, ParameterVector, QuantumRegister, ControlFlowOp, QuantumCircuit
 from qiskit.dagcircuit import DAGCircuit
@@ -28,6 +30,10 @@ from qiskit.circuit.equivalence import Key
 from qiskit.transpiler.basepasses import TransformationPass
 from qiskit.transpiler.exceptions import TranspilerError
 
+if sys.version_info >= (3, 8):
+    from functools import singledispatchmethod  # pylint: disable=no-name-in-module
+else:
+    from singledispatchmethod import singledispatchmethod
 
 logger = logging.getLogger(__name__)
 
@@ -121,7 +127,7 @@ class BasisTranslator(TransformationPass):
         if self._target is None:
             basic_instrs = ["measure", "reset", "barrier", "snapshot", "delay"]
             target_basis = set(self._target_basis)
-            source_basis = set(_extract_basis(dag))
+            source_basis = set(self._extract_basis(dag))
             qargs_local_source_basis = {}
         else:
             basic_instrs = ["barrier", "snapshot"]
@@ -204,17 +210,23 @@ class BasisTranslator(TransformationPass):
 
         replace_start_time = time.time()
 
-        def apply_translation(dag):
+        def apply_translation(dag, wire_map):
             dag_updated = False
             for node in dag.op_nodes():
-                node_qargs = tuple(qarg_indices[bit] for bit in node.qargs)
+                node_qargs = tuple(wire_map[bit] for bit in node.qargs)
                 qubit_set = frozenset(node_qargs)
                 if node.name in target_basis:
                     if isinstance(node.op, ControlFlowOp):
                         flow_blocks = []
                         for block in node.op.blocks:
                             dag_block = circuit_to_dag(block)
-                            dag_updated = apply_translation(dag_block)
+                            dag_updated = apply_translation(
+                                dag_block,
+                                {
+                                    inner: wire_map[outer]
+                                    for inner, outer in zip(block.qubits, node.qargs)
+                                },
+                            )
                             if dag_updated:
                                 flow_circ_block = dag_to_circuit(dag_block)
                             else:
@@ -239,7 +251,7 @@ class BasisTranslator(TransformationPass):
                 dag_updated = True
             return dag_updated
 
-        apply_translation(dag)
+        apply_translation(dag, qarg_indices)
         replace_end_time = time.time()
         logger.info(
             "Basis translation instructions replaced in %.3fs.",
@@ -286,6 +298,29 @@ class BasisTranslator(TransformationPass):
         else:
             dag.substitute_node_with_dag(node, bound_target_dag)
 
+    @singledispatchmethod
+    def _extract_basis(self, circuit):
+        return circuit
+
+    @_extract_basis.register
+    def _(self, dag: DAGCircuit):
+        for node in dag.op_nodes():
+            if not dag.has_calibration_for(node):
+                yield (node.name, node.op.num_qubits)
+            if isinstance(node.op, ControlFlowOp):
+                for block in node.op.blocks:
+                    yield from self._extract_basis(block)
+
+    @_extract_basis.register
+    def _(self, circ: QuantumCircuit):
+        for instr_context in circ.data:
+            instr, _, _ = instr_context
+            if not circ.has_calibration_for(instr_context):
+                yield (instr.name, instr.num_qubits)
+            if isinstance(instr, ControlFlowOp):
+                for block in instr.blocks:
+                    yield from self._extract_basis(block)
+
     def _extract_basis_target(
         self, dag, qarg_indices, source_basis=None, qargs_local_source_basis=None
     ):
@@ -318,47 +353,22 @@ class BasisTranslator(TransformationPass):
                     block_dag = circuit_to_dag(block)
                     source_basis, qargs_local_source_basis = self._extract_basis_target(
                         block_dag,
-                        qarg_indices,
+                        {
+                            inner: qarg_indices[outer]
+                            for inner, outer in zip(block.qubits, node.qargs)
+                        },
                         source_basis=source_basis,
                         qargs_local_source_basis=qargs_local_source_basis,
                     )
         return source_basis, qargs_local_source_basis
 
 
-# this could be singledispatchmethod and included in above class when minimum
-# supported python version=3.8.
-@singledispatch
-def _extract_basis(circuit):
-    return circuit
-
-
-@_extract_basis.register
-def _(dag: DAGCircuit):
-    for node in dag.op_nodes():
-        if not dag.has_calibration_for(node):
-            yield (node.name, node.op.num_qubits)
-        if isinstance(node.op, ControlFlowOp):
-            for block in node.op.blocks:
-                yield from _extract_basis(block)
-
-
-@_extract_basis.register
-def _(circ: QuantumCircuit):
-    for instr_context in circ.data:
-        instr, _, _ = instr_context
-        if not circ.has_calibration_for(instr_context):
-            yield (instr.name, instr.num_qubits)
-        if isinstance(instr, ControlFlowOp):
-            for block in instr.blocks:
-                yield from _extract_basis(block)
-
-
 class StopIfBasisRewritable(Exception):
-    """Custom exception that signals `retworkx.dijkstra_search` to stop."""
+    """Custom exception that signals `rustworkx.dijkstra_search` to stop."""
 
 
-class BasisSearchVisitor(retworkx.visit.DijkstraVisitor):
-    """Handles events emitted during `retworkx.dijkstra_search`."""
+class BasisSearchVisitor(rustworkx.visit.DijkstraVisitor):  # pylint: disable=no-member
+    """Handles events emitted during `rustworkx.dijkstra_search`."""
 
     def __init__(self, graph, source_basis, target_basis, num_gates_for_rule):
         self.graph = graph
@@ -403,7 +413,7 @@ class BasisSearchVisitor(retworkx.visit.DijkstraVisitor):
         # if there are gates in this `rule` that we have not yet generated, we can't apply
         # this `rule`. if `target` is already in basis, it's not beneficial to use this rule.
         if self._num_gates_remain_for_rule[index] > 0 or target in self.target_basis:
-            raise retworkx.visit.PruneSearch
+            raise rustworkx.visit.PruneSearch  # pylint: disable=no-member
 
     def edge_relaxed(self, edge):
         _, target, edata = edge
@@ -488,7 +498,7 @@ def _basis_search(equiv_lib, source_basis, target_basis):
     )
     rtn = None
     try:
-        retworkx.digraph_dijkstra_search(graph, [dummy], vis.edge_cost, vis)
+        rustworkx.digraph_dijkstra_search(graph, [dummy], vis.edge_cost, vis)
     except StopIfBasisRewritable:
         rtn = vis.basis_transforms
 

@@ -292,7 +292,7 @@ class TestBIPMapping(QiskitTestCase):
                 self.assertTrue(bit_indices[q] in qubit_subset)
         # ancilla qubits are set in the resulting qubit
         idle = QuantumRegister(1, name="ancilla")
-        self.assertEqual(idle[0], actual._layout[2])
+        self.assertEqual(idle[0], actual._layout.initial_layout[2])
 
     def test_unconnected_qubit_subset(self):
         """Fails if qubits in `qubit_subset` are not connected."""

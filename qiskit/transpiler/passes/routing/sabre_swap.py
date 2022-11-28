@@ -15,8 +15,7 @@
 import logging
 from copy import copy, deepcopy
 
-import numpy as np
-import retworkx
+import rustworkx
 
 from qiskit.circuit.library.standard_gates import SwapGate
 from qiskit.transpiler.basepasses import TransformationPass
@@ -25,14 +24,13 @@ from qiskit.transpiler.layout import Layout
 from qiskit.dagcircuit import DAGOpNode
 from qiskit.tools.parallel import CPU_COUNT
 
-# pylint: disable=import-error
 from qiskit._accelerate.sabre_swap import (
     build_swap_map,
     Heuristic,
     NeighborTable,
     SabreDAG,
 )
-from qiskit._accelerate.stochastic_swap import NLayout  # pylint: disable=import-error
+from qiskit._accelerate.nlayout import NLayout
 
 logger = logging.getLogger(__name__)
 
@@ -148,22 +146,12 @@ class SabreSwap(TransformationPass):
             self.coupling_map.make_symmetric()
         self._neighbor_table = None
         if coupling_map is not None:
-            self._neighbor_table = NeighborTable(retworkx.adjacency_matrix(self.coupling_map.graph))
+            self._neighbor_table = NeighborTable(
+                rustworkx.adjacency_matrix(self.coupling_map.graph)
+            )
 
-        if heuristic == "basic":
-            self.heuristic = Heuristic.Basic
-        elif heuristic == "lookahead":
-            self.heuristic = Heuristic.Lookahead
-        elif heuristic == "decay":
-            self.heuristic = Heuristic.Decay
-        else:
-            raise TranspilerError("Heuristic %s not recognized." % heuristic)
-
-        if seed is None:
-            ii32 = np.iinfo(np.int32)
-            self.seed = np.random.default_rng(None).integers(0, ii32.max, dtype=int)
-        else:
-            self.seed = seed
+        self.heuristic = heuristic
+        self.seed = seed
         if trials is None:
             self.trials = CPU_COUNT
         else:
@@ -190,6 +178,15 @@ class SabreSwap(TransformationPass):
 
         if len(dag.qubits) > self.coupling_map.size():
             raise TranspilerError("More virtual qubits exist than physical.")
+
+        if self.heuristic == "basic":
+            heuristic = Heuristic.Basic
+        elif self.heuristic == "lookahead":
+            heuristic = Heuristic.Lookahead
+        elif self.heuristic == "decay":
+            heuristic = Heuristic.Decay
+        else:
+            raise TranspilerError("Heuristic %s not recognized." % self.heuristic)
 
         self.dist_matrix = self.coupling_map.distance_matrix
 
@@ -222,14 +219,13 @@ class SabreSwap(TransformationPass):
                     cargs,
                 )
             )
-        front_layer = np.asarray([x._node_id for x in dag.front_layer()], dtype=np.uintp)
-        sabre_dag = SabreDAG(len(dag.qubits), len(dag.clbits), dag_list, front_layer)
+        sabre_dag = SabreDAG(len(dag.qubits), len(dag.clbits), dag_list)
         swap_map, gate_order = build_swap_map(
             len(dag.qubits),
             sabre_dag,
             self._neighbor_table,
             self.dist_matrix,
-            self.heuristic,
+            heuristic,
             self.seed,
             layout,
             self.trials,

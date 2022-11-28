@@ -206,7 +206,7 @@ class Gradient(GradientBase):
                 grad_combo_fn = operator.grad_combo_fn
             else:
                 _optionals.HAS_JAX.require_now("automatic differentiation")
-                from jax import jit, grad  # pylint: disable=import-error
+                from jax import jit, grad
 
                 grad_combo_fn = jit(grad(operator.combo_fn, holomorphic=True))
 

@@ -45,10 +45,7 @@ from qiskit.transpiler.preset_passmanagers import common
 from qiskit.transpiler.passes.layout.vf2_layout import VF2LayoutStopReason
 from qiskit.transpiler.preset_passmanagers.plugin import (
     PassManagerStagePluginManager,
-    list_stage_plugins,
 )
-from qiskit.transpiler import TranspilerError
-from qiskit.utils.optionals import HAS_TOQM
 
 
 def level_3_pass_manager(pass_manager_config: PassManagerConfig) -> StagedPassManager:
@@ -93,11 +90,7 @@ def level_3_pass_manager(pass_manager_config: PassManagerConfig) -> StagedPassMa
     timing_constraints = pass_manager_config.timing_constraints or TimingConstraints()
     unitary_synthesis_plugin_config = pass_manager_config.unitary_synthesis_plugin_config
     target = pass_manager_config.target
-    # Override an unset optimization_level for stage plugin use.
-    # it will be restored to None before this is returned
-    optimization_level = pass_manager_config.optimization_level
-    if optimization_level is None:
-        pass_manager_config.optimization_level = 3
+    hls_config = pass_manager_config.hls_config
 
     # Layout on good qubits if calibration info available, otherwise on dense links
     _given_layout = SetLayout(initial_layout)
@@ -127,7 +120,7 @@ def level_3_pass_manager(pass_manager_config: PassManagerConfig) -> StagedPassMa
         else VF2Layout(
             coupling_map,
             seed=seed_transpiler,
-            call_limit=int(3e7),  # Set call limit to ~60 sec with retworkx 0.10.2
+            call_limit=int(3e7),  # Set call limit to ~60 sec with rustworkx 0.10.2
             properties=backend_properties,
             target=target,
         )
@@ -144,47 +137,15 @@ def level_3_pass_manager(pass_manager_config: PassManagerConfig) -> StagedPassMa
             coupling_map, max_iterations=4, seed=seed_transpiler, swap_trials=20
         )
 
-    toqm_pass = False
-    # TODO: Remove when qiskit-toqm has it's own plugin and we can rely on just the plugin interface
-    if routing_method == "toqm" and "toqm" not in list_stage_plugins("routing"):
-        HAS_TOQM.require_now("TOQM-based routing")
-        from qiskit_toqm import ToqmSwap, ToqmStrategyO3, latencies_from_target
-
-        if initial_layout:
-            raise TranspilerError("Initial layouts are not supported with TOQM-based routing.")
-
-        toqm_pass = True
-        # Note: BarrierBeforeFinalMeasurements is skipped intentionally since ToqmSwap
-        #       does not yet support barriers.
-        routing_pass = ToqmSwap(
-            coupling_map,
-            strategy=ToqmStrategyO3(
-                latencies_from_target(
-                    coupling_map, instruction_durations, basis_gates, backend_properties, target
-                )
-            ),
-        )
-        vf2_call_limit = common.get_vf2_call_limit(
-            3, pass_manager_config.layout_method, pass_manager_config.initial_layout
-        )
-        routing_pm = common.generate_routing_passmanager(
-            routing_pass,
-            target,
-            coupling_map=coupling_map,
-            vf2_call_limit=vf2_call_limit,
-            backend_properties=backend_properties,
-            seed_transpiler=seed_transpiler,
-            use_barrier_before_measurement=not toqm_pass,
-        )
-    else:
-        routing_pm = plugin_manager.get_passmanager_stage(
-            "routing", routing_method, pass_manager_config, optimization_level=3
-        )
+    # Choose routing pass
+    routing_pm = plugin_manager.get_passmanager_stage(
+        "routing", routing_method, pass_manager_config, optimization_level=3
+    )
 
     # 8. Optimize iteratively until no more change in depth. Removes useless gates
     # after reset and before measure, commutes gates and optimizes contiguous blocks.
-    _depth_check = [Depth(), FixedPoint("depth")]
-    _size_check = [Size(), FixedPoint("size")]
+    _depth_check = [Depth(recurse=True), FixedPoint("depth")]
+    _size_check = [Size(recurse=True), FixedPoint("size")]
 
     def _opt_control(property_set):
         return (not property_set["depth_fixed_point"]) or (not property_set["size_fixed_point"])
@@ -201,22 +162,26 @@ def level_3_pass_manager(pass_manager_config: PassManagerConfig) -> StagedPassMa
             plugin_config=unitary_synthesis_plugin_config,
             target=target,
         ),
-        Optimize1qGatesDecomposition(basis_gates),
+        Optimize1qGatesDecomposition(basis=basis_gates, target=target),
         CommutativeCancellation(),
     ]
 
     # Build pass manager
+    init = common.generate_error_on_control_flow(
+        "The optimizations in optimization_level=3 do not yet support control flow."
+    )
     if init_method is not None:
-        init = plugin_manager.get_passmanager_stage(
-            "init", init_method, pass_manager_config, optimization_level=3
+        init += plugin_manager.get_passmanager_stage(
+            "init", init_method, pass_manager_config, optimization_level=2
         )
     else:
-        init = common.generate_unroll_3q(
+        init += common.generate_unroll_3q(
             target,
             basis_gates,
             approximation_degree,
             unitary_synthesis_method,
             unitary_synthesis_plugin_config,
+            hls_config,
         )
     init.append(RemoveResetInZeroState())
     init.append(OptimizeSwapBeforeMeasure())
@@ -250,10 +215,9 @@ def level_3_pass_manager(pass_manager_config: PassManagerConfig) -> StagedPassMa
             backend_properties,
             unitary_synthesis_method,
             unitary_synthesis_plugin_config,
+            hls_config,
         )
-    pre_routing = None
-    if toqm_pass:
-        pre_routing = translation
+
     if optimization_method is None:
         optimization = PassManager()
         unroll = [pass_ for x in translation.passes() for pass_ in x["passes"]]
@@ -311,18 +275,16 @@ def level_3_pass_manager(pass_manager_config: PassManagerConfig) -> StagedPassMa
         sched = common.generate_scheduling(
             instruction_durations, scheduling_method, timing_constraints, inst_map
         )
+    elif isinstance(scheduling_method, PassManager):
+        sched = scheduling_method
     else:
         sched = plugin_manager.get_passmanager_stage(
             "scheduling", scheduling_method, pass_manager_config, optimization_level=3
         )
 
-    # Restore PassManagerConfig optimization_level override
-    pass_manager_config.optimization_level = optimization_level
-
     return StagedPassManager(
         init=init,
         layout=layout,
-        pre_routing=pre_routing,
         routing=routing,
         translation=translation,
         pre_optimization=pre_optimization,

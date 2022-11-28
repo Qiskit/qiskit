@@ -22,7 +22,7 @@ use rayon::prelude::*;
 /// This object is typically created once from the adjacency matrix of
 /// a coupling map, for example::
 ///
-///     neigh_table = NeighborTable(retworkx.adjacency_matrix(coupling_map.graph))
+///     neigh_table = NeighborTable(rustworkx.adjacency_matrix(coupling_map.graph))
 ///
 /// and used solely to represent neighbors of each node in qiskit-terra's rust
 /// module.
@@ -36,38 +36,48 @@ pub struct NeighborTable {
 #[pymethods]
 impl NeighborTable {
     #[new]
-    pub fn new(adjacency_matrix: PyReadonlyArray2<f64>) -> Self {
-        let adj_mat = adjacency_matrix.as_array();
+    pub fn new(adjacency_matrix: Option<PyReadonlyArray2<f64>>) -> Self {
         let run_in_parallel = getenv_use_multiple_threads();
-        let build_neighbors = |row: ArrayView1<f64>| -> Vec<usize> {
-            row.iter()
-                .enumerate()
-                .filter_map(
-                    |(row_index, value)| {
-                        if *value == 0. {
-                            None
-                        } else {
-                            Some(row_index)
-                        }
-                    },
-                )
-                .collect()
+        let neighbors = match adjacency_matrix {
+            Some(adjacency_matrix) => {
+                let adj_mat = adjacency_matrix.as_array();
+                let build_neighbors = |row: ArrayView1<f64>| -> Vec<usize> {
+                    row.iter()
+                        .enumerate()
+                        .filter_map(
+                            |(row_index, value)| {
+                                if *value == 0. {
+                                    None
+                                } else {
+                                    Some(row_index)
+                                }
+                            },
+                        )
+                        .collect()
+                };
+                if run_in_parallel {
+                    adj_mat
+                        .axis_iter(Axis(0))
+                        .into_par_iter()
+                        .map(|row| build_neighbors(row))
+                        .collect()
+                } else {
+                    adj_mat
+                        .axis_iter(Axis(0))
+                        .map(|row| build_neighbors(row))
+                        .collect()
+                }
+            }
+            None => Vec::new(),
         };
-        if run_in_parallel {
-            NeighborTable {
-                neighbors: adj_mat
-                    .axis_iter(Axis(0))
-                    .into_par_iter()
-                    .map(|row| build_neighbors(row))
-                    .collect(),
-            }
-        } else {
-            NeighborTable {
-                neighbors: adj_mat
-                    .axis_iter(Axis(0))
-                    .map(|row| build_neighbors(row))
-                    .collect(),
-            }
-        }
+        NeighborTable { neighbors }
+    }
+
+    fn __getstate__(&self) -> Vec<Vec<usize>> {
+        self.neighbors.clone()
+    }
+
+    fn __setstate__(&mut self, state: Vec<Vec<usize>>) {
+        self.neighbors = state
     }
 }

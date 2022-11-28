@@ -102,6 +102,16 @@ Here is an example of using :func:`plot_histogram` to visualize measurement outc
 The data can be a dictionary with bit string as key and counts as value, or more commonly a
 :class:`~qiskit.result.Counts` object obtained from :meth:`~qiskit.result.Result.get_counts`.
 
+Distribution Visualizations
+===========================
+
+This section contains functions that visualize sampled distributions.
+
+.. autosummary::
+   :toctree: ../stubs/
+
+   plot_distribution
+
 State Visualizations
 ====================
 
@@ -238,12 +248,11 @@ Exceptions
 
 import os
 import sys
-import warnings
 
 from .array import array_to_latex
 
 from .circuit import circuit_drawer
-from .counts_visualization import plot_histogram
+from .counts_visualization import plot_histogram, plot_distribution
 from .state_visualization import (
     plot_state_hinton,
     plot_bloch_vector,
@@ -269,24 +278,3 @@ from .exceptions import VisualizationError
 # These modules aren't part of the public interface, and were moved in Terra 0.22.  They're
 # re-imported here to allow a backwards compatible path, and should be deprecated in Terra 0.23.
 from .circuit import text, matplotlib, latex
-
-_DEPRECATED_NAMES = {
-    "HAS_MATPLOTLIB",
-    "HAS_PYLATEX",
-    "HAS_PIL",
-    "HAS_PDFTOCAIRO",
-}
-
-
-def __getattr__(name):
-    if name in _DEPRECATED_NAMES:
-        from qiskit.utils import optionals
-
-        warnings.warn(
-            f"Accessing '{name}' from '{__name__}' is deprecated since Qiskit Terra 0.21 "
-            "and will be removed in a future release. Use 'qiskit.utils.optionals' instead.",
-            DeprecationWarning,
-            stacklevel=2,
-        )
-        return getattr(optionals, name)
-    raise AttributeError(f"module '{__name__}' has no attribute '{name}'")

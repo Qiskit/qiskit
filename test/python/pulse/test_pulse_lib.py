@@ -418,6 +418,65 @@ class TestParametricPulses(QiskitTestCase):
         reference = np.concatenate([-0.1 * np.ones(30), 0.1j * np.ones(50), -0.1 * np.ones(20)])
         np.testing.assert_array_almost_equal(waveform.samples, reference)
 
+    def test_no_subclass(self):
+        """Test no dedicated pulse subclass is created."""
+
+        gaussian_pulse = Gaussian(160, 0.1, 40)
+        self.assertIs(type(gaussian_pulse), SymbolicPulse)
+
+        gaussian_square_pulse = GaussianSquare(800, 0.1, 64, 544)
+        self.assertIs(type(gaussian_square_pulse), SymbolicPulse)
+
+        drag_pulse = Drag(160, 0.1, 40, 1.5)
+        self.assertIs(type(drag_pulse), SymbolicPulse)
+
+        constant_pulse = Constant(800, 0.1)
+        self.assertIs(type(constant_pulse), SymbolicPulse)
+
+    def test_gaussian_deprecated_type_check(self):
+        """Test isinstance check works with deprecation."""
+        gaussian_pulse = Gaussian(160, 0.1, 40)
+
+        self.assertTrue(isinstance(gaussian_pulse, SymbolicPulse))
+        with self.assertWarns(PendingDeprecationWarning):
+            self.assertTrue(isinstance(gaussian_pulse, Gaussian))
+            self.assertFalse(isinstance(gaussian_pulse, GaussianSquare))
+            self.assertFalse(isinstance(gaussian_pulse, Drag))
+            self.assertFalse(isinstance(gaussian_pulse, Constant))
+
+    def test_gaussian_square_deprecated_type_check(self):
+        """Test isinstance check works with deprecation."""
+        gaussian_square_pulse = GaussianSquare(800, 0.1, 64, 544)
+
+        self.assertTrue(isinstance(gaussian_square_pulse, SymbolicPulse))
+        with self.assertWarns(PendingDeprecationWarning):
+            self.assertFalse(isinstance(gaussian_square_pulse, Gaussian))
+            self.assertTrue(isinstance(gaussian_square_pulse, GaussianSquare))
+            self.assertFalse(isinstance(gaussian_square_pulse, Drag))
+            self.assertFalse(isinstance(gaussian_square_pulse, Constant))
+
+    def test_drag_deprecated_type_check(self):
+        """Test isinstance check works with deprecation."""
+        drag_pulse = Drag(160, 0.1, 40, 1.5)
+
+        self.assertTrue(isinstance(drag_pulse, SymbolicPulse))
+        with self.assertWarns(PendingDeprecationWarning):
+            self.assertFalse(isinstance(drag_pulse, Gaussian))
+            self.assertFalse(isinstance(drag_pulse, GaussianSquare))
+            self.assertTrue(isinstance(drag_pulse, Drag))
+            self.assertFalse(isinstance(drag_pulse, Constant))
+
+    def test_constant_deprecated_type_check(self):
+        """Test isinstance check works with deprecation."""
+        constant_pulse = Constant(160, 0.1, 40, 1.5)
+
+        self.assertTrue(isinstance(constant_pulse, SymbolicPulse))
+        with self.assertWarns(PendingDeprecationWarning):
+            self.assertFalse(isinstance(constant_pulse, Gaussian))
+            self.assertFalse(isinstance(constant_pulse, GaussianSquare))
+            self.assertFalse(isinstance(constant_pulse, Drag))
+            self.assertTrue(isinstance(constant_pulse, Constant))
+
 
 class TestFunctionalPulse(QiskitTestCase):
     """Waveform tests."""

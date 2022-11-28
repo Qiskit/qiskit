@@ -310,6 +310,20 @@ class TestStatevector(QiskitTestCase):
             target = Statevector(np.dot(op_full.data, vec))
             self.assertEqual(state.evolve(op, qargs=[2, 1, 0]), target)
 
+    def test_evolve_qudit_subsystems(self):
+        """Test nested evolve calls on qudit subsystems."""
+        dims = (3, 4, 5)
+        init = self.rand_vec(np.prod(dims))
+        ops = [random_unitary((dim,)) for dim in dims]
+        state = Statevector(init, dims)
+        for i, op in enumerate(ops):
+            state = state.evolve(op, [i])
+        target_op = np.eye(1)
+        for op in ops:
+            target_op = np.kron(op.data, target_op)
+        target = Statevector(np.dot(target_op, init), dims)
+        self.assertEqual(state, target)
+
     def test_evolve_global_phase(self):
         """Test evolve circuit with global phase."""
         state_i = Statevector([1, 0])
