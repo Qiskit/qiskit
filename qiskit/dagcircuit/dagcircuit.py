@@ -1383,7 +1383,7 @@ class DAGCircuit:
             DAGCircuitError: if either node is not an OpNode
         """
         if not (isinstance(node1, DAGOpNode) and isinstance(node2, DAGOpNode)):
-            raise DAGCircuitError("nodes to swap are not both OpNodes")
+            raise DAGCircuitError("nodes to swap are not both DAGOpNodes")
         try:
             connected_edges = self._multi_graph.get_all_edge_data(node1._node_id, node2._node_id)
         except rx.NoEdgeBetweenNodes:
