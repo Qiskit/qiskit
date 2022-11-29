@@ -265,15 +265,15 @@ class BackendEstimator(BaseEstimator):
         metadata_bundle: Sequence[dict[str, Any]],
     ) -> tuple[float, float, int]:
         """Postprocess single counts and metadata bundles to expval, variance, and shots."""
-        expval = 0.0
-        var = 0.0
+        expval: float = 0.0
+        var: float = 0.0
         for counts, metadata in zip(counts_bundle, metadata_bundle):
-            paulis = metadata["paulis"]
-            coeffs = metadata["coeffs"]
+            paulis: PauliList = metadata["paulis"]
+            coeffs: tuple[float] = metadata["coeffs"]
             expvals, variances = self._compute_expvals_and_variances(counts, paulis)
             expval += np.dot(expvals, coeffs)
             var += np.dot(variances, np.array(coeffs) ** 2)
-        shots = sum(counts_bundle[0].values())  # TODO: not correct -> counts.shots (?)
+        shots: int = sum(counts_bundle[0].values())  # TODO: not correct -> counts.shots (?)
         return expval, var, shots
 
     ################################################################################
@@ -303,16 +303,16 @@ class BackendEstimator(BaseEstimator):
         shots: int = 0
         expval: float = 0.0
         for bitstring, freq in counts.items():
-            coeff = cls._measurement_coefficient(bitstring, pauli)
-            expval += coeff * freq
+            observation = cls._observed_value(bitstring, pauli)
+            expval += observation * freq
             shots += freq
         expval /= shots or 1  # Avoid division by zero errors if no counts
         variance = 1 - expval**2
         return expval, variance
 
     @classmethod
-    def _measurement_coefficient(cls, bitstring: str, pauli: Pauli) -> int:
-        """Compute measurement coefficient from measured bitstring and target Pauli."""
+    def _observed_value(cls, bitstring: str, pauli: Pauli) -> int:
+        """Compute observed eigenvalue from measured bitstring and target Pauli."""
         measurement = int(bitstring, 2)
         int_mask = cls._pauli_integer_mask(pauli)
         return (-1) ** cls._parity_bit(measurement & int_mask, even=True)

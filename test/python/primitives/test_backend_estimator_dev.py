@@ -402,11 +402,11 @@ class TestComputation(QiskitTestCase):
         ["IXYZ", "0101", +1],
     )
     @unpack
-    def test_measurement_coefficient(self, pauli, bitstring, expected):
-        """Test measurement coefficients."""
+    def test_observed_value(self, pauli, bitstring, expected):
+        """Test observed value."""
         pauli = Pauli(pauli)
-        coeff = BackendEstimator._measurement_coefficient(bitstring, pauli)
-        self.assertEqual(coeff, expected)
+        observation = BackendEstimator._observed_value(bitstring, pauli)
+        self.assertEqual(observation, expected)
 
     @data(
         ["II", 0],
