@@ -586,7 +586,7 @@ class ObservableDecomposer(ABC):
 
 
 class NaiveDecomposer(ObservableDecomposer):
-    """Naive observable decomposition without grouping components."""
+    """Trivial observable decomposition without grouping components."""
 
     def _decompose(
         self,
