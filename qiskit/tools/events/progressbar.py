@@ -142,6 +142,7 @@ class TextProgressBar(BaseProgressBar):
        for i in range(iterations):
             # step i of heavy calculation ...
             t.update(i + 1)  # update progress bar
+
     """
 
     def __init__(self, output_handler=None):
