@@ -15,7 +15,7 @@
 Events (:mod:`qiskit.tools.events`)
 ===================================
 
-A helper component for publishing and subscribing to events
+A helper component for publishing and subscribing to events.
 
 .. currentmodule:: qiskit.tools.events
 
