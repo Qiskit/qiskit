@@ -1380,23 +1380,26 @@ class DAGCircuit:
             node2 (OpNode): successor node
 
         Raises:
-            DAGCircuitError: if either node is not an OpNode
+            DAGCircuitError: if either node is not an OpNode or nodes are not connected
         """
         if not (isinstance(node1, DAGOpNode) and isinstance(node2, DAGOpNode)):
             raise DAGCircuitError("nodes to swap are not both DAGOpNodes")
         try:
             connected_edges = self._multi_graph.get_all_edge_data(node1._node_id, node2._node_id)
-        except rx.NoEdgeBetweenNodes:
-            # since nodes aren't connected there's nothing to do
-            return
+        except rx.NoEdgeBetweenNodes as no_common_edge:
+            raise DAGCircuitError("attempt to swap unconnected nodes") from no_common_edge
         node1_id = node1._node_id
         node2_id = node2._node_id
-        edge_find = lambda x: x == edge
         for edge in connected_edges[::-1]:
+            #edge_find = lambda x, y=edge: x == y
+            def edge_find(x, y=edge):
+                return x == y
             edge_parent = self._multi_graph.find_predecessors_by_edge(node1_id, edge_find)[0]
+            #edge_parent2 = self._multi_graph.find_adjacent_node_by_edge(node1_id, edge_find)
+            #breakpoint()
             self._multi_graph.remove_edge(edge_parent._node_id, node1_id)
             self._multi_graph.add_edge(edge_parent._node_id, node2_id, edge)
-            edge_child = self._multi_graph.find_successors_by_edge(node2_id, lambda x: x == edge)[0]
+            edge_child = self._multi_graph.find_successors_by_edge(node2_id, edge_find)[0]
             self._multi_graph.remove_edge(node1_id, node2_id)
             self._multi_graph.add_edge(node2_id, node1_id, edge)
             self._multi_graph.remove_edge(node2_id, edge_child._node_id)
@@ -1859,7 +1862,7 @@ class DAGCircuit:
         }
         return summary
 
-    def draw(self, scale=0.7, filename=None, style="color"):
+    def draw(self, scale=0.7, filename=None, style="color", **kwargs):
         """
         Draws the dag circuit.
 
@@ -1879,4 +1882,4 @@ class DAGCircuit:
         """
         from qiskit.visualization.dag_visualization import dag_drawer
 
-        return dag_drawer(dag=self, scale=scale, filename=filename, style=style)
+        return dag_drawer(dag=self, scale=scale, filename=filename, style=style, **kwargs)
