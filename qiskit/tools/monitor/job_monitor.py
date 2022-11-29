@@ -83,15 +83,13 @@ def job_monitor(job, interval=None, quiet=False, output=sys.stdout, line_discipl
     .. code-block:: python
 
        from qiskit import BasicAer, transpile
-       from qiskit.circuit import QuantumRegister, ClassicalRegister, QuantumCircuit
+       from qiskit.circuit import QuantumCircuit
        from qiskit.tools.monitor import job_monitor
        sim_backend = BasicAer.get_backend("qasm_simulator")
-       q = QuantumRegister(2)
-       c = ClassicalRegister(2)
-       qc = QuantumCircuit(q, c)
-       qc.h(q[0])
-       qc.cx(q[0], q[1])
-       qc.measure(q, c)
+       qc = QuantumCircuit(2, 2)
+       qc.h(0)
+       qc.cx(0, 1)
+       qc.measure_all()
        tqc = transpile(qc, sim_backend)
        job_sim = sim_backend.run(tqc)
        job_monitor(job_sim)
