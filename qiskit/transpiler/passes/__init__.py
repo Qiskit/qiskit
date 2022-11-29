@@ -72,6 +72,7 @@ Optimizations
    Collect2qBlocks
    CollectMultiQBlocks
    CollectLinearFunctions
+   CollectCliffords
    ConsolidateBlocks
    CXCancellation
    InverseCancellation
@@ -224,6 +225,7 @@ from .optimization import TemplateOptimization
 from .optimization import InverseCancellation
 from .optimization import EchoRZXWeylDecomposition
 from .optimization import CollectLinearFunctions
+from .optimization import CollectCliffords
 from .optimization import ResetAfterMeasureSimplification
 from .optimization import OptimizeCliffords
 

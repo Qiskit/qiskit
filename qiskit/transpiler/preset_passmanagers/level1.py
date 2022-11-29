@@ -124,7 +124,7 @@ def level_1_pass_manager(pass_manager_config: PassManagerConfig) -> StagedPassMa
         else VF2Layout(
             coupling_map,
             seed=seed_transpiler,
-            call_limit=int(5e4),  # Set call limit to ~100ms with retworkx 0.10.2
+            call_limit=int(5e4),  # Set call limit to ~100ms with rustworkx 0.10.2
             properties=backend_properties,
             target=target,
         )
