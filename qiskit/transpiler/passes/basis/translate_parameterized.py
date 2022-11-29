@@ -16,7 +16,7 @@ from __future__ import annotations
 
 from qiskit.circuit import Instruction, ParameterExpression, Qubit, Clbit
 from qiskit.converters import circuit_to_dag
-from qiskit.dagcircuit import DAGCircuit
+from qiskit.dagcircuit import DAGCircuit, DAGOpNode
 from qiskit.circuit.equivalence_library import EquivalenceLibrary
 from qiskit.exceptions import QiskitError
 from qiskit.transpiler import Target
@@ -91,10 +91,11 @@ class TranslateParameterizedGates(TransformationPass):
             equivalence_library: The equivalence library to translate the gates. Defaults
                 to the equivalence library of all Qiskit standard gates.
             target: A :class:`.Target` containing the supported operations. If ``None``,
-                ``supported_gates`` must be set.
+                ``supported_gates`` must be set. Note that this argument takes precedence over
+                ``supported_gates``, if both are set.
 
         Raises:
-            ValueError: If neither of (or both of) ``supported_gates`` and ``target`` are passed.
+            ValueError: If neither of ``supported_gates`` and ``target`` are passed.
         """
         super().__init__()
 
@@ -104,18 +105,15 @@ class TranslateParameterizedGates(TransformationPass):
 
             equivalence_library = _sel
 
-        # obtain the supported gates from the target, if they haven't been specified
-        # and ensure only one of the arguments has been set
-        if supported_gates is None:
-            if target is None:
-                raise ValueError("One of ``supported_gates`` or ``target`` must be specified.")
-
+        # The target takes precedence over the supported_gates argument. If neither are set,
+        # raise an error.
+        if target is not None:
             supported_gates = target.operation_names
-        else:
-            if target is not None:
-                raise ValueError("``supported_gates`` and ``target`` cannot both be specified.")
+        elif supported_gates is None:
+            raise ValueError("One of ``supported_gates`` or ``target`` must be specified.")
 
         self._supported_gates = supported_gates
+        self._target = target
         self._translator = BasisTranslator(equivalence_library, supported_gates, target=target)
 
     def run(self, dag: DAGCircuit) -> DAGCircuit:
@@ -130,14 +128,28 @@ class TranslateParameterizedGates(TransformationPass):
         Raises:
             QiskitError: If the circuit cannot be unrolled.
         """
+        qubits_to_indices = {qubit: i for i, qubit in enumerate(dag.qubits)}
+        return self._run(dag, qubits_to_indices)
+
+    def _run(self, dag: DAGCircuit, qubits_to_indices: dict):
+        """Run the decomposition, keeping a global map of qubit to index mappings.
+
+        This is required to map the DAG qubits to indices for the target decomposition.
+        """
+
         for node in dag.op_nodes():
             # check whether it is parameterized and we need to decompose it
-            if _is_parameterized(node.op) and (node.op.name not in self._supported_gates):
+            if _is_parameterized(node.op) and not _is_supported(
+                node, self._supported_gates, self._target, qubits_to_indices
+            ):
                 definition = node.op.definition
 
                 if definition is not None:
                     # recurse to unroll further parameterized blocks
-                    unrolled = self.run(circuit_to_dag(definition))
+                    sub_indices = [qubits_to_indices[qubit] for qubit in node.qargs]
+                    sub_dag = circuit_to_dag(definition)
+                    sub_map = dict(zip(sub_dag.qubits, sub_indices))
+                    unrolled = self._run(circuit_to_dag(definition), sub_map)
                 else:
                     # if we hit a base case, try to translate to the specified basis
                     try:
@@ -155,6 +167,20 @@ def _is_parameterized(op: Instruction) -> bool:
     return any(
         isinstance(param, ParameterExpression) and len(param.parameters) > 0 for param in op.params
     )
+
+
+def _is_supported(
+    node: DAGOpNode, supported_gates: list[str], target: Target | None, qubits_to_indices: dict
+) -> bool:
+    """Check whether the node is supported.
+
+    If the target is provided, check using the target, otherwise the supported_gates are used.
+    """
+    if target is not None:
+        qubit_indices = [qubits_to_indices[qubit] for qubit in node.qargs]
+        return target.instruction_supported(node.op.name, qubit_indices)
+
+    return node.op.name in supported_gates
 
 
 def _instruction_to_dag(op: Instruction) -> DAGCircuit:

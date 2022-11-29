@@ -16,8 +16,9 @@ import unittest
 
 from qiskit.test import QiskitTestCase
 from qiskit.circuit import ParameterVector, Parameter, Gate, QuantumCircuit
-from qiskit.circuit.library import TwoLocal
+from qiskit.circuit.library import TwoLocal, RZGate, UGate, CXGate
 from qiskit.exceptions import QiskitError
+from qiskit.transpiler import Target
 from qiskit.transpiler.passes import TranslateParameterizedGates
 from qiskit.providers.fake_provider import FakeAthensV2
 
@@ -65,27 +66,26 @@ class TestTranslateParameterized(QiskitTestCase):
     def test_target(self):
         """Test unrolling with a target."""
         target = FakeAthensV2().target
+
+        target = Target()
+
+        p = ParameterVector("p", 3)
+        target.add_instruction(RZGate(p[0]), {(0,): None})
+        target.add_instruction(UGate(p[0], p[1], p[2]), {(1,): None})
+        target.add_instruction(CXGate(), {(0, 1): None, (1, 0): None})
         circuit = TwoLocal(2, "rz", "cx", reps=2, entanglement="linear")
 
         translator = TranslateParameterizedGates(target=target)
         translated = translator(circuit)
 
-        expected_ops = {"cx": 2, "rz": 6}
+        expected_ops = {"cx": 2, "rz": 3, "u": 3}
 
         self.assertEqual(translated.count_ops(), expected_ops)
 
-    def test_supported_gates_vs_target(self):
-        """Test only one of ``supported_gates`` and ``target`` is supported."""
-        target = FakeAthensV2().target
-        supported_gates = ["rx"]
-
-        with self.subTest(msg="neither of supported_gates and target passed"):
-            with self.assertRaises(ValueError):
-                _ = TranslateParameterizedGates(supported_gates=None, target=None)
-
-        with self.subTest(msg="both of supported_gates and target passed"):
-            with self.assertRaises(ValueError):
-                _ = TranslateParameterizedGates(supported_gates=supported_gates, target=target)
+    def test_no_supported_gates_or_target(self):
+        """Test an error is raised if neither of ``supported_gates`` and ``target`` is supported."""
+        with self.assertRaises(ValueError):
+            _ = TranslateParameterizedGates(supported_gates=None, target=None)
 
     def test_translation_impossible(self):
         """Test translating a parameterized gate without definition does not work."""
