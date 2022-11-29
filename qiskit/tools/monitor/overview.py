@@ -170,7 +170,7 @@ def backend_monitor(backend):
 def backend_overview():
     """Gives overview information on all the IBMQ
     backends that are available.
-    
+
     Examples:
 
         .. code-block:: python
