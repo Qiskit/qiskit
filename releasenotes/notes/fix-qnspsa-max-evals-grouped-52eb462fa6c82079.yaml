@@ -1,0 +1,5 @@
+---
+fixes:
+  - |
+    Fixed a bug causing :class:`.QNSPSA` to fail when ``max_evals_grouped`` was set to a
+    value larger than 1.
