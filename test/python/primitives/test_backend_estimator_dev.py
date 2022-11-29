@@ -28,6 +28,7 @@ from qiskit.primitives.backend_estimator_dev import (
     AbelianDecomposer,
     BackendEstimator,
     NaiveDecomposer,
+    SpectralReckoner,
 )
 from qiskit.providers import BackendV2, Options, JobV1
 from qiskit.providers.fake_provider import FakeNairobi, FakeNairobiV2
@@ -338,114 +339,6 @@ class TestComposition(QiskitTestCase):
 
 
 @ddt
-class TestComputation(QiskitTestCase):
-    """Test calculation logic."""
-
-    @data(
-        [{"0": 100, "1": 0}, "I", (1, 0)],
-        [{"0": 0, "1": 100}, "I", (1, 0)],
-        [{"0": 50, "1": 50}, "I", (1, 0)],
-        [{"0": 50, "1": 50}, "X", (0, 1)],
-        [{"0": 50, "1": 50}, "Y", (0, 1)],
-        [{"0": 50, "1": 50}, "Z", (0, 1)],
-        [{"0": 100, "1": 0}, "Z", (1, 0)],
-        [{"0": 0, "1": 100}, "Z", (-1, 0)],
-        [{"0": 80, "1": 20}, "Z", (0.6, 0.64)],
-        [{"0": 60, "1": 40}, "Z", (0.2, 0.96)],
-        [{"0": 40, "1": 60}, "Z", (-0.2, 0.96)],
-        [{"0": 20, "1": 80}, "Z", (-0.6, 0.64)],
-        [{"00": 80, "11": 20}, "ZZ", (1, 0)],
-        [{"00": 80, "10": 20}, "ZZ", (0.6, 0.64)],
-        [{"00": 20, "10": 80}, "ZZ", (-0.6, 0.64)],
-        [{"11": 80, "01": 20}, "ZZ", (0.6, 0.64)],
-        [{"11": 20, "01": 80}, "ZZ", (-0.6, 0.64)],
-        [{"00": 80, "11": 20}, "ZI", (0.6, 0.64)],
-        [{"00": 80, "10": 20}, "ZI", (0.6, 0.64)],
-        [{"00": 20, "10": 80}, "ZI", (-0.6, 0.64)],
-        [{"11": 80, "01": 20}, "ZI", (-0.6, 0.64)],
-        [{"11": 20, "01": 80}, "ZI", (0.6, 0.64)],
-        [{"11": 20, "01": 80}, "II", (1, 0)],
-    )
-    @unpack
-    def test_compute_expval_variance_pair(self, counts, pauli, expected):
-        """Test expval-variance pairs."""
-        counts = Counts(counts)
-        pauli = Pauli(pauli)
-        pair = BackendEstimator._compute_expval_variance_pair(counts, pauli)
-        self.assertEqual(pair, expected)
-
-    @data(
-        ["II", "00", +1],
-        ["II", "01", +1],
-        ["II", "10", +1],
-        ["II", "11", +1],
-        ["IX", "00", +1],
-        ["IX", "01", -1],
-        ["IX", "10", +1],
-        ["IX", "11", -1],
-        ["XI", "00", +1],
-        ["XI", "01", +1],
-        ["XI", "10", -1],
-        ["XI", "11", -1],
-        ["XX", "00", +1],
-        ["XX", "01", -1],
-        ["XX", "10", -1],
-        ["XX", "11", +1],
-        ["YZ", "00", +1],
-        ["XY", "01", -1],
-        ["ZX", "10", -1],
-        ["ZZ", "11", +1],
-        ["IXYZ", "0010", -1],
-        ["IXYZ", "1000", +1],
-        ["IXYZ", "1100", -1],
-        ["IXYZ", "1101", +1],
-        ["IXYZ", "0101", +1],
-    )
-    @unpack
-    def test_observed_value(self, pauli, bitstring, expected):
-        """Test observed value."""
-        pauli = Pauli(pauli)
-        observation = BackendEstimator._observed_value(bitstring, pauli)
-        self.assertEqual(observation, expected)
-
-    @data(
-        ["II", 0],
-        ["IZ", 1],
-        ["ZI", 2],
-        ["ZZ", 3],
-        ["ZX", 3],
-        ["XY", 3],
-        ["IIII", 0],
-        ["IXII", 4],
-    )
-    @unpack
-    def test_pauli_integer_masks(self, pauli, expected):
-        """Test Paulis integer masks."""
-        pauli = Pauli(pauli)
-        int_mask = BackendEstimator._pauli_integer_mask(pauli)
-        self.assertEqual(int_mask, expected)
-
-    @data(
-        ["0", 0],
-        ["1", 1],
-        ["00", 0],
-        ["01", 1],
-        ["10", 1],
-        ["11", 0],
-        ["10101100", 0],
-        ["01001010", 1],
-    )
-    @unpack
-    def test_parity_bit(self, bitstring, expected):
-        """Test even parity bit."""
-        integer = int(bitstring, 2)
-        even_bit = BackendEstimator._parity_bit(integer)
-        odd_bit = BackendEstimator._parity_bit(integer, even=False)
-        self.assertEqual(even_bit, expected)
-        self.assertEqual(even_bit, int(not odd_bit))
-
-
-@ddt
 class TestObservableDecomposer(QiskitTestCase):
     """Test ObservableDecomposer strategies."""
 
@@ -533,6 +426,114 @@ class TestObservableDecomposer(QiskitTestCase):
         """Test Pauli basis in ObservableDecomposer strategies."""
         basis = decomposer.extract_pauli_basis(observable)
         self.assertEqual(basis, expected)
+
+
+@ddt
+class TestSpectralReckoner(QiskitTestCase):
+    """Test SpectralReckoner strategy."""
+
+    @data(
+        [{"0": 100, "1": 0}, "I", (1, 0)],
+        [{"0": 0, "1": 100}, "I", (1, 0)],
+        [{"0": 50, "1": 50}, "I", (1, 0)],
+        [{"0": 50, "1": 50}, "X", (0, 1)],
+        [{"0": 50, "1": 50}, "Y", (0, 1)],
+        [{"0": 50, "1": 50}, "Z", (0, 1)],
+        [{"0": 100, "1": 0}, "Z", (1, 0)],
+        [{"0": 0, "1": 100}, "Z", (-1, 0)],
+        [{"0": 80, "1": 20}, "Z", (0.6, 0.64)],
+        [{"0": 60, "1": 40}, "Z", (0.2, 0.96)],
+        [{"0": 40, "1": 60}, "Z", (-0.2, 0.96)],
+        [{"0": 20, "1": 80}, "Z", (-0.6, 0.64)],
+        [{"00": 80, "11": 20}, "ZZ", (1, 0)],
+        [{"00": 80, "10": 20}, "ZZ", (0.6, 0.64)],
+        [{"00": 20, "10": 80}, "ZZ", (-0.6, 0.64)],
+        [{"11": 80, "01": 20}, "ZZ", (0.6, 0.64)],
+        [{"11": 20, "01": 80}, "ZZ", (-0.6, 0.64)],
+        [{"00": 80, "11": 20}, "ZI", (0.6, 0.64)],
+        [{"00": 80, "10": 20}, "ZI", (0.6, 0.64)],
+        [{"00": 20, "10": 80}, "ZI", (-0.6, 0.64)],
+        [{"11": 80, "01": 20}, "ZI", (-0.6, 0.64)],
+        [{"11": 20, "01": 80}, "ZI", (0.6, 0.64)],
+        [{"11": 20, "01": 80}, "II", (1, 0)],
+    )
+    @unpack
+    def test_compute_expval_variance_pair(self, counts, pauli, expected):
+        """Test expval-variance pairs."""
+        counts = Counts(counts)
+        pauli = Pauli(pauli)
+        pair = SpectralReckoner().compute_expval_variance_pair(counts, pauli)
+        self.assertAlmostEqual(pair, expected)
+
+    @data(
+        ["II", "00", +1],
+        ["II", "01", +1],
+        ["II", "10", +1],
+        ["II", "11", +1],
+        ["IX", "00", +1],
+        ["IX", "01", -1],
+        ["IX", "10", +1],
+        ["IX", "11", -1],
+        ["XI", "00", +1],
+        ["XI", "01", +1],
+        ["XI", "10", -1],
+        ["XI", "11", -1],
+        ["XX", "00", +1],
+        ["XX", "01", -1],
+        ["XX", "10", -1],
+        ["XX", "11", +1],
+        ["YZ", "00", +1],
+        ["XY", "01", -1],
+        ["ZX", "10", -1],
+        ["ZZ", "11", +1],
+        ["IXYZ", "0010", -1],
+        ["IXYZ", "1000", +1],
+        ["IXYZ", "1100", -1],
+        ["IXYZ", "1101", +1],
+        ["IXYZ", "0101", +1],
+    )
+    @unpack
+    def test_compute_eigenvalue(self, pauli, bitstring, expected):
+        """Test observed value."""
+        pauli = Pauli(pauli)
+        observation = SpectralReckoner.compute_eigenvalue(bitstring, pauli)
+        self.assertEqual(observation, expected)
+
+    @data(
+        ["II", 0],
+        ["IZ", 1],
+        ["ZI", 2],
+        ["ZZ", 3],
+        ["ZX", 3],
+        ["XY", 3],
+        ["IIII", 0],
+        ["IXII", 4],
+    )
+    @unpack
+    def test_pauli_integer_masks(self, pauli, expected):
+        """Test Paulis integer masks."""
+        pauli = Pauli(pauli)
+        int_mask = SpectralReckoner._pauli_integer_mask(pauli)
+        self.assertEqual(int_mask, expected)
+
+    @data(
+        ["0", 0],
+        ["1", 1],
+        ["00", 0],
+        ["01", 1],
+        ["10", 1],
+        ["11", 0],
+        ["10101100", 0],
+        ["01001010", 1],
+    )
+    @unpack
+    def test_parity_bit(self, bitstring, expected):
+        """Test even parity bit."""
+        integer = int(bitstring, 2)
+        even_bit = SpectralReckoner._parity_bit(integer)
+        odd_bit = SpectralReckoner._parity_bit(integer, even=False)
+        self.assertEqual(even_bit, expected)
+        self.assertEqual(even_bit, int(not odd_bit))
 
 
 ################################################################################

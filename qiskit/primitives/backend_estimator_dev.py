@@ -159,6 +159,18 @@ class BackendEstimator(BaseEstimator):
         """
         self._transpile_options.update_options(**fields)
 
+    @property
+    def _observable_decomposer(self) -> ObservableDecomposer:
+        """Observable decomposer based on object's config."""
+        if self.abelian_grouping:
+            return AbelianDecomposer()
+        return NaiveDecomposer()
+
+    @property
+    def _expval_reckoner(self) -> ExpvalReckoner:
+        """Strategy for expectation value reckoning."""
+        return SpectralReckoner()
+
     ################################################################################
     ## IMPLEMENTATION
     ################################################################################
@@ -272,74 +284,11 @@ class BackendEstimator(BaseEstimator):
         for counts, metadata in zip(counts_bundle, metadata_bundle):
             paulis: PauliList = metadata["paulis"]
             coeffs: tuple[float] = metadata["coeffs"]
-            expvals, variances = self._compute_expvals_and_variances(counts, paulis)
+            expvals, variances = self._expval_reckoner.compute_expvals_and_variances(counts, paulis)
             expval += np.dot(expvals, coeffs)
             var += np.dot(variances, np.array(coeffs) ** 2)
         shots: int = sum(counts_bundle[0].values())  # TODO: not correct -> counts.shots (?)
         return expval, var, shots
-
-    ################################################################################
-    ## COMPUTATION
-    ################################################################################
-    @classmethod
-    def _compute_expvals_and_variances(
-        cls, counts: Counts, paulis: PauliList
-    ) -> tuple[tuple[float, ...], tuple[float, ...]]:
-        """Return tuples of expvals and variances for input Paulis.
-
-        Note: All non-identity Pauli's are treated as Z-paulis, assuming
-        that basis rotations have been applied to convert them to the
-        diagonal basis.
-        """
-        pairs = (cls._compute_expval_variance_pair(counts, pauli) for pauli in paulis)
-        return tuple(zip(*pairs))
-
-    @classmethod
-    def _compute_expval_variance_pair(cls, counts: Counts, pauli: Pauli) -> tuple[float, float]:
-        """Return an expval-variance pair for the given counts and pauli.
-
-        Note: All non-identity Pauli's are treated as Z-paulis, assuming
-        that basis rotations have been applied to convert them to the
-        diagonal basis.
-        """
-        shots: int = 0
-        expval: float = 0.0
-        for bitstring, freq in counts.items():
-            observation = cls._observed_value(bitstring, pauli)
-            expval += observation * freq
-            shots += freq
-        expval /= shots or 1  # Avoid division by zero errors if no counts
-        variance = 1 - expval**2
-        return expval, variance
-
-    @classmethod
-    def _observed_value(cls, bitstring: str, pauli: Pauli) -> int:
-        """Compute observed eigenvalue from measured bitstring and target Pauli.
-        
-        Note: This method treats X, Y, and Z Paulis identically, assuming that the 
-        appropriate changes of bases were actively performed in the relevant qubits 
-        before readout of the input bitstring.
-        """
-        measurement = int(bitstring, 2)
-        int_mask = cls._pauli_integer_mask(pauli)
-        return (-1) ** cls._parity_bit(measurement & int_mask, even=True)
-
-    @staticmethod
-    def _pauli_integer_mask(pauli: Pauli) -> tuple[int]:
-        """Build integer masks for input Pauli.
-
-        This is an integer representation of the binary string with a
-        1 where there are Paulis, and 0 where there are identities.
-        """
-        pauli_mask: np.ndarray[bool] = pauli.z | pauli.x
-        packed_mask: list[int] = np.packbits(pauli_mask, bitorder="little").tolist()
-        return reduce(lambda value, element: (value << 8) + element, packed_mask)
-
-    @staticmethod
-    def _parity_bit(integer: int, even: bool = True) -> int:
-        """Return the parity bit for a given integer."""
-        even_bit = bin(integer).count("1") % 2
-        return even_bit if even else int(not even_bit)
 
     ################################################################################
     ## TRANSPILATION
@@ -407,13 +356,6 @@ class BackendEstimator(BaseEstimator):
     ################################################################################
     ## MEASUREMENT
     ################################################################################
-    @property
-    def _observable_decomposer(self) -> ObservableDecomposer:
-        """Observable decomposer based on object's config."""
-        if self.abelian_grouping:
-            return AbelianDecomposer()
-        return NaiveDecomposer()
-
     # TODO: caching
     def _build_measurement_circuits(
         self,
@@ -540,7 +482,7 @@ class BackendEstimator(BaseEstimator):
 ## OBSERVABLE DECOMPOSER
 ################################################################################
 class ObservableDecomposer(ABC):
-    """Strategy class for decomposing observables and getting associated measurement bases."""
+    """Strategy interface for decomposing observables and getting associated measurement bases."""
 
     def decompose(self, observable: BaseOperator | PauliSumOp) -> tuple[SparsePauliOp]:
         """Decomposes a given observable into singly measurable components.
@@ -617,3 +559,94 @@ class AbelianDecomposer(ObservableDecomposer):
         or_reduce = np.logical_or.reduce
         zx_data_tuple = or_reduce(observable.paulis.z), or_reduce(observable.paulis.x)
         return Pauli(zx_data_tuple)
+
+
+################################################################################
+## EXPECTATION VALUE RECKONING
+################################################################################
+class ExpvalReckoner(ABC):
+    """Expectation value reckoning interface.
+
+    Classes implementing this interface provide methods for constructing expectation values
+    (and associated errors) out of raw Counts and Pauli observables.
+    """
+
+    def compute_expvals_and_variances(
+        self, counts: Counts, paulis: PauliList
+    ) -> tuple[tuple[float, ...], tuple[float, ...]]:
+        """Get expectation values and variances for input Paulis.
+
+        Args:
+            counts: measured by executing a :py:class``~qiskit.circuit.QuantumCircuit``.
+            paulis: the list of target :py:class:`~qiskit.quantum_info.Pauli` to observe.
+
+        Returns:
+            A tuple of expectation values and a tuple of variances for input Paulis.
+        """
+        pairs = (self.compute_expval_variance_pair(counts, pauli) for pauli in paulis)
+        return tuple(zip(*pairs))
+
+    # TODO: variance or std-error?
+    @abstractmethod
+    def compute_expval_variance_pair(self, counts: Counts, pauli: Pauli) -> tuple[float, float]:
+        """Return an expval-variance pair for the given counts and pauli.
+
+        Args:
+            counts: measured by executing a :py:class``~qiskit.circuit.QuantumCircuit``.
+            pauli: the target :py:class:`~qiskit.quantum_info.Pauli` to observe.
+
+        Returns:
+            A tuple holding the expectation value of the Pauli observable and variance.
+        """
+
+
+class SpectralReckoner(ExpvalReckoner):
+    """Expectation value reckoning class based on weighted addition of eigenvalues.
+
+    Note: This class treats X, Y, and Z Paulis identically, assuming that the appropriate
+    changes of bases (i.e. rotations) were actively performed in the relevant qubits before
+    readout; diagonalizing the input Pauli observables.
+    """
+
+    def compute_expval_variance_pair(self, counts: Counts, pauli: Pauli) -> tuple[float, float]:
+        shots: int = 0
+        expval: float = 0.0
+        for bitstring, freq in counts.items():
+            observation = self.compute_eigenvalue(bitstring, pauli)
+            expval += observation * freq
+            shots += freq
+        expval /= shots or 1  # Avoid division by zero errors if no counts
+        variance = 1 - expval**2
+        return expval, variance
+
+    @classmethod
+    def compute_eigenvalue(cls, bitstring: str, pauli: Pauli) -> float:
+        """Compute eigenvalue for measured bitstring and target Pauli.
+
+        Args:
+            bitstring: binary representation of the eigenvector.
+            pauli: the target :py:class:`~qiskit.quantum_info.Pauli` matrix.
+
+        Returns:
+            The eigenvalue associated to the bitstring eigenvector and the input Pauli observable.
+        """
+        measurement = int(bitstring, 2)
+        int_mask = cls._pauli_integer_mask(pauli)
+        return (-1) ** cls._parity_bit(measurement & int_mask, even=True)
+
+    @staticmethod
+    def _pauli_integer_mask(pauli: Pauli) -> tuple[int]:
+        """Build integer masks for input Pauli.
+
+        This is an integer representation of the binary string with a
+        1 where there are Paulis, and 0 where there are identities.
+        """
+        pauli_mask: np.ndarray[bool] = pauli.z | pauli.x
+        packed_mask: list[int] = np.packbits(pauli_mask, bitorder="little").tolist()
+        return reduce(lambda value, element: (value << 8) + element, packed_mask)
+
+    @staticmethod
+    def _parity_bit(integer: int, even: bool = True) -> int:
+        """Return the parity bit for a given integer."""
+        even_bit = bin(integer).count("1") % 2
+        return even_bit if even else int(not even_bit)
