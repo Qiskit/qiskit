@@ -587,6 +587,7 @@ class ExpvalReckoner(ABC):
         return tuple(zip(*pairs))
 
     # TODO: variance or std-error?
+    # TODO: validate num_bits
     @abstractmethod
     def compute_expval_variance_pair(self, counts: Counts, pauli: Pauli) -> tuple[float, float]:
         """Return an expval-variance pair for the given counts and pauli.
@@ -605,7 +606,7 @@ class SpectralReckoner(ExpvalReckoner):
 
     Note: This class treats X, Y, and Z Paulis identically, assuming that the appropriate
     changes of bases (i.e. rotations) were actively performed in the relevant qubits before
-    readout; diagonalizing the input Pauli observables.
+    readout; hence diagonalizing the input Pauli observables.
     """
 
     def compute_expval_variance_pair(self, counts: Counts, pauli: Pauli) -> tuple[float, float]:
@@ -620,7 +621,7 @@ class SpectralReckoner(ExpvalReckoner):
         return expval, variance
 
     @classmethod
-    def compute_eigenvalue(cls, bitstring: str, pauli: Pauli) -> float:
+    def compute_eigenvalue(cls, bitstring: str, pauli: Pauli) -> int:
         """Compute eigenvalue for measured bitstring and target Pauli.
 
         Args:
