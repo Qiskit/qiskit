@@ -319,8 +319,8 @@ class BackendEstimator(BaseEstimator):
         int_mask = cls._pauli_integer_mask(pauli)
         return (-1) ** cls._parity_bit(measurement & int_mask, even=True)
 
-    @classmethod
-    def _pauli_integer_mask(cls, pauli: Pauli) -> tuple[int]:
+    @staticmethod
+    def _pauli_integer_mask(pauli: Pauli) -> tuple[int]:
         """Build integer masks for input Pauli.
 
         This is an integer representation of the binary string with a
