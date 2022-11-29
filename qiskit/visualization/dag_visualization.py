@@ -145,9 +145,9 @@ def dag_drawer(dag, scale=0.7, filename=None, style="color", show_node_id=False)
                     n["style"] = "filled"
                     n["fillcolor"] = "red"
                 if show_node_id:
-                    n["label"]= f"{node._node_id}: {n['label']}"
+                    n["label"] = f"{node._node_id}: {n['label']}"
                 return n
-            
+
             else:
                 raise VisualizationError("Invalid style %s" % style)
 

@@ -1391,12 +1391,8 @@ class DAGCircuit:
         node1_id = node1._node_id
         node2_id = node2._node_id
         for edge in connected_edges[::-1]:
-            #edge_find = lambda x, y=edge: x == y
-            def edge_find(x, y=edge):
-                return x == y
+            edge_find = lambda x, y=edge: x == y
             edge_parent = self._multi_graph.find_predecessors_by_edge(node1_id, edge_find)[0]
-            #edge_parent2 = self._multi_graph.find_adjacent_node_by_edge(node1_id, edge_find)
-            #breakpoint()
             self._multi_graph.remove_edge(edge_parent._node_id, node1_id)
             self._multi_graph.add_edge(edge_parent._node_id, node2_id, edge)
             edge_child = self._multi_graph.find_successors_by_edge(node2_id, edge_find)[0]
@@ -1875,7 +1871,7 @@ class DAGCircuit:
             style (str):
                 'plain': B&W graph;
                 'color' (default): color input/output/op nodes
-
+            kwargs (dict): addtional kwargs understood by dag_visualization
         Returns:
             Ipython.display.Image: if in Jupyter notebook and not saving to file,
             otherwise None.

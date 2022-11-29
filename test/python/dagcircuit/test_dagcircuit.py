@@ -39,7 +39,7 @@ from qiskit.circuit.library.standard_gates.u1 import U1Gate
 from qiskit.circuit.library.standard_gates.rx import RXGate
 from qiskit.circuit.barrier import Barrier
 from qiskit.dagcircuit.exceptions import DAGCircuitError
-from qiskit.converters import circuit_to_dag, dag_to_circuit
+from qiskit.converters import circuit_to_dag
 from qiskit.test import QiskitTestCase
 
 
@@ -2159,7 +2159,7 @@ class TestSwapNodes(QiskitTestCase):
         op_node0 = dag.apply_operation_back(CXGate(), qreg[[0, 1]], [])
         op_node1 = dag.apply_operation_back(CZGate(), qreg[[1, 0]], [])
         dag.swap_nodes(op_node0, op_node1)
-        
+
         expected = DAGCircuit()
         expected.add_qreg(qreg)
         expected.apply_operation_back(CZGate(), qreg[[1, 0]], [])
@@ -2175,7 +2175,7 @@ class TestSwapNodes(QiskitTestCase):
         op_node0 = dag.apply_operation_back(CXGate(), qreg[[1, 0]], [])
         op_node1 = dag.apply_operation_back(CZGate(), qreg[[1, 2]], [])
         dag.swap_nodes(op_node0, op_node1)
-        
+
         expected = DAGCircuit()
         expected.add_qreg(qreg)
         expected.apply_operation_back(CZGate(), qreg[[1, 2]], [])
@@ -2192,7 +2192,7 @@ class TestSwapNodes(QiskitTestCase):
         op_node0 = dag.apply_operation_back(C3XGate(), qreg[[0, 1, 2, 3]], [])
         op_node1 = dag.apply_operation_back(C3XGate(), qreg[[0, 1, 2, 4]], [])
         dag.swap_nodes(op_node0, op_node1)
-        
+
         expected = DAGCircuit()
         expected.add_qreg(qreg)
         expected.apply_operation_back(C3XGate(), qreg[[0, 1, 2, 4]], [])
@@ -2207,6 +2207,44 @@ class TestSwapNodes(QiskitTestCase):
         op_node0 = dag.apply_operation_back(CXGate(), qreg[[0, 2]], [])
         op_node1 = dag.apply_operation_back(CZGate(), qreg[[1, 3]], [])
         self.assertRaises(DAGCircuitError, dag.swap_nodes, op_node0, op_node1)
+
+    def test_2q_swap_partially_connected_pre_spectators(self):
+        """test swapping 2q partially connected gates when in the presence of pre
+        spectator ops."""
+        dag = DAGCircuit()
+        qreg = QuantumRegister(5)
+        dag.add_qreg(qreg)
+        dag.apply_operation_back(XGate(), qreg[[0]])
+        op_node0 = dag.apply_operation_back(CXGate(), qreg[[1, 0]], [])
+        op_node1 = dag.apply_operation_back(CZGate(), qreg[[1, 2]], [])
+        dag.swap_nodes(op_node0, op_node1)
+
+        expected = DAGCircuit()
+        expected.add_qreg(qreg)
+        expected.apply_operation_back(XGate(), qreg[[0]])
+        expected.apply_operation_back(CZGate(), qreg[[1, 2]], [])
+        expected.apply_operation_back(CXGate(), qreg[[1, 0]], [])
+        self.assertEqual(dag, expected)
+
+    def test_2q_swap_partially_connected_prepost_spectators(self):
+        """test swapping 2q partially connected gates when in the presence of pre
+        and post spectator ops."""
+        dag = DAGCircuit()
+        qreg = QuantumRegister(5)
+        dag.add_qreg(qreg)
+        dag.apply_operation_back(XGate(), qreg[[0]])
+        op_node0 = dag.apply_operation_back(CXGate(), qreg[[1, 0]], [])
+        op_node1 = dag.apply_operation_back(CZGate(), qreg[[1, 2]], [])
+        dag.apply_operation_back(CZGate(), qreg[[1, 2]], [])
+        dag.swap_nodes(op_node0, op_node1)
+
+        expected = DAGCircuit()
+        expected.add_qreg(qreg)
+        expected.apply_operation_back(XGate(), qreg[[0]])
+        expected.apply_operation_back(CZGate(), qreg[[1, 2]], [])
+        expected.apply_operation_back(CXGate(), qreg[[1, 0]], [])
+        expected.apply_operation_back(CZGate(), qreg[[1, 2]], [])
+        self.assertEqual(dag, expected)
 
 
 if __name__ == "__main__":
