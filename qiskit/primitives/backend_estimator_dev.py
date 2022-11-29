@@ -16,6 +16,7 @@ from __future__ import annotations
 
 from abc import ABC, abstractmethod
 from collections.abc import Sequence, Iterator
+from functools import reduce
 from typing import Any
 
 import numpy as np
@@ -318,21 +319,14 @@ class BackendEstimator(BaseEstimator):
 
     @classmethod
     def _pauli_integer_mask(cls, pauli: Pauli) -> tuple[int]:
-        """Build integer masks for Pauli.
+        """Build integer masks for input Pauli.
 
         This is an integer representation of the binary string with a
         1 where there are Paulis, and 0 where there are identities.
         """
-        pauli_mask = pauli.z | pauli.x
-        bitstring = cls._bitstring_from_mask(pauli_mask, little_endian=True)
-        return int(bitstring, 2)
-
-    @staticmethod
-    def _bitstring_from_mask(mask: Sequence[bool], little_endian: bool = False) -> str:
-        """Return bitstring representation of a one dimensional mask."""
-        if little_endian:
-            mask = reversed(mask)
-        return "0b" + "".join("1" if b else "0" for b in mask)
+        pauli_mask: list[bool] = pauli.z | pauli.x
+        packed_mask: list[int] = np.packbits(pauli_mask, bitorder="little").tolist()
+        return reduce(lambda value, element: (value << 8) + element, packed_mask)
 
     @staticmethod
     def _parity_bit(integer: int, even: bool = True) -> int:

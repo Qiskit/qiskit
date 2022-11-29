@@ -426,25 +426,6 @@ class TestComputation(QiskitTestCase):
         self.assertEqual(int_mask, expected)
 
     @data(
-        [(), ""],
-        [(False,), "0"],
-        [(True,), "1"],
-        [(False, False), "00"],
-        [(False, True), "01"],
-        [(True, False), "10"],
-        [(True, True), "11"],
-        [(False, True, True, False, True, False, False, True), "01101001"],
-        [(False, False, True, True, False, False, True, True), "00110011"],
-    )
-    @unpack
-    def test_bitstring_from_mask(self, mask, expected):
-        """Test `_bitstring_from_mask()`."""
-        bitstring = BackendEstimator._bitstring_from_mask(mask)
-        self.assertEqual(bitstring, "0b" + expected)
-        bitstring = BackendEstimator._bitstring_from_mask(mask, little_endian=True)
-        self.assertEqual(bitstring, "0b" + "".join(reversed(expected)))
-
-    @data(
         ["0", 0],
         ["1", 1],
         ["00", 0],
