@@ -134,7 +134,7 @@ class TextProgressBar(BaseProgressBar):
             %qiskit_progress_bar -t text
             parallel_map(np.sin, np.linspace(0,10,100));
 
-        And it can also be used individually
+        And it can also be used individually.
 
         .. code-block:: python
             

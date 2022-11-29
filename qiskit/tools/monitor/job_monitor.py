@@ -79,6 +79,7 @@ def job_monitor(job, interval=None, quiet=False, output=sys.stdout, line_discipl
         By default this is sys.stdout.
         line_discipline (string): character emitted at start of a line of job monitor output,
         This defaults to \\r.
+
     Examples:
 
         .. code-block:: python
