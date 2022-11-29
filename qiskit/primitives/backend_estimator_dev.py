@@ -314,7 +314,12 @@ class BackendEstimator(BaseEstimator):
 
     @classmethod
     def _observed_value(cls, bitstring: str, pauli: Pauli) -> int:
-        """Compute observed eigenvalue from measured bitstring and target Pauli."""
+        """Compute observed eigenvalue from measured bitstring and target Pauli.
+        
+        Note: This method treats X, Y, and Z Paulis identically, assuming that the 
+        appropriate changes of bases were actively performed in the relevant qubits 
+        before readout of the input bitstring.
+        """
         measurement = int(bitstring, 2)
         int_mask = cls._pauli_integer_mask(pauli)
         return (-1) ** cls._parity_bit(measurement & int_mask, even=True)
