@@ -119,6 +119,9 @@ class TextProgressBar(BaseProgressBar):
     output_handler : the handler the progress bar should be written to, default
                      is sys.stdout, another option is sys.stderr
     Examples:
+
+    The progress bar can be used to track the progress of a `parallel_map`
+
     .. jupyter-execute::
 
        import numpy as np
@@ -128,6 +131,10 @@ class TextProgressBar(BaseProgressBar):
        TextProgressBar()
        %qiskit_progress_bar -t text
        parallel_map(np.sin, np.linspace(0,10,100));
+
+    And it can also be used individually:
+
+    .. juypter-execute::
 
        iterations = 100
        t = TextProgressBar()
