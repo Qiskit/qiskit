@@ -15,7 +15,7 @@
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
-from collections.abc import Sequence, Iterator
+from collections.abc import Iterator, Sequence
 from functools import reduce
 from typing import Any
 
@@ -24,12 +24,14 @@ import numpy as np
 from qiskit.circuit import QuantumCircuit
 from qiskit.compiler import transpile
 from qiskit.opflow import PauliSumOp
-from qiskit.providers import Backend, BackendV2, BackendV2Converter, Options, JobV1 as Job
+from qiskit.providers import Backend, BackendV2, BackendV2Converter
+from qiskit.providers import JobV1 as Job
+from qiskit.providers import Options
 from qiskit.quantum_info import Pauli, PauliList
 from qiskit.quantum_info.operators.base_operator import BaseOperator
 from qiskit.quantum_info.operators.symplectic.sparse_pauli_op import SparsePauliOp
 from qiskit.result import Counts, Result
-from qiskit.transpiler import PassManager, Layout
+from qiskit.transpiler import Layout, PassManager
 
 from .base import BaseEstimator, EstimatorResult
 from .primitive_job import PrimitiveJob
@@ -324,7 +326,7 @@ class BackendEstimator(BaseEstimator):
         This is an integer representation of the binary string with a
         1 where there are Paulis, and 0 where there are identities.
         """
-        pauli_mask: list[bool] = pauli.z | pauli.x
+        pauli_mask: np.ndarray[bool] = pauli.z | pauli.x
         packed_mask: list[int] = np.packbits(pauli_mask, bitorder="little").tolist()
         return reduce(lambda value, element: (value << 8) + element, packed_mask)
 
