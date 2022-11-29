@@ -1,0 +1,5 @@
+---
+fixes:
+  - |
+    The :meth:`~.QuantumState.probabilities_dict` method has been fixed to correctly handle
+    the ``qargs`` argument in the case that the subsystem dimensions are unequal.
