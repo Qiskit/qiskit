@@ -255,17 +255,18 @@ class VQD(VariationalAlgorithm, Eigensolver):
         prev_states = []
 
         num_initial_points = 0
-        if self.initial_point is not  None:
-            initial_points = np.reshape(
-                self.initial_point, (-1, self.ansatz.num_parameters)
-            )
+        if self.initial_point is not None:
+            initial_points = np.reshape(self.initial_point, (-1, self.ansatz.num_parameters))
             num_initial_points = len(initial_points)
+
+        # 0 just means the initial point is ``None`` and ``validate_initial_point``
+        # will select a random point
+        if num_initial_points <= 1:
+            initial_point = validate_initial_point(self.initial_point, self.ansatz)
 
         for step in range(1, self.k + 1):
             if num_initial_points > 1:
                 initial_point = validate_initial_point(initial_points[step - 1], self.ansatz)
-            else:
-                initial_point = validate_initial_point(self.initial_point, self.ansatz)
 
             if step > 1:
                 prev_states.append(self.ansatz.bind_parameters(result.optimal_points[-1]))
@@ -279,26 +280,26 @@ class VQD(VariationalAlgorithm, Eigensolver):
 
             # TODO: add gradient support after FidelityGradients are implemented
             if isinstance(self.optimizer, list):
-                optmzer = self.optimizer[step - 1]
+                optimizer = self.optimizer[step - 1]
             else:
-                optmzer = self.optimizer  # fall back to single optimizer if not list
+                optimizer = self.optimizer  # fall back to single optimizer if not list
 
-            if callable(optmzer):
-                opt_result = optmzer(  # pylint: disable=not-callable
+            if callable(optimizer):
+                opt_result = optimizer(  # pylint: disable=not-callable
                     fun=energy_evaluation, x0=initial_point, bounds=bounds
                 )
             else:
                 # we always want to submit as many estimations per job as possible for minimal
                 # overhead on the hardware
-                was_updated = _set_default_batchsize(optmzer)
+                was_updated = _set_default_batchsize(optimizer)
 
-                opt_result = optmzer.minimize(
+                opt_result = optimizer.minimize(
                     fun=energy_evaluation, x0=initial_point, bounds=bounds
                 )
 
                 # reset to original value
                 if was_updated:
-                    optmzer.set_max_evals_grouped(None)
+                    optimizer.set_max_evals_grouped(None)
 
             eval_time = time() - start_time
 
