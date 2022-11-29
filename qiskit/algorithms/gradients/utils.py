@@ -19,7 +19,6 @@ Utility functions for gradients
 from __future__ import annotations
 
 from collections import defaultdict
-from copy import deepcopy
 from dataclasses import dataclass
 from typing import Sequence
 
@@ -78,57 +77,6 @@ class GradientCircuit:
     """A dictionary maps the parameters of ``gradient_circuit`` to the parameter expressions of ``circuit``"""
 
 
-def _make_gradient_parameter_values(
-    circuit: QuantumCircuit,
-    gradient_circuit: GradientCircuit,
-    parameter_values: np.ndarray,
-) -> np.ndarray:
-    """Makes parameter values for the gradient circuit.
-
-    Args:
-        circuit: The original quantum circuit
-        gradient_circuit: The gradient circuit
-        parameter_values: The parameter values for the original circuit
-        parameter_set: The parameter set to calculate gradients
-
-    Returns:
-        The parameter values for the gradient circuit.
-    """
-    g_circuit = gradient_circuit.gradient_circuit
-    g_parameter_values = np.zeros(len(g_circuit.parameters))
-    for i, g_parameter in enumerate(g_circuit.parameters):
-        expr = gradient_circuit.gradient_parameter_map[g_parameter]
-        bound_expr = expr.bind(
-            {p: parameter_values[circuit.parameters.data.index(p)] for p in expr.parameters}
-        )
-
-        g_parameter_values[i] = float(bound_expr)
-    return g_parameter_values
-
-def _make_gradient_parameters(
-    circuit: QuantumCircuit,
-    gradient_circuit: GradientCircuit,
-    parameters: Sequence[Parameter] | None,
-) -> Sequence[Parameter] | None:
-    """Makes parameters for the gradient circuit.
-
-    Args:
-        circuit: The original quantum circuit
-        gradient_circuit: The gradient circuit
-        parameters: The parameters for the original circuit
-
-    Returns:
-        The parameters for the gradient circuit.
-    """
-    if parameters is None:
-        return None
-
-    g_parameters = []
-    for parameter in circuit.parameters:
-        if parameter in parameters:
-            g_parameters.extend(g_parameter for g_parameter, _ in gradient_circuit.parameter_map[parameter])
-    return list(set(g_parameters))
-
 def _make_param_shift_parameter_values(
     circuit: QuantumCircuit,
     parameter_values: np.ndarray,
@@ -146,7 +94,6 @@ def _make_param_shift_parameter_values(
         The final parameter values for the parameter shift method and the coefficients.
     """
     plus_offsets, minus_offsets = [], []
-    print(parameter_set)
     indices = [idx for idx, param in enumerate(circuit.parameters) if param in parameter_set]
     offset = np.identity(circuit.num_parameters)[indices, :]
     plus_offsets = parameter_values + offset * np.pi / 2
@@ -363,3 +310,13 @@ def _make_lin_comb_qfi_circuit(
                         )
 
     return grad_dict
+
+def _param_shift_preprocessing(circuit: QuantumCircuit) -> ParameterShiftGradientCircuit:
+    """Preprocessing for the parameter shift method.
+    Args:
+        circuit: The original quantum circuit
+    Returns:
+        necessary data to calculate gradients with the parameter shift method.
+    """
+    return None
+
