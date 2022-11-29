@@ -171,12 +171,13 @@ def backend_overview():
     """Gives overview information on all the IBMQ
     backends that are available.
     Examples:
-    .. code-block:: python
 
-       from qiskit import IBMQ
-       from qiskit.tools.monitor import backend_overview
-       provider = IBMQ.get_provider(hub='ibm-q')
-       backend_overview()
+        .. code-block:: python
+
+        from qiskit import IBMQ
+        from qiskit.tools.monitor import backend_overview
+        provider = IBMQ.get_provider(hub='ibm-q')
+        backend_overview()
     """
     unique_hardware_backends = get_unique_backends()
     _backends = []
