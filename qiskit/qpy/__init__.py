@@ -100,18 +100,6 @@ There is a circuit payload for each circuit (where the total number is dictated
 by ``num_circuits`` in the file header). There is no padding between the
 circuits in the data.
 
-.. _qpy_version_6:
-
-Version 6
-=========
-
-Version 6 has an internal update to :ref:`qpy_schedule_symbolic_pulse` loader of `previous` QPY
-version to adapt in the latest Qiskit library pulse representation. In Qiskit Terra 0.23 and above,
-complex `amp` value representation is replaced with float (`amp`, `angle`) pair.
-Because a QPY binary file dumped by the QPY version 5 and below implies the data
-is still represented by the conventional complex amp format, the loaded pulse parameters
-and envelope are immediately converted into new format to instantiate the pulse in new style.
-
 .. _qpy_version_5:
 
 Version 5

@@ -77,19 +77,18 @@ def _loads_symbolic_expr(expr_bytes):
     return expr
 
 
-def _format_legacy_qiskit_pulse_v5(pulse_type, envelope, parameters):
-    # In the transition to Qiskit Terra > 0.22, the representation of library pulses was changed from
-    # complex "amp" to float "amp" and "angle". To reflect this, QPY version was bumped to 6. The
-    # existing library pulses in QPY<=5 are handled here separately to conform with the new
-    # representation. To avoid role assumption for "amp" for custom pulses, only the library pulses
-    # are handled this way.
+def _format_legacy_qiskit_pulse(pulse_type, envelope, parameters):
+    # In the transition from Qiskit Terra 0.22.2, the representation of library pulses was changed from
+    # complex "amp" to float "amp" and "angle". The existing library pulses in those versions are handled
+    # here separately to conform with the new representation. To avoid role assumption for "amp" for
+    # custom pulses, only the library pulses are handled this way.
 
     # Note that parameters is mutated during the function call
 
     # List of pulses in the library in QPY version 5 and below:
-    v5_library_pulses = ["Gaussian", "GaussianSquare", "Drag", "Constant"]
+    legacy_library_pulses = ["Gaussian", "GaussianSquare", "Drag", "Constant"]
 
-    if pulse_type in v5_library_pulses:
+    if pulse_type in legacy_library_pulses:
         # Once complex amp support will be deprecated we will need:
         # parameters["angle"] = np.angle(parameters["amp"])
         # parameters["amp"] = np.abs(parameters["amp"])
@@ -102,14 +101,14 @@ def _format_legacy_qiskit_pulse_v5(pulse_type, envelope, parameters):
         # And warn that this will change in future releases:
         warnings.warn(
             "Complex amp support for symbolic library pulses will be deprecated. "
-            "Once deprecated, library pulses loaded from old QPY files (Terra version <=0.22, "
-            "QPY version <=5) will be converted automatically to float (amp,angle) representation.",
+            "Once deprecated, library pulses loaded from old QPY files (Terra version <=0.22.2),"
+            " will be converted automatically to float (amp,angle) representation.",
             PendingDeprecationWarning,
         )
     return envelope
 
 
-def _read_symbolic_pulse(file_obj, version):
+def _read_symbolic_pulse(file_obj, version, qiskit_version):
     header = formats.SYMBOLIC_PULSE._make(
         struct.unpack(
             formats.SYMBOLIC_PULSE_PACK,
@@ -126,8 +125,8 @@ def _read_symbolic_pulse(file_obj, version):
         version=version,
         vectors={},
     )
-    if version <= 5:
-        envelope = _format_legacy_qiskit_pulse_v5(pulse_type, envelope, parameters)
+    if qiskit_version <= (0, 22, 2):
+        envelope = _format_legacy_qiskit_pulse(pulse_type, envelope, parameters)
         # Note that parameters is mutated during the function call
 
     duration = value.read_value(file_obj, version, {})
@@ -162,27 +161,29 @@ def _read_alignment_context(file_obj, version):
     return instance
 
 
-def _loads_operand(type_key, data_bytes, version):
+def _loads_operand(type_key, data_bytes, version, qiskit_version):
     if type_key == type_keys.ScheduleOperand.WAVEFORM:
         return common.data_from_binary(data_bytes, _read_waveform, version=version)
     if type_key == type_keys.ScheduleOperand.SYMBOLIC_PULSE:
-        return common.data_from_binary(data_bytes, _read_symbolic_pulse, version=version)
+        return common.data_from_binary(
+            data_bytes, _read_symbolic_pulse, version=version, qiskit_version=qiskit_version
+        )
     if type_key == type_keys.ScheduleOperand.CHANNEL:
         return common.data_from_binary(data_bytes, _read_channel, version=version)
 
     return value.loads_value(type_key, data_bytes, version, {})
 
 
-def _read_element(file_obj, version, metadata_deserializer):
+def _read_element(file_obj, version, metadata_deserializer, qiskit_version=None):
     type_key = common.read_type_key(file_obj)
 
     if type_key == type_keys.Program.SCHEDULE_BLOCK:
-        return read_schedule_block(file_obj, version, metadata_deserializer)
+        return read_schedule_block(
+            file_obj, version, metadata_deserializer, qiskit_version=qiskit_version
+        )
 
     operands = common.read_sequence(
-        file_obj,
-        deserializer=_loads_operand,
-        version=version,
+        file_obj, deserializer=_loads_operand, version=version, qiskit_version=qiskit_version
     )
     name = value.read_value(file_obj, version, {})
 
@@ -293,7 +294,7 @@ def _write_element(file_obj, element, metadata_serializer):
         value.write_value(file_obj, element.name)
 
 
-def read_schedule_block(file_obj, version, metadata_deserializer=None):
+def read_schedule_block(file_obj, version, metadata_deserializer=None, qiskit_version=None):
     """Read a single ScheduleBlock from the file like object.
 
     Args:
@@ -306,6 +307,7 @@ def read_schedule_block(file_obj, version, metadata_deserializer=None):
             in the file-like object. If this is not specified the circuit metadata will
             be parsed as JSON with the stdlib ``json.load()`` function using
             the default ``JSONDecoder`` class.
+        qiskit_version (tuple): tuple with major, minor and patch versions of qiskit.
 
     Returns:
         ScheduleBlock: The schedule block object from the file.
@@ -314,6 +316,7 @@ def read_schedule_block(file_obj, version, metadata_deserializer=None):
         TypeError: If any of the instructions is invalid data format.
         QiskitError: QPY version is earlier than block support.
     """
+
     if version < 5:
         QiskitError(f"QPY version {version} does not support ScheduleBlock.")
 
@@ -334,7 +337,9 @@ def read_schedule_block(file_obj, version, metadata_deserializer=None):
         alignment_context=context,
     )
     for _ in range(data.num_elements):
-        block_elm = _read_element(file_obj, version, metadata_deserializer)
+        block_elm = _read_element(
+            file_obj, version, metadata_deserializer, qiskit_version=qiskit_version
+        )
         block.append(block_elm, inplace=True)
 
     return block

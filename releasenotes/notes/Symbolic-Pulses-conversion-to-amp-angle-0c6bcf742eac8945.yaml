@@ -15,5 +15,3 @@ features:
     should use `Gaussian(duration=100,sigma=20,amp=0.5,angle=np.pi/2)`. The pulse envelope which used to be
     defined as `amp * ...` is in turn defined as `amp * exp(1j * angle) * ...`. This change aims to better support
     Qiskit Experiments where the amplitude and angle of pulses are calibrated in separate experiments.
-  - |
-    QPY version bumped to 6, to accommodate the symbolic library pulses (amp,angle) representation.
