@@ -59,6 +59,7 @@ def backend_monitor(backend):
         QiskitError: Input is not a IBMQ backend.
         MissingOptionalLibraryError: If qiskit-ibmq-provider is not installed
 
+    Examples:
     .. code-block:: python
 
        from qiskit import IBMQ
@@ -169,7 +170,7 @@ def backend_monitor(backend):
 def backend_overview():
     """Gives overview information on all the IBMQ
     backends that are available.
-
+    Examples:
     .. code-block:: python
 
        from qiskit import IBMQ
