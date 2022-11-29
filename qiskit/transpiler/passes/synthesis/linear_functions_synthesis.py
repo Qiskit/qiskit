@@ -28,7 +28,7 @@ class LinearFunctionsSynthesis(HighLevelSynthesis):
     Under the hood, this runs the default high-level synthesis plugin for linear functions.
     """
 
-    def __init(self):
+    def __init__(self):
         warnings.warn(
             "The LinearFunctionsSynthesis class is deprecated as of Qiskit Terra 0.23.0 "
             "and will be removed no sooner than 3 months after the release date. "
