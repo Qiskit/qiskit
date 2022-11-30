@@ -80,11 +80,10 @@ class SolovayKitaev(TransformationPass):
             matrix = node.op.to_matrix()
 
             # call solovay kitaev
-            approximation = self._sk.run(matrix, self.recursion_degree)
+            approximation = self._sk.run(matrix, self.recursion_degree, return_dag=True)
 
             # convert to a dag and replace the gate by the approximation
-            substitute = circuit_to_dag(approximation)
-            dag.substitute_node_with_dag(node, substitute)
+            dag.substitute_node_with_dag(node, approximation)
 
         return dag
 
