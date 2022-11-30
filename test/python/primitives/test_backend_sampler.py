@@ -275,6 +275,7 @@ class TestBackendSampler(QiskitTestCase):
         bell = self._circuit[1]
         sampler = BackendSampler(backend=backend)
         job = sampler.run(circuits=[bell])
+        job.result()
         self.assertEqual(job.status(), JobStatus.DONE)
 
     def test_primitive_job_size_limit_backend_v2(self):
