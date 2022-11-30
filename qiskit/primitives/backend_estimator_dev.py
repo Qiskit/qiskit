@@ -200,7 +200,7 @@ class BackendEstimator(BaseEstimator):
         job_circuits = list(c for bun in circuit_bundles for c in bun)  # TODO: accept tuple
 
         # Raw results: counts
-        counts_list: list[Counts] = self._run_on_backend(job_circuits, **run_options)
+        counts_list: list[Counts] = self._execute(job_circuits, **run_options)
 
         # Post-processing
         counts_iter = iter(counts_list)
@@ -241,8 +241,8 @@ class BackendEstimator(BaseEstimator):
         circs_w_meas = self._compose_measurements(circuit, measurements)
         return circs_w_meas
 
-    def _run_on_backend(self, circuits: list[QuantumCircuit], **run_options) -> list[Counts]:
-        """Run circuits on backend bypassing max circuits allowed."""
+    def _execute(self, circuits: list[QuantumCircuit], **run_options) -> list[Counts]:
+        """Execute circuits on backend bypassing max circuits allowed."""
         # Max circuits
         total_circuits: int = len(circuits)
         max_circuits: int = getattr(self.backend, "max_circuits", None) or total_circuits
