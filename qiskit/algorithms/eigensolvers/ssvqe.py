@@ -63,22 +63,22 @@ class SSVQE(VariationalAlgorithm, Eigensolver):
     mutually orthogonal states, as determined by the parameters applied to the ansatz,
     that will result in the minimum weighted sum of expectation values being measured
     of the input operator (Hamiltonian) with respect to these states. The weights given
-    to this list of expectation values is given by *weight_vector*. An optional array of
-    parameter values, via the *initial_point*, may be provided as the starting point for
+    to this list of expectation values is given by ``weight_vector``. An optional array of
+    parameter values, via the ``initial_point``, may be provided as the starting point for
     the search of the low-lying eigenvalues. This feature is particularly useful such as
     when there are reasons to believe that the solution point is close to a particular
-    point. The length of the *initial_point* list value must match the number of the
-    parameters expected by the ansatz being used. If the *initial_point* is left at the
+    point. The length of the ``initial_point`` list value must match the number of the
+    parameters expected by the ansatz being used. If the ``initial_point`` is left at the
     default of ``None``, then SSVQE will look to the ansatz for a preferred value, based
     on its given initial state. If the ansatz returns ``None``, then a random point will
     be generated within the parameter bounds set, as per above. If the ansatz provides
     ``None`` as the lower bound, then SSVQE will default it to :math:`-2\pi`; similarly,
     if the ansatz returns ``None`` as the upper bound, the default value will be :math:`2\pi`.
 
-    An optional list of initial states, via the *initial_states*, may also be provided.
+    An optional list of initial states, via the ``initial_states``, may also be provided.
     Choosing these states appropriately is a critical part of the algorithm. They must
     be mutually orthogonal because this is how the algorithm enforces the mutual
-    orthogonality of the solution states. If the *initial_states* is left as ``None``,
+    orthogonality of the solution states. If the ``initial_states`` is left as ``None``,
     then SSVQE will automatically generate a list of computational basis states and use
     these as the initial states. For many physically-motivated problems, it is advised
     to not rely on these default values as doing so can easily result in an unphysical
@@ -86,7 +86,7 @@ class SSVQE(VariationalAlgorithm, Eigensolver):
     states of a molecular Hamiltonian, then we expect the output states to belong to a
     particular particle-number subspace. If an ansatz that preserves particle number
     such as :class:`UCCSD` is used, then states belonging to the incorrect particle
-    number subspace will be returned if the *initial_states* are not in the correct
+    number subspace will be returned if the ``initial_states`` are not in the correct
     particle number subspace. A similar statement can often be made for the
     spin-magnetization quantum number.
 
@@ -127,10 +127,10 @@ class SSVQE(VariationalAlgorithm, Eigensolver):
         estimator: BaseEstimator,
         k: int | None = 2,
         ansatz: QuantumCircuit | None = None,
-        optimizer: Optimizer | Minimizer = None,
-        initial_point: Sequence[float] = None,
-        initial_states: list[QuantumCircuit] = None,
-        weight_vector: Sequence[float] | Sequence[int] = None,
+        optimizer: Optimizer | Minimizer | None = None,
+        initial_point: Sequence[float] | None = None,
+        initial_states: list[QuantumCircuit] | None = None,
+        weight_vector: Sequence[float] | Sequence[int] | None = None,
         gradient: BaseEstimatorGradient | None = None,
         callback: Callable[[int, np.ndarray, Sequence[float], float], None] | None = None,
         check_input_states_orthogonality: bool = True,
@@ -149,7 +149,7 @@ class SSVQE(VariationalAlgorithm, Eigensolver):
                 If ``None``, then SSVQE will set these to be a list of mutually orthogonal
                 computational basis states.
             weight_vector: An optional list or array of real positive numbers with length
-                equal to the value of *num_states* to be used in the weighted energy summation
+                equal to the value of ``num_states`` to be used in the weighted energy summation
                 objective function. This fixes the ordering of the returned eigenstate/eigenvalue
                 pairs. If ``None``, then SSVQE will default to [n, n-1, ..., 1] for `k` = n.
             gradient: An optional gradient function or operator for optimizer.
@@ -157,7 +157,7 @@ class SSVQE(VariationalAlgorithm, Eigensolver):
                 These data are: the evaluation count, the optimizer ansatz parameters,
                 the evaluated mean energies, and the metadata dictionary.
             check_input_states_orthogonality: A boolean that sets whether or not to check
-                that the value of initial_states passed consists of a mutually orthogonal
+                that the value of ``initial_states`` passed consists of a mutually orthogonal
                 set of states. If ``True``, then SSVQE will check that these states are mutually
                 orthogonal and return an error if they are not. This is set to ``True`` by default,
                 but setting this to ``False`` may be desirable for larger numbers of qubits to avoid
@@ -293,15 +293,15 @@ class SSVQE(VariationalAlgorithm, Eigensolver):
         for the ansatz. This is the objective function to be passed to the optimizer
         that is used for evaluation.
         Args:
-            operator: The operator whose energy levels to evaluate.
-            return_expectation: If True, return the ``ExpectationBase`` expectation converter used
-                in the construction of the expectation value. Useful e.g. to evaluate other
-                operators with the same expectation value converter.
+            initialized_anastz_list: A list consisting of copies of the ansatz initialized
+                in the initial states.
+            operator: The operator whose expectation value with respect to each of the
+                states in ``initialzed_ansatz_list`` is being measured.
         Returns:
-            Weighted energy sum of the hamiltonian of each parameter, and, optionally, the expectation
-            converter.
+            Weighted expectation value sum of the operator for each parameter.
         Raises:
-            RuntimeError: If the circuit is not parameterized (i.e. has 0 free parameters).
+            AlgorithmError: If the primitive job to evaluate the weighted energy
+                sum fails.
         """
         num_parameters = initialized_ansatz_list[0].num_parameters
 
