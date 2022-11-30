@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2019, 2021.
+# (C) Copyright IBM 2019, 2022.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -10,18 +10,19 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 """
-Circuit synthesis for the CNOTDihedral class.
+Circuit synthesis for the CNOTDihedral class for all-to-all connectivity.
 """
 
-import warnings
-from qiskit.synthesis.cnotdihedral import (
+from qiskit.synthesis.cnotdihedral.cnotdihedral_decompose_two_qubits import (
     synth_cnotdihedral_two_qubits,
-    synth_cnotdihedral_general,
 )
+from qiskit.synthesis.cnotdihedral.cnotdihedral_decompose_general import synth_cnotdihedral_general
 
 
-def decompose_cnotdihedral(elem):
-    """DEPRECATED: Decompose a CNOTDihedral element into a QuantumCircuit.
+def synth_cnotdihedral_full(elem):
+    """Decompose a CNOTDihedral element into a QuantumCircuit.
+    For N <= 2 qubits this is based on optimal CX cost decomposition from reference [1].
+    For N > 2 qubits this is done using the general non-optimal compilation routine from reference [2].
 
     Args:
         elem (CNOTDihedral): a CNOTDihedral element.
@@ -38,14 +39,6 @@ def decompose_cnotdihedral(elem):
     """
 
     num_qubits = elem.num_qubits
-
-    warnings.warn(
-        "The decompose_cnotdihedral function is deprecated as of Qiskit Terra 0.23.0 "
-        "and will be removed no sooner than 3 months after the releasedate. "
-        "Use qiskit.synthesis.synth_cnotdihedral_full function instead.",
-        DeprecationWarning,
-        stacklevel=2,
-    )
 
     if num_qubits < 3:
         return synth_cnotdihedral_two_qubits(elem)
