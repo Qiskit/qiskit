@@ -1640,6 +1640,7 @@ class QuantumCircuit:
             "c3x",
             "c3sx",
             "c4x",
+            "gphase",
         ]
 
         existing_composite_circuits = []
@@ -2935,6 +2936,7 @@ class QuantumCircuit:
         """
         return self.i(qubit)
 
+
     def ms(self, theta: ParameterValueType, qubits: Sequence[QubitSpecifier]) -> InstructionSet:
         """Apply :class:`~qiskit.circuit.library.generalized_gates.gms.MSGate`.
 
@@ -2952,6 +2954,24 @@ class QuantumCircuit:
 
         return self.append(MSGate(len(qubits), theta), qubits)
 
+    def gphase(
+        self, theta: ParameterValueType, label: Optional[str] = None
+    ) -> InstructionSet:
+        """Apply :class:`~qiskit.circuit.library.GlobalPhaseGate`.
+
+        For the full matrix form of this gate, see the underlying gate documentation.
+
+        Args:
+            theta: The global phase.
+            label: The string label of the gate in the circuit.
+
+        Returns:
+            A handle to the instructions created.
+        """
+        from .library.standard_gates.gphase import GlobalPhaseGate
+
+        return self.append(GlobalPhaseGate(theta, label=label), [])
+        
     def p(self, theta: ParameterValueType, qubit: QubitSpecifier) -> InstructionSet:
         """Apply :class:`~qiskit.circuit.library.PhaseGate`.
 
@@ -3203,6 +3223,8 @@ class QuantumCircuit:
         from .library.standard_gates.ry import RYGate
 
         return self.append(RYGate(theta, label=label), [qubit], [])
+
+
 
     def cry(
         self,
