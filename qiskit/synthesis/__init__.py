@@ -29,6 +29,14 @@ Evolution Synthesis
    SuzukiTrotter
    MatrixExponential
 
+Linear Function Synthesis
+=========================
+.. autosummary::
+   :toctree: ../stubs/
+
+    synth_cnot_count_full_pmh
+    synth_cnot_depth_line_kms
+
 Permutation Synthesis
 =====================
 
@@ -69,6 +77,7 @@ from .evolution import (
     QDrift,
 )
 
+from .linear import synth_cnot_count_full_pmh, synth_cnot_depth_line_kms
 from .permutation import synth_permutation_depth_lnn_kms
 from .clifford import (
     synth_clifford_full,
