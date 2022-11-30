@@ -41,7 +41,7 @@ class PrimitiveJob(JobV1):
             raise JobError("Primitive job has already been submitted.")
 
         executor = ThreadPoolExecutor(max_workers=1)
-        self._future executor.submit(self._function, *self._args, **self._kwargs)
+        self._future = executor.submit(self._function, *self._args, **self._kwargs)
 
     def result(self):
         """Return the results of the job."""
