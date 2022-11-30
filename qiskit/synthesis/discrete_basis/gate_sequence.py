@@ -34,12 +34,13 @@ class GateSequence:
             gates: The gates in the sequence. The default is [].
         """
         self.gates = list(gates)
-        self.matrices = [np.array(gate, dtype=np.complex128) for gate in gates]
+        self.matrices = [np.asarray(gate, dtype=np.complex128) for gate in gates]
         self.labels = [gate.name for gate in gates]
 
         # get U(2) representation of the gate sequence
         u2_matrix = np.identity(2)
         for matrix in self.matrices:
+            # idea: could this be optimized by a specific numpy operation?
             u2_matrix = matrix.dot(u2_matrix)
 
         # convert to SU(2)
@@ -140,6 +141,8 @@ class GateSequence:
 
     def adjoint(self) -> "GateSequence":
         """Get the complex conjugate."""
+        # We're initializing an empty GateSequence and set the state manually, as we can
+        # efficiently infer the adjoint values from the current value instead of recomputing them.
         adjoint = GateSequence()
         adjoint.gates = [gate.inverse() for gate in reversed(self.gates)]
         adjoint.labels = [inv.name for inv in adjoint.gates]
@@ -250,6 +253,8 @@ class GateSequence:
         Returns:
             The dot-product as gate sequence.
         """
+        # We're initializing an empty GateSequence and set the state manually, as we can more
+        # efficiently compute the multiplied values from the already constructed matrices.
         composed = GateSequence()
         composed.gates = other.gates + self.gates
         composed.labels = other.labels + self.labels

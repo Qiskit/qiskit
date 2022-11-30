@@ -15,7 +15,6 @@
 from __future__ import annotations
 
 import math
-from scipy.optimize import fsolve
 import numpy as np
 from .gate_sequence import _check_is_so3, GateSequence
 
@@ -82,6 +81,8 @@ def _solve_decomposition_angle(matrix: np.ndarray) -> float:
     Raises:
         ValueError: if ``matrix`` is not an SO(3)-matrix.
     """
+    from scipy.optimize import fsolve
+
     _check_is_so3(matrix)
 
     trace = _compute_trace_so3(matrix)

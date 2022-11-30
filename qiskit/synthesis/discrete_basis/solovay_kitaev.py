@@ -17,10 +17,6 @@ from __future__ import annotations
 import numpy as np
 
 from qiskit.circuit import QuantumCircuit, Gate
-from qiskit.converters import circuit_to_dag
-from qiskit.transpiler.basepasses import TransformationPass
-from qiskit.dagcircuit.dagcircuit import DAGCircuit
-from qiskit.transpiler.exceptions import TranspilerError
 
 from .gate_sequence import GateSequence
 from .commutator_decompose import commutator_decompose
@@ -38,18 +34,16 @@ class SolovayKitaevDecomposition:
         self, basic_approximations: str | dict[str, np.ndarray] | list[GateSequence] | None = None
     ) -> None:
         """
-
-        .. note::
-
-            If ``basis_gates`` and ``depth`` are not passed, the basic approximations can be
-            generated with the ``generate_basic_approximations`` method and loaded into the
-            class via ``load_basic_approximations``. Since in practice, large basic approximations
-            are required we suggest to generate a sufficiently large set once and always load
-            the approximations afterwards.
-
         Args:
-            basis_gates: The basis gates used in the basic approximations.
-            depth: The maximum depth of the basic approximations.
+            basic_approximations: A specification of the basic SU(2) approximations in terms
+                of discrete gates. At each iteration this algorithm, the remaining error is
+                approximated with the closest sequence of gates in this set.
+                If a ``str``, this specifies a ``.npy`` filename from which to load the
+                approximation. If a ``dict``, then this contains
+                ``{gates: effective_SO3_matrix}`` pairs,
+                e.g. ``{"h t": np.array([[0, 0.7071, -0.7071], [0, -0.7071, -0.7071], [-1, 0, 0]]}``.
+                If a list, this contains the same information as the dict, but already converted to
+                :class:`.GateSequence` objects, which contain the SO(3) matrix and gates.
         """
         if basic_approximations is None:
             # generate a default basic approximation
@@ -59,7 +53,7 @@ class SolovayKitaevDecomposition:
 
         self.basic_approximations = self.load_basic_approximations(basic_approximations)
 
-    def load_basic_approximations(self, data: dict | str) -> list[GateSequence]:
+    def load_basic_approximations(self, data: list | str | dict) -> list[GateSequence]:
         """Load basic approximations.
 
         Args:
@@ -162,67 +156,6 @@ class SolovayKitaevDecomposition:
 
         best = min(self.basic_approximations, key=key)
         return best
-
-
-class SolovayKitaev(TransformationPass):
-    r"""Approximately decompose 1q gates to a discrete basis using the Solovay-Kitaev algorithm.
-
-    See :mod:`qiskit.transpiler.synthesis.solovay_kitaev` for more information.
-
-    """
-
-    def __init__(
-        self,
-        recursion_degree: int = 3,
-        basic_approximations: str | dict[str, np.ndarray] | None = None,
-    ) -> None:
-        """
-        Args:
-            recursion_degree: The recursion depth for the Solovay-Kitaev algorithm.
-                A larger recursion depth increases the accuracy and length of the
-                decomposition.
-            basic_approximations: The basic approximations for the finding the best discrete
-                decomposition at the root of the recursion. If a string, it specifies the ``.npy``
-                file to load the approximations from. If a dictionary, it contains
-                ``{label: SO(3)-matrix}`` pairs. If None, a default based on the H, T and Tdg gates
-                up to combinations of depth 10 is generated.
-        """
-        super().__init__()
-        self.recursion_degree = recursion_degree
-        self._sk = SolovayKitaevDecomposition(basic_approximations)
-
-    def run(self, dag: DAGCircuit) -> DAGCircuit:
-        """Run the ``SolovayKitaev`` pass on `dag`.
-
-        Args:
-            dag: The input dag.
-
-        Returns:
-            Output dag with 1q gates synthesized in the discrete target basis.
-
-        Raises:
-            TranspilerError: if a gates does not have to_matrix
-        """
-        for node in dag.op_nodes():
-            if not node.op.num_qubits == 1:
-                continue  # ignore all non-single qubit gates
-
-            if not hasattr(node.op, "to_matrix"):
-                raise TranspilerError(
-                    "SolovayKitaev does not support gate without "
-                    f"to_matrix method: {node.op.name}"
-                )
-
-            matrix = node.op.to_matrix()
-
-            # call solovay kitaev
-            approximation = self._sk.run(matrix, self.recursion_degree)
-
-            # convert to a dag and replace the gate by the approximation
-            substitute = circuit_to_dag(approximation)
-            dag.substitute_node_with_dag(node, substitute)
-
-        return dag
 
 
 def _remove_inverse_follows_gate(sequence):

@@ -56,7 +56,7 @@ Approximately decompose 1q gates to a discrete basis using the Solovay-Kitaev al
             from qiskit.circuit import QuantumCircuit
             from qiskit.circuit.library import TGate, HGate, TdgGate
             from qiskit.converters import circuit_to_dag, dag_to_circuit
-            from qiskit.synthesis.discrete_basis import SolovayKitaev
+            from qiskit.transpiler.passes.synthesis import SolovayKitaev
             from qiskit.quantum_info import Operator
 
             circuit = QuantumCircuit(1)
@@ -88,4 +88,4 @@ Approximately decompose 1q gates to a discrete basis using the Solovay-Kitaev al
 
 """
 
-from .solovay_kitaev import SolovayKitaev
+from .solovay_kitaev import SolovayKitaevDecomposition
