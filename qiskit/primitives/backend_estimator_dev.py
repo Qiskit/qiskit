@@ -241,8 +241,15 @@ class BackendEstimator(BaseEstimator):
         circs_w_meas = self._compose_measurements(circuit, measurements)
         return circs_w_meas
 
-    def _execute(self, circuits: list[QuantumCircuit], **run_options) -> list[Counts]:
-        """Execute circuits on backend bypassing max circuits allowed."""
+    def _execute(self, circuits: Sequence[QuantumCircuit], **run_options) -> list[Counts]:
+        """Execute quantum circuits on backend bypassing max circuits allowed.
+
+        Each :class:`qiskit.result.Counts` object is annotated with the metadata
+        from the circuit that produced it.
+        """
+        # Normalization
+        circuits = list(circuits)
+
         # Max circuits
         total_circuits: int = len(circuits)
         max_circuits: int = getattr(self.backend, "max_circuits", None) or total_circuits
@@ -282,8 +289,9 @@ class BackendEstimator(BaseEstimator):
         expval: float = 0.0
         var: float = 0.0
         for counts, metadata in zip(counts_bundle, metadata_bundle):
-            paulis: PauliList = metadata["paulis"]
-            coeffs: tuple[float] = metadata["coeffs"]
+            observable: SparsePauliOp = metadata["observable"]
+            paulis: PauliList = observable.paulis
+            coeffs: tuple[float] = observable.coeffs
             expvals, variances = self._expval_reckoner.compute_expvals_and_variances(counts, paulis)
             expval += np.dot(expvals, coeffs)
             var += np.dot(variances, np.array(coeffs) ** 2)
@@ -386,18 +394,15 @@ class BackendEstimator(BaseEstimator):
         if len(basis) != 1:
             raise ValueError("Unable to retrieve a singlet Pauli basis for the given observable.")
         circuit: QuantumCircuit = self._build_pauli_measurement(basis[0])
-        # Simplified Paulis (removing common identities)
+        # Simplified Paulis (keep only measured qubits)
         measured_qubit_indices = circuit.metadata.get("measured_qubit_indices")
         paulis = PauliList.from_symplectic(
             observable.paulis.z[:, measured_qubit_indices],
             observable.paulis.x[:, measured_qubit_indices],
             observable.paulis.phase,
         )
-        circuit.metadata = {
-            **circuit.metadata,
-            "paulis": paulis,
-            "coeffs": tuple(np.real_if_close(observable.coeffs)),
-        }
+        # TODO: observable does not need to be hermitian: rename
+        circuit.metadata.update({"observable": SparsePauliOp(paulis, observable.coeffs)})
         return circuit
 
     # TODO: `QuantumCircuit.measure_pauli(pauli)`

@@ -273,7 +273,6 @@ class TestMeasurement(QiskitTestCase):
         """Test measurement circuits for a given observable."""
         # Preparation
         observable = SparsePauliOp(paulis)  # TODO: custom coeffs
-        coeffs = tuple(np.real_if_close(observable.coeffs).tolist())
         qubit_index_map = {qubit: i for i, qubit in enumerate(measurement.qubits)}
         meas_indices = tuple(
             qubit_index_map[qargs[0]] for inst, qargs, _ in measurement if inst.name == "measure"
@@ -289,10 +288,11 @@ class TestMeasurement(QiskitTestCase):
         self.assertEqual(circuit, measurement)
         self.assertIsInstance(circuit.metadata.get("measured_qubit_indices"), tuple)
         self.assertEqual(circuit.metadata.get("measured_qubit_indices"), meas_indices)
-        self.assertIsInstance(circuit.metadata.get("paulis"), PauliList)
-        self.assertEqual(circuit.metadata.get("paulis"), paulis)
-        self.assertIsInstance(circuit.metadata.get("coeffs"), tuple)
-        self.assertEqual(circuit.metadata.get("coeffs"), coeffs)
+        self.assertIsInstance(circuit.metadata.get("observable"), SparsePauliOp)
+        self.assertEqual(
+            circuit.metadata.get("observable"),
+            SparsePauliOp(paulis, observable.coeffs),
+        )
 
 
 @ddt
