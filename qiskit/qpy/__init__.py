@@ -20,8 +20,17 @@ QPY serialization (:mod:`qiskit.qpy`)
 QPY is a binary serialization format for :class:`~.QuantumCircuit` and
 :class:`~.ScheduleBlock` objects that is designed to be cross-platform,
 Python version agnostic, and backwards compatible moving forward. QPY should
-be used if you need a lossless mechanism to save or copy between systems a
-:class:`~.QuantumCircuit` or :class:`~.ScheduleBlock`.
+be used if you need a mechanism to save or copy between systems a
+:class:`~.QuantumCircuit` or :class:`~.ScheduleBlock` that preserves the full
+Qiskit object structure (except for custom attributes defined outside of
+Qiskit code). This differs from other serialization formats like
+`OpenQASM <https://github.com/openqasm/openqasm>`__ (2.0 or 3.0) which has a
+different abstraction model and can result in a loss of information contained
+in the original circuit (or is unable to represent some aspects of the
+Qiskit objects) or Python's `pickle <https://docs.python.org/3/library/pickle.html>`__
+which will preserve the Qiskit object exactly but will only work for a single Qiskit
+version (it is also
+`potentially insecure <https://docs.python.org/3/library/pickle.html#module-pickle>`__).
 
 *********
 Using QPY
