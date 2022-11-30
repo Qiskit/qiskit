@@ -125,7 +125,7 @@ def _read_symbolic_pulse(file_obj, version, qiskit_version):
         version=version,
         vectors={},
     )
-    if qiskit_version <= (0, 23, 0):
+    if qiskit_version < (0, 23, 0):
         envelope = _format_legacy_qiskit_pulse(pulse_type, envelope, parameters)
         # Note that parameters is mutated during the function call
 
