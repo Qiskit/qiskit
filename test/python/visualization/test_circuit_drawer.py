@@ -117,7 +117,7 @@ class TestCircuitDrawer(QiskitTestCase):
         with self.assertRaisesRegex(VisualizationError, "cannot be set when the reverse_bits"):
             visualization.circuit_drawer(circuit, wire_order=[0, 1, 2, 5, 4, 3], reverse_bits=True)
 
-        with self.assertWarnsRegex(RuntimeWarning, "Cregbundle set"):
+        with self.assertWarnsRegex(RuntimeWarning, "cregbundle set"):
             visualization.circuit_drawer(circuit, cregbundle=True, wire_order=[0, 1, 2, 5, 4, 3])
 
     def test_reverse_bits(self):
@@ -159,5 +159,10 @@ class TestCircuitDrawer(QiskitTestCase):
                 "               ",
             ]
         )
-        result = visualization.circuit_drawer(circuit)
+        result = circuit.draw("text")
         self.assertEqual(result.__str__(), expected)
+        # Extra tests that no cregbundle (or any other) warning is raised with the default settings
+        # for the other drawers, if they're available to test.
+        circuit.draw("latex_source")
+        if optionals.HAS_MATPLOTLIB and optionals.HAS_PYLATEX:
+            circuit.draw("mpl")
