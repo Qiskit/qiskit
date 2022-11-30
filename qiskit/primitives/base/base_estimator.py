@@ -205,7 +205,7 @@ class BaseEstimator(BasePrimitive):
             circuits: one or more circuit objects.
             observables: one or more observable objects. Several formats are allowed;
                 importantly, ``str`` should follow the string representation format for
-                :py:class:`~qiskit.quantum_info.Pauli` objects.
+                :class:`~qiskit.quantum_info.Pauli` objects.
             parameter_values: concrete parameters to be bound.
             run_options: runtime options used for circuit execution.
 
