@@ -483,7 +483,7 @@ def _basis_search(equiv_lib, source_basis, target_basis):
         key
         for gate in target_basis
         for key in filter(
-            lambda key, name=gate: key.name == name, equiv_lib.key_to_node_index.keys()
+            lambda key, name=gate: key.name == name, equiv_lib.key_to_node_index
         )
     ]
     graph = equiv_lib.graph
@@ -505,6 +505,9 @@ def _basis_search(equiv_lib, source_basis, target_basis):
         logger.debug("Transformation path:")
         for gate_name, gate_num_qubits, params, equiv in rtn:
             logger.debug("%s/%s => %s\n%s", gate_name, gate_num_qubits, params, equiv)
+
+    # Remove dummy node in order to return graph to original state
+    graph.remove_node(dummy)
 
     return rtn
 

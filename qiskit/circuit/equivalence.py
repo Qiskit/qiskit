@@ -45,7 +45,7 @@ class EquivalenceLibrary:
             self._num_gates_for_rule = dict()
             self._rule_count = 0
         else:
-            self._graph = copy.deepcopy(base._graph)
+            self._graph = base._graph.copy()
             self._key_to_node_index = copy.deepcopy(base._key_to_node_index)
             self._num_gates_for_rule = copy.copy(base._num_gates_for_rule)
             self._rule_count = base._rule_count
@@ -61,10 +61,10 @@ class EquivalenceLibrary:
 
     @property
     def key_to_node_index(self) -> dict:
-        """Return map of Keys to node indices
+        """Return map of Keys to graph node indices
 
         Returns:
-            dict: A map of Keys to node indices
+            dict: A map of Keys to graph node indices
         """
         return self._key_to_node_index
 
@@ -215,7 +215,7 @@ class EquivalenceLibrary:
         graph = rx.PyDiGraph()
 
         node_map = {}
-        for key in self._key_to_node_index.keys():
+        for key in self._key_to_node_index:
             name, num_qubits = key
             equivalences = self._get_equivalences(key)
 

@@ -16,6 +16,8 @@
 import unittest
 import numpy as np
 
+import rustworkx as rx
+
 from qiskit.test import QiskitTestCase
 
 from qiskit.circuit import QuantumCircuit, Parameter, Gate
@@ -24,6 +26,7 @@ from qiskit.circuit.exceptions import CircuitError
 from qiskit.converters import circuit_to_instruction, circuit_to_gate
 from qiskit.circuit import EquivalenceLibrary
 from qiskit.utils import optionals
+from qiskit.circuit.equivalence import Key, Equivalence
 
 from ..visualization.visualization import QiskitVisualizationTestCase, path_to_diagram_reference
 
@@ -156,9 +159,6 @@ class TestEquivalenceLibraryWithoutBase(QiskitTestCase):
 
     def test_equivalence_graph(self):
         """Verify valid graph created by add_equivalence"""
-
-        import rustworkx as rx
-        from qiskit.circuit.equivalence import Key, Equivalence
 
         eq_lib = EquivalenceLibrary()
 
