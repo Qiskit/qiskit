@@ -577,8 +577,8 @@ class ExpvalReckoner(ABC):
         """Get expectation values and variances for input Paulis.
 
         Args:
-            counts: measured by executing a :py:class``~qiskit.circuit.QuantumCircuit``.
-            paulis: the list of target :py:class:`~qiskit.quantum_info.Pauli` to observe.
+            counts: measured by executing a :class``~qiskit.circuit.QuantumCircuit``.
+            paulis: the list of target :class:`~qiskit.quantum_info.Pauli` to observe.
 
         Returns:
             A tuple of expectation values and a tuple of variances for input Paulis.
@@ -593,8 +593,8 @@ class ExpvalReckoner(ABC):
         """Return an expval-variance pair for the given counts and pauli.
 
         Args:
-            counts: measured by executing a :py:class``~qiskit.circuit.QuantumCircuit``.
-            pauli: the target :py:class:`~qiskit.quantum_info.Pauli` to observe.
+            counts: measured by executing a :class``~qiskit.circuit.QuantumCircuit``.
+            pauli: the target :class:`~qiskit.quantum_info.Pauli` to observe.
 
         Returns:
             A tuple holding the expectation value of the Pauli observable and variance.
@@ -626,7 +626,7 @@ class SpectralReckoner(ExpvalReckoner):
 
         Args:
             bitstring: binary representation of the eigenvector.
-            pauli: the target :py:class:`~qiskit.quantum_info.Pauli` matrix.
+            pauli: the target :class:`~qiskit.quantum_info.Pauli` matrix.
 
         Returns:
             The eigenvalue associated to the bitstring eigenvector and the input Pauli observable.
