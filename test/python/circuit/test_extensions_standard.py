@@ -859,7 +859,6 @@ class TestStandard1Q(QiskitTestCase):
         self.assertEqual(self.circuit[0].operation.params, [0.1])
         self.assertEqual(self.circuit[0].qubits, ())
 
-
     # def test_gphase_wires(self):
     #     self.circuit.gphase(0.1)
     #     self.assertEqual(self.circuit[0].operation.name, "gphase")
@@ -868,7 +867,7 @@ class TestStandard1Q(QiskitTestCase):
 
     def test_gphase_inv(self):
         instruction_set = self.circuit.append(GlobalPhaseGate(-0.1), []).inverse()
-        self.assertEqual(len(instruction_set),1)
+        self.assertEqual(len(instruction_set), 1)
         # self.assertEqual(instruction_set[0].operation.name, "gphase_dg")
         # self.assertEqual(instruction_set[1].qubits, (self.qr[0],))
         self.assertEqual(instruction_set[0].operation.params, [-0.1])
@@ -883,6 +882,7 @@ class TestStandard1Q(QiskitTestCase):
         """Test gphase matrix."""
         gate = GlobalPhaseGate(theta)
         np.testing.assert_allclose(np.array(gate), expected, atol=1e-7)
+
 
 @ddt
 class TestStandard2Q(QiskitTestCase):
