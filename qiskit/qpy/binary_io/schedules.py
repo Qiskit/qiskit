@@ -78,10 +78,10 @@ def _loads_symbolic_expr(expr_bytes):
 
 
 def _format_legacy_qiskit_pulse(pulse_type, envelope, parameters):
-    # In the transition from Qiskit Terra 0.22.2, the representation of library pulses was changed from
-    # complex "amp" to float "amp" and "angle". The existing library pulses in those versions are handled
-    # here separately to conform with the new representation. To avoid role assumption for "amp" for
-    # custom pulses, only the library pulses are handled this way.
+    # In the transition to Qiskit Terra 0.23, the representation of library pulses was changed from
+    # complex "amp" to float "amp" and "angle". The existing library pulses in previous versions are
+    # handled here separately to conform with the new representation. To avoid role assumption for
+    # "amp" for custom pulses, only the library pulses are handled this way.
 
     # Note that parameters is mutated during the function call
 
@@ -125,7 +125,7 @@ def _read_symbolic_pulse(file_obj, version, qiskit_version):
         version=version,
         vectors={},
     )
-    if qiskit_version <= (0, 22, 2):
+    if qiskit_version <= (0, 23, 0):
         envelope = _format_legacy_qiskit_pulse(pulse_type, envelope, parameters)
         # Note that parameters is mutated during the function call
 
