@@ -1,0 +1,6 @@
+---
+features:
+  - |
+    Adds the :attr:`.AdaptVQEResult.eigenvalue_history` attribute.
+  - |
+    Improves the logging done during the execution of an :class:`.AdaptVQE`.
