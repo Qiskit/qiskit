@@ -1,0 +1,14 @@
+---
+fixes:
+  - |
+    Fixed an issue with the :func:`~.transpile` function when run with
+    ``optimization_level`` set to ``1``, ``2``, or ``3`` and no
+    ``backend``, ``basis_gates``, or ``target`` argument specified and
+    the input circuit has runs of single qubit gates which can be simplified,
+    or with ``optimization_level=3`` any 2 qubit blocks which are equivalent
+    to an identity matrix the output circuit would not be as optimized as
+    possible. This could have been correct previously by specifying either
+    the ``backend``, ``basis_gates``, or ``target`` arguments on the
+    :func:`~.transpile` call, but now the output will be as simplified as it
+    can without knowing the target gates allowed.
+    Fixed `#9217 <https://github.com/Qiskit/qiskit-terra/issues/9217>`__
