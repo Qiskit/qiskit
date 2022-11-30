@@ -482,9 +482,7 @@ def _basis_search(equiv_lib, source_basis, target_basis):
     target_basis_keys = [
         key
         for gate in target_basis
-        for key in filter(
-            lambda key, name=gate: key.name == name, equiv_lib.key_to_node_index
-        )
+        for key in filter(lambda key, name=gate: key.name == name, equiv_lib.key_to_node_index)
     ]
     graph = equiv_lib.graph
     vis = BasisSearchVisitor(graph, source_basis, target_basis_keys, equiv_lib.num_gates_for_rule)
