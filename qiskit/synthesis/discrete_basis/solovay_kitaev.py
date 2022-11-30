@@ -17,6 +17,7 @@ from __future__ import annotations
 import numpy as np
 
 from qiskit.circuit import QuantumCircuit, Gate
+from qiskit.dagcircuit import DAGCircuit
 
 from .gate_sequence import GateSequence
 from .commutator_decompose import commutator_decompose
@@ -85,12 +86,15 @@ class SolovayKitaevDecomposition:
 
         return sequences
 
-    def run(self, gate_matrix: np.ndarray, recursion_degree: int) -> QuantumCircuit:
+    def run(
+        self, gate_matrix: np.ndarray, recursion_degree: int, return_dag: bool = False
+    ) -> QuantumCircuit | DAGCircuit:
         r"""Run the algorithm.
 
         Args:
             gate_matrix: The 2x2 matrix representing the gate. Does not need to be SU(2).
             recursion_degree: The recursion degree, called :math:`n` in the paper.
+            return_dag: If ``True`` return a :class:`.DAGCircuit`, else a :class:`.QuantumCircuit`.
 
         Returns:
             A one-qubit circuit approximating the ``gate_matrix`` in the specified discrete basis.
@@ -108,10 +112,14 @@ class SolovayKitaevDecomposition:
         _remove_inverse_follows_gate(decomposition)
 
         # convert to a circuit and attach the right phases
-        circuit = decomposition.to_circuit()
-        circuit.global_phase = decomposition.global_phase - global_phase
+        if return_dag:
+            out = decomposition.to_dag()
+        else:
+            out = decomposition.to_circuit()
 
-        return circuit
+        out.global_phase = decomposition.global_phase - global_phase
+
+        return out
 
     def _recurse(self, sequence: GateSequence, n: int) -> GateSequence:
         """Performs ``n`` iterations of the Solovay-Kitaev algorithm on ``sequence``.
