@@ -228,21 +228,19 @@ def load(
     if data.preface.decode(common.ENCODE) != "QISKIT":
         raise QiskitError("Input file is not a valid QPY file")
     version_match = VERSION_PATTERN_REGEX.search(__version__)
-    version_parts = [int(x) for x in version_match.group("release").split(".")]
+    env_qiskit_version = [int(x) for x in version_match.group("release").split(".")]
 
-    header_version_parts = [data.major_version, data.minor_version, data.patch_version]
-
+    qiskit_version = (data.major_version, data.minor_version, data.patch_version)
     # pylint: disable=too-many-boolean-expressions
     if (
-        version_parts[0] < header_version_parts[0]
+        env_qiskit_version[0] < qiskit_version[0]
         or (
-            version_parts[0] == header_version_parts[0]
-            and header_version_parts[1] > version_parts[1]
+            env_qiskit_version[0] == qiskit_version[0] and qiskit_version[1] > env_qiskit_version[1]
         )
         or (
-            version_parts[0] == header_version_parts[0]
-            and header_version_parts[1] == version_parts[1]
-            and header_version_parts[2] > version_parts[2]
+            env_qiskit_version[0] == qiskit_version[0]
+            and qiskit_version[1] == env_qiskit_version[1]
+            and qiskit_version[2] > env_qiskit_version[2]
         )
     ):
         warnings.warn(
@@ -250,7 +248,7 @@ def load(
             "file, %s, is newer than the current qiskit version %s. "
             "This may result in an error if the QPY file uses "
             "instructions not present in this current qiskit "
-            "version" % (".".join([str(x) for x in header_version_parts]), __version__)
+            "version" % (".".join([str(x) for x in qiskit_version]), __version__)
         )
 
     if data.qpy_version < 5:
@@ -268,6 +266,11 @@ def load(
     programs = []
     for _ in range(data.num_programs):
         programs.append(
-            loader(file_obj, data.qpy_version, metadata_deserializer=metadata_deserializer)
+            loader(
+                file_obj,
+                data.qpy_version,
+                metadata_deserializer=metadata_deserializer,
+                qiskit_version=qiskit_version,
+            )
         )
     return programs
