@@ -193,119 +193,23 @@ class BackendEstimator(BaseEstimator):
         parameter_values: tuple[tuple[float, ...], ...],
         **run_options,
     ) -> EstimatorResult:
-        """Solve expectation value problem on backend."""
-        # Pre-processing
-        circuit_bundles = self._preprocess(circuits, observables, parameter_values)
-        metadata_bundles = tuple(tuple(c.metadata for c in bun) for bun in circuit_bundles)
-        job_circuits = list(c for bun in circuit_bundles for c in bun)  # TODO: accept tuple
+        """Solve expectation value problem."""
+        circuits = self._pre_transpile(circuits)
+        circuits = self._bind_parameters(circuits, parameter_values)
+        circuits = self._post_transpile(circuits)
+        circuits_matrix = self._observe_circuits(circuits, observables)
+        counts_matrix = self._execute_matrix(circuits_matrix, **run_options)
+        expvals_w_errors = self._reckon_expvals(counts_matrix)
+        return self._build_result(expvals_w_errors, counts_matrix)
 
-        # Raw results: counts
-        counts_list: list[Counts] = self._execute(job_circuits, **run_options)
+    def _pre_transpile(self, circuits: Sequence[QuantumCircuit]) -> tuple[QuantumCircuit, ...]:
+        """."""
+        return tuple(self._pre_transpile_single(qc) for qc in circuits)
 
-        # Post-processing
-        counts_iter = iter(counts_list)
-        counts_bundles = tuple(tuple(next(counts_iter) for _ in bun) for bun in circuit_bundles)
-        expval_list, var_list, shots_list = self._postprocess(counts_bundles, metadata_bundles)
+    def _pre_transpile_single(self, circuit: QuantumCircuit) -> QuantumCircuit:
+        """Traspile paramterized quantum circuit to match the estimator's backend.
 
-        # Results
-        values = np.real_if_close(expval_list)
-        metadata = [
-            {"variance": var, "shots": shots, "num_circuits": len(circuit_bundle)}
-            for var, shots, circuit_bundle in zip(var_list, shots_list, circuit_bundles)
-        ]
-        return EstimatorResult(values, metadata)
-
-    def _preprocess(
-        self,
-        circuits: Sequence[QuantumCircuit],
-        observables: Sequence[BaseOperator | PauliSumOp],
-        parameter_values: Sequence[Sequence[float]],
-    ) -> tuple[tuple[QuantumCircuit, ...], ...]:
-        """Preprocess circuit-observable experiments to runnable tuples of circuits, one per pair."""
-        return tuple(
-            self._preprocess_single(circuit, observable, params)
-            for circuit, observable, params in zip(circuits, observables, parameter_values)
-        )
-
-    def _preprocess_single(
-        self,
-        circuit: QuantumCircuit,
-        observable: BaseOperator,
-        parameter_values: Sequence[float],
-    ) -> tuple[QuantumCircuit, ...]:
-        """Preprocess single circuit-observable experiment to runnable tuple of circuits."""
-        circuit = self._transpile(circuit)  # TODO: Cache (produces a copy)
-        circuit.assign_parameters(parameter_values, inplace=True)
-        circuit = self._run_bound_pass_manager(circuit)
-        measurements = self._build_measurement_circuits(observable)
-        circs_w_meas = self._compose_measurements(circuit, measurements)
-        return circs_w_meas
-
-    def _execute(self, circuits: Sequence[QuantumCircuit], **run_options) -> list[Counts]:
-        """Execute quantum circuits on backend bypassing max circuits allowed.
-
-        Each :class:`qiskit.result.Counts` object is annotated with the metadata
-        from the circuit that produced it.
-        """
-        # Normalization
-        circuits = list(circuits)
-
-        # Max circuits
-        total_circuits: int = len(circuits)
-        max_circuits: int = getattr(self.backend, "max_circuits", None) or total_circuits
-
-        # Raw results
-        jobs: tuple[Job] = tuple(
-            self.backend.run(circuits[split : split + max_circuits], **run_options)
-            for split in range(0, total_circuits, max_circuits)
-        )
-        raw_results: tuple[Result] = tuple(job.result() for job in jobs)
-
-        # Counts
-        counts_list: list[Counts] = []
-        for raw_result in raw_results:
-            counts: list[Counts] | Counts = raw_result.get_counts()
-            counts_list.extend(counts if isinstance(counts, list) else [counts])
-        return counts_list
-
-    def _postprocess(
-        self,
-        counts_bundles: Sequence[Sequence[Counts]],
-        metadata_bundles: Sequence[Sequence[dict[str, Any]]],
-    ) -> tuple[tuple[float, ...], tuple[float, ...], tuple[int, ...]]:
-        """Postprocess lists of counts and metadata bundles to expvals, variances, and shots."""
-        expval_var_shots_triplets: tuple[tuple[float, float, int], ...] = tuple(
-            self._postprocess_single(counts_bundle, meta_bundle)
-            for counts_bundle, meta_bundle in zip(counts_bundles, metadata_bundles)
-        )
-        return tuple(tuple(lst) for lst in zip(*expval_var_shots_triplets))  # type: ignore
-
-    def _postprocess_single(
-        self,
-        counts_bundle: Sequence[Counts],
-        metadata_bundle: Sequence[dict[str, Any]],
-    ) -> tuple[float, float, int]:
-        """Postprocess single counts and metadata bundles to expval, variance, and shots."""
-        expval: float = 0.0
-        var: float = 0.0
-        for counts, metadata in zip(counts_bundle, metadata_bundle):
-            observable: SparsePauliOp = metadata["observable"]
-            paulis: PauliList = observable.paulis
-            coeffs: tuple[float] = observable.coeffs
-            expvals, variances = self._expval_reckoner.compute_expvals_and_variances(counts, paulis)
-            expval += np.dot(expvals, coeffs)
-            var += np.dot(variances, np.array(coeffs) ** 2)
-        shots: int = sum(counts_bundle[0].values())  # TODO: not correct -> counts.shots (?)
-        return expval, var, shots
-
-    ################################################################################
-    ## TRANSPILATION
-    ################################################################################
-    # TODO: pass backend and run_options
-    def _transpile(self, circuit: QuantumCircuit) -> QuantumCircuit:
-        """Traspile quantum circuit to match the estimator's backend.
-
-        Includes the final layout as metadata.
+        The output circuit is annotated with the final layout in its metadata.
         """
         # Note: We currently need to use a hacky way to account for the final
         # layout of the transpiled circuit. We insert temporary measurements
@@ -324,46 +228,143 @@ class BackendEstimator(BaseEstimator):
         transpiled_circuit.metadata.update({"final_layout": final_layout})
         return transpiled_circuit
 
-    @classmethod  # TODO: multiple registers
-    def _infer_final_layout(
-        cls, original_circuit: QuantumCircuit, transpiled_circuit: QuantumCircuit
-    ) -> Layout:
-        """Retrieve final layout from original and transpiled circuits (all measured)."""
-        physical_qubits = cls._generate_final_layout_intlist(original_circuit, transpiled_circuit)
-        layout_dict: dict[int, Any] = dict.fromkeys(range(transpiled_circuit.num_qubits))
-        for physical_qubit, virtual_qubit in zip(physical_qubits, original_circuit.qubits):
-            layout_dict.update({physical_qubit: virtual_qubit})
-        return Layout(layout_dict)
+    def _bind_parameters(
+        self,
+        circuits: Sequence[QuantumCircuit],
+        parameter_values: Sequence[Sequence[float]],
+    ) -> tuple[QuantumCircuit, ...]:
+        """Bind circuit parameters.
 
-    @staticmethod
-    def _generate_final_layout_intlist(
-        original_circuit: QuantumCircuit, transpiled_circuit: QuantumCircuit
-    ) -> Iterator[int]:
-        """Generate final layout intlist of physical qubits.
-
-        Note: Works under the assumption that the original circuit has a `measure_all`
-        instruction at its end, and that the transpiler does not affect the classical
-        registers.
+        Note: for improved performance, this method edits the input circuits in place,
+        avoiding costly deepcopy operations but resulting in a side-effect. This is fine
+        as long as the input circuits are no longer needed.
         """
-        # TODO: raise error if assumption in docstring is not met
-        qubit_index_map = {qubit: i for i, qubit in enumerate(transpiled_circuit.qubits)}
-        num_measurements: int = original_circuit.num_qubits
-        for i in range(-num_measurements, 0):
-            _, qargs, _ = transpiled_circuit[i]
-            physical_qubit = qargs[0]
-            yield qubit_index_map[physical_qubit]
+        for circuit, values in zip(circuits, parameter_values):
+            circuit.assign_parameters(values, inplace=True)
+        return tuple(circuits)
 
-    def _run_bound_pass_manager(self, circuit: QuantumCircuit) -> QuantumCircuit:
-        """Run bound pass manager if set."""
-        if not isinstance(circuit, QuantumCircuit):
-            raise TypeError(f"Expected `QuantumCircuit`, received {type(circuit)} instead.")
+    def _post_transpile(self, circuits: Sequence[QuantumCircuit]) -> tuple[QuantumCircuit, ...]:
+        """."""
+        return tuple(self._post_transpile_single(qc) for qc in circuits)
+
+    def _post_transpile_single(self, circuit: QuantumCircuit) -> QuantumCircuit:
+        """Traspile non-parametrized quantum circuit (i.e. after binding all parameters)."""
+        # TODO: rename `_bound_pass_manager`
         if self._bound_pass_manager is not None:
             circuit = self._bound_pass_manager.run(circuit)
         return circuit
 
+    def _observe_circuits(
+        self,
+        circuits: Sequence[QuantumCircuit],
+        observables: Sequence[SparsePauliOp],
+    ) -> tuple[tuple[QuantumCircuit, ...], ...]:
+        """For each circuit-observable pair build build all necessary circuits for computation."""
+        return tuple(
+            self._measure_observable(circuit, observable)
+            for circuit, observable in zip(circuits, observables)
+        )
+
+    def _execute_matrix(
+        self, circuits_matrix: Sequence[Sequence[QuantumCircuit]], **run_options
+    ) -> tuple[tuple[Counts]]:
+        """Execute circuit matrix and return counts in identical (i.e. one-to-one) arrangement."""
+        circuits = list(qc for group in circuits_matrix for qc in group)  # List for performance
+        counts = self._execute(circuits, **run_options)
+        counts_iter = iter(counts)
+        counts_matrix = tuple(tuple(next(counts_iter) for _ in group) for group in circuits_matrix)
+        return counts_matrix
+
+    def _execute(self, circuits: Sequence[QuantumCircuit], **run_options) -> list[Counts]:
+        """Execute quantum circuits on backend bypassing max circuits allowed.
+
+        Each :class:`qiskit.result.Counts` object is annotated with the metadata
+        from the circuit that produced it.
+        """
+        # Conversion
+        circuits = list(circuits)  # TODO: accept Sequences in `backend.run()`
+
+        # Max circuits
+        total_circuits: int = len(circuits)
+        max_circuits: int = getattr(self.backend, "max_circuits", None) or total_circuits
+
+        # Raw results
+        jobs: tuple[Job] = tuple(
+            self.backend.run(circuits[split : split + max_circuits], **run_options)
+            for split in range(0, total_circuits, max_circuits)
+        )
+        raw_results: tuple[Result] = tuple(job.result() for job in jobs)
+
+        # Annotated counts
+        job_counts_iter = (
+            job_counts if isinstance(job_counts, list) else [job_counts]
+            for job_counts in (result.get_counts() for result in raw_results)
+        )
+        counts_iter = (counts for job_counts in job_counts_iter for counts in job_counts)
+        counts_list: list[Counts] = []
+        for counts, circuit in zip(counts_iter, circuits):
+            counts.metadata = circuit.metadata
+            counts_list.append(counts)
+
+        return counts_list
+
+    def _reckon_expvals(
+        self, counts_matrix: Sequence[Sequence[Counts]]
+    ) -> tuple[tuple[float, float], ...]:
+        """Combine groups of counts according to their annotated observables."""
+        return tuple(self._reckon_single_expval(counts_list) for counts_list in counts_matrix)
+
+    def _reckon_single_expval(self, counts_list: Sequence[Counts]) -> tuple[float, float]:
+        """."""
+        expval: float = 0.0
+        variance: float = 0.0
+        for counts in counts_list:
+            observable: SparsePauliOp = counts.metadata["observable"]
+            value, std_error = self._expval_reckoner.compute_observable_expval(counts, observable)
+            expval += value
+            variance += std_error**2
+        return expval, np.sqrt(variance)
+
+    def _build_result(
+        self,
+        expvals_w_errors: Sequence[tuple[float, float]],
+        counts_matrix: Sequence[Sequence[Counts]],
+    ) -> EstimatorResult:
+        """Package results into an :class:`~qiskit.primitives.EstimatorResult` data structure."""
+        expvals, std_errors = tuple(zip(*expvals_w_errors))
+        values = np.real_if_close(expvals)
+        shots_list = tuple(
+            sum(sum(counts.values()) for counts in counts_list) for counts_list in counts_matrix
+        )
+        num_circuits_list = tuple(len(counts_list) for counts_list in counts_matrix)
+        metadata = [
+            {
+                "variance": (shots / num_circuits) * std_error**2,
+                "std_error": std_error,
+                "shots": shots,
+                "num_circuits": num_circuits,
+            }
+            for std_error, shots, num_circuits in zip(std_errors, shots_list, num_circuits_list)
+        ]
+        return EstimatorResult(values, metadata)
+
     ################################################################################
     ## MEASUREMENT
     ################################################################################
+    # TODO: `QuantumCircuit.measure_observable(observable)` once instructions return self
+    def _measure_observable(
+        self, circuit: QuantumCircuit, observable: SparsePauliOp
+    ) -> tuple[QuantumCircuit, ...]:
+        """Build all necessary circuits for measuring a given observable.
+
+        Each circuit has its metadata annotated with the
+        :class:`~qiskit.quantum_info.PauliList` that can be directly evaluated and
+        the coefficients associated to each of the Paulis in said list.
+        """
+        measurements = self._build_measurement_circuits(observable)
+        circs_w_meas = self._compose_measurements(circuit, measurements)
+        return circs_w_meas
+
     # TODO: caching
     def _build_measurement_circuits(
         self,
@@ -427,9 +428,6 @@ class BackendEstimator(BaseEstimator):
             circuit.measure(qubit, cbit)
         return circuit
 
-    ################################################################################
-    ## COMPOSITION
-    ################################################################################
     def _compose_measurements(
         self,
         base: QuantumCircuit,
@@ -460,6 +458,35 @@ class BackendEstimator(BaseEstimator):
         circuit.metadata = {**base.metadata, **measurement.metadata}
         circuit.metadata.pop("measured_qubit_indices")  # TODO: `measured_qubits`
         return circuit
+
+    @classmethod  # TODO: multiple registers
+    def _infer_final_layout(
+        cls, original_circuit: QuantumCircuit, transpiled_circuit: QuantumCircuit
+    ) -> Layout:
+        """Retrieve final layout from original and transpiled circuits (all measured)."""
+        physical_qubits = cls._generate_final_layout_intlist(original_circuit, transpiled_circuit)
+        layout_dict: dict[int, Any] = dict.fromkeys(range(transpiled_circuit.num_qubits))
+        for physical_qubit, virtual_qubit in zip(physical_qubits, original_circuit.qubits):
+            layout_dict.update({physical_qubit: virtual_qubit})
+        return Layout(layout_dict)
+
+    @staticmethod
+    def _generate_final_layout_intlist(
+        original_circuit: QuantumCircuit, transpiled_circuit: QuantumCircuit
+    ) -> Iterator[int]:
+        """Generate final layout intlist of physical qubits.
+
+        Note: Works under the assumption that the original circuit has a `measure_all`
+        instruction at its end, and that the transpiler does not affect the classical
+        registers.
+        """
+        # TODO: raise error if assumption in docstring is not met
+        qubit_index_map = {qubit: i for i, qubit in enumerate(transpiled_circuit.qubits)}
+        num_measurements: int = original_circuit.num_qubits
+        for i in range(-num_measurements, 0):
+            _, qargs, _ = transpiled_circuit[i]
+            physical_qubit = qargs[0]
+            yield qubit_index_map[physical_qubit]
 
     ################################################################################
     ## DEPRECATED
@@ -576,33 +603,42 @@ class ExpvalReckoner(ABC):
     (and associated errors) out of raw Counts and Pauli observables.
     """
 
-    def compute_expvals_and_variances(
-        self, counts: Counts, paulis: PauliList
-    ) -> tuple[tuple[float, ...], tuple[float, ...]]:
-        """Get expectation values and variances for input Paulis.
+    def compute_observable_expval(
+        self, counts: Counts, observable: SparsePauliOp
+    ) -> tuple[float, float]:
+        """Compute expectation value and associated std-error for input observable from counts.
 
-        Args:
-            counts: measured by executing a :class``~qiskit.circuit.QuantumCircuit``.
-            paulis: the list of target :class:`~qiskit.quantum_info.Pauli` to observe.
+        Note: the input observable needs to be measurable entirely within one circuit
+        execution (i.e. resulting in the input counts). Users must ensure that counts
+        come from the appropriate circuit execution.
+
+        args:
+            counts: a :class:`~qiskti.result.Counts` object from circuit execution.
+            observable:
 
         Returns:
-            A tuple of expectation values and a tuple of variances for input Paulis.
+            The expectation value and associated std-error for the input observable.
         """
-        pairs = (self.compute_expval_variance_pair(counts, pauli) for pauli in paulis)
-        return tuple(zip(*pairs))
+        expvals, std_errors = np.vstack(
+            [self.compute_pauli_expval(counts, pauli) for pauli in observable.paulis]
+        ).T
+        coeffs = np.array(observable.coeffs)
+        expval = np.dot(expvals, coeffs)
+        variance = np.dot(std_errors**2, coeffs**2)  # TODO: complex coeffs
+        std_error = np.sqrt(variance)
+        return expval, std_error
 
-    # TODO: variance or std-error?
     # TODO: validate num_bits
     @abstractmethod
-    def compute_expval_variance_pair(self, counts: Counts, pauli: Pauli) -> tuple[float, float]:
-        """Return an expval-variance pair for the given counts and pauli.
+    def compute_pauli_expval(self, counts: Counts, pauli: Pauli) -> tuple[float, float]:
+        """Compute expectation value and associated std-error for input Pauli from counts.
 
         Args:
             counts: measured by executing a :class``~qiskit.circuit.QuantumCircuit``.
             pauli: the target :class:`~qiskit.quantum_info.Pauli` to observe.
 
         Returns:
-            A tuple holding the expectation value of the Pauli observable and variance.
+            The expectation value and associated std-error for the input Pauli.
         """
 
 
@@ -614,16 +650,18 @@ class SpectralReckoner(ExpvalReckoner):
     readout; hence diagonalizing the input Pauli observables.
     """
 
-    def compute_expval_variance_pair(self, counts: Counts, pauli: Pauli) -> tuple[float, float]:
+    def compute_pauli_expval(self, counts: Counts, pauli: Pauli) -> tuple[float, float]:
         shots: int = 0
         expval: float = 0.0
         for bitstring, freq in counts.items():
             observation = self.compute_eigenvalue(bitstring, pauli)
             expval += observation * freq
             shots += freq
-        expval /= shots or 1  # Avoid division by zero errors if no counts
+        shots = shots or 1  # Avoid division by zero errors if no counts
+        expval /= shots
         variance = 1 - expval**2
-        return expval, variance
+        std_error = np.sqrt(variance / shots)
+        return expval, std_error
 
     @classmethod
     def compute_eigenvalue(cls, bitstring: str, pauli: Pauli) -> int:
@@ -641,7 +679,7 @@ class SpectralReckoner(ExpvalReckoner):
         return (-1) ** cls._parity_bit(measurement & int_mask, even=True)
 
     @staticmethod
-    def _pauli_integer_mask(pauli: Pauli) -> tuple[int]:
+    def _pauli_integer_mask(pauli: Pauli) -> int:
         """Build integer masks for input Pauli.
 
         This is an integer representation of the binary string with a

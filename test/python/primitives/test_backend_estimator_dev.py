@@ -197,8 +197,8 @@ class TestTranspilation(QiskitTestCase):
         [4, (3, 1)],
     )
     @unpack
-    def test_transpile(self, target_qubits, layout_intlist):
-        """Test transpile functionality.
+    def test_pre_transpile_single(self, target_qubits, layout_intlist):
+        """Test pre-transpile functionality.
 
         Assumptions for final layout inferrence:
             - Circuits passed to Qiskit-Terra's `transpile` are all measured
@@ -223,7 +223,7 @@ class TestTranspilation(QiskitTestCase):
         estimator._transpile_options = MagicMock(Options)
         with patch("qiskit.primitives.backend_estimator_dev.transpile", spec=True) as mock:
             mock.return_value = transpiled_circuit
-            output_circuit = estimator._transpile(input_circuit)
+            output_circuit = estimator._pre_transpile_single(input_circuit)
         mock.assert_called_once()
         (call_circuit, call_backend), call_kwargs = mock.call_args
         self.assertEqual(call_circuit, measured_circuit)
@@ -235,20 +235,18 @@ class TestTranspilation(QiskitTestCase):
         self.assertEqual(inferred_layout, applied_layout)
         self.assertIsInstance(inferred_layout, Layout)
 
-    def test_run_bound_pass_manager(self):
+    def test_post_transpile_single(self):
         """Test bound pass manager runs."""
         backend = Mock(BackendV2)
         estimator = BackendEstimator(backend)
-        # Invalid input
-        self.assertRaises(TypeError, estimator._run_bound_pass_manager, "circuit")
         # No pass manager
         circuit = Mock(QuantumCircuit)
-        self.assertIs(circuit, estimator._run_bound_pass_manager(circuit))
+        self.assertIs(circuit, estimator._post_transpile_single(circuit))
         # Pass manager runs
         mock_circuit = Mock(QuantumCircuit)
         estimator._bound_pass_manager = Mock(PassManager)
         estimator._bound_pass_manager.run.return_value = mock_circuit
-        self.assertIs(mock_circuit, estimator._run_bound_pass_manager(circuit))
+        self.assertIs(mock_circuit, estimator._post_transpile_single(circuit))
         estimator._bound_pass_manager.run.assert_called_once_with(circuit)
 
 
@@ -436,34 +434,35 @@ class TestSpectralReckoner(QiskitTestCase):
         [{"0": 100, "1": 0}, "I", (1, 0)],
         [{"0": 0, "1": 100}, "I", (1, 0)],
         [{"0": 50, "1": 50}, "I", (1, 0)],
-        [{"0": 50, "1": 50}, "X", (0, 1)],
-        [{"0": 50, "1": 50}, "Y", (0, 1)],
-        [{"0": 50, "1": 50}, "Z", (0, 1)],
+        [{"0": 50, "1": 50}, "X", (0, 0.1)],
+        [{"0": 50, "1": 50}, "Y", (0, 0.1)],
+        [{"0": 50, "1": 50}, "Z", (0, 0.1)],
         [{"0": 100, "1": 0}, "Z", (1, 0)],
         [{"0": 0, "1": 100}, "Z", (-1, 0)],
-        [{"0": 80, "1": 20}, "Z", (0.6, 0.64)],
-        [{"0": 60, "1": 40}, "Z", (0.2, 0.96)],
-        [{"0": 40, "1": 60}, "Z", (-0.2, 0.96)],
-        [{"0": 20, "1": 80}, "Z", (-0.6, 0.64)],
+        [{"0": 80, "1": 20}, "Z", (0.6, 0.08)],
+        [{"0": 60, "1": 40}, "Z", (0.2, 0.0979795897)],
+        [{"0": 40, "1": 60}, "Z", (-0.2, 0.0979795897)],
+        [{"0": 20, "1": 80}, "Z", (-0.6, 0.08)],
         [{"00": 80, "11": 20}, "ZZ", (1, 0)],
-        [{"00": 80, "10": 20}, "ZZ", (0.6, 0.64)],
-        [{"00": 20, "10": 80}, "ZZ", (-0.6, 0.64)],
-        [{"11": 80, "01": 20}, "ZZ", (0.6, 0.64)],
-        [{"11": 20, "01": 80}, "ZZ", (-0.6, 0.64)],
-        [{"00": 80, "11": 20}, "ZI", (0.6, 0.64)],
-        [{"00": 80, "10": 20}, "ZI", (0.6, 0.64)],
-        [{"00": 20, "10": 80}, "ZI", (-0.6, 0.64)],
-        [{"11": 80, "01": 20}, "ZI", (-0.6, 0.64)],
-        [{"11": 20, "01": 80}, "ZI", (0.6, 0.64)],
+        [{"00": 80, "10": 20}, "ZZ", (0.6, 0.08)],
+        [{"00": 20, "10": 80}, "ZZ", (-0.6, 0.08)],
+        [{"11": 80, "01": 20}, "ZZ", (0.6, 0.08)],
+        [{"11": 20, "01": 80}, "ZZ", (-0.6, 0.08)],
+        [{"00": 80, "11": 20}, "ZI", (0.6, 0.08)],
+        [{"00": 80, "10": 20}, "ZI", (0.6, 0.08)],
+        [{"00": 20, "10": 80}, "ZI", (-0.6, 0.08)],
+        [{"11": 80, "01": 20}, "ZI", (-0.6, 0.08)],
+        [{"11": 20, "01": 80}, "ZI", (0.6, 0.08)],
         [{"11": 20, "01": 80}, "II", (1, 0)],
     )
     @unpack
-    def test_compute_expval_variance_pair(self, counts, pauli, expected):
+    def test_compute_pauli_expval(self, counts, pauli, expected):
         """Test expval-variance pairs."""
         counts = Counts(counts)
         pauli = Pauli(pauli)
-        pair = SpectralReckoner().compute_expval_variance_pair(counts, pauli)
-        self.assertAlmostEqual(pair, expected)
+        expval, std_error = SpectralReckoner().compute_pauli_expval(counts, pauli)
+        self.assertAlmostEqual(expval, expected[0])
+        self.assertAlmostEqual(std_error, expected[1])
 
     @data(
         ["II", "00", +1],
