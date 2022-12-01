@@ -519,9 +519,9 @@ dependencies = [
 
 [[package]]
 name = "rustworkx-core"
-version = "0.12.0"
+version = "0.12.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "23f8a8866a33f4f8b06ed2a4120d3c08a0be63a9c18a53b4238e53922edfc953"
+checksum = "1b3ba36e6bf3cc44ce42ad35e75db9e90c39c701d6590a296372e392c4872478"
 dependencies = [
  "ahash 0.7.6",
  "fixedbitset",
