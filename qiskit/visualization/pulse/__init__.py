@@ -12,3 +12,6 @@
 """
 Pulse visualization module.
 """
+
+# These imports are preparing for the renaming of `pulse_v2` back to `pulse` in a future Terra.
+from qiskit.visualization.pulse_v2 import *
