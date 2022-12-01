@@ -18,7 +18,11 @@ Qiskit Tools (:mod:`qiskit.tools`)
 .. currentmodule:: qiskit.tools
 
 Parallel Routines
-=================
+-----------------
+
+A helper function for calling a custom function with python ``ProcessPoolExecutor``.
+Tasks can be executed in parallel using this function.
+It has a built-in event publisher to show the progress of the parallel tasks.
 
 .. autosummary::
    :toctree: ../stubs/
@@ -26,7 +30,9 @@ Parallel Routines
    parallel_map
 
 Monitoring
-==========
+----------
+
+A helper module to get IBM backend information and submitted job status.
 
 .. autosummary::
    :toctree: ../stubs/
@@ -35,7 +41,10 @@ Monitoring
    backend_monitor
    backend_overview
 
+.. automodule:: qiskit.tools.events
+
 """
 
 from .parallel import parallel_map
 from .monitor import job_monitor, backend_monitor, backend_overview
+from .events import progressbar

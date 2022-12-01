@@ -314,9 +314,9 @@ class CNOTDihedral(BaseOperator, AdjointMixin):
                *Scalable randomised benchmarking of non-Clifford gates*,
                npj Quantum Inf 2, 16012 (2016).
         """
-        from qiskit.quantum_info.synthesis.cnotdihedral_decompose import decompose_cnotdihedral
+        from qiskit.synthesis.cnotdihedral import synth_cnotdihedral_full
 
-        return decompose_cnotdihedral(self)
+        return synth_cnotdihedral_full(self)
 
     def to_instruction(self):
         """Return a Gate instruction implementing the CNOTDihedral object."""

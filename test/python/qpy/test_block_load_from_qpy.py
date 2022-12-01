@@ -219,11 +219,11 @@ class TestLoadFromQPY(QpyScheduleTestCase):
                 # ECR
                 with builder.align_left():
                     builder.play(GaussianSquare(800, 0.05, 64, 544), DriveChannel(1))
-                    builder.play(GaussianSquare(800, 0.1 - 0.2j, 64, 544), ControlChannel(0))
+                    builder.play(GaussianSquare(800, 0.22, 64, 544, 2), ControlChannel(0))
                 builder.play(Drag(160, 0.1, 40, 1.5), DriveChannel(0))
                 with builder.align_left():
                     builder.play(GaussianSquare(800, -0.05, 64, 544), DriveChannel(1))
-                    builder.play(GaussianSquare(800, -0.1 + 0.2j, 64, 544), ControlChannel(0))
+                    builder.play(GaussianSquare(800, -0.22, 64, 544, 2), ControlChannel(0))
                 builder.play(Drag(160, 0.1, 40, 1.5), DriveChannel(0))
                 # Measure
                 with builder.align_left():
