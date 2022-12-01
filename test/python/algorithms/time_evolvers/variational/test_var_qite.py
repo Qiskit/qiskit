@@ -20,10 +20,9 @@ import numpy as np
 from qiskit.opflow import PauliSumOp
 from qiskit.algorithms.gradients import LinCombQFI, LinCombEstimatorGradient
 from qiskit.primitives import Estimator
-from qiskit.algorithms.time_evolvers.variational.var_qite import VarQITE
 from qiskit.quantum_info import SparsePauliOp, Pauli
 from qiskit.utils import algorithm_globals
-from qiskit.algorithms import TimeEvolutionProblem
+from qiskit.algorithms import TimeEvolutionProblem, VarQITE
 from qiskit.algorithms.time_evolvers.variational import (
     ImaginaryMcLachlanPrinciple,
 )
