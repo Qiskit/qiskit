@@ -116,10 +116,7 @@ class BackendEstimator(BaseEstimator):
     @property
     def abelian_grouping(self) -> bool:
         """Groups commuting observable components."""
-        try:
-            return self._abelian_grouping
-        except AttributeError:
-            return True
+        return self._abelian_grouping
 
     @abelian_grouping.setter
     def abelian_grouping(self, abelian_grouping: bool) -> None:
@@ -133,10 +130,7 @@ class BackendEstimator(BaseEstimator):
     @property
     def skip_transpilation(self) -> bool:
         """If `True`, transpilation of the input circuits is skipped."""
-        try:
-            return self._skip_transpilation
-        except AttributeError:
-            return False
+        return self._skip_transpilation
 
     @skip_transpilation.setter
     def skip_transpilation(self, skip_transpilation: bool) -> None:
