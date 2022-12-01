@@ -124,19 +124,21 @@ used to train Quantum Boltzmann Machine Neural Networks for example.
    :toctree: ../stubs/
    :nosignatures:
 
-    RealEvolver
-    ImaginaryEvolver
-    TrotterQRTE
-    EvolutionResult
-    EvolutionProblem
+   RealEvolver
+   ImaginaryEvolver
+   TrotterQRTE
+   EvolutionResult
+   EvolutionProblem
 
 
 Variational Quantum Time Evolution
 ----------------------------------
 
 Classes used by variational quantum time evolution algorithms - VarQITE and VarQRTE.
+
 .. autosummary::
    :toctree: ../stubs/
+
    time_evolvers.variational
 
 
@@ -151,14 +153,14 @@ Time Evolution might be used to train Quantum Boltzmann Machine Neural Networks 
    :toctree: ../stubs/
    :nosignatures:
 
-    RealTimeEvolver
-    ImaginaryTimeEvolver
-    VarQITE
-    VarQRTE
-    PVQD
-    PVQDResult
-    TimeEvolutionResult
-    TimeEvolutionProblem
+   RealTimeEvolver
+   ImaginaryTimeEvolver
+   VarQITE
+   VarQRTE
+   PVQD
+   PVQDResult
+   TimeEvolutionResult
+   TimeEvolutionProblem
 
 
 Trotterization-based Quantum Real Time Evolution
