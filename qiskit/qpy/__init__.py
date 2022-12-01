@@ -38,8 +38,8 @@ Using QPY
 
 Using QPY is defined to be straightforward and mirror the user API of the
 serializers in Python's standard library, ``pickle`` and ``json``. There are
-2 user facing functions: :func:`qiskit.circuit.qpy_serialization.dump` and
-:func:`qiskit.circuit.qpy_serialization.load` which are used to dump QPY data
+2 user facing functions: :func:`qiskit.qpy.dump` and
+:func:`qiskit.qpy.load` which are used to dump QPY data
 to a file object and load circuits from QPY data in a file object respectively.
 For example::
 
@@ -57,7 +57,7 @@ For example::
     with open('bell.qpy', 'rb') as fd:
         new_qc = qpy.load(fd)[0]
 
-the :func:`qiskit.circuit.qpy_serialization.dump` function also lets you
+The :func:`qiskit.qpy.dump` function also lets you
 include multiple circuits in a single QPY file::
 
     with open('twenty_bells.qpy', 'wb') as fd:
