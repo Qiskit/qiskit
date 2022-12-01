@@ -13,13 +13,16 @@
 """Test QAOA ansatz from the library."""
 
 import numpy as np
+from ddt import ddt, data
+
 from qiskit.circuit import QuantumCircuit, Parameter
-from qiskit.circuit.library.n_local.qaoa_ansatz import QAOAAnsatz
 from qiskit.circuit.library import HGate, RXGate, YGate, RYGate, RZGate
-from qiskit.opflow import I, Y, Z
+from qiskit.circuit.library.n_local.qaoa_ansatz import QAOAAnsatz
+from qiskit.opflow import I, Y, Z, PauliSumOp
 from qiskit.test import QiskitTestCase
 
 
+@ddt
 class TestQAOAAnsatz(QiskitTestCase):
     """Test QAOAAnsatz."""
 
@@ -31,8 +34,8 @@ class TestQAOAAnsatz(QiskitTestCase):
 
         circuit = circuit.decompose()
         self.assertEqual(1, len(parameters))
-        self.assertIsInstance(circuit.data[0][0], HGate)
-        self.assertIsInstance(circuit.data[1][0], RXGate)
+        self.assertIsInstance(circuit.data[0].operation, HGate)
+        self.assertIsInstance(circuit.decompose().data[1].operation, RXGate)
 
     def test_custom_initial_state(self):
         """Test circuit with a custom initial state."""
@@ -43,8 +46,8 @@ class TestQAOAAnsatz(QiskitTestCase):
         parameters = circuit.parameters
         circuit = circuit.decompose()
         self.assertEqual(1, len(parameters))
-        self.assertIsInstance(circuit.data[0][0], YGate)
-        self.assertIsInstance(circuit.data[1][0], RXGate)
+        self.assertIsInstance(circuit.data[0].operation, YGate)
+        self.assertIsInstance(circuit.decompose().data[1].operation, RXGate)
 
     def test_invalid_reps(self):
         """Test negative reps."""
@@ -68,8 +71,8 @@ class TestQAOAAnsatz(QiskitTestCase):
         parameters = circuit.parameters
         circuit = circuit.decompose()
         self.assertEqual(0, len(parameters))
-        self.assertIsInstance(circuit.data[0][0], HGate)
-        self.assertIsInstance(circuit.data[1][0], RYGate)
+        self.assertIsInstance(circuit.data[0].operation, HGate)
+        self.assertIsInstance(circuit.data[1].operation, RYGate)
 
     def test_custom_operator_mixer(self):
         """Test circuit with a custom mixer as an operator."""
@@ -79,8 +82,8 @@ class TestQAOAAnsatz(QiskitTestCase):
         parameters = circuit.parameters
         circuit = circuit.decompose()
         self.assertEqual(1, len(parameters))
-        self.assertIsInstance(circuit.data[0][0], HGate)
-        self.assertIsInstance(circuit.data[1][0], RYGate)
+        self.assertIsInstance(circuit.data[0].operation, HGate)
+        self.assertIsInstance(circuit.data[1].operation, RYGate)
 
     def test_parameter_bounds(self):
         """Test the parameter bounds."""
@@ -108,9 +111,9 @@ class TestQAOAAnsatz(QiskitTestCase):
         parameters = circuit.parameters
         circuit = circuit.decompose()
         self.assertEqual(2, len(parameters))
-        self.assertIsInstance(circuit.data[0][0], YGate)
-        self.assertIsInstance(circuit.data[1][0], RZGate)
-        self.assertIsInstance(circuit.data[2][0], RZGate)
+        self.assertIsInstance(circuit.data[0].operation, YGate)
+        self.assertIsInstance(circuit.data[1].operation, RZGate)
+        self.assertIsInstance(circuit.data[2].operation, RZGate)
 
     def test_configuration(self):
         """Test configuration checks."""
@@ -141,3 +144,30 @@ class TestQAOAAnsatz(QiskitTestCase):
         reps = 4
         circuit = QAOAAnsatz(cost_operator=Z ^ Z, mixer_operator=mixer, reps=reps)
         self.assertEqual(circuit.num_parameters, 3 * reps)
+
+    def test_empty_op(self):
+        """Test construction without cost operator"""
+        circuit = QAOAAnsatz(reps=1)
+        self.assertEqual(circuit.num_qubits, 0)
+        with self.assertRaises(ValueError):
+            circuit.decompose()
+
+    @data(1, 2, 3, 4)
+    def test_num_qubits(self, num_qubits):
+        """Test num_qubits with {num_qubits} qubits"""
+
+        circuit = QAOAAnsatz(cost_operator=I ^ num_qubits, reps=5)
+        self.assertEqual(circuit.num_qubits, num_qubits)
+
+    def test_identity(self):
+        """Test construction with identity"""
+        reps = 4
+        num_qubits = 3
+        pauli_sum_op = PauliSumOp.from_list([("I" * num_qubits, 1)])
+        pauli_op = I ^ num_qubits
+        for cost in [pauli_op, pauli_sum_op]:
+            for mixer in [None, pauli_op, pauli_sum_op]:
+                with self.subTest(f"cost: {type(cost)}, mixer:{type(mixer)}"):
+                    circuit = QAOAAnsatz(cost_operator=cost, mixer_operator=mixer, reps=reps)
+                    target = reps if mixer is None else 0
+                    self.assertEqual(circuit.num_parameters, target)

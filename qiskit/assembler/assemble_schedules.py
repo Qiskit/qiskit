@@ -28,9 +28,9 @@ from qiskit.qobj.converters.pulse_instruction import ParametricPulseShapes
 def assemble_schedules(
     schedules: List[
         Union[
-            "schedule.ScheduleBlock",
-            "schedule.ScheduleComponent",
-            Tuple[int, "schedule.ScheduleComponent"],
+            schedule.ScheduleBlock,
+            schedule.ScheduleComponent,
+            Tuple[int, schedule.ScheduleComponent],
         ]
     ],
     qobj_id: int,
@@ -68,7 +68,7 @@ def assemble_schedules(
 
 
 def _assemble_experiments(
-    schedules: List[Union["schedule.ScheduleComponent", Tuple[int, "schedule.ScheduleComponent"]]],
+    schedules: List[Union[schedule.ScheduleComponent, Tuple[int, schedule.ScheduleComponent]]],
     lo_converter: converters.LoConfigConverter,
     run_config: RunConfig,
 ) -> Tuple[List[qobj.PulseQobjExperiment], Dict[str, Any]]:
@@ -187,25 +187,30 @@ def _assemble_instructions(
     acquire_instruction_map = defaultdict(list)
     for time, instruction in sched.instructions:
 
-        if isinstance(instruction, instructions.Play) and isinstance(
-            instruction.pulse, library.ParametricPulse
-        ):
-            pulse_shape = ParametricPulseShapes(type(instruction.pulse)).name
-            if pulse_shape not in run_config.parametric_pulses:
-                instruction = instructions.Play(
-                    instruction.pulse.get_waveform(), instruction.channel, name=instruction.name
-                )
+        if isinstance(instruction, instructions.Play):
+            if isinstance(instruction.pulse, (library.ParametricPulse, library.SymbolicPulse)):
+                is_backend_supported = True
+                try:
+                    pulse_shape = ParametricPulseShapes.from_instance(instruction.pulse).name
+                    if pulse_shape not in run_config.parametric_pulses:
+                        is_backend_supported = False
+                except ValueError:
+                    # Custom pulse class, or bare SymbolicPulse object.
+                    is_backend_supported = False
 
-        if isinstance(instruction, instructions.Play) and isinstance(
-            instruction.pulse, library.Waveform
-        ):
-            name = hashlib.sha256(instruction.pulse.samples).hexdigest()
-            instruction = instructions.Play(
-                library.Waveform(name=name, samples=instruction.pulse.samples),
-                channel=instruction.channel,
-                name=name,
-            )
-            user_pulselib[name] = instruction.pulse.samples
+                if not is_backend_supported:
+                    instruction = instructions.Play(
+                        instruction.pulse.get_waveform(), instruction.channel, name=instruction.name
+                    )
+
+            if isinstance(instruction.pulse, library.Waveform):
+                name = hashlib.sha256(instruction.pulse.samples).hexdigest()
+                instruction = instructions.Play(
+                    library.Waveform(name=name, samples=instruction.pulse.samples),
+                    channel=instruction.channel,
+                    name=name,
+                )
+                user_pulselib[name] = instruction.pulse.samples
 
         # ignore explicit delay instrs on acq channels as they are invalid on IBMQ backends;
         # timing of other instrs will still be shifted appropriately

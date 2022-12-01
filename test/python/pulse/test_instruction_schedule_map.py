@@ -16,7 +16,7 @@ import pickle
 
 import numpy as np
 
-import qiskit.pulse.library as library
+from qiskit.pulse import library
 from qiskit.circuit.library.standard_gates import U1Gate, U3Gate, CXGate, XGate
 from qiskit.circuit.parameter import Parameter
 from qiskit.circuit.parameterexpression import ParameterExpression
@@ -35,7 +35,7 @@ from qiskit.pulse.channels import DriveChannel
 from qiskit.qobj import PulseQobjInstruction
 from qiskit.qobj.converters import QobjToInstructionConverter
 from qiskit.test import QiskitTestCase
-from qiskit.test.mock import FakeOpenPulse2Q, FakeAthens
+from qiskit.providers.fake_provider import FakeOpenPulse2Q, FakeAthens
 
 
 class TestInstructionScheduleMap(QiskitTestCase):
@@ -393,7 +393,7 @@ class TestInstructionScheduleMap(QiskitTestCase):
         """Test adding and getting schedule with non obvious parameter ordering."""
         theta = Parameter("theta")
         phi = Parameter("phi")
-        lamb = Parameter("lambda")
+        lamb = Parameter("lam")
 
         target_sched = Schedule()
         target_sched.insert(0, ShiftPhase(theta, DriveChannel(0)), inplace=True)
@@ -401,7 +401,7 @@ class TestInstructionScheduleMap(QiskitTestCase):
         target_sched.insert(20, ShiftPhase(lamb, DriveChannel(0)), inplace=True)
 
         inst_map = InstructionScheduleMap()
-        inst_map.add("target_sched", (0,), target_sched, arguments=["theta", "phi", "lambda"])
+        inst_map.add("target_sched", (0,), target_sched, arguments=["theta", "phi", "lam"])
 
         ref_sched = Schedule()
         ref_sched.insert(0, ShiftPhase(0, DriveChannel(0)), inplace=True)

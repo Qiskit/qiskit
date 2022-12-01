@@ -14,7 +14,7 @@
 # https://github.com/Qiskit/qiskit-ignis/blob/b91066c72171bcd55a70e6e8993b813ec763cf41/qiskit/ignis/mitigation/measurement/filters.py
 # it was migrated as qiskit-ignis is being deprecated
 
-# pylint: disable=cell-var-from-loop,invalid-name
+# pylint: disable=cell-var-from-loop
 
 
 """
@@ -26,8 +26,6 @@ from typing import List
 from copy import deepcopy
 
 import numpy as np
-from scipy.optimize import minimize
-import scipy.linalg as la
 
 import qiskit
 from qiskit import QiskitError
@@ -106,6 +104,8 @@ class MeasurementFilter:
                 of the number of calibrated states.
 
         """
+        from scipy.optimize import minimize
+        from scipy import linalg as la
 
         # check forms of raw_data
         if isinstance(raw_data, dict):
@@ -352,9 +352,11 @@ class TensoredFilter:
         Raises:
             QiskitError: if raw_data is not in a one of the defined forms.
         """
+        from scipy.optimize import minimize
+        from scipy import linalg as la
 
         all_states = count_keys(self.nqubits)
-        num_of_states = 2 ** self.nqubits
+        num_of_states = 2**self.nqubits
 
         if meas_layout is None:
             meas_layout = []

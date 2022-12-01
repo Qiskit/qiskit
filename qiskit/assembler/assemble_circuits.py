@@ -101,7 +101,6 @@ def _assemble_circuit(
 
     # TODO: why do we need n_qubits and memory_slots in both the header and the config
     config = QasmQobjExperimentConfig(n_qubits=num_qubits, memory_slots=memory_slots)
-
     calibrations, pulse_library = _assemble_pulse_gates(circuit, run_config)
     if calibrations:
         config.calibrations = calibrations
@@ -112,16 +111,18 @@ def _assemble_circuit(
     # their clbit_index, create a new register slot for every conditional gate
     # and add a bfunc to map the creg=val mask onto the gating register bit.
 
-    is_conditional_experiment = any(op.condition for (op, qargs, cargs) in circuit.data)
+    is_conditional_experiment = any(
+        getattr(instruction.operation, "condition", None) for instruction in circuit.data
+    )
     max_conditional_idx = 0
 
     instructions = []
     for op_context in circuit.data:
-        instruction = op_context[0].assemble()
+        instruction = op_context.operation.assemble()
 
         # Add register attributes to the instruction
-        qargs = op_context[1]
-        cargs = op_context[2]
+        qargs = op_context.qubits
+        cargs = op_context.clbits
         if qargs:
             instruction.qubits = [qubit_indices[qubit] for qubit in qargs]
         if cargs:

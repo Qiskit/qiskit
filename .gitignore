@@ -151,3 +151,7 @@ test/ipynb/mpl/circuit/result_test.json
 test/ipynb/mpl/graph/*.png
 test/ipynb/mpl/graph/*.zip
 test/ipynb/mpl/graph/result_test.json
+
+# Added by cargo
+
+/target

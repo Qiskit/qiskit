@@ -18,6 +18,8 @@ from .dense_layout import DenseLayout
 from .noise_adaptive_layout import NoiseAdaptiveLayout
 from .sabre_layout import SabreLayout
 from .csp_layout import CSPLayout
+from .vf2_layout import VF2Layout
+from .vf2_post_layout import VF2PostLayout
 from .apply_layout import ApplyLayout
 from .layout_2q_distance import Layout2qDistance
 from .enlarge_with_ancilla import EnlargeWithAncilla

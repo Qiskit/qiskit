@@ -36,7 +36,7 @@ from typing import Callable, Iterable, List, Tuple, Union, Optional, NamedTuple
 from qiskit.circuit.instruction import Instruction
 from qiskit.circuit.parameterexpression import ParameterExpression
 from qiskit.pulse.exceptions import PulseError
-from qiskit.pulse.schedule import Schedule, ScheduleBlock, ParameterizedSchedule
+from qiskit.pulse.schedule import Schedule, ScheduleBlock
 
 Generator = NamedTuple(
     "Generator",
@@ -228,9 +228,6 @@ class InstructionScheduleMap:
             raise PulseError(_error_message) from ex
 
         if len(binds.arguments) > 0:
-            if isinstance(function, ParameterizedSchedule):
-                return function.bind_parameters(**binds.arguments)
-
             value_dict = dict()
             for param in function.parameters:
                 try:
@@ -281,31 +278,14 @@ class InstructionScheduleMap:
                     )
                 ordered_names = arguments
 
-            parameters = list()
+            parameters = []
             for argname in ordered_names:
                 param_signature = inspect.Parameter(
-                    name=argname,
+                    argname,
                     kind=inspect.Parameter.POSITIONAL_OR_KEYWORD,
                 )
                 parameters.append(param_signature)
             signature = inspect.Signature(parameters=parameters, return_annotation=type(schedule))
-
-        elif isinstance(schedule, ParameterizedSchedule):
-            # TODO remove this
-            warnings.warn(
-                "ParameterizedSchedule has been deprecated. "
-                "Define Schedule with Parameter objects.",
-                DeprecationWarning,
-            )
-
-            parameters = list()
-            for argname in schedule.parameters:
-                param_signature = inspect.Parameter(
-                    name=argname,
-                    kind=inspect.Parameter.POSITIONAL_OR_KEYWORD,
-                )
-                parameters.append(param_signature)
-            signature = inspect.Signature(parameters=parameters, return_annotation=Schedule)
 
         elif callable(schedule):
             if arguments:

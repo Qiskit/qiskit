@@ -10,8 +10,6 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-# pylint: disable=import-error
-
 """Map a DAGCircuit onto a given ``coupling_map``, allocating qubits and adding swap gates."""
 import copy
 import logging
@@ -20,18 +18,16 @@ import math
 from qiskit.circuit import QuantumRegister
 from qiskit.circuit.library.standard_gates import SwapGate
 from qiskit.dagcircuit import DAGCircuit, DAGOpNode
-from qiskit.exceptions import MissingOptionalLibraryError
+from qiskit.utils import optionals as _optionals
 from qiskit.transpiler import TransformationPass
 from qiskit.transpiler.exceptions import TranspilerError
-from qiskit.transpiler.passes.routing.algorithms.bip_model import (
-    BIPMappingModel,
-    HAS_CPLEX,
-    HAS_DOCPLEX,
-)
+from qiskit.transpiler.passes.routing.algorithms.bip_model import BIPMappingModel
 
 logger = logging.getLogger(__name__)
 
 
+@_optionals.HAS_CPLEX.require_in_instance("BIP-based mapping pass")
+@_optionals.HAS_DOCPLEX.require_in_instance("BIP-based mapping pass")
 class BIPMapping(TransformationPass):
     r"""Map a DAGCircuit onto a given ``coupling_map``, allocating qubits and adding swap gates.
 
@@ -115,13 +111,6 @@ class BIPMapping(TransformationPass):
             MissingOptionalLibraryError: if cplex or docplex are not installed.
             TranspilerError: if invalid options are specified.
         """
-        if not HAS_DOCPLEX or not HAS_CPLEX:
-            raise MissingOptionalLibraryError(
-                libname="bip-mapper",
-                name="BIP-based mapping pass",
-                pip_install="pip install 'qiskit-terra[bip-mapper]'",
-                msg="This may not be possible for all Python versions and OSes",
-            )
         super().__init__()
         self.coupling_map = coupling_map
         self.qubit_subset = qubit_subset

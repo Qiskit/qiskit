@@ -1,0 +1,20 @@
+---
+fixes:
+  - |
+    Fixed an issue where calling :meth:`.QuantumCircuit.copy` on the "body"
+    circuits of a control-flow operation created with the builder interface
+    would raise an error.  For example, this was previously an error, but will
+    now return successfully::
+
+        from qiskit.circuit import QuantumCircuit, QuantumRegister, ClassicalRegister
+
+        qreg = QuantumRegister(4)
+        creg = ClassicalRegister(1)
+        circ = QuantumCircuit(qreg, creg)
+
+        with circ.if_test((creg, 0)):
+            circ.h(0)
+
+        if_else_instruction, _, _ = circ.data[0]
+        true_body = if_else_instruction.params[0]
+        true_body.copy()

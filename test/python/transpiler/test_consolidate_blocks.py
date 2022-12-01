@@ -18,7 +18,7 @@ import unittest
 import numpy as np
 
 from qiskit.circuit import QuantumCircuit, QuantumRegister
-from qiskit.circuit.library import U2Gate
+from qiskit.circuit.library import U2Gate, SwapGate, CXGate
 from qiskit.extensions import UnitaryGate
 from qiskit.converters import circuit_to_dag
 from qiskit.transpiler.passes import ConsolidateBlocks
@@ -26,6 +26,8 @@ from qiskit.quantum_info.operators import Operator
 from qiskit.quantum_info.operators.measures import process_fidelity
 from qiskit.test import QiskitTestCase
 from qiskit.transpiler import PassManager
+from qiskit.transpiler import Target
+from qiskit.transpiler.passes import Collect1qRuns
 from qiskit.transpiler.passes import Collect2qBlocks
 
 
@@ -65,7 +67,7 @@ class TestConsolidateBlocks(QiskitTestCase):
         new_dag = pass_.run(dag)
 
         new_node = new_dag.op_nodes()[0]
-        self.assertEqual(new_node.qargs, [qr[0], qr[1]])
+        self.assertEqual(new_node.qargs, (qr[0], qr[1]))
         unitary = Operator(qc)
         fidelity = process_fidelity(Operator(new_node.op), unitary)
         self.assertAlmostEqual(fidelity, 1.0, places=7)
@@ -96,11 +98,18 @@ class TestConsolidateBlocks(QiskitTestCase):
 
         new_topo_ops = list(new_dag.topological_op_nodes())
         self.assertEqual(len(new_topo_ops), 2)
-        self.assertEqual(new_topo_ops[0].qargs, [qr[1], qr[2]])
-        self.assertEqual(new_topo_ops[1].qargs, [qr[0], qr[1]])
+        self.assertEqual(new_topo_ops[0].qargs, (qr[1], qr[2]))
+        self.assertEqual(new_topo_ops[1].qargs, (qr[0], qr[1]))
 
     def test_3q_blocks(self):
         """blocks of more than 2 qubits work."""
+
+        #             ┌────────┐
+        # qr_0: ──────┤ P(0.5) ├────────────■──
+        #       ┌─────┴────────┴────┐┌───┐┌─┴─┐
+        # qr_1: ┤ U(1.5708,0.2,0.6) ├┤ X ├┤ X ├
+        #       └───────────────────┘└─┬─┘└───┘
+        # qr_2: ───────────────────────■───────
         qr = QuantumRegister(3, "qr")
         qc = QuantumCircuit(qr)
         qc.p(0.5, qr[0])
@@ -120,6 +129,12 @@ class TestConsolidateBlocks(QiskitTestCase):
 
     def test_block_spanning_two_regs(self):
         """blocks spanning wires on different quantum registers work."""
+
+        #            ┌────────┐
+        # qr0: ──────┤ P(0.5) ├───────■──
+        #      ┌─────┴────────┴────┐┌─┴─┐
+        # qr1: ┤ U(1.5708,0.2,0.6) ├┤ X ├
+        #      └───────────────────┘└───┘
         qr0 = QuantumRegister(1, "qr0")
         qr1 = QuantumRegister(1, "qr1")
         qc = QuantumCircuit(qr0, qr1)
@@ -167,14 +182,13 @@ class TestConsolidateBlocks(QiskitTestCase):
         first node in the block was seen.
 
         blocks = [['id', 'cx', 'id']]
-
-                ┌────┐┌───┐
-        q_0: |0>┤ Id ├┤ X ├──────
-                └┬─┬─┘└─┬─┘┌────┐
-        q_1: |0>─┤M├────■──┤ Id ├
-                 └╥┘       └────┘
-        c_0:  0 ══╩══════════════
         """
+        #         ┌────┐┌───┐
+        # q_0: |0>┤ Id ├┤ X ├──────
+        #         └┬─┬─┘└─┬─┘┌────┐
+        # q_1: |0>─┤M├────■──┤ Id ├
+        #          └╥┘       └────┘
+        # c_0:  0 ══╩══════════════
         qc = QuantumCircuit(2, 1)
         qc.i(0)
         qc.measure(1, 0)
@@ -194,13 +208,12 @@ class TestConsolidateBlocks(QiskitTestCase):
     def test_consolidate_blocks_big(self):
         """Test ConsolidateBlocks with U2(<big numbers>)
         https://github.com/Qiskit/qiskit-terra/issues/3637#issuecomment-612954865
-
-             ┌────────────────┐     ┌───┐
-        q_0: ┤ U2(-804.15,pi) ├──■──┤ X ├
-             ├────────────────┤┌─┴─┐└─┬─┘
-        q_1: ┤ U2(-6433.2,pi) ├┤ X ├──■──
-             └────────────────┘└───┘
         """
+        #      ┌────────────────┐     ┌───┐
+        # q_0: ┤ U2(-804.15,pi) ├──■──┤ X ├
+        #      ├────────────────┤┌─┴─┐└─┬─┘
+        # q_1: ┤ U2(-6433.2,pi) ├┤ X ├──■──
+        #      └────────────────┘└───┘
         circuit = QuantumCircuit(2)
         circuit.append(U2Gate(-804.15, np.pi), [0])
         circuit.append(U2Gate(-6433.2, np.pi), [1])
@@ -281,6 +294,36 @@ class TestConsolidateBlocks(QiskitTestCase):
 
         self.assertEqual(qc, qc1)
 
+    def test_overlapping_block_and_run(self):
+        """Test that an overlapping block and run only consolidate once"""
+
+        #      ┌───┐┌───┐┌─────┐
+        # q_0: ┤ H ├┤ T ├┤ Sdg ├──■────────────────────────
+        #      └───┘└───┘└─────┘┌─┴─┐┌───┐┌─────┐┌───┐┌───┐
+        # q_1: ─────────────────┤ X ├┤ T ├┤ Sdg ├┤ Z ├┤ I ├
+        #                       └───┘└───┘└─────┘└───┘└───┘
+        qc = QuantumCircuit(2)
+        qc.h(0)
+        qc.t(0)
+        qc.sdg(0)
+        qc.cx(0, 1)
+        qc.t(1)
+        qc.sdg(1)
+        qc.z(1)
+        qc.i(1)
+
+        pass_manager = PassManager()
+        pass_manager.append(Collect2qBlocks())
+        pass_manager.append(Collect1qRuns())
+        pass_manager.append(ConsolidateBlocks(force_consolidate=True))
+        result = pass_manager.run(qc)
+        expected = Operator(qc)
+        # Assert output circuit is a single unitary gate equivalent to
+        # unitary of original circuit
+        self.assertEqual(len(result), 1)
+        self.assertIsInstance(result.data[0].operation, UnitaryGate)
+        self.assertTrue(np.allclose(result.data[0].operation.to_matrix(), expected))
+
     def test_classical_conditions_maintained(self):
         """Test that consolidate blocks doesn't drop the classical conditions
         This issue was raised in #2752
@@ -315,6 +358,53 @@ class TestConsolidateBlocks(QiskitTestCase):
         pass_manager.append(consolidate_block_pass)
         expected = QuantumCircuit(2)
         expected.unitary(np.array([[1, 0, 0, 0], [0, 0, 1, 0], [0, 1, 0, 0], [0, 0, 0, 1]]), [0, 1])
+        self.assertEqual(expected, pass_manager.run(qc))
+
+    def test_single_gate_block_outside_basis_with_target(self):
+        """Test a gate outside basis defined in target gets converted."""
+        qc = QuantumCircuit(2)
+        target = Target(num_qubits=2)
+        # Add ideal basis gates to all qubits
+        target.add_instruction(CXGate())
+        qc.swap(0, 1)
+        consolidate_block_pass = ConsolidateBlocks(target=target)
+        pass_manager = PassManager()
+        pass_manager.append(Collect2qBlocks())
+        pass_manager.append(consolidate_block_pass)
+        expected = QuantumCircuit(2)
+        expected.unitary(np.array([[1, 0, 0, 0], [0, 0, 1, 0], [0, 1, 0, 0], [0, 0, 0, 1]]), [0, 1])
+        self.assertEqual(expected, pass_manager.run(qc))
+
+    def test_single_gate_block_outside_local_basis_with_target(self):
+        """Test that a gate in basis but outside valid qubits is treated as outside basis with target."""
+        qc = QuantumCircuit(2)
+        target = Target(num_qubits=2)
+        # Add ideal cx to (1, 0) only
+        target.add_instruction(CXGate(), {(1, 0): None})
+        qc.cx(0, 1)
+        consolidate_block_pass = ConsolidateBlocks(target=target)
+        pass_manager = PassManager()
+        pass_manager.append(Collect2qBlocks())
+        pass_manager.append(consolidate_block_pass)
+        expected = QuantumCircuit(2)
+        expected.unitary(np.array([[1, 0, 0, 0], [0, 0, 0, 1], [0, 0, 1, 0], [0, 1, 0, 0]]), [0, 1])
+        self.assertEqual(expected, pass_manager.run(qc))
+
+    def test_single_gate_block_outside_target_with_matching_basis_gates(self):
+        """Ensure the target is the source of truth with basis_gates also set."""
+        qc = QuantumCircuit(2)
+        target = Target(num_qubits=2)
+        # Add ideal cx to (1, 0) only
+        target.add_instruction(SwapGate())
+        qc.swap(0, 1)
+        consolidate_block_pass = ConsolidateBlocks(
+            basis_gates=["id", "cx", "rz", "sx", "x"], target=target
+        )
+        pass_manager = PassManager()
+        pass_manager.append(Collect2qBlocks())
+        pass_manager.append(consolidate_block_pass)
+        expected = QuantumCircuit(2)
+        expected.swap(0, 1)
         self.assertEqual(expected, pass_manager.run(qc))
 
 

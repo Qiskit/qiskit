@@ -1,0 +1,18 @@
+---
+features:
+  - |
+    The :meth:`.Target.instruction_supported` method now supports two new
+    keyword arguments, ``operation_class`` and ``parameters``. Using these
+    arguments the :meth:`~.Target.instruction_supported` method can now be used
+    for checking that a specific operation with parameter values are supported
+    by a :class:`~.Target` object. For example, if you want to check if a
+    :class:`~.Target` named ``target`` supports running a :class:`~.RXGate`
+    with :math:`\theta = \frac{\pi}{2}` you would do something like::
+
+        from math import pi
+        from qiskit.circuit.library import RXGate
+
+        target.instruction_supported(operation_class=RXGate, parameters=[pi/2])
+
+    which will return ``True`` if ``target`` supports running :class:`~.RXGate`
+    with :math:`\theta = \frac{\pi}{2}` and ``False`` if it does not.

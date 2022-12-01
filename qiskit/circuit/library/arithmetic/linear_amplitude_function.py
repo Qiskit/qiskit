@@ -127,13 +127,13 @@ class LinearAmplitudeFunction(QuantumCircuit):
         mapped_slope = []
         mapped_offset = []
         for i, point in enumerate(breakpoints):
-            mapped_breakpoint = (point - a) / (b - a) * (2 ** num_state_qubits - 1)
+            mapped_breakpoint = (point - a) / (b - a) * (2**num_state_qubits - 1)
             mapped_breakpoints += [mapped_breakpoint]
 
             # factor (upper - lower) / (2^n - 1) is for the scaling of x to [l,u]
             # note that the +l for mapping to [l,u] is already included in
             # the offsets given as parameters
-            mapped_slope += [slope[i] * (b - a) / (2 ** num_state_qubits - 1)]
+            mapped_slope += [slope[i] * (b - a) / (2**num_state_qubits - 1)]
             mapped_offset += [offset[i]]
 
         # approximate linear behavior by scaling and contracting around pi/4

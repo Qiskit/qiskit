@@ -162,8 +162,8 @@ def visualize_transition(circuit, trace=False, saveas=None, fpg=100, spg=2):
         from matplotlib import pyplot as plt
         from matplotlib import animation
         from mpl_toolkits.mplot3d import Axes3D
-        from qiskit.visualization.bloch import Bloch
-        from qiskit.visualization.exceptions import VisualizationError
+        from .bloch import Bloch
+        from .exceptions import VisualizationError
 
         has_matplotlib = True
     except ImportError:
@@ -192,7 +192,7 @@ def visualize_transition(circuit, trace=False, saveas=None, fpg=100, spg=2):
     time_between_frames = (spg * 1000) / fpg
 
     # quaternions of gates which don't take parameters
-    gates = dict()
+    gates = {}
     gates["x"] = ("x", _Quaternion.from_axisangle(np.pi / frames_per_gate, [1, 0, 0]), "#1abc9c")
     gates["y"] = ("y", _Quaternion.from_axisangle(np.pi / frames_per_gate, [0, 1, 0]), "#2ecc71")
     gates["z"] = ("z", _Quaternion.from_axisangle(np.pi / frames_per_gate, [0, 0, 1]), "#3498db")
@@ -252,7 +252,12 @@ def visualize_transition(circuit, trace=False, saveas=None, fpg=100, spg=2):
     starting_pos = _normalize(np.array([0, 0, 1]))
 
     fig = plt.figure(figsize=(5, 5))
-    _ax = Axes3D(fig)
+    if tuple(int(x) for x in matplotlib.__version__.split(".")) >= (3, 4, 0):
+        _ax = Axes3D(fig, auto_add_to_figure=False)
+        fig.add_axes(_ax)
+    else:
+        _ax = Axes3D(fig)
+
     _ax.set_xlim(-10, 10)
     _ax.set_ylim(-10, 10)
     sphere = Bloch(axes=_ax)

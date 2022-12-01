@@ -12,16 +12,22 @@
 
 """Tests for DAG visualization tool."""
 
+import os
+import tempfile
 import unittest
 
-from qiskit import QuantumRegister, QuantumCircuit
-from qiskit.test import QiskitTestCase
-from qiskit.tools.visualization import dag_drawer
-from qiskit.visualization.exceptions import VisualizationError
+from PIL import Image
+
+from qiskit.circuit import QuantumRegister, QuantumCircuit, Qubit, Clbit
+from qiskit.visualization import dag_drawer
+from qiskit.exceptions import InvalidFileError
+from qiskit.visualization import VisualizationError
 from qiskit.converters import circuit_to_dag
+from qiskit.utils import optionals as _optionals
+from .visualization import path_to_diagram_reference, QiskitVisualizationTestCase
 
 
-class TestDagDrawer(QiskitTestCase):
+class TestDagDrawer(QiskitVisualizationTestCase):
     """Qiskit DAG drawer tests."""
 
     def setUp(self):
@@ -32,9 +38,45 @@ class TestDagDrawer(QiskitTestCase):
         circuit.cx(qr[0], qr[1])
         self.dag = circuit_to_dag(circuit)
 
+    @unittest.skipUnless(_optionals.HAS_GRAPHVIZ, "Graphviz not installed")
     def test_dag_drawer_invalid_style(self):
         """Test dag draw with invalid style."""
-        self.assertRaises(VisualizationError, dag_drawer, self.dag, style="multicolor")
+        with self.assertRaisesRegex(VisualizationError, "Invalid style multicolor"):
+            dag_drawer(self.dag, style="multicolor")
+
+    @unittest.skipUnless(_optionals.HAS_GRAPHVIZ, "Graphviz not installed")
+    def test_dag_drawer_checks_filename_correct_format(self):
+        """filename must contain name and extension"""
+        with self.assertRaisesRegex(
+            InvalidFileError, "Parameter 'filename' must be in format 'name.extension'"
+        ):
+            dag_drawer(self.dag, filename="aaabc")
+
+    @unittest.skipUnless(_optionals.HAS_GRAPHVIZ, "Graphviz not installed")
+    def test_dag_drawer_checks_filename_extension(self):
+        """filename must have a valid extension"""
+        with self.assertRaisesRegex(
+            ValueError,
+            "The specified value for the image_type argument, 'abc' is not a "
+            "valid choice. It must be one of: .*",
+        ):
+            dag_drawer(self.dag, filename="aa.abc")
+
+    @unittest.skipUnless(_optionals.HAS_GRAPHVIZ, "Graphviz not installed")
+    def test_dag_drawer_no_register(self):
+        """Test dag visualization with a circuit with no registers."""
+        qubit = Qubit()
+        clbit = Clbit()
+        qc = QuantumCircuit([qubit, clbit])
+        qc.h(0)
+        qc.measure(0, 0)
+        dag = circuit_to_dag(qc)
+        with tempfile.TemporaryDirectory() as tmpdirname:
+            tmp_path = os.path.join(tmpdirname, "dag.png")
+            dag_drawer(dag, filename=tmp_path)
+            image_ref = path_to_diagram_reference("dag_no_reg.png")
+            image = Image.open(tmp_path)
+            self.assertImagesAreEqual(image, image_ref, 0.2)
 
 
 if __name__ == "__main__":

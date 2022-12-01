@@ -28,7 +28,7 @@
 
 import itertools
 
-import retworkx as rx
+import rustworkx as rx
 from numpy import random
 from qiskit.transpiler.passes.routing.algorithms import ApproximateTokenSwapper
 from qiskit.transpiler.passes.routing.algorithms import util
@@ -103,7 +103,7 @@ class TestGeneral(QiskitTestCase):
         """Test a random (partial) mapping on a large randomly generated graph"""
         size = 100
         # Note that graph may have "gaps" in the node counts, i.e. the numbering is noncontiguous.
-        graph = rx.undirected_gnm_random_graph(size, size ** 2 // 10)
+        graph = rx.undirected_gnm_random_graph(size, size**2 // 10)
         for i in graph.node_indexes():
             try:
                 graph.remove_edge(i, i)  # Remove self-loops.

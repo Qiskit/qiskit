@@ -15,35 +15,22 @@
 """
 Visualization function for DAG circuit representation.
 """
-
-import os
-import sys
-import tempfile
+from rustworkx.visualization import graphviz_draw  # pylint: disable=no-name-in-module
 
 from qiskit.dagcircuit.dagnode import DAGOpNode, DAGInNode, DAGOutNode
-from qiskit.exceptions import MissingOptionalLibraryError
+from qiskit.circuit import Qubit
+from qiskit.utils import optionals as _optionals
+from qiskit.exceptions import InvalidFileError
 from .exceptions import VisualizationError
 
-try:
-    from PIL import Image
 
-    HAS_PIL = True
-except ImportError:
-    HAS_PIL = False
-
-
+@_optionals.HAS_GRAPHVIZ.require_in_call
 def dag_drawer(dag, scale=0.7, filename=None, style="color"):
     """Plot the directed acyclic graph (dag) to represent operation dependencies
     in a quantum circuit.
 
-    Note this function leverages
-    `pydot <https://github.com/erocarrera/pydot>`_ to generate the graph, which
-    means that having `Graphviz <https://www.graphviz.org/>`_ installed on your
-    system is required for this to work.
-
-    The current release of Graphviz can be downloaded here: <https://graphviz.gitlab.io/download/>.
-    Download the version of the software that matches your environment and follow the instructions
-    to install Graph Visualization Software (Graphviz) on your operating system.
+    This function calls the :func:`~rustworkx.visualization.graphviz_draw` function from the
+    ``rustworkx`` package to draw the DAG.
 
     Args:
         dag (DAGCircuit): The dag to draw.
@@ -58,7 +45,7 @@ def dag_drawer(dag, scale=0.7, filename=None, style="color"):
 
     Raises:
         VisualizationError: when style is not recognized.
-        MissingOptionalLibraryError: when pydot or pillow are not installed.
+        InvalidFileError: when filename provided is not valid
 
     Example:
         .. jupyter-execute::
@@ -80,14 +67,7 @@ def dag_drawer(dag, scale=0.7, filename=None, style="color"):
             dag = circuit_to_dag(circ)
             dag_drawer(dag)
     """
-    try:
-        import pydot
-    except ImportError as ex:
-        raise MissingOptionalLibraryError(
-            libname="PyDot",
-            name="dag_drawer",
-            pip_install="pip install pydot",
-        ) from ex
+
     # NOTE: use type str checking to avoid potential cyclical import
     # the two tradeoffs ere that it will not handle subclasses and it is
     # slower (which doesn't matter for a visualization function)
@@ -109,11 +89,11 @@ def dag_drawer(dag, scale=0.7, filename=None, style="color"):
                     n["color"] = "black"
                     n["style"] = "filled"
                     n["fillcolor"] = "green"
-                if node.op._directive:
+                if getattr(node.op, "_directive", False):
                     n["color"] = "black"
                     n["style"] = "filled"
                     n["fillcolor"] = "red"
-                if node.op.condition:
+                if getattr(node.op, "condition", None):
                     n["label"] = str(node.node_id) + ": " + str(node.name) + " (conditional)"
                     n["color"] = "black"
                     n["style"] = "filled"
@@ -125,7 +105,9 @@ def dag_drawer(dag, scale=0.7, filename=None, style="color"):
         edge_attr_func = None
 
     else:
-        bit_labels = {
+        qubit_indices = {bit: index for index, bit in enumerate(dag.qubits)}
+        clbit_indices = {bit: index for index, bit in enumerate(dag.clbits)}
+        register_bit_labels = {
             bit: f"{reg.name}[{idx}]"
             for reg in list(dag.qregs.values()) + list(dag.cregs.values())
             for (idx, bit) in enumerate(reg)
@@ -144,12 +126,20 @@ def dag_drawer(dag, scale=0.7, filename=None, style="color"):
                     n["style"] = "filled"
                     n["fillcolor"] = "lightblue"
                 if isinstance(node, DAGInNode):
-                    n["label"] = bit_labels[node.wire]
+                    if isinstance(node.wire, Qubit):
+                        label = register_bit_labels.get(node.wire, f"q_{qubit_indices[node.wire]}")
+                    else:
+                        label = register_bit_labels.get(node.wire, f"c_{clbit_indices[node.wire]}")
+                    n["label"] = label
                     n["color"] = "black"
                     n["style"] = "filled"
                     n["fillcolor"] = "green"
                 if isinstance(node, DAGOutNode):
-                    n["label"] = bit_labels[node.wire]
+                    if isinstance(node.wire, Qubit):
+                        label = register_bit_labels.get(node.wire, f"q[{qubit_indices[node.wire]}]")
+                    else:
+                        label = register_bit_labels.get(node.wire, f"c[{clbit_indices[node.wire]}]")
+                    n["label"] = label
                     n["color"] = "black"
                     n["style"] = "filled"
                     n["fillcolor"] = "red"
@@ -159,42 +149,23 @@ def dag_drawer(dag, scale=0.7, filename=None, style="color"):
 
         def edge_attr_func(edge):
             e = {}
-            e["label"] = bit_labels[edge]
+            if isinstance(edge, Qubit):
+                label = register_bit_labels.get(edge, f"q_{qubit_indices[edge]}")
+            else:
+                label = register_bit_labels.get(edge, f"c_{clbit_indices[edge]}")
+            e["label"] = label
             return e
 
-    dot_str = dag._multi_graph.to_dot(node_attr_func, edge_attr_func, graph_attrs)
-    dot = pydot.graph_from_dot_data(dot_str)[0]
-
+    image_type = None
     if filename:
-        extension = filename.split(".")[-1]
-        dot.write(filename, format=extension)
-        return None
-    elif ("ipykernel" in sys.modules) and ("spyder" not in sys.modules):
-        if not HAS_PIL:
-            raise MissingOptionalLibraryError(
-                libname="pillow",
-                name="dag_drawer",
-                pip_install="pip install pillow",
-            )
-
-        with tempfile.TemporaryDirectory() as tmpdirname:
-            tmp_path = os.path.join(tmpdirname, "dag.png")
-            dot.write_png(tmp_path)
-            with Image.open(tmp_path) as test_image:
-                image = test_image.copy()
-            os.remove(tmp_path)
-            return image
-    else:
-        if not HAS_PIL:
-            raise MissingOptionalLibraryError(
-                libname="pillow",
-                name="dag_drawer",
-                pip_install="pip install pillow",
-            )
-        with tempfile.TemporaryDirectory() as tmpdirname:
-            tmp_path = os.path.join(tmpdirname, "dag.png")
-            dot.write_png(tmp_path)
-            image = Image.open(tmp_path)
-            image.show()
-            os.remove(tmp_path)
-            return None
+        if "." not in filename:
+            raise InvalidFileError("Parameter 'filename' must be in format 'name.extension'")
+        image_type = filename.split(".")[-1]
+    return graphviz_draw(
+        dag._multi_graph,
+        node_attr_func,
+        edge_attr_func,
+        graph_attrs,
+        filename,
+        image_type,
+    )

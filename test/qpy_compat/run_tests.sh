@@ -14,6 +14,11 @@
 set -e
 set -x
 
+# Set fixed hash seed to ensure set orders are identical between saving and
+# loading.
+export PYTHONHASHSEED=$(python -S -c "import random; print(random.randint(1, 4294967295))")
+echo "PYTHONHASHSEED=$PYTHONHASHSEED"
+
 python -m venv qiskit_venv
 qiskit_venv/bin/pip install ../..
 

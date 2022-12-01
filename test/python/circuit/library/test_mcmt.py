@@ -29,6 +29,33 @@ class TestMCMT(QiskitTestCase):
     """Test the multi-controlled multi-target circuit."""
 
     @data(MCMT, MCMTVChain)
+    def test_mcmt_label(self, mcmt_class):
+        """Test MCMT label remains functional but is deprecated."""
+        custom_label = "abc"
+        with self.subTest(msg="init with label and get"):
+            with self.assertWarns(DeprecationWarning):
+                mcmt = mcmt_class(
+                    XGate(), num_ctrl_qubits=1, num_target_qubits=1, label=custom_label
+                )
+            with self.assertWarns(DeprecationWarning):
+                self.assertEqual(mcmt.label, custom_label)
+
+        with self.subTest(msg="label set and get"):
+            mcmt = mcmt_class(XGate(), num_ctrl_qubits=1, num_target_qubits=1)
+            with self.assertWarns(DeprecationWarning):
+                mcmt.label = custom_label
+            with self.assertWarns(DeprecationWarning):
+                self.assertEqual(mcmt.label, custom_label)
+
+        with self.subTest(msg="control gate label"):
+            mcmt = mcmt_class(XGate(), num_ctrl_qubits=1, num_target_qubits=1)
+            c_mcmt = mcmt.control()
+            with self.assertWarns(DeprecationWarning):
+                c_mcmt = mcmt.control(label=custom_label)
+            with self.assertWarns(DeprecationWarning):
+                self.assertEqual(c_mcmt.label, custom_label)
+
+    @data(MCMT, MCMTVChain)
     def test_mcmt_as_normal_control(self, mcmt_class):
         """Test that the MCMT can act as normal control gate."""
         qc = QuantumCircuit(2)
@@ -58,7 +85,7 @@ class TestMCMT(QiskitTestCase):
             with self.subTest(input_gate=input_gate):
                 mcmt = MCMT(input_gate, 2, 2)
                 if isinstance(input_gate, QuantumCircuit):
-                    self.assertEqual(mcmt.gate.definition[0][0], XGate())
+                    self.assertEqual(mcmt.gate.definition[0].operation, XGate())
                     self.assertEqual(len(mcmt.gate.definition), 1)
                 else:
                     self.assertEqual(mcmt.gate, XGate())

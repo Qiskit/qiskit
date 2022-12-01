@@ -50,9 +50,9 @@ class TestPiecewisePolynomialRotations(QiskitTestCase):
         for i, probability in probabilities.items():
             x, last_qubit = int(i[1:], 2), i[0]
             if last_qubit == "0":
-                expected_amplitude = np.cos(reference(x)) / np.sqrt(2 ** num_state_qubits)
+                expected_amplitude = np.cos(reference(x)) / np.sqrt(2**num_state_qubits)
             else:
-                expected_amplitude = np.sin(reference(x)) / np.sqrt(2 ** num_state_qubits)
+                expected_amplitude = np.sin(reference(x)) / np.sqrt(2**num_state_qubits)
 
             unrolled_probabilities += [probability]
             unrolled_expectations += [np.real(np.abs(expected_amplitude) ** 2)]

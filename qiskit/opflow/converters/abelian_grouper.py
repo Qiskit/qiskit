@@ -16,7 +16,7 @@ from collections import defaultdict
 from typing import List, Tuple, Union, cast
 
 import numpy as np
-import retworkx as rx
+import rustworkx as rx
 
 from qiskit.opflow.converters.converter_base import ConverterBase
 from qiskit.opflow.evolutions.evolved_op import EvolvedOp
@@ -145,7 +145,7 @@ class AbelianGrouper(ConverterBase):
         # convert a Pauli operator into int vector where {I: 0, X: 2, Y: 3, Z: 1}
         if isinstance(ops, PauliSumOp):
             mat1 = np.array(
-                [op.primitive.table.Z[0] + 2 * op.primitive.table.X[0] for op in ops],
+                [op.primitive.paulis.z[0] + 2 * op.primitive.paulis.x[0] for op in ops],
                 dtype=np.int8,
             )
         else:

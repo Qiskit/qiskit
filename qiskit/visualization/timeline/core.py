@@ -48,10 +48,9 @@ an iterator of drawings with the unique data key.
 If a plotter provides object handler for plotted shapes, the plotter API can manage
 the lookup table of the handler and the drawings by using this data key.
 """
-
+import warnings
 from copy import deepcopy
 from functools import partial
-from itertools import chain
 from typing import Tuple, Iterator, Dict
 from enum import Enum
 
@@ -59,7 +58,7 @@ import numpy as np
 
 from qiskit import circuit
 from qiskit.visualization.exceptions import VisualizationError
-from qiskit.visualization.timeline import drawings, events, types
+from qiskit.visualization.timeline import drawings, types
 from qiskit.visualization.timeline.stylesheet import QiskitTimelineStyle
 
 
@@ -74,8 +73,8 @@ class DrawerCanvas:
         self.layout = stylesheet.layout
 
         # drawings
-        self._collections = dict()
-        self._output_dataset = dict()
+        self._collections = {}
+        self._output_dataset = {}
 
         # vertical offset of bits
         self.bits = []
@@ -137,49 +136,84 @@ class DrawerCanvas:
             data.bits = [b for b in data.bits if not isinstance(b, circuit.Clbit)]
         self._collections[data.data_key] = data
 
+    # pylint: disable=cyclic-import
     def load_program(self, program: circuit.QuantumCircuit):
         """Load quantum circuit and create drawing..
 
         Args:
             program: Scheduled circuit object to draw.
+
+        Raises:
+           VisualizationError: When circuit is not scheduled.
         """
-        self.bits = program.qubits + program.clbits
-        stop_time = 0
+        not_gate_like = (circuit.Barrier,)
 
+        if getattr(program, "_op_start_times") is None:
+            # Run scheduling for backward compatibility
+            from qiskit import transpile
+            from qiskit.transpiler import InstructionDurations, TranspilerError
+
+            warnings.warn(
+                "Visualizing un-scheduled circuit with timeline drawer has been deprecated. "
+                "This circuit should be transpiled with scheduler though it consists of "
+                "instructions with explicit durations.",
+                DeprecationWarning,
+            )
+
+            try:
+                program = transpile(
+                    program, scheduling_method="alap", instruction_durations=InstructionDurations()
+                )
+            except TranspilerError as ex:
+                raise VisualizationError(
+                    f"Input circuit {program.name} is not scheduled and it contains "
+                    "operations with unknown delays. This cannot be visualized."
+                ) from ex
+
+        for t0, instruction in zip(program.op_start_times, program.data):
+            bits = list(instruction.qubits) + list(instruction.clbits)
+            for bit_pos, bit in enumerate(bits):
+                if not isinstance(instruction.operation, not_gate_like):
+                    # Generate draw object for gates
+                    gate_source = types.ScheduledGate(
+                        t0=t0,
+                        operand=instruction.operation,
+                        duration=instruction.operation.duration,
+                        bits=bits,
+                        bit_position=bit_pos,
+                    )
+                    for gen in self.generator["gates"]:
+                        obj_generator = partial(gen, formatter=self.formatter)
+                        for datum in obj_generator(gate_source):
+                            self.add_data(datum)
+                    if len(bits) > 1 and bit_pos == 0:
+                        # Generate draw object for gate-gate link
+                        line_pos = t0 + 0.5 * instruction.operation.duration
+                        link_source = types.GateLink(
+                            t0=line_pos, opname=instruction.operation.name, bits=bits
+                        )
+                        for gen in self.generator["gate_links"]:
+                            obj_generator = partial(gen, formatter=self.formatter)
+                            for datum in obj_generator(link_source):
+                                self.add_data(datum)
+                if isinstance(instruction.operation, circuit.Barrier):
+                    # Generate draw object for barrier
+                    barrier_source = types.Barrier(t0=t0, bits=bits, bit_position=bit_pos)
+                    for gen in self.generator["barriers"]:
+                        obj_generator = partial(gen, formatter=self.formatter)
+                        for datum in obj_generator(barrier_source):
+                            self.add_data(datum)
+
+        self.bits = list(program.qubits) + list(program.clbits)
         for bit in self.bits:
-            bit_events = events.BitEvents.load_program(scheduled_circuit=program, bit=bit)
-
-            # create objects associated with gates
-            for gen in self.generator["gates"]:
-                obj_generator = partial(gen, formatter=self.formatter)
-                draw_targets = [obj_generator(gate) for gate in bit_events.get_gates()]
-                for data in list(chain.from_iterable(draw_targets)):
-                    self.add_data(data)
-
-            # create objects associated with gate links
-            for gen in self.generator["gate_links"]:
-                obj_generator = partial(gen, formatter=self.formatter)
-                draw_targets = [obj_generator(link) for link in bit_events.get_gate_links()]
-                for data in list(chain.from_iterable(draw_targets)):
-                    self.add_data(data)
-
-            # create objects associated with barrier
-            for gen in self.generator["barriers"]:
-                obj_generator = partial(gen, formatter=self.formatter)
-                draw_targets = [obj_generator(barrier) for barrier in bit_events.get_barriers()]
-                for data in list(chain.from_iterable(draw_targets)):
-                    self.add_data(data)
-
-            # create objects associated with bit
             for gen in self.generator["bits"]:
+                # Generate draw objects for bit
                 obj_generator = partial(gen, formatter=self.formatter)
-                for data in obj_generator(bit):
-                    self.add_data(data)
-
-            stop_time = max(stop_time, bit_events.stop_time)
+                for datum in obj_generator(bit):
+                    self.add_data(datum)
 
         # update time range
-        t_end = max(stop_time, self.formatter["margin.minimum_duration"])
+        t_end = max(program.duration, self.formatter["margin.minimum_duration"])
         self.set_time_range(t_start=0, t_end=t_end)
 
     def set_time_range(self, t_start: int, t_end: int):
@@ -248,8 +282,8 @@ class DrawerCanvas:
         self.vmin = y0 - self.formatter["margin.bottom"]
 
         # add data
-        temp_gate_links = dict()
-        temp_data = dict()
+        temp_gate_links = {}
+        temp_data = {}
         for data_key, data in self._collections.items():
             # deep copy to keep original data hash
             new_data = deepcopy(data)
@@ -396,7 +430,7 @@ class DrawerCanvas:
             overlapped_group.append(list(overlaps))
 
         # renew horizontal offset
-        new_links = dict()
+        new_links = {}
         for overlaps in overlapped_group:
             if len(overlaps) > 1:
                 xpos_mean = np.mean([links[key].xvals[0] for key in overlaps])

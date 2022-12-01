@@ -45,14 +45,7 @@ from qiskit.algorithms.optimizers import (
 )
 from qiskit.circuit.library import RealAmplitudes
 from qiskit.exceptions import MissingOptionalLibraryError
-from qiskit.utils import algorithm_globals
-
-try:
-    import skquant.opt as skq  # pylint: disable=unused-import
-
-    _HAS_SKQUANT = True
-except ImportError:
-    _HAS_SKQUANT = False
+from qiskit.utils import algorithm_globals, optionals
 
 
 @ddt
@@ -81,21 +74,12 @@ class TestOptimizers(QiskitAlgorithmsTestCase):
         x_0 = [1.3, 0.7, 0.8, 1.9, 1.2]
         jac = rosen_der if grad else None
 
-        # check both the deprecated optimize method and minimize method
-        for test_deprecation in [False, True]:
-            with self.subTest(test_deprecation=test_deprecation):
-                if test_deprecation:
-                    with self.assertWarns(DeprecationWarning):
-                        res = optimizer.optimize(len(x_0), rosen, jac, bounds, initial_point=x_0)
-                    x_opt = res[0]
-                    nfev = res[2]
-                else:
-                    res = optimizer.minimize(rosen, x_0, jac, bounds)
-                    x_opt = res.x
-                    nfev = res.nfev
+        res = optimizer.minimize(rosen, x_0, jac, bounds)
+        x_opt = res.x
+        nfev = res.nfev
 
-                np.testing.assert_array_almost_equal(x_opt, [1.0] * len(x_0), decimal=2)
-                self.assertLessEqual(nfev, max_nfev)
+        np.testing.assert_array_almost_equal(x_opt, [1.0] * len(x_0), decimal=2)
+        self.assertLessEqual(nfev, max_nfev)
 
     def test_adam(self):
         """adam test"""
@@ -163,23 +147,15 @@ class TestOptimizers(QiskitAlgorithmsTestCase):
             min_step_size=1.0e-12,
         )
         x_0 = [1.3, 0.7, 0.8, 1.9, 1.2]
-        for test_deprecation in [True, False]:
-            # GSLS is volatile so we need to set the seeds for both executions
-            algorithm_globals.random_seed = 1
-            with self.subTest(test_deprecation=test_deprecation):
-                if test_deprecation:
-                    with self.assertWarns(DeprecationWarning):
-                        res = optimizer.optimize(len(x_0), rosen, initial_point=x_0)
-                    x_value = res[1]
-                    n_evals = res[2]
-                else:
-                    res = optimizer.minimize(rosen, x_0)
-                    x_value = res.fun
-                    n_evals = res.nfev
 
-                # Ensure value is near-optimal
-                self.assertLessEqual(x_value, 0.01)
-                self.assertLessEqual(n_evals, 10000)
+        algorithm_globals.random_seed = 1
+        res = optimizer.minimize(rosen, x_0)
+        x_value = res.fun
+        n_evals = res.nfev
+
+        # Ensure value is near-optimal
+        self.assertLessEqual(x_value, 0.01)
+        self.assertLessEqual(n_evals, 10000)
 
     def test_scipy_optimizer(self):
         """scipy_optimizer test"""
@@ -250,6 +226,31 @@ class TestOptimizerSerialization(QiskitAlgorithmsTestCase):
         self.assertEqual(from_dict._method, method.lower())
         self.assertEqual(from_dict._options, options)
 
+    def test_independent_reconstruction(self):
+        """Test the SciPyOptimizers don't reset all settings upon creating a new instance.
+
+        COBYLA is used as representative example here."""
+
+        kwargs = {"coffee": "without sugar"}
+        options = {"tea": "with milk"}
+        optimizer = COBYLA(maxiter=1, options=options, **kwargs)
+        serialized = optimizer.settings
+        from_dict = COBYLA(**serialized)
+
+        with self.subTest(msg="test attributes"):
+            self.assertEqual(from_dict.settings["maxiter"], 1)
+
+        with self.subTest(msg="test options"):
+            # options should only contain values that are *not* already in the initializer
+            # (e.g. should not contain maxiter)
+            self.assertEqual(from_dict.settings["options"], {"tea": "with milk"})
+
+        with self.subTest(msg="test kwargs"):
+            self.assertEqual(from_dict.settings["coffee"], "without sugar")
+
+        with self.subTest(msg="option ids differ"):
+            self.assertNotEqual(id(serialized["options"]), id(from_dict.settings["options"]))
+
     def test_adam(self):
         """Test ADAM is serializable."""
 
@@ -269,7 +270,7 @@ class TestOptimizerSerialization(QiskitAlgorithmsTestCase):
         self.assertListEqual(settings["eta"], [0.2, 0.1])
         self.assertListEqual(settings["momentum"], [0.25, 0.1])
 
-    @unittest.skipIf(not _HAS_SKQUANT, "Install scikit-quant to run this test.")
+    @unittest.skipIf(not optionals.HAS_SKQUANT, "Install scikit-quant to run this test.")
     def test_bobyqa(self):
         """Test BOBYQA is serializable."""
 
@@ -278,7 +279,7 @@ class TestOptimizerSerialization(QiskitAlgorithmsTestCase):
 
         self.assertEqual(settings["maxiter"], 200)
 
-    @unittest.skipIf(not _HAS_SKQUANT, "Install scikit-quant to run this test.")
+    @unittest.skipIf(not optionals.HAS_SKQUANT, "Install scikit-quant to run this test.")
     def test_imfil(self):
         """Test IMFIL is serializable."""
 
@@ -335,7 +336,7 @@ class TestOptimizerSerialization(QiskitAlgorithmsTestCase):
         def powerlaw():
             n = 0
             while True:
-                yield rate ** n
+                yield rate**n
                 n += 1
 
         def steps():

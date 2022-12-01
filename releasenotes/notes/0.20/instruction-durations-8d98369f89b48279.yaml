@@ -1,0 +1,10 @@
+---
+features:
+  - |
+    The :class:`~.InstructionDurations` class now has support for working
+    with parameters of an instruction. Each entry in an
+    :class:`~.InstructionDurations` object now consists of a tuple of
+    ``(inst_name, qubits, duration, parameters, unit)``. This enables an
+    :class:`~.InstructionDurations` to define durations for an instruction
+    given a certain parameter value to account for different durations with
+    different parameter values on an instruction that takes a numeric parameter.

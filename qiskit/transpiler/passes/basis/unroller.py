@@ -13,8 +13,9 @@
 """Unroll a circuit to a given basis."""
 
 from qiskit.transpiler.basepasses import TransformationPass
+from qiskit.transpiler.passes.utils import control_flow
 from qiskit.exceptions import QiskitError
-from qiskit.circuit import ControlledGate
+from qiskit.circuit import ControlledGate, ControlFlowOp
 from qiskit.converters.circuit_to_dag import circuit_to_dag
 
 
@@ -53,7 +54,7 @@ class Unroller(TransformationPass):
         # Walk through the DAG and expand each non-basis node
         basic_insts = ["measure", "reset", "barrier", "snapshot", "delay"]
         for node in dag.op_nodes():
-            if node.op._directive:
+            if getattr(node.op, "_directive", False):
                 continue
 
             if node.name in basic_insts:
@@ -68,34 +69,35 @@ class Unroller(TransformationPass):
                 else:
                     continue
 
-            # TODO: allow choosing other possible decompositions
+            if isinstance(node.op, ControlFlowOp):
+                node.op = control_flow.map_blocks(self.run, node.op)
+                continue
+
             try:
                 phase = node.op.definition.global_phase
                 rule = node.op.definition.data
             except (TypeError, AttributeError) as err:
                 raise QiskitError(
-                    f"Error decomposing node of instruction '{node.name}': "
-                    f"{err}. Unable to define instruction '{node.name}' in the"
-                    f" given basis."
+                    f"Error decomposing node of instruction '{node.name}': {err}. "
+                    f"Unable to define instruction '{node.name}' in the given basis."
                 ) from err
 
             # Isometry gates definitions can have widths smaller than that of the
             # original gate, in which case substitute_node will raise. Fall back
             # to substitute_node_with_dag if an the width of the definition is
             # different that the width of the node.
-            while rule and len(rule) == 1 and len(node.qargs) == len(rule[0][1]) == 1:
-                if rule[0][0].name in self.basis:
+            while rule and len(rule) == 1 and len(node.qargs) == len(rule[0].qubits) == 1:
+                if rule[0].operation.name in self.basis:
                     dag.global_phase += phase
-                    dag.substitute_node(node, rule[0][0], inplace=True)
+                    dag.substitute_node(node, rule[0].operation, inplace=True)
                     break
                 try:
-                    phase += rule[0][0].definition.global_phase
-                    rule = rule[0][0].definition.data
+                    phase += rule[0].operation.definition.global_phase
+                    rule = rule[0].operation.definition.data
                 except (TypeError, AttributeError) as err:
                     raise QiskitError(
-                        f"Error decomposing node of instruction '{node.name}': "
-                        f"{err}. Unable to define instruction '{rule[0][0].name}'"
-                        f" in the given basis."
+                        f"Error decomposing node of instruction '{node.name}': {err}. "
+                        f"Unable to define instruction '{rule[0].operation.name}' in the basis."
                     ) from err
 
             else:

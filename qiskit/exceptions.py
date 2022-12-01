@@ -13,7 +13,6 @@
 """Exceptions for errors raised by Qiskit."""
 
 from typing import Optional
-import warnings
 
 
 class QiskitError(Exception):
@@ -27,19 +26,6 @@ class QiskitError(Exception):
     def __str__(self):
         """Return the message."""
         return repr(self.message)
-
-
-class QiskitIndexError(QiskitError, IndexError):
-    """Raised when a sequence subscript is out of range."""
-
-    def __init__(self, *args):
-        """Set the error message."""
-        warnings.warn(
-            "QiskitIndexError class is being deprecated and it is going to be remove in the future",
-            DeprecationWarning,
-            stacklevel=2,
-        )
-        super().__init__(*args)
 
 
 class QiskitUserConfigError(QiskitError):
@@ -73,3 +59,7 @@ class MissingOptionalLibraryError(QiskitError, ImportError):
     def __str__(self) -> str:
         """Return the message."""
         return repr(self.message)
+
+
+class InvalidFileError(QiskitError):
+    """Raised when the file provided is not valid for the specific task."""

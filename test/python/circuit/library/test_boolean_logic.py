@@ -44,12 +44,12 @@ class TestBooleanLogicLibrary(QiskitTestCase):
         # compute the expected outcome by computing the entries of the statevector that should
         # have a 1 / sqrt(2**n) factor
         expectations = np.zeros_like(probabilities)
-        for x in range(2 ** boolean_circuit.num_variable_qubits):
+        for x in range(2**boolean_circuit.num_variable_qubits):
             bits = np.array(list(bin(x)[2:].zfill(boolean_circuit.num_variable_qubits)), dtype=int)
             result = reference(bits[::-1])
 
             entry = int(str(int(result)) + bin(x)[2:].zfill(boolean_circuit.num_variable_qubits), 2)
-            expectations[entry] = 1 / 2 ** boolean_circuit.num_variable_qubits
+            expectations[entry] = 1 / 2**boolean_circuit.num_variable_qubits
 
         np.testing.assert_array_almost_equal(probabilities, expectations)
 

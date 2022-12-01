@@ -11,8 +11,6 @@
 # that they have been altered from the originals.
 
 """Node for an OPENQASM U statement."""
-import warnings
-
 from .node import Node
 
 
@@ -29,13 +27,6 @@ class UniversalUnitary(Node):
         self.arguments = children[0]
         self.bitlist = children[1]
 
-    def qasm(self, prec=None):
+    def qasm(self):
         """Return the corresponding OPENQASM string."""
-        if prec is not None:
-            warnings.warn(
-                "Parameter 'UniversalUnitary.qasm(..., prec)' is no longer used and is "
-                "being deprecated.",
-                DeprecationWarning,
-                2,
-            )
         return "U(" + self.children[0].qasm() + ") " + self.children[1].qasm() + ";"

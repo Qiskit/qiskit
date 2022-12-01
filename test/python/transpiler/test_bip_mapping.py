@@ -19,16 +19,16 @@ from qiskit.circuit import Barrier
 from qiskit.circuit.library.standard_gates import SwapGate
 from qiskit.converters import circuit_to_dag
 from qiskit.test import QiskitTestCase
-from qiskit.test.mock.backends import FakeLima
+from qiskit.providers.fake_provider import FakeLima
 from qiskit.transpiler import CouplingMap, Layout, PassManager
 from qiskit.transpiler.exceptions import TranspilerError
 from qiskit.transpiler.passes import BIPMapping
 from qiskit.transpiler.passes import CheckMap, Collect2qBlocks, ConsolidateBlocks, UnitarySynthesis
-from qiskit.transpiler.passes.routing.algorithms.bip_model import HAS_CPLEX, HAS_DOCPLEX
+from qiskit.utils import optionals
 
 
-@unittest.skipUnless(HAS_CPLEX, "cplex is required to run the BIPMapping tests")
-@unittest.skipUnless(HAS_DOCPLEX, "docplex is required to run the BIPMapping tests")
+@unittest.skipUnless(optionals.HAS_CPLEX, "cplex is required to run the BIPMapping tests")
+@unittest.skipUnless(optionals.HAS_DOCPLEX, "docplex is required to run the BIPMapping tests")
 class TestBIPMapping(QiskitTestCase):
     """Tests the BIPMapping pass."""
 
@@ -179,6 +179,21 @@ class TestBIPMapping(QiskitTestCase):
 
     def test_multi_cregs(self):
         """Test for multiple ClassicalRegisters."""
+
+        #                      ┌───┐ ░ ┌─┐
+        # qr_0: ──■────────────┤ X ├─░─┤M├─────────
+        #       ┌─┴─┐     ┌───┐└─┬─┘ ░ └╥┘┌─┐
+        # qr_1: ┤ X ├──■──┤ H ├──■───░──╫─┤M├──────
+        #       └───┘┌─┴─┐└───┘      ░  ║ └╥┘┌─┐
+        # qr_2: ──■──┤ X ├───────────░──╫──╫─┤M├───
+        #       ┌─┴─┐└───┘           ░  ║  ║ └╥┘┌─┐
+        # qr_3: ┤ X ├────────────────░──╫──╫──╫─┤M├
+        #       └───┘                ░  ║  ║  ║ └╥┘
+        #  c: 2/════════════════════════╩══╬══╩══╬═
+        #                               0  ║  1  ║
+        #                                  ║     ║
+        #  d: 2/═══════════════════════════╩═════╩═
+        #                                  0     1
         qr = QuantumRegister(4, "qr")
         cr1 = ClassicalRegister(2, "c")
         cr2 = ClassicalRegister(2, "d")
@@ -204,6 +219,16 @@ class TestBIPMapping(QiskitTestCase):
 
     def test_swaps_in_dummy_steps(self):
         """Test the case when swaps are inserted in dummy steps."""
+
+        #           ┌───┐ ░            ░
+        # q_0: ──■──┤ H ├─░───■────────░───■───────
+        #      ┌─┴─┐├───┤ ░   │        ░   │
+        # q_1: ┤ X ├┤ H ├─░───┼────■───░───┼────■──
+        #      └───┘├───┤ ░   │  ┌─┴─┐ ░ ┌─┴─┐  │
+        # q_2: ──■──┤ H ├─░───┼──┤ X ├─░─┤ X ├──┼──
+        #      ┌─┴─┐├───┤ ░ ┌─┴─┐└───┘ ░ └───┘┌─┴─┐
+        # q_3: ┤ X ├┤ H ├─░─┤ X ├──────░──────┤ X ├
+        #      └───┘└───┘ ░ └───┘      ░      └───┘
         circuit = QuantumCircuit(4)
         circuit.cx(0, 1)
         circuit.cx(2, 3)
@@ -231,6 +256,15 @@ class TestBIPMapping(QiskitTestCase):
 
     def test_different_number_of_virtual_and_physical_qubits(self):
         """Test the case when number of virtual and physical qubits are different."""
+
+        # q_0: ──■────■───────
+        #      ┌─┴─┐  │
+        # q_1: ┤ X ├──┼────■──
+        #      └───┘  │  ┌─┴─┐
+        # q_2: ──■────┼──┤ X ├
+        #      ┌─┴─┐┌─┴─┐└───┘
+        # q_3: ┤ X ├┤ X ├─────
+        #      └───┘└───┘
         circuit = QuantumCircuit(4)
         circuit.cx(0, 1)
         circuit.cx(2, 3)
@@ -258,7 +292,7 @@ class TestBIPMapping(QiskitTestCase):
                 self.assertTrue(bit_indices[q] in qubit_subset)
         # ancilla qubits are set in the resulting qubit
         idle = QuantumRegister(1, name="ancilla")
-        self.assertEqual(idle[0], actual._layout[2])
+        self.assertEqual(idle[0], actual._layout.initial_layout[2])
 
     def test_unconnected_qubit_subset(self):
         """Fails if qubits in `qubit_subset` are not connected."""
@@ -271,6 +305,16 @@ class TestBIPMapping(QiskitTestCase):
 
     def test_objective_function(self):
         """Test if ``objective`` functions priorities metrics correctly."""
+
+        #      ┌──────┐┌──────┐     ┌──────┐
+        # q_0: ┤0     ├┤0     ├─────┤0     ├
+        #      │  Dcx ││      │     │  Dcx │
+        # q_1: ┤1     ├┤  Dcx ├──■──┤1     ├
+        #      └──────┘│      │  │  └──────┘
+        # q_2: ───■────┤1     ├──┼─────■────
+        #       ┌─┴─┐  └──────┘┌─┴─┐ ┌─┴─┐
+        # q_3: ─┤ X ├──────────┤ X ├─┤ X ├──
+        #       └───┘          └───┘ └───┘
         qc = QuantumCircuit(4)
         qc.dcx(0, 1)
         qc.cx(2, 3)

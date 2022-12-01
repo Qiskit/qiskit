@@ -124,12 +124,12 @@ class TestGateSqrt(QiskitTestCase):
         def rxgate(theta):
             return np.cos(0.5 * theta) * iden - 1j * np.sin(0.5 * theta) * xgen
 
-        rxrz = rxgate(thetax) * rzgate(thetaz)
+        rxrz = rxgate(thetax).dot(rzgate(thetaz))
 
         self.assertEqual(result.label, "my_gate^0.5")
         self.assertEqual(len(result.definition), 1)
         self.assertIsInstance(result, Gate)
-        self.assertEqual(Operator(result) @ Operator(result), rxrz)
+        self.assertEqual(Operator(result) & Operator(result), rxrz)
 
 
 @ddt
@@ -186,7 +186,7 @@ class TestPowerInvariant(QiskitTestCase):
     @data(-3, -2, -1, 1, 2, 3)
     def test_invariant2(self, n):
         """Test op^(n) * op^(-n) == I"""
-        result = Operator(SGate()).power(n) @ Operator(SGate()).power(-n)
+        result = Operator(SGate()).power(n) & Operator(SGate()).power(-n)
         expected = Operator(eye(2))
 
         self.assertEqual(len(result.data), len(expected.data))

@@ -1,30 +1,27 @@
 coverage>=4.4.0
 hypothesis>=4.24.3
+python-constraint>=1.4
 ipython<7.22.0
 ipykernel<5.5.2
 ipywidgets>=7.3.0
 jupyter
-matplotlib>=2.1,<3.4
+matplotlib>=3.3
 pillow>=4.2.1
-black==21.4b2
+black[jupyter]~=22.0
 pydot
 astroid==2.5.6
 pylint==2.8.3
-stestr>=2.0.0
-PyGithub
-wheel
-cython>=0.27.1
+stestr>=2.0.0,!=4.0.0
 pylatexenc>=1.4
 ddt>=1.2.0,!=1.4.0,!=1.4.3
 seaborn>=0.9.0
 reno>=3.4.0
 Sphinx>=3.0.0
 qiskit-sphinx-theme>=1.6
-sphinx-autodoc-typehints
+sphinx-autodoc-typehints~=1.18,!=1.19.3
 jupyter-sphinx
-sphinx-panels<0.6.0
+sphinx-design>=0.2.0
 pygments>=2.4
-networkx>=2.2
 scikit-learn>=0.20.0
 scikit-quant<=0.7;platform_system != 'Windows'
 jax;platform_system != 'Windows'
