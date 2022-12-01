@@ -106,6 +106,56 @@ def _gauss_elimination(mat, ncols=None, full_elim=False):
     return mat
 
 
+def _gauss_elimination_with_perm(mat, ncols=None, full_elim=False):
+    """Gauss elimination of a matrix mat with m rows and n columns.
+    If full_elim = True, it allows full elimination of mat[:, 0 : ncols]
+    Mutates and returns the matrix mat, and the permutation perm that
+    was done on the rows during the process."""
+
+    # Treat the matrix A as containing integer values
+    mat = np.array(mat, dtype=int, copy=False)
+
+    m = mat.shape[0]  # no. of rows
+    n = mat.shape[1]  # no. of columns
+    if ncols is not None:
+        n = min(n, ncols)  # no. of active columns
+
+    perm = np.array(range(n))  # permutation on the rows
+
+    r = 0  # current rank
+    k = 0  # current pivot column
+    while (r < m) and (k < n):
+        is_non_zero = False
+        new_r = r
+        for j in range(k, n):
+            for i in range(r, m):
+                if mat[i][j]:
+                    is_non_zero = True
+                    k = j
+                    new_r = i
+                    break
+            if is_non_zero:
+                break
+        if not is_non_zero:
+            return mat, perm  # A is in the canonical form
+
+        if new_r != r:
+            mat[[r, new_r]] = mat[[new_r, r]]
+            perm[r], perm[new_r] = perm[new_r], perm[r]
+
+        if full_elim:
+            for i in range(0, r):
+                if mat[i][k]:
+                    mat[i] = mat[i] ^ mat[r]
+
+        for i in range(r + 1, m):
+            if mat[i][k]:
+                mat[i] = mat[i] ^ mat[r]
+        r += 1
+
+    return mat, perm
+
+
 def calc_inverse_matrix(mat: np.ndarray, verify: bool = False):
     """Given a square numpy(dtype=int) matrix mat, tries to compute its inverse.
 
@@ -147,3 +197,25 @@ def _compute_rank_after_gauss_elim(mat):
     """Given a matrix A after Gaussian elimination, computes its rank
     (i.e. simply the number of nonzero rows)"""
     return np.sum(mat.any(axis=1))
+
+
+def _compute_rank_square_matrix(mat):
+    # This function takes as input a binary square matrix mat
+    # Returns the rank of A over the binary field F_2
+    n = mat.shape[1]
+    matx = np.identity(n, dtype=int)
+
+    for i in range(n):
+        y = np.dot(mat[i, :], matx) % 2
+        not_y = (y + 1) % 2
+        good = matx[:, np.nonzero(not_y)]
+        good = good[:, 0, :]
+        bad = matx[:, np.nonzero(y)]
+        bad = bad[:, 0, :]
+        if bad.shape[1] > 0:
+            bad = np.add(bad, np.roll(bad, 1, axis=1))
+            bad = bad % 2
+            bad = np.delete(bad, 0, axis=1)
+            matx = np.concatenate((good, bad), axis=1)
+    # now columns of X span the binary null-space of A
+    return n - matx.shape[1]
