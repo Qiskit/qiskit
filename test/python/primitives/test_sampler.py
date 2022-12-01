@@ -726,7 +726,7 @@ class TestSampler(QiskitTestCase):
         bell = self._circuit[1]
         sampler = Sampler()
         job = sampler.run(circuits=[bell])
-        job.result()
+        _ = job.result()
         self.assertEqual(job.status(), JobStatus.DONE)
 
     def test_options(self):
