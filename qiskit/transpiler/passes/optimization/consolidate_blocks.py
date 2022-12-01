@@ -125,8 +125,7 @@ class ConsolidateBlocks(TransformationPass):
                         )
         # If 1q runs are collected before consolidate those too
         runs = self.property_set["run_list"] or []
-        if runs:
-            identity_1q = np.eye(2)
+        identity_1q = np.eye(2)
         for run in runs:
             if any(gate in all_block_gates for gate in run):
                 continue
