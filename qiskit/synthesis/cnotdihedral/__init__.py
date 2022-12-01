@@ -10,24 +10,8 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""
-===================================
-Events (:mod:`qiskit.tools.events`)
-===================================
+"""Module containing cnot-dihedral circuit synthesis."""
 
-A helper component for publishing and subscribing to events.
-
-.. currentmodule:: qiskit.tools.events
-
-TextProgressBar
----------------
-
-A text based progress bar, which also enables Jupyter magics.
-
-.. autosummary::
-   :toctree: ../stubs/
-
-   TextProgressBar
-"""
-
-from .progressbar import TextProgressBar
+from .cnotdihedral_decompose_full import synth_cnotdihedral_full
+from .cnotdihedral_decompose_two_qubits import synth_cnotdihedral_two_qubits
+from .cnotdihedral_decompose_general import synth_cnotdihedral_general

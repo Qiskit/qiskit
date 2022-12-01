@@ -183,20 +183,20 @@ documentation for all the required fields. An example plugin class would look
 something like::
 
     from qiskit.transpiler.passes.synthesis.plugin import HighLevelSynthesisPlugin
-    from qiskit.quantum_info.synthesis.clifford_decompose import decompose_clifford_bm
+    from qiskit.synthesis.clifford import synth_clifford_bm
 
 
     class SpecialSynthesisClifford(HighLevelSynthesisPlugin):
 
     def run(self, high_level_object, **options):
         if higher_level_object.num_qubits <= 3:
-            return decompose_clifford_bm(high_level_object)
+            return synth_clifford_bm(high_level_object)
         else:
             return None
 
 The above example creates a plugin to synthesize objects of type
 :class:`~qiskit.quantum_info.operators.symplectic.clifford.Clifford that have
-at most 3 qubits, using the method ``decompose_clifford_bm``.
+at most 3 qubits, using the method ``synth_clifford_bm``.
 
 The second step is to expose the
 :class:`~qiskit.transpiler.passes.synthesis.plugin.HighLevelSynthesisPlugin` as
