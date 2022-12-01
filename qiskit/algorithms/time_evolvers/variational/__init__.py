@@ -11,7 +11,7 @@
 # that they have been altered from the originals.
 """
 Variational Quantum Time Evolutions (:mod:`qiskit.algorithms.time_evolvers.variational`)
-===================================================================================
+========================================================================================
 
 Algorithms for performing Variational Quantum Time Evolution of quantum states,
 which can be tailored to near-term devices.
