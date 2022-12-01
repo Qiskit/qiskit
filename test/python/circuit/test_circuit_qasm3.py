@@ -1535,7 +1535,7 @@ class TestCircuitQASM3ExporterTemporaryCasesWithBadParameterisation(QiskitTestCa
         qc.x(2).c_if(qc.clbits[1], 1)
         qc.z(2).c_if(qc.clbits[0], 1)
 
-        transpiled = transpile(qc, initial_layout=[0, 1, 2], optimization_level=0)
+        transpiled = transpile(qc, initial_layout=[0, 1, 2])
         first_h = transpiled.data[0].operation
         u2 = first_h.definition.data[0].operation
         u3_1 = u2.definition.data[0].operation

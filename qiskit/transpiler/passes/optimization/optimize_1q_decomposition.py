@@ -53,15 +53,11 @@ class Optimize1qGatesDecomposition(TransformationPass):
         self._global_decomposers = None
         self._local_decomposers_cache = {}
 
-        if self._basis_gates:
-            self._global_decomposers = _possible_decomposers(self._basis_gates)
+        if basis:
+            self._global_decomposers = _possible_decomposers(set(basis))
         elif target is None:
             self._global_decomposers = _possible_decomposers(None)
-            self._basis_gates = [
-                gate
-                for basis in one_qubit_decompose.ONE_QUBIT_EULER_BASIS_GATES.values()
-                for gate in basis
-            ]
+            self._basis_gates = None
 
     def _resynthesize_run(self, run, qubit=None):
         """
@@ -104,10 +100,14 @@ class Optimize1qGatesDecomposition(TransformationPass):
         # does this run have uncalibrated gates?
         uncalibrated_p = not has_cals_p or any(not dag.has_calibration_for(g) for g in old_run)
         # does this run have gates not in the image of ._decomposers _and_ uncalibrated?
-        uncalibrated_and_not_basis_p = any(
-            g.name not in basis and (not has_cals_p or not dag.has_calibration_for(g))
-            for g in old_run
-        )
+        if basis is not None:
+            uncalibrated_and_not_basis_p = any(
+                g.name not in basis and (not has_cals_p or not dag.has_calibration_for(g))
+                for g in old_run
+            )
+        else:
+            # If no basis is specified then we're always in the basis
+            uncalibrated_and_not_basis_p = False
 
         # if we're outside of the basis set, we're obligated to logically decompose.
         # if we're outside of the set of gates for which we have physical definitions,
@@ -160,7 +160,6 @@ def _possible_decomposers(basis_set):
             for basis in one_qubit_decompose.ONE_QUBIT_EULER_BASIS_GATES
         ]
     else:
-        basis_set = set(basis_set)
         euler_basis_gates = one_qubit_decompose.ONE_QUBIT_EULER_BASIS_GATES
         for euler_basis_name, gates in euler_basis_gates.items():
             if set(gates).issubset(basis_set):

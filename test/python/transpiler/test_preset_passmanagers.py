@@ -142,13 +142,7 @@ class TestPresetPassManager(QiskitTestCase):
         circuit.h(q[0])
         circuit.cz(q[0], q[1])
         result = transpile(circuit, basis_gates=None, optimization_level=level)
-        if level > 0:
-            expected = QuantumCircuit(q)
-            expected.append(U3Gate(np.pi / 2, 0, -np.pi), [0])
-            expected.cz(0, 1)
-            self.assertEqual(result, expected)
-        else:
-            self.assertEqual(result, circuit)
+        self.assertEqual(result, circuit)
 
     def test_level0_keeps_reset(self):
         """Test level 0 should keep the reset instructions"""
