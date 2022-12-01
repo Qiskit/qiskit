@@ -10,13 +10,9 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""Module containing cnot circuits and cnot-phase circuit synthesize."""
+"""Module containing clifford circuit synthesis."""
 
-
-from .graysynth import graysynth, synth_cnot_count_full_pmh
-from .linear_depth_lnn import synth_cnot_depth_line_kms
-from .linear_matrix_utils import (
-    random_invertible_binary_matrix,
-    calc_inverse_matrix,
-    check_invertible_binary_matrix,
-)
+from .clifford_decompose_full import synth_clifford_full
+from .clifford_decompose_ag import synth_clifford_ag
+from .clifford_decompose_bm import synth_clifford_bm, _decompose_clifford_1q
+from .clifford_decompose_greedy import synth_clifford_greedy
