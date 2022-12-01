@@ -54,6 +54,12 @@ class EquivalenceLibrary:
     def graph(self) -> rx.PyDiGraph:
         """Return graph representing the equivalence library data.
 
+        This property should be treated as read-only as it provides
+        a reference to the internal state of the :class:`~.EquivalenceLibrary` object.
+        If the graph returned by this property is mutated it could corrupt the
+        the contents of the object. If you need to modify the output ``PyDiGraph``
+        be sure to make a copy prior to any modification.
+
         Returns:
             PyDiGraph: A graph object with equivalence data in each node.
         """
@@ -63,6 +69,12 @@ class EquivalenceLibrary:
     def key_to_node_index(self) -> dict:
         """Return map of Keys to graph node indices
 
+        This property should be treated as read-only as it provides
+        a reference to the internal state of the :class:`~.EquivalenceLibrary` object.
+        If the graph returned by this property is mutated it could corrupt the
+        the contents of the object. If you need to modify the output ``dict``
+        be sure to make a copy prior to any modification.
+
         Returns:
             dict: A map of Keys to graph node indices
         """
@@ -71,6 +83,12 @@ class EquivalenceLibrary:
     @property
     def num_gates_for_rule(self) -> dict:
         """Return map of number of gates in each rule.
+
+        This property should be treated as read-only as it provides
+        a reference to the internal state of the :class:`~.EquivalenceLibrary` object.
+        If the graph returned by this property is mutated it could corrupt the
+        the contents of the object. If you need to modify the output ``dict``
+        be sure to make a copy prior to any modification.
 
         Returns:
             dict: A map of the number of gates in each rule.
