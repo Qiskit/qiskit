@@ -130,12 +130,11 @@ def build_composition_data(
         measured_qubits: virtual qubits to measure
 
     Returns:
-        - Transpiled base circuit: with a `final_layout` entry in its metadata
+        - Transpiled base circuit: with a ``final_layout`` entry in its metadata
         - Measurement circuit: before transpilation (i.e. no layout applied)
-        - Transpiled measurement circuit: with `final_layout` applied
+        - Transpiled measurement circuit: with ``final_layout`` applied
     """
     _, transpiled_base = build_base_circuit(target_qubits, layout_intlist)
-    transpiled_base.metadata.update({"extra_base": Mock()})
     measurement, transpiled_measurement = build_measurement_circuit(
         target_qubits, layout_intlist, measured_qubits
     )
@@ -178,7 +177,7 @@ def transpile_to_layout(circuit, target_qubits, layout_intlist):
     passes = [SetLayout(layout=applied_layout), ApplyLayout()]
     pass_manager = PassManager(passes=passes)
     transpiled = pass_manager.run(circuit)
-    transpiled.metadata = {"final_layout": applied_layout}
+    transpiled.final_layout = applied_layout
     return transpiled
 
 
@@ -231,7 +230,7 @@ class TestTranspilation(QiskitTestCase):
         self.assertEqual(call_kwargs, estimator._transpile_options.__dict__)
         self.assertEqual(output_circuit, transpiled_circuit)
         self.assertIsInstance(output_circuit, QuantumCircuit)
-        inferred_layout = output_circuit.metadata.get("final_layout")
+        inferred_layout = output_circuit.final_layout
         self.assertEqual(inferred_layout, applied_layout)
         self.assertIsInstance(inferred_layout, Layout)
 
@@ -316,7 +315,7 @@ class TestComposition(QiskitTestCase):
         """Test coposition of single base circuit and measurement pair."""
         # Preapration
         expected_composition = transpiled_base.compose(transpiled_measurement)
-        expected_metadata = {**transpiled_base.metadata, **measurement.metadata}
+        expected_metadata = measurement.metadata
         expected_metadata.pop("measured_qubit_indices")
         # Test
         backend = Mock(BackendV2)
@@ -329,7 +328,7 @@ class TestComposition(QiskitTestCase):
         self.assertEqual(call_circuit, measurement)
         self.assertIs(call_backend, backend)
         transpile_options = {**estimator.transpile_options.__dict__}
-        transpile_options.update({"initial_layout": expected_metadata.get("final_layout")})
+        transpile_options.update({"initial_layout": transpiled_base.final_layout})
         self.assertEqual(call_kwargs, transpile_options)
         self.assertIsInstance(composition, QuantumCircuit)
         self.assertEqual(composition, expected_composition)

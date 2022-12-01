@@ -209,7 +209,7 @@ class BackendEstimator(BaseEstimator):
     def _pre_transpile_single(self, circuit: QuantumCircuit) -> QuantumCircuit:
         """Traspile paramterized quantum circuit to match the estimator's backend.
 
-        The output circuit is annotated with the final layout in its metadata.
+        The output circuit is annotated with the ``final_layout`` attribute.
         """
         # Note: We currently need to use a hacky way to account for the final
         # layout of the transpiled circuit. We insert temporary measurements
@@ -223,9 +223,7 @@ class BackendEstimator(BaseEstimator):
             transpiled_circuit = transpile(original_circuit, self.backend, **transpile_options)
         final_layout = self._infer_final_layout(original_circuit, transpiled_circuit)
         transpiled_circuit.remove_final_measurements()
-        if transpiled_circuit.metadata is None:  # TODO: QuantumCircuit class should return {}
-            transpiled_circuit.metadata = {}
-        transpiled_circuit.metadata.update({"final_layout": final_layout})
+        transpiled_circuit.final_layout = final_layout
         return transpiled_circuit
 
     def _bind_parameters(
@@ -268,7 +266,11 @@ class BackendEstimator(BaseEstimator):
     def _execute_matrix(
         self, circuits_matrix: Sequence[Sequence[QuantumCircuit]], **run_options
     ) -> tuple[tuple[Counts]]:
-        """Execute circuit matrix and return counts in identical (i.e. one-to-one) arrangement."""
+        """Execute circuit matrix and return counts in identical (i.e. one-to-one) arrangement.
+
+        Each :class:`qiskit.result.Counts` object is annotated with the metadata
+        from the circuit that produced it.
+        """
         circuits = list(qc for group in circuits_matrix for qc in group)  # List for performance
         counts = self._execute(circuits, **run_options)
         counts_iter = iter(counts)
@@ -303,7 +305,7 @@ class BackendEstimator(BaseEstimator):
         counts_iter = (counts for job_counts in job_counts_iter for counts in job_counts)
         counts_list: list[Counts] = []
         for counts, circuit in zip(counts_iter, circuits):
-            counts.metadata = circuit.metadata
+            counts.metadata = circuit.metadata  # TODO: add `Counts.metadata` attr
             counts_list.append(counts)
 
         return counts_list
@@ -357,9 +359,8 @@ class BackendEstimator(BaseEstimator):
     ) -> tuple[QuantumCircuit, ...]:
         """Build all necessary circuits for measuring a given observable.
 
-        Each circuit has its metadata annotated with the
-        :class:`~qiskit.quantum_info.PauliList` that can be directly evaluated and
-        the coefficients associated to each of the Paulis in said list.
+        Each circuit has its metadata annotated with the observable component
+        (i.e. :class:`~qiskit.quantum_info.SparsePauliOp`) that can be directly evaluated.
         """
         measurements = self._build_measurement_circuits(observable)
         circs_w_meas = self._compose_measurements(circuit, measurements)
@@ -409,7 +410,11 @@ class BackendEstimator(BaseEstimator):
     # TODO: `QuantumCircuit.measure_pauli(pauli)`
     @staticmethod
     def _build_pauli_measurement(pauli: Pauli) -> QuantumCircuit:
-        """Build measurement circuit for a given Pauli operator."""
+        """Build measurement circuit for a given Pauli operator.
+
+        The resulting circuit has its metadata annotated with the indices of the qubits
+        that hold measurement gates.
+        """
         # TODO: if pauli is I for all qubits, this function generates a circuit to
         # measure only the first qubit. Although such an operator can be optimized out
         # by interpreting it as a constant (1), this optimization requires changes in
@@ -433,7 +438,7 @@ class BackendEstimator(BaseEstimator):
         base: QuantumCircuit,
         measurements: Sequence[QuantumCircuit] | QuantumCircuit,
     ) -> tuple[QuantumCircuit, ...]:
-        """Compose measurement circuits with base circuit considering final layout."""
+        """Compose measurement circuits with base circuit considering its final layout."""
         if isinstance(measurements, QuantumCircuit):
             measurements = (measurements,)
         return tuple(self._compose_single_measurement(base, meas) for meas in measurements)
@@ -441,22 +446,24 @@ class BackendEstimator(BaseEstimator):
     def _compose_single_measurement(
         self, base: QuantumCircuit, measurement: QuantumCircuit
     ) -> QuantumCircuit:
-        """Compose single measurement circuit with base circuit considering final layout.
+        """Compose single measurement circuit with base circuit considering its final layout.
 
         Args:
             base: a quantum circuit with final_layout entry in its metadata
-            measurement: a quantum circuit with
+            measurement: a quantum circuit with ... # TODO
 
         Returns:
             A compsite quantum circuit
         """
-        layout = base.metadata.get("final_layout")
         transpile_options = {**self.transpile_options.__dict__}  # TODO: avoid multiple copies
-        transpile_options.update({"initial_layout": layout})
+        transpile_options.update({"initial_layout": base.final_layout})
         transpiled_measurement = transpile(measurement, self.backend, **transpile_options)
         circuit = base.compose(transpiled_measurement)
-        circuit.metadata = {**base.metadata, **measurement.metadata}
-        circuit.metadata.pop("measured_qubit_indices")  # TODO: `measured_qubits`
+        circuit.metadata = {
+            **(base.metadata or {}),  # TODO: default `QuantumCircuit.metadata` to {}
+            **(measurement.metadata or {}),
+        }
+        circuit.metadata.pop("measured_qubit_indices", None)  # TODO: replace with `measured_qubits`
         return circuit
 
     @classmethod  # TODO: multiple registers
