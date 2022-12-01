@@ -18,18 +18,12 @@ import warnings
 import numpy as np
 
 from qiskit import QuantumCircuit
-from qiskit.algorithms import AlgorithmError
-from qiskit.algorithms.gradients import (
-    BaseQFI,
-    BaseEstimatorGradient,
-    LinCombQFI,
-    LinCombEstimatorGradient,
-    DerivativeType,
-)
 from qiskit.circuit import Parameter
 from qiskit.opflow import PauliSumOp
 from qiskit.primitives import Estimator
 from qiskit.quantum_info.operators.base_operator import BaseOperator
+from qiskit.algorithms.gradients import BaseEstimatorGradient, BaseQFI, DerivativeType
+
 from .imaginary_variational_principle import (
     ImaginaryVariationalPrinciple,
 )
@@ -56,6 +50,11 @@ class ImaginaryMcLachlanPrinciple(ImaginaryVariationalPrinciple):
         """
 
         self._validate_grad_settings(gradient)
+        # pylint: disable=cyclic-import
+        from qiskit.algorithms.gradients import (
+            LinCombQFI,
+            LinCombEstimatorGradient,
+        )
 
         if gradient is not None and gradient._estimator is not None and qfi is None:
             estimator = gradient._estimator
@@ -90,6 +89,8 @@ class ImaginaryMcLachlanPrinciple(ImaginaryVariationalPrinciple):
         Raises:
             AlgorithmError: If a gradient job fails.
         """
+        # pylint: disable=cyclic-import
+        from qiskit.algorithms import AlgorithmError
 
         try:
             evolution_grad_lse_rhs = (

@@ -12,12 +12,14 @@
 
 """Variational Principles"""
 
+from .variational_principle import VariationalPrinciple
 from .imaginary_mc_lachlan_principle import ImaginaryMcLachlanPrinciple
 from .imaginary_variational_principle import ImaginaryVariationalPrinciple
 from .real_mc_lachlan_principle import RealMcLachlanPrinciple
 from .real_variational_principle import RealVariationalPrinciple
 
 __all__ = [
+    "VariationalPrinciple",
     "ImaginaryMcLachlanPrinciple",
     "ImaginaryVariationalPrinciple",
     "RealMcLachlanPrinciple",

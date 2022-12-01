@@ -13,19 +13,22 @@
 """Class for a Variational Principle."""
 from __future__ import annotations
 
+from typing import TYPE_CHECKING
 from abc import ABC, abstractmethod
 
 import numpy as np
 
 from qiskit import QuantumCircuit
-from qiskit.algorithms import AlgorithmError
-from qiskit.algorithms.gradients import (
-    BaseEstimatorGradient,
-    BaseQFI,
-)
 from qiskit.circuit import Parameter
 from qiskit.opflow import PauliSumOp
 from qiskit.quantum_info.operators.base_operator import BaseOperator
+
+if TYPE_CHECKING:
+    # pylint: disable=cyclic-import
+    from qiskit.algorithms.gradients import (
+        BaseEstimatorGradient,
+        BaseQFI,
+    )
 
 
 class VariationalPrinciple(ABC):
@@ -34,8 +37,8 @@ class VariationalPrinciple(ABC):
 
     def __init__(
         self,
-        qfi: BaseQFI | None = None,
-        gradient: BaseEstimatorGradient | None = None,
+        qfi: "BaseQFI" | None = None,
+        gradient: "BaseEstimatorGradient" | None = None,
     ) -> None:
         """
         Args:
@@ -61,6 +64,8 @@ class VariationalPrinciple(ABC):
         Raises:
             AlgorithmError: If a QFI job fails.
         """
+        # pylint: disable=cyclic-import
+        from qiskit.algorithms import AlgorithmError
 
         try:
             metric_tensor = 0.25 * self.qfi.run([ansatz], [param_values], [None]).result().qfis[0]

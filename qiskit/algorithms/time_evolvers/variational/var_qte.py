@@ -20,8 +20,6 @@ import numpy as np
 from scipy.integrate import OdeSolver
 
 from qiskit import QuantumCircuit
-from qiskit.algorithms.time_evolvers.time_evolution_problem import TimeEvolutionProblem
-from qiskit.algorithms.time_evolvers.time_evolution_result import TimeEvolutionResult
 from qiskit.circuit import Parameter
 from qiskit.opflow import PauliSumOp
 from qiskit.primitives import BaseEstimator
@@ -37,7 +35,8 @@ from .variational_principles.variational_principle import (
 from .solvers.ode.var_qte_ode_solver import (
     VarQTEOdeSolver,
 )
-from ... import estimate_observables
+from ..time_evolution_problem import TimeEvolutionProblem
+from ..time_evolution_result import TimeEvolutionResult
 
 
 class VarQTE(ABC):
@@ -115,6 +114,8 @@ class VarQTE(ABC):
             ValueError: If ``initial_state`` is included in the ``evolution_problem``.
         """
         self._validate_aux_ops(evolution_problem)
+        # pylint: disable=cyclic-import
+        from ... import estimate_observables
 
         if evolution_problem.initial_state is not None:
             raise ValueError("initial_state provided but not applicable to VarQTE.")
