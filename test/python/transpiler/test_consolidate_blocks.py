@@ -416,7 +416,6 @@ class TestConsolidateBlocks(QiskitTestCase):
         qc.h(0)
 
         pm = PassManager([Collect2qBlocks(), ConsolidateBlocks()])
-        print(pm.run(qc))
         self.assertEqual(QuantumCircuit(5), pm.run(qc))
 
     def test_identity_1q_unitary_is_removed(self):
@@ -427,7 +426,6 @@ class TestConsolidateBlocks(QiskitTestCase):
         qc.h(0)
         qc.h(0)
         pm = PassManager([Collect2qBlocks(), Collect1qRuns(), ConsolidateBlocks()])
-        print(pm.run(qc))
         self.assertEqual(QuantumCircuit(5), pm.run(qc))
 
 
