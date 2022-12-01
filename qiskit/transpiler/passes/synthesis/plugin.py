@@ -245,7 +245,7 @@ Unitary Synthesis Plugins
    UnitarySynthesisPlugin
    UnitarySynthesisPluginManager
    unitary_synthesis_plugin_names
-   ~qiskit.transpiler.passes.synthesis.SolovayKitaevSynthesis
+   SolovayKitaevSynthesis
 
 High-Level Synthesis Plugins
 ----------------------------
