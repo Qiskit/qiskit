@@ -220,6 +220,7 @@ def _compute_rank_square_matrix(mat):
     # now columns of X span the binary null-space of A
     return n - matx.shape[1]
 
+
 def _row_op(mat, ctrl, trgt):
     # Perform ROW operation on a matrix mat
     mat[trgt] = mat[trgt] ^ mat[ctrl]
@@ -228,4 +229,3 @@ def _row_op(mat, ctrl, trgt):
 def _col_op(mat, ctrl, trgt):
     # Perform COL operation on a matrix mat
     mat[:, ctrl] = mat[:, trgt] ^ mat[:, ctrl]
-
