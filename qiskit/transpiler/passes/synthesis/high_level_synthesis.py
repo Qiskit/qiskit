@@ -19,9 +19,10 @@ from qiskit.transpiler.basepasses import TransformationPass
 from qiskit.dagcircuit.dagcircuit import DAGCircuit
 from qiskit.transpiler.exceptions import TranspilerError
 from qiskit.quantum_info import decompose_clifford
-from qiskit.synthesis.linear import synth_cnot_count_full_pmh
+from qiskit.synthesis.linear import synth_cnot_count_full_pmh, synth_cnot_depth_line_kms
 from .plugin import HighLevelSynthesisPluginManager, HighLevelSynthesisPlugin
-
+from qiskit.transpiler import CouplingMap
+import rustworkx as rx
 
 class HLSConfig:
     """The high-level-synthesis config allows to specify a list of "methods" used by
@@ -89,8 +90,24 @@ class HighLevelSynthesis(TransformationPass):
     ``default`` methods for all other high-level objects, including ``op_a``-objects.
     """
 
-    def __init__(self, hls_config=None):
+    def __init__(
+        self,
+        coupling_map: CouplingMap=None,
+        hls_config=None
+    ):
+        """
+        HighLevelSynthesis initializer.
+
+        Args:
+            coupling_map (CouplingMap): the coupling map of the backend
+                in case synthesis is done on a physical circuit.
+            hls_config (HLSConfig): the high-level-synthesis config file
+            specifying synthesis methods and parameters.
+        """
         super().__init__()
+
+        print(f"HLS::init {coupling_map = }")
+        self._coupling_map = coupling_map
 
         if hls_config is not None:
             self.hls_config = hls_config
@@ -110,7 +127,7 @@ class HighLevelSynthesis(TransformationPass):
         Raises:
             TranspilerError: when the specified synthesis method is not available.
         """
-
+        print(f"HLS::run {self._coupling_map = }")
         hls_plugin_manager = HighLevelSynthesisPluginManager()
 
         for node in dag.op_nodes():
@@ -141,8 +158,9 @@ class HighLevelSynthesis(TransformationPass):
 
                 plugin_method = hls_plugin_manager.method(node.name, plugin_name)
 
-                # ToDo: similarly to UnitarySynthesis, we should pass additional parameters
-                #       e.g. coupling_map to the synthesis algorithm.
+                if self._coupling_map:
+                    plugin_args["coupling_map"] = self._coupling_map
+
                 decomposition = plugin_method.run(node.op, **plugin_args)
 
                 # The synthesis methods that are not suited for the given higher-level-object
@@ -159,6 +177,8 @@ class DefaultSynthesisClifford(HighLevelSynthesisPlugin):
 
     def run(self, high_level_object, **options):
         """Run synthesis for the given Clifford."""
+        print(f"DefaultSynthesisClifford {options = }")
+
         decomposition = decompose_clifford(high_level_object)
         return decomposition
 
@@ -168,5 +188,52 @@ class DefaultSynthesisLinearFunction(HighLevelSynthesisPlugin):
 
     def run(self, high_level_object, **options):
         """Run synthesis for the given LinearFunction."""
+        print(f"DefaultSynthesisLinearFunction {options = }")
+
         decomposition = synth_cnot_count_full_pmh(high_level_object.linear)
         return decomposition
+
+
+class KMSSynthesisLinearFunction(HighLevelSynthesisPlugin):
+    """Linear function synthesis plugin based on the Kutin-Moulton-Smithline method."""
+
+    def run(self, high_level_object, **options):
+        """Run synthesis for the given LinearFunction."""
+        print(f"KMSSynthesisLinearFunction {options = }")
+        coupling_map = options.get("coupling_map", None)
+
+        if coupling_map:
+            longest_path = _get_longest_line(coupling_map)
+        else:
+            longest_path = list(range())
+
+            # The KMS algorithm
+            if len(longest_path) < len(high_level_object.linear):
+                return None
+
+        print(f"{coupling_map = }")
+        print(f"{longest_path = }")
+
+        decomposition = synth_cnot_depth_line_kms(high_level_object.linear)
+        return decomposition
+
+
+class PMHSynthesisLinearFunction(HighLevelSynthesisPlugin):
+    """Linear function synthesis plugin based on the Patel-Markov-Hayes method."""
+
+    def run(self, high_level_object, **options):
+        """Run synthesis for the given LinearFunction."""
+        print(f"PMHSynthesisLinearFunction {options = }")
+
+        decomposition = synth_cnot_count_full_pmh(high_level_object.linear)
+        return decomposition
+
+
+def _get_longest_line(coupling_map: CouplingMap) -> list:
+    """Gets the longest line from the coupling map."""
+    graph = coupling_map.graph
+    # longest_path = rx.longest_simple_path(graph)
+    simple_paths_generator = (y.values() for y in rx.all_pairs_all_simple_paths(graph).values())
+    all_simple_paths = [x[0] for y in simple_paths_generator for x in y]
+    longest_path = max(all_simple_paths, key=len)
+    return list(longest_path)
