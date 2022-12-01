@@ -158,12 +158,12 @@ def _create_graph_state(cliff, validate=False):
     The algorithm is based on Lemma 6 in [1]."""
 
     num_qubits = cliff.num_qubits
-    rank = _compute_rank_square_matrix((cliff.stab_x).copy())
+    rank = _compute_rank_square_matrix(cliff.stab_x)
     H1_circ = QuantumCircuit(num_qubits)
     cliffh = cliff.copy()
 
     if rank < num_qubits:
-        stab = (cliff.stab).copy()
+        stab = cliff.stab
         stab, perm = _gauss_elimination_with_perm(stab, num_qubits)
 
         # validate that the output matrix has the same rank
@@ -199,7 +199,7 @@ def _decompose_graph_state(cliff, validate, cz_synth_func):
     H2_circ is a circuit containing H gates on all qubits.
     """
     num_qubits = cliff.num_qubits
-    rank = _compute_rank_square_matrix((cliff.stab_x).copy())
+    rank = _compute_rank_square_matrix(cliff.stab_x)
     cliff_cpy = cliff.copy()
     if rank < num_qubits:
         raise QiskitError("The stabilizer state is not a graph state.")
@@ -207,8 +207,8 @@ def _decompose_graph_state(cliff, validate, cz_synth_func):
     S1_circ = QuantumCircuit(num_qubits)
     H2_circ = QuantumCircuit(num_qubits)
 
-    stabx = (cliff.stab_x).copy()
-    stabz = (cliff.stab_z).copy()
+    stabx = cliff.stab_x
+    stabz = cliff.stab_z
     stabx_inv = calc_inverse_matrix(stabx, validate)
     stabz_update = np.matmul(stabx_inv, stabz) % 2
 
