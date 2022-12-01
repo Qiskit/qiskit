@@ -13,6 +13,7 @@
 """An algorithm to implement a Trotterization real time-evolution."""
 
 from typing import Union, Optional
+import warnings
 
 from qiskit import QuantumCircuit
 from qiskit.algorithms.aux_ops_evaluator import eval_observables
@@ -32,10 +33,17 @@ from qiskit.circuit.library import PauliEvolutionGate
 from qiskit.providers import Backend
 from qiskit.synthesis import ProductFormula, LieTrotter
 from qiskit.utils import QuantumInstance
+from qiskit.utils.deprecation import deprecate_function
 
 
 class TrotterQRTE(RealEvolver):
-    """Quantum Real Time Evolution using Trotterization.
+    """Pending deprecation: Quantum Real Time Evolution using Trotterization.
+
+    The TrotterQRTE class has been superseded by the
+    :class:`qiskit.algorithms.time_evolvers.trotterization.TrotterQRTE` class.
+    This class will be deprecated in a future release and subsequently
+    removed after that.
+
     Type of Trotterization is defined by a ProductFormula provided.
 
     Examples:
@@ -58,6 +66,13 @@ class TrotterQRTE(RealEvolver):
             evolved_state = trotter_qrte.evolve(evolution_problem).evolved_state
     """
 
+    @deprecate_function(
+        "The TrotterQRTE class has been superseded by the "
+        "qiskit.algorithms.time_evolvers.trotterization.TrotterQRTE class. "
+        "This class will be deprecated in a future release and subsequently "
+        "removed after that.",
+        category=PendingDeprecationWarning,
+    )
     def __init__(
         self,
         product_formula: Optional[ProductFormula] = None,
@@ -73,6 +88,9 @@ class TrotterQRTE(RealEvolver):
             quantum_instance: A quantum instance used for calculating expectation values of
                 EvolutionProblem.aux_operators.
         """
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")
+            super().__init__()
         if product_formula is None:
             product_formula = LieTrotter()
         self._product_formula = product_formula
@@ -187,7 +205,7 @@ class TrotterQRTE(RealEvolver):
                 f"PauliSumOp | SummedOp, {type(hamiltonian)} provided."
             )
         if isinstance(hamiltonian, OperatorBase):
-            hamiltonian = hamiltonian.bind_parameters(evolution_problem.hamiltonian_value_dict)
+            hamiltonian = hamiltonian.bind_parameters(evolution_problem.param_value_dict)
         if isinstance(hamiltonian, SummedOp):
             hamiltonian = self._summed_op_to_pauli_sum_op(hamiltonian)
         # the evolution gate

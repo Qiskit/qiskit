@@ -28,10 +28,11 @@ opflow/               @Qiskit/terra-core @manoelmarques @woodsp-ibm @ikkoham
 qiskit/utils/         @Qiskit/terra-core @manoelmarques @woodsp-ibm
 providers/            @Qiskit/terra-core @jyu00
 quantum_info/         @Qiskit/terra-core @ikkoham
-qpy/                  @Qiskit/terra-core @nkanazawa1989
-pulse/                @Qiskit/terra-core @eggerdj @nkanazawa1989 @danpuzzuoli
-scheduler/            @Qiskit/terra-core @eggerdj @nkanazawa1989 @danpuzzuoli
-visualization/        @Qiskit/terra-core @nonhermitian @nkanazawa1989
+qpy/                  @Qiskit/terra-core
+pulse/                @Qiskit/terra-core @eggerdj @wshanks
+synthesis/            @Qiskit/terra-core @alexanderivrii @ShellyGarion
+scheduler/            @Qiskit/terra-core @eggerdj @wshanks
+visualization/        @Qiskit/terra-core @nonhermitian
 primitives/           @Qiskit/terra-core @ikkoham @t-imamichi
 # Override the release notes directories to have _no_ code owners, so any review
 # from somebody with write access is acceptable.

@@ -64,7 +64,7 @@ Supplementary Information
       :hide-code:
       :hide-output:
 
-      from qiskit.test.mock import FakeVigo
+      from qiskit.providers.fake_provider import FakeVigo
       backend = FakeVigo()
 
    .. jupyter-execute::
@@ -96,7 +96,9 @@ Supplementary Information
 
    .. jupyter-execute::
 
-      qc_basis = qc.decompose()
+      from qiskit import transpile
+
+      qc_basis = transpile(qc, backend)
       qc_basis.draw(output='mpl')
 
 
@@ -187,7 +189,7 @@ Supplementary Information
    The choice of `initial_layout` can mean the difference between getting a result,
    and getting nothing but noise.
 
-   Lets see what layouts are automatically picked at various optimization levels.  The modified
+   Let's see what layouts are automatically picked at various optimization levels.  The modified
    circuits returned by :func:`qiskit.compiler.transpile` have this initial layout information
    in them, and we can view this layout selection graphically using
    :func:`qiskit.visualization.plot_circuit_layout`:
@@ -196,7 +198,7 @@ Supplementary Information
 
       from qiskit import QuantumCircuit, transpile
       from qiskit.visualization import plot_circuit_layout
-      from qiskit.test.mock import FakeVigo
+      from qiskit.providers.fake_provider import FakeVigo
       backend = FakeVigo()
 
       ghz = QuantumCircuit(3, 3)
@@ -272,7 +274,7 @@ Supplementary Information
 
       import matplotlib.pyplot as plt
       from qiskit import QuantumCircuit, transpile
-      from qiskit.test.mock import FakeBoeblingen
+      from qiskit.providers.fake_provider import FakeBoeblingen
       backend = FakeBoeblingen()
 
       ghz = QuantumCircuit(5)
@@ -333,7 +335,7 @@ Supplementary Information
 
       import matplotlib.pyplot as plt
       from qiskit import QuantumCircuit, transpile
-      from qiskit.test.mock import FakeBoeblingen
+      from qiskit.providers.fake_provider import FakeBoeblingen
       backend = FakeBoeblingen()
 
       ghz = QuantumCircuit(5)
@@ -368,7 +370,7 @@ Supplementary Information
    .. jupyter-execute::
 
       from qiskit import QuantumCircuit, transpile
-      from qiskit.test.mock import FakeBoeblingen
+      from qiskit.providers.fake_provider import FakeBoeblingen
       backend = FakeBoeblingen()
 
       ghz = QuantumCircuit(5)
@@ -402,12 +404,12 @@ Supplementary Information
    additional passes can be run to account for any timing constraints on the target backend, such
    as alignment constraints. This is typically done with the
    :class:`~.ConstrainedReschedule` pass which will adjust the scheduling
-   set in the property set to the contraints of the target backend. Once all
+   set in the property set to the constraints of the target backend. Once all
    the scheduling and adjustments/rescheduling are finished a padding pass,
    such as :class:`~.PadDelay` or :class:`~.PadDynamicalDecoupling` is run
    to insert the instructions into the circuit, which completes the scheduling.
 
-   Scheduling Anaylsis with control flow instructions:
+   Scheduling Analysis with control flow instructions:
 
    When scheduling analysis passes run there are additional constraints on classical conditions
    and control flow instructions in a circuit. This section covers the details of these additional
@@ -446,7 +448,7 @@ Supplementary Information
    However, such optimization should be done by another pass,
    otherwise scheduling may break topological ordering of the original circuit.
 
-   Realistic control flow scheduling respecting for microarcitecture:
+   Realistic control flow scheduling respecting for microarchitecture:
 
    In the dispersive QND readout scheme, qubit is measured with microwave stimulus to qubit (Q)
    followed by resonator ring-down (depopulation). This microwave signal is recorded
@@ -593,6 +595,74 @@ Supplementary Information
 
       <br>
 
+.. dropdown:: Working with preset :class:`~.PassManager`
+   :animate: fade-in-slide-down
+
+   By default Qiskit includes functions to build preset :class:`~.PassManager` objects.
+   These preset passmanagers are what get used by the :func:`~.transpile` function
+   for each optimization level. If you'd like to work directly with a
+   preset pass manager you can use the :func:`~.generate_preset_pass_manager`
+   function to easily generate one. For example:
+
+   .. code-block:: python
+
+       from qiskit.transpiler.preset_passmanagers import generate_preset_pass_manager
+       from qiskit.providers.fake_provider import FakeLagosV2
+
+       backend = FakeLagosV2()
+       pass_manager = generate_preset_pass_manager(3, backend)
+
+   which will generate a :class:`~.StagedPassManager` object for optimization level 3
+   targeting the :class:`~.FakeLagosV2` backend (equivalent to what is used internally
+   by :func:`~.transpile` with ``backend=FakeLagosV2()`` and ``optimization_level=3``).
+   You can use this just like working with any other :class:`~.PassManager`. However,
+   because it is a :class:`~.StagedPassManager` it also makes it easy to compose and/or
+   replace stages of the pipeline. For example, if you wanted to run a custom scheduling
+   stage using dynamical decoupling (via the :class:`~.PadDynamicalDecoupling` pass) and
+   also add initial logical optimization prior to routing you would do something like
+   (building off the previous example):
+
+   .. code-block:: python
+
+       from qiskit.circuit.library import XGate, HGate, RXGate, PhaseGate, TGate, TdgGate
+       from qiskit.transpiler import PassManager
+       from qiskit.transpiler.passes import ALAPScheduleAnalysis, PadDynamicalDecoupling
+       from qiskit.transpiler.passes import CXCancellation, InverseCancellation
+
+       backend_durations = backend.target.durations()
+       dd_sequence = [XGate(), XGate()]
+       scheduling_pm = PassManager([
+           ALAPScheduleAnalysis(backend_durations),
+           PadDynamicalDecoupling(backend_durations, dd_sequence),
+       ])
+       inverse_gate_list = [
+           HGate(),
+           (RXGate(np.pi / 4), RXGate(-np.pi / 4)),
+           (PhaseGate(np.pi / 4), PhaseGate(-np.pi / 4)),
+           (TGate(), TdgGate()),
+
+       ])
+       logical_opt = PassManager([
+           CXCancellation(),
+           InverseCancellation([HGate(), (RXGate(np.pi / 4), RXGate(-np.pi / 4))
+       ])
+
+
+       # Add pre-layout stage to run extra logical optimization
+       pass_manager.pre_layout = logical_opt
+       # Set scheduling stage to custom pass manager
+       pass_manager.scheduling = scheduling_pm
+
+
+   Then when :meth:`~.StagedPassManager.run` is called on ``pass_manager`` the
+   ``logical_opt`` :class:`~.PassManager` will be called prior to the ``layout`` stage
+   and for the ``scheduling`` stage our custom :class:`~.PassManager`
+   ``scheduling_pm`` will be used.
+
+   .. raw:: html
+
+      <br>
+
 
 Transpiler API
 ==============
@@ -612,6 +682,7 @@ Pass Manager Construction
 .. autosummary::
    :toctree: ../stubs/
 
+   StagedPassManager
    PassManager
    PassManagerConfig
    PropertySet
@@ -667,6 +738,7 @@ Exceptions
 from .runningpassmanager import FlowController, ConditionalController, DoWhileController
 from .passmanager import PassManager
 from .passmanager_config import PassManagerConfig
+from .passmanager import StagedPassManager
 from .propertyset import PropertySet
 from .exceptions import TranspilerError, TranspilerAccessError
 from .fencedobjs import FencedDAGCircuit, FencedPropertySet

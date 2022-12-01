@@ -11,7 +11,7 @@
 # that they have been altered from the originals.
 
 """Helper function for converting a dag dependency to a circuit"""
-from qiskit.circuit import QuantumCircuit
+from qiskit.circuit import QuantumCircuit, CircuitInstruction
 
 
 def dagdependency_to_circuit(dagdependency):
@@ -36,9 +36,7 @@ def dagdependency_to_circuit(dagdependency):
 
     circuit.calibrations = dagdependency.calibrations
 
-    for node in dagdependency.get_nodes():
-        # Get arguments for classical control (if any)
-        inst = node.op.copy()
-        circuit._append(inst, node.qargs, node.cargs)
+    for node in dagdependency.topological_nodes():
+        circuit._append(CircuitInstruction(node.op.copy(), node.qargs, node.cargs))
 
     return circuit

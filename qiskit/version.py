@@ -10,7 +10,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-# pylint: disable=no-name-in-module,broad-except,cyclic-import,import-error
+# pylint: disable=no-name-in-module,broad-except,cyclic-import
 
 """Contains the terra version."""
 
@@ -96,7 +96,6 @@ class QiskitVersion(Mapping):
             "qiskit-aer": None,
             "qiskit-ignis": None,
             "qiskit-ibmq-provider": None,
-            "qiskit-aqua": None,
             "qiskit": None,
         }
         self._loaded = False
@@ -105,6 +104,8 @@ class QiskitVersion(Mapping):
         import pkg_resources
 
         try:
+            # TODO: Update to use qiskit_aer instead when we remove the
+            # namespace redirect
             from qiskit.providers import aer
 
             self._version_dict["qiskit-aer"] = aer.__version__
@@ -122,14 +123,6 @@ class QiskitVersion(Mapping):
             self._version_dict["qiskit-ibmq-provider"] = ibmq.__version__
         except Exception:
             self._version_dict["qiskit-ibmq-provider"] = None
-        # TODO: Remove aqua after deprecation is complete and it is removed from
-        # the metapackage
-        try:
-            from qiskit import aqua
-
-            self._version_dict["qiskit-aqua"] = aqua.__version__
-        except Exception:
-            self._version_dict["qiskit-aqua"] = None
         try:
             import qiskit_nature
 

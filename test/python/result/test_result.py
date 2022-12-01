@@ -121,7 +121,8 @@ class TestResultOperations(QiskitTestCase):
             "results=[ExperimentResult(shots=14, success=True, "
             "meas_level=2, data=ExperimentResultData(counts={'0x0': 4,"
             " '0x2': 10}), header=QobjExperimentHeader(creg_sizes="
-            "[['c0', 2], ['c0', 1], ['c1', 1]], memory_slots=4))])"
+            "[['c0', 2], ['c0', 1], ['c1', 1]], memory_slots=4))], date=None, "
+            "status=None, header=None)"
         )
         self.assertEqual(expected, repr(result))
 
@@ -731,3 +732,18 @@ class TestResultOperationsFailed(QiskitTestCase):
         self.assertEqual(
             'Result for experiment "99" could not be found.', context.exception.message
         )
+
+    def test_marginal_counts_no_cregs(self):
+        """Test that marginal_counts without cregs See qiskit-terra/6430."""
+        raw_counts_1 = {"0x0": 4, "0x1": 7, "0x2": 10, "0x6": 5, "0x9": 11, "0xD": 9, "0x12": 8}
+        data_1 = models.ExperimentResultData(counts=dict(**raw_counts_1))
+        exp_result_header_1 = QobjExperimentHeader(memory_slots=5)
+        exp_result_1 = models.ExperimentResult(
+            shots=54, success=True, data=data_1, header=exp_result_header_1
+        )
+
+        result = Result(results=[exp_result_1], **self.base_result_args)
+
+        _ = marginal_counts(result, indices=[0])
+        marginal_counts_result = marginal_counts(result, indices=[0])
+        self.assertEqual(marginal_counts_result.get_counts(), {"0": 27, "1": 27})

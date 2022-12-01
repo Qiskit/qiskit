@@ -12,6 +12,8 @@
 
 """Replace each block of consecutive gates by a single Unitary node."""
 
+import numpy as np
+
 from qiskit.circuit.classicalregister import ClassicalRegister
 from qiskit.circuit.quantumregister import QuantumRegister
 from qiskit.circuit.quantumcircuit import QuantumCircuit
@@ -87,8 +89,8 @@ class ConsolidateBlocks(TransformationPass):
                 block_cargs = set()
                 for nd in block:
                     block_qargs |= set(nd.qargs)
-                    if isinstance(nd, DAGOpNode) and nd.op.condition:
-                        block_cargs |= set(nd.op.condition[0])
+                    if isinstance(nd, DAGOpNode) and getattr(nd.op, "condition", None):
+                        block_cargs |= set(getattr(nd.op, "condition", None)[0])
                     all_block_gates.add(nd)
                 q = QuantumRegister(len(block_qargs))
                 qc = QuantumCircuit(q)
@@ -113,11 +115,19 @@ class ConsolidateBlocks(TransformationPass):
                     or ((self.basis_gates is not None) and outside_basis)
                     or ((self.target is not None) and outside_basis)
                 ):
-                    dag.replace_block_with_op(block, unitary, block_index_map, cycle_check=False)
+                    identity = np.eye(2**unitary.num_qubits)
+                    if np.allclose(identity, unitary.to_matrix()):
+                        for node in block:
+                            dag.remove_op_node(node)
+                    else:
+                        dag.replace_block_with_op(
+                            block, unitary, block_index_map, cycle_check=False
+                        )
         # If 1q runs are collected before consolidate those too
         runs = self.property_set["run_list"] or []
+        identity_1q = np.eye(2)
         for run in runs:
-            if run[0] in all_block_gates:
+            if any(gate in all_block_gates for gate in run):
                 continue
             if len(run) == 1 and not self._check_not_in_basis(
                 run[0].name, run[0].qargs, global_index_map
@@ -134,7 +144,16 @@ class ConsolidateBlocks(TransformationPass):
                 if already_in_block:
                     continue
                 unitary = UnitaryGate(operator)
-                dag.replace_block_with_op(run, unitary, {qubit: 0}, cycle_check=False)
+                if np.allclose(identity_1q, unitary.to_matrix()):
+                    for node in run:
+                        dag.remove_op_node(node)
+                else:
+                    dag.replace_block_with_op(run, unitary, {qubit: 0}, cycle_check=False)
+        # Clear collected blocks and runs as they are no longer valid after consolidation
+        if "run_list" in self.property_set:
+            del self.property_set["run_list"]
+        if "block_list" in self.property_set:
+            del self.property_set["block_list"]
         return dag
 
     def _check_not_in_basis(self, gate_name, qargs, global_index_map):

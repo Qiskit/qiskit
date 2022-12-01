@@ -20,7 +20,7 @@ import math
 import numpy as np
 from scipy.optimize import minimize as scipy_minimize
 from ddt import ddt, idata, unpack
-import retworkx as rx
+import rustworkx as rx
 
 from qiskit.algorithms import QAOA
 from qiskit.algorithms.optimizers import COBYLA, NELDER_MEAD

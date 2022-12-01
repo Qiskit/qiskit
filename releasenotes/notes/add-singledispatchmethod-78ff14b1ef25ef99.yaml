@@ -1,0 +1,7 @@
+---
+upgrade:
+  - |
+    For Python 3.7 `singledispatchmethod <https://pypi.org/project/singledispatchmethod/>`__
+    is now a dependency. This was added to enable leveraging the method dispatch
+    mechanism in the standard library of newer versions of Python. If you're on
+    Python >= 3.8 there is no extra dependency required.

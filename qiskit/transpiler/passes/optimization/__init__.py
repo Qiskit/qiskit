@@ -19,6 +19,7 @@ from .collect_multiqubit_blocks import CollectMultiQBlocks
 from .consolidate_blocks import ConsolidateBlocks
 from .commutation_analysis import CommutationAnalysis
 from .commutative_cancellation import CommutativeCancellation
+from .commutative_inverse_cancellation import CommutativeInverseCancellation
 from .cx_cancellation import CXCancellation
 from .optimize_1q_commutation import Optimize1qGatesSimpleCommutation
 from .optimize_swap_before_measure import OptimizeSwapBeforeMeasure
@@ -31,3 +32,6 @@ from .inverse_cancellation import InverseCancellation
 from .collect_1q_runs import Collect1qRuns
 from .echo_rzx_weyl_decomposition import EchoRZXWeylDecomposition
 from .collect_linear_functions import CollectLinearFunctions
+from .reset_after_measure_simplification import ResetAfterMeasureSimplification
+from .optimize_cliffords import OptimizeCliffords
+from .collect_cliffords import CollectCliffords

@@ -39,19 +39,23 @@ class Play(Instruction):
                    :py:class:`~qiskit.pulse.library.Waveform`.
             channel: The channel to which the pulse is applied.
             name: Name of the instruction for display purposes. Defaults to ``pulse.name``.
-
-        Raises:
-            PulseError: If pulse is not a Pulse type.
         """
-        if not isinstance(pulse, Pulse):
-            raise PulseError("The `pulse` argument to `Play` must be of type `library.Pulse`.")
-        if not isinstance(channel, PulseChannel):
-            raise PulseError(
-                "The `channel` argument to `Play` must be of type `channels.PulseChannel`."
-            )
         if name is None:
             name = pulse.name
         super().__init__(operands=(pulse, channel), name=name)
+
+    def _validate(self):
+        """Called after initialization to validate instruction data.
+
+        Raises:
+            PulseError: If pulse is not a Pulse type.
+            PulseError: If the input ``channel`` is not type :class:`PulseChannel`.
+        """
+        if not isinstance(self.pulse, Pulse):
+            raise PulseError("The `pulse` argument to `Play` must be of type `library.Pulse`.")
+
+        if not isinstance(self.channel, PulseChannel):
+            raise PulseError(f"Expected a pulse channel, got {self.channel} instead.")
 
     @property
     def pulse(self) -> Pulse:
@@ -79,16 +83,14 @@ class Play(Instruction):
     def parameters(self) -> Set:
         """Parameters which determine the instruction behavior."""
         parameters = set()
+
+        # Note that Pulse.parameters returns dict rather than set for convention.
+        # We need special handling for Play instruction.
         for pulse_param_expr in self.pulse.parameters.values():
             if isinstance(pulse_param_expr, ParameterExpression):
-                for pulse_param in pulse_param_expr.parameters:
-                    parameters.add(pulse_param)
+                parameters = parameters | pulse_param_expr.parameters
+
         if self.channel.is_parameterized():
-            for ch_param in self.channel.parameters:
-                parameters.add(ch_param)
+            parameters = parameters | self.channel.parameters
 
         return parameters
-
-    def is_parameterized(self) -> bool:
-        """Return True iff the instruction is parameterized."""
-        return self.pulse.is_parameterized() or super().is_parameterized()

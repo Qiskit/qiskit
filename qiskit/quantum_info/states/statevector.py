@@ -31,7 +31,6 @@ from qiskit.quantum_info.operators.symplectic import Pauli, SparsePauliOp
 from qiskit.quantum_info.operators.op_shape import OpShape
 from qiskit.quantum_info.operators.predicates import matrix_equal
 
-# pylint: disable=import-error
 from qiskit._accelerate.pauli_expval import (
     expval_pauli_no_x,
     expval_pauli_with_x,
@@ -388,7 +387,8 @@ class Statevector(QuantumState, TolerancesMixin):
 
         # Evolution by an Operator
         if not isinstance(other, Operator):
-            other = Operator(other)
+            dims = self.dims(qargs=qargs)
+            other = Operator(other, input_dims=dims, output_dims=dims)
 
         # check dimension
         if self.dims(qargs) != other.input_dims():
@@ -818,14 +818,21 @@ class Statevector(QuantumState, TolerancesMixin):
         contract_dim = oper._op_shape.shape[1]
         contract_shape = (contract_dim, statevec._op_shape.shape[0] // contract_dim)
 
-        # Reshape input for contraction
-        statevec._data = np.reshape(
-            np.transpose(np.reshape(statevec.data, statevec._op_shape.tensor_shape), axes),
-            contract_shape,
+        # Reshape and transpose input array for contraction
+        tensor = np.transpose(
+            np.reshape(statevec.data, statevec._op_shape.tensor_shape),
+            axes,
         )
-        # Contract and reshape output
-        statevec._data = np.reshape(np.dot(oper.data, statevec._data), new_shape.tensor_shape)
-        statevec._data = np.reshape(np.transpose(statevec._data, axes_inv), new_shape.shape[0])
+        tensor_shape = tensor.shape
+
+        # Perform contraction
+        tensor = np.reshape(
+            np.dot(oper.data, np.reshape(tensor, contract_shape)),
+            tensor_shape,
+        )
+
+        # Transpose back to  original subsystem spec and flatten
+        statevec._data = np.reshape(np.transpose(tensor, axes_inv), new_shape.shape[0])
 
         # Update dimension
         statevec._op_shape = new_shape
@@ -865,15 +872,15 @@ class Statevector(QuantumState, TolerancesMixin):
         if obj.definition.global_phase:
             statevec._data *= np.exp(1j * float(obj.definition.global_phase))
         qubits = {qubit: i for i, qubit in enumerate(obj.definition.qubits)}
-        for instr, qregs, cregs in obj.definition:
-            if cregs:
+        for instruction in obj.definition:
+            if instruction.clbits:
                 raise QiskitError(
-                    f"Cannot apply instruction with classical registers: {instr.name}"
+                    f"Cannot apply instruction with classical bits: {instruction.operation.name}"
                 )
             # Get the integer position of the flat register
             if qargs is None:
-                new_qargs = [qubits[tup] for tup in qregs]
+                new_qargs = [qubits[tup] for tup in instruction.qubits]
             else:
-                new_qargs = [qargs[qubits[tup]] for tup in qregs]
-            Statevector._evolve_instruction(statevec, instr, qargs=new_qargs)
+                new_qargs = [qargs[qubits[tup]] for tup in instruction.qubits]
+            Statevector._evolve_instruction(statevec, instruction.operation, qargs=new_qargs)
         return statevec

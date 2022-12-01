@@ -40,14 +40,16 @@ import numpy
 from qiskit.circuit.exceptions import CircuitError
 from qiskit.circuit.quantumregister import QuantumRegister
 from qiskit.circuit.classicalregister import ClassicalRegister, Clbit
+from qiskit.qasm.exceptions import QasmError
 from qiskit.qobj.qasm_qobj import QasmQobjInstruction
 from qiskit.circuit.parameter import ParameterExpression
+from qiskit.circuit.operation import Operation
 from .tools import pi_check
 
 _CUTOFF_PRECISION = 1e-10
 
 
-class Instruction:
+class Instruction(Operation):
     """Generic quantum instruction."""
 
     # Class attribute to treat like barrier for transpiler, unroller, drawer
@@ -339,10 +341,10 @@ class Instruction:
             return self.copy()
 
         reverse_inst = self.copy(name=self.name + "_reverse")
-        reverse_inst.definition._data = [
-            (inst.reverse_ops(), qargs, cargs) for inst, qargs, cargs in reversed(self._definition)
-        ]
-
+        reversed_definition = self._definition.copy_empty_like()
+        for inst in reversed(self._definition):
+            reversed_definition.append(inst.operation.reverse_ops(), inst.qubits, inst.clbits)
+        reverse_inst.definition = reversed_definition
         return reverse_inst
 
     def inverse(self):
@@ -364,7 +366,7 @@ class Instruction:
         if self.definition is None:
             raise CircuitError("inverse() not implemented for %s." % self.name)
 
-        from qiskit.circuit import QuantumCircuit, Gate  # pylint: disable=cyclic-import
+        from qiskit.circuit import Gate  # pylint: disable=cyclic-import
 
         if self.name.endswith("_dg"):
             name = self.name[:-3]
@@ -381,15 +383,11 @@ class Instruction:
         else:
             inverse_gate = Gate(name=name, num_qubits=self.num_qubits, params=self.params.copy())
 
-        inverse_gate.definition = QuantumCircuit(
-            *self.definition.qregs,
-            *self.definition.cregs,
-            global_phase=-self.definition.global_phase,
-        )
-        inverse_gate.definition._data = [
-            (inst.inverse(), qargs, cargs) for inst, qargs, cargs in reversed(self._definition)
-        ]
-
+        inverse_definition = self._definition.copy_empty_like()
+        inverse_definition.global_phase = -inverse_definition.global_phase
+        for inst in reversed(self._definition):
+            inverse_definition._append(inst.operation.inverse(), inst.qubits, inst.clbits)
+        inverse_gate.definition = inverse_definition
         return inverse_gate
 
     def c_if(self, classical, val):
@@ -441,6 +439,10 @@ class Instruction:
         """Print an if statement if needed."""
         if self.condition is None:
             return string
+        if not isinstance(self.condition[0], ClassicalRegister):
+            raise QasmError(
+                "OpenQASM 2 can only condition on registers, but got '{self.condition[0]}'"
+            )
         return "if(%s==%d) " % (self.condition[0].name, self.condition[1]) + string
 
     def qasm(self):
@@ -453,7 +455,7 @@ class Instruction:
         if self.params:
             name_param = "{}({})".format(
                 name_param,
-                ",".join([pi_check(i, ndigits=8, output="qasm") for i in self.params]),
+                ",".join([pi_check(i, output="qasm", eps=1e-12) for i in self.params]),
             )
 
         return self._qasmif(name_param)
@@ -515,14 +517,16 @@ class Instruction:
 
         if instruction.definition is None:
             # pylint: disable=cyclic-import
-            from qiskit import QuantumCircuit
+            from qiskit.circuit import QuantumCircuit, CircuitInstruction
 
             qc = QuantumCircuit()
             if qargs:
                 qc.add_register(qargs)
             if cargs:
                 qc.add_register(cargs)
-            qc.data = [(self, qargs[:], cargs[:])] * n
+            circuit_instruction = CircuitInstruction(self, qargs, cargs)
+            for _ in [None] * n:
+                qc._append(circuit_instruction)
         instruction.definition = qc
         return instruction
 

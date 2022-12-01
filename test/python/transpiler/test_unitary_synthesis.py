@@ -24,10 +24,11 @@ from ddt import ddt, data
 
 from qiskit import transpile
 from qiskit.test import QiskitTestCase
-from qiskit.test.mock import FakeVigo, FakeBackend5QV2, FakeBackendV2, FakeMumbaiFractionalCX
-from qiskit.circuit import QuantumCircuit, QuantumRegister
+from qiskit.providers.fake_provider import FakeVigo, FakeMumbaiFractionalCX, FakeBelemV2
+from qiskit.providers.fake_provider.fake_backend_v2 import FakeBackendV2, FakeBackend5QV2
+from qiskit.circuit import QuantumCircuit, QuantumRegister, ClassicalRegister
 from qiskit.circuit.library import QuantumVolume
-from qiskit.converters import circuit_to_dag
+from qiskit.converters import circuit_to_dag, dag_to_circuit
 from qiskit.transpiler.passes import UnitarySynthesis
 from qiskit.quantum_info.operators import Operator
 from qiskit.quantum_info.random import random_unitary
@@ -50,7 +51,7 @@ from qiskit.transpiler.passes import (
     SabreSwap,
     TrivialLayout,
 )
-from qiskit.circuit.library import CXGate, ECRGate, UGate
+from qiskit.circuit.library import CXGate, ECRGate, UGate, ZGate
 from qiskit.circuit import Parameter
 
 
@@ -230,10 +231,10 @@ class TestUnitarySynthesis(QiskitTestCase):
         # the decomposer defaults to the [1, 0] direction but the coupling
         # map specifies a [0, 1] direction. Check that this is respected.
         self.assertTrue(
-            all(([qr[1], qr[0]] == qlist for _, qlist, _ in qc_out.get_instructions("cx")))
+            all(((qr[1], qr[0]) == instr.qubits for instr in qc_out.get_instructions("cx")))
         )
         self.assertTrue(
-            all(([qr[0], qr[1]] == qlist for _, qlist, _ in qc_out_nat.get_instructions("cx")))
+            all(((qr[0], qr[1]) == instr.qubits for instr in qc_out_nat.get_instructions("cx")))
         )
         self.assertEqual(Operator(qc), Operator(qc_out))
         self.assertEqual(Operator(qc), Operator(qc_out_nat))
@@ -273,10 +274,10 @@ class TestUnitarySynthesis(QiskitTestCase):
         # the decomposer defaults to the [1, 0] direction but the coupling
         # map specifies a [0, 1] direction. Check that this is respected.
         self.assertTrue(
-            all(([qr[1], qr[0]] == qlist for _, qlist, _ in qc_out.get_instructions("cx")))
+            all(((qr[1], qr[0]) == instr.qubits for instr in qc_out.get_instructions("cx")))
         )
         self.assertTrue(
-            all(([qr[0], qr[1]] == qlist for _, qlist, _ in qc_out_nat.get_instructions("cx")))
+            all(((qr[0], qr[1]) == instr.qubits for instr in qc_out_nat.get_instructions("cx")))
         )
         self.assertEqual(Operator(qc), Operator(qc_out))
         self.assertEqual(Operator(qc), Operator(qc_out_nat))
@@ -316,10 +317,10 @@ class TestUnitarySynthesis(QiskitTestCase):
         # the decomposer defaults to the [1, 0] direction but the coupling
         # map specifies a [0, 1] direction. Check that this is respected.
         self.assertTrue(
-            all(([qr[1], qr[0]] == qlist for _, qlist, _ in qc_out.get_instructions("cx")))
+            all(((qr[1], qr[0]) == instr.qubits for instr in qc_out.get_instructions("cx")))
         )
         self.assertTrue(
-            all(([qr[1], qr[0]] == qlist for _, qlist, _ in qc_out_nat.get_instructions("cx")))
+            all(((qr[1], qr[0]) == instr.qubits for instr in qc_out_nat.get_instructions("cx")))
         )
         self.assertEqual(Operator(qc), Operator(qc_out))
         self.assertEqual(Operator(qc), Operator(qc_out_nat))
@@ -392,7 +393,7 @@ class TestUnitarySynthesis(QiskitTestCase):
         pm = PassManager([triv_layout_pass, unisynth_pass])
         qc_out = pm.run(qc)
         self.assertTrue(
-            all(([qr[0], qr[1]] == qlist for _, qlist, _ in qc_out.get_instructions("cx")))
+            all(((qr[0], qr[1]) == instr.qubits for instr in qc_out.get_instructions("cx")))
         )
 
     def test_two_qubit_natural_direction_true_gate_length_raises(self):
@@ -538,8 +539,8 @@ class TestUnitarySynthesis(QiskitTestCase):
         edges = [list(edge) for edge in coupling_map.get_edges()]
         self.assertTrue(
             all(
-                [qv64_1.qubits.index(qubit) for qubit in qlist] in edges
-                for _, qlist, _ in qv64_1.get_instructions("cx")
+                [qv64_1.qubits.index(qubit) for qubit in instr.qubits] in edges
+                for instr in qv64_1.get_instructions("cx")
             )
         )
         self.assertEqual(Operator(qv64_1), Operator(qv64_2))
@@ -562,16 +563,16 @@ class TestUnitarySynthesis(QiskitTestCase):
         self.assertTrue(
             all(
                 (
-                    (1, 0) == (circ_10_index[qlist[0]], circ_10_index[qlist[1]])
-                    for _, qlist, _ in circ_10.get_instructions("cx")
+                    (1, 0) == (circ_10_index[instr.qubits[0]], circ_10_index[instr.qubits[1]])
+                    for instr in circ_10.get_instructions("cx")
                 )
             )
         )
         self.assertTrue(
             all(
                 (
-                    (0, 1) == (circ_01_index[qlist[0]], circ_01_index[qlist[1]])
-                    for _, qlist, _ in circ_01.get_instructions("cx")
+                    (0, 1) == (circ_01_index[instr.qubits[0]], circ_01_index[instr.qubits[1]])
+                    for instr in circ_01.get_instructions("cx")
                 )
             )
         )
@@ -595,8 +596,10 @@ class TestUnitarySynthesis(QiskitTestCase):
         )
         circ_01_index = {qubit: index for index, qubit in enumerate(circ_01.qubits)}
         self.assertGreaterEqual(len(circ_01.get_instructions("cx")), 1)
-        for _, qlist, _ in circ_01.get_instructions("cx"):
-            self.assertEqual((0, 1), (circ_01_index[qlist[0]], circ_01_index[qlist[1]]))
+        for instr in circ_01.get_instructions("cx"):
+            self.assertEqual(
+                (0, 1), (circ_01_index[instr.qubits[0]], circ_01_index[instr.qubits[1]])
+            )
 
     @data(1, 2, 3)
     def test_coupling_map_unequal_durations(self, opt):
@@ -616,8 +619,8 @@ class TestUnitarySynthesis(QiskitTestCase):
         self.assertTrue(
             all(
                 (
-                    (0, 1) == (tqc_index[qlist[0]], tqc_index[qlist[1]])
-                    for _, qlist, _ in tqc.get_instructions("cx")
+                    (0, 1) == (tqc_index[instr.qubits[0]], tqc_index[instr.qubits[1]])
+                    for instr in tqc.get_instructions("cx")
                 )
             )
         )
@@ -646,12 +649,12 @@ class TestUnitarySynthesis(QiskitTestCase):
         tqc_index = {qubit: index for index, qubit in enumerate(tqc.qubits)}
         self.assertGreaterEqual(len(tqc.get_instructions("cx")), 1)
         if bidirectional:
-            for _, qlist, _ in tqc.get_instructions("cx"):
-                self.assertEqual((1, 0), (tqc_index[qlist[0]], tqc_index[qlist[1]]))
+            for instr in tqc.get_instructions("cx"):
+                self.assertEqual((1, 0), (tqc_index[instr.qubits[0]], tqc_index[instr.qubits[1]]))
 
         else:
-            for _, qlist, _ in tqc.get_instructions("cx"):
-                self.assertEqual((0, 1), (tqc_index[qlist[0]], tqc_index[qlist[1]]))
+            for instr in tqc.get_instructions("cx"):
+                self.assertEqual((0, 1), (tqc_index[instr.qubits[0]], tqc_index[instr.qubits[1]]))
 
     @combine(
         opt_level=[0, 1, 2, 3],
@@ -675,8 +678,8 @@ class TestUnitarySynthesis(QiskitTestCase):
         )
         tqc_index = {qubit: index for index, qubit in enumerate(tqc.qubits)}
         self.assertGreaterEqual(len(tqc.get_instructions("ecr")), 1)
-        for _, qlist, _ in tqc.get_instructions("ecr"):
-            self.assertEqual((1, 0), (tqc_index[qlist[0]], tqc_index[qlist[1]]))
+        for instr in tqc.get_instructions("ecr"):
+            self.assertEqual((1, 0), (tqc_index[instr.qubits[0]], tqc_index[instr.qubits[1]]))
 
     def test_fractional_cx_with_backendv2(self):
         """Test fractional CX gets used if present in target."""
@@ -688,8 +691,8 @@ class TestUnitarySynthesis(QiskitTestCase):
         tqc = synth_pass(circ)
         tqc_index = {qubit: index for index, qubit in enumerate(tqc.qubits)}
         self.assertGreaterEqual(len(tqc.get_instructions("rzx")), 1)
-        for _, qlist, _ in tqc.get_instructions("rzx"):
-            self.assertEqual((0, 1), (tqc_index[qlist[0]], tqc_index[qlist[1]]))
+        for instr in tqc.get_instructions("rzx"):
+            self.assertEqual((0, 1), (tqc_index[instr.qubits[0]], tqc_index[instr.qubits[1]]))
 
     @combine(
         opt_level=[0, 1, 2, 3],
@@ -718,8 +721,70 @@ class TestUnitarySynthesis(QiskitTestCase):
         )
         tqc_index = {qubit: index for index, qubit in enumerate(tqc.qubits)}
         self.assertGreaterEqual(len(tqc.get_instructions("ecr")), 1)
-        for _, qlist, _ in tqc.get_instructions("ecr"):
-            self.assertEqual((0, 1), (tqc_index[qlist[0]], tqc_index[qlist[1]]))
+        for instr in tqc.get_instructions("ecr"):
+            self.assertEqual((0, 1), (tqc_index[instr.qubits[0]], tqc_index[instr.qubits[1]]))
+
+    def test_if_simple(self):
+        """Test a simple if statement."""
+        basis_gates = {"u", "cx"}
+        qr = QuantumRegister(2)
+        cr = ClassicalRegister(2)
+
+        qc_uni = QuantumCircuit(2)
+        qc_uni.h(0)
+        qc_uni.cx(0, 1)
+        qc_uni_mat = Operator(qc_uni)
+
+        qc_true_body = QuantumCircuit(2)
+        qc_true_body.unitary(qc_uni_mat, [0, 1])
+
+        qc = QuantumCircuit(qr, cr)
+        qc.if_test((cr, 1), qc_true_body, [0, 1], [0, 1])
+        dag = circuit_to_dag(qc)
+        cdag = UnitarySynthesis(basis_gates=basis_gates).run(dag)
+        cqc = dag_to_circuit(cdag)
+        cbody = cqc.data[0].operation.params[0]
+        self.assertEqual(cbody.count_ops().keys(), basis_gates)
+        self.assertEqual(qc_uni_mat, Operator(cbody))
+
+    def test_nested_control_flow(self):
+        """Test unrolling nested control flow blocks."""
+        qr = QuantumRegister(2)
+        cr = ClassicalRegister(1)
+        qc_uni1 = QuantumCircuit(2)
+        qc_uni1.swap(0, 1)
+        qc_uni1_mat = Operator(qc_uni1)
+
+        qc = QuantumCircuit(qr, cr)
+        with qc.for_loop(range(3)):
+            with qc.while_loop((cr, 0)):
+                qc.unitary(qc_uni1_mat, [0, 1])
+        dag = circuit_to_dag(qc)
+        cdag = UnitarySynthesis(basis_gates=["u", "cx"]).run(dag)
+        cqc = dag_to_circuit(cdag)
+        cbody = cqc.data[0].operation.params[2].data[0].operation.params[0]
+        self.assertEqual(cbody.count_ops().keys(), {"u", "cx"})
+        self.assertEqual(qc_uni1_mat, Operator(cbody))
+
+    def test_single_qubit_with_target(self):
+        """Test input circuit with only 1q works with target."""
+        qc = QuantumCircuit(1)
+        qc.append(ZGate(), [qc.qubits[0]])
+        dag = circuit_to_dag(qc)
+        unitary_synth_pass = UnitarySynthesis(target=FakeBelemV2().target)
+        result_dag = unitary_synth_pass.run(dag)
+        result_qc = dag_to_circuit(result_dag)
+        self.assertEqual(qc, result_qc)
+
+    def test_single_qubit_identity_with_target(self):
+        """Test input single qubit identity works with target."""
+        qc = QuantumCircuit(1)
+        qc.unitary([[1.0, 0.0], [0.0, 1.0]], 0)
+        dag = circuit_to_dag(qc)
+        unitary_synth_pass = UnitarySynthesis(target=FakeBelemV2().target)
+        result_dag = unitary_synth_pass.run(dag)
+        result_qc = dag_to_circuit(result_dag)
+        self.assertEqual(result_qc, QuantumCircuit(1))
 
 
 if __name__ == "__main__":
