@@ -34,6 +34,7 @@ if sys.version_info < (3, 8):
 # find compiled submodules in _accelerate because it relies on file paths
 # manually define them on import so people can directly import
 # qiskit._accelerate.* submodules and not have to rely on attribute access
+sys.modules["qiskit._accelerate.nlayout"] = qiskit._accelerate.nlayout
 sys.modules["qiskit._accelerate.stochastic_swap"] = qiskit._accelerate.stochastic_swap
 sys.modules["qiskit._accelerate.sabre_swap"] = qiskit._accelerate.sabre_swap
 sys.modules["qiskit._accelerate.pauli_expval"] = qiskit._accelerate.pauli_expval
@@ -42,6 +43,8 @@ sys.modules["qiskit._accelerate.sparse_pauli_op"] = qiskit._accelerate.sparse_pa
 sys.modules["qiskit._accelerate.results"] = qiskit._accelerate.results
 sys.modules["qiskit._accelerate.optimize_1q_gates"] = qiskit._accelerate.optimize_1q_gates
 sys.modules["qiskit._accelerate.sampled_exp_val"] = qiskit._accelerate.sampled_exp_val
+sys.modules["qiskit._accelerate.vf2_layout"] = qiskit._accelerate.vf2_layout
+sys.modules["qiskit._accelerate.error_map"] = qiskit._accelerate.error_map
 
 
 # Extend namespace for backwards compat

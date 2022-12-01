@@ -325,7 +325,7 @@ class SamplingVQE(VariationalAlgorithm, SamplingMinimumEigensolver):
         optimizer_result: OptimizerResult,
         aux_operators_evaluated: ListOrDict[tuple[complex, tuple[complex, int]]],
         best_measurement: dict[str, Any],
-        final_state: list[QuasiDistribution],
+        final_state: QuasiDistribution,
         optimizer_time: float,
     ) -> SamplingVQEResult:
         result = SamplingVQEResult()

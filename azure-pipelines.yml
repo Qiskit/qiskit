@@ -33,7 +33,7 @@ parameters:
   - name: "supportedPythonVersions"
     displayName: "All supported versions of Python"
     type: object
-    default: ["3.7", "3.8", "3.9", "3.10"]
+    default: ["3.7", "3.8", "3.9", "3.10", "3.11"]
 
   - name: "minimumPythonVersion"
     displayName: "Minimum supported version of Python"
@@ -43,7 +43,7 @@ parameters:
   - name: "maximumPythonVersion"
     displayName: "Maximum supported version of Python"
     type: string
-    default: "3.10"
+    default: "3.11"
 
   - name: "minimumRustVersion"
     displayName: "Minimum supported version of Rust"
@@ -151,7 +151,7 @@ stages:
         - template: ".azure/test-linux.yml"
           parameters:
             pythonVersion: ${{ parameters.minimumPythonVersion }}
-            testQPY: false
+            testQPY: true
             testImages: false
             rustVersion: ${{ parameters.minimumRustVersion }}
 
@@ -171,7 +171,7 @@ stages:
         - template: ".azure/test-linux.yml"
           parameters:
             pythonVersion: ${{ parameters.maximumPythonVersion }}
-            testQPY: true
+            testQPY: false
             testImages: true
             installFromSdist: true
 
