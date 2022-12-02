@@ -17,10 +17,12 @@ def __getattr__(name):
     import warnings
     from qiskit import qpy
 
-    warnings.warn(
-        f"Module '{__name__}' is deprecated since Qiskit Terra 0.23,"
-        " and will be removed in a future release. Please import from 'qiskit.qpy' instead.",
-        category=DeprecationWarning,
-        stacklevel=2,
-    )
+    # Skip warning on special Python dunders, which Python occasionally queries on its own accord.
+    if f"__{name[2:-2]}__" != name:
+        warnings.warn(
+            f"Module '{__name__}' is deprecated since Qiskit Terra 0.23,"
+            " and will be removed in a future release. Please import from 'qiskit.qpy' instead.",
+            category=DeprecationWarning,
+            stacklevel=2,
+        )
     return getattr(qpy, name)
