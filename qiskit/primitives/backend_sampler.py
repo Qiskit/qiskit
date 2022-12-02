@@ -108,7 +108,9 @@ class BackendSampler(BaseSampler):
         """
         if self._skip_transpilation:
             self._transpiled_circuits = list(self._circuits)
-        elif self._transpiled_circuits is None:
+        elif self._transpiled_circuits is None or len(self._transpiled_circuits) != len(
+            self._circuits
+        ):
             # Only transpile if have not done so yet
             self._transpile()
         return self._transpiled_circuits
