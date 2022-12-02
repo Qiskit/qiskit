@@ -35,14 +35,20 @@ from qiskit.quantum_info import Operator, SparsePauliOp, Pauli
 from qiskit.quantum_info.random import random_pauli_list
 from qiskit.test import QiskitTestCase
 
+gradient_factories = [
+    lambda estimator: FiniteDiffEstimatorGradient(estimator, epsilon=1e-6, method="central"),
+    lambda estimator: FiniteDiffEstimatorGradient(estimator, epsilon=1e-6, method="forward"),
+    lambda estimator: FiniteDiffEstimatorGradient(estimator, epsilon=1e-6, method="backward"),
+    ParamShiftEstimatorGradient,
+    LinCombEstimatorGradient,
+]
+
 
 @ddt
 class TestEstimatorGradient(QiskitTestCase):
     """Test Estimator Gradient"""
 
-    @combine(
-        grad=[FiniteDiffEstimatorGradient, ParamShiftEstimatorGradient, LinCombEstimatorGradient]
-    )
+    @combine(grad=gradient_factories)
     def test_gradient_operators(self, grad):
         """Test the estimator gradient for different operators"""
         estimator = Estimator()
@@ -51,10 +57,7 @@ class TestEstimatorGradient(QiskitTestCase):
         qc.h(0)
         qc.p(a, 0)
         qc.h(0)
-        if grad is FiniteDiffEstimatorGradient:
-            gradient = grad(estimator, epsilon=1e-6)
-        else:
-            gradient = grad(estimator)
+        gradient = grad(estimator)
         op = SparsePauliOp.from_list([("Z", 1)])
         correct_result = -1 / np.sqrt(2)
         param = [np.pi / 4]
@@ -67,9 +70,7 @@ class TestEstimatorGradient(QiskitTestCase):
         value = gradient.run([qc], [op], [param]).result().gradients[0]
         self.assertAlmostEqual(value[0], correct_result, 3)
 
-    @combine(
-        grad=[FiniteDiffEstimatorGradient, ParamShiftEstimatorGradient, LinCombEstimatorGradient]
-    )
+    @combine(grad=gradient_factories)
     def test_gradient_p(self, grad):
         """Test the estimator gradient for p"""
         estimator = Estimator()
@@ -78,10 +79,7 @@ class TestEstimatorGradient(QiskitTestCase):
         qc.h(0)
         qc.p(a, 0)
         qc.h(0)
-        if grad is FiniteDiffEstimatorGradient:
-            gradient = grad(estimator, epsilon=1e-6)
-        else:
-            gradient = grad(estimator)
+        gradient = grad(estimator)
         op = SparsePauliOp.from_list([("Z", 1)])
         param_list = [[np.pi / 4], [0], [np.pi / 2]]
         correct_results = [[-1 / np.sqrt(2)], [0], [-1]]
@@ -90,9 +88,7 @@ class TestEstimatorGradient(QiskitTestCase):
             for j, value in enumerate(gradients):
                 self.assertAlmostEqual(value, correct_results[i][j], 3)
 
-    @combine(
-        grad=[FiniteDiffEstimatorGradient, ParamShiftEstimatorGradient, LinCombEstimatorGradient]
-    )
+    @combine(grad=gradient_factories)
     def test_gradient_u(self, grad):
         """Test the estimator gradient for u"""
         estimator = Estimator()
@@ -103,10 +99,7 @@ class TestEstimatorGradient(QiskitTestCase):
         qc.h(0)
         qc.u(a, b, c, 0)
         qc.h(0)
-        if grad is FiniteDiffEstimatorGradient:
-            gradient = grad(estimator, epsilon=1e-6)
-        else:
-            gradient = grad(estimator)
+        gradient = grad(estimator)
         op = SparsePauliOp.from_list([("Z", 1)])
 
         param_list = [[np.pi / 4, 0, 0], [np.pi / 4, np.pi / 4, np.pi / 4]]
@@ -116,18 +109,13 @@ class TestEstimatorGradient(QiskitTestCase):
             for j, value in enumerate(gradients):
                 self.assertAlmostEqual(value, correct_results[i][j], 3)
 
-    @combine(
-        grad=[FiniteDiffEstimatorGradient, ParamShiftEstimatorGradient, LinCombEstimatorGradient]
-    )
+    @combine(grad=gradient_factories)
     def test_gradient_efficient_su2(self, grad):
         """Test the estimator gradient for EfficientSU2"""
         estimator = Estimator()
         qc = EfficientSU2(2, reps=1)
         op = SparsePauliOp.from_list([("ZI", 1)])
-        if grad is FiniteDiffEstimatorGradient:
-            gradient = grad(estimator, epsilon=1e-6)
-        else:
-            gradient = grad(estimator)
+        gradient = grad(estimator)
         param_list = [
             [np.pi / 4 for param in qc.parameters],
             [np.pi / 2 for param in qc.parameters],
@@ -149,9 +137,7 @@ class TestEstimatorGradient(QiskitTestCase):
             gradients = gradient.run([qc], [op], [param]).result().gradients[0]
             np.testing.assert_allclose(gradients, correct_results[i], atol=1e-3)
 
-    @combine(
-        grad=[FiniteDiffEstimatorGradient, ParamShiftEstimatorGradient, LinCombEstimatorGradient],
-    )
+    @combine(grad=gradient_factories)
     def test_gradient_2qubit_gate(self, grad):
         """Test the estimator gradient for 2 qubit gates"""
         estimator = Estimator()
@@ -165,10 +151,7 @@ class TestEstimatorGradient(QiskitTestCase):
             for i, param in enumerate(param_list):
                 a = Parameter("a")
                 qc = QuantumCircuit(2)
-                if grad is FiniteDiffEstimatorGradient:
-                    gradient = grad(estimator, epsilon=1e-6)
-                else:
-                    gradient = grad(estimator)
+                gradient = grad(estimator)
 
                 if gate is RZZGate:
                     qc.h([0, 1])
@@ -179,9 +162,7 @@ class TestEstimatorGradient(QiskitTestCase):
                 gradients = gradient.run([qc], [op], [param]).result().gradients[0]
                 np.testing.assert_allclose(gradients, correct_results[i], atol=1e-3)
 
-    @combine(
-        grad=[FiniteDiffEstimatorGradient, ParamShiftEstimatorGradient, LinCombEstimatorGradient]
-    )
+    @combine(grad=gradient_factories)
     def test_gradient_parameter_coefficient(self, grad):
         """Test the estimator gradient for parameter variables with coefficients"""
         estimator = Estimator()
@@ -191,10 +172,7 @@ class TestEstimatorGradient(QiskitTestCase):
         qc.u(qc.parameters[0], qc.parameters[1], qc.parameters[3], 1)
         qc.p(2 * qc.parameters[0] + 1, 0)
         qc.rxx(qc.parameters[0] + 2, 0, 1)
-        if grad is FiniteDiffEstimatorGradient:
-            gradient = grad(estimator, epsilon=1e-6)
-        else:
-            gradient = grad(estimator)
+        gradient = grad(estimator)
         param_list = [[np.pi / 4 for _ in qc.parameters], [np.pi / 2 for _ in qc.parameters]]
         correct_results = [
             [-0.7266653, -0.4905135, -0.0068606, -0.9228880],
@@ -205,9 +183,7 @@ class TestEstimatorGradient(QiskitTestCase):
             gradients = gradient.run([qc], [op], [param]).result().gradients[0]
             np.testing.assert_allclose(gradients, correct_results[i], atol=1e-3)
 
-    @combine(
-        grad=[FiniteDiffEstimatorGradient, ParamShiftEstimatorGradient, LinCombEstimatorGradient]
-    )
+    @combine(grad=gradient_factories)
     def test_gradient_parameters(self, grad):
         """Test the estimator gradient for parameters"""
         estimator = Estimator()
@@ -216,10 +192,7 @@ class TestEstimatorGradient(QiskitTestCase):
         qc = QuantumCircuit(1)
         qc.rx(a, 0)
         qc.rx(b, 0)
-        if grad is FiniteDiffEstimatorGradient:
-            gradient = grad(estimator, epsilon=1e-6)
-        else:
-            gradient = grad(estimator)
+        gradient = grad(estimator)
         param_list = [[np.pi / 4, np.pi / 2]]
         correct_results = [
             [-0.70710678],
@@ -229,9 +202,7 @@ class TestEstimatorGradient(QiskitTestCase):
             gradients = gradient.run([qc], [op], [param], parameters=[[a]]).result().gradients[0]
             np.testing.assert_allclose(gradients, correct_results[i], atol=1e-3)
 
-    @combine(
-        grad=[FiniteDiffEstimatorGradient, ParamShiftEstimatorGradient, LinCombEstimatorGradient]
-    )
+    @combine(grad=gradient_factories)
     def test_gradient_multi_arguments(self, grad):
         """Test the estimator gradient for multiple arguments"""
         estimator = Estimator()
@@ -241,10 +212,7 @@ class TestEstimatorGradient(QiskitTestCase):
         qc.rx(a, 0)
         qc2 = QuantumCircuit(1)
         qc2.rx(b, 0)
-        if grad is FiniteDiffEstimatorGradient:
-            gradient = grad(estimator, epsilon=1e-6)
-        else:
-            gradient = grad(estimator)
+        gradient = grad(estimator)
         param_list = [[np.pi / 4], [np.pi / 2]]
         correct_results = [
             [-0.70710678],
