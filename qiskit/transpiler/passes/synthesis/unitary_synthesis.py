@@ -264,7 +264,7 @@ class UnitarySynthesis(TransformationPass):
         if self.method == "default":
             # If the method is the default, we only need to evaluate one set of keyword arguments.
             # To simplify later logic, and avoid cases where static analysis might complain that we
-            # haven't initialised the "default" handler, we rebind the names, so they point to the
+            # haven't initialised the "default" handler, we rebind the names so they point to the
             # same object as the chosen method.
             default_method = plugin_method
             default_kwargs = plugin_kwargs
