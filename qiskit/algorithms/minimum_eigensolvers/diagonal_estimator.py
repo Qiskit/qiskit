@@ -182,18 +182,10 @@ def _get_cvar_aggregation(alpha):
 
 
 def _evaluate_sparsepauli(state: int, observable: SparsePauliOp) -> complex:
-    return sum(
-        coeff * _evaluate_bitstring(state, paulistring)
-        for paulistring, coeff in observable.label_iter()
-    )
-
-
-def _evaluate_bitstring(state: int, paulistring: str) -> float:
-    """Evaluate a bitstring on a Pauli label."""
-    n = len(paulistring) - 1
-    return np.prod(
-        [-1 if state & (1 << (n - i)) else 1 for i, pauli in enumerate(paulistring) if pauli == "Z"]
-    )
+    packed_uint8 = np.packbits(observable.paulis.z, axis=1, bitorder="little").astype(object)
+    power_uint8 = 1 << (8 * np.arange(packed_uint8.shape[1], dtype=object))
+    bits = (packed_uint8 @ power_uint8) & state
+    return sum(coeff * (-1) ** bin(bit).count("1") for coeff, bit in zip(observable.coeffs, bits))
 
 
 def _check_observable_is_diagonal(observable: SparsePauliOp) -> bool:
