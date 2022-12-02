@@ -122,12 +122,12 @@ class FiniteDiffEstimatorGradient(BaseEstimatorGradient):
                 )
             jobs.append(job)
 
-        # combine the results
         try:
             results = [job.result() for job in jobs]
         except Exception as exc:
             raise AlgorithmError("Estimator job failed.") from exc
 
+        # compute the gradients
         gradients = []
         for result in results:
             if self._method == "central":

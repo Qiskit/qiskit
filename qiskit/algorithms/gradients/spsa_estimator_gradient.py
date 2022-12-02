@@ -102,13 +102,12 @@ class SPSAEstimatorGradient(BaseEstimatorGradient):
             )
             jobs.append(job)
 
-        # combine the results
         try:
             results = [job.result() for job in jobs]
         except Exception as exc:
             raise AlgorithmError("Estimator job failed.") from exc
 
-        results = [job.result() for job in jobs]
+        # compute the gradients
         gradients = []
         for i, result in enumerate(results):
             n = len(result.values) // 2  # is always a multiple of 2
@@ -120,6 +119,5 @@ class SPSAEstimatorGradient(BaseEstimatorGradient):
             gradient = np.mean(batch_gradients, axis=0)
             indices = [circuits[i].parameters.data.index(p) for p in metadata_[i]["parameters"]]
             gradients.append(gradient[indices])
-
         opt = self._get_local_options(options)
         return EstimatorGradientResult(gradients=gradients, metadata=metadata_, options=opt)

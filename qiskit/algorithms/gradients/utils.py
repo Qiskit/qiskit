@@ -17,7 +17,7 @@ Utility functions for gradients
 """
 
 from __future__ import annotations
-
+from enum import Enum
 from collections import defaultdict
 from dataclasses import dataclass
 from typing import Sequence
@@ -48,21 +48,16 @@ from qiskit.circuit.library.standard_gates import (
     XGate,
 )
 
+################################################################################
+## Gradient circuits and Enum
+################################################################################
+class DerivativeType(Enum):
+    """Types of derivative."""
 
-@dataclass
-class ParameterShiftGradientCircuit:
-    """Stores gradient circuit data for the parameter shift method"""
+    REAL = "real"
+    IMAG = "imag"
+    COMPLEX = "complex"
 
-    circuit: QuantumCircuit
-    """The original quantum circuit"""
-    gradient_circuit: QuantumCircuit
-    """An internal quantum circuit used to calculate the gradient"""
-    gradient_parameter_map: dict[Parameter, Parameter]
-    """A dictionary maps the parameters of ``circuit`` to the parameters of ``gradient_circuit``"""
-    gradient_virtual_parameter_map: dict[Parameter, Parameter]
-    """A dictionary maps the parameters of ``gradient_circuit`` to the virtual parameter variables"""
-    coeff_map: dict[Parameter, float | ParameterExpression]
-    """A dictionary maps the parameters of ``gradient_circuit`` to their coefficients"""
 
 @dataclass
 class GradientCircuit:
@@ -74,9 +69,13 @@ class GradientCircuit:
     """A dictionary maps the parameters of ``circuit`` to the parameters of ``gradient_circuit`` with
     coefficients"""
     gradient_parameter_map: dict[Parameter, ParameterExpression]
-    """A dictionary maps the parameters of ``gradient_circuit`` to the parameter expressions of ``circuit``"""
+    """A dictionary maps the parameters of ``gradient_circuit`` to the parameter expressions of
+    ``circuit``"""
 
 
+################################################################################
+## Parameter shift gradient
+################################################################################
 def _make_param_shift_parameter_values(
     circuit: QuantumCircuit,
     parameter_values: np.ndarray,
@@ -101,79 +100,37 @@ def _make_param_shift_parameter_values(
     return plus_offsets.tolist() + minus_offsets.tolist()
 
 
-@dataclass
-class LinearCombGradientCircuit:
-    """Gradient circuit for the linear combination of unitaries method."""
-
-    gradient_circuit: QuantumCircuit
-    """A gradient circuit  for the linear combination of unitaries method."""
-    coeff: float | ParameterExpression
-    """A coefficient corresponds to the gradient circuit."""
-
-
-def _make_lin_comb_gradient_circuit(
-    circuit: QuantumCircuit,
-    add_measurement: bool = False,
-) -> dict[Parameter, list[LinearCombGradientCircuit]]:
-    """Makes gradient circuits for the linear combination of unitaries method.
-
-    Args:
-        circuit: The original quantum circuit.
-        add_measurement: If True, add measurements to the gradient circuit. Defaults to False.
-            ``LinCombSamplerGradient`` calls this method with `add_measurement` is True.
-
-    Returns:
-        A dictionary mapping a parameter to the corresponding list of ``LinearCombGradientCircuit``
-    """
-    supported_gates = [
-        "rx",
-        "ry",
-        "rz",
-        "rzx",
-        "rzz",
-        "ryy",
-        "rxx",
-        "cx",
-        "cy",
-        "cz",
-        "ccx",
-        "swap",
-        "iswap",
-        "h",
-        "t",
-        "s",
-        "sdg",
-        "x",
-        "y",
-        "z",
-    ]
-
-    circuit2 = transpile(circuit, basis_gates=supported_gates, optimization_level=0)
+################################################################################
+## Linear combination gradient and Linear combination QFI
+################################################################################
+def _make_lin_comb_gradient_circuit(circuit: QuantumCircuit, add_measurement: bool = False):
+    """Makes a circuit that computes the linear combination of the gradient circuits."""
+    # circuit2 = transpile(circuit, basis_gates=supported_gates, optimization_level=0)
+    circuit_temp = circuit.copy()
     qr_aux = QuantumRegister(1, "aux")
     cr_aux = ClassicalRegister(1, "aux")
-    circuit2.add_register(qr_aux)
-    circuit2.add_bits(cr_aux)
-    circuit2.h(qr_aux)
-    circuit2.data.insert(0, circuit2.data.pop())
-    circuit2.sdg(qr_aux)
-    circuit2.data.insert(1, circuit2.data.pop())
+    circuit_temp.add_register(qr_aux)
+    circuit_temp.add_bits(cr_aux)
+    circuit_temp.h(qr_aux)
+    circuit_temp.data.insert(0, circuit_temp.data.pop())
+    circuit_temp.sdg(qr_aux)
+    circuit_temp.data.insert(1, circuit_temp.data.pop())
 
-    grad_dict = defaultdict(list)
-    for i, (inst, qregs, _) in enumerate(circuit2.data):
+    lin_comb_circuits = {}
+    for i, (inst, qregs, _) in enumerate(circuit_temp.data):
         if inst.is_parameterized():
-            param = inst.params[0]
-            for p in param.parameters:
+            for p in inst.params[0].parameters:
                 gate = _gate_gradient(inst)
-                circuit3 = circuit2.copy()
+                lin_comb_circuit = circuit_temp.copy()
                 # insert `gate` to i-th position
-                circuit3.append(gate, [qr_aux[0]] + qregs, [])
-                circuit3.data.insert(i, circuit3.data.pop())
-                circuit3.h(qr_aux)
+                lin_comb_circuit.append(gate, [qr_aux[0]] + qregs, [])
+                lin_comb_circuit.data.insert(i, lin_comb_circuit.data.pop())
+                lin_comb_circuit.h(qr_aux)
                 if add_measurement:
-                    circuit3.measure(qr_aux, cr_aux)
-                grad_dict[p].append(LinearCombGradientCircuit(circuit3, param.gradient(p)))
+                    lin_comb_circuit.measure(qr_aux, cr_aux)
+                lin_comb_circuits[p] = lin_comb_circuit
 
-    return grad_dict
+    return lin_comb_circuits
 
 
 def _gate_gradient(gate: Gate) -> Instruction:
@@ -311,6 +268,126 @@ def _make_lin_comb_qfi_circuit(
 
     return grad_dict
 
+
+################################################################################
+## Preprocess
+################################################################################
+def _assign_unique_parameters(
+    circuit: QuantumCircuit,
+) -> GradientCircuit:
+    """Assign unique parameters to the circuit.
+
+    Args:
+        circuit: The circuit to assign unique parameters.
+
+    Returns:
+        The circuit with unique parameters and the mapping from the original parameters to the
+        unique parameters.
+    """
+    gradient_circuit = circuit.copy_empty_like(f"{circuit.name}_gradient")
+    parameter_map = defaultdict(list)
+    gradient_parameter_map = {}
+    num_gradient_parameters = 0
+    for instruction, qargs, cargs in circuit.data:
+        if instruction.is_parameterized():
+            new_inst_params = []
+            for angle in instruction.params:
+                new_parameter = Parameter(f"__gθ{num_gradient_parameters}")
+                new_inst_params.append(new_parameter)
+                num_gradient_parameters += 1
+                for parameter in angle.parameters:
+                    parameter_map[parameter].append((new_parameter, angle.gradient(parameter)))
+                gradient_parameter_map[new_parameter] = angle
+            instruction.params = new_inst_params
+        gradient_circuit.append(instruction, qargs, cargs)
+    # For the global phase
+    gradient_circuit.global_phase = circuit.global_phase
+    if isinstance(gradient_circuit.global_phase, ParameterExpression):
+        substitution_map = {}
+        for parameter in gradient_circuit.global_phase.parameters:
+            if parameter in parameter_map:
+                substitution_map[parameter] = parameter_map[parameter][0][0]
+            else:
+                new_parameter = Parameter(f"__gθ{num_gradient_parameters}")
+                substitution_map[parameter] = new_parameter
+                parameter_map[parameter].append(new_parameter, 1)
+                num_gradient_parameters += 1
+        gradient_circuit.global_phase = gradient_circuit.global_phase.subs(substitution_map)
+
+    return GradientCircuit(gradient_circuit, parameter_map, gradient_parameter_map)
+
+
+def _make_gradient_parameter_values(
+    circuit: QuantumCircuit,
+    gradient_circuit: GradientCircuit,
+    parameter_values: np.ndarray,
+) -> np.ndarray:
+    """Makes parameter values for the gradient circuit.
+
+    Args:
+        circuit: The original quantum circuit
+        gradient_circuit: The gradient circuit
+        parameter_values: The parameter values for the original circuit
+        parameter_set: The parameter set to calculate gradients
+
+    Returns:
+        The parameter values for the gradient circuit.
+    """
+    g_circuit = gradient_circuit.gradient_circuit
+    g_parameter_values = np.empty(len(g_circuit.parameters))
+    for i, g_parameter in enumerate(g_circuit.parameters):
+        expr = gradient_circuit.gradient_parameter_map[g_parameter]
+        bound_expr = expr.bind(
+            {p: parameter_values[circuit.parameters.data.index(p)] for p in expr.parameters}
+        )
+        g_parameter_values[i] = float(bound_expr)
+    return g_parameter_values
+
+
+def _make_gradient_parameters(
+    circuit: QuantumCircuit,
+    gradient_circuit: GradientCircuit,
+    parameters: Sequence[Parameter] | None,
+) -> Sequence[Parameter] | None:
+    """Makes parameters for the gradient circuit.
+
+    Args:
+        circuit: The original quantum circuit
+        gradient_circuit: The gradient circuit
+        parameters: The parameters for the original circuit
+
+    Returns:
+        The parameters for the gradient circuit.
+    """
+    if parameters is None:
+        return None
+
+    g_parameters = []
+    for parameter in circuit.parameters:
+        if parameter in parameters:
+            g_parameters.extend(
+                g_parameter for g_parameter, _ in gradient_circuit.parameter_map[parameter]
+            )
+    return list(set(g_parameters))
+
+
+def _get_parameter_set(circuit: QuantumCircuit, parameters: Sequence[Parameter]):
+    """Make a set of parameters from ``parameters`` that are in ``circuit``.
+
+    Args:
+        circuit: The circuit to make the parameter set.
+        parameters: The parameters to make the parameter set.
+
+    Returns:
+        The set of parameters. If ``parameters`` is None, then the set of all parameters in ``circuit``
+        is returned.
+    """
+    return set(circuit.parameters) if parameters is None else set(parameters)
+
+
+################################################################################
+## Remove
+################################################################################
 def _param_shift_preprocessing(circuit: QuantumCircuit) -> ParameterShiftGradientCircuit:
     """Preprocessing for the parameter shift method.
     Args:
@@ -320,3 +397,93 @@ def _param_shift_preprocessing(circuit: QuantumCircuit) -> ParameterShiftGradien
     """
     return None
 
+
+@dataclass
+class LinearCombGradientCircuit:
+    """Gradient circuit for the linear combination of unitaries method."""
+
+    gradient_circuit: QuantumCircuit
+    """A gradient circuit  for the linear combination of unitaries method."""
+    coeff: float | ParameterExpression
+    """A coefficient corresponds to the gradient circuit."""
+
+
+def _make_lin_comb_gradient_circuit_bak(
+    circuit: QuantumCircuit,
+    add_measurement: bool = False,
+) -> dict[Parameter, list[LinearCombGradientCircuit]]:
+    """Makes gradient circuits for the linear combination of unitaries method.
+
+    Args:
+        circuit: The original quantum circuit.
+        add_measurement: If True, add measurements to the gradient circuit. Defaults to False.
+            ``LinCombSamplerGradient`` calls this method with `add_measurement` is True.
+
+    Returns:
+        A dictionary mapping a parameter to the corresponding list of ``LinearCombGradientCircuit``
+    """
+    supported_gates = [
+        "rx",
+        "ry",
+        "rz",
+        "rzx",
+        "rzz",
+        "ryy",
+        "rxx",
+        "cx",
+        "cy",
+        "cz",
+        "ccx",
+        "swap",
+        "iswap",
+        "h",
+        "t",
+        "s",
+        "sdg",
+        "x",
+        "y",
+        "z",
+    ]
+
+    circuit2 = transpile(circuit, basis_gates=supported_gates, optimization_level=0)
+    qr_aux = QuantumRegister(1, "aux")
+    cr_aux = ClassicalRegister(1, "aux")
+    circuit2.add_register(qr_aux)
+    circuit2.add_bits(cr_aux)
+    circuit2.h(qr_aux)
+    circuit2.data.insert(0, circuit2.data.pop())
+    circuit2.sdg(qr_aux)
+    circuit2.data.insert(1, circuit2.data.pop())
+
+    grad_dict = defaultdict(list)
+    for i, (inst, qregs, _) in enumerate(circuit2.data):
+        if inst.is_parameterized():
+            param = inst.params[0]
+            for p in param.parameters:
+                gate = _gate_gradient(inst)
+                circuit3 = circuit2.copy()
+                # insert `gate` to i-th position
+                circuit3.append(gate, [qr_aux[0]] + qregs, [])
+                circuit3.data.insert(i, circuit3.data.pop())
+                circuit3.h(qr_aux)
+                if add_measurement:
+                    circuit3.measure(qr_aux, cr_aux)
+                grad_dict[p].append(LinearCombGradientCircuit(circuit3, param.gradient(p)))
+
+    return grad_dict
+
+
+@dataclass
+class ParameterShiftGradientCircuit:
+    """Stores gradient circuit data for the parameter shift method"""
+
+    circuit: QuantumCircuit
+    """The original quantum circuit"""
+    gradient_circuit: QuantumCircuit
+    """An internal quantum circuit used to calculate the gradient"""
+    gradient_parameter_map: dict[Parameter, Parameter]
+    """A dictionary maps the parameters of ``circuit`` to the parameters of ``gradient_circuit``"""
+    gradient_virtual_parameter_map: dict[Parameter, Parameter]
+    """A dictionary maps the parameters of ``gradient_circuit`` to the virtual parameter variables"""
+    coeff_map: dict[Parameter, float | ParameterExpression]
+    """A dictionary maps the parameters of ``gradient_circuit`` to their coefficients"""

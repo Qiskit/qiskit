@@ -17,7 +17,6 @@ Abstract base class of gradient for ``Estimator``.
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
-from collections import defaultdict
 from collections.abc import Sequence
 from copy import copy
 
@@ -33,7 +32,14 @@ from qiskit.algorithms import AlgorithmJob
 from qiskit.quantum_info.operators.base_operator import BaseOperator
 
 from .estimator_gradient_result import EstimatorGradientResult
-from .utils import GradientCircuit
+from .utils import (
+    DerivativeType,
+    GradientCircuit,
+    _assign_unique_parameters,
+    _make_gradient_parameter_values,
+    _make_gradient_parameters,
+    _get_parameter_set,
+)
 
 
 class BaseEstimatorGradient(ABC):
@@ -117,8 +123,114 @@ class BaseEstimatorGradient(ABC):
         """Compute the estimator gradients on the given circuits."""
         raise NotImplementedError()
 
-    def _validate_arguments(
+    def _preprocess(
         self,
+        circuits: Sequence[QuantumCircuit],
+        parameter_values: Sequence[Sequence[float]],
+        parameters: Sequence[Sequence[Parameter] | None],
+        supported_gates: Sequence[str],
+    ) -> tuple[Sequence[QuantumCircuit], Sequence[Sequence[float]], Sequence[Sequence[Parameter]]]:
+        """Preprocess the gradient. This makes a gradient circuit for each circuit. The gradient
+        circuit is a transpiled circuit by using the supported gates, and has unique parameters.
+        ``parameter_values`` and ``parameters`` are also updated to match the gradient circuit.
+
+        Args:
+            circuits: The list of quantum circuits to compute the gradients.
+            parameter_values: The list of parameter values to be bound to the circuit.
+            parameters: The sequence of parameters to calculate only the gradients of the specified
+                parameters.
+            supported_gates: The supported gates used to transpile the circuit.
+
+        Returns:
+            The list of gradient circuits, the list of parameter values, and the list of parameters.
+            parameter_values and parameters are updated to match the gradient circuit.
+        """
+        g_circuits, g_parameter_values, g_parameters = [], [], []
+        for circuit, parameter_value_, parameters_ in zip(circuits, parameter_values, parameters):
+            circuit_key = _circuit_key(circuit)
+            if not circuit_key in self._gradient_circuit_cache:
+                transpiled_circuit = transpile(
+                    circuit, basis_gates=supported_gates, optimization_level=0
+                )
+                self._gradient_circuit_cache[circuit_key] = _assign_unique_parameters(
+                    transpiled_circuit
+                )
+            gradient_circuit = self._gradient_circuit_cache[circuit_key]
+            g_circuits.append(gradient_circuit.gradient_circuit)
+            g_parameter_values.append(
+                _make_gradient_parameter_values(circuit, gradient_circuit, parameter_value_)
+            )
+            g_parameters.append(_make_gradient_parameters(circuit, gradient_circuit, parameters_))
+        return g_circuits, g_parameter_values, g_parameters
+
+    def _postprocess(
+        self,
+        results: EstimatorGradientResult,
+        circuits: Sequence[QuantumCircuit],
+        parameter_values: Sequence[Sequence[float]],
+        parameters: Sequence[Sequence[Parameter] | None],
+    ) -> EstimatorGradientResult:
+        """Postprocess the gradient. This computes the gradient of the original circuit from the
+        gradient of the gradient circuit. The gradient of the original circuit is computed by using
+        the chain rule.
+
+        Args:
+            results: The results of the gradient of the gradient circuits.
+            circuits: The list of quantum circuits to compute the gradients.
+            parameter_values: The list of parameter values to be bound to the circuit.
+            parameters: The sequence of parameters to calculate only the gradients of the specified
+                parameters.
+
+        Returns:
+            The results of the gradient of the original circuits.
+        """
+        original_gradients, original_metadata = [], []
+        for circuit, parameter_values_, parameters_, gradient, metadata in zip(
+            circuits, parameter_values, parameters, results.gradients, results.metadata
+        ):
+            parameter_set = _get_parameter_set(circuit, parameters_)
+            original_gradient = np.zeros(len(parameter_set))
+            if (
+                "derivative_type" in metadata
+                and metadata["derivative_type"] == DerivativeType.COMPLEX
+            ):
+                # If the derivative type is complex, cast the gradient to complex.
+                original_gradient = original_gradient.astype("complex")
+
+            gradient_circuit = self._gradient_circuit_cache[_circuit_key(circuit)]
+            g_parameter_set = _get_parameter_set(
+                gradient_circuit.gradient_circuit,
+                _make_gradient_parameters(circuit, gradient_circuit, parameters_),
+            )
+            # make a map from the gradient parameter to the respective index in the gradient
+            parameter_indices = [param for param in circuit.parameters if param in parameter_set]
+            g_parameter_indices = [
+                param
+                for param in gradient_circuit.gradient_circuit.parameters
+                if param in g_parameter_set
+            ]
+            g_parameter_indices = {param: i for i, param in enumerate(g_parameter_indices)}
+            # compute the original gradient from the gradient of the gradient circuit
+            # by using the chain rule
+            for i, parameter in enumerate(parameter_indices):
+                for g_parameter, coeff in gradient_circuit.parameter_map[parameter]:
+                    if isinstance(coeff, ParameterExpression):
+                        local_map = {
+                            p: parameter_values_[circuit.parameters.data.index(p)]
+                            for p in coeff.parameters
+                        }
+                        bound_coeff = coeff.bind(local_map)
+                    else:
+                        bound_coeff = coeff
+                    original_gradient[i] += bound_coeff * gradient[g_parameter_indices[g_parameter]]
+            original_gradients.append(original_gradient)
+            original_metadata.append([{"parameters": parameter_indices}])
+        return EstimatorGradientResult(
+            gradients=original_gradients, metadata=results.metadata, options=results.options
+        )
+
+    @staticmethod
+    def _validate_arguments(
         circuits: Sequence[QuantumCircuit],
         observables: Sequence[BaseOperator | PauliSumOp],
         parameter_values: Sequence[Sequence[float]],
@@ -180,191 +292,6 @@ class BaseEstimatorGradient(ABC):
                         f"The {i}-th parameter set contains parameters not present in the "
                         f"{i}-th circuit."
                     )
-
-    def _preprocess(
-        self,
-        circuits: Sequence[QuantumCircuit],
-        parameter_values: Sequence[Sequence[float]],
-        parameters: Sequence[Sequence[Parameter] | None],
-        supported_gates: Sequence[str],
-    ):
-        """Preprocess the gradient."""
-        g_circuits, g_parameter_values, g_parameters = [], [], []
-        for circuit, parameter_value_, parameters_ in zip(circuits, parameter_values, parameters):
-            if not _circuit_key(circuit) in self._gradient_circuit_cache:
-                transpiled_circuit = transpile(
-                    circuit, basis_gates=supported_gates, optimization_level=0
-                )
-                self._gradient_circuit_cache[
-                    _circuit_key(circuit)
-                ] = self._assign_unique_parameters(transpiled_circuit)
-            gradient_circuit = self._gradient_circuit_cache[_circuit_key(circuit)]
-            g_circuits.append(gradient_circuit.gradient_circuit)
-            g_parameter_values.append(
-                self._make_gradient_parameter_values(circuit, gradient_circuit, parameter_value_)
-            )
-            g_parameters.append(
-                self._make_gradient_parameters(circuit, gradient_circuit, parameters_)
-            )
-        return g_circuits, g_parameter_values, g_parameters
-
-    def _assign_unique_parameters(
-        self,
-        circuit: QuantumCircuit,
-    ) -> GradientCircuit:
-        """Assign unique parameters to the circuit.
-
-        Args:
-            circuit: The circuit to assign unique parameters.
-
-        Returns:
-            The circuit with unique parameters.
-        """
-        gradient_circuit = circuit.copy_empty_like(f"{circuit.name}_gradient")
-        parameter_map = defaultdict(list)
-        gradient_parameter_map = {}
-        num_gradient_parameters = 0
-        for instruction, qargs, cargs in circuit.data:
-            if instruction.is_parameterized():
-                new_inst_params = []
-                for angle in instruction.params:
-                    new_parameter = Parameter(f"gθ{num_gradient_parameters}")
-                    new_inst_params.append(new_parameter)
-                    num_gradient_parameters += 1
-                    for parameter in angle.parameters:
-                        parameter_map[parameter].append((new_parameter, angle.gradient(parameter)))
-                    gradient_parameter_map[new_parameter] = angle
-                instruction.params = new_inst_params
-            gradient_circuit.append(instruction, qargs, cargs)
-        # For the global phase
-        gradient_circuit.global_phase = circuit.global_phase
-        if isinstance(gradient_circuit.global_phase, ParameterExpression):
-            substitution_map = {}
-            for parameter in gradient_circuit.global_phase.parameters:
-                if parameter in parameter_map:
-                    substitution_map[parameter] = parameter_map[parameter][0][0]
-                else:
-                    new_parameter = Parameter(f"gθ{num_gradient_parameters}")
-                    substitution_map[parameter] = new_parameter
-                    parameter_map[parameter].append(new_parameter, 1)
-                    num_gradient_parameters += 1
-            gradient_circuit.global_phase = gradient_circuit.global_phase.subs(substitution_map)
-
-        return GradientCircuit(gradient_circuit, parameter_map, gradient_parameter_map)
-
-    def _make_gradient_parameter_values(
-        self,
-        circuit: QuantumCircuit,
-        gradient_circuit: GradientCircuit,
-        parameter_values: np.ndarray,
-    ) -> np.ndarray:
-        """Makes parameter values for the gradient circuit.
-
-        Args:
-            circuit: The original quantum circuit
-            gradient_circuit: The gradient circuit
-            parameter_values: The parameter values for the original circuit
-            parameter_set: The parameter set to calculate gradients
-
-        Returns:
-            The parameter values for the gradient circuit.
-        """
-        g_circuit = gradient_circuit.gradient_circuit
-        g_parameter_values = np.zeros(len(g_circuit.parameters))
-        for i, g_parameter in enumerate(g_circuit.parameters):
-            expr = gradient_circuit.gradient_parameter_map[g_parameter]
-            bound_expr = expr.bind(
-                {p: parameter_values[circuit.parameters.data.index(p)] for p in expr.parameters}
-            )
-
-            g_parameter_values[i] = float(bound_expr)
-        return g_parameter_values
-
-    def _make_gradient_parameters(
-        self,
-        circuit: QuantumCircuit,
-        gradient_circuit: GradientCircuit,
-        parameters: Sequence[Parameter] | None,
-    ) -> Sequence[Parameter] | None:
-        """Makes parameters for the gradient circuit.
-
-        Args:
-            circuit: The original quantum circuit
-            gradient_circuit: The gradient circuit
-            parameters: The parameters for the original circuit
-
-        Returns:
-            The parameters for the gradient circuit.
-        """
-        if parameters is None:
-            return None
-
-        g_parameters = []
-        for parameter in circuit.parameters:
-            if parameter in parameters:
-                g_parameters.extend(
-                    g_parameter for g_parameter, _ in gradient_circuit.parameter_map[parameter]
-                )
-        return list(set(g_parameters))
-
-    def _make_parameter_set(self, circuit: QuantumCircuit, parameters: Sequence[Parameter]):
-        """Make a set of parameters from ``parameters`` that are in ``circuit``.
-
-        Args:
-            circuit: The circuit to make the parameter set.
-            parameters: The parameters to make the parameter set.
-
-        Returns:
-            The set of parameters. If ``parameters`` is None, then the set of all parameters in ``circuit``
-            is returned.
-        """
-        return set(circuit.parameters) if parameters is None else set(parameters)
-
-    def _postprocess(
-        self,
-        results: Sequence[EstimatorGradientResult],
-        circuits: Sequence[QuantumCircuit],
-        parameter_values: Sequence[Sequence[float]],
-        parameters: Sequence[Sequence[Parameter] | None],
-    ) -> EstimatorGradientResult:
-        """Postprocess the gradient."""
-        original_gradients, original_metadata = [], []
-        for circuit, parameter_values_, parameters_, gradient in zip(
-            circuits, parameter_values, parameters, results.gradients
-        ):
-            parameter_set = self._make_parameter_set(circuit, parameters_)
-            original_gradient = np.zeros(len(parameter_set))
-            gradient_circuit = self._gradient_circuit_cache[_circuit_key(circuit)]
-            g_parameters_ = self._make_gradient_parameters(circuit, gradient_circuit, parameters_)
-            g_parameter_set = self._make_parameter_set(
-                gradient_circuit.gradient_circuit, g_parameters_
-            )
-            result_indices_ = [param for param in circuit.parameters if param in parameter_set]
-            g_result_indices_ = [
-                param
-                for param in gradient_circuit.gradient_circuit.parameters
-                if param in g_parameter_set
-            ]
-            g_result_indices = {param: i for i, param in enumerate(g_result_indices_)}
-
-            for i, parameter in enumerate(result_indices_):
-                for g_parameter, coeff in gradient_circuit.parameter_map[parameter]:
-                    if isinstance(coeff, ParameterExpression):
-                        local_map = {
-                            p: parameter_values_[circuit.parameters.data.index(p)]
-                            for p in coeff.parameters
-                        }
-                        bound_coeff = coeff.bind(local_map)
-                    else:
-                        bound_coeff = coeff
-                    original_gradient[i] += bound_coeff * gradient[g_result_indices[g_parameter]]
-            original_gradients.append(original_gradient)
-            original_metadata.append(
-                [{"parameters": [p for p in circuit.parameters if p in parameter_set]}]
-            )
-        return EstimatorGradientResult(
-            gradients=original_gradients, metadata=results.metadata, options=results.options
-        )
 
     @property
     def options(self) -> Options:

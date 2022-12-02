@@ -32,6 +32,24 @@ from .utils import _make_param_shift_parameter_values
 class ParamShiftEstimatorGradient(BaseEstimatorGradient):
     """Compute the gradients of the expectation values by the parameter shift rule"""
 
+    SUPPORTED_GATES = [
+        "x",
+        "y",
+        "z",
+        "h",
+        "rx",
+        "ry",
+        "rz",
+        "p",
+        "cx",
+        "cy",
+        "cz",
+        "ryy",
+        "rxx",
+        "rzz",
+        "rzx",
+    ]
+
     def __init__(self, estimator: BaseEstimator, options: Options | None = None):
         """
         Args:
@@ -42,23 +60,6 @@ class ParamShiftEstimatorGradient(BaseEstimatorGradient):
                 Higher priority setting overrides lower priority setting
         """
         self._parameter_value_offset_cache = {}
-        self._SUPPORTED_GATES = [
-            "x",
-            "y",
-            "z",
-            "h",
-            "rx",
-            "ry",
-            "rz",
-            "p",
-            "cx",
-            "cy",
-            "cz",
-            "ryy",
-            "rxx",
-            "rzz",
-            "rzx",
-        ]
         super().__init__(estimator, options)
 
     def _run(
@@ -71,7 +72,7 @@ class ParamShiftEstimatorGradient(BaseEstimatorGradient):
     ) -> EstimatorGradientResult:
         """Compute the gradients of the expectation values by the parameter shift rule."""
         g_circuits, g_parameter_values, g_parameters = self._preprocess(
-            circuits, parameter_values, parameters, self._SUPPORTED_GATES
+            circuits, parameter_values, parameters, self.SUPPORTED_GATES
         )
         results = self._run_unique(
             g_circuits, observables, g_parameter_values, g_parameters, **options
@@ -92,8 +93,9 @@ class ParamShiftEstimatorGradient(BaseEstimatorGradient):
             circuits, observables, parameter_values, parameters
         ):
             # a set of parameters to be differentiated
-            parameter_set = self._make_parameter_set(circuit, parameters_)
+            parameter_set = set(circuit.parameters) if parameters_ is None else set(parameters_)
             metadata_.append({"parameters": [p for p in circuit.parameters if p in parameter_set]})
+            # make parameter values for the parameter shift rule
             param_shift_parameter_values = _make_param_shift_parameter_values(
                 circuit, parameter_values_, parameter_set
             )
