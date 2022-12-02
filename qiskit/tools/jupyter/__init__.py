@@ -122,7 +122,6 @@ if _IP is not None:
 
         _IP.register_magics(BackendOverview)
         if _optionals.HAS_IBMQ:
-            # pylint: disable=import-error
             from qiskit.providers.ibmq import IBMQBackend  # pylint: disable=no-name-in-module
 
             HTML_FORMATTER = _IP.display_formatter.formatters["text/html"]

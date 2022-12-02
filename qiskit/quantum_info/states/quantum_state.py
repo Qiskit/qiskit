@@ -454,7 +454,7 @@ class QuantumState:
         if qargs is None:
             return probs
         # Convert qargs to tensor axes
-        probs_tens = np.reshape(probs, dims)
+        probs_tens = np.reshape(probs, list(reversed(dims)))
         ndim = probs_tens.ndim
         qargs_axes = [ndim - 1 - i for i in reversed(qargs)]
         # Get sum axis for marginalized subsystems
