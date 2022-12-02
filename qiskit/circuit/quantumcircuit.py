@@ -284,6 +284,7 @@ class QuantumCircuit:
         if not isinstance(metadata, dict) and metadata is not None:
             raise TypeError("Only a dictionary or None is accepted for circuit metadata")
         self._metadata = metadata
+        self._old_param = []
 
     @staticmethod
     def from_instructions(
@@ -2623,7 +2624,22 @@ class QuantumCircuit:
 
             # replace the parameters with a new Parameter ("substitute") or numeric value ("bind")
             for parameter, value in unrolled_param_dict.items():
+                if reuse_circ is not None and reuse_circ._old_param != []:
+                    # skip _assign_parameter if parameter value is unchanged
+                    # compared to last parameter update
+                    if value == reuse_circ._old_param[parameter]:
+                        if (
+                            isinstance(self.global_phase, ParameterExpression)
+                            and parameter in self.global_phase.parameters
+                        ):
+                            reuse_circ.global_phase = reuse_circ.global_phase.assign(
+                                parameter, value
+                            )
+                            continue
                 bound_circuit._assign_parameter(parameter, value, reuse_circ)
+            if reuse_circ is not None:
+                reuse_circ._old_param = parameters
+
         else:
             if len(parameters) != self.num_parameters:
                 raise ValueError(
