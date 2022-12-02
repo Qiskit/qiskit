@@ -220,11 +220,7 @@ class Optimize1qGatesSimpleCommutation(TransformationPass):
             if self._optimize1q._substitution_checks(
                 dag,
                 (preceding_run or []) + run + (succeeding_run or []),
-                (
-                    list(new_preceding_run.op_nodes())
-                    + list(new_run.op_nodes())
-                    + list(new_succeeding_run.op_nodes())
-                ),
+                new_preceding_run.op_nodes() + new_run.op_nodes() + new_succeeding_run.op_nodes(),
                 self._optimize1q._basis_gates,
                 qubit_indices[run[0].qargs[0]],
             ):
