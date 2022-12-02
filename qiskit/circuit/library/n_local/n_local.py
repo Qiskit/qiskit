@@ -764,6 +764,7 @@ class NLocal(BlueprintCircuit):
         self,
         parameters: Union[dict, List[float], List[Parameter], ParameterVector],
         inplace: bool = False,
+        reuse_circ: QuantumCircuit = None,
     ) -> Optional[QuantumCircuit]:
         """Assign parameters to the n-local circuit.
 
@@ -785,7 +786,7 @@ class NLocal(BlueprintCircuit):
         if not self._is_built:
             self._build()
 
-        return super().assign_parameters(parameters, inplace=inplace)
+        return super().assign_parameters(parameters, inplace=inplace, reuse_circ=reuse_circ)
 
     def _parameterize_block(
         self, block, param_iter=None, rep_num=None, block_num=None, indices=None, params=None
