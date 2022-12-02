@@ -64,3 +64,9 @@ class GlobalPhaseGate(Gate):
         )  # pylint: disable=no-member
 
         self.definition = qc
+    def inverse(self):
+        r"""Return inverted RY gate.
+
+        :math:`RY(\lambda){\dagger} = RY(-\lambda)`
+        """
+        return GlobalPhaseGate(-self.params[0])
