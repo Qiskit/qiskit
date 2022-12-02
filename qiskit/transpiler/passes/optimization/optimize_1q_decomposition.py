@@ -112,13 +112,18 @@ class Optimize1qGatesDecomposition(TransformationPass):
         # if we're outside of the basis set, we're obligated to logically decompose.
         # if we're outside of the set of gates for which we have physical definitions,
         #    then we _try_ to decompose, using the results if we see improvement.
+        new_error = _error(new_circ, self._target, qubit)
+        if isinstance(new_error, tuple):
+            error_rate = new_error[0]
+        else:
+            error_rate = new_error
         return (
             uncalibrated_and_not_basis_p
             or (
                 uncalibrated_p
-                and _error(new_circ, self._target, qubit) < _error(old_run, self._target, qubit)
+                and new_error < _error(old_run, self._target, qubit)
             )
-            or np.isclose(_error(new_circ, self._target, qubit), 0)
+            or np.isclose(error_rate, 0)
         )
 
     @control_flow.trivial_recurse
@@ -189,7 +194,4 @@ def _error(circuit, target, qubit):
                 for inst in circuit
             ]
         gate_error = 1 - np.product(gate_fidelities)
-        if gate_error == 0.0:
-            return -100 + len(circuit)  # prefer shorter circuits among those with zero error
-        else:
-            return gate_error
+        return (gate_error, len(circuit))
