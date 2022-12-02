@@ -25,10 +25,10 @@ from qiskit import QuantumCircuit
 from qiskit.circuit.library import RealAmplitudes
 from qiskit.primitives import EstimatorResult
 from qiskit.primitives.backend_estimator_dev import (
-    AbelianDecomposer,
+    _AbelianDecomposer,
     BackendEstimator,
-    NaiveDecomposer,
-    SpectralReckoner,
+    _NaiveDecomposer,
+    _SpectralReckoner,
 )
 from qiskit.providers import BackendV2, Options, JobV1
 from qiskit.providers.fake_provider import FakeNairobi, FakeNairobiV2
@@ -257,11 +257,11 @@ class TestMeasurement(QiskitTestCase):
         """Test observable decomposer property."""
         estimator = BackendEstimator(Mock(BackendV2))
         self.assertTrue(estimator.abelian_grouping)
-        self.assertIsInstance(estimator._observable_decomposer, AbelianDecomposer)
+        self.assertIsInstance(estimator._observable_decomposer, _AbelianDecomposer)
         self.assertIsNot(estimator._observable_decomposer, estimator._observable_decomposer)
         estimator.abelian_grouping = False
         self.assertFalse(estimator.abelian_grouping)
-        self.assertIsInstance(estimator._observable_decomposer, NaiveDecomposer)
+        self.assertIsInstance(estimator._observable_decomposer, _NaiveDecomposer)
         self.assertIsNot(estimator._observable_decomposer, estimator._observable_decomposer)
 
     @data(*measurement_circuit_examples())
@@ -340,19 +340,19 @@ class TestObservableDecomposer(QiskitTestCase):
     """Test ObservableDecomposer strategies."""
 
     @data(
-        [NaiveDecomposer(), SparsePauliOp("IXYZ"), (SparsePauliOp("IXYZ"),)],
+        [_NaiveDecomposer(), SparsePauliOp("IXYZ"), (SparsePauliOp("IXYZ"),)],
         [
-            NaiveDecomposer(),
+            _NaiveDecomposer(),
             SparsePauliOp(["IXYZ", "ZYXI"]),
             (SparsePauliOp("IXYZ"), SparsePauliOp("ZYXI")),
         ],
         [
-            NaiveDecomposer(),
+            _NaiveDecomposer(),
             SparsePauliOp(["IXYZ", "IXII"]),
             (SparsePauliOp("IXYZ"), SparsePauliOp("IXII")),
         ],
         [
-            NaiveDecomposer(),
+            _NaiveDecomposer(),
             SparsePauliOp(["IXYZ", "ZYXI", "IXII", "ZYII"]),
             (
                 SparsePauliOp("IXYZ"),
@@ -361,19 +361,19 @@ class TestObservableDecomposer(QiskitTestCase):
                 SparsePauliOp("ZYII"),
             ),
         ],
-        [AbelianDecomposer(), SparsePauliOp("IXYZ"), (SparsePauliOp("IXYZ"),)],
+        [_AbelianDecomposer(), SparsePauliOp("IXYZ"), (SparsePauliOp("IXYZ"),)],
         [
-            AbelianDecomposer(),
+            _AbelianDecomposer(),
             SparsePauliOp(["IXYZ", "ZYXI"]),
             (SparsePauliOp("IXYZ"), SparsePauliOp("ZYXI")),
         ],
         [
-            AbelianDecomposer(),
+            _AbelianDecomposer(),
             SparsePauliOp(["IXYZ", "IXII"]),
             (SparsePauliOp(["IXYZ", "IXII"]),),
         ],
         [
-            AbelianDecomposer(),
+            _AbelianDecomposer(),
             SparsePauliOp(["IXYZ", "ZYXI", "IXII", "ZYII"]),
             (SparsePauliOp(["IXYZ", "IXII"]), SparsePauliOp(["ZYXI", "ZYII"])),
         ],
@@ -385,35 +385,35 @@ class TestObservableDecomposer(QiskitTestCase):
         self.assertEqual(components, expected)
 
     @data(
-        [NaiveDecomposer(), SparsePauliOp("IXYZ"), PauliList(Pauli("IXYZ"))],
+        [_NaiveDecomposer(), SparsePauliOp("IXYZ"), PauliList(Pauli("IXYZ"))],
         [
-            NaiveDecomposer(),
+            _NaiveDecomposer(),
             SparsePauliOp(["IXYZ", "ZYXI"]),
             PauliList([Pauli("IXYZ"), Pauli("ZYXI")]),
         ],
         [
-            NaiveDecomposer(),
+            _NaiveDecomposer(),
             SparsePauliOp(["IXYZ", "IXII"]),
             PauliList([Pauli("IXYZ"), Pauli("IXII")]),
         ],
         [
-            NaiveDecomposer(),
+            _NaiveDecomposer(),
             SparsePauliOp(["IXYZ", "ZYXI", "IXII", "ZYII"]),
             PauliList([Pauli("IXYZ"), Pauli("ZYXI"), Pauli("IXII"), Pauli("ZYII")]),
         ],
-        [AbelianDecomposer(), SparsePauliOp("IXYZ"), PauliList(Pauli("IXYZ"))],
+        [_AbelianDecomposer(), SparsePauliOp("IXYZ"), PauliList(Pauli("IXYZ"))],
         [
-            AbelianDecomposer(),
+            _AbelianDecomposer(),
             SparsePauliOp(["IXYZ", "ZYXI"]),
             PauliList([Pauli("IXYZ"), Pauli("ZYXI")]),
         ],
         [
-            AbelianDecomposer(),
+            _AbelianDecomposer(),
             SparsePauliOp(["IXYZ", "IXII"]),
             PauliList([Pauli("IXYZ")]),
         ],
         [
-            AbelianDecomposer(),
+            _AbelianDecomposer(),
             SparsePauliOp(["IXYZ", "ZYXI", "IXII", "ZYII"]),
             PauliList([Pauli("IXYZ"), Pauli("ZYXI")]),
         ],
@@ -459,7 +459,7 @@ class TestSpectralReckoner(QiskitTestCase):
         """Test expval-variance pairs."""
         counts = Counts(counts)
         pauli = Pauli(pauli)
-        expval, std_error = SpectralReckoner().compute_pauli_expval(counts, pauli)
+        expval, std_error = _SpectralReckoner().compute_pauli_expval(counts, pauli)
         self.assertAlmostEqual(expval, expected[0])
         self.assertAlmostEqual(std_error, expected[1])
 
@@ -494,7 +494,7 @@ class TestSpectralReckoner(QiskitTestCase):
     def test_compute_eigenvalue(self, pauli, bitstring, expected):
         """Test observed value."""
         pauli = Pauli(pauli)
-        observation = SpectralReckoner.compute_eigenvalue(bitstring, pauli)
+        observation = _SpectralReckoner.compute_eigenvalue(bitstring, pauli)
         self.assertEqual(observation, expected)
 
     @data(
@@ -511,7 +511,7 @@ class TestSpectralReckoner(QiskitTestCase):
     def test_pauli_integer_masks(self, pauli, expected):
         """Test Paulis integer masks."""
         pauli = Pauli(pauli)
-        int_mask = SpectralReckoner._pauli_integer_mask(pauli)
+        int_mask = _SpectralReckoner._pauli_integer_mask(pauli)
         self.assertEqual(int_mask, expected)
 
     @data(
@@ -528,8 +528,8 @@ class TestSpectralReckoner(QiskitTestCase):
     def test_parity_bit(self, bitstring, expected):
         """Test even parity bit."""
         integer = int(bitstring, 2)
-        even_bit = SpectralReckoner._parity_bit(integer)
-        odd_bit = SpectralReckoner._parity_bit(integer, even=False)
+        even_bit = _SpectralReckoner._parity_bit(integer)
+        odd_bit = _SpectralReckoner._parity_bit(integer, even=False)
         self.assertEqual(even_bit, expected)
         self.assertEqual(even_bit, int(not odd_bit))
 

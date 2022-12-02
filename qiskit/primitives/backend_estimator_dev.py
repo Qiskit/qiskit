@@ -153,16 +153,16 @@ class BackendEstimator(BaseEstimator):
         self._transpile_options.update_options(**fields)
 
     @property
-    def _observable_decomposer(self) -> ObservableDecomposer:
+    def _observable_decomposer(self) -> _ObservableDecomposer:
         """Observable decomposer based on object's config."""
         if self.abelian_grouping:
-            return AbelianDecomposer()
-        return NaiveDecomposer()
+            return _AbelianDecomposer()
+        return _NaiveDecomposer()
 
     @property
-    def _expval_reckoner(self) -> ExpvalReckoner:
+    def _expval_reckoner(self) -> _ExpvalReckoner:
         """Strategy for expectation value reckoning."""
-        return SpectralReckoner()
+        return _SpectralReckoner()
 
     ################################################################################
     ## IMPLEMENTATION
@@ -540,7 +540,7 @@ class BackendEstimator(BaseEstimator):
 ################################################################################
 ## OBSERVABLE DECOMPOSER
 ################################################################################
-class ObservableDecomposer(ABC):
+class _ObservableDecomposer(ABC):
     """Strategy interface for decomposing observables and getting associated measurement bases."""
 
     def decompose(self, observable: BaseOperator | PauliSumOp) -> tuple[SparsePauliOp]:
@@ -591,7 +591,7 @@ class ObservableDecomposer(ABC):
         ...
 
 
-class NaiveDecomposer(ObservableDecomposer):
+class _NaiveDecomposer(_ObservableDecomposer):
     """Trivial observable decomposition without grouping components."""
 
     def _decompose(
@@ -604,7 +604,7 @@ class NaiveDecomposer(ObservableDecomposer):
         return observable.paulis[0]
 
 
-class AbelianDecomposer(ObservableDecomposer):
+class _AbelianDecomposer(_ObservableDecomposer):
     """Abelian observable decomposition grouping commuting components."""
 
     def _decompose(
@@ -623,7 +623,7 @@ class AbelianDecomposer(ObservableDecomposer):
 ################################################################################
 ## EXPECTATION VALUE RECKONING
 ################################################################################
-class ExpvalReckoner(ABC):
+class _ExpvalReckoner(ABC):
     """Expectation value reckoning interface.
 
     Classes implementing this interface provide methods for constructing expectation values
@@ -669,7 +669,7 @@ class ExpvalReckoner(ABC):
         """
 
 
-class SpectralReckoner(ExpvalReckoner):
+class _SpectralReckoner(_ExpvalReckoner):
     """Expectation value reckoning class based on weighted addition of eigenvalues.
 
     Note: This class treats X, Y, and Z Paulis identically, assuming that the appropriate
