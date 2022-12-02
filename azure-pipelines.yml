@@ -185,22 +185,22 @@ stages:
         - template: ".azure/test-macos.yml"
           parameters:
             pythonVersion: ${{ parameters.minimumPythonVersion }}
-            installOptionals: false
+            installOptionals: true
 
         - template: ".azure/test-macos.yml"
           parameters:
             pythonVersion: ${{ parameters.maximumPythonVersion }}
-            installOptionals: true
-
-        - template: ".azure/test-windows.yml"
-          parameters:
-            pythonVersion: ${{ parameters.minimumPythonVersion }}
             installOptionals: false
 
         - template: ".azure/test-windows.yml"
           parameters:
-            pythonVersion: ${{ parameters.maximumPythonVersion }}
+            pythonVersion: ${{ parameters.minimumPythonVersion }}
             installOptionals: true
+
+        - template: ".azure/test-windows.yml"
+          parameters:
+            pythonVersion: ${{ parameters.maximumPythonVersion }}
+            installOptionals: false
 
   # Push to main or the stable branches.  The triggering branches are set in the
   # triggers at the top of this file.
