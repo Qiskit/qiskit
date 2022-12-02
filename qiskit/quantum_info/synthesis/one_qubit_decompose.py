@@ -216,24 +216,10 @@ class OneQubitEulerDecomposer:
         """
         return self._params(unitary)
 
-    @staticmethod
-    def _params_zyz(mat):
-        """Return the Euler angles and phase for the ZYZ basis."""
-        return euler_one_qubit_decomposer.params_zyz(mat)
-
-    @staticmethod
-    def _params_zxz(mat):
-        """Return the Euler angles and phase for the ZXZ basis."""
-        return euler_one_qubit_decomposer.params_zxz(mat)
-
-    @staticmethod
-    def _params_xyx(mat):
-        """Return the Euler angles and phase for the XYX basis."""
-        return euler_one_qubit_decomposer.params_xyx(mat)
-
-    @staticmethod
-    def _params_xzx(umat):
-        return euler_one_qubit_decomposer.params_xzx(umat)
+    _params_zyz = staticmethod(euler_one_qubit_decomposer.params_zyz)
+    _params_zxz = staticmethod(euler_one_qubit_decomposer.params_zxz)
+    _params_xyx = staticmethod(euler_one_qubit_decomposer.params_xyx)
+    _params_xzx = staticmethod(euler_one_qubit_decomposer.params_xzx)
 
     @staticmethod
     def _params_u3(mat):
