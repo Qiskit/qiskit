@@ -161,7 +161,9 @@ def _possible_decomposers(basis_set):
         euler_basis_gates = one_qubit_decompose.ONE_QUBIT_EULER_BASIS_GATES
         for euler_basis_name, gates in euler_basis_gates.items():
             if set(gates).issubset(basis_set):
-                decomposer = one_qubit_decompose.OneQubitEulerDecomposer(euler_basis_name, use_dag=True)
+                decomposer = one_qubit_decompose.OneQubitEulerDecomposer(
+                    euler_basis_name, use_dag=True
+                )
                 decomposers.append(decomposer)
     return decomposers
 

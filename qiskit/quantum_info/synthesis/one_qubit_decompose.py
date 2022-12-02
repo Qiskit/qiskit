@@ -13,6 +13,8 @@
 """
 Decompose a single-qubit unitary via Euler angles.
 """
+from dataclasses import dataclass
+from typing import List
 
 import numpy as np
 
@@ -32,6 +34,7 @@ from qiskit.circuit.library.standard_gates import (
     SXGate,
     XGate,
 )
+from qiskit.circuit.gate import Gate
 from qiskit.exceptions import QiskitError
 from qiskit.quantum_info.operators.predicates import is_unitary_matrix
 
@@ -428,53 +431,52 @@ class OneQubitEulerDecomposer:
 
         NOTE: `pfun` is responsible for eliding gates where appropriate (e.g., at angle value 0).
         """
-        circuit = []
-        global_phase = [phase]
+        circuit = _PSXGenCircuit([], phase)
         # Early return for zero SX decomposition
         if np.abs(theta) < atol:
-            pfun(circuit, lam + phi, global_phase)
-            return self.build_circuit(circuit, global_phase[0])
+            pfun(circuit, lam + phi)
+            return self.build_circuit(circuit.circuit, circuit.phase)
         # Early return for single SX decomposition
         if abs(theta - np.pi / 2) < atol:
-            pfun(circuit, lam - np.pi / 2, global_phase)
-            xfun(circuit, global_phase)
-            pfun(circuit, phi + np.pi / 2, global_phase)
-            return self.build_circuit(circuit, global_phase[0])
+            pfun(circuit, lam - np.pi / 2)
+            xfun(circuit)
+            pfun(circuit, phi + np.pi / 2)
+            return self.build_circuit(circuit.circuit, circuit.phase)
         # General double SX decomposition
         if abs(theta - np.pi) < atol:
-            global_phase[0] += lam
+            circuit.phase += lam
             phi, lam = phi - lam, 0
         if abs(_mod_2pi(lam + np.pi)) < atol or abs(_mod_2pi(phi)) < atol:
             lam, theta, phi = lam + np.pi, -theta, phi + np.pi
-            global_phase[0] -= theta
+            circuit.phase -= theta
         # Shift theta and phi to turn the decomposition from
         # RZ(phi).RY(theta).RZ(lam) = RZ(phi).RX(-pi/2).RZ(theta).RX(pi/2).RZ(lam)
         # into RZ(phi+pi).SX.RZ(theta+pi).SX.RZ(lam) .
         theta, phi = theta + np.pi, phi + np.pi
-        global_phase[0] -= np.pi / 2
+        circuit.phase -= np.pi / 2
         # Emit circuit
-        pfun(circuit, lam, global_phase)
+        pfun(circuit, lam)
         if xpifun and abs(_mod_2pi(theta)) < atol:
             xpifun(circuit)
         else:
-            xfun(circuit, global_phase)
-            pfun(circuit, theta, global_phase)
-            xfun(circuit, global_phase)
-        pfun(circuit, phi, global_phase)
+            xfun(circuit)
+            pfun(circuit, theta)
+            xfun(circuit)
+        pfun(circuit, phi)
 
-        return self.build_circuit(circuit, global_phase[0])
+        return self.build_circuit(circuit.circuit, circuit.phase)
 
     def _circuit_psx(self, theta, phi, lam, phase, simplify=True, atol=DEFAULT_ATOL):
         if not simplify:
             atol = -1.0
 
-        def fnz(circuit, phi, _global_phase):
+        def fnz(circuit, phi):
             phi = _mod_2pi(phi, atol)
             if abs(phi) > atol:
-                circuit.append(PhaseGate(phi))
+                circuit.circuit.append(PhaseGate(phi))
 
-        def fnx(circuit, _global_phase):
-            circuit.append(SXGate())
+        def fnx(circuit):
+            circuit.circuit.append(SXGate())
 
         return self._circuit_psx_gen(theta, phi, lam, phase, atol, fnz, fnx)
 
@@ -482,14 +484,14 @@ class OneQubitEulerDecomposer:
         if not simplify:
             atol = -1.0
 
-        def fnz(circuit, phi, global_phase):
+        def fnz(circuit, phi):
             phi = _mod_2pi(phi, atol)
             if abs(phi) > atol:
-                circuit.append(RZGate(phi))
-                global_phase[0] += phi / 2
+                circuit.circuit.append(RZGate(phi))
+                circuit.phase += phi / 2
 
-        def fnx(circuit, _global_phase):
-            circuit.append(SXGate())
+        def fnx(circuit):
+            circuit.circuit.append(SXGate())
 
         return self._circuit_psx_gen(theta, phi, lam, phase, atol, fnz, fnx)
 
@@ -497,14 +499,14 @@ class OneQubitEulerDecomposer:
         if not simplify:
             atol = -1.0
 
-        def fnz(circuit, phi, _global_phase):
+        def fnz(circuit, phi):
             phi = _mod_2pi(phi, atol)
             if abs(phi) > atol:
-                circuit.append(U1Gate(phi))
+                circuit.circuit.append(U1Gate(phi))
 
-        def fnx(circuit, global_phase):
-            global_phase[0] += np.pi / 4
-            circuit.append(RXGate(np.pi / 2))
+        def fnx(circuit):
+            circuit.phase += np.pi / 4
+            circuit.circuit.append(RXGate(np.pi / 2))
 
         return self._circuit_psx_gen(theta, phi, lam, phase, atol, fnz, fnx)
 
@@ -512,17 +514,17 @@ class OneQubitEulerDecomposer:
         if not simplify:
             atol = -1.0
 
-        def fnz(circuit, phi, global_phase):
+        def fnz(circuit, phi):
             phi = _mod_2pi(phi, atol)
             if abs(phi) > atol:
-                circuit.append(RZGate(phi))
-                global_phase[0] += phi / 2
+                circuit.circuit.append(RZGate(phi))
+                circuit.phase += phi / 2
 
-        def fnx(circuit, _global_phase):
-            circuit.append(SXGate())
+        def fnx(circuit):
+            circuit.circuit.append(SXGate())
 
         def fnxpi(circuit):
-            circuit.append(XGate())
+            circuit.circuit.append(XGate())
 
         return self._circuit_psx_gen(theta, phi, lam, phase, atol, fnz, fnx, fnxpi)
 
@@ -536,6 +538,13 @@ class OneQubitEulerDecomposer:
             circuit.append(RGate(theta - np.pi, _mod_2pi(np.pi / 2 - lam, atol)))
         circuit.append(RGate(np.pi, _mod_2pi(0.5 * (phi - lam + np.pi), atol)))
         return self.build_circuit(circuit, phase)
+
+
+@dataclass
+class _PSXGenCircuit:
+    __slots__ = ("circuit", "phase")
+    circuit: List[Gate]
+    phase: float
 
 
 def _mod_2pi(angle: float, atol: float = 0):
