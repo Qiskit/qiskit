@@ -541,9 +541,9 @@ class Clifford(BaseOperator, AdjointMixin, Operation):
                Phys. Rev. A 70, 052328 (2004).
                `arXiv:quant-ph/0406196 <https://arxiv.org/abs/quant-ph/0406196>`_
         """
-        from qiskit.quantum_info.synthesis.clifford_decompose import decompose_clifford
+        from qiskit.synthesis.clifford import synth_clifford_full
 
-        return decompose_clifford(self)
+        return synth_clifford_full(self)
 
     def to_instruction(self):
         """Return a Gate instruction implementing the Clifford."""
