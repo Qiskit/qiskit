@@ -252,6 +252,7 @@ html_static_path = ['_static']
 html_css_files = ['custom.css', 'gallery.css']
 html_favicon = 'images/favicon.ico'
 html_last_updated_fmt = '%Y/%m/%d'
+html_context = {'analytics_enabled': os.getenv('QISKIT_ENABLE_ANALYTICS', False)} # enable segment analytics for qiskit.org/documentation
 
 # -- Options for Autosummary and Autodoc ------------------------------------
 # Note that setting autodoc defaults here may not have as much of an effect as  you may expect; any
