@@ -22,6 +22,7 @@ import numpy as np
 
 from qiskit import QiskitError
 from qiskit.circuit import Parameter, ParameterExpression, QuantumCircuit
+from qiskit.circuit.parametertable import ParameterTable
 from qiskit.opflow.converters.converter_base import ConverterBase
 from qiskit.opflow.exceptions import OpflowError
 from qiskit.opflow.list_ops.list_op import ListOp
@@ -99,6 +100,10 @@ class CircuitSampler(ConverterBase):
         self._transpiled_circ_cache: Optional[List[Any]] = None
         self._transpiled_circ_templates: Optional[List[Any]] = None
         self._transpile_before_bind = True
+        self._reuse_circs = []
+        self._reuse_parameter_tables = []
+        self._reuse_global_phase = []
+        self._empty_parameter_table = ParameterTable()
 
     def _check_quantum_instance_and_modes_consistent(self) -> None:
         """Checks whether the statevector and param_qobj settings are compatible with the
@@ -297,6 +302,31 @@ class CircuitSampler(ConverterBase):
                 self._transpiled_circ_cache = self.quantum_instance.transpile(
                     circuits, pass_manager=self.quantum_instance.unbound_pass_manager
                 )
+
+                # don't use reuse_circ if any gate has more than one parameter
+                circ_reused = True
+                for circ in self._transpiled_circ_cache:
+                    for params in circ._parameter_table.values():
+                        for param, _ in params.__getstate__():
+                            if len(param.params[0].parameters) > 1:
+                                circ_reused = False
+                                break
+                        if not circ_reused:
+                            break
+                    if not circ_reused:
+                        break
+
+                if circ_reused:
+                    # copy the original circuit stored in _transpiled_circ_cache
+                    self._reuse_circs = []
+                    self._reuse_parameter_tables = []
+                    self._reuse_global_phase = []
+                    for circ in self._transpiled_circ_cache:
+                        shadow = circ.copy()
+                        self._reuse_circs.append([shadow])
+                        self._reuse_parameter_tables.append([shadow._parameter_table])
+                        self._reuse_global_phase.append([shadow.global_phase])
+
             except QiskitError:
                 logger.debug(
                     r"CircuitSampler failed to transpile circuits with unbound "
@@ -309,6 +339,15 @@ class CircuitSampler(ConverterBase):
             circuit_sfns = list(self._circuit_ops_cache.values())
 
         if param_bindings is not None:
+            if self._reuse_circs != []:
+                # copy quantum circuit if len(param_bindings) > 1
+                append_size = len(param_bindings) - len(self._reuse_circs[0])
+                for i, _ in enumerate(self._transpiled_circ_cache):
+                    for _ in range(append_size):
+                        shadow = self._reuse_circs[i][0].copy()
+                        self._reuse_circs[i].append(shadow)
+                        self._reuse_parameter_tables[i].append(shadow._parameter_table)
+                        self._reuse_global_phase[i].append(shadow.global_phase)
             if self._param_qobj:
                 start_time = time()
                 ready_circs = self._prepare_parameterized_run_config(param_bindings)
@@ -316,11 +355,24 @@ class CircuitSampler(ConverterBase):
                 logger.debug("Parameter conversion %.5f (ms)", (end_time - start_time) * 1000)
             else:
                 start_time = time()
-                ready_circs = [
-                    circ.assign_parameters(_filter_params(circ, binding))
-                    for circ in self._transpiled_circ_cache
-                    for binding in param_bindings
-                ]
+                if self._reuse_circs == []:
+                    ready_circs = [
+                        circ.assign_parameters(_filter_params(circ, binding))
+                        for circ in self._transpiled_circ_cache
+                        for binding in param_bindings
+                    ]
+                else:
+                    ready_circs = []
+                    for i, cached_circ in enumerate(self._transpiled_circ_cache):
+                        for j, binding in enumerate(param_bindings):
+                            cached_circ.assign_parameters(
+                                _filter_params(cached_circ, binding),
+                                reuse_circ=self._reuse_circs[i][j],
+                            )
+                            ready_circs.append(self._reuse_circs[i][j])
+
+                    for circ in ready_circs:
+                        circ._parameter_table = self._empty_parameter_table
                 end_time = time()
                 logger.debug("Parameter binding %.5f (ms)", (end_time - start_time) * 1000)
         else:
@@ -335,6 +387,12 @@ class CircuitSampler(ConverterBase):
         results = self.quantum_instance.execute(
             ready_circs, had_transpiled=self._transpile_before_bind
         )
+
+        # restore the original parameter table and global phase in shadow_circs
+        for i, circ in enumerate(self._reuse_circs):
+            for j, _ in enumerate(circ):
+                circ[j]._parameter_table = self._reuse_parameter_tables[i][j]
+                circ[j].global_phase = self._reuse_global_phase[i][j]
 
         if param_bindings is not None and self._param_qobj:
             self._clean_parameterized_run_config()

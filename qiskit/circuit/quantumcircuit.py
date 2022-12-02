@@ -2526,6 +2526,7 @@ class QuantumCircuit:
         self,
         parameters: Union[Mapping[Parameter, ParameterValueType], Sequence[ParameterValueType]],
         inplace: bool = False,
+        reuse_circ: QuantumCircuit = None,
     ) -> Optional["QuantumCircuit"]:
         """Assign parameters to new parameters or values.
 
@@ -2543,6 +2544,7 @@ class QuantumCircuit:
             parameters: Either a dictionary or iterable specifying the new parameter values.
             inplace: If False, a copy of the circuit with the bound parameters is returned.
                 If True the circuit instance itself is modified.
+            reuse_circ: The QuantumCircuit object repeatedly reused for parameter binding
 
         Raises:
             CircuitError: If parameters is a dict and contains parameters not present in the
@@ -2594,7 +2596,7 @@ class QuantumCircuit:
 
         """
         # replace in self or in a copy depending on the value of in_place
-        if inplace:
+        if inplace or reuse_circ is not None:
             bound_circuit = self
         else:
             bound_circuit = self.copy()
@@ -2621,7 +2623,7 @@ class QuantumCircuit:
 
             # replace the parameters with a new Parameter ("substitute") or numeric value ("bind")
             for parameter, value in unrolled_param_dict.items():
-                bound_circuit._assign_parameter(parameter, value)
+                bound_circuit._assign_parameter(parameter, value, reuse_circ)
         else:
             if len(parameters) != self.num_parameters:
                 raise ValueError(
@@ -2632,8 +2634,9 @@ class QuantumCircuit:
             # self.parameters while iterating over them
             fixed_parameters_copy = self.parameters.copy()
             for i, value in enumerate(parameters):
-                bound_circuit._assign_parameter(fixed_parameters_copy[i], value)
-        return None if inplace else bound_circuit
+                bound_circuit._assign_parameter(fixed_parameters_copy[i], value, reuse_circ)
+
+        return None if inplace or reuse_circ is not None else bound_circuit
 
     def bind_parameters(
         self, values: Union[Mapping[Parameter, float], Sequence[float]]
@@ -2687,7 +2690,9 @@ class QuantumCircuit:
                 unrolled_value_dict[param] = value
         return unrolled_value_dict
 
-    def _assign_parameter(self, parameter: Parameter, value: ParameterValueType) -> None:
+    def _assign_parameter(
+        self, parameter: Parameter, value: ParameterValueType, reuse_circ=None
+    ) -> None:
         """Update this circuit where instances of ``parameter`` are replaced by ``value``, which
         can be either a numeric value or a new parameter expression.
 
@@ -2695,6 +2700,7 @@ class QuantumCircuit:
             parameter (ParameterExpression): Parameter to be bound
             value (Union(ParameterExpression, float, int)): A numeric or parametric expression to
                 replace instances of ``parameter``.
+            reuse_circ: The QuantumCircuit object repeatedly reused for parameter binding
 
         Raises:
             RuntimeError: if some internal logic error has caused the circuit instruction sequence
@@ -2703,18 +2709,32 @@ class QuantumCircuit:
         """
         # parameter might be in global phase only
         if parameter in self._parameter_table:
-            for instr, param_index in self._parameter_table[parameter]:
+            for idx, vals in enumerate(self._parameter_table[parameter]):
+                instr, param_index = vals
                 assignee = instr.params[param_index]
                 # Normal ParameterExpression.
                 if isinstance(assignee, ParameterExpression):
                     new_param = assignee.assign(parameter, value)
                     # if fully bound, validate
-                    if len(new_param.parameters) == 0:
-                        instr.params[param_index] = instr.validate_parameter(new_param)
+                    if reuse_circ is None:
+                        if len(new_param.parameters) == 0:
+                            instr.params[param_index] = instr.validate_parameter(new_param)
+                        else:
+                            instr.params[param_index] = new_param
+
                     else:
-                        instr.params[param_index] = new_param
+                        reuse_instr, reuse_param_index = reuse_circ._parameter_table[
+                            parameter
+                        ].__getstate__()[idx]
+                        if len(new_param.parameters) == 0:
+                            reuse_instr.params[reuse_param_index] = instr.validate_parameter(
+                                new_param
+                            )
+                        else:
+                            reuse_instr.params[reuse_param_index] = new_param
 
                     self._rebind_definition(instr, parameter, value)
+
                 # Scoped block of a larger instruction.
                 elif isinstance(assignee, QuantumCircuit):
                     # It's possible that someone may re-use a loop body, so we need to mutate the
@@ -2735,13 +2755,17 @@ class QuantumCircuit:
                     else:
                         self._parameter_table[new_parameter] = entry
             else:
-                del self._parameter_table[parameter]  # clear evaluated expressions
+                if reuse_circ is None:
+                    del self._parameter_table[parameter]  # clear evaluated expressions
 
         if (
             isinstance(self.global_phase, ParameterExpression)
             and parameter in self.global_phase.parameters
         ):
-            self.global_phase = self.global_phase.assign(parameter, value)
+            if reuse_circ is not None:
+                reuse_circ.global_phase = reuse_circ.global_phase.assign(parameter, value)
+            else:
+                self.global_phase = self.global_phase.assign(parameter, value)
 
         # clear parameter cache
         self._parameters = None
