@@ -144,8 +144,6 @@ class TwoQubitWeylDecomposition:
 
         The overall decomposition scheme is taken from Drury and Love, arXiv:0806.4015 [quant-ph].
         """
-        from scipy import linalg as la
-
         if _unpickling:
             return super().__new__(cls)
 
@@ -155,7 +153,7 @@ class TwoQubitWeylDecomposition:
 
         # Make U be in SU(4)
         U = np.array(unitary_matrix, dtype=complex, copy=True)
-        detU = la.det(U)
+        detU = np.linalg.det(U)
         U *= detU ** (-0.25)
         global_phase = cmath.phase(detU) / 4
 
@@ -201,7 +199,7 @@ class TwoQubitWeylDecomposition:
         P[:, :3] = P[:, order]
 
         # Fix the sign of P to be in SO(4)
-        if np.real(la.det(P)) < 0:
+        if np.real(np.linalg.det(P)) < 0:
             P[:, -1] = -P[:, -1]
 
         # Find K1, K2 so that U = K1.A.K2, with K being product of single-qubit unitaries
@@ -1422,9 +1420,7 @@ class TwoQubitDecomposeUpToDiagonal:
         self.sysy = np.kron(sy, sy)
 
     def _u4_to_su4(self, u4):
-        from scipy import linalg as la
-
-        phase_factor = np.conj(la.det(u4) ** (-1 / u4.shape[0]))
+        phase_factor = np.conj(np.linalg.det(u4) ** (-1 / u4.shape[0]))
         su4 = u4 / phase_factor
         return su4, cmath.phase(phase_factor)
 

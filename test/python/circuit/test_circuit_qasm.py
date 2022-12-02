@@ -404,7 +404,7 @@ custom_{id(gate2)} q[1],q[0];\n"""
                 "OPENQASM 2.0;",
                 'include "qelib1.inc";',
                 "gate gate__valid__ p0 {",
-                "	u3(pi,pi/2,-pi/2) p0;",
+                "	u3(pi,-pi/2,pi/2) p0;",
                 "}",
                 "gate gate_A___ q0 { x q0; u(0,0,pi) q0; }",
                 "gate invalid_name_ q0,q1 { x q0; gate_A___ q1; }",

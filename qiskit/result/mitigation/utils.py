@@ -149,6 +149,7 @@ def counts_probability_vector(
 
     Returns:
         np.ndarray: a probability vector for all count outcomes.
+        int: Number of shots in the counts
     """
     counts = marganalize_counts(counts, qubit_index, qubits, clbits)
     if qubits is not None:

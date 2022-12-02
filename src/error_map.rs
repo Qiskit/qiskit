@@ -68,8 +68,15 @@ impl ErrorMap {
         self.error_map.insert(index, error_rate);
     }
 
-    fn __getstate__(&self) -> HashMap<[usize; 2], f64> {
-        self.error_map.clone()
+    // The pickle protocol methods can't return `HashMap<[usize; 2], f64>` to Python, because by
+    // PyO3's natural conversion as of 0.17.3 it will attempt to construct a `dict[list[int],
+    // float]`, where `list[int]` is unhashable in Python.
+
+    fn __getstate__(&self) -> HashMap<(usize, usize), f64> {
+        self.error_map
+            .iter()
+            .map(|([a, b], value)| ((*a, *b), *value))
+            .collect()
     }
 
     fn __setstate__(&mut self, state: HashMap<[usize; 2], f64>) {
