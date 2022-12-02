@@ -118,6 +118,35 @@ class TextProgressBar(BaseProgressBar):
 
     output_handler : the handler the progress bar should be written to, default
                      is sys.stdout, another option is sys.stderr
+
+    Examples:
+
+        The progress bar can be used to track the progress of a `parallel_map`.
+
+        .. code-block:: python
+
+            import numpy as np
+            import qiskit.tools.jupyter
+            from qiskit.tools.parallel import parallel_map
+            from qiskit.tools.events import TextProgressBar
+
+            TextProgressBar()
+            %qiskit_progress_bar -t text
+            parallel_map(np.sin, np.linspace(0,10,100));
+
+        And it can also be used individually.
+
+        .. code-block:: python
+
+            from qiskit.tools.events import TextProgressBar
+
+            iterations = 100
+            t = TextProgressBar()
+            t.start(iterations=iterations)
+            for i in range(iterations):
+                # step i of heavy calculation ...
+                t.update(i + 1)  # update progress bar
+
     """
 
     def __init__(self, output_handler=None):
