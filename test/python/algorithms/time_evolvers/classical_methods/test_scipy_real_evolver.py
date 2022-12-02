@@ -65,7 +65,7 @@ class TestClassicalRealEvolver(QiskitAlgorithmsTestCase):
     ):
         """Initializes a classical real evolver and evolves a state."""
         evolution_problem = TimeEvolutionProblem(hamiltonian, time_ev, initial_state)
-        classic_evolver = SciPyRealEvolver(steps=1)
+        classic_evolver = SciPyRealEvolver(num_timesteps=1)
         result = classic_evolver.evolve(evolution_problem)
 
         np.testing.assert_allclose(
@@ -85,7 +85,7 @@ class TestClassicalRealEvolver(QiskitAlgorithmsTestCase):
         evolution_problem = TimeEvolutionProblem(
             hamiltonian, time_ev, initial_state, aux_operators=observables
         )
-        classic_evolver = SciPyRealEvolver(steps=10)
+        classic_evolver = SciPyRealEvolver(num_timesteps=10)
         result = classic_evolver.evolve(evolution_problem)
 
         z_mean, z_std = result.observables["Z"]
@@ -108,7 +108,7 @@ class TestClassicalRealEvolver(QiskitAlgorithmsTestCase):
         evolution_problem = TimeEvolutionProblem(
             hamiltonian=SparsePauliOp("X" * 3), time=2 * np.pi, initial_state=qc
         )
-        classic_evolver = SciPyRealEvolver(steps=500)
+        classic_evolver = SciPyRealEvolver(num_timesteps=500)
         result = classic_evolver.evolve(evolution_problem)
         np.testing.assert_almost_equal(
             result.evolved_state.data,
@@ -121,7 +121,7 @@ class TestClassicalRealEvolver(QiskitAlgorithmsTestCase):
         evolution_problem = TimeEvolutionProblem(
             hamiltonian=SparsePauliOp("X" * 3), time=1.0, initial_state=zero(3), t_param=0
         )
-        classic_evolver = SciPyRealEvolver(steps=5)
+        classic_evolver = SciPyRealEvolver(num_timesteps=5)
         with self.assertRaises(ValueError):
             classic_evolver.evolve(evolution_problem)
 
@@ -136,17 +136,17 @@ class TestClassicalRealEvolver(QiskitAlgorithmsTestCase):
 
         with self.subTest("0 timesteps"):
             with self.assertRaises(ValueError):
-                classic_evolver = SciPyRealEvolver(steps=0)
+                classic_evolver = SciPyRealEvolver(num_timesteps=0)
                 classic_evolver.evolve(evolution_problem)
 
         with self.subTest("1 timestep"):
-            classic_evolver = SciPyRealEvolver(steps=1)
+            classic_evolver = SciPyRealEvolver(num_timesteps=1)
             result = classic_evolver.evolve(evolution_problem)
             np.testing.assert_equal(result.times, np.array([0.0, 1.0]))
 
         with self.subTest("Negative timesteps"):
             with self.assertRaises(ValueError):
-                classic_evolver = SciPyRealEvolver(steps=-5)
+                classic_evolver = SciPyRealEvolver(num_timesteps=-5)
                 classic_evolver.evolve(evolution_problem)
 
 

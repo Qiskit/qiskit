@@ -27,16 +27,14 @@ class SciPyImaginaryEvolver(ImaginaryTimeEvolver):
     timesteps taken.
     """
 
-    def __init__(self, steps: int):
+    def __init__(self, num_timesteps: int):
         r"""
         Args:
-            steps: The number of timesteps in the simulation.
+            num_timesteps: The number of timesteps in the simulation.
         Raises:
-            ValueError: If `steps` is not a positive integer.
+            ValueError: If `num_timesteps` is not a positive integer.
         """
-        if steps <= 0:
-            raise ValueError("Variable `steps` needs to be a positive integer.")
-        self.steps = steps
+        self.num_timesteps = num_timesteps
 
     def evolve(self, evolution_problem: TimeEvolutionProblem) -> TimeEvolutionResult:
         r"""Perform imaginary time evolution :math:`\exp(-\tau H)|\Psi\rangle`.
@@ -50,4 +48,4 @@ class SciPyImaginaryEvolver(ImaginaryTimeEvolver):
         Returns:
             Evolution result which includes an evolved quantum state.
         """
-        return _evolve(evolution_problem, self.steps, real_time=False)
+        return _evolve(evolution_problem, self.num_timesteps, real_time=False)

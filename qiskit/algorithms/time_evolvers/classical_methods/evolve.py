@@ -116,14 +116,14 @@ def _operator_to_matrix(operator: BaseOperator | PauliSumOp):
     return op_matrix
 
 
-def _sparsify(
-    evolution_problem: TimeEvolutionProblem, steps: int, real_time: bool
+def _build_scipy_operators(
+    evolution_problem: TimeEvolutionProblem, num_timesteps: int, real_time: bool
 ) -> tuple[np.ndarray, list[csr_matrix], csr_matrix]:
     """Returns the matrices and parameters needed for time evolution in the appropriate format.
 
     Args:
         evolution_problem: The definition of the evolution problem.
-        steps: Number of timesteps to be performed.
+        num_timesteps: Number of timesteps to be performed.
         real_time: If `True`, returned operators will correspond to real time evolution,
             Else, they will correspond to imaginary time evolution.
 
@@ -136,9 +136,9 @@ def _sparsify(
     """
     # Convert the initial state and Hamiltonian into sparse matrices.
     if isinstance(evolution_problem.initial_state, QuantumCircuit):
-        state = Statevector(evolution_problem.initial_state).data.T
+        state = Statevector(evolution_problem.initial_state).data
     else:
-        state = evolution_problem.initial_state.data.T
+        state = evolution_problem.initial_state.data
 
     hamiltonian = _operator_to_matrix(operator=evolution_problem.hamiltonian)
 
@@ -153,19 +153,19 @@ def _sparsify(
         ]
     else:
         aux_ops = []
-    timestep = evolution_problem.time / steps
+    timestep = evolution_problem.time / num_timesteps
     step_operator = -((1.0j) ** real_time) * timestep * hamiltonian
     return state, aux_ops, step_operator
 
 
 def _evolve(
-    evolution_problem: TimeEvolutionProblem, steps: int, real_time: bool
+    evolution_problem: TimeEvolutionProblem, num_timesteps: int, real_time: bool
 ) -> TimeEvolutionResult:
     r"""Performs either real  or imaginary time evolution :math:`\exp(-i t H)|\Psi\rangle`.
 
     Args:
         evolution_problem: The definition of the evolution problem.
-        steps: Number of timesteps to be performed.
+        num_timesteps: Number of timesteps to be performed.
         real_time: If `True`, returned operators will correspond to real time evolution,
             Else, they will correspond to imaginary time evolution.
 
@@ -177,6 +177,8 @@ def _evolve(
         ValueError: If the initial state is `None`.
 
     """
+    if num_timesteps <= 0:
+        raise ValueError("Variable `num_timesteps` needs to be a positive integer.")
 
     if evolution_problem.t_param is not None:
         raise ValueError("Time dependent Hamiltonians are not supported.")
@@ -184,27 +186,27 @@ def _evolve(
     if evolution_problem.initial_state is None:
         raise ValueError("Initial state is `None`")
 
-    state, aux_ops, step_opeartor = _sparsify(
-        evolution_problem=evolution_problem, steps=steps, real_time=real_time
+    state, aux_ops, step_operator = _build_scipy_operators(
+        evolution_problem=evolution_problem, num_timesteps=num_timesteps, real_time=real_time
     )
 
     # Create empty arrays to store the time evolution of the aux operators.
     number_operators = (
         0 if evolution_problem.aux_operators is None else len(evolution_problem.aux_operators)
     )
-    ops_ev_mean = np.empty(shape=(number_operators, steps + 1), dtype=complex)
+    ops_ev_mean = np.empty(shape=(number_operators, num_timesteps + 1), dtype=complex)
 
     renormalize = (
         (lambda state: state) if real_time else (lambda state: state / np.linalg.norm(state))
     )
 
     # Perform the time evolution and stores the value of the operators at each timestep.
-    for ts in range(steps):
+    for ts in range(num_timesteps):
         ops_ev_mean[:, ts] = _evaluate_aux_ops(aux_ops, state)
-        state = expm_multiply(A=step_opeartor, B=state)
+        state = expm_multiply(A=step_operator, B=state)
         state = renormalize(state)
 
-    ops_ev_mean[:, steps] = _evaluate_aux_ops(aux_ops, state)
+    ops_ev_mean[:, num_timesteps] = _evaluate_aux_ops(aux_ops, state)
 
     observable_history, times = _create_observable_output(ops_ev_mean, evolution_problem)
     aux_ops_evaluated = _create_obs_final(ops_ev_mean[:, -1], evolution_problem)
