@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2021.
+# (C) Copyright IBM 2022.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -10,12 +10,14 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-""" Z2Symmetries for SparsePauliOp."""
+"""Z2Symmetries for SparsePauliOp."""
+
+from __future__ import annotations
 
 import itertools
 import logging
 from copy import deepcopy
-from typing import Dict, List, Optional, Union, cast
+from typing import Optional, Union, cast
 
 import numpy as np
 
@@ -26,78 +28,84 @@ logger = logging.getLogger(__name__)
 
 
 class Z2Symmetries:
-    """Z2 Symmetries."""
+    r"""
+    The $Z_2$ symmetry converter identifies symmetries from the problem hamiltonian and uses them to
+    provide a tapered - more efficient - representation of operators as Paulis for this problem. For each
+    identified symmetry, one qubit can be eliminated in the Pauli representation.
+    
+    The following attributes can be read and updated once the ``Z2Symmetries`` object
+    has been constructed.
+
+    Attributes:
+        tapering_values (Optional[list[int]]): Values determining the sector.
+        tol (float): The tolerance threshold for ignoring real and complex parts of a coefficient."""
 
     def __init__(
         self,
-        symmetries: List[Pauli],
-        sq_paulis: List[Pauli],
-        sq_list: List[int],
-        tapering_values: Optional[List[int]] = None,
+        symmetries: list[Pauli],
+        sq_paulis: list[Pauli],
+        sq_list: list[int],
+        tapering_values: Optional[list[int]] = None,
+        *,
         tol: float = 1e-14,
     ):
-        """
+        r"""
         Args:
-            symmetries: the list of Pauli objects representing the Z_2 symmetries
-            sq_paulis: the list of single - qubit Pauli objects to construct the
-                                     Clifford operators
-            sq_list: the list of support of the single-qubit Pauli objects used to build
-                                 the Clifford operators
-            tapering_values: values determines the sector.
+            symmetries: The list of Pauli objects representing the $Z_2$ symmetries.
+            sq_paulis: The list of single - qubit Pauli objects to construct the Clifford operators.
+            sq_list: The list of support of the single-qubit Pauli objects used to build the Clifford
+                operators.
+            tapering_values: Values determining the sector.
             tol: Tolerance threshold for ignoring real and complex parts of a coefficient.
 
         Raises:
-            QiskitError: Invalid paulis
+            QiskitError: Invalid paulis. The lists of symmetries, single - qubit paulis support paulis
+            and tapering values must be of equal length. This length is the number of applied symmetries
+            and translates directly to the number of eliminated qubits.
         """
         if len(symmetries) != len(sq_paulis):
             raise QiskitError(
-                "Number of Z2 symmetries has to be the same as number of single-qubit pauli x."
+                f"The number of Z2 symmetries, {len(symmetries)}, has to match the number \
+                of single-qubit pauli operators, {len(sq_paulis)}."
             )
 
         if len(sq_paulis) != len(sq_list):
             raise QiskitError(
-                "Number of single-qubit pauli x has to be the same as length of single-qubit list."
+                f"The number of single-qubit pauli operators, {len(sq_paulis)}, has to match the length \
+                of the of single-qubit list, {len(sq_list)}."
             )
 
         if tapering_values is not None:
             if len(sq_list) != len(tapering_values):
                 raise QiskitError(
-                    "The length of single-qubit list has "
-                    "to be the same as length of tapering values."
+                    f"The length of the single-qubit list, {len(sq_list)}, must match the length of the \
+                    tapering values, {len(tapering_values)} ."
                 )
 
         self._symmetries = symmetries
         self._sq_paulis = sq_paulis
         self._sq_list = sq_list
-        self._tapering_values = tapering_values
-        self._tol = tol
+        self.tapering_values = tapering_values
+        self.tol = tol
 
-    @property
-    def tol(self):
-        """Tolerance threshold for ignoring real and complex parts of a coefficient."""
-        return self._tol
-
-    @tol.setter
-    def tol(self, value):
-        """Set the tolerance threshold for ignoring real and complex parts of a coefficient."""
-        self._tol = value
 
     @property
     def symmetries(self):
-        """return symmetries"""
+        """Return symmetries."""
         return self._symmetries
 
     @property
     def sq_paulis(self):
-        """returns sq paulis"""
+        """Return sq paulis."""
         return self._sq_paulis
 
     @property
-    def cliffords(self) -> List[SparsePauliOp]:
+    def cliffords(self) -> list[SparsePauliOp]:
         """
         Get clifford operators, build based on symmetries and single-qubit X.
+
         Returns:
-            a list of unitaries used to diagonalize the Hamiltonian.
+            A list of unitaries used to diagonalize the Hamiltonian.
         """
         cliffords = [
             (SparsePauliOp(pauli_symm) + SparsePauliOp(sq_pauli)) / np.sqrt(2)
@@ -107,27 +115,17 @@ class Z2Symmetries:
 
     @property
     def sq_list(self):
-        """returns sq list"""
+        """Return sq list."""
         return self._sq_list
 
     @property
-    def tapering_values(self):
-        """returns tapering values"""
-        return self._tapering_values
-
-    @tapering_values.setter
-    def tapering_values(self, new_value):
-        """set tapering values"""
-        self._tapering_values = new_value
-
-    @property
-    def settings(self) -> Dict:
+    def settings(self) -> dict:
         """Return operator settings."""
         return {
             "symmetries": self._symmetries,
             "sq_paulis": self._sq_paulis,
             "sq_list": self._sq_list,
-            "tapering_values": self._tapering_values,
+            "tapering_values": self.tapering_values,
         }
 
     def __str__(self):
@@ -144,42 +142,35 @@ class Z2Symmetries:
         ret.append("Qubit index:")
         ret.append(str(self._sq_list))
         ret.append("Tapering values:")
-        if self._tapering_values is None:
+        if self.tapering_values is None:
             possible_values = [
                 str(list(coeff)) for coeff in itertools.product([1, -1], repeat=len(self._sq_list))
             ]
             possible_values = ", ".join(x for x in possible_values)
             ret.append("  - Possible values: " + possible_values)
         else:
-            ret.append(str(self._tapering_values))
+            ret.append(str(self.tapering_values))
 
         ret = "\n".join(ret)
         return ret
 
-    def copy(self) -> "Z2Symmetries":
-        """
-        Get a copy of self.
-        Returns:
-            copy
-        """
-        return deepcopy(self)
-
     def is_empty(self) -> bool:
         """
         Check the z2_symmetries is empty or not.
+
         Returns:
-            Empty or not
+            Empty or not.
         """
         return self._symmetries == [] or self._sq_paulis == [] or self._sq_list == []
 
     # pylint: disable=invalid-name
     @classmethod
-    def find_Z2_symmetries(cls, operator: SparsePauliOp) -> "Z2Symmetries":
+    def find_Z2_symmetries(cls, operator: SparsePauliOp) -> Z2Symmetries:
         """
-        Finds Z2 Pauli-type symmetries of an Operator.
+        Finds Z2 Pauli-type symmetries of a :class:`.SparsePauliOp`.
 
         Returns:
-            a z2_symmetries object contains symmetries, single-qubit X, single-qubit list.
+            A ``Z2Symmetries`` instance.
         """
         pauli_symmetries = []
         sq_paulis = []
@@ -191,12 +182,12 @@ class Z2Symmetries:
             logger.info("Operator is empty.")
             return cls([], [], [], None)
 
-        for pauli in operator:  # type: ignore
+        for pauli in operator:
             stacked_paulis.append(
                 np.concatenate((pauli.paulis.x[0], pauli.paulis.z[0]), axis=0).astype(int)
             )
 
-        stacked_matrix = np.array(np.stack(stacked_paulis))
+        stacked_matrix = np.stack(stacked_paulis)
         symmetries = _kernel_F2(stacked_matrix)
 
         if not symmetries:
@@ -305,17 +296,17 @@ class Z2Symmetries:
         symmetry.
 
         Args:
-            operator: to-be-tapered operator
+            operator: The to-be-tapered operator.
 
         Returns:
-            :class:`SparsePauliOp` corresponding to the converted operator.
+            `SparsePauliOp` corresponding to the converted operator.
 
         Raises:
-            QiskitError: Z2 symmetries, single qubit pauli and single qubit list cannot be empty
+            QiskitError: Z2 symmetries, single qubit pauli and single qubit list cannot be empty.
 
         """
 
-        if not self._symmetries or not self._sq_paulis or not self._sq_list:
+        if self.is_empty():
             raise QiskitError(
                 "Z2 symmetries, single qubit pauli and single qubit list cannot be empty."
             )
@@ -327,43 +318,42 @@ class Z2Symmetries:
 
         return operator
 
-    def taper_clifford(self, operator: SparsePauliOp) -> Union[SparsePauliOp, List[SparsePauliOp]]:
-        """This method operates the second part of the tapering.
+    def taper_clifford(self, operator: SparsePauliOp) -> Union[SparsePauliOp, list[SparsePauliOp]]:
+        """Operate the second part of the tapering.
         This function assumes that the input operators have already been transformed using
         :meth:`convert_clifford`. The redundant qubits due to the symmetries are dropped and
         replaced by their two possible eigenvalues.
-        The `tapering_values` will be stored into the resulted operator for a record.
 
         Args:
-            operator: Partially tapered operator resulting from a call to :meth:`convert_clifford`
+            operator: Partially tapered operator resulting from a call to :meth:`convert_clifford`.
 
         Returns:
-            If tapering_values is None: [:class:`SparsePauliOp`]; otherwise, :class:`SparsePauliOp`
+            If tapering_values is None: [:class:`SparsePauliOp`]; otherwise, :class:`SparsePauliOp`.
 
         Raises:
-            QiskitError: Z2 symmetries, single qubit pauli and single qubit list cannot be empty
+            QiskitError: Z2 symmetries, single qubit pauli and single qubit list cannot be empty.
 
         """
 
-        if not self._symmetries or not self._sq_paulis or not self._sq_list:
+        if self.is_empty():
             raise QiskitError(
                 "Z2 symmetries, single qubit pauli and single qubit list cannot be empty."
             )
         # If the operator is zero then we can skip the following. We still need to taper the
         # operator to reduce its size i.e. the number of qubits so for example 0*"IIII" could
         # taper to 0*"II" when symmetries remove two qubits.
-        tapered_ops: Union[SparsePauliOp, List[SparsePauliOp]]
-        if self._tapering_values is None:
+        tapered_ops: Union[SparsePauliOp, list[SparsePauliOp]]
+        if self.tapering_values is None:
             tapered_ops = [
                 self._taper(operator, list(coeff))
                 for coeff in itertools.product([1, -1], repeat=len(self._sq_list))
             ]
         else:
-            tapered_ops = self._taper(operator, self._tapering_values)
+            tapered_ops = self._taper(operator, self.tapering_values)
 
         return tapered_ops
 
-    def taper(self, operator: SparsePauliOp) -> Union[SparsePauliOp, List[SparsePauliOp]]:
+    def taper(self, operator: SparsePauliOp) -> Union[SparsePauliOp, list[SparsePauliOp]]:
         """
         Taper an operator based on the z2_symmetries info and sector defined by `tapering_values`.
         The `tapering_values` will be stored into the resulted operator for a record.
@@ -379,17 +369,17 @@ class Z2Symmetries:
         1 new operator with M less qubits.
 
         Args:
-            operator: the to-be-tapered operator
+            operator: The to-be-tapered operator.
 
         Returns:
-            If tapering_values is None: [:class:`SparsePauliOp`]; otherwise, :class:`SparsePauliOp`
+            If tapering_values is None: [:class:`SparsePauliOp`]; otherwise, :class:`SparsePauliOp`.
 
         Raises:
-            QiskitError: Z2 symmetries, single qubit pauli and single qubit list cannot be empty
+            QiskitError: Z2 symmetries, single qubit pauli and single qubit list cannot be empty.
 
         """
 
-        if not self._symmetries or not self._sq_paulis or not self._sq_list:
+        if self.is_empty():
             raise QiskitError(
                 "Z2 symmetries, single qubit pauli and single qubit list cannot be empty."
             )
@@ -399,9 +389,9 @@ class Z2Symmetries:
 
         return tapered_ops
 
-    def _taper(self, op: SparsePauliOp, curr_tapering_values: List[int]) -> SparsePauliOp:
+    def _taper(self, op: SparsePauliOp, curr_tapering_values: list[int]) -> SparsePauliOp:
         pauli_list = []
-        for pauli_term in op:  # type: ignore
+        for pauli_term in op:
             coeff_out = pauli_term.coeffs[0]
             for idx, qubit_idx in enumerate(self._sq_list):
                 if pauli_term.paulis.z[0, qubit_idx] or pauli_term.paulis.x[0, qubit_idx]:
@@ -435,13 +425,15 @@ class Z2Symmetries:
         )
 
 
-def _kernel_F2(matrix_in) -> List[np.ndarray]:  # pylint: disable=invalid-name
+def _kernel_F2(matrix_in) -> list[np.ndarray]:  # pylint: disable=invalid-name
     """
-    Computes the kernel of a binary matrix on the binary finite field
+    Compute the kernel of a binary matrix on the binary finite field.
+
     Args:
-        matrix_in (numpy.ndarray): binary matrix
+        matrix_in (numpy.ndarray): Binary matrix.
+
     Returns:
-        The list of kernel vectors
+        The list of kernel vectors.
     """
     size = matrix_in.shape
     kernel = []
@@ -459,11 +451,13 @@ def _kernel_F2(matrix_in) -> List[np.ndarray]:  # pylint: disable=invalid-name
 
 def _row_echelon_F2(matrix_in) -> np.ndarray:  # pylint: disable=invalid-name
     """
-    Computes the row Echelon form of a binary matrix on the binary finite field
+    Compute the row Echelon form of a binary matrix on the binary finite field.
+
     Args:
-        matrix_in (numpy.ndarray): binary matrix
+        matrix_in (numpy.ndarray): Binary matrix.
+
     Returns:
-        Matrix_in in Echelon row form
+        Matrix_in in Echelon row form.
     """
     size = matrix_in.shape
 
