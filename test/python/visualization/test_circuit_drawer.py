@@ -139,6 +139,7 @@ class TestCircuitDrawer(QiskitTestCase):
         result = visualization.circuit_drawer(circuit, reverse_bits=True)
         self.assertEqual(result.__str__(), expected)
 
+    @unittest.skipUnless(optionals.HAS_PYLATEXENC, "needs pylatexenc for LaTeX conversion")
     def test_no_explict_cregbundle(self):
         """Test no explicit cregbundle should not raise warnings about being disabled
         See: https://github.com/Qiskit/qiskit-terra/issues/8690"""
