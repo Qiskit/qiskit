@@ -1,0 +1,6 @@
+---
+features:
+  - |
+    Primitives support the dynamic circuits with control flow.
+    If backend supports it, users can run the circuits using :class:`~BackendSampler`
+    and :class:`~BackendEstimator`.

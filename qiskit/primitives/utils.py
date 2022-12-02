@@ -14,6 +14,8 @@ Utility functions for primitives
 """
 from __future__ import annotations
 
+from collections.abc import Iterable
+
 import numpy as np
 
 from qiskit.circuit import Instruction, ParameterExpression, QuantumCircuit
@@ -125,6 +127,16 @@ def _bits_key(bits: tuple[Bit, ...], circuit: QuantumCircuit) -> tuple:
     )
 
 
+def _format_params(param):
+    if isinstance(param, np.ndarray):
+        return param.data.tobytes()
+    elif isinstance(param, QuantumCircuit):
+        return _circuit_key(param)
+    elif isinstance(param, Iterable):
+        return tuple(param)
+    return param
+
+
 def _circuit_key(circuit: QuantumCircuit, functional: bool = True) -> tuple:
     """Private key function for QuantumCircuit.
 
@@ -147,10 +159,7 @@ def _circuit_key(circuit: QuantumCircuit, functional: bool = True) -> tuple:
                 _bits_key(data.qubits, circuit),  # qubits
                 _bits_key(data.clbits, circuit),  # clbits
                 data.operation.name,  # operation.name
-                tuple(
-                    param.data.tobytes() if isinstance(param, np.ndarray) else param
-                    for param in data.operation.params
-                ),  # operation.params
+                tuple(_format_params(param) for param in data.operation.params),  # operation.params
             )
             for data in circuit.data
         ),

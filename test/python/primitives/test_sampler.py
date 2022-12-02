@@ -12,6 +12,7 @@
 
 """Tests for Sampler."""
 
+import json
 import unittest
 from test import combine
 
@@ -782,6 +783,19 @@ class TestSampler(QiskitTestCase):
         sampler = Sampler()
         sampler_result = sampler.run([circuit]).result()
         self.assertDictAlmostEqual(sampler_result.quasi_dists[0], {0: 1, 1: 0})
+
+    def test_circuit_key_controlflow(self):
+        """Test for a circuit with control flow."""
+        qc = QuantumCircuit(2, 1)
+
+        with qc.for_loop(range(5)):
+            qc.h(0)
+            qc.cx(0, 1)
+            qc.measure(0, 0)
+            qc.break_loop().c_if(0, True)
+
+        self.assertIsInstance(hash(_circuit_key(qc)), int)
+        self.assertIsInstance(json.dumps(_circuit_key(qc)), str)
 
 
 if __name__ == "__main__":
