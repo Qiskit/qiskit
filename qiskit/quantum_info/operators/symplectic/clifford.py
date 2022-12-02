@@ -453,13 +453,6 @@ class Clifford(BaseOperator, AdjointMixin, Operation):
         # on individual qubits, and then handle multiplication between each qubitwise pair.
         ifacts = np.sum(second.x & second.z, axis=1, dtype=int)
 
-        # A lookup table for calculating phases.  The indices are
-        #     current_x, current_z, running_x_count, running_z_count
-        # where all counts taken modulo 2.
-        lookup = np.zeros((2, 2, 2, 2), dtype=int)
-        lookup[0, 1, 1, 0] = lookup[1, 0, 1, 1] = lookup[1, 1, 0, 1] = -1
-        lookup[0, 1, 1, 1] = lookup[1, 0, 0, 1] = lookup[1, 1, 1, 0] = 1
-
         x1, z1 = first.x.astype(np.uint8), first.z.astype(np.uint8)
         lookup = cls._compose_lookup()
 
