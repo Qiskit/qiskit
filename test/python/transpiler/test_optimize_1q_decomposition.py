@@ -135,6 +135,16 @@ class TestOptimize1qGatesDecomposition(QiskitTestCase):
         result = passmanager.run(circuit)
         self.assertEqual(expected, result)
 
+    def test_optimize_away_idenity_no_target(self):
+        """Test identity run is removed for no target specified."""
+        circuit = QuantumCircuit(1)
+        circuit.h(0)
+        circuit.h(0)
+        passmanager = PassManager()
+        passmanager.append(Optimize1qGatesDecomposition())
+        result = passmanager.run(circuit)
+        self.assertEqual(QuantumCircuit(1), result)
+
     def test_optimize_error_over_target_1(self):
         """XZX is re-written as ZXZ, which is cheaper according to target."""
         qr = QuantumRegister(1, "qr")
