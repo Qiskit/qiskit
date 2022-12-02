@@ -15,6 +15,7 @@
 """Quantum circuit object."""
 
 from __future__ import annotations
+import collections.abc
 import copy
 import itertools
 import functools
@@ -35,7 +36,6 @@ from typing import (
     Mapping,
     Set,
     Iterable,
-    AbstractSet,
 )
 import typing
 import numpy as np
@@ -4773,7 +4773,7 @@ def _qasm_escape_name(name: str, prefix: str) -> str:
     return escaped_name
 
 
-def _make_unique(name: str, already_defined: AbstractSet[str]) -> str:
+def _make_unique(name: str, already_defined: collections.abc.Set[str]) -> str:
     """Generate a name by suffixing the given stem that is unique within the defined set."""
     if name not in already_defined:
         return name
