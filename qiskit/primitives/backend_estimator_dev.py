@@ -37,8 +37,6 @@ from .base import BaseEstimator, EstimatorResult
 from .primitive_job import PrimitiveJob
 from .utils import init_observable
 
-# from .utils import _circuit_key, _observable_key  # TODO: caching
-
 
 ################################################################################
 ## ESTIMATOR
@@ -129,7 +127,7 @@ class BackendEstimator(BaseEstimator):
 
     @property
     def skip_transpilation(self) -> bool:
-        """If `True`, transpilation of the input circuits is skipped."""
+        """If ``True``, transpilation of the input circuits is skipped."""
         return self._skip_transpilation
 
     @skip_transpilation.setter
@@ -148,6 +146,7 @@ class BackendEstimator(BaseEstimator):
 
     def set_transpile_options(self, **fields) -> None:
         """Set the transpiler options for transpiler.
+
         Args:
             **fields: The fields to update the options
         """
@@ -172,7 +171,7 @@ class BackendEstimator(BaseEstimator):
     def _run(
         self,
         circuits: tuple[QuantumCircuit, ...],
-        observables: tuple[BaseOperator | PauliSumOp, ...],  # TODO: normalize to `SparsePauliOp`
+        observables: tuple[SparsePauliOp, ...],  # TODO: normalize to `SparsePauliOp`
         parameter_values: tuple[tuple[float, ...], ...],
         **run_options,
     ) -> PrimitiveJob:
@@ -183,7 +182,7 @@ class BackendEstimator(BaseEstimator):
     def _compute(
         self,
         circuits: tuple[QuantumCircuit, ...],
-        observables: tuple[BaseOperator | PauliSumOp, ...],
+        observables: tuple[SparsePauliOp, ...],
         parameter_values: tuple[tuple[float, ...], ...],
         **run_options,
     ) -> EstimatorResult:
@@ -197,7 +196,10 @@ class BackendEstimator(BaseEstimator):
         return self._build_result(expvals_w_errors, counts_matrix)
 
     def _pre_transpile(self, circuits: Sequence[QuantumCircuit]) -> tuple[QuantumCircuit, ...]:
-        """."""
+        """Traspile paramterized quantum circuits to match the estimator's backend.
+
+        The output circuits are annotated with the ``final_layout`` attribute.
+        """
         return tuple(self._pre_transpile_single(qc) for qc in circuits)
 
     def _pre_transpile_single(self, circuit: QuantumCircuit) -> QuantumCircuit:
@@ -232,11 +234,12 @@ class BackendEstimator(BaseEstimator):
         as long as the input circuits are no longer needed.
         """
         for circuit, values in zip(circuits, parameter_values):
+            # TODO: return circuit even if assigning in place
             circuit.assign_parameters(values, inplace=True)
         return tuple(circuits)
 
     def _post_transpile(self, circuits: Sequence[QuantumCircuit]) -> tuple[QuantumCircuit, ...]:
-        """."""
+        """Traspile non-parametrized quantum circuits (i.e. after binding all parameters)."""
         return tuple(self._post_transpile_single(qc) for qc in circuits)
 
     def _post_transpile_single(self, circuit: QuantumCircuit) -> QuantumCircuit:
@@ -307,14 +310,29 @@ class BackendEstimator(BaseEstimator):
     def _reckon_expvals(
         self, counts_matrix: Sequence[Sequence[Counts]]
     ) -> tuple[tuple[float, float], ...]:
-        """Combine groups of counts according to their annotated observables."""
-        return tuple(self._reckon_single_expval(counts_list) for counts_list in counts_matrix)
+        """Compute expectation values by groups of counts along with their associated std-error.
 
-    def _reckon_single_expval(self, counts_list: Sequence[Counts]) -> tuple[float, float]:
-        """."""
+        One expectation value is computed for every element in each group of counts, according
+        to its annotated observable. Then all expectation values are added together on a
+        group-by-group basis.
+        """
+        return tuple(self._reckon_single_expval(counts_group) for counts_group in counts_matrix)
+
+    def _reckon_single_expval(self, counts_group: Sequence[Counts]) -> tuple[float, float]:
+        """Compute expectation value and associated std-error for a group of counts.
+
+        One expectation value is computed for every element in the group of counts, according
+        to its annotated observable. Then all expectation values are added together.
+
+        Args:
+            counts_group: sequence of counts annotated with an observable in their metadata.
+
+        Returns:
+            Expectation value and associated std-error.
+        """
         expval: float = 0.0
         variance: float = 0.0
-        for counts in counts_list:
+        for counts in counts_group:
             observable: SparsePauliOp = counts.metadata["observable"]
             value, std_error = self._expval_reckoner.compute_observable_expval(counts, observable)
             expval += value
@@ -326,7 +344,17 @@ class BackendEstimator(BaseEstimator):
         expvals_w_errors: Sequence[tuple[float, float]],
         counts_matrix: Sequence[Sequence[Counts]],
     ) -> EstimatorResult:
-        """Package results into an :class:`~qiskit.primitives.EstimatorResult` data structure."""
+        """Package results into an :class:`~qiskit.primitives.EstimatorResult` data structure.
+
+        Args:
+            expvals_w_errors: a sequence of two-tuples holding expectation values and their
+                associated std-errors.
+            counts_matrix: the original counts from which the expectation values were derived.
+                These will be used for reporting metadata.
+
+        Returns:
+            An :class:`~qiskit.primitives.EstimatorResult` object built from the input data.
+        """
         expvals, std_errors = tuple(zip(*expvals_w_errors))
         values = np.real_if_close(expvals)
         shots_list = tuple(
@@ -351,7 +379,7 @@ class BackendEstimator(BaseEstimator):
     def _measure_observable(
         self, circuit: QuantumCircuit, observable: SparsePauliOp
     ) -> tuple[QuantumCircuit, ...]:
-        """Build all necessary circuits for measuring a given observable.
+        """From a base circuit, build all necessary circuits for measuring a given observable.
 
         Each circuit has its metadata annotated with the observable component
         (i.e. :class:`~qiskit.quantum_info.SparsePauliOp`) that can be directly evaluated.
@@ -363,7 +391,7 @@ class BackendEstimator(BaseEstimator):
     # TODO: caching
     def _build_measurement_circuits(
         self,
-        observable: BaseOperator | PauliSumOp,
+        observable: SparsePauliOp,
     ) -> tuple[QuantumCircuit, ...]:
         """Given an observable, build all appendage quantum circuits necessary to measure it.
 
@@ -377,9 +405,7 @@ class BackendEstimator(BaseEstimator):
         )
 
     # TODO: pre-transpile gates
-    def _build_single_measurement_circuit(
-        self, observable: BaseOperator | PauliSumOp
-    ) -> QuantumCircuit:
+    def _build_single_measurement_circuit(self, observable: SparsePauliOp) -> QuantumCircuit:
         """Build measurement circuit for a given observable.
 
         The input observable can be made out of different components, but they all have to
@@ -460,7 +486,7 @@ class BackendEstimator(BaseEstimator):
         circuit.metadata.pop("measured_qubit_indices", None)  # TODO: replace with `measured_qubits`
         return circuit
 
-    @classmethod  # TODO: multiple registers
+    @classmethod
     def _infer_final_layout(
         cls, original_circuit: QuantumCircuit, transpiled_circuit: QuantumCircuit
     ) -> Layout:
