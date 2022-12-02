@@ -10,8 +10,9 @@ upgrade:
     valid OpenQASM 2 identifiers.  This is being done as the restriction is
     overly strict as Qiskit becomes more decoupled from OpenQASM 2, and even the
     OpenQASM 3 specification is not so restrictive.  If you were relying on
-    registers having valid identifier names, you will need to begin escaping
-    the names.  A simplistic version of this could be done, for example, by::
+    registers having valid OpenQASM 2 identifier names, you will need to begin
+    escaping the names.  A simplistic version of this could be done, for example,
+    by::
 
       import re
       import string
@@ -24,7 +25,9 @@ upgrade:
 deprecations:
   - |
     The method :meth:`.Register.qasm` is deprecated and will be removed in a
-    future release.  This is because it promotes a false view of the responsible
+    future release.  This method is found on the subclasses :class:`.QuantumRegister`
+    and :class:`.ClassicalRegister`.  The deprecation is because the
+    :meth:`~.Register.qasm` method promotes a false view of the responsible
     party for safe conversion to OpenQASM 2; a single object alone does not
     have the context to provide a safe conversion, such as whether its name
     clashes after escaping it to produce a valid identifier.
