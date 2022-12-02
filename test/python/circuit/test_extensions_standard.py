@@ -867,9 +867,9 @@ class TestStandard1Q(QiskitTestCase):
     def test_gphase_inv(self):
         instruction_set = self.circuit.gphase(0.1).inverse()
         # self.assertEqual(len(instruction_set), 1)
-        self.assertEqual(instruction_set[0].operation.name, "gphase")
+        # self.assertEqual(instruction_set[0].operation.name, "gphase_dg")
         # self.assertEqual(instruction_set[1].qubits, (self.qr[0],))
-        self.assertEqual(instruction_set[1].operation.params, [-0.1])
+        self.assertEqual(instruction_set[0].operation.params, [-0.1])
 
     # def test_gphase_inv(self):
     #     instruction_set = self.circuit.append(GlobalPhaseGate(-0.1), []).inverse()
