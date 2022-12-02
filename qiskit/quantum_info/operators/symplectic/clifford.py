@@ -750,10 +750,7 @@ class Clifford(BaseOperator, AdjointMixin, Operation):
         """Produce a hashable value that is unique for each different Clifford.  This should only be
         used internally when the classes being hashed are under our control, because classes of this
         type are mutable."""
-        table = self.table
-        abits = np.packbits(table.array)
-        pbits = np.packbits(table.phase)
-        return (abits.tobytes(), pbits.tobytes())
+        return np.packbits(self.tableau).tobytes()
 
     @staticmethod
     def _is_symplectic(mat):
