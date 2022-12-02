@@ -10,7 +10,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-""" Z2Symmetries for SparsePauliOp """
+""" Z2Symmetries for SparsePauliOp."""
 
 import itertools
 import logging
@@ -19,7 +19,6 @@ from typing import Dict, List, Optional, Union, cast
 
 import numpy as np
 
-from qiskit.circuit import ParameterExpression
 from qiskit.exceptions import QiskitError
 from qiskit.quantum_info import Pauli, SparsePauliOp
 
@@ -27,7 +26,7 @@ logger = logging.getLogger(__name__)
 
 
 class Z2Symmetries:
-    """Z2 Symmetries"""
+    """Z2 Symmetries."""
 
     def __init__(
         self,
@@ -192,7 +191,7 @@ class Z2Symmetries:
             logger.info("Operator is empty.")
             return cls([], [], [], None)
 
-        for pauli in operator:
+        for pauli in operator:  # type: ignore
             stacked_paulis.append(
                 np.concatenate((pauli.paulis.x[0], pauli.paulis.z[0]), axis=0).astype(int)
             )
@@ -353,6 +352,7 @@ class Z2Symmetries:
         # If the operator is zero then we can skip the following. We still need to taper the
         # operator to reduce its size i.e. the number of qubits so for example 0*"IIII" could
         # taper to 0*"II" when symmetries remove two qubits.
+        tapered_ops: Union[SparsePauliOp, List[SparsePauliOp]]
         if self._tapering_values is None:
             tapered_ops = [
                 self._taper(operator, list(coeff))
@@ -401,7 +401,7 @@ class Z2Symmetries:
 
     def _taper(self, op: SparsePauliOp, curr_tapering_values: List[int]) -> SparsePauliOp:
         pauli_list = []
-        for pauli_term in op:
+        for pauli_term in op:  # type: ignore
             coeff_out = pauli_term.coeffs[0]
             for idx, qubit_idx in enumerate(self._sq_list):
                 if pauli_term.paulis.z[0, qubit_idx] or pauli_term.paulis.x[0, qubit_idx]:
