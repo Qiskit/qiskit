@@ -16,6 +16,7 @@ from typing import Optional  # , Union
 import math
 import numpy
 from qiskit.qasm import pi
+
 # from qiskit.circuit.controlledgate import ControlledGate
 from qiskit.circuit.gate import Gate
 from qiskit.circuit.quantumregister import QuantumRegister
@@ -76,4 +77,4 @@ class GlobalPhaseGate(Gate):
         """Return a numpy.array for the RY gate."""
         cos = math.cos(self.params[0])
         sin = math.sin(self.params[0])
-        return numpy.array([cos + 1j*sin], dtype=dtype)
+        return numpy.array([[cos + 1j * sin]], dtype=dtype)
