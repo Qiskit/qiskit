@@ -58,22 +58,24 @@ def disassemble(qobj) -> Union[CircuitModule, PulseModule]:
             * run_config: The dict of the run config
             * user_qobj_header: The dict of any user headers in the qobj
 
-    .. code-block:: python
+    Examples:
 
-       from qiskit import BasicAer
-       from qiskit.circuit import QuantumRegister, ClassicalRegister, QuantumCircuit
-       from qiskit.compiler.assembler import assemble
-       from qiskit.assembler.disassemble import disassemble
-       sim_backend = BasicAer.get_backend("qasm_simulator")
-       q = QuantumRegister(2)
-       c = ClassicalRegister(2)
-       qc = QuantumCircuit(q, c)
-       qc.h(q[0])
-       qc.cx(q[0], q[1])
-       qc.measure(q, c)
-       qobj = assemble(qc, shots=2000, memory=True)
-       circuits, run_config_out, headers = disassemble(qobj)
-       print(circuits[0].draw())
+        .. code-block:: python
+
+            from qiskit import BasicAer
+            from qiskit.circuit import QuantumRegister, ClassicalRegister, QuantumCircuit
+            from qiskit.compiler.assembler import assemble
+            from qiskit.assembler.disassemble import disassemble
+            sim_backend = BasicAer.get_backend("qasm_simulator")
+            q = QuantumRegister(2)
+            c = ClassicalRegister(2)
+            qc = QuantumCircuit(q, c)
+            qc.h(q[0])
+            qc.cx(q[0], q[1])
+            qc.measure(q, c)
+            qobj = assemble(qc, shots=2000, memory=True)
+            circuits, run_config_out, headers = disassemble(qobj)
+            print(circuits[0].draw())
     """
     if qobj.type == "PULSE":
         return _disassemble_pulse_schedule(qobj)

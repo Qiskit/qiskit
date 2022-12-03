@@ -51,39 +51,41 @@ def assemble_schedules(
     Raises:
         QiskitError: when frequency settings are not supplied.
 
-    .. code-block:: python
+    Examples:
 
-       from qiskit import pulse
-       from qiskit.compiler.assembler import assemble
-       from qiskit.assembler import assemble_schedules
-       from qiskit.assembler.run_config import RunConfig
-       header = {"backend_name": "FakeOpenPulse2Q", "backend_version": "0.0.0"}
-       config = RunConfig(shots=1024,
-                        memory=False,
-                        meas_level=1,
-                        meas_return='avg',
-                        memory_slot_size=100,
-                        parametric_pulses=[],
-                        init_qubits=True,
-                        qubit_lo_freq=[4900000000.0, 5000000000.0],
-                        meas_lo_freq=[6500000000.0, 6600000000.0],
-                        schedule_los=[])
-       default_qubit_lo_freq = [4.9e9, 5.0e9]
-       default_meas_lo_freq = [6.5e9, 6.6e9]
-       schedule = pulse.Schedule()
-       schedule += pulse.Play(pulse.Waveform([0.1] * 16, name="test0"),
-                                pulse.DriveChannel(0),
-                                name="test1")
-       schedule += pulse.Play(pulse.Waveform([0.1] * 16, name="test1"),
-                                pulse.DriveChannel(0),
-                                name="test2")
-       schedule += pulse.Play(pulse.Waveform([0.5] * 16, name="test0"),
-                                pulse.DriveChannel(0),
-                                name="test1")
-       pulseQobj = assemble_schedules(schedules=[schedule],
-                                    qobj_id="custom-id",
-                                    qobj_header=header,
-                                    run_config=config)
+        .. code-block:: python
+
+            from qiskit import pulse
+            from qiskit.compiler.assembler import assemble
+            from qiskit.assembler import assemble_schedules
+            from qiskit.assembler.run_config import RunConfig
+            header = {"backend_name": "FakeOpenPulse2Q", "backend_version": "0.0.0"}
+            config = RunConfig(shots=1024,
+                                memory=False,
+                                meas_level=1,
+                                meas_return='avg',
+                                memory_slot_size=100,
+                                parametric_pulses=[],
+                                init_qubits=True,
+                                qubit_lo_freq=[4900000000.0, 5000000000.0],
+                                meas_lo_freq=[6500000000.0, 6600000000.0],
+                                schedule_los=[])
+            default_qubit_lo_freq = [4.9e9, 5.0e9]
+            default_meas_lo_freq = [6.5e9, 6.6e9]
+            schedule = pulse.Schedule()
+            schedule += pulse.Play(pulse.Waveform([0.1] * 16, name="test0"),
+                                        pulse.DriveChannel(0),
+                                        name="test1")
+            schedule += pulse.Play(pulse.Waveform([0.1] * 16, name="test1"),
+                                        pulse.DriveChannel(0),
+                                        name="test2")
+            schedule += pulse.Play(pulse.Waveform([0.5] * 16, name="test0"),
+                                        pulse.DriveChannel(0),
+                                        name="test1")
+            pulseQobj = assemble_schedules(schedules=[schedule],
+                                            qobj_id="custom-id",
+                                            qobj_header=header,
+                                            run_config=config)
     """
     if not hasattr(run_config, "qubit_lo_freq"):
         raise QiskitError("qubit_lo_freq must be supplied.")
