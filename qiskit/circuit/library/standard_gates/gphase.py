@@ -67,14 +67,14 @@ class GlobalPhaseGate(Gate):
         self.definition = qc
 
     def inverse(self):
-        r"""Return inverted RY gate.
+        r"""Return inverted GLobalPhaseGate gate.
 
-        :math:`RY(\lambda){\dagger} = RY(-\lambda)`
+        :math:`GLobalPhaseGate(\lambda){\dagger} = GLobalPhaseGate(-\lambda)`
         """
         return GlobalPhaseGate(-self.params[0])
 
-    def __array__(self, dtype=None):
-        """Return a numpy.array for the RY gate."""
+    def __array__(self, dtype=complex):
+        """Return a numpy.array for the gphase gate."""
         cos = math.cos(self.params[0])
         sin = math.sin(self.params[0])
         return numpy.array([[cos + 1j * sin]], dtype=dtype)
