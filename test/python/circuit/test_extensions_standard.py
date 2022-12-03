@@ -859,11 +859,7 @@ class TestStandard1Q(QiskitTestCase):
         self.assertEqual(self.circuit[0].operation.params, [0.1])
         self.assertEqual(self.circuit[0].qubits, ())
 
-    # def test_gphase_wires(self):
-    #     self.circuit.gphase(0.1)
-    #     self.assertEqual(self.circuit[0].operation.name, "gphase")
-    #     self.assertEqual(self.circuit[0].operation.params, [0.1])
-    #     self.assertEqual(self.circuit[0].qubits, ())
+
     # def test_gphase_inv(self):
     #     instruction_set = self.circuit.gphase(-0.1).inverse()
     #     # self.assertEqual(len(instruction_set), 1)

@@ -13,9 +13,9 @@
 """Global Phase Gate"""
 
 from typing import Optional  # , Union
-
-# import numpy
-# from qiskit.qasm import pi
+import math
+import numpy
+from qiskit.qasm import pi
 # from qiskit.circuit.controlledgate import ControlledGate
 from qiskit.circuit.gate import Gate
 from qiskit.circuit.quantumregister import QuantumRegister
@@ -64,9 +64,16 @@ class GlobalPhaseGate(Gate):
         )  # pylint: disable=no-member
 
         self.definition = qc
+
     def inverse(self):
         r"""Return inverted RY gate.
 
         :math:`RY(\lambda){\dagger} = RY(-\lambda)`
         """
         return GlobalPhaseGate(-self.params[0])
+
+    def __array__(self, dtype=None):
+        """Return a numpy.array for the RY gate."""
+        cos = math.cos(self.params[0])
+        sin = math.sin(self.params[0])
+        return numpy.array([cos + 1j*sin], dtype=dtype)
