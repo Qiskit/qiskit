@@ -194,8 +194,8 @@ class TestEquivalenceLibraryWithoutBase(QiskitTestCase):
         self.assertEqual(len(eq_lib.graph.nodes()), len(egraph.nodes()))
         self.assertEqual(len(eq_lib.graph.edges()), len(egraph.edges()))
 
-        key_map = {Key(name="1q0p", num_qubits=1): 0, Key(name="h", num_qubits=1): 1}
-        self.assertEqual(key_map, eq_lib.key_to_node_index)
+        keys = {Key(name="1q0p", num_qubits=1): 0, Key(name="h", num_qubits=1): 1}.keys()
+        self.assertEqual(keys, eq_lib.keys())
 
         num_gates = {0: 1}
         self.assertEqual(num_gates, eq_lib.num_gates_for_rule)

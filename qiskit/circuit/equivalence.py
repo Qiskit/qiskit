@@ -66,21 +66,6 @@ class EquivalenceLibrary:
         return self._graph
 
     @property
-    def key_to_node_index(self) -> dict:
-        """Return map of Keys to graph node indices
-
-        This property should be treated as read-only as it provides
-        a reference to the internal state of the :class:`~.EquivalenceLibrary` object.
-        If the graph returned by this property is mutated it could corrupt the
-        the contents of the object. If you need to modify the output ``dict``
-        be sure to make a copy prior to any modification.
-
-        Returns:
-            dict: A map of Keys to graph node indices
-        """
-        return self._key_to_node_index
-
-    @property
     def num_gates_for_rule(self) -> dict:
         """Return map of number of gates in each rule.
 
@@ -201,6 +186,25 @@ class EquivalenceLibrary:
         query_params = gate.params
 
         return [_rebind_equiv(equiv, query_params) for equiv in self._get_equivalences(key)]
+
+    def keys(self):
+        """Return list of keys to key to node index map.
+
+        Returns:
+            List: Keys to the key to node index map.
+        """
+        return self._key_to_node_index.keys()
+
+    def node_index(self, key):
+        """Return node index for a given key.
+
+        Args:
+            key (Key): Key to an equivalence.
+
+        Returns:
+            Int: Index to the node in the graph for the given key.
+        """
+        return self._key_to_node_index[key]
 
     def draw(self, filename=None):
         """Draws the equivalence relations available in the library.

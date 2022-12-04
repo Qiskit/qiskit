@@ -479,11 +479,8 @@ def _basis_search(equiv_lib, source_basis, target_basis):
 
     # This is only neccessary since gates in target basis are currently reported by
     # their names and we need to have in addition the number of qubits they act on.
-    target_basis_keys = [
-        key
-        for gate in target_basis
-        for key in filter(lambda key, name=gate: key.name == name, equiv_lib.key_to_node_index)
-    ]
+    target_basis_keys = [key for key in equiv_lib.keys() if key.name in target_basis]
+
     graph = equiv_lib.graph
     vis = BasisSearchVisitor(graph, source_basis, target_basis_keys, equiv_lib.num_gates_for_rule)
 
@@ -491,21 +488,22 @@ def _basis_search(equiv_lib, source_basis, target_basis):
     # we'll start the search from this dummy node.
     dummy = graph.add_node({"key": ("dummy starting node", 0)})
 
-    graph.add_edges_from_no_data(
-        [(dummy, equiv_lib.key_to_node_index[key]) for key in target_basis_keys]
-    )
-    rtn = None
     try:
-        rustworkx.digraph_dijkstra_search(graph, [dummy], vis.edge_cost, vis)
-    except StopIfBasisRewritable:
-        rtn = vis.basis_transforms
+        graph.add_edges_from_no_data(
+            [(dummy, equiv_lib.node_index(key)) for key in target_basis_keys]
+        )
+        rtn = None
+        try:
+            rustworkx.digraph_dijkstra_search(graph, [dummy], vis.edge_cost, vis)
+        except StopIfBasisRewritable:
+            rtn = vis.basis_transforms
 
-        logger.debug("Transformation path:")
-        for gate_name, gate_num_qubits, params, equiv in rtn:
-            logger.debug("%s/%s => %s\n%s", gate_name, gate_num_qubits, params, equiv)
-
-    # Remove dummy node in order to return graph to original state
-    graph.remove_node(dummy)
+            logger.debug("Transformation path:")
+            for gate_name, gate_num_qubits, params, equiv in rtn:
+                logger.debug("%s/%s => %s\n%s", gate_name, gate_num_qubits, params, equiv)
+    finally:
+        # Remove dummy node in order to return graph to original state
+        graph.remove_node(dummy)
 
     return rtn
 
