@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2017, 2021
+# (C) Copyright IBM 2017, 2022
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -10,19 +10,16 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 """
-Circuit synthesis for the Clifford class.
+Circuit synthesis for the Clifford class for all-to-all architecture.
 """
 
-import warnings
-from qiskit.synthesis.clifford import (
-    synth_clifford_ag,
-    synth_clifford_bm,
-    synth_clifford_greedy,
-)
+from qiskit.synthesis.clifford.clifford_decompose_ag import synth_clifford_ag
+from qiskit.synthesis.clifford.clifford_decompose_bm import synth_clifford_bm
+from qiskit.synthesis.clifford.clifford_decompose_greedy import synth_clifford_greedy
 
 
-def decompose_clifford(clifford, method=None):
-    """DEPRECATED: Decompose a Clifford operator into a QuantumCircuit.
+def synth_clifford_full(clifford, method=None):
+    """Decompose a Clifford operator into a QuantumCircuit.
 
     For N <= 3 qubits this is based on optimal CX cost decomposition
     from reference [1]. For N > 3 qubits this is done using the general
@@ -51,14 +48,6 @@ def decompose_clifford(clifford, method=None):
            `arXiv:2105.02291 [quant-ph] <https://arxiv.org/abs/2105.02291>`_
     """
     num_qubits = clifford.num_qubits
-
-    warnings.warn(
-        "The decompose_clifford function is deprecated as of Qiskit Terra 0.23.0 "
-        "and will be removed no sooner than 3 months after the releasedate. "
-        "Use qiskit.synthesis.synth_clifford_full function instead.",
-        DeprecationWarning,
-        stacklevel=2,
-    )
 
     if method == "AG":
         return synth_clifford_ag(clifford)

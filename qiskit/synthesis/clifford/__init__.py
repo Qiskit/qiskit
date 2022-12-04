@@ -10,24 +10,9 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""
-===================================
-Events (:mod:`qiskit.tools.events`)
-===================================
+"""Module containing clifford circuit synthesis."""
 
-A helper component for publishing and subscribing to events.
-
-.. currentmodule:: qiskit.tools.events
-
-TextProgressBar
----------------
-
-A text based progress bar, which also enables Jupyter magics.
-
-.. autosummary::
-   :toctree: ../stubs/
-
-   TextProgressBar
-"""
-
-from .progressbar import TextProgressBar
+from .clifford_decompose_full import synth_clifford_full
+from .clifford_decompose_ag import synth_clifford_ag
+from .clifford_decompose_bm import synth_clifford_bm, _decompose_clifford_1q
+from .clifford_decompose_greedy import synth_clifford_greedy
