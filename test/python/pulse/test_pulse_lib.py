@@ -542,6 +542,39 @@ class TestFunctionalPulse(QiskitTestCase):
             pulse_wf_inst = local_gaussian(duration=_duration, amp=1, t0=5, sig=1)
             self.assertEqual(len(pulse_wf_inst.samples), _duration)
 
+    def test_params_comp_exp(self):
+        """Test equating of pulses with params_comp_exp."""
+        # amp,angle comparison for library pulses
+        gaussian_negamp = Gaussian(duration=25, sigma=4, amp=-0.5, angle=0)
+        gaussian_piphase = Gaussian(duration=25, sigma=4, amp=0.5, angle=np.pi)
+        self.assertEqual(gaussian_negamp, gaussian_piphase)
+
+        # Parameterized library pulses
+        amp = Parameter("amp")
+        gaussian1 = Gaussian(duration=25, sigma=4, amp=amp, angle=0)
+        gaussian2 = Gaussian(duration=25, sigma=4, amp=amp, angle=0)
+        self.assertEqual(gaussian1, gaussian2)
+
+        # # Custom pulse with two expressions
+        p1, p2, p3, p4 = sym.symbols("p1, p2, p3, p4")
+        envelope = (p1 + p2) * (p3 + p4)
+
+        custom_pulse1 = SymbolicPulse(
+            pulse_type="Custom",
+            duration=100,
+            parameters={"p1": 1, "p2": 0, "p3": 1, "p4": 0},
+            envelope=envelope,
+            params_compare_exp=[p1 + p2, p3 + p4],
+        )
+        custom_pulse2 = SymbolicPulse(
+            pulse_type="Custom",
+            duration=100,
+            parameters={"p1": 0, "p2": 1, "p3": 0, "p4": 1},
+            envelope=envelope,
+            params_compare_exp=[p1 + p2, p3 + p4],
+        )
+        self.assertEqual(custom_pulse1, custom_pulse2)
+
 
 if __name__ == "__main__":
     unittest.main()
