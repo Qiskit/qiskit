@@ -42,6 +42,7 @@ class PrimitiveJob(JobV1):
 
         executor = ThreadPoolExecutor(max_workers=1)  # pylint: disable=consider-using-with
         self._future = executor.submit(self._function, *self._args, **self._kwargs)
+        executor.shutdown(wait=False)
 
     def result(self):
         """Return the results of the job."""
