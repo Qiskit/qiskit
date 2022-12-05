@@ -29,8 +29,10 @@ from qiskit.pulse.channels import Channel
 from qiskit.pulse.exceptions import PulseError
 from qiskit.utils import optionals as _optionals
 
+from qiskit.utils.deprecation import deprecate_function
 
-# pylint: disable=missing-return-doc
+
+# pylint: disable=missing-return-doc,bad-docstring-quotes
 
 
 class Instruction(ABC):
@@ -221,6 +223,11 @@ class Instruction(ABC):
         """Return True iff the instruction is parameterized."""
         return any(self.parameters)
 
+    @deprecate_function(
+        "Drawing individual pulses is deprecated since Terra 0.23, and will be removed in a future"
+        " version of the library.  No direct alternative is being provided, but instructions can"
+        " be visualized as part of a complete schedule using `qiskit.visualization.pulse_drawer`.",
+    )
     @_optionals.HAS_MATPLOTLIB.require_in_call
     def draw(
         self,
