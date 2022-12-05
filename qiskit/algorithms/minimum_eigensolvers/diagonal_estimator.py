@@ -181,11 +181,14 @@ def _get_cvar_aggregation(alpha):
     return aggregate
 
 
+_PARITY = np.array([-1 if bin(i).count("1") % 2 else 1 for i in range(256)], dtype=np.complex128)
+
+
 def _evaluate_sparsepauli(state: int, observable: SparsePauliOp) -> complex:
-    packed_uint8 = np.packbits(observable.paulis.z, axis=1, bitorder="little").astype(object)
-    power_uint8 = 1 << (8 * np.arange(packed_uint8.shape[1], dtype=object))
-    bits = (packed_uint8 @ power_uint8) & state
-    return sum(coeff * (-1) ** bin(bit).count("1") for coeff, bit in zip(observable.coeffs, bits))
+    packed_uint8 = np.packbits(observable.paulis.z, axis=1, bitorder="little")
+    state_bytes = np.frombuffer(state.to_bytes(packed_uint8.shape[1], "little"), dtype=np.uint8)
+    reduced = np.bitwise_xor.reduce(packed_uint8 & state_bytes, axis=1)
+    return np.sum(observable.coeffs * _PARITY[reduced])
 
 
 def _check_observable_is_diagonal(observable: SparsePauliOp) -> bool:
