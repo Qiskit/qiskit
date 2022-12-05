@@ -844,6 +844,12 @@ class Statevector(QuantumState, TolerancesMixin):
         from qiskit.circuit.reset import Reset
         from qiskit.circuit.barrier import Barrier
 
+        # pylint complains about a cyclic import since the following Initialize file
+        # imports the StatePreparation, which again requires the Statevector (this file),
+        # but as this is a local import, it's not actually an issue and can be ignored
+        # pylint: disable=cyclic-import
+        from qiskit.extensions.quantum_initializer.initializer import Initialize
+
         mat = Operator._instruction_to_matrix(obj)
         if mat is not None:
             # Perform the composition and inplace update the current state
@@ -855,6 +861,21 @@ class Statevector(QuantumState, TolerancesMixin):
             statevec._data = statevec.reset(qargs)._data
             return statevec
         if isinstance(obj, Barrier):
+            return statevec
+        if isinstance(obj, Initialize):
+            # state is initialized to labels in the initialize object
+            if all(isinstance(param, str) for param in obj.params):
+                statevec._data = Statevector.from_label("".join(obj.params))._data
+            # state is initialized to an integer
+            # here we're only checking the length as (1) a length-1 object necessarily means the
+            # state is described by an integer (as labels were already covered) and (2) the int
+            # was cast to a complex and we cannot do an int typecheck anyways
+            elif len(obj.params) == 1:
+                state = int(np.real(obj.params[0]))
+                statevec._data = Statevector.from_int(state, (2,) * obj.num_qubits)._data
+            # state is initialized to the statevector
+            else:
+                statevec._data = np.asarray(obj.params, dtype=complex)
             return statevec
 
         # If the instruction doesn't have a matrix defined we use its

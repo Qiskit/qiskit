@@ -12,18 +12,17 @@
 
 """RZX calibration builders."""
 
-import math
+import enum
 import warnings
+from math import pi, erf  # pylint: disable=no-name-in-module
 from typing import List, Tuple, Union
 
-import enum
 import numpy as np
 from qiskit.circuit import Instruction as CircuitInst
 from qiskit.circuit.library.standard_gates import RZXGate
 from qiskit.exceptions import QiskitError
 from qiskit.pulse import (
     Play,
-    Delay,
     Schedule,
     ScheduleBlock,
     ControlChannel,
@@ -31,8 +30,9 @@ from qiskit.pulse import (
     GaussianSquare,
     Waveform,
 )
+from qiskit.pulse import builder
 from qiskit.pulse.filters import filter_instructions
-from qiskit.pulse.instruction_schedule_map import InstructionScheduleMap, CalibrationPublisher
+from qiskit.pulse.instruction_schedule_map import InstructionScheduleMap
 
 from .base_builder import CalibrationBuilder
 from .exceptions import CalibrationNotAvailable
@@ -104,8 +104,10 @@ class RZXCalibrationBuilder(CalibrationBuilder):
         return isinstance(node_op, RZXGate) and self._inst_map.has("cx", qubits)
 
     @staticmethod
-    def rescale_cr_inst(instruction: Play, theta: float, sample_mult: int = 16) -> Play:
-        """
+    @builder.macro
+    def rescale_cr_inst(instruction: Play, theta: float, sample_mult: int = 16) -> int:
+        """A builder macro to play stretched pulse.
+
         Args:
             instruction: The instruction from which to create a new shortened or lengthened pulse.
             theta: desired angle, pi/2 is assumed to be the angle that the pulse in the given
@@ -113,8 +115,7 @@ class RZXCalibrationBuilder(CalibrationBuilder):
             sample_mult: All pulses must be a multiple of sample_mult.
 
         Returns:
-            qiskit.pulse.Play: The play instruction with the stretched compressed
-                GaussianSquare pulse.
+            Duration of stretched pulse.
 
         Raises:
             QiskitError: if rotation angle is not assigned.
@@ -125,32 +126,37 @@ class RZXCalibrationBuilder(CalibrationBuilder):
             raise QiskitError("Target rotation angle is not assigned.") from ex
 
         # This method is called for instructions which are guaranteed to play GaussianSquare pulse
-        amp = instruction.pulse.amp
-        width = instruction.pulse.width
-        sigma = instruction.pulse.sigma
-        n_sigmas = (instruction.pulse.duration - width) / sigma
+        params = instruction.pulse.parameters.copy()
+        risefall_sigma_ratio = (params["duration"] - params["width"]) / params["sigma"]
 
         # The error function is used because the Gaussian may have chopped tails.
-        gaussian_area = abs(amp) * sigma * np.sqrt(2 * np.pi) * math.erf(n_sigmas)
-        area = gaussian_area + abs(amp) * width
+        # Area is normalized by amplitude.
+        # This makes widths robust to the rounding error.
+        risefall_area = params["sigma"] * np.sqrt(2 * pi) * erf(risefall_sigma_ratio)
+        full_area = params["width"] + risefall_area
 
-        target_area = abs(theta) / (np.pi / 2.0) * area
-        sign = np.sign(theta)
+        # Get estimate of target area. Assume this is pi/2 controlled rotation.
+        cal_angle = pi / 2
+        target_area = abs(theta) / cal_angle * full_area
+        new_width = target_area - risefall_area
 
-        if target_area > gaussian_area:
-            width = (target_area - gaussian_area) / abs(amp)
-            duration = round((width + n_sigmas * sigma) / sample_mult) * sample_mult
-            return Play(
-                GaussianSquare(amp=sign * amp, width=width, sigma=sigma, duration=duration),
-                channel=instruction.channel,
-            )
+        if new_width >= 0:
+            width = new_width
+            params["amp"] *= np.sign(theta)
         else:
-            amp_scale = sign * target_area / gaussian_area
-            duration = round(n_sigmas * sigma / sample_mult) * sample_mult
-            return Play(
-                GaussianSquare(amp=amp * amp_scale, width=0, sigma=sigma, duration=duration),
-                channel=instruction.channel,
-            )
+            width = 0
+            params["amp"] *= np.sign(theta) * target_area / risefall_area
+
+        round_duration = (
+            round((width + risefall_sigma_ratio * params["sigma"]) / sample_mult) * sample_mult
+        )
+        params["duration"] = round_duration
+        params["width"] = width
+
+        stretched_pulse = GaussianSquare(**params)
+        builder.play(stretched_pulse, instruction.channel)
+
+        return round_duration
 
     def get_calibration(self, node_op: CircuitInst, qubits: List) -> Union[Schedule, ScheduleBlock]:
         """Builds the calibration schedule for the RZXGate(theta) with echos.
@@ -175,11 +181,8 @@ class RZXCalibrationBuilder(CalibrationBuilder):
         except TypeError as ex:
             raise QiskitError("Target rotation angle is not assigned.") from ex
 
-        rzx_theta = Schedule(name="rzx(%.3f)" % theta)
-        rzx_theta.metadata["publisher"] = CalibrationPublisher.QISKIT
-
         if np.isclose(theta, 0.0):
-            return rzx_theta
+            return ScheduleBlock(name="rzx(0.000)")
 
         cx_sched = self._inst_map.get("cx", qubits=qubits)
         cal_type, cr_tones, comp_tones = _check_calibration_type(cx_sched)
@@ -202,57 +205,45 @@ class RZXCalibrationBuilder(CalibrationBuilder):
 
         # Determine native direction, assuming only single drive channel per qubit.
         # This guarantees channel and qubit index equality.
-        is_native = comp_tones[0].channel.index == qubits[1]
-
-        stretched_cr_tones = list(map(lambda p: self.rescale_cr_inst(p, theta), cr_tones))
-        stretched_comp_tones = list(map(lambda p: self.rescale_cr_inst(p, theta), comp_tones))
-
-        if is_native:
+        if comp_tones[0].channel.index == qubits[1]:
             xgate = self._inst_map.get("x", qubits[0])
+            with builder.build(
+                default_alignment="sequential", name="rzx(%.3f)" % theta
+            ) as rzx_theta_native:
+                for cr_tone, comp_tone in zip(cr_tones, comp_tones):
+                    with builder.align_left():
+                        self.rescale_cr_inst(cr_tone, theta)
+                        self.rescale_cr_inst(comp_tone, theta)
+                    builder.call(xgate)
+            return rzx_theta_native
 
-            for cr, comp in zip(stretched_cr_tones, stretched_comp_tones):
-                current_dur = rzx_theta.duration
-                rzx_theta.insert(current_dur, cr, inplace=True)
-                rzx_theta.insert(current_dur, comp, inplace=True)
-                rzx_theta.append(xgate, inplace=True)
+        # The direction is not native. Add Hadamard gates to flip the direction.
+        xgate = self._inst_map.get("x", qubits[1])
+        szc = self._inst_map.get("rz", qubits[1], pi / 2)
+        sxc = self._inst_map.get("sx", qubits[1])
+        szt = self._inst_map.get("rz", qubits[0], pi / 2)
+        sxt = self._inst_map.get("sx", qubits[0])
+        with builder.build(name="hadamard") as hadamard:
+            # Control qubit
+            builder.call(szc, name="szc")
+            builder.call(sxc, name="sxc")
+            builder.call(szc, name="szc")
+            # Target qubit
+            builder.call(szt, name="szt")
+            builder.call(sxt, name="sxt")
+            builder.call(szt, name="szt")
 
-        else:
-            # Add hadamard gate to flip
-            xgate = self._inst_map.get("x", qubits[1])
-            szc = self._inst_map.get("rz", qubits[1], np.pi / 2)
-            sxc = self._inst_map.get("sx", qubits[1])
-            szt = self._inst_map.get("rz", qubits[0], np.pi / 2)
-            sxt = self._inst_map.get("sx", qubits[0])
-
-            # Hadamard to control
-            rzx_theta.insert(0, szc, inplace=True)
-            rzx_theta.insert(0, sxc, inplace=True)
-            rzx_theta.insert(sxc.duration, szc, inplace=True)
-
-            # Hadamard to target
-            rzx_theta.insert(0, szt, inplace=True)
-            rzx_theta.insert(0, sxt, inplace=True)
-            rzx_theta.insert(sxt.duration, szt, inplace=True)
-
-            for cr, comp in zip(stretched_cr_tones, stretched_comp_tones):
-                current_dur = rzx_theta.duration
-                rzx_theta.insert(current_dur, cr, inplace=True)
-                rzx_theta.insert(current_dur, comp, inplace=True)
-                rzx_theta.append(xgate, inplace=True)
-
-            current_dur = rzx_theta.duration
-
-            # Hadamard to control
-            rzx_theta.insert(current_dur, szc, inplace=True)
-            rzx_theta.insert(current_dur, sxc, inplace=True)
-            rzx_theta.insert(current_dur + sxc.duration, szc, inplace=True)
-
-            # Hadamard to target
-            rzx_theta.insert(current_dur, szt, inplace=True)
-            rzx_theta.insert(current_dur, sxt, inplace=True)
-            rzx_theta.insert(current_dur + sxt.duration, szt, inplace=True)
-
-        return rzx_theta
+        with builder.build(
+            default_alignment="sequential", name="rzx(%.3f)" % theta
+        ) as rzx_theta_flip:
+            builder.call(hadamard, name="hadamard")
+            for cr_tone, comp_tone in zip(cr_tones, comp_tones):
+                with builder.align_left():
+                    self.rescale_cr_inst(cr_tone, theta)
+                    self.rescale_cr_inst(comp_tone, theta)
+                builder.call(xgate)
+            builder.call(hadamard, name="hadamard")
+        return rzx_theta_flip
 
 
 class RZXCalibrationBuilderNoEcho(RZXCalibrationBuilder):
@@ -293,11 +284,8 @@ class RZXCalibrationBuilderNoEcho(RZXCalibrationBuilder):
         except TypeError as ex:
             raise QiskitError("Target rotation angle is not assigned.") from ex
 
-        rzx_theta = Schedule(name="rzx(%.3f)" % theta)
-        rzx_theta.metadata["publisher"] = CalibrationPublisher.QISKIT
-
         if np.isclose(theta, 0.0):
-            return rzx_theta
+            return ScheduleBlock(name="rzx(0.000)")
 
         cx_sched = self._inst_map.get("cx", qubits=qubits)
         cal_type, cr_tones, comp_tones = _check_calibration_type(cx_sched)
@@ -320,21 +308,12 @@ class RZXCalibrationBuilderNoEcho(RZXCalibrationBuilder):
 
         # Determine native direction, assuming only single drive channel per qubit.
         # This guarantees channel and qubit index equality.
-        is_native = comp_tones[0].channel.index == qubits[1]
-
-        stretched_cr_tone = self.rescale_cr_inst(cr_tones[0], 2 * theta)
-        stretched_comp_tone = self.rescale_cr_inst(comp_tones[0], 2 * theta)
-
-        if is_native:
-            # Placeholder to make pulse gate work
-            delay = Delay(stretched_cr_tone.duration, DriveChannel(qubits[0]))
-
-            # This doesn't remove unwanted instruction such as ZI
-            # These terms are eliminated along with other gates around the pulse gate.
-            rzx_theta = rzx_theta.insert(0, stretched_cr_tone, inplace=True)
-            rzx_theta = rzx_theta.insert(0, stretched_comp_tone, inplace=True)
-            rzx_theta = rzx_theta.insert(0, delay, inplace=True)
-
+        if comp_tones[0].channel.index == qubits[1]:
+            with builder.build(default_alignment="left", name="rzx(%.3f)" % theta) as rzx_theta:
+                stretched_dur = self.rescale_cr_inst(cr_tones[0], 2 * theta)
+                self.rescale_cr_inst(comp_tones[0], 2 * theta)
+                # Placeholder to make pulse gate work
+                builder.delay(stretched_dur, DriveChannel(qubits[0]))
             return rzx_theta
 
         raise QiskitError("RZXCalibrationBuilderNoEcho only supports hardware-native RZX gates.")

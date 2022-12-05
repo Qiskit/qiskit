@@ -10,6 +10,8 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
+# pylint: disable=bad-docstring-quotes
+
 """
 Deprecated.
 
@@ -20,7 +22,15 @@ from typing import Tuple
 
 import numpy as np
 
+from qiskit.utils.deprecation import deprecate_function
 
+
+@deprecate_function(
+    "`qiskit.visualization.pulse` and all its contents are deprecated since Terra 0.23."
+    " The new interface for pulse visualization is `qiskit.visualization.pulse_drawer_v2`."
+    " In no less than 6 months, `pulse_drawer_v2` will become `pulse_drawer`, and these old"
+    " objects will be completely removed.",
+)
 def interp1d(
     time: np.ndarray, samples: np.ndarray, nop: int, kind: str = "linear"
 ) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
@@ -53,6 +63,12 @@ def interp1d(
     return time_, cs_ry(time_), cs_iy(time_)
 
 
+@deprecate_function(
+    "`qiskit.visualization.pulse` and all its contents are deprecated since Terra 0.23."
+    " The new interface for pulse visualization is `qiskit.visualization.pulse_drawer_v2`."
+    " In no less than 6 months, `pulse_drawer_v2` will become `pulse_drawer`, and these old"
+    " objects will be completely removed.",
+)
 def step_wise(
     time: np.ndarray, samples: np.ndarray, nop: int
 ) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
