@@ -1,7 +1,7 @@
 ---
 features:
   - |
-    Added an implemetation :class:`~qiskit.qiskit_info.analysis.Z2Symmetries` of z2symmetries based on 
-    the :class:`~qiskit.qiskit_info.SparsePauliOp` to replace, in the future, the current implementation 
-    based on :class:`~qiskit.qiskit_info.PauliSumOp`.
+    Added an implementation :class:`~qiskit.quantum_info.analysis.Z2Symmetries` of z2symmetries based on 
+    the :class:`~qiskit.quantum_info.SparsePauliOp` to replace, in the future, the current implementation 
+    based on :class:`~qiskit.opflow.PauliSumOp`.
 
