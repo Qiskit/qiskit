@@ -14,22 +14,23 @@
 
 
 import unittest
+from functools import partial
 from test.python.algorithms import QiskitAlgorithmsTestCase
 
-from functools import partial
-from ddt import data, ddt
 import numpy as np
+from ddt import data, ddt
 from scipy.optimize import minimize as scipy_minimize
 
-from qiskit.circuit import QuantumCircuit, ParameterVector
 from qiskit.algorithms import AlgorithmError
 from qiskit.algorithms.minimum_eigensolvers import SamplingVQE
-from qiskit.algorithms.optimizers import L_BFGS_B, QNSPSA, OptimizerResult, SLSQP
+from qiskit.algorithms.optimizers import L_BFGS_B, QNSPSA, SLSQP, OptimizerResult
+from qiskit.algorithms.state_fidelities import ComputeUncompute
+from qiskit.circuit import ParameterVector, QuantumCircuit
 from qiskit.circuit.library import RealAmplitudes, TwoLocal
 from qiskit.opflow import PauliSumOp
-from qiskit.quantum_info import SparsePauliOp, Pauli, Operator
 from qiskit.primitives import Sampler
-from qiskit.algorithms.state_fidelities import ComputeUncompute
+from qiskit.quantum_info import Operator, Pauli, SparsePauliOp
+from qiskit.utils import algorithm_globals
 
 
 # pylint: disable=invalid-name, unused-argument
@@ -60,6 +61,7 @@ class TestSamplerVQE(QiskitAlgorithmsTestCase):
         super().setUp()
         self.optimal_value = -1.38
         self.optimal_bitstring = "10"
+        algorithm_globals.random_seed = 42
 
     @data(PAULI_OP, OP)
     def test_exact_sampler(self, op):
