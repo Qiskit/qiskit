@@ -11,7 +11,7 @@
 # that they have been altered from the originals.
 """
 Variational Quantum Time Evolutions (:mod:`qiskit.algorithms.time_evolvers.variational`)
-===================================================================================
+========================================================================================
 
 Algorithms for performing Variational Quantum Time Evolution of quantum states,
 which can be tailored to near-term devices.
@@ -94,16 +94,17 @@ e.g. RK45.
 
 """
 from .solvers.ode.forward_euler_solver import ForwardEulerSolver
+from .var_qrte import VarQRTE
+from .var_qite import VarQITE
+
 from .var_qte import VarQTE
-from .variational_principles.variational_principle import VariationalPrinciple
-from .variational_principles import RealVariationalPrinciple, ImaginaryVariationalPrinciple
-from .variational_principles.imaginary_mc_lachlan_principle import (
+from .variational_principles import (
+    VariationalPrinciple,
+    RealVariationalPrinciple,
+    ImaginaryVariationalPrinciple,
     ImaginaryMcLachlanPrinciple,
-)
-from .variational_principles.real_mc_lachlan_principle import (
     RealMcLachlanPrinciple,
 )
-
 
 __all__ = [
     "ForwardEulerSolver",
@@ -113,4 +114,6 @@ __all__ = [
     "ImaginaryVariationalPrinciple",
     "RealMcLachlanPrinciple",
     "ImaginaryMcLachlanPrinciple",
+    "VarQITE",
+    "VarQRTE",
 ]

@@ -20,8 +20,6 @@ import numpy as np
 from scipy.integrate import OdeSolver
 
 from qiskit import QuantumCircuit
-from qiskit.algorithms.time_evolvers.time_evolution_problem import TimeEvolutionProblem
-from qiskit.algorithms.time_evolvers.time_evolution_result import TimeEvolutionResult
 from qiskit.circuit import Parameter
 from qiskit.opflow import PauliSumOp
 from qiskit.primitives import BaseEstimator
@@ -37,7 +35,8 @@ from .variational_principles.variational_principle import (
 from .solvers.ode.var_qte_ode_solver import (
     VarQTEOdeSolver,
 )
-from ... import estimate_observables
+from ..time_evolution_problem import TimeEvolutionProblem
+from ..time_evolution_result import TimeEvolutionResult
 
 
 class VarQTE(ABC):
@@ -114,7 +113,9 @@ class VarQTE(ABC):
         Raises:
             ValueError: If ``initial_state`` is included in the ``evolution_problem``.
         """
-        self._validate_observables(evolution_problem)
+        self._validate_aux_ops(evolution_problem)
+        # pylint: disable=cyclic-import
+        from ... import estimate_observables
 
         if evolution_problem.initial_state is not None:
             raise ValueError("initial_state provided but not applicable to VarQTE.")
@@ -139,16 +140,6 @@ class VarQTE(ABC):
             )
 
         return TimeEvolutionResult(evolved_state, evaluated_aux_ops)
-
-    @classmethod
-    def supports_observables(cls) -> bool:
-        """
-        Whether computing the expectation value of auxiliary operators is supported.
-        Returns:
-            ``True`` if ``observables`` expectations in the ``TimeEvolutionProblem`` can be
-            evaluated, ``False`` otherwise.
-        """
-        return True
 
     def _evolve(
         self,
@@ -251,8 +242,8 @@ class VarQTE(ABC):
         init_state_param_dict = dict(zip(init_state_parameters, init_state_parameter_values))
         return init_state_param_dict
 
-    def _validate_observables(self, evolution_problem: TimeEvolutionProblem) -> None:
+    def _validate_aux_ops(self, evolution_problem: TimeEvolutionProblem) -> None:
         if evolution_problem.aux_operators is not None and self.estimator is None:
             raise ValueError(
-                "Observables where provided for evaluations but no ``estimator`` " "was provided."
+                "aux_operators where provided for evaluations but no ``estimator`` " "was provided."
             )

@@ -19,21 +19,12 @@ import numpy as np
 from numpy import real
 
 from qiskit import QuantumCircuit
-from qiskit.algorithms import AlgorithmError
-from qiskit.algorithms.gradients import (
-    BaseEstimatorGradient,
-    BaseQFI,
-    LinCombQFI,
-)
-from qiskit.algorithms.gradients.lin_comb_estimator_gradient import (
-    DerivativeType,
-    LinCombEstimatorGradient,
-)
 from qiskit.circuit import Parameter
 from qiskit.opflow import PauliSumOp
 from qiskit.primitives import Estimator
 from qiskit.quantum_info import Pauli, SparsePauliOp
 from qiskit.quantum_info.operators.base_operator import BaseOperator
+from qiskit.algorithms.gradients import BaseEstimatorGradient, BaseQFI
 from .real_variational_principle import (
     RealVariationalPrinciple,
 )
@@ -59,6 +50,12 @@ class RealMcLachlanPrinciple(RealVariationalPrinciple):
                 ``LinCombEstimatorGradient`` is used.
         """
         self._validate_grad_settings(gradient)
+        # pylint: disable=cyclic-import
+        from qiskit.algorithms.gradients import LinCombQFI
+        from qiskit.algorithms.gradients.lin_comb_estimator_gradient import (
+            DerivativeType,
+            LinCombEstimatorGradient,
+        )
 
         if gradient is not None and gradient._estimator is not None and qfi is None:
             estimator = gradient._estimator
@@ -93,6 +90,9 @@ class RealMcLachlanPrinciple(RealVariationalPrinciple):
         Raises:
             AlgorithmError: If a gradient job fails.
         """
+        # pylint: disable=cyclic-import
+        from qiskit.algorithms import AlgorithmError
+
         try:
             estimator_job = self.gradient._estimator.run([ansatz], [hamiltonian], [param_values])
             energy = estimator_job.result().values[0]
@@ -147,6 +147,9 @@ class RealMcLachlanPrinciple(RealVariationalPrinciple):
 
     @staticmethod
     def _validate_grad_settings(gradient):
+        # pylint: disable=cyclic-import
+        from qiskit.algorithms.gradients.lin_comb_estimator_gradient import DerivativeType
+
         if gradient is not None:
             if not hasattr(gradient, "_derivative_type"):
                 raise ValueError(

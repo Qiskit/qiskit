@@ -20,9 +20,8 @@ import numpy as np
 from qiskit.algorithms.gradients import LinCombQFI, DerivativeType, LinCombEstimatorGradient
 from qiskit.primitives import Estimator
 from qiskit.utils import algorithm_globals
-from qiskit.algorithms.time_evolvers.variational.var_qrte import VarQRTE
 from qiskit.quantum_info import SparsePauliOp, Pauli
-from qiskit.algorithms import TimeEvolutionProblem
+from qiskit.algorithms import TimeEvolutionProblem, VarQRTE
 from qiskit.algorithms.time_evolvers.variational import (
     RealMcLachlanPrinciple,
 )
