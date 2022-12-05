@@ -177,12 +177,12 @@ class VQD(VariationalAlgorithm, Eigensolver):
                 # try to set the number of qubits on the ansatz, if possible
                 try:
                     self.ansatz.num_qubits = operator.num_qubits
-                except AttributeError as ex:
+                except AttributeError as exc:
                     raise AlgorithmError(
                         "The number of qubits of the ansatz does not match the "
                         "operator, and the ansatz does not allow setting the "
                         "number of qubits using `num_qubits`."
-                    ) from ex
+                    ) from exc
 
     @classmethod
     def supports_aux_operators(cls) -> bool:
@@ -233,11 +233,12 @@ class VQD(VariationalAlgorithm, Eigensolver):
             else:
                 try:
                     upper_bound = sum(np.abs(operator.coeffs))
-                except:
+                except Exception as exc:
                     raise NotImplementedError(
                         r"Beta autoevaluation is not supported for operators"
                         f"of type {type(operator)}."
-                    )
+                    ) from exc
+
             betas = [upper_bound * 10] * (self.k)
             logger.info("beta autoevaluated to %s", betas[0])
         else:
