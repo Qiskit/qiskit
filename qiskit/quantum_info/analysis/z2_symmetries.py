@@ -206,98 +206,90 @@ class Z2Symmetries:
 
         stacked_symmetries = np.stack(symmetries)
         symm_shape = stacked_symmetries.shape
+        half_symm_shape = symm_shape[1] // 2
+        stacked_symm_del = [
+            np.delete(stacked_symmetries, row, axis=0) for row in range(symm_shape[0])
+        ]
+
+        def _test_symmetry_row_col(row: int, col: int, idx_test: list, row_test: list) -> bool:
+            """
+            Utilitary method that determines how to build the list of single-qubit Pauli X operators and
+            the list of corresponding qubit indices from the stacked symmetries.
+            This method is successively applied to Z type, X type and Y type symmetries (in this order)
+            to build the letter at position (col) of the Pauli word corresponding to the symmetry at
+            position (row).
+
+            Args:
+                row (int): Index of the symmetry for which the single-qubit Pauli X operator is being
+                    built.
+                col (int): Index of the letter in the Pauli word corresponding to the single-qubit Pauli
+                    X operator.
+                idx_test (list): List of possibilities for the stacked symmetries at all other rows
+                    than row and.
+                row_test (list): List of possibilities for the stacked symmetries at row.
+
+            Returns:
+                Whether or not this symmetry type should be used to build this letter of this
+                single-qubit Pauli X operator.
+            """
+            stacked_symm_idx_tests = np.array(
+                [
+                    (
+                        stacked_symm_del[row][symm_idx, col],
+                        stacked_symm_del[row][symm_idx, col + half_symm_shape],
+                    )
+                    in idx_test
+                    for symm_idx in range(symm_shape[0] - 1)
+                ]
+            )
+
+            stacked_symm_row_test = (
+                stacked_symmetries[row, col],
+                stacked_symmetries[row, col + half_symm_shape],
+            ) in row_test
+
+            return np.all(stacked_symm_idx_tests) and stacked_symm_row_test
 
         for row in range(symm_shape[0]):
-
             pauli_symmetries.append(
                 Pauli(
                     (
-                        stacked_symmetries[row, : symm_shape[1] // 2],
-                        stacked_symmetries[row, symm_shape[1] // 2 :],
+                        stacked_symmetries[row, :half_symm_shape],
+                        stacked_symmetries[row, half_symm_shape:],
                     )
                 )
             )
 
-            stacked_symm_del = np.delete(stacked_symmetries, row, axis=0)
-            for col in range(symm_shape[1] // 2):
+            for col in range(half_symm_shape):
                 # case symmetries other than one at (row) have Z or I on col qubit
-                Z_or_I = True
-
-                for symm_idx in range(symm_shape[0] - 1):
-                    if not (
-                        stacked_symm_del[symm_idx, col] == 0
-                        and stacked_symm_del[symm_idx, col + symm_shape[1] // 2] in (0, 1)
-                    ):
-                        Z_or_I = False
-                if Z_or_I:
-                    if (
-                        stacked_symmetries[row, col] == 1
-                        and stacked_symmetries[row, col + symm_shape[1] // 2] == 0
-                    ) or (
-                        stacked_symmetries[row, col] == 1
-                        and stacked_symmetries[row, col + symm_shape[1] // 2] == 1
-                    ):
-                        sq_paulis.append(
-                            Pauli((np.zeros(symm_shape[1] // 2), np.zeros(symm_shape[1] // 2)))
-                        )
-                        sq_paulis[row].z[col] = False
-                        sq_paulis[row].x[col] = True
-                        sq_list.append(col)
-                        break
+                Z_or_I_idx_test = [(0, 0), (0, 1)]
+                Z_or_I_row_test = [(1, 0), (1, 1)]
+                if _test_symmetry_row_col(row, col, Z_or_I_idx_test, Z_or_I_row_test):
+                    sq_paulis.append(Pauli((np.zeros(half_symm_shape), np.zeros(half_symm_shape))))
+                    sq_paulis[row].z[col] = False
+                    sq_paulis[row].x[col] = True
+                    sq_list.append(col)
+                    break
 
                 # case symmetries other than one at (row) have X or I on col qubit
-                X_or_I = True
-                for symm_idx in range(symm_shape[0] - 1):
-                    if not (
-                        stacked_symm_del[symm_idx, col] in (0, 1)
-                        and stacked_symm_del[symm_idx, col + symm_shape[1] // 2] == 0
-                    ):
-                        X_or_I = False
-                if X_or_I:
-                    if (
-                        stacked_symmetries[row, col] == 0
-                        and stacked_symmetries[row, col + symm_shape[1] // 2] == 1
-                    ) or (
-                        stacked_symmetries[row, col] == 1
-                        and stacked_symmetries[row, col + symm_shape[1] // 2] == 1
-                    ):
-                        sq_paulis.append(
-                            Pauli((np.zeros(symm_shape[1] // 2), np.zeros(symm_shape[1] // 2)))
-                        )
-                        sq_paulis[row].z[col] = True
-                        sq_paulis[row].x[col] = False
-                        sq_list.append(col)
-                        break
+                X_or_I_idx_test = [(0, 0), (1, 0)]
+                X_or_I_row_test = [(0, 1), (1, 1)]
+                if _test_symmetry_row_col(row, col, X_or_I_idx_test, X_or_I_row_test):
+                    sq_paulis.append(Pauli((np.zeros(half_symm_shape), np.zeros(half_symm_shape))))
+                    sq_paulis[row].z[col] = True
+                    sq_paulis[row].x[col] = False
+                    sq_list.append(col)
+                    break
 
                 # case symmetries other than one at (row)  have Y or I on col qubit
-                Y_or_I = True
-                for symm_idx in range(symm_shape[0] - 1):
-                    if not (
-                        (
-                            stacked_symm_del[symm_idx, col] == 1
-                            and stacked_symm_del[symm_idx, col + symm_shape[1] // 2] == 1
-                        )
-                        or (
-                            stacked_symm_del[symm_idx, col] == 0
-                            and stacked_symm_del[symm_idx, col + symm_shape[1] // 2] == 0
-                        )
-                    ):
-                        Y_or_I = False
-                if Y_or_I:
-                    if (
-                        stacked_symmetries[row, col] == 0
-                        and stacked_symmetries[row, col + symm_shape[1] // 2] == 1
-                    ) or (
-                        stacked_symmetries[row, col] == 1
-                        and stacked_symmetries[row, col + symm_shape[1] // 2] == 0
-                    ):
-                        sq_paulis.append(
-                            Pauli((np.zeros(symm_shape[1] // 2), np.zeros(symm_shape[1] // 2)))
-                        )
-                        sq_paulis[row].z[col] = True
-                        sq_paulis[row].x[col] = True
-                        sq_list.append(col)
-                        break
+                Y_or_I_idx_test = [(0, 0), (1, 1)]
+                Y_or_I_row_test = [(0, 1), (1, 0)]
+                if _test_symmetry_row_col(row, col, Y_or_I_idx_test, Y_or_I_row_test):
+                    sq_paulis.append(Pauli((np.zeros(half_symm_shape), np.zeros(half_symm_shape))))
+                    sq_paulis[row].z[col] = True
+                    sq_paulis[row].x[col] = True
+                    sq_list.append(col)
+                    break
 
         return cls(pauli_symmetries, sq_paulis, sq_list, None)
 
