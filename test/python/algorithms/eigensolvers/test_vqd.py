@@ -67,7 +67,7 @@ class TestVQD(QiskitAlgorithmsTestCase):
         self.ry_wavefunction = TwoLocal(rotation_blocks="ry", entanglement_blocks="cz")
 
         self.estimator = Estimator()
-        self.estimator_shots = Estimator(options={"shots": 2048, "seed": self.seed})
+        self.estimator_shots = Estimator(options={"shots": 1024, "seed": self.seed})
         self.fidelity = ComputeUncompute(Sampler())
         self.betas = [50, 50]
 
@@ -117,7 +117,7 @@ class TestVQD(QiskitAlgorithmsTestCase):
 
     def test_betas_autoeval(self):
         """Test that betas autoevaluation matches for different operator types."""
-        vqd = VQD(self.estimator, self.fidelity, self.ryrz_wavefunction, optimizer=L_BFGS_B())
+        vqd = VQD(self.estimator_shots, self.fidelity, self.ryrz_wavefunction, optimizer=L_BFGS_B())
         result1 = vqd.compute_eigenvalues(H2_PAULI)
         result2 = vqd.compute_eigenvalues(H2_SPARSE_PAULI)
         np.testing.assert_array_almost_equal(
@@ -171,7 +171,7 @@ class TestVQD(QiskitAlgorithmsTestCase):
         wavefunction = self.ry_wavefunction
 
         vqd = VQD(
-            estimator=self.estimator,
+            estimator=self.estimator_shots,
             fidelity=self.fidelity,
             ansatz=wavefunction,
             optimizer=optimizer,
