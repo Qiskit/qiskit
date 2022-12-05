@@ -338,6 +338,7 @@ class VQD(VariationalAlgorithm, Eigensolver):
         Args:
             step: level of energy being calculated. 0 for ground, 1 for first excited state...
             operator: The operator whose energy to evaluate.
+            betas: Beta parameters in the VQD paper.
             prev_states: List of optimal circuits from previous rounds of optimization.
 
         Returns:
@@ -364,27 +365,30 @@ class VQD(VariationalAlgorithm, Eigensolver):
 
         def evaluate_energy(parameters: np.ndarray) -> np.ndarray | float:
 
-            try:
-                estimator_job = self.estimator.run(
-                    circuits=[self.ansatz], observables=[operator], parameter_values=[parameters]
-                )
-                estimator_result = estimator_job.result()
-                values = estimator_result.values
+            estimator_job = self.estimator.run(
+                circuits=[self.ansatz], observables=[operator], parameter_values=[parameters]
+            )
 
-            except Exception as exc:
-                raise AlgorithmError("The primitive job to evaluate the energy failed!") from exc
-
+            total_cost = 0
             if step > 1:
-                # Compute overlap cost
+                # compute overlap cost
                 fidelity_job = self.fidelity.run(
                     [self.ansatz] * (step - 1),
                     prev_states,
                     [parameters] * (step - 1),
                 )
+
                 costs = fidelity_job.result().fidelities
 
                 for (state, cost) in zip(range(step - 1), costs):
-                    values += np.real(betas[state] * cost)
+                    total_cost += np.real(betas[state] * cost)
+
+            try:
+                estimator_result = estimator_job.result()
+                values = estimator_result.values + total_cost
+
+            except Exception as exc:
+                raise AlgorithmError("The primitive job to evaluate the energy failed!") from exc
 
             if self.callback is not None:
                 metadata = estimator_result.metadata
