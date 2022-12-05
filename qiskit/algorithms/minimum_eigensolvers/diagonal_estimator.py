@@ -171,7 +171,7 @@ def _get_cvar_aggregation(alpha):
             accumulated_percent = 0  # once alpha is reached, stop
             cvar = 0
             for probability, value in sorted_measurements:
-                cvar += value * max(probability, alpha - accumulated_percent)
+                cvar += value * min(probability, alpha - accumulated_percent)
                 accumulated_percent += probability
                 if accumulated_percent >= alpha:
                     break
