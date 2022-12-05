@@ -85,19 +85,18 @@ class FiniteDiffEstimatorGradient(BaseEstimatorGradient):
         circuits: Sequence[QuantumCircuit],
         observables: Sequence[BaseOperator | PauliSumOp],
         parameter_values: Sequence[Sequence[float]],
-        parameters: Sequence[Sequence[Parameter] | None],
+        parameter_sets: Sequence[set[Parameter]],
         **options,
     ) -> EstimatorGradientResult:
         """Compute the estimator gradients on the given circuits."""
         jobs, metadata_ = [], []
-        for circuit, observable, parameter_values_, parameters_ in zip(
-            circuits, observables, parameter_values, parameters
+        for circuit, observable, parameter_values_, parameter_set in zip(
+            circuits, observables, parameter_values, parameter_sets
         ):
             # indices of parameters to be differentiated
-            if parameters_ is None:
-                indices = list(range(circuit.num_parameters))
-            else:
-                indices = [circuit.parameters.data.index(p) for p in parameters_]
+            indices = [
+                circuit.parameters.data.index(p) for p in circuit.parameters if p in parameter_set
+            ]
             metadata_.append({"parameters": [circuit.parameters[idx] for idx in indices]})
 
             offset = np.identity(circuit.num_parameters)[indices, :]

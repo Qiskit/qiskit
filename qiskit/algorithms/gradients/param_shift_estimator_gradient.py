@@ -67,35 +67,33 @@ class ParamShiftEstimatorGradient(BaseEstimatorGradient):
         circuits: Sequence[QuantumCircuit],
         observables: Sequence[BaseOperator | PauliSumOp],
         parameter_values: Sequence[Sequence[float]],
-        parameters: Sequence[Sequence[Parameter] | None],
+        parameter_sets: Sequence[set[Parameter]],
         **options,
     ) -> EstimatorGradientResult:
         """Compute the gradients of the expectation values by the parameter shift rule."""
-        g_circuits, g_parameter_values, g_parameters = self._preprocess(
-            circuits, parameter_values, parameters, self.SUPPORTED_GATES
+        g_circuits, g_parameter_values, g_parameter_sets = self._preprocess(
+            circuits, parameter_values, parameter_sets, self.SUPPORTED_GATES
         )
         results = self._run_unique(
-            g_circuits, observables, g_parameter_values, g_parameters, **options
+            g_circuits, observables, g_parameter_values, g_parameter_sets, **options
         )
-        return self._postprocess(results, circuits, parameter_values, parameters)
+        return self._postprocess(results, circuits, parameter_values, parameter_sets)
 
     def _run_unique(
         self,
         circuits: Sequence[QuantumCircuit],
         observables: Sequence[BaseOperator | PauliSumOp],
         parameter_values: Sequence[Sequence[float]],
-        parameters: Sequence[Sequence[Parameter] | None],
+        parameter_sets: Sequence[set[Parameter]],
         **options,
     ) -> EstimatorGradientResult:
         """Compute the estimator gradients on the given circuits."""
         jobs, metadata_ = [], []
-        for circuit, observable, parameter_values_, parameters_ in zip(
-            circuits, observables, parameter_values, parameters
+        for circuit, observable, parameter_values_, parameter_set in zip(
+            circuits, observables, parameter_values, parameter_sets
         ):
-            # a set of parameters to be differentiated
-            parameter_set = set(circuit.parameters) if parameters_ is None else set(parameters_)
             metadata_.append({"parameters": [p for p in circuit.parameters if p in parameter_set]})
-            # make parameter values for the parameter shift rule
+            # Make parameter values for the parameter shift rule.
             param_shift_parameter_values = _make_param_shift_parameter_values(
                 circuit, parameter_values_, parameter_set
             )
@@ -112,7 +110,7 @@ class ParamShiftEstimatorGradient(BaseEstimatorGradient):
             results = [job.result() for job in jobs]
         except Exception as exc:
             raise AlgorithmError("Estimator job failed.") from exc
-        # compute the gradients
+        # Compute the gradients.
         gradients = []
         for result in results:
             n = len(result.values) // 2  # is always a multiple of 2

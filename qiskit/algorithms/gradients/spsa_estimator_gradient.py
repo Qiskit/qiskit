@@ -70,26 +70,24 @@ class SPSAEstimatorGradient(BaseEstimatorGradient):
         circuits: Sequence[QuantumCircuit],
         observables: Sequence[BaseOperator | PauliSumOp],
         parameter_values: Sequence[Sequence[float]],
-        parameters: Sequence[Sequence[Parameter] | None],
+        parameter_sets: Sequence[set[Parameter] | None],
         **options,
     ) -> EstimatorGradientResult:
         """Compute the estimator gradients on the given circuits."""
         jobs, offsets, metadata_ = [], [], []
-        for circuit, observable, parameter_values_, parameters_ in zip(
-            circuits, observables, parameter_values, parameters
+        for circuit, observable, parameter_values_, parameter_set in zip(
+            circuits, observables, parameter_values, parameter_sets
         ):
-            # indices of parameters to be differentiated
-            if parameters_ is None:
-                indices = list(range(circuit.num_parameters))
-            else:
-                indices = [circuit.parameters.data.index(p) for p in parameters_]
+            # Indices of parameters to be differentiated.
+            indices = [
+                circuit.parameters.data.index(p) for p in circuit.parameters if p in parameter_set
+            ]
             metadata_.append({"parameters": [circuit.parameters[idx] for idx in indices]})
-
+            # Make random perturbation vectors.
             offset = [
                 (-1) ** (self._seed.integers(0, 2, len(circuit.parameters)))
                 for _ in range(self._batch_size)
             ]
-
             plus = [parameter_values_ + self._epsilon * offset_ for offset_ in offset]
             minus = [parameter_values_ - self._epsilon * offset_ for offset_ in offset]
             offsets.append(offset)
@@ -107,15 +105,15 @@ class SPSAEstimatorGradient(BaseEstimatorGradient):
         except Exception as exc:
             raise AlgorithmError("Estimator job failed.") from exc
 
-        # compute the gradients
+        # Compute the gradients.
         gradients = []
         for i, result in enumerate(results):
             n = len(result.values) // 2  # is always a multiple of 2
             diffs = (result.values[:n] - result.values[n:]) / (2 * self._epsilon)
-            # calculate the gradient for each batch. Note that (``diff`` / ``offset``) is the gradient
+            # Calculate the gradient for each batch. Note that (``diff`` / ``offset``) is the gradient
             # since ``offset`` is a perturbation vector of 1s and -1s.
             batch_gradients = np.array([diff / offset for diff, offset in zip(diffs, offsets[i])])
-            # take the average of the batch gradients
+            # Take the average of the batch gradients.
             gradient = np.mean(batch_gradients, axis=0)
             indices = [circuits[i].parameters.data.index(p) for p in metadata_[i]["parameters"]]
             gradients.append(gradient[indices])

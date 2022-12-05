@@ -96,37 +96,33 @@ class LinCombEstimatorGradient(BaseEstimatorGradient):
         circuits: Sequence[QuantumCircuit],
         observables: Sequence[BaseOperator | PauliSumOp],
         parameter_values: Sequence[Sequence[float]],
-        parameters: Sequence[Sequence[Parameter] | None],
+        parameter_sets: Sequence[set[Parameter]],
         **options,
     ) -> EstimatorGradientResult:
         """Compute the estimator gradients on the given circuits."""
-        g_circuits, g_parameter_values, g_parameters = self._preprocess(
-            circuits, parameter_values, parameters, self.SUPPORTED_GATES
+        g_circuits, g_parameter_values, g_parameter_sets = self._preprocess(
+            circuits, parameter_values, parameter_sets, self.SUPPORTED_GATES
         )
         results = self._run_unique(
-            g_circuits, observables, g_parameter_values, g_parameters, **options
+            g_circuits, observables, g_parameter_values, g_parameter_sets, **options
         )
-        return self._postprocess(results, circuits, parameter_values, parameters)
+        return self._postprocess(results, circuits, parameter_values, parameter_sets)
 
     def _run_unique(
         self,
         circuits: Sequence[QuantumCircuit],
         observables: Sequence[BaseOperator | PauliSumOp],
         parameter_values: Sequence[Sequence[float]],
-        parameters: Sequence[Sequence[Parameter] | None],
+        parameter_sets: Sequence[set[Parameter]],
         **options,
     ) -> EstimatorGradientResult:
         """Compute the estimator gradients on the given circuits."""
         jobs, metadata_ = [], []
-        for circuit, observable, parameter_values_, parameters_ in zip(
-            circuits, observables, parameter_values, parameters
+        for circuit, observable, parameter_values_, parameter_set in zip(
+            circuits, observables, parameter_values, parameter_sets
         ):
-            # a set of parameters to be differentiated
-            parameter_set = _get_parameter_set(circuit, parameters_)
+            # Prepare circuits for the gradient of the specified parameters.
             meta = {"parameters": [p for p in circuit.parameters if p in parameter_set]}
-            meta["derivative_type"] = self._derivative_type
-            metadata_.append(meta)
-            # prepare circuits for the gradient of the specified parameters
             circuit_key = _circuit_key(circuit)
             if circuit_key not in self._lin_comb_cache:
                 self._lin_comb_cache[circuit_key] = _make_lin_comb_gradient_circuit(circuit)
@@ -143,8 +139,10 @@ class LinCombEstimatorGradient(BaseEstimatorGradient):
             observable_1, observable_2 = _make_lin_comb_observables(
                 observable, self._derivative_type
             )
-            # if its derivative type is `DerivativeType.COMPLEX`, calculate the gradient
+            # If its derivative type is `DerivativeType.COMPLEX`, calculate the gradient
             # of the real and imaginary parts separately.
+            meta["derivative_type"] = self._derivative_type
+            metadata_.append(meta)
             if self._derivative_type == DerivativeType.COMPLEX:
                 job = self._estimator.run(
                     gradient_circuits * 2,
@@ -163,7 +161,7 @@ class LinCombEstimatorGradient(BaseEstimatorGradient):
             results = [job.result() for job in jobs]
         except AlgorithmError as exc:
             raise AlgorithmError("Estimator job failed.") from exc
-        # compute the gradients
+        # Compute the gradients.
         gradients = []
         for i, result in enumerate(results):
             gradient = np.zeros(len(metadata_[i]["parameters"]), dtype="complex")
