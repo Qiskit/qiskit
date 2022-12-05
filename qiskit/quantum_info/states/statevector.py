@@ -862,20 +862,31 @@ class Statevector(QuantumState, TolerancesMixin):
             return statevec
         if isinstance(obj, Barrier):
             return statevec
-        if isinstance(obj, Initialize):
+        if isinstance(obj, Initialize) and qargs is None:
             # state is initialized to labels in the initialize object
             if all(isinstance(param, str) for param in obj.params):
-                statevec._data = Statevector.from_label("".join(obj.params))._data
+                initialization = Statevector.from_label("".join(obj.params))._data
             # state is initialized to an integer
             # here we're only checking the length as (1) a length-1 object necessarily means the
             # state is described by an integer (as labels were already covered) and (2) the int
             # was cast to a complex and we cannot do an int typecheck anyways
             elif len(obj.params) == 1:
                 state = int(np.real(obj.params[0]))
-                statevec._data = Statevector.from_int(state, (2,) * obj.num_qubits)._data
+                initialization = Statevector.from_int(state, (2,) * obj.num_qubits)._data
             # state is initialized to the statevector
             else:
-                statevec._data = np.asarray(obj.params, dtype=complex)
+                initialization = np.asarray(obj.params, dtype=complex)
+
+            if qargs is None:
+                statevec._data = initialization
+            else:
+                # if we act on a subsystem we first need to reset and then apply the
+                # state preparation
+                statevec._data = statevec.reset(qargs)._data
+                mat = np.zeros((2 ** len(qargs), 2 ** len(qargs)), dtype=complex)
+                mat[:, 0] = initialization
+                statevec = Statevector._evolve_operator(statevec, Operator(mat), qargs=qargs)
+
             return statevec
 
         # If the instruction doesn't have a matrix defined we use its
