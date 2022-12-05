@@ -171,6 +171,18 @@ class LinearFunction(Gate):
         locs = np.where(linear == 1)
         return locs[1]
 
+    def permute(self, perm):
+        """Returns a linear function obtained by permuting rows and columns of a given linear function
+        using the permutation pattern ``perm``.
+        """
+        mat = self.linear
+        nq = mat.shape[0]
+        permuted_mat = np.zeros(mat.shape, dtype=bool)
+        for i in range(nq):
+            for j in range(nq):
+                permuted_mat[i, j] = mat[perm[i], perm[j]]
+        return LinearFunction(permuted_mat)
+
 
 def _linear_quantum_circuit_to_mat(qc: QuantumCircuit):
     """This creates a n x n matrix corresponding to the given linear quantum circuit."""
