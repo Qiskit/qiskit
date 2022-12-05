@@ -42,12 +42,10 @@ class EquivalenceLibrary:
         if base is None:
             self._graph = rx.PyDiGraph()
             self._key_to_node_index = dict()
-            self._num_gates_for_rule = dict()
             self._rule_count = 0
         else:
             self._graph = base._graph.copy()
             self._key_to_node_index = copy.deepcopy(base._key_to_node_index)
-            self._num_gates_for_rule = copy.copy(base._num_gates_for_rule)
             self._rule_count = base._rule_count
 
     @property
@@ -64,21 +62,6 @@ class EquivalenceLibrary:
             PyDiGraph: A graph object with equivalence data in each node.
         """
         return self._graph
-
-    @property
-    def num_gates_for_rule(self) -> dict:
-        """Return map of number of gates in each rule.
-
-        This property should be treated as read-only as it provides
-        a reference to the internal state of the :class:`~.EquivalenceLibrary` object.
-        If the graph returned by this property is mutated it could corrupt the
-        the contents of the object. If you need to modify the output ``dict``
-        be sure to make a copy prior to any modification.
-
-        Returns:
-            dict: A map of the number of gates in each rule.
-        """
-        return self._num_gates_for_rule
 
     def _set_default_node(self, key):
         """Create a new node if key not found"""
@@ -118,13 +101,11 @@ class EquivalenceLibrary:
             (
                 self._set_default_node(source),
                 target,
-                {"index": self._rule_count, "rule": equiv, "source": source},
+                {"index": self._rule_count, "len": len(sources), "rule": equiv, "source": source},
             )
             for source in sources
         ]
         self._graph.add_edges_from(edges)
-
-        self._num_gates_for_rule[self._rule_count] = len(sources)
         self._rule_count += 1
 
     def has_entry(self, gate):

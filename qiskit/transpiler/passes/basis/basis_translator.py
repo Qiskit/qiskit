@@ -370,11 +370,18 @@ class StopIfBasisRewritable(Exception):
 class BasisSearchVisitor(rustworkx.visit.DijkstraVisitor):  # pylint: disable=no-member
     """Handles events emitted during `rustworkx.dijkstra_search`."""
 
-    def __init__(self, graph, source_basis, target_basis, num_gates_for_rule):
+    def __init__(self, graph, source_basis, target_basis):
         self.graph = graph
         self.target_basis = set(target_basis)
         self._source_gates_remain = set(source_basis)
-        self._num_gates_remain_for_rule = dict(num_gates_for_rule)
+        self._num_gates_remain_for_rule = dict()
+        index = -1
+        for edata in self.graph.edges():
+            if index == edata["index"]:
+                continue
+            self._num_gates_remain_for_rule[edata["index"]] = edata["len"]
+            index = edata["index"]
+
         self._basis_transforms = []
         self._predecessors = dict()
         self._opt_cost_map = dict()
@@ -482,7 +489,7 @@ def _basis_search(equiv_lib, source_basis, target_basis):
     target_basis_keys = [key for key in equiv_lib.keys() if key.name in target_basis]
 
     graph = equiv_lib.graph
-    vis = BasisSearchVisitor(graph, source_basis, target_basis_keys, equiv_lib.num_gates_for_rule)
+    vis = BasisSearchVisitor(graph, source_basis, target_basis_keys)
 
     # we add a dummy node and connect it with gates in the target basis.
     # we'll start the search from this dummy node.

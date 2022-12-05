@@ -181,6 +181,7 @@ class TestEquivalenceLibraryWithoutBase(QiskitTestCase):
 
         edge_wt = {
             "index": 0,
+            "len": 1,
             "rule": Equivalence(params=[], circuit=equiv_copy),
             "source": Key(name="h", num_qubits=1),
         }
@@ -196,9 +197,6 @@ class TestEquivalenceLibraryWithoutBase(QiskitTestCase):
 
         keys = {Key(name="1q0p", num_qubits=1): 0, Key(name="h", num_qubits=1): 1}.keys()
         self.assertEqual(keys, eq_lib.keys())
-
-        num_gates = {0: 1}
-        self.assertEqual(num_gates, eq_lib.num_gates_for_rule)
 
 
 class TestEquivalenceLibraryWithBase(QiskitTestCase):
