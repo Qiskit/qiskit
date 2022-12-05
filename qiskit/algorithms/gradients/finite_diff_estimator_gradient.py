@@ -93,7 +93,7 @@ class FiniteDiffEstimatorGradient(BaseEstimatorGradient):
         for circuit, observable, parameter_values_, parameter_set in zip(
             circuits, observables, parameter_values, parameter_sets
         ):
-            # indices of parameters to be differentiated
+            # Indices of parameters to be differentiated
             indices = [
                 circuit.parameters.data.index(p) for p in circuit.parameters if p in parameter_set
             ]
@@ -126,16 +126,16 @@ class FiniteDiffEstimatorGradient(BaseEstimatorGradient):
         except Exception as exc:
             raise AlgorithmError("Estimator job failed.") from exc
 
-        # compute the gradients
+        # Compute the gradients
         gradients = []
         for result in results:
             if self._method == "central":
                 n = len(result.values) // 2  # is always a multiple of 2
-                gradient_ = (result.values[:n] - result.values[n:]) / (2 * self._epsilon)
+                gradient = (result.values[:n] - result.values[n:]) / (2 * self._epsilon)
             elif self._method == "forward":
-                gradient_ = (result.values[1:] - result.values[0]) / self._epsilon
+                gradient = (result.values[1:] - result.values[0]) / self._epsilon
             elif self._method == "backward":
-                gradient_ = (result.values[0] - result.values[1:]) / self._epsilon
-            gradients.append(gradient_)
+                gradient = (result.values[0] - result.values[1:]) / self._epsilon
+            gradients.append(gradient)
         opt = self._get_local_options(options)
         return EstimatorGradientResult(gradients=gradients, metadata=metadata_, options=opt)

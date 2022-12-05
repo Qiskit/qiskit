@@ -20,8 +20,6 @@ from typing import Sequence
 from qiskit.algorithms import AlgorithmError
 from qiskit.circuit import Parameter, QuantumCircuit
 from qiskit.opflow import PauliSumOp
-from qiskit.primitives import BaseEstimator
-from qiskit.providers import Options
 from qiskit.quantum_info.operators.base_operator import BaseOperator
 
 from .base_estimator_gradient import BaseEstimatorGradient
@@ -50,18 +48,6 @@ class ParamShiftEstimatorGradient(BaseEstimatorGradient):
         "rzx",
     ]
 
-    def __init__(self, estimator: BaseEstimator, options: Options | None = None):
-        """
-        Args:
-            estimator: The estimator used to compute the gradients.
-            options: Primitive backend runtime options used for circuit execution.
-                The order of priority is: options in ``run`` method > gradient's
-                default options > primitive's default setting.
-                Higher priority setting overrides lower priority setting
-        """
-        self._parameter_value_offset_cache = {}
-        super().__init__(estimator, options)
-
     def _run(
         self,
         circuits: Sequence[QuantumCircuit],
@@ -88,11 +74,11 @@ class ParamShiftEstimatorGradient(BaseEstimatorGradient):
         **options,
     ) -> EstimatorGradientResult:
         """Compute the estimator gradients on the given circuits."""
-        jobs, metadata_ = [], []
+        jobs, metadata = [], []
         for circuit, observable, parameter_values_, parameter_set in zip(
             circuits, observables, parameter_values, parameter_sets
         ):
-            metadata_.append({"parameters": [p for p in circuit.parameters if p in parameter_set]})
+            metadata.append({"parameters": [p for p in circuit.parameters if p in parameter_set]})
             # Make parameter values for the parameter shift rule.
             param_shift_parameter_values = _make_param_shift_parameter_values(
                 circuit, parameter_values_, parameter_set
@@ -118,4 +104,4 @@ class ParamShiftEstimatorGradient(BaseEstimatorGradient):
             gradients.append(gradient_)
 
         opt = self._get_local_options(options)
-        return EstimatorGradientResult(gradients=gradients, metadata=metadata_, options=opt)
+        return EstimatorGradientResult(gradients=gradients, metadata=metadata, options=opt)

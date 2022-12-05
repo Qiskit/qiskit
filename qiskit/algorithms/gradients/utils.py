@@ -389,14 +389,14 @@ def _get_parameter_set(circuit: QuantumCircuit, parameters: Sequence[Parameter])
 #     return None
 
 
-# @dataclass
-# class LinearCombGradientCircuit:
-#     """Gradient circuit for the linear combination of unitaries method."""
+@dataclass
+class LinearCombGradientCircuit:
+    """Gradient circuit for the linear combination of unitaries method."""
 
-#     gradient_circuit: QuantumCircuit
-#     """A gradient circuit  for the linear combination of unitaries method."""
-#     coeff: float | ParameterExpression
-#     """A coefficient corresponds to the gradient circuit."""
+    gradient_circuit: QuantumCircuit
+    """A gradient circuit  for the linear combination of unitaries method."""
+    coeff: float | ParameterExpression
+    """A coefficient corresponds to the gradient circuit."""
 
 
 # def _make_lin_comb_gradient_circuit_bak(

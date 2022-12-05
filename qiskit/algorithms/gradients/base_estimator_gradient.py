@@ -23,12 +23,12 @@ from copy import copy
 import numpy as np
 
 from qiskit import transpile
-from qiskit.circuit import Parameter, QuantumCircuit, ParameterExpression
+from qiskit.algorithms import AlgorithmJob
+from qiskit.circuit import Parameter, ParameterExpression, QuantumCircuit
 from qiskit.opflow import PauliSumOp
 from qiskit.primitives import BaseEstimator
 from qiskit.primitives.utils import _circuit_key
 from qiskit.providers import Options
-from qiskit.algorithms import AlgorithmJob
 from qiskit.quantum_info.operators.base_operator import BaseOperator
 
 from .estimator_gradient_result import EstimatorGradientResult
@@ -36,9 +36,8 @@ from .utils import (
     DerivativeType,
     GradientCircuit,
     _assign_unique_parameters,
-    _make_gradient_parameter_values,
     _make_gradient_parameter_set,
-    _get_parameter_set,
+    _make_gradient_parameter_values,
 )
 
 
@@ -96,6 +95,13 @@ class BaseEstimatorGradient(ABC):
         Raises:
             ValueError: Invalid arguments are given.
         """
+        if isinstance(circuits, QuantumCircuit):
+            # Allow a single circuit to be passed in.
+            circuits = (circuits,)
+        if isinstance(observables, (BaseOperator, PauliSumOp)):
+            # Allow a single observable to be passed in.
+            observables = (observables,)
+
         if parameters is None:
             # If parameters is None, we calculate the gradients of all parameters in each circuit.
             parameter_sets = [set(circuit.parameters) for circuit in circuits]
@@ -126,7 +132,7 @@ class BaseEstimatorGradient(ABC):
         circuits: Sequence[QuantumCircuit],
         observables: Sequence[BaseOperator | PauliSumOp],
         parameter_values: Sequence[Sequence[float]],
-        parameter_sets: Sequence[set[Parameter] | None],
+        parameter_sets: Sequence[set[Parameter]],
         **options,
     ) -> EstimatorGradientResult:
         """Compute the estimator gradients on the given circuits."""
@@ -231,7 +237,8 @@ class BaseEstimatorGradient(ABC):
                     # The original gradient is a sum of the gradients of the parameters in the
                     # gradient circuit multiplied by the coefficients.
                     unique_gradient[i] += (
-                        bound_coeff * results.gradients[idx][g_parameter_indices[g_parameter]]
+                        float(bound_coeff)
+                        * results.gradients[idx][g_parameter_indices[g_parameter]]
                     )
             gradients.append(unique_gradient)
             metadata.append([{"parameters": parameter_indices}])

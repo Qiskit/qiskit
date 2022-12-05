@@ -30,7 +30,7 @@ from qiskit.quantum_info.operators.base_operator import BaseOperator
 
 from .base_estimator_gradient import BaseEstimatorGradient
 from .estimator_gradient_result import EstimatorGradientResult
-from .utils import DerivativeType, _make_lin_comb_gradient_circuit, _get_parameter_set
+from .utils import DerivativeType, _make_lin_comb_gradient_circuit
 
 
 class LinCombEstimatorGradient(BaseEstimatorGradient):
@@ -117,7 +117,7 @@ class LinCombEstimatorGradient(BaseEstimatorGradient):
         **options,
     ) -> EstimatorGradientResult:
         """Compute the estimator gradients on the given circuits."""
-        jobs, metadata_ = [], []
+        jobs, metadata = [], []
         for circuit, observable, parameter_values_, parameter_set in zip(
             circuits, observables, parameter_values, parameter_sets
         ):
@@ -125,7 +125,9 @@ class LinCombEstimatorGradient(BaseEstimatorGradient):
             meta = {"parameters": [p for p in circuit.parameters if p in parameter_set]}
             circuit_key = _circuit_key(circuit)
             if circuit_key not in self._lin_comb_cache:
-                self._lin_comb_cache[circuit_key] = _make_lin_comb_gradient_circuit(circuit)
+                self._lin_comb_cache[circuit_key] = _make_lin_comb_gradient_circuit(
+                    circuit, add_measurement=False
+                )
             lin_comb_circuits = self._lin_comb_cache[circuit_key]
             gradient_circuits = []
             for param in circuit.parameters:
@@ -142,7 +144,7 @@ class LinCombEstimatorGradient(BaseEstimatorGradient):
             # If its derivative type is `DerivativeType.COMPLEX`, calculate the gradient
             # of the real and imaginary parts separately.
             meta["derivative_type"] = self._derivative_type
-            metadata_.append(meta)
+            metadata.append(meta)
             if self._derivative_type == DerivativeType.COMPLEX:
                 job = self._estimator.run(
                     gradient_circuits * 2,
@@ -164,15 +166,15 @@ class LinCombEstimatorGradient(BaseEstimatorGradient):
         # Compute the gradients.
         gradients = []
         for i, result in enumerate(results):
-            gradient = np.zeros(len(metadata_[i]["parameters"]), dtype="complex")
-            if metadata_[i]["derivative_type"] == DerivativeType.COMPLEX:
+            gradient = np.zeros(len(metadata[i]["parameters"]), dtype="complex")
+            if metadata[i]["derivative_type"] == DerivativeType.COMPLEX:
                 n = len(result.values) // 2  # is always a multiple of 2
                 gradient = result.values[:n] + 1j * result.values[n:]
             else:
                 gradient = np.real(result.values)
             gradients.append(gradient)
         opt = self._get_local_options(options)
-        return EstimatorGradientResult(gradients=gradients, metadata=metadata_, options=opt)
+        return EstimatorGradientResult(gradients=gradients, metadata=metadata, options=opt)
 
 
 def _make_lin_comb_observables(

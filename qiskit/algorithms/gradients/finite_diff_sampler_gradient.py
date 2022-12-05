@@ -79,18 +79,19 @@ class FiniteDiffSamplerGradient(BaseSamplerGradient):
         self,
         circuits: Sequence[QuantumCircuit],
         parameter_values: Sequence[Sequence[float]],
-        parameters: Sequence[Sequence[Parameter] | None],
+        parameter_sets: Sequence[set[Parameter]],
         **options,
     ) -> SamplerGradientResult:
         """Compute the sampler gradients on the given circuits."""
-        jobs, metadata_ = [], []
-        for circuit, parameter_values_, parameters_ in zip(circuits, parameter_values, parameters):
-            # indices of parameters to be differentiated
-            if parameters_ is None:
-                indices = list(range(circuit.num_parameters))
-            else:
-                indices = [circuit.parameters.data.index(p) for p in parameters_]
-            metadata_.append({"parameters": [circuit.parameters[idx] for idx in indices]})
+        jobs, metadata = [], []
+        for circuit, parameter_values_, parameter_set in zip(
+            circuits, parameter_values, parameter_sets
+        ):
+            # Indices of parameters to be differentiated
+            indices = [
+                circuit.parameters.data.index(p) for p in circuit.parameters if p in parameter_set
+            ]
+            metadata.append({"parameters": [circuit.parameters[idx] for idx in indices]})
             offset = np.identity(circuit.num_parameters)[indices, :]
             if self._method == "central":
                 plus = parameter_values_ + self._epsilon * offset
@@ -111,7 +112,7 @@ class FiniteDiffSamplerGradient(BaseSamplerGradient):
                 )
             jobs.append(job)
 
-        # combine the results
+        # Compute the gradients
         try:
             results = [job.result() for job in jobs]
         except Exception as exc:
@@ -121,32 +122,32 @@ class FiniteDiffSamplerGradient(BaseSamplerGradient):
         for i, result in enumerate(results):
             if self._method == "central":
                 n = len(result.quasi_dists) // 2
-                gradient_ = []
+                gradient = []
                 for dist_plus, dist_minus in zip(result.quasi_dists[:n], result.quasi_dists[n:]):
                     grad_dist = np.zeros(2 ** circuits[i].num_qubits)
                     grad_dist[list(dist_plus.keys())] += list(dist_plus.values())
                     grad_dist[list(dist_minus.keys())] -= list(dist_minus.values())
                     grad_dist /= 2 * self._epsilon
-                    gradient_.append(dict(enumerate(grad_dist)))
+                    gradient.append(dict(enumerate(grad_dist)))
             elif self._method == "forward":
-                gradient_ = []
+                gradient = []
                 dist_zero = result.quasi_dists[0]
                 for dist_plus in result.quasi_dists[1:]:
                     grad_dist = np.zeros(2 ** circuits[i].num_qubits)
                     grad_dist[list(dist_plus.keys())] += list(dist_plus.values())
                     grad_dist[list(dist_zero.keys())] -= list(dist_zero.values())
                     grad_dist /= self._epsilon
-                    gradient_.append(dict(enumerate(grad_dist)))
+                    gradient.append(dict(enumerate(grad_dist)))
             elif self._method == "backward":
-                gradient_ = []
+                gradient = []
                 dist_zero = result.quasi_dists[0]
                 for dist_minus in result.quasi_dists[1:]:
                     grad_dist = np.zeros(2 ** circuits[i].num_qubits)
                     grad_dist[list(dist_zero.keys())] += list(dist_zero.values())
                     grad_dist[list(dist_minus.keys())] -= list(dist_minus.values())
                     grad_dist /= self._epsilon
-                    gradient_.append(dict(enumerate(grad_dist)))
-            gradients.append(gradient_)
+                    gradient.append(dict(enumerate(grad_dist)))
+            gradients.append(gradient)
 
         opt = self._get_local_options(options)
-        return SamplerGradientResult(gradients=gradients, metadata=metadata_, options=opt)
+        return SamplerGradientResult(gradients=gradients, metadata=metadata, options=opt)

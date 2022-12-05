@@ -67,17 +67,18 @@ class SPSASamplerGradient(BaseSamplerGradient):
         self,
         circuits: Sequence[QuantumCircuit],
         parameter_values: Sequence[Sequence[float]],
-        parameters: Sequence[Sequence[Parameter] | None],
+        parameter_sets: Sequence[Sequence[Parameter] | None],
         **options,
     ) -> SamplerGradientResult:
         """Compute the sampler gradients on the given circuits."""
         jobs, offsets, metadata_ = [], [], []
-        for circuit, parameter_values_, parameters_ in zip(circuits, parameter_values, parameters):
-            # indices of parameters to be differentiated
-            if parameters_ is None:
-                indices = list(range(circuit.num_parameters))
-            else:
-                indices = [circuit.parameters.data.index(p) for p in parameters_]
+        for circuit, parameter_values_, parameter_set in zip(
+            circuits, parameter_values, parameter_sets
+        ):
+            # Indices of parameters to be differentiated.
+            indices = [
+                circuit.parameters.data.index(p) for p in circuit.parameters if p in parameter_set
+            ]
             metadata_.append({"parameters": [circuit.parameters[idx] for idx in indices]})
 
             offset = np.array(
@@ -93,12 +94,12 @@ class SPSASamplerGradient(BaseSamplerGradient):
             job = self._sampler.run([circuit] * 2 * self._batch_size, plus + minus, **options)
             jobs.append(job)
 
-        # combine the results
         try:
             results = [job.result() for job in jobs]
         except Exception as exc:
             raise AlgorithmError("Sampler job failed.") from exc
 
+        # Compute the gradients.
         gradients = []
         for i, result in enumerate(results):
             dist_diffs = np.zeros((self._batch_size, 2 ** circuits[i].num_qubits))
