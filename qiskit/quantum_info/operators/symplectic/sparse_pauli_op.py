@@ -470,11 +470,9 @@ class SparsePauliOp(LinearOp):
         )
 
     def is_zero(self) -> bool:
-        """
-        Return this operator is zero operator or not.
-        """
+        """Returns whether or not this operator represents a zero operation."""
         op = self.simplify()
-        return op.coeffs[0] == 0
+        return len(op.coeffs) == 1 and op.coeffs[0] == 0
 
     def argsort(self, weight=False):
         """Return indices for sorting the rows of the table.
