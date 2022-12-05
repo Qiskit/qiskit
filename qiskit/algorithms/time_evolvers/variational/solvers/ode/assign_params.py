@@ -40,6 +40,3 @@ def assign_parameters(array: np.array, parameter_values: np.array) -> np.array:
             array[i] = a
     return array
 
-
-spo = SparsePauliOp(["II", "XZ", "II"], np.array([Parameter("a"), Parameter("b"), 3 + 1j]))
-assign_parameters(spo.coeffs, [2, 9])
