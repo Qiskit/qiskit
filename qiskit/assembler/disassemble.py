@@ -75,7 +75,6 @@ def disassemble(qobj) -> Union[CircuitModule, PulseModule]:
             qc.measure(q, c)
             qobj = assemble(qc, shots=2000, memory=True)
             circuits, run_config_out, headers = disassemble(qobj)
-            print(circuits[0].draw())
     """
     if qobj.type == "PULSE":
         return _disassemble_pulse_schedule(qobj)
