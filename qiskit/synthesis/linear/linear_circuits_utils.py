@@ -62,7 +62,7 @@ def optimize_cx_4_options(function: Callable, mat: np.ndarray, optimize_count: b
         raise QiskitError("The matrix is not invertible.")
 
     circuits = _cx_circuits_4_options(function, mat)
-    best_qc = choose_best_circuit(circuits, optimize_count)
+    best_qc = _choose_best_circuit(circuits, optimize_count)
     return best_qc
 
 
@@ -104,7 +104,7 @@ def _cx_circuits_4_options(function: Callable, mat: np.ndarray) -> List[QuantumC
     return circuits
 
 
-def choose_best_circuit(circuits: List[QuantumCircuit], optimize_count: bool = True) -> QuantumCircuit:
+def _choose_best_circuit(circuits: List[QuantumCircuit], optimize_count: bool = True) -> QuantumCircuit:
     """Returns the best quantum circuit either in terms of gate count or depth.
 
     Args:
@@ -115,29 +115,9 @@ def choose_best_circuit(circuits: List[QuantumCircuit], optimize_count: bool = T
         QuantumCircuit: the best quantum circuit out of the given circuits.
     """
     best_qc = circuits[0]
-    best_depth = circuits[0].depth()
-    best_count = circuits[0].size()
-    print(f"In choose_best_circuit: count = {best_count}, depth = {best_depth}")
-
     for circuit in circuits[1:]:
-        new_depth = circuit.depth()
-        new_count = circuit.size()
-        print(f"In choose_best_circuit: count = {new_count}, depth = {new_depth}")
-
-        # Prioritize count, and if it has the same count, then also consider depth
-        better_count = (optimize_count and best_count > new_count) or (
-            not optimize_count and best_depth == new_depth and best_count > new_count
-        )
-        # Prioritize depth, and if it has the same depth, then also consider count
-        better_depth = (not optimize_count and best_depth > new_depth) or (
-            optimize_count and best_count == new_count and best_depth > new_depth
-        )
-
-        if better_count or better_depth:
-            best_count = new_count
-            best_depth = new_depth
+        if _compare_circuits(best_qc, circuit, optimize_count=optimize_count):
             best_qc = circuit
-
     return best_qc
 
 
@@ -152,6 +132,7 @@ def _compare_circuits(qc1: QuantumCircuit, qc2: QuantumCircuit, optimize_count: 
     Returns:
         bool: ``False`` means that the first quantum circuit is "better", ``True`` means the second.
     """
+    # TODO: this is not fully correct if there are SWAP gates
     count1 = qc1.size()
     depth1 = qc1.depth()
     count2 = qc2.size()

@@ -13,6 +13,7 @@
 
 """Synthesize higher-level objects."""
 
+from typing import Union, List
 
 from qiskit.converters import circuit_to_dag
 from qiskit.transpiler.basepasses import TransformationPass
@@ -202,11 +203,8 @@ class DefaultSynthesisLinearFunction(HighLevelSynthesisPlugin):
         """Run synthesis for the given LinearFunction."""
         print(f"DefaultSynthesisLinearFunction {options = }")
 
-        coupling_map = options.get("coupling_map", None)
-        qubits = options.get("qubits", None)
+        decomposition = PMHSynthesisLinearFunction().run(high_level_object, **options)
 
-
-        decomposition = synth_cnot_count_full_pmh(high_level_object.linear)
         return decomposition
 
 
@@ -220,47 +218,47 @@ class KMSSynthesisLinearFunction(HighLevelSynthesisPlugin):
         coupling_map = options.get("coupling_map", None)
         qubits = options.get("qubits", None)
         consider_all_mats = options.get("all_mats", 0)
-        consider_all_paths = options.get("all_paths", 0)
-
+        max_paths = options.get("max_paths", 1)
+        consider_original_circuit = options.get("orig_circuit", 1)
+        optimize_count = options.get("opt_count", 1)
 
         print(f"{coupling_map = }")
         print(f"{qubits = }")
         print(f"{consider_all_mats = }")
-        print(f"{consider_all_paths = }")
+        print(f"{max_paths = }")
+        print(f"{consider_original_circuit = }")
+        print(f"{optimize_count = }")
 
-        # If not none, represents the path of qubits through the coupling map
+        # At the end, if not none, represents the best decomposition adhering to LNN architecture.
+        best_decomposition = None
+
+        # At the end, if not none, represents the path of qubits through the coupling map
         # over which the LNN synthesis is applied.
         best_path = None
 
-        if not coupling_map:
-            if not consider_all_mats:
-                best_decomposition = synth_cnot_depth_line_kms(high_level_object.linear)
-            else:
-                best_decomposition = optimize_cx_4_options(synth_cnot_depth_line_kms, high_level_object.linear, optimize_count=False)
-
-        else:
+        if consider_original_circuit:
             best_decomposition = high_level_object.original_circuit
 
-            if best_decomposition:
-                print(f"HAVE INITIAL count = {best_decomposition.size()}, depth = {best_decomposition.depth()}")
-            best_decomposition = None
-            print(coupling_map.size())
-            print(coupling_map.get_edges())
+        if best_decomposition:
+            print(f"HAVE INITIAL count = {best_decomposition.size()}, depth = {best_decomposition.depth()}")
 
+        if not coupling_map:
+            if not consider_all_mats:
+                decomposition = synth_cnot_depth_line_kms(high_level_object.linear)
+            else:
+                decomposition = optimize_cx_4_options(synth_cnot_depth_line_kms, high_level_object.linear, optimize_count=optimize_count)
+            print(f"NEW DECOMPOSITION count = {best_decomposition.size()}, depth = {best_decomposition.depth()}")
+
+            if not best_decomposition or _compare_circuits(best_decomposition, decomposition, optimize_count=optimize_count):
+                best_decomposition = decomposition
+                print(f"IMPROVED!")
+
+        else:
+            # Consider the coupling map over the qubits on which the linear function is applied.
             reduced_map = coupling_map.reduce(qubits)
 
-            print(reduced_map.size())
-            print(reduced_map.get_edges())
-
-            considered_paths = []
-            if consider_all_paths:
-                all_paths = _all_hamiltonian_paths(reduced_map)
-                if all_paths:
-                    considered_paths = all_paths
-            else:
-                path = _hamiltonian_path(reduced_map)
-                if path:
-                    considered_paths = [path]
+            # Find one or more paths through the coupling map (when such exist).
+            considered_paths = _hamiltonian_paths(reduced_map, max_paths)
 
             print(f"PRINTING CONSIDERED PATHS: {considered_paths}")
             for path in considered_paths:
@@ -271,11 +269,12 @@ class KMSSynthesisLinearFunction(HighLevelSynthesisPlugin):
                     decomposition = synth_cnot_depth_line_kms(permuted_linear_function.linear)
                 else:
                     decomposition = optimize_cx_4_options(synth_cnot_depth_line_kms, permuted_linear_function.linear, optimize_count=False)
+                print(f"NEW DECOMPOSITION count = {best_decomposition.size()}, depth = {best_decomposition.depth()}")
 
                 if not best_decomposition or _compare_circuits(best_decomposition, decomposition, optimize_count=False):
                     best_decomposition = decomposition
                     best_path = path
-                    print(f"IMPROVED! to count = {best_decomposition.size()}, depth = {best_decomposition.depth()}")
+                    print(f"IMPROVED!")
 
         if best_path is None:
             return best_decomposition
@@ -290,8 +289,38 @@ class PMHSynthesisLinearFunction(HighLevelSynthesisPlugin):
         """Run synthesis for the given LinearFunction."""
         print(f"PMHSynthesisLinearFunction {options = }")
 
-        decomposition = synth_cnot_count_full_pmh(high_level_object.linear)
-        return decomposition
+        coupling_map = options.get("coupling_map", None)
+        consider_all_mats = options.get("all_mats", 0)
+        consider_original_circuit = options.get("orig_circuit", 1)
+        optimize_count = options.get("opt_count", 1)
+
+        # At the end, if not none, represents the best decomposition.
+        best_decomposition = None
+
+        if consider_original_circuit:
+            best_decomposition = high_level_object.original_circuit
+
+        if best_decomposition:
+            print(f"HAVE INITIAL count = {best_decomposition.size()}, depth = {best_decomposition.depth()}")
+
+        # This synthesis method is not aware of the coupling map, so we cannot apply
+        # this method when the coupling map is not None.
+        # (Though, technically, we could check if the reduced coupling map is
+        # fully-connected).
+
+        print(f"I AM HERE, {coupling_map = }")
+        if not coupling_map:
+            if not consider_all_mats:
+                decomposition = synth_cnot_count_full_pmh(high_level_object.linear)
+            else:
+                decomposition = optimize_cx_4_options(synth_cnot_count_full_pmh, high_level_object.linear, optimize_count=optimize_count)
+            print(f"NEW DECOMPOSITION count = {decomposition.size()}, depth = {decomposition.depth()}")
+
+            if not best_decomposition or _compare_circuits(best_decomposition, decomposition, optimize_count=optimize_count):
+                best_decomposition = decomposition
+                print(f"IMPROVED! to count = {best_decomposition.size()}, depth = {best_decomposition.depth()}")
+
+        return best_decomposition
 
 
 def _hamiltonian_path(coupling_map: CouplingMap):
@@ -316,21 +345,40 @@ def _hamiltonian_path(coupling_map: CouplingMap):
     return None
 
 
-def _all_hamiltonian_paths(coupling_map: CouplingMap):
-    """Returns all Hamiltonian paths (when exist) or None (when does not)."""
+def _hamiltonian_paths(coupling_map: CouplingMap, cutoff: Union[None | int] = None) -> List[List[int]]:
+    """Returns a list of all Hamiltonian paths in ``coupling_map`` (stopping the enumeration when
+    the number of already discovered paths exceeds the ``cutoff`` value, when specified).
+    In particular, returns an empty list if there are no Hamiltonian paths.
+    """
+
+    # This is a temporary function, the plan is to move it to rustworkx
+
+    def should_stop():
+        return cutoff is not None and len(all_paths) >= cutoff
 
     def _recurse(current_node):
         current_path.append(current_node)
         if len(current_path) == coupling_map.size():
+            # Discovered a new Hamiltonian path
             all_paths.append(current_path.copy())
+
+        if should_stop():
+            return
+
         unvisited_neighbors = [node for node in coupling_map.neighbors(current_node) if node not in current_path]
         for node in unvisited_neighbors:
             _recurse(node)
+            if should_stop():
+                return
+
         current_path.pop()
 
     all_paths = []
     current_path = []
     qubits = coupling_map.physical_qubits
+
     for qubit in qubits:
         _recurse(qubit)
+        if should_stop():
+            break
     return all_paths
