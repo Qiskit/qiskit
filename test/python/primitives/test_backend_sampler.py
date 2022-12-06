@@ -319,6 +319,22 @@ class TestBackendSampler(QiskitTestCase):
         self.assertDictAlmostEqual(result.quasi_dists[0], {0: 1}, 0.1)
         self.assertDictAlmostEqual(result.quasi_dists[1], {1: 1}, 0.1)
 
+    def test_sequential_run(self):
+        """Test sequential run."""
+        qc = QuantumCircuit(1)
+        qc.measure_all()
+        qc2 = QuantumCircuit(1)
+        qc2.x(0)
+        qc2.measure_all()
+        sampler = BackendSampler(backend=FakeNairobi())
+        result = sampler.run([qc]).result()
+        self.assertDictAlmostEqual(result.quasi_dists[0], {0: 1}, 0.1)
+        result2 = sampler.run([qc2]).result()
+        self.assertDictAlmostEqual(result2.quasi_dists[0], {1: 1}, 0.1)
+        result3 = sampler.run([qc, qc2]).result()
+        self.assertDictAlmostEqual(result3.quasi_dists[0], {0: 1}, 0.1)
+        self.assertDictAlmostEqual(result3.quasi_dists[1], {1: 1}, 0.1)
+
 
 if __name__ == "__main__":
     unittest.main()
