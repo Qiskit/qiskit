@@ -381,7 +381,7 @@ class VQD(VariationalAlgorithm, Eigensolver):
 
                 costs = fidelity_job.result().fidelities
 
-                for (state, cost) in zip(range(step - 1), costs):
+                for state, cost in enumerate(costs):
                     total_cost += np.real(betas[state] * cost)
 
             try:
