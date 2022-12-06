@@ -226,21 +226,21 @@ class VQD(VariationalAlgorithm, Eigensolver):
             aux_operators = None
 
         if self.betas is None:
+
             if isinstance(operator, PauliSumOp):
-                upper_bound = abs(operator.coeff) * sum(
-                    abs(operation.primitive.coeffs) for operation in operator
-                )
-            else:
-                try:
-                    upper_bound = sum(np.abs(operator.coeffs))
-                except Exception as exc:
-                    raise NotImplementedError(
-                        r"Beta autoevaluation is not supported for operators"
-                        f"of type {type(operator)}."
-                    ) from exc
+                operator = operator.coeff * operator.primitive
+
+            try:
+                upper_bound = sum(np.abs(operator.coeffs))
+
+            except Exception as exc:
+                raise NotImplementedError(
+                    r"Beta autoevaluation is not supported for operators"
+                    f"of type {type(operator)}."
+                ) from exc
 
             betas = [upper_bound * 10] * (self.k)
-            logger.info("beta autoevaluated to %s", betas[0])
+            logger.info(f"beta autoevaluated to {betas[0]}")
         else:
             betas = self.betas
 
@@ -386,10 +386,11 @@ class VQD(VariationalAlgorithm, Eigensolver):
 
             try:
                 estimator_result = estimator_job.result()
-                values = estimator_result.values + total_cost
 
             except Exception as exc:
                 raise AlgorithmError("The primitive job to evaluate the energy failed!") from exc
+
+            values = estimator_result.values + total_cost
 
             if self.callback is not None:
                 metadata = estimator_result.metadata

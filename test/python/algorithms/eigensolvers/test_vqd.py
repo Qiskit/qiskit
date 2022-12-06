@@ -12,7 +12,10 @@
 
 """ Test VQD """
 
+import sys
 import unittest
+import logging
+
 from test.python.algorithms import QiskitAlgorithmsTestCase
 
 import numpy as np
@@ -115,14 +118,19 @@ class TestVQD(QiskitAlgorithmsTestCase):
             result.eigenvalues.real, self.h2_energy_excited, decimal=2
         )
 
-    def test_betas_autoeval(self):
-        """Test that betas autoevaluation matches for different operator types."""
-        vqd = VQD(self.estimator_shots, self.fidelity, self.ryrz_wavefunction, optimizer=L_BFGS_B())
-        result1 = vqd.compute_eigenvalues(H2_PAULI)
-        result2 = vqd.compute_eigenvalues(H2_SPARSE_PAULI)
-        np.testing.assert_array_almost_equal(
-            result1.eigenvalues.real, result2.eigenvalues.real, decimal=2
-        )
+    @data(H2_PAULI, H2_SPARSE_PAULI)
+    def test_beta_autoeval(self, op):
+        """Test beta autoevaluation for different operator types."""
+
+        with self.assertLogs(level="INFO") as logs:
+            vqd = VQD(
+                self.estimator_shots, self.fidelity, self.ryrz_wavefunction, optimizer=L_BFGS_B()
+            )
+            _ = vqd.compute_eigenvalues(op)
+
+        # the first log message shows the value of beta[0]
+        beta = float(logs.output[0].split()[-1])
+        self.assertAlmostEqual(beta, 20.40459399499687, 4)
 
     @data(H2_PAULI, H2_OP, H2_SPARSE_PAULI)
     def test_mismatching_num_qubits(self, op):
