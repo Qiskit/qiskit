@@ -46,21 +46,30 @@ logger = logging.getLogger(__name__)
 
 class SSVQE(VariationalAlgorithm, Eigensolver):
     r"""The Subspace Search Variational Quantum Eigensolver algorithm.
-    `SSVQE <https://arxiv.org/abs/1810.09434>`__ is a quantum algorithm
-    that uses a variational technique to find the low-lying eigenvalues
+    `SSVQE <https://arxiv.org/abs/1810.09434>`__ is a hybrid quantum-classical
+    algorithm that uses a variational technique to find the low-lying eigenvalues
     of the Hamiltonian :math:`H` of a given system. SSVQE can be seen as
     a natural generalization of VQE. Whereas VQE minimizes the expectation
-    value of :math:`H` with respect to one ansatz state, SSVQE takes a set
-    of mutually orthogonal input states, applies the same parameterized ansatz
-    to all of them, then minimizes a weighted sum of the expectation values of
-    :math:`H` with respect to these states. An instance of SSVQE requires defining
-    three algorithmic sub-components:
+    value of :math:`H` with respect to the ansatz state, SSVQE takes a set
+    of mutually orthogonal input states :math:`\{| \psi_{i}} \rangle\}_{i=0}^{k-1}`,
+    applies the same parameterized ansatz circuit :math:`U(\vec\theta)` to all of them,
+    then minimizes a weighted sum of the expectation values of :math:`H` with respect to these states:
 
-    An integer k denoting the number of eigenstates that the algorithm will attempt
-    to find, a trial state (a.k.a. ansatz) which is a :class:`QuantumCircuit`, and
-    one of the classical :mod:`~qiskit.algorithms.optimizers`. The ansatz is varied,
-    via its set of parameters, by the optimizer, such that it works towards a set of
-    mutually orthogonal states, as determined by the parameters applied to the ansatz,
+    .. math::
+
+        \min_{\vec\theta} \sum_{i=0}^{k-1} w_{i} \langle\psi_{i} (\vec\theta)|H| \psi{i}(\vec\theta) \rangle
+
+    where :math:`|\psi{i} (\vec\theta)\rangle` is shorthand for :math:`U (\vec\theta)| \psi_{i} \rangle`
+    and :math:`\{ w_{i} \}_{i=0}^{k-1}` are the components of the ``weight_vector``.
+
+    An instance of SSVQE requires defining four algorithmic sub-components:
+
+    An :attr:`estimator` to compute the expectation values of operators, an integer ``k`` denoting
+    the number of eigenstates that the algorithm will attempt to find, an ansatz which is a
+    :class:`QuantumCircuit`, and one of the classical :mod:`~qiskit.algorithms.optimizers`.
+
+    The ansatz is varied, via its set of parameters, by the optimizer, such that it works towards
+    a set of mutually orthogonal states, as determined by the parameters applied to the ansatz,
     that will result in the minimum weighted sum of expectation values being measured
     of the input operator (Hamiltonian) with respect to these states. The weights given
     to this list of expectation values is given by ``weight_vector``. An optional array of
@@ -90,6 +99,31 @@ class SSVQE(VariationalAlgorithm, Eigensolver):
     particle number subspace. A similar statement can often be made for the
     spin-magnetization quantum number.
 
+    A minimal example of how one may initialize an instance of ``SSVQE`` and use it
+    to compute the low-lying eigenvalues of an operator:
+
+    .. code-block:: python
+
+      from qiskit import QuantumCircuit
+      from qiskit.quantum_info import Pauli
+      from qiskit.primitives import Estimator
+      from qiskit.circuit.library import RealAmplitudes
+      from qiskit.algorithms.optimizers import SPSA
+      from qiskit.algorithms.eigensolvers import SSVQE
+
+      operator = Pauli("ZZ")
+      input_states = [QuantumCircuit(2), QuantumCircuit(2)]
+      input_states[0].x(0)
+      input_states[1].x(1)
+
+      ssvqe_instance = SSVQE(k=2,
+                            estimator=Estimator(),
+                            optimizer=SPSA(),
+                            ansatz=RealAmplitudes(2),
+                            initial_states=input_states)
+
+      result = ssvqe_instance.compute_eigenvalues(operator)
+
     The following attributes can be set via the initializer but can also be read and
     updated once the SSVQE object has been constructed.
 
@@ -117,9 +151,9 @@ class SSVQE(VariationalAlgorithm, Eigensolver):
             check_input_states_orthogonality: A boolean that sets whether or not to check
                 that the value of initial_states passed consists of a mutually orthogonal
                 set of states. If ``True``, then SSVQE will check that these states are mutually
-                orthogonal and return an error if they are not. This is set to ``True`` by default,
-                but setting this to ``False`` may be desirable for larger numbers of qubits to avoid
-                exponentially large computational overhead before the simulation even starts.
+                orthogonal and return an :class:`AlgorithmError` if they are not.
+                This is set to ``True`` by default, but setting this to ``False`` may be desirable
+                for larger numbers of qubits to avoid exponentially large computational overhead.
     """
 
     def __init__(
