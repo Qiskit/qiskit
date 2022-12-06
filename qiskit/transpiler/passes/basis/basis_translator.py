@@ -19,7 +19,7 @@ import time
 import logging
 
 from itertools import zip_longest
-from collections import defaultdict, namedtuple
+from collections import defaultdict
 
 import rustworkx
 
