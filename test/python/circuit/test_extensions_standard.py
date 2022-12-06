@@ -868,11 +868,7 @@ class TestStandard1Q(QiskitTestCase):
     def test_global_phase_matrix(self):  # , theta: float, expected: np.ndarray
         """Test global_phase matrix."""
         theta = 0.1
-        np.testing.assert_allclose(
-            GlobalPhaseGate(theta).__array__(),
-            np.array([[np.exp(1j * theta)]], dtype=complex),
-            atol=1e-7,
-        )
+        np.testing.assert_allclose(GlobalPhaseGate(theta).__array__(),np.array([[np.exp(1j * theta)]], dtype=complex),atol=1e-7)
 
 
 @ddt
