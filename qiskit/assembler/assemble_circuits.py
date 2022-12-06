@@ -329,9 +329,9 @@ def assemble_circuits(
             qc.cx(q[0], q[1])
             qc.measure(q, c)
             qobj = assemble_circuits(circuits=[qc],
-                                        qobj_id="custom-id",
-                                        qobj_header=[],
-                                        run_config=RunConfig(shots=2000, memory=True, init_qubits=True))
+                                     qobj_id="custom-id",
+                                     qobj_header=[],
+                                     run_config=RunConfig(shots=2000, memory=True, init_qubits=True))
     """
     # assemble the circuit experiments
     experiments_and_pulse_libs = parallel_map(_assemble_circuit, circuits, [run_config])
