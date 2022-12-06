@@ -74,6 +74,7 @@ def disassemble(qobj) -> Union[CircuitModule, PulseModule]:
             qc.measure(q, c)
             # Assemble the circuit into a Qobj
             qobj = assemble(qc, shots=2000, memory=True)
+            # Disassemble the qobj back into a circuit
             circuits, run_config_out, headers = disassemble(qobj)
     """
     if qobj.type == "PULSE":
