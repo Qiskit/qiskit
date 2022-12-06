@@ -15,7 +15,7 @@
 import copy
 from typing import Callable, List
 import numpy as np
-from qiskit import QuantumCircuit
+from qiskit.circuit.quantumcircuit import QuantumCircuit
 from qiskit.exceptions import QiskitError
 from qiskit.circuit.exceptions import CircuitError
 from . import calc_inverse_matrix, check_invertible_binary_matrix
@@ -104,7 +104,9 @@ def _cx_circuits_4_options(function: Callable, mat: np.ndarray) -> List[QuantumC
     return circuits
 
 
-def _choose_best_circuit(circuits: List[QuantumCircuit], optimize_count: bool = True) -> QuantumCircuit:
+def _choose_best_circuit(
+    circuits: List[QuantumCircuit], optimize_count: bool = True
+) -> QuantumCircuit:
     """Returns the best quantum circuit either in terms of gate count or depth.
 
     Args:
@@ -121,7 +123,9 @@ def _choose_best_circuit(circuits: List[QuantumCircuit], optimize_count: bool = 
     return best_qc
 
 
-def _compare_circuits(qc1: QuantumCircuit, qc2: QuantumCircuit, optimize_count: bool = True) -> bool:
+def _compare_circuits(
+    qc1: QuantumCircuit, qc2: QuantumCircuit, optimize_count: bool = True
+) -> bool:
     """Compares two quantum circuits either in terms of gate count or depth.
 
      Args:
