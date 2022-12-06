@@ -56,7 +56,6 @@ def assemble_schedules(
         .. code-block:: python
 
             from qiskit import pulse
-            from qiskit.compiler.assembler import assemble
             from qiskit.assembler import assemble_schedules
             from qiskit.assembler.run_config import RunConfig
             # Construct a Qobj header for the output Qobj
