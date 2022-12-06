@@ -12,10 +12,7 @@
 
 """ Test VQD """
 
-import sys
 import unittest
-import logging
-
 from test.python.algorithms import QiskitAlgorithmsTestCase
 
 import numpy as np

@@ -240,7 +240,7 @@ class VQD(VariationalAlgorithm, Eigensolver):
                 ) from exc
 
             betas = [upper_bound * 10] * (self.k)
-            logger.info(f"beta autoevaluated to {betas[0]}")
+            logger.info("beta autoevaluated to %s", betas[0])
         else:
             betas = self.betas
 
