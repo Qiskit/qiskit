@@ -59,6 +59,7 @@ def assemble_schedules(
             from qiskit.compiler.assembler import assemble
             from qiskit.assembler import assemble_schedules
             from qiskit.assembler.run_config import RunConfig
+            # Construct a Qobj header for the output Qobj
             header = {"backend_name": "FakeOpenPulse2Q", "backend_version": "0.0.0"}
             config = RunConfig(shots=1024,
                                memory=False,
