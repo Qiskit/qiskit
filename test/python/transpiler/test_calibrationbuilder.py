@@ -295,21 +295,6 @@ class TestRZXCalibrationBuilderNoEcho(TestCalibrationBuilder):
 
         self.assertEqual(schedule(test_qc, self.backend), target_qobj_transform(ref_sched))
 
-    def test_pulse_amp_typecasted(self):
-        """Test if scaled pulse amplitude is complex type."""
-        fake_play = Play(
-            GaussianSquare(duration=800, amp=0.1, sigma=64, risefall_sigma_ratio=2),
-            ControlChannel(0),
-        )
-        fake_theta = circuit.Parameter("theta")
-        assigned_theta = fake_theta.assign(fake_theta, 0.01)
-
-        with builder.build() as test_sched:
-            RZXCalibrationBuilderNoEcho.rescale_cr_inst(instruction=fake_play, theta=assigned_theta)
-        scaled_pulse = test_sched.blocks[0].blocks[0].pulse
-
-        self.assertIsInstance(scaled_pulse.amp, complex)
-
     def test_pass_alive_with_dcx_ish(self):
         """Test if the pass is not terminated by error with direct CX input."""
         cx_sched = Schedule()
