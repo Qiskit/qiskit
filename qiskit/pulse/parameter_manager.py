@@ -232,6 +232,13 @@ class ParameterSetter(NodeVisitor):
                 if isinstance(pval, ParameterExpression):
                     new_val = self._assign_parameter_expression(pval)
                     node._params[name] = new_val
+            # Assign comparison parameters
+            for name in node.comparison_params:
+                pval = node.comparison_params[name]
+                if isinstance(pval, ParameterExpression):
+                    new_val = self._assign_parameter_expression(pval)
+                    node.comparison_params[name] = new_val
+
             node.validate_parameters()
 
         return node

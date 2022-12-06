@@ -23,6 +23,7 @@ import warnings
 from typing import Any, Dict, List, Optional, Union, Callable
 
 import numpy as np
+import copy
 
 from qiskit.circuit.parameterexpression import ParameterExpression
 from qiskit.pulse.exceptions import PulseError
@@ -383,6 +384,7 @@ class SymbolicPulse(Pulse):
         "_envelope",
         "_constraints",
         "_valid_amp_conditions",
+        "comparison_params",
     )
 
     # Lambdify caches keyed on sympy expressions. Returns the corresponding callable.
@@ -400,6 +402,7 @@ class SymbolicPulse(Pulse):
         envelope: Optional[sym.Expr] = None,
         constraints: Optional[sym.Expr] = None,
         valid_amp_conditions: Optional[sym.Expr] = None,
+        comparison_params: Optional[Dict[str, Union[ParameterExpression, complex]]] = None,
     ):
         """Create a parametric pulse.
 
@@ -417,6 +420,10 @@ class SymbolicPulse(Pulse):
                 will investigate the full-waveform and raise an error when the amplitude norm
                 of any data point exceeds 1.0. If not provided, the validation always
                 creates a full-waveform.
+            comparison_params: Dictionary of parameters for the equating operation of symbolic
+                pulses. When two pulses are compared, this dictionary has to be identical.
+                However, the `parameters` dictionary have to be identical only for keys not
+                appearing in `comparison_params`.
 
         Raises:
             PulseError: When not all parameters are listed in the attribute :attr:`PARAM_DEF`.
@@ -435,6 +442,8 @@ class SymbolicPulse(Pulse):
         self._envelope = envelope
         self._constraints = constraints
         self._valid_amp_conditions = valid_amp_conditions
+
+        self.comparison_params = comparison_params
 
     def __getattr__(self, item):
         # Get pulse parameters with attribute-like access.
@@ -547,8 +556,35 @@ class SymbolicPulse(Pulse):
         if self._envelope != other._envelope:
             return False
 
+        # comparison_parameters is assumed to be a function of parameters. If parameters are the same, we don't need
+        # to check the comparison_parameters. (Also solves the edge case of a pulse with no parameters)
         if self.parameters != other.parameters:
-            return False
+            if self.comparison_params is None or other.comparison_params is None:
+                return False
+            else:
+                params1 = copy.copy(self.parameters)
+                params2 = copy.copy(other.parameters)
+
+                # Because the values are calculated, we need to compare to within numerical precision, and can't
+                # use a simple comparison of the dictionaries.
+                if self.comparison_params.keys() != other.comparison_params.keys():
+                    return False
+
+                for key in self.comparison_params:
+                    if isinstance(self.comparison_params[key], ParameterExpression) or isinstance(other.comparison_params[key], ParameterExpression):
+                        if self.comparison_params[key] != other.comparison_params[key]:
+                            return False
+                    else:
+                        if not np.isclose(self.comparison_params[key], other.comparison_params[key]):
+                            return False
+
+                for key in self.comparison_params.keys() & params1.keys():
+                    del params1[key]
+                for key in self.comparison_params.keys() & params2.keys():
+                    del params2[key]
+
+                if params1 != params2:
+                    return False
 
         return True
 
@@ -658,6 +694,7 @@ class Gaussian(metaclass=_PulseType):
             angle = 0
 
         parameters = {"amp": amp, "sigma": sigma, "angle": angle}
+        comparison_params = {"comp_amp" : amp * np.exp(1j * angle), "amp" : 0, "angle" : 0}
 
         # Prepare symbolic expressions
         _t, _duration, _amp, _sigma, _angle = sym.symbols("t, duration, amp, sigma, angle")
@@ -679,6 +716,7 @@ class Gaussian(metaclass=_PulseType):
             envelope=envelope_expr,
             constraints=consts_expr,
             valid_amp_conditions=valid_amp_conditions_expr,
+            comparison_params=comparison_params,
         )
         instance.validate_parameters()
 
@@ -787,6 +825,7 @@ class GaussianSquare(metaclass=_PulseType):
             angle = 0
 
         parameters = {"amp": amp, "sigma": sigma, "width": width, "angle": angle}
+        comparison_params = {"comp_amp": amp * np.exp(1j * angle), "amp": 0, "angle": 0}
 
         # Prepare symbolic expressions
         _t, _duration, _amp, _sigma, _width, _angle = sym.symbols(
@@ -820,6 +859,7 @@ class GaussianSquare(metaclass=_PulseType):
             envelope=envelope_expr,
             constraints=consts_expr,
             valid_amp_conditions=valid_amp_conditions_expr,
+            comparison_params=comparison_params,
         )
         instance.validate_parameters()
 
@@ -911,6 +951,7 @@ class Drag(metaclass=_PulseType):
             angle = 0
 
         parameters = {"amp": amp, "sigma": sigma, "beta": beta, "angle": angle}
+        comparison_params = {"comp_amp": amp * np.exp(1j * angle), "amp": 0, "angle": 0}
 
         # Prepare symbolic expressions
         _t, _duration, _amp, _sigma, _beta, _angle = sym.symbols(
@@ -935,6 +976,7 @@ class Drag(metaclass=_PulseType):
             envelope=envelope_expr,
             constraints=consts_expr,
             valid_amp_conditions=valid_amp_conditions_expr,
+            comparison_params=comparison_params,
         )
         instance.validate_parameters()
 
@@ -992,6 +1034,7 @@ class Constant(metaclass=_PulseType):
             angle = 0
 
         parameters = {"amp": amp, "angle": angle}
+        comparison_params = {"comp_amp": amp * np.exp(1j * angle), "amp": 0, "angle": 0}
 
         # Prepare symbolic expressions
         _t, _amp, _duration, _angle = sym.symbols("t, amp, duration, angle")
@@ -1019,6 +1062,7 @@ class Constant(metaclass=_PulseType):
             limit_amplitude=limit_amplitude,
             envelope=envelope_expr,
             valid_amp_conditions=valid_amp_conditions_expr,
+            comparison_params=comparison_params,
         )
         instance.validate_parameters()
 

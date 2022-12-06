@@ -28,6 +28,7 @@ from qiskit.pulse.library import (
     gaussian_square,
     drag as pl_drag,
 )
+from qiskit.pulse import build, play, DriveChannel
 
 from qiskit.pulse import functional_pulse, PulseError
 from qiskit.test import QiskitTestCase
@@ -541,6 +542,31 @@ class TestFunctionalPulse(QiskitTestCase):
         for _duration in _durations:
             pulse_wf_inst = local_gaussian(duration=_duration, amp=1, t0=5, sig=1)
             self.assertEqual(len(pulse_wf_inst.samples), _duration)
+
+    def test_comparison_parameters(self):
+        """Test equating of pulses with comparison_parameters."""
+        # amp,angle comparison for library pulses
+        gaussian_negamp = Gaussian(duration=25, sigma=4, amp=-0.5, angle=0)
+        gaussian_piphase = Gaussian(duration=25, sigma=4, amp=0.5, angle=np.pi)
+        self.assertEqual(gaussian_negamp, gaussian_piphase)
+
+        # Parameterized library pulses
+        amp = Parameter("amp")
+        gaussian1 = Gaussian(duration=25, sigma=4, amp=amp, angle=0)
+        gaussian2 = Gaussian(duration=25, sigma=4, amp=amp, angle=0)
+        self.assertEqual(gaussian1, gaussian2)
+
+        # pulses with different parameters
+        gaussian1._params["sigma"] = 10
+        self.assertNotEqual(gaussian1, gaussian2)
+
+        # Assignment of parameters (to verify computation of comparison_parameters)
+        angle = Parameter("angle")
+        with build() as sc:
+            play(Gaussian(duration=160, amp=amp, sigma=40, angle=angle), DriveChannel(0))
+        sc_piphase = sc.assign_parameters({amp: 1, angle: np.pi}, inplace=False)
+        sc_negamp = sc.assign_parameters({amp: -1, angle: 0}, inplace=False)
+        self.assertEqual(sc_piphase, sc_negamp)
 
 
 if __name__ == "__main__":
