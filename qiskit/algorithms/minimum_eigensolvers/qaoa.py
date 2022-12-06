@@ -22,7 +22,7 @@ from qiskit.circuit import QuantumCircuit
 from qiskit.circuit.library.n_local.qaoa_ansatz import QAOAAnsatz
 from qiskit.quantum_info.operators.base_operator import BaseOperator
 from qiskit.opflow import PauliSumOp, PrimitiveOp
-from qiskit.primitives import BaseSampler
+from qiskit.primitives import BaseSampler, BaseEstimator
 from qiskit.utils.validation import validate_min
 
 from ..exceptions import AlgorithmError
@@ -72,6 +72,8 @@ class QAOA(SamplingVQE):
             that can access the intermediate data at each optimization step. These data are: the
             evaluation count, the optimizer parameters for the ansatz, the evaluated value, the
             the metadata dictionary, and the best measurement.
+        estimator (BaseEstimator | None): An estimator primitive for the optimization part. If
+            None, expectation values are calculated from the samples.
 
     References:
         [1]: Farhi, E., Goldstone, J., Gutmann, S., "A Quantum Approximate Optimization Algorithm"
@@ -95,6 +97,7 @@ class QAOA(SamplingVQE):
         initial_point: np.ndarray | None = None,
         aggregation: float | Callable[[list[float]], float] | None = None,
         callback: Callable[[int, np.ndarray, float, dict[str, Any]], None] | None = None,
+        estimator: BaseEstimator | None = None,
     ) -> None:
         r"""
         Args:
@@ -118,6 +121,8 @@ class QAOA(SamplingVQE):
             callback: A callback that can access the intermediate data at each optimization step.
                 These data are: the evaluation count, the optimizer parameters for the ansatz, the
                 evaluated value, the the metadata dictionary.
+            estimator: An estimator primitive for the optimization part. If None, expectation values
+                are calculated from the samples.
         """
         validate_min("reps", reps, 1)
 
@@ -133,6 +138,7 @@ class QAOA(SamplingVQE):
             initial_point=initial_point,
             aggregation=aggregation,
             callback=callback,
+            estimator=estimator,
         )
 
     def _check_operator_ansatz(self, operator: BaseOperator | PauliSumOp):

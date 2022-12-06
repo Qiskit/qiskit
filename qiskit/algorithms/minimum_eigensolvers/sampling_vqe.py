@@ -23,7 +23,7 @@ import numpy as np
 
 from qiskit.circuit import QuantumCircuit
 from qiskit.opflow import PauliSumOp
-from qiskit.primitives import BaseSampler
+from qiskit.primitives import BaseSampler, BaseEstimator
 from qiskit.result import QuasiDistribution
 from qiskit.quantum_info.operators.base_operator import BaseOperator
 
@@ -108,6 +108,8 @@ class SamplingVQE(VariationalAlgorithm, SamplingMinimumEigensolver):
             can access the intermediate data at each optimization step. These data are: the
             evaluation count, the optimizer parameters for the ansatz, the evaluated value, and the
             metadata dictionary.
+        estimator (BaseEstimator | None): An estimator primitive for the optimization part. If
+            None, expectation values are calculated from the samples.
 
     References:
         [1]: Barkoutsos, P. K., Nannicini, G., Robert, A., Tavernelli, I., and Woerner, S.,
@@ -124,6 +126,7 @@ class SamplingVQE(VariationalAlgorithm, SamplingMinimumEigensolver):
         initial_point: Sequence[float] | None = None,
         aggregation: float | Callable[[list[float]], float] | None = None,
         callback: Callable[[int, np.ndarray, float, dict[str, Any]], None] | None = None,
+        estimator: BaseEstimator | None = None,
     ) -> None:
         r"""
         Args:
@@ -141,6 +144,8 @@ class SamplingVQE(VariationalAlgorithm, SamplingMinimumEigensolver):
             callback: A callback that can access the intermediate data at each optimization step.
                 These data are: the evaluation count, the optimizer parameters for the ansatz, the
                 estimated value, and the metadata dictionary.
+            estimator: An estimator primitive for the optimization part. If None, expectation values
+                are calculated from the samples.
         """
         super().__init__()
 
@@ -149,6 +154,7 @@ class SamplingVQE(VariationalAlgorithm, SamplingMinimumEigensolver):
         self.optimizer = optimizer
         self.aggregation = aggregation
         self.callback = callback
+        self.estimator = estimator
 
         # this has to go via getters and setters due to the VariationalAlgorithm interface
         self._initial_point = initial_point
@@ -197,7 +203,8 @@ class SamplingVQE(VariationalAlgorithm, SamplingMinimumEigensolver):
 
         if len(self.ansatz.clbits) > 0:
             self.ansatz.remove_final_measurements()
-        self.ansatz.measure_all()
+        if self.estimator is None:
+            self.ansatz.measure_all()
 
         initial_point = validate_initial_point(self.initial_point, self.ansatz)
 
@@ -233,6 +240,8 @@ class SamplingVQE(VariationalAlgorithm, SamplingMinimumEigensolver):
             optimizer_result.x,
         )
 
+        if self.estimator is not None:
+            self.ansatz.measure_all()
         final_state = self.sampler.run([self.ansatz], [optimizer_result.x]).result().quasi_dists[0]
 
         if aux_operators is not None:
@@ -294,9 +303,11 @@ class SamplingVQE(VariationalAlgorithm, SamplingMinimumEigensolver):
                 ):
                     best_measurement["best"] = best_i
 
-        estimator = _DiagonalEstimator(
-            sampler=self.sampler, callback=store_best_measurement, aggregation=self.aggregation
+        estimator = self.estimator or _DiagonalEstimator(
+            sampler=self.sampler, aggregation=self.aggregation
         )
+        if return_best_measurement and hasattr(estimator, "callback"):
+            estimator.callback = store_best_measurement
 
         def evaluate_energy(parameters):
             nonlocal eval_count
