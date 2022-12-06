@@ -83,6 +83,7 @@ def assemble_schedules(
             schedule += pulse.Play(pulse.Waveform([0.5] * 16, name="test0"),
                                    pulse.DriveChannel(0),
                                    name="test1")
+            # Assemble a Qobj from the schedule.
             pulseQobj = assemble_schedules(schedules=[schedule],
                                            qobj_id="custom-id",
                                            qobj_header=header,
