@@ -251,8 +251,9 @@ class TestEquivalenceLibraryWithBase(QiskitTestCase):
         entry = eq_lib.get_entry(gate)
 
         self.assertEqual(len(entry), 2)
-        self.assertEqual(entry[0], first_equiv)
-        self.assertEqual(entry[1], second_equiv)
+        self.assertNotEqual(entry[0], entry[1])
+        self.assertTrue(entry[0] in [first_equiv, second_equiv])
+        self.assertTrue(entry[1] in [first_equiv, second_equiv])
 
     def test_set_entry(self):
         """Verify we find only equivalences from top when explicitly set."""
