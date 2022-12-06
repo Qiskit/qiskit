@@ -245,7 +245,6 @@ Unitary Synthesis Plugins
    UnitarySynthesisPlugin
    UnitarySynthesisPluginManager
    unitary_synthesis_plugin_names
-   SolovayKitaevSynthesis
 
 High-Level Synthesis Plugins
 ----------------------------
