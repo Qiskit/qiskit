@@ -61,15 +61,15 @@ def assemble_schedules(
             from qiskit.assembler.run_config import RunConfig
             header = {"backend_name": "FakeOpenPulse2Q", "backend_version": "0.0.0"}
             config = RunConfig(shots=1024,
-                                memory=False,
-                                meas_level=1,
-                                meas_return='avg',
-                                memory_slot_size=100,
-                                parametric_pulses=[],
-                                init_qubits=True,
-                                qubit_lo_freq=[4900000000.0, 5000000000.0],
-                                meas_lo_freq=[6500000000.0, 6600000000.0],
-                                schedule_los=[])
+                               memory=False,
+                               meas_level=1,
+                               meas_return='avg',
+                               memory_slot_size=100,
+                               parametric_pulses=[],
+                               init_qubits=True,
+                               qubit_lo_freq=[4900000000.0, 5000000000.0],
+                               meas_lo_freq=[6500000000.0, 6600000000.0],
+                               schedule_los=[])
             default_qubit_lo_freq = [4.9e9, 5.0e9]
             default_meas_lo_freq = [6.5e9, 6.6e9]
             schedule = pulse.Schedule()
