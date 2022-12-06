@@ -165,7 +165,7 @@ class BaseEstimatorGradient(ABC):
             circuits, parameter_values, parameter_sets
         ):
             circuit_key = _circuit_key(circuit)
-            if not circuit_key in self._gradient_circuit_cache:
+            if circuit_key not in self._gradient_circuit_cache:
                 transpiled_circuit = transpile(
                     circuit, basis_gates=supported_gates, optimization_level=0
                 )

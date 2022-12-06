@@ -147,7 +147,7 @@ class BaseSamplerGradient(ABC):
             circuits, parameter_values, parameter_sets
         ):
             circuit_key = _circuit_key(circuit)
-            if not circuit_key in self._gradient_circuit_cache:
+            if circuit_key not in self._gradient_circuit_cache:
                 transpiled_circuit = transpile(
                     circuit, basis_gates=supported_gates, optimization_level=0
                 )
@@ -199,7 +199,7 @@ class BaseSamplerGradient(ABC):
             # Compute the original gradient from the gradient of the gradient circuit
             # by using the chain rule.
             gradient = []
-            for i, parameter in enumerate(parameter_indices):
+            for parameter in parameter_indices:
                 grad_dist = np.zeros(2**circuit.num_qubits)
                 for g_parameter, coeff in gradient_circuit.parameter_map[parameter]:
                     # Compute the coefficient
