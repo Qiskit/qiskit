@@ -321,6 +321,7 @@ def assemble_circuits(
             from qiskit.circuit import QuantumRegister, ClassicalRegister, QuantumCircuit
             from qiskit.assembler import assemble_circuits
             from qiskit.assembler.run_config import RunConfig
+            # Build a circuit to convert into a Qobj
             q = QuantumRegister(2)
             c = ClassicalRegister(2)
             qc = QuantumCircuit(q, c)
