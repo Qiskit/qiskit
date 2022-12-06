@@ -14,8 +14,8 @@
 
 from collections import namedtuple
 
-from retworkx.visualization import graphviz_draw  # pylint: disable=no-name-in-module
-import retworkx as rx
+from rustworkx.visualization import graphviz_draw  # pylint: disable=no-name-in-module
+import rustworkx as rx
 
 from qiskit.exceptions import InvalidFileError
 from .exceptions import CircuitError

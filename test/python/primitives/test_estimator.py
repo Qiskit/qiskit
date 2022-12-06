@@ -13,17 +13,18 @@
 """Tests for Estimator."""
 
 import unittest
-from ddt import ddt, data, unpack
 
 import numpy as np
+from ddt import data, ddt, unpack
 
 from qiskit.circuit import Parameter, QuantumCircuit
 from qiskit.circuit.library import RealAmplitudes
+from qiskit.exceptions import QiskitError
 from qiskit.opflow import PauliSumOp
 from qiskit.primitives import BaseEstimator, Estimator, EstimatorResult
 from qiskit.primitives.utils import _observable_key
 from qiskit.providers import JobV1
-from qiskit.quantum_info import Operator, SparsePauliOp
+from qiskit.quantum_info import Operator, SparsePauliOp, Pauli, PauliList
 from qiskit.test import QiskitTestCase
 
 
@@ -664,9 +665,29 @@ class TestObservableValidation(QiskitTestCase):
     """Test observables validation logic."""
 
     @data(
+        ("IXYZ", (SparsePauliOp("IXYZ"),)),
+        (Pauli("IXYZ"), (SparsePauliOp("IXYZ"),)),
+        (PauliList("IXYZ"), (SparsePauliOp("IXYZ"),)),
         (SparsePauliOp("IXYZ"), (SparsePauliOp("IXYZ"),)),
+        (PauliSumOp(SparsePauliOp("IXYZ")), (SparsePauliOp("IXYZ"),)),
+        (
+            ["IXYZ", "ZYXI"],
+            (SparsePauliOp("IXYZ"), SparsePauliOp("ZYXI")),
+        ),
+        (
+            [Pauli("IXYZ"), Pauli("ZYXI")],
+            (SparsePauliOp("IXYZ"), SparsePauliOp("ZYXI")),
+        ),
+        (
+            [PauliList("IXYZ"), PauliList("ZYXI")],
+            (SparsePauliOp("IXYZ"), SparsePauliOp("ZYXI")),
+        ),
         (
             [SparsePauliOp("IXYZ"), SparsePauliOp("ZYXI")],
+            (SparsePauliOp("IXYZ"), SparsePauliOp("ZYXI")),
+        ),
+        (
+            [PauliSumOp(SparsePauliOp("IXYZ")), PauliSumOp(SparsePauliOp("ZYXI"))],
             (SparsePauliOp("IXYZ"), SparsePauliOp("ZYXI")),
         ),
     )
@@ -675,13 +696,13 @@ class TestObservableValidation(QiskitTestCase):
         """Test obsevables standardization."""
         self.assertEqual(BaseEstimator._validate_observables(obsevables), expected)
 
-    @data(None, "ERROR")
-    def test_type_error(self, observables):
-        """Test type error if invalid input."""
-        with self.assertRaises(TypeError):
+    @data(None, "ERROR", "")
+    def test_qiskit_error(self, observables):
+        """Test qiskit error if invalid input."""
+        with self.assertRaises(QiskitError):
             BaseEstimator._validate_observables(observables)
 
-    @data((), [], "")
+    @data((), [])
     def test_value_error(self, observables):
         """Test value error if no obsevables are provided."""
         with self.assertRaises(ValueError):
