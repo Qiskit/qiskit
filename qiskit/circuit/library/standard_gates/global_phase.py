@@ -15,7 +15,7 @@
 from typing import Optional  # , Union
 import math
 import numpy
-from qiskit.qasm import pi
+# from qiskit.qasm import pi
 
 # from qiskit.circuit.controlledgate import ControlledGate
 from qiskit.circuit.gate import Gate
@@ -32,7 +32,7 @@ class GlobalPhaseGate(Gate):
     r"""The global phase gate (:math:`e^{i\theta}`).
 
     Can be applied to a :class:`~qiskit.circuit.QuantumCircuit`
-    with the :meth:`~qiskit.circuit.QuantumCircuit.gphase` method.
+    with the :meth:`~qiskit.circuit.QuantumCircuit.global_phase` method.
 
     **Mathamatical Representation:**
 
@@ -54,7 +54,7 @@ class GlobalPhaseGate(Gate):
             num_qubits: The number of qubits the gate acts on.
             label: An optional label for the gate.
         """
-        super().__init__("gphase", 0, [phase], label=label)
+        super().__init__("global_phase", 0, [phase], label=label)
 
     def _define(self):
         # pylint: disable=cyclic-import
@@ -74,7 +74,7 @@ class GlobalPhaseGate(Gate):
         return GlobalPhaseGate(-self.params[0])
 
     def __array__(self, dtype=complex):
-        """Return a numpy.array for the gphase gate."""
+        """Return a numpy.array for the global_phase gate."""
         cos = math.cos(self.params[0])
         sin = math.sin(self.params[0])
         return numpy.array([[cos + 1j * sin]], dtype=dtype)
