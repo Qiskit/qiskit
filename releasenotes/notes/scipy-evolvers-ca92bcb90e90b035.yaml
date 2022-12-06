@@ -20,6 +20,6 @@ features:
         initial_state = Statevector.from_label("+++++")
         hamiltonian = SparsePauliOp("ZZZZZ")
         evolution_problem = TimeEvolutionProblem(hamiltonian, 100, initial_state)
-        classic_evolver = SciPyImaginaryEvolver(steps=300)
+        classic_evolver = SciPyImaginaryEvolver(num_timesteps=300)
         result = classic_evolver.evolve(evolution_problem)
         print(result.observables)
