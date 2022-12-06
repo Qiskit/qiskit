@@ -62,7 +62,6 @@ def disassemble(qobj) -> Union[CircuitModule, PulseModule]:
 
         .. code-block:: python
 
-            from qiskit import BasicAer
             from qiskit.circuit import QuantumRegister, ClassicalRegister, QuantumCircuit
             from qiskit.compiler.assembler import assemble
             from qiskit.assembler.disassemble import disassemble
