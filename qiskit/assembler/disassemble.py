@@ -65,6 +65,7 @@ def disassemble(qobj) -> Union[CircuitModule, PulseModule]:
             from qiskit.circuit import QuantumRegister, ClassicalRegister, QuantumCircuit
             from qiskit.compiler.assembler import assemble
             from qiskit.assembler.disassemble import disassemble
+            # Create a circuit to assemble into a qobj
             q = QuantumRegister(2)
             c = ClassicalRegister(2)
             qc = QuantumCircuit(q, c)
