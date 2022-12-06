@@ -174,6 +174,8 @@ class HighLevelSynthesis(TransformationPass):
                     else:
                         dag.substitute_node_with_dag(node, circuit_to_dag(decomposition))
 
+                    break
+
         return dag
 
 
