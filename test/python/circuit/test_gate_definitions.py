@@ -186,8 +186,6 @@ class TestGateDefinitions(QiskitTestCase):
         self.assertTrue(Operator(circuit).equiv(Operator(decomposed_circuit), atol=1e-7))
 
 
-
-
 @ddt
 class TestStandardGates(QiskitTestCase):
     """Standard Extension Test."""

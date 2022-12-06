@@ -2,5 +2,5 @@
 features:
   - |
     Added global phase gate (global_phase) which can be applied to a :class:`~qiskit.circuit.QuantumCircuit`
-    with the :meth:`~qiskit.circuit.QuantumCircuit.globalphase` method.
+    with the :meth:`~qiskit.circuit.QuantumCircuit.global_phase` method.
 
