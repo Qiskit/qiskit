@@ -321,7 +321,6 @@ def assemble_circuits(
             from qiskit.circuit import QuantumRegister, ClassicalRegister, QuantumCircuit
             from qiskit.assembler import assemble_circuits
             from qiskit.assembler.run_config import RunConfig
-            sim_backend = BasicAer.get_backend("qasm_simulator")
             q = QuantumRegister(2)
             c = ClassicalRegister(2)
             qc = QuantumCircuit(q, c)
