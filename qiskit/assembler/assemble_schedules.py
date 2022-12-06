@@ -72,8 +72,6 @@ def assemble_schedules(
                                qubit_lo_freq=[4900000000.0, 5000000000.0],
                                meas_lo_freq=[6500000000.0, 6600000000.0],
                                schedule_los=[])
-            default_qubit_lo_freq = [4.9e9, 5.0e9]
-            default_meas_lo_freq = [6.5e9, 6.6e9]
             schedule = pulse.Schedule()
             schedule += pulse.Play(pulse.Waveform([0.1] * 16, name="test0"),
                                    pulse.DriveChannel(0),
