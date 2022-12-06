@@ -328,6 +328,7 @@ def assemble_circuits(
             qc.h(q[0])
             qc.cx(q[0], q[1])
             qc.measure(q, c)
+            # Assemble a Qobj from the input circuit
             qobj = assemble_circuits(circuits=[qc],
                                      qobj_id="custom-id",
                                      qobj_header=[],
