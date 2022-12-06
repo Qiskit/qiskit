@@ -74,14 +74,14 @@ def assemble_schedules(
             default_meas_lo_freq = [6.5e9, 6.6e9]
             schedule = pulse.Schedule()
             schedule += pulse.Play(pulse.Waveform([0.1] * 16, name="test0"),
-                                        pulse.DriveChannel(0),
-                                        name="test1")
+                                   pulse.DriveChannel(0),
+                                   name="test1")
             schedule += pulse.Play(pulse.Waveform([0.1] * 16, name="test1"),
-                                        pulse.DriveChannel(0),
-                                        name="test2")
+                                   pulse.DriveChannel(0),
+                                   name="test2")
             schedule += pulse.Play(pulse.Waveform([0.5] * 16, name="test0"),
-                                        pulse.DriveChannel(0),
-                                        name="test1")
+                                   pulse.DriveChannel(0),
+                                   name="test1")
             pulseQobj = assemble_schedules(schedules=[schedule],
                                             qobj_id="custom-id",
                                             qobj_header=header,
