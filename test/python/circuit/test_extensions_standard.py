@@ -879,10 +879,11 @@ class TestStandard1Q(QiskitTestCase):
     #     gate = GlobalPhaseGate(theta)
     #     expected = np.array(np.exp(1j*theta))
     #     np.testing.assert_allclose(np.array(gate.to_matrix), expected, atol=1e-7)
-    # def test_gphase_matrix(self, theta: float, expected: np.ndarray):
-    #     """Test gphase matrix."""
-    #     gate = GlobalPhaseGate(theta)
-    #     np.testing.assert_allclose(np.array(gate), expected, atol=1e-7)
+    def test_gphase_matrix(self): #, theta: float, expected: np.ndarray
+        """Test gphase matrix."""
+        theta = 0.1
+        # gate = GlobalPhaseGate(theta).__array__()
+        np.testing.assert_allclose(GlobalPhaseGate(theta).__array__(), np.array([[np.exp(1j*theta)]], dtype=complex), atol=1e-7)
 
 
 @ddt
@@ -1287,11 +1288,6 @@ class TestStandard2Q(QiskitTestCase):
         """Test XX-YY matrix."""
         gate = XXMinusYYGate(theta, beta)
         np.testing.assert_allclose(np.array(gate), expected, atol=1e-7)
-
-    def test_gphase_matrix(self, theta: float, expected: np.ndarray):
-        """Test gphase matrix."""
-        gate = GlobalPhaseGate(theta)
-        np.testing.assert_allclose(np.array(gate), expected, atol=1e-7)    
 
     def test_xx_minus_yy_exponential_formula(self):
         """Test XX-YY exponential formula."""
