@@ -72,6 +72,7 @@ def assemble_schedules(
                                qubit_lo_freq=[4900000000.0, 5000000000.0],
                                meas_lo_freq=[6500000000.0, 6600000000.0],
                                schedule_los=[])
+            # Build a Pulse schedule to assemble into a Qobj
             schedule = pulse.Schedule()
             schedule += pulse.Play(pulse.Waveform([0.1] * 16, name="test0"),
                                    pulse.DriveChannel(0),
