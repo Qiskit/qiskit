@@ -862,7 +862,7 @@ class Statevector(QuantumState, TolerancesMixin):
             return statevec
         if isinstance(obj, Barrier):
             return statevec
-        if isinstance(obj, Initialize) and qargs is None:
+        if isinstance(obj, Initialize):
             # state is initialized to labels in the initialize object
             if all(isinstance(param, str) for param in obj.params):
                 initialization = Statevector.from_label("".join(obj.params))._data
