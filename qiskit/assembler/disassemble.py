@@ -65,7 +65,6 @@ def disassemble(qobj) -> Union[CircuitModule, PulseModule]:
             from qiskit.circuit import QuantumRegister, ClassicalRegister, QuantumCircuit
             from qiskit.compiler.assembler import assemble
             from qiskit.assembler.disassemble import disassemble
-            sim_backend = BasicAer.get_backend("qasm_simulator")
             q = QuantumRegister(2)
             c = ClassicalRegister(2)
             qc = QuantumCircuit(q, c)
