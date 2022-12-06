@@ -83,9 +83,9 @@ def assemble_schedules(
                                    pulse.DriveChannel(0),
                                    name="test1")
             pulseQobj = assemble_schedules(schedules=[schedule],
-                                            qobj_id="custom-id",
-                                            qobj_header=header,
-                                            run_config=config)
+                                           qobj_id="custom-id",
+                                           qobj_header=header,
+                                           run_config=config)
     """
     if not hasattr(run_config, "qubit_lo_freq"):
         raise QiskitError("qubit_lo_freq must be supplied.")
