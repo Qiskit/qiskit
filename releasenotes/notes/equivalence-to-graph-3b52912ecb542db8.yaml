@@ -3,11 +3,8 @@ features:
   - |
     The :class:`qiskit.circuit.equivalence.EquivalenceLibrary` is now
     represented internally as a ``PyDiGraph``. As part of this change,
-    three new attributes are now public-facing - ``graph``: the graph
-    representation of the EquivalenceLibrary, ``key_to_node_index``:
-    a mapping of the library keys to the graph node indices, and
-    ``num_gates_for_rule``: a count of how many gates make up each
-    equivalence rule. These attributes are intendeed for use internally
-    in qiskit and therefore should always be copied before being modified
-    by the user to prevent possible corruption of the internal equivalence
-    graph.
+    there is a new public-facing attribute - ``graph``: the graph
+    representation of the EquivalenceLibrary. This attribute is
+    intended for use internally in qiskit and therefore should always
+    be copied before being modified by the user to prevent possible
+    corruption of the internal equivalence graph.
