@@ -26,7 +26,7 @@ from qiskit.circuit.exceptions import CircuitError
 from qiskit.converters import circuit_to_instruction, circuit_to_gate
 from qiskit.circuit import EquivalenceLibrary
 from qiskit.utils import optionals
-from qiskit.circuit.equivalence import Key, Equivalence
+from qiskit.circuit.equivalence import Key, Equivalence, NodeData, EdgeData
 
 from ..visualization.visualization import QiskitVisualizationTestCase, path_to_diagram_reference
 
@@ -170,21 +170,21 @@ class TestEquivalenceLibraryWithoutBase(QiskitTestCase):
         equiv_copy = eq_lib._get_equivalences(Key(name="1q0p", num_qubits=1))[0].circuit
 
         egraph = rx.PyDiGraph()
-        node_wt = {
-            "key": Key(name="1q0p", num_qubits=1),
-            "equivs": [Equivalence(params=[], circuit=equiv_copy)],
-        }
+        node_wt = NodeData(
+            key=Key(name="1q0p", num_qubits=1), equivs=[Equivalence(params=[], circuit=equiv_copy)]
+        )
+
         egraph.add_node(node_wt)
 
-        node_wt = {"key": Key(name="h", num_qubits=1), "equivs": []}
+        node_wt = NodeData(key=Key(name="h", num_qubits=1), equivs=[])
         egraph.add_node(node_wt)
 
-        edge_wt = {
-            "index": 0,
-            "len": 1,
-            "rule": Equivalence(params=[], circuit=equiv_copy),
-            "source": Key(name="h", num_qubits=1),
-        }
+        edge_wt = EdgeData(
+            index=0,
+            num_gates=1,
+            rule=Equivalence(params=[], circuit=equiv_copy),
+            source=Key(name="h", num_qubits=1),
+        )
         egraph.add_edge(0, 1, edge_wt)
 
         for node in eq_lib.graph.nodes():

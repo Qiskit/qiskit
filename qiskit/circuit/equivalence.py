@@ -24,6 +24,8 @@ from .parameterexpression import ParameterExpression
 
 Key = namedtuple("Key", ["name", "num_qubits"])
 Equivalence = namedtuple("Equivalence", ["params", "circuit"])  # Ordered to match Gate.params
+NodeData = namedtuple("NodeData", ["key", "equivs"])
+EdgeData = namedtuple("EdgeData", ["index", "num_gates", "rule", "source"])
 
 
 class EquivalenceLibrary:
@@ -66,7 +68,7 @@ class EquivalenceLibrary:
     def _set_default_node(self, key):
         """Create a new node if key not found"""
         if key not in self._key_to_node_index:
-            self._key_to_node_index[key] = self._graph.add_node({"key": key, "equivs": []})
+            self._key_to_node_index[key] = self._graph.add_node(NodeData(key=key, equivs=[]))
         return self._key_to_node_index[key]
 
     def add_equivalence(self, gate, equivalent_circuit):
@@ -91,7 +93,7 @@ class EquivalenceLibrary:
         equiv = Equivalence(params=gate.params.copy(), circuit=equivalent_circuit.copy())
 
         target = self._set_default_node(key)
-        self._graph[target]["equivs"].append(equiv)
+        self._graph[target].equivs.append(equiv)
 
         sources = {
             Key(name=instruction.operation.name, num_qubits=len(instruction.qubits))
@@ -101,7 +103,7 @@ class EquivalenceLibrary:
             (
                 self._set_default_node(source),
                 target,
-                {"index": self._rule_count, "len": len(sources), "rule": equiv, "source": source},
+                EdgeData(index=self._rule_count, num_gates=len(sources), rule=equiv, source=source),
             )
             for source in sources
         ]
@@ -142,7 +144,7 @@ class EquivalenceLibrary:
         key = Key(name=gate.name, num_qubits=gate.num_qubits)
         equivs = [Equivalence(params=gate.params.copy(), circuit=equiv.copy()) for equiv in entry]
 
-        self._graph[self._set_default_node(key)]["equivs"] = equivs
+        self._graph[self._set_default_node(key)] = NodeData(key=key, equivs=equivs)
 
     def get_entry(self, gate):
         """Gets the set of QuantumCircuits circuits from the library which
@@ -252,7 +254,7 @@ class EquivalenceLibrary:
     def _get_equivalences(self, key):
         """Get all the equivalences for the given key"""
         return (
-            self._graph[self._key_to_node_index[key]]["equivs"]
+            self._graph[self._key_to_node_index[key]].equivs
             if key in self._key_to_node_index
             else []
         )
