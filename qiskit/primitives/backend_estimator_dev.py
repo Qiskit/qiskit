@@ -712,7 +712,7 @@ class _SpectralReckoner(_ExpvalReckoner):
         This is an integer representation of the binary string with a
         1 where there are Paulis, and 0 where there are identities.
         """
-        pauli_mask: np.ndarray[bool] = pauli.z | pauli.x
+        pauli_mask: np.ndarray[Any, np.dtype[bool]] = pauli.z | pauli.x
         packed_mask: list[int] = np.packbits(pauli_mask, bitorder="little").tolist()
         return reduce(lambda value, element: (value << 8) | element, packed_mask)
 
