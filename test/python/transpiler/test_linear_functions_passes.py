@@ -22,11 +22,17 @@ from qiskit.transpiler.passes.optimization import CollectLinearFunctions
 from qiskit.transpiler.passes.synthesis import (
     LinearFunctionsSynthesis,
     LinearFunctionsToPermutations,
+    HighLevelSynthesis,
+    HLSConfig,
+)
+from qiskit.transpiler.passes.synthesis.high_level_synthesis import (
+    PMHSynthesisLinearFunction,
+    KMSSynthesisLinearFunction,
 )
 from qiskit.test import QiskitTestCase
 from qiskit.circuit.library.generalized_gates import LinearFunction
 from qiskit.circuit.library import RealAmplitudes
-from qiskit.transpiler import PassManager
+from qiskit.transpiler import PassManager, CouplingMap
 from qiskit.quantum_info import Operator
 
 
@@ -554,6 +560,175 @@ class TestLinearFunctionsPasses(QiskitTestCase):
 
         # Make sure that the condition on the middle gate is not lost
         self.assertIsNotNone(qct.data[1].operation.condition)
+
+    def test_synthesis_using_pmh(self):
+        """Test high level synthesis of linear functions using the PMHSynthesisLinearFunction
+        plugin. The synthesis method is specified as a tuple consisting of the method to run
+        and additional parameters.
+        """
+        qc = QuantumCircuit(6)
+        mat = [[1, 0, 0, 0], [1, 1, 0, 0], [1, 1, 1, 0], [1, 1, 1, 1]]
+        linear_function = LinearFunction(mat)
+        qc.append(linear_function, [1, 2, 3, 4])
+
+        # Identifies plugin
+        config = HLSConfig(linear_function=[("pmh", {"all_mats": 1})])
+        pm = PassManager(HighLevelSynthesis(hls_config=config))
+        qct = pm.run(qc)
+        self.assertNotIn("linear_function", qct.count_ops().keys())
+
+    def test_synthesis_using_pmh_alternate_form(self):
+        """Test high level synthesis of linear functions using the PMHSynthesisLinearFunction
+        plugin. The synthesis method is specified as a class instance."""
+        qc = QuantumCircuit(6)
+        mat = [[1, 0, 0, 0], [1, 1, 0, 0], [1, 1, 1, 0], [1, 1, 1, 1]]
+        linear_function = LinearFunction(mat)
+        qc.append(linear_function, [1, 2, 3, 4])
+
+        # Test that running plugin specifying class method works correctly
+        pmh = PMHSynthesisLinearFunction(all_mats=1)
+        config = HLSConfig(linear_function=[pmh])
+        pm = PassManager(HighLevelSynthesis(hls_config=config))
+        qct = pm.run(qc)
+        self.assertNotIn("linear_function", qct.count_ops().keys())
+
+    def test_synthesis_using_pmh_with_coupling_map(self):
+        """Test high level synthesis of linear functions using the PMHSynthesisLinearFunction
+        plugin when the coupling map is specified, in which case the linear function should
+        not be synthesized.
+        """
+        qc = QuantumCircuit(6)
+        mat = [[1, 0, 0, 0], [1, 1, 0, 0], [1, 1, 1, 0], [1, 1, 1, 1]]
+        linear_function = LinearFunction(mat)
+        qc.append(linear_function, [1, 2, 3, 4])
+
+        coupling_map = CouplingMap.from_line(6)
+        config = HLSConfig(linear_function=[("pmh", {"all_mats": 1})])
+        pm = PassManager(HighLevelSynthesis(hls_config=config, coupling_map=coupling_map))
+        qct = pm.run(qc)
+        self.assertIn("linear_function", qct.count_ops().keys())
+
+    def test_synthesis_using_pmh_with_original_circuit(self):
+        """Test high level synthesis of linear functions using the PMHSynthesisLinearFunction
+        plugin when the linear function is created from some linear circuit. If the coupling map
+        is specified and ``orig_circuit`` option is 0, the linear function should not be
+        synthesized. However, if the ``orig_circuit`` option is 1, the linear function should
+        be replaced by this linear circuit."""
+        qcl = QuantumCircuit(4)
+        qcl.cx(0, 1)
+        qcl.cx(0, 2)
+        qcl.cx(0, 3)
+        linear_function = LinearFunction(qcl)
+
+        qc = QuantumCircuit(6)
+        qc.append(linear_function, [1, 2, 3, 4])
+
+        # First, setting orig_circuit to 0
+        coupling_map = CouplingMap.from_line(6)
+        config = HLSConfig(linear_function=[("pmh", {"orig_circuit": 0})])
+        pm = PassManager(HighLevelSynthesis(hls_config=config, coupling_map=coupling_map))
+        qct = pm.run(qc)
+        self.assertIn("linear_function", qct.count_ops().keys())
+
+        # Second, setting orig_circuit to 1
+        config = HLSConfig(linear_function=[("pmh", {"orig_circuit": 1})])
+        pm = PassManager(HighLevelSynthesis(hls_config=config, coupling_map=coupling_map))
+        qct = pm.run(qc)
+        self.assertNotIn("linear_function", qct.count_ops().keys())
+
+    def test_synthesis_using_kms(self):
+        """Test high level synthesis of linear functions using the KMSSynthesisLinearFunction
+        plugin. The synthesis method is specified as a tuple consisting of the method to run
+        and additional parameters.
+        """
+        qc = QuantumCircuit(6)
+        mat = [[1, 0, 0, 0], [1, 1, 0, 0], [1, 1, 1, 0], [1, 1, 1, 1]]
+        linear_function = LinearFunction(mat)
+        qc.append(linear_function, [1, 2, 3, 4])
+
+        # Identifies plugin
+        config = HLSConfig(linear_function=[("kms", {"all_mats": 1})])
+        pm = PassManager(HighLevelSynthesis(hls_config=config))
+        qct = pm.run(qc)
+        self.assertNotIn("linear_function", qct.count_ops().keys())
+
+    def test_synthesis_using_kms_with_coupling_map(self):
+        """Test high level synthesis of linear functions using the KMSSynthesisLinearFunction
+        plugin when the coupling map is specified. The linear function should be synthesized
+        if the coupling map restricted to the set of qubits over which the linear function
+        is defined contains a hamiltonian path.
+        """
+        mat = [[1, 0, 0, 0], [1, 1, 0, 0], [1, 1, 1, 0], [1, 1, 1, 1]]
+        linear_function = LinearFunction(mat)
+
+        coupling_map = CouplingMap([(0, 1), (1, 2), (1, 3), (4, 3), (3, 5)])
+        coupling_map.make_symmetric()
+
+        config = HLSConfig(linear_function=[("kms", {"orig_circuit": 0})])
+        pm = PassManager(HighLevelSynthesis(hls_config=config, coupling_map=coupling_map))
+
+        # First, consider the case that the linear function is defined over a set of qubits
+        # with a hamiltonian path
+        qc1 = QuantumCircuit(6)
+        qc1.append(linear_function, [1, 2, 3, 4])
+        qct1 = pm.run(qc1)
+        self.assertNotIn("linear_function", qct1.count_ops().keys())
+
+        # Second, consider the case that the linear function is defined over a set of qubits
+        # without a Hamiltonian path
+        qc2 = QuantumCircuit(6)
+        qc2.append(linear_function, [1, 3, 4, 5])
+        qct2 = pm.run(qc2)
+        self.assertIn("linear_function", qct2.count_ops().keys())
+
+    def test_synthesis_using_kms_with_original_circuit(self):
+        """Test high level synthesis of linear functions using the KMSSynthesisLinearFunction
+        plugin when the linear function is created from some linear circuit. If the coupling
+        map does not have a hamiltonian path but the ``orig_circuit`` option is 1, the linear
+        function should be synthesized."""
+        qcl = QuantumCircuit(4)
+        qcl.cx(0, 1)
+        qcl.cx(0, 2)
+        qcl.cx(0, 3)
+        linear_function = LinearFunction(qcl)
+
+        coupling_map = CouplingMap([(0, 1), (1, 2), (1, 3), (4, 3), (3, 5)])
+        coupling_map.make_symmetric()
+
+        qc = QuantumCircuit(6)
+        qc.append(linear_function, [1, 3, 4, 5])
+
+        # First, the case that synthesis does not apply and orig_circuit option is 0.
+        config = HLSConfig(linear_function=[("kms", {"orig_circuit": 0})])
+        pm = PassManager(HighLevelSynthesis(hls_config=config, coupling_map=coupling_map))
+        qct = pm.run(qc)
+        self.assertIn("linear_function", qct.count_ops().keys())
+
+        # Second, the case that synthesis does not apply but orig_circuit option is 1.
+        config = HLSConfig(linear_function=[("kms", {"orig_circuit": 1})])
+        pm = PassManager(HighLevelSynthesis(hls_config=config, coupling_map=coupling_map))
+        qct = pm.run(qc)
+        self.assertNotIn("linear_function", qct.count_ops().keys())
+
+    def test_synthesis_with_multiple_methods(self):
+        """Test high level synthesis with multiple methods."""
+        mat = [[1, 0, 0, 0], [1, 1, 0, 0], [1, 1, 1, 0], [1, 1, 1, 1]]
+        linear_function = LinearFunction(mat)
+        qc = QuantumCircuit(6)
+        qc.append(linear_function, [1, 2, 3, 4])
+        coupling_map = CouplingMap.from_line(6)
+        # This specifies a sequence of different methods to use (additionally, specified using
+        # different forms). Only the last method synthesizes the function.
+        config = HLSConfig(
+            linear_function=[
+                ("pmh", {"orig_circuit": 0}),
+                PMHSynthesisLinearFunction(orig_circuit=1),
+                KMSSynthesisLinearFunction(orig_circuit=0),
+            ]
+        )
+        pm = PassManager(HighLevelSynthesis(hls_config=config, coupling_map=coupling_map))
+        qct = pm.run(qc)
+        self.assertNotIn("linear_function", qct.count_ops().keys())
 
 
 if __name__ == "__main__":
