@@ -220,7 +220,8 @@ class KMSSynthesisLinearFunction(HighLevelSynthesisPlugin):
 
         # Combine the options passed in the initializer and now,
         # prioritizing values passed now.
-        run_options = self._options | options
+        run_options = self._options.copy()
+        run_options.update(options)
 
         # options supported by this plugin
         coupling_map = run_options.get("coupling_map", None)
@@ -297,7 +298,9 @@ class PMHSynthesisLinearFunction(HighLevelSynthesisPlugin):
 
         # Combine the options passed in the initializer and now,
         # prioritizing values passed now.
-        run_options = self._options | options
+        # Note: run_options = self._options | options is only supported for python >= 3.9.
+        run_options = self._options.copy()
+        run_options.update(options)
 
         # options supported by this plugin
         coupling_map = run_options.get("coupling_map", None)
