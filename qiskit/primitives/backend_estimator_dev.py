@@ -707,7 +707,7 @@ class _SpectralReckoner(_ExpvalReckoner):
 
     @staticmethod
     def _pauli_integer_mask(pauli: Pauli) -> int:
-        """Build integer masks for input Pauli.
+        """Build integer mask for input Pauli.
 
         This is an integer representation of the binary string with a
         1 where there are Paulis, and 0 where there are identities.
