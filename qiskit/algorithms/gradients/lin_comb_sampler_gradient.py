@@ -116,8 +116,12 @@ class LinCombSamplerGradient(BaseSamplerGradient):
             for idx, coeff, dist in zip(result_indices_all[i], coeffs_all[i], result.quasi_dists):
                 plus = {key: val for key, val in dist.items() if key < n}
                 minus = {key - n: val for key, val in dist.items() if key >= n}
-                grad_dists[idx][list(plus.keys())] += np.fromiter(plus.values(), dtype=float) * coeff
-                grad_dists[idx][list(minus.keys())] -= np.fromiter(minus.values(), dtype=float) * coeff
+                grad_dists[idx][list(plus.keys())] += (
+                    np.fromiter(plus.values(), dtype=float) * coeff
+                )
+                grad_dists[idx][list(minus.keys())] -= (
+                    np.fromiter(minus.values(), dtype=float) * coeff
+                )
 
             gradient_ = []
             for grad_dist in grad_dists:
