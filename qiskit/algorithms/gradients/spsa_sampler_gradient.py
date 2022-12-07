@@ -30,7 +30,12 @@ from .sampler_gradient_result import SamplerGradientResult
 class SPSASamplerGradient(BaseSamplerGradient):
     """
     Compute the gradients of the sampling probability by the Simultaneous Perturbation Stochastic
-    Approximation (SPSA).
+    Approximation (SPSA) [1].
+
+    **Reference:**
+    [1] J. C. Spall, Adaptive stochastic approximation by the simultaneous perturbation method in
+    IEEE Transactions on Automatic Control, vol. 45, no. 10, pp. 1839-1853, Oct 2020,
+    `doi: 10.1109/TAC.2000.880982 <https://ieeexplore.ieee.org/document/880982>`_.
     """
 
     def __init__(
