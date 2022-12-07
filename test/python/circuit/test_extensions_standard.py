@@ -14,7 +14,6 @@
 
 import unittest
 from inspect import signature
-
 import numpy as np
 from scipy.linalg import expm
 from ddt import data, ddt, unpack
@@ -872,7 +871,13 @@ class TestStandard1Q(QiskitTestCase):
             np.array([[np.exp(1j * theta)]], dtype=complex),
             atol=1e-7,
         )
-
+    
+    def test_global_phase_consist(self):
+        """Tests compatibility of GlobalPhaseGate with QuantumCircuit.global_phase"""
+        theta = 0.1
+        qc = QuantumCircuit(0,global_phase=theta)
+        qc_g = self.circuit.append((GlobalPhaseGate(theta), []))
+        np.testing.assert_allclose(qc.to_matrix(), qc_g.to_matrix(),dtype = complex,atol=1e-7,)
 
 @ddt
 class TestStandard2Q(QiskitTestCase):

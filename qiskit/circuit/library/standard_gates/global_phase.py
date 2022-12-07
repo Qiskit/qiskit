@@ -33,7 +33,6 @@ class GlobalPhaseGate(Gate):
     r"""The global phase gate (:math:`e^{i\theta}`).
 
     Can be applied to a :class:`~qiskit.circuit.QuantumCircuit`
-    with the :meth:`~qiskit.circuit.QuantumCircuit.global_phase` method.
 
     **Mathamatical Representation:**
 
@@ -76,6 +75,5 @@ class GlobalPhaseGate(Gate):
 
     def __array__(self, dtype=complex):
         """Return a numpy.array for the global_phase gate."""
-        cos = math.cos(self.params[0])
-        sin = math.sin(self.params[0])
-        return numpy.array([[cos + 1j * sin]], dtype=dtype)
+        theta = self.params
+        return numpy.array([[numpy.exp(1j*theta)]], dtype=dtype)
