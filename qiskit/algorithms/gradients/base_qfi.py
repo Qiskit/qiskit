@@ -38,8 +38,8 @@ class BaseQFI(ABC):
 
     **Reference:**
     [1] Paris, Matteo G. A. (2009). Quantum estimation for quantum technology. International
-    Journal of Quantum Information. 07 (supp01): 125–137. `arXiv:0804.2981
-    <https://arxiv.org/pdf/0804.2981.pdf>`_
+    Journal of Quantum Information. 07 (supp01): 125–137.
+    `arXiv:0804.2981 <https://arxiv.org/pdf/0804.2981.pdf>`_
     """
 
     def __init__(
