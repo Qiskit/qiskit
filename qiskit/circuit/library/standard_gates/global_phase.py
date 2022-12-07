@@ -74,5 +74,5 @@ class GlobalPhaseGate(Gate):
 
     def __array__(self, dtype=complex):
         """Return a numpy.array for the global_phase gate."""
-        theta = self.params
+        theta = self.params[0]
         return numpy.array([[numpy.exp(1j * theta)]], dtype=dtype)
