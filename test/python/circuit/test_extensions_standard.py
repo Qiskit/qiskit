@@ -17,7 +17,7 @@ from inspect import signature
 import numpy as np
 from scipy.linalg import expm
 from ddt import data, ddt, unpack
-
+from qiskit.quantum_info import Statevector
 from qiskit import ClassicalRegister, QuantumCircuit, QuantumRegister, execute
 from qiskit.qasm import pi
 from qiskit.exceptions import QiskitError
@@ -876,11 +876,13 @@ class TestStandard1Q(QiskitTestCase):
         """Tests compatibility of GlobalPhaseGate with QuantumCircuit.global_phase"""
         theta = 0.1
         qc = QuantumCircuit(0, global_phase=theta)
+        result_qc = Statevector(qc)
         qc_g = QuantumCircuit(0)
         qc_g.append(GlobalPhaseGate(theta), [])
+        result_qc_g = Statevector(qc_g)
         np.testing.assert_allclose(
-            qc.to_matrix(),
-            qc_g.to_matrix(),
+            result_qc[0],
+            result_qc_g[0],
             atol=1e-7,
         )
 
