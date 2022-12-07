@@ -57,7 +57,7 @@ class SSVQE(VariationalAlgorithm, Eigensolver):
 
     .. math::
 
-        \min_{\vec\theta} \sum_{i=0}^{k-1} w_{i} \langle\psi_{i} (\vec\theta)|H| \psi{i}(\vec\theta) \rangle
+        \min_{\vec\theta}\sum_{i=0}^{k-1} w_{i}\langle\psi_{i}(\vec\theta)|H|\psi{i}(\vec\theta)\rangle
 
     where :math:`|\psi{i} (\vec\theta)\rangle` is shorthand for :math:`U (\vec\theta)| \psi_{i} \rangle`
     and :math:`\{ w_{i} \}_{i=0}^{k-1}` are the components of the ``weight_vector``.
