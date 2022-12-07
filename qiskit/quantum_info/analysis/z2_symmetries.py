@@ -22,7 +22,8 @@ from typing import Optional, Union, cast
 import numpy as np
 
 from qiskit.exceptions import QiskitError
-from qiskit.quantum_info import Pauli, SparsePauliOp
+from qiskit.quantum_info import Pauli, PauliList, SparsePauliOp, Clifford
+
 
 logger = logging.getLogger(__name__)
 
@@ -50,8 +51,8 @@ class Z2Symmetries:
 
     def __init__(
         self,
-        symmetries: list[Pauli],
-        sq_paulis: list[Pauli],
+        symmetries: PauliList,
+        sq_paulis: PauliList,
         sq_list: list[int],
         tapering_values: Optional[list[int]] = None,
         *,
@@ -60,8 +61,8 @@ class Z2Symmetries:
         r"""
         Args:
             symmetries: The list of Pauli objects representing the $Z_2$ symmetries. These correspond to
-                the generators of the symmetry group $\langle \tau_1, \dots, \tau_k \rangle>$.
-            sq_paulis: The list of single - qubit Pauli $\sigma^x_{q(i)}$ anti-commuting with the
+                the generators of the symmetry group $\langle \tau_1, \tau_2\dots \rangle>$.
+            sq_paulis: The list of single-qubit Pauli $\sigma^x_{q(i)}$ anti-commuting with the
                 symmetry $\tau_i$ and commuting with all the other symmetries $\tau_{j\neq i}$.
                 These operators are used to construct the unitary Clifford operators.
             sq_list: The list of indices $q(i)$ of the single-qubit Pauli operators used to build the
@@ -70,9 +71,9 @@ class Z2Symmetries:
             tol: Tolerance threshold for ignoring real and complex parts of a coefficient.
 
         Raises:
-            QiskitError: Invalid paulis. The lists of symmetries, single - qubit paulis support paulis
-            and tapering values must be of equal length. This length is the number of applied symmetries
-            and translates directly to the number of eliminated qubits.
+            QiskitError: Invalid paulis. The lists of symmetries, single-qubit paulis support paulis
+                and tapering values must be of equal length. This length is the number of applied
+                symmetries and translates directly to the number of eliminated qubits.
         """
         if len(symmetries) != len(sq_paulis):
             raise QiskitError(
@@ -110,7 +111,7 @@ class Z2Symmetries:
         return self._sq_paulis
 
     @property
-    def cliffords(self) -> list[SparsePauliOp]:
+    def cliffords(self) -> list[Clifford]:
         """
         Get clifford operators, build based on symmetries and single-qubit X.
 
@@ -173,6 +174,12 @@ class Z2Symmetries:
         """
         return len(self._symmetries) == 0 or len(self._sq_paulis) == 0 or len(self._sq_list) == 0
 
+    @staticmethod
+    def _sparse_pauli_op_is_zero(op: SparsePauliOp) -> bool:
+        """Returns whether or not this operator represents a zero operation."""
+        op = op.simplify()
+        return len(op.coeffs) == 1 and op.coeffs[0] == 0
+
     # pylint: disable=invalid-name
     @classmethod
     def find_Z2_symmetries(cls, operator: SparsePauliOp) -> Z2Symmetries:
@@ -188,7 +195,14 @@ class Z2Symmetries:
 
         stacked_paulis = []
 
-        if operator.is_zero():
+        Z_or_I_idx_test = [(0, 0), (0, 1)]
+        Z_or_I_row_test = [(1, 0), (1, 1)]
+        X_or_I_idx_test = [(0, 0), (1, 0)]
+        X_or_I_row_test = [(0, 1), (1, 1)]
+        Y_or_I_idx_test = [(0, 0), (1, 1)]
+        Y_or_I_row_test = [(0, 1), (1, 0)]
+
+        if Z2Symmetries._sparse_pauli_op_is_zero(operator):
             logger.info("Operator is empty.")
             return cls([], [], [], None)
 
@@ -213,7 +227,7 @@ class Z2Symmetries:
 
         def _test_symmetry_row_col(row: int, col: int, idx_test: list, row_test: list) -> bool:
             """
-            Utilitary method that determines how to build the list of single-qubit Pauli X operators and
+            Utility method that determines how to build the list of single-qubit Pauli X operators and
             the list of corresponding qubit indices from the stacked symmetries.
             This method is successively applied to Z type, X type and Y type symmetries (in this order)
             to build the letter at position (col) of the Pauli word corresponding to the symmetry at
@@ -225,7 +239,7 @@ class Z2Symmetries:
                 col (int): Index of the letter in the Pauli word corresponding to the single-qubit Pauli
                     X operator.
                 idx_test (list): List of possibilities for the stacked symmetries at all other rows
-                    than row and.
+                    than row.
                 row_test (list): List of possibilities for the stacked symmetries at row.
 
             Returns:
@@ -262,8 +276,6 @@ class Z2Symmetries:
 
             for col in range(half_symm_shape):
                 # case symmetries other than one at (row) have Z or I on col qubit
-                Z_or_I_idx_test = [(0, 0), (0, 1)]
-                Z_or_I_row_test = [(1, 0), (1, 1)]
                 if _test_symmetry_row_col(row, col, Z_or_I_idx_test, Z_or_I_row_test):
                     sq_paulis.append(Pauli((np.zeros(half_symm_shape), np.zeros(half_symm_shape))))
                     sq_paulis[row].z[col] = False
@@ -272,8 +284,6 @@ class Z2Symmetries:
                     break
 
                 # case symmetries other than one at (row) have X or I on col qubit
-                X_or_I_idx_test = [(0, 0), (1, 0)]
-                X_or_I_row_test = [(0, 1), (1, 1)]
                 if _test_symmetry_row_col(row, col, X_or_I_idx_test, X_or_I_row_test):
                     sq_paulis.append(Pauli((np.zeros(half_symm_shape), np.zeros(half_symm_shape))))
                     sq_paulis[row].z[col] = True
@@ -282,14 +292,15 @@ class Z2Symmetries:
                     break
 
                 # case symmetries other than one at (row)  have Y or I on col qubit
-                Y_or_I_idx_test = [(0, 0), (1, 1)]
-                Y_or_I_row_test = [(0, 1), (1, 0)]
                 if _test_symmetry_row_col(row, col, Y_or_I_idx_test, Y_or_I_row_test):
                     sq_paulis.append(Pauli((np.zeros(half_symm_shape), np.zeros(half_symm_shape))))
                     sq_paulis[row].z[col] = True
                     sq_paulis[row].x[col] = True
                     sq_list.append(col)
                     break
+
+        pauli_symmetries = PauliList(pauli_symmetries)
+        sq_paulis = PauliList(sq_paulis)
 
         return cls(pauli_symmetries, sq_paulis, sq_list, None)
 
@@ -306,7 +317,7 @@ class Z2Symmetries:
 
         """
 
-        if not self.is_empty() and not operator.is_zero():
+        if not self.is_empty() and not Z2Symmetries._sparse_pauli_op_is_zero(operator):
             # If the operator is zero then we can skip the following.
             for clifford in self.cliffords:
                 operator = cast(SparsePauliOp, clifford @ operator @ clifford)
