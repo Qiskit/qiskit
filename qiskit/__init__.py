@@ -45,6 +45,9 @@ sys.modules["qiskit._accelerate.optimize_1q_gates"] = qiskit._accelerate.optimiz
 sys.modules["qiskit._accelerate.sampled_exp_val"] = qiskit._accelerate.sampled_exp_val
 sys.modules["qiskit._accelerate.vf2_layout"] = qiskit._accelerate.vf2_layout
 sys.modules["qiskit._accelerate.error_map"] = qiskit._accelerate.error_map
+sys.modules[
+    "qiskit._accelerate.euler_one_qubit_decomposer"
+] = qiskit._accelerate.euler_one_qubit_decomposer
 
 
 # Extend namespace for backwards compat
