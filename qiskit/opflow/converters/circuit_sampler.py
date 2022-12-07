@@ -18,6 +18,7 @@ from functools import partial
 from time import time
 from typing import Any, Dict, List, Optional, Tuple, Union, cast
 
+import copy
 import numpy as np
 
 from qiskit import QiskitError
@@ -102,8 +103,8 @@ class CircuitSampler(ConverterBase):
         self._transpile_before_bind = True
         self._reuse_circs = []
         self._reuse_parameter_tables = []
+        self._preserved_parameter_tables = []
         self._reuse_global_phase = []
-        self._empty_parameter_table = ParameterTable()
 
     def _check_quantum_instance_and_modes_consistent(self) -> None:
         """Checks whether the statevector and param_qobj settings are compatible with the
@@ -303,29 +304,24 @@ class CircuitSampler(ConverterBase):
                     circuits, pass_manager=self.quantum_instance.unbound_pass_manager
                 )
 
-                # don't use reuse_circ if any gate has more than one parameter
-                circ_reused = True
+                # copy the original circuit stored in _transpiled_circ_cache
+                self._reuse_circs = []
+                self._reuse_parameter_tables = []
+                self._preserved_parameter_tables = []
+                self._reuse_global_phase = []
                 for circ in self._transpiled_circ_cache:
-                    for params in circ._parameter_table.values():
-                        for param, _ in params.__getstate__():
-                            if len(param.params[0].parameters) > 1:
-                                circ_reused = False
-                                break
-                        if not circ_reused:
-                            break
-                    if not circ_reused:
-                        break
-
-                if circ_reused:
-                    # copy the original circuit stored in _transpiled_circ_cache
-                    self._reuse_circs = []
-                    self._reuse_parameter_tables = []
-                    self._reuse_global_phase = []
-                    for circ in self._transpiled_circ_cache:
-                        shadow = circ.copy()
-                        self._reuse_circs.append([shadow])
-                        self._reuse_parameter_tables.append([shadow._parameter_table])
-                        self._reuse_global_phase.append([shadow.global_phase])
+                    shadow = circ.copy()
+                    shadow._increment_instances()
+                    shadow._name_update()
+                    self._reuse_circs.append([shadow])
+                    parameter_table_preserved = ParameterTable()
+                    for param, instr in shadow._parameter_table.items():
+                        parameter_table_preserved[param] = instr
+                    self._reuse_parameter_tables.append([parameter_table_preserved])
+                    self._preserved_parameter_tables.append(
+                        [copy.deepcopy(shadow._parameter_table)]
+                    )
+                    self._reuse_global_phase.append([shadow.global_phase])
 
             except QiskitError:
                 logger.debug(
@@ -345,8 +341,16 @@ class CircuitSampler(ConverterBase):
                 for i, _ in enumerate(self._transpiled_circ_cache):
                     for _ in range(append_size):
                         shadow = self._reuse_circs[i][0].copy()
+                        shadow._increment_instances()
+                        shadow._name_update()
                         self._reuse_circs[i].append(shadow)
-                        self._reuse_parameter_tables[i].append(shadow._parameter_table)
+                        parameter_table_preserved = ParameterTable()
+                        for param, instr in shadow._parameter_table.items():
+                            parameter_table_preserved[param] = instr
+                        self._reuse_parameter_tables[i].append(parameter_table_preserved)
+                        self._preserved_parameter_tables[i].append(
+                            copy.deepcopy(shadow._parameter_table)
+                        )
                         self._reuse_global_phase[i].append(shadow.global_phase)
             if self._param_qobj:
                 start_time = time()
@@ -365,14 +369,11 @@ class CircuitSampler(ConverterBase):
                     ready_circs = []
                     for i, cached_circ in enumerate(self._transpiled_circ_cache):
                         for j, binding in enumerate(param_bindings):
-                            cached_circ.assign_parameters(
-                                _filter_params(cached_circ, binding),
-                                reuse_circ=self._reuse_circs[i][j],
+                            self._reuse_circs[i][j].assign_parameters(
+                                _filter_params(cached_circ, binding), inplace=True
                             )
                             ready_circs.append(self._reuse_circs[i][j])
 
-                    for circ in ready_circs:
-                        circ._parameter_table = self._empty_parameter_table
                 end_time = time()
                 logger.debug("Parameter binding %.5f (ms)", (end_time - start_time) * 1000)
         else:
@@ -391,8 +392,30 @@ class CircuitSampler(ConverterBase):
         # restore the original parameter table and global phase in shadow_circs
         for i, circ in enumerate(self._reuse_circs):
             for j, _ in enumerate(circ):
+                for param in self._reuse_parameter_tables[i][j]:
+                    # restore ParameterExpression to its pre-calculation state
+                    for k, instr in enumerate(self._reuse_parameter_tables[i][j][param]):
+                        instr[0].params = (
+                            self._preserved_parameter_tables[i][j][param]
+                            .__getstate__()[k][0]
+                            .params
+                        )
+                        self._preserved_parameter_tables[i][j][param].__getstate__()[k][
+                            0
+                        ].params = copy.deepcopy(
+                            self._preserved_parameter_tables[i][j][param]
+                            .__getstate__()[k][0]
+                            .params
+                        )
                 circ[j]._parameter_table = self._reuse_parameter_tables[i][j]
                 circ[j].global_phase = self._reuse_global_phase[i][j]
+                parameter_table_preserved = ParameterTable()
+                for param, instr in circ[j]._parameter_table.items():
+                    parameter_table_preserved[param] = instr
+                self._reuse_parameter_tables[i][j] = parameter_table_preserved
+                self._preserved_parameter_tables[i][j] = copy.deepcopy(
+                    self._reuse_parameter_tables[i][j]
+                )
 
         if param_bindings is not None and self._param_qobj:
             self._clean_parameterized_run_config()
