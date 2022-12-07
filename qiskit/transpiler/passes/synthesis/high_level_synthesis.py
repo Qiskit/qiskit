@@ -344,34 +344,38 @@ def _hamiltonian_paths(
 
     # This is a temporary function, the plan is to move it to rustworkx
 
-    def should_stop():
+    def _should_stop():
         return cutoff is not None and len(all_paths) >= cutoff
 
     def _recurse(current_node):
         current_path.append(current_node)
+        on_path[current_node] = True
+
         if len(current_path) == coupling_map.size():
             # Discovered a new Hamiltonian path
             all_paths.append(current_path.copy())
 
-        if should_stop():
+        if _should_stop():
             return
 
         unvisited_neighbors = [
-            node for node in coupling_map.neighbors(current_node) if node not in current_path
+            node for node in coupling_map.neighbors(current_node) if not on_path[node]
         ]
         for node in unvisited_neighbors:
             _recurse(node)
-            if should_stop():
+            if _should_stop():
                 return
 
         current_path.pop()
+        on_path[current_node] = False
 
     all_paths = []
-    current_path = []
     qubits = coupling_map.physical_qubits
+    current_path = []
+    on_path = [False] * len(qubits)
 
     for qubit in qubits:
         _recurse(qubit)
-        if should_stop():
+        if _should_stop():
             break
     return all_paths
