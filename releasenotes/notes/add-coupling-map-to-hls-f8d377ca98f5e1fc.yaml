@@ -1,0 +1,50 @@
+---
+features:
+  - |
+    Added the ability to pass the coupling map to :class:`.HighLevelSynthesis`
+    transpiler pass. When the coupling map is not ``None``, each synthesis method
+    (built on top of :class:`.HighLevelSynthesisPlugin`) is required to synthesize
+    a given high-level object adhering to this coupling map, or return ``None`` if
+    unable to do so.
+  - |
+    Added two high-level-synthesis plugins for :class:`.LinearFunction`. The
+    :class:`.PMHSynthesisLinearFunction` is the synthesis plugin built on top
+    of the Patel-Markov-Hayes method. As the underlying method does not take the
+    coupling map into account, the plugin only synthesizes the given linear function
+    when the coupling map is ``None``, and returns ``None`` otherwise. The
+    :class:`.KMSSynthesisLinearFunction` is the synthesis plugin built on top of the
+    Kutin-Moulton-Smithline method. The underlying synthesis method synthesizes with
+    respect to linear nearest-neighbour (LNN) architecture. The plugin synthesizes
+    the given linear function either when the coupling map is ``None``, or when there
+    exists a hamiltonian path through the qubits over which this linear function is
+    defined. When the coupling map is not ``None`` and the hamiltonian path does
+    not exist, this plugin returns ``None``.
+upgrade:
+  - |
+    Added an alternative way to specify the synthesis methods used for a given
+    high-level-object in :class:`.HighLevelSynthesis` transpiler pass. Now, each
+    synthesis method can be either a tuple consisting of the name of the method
+    and additional arguments, or an instance of :class:`.HighLevelSynthesisPlugin`.
+    The following example shows how one can do both, even using both forms in the
+    list of synthesis methods::
+
+        from qiskit import QuantumCircuit
+        from qiskit.transpiler import PassManager, CouplingMap
+        from qiskit.transpiler.passes import HighLevelSynthesis
+        from qiskit.circuit.library.generalized_gates import LinearFunction
+        from qiskit.transpiler.passes.synthesis.high_level_synthesis import KMSSynthesisLinearFunction
+
+        mat = [[1, 0, 0, 0], [1, 1, 0, 0], [1, 1, 1, 0], [1, 1, 1, 1]]
+        linear_function = LinearFunction(mat)
+        qc = QuantumCircuit(6)
+        qc.append(linear_function, [1, 2, 3, 4])
+        coupling_map = CouplingMap.from_line(6)
+
+        config = HLSConfig(
+            linear_function=[
+                ("pmh", {"orig_circuit": 0}),
+                KMSSynthesisLinearFunction(orig_circuit=0),
+            ]
+        )
+        pm = PassManager(HighLevelSynthesis(hls_config=config, coupling_map=coupling_map))
+        qc_synthesized = pm.run(qc)
