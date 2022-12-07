@@ -8,3 +8,6 @@ features:
     gradient circuit by using the chain rule. When users want to implement their own gradient classes,
     they can use ``_preprocess()`` and ``_postprocess()``. Then, they implement ``run_unique()``
     that calculates a gradient of a circuit with unique parameters.
+  - |
+    :class:`.SamplerGradientResult` no longer makes a dict of size 2 ** qubits for a result.
+    It will create only keys of the required size.
