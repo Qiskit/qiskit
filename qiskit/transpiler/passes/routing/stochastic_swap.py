@@ -48,7 +48,9 @@ class StochasticSwap(TransformationPass):
            the circuit.
     """
 
-    def __init__(self, coupling_map, trials=20, seed=None, fake_run=False, initial_layout=None):
+    def __init__(
+        self, coupling_map, trials=20, seed=None, fake_run=False, initial_layout=None, target=None
+    ):
         """StochasticSwap initializer.
 
         The coupling map is a connected graph
@@ -63,6 +65,9 @@ class StochasticSwap(TransformationPass):
             fake_run (bool): if true, it only pretend to do routing, i.e., no
                 swap is effectively added.
             initial_layout (Layout): starting layout at beginning of pass.
+            target (Target): A target representing the target backend, if both
+                ``coupling_map`` and this are specified then this argument will take
+                precedence and ``coupling_map`` will be ignored.
         """
         super().__init__()
         self.coupling_map = coupling_map
@@ -74,6 +79,9 @@ class StochasticSwap(TransformationPass):
         self.initial_layout = initial_layout
         self._qubit_to_int = None
         self._int_to_qubit = None
+        self.target = target
+        if self.target is not None:
+            self.coupling_map = self.target.build_coupling_map()
 
     def run(self, dag):
         """Run the StochasticSwap pass on `dag`.

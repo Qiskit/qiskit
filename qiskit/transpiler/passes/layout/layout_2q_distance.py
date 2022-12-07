@@ -30,16 +30,23 @@ class Layout2qDistance(AnalysisPass):
     No CX direction is considered.
     """
 
-    def __init__(self, coupling_map, property_name="layout_score"):
+    def __init__(self, coupling_map=None, property_name="layout_score", target=None):
         """Layout2qDistance initializer.
 
         Args:
             coupling_map (CouplingMap): Directed graph represented a coupling map.
             property_name (str): The property name to save the score. Default: layout_score
+            target (Target): A target representing the target backend, if both
+                ``coupling_map`` and this are specified then this argument will take
+                precedence and ``coupling_map`` will be ignored.
+
         """
         super().__init__()
         self.coupling_map = coupling_map
         self.property_name = property_name
+        self.target = target
+        if self.target is not None:
+            self.coupling_map = self.target.build_coupling_map()
 
     def run(self, dag):
         """

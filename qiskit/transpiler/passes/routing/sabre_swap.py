@@ -72,7 +72,9 @@ class SabreSwap(TransformationPass):
     `arXiv:1809.02573 <https://arxiv.org/pdf/1809.02573.pdf>`_
     """
 
-    def __init__(self, coupling_map, heuristic="basic", seed=None, fake_run=False, trials=None):
+    def __init__(
+        self, coupling_map, heuristic="basic", seed=None, fake_run=False, trials=None, target=None
+    ):
         r"""SabreSwap initializer.
 
         Args:
@@ -88,6 +90,9 @@ class SabreSwap(TransformationPass):
                 CPUs on the local system. For reproducible results it is recommended
                 that you set this explicitly, as the output will be deterministic for
                 a fixed number of trials.
+            target (Target): A target representing the target backend, if both
+                ``coupling_map`` and this are specified then this argument will take
+                precedence and the other argument will be ignored.
 
         Raises:
             TranspilerError: If the specified heuristic is not valid.
@@ -139,10 +144,12 @@ class SabreSwap(TransformationPass):
         super().__init__()
 
         # Assume bidirectional couplings, fixing gate direction is easy later.
-        if coupling_map is None or coupling_map.is_symmetric:
-            self.coupling_map = coupling_map
-        else:
-            self.coupling_map = deepcopy(coupling_map)
+        self.coupling_map = coupling_map
+        self.target = target
+        if self.target is not None:
+            self.coupling_map = self.target.build_coupling_map()
+        if self.coupling_map is not None and not self.coupling_map.is_symmetric:
+            self.coupling_map = deepcopy(self.coupling_map)
             self.coupling_map.make_symmetric()
         self._neighbor_table = None
         if coupling_map is not None:

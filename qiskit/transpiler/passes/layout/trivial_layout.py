@@ -29,17 +29,21 @@ class TrivialLayout(AnalysisPass):
     Does not assume any ancilla.
     """
 
-    def __init__(self, coupling_map):
+    def __init__(self, coupling_map=None, target=None):
         """TrivialLayout initializer.
 
         Args:
             coupling_map (Coupling): directed graph representing a coupling map.
+            target (Target): A target representing the target backend, if both
+                ``coupling_map`` and this are specified then this argument will take
+                precedence and ``coupling_map`` will be ignored.
 
         Raises:
             TranspilerError: if invalid options
         """
         super().__init__()
         self.coupling_map = coupling_map
+        self.target = target
 
     def run(self, dag):
         """Run the TrivialLayout pass on `dag`.
@@ -48,10 +52,14 @@ class TrivialLayout(AnalysisPass):
             dag (DAGCircuit): DAG to find layout for.
 
         Raises:
-            TranspilerError: if dag wider than self.coupling_map
+            TranspilerError: if dag wider than the target backend
         """
-        if dag.num_qubits() > self.coupling_map.size():
-            raise TranspilerError("Number of qubits greater than device.")
+        if self.target is not None:
+            if dag.num_qubits() > self.target.num_qubits:
+                raise TranspilerError("Number of qubits greater than device.")
+        else:
+            if dag.num_qubits() > self.coupling_map.size():
+                raise TranspilerError("Number of qubits greater than device.")
         self.property_set["layout"] = Layout.generate_trivial_layout(
             *(dag.qubits + list(dag.qregs.values()))
         )

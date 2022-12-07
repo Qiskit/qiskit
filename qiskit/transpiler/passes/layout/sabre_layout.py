@@ -50,7 +50,13 @@ class SabreLayout(AnalysisPass):
     """
 
     def __init__(
-        self, coupling_map, routing_pass=None, seed=None, max_iterations=3, swap_trials=None
+        self,
+        coupling_map,
+        routing_pass=None,
+        seed=None,
+        max_iterations=3,
+        swap_trials=None,
+        target=None,
     ):
         """SabreLayout initializer.
 
@@ -71,6 +77,9 @@ class SabreLayout(AnalysisPass):
                 on the number of trials run. This option is mutually exclusive
                 with the ``routing_pass`` argument and an error will be raised
                 if both are used.
+            target (Target): A target representing the target backend, if both
+                ``coupling_map`` and this are specified then this argument will take
+                precedence and ``coupling_map`` will be ignored.
 
         Raises:
             TranspilerError: If both ``routing_pass`` and ``swap_trials`` are
@@ -85,6 +94,9 @@ class SabreLayout(AnalysisPass):
         self.max_iterations = max_iterations
         self.trials = swap_trials
         self.swap_trials = swap_trials
+        self.target = target
+        if self.target is not None:
+            self.coupling_map = self.target.build_coupling_map()
 
     def run(self, dag):
         """Run the SabreLayout pass on `dag`.

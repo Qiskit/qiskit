@@ -31,15 +31,21 @@ class FullAncillaAllocation(AnalysisPass):
         circuit.
     """
 
-    def __init__(self, coupling_map):
-        """FullAncillaAllocation initializer.
+    def __init__(self, coupling_map=None, target=None):
+        """FullAncillaAllocation initializer.<F12>
 
         Args:
             coupling_map (Coupling): directed graph representing a coupling map.
+            target (Target): A target representing the target backend, if both
+                ``coupling_map`` and this are specified then this argument will take
+                precedence and ``coupling_map`` will be ignored.
         """
         super().__init__()
         self.coupling_map = coupling_map
         self.ancilla_name = "ancilla"
+        self.target = target
+        if self.target is not None:
+            self.coupling_map = self.target.build_coupling_map()
 
     def run(self, dag):
         """Run the FullAncillaAllocation pass on `dag`.

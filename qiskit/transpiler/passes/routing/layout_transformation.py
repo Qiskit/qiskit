@@ -35,6 +35,7 @@ class LayoutTransformation(TransformationPass):
         to_layout: Union[Layout, str],
         seed: Union[int, np.random.default_rng] = None,
         trials=4,
+        target=None,
     ):
         """LayoutTransformation initializer.
 
@@ -55,16 +56,20 @@ class LayoutTransformation(TransformationPass):
 
             trials (int):
                 How many randomized trials to perform, taking the best circuit as output.
+            target (Target): A target representing the target backend, if both
+                ``coupling_map`` and this are specified then this argument will take
+                precedence and the other argument will be ignored.
         """
         super().__init__()
         self.from_layout = from_layout
         self.to_layout = to_layout
-        if coupling_map:
-            self.coupling_map = coupling_map
-            graph = coupling_map.graph.to_undirected()
-        else:
+        self.coupling_map = coupling_map
+        self.target = target
+        if self.target is not None:
+            self.coupling_map = target.build_coupling_map()
+        if self.coupling_map is None:
             self.coupling_map = CouplingMap.from_full(len(to_layout))
-            graph = self.coupling_map.graph.to_undirected()
+        graph = self.coupling_map.graph.to_undirected()
         self.token_swapper = ApproximateTokenSwapper(graph, seed)
         self.trials = trials
 

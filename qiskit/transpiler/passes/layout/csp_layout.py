@@ -27,7 +27,13 @@ class CSPLayout(AnalysisPass):
     """If possible, chooses a Layout as a CSP, using backtracking."""
 
     def __init__(
-        self, coupling_map, strict_direction=False, seed=None, call_limit=1000, time_limit=10
+        self,
+        coupling_map=None,
+        strict_direction=False,
+        seed=None,
+        call_limit=1000,
+        time_limit=10,
+        target=None,
     ):
         """If possible, chooses a Layout as a CSP, using backtracking.
 
@@ -50,6 +56,9 @@ class CSPLayout(AnalysisPass):
                 None means no call limit. Default: 1000.
             time_limit (int): Amount of seconds that the pass will try to find a solution.
                 None means no time limit. Default: 10 seconds.
+            target (Target): A target representing the target backend, if both
+                ``coupling_map`` and this are specified then this argument will take
+                precedence and ``coupling_map`` will be ignored.
         """
         super().__init__()
         self.coupling_map = coupling_map
@@ -57,6 +66,9 @@ class CSPLayout(AnalysisPass):
         self.call_limit = call_limit
         self.time_limit = time_limit
         self.seed = seed
+        self.target = target
+        if self.target is not None:
+            self.coupling_map = self.target.build_coupling_map()
 
     def run(self, dag):
         """run the layout method"""

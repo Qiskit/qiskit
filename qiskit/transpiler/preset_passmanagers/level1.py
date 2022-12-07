@@ -115,7 +115,7 @@ def level_1_pass_manager(pass_manager_config: PassManagerConfig) -> StagedPassMa
     _choose_layout_0 = (
         []
         if pass_manager_config.layout_method
-        else [TrivialLayout(coupling_map), CheckMap(coupling_map)]
+        else [TrivialLayout(coupling_map, target=target), CheckMap(coupling_map, target=target)]
     )
 
     _choose_layout_1 = (
@@ -131,19 +131,21 @@ def level_1_pass_manager(pass_manager_config: PassManagerConfig) -> StagedPassMa
     )
 
     if layout_method == "trivial":
-        _improve_layout = TrivialLayout(coupling_map)
+        _improve_layout = TrivialLayout(coupling_map, target=target)
     elif layout_method == "dense":
         _improve_layout = DenseLayout(coupling_map, backend_properties, target=target)
     elif layout_method == "noise_adaptive":
-        _improve_layout = NoiseAdaptiveLayout(backend_properties)
+        _improve_layout = NoiseAdaptiveLayout(backend_properties, target=target)
     elif layout_method == "sabre":
         _improve_layout = SabreLayout(
-            coupling_map, max_iterations=2, seed=seed_transpiler, swap_trials=5
+            coupling_map, max_iterations=2, seed=seed_transpiler, swap_trials=5, target=target
         )
     elif layout_method is None:
         _improve_layout = common.if_has_control_flow_else(
             DenseLayout(coupling_map, backend_properties, target=target),
-            SabreLayout(coupling_map, max_iterations=2, seed=seed_transpiler, swap_trials=5),
+            SabreLayout(
+                coupling_map, max_iterations=2, seed=seed_transpiler, swap_trials=5, target=target
+            ),
         ).to_flow_controller()
 
     # Choose routing pass
@@ -201,7 +203,7 @@ def level_1_pass_manager(pass_manager_config: PassManagerConfig) -> StagedPassMa
             layout.append(_choose_layout_0, condition=_choose_layout_condition)
             layout.append(_choose_layout_1, condition=_layout_not_perfect)
             layout.append(_improve_layout, condition=_vf2_match_not_found)
-            layout += common.generate_embed_passmanager(coupling_map)
+            layout += common.generate_embed_passmanager(coupling_map, target=target)
 
         routing = routing_pm
 

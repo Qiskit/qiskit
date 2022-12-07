@@ -22,6 +22,7 @@ from qiskit.utils import optionals as _optionals
 from qiskit.transpiler import TransformationPass
 from qiskit.transpiler.exceptions import TranspilerError
 from qiskit.transpiler.passes.routing.algorithms.bip_model import BIPMappingModel
+from qiskit.transpiler.target import target_to_backend_properties
 
 logger = logging.getLogger(__name__)
 
@@ -64,7 +65,7 @@ class BIPMapping(TransformationPass):
 
     def __init__(
         self,
-        coupling_map,
+        coupling_map=None,
         qubit_subset=None,
         objective="balanced",
         backend_prop=None,
@@ -73,6 +74,7 @@ class BIPMapping(TransformationPass):
         max_swaps_inbetween_layers=None,
         depth_obj_weight=0.1,
         default_cx_error_rate=5e-3,
+        target=None,
     ):
         """BIPMapping initializer.
 
@@ -106,6 +108,9 @@ class BIPMapping(TransformationPass):
 
             default_cx_error_rate (float):
                 Default CX error rate to be used if backend_prop is not available.
+            target (Target): A target representing the target backend, if both
+                ``coupling_map`` or ``backend_prop`` and this are specified then this argument will take
+                precedence and the other argument will be ignored.
 
         Raises:
             MissingOptionalLibraryError: if cplex or docplex are not installed.
@@ -114,8 +119,6 @@ class BIPMapping(TransformationPass):
         super().__init__()
         self.coupling_map = coupling_map
         self.qubit_subset = qubit_subset
-        if self.coupling_map is not None and self.qubit_subset is None:
-            self.qubit_subset = list(range(self.coupling_map.size()))
         self.objective = objective
         self.backend_prop = backend_prop
         self.time_limit = time_limit
@@ -123,6 +126,13 @@ class BIPMapping(TransformationPass):
         self.max_swaps_inbetween_layers = max_swaps_inbetween_layers
         self.depth_obj_weight = depth_obj_weight
         self.default_cx_error_rate = default_cx_error_rate
+        self.target = target
+        if self.target is not None:
+            self.coupling_map = self.target.build_coupling_map()
+            self.backend_prop = target_to_backend_properties(self.target)
+
+        if self.coupling_map is not None and self.qubit_subset is None:
+            self.qubit_subset = list(range(self.coupling_map.size()))
 
     def run(self, dag):
         """Run the BIPMapping pass on `dag`, assuming the number of virtual qubits (defined in

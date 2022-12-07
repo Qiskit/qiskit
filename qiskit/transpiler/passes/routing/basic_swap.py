@@ -27,17 +27,23 @@ class BasicSwap(TransformationPass):
     one or more swaps in front to make it compatible.
     """
 
-    def __init__(self, coupling_map, fake_run=False):
+    def __init__(self, coupling_map=None, fake_run=False, target=None):
         """BasicSwap initializer.
 
         Args:
             coupling_map (CouplingMap): Directed graph represented a coupling map.
             fake_run (bool): if true, it only pretend to do routing, i.e., no
                 swap is effectively added.
+            target (Target): A target representing the target backend, if both
+                ``coupling_map`` and this are specified then this argument will take
+                precedence and ``coupling_map`` will be ignored.
         """
         super().__init__()
         self.coupling_map = coupling_map
         self.fake_run = fake_run
+        self.target = target
+        if self.target is not None:
+            self.coupling_map = self.target.build_coupling_map()
 
     def run(self, dag):
         """Run the BasicSwap pass on `dag`.

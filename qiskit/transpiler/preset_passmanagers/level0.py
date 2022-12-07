@@ -78,14 +78,14 @@ def level_0_pass_manager(pass_manager_config: PassManagerConfig) -> StagedPassMa
         return not property_set["layout"]
 
     if layout_method == "trivial":
-        _choose_layout = TrivialLayout(coupling_map)
+        _choose_layout = TrivialLayout(coupling_map, target=target)
     elif layout_method == "dense":
         _choose_layout = DenseLayout(coupling_map, backend_properties, target=target)
     elif layout_method == "noise_adaptive":
-        _choose_layout = NoiseAdaptiveLayout(backend_properties)
+        _choose_layout = NoiseAdaptiveLayout(backend_properties, target=target)
     elif layout_method == "sabre":
         _choose_layout = SabreLayout(
-            coupling_map, max_iterations=1, seed=seed_transpiler, swap_trials=5
+            coupling_map, max_iterations=1, seed=seed_transpiler, swap_trials=5, target=target
         )
 
     # Choose routing pass
@@ -112,7 +112,7 @@ def level_0_pass_manager(pass_manager_config: PassManagerConfig) -> StagedPassMa
             layout = PassManager()
             layout.append(_given_layout)
             layout.append(_choose_layout, condition=_choose_layout_condition)
-            layout += common.generate_embed_passmanager(coupling_map)
+            layout += common.generate_embed_passmanager(coupling_map, target)
         routing = routing_pm
     else:
         layout = None

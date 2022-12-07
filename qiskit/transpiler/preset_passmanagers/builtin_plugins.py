@@ -32,7 +32,7 @@ class BasicSwapPassManager(PassManagerStagePlugin):
         target = pass_manager_config.target
         coupling_map = pass_manager_config.coupling_map
         backend_properties = pass_manager_config.backend_properties
-        routing_pass = BasicSwap(coupling_map)
+        routing_pass = BasicSwap(coupling_map, target=target)
         vf2_call_limit = common.get_vf2_call_limit(
             optimization_level,
             pass_manager_config.layout_method,
@@ -95,9 +95,13 @@ class StochasticSwapPassManager(PassManagerStagePlugin):
             pass_manager_config.initial_layout,
         )
         if optimization_level == 3:
-            routing_pass = StochasticSwap(coupling_map, trials=200, seed=seed_transpiler)
+            routing_pass = StochasticSwap(
+                coupling_map, trials=200, seed=seed_transpiler, target=target
+            )
         else:
-            routing_pass = StochasticSwap(coupling_map, trials=20, seed=seed_transpiler)
+            routing_pass = StochasticSwap(
+                coupling_map, trials=20, seed=seed_transpiler, target=target
+            )
 
         if optimization_level == 0:
             return common.generate_routing_passmanager(
@@ -146,7 +150,9 @@ class LookaheadSwapPassManager(PassManagerStagePlugin):
             pass_manager_config.initial_layout,
         )
         if optimization_level == 0:
-            routing_pass = LookaheadSwap(coupling_map, search_depth=2, search_width=2)
+            routing_pass = LookaheadSwap(
+                coupling_map, search_depth=2, search_width=2, target=target
+            )
             return common.generate_routing_passmanager(
                 routing_pass,
                 target,
@@ -155,7 +161,9 @@ class LookaheadSwapPassManager(PassManagerStagePlugin):
                 use_barrier_before_measurement=True,
             )
         if optimization_level == 1:
-            routing_pass = LookaheadSwap(coupling_map, search_depth=4, search_width=4)
+            routing_pass = LookaheadSwap(
+                coupling_map, search_depth=4, search_width=4, target=target
+            )
             return common.generate_routing_passmanager(
                 routing_pass,
                 target,
@@ -167,7 +175,9 @@ class LookaheadSwapPassManager(PassManagerStagePlugin):
                 use_barrier_before_measurement=True,
             )
         if optimization_level == 2:
-            routing_pass = LookaheadSwap(coupling_map, search_depth=5, search_width=6)
+            routing_pass = LookaheadSwap(
+                coupling_map, search_depth=5, search_width=6, target=target
+            )
             return common.generate_routing_passmanager(
                 routing_pass,
                 target,
@@ -178,7 +188,9 @@ class LookaheadSwapPassManager(PassManagerStagePlugin):
                 use_barrier_before_measurement=True,
             )
         if optimization_level == 3:
-            routing_pass = LookaheadSwap(coupling_map, search_depth=5, search_width=6)
+            routing_pass = LookaheadSwap(
+                coupling_map, search_depth=5, search_width=6, target=target
+            )
             return common.generate_routing_passmanager(
                 routing_pass,
                 target,
@@ -207,7 +219,7 @@ class SabreSwapPassManager(PassManagerStagePlugin):
         )
         if optimization_level == 0:
             routing_pass = SabreSwap(
-                coupling_map, heuristic="basic", seed=seed_transpiler, trials=5
+                coupling_map, heuristic="basic", seed=seed_transpiler, trials=5, target=target
             )
             return common.generate_routing_passmanager(
                 routing_pass,
@@ -218,7 +230,7 @@ class SabreSwapPassManager(PassManagerStagePlugin):
             )
         if optimization_level == 1:
             routing_pass = SabreSwap(
-                coupling_map, heuristic="decay", seed=seed_transpiler, trials=5
+                coupling_map, heuristic="decay", seed=seed_transpiler, trials=5, target=target
             )
             return common.generate_routing_passmanager(
                 routing_pass,
@@ -232,7 +244,7 @@ class SabreSwapPassManager(PassManagerStagePlugin):
             )
         if optimization_level == 2:
             routing_pass = SabreSwap(
-                coupling_map, heuristic="decay", seed=seed_transpiler, trials=10
+                coupling_map, heuristic="decay", seed=seed_transpiler, trials=10, target=target
             )
             return common.generate_routing_passmanager(
                 routing_pass,
@@ -245,7 +257,7 @@ class SabreSwapPassManager(PassManagerStagePlugin):
             )
         if optimization_level == 3:
             routing_pass = SabreSwap(
-                coupling_map, heuristic="decay", seed=seed_transpiler, trials=20
+                coupling_map, heuristic="decay", seed=seed_transpiler, trials=20, target=target
             )
             return common.generate_routing_passmanager(
                 routing_pass,
