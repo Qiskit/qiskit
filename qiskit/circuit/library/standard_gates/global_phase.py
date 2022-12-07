@@ -13,7 +13,7 @@
 """Global Phase Gate"""
 
 from typing import Optional  # , Union
-import math
+# import math
 import numpy
 
 # from qiskit.qasm import pi
