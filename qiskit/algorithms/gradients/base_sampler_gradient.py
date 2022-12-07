@@ -17,11 +17,9 @@ Abstract base class of gradient for ``Sampler``.
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
-from collections.abc import Sequence
 from collections import defaultdict
+from collections.abc import Sequence
 from copy import copy
-
-import numpy as np
 
 from qiskit import transpile
 from qiskit.algorithms import AlgorithmJob
@@ -216,9 +214,6 @@ class BaseSamplerGradient(ABC):
                     # The original gradient is a sum of the gradients of the parameters in the
                     # gradient circuit multiplied by the coefficients.
                     unique_gradient = results.gradients[idx][g_parameter_indices[g_parameter]]
-                    # grad_dist[list(unique_gradient.keys())] += float(bound_coeff) * np.array(
-                    #     list(unique_gradient.values())
-                    # )
                     for key, value in unique_gradient.items():
                         grad_dist[key] += float(bound_coeff) * value
                 gradient.append(dict(grad_dist))

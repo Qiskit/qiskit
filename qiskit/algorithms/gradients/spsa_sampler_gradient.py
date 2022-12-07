@@ -124,11 +124,6 @@ class SPSASamplerGradient(BaseSamplerGradient):
                     continue
                 # the gradient for jth parameter is the average of the gradients of the jth parameter
                 # for each batch.
-                # batch_gradients = np.array(
-                #     [offset * dist_diff for dist_diff, offset in zip(dist_diffs, offsets[i][:, j])]
-                # )
-                # gradient_j = np.mean(batch_gradients, axis=0)
-                # gradient.append(dict(enumerate(gradient_j)))
                 gradient_j = defaultdict(float)
                 for k in range(self._batch_size):
                     for key, value in dist_diffs[k].items():

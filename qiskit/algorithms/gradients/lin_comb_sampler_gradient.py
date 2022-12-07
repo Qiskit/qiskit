@@ -18,8 +18,6 @@ from __future__ import annotations
 from collections import defaultdict
 from typing import Sequence
 
-import numpy as np
-
 from qiskit.algorithms import AlgorithmError
 from qiskit.circuit import Parameter, QuantumCircuit
 from qiskit.primitives import BaseSampler
@@ -130,10 +128,6 @@ class LinCombSamplerGradient(BaseSamplerGradient):
             n = 2 ** circuits[i].num_qubits
             gradient = []
             for dist in result.quasi_dists:
-                # grad_dist = np.zeros(2 ** circuits[i].num_qubits)
-                # grad_dist[list(dist.keys())[:n]] += list(dist.values())[:n]
-                # grad_dist[list(dist.keys())[:n]] -= list(dist.values())[n:]
-                # gradient.append(dict(enumerate(grad_dist)))
                 grad_dist = defaultdict(float)
                 for key, value in dist.items():
                     if key < n:

@@ -120,16 +120,11 @@ class FiniteDiffSamplerGradient(BaseSamplerGradient):
             raise AlgorithmError("Sampler job failed.") from exc
 
         gradients = []
-        for i, result in enumerate(results):
+        for result in results:
             if self._method == "central":
                 n = len(result.quasi_dists) // 2
                 gradient = []
                 for dist_plus, dist_minus in zip(result.quasi_dists[:n], result.quasi_dists[n:]):
-                    # grad_dist = np.zeros(2 ** circuits[i].num_qubits)
-                    # grad_dist[list(dist_plus.keys())] += list(dist_plus.values())
-                    # grad_dist[list(dist_minus.keys())] -= list(dist_minus.values())
-                    # grad_dist /= 2 * self._epsilon
-                    # gradient.append(dict(enumerate(grad_dist)))
                     grad_dist = defaultdict(float)
                     for key, value in dist_plus.items():
                         grad_dist[key] += value / (2 * self._epsilon)
@@ -140,11 +135,6 @@ class FiniteDiffSamplerGradient(BaseSamplerGradient):
                 gradient = []
                 dist_zero = result.quasi_dists[0]
                 for dist_plus in result.quasi_dists[1:]:
-                    # grad_dist = np.zeros(2 ** circuits[i].num_qubits)
-                    # grad_dist[list(dist_plus.keys())] += list(dist_plus.values())
-                    # grad_dist[list(dist_zero.keys())] -= list(dist_zero.values())
-                    # grad_dist /= self._epsilon
-                    # gradient.append(dict(enumerate(grad_dist)))
                     grad_dist = defaultdict(float)
                     for key, value in dist_plus.items():
                         grad_dist[key] += value / self._epsilon
@@ -155,11 +145,6 @@ class FiniteDiffSamplerGradient(BaseSamplerGradient):
                 gradient = []
                 dist_zero = result.quasi_dists[0]
                 for dist_minus in result.quasi_dists[1:]:
-                    # grad_dist = np.zeros(2 ** circuits[i].num_qubits)
-                    # grad_dist[list(dist_zero.keys())] += list(dist_zero.values())
-                    # grad_dist[list(dist_minus.keys())] -= list(dist_minus.values())
-                    # grad_dist /= self._epsilon
-                    # gradient.append(dict(enumerate(grad_dist)))
                     grad_dist = defaultdict(float)
                     for key, value in dist_zero.items():
                         grad_dist[key] += value / self._epsilon
