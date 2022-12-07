@@ -50,7 +50,7 @@ class GlobalPhaseGate(Gate):
     def __init__(self, phase: ParameterValueType, label: Optional[str] = None):
         """Create new globalphase gate.
         Args:
-            num_qubits: The number of qubits the gate acts on.
+            phase: The value of phase it takes. 
             label: An optional label for the gate.
         """
         super().__init__("global_phase", 0, [phase], label=label)

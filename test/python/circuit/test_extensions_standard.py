@@ -877,12 +877,9 @@ class TestStandard1Q(QiskitTestCase):
         theta = 0.1
         qc = QuantumCircuit(0, global_phase=theta)
         result_qc = Statevector(qc)
-        qc_g = QuantumCircuit(0)
-        qc_g.append(GlobalPhaseGate(theta), [])
-        result_qc_g = Statevector(qc_g)
         np.testing.assert_allclose(
-            result_qc[0],
-            result_qc_g[0],
+            np.array([[result_qc[0]]]),
+            GlobalPhaseGate(theta).__array__(),
             atol=1e-7,
         )
 
