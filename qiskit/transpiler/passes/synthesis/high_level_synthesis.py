@@ -146,15 +146,25 @@ class HighLevelSynthesis(TransformationPass):
                 methods = []
 
             for method in methods:
-                plugin_name, plugin_args = method
 
-                if plugin_name not in hls_plugin_manager.method_names(node.name):
-                    raise TranspilerError(
-                        "Specified method: %s not found in available plugins for %s"
-                        % (plugin_name, node.name)
-                    )
+                # There are two ways to specify an individual method being run, either a tuple
+                #   ("kms", {"all_mats": 1, "max_paths": 100, "orig_circuit": 0}),
+                # or as a class instance
+                #   KMSSynthesisLinearFunction(all_mats=1, max_paths=100, orig_circuit=0).
+                if isinstance(method, tuple):
+                    plugin_name, plugin_args = method
 
-                plugin_method = hls_plugin_manager.method(node.name, plugin_name)
+                    if plugin_name not in hls_plugin_manager.method_names(node.name):
+                        raise TranspilerError(
+                            "Specified method: %s not found in available plugins for %s"
+                            % (plugin_name, node.name)
+                        )
+
+                    plugin_method = hls_plugin_manager.method(node.name, plugin_name)
+
+                else:
+                    plugin_method = method
+                    plugin_args = {}
 
                 if self._coupling_map:
                     plugin_args["coupling_map"] = self._coupling_map
@@ -163,7 +173,8 @@ class HighLevelSynthesis(TransformationPass):
                 decomposition = plugin_method.run(node.op, **plugin_args)
 
                 # The above synthesis method may return:
-                # - None, if the synthesis algorithm is not suited for the given higher-level-object.
+                # - None, if the synthesis algorithm is not suited for the given higher-level-object
+                #   (in which case we consider the next method in the list if available).
                 # - decomposition when the order of qubits is not important
                 # - a tuple (decomposition, wires) when the node's qubits need to be reordered
                 if decomposition is not None:
@@ -201,16 +212,23 @@ class DefaultSynthesisLinearFunction(HighLevelSynthesisPlugin):
 class KMSSynthesisLinearFunction(HighLevelSynthesisPlugin):
     """Linear function synthesis plugin based on the Kutin-Moulton-Smithline method."""
 
+    def __init__(self, **options):
+        self._options = options
+
     def run(self, high_level_object, **options):
         """Run synthesis for the given LinearFunction."""
 
+        # Combine the options passed in the initializer and now,
+        # prioritizing values passed now.
+        run_options = self._options | options
+
         # options supported by this plugin
-        coupling_map = options.get("coupling_map", None)
-        qubits = options.get("qubits", None)
-        consider_all_mats = options.get("all_mats", 0)
-        max_paths = options.get("max_paths", 1)
-        consider_original_circuit = options.get("orig_circuit", 1)
-        optimize_count = options.get("opt_count", 1)
+        coupling_map = run_options.get("coupling_map", None)
+        qubits = run_options.get("qubits", None)
+        consider_all_mats = run_options.get("all_mats", 0)
+        max_paths = run_options.get("max_paths", 1)
+        consider_original_circuit = run_options.get("orig_circuit", 1)
+        optimize_count = run_options.get("opt_count", 1)
 
         # At the end, if not none, represents the best decomposition adhering to LNN architecture.
         best_decomposition = None
@@ -271,14 +289,21 @@ class KMSSynthesisLinearFunction(HighLevelSynthesisPlugin):
 class PMHSynthesisLinearFunction(HighLevelSynthesisPlugin):
     """Linear function synthesis plugin based on the Patel-Markov-Hayes method."""
 
+    def __init__(self, **options):
+        self._options = options
+
     def run(self, high_level_object, **options):
         """Run synthesis for the given LinearFunction."""
 
+        # Combine the options passed in the initializer and now,
+        # prioritizing values passed now.
+        run_options = self._options | options
+
         # options supported by this plugin
-        coupling_map = options.get("coupling_map", None)
-        consider_all_mats = options.get("all_mats", 0)
-        consider_original_circuit = options.get("orig_circuit", 1)
-        optimize_count = options.get("opt_count", 1)
+        coupling_map = run_options.get("coupling_map", None)
+        consider_all_mats = run_options.get("all_mats", 0)
+        consider_original_circuit = run_options.get("orig_circuit", 1)
+        optimize_count = run_options.get("opt_count", 1)
 
         # At the end, if not none, represents the best decomposition.
         best_decomposition = None
@@ -310,7 +335,7 @@ class PMHSynthesisLinearFunction(HighLevelSynthesisPlugin):
 
 
 def _hamiltonian_paths(
-    coupling_map: CouplingMap, cutoff: Union[None | int] = None
+    coupling_map: CouplingMap, cutoff: Union[None, int] = None
 ) -> List[List[int]]:
     """Returns a list of all Hamiltonian paths in ``coupling_map`` (stopping the enumeration when
     the number of already discovered paths exceeds the ``cutoff`` value, when specified).
