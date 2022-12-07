@@ -256,10 +256,11 @@ class TestGrover(QiskitAlgorithmsTestCase):
         if use_sampler:
             for i, dist in enumerate(result.circuit_results):
                 keys, values = zip(*sorted(dist.items()))
-                self.assertTupleEqual(keys, ("00", "01", "10", "11"))
                 if i in (0, 3):
-                    np.testing.assert_allclose(values, [0, 0, 0, 1], atol=0.2)
+                    self.assertTupleEqual(keys, ("11",))
+                    np.testing.assert_allclose(values, [1], atol=0.2)
                 else:
+                    self.assertTupleEqual(keys, ("00", "01", "10", "11"))
                     np.testing.assert_allclose(values, [0.25, 0.25, 0.25, 0.25], atol=0.2)
         else:
             expected_results = [
