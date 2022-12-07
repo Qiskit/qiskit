@@ -206,76 +206,74 @@ class SabreLayout(TransformationPass):
             self.property_set["layout"] = initial_layout
             self.routing_pass.fake_run = False
             return dag
-        else:
-            dist_matrix = self.coupling_map.distance_matrix
-            original_qubit_indices = {bit: index for index, bit in enumerate(dag.qubits)}
-            original_clbit_indices = {bit: index for index, bit in enumerate(dag.clbits)}
+        dist_matrix = self.coupling_map.distance_matrix
+        original_qubit_indices = {bit: index for index, bit in enumerate(dag.qubits)}
+        original_clbit_indices = {bit: index for index, bit in enumerate(dag.clbits)}
 
-            dag_list = []
-            for node in dag.topological_op_nodes():
-                cargs = {original_clbit_indices[x] for x in node.cargs}
-                if node.op.condition is not None:
-                    for clbit in dag._bits_in_condition(node.op.condition):
-                        cargs.add(original_clbit_indices[clbit])
+        dag_list = []
+        for node in dag.topological_op_nodes():
+            cargs = {original_clbit_indices[x] for x in node.cargs}
+            if node.op.condition is not None:
+                for clbit in dag._bits_in_condition(node.op.condition):
+                    cargs.add(original_clbit_indices[clbit])
 
-                dag_list.append(
-                    (
-                        node._node_id,
-                        [original_qubit_indices[x] for x in node.qargs],
-                        cargs,
-                    )
+            dag_list.append(
+                (
+                    node._node_id,
+                    [original_qubit_indices[x] for x in node.qargs],
+                    cargs,
                 )
-            ((initial_layout, final_layout), swap_map, gate_order) = sabre_layout_and_routing(
-                len(dag.clbits),
-                dag_list,
-                self._neighbor_table,
-                dist_matrix,
-                Heuristic.Decay,
-                self.seed,
-                self.max_iterations,
-                self.swap_trials,
-                self.layout_trials,
             )
-            # Apply initial layout selected.
-            # this is a pseudo-pass manager to avoid the repeated round trip between
-            # dag and circuit and just use a dag
-            original_dag = dag
-            layout_dict = {}
-            num_qubits = len(dag.qubits)
-            for k, v in initial_layout.layout_mapping():
-                if k < num_qubits:
-                    layout_dict[dag.qubits[k]] = v
-            initital_layout = Layout(layout_dict)
-            self.property_set["layout"] = initital_layout
-            # If skip_routing is set then return the layout in the property set
-            # and throwaway the extra work we did to compute the swap map
-            if self.skip_routing:
-                return dag
-            dag = self._apply_layout_no_pass_manager(dag)
-            # Apply sabre swap ontop of circuit with sabre layout
-            final_layout_mapping = final_layout.layout_mapping()
-            self.property_set["final_layout"] = Layout(
-                {dag.qubits[k]: v for (k, v) in final_layout_mapping}
+        ((initial_layout, final_layout), swap_map, gate_order) = sabre_layout_and_routing(
+            len(dag.clbits),
+            dag_list,
+            self._neighbor_table,
+            dist_matrix,
+            Heuristic.Decay,
+            self.seed,
+            self.max_iterations,
+            self.swap_trials,
+            self.layout_trials,
+        )
+        # Apply initial layout selected.
+        original_dag = dag
+        layout_dict = {}
+        num_qubits = len(dag.qubits)
+        for k, v in initial_layout.layout_mapping():
+            if k < num_qubits:
+                layout_dict[dag.qubits[k]] = v
+        initital_layout = Layout(layout_dict)
+        self.property_set["layout"] = initital_layout
+        # If skip_routing is set then return the layout in the property set
+        # and throwaway the extra work we did to compute the swap map
+        if self.skip_routing:
+            return dag
+        # After this point the pass is no longer an analysis pass and the
+        # output circuit returned is transformed with the layout applied
+        # and swaps inserted
+        dag = self._apply_layout_no_pass_manager(dag)
+        # Apply sabre swap ontop of circuit with sabre layout
+        final_layout_mapping = final_layout.layout_mapping()
+        self.property_set["final_layout"] = Layout(
+            {dag.qubits[k]: v for (k, v) in final_layout_mapping}
+        )
+        mapped_dag = dag.copy_empty_like()
+        canonical_register = dag.qregs["q"]
+        qubit_indices = {bit: idx for idx, bit in enumerate(canonical_register)}
+        original_layout = NLayout.generate_trivial_layout(self.coupling_map.size())
+        for node_id in gate_order:
+            node = original_dag._multi_graph[node_id]
+            process_swaps(
+                swap_map,
+                node,
+                mapped_dag,
+                original_layout,
+                canonical_register,
+                False,
+                qubit_indices,
             )
-            mapped_dag = dag.copy_empty_like()
-            canonical_register = dag.qregs["q"]
-            qubit_indices = {bit: idx for idx, bit in enumerate(canonical_register)}
-            original_layout = NLayout.generate_trivial_layout(self.coupling_map.size())
-            for node_id in gate_order:
-                node = original_dag._multi_graph[node_id]
-                process_swaps(
-                    swap_map,
-                    node,
-                    mapped_dag,
-                    original_layout,
-                    canonical_register,
-                    False,
-                    qubit_indices,
-                )
-                apply_gate(
-                    mapped_dag, node, original_layout, canonical_register, False, layout_dict
-                )
-            return mapped_dag
+            apply_gate(mapped_dag, node, original_layout, canonical_register, False, layout_dict)
+        return mapped_dag
 
     def _apply_layout_no_pass_manager(self, dag):
         """Apply and embed a layout into a dagcircuit without using a ``PassManager`` to
