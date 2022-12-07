@@ -1,0 +1,12 @@
+---
+fixes:
+  - |
+    Added references in documentation for the gradient methods implemented in the following classes:
+    :class:`qiskit.algorithms.gradients.BaseQFI`,
+    :class:`qiskit.algorithms.gradients.FiniteDiffEstimatorGradient`,
+    :class:`qiskit.algorithms.gradients.FiniteDiffSamplerGradient`,
+    :class:`qiskit.algorithms.gradients.ParamShiftEstimatorGradient`,
+    :class:`qiskit.algorithms.gradients.ParamShiftSamplerGradient`,
+    :class:`qiskit.algorithms.gradients.SPSAEstimatorGradient`,
+    :class:`qiskit.algorithms.gradients.SPSASamplerGradient`.
+
