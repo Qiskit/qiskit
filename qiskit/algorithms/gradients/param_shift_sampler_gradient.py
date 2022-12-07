@@ -16,6 +16,7 @@ Gradient of probabilities with parameter shift
 from __future__ import annotations
 
 from typing import Sequence
+from collections import defaultdict
 
 import numpy as np
 
@@ -94,15 +95,22 @@ class ParamShiftSamplerGradient(BaseSamplerGradient):
 
         # Compute the gradients.
         gradients = []
-        for i, result in enumerate(results):
+        # for i, result in enumerate(results):
+        for result in results:
             n = len(result.quasi_dists) // 2
             gradient = []
             for dist_plus, dist_minus in zip(result.quasi_dists[:n], result.quasi_dists[n:]):
-                grad_dist = np.zeros(2 ** circuits[i].num_qubits)
-                grad_dist[list(dist_plus.keys())] += list(dist_plus.values())
-                grad_dist[list(dist_minus.keys())] -= list(dist_minus.values())
-                grad_dist /= 2
-                gradient.append(dict(enumerate(grad_dist)))
+                #grad_dist = np.zeros(2 ** circuits[i].num_qubits)
+                # grad_dist[list(dist_plus.keys())] += list(dist_plus.values())
+                # grad_dist[list(dist_minus.keys())] -= list(dist_minus.values())
+                # grad_dist /= 2
+                # gradient.append(dict(enumerate(grad_dist)))
+                grad_dist = defaultdict(float)
+                for key, val in dist_plus.items():
+                    grad_dist[key] += val / 2
+                for key, val in dist_minus.items():
+                    grad_dist[key] -= val /2
+                gradient.append(dict(grad_dist))
             gradients.append(gradient)
 
         opt = self._get_local_options(options)

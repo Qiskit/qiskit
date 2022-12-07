@@ -14,6 +14,7 @@
 
 from __future__ import annotations
 
+from collections import defaultdict
 from typing import Sequence
 
 import numpy as np
@@ -102,13 +103,20 @@ class SPSASamplerGradient(BaseSamplerGradient):
         # Compute the gradients.
         gradients = []
         for i, result in enumerate(results):
-            dist_diffs = np.zeros((self._batch_size, 2 ** circuits[i].num_qubits))
+            # dist_diffs = np.zeros((self._batch_size, 2 ** circuits[i].num_qubits))
+            dist_diffs = {}
             for j, (dist_plus, dist_minus) in enumerate(
                 zip(result.quasi_dists[: self._batch_size], result.quasi_dists[self._batch_size :])
             ):
-                dist_diffs[j, list(dist_plus.keys())] += list(dist_plus.values())
-                dist_diffs[j, list(dist_minus.keys())] -= list(dist_minus.values())
-            dist_diffs /= 2 * self._epsilon
+                # dist_diffs[j, list(dist_plus.keys())] += list(dist_plus.values())
+                # dist_diffs[j, list(dist_minus.keys())] -= list(dist_minus.values())
+                dist_diff = defaultdict(float)
+                for key, value in dist_plus.items():
+                    dist_diff[key] += value / (2 * self._epsilon)
+                for key, value in dist_minus.items():
+                    dist_diff[key] -= value / (2 * self._epsilon)
+                dist_diffs[j] = dist_diff
+            # dist_diffs /= 2 * self._epsilon
             gradient = []
             indices = [circuits[i].parameters.data.index(p) for p in metadata_[i]["parameters"]]
             for j in range(circuits[i].num_parameters):
@@ -116,11 +124,17 @@ class SPSASamplerGradient(BaseSamplerGradient):
                     continue
                 # the gradient for jth parameter is the average of the gradients of the jth parameter
                 # for each batch.
-                batch_gradients = np.array(
-                    [offset * dist_diff for dist_diff, offset in zip(dist_diffs, offsets[i][:, j])]
-                )
-                gradient_j = np.mean(batch_gradients, axis=0)
-                gradient.append(dict(enumerate(gradient_j)))
+                # batch_gradients = np.array(
+                #     [offset * dist_diff for dist_diff, offset in zip(dist_diffs, offsets[i][:, j])]
+                # )
+                # gradient_j = np.mean(batch_gradients, axis=0)
+                # gradient.append(dict(enumerate(gradient_j)))
+                gradient_j = defaultdict(float)
+                for k in range(self._batch_size):
+                    for key, value in dist_diffs[k].items():
+                        gradient_j[key] += value * offsets[i][k][j]
+                gradient_j = {key: value / self._batch_size for key, value in gradient_j.items()}
+                gradient.append(gradient_j)
             gradients.append(gradient)
 
         opt = self._get_local_options(options)

@@ -18,6 +18,7 @@ from __future__ import annotations
 
 from abc import ABC, abstractmethod
 from collections.abc import Sequence
+from collections import defaultdict
 from copy import copy
 
 import numpy as np
@@ -200,7 +201,8 @@ class BaseSamplerGradient(ABC):
             # by using the chain rule.
             gradient = []
             for parameter in parameter_indices:
-                grad_dist = np.zeros(2**circuit.num_qubits)
+                # grad_dist = np.zeros(2**circuit.num_qubits)
+                grad_dist = defaultdict(float)
                 for g_parameter, coeff in gradient_circuit.parameter_map[parameter]:
                     # Compute the coefficient
                     if isinstance(coeff, ParameterExpression):
@@ -214,10 +216,12 @@ class BaseSamplerGradient(ABC):
                     # The original gradient is a sum of the gradients of the parameters in the
                     # gradient circuit multiplied by the coefficients.
                     unique_gradient = results.gradients[idx][g_parameter_indices[g_parameter]]
-                    grad_dist[list(unique_gradient.keys())] += float(bound_coeff) * np.array(
-                        list(unique_gradient.values())
-                    )
-                gradient.append(dict(enumerate(grad_dist)))
+                    # grad_dist[list(unique_gradient.keys())] += float(bound_coeff) * np.array(
+                    #     list(unique_gradient.values())
+                    # )
+                    for key, value in unique_gradient.items():
+                        grad_dist[key] += float(bound_coeff) * value
+                gradient.append(dict(grad_dist))
             gradients.append(gradient)
             metadata.append([{"parameters": parameter_indices}])
         return SamplerGradientResult(

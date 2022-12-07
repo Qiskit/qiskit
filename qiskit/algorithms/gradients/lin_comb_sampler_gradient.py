@@ -15,6 +15,7 @@ Gradient of probabilities with linear combination of unitaries (LCU)
 
 from __future__ import annotations
 
+from collections import defaultdict
 from typing import Sequence
 
 import numpy as np
@@ -129,10 +130,17 @@ class LinCombSamplerGradient(BaseSamplerGradient):
             n = 2 ** circuits[i].num_qubits
             gradient = []
             for dist in result.quasi_dists:
-                grad_dist = np.zeros(2 ** circuits[i].num_qubits)
-                grad_dist[list(dist.keys())[:n]] += list(dist.values())[:n]
-                grad_dist[list(dist.keys())[:n]] -= list(dist.values())[n:]
-                gradient.append(dict(enumerate(grad_dist)))
+                # grad_dist = np.zeros(2 ** circuits[i].num_qubits)
+                # grad_dist[list(dist.keys())[:n]] += list(dist.values())[:n]
+                # grad_dist[list(dist.keys())[:n]] -= list(dist.values())[n:]
+                # gradient.append(dict(enumerate(grad_dist)))
+                grad_dist = defaultdict(float)
+                for key, value in dist.items():
+                    if key < n:
+                        grad_dist[key] += value
+                    else:
+                        grad_dist[key - n] -= value
+                gradient.append(dict(grad_dist))
             gradients.append(gradient)
 
         opt = self._get_local_options(options)
