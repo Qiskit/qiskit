@@ -29,12 +29,17 @@ from .qfi_result import QFIResult
 
 class BaseQFI(ABC):
     r"""Base class to computes the Quantum Fisher Information (QFI) given a pure,
-    parameterized quantum state. QFI is defined as:
+    parameterized quantum state. QFI is defined as [1]:
 
     .. math::
 
         \mathrm{QFI}_{kl}= 4 \mathrm{Re}[\langle \partial_k \psi | \partial_l \psi \rangle
             - \langle\partial_k \psi | \psi \rangle \langle\psi | \partial_l \psi \rangle].
+
+    **Reference:**
+    [1] Paris, Matteo G. A. (2009). Quantum estimation for quantum technology. International
+    Journal of Quantum Information. 07 (supp01): 125–137. `arXiv:0804.2981
+    <https://arxiv.org/pdf/0804.2981.pdf>`_
     """
 
     def __init__(

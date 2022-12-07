@@ -32,7 +32,14 @@ from .utils import _make_param_shift_parameter_values, _param_shift_preprocessin
 
 
 class ParamShiftEstimatorGradient(BaseEstimatorGradient):
-    """Compute the gradients of the expectation values by the parameter shift rule"""
+    """
+    Compute the gradients of the expectation values by the parameter shift rule [1].
+
+    **Reference:**
+    [1] Wierichs D., Izaac J., Wang C., Lin C.Y.-Y. General parameter-shift rules for quantum
+    gradients. Quantum, 6 (2022), p. 677, `10.22331/q-2022-03-30-677
+    <https://quantum-journal.org/papers/q-2022-03-30-677/>`_
+    """
 
     def __init__(self, estimator: BaseEstimator, options: Options | None = None):
         """
