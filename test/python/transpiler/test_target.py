@@ -1738,3 +1738,33 @@ class TestTargetFromConfiguration(QiskitTestCase):
         self.assertEqual(target.min_length, constraints.min_length)
         self.assertEqual(target.pulse_alignment, constraints.pulse_alignment)
         self.assertEqual(target.aquire_alignment, constraints.acquire_alignment)
+
+    def test_custom_basis_gates(self):
+        basis_gates = ["my_x", "cx"]
+        custom_name_mapping = {"my_x": XGate()}
+        target = Target.from_configuration(
+            basis_gates=basis_gates, num_qubits=2, custom_name_mapping=custom_name_mapping
+        )
+        self.assertEqual(target.operation_names, {"my_x", "cx"})
+
+    def test_missing_custom_basis_no_coupling(self):
+        basis_gates = ["my_X", "cx"]
+        with self.assertRaises(KeyError):
+            Target.from_configuration(basis_gates, num_qubits=4)
+
+    def test_missing_custom_basis_with_coupling(self):
+        basis_gates = ["my_X", "cx"]
+        cmap = CouplingMap.from_line(3)
+        with self.assertRaises(KeyError):
+            Target.from_configuration(basis_gates, 3, cmap)
+
+    def test_over_two_qubit_gate_without_coupling(self):
+        basis_gates = ["ccx", "cx", "swap", "u"]
+        target = Target.from_configuration(basis_gates, 15)
+        self.assertEqual(target.operation_names, {"ccx", "cx", "swap", "u"})
+
+    def test_over_two_qubits_with_coupling(self):
+        basis_gates = ["ccx", "cx", "swap", "u"]
+        cmap = CouplingMap.from_line(15)
+        with self.assertRaises(TranspilerError):
+            Target.from_configuration(basis_gates, 15, cmap)
