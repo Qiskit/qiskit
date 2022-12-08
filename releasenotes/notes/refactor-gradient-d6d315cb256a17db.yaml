@@ -1,13 +1,15 @@
 ---
 features:
   - |
-    Refactored estimator gradients and sampler gradients for extensibility. They have now
+    Refactored estimator gradients and sampler gradients for extensibility. Now, they have
     ``_preprocess()`` to make a gradient circuit that has unique parameters to each parameter,
     and ``parameter_values`` and ``parameters`` are also updated to match the circuit.
     ``_postprocess()`` computes the gradient of the original circuit from the gradient of the
     gradient circuit by using the chain rule. When users want to implement their own gradient classes,
-    they can use ``_preprocess()`` and ``_postprocess()``. Then, they implement ``run_unique()``
+    they can use ``_preprocess()`` and ``_postprocess()``. Then, they implement ``_run_unique()``
     that calculates a gradient of a circuit with unique parameters.
+
+fixes:
   - |
     :class:`.SamplerGradientResult` no longer makes a dict of size 2 ** qubits for a result.
     It will create only keys of the required size.
