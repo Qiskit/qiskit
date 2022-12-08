@@ -27,7 +27,13 @@ from .utils import _make_param_shift_parameter_values
 
 
 class ParamShiftSamplerGradient(BaseSamplerGradient):
-    """Compute the gradients of the sampling probability by the parameter shift rule."""
+    """
+    Compute the gradients of the sampling probability by the parameter shift rule [1].
+
+    **Reference:**
+    [1] Schuld, M., Bergholm, V., Gogolin, C., Izaac, J., and Killoran, N. Evaluating analytic
+    gradients on quantum hardware, `DOI <https://doi.org/10.1103/PhysRevA.99.032331>`_
+    """
 
     SUPPORTED_GATES = [
         "x",

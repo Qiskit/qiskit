@@ -36,7 +36,12 @@ else:
 
 
 class FiniteDiffSamplerGradient(BaseSamplerGradient):
-    """Compute the gradients of the sampling probability by finite difference method."""
+    """
+    Compute the gradients of the sampling probability by finite difference method [1].
+
+    **Reference:**
+    [1] `Finite difference method <https://en.wikipedia.org/wiki/Finite_difference_method>`_
+    """
 
     def __init__(
         self,

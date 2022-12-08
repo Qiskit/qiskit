@@ -38,7 +38,10 @@ else:
 
 class FiniteDiffEstimatorGradient(BaseEstimatorGradient):
     """
-    Compute the gradients of the expectation values by finite difference method.
+    Compute the gradients of the expectation values by finite difference method [1].
+
+    **Reference:**
+    [1] `Finite difference method <https://en.wikipedia.org/wiki/Finite_difference_method>`_
     """
 
     def __init__(
