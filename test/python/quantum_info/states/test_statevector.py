@@ -166,6 +166,18 @@ class TestStatevector(QiskitTestCase):
         psi = Statevector.from_instruction(circuit)
         self.assertEqual(psi, target)
 
+        target = Statevector([1, 0, 1, 0]) / np.sqrt(2)
+        circuit = QuantumCircuit(2)
+        circuit.initialize("+", [1])
+        psi = Statevector.from_instruction(circuit)
+        self.assertEqual(psi, target)
+
+        target = Statevector([1, 0, 0, 0])
+        circuit = QuantumCircuit(2)
+        circuit.initialize(0, [0, 1])  # initialize from int
+        psi = Statevector.from_instruction(circuit)
+        self.assertEqual(psi, target)
+
         # Test reset instruction
         target = Statevector([1, 0])
         circuit = QuantumCircuit(1)
