@@ -2274,7 +2274,6 @@ class QuantumCircuit:
         """
         return self.append(MeasureX(), [qubit], [cbit])
 
-
     def measure_y(self, qubit: QubitSpecifier, cbit: ClbitSpecifier) -> InstructionSet:
         """Measure quantum bit into classical bit (tuples), in the Y basis.
 
@@ -2290,7 +2289,6 @@ class QuantumCircuit:
         """
         return self.append(MeasureY(), [qubit], [cbit])
 
-
     def measure_z(self, qubit: QubitSpecifier, cbit: ClbitSpecifier) -> InstructionSet:
         """Measure quantum bit into classical bit (tuples), in the Z basis.
 
@@ -2305,7 +2303,6 @@ class QuantumCircuit:
             CircuitError: if arguments have bad format.
         """
         return self.append(MeasureZ(), [qubit], [cbit])
-
 
     def measure_active(self, inplace: bool = True) -> Optional["QuantumCircuit"]:
         """Adds measurement to all non-idle qubits. Creates a new ClassicalRegister with

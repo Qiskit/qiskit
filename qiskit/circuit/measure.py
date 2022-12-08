@@ -20,7 +20,7 @@ from qiskit.circuit.instruction import Instruction
 from qiskit.circuit.exceptions import CircuitError
 
 
-# Measure class kept for backwards compatibility, and repurposed 
+# Measure class kept for backwards compatibility, and repurposed
 # as a common parent class for all measurement instructions.
 class Measure(Instruction):
     """Quantum measurement in the computational basis."""
@@ -45,11 +45,11 @@ class Measure(Instruction):
 
 class MeasureX(Measure):
     """Quantum measurement in the X basis."""
-    
+
     def __init__(self):
         """Create new X measurement instruction."""
         super(Measure, self).__init__("measure_x", 1, 1, [])
-    
+
     def _define(self):
         # pylint: disable=cyclic-import
         from qiskit.circuit.quantumcircuit import QuantumCircuit
@@ -64,7 +64,7 @@ class MeasureX(Measure):
 
 class MeasureY(Measure):
     """Quantum measurement in the Y basis."""
-    
+
     def __init__(self):
         """Create new Y measurement instruction."""
         super(Measure, self).__init__("measure_y", 1, 1, [])
@@ -83,7 +83,7 @@ class MeasureY(Measure):
 
 class MeasureZ(Measure):
     """Quantum Z measurement in the Z basis."""
-    
+
     def __init__(self):
         """Create new measurement instruction."""
         super(Measure, self).__init__("measure_z", 1, 1, [])
