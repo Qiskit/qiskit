@@ -114,10 +114,10 @@ def _make_param_shift_parameter_values(
 def _make_lin_comb_gradient_circuit(circuit: QuantumCircuit, add_measurement: bool = False):
     """Makes a circuit that computes the linear combination of the gradient circuits."""
     circuit_temp = circuit.copy()
-    qr_aux = QuantumRegister(1, "aux")
-    cr_aux = ClassicalRegister(1, "aux")
+    qr_aux = QuantumRegister(1, "qr_aux")
+    cr_aux = ClassicalRegister(1, "cr_aux")
     circuit_temp.add_register(qr_aux)
-    circuit.add_register(cr_aux)
+    circuit_temp.add_register(cr_aux)
     circuit_temp.h(qr_aux)
     circuit_temp.data.insert(0, circuit_temp.data.pop())
     circuit_temp.sdg(qr_aux)
