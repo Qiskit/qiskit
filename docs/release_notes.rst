@@ -22,6 +22,157 @@ Notable Changes
 ###############
 
 *************
+Qiskit 0.39.4
+*************
+
+Terra 0.22.3
+============
+
+No change
+
+.. _Release Notes_Aer_0.11.2:
+
+Aer 0.11.2
+==========
+
+.. _Release Notes_Aer_0.11.2_New Features:
+
+New Features
+------------
+
+.. releasenotes/notes/add-python-311-support-027047fb389116dd.yaml @ b'1d2520d3197bf8a59d62965ade6b4cae8c7ed5b5'
+
+- Added support for running Qiskit Aer with Python 3.11 support.
+
+
+.. _Release Notes_Aer_0.11.2_Known Issues:
+
+Known Issues
+------------
+
+.. releasenotes/notes/fix_aer_statevector_mps-c3dd40b936700ff4.yaml @ b'7a881dd758b327566f4e9726771b5960fa2c50d8'
+
+- Fix two bugs in AerStatevector. AerStatevector uses mc* instructions, which are
+  not enabled in matrix_product_state method. This commit changes AerStatevector
+  not to use MC* and use H, X, Y, Z, U and CX. AerStatevector also failed if an
+  instruction is decomposed to empty QuantumCircuit. This commit allows such
+  instruction.
+
+
+.. _Release Notes_Aer_0.11.2_Bug Fixes:
+
+Bug Fixes
+---------
+
+.. releasenotes/notes/fix-AerSimulator_from_backend_BackendV2-bccf835bc42a193d.yaml @ b'a7d802fa0d16b9899200ae851bd061f8f7843da1'
+
+- Fixed support in the :meth:`.AerSimulator.from_backend` method for instantiating
+  an :class:`~.AerSimulator` instance from an a :class:`~.BackendV2` object.
+  Previously, attempting to use :meth:`.AerSimulator.from_backend` with a
+  :class:`~.BackendV2` object would have raised an :class:`~.AerError` saying this
+  wasn't supported.
+
+.. releasenotes/notes/fix-device-noise-models-2eca2f9c9dc25771.yaml @ b'0ced15bb5a7137563134789357d973743d25977d'
+
+- Fixes a bug where :meth:`NoiseModel.from_backend` with a ``BackendV2`` object may generate
+  a noise model with excessive ``QuantumError`` s on non-Gate instructions while,
+  for example, only ``ReadoutError`` s should be sufficient for measures.
+  This commit updates :meth:`NoiseModel.from_backend` with a ``BackendV2`` object so that
+  it returns the same noise model as that called with the corresponding ``BackendV1`` object.
+  That is, the resulting noise model does not contain any ``QuantumError`` s on measures and
+  it may contain only thermal relaxation errors on other non-gate instructions such as resets.
+  Note that it still contains ``ReadoutError`` s on measures.
+
+.. releasenotes/notes/fix-temperature-a9c51c4599af3a49.yaml @ b'5bcb45434ae5af6e02f6945555670bf47a3d9ca6'
+
+- Fixed a bug in :meth:`NoiseModel.from_backend` where using the ``temperature`` kwarg with
+  a non-default value would incorrectly compute the excited state population for
+  the specified temperature. Previously, there was an additional factor of 2 in
+  the Boltzman distribution calculation leading to an incorrect smaller value
+  for the excited state population.
+
+.. releasenotes/notes/fix-topological-control-flow-e2f1a25098004f00.yaml @ b'f8babdd98b627b23d895316ccf9725c4fde60935'
+
+- Fixed incorrect logic in the control-flow compiler that could allow unrelated instructions to
+  appear "inside" control-flow bodies during execution, causing incorrect results.  For example,
+  previously::
+
+      from qiskit import QuantumCircuit
+      from qiskit_aer import AerSimulator
+
+      backend = AerSimulator(method="statevector")
+
+      circuit = QuantumCircuit(3, 3)
+      circuit.measure(0, 0)
+      circuit.measure(1, 1)
+
+      with circuit.if_test((0, True)):
+          with circuit.if_test((1, False)):
+              circuit.x(2)
+
+      with circuit.if_test((0, False)):
+          with circuit.if_test((1, True)):
+              circuit.x(2)
+
+      circuit.measure(range(3), range(3))
+      print(backend.run(circuit, method=method, shots=100).result())
+
+  would print ``{'010': 100}`` as the nested control-flow operations would accidentally jump over
+  the first X gate on qubit 2, which should have been executed.
+
+.. releasenotes/notes/fix-vervose-warnings-efbbbfcb4b65a2a5.yaml @ b'15a02738cac23033f42e66bbbe19121d2c1eebc0'
+
+- Fixes a bug where ``NoiseModel.from_backend()`` prints verbose warnings when
+  supplying a backend that reports un-physical device parameters such as T2 > 2 * T1
+  due to statistical errors in their estimation.
+  This commit removes such warnings because they are not actionable for users in the sense
+  that there are no means other than truncating them to the theoretical bounds as
+  done within ``noise.device`` module.
+  See `Issue 1631 <https://github.com/Qiskit/qiskit-aer/issues/1631>`__
+  for details of the fixed bug.
+
+.. releasenotes/notes/fix_GPU_statevector-715da5ead0a59fb5.yaml @ b'286690076c1472ecda6211b832fcdff2b9d7598d'
+
+- This is fix for GPU statevector simulator.
+  Chunk distribution tried to allocate all free memory on GPU,
+  but this causes memory allocation error.
+  So this fix allocates 80 percent of free memory.
+  Also this fixes size of matrix buffer when noise sampling is applied.
+
+.. releasenotes/notes/fix_cache_blocking_AerState-ccb035bb5be6f895.yaml @ b'6b2b8b5c4c0e0dfa748704d07ff9b1519f17001c'
+
+- This is a fix of AerState running with cache blocking. AerState wrongly configured
+  transpiler of Aer for cache blocking, and then its algorithm to swap qubits
+  worked wrongly. This fix corrects AerState to use this transpiler. More specifically,
+  After the transpilation, a swapped qubit map is recoverd to the original map
+  when using AerState. This fix is necessary for AerStatevector to use multiple-GPUs.
+
+.. releasenotes/notes/improve-statevector-initialization-75274fdcb4106d24.yaml @ b'e6248e21e430375d693fccad4a206740fafda54e'
+
+- This is fix for AerStatevector.
+  It was not possible to create an AerStatevector instance directly from
+  terra's Statevector.
+  This fix allows a Statevector as AerStatevector's input.
+
+.. releasenotes/notes/sampler-counts-90e5aaabccdc415b.yaml @ b'8d34a8d3b011426714ceda417f95f5a3c9076143'
+
+- :attr:`.SamplerResult.quasi_dists` contain the data about the number of qubits.
+  :meth:`QuasiDistribution.binary_probabilities` returns bitstrings with correct length.
+
+.. releasenotes/notes/set_seed_for_each_in_aerstatevec-ef5fcac628dec63b.yaml @ b'cb8b33514475c6d07dd82984d870c75324a9424a'
+
+- Previously seed is not initialized in AerStatevector and then sampled results
+  are always same. With this commit, a seed is initialized for each sampling
+  and sampled results can be vary.
+
+
+IBM Q Provider 0.19.2
+=====================
+
+No change
+
+
+*************
 Qiskit 0.39.3
 *************
 
