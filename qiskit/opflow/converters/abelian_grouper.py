@@ -16,7 +16,7 @@ from collections import defaultdict
 from typing import List, Tuple, Union, cast
 
 import numpy as np
-import retworkx as rx
+import rustworkx as rx
 
 from qiskit.opflow.converters.converter_base import ConverterBase
 from qiskit.opflow.evolutions.evolved_op import EvolvedOp
