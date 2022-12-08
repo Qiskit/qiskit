@@ -23,8 +23,8 @@ from qiskit.quantum_info.analysis.z2_symmetries import Z2Symmetries
 class TestSparseZ2Symmetries(QiskitOpflowTestCase):
     """Z2Symmetries tests."""
 
-    def test_find_Z2_symmetries(self):
-        """test for find_Z2_symmetries"""
+    def test_find_z2_symmetries(self):
+        """test for find_z2_symmetries"""
 
         qubit_op = SparsePauliOp.from_list(
             [
@@ -35,7 +35,7 @@ class TestSparseZ2Symmetries(QiskitOpflowTestCase):
                 ("XX", 0.1812888082114961),
             ]
         )
-        z2_symmetries = Z2Symmetries.find_Z2_symmetries(qubit_op)
+        z2_symmetries = Z2Symmetries.find_z2_symmetries(qubit_op)
         self.assertEqual(z2_symmetries.symmetries, [Pauli("ZZ")])
         self.assertEqual(z2_symmetries.sq_paulis, [Pauli("IX")])
         self.assertEqual(z2_symmetries.sq_list, [0])
@@ -75,7 +75,7 @@ class TestSparseZ2Symmetries(QiskitOpflowTestCase):
                 ("XX", 0.1812888082114961),
             ]
         )
-        z2_symmetries = Z2Symmetries.find_Z2_symmetries(qubit_op)
+        z2_symmetries = Z2Symmetries.find_z2_symmetries(qubit_op)
         z2_symmetries.tol = 0.2  # removes the X part of the tapered op which is < 0.2
 
         tapered_op = z2_symmetries.taper(qubit_op)[1]
@@ -99,7 +99,7 @@ class TestSparseZ2Symmetries(QiskitOpflowTestCase):
                 ("XX", 0.1812888082114961),
             ]
         )
-        z2_symmetries = Z2Symmetries.find_Z2_symmetries(qubit_op)
+        z2_symmetries = Z2Symmetries.find_z2_symmetries(qubit_op)
         converted_op_firststep = z2_symmetries.convert_clifford(qubit_op)
         tapered_op_secondstep = z2_symmetries.taper_clifford(converted_op_firststep)
 

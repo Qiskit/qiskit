@@ -180,9 +180,8 @@ class Z2Symmetries:
         op = op.simplify()
         return len(op.coeffs) == 1 and op.coeffs[0] == 0
 
-    # pylint: disable=invalid-name
     @classmethod
-    def find_Z2_symmetries(cls, operator: SparsePauliOp) -> Z2Symmetries:
+    def find_z2_symmetries(cls, operator: SparsePauliOp) -> Z2Symmetries:
         """
         Finds Z2 Pauli-type symmetries of a :class:`.SparsePauliOp`.
 
@@ -195,12 +194,16 @@ class Z2Symmetries:
 
         stacked_paulis = []
 
-        Z_or_I_idx_test = [(0, 0), (0, 1)]
-        Z_or_I_row_test = [(1, 0), (1, 1)]
-        X_or_I_idx_test = [(0, 0), (1, 0)]
-        X_or_I_row_test = [(0, 1), (1, 1)]
-        Y_or_I_idx_test = [(0, 0), (1, 1)]
-        Y_or_I_row_test = [(0, 1), (1, 0)]
+        test_idx = {
+            "X_or_I": [(0, 0), (1, 0)],
+            "Y_or_I": [(0, 0), (1, 1)],
+            "Z_or_I": [(0, 0), (0, 1)],
+        }
+        test_row = {
+            "Z_or_I": [(1, 0), (1, 1)],
+            "X_or_I": [(0, 1), (1, 1)],
+            "Y_or_I": [(0, 1), (1, 0)],
+        }
 
         if Z2Symmetries._sparse_pauli_op_is_zero(operator):
             logger.info("Operator is empty.")
@@ -212,7 +215,7 @@ class Z2Symmetries:
             )
 
         stacked_matrix = np.stack(stacked_paulis)
-        symmetries = _kernel_F2(stacked_matrix)
+        symmetries = _kernel_f2(stacked_matrix)
 
         if not symmetries:
             logger.info("No symmetry is found.")
@@ -276,7 +279,7 @@ class Z2Symmetries:
 
             for col in range(half_symm_shape):
                 # case symmetries other than one at (row) have Z or I on col qubit
-                if _test_symmetry_row_col(row, col, Z_or_I_idx_test, Z_or_I_row_test):
+                if _test_symmetry_row_col(row, col, test_idx["Z_or_I"], test_row["Z_or_I"]):
                     sq_paulis.append(Pauli((np.zeros(half_symm_shape), np.zeros(half_symm_shape))))
                     sq_paulis[row].z[col] = False
                     sq_paulis[row].x[col] = True
@@ -284,7 +287,7 @@ class Z2Symmetries:
                     break
 
                 # case symmetries other than one at (row) have X or I on col qubit
-                if _test_symmetry_row_col(row, col, X_or_I_idx_test, X_or_I_row_test):
+                if _test_symmetry_row_col(row, col, test_idx["X_or_I"], test_row["X_or_I"]):
                     sq_paulis.append(Pauli((np.zeros(half_symm_shape), np.zeros(half_symm_shape))))
                     sq_paulis[row].z[col] = True
                     sq_paulis[row].x[col] = False
@@ -292,7 +295,7 @@ class Z2Symmetries:
                     break
 
                 # case symmetries other than one at (row)  have Y or I on col qubit
-                if _test_symmetry_row_col(row, col, Y_or_I_idx_test, Y_or_I_row_test):
+                if _test_symmetry_row_col(row, col, test_idx["Y_or_I"], test_row["Y_or_I"]):
                     sq_paulis.append(Pauli((np.zeros(half_symm_shape), np.zeros(half_symm_shape))))
                     sq_paulis[row].z[col] = True
                     sq_paulis[row].x[col] = True
@@ -420,7 +423,7 @@ class Z2Symmetries:
         )
 
 
-def _kernel_F2(matrix_in) -> list[np.ndarray]:  # pylint: disable=invalid-name
+def _kernel_f2(matrix_in) -> list[np.ndarray]:
     """
     Compute the kernel of a binary matrix on the binary finite field.
 
@@ -433,7 +436,7 @@ def _kernel_F2(matrix_in) -> list[np.ndarray]:  # pylint: disable=invalid-name
     size = matrix_in.shape
     kernel = []
     matrix_in_id = np.vstack((matrix_in, np.identity(size[1])))
-    matrix_in_id_ech = (_row_echelon_F2(matrix_in_id.transpose())).transpose()
+    matrix_in_id_ech = (_row_echelon_f2(matrix_in_id.transpose())).transpose()
 
     for col in range(size[1]):
         if np.array_equal(
@@ -444,7 +447,7 @@ def _kernel_F2(matrix_in) -> list[np.ndarray]:  # pylint: disable=invalid-name
     return kernel
 
 
-def _row_echelon_F2(matrix_in) -> np.ndarray:  # pylint: disable=invalid-name
+def _row_echelon_f2(matrix_in) -> np.ndarray:
     """
     Compute the row Echelon form of a binary matrix on the binary finite field.
 
