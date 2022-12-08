@@ -14,6 +14,8 @@
 Quantum measurement in the computational basis.
 """
 
+from __future__ import annotations
+
 import warnings
 
 from qiskit.circuit.instruction import Instruction
@@ -24,6 +26,8 @@ from qiskit.circuit.exceptions import CircuitError
 # as a common parent class for all measurement instructions.
 class Measure(Instruction):
     """Quantum measurement in the computational basis."""
+
+    basis: str | None = None
 
     def __init__(self):
         """Create new measurement instruction."""
@@ -46,6 +50,8 @@ class Measure(Instruction):
 class MeasureX(Measure):
     """Quantum measurement in the X basis."""
 
+    basis: str | None = "X"
+
     def __init__(self):
         """Create new X measurement instruction."""
         super(Measure, self).__init__("measure_x", 1, 1, [])
@@ -65,6 +71,8 @@ class MeasureX(Measure):
 class MeasureY(Measure):
     """Quantum measurement in the Y basis."""
 
+    basis: str | None = "Y"
+
     def __init__(self):
         """Create new Y measurement instruction."""
         super(Measure, self).__init__("measure_y", 1, 1, [])
@@ -83,6 +91,8 @@ class MeasureY(Measure):
 
 class MeasureZ(Measure):
     """Quantum Z measurement in the Z basis."""
+
+    basis: str | None = "Z"
 
     def __init__(self):
         """Create new measurement instruction."""

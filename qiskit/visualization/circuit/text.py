@@ -22,7 +22,7 @@ import sys
 from qiskit.circuit import Qubit, Clbit, ClassicalRegister, QuantumRegister, QuantumCircuit
 from qiskit.circuit import ControlledGate
 from qiskit.circuit import Reset
-from qiskit.circuit import Measure
+from qiskit.circuit import Measure, MeasureX, MeasureY, MeasureZ
 from qiskit.circuit.library.standard_gates import IGate, RZZGate, SwapGate, SXGate, SXdgGate
 from qiskit.circuit.tools.pi_check import pi_check
 
@@ -210,12 +210,17 @@ class MeasureFrom(BoxOnQuWire):
         bot: └╥┘    └╥┘
     """
 
-    def __init__(self):
+    def __init__(self, basis=None):
         super().__init__()
         self.top_format = self.mid_format = self.bot_format = "%s"
-        self.top_connect = "┌─┐"
-        self.mid_content = "┤M├"
-        self.bot_connect = "└╥┘"
+        if basis:
+            self.top_connect = "┌───┐"
+            self.mid_content = "┤M_{}├".format(basis.lower())
+            self.bot_connect = "└─╥─┘"
+        else:
+            self.top_connect = "┌─┐"
+            self.mid_content = "┤M├"
+            self.bot_connect = "└╥┘"
 
         self.top_pad = self.bot_pad = " "
         self._mid_padding = "─"
@@ -1073,7 +1078,7 @@ class TextDrawing:
                     current_cons.append((actual_index, gate))
 
         if isinstance(op, Measure):
-            gate = MeasureFrom()
+            gate = MeasureFrom(op.basis)
             layer.set_qubit(node.qargs[0], gate)
             register, _, reg_index = get_bit_reg_index(self._circuit, node.cargs[0])
             if self.cregbundle and register is not None:
