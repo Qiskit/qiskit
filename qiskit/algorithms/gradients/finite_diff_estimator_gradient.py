@@ -89,7 +89,9 @@ class FiniteDiffEstimatorGradient(BaseEstimatorGradient):
         **options,
     ) -> EstimatorGradientResult:
         """Compute the estimator gradients on the given circuits."""
-        jobs, metadata_ = [], []
+        job_circuits, job_observables, job_param_values, metadata = [], [], [], []
+        all_n = []
+
         for circuit, observable, parameter_values_, parameter_set in zip(
             circuits, observables, parameter_values, parameter_sets
         ):
@@ -97,45 +99,55 @@ class FiniteDiffEstimatorGradient(BaseEstimatorGradient):
             indices = [
                 circuit.parameters.data.index(p) for p in circuit.parameters if p in parameter_set
             ]
-            metadata_.append({"parameters": [circuit.parameters[idx] for idx in indices]})
+            metadata.append({"parameters": [circuit.parameters[idx] for idx in indices]})
 
+            # Combine inputs into a single job to reduce overhead.
             offset = np.identity(circuit.num_parameters)[indices, :]
             if self._method == "central":
                 plus = parameter_values_ + self._epsilon * offset
                 minus = parameter_values_ - self._epsilon * offset
                 n = 2 * len(indices)
-                job = self._estimator.run(
-                    [circuit] * n, [observable] * n, plus.tolist() + minus.tolist(), **options
-                )
+                job_circuits.extend([circuit] * n)
+                job_observables.extend([observable] * n)
+                job_param_values.extend(plus.tolist() + minus.tolist())
+                all_n.append(n)
             elif self._method == "forward":
                 plus = parameter_values_ + self._epsilon * offset
                 n = len(indices) + 1
-                job = self._estimator.run(
-                    [circuit] * n, [observable] * n, [parameter_values_] + plus.tolist(), **options
-                )
+                job_circuits.extend([circuit] * n)
+                job_observables.extend([observable] * n)
+                job_param_values.extend([parameter_values_] + plus.tolist())
+                all_n.append(n)
             elif self._method == "backward":
                 minus = parameter_values_ - self._epsilon * offset
                 n = len(indices) + 1
-                job = self._estimator.run(
-                    [circuit] * n, [observable] * n, [parameter_values_] + minus.tolist(), **options
-                )
-            jobs.append(job)
+                job_circuits.extend([circuit] * n)
+                job_observables.extend([observable] * n)
+                job_param_values.extend([parameter_values_] + minus.tolist())
+                all_n.append(n)
 
+        # Run the single job with all circuits.
+        job = self._estimator.run(job_circuits, job_observables, job_param_values, **options)
         try:
-            results = [job.result() for job in jobs]
+            results = job.result()
         except Exception as exc:
             raise AlgorithmError("Estimator job failed.") from exc
 
         # Compute the gradients
         gradients = []
-        for result in results:
+        partial_sum_n = 0
+        for n in all_n:
             if self._method == "central":
-                n = len(result.values) // 2  # is always a multiple of 2
-                gradient = (result.values[:n] - result.values[n:]) / (2 * self._epsilon)
+                result = results.values[partial_sum_n : partial_sum_n + n]
+                gradient = (result[: n // 2] - result[n // 2 :]) / (2 * self._epsilon)
             elif self._method == "forward":
-                gradient = (result.values[1:] - result.values[0]) / self._epsilon
+                result = results.values[partial_sum_n : partial_sum_n + n]
+                gradient = (result[1:] - result[0]) / self._epsilon
             elif self._method == "backward":
-                gradient = (result.values[0] - result.values[1:]) / self._epsilon
+                result = results.values[partial_sum_n : partial_sum_n + n]
+                gradient = (result[0] - result[1:]) / self._epsilon
+            partial_sum_n += n
             gradients.append(gradient)
+
         opt = self._get_local_options(options)
-        return EstimatorGradientResult(gradients=gradients, metadata=metadata_, options=opt)
+        return EstimatorGradientResult(gradients=gradients, metadata=metadata, options=opt)

@@ -84,7 +84,8 @@ class FiniteDiffSamplerGradient(BaseSamplerGradient):
         **options,
     ) -> SamplerGradientResult:
         """Compute the sampler gradients on the given circuits."""
-        jobs, metadata = [], []
+        job_circuits, job_param_values, metadata = [], [], []
+        all_n = []
         for circuit, parameter_values_, parameter_set in zip(
             circuits, parameter_values, parameter_sets
         ):
@@ -93,38 +94,43 @@ class FiniteDiffSamplerGradient(BaseSamplerGradient):
                 circuit.parameters.data.index(p) for p in circuit.parameters if p in parameter_set
             ]
             metadata.append({"parameters": [circuit.parameters[idx] for idx in indices]})
+            # Combine inputs into a single job to reduce overhead.
             offset = np.identity(circuit.num_parameters)[indices, :]
             if self._method == "central":
                 plus = parameter_values_ + self._epsilon * offset
                 minus = parameter_values_ - self._epsilon * offset
                 n = 2 * len(indices)
-                job = self._sampler.run([circuit] * n, plus.tolist() + minus.tolist(), **options)
+                job_circuits.extend([circuit] * n)
+                job_param_values.extend(plus.tolist() + minus.tolist())
+                all_n.append(n)
             elif self._method == "forward":
                 plus = parameter_values_ + self._epsilon * offset
                 n = len(indices) + 1
-                job = self._sampler.run(
-                    [circuit] * n, [parameter_values_] + plus.tolist(), **options
-                )
+                job_circuits.extend([circuit] * n)
+                job_param_values.extend([parameter_values_] + plus.tolist())
+                all_n.append(n)
             elif self._method == "backward":
                 minus = parameter_values_ - self._epsilon * offset
                 n = len(indices) + 1
-                job = self._sampler.run(
-                    [circuit] * n, [parameter_values_] + minus.tolist(), **options
-                )
-            jobs.append(job)
+                job_circuits.extend([circuit] * n)
+                job_param_values.extend([parameter_values_] + minus.tolist())
+                all_n.append(n)
 
-        # Compute the gradients
+        # Run the single job with all circuits.
+        job = self._sampler.run(job_circuits, job_param_values, **options)
         try:
-            results = [job.result() for job in jobs]
+            results = job.result()
         except Exception as exc:
             raise AlgorithmError("Sampler job failed.") from exc
 
+        # Compute the gradients.
         gradients = []
-        for result in results:
+        partial_sum_n = 0
+        for n in all_n:
+            gradient = []
             if self._method == "central":
-                n = len(result.quasi_dists) // 2
-                gradient = []
-                for dist_plus, dist_minus in zip(result.quasi_dists[:n], result.quasi_dists[n:]):
+                result = results.quasi_dists[partial_sum_n : partial_sum_n + n]
+                for dist_plus, dist_minus in zip(result[: n // 2], result[n // 2 :]):
                     grad_dist = defaultdict(float)
                     for key, value in dist_plus.items():
                         grad_dist[key] += value / (2 * self._epsilon)
@@ -132,26 +138,63 @@ class FiniteDiffSamplerGradient(BaseSamplerGradient):
                         grad_dist[key] -= value / (2 * self._epsilon)
                     gradient.append(dict(grad_dist))
             elif self._method == "forward":
-                gradient = []
-                dist_zero = result.quasi_dists[0]
-                for dist_plus in result.quasi_dists[1:]:
+                result = results.quasi_dists[partial_sum_n : partial_sum_n + n]
+                dist_zero = result[0]
+                for dist_plus in result[1:]:
                     grad_dist = defaultdict(float)
                     for key, value in dist_plus.items():
                         grad_dist[key] += value / self._epsilon
                     for key, value in dist_zero.items():
                         grad_dist[key] -= value / self._epsilon
                     gradient.append(dict(grad_dist))
+
             elif self._method == "backward":
-                gradient = []
-                dist_zero = result.quasi_dists[0]
-                for dist_minus in result.quasi_dists[1:]:
+                result = results.quasi_dists[partial_sum_n : partial_sum_n + n]
+                dist_zero = result[0]
+                for dist_minus in result[1:]:
                     grad_dist = defaultdict(float)
                     for key, value in dist_zero.items():
                         grad_dist[key] += value / self._epsilon
                     for key, value in dist_minus.items():
                         grad_dist[key] -= value / self._epsilon
                     gradient.append(dict(grad_dist))
+
+            partial_sum_n += n
             gradients.append(gradient)
+
+        # for result in results:
+
+        #     if self._method == "central":
+        #         n = len(result.quasi_dists) // 2
+        #         gradient = []
+        #         for dist_plus, dist_minus in zip(result.quasi_dists[:n], result.quasi_dists[n:]):
+        #             grad_dist = defaultdict(float)
+        #             for key, value in dist_plus.items():
+        #                 grad_dist[key] += value / (2 * self._epsilon)
+        #             for key, value in dist_minus.items():
+        #                 grad_dist[key] -= value / (2 * self._epsilon)
+        #             gradient.append(dict(grad_dist))
+        #     elif self._method == "forward":
+        #         gradient = []
+        #         dist_zero = result.quasi_dists[0]
+        #         for dist_plus in result.quasi_dists[1:]:
+        #             grad_dist = defaultdict(float)
+        #             for key, value in dist_plus.items():
+        #                 grad_dist[key] += value / self._epsilon
+        #             for key, value in dist_zero.items():
+        #                 grad_dist[key] -= value / self._epsilon
+        #             gradient.append(dict(grad_dist))
+        #     elif self._method == "backward":
+        #         gradient = []
+        #         dist_zero = result.quasi_dists[0]
+        #         for dist_minus in result.quasi_dists[1:]:
+        #             grad_dist = defaultdict(float)
+        #             for key, value in dist_zero.items():
+        #                 grad_dist[key] += value / self._epsilon
+        #             for key, value in dist_minus.items():
+        #                 grad_dist[key] -= value / self._epsilon
+        #             gradient.append(dict(grad_dist))
+        #     gradients.append(gradient)
 
         opt = self._get_local_options(options)
         return SamplerGradientResult(gradients=gradients, metadata=metadata, options=opt)

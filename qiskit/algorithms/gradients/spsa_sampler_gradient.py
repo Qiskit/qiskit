@@ -72,7 +72,8 @@ class SPSASamplerGradient(BaseSamplerGradient):
         **options,
     ) -> SamplerGradientResult:
         """Compute the sampler gradients on the given circuits."""
-        jobs, offsets, metadata_ = [], [], []
+        job_circuits, job_param_values, metadata, offsets = [], [], [], []
+        all_n = []
         for circuit, parameter_values_, parameter_set in zip(
             circuits, parameter_values, parameter_sets
         ):
@@ -80,8 +81,7 @@ class SPSASamplerGradient(BaseSamplerGradient):
             indices = [
                 circuit.parameters.data.index(p) for p in circuit.parameters if p in parameter_set
             ]
-            metadata_.append({"parameters": [circuit.parameters[idx] for idx in indices]})
-
+            metadata.append({"parameters": [circuit.parameters[idx] for idx in indices]})
             offset = np.array(
                 [
                     (-1) ** (self._seed.integers(0, 2, len(circuit.parameters)))
@@ -92,33 +92,34 @@ class SPSASamplerGradient(BaseSamplerGradient):
             minus = [parameter_values_ - self._epsilon * offset_ for offset_ in offset]
             offsets.append(offset)
 
-            job = self._sampler.run([circuit] * 2 * self._batch_size, plus + minus, **options)
-            jobs.append(job)
+            # Combine inputs into a single job to reduce overhead.
+            n = 2 * self._batch_size
+            job_circuits.extend([circuit] * n)
+            job_param_values.extend(plus + minus)
+            all_n.append(n)
 
+        # Run the single job with all circuits.
+        job = self._sampler.run(job_circuits, job_param_values, **options)
         try:
-            results = [job.result() for job in jobs]
+            results = job.result()
         except Exception as exc:
             raise AlgorithmError("Sampler job failed.") from exc
 
         # Compute the gradients.
         gradients = []
-        for i, result in enumerate(results):
-            # dist_diffs = np.zeros((self._batch_size, 2 ** circuits[i].num_qubits))
+        partial_sum_n = 0
+        for i, n in enumerate(all_n):
             dist_diffs = {}
-            for j, (dist_plus, dist_minus) in enumerate(
-                zip(result.quasi_dists[: self._batch_size], result.quasi_dists[self._batch_size :])
-            ):
-                # dist_diffs[j, list(dist_plus.keys())] += list(dist_plus.values())
-                # dist_diffs[j, list(dist_minus.keys())] -= list(dist_minus.values())
+            result = results.quasi_dists[partial_sum_n : partial_sum_n + n]
+            for j, (dist_plus, dist_minus) in enumerate(zip(result[: n // 2], result[n // 2 :])):
                 dist_diff = defaultdict(float)
                 for key, value in dist_plus.items():
                     dist_diff[key] += value / (2 * self._epsilon)
                 for key, value in dist_minus.items():
                     dist_diff[key] -= value / (2 * self._epsilon)
                 dist_diffs[j] = dist_diff
-            # dist_diffs /= 2 * self._epsilon
             gradient = []
-            indices = [circuits[i].parameters.data.index(p) for p in metadata_[i]["parameters"]]
+            indices = [circuits[i].parameters.data.index(p) for p in metadata[i]["parameters"]]
             for j in range(circuits[i].num_parameters):
                 if not j in indices:
                     continue
@@ -131,6 +132,7 @@ class SPSASamplerGradient(BaseSamplerGradient):
                 gradient_j = {key: value / self._batch_size for key, value in gradient_j.items()}
                 gradient.append(gradient_j)
             gradients.append(gradient)
+            partial_sum_n += n
 
         opt = self._get_local_options(options)
-        return SamplerGradientResult(gradients=gradients, metadata=metadata_, options=opt)
+        return SamplerGradientResult(gradients=gradients, metadata=metadata, options=opt)

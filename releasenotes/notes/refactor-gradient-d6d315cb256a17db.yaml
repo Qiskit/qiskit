@@ -13,3 +13,6 @@ fixes:
   - |
     :class:`.SamplerGradientResult` no longer makes a dict of size 2 ** qubits for a result.
     It will create only keys of the required size.
+  - |
+    Estimator gradients and sampler gradients combine all circuits into a single job to reduce
+    overhead instead of throwing a job for each circuit.

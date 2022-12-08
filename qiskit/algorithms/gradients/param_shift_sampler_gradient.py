@@ -69,7 +69,8 @@ class ParamShiftSamplerGradient(BaseSamplerGradient):
         **options,
     ) -> SamplerGradientResult:
         """Compute the sampler gradients on the given circuits."""
-        jobs, metadata = [], []
+        job_circuits, job_param_values, metadata = [], [], []
+        all_n = []
         for circuit, parameter_values_, parameter_set in zip(
             circuits, parameter_values, parameter_sets
         ):
@@ -78,26 +79,26 @@ class ParamShiftSamplerGradient(BaseSamplerGradient):
             param_shift_parameter_values = _make_param_shift_parameter_values(
                 circuit, parameter_values_, parameter_set
             )
+            # Combine inputs into a single job to reduce overhead.
             n = len(param_shift_parameter_values)
-            job = self._sampler.run(
-                [circuit] * n,
-                param_shift_parameter_values,
-                **options,
-            )
-            jobs.append(job)
+            job_circuits.extend([circuit] * n)
+            job_param_values.extend(param_shift_parameter_values)
+            all_n.append(n)
 
+        # Run the single job with all circuits.
+        job = self._sampler.run(job_circuits, job_param_values, **options)
         try:
-            results = [job.result() for job in jobs]
+            results = job.result()
         except Exception as exc:
-            raise AlgorithmError("Sampler job failed.") from exc
+            raise AlgorithmError("Estimator job failed.") from exc
 
         # Compute the gradients.
         gradients = []
-        # for i, result in enumerate(results):
-        for result in results:
-            n = len(result.quasi_dists) // 2
+        partial_sum_n = 0
+        for n in all_n:
             gradient = []
-            for dist_plus, dist_minus in zip(result.quasi_dists[:n], result.quasi_dists[n:]):
+            result = results.quasi_dists[partial_sum_n : partial_sum_n + n]
+            for dist_plus, dist_minus in zip(result[: n // 2], result[n // 2 :]):
                 grad_dist = defaultdict(float)
                 for key, val in dist_plus.items():
                     grad_dist[key] += val / 2
@@ -105,6 +106,7 @@ class ParamShiftSamplerGradient(BaseSamplerGradient):
                     grad_dist[key] -= val / 2
                 gradient.append(dict(grad_dist))
             gradients.append(gradient)
+            partial_sum_n += n
 
         opt = self._get_local_options(options)
         return SamplerGradientResult(gradients=gradients, metadata=metadata, options=opt)

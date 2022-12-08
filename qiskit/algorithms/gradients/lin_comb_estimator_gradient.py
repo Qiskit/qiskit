@@ -117,7 +117,8 @@ class LinCombEstimatorGradient(BaseEstimatorGradient):
         **options,
     ) -> EstimatorGradientResult:
         """Compute the estimator gradients on the given circuits."""
-        jobs, metadata = [], []
+        job_circuits, job_observables, job_param_values, metadata = [], [], [], []
+        all_n = []
         for circuit, observable, parameter_values_, parameter_set in zip(
             circuits, observables, parameter_values, parameter_sets
         ):
@@ -145,34 +146,43 @@ class LinCombEstimatorGradient(BaseEstimatorGradient):
             # of the real and imaginary parts separately.
             meta["derivative_type"] = self._derivative_type
             metadata.append(meta)
+            # Combine inputs into a single job to reduce overhead.
             if self._derivative_type == DerivativeType.COMPLEX:
-                job = self._estimator.run(
-                    gradient_circuits * 2,
-                    [observable_1] * n + [observable_2] * n,
-                    [parameter_values_] * 2 * n,
-                    **options,
-                )
-                jobs.append(job)
+                job_circuits.extend(gradient_circuits * 2)
+                job_observables.extend([observable_1] * n + [observable_2] * n)
+                job_param_values.extend([parameter_values_] * 2 * n)
+                all_n.append(2 * n)
             else:
-                job = self._estimator.run(
-                    gradient_circuits, [observable_1] * n, [parameter_values_] * n, **options
-                )
-                jobs.append(job)
+                job_circuits.extend(gradient_circuits)
+                job_observables.extend([observable_1] * n)
+                job_param_values.extend([parameter_values_] * n)
+                all_n.append(n)
 
+        # Run the single job with all circuits.
+        job = self._estimator.run(
+            job_circuits,
+            job_observables,
+            job_param_values,
+            **options,
+        )
         try:
-            results = [job.result() for job in jobs]
+            results = job.result()
         except AlgorithmError as exc:
             raise AlgorithmError("Estimator job failed.") from exc
+
         # Compute the gradients.
         gradients = []
-        for i, result in enumerate(results):
-            gradient = np.zeros(len(metadata[i]["parameters"]), dtype="complex")
-            if metadata[i]["derivative_type"] == DerivativeType.COMPLEX:
-                n = len(result.values) // 2  # is always a multiple of 2
-                gradient = result.values[:n] + 1j * result.values[n:]
+        partial_sum_n = 0
+        for n in all_n:
+            if self._derivative_type == DerivativeType.COMPLEX:
+                gradient = np.zeros(n // 2, dtype="complex")
+                gradient.real = results.values[partial_sum_n : partial_sum_n + n // 2]
+                gradient.imag = results.values[partial_sum_n + n // 2 : partial_sum_n + n]
             else:
-                gradient = np.real(result.values)
+                gradient = np.real(results.values[partial_sum_n : partial_sum_n + n])
+            partial_sum_n += n
             gradients.append(gradient)
+
         opt = self._get_local_options(options)
         return EstimatorGradientResult(gradients=gradients, metadata=metadata, options=opt)
 

@@ -95,7 +95,8 @@ class LinCombSamplerGradient(BaseSamplerGradient):
         **options,
     ) -> SamplerGradientResult:
         """Compute the sampler gradients on the given circuits."""
-        jobs, metadata = [], []
+        job_circuits, job_param_values, metadata = [], [], []
+        all_n = []
         for circuit, parameter_values_, parameter_set in zip(
             circuits, parameter_values, parameter_sets
         ):
@@ -113,29 +114,36 @@ class LinCombSamplerGradient(BaseSamplerGradient):
                 if param not in parameter_set:
                     continue
                 gradient_circuits.append(lin_comb_circuits[param])
+            # Combine inputs into a single job to reduce overhead.
             n = len(gradient_circuits)
+            job_circuits.extend(gradient_circuits)
+            job_param_values.extend([parameter_values_] * n)
+            all_n.append(n)
 
-            job = self._sampler.run(gradient_circuits, [parameter_values_] * n, **options)
-            jobs.append(job)
-
+        # Run the single job with all circuits.
+        job = self._sampler.run(job_circuits, job_param_values, **options)
         try:
-            results = [job.result() for job in jobs]
+            results = job.result()
         except Exception as exc:
             raise AlgorithmError("Sampler job failed.") from exc
+
         # Compute the gradients.
         gradients = []
-        for i, result in enumerate(results):
-            n = 2 ** circuits[i].num_qubits
+        partial_sum_n = 0
+        for i, n in enumerate(all_n):
             gradient = []
-            for dist in result.quasi_dists:
+            result = results.quasi_dists[partial_sum_n : partial_sum_n + n]
+            m = 2 ** circuits[i].num_qubits
+            for dist in result:
                 grad_dist = defaultdict(float)
                 for key, value in dist.items():
-                    if key < n:
+                    if key < m:
                         grad_dist[key] += value
                     else:
-                        grad_dist[key - n] -= value
+                        grad_dist[key - m] -= value
                 gradient.append(dict(grad_dist))
             gradients.append(gradient)
+            partial_sum_n += n
 
         opt = self._get_local_options(options)
         return SamplerGradientResult(gradients=gradients, metadata=metadata, options=opt)

@@ -74,7 +74,8 @@ class ParamShiftEstimatorGradient(BaseEstimatorGradient):
         **options,
     ) -> EstimatorGradientResult:
         """Compute the estimator gradients on the given circuits."""
-        jobs, metadata = [], []
+        job_circuits, job_observables, job_param_values, metadata = [], [], [], []
+        all_n = []
         for circuit, observable, parameter_values_, parameter_set in zip(
             circuits, observables, parameter_values, parameter_sets
         ):
@@ -83,25 +84,33 @@ class ParamShiftEstimatorGradient(BaseEstimatorGradient):
             param_shift_parameter_values = _make_param_shift_parameter_values(
                 circuit, parameter_values_, parameter_set
             )
+            # Combine inputs into a single job to reduce overhead.
             n = len(param_shift_parameter_values)
-            job = self._estimator.run(
-                [circuit] * n,
-                [observable] * n,
-                param_shift_parameter_values,
-                **options,
-            )
-            jobs.append(job)
+            job_circuits.extend([circuit] * n)
+            job_observables.extend([observable] * n)
+            job_param_values.extend(param_shift_parameter_values)
+            all_n.append(n)
 
+        # Run the single job with all circuits.
+        job = self._estimator.run(
+            job_circuits,
+            job_observables,
+            job_param_values,
+            **options,
+        )
         try:
-            results = [job.result() for job in jobs]
+            results = job.result()
         except Exception as exc:
             raise AlgorithmError("Estimator job failed.") from exc
+
         # Compute the gradients.
         gradients = []
-        for result in results:
-            n = len(result.values) // 2  # is always a multiple of 2
-            gradient_ = (result.values[:n] - result.values[n:]) / 2
+        partial_sum_n = 0
+        for n in all_n:
+            result = results.values[partial_sum_n : partial_sum_n + n]
+            gradient_ = (result[: n // 2] - result[n // 2 :]) / 2
             gradients.append(gradient_)
+            partial_sum_n += n
 
         opt = self._get_local_options(options)
         return EstimatorGradientResult(gradients=gradients, metadata=metadata, options=opt)

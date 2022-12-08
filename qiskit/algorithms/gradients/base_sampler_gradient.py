@@ -199,7 +199,6 @@ class BaseSamplerGradient(ABC):
             # by using the chain rule.
             gradient = []
             for parameter in parameter_indices:
-                # grad_dist = np.zeros(2**circuit.num_qubits)
                 grad_dist = defaultdict(float)
                 for g_parameter, coeff in gradient_circuit.parameter_map[parameter]:
                     # Compute the coefficient
