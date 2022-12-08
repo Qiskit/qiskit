@@ -97,8 +97,8 @@ class MeasureZ(Measure):
     basis: str | None = "Z"
 
     def __init__(self):
-        # pylint: disable=bad-super-call
         """Create new measurement instruction."""
+        # pylint: disable=bad-super-call
         super(Measure, self).__init__("measure_z", 1, 1, [])
 
     def _define(self):
