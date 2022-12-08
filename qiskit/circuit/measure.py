@@ -20,6 +20,8 @@ from qiskit.circuit.instruction import Instruction
 from qiskit.circuit.exceptions import CircuitError
 
 
+# Measure class kept for backwards compatibility, and repurposed 
+# as a common parent class for all measurement instructions.
 class Measure(Instruction):
     """Quantum measurement in the computational basis."""
 
@@ -41,6 +43,62 @@ class Measure(Instruction):
             raise CircuitError("register size error")
 
 
+class MeasureX(Measure):
+    """Quantum measurement in the X basis."""
+    
+    def __init__(self):
+        """Create new X measurement instruction."""
+        super(Measure, self).__init__("measure_x", 1, 1, [])
+    
+    def _define(self):
+        # pylint: disable=cyclic-import
+        from qiskit.circuit.quantumcircuit import QuantumCircuit
+
+        qc = QuantumCircuit(1, 1)
+        qc.h(0)
+        qc.measure_z(0, 0)
+        qc.h(0)
+
+        self.definition = qc
+
+
+class MeasureY(Measure):
+    """Quantum measurement in the Y basis."""
+    
+    def __init__(self):
+        """Create new Y measurement instruction."""
+        super(Measure, self).__init__("measure_y", 1, 1, [])
+
+    def _define(self):
+        # pylint: disable=cyclic-import
+        from qiskit.circuit.quantumcircuit import QuantumCircuit
+
+        qc = QuantumCircuit(1, 1)
+        qc.sdg(0)
+        qc.measure_x(0, 0)
+        qc.s(0)
+
+        self.definition = qc
+
+
+class MeasureZ(Measure):
+    """Quantum Z measurement in the Z basis."""
+    
+    def __init__(self):
+        """Create new measurement instruction."""
+        super(Measure, self).__init__("measure_z", 1, 1, [])
+
+    def _define(self):
+        # pylint: disable=cyclic-import
+        from qiskit.circuit.quantumcircuit import QuantumCircuit
+
+        qc = QuantumCircuit(1, 1)
+        qc.measure(0, 0)
+
+        self.definition = qc
+
+
+# TODO: deprecated ? delete : update
 def measure(circuit, qubit, clbit):
     """Measure a quantum bit into classical bit.
 

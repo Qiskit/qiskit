@@ -109,7 +109,7 @@ def get_standard_gate_name_mapping():
     """Return a dictionary mapping the name of standard gates and instructions to an object for
     that name."""
     from qiskit.circuit.parameter import Parameter
-    from qiskit.circuit.measure import Measure
+    from qiskit.circuit.measure import Measure, MeasureX, MeasureY, MeasureZ
     from qiskit.circuit.delay import Delay
     from qiskit.circuit.reset import Reset
 
@@ -169,6 +169,9 @@ def get_standard_gate_name_mapping():
         ZGate(),
         Delay(Parameter("t")),
         Measure(),
+        MeasureX(),
+        MeasureY(),
+        MeasureZ(),
     ]
     name_mapping = {gate.name: gate for gate in gates}
     return name_mapping

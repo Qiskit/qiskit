@@ -286,7 +286,7 @@ from .instructionset import InstructionSet
 from .operation import Operation
 from .barrier import Barrier
 from .delay import Delay
-from .measure import Measure
+from .measure import Measure, MeasureX, MeasureY, MeasureZ
 from .reset import Reset
 from .parameter import Parameter
 from .parametervector import ParameterVector
