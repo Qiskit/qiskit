@@ -43,7 +43,7 @@ def init_circuit(state: QuantumCircuit | Statevector) -> QuantumCircuit:
     return qc
 
 
-def init_observable(observable: BaseOperator | PauliSumOp) -> SparsePauliOp:
+def init_observable(observable: BaseOperator | PauliSumOp | str) -> SparsePauliOp:
     """Initialize observable by converting the input to a :class:`~qiskit.quantum_info.SparsePauliOp`.
 
     Args:
@@ -64,9 +64,7 @@ def init_observable(observable: BaseOperator | PauliSumOp) -> SparsePauliOp:
                 f"Observable must have numerical coefficient, not {type(observable.coeff)}."
             )
         return observable.coeff * observable.primitive
-    elif isinstance(observable, BasePauli):
-        return SparsePauliOp(observable)
-    elif isinstance(observable, BaseOperator):
+    elif isinstance(observable, BaseOperator) and not isinstance(observable, BasePauli):
         return SparsePauliOp.from_operator(observable)
     else:
         return SparsePauliOp(observable)
