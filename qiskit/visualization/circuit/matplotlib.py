@@ -199,7 +199,7 @@ class MatplotlibDrawer:
         self._calibrations = self._circuit.calibrations
 
         for node in itertools.chain.from_iterable(self._nodes):
-            if node.cargs and node.op.name != "measure":
+            if node.cargs and not isinstance(node.op, Measure):
                 if cregbundle:
                     warn(
                         "Cregbundle set to False since an instruction needs to refer"
