@@ -21,9 +21,10 @@ import rustworkx as rx
 
 from qiskit.circuit.quantumregister import QuantumRegister, Qubit
 from qiskit.circuit.classicalregister import ClassicalRegister, Clbit
+from qiskit.circuit.commutation_checker import CommutationChecker
+from qiskit.circuit.measure import Measure
 from qiskit.dagcircuit.exceptions import DAGDependencyError
 from qiskit.dagcircuit.dagdepnode import DAGDepNode
-from qiskit.circuit.commutation_checker import CommutationChecker
 
 
 # ToDo: DagDependency needs to be refactored:
@@ -382,8 +383,8 @@ class DAGDependency:
         Returns:
             DAGDepNode: the newly added node.
         """
-        directives = ["measure"]
-        if not getattr(operation, "_directive", False) and operation.name not in directives:
+        directives = []
+        if not getattr(operation, "_directive", False) and not isinstance(operation, Measure) and operation.name not in directives:
             qindices_list = []
             for elem in qargs:
                 qindices_list.append(self.qubits.index(elem))
