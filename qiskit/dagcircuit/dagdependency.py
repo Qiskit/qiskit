@@ -384,7 +384,11 @@ class DAGDependency:
             DAGDepNode: the newly added node.
         """
         directives = []
-        if not getattr(operation, "_directive", False) and not isinstance(operation, Measure) and operation.name not in directives:
+        if (
+            not getattr(operation, "_directive", False)
+            and not isinstance(operation, Measure)
+            and operation.name not in directives
+        ):
             qindices_list = []
             for elem in qargs:
                 qindices_list.append(self.qubits.index(elem))

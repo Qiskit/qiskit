@@ -261,6 +261,9 @@ class DefaultStyle:
                 "reset": (colors["black"], colors["white"]),
                 "target": (colors["white"], colors["white"]),
                 "measure": (colors["black"], colors["white"]),
+                "measure_x": (colors["black"], colors["white"]),
+                "measure_y": (colors["black"], colors["white"]),
+                "measure_z": (colors["black"], colors["white"]),
             },
         }
 

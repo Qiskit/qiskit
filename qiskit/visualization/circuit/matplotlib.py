@@ -992,6 +992,17 @@ class MatplotlibDrawer:
             linewidth=self._lwidth2,
             zorder=PORDER_GATE,
         )
+        if node.op.basis:
+            self._ax.text(
+                qx - 0.4 * WID,
+                qy + 0.25 * HIG,
+                node.op.basis.upper(),
+                color=self._data[node]["gt"],
+                clip_on=True,
+                zorder=PORDER_TEXT,
+                fontsize=0.5 * self._style["fs"],
+                fontweight="bold",
+            )
         # arrow
         self._line(
             self._data[node]["q_xy"][0],
