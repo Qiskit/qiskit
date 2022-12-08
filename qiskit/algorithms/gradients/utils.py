@@ -318,10 +318,10 @@ def _make_lin_comb_gradient_circuit(
     ]
 
     circuit2 = transpile(circuit, basis_gates=supported_gates, optimization_level=0)
-    qr_aux = QuantumRegister(1, "aux")
-    cr_aux = ClassicalRegister(1, "aux")
+    qr_aux = QuantumRegister(1, "qr_aux")
+    cr_aux = ClassicalRegister(1, "cr_aux")
     circuit2.add_register(qr_aux)
-    circuit2.add_bits(cr_aux)
+    circuit2.add_register(cr_aux)
     circuit2.h(qr_aux)
     circuit2.data.insert(0, circuit2.data.pop())
     circuit2.sdg(qr_aux)
