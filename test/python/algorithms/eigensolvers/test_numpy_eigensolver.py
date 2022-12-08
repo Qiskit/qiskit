@@ -19,8 +19,9 @@ import numpy as np
 from ddt import data, ddt
 
 from qiskit.algorithms.eigensolvers import NumPyEigensolver
+from qiskit.algorithms import AlgorithmError
 from qiskit.opflow import PauliSumOp
-from qiskit.quantum_info import Operator, SparsePauliOp
+from qiskit.quantum_info import Operator, SparsePauliOp, Pauli, ScalarOp
 
 H2_SPARSE_PAULI = SparsePauliOp(
     ["II", "ZI", "IZ", "ZZ", "XX"],
@@ -197,6 +198,18 @@ class TestNumPyEigensolver(QiskitAlgorithmsTestCase):
         self.assertAlmostEqual(
             result.aux_operators_evaluated[0]["zero_operator"][1].pop("variance"), 0.0
         )
+
+    def test_pauli_op(self):
+        """Test simple pauli operator"""
+        algo = NumPyEigensolver(k=1)
+        result = algo.compute_eigenvalues(operator=Pauli("X"))
+        np.testing.assert_array_almost_equal(result.eigenvalues, [-1])
+
+    def test_scalar_op(self):
+        """Test scalar operator"""
+        algo = NumPyEigensolver(k=1)
+        with self.assertRaises(AlgorithmError):
+            algo.compute_eigenvalues(operator=ScalarOp(1))
 
 
 if __name__ == "__main__":

@@ -189,6 +189,12 @@ class NumPyEigensolver(Eigensolver):
             if operator is None:
                 continue
 
+            if operator.num_qubits is None or operator.num_qubits < 1:
+                logger.info(
+                    "The number of qubits of the %s operator must be greater than zero.", key
+                )
+                continue
+
             op_matrix = None
             if isinstance(operator, PauliSumOp):
                 if operator.coeff != 0:
@@ -229,6 +235,9 @@ class NumPyEigensolver(Eigensolver):
     ) -> NumPyEigensolverResult:
 
         super().compute_eigenvalues(operator, aux_operators)
+
+        if operator.num_qubits is None or operator.num_qubits < 1:
+            raise AlgorithmError("The number of qubits of the operator must be greater than zero.")
 
         self._check_set_k(operator)
 
