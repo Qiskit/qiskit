@@ -70,7 +70,7 @@ class Permutation(Gate):
                 permutation = Permutation(5, A)
                 circuit = QuantumCircuit(5)
                 circuit.append(permutation, [0, 1, 2, 3, 4])
-                circuit.decompose().draw('mpl')
+                %circuit_library_info circuit.decompose()
         """
         if pattern is not None:
             if sorted(pattern) != list(range(num_qubits)):
@@ -82,6 +82,10 @@ class Permutation(Gate):
             rng = np.random.default_rng(seed)
             pattern = np.arange(num_qubits)
             rng.shuffle(pattern)
+
+        # This is needed to support qasm()
+        self._qasm_name = "permutation__" + "_".join([str(n) for n in pattern]) + "_"
+        self._qasm_definition = None
 
         super().__init__(name="permutation", num_qubits=num_qubits, params=[pattern])
 
@@ -108,3 +112,22 @@ class Permutation(Gate):
     def pattern(self):
         """Returns the permutation pattern defining this permutation."""
         return self.params[0]
+
+    def qasm(self):
+        """The qasm for a permutation."""
+
+        if not self._qasm_definition:
+
+            # pylint: disable=cyclic-import
+            from qiskit.synthesis.permutation.permutation_utils import _get_ordered_swap
+
+            # This qasm should be identical to the one produced when permutation
+            # was a circuit rather than a gate.
+            swaps = _get_ordered_swap(self.pattern)
+            gates_def = "".join(["swap q" + str(i) + ",q" + str(j) + "; " for i, j in swaps])
+            qubit_list = ",".join(["q" + str(n) for n in range(len(self.pattern))])
+            self._qasm_definition = (
+                "gate " + self._qasm_name + " " + qubit_list + " { " + gates_def + "}"
+            )
+
+        return self._qasmif(self._qasm_name)

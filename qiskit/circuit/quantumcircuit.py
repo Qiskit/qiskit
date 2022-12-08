@@ -1691,20 +1691,30 @@ class QuantumCircuit:
                     operation = operation.copy(name=_qasm_escape_gate_name(operation.name))
 
                 # decompose gate using definitions if they are not defined in OpenQASM2
-                if (
-                    operation.name not in existing_gate_names
-                    and operation not in existing_composite_circuits
-                ):
-                    if operation.name in [
-                        operation.name for operation in existing_composite_circuits
-                    ]:
-                        # append operation id to name of operation copy to make it unique
-                        operation = operation.copy(name=f"{operation.name}_{id(operation)}")
+                if operation.name not in existing_gate_names:
+                    # If the operation has a unique qasm name, we set the name of the operation
+                    # to this qasm name. This is now the case for the permutation gate, for which
+                    # the unique qasm name is based on the permutation pattern.
+                    op_qasm_name = getattr(operation, "_qasm_name", None)
+                    if op_qasm_name:
+                        operation = operation.copy(name=op_qasm_name)
 
-                    existing_composite_circuits.append(operation)
-                    _add_sub_instruction_to_existing_composite_circuits(
-                        operation, existing_gate_names, existing_composite_circuits
-                    )
+                    if operation not in existing_composite_circuits:
+                        if operation.name in [
+                            operation.name for operation in existing_composite_circuits
+                        ]:
+                            # append operation id to name of operation copy to make it unique
+                            operation = operation.copy(name=f"{operation.name}_{id(operation)}")
+
+                        existing_composite_circuits.append(operation)
+
+                        # Strictly speaking, the code below does not work for operations that
+                        # do not have the "definition" method but require a complex (recursive)
+                        # "_qasm_definition". Fortunately, right now we do not have any such operations.
+                        if getattr(operation, "definition", None) is not None:
+                            _add_sub_instruction_to_existing_composite_circuits(
+                                operation, existing_gate_names, existing_composite_circuits
+                            )
 
                 # Insert qasm representation of the original instruction
                 string_temp += "{} {};\n".format(
