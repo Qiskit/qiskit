@@ -4093,6 +4093,7 @@ class QuantumCircuit:
         Returns:
             A handle to the instructions created.
         """
+        # pylint: disable=cyclic-import
         from .library.generalized_gates.permutation import Permutation
 
         return self.append(Permutation(len(pattern), pattern), qubits, [])
