@@ -111,7 +111,6 @@ class MeasureZ(Measure):
         self.definition = qc
 
 
-# TODO: deprecated ? delete : update
 def measure(circuit, qubit, clbit):
     """Measure a quantum bit into classical bit.
 
