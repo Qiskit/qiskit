@@ -33,8 +33,8 @@ class UCRZGate(UCPauliRotGate):
     'Synthesis of Quantum Logic Circuits' by V. Shende et al.
     (https://arxiv.org/pdf/quant-ph/0406176.pdf)
 
-    Input:
-    angle_list = list of (real) rotation angles [a_0,...,a_{2^k-1}]
+    Args:
+        angle_list = list of (real) rotation angles :math:`[a_0,...,a_{2^k-1}]`
     """
 
     def __init__(self, angle_list):
@@ -47,7 +47,7 @@ def ucrz(self, angle_list, q_controls, q_target):
     The decomposition is base on https://arxiv.org/pdf/quant-ph/0406176.pdf by Shende et al.
 
     Args:
-        angle_list (list[numbers): list of (real) rotation angles [a_0,...,a_{2^k-1}]
+        angle_list (list[numbers): list of (real) rotation angles :math:`[a_0,...,a_{2^k-1}]`
         q_controls (QuantumRegister|list[Qubit]): list of k control qubits
             (or empty list if no controls). The control qubits are ordered according to their
             significance in increasing order: For example if q_controls=[q[1],q[2]]

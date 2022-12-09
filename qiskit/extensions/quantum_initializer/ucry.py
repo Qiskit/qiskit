@@ -33,8 +33,8 @@ class UCRYGate(UCPauliRotGate):
     'Synthesis of Quantum Logic Circuits' by V. Shende et al.
     (https://arxiv.org/pdf/quant-ph/0406176.pdf)
 
-    Input:
-    angle_list = list of (real) rotation angles [a_0,...,a_{2^k-1}]
+    Args:
+        angle_list = list of (real) rotation angles :math:`[a_0,...,a_{2^k-1}]`
     """
 
     def __init__(self, angle_list):
