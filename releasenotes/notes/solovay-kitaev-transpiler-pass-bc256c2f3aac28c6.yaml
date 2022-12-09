@@ -1,0 +1,46 @@
+---
+features:
+  - |
+    Added the :class:`.SolovayKitaev` transpiler pass to run the Solovay-Kitaev algorithm for
+    approximating single-qubit unitaries using a discrete gate set. In combination with the basis
+    translator, this allows to convert any unitary circuit to a universal discrete gate set,
+    which could be implemented fault-tolerantly.
+
+    This pass can e.g. be used after compiling to U and CX gates:
+
+    .. jupyter-execute::
+
+      from qiskit import transpile
+      from qiskit.circuit.library import QFT
+      from qiskit.transpiler.passes.synthesis import SolovayKitaev
+
+      qft = QFT(3)
+
+      # optimize to general 1-qubit unitaries and CX
+      transpiled = transpile(qft, basis_gates=["u", "cx"], optimization_level=1)
+
+      skd = SolovayKitaev()  # uses T Tdg and H as default basis
+      discretized = skd(transpiled)
+
+      print(discretized.count_ops())
+
+    The decomposition can also be used with the unitary synthesis plugin, as
+    the "sk" method on the :class:`~.UnitarySynthesis` transpiler pass:
+
+    .. jupyter-execute::
+
+        from qiskit import QuantumCircuit
+        from qiskit.quantum_info import Operator
+        from qiskit.transpiler.passes import UnitarySynthesis
+
+        circuit = QuantumCircuit(1)
+        circuit.rx(0.8, 0)
+        unitary = Operator(circuit).data
+
+        unitary_circ = QuantumCircuit(1)
+        unitary_circ.unitary(unitary, [0])
+
+        synth = UnitarySynthesis(basis_gates=["h", "s"], method="sk")
+        out = synth(unitary_circ)
+
+        out.draw('mpl')
