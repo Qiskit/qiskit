@@ -144,7 +144,6 @@ Synthesis
    LinearFunctionsToPermutations
    HighLevelSynthesis
    SolovayKitaev
-   SolovayKitaevSynthesis
 
 Post Layout (Post transpile qubit selection)
 ============================================
@@ -248,7 +247,6 @@ from .synthesis import LinearFunctionsSynthesis
 from .synthesis import LinearFunctionsToPermutations
 from .synthesis import HighLevelSynthesis
 from .synthesis import SolovayKitaev
-from .synthesis import SolovayKitaevSynthesis
 
 # calibration
 from .calibration import PulseGates

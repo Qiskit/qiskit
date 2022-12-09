@@ -6,7 +6,9 @@ features:
     translator, this allows to convert any unitary circuit to a universal discrete gate set,
     which could be implemented fault-tolerantly.
 
-    This pass can e.g. be used after compiling to U and CX gates::
+    This pass can e.g. be used after compiling to U and CX gates:
+
+    .. jupyter-execute::
 
       from qiskit import transpile
       from qiskit.circuit.library import QFT
@@ -23,18 +25,22 @@ features:
       print(discretized.count_ops())
 
     The decomposition can also be used with the unitary synthesis plugin, as
-    :class:`.SolovayKitaevSynthesis`::
+    the "sk" method on the :class:`~.UnitarySynthesis` transpiler pass:
+
+    .. jupyter-execute::
 
         from qiskit import QuantumCircuit
         from qiskit.quantum_info import Operator
-        from qiskit.transpiler.passes.synthesis import SolovayKitaevSynthesis
+        from qiskit.transpiler.passes import UnitarySynthesis
 
         circuit = QuantumCircuit(1)
         circuit.rx(0.8, 0)
-
         unitary = Operator(circuit).data
 
-        plugin = SolovayKitaevSynthesis()
-        out = plugin.run(unitary, basis_gates=["h", "s"])
+        unitary_circ = QuantumCircuit(1)
+        unitary_circ.unitary(unitary, [0])
 
-        print(out.draw())
+        synth = UnitarySynthesis(basis_gates=["h", "s"], method="sk")
+        out = synth(unitary_circ)
+
+        out.draw('mpl')
