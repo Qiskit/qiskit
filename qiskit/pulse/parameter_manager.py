@@ -232,12 +232,12 @@ class ParameterSetter(NodeVisitor):
                 if isinstance(pval, ParameterExpression):
                     new_val = self._assign_parameter_expression(pval)
                     node._params[name] = new_val
-            # Assign comparison parameters
-            for name in node.comparison_params:
-                pval = node.comparison_params[name]
+            # Assign canonical parameters
+            for i in range(len(node._canonical_params)):
+                pval = node._canonical_params[i]
                 if isinstance(pval, ParameterExpression):
                     new_val = self._assign_parameter_expression(pval)
-                    node.comparison_params[name] = new_val
+                    node._canonical_params[i] = new_val
 
             node.validate_parameters()
 
