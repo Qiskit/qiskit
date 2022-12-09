@@ -29,12 +29,20 @@ from .qfi_result import QFIResult
 
 class BaseQFI(ABC):
     r"""Base class to computes the Quantum Fisher Information (QFI) given a pure,
-    parameterized quantum state. QFI is defined as:
+    parameterized quantum state. QFI is defined as [1, 2]:
 
     .. math::
 
         \mathrm{QFI}_{kl}= 4 \mathrm{Re}[\langle \partial_k \psi | \partial_l \psi \rangle
             - \langle\partial_k \psi | \psi \rangle \langle\psi | \partial_l \psi \rangle].
+
+    **Reference:**
+    [1] McArdle, S., Jones, T., Endo, S. et al. Variational ansatz-based quantum simulation of
+    imaginary time evolution. npj Quantum Inf 5, 75 (2019).
+    `DOI <https://doi.org/10.1038/s41534-019-0187-2>`_
+    [2] Stokes, J., Izaac, J., Killoran, N., and Carleo, G. Quantum Natural Gradient
+    `Quantum Journal <https://quantum-journal.org/papers/q-2020-05-25-269/pdf/>`_
+
     """
 
     def __init__(
@@ -116,7 +124,7 @@ class BaseQFI(ABC):
         Args:
             circuits: The list of quantum circuits to compute the QFIs.
             parameter_values: The list of parameter values to be bound to the circuit.
-            parameters: The Sequence of Sequence of Parameters to calculate only the QFIs of
+            parameters: The Sequence of Parameters to calculate only the QFIs of
                 the specified parameters. Each Sequence of Parameters corresponds to a circuit in
                 ``circuits``. Defaults to None, which means that the QFIs of all parameters in
                 each circuit are calculated.

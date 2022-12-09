@@ -24,6 +24,7 @@ mod nlayout;
 mod optimize_1q_gates;
 mod pauli_exp_val;
 mod results;
+mod sabre_layout;
 mod sabre_swap;
 mod sampled_exp_val;
 mod sparse_pauli_op;
@@ -55,6 +56,7 @@ fn _accelerate(_py: Python<'_>, m: &PyModule) -> PyResult<()> {
     m.add_wrapped(wrap_pymodule!(results::results))?;
     m.add_wrapped(wrap_pymodule!(optimize_1q_gates::optimize_1q_gates))?;
     m.add_wrapped(wrap_pymodule!(sampled_exp_val::sampled_exp_val))?;
+    m.add_wrapped(wrap_pymodule!(sabre_layout::sabre_layout))?;
     m.add_wrapped(wrap_pymodule!(vf2_layout::vf2_layout))?;
     m.add_wrapped(wrap_pymodule!(
         euler_one_qubit_decomposer::euler_one_qubit_decomposer
