@@ -704,7 +704,7 @@ class Gaussian(metaclass=_PulseType):
 
         parameters = {"amp": amp, "sigma": sigma, "angle": angle}
         canonical_params = [amp * np.exp(1j * angle)]
-        excluded_params = ["amp", "angle"]
+        excluded_params = ("amp", "angle")
 
         # Prepare symbolic expressions
         _t, _duration, _amp, _sigma, _angle = sym.symbols("t, duration, amp, sigma, angle")
@@ -837,7 +837,7 @@ class GaussianSquare(metaclass=_PulseType):
 
         parameters = {"amp": amp, "sigma": sigma, "width": width, "angle": angle}
         canonical_params = [amp * np.exp(1j * angle)]
-        excluded_params = ["amp", "angle"]
+        excluded_params = ("amp", "angle")
 
         # Prepare symbolic expressions
         _t, _duration, _amp, _sigma, _width, _angle = sym.symbols(
@@ -965,7 +965,7 @@ class Drag(metaclass=_PulseType):
 
         parameters = {"amp": amp, "sigma": sigma, "beta": beta, "angle": angle}
         canonical_params = [amp * np.exp(1j * angle)]
-        excluded_params = ["amp", "angle"]
+        excluded_params = ("amp", "angle")
 
         # Prepare symbolic expressions
         _t, _duration, _amp, _sigma, _beta, _angle = sym.symbols(
@@ -1050,7 +1050,7 @@ class Constant(metaclass=_PulseType):
 
         parameters = {"amp": amp, "angle": angle}
         canonical_params = [amp * np.exp(1j * angle)]
-        excluded_params = ["amp", "angle"]
+        excluded_params = ("amp", "angle")
 
         # Prepare symbolic expressions
         _t, _amp, _duration, _angle = sym.symbols("t, amp, duration, angle")
