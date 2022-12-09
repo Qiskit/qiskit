@@ -582,7 +582,7 @@ class QCircuitImage:
         if node.op.basis:
             # Modification of `\meter` in https://www.ctan.org/tex-archive/graphics/qcircuit
             # pylint: disable=invalid-name
-            LATEX_METER = """
+            PAULI_METER = """
                 *=<1.8em,1.4em>
                 {
                     \\xy ="j",
@@ -596,7 +596,7 @@ class QCircuitImage:
                 "i"+UR;"i"+UL **\\dir{-};"i"+DL **\\dir{-};"i"+DR **\\dir{-};"i"+UR **\\dir{-},
                 "i" \\qw
             """
-            self._latex[wire1][col] = LATEX_METER % node.op.basis.upper()
+            self._latex[wire1][col] = PAULI_METER % node.op.basis.upper()
         else:
             self._latex[wire1][col] = "\\meter"
 
