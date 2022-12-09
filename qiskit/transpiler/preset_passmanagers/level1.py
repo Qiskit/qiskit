@@ -34,6 +34,7 @@ from qiskit.transpiler.passes import Size
 from qiskit.transpiler.passes import Optimize1qGatesDecomposition
 from qiskit.transpiler.passes import CheckMap
 from qiskit.transpiler.passes import GatesInBasis
+from qiskit.transpiler.passes import BarrierBeforeFinalMeasurements
 from qiskit.transpiler.preset_passmanagers import common
 from qiskit.transpiler.passes.layout.vf2_layout import VF2LayoutStopReason
 
@@ -124,7 +125,7 @@ def level_1_pass_manager(pass_manager_config: PassManagerConfig) -> StagedPassMa
         else VF2Layout(
             coupling_map,
             seed=seed_transpiler,
-            call_limit=int(5e4),  # Set call limit to ~100ms with retworkx 0.10.2
+            call_limit=int(5e4),  # Set call limit to ~100ms with rustworkx 0.10.2
             properties=backend_properties,
             target=target,
         )
@@ -138,12 +139,26 @@ def level_1_pass_manager(pass_manager_config: PassManagerConfig) -> StagedPassMa
         _improve_layout = NoiseAdaptiveLayout(backend_properties)
     elif layout_method == "sabre":
         _improve_layout = SabreLayout(
-            coupling_map, max_iterations=2, seed=seed_transpiler, swap_trials=5
+            coupling_map,
+            max_iterations=2,
+            seed=seed_transpiler,
+            swap_trials=5,
+            layout_trials=5,
+            skip_routing=pass_manager_config.routing_method is not None
+            and routing_method != "sabre",
         )
     elif layout_method is None:
         _improve_layout = common.if_has_control_flow_else(
             DenseLayout(coupling_map, backend_properties, target=target),
-            SabreLayout(coupling_map, max_iterations=2, seed=seed_transpiler, swap_trials=5),
+            SabreLayout(
+                coupling_map,
+                max_iterations=2,
+                seed=seed_transpiler,
+                swap_trials=5,
+                layout_trials=5,
+                skip_routing=pass_manager_config.routing_method is not None
+                and routing_method != "sabre",
+            ),
         ).to_flow_controller()
 
     # Choose routing pass
@@ -178,7 +193,7 @@ def level_1_pass_manager(pass_manager_config: PassManagerConfig) -> StagedPassMa
     def _opt_control(property_set):
         return (not property_set["depth_fixed_point"]) or (not property_set["size_fixed_point"])
 
-    _opt = [Optimize1qGatesDecomposition(basis_gates), CXCancellation()]
+    _opt = [Optimize1qGatesDecomposition(basis=basis_gates, target=target), CXCancellation()]
 
     unroll_3q = None
     # Build full pass manager
@@ -196,12 +211,21 @@ def level_1_pass_manager(pass_manager_config: PassManagerConfig) -> StagedPassMa
                 "layout", layout_method, pass_manager_config, optimization_level=1
             )
         else:
+
+            def _swap_mapped(property_set):
+                return property_set["final_layout"] is None
+
             layout = PassManager()
             layout.append(_given_layout)
             layout.append(_choose_layout_0, condition=_choose_layout_condition)
             layout.append(_choose_layout_1, condition=_layout_not_perfect)
-            layout.append(_improve_layout, condition=_vf2_match_not_found)
-            layout += common.generate_embed_passmanager(coupling_map)
+            layout.append(
+                [BarrierBeforeFinalMeasurements(), _improve_layout], condition=_vf2_match_not_found
+            )
+            embed = common.generate_embed_passmanager(coupling_map)
+            layout.append(
+                [pass_ for x in embed.passes() for pass_ in x["passes"]], condition=_swap_mapped
+            )
 
         routing = routing_pm
 
