@@ -6,3 +6,7 @@ jsonschema==3.2.0
 # a seaborn import. This pin can be removed when compatibility with those
 # packages is fixed
 jupyter-core==4.11.2
+
+# ipywidgets 8.0.3 started emitting deprecation warnings via a seaborn import.
+# This pin can be removed when compatibility with those packages is fixed.
+ipywidgets<8.0.3
