@@ -21,7 +21,7 @@ from qiskit import QiskitError
 from qiskit.algorithms.evolvers import EvolutionProblem
 from qiskit.algorithms.optimizers import L_BFGS_B, SPSA, GradientDescent, OptimizerResult
 from qiskit.algorithms.state_fidelities import ComputeUncompute
-from qiskit.algorithms.time_evolvers.pvqd import PVQD
+from qiskit.algorithms.time_evolvers import PVQD
 from qiskit.circuit import Gate, Parameter, QuantumCircuit
 from qiskit.circuit.library import EfficientSU2
 from qiskit.opflow import PauliSumOp

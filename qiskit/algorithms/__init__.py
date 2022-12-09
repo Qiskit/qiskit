@@ -148,6 +148,7 @@ Time Evolution might be used to train Quantum Boltzmann Machine Neural Networks 
     PVQDResult
     TimeEvolutionResult
     TimeEvolutionProblem
+    TrotterQRTE
 
 
 Trotterization-based Quantum Real Time Evolution
@@ -306,10 +307,7 @@ from .algorithm_result import AlgorithmResult
 from .evolvers import EvolutionResult, EvolutionProblem
 from .evolvers.real_evolver import RealEvolver
 from .evolvers.imaginary_evolver import ImaginaryEvolver
-from .time_evolvers.imaginary_time_evolver import ImaginaryTimeEvolver
-from .time_evolvers.real_time_evolver import RealTimeEvolver
-from .time_evolvers.time_evolution_problem import TimeEvolutionProblem
-from .time_evolvers.time_evolution_result import TimeEvolutionResult
+from .evolvers.trotterization import TrotterQRTE
 from .variational_algorithm import VariationalAlgorithm, VariationalResult
 from .amplitude_amplifiers import Grover, GroverResult, AmplificationProblem, AmplitudeAmplifier
 from .amplitude_estimators import (
@@ -347,9 +345,14 @@ from .phase_estimators import (
 from .exceptions import AlgorithmError
 from .aux_ops_evaluator import eval_observables
 from .observables_evaluator import estimate_observables
-from .evolvers.trotterization import TrotterQRTE
-
-from .time_evolvers.pvqd import PVQD, PVQDResult
+from .time_evolvers import (
+    PVQD,
+    PVQDResult,
+    ImaginaryTimeEvolver,
+    RealTimeEvolver,
+    TimeEvolutionProblem,
+    TimeEvolutionResult,
+)
 
 __all__ = [
     "AlgorithmJob",
