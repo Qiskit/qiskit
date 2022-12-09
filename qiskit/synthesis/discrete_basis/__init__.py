@@ -67,7 +67,7 @@ Examples:
         print(circuit.draw())
 
         basis_gates = [TGate(), TdgGate(), HGate()]
-        skd = SolovayKitaev(recursion_degree=2, basis_gates=basis_gates)
+        skd = SolovayKitaev(recursion_degree=2)
 
         discretized = dag_to_circuit(skd.run(dag))
 
