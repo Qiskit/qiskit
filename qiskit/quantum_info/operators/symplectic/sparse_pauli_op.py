@@ -18,9 +18,9 @@ from numbers import Number
 from typing import Dict, Optional
 
 import numpy as np
-import retworkx as rx
+import rustworkx as rx
 
-from qiskit._accelerate.sparse_pauli_op import unordered_unique  # pylint: disable=import-error
+from qiskit._accelerate.sparse_pauli_op import unordered_unique
 from qiskit.exceptions import QiskitError
 from qiskit.quantum_info.operators.custom_iterator import CustomIterator
 from qiskit.quantum_info.operators.linear_op import LinearOp
@@ -70,7 +70,8 @@ class SparsePauliOp(LinearOp):
       - ``to_matrix(sparse=True)`` since ``scipy.sparse`` cannot have objects as elements.
       - ``to_operator()`` since :class:`~.quantum_info.Operator` does not support objects.
       - ``sort``, ``argsort`` since :class:`.ParameterExpression` does not support comparison.
-      - ``equiv`` since :class:`.ParameterExpression`. cannot be converted into complex.
+      - ``equiv`` since :class:`.ParameterExpression` cannot be converted into complex.
+      - ``chop`` since :class:`.ParameterExpression` does not support absolute value.
     """
 
     def __init__(self, data, coeffs=None, *, ignore_pauli_phase=False, copy=True):
@@ -111,7 +112,7 @@ class SparsePauliOp(LinearOp):
 
         pauli_list = PauliList(data.copy() if copy and hasattr(data, "copy") else data)
 
-        dtype = coeffs.dtype if isinstance(coeffs, np.ndarray) else complex
+        dtype = object if isinstance(coeffs, np.ndarray) and coeffs.dtype == object else complex
 
         if coeffs is None:
             coeffs = np.ones(pauli_list.size, dtype=dtype)
@@ -929,7 +930,7 @@ class SparsePauliOp(LinearOp):
                 or on a per-qubit basis.
 
         Returns:
-            retworkx.PyGraph: A class of undirected graphs
+            rustworkx.PyGraph: A class of undirected graphs
         """
 
         edges = self.paulis._noncommutation_graph(qubit_wise)

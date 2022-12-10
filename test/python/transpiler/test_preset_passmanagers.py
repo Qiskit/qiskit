@@ -20,15 +20,15 @@ from ddt import ddt, data
 import numpy as np
 
 from qiskit import QuantumCircuit, ClassicalRegister, QuantumRegister
-from qiskit.circuit import Qubit
+from qiskit.circuit import Qubit, Gate, ControlFlowOp
 from qiskit.compiler import transpile, assemble
 from qiskit.transpiler import CouplingMap, Layout, PassManager, TranspilerError
+from qiskit.circuit.library import U2Gate, U3Gate, QuantumVolume, CXGate, CZGate, XGate
 from qiskit.transpiler.passes import (
     ALAPScheduleAnalysis,
     PadDynamicalDecoupling,
     RemoveResetInZeroState,
 )
-from qiskit.circuit.library import U2Gate, U3Gate, XGate, QuantumVolume
 from qiskit.test import QiskitTestCase
 from qiskit.providers.fake_provider import (
     FakeBelem,
@@ -39,15 +39,12 @@ from qiskit.providers.fake_provider import (
     FakeTokyo,
     FakePoughkeepsie,
     FakeLagosV2,
-    FakeLima,
-    FakeWashington,
 )
 from qiskit.converters import circuit_to_dag
 from qiskit.circuit.library import GraphState
 from qiskit.quantum_info import random_unitary
 from qiskit.transpiler.preset_passmanagers import generate_preset_pass_manager
 from qiskit.transpiler.preset_passmanagers import level0, level1, level2, level3
-from qiskit.utils.optionals import HAS_TOQM
 from qiskit.transpiler.passes import Collect2qBlocks, GatesInBasis
 
 
@@ -268,51 +265,6 @@ class TestPresetPassManager(QiskitTestCase):
 
 
 @ddt
-@unittest.skipUnless(HAS_TOQM, "qiskit-toqm needs to be installed")
-class TestToqmIntegration(QiskitTestCase):
-    """Test transpiler with TOQM-based routing"""
-
-    @combine(
-        level=[0, 1, 2, 3],
-        layout_method=[None, "trivial", "dense", "noise_adaptive", "sabre"],
-        backend_vbits_pair=[(FakeWashington(), 10), (FakeLima(), 5)],
-        dsc="TOQM-based routing with '{layout_method}' layout"
-        + "method on '{backend_vbits_pair[0]}' backend at level '{level}'",
-        name="TOQM_{layout_method}_{backend_vbits_pair[0]}_level{level}",
-    )
-    def test_basic_circuit(self, level, layout_method, backend_vbits_pair):
-        """
-        Basic circuits transpile across all opt levels and layout
-        methods when using TOQM-based routing.
-        """
-        backend, circuit_size = backend_vbits_pair
-        qr = QuantumRegister(circuit_size, "q")
-        qc = QuantumCircuit(qr)
-
-        # Generate a circuit that should need swaps.
-        for i in range(1, qr.size):
-            qc.cx(0, i)
-
-        result = transpile(
-            qc,
-            layout_method=layout_method,
-            routing_method="toqm",
-            backend=backend,
-            optimization_level=level,
-            seed_transpiler=4222022,
-        )
-
-        self.assertIsInstance(result, QuantumCircuit)
-
-    def test_initial_layout_is_rejected(self):
-        """Initial layout is rejected when using TOQM-based routing"""
-        with self.assertRaisesRegex(
-            TranspilerError, "Initial layouts are not supported with TOQM-based routing."
-        ):
-            transpile(QuantumCircuit(2), initial_layout=[1, 0], routing_method="toqm")
-
-
-@ddt
 class TestTranspileLevels(QiskitTestCase):
     """Test transpiler on fake backend"""
 
@@ -439,7 +391,7 @@ class TestPassesInspection(QiskitTestCase):
 
         self.assertIn("SetLayout", self.passes)
         self.assertIn("ApplyLayout", self.passes)
-        self.assertEqual(transpiled._layout, Layout.from_qubit_list([qr[0], qr[1]]))
+        self.assertEqual(transpiled._layout.initial_layout, Layout.from_qubit_list([qr[0], qr[1]]))
 
     @data(0, 1, 2, 3)
     def test_partial_layout_fully_connected_cm(self, level):
@@ -459,7 +411,7 @@ class TestPassesInspection(QiskitTestCase):
         self.assertIn("ApplyLayout", self.passes)
         ancilla = QuantumRegister(3, "ancilla")
         self.assertEqual(
-            transpiled._layout,
+            transpiled._layout.initial_layout,
             Layout.from_qubit_list([ancilla[0], ancilla[1], qr[1], ancilla[2], qr[0]]),
         )
 
@@ -537,7 +489,7 @@ class TestInitialLayouts(QiskitTestCase):
         qc_b = transpile(qc, backend, initial_layout=initial_layout, optimization_level=level)
         qobj = assemble(qc_b)
 
-        self.assertEqual(qc_b._layout._p2v, final_layout)
+        self.assertEqual(qc_b._layout.initial_layout._p2v, final_layout)
 
         compiled_ops = qobj.experiments[0].instructions
         for operation in compiled_ops:
@@ -585,7 +537,7 @@ class TestInitialLayouts(QiskitTestCase):
 
         qc_b = transpile(qc, backend, initial_layout=initial_layout, optimization_level=level)
 
-        self.assertEqual(qc_b._layout._p2v, final_layout)
+        self.assertEqual(qc_b._layout.initial_layout._p2v, final_layout)
 
         output_qr = qc_b.qregs[0]
         for instruction in qc_b:
@@ -639,7 +591,7 @@ class TestInitialLayouts(QiskitTestCase):
 
         qc_b = transpile(qc, backend, initial_layout=initial_layout, optimization_level=level)
 
-        self.assertEqual(qc_b._layout._p2v, final_layout)
+        self.assertEqual(qc_b._layout.initial_layout._p2v, final_layout)
 
         output_qr = qc_b.qregs[0]
         self.assertIsInstance(qc_b[0].operation, U3Gate)
@@ -726,7 +678,7 @@ class TestFinalLayouts(QiskitTestCase):
         ]
         backend = FakeTokyo()
         result = transpile(qc, backend, optimization_level=level, seed_transpiler=42)
-        self.assertEqual(result._layout._p2v, expected_layouts[level])
+        self.assertEqual(result._layout.initial_layout._p2v, expected_layouts[level])
 
     @data(0, 1, 2, 3)
     def test_layout_tokyo_fully_connected_cx(self, level):
@@ -764,32 +716,78 @@ class TestFinalLayouts(QiskitTestCase):
         }
 
         sabre_layout = {
-            11: qr[0],
-            17: qr[1],
-            16: qr[2],
-            6: qr[3],
-            18: qr[4],
             0: ancilla[0],
             1: ancilla[1],
             2: ancilla[2],
             3: ancilla[3],
             4: ancilla[4],
-            5: ancilla[5],
-            7: ancilla[6],
-            8: ancilla[7],
-            9: ancilla[8],
-            10: ancilla[9],
-            12: ancilla[10],
-            13: ancilla[11],
-            14: ancilla[12],
-            15: ancilla[13],
+            5: qr[1],
+            6: qr[2],
+            7: ancilla[5],
+            8: ancilla[6],
+            9: ancilla[7],
+            10: qr[3],
+            11: qr[0],
+            12: qr[4],
+            13: ancilla[8],
+            14: ancilla[9],
+            15: ancilla[10],
+            16: ancilla[11],
+            17: ancilla[12],
+            18: ancilla[13],
+            19: ancilla[14],
+        }
+
+        sabre_layout_lvl_2 = {
+            0: ancilla[0],
+            1: qr[4],
+            2: ancilla[1],
+            3: ancilla[2],
+            4: ancilla[3],
+            5: qr[1],
+            6: qr[0],
+            7: ancilla[4],
+            8: ancilla[5],
+            9: ancilla[6],
+            10: qr[2],
+            11: qr[3],
+            12: ancilla[7],
+            13: ancilla[8],
+            14: ancilla[9],
+            15: ancilla[10],
+            16: ancilla[11],
+            17: ancilla[12],
+            18: ancilla[13],
+            19: ancilla[14],
+        }
+
+        sabre_layout_lvl_3 = {
+            0: ancilla[0],
+            1: qr[4],
+            2: ancilla[1],
+            3: ancilla[2],
+            4: ancilla[3],
+            5: qr[1],
+            6: qr[0],
+            7: ancilla[4],
+            8: ancilla[5],
+            9: ancilla[6],
+            10: qr[2],
+            11: qr[3],
+            12: ancilla[7],
+            13: ancilla[8],
+            14: ancilla[9],
+            15: ancilla[10],
+            16: ancilla[11],
+            17: ancilla[12],
+            18: ancilla[13],
             19: ancilla[14],
         }
 
         expected_layout_level0 = trivial_layout
         expected_layout_level1 = sabre_layout
-        expected_layout_level2 = sabre_layout
-        expected_layout_level3 = sabre_layout
+        expected_layout_level2 = sabre_layout_lvl_2
+        expected_layout_level3 = sabre_layout_lvl_3
 
         expected_layouts = [
             expected_layout_level0,
@@ -799,7 +797,7 @@ class TestFinalLayouts(QiskitTestCase):
         ]
         backend = FakeTokyo()
         result = transpile(qc, backend, optimization_level=level, seed_transpiler=42)
-        self.assertEqual(result._layout._p2v, expected_layouts[level])
+        self.assertEqual(result._layout.initial_layout._p2v, expected_layouts[level])
 
     @data(0, 1, 2, 3)
     def test_all_levels_use_trivial_if_perfect(self, level):
@@ -841,7 +839,7 @@ class TestFinalLayouts(QiskitTestCase):
             19: Qubit(QuantumRegister(20, "q"), 19),
         }
         trans_qc = transpile(qc, backend, optimization_level=level, seed_transpiler=42)
-        self.assertEqual(trans_qc._layout._p2v, expected)
+        self.assertEqual(trans_qc._layout.initial_layout._p2v, expected)
 
     @data(0)
     def test_trivial_layout(self, level):
@@ -889,7 +887,7 @@ class TestFinalLayouts(QiskitTestCase):
 
         backend = FakeTokyo()
         result = transpile(qc, backend, optimization_level=level, seed_transpiler=42)
-        self.assertEqual(result._layout._p2v, expected_layouts[level])
+        self.assertEqual(result._layout.initial_layout._p2v, expected_layouts[level])
 
     @data(0, 1, 2, 3)
     def test_initial_layout(self, level):
@@ -926,7 +924,7 @@ class TestFinalLayouts(QiskitTestCase):
         )
 
         for physical, virtual in initial_layout.items():
-            self.assertEqual(result._layout._p2v[physical], virtual)
+            self.assertEqual(result._layout.initial_layout._p2v[physical], virtual)
 
 
 @ddt
@@ -958,8 +956,11 @@ class TestTranspileLevelsSwap(QiskitTestCase):
         resulting_basis = {node.name for node in circuit_to_dag(result).op_nodes()}
         self.assertIn("swap", resulting_basis)
 
+    # Skipping optimization level 3 because the swap gates get absorbed into
+    # a unitary block as part of the KAK decompostion optimization passes and
+    # optimized away.
     @combine(
-        level=[0, 1, 2, 3],
+        level=[0, 1, 2],
         dsc="If swap in basis, do not decompose it. level: {level}",
         name="level{level}",
     )
@@ -979,7 +980,7 @@ class TestTranspileLevelsSwap(QiskitTestCase):
             optimization_level=level,
             basis_gates=basis,
             coupling_map=coupling_map,
-            seed_transpiler=42123,
+            seed_transpiler=421234242,
         )
         self.assertIsInstance(result, QuantumCircuit)
         resulting_basis = {node.name for node in circuit_to_dag(result).op_nodes()}
@@ -1227,3 +1228,148 @@ class TestGeenratePresetPassManagers(QiskitTestCase):
             for y in x["passes"]
         ]
         self.assertIn("RemoveResetInZeroState", post_translation_pass_list)
+
+
+@ddt
+class TestIntegrationControlFlow(QiskitTestCase):
+    """Integration tests for control-flow circuits through the preset pass managers."""
+
+    @data(0, 1)
+    def test_default_compilation(self, optimization_level):
+        """Test that a simple circuit with each type of control-flow passes a full transpilation
+        pipeline with the defaults."""
+
+        class CustomCX(Gate):
+            """Custom CX"""
+
+            def __init__(self):
+                super().__init__("custom_cx", 2, [])
+
+            def _define(self):
+                self._definition = QuantumCircuit(2)
+                self._definition.cx(0, 1)
+
+        circuit = QuantumCircuit(6, 1)
+        circuit.h(0)
+        circuit.measure(0, 0)
+        circuit.cx(0, 1)
+        circuit.cz(0, 2)
+        circuit.append(CustomCX(), [1, 2], [])
+        with circuit.for_loop((1,)):
+            circuit.cx(0, 1)
+            circuit.cz(0, 2)
+            circuit.append(CustomCX(), [1, 2], [])
+        with circuit.if_test((circuit.clbits[0], True)) as else_:
+            circuit.cx(0, 1)
+            circuit.cz(0, 2)
+            circuit.append(CustomCX(), [1, 2], [])
+        with else_:
+            circuit.cx(3, 4)
+            circuit.cz(3, 5)
+            circuit.append(CustomCX(), [4, 5], [])
+            with circuit.while_loop((circuit.clbits[0], True)):
+                circuit.cx(3, 4)
+                circuit.cz(3, 5)
+                circuit.append(CustomCX(), [4, 5], [])
+
+        coupling_map = CouplingMap.from_line(6)
+
+        transpiled = transpile(
+            circuit,
+            basis_gates=["sx", "rz", "cx", "if_else", "for_loop", "while_loop"],
+            coupling_map=coupling_map,
+            optimization_level=optimization_level,
+            seed_transpiler=2022_10_04,
+        )
+        # Tests of the complete validity of a circuit are mostly done at the indiviual pass level;
+        # here we're just checking that various passes do appear to have run.
+        self.assertIsInstance(transpiled, QuantumCircuit)
+        # Assert layout ran.
+        self.assertIsNot(getattr(transpiled, "_layout", None), None)
+
+        def _visit_block(circuit, stack=None):
+            """Assert that every block contains at least one swap to imply that routing has run."""
+            if stack is None:
+                # List of (instruction_index, block_index).
+                stack = ()
+            seen_cx = 0
+            for i, instruction in enumerate(circuit):
+                if isinstance(instruction.operation, ControlFlowOp):
+                    for j, block in enumerate(instruction.operation.blocks):
+                        _visit_block(block, stack + ((i, j),))
+                elif isinstance(instruction.operation, CXGate):
+                    seen_cx += 1
+                # Assert unrolling ran.
+                self.assertNotIsInstance(instruction.operation, CustomCX)
+                # Assert translation ran.
+                self.assertNotIsInstance(instruction.operation, CZGate)
+            # There are three "natural" swaps in each block (one for each 2q operation), so if
+            # routing ran, we should see more than that.
+            self.assertGreater(seen_cx, 3, msg=f"no swaps in block at indices: {stack}")
+
+        # Assert routing ran.
+        _visit_block(transpiled)
+
+    @data(0, 1)
+    def test_allow_overriding_defaults(self, optimization_level):
+        """Test that the method options can be overridden."""
+        circuit = QuantumCircuit(3, 1)
+        circuit.h(0)
+        circuit.measure(0, 0)
+        with circuit.for_loop((1,)):
+            circuit.h(0)
+            circuit.cx(0, 1)
+            circuit.cz(0, 2)
+            circuit.cx(1, 2)
+
+        coupling_map = CouplingMap.from_line(3)
+
+        calls = set()
+
+        def callback(pass_, **_):
+            calls.add(pass_.name())
+
+        transpiled = transpile(
+            circuit,
+            basis_gates=["u3", "cx", "if_else", "for_loop", "while_loop"],
+            layout_method="trivial",
+            translation_method="unroller",
+            coupling_map=coupling_map,
+            optimization_level=optimization_level,
+            seed_transpiler=2022_10_04,
+            callback=callback,
+        )
+        self.assertIsInstance(transpiled, QuantumCircuit)
+        self.assertIsNot(getattr(transpiled, "_layout", None), None)
+
+        self.assertIn("TrivialLayout", calls)
+        self.assertIn("Unroller", calls)
+        self.assertNotIn("DenseLayout", calls)
+        self.assertNotIn("SabreLayout", calls)
+        self.assertNotIn("BasisTranslator", calls)
+
+    @data(0, 1)
+    def test_invalid_methods_raise_on_control_flow(self, optimization_level):
+        """Test that trying to use an invalid method with control flow fails."""
+        qc = QuantumCircuit(1)
+        with qc.for_loop((1,)):
+            qc.x(0)
+
+        with self.assertRaisesRegex(TranspilerError, "Got layout_method="):
+            transpile(qc, layout_method="sabre", optimization_level=optimization_level)
+        with self.assertRaisesRegex(TranspilerError, "Got routing_method="):
+            transpile(qc, routing_method="lookahead", optimization_level=optimization_level)
+        with self.assertRaisesRegex(TranspilerError, "Got translation_method="):
+            transpile(qc, translation_method="synthesis", optimization_level=optimization_level)
+        with self.assertRaisesRegex(TranspilerError, "Got scheduling_method="):
+            transpile(qc, scheduling_method="alap", optimization_level=optimization_level)
+
+    @data(2, 3)
+    def test_unsupported_levels_raise(self, optimization_level):
+        """Test that trying to use an invalid method with control flow fails."""
+        qc = QuantumCircuit(1)
+        with qc.for_loop((1,)):
+            qc.x(0)
+
+        with self.assertRaisesRegex(TranspilerError, "The optimizations in optimization_level="):
+            transpile(qc, optimization_level=optimization_level)

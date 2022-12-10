@@ -84,15 +84,15 @@ def circuit_to_gate(circuit, parameter_map=None, equivalence_library=None, label
     if equivalence_library is not None:
         equivalence_library.add_equivalence(gate, target)
 
+    qc = QuantumCircuit(name=gate.name, global_phase=target.global_phase)
     if gate.num_qubits > 0:
         q = QuantumRegister(gate.num_qubits, "q")
-
+        qc.add_register(q)
     qubit_map = {bit: q[idx] for idx, bit in enumerate(circuit.qubits)}
 
     # The 3rd parameter in the output tuple) is hard coded to [] because
     # Gate objects do not have cregs set and we've verified that all
     # instructions are gates
-    qc = QuantumCircuit(q, name=gate.name, global_phase=target.global_phase)
     for instruction in target.data:
         qc._append(instruction.replace(qubits=tuple(qubit_map[y] for y in instruction.qubits)))
     gate.definition = qc

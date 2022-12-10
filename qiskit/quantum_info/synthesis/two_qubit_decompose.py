@@ -132,7 +132,7 @@ class TwoQubitWeylDecomposition:
         )
 
     @staticmethod
-    def __new__(cls, unitary_matrix, *, fidelity=(1.0 - 1.0e-9)):
+    def __new__(cls, unitary_matrix, *, fidelity=(1.0 - 1.0e-9), _unpickling=False):
         """Perform the Weyl chamber decomposition, and optionally choose a specialized subclass.
 
         The flip into the Weyl Chamber is described in B. Kraus and J. I. Cirac, Phys. Rev. A 63,
@@ -144,7 +144,8 @@ class TwoQubitWeylDecomposition:
 
         The overall decomposition scheme is taken from Drury and Love, arXiv:0806.4015 [quant-ph].
         """
-        from scipy import linalg as la
+        if _unpickling:
+            return super().__new__(cls)
 
         pi = np.pi
         pi2 = np.pi / 2
@@ -152,7 +153,7 @@ class TwoQubitWeylDecomposition:
 
         # Make U be in SU(4)
         U = np.array(unitary_matrix, dtype=complex, copy=True)
-        detU = la.det(U)
+        detU = np.linalg.det(U)
         U *= detU ** (-0.25)
         global_phase = cmath.phase(detU) / 4
 
@@ -198,7 +199,7 @@ class TwoQubitWeylDecomposition:
         P[:, :3] = P[:, order]
 
         # Fix the sign of P to be in SO(4)
-        if np.real(la.det(P)) < 0:
+        if np.real(np.linalg.det(P)) < 0:
             P[:, -1] = -P[:, -1]
 
         # Find K1, K2 so that U = K1.A.K2, with K being product of single-qubit unitaries
@@ -403,6 +404,9 @@ class TwoQubitWeylDecomposition:
         circ = self.circuit(**kwargs)
         trace = np.trace(Operator(circ).data.T.conj() @ self.unitary_matrix)
         return trace_to_fid(trace)
+
+    def __getnewargs_ex__(self):
+        return (self.unitary_matrix,), {"_unpickling": True}
 
     def __repr__(self):
         """Represent with enough precision to allow copy-paste debugging of all corner cases"""
@@ -1416,9 +1420,7 @@ class TwoQubitDecomposeUpToDiagonal:
         self.sysy = np.kron(sy, sy)
 
     def _u4_to_su4(self, u4):
-        from scipy import linalg as la
-
-        phase_factor = np.conj(la.det(u4) ** (-1 / u4.shape[0]))
+        phase_factor = np.conj(np.linalg.det(u4) ** (-1 / u4.shape[0]))
         su4 = u4 / phase_factor
         return su4, cmath.phase(phase_factor)
 

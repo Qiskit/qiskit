@@ -22,6 +22,7 @@ import numpy as np
 from qiskit.algorithms import AlgorithmError
 from qiskit.circuit import Parameter, ParameterExpression, QuantumCircuit
 from qiskit.primitives import BaseSampler
+from qiskit.providers import Options
 
 from .base_sampler_gradient import BaseSamplerGradient
 from .sampler_gradient_result import SamplerGradientResult
@@ -37,7 +38,7 @@ class LinCombSamplerGradient(BaseSamplerGradient):
     `arXiv:1811.11184 <https://arxiv.org/pdf/1811.11184.pdf>`_
     """
 
-    def __init__(self, sampler: BaseSampler, **options):
+    def __init__(self, sampler: BaseSampler, options: Options | None = None):
         """
         Args:
             sampler: The sampler used to compute the gradients.
@@ -48,7 +49,7 @@ class LinCombSamplerGradient(BaseSamplerGradient):
         """
 
         self._gradient_circuits = {}
-        super().__init__(sampler, **options)
+        super().__init__(sampler, options)
 
     def _run(
         self,
@@ -113,8 +114,14 @@ class LinCombSamplerGradient(BaseSamplerGradient):
             n = 2 ** circuits[i].num_qubits
             grad_dists = np.zeros((len(metadata_[i]["parameters"]), n))
             for idx, coeff, dist in zip(result_indices_all[i], coeffs_all[i], result.quasi_dists):
-                grad_dists[idx][list(dist.keys())[:n]] += np.array(list(dist.values())[:n]) * coeff
-                grad_dists[idx][list(dist.keys())[:n]] -= np.array(list(dist.values())[n:]) * coeff
+                plus = {key: val for key, val in dist.items() if key < n}
+                minus = {key - n: val for key, val in dist.items() if key >= n}
+                grad_dists[idx][list(plus.keys())] += (
+                    np.fromiter(plus.values(), dtype=float) * coeff
+                )
+                grad_dists[idx][list(minus.keys())] -= (
+                    np.fromiter(minus.values(), dtype=float) * coeff
+                )
 
             gradient_ = []
             for grad_dist in grad_dists:

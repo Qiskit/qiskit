@@ -16,6 +16,7 @@ from abc import abstractmethod
 from collections.abc import Hashable
 from inspect import signature
 from .propertyset import PropertySet
+from .layout import TranspileLayout
 
 
 class MetaPass(type):
@@ -131,7 +132,10 @@ class BasePass(metaclass=MetaPass):
             result_circuit = circuit.copy()
 
         if self.property_set["layout"]:
-            result_circuit._layout = self.property_set["layout"]
+            result_circuit._layout = TranspileLayout(
+                initial_layout=self.property_set["layout"],
+                input_qubit_mapping=self.property_set["original_qubit_indices"],
+            )
         if self.property_set["clbit_write_latency"] is not None:
             result_circuit._clbit_write_latency = self.property_set["clbit_write_latency"]
         if self.property_set["conditional_latency"] is not None:

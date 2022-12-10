@@ -22,6 +22,7 @@ import numpy as np
 from qiskit.algorithms import AlgorithmError
 from qiskit.circuit import Parameter, QuantumCircuit
 from qiskit.primitives import BaseSampler
+from qiskit.providers import Options
 
 from .base_sampler_gradient import BaseSamplerGradient
 from .sampler_gradient_result import SamplerGradientResult
@@ -29,9 +30,15 @@ from .utils import _param_shift_preprocessing, _make_param_shift_parameter_value
 
 
 class ParamShiftSamplerGradient(BaseSamplerGradient):
-    """Compute the gradients of the sampling probability by the parameter shift rule."""
+    """
+    Compute the gradients of the sampling probability by the parameter shift rule [1].
 
-    def __init__(self, sampler: BaseSampler, **options):
+    **Reference:**
+    [1] Schuld, M., Bergholm, V., Gogolin, C., Izaac, J., and Killoran, N. Evaluating analytic
+    gradients on quantum hardware, `DOI <https://doi.org/10.1103/PhysRevA.99.032331>`_
+    """
+
+    def __init__(self, sampler: BaseSampler, options: Options | None = None):
         """
         Args:
             sampler: The sampler used to compute the gradients.
@@ -41,7 +48,7 @@ class ParamShiftSamplerGradient(BaseSamplerGradient):
                 Higher priority setting overrides lower priority setting
         """
         self._gradient_circuits = {}
-        super().__init__(sampler, **options)
+        super().__init__(sampler, options)
 
     def _run(
         self,

@@ -14,8 +14,6 @@
 """Routines for computing expectation values from sampled distributions"""
 import numpy as np
 
-
-# pylint: disable=import-error
 from qiskit._accelerate.sampled_exp_val import sampled_expval_float, sampled_expval_complex
 from qiskit.exceptions import QiskitError
 from .distributions import QuasiDistribution, ProbDistribution

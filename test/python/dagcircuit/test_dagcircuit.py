@@ -17,7 +17,7 @@ import unittest
 
 from ddt import ddt, data
 
-import retworkx as rx
+import rustworkx as rx
 from numpy import pi
 
 from qiskit.dagcircuit import DAGCircuit, DAGOpNode, DAGInNode, DAGOutNode
@@ -1428,26 +1428,6 @@ class TestDagEquivalence(QiskitTestCase):
 
         self.assertNotEqual(self.dag1, dag2)
 
-    def test_dag_from_networkx(self):
-        """Test DAG from networkx creates an expected DAGCircuit object."""
-        from copy import deepcopy
-        from collections import OrderedDict
-
-        with self.assertWarns(DeprecationWarning):
-            nx_graph = self.dag1.to_networkx()
-        with self.assertWarns(DeprecationWarning):
-            from_nx_dag = DAGCircuit.from_networkx(nx_graph)
-
-        # to_/from_networkx does not preserve Registers or bit indexing,
-        # so remove them from reference DAG.
-        dag = deepcopy(self.dag1)
-        dag.qregs = OrderedDict()
-        dag.cregs = OrderedDict()
-        dag.qubits = from_nx_dag.qubits
-        dag.clbits = from_nx_dag.clbits
-
-        self.assertEqual(dag, from_nx_dag)
-
     def test_node_params_equal_unequal(self):
         """Test node params are equal or unequal."""
         qc1 = QuantumCircuit(1)
@@ -1461,6 +1441,36 @@ class TestDagEquivalence(QiskitTestCase):
         dag3 = circuit_to_dag(qc3)
         self.assertEqual(dag1, dag2)
         self.assertNotEqual(dag2, dag3)
+
+    def test_semantic_conditions(self):
+        """Test that the semantic equality is applied to the bits in conditions as well."""
+        qreg = QuantumRegister(1, name="q")
+        creg = ClassicalRegister(1, name="c")
+        qc1 = QuantumCircuit(qreg, creg, [Clbit()])
+        qc1.x(0).c_if(qc1.cregs[0], 1)
+        qc1.x(0).c_if(qc1.clbits[-1], True)
+        qc2 = QuantumCircuit(qreg, creg, [Clbit()])
+        qc2.x(0).c_if(qc2.cregs[0], 1)
+        qc2.x(0).c_if(qc2.clbits[-1], True)
+        self.assertEqual(circuit_to_dag(qc1), circuit_to_dag(qc2))
+
+        # Order of operations transposed.
+        qc1 = QuantumCircuit(qreg, creg, [Clbit()])
+        qc1.x(0).c_if(qc1.cregs[0], 1)
+        qc1.x(0).c_if(qc1.clbits[-1], True)
+        qc2 = QuantumCircuit(qreg, creg, [Clbit()])
+        qc2.x(0).c_if(qc2.clbits[-1], True)
+        qc2.x(0).c_if(qc2.cregs[0], 1)
+        self.assertNotEqual(circuit_to_dag(qc1), circuit_to_dag(qc2))
+
+        # Single-bit condition values not the same.
+        qc1 = QuantumCircuit(qreg, creg, [Clbit()])
+        qc1.x(0).c_if(qc1.cregs[0], 1)
+        qc1.x(0).c_if(qc1.clbits[-1], True)
+        qc2 = QuantumCircuit(qreg, creg, [Clbit()])
+        qc2.x(0).c_if(qc2.cregs[0], 1)
+        qc2.x(0).c_if(qc2.clbits[-1], False)
+        self.assertNotEqual(circuit_to_dag(qc1), circuit_to_dag(qc2))
 
 
 class TestDagSubstitute(QiskitTestCase):
@@ -1868,7 +1878,7 @@ class TestReplaceBlock(QiskitTestCase):
         dag = DAGCircuit()
         dag.add_qreg(qr)
         node = dag.apply_operation_back(HGate(), [qr[0]])
-        dag.replace_block_with_op(
+        new_node = dag.replace_block_with_op(
             [node], XGate(), {bit: idx for (idx, bit) in enumerate(dag.qubits)}
         )
 
@@ -1878,6 +1888,7 @@ class TestReplaceBlock(QiskitTestCase):
 
         self.assertEqual(expected_dag, dag)
         self.assertEqual(expected_dag.count_ops(), dag.count_ops())
+        self.assertIsInstance(new_node.op, XGate)
 
 
 class TestDagProperties(QiskitTestCase):

@@ -71,7 +71,7 @@ class PhaseOracle(QuantumCircuit):
         if synthesizer is None:
 
             def synthesizer(boolean_expression):
-                from tweedledum.synthesis import pkrm_synth
+                from tweedledum.synthesis import pkrm_synth  # pylint: disable=import-error
                 from qiskit.circuit.classicalfunction.utils import tweedledum2qiskit
 
                 truth_table = boolean_expression._tweedledum_bool_expression.truth_table(

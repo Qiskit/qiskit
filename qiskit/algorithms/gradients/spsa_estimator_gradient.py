@@ -22,6 +22,7 @@ from qiskit.algorithms import AlgorithmError
 from qiskit.circuit import Parameter, QuantumCircuit
 from qiskit.opflow import PauliSumOp
 from qiskit.primitives import BaseEstimator
+from qiskit.providers import Options
 from qiskit.quantum_info.operators.base_operator import BaseOperator
 
 from .base_estimator_gradient import BaseEstimatorGradient
@@ -31,7 +32,12 @@ from .estimator_gradient_result import EstimatorGradientResult
 class SPSAEstimatorGradient(BaseEstimatorGradient):
     """
     Compute the gradients of the expectation value by the Simultaneous Perturbation Stochastic
-    Approximation (SPSA).
+    Approximation (SPSA) [1].
+
+    **Reference:**
+    [1] J. C. Spall, Adaptive stochastic approximation by the simultaneous perturbation method in
+    IEEE Transactions on Automatic Control, vol. 45, no. 10, pp. 1839-1853, Oct 2020,
+    `doi: 10.1109/TAC.2000.880982 <https://ieeexplore.ieee.org/document/880982>`_
     """
 
     def __init__(
@@ -40,7 +46,7 @@ class SPSAEstimatorGradient(BaseEstimatorGradient):
         epsilon: float,
         batch_size: int = 1,
         seed: int | None = None,
-        **options,
+        options: Options | None = None,
     ):
         """
         Args:
@@ -62,7 +68,7 @@ class SPSAEstimatorGradient(BaseEstimatorGradient):
         self._batch_size = batch_size
         self._seed = np.random.default_rng(seed)
 
-        super().__init__(estimator, **options)
+        super().__init__(estimator, options)
 
     def _run(
         self,

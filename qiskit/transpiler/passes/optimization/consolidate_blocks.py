@@ -12,6 +12,8 @@
 
 """Replace each block of consecutive gates by a single Unitary node."""
 
+import numpy as np
+
 from qiskit.circuit.classicalregister import ClassicalRegister
 from qiskit.circuit.quantumregister import QuantumRegister
 from qiskit.circuit.quantumcircuit import QuantumCircuit
@@ -71,7 +73,7 @@ class ConsolidateBlocks(TransformationPass):
 
         # compute ordered indices for the global circuit wires
         global_index_map = {wire: idx for idx, wire in enumerate(dag.qubits)}
-        blocks = self.property_set["block_list"]
+        blocks = self.property_set["block_list"] or []
         basis_gate_name = self.decomposer.gate.name
         all_block_gates = set()
         for block in blocks:
@@ -113,9 +115,17 @@ class ConsolidateBlocks(TransformationPass):
                     or ((self.basis_gates is not None) and outside_basis)
                     or ((self.target is not None) and outside_basis)
                 ):
-                    dag.replace_block_with_op(block, unitary, block_index_map, cycle_check=False)
+                    identity = np.eye(2**unitary.num_qubits)
+                    if np.allclose(identity, unitary.to_matrix()):
+                        for node in block:
+                            dag.remove_op_node(node)
+                    else:
+                        dag.replace_block_with_op(
+                            block, unitary, block_index_map, cycle_check=False
+                        )
         # If 1q runs are collected before consolidate those too
         runs = self.property_set["run_list"] or []
+        identity_1q = np.eye(2)
         for run in runs:
             if any(gate in all_block_gates for gate in run):
                 continue
@@ -134,7 +144,11 @@ class ConsolidateBlocks(TransformationPass):
                 if already_in_block:
                     continue
                 unitary = UnitaryGate(operator)
-                dag.replace_block_with_op(run, unitary, {qubit: 0}, cycle_check=False)
+                if np.allclose(identity_1q, unitary.to_matrix()):
+                    for node in run:
+                        dag.remove_op_node(node)
+                else:
+                    dag.replace_block_with_op(run, unitary, {qubit: 0}, cycle_check=False)
         # Clear collected blocks and runs as they are no longer valid after consolidation
         if "run_list" in self.property_set:
             del self.property_set["run_list"]

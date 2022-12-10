@@ -21,6 +21,7 @@ import numpy as np
 from qiskit.algorithms import AlgorithmError
 from qiskit.circuit import Parameter, QuantumCircuit
 from qiskit.primitives import BaseSampler
+from qiskit.providers import Options
 
 from .base_sampler_gradient import BaseSamplerGradient
 from .sampler_gradient_result import SamplerGradientResult
@@ -29,7 +30,12 @@ from .sampler_gradient_result import SamplerGradientResult
 class SPSASamplerGradient(BaseSamplerGradient):
     """
     Compute the gradients of the sampling probability by the Simultaneous Perturbation Stochastic
-    Approximation (SPSA).
+    Approximation (SPSA) [1].
+
+    **Reference:**
+    [1] J. C. Spall, Adaptive stochastic approximation by the simultaneous perturbation method in
+    IEEE Transactions on Automatic Control, vol. 45, no. 10, pp. 1839-1853, Oct 2020,
+    `doi: 10.1109/TAC.2000.880982 <https://ieeexplore.ieee.org/document/880982>`_.
     """
 
     def __init__(
@@ -38,7 +44,7 @@ class SPSASamplerGradient(BaseSamplerGradient):
         epsilon: float,
         batch_size: int = 1,
         seed: int | None = None,
-        **options,
+        options: Options | None = None,
     ):
         """
         Args:
@@ -60,7 +66,7 @@ class SPSASamplerGradient(BaseSamplerGradient):
         self._epsilon = epsilon
         self._seed = np.random.default_rng(seed)
 
-        super().__init__(sampler, **options)
+        super().__init__(sampler, options)
 
     def _run(
         self,
