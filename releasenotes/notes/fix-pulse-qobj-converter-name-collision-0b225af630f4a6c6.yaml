@@ -1,7 +1,8 @@
 ---
 deprecations:
   - |
-    Several public methods of pulse Qobj converters have been turned into protected.
+    Several public methods of pulse Qobj converters have been deprecated and in a future
+    release they will no longer be directly callable. The list of methods is:
 
     In :class:`.InstructionToQobjConverter`,
 
@@ -27,8 +28,11 @@ deprecations:
     * :meth:`~QobjToInstructionConverter.convert_parametric`
     * :meth:`~QobjToInstructionConverter.convert_snapshot`
 
-    These methods has been implicitly selected when a converter instance is directly called
-    with instruction to convert.
+    Instead of calling any of these methods directly they will be implicitly selected when a
+    converter instance is directly called. For example::
+
+        converter = QobjToInstructionConverter()
+        converter(pulse_qobj)
 
 fixes:
   - |
