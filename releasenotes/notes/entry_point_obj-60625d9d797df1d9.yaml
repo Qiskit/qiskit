@@ -1,0 +1,13 @@
+---
+features:
+  - |
+    The function ``entry_point_obj`` in the module
+    ``qiskit.transpiler.preset_passmanagers.plugin`` was added to obtain the plugin class type.
+    Given a stage and a plug name, this function will return the plugin class of the entry point,
+    allowing to identify it and query its documentation. For example::
+
+        >>> from qiskit.transpiler.preset_passmanagers.plugin import entry_point_obj
+        >>> entry_point_obj('routing', 'lookahead').__class__
+        qiskit.transpiler.preset_passmanagers.builtin_plugins.LookaheadSwapPassManager
+
+        >>> help(entry_point_obj('routing', 'lookahead'))
