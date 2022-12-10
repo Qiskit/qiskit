@@ -185,12 +185,13 @@ def circuit_drawer(
     default_reverse_bits = False
     if config:
         default_output = config.get("circuit_drawer", "text")
-        default_reverse_bits = config.get("circuit_reverse_bits", False)
         if default_output == "auto":
             if _optionals.HAS_MATPLOTLIB:
                 default_output = "mpl"
             else:
                 default_output = "text"
+        if wire_order is None:
+            default_reverse_bits = config.get("circuit_reverse_bits", False)
     if output is None:
         output = default_output
 
