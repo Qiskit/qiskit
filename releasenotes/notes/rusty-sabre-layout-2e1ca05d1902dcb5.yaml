@@ -1,0 +1,102 @@
+---
+features:
+  - |
+    The :class:`~.SabreLayout` transpiler pass has greatly improved performance
+    as it has been re-written in Rust. As part of this rewrite the pass has been
+    transformed from an analysis pass to a transformation pass that will run both
+    layout and routing. This was done to not only improve the runtime performance
+    but also improve the quality of the results. The previous functionality of the
+    pass as an analysis pass can be retained by manually setting the ``routing_pass``
+    argument or using the new ``skip_routing`` argument.
+  - |
+    The :class:`~.SabreLayout` transpiler pass has a new constructor argument
+    ``layout_trials``. This argument is used to control how many random number
+    generator seeds will be attempted  to run :class:`~.SabreLayout` with. When
+    set the SABRE layout algorithm is run ``layout_trials`` number of times and
+    the best quality output (measured in the lowest number of swap gates added)
+    is selected. These seed trials are executed in parallel using multithreading
+    to minimize the potential performance overhead of running layout multiple
+    times. By default if this is not specified the :class:`~.SabreLayout`
+    pass will default to using the number of physical CPUs are available on the
+    local system.
+upgrade:
+  - |
+    The default behavior of the :class:`~.SabreLayout` compiler pass has
+    changed. The pass is no longer an :class:`~.AnalysisPass` and by default
+    will compute the initital layout, apply it to the circuit, and will
+    also run :class:`~.SabreSwap` internally and apply the swap mapping
+    and set the ``final_layout`` property set with the permutation caused
+    by swap insertions. This means for users running :class:`~.SabreLayout`
+    as part of a custom :class:`~.PassManager` will need to adjust the pass
+    manager to account for this (unless they were setting the ``routing_pass``
+    argument for :class:`~.SabreLayout`). This change was made in the interest
+    of improving the quality output, the layout and routing quality are highly
+    coupled and :class:`~.SabreLayout` will now run multiple parallel seed
+    trials and to calculate which seed provides the best results it needs to
+    perform both the layout and routing together. There are three ways you can
+    adjust the usage in your custom pass manager. The first is to avoid using
+    embedding in your preset pass manager. If you were previously running something
+    like::
+
+        from qiskit.transpiler import PassManager
+        from qiskit.transpiler.preset_passmanagers import common
+        from qiskit.transpiler.passes.SabreLayout
+
+        pm = PassManager()
+        pm.append(SabreLayout(coupling_map)
+        pm += common.generate_embed_passmanager(coupling_map)
+
+    to compute the layout and then apply it (which was typically followed by routing)
+    you can adjust the usage to just simply be::
+
+
+        from qiskit.transpiler import PassManager
+        from qiskit.transpiler.preset_passmanagers import common
+        from qiskit.transpiler.passes.SabreLayout
+
+        pm = PassManager()
+        pm.append(SabreLayout(coupling_map)
+
+    as :class:`~.SabreLayout` will apply the layout and you no longer need the embedding
+    stage. Alternatively, you can specify the ``routing_pass`` argument which will revert
+    :class:`~.SabreLayout` to its previous behavior. For example, if you want to run
+    :class:`~.SabreLayout` as it was run in previous releases you can do something like::
+
+        from qiskit.transpiler.passes import SabreSwap, SabreLayout
+        routing_pass = SabreSwap(
+            coupling_map, "decay", seed=seed, fake_run=True
+        )
+        layout_pass = SabreLayout(coupling_map, routing_pass=routing_pass, seed=seed)
+
+    which will have :class:`~.SabreLayout` run as an analysis pass and just set
+    the ``layout`` property set. The final approach is to leverage the ``skip_routing``
+    argument on :class:`~SabreLayout`, when this argument is set to ``True`` it will
+    skip applying the found layout and inserting the swap gates from routing. However,
+    doing this has a runtime penalty as :class:`~SabreLayout` will still be computing
+    the routing and just does not use this data. The first two approaches outlined do
+    not have additional overhead associated with them.
+  - |
+    The layouts computed by the :class:`~.SabreLayout` pass (when run without
+    the ``routing_pass`` argument) with a fixed seed value may change from
+    previous releases. This is caused by a new random number generator being
+    used as part of the rewrite of the :class:`~.SabreLayout` pass in Rust which
+    significantly improved the performance. If you rely on having consistent
+    output you can run the pass in an earlier version of Qiskit and leverage
+    :mod:`qiskit.qpy` to save the circuit and then load it using the current
+    version. Alternatively you can explicitly set the ``routing_pass`` argument
+    to an instance of :class:`~.SabreSwap` to mirror the previous behavior
+    of :class:`~.SabreLayout`::
+
+        from qiskit.transpiler.passes import SabreSwap, SabreLayout
+
+
+        routing_pass = SabreSwap(
+            coupling_map, "decay", seed=seed, fake_run=True
+        )
+        layout_pass = SabreLayout(coupling_map, routing_pass=routing_pass, seed=seed)
+
+    which will mirror the behavior of the pass in the previous release. Note, that if you
+    were using the ``swap_trials`` argument on :class:`~.SabreLayout` in previous releases
+    when adjusting the usage to this form that you will need to set ``trials`` argument
+    on the :class:`~.SabreSwap` constructor if you want to retain the previous output with
+    a fixed seed.
