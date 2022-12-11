@@ -113,6 +113,14 @@ class Permutation(Gate):
         """Returns the permutation pattern defining this permutation."""
         return self.params[0]
 
+    def inverse(self):
+        """Returns the inverse of the permutation."""
+
+        # pylint: disable=cyclic-import
+        from qiskit.synthesis.permutation.permutation_utils import _inverse_pattern
+
+        return Permutation(self.num_qubits, pattern=_inverse_pattern(self.pattern))
+
     def qasm(self):
         """The qasm for a permutation."""
 
