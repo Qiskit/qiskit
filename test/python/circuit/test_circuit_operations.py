@@ -1114,19 +1114,6 @@ class TestCircuitOperations(QiskitTestCase):
         self.assertEqual(qc.num_clbits, 10)
         self.assertEqual(qc.num_ancillas, 10)
 
-    def test_deprecated_reset_function(self):
-        """Test that the deprecated version of the loose 'reset' function works correctly."""
-        from qiskit.circuit.reset import reset
-
-        test = QuantumCircuit(1, 1)
-        with self.assertWarnsRegex(DeprecationWarning, r".*Qiskit Terra 0\.19.*"):
-            reset(test, 0)
-
-        expected = QuantumCircuit(1, 1)
-        expected.reset(0)
-
-        self.assertEqual(test, expected)
-
     def test_from_instructions(self):
         """Test from_instructions method."""
 
