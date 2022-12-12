@@ -1,4 +1,4 @@
 ---
 features:
   - |
-    Modifies the drawer for the `StagedPassManager` to add an outer box around the passes for each stage.
+    Modifies the drawer for the :class:`~.transpiler.StagedPassManager` to add an outer box around the passes for each stage.

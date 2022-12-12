@@ -224,11 +224,11 @@ def staged_pass_manager_drawer(pass_manager, filename=None, style=None, raw=Fals
     Example:
         .. code-block::
 
-             %matplotlib inline
+            %matplotlib inline
             from qiskit.providers.fake_provider import FakeLagosV2
             from qiskit.transpiler.preset_passmanagers import generate_preset_pass_manager
 
-            pass_manager = generate_preset_pass_manager(3, FakeLagosV2)
+            pass_manager = generate_preset_pass_manager(3, FakeLagosV2())
             pass_manager.draw()
     """
     import pydot
