@@ -19,7 +19,7 @@ import ddt
 
 from qiskit import ClassicalRegister, QuantumRegister, QuantumCircuit
 from qiskit.circuit import Parameter
-from qiskit.circuit.library import CXGate, CZGate, ECRGate, RZXGate
+from qiskit.circuit.library import CXGate, CZGate, ECRGate, RXXGate, RYYGate, RZXGate, RZZGate
 from qiskit.compiler import transpile
 from qiskit.transpiler import TranspilerError, CouplingMap, Target
 from qiskit.transpiler.passes import GateDirection
@@ -278,6 +278,21 @@ class TestGateDirection(QiskitTestCase):
 
         swapped = Target(num_qubits=2)
         swapped.add_instruction(gate, {(1, 0): None})
+        self.assertNotEqual(GateDirection(None, target=swapped)(circuit), circuit)
+
+    @ddt.data(RXXGate(pi / 3), RYYGate(pi / 3), RZZGate(pi / 3))
+    def test_target_trivial(self, gate):
+        """Test that trivial 2q gates are swapped correctly both if available and not available."""
+        circuit = QuantumCircuit(2)
+        circuit.append(gate, [0, 1], [])
+
+        matching = Target(num_qubits=2)
+        matching.add_instruction(gate, {(0, 1): None})
+        self.assertEqual(GateDirection(None, target=matching)(circuit), circuit)
+
+        swapped = Target(num_qubits=2)
+        swapped.add_instruction(gate, {(1, 0): None})
+
         self.assertNotEqual(GateDirection(None, target=swapped)(circuit), circuit)
 
     def test_target_parameter_any(self):
