@@ -27,13 +27,18 @@ import numpy as np
 from qiskit import QiskitError
 from qiskit.utils.mitigation.circuits import count_keys
 from qiskit.utils.mitigation._filters import MeasurementFilter, TensoredFilter
+from qiskit.utils.deprecation import deprecate_function
 
 
 class CompleteMeasFitter:
     """
-    Measurement correction fitter for a full calibration
+    Deprecation: Measurement correction fitter for a full calibration
     """
 
+    @deprecate_function(
+        "The CompleteMeasFitter class is deprecated as of Qiskit Terra 0.24.0 "
+        "and will be removed no sooner than 3 months after the release date. "
+    )
     def __init__(
         self,
         results,
@@ -211,9 +216,13 @@ class CompleteMeasFitter:
 
 class TensoredMeasFitter:
     """
-    Measurement correction fitter for a tensored calibration.
+    Deprecation: Measurement correction fitter for a tensored calibration.
     """
 
+    @deprecate_function(
+        "The TensoredMeasFitter class is deprecated as of Qiskit Terra 0.24.0 "
+        "and will be removed no sooner than 3 months after the release date. "
+    )
     def __init__(
         self,
         results,

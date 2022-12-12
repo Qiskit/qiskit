@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2020, 2022.
+# (C) Copyright IBM 2020, 2023.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -14,10 +14,12 @@
 State Functions (:mod:`qiskit.opflow.state_fns`)
 ================================================
 
-Deprecation: State functions are defined to be complex functions over a single binary
-string (as compared to an operator, which is defined as a function over two binary strings,
-or a function taking a binary function to another binary function). This function may be
-called by the eval() method.
+.. deprecated:: 0.24.0
+    State functions are defined to be complex functions over a single binary
+    string (as compared to an operator, which is defined as a function over two binary strings,
+    or a function taking a binary function to another binary function). This function may be
+    called by the eval() method.
+
 
 Measurements are defined to be functionals over StateFns, taking them to real values.
 Generally, this real value is interpreted to represent the probability of some classical

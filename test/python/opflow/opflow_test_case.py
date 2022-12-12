@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2018, 2020.
+# (C) Copyright IBM 2018, 2023.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -12,10 +12,19 @@
 
 """ Opflow Test Case """
 
+import warnings
 from qiskit.test import QiskitTestCase
 
 
 class QiskitOpflowTestCase(QiskitTestCase):
     """Opflow test Case"""
 
-    pass
+    def setUp(self):
+        super().setUp()
+        # ignore opflow msgs
+        warnings.filterwarnings("ignore", category=DeprecationWarning, message=r".*opflow.*")
+
+    def tearDown(self):
+        super().tearDown()
+        # restore opflow msgs
+        warnings.filterwarnings("error", category=DeprecationWarning, message=r".*opflow.*")

@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2017, 2022.
+# (C) Copyright IBM 2017, 2018.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -226,16 +226,6 @@ class QiskitTestCase(BaseQiskitTestCase):
         ]
         for msg in allow_DeprecationWarning_message:
             warnings.filterwarnings("default", category=DeprecationWarning, message=msg)
-
-        # ignore opflow, QuantumInstance and deprecated function msgs
-        warnings.filterwarnings("ignore", category=DeprecationWarning, message=r".*opflow.*")
-        warnings.filterwarnings(
-            "ignore", category=DeprecationWarning, message=r".*QuantumInstance.*"
-        )
-        warnings.filterwarnings(
-            "ignore", category=DeprecationWarning, message=r".*find_regs_by_name.*"
-        )
-        warnings.filterwarnings("ignore", category=DeprecationWarning, message=r".*run_circuits.*")
 
 
 class FullQiskitTestCase(QiskitTestCase):

@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2022.
+# (C) Copyright IBM 2022, 2023.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -12,6 +12,7 @@
 """Tests evaluator of auxiliary operators for algorithms."""
 
 import unittest
+import warnings
 from typing import Tuple, Union
 
 from test.python.algorithms import QiskitAlgorithmsTestCase
@@ -45,13 +46,19 @@ class TestAuxOpsEvaluator(QiskitAlgorithmsTestCase):
         super().setUp()
         self.seed = 50
         algorithm_globals.random_seed = self.seed
-        self.h2_op = (
-            -1.052373245772859 * (I ^ I)
-            + 0.39793742484318045 * (I ^ Z)
-            - 0.39793742484318045 * (Z ^ I)
-            - 0.01128010425623538 * (Z ^ Z)
-            + 0.18093119978423156 * (X ^ X)
-        )
+        with warnings.catch_warnings(record=True) as caught_warnings:
+            warnings.filterwarnings(
+                "always",
+                category=DeprecationWarning,
+            )
+            self.h2_op = (
+                -1.052373245772859 * (I ^ I)
+                + 0.39793742484318045 * (I ^ Z)
+                - 0.39793742484318045 * (Z ^ I)
+                - 0.01128010425623538 * (Z ^ Z)
+                + 0.18093119978423156 * (X ^ X)
+            )
+        self.assertTrue(len(caught_warnings) > 0)
 
         self.threshold = 1e-8
         self.backend_names = ["statevector_simulator", "qasm_simulator"]
@@ -85,10 +92,15 @@ class TestAuxOpsEvaluator(QiskitAlgorithmsTestCase):
         observables: ListOrDict[OperatorBase],
         quantum_instance: Union[QuantumInstance, Backend],
     ):
-        result = eval_observables(
-            quantum_instance, quantum_state, observables, expectation, self.threshold
-        )
-
+        with warnings.catch_warnings(record=True) as caught_warnings:
+            warnings.filterwarnings(
+                "always",
+                category=DeprecationWarning,
+            )
+            result = eval_observables(
+                quantum_instance, quantum_state, observables, expectation, self.threshold
+            )
+        self.assertTrue(len(caught_warnings) > 0)
         if isinstance(observables, dict):
             np.testing.assert_equal(list(result.keys()), list(expected_result.keys()))
             np.testing.assert_array_almost_equal(
@@ -132,16 +144,22 @@ class TestAuxOpsEvaluator(QiskitAlgorithmsTestCase):
             )  # to accommodate for qasm being imperfect
             with self.subTest(msg=f"Test {backend_name} backend."):
                 backend = BasicAer.get_backend(backend_name)
-                quantum_instance = QuantumInstance(
-                    backend=backend,
-                    shots=shots,
-                    seed_simulator=self.seed,
-                    seed_transpiler=self.seed,
-                )
-                expectation = ExpectationFactory.build(
-                    operator=self.h2_op,
-                    backend=quantum_instance,
-                )
+                with warnings.catch_warnings(record=True) as caught_warnings:
+                    warnings.filterwarnings(
+                        "always",
+                        category=DeprecationWarning,
+                    )
+                    quantum_instance = QuantumInstance(
+                        backend=backend,
+                        shots=shots,
+                        seed_simulator=self.seed,
+                        seed_transpiler=self.seed,
+                    )
+                    expectation = ExpectationFactory.build(
+                        operator=self.h2_op,
+                        backend=quantum_instance,
+                    )
+                self.assertTrue(len(caught_warnings) > 0)
 
                 with self.subTest(msg="Test QuantumCircuit."):
                     self._run_test(
@@ -163,17 +181,22 @@ class TestAuxOpsEvaluator(QiskitAlgorithmsTestCase):
                         observables,
                         quantum_instance,
                     )
-
-                with self.subTest(msg="Test StateFn."):
-                    statefn = StateFn(bound_ansatz)
-                    self._run_test(
-                        expected_result,
-                        statefn,
-                        decimal,
-                        expectation,
-                        observables,
-                        quantum_instance,
+                with warnings.catch_warnings(record=True) as caught_warnings:
+                    warnings.filterwarnings(
+                        "always",
+                        category=DeprecationWarning,
                     )
+                    with self.subTest(msg="Test StateFn."):
+                        statefn = StateFn(bound_ansatz)
+                        self._run_test(
+                            expected_result,
+                            statefn,
+                            decimal,
+                            expectation,
+                            observables,
+                            quantum_instance,
+                        )
+                    self.assertTrue(len(caught_warnings) > 0)
 
 
 if __name__ == "__main__":

@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2020, 2022.
+# (C) Copyright IBM 2020, 2023.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -16,18 +16,20 @@ Operator Evolutions (:mod:`qiskit.opflow.evolutions`)
 
 .. currentmodule:: qiskit.opflow.evolutions
 
-Deprecation: Evolutions are converters which traverse an Operator tree, replacing
-any :class:`EvolvedOp` `e` with a Schrodinger equation-style evolution
-:class:`~qiskit.opflow.primitive_ops.CircuitOp`
-equalling or approximating the matrix exponential of -i * the Operator contained inside
-(`e.primitive`). The Evolutions are essentially implementations of Hamiltonian Simulation
-algorithms, including various methods for Trotterization.
+.. deprecated:: 0.24.0
+    Evolutions are converters which traverse an Operator tree, replacing
+    any :class:`EvolvedOp` `e` with a Schrodinger equation-style evolution
+    :class:`~qiskit.opflow.primitive_ops.CircuitOp`
+    equalling or approximating the matrix exponential of -i * the Operator contained inside
+    (`e.primitive`). The Evolutions are essentially implementations of Hamiltonian Simulation
+    algorithms, including various methods for Trotterization.
 
-The :class:`EvolvedOp` is simply a placeholder signifying that the Operator inside it should be
-converted to its exponential by the Evolution converter. All Operators
-(not :mod:`~qiskit.opflow.state_fns`) have
-``.exp_i()`` methods which either return the exponential of the Operator directly,
-or an :class:`EvolvedOp` containing the Operator.
+    The :class:`EvolvedOp` is simply a placeholder signifying that the Operator inside it should be
+    converted to its exponential by the Evolution converter. All Operators
+    (not :mod:`~qiskit.opflow.state_fns`) have
+    ``.exp_i()`` methods which either return the exponential of the Operator directly,
+    or an :class:`EvolvedOp` containing the Operator.
+
 
 Note:
     Evolutions work with parameterized Operator coefficients, so

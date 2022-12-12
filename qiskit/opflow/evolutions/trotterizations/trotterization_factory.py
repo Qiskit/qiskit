@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2020, 2022.
+# (C) Copyright IBM 2020, 2023.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -24,7 +24,7 @@ class TrotterizationFactory:
 
     @staticmethod
     @deprecate_function(
-        "The TrotterizationFactory.build opflow method is deprecated as of Qiskit Terra 0.23.0 "
+        "The TrotterizationFactory.build opflow method is deprecated as of Qiskit Terra 0.24.0 "
         "and will be removed no sooner than 3 months after the release date. "
     )
     def build(mode: str = "trotter", reps: int = 1) -> TrotterizationBase:

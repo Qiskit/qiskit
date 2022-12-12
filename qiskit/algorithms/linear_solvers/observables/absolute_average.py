@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2020, 2022.
+# (C) Copyright IBM 2020, 2023.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -31,16 +31,13 @@ class AbsoluteAverage(LinearSystemObservable):
 
     Examples::
 
-            import warnings
             import numpy as np
             from qiskit import QuantumCircuit
             from qiskit.algorithms.linear_solvers.observables.absolute_average import \
             AbsoluteAverage
             from qiskit.opflow import StateFn
 
-            with warnings.catch_warnings():
-                warnings.simplefilter('ignore')
-                observable = AbsoluteAverage()
+            observable = AbsoluteAverage()
             vector = [1.0, -2.1, 3.2, -4.3]
 
             init_state = vector / np.linalg.norm(vector)
@@ -52,9 +49,7 @@ class AbsoluteAverage(LinearSystemObservable):
 
             # Observable operator
             observable_op = observable.observable(num_qubits)
-            with warnings.catch_warnings():
-                warnings.simplefilter('ignore')
-                state_vec = (~StateFn(observable_op) @ StateFn(qc)).eval()
+            state_vec = (~StateFn(observable_op) @ StateFn(qc)).eval()
 
             # Obtain result
             result = observable.post_processing(state_vec, num_qubits)

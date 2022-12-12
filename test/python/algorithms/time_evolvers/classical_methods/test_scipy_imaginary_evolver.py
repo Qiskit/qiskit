@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2022.
+# (C) Copyright IBM 2022, 2023.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -12,6 +12,7 @@
 
 """Test Classical Imaginary Evolver."""
 import unittest
+import warnings
 from test.python.algorithms import QiskitAlgorithmsTestCase
 from ddt import data, ddt, unpack
 import numpy as np
@@ -123,13 +124,19 @@ class TestSciPyImaginaryEvolver(QiskitAlgorithmsTestCase):
 
     def test_paulisumop_hamiltonian(self):
         """Tests if the hamiltonian can be a PauliSumOp"""
-        hamiltonian = PauliSumOp.from_list(
-            [
-                ("XI", 1),
-                ("IX", 1),
-            ]
-        )
-        observable = PauliSumOp.from_list([("ZZ", 1)])
+        with warnings.catch_warnings(record=True) as caught_warnings:
+            warnings.filterwarnings(
+                "always",
+                category=DeprecationWarning,
+            )
+            hamiltonian = PauliSumOp.from_list(
+                [
+                    ("XI", 1),
+                    ("IX", 1),
+                ]
+            )
+            observable = PauliSumOp.from_list([("ZZ", 1)])
+        self.assertTrue(len(caught_warnings) > 0)
         evolution_problem = TimeEvolutionProblem(
             hamiltonian=hamiltonian,
             time=1.0,

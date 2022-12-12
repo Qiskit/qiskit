@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2020, 2022.
+# (C) Copyright IBM 2020, 2023.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -17,7 +17,7 @@ from qiskit.utils.deprecation import deprecate_function
 
 
 @deprecate_function(
-    "The commutator opflow function is deprecated as of Qiskit Terra 0.23.0 "
+    "The commutator opflow function is deprecated as of Qiskit Terra 0.24.0 "
     "and will be removed no sooner than 3 months after the release date. "
 )
 def commutator(op_a: OperatorBase, op_b: OperatorBase) -> OperatorBase:
@@ -38,7 +38,7 @@ def commutator(op_a: OperatorBase, op_b: OperatorBase) -> OperatorBase:
 
 
 @deprecate_function(
-    "The anti_commutator opflow function is deprecated as of Qiskit Terra 0.23.0 "
+    "The anti_commutator opflow function is deprecated as of Qiskit Terra 0.24.0 "
     "and will be removed no sooner than 3 months after the release date. "
 )
 def anti_commutator(op_a: OperatorBase, op_b: OperatorBase) -> OperatorBase:
@@ -59,7 +59,7 @@ def anti_commutator(op_a: OperatorBase, op_b: OperatorBase) -> OperatorBase:
 
 
 @deprecate_function(
-    "The double_commutator opflow function is deprecated as of Qiskit Terra 0.23.0 "
+    "The double_commutator opflow function is deprecated as of Qiskit Terra 0.24.0 "
     "and will be removed no sooner than 3 months after the release date. "
 )
 def double_commutator(

@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2018, 2022.
+# (C) Copyright IBM 2018, 2023.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -145,7 +145,7 @@ class QuantumInstance:
     ] + _BACKEND_OPTIONS_QASM_ONLY
 
     @deprecate_function(
-        "The QuantumInstance class is deprecated as of Qiskit Terra 0.23.0 "
+        "The QuantumInstance class is deprecated as of Qiskit Terra 0.24.0 "
         "and will be removed no sooner than 3 months after the release date. "
     )
     def __init__(

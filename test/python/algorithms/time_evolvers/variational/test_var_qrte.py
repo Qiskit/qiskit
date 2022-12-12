@@ -13,6 +13,7 @@
 """Test Variational Quantum Real Time Evolution algorithm."""
 
 import unittest
+import warnings
 from test.python.algorithms import QiskitAlgorithmsTestCase
 
 from ddt import ddt
@@ -130,8 +131,13 @@ class TestVarQRTE(QiskitAlgorithmsTestCase):
             var_qrte = VarQRTE(
                 ansatz, init_param_values, var_principle, estimator, num_timesteps=25
             )
-            evolution_result = var_qrte.evolve(evolution_problem)
-
+            with warnings.catch_warnings(record=True) as caught_warnings:
+                warnings.filterwarnings(
+                    "always",
+                    category=DeprecationWarning,
+                )
+                evolution_result = var_qrte.evolve(evolution_problem)
+            self.assertTrue(len(caught_warnings) > 0)
             aux_ops = evolution_result.aux_ops_evaluated
 
             parameter_values = evolution_result.parameter_values[-1]
@@ -158,8 +164,13 @@ class TestVarQRTE(QiskitAlgorithmsTestCase):
             var_qrte = VarQRTE(
                 ansatz, init_param_values, var_principle, estimator, num_timesteps=25
             )
-            evolution_result = var_qrte.evolve(evolution_problem)
-
+            with warnings.catch_warnings(record=True) as caught_warnings:
+                warnings.filterwarnings(
+                    "always",
+                    category=DeprecationWarning,
+                )
+                evolution_result = var_qrte.evolve(evolution_problem)
+            self.assertTrue(len(caught_warnings) > 0)
             aux_ops = evolution_result.aux_ops_evaluated
 
             parameter_values = evolution_result.parameter_values[-1]

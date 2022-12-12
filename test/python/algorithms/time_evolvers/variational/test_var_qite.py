@@ -13,6 +13,7 @@
 """Test Variational Quantum Imaginary Time Evolution algorithm."""
 
 import unittest
+import warnings
 from test.python.algorithms import QiskitAlgorithmsTestCase
 from ddt import ddt
 import numpy as np
@@ -99,8 +100,13 @@ class TestVarQITE(QiskitAlgorithmsTestCase):
             var_qite = VarQITE(
                 ansatz, init_param_values, var_principle, estimator, num_timesteps=25
             )
-            evolution_result = var_qite.evolve(evolution_problem)
-
+            with warnings.catch_warnings(record=True) as caught_warnings:
+                warnings.filterwarnings(
+                    "always",
+                    category=DeprecationWarning,
+                )
+                evolution_result = var_qite.evolve(evolution_problem)
+            self.assertTrue(len(caught_warnings) > 0)
             aux_ops = evolution_result.aux_ops_evaluated
 
             parameter_values = evolution_result.parameter_values[-1]
@@ -127,8 +133,13 @@ class TestVarQITE(QiskitAlgorithmsTestCase):
             var_qite = VarQITE(
                 ansatz, init_param_values, var_principle, estimator, num_timesteps=25
             )
-            evolution_result = var_qite.evolve(evolution_problem)
-
+            with warnings.catch_warnings(record=True) as caught_warnings:
+                warnings.filterwarnings(
+                    "always",
+                    category=DeprecationWarning,
+                )
+                evolution_result = var_qite.evolve(evolution_problem)
+            self.assertTrue(len(caught_warnings) > 0)
             aux_ops = evolution_result.aux_ops_evaluated
 
             parameter_values = evolution_result.parameter_values[-1]

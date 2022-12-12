@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2018, 2022.
+# (C) Copyright IBM 2018, 2023.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -12,7 +12,6 @@
 
 """ Natural Gradient. """
 
-import warnings
 from collections.abc import Iterable
 from typing import List, Tuple, Callable, Optional, Union
 import functools
@@ -54,7 +53,7 @@ class NaturalGradient(GradientBase):
     """
 
     @deprecate_function(
-        "The NaturalGradient opflow class is deprecated as of Qiskit Terra 0.23.0 "
+        "The NaturalGradient opflow class is deprecated as of Qiskit Terra 0.24.0 "
         "and will be removed no sooner than 3 months after the release date. "
     )
     def __init__(
@@ -78,9 +77,7 @@ class NaturalGradient(GradientBase):
                 a least square solver is used without regularization
             kwargs (dict): Optional parameters for a CircuitGradient
         """
-        with warnings.catch_warnings():
-            warnings.simplefilter("ignore")
-            super().__init__(grad_method)
+        super().__init__(grad_method)
 
         self._qfi_method = QFI(qfi_method)
         self._regularization = regularization

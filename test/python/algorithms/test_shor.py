@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2018, 2022.
+# (C) Copyright IBM 2018, 2023.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -70,22 +70,13 @@ class TestShor(QiskitAlgorithmsTestCase):
 
     def _test_shor_factoring(self, backend, factors, n_v):
         """shor factoring test"""
-        from qiskit_aer import Aer
 
-        with warnings.catch_warnings(record=True) as caught_warnings:
+        with warnings.catch_warnings(record=True):
             warnings.simplefilter("always")
             from qiskit_aer import Aer
 
-            shor = Shor(quantum_instance=QuantumInstance(Aer.get_backend(backend), shots=1000))
-            found = False
-            for caught_warning in caught_warnings:
-                if "Shor class is deprecated" in str(caught_warning.message):
-                    found = True
-                    break
-
-        if not found:
-            self.fail("Shor class is not emitting deprecation message.")
-            return
+            with self.assertWarnsRegex(DeprecationWarning, "Shor class is deprecated"):
+                shor = Shor(quantum_instance=QuantumInstance(Aer.get_backend(backend), shots=1000))
 
         result = shor.factor(N=n_v)
         self.assertListEqual(result.factors[0], factors)

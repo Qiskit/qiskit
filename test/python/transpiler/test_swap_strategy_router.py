@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2022.
+# (C) Copyright IBM 2022, 2023.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -12,6 +12,7 @@
 
 """Tests for swap strategy routers."""
 
+import warnings
 from ddt import ddt, data
 
 from qiskit.circuit import QuantumCircuit, Qubit, QuantumRegister
@@ -77,7 +78,13 @@ class TestPauliEvolutionSwapStrategies(QiskitTestCase):
 
         """
 
-        op = PauliSumOp.from_list([("IZZI", 1), ("ZIIZ", 2), ("ZIZI", 3)])
+        with warnings.catch_warnings(record=True) as caught_warnings:
+            warnings.filterwarnings(
+                "always",
+                category=DeprecationWarning,
+            )
+            op = PauliSumOp.from_list([("IZZI", 1), ("ZIIZ", 2), ("ZIZI", 3)])
+        self.assertTrue(len(caught_warnings) > 0)
         circ = QuantumCircuit(4)
         circ.append(PauliEvolutionGate(op, 1), range(4))
 
@@ -113,7 +120,13 @@ class TestPauliEvolutionSwapStrategies(QiskitTestCase):
                  └─────────────────┘                         └────────────────┘
         """
 
-        op = PauliSumOp.from_list([("XXII", -1), ("IIXX", 1), ("XIIX", -2), ("IXIX", 2)])
+        with warnings.catch_warnings(record=True) as caught_warnings:
+            warnings.filterwarnings(
+                "always",
+                category=DeprecationWarning,
+            )
+            op = PauliSumOp.from_list([("XXII", -1), ("IIXX", 1), ("XIIX", -2), ("IXIX", 2)])
+        self.assertTrue(len(caught_warnings) > 0)
 
         circ = QuantumCircuit(4)
         circ.append(PauliEvolutionGate(op, 3), range(4))
@@ -150,7 +163,13 @@ class TestPauliEvolutionSwapStrategies(QiskitTestCase):
             q_3: ─────────────────────────────────────────
 
         """
-        op = PauliSumOp.from_list([("IIXX", 1), ("IXIX", 2)])
+        with warnings.catch_warnings(record=True) as caught_warnings:
+            warnings.filterwarnings(
+                "always",
+                category=DeprecationWarning,
+            )
+            op = PauliSumOp.from_list([("IIXX", 1), ("IXIX", 2)])
+        self.assertTrue(len(caught_warnings) > 0)
 
         cmap = CouplingMap(couplinglist=[(0, 1), (1, 2), (2, 3)])
         swap_strat = SwapStrategy(cmap, swap_layers=(((0, 1),),))
@@ -191,7 +210,13 @@ class TestPauliEvolutionSwapStrategies(QiskitTestCase):
                                                                                       0  1  2  3
         """
 
-        op = PauliSumOp.from_list([("XXII", -1), ("IIXX", 1), ("XIIX", -2), ("IXIX", 2)])
+        with warnings.catch_warnings(record=True) as caught_warnings:
+            warnings.filterwarnings(
+                "always",
+                category=DeprecationWarning,
+            )
+            op = PauliSumOp.from_list([("XXII", -1), ("IIXX", 1), ("XIIX", -2), ("IXIX", 2)])
+        self.assertTrue(len(caught_warnings) > 0)
 
         circ = QuantumCircuit(4, 4)
         circ.append(PauliEvolutionGate(op, 3), range(4))
@@ -258,10 +283,16 @@ class TestPauliEvolutionSwapStrategies(QiskitTestCase):
         for idx in range(4):
             mixer.ry(-idx, idx)
 
-        op = PauliSumOp.from_list([("IZZI", 1), ("ZIIZ", 2), ("ZIZI", 3)])
-        circ = QAOAAnsatz(op, reps=2, mixer_operator=mixer)
+        with warnings.catch_warnings(record=True) as caught_warnings:
+            warnings.filterwarnings(
+                "always",
+                category=DeprecationWarning,
+            )
+            op = PauliSumOp.from_list([("IZZI", 1), ("ZIIZ", 2), ("ZIZI", 3)])
+            circ = QAOAAnsatz(op, reps=2, mixer_operator=mixer)
+            swapped = self.pm_.run(circ.decompose())
+        self.assertTrue(len(caught_warnings) > 0)
 
-        swapped = self.pm_.run(circ.decompose())
         param_dict = {p: idx + 1 for idx, p in enumerate(swapped.parameters)}
         swapped.assign_parameters(param_dict, inplace=True)
 
@@ -303,7 +334,13 @@ class TestPauliEvolutionSwapStrategies(QiskitTestCase):
         """This pass tests that idle qubits after an embedding are left idle."""
 
         # Create a four qubit problem.
-        op = PauliSumOp.from_list([("IZZI", 1), ("ZIIZ", 2), ("ZIZI", 3)])
+        with warnings.catch_warnings(record=True) as caught_warnings:
+            warnings.filterwarnings(
+                "always",
+                category=DeprecationWarning,
+            )
+            op = PauliSumOp.from_list([("IZZI", 1), ("ZIIZ", 2), ("ZIZI", 3)])
+        self.assertTrue(len(caught_warnings) > 0)
 
         circ = QuantumCircuit(4)
         circ.append(PauliEvolutionGate(op, 1), range(4))
@@ -380,7 +417,13 @@ class TestPauliEvolutionSwapStrategies(QiskitTestCase):
                 Commuting2qGateRouter(swap_strat),
             ]
         )
-        op = PauliSumOp.from_list([("IZZ", 1), ("ZIZ", 2)])
+        with warnings.catch_warnings(record=True) as caught_warnings:
+            warnings.filterwarnings(
+                "always",
+                category=DeprecationWarning,
+            )
+            op = PauliSumOp.from_list([("IZZ", 1), ("ZIZ", 2)])
+        self.assertTrue(len(caught_warnings) > 0)
         circ = QuantumCircuit(4)
         circ.append(PauliEvolutionGate(op, 1), range(3))
         circ.ccx(0, 2, 1)
@@ -424,21 +467,27 @@ class TestPauliEvolutionSwapStrategies(QiskitTestCase):
 
         swap_strat = SwapStrategy(cmap, swaps)
 
-        # A dense Pauli op.
-        op = PauliSumOp.from_list(
-            [
-                ("IIIZZ", 1),
-                ("IIZIZ", 2),
-                ("IZIIZ", 3),
-                ("ZIIIZ", 4),
-                ("IIZZI", 5),
-                ("IZIZI", 6),
-                ("ZIIZI", 7),
-                ("IZZII", 8),
-                ("ZIZII", 9),
-                ("ZZIII", 10),
-            ]
-        )
+        with warnings.catch_warnings(record=True) as caught_warnings:
+            warnings.filterwarnings(
+                "always",
+                category=DeprecationWarning,
+            )
+            # A dense Pauli op.
+            op = PauliSumOp.from_list(
+                [
+                    ("IIIZZ", 1),
+                    ("IIZIZ", 2),
+                    ("IZIIZ", 3),
+                    ("ZIIIZ", 4),
+                    ("IIZZI", 5),
+                    ("IZIZI", 6),
+                    ("ZIIZI", 7),
+                    ("IZZII", 8),
+                    ("ZIZII", 9),
+                    ("ZZIII", 10),
+                ]
+            )
+        self.assertTrue(len(caught_warnings) > 0)
 
         circ = QuantumCircuit(5)
         circ.append(PauliEvolutionGate(op, 1), range(5))
@@ -495,7 +544,13 @@ class TestPauliEvolutionSwapStrategies(QiskitTestCase):
 
     def test_single_qubit_circuit(self):
         """Test that a circuit with only single qubit gates is left unchanged."""
-        op = PauliSumOp.from_list([("IIIX", 1), ("IIXI", 2), ("IZII", 3), ("XIII", 4)])
+        with warnings.catch_warnings(record=True) as caught_warnings:
+            warnings.filterwarnings(
+                "always",
+                category=DeprecationWarning,
+            )
+            op = PauliSumOp.from_list([("IIIX", 1), ("IIXI", 2), ("IZII", 3), ("XIII", 4)])
+        self.assertTrue(len(caught_warnings) > 0)
 
         circ = QuantumCircuit(4)
         circ.append(PauliEvolutionGate(op, 1), range(4))
@@ -508,7 +563,13 @@ class TestPauliEvolutionSwapStrategies(QiskitTestCase):
     )
     def test_edge_coloring(self, edge_coloring):
         """Test that the edge coloring works."""
-        op = PauliSumOp.from_list([("IIZZ", 1), ("IZZI", 2), ("ZZII", 3), ("ZIZI", 4)])
+        with warnings.catch_warnings(record=True) as caught_warnings:
+            warnings.filterwarnings(
+                "always",
+                category=DeprecationWarning,
+            )
+            op = PauliSumOp.from_list([("IIZZ", 1), ("IZZI", 2), ("ZZII", 3), ("ZIZI", 4)])
+        self.assertTrue(len(caught_warnings) > 0)
         swaps = (((1, 2),),)
 
         cmap = CouplingMap([[0, 1], [1, 2], [2, 3]])
@@ -572,9 +633,15 @@ class TestSwapRouterExceptions(QiskitTestCase):
         super().setUp()
 
         # A fully connected problem.
-        op = PauliSumOp.from_list(
-            [("IIZZ", 1), ("IZIZ", 1), ("ZIIZ", 1), ("IZZI", 1), ("ZIZI", 1), ("ZZII", 1)]
-        )
+        with warnings.catch_warnings(record=True) as caught_warnings:
+            warnings.filterwarnings(
+                "always",
+                category=DeprecationWarning,
+            )
+            op = PauliSumOp.from_list(
+                [("IIZZ", 1), ("IZIZ", 1), ("ZIIZ", 1), ("IZZI", 1), ("ZIZI", 1), ("ZZII", 1)]
+            )
+        self.assertTrue(len(caught_warnings) > 0)
         self.circ = QuantumCircuit(4)
         self.circ.append(PauliEvolutionGate(op, 1), range(4))
 

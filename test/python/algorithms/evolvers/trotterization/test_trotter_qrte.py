@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2021, 2022.
+# (C) Copyright IBM 2021, 2023.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -13,7 +13,7 @@
 """ Test TrotterQRTE. """
 
 import unittest
-
+import warnings
 from test.python.opflow import QiskitOpflowTestCase
 from ddt import ddt, data, unpack
 import numpy as np
@@ -52,18 +52,24 @@ class TestTrotterQRTE(QiskitOpflowTestCase):
         algorithm_globals.random_seed = self.seed
         backend_statevector = BasicAer.get_backend("statevector_simulator")
         backend_qasm = BasicAer.get_backend("qasm_simulator")
-        self.quantum_instance = QuantumInstance(
-            backend=backend_statevector,
-            shots=1,
-            seed_simulator=self.seed,
-            seed_transpiler=self.seed,
-        )
-        self.quantum_instance_qasm = QuantumInstance(
-            backend=backend_qasm,
-            shots=8000,
-            seed_simulator=self.seed,
-            seed_transpiler=self.seed,
-        )
+        with warnings.catch_warnings(record=True) as caught_warnings:
+            warnings.filterwarnings(
+                "always",
+                category=DeprecationWarning,
+            )
+            self.quantum_instance = QuantumInstance(
+                backend=backend_statevector,
+                shots=1,
+                seed_simulator=self.seed,
+                seed_transpiler=self.seed,
+            )
+            self.quantum_instance_qasm = QuantumInstance(
+                backend=backend_qasm,
+                shots=8000,
+                seed_simulator=self.seed,
+                seed_transpiler=self.seed,
+            )
+        self.assertTrue(len(caught_warnings) > 0)
         self.backends_dict = {
             "qi_sv": self.quantum_instance,
             "qi_qasm": self.quantum_instance_qasm,
@@ -117,26 +123,31 @@ class TestTrotterQRTE(QiskitOpflowTestCase):
             (0.05799999999999995, 0.011161518713866855),
             (0.2495, 0.010826759383582883),
         ]
+        with warnings.catch_warnings(record=True) as caught_warnings:
+            warnings.filterwarnings(
+                "always",
+                category=DeprecationWarning,
+            )
+            for backend_name in self.backends_names_not_none:
+                with self.subTest(msg=f"Test {backend_name} backend."):
+                    algorithm_globals.random_seed = 0
+                    backend = self.backends_dict[backend_name]
+                    expectation = ExpectationFactory.build(
+                        operator=operator,
+                        backend=backend,
+                    )
+                    trotter_qrte = TrotterQRTE(quantum_instance=backend, expectation=expectation)
+                    evolution_result = trotter_qrte.evolve(evolution_problem)
 
-        for backend_name in self.backends_names_not_none:
-            with self.subTest(msg=f"Test {backend_name} backend."):
-                algorithm_globals.random_seed = 0
-                backend = self.backends_dict[backend_name]
-                expectation = ExpectationFactory.build(
-                    operator=operator,
-                    backend=backend,
-                )
-                trotter_qrte = TrotterQRTE(quantum_instance=backend, expectation=expectation)
-                evolution_result = trotter_qrte.evolve(evolution_problem)
-
-                np.testing.assert_equal(
-                    evolution_result.evolved_state.eval(), expected_evolved_state
-                )
-                if backend_name == "qi_qasm":
-                    expected_aux_ops_evaluated = expected_aux_ops_evaluated_qasm
-                np.testing.assert_array_almost_equal(
-                    evolution_result.aux_ops_evaluated, expected_aux_ops_evaluated
-                )
+                    np.testing.assert_equal(
+                        evolution_result.evolved_state.eval(), expected_evolved_state
+                    )
+                    if backend_name == "qi_qasm":
+                        expected_aux_ops_evaluated = expected_aux_ops_evaluated_qasm
+                    np.testing.assert_array_almost_equal(
+                        evolution_result.aux_ops_evaluated, expected_aux_ops_evaluated
+                    )
+        self.assertTrue(len(caught_warnings) > 0)
 
     @data(
         (

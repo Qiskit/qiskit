@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2021.
+# (C) Copyright IBM 2021, 2023.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -12,6 +12,7 @@
 
 """Test QAOA ansatz from the library."""
 
+import warnings
 import numpy as np
 from ddt import ddt, data
 
@@ -28,9 +29,14 @@ class TestQAOAAnsatz(QiskitTestCase):
 
     def test_default_qaoa(self):
         """Test construction of the default circuit."""
-        circuit = QAOAAnsatz(I, 1)
-
-        parameters = circuit.parameters
+        with warnings.catch_warnings(record=True) as caught_warnings:
+            warnings.filterwarnings(
+                "always",
+                category=DeprecationWarning,
+            )
+            circuit = QAOAAnsatz(I, 1)
+            parameters = circuit.parameters
+        self.assertTrue(len(caught_warnings) > 0)
 
         circuit = circuit.decompose()
         self.assertEqual(1, len(parameters))
@@ -41,9 +47,14 @@ class TestQAOAAnsatz(QiskitTestCase):
         """Test circuit with a custom initial state."""
         initial_state = QuantumCircuit(1)
         initial_state.y(0)
-        circuit = QAOAAnsatz(initial_state=initial_state, cost_operator=I, reps=1)
-
-        parameters = circuit.parameters
+        with warnings.catch_warnings(record=True) as caught_warnings:
+            warnings.filterwarnings(
+                "always",
+                category=DeprecationWarning,
+            )
+            circuit = QAOAAnsatz(initial_state=initial_state, cost_operator=I, reps=1)
+            parameters = circuit.parameters
+        self.assertTrue(len(caught_warnings) > 0)
         circuit = circuit.decompose()
         self.assertEqual(1, len(parameters))
         self.assertIsInstance(circuit.data[0].operation, YGate)
@@ -51,22 +62,40 @@ class TestQAOAAnsatz(QiskitTestCase):
 
     def test_invalid_reps(self):
         """Test negative reps."""
-        with self.assertRaises(ValueError):
-            _ = QAOAAnsatz(I, reps=-1)
+        with warnings.catch_warnings(record=True) as caught_warnings:
+            warnings.filterwarnings(
+                "always",
+                category=DeprecationWarning,
+            )
+            with self.assertRaises(ValueError):
+                _ = QAOAAnsatz(I, reps=-1)
+        self.assertTrue(len(caught_warnings) > 0)
 
     def test_zero_reps(self):
         """Test zero reps."""
-        circuit = QAOAAnsatz(I ^ 4, reps=0)
-        reference = QuantumCircuit(4)
-        reference.h(range(4))
+        with warnings.catch_warnings(record=True) as caught_warnings:
+            warnings.filterwarnings(
+                "always",
+                category=DeprecationWarning,
+            )
+            circuit = QAOAAnsatz(I ^ 4, reps=0)
+            reference = QuantumCircuit(4)
+            reference.h(range(4))
 
-        self.assertEqual(circuit.decompose(), reference)
+            self.assertEqual(circuit.decompose(), reference)
+        self.assertTrue(len(caught_warnings) > 0)
 
     def test_custom_circuit_mixer(self):
         """Test circuit with a custom mixer as a circuit"""
         mixer = QuantumCircuit(1)
         mixer.ry(1, 0)
-        circuit = QAOAAnsatz(cost_operator=I, reps=1, mixer_operator=mixer)
+        with warnings.catch_warnings(record=True) as caught_warnings:
+            warnings.filterwarnings(
+                "always",
+                category=DeprecationWarning,
+            )
+            circuit = QAOAAnsatz(cost_operator=I, reps=1, mixer_operator=mixer)
+        self.assertTrue(len(caught_warnings) > 0)
 
         parameters = circuit.parameters
         circuit = circuit.decompose()
@@ -77,9 +106,14 @@ class TestQAOAAnsatz(QiskitTestCase):
     def test_custom_operator_mixer(self):
         """Test circuit with a custom mixer as an operator."""
         mixer = Y
-        circuit = QAOAAnsatz(cost_operator=I, reps=1, mixer_operator=mixer)
-
-        parameters = circuit.parameters
+        with warnings.catch_warnings(record=True) as caught_warnings:
+            warnings.filterwarnings(
+                "always",
+                category=DeprecationWarning,
+            )
+            circuit = QAOAAnsatz(cost_operator=I, reps=1, mixer_operator=mixer)
+            parameters = circuit.parameters
+        self.assertTrue(len(caught_warnings) > 0)
         circuit = circuit.decompose()
         self.assertEqual(1, len(parameters))
         self.assertIsInstance(circuit.data[0].operation, HGate)
@@ -87,8 +121,14 @@ class TestQAOAAnsatz(QiskitTestCase):
 
     def test_parameter_bounds(self):
         """Test the parameter bounds."""
-        circuit = QAOAAnsatz(Z, reps=2)
-        bounds = circuit.parameter_bounds
+        with warnings.catch_warnings(record=True) as caught_warnings:
+            warnings.filterwarnings(
+                "always",
+                category=DeprecationWarning,
+            )
+            circuit = QAOAAnsatz(Z, reps=2)
+            bounds = circuit.parameter_bounds
+        self.assertTrue(len(caught_warnings) > 0)
 
         for lower, upper in bounds[:2]:
             self.assertAlmostEqual(lower, 0)
@@ -104,11 +144,17 @@ class TestQAOAAnsatz(QiskitTestCase):
         initial_state.y(0)
         mixer = Z
 
-        circuit = QAOAAnsatz(
-            cost_operator=I, reps=2, initial_state=initial_state, mixer_operator=mixer
-        )
+        with warnings.catch_warnings(record=True) as caught_warnings:
+            warnings.filterwarnings(
+                "always",
+                category=DeprecationWarning,
+            )
+            circuit = QAOAAnsatz(
+                cost_operator=I, reps=2, initial_state=initial_state, mixer_operator=mixer
+            )
+            parameters = circuit.parameters
+        self.assertTrue(len(caught_warnings) > 0)
 
-        parameters = circuit.parameters
         circuit = circuit.decompose()
         self.assertEqual(2, len(parameters))
         self.assertIsInstance(circuit.data[0].operation, YGate)
@@ -118,21 +164,33 @@ class TestQAOAAnsatz(QiskitTestCase):
     def test_configuration(self):
         """Test configuration checks."""
         mixer = QuantumCircuit(2)
-        circuit = QAOAAnsatz(cost_operator=I, reps=1, mixer_operator=mixer)
+        with warnings.catch_warnings(record=True) as caught_warnings:
+            warnings.filterwarnings(
+                "always",
+                category=DeprecationWarning,
+            )
+            circuit = QAOAAnsatz(cost_operator=I, reps=1, mixer_operator=mixer)
+        self.assertTrue(len(caught_warnings) > 0)
 
         self.assertRaises(ValueError, lambda: circuit.parameters)
 
     def test_rebuild(self):
         """Test how a circuit can be rebuilt."""
-        circuit = QAOAAnsatz(cost_operator=Z ^ I)  # circuit with 2 qubits
-        # force circuit to be built
-        _ = circuit.parameters
+        with warnings.catch_warnings(record=True) as caught_warnings:
+            warnings.filterwarnings(
+                "always",
+                category=DeprecationWarning,
+            )
+            circuit = QAOAAnsatz(cost_operator=Z ^ I)  # circuit with 2 qubits
+            # force circuit to be built
+            _ = circuit.parameters
 
-        circuit.cost_operator = Z  # now it only has 1 qubit
-        circuit.reps = 5  # and now 5 repetitions
-        # rebuild the circuit
-        self.assertEqual(1, circuit.num_qubits)
-        self.assertEqual(10, circuit.num_parameters)
+            circuit.cost_operator = Z  # now it only has 1 qubit
+            circuit.reps = 5  # and now 5 repetitions
+            # rebuild the circuit
+            self.assertEqual(1, circuit.num_qubits)
+            self.assertEqual(10, circuit.num_parameters)
+        self.assertTrue(len(caught_warnings) > 0)
 
     def test_circuit_mixer(self):
         """Test using a parameterized circuit as mixer."""
@@ -142,12 +200,24 @@ class TestQAOAAnsatz(QiskitTestCase):
         mixer.ry(x2, 1)
 
         reps = 4
-        circuit = QAOAAnsatz(cost_operator=Z ^ Z, mixer_operator=mixer, reps=reps)
-        self.assertEqual(circuit.num_parameters, 3 * reps)
+        with warnings.catch_warnings(record=True) as caught_warnings:
+            warnings.filterwarnings(
+                "always",
+                category=DeprecationWarning,
+            )
+            circuit = QAOAAnsatz(cost_operator=Z ^ Z, mixer_operator=mixer, reps=reps)
+            self.assertEqual(circuit.num_parameters, 3 * reps)
+        self.assertTrue(len(caught_warnings) > 0)
 
     def test_empty_op(self):
         """Test construction without cost operator"""
-        circuit = QAOAAnsatz(reps=1)
+        with warnings.catch_warnings(record=True) as caught_warnings:
+            warnings.filterwarnings(
+                "always",
+                category=DeprecationWarning,
+            )
+            circuit = QAOAAnsatz(reps=1)
+        self.assertTrue(len(caught_warnings) > 0)
         self.assertEqual(circuit.num_qubits, 0)
         with self.assertRaises(ValueError):
             circuit.decompose()
@@ -156,18 +226,30 @@ class TestQAOAAnsatz(QiskitTestCase):
     def test_num_qubits(self, num_qubits):
         """Test num_qubits with {num_qubits} qubits"""
 
-        circuit = QAOAAnsatz(cost_operator=I ^ num_qubits, reps=5)
+        with warnings.catch_warnings(record=True) as caught_warnings:
+            warnings.filterwarnings(
+                "always",
+                category=DeprecationWarning,
+            )
+            circuit = QAOAAnsatz(cost_operator=I ^ num_qubits, reps=5)
+        self.assertTrue(len(caught_warnings) > 0)
         self.assertEqual(circuit.num_qubits, num_qubits)
 
     def test_identity(self):
         """Test construction with identity"""
         reps = 4
         num_qubits = 3
-        pauli_sum_op = PauliSumOp.from_list([("I" * num_qubits, 1)])
-        pauli_op = I ^ num_qubits
-        for cost in [pauli_op, pauli_sum_op]:
-            for mixer in [None, pauli_op, pauli_sum_op]:
-                with self.subTest(f"cost: {type(cost)}, mixer:{type(mixer)}"):
-                    circuit = QAOAAnsatz(cost_operator=cost, mixer_operator=mixer, reps=reps)
-                    target = reps if mixer is None else 0
-                    self.assertEqual(circuit.num_parameters, target)
+        with warnings.catch_warnings(record=True) as caught_warnings:
+            warnings.filterwarnings(
+                "always",
+                category=DeprecationWarning,
+            )
+            pauli_sum_op = PauliSumOp.from_list([("I" * num_qubits, 1)])
+            pauli_op = I ^ num_qubits
+            for cost in [pauli_op, pauli_sum_op]:
+                for mixer in [None, pauli_op, pauli_sum_op]:
+                    with self.subTest(f"cost: {type(cost)}, mixer:{type(mixer)}"):
+                        circuit = QAOAAnsatz(cost_operator=cost, mixer_operator=mixer, reps=reps)
+                        target = reps if mixer is None else 0
+                        self.assertEqual(circuit.num_parameters, target)
+        self.assertTrue(len(caught_warnings) > 0)

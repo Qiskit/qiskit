@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2018, 2021.
+# (C) Copyright IBM 2018, 2023.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -15,7 +15,7 @@
 import itertools
 import unittest
 from test.python.opflow import QiskitOpflowTestCase
-
+import warnings
 import numpy as np
 
 from qiskit.circuit.library import RealAmplitudes
@@ -40,27 +40,30 @@ from qiskit.opflow import (
     Zero,
     MatrixOp,
 )
-from qiskit.utils import QuantumInstance
+from qiskit.utils import QuantumInstance, optionals
 
 
 class TestAerPauliExpectation(QiskitOpflowTestCase):
     """Pauli Change of Basis Expectation tests."""
 
+    @unittest.skipUnless(optionals.HAS_AER, "qiskit-aer is required to run this test")
     def setUp(self) -> None:
         super().setUp()
-        try:
-            from qiskit_aer import Aer
+        from qiskit_aer import AerSimulator
 
-            self.seed = 97
-            self.backend = Aer.get_backend("aer_simulator")
+        self.seed = 97
+        self.backend = AerSimulator()
+        with warnings.catch_warnings(record=True) as caught_warnings:
+            warnings.filterwarnings(
+                "always",
+                category=DeprecationWarning,
+            )
             q_instance = QuantumInstance(
                 self.backend, seed_simulator=self.seed, seed_transpiler=self.seed
             )
-            self.sampler = CircuitSampler(q_instance, attach_results=True)
-            self.expect = AerPauliExpectation()
-        except Exception as ex:  # pylint: disable=broad-except
-            self.skipTest(f"Aer doesn't appear to be installed. Error: '{str(ex)}'")
-            return
+        self.assertTrue(len(caught_warnings) > 0)
+        self.sampler = CircuitSampler(q_instance, attach_results=True)
+        self.expect = AerPauliExpectation()
 
     def test_pauli_expect_pair(self):
         """pauli expect pair test"""
@@ -69,18 +72,30 @@ class TestAerPauliExpectation(QiskitOpflowTestCase):
         wvf = CX @ (H ^ I) @ Zero
 
         converted_meas = self.expect.convert(~StateFn(op) @ wvf)
-        sampled = self.sampler.convert(converted_meas)
+        with warnings.catch_warnings(record=True) as caught_warnings:
+            warnings.filterwarnings(
+                "always",
+                category=DeprecationWarning,
+            )
+            sampled = self.sampler.convert(converted_meas)
+        self.assertTrue(len(caught_warnings) > 0)
         self.assertAlmostEqual(sampled.eval(), 0, delta=0.1)
 
     def test_pauli_expect_single(self):
         """pauli expect single test"""
         paulis = [Z, X, Y, I]
         states = [Zero, One, Plus, Minus, S @ Plus, S @ Minus]
-        for pauli, state in itertools.product(paulis, states):
-            converted_meas = self.expect.convert(~StateFn(pauli) @ state)
-            matmulmean = state.adjoint().to_matrix() @ pauli.to_matrix() @ state.to_matrix()
-            sampled = self.sampler.convert(converted_meas)
-            self.assertAlmostEqual(sampled.eval(), matmulmean, delta=0.1)
+        with warnings.catch_warnings(record=True) as caught_warnings:
+            warnings.filterwarnings(
+                "always",
+                category=DeprecationWarning,
+            )
+            for pauli, state in itertools.product(paulis, states):
+                converted_meas = self.expect.convert(~StateFn(pauli) @ state)
+                matmulmean = state.adjoint().to_matrix() @ pauli.to_matrix() @ state.to_matrix()
+                sampled = self.sampler.convert(converted_meas)
+                self.assertAlmostEqual(sampled.eval(), matmulmean, delta=0.1)
+        self.assertTrue(len(caught_warnings) > 0)
 
     def test_pauli_expect_op_vector(self):
         """pauli expect op vector test"""
@@ -88,20 +103,27 @@ class TestAerPauliExpectation(QiskitOpflowTestCase):
         converted_meas = self.expect.convert(~StateFn(paulis_op))
 
         plus_mean = converted_meas @ Plus
-        sampled_plus = self.sampler.convert(plus_mean)
-        np.testing.assert_array_almost_equal(sampled_plus.eval(), [1, 0, 0, 1], decimal=1)
+        with warnings.catch_warnings(record=True) as caught_warnings:
+            warnings.filterwarnings(
+                "always",
+                category=DeprecationWarning,
+            )
+            sampled_plus = self.sampler.convert(plus_mean)
+            np.testing.assert_array_almost_equal(sampled_plus.eval(), [1, 0, 0, 1], decimal=1)
 
-        minus_mean = converted_meas @ Minus
-        sampled_minus = self.sampler.convert(minus_mean)
-        np.testing.assert_array_almost_equal(sampled_minus.eval(), [-1, 0, 0, 1], decimal=1)
+            minus_mean = converted_meas @ Minus
+            sampled_minus = self.sampler.convert(minus_mean)
+            np.testing.assert_array_almost_equal(sampled_minus.eval(), [-1, 0, 0, 1], decimal=1)
 
-        zero_mean = converted_meas @ Zero
-        sampled_zero = self.sampler.convert(zero_mean)
-        np.testing.assert_array_almost_equal(sampled_zero.eval(), [0, 0, 1, 1], decimal=1)
+            zero_mean = converted_meas @ Zero
+            sampled_zero = self.sampler.convert(zero_mean)
+            np.testing.assert_array_almost_equal(sampled_zero.eval(), [0, 0, 1, 1], decimal=1)
 
-        sum_zero = (Plus + Minus) * (0.5**0.5)
-        sum_zero_mean = converted_meas @ sum_zero
-        sampled_zero_mean = self.sampler.convert(sum_zero_mean)
+            sum_zero = (Plus + Minus) * (0.5**0.5)
+            sum_zero_mean = converted_meas @ sum_zero
+            sampled_zero_mean = self.sampler.convert(sum_zero_mean)
+        self.assertTrue(len(caught_warnings) > 0)
+
         # !!NOTE!!: Depolarizing channel (Sampling) means interference
         # does not happen between circuits in sum, so expectation does
         # not equal expectation for Zero!!
@@ -113,7 +135,13 @@ class TestAerPauliExpectation(QiskitOpflowTestCase):
 
         paulis_op = X
         converted_meas = self.expect.convert(~StateFn(paulis_op) @ states_op)
-        sampled = self.sampler.convert(converted_meas)
+        with warnings.catch_warnings(record=True) as caught_warnings:
+            warnings.filterwarnings(
+                "always",
+                category=DeprecationWarning,
+            )
+            sampled = self.sampler.convert(converted_meas)
+        self.assertTrue(len(caught_warnings) > 0)
 
         # Small test to see if execution results are accessible
         for composed_op in sampled:
@@ -129,7 +157,13 @@ class TestAerPauliExpectation(QiskitOpflowTestCase):
         op = MatrixOp(op_mat)
 
         converted_meas = self.expect.convert(StateFn(op, is_measurement=True) @ states_op)
-        sampled = self.sampler.convert(converted_meas)
+        with warnings.catch_warnings(record=True) as caught_warnings:
+            warnings.filterwarnings(
+                "always",
+                category=DeprecationWarning,
+            )
+            sampled = self.sampler.convert(converted_meas)
+        self.assertTrue(len(caught_warnings) > 0)
 
         np.testing.assert_array_almost_equal(sampled.eval(), [3, 0, 3, 0], decimal=1)
 
@@ -140,7 +174,13 @@ class TestAerPauliExpectation(QiskitOpflowTestCase):
         op = 1j * X
 
         converted_meas = self.expect.convert(StateFn(op, is_measurement=True) @ states_op)
-        sampled = self.sampler.convert(converted_meas)
+        with warnings.catch_warnings(record=True) as caught_warnings:
+            warnings.filterwarnings(
+                "always",
+                category=DeprecationWarning,
+            )
+            sampled = self.sampler.convert(converted_meas)
+        self.assertTrue(len(caught_warnings) > 0)
 
         np.testing.assert_array_almost_equal(sampled.eval(), [0, 0, 1j, -1j], decimal=1)
 
@@ -156,7 +196,13 @@ class TestAerPauliExpectation(QiskitOpflowTestCase):
             [+1, 1, 1, 1],
         ]
         converted_meas = self.expect.convert(~StateFn(paulis_op) @ states_op)
-        sampled = self.sampler.convert(converted_meas)
+        with warnings.catch_warnings(record=True) as caught_warnings:
+            warnings.filterwarnings(
+                "always",
+                category=DeprecationWarning,
+            )
+            sampled = self.sampler.convert(converted_meas)
+        self.assertTrue(len(caught_warnings) > 0)
         np.testing.assert_array_almost_equal(sampled.eval(), valids, decimal=1)
 
     def test_multi_representation_ops(self):
@@ -165,7 +211,13 @@ class TestAerPauliExpectation(QiskitOpflowTestCase):
         converted_meas = self.expect.convert(~StateFn(mixed_ops))
 
         plus_mean = converted_meas @ Plus
-        sampled_plus = self.sampler.convert(plus_mean)
+        with warnings.catch_warnings(record=True) as caught_warnings:
+            warnings.filterwarnings(
+                "always",
+                category=DeprecationWarning,
+            )
+            sampled_plus = self.sampler.convert(plus_mean)
+        self.assertTrue(len(caught_warnings) > 0)
         np.testing.assert_array_almost_equal(
             sampled_plus.eval(), [1, 0.5**0.5, (1 + 0.5**0.5), 1], decimal=1
         )
@@ -201,8 +253,14 @@ class TestAerPauliExpectation(QiskitOpflowTestCase):
             return param_bindings
 
         def validate_sampler(ideal, sut, param_bindings):
-            expect_sampled = ideal.convert(expect_op, params=param_bindings).eval()
-            actual_sampled = sut.convert(expect_op, params=param_bindings).eval()
+            with warnings.catch_warnings(record=True) as caught_warnings:
+                warnings.filterwarnings(
+                    "always",
+                    category=DeprecationWarning,
+                )
+                expect_sampled = ideal.convert(expect_op, params=param_bindings).eval()
+                actual_sampled = sut.convert(expect_op, params=param_bindings).eval()
+            self.assertTrue(len(caught_warnings) > 0)
             self.assertTrue(
                 np.allclose(actual_sampled, expect_sampled),
                 f"{actual_sampled} != {expect_sampled}",
@@ -236,9 +294,15 @@ class TestAerPauliExpectation(QiskitOpflowTestCase):
 
     def test_pauli_expectation_param_qobj(self):
         """Test PauliExpectation with param_qobj"""
-        q_instance = QuantumInstance(
-            self.backend, seed_simulator=self.seed, seed_transpiler=self.seed, shots=10000
-        )
+        with warnings.catch_warnings(record=True) as caught_warnings:
+            warnings.filterwarnings(
+                "always",
+                category=DeprecationWarning,
+            )
+            q_instance = QuantumInstance(
+                self.backend, seed_simulator=self.seed, seed_transpiler=self.seed, shots=10000
+            )
+        self.assertTrue(len(caught_warnings) > 0)
         qubit_op = (0.1 * I ^ I) + (0.2 * I ^ Z) + (0.3 * Z ^ I) + (0.4 * Z ^ Z) + (0.5 * X ^ X)
         ansatz = RealAmplitudes(qubit_op.num_qubits)
         ansatz_circuit_op = CircuitStateFn(ansatz)
@@ -250,15 +314,21 @@ class TestAerPauliExpectation(QiskitOpflowTestCase):
             params1[param] = [0]
             params2[param] = [0, 0]
 
-        sampler1 = CircuitSampler(backend=q_instance, param_qobj=False)
-        samples1 = sampler1.convert(expect_op, params=params1)
-        val1 = np.real(samples1.eval())[0]
-        samples2 = sampler1.convert(expect_op, params=params2)
-        val2 = np.real(samples2.eval())
-        sampler2 = CircuitSampler(backend=q_instance, param_qobj=True)
-        samples3 = sampler2.convert(expect_op, params=params1)
-        val3 = np.real(samples3.eval())
-        samples4 = sampler2.convert(expect_op, params=params2)
+        with warnings.catch_warnings(record=True) as caught_warnings:
+            warnings.filterwarnings(
+                "always",
+                category=DeprecationWarning,
+            )
+            sampler1 = CircuitSampler(backend=q_instance, param_qobj=False)
+            samples1 = sampler1.convert(expect_op, params=params1)
+            val1 = np.real(samples1.eval())[0]
+            samples2 = sampler1.convert(expect_op, params=params2)
+            val2 = np.real(samples2.eval())
+            sampler2 = CircuitSampler(backend=q_instance, param_qobj=True)
+            samples3 = sampler2.convert(expect_op, params=params1)
+            val3 = np.real(samples3.eval())
+            samples4 = sampler2.convert(expect_op, params=params2)
+        self.assertTrue(len(caught_warnings) > 0)
         val4 = np.real(samples4.eval())
 
         np.testing.assert_array_almost_equal([val1] * 2, val2, decimal=2)
@@ -277,12 +347,24 @@ class TestAerPauliExpectation(QiskitOpflowTestCase):
         """Test AerPauliExpectation with coefficients."""
         with self.subTest("integer coefficients"):
             exp = 3 * ~StateFn(X) @ (2 * Minus)
-            target = self.sampler.convert(self.expect.convert(exp)).eval()
+            with warnings.catch_warnings(record=True) as caught_warnings:
+                warnings.filterwarnings(
+                    "always",
+                    category=DeprecationWarning,
+                )
+                target = self.sampler.convert(self.expect.convert(exp)).eval()
+            self.assertTrue(len(caught_warnings) > 0)
             self.assertAlmostEqual(target, -12)
 
         with self.subTest("complex coefficients"):
             exp = 3j * ~StateFn(X) @ (2j * Minus)
-            target = self.sampler.convert(self.expect.convert(exp)).eval()
+            with warnings.catch_warnings(record=True) as caught_warnings:
+                warnings.filterwarnings(
+                    "always",
+                    category=DeprecationWarning,
+                )
+                target = self.sampler.convert(self.expect.convert(exp)).eval()
+            self.assertTrue(len(caught_warnings) > 0)
             self.assertAlmostEqual(target, -12j)
 
 

@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2018, 2021.
+# (C) Copyright IBM 2018, 2023.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -17,6 +17,7 @@
 
 import unittest
 from test.python.opflow import QiskitOpflowTestCase
+import warnings
 from ddt import ddt, data
 import numpy
 
@@ -76,16 +77,34 @@ class TestStateOpMeasEvals(QiskitOpflowTestCase):
             self.assertEqual((~StateFn(op) @ state).eval(), 0j)
 
         backend = Aer.get_backend("aer_simulator")
-        q_instance = QuantumInstance(backend, seed_simulator=97, seed_transpiler=97)
+        with warnings.catch_warnings(record=True) as caught_warnings:
+            warnings.filterwarnings(
+                "always",
+                category=DeprecationWarning,
+            )
+            q_instance = QuantumInstance(backend, seed_simulator=97, seed_transpiler=97)
+        self.assertTrue(len(caught_warnings) > 0)
         op = I
         with self.subTest("zero coeff in summed StateFn and CircuitSampler"):
             state = 0 * (Plus + Minus)
-            sampler = CircuitSampler(q_instance).convert(~StateFn(op) @ state)
+            with warnings.catch_warnings(record=True) as caught_warnings:
+                warnings.filterwarnings(
+                    "always",
+                    category=DeprecationWarning,
+                )
+                sampler = CircuitSampler(q_instance).convert(~StateFn(op) @ state)
+            self.assertTrue(len(caught_warnings) > 0)
             self.assertEqual(sampler.eval(), 0j)
 
         with self.subTest("coeff gets squared in CircuitSampler shot-based readout"):
             state = (Plus + Minus) / numpy.sqrt(2)
-            sampler = CircuitSampler(q_instance).convert(~StateFn(op) @ state)
+            with warnings.catch_warnings(record=True) as caught_warnings:
+                warnings.filterwarnings(
+                    "always",
+                    category=DeprecationWarning,
+                )
+                sampler = CircuitSampler(q_instance).convert(~StateFn(op) @ state)
+            self.assertTrue(len(caught_warnings) > 0)
             self.assertAlmostEqual(sampler.eval(), 1 + 0j)
 
     def test_is_measurement_correctly_propagated(self):
@@ -96,9 +115,21 @@ class TestStateOpMeasEvals(QiskitOpflowTestCase):
             self.skipTest(f"Aer doesn't appear to be installed. Error: '{str(ex)}'")
             return
         backend = Aer.get_backend("aer_simulator")
-        q_instance = QuantumInstance(backend)  # no seeds needed since no values are compared
+        with warnings.catch_warnings(record=True) as caught_warnings:
+            warnings.filterwarnings(
+                "always",
+                category=DeprecationWarning,
+            )
+            q_instance = QuantumInstance(backend)  # no seeds needed since no values are compared
+        self.assertTrue(len(caught_warnings) > 0)
         state = Plus
-        sampler = CircuitSampler(q_instance).convert(~state @ state)
+        with warnings.catch_warnings(record=True) as caught_warnings:
+            warnings.filterwarnings(
+                "always",
+                category=DeprecationWarning,
+            )
+            sampler = CircuitSampler(q_instance).convert(~state @ state)
+        self.assertTrue(len(caught_warnings) > 0)
         self.assertTrue(sampler.oplist[0].is_measurement)
 
     def test_parameter_binding_on_listop(self):
@@ -121,7 +152,13 @@ class TestStateOpMeasEvals(QiskitOpflowTestCase):
         listop = ListOp([StateFn(circuit) for circuit in [circuit1, circuit2, circuit3]])
 
         sampler = CircuitSampler(Aer.get_backend("aer_simulator"))
-        sampled = sampler.convert(listop, params=bindings)
+        with warnings.catch_warnings(record=True) as caught_warnings:
+            warnings.filterwarnings(
+                "always",
+                category=DeprecationWarning,
+            )
+            sampled = sampler.convert(listop, params=bindings)
+        self.assertTrue(len(caught_warnings) > 0)
 
         self.assertTrue(all(len(op.parameters) == 0 for op in sampled.oplist))
 
@@ -150,8 +187,13 @@ class TestStateOpMeasEvals(QiskitOpflowTestCase):
         expr = ~StateFn(H) @ StateFn(circuit)
 
         sampler = CircuitSampler(Aer.get_backend("aer_simulator_statevector"))
-
-        res = sampler.convert(expr, params={x: 0}).eval()
+        with warnings.catch_warnings(record=True) as caught_warnings:
+            warnings.filterwarnings(
+                "always",
+                category=DeprecationWarning,
+            )
+            res = sampler.convert(expr, params={x: 0}).eval()
+        self.assertTrue(len(caught_warnings) > 0)
 
         self.assertIsInstance(res, complex)
 
@@ -172,10 +214,16 @@ class TestStateOpMeasEvals(QiskitOpflowTestCase):
 
         sampler = CircuitSampler(Aer.get_backend("aer_simulator_statevector"), caching=caching)
 
-        res1 = sampler.convert(expr1, params={x: 0}).eval()
-        res2 = sampler.convert(expr2, params={x: 0}).eval()
-        res3 = sampler.convert(expr1, params={x: 0}).eval()
-        res4 = sampler.convert(expr2, params={x: 0}).eval()
+        with warnings.catch_warnings(record=True) as caught_warnings:
+            warnings.filterwarnings(
+                "always",
+                category=DeprecationWarning,
+            )
+            res1 = sampler.convert(expr1, params={x: 0}).eval()
+            res2 = sampler.convert(expr2, params={x: 0}).eval()
+            res3 = sampler.convert(expr1, params={x: 0}).eval()
+            res4 = sampler.convert(expr2, params={x: 0}).eval()
+        self.assertTrue(len(caught_warnings) > 0)
 
         self.assertEqual(res1, res3)
         self.assertEqual(res2, res4)
@@ -215,7 +263,13 @@ class TestStateOpMeasEvals(QiskitOpflowTestCase):
 
         backend = AerSimulator(shots=10)
         sampler = CircuitSampler(backend)
-        res = sampler.convert(~Plus @ Plus).eval()
+        with warnings.catch_warnings(record=True) as caught_warnings:
+            warnings.filterwarnings(
+                "always",
+                category=DeprecationWarning,
+            )
+            res = sampler.convert(~Plus @ Plus).eval()
+        self.assertTrue(len(caught_warnings) > 0)
         self.assertAlmostEqual(res, 1 + 0j, places=2)
 
     def test_adjoint_vector_to_circuit_fn(self):

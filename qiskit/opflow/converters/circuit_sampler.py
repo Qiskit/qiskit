@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2020, 2022.
+# (C) Copyright IBM 2020, 2023.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -54,7 +54,7 @@ class CircuitSampler(ConverterBase):
     """
 
     @deprecate_function(
-        "The CircuitSampler opflow class is deprecated as of Qiskit Terra 0.23.0 "
+        "The CircuitSampler opflow class is deprecated as of Qiskit Terra 0.24.0 "
         "and will be removed no sooner than 3 months after the release date. "
     )
     def __init__(
@@ -82,15 +82,17 @@ class CircuitSampler(ConverterBase):
         Raises:
             ValueError: Set statevector or param_qobj True when not supported by backend.
         """
+        super().__init__()
         with warnings.catch_warnings():
             warnings.simplefilter("ignore")
-            super().__init__()
-        self._quantum_instance = (
-            backend if isinstance(backend, QuantumInstance) else QuantumInstance(backend=backend)
-        )
-        self._statevector = (
-            statevector if statevector is not None else self.quantum_instance.is_statevector
-        )
+            self._quantum_instance = (
+                backend
+                if isinstance(backend, QuantumInstance)
+                else QuantumInstance(backend=backend)
+            )
+            self._statevector = (
+                statevector if statevector is not None else self.quantum_instance.is_statevector
+            )
         self._param_qobj = param_qobj
         self._attach_results = attach_results
 
@@ -114,17 +116,19 @@ class CircuitSampler(ConverterBase):
         Raises:
             ValueError: statevector or param_qobj are True when not supported by backend.
         """
-        if self._statevector and not is_statevector_backend(self.quantum_instance.backend):
-            raise ValueError(
-                "Statevector mode for circuit sampling requires statevector "
-                "backend, not {}.".format(self.quantum_instance.backend)
-            )
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")
+            if self._statevector and not is_statevector_backend(self.quantum_instance.backend):
+                raise ValueError(
+                    "Statevector mode for circuit sampling requires statevector "
+                    "backend, not {}.".format(self.quantum_instance.backend)
+                )
 
-        if self._param_qobj and not is_aer_provider(self.quantum_instance.backend):
-            raise ValueError(
-                "Parameterized Qobj mode requires Aer "
-                "backend, not {}.".format(self.quantum_instance.backend)
-            )
+            if self._param_qobj and not is_aer_provider(self.quantum_instance.backend):
+                raise ValueError(
+                    "Parameterized Qobj mode requires Aer "
+                    "backend, not {}.".format(self.quantum_instance.backend)
+                )
 
     @property
     def quantum_instance(self) -> QuantumInstance:

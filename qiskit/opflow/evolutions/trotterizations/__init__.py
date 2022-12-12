@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2020, 2022.
+# (C) Copyright IBM 2020, 2023.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -11,8 +11,9 @@
 # that they have been altered from the originals.
 
 """
-Deprecation: Trotterization methods - Algorithms for
-approximating Exponentials of Operator Sums.
+.. deprecated:: 0.24.0
+    Trotterization methods - Algorithms for
+    approximating Exponentials of Operator Sums.
 
 """
 

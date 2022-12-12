@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2022.
+# (C) Copyright IBM 2022, 2023.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -12,6 +12,7 @@
 
 """Test evolver problem class."""
 import unittest
+import warnings
 from test.python.algorithms import QiskitAlgorithmsTestCase
 from ddt import data, ddt, unpack
 from numpy.testing import assert_raises
@@ -50,29 +51,47 @@ class TestEvolutionProblem(QiskitAlgorithmsTestCase):
     def test_init_all(self):
         """Tests that all fields are initialized correctly."""
         t_parameter = Parameter("t")
-        hamiltonian = t_parameter * Z + Y
+        with warnings.catch_warnings(record=True) as caught_warnings:
+            warnings.filterwarnings(
+                "always",
+                category=DeprecationWarning,
+            )
+            hamiltonian = t_parameter * Z + Y
+        self.assertTrue(len(caught_warnings) > 0)
         time = 2
         initial_state = One
         aux_operators = [X, Y]
         param_value_dict = {t_parameter: 3.2}
 
-        evo_problem = EvolutionProblem(
-            hamiltonian,
-            time,
-            initial_state,
-            aux_operators,
-            t_param=t_parameter,
-            param_value_dict=param_value_dict,
-        )
+        with warnings.catch_warnings(record=True) as caught_warnings:
+            warnings.filterwarnings(
+                "always",
+                category=DeprecationWarning,
+            )
+            evo_problem = EvolutionProblem(
+                hamiltonian,
+                time,
+                initial_state,
+                aux_operators,
+                t_param=t_parameter,
+                param_value_dict=param_value_dict,
+            )
+            expected_hamiltonian = Y + t_parameter * Z
+        self.assertTrue(len(caught_warnings) > 0)
 
-        expected_hamiltonian = Y + t_parameter * Z
         expected_time = 2
         expected_initial_state = One
         expected_aux_operators = [X, Y]
         expected_t_param = t_parameter
         expected_param_value_dict = {t_parameter: 3.2}
 
-        self.assertEqual(evo_problem.hamiltonian, expected_hamiltonian)
+        with warnings.catch_warnings(record=True) as caught_warnings:
+            warnings.filterwarnings(
+                "always",
+                category=DeprecationWarning,
+            )
+            self.assertEqual(evo_problem.hamiltonian, expected_hamiltonian)
+        self.assertTrue(len(caught_warnings) > 0)
         self.assertEqual(evo_problem.time, expected_time)
         self.assertEqual(evo_problem.initial_state, expected_initial_state)
         self.assertEqual(evo_problem.aux_operators, expected_aux_operators)
@@ -91,21 +110,39 @@ class TestEvolutionProblem(QiskitAlgorithmsTestCase):
         param_x = Parameter("x")
         param_y = Parameter("y")
         with self.subTest(msg="Parameter missing in dict."):
-            hamiltonian = param_x * X + param_y * Y
+            with warnings.catch_warnings(record=True) as caught_warnings:
+                warnings.filterwarnings(
+                    "always",
+                    category=DeprecationWarning,
+                )
+                hamiltonian = param_x * X + param_y * Y
+            self.assertTrue(len(caught_warnings) > 0)
             param_dict = {param_y: 2}
             evolution_problem = EvolutionProblem(hamiltonian, 2, Zero, param_value_dict=param_dict)
             with assert_raises(ValueError):
                 evolution_problem.validate_params()
 
         with self.subTest(msg="Empty dict."):
-            hamiltonian = param_x * X + param_y * Y
+            with warnings.catch_warnings(record=True) as caught_warnings:
+                warnings.filterwarnings(
+                    "always",
+                    category=DeprecationWarning,
+                )
+                hamiltonian = param_x * X + param_y * Y
+            self.assertTrue(len(caught_warnings) > 0)
             param_dict = {}
             evolution_problem = EvolutionProblem(hamiltonian, 2, Zero, param_value_dict=param_dict)
             with assert_raises(ValueError):
                 evolution_problem.validate_params()
 
         with self.subTest(msg="Extra parameter in dict."):
-            hamiltonian = param_x * X + param_y * Y
+            with warnings.catch_warnings(record=True) as caught_warnings:
+                warnings.filterwarnings(
+                    "always",
+                    category=DeprecationWarning,
+                )
+                hamiltonian = param_x * X + param_y * Y
+            self.assertTrue(len(caught_warnings) > 0)
             param_dict = {param_y: 2, param_x: 1, Parameter("z"): 1}
             evolution_problem = EvolutionProblem(hamiltonian, 2, Zero, param_value_dict=param_dict)
             with assert_raises(ValueError):

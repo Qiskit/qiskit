@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2020, 2022.
+# (C) Copyright IBM 2020, 2023.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -85,9 +85,15 @@ class TestMatrices(QiskitAlgorithmsTestCase):
         qc = QuantumCircuit(circ_qubits)
         qc.append(matrix.power(power).control(), list(range(circ_qubits)))
         # extract the parts of the circuit matrix corresponding to TridiagonalToeplitz
-        zero_op = (I + Z) / 2
-        one_op = (I - Z) / 2
-        proj = Operator((zero_op ^ pow_circ.num_ancillas) ^ (I ^ num_qubits) ^ one_op).data
+        with warnings.catch_warnings(record=True) as caught_warnings:
+            warnings.filterwarnings(
+                "always",
+                category=DeprecationWarning,
+            )
+            zero_op = (I + Z) / 2
+            one_op = (I - Z) / 2
+            proj = Operator((zero_op ^ pow_circ.num_ancillas) ^ (I ^ num_qubits) ^ one_op).data
+        self.assertTrue(len(caught_warnings) > 0)
         circ_matrix = Operator(qc).data
         approx_exp = partial_trace(
             np.dot(proj, circ_matrix), [0] + list(range(num_qubits + 1, circ_qubits))
@@ -155,9 +161,15 @@ class TestObservables(QiskitAlgorithmsTestCase):
         qc.isometry(init_state, list(range(num_qubits)), None)
         qc.append(observable.observable_circuit(num_qubits), list(range(num_qubits)))
 
-        # Observable operator
-        observable_op = observable.observable(num_qubits)
-        state_vec = (~StateFn(observable_op) @ StateFn(qc)).eval()
+        with warnings.catch_warnings(record=True) as caught_warnings:
+            warnings.filterwarnings(
+                "always",
+                category=DeprecationWarning,
+            )
+            # Observable operator
+            observable_op = observable.observable(num_qubits)
+            state_vec = (~StateFn(observable_op) @ StateFn(qc)).eval()
+        self.assertTrue(len(caught_warnings) > 0)
 
         # Obtain result
         result = observable.post_processing(state_vec, num_qubits)
@@ -196,15 +208,21 @@ class TestObservables(QiskitAlgorithmsTestCase):
             qcs.append(tpass(qc.decompose()))
 
         # Get observables
-        observable_ops = observable.observable(num_qubits)
-        state_vecs = []
-        # First is the norm
-        state_vecs.append((~StateFn(observable_ops[0]) @ StateFn(qcs[0])).eval())
-        for i in range(1, len(observable_ops), 2):
-            state_vecs += [
-                (~StateFn(observable_ops[i]) @ StateFn(qcs[i])).eval(),
-                (~StateFn(observable_ops[i + 1]) @ StateFn(qcs[i + 1])).eval(),
-            ]
+        with warnings.catch_warnings(record=True) as caught_warnings:
+            warnings.filterwarnings(
+                "always",
+                category=DeprecationWarning,
+            )
+            observable_ops = observable.observable(num_qubits)
+            state_vecs = []
+            # First is the norm
+            state_vecs.append((~StateFn(observable_ops[0]) @ StateFn(qcs[0])).eval())
+            for i in range(1, len(observable_ops), 2):
+                state_vecs += [
+                    (~StateFn(observable_ops[i]) @ StateFn(qcs[i])).eval(),
+                    (~StateFn(observable_ops[i + 1]) @ StateFn(qcs[i + 1])).eval(),
+                ]
+        self.assertTrue(len(caught_warnings) > 0)
 
         # Obtain result
         result = observable.post_processing(state_vecs, num_qubits)
@@ -345,8 +363,14 @@ class TestLinearSolver(QiskitAlgorithmsTestCase):
         self.assertIsNone(hhl.quantum_instance)  # Defaults to None
 
         # First set a valid quantum instance and check via getter
-        qinst = QuantumInstance(backend=BasicAer.get_backend("qasm_simulator"))
-        hhl.quantum_instance = qinst
+        with warnings.catch_warnings(record=True) as caught_warnings:
+            warnings.filterwarnings(
+                "always",
+                category=DeprecationWarning,
+            )
+            qinst = QuantumInstance(backend=BasicAer.get_backend("qasm_simulator"))
+            hhl.quantum_instance = qinst
+        self.assertTrue(len(caught_warnings) > 0)
         self.assertEqual(hhl.quantum_instance, qinst)
 
         # Now set quantum instance back to None and check via getter

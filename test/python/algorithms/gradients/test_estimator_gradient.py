@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2019, 2021.
+# (C) Copyright IBM 2019, 2023.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -14,7 +14,7 @@
 """Test Estimator Gradients"""
 
 import unittest
-
+from test.python.algorithms.gradients.logging_primitives import LoggingEstimator
 import numpy as np
 from ddt import ddt, data, unpack
 
@@ -34,8 +34,6 @@ from qiskit.primitives import Estimator
 from qiskit.quantum_info import Operator, SparsePauliOp, Pauli
 from qiskit.quantum_info.random import random_pauli_list
 from qiskit.test import QiskitTestCase
-
-from .logging_primitives import LoggingEstimator
 
 gradient_factories = [
     lambda estimator: FiniteDiffEstimatorGradient(estimator, epsilon=1e-6, method="central"),

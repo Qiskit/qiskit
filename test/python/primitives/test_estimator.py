@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2022.
+# (C) Copyright IBM 2022, 2023.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -13,7 +13,7 @@
 """Tests for Estimator."""
 
 import unittest
-
+import warnings
 import numpy as np
 from ddt import data, ddt, unpack
 
@@ -62,7 +62,13 @@ class TestEstimator(QiskitTestCase):
         """test for a simple use case"""
         lst = [("XX", 1), ("YY", 2), ("ZZ", 3)]
         with self.subTest("PauliSumOp"):
-            observable = PauliSumOp.from_list(lst)
+            with warnings.catch_warnings(record=True) as caught_warnings:
+                warnings.filterwarnings(
+                    "always",
+                    category=DeprecationWarning,
+                )
+                observable = PauliSumOp.from_list(lst)
+            self.assertTrue(len(caught_warnings) > 0)
             ansatz = RealAmplitudes(num_qubits=2, reps=2)
             with self.assertWarns(DeprecationWarning):
                 est = Estimator([ansatz], [observable])
@@ -81,7 +87,13 @@ class TestEstimator(QiskitTestCase):
 
     def test_estimator_param_reverse(self):
         """test for the reverse parameter"""
-        observable = PauliSumOp.from_list([("XX", 1), ("YY", 2), ("ZZ", 3)])
+        with warnings.catch_warnings(record=True) as caught_warnings:
+            warnings.filterwarnings(
+                "always",
+                category=DeprecationWarning,
+            )
+            observable = PauliSumOp.from_list([("XX", 1), ("YY", 2), ("ZZ", 3)])
+        self.assertTrue(len(caught_warnings) > 0)
         ansatz = RealAmplitudes(num_qubits=2, reps=2)
         with self.assertWarns(DeprecationWarning):
             est = Estimator([ansatz], [observable], [ansatz.parameters[::-1]])

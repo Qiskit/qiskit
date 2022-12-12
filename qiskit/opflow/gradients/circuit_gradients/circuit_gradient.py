@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2020, 2022.
+# (C) Copyright IBM 2020, 2023.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -12,7 +12,6 @@
 
 """CircuitGradient Class """
 
-import warnings
 from abc import abstractmethod
 from typing import List, Union, Optional, Tuple, Set
 
@@ -38,13 +37,11 @@ class CircuitGradient(ConverterBase):
     """
 
     @deprecate_function(
-        "The CircuitGradient opflow class is deprecated as of Qiskit Terra 0.23.0 "
+        "The CircuitGradient opflow class is deprecated as of Qiskit Terra 0.24.0 "
         "and will be removed no sooner than 3 months after the release date. "
     )
     def __init__(self) -> None:
-        with warnings.catch_warnings():
-            warnings.simplefilter("ignore")
-            super().__init__()
+        super().__init__()
 
     # pylint: disable=arguments-differ
     @abstractmethod

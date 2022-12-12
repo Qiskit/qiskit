@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2020, 2022.
+# (C) Copyright IBM 2020, 2023.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -16,7 +16,9 @@ Primitive Operators (:mod:`qiskit.opflow.primitive_ops`)
 
 .. currentmodule:: qiskit.opflow.primitive_ops
 
-Deprecation: Operators are defined to be functions which take State functions to State functions.
+.. deprecated:: 0.24.0
+    Operators are defined to be functions which take State functions to State functions.
+
 
 PrimitiveOps are the classes for representing basic Operators, backed by computational
 Operator primitives from Terra. These classes (and inheritors) primarily serve to allow the

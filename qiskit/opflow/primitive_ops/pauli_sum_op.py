@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2020, 2022.
+# (C) Copyright IBM 2020, 2023.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -14,7 +14,6 @@
 
 from collections import defaultdict
 from typing import Dict, List, Optional, Set, Tuple, Union, cast
-import warnings
 import numpy as np
 from scipy.sparse import spmatrix
 
@@ -36,7 +35,7 @@ class PauliSumOp(PrimitiveOp):
     primitive: SparsePauliOp
 
     @deprecate_function(
-        "The PauliSumOp opflow class is deprecated as of Qiskit Terra 0.23.0 "
+        "The PauliSumOp opflow class is deprecated as of Qiskit Terra 0.24.0 "
         "and will be removed no sooner than 3 months after the release date. "
     )
     def __init__(
@@ -58,9 +57,8 @@ class PauliSumOp(PrimitiveOp):
             raise TypeError(
                 f"PauliSumOp can only be instantiated with SparsePauliOp, not {type(primitive)}"
             )
-        with warnings.catch_warnings():
-            warnings.simplefilter("ignore")
-            super().__init__(primitive, coeff=coeff)
+
+        super().__init__(primitive, coeff=coeff)
         self._grouping_type = grouping_type
 
     def primitive_strings(self) -> Set[str]:

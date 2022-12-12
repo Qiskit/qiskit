@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2018, 2021.
+# (C) Copyright IBM 2018, 2023.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -12,8 +12,8 @@
 
 """Test the Sampler VQE."""
 
-
 import unittest
+import warnings
 from functools import partial
 from test.python.algorithms import QiskitAlgorithmsTestCase
 
@@ -206,7 +206,13 @@ class TestSamplerVQE(QiskitAlgorithmsTestCase):
 
         as_list = [Pauli("ZZ"), Pauli("II")]
         with self.subTest(auxops=as_list):
-            result = vqe.compute_minimum_eigenvalue(op, aux_operators=as_list)
+            with warnings.catch_warnings(record=True) as caught_warnings:
+                warnings.filterwarnings(
+                    "always",
+                    category=DeprecationWarning,
+                )
+                result = vqe.compute_minimum_eigenvalue(op, aux_operators=as_list)
+            self.assertTrue(len(caught_warnings) > 0)
             self.assertIsInstance(result.aux_operators_evaluated, list)
             self.assertEqual(len(result.aux_operators_evaluated), 2)
             self.assertAlmostEqual(result.aux_operators_evaluated[0][0], -1 + 0j, places=5)
@@ -214,7 +220,13 @@ class TestSamplerVQE(QiskitAlgorithmsTestCase):
 
         as_dict = {"magnetization": SparsePauliOp(["ZI", "IZ"])}
         with self.subTest(auxops=as_dict):
-            result = vqe.compute_minimum_eigenvalue(op, aux_operators=as_dict)
+            with warnings.catch_warnings(record=True) as caught_warnings:
+                warnings.filterwarnings(
+                    "always",
+                    category=DeprecationWarning,
+                )
+                result = vqe.compute_minimum_eigenvalue(op, aux_operators=as_dict)
+            self.assertTrue(len(caught_warnings) > 0)
             self.assertIsInstance(result.aux_operators_evaluated, dict)
             self.assertEqual(len(result.aux_operators_evaluated.keys()), 1)
             self.assertAlmostEqual(result.aux_operators_evaluated["magnetization"][0], 0j, places=5)

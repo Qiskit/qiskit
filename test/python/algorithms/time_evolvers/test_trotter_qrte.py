@@ -13,6 +13,7 @@
 """ Test TrotterQRTE. """
 
 import unittest
+import warnings
 from test.python.algorithms import QiskitAlgorithmsTestCase
 from ddt import ddt, data, unpack
 import numpy as np
@@ -53,7 +54,13 @@ class TestTrotterQRTE(QiskitAlgorithmsTestCase):
     @unpack
     def test_trotter_qrte_trotter_single_qubit(self, product_formula, expected_state):
         """Test for default TrotterQRTE on a single qubit."""
-        operator = PauliSumOp(SparsePauliOp([Pauli("X"), Pauli("Z")]))
+        with warnings.catch_warnings(record=True) as caught_warnings:
+            warnings.filterwarnings(
+                "always",
+                category=DeprecationWarning,
+            )
+            operator = PauliSumOp(SparsePauliOp([Pauli("X"), Pauli("Z")]))
+        self.assertTrue(len(caught_warnings) > 0)
         initial_state = QuantumCircuit(1)
         time = 1
         evolution_problem = TimeEvolutionProblem(operator, time, initial_state)
@@ -96,7 +103,13 @@ class TestTrotterQRTE(QiskitAlgorithmsTestCase):
 
         algorithm_globals.random_seed = 0
         trotter_qrte = TrotterQRTE(estimator=estimator, num_timesteps=num_timesteps)
-        evolution_result = trotter_qrte.evolve(evolution_problem)
+        with warnings.catch_warnings(record=True) as caught_warnings:
+            warnings.filterwarnings(
+                "always",
+                category=DeprecationWarning,
+            )
+            evolution_result = trotter_qrte.evolve(evolution_problem)
+        self.assertTrue(len(caught_warnings) > 0)
 
         np.testing.assert_array_almost_equal(
             Statevector.from_instruction(evolution_result.evolved_state).data,
@@ -169,7 +182,13 @@ class TestTrotterQRTE(QiskitAlgorithmsTestCase):
     @unpack
     def test_trotter_qrte_qdrift(self, initial_state, expected_state):
         """Test for TrotterQRTE with QDrift."""
-        operator = PauliSumOp(SparsePauliOp([Pauli("X"), Pauli("Z")]))
+        with warnings.catch_warnings(record=True) as caught_warnings:
+            warnings.filterwarnings(
+                "always",
+                category=DeprecationWarning,
+            )
+            operator = PauliSumOp(SparsePauliOp([Pauli("X"), Pauli("Z")]))
+        self.assertTrue(len(caught_warnings) > 0)
         time = 1
         evolution_problem = TimeEvolutionProblem(operator, time, initial_state)
 
@@ -177,17 +196,30 @@ class TestTrotterQRTE(QiskitAlgorithmsTestCase):
         trotter_qrte = TrotterQRTE(product_formula=QDrift())
         evolution_result = trotter_qrte.evolve(evolution_problem)
 
-        np.testing.assert_array_almost_equal(
-            Statevector.from_instruction(evolution_result.evolved_state).data, expected_state.data
-        )
+        with warnings.catch_warnings(record=True) as caught_warnings:
+            warnings.filterwarnings(
+                "always",
+                category=DeprecationWarning,
+            )
+            np.testing.assert_array_almost_equal(
+                Statevector.from_instruction(evolution_result.evolved_state).data,
+                expected_state.data,
+            )
+        self.assertTrue(len(caught_warnings) > 0)
 
     @data((Parameter("t"), {}), (None, {Parameter("x"): 2}), (None, None))
     @unpack
     def test_trotter_qrte_trotter_param_errors(self, t_param, param_value_dict):
         """Test TrotterQRTE with raising errors for parameters."""
-        operator = Parameter("t") * PauliSumOp(SparsePauliOp([Pauli("X")])) + PauliSumOp(
-            SparsePauliOp([Pauli("Z")])
-        )
+        with warnings.catch_warnings(record=True) as caught_warnings:
+            warnings.filterwarnings(
+                "always",
+                category=DeprecationWarning,
+            )
+            operator = Parameter("t") * PauliSumOp(SparsePauliOp([Pauli("X")])) + PauliSumOp(
+                SparsePauliOp([Pauli("Z")])
+            )
+        self.assertTrue(len(caught_warnings) > 0)
         initial_state = QuantumCircuit(1)
         self._run_error_test(initial_state, operator, None, None, t_param, param_value_dict)
 
@@ -195,7 +227,15 @@ class TestTrotterQRTE(QiskitAlgorithmsTestCase):
     @unpack
     def test_trotter_qrte_trotter_aux_ops_errors(self, aux_ops, estimator):
         """Test TrotterQRTE with raising errors."""
-        operator = PauliSumOp(SparsePauliOp([Pauli("X")])) + PauliSumOp(SparsePauliOp([Pauli("Z")]))
+        with warnings.catch_warnings(record=True) as caught_warnings:
+            warnings.filterwarnings(
+                "always",
+                category=DeprecationWarning,
+            )
+            operator = PauliSumOp(SparsePauliOp([Pauli("X")])) + PauliSumOp(
+                SparsePauliOp([Pauli("Z")])
+            )
+        self.assertTrue(len(caught_warnings) > 0)
         initial_state = QuantumCircuit(1)
         self._run_error_test(initial_state, operator, aux_ops, estimator, None, None)
 

@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2020, 2022.
+# (C) Copyright IBM 2020, 2023.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -14,12 +14,15 @@ r"""
 Gradients (:mod:`qiskit.opflow.gradients`)
 ==========================================
 
-Deprecation: Given an operator that represents either a quantum state resp. an expectation value,
-the gradient framework enables the evaluation of gradients, natural gradients,
-Hessians, as well as the Quantum Fisher Information.
+.. deprecated:: 0.24.0
+    Given an operator that represents either a quantum state resp. an expectation value,
+    the gradient framework enables the evaluation of gradients, natural gradients,
+    Hessians, as well as the Quantum Fisher Information.
+
 
 Suppose a parameterized quantum state `|ψ(θ)〉 = V(θ)|ψ〉` with input state `|ψ〉` and parameterized
 Ansatz `V(θ)`, and an Operator `O(ω)`.
+
 
 **Gradients**
 

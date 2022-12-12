@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2020, 2022.
+# (C) Copyright IBM 2020, 2023.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -12,7 +12,6 @@
 
 """The module to compute the state gradient with the parameter shift rule."""
 
-import warnings
 from collections.abc import Iterable
 from copy import deepcopy
 from functools import partial
@@ -49,7 +48,7 @@ class ParamShift(CircuitGradient):
     SUPPORTED_GATES = {"x", "y", "z", "h", "rx", "ry", "rz", "p", "u", "cx", "cy", "cz"}
 
     @deprecate_function(
-        "The ParamShift opflow class is deprecated as of Qiskit Terra 0.23.0 "
+        "The ParamShift opflow class is deprecated as of Qiskit Terra 0.24.0 "
         "and will be removed no sooner than 3 months after the release date. "
     )
     def __init__(self, analytic: bool = True, epsilon: float = 1e-6):
@@ -63,9 +62,7 @@ class ParamShift(CircuitGradient):
         Raises:
             ValueError: If method != ``fin_diff`` and ``epsilon`` is not None.
         """
-        with warnings.catch_warnings():
-            warnings.simplefilter("ignore")
-            super().__init__()
+        super().__init__()
         self._analytic = analytic
         self._epsilon = epsilon
 

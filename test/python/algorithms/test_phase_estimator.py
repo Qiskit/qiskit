@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2018, 2022.
+# (C) Copyright IBM 2018, 2023.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -13,7 +13,7 @@
 """Test phase estimation"""
 
 import unittest
-
+import warnings
 from test.python.algorithms import QiskitAlgorithmsTestCase
 from ddt import ddt, data, unpack
 import numpy as np
@@ -48,23 +48,35 @@ class TestHamiltonianPhaseEstimation(QiskitAlgorithmsTestCase):
         """Run HamiltonianPhaseEstimation and return result with all  phases."""
         if backend is None:
             backend = qiskit.BasicAer.get_backend("statevector_simulator")
-        quantum_instance = qiskit.utils.QuantumInstance(backend=backend, shots=10000)
-        phase_est = HamiltonianPhaseEstimation(
-            num_evaluation_qubits=num_evaluation_qubits, quantum_instance=quantum_instance
-        )
-        result = phase_est.estimate(
-            hamiltonian=hamiltonian,
-            state_preparation=state_preparation,
-            evolution=evolution,
-            bound=bound,
-        )
+        with warnings.catch_warnings(record=True) as caught_warnings:
+            warnings.filterwarnings(
+                "always",
+                category=DeprecationWarning,
+            )
+            quantum_instance = qiskit.utils.QuantumInstance(backend=backend, shots=10000)
+            phase_est = HamiltonianPhaseEstimation(
+                num_evaluation_qubits=num_evaluation_qubits, quantum_instance=quantum_instance
+            )
+            result = phase_est.estimate(
+                hamiltonian=hamiltonian,
+                state_preparation=state_preparation,
+                evolution=evolution,
+                bound=bound,
+            )
+        self.assertTrue(len(caught_warnings) > 0)
         return result
 
     @data(MatrixEvolution(), PauliTrotterEvolution("suzuki", 4))
     def test_pauli_sum_1(self, evolution):
         """Two eigenvalues from Pauli sum with X, Z"""
-        hamiltonian = 0.5 * X + Z
-        state_preparation = StateFn(H.to_circuit())
+        with warnings.catch_warnings(record=True) as caught_warnings:
+            warnings.filterwarnings(
+                "always",
+                category=DeprecationWarning,
+            )
+            hamiltonian = 0.5 * X + Z
+            state_preparation = StateFn(H.to_circuit())
+        self.assertTrue(len(caught_warnings) > 0)
 
         result = self.hamiltonian_pe(hamiltonian, state_preparation, evolution=evolution)
         phase_dict = result.filter_phases(0.162, as_float=True)
@@ -77,7 +89,13 @@ class TestHamiltonianPhaseEstimation(QiskitAlgorithmsTestCase):
     @data(MatrixEvolution(), PauliTrotterEvolution("suzuki", 3))
     def test_pauli_sum_2(self, evolution):
         """Two eigenvalues from Pauli sum with X, Y, Z"""
-        hamiltonian = 0.5 * X + Y + Z
+        with warnings.catch_warnings(record=True) as caught_warnings:
+            warnings.filterwarnings(
+                "always",
+                category=DeprecationWarning,
+            )
+            hamiltonian = 0.5 * X + Y + Z
+        self.assertTrue(len(caught_warnings) > 0)
         state_preparation = None
 
         result = self.hamiltonian_pe(hamiltonian, state_preparation, evolution=evolution)
@@ -92,13 +110,18 @@ class TestHamiltonianPhaseEstimation(QiskitAlgorithmsTestCase):
         """Two eigenvalues from Pauli sum with X, Y, Z"""
         hamiltonian = Z
         state_preparation = None
-
         result = self.hamiltonian_pe(hamiltonian, state_preparation, evolution=None)
         eigv = result.most_likely_eigenvalue
         with self.subTest("First eigenvalue"):
             self.assertAlmostEqual(eigv, 1.0, delta=0.001)
 
-        state_preparation = StateFn(X.to_circuit())
+        with warnings.catch_warnings(record=True) as caught_warnings:
+            warnings.filterwarnings(
+                "always",
+                category=DeprecationWarning,
+            )
+            state_preparation = StateFn(X.to_circuit())
+        self.assertTrue(len(caught_warnings) > 0)
 
         result = self.hamiltonian_pe(hamiltonian, state_preparation, bound=1.05)
         eigv = result.most_likely_eigenvalue
@@ -108,15 +131,21 @@ class TestHamiltonianPhaseEstimation(QiskitAlgorithmsTestCase):
     @slow_test
     def test_H2_hamiltonian(self):
         """Test H2 hamiltonian"""
-        hamiltonian = (
-            (-1.0523732457728587 * (I ^ I))
-            + (0.3979374248431802 * (I ^ Z))
-            + (-0.3979374248431802 * (Z ^ I))
-            + (-0.011280104256235324 * (Z ^ Z))
-            + (0.18093119978423147 * (X ^ X))
-        )
-        state_preparation = StateFn((I ^ H).to_circuit())
-        evo = PauliTrotterEvolution(trotter_mode="suzuki", reps=4)
+        with warnings.catch_warnings(record=True) as caught_warnings:
+            warnings.filterwarnings(
+                "always",
+                category=DeprecationWarning,
+            )
+            hamiltonian = (
+                (-1.0523732457728587 * (I ^ I))
+                + (0.3979374248431802 * (I ^ Z))
+                + (-0.3979374248431802 * (Z ^ I))
+                + (-0.011280104256235324 * (Z ^ Z))
+                + (0.18093119978423147 * (X ^ X))
+            )
+            state_preparation = StateFn((I ^ H).to_circuit())
+            evo = PauliTrotterEvolution(trotter_mode="suzuki", reps=4)
+        self.assertTrue(len(caught_warnings) > 0)
 
         result = self.hamiltonian_pe(hamiltonian, state_preparation, evolution=evo)
         with self.subTest("Most likely eigenvalues"):
@@ -132,23 +161,43 @@ class TestHamiltonianPhaseEstimation(QiskitAlgorithmsTestCase):
 
     def test_matrix_evolution(self):
         """1Q Hamiltonian with MatrixEvolution"""
-        hamiltonian = (0.5 * X) + (0.6 * Y) + (0.7 * I)
-        state_preparation = None
-        result = self.hamiltonian_pe(hamiltonian, state_preparation, evolution=MatrixEvolution())
+        with warnings.catch_warnings(record=True) as caught_warnings:
+            warnings.filterwarnings(
+                "always",
+                category=DeprecationWarning,
+            )
+            hamiltonian = (0.5 * X) + (0.6 * Y) + (0.7 * I)
+            state_preparation = None
+            result = self.hamiltonian_pe(
+                hamiltonian, state_preparation, evolution=MatrixEvolution()
+            )
+        self.assertTrue(len(caught_warnings) > 0)
         phase_dict = result.filter_phases(0.2, as_float=True)
         phases = list(phase_dict.keys())
         self.assertAlmostEqual(phases[0], 1.490, delta=0.001)
         self.assertAlmostEqual(phases[1], -0.090, delta=0.001)
 
     def _setup_from_bound(self, evolution, op_class):
-        hamiltonian = 0.5 * X + Y + Z
+        with warnings.catch_warnings(record=True) as caught_warnings:
+            warnings.filterwarnings(
+                "always",
+                category=DeprecationWarning,
+            )
+            hamiltonian = 0.5 * X + Y + Z
+        self.assertTrue(len(caught_warnings) > 0)
         state_preparation = None
         bound = 1.2 * sum(abs(hamiltonian.coeff * coeff) for coeff in hamiltonian.coeffs)
         if op_class == "MatrixOp":
             hamiltonian = hamiltonian.to_matrix_op()
         backend = qiskit.BasicAer.get_backend("statevector_simulator")
-        qi = qiskit.utils.QuantumInstance(backend=backend, shots=10000)
-        phase_est = HamiltonianPhaseEstimation(num_evaluation_qubits=6, quantum_instance=qi)
+        with warnings.catch_warnings(record=True) as caught_warnings:
+            warnings.filterwarnings(
+                "always",
+                category=DeprecationWarning,
+            )
+            qi = qiskit.utils.QuantumInstance(backend=backend, shots=10000)
+            phase_est = HamiltonianPhaseEstimation(num_evaluation_qubits=6, quantum_instance=qi)
+        self.assertTrue(len(caught_warnings) > 0)
         result = phase_est.estimate(
             hamiltonian=hamiltonian,
             bound=bound,
@@ -159,23 +208,35 @@ class TestHamiltonianPhaseEstimation(QiskitAlgorithmsTestCase):
 
     def test_from_bound(self):
         """HamiltonianPhaseEstimation with bound"""
-        for op_class in ("SummedOp", "MatrixOp"):
-            result = self._setup_from_bound(MatrixEvolution(), op_class)
-            cutoff = 0.01
-            phases = result.filter_phases(cutoff)
-            with self.subTest(f"test phases has the correct length: {op_class}"):
-                self.assertEqual(len(phases), 2)
-                with self.subTest(f"test scaled phases are correct: {op_class}"):
-                    self.assertEqual(list(phases.keys()), [1.5, -1.5])
-                    phases = result.filter_phases(cutoff, scaled=False)
-                with self.subTest(f"test unscaled phases are correct: {op_class}"):
-                    self.assertEqual(list(phases.keys()), [0.25, 0.75])
+        with warnings.catch_warnings(record=True) as caught_warnings:
+            warnings.filterwarnings(
+                "always",
+                category=DeprecationWarning,
+            )
+            for op_class in ("SummedOp", "MatrixOp"):
+                result = self._setup_from_bound(MatrixEvolution(), op_class)
+                cutoff = 0.01
+                phases = result.filter_phases(cutoff)
+                with self.subTest(f"test phases has the correct length: {op_class}"):
+                    self.assertEqual(len(phases), 2)
+                    with self.subTest(f"test scaled phases are correct: {op_class}"):
+                        self.assertEqual(list(phases.keys()), [1.5, -1.5])
+                        phases = result.filter_phases(cutoff, scaled=False)
+                    with self.subTest(f"test unscaled phases are correct: {op_class}"):
+                        self.assertEqual(list(phases.keys()), [0.25, 0.75])
+            self.assertTrue(len(caught_warnings) > 0)
 
     def test_trotter_from_bound(self):
         """HamiltonianPhaseEstimation with bound and Trotterization"""
-        result = self._setup_from_bound(
-            PauliTrotterEvolution(trotter_mode="suzuki", reps=3), op_class="SummedOp"
-        )
+        with warnings.catch_warnings(record=True) as caught_warnings:
+            warnings.filterwarnings(
+                "always",
+                category=DeprecationWarning,
+            )
+            result = self._setup_from_bound(
+                PauliTrotterEvolution(trotter_mode="suzuki", reps=3), op_class="SummedOp"
+            )
+        self.assertTrue(len(caught_warnings) > 0)
         phase_dict = result.filter_phases(0.1)
         phases = list(phase_dict.keys())
         with self.subTest("test phases has the correct length"):
@@ -198,18 +259,29 @@ class TestHamiltonianPhaseEstimation(QiskitAlgorithmsTestCase):
         phase_est = HamiltonianPhaseEstimation(
             num_evaluation_qubits=num_evaluation_qubits, sampler=sampler
         )
-        result = phase_est.estimate(
-            hamiltonian=hamiltonian,
-            state_preparation=state_preparation,
-            evolution=evolution,
-            bound=bound,
-        )
+        with warnings.catch_warnings(record=True):
+            warnings.filterwarnings(
+                "always",
+                category=DeprecationWarning,
+            )
+            result = phase_est.estimate(
+                hamiltonian=hamiltonian,
+                state_preparation=state_preparation,
+                evolution=evolution,
+                bound=bound,
+            )
         return result
 
     @data(MatrixExponential(), SuzukiTrotter(reps=4))
     def test_pauli_sum_1_sampler(self, evolution):
         """Two eigenvalues from Pauli sum with X, Z"""
-        hamiltonian = PauliSumOp(SparsePauliOp.from_list([("X", 0.5), ("Z", 1)]))
+        with warnings.catch_warnings(record=True) as caught_warnings:
+            warnings.filterwarnings(
+                "always",
+                category=DeprecationWarning,
+            )
+            hamiltonian = PauliSumOp(SparsePauliOp.from_list([("X", 0.5), ("Z", 1)]))
+        self.assertTrue(len(caught_warnings) > 0)
         state_preparation = QuantumCircuit(1).compose(HGate())
 
         result = self.hamiltonian_pe_sampler(hamiltonian, state_preparation, evolution=evolution)
@@ -223,7 +295,13 @@ class TestHamiltonianPhaseEstimation(QiskitAlgorithmsTestCase):
     @data(MatrixExponential(), SuzukiTrotter(reps=3))
     def test_pauli_sum_2_sampler(self, evolution):
         """Two eigenvalues from Pauli sum with X, Y, Z"""
-        hamiltonian = PauliSumOp(SparsePauliOp.from_list([("X", 0.5), ("Z", 1), ("Y", 1)]))
+        with warnings.catch_warnings(record=True) as caught_warnings:
+            warnings.filterwarnings(
+                "always",
+                category=DeprecationWarning,
+            )
+            hamiltonian = PauliSumOp(SparsePauliOp.from_list([("X", 0.5), ("Z", 1), ("Y", 1)]))
+        self.assertTrue(len(caught_warnings) > 0)
         state_preparation = None
 
         result = self.hamiltonian_pe_sampler(hamiltonian, state_preparation, evolution=evolution)
@@ -258,17 +336,24 @@ class TestHamiltonianPhaseEstimation(QiskitAlgorithmsTestCase):
     def test_H2_hamiltonian_sampler(self, state_preparation):
         """Test H2 hamiltonian"""
 
-        hamiltonian = PauliSumOp(
-            SparsePauliOp.from_list(
-                [
-                    ("II", -1.0523732457728587),
-                    ("IZ", 0.3979374248431802),
-                    ("ZI", -0.3979374248431802),
-                    ("ZZ", -0.011280104256235324),
-                    ("XX", 0.18093119978423147),
-                ]
+        with warnings.catch_warnings(record=True) as caught_warnings:
+            warnings.filterwarnings(
+                "always",
+                category=DeprecationWarning,
             )
-        )
+            hamiltonian = PauliSumOp(
+                SparsePauliOp.from_list(
+                    [
+                        ("II", -1.0523732457728587),
+                        ("IZ", 0.3979374248431802),
+                        ("ZI", -0.3979374248431802),
+                        ("ZZ", -0.011280104256235324),
+                        ("XX", 0.18093119978423147),
+                    ]
+                )
+            )
+        self.assertTrue(len(caught_warnings) > 0)
+
         evo = SuzukiTrotter(reps=4)
         result = self.hamiltonian_pe_sampler(hamiltonian, state_preparation, evolution=evo)
         with self.subTest("Most likely eigenvalues"):
@@ -284,7 +369,13 @@ class TestHamiltonianPhaseEstimation(QiskitAlgorithmsTestCase):
 
     def test_matrix_evolution_sampler(self):
         """1Q Hamiltonian with MatrixEvolution"""
-        hamiltonian = PauliSumOp(SparsePauliOp.from_list([("X", 0.5), ("Y", 0.6), ("I", 0.7)]))
+        with warnings.catch_warnings(record=True) as caught_warnings:
+            warnings.filterwarnings(
+                "always",
+                category=DeprecationWarning,
+            )
+            hamiltonian = PauliSumOp(SparsePauliOp.from_list([("X", 0.5), ("Y", 0.6), ("I", 0.7)]))
+        self.assertTrue(len(caught_warnings) > 0)
         state_preparation = None
         result = self.hamiltonian_pe_sampler(
             hamiltonian, state_preparation, evolution=MatrixExponential()
@@ -313,16 +404,22 @@ class TestPhaseEstimation(QiskitAlgorithmsTestCase):
         if backend_type is None:
             backend_type = "qasm_simulator"
         backend = qiskit.BasicAer.get_backend(backend_type)
-        qi = qiskit.utils.QuantumInstance(backend=backend, shots=10000)
         if phase_estimator is None:
             phase_estimator = IterativePhaseEstimation
-        if phase_estimator == IterativePhaseEstimation:
-            p_est = IterativePhaseEstimation(num_iterations=num_iterations, quantum_instance=qi)
-        elif phase_estimator == PhaseEstimation:
-            p_est = PhaseEstimation(num_evaluation_qubits=6, quantum_instance=qi)
-        else:
-            raise ValueError("Unrecognized phase_estimator")
-        result = p_est.estimate(unitary=unitary_circuit, state_preparation=state_preparation)
+        with warnings.catch_warnings(record=True) as caught_warnings:
+            warnings.filterwarnings(
+                "always",
+                category=DeprecationWarning,
+            )
+            qi = qiskit.utils.QuantumInstance(backend=backend, shots=10000)
+            if phase_estimator == IterativePhaseEstimation:
+                p_est = IterativePhaseEstimation(num_iterations=num_iterations, quantum_instance=qi)
+            elif phase_estimator == PhaseEstimation:
+                p_est = PhaseEstimation(num_evaluation_qubits=6, quantum_instance=qi)
+            else:
+                raise ValueError("Unrecognized phase_estimator")
+            result = p_est.estimate(unitary=unitary_circuit, state_preparation=state_preparation)
+        self.assertTrue(len(caught_warnings) > 0)
         phase = result.phase
         return phase
 
@@ -338,12 +435,17 @@ class TestPhaseEstimation(QiskitAlgorithmsTestCase):
     def test_qpe_Z(self, state_preparation, expected_phase, backend_type, phase_estimator):
         """eigenproblem Z, |0> and |1>"""
         unitary_circuit = Z.to_circuit()
-        phase = self.one_phase(
-            unitary_circuit,
-            state_preparation,
-            backend_type=backend_type,
-            phase_estimator=phase_estimator,
-        )
+        with warnings.catch_warnings(record=True):
+            warnings.filterwarnings(
+                "always",
+                category=DeprecationWarning,
+            )
+            phase = self.one_phase(
+                unitary_circuit,
+                state_preparation,
+                backend_type=backend_type,
+                phase_estimator=phase_estimator,
+            )
         self.assertEqual(phase, expected_phase)
 
     @data(
@@ -394,17 +496,23 @@ class TestPhaseEstimation(QiskitAlgorithmsTestCase):
         """
         if backend is None:
             backend = qiskit.BasicAer.get_backend("statevector_simulator")
-        qi = qiskit.utils.QuantumInstance(backend=backend, shots=10000)
-        phase_est = PhaseEstimation(
-            num_evaluation_qubits=num_evaluation_qubits, quantum_instance=qi
-        )
-        if construct_circuit:
-            pe_circuit = phase_est.construct_circuit(unitary_circuit, state_preparation)
-            result = phase_est.estimate_from_pe_circuit(pe_circuit, unitary_circuit.num_qubits)
-        else:
-            result = phase_est.estimate(
-                unitary=unitary_circuit, state_preparation=state_preparation
+        with warnings.catch_warnings(record=True) as caught_warnings:
+            warnings.filterwarnings(
+                "always",
+                category=DeprecationWarning,
             )
+            qi = qiskit.utils.QuantumInstance(backend=backend, shots=10000)
+            phase_est = PhaseEstimation(
+                num_evaluation_qubits=num_evaluation_qubits, quantum_instance=qi
+            )
+            if construct_circuit:
+                pe_circuit = phase_est.construct_circuit(unitary_circuit, state_preparation)
+                result = phase_est.estimate_from_pe_circuit(pe_circuit, unitary_circuit.num_qubits)
+            else:
+                result = phase_est.estimate(
+                    unitary=unitary_circuit, state_preparation=state_preparation
+                )
+        self.assertTrue(len(caught_warnings) > 0)
         return result
 
     @data(True, False)

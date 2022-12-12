@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2020, 2022.
+# (C) Copyright IBM 2020, 2023.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -30,7 +30,6 @@ class MatrixFunctional(LinearSystemObservable):
 
     Examples::
 
-            import warnings
             import numpy as np
             from qiskit import QuantumCircuit
             from qiskit.algorithms.linear_solvers.observables.matrix_functional import \
@@ -41,9 +40,7 @@ class MatrixFunctional(LinearSystemObservable):
             tpass = RemoveResetInZeroState()
 
             vector = [1.0, -2.1, 3.2, -4.3]
-            with warnings.catch_warnings():
-                warnings.simplefilter('ignore')
-                observable = MatrixFunctional(1, -1 / 3)
+            observable = MatrixFunctional(1, -1 / 3)
 
             init_state = vector / np.linalg.norm(vector)
             num_qubits = int(np.log2(len(vector)))
@@ -61,12 +58,10 @@ class MatrixFunctional(LinearSystemObservable):
             observable_ops = observable.observable(num_qubits)
             state_vecs = []
             # First is the norm
-            with warnings.catch_warnings():
-                warnings.simplefilter('ignore')
-                state_vecs.append((~StateFn(observable_ops[0]) @ StateFn(qcs[0])).eval())
-                for i in range(1, len(observable_ops), 2):
-                    state_vecs += [(~StateFn(observable_ops[i]) @ StateFn(qcs[i])).eval(),
-                                   (~StateFn(observable_ops[i + 1]) @ StateFn(qcs[i + 1])).eval()]
+            state_vecs.append((~StateFn(observable_ops[0]) @ StateFn(qcs[0])).eval())
+            for i in range(1, len(observable_ops), 2):
+                state_vecs += [(~StateFn(observable_ops[i]) @ StateFn(qcs[i])).eval(),
+                               (~StateFn(observable_ops[i + 1]) @ StateFn(qcs[i + 1])).eval()]
 
             # Obtain result
             result = observable.post_processing(state_vecs, num_qubits)

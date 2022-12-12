@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2020, 2022.
+# (C) Copyright IBM 2020, 2023.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -12,7 +12,6 @@
 
 """The CVaR (Conditional Value at Risk) expectation class."""
 
-import warnings
 from typing import Optional, Union
 
 from qiskit.opflow.expectations.aer_pauli_expectation import AerPauliExpectation
@@ -57,7 +56,7 @@ class CVaRExpectation(ExpectationBase):
     """
 
     @deprecate_function(
-        "The CVaRExpectation opflow class is deprecated as of Qiskit Terra 0.23.0 "
+        "The CVaRExpectation opflow class is deprecated as of Qiskit Terra 0.24.0 "
         "and will be removed no sooner than 3 months after the release date. "
     )
     def __init__(self, alpha: float, expectation: Optional[ExpectationBase] = None) -> None:
@@ -70,9 +69,7 @@ class CVaRExpectation(ExpectationBase):
         Raises:
             NotImplementedError: If the ``expectation`` is an AerPauliExpecation.
         """
-        with warnings.catch_warnings():
-            warnings.simplefilter("ignore")
-            super().__init__()
+        super().__init__()
         self.alpha = alpha
         if isinstance(expectation, AerPauliExpectation):
             raise NotImplementedError("AerPauliExpecation currently not supported.")

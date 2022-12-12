@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2020, 2022.
+# (C) Copyright IBM 2020, 2023.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -16,20 +16,22 @@ Converters (:mod:`qiskit.opflow.converters`)
 
 .. currentmodule:: qiskit.opflow.converters
 
-Deprecation: Converters are objects which manipulate Operators, usually traversing an Operator to
-change certain sub-Operators into a desired representation. Often the converted Operator is
-isomorphic or approximate to the original Operator in some way, but not always. For example,
-a converter may accept :class:`~qiskit.opflow.primitive_ops.CircuitOp` and return a
-:class:`~qiskit.opflow.list_ops.SummedOp` of
-:class:`~qiskit.opflow.primitive_ops.PauliOp`'s representing the
-circuit unitary. Converters may not have polynomial space or time scaling in their operations.
-On the contrary, many converters, such as a
-:class:`~qiskit.opflow.expectations.MatrixExpectation` or
-:class:`~qiskit.opflow.evolutions.MatrixEvolution`,
-which convert :class:`~qiskit.opflow.primitive_ops.PauliOp`'s to
-:class:`~qiskit.opflow.primitive_ops.MatrixOp`'s internally, will require time or space
-exponential in the number of qubits unless a clever trick is known
-(such as the use of sparse matrices).
+.. deprecated:: 0.24.0
+    Converters are objects which manipulate Operators, usually traversing an Operator to
+    change certain sub-Operators into a desired representation. Often the converted Operator is
+    isomorphic or approximate to the original Operator in some way, but not always. For example,
+    a converter may accept :class:`~qiskit.opflow.primitive_ops.CircuitOp` and return a
+    :class:`~qiskit.opflow.list_ops.SummedOp` of
+    :class:`~qiskit.opflow.primitive_ops.PauliOp`'s representing the
+    circuit unitary. Converters may not have polynomial space or time scaling in their operations.
+    On the contrary, many converters, such as a
+    :class:`~qiskit.opflow.expectations.MatrixExpectation` or
+    :class:`~qiskit.opflow.evolutions.MatrixEvolution`,
+    which convert :class:`~qiskit.opflow.primitive_ops.PauliOp`'s to
+    :class:`~qiskit.opflow.primitive_ops.MatrixOp`'s internally, will require time or space
+    exponential in the number of qubits unless a clever trick is known
+    (such as the use of sparse matrices).
+
 
 Note:
      Not all converters are in this module, as :mod:`~qiskit.opflow.expectations`

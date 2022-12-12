@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2020, 2022.
+# (C) Copyright IBM 2020, 2023.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -13,7 +13,6 @@
 """MatrixOp Class """
 
 from typing import Dict, List, Optional, Set, Union, cast, get_type_hints
-import warnings
 import numpy as np
 from scipy.sparse import spmatrix
 
@@ -38,7 +37,7 @@ class MatrixOp(PrimitiveOp):
     primitive: Operator
 
     @deprecate_function(
-        "The MatrixOp opflow class is deprecated as of Qiskit Terra 0.23.0 "
+        "The MatrixOp opflow class is deprecated as of Qiskit Terra 0.24.0 "
         "and will be removed no sooner than 3 months after the release date. "
     )
     def __init__(
@@ -73,9 +72,7 @@ class MatrixOp(PrimitiveOp):
         if primitive.input_dims() != primitive.output_dims():
             raise ValueError("Cannot handle non-square matrices yet.")
 
-        with warnings.catch_warnings():
-            warnings.simplefilter("ignore")
-            super().__init__(primitive, coeff=coeff)
+        super().__init__(primitive, coeff=coeff)
 
     def primitive_strings(self) -> Set[str]:
         return {"Matrix"}

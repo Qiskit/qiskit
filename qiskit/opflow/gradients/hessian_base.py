@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2020, 2022.
+# (C) Copyright IBM 2020, 2023.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -12,7 +12,6 @@
 
 """The module to compute Hessians."""
 
-import warnings
 from typing import Union
 
 from qiskit.utils.deprecation import deprecate_function
@@ -24,7 +23,7 @@ class HessianBase(DerivativeBase):
     """Deprecation: Base class for the Hessian of an expected value."""
 
     @deprecate_function(
-        "The HessianBase opflow class is deprecated as of Qiskit Terra 0.23.0 "
+        "The HessianBase opflow class is deprecated as of Qiskit Terra 0.24.0 "
         "and will be removed no sooner than 3 months after the release date. "
     )
     def __init__(self, hess_method: Union[str, CircuitGradient] = "param_shift", **kwargs):
@@ -38,9 +37,7 @@ class HessianBase(DerivativeBase):
         Raises:
             ValueError: If method != ``fin_diff`` and ``epsilon`` is not None.
         """
-        with warnings.catch_warnings():
-            warnings.simplefilter("ignore")
-            super().__init__()
+        super().__init__()
         if isinstance(hess_method, CircuitGradient):
             self._hess_method = hess_method
         elif hess_method == "param_shift":

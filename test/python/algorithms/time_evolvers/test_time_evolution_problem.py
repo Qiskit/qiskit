@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2022.
+# (C) Copyright IBM 2022, 2023.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -12,6 +12,7 @@
 
 """Test evolver problem class."""
 import unittest
+import warnings
 from test.python.algorithms import QiskitAlgorithmsTestCase
 from ddt import data, ddt
 from numpy.testing import assert_raises
@@ -52,7 +53,13 @@ class TestTimeEvolutionProblem(QiskitAlgorithmsTestCase):
     def test_init_all(self, initial_state):
         """Tests that all fields are initialized correctly."""
         t_parameter = Parameter("t")
-        hamiltonian = t_parameter * Z + Y
+        with warnings.catch_warnings(record=True) as caught_warnings:
+            warnings.filterwarnings(
+                "always",
+                category=DeprecationWarning,
+            )
+            hamiltonian = t_parameter * Z + Y
+        self.assertTrue(len(caught_warnings) > 0)
         time = 2
         aux_operators = [X, Y]
         param_value_dict = {t_parameter: 3.2}
@@ -66,14 +73,26 @@ class TestTimeEvolutionProblem(QiskitAlgorithmsTestCase):
             param_value_map=param_value_dict,
         )
 
-        expected_hamiltonian = Y + t_parameter * Z
+        with warnings.catch_warnings(record=True) as caught_warnings:
+            warnings.filterwarnings(
+                "always",
+                category=DeprecationWarning,
+            )
+            expected_hamiltonian = Y + t_parameter * Z
+        self.assertTrue(len(caught_warnings) > 0)
         expected_time = 2
         expected_type = QuantumCircuit
         expected_aux_operators = [X, Y]
         expected_t_param = t_parameter
         expected_param_value_dict = {t_parameter: 3.2}
 
-        self.assertEqual(evo_problem.hamiltonian, expected_hamiltonian)
+        with warnings.catch_warnings(record=True) as caught_warnings:
+            warnings.filterwarnings(
+                "always",
+                category=DeprecationWarning,
+            )
+            self.assertEqual(evo_problem.hamiltonian, expected_hamiltonian)
+        self.assertTrue(len(caught_warnings) > 0)
         self.assertEqual(evo_problem.time, expected_time)
         self.assertEqual(type(evo_problem.initial_state), expected_type)
         self.assertEqual(evo_problem.aux_operators, expected_aux_operators)
@@ -84,7 +103,13 @@ class TestTimeEvolutionProblem(QiskitAlgorithmsTestCase):
         """Tests expected errors are thrown on parameters mismatch."""
         param_x = Parameter("x")
         with self.subTest(msg="Parameter missing in dict."):
-            hamiltonian = PauliSumOp(SparsePauliOp([Pauli("X"), Pauli("Y")]), param_x)
+            with warnings.catch_warnings(record=True) as caught_warnings:
+                warnings.filterwarnings(
+                    "always",
+                    category=DeprecationWarning,
+                )
+                hamiltonian = PauliSumOp(SparsePauliOp([Pauli("X"), Pauli("Y")]), param_x)
+            self.assertTrue(len(caught_warnings) > 0)
             evolution_problem = TimeEvolutionProblem(hamiltonian, 2, Zero)
             with assert_raises(ValueError):
                 evolution_problem.validate_params()

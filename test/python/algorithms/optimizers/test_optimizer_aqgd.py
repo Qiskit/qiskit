@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2019, 2022
+# (C) Copyright IBM 2019, 2023
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -13,6 +13,7 @@
 """ Test of AQGD optimizer """
 
 import unittest
+import warnings
 from test.python.algorithms import QiskitAlgorithmsTestCase
 from qiskit.circuit.library import RealAmplitudes
 from qiskit.utils import QuantumInstance, algorithm_globals, optionals
@@ -28,17 +29,22 @@ class TestOptimizerAQGD(QiskitAlgorithmsTestCase):
 
     def setUp(self):
         super().setUp()
-        self.seed = 50
-        algorithm_globals.random_seed = self.seed
-        self.qubit_op = PauliSumOp.from_list(
-            [
-                ("II", -1.052373245772859),
-                ("IZ", 0.39793742484318045),
-                ("ZI", -0.39793742484318045),
-                ("ZZ", -0.01128010425623538),
-                ("XX", 0.18093119978423156),
-            ]
-        )
+        algorithm_globals.random_seed = 50
+        with warnings.catch_warnings(record=True) as caught_warnings:
+            warnings.filterwarnings(
+                "always",
+                category=DeprecationWarning,
+            )
+            self.qubit_op = PauliSumOp.from_list(
+                [
+                    ("II", -1.052373245772859),
+                    ("IZ", 0.39793742484318045),
+                    ("ZI", -0.39793742484318045),
+                    ("ZZ", -0.01128010425623538),
+                    ("XX", 0.18093119978423156),
+                ]
+            )
+        self.assertTrue(len(caught_warnings) > 0)
 
     @slow_test
     @unittest.skipUnless(optionals.HAS_AER, "qiskit-aer is required to run this test")
@@ -46,20 +52,25 @@ class TestOptimizerAQGD(QiskitAlgorithmsTestCase):
         """test AQGD optimizer with the parameters as single values."""
         from qiskit_aer import Aer
 
-        q_instance = QuantumInstance(
-            Aer.get_backend("aer_simulator_statevector"),
-            seed_simulator=algorithm_globals.random_seed,
-            seed_transpiler=algorithm_globals.random_seed,
-        )
-
-        aqgd = AQGD(momentum=0.0)
-        vqe = VQE(
-            ansatz=RealAmplitudes(),
-            optimizer=aqgd,
-            gradient=Gradient("lin_comb"),
-            quantum_instance=q_instance,
-        )
-        result = vqe.compute_minimum_eigenvalue(operator=self.qubit_op)
+        with warnings.catch_warnings(record=True) as caught_warnings:
+            warnings.filterwarnings(
+                "always",
+                category=DeprecationWarning,
+            )
+            q_instance = QuantumInstance(
+                Aer.get_backend("aer_simulator_statevector"),
+                seed_simulator=algorithm_globals.random_seed,
+                seed_transpiler=algorithm_globals.random_seed,
+            )
+            aqgd = AQGD(momentum=0.0)
+            vqe = VQE(
+                ansatz=RealAmplitudes(),
+                optimizer=aqgd,
+                gradient=Gradient("lin_comb"),
+                quantum_instance=q_instance,
+            )
+            result = vqe.compute_minimum_eigenvalue(operator=self.qubit_op)
+        self.assertTrue(len(caught_warnings) > 0)
         self.assertAlmostEqual(result.eigenvalue.real, -1.857, places=3)
 
     @unittest.skipUnless(optionals.HAS_AER, "qiskit-aer is required to run this test")
@@ -67,15 +78,21 @@ class TestOptimizerAQGD(QiskitAlgorithmsTestCase):
         """test AQGD optimizer with the parameters as lists."""
         from qiskit_aer import Aer
 
-        q_instance = QuantumInstance(
-            Aer.get_backend("aer_simulator_statevector"),
-            seed_simulator=algorithm_globals.random_seed,
-            seed_transpiler=algorithm_globals.random_seed,
-        )
+        with warnings.catch_warnings(record=True) as caught_warnings:
+            warnings.filterwarnings(
+                "always",
+                category=DeprecationWarning,
+            )
+            q_instance = QuantumInstance(
+                Aer.get_backend("aer_simulator_statevector"),
+                seed_simulator=algorithm_globals.random_seed,
+                seed_transpiler=algorithm_globals.random_seed,
+            )
 
-        aqgd = AQGD(maxiter=[1000, 1000, 1000], eta=[1.0, 0.5, 0.3], momentum=[0.0, 0.5, 0.75])
-        vqe = VQE(ansatz=RealAmplitudes(), optimizer=aqgd, quantum_instance=q_instance)
-        result = vqe.compute_minimum_eigenvalue(operator=self.qubit_op)
+            aqgd = AQGD(maxiter=[1000, 1000, 1000], eta=[1.0, 0.5, 0.3], momentum=[0.0, 0.5, 0.75])
+            vqe = VQE(ansatz=RealAmplitudes(), optimizer=aqgd, quantum_instance=q_instance)
+            result = vqe.compute_minimum_eigenvalue(operator=self.qubit_op)
+        self.assertTrue(len(caught_warnings) > 0)
         self.assertAlmostEqual(result.eigenvalue.real, -1.857, places=3)
 
     def test_raises_exception(self):
@@ -88,20 +105,26 @@ class TestOptimizerAQGD(QiskitAlgorithmsTestCase):
         """test AQGD with int values passed as eta and momentum."""
         from qiskit_aer import Aer
 
-        q_instance = QuantumInstance(
-            Aer.get_backend("aer_simulator_statevector"),
-            seed_simulator=algorithm_globals.random_seed,
-            seed_transpiler=algorithm_globals.random_seed,
-        )
+        with warnings.catch_warnings(record=True) as caught_warnings:
+            warnings.filterwarnings(
+                "always",
+                category=DeprecationWarning,
+            )
+            q_instance = QuantumInstance(
+                Aer.get_backend("aer_simulator_statevector"),
+                seed_simulator=algorithm_globals.random_seed,
+                seed_transpiler=algorithm_globals.random_seed,
+            )
 
-        aqgd = AQGD(maxiter=1000, eta=1, momentum=0)
-        vqe = VQE(
-            ansatz=RealAmplitudes(),
-            optimizer=aqgd,
-            gradient=Gradient("lin_comb"),
-            quantum_instance=q_instance,
-        )
-        result = vqe.compute_minimum_eigenvalue(operator=self.qubit_op)
+            aqgd = AQGD(maxiter=1000, eta=1, momentum=0)
+            vqe = VQE(
+                ansatz=RealAmplitudes(),
+                optimizer=aqgd,
+                gradient=Gradient("lin_comb"),
+                quantum_instance=q_instance,
+            )
+            result = vqe.compute_minimum_eigenvalue(operator=self.qubit_op)
+        self.assertTrue(len(caught_warnings) > 0)
         self.assertAlmostEqual(result.eigenvalue.real, -1.857, places=3)
 
 

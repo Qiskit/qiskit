@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2021.
+# (C) Copyright IBM 2021, 2023.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -12,6 +12,7 @@
 
 """Tests for the SPSA optimizer."""
 
+import warnings
 from test.python.algorithms import QiskitAlgorithmsTestCase
 from ddt import ddt, data
 
@@ -40,8 +41,14 @@ class TestSPSA(QiskitAlgorithmsTestCase):
         """Test SPSA on the Pauli two-design example."""
         circuit = PauliTwoDesign(3, reps=1, seed=1)
         parameters = list(circuit.parameters)
-        obs = Z ^ Z ^ I
-        expr = ~StateFn(obs) @ StateFn(circuit)
+        with warnings.catch_warnings(record=True) as caught_warnings:
+            warnings.filterwarnings(
+                "always",
+                category=DeprecationWarning,
+            )
+            obs = Z ^ Z ^ I
+            expr = ~StateFn(obs) @ StateFn(circuit)
+        self.assertTrue(len(caught_warnings) > 0)
 
         initial_point = np.array(
             [0.82311034, 0.02611798, 0.21077064, 0.61842177, 0.09828447, 0.62013131]
@@ -202,7 +209,7 @@ class TestSPSA(QiskitAlgorithmsTestCase):
         """Test using a backend and expectation converter in get_fidelity warns."""
         ansatz = PauliTwoDesign(2, reps=1, seed=2)
 
-        with self.assertWarns(PendingDeprecationWarning):
+        with self.assertWarns(DeprecationWarning):
             _ = QNSPSA.get_fidelity(ansatz, StatevectorSimulatorPy(), MatrixExpectation())
 
     def test_qnspsa_fidelity_primitives(self):
@@ -227,7 +234,13 @@ class TestSPSA(QiskitAlgorithmsTestCase):
         """Test using max_evals_grouped with QNSPSA."""
         circuit = PauliTwoDesign(3, reps=1, seed=1)
         num_parameters = circuit.num_parameters
-        obs = Z ^ Z ^ I
+        with warnings.catch_warnings(record=True) as caught_warnings:
+            warnings.filterwarnings(
+                "always",
+                category=DeprecationWarning,
+            )
+            obs = Z ^ Z ^ I
+        self.assertTrue(len(caught_warnings) > 0)
 
         estimator = Estimator(options={"seed": 12})
 

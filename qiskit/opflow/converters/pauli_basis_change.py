@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2020, 2022.
+# (C) Copyright IBM 2020, 2023.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -12,7 +12,6 @@
 
 """ PauliBasisChange Class """
 
-import warnings
 from functools import partial, reduce
 from typing import Callable, List, Optional, Tuple, Union, cast
 
@@ -58,7 +57,7 @@ class PauliBasisChange(ConverterBase):
     """
 
     @deprecate_function(
-        "The PauliBasisChange opflow class is deprecated as of Qiskit Terra 0.23.0 "
+        "The PauliBasisChange opflow class is deprecated as of Qiskit Terra 0.24.0 "
         "and will be removed no sooner than 3 months after the release date. "
     )
     def __init__(
@@ -89,9 +88,7 @@ class PauliBasisChange(ConverterBase):
                        beginning and ending operators are equivalent.
 
         """
-        with warnings.catch_warnings():
-            warnings.simplefilter("ignore")
-            super().__init__()
+        super().__init__()
         if destination_basis is not None:
             self.destination = destination_basis  # type: ignore
         else:

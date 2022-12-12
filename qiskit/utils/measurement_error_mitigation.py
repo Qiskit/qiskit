@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2019, 2021.
+# (C) Copyright IBM 2019, 2023.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -27,15 +27,20 @@ from qiskit.utils.mitigation import (
     CompleteMeasFitter,
     TensoredMeasFitter,
 )
+from qiskit.utils.deprecation import deprecate_function
 
 # pylint: disable=invalid-name
 
 
+@deprecate_function(
+    "The get_measured_qubits function is deprecated as of Qiskit Terra 0.24.0 "
+    "and will be removed no sooner than 3 months after the release date. "
+)
 def get_measured_qubits(
     transpiled_circuits: List[QuantumCircuit],
 ) -> Tuple[List[int], Dict[str, List[int]]]:
     """
-    Retrieve the measured qubits from transpiled circuits.
+    Deprecation: Retrieve the measured qubits from transpiled circuits.
 
     Args:
         transpiled_circuits: a list of transpiled circuits
@@ -75,9 +80,13 @@ def get_measured_qubits(
     return sorted(qubit_index), qubit_mappings
 
 
+@deprecate_function(
+    "The get_measured_qubits_from_qobj function is deprecated as of Qiskit Terra 0.24.0 "
+    "and will be removed no sooner than 3 months after the release date. "
+)
 def get_measured_qubits_from_qobj(qobj: QasmQobj) -> Tuple[List[int], Dict[str, List[int]]]:
     """
-    Retrieve the measured qubits from transpiled circuits.
+    Deprecation: Retrieve the measured qubits from transpiled circuits.
 
     Args:
         qobj: qobj
@@ -116,6 +125,10 @@ def get_measured_qubits_from_qobj(qobj: QasmQobj) -> Tuple[List[int], Dict[str, 
     return sorted(qubit_index), qubit_mappings
 
 
+@deprecate_function(
+    "The build_measurement_error_mitigation_circuits function is deprecated as of Qiskit Terra 0.24.0 "
+    "and will be removed no sooner than 3 months after the release date. "
+)
 def build_measurement_error_mitigation_circuits(
     qubit_list: List[int],
     fitter_cls: Callable,
@@ -124,7 +137,7 @@ def build_measurement_error_mitigation_circuits(
     compile_config: Optional[Dict] = None,
     mit_pattern: Optional[List[List[int]]] = None,
 ) -> Tuple[QuantumCircuit, List[str], List[str]]:
-    """Build measurement error mitigation circuits
+    """Deprecation: Build measurement error mitigation circuits
     Args:
         qubit_list: list of ordered qubits used in the algorithm
         fitter_cls: CompleteMeasFitter or TensoredMeasFitter
@@ -191,6 +204,10 @@ def build_measurement_error_mitigation_circuits(
     return t_meas_calibs_circuits, state_labels, circlabel
 
 
+@deprecate_function(
+    "The build_measurement_error_mitigation_qobj function is deprecated as of Qiskit Terra 0.24.0 "
+    "and will be removed no sooner than 3 months after the release date. "
+)
 def build_measurement_error_mitigation_qobj(
     qubit_list: List[int],
     fitter_cls: Callable,

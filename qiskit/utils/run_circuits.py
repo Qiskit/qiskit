@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2018, 2022.
+# (C) Copyright IBM 2018, 2023.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -41,7 +41,7 @@ logger = logging.getLogger(__name__)
 
 
 @deprecate_function(
-    "The find_regs_by_name function is deprecated as of Qiskit Terra 0.23.0 "
+    "The find_regs_by_name function is deprecated as of Qiskit Terra 0.24.0 "
     "and will be removed no sooner than 3 months after the release date. "
 )
 def find_regs_by_name(
@@ -107,7 +107,7 @@ def _safe_get_job_status(job: Job, job_id: str, max_job_retries: int, wait: floa
 
 
 @deprecate_function(
-    "The run_circuits function is deprecated as of Qiskit Terra 0.23.0 "
+    "The run_circuits function is deprecated as of Qiskit Terra 0.24.0 "
     "and will be removed no sooner than 3 months after the release date. "
 )
 def run_circuits(

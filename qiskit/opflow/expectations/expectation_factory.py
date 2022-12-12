@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2020, 2022.
+# (C) Copyright IBM 2020, 2023.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -12,6 +12,7 @@
 
 """ ExpectationFactory Class """
 
+import warnings
 import logging
 from typing import Optional, Union
 
@@ -22,8 +23,8 @@ from qiskit.opflow.expectations.matrix_expectation import MatrixExpectation
 from qiskit.opflow.expectations.pauli_expectation import PauliExpectation
 from qiskit.opflow.operator_base import OperatorBase
 from qiskit.providers import Backend
-from qiskit.utils.backend_utils import has_aer, is_aer_qasm, is_statevector_backend
-from qiskit.utils.quantum_instance import QuantumInstance
+from qiskit.utils.backend_utils import is_aer_qasm, is_statevector_backend
+from qiskit.utils import QuantumInstance, optionals
 from qiskit.utils.deprecation import deprecate_function
 
 logger = logging.getLogger(__name__)
@@ -36,7 +37,7 @@ class ExpectationFactory:
 
     @staticmethod
     @deprecate_function(
-        "The ExpectationFactory.build opflow method is deprecated as of Qiskit Terra 0.23.0 "
+        "The ExpectationFactory.build opflow method is deprecated as of Qiskit Terra 0.24.0 "
         "and will be removed no sooner than 3 months after the release date. "
     )
     def build(
@@ -73,10 +74,10 @@ class ExpectationFactory:
 
             if backend_to_check is None:
                 # If user has Aer but didn't specify a backend, use the Aer fast expectation
-                if has_aer():
-                    from qiskit import Aer
+                if optionals.HAS_AER:
+                    from qiskit_aer import AerSimulator
 
-                    backend_to_check = Aer.get_backend("qasm_simulator")
+                    backend_to_check = AerSimulator()
                 # If user doesn't have Aer, use statevector_simulator
                 # for < 16 qubits, and qasm with warning for more.
                 else:
@@ -98,25 +99,27 @@ class ExpectationFactory:
             # If the user specified Aer qasm backend and is using a
             # Pauli operator, use the Aer fast expectation if we are including such
             # custom behaviors.
-            if is_aer_qasm(backend_to_check) and include_custom:
-                return AerPauliExpectation()
+            with warnings.catch_warnings():
+                warnings.simplefilter("ignore")
+                if is_aer_qasm(backend_to_check) and include_custom:
+                    return AerPauliExpectation()
 
-            # If the user specified a statevector backend (either Aer or BasicAer),
-            # use a converter to produce a
-            # Matrix operator and compute using matmul
-            elif is_statevector_backend(backend_to_check):
-                if operator.num_qubits >= 16:
-                    logger.warning(
-                        "Note: Using a statevector_simulator with %d qubits can be very expensive. "
-                        "Consider using the Aer qasm_simulator instead to take advantage of Aer's "
-                        "built-in fast Pauli Expectation",
-                        operator.num_qubits,
-                    )
-                return MatrixExpectation()
+                # If the user specified a statevector backend (either Aer or BasicAer),
+                # use a converter to produce a
+                # Matrix operator and compute using matmul
+                elif is_statevector_backend(backend_to_check):
+                    if operator.num_qubits >= 16:
+                        logger.warning(
+                            "Note: Using a statevector_simulator with %d qubits can be very expensive. "
+                            "Consider using the Aer qasm_simulator instead to take advantage of Aer's "
+                            "built-in fast Pauli Expectation",
+                            operator.num_qubits,
+                        )
+                    return MatrixExpectation()
 
-            # All other backends, including IBMQ, BasicAer QASM, go here.
-            else:
-                return PauliExpectation()
+                # All other backends, including IBMQ, BasicAer QASM, go here.
+                else:
+                    return PauliExpectation()
 
         elif primitives == {"Matrix"}:
             return MatrixExpectation()

@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2020, 2022.
+# (C) Copyright IBM 2020, 2023.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -12,7 +12,6 @@
 
 """DictToCircuitSum Class """
 
-import warnings
 from qiskit.opflow.converters.converter_base import ConverterBase
 from qiskit.opflow.list_ops.list_op import ListOp
 from qiskit.opflow.operator_base import OperatorBase
@@ -31,7 +30,7 @@ class DictToCircuitSum(ConverterBase):
     """
 
     @deprecate_function(
-        "The DictToCircuitSum opflow class is deprecated as of Qiskit Terra 0.23.0 "
+        "The DictToCircuitSum opflow class is deprecated as of Qiskit Terra 0.24.0 "
         "and will be removed no sooner than 3 months after the release date. "
     )
     def __init__(
@@ -44,9 +43,7 @@ class DictToCircuitSum(ConverterBase):
             convert_dicts: Whether to convert VectorStateFn.
             convert_vectors: Whether to convert DictStateFns.
         """
-        with warnings.catch_warnings():
-            warnings.simplefilter("ignore")
-            super().__init__()
+        super().__init__()
         self._traverse = traverse
         self._convert_dicts = convert_dicts
         self._convert_vectors = convert_vectors

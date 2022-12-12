@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2020, 2022.
+# (C) Copyright IBM 2020, 2023.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -13,7 +13,6 @@
 """CircuitOp Class """
 
 from typing import Dict, List, Optional, Set, Union, cast
-import warnings
 import numpy as np
 
 import qiskit
@@ -33,7 +32,7 @@ class CircuitOp(PrimitiveOp):
     primitive: QuantumCircuit
 
     @deprecate_function(
-        "The CircuitOp opflow class is deprecated as of Qiskit Terra 0.23.0 "
+        "The CircuitOp opflow class is deprecated as of Qiskit Terra 0.24.0 "
         "and will be removed no sooner than 3 months after the release date. "
     )
     def __init__(
@@ -64,9 +63,7 @@ class CircuitOp(PrimitiveOp):
         if len(primitive.clbits) != 0:
             raise TypeError("CircuitOp does not support QuantumCircuits with ClassicalRegisters.")
 
-        with warnings.catch_warnings():
-            warnings.simplefilter("ignore")
-            super().__init__(primitive, coeff)
+        super().__init__(primitive, coeff)
         self._coeff = coeff
 
     def primitive_strings(self) -> Set[str]:

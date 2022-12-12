@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2020, 2022.
+# (C) Copyright IBM 2020, 2023.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -13,7 +13,6 @@
 """ Z2 Symmetry Tapering Converter Class """
 
 import logging
-import warnings
 from typing import List, Tuple, Union, cast
 
 from qiskit.opflow.converters.converter_base import ConverterBase
@@ -38,7 +37,7 @@ class TwoQubitReduction(ConverterBase):
     """
 
     @deprecate_function(
-        "The TwoQubitReduction opflow class is deprecated as of Qiskit Terra 0.23.0 "
+        "The TwoQubitReduction opflow class is deprecated as of Qiskit Terra 0.24.0 "
         "and will be removed no sooner than 3 months after the release date. "
     )
     def __init__(self, num_particles: Union[int, List[int], Tuple[int, int]]):
@@ -47,9 +46,7 @@ class TwoQubitReduction(ConverterBase):
             num_particles: number of particles, if it is a list,
                            the first number is alpha and the second number if beta.
         """
-        with warnings.catch_warnings():
-            warnings.simplefilter("ignore")
-            super().__init__()
+        super().__init__()
         if isinstance(num_particles, (tuple, list)):
             num_alpha = num_particles[0]
             num_beta = num_particles[1]

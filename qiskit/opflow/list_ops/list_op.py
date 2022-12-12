@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2020, 2022.
+# (C) Copyright IBM 2020, 2023.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -12,7 +12,6 @@
 
 """ ListOp Operator Class """
 
-import warnings
 from functools import reduce
 from typing import Any, Callable, Dict, Iterator, List, Optional, Set, Sequence, Union, cast
 
@@ -55,7 +54,7 @@ class ListOp(OperatorBase):
     """
 
     @deprecate_function(
-        "The ListOp opflow class is deprecated as of Qiskit Terra 0.23.0 "
+        "The ListOp opflow class is deprecated as of Qiskit Terra 0.24.0 "
         "and will be removed no sooner than 3 months after the release date. "
     )
     def __init__(
@@ -78,9 +77,7 @@ class ListOp(OperatorBase):
             Note that the default "recombination function" lambda above is essentially the
             identity - it accepts the list of values, and returns them in a list.
         """
-        with warnings.catch_warnings():
-            warnings.simplefilter("ignore")
-            super().__init__()
+        super().__init__()
         self._oplist = self._check_input_types(oplist)
         self._combo_fn = combo_fn
         self._coeff = coeff
