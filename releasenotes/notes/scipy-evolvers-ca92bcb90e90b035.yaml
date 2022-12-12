@@ -4,11 +4,9 @@ features:
     Added two new classes :class:`~qiskit.algorithms.time_evolvers.classical_methods.SciPyRealEvolver` and
     :class:`~qiskit.algorithms.time_evolvers.classical_methods.SciPyImaginaryEvolver` that implement integration methods
     for time evolution of a quantum state.
-    Added two new attributes to :class:`~qiskit.algorithms.time_evolvers.TimeEvolutionResult`.
-    :attr:`~qiskit.algorithms.time_evolvers.TimeEvolutionResult.observables` that contains the mean and standard
-    deviation of the obervables at each timestep of the integration and
-    :attr:`~qiskit.algorithms.time_evolvers.TimeEvolutionResult.times` that is a vector with the time of each
-    measurement.
+    The value and standard deviation of observables as well as the times they are 
+    evaluated at can be queried as :attr:`.TimeEvolutionResult.observables` and 
+    :attr:`.TimeEvolutionResult.times`.
     Here is simple example:
 
     .. code-block:: python
