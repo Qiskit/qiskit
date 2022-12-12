@@ -1,0 +1,5 @@
+---
+deprecations:
+  - |
+    Remove :func:`~qiskit.circuit.measure.measure` and :func:`~qiskit.circuit.reset.reset` 
+    functions deprecated since 0.19.
