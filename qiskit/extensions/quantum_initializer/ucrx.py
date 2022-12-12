@@ -37,7 +37,7 @@ class UCRXGate(UCPauliRotGate):
     (https://arxiv.org/pdf/quant-ph/0406176.pdf)
 
     Args:
-        angle_list (list(float)): list of (real) rotation angles :math:`[a_0,...,a_{2^k-1}]`
+        angle_list (List[float]): list of (real) rotation angles :math:`[a_0,...,a_{2^k-1}]`
     """
 
     def __init__(self, angle_list):
@@ -50,8 +50,8 @@ def ucrx(self, angle_list, q_controls, q_target):
     The decomposition is base on https://arxiv.org/pdf/quant-ph/0406176.pdf by Shende et al.
 
     Args:
-        angle_list (list(float)): list of (real) rotation angles :math:`[a_0,...,a_{2^k-1}]`
-        q_controls (QuantumRegister|list): list of k control qubits
+        angle_list (List[float]): list of (real) rotation angles :math:`[a_0,...,a_{2^k-1}]`
+        q_controls (QuantumRegister|List[Qubit]): list of k control qubits
             (or empty list if no controls). The control qubits are ordered according to their
             significance in increasing order: For example if ``q_controls=[q[0],q[1]]``
             (with ``q = QuantumRegister(2)``), the rotation ``Rx(a_0)`` is performed if ``q[0]``
