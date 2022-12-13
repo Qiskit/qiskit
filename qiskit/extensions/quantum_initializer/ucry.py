@@ -53,13 +53,13 @@ def ucry(
 
     Args:
         angle_list (List[float]): list of (real) rotation angles :math:`[a_0,...,a_{2^k-1}]`
-        q_controls (QuantumRegister|List[Qubit]): list of k control qubits
+        q_controls (Union[QuantumRegister, List[Qubit]]): list of k control qubits
             (or empty list if no controls). The control qubits are ordered according to their
             significance in increasing order: For example if ``q_controls=[q[0],q[1]]``
             (with ``q = QuantumRegister(2)``), the rotation ``Ry(a_0)`` is performed if ``q[0]``
             and ``q[1]`` are in the state zero, the rotation ``Ry(a_1)`` is performed if ``q[0]``
             is in the state one and ``q[1]`` is in the state zero, and so on
-        q_target (QuantumRegister|Qubit): target qubit, where we act on with
+        q_target (Union[QuantumRegister, Qubit]): target qubit, where we act on with
             the single-qubit rotation gates
 
     Returns:
