@@ -73,7 +73,7 @@ class ConsolidateBlocks(TransformationPass):
 
         # compute ordered indices for the global circuit wires
         global_index_map = {wire: idx for idx, wire in enumerate(dag.qubits)}
-        blocks = self.property_set["block_list"]
+        blocks = self.property_set["block_list"] or []
         basis_gate_name = self.decomposer.gate.name
         all_block_gates = set()
         for block in blocks:
