@@ -30,6 +30,7 @@ Estimator Gradients
    LinCombEstimatorGradient
    ParamShiftEstimatorGradient
    SPSAEstimatorGradient
+   ReverseEstimatorGradient
 
 Sampler Gradients
 =================
@@ -77,6 +78,7 @@ from .qfi_result import QFIResult
 from .sampler_gradient_result import SamplerGradientResult
 from .spsa_estimator_gradient import SPSAEstimatorGradient
 from .spsa_sampler_gradient import SPSASamplerGradient
+from .reverse_gradient.reverse_gradient import ReverseEstimatorGradient
 
 __all__ = [
     "BaseEstimatorGradient",
@@ -95,4 +97,5 @@ __all__ = [
     "SamplerGradientResult",
     "SPSAEstimatorGradient",
     "SPSASamplerGradient",
+    "ReverseEstimatorGradient",
 ]

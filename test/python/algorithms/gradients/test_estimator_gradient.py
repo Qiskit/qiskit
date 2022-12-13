@@ -25,6 +25,7 @@ from qiskit.algorithms.gradients import (
     LinCombEstimatorGradient,
     ParamShiftEstimatorGradient,
     SPSAEstimatorGradient,
+    ReverseEstimatorGradient,
     DerivativeType,
 )
 from qiskit.circuit import Parameter
@@ -41,6 +42,7 @@ gradient_factories = [
     lambda estimator: FiniteDiffEstimatorGradient(estimator, epsilon=1e-6, method="backward"),
     ParamShiftEstimatorGradient,
     LinCombEstimatorGradient,
+    ReverseEstimatorGradient,
 ]
 
 
@@ -124,6 +126,23 @@ class TestEstimatorGradient(QiskitTestCase):
             gradients = gradient.run([qc], [op], [param]).result().gradients[0]
             for j, value in enumerate(gradients):
                 self.assertAlmostEqual(value, correct_results[i][j], 3)
+
+    @combine(grad=gradient_factories)
+    def test_gradient_shuffled_order(self, grad):
+        """Test computing the gradients out-of-order."""
+        estimator = Estimator()
+        a = Parameter("a")
+        b = Parameter("b")
+        qc = QuantumCircuit(1)
+        qc.rx(0.12, 0)
+        qc.ry(a, 0)
+        qc.rz(b, 0)
+        gradient = grad(estimator)
+        op = SparsePauliOp.from_list([("Z", 1)])
+        values = [1, 2]
+
+        print(gradient.run([qc], [op], [values]).result())
+        print(gradient.run([qc], [op], [values], parameters=[[b, a]]).result())
 
     @combine(grad=gradient_factories)
     def test_gradient_efficient_su2(self, grad):
