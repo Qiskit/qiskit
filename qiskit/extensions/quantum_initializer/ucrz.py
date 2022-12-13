@@ -33,8 +33,8 @@ class UCRZGate(UCPauliRotGate):
     'Synthesis of Quantum Logic Circuits' by V. Shende et al.
     (https://arxiv.org/pdf/quant-ph/0406176.pdf)
 
-    Args:
-        angle_list (List[float]): list of (real) rotation angles :math:`[a_0,...,a_{2^k-1}]`
+    Can be applied to a :class:`~qiskit.circuit.QuantumCircuit`
+    with the :meth:`~qiskit.circuit.QuantumCircuit.ucrz` method.
     """
 
     def __init__(self, angle_list):
@@ -66,9 +66,8 @@ def ucrz(
         QuantumCircuit: the uniformly controlled rotation gate is attached to the circuit.
 
     Raises:
-        QiskitError: if the list number of control qubits does not correspond to
-            the provided number of single-qubit unitaries; if an input is of
-            the wrong type
+        QiskitError: if the list number of control qubits does not correspond to the provided
+            number of single-qubit unitaries; if an input is of the wrong type
     """
 
     if isinstance(q_controls, QuantumRegister):

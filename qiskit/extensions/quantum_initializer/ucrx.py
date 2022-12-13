@@ -32,9 +32,9 @@ class UCRXGate(UCPauliRotGate):
     The decomposition is based on
     'Synthesis of Quantum Logic Circuits' by V. Shende et al.
     (https://arxiv.org/pdf/quant-ph/0406176.pdf)
-
-    Args:
-        angle_list (List[float]): list of (real) rotation angles :math:`[a_0,...,a_{2^k-1}]`
+    
+    Can be applied to a :class:`~qiskit.circuit.QuantumCircuit`
+    with the :meth:`~qiskit.circuit.QuantumCircuit.ucrx` method.
     """
 
     def __init__(self, angle_list):
