@@ -32,9 +32,6 @@ class UCRZGate(UCPauliRotGate):
     The decomposition is based on
     'Synthesis of Quantum Logic Circuits' by V. Shende et al.
     (https://arxiv.org/pdf/quant-ph/0406176.pdf)
-
-    Can be applied to a :class:`~qiskit.circuit.QuantumCircuit`
-    with the :meth:`~qiskit.circuit.QuantumCircuit.ucrz` method.
     """
 
     def __init__(self, angle_list):
