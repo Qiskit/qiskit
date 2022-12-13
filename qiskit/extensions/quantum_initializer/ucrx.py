@@ -25,6 +25,7 @@ from qiskit.circuit.quantumregister import QuantumRegister, Qubit
 from qiskit.exceptions import QiskitError
 from qiskit.extensions.quantum_initializer.uc_pauli_rot import UCPauliRotGate
 
+
 class UCRXGate(UCPauliRotGate):
     """
     Uniformly controlled rotations (also called multiplexed rotations).
@@ -40,7 +41,12 @@ class UCRXGate(UCPauliRotGate):
         super().__init__(angle_list, "X")
 
 
-def ucrx(self, angle_list: List[float], q_controls: QuantumRegister | List[Qubit], q_target: QuantumRegister | Qubit):
+def ucrx(
+    self,
+    angle_list: List[float],
+    q_controls: QuantumRegister | List[Qubit],
+    q_target: QuantumRegister | Qubit,
+):
     """Attach a uniformly controlled (also called multiplexed) Rx rotation gate to a circuit.
 
     The decomposition is base on https://arxiv.org/pdf/quant-ph/0406176.pdf by Shende et al.
