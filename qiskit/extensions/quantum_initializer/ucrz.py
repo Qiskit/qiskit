@@ -19,7 +19,7 @@ If the k control qubits are in the state ket(i) (in the computational bases),
 a single-qubit rotation R_z(a_i) is applied to the target qubit.
 """
 import math
-from typing import List
+from typing import List, Union
 from qiskit.circuit.quantumcircuit import QuantumCircuit
 from qiskit.circuit.quantumregister import QuantumRegister, Qubit
 from qiskit.exceptions import QiskitError
@@ -44,8 +44,8 @@ class UCRZGate(UCPauliRotGate):
 def ucrz(
     self,
     angle_list: List[float],
-    q_controls: QuantumRegister | List[Qubit],
-    q_target: QuantumRegister | Qubit,
+    q_controls: Union[QuantumRegister, List[Qubit]],
+    q_target: Union[QuantumRegister, Qubit],
 ):
     """Attach a uniformly controlled (also called multiplexed gates) Rz rotation gate to a circuit.
 
