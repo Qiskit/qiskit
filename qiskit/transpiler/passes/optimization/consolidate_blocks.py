@@ -39,13 +39,21 @@ class ConsolidateBlocks(TransformationPass):
         collected by a previous pass, such as `Collect2qBlocks`.
     """
 
-    def __init__(self, kak_basis_gate=None, force_consolidate=False, basis_gates=None, target=None):
+    def __init__(
+        self,
+        kak_basis_gate=None,
+        force_consolidate=False,
+        basis_gates=None,
+        approximation_degree=1.0,
+        target=None,
+    ):
         """ConsolidateBlocks initializer.
 
         Args:
             kak_basis_gate (Gate): Basis gate for KAK decomposition.
             force_consolidate (bool): Force block consolidation
             basis_gates (List(str)): Basis gates from which to choose a KAK gate.
+            approximation_degree (float): a float between [0.0, 1.0]. Lower approximates more.
             target (Target): The target object for the compilation target backend
         """
         super().__init__()
@@ -58,7 +66,9 @@ class ConsolidateBlocks(TransformationPass):
         if kak_basis_gate is not None:
             self.decomposer = TwoQubitBasisDecomposer(kak_basis_gate)
         elif basis_gates is not None:
-            self.decomposer = unitary_synthesis._decomposer_2q_from_basis_gates(basis_gates)
+            self.decomposer = unitary_synthesis._decomposer_2q_from_basis_gates(
+                basis_gates, approximation_degree=approximation_degree
+            )
         else:
             self.decomposer = TwoQubitBasisDecomposer(CXGate())
 

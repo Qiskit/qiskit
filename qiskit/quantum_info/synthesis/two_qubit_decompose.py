@@ -44,6 +44,8 @@ from qiskit.quantum_info.synthesis.one_qubit_decompose import (
     OneQubitEulerDecomposer,
     DEFAULT_ATOL,
 )
+from qiskit.utils.deprecation import deprecate_arguments
+
 
 logger = logging.getLogger(__name__)
 
@@ -1082,16 +1084,19 @@ class TwoQubitBasisDecomposer:
 
         return U3r, U3l, U2r, U2l, U1r, U1l, U0r, U0l
 
-    def __call__(self, target, basis_fidelity=None, *, _num_basis_uses=None) -> QuantumCircuit:
-        """Decompose a two-qubit unitary over fixed basis + SU(2) using the best approximation given
-        that each basis application has a finite fidelity.
+    @deprecate_arguments({"target": "unitary"})
+    def __call__(
+        self, unitary, basis_fidelity: float = None, *, _num_basis_uses: int = None
+    ) -> QuantumCircuit:
+        """Decompose a two-qubit `unitary` over fixed basis + SU(2) using the best approximation given
+        that each basis application has a finite `basis_fidelity`.
 
         You can force a particular approximation by passing _num_basis_uses.
         """
         basis_fidelity = basis_fidelity or self.basis_fidelity
-        target = np.asarray(target, dtype=complex)
+        unitary = np.asarray(unitary, dtype=complex)
 
-        target_decomposed = TwoQubitWeylDecomposition(target)
+        target_decomposed = TwoQubitWeylDecomposition(unitary)
         traces = self.traces(target_decomposed)
         expected_fidelities = [trace_to_fid(traces[i]) * basis_fidelity**i for i in range(4)]
 

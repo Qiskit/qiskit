@@ -159,7 +159,9 @@ def level_3_pass_manager(pass_manager_config: PassManagerConfig) -> StagedPassMa
 
     _opt = [
         Collect2qBlocks(),
-        ConsolidateBlocks(basis_gates=basis_gates, target=target),
+        ConsolidateBlocks(
+            basis_gates=basis_gates, target=target, approximation_degree=approximation_degree
+        ),
         UnitarySynthesis(
             basis_gates,
             approximation_degree=approximation_degree,

@@ -111,18 +111,24 @@ def _choose_bases(basis_gates, basis_dict=None):
     return out_basis
 
 
-def _decomposer_2q_from_basis_gates(basis_gates, pulse_optimize=None):
+def _decomposer_2q_from_basis_gates(basis_gates, pulse_optimize=None, approximation_degree=None):
     decomposer2q = None
     kak_gate = _choose_kak_gate(basis_gates)
     euler_basis = _choose_euler_basis(basis_gates)
     if isinstance(kak_gate, RZXGate):
         backup_optimizer = TwoQubitBasisDecomposer(
-            CXGate(), euler_basis=euler_basis, pulse_optimize=pulse_optimize
+            CXGate(),
+            basis_fidelity=approximation_degree,
+            euler_basis=euler_basis,
+            pulse_optimize=pulse_optimize,
         )
         decomposer2q = XXDecomposer(euler_basis=euler_basis, backup_optimizer=backup_optimizer)
     elif kak_gate is not None:
         decomposer2q = TwoQubitBasisDecomposer(
-            kak_gate, euler_basis=euler_basis, pulse_optimize=pulse_optimize
+            kak_gate,
+            basis_fidelity=approximation_degree,
+            euler_basis=euler_basis,
+            pulse_optimize=pulse_optimize,
         )
     return decomposer2q
 
@@ -575,7 +581,7 @@ class DefaultUnitarySynthesis(plugin.UnitarySynthesisPlugin):
         super().__init__()
         self._decomposer_cache = {}
 
-    def _decomposer_2q_from_target(self, target, qubits):
+    def _decomposer_2q_from_target(self, target, qubits, approximation_degree):
         # we just need 2-qubit decomposers, in any direction.
         # we'll fix the synthesis direction later.
         qubits_tuple = tuple(sorted(qubits))
@@ -627,6 +633,8 @@ class DefaultUnitarySynthesis(plugin.UnitarySynthesisPlugin):
         }
         for basis_1q, basis_2q in product(available_1q_basis, supercontrolled_basis.keys()):
             basis_2q_fidelity = 1 - getattr(available_2q_props[basis_2q], "error", 0.0)
+            if approximation_degree is not None:
+                basis_2q_fidelity = approximation_degree
             decomposer = TwoQubitBasisDecomposer(
                 supercontrolled_basis[basis_2q],
                 euler_basis=basis_1q,
@@ -652,6 +660,8 @@ class DefaultUnitarySynthesis(plugin.UnitarySynthesisPlugin):
             # basis equivalent to CX are well optimized so use for the pi/2 angle if available
             if isclose(strength, pi / 2) and k in supercontrolled_basis:
                 pi2_basis = v
+        if approximation_degree is not None:
+            basis_fidelity = approximation_degree
         for basis_1q in available_1q_basis:
             if isinstance(pi2_basis, CXGate) and basis_1q == "ZSX":
                 pi2_decomposer = TwoQubitBasisDecomposer(
@@ -695,10 +705,12 @@ class DefaultUnitarySynthesis(plugin.UnitarySynthesisPlugin):
         elif unitary.shape == (4, 4):
             # select synthesizers that can lower to the target
             if target is not None:
-                decomposers2q = self._decomposer_2q_from_target(target, qubits)
+                decomposers2q = self._decomposer_2q_from_target(
+                    target, qubits, approximation_degree
+                )
             else:
                 decomposer2q = _decomposer_2q_from_basis_gates(
-                    basis_gates, pulse_optimize=pulse_optimize
+                    basis_gates, pulse_optimize, approximation_degree
                 )
                 decomposers2q = [decomposer2q] if decomposer2q is not None else []
             # choose the cheapest output among synthesized circuits
@@ -728,10 +740,6 @@ class DefaultUnitarySynthesis(plugin.UnitarySynthesisPlugin):
         return synth_dag
 
     def _synth_su4(self, su4_mat, decomposer2q, preferred_direction, approximation_degree):
-        # FIXME: no approximation right now. Need both decomposers to
-        # expose a approximate=True/False or a basis_fidelity float or something.
-        # if approximation_degree is not None:
-        #    basis_fidelity = float(approximation_degree)
         synth_circ = decomposer2q(su4_mat)
 
         # if the gates in synthesis are in the opposite direction of the preferred direction
