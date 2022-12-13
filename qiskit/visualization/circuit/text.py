@@ -210,12 +210,17 @@ class MeasureFrom(BoxOnQuWire):
         bot: └╥┘    └╥┘
     """
 
-    def __init__(self):
+    def __init__(self, basis=None):
         super().__init__()
         self.top_format = self.mid_format = self.bot_format = "%s"
-        self.top_connect = "┌─┐"
-        self.mid_content = "┤M├"
-        self.bot_connect = "└╥┘"
+        if basis:
+            self.top_connect = "┌───┐"
+            self.mid_content = "┤M_{}├".format(basis.lower())
+            self.bot_connect = "└─╥─┘"
+        else:
+            self.top_connect = "┌─┐"
+            self.mid_content = "┤M├"
+            self.bot_connect = "└╥┘"
 
         self.top_pad = self.bot_pad = " "
         self._mid_padding = "─"
@@ -682,7 +687,7 @@ class TextDrawing:
         self._wire_map = {}
 
         for node in itertools.chain.from_iterable(self.nodes):
-            if node.cargs and node.op.name != "measure":
+            if node.cargs and not isinstance(node.op, Measure):
                 if cregbundle:
                     warn(
                         "Cregbundle set to False since an instruction needs to refer"
@@ -1073,7 +1078,7 @@ class TextDrawing:
                     current_cons.append((actual_index, gate))
 
         if isinstance(op, Measure):
-            gate = MeasureFrom()
+            gate = MeasureFrom(op.basis)
             layer.set_qubit(node.qargs[0], gate)
             register, _, reg_index = get_bit_reg_index(self._circuit, node.cargs[0])
             if self.cregbundle and register is not None:

@@ -160,6 +160,9 @@ class DefaultStyle:
                 'reset': ('#000000', '#FFFFFF'),
                 'target': ('#FFFFFF', '#FFFFFF'),
                 'measure': ('#000000', '#FFFFFF'),
+                'measure_x': ('#000000', '#FFFFFF'),
+                'measure_y': ('#000000', '#FFFFFF'),
+                'measure_z': ('#000000', '#FFFFFF'),
             }
 
     """
@@ -261,6 +264,9 @@ class DefaultStyle:
                 "reset": (colors["black"], colors["white"]),
                 "target": (colors["white"], colors["white"]),
                 "measure": (colors["black"], colors["white"]),
+                "measure_x": (colors["black"], colors["white"]),
+                "measure_y": (colors["black"], colors["white"]),
+                "measure_z": (colors["black"], colors["white"]),
             },
         }
 

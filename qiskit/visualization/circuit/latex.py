@@ -189,7 +189,7 @@ class QCircuitImage:
         # If there is any custom instruction that uses classical bits
         # then cregbundle is forced to be False.
         for node in itertools.chain.from_iterable(self._nodes):
-            if node.cargs and node.op.name != "measure":
+            if node.cargs and not isinstance(node.op, Measure):
                 if cregbundle:
                     warn(
                         "Cregbundle set to False since an instruction needs to refer"
@@ -300,7 +300,7 @@ class QCircuitImage:
             self._nodes
             and self._nodes[0]
             and (
-                self._nodes[0][0].op.name == "measure"
+                isinstance(self._nodes[0][0].op, Measure)
                 or getattr(self._nodes[0][0].op, "condition", None)
             )
         ):
@@ -427,7 +427,7 @@ class QCircuitImage:
             self._nodes
             and self._nodes[0]
             and (
-                self._nodes[0][0].op.name == "measure"
+                isinstance(self._nodes[0][0].op, Measure)
                 or getattr(self._nodes[0][0].op, "condition", None)
             )
         ):
@@ -579,7 +579,26 @@ class QCircuitImage:
     def _build_measure(self, node, col):
         """Build a meter and the lines to the creg"""
         wire1 = self._wire_map[node.qargs[0]]
-        self._latex[wire1][col] = "\\meter"
+        if node.op.basis:
+            # Modification of `\meter` in https://www.ctan.org/tex-archive/graphics/qcircuit
+            # pylint: disable=invalid-name
+            PAULI_METER = """
+                *=<1.8em,1.4em>
+                {
+                    \\xy ="j",
+                    "j"-<.778em,.322em>;{"j"+<.778em,-.322em> \\ellipse ur,_{}},
+                    "j"-<0em,.4em>;p+<.5em,.9em> **\\dir{-},
+                    "j"+<2.2em,2.2em>*{},"j"-<2.2em,2.2em>*{},
+                    <-.5em,.4em> *\\txt{\\tiny{%s}}
+                    \\endxy
+                } 
+                \\POS ="i",
+                "i"+UR;"i"+UL **\\dir{-};"i"+DL **\\dir{-};"i"+DR **\\dir{-};"i"+UR **\\dir{-},
+                "i" \\qw
+            """
+            self._latex[wire1][col] = PAULI_METER % node.op.basis.upper()
+        else:
+            self._latex[wire1][col] = "\\meter"
 
         idx_str = ""
         cond_offset = 1.5 if getattr(node.op, "condition", None) else 0.0

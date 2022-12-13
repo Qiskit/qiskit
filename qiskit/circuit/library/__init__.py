@@ -136,6 +136,9 @@ Operations are non-reversible changes in the quantum state of the circuit.
    :toctree: ../stubs/
 
    Measure
+   MeasureX
+   MeasureY
+   MeasureZ
    Reset
 
 Generalized Gates
@@ -471,7 +474,7 @@ Template circuits with :class:`~qiskit.circuit.library.RZXGate`.
 from .standard_gates import *
 from .templates import *
 from ..barrier import Barrier
-from ..measure import Measure
+from ..measure import Measure, MeasureX, MeasureY, MeasureZ
 from ..reset import Reset
 
 

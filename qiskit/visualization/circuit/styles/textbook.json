@@ -197,6 +197,18 @@
         "measure": [
             "#121619",
             "#FFFFFF"
+        ],
+        "measure_x": [
+            "#121619",
+            "#FFFFFF"
+        ],
+        "measure_y": [
+            "#121619",
+            "#FFFFFF"
+        ],
+        "measure_z": [
+            "#121619",
+            "#FFFFFF"
         ]
     }
 }
