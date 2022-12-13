@@ -19,24 +19,11 @@ If the k control qubits are in the state ket(i) (in the computational bases),
 a single-qubit rotation R_y(a_i) is applied to the target qubit.
 """
 import math
-from typing import (
-    Union,
-    List,
-    Sequence,
-)
+from typing import List
 from qiskit.circuit.quantumcircuit import QuantumCircuit
 from qiskit.circuit.quantumregister import QuantumRegister, Qubit
 from qiskit.exceptions import QiskitError
 from qiskit.extensions.quantum_initializer.uc_pauli_rot import UCPauliRotGate
-
-# Types that can be coerced to a valid Qubit specifier in a circuit.
-QubitSpecifier = Union[
-    Qubit,
-    QuantumRegister,
-    int,
-    slice,
-    Sequence[Union[Qubit, int]],
-]
 
 class UCRYGate(UCPauliRotGate):
     """
@@ -53,7 +40,7 @@ class UCRYGate(UCPauliRotGate):
         super().__init__(angle_list, "Y")
 
 
-def ucry(self, angle_list: List[float], q_controls: Sequence[QubitSpecifier], q_target: QubitSpecifier):
+def ucry(self, angle_list: List[float], q_controls: QuantumRegister | List[Qubit], q_target: QuantumRegister | Qubit):
     """Attach a uniformly controlled (also called multiplexed) Ry rotation gate to a circuit.
 
     The decomposition is base on https://arxiv.org/pdf/quant-ph/0406176.pdf by Shende et al.
