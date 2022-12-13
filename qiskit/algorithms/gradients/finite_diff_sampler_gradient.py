@@ -167,39 +167,5 @@ class FiniteDiffSamplerGradient(BaseSamplerGradient):
             partial_sum_n += n
             gradients.append(gradient)
 
-        # for result in results:
-
-        #     if self._method == "central":
-        #         n = len(result.quasi_dists) // 2
-        #         gradient = []
-        #         for dist_plus, dist_minus in zip(result.quasi_dists[:n], result.quasi_dists[n:]):
-        #             grad_dist = defaultdict(float)
-        #             for key, value in dist_plus.items():
-        #                 grad_dist[key] += value / (2 * self._epsilon)
-        #             for key, value in dist_minus.items():
-        #                 grad_dist[key] -= value / (2 * self._epsilon)
-        #             gradient.append(dict(grad_dist))
-        #     elif self._method == "forward":
-        #         gradient = []
-        #         dist_zero = result.quasi_dists[0]
-        #         for dist_plus in result.quasi_dists[1:]:
-        #             grad_dist = defaultdict(float)
-        #             for key, value in dist_plus.items():
-        #                 grad_dist[key] += value / self._epsilon
-        #             for key, value in dist_zero.items():
-        #                 grad_dist[key] -= value / self._epsilon
-        #             gradient.append(dict(grad_dist))
-        #     elif self._method == "backward":
-        #         gradient = []
-        #         dist_zero = result.quasi_dists[0]
-        #         for dist_minus in result.quasi_dists[1:]:
-        #             grad_dist = defaultdict(float)
-        #             for key, value in dist_zero.items():
-        #                 grad_dist[key] += value / self._epsilon
-        #             for key, value in dist_minus.items():
-        #                 grad_dist[key] -= value / self._epsilon
-        #             gradient.append(dict(grad_dist))
-        #     gradients.append(gradient)
-
         opt = self._get_local_options(options)
         return SamplerGradientResult(gradients=gradients, metadata=metadata, options=opt)
