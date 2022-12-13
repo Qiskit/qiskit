@@ -18,6 +18,7 @@ from abc import ABC, abstractmethod
 from typing import Any
 
 from qiskit.opflow import PauliSumOp
+from qiskit.result import QuasiDistribution
 from qiskit.quantum_info.operators.base_operator import BaseOperator
 
 from ..algorithm_result import AlgorithmResult
@@ -73,6 +74,7 @@ class MinimumEigensolverResult(AlgorithmResult):
     def __init__(self) -> None:
         super().__init__()
         self._eigenvalue = None
+        self._eigenstate = None
         self._aux_operators_evaluated = None
 
     @property
@@ -83,6 +85,17 @@ class MinimumEigensolverResult(AlgorithmResult):
     @eigenvalue.setter
     def eigenvalue(self, value: complex) -> None:
         self._eigenvalue = value
+
+    @property
+    def eigenstate(self) -> QuasiDistribution | None:
+        """Return the quasi-distribution sampled from the final state, if the
+        eigensolver support sampling.
+        """
+        return self._eigenstate
+
+    @eigenstate.setter
+    def eigenstate(self, value: QuasiDistribution | None) -> None:
+        self._eigenstate = value
 
     @property
     def aux_operators_evaluated(self) -> ListOrDict[tuple[complex, dict[str, Any]]] | None:

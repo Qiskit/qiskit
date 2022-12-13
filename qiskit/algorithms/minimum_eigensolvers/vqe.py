@@ -24,7 +24,8 @@ import numpy as np
 from qiskit.algorithms.gradients import BaseEstimatorGradient
 from qiskit.circuit import QuantumCircuit
 from qiskit.opflow import PauliSumOp
-from qiskit.primitives import BaseEstimator
+from qiskit.primitives import BaseEstimator, BaseSampler
+from qiskit.result import QuasiDistribution
 from qiskit.quantum_info.operators.base_operator import BaseOperator
 
 from ..exceptions import AlgorithmError
@@ -106,6 +107,8 @@ class VQE(VariationalAlgorithm, MinimumEigensolver):
             can access the intermediate data at each optimization step. These data are: the
             evaluation count, the optimizer parameters for the ansatz, the evaluated mean, and the
             metadata dictionary.
+        sampler: An optional sampler primitive for computing the final eigenstate after the
+            optimization.
 
     References:
         [1]: Peruzzo, A., et al, "A variational eigenvalue solver on a quantum processor"
@@ -121,6 +124,7 @@ class VQE(VariationalAlgorithm, MinimumEigensolver):
         gradient: BaseEstimatorGradient | None = None,
         initial_point: Sequence[float] | None = None,
         callback: Callable[[int, np.ndarray, float, dict[str, Any]], None] | None = None,
+        sampler: BaseSampler | None = None,
     ) -> None:
         r"""
         Args:
@@ -139,6 +143,8 @@ class VQE(VariationalAlgorithm, MinimumEigensolver):
             callback: A callback that can access the intermediate data at each optimization step.
                 These data are: the evaluation count, the optimizer parameters for the ansatz, the
                 estimated value, and the metadata dictionary.
+            sampler: An optional sampler primitive for computing the final eigenstate after the
+                optimization.
         """
         super().__init__()
 
@@ -149,6 +155,7 @@ class VQE(VariationalAlgorithm, MinimumEigensolver):
         # this has to go via getters and setters due to the VariationalAlgorithm interface
         self.initial_point = initial_point
         self.callback = callback
+        self.sampler = sampler
 
     @property
     def initial_point(self) -> Sequence[float] | None:
@@ -211,8 +218,15 @@ class VQE(VariationalAlgorithm, MinimumEigensolver):
         else:
             aux_operators_evaluated = None
 
+        final_state = None
+        if self.sampler is not None:
+            self.ansatz.measure_all()
+            final_state = (
+                self.sampler.run([self.ansatz], [optimizer_result.x]).result().quasi_dists[0]
+            )
+
         return self._build_vqe_result(
-            self.ansatz, optimizer_result, aux_operators_evaluated, optimizer_time
+            self.ansatz, optimizer_result, aux_operators_evaluated, final_state, optimizer_time
         )
 
     @classmethod
@@ -324,6 +338,7 @@ class VQE(VariationalAlgorithm, MinimumEigensolver):
         ansatz: QuantumCircuit,
         optimizer_result: OptimizerResult,
         aux_operators_evaluated: ListOrDict[tuple[complex, tuple[complex, int]]],
+        final_state: QuasiDistribution | None,
         optimizer_time: float,
     ) -> VQEResult:
         result = VQEResult()
@@ -335,6 +350,7 @@ class VQE(VariationalAlgorithm, MinimumEigensolver):
         result.optimal_value = optimizer_result.fun
         result.optimizer_time = optimizer_time
         result.aux_operators_evaluated = aux_operators_evaluated
+        result.eigenstate = final_state
         result.optimizer_result = optimizer_result
         return result
 
