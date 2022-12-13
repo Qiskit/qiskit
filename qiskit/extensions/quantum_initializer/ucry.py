@@ -44,7 +44,7 @@ def ucry(
     q_controls: Union[QuantumRegister, List[Qubit]],
     q_target: Union[QuantumRegister, Qubit],
 ):
-    """Attach a uniformly controlled (also called multiplexed) Ry rotation gate to a circuit.
+    r"""Attach a uniformly controlled (also called multiplexed) Ry rotation gate to a circuit.
 
     The decomposition is base on https://arxiv.org/pdf/quant-ph/0406176.pdf by Shende et al.
 
