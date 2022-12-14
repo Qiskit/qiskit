@@ -66,19 +66,12 @@ class TestTranslateParameterized(QiskitTestCase):
     def test_target(self):
         """Test unrolling with a target."""
         target = FakeAthensV2().target
-
-        target = Target()
-
-        p = ParameterVector("p", 3)
-        target.add_instruction(RZGate(p[0]), {(0,): None})
-        target.add_instruction(UGate(p[0], p[1], p[2]), {(1,): None})
-        target.add_instruction(CXGate(), {(0, 1): None, (1, 0): None})
         circuit = TwoLocal(2, "rz", "cx", reps=2, entanglement="linear")
 
         translator = TranslateParameterizedGates(target=target)
         translated = translator(circuit)
 
-        expected_ops = {"cx": 2, "rz": 3, "u": 3}
+        expected_ops = {"cx": 2, "rz": 6}
 
         self.assertEqual(translated.count_ops(), expected_ops)
 

@@ -128,28 +128,16 @@ class TranslateParameterizedGates(TransformationPass):
         Raises:
             QiskitError: If the circuit cannot be unrolled.
         """
-        qubits_to_indices = {qubit: i for i, qubit in enumerate(dag.qubits)}
-        return self._run(dag, qubits_to_indices)
-
-    def _run(self, dag: DAGCircuit, qubits_to_indices: dict):
-        """Run the decomposition, keeping a global map of qubit to index mappings.
-
-        This is required to map the DAG qubits to indices for the target decomposition.
-        """
-
         for node in dag.op_nodes():
             # check whether it is parameterized and we need to decompose it
             if _is_parameterized(node.op) and not _is_supported(
-                node, self._supported_gates, self._target, qubits_to_indices
+                node, self._supported_gates, self._target
             ):
                 definition = node.op.definition
 
                 if definition is not None:
                     # recurse to unroll further parameterized blocks
-                    sub_indices = [qubits_to_indices[qubit] for qubit in node.qargs]
-                    sub_dag = circuit_to_dag(definition)
-                    sub_map = dict(zip(sub_dag.qubits, sub_indices))
-                    unrolled = self._run(circuit_to_dag(definition), sub_map)
+                    unrolled = self.run(circuit_to_dag(definition))
                 else:
                     # if we hit a base case, try to translate to the specified basis
                     try:
@@ -169,16 +157,13 @@ def _is_parameterized(op: Instruction) -> bool:
     )
 
 
-def _is_supported(
-    node: DAGOpNode, supported_gates: list[str], target: Target | None, qubits_to_indices: dict
-) -> bool:
+def _is_supported(node: DAGOpNode, supported_gates: list[str], target: Target | None) -> bool:
     """Check whether the node is supported.
 
     If the target is provided, check using the target, otherwise the supported_gates are used.
     """
     if target is not None:
-        qubit_indices = [qubits_to_indices[qubit] for qubit in node.qargs]
-        return target.instruction_supported(node.op.name, qubit_indices)
+        return target.instruction_supported(node.op.name)
 
     return node.op.name in supported_gates
 
