@@ -55,7 +55,7 @@ class VarQTE(ABC):
     def __init__(
         self,
         ansatz: QuantumCircuit,
-        initial_parameters: dict[Parameter, complex] | list[complex] | np.ndarray,
+        initial_parameters: dict[Parameter, float] | list[float] | np.ndarray,
         variational_principle: VariationalPrinciple | None = None,
         estimator: BaseEstimator | None = None,
         ode_solver: Type[OdeSolver] | str = ForwardEulerSolver,
@@ -143,7 +143,7 @@ class VarQTE(ABC):
 
     def _evolve(
         self,
-        init_state_param_dict: dict[Parameter, complex],
+        init_state_param_dict: dict[Parameter, float],
         hamiltonian: BaseOperator | PauliSumOp,
         time: float,
         t_param: Parameter | None = None,
@@ -191,9 +191,9 @@ class VarQTE(ABC):
 
     @staticmethod
     def _create_init_state_param_dict(
-        param_values: dict[Parameter, complex] | list[complex] | np.ndarray,
+        param_values: dict[Parameter, float] | list[float] | np.ndarray,
         init_state_parameters: list[Parameter],
-    ) -> dict[Parameter, complex]:
+    ) -> dict[Parameter, float]:
         r"""
         If ``param_values`` is a dictionary, it looks for parameters present in an initial state
         (an ansatz) in a ``param_values``. Based on that, it creates a new dictionary containing

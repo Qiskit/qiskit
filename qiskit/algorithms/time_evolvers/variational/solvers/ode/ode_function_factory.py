@@ -54,7 +54,7 @@ class OdeFunctionFactory(ABC):
     def _build(
         self,
         varqte_linear_solver: VarQTELinearSolver,
-        param_dict: dict[Parameter, complex],
+        param_dict: dict[Parameter, float],
         t_param: Parameter | None = None,
     ) -> AbstractOdeFunction:
         """

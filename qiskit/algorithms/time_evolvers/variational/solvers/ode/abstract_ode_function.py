@@ -25,7 +25,7 @@ class AbstractOdeFunction(ABC):
     def __init__(
         self,
         varqte_linear_solver: VarQTELinearSolver,
-        param_dict: dict[Parameter, complex],
+        param_dict: dict[Parameter, float],
         t_param: Parameter | None = None,
     ) -> None:
 

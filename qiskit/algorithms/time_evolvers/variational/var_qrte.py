@@ -63,7 +63,7 @@ class VarQRTE(VarQTE, RealTimeEvolver):
     def __init__(
         self,
         ansatz: QuantumCircuit,
-        initial_parameters: dict[Parameter, complex] | list[complex] | np.ndarray,
+        initial_parameters: dict[Parameter, float] | list[float] | np.ndarray,
         variational_principle: RealVariationalPrinciple | None = None,
         estimator: BaseEstimator | None = None,
         ode_solver: Type[OdeSolver] | str = ForwardEulerSolver,

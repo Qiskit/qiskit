@@ -50,7 +50,7 @@ class VariationalPrinciple(ABC):
         self.qfi = qfi
         self.gradient = gradient
 
-    def metric_tensor(self, ansatz: QuantumCircuit, param_values: list[complex]) -> np.ndarray:
+    def metric_tensor(self, ansatz: QuantumCircuit, param_values: list[float]) -> np.ndarray:
         """
         Calculates a metric tensor according to the rules of this variational principle.
 
@@ -79,7 +79,7 @@ class VariationalPrinciple(ABC):
         self,
         hamiltonian: BaseOperator | PauliSumOp,
         ansatz: QuantumCircuit,
-        param_values: list[complex],
+        param_values: list[float],
         gradient_params: list[Parameter] | None = None,
     ) -> np.ndarray:
         """

@@ -13,13 +13,12 @@
 """Helper class for assigning values to parameters."""
 import numpy as np
 
-from qiskit.circuit import ParameterExpression, Parameter
+from qiskit.circuit import ParameterExpression
 from qiskit.circuit.parametertable import ParameterView
-from qiskit.quantum_info import SparsePauliOp
 
 
 def get_parameters(array: np.array) -> ParameterView:
-    """Retrieves parameters from an np.array as a ``ParameterView``."""
+    """Retrieves parameters from a np.array as a ``ParameterView``."""
     ret = set()
     for a in array:
         if isinstance(a, ParameterExpression):
@@ -28,7 +27,7 @@ def get_parameters(array: np.array) -> ParameterView:
 
 
 def assign_parameters(array: np.array, parameter_values: np.array) -> np.array:
-    """Binds ``ParameterExpression``s in an np.array to provided values."""
+    """Binds ``ParameterExpression``s in a np.array to provided values."""
     if isinstance(parameter_values, list):
         parameter_values = dict(zip(get_parameters(array), parameter_values))
     for i, a in enumerate(array):

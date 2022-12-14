@@ -80,7 +80,7 @@ class VarQTELinearSolver:
 
     def solve_lse(
         self,
-        param_dict: dict[Parameter, complex],
+        param_dict: dict[Parameter, float],
         time_value: float | None = None,
     ) -> (list | np.ndarray, list | np.ndarray, np.ndarray):
         """

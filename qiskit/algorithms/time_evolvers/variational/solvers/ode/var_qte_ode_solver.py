@@ -28,7 +28,7 @@ class VarQTEOdeSolver:
 
     def __init__(
         self,
-        init_params: list[complex],
+        init_params: list[float],
         ode_function: AbstractOdeFunction,
         ode_solver: Type[OdeSolver] | str = ForwardEulerSolver,
         num_timesteps: int | None = None,
@@ -50,7 +50,7 @@ class VarQTEOdeSolver:
         self._ode_solver = ode_solver
         self._num_timesteps = num_timesteps
 
-    def run(self, evolution_time: float) -> list[complex]:
+    def run(self, evolution_time: float) -> list[float]:
         """
         Finds numerical solution with ODE Solver.
 
