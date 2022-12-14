@@ -16,9 +16,8 @@ import unittest
 
 from qiskit.test import QiskitTestCase
 from qiskit.circuit import ParameterVector, Parameter, Gate, QuantumCircuit
-from qiskit.circuit.library import TwoLocal, RZGate, UGate, CXGate
+from qiskit.circuit.library import TwoLocal
 from qiskit.exceptions import QiskitError
-from qiskit.transpiler import Target
 from qiskit.transpiler.passes import TranslateParameterizedGates
 from qiskit.providers.fake_provider import FakeAthensV2
 
