@@ -137,8 +137,8 @@ class TestVarQRTE(QiskitAlgorithmsTestCase):
             parameter_values = evolved_state.data[0][0].params
 
             expected_aux_ops = [
-                0.06920924180526315,
-                0.7779237744682032,
+                0.070436,
+                0.777938,
             ]
 
             for i, parameter_value in enumerate(parameter_values):

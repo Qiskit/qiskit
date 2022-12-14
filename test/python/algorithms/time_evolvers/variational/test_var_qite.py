@@ -77,14 +77,14 @@ class TestVarQITE(QiskitAlgorithmsTestCase):
         ]
 
         thetas_expected_shots = [
-            0.866388421629894,
-            2.00011242816716,
-            2.66024902588707,
-            2.74940256936693,
-            2.35690200373631,
-            1.76230783558349,
-            2.04591301743054,
-            1.9074429050726,
+            0.962539564367932,
+            1.87923124299411,
+            2.73858644614403,
+            2.70302069584063,
+            2.19579712028353,
+            1.65846084870719,
+            1.980000290603,
+            1.97877634492621,
         ]
 
         with self.subTest(msg="Test exact backend."):
@@ -133,7 +133,7 @@ class TestVarQITE(QiskitAlgorithmsTestCase):
 
             parameter_values = evolved_state.data[0][0].params
 
-            expected_aux_ops = (-0.20541478709978211, 0.26583767857803875)
+            expected_aux_ops = (-0.200069, 0.269665)
 
             for i, parameter_value in enumerate(parameter_values):
                 np.testing.assert_almost_equal(
