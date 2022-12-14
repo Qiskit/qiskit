@@ -15,6 +15,8 @@
 Circuit Synthesis (:mod:`qiskit.synthesis`)
 ===========================================
 
+.. automodule:: qiskit.synthesis.discrete_basis
+
 .. currentmodule:: qiskit.synthesis
 
 Evolution Synthesis

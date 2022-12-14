@@ -57,6 +57,25 @@ def disassemble(qobj) -> Union[CircuitModule, PulseModule]:
             * programs: A list of quantum circuits or pulse schedules
             * run_config: The dict of the run config
             * user_qobj_header: The dict of any user headers in the qobj
+
+    Examples:
+
+        .. code-block:: python
+
+            from qiskit.circuit import QuantumRegister, ClassicalRegister, QuantumCircuit
+            from qiskit.compiler.assembler import assemble
+            from qiskit.assembler.disassemble import disassemble
+            # Create a circuit to assemble into a qobj
+            q = QuantumRegister(2)
+            c = ClassicalRegister(2)
+            qc = QuantumCircuit(q, c)
+            qc.h(q[0])
+            qc.cx(q[0], q[1])
+            qc.measure(q, c)
+            # Assemble the circuit into a Qobj
+            qobj = assemble(qc, shots=2000, memory=True)
+            # Disassemble the qobj back into a circuit
+            circuits, run_config_out, headers = disassemble(qobj)
     """
     if qobj.type == "PULSE":
         return _disassemble_pulse_schedule(qobj)
