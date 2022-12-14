@@ -13,6 +13,7 @@
 """Class for solving linear equations for Quantum Time Evolution."""
 from __future__ import annotations
 
+import copy
 from typing import Callable
 
 import numpy as np
@@ -104,7 +105,8 @@ class VarQTELinearSolver:
 
         if self._time_param is not None:
             if isinstance(self._hamiltonian, SparsePauliOp):
-                bound_params_array = assign_parameters(self._hamiltonian.coeffs, [time_value])
+                parametrized_coeffs = copy.deepcopy(self._hamiltonian.coeffs)
+                bound_params_array = assign_parameters(parametrized_coeffs, [time_value])
                 hamiltonian = SparsePauliOp(self._hamiltonian.paulis, bound_params_array)
             else:
                 raise ValueError(

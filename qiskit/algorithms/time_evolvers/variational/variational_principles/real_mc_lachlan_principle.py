@@ -71,7 +71,7 @@ class RealMcLachlanPrinciple(RealVariationalPrinciple):
         self,
         hamiltonian: BaseOperator | PauliSumOp,
         ansatz: QuantumCircuit,
-        param_values: list[complex],
+        param_values: list[float],
         gradient_params: list[Parameter] | None = None,
     ) -> np.ndarray:
         """

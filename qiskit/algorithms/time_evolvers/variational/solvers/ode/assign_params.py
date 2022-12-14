@@ -39,4 +39,3 @@ def assign_parameters(array: np.array, parameter_values: np.array) -> np.array:
                 a = complex(a)
             array[i] = a
     return array
-
