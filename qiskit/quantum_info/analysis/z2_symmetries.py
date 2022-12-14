@@ -22,7 +22,7 @@ from typing import Optional, Union, cast
 import numpy as np
 
 from qiskit.exceptions import QiskitError
-from qiskit.quantum_info import Pauli, PauliList, SparsePauliOp, Clifford
+from qiskit.quantum_info import Pauli, PauliList, SparsePauliOp
 
 
 logger = logging.getLogger(__name__)
@@ -41,7 +41,7 @@ class Z2Symmetries:
     constructed.
 
     Attributes:
-        tapering_values (Optional[list[int]]): Values determining the sector.
+        tapering_values (list[int] or None): Values determining the sector.
         tol (float): The tolerance threshold for ignoring real and complex parts of a coefficient.
 
     References:
@@ -54,17 +54,17 @@ class Z2Symmetries:
         symmetries: PauliList,
         sq_paulis: PauliList,
         sq_list: list[int],
-        tapering_values: Optional[list[int]] = None,
+        tapering_values: list[int] | None = None,
         *,
         tol: float = 1e-14,
     ):
         r"""
         Args:
-            symmetries: The list of Pauli objects representing the $Z_2$ symmetries. These correspond to
+            symmetries: PauliList object representing the list of $Z_2$ symmetries. These correspond to
                 the generators of the symmetry group $\langle \tau_1, \tau_2\dots \rangle>$.
-            sq_paulis: The list of single-qubit Pauli $\sigma^x_{q(i)}$ anti-commuting with the
-                symmetry $\tau_i$ and commuting with all the other symmetries $\tau_{j\neq i}$.
-                These operators are used to construct the unitary Clifford operators.
+            sq_paulis: PauliList object representing the list of single-qubit Pauli $\sigma^x_{q(i)}$
+                anti-commuting with the symmetry $\tau_i$ and commuting with all the other symmetries
+                $\tau_{j\neq i}$. These operators are used to construct the unitary Clifford operators.
             sq_list: The list of indices $q(i)$ of the single-qubit Pauli operators used to build the
                 Clifford operators.
             tapering_values: List of eigenvalues determining the symmetry sector for each symmetry.
@@ -111,9 +111,9 @@ class Z2Symmetries:
         return self._sq_paulis
 
     @property
-    def cliffords(self) -> list[Clifford]:
+    def cliffords(self) -> list[SparsePauliOp]:
         """
-        Get clifford operators, build based on symmetries and single-qubit X.
+        Get clifford operators, built based on symmetries and single-qubit X.
 
         Returns:
             A list of unitaries used to diagonalize the Hamiltonian.
@@ -174,12 +174,6 @@ class Z2Symmetries:
         """
         return len(self._symmetries) == 0 or len(self._sq_paulis) == 0 or len(self._sq_list) == 0
 
-    @staticmethod
-    def _sparse_pauli_op_is_zero(op: SparsePauliOp) -> bool:
-        """Returns whether or not this operator represents a zero operation."""
-        op = op.simplify()
-        return len(op.coeffs) == 1 and op.coeffs[0] == 0
-
     @classmethod
     def find_z2_symmetries(cls, operator: SparsePauliOp) -> Z2Symmetries:
         """
@@ -204,8 +198,14 @@ class Z2Symmetries:
             "X_or_I": [(0, 1), (1, 1)],
             "Y_or_I": [(0, 1), (1, 0)],
         }
+        
+        pauli_bool = {
+            "Z_or_I": [False, True],
+            "X_or_I": [True, False],
+            "Y_or_I": [True, True],
+        }
 
-        if Z2Symmetries._sparse_pauli_op_is_zero(operator):
+        if _sparse_pauli_op_is_zero(operator):
             logger.info("Operator is empty.")
             return cls([], [], [], None)
 
@@ -278,29 +278,21 @@ class Z2Symmetries:
             )
 
             for col in range(half_symm_shape):
-                # case symmetries other than one at (row) have Z or I on col qubit
-                if _test_symmetry_row_col(row, col, test_idx["Z_or_I"], test_row["Z_or_I"]):
-                    sq_paulis.append(Pauli((np.zeros(half_symm_shape), np.zeros(half_symm_shape))))
-                    sq_paulis[row].z[col] = False
-                    sq_paulis[row].x[col] = True
-                    sq_list.append(col)
-                    break
+                # Try all cases for the symmetries other than row: Z or I, Y or I, X or I on col qubit.
+                # One test will return true.
+                # Build the single-qubit Pauli accordingly.
+                # Build the index list accordingly.
+                for key in ("Z_or_I", "X_or_I", "Y_or_I"):
+                    if _test_symmetry_row_col(row, col, test_idx[key], test_row[key]):
+                        sq_paulis.append(Pauli((np.zeros(half_symm_shape), np.zeros(half_symm_shape))))
+                        sq_paulis[row].z[col] = pauli_bool[key][0]
+                        sq_paulis[row].x[col] = pauli_bool[key][1]
+                        sq_list.append(col)
+                        break
+                    else:
+                        continue
+                break
 
-                # case symmetries other than one at (row) have X or I on col qubit
-                if _test_symmetry_row_col(row, col, test_idx["X_or_I"], test_row["X_or_I"]):
-                    sq_paulis.append(Pauli((np.zeros(half_symm_shape), np.zeros(half_symm_shape))))
-                    sq_paulis[row].z[col] = True
-                    sq_paulis[row].x[col] = False
-                    sq_list.append(col)
-                    break
-
-                # case symmetries other than one at (row)  have Y or I on col qubit
-                if _test_symmetry_row_col(row, col, test_idx["Y_or_I"], test_row["Y_or_I"]):
-                    sq_paulis.append(Pauli((np.zeros(half_symm_shape), np.zeros(half_symm_shape))))
-                    sq_paulis[row].z[col] = True
-                    sq_paulis[row].x[col] = True
-                    sq_list.append(col)
-                    break
 
         pauli_symmetries = PauliList(pauli_symmetries)
         sq_paulis = PauliList(sq_paulis)
@@ -320,7 +312,7 @@ class Z2Symmetries:
 
         """
 
-        if not self.is_empty() and not Z2Symmetries._sparse_pauli_op_is_zero(operator):
+        if not self.is_empty() and not _sparse_pauli_op_is_zero(operator):
             # If the operator is zero then we can skip the following.
             for clifford in self.cliffords:
                 operator = cast(SparsePauliOp, clifford @ operator @ clifford)
@@ -483,3 +475,9 @@ def _row_echelon_f2(matrix_in) -> np.ndarray:
     matrix_out = matrix_out.astype(int)
 
     return matrix_out
+
+
+def _sparse_pauli_op_is_zero(op: SparsePauliOp) -> bool:
+    """Returns whether or not this operator represents a zero operation."""
+    op = op.simplify()
+    return len(op.coeffs) == 1 and op.coeffs[0] == 0
