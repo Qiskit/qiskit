@@ -18,7 +18,6 @@ import logging
 
 import numpy as np
 
-
 from qiskit.circuit import QuantumCircuit, Parameter
 from qiskit.quantum_info.operators.base_operator import BaseOperator
 from qiskit.quantum_info import Statevector
@@ -26,7 +25,7 @@ from qiskit.opflow import PauliSumOp
 from qiskit.primitives import Estimator
 
 from .bind import bind
-from .gradient_lookup import analytic_gradient
+from .derive_circuit import derive_circuit
 from .split_circuits import split
 
 from ..base_estimator_gradient import BaseEstimatorGradient
@@ -37,26 +36,47 @@ logger = logging.getLogger(__name__)
 
 
 class ReverseEstimatorGradient(BaseEstimatorGradient):
-    """Estimator gradients with the classically efficient reverse mode."""
+    """Estimator gradients with the classically efficient reverse mode.
+
+    .. note::
+
+        This gradient implementation is based on statevector manipulations and scales
+        exponentially in numbers of qubits. However, for small system sizes it can be very fast
+        compared to circuit-based gradients.
+
+    This class implements the calculation of the expectation gradient as described in
+    [1]. By keeping track of two statevectors and iteratively sweeping through each parameterized
+    gate, this method scales only linearly in the number of parameters.
+
+    **References:**
+
+        [1]: Jones, T. and Gacon, J. "Efficient calculation of gradients in classical simulations
+             of variational quantum algorithms" (2020).
+             `arXiv:2009.02823 <https://arxiv.org/abs/2009.02823>`_.
+
+    """
 
     SUPPORTED_GATES = ["rx", "ry", "rz", "cp", "crx", "cry", "crz"]
 
     def __init__(self, derivative_type: DerivativeType = DerivativeType.REAL):
         """
-
-        .. note::
-
-            These gradients are calculated directly on the statevectors. This is
-            inefficient in the number of qubits, but very fast in the number of gates.
-
         Args:
-            derivative_type: Selects whether the real, imaginary or real + imaginary part
+            derivative_type: Selects whether the real, imaginary or real plus imaginary part
                 of the gradient is returned.
-
         """
         alibi_estimator = Estimator()  # this is never used
         super().__init__(alibi_estimator)
-        self.derivative_type = derivative_type
+        self._derivative_type = derivative_type
+
+    @property
+    def derivative_type(self) -> DerivativeType:
+        """The derivative type."""
+        return self._derivative_type
+
+    @derivative_type.setter
+    def derivative_type(self, derivative_type: DerivativeType) -> None:
+        """Set the derivative type."""
+        self._derivative_type = derivative_type
 
     def _run(
         self,
@@ -96,7 +116,10 @@ class ReverseEstimatorGradient(BaseEstimatorGradient):
 
             # the metadata only contains the parameters as there are no run configs here
             metadata.append(
-                {"parameters": [p for p in circuits[i].parameters if p in parameter_sets[i]]}
+                {
+                    "parameters": [p for p in circuits[i].parameters if p in parameter_sets[i]],
+                    "derivative_type": self.derivative_type,
+                }
             )
 
             # keep track of the parameter order of the circuit, as the circuit splitting might
@@ -112,7 +135,7 @@ class ReverseEstimatorGradient(BaseEstimatorGradient):
 
             # initialize state variables -- we use the same naming as in the paper
             phi = Statevector(bound_circuit)
-            lam = evolve_by_operator(observable, phi)
+            lam = _evolve_by_operator(observable, phi)
 
             # store gradients in a dictionary to return them in the correct order
             grads = {param: 0j for param in original_parameter_order}
@@ -127,7 +150,7 @@ class ReverseEstimatorGradient(BaseEstimatorGradient):
                 parameter_j = paramlist[j][0]
 
                 # get the analytic gradient d U_j / d p_j and bind the gate
-                deriv = analytic_gradient(unitary_j, parameter_j)
+                deriv = derive_circuit(unitary_j, parameter_j)
                 for _, gate in deriv:
                     bind(gate, parameter_binds, inplace=True)
 
@@ -158,10 +181,11 @@ class ReverseEstimatorGradient(BaseEstimatorGradient):
             return 2 * np.real(gradient)
         if self.derivative_type == DerivativeType.IMAG:
             return 2 * np.imag(gradient)
+
         return 2 * gradient
 
 
-def evolve_by_operator(operator, state):
+def _evolve_by_operator(operator, state):
     """Evolve the Statevector state by operator."""
 
     # try casting to sparse matrix and use sparse matrix-vector multiplication, which is

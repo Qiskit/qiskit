@@ -91,6 +91,16 @@ class LinCombEstimatorGradient(BaseEstimatorGradient):
         self._derivative_type = derivative_type
         super().__init__(estimator, options)
 
+    @property
+    def derivative_type(self) -> DerivativeType:
+        """The derivative type."""
+        return self._derivative_type
+
+    @derivative_type.setter
+    def derivative_type(self, derivative_type: DerivativeType) -> None:
+        """Set the derivative type."""
+        self._derivative_type = derivative_type
+
     def _run(
         self,
         circuits: Sequence[QuantumCircuit],
@@ -144,7 +154,7 @@ class LinCombEstimatorGradient(BaseEstimatorGradient):
             )
             # If its derivative type is `DerivativeType.COMPLEX`, calculate the gradient
             # of the real and imaginary parts separately.
-            meta["derivative_type"] = self._derivative_type
+            meta["derivative_type"] = self.derivative_type
             metadata.append(meta)
             # Combine inputs into a single job to reduce overhead.
             if self._derivative_type == DerivativeType.COMPLEX:
@@ -174,7 +184,7 @@ class LinCombEstimatorGradient(BaseEstimatorGradient):
         gradients = []
         partial_sum_n = 0
         for n in all_n:
-            if self._derivative_type == DerivativeType.COMPLEX:
+            if self.derivative_type == DerivativeType.COMPLEX:
                 gradient = np.zeros(n // 2, dtype="complex")
                 gradient.real = results.values[partial_sum_n : partial_sum_n + n // 2]
                 gradient.imag = results.values[partial_sum_n + n // 2 : partial_sum_n + n]

@@ -42,7 +42,7 @@ gradient_factories = [
     lambda estimator: FiniteDiffEstimatorGradient(estimator, epsilon=1e-6, method="backward"),
     ParamShiftEstimatorGradient,
     LinCombEstimatorGradient,
-    ReverseEstimatorGradient,
+    lambda estimator: ReverseEstimatorGradient(),  # does not take an estimator!
 ]
 
 
@@ -126,23 +126,6 @@ class TestEstimatorGradient(QiskitTestCase):
             gradients = gradient.run([qc], [op], [param]).result().gradients[0]
             for j, value in enumerate(gradients):
                 self.assertAlmostEqual(value, correct_results[i][j], 3)
-
-    @combine(grad=gradient_factories)
-    def test_gradient_shuffled_order(self, grad):
-        """Test computing the gradients out-of-order."""
-        estimator = Estimator()
-        a = Parameter("a")
-        b = Parameter("b")
-        qc = QuantumCircuit(1)
-        qc.rx(0.12, 0)
-        qc.ry(a, 0)
-        qc.rz(b, 0)
-        gradient = grad(estimator)
-        op = SparsePauliOp.from_list([("Z", 1)])
-        values = [1, 2]
-
-        print(gradient.run([qc], [op], [values]).result())
-        print(gradient.run([qc], [op], [values], parameters=[[b, a]]).result())
 
     @combine(grad=gradient_factories)
     def test_gradient_efficient_su2(self, grad):
@@ -380,14 +363,18 @@ class TestEstimatorGradient(QiskitTestCase):
 
     @data((DerivativeType.IMAG, -1.0), (DerivativeType.COMPLEX, -1.0j))
     @unpack
-    def test_lin_comb_imag_gradient(self, derivative_type, expected_gradient_value):
+    def test_complex_gradient(self, derivative_type, expected_gradient_value):
         """Tests if the ``LinCombEstimatorGradient`` has the correct value."""
         estimator = Estimator()
-        gradient = LinCombEstimatorGradient(estimator, derivative_type=derivative_type)
-        c = QuantumCircuit(1)
-        c.rz(Parameter("p"), 0)
-        result = gradient.run([c], [Pauli("I")], [[0.0]]).result()
-        self.assertAlmostEqual(result.gradients[0][0], expected_gradient_value)
+        lcu = LinCombEstimatorGradient(estimator, derivative_type=derivative_type)
+        reverse = ReverseEstimatorGradient(derivative_type=derivative_type)
+
+        for gradient in [lcu, reverse]:
+            with self.subTest(gradient=gradient):
+                c = QuantumCircuit(1)
+                c.rz(Parameter("p"), 0)
+                result = gradient.run([c], [Pauli("I")], [[0.0]]).result()
+                self.assertAlmostEqual(result.gradients[0][0], expected_gradient_value)
 
     @combine(
         grad=[

@@ -12,6 +12,8 @@
 
 """Split a circuit into subcircuits, each containing a single parameterized gate."""
 
+from __future__ import annotations
+
 from collections.abc import Iterable
 from qiskit.circuit import QuantumCircuit, ParameterExpression, Parameter
 
@@ -19,7 +21,7 @@ from qiskit.circuit import QuantumCircuit, ParameterExpression, Parameter
 def split(
     circuit: QuantumCircuit,
     parameters: Iterable[Parameter] | None = None,
-):
+) -> tuple[list[QuantumCircuit], list[list[Parameter]]]:
     """Split the circuit at ParameterExpressions.
 
     Args:
@@ -41,15 +43,13 @@ def split(
                 for param in op[0].params
                 if isinstance(param, ParameterExpression) and len(param.parameters) > 0
             ]
-        elif isinstance(parameters, Iterable):
+        else:
             if op[0].definition is not None:
                 free_op_params = op[0].definition.parameters
             else:
                 free_op_params = {}
 
             params = [p for p in parameters if p in free_op_params]
-        else:
-            raise NotImplementedError("Unsupported type of parameters:", parameters)
 
         new_split = bool(len(params) > 0)
 
@@ -61,13 +61,8 @@ def split(
         else:
             sub.data += [op]
 
-    if len(sub.data) > 0:  # handle leftover gates
-        # if separate_parameterized_gates or len(circuits) == 0:
-        #     corresponding_parameters.append(params)
-        #     circuits.append(
-        #         sub
-        #     )  # create new if parameterized gates should be separated
-        # else:
-        circuits[-1].compose(sub, inplace=True)  # or attach to last
+    # handle leftover gates
+    if len(sub.data) > 0:
+        circuits[-1].compose(sub, inplace=True)
 
     return circuits, corresponding_parameters

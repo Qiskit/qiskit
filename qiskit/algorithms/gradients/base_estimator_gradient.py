@@ -63,6 +63,17 @@ class BaseEstimatorGradient(ABC):
             self._default_options.update_options(**options)
         self._gradient_circuit_cache: dict[QuantumCircuit, GradientCircuit] = {}
 
+    @property
+    def derivative_type(self) -> DerivativeType:
+        """Return the derivative type (real, imaginary or complex).
+
+        Returns:
+            The derivative type.
+        """
+        # the default case is real, as this yields e.g. the energy gradient and this type
+        # is also supported by function-level schemes like finite difference or SPSA
+        return DerivativeType.REAL
+
     def run(
         self,
         circuits: Sequence[QuantumCircuit],
@@ -204,13 +215,9 @@ class BaseEstimatorGradient(ABC):
         for idx, (circuit, parameter_values_, parameter_set) in enumerate(
             zip(circuits, parameter_values, parameter_sets)
         ):
-            unique_gradient = np.zeros(len(parameter_set))
-            if (
-                "derivative_type" in results.metadata[idx]
-                and results.metadata[idx]["derivative_type"] == DerivativeType.COMPLEX
-            ):
-                # If the derivative type is complex, cast the gradient to complex.
-                unique_gradient = unique_gradient.astype("complex")
+            dtype = complex if self.derivative_type == DerivativeType.COMPLEX else float
+            unique_gradient = np.zeros(len(parameter_set), dtype=dtype)
+
             gradient_circuit = self._gradient_circuit_cache[_circuit_key(circuit)]
             g_parameter_set = _make_gradient_parameter_set(gradient_circuit, parameter_set)
             # Make a map from the gradient parameter to the respective index in the gradient.

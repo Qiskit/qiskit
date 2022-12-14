@@ -12,22 +12,14 @@
 
 """Split a circuit into subcircuits, each containing a single parameterized gate."""
 
+from __future__ import annotations
 import itertools
-from qiskit.circuit import QuantumCircuit, Parameter
+
+from qiskit.circuit import QuantumCircuit, Parameter, Gate
 from qiskit.circuit.library import RXGate, RYGate, RZGate, CRXGate, CRYGate, CRZGate
 
 
-def extract_single_parameter(expression):
-    if isinstance(expression, Parameter):
-        return expression
-
-    if len(expression.parameters) > 1:
-        raise ValueError("Expression has more than one parameter.")
-
-    return list(expression.parameters)[0]
-
-
-def gradient_lookup(gate):
+def gradient_lookup(gate: Gate) -> list[tuple[complex, QuantumCircuit]]:
     """Returns a circuit implementing the gradient of the input gate."""
 
     param = gate.params[0]
@@ -35,17 +27,17 @@ def gradient_lookup(gate):
         derivative = QuantumCircuit(gate.num_qubits)
         derivative.rx(param, 0)
         derivative.x(0)
-        return [[-0.5j, derivative]]
+        return [(-0.5j, derivative)]
     if isinstance(gate, RYGate):
         derivative = QuantumCircuit(gate.num_qubits)
         derivative.ry(param, 0)
         derivative.y(0)
-        return [[-0.5j, derivative]]
+        return [(-0.5j, derivative)]
     if isinstance(gate, RZGate):
         derivative = QuantumCircuit(gate.num_qubits)
         derivative.rz(param, 0)
         derivative.z(0)
-        return [[-0.5j, derivative]]
+        return [(-0.5j, derivative)]
     if isinstance(gate, CRXGate):
         proj1 = QuantumCircuit(gate.num_qubits)
         proj1.rx(param, 1)
@@ -56,7 +48,7 @@ def gradient_lookup(gate):
         proj2.rx(param, 1)
         proj2.x(1)
 
-        return [[-0.25j, proj1], [0.25j, proj2]]
+        return [(-0.25j, proj1), (0.25j, proj2)]
     if isinstance(gate, CRYGate):
         proj1 = QuantumCircuit(gate.num_qubits)
         proj1.ry(param, 1)
@@ -67,7 +59,7 @@ def gradient_lookup(gate):
         proj2.ry(param, 1)
         proj2.y(1)
 
-        return [[-0.25j, proj1], [0.25j, proj2]]
+        return [(-0.25j, proj1), (0.25j, proj2)]
     if isinstance(gate, CRZGate):
         proj1 = QuantumCircuit(gate.num_qubits)
         proj1.rz(param, 1)
@@ -78,20 +70,56 @@ def gradient_lookup(gate):
         proj2.rz(param, 1)
         proj2.z(1)
 
-        return [[-0.25j, proj1], [0.25j, proj2]]
+        return [(-0.25j, proj1), (0.25j, proj2)]
     raise NotImplementedError("Cannot implement for", gate)
 
 
-def analytic_gradient(circuit, parameter=None, return_parameter=False):
-    """Return the analytic gradient of the input circuit."""
+def derive_circuit(
+    circuit: QuantumCircuit, parameter: Parameter | None = None
+) -> list[tuple[complex, QuantumCircuit]]:
+    """Return the analytic gradient expression of the input circuit wrt. a single parameter.
+
+    Returns a list of ``(coeff, gradient_circuit)`` tuples, where the derivative of the circuit is
+    given by the sum of the gradient circuits multiplied by their coefficient.
+
+    For example, the circuit::
+
+           ┌───┐┌───────┐┌─────┐
+        q: ┤ H ├┤ Rx(x) ├┤ Sdg ├
+           └───┘└───────┘└─────┘
+
+    returns the coefficient `-0.5j` and the circuit equivalent to::
+
+           ┌───┐┌───────┐┌───┐┌─────┐
+        q: ┤ H ├┤ Rx(x) ├┤ X ├┤ Sdg ├
+           └───┘└───────┘└───┘└─────┘
+
+    as the derivative of `Rx(x)` is `-0.5j Rx(x) X`.
+
+    Args:
+        circuit: The quantum circuit to derive.
+        parameter: The parameter with respect to which we derive.
+
+    Returns:
+        A list of ``(coeff, gradient_circuit)`` tuples.
+
+    Raises:
+        ValueError: If ``parameter`` is of the wrong type.
+        ValueError: If ``parameter`` is not in this circuit.
+        NotImplementedError: If a non-unique parameter is added, as the product rule is not yet
+            supported in this function.
+    """
 
     if parameter is not None:
-        single = extract_single_parameter(parameter)
+        # this is added as useful user-warning, since sometimes ``ParameterExpression``s are
+        # passed around instead of ``Parameter``s
+        if not isinstance(parameter, Parameter):
+            raise ValueError("``parameter`` must be  None or of type ``Parameter``.")
 
-        if single not in circuit.parameters:
+        if parameter not in circuit.parameters:
             raise ValueError("Parameter not in this circuit.")
 
-        if len(circuit._parameter_table[single]) > 1:
+        if len(circuit._parameter_table[parameter]) > 1:
             raise NotImplementedError("No product rule support yet, params must be unique.")
 
     summands, op_context = [], []
@@ -100,21 +128,9 @@ def analytic_gradient(circuit, parameter=None, return_parameter=False):
         op_context += [op[1:]]
         if (parameter is None and len(gate.params) > 0) or parameter in gate.params:
             coeffs_and_grads = gradient_lookup(gate)
-            if not isinstance(parameter, Parameter):
-                # is not a fully decomposed parameter
-                if len(parameter.parameters) > 1:
-                    raise NotImplementedError("Cannot support multiple parameters in one gate yet.")
-                single_parameter = list(parameter.parameters)[0]
-
-                # multiply coefficient with parameter derivative
-                for k, coeff_and_grad in enumerate(coeffs_and_grads):
-                    coeffs_and_grads[k][0] = (
-                        parameter.gradient(single_parameter) * coeff_and_grad[0]
-                    )
-
             summands += [coeffs_and_grads]
         else:
-            summands += [[[1, gate]]]
+            summands += [[(1, gate)]]
 
     gradient = []
     for product_rule_term in itertools.product(*summands):
@@ -123,6 +139,6 @@ def analytic_gradient(circuit, parameter=None, return_parameter=False):
         for i, a in enumerate(product_rule_term):
             c *= a[0]
             summand_circuit.data.append([a[1], *op_context[i]])
-        gradient += [[c, summand_circuit.copy()]]
+        gradient += [(c, summand_circuit.copy())]
 
     return gradient

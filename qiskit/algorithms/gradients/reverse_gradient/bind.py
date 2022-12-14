@@ -12,11 +12,27 @@
 
 """Bind a parameters to a circuit, accepting parameters not existing in the circuit."""
 
+from __future__ import annotations
+from collections.abc import Iterable
+
+from qiskit.circuit import QuantumCircuit, Parameter
+
 # pylint: disable=inconsistent-return-statements
-def bind(circuits, parameter_binds, inplace=False):
+def bind(
+    circuits: QuantumCircuit | Iterable[QuantumCircuit],
+    parameter_binds: dict[Parameter, float],
+    inplace: bool = False,
+) -> QuantumCircuit | Iterable[QuantumCircuit] | None:
+    """Bind parameters to a circuit (or list of circuits).
+
+    This method also allows passing parameter binds to parameters that are not in the circuit,
+    and thereby differs to :meth:`.QuantumCircuit.bind_parameters`.
+    """
     if not isinstance(circuits, list):
-        existing_parameter_binds = {p: parameter_binds[p] for p in circuits.parameters}
-        return circuits.assign_parameters(existing_parameter_binds, inplace=inplace)
+        circuits = [circuits]
+        return_list = False
+    else:
+        return_list = True
 
     bound = []
     for circuit in circuits:
@@ -24,4 +40,4 @@ def bind(circuits, parameter_binds, inplace=False):
         bound.append(circuit.assign_parameters(existing_parameter_binds, inplace=inplace))
 
     if not inplace:
-        return bound
+        return bound if return_list else bound[0]
