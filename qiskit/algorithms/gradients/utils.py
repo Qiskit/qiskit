@@ -320,11 +320,11 @@ def _make_lin_comb_gradient_circuit(
     unroller = TranslateParameterizedGates(supported_gates)
     circuit2 = unroller(circuit)
 
-    qr_aux = QuantumRegister(1, "aux")
+    qr_aux = QuantumRegister(1, "qr_aux")
     circuit2.add_register(qr_aux)
 
     if add_measurement:
-        cr_aux = ClassicalRegister(1, "aux")
+        cr_aux = ClassicalRegister(1, "cr_aux")
         circuit2.add_bits(cr_aux)
 
     circuit2.h(qr_aux)

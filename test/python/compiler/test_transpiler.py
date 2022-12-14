@@ -1542,6 +1542,27 @@ class TestTranspile(QiskitTestCase):
             qubit_mapping={qubit: index for index, qubit in enumerate(transpiled.qubits)},
         )
 
+    @data(1, 2, 3)
+    def test_transpile_identity_circuit_no_target(self, opt_level):
+        """Test circuit equivalent to identity is optimized away for all optimization levels >0.
+
+        Reproduce taken from https://github.com/Qiskit/qiskit-terra/issues/9217
+        """
+        qr1 = QuantumRegister(3, "state")
+        qr2 = QuantumRegister(2, "ancilla")
+        cr = ClassicalRegister(2, "c")
+        qc = QuantumCircuit(qr1, qr2, cr)
+        qc.h(qr1[0])
+        qc.cx(qr1[0], qr1[1])
+        qc.cx(qr1[1], qr1[2])
+        qc.cx(qr1[1], qr1[2])
+        qc.cx(qr1[0], qr1[1])
+        qc.h(qr1[0])
+
+        empty_qc = QuantumCircuit(qr1, qr2, cr)
+        result = transpile(qc, optimization_level=opt_level)
+        self.assertEqual(empty_qc, result)
+
 
 @ddt
 class TestPostTranspileIntegration(QiskitTestCase):
