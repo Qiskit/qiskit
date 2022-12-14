@@ -255,7 +255,9 @@ class TestVarQRTE(QiskitAlgorithmsTestCase):
 
             evolved_state = evolution_result.evolved_state
 
-            parameter_values = evolved_state.data[0][0].params
+            parameter_values = [
+                evolved_state.data[i][0].params[0] for i in range(len(thetas_expected))
+            ]
 
             for i, parameter_value in enumerate(parameter_values):
                 np.testing.assert_almost_equal(
@@ -278,7 +280,9 @@ class TestVarQRTE(QiskitAlgorithmsTestCase):
 
             evolved_state = evolution_result.evolved_state
 
-            parameter_values = evolved_state.data[0][0].params
+            parameter_values = [
+                evolved_state.data[i][0].params[0] for i in range(len(thetas_expected))
+            ]
 
             for i, parameter_value in enumerate(parameter_values):
                 np.testing.assert_almost_equal(

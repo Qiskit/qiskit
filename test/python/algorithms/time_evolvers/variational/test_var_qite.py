@@ -17,6 +17,8 @@ from test.python.algorithms import QiskitAlgorithmsTestCase
 from ddt import ddt, data
 import numpy as np
 
+from qiskit import QuantumCircuit
+from qiskit.circuit import Parameter
 from qiskit.opflow import PauliSumOp
 from qiskit.algorithms.gradients import LinCombQFI, LinCombEstimatorGradient
 from qiskit.primitives import Estimator
@@ -243,6 +245,80 @@ class TestVarQITE(QiskitAlgorithmsTestCase):
         ]
 
         self._test_helper(observable, thetas_expected, time, var_qite, 4)
+
+    def test_run_d_1_time_dependent(self):
+        """Test VarQITE for d = 1 and a time-dependent Hamiltonian with the Forward Euler solver."""
+        t_param = Parameter("t")
+        time = 1
+        observable = SparsePauliOp(["I", "Z"], np.array([0, t_param]))
+
+        x, y, z = [Parameter(s) for s in "xyz"]
+        ansatz = QuantumCircuit(1)
+        ansatz.rz(x, 0)
+        ansatz.ry(y, 0)
+        ansatz.rz(z, 0)
+
+        parameters = list(ansatz.parameters)
+        init_param_values = np.zeros(len(parameters))
+        x_val = 0
+        y_val = np.pi / 2
+        z_val = 0
+
+        init_param_values[0] = x_val
+        init_param_values[1] = y_val
+        init_param_values[2] = z_val
+
+        evolution_problem = TimeEvolutionProblem(observable, time, t_param=t_param)
+
+        thetas_expected = [1.83881002737137e-18, 2.43224994794434, -3.05311331771918e-18]
+
+        thetas_expected_shots = [1.83881002737137e-18, 2.43224994794434, -3.05311331771918e-18]
+
+        # the expected final state is Statevector([0.34849948+0.j, 0.93730897+0.j])
+
+        with self.subTest(msg="Test exact backend."):
+            algorithm_globals.random_seed = self.seed
+            estimator = Estimator()
+            var_principle = ImaginaryMcLachlanPrinciple()
+
+            var_qite = VarQITE(
+                ansatz, init_param_values, var_principle, estimator, num_timesteps=100
+            )
+            evolution_result = var_qite.evolve(evolution_problem)
+
+            evolved_state = evolution_result.evolved_state
+
+            parameter_values = [
+                evolved_state.data[i][0].params[0] for i in range(len(thetas_expected))
+            ]
+
+            for i, parameter_value in enumerate(parameter_values):
+                np.testing.assert_almost_equal(
+                    float(parameter_value), thetas_expected[i], decimal=2
+                )
+
+        with self.subTest(msg="Test shot-based backend."):
+            algorithm_globals.random_seed = self.seed
+
+            estimator = Estimator(options={"shots": 4 * 4096, "seed": self.seed})
+            var_principle = ImaginaryMcLachlanPrinciple()
+
+            var_qite = VarQITE(
+                ansatz, init_param_values, var_principle, estimator, num_timesteps=100
+            )
+
+            evolution_result = var_qite.evolve(evolution_problem)
+
+            evolved_state = evolution_result.evolved_state
+
+            parameter_values = [
+                evolved_state.data[i][0].params[0] for i in range(len(thetas_expected))
+            ]
+
+            for i, parameter_value in enumerate(parameter_values):
+                np.testing.assert_almost_equal(
+                    float(parameter_value), thetas_expected_shots[i], decimal=2
+                )
 
     def _test_helper(self, observable, thetas_expected, time, var_qite, decimal):
         evolution_problem = TimeEvolutionProblem(observable, time)
