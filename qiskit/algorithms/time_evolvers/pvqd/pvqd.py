@@ -18,20 +18,22 @@ from typing import Callable
 
 import numpy as np
 
-from qiskit.circuit import QuantumCircuit, ParameterVector, Parameter
+from qiskit.circuit import Parameter, ParameterVector, QuantumCircuit
 from qiskit.circuit.library import PauliEvolutionGate
 from qiskit.opflow import PauliSumOp
 from qiskit.primitives import BaseEstimator
 from qiskit.quantum_info.operators.base_operator import BaseOperator
 from qiskit.synthesis import EvolutionSynthesis, LieTrotter
+from qiskit.utils import algorithm_globals
+
 from ...exceptions import AlgorithmError, QiskitError
-from .pvqd_result import PVQDResult
-from .utils import _get_observable_evaluator, _is_gradient_supported
+from ...optimizers import Minimizer, Optimizer
+from ...state_fidelities.base_state_fidelity import BaseStateFidelity
+from ..real_time_evolver import RealTimeEvolver
 from ..time_evolution_problem import TimeEvolutionProblem
 from ..time_evolution_result import TimeEvolutionResult
-from ..real_time_evolver import RealTimeEvolver
-from ...state_fidelities.base_state_fidelity import BaseStateFidelity
-from ...optimizers import Optimizer, Minimizer
+from .pvqd_result import PVQDResult
+from .utils import _get_observable_evaluator, _is_gradient_supported
 
 logger = logging.getLogger(__name__)
 
@@ -196,7 +198,7 @@ class PVQD(RealTimeEvolver):
         loss, gradient = self.get_loss(hamiltonian, ansatz, dt, theta)
 
         if initial_guess is None:
-            initial_guess = np.random.random(self.initial_parameters.size) * 0.01
+            initial_guess = algorithm_globals.random.random(self.initial_parameters.size) * 0.01
 
         if isinstance(self.optimizer, Optimizer):
             optimizer_result = self.optimizer.minimize(loss, initial_guess, gradient)

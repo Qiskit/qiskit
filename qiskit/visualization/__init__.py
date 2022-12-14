@@ -207,10 +207,10 @@ Pulse Visualizations
 .. autosummary::
    :toctree: ../stubs/
 
-   ~qiskit.visualization.pulse_v2.draw
-   ~qiskit.visualization.pulse_v2.IQXStandard
-   ~qiskit.visualization.pulse_v2.IQXSimple
-   ~qiskit.visualization.pulse_v2.IQXDebugging
+   pulse_drawer
+   ~qiskit.visualization.pulse.IQXStandard
+   ~qiskit.visualization.pulse.IQXSimple
+   ~qiskit.visualization.pulse.IQXDebugging
 
 Timeline Visualizations
 =======================
@@ -219,7 +219,6 @@ Timeline Visualizations
    :toctree: ../stubs/
 
    timeline_drawer
-   ~qiskit.visualization.timeline.draw
 
 Single Qubit State Transition Visualizations
 ============================================
@@ -269,7 +268,7 @@ from .pass_manager_visualization import pass_manager_drawer
 
 from .pulse.interpolation import step_wise, linear, cubic_spline
 from .pulse.qcstyle import PulseStyle, SchedStyle
-from .pulse_v2 import draw as pulse_drawer_v2
+from .pulse_v2 import draw as pulse_drawer
 
 from .timeline import draw as timeline_drawer
 
@@ -278,3 +277,7 @@ from .exceptions import VisualizationError
 # These modules aren't part of the public interface, and were moved in Terra 0.22.  They're
 # re-imported here to allow a backwards compatible path, and should be deprecated in Terra 0.23.
 from .circuit import text, matplotlib, latex
+
+# Prepare for migration of old versioned name to unversioned name.  The `pulse_drawer_v2` name can
+# be deprecated in Terra 0.24, as `pulse_drawer` became available by that name in Terra 0.23.
+pulse_drawer_v2 = pulse_drawer

@@ -3,7 +3,7 @@ hypothesis>=4.24.3
 python-constraint>=1.4
 ipython<7.22.0
 ipykernel<5.5.2
-ipywidgets>=7.3.0
+ipywidgets>=7.3.0,<8.0.3
 jupyter
 matplotlib>=3.3
 pillow>=4.2.1
