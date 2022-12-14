@@ -71,6 +71,22 @@ class TestEstimatorGradient(QiskitTestCase):
         self.assertAlmostEqual(value[0], correct_result, 3)
 
     @combine(grad=gradient_factories)
+    def test_single_circuit_observable(self, grad):
+        """Test the estimator gradient for a single circuit and observable"""
+        estimator = Estimator()
+        a = Parameter("a")
+        qc = QuantumCircuit(1)
+        qc.h(0)
+        qc.p(a, 0)
+        qc.h(0)
+        gradient = grad(estimator)
+        op = SparsePauliOp.from_list([("Z", 1)])
+        correct_result = -1 / np.sqrt(2)
+        param = [np.pi / 4]
+        value = gradient.run(qc, op, [param]).result().gradients[0]
+        self.assertAlmostEqual(value[0], correct_result, 3)
+
+    @combine(grad=gradient_factories)
     def test_gradient_p(self, grad):
         """Test the estimator gradient for p"""
         estimator = Estimator()
