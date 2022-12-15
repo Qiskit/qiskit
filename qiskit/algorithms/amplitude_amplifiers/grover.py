@@ -310,35 +310,34 @@ class Grover(AmplitudeAmplifier):
                 }
                 top_measurement, max_probability = max(circuit_results.items(), key=lambda x: x[1])
 
+            elif self._quantum_instance.is_statevector:
+                qc = self.construct_circuit(amplification_problem, power, measurement=False)
+                circuit_results = self._quantum_instance.execute(qc).get_statevector()
+                num_bits = len(amplification_problem.objective_qubits)
+
+                # trace out work qubits
+                if qc.width() != num_bits:
+                    indices = [
+                        i
+                        for i in range(qc.num_qubits)
+                        if i not in amplification_problem.objective_qubits
+                    ]
+                    rho = partial_trace(circuit_results, indices)
+                    circuit_results = np.diag(rho.data)
+
+                max_amplitude = max(circuit_results.max(), circuit_results.min(), key=abs)
+                max_amplitude_idx = np.where(circuit_results == max_amplitude)[0][0]
+                top_measurement = np.binary_repr(max_amplitude_idx, num_bits)
+                max_probability = np.abs(max_amplitude) ** 2
+                shots = 1
             else:
-                if self._quantum_instance.is_statevector:
-                    qc = self.construct_circuit(amplification_problem, power, measurement=False)
-                    circuit_results = self._quantum_instance.execute(qc).get_statevector()
-                    num_bits = len(amplification_problem.objective_qubits)
-
-                    # trace out work qubits
-                    if qc.width() != num_bits:
-                        indices = [
-                            i
-                            for i in range(qc.num_qubits)
-                            if i not in amplification_problem.objective_qubits
-                        ]
-                        rho = partial_trace(circuit_results, indices)
-                        circuit_results = np.diag(rho.data)
-
-                    max_amplitude = max(circuit_results.max(), circuit_results.min(), key=abs)
-                    max_amplitude_idx = np.where(circuit_results == max_amplitude)[0][0]
-                    top_measurement = np.binary_repr(max_amplitude_idx, num_bits)
-                    max_probability = np.abs(max_amplitude) ** 2
-                    shots = 1
-                else:
-                    qc = self.construct_circuit(amplification_problem, power, measurement=True)
-                    circuit_results = self._quantum_instance.execute(qc).get_counts(qc)
-                    top_measurement = max(circuit_results.items(), key=operator.itemgetter(1))[0]
-                    shots = sum(circuit_results.values())
-                    max_probability = (
-                        max(circuit_results.items(), key=operator.itemgetter(1))[1] / shots
-                    )
+                qc = self.construct_circuit(amplification_problem, power, measurement=True)
+                circuit_results = self._quantum_instance.execute(qc).get_counts(qc)
+                top_measurement = max(circuit_results.items(), key=operator.itemgetter(1))[0]
+                shots = sum(circuit_results.values())
+                max_probability = (
+                    max(circuit_results.items(), key=operator.itemgetter(1))[1] / shots
+                )
 
             all_circuit_results.append(circuit_results)
 
