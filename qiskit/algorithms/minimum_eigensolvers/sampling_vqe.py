@@ -98,10 +98,12 @@ class SamplingVQE(VariationalAlgorithm, SamplingMinimumEigensolver):
         optimizer (Optimizer | Minimizer): A classical optimizer to find the minimum energy. This
             can either be a Qiskit :class:`.Optimizer` or a callable implementing the
             :class:`.Minimizer` protocol.
-        aggregation (float | Callable[[list[float]], float] | None): A float or callable to specify
-            how the objective function evaluated on the basis states should be aggregated. If a
-            float, this specifies the :math:`\alpha \in [0,1]` parameter for a CVaR expectation
-            value [1].
+        aggregation (float | Callable[[list[tuple[float, complex]], float] | None):
+            A float or callable to specify how the objective function evaluated on the basis states
+            should be aggregated. If a float, this specifies the :math:`\alpha \in [0,1]` parameter
+            for a CVaR expectation value [1]. If a callable, it takes a list of basis state
+            measurements specified as  ``[(probability, objective_value)]`` and return an objective
+            value as float. If None, all an ordinary expectation value is calculated.
         callback (Callable[[int, np.ndarray, float, dict[str, Any]], None] | None): A callback that
             can access the intermediate data at each optimization step. These data are: the
             evaluation count, the optimizer parameters for the ansatz, the evaluated value, and the
@@ -292,7 +294,9 @@ class SamplingVQE(VariationalAlgorithm, SamplingMinimumEigensolver):
                 ):
                     best_measurement["best"] = best_i
 
-        estimator = _DiagonalEstimator(sampler=self.sampler, callback=store_best_measurement)
+        estimator = _DiagonalEstimator(
+            sampler=self.sampler, callback=store_best_measurement, aggregation=self.aggregation
+        )
 
         def evaluate_energy(parameters):
             nonlocal eval_count

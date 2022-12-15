@@ -139,7 +139,7 @@ class TwoLocal(NLocal):
         q_2: ─────┼──────┤ Ry(θ[1]) ├─────┼──────┤ Ry(θ[1]) ├
              ┌────┴─────┐└──────────┘┌────┴─────┐└──────────┘
         q_3: ┤ Ry(θ[0]) ├────────────┤ Ry(θ[0]) ├────────────
-             └──────────┘            └─────────
+             └──────────┘            └──────────┘
 
         >>> layer_1 = [(0, 1), (0, 2)]
         >>> layer_2 = [(1, 2)]
@@ -178,34 +178,35 @@ class TwoLocal(NLocal):
         Args:
             num_qubits: The number of qubits of the two-local circuit.
             rotation_blocks: The gates used in the rotation layer. Can be specified via the name of
-                a gate (e.g. 'ry') or the gate type itself (e.g. RYGate).
+                a gate (e.g. ``'ry'``) or the gate type itself (e.g. :class:`.RYGate`).
                 If only one gate is provided, the gate same gate is applied to each qubit.
                 If a list of gates is provided, all gates are applied to each qubit in the provided
                 order.
                 See the Examples section for more detail.
             entanglement_blocks: The gates used in the entanglement layer. Can be specified in
-                the same format as `rotation_blocks`.
-            entanglement: Specifies the entanglement structure. Can be a string ('full', 'linear'
-                , 'reverse_linear, 'circular' or 'sca'), a list of integer-pairs specifying the indices
+                the same format as ``rotation_blocks``.
+            entanglement: Specifies the entanglement structure. Can be a string (``'full'``,
+                ``'linear'``, ``'reverse_linear'``, ``'circular'`` or ``'sca'``),
+                a list of integer-pairs specifying the indices
                 of qubits entangled with one another, or a callable returning such a list provided with
                 the index of the entanglement layer.
-                Default to 'full' entanglement.
+                Default to ``'full'`` entanglement.
                 Note that if ``entanglement_blocks = 'cx'``, then ``'full'`` entanglement provides the
                 same unitary as ``'reverse_linear'`` but the latter option has fewer entangling gates.
                 See the Examples section for more detail.
             reps: Specifies how often a block consisting of a rotation layer and entanglement
                 layer is repeated.
-            skip_unentangled_qubits: If True, the single qubit gates are only applied to qubits
-                that are entangled with another qubit. If False, the single qubit gates are applied
-                to each qubit in the Ansatz. Defaults to False.
-            skip_final_rotation_layer: If False, a rotation layer is added at the end of the
-                ansatz. If True, no rotation layer is added.
+            skip_unentangled_qubits: If ``True``, the single qubit gates are only applied to qubits
+                that are entangled with another qubit. If ``False``, the single qubit gates are applied
+                to each qubit in the ansatz. Defaults to ``False``.
+            skip_final_rotation_layer: If ``False``, a rotation layer is added at the end of the
+                ansatz. If ``True``, no rotation layer is added.
             parameter_prefix: The parameterized gates require a parameter to be defined, for which
-                we use instances of `qiskit.circuit.Parameter`. The name of each parameter will
+                we use instances of :class:`~qiskit.circuit.Parameter`. The name of each parameter will
                 be this specified prefix plus its index.
-            insert_barriers: If True, barriers are inserted in between each layer. If False,
-                no barriers are inserted. Defaults to False.
-            initial_state: A `QuantumCircuit` object to prepend to the circuit.
+            insert_barriers: If ``True``, barriers are inserted in between each layer. If ``False``,
+                no barriers are inserted. Defaults to ``False``.
+            initial_state: A :class:`.QuantumCircuit` object to prepend to the circuit.
 
         """
         super().__init__(
@@ -223,8 +224,9 @@ class TwoLocal(NLocal):
         )
 
     def _convert_to_block(self, layer: Union[str, type, Gate, QuantumCircuit]) -> QuantumCircuit:
-        """For a layer provided as str (e.g. 'ry') or type (e.g. RYGate) this function returns the
-        according layer type along with the number of parameters (e.g. (RYGate, 1)).
+        """For a layer provided as str (e.g. ``'ry'``) or type (e.g. :class:`.RYGate`) this function
+         returns the
+         according layer type along with the number of parameters (e.g. ``(RYGate, 1)``).
 
         Args:
             layer: The qubit layer.
@@ -233,9 +235,9 @@ class TwoLocal(NLocal):
             The specified layer with the required number of parameters.
 
         Raises:
-            TypeError: The type of `layer` is invalid.
-            ValueError: The type of `layer` is str but the name is unknown.
-            ValueError: The type of `layer` is type but the layer type is unknown.
+            TypeError: The type of ``layer`` is invalid.
+            ValueError: The type of ``layer`` is str but the name is unknown.
+            ValueError: The type of ``layer`` is type but the layer type is unknown.
 
         Note:
             Outlook: If layers knew their number of parameters as static property, we could also
@@ -245,8 +247,8 @@ class TwoLocal(NLocal):
             return layer
 
         # check the list of valid layers
-        # this could be a lot easier if the standard layers would have `name` and `num_params`
-        # as static types, which might be something they should have anyways
+        # this could be a lot easier if the standard layers would have ``name`` and ``num_params``
+        # as static types, which might be something they should have anyway
         theta = Parameter("θ")
         valid_layers = {
             "ch": CHGate(),

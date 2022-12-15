@@ -59,7 +59,7 @@ class NLocal(BlueprintCircuit):
                repeated reps times
 
     If specified, barriers can be inserted in between every block.
-    If an initial state object of Qiskit Aqua is provided, it is added in front of the NLocal.
+    If an initial state object is provided, it is added in front of the NLocal.
     """
 
     def __init__(
@@ -90,27 +90,27 @@ class NLocal(BlueprintCircuit):
             entanglement_blocks: The blocks used in the entanglement layers. If multiple are passed,
                 these will be applied one after another. To use different entanglements for
                 the sub-layers, see :meth:`get_entangler_map`.
-            entanglement: The indices specifying on which qubits the input blocks act. If None, the
+            entanglement: The indices specifying on which qubits the input blocks act. If ``None``, the
                 entanglement blocks are applied at the top of the circuit.
             reps: Specifies how often the rotation blocks and entanglement blocks are repeated.
-            insert_barriers: If True, barriers are inserted in between each layer. If False,
+            insert_barriers: If ``True``, barriers are inserted in between each layer. If ``False``,
                 no barriers are inserted.
             parameter_prefix: The prefix used if default parameters are generated.
             overwrite_block_parameters: If the parameters in the added blocks should be overwritten.
-                If False, the parameters in the blocks are not changed.
+                If ``False``, the parameters in the blocks are not changed.
             skip_final_rotation_layer: Whether a final rotation layer is added to the circuit.
             skip_unentangled_qubits: If ``True``, the rotation gates act only on qubits that
                 are entangled. If ``False``, the rotation gates act on all qubits.
-            initial_state: A `QuantumCircuit` object which can be used to describe an initial state
-                prepended to the NLocal circuit.
+            initial_state: A :class:`.QuantumCircuit` object which can be used to describe an initial
+                state prepended to the NLocal circuit.
             name: The name of the circuit.
 
         Examples:
             TODO
 
         Raises:
-            ValueError: If reps parameter is less than or equal to 0.
-            TypeError: If reps parameter is not an int value.
+            ValueError: If ``reps`` parameter is less than or equal to 0.
+            TypeError: If ``reps`` parameter is not an int value.
         """
         super().__init__(name=name)
 
@@ -403,7 +403,7 @@ class NLocal(BlueprintCircuit):
         """If barriers are inserted in between the layers or not.
 
         Returns:
-            True, if barriers are inserted in between the layers, False if not.
+            ``True``, if barriers are inserted in between the layers, ``False`` if not.
         """
         return self._insert_barriers
 
@@ -538,18 +538,21 @@ class NLocal(BlueprintCircuit):
         Below the different cases are listed, where ``i`` and ``j`` denote the repetition number
         and the block number, respectively, and ``n`` the number of qubits in the block.
 
-        entanglement type              | entangler map
-        -------------------------------+--------------------------------------------------------
-        None                           | [[0, ..., n - 1]]
-        str (e.g 'full')               | the specified connectivity on ``n`` qubits
-        List[int]                      | [``entanglement``]
-        List[List[int]]                | ``entanglement``
-        List[List[List[int]]]          | ``entanglement[i]``
-        List[List[List[List[int]]]]    | ``entanglement[i][j]``
-        List[str]                      | the connectivity specified in ``entanglement[i]``
-        List[List[str]]                | the connectivity specified in ``entanglement[i][j]``
-        Callable[int, str]             | same as List[str]
-        Callable[int, List[List[int]]] | same as List[List[List[int]]]
+        =================================== ========================================================
+        entanglement type                   entangler map
+        =================================== ========================================================
+        ``None``                            ``[[0, ..., n - 1]]``
+        ``str`` (e.g ``'full'``)            the specified connectivity on ``n`` qubits
+        ``List[int]``                       [``entanglement``]
+        ``List[List[int]]``                 ``entanglement``
+        ``List[List[List[int]]]``           ``entanglement[i]``
+        ``List[List[List[List[int]]]]``     ``entanglement[i][j]``
+        ``List[str]``                       the connectivity specified in ``entanglement[i]``
+        ``List[List[str]]``                 the connectivity specified in ``entanglement[i][j]``
+        ``Callable[int, str]``              same as ``List[str]``
+        ``Callable[int, List[List[int]]]``  same as ``List[List[List[int]]]``
+        =================================== ========================================================
+
 
         Note that all indices are to be taken modulo the length of the array they act on, i.e.
         no out-of-bounds index error will be raised but we re-iterate from the beginning of the
@@ -677,7 +680,7 @@ class NLocal(BlueprintCircuit):
 
         Returns:
             A list of pairs indicating the bounds, as (lower, upper). None indicates an unbounded
-            parameter in the corresponding direction. If None is returned, problem is fully
+            parameter in the corresponding direction. If ``None`` is returned, problem is fully
             unbounded.
         """
         if not self._is_built:

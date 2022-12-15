@@ -3,7 +3,7 @@ hypothesis>=4.24.3
 python-constraint>=1.4
 ipython<7.22.0
 ipykernel<5.5.2
-ipywidgets>=7.3.0
+ipywidgets>=7.3.0,<8.0.3
 jupyter
 matplotlib>=3.3
 pillow>=4.2.1
@@ -24,6 +24,6 @@ sphinx-design>=0.2.0
 pygments>=2.4
 scikit-learn>=0.20.0
 scikit-quant<=0.7;platform_system != 'Windows'
-jax;platform_system != 'Windows' and python_version < '3.11'
-jaxlib;platform_system != 'Windows' and python_version < '3.11'
+jax;platform_system != 'Windows'
+jaxlib;platform_system != 'Windows'
 docplex
