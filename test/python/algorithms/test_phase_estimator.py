@@ -28,7 +28,18 @@ from qiskit.algorithms.phase_estimators import (
 )
 import qiskit
 from qiskit import QuantumCircuit
-from qiskit.opflow import H, X, Y, Z, I, T, StateFn, PauliTrotterEvolution, MatrixEvolution, PauliSumOp
+from qiskit.opflow import (
+    H, 
+    X, 
+    Y, 
+    Z, 
+    I, 
+    T, 
+    StateFn, 
+    PauliTrotterEvolution, 
+    MatrixEvolution, 
+    PauliSumOp
+)
 from qiskit.test import slow_test
 
 
@@ -516,9 +527,9 @@ class TestPhaseEstimation(QiskitAlgorithmsTestCase):
         self.assertEqual(phase, expected_phase)
 
     @data(
-        ((X ^ X).to_circuit(), 0.25,  IterativePhaseEstimation),
+        ((X ^ X).to_circuit(), 0.25, IterativePhaseEstimation),
         ((I ^ X).to_circuit(), 0.125, IterativePhaseEstimation),
-        ((X ^ X).to_circuit(), 0.25,  PhaseEstimation),
+        ((X ^ X).to_circuit(), 0.25, PhaseEstimation),
         ((I ^ X).to_circuit(), 0.125, PhaseEstimation),
     )
     @unpack
