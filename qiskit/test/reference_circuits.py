@@ -19,6 +19,18 @@ class ReferenceCircuits:
     """Container for reference circuits used by the tests."""
 
     @staticmethod
+    def flip():
+        """Return an inverted state."""
+        qr = QuantumRegister(1, name="qr")
+        cr = ClassicalRegister(1, name="qc")
+        qc = QuantumCircuit(qr, cr, name="flip")
+        qc.x(qr[0])
+        qc.measure(qr, cr)
+
+        return qc
+
+
+    @staticmethod
     def bell():
         """Return a Bell circuit."""
         qr = QuantumRegister(2, name="qr")
