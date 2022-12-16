@@ -19,6 +19,17 @@ class ReferenceCircuits:
     """Container for reference circuits used by the tests."""
 
     @staticmethod
+    def flip():
+        """Return an inverter circuit."""
+        qr = QuantumRegister(1, name="qr")
+        cr = ClassicalRegister(1, name="qc")
+        qc = QuantumCircuit(qr, cr, name="flip")
+        qc.x(qr[0])
+        qc.measure(qr, cr)
+
+        return qc
+
+    @staticmethod
     def bell():
         """Return a Bell circuit."""
         qr = QuantumRegister(2, name="qr")
@@ -39,3 +50,15 @@ class ReferenceCircuits:
         qc.cx(qr[0], qr[1])
 
         return qc
+
+    @staticmethod
+    def toffoli_measure_one():
+        """Return a Toffoli circuit."""
+        qr = QuantumRegister(3, name="qr")
+        cr = ClassicalRegister(1, name="qc")
+        qc = QuantumCircuit(qr, cr, name="toffoli_measure_one")
+        qc.ccx(qr[0], qr[1], qr[2])
+        qc.measure(qr[2], cr)
+
+        return qc
+        
