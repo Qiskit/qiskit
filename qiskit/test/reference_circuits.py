@@ -20,7 +20,7 @@ class ReferenceCircuits:
 
     @staticmethod
     def flip():
-        """Return an inverted state."""
+        """Return an inverter circuit."""
         qr = QuantumRegister(1, name="qr")
         cr = ClassicalRegister(1, name="qc")
         qc = QuantumCircuit(qr, cr, name="flip")
@@ -42,6 +42,7 @@ class ReferenceCircuits:
 
         return qc
 
+
     @staticmethod
     def bell_no_measure():
         """Return a Bell circuit."""
@@ -51,6 +52,7 @@ class ReferenceCircuits:
         qc.cx(qr[0], qr[1])
 
         return qc
+
 
     @staticmethod
     def toffoli_measure_one():
