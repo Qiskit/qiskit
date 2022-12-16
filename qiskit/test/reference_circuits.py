@@ -51,3 +51,14 @@ class ReferenceCircuits:
         qc.cx(qr[0], qr[1])
 
         return qc
+
+    @staticmethod
+    def toffoli_measure_one():
+        """Return a Toffoli circuit."""
+        qr = QuantumRegister(3, name="qr")
+        cr = ClassicalRegister(1, name="qc")
+        qc = QuantumCircuit(qr, cr, name="toffoli_measure_one")
+        qc.ccx(qr[0], qr[1], qr[2])
+        qc.measure(qr[2], cr)
+
+        return qc
