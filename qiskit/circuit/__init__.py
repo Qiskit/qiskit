@@ -242,7 +242,6 @@ from .parameterexpression import ParameterExpression
 from .equivalence import EquivalenceLibrary
 from . import library
 from .commutation_checker import CommutationChecker
-from .library.standard_gates.templates import TemplateLibrary
 from .classicalfunction.types import Int1, Int2
 from .classicalfunction import classical_function, BooleanExpression
 
