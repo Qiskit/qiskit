@@ -29,16 +29,16 @@ from qiskit.algorithms.phase_estimators import (
 import qiskit
 from qiskit import QuantumCircuit
 from qiskit.opflow import (
-    H, 
-    X, 
-    Y, 
-    Z, 
-    I, 
-    T, 
-    StateFn, 
-    PauliTrotterEvolution, 
-    MatrixEvolution, 
-    PauliSumOp
+    H,
+    X,
+    Y,
+    Z,
+    I,
+    T,
+    StateFn,
+    PauliTrotterEvolution,
+    MatrixEvolution,
+    PauliSumOp,
 )
 from qiskit.test import slow_test
 
