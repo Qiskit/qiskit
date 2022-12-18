@@ -1277,7 +1277,7 @@ class TestStatevector(QiskitTestCase):
                 0.0 + 0.35355339j,
                 0.0 - 0.35355339j,
             ],
-            dims=(2, 2, 2, 2)
+            dims=(2, 2, 2, 2),
         )
         latex_representation = state_to_latex(sv, max_size=5)
         self.assertEqual(
@@ -1302,7 +1302,7 @@ class TestStatevector(QiskitTestCase):
                 0.0 - 0.35355339j,
                 0.0 + 0.35355339j,
             ],
-            dims=(2, 2, 2)
+            dims=(2, 2, 2),
         )
         latex_representation = state_to_latex(sv, decimals=3)
         self.assertEqual(

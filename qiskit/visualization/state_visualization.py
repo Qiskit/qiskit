@@ -1310,7 +1310,9 @@ def numbers_to_latex_terms(numbers: List[complex], decimals: int = 10) -> List[s
     return terms
 
 
-def _state_to_latex_ket(data: List[complex], max_size: int = 12, prefix: str = "", decimals: int = 10) -> str:
+def _state_to_latex_ket(
+    data: List[complex], max_size: int = 12, prefix: str = "", decimals: int = 10
+) -> str:
     """Convert state vector to latex representation
 
     Args:
