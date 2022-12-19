@@ -28,7 +28,7 @@ _MAGIC_CLASSMETHODS = {"__init_subclass__", "__prepare__"}
 # `type` itself has several methods (mostly dunders).  When we are wrapping those names, we need to
 # make sure that we don't interfere with `type.__getattribute__`'s handling that circumvents the
 # normal inheritance rules when appropriate.
-_TYPE_METHODS = set(dir(type))
+_TYPE_METHODS = set(dir(type)) - {"__init_subclass__"}
 
 
 class _lift_to_method:  # pylint: disable=invalid-name
