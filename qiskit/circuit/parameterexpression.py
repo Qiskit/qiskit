@@ -90,12 +90,16 @@ class ParameterExpression:
             return self.subs({parameter: value})
         return self.bind({parameter: value})
 
-    def bind(self, parameter_values: Dict) -> "ParameterExpression":
+    def bind(
+        self, parameter_values: Dict, allow_unknown_parameters: bool = False
+    ) -> "ParameterExpression":
         """Binds the provided set of parameters to their corresponding values.
 
         Args:
             parameter_values: Mapping of Parameter instances to the numeric value to which
                               they will be bound.
+            allow_unknown_parameters: If False, raises an error if parameter_values
+                contains Parameters outside those in self
 
         Raises:
             CircuitError:
@@ -108,14 +112,15 @@ class ParameterExpression:
             A new expression parameterized by any parameters which were not bound by
             parameter_values.
         """
-
-        self._raise_if_passed_unknown_parameters(parameter_values.keys())
+        if not allow_unknown_parameters:
+            self._raise_if_passed_unknown_parameters(parameter_values.keys())
         self._raise_if_passed_nan(parameter_values)
 
         symbol_values = {}
         for parameter, value in parameter_values.items():
-            param_expr = self._parameter_symbols[parameter]
-            symbol_values[param_expr] = value
+            if parameter in self._parameters:
+                param_expr = self._parameter_symbols[parameter]
+                symbol_values[param_expr] = value
 
         bound_symbol_expr = self._symbol_expr.subs(symbol_values)
 

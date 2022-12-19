@@ -186,6 +186,13 @@ class TestParameters(QiskitTestCase):
                 bqc_list = getattr(qc, assign_fun)(param_dict)
                 self.assertEqual(bqc_anonymous, bqc_list)
 
+    def test_bind_parameters_allow_unknown(self):
+        """Test binding parameters allowing unknown parameters."""
+        a = Parameter("a")
+        b = Parameter("b")
+        c = a.bind({a: 1, b: 1}, allow_unknown_parameters=True)
+        self.assertEqual(c, a.bind({a: 1}))
+
     def test_bind_half_single_precision(self):
         """Test binding with 16bit and 32bit floats."""
         phase = Parameter("phase")
