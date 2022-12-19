@@ -17,7 +17,7 @@ import logging
 from collections import deque
 
 from qiskit.dagcircuit import DAGCircuit
-from qiskit.circuit import QuantumRegister
+from qiskit.circuit import QuantumRegister, QuantumCircuit
 from qiskit.circuit.library.standard_gates import CXGate, RZXGate
 from qiskit.dagcircuit import DAGOpNode
 from qiskit.transpiler.basepasses import TransformationPass
@@ -159,7 +159,9 @@ class Optimize1qGatesSimpleCommutation(TransformationPass):
         NOTE: Returns None when resynthesis is not possible.
         """
         if len(run) == 0:
-            return QuantumCircuit(1)
+            dag = DAGCircuit()
+            dag.add_qreg(QuantumRegister(1))
+            return dag
         operator = run[0].op.to_matrix()
         for gate in run[1:]:
             operator = gate.op.to_matrix().dot(operator)

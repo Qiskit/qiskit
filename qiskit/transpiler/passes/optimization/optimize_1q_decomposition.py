@@ -19,6 +19,7 @@ import numpy as np
 from qiskit.transpiler.basepasses import TransformationPass
 from qiskit.transpiler.passes.utils import control_flow
 from qiskit.quantum_info.synthesis import one_qubit_decompose
+from qiskit.converters import circuit_to_dag
 
 logger = logging.getLogger(__name__)
 
@@ -98,10 +99,14 @@ class Optimize1qGatesDecomposition(TransformationPass):
         # does this run have uncalibrated gates?
         uncalibrated_p = not has_cals_p or any(not dag.has_calibration_for(g) for g in old_run)
         # does this run have gates not in the image of ._decomposers _and_ uncalibrated?
-        uncalibrated_and_not_basis_p = any(
-            g.name not in basis and (not has_cals_p or not dag.has_calibration_for(g))
-            for g in old_run
-        )
+        if basis is not None:
+            uncalibrated_and_not_basis_p = any(
+                g.name not in basis and (not has_cals_p or not dag.has_calibration_for(g))
+                for g in old_run
+            )
+        else:
+            # If no basis is specified then we're always in the basis
+            uncalibrated_and_not_basis_p = False
 
         # if we're outside of the basis set, we're obligated to logically decompose.
         # if we're outside of the set of gates for which we have physical definitions,
@@ -132,7 +137,7 @@ class Optimize1qGatesDecomposition(TransformationPass):
             operator = run[0].op.to_matrix()
             for gate in run[1:]:
                 operator = gate.op.to_matrix().dot(operator)
-            new_circ = self._resynthesize_run(operator, qubit)
+            new_dag = self._resynthesize_run(operator, qubit)
 
             if self._target is None:
                 basis = self._basis_gates

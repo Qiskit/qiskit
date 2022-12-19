@@ -57,16 +57,14 @@ class TestUnitarySynthesis(QiskitTestCase):
     def test_empty_basis_gates(self):
         """Verify when basis_gates is None, we do not synthesize unitaries."""
         qc = QuantumCircuit(3)
-        op_1q = Operator(XGate())
-        op_2q = Operator(XGate()) ^ Operator(ZGate())
-        op_3q = Operator(XGate()) ^ Operator(ZGate()) ^ Operator(XGate())
+        op_1q = random_unitary(2, seed=0)
+        op_2q = random_unitary(4, seed=0)
+        op_3q = random_unitary(8, seed=0)
         qc.unitary(op_1q.data, [0])
         qc.unitary(op_2q.data, [0, 1])
         qc.unitary(op_3q.data, [0, 1, 2])
 
-        dag = circuit_to_dag(qc)
-
-        out = UnitarySynthesis(None).run(dag)
+        out = UnitarySynthesis(None)(qc)
 
         self.assertEqual(out.count_ops(), {"unitary": 3})
 

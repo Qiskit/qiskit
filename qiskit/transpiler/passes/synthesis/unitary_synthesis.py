@@ -701,7 +701,7 @@ class DefaultUnitarySynthesis(plugin.UnitarySynthesisPlugin):
 
         if unitary.shape == (2, 2):
             _decomposer1q = Optimize1qGatesDecomposition(basis_gates, target)
-            synth_circuit = _decomposer1q._resynthesize_run(unitary, qubits[0])
+            return _decomposer1q._resynthesize_run(unitary, qubits[0])  # already in dag format
         elif unitary.shape == (4, 4):
             # select synthesizers that can lower to the target
             if target is not None:
