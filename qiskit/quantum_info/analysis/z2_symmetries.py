@@ -16,7 +16,7 @@ from __future__ import annotations
 
 import itertools
 from copy import deepcopy
-from typing import Optional, Union, cast
+from typing import Union, cast
 
 import numpy as np
 
@@ -285,8 +285,6 @@ class Z2Symmetries:
                         sq_paulis[row].x[col] = pauli_bool[key][1]
                         sq_list.append(col)
                         break
-                    else:
-                        continue
                 break
 
         return cls(PauliList(pauli_symmetries), PauliList(sq_paulis), sq_list, None)
