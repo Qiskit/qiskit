@@ -97,12 +97,12 @@ class Z2Symmetries:
         self.tol = tol
 
     @property
-    def symmetries(self):
+    def symmetries(self) -> PauliList:
         """Return symmetries."""
         return self._symmetries
 
     @property
-    def sq_paulis(self):
+    def sq_paulis(self) -> PauliList:
         """Return sq paulis."""
         return self._sq_paulis
 
@@ -121,7 +121,7 @@ class Z2Symmetries:
         return cliffords
 
     @property
-    def sq_list(self):
+    def sq_list(self) -> list[int]:
         """Return sq list."""
         return self._sq_list
 
