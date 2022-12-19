@@ -15,7 +15,6 @@
 from __future__ import annotations
 
 import itertools
-import logging
 from copy import deepcopy
 from typing import Optional, Union, cast
 
@@ -23,9 +22,6 @@ import numpy as np
 
 from qiskit.exceptions import QiskitError
 from qiskit.quantum_info import Pauli, PauliList, SparsePauliOp
-
-
-logger = logging.getLogger(__name__)
 
 
 class Z2Symmetries:
@@ -120,7 +116,7 @@ class Z2Symmetries:
         """
         cliffords = [
             (SparsePauliOp(pauli_symm) + SparsePauliOp(sq_pauli)) / np.sqrt(2)
-            for pauli_symm, sq_pauli in zip(self._symmetries, self._sq_paulis)
+            for pauli_symm, sq_pauli in zip(self._symmetries, self._sq_paulis)  # type: ignore
         ]
         return cliffords
 
@@ -198,7 +194,7 @@ class Z2Symmetries:
             "X_or_I": [(0, 1), (1, 1)],
             "Y_or_I": [(0, 1), (1, 0)],
         }
-        
+
         pauli_bool = {
             "Z_or_I": [False, True],
             "X_or_I": [True, False],
@@ -206,10 +202,9 @@ class Z2Symmetries:
         }
 
         if _sparse_pauli_op_is_zero(operator):
-            logger.info("Operator is empty.")
-            return cls([], [], [], None)
+            return cls(PauliList([]), PauliList([]), [], None)
 
-        for pauli in operator:
+        for pauli in iter(operator):
             stacked_paulis.append(
                 np.concatenate((pauli.paulis.x[0], pauli.paulis.z[0]), axis=0).astype(int)
             )
@@ -218,8 +213,7 @@ class Z2Symmetries:
         symmetries = _kernel_f2(stacked_matrix)
 
         if not symmetries:
-            logger.info("No symmetry is found.")
-            return cls([], [], [], None)
+            return cls(PauliList([]), PauliList([]), [], None)
 
         stacked_symmetries = np.stack(symmetries)
         symm_shape = stacked_symmetries.shape
@@ -265,7 +259,7 @@ class Z2Symmetries:
                 stacked_symmetries[row, col + half_symm_shape],
             ) in row_test
 
-            return np.all(stacked_symm_idx_tests) and stacked_symm_row_test
+            return bool(np.all(stacked_symm_idx_tests)) and stacked_symm_row_test
 
         for row in range(symm_shape[0]):
             pauli_symmetries.append(
@@ -284,7 +278,9 @@ class Z2Symmetries:
                 # Build the index list accordingly.
                 for key in ("Z_or_I", "X_or_I", "Y_or_I"):
                     if _test_symmetry_row_col(row, col, test_idx[key], test_row[key]):
-                        sq_paulis.append(Pauli((np.zeros(half_symm_shape), np.zeros(half_symm_shape))))
+                        sq_paulis.append(
+                            Pauli((np.zeros(half_symm_shape), np.zeros(half_symm_shape)))
+                        )
                         sq_paulis[row].z[col] = pauli_bool[key][0]
                         sq_paulis[row].x[col] = pauli_bool[key][1]
                         sq_list.append(col)
@@ -293,11 +289,7 @@ class Z2Symmetries:
                         continue
                 break
 
-
-        pauli_symmetries = PauliList(pauli_symmetries)
-        sq_paulis = PauliList(sq_paulis)
-
-        return cls(pauli_symmetries, sq_paulis, sq_list, None)
+        return cls(PauliList(pauli_symmetries), PauliList(sq_paulis), sq_list, None)
 
     def convert_clifford(self, operator: SparsePauliOp) -> SparsePauliOp:
         """This method operates the first part of the tapering.
@@ -334,13 +326,13 @@ class Z2Symmetries:
 
         """
 
+        tapered_ops: Union[SparsePauliOp, list[SparsePauliOp]]
         if self.is_empty():
             tapered_ops = operator
         else:
             # If the operator is zero we still need to taper the operator to reduce its size i.e. the
             # number of qubits so for example 0*"IIII" could taper to 0*"II" when symmetries remove
             # two qubits.
-            tapered_ops: Union[SparsePauliOp, list[SparsePauliOp]]
             if self.tapering_values is None:
                 tapered_ops = [
                     self._taper(operator, list(coeff))
@@ -381,7 +373,7 @@ class Z2Symmetries:
 
     def _taper(self, op: SparsePauliOp, curr_tapering_values: list[int]) -> SparsePauliOp:
         pauli_list = []
-        for pauli_term in op:
+        for pauli_term in iter(op):
             coeff_out = pauli_term.coeffs[0]
             for idx, qubit_idx in enumerate(self._sq_list):
                 if pauli_term.paulis.z[0, qubit_idx] or pauli_term.paulis.x[0, qubit_idx]:
