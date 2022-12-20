@@ -13,14 +13,45 @@
 
 """Test Qiskit's power instruction operation."""
 
+import math
 import unittest
-from ddt import ddt, data
+from typing import Type
+
+import numpy as np
+from ddt import data, ddt, unpack
 from numpy import array, eye
 
-from qiskit.test import QiskitTestCase
-from qiskit.extensions import SGate, UnitaryGate, CXGate
 from qiskit.circuit import Gate, QuantumCircuit
+from qiskit.extensions import (
+    CPhaseGate,
+    CXGate,
+    IGate,
+    PhaseGate,
+    RGate,
+    RXGate,
+    RXXGate,
+    RYGate,
+    RYYGate,
+    RZGate,
+    RZXGate,
+    RZZGate,
+    SGate,
+    TGate,
+    UnitaryGate,
+    XXMinusYYGate,
+    XXPlusYYGate,
+    ZGate,
+    iSwapGate,
+)
 from qiskit.quantum_info.operators import Operator
+from qiskit.test import QiskitTestCase
+
+
+def _unitary_matrix_power(mat: np.ndarray, exponent: float) -> np.ndarray:
+    """Compute the power of a unitary matrix."""
+    eigs, vecs = np.linalg.eig(mat)
+    eigs = np.diag(np.power(eigs, exponent, dtype=complex))
+    return vecs @ eigs @ vecs.T.conj()
 
 
 @ddt
@@ -32,8 +63,6 @@ class TestPowerSgate(QiskitTestCase):
         """Test Sgate.power(n) method with n as integer."""
         result = SGate().power(n)
 
-        self.assertEqual(result.label, "s^%s" % n)
-        self.assertIsInstance(result, UnitaryGate)
         self.assertEqual(Operator(result), Operator(SGate()).power(n))
 
     results = {
@@ -49,8 +78,7 @@ class TestPowerSgate(QiskitTestCase):
         result = SGate().power(n)
 
         expected = self.results[n]
-        self.assertEqual(result.label, "s^%s" % n)
-        self.assertIsInstance(result, UnitaryGate)
+        self.assertIsInstance(result, PhaseGate)
         self.assertEqual(Operator(result), Operator(expected))
 
 
@@ -96,7 +124,6 @@ class TestGateSqrt(QiskitTestCase):
 
         result = SGate().power(1 / 2)
 
-        self.assertEqual(result.label, "s^0.5")
         self.assertEqual(len(result.definition), 1)
         self.assertIsInstance(result, Gate)
         self.assertEqual(Operator(result), Operator(expected))
@@ -141,7 +168,6 @@ class TestGateFloat(QiskitTestCase):
         """Test nth root"""
         result = SGate().power(1 / degree)
 
-        self.assertEqual(result.label, "s^" + str(1 / degree))
         self.assertEqual(len(result.definition), 1)
         self.assertIsInstance(result, Gate)
         self.assertEqual(Operator(result).power(degree), Operator(SGate()))
@@ -151,7 +177,6 @@ class TestGateFloat(QiskitTestCase):
         """Test greater-than-one exponents"""
         result = SGate().power(exponent)
 
-        self.assertEqual(result.label, "s^" + str(exponent))
         self.assertEqual(len(result.definition), 1)
         self.assertIsInstance(result, Gate)
         # SGate().to_matrix() is diagonal so `**` is equivalent.
@@ -161,7 +186,6 @@ class TestGateFloat(QiskitTestCase):
         """Test Sgate^(-0.2)"""
         result = SGate().power(exponent)
 
-        self.assertEqual(result.label, "s^" + str(exponent))
         self.assertEqual(len(result.definition), 1)
         self.assertIsInstance(result, Gate)
         self.assertEqual(
@@ -178,7 +202,6 @@ class TestPowerInvariant(QiskitTestCase):
     def test_invariant1_int(self, n):
         """Test (op^(1/n))^(n) == op, integer n"""
         result = SGate().power(1 / n).power(n)
-        self.assertEqual(result.label, "unitary^" + str(n))
         self.assertEqual(len(result.definition), 1)
         self.assertIsInstance(result, Gate)
         self.assertTrue(Operator(SGate()), Operator(result))
@@ -191,6 +214,40 @@ class TestPowerInvariant(QiskitTestCase):
 
         self.assertEqual(len(result.data), len(expected.data))
         self.assertEqual(result, expected)
+
+
+@ddt
+class TestEfficientGatePowering(QiskitTestCase):
+    """Test gate powering is efficient where expected."""
+
+    @data(
+        (CPhaseGate(0.1), CPhaseGate),
+        (IGate(), IGate),
+        (PhaseGate(-0.1), PhaseGate),
+        (RGate(0.1, 0.1), RGate),
+        (RXGate(0.1), RXGate),
+        (RXXGate(-0.1), RXXGate),
+        (RYGate(-0.1), RYGate),
+        (RYYGate(0.1), RYYGate),
+        (RZGate(0.1), RZGate),
+        (RZXGate(-0.1), RZXGate),
+        (RZZGate(-0.1), RZZGate),
+        (SGate(), PhaseGate),
+        (TGate(), PhaseGate),
+        (XXMinusYYGate(-0.1, 0.1), XXMinusYYGate),
+        (XXPlusYYGate(0.1, 0.1), XXPlusYYGate),
+        (ZGate(), PhaseGate),
+        (iSwapGate(), XXPlusYYGate),
+    )
+    @unpack
+    def test_efficient_gate_powering(self, gate: Gate, output_gate_type: Type[Gate]):
+        """Test efficient gate powering."""
+        exponents = (-5, -0.5, -0.1, 0, 0.1, 0.5, 5)
+        for exponent in exponents:
+            result = gate.power(exponent)
+            assert isinstance(result, output_gate_type)
+            expected = _unitary_matrix_power(array(gate), exponent)
+            np.testing.assert_allclose(array(result), expected, atol=1e-8)
 
 
 if __name__ == "__main__":
