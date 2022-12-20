@@ -89,7 +89,7 @@ class Kraus(QuantumChannel):
         if isinstance(data, (list, tuple, np.ndarray)):
             # Check if it is a single unitary matrix A for channel:
             # E(rho) = A * rho * A^\dagger
-            if isinstance(data, np.ndarray) or np.array(data).ndim == 2:
+            if isinstance(data, np.ndarray) or np.array(data, dtype=object).ndim == 2:
                 # Convert single Kraus op to general Kraus pair
                 kraus = ([np.asarray(data, dtype=complex)], None)
                 shape = kraus[0][0].shape

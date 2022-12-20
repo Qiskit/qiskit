@@ -39,6 +39,6 @@ class TestUtil(QiskitTestCase):
         m = np.random.randint(-100, 100, size=(n, n))
         symm = (m + m.T) / 2
 
-        triu = np.array([[symm[i, j] for i in range(j, n)] for j in range(n)])
+        triu = np.array([[symm[i, j] for i in range(j, n)] for j in range(n)], dtype=object)
 
         self.assertTrue(np.array_equal(symm, triu_to_dense(triu)))
