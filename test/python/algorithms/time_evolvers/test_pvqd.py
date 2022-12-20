@@ -14,20 +14,21 @@
 import unittest
 from functools import partial
 
-from ddt import ddt, data, unpack
 import numpy as np
+from ddt import data, ddt, unpack
 
+from qiskit import QiskitError
+from qiskit.algorithms.evolvers import EvolutionProblem
+from qiskit.algorithms.optimizers import L_BFGS_B, SPSA, GradientDescent, OptimizerResult
 from qiskit.algorithms.state_fidelities import ComputeUncompute
+from qiskit.algorithms.time_evolvers.pvqd import PVQD
+from qiskit.circuit import Gate, Parameter, QuantumCircuit
+from qiskit.circuit.library import EfficientSU2
 from qiskit.opflow import PauliSumOp
-from qiskit.primitives import Sampler, Estimator
+from qiskit.primitives import Estimator, Sampler
 from qiskit.quantum_info import Pauli, SparsePauliOp
 from qiskit.test import QiskitTestCase
-from qiskit import QiskitError
-from qiskit.circuit import QuantumCircuit, Parameter, Gate
-from qiskit.algorithms.evolvers import EvolutionProblem
-from qiskit.algorithms.time_evolvers.pvqd import PVQD
-from qiskit.algorithms.optimizers import L_BFGS_B, GradientDescent, SPSA, OptimizerResult
-from qiskit.circuit.library import EfficientSU2
+from qiskit.utils import algorithm_globals
 
 
 # pylint: disable=unused-argument, invalid-name
@@ -61,6 +62,7 @@ class TestPVQD(QiskitTestCase):
         self.observable = Pauli("ZZ")
         self.ansatz = EfficientSU2(2, reps=1)
         self.initial_parameters = np.zeros(self.ansatz.num_parameters)
+        algorithm_globals.random_seed = 123
 
     @data(("ising", True, 2), ("pauli", False, None), ("pauli_sum_op", True, 2))
     @unpack

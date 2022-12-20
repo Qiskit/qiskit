@@ -42,9 +42,6 @@ from qiskit.transpiler.passes import (
     SabreLayout,
     Depth,
     FixedPoint,
-    FullAncillaAllocation,
-    EnlargeWithAncilla,
-    ApplyLayout,
     Unroll3qOrMore,
     CheckMap,
     BarrierBeforeFinalMeasurements,
@@ -486,7 +483,6 @@ class TestUnitarySynthesis(QiskitTestCase):
 
             seed = 2
             _map = [SabreLayout(coupling_map, max_iterations=2, seed=seed)]
-            _embed = [FullAncillaAllocation(coupling_map), EnlargeWithAncilla(), ApplyLayout()]
             _unroll3q = Unroll3qOrMore()
             _swap_check = CheckMap(coupling_map)
             _swap = [
@@ -509,7 +505,6 @@ class TestUnitarySynthesis(QiskitTestCase):
 
             pm = PassManager()
             pm.append(_map)  # map to hardware by inserting swaps
-            pm.append(_embed)
             pm.append(_unroll3q)
             pm.append(_swap_check)
             pm.append(_swap)
