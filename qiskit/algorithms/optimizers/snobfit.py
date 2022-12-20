@@ -52,13 +52,14 @@ class SNOBFIT(Optimizer):
         Raises:
             MissingOptionalLibraryError: scikit-quant or SQSnobFit not installed
             QiskitError: If NumPy 1.24.0 or above is installed.
+                See https://github.com/scikit-quant/scikit-quant/issues/24 for more details.
         """
         # check version
         version = tuple(map(int, np.__version__.split(".")))
         if version >= (1, 24, 0):
             raise QiskitError(
                 "SnobFit is incompatible with NumPy 1.24.0 or above, please "
-                "install a previous version."
+                "install a previous version. See also scikit-quant/scikit-quant#24."
             )
 
         super().__init__()

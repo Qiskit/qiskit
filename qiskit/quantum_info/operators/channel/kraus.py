@@ -86,6 +86,8 @@ class Kraus(QuantumChannel):
         # If the input is a list or tuple we assume it is a list of Kraus
         # matrices, if it is a numpy array we assume that it is a single Kraus
         # operator
+        # TODO properly handle array construction from ragged data (like tuple(np.ndarray, None))
+        # and document these accepted input cases. See also Qiskit/qiskit-terra#9307.
         if isinstance(data, (list, tuple, np.ndarray)):
             # Check if it is a single unitary matrix A for channel:
             # E(rho) = A * rho * A^\dagger
