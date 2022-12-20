@@ -14,6 +14,7 @@
 
 from __future__ import annotations
 
+import math
 from collections.abc import Sequence
 from typing import Any, cast
 
@@ -166,7 +167,9 @@ class BackendSampler(BaseSampler):
         metadata: list[dict[str, Any]] = [{}] * len(circuits)
         for count in counts:
             prob_dist = {k: v / shots for k, v in count.int_outcomes().items()}
-            probabilities.append(QuasiDistribution(prob_dist, shots=shots))
+            probabilities.append(
+                QuasiDistribution(prob_dist, shots=shots, stddev_upper_bound=math.sqrt(1 / shots))
+            )
             for metadatum in metadata:
                 metadatum["shots"] = shots
         return SamplerResult(probabilities, metadata)

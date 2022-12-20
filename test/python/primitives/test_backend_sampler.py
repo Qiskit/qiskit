@@ -12,6 +12,7 @@
 
 """Tests for BackendSampler."""
 
+import math
 import unittest
 from test import combine
 
@@ -100,6 +101,7 @@ class TestBackendSampler(QiskitTestCase):
         result = job.result()
         self.assertIsInstance(result, SamplerResult)
         self.assertEqual(result.quasi_dists[0].shots, 1000)
+        self.assertEqual(result.quasi_dists[0].stddev_upper_bound, math.sqrt(1 / 1000))
         self._compare_probs(result.quasi_dists, self._target[1])
 
     @combine(backend=BACKENDS)
