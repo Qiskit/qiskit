@@ -494,6 +494,10 @@ class ParameterExpression:
 
             return self._call(_abs)
 
+    def abs(self):
+        """Absolute of a ParameterExpression"""
+        return self.__abs__()
+
     def __eq__(self, other):
         """Check if this parameter expression is equal to another parameter expression
            or a fixed value (only if this is a bound expression).
