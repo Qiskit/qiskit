@@ -87,6 +87,7 @@ def _format_legacy_qiskit_pulse(pulse_type, envelope, parameters):
 
     # List of pulses in the library in QPY version 5 and below:
     legacy_library_pulses = ["Gaussian", "GaussianSquare", "Drag", "Constant"]
+    is_scalable = False
 
     if pulse_type in legacy_library_pulses:
         # Once complex amp support will be deprecated we will need:
@@ -101,20 +102,32 @@ def _format_legacy_qiskit_pulse(pulse_type, envelope, parameters):
         # And warn that this will change in future releases:
         warnings.warn(
             "Complex amp support for symbolic library pulses will be deprecated. "
-            "Once deprecated, library pulses loaded from old QPY files (Terra version <=0.22.2),"
+            "Once deprecated, library pulses loaded from old QPY files (Terra version < 0.23),"
             " will be converted automatically to float (amp,angle) representation.",
             PendingDeprecationWarning,
         )
-    return envelope
+        is_scalable = True
+
+    return envelope, is_scalable
 
 
 def _read_symbolic_pulse(file_obj, version, qiskit_version):
-    header = formats.SYMBOLIC_PULSE._make(
+    if qiskit_version < (0, 23, 0):
+        make = formats.SYMBOLIC_PULSE._make
+        pack = formats.SYMBOLIC_PULSE_PACK
+        size = formats.SYMBOLIC_PULSE_SIZE
+    else:
+        make = formats.SYMBOLIC_PULSE_V2._make
+        pack = formats.SYMBOLIC_PULSE_PACK_V2
+        size = formats.SYMBOLIC_PULSE_SIZE_V2
+
+    header = make(
         struct.unpack(
-            formats.SYMBOLIC_PULSE_PACK,
-            file_obj.read(formats.SYMBOLIC_PULSE_SIZE),
+            pack,
+            file_obj.read(size),
         )
     )
+
     pulse_type = file_obj.read(header.type_size).decode(common.ENCODE)
     envelope = _loads_symbolic_expr(file_obj.read(header.envelope_size))
     constraints = _loads_symbolic_expr(file_obj.read(header.constraints_size))
@@ -126,13 +139,20 @@ def _read_symbolic_pulse(file_obj, version, qiskit_version):
         vectors={},
     )
     if qiskit_version < (0, 23, 0):
-        envelope = _format_legacy_qiskit_pulse(pulse_type, envelope, parameters)
+        envelope, is_scalable = _format_legacy_qiskit_pulse(pulse_type, envelope, parameters)
         # Note that parameters is mutated during the function call
+    else:
+        is_scalable = header.is_scalable
 
     duration = value.read_value(file_obj, version, {})
     name = value.read_value(file_obj, version, {})
 
-    return library.SymbolicPulse(
+    if is_scalable:
+        pulse_generator = library.ScalableSymbolicPulse
+    else:
+        pulse_generator = library.SymbolicPulse
+
+    return pulse_generator(
         pulse_type=pulse_type,
         duration=duration,
         parameters=parameters,
@@ -230,14 +250,16 @@ def _write_symbolic_pulse(file_obj, data):
     envelope_bytes = _dumps_symbolic_expr(data.envelope)
     constraints_bytes = _dumps_symbolic_expr(data.constraints)
     valid_amp_conditions_bytes = _dumps_symbolic_expr(data.valid_amp_conditions)
+    is_scalable = isinstance(data, library.ScalableSymbolicPulse)
 
     header_bytes = struct.pack(
-        formats.SYMBOLIC_PULSE_PACK,
+        formats.SYMBOLIC_PULSE_PACK_V2,
         len(pulse_type_bytes),
         len(envelope_bytes),
         len(constraints_bytes),
         len(valid_amp_conditions_bytes),
         data._limit_amplitude,
+        is_scalable,
     )
     file_obj.write(header_bytes)
     file_obj.write(pulse_type_bytes)

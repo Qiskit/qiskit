@@ -111,6 +111,13 @@ from .discrete import (
     drag,
 )
 from .parametric_pulses import ParametricPulse
-from .symbolic_pulses import SymbolicPulse, Gaussian, GaussianSquare, Drag, Constant
+from .symbolic_pulses import (
+    SymbolicPulse,
+    ScalableSymbolicPulse,
+    Gaussian,
+    GaussianSquare,
+    Drag,
+    Constant,
+)
 from .pulse import Pulse
 from .waveform import Waveform

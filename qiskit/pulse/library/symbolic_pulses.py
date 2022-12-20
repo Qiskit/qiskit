@@ -547,8 +547,11 @@ class SymbolicPulse(Pulse):
         if self._envelope != other._envelope:
             return False
 
-        if self.parameters != other.parameters:
-            return False
+        # SymbolicPulse requires parameters to be identical, but subclasses of SymbolicPulse
+        # Have different conditions.
+        if self.__class__ == SymbolicPulse:
+            if self.parameters != other.parameters:
+                return False
 
         return True
 
@@ -566,6 +569,74 @@ class SymbolicPulse(Pulse):
             param_repr,
             f", name='{self.name}'" if self.name is not None else "",
         )
+
+
+class ScalableSymbolicPulse(SymbolicPulse):
+    r"""Subclass of :class:`SymbolicPulse` for pulses with scalable envelope.
+
+    Instance of :class:`ScalableSymbolicPulse` behaves the same as an instance of
+    :class:`SymbolicPulse`, but its envelope is assumed to have a scalable form
+    :math:`\text{amp}\times\exp\left(i\times\text{angle}\right)\times\text{F}
+    \left(t,\text{parameters}\right)`,
+    where :math:`\text{F}` is some function describing the rest of the envelope.
+    Parameters `amp` and `angle` are assumed to appear in :attr:`SymbolicPulse.parameters`.
+
+    When two :class:`ScalableSymbolicPulse` objects are equated, instead of comparing
+    `amp` and `angle` individually, only the complex amplitude
+    :math:'\text{amp}\times\exp\left(i\times\text{angle}\right)' is compared.
+    """
+
+    def __init__(
+        self,
+        pulse_type: str,
+        duration: Union[ParameterExpression, int],
+        parameters: Optional[Dict[str, Union[ParameterExpression, complex]]] = None,
+        name: Optional[str] = None,
+        limit_amplitude: Optional[bool] = None,
+        envelope: Optional[sym.Expr] = None,
+        constraints: Optional[sym.Expr] = None,
+        valid_amp_conditions: Optional[sym.Expr] = None,
+    ):
+        if "amp" not in parameters or "angle" not in parameters:
+            raise PulseError("ScalableSymbolicPulse must have parameters amp and angle")
+
+        super().__init__(
+            pulse_type=pulse_type,
+            duration=duration,
+            parameters=parameters,
+            name=name,
+            limit_amplitude=limit_amplitude,
+            envelope=envelope,
+            constraints=constraints,
+            valid_amp_conditions=valid_amp_conditions,
+        )
+
+    def __eq__(self, other: "ScalableSymbolicPulse") -> bool:
+        symbolic_pulse_comparison = super().__eq__(other)
+        if symbolic_pulse_comparison is not True:
+            return symbolic_pulse_comparison
+
+        complex_amp1 = self.amp * np.exp(1j * self.angle)
+        complex_amp2 = other.amp * np.exp(1j * other.angle)
+
+        if isinstance(complex_amp1, ParameterExpression) or isinstance(
+            complex_amp2, ParameterExpression
+        ):
+            if complex_amp1 != complex_amp2:
+                return False
+        else:
+            if not np.isclose(complex_amp1, complex_amp2):
+                return False
+
+        for key in self.parameters:
+            if key not in ["amp", "angle"] and self.parameters[key] != other.parameters[key]:
+                return False
+
+        return True
+
+    # When __eq__ is modified, __hash__ is automatically set to None, and thus needs to be defined
+    # explicitly.
+    __hash__ = SymbolicPulse.__hash__
 
 
 class _PulseType(type):
@@ -638,7 +709,7 @@ class Gaussian(metaclass=_PulseType):
                 waveform to 1. The default is ``True`` and the amplitude is constrained to 1.
 
         Returns:
-            SymbolicPulse instance.
+            ScalableSymbolicPulse instance.
 
         Raises:
             PulseError: If both complex amp and angle are provided as arguments.
@@ -670,7 +741,7 @@ class Gaussian(metaclass=_PulseType):
         consts_expr = _sigma > 0
         valid_amp_conditions_expr = sym.Abs(_amp) <= 1.0
 
-        instance = SymbolicPulse(
+        instance = ScalableSymbolicPulse(
             pulse_type=cls.alias,
             duration=duration,
             parameters=parameters,
@@ -753,7 +824,7 @@ class GaussianSquare(metaclass=_PulseType):
                 waveform to 1. The default is ``True`` and the amplitude is constrained to 1.
 
         Returns:
-            SymbolicPulse instance.
+            ScalableSymbolicPulse instance.
 
         Raises:
             PulseError: When width and risefall_sigma_ratio are both empty or both non-empty.
@@ -811,7 +882,7 @@ class GaussianSquare(metaclass=_PulseType):
         consts_expr = sym.And(_sigma > 0, _width >= 0, _duration >= _width)
         valid_amp_conditions_expr = sym.Abs(_amp) <= 1.0
 
-        instance = SymbolicPulse(
+        instance = ScalableSymbolicPulse(
             pulse_type=cls.alias,
             duration=duration,
             parameters=parameters,
@@ -891,7 +962,7 @@ class Drag(metaclass=_PulseType):
                 waveform to 1. The default is ``True`` and the amplitude is constrained to 1.
 
         Returns:
-            SymbolicPulse instance.
+            ScalableSymbolicPulse instance.
 
         Raises:
             PulseError: If both complex amp and angle are provided as arguments.
@@ -926,7 +997,7 @@ class Drag(metaclass=_PulseType):
         consts_expr = _sigma > 0
         valid_amp_conditions_expr = sym.And(sym.Abs(_amp) <= 1.0, sym.Abs(_beta) < _sigma)
 
-        instance = SymbolicPulse(
+        instance = ScalableSymbolicPulse(
             pulse_type="Drag",
             duration=duration,
             parameters=parameters,
@@ -972,7 +1043,7 @@ class Constant(metaclass=_PulseType):
                 waveform to 1. The default is ``True`` and the amplitude is constrained to 1.
 
         Returns:
-            SymbolicPulse instance.
+            ScalableSymbolicPulse instance.
 
         Raises:
             PulseError: If both complex amp and angle are provided as arguments.
@@ -1011,7 +1082,7 @@ class Constant(metaclass=_PulseType):
 
         valid_amp_conditions_expr = sym.Abs(_amp) <= 1.0
 
-        instance = SymbolicPulse(
+        instance = ScalableSymbolicPulse(
             pulse_type="Constant",
             duration=duration,
             parameters=parameters,

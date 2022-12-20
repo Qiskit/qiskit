@@ -19,6 +19,7 @@ import numpy as np
 from qiskit.circuit import Parameter
 from qiskit.pulse.library import (
     SymbolicPulse,
+    ScalableSymbolicPulse,
     Waveform,
     Constant,
     Gaussian,
@@ -444,21 +445,6 @@ class TestParametricPulses(QiskitTestCase):
         reference = np.concatenate([-0.1 * np.ones(30), 0.1j * np.ones(50), -0.1 * np.ones(20)])
         np.testing.assert_array_almost_equal(waveform.samples, reference)
 
-    def test_no_subclass(self):
-        """Test no dedicated pulse subclass is created."""
-
-        gaussian_pulse = Gaussian(160, 0.1, 40)
-        self.assertIs(type(gaussian_pulse), SymbolicPulse)
-
-        gaussian_square_pulse = GaussianSquare(800, 0.1, 64, 544)
-        self.assertIs(type(gaussian_square_pulse), SymbolicPulse)
-
-        drag_pulse = Drag(160, 0.1, 40, 1.5)
-        self.assertIs(type(drag_pulse), SymbolicPulse)
-
-        constant_pulse = Constant(800, 0.1)
-        self.assertIs(type(constant_pulse), SymbolicPulse)
-
     def test_gaussian_deprecated_type_check(self):
         """Test isinstance check works with deprecation."""
         gaussian_pulse = Gaussian(160, 0.1, 40)
@@ -541,6 +527,40 @@ class TestFunctionalPulse(QiskitTestCase):
         for _duration in _durations:
             pulse_wf_inst = local_gaussian(duration=_duration, amp=1, t0=5, sig=1)
             self.assertEqual(len(pulse_wf_inst.samples), _duration)
+
+
+class TestScalableSymbolicPulse(QiskitTestCase):
+    """ScalableSymbolicPulse tests"""
+
+    # pylint: disable=invalid-name
+    def test_amp_angle_verification(self):
+        """Test defining a custom pulse with no amp or angle"""
+        t, t1, t2, amp1, amp2 = sym.symbols("t, t1, t2, amp1, amp2")
+        envelope = sym.Piecewise((amp1, sym.And(t > t1, t < t2)), (amp2, sym.true))
+        with self.assertRaises(PulseError):
+            ScalableSymbolicPulse(
+                pulse_type="Custom",
+                duration=100,
+                parameters={"t1": 30, "t2": 80, "amp1": 0.1j, "amp2": 0.1j},
+                envelope=envelope,
+            )
+
+    def test_scalable_comparison(self):
+        """Test equating of pulses with comparison_parameters."""
+        # amp,angle comparison
+        gaussian_negamp = Gaussian(duration=25, sigma=4, amp=-0.5, angle=0)
+        gaussian_piphase = Gaussian(duration=25, sigma=4, amp=0.5, angle=np.pi)
+        self.assertEqual(gaussian_negamp, gaussian_piphase)
+
+        # Parameterized library pulses
+        amp = Parameter("amp")
+        gaussian1 = Gaussian(duration=25, sigma=4, amp=amp, angle=0)
+        gaussian2 = Gaussian(duration=25, sigma=4, amp=amp, angle=0)
+        self.assertEqual(gaussian1, gaussian2)
+
+        # pulses with different parameters
+        gaussian1._params["sigma"] = 10
+        self.assertNotEqual(gaussian1, gaussian2)
 
 
 if __name__ == "__main__":
