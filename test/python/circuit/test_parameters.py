@@ -1106,6 +1106,7 @@ class TestParameters(QiskitTestCase):
         theta = Parameter(name="theta")
 
         qc = QuantumCircuit(2)
+        qc.p(numpy.abs(phi), 0)
         qc.p(numpy.cos(phi), 0)
         qc.p(numpy.sin(phi), 0)
         qc.p(numpy.tan(phi), 0)
@@ -1116,6 +1117,7 @@ class TestParameters(QiskitTestCase):
         qc.assign_parameters({phi: pi, theta: 1}, inplace=True)
 
         qc_ref = QuantumCircuit(2)
+        qc_ref.p(pi, 0)
         qc_ref.p(-1, 0)
         qc_ref.p(0, 0)
         qc_ref.p(0, 0)
@@ -1186,12 +1188,23 @@ class TestParameterExpressions(QiskitTestCase):
         abs functions when bound."""
 
         x = Parameter("x")
-        xb_1 = x.bind({x: 1.0})
+        xb_1 = x.bind({x: 2.0})
         xb_2 = x.bind({x: 3.0 + 4.0j})
 
-        self.assertEqual(abs(xb_1), 1.0)
-        self.assertEqual(abs(-xb_1), 1.0)
+        self.assertEqual(abs(xb_1), 2.0)
+        self.assertEqual(abs(-xb_1), 2.0)
         self.assertEqual(abs(xb_2), 5.0)
+    
+    def test_abs_function_when_not_bound(self):
+        """Verify expression can be used with
+        abs functions when not bound."""
+
+        x = Parameter("x")
+        y = Parameter("y")
+
+        self.assertEqual(abs(x), abs(-x))
+        self.assertEqual(abs(x) * abs(y), abs(x * y))
+        self.assertEqual(abs(x) / abs(y), abs(x / y))
 
     def test_cast_to_float_when_bound(self):
         """Verify expression can be cast to a float when fully bound."""

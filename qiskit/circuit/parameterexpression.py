@@ -485,7 +485,8 @@ class ParameterExpression:
 
     def __abs__(self):
         """Absolute of a ParameterExpression"""
-        if HAS_SYMENGINE:
+        if _optionals.HAS_SYMENGINE:
+            import symengine
             return self._call(symengine.Abs)
         else:
             from sympy import Abs as _abs
