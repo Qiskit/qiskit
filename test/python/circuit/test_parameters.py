@@ -1194,7 +1194,7 @@ class TestParameterExpressions(QiskitTestCase):
         self.assertEqual(abs(xb_1), 2.0)
         self.assertEqual(abs(-xb_1), 2.0)
         self.assertEqual(abs(xb_2), 5.0)
-    
+
     def test_abs_function_when_not_bound(self):
         """Verify expression can be used with
         abs functions when not bound."""
